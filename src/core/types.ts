@@ -304,6 +304,9 @@ export type Actor = {
   /** An inventory item taken in hand. A carried world object wins over this,
    * and the engine never lets both be set. */
   heldItem?: ItemId;
+  /** Met below the street: who they are generated from, where they keep to,
+   * when they next act, and whether they have spoken to the player. */
+  underground?: { person: string; home: Point; next: number; goal?: Point; met?: boolean };
   /** Set while a need has pulled this actor off their daily routine. Absent is
    * the normal case, so a resident is drawn from the schedule from the first
    * frame, before the simulation has ticked at all. */
@@ -562,6 +565,8 @@ export type PlayerCommand =
         | "talk"
         /** Whatever a cave target offers: go in, climb, take, read. */
         | "cave"
+        /** Whatever a manhole or a sewer target offers. */
+        | "sewer"
         | "enter"
         | "exit"
         | "open"
@@ -686,6 +691,10 @@ export type Snapshot = {
   /** The trip underground in progress, and what each cave remembers. */
   cave?: import("./cave").CaveRun;
   caves?: Record<string, import("./cave").CaveRecord>;
+  /** The trip below the street, the finds taken there, and the lids left open, by street cell. */
+  sewer?: import("./sewer").SewerRun;
+  sewerDone?: string[];
+  lids?: Record<string, number>;
   fauna?: import("./fauna").FaunaGroup[];
   /** Animals the district has a name for, by group and member number. */
   legends?: Record<string, import("./combat").Legend>;

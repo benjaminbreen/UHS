@@ -7,7 +7,8 @@ export type InteriorMusic =
   | "home"
   | "workshop"
   | "hall"
-  | "cave";
+  | "cave"
+  | "sewer";
 
 const everywhere = {
   culture: [],
@@ -52,6 +53,31 @@ export const interiorThemes: Record<InteriorMusic, LayeredTheme> = {
       { voice: "rockgong", stem: "harmony", loop: "-:11 A4:1:.5 -:17 D5:1:.4 -:8", velocity: 0.1, pan: 0.4, enter: 4, echo: [2, 3, 0.5], drift: 0.5 },
       { voice: "xun", stem: "harmony", loop: "-:16 A4:3 G4:1 E4:4 -:20 D4:2 E4:2 A4:6 -:10", velocity: 0.07, enter: 12, exit: 30, echo: [3, 2, 0.4] },
       { voice: "wood", stem: "percussion", loop: "-:23 C6:1:.3 -:19 C6:1:.2 -:9", velocity: 0.03, pan: 0.6, echo: [0.75, 4, 0.5] },
+    ],
+  },
+  sewer: {
+    ...everywhere,
+    years: [1850, 2026],
+    place: "Under a motor-age street",
+    id: "under-the-street",
+    title: "Under the street",
+    subtitle:
+      "Water drops tune themselves in the dark over a pipe's low hum; somewhere down the line iron knocks and the tunnel hands it back, and a muted horn wanders in looking for the way out.",
+    evidence:
+      "Fiction: an original piece for the sewers. The cup-muted horn nods to the brass of the street above; nothing here is drawn from a recorded tune.",
+    bpm: 56,
+    meter: 4,
+    bars: 32,
+    key: "E minor",
+    reverb: [0.65, 6],
+    layers: [
+      { voice: "drone", stem: "bass", loop: "E2:16 E2:12 D2:4", velocity: 0.06 },
+      { voice: "sub", stem: "bass", loop: "E1:8 -:24", velocity: 0.045, enter: 4 },
+      { voice: "celesta", stem: "harmony", loop: "B5:.5:.8 -:3.5 G5:.5:.5 -:6 E6:.5:.4 -:5.5 F#5:.5:.6 -:4", velocity: 0.08, pan: -0.35, echo: [0.75, 3, 0.4] },
+      { voice: "celesta", stem: "harmony", loop: "-:7 D6:.5:.5 -:9 A5:.5:.4 -:5.5", velocity: 0.06, pan: 0.45, enter: 2, echo: [1, 3, 0.45], drift: 0.5 },
+      { voice: "bronze", stem: "percussion", loop: "-:14 E3:1:.6 -:9 E3:.5:.4 B2:1:.5 -:6.5", velocity: 0.05, pan: 0.55, enter: 6, echo: [2, 4, 0.5] },
+      { voice: "pad", stem: "harmony", loop: "E3+B3:16 C3+G3:16 A2+E3:16 B2+F#3:16", velocity: 0.025, enter: 12, exit: 28 },
+      { voice: "muted", stem: "harmony", loop: "-:8 B4:2 C5:1 B4:1 G4:3 -:1 A4:1 B4:1 E4:4 -:12 G4:1 A4:1 B4:2 D5:2 C5:1 B4:1 A4:4 -:4 F#4:1 G4:1 E4:6 -:10", velocity: 0.07, pan: -0.15, enter: 8, exit: 28, echo: [1.5, 2, 0.35] },
     ],
   },
   chant: {

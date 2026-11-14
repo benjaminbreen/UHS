@@ -662,3 +662,129 @@ function impulse(ctx: BaseAudioContext, seconds: number, decay: number) {
   }
   return buffer;
 }
+
+/** How a sewer sounds where the player stands, each 0 to 1: how near the
+ * running water is, how big the space is, and storm water from rain above. */
+export type SewerLevels = { flow: number; echo: number; surge: number };
+
+/** Seconds of running water built from thousands of bubbles over a soft wash,
+ * written so the end runs into the start. `low` sets the bubbles' register. */
+function waterLoop(ctx: BaseAudioContext, seconds: number, bubbles: number, low: number, wash: number) {
+  const sr = ctx.sampleRate,
+    n = Math.floor(sr * seconds);
+  const mono = new Float32Array(n),
+    hiss = new Float32Array(n * 2);
+  let lp = 0;
+  for (let i = 0; i < n * 2; i++) hiss[i] = lp += 0.08 * (Math.random() * 2 - 1 - lp);
+  // Crossfade the second pass under the first so the loop has no seam.
+  for (let i = 0; i < n; i++)
+    mono[i] = wash * (hiss[i] * Math.sqrt(i / n) + hiss[i + n] * Math.sqrt(1 - i / n));
+  for (let b = 0; b < bubbles; b++) {
+    // A bubble is a short sine that rises as it closes.
+    const f0 = low * Math.exp(rand(0, 1.9)),
+      dur = rand(0.006, 0.03) * Math.sqrt(600 / f0),
+      amp = 0.25 * Math.random() ** 2.5,
+      start = Math.floor(Math.random() * n),
+      len = Math.floor(dur * sr);
+    let phase = 0;
+    for (let k = 0; k < len; k++) {
+      const t = k / sr;
+      phase += (2 * Math.PI * f0 * (1 + (1.6 * t) / dur)) / sr;
+      mono[(start + k) % n] += amp * Math.sin(phase) * Math.exp((-5 * t) / dur) * Math.min(1, k / 40);
+    }
+  }
+  // The right ear hears the same water half a loop later: wide, and half the work.
+  const buffer = ctx.createBuffer(2, n, sr);
+  buffer.copyToChannel(mono, 0);
+  const right = buffer.getChannelData(1),
+    half = n >> 1;
+  right.set(mono.subarray(half));
+  right.set(mono.subarray(0, half), n - half);
+  return buffer;
+}
+const sewerWater = new WeakMap<BaseAudioContext, [AudioBuffer, AudioBuffer]>();
+
+/** The running water of a sewer channel, with its tunnel echo and storm
+ * surge. `set` is cheap enough to call every frame. */
+export class SewerBed {
+  private flow: GainNode;
+  private surge: GainNode;
+  private wet: GainNode;
+  private tone: BiquadFilterNode;
+  private out: GainNode;
+  private sources: AudioScheduledSourceNode[] = [];
+  private last: SewerLevels = { flow: -1, echo: -1, surge: -1 };
+  constructor(private ctx: BaseAudioContext, into: AudioNode) {
+    this.out = ctx.createGain();
+    this.out.connect(into);
+    this.flow = ctx.createGain();
+    this.flow.gain.value = 0;
+    this.surge = ctx.createGain();
+    this.surge.gain.value = 0;
+    this.tone = ctx.createBiquadFilter();
+    this.tone.type = "lowpass";
+    this.tone.frequency.value = 1500;
+    const verb = ctx.createConvolver();
+    verb.buffer = impulse(ctx, 3.5, 3);
+    const dark = ctx.createBiquadFilter();
+    dark.type = "lowpass";
+    dark.frequency.value = 2600;
+    this.wet = ctx.createGain();
+    this.wet.gain.value = 0;
+    this.flow.connect(this.tone);
+    this.surge.connect(this.tone);
+    this.tone.connect(this.out);
+    this.tone.connect(this.wet).connect(verb).connect(dark).connect(this.out);
+    const play = (buffer: AudioBuffer, into: AudioNode) => {
+      const src = ctx.createBufferSource();
+      src.buffer = buffer;
+      src.loop = true;
+      src.connect(into);
+      src.start();
+      this.sources.push(src);
+    };
+    // Storm water is deeper and denser: big glugs under a roar.
+    let water = sewerWater.get(ctx);
+    if (!water) sewerWater.set(ctx, (water = [waterLoop(ctx, 7.3, 9000, 420, 0.5), waterLoop(ctx, 5.9, 8000, 180, 1.4)]));
+    const roar = ctx.createGain();
+    roar.connect(this.surge);
+    play(water[0], this.flow);
+    play(water[1], roar);
+    // Two slow, unrelated swells, so the channel never sits at one level.
+    const swell = (rate: number, depth: number, target: AudioParam) => {
+      const osc = ctx.createOscillator();
+      osc.frequency.value = rate;
+      const d = ctx.createGain();
+      d.gain.value = depth;
+      osc.connect(d).connect(target);
+      osc.start();
+      this.sources.push(osc);
+    };
+    swell(0.07, 0.12, this.out.gain);
+    swell(0.031, 0.12, this.out.gain);
+    swell(0.19, 0.3, roar.gain);
+  }
+  set(levels: SewerLevels, instant = false) {
+    const { flow, echo, surge } = levels,
+      last = this.last;
+    if (Math.abs(flow - last.flow) + Math.abs(echo - last.echo) + Math.abs(surge - last.surge) < 0.01) return;
+    this.last = { ...levels };
+    const now = this.ctx.currentTime;
+    const glide = (param: AudioParam, value: number) =>
+      instant ? param.setValueAtTime(value, now) : param.setTargetAtTime(value, now, 0.6);
+    glide(this.flow.gain, 0.5 * flow);
+    glide(this.surge.gain, 0.45 * surge);
+    // Far water loses its top; a storm brings it back.
+    glide(this.tone.frequency, 900 + 4500 * Math.max(flow, surge) ** 1.5);
+    glide(this.wet.gain, 0.15 + 0.85 * echo);
+  }
+  dispose() {
+    for (const source of this.sources)
+      try {
+        source.stop();
+      } catch {
+        /* Already stopped. */
+      }
+    this.out.disconnect();
+  }
+}

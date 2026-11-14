@@ -22,6 +22,8 @@ type Contact = {
 };
 
 const WAKE_MS = 1100;
+const CLEAR = { under: 0x4cbcc4, ring: 0xc3f2e5, spray: 0xe3fff0, back: 0x319daf, lap: 0xd8f8e8 };
+const MURKY = { under: 0x5e6a3c, ring: 0xc8d2a4, spray: 0xe4ead0, back: 0x3a4628, lap: 0xd2dab0 };
 
 export class WadingEffects {
   private contacts = new Map<string, Contact>();
@@ -41,7 +43,9 @@ export class WadingEffects {
     flow: readonly [number, number] = [0, 0],
     /** The stroke's frame for a swimmer, who floats at a fixed waterline. */
     stroke?: number,
+    murky = false,
   ) {
+    const ink = murky ? MURKY : CLEAR;
     let c = this.contacts.get(id);
     const wet = depth > 0.025;
     if (!wet) {
@@ -102,7 +106,7 @@ export class WadingEffects {
       .setTexture(body.texture.key)
       .setPosition(body.x, body.y)
       .setCrop(0, 80 - immersion, 80, immersion)
-      .setTint(0x4cbcc4)
+      .setTint(ink.under)
       .setAlpha(swim ? 0.22 : 0.38)
       .setDepth(body.depth - 0.02)
       .setVisible(body.visible);
@@ -149,7 +153,7 @@ export class WadingEffects {
         16,
         31,
         (1 - age) * 0.5,
-        0xc3f2e5,
+        ink.ring,
       );
       arc(
         c.front,
@@ -160,11 +164,11 @@ export class WadingEffects {
         0,
         15,
         (1 - age) * 0.65,
-        0xc3f2e5,
+        ink.ring,
       );
       if (age < 0.32 && moving) {
         const t = age / 0.32;
-        c.front.fillStyle(0xe3fff0, 1 - t);
+        c.front.fillStyle(ink.spray, 1 - t);
         for (let k = 0; k < (r.entry ? 5 : 3); k++) {
           const spread = (k - (r.entry ? 2 : 1)) * (2 + t * 4);
           c.front.fillRect(
@@ -186,12 +190,12 @@ export class WadingEffects {
         const px = Math.round(x - w.dy * spread * side - w.dx * 2),
           py = Math.round(y + w.dx * spread * side * 0.5 - w.dy);
         const g = py > waterline ? c.front : c.back;
-        g.fillStyle(0xc3f2e5, (1 - age) * 0.55);
+        g.fillStyle(ink.ring, (1 - age) * 0.55);
         g.fillRect(px, py, 2, 1);
       }
     }
     const lap = Math.sin(time / 310 + body.x * 0.13);
-    arc(c.back, body.x, waterline, 6, 2, 17, 31, 0.55, 0x319daf);
+    arc(c.back, body.x, waterline, 6, 2, 17, 31, 0.55, ink.back);
     arc(
       c.front,
       body.x,
@@ -201,7 +205,7 @@ export class WadingEffects {
       1,
       14,
       0.65 + lap * 0.15,
-      0xd8f8e8,
+      ink.lap,
     );
     body.setData("waterDepth", depth).setData("immersion", immersion).setData("swimming", swim);
   }

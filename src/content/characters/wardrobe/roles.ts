@@ -31,6 +31,9 @@ const patterns: Record<string, RegExp> = {
   geisha: /\b(geisha|geiko|maiko)\b/,
   pilot: /\b(pilot|aviator|airman)\b/,
   mountaineer: /\b(mountaineer|climber|expedition member)\b/,
+  // Not the Arctic "skin sewer", who sews.
+  sewerman: /(?<!skin )\b(sewers?|sewerm[ae]n|flushers?|kanalarbeiter|drain clearers?|sanitation workers?|rat[- ]catchers?|rodent operatives?|toshers?|collector fitters?)\b/,
+  urbex: /\b(urban explorers?|urbex|cataphiles?|drainers?|graffiti writers?)\b/,
   astronaut:
     /\b(astronaut|cosmonaut|taikonaut|spacer|space ?(crew|pilot|marine)|flight engineer)\b/,
   soldier:

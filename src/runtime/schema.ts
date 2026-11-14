@@ -450,6 +450,7 @@ const actor = z.object({
   memories: z.array(z.string()),
   held: z.string().optional(),
   heldItem: z.string().max(64).optional(),
+  underground: z.any().optional(),
   torchOut: z.number().optional(),
   perch: z
     .object({ on: z.string(), label: z.string(), rise: z.number(), at: point.optional(), drop: z.number().nonnegative().optional() })
@@ -597,6 +598,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
       action: z.enum([
         "talk",
         "cave",
+        "sewer",
         "enter",
         "exit",
         "open",
@@ -927,6 +929,9 @@ export const snapshotSchema = z.object({
     .optional(),
   cave: z.any().optional(),
   caves: z.record(z.string(), z.any()).optional(),
+  sewer: z.any().optional(),
+  sewerDone: z.array(z.string()).optional(),
+  lids: z.record(z.string(), z.number()).optional(),
   fauna: z.array(faunaGroup).max(5000).optional(),
   legends: z
     .record(

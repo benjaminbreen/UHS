@@ -343,6 +343,9 @@ import terrainFrames from "./generated/terrain.json" with { type: "json" };
 import { bloomAt, setBloomCut } from "./flowers";
 import { FLOOR_X, FLOOR_Y, PixelRoom } from "./interiors/pixel";
 import { CaveView } from "./cave/view";
+import { SewerView } from "./sewer/view";
+import { paintOpenLid } from "./sewer/art";
+import { laneLids } from "./carriageway";
 import { caveLight } from "../content/caves";
 import type { Kind, Prop } from "./interiors/room";
 import { ROOM_ORIGIN } from "../world/interior";
@@ -803,10 +806,11 @@ export class WorldScene extends Phaser.Scene {
   private crowns = new Map<string, number>();
   /** The generated room the player is standing in, if their space has one. */
   private caveView?: CaveView;
+  private sewerView?: SewerView;
   /** A space that draws and lights itself: a generated room or a cave. */
   private selfLit(space: string) {
     const e = this.runtime.engine;
-    return space !== "outside" && (!!e.interiorOf?.(space) || !!e.caveOf?.(space));
+    return space !== "outside" && (!!e.interiorOf?.(space) || !!e.caveOf?.(space) || !!e.sewerOf?.(space));
   }
   private roomView?: {
     space: string;
@@ -3893,6 +3897,7 @@ export class WorldScene extends Phaser.Scene {
       this.options.freeze ||
       this.roomView ||
       this.caveView ||
+      this.sewerView ||
       (this.snow < 0.34 && !dew) ||
       this.light.id === "night" ||
       this.light.id === "dusk" ||
@@ -3937,7 +3942,7 @@ export class WorldScene extends Phaser.Scene {
   /** The hour after a shower: drops still falling from the trees, the wet
    * ground steaming where the sun is back on it, and some days a rainbow. */
   private afterRain(delta: number) {
-    const out = !this.options.freeze && !this.roomView && !this.caveView && this.light.id !== "night";
+    const out = !this.options.freeze && !this.roomView && !this.caveView && !this.sewerView && this.light.id !== "night";
     const wet = out && (this.rained || ((this.weather?.wetness ?? 0) > 0.3 && this.weather?.condition !== "rain"));
     const sun = this.sunStrength() >= 0.85;
     const view = this.cameras.main.worldView;
@@ -4009,7 +4014,7 @@ export class WorldScene extends Phaser.Scene {
   }
   /** Which way a low sun lights edges: east at sunrise, west at dusk, else 0. */
   private rimSide() {
-    if (this.roomView || this.caveView || this.options.shadows === false || this.sunStrength() < 0.85) return 0;
+    if (this.roomView || this.caveView || this.sewerView || this.options.shadows === false || this.sunStrength() < 0.85) return 0;
     return this.light.id === "early-morning" ? 1 : this.light.id === "dusk" ? -1 : 0;
   }
   private rimColour(side: number) {
@@ -4020,7 +4025,7 @@ export class WorldScene extends Phaser.Scene {
   private figureRim() {
     const side = this.rimSide();
     if (side) return { side, colour: this.rimColour(side), alpha: 0.85 };
-    return !this.roomView && !this.caveView && (this.nightGrade?.night ?? 0) > 0.35
+    return !this.roomView && !this.caveView && !this.sewerView && (this.nightGrade?.night ?? 0) > 0.35
       ? { side: -1, colour: 0xd4e2ff, alpha: 0.5 }
       : undefined;
   }
@@ -6189,6 +6194,72 @@ export class WorldScene extends Phaser.Scene {
       },
     });
   }
+  private lidHoles = new Map<string, Phaser.GameObjects.Image>();
+  /** Manholes left open in the street: the hole, and the lid lying beside it. */
+  private syncLids() {
+    const e = this.runtime.engine;
+    const open = e.state.player.pos.space === "outside" ? e.state.lids ?? {} : {};
+    for (const [k, im] of this.lidHoles) if (!(k in open)) im.destroy(), this.lidHoles.delete(k);
+    for (const k of Object.keys(open)) {
+      if (this.lidHoles.has(k)) continue;
+      const [x, y] = k.split(",").map(Number);
+      const lane = e.world.topography?.(x, y)?.lane;
+      const lid = lane && laneLids(lane, x, y)[0];
+      if (!lid) continue;
+      if (!this.textures.exists("sewer-open-lid")) paintOpenLid(this.textures.createCanvas("sewer-open-lid", 32, 16)!);
+      // Above the ground strips (row*16 - 7) the hole overlaps.
+      this.lidHoles.set(k, this.add.image(Math.round(lid.cx) - 8, Math.round(lid.cy - this.lift(lid.cx, lid.cy)) - 8, "sewer-open-lid").setOrigin(0, 0).setDepth(Math.floor((lid.cy + 8) / 16) * 16 - 6.6));
+    }
+  }
+  private syncSewer(delta: number) {
+    const e = this.runtime.engine, space = e.state.player.pos.space;
+    const level = e.sewerOf?.(space), run = e.state.sewer;
+    if (!level || !run) {
+      if (this.sewerView) gameAudio()?.setSewerBed(undefined);
+      this.sewerView?.destroy();
+      this.sewerView = undefined;
+      return;
+    }
+    let v = this.sewerView;
+    if (!v || v.space !== space) {
+      v?.destroy();
+      v = this.sewerView = new SewerView(this, level, e.state.manifest.setting?.year ?? 1950);
+      v.sound = (what, volume) => void gameAudio()?.sewerCue(what, volume);
+      if (import.meta.env.DEV) (window as unknown as { uhsSewer?: typeof SewerView }).uhsSewer = SewerView;
+      this.applyGrade(0);
+    }
+    const camera = this.cameras.main;
+    const W = level.w * 16, H = level.h * 16;
+    const width = Math.max(W, camera.displayWidth), height = Math.max(H, camera.displayHeight);
+    camera.setBounds((W - width) / 2, (H - height) / 2, width, height);
+    const me = this.entities.get("player");
+    const p = e.state.player;
+    const carried: { x: number; y: number }[] = [];
+    for (const a of e.state.actors)
+      if (a.underground && a.heldItem === "torch" && a.pos.space === space) {
+        const im = this.entities.get(a.id);
+        carried.push({ x: im?.x ?? a.pos.x * 16 + 8, y: im?.y ?? a.pos.y * 16 + 16 });
+      }
+    const x = me?.x ?? p.pos.x * 16 + 8, y = me?.y ?? p.pos.y * 16 + 16;
+    v.update({
+      x, y, facing: p.direction, run,
+      done: e.state.sewerDone ?? [],
+      light: caveLight(run.light),
+      hour: (((e.state.clock / 3600) % 24) + 24) % 24,
+      time: this.time.now,
+      delta,
+      open: new Set(Object.keys(e.state.lids ?? {})),
+      carried,
+    });
+    // The water is loud where it runs close, and the trunk is a big room.
+    const cx = Math.floor(x / 16), cy = Math.floor((y - 1) / 16);
+    let near = 9;
+    for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) {
+      const c = level.cells[(cy + dy) * level.w + cx + dx];
+      if (c === 2 || c === 3) near = Math.min(near, Math.hypot(dx, dy));
+    }
+    gameAudio()?.setSewerBed({ flow: Math.max(0.15, 1 - near / 7) * (level.layer === "old" ? 0.5 : 1), echo: level.layer === "trunk" ? 1 : level.layer === "old" ? 0.6 : 0.35, surge: run.surge });
+  }
   private dropRoom() {
     const v = this.roomView;
     if (!v) return;
@@ -6745,10 +6816,12 @@ export class WorldScene extends Phaser.Scene {
     // The old view holds while it fades out; the room is built after.
     if (!this.fadingOut) this.syncRoom(delta);
     if (!this.fadingOut) this.syncCave(delta);
+    if (!this.fadingOut) this.syncSewer(delta);
+    this.syncLids();
     this.reflect(time);
     this.glint(delta);
     this.afterRain(delta);
-    if (this.night && !this.roomView && !this.caveView) {
+    if (this.night && !this.roomView && !this.caveView && !this.sewerView) {
       this.paintWash();
       this.paintLight();
     }
@@ -7293,8 +7366,10 @@ export class WorldScene extends Phaser.Scene {
         const boatObject = craft === "boat" && boatId ? this.runtime.engine.state.objects.find((o) => o.id === boatId) : undefined;
         const boatType=craft==="boat" ? boatCraft(boatObject?.sprite) ??
           (boatSetting ? fishingWaterfront(boatSetting)?.craft : undefined) : undefined;
-        const water =
-          !(craft && craft !== "swimming") && sample && wetPos?.space === "outside" && !arcLift
+        const sewer = this.sewerView?.wading(im.x, im.y, wetPos?.space);
+        const water = sewer
+          ? sewer.depth
+          : !(craft && craft !== "swimming") && sample && wetPos?.space === "outside" && !arcLift
             ? waterDepthAt(
                 sample,
                 im.x / 16,
@@ -7722,10 +7797,12 @@ export class WorldScene extends Phaser.Scene {
             : MAX_WADING_DEPTH,
           this.options.freeze ? 0 : time,
           moving,
-          sample && wetPos
-            ? sample(wetPos.x, wetPos.y)?.waterVisual?.flow
-            : undefined,
+          sewer?.flow ??
+            (sample && wetPos
+              ? sample(wetPos.x, wetPos.y)?.waterVisual?.flow
+              : undefined),
           swimming && (pose === "swim" || pose === "tread") ? index : undefined,
+          !!sewer,
         );
         // Asleep, only the head shows, on the pillow; the room draws the rest
         // under the covers. After wading, which uncrops anyone on dry ground.

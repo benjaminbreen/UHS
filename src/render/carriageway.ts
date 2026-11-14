@@ -158,6 +158,32 @@ export function levelCrossing(base: RGB, u: number, v: number, planks: boolean):
   return base;
 }
 
+/** Whether a travel lane carries a manhole lid in this cell along the street. */
+const lidded = (cell: number, index: number, edge: number) => hash(cell, index * 131 + edge, 775) < 0.045;
+
+/** The manhole lids whose centres fall in this cell of a grid street, in
+ * world pixels: the same lids `carriagewayPixel` paints. */
+export function laneLids(lane: Lane, x: number, y: number): { cx: number; cy: number }[] {
+  if (lane.junction) return [];
+  const alongX = lane.axis === "x";
+  const W = lane.span * 16;
+  const P = lane.marks.parking && lane.span >= 6 ? PARKING * 16 : 0;
+  const lanes = Math.max(1, Math.round((W - 2 * P) / 40));
+  const laneW = (W - 2 * P) / lanes;
+  const near = lane.toJunction;
+  if (near !== undefined && (Math.abs(near) - 1) * 16 + 7 <= 20) return [];
+  const across = alongX ? y : x, cell = alongX ? x : y;
+  const edge = (across - lane.at) * 16;
+  const out: { cx: number; cy: number }[] = [];
+  for (let i = 0; i < lanes; i++) {
+    const u = P + (i + 0.5) * laneW - 0.5;
+    if (Math.floor(u / 16) !== lane.at || !lidded(cell, i, edge)) continue;
+    const a = cell * 16 + 8, b = edge + u + 0.5;
+    out.push(alongX ? { cx: a, cy: b } : { cx: b, cy: a });
+  }
+  return out;
+}
+
 /** Which sides of this cell are kerbed. */
 export type Kerbs = { low: boolean; high: boolean };
 
@@ -233,7 +259,7 @@ export function carriagewayPixel(
   const centre = P + (index + 0.5) * laneW;
   if (toJunction > 20 && u >= P && u < W - P) {
     const cell = Math.floor(v / 16);
-    if (hash(cell, index * 131 + edge, 775) < 0.045) {
+    if (lidded(cell, index, edge)) {
       const dx = v - (cell * 16 + 7.5),
         dy = u - centre + 0.5;
       const r2 = dx * dx + dy * dy;

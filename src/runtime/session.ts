@@ -1914,8 +1914,11 @@ export class Runtime {
     // the second slot is for, ahead of any scenery.
     // A fire and raw meat: cooking comes before putting the stick down.
     const cave = this.engine.caveVerb();
+    const sewer = cave ? undefined : this.engine.sewerVerb();
     if (cave)
       alternate = { kind: "climb", label: cave.label, command: { type: "interact", target: cave.target, action: "cave" } };
+    else if (sewer)
+      alternate = { kind: "climb", label: sewer.label, command: { type: "interact", target: sewer.target, action: "sewer" } };
     else if (light)
       alternate = { kind: "look", label: "Light the stick in the fire", command: light };
     else if (fill) alternate = { kind: "look", label: "Fill the pail", command: fill };

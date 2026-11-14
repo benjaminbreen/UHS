@@ -5,6 +5,7 @@ import { ecologicalItems } from "./ecology/resources";
 import { forageItems } from "./ecology/forage";
 import { metalItems } from "./ecology/metals";
 import { caveItems } from "./caves/items";
+import { sewerItems } from "./sewers/items";
 import { floraItems } from "./ecology/flora";
 import { wearableItems } from "./characters/wearables";
 import { dungItems } from "./fauna/dung";
@@ -49,6 +50,7 @@ export const items: Record<
   ...forageItems,
   ...metalItems,
   ...caveItems,
+  ...sewerItems,
   ...floraItems,
   ...wearableItems,
   ...dungItems,

@@ -1,6 +1,7 @@
 import { dyes, type Cloth } from "../content/characters/wardrobe/cloth";
 import { periodLook } from "../content/economy/wares";
 import { caveItems } from "../content/caves/items";
+import { sewerItems } from "../content/sewers/items";
 import { GARMENT_ICON, garmentArt, type IconArt } from "./garment-art";
 import { itemArt, itemColors } from "./item-art";
 
@@ -55,7 +56,7 @@ export function itemIconFor(id: string): string | undefined {
   if (dated in itemArt) return dated;
   if (id in itemArt) return id;
   if (sharedArt[id]) return sharedArt[id];
-  const sprite = caveItems[id]?.sprite;
+  const sprite = (caveItems[id] ?? sewerItems[id])?.sprite;
   if (!sprite) return;
   const icon = caveIconForSprite[sprite] ?? sprite;
   return icon in itemArt ? icon : undefined;
@@ -63,7 +64,7 @@ export function itemIconFor(id: string): string | undefined {
 
 const caveIconForSprite: Record<string, string> = { rock: "stone", "rock-1": "stone", "ecology-fruit-item": "fruit" };
 /** Wares drawn with another item's icon until they have their own. */
-const sharedArt: Record<string, string> = { "pipe-tobacco": "tobacco", snuff: "tobacco", cigars: "tobacco", cigarettes: "tobacco", betel: "greens" };
+const sharedArt: Record<string, string> = { "pipe-tobacco": "tobacco", snuff: "tobacco", cigars: "tobacco", cigarettes: "tobacco", betel: "greens", "first-aid-kit": "doctor-bag", "tunnel-map": "papyrus", dispatch: "papyrus", "flask-tea": "water-bottle", vodka: "water-bottle", penicillin: "beer-bottle", "scrap-copper": "copper-ore", carbide: "ore", "gold-scrapings": "gold-ore" };
 
 function rgb(hex: string) {
   const n = parseInt(hex.slice(1), 16);

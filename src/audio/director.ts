@@ -16,9 +16,9 @@ import {
   MusicRotation,
 } from "./cultural-themes";
 import { createMix, scheduleNote, prepareScore, type MixBus } from "./synth";
-import { events, interfaceClick, noise, playSound, tone, type EventId, type Sound } from "./sfx";
+import { events, interfaceClick, noise, playSound, ring, tone, type EventId, type Sound } from "./sfx";
 import { applyTuning, tuning } from "./sfx-tuning";
-import { Ambience, Room, silence, type AmbienceMix } from "./ambience";
+import { Ambience, Room, SewerBed, silence, type AmbienceMix, type SewerLevels } from "./ambience";
 import { interiorThemes, type InteriorMusic } from "./interior-themes";
 import { situationTheme, type Situation, type ThreatMusic } from "./situation-themes";
 
@@ -70,6 +70,115 @@ function shuffled(themeId = pick(themes).id): Arrangement {
     era: pick(eras),
   };
 }
+export type SewerCue = "lid" | "lid-down" | "ladder" | "splash" | "rats" | "drip" | "take" | "rush" | "knock" | "steam" | "rumble" | "car" | "gate";
+const rand = (a: number, b: number) => a + Math.random() * (b - a);
+const times = (n: number, gap: number, make: (at: number, i: number) => Sound): Sound =>
+  Array.from({ length: n }, (_, i) => make(i * gap * rand(0.85, 1.15), i)).flat();
+/** The tunnel handing a sound back, quieter each time. */
+const echoes = (sound: Sound, delay: number, count: number, fall: number): Sound =>
+  Array.from({ length: count + 1 }, (_, i) => sound.map((l) => ({ ...l, at: l.at + i * delay, gain: l.gain * fall ** i }))).flat();
+const bubbles = (from: number, span: number, n: number, low: number, gain: number) =>
+  times(n, span / n, (at) => {
+    const f = low * rand(1, 2.5);
+    return [tone(from + at, rand(0.03, 0.07), gain * rand(0.4, 1), f, { to: f * 2, attack: 0.006 })];
+  });
+/** Cast iron, brick and water. Gains sit near the door and footstep cues. */
+const sewerSounds: Record<Exclude<SewerCue, "take">, () => Sound> = {
+  lid: () => [
+    // The pick bar finds the slot and levers.
+    noise(0, 0.12, 0.035, 3200, { q: 4 }),
+    ...ring(0.02, 1900, 0.25, 0.03),
+    tone(0.2, 0.12, 0.14, 120, { to: 80 }),
+    noise(0.2, 0.04, 0.05, 1500, { q: 1.5 }),
+    // Dragged aside over the frame: iron grinding on iron and grit.
+    noise(0.35, 0.95, 0.03, 450, { to: 380, q: 3, attack: 0.12 }),
+    tone(0.35, 0.95, 0.018, 92, { to: 84, wave: "sawtooth", attack: 0.12 }),
+    tone(0.5, 0.6, 0.006, 1350, { to: 1240, wave: "triangle", attack: 0.1 }),
+    ...times(24, 0.038, (at) => [noise(0.35 + at, 0.04, 0.025, rand(700, 1900), { q: 5 })]),
+    // Set down on the cobbles.
+    tone(1.32, 0.2, 0.16, 90, { to: 60 }),
+    noise(1.32, 0.03, 0.05, 2200, { q: 1.5 }),
+    ...ring(1.32, 310, 1.4, 0.08),
+  ],
+  "lid-down": () => [
+    tone(0, 0.18, 0.22, 110, { to: 62 }),
+    noise(0, 0.03, 0.08, 2400, { q: 1.5 }),
+    ...ring(0, 420, 0.9, 0.09),
+    // It rocks once in the frame before it seats.
+    noise(0.11, 0.02, 0.04, 2600, { q: 2 }),
+    ...ring(0.11, 430, 0.5, 0.035),
+  ],
+  ladder: () =>
+    times(Math.round(rand(3, 4)), 0.34, (at) => echoes([
+      ...ring(at, rand(720, 820), 0.35, 0.035),
+      noise(at, 0.03, 0.04, 1800, { q: 2 }),
+      tone(at, 0.06, 0.08, 170, { to: 120 }),
+    ], 0.11, 2, 0.3)),
+  splash: () => [
+    tone(0, 0.08, 0.07, 140, { to: 90 }),
+    noise(0, 0.14, 0.06, 900, { to: 500, q: 0.8, attack: 0.005 }),
+    noise(0.01, 0.28, 0.025, 3000, { q: 0.7, attack: 0.02 }),
+    ...bubbles(0.04, 0.22, 5, 500, 0.04),
+  ],
+  rats: () => [
+    ...times(Math.round(rand(8, 12)), 0.035, (at) => [noise(at, 0.012, 0.022, 4000, { q: 2 })]),
+    ...times(Math.round(rand(2, 3)), 0.17, (at) => {
+      const f = rand(3200, 4300);
+      return [tone(0.08 + at, rand(0.05, 0.09), 0.025, f, { to: f * rand(1.05, 1.2), wave: "triangle", attack: 0.008 })];
+    }),
+  ],
+  drip: () => {
+    const f = rand(800, 1600);
+    return echoes([tone(0, 0.1, 0.05, f * 1.5, { to: f, attack: 0.002 }), tone(0.025, 0.16, 0.018, f * 2.2, { to: f * 2.6 })], 0.19, 2, 0.35);
+  },
+  rush: () => [
+    noise(0, 2.8, 0.06, 300, { to: 1400, filter: "lowpass", attack: 1.3 }),
+    noise(0.3, 2.4, 0.025, 1200, { to: 2600, q: 0.6, attack: 1 }),
+    ...bubbles(0.6, 1.8, 30, 260, 0.03),
+  ],
+  knock: () => {
+    const hit = (at: number, g: number) => [
+      ...ring(at, rand(210, 250), 1.4, 0.04 * g),
+      tone(at, 0.12, 0.06 * g, 95, { to: 70 }),
+      noise(at, 0.02, 0.02 * g, 1400, { q: 1.5 }),
+    ];
+    return echoes(Math.random() < 0.5 ? hit(0, 1) : [...hit(0, 1), ...hit(0.22, 0.7)], 0.45, 3, 0.4);
+  },
+  steam: () => [
+    noise(0, 1.6, 0.02, 5200, { filter: "highpass", attack: 0.06 }),
+    noise(0, 1.5, 0.014, 2400, { q: 0.8, attack: 0.2 }),
+    noise(0.02, 0.05, 0.03, 1200, { q: 1 }),
+  ],
+  rumble: () => [
+    noise(0, 4.5, 0.09, 70, { to: 140, filter: "lowpass", attack: 1.8 }),
+    tone(0, 4.5, 0.07, 38, { to: 46, attack: 1.8 }),
+    tone(0, 4.5, 0.025, 57, { to: 62, wave: "triangle", attack: 2 }),
+    // Grit shaken loose from the vault.
+    ...times(12, 0.12, (at) => [noise(1.4 + at, 0.015, 0.008, rand(2500, 4000), { q: 2 })]),
+  ],
+  car: () => [
+    noise(0, 1.3, 0.02, 120, { filter: "lowpass", attack: 0.4 }),
+    ...[0.35, 0.72].flatMap((at) => [
+      tone(at, 0.14, 0.18, 95, { to: 60 }),
+      noise(at, 0.035, 0.05, 1700, { q: 1.5 }),
+      ...ring(at + 0.01, rand(340, 380), 0.45, 0.04),
+      // The loose cover rocks back.
+      tone(at + 0.07, 0.08, 0.08, 130, { to: 100 }),
+      noise(at + 0.07, 0.02, 0.03, 2200, { q: 2 }),
+    ]),
+  ],
+  gate: () => [
+    ...times(10, 0.13, (at) => [...ring(at, 1500, 0.08, 0.012), noise(at, 0.01, 0.02, 3500, { q: 3 })]),
+    noise(0.4, 1.8, 0.03, 380, { to: 300, q: 3, attack: 0.3 }),
+    tone(0.4, 1.8, 0.016, 70, { to: 64, wave: "sawtooth", attack: 0.3 }),
+    tone(0.6, 1.2, 0.006, 1100, { to: 1040, wave: "triangle", attack: 0.3 }),
+    tone(2.2, 0.16, 0.14, 90, { to: 60 }),
+    ...ring(2.2, 260, 1, 0.06),
+  ],
+};
+/** Minimum ms between plays, for cues long or loud enough to pile up. */
+const sewerGaps: Partial<Record<SewerCue, number>> = { lid: 1200, "lid-down": 600, ladder: 800, rats: 1500, rush: 4000, knock: 1200, steam: 2500, rumble: 6000, car: 900, gate: 3000 };
+
 /** The director the game is running under. The scene plays tool and footfall
  * sounds through it without threading a reference through every layer. */
 let active: AudioDirector | undefined;
@@ -93,6 +202,10 @@ export class AudioDirector {
   private resumeOnVisible = false;
   private disposed = false;
   private lastSfx = new Map<string, number>();
+  private sewer?: SewerLevels;
+  private sewerKey = "";
+  private sewerBed?: SewerBed;
+  private sewerEnd?: ReturnType<typeof setTimeout>;
   private setting = "";
   /** The building's piece; null for a room kept quiet, undefined outdoors. */
   private inside?: InteriorMusic | null;
@@ -194,15 +307,16 @@ export class AudioDirector {
       this.music = this.ctx.createGain();
       this.music.gain.value = this.state.volume;
       this.duck = this.ctx.createGain();
-      this.duck.gain.value = this.scene.music;
+      this.duck.gain.value = this.heard(this.scene).music;
       this.music.connect(this.duck).connect(this.master);
       this.sfx = this.ctx.createGain();
       this.sfx.gain.value = this.state.sfxVolume;
       this.sfx.connect(this.master);
       this.ambience = new Ambience(this.ctx, this.sfx);
-      this.ambience.set(this.scene);
+      this.ambience.set(this.heard(this.scene));
       this.room = new Room(this.ctx, this.sfx);
-      this.room.set(this.scene);
+      this.room.set(this.heard(this.scene));
+      this.syncSewer();
     }
     if (this.ctx.state === "suspended") await this.ctx.resume();
     if (this.disposed) throw Error("Audio session has closed.");
@@ -553,6 +667,10 @@ export class AudioDirector {
       return;
     }
     this.scene = mix;
+    this.hear();
+  }
+  private hear() {
+    const mix = this.heard(this.scene);
     this.ambience?.set(mix);
     this.room?.set(mix);
     if (this.ctx)
@@ -606,12 +724,12 @@ export class AudioDirector {
   /** Sounds sharing a `key` are throttled together, so
    * a burst of the same cue does not stack into a buzz. `pan` runs from -1
    * (left) to 1 (right). */
-  async sound(cue: Sound | (() => Sound | undefined) | undefined, key = "", pan = 0) {
+  async sound(cue: Sound | (() => Sound | undefined) | undefined, key = "", pan = 0, gap = 0) {
     if (!cue || this.disposed || this.state.muted || !this.state.sfxVolume) return;
     const tuned = tuning(key);
     if (tuned.gain <= 0) return;
     const now = performance.now();
-    if (now - (this.lastSfx.get(key) ?? -Infinity) < tuned.gap) return;
+    if (now - (this.lastSfx.get(key) ?? -Infinity) < Math.max(gap, tuned.gap)) return;
     try {
       const sound = typeof cue === "function" ? cue() : cue;
       if (!sound?.length) return;
@@ -641,6 +759,63 @@ export class AudioDirector {
       Array.from({ length: 22 }, (_, i) => noise(i * 0.05 + Math.random() * 0.03, 0.035, 0.07 * (1 - i / 26), 3200 + Math.random() * 2600, { q: 3 })),
       "cave-bats",
     );
+  }
+  /** One-shots from the sewers. `pan` runs from -1 (left) to 1 (right). */
+  sewerCue(what: SewerCue, volume: number, pan = 0) {
+    if (what === "take") return this.event("gather");
+    return this.sound(
+      () => sewerSounds[what]().map((l) => ({ ...l, gain: l.gain * volume })),
+      `sewer-${what}`,
+      pan,
+      sewerGaps[what],
+    );
+  }
+  /** Running water underfoot; undefined when the player is back on the street. */
+  setSewerBed(bed: SewerLevels | undefined) {
+    if (!bed && !this.sewer) return;
+    const unit = (x: number) => Math.max(0, Math.min(1, x || 0));
+    this.sewer = bed && { flow: unit(bed.flow), echo: unit(bed.echo), surge: unit(bed.surge) };
+    // The street above is re-heard only when the tunnel changes enough to matter.
+    const key = this.sewer ? `${Math.round(this.sewer.echo * 10)}:${Math.round(this.sewer.surge * 5)}` : "";
+    if (key !== this.sewerKey) {
+      this.sewerKey = key;
+      this.hear();
+    }
+    if (this.ctx) this.syncSewer();
+  }
+  private syncSewer() {
+    if (this.sewer) {
+      clearTimeout(this.sewerEnd);
+      this.sewerBed ??= new SewerBed(this.ctx!, this.sfx!);
+      this.sewerBed.set(this.sewer);
+    } else if (this.sewerBed) {
+      const bed = this.sewerBed;
+      bed.set({ flow: 0, echo: 0, surge: 0 });
+      this.sewerEnd = setTimeout(() => {
+        bed.dispose();
+        if (this.sewerBed === bed) this.sewerBed = undefined;
+      }, 4000);
+    }
+  }
+  /** Underground the street comes through the cover: muffled, no birds or
+   * wind, and the tunnel's echo on every sound. */
+  private heard(mix: AmbienceMix): AmbienceMix {
+    const s = this.sewer;
+    if (!s) return mix;
+    return {
+      ...mix,
+      inside: 1,
+      birds: 0,
+      insects: 0,
+      frogs: 0,
+      wind: 0,
+      water: 0,
+      town: mix.town * 0.5,
+      rain: mix.rain * 0.4,
+      room: 0.4 + 0.6 * Math.round(s.echo * 10) / 10,
+      hard: 1,
+      music: mix.music * (1 - 0.4 * Math.round(s.surge * 5) / 5),
+    };
   }
   event(id: EventId) {
     return this.sound(events[id], id);
@@ -673,6 +848,8 @@ export class AudioDirector {
     document.removeEventListener("visibilitychange", this.visibility);
     this.autoplay();
     this.ambience?.dispose();
+    clearTimeout(this.sewerEnd);
+    this.sewerBed?.dispose();
     void this.ctx?.close();
     this.listeners.clear();
   }

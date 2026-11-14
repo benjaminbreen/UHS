@@ -78,6 +78,7 @@ import { orderKeeper, type Penalty } from "../content/history/order";
 import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
 import { caveAct, caveBeastAt, caveGround, caveInspect, caveLevelOf, caveStrike, caveTime, caveVerb, type CaveHost } from "./cave";
+import { sewerAct, sewerGround, sewerInspect, sewerLevelOf, sewerTime, sewerVerb, type SewerHost } from "./sewer";
 import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structure } from "./time/structure";
 import { regardCue, WARM, WARY } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
@@ -2104,6 +2105,44 @@ export class Engine {
     this.caveHost.world = this.world;
     return this.caveHost;
   }
+  private sewerHost: SewerHost = {
+    state: undefined as never,
+    world: undefined as never,
+    event: (text, kind, at) => this.event(text, kind, at),
+    advance: (seconds) => this.advance(seconds),
+    hurt: (damage, cause, injury) => this.hurt(damage, cause, injury),
+    itemName: (id) => this.item(id)?.name ?? id,
+    unblock: (space, x, y) => void this.terrainCollision.delete(`${space}:${x},${y}`),
+    rain: () => {
+      const setting = this.world.pack.setting;
+      return weatherAt(skySeed(this.state.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", this.state.clock).rain;
+    },
+    join: (a) => {
+      if (!this.state.actors.includes(a)) this.state.actors.push(a);
+      this.actorsById?.set(a.id, a);
+      this.syncActor(a);
+    },
+    part: (id) => {
+      this.state.actors = this.state.actors.filter((a) => a.id !== id);
+      this.actorsById?.delete(id);
+    },
+    levels: new Map(),
+    sites: new Map(),
+  };
+  private get sewers() {
+    this.sewerHost.state = this.state;
+    this.sewerHost.world = this.world;
+    return this.sewerHost;
+  }
+  /** The sewer level a space is, if it is one. */
+  sewerOf(space: string) {
+    return space.startsWith("sewer:") ? sewerLevelOf(this.sewers, space)?.level : undefined;
+  }
+  /** What the action key does at a manhole or beside something below the street. */
+  sewerVerb() {
+    const p = this.state.player.pos;
+    return p.space === "outside" || this.state.sewer ? sewerVerb(this.sewers) : undefined;
+  }
   /** The cave level a space is, if it is one. */
   caveOf(space: string) {
     return space.startsWith("cave:") ? caveLevelOf(this.caves, space)?.level : undefined;
@@ -2608,7 +2647,7 @@ export class Engine {
     const key = `${space}:${x},${y}`;
     let fixed = this.terrainCollision.get(key);
     if (fixed === undefined) {
-      const cave = space.startsWith("cave:") ? caveGround(this.caves, space, x, y) : undefined;
+      const cave = space.startsWith("cave:") ? caveGround(this.caves, space, x, y) : space.startsWith("sewer:") ? sewerGround(this.sewers, space, x, y) : undefined;
       const room = space === "outside" || cave !== undefined ? undefined : this.interiorOf(space);
       fixed = cave ?? (room ? !room.floor.has(`${x},${y}`) : this.world.blocked(x, y, space));
       trimCache(this.terrainCollision, 16384);
@@ -6204,6 +6243,7 @@ export class Engine {
   }
   inspect(id: string): Inspection | undefined {
     if (id.startsWith("cave-")) return caveInspect(this.caves, id);
+    if (id.startsWith("sewer-")) return sewerInspect(this.sewers, id);
     const coordinates = /^decor-(-?\d+)-(-?\d+)$/.exec(id);
     if (coordinates) {
       const x = Number(coordinates[1]),
@@ -9053,6 +9093,9 @@ export class Engine {
       case "cave":
         caveAct(this.caves, c.target);
         break;
+      case "sewer":
+        sewerAct(this.sewers, c.target);
+        break;
       case "enter":
         if (b) {
           const errand = this.state.asks?.find((x) => x.kind === "go-to" && x.place === b.id);
@@ -11899,6 +11942,7 @@ export class Engine {
         elapsed = next - this.state.clock;
       this.state.clock = next;
       if (this.state.cave) caveTime(this.caves, elapsed);
+      if (this.state.sewer) sewerTime(this.sewers, elapsed);
       diseaseTime(this.state, elapsed, next - elapsed);
       if (this.state.baby) this.babyStep(this.state.baby, elapsed, seconds > 240);
       this.fireExposure(elapsed, next - elapsed);
@@ -11960,7 +12004,7 @@ export class Engine {
       const partner = this.conversing ? actors.find((a) => a.id === this.conversing) : undefined;
       if (partner && partner.pos.space === player.pos.space && distance(partner.pos, player.pos) <= 3) player.direction = this.directionTo(player.pos, partner.pos);
       for (const a of actors) {
-        if (a.id === heldActor) continue;
+        if (a.id === heldActor || a.underground) continue;
         if (a.id === this.conversing && a.pos.space === player.pos.space) {
           a.direction = this.directionTo(a.pos, player.pos);
           delete a.facing;
