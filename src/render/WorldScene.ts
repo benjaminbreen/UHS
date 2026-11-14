@@ -355,6 +355,8 @@ import { NightGradePipeline } from "./night-grade";
 import { healthPerson, symptomsShown, type Symptoms } from "../core/health";
 import { smokingFrom, smokingHabit, type SmokeForm } from "../content/characters/smoking";
 import { Smokers } from "./smoking";
+import { RainCovers, coverFor, coverTint, type Cover } from "./rain-cover";
+/** People drawn at once. Beyond roughly this many the per-head frame cache,
  * not the simulation, is what costs the frame. */
 const CROWD_LIMIT = 24;
 /** A hearth plume: fewer, slower and taller than a campfire's. */
@@ -624,6 +626,19 @@ export class WorldScene extends Phaser.Scene {
       (im, x, y, dx, depth) => this.feel.sneeze(im, x, y, dx, depth),
       (x, y) => this.feel.bleed(x, y, this.printDepth(), 0x8c2a1c),
     ));
+  }
+  private rainFx?: RainCovers;
+  private covers = new Map<string, { cover?: Cover; tint: number; ribbed: boolean }>();
+  private coverOf(id: string, age: number) {
+    let c = this.covers.get(id);
+    if (!c) {
+      const { state, world } = this.runtime.engine, seed = state.manifest.seed, pack = world.pack;
+      const cover = coverFor(pack.setting, pack.year, random(seed, "rain-cover", id), age < 13);
+      const culture = pack.setting?.culture;
+      c = { cover, tint: cover ? coverTint(cover, culture, pack.year, random(seed, "rain-tint", id)) : 0, ribbed: culture === "east-asian" && pack.year < 1920 };
+      this.covers.set(id, c);
+    }
+    return c;
   }
   private habits = new Map<string, SmokeForm | null>();
   private emberGlow = 0;
@@ -1009,6 +1024,10 @@ export class WorldScene extends Phaser.Scene {
       this.cueFx?.dispose();
       this.babyFx?.dispose();
       this.babyFx = undefined;
+      this.smokersFx?.dispose();
+      this.habits.clear();
+      this.rainFx?.dispose();
+      this.covers.clear();
     });
       this.smokersFx?.dispose();
       this.habits.clear();
@@ -7312,8 +7331,23 @@ export class WorldScene extends Phaser.Scene {
         if (drawing) pose = slinging ? "whirl" : hawking ? "cast" : "draw";
         // Something heavy in the arms shortens the stride.
         const laden = loadWeight > 0;
-        const cadence = 1 / (1 + loadWeight * 0.12 + (tired ? 0.14 : 0));
+        // Quicker, shorter steps to get out of the rain.
+        const cadence = (raining ? 1.2 : 1) / (1 + loadWeight * 0.12 + (tired ? 0.14 : 0));
         let g = this.gaits.get(id);
+        const free = !this.options.freeze && !swimming && !(craft && craft !== "swimming");
+        const smoking = this.smokers.update(id, this.habitOf(id), im, human.direction,
+          free && !asleep && !work && !use && !/work|gather|sleep/i.test(human.activity) && this.cameras.main.worldView.contains(im.x, im.y),
+          this.emberGlow, time);
+        const raining = this.weather?.condition === "rain" && (this.weather.rain ?? 0) >= 0.15 && wetPos?.space === "outside";
+        const cover = raining && free && !asleep && !work && !use && this.cameras.main.worldView.contains(im.x, im.y)
+          ? this.coverOf(id, human.age ?? 30) : undefined;
+        const headLoad = /@head$/.test(human.heldItem ?? "");
+        const hands = !heldSprite && loadWeight === 0;
+        const over = cover?.cover && !headLoad && (cover.cover === "cloth" || hands) ? cover.cover : undefined;
+        (this.rainFx ??= new RainCovers(this)).update(id, over, cover?.tint ?? 0, !!cover?.ribbed, im, this.headTop(im), human.direction, time);
+        const sick = (free ? this.showSymptoms(id, human.direction, im, moving, asleep, time) : undefined) ?? smoking;
+        const sickPose = sick && !moving && !cued && !asleep && (pose === "idle" || pose === "breathe") ? sick : undefined;
+        if (sickPose) pose = sickPose.pose;
         if (!g)
           this.gaits.set(
             id,
