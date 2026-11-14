@@ -150,7 +150,7 @@ export function foliageTint(
   return undefined;
 }
 
-export type DriftKind = "leaf" | "blossom" | "seed" | "snow" | "rain";
+export type DriftKind = "leaf" | "blossom" | "snow" | "rain";
 export type DriftStyle = {
   kind: DriftKind;
   colors: string[];
@@ -166,6 +166,9 @@ export type DriftStyle = {
   spin: number;
   alpha: number;
   splash?: boolean;
+  /** Falls from the trees in view, this many at a time per tree, rather
+   * than filling the air; with no tree in sight there is none. */
+  perTree?: number;
 };
 
 const styles: Record<DriftKind, Omit<DriftStyle, "colors" | "density">> = {
@@ -176,6 +179,7 @@ const styles: Record<DriftKind, Omit<DriftStyle, "colors" | "density">> = {
     sway: 7,
     spin: 3,
     alpha: 0.85,
+    perTree: 0.7,
   },
   blossom: {
     kind: "blossom",
@@ -183,15 +187,8 @@ const styles: Record<DriftKind, Omit<DriftStyle, "colors" | "density">> = {
     windPull: 60,
     sway: 9,
     spin: 2,
-    alpha: 0.7,
-  },
-  seed: {
-    kind: "seed",
-    fall: [5, 13],
-    windPull: 55,
-    sway: 11,
-    spin: 1.2,
-    alpha: 0.65,
+    alpha: 0.8,
+    perTree: 0.4,
   },
   snow: {
     kind: "snow",
@@ -263,10 +260,9 @@ export function driftStyle(
   if (season === "spring")
     return drift(
       "blossom",
-      ["#f6dce8", "#ffffff", "#f3c9dc", "#efe4c4"],
+      ["#f4c3d6", "#f8dbe6", "#e9a6c1"],
       wooded ? 100 : 45,
     );
-  if (season === "summer") return drift("seed", ["#f2eeda", "#e8e4c4"], 40);
   return undefined;
 }
 

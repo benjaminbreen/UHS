@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { random } from "../core/random";
+import { windowHalo } from "./window-light";
 
 /** What a voxel building publishes about its lit rooms: a rect of its glow
  * frame per household floor (kind 0) and per shop (kind 1). */
@@ -47,15 +48,24 @@ export function voxelLamps(
     pane: Phaser.GameObjects.Image;
     halo: Phaser.GameObjects.Image;
     lit?: (hour: number) => boolean;
+    glass?: number;
+    glow?: number;
   }[] = [];
   // A missing frame falls back to the page's first, which is a whole building.
   const has = (frame?: string): frame is string =>
     !!frame && scene.textures.exists(sheet(frame)) && scene.textures.get(sheet(frame)).has(frame);
-  if (has(model.glow)) (model.lights ?? []).forEach(([x, y, w, h, kind], i) => {
-    const pane = at(model.glow!, image.depth + 0.5).setCrop(x, y, w, h);
-    const halo = at(model.glow!, 19001).setCrop(x, y, w, h).setBlendMode(Phaser.BlendModes.ADD);
-    lamps.push({ pane, halo, lit: (hour) => lightOn(kind, seed, id, i, hour) });
-  });
+  if (has(model.glow)) {
+    // Each room is cut from the building's softened glow, as a lit window is.
+    const soft = windowHalo(scene, sheet(model.glow), model.glow);
+    const left = image.x - image.displayOriginX - soft.pad,
+      top = image.y - image.displayOriginY - soft.pad;
+    const cut = (key: string, depth: number) => scene.add.image(left, top, key).setOrigin(0).setDepth(depth).setVisible(false);
+    (model.lights ?? []).forEach(([x, y, w, h, kind], i) => {
+      const pane = cut(soft.pane, image.depth + 0.5).setCrop(x + soft.pad, y + soft.pad, w, h);
+      const halo = cut(soft.key, 19001).setCrop(x, y, w + soft.pad * 2, h + soft.pad * 2).setBlendMode(Phaser.BlendModes.ADD);
+      lamps.push({ pane, halo, lit: (hour) => lightOn(kind, seed, id, i, hour), glass: 0.6, glow: 0.55 });
+    });
+  }
   if (has(model.lampFrame))
     lamps.push({
       pane: at(model.lampFrame, image.depth + 0.5),

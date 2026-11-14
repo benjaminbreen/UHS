@@ -21,12 +21,6 @@ const shapes: Record<string, string[][]> = {
     [".X...", ".XX..", ".....", ".....", "....."],
     ["..X..", ".XX..", ".X...", ".....", "....."],
   ],
-  seed: [
-    [".X...", "XXX..", ".X...", ".....", "....."],
-    [".X...", ".X...", ".....", ".....", "....."],
-    [".X...", ".....", ".....", ".....", "....."],
-    ["XX...", ".X...", ".....", ".....", "....."],
-  ],
   snow: [
     [".X...", "XXX..", ".X...", ".....", "....."],
     [".XX..", ".XX..", ".....", ".....", "....."],
@@ -79,6 +73,8 @@ function ensureAtlas(scene: Phaser.Scene, style: DriftStyle) {
   return key;
 }
 
+const FADE = 0.5;
+
 /** Three frames of a drop landing: a dot, a spreading tick, a faint ring. */
 function ensureSplash(scene: Phaser.Scene) {
   if (scene.textures.exists(SPLASH)) return;
@@ -109,6 +105,9 @@ type Mote = {
   phase: number;
   row: number;
   spin: number;
+  /** Seconds left of a fall from a tree, or of the wait before the next. */
+  life: number;
+  span: number;
 };
 type Splash = { x: number; y: number; at: number };
 
@@ -128,7 +127,13 @@ export class Drift {
   private seed = 0;
   private area = 0;
 
-  constructor(private scene: Phaser.Scene) {}
+  private trees: Phaser.GameObjects.Image[] = [];
+  private treesAt = -1e9;
+
+  constructor(
+    private scene: Phaser.Scene,
+    private canopies: () => Phaser.GameObjects.Image[] = () => [],
+  ) {}
 
   set(style: DriftStyle | undefined, seed: number) {
     if (!style) return this.clear();
@@ -162,6 +167,8 @@ export class Drift {
         phase: rnd(i + 4.5) * 6.28,
         row: Math.floor(rnd(i + 5.5) * style.colors.length),
         spin: style.spin ? style.spin * (0.6 + rnd(i + 6.5)) : 0,
+        life: rnd(i + 7.5) * 3,
+        span: 0,
       });
       const image = this.scene.add
         .image(0, 0, this.key, `${this.motes[i].row}-0`)
@@ -230,6 +237,7 @@ export class Drift {
     const push = style.windPull * air.strength;
     const slant =
       2 + Math.max(-2, Math.min(2, Math.round(v.x * air.strength * 3.2)));
+    if (style.perTree) return this.fromTrees(time, dt, frozen, push, v, view);
     for (let i = 0; i < this.motes.length; i++) {
       const m = this.motes[i];
       if (!frozen) {
@@ -266,6 +274,64 @@ export class Drift {
       const frame = age < 0 ? -1 : Math.floor(age / 110);
       sprite.setVisible(frame >= 0 && frame < 3);
       if (frame >= 0 && frame < 3) sprite.setFrame(`${frame}`);
+    }
+  }
+
+  /** Leaves and petals let go from a canopy in view, fall a body's height or
+   * two with the wind, and fade on the ground; each then waits and goes again
+   * from another tree. */
+  private fromTrees(
+    time: number,
+    dt: number,
+    frozen: boolean,
+    push: number,
+    v: { x: number; y: number },
+    view: Phaser.Geom.Rectangle,
+  ) {
+    const style = this.style!;
+    if (time - this.treesAt > 500) {
+      this.treesAt = time;
+      this.trees = this.canopies().filter(
+        (t) =>
+          t.visible &&
+          t.x > view.x - 40 &&
+          t.x < view.right + 40 &&
+          t.y > view.y - 40 &&
+          t.y < view.bottom + 80,
+      );
+    }
+    const t = time / 1000;
+    const active = Math.round(this.trees.length * style.perTree!);
+    for (let i = 0; i < this.motes.length; i++) {
+      const m = this.motes[i];
+      const sprite = this.sprites[i];
+      if (!frozen) m.life -= dt;
+      if (m.life <= 0) {
+        if (i >= active) {
+          m.span = 0;
+          m.life = 0.5 + Math.random();
+        } else {
+          const tree = this.trees[Math.floor(Math.random() * this.trees.length)];
+          const box = tree.getBounds();
+          m.x = box.x + box.width * (0.15 + Math.random() * 0.7);
+          m.y = box.y + box.height * (0.25 + Math.random() * 0.35);
+          m.span = m.life = (24 + Math.random() * 40) / m.fall;
+        }
+      }
+      if (!m.span) {
+        sprite.setVisible(false);
+        continue;
+      }
+      if (!frozen) {
+        m.y += (m.fall + push * v.y * 0.4) * dt;
+        m.x += push * v.x * 0.4 * dt;
+      }
+      const age = m.span - m.life;
+      sprite
+        .setVisible(true)
+        .setAlpha(style.alpha * Math.min(1, age / FADE, m.life / FADE))
+        .setPosition(Math.round(m.x + gustAt(time, m.x, m.y, m.phase) * style.sway), Math.round(m.y))
+        .setFrame(`${m.row}-${Math.floor(t * m.spin + m.phase) % FRAMES}`);
     }
   }
 }

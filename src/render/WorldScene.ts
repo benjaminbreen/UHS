@@ -39,7 +39,7 @@ import { rockFrame } from "../content/ecology/rocks";
 import { propVariety, reviewedPropFrame } from "./prop-variety";
 import { ensureSignTexture, inkFor, signWidth } from "./sign-texture";
 import { secondLanguage, signLanguage, signOptions, signPaints } from "../content/settlements/signs";
-import { drawShopSign, fitWord, type SignSlot } from "./shop-signs";
+import { drawShopSign, fitWord, SIGN_GLOW, type SignSlot } from "./shop-signs";
 /** Trades for a shopfront the kit did not name. */
 const GENERIC_TRADES = [
   "grocery",
@@ -283,7 +283,7 @@ import {
 } from "../core/itinerary";
 import { SNOW_SHADOW } from "./shadow-style";
 import { cloudWash, gradeAt, lightingAt, lightingPreset, shadowFrame, tintAt, washAt } from "./lighting";
-import { windowGlow } from "./window-light";
+import { windowGlow, windowHalo } from "./window-light";
 import { greetingFor, twoHanded } from "../content/characters/greetings";
 import { buildingSnowBank, buildingWear } from "./building-wear";
 import { CourtyardLighting, type CourtyardLight } from "./courtyard-lighting";
@@ -335,8 +335,13 @@ import {
   animatedFrames,
   ensureEmber,
   ensureFireLight,
+  ensureHalo,
+  ensureLightCone,
+  ensurePorchLamp,
   ensureLightMask,
   lampLight,
+  lampOn,
+  type Lamp,
   lightAlpha,
 } from "./fire";
 import terrainFrames from "./generated/terrain.json" with { type: "json" };
@@ -492,11 +497,17 @@ type FireEffect = {
   embers?: Phaser.GameObjects.Particles.ParticleEmitter;
   melt?: Phaser.GameObjects.Image;
 };
+const WINDOW_TONE: [number, number, number] = [255, 196, 128];
+const PORCH_TONE: [number, number, number] = [255, 220, 168];
 type StreetLight = {
   pool: Phaser.GameObjects.Image;
-  flame: Phaser.GameObjects.Image;
-  flickers: boolean;
+  flames: Phaser.GameObjects.Image[];
+  /** The light falling from a shaded head; it does not flicker. */
+  cones: Phaser.GameObjects.Image[];
+  lamp: Lamp;
   phase: number;
+  /** Its place on the lamplighter's round, 0 to 1. */
+  order: number;
 };
 const GLOW_RING = [1, 2].flatMap((r) =>
   [
@@ -794,6 +805,8 @@ export class WorldScene extends Phaser.Scene {
   private rainbow?: Phaser.GameObjects.Graphics;
   /** Where fallen leaves lie, for feet to kick through. */
   private leafPiles: { x: number; y: number }[] = [];
+  /** Broadleaf trees in the scene, for the season's leaves and petals to fall from. */
+  private broadleaves: Phaser.GameObjects.Image[] = [];
   private ground?: Phaser.Tilemaps.TilemapLayer;
   private tilemap?: Phaser.Tilemaps.Tilemap;
   private shadows = new Map<string, Phaser.GameObjects.Image>();
@@ -885,9 +898,15 @@ export class WorldScene extends Phaser.Scene {
   /** Lit panes and their halo over the night wash, faded in with the hour. */
   private lamps: {
     pane: Phaser.GameObjects.Image;
-    halo: Phaser.GameObjects.Image;
+    halo?: Phaser.GameObjects.Image;
     /** A room on its own hours; otherwise lit whenever lamps are. */
     lit?: (hour: number) => boolean;
+    /** Light thrown out onto the street: from ground-floor windows, a sign, a porch lamp. */
+    pools?: Phaser.GameObjects.Image[];
+    /** Strength of the pane, the halo and the pools at full dark. */
+    glass?: number;
+    glow?: number;
+    spill?: number;
   }[] = [];
   private washKey = "";
   private fires = new Map<string, FireEffect>();
@@ -1072,7 +1091,7 @@ export class WorldScene extends Phaser.Scene {
     this.routeOverlay = this.add.graphics().setDepth(20000);
     // Multiply, not a flat fill: a wash that lifts the darks greys the scene.
     this.night = this.washTexture(16, 16);
-    this.drift = new Drift(this);
+    this.drift = new Drift(this, () => this.fallingFrom());
     this.mist = new Mist(this);
     this.clouds = new CloudShadows(this);
     this.life = new AmbientLife(this, (kind, x, y) => this.critterGround(kind, x, y));
@@ -3034,12 +3053,31 @@ export class WorldScene extends Phaser.Scene {
       const x = Math.round(placement.x - model.anchor[0] + sx), y = Math.round(top - model.anchor[1] + sy);
       const image = this.add.image(x, y, made.key).setOrigin(0, 0).setTint(this.tint).setDepth(placement.depth + 1);
       this.layers.push(image);
+      const year = this.runtime.engine.world.pack.year;
+      // Signs go off when the shop shuts, a few burn on into the night.
+      const off = 21.5 + r("off") * 3;
+      const lit = (h: number) => (h >= 17.5 || h < 6) && (h >= 12 ? h : h + 24) < off;
+      const ground = Math.round(top + 3);
+      // From mid-century a shopfront is lit for passers-by, whatever its sign.
+      if (!made.lit && year >= 1950) {
+        const pool = this.make.image({ x: x + w / 2, y: ground, key: ensureLightMask(this, Math.min(36, Math.max(16, Math.round((w * 0.6) / 4) * 4)), PORCH_TONE), frame: "0" }, false);
+        const quiet = this.add.image(x, y, made.key).setOrigin(0, 0).setDepth(placement.depth + 1.1).setVisible(false);
+        this.layers.push(pool, quiet);
+        this.lamps.push({ pane: quiet, pools: [pool], glass: 0.25, spill: 0.55, lit });
+        this.washKey = "";
+      }
       if (!made.lit) return;
-      const at = (depth: number) => this.add.image(x, y, made.lit!).setOrigin(0, 0).setDepth(depth).setVisible(false);
-      const pane = at(placement.depth + 1.1);
-      const halo = at(19001).setBlendMode(Phaser.BlendModes.ADD);
-      this.layers.push(pane, halo);
-      this.lamps.push({ pane, halo });
+      const pane = this.add.image(x, y, made.lit).setOrigin(0, 0).setDepth(placement.depth + 1.1).setVisible(false);
+      const halo = this.add
+        .image(x - SIGN_GLOW, y - SIGN_GLOW, made.glow!)
+        .setOrigin(0, 0)
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(19001)
+        .setVisible(false);
+      // Neon colours the pavement under it.
+      const pool = this.make.image({ x: x + w / 2, y: ground, key: ensureLightMask(this, Math.min(40, Math.max(16, Math.round((w * 0.7) / 4) * 4)), made.tone!), frame: "0" }, false);
+      this.layers.push(pane, halo, pool);
+      this.lamps.push({ pane, halo, pools: [pool], glow: kind === "neon" ? 0.85 : 0.55, spill: 0.5, lit });
       this.washKey = "";
     });
   }
@@ -3202,28 +3240,60 @@ export class WorldScene extends Phaser.Scene {
   private lightLamp(
     id: string,
     image: Phaser.GameObjects.Image,
-    lamp: { radius: number; flame: boolean },
+    lamp: Lamp,
     x: number,
     y: number,
   ) {
-    if (this.streetLights.has(id)) return;
+    if (this.streetLights.get(id)?.lamp.tech === lamp.tech) return;
+    this.douseLamp(id);
+    const seed = this.runtime.engine.state.manifest.seed;
+    // Frame pixels to world, mirrored about the origin when the prop is flipped.
+    const heads = lamp.heads.map(([hx, hy]) => [
+      x + (image.flipX ? image.displayOriginX - hx - 0.5 : hx + 0.5 - image.displayOriginX),
+      y + hy + 0.5 - image.displayOriginY,
+    ]);
+    const under = heads.reduce((sum, [hx]) => sum + hx, 0) / heads.length;
     this.streetLights.set(id, {
-      pool: this.make.image({ x: Math.round(x), y: Math.round(y - 4), key: ensureLightMask(this, Math.round(lamp.radius * 1.5)), frame: "0" }, false),
-      // The lamp head sits near the top of the post or the bracket.
-      flame: this.add
-        .image(Math.round(x), Math.round(y - image.height * 0.8), ensureFireLight(this, 14), "0")
-        .setBlendMode(Phaser.BlendModes.ADD)
-        .setAlpha(lightAlpha[this.light.id])
-        .setDepth(19001),
-      flickers: lamp.flame,
+      // A shade spreads its light over more ground than a lantern does.
+      pool: this.make.image({ x: Math.round(under), y: Math.round(y - 4), key: ensureLightMask(this, Math.round(lamp.radius * (lamp.cone ? 2 : lamp.tech === "fire" ? 1.6 : 1.8)), lamp.tone), frame: "0" }, false),
+      flames: heads.map(([hx, hy]) =>
+        this.add
+          .image(
+            Math.round(hx),
+            Math.round(hy),
+            lamp.tech === "fire"
+              ? ensureFireLight(this, 16)
+              : lamp.cone
+                ? ensureFireLight(this, 10, lamp.tone)
+                : ensureHalo(this, 30, lamp.tone),
+            "0",
+          )
+          .setBlendMode(Phaser.BlendModes.ADD)
+          .setAlpha(0)
+          .setDepth(19001),
+      ),
+      cones: lamp.cone
+        ? heads.map(([hx, hy]) =>
+            this.add
+              .image(Math.round(hx), Math.round(hy) + 1, ensureLightCone(this, Math.max(16, Math.round(y - hy)), lamp.tone))
+              .setOrigin(0.5, 0)
+              .setBlendMode(Phaser.BlendModes.ADD)
+              .setAlpha(0)
+              .setDepth(19000),
+          )
+        : [],
+      lamp,
       phase: Math.floor(this.poseOffset(id) % 8),
+      // A lighter works street by street across the town, so neighbours light
+      // in turn rather than in a random sparkle.
+      order: ((((x + y * 0.6) / 700 + random(seed, "lamp-round", id) * 0.08) % 1) + 1) % 1,
     });
   }
   private douseLamp(id: string) {
     const lamp = this.streetLights.get(id);
     if (!lamp) return;
     lamp.pool.destroy();
-    lamp.flame.destroy();
+    for (const glow of [...lamp.flames, ...lamp.cones]) glow.destroy();
     this.streetLights.delete(id);
   }
   private quenchFire(id: string) {
@@ -4093,6 +4163,16 @@ export class WorldScene extends Phaser.Scene {
    * before the new one is built, then comes up out of it. Across the map only
    * the arrival fades: the world under the old view has already been swapped.
    * True while the old frame is being held. */
+  private fallingFrom() {
+    const trees = [...this.broadleaves];
+    for (const image of this.entities.values()) {
+      const name = image.frame?.name;
+      if (name === "ecology-fruit-tree" || name === "oak" || (natureTreeSprites.includes(name) && turnsColour(name)))
+        trees.push(image);
+    }
+    return trees;
+  }
+
   private critterGround(kind: CritterKind, x: number, y: number) {
     const cell = this.runtime.engine.world.topography?.(Math.floor(x / 16), Math.floor(y / 16));
     if (!cell) return false;
@@ -4101,7 +4181,8 @@ export class WorldScene extends Phaser.Scene {
     if (kind === "dragonfly")
       return (water && cell.waterVisual?.kind !== "sea") || cell.habitat?.kind === "hollow";
     if (kind === "fluff") return !water && cell.feature !== "paving";
-    if (kind === "butterfly" || kind === "firefly") return !water || cell.waterVisual?.kind !== "sea";
+    if (kind === "butterfly") return !water && !cell.pavement && cell.feature !== "paving";
+    if (kind === "firefly") return !water || cell.waterVisual?.kind !== "sea";
     return true;
   }
 
@@ -4472,6 +4553,7 @@ export class WorldScene extends Phaser.Scene {
       }
       this.layers = [];
       this.leafPiles = [];
+      this.broadleaves = [];
       this.courtyardLighting.begin();
       this.canopies = [];
       this.plantHeights.clear();
@@ -4845,6 +4927,8 @@ export class WorldScene extends Phaser.Scene {
               if (worked?.burnt) tint = blendTint(tint, 0x4a3f36);
               if (tint !== this.tint) decoration.setTint(tint);
               const ecology = w.pack.setting?.environment?.ecology ?? "grassland";
+              if (originalIsTree && turnsColour(originalName) && !worked?.burnt)
+                this.broadleaves.push(decoration);
               if (
                 originalIsTree &&
                 this.season === "autumn" &&
@@ -5069,6 +5153,7 @@ export class WorldScene extends Phaser.Scene {
             }
             this.addDoor(b, placement, image.y);
             this.lightWindows(b, placement, image);
+            this.lightPorch(b, placement, image);
             const model = placement.model as { smoke?: [number, number, string][]; door?: number[] };
             const wear = buildingWear(this, image.texture.key, image.frame.name, {
               climate: w.pack.setting?.climate,
@@ -5398,7 +5483,7 @@ export class WorldScene extends Phaser.Scene {
       const fire = frame === "fire" || this.fireFrames.has(frame);
       if (this.fireFrames.has(frame)) this.lightFire(id, im, frame, tx, ty);
       else if (this.fires.has(id)) this.quenchFire(id);
-      const lamp = fire ? undefined : lampLight(frame);
+      const lamp = fire ? undefined : lampLight(frame, w.pack.year, random(e.state.manifest.seed, "lamp-kind", id));
       if (lamp) this.lightLamp(id, im, lamp, tx, ty);
       else if (this.streetLights.has(id)) this.douseLamp(id);
       // A fire keeps its own colour at night.
@@ -6302,8 +6387,9 @@ export class WorldScene extends Phaser.Scene {
     const hour = (((clock / 3600) % 24) + 24) % 24;
     for (const l of this.lamps) {
       const on = lamps > 0 && (l.lit?.(hour) ?? true);
-      l.pane.setAlpha(lamps).setVisible(on);
-      l.halo.setAlpha(lamps * 0.6).setVisible(on);
+      l.pane.setAlpha(lamps * (l.glass ?? 1)).setVisible(on);
+      l.halo?.setAlpha(lamps * (l.glow ?? 0.6)).setVisible(on);
+      for (const pool of l.pools ?? []) pool.setAlpha(lamps * (l.spill ?? 0.45)).setVisible(on);
     }
   }
   /** The wash over the camera's view with each fire and lamp's pool laid
@@ -6337,7 +6423,11 @@ export class WorldScene extends Phaser.Scene {
     const ox = Math.floor(v.x) - pad,
       oy = Math.floor(v.y) - pad;
     night.setPosition(ox, oy).setVisible(true).fill(this.washTint);
-    const pools = [...[...this.fires.values()].map((f) => f.pool), ...[...this.streetLights.values()].map((l) => l.pool)];
+    const pools = [
+      ...[...this.fires.values()].map((f) => f.pool),
+      ...[...this.streetLights.values()].map((l) => l.pool),
+      ...this.lamps.flatMap((l) => l.pools ?? []),
+    ];
     for (const pool of pools) {
       if (!pool.visible || !pool.alpha) continue;
       const x = pool.x - ox,
@@ -6363,7 +6453,12 @@ export class WorldScene extends Phaser.Scene {
     }
     if ((placement.model as { unglazed?: boolean }).unglazed) return;
     const h = (((this.runtime.displayClock() / 3600) % 24) + 24) % 24;
-    const share = h >= 17 && h < 22.5 ? 0.8 : h >= 4.5 && h < 8 ? 0.45 : 0.15;
+    // Light cost money until it came down a wire: a candle-lit town went to
+    // bed with the dark, and paraffin and gas kept it up later.
+    const year = this.runtime.engine.world.pack.year;
+    const [evening, bed, early, late] =
+      year < 1700 ? [0.35, 21, 0.15, 0.04] : year < 1860 ? [0.5, 22, 0.25, 0.08] : year < 1910 ? [0.7, 22.5, 0.35, 0.12] : [0.8, 23.5, 0.45, 0.15];
+    const share = h >= 17 && h < bed ? evening : h >= 4.5 && h < 8 ? early : late;
     if (random(this.runtime.engine.state.manifest.seed, "lamp", place.id) >= share) return;
     // A painter that draws its own lit rooms ships them as a frame beside the
     // building's; the rest are found in the art's glass.
@@ -6373,16 +6468,70 @@ export class WorldScene extends Phaser.Scene {
       ? [this.texture(authored), authored]
       : [windowGlow(this, image.texture.key, image.frame.name, (placement.model as { door?: number[] }).door), undefined];
     if (!key) return;
-    const at = (depth: number) =>
-      this.add
-        .image(image.x, image.y, key, frame)
-        .setOrigin(image.originX, image.originY)
-        .setDepth(depth)
-        .setVisible(false);
-    const pane = at(image.depth + 0.5);
-    const halo = at(19001).setBlendMode(Phaser.BlendModes.ADD);
-    this.layers.push(pane, halo);
-    this.lamps.push({ pane, halo });
+    const soft = windowHalo(this, key, frame);
+    const left = image.x - image.displayOriginX,
+      top = image.y - image.displayOriginY;
+    const at = (texture: string, depth: number) =>
+      this.add.image(left - soft.pad, top - soft.pad, texture).setOrigin(0).setDepth(depth).setVisible(false);
+    const pane = at(soft.pane, image.depth + 0.5);
+    const halo = at(soft.key, 19001).setBlendMode(Phaser.BlendModes.ADD);
+    const pools = soft.pools.map(({ x, w }) =>
+      this.make.image(
+        {
+          x: Math.round(left + x),
+          y: Math.round(top + image.height + 3),
+          key: ensureLightMask(this, Math.min(40, Math.max(12, Math.round((w * 0.7) / 4) * 4)), WINDOW_TONE),
+          frame: "0",
+        },
+        false,
+      ),
+    );
+    this.layers.push(pane, halo, ...pools);
+    // Glass found in the art keeps its mullions and reflections under the light.
+    this.lamps.push({ pane, halo, pools, glass: 0.6, glow: 0.55 });
+    this.washKey = "";
+  }
+  /** A lamp on the wall beside the door, from the years every house had one
+   * wired: a fixture by day, and at night a glow and a pool on the step. Some
+   * are left on all night; most go off when the house goes to bed. */
+  private lightPorch(
+    place: Place,
+    placement: ReturnType<typeof buildingPlacement>,
+    image: Phaser.GameObjects.Image,
+  ) {
+    const model = placement.model as { door?: number[]; doorLeaf?: boolean; unglazed?: boolean };
+    const rect = model.door;
+    if (!rect || model.doorLeaf === false || model.unglazed || this.runtime.engine.world.pack.year < 1950) return;
+    const r = (k: string) => random(this.runtime.engine.state.manifest.seed, "porch", k, place.id);
+    if (r("has") > 0.7) return;
+    const left = image.x - image.displayOriginX,
+      top = image.y - image.displayOriginY;
+    // Beside the door at head height, on whichever side has wall.
+    const side = rect[0] >= 6 ? rect[0] - 4 : rect[0] + rect[2] + 1;
+    const x = Math.round(left + side),
+      y = Math.round(top + rect[1] + 2);
+    const fixture = this.add.image(x, y, ensurePorchLamp(this), "0").setOrigin(0, 0).setTint(this.tint).setDepth(image.depth + 1.05);
+    const pane = this.add.image(x, y, ensurePorchLamp(this), "1").setOrigin(0, 0).setDepth(image.depth + 1.1).setVisible(false);
+    const halo = this.add
+      .image(x + 1.5, y + 2.5, ensureHalo(this, 14, PORCH_TONE), "0")
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(19001)
+      .setVisible(false);
+    const pool = this.make.image(
+      { x: x + 1, y: Math.round(top + rect[1] + rect[3] + 3), key: ensureLightMask(this, 24, PORCH_TONE), frame: "0" },
+      false,
+    );
+    const allNight = r("night") < 0.3,
+      off = 22.5 + r("off") * 2;
+    this.layers.push(fixture, pane, halo, pool);
+    this.lamps.push({
+      pane,
+      halo,
+      pools: [pool],
+      glow: 0.7,
+      spill: 0.7,
+      lit: (h) => (h >= 17.8 || h < 6.2) && (allNight || (h >= 12 ? h : h + 24) < off),
+    });
     this.washKey = "";
   }
   /** Cloud and wet ground both take the light out of a scene. Ground the
@@ -6879,15 +7028,29 @@ export class WorldScene extends Phaser.Scene {
         }
         fire.embers?.setVisible(alpha > 0);
       }
+    const lampClock = this.runtime.timeVisualClock ?? this.runtime.engine.state.clock;
+    const lampHour = (((lampClock / 3600) % 24) + 24) % 24;
+    const lampDark = this.options.lighting ? lightAlpha[this.light.id] : washAt(lampClock).lamps;
     if (perf.fires)
       for (const lamp of this.streetLights.values()) {
-        const alpha = lightAlpha[this.light.id];
-        const step = this.options.freeze ? 0 : Math.floor(time / FIRE_FRAME_MS + lamp.phase);
-        const size = lamp.flickers ? String(LIGHT_FLICKER[step % LIGHT_FLICKER.length]) : "0";
-        for (const glow of [lamp.pool, lamp.flame]) {
+        const alpha = lampDark
+          ? lamp.lamp.power *
+            lampDark *
+            (this.options.lighting ? 1 : lampOn(lamp.lamp.tech, lampHour, lamp.order))
+          : 0;
+        const { flicker } = lamp.lamp;
+        const step = this.options.freeze
+          ? 0
+          : Math.floor(time / (FIRE_FRAME_MS * (flicker === 1 ? 3 : 1)) + lamp.phase);
+        const size = flicker ? String(Math.min(flicker, LIGHT_FLICKER[step % LIGHT_FLICKER.length])) : "0";
+        for (const glow of [lamp.pool, ...lamp.flames]) {
           if (glow.frame.name !== size) glow.setFrame(size);
           if (glow.alpha !== alpha) glow.setAlpha(alpha);
           if (glow.visible !== alpha > 0) glow.setVisible(alpha > 0);
+        }
+        for (const cone of lamp.cones) {
+          if (cone.alpha !== alpha) cone.setAlpha(alpha);
+          if (cone.visible !== alpha > 0) cone.setVisible(alpha > 0);
         }
       }
     if (perf.fires)

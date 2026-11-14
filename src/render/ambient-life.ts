@@ -24,9 +24,10 @@ type Spec = {
 const specs: Record<CritterKind, Spec> = {
   bird: { density: 20, depth: 18700, colors: ["#2b3242", "#39414f"] },
   butterfly: {
-    density: 30,
+    density: 18,
     depth: 18450,
-    colors: ["#f4e7a8", "#f7f3e6", "#e9c4d2"],
+    // Brimstone, cabbage white, small tortoiseshell, common blue.
+    colors: ["#f2d64b", "#f4f1e4", "#e0823a", "#8fb2e6"],
   },
   firefly: {
     density: 70,
@@ -77,6 +78,9 @@ const shapes: Record<CritterKind, string[][]> = {
     [".X...", "XXX..", ".X...", ".....", "....."],
   ],
 };
+const SKEIN = 5;
+/** Seconds between skeins. */
+const SKEIN_EVERY = 55;
 const soaring = (kind: CritterKind) => kind === "bird" || kind === "gull" || kind === "hawk";
 const W = 7,
   H = 7;
@@ -247,24 +251,29 @@ export class AmbientLife {
     const view = this.scene.cameras.main.worldView;
     this.area = Math.max(3e5, view.width * view.height);
     const count =
-      kind === "hawk" ? 1 : Math.min(220, Math.round((spec.density * this.area) / 1e6));
+      kind === "hawk"
+        ? 1
+        : kind === "bird"
+          ? SKEIN
+          : Math.min(220, Math.round((spec.density * this.area) / 1e6));
     const key = ensureAtlas(this.scene, kind);
     this.layer = this.scene.add.container(0, 0).setDepth(spec.depth);
     const rnd = (n: number) => {
       const v = Math.sin(this.seed * 45.11 + n * 78.233) * 43758.5453;
       return v - Math.floor(v);
     };
-    // Birds and midges keep company; butterflies and fireflies do not.
-    const group = kind === "bird" ? 4 : kind === "midge" ? 9 : 1;
+    const group = kind === "bird" ? SKEIN : kind === "midge" ? 9 : 1;
     for (let i = 0; i < count; i++) {
       const lead = Math.floor(i / group);
+      // Leader at the point, the rest back along alternate arms of the V.
+      const rank = Math.ceil(i / 2);
       this.critters.push({
         x: view.x + rnd(lead) * (view.width || 1200),
         y: view.y + rnd(lead + 0.5) * (view.height || 900),
         phase: rnd(i + 2.5) * 6.28,
         row: Math.floor(rnd(i + 3.5) * spec.colors.length),
-        ox: (rnd(i + 4.5) - 0.5) * (kind === "bird" ? 34 : 26),
-        oy: (rnd(i + 5.5) - 0.5) * (kind === "bird" ? 16 : 22),
+        ox: kind === "bird" ? rank * 8 : (rnd(i + 4.5) - 0.5) * 26,
+        oy: kind === "bird" ? rank * 5 * (i % 2 ? 1 : -1) : (rnd(i + 5.5) - 0.5) * 22,
         lead,
         shown: 0,
       });
@@ -320,6 +329,7 @@ export class AmbientLife {
     }
     const kind = this.kind;
     const t = frozen ? 0 : time / 1000;
+    if (kind === "bird") return this.skein(t, view);
     const w = view.width + 40,
       h = view.height + 40;
     const v = windVector();
@@ -341,6 +351,32 @@ export class AmbientLife {
     }
   }
 
+  /** Now and then one skein crosses the view, wings beating slowly with long
+   * glides, and is gone; most of the time the sky is empty. */
+  private skein(t: number, view: Phaser.Geom.Rectangle) {
+    const speed = 44 + wind().strength * 30;
+    const s = t / SKEIN_EVERY + this.seed;
+    const n = Math.floor(s);
+    const into = (s - n) * SKEIN_EVERY;
+    const rnd = (k: number) => {
+      const v = Math.sin(n * 17.31 + k * 61.7) * 43758.5453;
+      return v - Math.floor(v);
+    };
+    const dir = rnd(1) < 0.5 ? 1 : -1;
+    const run = into * speed;
+    const shown = run < view.width + 140;
+    const lx = dir > 0 ? view.x - 70 + run : view.right + 70 - run;
+    const ly = view.y + view.height * (0.2 + rnd(2) * 0.5) + (rnd(3) - 0.5) * 0.3 * run;
+    for (let i = 0; i < this.critters.length; i++) {
+      const c = this.critters[i];
+      const x = Math.round(lx - dir * c.ox);
+      const y = Math.round(ly + c.oy);
+      const beat = Math.sin(t * 2.2 + c.phase * 0.3) > -0.2 ? Math.floor(t * 4 + c.phase) % 2 : 1;
+      this.sprites[i].setVisible(shown).setPosition(x, y - ALTITUDE).setFrame(`${c.row}-${beat}`);
+      this.shadows[i]?.setVisible(shown).setPosition(x, y);
+    }
+  }
+
   /** Where one creature is now, and which frame it is showing. */
   private path(
     kind: CritterKind,
@@ -349,16 +385,6 @@ export class AmbientLife {
     v: { x: number; y: number },
   ) {
     const flock = c.lead * 1.7;
-    if (kind === "bird") {
-      // A skein holds its heading and crosses the view; the wind hurries it.
-      const speed = 48 + wind().strength * 40;
-      const head = c.phase * 0.12 + 0.6;
-      return {
-        x: c.x + c.ox + (Math.cos(head) + v.x * 0.4) * speed * t,
-        y: c.y + c.oy + (Math.sin(head) * 0.35 + v.y * 0.4) * speed * t,
-        frame: Math.floor(t * 7 + c.phase) % 2,
-      };
-    }
     if (kind === "gull" || kind === "hawk") {
       // Wide wheeling turns, carried downwind; a gull flaps now and then, a
       // hawk holds its wings still.

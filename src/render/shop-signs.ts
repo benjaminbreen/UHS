@@ -9,6 +9,7 @@ import type Phaser from "phaser";
 import { GLYPHS, signable } from "./sign-texture";
 import { ARABIC_SIZES, CJK_SIZES, DEVA_SIZES, SCRIPT_BITMAPS } from "./sign-glyphs.generated";
 import type { SignLanguage } from "../content/settlements/signs";
+import { blur } from "./window-light";
 
 export type SignKind = "board" | "box" | "paint" | "neon" | "blade";
 /** x, y, w, h on the sprite; the kind of sign; the trade, when the art knows it. */
@@ -146,7 +147,7 @@ export function drawShopSign(
   word: string,
   text: Bitmap,
   accent: number,
-): { key: string; lit?: string } | undefined {
+): { key: string; lit?: string; glow?: string; tone?: [number, number, number] } | undefined {
   const tube = TUBES[accent % TUBES.length];
   const key = `shopsign:${kind}:${w}x${h}:${paint}:${language}:${word}:${text.w}x${text.h}:${tube}`;
   const lights = kind === "box" || kind === "neon";
@@ -203,5 +204,35 @@ export function drawShopSign(
   if (!scene.textures.exists(key)) return undefined;
   if (!lights) return { key };
   draw(`${key}:lit`, true);
-  return { key, lit: `${key}:lit` };
+  // A tube lights the air round its letters in its own colour; a lightbox
+  // glows from its whole face.
+  const hex = kind === "neon" ? shade(tube, 0.4) : "#fff2dc";
+  const tone = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
+  const glow = `${key}:glow`;
+  if (!scene.textures.exists(glow)) {
+    const W = w + SIGN_GLOW * 2,
+      H = h + SIGN_GLOW * 2;
+    const mask = new Float32Array(W * H);
+    const tx = Math.floor((w - text.w) / 2) + SIGN_GLOW,
+      ty = Math.floor((h - text.h) / 2) + SIGN_GLOW;
+    if (kind === "neon") {
+      for (let y = 0; y < text.h; y++)
+        for (let x = 0; x < text.w; x++) if (text.bits[y * text.w + x]) mask[(ty + y) * W + tx + x] = 1;
+    } else
+      for (let y = 2; y < h - 2; y++)
+        for (let x = 2; x < w - 2; x++) mask[(y + SIGN_GLOW) * W + x + SIGN_GLOW] = 0.6;
+    const soft = blur(mask, W, H, kind === "neon" ? 2 : 3);
+    const canvas = scene.textures.createCanvas(glow, W, H)!;
+    const img = canvas.getContext().createImageData(W, H);
+    for (let i = 0; i < soft.length; i++) {
+      // Mostly round the sign, little over it, so the words stay legible.
+      const v = Math.min(1, soft[i] * (kind === "neon" ? 3.2 : 1.4)) * (mask[i] ? (kind === "neon" ? 0.45 : 0.1) : 1);
+      if (v > 0.02) img.data.set([...tone, Math.round(v * 230)], i * 4);
+    }
+    canvas.getContext().putImageData(img, 0, 0);
+    canvas.refresh();
+  }
+  return { key, lit: `${key}:lit`, glow, tone };
 }
+/** How far a lit sign's glow reaches past its edges, in pixels. */
+export const SIGN_GLOW = 7;
