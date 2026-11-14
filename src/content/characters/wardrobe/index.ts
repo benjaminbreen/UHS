@@ -46,6 +46,7 @@ function fits(o: WearerScope, w: Wearer, band: ReturnType<typeof ageBandOf>) {
   return (
     (!o.sex || o.sex.includes(w.sex ?? "unspecified")) &&
     (!o.ages || o.ages.includes(band)) &&
+    (!o.under || (w.age ?? 30) < o.under) &&
     // Anything a merchant could buy, a monarch could too.
     (!o.means ||
       o.means.includes(w.means ?? "common") ||
@@ -138,7 +139,7 @@ function pick<T>(
   band: ReturnType<typeof ageBandOf>,
   key: string,
 ): T | undefined {
-  const usable = options.filter((o) => fits(o, w, band));
+  const usable = options.filter((o) => fits(o, w, band) && (o.share === undefined || random(w.id, "wardrobe-share") < o.share));
   if (!usable.length) return undefined;
   const total = usable.reduce((n, o) => n + (o.weight ?? 1), 0);
   let roll = random(w.id, "wardrobe-v3", key) * total;
@@ -267,6 +268,13 @@ export function fibresFor(
     if (m !== "hide" && m !== "fur") out[part] = m;
   }
   return out;
+}
+/** What the wardrobe asks of the person under it: a shave, a beard, powder. */
+export function groomed<A extends CharacterAppearance>(a: A): A {
+  const { shave, hairdress } = a.wearing;
+  const beard = shave === "clean" ? "none" : shave === "full" && a.beard === "none" ? "short" : a.beard;
+  const hairColor = hairdress === "powdered" || hairdress === "pouf" ? "#e6e2d8" : a.hairColor;
+  return beard === a.beard && hairColor === a.hairColor ? a : { ...a, beard, hairColor };
 }
 /**
  * Dress one person. Resolution is per slot, not per kit: the narrowest kit
@@ -403,6 +411,7 @@ export function wardrobeFor(
     shawl: chosen.shawl as CharacterAppearance["wearing"]["shawl"],
     drape: chosen.drape as CharacterAppearance["wearing"]["drape"],
     hairdress: chosen.hairdress as CharacterAppearance["wearing"]["hairdress"],
+    shave: chosen.shave as CharacterAppearance["wearing"]["shave"],
     silhouette: chosen.silhouette as CharacterAppearance["wearing"]["silhouette"],
     mask: chosen.mask as CharacterAppearance["wearing"]["mask"],
     headLoad: chosen.headLoad as CharacterAppearance["wearing"]["headLoad"],

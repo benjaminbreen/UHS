@@ -22,7 +22,7 @@ import { sidearms } from "./regions/sidearms";
 import { guards } from "./regions/guards";
 import { street } from "./regions/street";
 import { embroidery } from "./regions/embroidery";
-import { headdress } from "./regions/headdress";
+import { hairdos, headdress } from "./regions/headdress";
 
 /** Era floors. These are qualified visual defaults, not reconstructions: they
  * say only what the period could make, so a bowler never turns up in the
@@ -381,6 +381,7 @@ export const regionalKits: readonly GarmentKit[] = [
   ...sidearms,
   ...embroidery,
   ...headdress,
+  ...hairdos,
   ...southAsia,
   ...southeastAsia,
   ...eastAsia,

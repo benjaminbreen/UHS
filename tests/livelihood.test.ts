@@ -16,11 +16,8 @@ import { institutionFor } from "../src/content/characters/workplace";
 import { isVisitor } from "../src/world/v3/rail-travellers";
 import { waterfrontFor } from "../src/content/settlements/waterfronts";
 import { catchFate, catchOf, crewRole, fishingPractice, hullWeights, methodWeights, preserveOf } from "../src/content/economy/fishing";
-import { gameOf, huntFate, huntWeapon, weaponHand, weaponWeights } from "../src/content/economy/hunting";
 import { CARDS } from "../src/content/cards";
 import { personalItem, seasonAt } from "../src/core/livelihood";
-import { fieldParcel } from "../src/core/work-places";
-import { cropStage } from "../src/content/agriculture";
 import { findPlace } from "../src/core/work-places";
 import { route } from "../src/core/routing";
 import { startAgent } from "../src/agents/agent";
@@ -50,22 +47,6 @@ const setting = (
     ...over,
   },
 });
-/** The day's three steps, each where it is done (a place, or the trade's
- * prop), answering any card with its first choice. */
-function workDay(e: Engine) {
-  for (let step = 0; step < 3; step++) {
-    const plan = e.workPlan()!;
-    e.state.player.pos = { ...(plan.places[step] ? plan.door! : plan.station!.pos) };
-    const command = e.workHere()?.command ?? { type: "interact" as const, target: plan.station!.id, action: "work" as const };
-    expect(e.act({ actionId: `day-${e.state.revision}`, expectedRevision: e.state.revision, command }).status).toBe("completed");
-    const card = e.cards.find((c) => c.choose)?.choose;
-    const choice = card?.choices.find((c) => !c.unavailable)?.index;
-    if (card && choice !== undefined)
-      e.act({ actionId: `card-${e.state.revision}`, expectedRevision: e.state.revision, command: { type: "choose", card: card.card, choice } });
-    e.cards.length = 0;
-  }
-}
-
 it("creates reciprocal family links and shared residences, with plausible parent age differences", () => {
   const e = createSettingSession(
       setting({ household: "extended" }),

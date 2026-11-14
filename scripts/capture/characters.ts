@@ -1116,6 +1116,22 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     ["Plains", "great-plains-early", 1820, ["young-warrior|male|18", "young-warrior|male|24", "hunter", "young-warrior|male|28"]],
   ]),
 
+  /** Hair by period and place; little boys in skirts; children's tufts; widows and elders. */
+  hair: (page) => castSheet(page, "hair", [
+    ["Rome", "rome", 100, ["weaver|female|28", "weaver|female|65", "farmer|male|30", "farmer|male|5"]],
+    ["Rome", "rome", 150, ["farmer|male|30", "farmer|male|40", "weaver|female|30", "farmer|male|50"]],
+    ["Heian Kyoto", "kyoto", 1000, ["landowner|female|25", "landowner|female|30", "landowner|female|20", "farmer|male|5"]],
+    ["Edo Kyoto", "kyoto", 1750, ["weaver|female|18", "weaver|female|30", "weaver|male|30", "farmer|male|6"]],
+    ["Beijing", "beijing", 1750, ["weaver|female|30", "weaver|female|17", "farmer|male|5", "farmer|female|7"]],
+    ["Timbuktu", "timbuktu", 1850, ["herder|female|25", "herder|female|22", "herder|female|30", "herder|female|35"]],
+    ["London", "london", 1750, ["landowner|male|35", "weaver|male|30", "weaver|male|50", "weaver|male|4"]],
+    ["Paris", "paris", 1780, ["landowner|female|25", "landowner|male|40", "landowner|female|30", "weaver|female|70"]],
+    ["London", "london", 1880, ["weaver|female|35", "weaver|male|40", "weaver|male|45", "weaver|female|68"]],
+    ["Paris", "paris", 1925, ["weaver|female|22", "weaver|female|28", "weaver|male|30", "weaver|female|70"]],
+    ["London", "london", 1963, ["weaver|female|22", "weaver|female|25", "weaver|female|30", "weaver|male|30"]],
+    ["London", "london", 1850, ["weaver|female|70", "weaver|female|68", "farmer|male|75", "farmer|male|72"]],
+  ]),
+
   /** A walk cycle, side and three-quarter, for what swings: polearms, banners, pole loads, the mantle. */
   async motion(page) {
     await characterLab(page);

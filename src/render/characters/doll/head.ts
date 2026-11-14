@@ -38,7 +38,8 @@ export type Head = {
 };
 
 type Style = { line: number; side: number; back: number; wide: number; vol: number };
-const styles: Record<CharacterAppearance["hair"] | "queue", Style | undefined> = {
+type Cut = CharacterAppearance["hair"] | "queue" | "bun" | "shimada" | "heian" | "crest" | "beehive" | "pouf" | "tied" | "tufts";
+const styles: Record<Cut, Style | undefined> = {
   original: { line: 4, side: 3, back: 11, wide: 1, vol: 1 },
   cropped: { line: 3, side: 2, back: 10, wide: 1, vol: 0 },
   curls: { line: 4, side: 6, back: 12, wide: 2, vol: 2 },
@@ -49,10 +50,20 @@ const styles: Record<CharacterAppearance["hair"] | "queue", Style | undefined> =
   bald: undefined,
   // Shaved to the crown, the rest grown long and plaited down the back.
   queue: { line: 1, side: 0, back: 11, wide: 0, vol: 0 },
+  bun: { line: 3, side: 3, back: 10, wide: 1, vol: 0 },
+  shimada: { line: 3, side: 3, back: 10, wide: 2, vol: 0 },
+  heian: { line: 3, side: 10, back: 13, wide: 2, vol: 0 },
+  crest: { line: 3, side: 2, back: 10, wide: 1, vol: 0 },
+  beehive: { line: 3, side: 5, back: 11, wide: 1, vol: 0 },
+  pouf: { line: 3, side: 4, back: 11, wide: 1, vol: 0 },
+  tied: { line: 3, side: 3, back: 10, wide: 1, vol: 0 },
+  tufts: { line: 0, side: 0, back: 0, wide: 0, vol: 0 },
 };
 /** The cut as drawn: a queue replaces the person's own; a tonsure is a crop with the crown shaved. */
-const hairOf = (a: CharacterAppearance) =>
-  a.wearing.hairdress === "queue" ? "queue" : a.wearing.hairdress === "tonsure" ? "cropped" : a.wearing.hairdress === "shaven" ? "bald" : a.wearing.hairdress === "chonmage" ? "topknot" : a.hair;
+const hairOf = (a: CharacterAppearance): Cut => {
+  const d = a.wearing.hairdress;
+  return !d || d === "none" ? a.hair : d === "tonsure" ? "cropped" : d === "shaven" ? "bald" : d === "chonmage" ? "topknot" : d === "powdered" ? "tied" : d;
+};
 
 /** Broad and round heads fill the 14-column box; the rest are two columns
  * narrower, so a face is not always the widest it could be. */
@@ -143,14 +154,20 @@ export function hairBehind(h: Head) {
   // Hair hangs a frame behind the body: shorter as it drops, longer as it rises.
   const drop = Math.max(4, h.shoulder - h.y0 + (h.child ? 1 : 3) - h.lag);
   // The queue hangs to the small of the back.
-  const queue = hair === "queue" ? 8 : 0;
+  const queue = hair === "queue" ? 8 : hair === "tied" ? 14 - drop : 0;
   const fall = m();
-  if (hair === "long") {
+  if (hair === "heian") {
+    // To the hem, or near it: the length was the beauty.
+    const floor = drop + 22;
+    if (h.view === "side") fall.rows(5, Array.from({ length: floor - 5 }, () => [0, 5] as [number, number]));
+    else if (h.view === "back" || h.view === "bq") fall.rows(7, Array.from({ length: floor - 6 }, (_, i) => (i < 5 ? [1, 12] : [2, 11]) as [number, number]));
+    else fall.rows(6, Array.from({ length: drop - 6 }, () => [0, 13] as [number, number]));
+  } else if (hair === "long") {
     if (h.view === "front" || h.view === "q")
       fall.rows(6, Array.from({ length: drop - 6 }, (_, i) => (i > drop - 9 ? [1, 12] : [0, 13]) as [number, number]));
     else if (h.view === "side") fall.rows(5, Array.from({ length: drop - 5 }, (_, i) => [i > drop - 8 ? 1 : 0, 6] as [number, number]));
     else fall.rows(7, Array.from({ length: drop - 6 }, (_, i) => (i < 5 ? [1, 12] : i > drop - 9 ? [3, 10] : [2, 11]) as [number, number]));
-  } else if (hair === "braid" || hair === "queue") {
+  } else if (hair === "braid" || hair === "queue" || hair === "tied") {
     if (h.view === "back" || h.view === "bq") fall.rows(11, Array.from({ length: drop - 9 + queue }, () => [6, 7] as [number, number]));
     else if (h.view === "side") fall.rows(10, Array.from({ length: drop - 9 + queue }, () => [1, 2] as [number, number]));
     else return;
@@ -172,12 +189,17 @@ export function hairBehind(h: Head) {
     shade: 0.3,
     light: 0.25,
     bottom: true,
-    tone: hair === "braid" || hair === "queue" ? (x, y, t) => ((x + y) % 2 ? Math.min(t, 2) : t)
+    tone: hair === "braid" || hair === "queue" || hair === "tied" ? (x, y, t) => ((x + y) % 2 ? Math.min(t, 2) : t)
       // Seen from behind, the strands on the skull run on down the fall.
       : h.refined && (h.view === "back" || h.view === "bq") ? (x, _y, t) => (t === 3 && [4, 7, 9].includes(x - h.x0) ? 2 : t)
       : undefined,
   });
-  if (hair === "braid" || hair === "queue") {
+  if (hair === "tied") {
+    // A black ribbon bow at the nape.
+    const bow = m();
+    if (h.view === "side") bow.span(10, 0, 3); else bow.span(10, 4, 9).span(11, 5, 8);
+    s.put(bow.mask, EYE, { ring: "ink", shade: 0.2 });
+  } else if (hair === "braid" || hair === "queue") {
     const tie = m();
     const end = h.view === "side" ? [1, 10 + drop - 9 + queue] : [6, 11 + drop - 9 + queue];
     tie.span(end[1], end[0], end[0] + 1);
@@ -425,6 +447,8 @@ function drawHair(h: Head, st: Style, lo: number, capped: boolean) {
   const back = st.back + lo;
   // A high hairline shows a row more forehead.
   const line = st.line - (a.face?.hairline === "high" && st.line > 3 ? 1 : 0);
+  const cut = hairOf(a);
+  if (cut === "tufts") return tufts(h);
   const hair = m();
   const side = st.side + lo;
   const swept = hash(a.lineage ?? a.hairColor + a.skin) & 1;
@@ -454,7 +478,7 @@ function drawHair(h: Head, st: Style, lo: number, capped: boolean) {
   const fringe = fringes[hairOf(a)];
   if (fringe && (view === "front" || view === "q")) {
     for (let i = 0; i < 12; i++) if (fringe[i] === "#" && (view === "front" || i >= 4)) hair.set(i + 1, fr);
-    if (a.hair === "bob" && view === "front") hair.span(fr + 1, 1, 1).span(fr + 1, 12, 12);
+    if (cut === "bob" && view === "front") hair.span(fr + 1, 1, 1).span(fr + 1, 12, 12);
   }
   if (fringe && view === "side") hair.set(8, fr).set(9, fr);
   if (a.face?.hairline === "widows-peak" && view === "front") hair.set(6, line).set(7, line);
@@ -481,8 +505,17 @@ function drawHair(h: Head, st: Style, lo: number, capped: boolean) {
       hair.span(-1, c, c + 3).span(-2, c, c + 3).span(-3, c + 1, c + 2);
     }
   }
-  if (a.hair === "bob" || a.hair === "long") {
-    if (view === "front" && a.hair === "bob") for (let r = line; r < line + side; r++) hair.set(edge(r)[0] - 1, r).set(edge(r)[1] + 1, r);
+  if (!capped && (cut === "beehive" || cut === "pouf")) {
+    // Backcombed up over the crown; the pouf of the 1770s stood twice as high.
+    const tall = cut === "pouf" ? 7 : 4;
+    for (let i = 1; i <= tall; i++) {
+      const n = Math.round(5.5 * (1 - Math.sqrt(1 - (i / (tall + 1)) ** 2)));
+      view === "side" ? hair.span(-i, 1 + Math.round(n * 0.6), 11 - n) : hair.span(-i, 1 + n, 12 - n);
+    }
+  }
+  if (cut === "heian" && view === "front") for (let r = line; r < h.shoulder - h.y0 + 6; r++) hair.set(edge(Math.min(r, 9))[0] - 1, r).set(edge(Math.min(r, 9))[1] + 1, r);
+  if (cut === "bob" || cut === "long" || cut === "heian") {
+    if (view === "front" && cut === "bob") for (let r = line; r < line + side; r++) hair.set(edge(r)[0] - 1, r).set(edge(r)[1] + 1, r);
     if (view === "q") for (let r = line; r < back; r++) hair.set(edge(r)[0] - 1, r);
     if (view === "back" || view === "bq") for (let r = 4; r < back; r++) hair.set(edge(r)[0] - 1, r).set(edge(r)[1] + 1, r);
   }
@@ -504,6 +537,45 @@ function drawHair(h: Head, st: Style, lo: number, capped: boolean) {
       return t;
     },
   });
+  knots(h, cut, capped);
+}
+
+/** What is put up on or behind the head, outlined on its own so it reads
+ * against the hair beneath. */
+function knots(h: Head, cut: Cut, capped: boolean) {
+  const { s, view } = h;
+  const { m } = local(h);
+  const k = m();
+  const behind = view === "side" ? -1 : view === "q" ? -1 : undefined;
+  if (cut === "bun") {
+    // A coil at the back of the head.
+    if (behind !== undefined) k.rows(3, [[behind + 1, behind + 2], [behind, behind + 2], [behind, behind + 2], [behind + 1, behind + 2]]);
+    else if (view === "back" || view === "bq") k.rows(3, [[5, 8], [4, 9], [4, 9], [5, 8]]);
+  } else if (cut === "shimada" && !capped) {
+    // The folded loop of the mage on top, the swept wings at either side, the tabo behind.
+    if (view === "side") k.rows(-3, [[3, 7], [2, 8], [2, 8]]).rows(7, [[-1, 1], [-1, 1], [0, 1]]);
+    else if (view === "q") k.rows(-3, [[4, 8], [3, 9], [3, 9]]).rows(7, [[-1, 1], [-1, 1]]);
+    else k.rows(-3, [[4, 9], [3, 10], [4, 9]]).rows(4, [[-1, 0], [-1, 0], [-1, 0]]).rows(4, [[13, 14], [13, 14], [13, 14]]);
+  } else if (cut === "crest" && !capped) {
+    // A crest from brow to nape, and plaits hanging beside the cheeks.
+    if (view === "side") k.rows(-2, [[4, 9], [2, 10]]);
+    else k.rows(-2, [[6, 7], [5, 8]]);
+    if (view === "front") k.rows(6, Array.from({ length: 8 }, () => [-1, -1] as [number, number])).rows(6, Array.from({ length: 8 }, () => [14, 14] as [number, number]));
+    if (view === "q") k.rows(6, Array.from({ length: 8 }, () => [0, 0] as [number, number]));
+  }
+  s.put(k.mask, HAIR, { ring: "line", shade: 0.3, light: 0.3, top: true, tone: cut === "crest" ? (x, y, t) => ((x + y) % 2 ? Math.min(t, 2) : t) : undefined });
+}
+
+/** A child's shaved head with a forelock and a tuft over each ear, or one at the nape. */
+function tufts(h: Head) {
+  const { s, view } = h;
+  const { m } = local(h);
+  const t = m();
+  if (view === "front") t.rows(0, [[6, 7], [5, 8]]).rows(3, [[1, 2], [1, 2]]).rows(3, [[11, 12], [11, 12]]);
+  else if (view === "q") t.rows(0, [[7, 8], [7, 9]]).rows(3, [[2, 3], [2, 3]]);
+  else if (view === "side") t.rows(0, [[8, 9], [8, 10]]).rows(3, [[4, 5], [4, 5]]);
+  else t.rows(9, [[5, 8], [6, 7]]).rows(3, [[1, 2], [1, 2]]).rows(3, [[11, 12], [11, 12]]);
+  s.put(t.mask, HAIR, { ring: "line", shade: 0.3, light: 0.3, top: true });
 }
 
 function beard(h: Head, lo: number) {

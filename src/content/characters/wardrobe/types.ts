@@ -9,6 +9,7 @@ import type {
   shawls,
   drapes,
   hairdresses,
+  shaves,
   silhouettes,
   masks,
   headLoads,
@@ -62,9 +63,13 @@ export type WearerScope = {
   /** Tags read off the person's stated role: soldier, sailor, astronaut,
    * aristocrat. How a world-weaver prompt reaches the wardrobe. */
   roles?: readonly string[];
+  /** Younger than this many years: boys were breeched at about six. */
+  under?: number;
 };
-/** One choice in a slot. `weight` defaults to 1. */
-export type Option<T> = WearerScope & { value: T; weight?: number; garments?: readonly Garment[] };
+/** One choice in a slot. `weight` defaults to 1. `share` offers it to only
+ * that fraction of wearers, the same ones for every option with that share,
+ * and leaves the rest to the next kit. */
+export type Option<T> = WearerScope & { value: T; weight?: number; garments?: readonly Garment[]; share?: number };
 
 /** Everything a kit may say about how people here dress. Every slot is
  * optional: a kit that only knows about hats says only that, and the rest
@@ -112,6 +117,7 @@ export type GarmentKit = {
   shawl?: readonly Option<(typeof shawls)[number]>[];
   drape?: readonly Option<(typeof drapes)[number]>[];
   hairdress?: readonly Option<(typeof hairdresses)[number]>[];
+  shave?: readonly Option<(typeof shaves)[number]>[];
   silhouette?: readonly Option<(typeof silhouettes)[number]>[];
   mask?: readonly Option<(typeof masks)[number]>[];
   headLoad?: readonly Option<(typeof headLoads)[number]>[];
@@ -163,6 +169,7 @@ export const wardrobeSlots = [
   "shawl",
   "drape",
   "hairdress",
+  "shave",
   "silhouette",
   "mask",
   "headLoad",

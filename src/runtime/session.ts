@@ -31,6 +31,7 @@ import {
   fibresFor,
   rolesFrom,
   wardrobeFor,
+  groomed,
   type Sex,
 } from "../content/characters/wardrobes";
 import { composeWearing, wornFromWearing } from "../core/wearing";
@@ -235,7 +236,7 @@ export function createSession(
           roles: rolesFrom(engine.state.player.role, origin?.roleLabel),
         };
         appearance.wearing = wardrobeFor(wearer, pack, appearance.wearing);
-        engine.state.player.appearance = appearance;
+        engine.state.player.appearance = groomed(appearance);
         engine.state.player.worn = wornFromWearing(
           appearance.wearing,
           clothFor(wearer, pack, undefined, appearance.wearing.color),
@@ -489,7 +490,7 @@ export class Runtime {
     // Without a cloth roll a background figure has no fibre, and every
     // renderer guessed a different one.
     const { material, quality } = clothFor(wearer, pack, undefined, wearing.color);
-    const value = { ...base, wearing: { ...wearing, material, quality } };
+    const value = groomed({ ...base, wearing: { ...wearing, material, quality } });
     this.appearanceDefaults.set(actor.id, { signature, value });
     return value;
   }

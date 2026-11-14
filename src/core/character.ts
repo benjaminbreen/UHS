@@ -264,7 +264,18 @@ export const shawls = ["none", "plain", "fringed", "patterned"] as const;
  * have worn: the Qing queue, the Latin tonsure, the Buddhist monk's shaved head, the chonmage. */
 export const hairdresses = ["none", "queue", "tonsure", "shaven",
   /** The Edo man's shaved pate and oiled topknot. */
-  "chonmage"] as const;
+  "chonmage",
+  /** Women's hair as the period wore it: a knot at the back (Roman, Chinese
+   * and Korean married women, the Victorian), the Edo shimada, Heian hair to
+   * the floor, the Fulani crest with side braids, the 1920s bob, the 1960s
+   * beehive, the powdered pouf of the 1770s. */
+  "bun", "shimada", "heian", "crest", "bob", "beehive", "pouf",
+  /** The Western man's queue tied with a ribbon, plain or powdered: about 1700 to 1800. */
+  "tied", "powdered",
+  /** A child's shaved head with a forelock and tufts left: China and Japan. */
+  "tufts"] as const;
+/** Fashion's word on the beard: shaved clean, or grown. "none" leaves it to the person. */
+export const shaves = ["none", "clean", "full"] as const;
 /** Wool wound round the body over the tunic: the plain toga, the
  * purple-bordered toga praetexta of magistrates and boys, the woman's palla. */
 export const drapes = ["none", "toga", "praetexta", "palla"] as const;
@@ -887,6 +898,7 @@ export type CharacterAppearance = {
     shawl?: (typeof shawls)[number];
     drape?: (typeof drapes)[number];
     hairdress?: (typeof hairdresses)[number];
+    shave?: (typeof shaves)[number];
     silhouette?: (typeof silhouettes)[number];
     mask?: (typeof masks)[number];
     /** The kamishimo's stiff winged shoulder piece, over the kimono. */
