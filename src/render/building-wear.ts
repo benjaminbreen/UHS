@@ -1,5 +1,5 @@
 import type Phaser from "phaser";
-import { waterHash as hash, waterNoise as noise } from "../core/water-field";
+import { cellHash as hash, valueNoise as noise } from "../core/noise";
 import { snowShades, white } from "./snow-cover";
 
 // How readily moss takes on roofs and damp creeps up walls, by climate.

@@ -1,6 +1,6 @@
 import { scenery, bankLayer, drawScenery, obstacleField } from "./scenery";
 import { animatedSurface } from "./surface";
-import { waterHash } from "../../render/water-style";
+import { cellHash } from "../../core/noise";
 import {
   WIDTH as W,
   HEIGHT as H,
@@ -90,7 +90,7 @@ export function createPrototype(
     if (system === "tiles" || s.surfaceRipples) {
       for (let row = -1; row < 18; row++)
         for (let col = -1; col < 26; col++) {
-          const n = waterHash(col, row, 9),
+          const n = cellHash(col, row, 9),
             speed = s.kind === "river" ? 11 : 2;
           const x = mod(
               col * 22 + n * 13 + phase * (s.kind === "coast" ? 0 : dx) * speed,
@@ -133,7 +133,7 @@ export function createPrototype(
                 s.kind === "coast" ? 0 : 0.045,
                 0.018 + s.foamWidth * 0.09,
               ) &&
-            waterHash(Math.floor(x / 4), Math.floor(y / 3), 41) > 0.16
+            cellHash(Math.floor(x / 4), Math.floor(y / 3), 41) > 0.16
           )
             mark(
               x,
@@ -150,10 +150,10 @@ export function createPrototype(
     }
     if (s.kind === "coast" && s.strength >= 2) {
       for (let i = 0; i < s.strength * 45; i++) {
-        const x = waterHash(i, 71) * W,
+        const x = cellHash(i, 71) * W,
           y = 65 + 14 * Math.sin(x / 67) + 8 * Math.sin(x / 28);
-        const age = mod(t * 0.7 + waterHash(i, 72), 1),
-          height = (s.strength - 1) * (5 + waterHash(i, 73) * 12);
+        const age = mod(t * 0.7 + cellHash(i, 72), 1),
+          height = (s.strength - 1) * (5 + cellHash(i, 73) * 12);
         ctx.globalAlpha = (1 - age) * 0.65;
         ctx.fillStyle = p.foam;
         ctx.fillRect(
@@ -204,8 +204,8 @@ export function createPrototype(
           ? "#c4dbf3"
           : "#f6ffdc";
       for (let i = 0; i < 230; i++) {
-        const x = waterHash(i, 81) * W,
-          y = waterHash(i, 82) * H;
+        const x = cellHash(i, 81) * W,
+          y = cellHash(i, 82) * H;
         const axis =
           W * (0.5 - lighting.cast[0] * 0.24) +
           (y - 128) * lighting.cast[0] * 0.4;

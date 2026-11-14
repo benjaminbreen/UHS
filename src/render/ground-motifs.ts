@@ -2,7 +2,7 @@ import type Phaser from "phaser";
 import type { Habitat } from "../world/v3/habitats";
 import { groundKits } from "../content/graphics/ground-kits";
 import { kitTuftFrame, pickKit } from "./ground-kit";
-import { waterHash as hash, waterNoise as noise } from "./water-style";
+import { cellHash as hash, valueNoise as noise } from "../core/noise";
 
 /** Where grass grows thick: drifts a few cells across with bare runs between.
  * The tufts and the blade hatch share it, so they gather in the same places. */

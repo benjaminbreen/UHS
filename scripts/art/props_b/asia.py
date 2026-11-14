@@ -1,18 +1,15 @@
 """Street furniture for east, south and southeast Asian settings.
 
-One variant of each per region rather than one design recoloured: a shop board
-is not a banner is not a bamboo pennant, and the thing a square is built round
-differs more between these three than any roof does.
+One variant of each per region rather than one design recoloured: the thing a
+square is built round differs more between these three than any roof does.
 """
-from math import cos, hypot, pi, sin
+from math import hypot
 from .building import _ground
-from .core import Canvas, RAMPS, jitter, soft_outline, grass
-from .workshop import WOOD7, streak
+from .core import Canvas, RAMPS, jitter, soft_outline
+from .workshop import WOOD7
 
 LACQUER = ['#2a0f0e', '#4a1614', '#6d211c', '#8f2e24', '#b04236', '#cc6450', '#e28f77']
 GOLD = ['#3a2a0a', '#5e4611', '#87661b', '#ab8629', '#c9a53e', '#e0c463', '#f3e097']
-SAFFRON = ['#4a2408', '#6e3a0c', '#955613', '#b8751d', '#d2942c', '#e5b453', '#f5d489']
-TEAL = ['#0e2a2b', '#16403f', '#1f5a56', '#2c7a70', '#3f9c8b', '#63bda8', '#96dcc5']
 CREAM = ['#3b3628', '#5d573f', '#807759', '#a29875', '#bfb694', '#d8d0b4', '#efead3']
 
 
@@ -30,72 +27,6 @@ def _marks(c, x0, x1, top, bottom, ink, step=7):
   if jitter(n, 5) % 3 == 0: c.set(mid, y + 2, ink)
   y += step
   n += 1
-
-
-def shop_sign(v=0):
- """A trade's board at the street: the signature of an Asian shopfront."""
- c = Canvas(30, 62)
- w = RAMPS[WOOD7[0 if v != 2 else 2]]
- if v == 0:                                        # a lacquered board, capped
-  p, ink = LACQUER, GOLD[5]
-  for px in (5, 21):                               # the two posts
-   for y in range(12, 58):
-    c.set(px, y, w[5]); c.set(px + 1, y, w[3]); c.set(px + 2, y, w[1])
-   c.hline(px - 1, px + 3, 58, w[1])
-  tile = RAMPS['tile']
-  for i, half in enumerate((9, 11, 13)):           # a little tiled cap
-   for x in range(15 - half, 15 + half + 1):
-    c.set(x, 6 + i, tile[5] if x < 15 else tile[3])
-    if i == 2 and x % 4 == 0: c.set(x, 6 + i, tile[2])
-  c.hline(2, 28, 9, tile[1]); c.set(15, 4, tile[4]); c.set(15, 5, tile[5])
-  for y in range(12, 54):                          # the board itself
-   for x in range(7, 24):
-    u = (x - 7) / 17
-    c.set(x, y, p[4] if u < 0.3 else p[3] if u < 0.8 else p[2])
-  for x in range(7, 24):
-   c.set(x, 12, p[5]); c.set(x, 53, p[1])
-  for y in range(12, 54):
-   c.set(7, y, GOLD[3]); c.set(23, y, GOLD[1])
-  _marks(c, 7, 23, 16, 50, ink)
- elif v == 1:                                      # a painted board and a flag
-  p = SAFFRON
-  for y in range(10, 58):                          # one stout post
-   c.set(13, y, w[5]); c.set(14, y, w[3]); c.set(15, y, w[1])
-  c.hline(11, 17, 58, w[1])
-  for y in range(12, 30):                          # the board across it
-   for x in range(2, 27):
-    u = (x - 2) / 25
-    band = (y - 12) // 6
-    ramp = [p, CREAM, TEAL][band % 3]
-    c.set(x, y, ramp[4] if u < 0.3 else ramp[3] if u < 0.8 else ramp[2])
-  c.hline(2, 26, 12, p[6]); c.hline(2, 26, 29, p[0])
-  for y in range(12, 30): c.set(2, y, p[1]); c.set(26, y, p[1])
-  _marks(c, 4, 24, 14, 27, CREAM[6], step=6)
-  for i in range(14):                              # a cloth flag below it
-   x = 18 + i // 4
-   for k in range(7):
-    c.set(x + k, 32 + i, TEAL[4] if (k + i) % 5 else TEAL[2])
-  c.hline(18, 25, 32, TEAL[6])
-  for i in range(4): c.set(18 + i, 45 + i % 2, TEAL[1])
- else:                                             # bamboo and a hanging cloth
-  bamboo = RAMPS['greenglaze7']
-  for y in range(4, 58):
-   c.set(9, y, bamboo[5]); c.set(10, y, bamboo[3]); c.set(11, y, bamboo[1])
-   if y % 9 == 0: c.hline(9, 11, y, bamboo[2])
-  c.hline(7, 13, 58, w[1])
-  c.hline(9, 25, 8, bamboo[4]); c.hline(9, 25, 9, bamboo[2])
-  for y in range(11, 46):                          # the banner, hanging
-   for x in range(13, 26):
-    u = (x - 13) / 13
-    fold = (x + y // 3) % 6 == 0
-    c.set(x, y, CREAM[2] if fold else CREAM[4] if u < 0.5 else CREAM[3])
-  c.hline(13, 25, 11, CREAM[6])
-  for x in range(13, 26):                          # a woven fringe at the foot
-   c.set(x, 46 + (x % 2), SAFFRON[3])
-  _marks(c, 13, 25, 15, 42, SAFFRON[1], step=8)
- soft_outline(c, w[0], w[2])
- grass(c, [(1, 61, 2), (26, 61, 2)])
- return c.image()
 
 
 def square_focus(v=0):
@@ -200,6 +131,5 @@ def square_focus(v=0):
 
 
 ASIA = {
- 'shop-sign': shop_sign,
  'square-focus': square_focus,
 }

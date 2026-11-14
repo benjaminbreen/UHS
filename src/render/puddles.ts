@@ -1,7 +1,7 @@
 import type Phaser from "phaser";
 import type { PathStroke, TopographyCell, TopographySample } from "../core/topography";
 import type { GroundState, Weather } from "../core/weather";
-import { waterHash as hash } from "../core/water-field";
+import { cellHash as hash } from "../core/noise";
 import { pathField } from "./material-edges";
 
 const BUCKET = 256;

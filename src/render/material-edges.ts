@@ -2,7 +2,8 @@ export { shoreDistance } from "../core/water-field";
 import { trimCache } from "../core/cache";
 import { raisedFieldEdge } from "./field-raster";
 import type { TopographyCell, TopographySample } from "../core/topography";
-import { waterNoise, waterHash, waterStyle, waterBand } from "./water-style";
+import { valueNoise, cellHash } from "../core/noise";
+import { waterStyle, waterBand } from "./water-style";
 import { groundStyle } from "./ground-style";
 
 export function paintedGround(c: TopographyCell) {
@@ -107,15 +108,15 @@ function breathe(cx: number, cy: number, ox: number, oy: number) {
     wy = (cy + oy) * 16;
   return (
     1 +
-    (waterNoise(wx, wy, 112, 517) - 0.5) * 0.3 +
-    (waterNoise(wx, wy, 37, 519) - 0.5) * 0.13
+    (valueNoise(wx, wy, 112, 517) - 0.5) * 0.3 +
+    (valueNoise(wx, wy, 37, 519) - 0.5) * 0.13
   );
 }
 /** Lateral drift of the corridor itself, sampled on the center line so the
  * whole road snakes and both margins move together. Width variation alone
  * still left a ruled line; a route follows the ground it was worn into. */
 function wander(cx: number, cy: number, ox: number, oy: number) {
-  return (waterNoise((cx + ox) * 16, (cy + oy) * 16, 74, 523) - 0.5) * 0.84;
+  return (valueNoise((cx + ox) * 16, (cy + oy) * 16, 74, 523) - 0.5) * 0.84;
 }
 /** Two octaves of margin nibble. One octave left the edge straight enough to
  * expose the route's underlying 45-degree staircase. */
@@ -123,8 +124,8 @@ function margin(x: number, y: number, ox: number, oy: number) {
   const wx = (x + ox) * 16,
     wy = (y + oy) * 16;
   return (
-    (waterNoise(wx, wy, 27, 421) - 0.5) * 0.085 +
-    (waterNoise(wx, wy, 9, 431) - 0.5) * 0.05
+    (valueNoise(wx, wy, 27, 421) - 0.5) * 0.085 +
+    (valueNoise(wx, wy, 9, 431) - 0.5) * 0.05
   );
 }
 /** Connect neighboring route centers before rasterization. A diagonal is a
@@ -150,7 +151,7 @@ export function pathField(
     [[0, -1], [-1, 0], [1, 0], [0, 1]].some(([dx, dy]) => { const n = sample(ix + dx, iy + dy); return !!n && areaGround(n); }));
   const area = materialCoverage(sample, x, y, cell.height, (c) => {
     if (!areaGround(c)) return 0;
-    const patch = waterNoise((x + ox) * 16, (y + oy) * 16, 58, 619);
+    const patch = valueNoise((x + ox) * 16, (y + oy) * 16, 58, 619);
     // Kept ground is whole; vacant ground is trodden earth with weeds in it.
     return c.earth ? 1 : c.pavement === "vacant" ? 0.55 + patch * 0.45
       : c.pavement === "yard" ? 0.65 + patch * 0.35 : 1;
@@ -335,31 +336,31 @@ export function tidalFlat(cell: TopographyCell, d: number, wx: number, wy: numbe
   const v = cell.waterVisual;
   if (v?.shelf === undefined) return;
   // The mud and the beach above it interlock along a wandering line.
-  if (d >= Math.max(0, (waterNoise(wx, wy, 19, 627) - 0.35) * 0.9 + (waterNoise(wx, wy, 6, 628) - 0.5) * 0.2)) return;
+  if (d >= Math.max(0, (valueNoise(wx, wy, 19, 627) - 0.35) * 0.9 + (valueNoise(wx, wy, 6, 628) - 0.5) * 0.2)) return;
   const t = 1 + d / v.shelf;
   // Low water wanders: a ruled tide line is the first thing the eye finds.
-  const low = (v.tide ?? 0) + (waterNoise(wx, wy, 34, 629) - 0.5) * 0.12 + (waterNoise(wx, wy, 11, 630) - 0.5) * 0.05;
+  const low = (v.tide ?? 0) + (valueNoise(wx, wy, 34, 629) - 0.5) * 0.12 + (valueNoise(wx, wy, 11, 630) - 0.5) * 0.05;
   if (t < low) return;
   const tropical = v.ecology === "tropical-woodland" || cell.habitat?.colorway === "mangrove";
   const mud = tropical ? MANGROVE_MUD : v.ecology === "desert" || v.ecology === "dry-scrub" ? SAND_FLAT : MUD;
   // Salt marsh above mid-tide on temperate shores, a small cliff at its foot.
-  const edge = 0.6 + (waterNoise(wx, wy, 16, 635) - 0.5) * 0.25;
+  const edge = 0.6 + (valueNoise(wx, wy, 16, 635) - 0.5) * 0.25;
   if (!tropical && v.ecology !== "desert" && t > edge) {
-    const pan = waterNoise(wx, wy, 11, 637);
+    const pan = valueNoise(wx, wy, 11, 637);
     if (pan > 0.7) return pan > 0.74 ? SHEEN[1] : MARSH[3];
     if (t < edge + 0.03) return MARSH[3];
-    const tuft = waterHash(Math.floor(wx / 3), Math.floor(wy / 2), 639);
+    const tuft = cellHash(Math.floor(wx / 3), Math.floor(wy / 2), 639);
     return tuft > 0.8 ? MARSH[2] : tuft < 0.15 ? MARSH[0] : MARSH[1];
   }
   const dash = (salt: number, len: number, rows: number) =>
-    ((wy % rows) + rows) % rows === 0 && waterHash(Math.floor(wx / len), wy, salt);
+    ((wy % rows) + rows) % rows === 0 && cellHash(Math.floor(wx / len), wy, salt);
   // A sheet of water still draining off the lowest mud.
   if (t < low + 0.035) return (dash(651, 5, 2) || 0) > 0.6 ? SHEEN[2] : SHEEN[1];
   // Creeks: the trunk is one winding contour, its feeders a finer one that
   // joins from the landward side only, and both widen toward low water.
-  const warp = (waterNoise(wx, wy, 23, 655) - 0.5) * 26;
-  const trunk = waterNoise(wx + warp, wy - warp, 88, 633) - 0.5;
-  const feeder = waterNoise(wx - warp, wy + warp, 41, 634) - 0.5;
+  const warp = (valueNoise(wx, wy, 23, 655) - 0.5) * 26;
+  const trunk = valueNoise(wx + warp, wy - warp, 88, 633) - 0.5;
+  const feeder = valueNoise(wx - warp, wy + warp, 41, 634) - 0.5;
   const reach = 0.011 + (1 - t) * 0.024;
   const a = trunk / reach,
     b = trunk > 0 && t < 0.92 ? feeder / (reach * 0.8) : 9;
@@ -373,9 +374,9 @@ export function tidalFlat(cell: TopographyCell, d: number, wx: number, wy: numbe
   if (across < 1.55) return mud[0];
   // The flat's own small relief: hollows hold water, crests dry pale.
   const lift =
-    waterNoise(wx + warp * 0.6, wy, 52, 643) * 0.5 +
-    waterNoise(wx, wy + warp * 0.4, 21, 644) * 0.32 +
-    waterNoise(wx, wy, 8, 645) * 0.18 +
+    valueNoise(wx + warp * 0.6, wy, 52, 643) * 0.5 +
+    valueNoise(wx, wy + warp * 0.4, 21, 644) * 0.32 +
+    valueNoise(wx, wy, 8, 645) * 0.18 +
     (t - 0.5) * 0.16;
   if (lift < 0.34) {
     if (lift > 0.318) return mud[0];
@@ -386,17 +387,17 @@ export function tidalFlat(cell: TopographyCell, d: number, wx: number, wy: numbe
     by = Math.floor(wy / 11);
   const ux = ((wx % 13) + 13) % 13,
     uy = ((wy % 11) + 11) % 11;
-  const mark = waterHash(bx, by, 661);
+  const mark = cellHash(bx, by, 661);
   if (lift > 0.5 && mark > 0.93) {
     // A tuft of cord grass: three blades off one root.
-    const gx = ux - 3 - Math.floor(waterHash(bx, by, 662) * 5),
-      gy = uy - 3 - Math.floor(waterHash(bx, by, 663) * 3);
+    const gx = ux - 3 - Math.floor(cellHash(bx, by, 662) * 5),
+      gy = uy - 3 - Math.floor(cellHash(bx, by, 663) * 3);
     if (gy === 3 && gx >= 0 && gx <= 4) return FLAT_TUFT[2];
     if (gy >= 0 && gy < 3 && (gx === 0 || gx === 2 || gx === 4) && gy >= (gx === 2 ? 0 : 1))
       return FLAT_TUFT[gy === (gx === 2 ? 0 : 1) ? 0 : 1];
   } else if (mark < 0.1) {
-    const gx = ux - 2 - Math.floor(waterHash(bx, by, 664) * 8),
-      gy = uy - 2 - Math.floor(waterHash(bx, by, 665) * 6);
+    const gx = ux - 2 - Math.floor(cellHash(bx, by, 664) * 8),
+      gy = uy - 2 - Math.floor(cellHash(bx, by, 665) * 6);
     if (gy === 0 && (gx === 0 || gx === 1)) return FLAT_STONE[0];
     if (gy === 1 && gx >= 0 && gx <= 2) return FLAT_STONE[1];
   }
@@ -404,7 +405,7 @@ export function tidalFlat(cell: TopographyCell, d: number, wx: number, wy: numbe
   if (lift < 0.53) return mud[1];
   if (lift < 0.64) return mud[2];
   // A crest's seaward edge catches the light.
-  const above = waterNoise(wx + warp * 0.6, wy - 1, 52, 643) * 0.5 + waterNoise(wx, wy - 1 + warp * 0.4, 21, 644) * 0.32 + waterNoise(wx, wy - 1, 8, 645) * 0.18 + (t - 0.5) * 0.16;
+  const above = valueNoise(wx + warp * 0.6, wy - 1, 52, 643) * 0.5 + valueNoise(wx, wy - 1 + warp * 0.4, 21, 644) * 0.32 + valueNoise(wx, wy - 1, 8, 645) * 0.18 + (t - 0.5) * 0.16;
   return above < 0.64 ? mud[4] : mud[3];
 }
 export function shorePixel(
@@ -445,29 +446,29 @@ export function shorePixel(
     by = Math.floor(wy / 7);
   const px = ((wx % 8) + 8) % 8,
     py = ((wy % 7) + 7) % 7;
-  const sx = 1 + Math.floor(waterHash(bx, by, 329) * 4),
-    sy = 1 + Math.floor(waterHash(bx, by, 330) * 3);
-  const stone = gravel && waterHash(bx, by, 325) > 0.58;
-  const wide = waterHash(bx, by, 326) > 0.6 ? 3 : 2;
+  const sx = 1 + Math.floor(cellHash(bx, by, 329) * 4),
+    sy = 1 + Math.floor(cellHash(bx, by, 330) * 3);
+  const stone = gravel && cellHash(bx, by, 325) > 0.58;
+  const wide = cellHash(bx, by, 326) > 0.6 ? 3 : 2;
   if (stone && px >= sx && px < sx + wide && py >= sy && py <= sy + 1)
     return rgb(p.stone[py === sy ? 2 : 0]);
   if (distance < 0.16 && cell.waterVisual?.kind !== "sea") return rgb(p.bank[0]);
   if (cell.waterVisual?.kind === "sea") {
     // Wet sand the last tide left, glinting in short runs, then a broken
     // line of wrack at its limit, then the dry beach.
-    const wet = 0.9 + (waterNoise(wx, wy, 23, 331) - 0.5) * 0.8;
+    const wet = 0.9 + (valueNoise(wx, wy, 23, 331) - 0.5) * 0.8;
     const dark = rgb(p.bank[1]), dry = rgb(p.bank[2]);
     if (distance < wet)
-      return (wy & 1) === 0 && waterHash(Math.floor(wx / 5), wy, 333) > 0.86
+      return (wy & 1) === 0 && cellHash(Math.floor(wx / 5), wy, 333) > 0.86
         ? dark.map((v, k) => Math.round((v + dry[k]) / 2))
         : dark;
-    if (distance < wet + 0.14 && waterHash(Math.floor(wx / 2), Math.floor(wy / 2), 335) > 0.6)
+    if (distance < wet + 0.14 && cellHash(Math.floor(wx / 2), Math.floor(wy / 2), 335) > 0.6)
       return dark.map((v) => Math.round(v * 0.74));
-    return dry.map((v) => v + (waterHash(Math.floor(wx / 3), Math.floor(wy / 2), 327) > 0.84 ? 5 : 0));
+    return dry.map((v) => v + (cellHash(Math.floor(wx / 3), Math.floor(wy / 2), 327) > 0.84 ? 5 : 0));
   }
   return rgb(p.bank[1]).map(
     (v) =>
       v +
-      (waterHash(Math.floor(wx / 3), Math.floor(wy / 2), 327) > 0.84 ? 5 : 0),
+      (cellHash(Math.floor(wx / 3), Math.floor(wy / 2), 327) > 0.84 ? 5 : 0),
   );
 }

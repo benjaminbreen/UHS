@@ -1,5 +1,5 @@
 import { levelCrossing, railPixel } from "./carriageway";
-import { waterHash as hash } from "./water-style";
+import { cellHash as hash } from "../core/noise";
 
 /** Half the double-track formation, in pixels: `railPixel` is 64 across. */
 const BED = 32;

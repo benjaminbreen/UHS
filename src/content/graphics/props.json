@@ -1496,21 +1496,6 @@
       ]
     },
     {
-      "id": "shop-sign",
-      "name": "Shop sign",
-      "group": "Street furniture",
-      "size": [
-        29,
-        59
-      ],
-      "description": "A trade's board at the street: a lacquered panel under a tiled cap, a painted board with a flag, or a cloth banner on bamboo.",
-      "variants": [
-        "East Asian",
-        "South Asian",
-        "Southeast Asian"
-      ]
-    },
-    {
       "id": "sign-hanging",
       "name": "Hanging shop sign",
       "group": "Street furniture",

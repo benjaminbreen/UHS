@@ -1,7 +1,7 @@
 /** Seasonal dress for scenery: which trees turn, what colour they turn, and
  * what blows through the air. The ground palette turns in habitat-appearance. */
 import type Phaser from "phaser";
-import { waterHash as hash } from "../core/water-field";
+import { cellHash as hash } from "../core/noise";
 
 const evergreen = [
   "pine",

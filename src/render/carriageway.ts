@@ -1,6 +1,6 @@
 import { PARKING, STALL } from "../content/settlements/streets/markings";
 import type { Lane } from "../world/v3/types";
-import { waterHash as hash, waterNoise } from "./water-style";
+import { cellHash as hash, valueNoise } from "../core/noise";
 import { asphaltPixel, SAND, sandBank, sunAndSand } from "./paving-stones";
 
 type RGB = readonly number[];
@@ -63,7 +63,7 @@ export function blacktopPixel(
   let base: RGB = dust ? sunAndSand(asphaltPixel(wx, wy), dust, wx, wy, true) : asphaltPixel(wx, wy);
   // Tyres run a lane's width either side of the line.
   if (Math.abs(d - r * 0.45) <= 2) base = tint(base, 5);
-  const flake = waterNoise(wx, wy, 2.5, 792);
+  const flake = valueNoise(wx, wy, 2.5, 792);
   const paint = (c: RGB) => (flake > 0.74 ? mix(c, base, 0.72) : mix(c, base, Math.max(0, flake - 0.3) * 0.3));
   if (d >= r - 6 && d < r - 4) return paint(WHITE);
   if (f.paved === "yellow" && d < 3 && d >= 1) return paint(YELLOW);
@@ -83,7 +83,7 @@ export function concreteRoadPixel(lane: Lane, u: number, v: number, ax: number):
   if (along === 0 || Math.abs(u - W / 2) < 1) return [74, 76, 74];
   if (along === 1) return [174, 174, 164];
   let c: RGB = tint([150, 150, 141], Math.round((pour - 0.5) * 12));
-  const stain = waterNoise(v, u + edge, 9, 802);
+  const stain = valueNoise(v, u + edge, 9, 802);
   if (stain > 0.62) c = tint(c, -Math.round((stain - 0.62) * 45));
   // A bay that has settled cracks from a corner.
   if (pour < 0.12) {
@@ -239,14 +239,14 @@ export function carriagewayPixel(
       const inner = d > 8;
       const y = mod(v + (inner ? 5 : 0), 10);
       if (d === 8 || d === GUTTER - 1 || y === 0) return [70, 72, 78];
-      const wet = !inner && waterNoise(v, side, 6, 772) > 0.55;
+      const wet = !inner && valueNoise(v, side, 6, 772) > 0.55;
       return tint(wet ? [98, 104, 110] : [118, 118, 116],
         Math.floor(hash(Math.floor((v + (inner ? 5 : 0)) / 10), inner ? 1 : 0, 772) * 10) - 5 + (y === 1 ? 7 : 0) + (wet && y === 2 ? 14 : 0));
     }
     if (d === GUTTER - 1) return [84, 86, 86];
     if (d >= 8) {
       // Leaves, grit and wet where the pan meets the binder.
-      const silt = waterNoise(v, side, 5, 773);
+      const silt = valueNoise(v, side, 5, 773);
       if (silt > 0.6) return tint(PAN, -22 - (silt > 0.72 ? 10 : 0));
     }
     if (mod(v, 24) === 0) return tint(PAN, -24);
@@ -280,13 +280,13 @@ export function carriagewayPixel(
     const off = Math.abs(u - centre);
     const track = Math.abs(off - laneW * 0.28) <= 2.2;
     if (track) base = tint(base, 5);
-    else if (off <= 3 && waterNoise(v, u, 7, 776) > 0.52) base = tint(base, -7);
-  } else if (P && waterNoise(v, ax, 9, 777) > 0.63) base = tint(base, -8);
+    else if (off <= 3 && valueNoise(v, u, 7, 776) > 0.52) base = tint(base, -7);
+  } else if (P && valueNoise(v, ax, 9, 777) > 0.63) base = tint(base, -8);
 
   // Paint wears in flakes, worst where tyres run over it.
   const tyred = u >= P && Math.abs(Math.abs(u - centre) - laneW * 0.28) <= 3;
   const paint = (colour: RGB): RGB => {
-    const flake = waterNoise(v, u, 2.5, 781);
+    const flake = valueNoise(v, u, 2.5, 781);
     if (flake > (tyred ? 0.82 : 0.9) || hash(v, u, 782) < 0.006)
       return mix(colour, base, 0.45);
     return mix(colour, base, Math.max(0, flake - 0.3) * 0.3);

@@ -1,5 +1,5 @@
 import type Phaser from "phaser";
-import { waterHash as hash, waterNoise as noise } from "./water-style";
+import { cellHash as hash, valueNoise as noise } from "../core/noise";
 
 /** A ground-cover kit for turf, its plants and paths. Altitude, banks and ramps
  * stay with the contour renderer; a kit only colours their lips. */

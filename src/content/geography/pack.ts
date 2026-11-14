@@ -112,7 +112,7 @@ export function periodBuildings(setting: WorldSetting): string[] {
  * then, but it is not the whole street anywhere: a shophouse arcade runs
  * across monsoon Asia, a balconied walk-up around the Mediterranean and in
  * Latin America, a corrugated veranda house wherever the rain is heavy. */
-export function modernBuildings(setting: WorldSetting): string[] {
+function modernFlatFrontKit(setting: WorldSetting): string[] {
   const { culture, climate, settlement } = setting;
   const wet = climate === "tropical" || climate === "monsoon";
   const asia =
@@ -321,7 +321,7 @@ export function packForSetting(setting: WorldSetting): Pack {
   const buildings = prehistoric
     ? prehistoric
     : modernCity
-      ? modernBuildings(setting)
+      ? modernFlatFrontKit(setting)
       : casa.length
         ? casa
       : euro.length

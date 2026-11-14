@@ -95,9 +95,6 @@ the next scale.
 
 ### Street furniture
 
-- **Shop sign** (`shop-sign`, east, south and southeast Asian variants): the
-  older freestanding frontage sign. Wall signs above supersede it; check
-  whether it is still placed before extending it.
 - **Door lanterns** at every other household door, hung from a bracket and
   swayed by the wind like the drying rack's fish.
 - **Square centrepiece**, chosen in `focusFor(pack)` by culture and date,

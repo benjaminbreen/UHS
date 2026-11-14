@@ -4,11 +4,10 @@ import { shoreDistance, shorePixel, tidalFlat } from "./material-edges";
 import type { TopographyCell, TopographySample } from "../core/topography";
 import { bareShelf } from "../core/water-field";
 import { TERRAIN_RISE } from "./terrain-projection";
+import { cellHash, valueNoise } from "../core/noise";
 import {
   waterBand,
   waterDistance,
-  waterHash,
-  waterNoise,
   waterStyle,
   type WaterPalette,
 } from "./water-style";
@@ -184,7 +183,7 @@ function rasterCanalTile(
         ground &&
         (spread > BERM ||
           (spread > FRINGE &&
-            waterHash(gx + px, gy + py, 917) <
+            cellHash(gx + px, gy + py, 917) <
               (spread - FRINGE) / (BERM - FRINGE)))
       ) {
         const i = (py * 16 + px) * 4;
@@ -203,7 +202,7 @@ function rasterCanalTile(
         // An empty bed: silt on the floor, cracked into plates, darker in the
         // lee of the near bank where the last water stood.
         const damp = at(px, py - 1) === 0 || at(px - 1, py) === 0;
-        const plate = waterHash(Math.floor(along / 5), Math.floor(c / 2), 915);
+        const plate = cellHash(Math.floor(along / 5), Math.floor(c / 2), 915);
         tone = mix(bermFoot, bermSide, plate * 0.5);
         if (damp) tone = shade(tone, -14);
         if (mod(along + Math.floor(plate * 5), 7) === 0 && c >= 5 && c <= 11)
@@ -220,7 +219,7 @@ function rasterCanalTile(
         const far = cloud(px, py);
         tone = mix(mix(shade(shallow, lit), tone, far * 0.4), shade(silt, lit), far * 0.85);
         const lane = Math.floor((c - 3) / 3);
-        const phase = Math.floor(waterHash(lane, Math.floor(along / 14), 903) * 6);
+        const phase = Math.floor(cellHash(lane, Math.floor(along / 14), 903) * 6);
         const dash = mod(along + lane * 5 + phase, 14);
         // Ripples: a two-pixel-high crest with a one-pixel tail, in lanes.
         // On clouded water a ripple is a paler brown, not a glint of blue.
@@ -242,7 +241,7 @@ function rasterCanalTile(
           // The lip: the near bank shows its shadowed face, the far bank
           // its lit face, and an end wall reads as the dark face too.
           tone = c >= 13 ? faceLit : faceDark;
-          if (waterHash(Math.floor(along / 4), c, 905) > 0.7) tone = mix(tone, bermSide, 0.4);
+          if (cellHash(Math.floor(along / 4), c, 905) > 0.7) tone = mix(tone, bermSide, 0.4);
         } else {
           // Berm: a ridge of piled earth. The near berm shows its lit crest
           // and shaded outer slope; the far berm its shaded crest toward us
@@ -252,10 +251,10 @@ function rasterCanalTile(
           tone = near
             ? outer ? bermSide : crest ? shade(bermTop, 6) : bermTop
             : outer ? shade(bermTop, 4) : crest ? bermSide : bermFoot;
-          if (outer && waterHash(Math.floor(along / 3), c, 907) > 0.5) tone = mix(tone, bermFoot, 0.5);
-          if (crest && waterHash(Math.floor(along / 4), c, 909) > 0.78) tone = mix(tone, bermSide, 0.6);
+          if (outer && cellHash(Math.floor(along / 3), c, 907) > 0.5) tone = mix(tone, bermFoot, 0.5);
+          if (crest && cellHash(Math.floor(along / 4), c, 909) > 0.78) tone = mix(tone, bermSide, 0.6);
           // A trodden line runs along the far berm.
-          if (!near && crest && mod(along + Math.floor(waterHash(Math.floor(along / 9), 0, 911) * 3), 7) === 0)
+          if (!near && crest && mod(along + Math.floor(cellHash(Math.floor(along / 9), 0, 911) * 3), 7) === 0)
             tone = shade(tone, -10);
         }
       }
@@ -293,53 +292,53 @@ export function specialWater(cell: TopographyCell, palette: WaterPalette, d: num
     // One berg at most per six-cell block: a white top and its south face.
     const bx = Math.floor(wx / 96),
       by = Math.floor(wy / 96);
-    if (waterHash(bx, by, 619) < 0.12) {
-      const cx = bx * 96 + 24 + waterHash(bx, by, 620) * 48,
-        cy = by * 96 + 24 + waterHash(bx, by, 622) * 40;
-      const r = 12 + waterHash(bx, by, 624) * 14,
+    if (cellHash(bx, by, 619) < 0.12) {
+      const cx = bx * 96 + 24 + cellHash(bx, by, 620) * 48,
+        cy = by * 96 + 24 + cellHash(bx, by, 622) * 40;
+      const r = 12 + cellHash(bx, by, 624) * 14,
         tall = 5 + Math.floor(r / 3);
       const top = (px: number, py: number) =>
-        Math.hypot(px - cx, (py - cy) * 1.5) < r + (waterNoise(px, py, 9, 621) - 0.5) * 12;
-      if (top(wx, wy)) return top(wx, wy - 1) ? (waterHash(Math.floor(wx / 3), wy, 625) > 0.93 ? BERG[1] : BERG[0]) : BERG[1];
+        Math.hypot(px - cx, (py - cy) * 1.5) < r + (valueNoise(px, py, 9, 621) - 0.5) * 12;
+      if (top(wx, wy)) return top(wx, wy - 1) ? (cellHash(Math.floor(wx / 3), wy, 625) > 0.93 ? BERG[1] : BERG[0]) : BERG[1];
       for (let k = 1; k <= tall; k++)
         if (top(wx, wy - k))
           return k === tall || k === tall - 1 ? BERG[4] : wx < cx - r * 0.2 ? BERG[2] : BERG[3];
     }
   }
-  if (v.ice === "solid" && !(v.kind === "sea" && d < -7 + (waterNoise(wx, wy, 14, 615) - 0.5) * 1.4)) {
-    const drift = waterNoise(wx, wy, 22, 601) + (waterNoise(wx, wy, 7, 602) - 0.5) * 0.12;
+  if (v.ice === "solid" && !(v.kind === "sea" && d < -7 + (valueNoise(wx, wy, 14, 615) - 0.5) * 1.4)) {
+    const drift = valueNoise(wx, wy, 22, 601) + (valueNoise(wx, wy, 7, 602) - 0.5) * 0.12;
     let rgb = drift > 0.6 ? ICE[0] : drift > 0.56 ? ICE[1] : d > -0.5 ? ICE[3] : ICE[2];
-    if (drift <= 0.56 && d < -2 && waterNoise(wx, wy, 31, 603) < 0.3) rgb = ICE[3];
+    if (drift <= 0.56 && d < -2 && valueNoise(wx, wy, 31, 603) < 0.3) rgb = ICE[3];
     if (
       drift <= 0.58 &&
-      Math.abs(waterNoise(wx, wy, 44, 605) - 0.5) < 0.006
+      Math.abs(valueNoise(wx, wy, 44, 605) - 0.5) < 0.006
     )
       rgb = ICE[4];
-    if (v.kind === "sea" && d < -6.4) rgb = waterHash(Math.floor(wx / 2), Math.floor(wy / 2), 609) > 0.5 ? ICE[0] : ICE[3];
+    if (v.kind === "sea" && d < -6.4) rgb = cellHash(Math.floor(wx / 2), Math.floor(wy / 2), 609) > 0.5 ? ICE[0] : ICE[3];
     return rgb;
   }
   if (v.ice) {
-    const floe = (px: number, py: number) => waterNoise(px, py, 40, 611) + (waterNoise(px, py, 11, 613) - 0.5) * 0.16 > 0.5;
+    const floe = (px: number, py: number) => valueNoise(px, py, 40, 611) + (valueNoise(px, py, 11, 613) - 0.5) * 0.16 > 0.5;
     if (!floe(wx, wy)) return;
     if (!floe(wx, wy + 1)) return ICE[5];
     if (!floe(wx, wy + 2)) return ICE[4];
     if (!floe(wx, wy - 1)) return ICE[0];
-    return waterNoise(wx, wy, 9, 617) > 0.62 ? ICE[0] : ICE[1];
+    return valueNoise(wx, wy, 9, 617) > 0.62 ? ICE[0] : ICE[1];
   }
   if (v.shelf !== undefined) return tidalFlat(cell, d, wx, wy);
   if (v.reef) {
-    const crest = 5.5 + (waterNoise(wx, wy, 60, 645) - 0.5) * 3;
+    const crest = 5.5 + (valueNoise(wx, wy, 60, 645) - 0.5) * 3;
     if (v.reef === "outer" && d < -crest - 0.5) return living ? undefined : hex(palette.depths[Math.min(4, index + 2)]);
     if (v.reef === "outer" && d < -crest + 0.5) {
-      const foam = waterHash(Math.floor(wx / 3), Math.floor(wy / 2), 647);
+      const foam = cellHash(Math.floor(wx / 3), Math.floor(wy / 2), 647);
       return d < -crest - 0.1 && foam > 0.35 ? FOAM : foam > 0.7 ? CORAL[3] : CORAL[2];
     }
-    if (d < -1.2 && d > -5 && waterNoise(wx, wy, 30, 649) > 0.7)
-      return GRASS[(waterHash(Math.floor(wx / 2), wy, 651) > 0.7 ? 1 : 0)];
-    if (v.reef === "outer" && d < -1.2 && waterHash(Math.floor(wx / 5), Math.floor(wy / 4), 653) > 0.96 && (wx % 5) && (wy % 4))
+    if (d < -1.2 && d > -5 && valueNoise(wx, wy, 30, 649) > 0.7)
+      return GRASS[(cellHash(Math.floor(wx / 2), wy, 651) > 0.7 ? 1 : 0)];
+    if (v.reef === "outer" && d < -1.2 && cellHash(Math.floor(wx / 5), Math.floor(wy / 4), 653) > 0.96 && (wx % 5) && (wy % 4))
       return CORAL[(wy % 4) === 1 ? 2 : 1];
     if (living) return;
-    const depth = Math.min(4, Math.floor(-d / (v.reef === "lagoon" ? 2.2 : 1.6) + (waterNoise(wx, wy, 30, 655) - 0.5) * 1.2));
+    const depth = Math.min(4, Math.floor(-d / (v.reef === "lagoon" ? 2.2 : 1.6) + (valueNoise(wx, wy, 30, 655) - 0.5) * 1.2));
     return LAGOON[Math.max(0, depth)];
   }
 }
@@ -395,7 +394,7 @@ export function rasterWaterTile(
       );
       // Quiet horizontal clusters, with long areas of uninterrupted base color.
       if (
-        waterHash(Math.floor(wx / 8), Math.floor(wy / 4), 9) > 0.94 &&
+        cellHash(Math.floor(wx / 8), Math.floor(wy / 4), 9) > 0.94 &&
         (wx & 7) > 1 &&
         (wx & 7) < 6 &&
         (wy & 3) === ((wx & 7) > 3 ? 1 : 2)
@@ -408,7 +407,7 @@ export function rasterWaterTile(
           dx === 1 ? 15 - px : dx === -1 ? px : dy === 1 ? 15 - py : py,
         ),
       );
-      const lip = 1 + Math.floor(waterNoise(wx, wy, 12, 2) * 2);
+      const lip = 1 + Math.floor(valueNoise(wx, wy, 12, 2) * 2);
       // A creek has no cut lip inside its water; its edge is on the turf.
       const creekTile = (cell.waterVisual?.shoreWidth ?? 3) < 1.2;
       if (!cell.bridge && !creekTile && edge < lip) index = 10 + (edge === 0 ? 1 : 0);
@@ -416,7 +415,7 @@ export function rasterWaterTile(
         !cell.bridge &&
         !creekTile &&
         edge === 0 &&
-        waterHash(Math.floor(wx / 4), Math.floor(wy / 4), 17) > 0.66
+        cellHash(Math.floor(wx / 4), Math.floor(wy / 4), 17) > 0.66
       )
         index = 12;
       // Interrupted contact shade at the wet lip, leaving most banks softly lit.
@@ -424,7 +423,7 @@ export function rasterWaterTile(
         !cell.bridge &&
         !creekTile &&
         edge === lip &&
-        waterHash(Math.floor(wx / 8), Math.floor(wy / 8), 18) > 0.56
+        cellHash(Math.floor(wx / 8), Math.floor(wy / 8), 18) > 0.56
       )
         index = edges.some((e) => e.rocky) ? 13 : 10;
       if (cell.habitat && !cell.bridge) {
@@ -462,11 +461,11 @@ export function rasterWaterTile(
     !bareShelf(cell.waterVisual) &&
     depth > 0.4 &&
     depth < (kind === "sea" ? 8 : 3.8) &&
-    waterHash(gx, gy, 44) > 0.86 &&
-    waterHash(gx, gy, 44) < 0.94
+    cellHash(gx, gy, 44) > 0.86 &&
+    cellHash(gx, gy, 44) < 0.94
   ) {
-    const sx = 4 + Math.floor(waterHash(gx, gy, 45) * 7),
-      sy = 4 + Math.floor(waterHash(gx, gy, 46) * 7);
+    const sx = 4 + Math.floor(cellHash(gx, gy, 45) * 7),
+      sy = 4 + Math.floor(cellHash(gx, gy, 46) * 7);
     const rect = (
       x: number,
       y: number,
@@ -479,7 +478,7 @@ export function rasterWaterTile(
         for (let px = x; px < x + w; px++)
           pixels.set(pixel, (py * 16 + px) * 4);
     };
-    const wide = waterHash(gx, gy, 47) > 0.5;
+    const wide = cellHash(gx, gy, 47) > 0.5;
     rect(sx - 2, sy, wide ? 5 : 4, 2, palette.submerged[0]);
     rect(sx - 1, sy - 1, wide ? 3 : 2, 4, palette.submerged[0]);
     rect(sx - 1, sy - 1, 2, 1, palette.submerged[1]);

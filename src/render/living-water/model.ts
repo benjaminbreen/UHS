@@ -1,7 +1,8 @@
 import preferredC from "./defaults.json" with { type: "json" };
 import { bankStyle, type BankClimate, type BankMaterial } from "./banks";
 import type { TopographyCell } from "../../core/topography";
-import { waterDistance, waterHash } from "../water-style";
+import { cellHash } from "../../core/noise";
+import { waterDistance } from "../water-style";
 import { lightingAt } from "../lighting";
 
 export const WIDTH = 384,
@@ -230,7 +231,7 @@ export function landCanvas(field: Float32Array, s: Settings) {
   for (let y = 0; y < HEIGHT; y++)
     for (let x = 0; x < WIDTH; x++) {
       const d = field[y * WIDTH + x],
-        n = waterHash(x, y, 18);
+        n = cellHash(x, y, 18);
       ctx.fillStyle =
         d > -beachExtent(s)
           ? bank.dry
@@ -242,8 +243,8 @@ export function landCanvas(field: Float32Array, s: Settings) {
       ctx.fillRect(x, y, 1, 1);
     }
   for (let i = 0; i < 100; i++) {
-    const x = Math.floor(waterHash(i, 4) * WIDTH),
-      y = Math.floor(waterHash(i, 5) * HEIGHT);
+    const x = Math.floor(cellHash(i, 4) * WIDTH),
+      y = Math.floor(cellHash(i, 5) * HEIGHT);
     if (field[y * WIDTH + x] > -beachExtent(s) - 0.4) continue;
     ctx.fillStyle = "#3c6847";
     ctx.fillRect(x, y, 1, 4);

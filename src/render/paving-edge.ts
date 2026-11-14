@@ -1,6 +1,6 @@
 import type { TopographyCell, TopographySample } from "../core/topography";
 import { raisedFieldEdge } from "./field-raster";
-import { waterHash as hash } from "./water-style";
+import { cellHash as hash } from "../core/noise";
 
 export const paved = (n?: TopographyCell) =>
   n?.feature === "paving" || !!n?.bridge;

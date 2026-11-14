@@ -1,5 +1,5 @@
-import { waterHash, waterNoise } from "../core/water-field";
-export { waterHash, waterNoise, waterDistance } from "../core/water-field";
+import { cellHash, valueNoise } from "../core/noise";
+export { waterDistance } from "../core/water-field";
 import type { Ecology } from "../content/ecology/profiles";
 import type { TopographyCell } from "../core/topography";
 
@@ -104,13 +104,13 @@ export function waterBand(
   const raw = Math.max(0, -distance / shelf);
   // Broad, asymmetrical shelves. Small clustered transitions replace pixel speckle.
   const shelves =
-    (waterNoise(gx, gy, 83, 101) - 0.5) * 2.4 +
-    (waterNoise(gx, gy, 37, 102) - 0.5) * 0.55;
+    (valueNoise(gx, gy, 83, 101) - 0.5) * 2.4 +
+    (valueNoise(gx, gy, 37, 102) - 0.5) * 0.55;
   const depth = Math.max(
     0,
     raw +
       Math.min(1, raw * 0.6) * shelves +
-      (waterHash(Math.floor(gx / 3), Math.floor(gy / 2), 103) - 0.5) * 0.12,
+      (cellHash(Math.floor(gx / 3), Math.floor(gy / 2), 103) - 0.5) * 0.12,
   );
   return depth < 0.35
     ? 0

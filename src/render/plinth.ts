@@ -1,7 +1,7 @@
 import type { Rock } from "../content/geography/rock";
 import type { PlinthFace } from "../content/settlements/yards";
 import type { TopographySample } from "../core/topography";
-import { waterHash as hash, waterNoise as noise } from "./water-style";
+import { cellHash as hash, valueNoise as noise } from "../core/noise";
 
 type Rgb = readonly number[];
 const mod = (n: number, d: number) => ((n % d) + d) % d;

@@ -602,11 +602,6 @@ export const propDefs: Record<string, PropDef> = {
     where: "worksite",
   },
   // Both hang above head height, so neither blocks the cell it stands on.
-  shopSign: {
-    solid: false,
-    name: "Shop sign",
-    family: "shop-sign",
-  },
   shopSignEuro: {
     solid: false,
     name: "Shop sign",

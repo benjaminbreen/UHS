@@ -103,7 +103,6 @@ export const about: Record<string, string> = {
   granaryMud: "A granary made of mud, where the harvest is kept dry and safe from animals until it is needed.",
   granaryStilt: "A granary on stilts, raised off the damp ground and out of reach of rats.",
   granaryClay: "A clay silo where the harvest is sealed in against damp and pests.",
-  shopSign: "A sign naming the shop.",
   shopSignEuro: "A sign hung out over the street, so people can find the shop.",
   shopSignSouk: "A sign over a stall in the market.",
   doorLantern: "Lanterns by the door, lit at dusk.",

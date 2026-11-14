@@ -4,7 +4,7 @@
  * hover label and the engine's harvest always agree on the plant.
  */
 import type { ItemDef, ItemId } from "../../core/types";
-import { waterHash as hash } from "../../core/water-field";
+import { cellHash as hash } from "../../core/noise";
 import type { Ecology } from "./profiles";
 
 export type FloraRegion =

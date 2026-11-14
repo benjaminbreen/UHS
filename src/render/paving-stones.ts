@@ -1,6 +1,6 @@
 import type { StreetMaterial } from "../content/settlements/streets";
 import type { Pavement } from "../world/v3/types";
-import { waterHash as hash, waterNoise } from "./water-style";
+import { cellHash as hash, valueNoise } from "../core/noise";
 import { shade } from "./palette";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 type Color = readonly [number, number, number];
@@ -79,7 +79,7 @@ export function sunAndSand(c: Color, dust: number, wx: number, wy: number, aspha
   // two steps with a dithered edge, and a stray grain here and there.
   // Wheels sweep a carriageway clean.
   if (asphalt) return out;
-  const lie = waterNoise(wx, wy, 14, 581) + (hash(wx, wy, 583) - 0.5) * 0.06;
+  const lie = valueNoise(wx, wy, 14, 581) + (hash(wx, wy, 583) - 0.5) * 0.06;
   const deep = 0.84 - 0.1 * dust,
     thin = 0.72 - 0.1 * dust;
   if (lie > deep) return mixC(out, SAND, 0.42);
@@ -92,7 +92,7 @@ export function sunAndSand(c: Color, dust: number, wx: number, wy: number, aspha
  * it: a bank that swells and thins along the street, rippled, with a pale
  * feathered lip where it runs out over the paving. */
 export function sandBank(c: Color, dust: number, d: number, along: number, seed: number): Color {
-  const swell = waterNoise(along, seed, 23, 591);
+  const swell = valueNoise(along, seed, 23, 591);
   const reach = dust * (1 + 9 * Math.max(0, swell - 0.3));
   if (d >= reach + 1.5) return c;
   if (d >= reach) return hash(along, d, 592) < 0.5 ? mixC(c, SAND, 0.45) : c;
@@ -104,7 +104,7 @@ export function sandBank(c: Color, dust: number, d: number, along: number, seed:
  * scars of trenches dug and filled since it was laid, and cracks run with
  * sealant that catches the light along one edge. */
 export function asphaltPixel(wx: number, wy: number): Color {
-  const mottle = waterNoise(wx, wy, 11, 741) * 0.6 + waterNoise(wx, wy, 4, 742) * 0.4;
+  const mottle = valueNoise(wx, wy, 11, 741) * 0.6 + valueNoise(wx, wy, 4, 742) * 0.4;
   let c: Color = tint([56, 60, 63], Math.round((mottle - 0.5) * 9));
   const grain = hash(wx, wy, 720);
   if (grain > 0.994) c = tint(c, 7);
@@ -127,9 +127,9 @@ export function asphaltPixel(wx: number, wy: number): Color {
     }
   }
   // Sealed cracks follow one contour of a slow field, broken into runs.
-  const crack = waterNoise(wx, wy, 23, 748);
-  if (Math.abs(crack - 0.5) < 0.008 && waterNoise(wx, wy, 37, 749) > 0.62) {
-    const above = waterNoise(wx, wy - 1, 23, 748);
+  const crack = valueNoise(wx, wy, 23, 748);
+  if (Math.abs(crack - 0.5) < 0.008 && valueNoise(wx, wy, 37, 749) > 0.62) {
+    const above = valueNoise(wx, wy - 1, 23, 748);
     return (above - 0.5) * (crack - 0.5) < 0 && above > crack ? [66, 70, 73] : [43, 46, 49];
   }
   return c;
@@ -139,13 +139,13 @@ export function asphaltPixel(wx: number, wy: number): Color {
  * aggregate showing as small lit and shaded chips, two worn tracks where the
  * wheels run, and the dark of old wet patches. */
 export function macadamPixel(wx: number, wy: number): Color {
-  const mottle = waterNoise(wx, wy, 13, 861) * 0.6 + waterNoise(wx, wy, 5, 862) * 0.4;
+  const mottle = valueNoise(wx, wy, 13, 861) * 0.6 + valueNoise(wx, wy, 5, 862) * 0.4;
   let c: Color = tint([164, 150, 124], Math.round((mottle - 0.5) * 10));
   const chip = hash(wx >> 1, wy >> 1, 863);
   if (chip > 0.93) c = tint(c, 10);
   else if (chip < 0.07) c = tint(c, -9);
   else if (hash(wx, wy, 864) > 0.97) c = tint(c, -14);
-  const wet = waterNoise(wx, wy, 31, 865);
+  const wet = valueNoise(wx, wy, 31, 865);
   if (wet > 0.7) c = [c[0] - 16, c[1] - 14, c[2] - 8];
   return c;
 }
@@ -166,7 +166,7 @@ export function sidewalkPixel(wx: number, wy: number): Color {
   else if (x === S - 1 || y === S - 1) face = tint(face, -3);
   // Broom lines run across the pour.
   if (mod(wy, 2) === 0 && hash(wx >> 1, wy, 762) < 0.35) face = tint(face, -2);
-  const grime = waterNoise(wx, wy, 9, 763);
+  const grime = valueNoise(wx, wy, 9, 763);
   if (grime > 0.68) face = tint(face, -Math.round((grime - 0.68) * 30));
   // One panel in twenty-five has settled and cracked corner to corner.
   if (pour < 0.04) {

@@ -1,7 +1,7 @@
 import type { Boundary } from "../content/agriculture/types";
 import type { GroundMotifOverrides } from "./ground-motifs";
 import { stoneMotifs, turfTick } from "./ground-motifs";
-import { waterHash as hash } from "./water-style";
+import { cellHash as hash } from "../core/noise";
 
 
 const mod = (n: number, d: number) => ((n % d) + d) % d;

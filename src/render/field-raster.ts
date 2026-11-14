@@ -9,7 +9,7 @@ import { paintFences } from "./fence-pass";
 import { standingStyle } from "../content/settlements/boundaries";
 import { groundMotif, turfTick } from "./ground-motifs";
 import type { GroundTileData } from "./habitat-raster";
-import { waterHash as hash, waterNoise as noise } from "./water-style";
+import { cellHash as hash, valueNoise as noise } from "../core/noise";
 import {
   bladeGlyphs,
   GLYPH_BASE,

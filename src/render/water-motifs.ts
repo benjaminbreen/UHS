@@ -1,6 +1,6 @@
 import type Phaser from "phaser";
 import type { WaterEffect } from "./water-raster";
-import { waterHash } from "./water-style";
+import { cellHash } from "../core/noise";
 import { bareShelf } from "../core/water-field";
 
 export const WATER_ATLAS = "water-motifs-1";
@@ -287,7 +287,7 @@ export function waterCharm(e: WaterEffect): WaterMotif | undefined {
     !["temperate-woodland", "tropical-woodland", "wetland"].includes(v.ecology)
   )
     return;
-  const pick = waterHash(e.gx, e.gy, 44);
+  const pick = cellHash(e.gx, e.gy, 44);
   if (pick > 0.99) return "leaf";
   if (pick > 0.965 && pick < 0.985) return "plant";
   if (e.edges.length && pick > 0.94 && pick < 0.95) return "ring";
@@ -306,22 +306,22 @@ export function waterMotif(e: WaterEffect): WaterMotif | undefined {
   if (charm) return charm;
   const bx = Math.floor(e.gx / 32),
     by = Math.floor(e.gy / 32);
-  const slot = Math.floor(waterHash(bx, by, 110) * 4);
+  const slot = Math.floor(cellHash(bx, by, 110) * 4);
   if (
     ((e.gx >> 4) & 1) + ((e.gy >> 4) & 1) * 2 !== slot ||
-    waterHash(bx, by, 111) < 0.24
+    cellHash(bx, by, 111) < 0.24
   )
     return;
   const kind = e.cell.waterVisual?.kind ?? "river";
   if (kind === "sea") return "crest";
-  return waterHash(e.gx, e.gy, 112) > 0.58 ? "curl" : "ripple";
+  return cellHash(e.gx, e.gy, 112) > 0.58 ? "curl" : "ripple";
 }
 export function motifState(e: WaterEffect, kind: WaterMotif, tick: number) {
-  const phase = (tick + Math.floor(waterHash(e.gx, e.gy, 74) * 80)) % 80;
+  const phase = (tick + Math.floor(cellHash(e.gx, e.gy, 74) * 80)) % 80;
   if (kind === "plant")
     return {
       frame:
-        Math.floor((tick + Math.floor(waterHash(e.gx, e.gy) * 64)) / 8) % 8,
+        Math.floor((tick + Math.floor(cellHash(e.gx, e.gy) * 64)) / 8) % 8,
       alpha: 0.43,
       dx: 0,
       dy: 0,

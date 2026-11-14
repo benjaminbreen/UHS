@@ -1,5 +1,5 @@
 import { scenery, obstacleField } from "./scenery";
-import { waterNoise, waterHash } from "../water-style";
+import { valueNoise, cellHash } from "../../core/noise";
 import { WIDTH as W, HEIGHT as H, beachExtent, type Settings } from "./model";
 
 export const waterRamps = {
@@ -67,7 +67,7 @@ export function animatedSurface(
   for (let y = 0; y < H; y++)
     for (let x = 0; x < W; x++) {
       const i = y * W + x;
-      bed[i] = waterNoise(x, y, 49, 15) * 1.4 + waterNoise(x, y, 19, 16) * 0.5;
+      bed[i] = valueNoise(x, y, 49, 15) * 1.4 + valueNoise(x, y, 19, 16) * 0.5;
     }
   const flowTexture = new Float32Array(512 * 512);
   const periodic = (
@@ -84,7 +84,7 @@ export function animatedSurface(
     const fx = gx - ix,
       fy = gy - iy;
     const at = (a: number, b: number) =>
-      waterHash(a % (512 / scaleX), b % (512 / scaleY), salt);
+      cellHash(a % (512 / scaleX), b % (512 / scaleY), salt);
     return (
       (at(ix, iy) * (1 - fx) + at(ix + 1, iy) * fx) * (1 - fy) +
       (at(ix, iy + 1) * (1 - fx) + at(ix + 1, iy + 1) * fx) * fy

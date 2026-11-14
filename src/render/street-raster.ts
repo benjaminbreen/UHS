@@ -4,7 +4,7 @@ import { kerbCorner, kerbed, paved, pavingMask, roadwayMaterial, wornEdge } from
 import type { TopographySample } from "../core/topography";
 import type { StreetMaterial } from "../content/settlements/streets";
 import type { GroundTileData } from "./habitat-raster";
-import { waterHash as hash } from "./water-style";
+import { cellHash as hash } from "../core/noise";
 import { streetDistance, streetUnionDistance, strokeFrame, strokeSection, throughStroke } from "../world/v3/street-geometry";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 /** World-space value noise at stone scale, so a seam wanders by whole stones. */

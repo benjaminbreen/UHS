@@ -1,5 +1,5 @@
 import type { TopographyCell, TopographySample } from "../../core/topography";
-import { waterHash as hash, waterNoise } from "../../core/water-field";
+import { cellHash as hash, valueNoise } from "../../core/noise";
 import { pickSpecies, type FloraRegion, type Species } from "./flora";
 import { groveEdge } from "../../world/v3/habitats";
 
@@ -75,7 +75,7 @@ export function bloomsAt(
   const dense = h.kind === "meadow" ? 1.6 : h.kind === "open" ? 1 : 0.5;
   // A colony is thick with its one flower; the odd stray grows anywhere.
   // Colonies gather in drifts: spread evenly they left no turf empty.
-  const drift = waterNoise(Math.floor(wx / 5) * 5, Math.floor(wy / 5) * 5, 20, 621) > 0.58;
+  const drift = valueNoise(Math.floor(wx / 5) * 5, Math.floor(wy / 5) * 5, 20, 621) > 0.58;
   const thick = h.lushness === undefined ? drift && colony > 0.68
     : colony > 0.72 && h.lushness > 0.22;
   const edge = h.grove === undefined ? 1 : 0.15 + groveEdge(h.grove) * 0.85;

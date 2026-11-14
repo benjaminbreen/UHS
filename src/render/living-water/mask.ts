@@ -2,7 +2,7 @@ import type { TerrainReceivers } from "../terrain-contours";
 import { waterContactDistance } from "../../core/water-field";
 import { coastDistance, coastBeachWidth } from "./coast";
 import type { ShorePolish } from "./polish";
-import { waterHash, waterNoise } from "../water-style";
+import { cellHash, valueNoise } from "../../core/noise";
 import type { WaterObject } from "./scenery";
 import type { TopographySample } from "../../core/topography";
 import type { TerrainRegion } from "../terrain-region";
@@ -182,8 +182,8 @@ export function rasterLivingWater(
           const wx0 = (region?.x ?? 0) * 16 + sx,
             wy0 = (region?.y ?? 0) * 16 + sy;
           const from = sample(
-            Math.floor(tx + (px + 0.5 + (waterNoise(wx0, wy0, 9, 775) - 0.5) * 12) / 16),
-            Math.floor(ty + (py + 0.5 + (waterNoise(wx0, wy0, 9, 777) - 0.5) * 12) / 16),
+            Math.floor(tx + (px + 0.5 + (valueNoise(wx0, wy0, 9, 775) - 0.5) * 12) / 16),
+            Math.floor(ty + (py + 0.5 + (valueNoise(wx0, wy0, 9, 777) - 0.5) * 12) / 16),
           );
           pixels.data[i + 1] =
             (from && from !== cell && from.waterVisual && from.waterVisual.kind !== "canal" && !from.bridge
@@ -203,8 +203,8 @@ export function rasterLivingWater(
             const wx = (region?.x ?? 0) * 16 + sx,
               wy = (region?.y ?? 0) * 16 + sy;
             const jitter =
-              waterNoise(wx, wy, 5, 771) * 0.6 +
-              waterNoise(wx, wy, 2, 772) * 0.4;
+              valueNoise(wx, wy, 5, 771) * 0.6 +
+              valueNoise(wx, wy, 2, 772) * 0.4;
             const murk = fieldAt(murkGrid, tx + (px + 0.5) / 16, ty + (py + 0.5) / 16);
             const murkLevel = Math.max(
               0,
@@ -252,16 +252,16 @@ export function rasterLivingWater(
       gx <= Math.floor((ox + W + halo) / spacing);
       gx++
     ) {
-      const seed = Math.floor(waterHash(gx, gy, 351) * 100000);
+      const seed = Math.floor(cellHash(gx, gy, 351) * 100000);
       const x = Math.round(
           gx * spacing +
           (refined ? 5 : 16) +
-          waterHash(gx, gy, 352) * (refined ? spacing - 10 : 32) -
+          cellHash(gx, gy, 352) * (refined ? spacing - 10 : 32) -
           ox),
         y = Math.round(
           gy * spacing +
           (refined ? 5 : 16) +
-          waterHash(gx, gy, 353) * (refined ? spacing - 10 : 32) -
+          cellHash(gx, gy, 353) * (refined ? spacing - 10 : 32) -
           oy);
       const site = shoreAt(x, y);
       if (!site) continue;
@@ -276,18 +276,18 @@ export function rasterLivingWater(
         sy = y + oy - depth * 16 * ny;
       const bx = Math.floor(gx / 2), by = Math.floor(gy / 2);
       const rocky = !refined || (
-        gx === bx * 2 + Math.floor(waterHash(bx, by, 375) * 2) &&
-        gy === by * 2 + Math.floor(waterHash(bx, by, 377) * 2) &&
-        waterNoise(sx, sy, 192, 361) * 0.8 + waterNoise(sx, sy, 64, 363) * 0.2 > 0.58
+        gx === bx * 2 + Math.floor(cellHash(bx, by, 375) * 2) &&
+        gy === by * 2 + Math.floor(cellHash(bx, by, 377) * 2) &&
+        valueNoise(sx, sy, 192, 361) * 0.8 + valueNoise(sx, sy, 64, 363) * 0.2 > 0.58
       );
       const profile = livingProfile(cell),
-        rock = cell.habitat?.colorway !== "swamp" && rocky && waterHash(gx, gy, 354) < (refined ? 0.75 * polish!.rocks : 0.35);
+        rock = cell.habitat?.colorway !== "swamp" && rocky && cellHash(gx, gy, 354) < (refined ? 0.75 * polish!.rocks : 0.35);
       if (
         refined &&
         !rock &&
         (profile.bankClimate === "tundra" ||
-          waterNoise(sx, sy, 144, 365) < 0.5 ||
-          waterHash(gx, gy, 357) >
+          valueNoise(sx, sy, 144, 365) < 0.5 ||
+          cellHash(gx, gy, 357) >
             polish!.plants *
               (profile.bankClimate === "tropical-woodland" ? 1 : 0.65))
       )
@@ -298,13 +298,13 @@ export function rasterLivingWater(
         (profile.plants === 0 || profile.bankClimate === "desert")
       )
         continue;
-      if (refined && !rock && depth > 0.2 && waterHash(gx, gy, 359) > 0.45)
+      if (refined && !rock && depth > 0.2 && cellHash(gx, gy, 359) > 0.45)
         continue;
       items.push({
         x: Math.round(x),
         y: Math.round(y - cell.height * TERRAIN_RISE + shift),
         size: rock
-          ? (refined ? 6 : 4) + waterHash(gx, gy, 355) * (refined ? 4 : 3)
+          ? (refined ? 6 : 4) + cellHash(gx, gy, 355) * (refined ? 4 : 3)
           : 4,
         seed,
         ecology: profile.bankClimate,
@@ -316,16 +316,16 @@ export function rasterLivingWater(
             ? "herb"
             : profile.kind === "coast"
               ? "seaweed"
-              : waterHash(gx, gy, 356) < (depth < 0.9 ? 0.75 : 0.2)
+              : cellHash(gx, gy, 356) < (depth < 0.9 ? 0.75 : 0.2)
                 ? "reeds"
                 : "lilies",
       });
       if (refined && rock) {
         const o = items.at(-1)!;
-        const companions = Math.floor(waterHash(gx, gy, 367) * 4);
+        const companions = Math.floor(cellHash(gx, gy, 367) * 4);
         for (let i = 0; i < companions; i++) {
-          const along = (i % 2 ? -1 : 1) * (o.size + 5 + i * 4 + waterHash(seed, i, 369) * 8),
-            across = (waterHash(seed, i, 371) - 0.5) * 10,
+          const along = (i % 2 ? -1 : 1) * (o.size + 5 + i * 4 + cellHash(seed, i, 369) * 8),
+            across = (cellHash(seed, i, 371) - 0.5) * 10,
             px = Math.round(x - ny * along + nx * across),
             py = Math.round(y + nx * along + ny * across),
             companion = shoreAt(px, py);
@@ -334,7 +334,7 @@ export function rasterLivingWater(
             ...o,
             x: px,
             y: py - companion.cell.height * TERRAIN_RISE + shift,
-            size: 2 + waterHash(seed, i, 373) * 2.5,
+            size: 2 + cellHash(seed, i, 373) * 2.5,
             seed: seed + 7 + i * 17,
           });
         }

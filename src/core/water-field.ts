@@ -1,32 +1,8 @@
 import type { TopographyCell, TopographySample } from "./topography";
+import { valueNoise } from "./noise";
 /** The cell's centre is bare mud on the intertidal shelf at the present tide. */
 export const bareShelf = (v: TopographyCell["waterVisual"]) =>
   v?.shelf !== undefined && v.distance < 0 && 1 + v.distance / v.shelf > (v.tide ?? 0);
-/** Integer world-coordinate noise: no per-frame random draws or chunk-local seeds. */
-export function waterHash(x: number, y: number, salt = 0) {
-  let n =
-    Math.imul(x | 0, 374761393) ^
-    Math.imul(y | 0, 668265263) ^
-    Math.imul(salt, 1274126177);
-  n = Math.imul(n ^ (n >>> 13), 1274126177);
-  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
-}
-/** Smooth world-anchored fields; field sampling never depends on chunk boundaries. */
-export function waterNoise(x: number, y: number, scale: number, salt: number) {
-  const ix = Math.floor(x / scale),
-    iy = Math.floor(y / scale);
-  const sx = x / scale - ix,
-    sy = y / scale - iy;
-  const fx = sx * sx * (3 - 2 * sx),
-    fy = sy * sy * (3 - 2 * sy);
-  return (
-    (waterHash(ix, iy, salt) * (1 - fx) + waterHash(ix + 1, iy, salt) * fx) *
-      (1 - fy) +
-    (waterHash(ix, iy + 1, salt) * (1 - fx) +
-      waterHash(ix + 1, iy + 1, salt) * fx) *
-      fy
-  );
-}
 /** Bilinear reconstruction of the continuous bed at native-pixel centers. */
 export function waterDistance(sample: TopographySample, x: number, y: number) {
   // A narrow stream carries the gradient of its distance field: extend the
@@ -89,8 +65,8 @@ export function coastDistance(
   const amplitude = settings?.coastScallop ?? 1.4,
     scale = Math.max(4, settings?.coastScale ?? 18);
   const scallop =
-    (waterNoise(x, y, scale, 912) - 0.5) * 1.4 +
-    (waterNoise(x, y, scale * 0.37, 913) - 0.5) * 0.6;
+    (valueNoise(x, y, scale, 912) - 0.5) * 1.4 +
+    (valueNoise(x, y, scale * 0.37, 913) - 0.5) * 0.6;
   const fade = Math.max(0, Math.min(1, (12 - Math.abs(distance)) / 6));
   return distance + amplitude * scallop * fade;
 }
@@ -118,7 +94,7 @@ export function shoreDistance(
   // into the cell, or the stream's edge is the cell grid.
   if (c && c.height > 0 && c.surface !== "water" && !waterOnTier(sample, cx, cy, c.height))
     return Math.max(0.08, d);
-  return d + (waterNoise((x + ox) * 16, (y + oy) * 16, 7, 319) - 0.5) * 0.14;
+  return d + (valueNoise((x + ox) * 16, (y + oy) * 16, 7, 319) - 0.5) * 0.14;
 }
 export function waterContactDistance(
   sample: TopographySample,
@@ -133,7 +109,7 @@ export function waterContactDistance(
     d = coastDistance(d, x + ox, y + oy, polish);
   if (polish?.enabled)
     d +=
-      (waterNoise((x + ox) * 16 - 0.5, (y + oy) * 16 - 0.5, 9, 482) - 0.5) *
+      (valueNoise((x + ox) * 16 - 0.5, (y + oy) * 16 - 0.5, 9, 482) - 0.5) *
       0.24;
   return d;
 }

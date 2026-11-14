@@ -7,7 +7,8 @@ import {
 } from "./water-motifs";
 import type Phaser from "phaser";
 import type { TopographyCell } from "../core/topography";
-import { waterHash, waterStyle } from "./water-style";
+import { cellHash } from "../core/noise";
+import { waterStyle } from "./water-style";
 import { bareShelf } from "../core/water-field";
 import { canvasStat } from "./canvas-stat";
 import { inRoom } from "./crops";
@@ -215,7 +216,7 @@ function drawEffects(patch: Patch, frame: number) {
       for (const p of e.shoreline) {
         const wx = gx + p.x,
           wy = gy + p.y;
-        const group = waterHash(Math.floor(wx / 12), Math.floor(wy / 12), 383);
+        const group = cellHash(Math.floor(wx / 12), Math.floor(wy / 12), 383);
         const sea = kind === "sea";
         if (group < (sea ? 0.43 : 0.79)) continue;
         const phase = ((frame + Math.floor(group * 60)) % 80) / 80;
@@ -243,7 +244,7 @@ function drawEffects(patch: Patch, frame: number) {
         const u = segment * 8;
         const wx = gx + (dx ? (dx > 0 ? 15 : 0) : u),
           wy = gy + (dy ? (dy > 0 ? 15 : 0) : u);
-        const noise = waterHash(Math.floor(wx / 24), Math.floor(wy / 24), 83);
+        const noise = cellHash(Math.floor(wx / 24), Math.floor(wy / 24), 83);
         const sea = kind === "sea";
         if (noise < (sea ? 0.36 : 0.72)) continue;
         const phase =

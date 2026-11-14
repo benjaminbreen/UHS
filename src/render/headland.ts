@@ -1,7 +1,7 @@
 import type { TopographyCell, TopographySample } from "../core/topography";
 import type { Ecology } from "../content/ecology/profiles";
 import { WEED_H, WEED_W, weedGlyphs } from "../content/graphics/weed-glyphs";
-import { waterHash as hash, waterNoise as noise } from "./water-style";
+import { cellHash as hash, valueNoise as noise } from "../core/noise";
 
 type Rgb = number[];
 const decode = (s: string): Rgb => [

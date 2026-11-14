@@ -1,5 +1,5 @@
 import { bankStyle, blendBankColor } from "./banks";
-import { waterHash, waterNoise } from "../water-style";
+import { cellHash, valueNoise } from "../../core/noise";
 import { WIDTH as W, HEIGHT as H, beachExtent, type Settings } from "./model";
 export type WaterObject = {
   x: number;
@@ -19,13 +19,13 @@ export function scenery(field: Float32Array, s: Settings): WaterObject[] {
     let placed = 0;
     for (let i = 0; i < 4000 && placed < count; i++) {
       const seed = i + (kind === "rock" ? 100 : 7000),
-        x = 18 + Math.floor(waterHash(seed, 5) * (W - 36)),
-        y = 25 + Math.floor(waterHash(seed, 6) * (H - 45));
+        x = 18 + Math.floor(cellHash(seed, 5) * (W - 36)),
+        y = 25 + Math.floor(cellHash(seed, 6) * (H - 45));
       const d = field[y * W + x],
         size =
           kind === "rock"
-            ? (5 + waterHash(seed, 7) * 6) * s.rockSize
-            : 5 + waterHash(seed, 7) * 4;
+            ? (5 + cellHash(seed, 7) * 6) * s.rockSize
+            : 5 + cellHash(seed, 7) * 4;
       if (d < (kind === "rock" ? 0.6 : 0.25) || d > (kind === "rock" ? 6 : 3.2))
         continue;
       if (
@@ -38,7 +38,7 @@ export function scenery(field: Float32Array, s: Settings): WaterObject[] {
         s.kind === "coast"
           ? "seaweed"
           : s.plantType === "auto"
-            ? waterHash(seed, 8) > 0.5
+            ? cellHash(seed, 8) > 0.5
               ? "lilies"
               : "reeds"
             : s.plantType;
@@ -122,8 +122,8 @@ export function bankLayer(field: Float32Array, s: Settings) {
         edge = -beach - width;
       if (width > 0 && d < -beach && d > edge) {
         const z = (-d - beach) / Math.max(0.01, width),
-          grain = waterNoise(x * 1.6, y * 2, 5, 92),
-          seam = waterNoise(x, y, 8, 93);
+          grain = valueNoise(x * 1.6, y * 2, 5, 92),
+          seam = valueNoise(x, y, 8, 93);
         const color =
           grain > 0.65
             ? bank.face[0]
@@ -167,24 +167,24 @@ export function bankLayer(field: Float32Array, s: Settings) {
       if (
         d < edge &&
         d > edge - 1.2 &&
-        waterHash(Math.floor(x / 3), Math.floor(y / 3), 62) < s.bankCover
+        cellHash(Math.floor(x / 3), Math.floor(y / 3), 62) < s.bankCover
       ) {
-        const n = waterNoise(x, y, 5, 63);
+        const n = valueNoise(x, y, 5, 63);
         if (n > 0.4) pixel(x, y, n > 0.64 ? bank.grass : bank.ground);
-        if (waterHash(x, y, 64) > 0.95) {
+        if (cellHash(x, y, 64) > 0.95) {
           pixel(x, y, "#bad368");
           pixel(x, y + 1, "#386335");
         }
       }
     }
   for (let i = 0; i < 220; i++) {
-    if (waterHash(i, 73) > s.bankCover) continue;
-    const x = Math.floor(waterHash(i, 71) * W),
-      y = Math.floor(waterHash(i, 72) * H),
+    if (cellHash(i, 73) > s.bankCover) continue;
+    const x = Math.floor(cellHash(i, 71) * W),
+      y = Math.floor(cellHash(i, 72) * H),
       d = field[y * W + x];
     if (d > -beach - width || d < -beach - 1.5 - width) continue;
     for (let blade = -2; blade <= 2; blade++) {
-      const h = 2 + Math.floor(waterHash(i, blade) * 4);
+      const h = 2 + Math.floor(cellHash(i, blade) * 4);
       for (let j = 0; j < h; j++)
         pixel(x + blade, y - j, blade < 0 ? "#3e682f" : "#8bb544");
     }
@@ -257,7 +257,7 @@ export function drawScenery(
       // and foot, a dark wet line where it meets the water.
       const w = Math.max(2, Math.round(r * 0.9)),
         h = Math.max(2, Math.round(r * 1.1)),
-        lean = waterHash(seed, 26) - 0.5,
+        lean = cellHash(seed, 26) - 0.5,
         mossy = seed % 3 === 0 && w >= 5;
       const span = (yy: number) => {
         const v = (-yy / h) * 0.92;
@@ -401,15 +401,15 @@ export function drawScenery(
       // White water lily; pink lotus in the tropics; the Nile's blue lotus; the north's yellow pond-lily.
       const petal = lotus ? "#f2a6b8" : arid ? "#9db0ee" : boreal ? "#f0d040" : "#fff4dc",
         heart = boreal ? "#c98f2a" : "#ebba5e";
-      const pads = 3 + Math.floor(waterHash(seed, 31) * 3);
+      const pads = 3 + Math.floor(cellHash(seed, 31) * 3);
       for (let pad = 0; pad < pads; pad++) {
-        const a = pad === 0 ? (lotus ? 4 : 3) : 1 + Math.floor(waterHash(seed, 40 + pad) * (lotus ? 3.5 : 2.6)),
+        const a = pad === 0 ? (lotus ? 4 : 3) : 1 + Math.floor(cellHash(seed, 40 + pad) * (lotus ? 3.5 : 2.6)),
           b = Math.max(1, Math.round(a * 0.6)),
-          angle = waterHash(seed, 50 + pad) * 6.283,
-          reach = pad === 0 ? 0 : 4 + waterHash(seed, 60 + pad) * 6,
+          angle = cellHash(seed, 50 + pad) * 6.283,
+          reach = pad === 0 ? 0 : 4 + cellHash(seed, 60 + pad) * 6,
           cx = Math.round(x + Math.cos(angle) * reach * 1.3),
           cy = Math.round(y + Math.sin(angle) * reach * 0.7 + Math.sin(t * 0.8 + pad) * 0.5),
-          notch = waterHash(seed, 70 + pad) < 0.5 ? 1 : -1;
+          notch = cellHash(seed, 70 + pad) < 0.5 ? 1 : -1;
         for (let yy = -b; yy <= b; yy++)
           for (let xx = -a; xx <= a; xx++) {
             if ((xx * xx) / ((a + 0.4) * (a + 0.4)) + (yy * yy) / ((b + 0.4) * (b + 0.4)) > 1) continue;
@@ -434,7 +434,7 @@ export function drawScenery(
             );
           }
         if (lotus && a >= 3) dot(cx, cy, 1, 1, "#2f6a35");
-        if (a >= 3 && o.season !== "winter" && waterHash(seed, 80 + pad) < 0.6) {
+        if (a >= 3 && o.season !== "winter" && cellHash(seed, 80 + pad) < 0.6) {
           const fx = cx - notch * 2, fy = cy - 1;
           dot(fx - 1, fy, 3, 1, petal);
           dot(fx, fy - 1, 1, 3, petal);
@@ -444,8 +444,8 @@ export function drawScenery(
       if (o.ecology === "wetland")
         for (let i = 0; i < 12; i++)
           dot(
-            x + Math.round((waterHash(seed, 90 + i) - 0.5) * 22),
-            y + Math.round((waterHash(seed, 110 + i) - 0.5) * 12),
+            x + Math.round((cellHash(seed, 90 + i) - 0.5) * 22),
+            y + Math.round((cellHash(seed, 110 + i) - 0.5) * 12),
             1,
             1,
             i % 3 ? "#9fc94a" : "#7fb040",
@@ -457,8 +457,8 @@ export function drawScenery(
         // Broad arrowhead leaves on single stalks, the taro and arums of wet tropical ground.
         const leaf = [".ll..", "lhlll", "llhll", ".lld.", "..d.."];
         for (let i = 0; i < 4; i++) {
-          const lx = x + [-5, -1, 3, 6][i] + Math.round((waterHash(seed, i) - 0.5) * 2),
-            h = 5 + Math.floor(waterHash(seed, 10 + i) * 6);
+          const lx = x + [-5, -1, 3, 6][i] + Math.round((cellHash(seed, i) - 0.5) * 2),
+            h = 5 + Math.floor(cellHash(seed, 10 + i) * 6);
           for (let j = 0; j < h; j++) dot(lx + 2, y - j, 1, 1, j < 2 ? "#226b3c" : "#2f7a40");
           leaf.forEach((line, yy) =>
             [...line].forEach((ch, xx) => {
@@ -469,8 +469,8 @@ export function drawScenery(
         }
       } else if (o.colorway === "papyrus") {
         for (let i = 0; i < 5; i++) {
-          const bx = x + (i - 2) * 3 + Math.round((waterHash(seed, i) - 0.5) * 2),
-            h = 10 + Math.floor(waterHash(seed, 10 + i) * 8);
+          const bx = x + (i - 2) * 3 + Math.round((cellHash(seed, i) - 0.5) * 2),
+            h = 10 + Math.floor(cellHash(seed, 10 + i) * 8);
           for (let j = 0; j < h; j++) dot(bx + sway(j, h, i), y - j, 1, 1, j < 2 ? "#3c6b34" : "#5f8f3f");
           // The umbel: a green starburst at the head of each stem.
           dot(bx - 2, y - h, 5, 1, "#8fb54a");
@@ -484,7 +484,7 @@ export function drawScenery(
       } else if (o.ecology === "boreal-woodland" || o.ecology === "tundra") {
         // A sedge tussock: short stiff blades off one crown.
         for (let i = -4; i <= 4; i++) {
-          const h = 3 + Math.floor(waterHash(seed, i + 9) * 4) - Math.abs(i) / 2;
+          const h = 3 + Math.floor(cellHash(seed, i + 9) * 4) - Math.abs(i) / 2;
           for (let j = 0; j < h; j++)
             dot(x + i + Math.round((i / 4) * (j / 3)), y - j, 1, 1, j >= h - 1 ? "#9aa55a" : (i + 9) % 3 ? "#3f6b3c" : "#567a40");
         }
@@ -492,11 +492,11 @@ export function drawScenery(
       } else {
         const plumes = o.ecology === "grassland" || o.ecology === "dry-scrub" || o.ecology === "desert",
           dry = plumes || o.season === "autumn" || o.season === "winter";
-        const stems = 6 + Math.floor(waterHash(seed, 3) * 3);
+        const stems = 6 + Math.floor(cellHash(seed, 3) * 3);
         for (let i = 0; i < stems; i++) {
-          const bx = x + Math.round((i - (stems - 1) / 2) * 1.6 + (waterHash(seed, i) - 0.5)),
-            h = 8 + Math.floor(waterHash(seed, 10 + i) * 9),
-            lean = (waterHash(seed, 20 + i) - 0.5) * 4;
+          const bx = x + Math.round((i - (stems - 1) / 2) * 1.6 + (cellHash(seed, i) - 0.5)),
+            h = 8 + Math.floor(cellHash(seed, 10 + i) * 9),
+            lean = (cellHash(seed, 20 + i) - 0.5) * 4;
           for (let j = 0; j < h; j++)
             dot(
               bx + (lean * j) / h + sway(j, h, i),
@@ -523,7 +523,7 @@ export function drawScenery(
     } else {
       const alpha = 0.4 + s.clarity * 0.4;
       for (let blade = 0; blade < 7; blade++) {
-        const h = 7 + waterHash(seed, blade) * 15,
+        const h = 7 + cellHash(seed, blade) * 15,
           bx = x + (blade - 3) * 2;
         for (let j = 0; j < h; j++) {
           const sway = Math.sin(t * 1.4 + blade + j * 0.15) * (j / h) * 4;

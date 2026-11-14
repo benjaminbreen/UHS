@@ -4,7 +4,7 @@ import { crops } from "../content/agriculture/crops";
 import type { Crop, CropId, CropStage } from "../content/agriculture/types";
 import type { TopographyCell, TopographySample } from "../core/topography";
 import { own, type RenderResources } from "./resources";
-import { waterHash as hash } from "./water-style";
+import { cellHash as hash } from "../core/noise";
 
 /** Atlas holding authored `crop-<id>-<stage>-<frame>` sprites. */
 export const CROP_ATLAS = "atlas";

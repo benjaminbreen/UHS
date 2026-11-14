@@ -2,7 +2,7 @@ import type { ShorePolish } from "./polish";
 import type { TopographyCell, TopographySample } from "../../core/topography";
 import type { Ecology } from "../../content/ecology/profiles";
 import { defaults, type Settings } from "./model";
-import { waterNoise } from "../water-style";
+import { valueNoise } from "../../core/noise";
 
 export const ecologyOrder: Ecology[] = [
   "grassland",
@@ -115,6 +115,6 @@ export function livingBeachWidth(
       ? (settings?.coastBeachWidth ?? 8)
       : profile.beachWidth) *
     slope *
-    (0.9 + waterNoise(x + ox, y + oy, 37, 864) * 0.2)
+    (0.9 + valueNoise(x + ox, y + oy, 37, 864) * 0.2)
   );
 }

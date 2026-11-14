@@ -80,7 +80,9 @@ holds up a step; `boundaries.ts` how walls and fences are built.
   station block with a platform, level crossings, and a girder bridge over
   rivers up to `RAIL_BRIDGE` cells.
 - `modern-buildings.ts` (`modernBuildings(setting, landUse)`) picks modern
-  kits by region and land use; `preferStyle` grades them by quarter.
+  kits by region and land use; `preferStyle` grades them by quarter. Where it
+  has none, the pack's flat-front kit (`modernFlatFrontKit` in
+  `src/content/geography/pack.ts`, by region and climate) stands.
 
 ### Streets and paint
 
@@ -126,9 +128,6 @@ its own module.
 Retiring or merging these is welcome; there are no saves to preserve:
 
 - `v3/urban-v1.ts` (`urbanRevision: 1`).
-- Two functions named `modernBuildings`: `src/content/geography/pack.ts`
-  (by setting) and `src/content/settlements/modern-buildings.ts` (by setting
-  and land use, the one towns use). Merge them.
 - Two shop-sign paths (`signBand` and `shopSigns`); move the `signBand`
   models to `shopSigns`.
 

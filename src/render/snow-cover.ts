@@ -1,6 +1,6 @@
 import type Phaser from "phaser";
 import type { TopographyCell, TopographySample } from "../core/topography";
-import { waterHash as hash, waterNoise as noise } from "../core/water-field";
+import { cellHash as hash, valueNoise as noise } from "../core/noise";
 import { pathField } from "./material-edges";
 
 /** Lying snow, 0 to 1, shared by the main thread and the terrain worker. Set

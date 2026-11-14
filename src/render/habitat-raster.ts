@@ -57,7 +57,7 @@ import {
 import type { TopographyCell, TopographySample } from "../core/topography";
 import type { Habitat } from "../world/v3/habitats";
 import { defaultGrassArt, type GrassArt } from "../content/graphics/grass-art";
-import { waterHash as hash, waterNoise as noise } from "./water-style";
+import { cellHash as hash, valueNoise as noise } from "../core/noise";
 import { swardHatch, tuftColony } from "./ground-motifs";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 

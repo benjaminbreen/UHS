@@ -1,5 +1,5 @@
 import type { BoundaryStyle } from "../content/settlements/boundaries";
-import { waterHash as hash, waterNoise as noise } from "./water-style";
+import { cellHash as hash, valueNoise as noise } from "../core/noise";
 
 /** How each form of standing boundary is drawn and what it casts. Everything
  * is keyed to world pixels, so a run drawn in pieces by neighbouring tiles
