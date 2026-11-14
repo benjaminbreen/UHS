@@ -12,7 +12,7 @@ import type { WorldSetting } from "../geography/types";
 import SCRIPT_WORDS from "./sign-words.json" with { type: "json" };
 
 export type SignLanguage =
-  "en" | "fr" | "es" | "pt" | "id" | "tr" | "sw" | "ru" | "ar" | "fa" | "zh" | "zhs" | "ja" | "hi" | "ko";
+  "en" | "fr" | "nl" | "es" | "pt" | "id" | "tr" | "sw" | "ru" | "ar" | "fa" | "zh" | "zhs" | "ja" | "hi" | "ko";
 export const SCRIPTED = new Set<SignLanguage>(["ar", "fa", "zh", "zhs", "ja", "hi", "ko"]);
 
 /** Which language a modern street writes in.
@@ -55,6 +55,7 @@ export function signLanguage(setting: WorldSetting): SignLanguage | undefined {
     if (box(27, 180, 41.5, 75) || box(22, 27, 41, 45)) return "ru"; // Russia and the Slavic east; Bulgaria
     if (box(-74, -34, -34, 6)) return "pt"; // Brazil
     if (box(-118, -34, -56, 25) && !box(-100, -60, 25, 50)) return "es";
+    if (box(3.3, 7.3, 51.2, 53.6)) return "nl"; // the Netherlands and Flanders
     if (box(-5, 8, 42, 51)) return "fr";
     if (box(-10, 4, 36, 44)) return "es";
     return "en";
@@ -68,6 +69,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   "corner store": {
     en: ["MART", "STORE", "SUNDRIES"],
     fr: ["EPICERIE"],
+    nl: ["WINKEL"],
     es: ["TIENDA", "ABARROTES"],
     pt: ["VENDA", "MERCEARIA"],
     id: ["TOKO", "WARUNG"],
@@ -78,6 +80,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   grocery: {
     en: ["FOODS", "GROCERY"],
     fr: ["EPICERIE"],
+    nl: ["KRUIDENIER"],
     es: ["TIENDA", "ABARROTES"],
     pt: ["MERCEARIA"],
     id: ["TOKO", "SEMBAKO"],
@@ -88,6 +91,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   "neighborhood market": {
     en: ["MARKET", "MART"],
     fr: ["MARCHE"],
+    nl: ["MARKT"],
     es: ["MERCADO"],
     pt: ["MERCADO"],
     id: ["PASAR"],
@@ -98,6 +102,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   bakery: {
     en: ["BAKERY"],
     fr: ["PAIN", "BOULANGER"],
+    nl: ["BROOD", "BAKKER"],
     es: ["PAN", "PANADERIA"],
     pt: ["PADARIA"],
     id: ["ROTI"],
@@ -108,6 +113,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   cafe: {
     en: ["CAFE", "COFFEE"],
     fr: ["CAFE", "BRASSERIE"],
+    nl: ["CAFE", "KOFFIEHUIS"],
     es: ["CAFE"],
     pt: ["CAFE"],
     id: ["KOPI", "WARUNG"],
@@ -118,6 +124,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   diner: {
     en: ["EATS", "DINER", "GRILL"],
     fr: ["RESTO"],
+    nl: ["EETHUIS"],
     es: ["FONDA", "COMIDAS"],
     pt: ["LANCHES"],
     id: ["MAKAN", "WARUNG"],
@@ -128,6 +135,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   pharmacy: {
     en: ["DRUGS", "RX"],
     fr: ["PHARMACIE"],
+    nl: ["APOTHEEK"],
     es: ["FARMACIA"],
     pt: ["FARMACIA"],
     id: ["APOTIK"],
@@ -138,6 +146,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   clinic: {
     en: ["CLINIC"],
     fr: ["CLINIQUE"],
+    nl: ["KLINIEK"],
     es: ["CLINICA"],
     pt: ["CLINICA"],
     id: ["KLINIK"],
@@ -148,6 +157,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   "auto workshop": {
     en: ["GARAGE", "AUTO"],
     fr: ["GARAGE"],
+    nl: ["GARAGE"],
     es: ["TALLER"],
     pt: ["OFICINA"],
     id: ["BENGKEL"],
@@ -158,6 +168,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   "gas station": {
     en: ["GAS", "FUEL"],
     fr: ["ESSENCE"],
+    nl: ["BENZINE"],
     es: ["GASOLINA"],
     pt: ["POSTO"],
     id: ["BENSIN"],
@@ -168,6 +179,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   laundromat: {
     en: ["WASH", "LAUNDRY"],
     fr: ["LAVERIE"],
+    nl: ["WASSERIJ"],
     es: ["LAVANDERIA"],
     pt: ["LAVANDARIA"],
     id: ["BINATU"],
@@ -179,6 +191,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   motel: {
     en: ["MOTEL", "ROOMS"],
     fr: ["HOTEL"],
+    nl: ["HOTEL"],
     es: ["HOTEL"],
     pt: ["HOTEL"],
     id: ["LOSMEN", "PENGINAPAN"],
@@ -189,6 +202,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   barber: {
     en: ["BARBER"],
     fr: ["COIFFEUR"],
+    nl: ["KAPPER"],
     es: ["BARBERIA"],
     pt: ["BARBEARIA"],
     id: ["CUKUR"],
@@ -199,6 +213,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   hardware: {
     en: ["HARDWARE", "TOOLS"],
     fr: ["QUINCAILLERIE"],
+    nl: ["IJZERWAREN"],
     es: ["FERRETERIA"],
     pt: ["FERRAGENS"],
     id: ["BESI"],
@@ -209,6 +224,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   tailor: {
     en: ["TAILOR"],
     fr: ["TAILLEUR"],
+    nl: ["KLEERMAKER"],
     es: ["SASTRE"],
     pt: ["ALFAIATE"],
     id: ["PENJAHIT"],
@@ -216,18 +232,19 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
     sw: ["FUNDI"],
     ru: ["АТЕЛЬЕ"],
   },
-  shoes: { en: ["SHOES"], fr: ["CHAUSSURES"], es: ["ZAPATOS"], pt: ["SAPATOS"], tr: ["AYAKKABI"], ru: ["ОБУВЬ"] },
-  jeweler: { en: ["JEWELRY", "WATCHES"], fr: ["BIJOUX"], es: ["JOYERIA"], pt: ["JOIAS"], tr: ["KUYUMCU"], ru: ["ЧАСЫ"] },
-  radio: { en: ["RADIO", "TV"], fr: ["RADIO"], es: ["RADIO"], pt: ["RADIO"], tr: ["RADYO"], sw: ["REDIO"], ru: ["РАДИО"] },
-  books: { en: ["BOOKS"], fr: ["LIBRAIRIE"], es: ["LIBROS"], pt: ["LIVROS"], tr: ["KITAP"], sw: ["VITABU"], ru: ["КНИГИ"] },
-  butcher: { en: ["MEATS", "BUTCHER"], fr: ["BOUCHERIE"], es: ["CARNES"], pt: ["ACOUGUE"], tr: ["KASAP"], sw: ["NYAMA"], ru: ["МЯСО"] },
-  sweets: { en: ["CANDY", "SWEETS"], fr: ["PATISSERIE"], es: ["DULCES"], pt: ["DOCES"], tr: ["TATLI"], ru: ["КОНДИТЕРСКАЯ"] },
-  juice: { en: ["JUICE"], fr: ["JUS"], es: ["JUGOS"], pt: ["SUCOS"], tr: ["MEYVE SUYU"], sw: ["JUISI"], ru: ["СОКИ"] },
-  bank: { en: ["BANK", "SAVINGS"], fr: ["BANQUE"], es: ["BANCO"], pt: ["BANCO"], id: ["BANK"], tr: ["BANKA"], sw: ["BENKI"], ru: ["СБЕРКАССА"] },
+  shoes: { en: ["SHOES"], fr: ["CHAUSSURES"], nl: ["SCHOENEN"], es: ["ZAPATOS"], pt: ["SAPATOS"], tr: ["AYAKKABI"], ru: ["ОБУВЬ"] },
+  jeweler: { en: ["JEWELRY", "WATCHES"], fr: ["BIJOUX"], nl: ["JUWELIER"], es: ["JOYERIA"], pt: ["JOIAS"], tr: ["KUYUMCU"], ru: ["ЧАСЫ"] },
+  radio: { en: ["RADIO", "TV"], fr: ["RADIO"], nl: ["RADIO"], es: ["RADIO"], pt: ["RADIO"], tr: ["RADYO"], sw: ["REDIO"], ru: ["РАДИО"] },
+  books: { en: ["BOOKS"], fr: ["LIBRAIRIE"], nl: ["BOEKEN"], es: ["LIBROS"], pt: ["LIVROS"], tr: ["KITAP"], sw: ["VITABU"], ru: ["КНИГИ"] },
+  butcher: { en: ["MEATS", "BUTCHER"], fr: ["BOUCHERIE"], nl: ["SLAGER"], es: ["CARNES"], pt: ["ACOUGUE"], tr: ["KASAP"], sw: ["NYAMA"], ru: ["МЯСО"] },
+  sweets: { en: ["CANDY", "SWEETS"], fr: ["PATISSERIE"], nl: ["BANKET"], es: ["DULCES"], pt: ["DOCES"], tr: ["TATLI"], ru: ["КОНДИТЕРСКАЯ"] },
+  juice: { en: ["JUICE"], fr: ["JUS"], nl: ["SAP"], es: ["JUGOS"], pt: ["SUCOS"], tr: ["MEYVE SUYU"], sw: ["JUISI"], ru: ["СОКИ"] },
+  bank: { en: ["BANK", "SAVINGS"], fr: ["BANQUE"], nl: ["BANK"], es: ["BANCO"], pt: ["BANCO"], id: ["BANK"], tr: ["BANKA"], sw: ["BENKI"], ru: ["СБЕРКАССА"] },
   /** Anything that only says it is open for business. */
   shop: {
     en: ["SHOP", "STORE"],
     fr: ["MAGASIN"],
+    nl: ["WINKEL"],
     es: ["TIENDA"],
     pt: ["LOJA"],
     id: ["TOKO"],

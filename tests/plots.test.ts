@@ -266,6 +266,7 @@ describe("plots played out in London, 1750", () => {
   });
   it("holds the feast and the hearing as gatherings the player has to walk to", () => {
     const e = session();
+    e.state.player.encounterAfter = e.state.clock + 30 * 86400;
     const meet = (plot: NonNullable<typeof e.state.plot>) => {
       const g = plot.gathering!;
       e.state.clock = g.start - 60;

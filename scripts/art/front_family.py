@@ -31,7 +31,7 @@ import zlib
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 
-MODULES = ('art.front_iberia', 'art.front_modern', 'art.front_modern_world')
+MODULES = ('art.front_iberia', 'art.front_modern', 'art.front_modern_world', 'art.front_europe')
 # Front-on houses are drawn at the adult's scale, so old footprints widen.
 SCALE = 1.45
 FAMILIES = {}

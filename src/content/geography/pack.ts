@@ -19,6 +19,7 @@ import {
 import { formatHistoricalYear } from "../../core/calendar";
 import { mediterraneanInsulaFrames } from "../graphics/mediterranean-buildings";
 import { casaHouses, casaLook } from "../graphics/iberian-houses";
+import { euroHouses, euroLook } from "../graphics/european-houses";
 import type { Pack } from "../../core/types";
 import type { WorldSetting } from "./types";
 import { historyRegistry, resolveHistory } from "../history";
@@ -42,7 +43,7 @@ export function periodBuildings(setting: WorldSetting): string[] {
   const { year, culture, lon, lat } = setting;
   if (year < 1700 || year >= 1900) return [];
   if (setting.settlement !== "city" && setting.settlement !== "port") return [];
-  if (casaLook(setting)) return [];
+  if (casaLook(setting) || euroLook(setting)) return [];
   // Iceland and the Faroes built in turf, not brick terraces.
   if (lon < -5 && lon > -30 && lat >= 60) return [];
   const victorian = year >= 1840;
@@ -316,12 +317,15 @@ export function packForSetting(setting: WorldSetting): Pack {
       : [];
   const vernacular = vernacularHouses(setting);
   const casa = casaHouses(setting);
+  const euro = euroHouses(setting);
   const buildings = prehistoric
     ? prehistoric
     : modernCity
       ? modernBuildings(setting)
       : casa.length
         ? casa
+      : euro.length
+        ? euro
       : romanRegional.length
         ? [
             "house-roman-ob-0",
