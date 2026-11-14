@@ -168,6 +168,16 @@ export const headwear = [
   "bicorne",
   /** The Joseon man's black horsehair hat: a tall narrow crown on a wide flat brim. */
   "gat",
+  /** White linen round the face, chin and throat under a veil: married women and nuns, about 1150 to 1350. */
+  "wimple",
+  /** The tall cone with a gauze veil off its point: Burgundian and French ladies, about 1430 to 1490. */
+  "hennin",
+  /** The tall black crown and flat brim of the 1590s to 1650s; the Puritan's hat. */
+  "capotain",
+  /** The janissary's tall white felt cap, its back folded down behind the neck. */
+  "bork",
+  /** The Sikh turban, tied to a peak over the brow. */
+  "dastar",
 ] as const;
 /** How the garment is patterned. `auto` keeps the hashed default. */
 export const motifs = [
@@ -224,13 +234,17 @@ export const bags = ["none", "purse", "satchel"] as const;
 export const wristwear = ["none", "bangles"] as const;
 /** Round the neck above the garment: a working neckerchief, a starched ruff,
  * a gentleman's cravat. */
-export const neckwear = ["none", "neckerchief", "ruff", "cravat", "necktie", "bow-tie"] as const;
+export const neckwear = ["none", "neckerchief", "ruff", "cravat", "necktie", "bow-tie",
+  /** The flat white collar laid over the shoulders that replaced the ruff, about 1620 to 1680. */
+  "falling-band"] as const;
 /** Patterns worked into the trim: embroidered, woven in, or block-printed.
  * The drawing is a small repeating tile; which tile a place used is in the
  * wardrobe kits. */
 /** Worn in the hair: a comb, pins through a knot, a flower behind the ear,
  * a net over the hair, a ribbon in a braid. */
-export const hairOrnaments = ["none", "comb", "pins", "flower", "net", "ribbon"] as const;
+export const hairOrnaments = ["none", "comb", "pins", "flower", "net", "ribbon",
+  /** A fan of long tortoiseshell pins and combs through a great swept-up knot: the Edo oiran. */
+  "kanzashi"] as const;
 /** On a hat: a feather, a cockade, a ribbon band. */
 export const hatTrims = ["none", "feather", "cockade", "ribbon"] as const;
 /** A sleeveless layer over the shirt: plain cloth, or figured silk and brocade.
@@ -244,6 +258,11 @@ export const hairdresses = ["none", "queue", "tonsure", "shaven"] as const;
 /** Wool wound round the body over the tunic: the plain toga, the
  * purple-bordered toga praetexta of magistrates and boys, the woman's palla. */
 export const drapes = ["none", "toga", "praetexta", "palla"] as const;
+/** What holds a skirt out: the cone of the Spanish farthingale (about 1550 to 1620),
+ * the dome of the crinoline (1856 to 1868), the bustle at the back (1870 to 1889). */
+export const silhouettes = ["none", "farthingale", "crinoline", "bustle"] as const;
+/** Over the face: the plague doctor's beak (1619 on) and the Venetian bauta. */
+export const masks = ["none", "beak", "bauta"] as const;
 /** A hood lying back on the shoulders; worn up, it is the `hood` headwear. */
 export const hoods = ["none", "down"] as const;
 /** Worn at the hip or in the sash: a straight sword, a curved sabre, a
@@ -849,6 +868,10 @@ export type CharacterAppearance = {
     shawl?: (typeof shawls)[number];
     drape?: (typeof drapes)[number];
     hairdress?: (typeof hairdresses)[number];
+    silhouette?: (typeof silhouettes)[number];
+    mask?: (typeof masks)[number];
+    /** The kamishimo's stiff winged shoulder piece, over the kimono. */
+    kataginu?: boolean;
     hood?: (typeof hoods)[number];
     sidearm?: (typeof sidearms)[number];
     /** A baby tied on the back in a cloth. Set from the household, not rolled. */

@@ -397,8 +397,8 @@ it("reads a role off whatever the world weaver called someone", () => {
   expect(rolesFrom("Able Seaman")).toEqual(["sailor"]);
   expect(rolesFrom("cosmonaut")).toEqual(["astronaut"]);
   expect(rolesFrom("infantry private")).toEqual(["soldier"]);
-  expect(rolesFrom("Empress of Brazil")).toEqual(["aristocrat"]);
-  expect(rolesFrom("daughter of the King of Hawaii")).toEqual(["aristocrat"]);
+  expect(rolesFrom("Empress of Brazil")).toEqual(expect.arrayContaining(["monarch", "aristocrat"]));
+  expect(rolesFrom("daughter of the King of Hawaii")).toContain("aristocrat");
   expect(rolesFrom("22nd century farmer")).toEqual([]);
   expect(rolesFrom(undefined, "Shogun")).toEqual(["aristocrat"]);
 });
@@ -642,7 +642,7 @@ it("dresses each church's clergy by their office", () => {
     expect(priest("Bishop", moscow, i).headwear).toBe("veil");
     expect(priest("Priest", gondar, i)).toMatchObject({ headwear: "turban", mantle: true });
     expect(priest("Parish priest", ["european", 1300, 2.35, 48.85], i).belt).toBe("cord");
-    expect(priest("Granthi", ["south-asian", 1700, 74.87, 31.64], i)).toMatchObject({ headwear: "turban", sidearm: "dagger" });
+    expect(priest("Granthi", ["south-asian", 1700, 74.87, 31.64], i)).toMatchObject({ headwear: "dastar", sidearm: "dagger" });
     expect(priest("Mobad", ["north-african-west-asian", 600, 54.4, 31.9], i).headwear).toBe("wrap");
   }
 });

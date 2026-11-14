@@ -82,9 +82,12 @@ export const street: readonly GarmentKit[] = [
     over: [order("dominican")("cloak"), order("cistercian")("none")],
     belt: [order("franciscan")("cord"), order("dominican")("leather"), order("benedictine")("leather"), order("cistercian")("sash")],
     hood: [order("franciscan")("down"), order("dominican")("down"), order("benedictine")("down"), order("cistercian")("down")],
-    headwear: [{ value: "veil", weight: 1, roles: ["franciscan", "dominican", "benedictine", "cistercian", "monastic"], sex: ["female"] }],
+    headwear: [{ value: "wimple", weight: 1, roles: ["franciscan", "dominican", "benedictine", "cistercian", "monastic"], sex: ["female"] }],
     overColor: [order("dominican")("#24222a")],
   }), priority: 3 },
+  { ...kit("clergy-sikh", "The Sikh dastar", { years: [1699, 10001], cultures: ["south-asian"] }, {
+    headwear: [{ value: "dastar", weight: 1, roles: ["sikh"], sex: ["male"] }],
+  }), priority: 3.5 },
   kit("clergy-islamic", "Imam and scholar: white turban, robe, prayer beads", { years: [650, 1950], cultures: ["north-african-west-asian", "inner-eurasian"] }, {
     garment: [clergy("open-robe", 2), clergy("robe", 2)], dye: [clergy("bleached", 3), clergy("greige", 1)],
     headwear: [clergy("turban")], accessory: held(clergy, ["beads", 3], ["ledger", 1]),
@@ -286,6 +289,11 @@ export const street: readonly GarmentKit[] = [
     hairOrnament: [on(["courtesan"])("pins", 3), on(["courtesan"])("comb", 2), on(["courtesan"])("flower", 2)],
     neck: [on(["courtesan"])("chain", 2), on(["courtesan"])("beads", 1)],
   }),
+  // The oiran of Yoshiwara: the swept knot stuck with pins and combs, a layered robe open in front.
+  { ...kit("oiran", "The oiran's kanzashi and layered robes", { years: [1650, 1870], bounds: [130, 30, 146, 46] }, {
+    hairOrnament: [{ value: "kanzashi", weight: 1, livelihoods: ["courtesan"], ages: ["youth", "adult"] }], garment: [on(["courtesan"])("open-robe")],
+    dye: [on(["courtesan"])("madder", 3), on(["courtesan"])("goldthread", 2), on(["courtesan"])("indigo", 2)], footwear: [on(["courtesan"])("sandals")],
+  }), priority: 3 },
   kit("music-americas", "Drum and flute", { years: [-3000, 1600], cultures: ["mesoamerican", "andean", "other-indigenous-american"] }, {
     accessory: held(music, ["drum", 2], ["flute", 3]),
   }),

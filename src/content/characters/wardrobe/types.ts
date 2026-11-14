@@ -9,6 +9,8 @@ import type {
   shawls,
   drapes,
   hairdresses,
+  silhouettes,
+  masks,
   hoods,
   sidearms,
   armours,
@@ -82,7 +84,7 @@ export type GarmentKit = {
   front?: readonly Option<"closed" | "open" | "cross">[];
   /** Worn over the garment. A mantle stops at the elbow; a cloak falls to
    * the hem. */
-  over?: readonly Option<"none" | "cloak" | "mantle" | "shoulder-cloth">[];
+  over?: readonly Option<"none" | "cloak" | "mantle" | "shoulder-cloth" | "kataginu">[];
   /** A hex colour for the cloak when it is not the garment's: the Dominican's black over white. */
   overColor?: readonly Option<string>[];
   /** What cloth was available here, and what could be got onto it. Resolved
@@ -106,6 +108,8 @@ export type GarmentKit = {
   shawl?: readonly Option<(typeof shawls)[number]>[];
   drape?: readonly Option<(typeof drapes)[number]>[];
   hairdress?: readonly Option<(typeof hairdresses)[number]>[];
+  silhouette?: readonly Option<(typeof silhouettes)[number]>[];
+  mask?: readonly Option<(typeof masks)[number]>[];
   hood?: readonly Option<(typeof hoods)[number]>[];
   sidearm?: readonly Option<(typeof sidearms)[number]>[];
   armour?: readonly Option<(typeof armours)[number]>[];
@@ -152,6 +156,8 @@ export const wardrobeSlots = [
   "shawl",
   "drape",
   "hairdress",
+  "silhouette",
+  "mask",
   "overColor",
   "hood",
   "sidearm",

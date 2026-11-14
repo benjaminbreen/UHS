@@ -1164,6 +1164,7 @@ type Kit = {
   sarong: boolean;
   /** What the sleeves are made of: the garment's cloth, or a cardigan's knit over it. */
   sleeve: number;
+  silhouette: NonNullable<CharacterAppearance["wearing"]["silhouette"]>;
 };
 
 function kit(a: CharacterAppearance, d: Dims): Kit {
@@ -1191,6 +1192,9 @@ function kit(a: CharacterAppearance, d: Dims): Kit {
   if (calf) [hem, flare] = [2 + Math.round(leg * 0.42), 1.5];
   if (leggings === "sarong" && hem === undefined) [hem, flare] = [2, 1];
   if (hem !== undefined) flare += w.cut === "full" ? 1 : w.cut === "fitted" ? -0.5 : 0;
+  const silhouette = hem !== undefined && ["dress", "gown", "skirt"].includes(g) ? (w.silhouette ?? "none") : "none";
+  // Hooped skirts sweep the ground.
+  if (silhouette === "farthingale" || silhouette === "crinoline") hem = 0;
   const outfit = [...(w.color + w.trim + g + w.belt)].reduce((n, c) => (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0, 7);
   const named = w.motif ?? "auto";
   const cardigan = w.waistcoat === "cardigan" && !bare && g !== "poncho";
@@ -1212,6 +1216,7 @@ function kit(a: CharacterAppearance, d: Dims): Kit {
     wrapped: leggings === "wrapped",
     sarong: leggings === "sarong",
     sleeve: cardigan ? VEST : TOP,
+    silhouette,
   };
 }
 
@@ -1468,12 +1473,22 @@ export function drawCharacterF(
     for (let y = hip - 1; y >= hem; y--) {
       const f = (hip - y) / Math.max(1, hip - hem);
       const sy = yOf(y);
-      const base = lerp(d.hipW, d.hipW + k.flare, f * f);
+      const sil = k.silhouette;
+      // A cone straight from the waist, a dome, or a plain skirt bunched up behind.
+      const out = sil === "farthingale" ? (k.flare + 3) * f : sil === "crinoline" ? (k.flare + 5) * Math.sqrt(f) : k.flare * f * f * (sil === "bustle" ? 0.4 : 1);
+      const base = d.hipW + out;
+      const deep = d.bellyD + (sil === "none" || sil === "bustle" ? k.flare * 0.6 * f : out * 0.75);
       const c = centre(hip);
       // G: a skirt seen head-on swings to the side a frame after the step.
-      const swing = g ? prev.sway * t.cos * f : 0;
-      let x0 = c + swing - Math.hypot(base * t.cos, (d.bellyD + k.flare * 0.6 * f) * t.sin),
-        x1 = c + swing + Math.hypot(base * t.cos, (d.bellyD + k.flare * 0.6 * f) * t.sin);
+      const swing = g ? prev.sway * t.cos * f : (sil === "crinoline" ? prev.sway * t.cos * f * 0.5 : 0);
+      let x0 = c + swing - Math.hypot(base * t.cos, deep * t.sin),
+        x1 = c + swing + Math.hypot(base * t.cos, deep * t.sin);
+      if (sil === "bustle") {
+        // Puffed out just under the waist, then falling in a train behind.
+        const bump = t.sx * t.sin * (f < 0.2 ? 5 + f * 8 : 6.6 - (f - 0.2) * 6);
+        if (bump < 0) x0 += bump;
+        else x1 += bump;
+      }
       // The bottom of the hem follows where the legs were a frame ago.
       for (const x of legX(Math.min(sy, GY - 1), y <= hem + 1 ? prev : r)) {
         x0 = Math.min(x0, x - 1.2);
@@ -1556,6 +1571,7 @@ export function drawCharacterF(
   if (flagFrom && (t.view === "back" || t.view === "bq")) backFlag(s, t, ...flagFrom, drift(1.5));
   if (shoulderLoad) shoulderPole(s, t, shoulderLoad, centre(d.shoulder), yOf(d.shoulder) - 1, poleHand[0] >= CX ? 1 : -1, true, drift(1.4), prev.rise - r.rise);
   if (k.g === "poncho") poncho(s, t, d, yOf, centre, a);
+  if (a.wearing.kataginu) kataginu(s, t, d, yOf, centre);
   if (a.wearing.mantle) mantle(s, t, d, yOf, centre, drift);
   else if (k.pattern === "cloud") cloudCollar(s, t, d, yOf, centre);
   if (g && w.drape && w.drape !== "none") toga(fig, w.drape);
@@ -2109,6 +2125,23 @@ function mantle(s: Sheet, t: Turn, d: Dims, yOf: (y: number) => number, centre: 
     m.span(yOf(y), rnd(centre(y) - w + 0.5) + Math.min(0, o), rnd(centre(y) + w - 0.5) + Math.max(0, o));
   }
   s.put(m, CLOAK, { shade: 0.36, light: 0.2, top: true, bottom: true });
+}
+
+/** The kamishimo's kataginu: stiff wings standing past the shoulders, the
+ * front panels narrowing into the hakama at the waist. */
+function kataginu(s: Sheet, t: Turn, d: Dims, yOf: (y: number) => number, centre: (y: number) => number) {
+  const m = new Mask();
+  const back = t.view === "back" || t.view === "bq";
+  for (let y = d.shoulder; y >= d.hip; y--) {
+    const f = (d.shoulder - y) / Math.max(1, d.shoulder - d.hip);
+    const wide = y >= d.shoulder - 1 ? d.shoulderW + 2.5 : lerp(d.shoulderW, d.waistW, f);
+    const w = Math.hypot(wide * t.cos, (d.chestD + 0.5) * t.sin);
+    const c = centre(y);
+    // The kimono shows in a V between the front panels.
+    const gap = back || y >= d.shoulder ? 0 : (1 - f) * 2 + 0.5;
+    for (let x = rnd(c - w + 0.5); x <= rnd(c + w - 0.5); x++) if (Math.abs(x - c - t.sx * t.sin * d.chestD * 0.6) >= gap || t.cos < 0.3) m.set(x, yOf(y));
+  }
+  s.put(m, CLOAK, { shade: 0.3, light: 0.25, top: true, ring: "line" });
 }
 
 /** The cloud collar: four lobes lying over the shoulders, front and back. */

@@ -121,6 +121,10 @@ export const guards: readonly GarmentKit[] = [
     shield: [g("none", 4), g("round", 1)], shieldColor: [g(WOOD)],
     accessory: arms(["musket", 3], ["spear", 3], ["halberd", 1]),
   }),
+  { ...kit("janissary", "The janissary's börk", { years: [1380, 1827], cultures: ["north-african-west-asian", "european"] }, {
+    headwear: [{ value: "bork", weight: 1, roles: ["janissary"] }],
+    garment: [{ value: "open-robe", weight: 1, roles: ["janissary"] }],
+  }), priority: 3.5 },
 
   kit("steppe", "Steppe and Silk Road: lamellar, the bow, the lance", { years: [-1000, 1700], cultures: ["inner-eurasian"] }, {
     garment: [g("open-robe", 2), g("long-tunic", 1)], footwear: [g("boots")],

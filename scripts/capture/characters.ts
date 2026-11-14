@@ -1071,6 +1071,21 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     ["London", "london", 1400, ["Poor Clare nun|female", "priest", "Capuchin friar", "Benedictine nun|female"]],
   ]),
 
+  /** Wimple, hennin, farthingale, capotain, falling band, crinoline, bustle; masks, börk, dastar, kamishimo, oiran. */
+  silhouettes: (page) => castSheet(page, "silhouettes", [
+    ["Paris", "paris", 1250, ["farmer|female", "weaver|female|40", "Poor Clare nun|female", "landowner|female"]],
+    ["Paris", "paris", 1460, ["landowner|female|25", "merchant|female|30", "landowner|female|40", "weaver|female"]],
+    ["London", "london", 1600, ["landowner|female", "merchant|female", "landowner", "shopkeeper"]],
+    ["London", "london", 1645, ["lawyer", "merchant|female", "landowner", "shopkeeper|female"]],
+    ["Paris", "paris", 1862, ["landowner|female", "shopkeeper|female", "weaver|female", "landowner"]],
+    ["London", "london", 1882, ["landowner|female", "shopkeeper|female", "teacher|female", "landowner"]],
+    ["Rome", "rome", 1656, ["plague doctor", "plague doctor|male|50", "physician", "landowner"]],
+    ["Venice", "city-venice", 1760, ["merchant", "landowner|female", "landowner", "merchant|female"]],
+    ["Istanbul", "city-istanbul", 1600, ["janissary", "janissary|male|24", "merchant", "Sikh soldier"]],
+    ["Amritsar", "city-amritsar", 1800, ["Sikh soldier", "Khalsa merchant", "granthi", "farmer"]],
+    ["Tokyo", "city-tokyo", 1750, ["samurai", "magistrate", "courtesan|female", "courtesan|female|19"]],
+  ]),
+
   /** A walk cycle, side and three-quarter, for what swings: polearms, banners, pole loads, the mantle. */
   async motion(page) {
     await characterLab(page);

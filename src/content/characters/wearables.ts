@@ -74,6 +74,11 @@ const headLabel: Record<Exclude<(typeof headwear)[number], "none">, string> = {
   tricorne: "Tricorne hat",
   bicorne: "Bicorne hat",
   gat: "Horsehair hat (gat)",
+  wimple: "Wimple and veil",
+  hennin: "Hennin",
+  capotain: "Capotain hat",
+  bork: "Janissary cap (börk)",
+  dastar: "Dastar (turban)",
 };
 const legLabel: Record<Exclude<(typeof leggings)[number], "none">, string> = {
   hose: "Hose",

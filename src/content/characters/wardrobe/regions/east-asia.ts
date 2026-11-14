@@ -233,4 +233,21 @@ export const eastAsia: readonly GarmentKit[] = [
     scope: { years: [1645, 1912], cultures: ["east-asian"], bounds: [73, 21.5, 124.5, 54] },
     hairdress: [{ value: "queue", weight: 1, sex: ["male"], ages: ["youth", "adult", "elder"] }],
   },
+  {
+    // Formal dress of the samurai and those who served the shogunate: the winged kataginu over a kimono, with hakama.
+    id: "japan-kamishimo",
+    label: "Edo Japan · the kamishimo",
+    scope: { years: [1600, 1868], bounds: [130, 30, 146, 46] },
+    priority: 4.6,
+    over: [{ value: "kataginu", weight: 1, roles: ["samurai"], sex: ["male"], ages: ["youth", "adult", "elder"] },
+      { value: "kataginu", weight: 1, roles: ["official"], sex: ["male"] },
+      { value: "kataginu", weight: 1, livelihoods: ["magistrate", "scholar-official", "army-officer", "landowner"], sex: ["male"] }],
+    // Hemp in indigo, brown or black, often in a fine stencilled pattern.
+    overColor: (["#3b4a62", "#4a3a30", "#2c2c30"] as const).flatMap((value) => [
+      { value, weight: 1, roles: ["samurai", "official"], sex: ["male" as const] },
+      { value, weight: 1, livelihoods: ["magistrate", "scholar-official", "army-officer", "landowner"], sex: ["male" as const] },
+    ]),
+    leggings: [{ value: "wide", weight: 1, roles: ["samurai"], sex: ["male"] }, { value: "wide", weight: 1, roles: ["official"], sex: ["male"] },
+      { value: "wide", weight: 1, livelihoods: ["magistrate", "scholar-official", "army-officer", "landowner"], sex: ["male"] }],
+  },
 ];

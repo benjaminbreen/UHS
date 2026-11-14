@@ -380,7 +380,7 @@ export function bangles(f: Figure, wrists: readonly (readonly [number, number])[
 
 /** At the neck, over the garment: a pleated ruff, a cravat's fall of linen,
  * or a working neckerchief knotted at the throat. */
-export function neckwear(f: Figure, kind: "ruff" | "cravat" | "neckerchief" | "necktie" | "bow-tie") {
+export function neckwear(f: Figure, kind: "ruff" | "cravat" | "neckerchief" | "necktie" | "bow-tie" | "falling-band") {
   const { s, yOf } = f;
   const row = yOf(f.shoulder);
   const c = f.centre(f.shoulder) + f.sx * f.sin * f.chestD * 0.6;
@@ -404,6 +404,14 @@ export function neckwear(f: Figure, kind: "ruff" | "cravat" | "neckerchief" | "n
     const w = Math.hypot((f.shoulderW - 0.5) * f.cos, (f.chestD + 1) * f.sin);
     m.span(row - 1, rnd(c - w + 1.5), rnd(c + w - 1.5)).span(row, rnd(c - w + 0.5), rnd(c + w - 0.5)).span(row + 1, rnd(c - w + 1.5), rnd(c + w - 1.5));
     s.put(m, WHITE, { ring: "line", shade: 0, tone: (x, y, t) => (y >= row && (x + y) % 2 === 0 ? 2 : t) });
+    return;
+  }
+  if (kind === "falling-band") {
+    // Laid flat over the shoulders, square ends meeting under the chin.
+    const w = Math.hypot((f.shoulderW - 0.5) * f.cos, (f.chestD + 0.5) * f.sin);
+    m.span(row, rnd(c - w + 0.5), rnd(c + w - 0.5)).span(row + 1, rnd(c - w + 1), rnd(c + w - 1));
+    if (!away(f)) m.span(row + 2, rnd(c - 2), rnd(c + 1)).span(row + 3, rnd(c - 2), rnd(c + 1));
+    s.put(m, WHITE, { ring: "line", shade: 0.15, light: 0.3, tone: (x, y, t) => (y >= row + 2 && x === rnd(c) ? 2 : t) });
     return;
   }
   if (kind === "cravat") {
