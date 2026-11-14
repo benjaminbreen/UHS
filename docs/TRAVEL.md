@@ -66,15 +66,6 @@ Live crossing changes go in `MapTravel`; border matching in `seams.ts` and
 travel should build on `journeyPlan` and the geography queries in
 [WORLDS.md](WORLDS.md).
 
-## Legacy, do not extend
-
-Retiring these is welcome:
-
-- The `/geography-lab` route planner and its permanent-network panel
-  (`src/dev/GeographyLab.tsx`, `src/dev/PermanentMaps.tsx`,
-  `src/world/travel/network-worker.ts`, the `planTravel` spacing study in
-  `travel/worker.ts`). The live game uses atlas squares, not that network.
-
 ## Checks
 
 - Tests: `map-travel`, `map-seams`, `travel`, `travel-naming`,

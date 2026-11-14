@@ -20,7 +20,7 @@ build. They never write saves.
 | `/water-experiments` | Living-water tuning |
 | `/interior-lab` | Interiors |
 | `/character-lab`, `/portrait-lab` | Characters and portraits ([CHARACTERS.md](CHARACTERS.md)) |
-| `/fauna-lab`, `/geography-lab`, `/history-lab` | Animals, routes, the history resolver |
+| `/fauna-lab`, `/history-lab` | Animals, the history resolver |
 
 For a shot of the real game use `npm run shot`; for a town without a browser,
 `npm run town:sheet`.

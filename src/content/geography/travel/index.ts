@@ -34,48 +34,6 @@ export const travelLocations: TravelLocation[] = [
     })),
 ];
 const placeById = new Map(places.map((p) => [p.id, p]));
-export const travelById = new Map(travelLocations.map((p) => [p.id, p]));
-export const travelPresets = {
-  britain: {
-    label: "London → Oxford → Edinburgh",
-    from: "london",
-    to: "edinburgh",
-    via: ["western-thames", "oxford"],
-    year: 1300,
-    spacing: 500,
-    mode: "land" as const,
-  },
-  battuta: {
-    label: "Morocco → Cairo → Delhi",
-    from: "marrakesh",
-    to: "delhi",
-    via: [
-      "fez",
-      "tlemcen",
-      "tunis",
-      "tripoli",
-      "alexandria",
-      "cairo",
-      "damascus",
-      "baghdad",
-      "isfahan",
-      "herat",
-      "kabul",
-    ],
-    year: 1325,
-    spacing: 500,
-    mode: "land" as const,
-  },
-  iceland: {
-    label: "Iceland → Scotland · sea",
-    from: "area-iceland",
-    to: "edinburgh",
-    via: [],
-    year: 1300,
-    spacing: 500,
-    mode: "sea" as const,
-  },
-};
 const ranks = ["none", "village", "town", "city"] as const;
 export function settlementAt(p: TravelLocation, year: number) {
   if (p.kind === "landscape") return "none" as const;

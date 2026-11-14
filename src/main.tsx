@@ -29,11 +29,6 @@ async function start() {
     createRoot(document.getElementById("root")!).render(<GamingLab />);
     return;
   }
-  if (window.location.pathname === "/geography-lab") {
-    const { GeographyLab } = await import("./dev/GeographyLab");
-    createRoot(document.getElementById("root")!).render(<GeographyLab />);
-    return;
-  }
   if (window.location.pathname === "/nature-lab") {
     const { NatureLab } = await import("./dev/NatureLab");
     createRoot(document.getElementById("root")!).render(<NatureLab />);

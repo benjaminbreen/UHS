@@ -18,14 +18,6 @@ export type TravelLocation = Coordinate & {
   note?: string;
 };
 export type TravelMode = "land" | "sea" | "mixed";
-export type TravelQuery = {
-  from: string;
-  to: string;
-  via: string[];
-  year: number;
-  spacing: number;
-  mode: TravelMode;
-};
 export type TravelCell = Coordinate & {
   environment: MapEnvironment;
   naming: GeographicName;
@@ -48,19 +40,4 @@ export type TravelStop = TravelCell & {
   pathIndex: number;
   size: number;
   note: string;
-};
-export type TravelLeg = {
-  from: string;
-  to: string;
-  km: number;
-  snappedKm: number;
-};
-export type TravelResult = {
-  query: TravelQuery;
-  cells: TravelCell[];
-  stops: TravelStop[];
-  legs: TravelLeg[];
-  km: number;
-  expanded: number;
-  warnings: string[];
 };

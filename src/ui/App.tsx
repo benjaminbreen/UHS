@@ -2808,17 +2808,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     </small>
                   </a>
                   <a
-                    className="action"
-                    href="/geography-lab"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Geography &amp; travel{" "}
-                    <small>
-                      Inspect routes, landscape stops and map boundaries
-                    </small>
-                  </a>
-                  <a
                     className="action settings-featured"
                     href="/nature-lab"
                     target="_blank"
