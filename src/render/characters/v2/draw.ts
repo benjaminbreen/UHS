@@ -1859,6 +1859,7 @@ export function drawCharacter(
             collar: 1,
             clavi: 0,
             laticlave: 0,
+            regimental: 1,
           }[named];
     if (!rear && a.wearing.garment !== "wrap")
       switch (motif) {

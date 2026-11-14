@@ -2012,6 +2012,11 @@ function garment(
       if (y === yOf(d.shoulder - 3)) return TRIM;
     } else if ((g === "gown" || (laced && k.belt === "none")) && y === waist) return TRIM;
     const m = k.motif;
+    // Two white belts crossing the chest and the back: cartridge box and bayonet.
+    if (m === "regimental" && Math.abs(t.cos) > 0.1 && y > top && y <= hipRow) {
+      const r = (y - top) * 0.75, w = d.shoulderW * 0.7;
+      if (Math.abs(dx + w - r) < 0.6 || Math.abs(dx - w + r) < 0.6) return WHITE;
+    }
     if (m === "stitch" && y === hemRow - 2 && x % 2 === 0) return TRIM;
     if (m === "yoke" && y <= top + 1) return TRIM;
     if (m === "stripes" && (y - top) % 3 === 2) return TRIM;

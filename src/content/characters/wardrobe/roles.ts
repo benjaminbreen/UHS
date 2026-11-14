@@ -28,6 +28,7 @@ const patterns: Record<string, RegExp> = {
   monastic: /\b(monk|friar|nun|abbot|abbess|hieromonk|archimandrite|bhikkhu|bhikkhuni|monastic)\b/,
   "plague-doctor": /\b(plague doctors?|plague physicians?|medico della peste|médecin de peste)\b/,
   janissary: /\b(janissary|janissaries|yeniçeri)\b/,
+  grenadier: /\bgrenadiers?\b/,
   samurai: /\b(samurai|r[oō]nin|hatamoto|gokenin|daimyo|bushi)\b/,
   sikh: /\b(sikhs?|khalsa|akali|nihang|granthi)\b/,
   // Latin religious orders, so a habit says which rule its wearer keeps.

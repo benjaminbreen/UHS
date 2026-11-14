@@ -311,7 +311,7 @@ export function wardrobeFor(
   const separateLower = (leggings !== "none" && !long) || ["shirt", "skirt", "coat", "none", "loincloth", "poncho"].includes(garment);
   const lower = separateLower ? weighted(palette, w.id, "dye-lower") : dye;
   // Trim on the lower cloth's colour would vanish against it.
-  const trim = weighted(palette.filter((o) => o.value !== lower), w.id, "dye-trim");
+  const trim = (chosen.trim as DyeId | undefined) ?? weighted(palette.filter((o) => o.value !== lower), w.id, "dye-trim");
   const tailored = garment === "coat" || garment === "shirt";
   const headwear = (chosen.headwear as typeof base.headwear) ?? base.headwear;
   const straw = headwear === "conical" || (headwear === "brimmed" &&
@@ -323,7 +323,7 @@ export function wardrobeFor(
     : headwear === "flat-cap" ? dyes[(["ash", "walnut", "soot"] as const)[Math.floor(random(w.id, "wardrobe-v3", "cap-color") * 3)]].hex
     // Men's felt came in a few sober shades: grey, brown, black, navy.
     : headwear === "fedora" ? dyes[(["ash", "walnut", "soot", "umber", "woad"] as const)[Math.floor(random(w.id, "wardrobe-v3", "cap-color") * 5)]].hex
-    : headwear === "bowler" || headwear === "top-hat" || headwear === "tricorne" || headwear === "bicorne" || headwear === "capotain" ? dyes.soot.hex
+    : headwear === "bowler" || headwear === "top-hat" || headwear === "tricorne" || headwear === "bicorne" || headwear === "capotain" || headwear === "shako" || headwear === "bearskin" ? dyes.soot.hex
     : headwear === "wimple" || headwear === "bork" || headwear === "mobcap" ? "#ebe3cc"
     : chosen.mask === "beak" ? dyes.soot.hex
     : straw || headwear === "boater" || headwear === "pith-helmet" ? dyes.undyed.hex

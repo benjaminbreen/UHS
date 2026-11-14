@@ -441,7 +441,7 @@ const actor = z.object({
   tends: z.object({ herd: z.string(), seat: z.number() }).optional(),
   wayfarer: z.object({ until: z.number() }).optional(),
   watch: z.object({ path: z.array(point).max(400), loop: z.boolean(), speed: z.number(), waits: z.tuple([z.number(), z.number()]), phase: z.number() }).optional(),
-  post: z.object({ at: point, rest: point, night: z.boolean().optional(), torch: z.boolean().optional(), face: z.number().optional(), round: z.array(point).max(40).optional(), leg: z.number().optional(), called: z.number().optional(), arrive: z.number().optional() }).optional(),
+  post: z.object({ at: point, rest: point, night: z.boolean().optional(), torch: z.boolean().optional(), face: z.number().optional(), round: z.array(point).max(40).optional(), leg: z.number().optional(), called: z.number().optional(), arrive: z.number().optional(), doing: z.string().max(80).optional(), with: z.string().max(200).optional(), beside: z.number().optional() }).optional(),
 });
 const object = z.object({
   resource: z

@@ -1319,7 +1319,11 @@
       "tier": "village",
       "weight": 3,
       "sex": "male",
-      "why": "Fighting as what a man of standing does, rather than as paid service. Ungated: it needs no state to retain him."
+      "why": "Fighting as what a man of standing does, rather than as paid service: the hoplite, the man-at-arms, the Mexica and Zulu warrior. Ungated: it needs no state to retain him. Standing armies are `soldier`.",
+      "ages": [
+        16,
+        51
+      ]
     },
     "retainer": {
       "label": "Retainer",
@@ -2434,9 +2438,6 @@
       "keyword": "command",
       "tier": "town",
       "weight": 0.3,
-      "capabilities": [
-        "retained_military_service"
-      ],
       "sex": "male",
       "sexUntil": 1970,
       "inventory": {
@@ -2579,9 +2580,6 @@
       "ages": [
         45,
         120
-      ],
-      "capabilities": [
-        "retained_military_service"
       ],
       "why": "Discharged and invalid soldiers: Rome settled its veterans in colonies, and from 1670 Paris and London kept them in the Invalides and Chelsea, where the fit stood guard."
     },

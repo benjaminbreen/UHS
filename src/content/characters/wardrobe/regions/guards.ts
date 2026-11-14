@@ -1,4 +1,4 @@
-import type { Accessory, GarmentKit, Option } from "../types";
+import type { Accessory, GarmentKit, Headwear, Option } from "../types";
 import type { DyeId } from "../cloth";
 
 /**
@@ -35,9 +35,17 @@ const u = on("soldier"), q = on("guerrilla");
 const uniform = (id: string, label: string, scope: GarmentKit["scope"], parts: Kit): GarmentKit => ({
   id: `uniform-${id}`, label, scope, priority: 4, ...parts,
 });
-const coats = (id: string, label: string, scope: GarmentKit["scope"], ...dyes: [DyeId, number][]): GarmentKit => ({
+const corps = (value: DyeId, weight = 1): Option<DyeId> => ({ value, weight, livelihoods: ["soldier", "army-officer"], ages: ["youth", "adult"] });
+const coats = (id: string, label: string, scope: GarmentKit["scope"], dyes: [DyeId, number][], facings: DyeId[] = []): GarmentKit => ({
   id: `coat-${id}`, label, scope, priority: 4.5,
-  dye: dyes.map(([value, weight]) => ({ value, weight, livelihoods: ["soldier", "army-officer"], ages: ["youth", "adult"] })),
+  dye: dyes.map(([value, weight]) => corps(value, weight)),
+  ...(facings.length ? { trim: facings.map((f) => corps(f)) } : {}),
+});
+/** The line soldier's coat with facings and crossbelts, under the hat of the decade. */
+const line = (id: string, years: readonly [number, number], hats: [Headwear, number][]): GarmentKit => ({
+  id: `line-${id}`, label: `The line soldier, ${years[0]} to ${years[1]}`, scope: { years, cultures: ["european"] }, priority: 4.5,
+  garment: [u("coat")], motif: [u("regimental")], belt: [u("none")], leggings: [u(years[0] < 1800 ? "hose" : "trousers")], footwear: [u(years[0] < 1800 ? "shoes" : "boots")],
+  headwear: [...hats.map(([h, w]) => u(h, w)), { value: "bearskin", weight: 1, roles: ["grenadier"], ages: ["youth", "adult"] }],
 });
 const TAIWAN = [119.3, 21.8, 122.1, 25.4] as const, HONG_KONG = [113.8, 22.15, 114.45, 22.6] as const;
 const TURKEY = [26, 36.5, 41.6, 42.2] as const, TURKEY_NE = [41.6, 36, 43.5, 41.1] as const;
@@ -240,13 +248,16 @@ export const guards: readonly GarmentKit[] = [
     accessory: arms(["bow", 5], ["spear", 3]),
   }),
   // Coat colours of the standing armies before khaki, officers included.
-  coats("britain", "The British red coat", { years: [1660, 1870], bounds: [-11, 49.5, 2, 61] }, ["kermes", 3], ["madder", 2]),
-  coats("france-white", "French grey-white", { years: [1660, 1789], bounds: [-5, 42, 8, 51.5] }, ["bleached", 3], ["greige", 2]),
-  coats("france-blue", "French blue after the Revolution", { years: [1789, 1870], bounds: [-5, 42, 8, 51.5] }, ["indigo", 3], ["woad", 2]),
-  coats("prussia", "Prussian blue", { years: [1660, 1870], bounds: [6, 50, 23, 56] }, ["indigo", 3], ["woad", 1]),
-  coats("austria", "Habsburg white", { years: [1700, 1870], bounds: [9, 44, 27, 50], cultures: ["european"] }, ["bleached", 3], ["white", 1]),
-  coats("russia", "Russian green", { years: [1700, 1870], bounds: [27, 45, 60, 65], cultures: ["european"] }, ["chrome", 3]),
-  coats("qing", "The colours of the Eight Banners", { years: [1644, 1912], bounds: [98, 18, 125, 42], cultures: ["east-asian"] }, ["weld", 1], ["bleached", 1], ["madder", 1], ["indigo", 1]),
+  coats("britain", "The British red coat", { years: [1660, 1870], bounds: [-11, 49.5, 2, 61] }, [["kermes", 3], ["madder", 2]], ["indigo", "weld", "chrome", "greige"]),
+  coats("france-white", "French grey-white", { years: [1660, 1789], bounds: [-5, 42, 8, 51.5] }, [["bleached", 3], ["greige", 2]], ["indigo", "madder"]),
+  coats("france-blue", "French blue after the Revolution", { years: [1789, 1870], bounds: [-5, 42, 8, 51.5] }, [["indigo", 3], ["woad", 2]], ["madder"]),
+  coats("prussia", "Prussian blue", { years: [1660, 1870], bounds: [6, 50, 23, 56] }, [["indigo", 3], ["woad", 1]], ["madder", "weld"]),
+  coats("austria", "Habsburg white", { years: [1700, 1870], bounds: [9, 44, 27, 50], cultures: ["european"] }, [["bleached", 3], ["white", 1]], ["madder", "indigo", "chrome"]),
+  coats("russia", "Russian green", { years: [1700, 1870], bounds: [27, 45, 60, 65], cultures: ["european"] }, [["chrome", 3]], ["madder"]),
+  coats("qing", "The colours of the Eight Banners", { years: [1644, 1912], bounds: [98, 18, 125, 42], cultures: ["east-asian"] }, [["weld", 1], ["bleached", 1], ["madder", 1], ["indigo", 1]]),
+  line("tricorne", [1690, 1790], [["tricorne", 1]]),
+  line("bicorne", [1790, 1805], [["bicorne", 2], ["shako", 1]]),
+  line("shako", [1805, 1870], [["shako", 1]]),
   { id: "guard-moran", label: "The moran's red cloth", scope: { years: [-500, 1960], bounds: [33, -6, 38.5, 3] }, priority: 4.5,
     dye: [{ value: "madder", weight: 4, livelihoods: ["young-warrior"] }, { value: "ochre", weight: 1, livelihoods: ["young-warrior"] }] },
   uniform("1870", "Coat, peaked cap and the breech-loader", { years: [1870, 1914] }, {

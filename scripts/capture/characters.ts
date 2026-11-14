@@ -1106,6 +1106,8 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     ["Paris", "paris", 1400, ["soldier", "soldier|male|24", "army-officer", "soldier|male|35"]],
     ["London", "london", 1750, ["soldier", "soldier|male|24", "army-officer", "veteran|male|60"]],
     ["Berlin", "city-berlin", 1760, ["soldier", "soldier|male|24", "army-officer", "sutler|female"]],
+    ["Paris", "paris", 1810, ["soldier", "soldier|male|24", "army-officer", "soldier|male|35"]],
+    ["Vienna", "city-vienna", 1800, ["soldier", "soldier|male|24", "army-officer", "soldier|male|30"]],
     ["Istanbul", "city-istanbul", 1700, ["soldier", "soldier|male|24", "army-officer", "soldier|male|40"]],
     ["Delhi", "delhi", 1650, ["soldier", "soldier|male|24", "army-officer", "sutler"]],
     ["Beijing", "beijing", 1750, ["soldier", "soldier|male|24", "army-officer", "soldier|male|40"]],
@@ -1128,7 +1130,8 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       const cast = [["london", 1550, "town-watchman", {}], ["kyoto", 1500, "town-watchman", { backFlag: "#a8362c" }],
         ["beijing", 1400, "porter", {}], ["london", 1550, "gate-keeper", { mantle: true, hatTrim: "feather" }],
         ["london", 1350, "religious-specialist", {}], ["london", 1750, "shopkeeper", {}, "walking-cane"],
-        ["london", 1750, "labourer", {}, "yoke"], ["java", 1700, "labourer", {}, "water-pole"]] as const;
+        ["london", 1750, "labourer", {}, "yoke"], ["java", 1700, "labourer", {}, "water-pole"],
+        ["london", 1850, "shopkeeper", {}, "umbrella"], ["kyoto", 1750, "shopkeeper", {}, "paper-umbrella"], ["java", 1700, "labourer", {}, "banana-leaf"]] as const;
       const sheet = document.createElement("canvas"), frame = document.createElement("canvas");
       sheet.width = 16 * 48; sheet.height = cast.length * 72; frame.width = frame.height = 80;
       const ctx = sheet.getContext("2d")!, fc = frame.getContext("2d")!;

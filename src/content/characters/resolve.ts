@@ -332,7 +332,9 @@ function weighted(
     // In a foraging band nearly every grown man hunted: Lee's !Kung and the
     // Plains bands alike put about half the adults on game, not a few specialists.
     const band = l.id === "hunter" && (s.settlement === "camp" || !capabilities.has("settled_agriculture")) ? 1.6 : 1;
-    const boost = band * signatures.reduce((n, g) => n * (g.boost[l.id] ?? 1), 1);
+    // In a war the town fills with troops: quartered, garrisoned or passing through.
+    const war = l.id === "soldier" && requirementMet("war", s) ? 3 : 1;
+    const boost = band * war * signatures.reduce((n, g) => n * (g.boost[l.id] ?? 1), 1);
     // Share of the settlement for this class, split by weight within it.
     return { ...l, weight: (shares[c] * (l.weight ?? 1) * era(l) * boost * 100) / total };
   });

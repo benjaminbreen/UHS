@@ -69,7 +69,7 @@ const jaws: Record<NonNullable<CharacterAppearance["jaw"]>, [number, number][]> 
 const hides = {
   all: new Set(["hood", "headscarf", "veil", "wrap", "turban", "wig", "helmet", "kabuto", "jaguar", "eagle", "nemes", "wimple", "hennin", "dastar"]),
   top: new Set(["cap", "bowler", "flat-cap", "ball-cap", "brimmed", "conical", "fez", "top-hat", "nasal", "kettle", "official-cap",
-    "fedora", "boater", "cloche", "beret", "kerchief", "peaked-cap", "pith-helmet", "mian", "kanmuri", "tricorne", "bicorne", "gat", "capotain", "bork", "mobcap"]),
+    "fedora", "boater", "cloche", "beret", "kerchief", "peaked-cap", "pith-helmet", "mian", "kanmuri", "tricorne", "bicorne", "gat", "capotain", "bork", "mobcap", "shako", "bearskin"]),
 };
 
 function hash(s: string) {
@@ -812,7 +812,7 @@ function nape(h: Head, last: number) {
 /** Brim row and how far its shade reaches down the face, counting the brim's own line. */
 const brims: Partial<Record<CharacterAppearance["wearing"]["headwear"], [number, number]>> = {
   brimmed: [2, 4], conical: [2, 4], "top-hat": [2, 3], bowler: [3, 3], "flat-cap": [3, 3], "ball-cap": [3, 3], kettle: [2, 3], kabuto: [2, 2],
-  fedora: [2, 3], boater: [2, 3], cloche: [4, 1], "pith-helmet": [2, 3], tricorne: [1, 3], bicorne: [1, 2], gat: [2, 2], capotain: [2, 3],
+  fedora: [2, 3], boater: [2, 3], cloche: [4, 1], "pith-helmet": [2, 3], tricorne: [1, 3], bicorne: [1, 2], gat: [2, 2], capotain: [2, 3], shako: [3, 2],
 };
 
 /** The brim's upper face catches the light, and the face under it is in shade;
@@ -1068,6 +1068,21 @@ function headwear(h: Head, lo: number) {
       else k.rows(-4, [[5, 8], [2, 11], [0, 13], [-2, 15], [-3, 16], [-3, 16], [1, 12]]);
       if (view === "front") extra.set(11, -2).set(11, -1);
       break;
+    case "shako":
+      // A felt cylinder a little wider at the top, a leather peak over the brow, a brass plate and a tuft.
+      k.rows(-7, [[2, 11], [2, 11], [3, 10], [3, 10], [3, 10], [3, 10], [3, 10], [2, 11], [1, 12], [0, 13]]);
+      if (view === "front") k.span(3, 3, 10);
+      else if (view === "q") k.span(3, 6, 13);
+      else if (view === "side") k.span(3, 9, 15);
+      if (view === "front") extra.span(-4, 5, 8).span(-3, 5, 8).span(-2, 6, 7).span(-9, 6, 7).span(-8, 6, 7);
+      else if (view === "q") extra.span(-4, 9, 11).span(-3, 9, 11).span(-9, 8, 9).span(-8, 8, 9);
+      else extra.span(-9, 7, 8).span(-8, 7, 8);
+      break;
+    case "bearskin":
+      // Black fur standing twice the head's height, rounded at the crown.
+      k.rows(-11, [[4, 9], [3, 10], [2, 11], [2, 11], [1, 12], [1, 12], [1, 12], [1, 12], [1, 12], [1, 12], [1, 12], [1, 12], [0, 13], [0, 13], [0, 13]]);
+      if (view === "front") extra.span(2, 3, 10);
+      break;
     case "gat":
       // A tall narrow crown on a wide flat brim, tied under the chin.
       k.rows(-5, [[5, 8], [5, 8], [5, 8], [5, 8], [5, 8], [4, 9], [4, 9]]).span(2, -4, 17);
@@ -1201,6 +1216,8 @@ function headwear(h: Head, lo: number) {
           ? (_x, y, t) => (t >= 3 && y > Y(2) && (y - Y(0)) % 2 === 0 ? 2 : t)
         : hat === "mobcap"
           ? (x, y, t) => (t >= 3 && (y === Y(1) || x === X(0) || x === X(13)) && (x + y) % 2 === 0 ? 2 : t)
+        : hat === "bearskin"
+          ? (x, y, t) => (t >= 2 && (x * 3 + y * 2) % 5 === 0 ? t - 1 : t)
         : hat === "conical"
           ? (x, y, t) => (t >= 3 && Math.abs(x - X(6.5)) % 3 === 0 && y > Y(-3) ? 2 : t)
           : cloth
@@ -1215,7 +1232,7 @@ function headwear(h: Head, lo: number) {
   if (h.refined) brim(h, k.mask);
   hatTrim(h);
   if (!extra.mask.empty()) {
-    const accent = hat === "fillet" || hat === "turban" || hat === "kabuto" || hat === "eagle" || hat === "nemes" ? METAL : TRIM;
+    const accent = hat === "fillet" || hat === "turban" || hat === "kabuto" || hat === "eagle" || hat === "nemes" || hat === "shako" || hat === "bearskin" ? METAL : TRIM;
     // Felt hats carry a band of the same felt, darker; a boater's is ribbon.
     const self = ["flat-cap", "ball-cap", "fedora", "cloche", "pillbox", "beret"].includes(hat);
     s.put(extra.mask, hat === "plume" || hat === "jaguar" || hat === "mian" || hat === "hennin" ? WHITE : hat === "dastar" ? HAT : self ? HAT : accent, {

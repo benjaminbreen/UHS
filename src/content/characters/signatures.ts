@@ -91,13 +91,12 @@ export const citySignatures: readonly CitySignature[] = [
   {
     id: "mughal-delhi",
     scope: { years: [1639, 1857], places: ["delhi"] },
-    boost: { craftsperson: 2, warrior: 3, retainer: 3, servant: 2, weaver: 2, soldier: 3 },
+    boost: { craftsperson: 2, retainer: 3, servant: 2, weaver: 2, soldier: 3 },
     labels: {
       craftsperson: [
         { label: "Court Workshop Artisan", weight: 3 },
         { label: "Jeweller", weight: 2 },
       ],
-      warrior: [{ label: "Trooper", weight: 3 }],
       retainer: [{ label: "Household Retainer", weight: 2 }],
     },
     evidence: "Shahjahanabad was built round the court: the imperial karkhanas employed thousands of artisans, and the mansabdars' cavalry and households filled the city whenever the emperor was in residence.",
@@ -133,12 +132,9 @@ export const citySignatures: readonly CitySignature[] = [
   {
     id: "beijing-ming-qing",
     scope: { years: [1420, 1911], places: ["beijing"] },
-    boost: { clerk: 1.5, servant: 2, warrior: 3, porter: 2, carter: 2, soldier: 3 },
+    boost: { clerk: 1.5, servant: 2, porter: 2, carter: 2, soldier: 3 },
     labels: {
-      warrior: [
-        { label: "Bannerman", weight: 4 },
-        { label: "Capital Guard", weight: 1 },
-      ],
+      soldier: [{ label: "Capital Guard", weight: 1 }],
       porter: [{ label: "Water Carrier", weight: 3 }],
     },
     evidence: "The capital of the bureaucracy and its garrison: under the Qing the Inner City was given over to the Eight Banners, and water was sold door to door by carriers from the sweet-water wells.",
@@ -146,10 +142,9 @@ export const citySignatures: readonly CitySignature[] = [
   {
     id: "istanbul-ottoman",
     scope: { years: [1453, 1922], places: ["city-istanbul"] },
-    boost: { boatman: 4, porter: 3, baker: 2, warrior: 2, "household-slave": 2, soldier: 3 },
+    boost: { boatman: 4, porter: 3, baker: 2, "household-slave": 2, soldier: 3 },
     labels: {
       boatman: [{ label: "Caique Rower", weight: 4 }],
-      warrior: [{ label: "Janissary", weight: 4 }],
     },
     evidence: "The city was crossed by thousands of caiques; its porters' guilds carried everything up the hills; the Janissaries garrisoned it until 1826, and the state fixed and policed the price of bread.",
   },

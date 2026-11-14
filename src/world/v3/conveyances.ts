@@ -2,6 +2,9 @@ import type { Actor, Pack, Point } from "../../core/types";
 import { random } from "../../core/random";
 import { route } from "../../core/routing";
 import { characterSex, generateCharacter } from "../../content/characters/generate";
+import { resolveCharacterContext } from "../../content/characters/resolve";
+import { requirementMet } from "../../content/characters/requirements";
+import { localLabel } from "../../content/characters/officiant";
 import { proceduralName } from "../../content/geography/character";
 import { conveyancesFor, type Conveyance } from "../../content/conveyances";
 import { cellKey, type Rect, type SettlementPlan } from "./types";
@@ -202,14 +205,14 @@ function crewMember(seed: string, pack: Pack, vehicle: string, c: Conveyance,
 
 /** A watchman walking a beat on the town wall, out and back, with a pause at
  * each end to look out; or, with `gate`, a guard standing at a gate. */
-export function watchman(seed: string, pack: Pack, id: string, beat: Point[], post?: Actor["post"], captain = false): Actor {
+export function watchman(seed: string, pack: Pack, id: string, beat: Point[], post?: Actor["post"], captain = false, soldier = false): Actor {
   const gate = !!post && !post.round;
   const setting = pack.setting!;
   const roll = (k: string) => random(seed, id, k);
   const age = 20 + Math.floor(roll("age") * 30);
   const pos = { x: beat[0].x, y: beat[0].y, space: "outside" as const };
-  const livelihood = setting.year < -1000 ? "warrior" : gate ? "gate-keeper" : "town-watchman";
-  const doing = gate ? "Keeping the gate" : post ? "Walking the night round" : "Keeping watch from the wall";
+  const livelihood = soldier ? "soldier" : setting.year < -1000 ? "warrior" : gate ? "gate-keeper" : "town-watchman";
+  const doing = post?.doing ?? (gate ? "Keeping the gate" : post ? "Walking the night round" : "Keeping watch from the wall");
   const actor: Actor = {
     id,
     name: proceduralName(setting, seed, id),
@@ -241,7 +244,7 @@ export function watchman(seed: string, pack: Pack, id: string, beat: Point[], po
     Object.assign(actor, generateCharacter(setting, seed, id, age, livelihood, undefined, undefined,
       characterSex(seed, id)));
     // The local title where one is authored: halberdier, janissary, ashigaru.
-    actor.role = actor.origin?.roleLabel && actor.origin.livelihood === livelihood ? actor.origin.roleLabel : gate ? "Gate Keeper" : "Watchman";
+    actor.role = actor.origin?.roleLabel && actor.origin.livelihood === livelihood ? actor.origin.roleLabel : soldier ? "Soldier" : gate ? "Gate Keeper" : "Watchman";
     actor.activity = doing;
     // The captain of a town's watch: a plume, a cloak and a sword at the hip.
     if (captain && actor.appearance) {
@@ -253,4 +256,44 @@ export function watchman(seed: string, pack: Pack, id: string, beat: Point[], po
     actor.age = age;
   }
   return actor;
+}
+
+/** Soldiers in a town that keeps them: a patrol or two walking a round of the
+ * squares and the great buildings by day, and a pair of sentries at the seat
+ * of government. A town at war has more of both. */
+export function planSoldiers(plan: SettlementPlan, seed: string, pack: Pack) {
+  const setting = pack.setting;
+  if (!setting?.characterRevision || (setting.settlement !== "city" && setting.settlement !== "port")) return;
+  const soldier = resolveCharacterContext(setting).livelihoods.find((l) => l.id === "soldier");
+  if (!soldier) return;
+  // Asked for by name, the work keeps its plain name; a patrol wants the army's.
+  const named = (a: Actor) => Object.assign(a, { role: localLabel(soldier, setting, seed, a.id) });
+  const war = requirementMet("war", setting);
+  const r = plan.site.profile.radius;
+  const open = (p: Point) => !plan.solid.has(cellKey(p.x, p.y));
+  const seat = plan.places.find((p) => p.institution === "administration");
+  const stops = [...(plan.gatherings ?? []), ...(seat ? [seat.entrance] : []),
+    ...plan.places.filter((p) => p.institution === "worship" || p.institution === "caravanserai").map((p) => p.entrance)]
+    .map((p) => nearestOpen(p, open));
+  const patrols = (r >= 28 ? 1 : 0) + (r >= 45 ? 1 : 0) + (war ? 1 : 0);
+  for (let k = 0; k < patrols && stops.length > 1; k++) {
+    const id = `${plan.site.id}-patrol-${k}`;
+    const roll = (key: string) => random(seed, id, key);
+    // Three or four stops, taken from a rotated list so two patrols differ.
+    const from = Math.floor(roll("from") * stops.length);
+    const round = Array.from({ length: Math.min(stops.length, 3 + (roll("n") < 0.5 ? 1 : 0)) }, (_, i) => stops[(from + i * (k + 1)) % stops.length]);
+    const size = roll("size") < 0.6 ? 2 : 3;
+    // The first walks the round; the others keep abreast of him.
+    for (let i = 0; i < size; i++) {
+      const at = nearestOpen({ x: round[0].x + i, y: round[0].y }, open);
+      plan.actors.push(named(watchman(seed, pack, `${id}-${i}`, [at, at],
+        { at, rest: at, doing: "On patrol", ...(i ? { with: `${id}-0`, beside: i } : { round, leg: 0 }) }, false, true)));
+    }
+  }
+  const post = seat?.entrance ?? (war ? plan.gatherings?.[0] : undefined);
+  if (!post) return;
+  for (const [i, dx] of [-1, 1].entries()) {
+    const at = nearestOpen({ x: post.x + dx, y: post.y + 1 }, open);
+    plan.actors.push(named(watchman(seed, pack, `${plan.site.id}-sentry-${i}`, [at, at], { at, rest: at, face: 2, doing: "On sentry duty" }, false, true)));
+  }
 }

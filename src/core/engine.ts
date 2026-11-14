@@ -11471,6 +11471,19 @@ export class Engine {
   private keepPost(a: Actor, post: NonNullable<Actor["post"]>, clock: number) {
     const night = dark(clock);
     const on = !!post.night === night;
+    // A patrol keeps step with its leader, a cell to the side.
+    const lead = on && post.with ? this.state.actors.find((o) => o.id === post.with) : undefined;
+    if (lead && lead.pos.space === "outside") {
+      const to = { x: lead.pos.x + (post.beside ?? 1), y: lead.pos.y, space: "outside" as const };
+      a.heldItem = armsOf(a);
+      a.offRoutine = false;
+      a.activity = lead.activity;
+      if (a.pos.x === to.x && a.pos.y === to.y && a.pos.space === "outside") a.direction = lead.direction;
+      else if (!this.visible(a.pos) && !this.visible(to)) {
+        if (!this.blocked(to.x, to.y, "outside") && !this.actorAt(to, a.id)) this.moveActor(a, to);
+      } else this.stepToward(a, to, !!this.state.manifest.watchRouting);
+      return;
+    }
     const round = on && post.round;
     if (!round) delete post.arrive;
     if (round && a.pos.x === round[post.leg ?? 0].x && a.pos.y === round[post.leg ?? 0].y) {
@@ -11480,7 +11493,7 @@ export class Engine {
     const to = { ...(round ? round[post.leg ?? 0] : on ? post.at : post.rest), space: "outside" as const };
     a.heldItem = on && post.torch && night ? "torch" : armsOf(a);
     const hour = Math.floor(clock / 3600);
-    if (round && post.called !== hour && this.state.player.pos.space === "outside" && distance(a.pos, this.state.player.pos) < 14) {
+    if (round && post.night && post.called !== hour && this.state.player.pos.space === "outside" && distance(a.pos, this.state.player.pos) < 14) {
       post.called = hour;
       this.event(`${a.name} ${this.hourCall(hour % 24)}`, "social", a.pos);
     }
@@ -11504,11 +11517,11 @@ export class Engine {
           this.moveActor(a, to);
         else this.stepToward(a, to, watchRouting);
       }
-      a.activity = round ? "Walking the night round" : on ? "Going on watch" : "Coming off watch";
+      a.activity = post.doing ?? (round ? "Walking the night round" : on ? "Going on watch" : "Coming off watch");
       return;
     }
     if (on && post.face !== undefined) a.direction = post.face;
-    a.activity = !on ? "Off watch, resting by the gate" : this.gateShutNear(a) ? "Keeping the shut gate" : "Keeping the gate";
+    a.activity = post.doing ?? (!on ? "Off watch, resting by the gate" : this.gateShutNear(a) ? "Keeping the shut gate" : "Keeping the gate");
   }
   /** What a night watch calls or strikes on the hour, by where the town is. */
   private hourCall(hour: number) {

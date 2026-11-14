@@ -324,7 +324,7 @@ export type Actor = {
   guard?: { ward: string; since?: number; warned?: number };
   /** Keeping a town gate, or walking the streets by night. On shift they
    * stand at `at`, or go round `round`; off it they rest at `rest`. */
-  post?: { at: Point; rest: Point; night?: boolean; torch?: boolean; face?: number; round?: Point[]; leg?: number; called?: number; arrive?: number };
+  post?: { at: Point; rest: Point; night?: boolean; torch?: boolean; face?: number; round?: Point[]; leg?: number; called?: number; arrive?: number; doing?: string; with?: string; beside?: number };
   /** Terrified by someone breaking into their home: until when, which home,
    * whether they fight or cower, and when a blow last set them back. */
   terror?: { until: number; place: string; fight: boolean; staggered?: number; strikeAfter?: number; cause?: "assault" | "anger" | "fright" };

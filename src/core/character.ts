@@ -180,6 +180,10 @@ export const headwear = [
   "dastar",
   /** The linen cap with a frilled edge that European women wore indoors and out, about 1600 to 1850. */
   "mobcap",
+  /** The soldier's tall peaked cap, about 1800 to 1870. */
+  "shako",
+  /** The grenadier's tall fur cap. */
+  "bearskin",
 ] as const;
 /** How the garment is patterned. `auto` keeps the hashed default. */
 export const motifs = [
@@ -203,6 +207,8 @@ export const motifs = [
    * shoulder. Narrow for an eques, broad (`laticlave`) for a senator. */
   "clavi",
   "laticlave",
+  /** White crossbelts over a coat with facings: the line soldier, about 1690 to 1870. */
+  "regimental",
 ] as const;
 /** What covers the leg between hem and ankle. */
 export const leggings = [

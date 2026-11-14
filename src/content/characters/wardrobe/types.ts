@@ -94,6 +94,8 @@ export type GarmentKit = {
    * the silhouettes. */
   material?: readonly Option<Material>[];
   dye?: readonly Option<DyeId>[];
+  /** The trim's dye where it was set rather than chosen: a regiment's facings. */
+  trim?: readonly Option<DyeId>[];
   motif?: readonly Option<Motif>[];
   eyewear?: readonly Option<(typeof eyewear)[number]>[];
   /** A kit that says nothing leaves the base roll's necklace alone. */
@@ -145,6 +147,7 @@ export const wardrobeSlots = [
   "over",
   "material",
   "dye",
+  "trim",
   "motif",
   "eyewear",
   "neck",

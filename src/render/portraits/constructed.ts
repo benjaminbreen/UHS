@@ -1273,6 +1273,7 @@ function drawMotif(r: Raster, m: Model, cut: Cut, torso: number[]) {
           collar: 1,
           clavi: 8,
           laticlave: 9,
+          regimental: 10,
         }[named];
   const only = [MAT.cloth];
   // The neckline is where the chest starts, so a motif clears it whatever the
@@ -1293,6 +1294,12 @@ function drawMotif(r: Raster, m: Model, cut: Cut, torso: number[]) {
       );
       break;
     }
+    case 10:
+      // White crossbelts from each shoulder to the opposite hip.
+      for (const [x0, x1] of [[26, 44], [46, 28]])
+        for (const o of [0, 1])
+          r.stroke([[bx(x0 + o), chest], [bx(x1 + o), 84]], "#ece6d6", 0, undefined, MAT.cloth);
+      break;
     case 1:
       r.stroke(
         [

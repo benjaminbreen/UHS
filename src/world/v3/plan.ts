@@ -8,7 +8,7 @@ import { kerbsideFor } from "../../content/settlements/streets/kerbside";
 import { composeStreetGeometry } from "./street-geometry";
 import { planCamp } from "./camps";
 import { railStaff, railVisitors } from "./rail-travellers";
-import { planConveyances, watchman } from "./conveyances";
+import { planConveyances, planSoldiers, watchman } from "./conveyances";
 import { religiousProfile, religiousScale } from "../../content/settlements/religious";
 import {
   generateCharacter,
@@ -6133,6 +6133,7 @@ export function planSettlement(
   railVisitors(plan, seed, pack);
   railStaff(plan, seed, pack);
   planConveyances(plan, seed, pack);
+  planSoldiers(plan, seed, pack);
   // Props and routine markers claim ground after the fields were planted.
   for (const k of plan.fields?.keys() ?? [])
     if (plan.solid.has(k)) plan.fields!.delete(k);
