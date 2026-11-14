@@ -27,6 +27,8 @@ export default defineConfig({
     // Each worker loads the world/content graph, about a gigabyte; bound
     // memory on shared machines.
     maxWorkers: 4,
+    // Node's built-in localStorage warns in every worker without a backing file; tests stub it.
+    execArgv: ["--no-experimental-webstorage"],
     // A town session takes half a minute alone and twice that while other
     // agents load the machine; a minute's limit failed sound tests.
     testTimeout: 120000,
