@@ -81,7 +81,6 @@ These pairs do the same job twice. Extend the first one. If your task takes you 
 | Content scoped by `CharacterScope` records | growing the `resolveHistory` registry | HISTORY |
 | Plots | life aims (`core/life-aim.ts`) | PLOTS |
 | `LayeredTheme` music | `score.ts` themes and `CulturalTheme` | AUDIO |
-| Agent tools in `src/agents/agent.ts` | `src/agents/webmcp.ts` | AGENTS |
 
 ## Topic docs
 

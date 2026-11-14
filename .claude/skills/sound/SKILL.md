@@ -88,6 +88,13 @@ in `src/core/weather.ts`), which also sets the visible rain's density.
 
 ## Not yet done
 
+**Rain regressed.** Rules 1–5 describe the grain rain built with `scatter()`.
+Commit `d440f3f3` removed `scatter()`, the wash and roof beds, so the
+committed rain bed is low-pass plus band-pass noise again, which rules 1 and 2
+reject. It is not known whether that was deliberate. The grain version can be
+read with `git show 54722d8c:src/audio/ambience.ts`. Restore it through the
+loop above before tuning rain further.
+
 Wind, water, town and fire beds are still filtered noise loops from before this
 loop existed; they want the same treatment. The decision on recorded samples
 for some beds (versus synthesis) is still open with the user.

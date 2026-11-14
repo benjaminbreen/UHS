@@ -20,10 +20,6 @@ is the contract; `src/agents/` implements it.
   naming a tool.
 - **Record**, `src/agents/record.ts`. All three modes write the same folder;
   `src/agents/viewer.ts` builds its `review.html`.
-- **In-browser**, `src/agents/webmcp.ts`. An older, smaller tool set (observe,
-  inspect, act) registered from `src/runtime/bootstrap.tsx`. It is a second
-  tool surface: add new abilities to `tools` in `agent.ts`, and port this one
-  onto the core rather than extending it.
 
 The scripts run under `vite-node`, not `tsx`: map travel loads its data with
 Vite's `import.meta.glob`.

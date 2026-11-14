@@ -3,7 +3,6 @@ import type { Engine } from "../core/engine";
 import { App } from "../ui/App";
 import { Runtime } from "./session";
 
-import { registerWebMCP } from "../agents/webmcp";
 import { PropLabHost } from "../dev/PropLabHost";
 import type { EduRecorder } from "../edu/recorder";
 export function Game({ engine, active, onReady, edu }: {
@@ -39,7 +38,6 @@ export function Game({ engine, active, onReady, edu }: {
         act: (request: Parameters<Runtime["act"]>[0]) => runtime.act(request),
       },
     });
-    registerWebMCP(runtime);
     if (import.meta.env.DEV)
       Object.assign(window, {
         __uhs: runtime,

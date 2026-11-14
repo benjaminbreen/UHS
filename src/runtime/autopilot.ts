@@ -6,6 +6,7 @@ import { forageByCover, forageByTerrain } from "../content/ecology/forage";
 import { findPath } from "../core/pathfinding";
 import { distance, type Actor, type ItemId, type Place, type Point } from "../core/types";
 import { doorApproach, doorId } from "../core/doors";
+import { random } from "../core/random";
 
 /**
  * Something the player has been set to do that outlasts one command: roam and
@@ -230,8 +231,9 @@ export class Autopilot {
     if (this.legs++ >= 6)
       return { done: run ? "You pull up, out of breath." : "You have walked about a while." };
     for (let i = 0; i < 12; i++) {
-      const a = Math.random() * Math.PI * 2,
-        r = 5 + Math.random() * 7;
+      const k = [e.state.clock, this.legs, i] as const,
+        a = random(e.state.manifest.seed, "roam", ...k) * Math.PI * 2,
+        r = 5 + random(e.state.manifest.seed, "roam-r", ...k) * 7;
       const x = Math.round(p.x + Math.cos(a) * r),
         y = Math.round(p.y + Math.sin(a) * r);
       if (e.playerBlocked(x, y) || e.world.terrain(x, y, p.space) === "water") continue;
@@ -354,8 +356,9 @@ export class Autopilot {
       score = 0;
     for (let reach = 8; reach <= 48 && !best; reach *= 2)
       for (let i = 0; i < 24; i++) {
-        const a = Math.random() * Math.PI * 2,
-          r = reach * (0.6 + Math.random() * 0.6);
+        const k = [e.state.clock, reach, i] as const,
+          a = random(e.state.manifest.seed, "scout", ...k) * Math.PI * 2,
+          r = reach * (0.6 + random(e.state.manifest.seed, "scout-r", ...k) * 0.6);
         const x = Math.round(p.x + Math.cos(a) * r),
           y = Math.round(p.y + Math.sin(a) * r);
         if (e.playerBlocked(x, y) || e.world.terrain(x, y) === "water") continue;
