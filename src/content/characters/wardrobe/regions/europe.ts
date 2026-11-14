@@ -50,10 +50,12 @@ export const europe: readonly GarmentKit[] = [
   {
     id: "eu-hennin",
     label: "Burgundy and France · the hennin",
-    scope: { years: [1430, 1490], bounds: [-6, 42, 12, 56] },
+    scope: { years: [1420, 1500], bounds: [-6, 42, 12, 56] },
     priority: 1,
-    headwear: [{ value: "hennin", weight: 4, sex: ["female"], means: ["wealthy", "elite"], ages: ["youth", "adult"] },
-      { value: "veil", weight: 2, sex: ["female"], means: ["wealthy", "elite"], ages: ["youth", "adult", "elder"] }],
+    headwear: [{ value: "hennin", weight: 3, sex: ["female"], means: ["wealthy", "elite"], ages: ["youth", "adult"] },
+      { value: "hennin", weight: 1, sex: ["female"], means: ["common"], ages: ["youth", "adult"] },
+      { value: "veil", weight: 2, sex: ["female"], means: ["wealthy", "elite"], ages: ["youth", "adult", "elder"] },
+      { value: "headscarf", weight: 1, sex: ["female"], means: ["wealthy", "elite"], ages: ["youth", "adult", "elder"] }],
   },
   {
     // The Spanish verdugado, a cone of hoops, taken up at every court from London to Vienna.
@@ -68,7 +70,8 @@ export const europe: readonly GarmentKit[] = [
   {
     id: "eu-capotain",
     label: "Northwest Europe · the capotain",
-    scope: { years: [1590, 1660], bounds: [-11, 42, 25, 60] },
+    // West of Muscovy, and in the colonies.
+    scope: { years: [1590, 1660], cultures: ["european"], bounds: [-180, -60, 25, 72] },
     priority: 1,
     headwear: [{ value: "capotain", weight: 5, sex: ["male"], ages: ["youth", "adult", "elder"] }, { value: "brimmed", weight: 2, sex: ["male"], means: ["poor", "common"] },
       { value: "cap", weight: 2, sex: ["male"], means: ["poor"] }],
@@ -137,6 +140,14 @@ export const europe: readonly GarmentKit[] = [
     accessory: [{ value: "walking-cane", weight: 1, roles: ["plague-doctor"] }],
     footwear: [{ value: "boots", weight: 1, roles: ["plague-doctor"] }],
   },
+  // Colonial and republican elites in the Americas dressed from Madrid, then Paris.
+  ...([["farthingale", 1560, 1640], ["crinoline", 1856, 1870], ["bustle", 1870, 1890]] as const).map(([value, from, to]): GarmentKit => ({
+    id: `americas-${value}`,
+    label: `The Americas · the ${value} among the wealthy`,
+    scope: { years: [from, to], cultures: ["mesoamerican", "andean", "other-indigenous-american"], bounds: [-130, -60, -30, 72] },
+    priority: 1,
+    silhouette: [{ value, weight: 1, sex: ["female"], means: ["wealthy", "elite"], ages: ["youth", "adult", "elder"] }],
+  })),
   {
     id: "eu-tricorne",
     label: "Europe · the cocked hat",

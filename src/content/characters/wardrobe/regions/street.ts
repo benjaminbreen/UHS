@@ -88,6 +88,14 @@ export const street: readonly GarmentKit[] = [
   { ...kit("clergy-sikh", "The Sikh dastar", { years: [1699, 10001], cultures: ["south-asian"] }, {
     headwear: [{ value: "dastar", weight: 1, roles: ["sikh"], sex: ["male"] }],
   }), priority: 3.5 },
+  // The Punjab: most men wore the pagri, and in the central districts about one in five was a Sikh.
+  { ...kit("punjab-pagri", "Punjab · the pagri and the dastar", { years: [1699, 10001], cultures: ["south-asian"], bounds: [71, 29.5, 77.5, 34] }, {
+    headwear: [
+      { value: "dastar", weight: 2, sex: ["male"], ages: ["youth", "adult", "elder"] },
+      { value: "turban", weight: 5, sex: ["male"], ages: ["youth", "adult", "elder"] },
+      { value: "none", weight: 1, sex: ["male"], ages: ["youth", "adult", "elder"] },
+    ],
+  }), priority: 1 },
   kit("clergy-islamic", "Imam and scholar: white turban, robe, prayer beads", { years: [650, 1950], cultures: ["north-african-west-asian", "inner-eurasian"] }, {
     garment: [clergy("open-robe", 2), clergy("robe", 2)], dye: [clergy("bleached", 3), clergy("greige", 1)],
     headwear: [clergy("turban")], accessory: held(clergy, ["beads", 3], ["ledger", 1]),

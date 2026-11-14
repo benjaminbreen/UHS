@@ -125,6 +125,10 @@ export const guards: readonly GarmentKit[] = [
     headwear: [{ value: "bork", weight: 1, roles: ["janissary"] }],
     garment: [{ value: "open-robe", weight: 1, roles: ["janissary"] }],
   }), priority: 3.5 },
+  // Janissaries garrisoned and policed the cities of the Balkans, Anatolia, Syria and Iraq.
+  { ...kit("ottoman-garrison", "Ottoman garrison towns: the börk at the gate", { years: [1450, 1827], bounds: [18, 29, 48, 46] }, {
+    headwear: [g("bork", 3), g("turban", 2)],
+  }), priority: 3.2 },
 
   kit("steppe", "Steppe and Silk Road: lamellar, the bow, the lance", { years: [-1000, 1700], cultures: ["inner-eurasian"] }, {
     garment: [g("open-robe", 2), g("long-tunic", 1)], footwear: [g("boots")],
