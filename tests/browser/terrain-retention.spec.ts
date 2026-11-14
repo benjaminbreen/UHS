@@ -65,7 +65,7 @@ test("props keep their atlas ground anchors across animation and redraws", async
 test("character workers preserve the synchronous sprite pixels", async ({ page }) => {
   await page.goto("/character-lab");
   const result = await page.evaluate(async () => {
-    const { renderers, outlineCharacter } = await import("/src/render/characters/renderers.ts" as string);
+    const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
     const { originalAppearance, generateAppearance } = await import("/src/core/character.ts" as string);
     const { loadCarriedArt, portableProps, iconCarriedArt } = await import("/src/render/characters/props.ts" as string);
     const { drawGarmentIcon, GARMENT_ICON } = await import("/src/render/garment-icons.ts" as string);
@@ -88,38 +88,35 @@ test("character workers preserve the synchronous sprite pixels", async ({ page }
     ];
     let frames = 0;
     try {
-      for (const renderer of ["c", "d"])
-        for (const id of ["morning", "midday", "night"])
-          for (const [index, sample] of cases.entries())
-            for (let facing = 0; facing < 8; facing++) {
-              const preset = lightingPreset(id);
-              const light = { ...spriteLightFor(preset.cast, id === "night"), warm: `#${preset.tint}`, cool: preset.ambientAlpha ? `#${preset.ambient}` : "#241c38" };
-              const outline = index % 2 === 0;
-              setSpriteLight(light);
-              renderers[renderer].draw(ctx, sample.a, 2, sample.pose, sample.frame, sample.prop, facing);
-              if (outline) outlineCharacter(ctx);
-              setSpriteLight(undefined);
-              const expected = ctx.getImageData(0, 0, 80, 80).data;
-              const prop = sample.prop && {
-                sprite: sample.prop.sprite, kind: sample.prop.kind,
-                width: sample.prop.width, height: sample.prop.height,
-                pixels: sample.prop.image.getContext("2d").getImageData(0, 0, sample.prop.width, sample.prop.height).data,
-              };
-              const actual = await new Promise<Uint8ClampedArray>((resolve, reject) => {
-                worker.onmessage = (event) => event.data.error ? reject(Error(event.data.error)) : resolve(event.data.pixels);
-                worker.onerror = (event) => reject(Error(event.message));
-                worker.postMessage({ signature: String(frames), renderer, appearance: sample.a, direction: 2, facing, pose: sample.pose, frame: sample.frame, prop, outline, light });
-              });
-              if (actual.length !== expected.length || actual.some((value, i) => value !== expected[i]))
-                return { frames, mismatch: `${renderer}:${id}:${index}:${facing}` };
-              frames++;
-            }
+      for (const id of ["morning", "midday", "night"])
+        for (const [index, sample] of cases.entries())
+          for (let facing = 0; facing < 8; facing++) {
+            const preset = lightingPreset(id);
+            const light = { ...spriteLightFor(preset.cast, id === "night"), warm: `#${preset.tint}`, cool: preset.ambientAlpha ? `#${preset.ambient}` : "#241c38" };
+            setSpriteLight(light);
+            drawCharacterG(ctx, sample.a, 2, sample.pose, sample.frame, sample.prop, facing);
+            setSpriteLight(undefined);
+            const expected = ctx.getImageData(0, 0, 80, 80).data;
+            const prop = sample.prop && {
+              sprite: sample.prop.sprite, kind: sample.prop.kind,
+              width: sample.prop.width, height: sample.prop.height,
+              pixels: sample.prop.image.getContext("2d").getImageData(0, 0, sample.prop.width, sample.prop.height).data,
+            };
+            const actual = await new Promise<Uint8ClampedArray>((resolve, reject) => {
+              worker.onmessage = (event) => event.data.error ? reject(Error(event.data.error)) : resolve(event.data.pixels);
+              worker.onerror = (event) => reject(Error(event.message));
+              worker.postMessage({ signature: String(frames), appearance: sample.a, direction: 2, facing, pose: sample.pose, frame: sample.frame, prop, light });
+            });
+            if (actual.length !== expected.length || actual.some((value, i) => value !== expected[i]))
+              return { frames, mismatch: `${id}:${index}:${facing}` };
+            frames++;
+          }
     } finally {
       worker.terminate();
     }
     return { frames, mismatch: null };
   });
-  expect(result).toEqual({ frames: 240, mismatch: null });
+  expect(result).toEqual({ frames: 120, mismatch: null });
 });
 
 test("rasterised terrain survives a trip indoors", async ({ page }) => {

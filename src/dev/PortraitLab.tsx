@@ -23,54 +23,39 @@ import {
 } from "../core/character";
 import { random } from "../core/random";
 import type { Runtime } from "../runtime/session";
+import { expressions, type Expression } from "../render/portraits/constructed";
 import {
-  constructedDefaults,
-  constructedRanges,
-  expressions,
-  type ConstructedTuning,
-  type Expression,
-} from "../render/portraits/constructed";
-import {
-  portraitSystems,
-  PORTRAIT_HEIGHT,
-  PORTRAIT_WIDTH,
-  type PortraitRenderOptions,
-  type PortraitSystem,
-} from "../render/portraits/systems";
+  drawSculptedPortrait,
+  SCULPTED_HEIGHT,
+  SCULPTED_WIDTH,
+  type SculptedOptions,
+} from "../render/portraits/sculpted";
 import "./portrait-lab.css";
 
 function PortraitCanvas({
-  system,
   appearance,
   age,
   label,
   options,
 }: {
-  system: PortraitSystem;
   appearance: CharacterAppearance;
   age: number;
   label: string;
-  options?: PortraitRenderOptions;
+  options?: SculptedOptions;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
     const context = canvas.current?.getContext("2d");
-    if (context && system.render)
-      system.render(context, appearance, age, options);
-  }, [system, appearance, age, options]);
-  return system.render ? (
+    if (context) drawSculptedPortrait(context, appearance, age, options);
+  }, [appearance, age, options]);
+  return (
     <canvas
       ref={canvas}
-      width={PORTRAIT_WIDTH}
-      height={PORTRAIT_HEIGHT}
+      width={SCULPTED_WIDTH}
+      height={SCULPTED_HEIGHT}
       role="img"
-      aria-label={`${label}, rendered with ${system.label}`}
+      aria-label={label}
     />
-  ) : (
-    <div className="portrait-missing" role="img" aria-label={system.label}>
-      <span>B</span>
-      Renderer slot ready
-    </div>
   );
 }
 
@@ -104,16 +89,8 @@ export function PortraitLab({
   const [batch, setBatch] = useState(0);
   const [age, setAge] = useState(30);
   const [actorId, setActorId] = useState(liveActors[0]?.id ?? "generated-0");
-  const [view, setView] = useState<string>("all");
-  const [tuning, setTuning] = useState<ConstructedTuning>(constructedDefaults);
   const [expression, setExpression] = useState<Expression>("neutral");
-  const options = useMemo<PortraitRenderOptions>(
-    () => ({ tuning, expression }),
-    [tuning, expression],
-  );
-  const tuned = (Object.keys(tuning) as (keyof ConstructedTuning)[]).filter(
-    (key) => tuning[key] !== constructedDefaults[key],
-  );
+  const options = useMemo<SculptedOptions>(() => ({ expression }), [expression]);
   const [gridSize, setGridSize] = useState(12);
   const [mixedAges, setMixedAges] = useState(false);
   // Ages sampled per cell when mixed: a spread of children, adults and elders.
@@ -195,12 +172,6 @@ export function PortraitLab({
       </select>
     </label>
   );
-  const visibleSystems = portraitSystems.filter(
-    (system) => view === "all" || system.id === view,
-  );
-  const sheetSystem =
-    visibleSystems.length === 1 ? visibleSystems[0] : portraitSystems[0];
-  const letter = (system: PortraitSystem) => system.label.split(" ")[0];
   const select = <T extends string>(
     label: string,
     key: keyof CharacterFace,
@@ -231,9 +202,7 @@ export function PortraitLab({
           <h1>
             Portrait lab <small>64 × 80 native pixels</small>
           </h1>
-          <p>
-            One character recipe, three renderer slots, identical test subjects.
-          </p>
+          <p>The sculpted bust the game draws, from one character recipe.</p>
         </div>
         <div className="portrait-lab-actions">
           <button onClick={() => setBatch((value) => value + 1)}>
@@ -335,7 +304,7 @@ export function PortraitLab({
             {adorn("Ornament metal", "metal", ornamentMetals)}
           </div>
           <h2>
-            Expression <small>renderer C</small>
+            Expression
           </h2>
           <label>
             Expression
@@ -355,112 +324,26 @@ export function PortraitLab({
             <summary>Semantic recipe</summary>
             <pre>{JSON.stringify(edited, null, 2)}</pre>
           </details>
-          <h2>
-            Construction <small>renderer C defaults</small>
-          </h2>
-          <div className="portrait-tuning">
-            {(
-              Object.keys(constructedRanges) as (keyof ConstructedTuning)[]
-            ).map((key) => {
-              const range = constructedRanges[key];
-              return (
-                <label key={key}>
-                  <span>
-                    {range.label}
-                    <output>{tuning[key]}</output>
-                  </span>
-                  <input
-                    type="range"
-                    aria-label={range.label}
-                    min={range.min}
-                    max={range.max}
-                    step={range.step}
-                    value={tuning[key]}
-                    onChange={(event) =>
-                      setTuning((current) => ({
-                        ...current,
-                        [key]: Number(event.target.value),
-                      }))
-                    }
-                  />
-                </label>
-              );
-            })}
-          </div>
-          <div className="portrait-tuning-actions">
-            <button
-              onClick={() => setTuning(constructedDefaults)}
-              disabled={!tuned.length}
-            >
-              Reset construction
-            </button>
-          </div>
-          <details open={tuned.length > 0}>
-            <summary>Tuning to bake in</summary>
-            <pre>
-              {tuned.length
-                ? JSON.stringify(
-                    Object.fromEntries(tuned.map((k) => [k, tuning[k]])),
-                    null,
-                    2,
-                  )
-                : "All at defaults."}
-            </pre>
-          </details>
         </aside>
 
         <section className="portrait-workbench">
-          <div
-            className="portrait-view-tabs"
-            role="tablist"
-            aria-label="Portrait comparison"
-          >
-            {["all", ...portraitSystems.map((system) => system.id)].map(
-              (id) => (
-                <button
-                  key={id}
-                  role="tab"
-                  aria-selected={view === id}
-                  onClick={() => setView(id)}
-                >
-                  {id === "all"
-                    ? portraitSystems.map(letter).join(" / ")
-                    : `${letter(portraitSystems.find((s) => s.id === id)!)} only`}
-                </button>
-              ),
-            )}
-          </div>
-          <div
-            className="portrait-comparison"
-            data-count={visibleSystems.length}
-          >
-            {visibleSystems.map((system) => (
-              <article key={system.id}>
-                <header>
-                  <h2>{system.label}</h2>
-                  <p>{system.description}</p>
-                </header>
-                <div className="portrait-stage">
-                  <PortraitCanvas
-                    system={system}
-                    appearance={edited}
-                    age={activeAge}
-                    label={live?.name ?? `Generated study ${actorIndex + 1}`}
-                    options={options}
-                  />
-                </div>
-              </article>
-            ))}
+          <div className="portrait-comparison">
+            <article>
+              <div className="portrait-stage">
+                <PortraitCanvas
+                  appearance={edited}
+                  age={activeAge}
+                  label={live?.name ?? `Generated study ${actorIndex + 1}`}
+                  options={options}
+                />
+              </div>
+            </article>
           </div>
 
           <section className="portrait-expression-sheet">
             <header>
               <h2>Expressions</h2>
-              <p>
-                One face, twelve poses. Every pose is a set of pixel offsets to
-                the brows, lids, mouth and gaze — the drawing underneath is the
-                same recipe, so the person stays recognisable.
-              </p>
+              <p>One face, twelve expressions, the same recipe underneath.</p>
             </header>
             <div className="portrait-expression-strip">
               {expressions.map((option) => (
@@ -471,11 +354,10 @@ export function PortraitLab({
                   title={option}
                 >
                   <PortraitCanvas
-                    system={portraitSystems[2]}
                     appearance={edited}
                     age={activeAge}
                     label={`${live?.name ?? "Study"}, ${option}`}
-                    options={{ tuning, expression: option }}
+                    options={{ expression: option }}
                   />
                   <span>{option}</span>
                 </button>
@@ -488,9 +370,8 @@ export function PortraitLab({
               <div>
                 <h2>Contact sheet</h2>
                 <p>
-                  {gridSize} deterministic recipes from the seed through{" "}
-                  {sheetSystem.label}. Pick a single renderer tab to switch the
-                  sheet; shuffle or start a new batch for fresh faces.
+                  {gridSize} deterministic recipes from the seed. Shuffle or
+                  start a new batch for fresh faces.
                 </p>
               </div>
               <div className="portrait-sheet-controls">
@@ -531,7 +412,6 @@ export function PortraitLab({
                   title={`Study ${index + 1} · age ${studyAges[index]}`}
                 >
                   <PortraitCanvas
-                    system={sheetSystem}
                     appearance={appearance}
                     age={studyAges[index]}
                     label={`Generated study ${index + 1}`}

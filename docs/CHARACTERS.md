@@ -65,15 +65,12 @@ re-export shim.
 
 ## The world sprite
 
-`src/render/characters/renderers.ts` lists renderers A–G. **G is the
-default**: `characterSprites: "g"` in `src/render/live-graphics.ts`, and
-**Settings → Display → Character sprites** switches renderers live.
-
-G is the paper doll in `doll/` (`draw.ts`, `head.ts`, `paint.ts`, `extras.ts`)
-with the `g` flag set:
+There is one sprite renderer, `drawCharacterG`, the paper doll in `doll/`
+(`draw.ts`, `head.ts`, `paint.ts`, `extras.ts`). The scene draws it in a worker
+(`worker.ts`), the panel and labs call it directly.
 - **Rig.** About a dozen joints in body space, turned to eight facings and
-  projected onto the native grid, so nothing is resampled. The adult is 37px,
-  and the head is about 40% of that.
+  projected onto the native grid, so nothing is resampled. The adult is 40px,
+  and the head is over a third of that.
 - **Parts.** Every part is a pixel mask at final size. `paint.ts` records a
   material and one of five tones per pixel; colour comes from `ramp()` at the
   end.
@@ -90,31 +87,28 @@ with the `g` flag set:
   and breathe at idle (`WorldScene.poseFrame`). Elders stoop.
 - `poses.ts` holds the shared pose list and `heldFrame` timing.
 - `world.ts` caches composed frames per scene.
+- `v2/pixels.ts` holds the ramps and sprite light the doll paints with.
 - `props.ts` draws held objects.
 - `shadow.ts` projects the whole pose onto the ground.
 
 Resting expressions come from stats through `restingExpressionOf`
 (`src/core/persona.ts`); hurt and startle override them.
 
-**Legacy, do not extend:** renderers A (`draw.ts`), B (`v2/`), C, D, E
-(`v3/draw.ts`) and F (G without the flag). They stay selectable for
-comparison only. Retiring them, and the shared code only they use, is welcome
-when you are working in this area.
-
 ## Portraits
 
 `src/render/portraits/sculpted.ts` draws the bust the game shows
 (`src/ui/CharacterSprite.tsx` calls `drawSculptedPortrait`). It matches the G
 sprite's clothes and colours through `clothColours`.
-- **Expressions.** `constructed.ts` supplies `FacePose`: eleven numbers applied
-  as pixel offsets, with twelve named poses in one table.
-  - `facePose(expression, amount)` tweens between poses.
-  - Blinking and the speaking mouth (`visemeFor`) run on their own clocks.
+- **Expressions.** `constructed.ts` names the twelve expressions, the blink
+  frames and the speaking mouth (`visemeFor`). The bust's `SHOWN` table turns
+  each expression into brow, lid and mouth offsets, scaled by `intensity`, over
+  the person's `restingPose`.
+  - Blinking and the speaking mouth run on their own clocks.
 - **Mood in dialogue.** In conversation the NPC wears the `mood` the model
   chose for its own line, a field of the dialogue reply beside `regard`. Only
   `regard` moves `actor.trust`.
-- **Faces vary independently.** Eye shape, nose profile (nine `noseForm`
-  entries), brow connection, eye alignment and detail, injury scars and
+- **Faces vary independently.** Eye shape, nose profile (nine shapes),
+  brow connection, eye alignment and detail, injury scars and
   adornment each have their own seeded stream. Adding one never rerolls the
   others.
 - **Ageing.** One stored recipe ages continuously: cheeks, jaw, lids, greying,
@@ -126,10 +120,7 @@ sprite's clothes and colours through `clothColours`.
   - `describeAdornment` (`src/core/character.ts`) names what is worn, in plain
     words, under **Worn and marked** in the panel.
 
-**Legacy, do not extend:**
-- `setSculptedRefined(false)`, which keeps the earlier bust
-- `layered.ts`, `three-quarter.ts` and `raster.ts`, which are lab-only systems
-  listed in `systems.ts`
+`raster.ts` is the bust's pixel buffer: materials, draw order and contour.
 
 ## The character panel
 
@@ -178,11 +169,10 @@ scope rules as name kits, with wide era floors so every date lands somewhere.
   attested dress. `/portrait-lab` is the bust's lab.
 - **Review sheets.** `npm run capture:characters -- <preset>`. A wrong name
   lists them all. Useful ones:
-  - `doll-g`, `wardrobe`, `street`, `soldiers`, `professions`
+  - `doll`, `wardrobe`, `street`, `soldiers`, `professions`
   - `expressions`, `weapons`, `work`
-  - `portrait-ab`, `portrait-age`
+  - `portrait-age`
 - **More sheets.** `npx tsx scripts/portrait-sheets.ts expressions|ears|marks|noses|nose-ornament`.
-- **In game.** `UHS_SPRITES=f npm run shot` shows another renderer in game.
 - **Tests:**
   - `tests/characters.test.ts`, `characters-world.test.ts`
   - `character-generation.test.ts`, `portraits.test.ts`

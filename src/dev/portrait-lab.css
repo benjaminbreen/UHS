@@ -120,26 +120,6 @@
   width: 100%;
   padding: 7px 8px;
 }
-.portrait-tuning label {
-  margin-bottom: 8px;
-}
-.portrait-tuning label > span {
-  display: flex;
-  justify-content: space-between;
-}
-.portrait-tuning output {
-  color: var(--pl-cyan);
-  font: 10px var(--pixel);
-}
-.portrait-tuning input[type="range"] {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  accent-color: var(--pl-coral);
-}
-.portrait-tuning-actions button:disabled {
-  opacity: 0.45;
-}
 .portrait-controls details {
   margin-top: 18px;
   color: #d9b477;
@@ -151,44 +131,19 @@
   font-size: 9px;
   white-space: pre-wrap;
 }
-.portrait-view-tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-.portrait-view-tabs button[aria-selected="true"] {
-  border-color: var(--pl-coral);
-  color: var(--pl-cyan);
-}
 .portrait-comparison {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 720px);
   gap: 14px;
 }
-.portrait-comparison[data-count="2"] {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.portrait-comparison[data-count="3"] .portrait-stage {
-  min-height: 360px;
-}
-.portrait-comparison[data-count="3"] .portrait-stage canvas {
-  width: 256px;
-  height: 320px;
-}
-.portrait-comparison[data-count="1"] {
-  grid-template-columns: minmax(0, 720px);
-}
-.portrait-comparison article > header,
 .portrait-contact-section > header {
   padding: 15px 18px;
   border-bottom: 1px solid #3c4665;
 }
-.portrait-comparison h2,
 .portrait-contact-section h2 {
   margin: 0;
   font-size: 22px;
 }
-.portrait-comparison p,
 .portrait-contact-section p {
   margin: 3px 0 0;
   font-size: 11px;
@@ -208,20 +163,6 @@
 }
 .portrait-lab canvas {
   image-rendering: pixelated;
-}
-.portrait-missing {
-  width: 320px;
-  height: 400px;
-  display: grid;
-  place-content: center;
-  gap: 12px;
-  color: #929ab3;
-  border: 1px dashed #68708a;
-  text-align: center;
-}
-.portrait-missing span {
-  color: var(--pl-coral);
-  font: 48px var(--serif);
 }
 .portrait-expression-sheet {
   margin-top: 18px;

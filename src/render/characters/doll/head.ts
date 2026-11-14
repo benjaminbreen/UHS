@@ -33,8 +33,6 @@ export type Head = {
   drift: number;
   /** An expression the action forces: surprise, a wince, gritted teeth. */
   face?: "o" | "squint" | "grit" | "talk";
-  /** Renderer G: brims lit on top and shading the face, a shaded nape. */
-  refined?: boolean;
 };
 
 type Style = { line: number; side: number; back: number; wide: number; vol: number };
@@ -102,8 +100,8 @@ export function headSpans(h: Head): [number, number][] {
   const wide = wideHead(a);
   const pinch = (spans: [number, number][], n: number) =>
     spans.map(([c0, c1]) => [Math.min(c0 + n, 6), Math.max(c1 - n, 7)] as [number, number]);
-  // G varies the dome: the usual, a flatter top, or a narrower one.
-  const dome = h.refined ? (hash(a.lineage ?? a.hairColor + a.skin) >> 2) % 3 : 0;
+  // The dome varies: the usual, a flatter top, or a narrower one.
+  const dome = (hash(a.lineage ?? a.hairColor + a.skin) >> 2) % 3;
   const crown: [number, number][] = a.head === "broad" ? [[3, 10], [1, 12], [0, 13]]
     : dome === 1 ? [[3, 10], [1, 12], [1, 12]] : dome === 2 ? [[5, 8], [3, 10], [1, 12]] : [[4, 9], [2, 11], [1, 12]];
   const jaw = pinch(jaws[a.jaw ?? (a.head === "round" ? "soft" : "original")], wide ? 0 : 1);
@@ -198,7 +196,7 @@ export function hairBehind(h: Head) {
     tone: hair === "locs" ? (x, _y, t) => (x % 2 ? Math.min(t, 2) : t)
       : hair === "braid" || hair === "queue" || hair === "tied" ? (x, y, t) => ((x + y) % 2 ? Math.min(t, 2) : t)
       // Seen from behind, the strands on the skull run on down the fall.
-      : h.refined && (h.view === "back" || h.view === "bq") ? (x, _y, t) => (t === 3 && [4, 7, 9].includes(x - h.x0) ? 2 : t)
+      : h.view === "back" || h.view === "bq" ? (x, _y, t) => (t === 3 && [4, 7, 9].includes(x - h.x0) ? 2 : t)
       : undefined,
   });
   if (hair === "tied") {
@@ -276,7 +274,7 @@ export function drawHead(h: Head) {
     s.retone(X(5), Y(1), 4);
     s.retone(X(3), Y(2), 4);
   }
-  if (h.refined && (view === "back" || view === "bq") && !covered) nape(h, tall - 1);
+  if ((view === "back" || view === "bq") && !covered) nape(h, tall - 1);
   if (view === "front" || view === "q" || view === "side") beard(h, lo);
   if (face && a.wearing.mask && a.wearing.mask !== "none") mask(h, lo);
   ornaments(h, lo, earsShow && !covered);
@@ -563,7 +561,7 @@ function drawHair(h: Head, st: Style, lo: number, capped: boolean) {
         r = y - h.y0;
       if (t === 3 && (view === "back" || view === "bq") && r >= 3 && r < back - 1 && (c === 4 || c === 9)) return 2;
       // A sheen across the crown.
-      if (h.refined && t === 3 && (view === "back" || view === "bq") && r === 2 && c >= 5 && c <= 8) return 4;
+      if (t === 3 && (view === "back" || view === "bq") && r === 2 && c >= 5 && c <= 8) return 4;
       return t;
     },
   });
@@ -737,10 +735,10 @@ function ornaments(h: Head, lo: number, ears: boolean) {
       if (ear === "spool" && open(c, 8)) s.px(X(c), Y(8), ORN, 3), s.px(X(c), Y(7), ORN, 4);
       if ((ear === "hoop" || ear === "drop") && open(c, 9)) {
         s.px(X(c), Y(9), ORN, ear === "hoop" ? 3 : 4);
-        // G: a drop swings a pixel behind the head as it moves.
-        const swing = h.refined && ear === "drop" ? Math.max(-1, Math.min(1, Math.round(h.drift))) : 0;
+        // A drop swings a pixel behind the head as it moves.
+        const swing = ear === "drop" ? Math.max(-1, Math.min(1, Math.round(h.drift))) : 0;
         if (open(c, 10)) s.px(X(c) + swing, Y(10), ORN, ear === "hoop" ? 4 : 3);
-        if (h.refined && ear === "drop") s.px(X(c) + swing, Y(11), ORN, 2);
+        if (ear === "drop") s.px(X(c) + swing, Y(11), ORN, 2);
       }
     }
   const nose = a.adornment?.nose;
@@ -868,8 +866,8 @@ function hatTrim(h: Head) {
     const band = m();
     band.span(r, c0, c1);
     s.put(band.mask, PLUME, { ring: "none", shade: 0.3, light: 0.2 });
-    // G: two tails off the back of the band, streaming behind a walk.
-    if (h.refined && view !== "front") {
+    // Two tails off the back of the band, streaming behind a walk.
+    if (view !== "front") {
       const tails = new Mask();
       const base = back ? [X(6), X(7)] : [X(c0)];
       base.forEach((x, n) => {
@@ -893,17 +891,12 @@ function hatTrim(h: Head) {
   // A plume curling up and back from the pin.
   const plume = m();
   const dir = back ? -1 : 1;
-  if (h.refined) {
-    // G: a curled feather whose drooping tip lags the head, up as a step lands, back as it walks.
-    const bob = Math.round(h.lag), trail = Math.round(h.drift);
-    plume.mask.line(X(c), Y(pr + 1), X(c + dir), Y(pr - 2), 2).line(X(c + dir), Y(pr - 2), X(c + dir * 3) + trail, Y(pr - 4) - bob, 2)
-      .line(X(c + dir * 3) + trail, Y(pr - 4) - bob, X(c + dir * 5) + trail, Y(pr - 3) - bob, 1);
-    // The spine catches the light; the barbs sit in shade.
-    s.put(plume.mask, PLUME, { ring: "ink", shade: 0.5, light: 0.3, top: true });
-    return;
-  }
-  plume.mask.line(X(c), Y(pr + 1), X(c + dir * 2), Y(pr - 3), 2).line(X(c + dir * 2), Y(pr - 3), X(c + dir * 4), Y(pr - 4), 1);
-  s.put(plume.mask, PLUME, { ring: "ink", shade: 0.3, light: 0.4, top: true });
+  // A curled feather whose drooping tip lags the head, up as a step lands, back as it walks.
+  const bob = Math.round(h.lag), trail = Math.round(h.drift);
+  plume.mask.line(X(c), Y(pr + 1), X(c + dir), Y(pr - 2), 2).line(X(c + dir), Y(pr - 2), X(c + dir * 3) + trail, Y(pr - 4) - bob, 2)
+    .line(X(c + dir * 3) + trail, Y(pr - 4) - bob, X(c + dir * 5) + trail, Y(pr - 3) - bob, 1);
+  // The spine catches the light; the barbs sit in shade.
+  s.put(plume.mask, PLUME, { ring: "ink", shade: 0.5, light: 0.3, top: true });
 }
 
 /** Facing away, the first skin under the hair is in its shade, and the neck
@@ -972,15 +965,12 @@ function headwear(h: Head, lo: number) {
       ring = "line";
       if (front) extra.set(view === "front" ? 6 : 10, 3).set(view === "front" ? 7 : 10, 3);
       break;
-    case "plume":
+    case "plume": {
       k.span(3, 0, 13);
-      if (h.refined) {
-        const bob = Math.round(h.lag), trail = Math.round(h.drift);
-        extra.mask.line(X(6), Y(2), X(4) + trail, Y(-6) - bob, 2).line(X(8), Y(2), X(9) + trail, Y(-7) - bob, 2).line(X(7), Y(2), X(7) + trail, Y(-5) - bob, 1);
-        break;
-      }
-      extra.mask.line(X(6), Y(2), X(4), Y(-6), 2).line(X(8), Y(2), X(9), Y(-7), 2).line(X(7), Y(2), X(7), Y(-5), 1);
+      const bob = Math.round(h.lag), trail = Math.round(h.drift);
+      extra.mask.line(X(6), Y(2), X(4) + trail, Y(-6) - bob, 2).line(X(8), Y(2), X(9) + trail, Y(-7) - bob, 2).line(X(7), Y(2), X(7) + trail, Y(-5) - bob, 1);
       break;
+    }
     case "cap":
       k.span(-1, 5, 8).span(0, 3, 10).rows(1, [[1, 12], [0, 13], [0, 13]]);
       break;
@@ -1067,15 +1057,14 @@ function headwear(h: Head, lo: number) {
       else k.span(2, -1, 14).span(3, view === "front" ? 1 : -1, view === "front" ? 12 : 14);
       extra.span(1, 1, 12);
       break;
-    case "fez":
+    case "fez": {
       k.span(-4, 5, 8).span(-3, 4, 9).span(-2, 4, 9).span(-1, 4, 9).span(0, 3, 10).span(1, 3, 10).span(2, 3, 10);
-      if (h.refined) {
-        // The tassel's end swings behind a walk.
-        const swing = Math.max(-1, Math.min(1, Math.round(h.drift)));
-        extra.set(9, -4).set(10, -3);
-        extra.mask.set(X(11) + swing, Y(-2)).set(X(11) + swing, Y(-1)).set(X(11) + swing * 2, Y(0));
-      } else extra.set(9, -3).set(10, -2).set(10, -1).set(10, 0);
+      // The tassel's end swings behind a walk.
+      const swing = Math.max(-1, Math.min(1, Math.round(h.drift)));
+      extra.set(9, -4).set(10, -3);
+      extra.mask.set(X(11) + swing, Y(-2)).set(X(11) + swing, Y(-1)).set(X(11) + swing * 2, Y(0));
       break;
+    }
     case "turban":
       k.span(-4, 4, 9).span(-3, 2, 11).rows(-2, [[0, 13], [-1, 14], [-1, 14], [-1, 14], [-1, 14], [0, 13], [0, 13]]);
       if (front) extra.set(view === "front" ? 6 : 10, 0).set(view === "front" ? 7 : 10, 0);
@@ -1319,7 +1308,7 @@ function headwear(h: Head, lo: number) {
     zone: hat === "nemes" ? (_x, y) => ((y - Y(0)) % 2 === 0 ? METAL : HAT) : undefined,
     tone:
       // Wound cloth: bands crossing on a slant, as the portrait winds them.
-      hat === "turban" || hat === "dastar" || (h.refined && hat === "wrap")
+      hat === "turban" || hat === "dastar" || hat === "wrap"
         ? (x, y, t) => (t >= 3 && (x - y + 40) % 4 === 0 ? 2 : t)
         // Printed cotton: a small light spot.
         : hat === "kerchief"
@@ -1350,14 +1339,14 @@ function headwear(h: Head, lo: number) {
                 : t
             : undefined,
   });
-  if (h.refined) brim(h, k.mask);
+  brim(h, k.mask);
   hatTrim(h);
   if (!extra.mask.empty()) {
     const accent = hat === "fillet" || hat === "turban" || hat === "kabuto" || hat === "eagle" || hat === "nemes" || hat === "shako" || hat === "bearskin" ? METAL : TRIM;
     // Felt hats carry a band of the same felt, darker; a boater's is ribbon.
     const self = ["flat-cap", "ball-cap", "fedora", "cloche", "pillbox", "beret"].includes(hat);
     s.put(extra.mask, hat === "plume" || hat === "jaguar" || hat === "mian" || hat === "hennin" ? WHITE : hat === "dastar" ? HAT : self ? HAT : accent, {
-      ring: hat === "plume" || (h.refined && hat === "fez") ? "ink" : hat === "hennin" ? "line" : "none",
+      ring: hat === "plume" || hat === "fez" ? "ink" : hat === "hennin" ? "line" : "none",
       shade: 0.3,
       light: 0.3,
       dark: self || hat === "dastar" ? 1 : 0,

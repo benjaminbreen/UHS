@@ -1033,8 +1033,6 @@ export class WorldScene extends Phaser.Scene {
       });
     });
     this.characters = new WorldCharacters(this, this.runtime.engine.state.manifest.seed);
-    this.characters.outline = this.liveGraphics.characterOutline;
-    this.characters.renderer = this.liveGraphics.characterSprites;
     this.characters.palette = this.runtime.palette();
     this.wading = new WadingEffects(this);
     this.prepareTreeStudySheet();
@@ -3557,10 +3555,6 @@ export class WorldScene extends Phaser.Scene {
     if (!this.cameras?.main || !this.game?.canvas) return;
     const camera = this.cameras.main;
     camera.roundPixels = this.liveGraphics.roundPixels;
-    if (this.characters) {
-      this.characters.outline = this.liveGraphics.characterOutline;
-      this.characters.renderer = this.liveGraphics.characterSprites;
-    }
     camera.setLerp(this.liveGraphics.followLerp);
     this.game.canvas.style.imageRendering = this.liveGraphics.canvasSampling;
     this.textures.each(
@@ -8725,8 +8719,6 @@ export class WorldScene extends Phaser.Scene {
     if (pose === "idle") {
       const cycle = 3400 + (offset % 3800);
       if ((time + offset) % cycle < 130) return 3;
-      // Only G draws idle's middle frames as a breath and a shift of weight.
-      if (this.characters?.renderer !== "g") return 0;
       if ((time + offset * 7) % (9000 + (offset % 6000)) < 2600) return 2;
       return (time + offset) % 3600 < 1500 ? 1 : 0;
     }

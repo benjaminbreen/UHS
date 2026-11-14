@@ -17,18 +17,12 @@ import { portableProps } from "../src/render/characters/props";
 import atlas from "../public/props/atlas.json" with { type: "json" };
 import natureAtlas from "../public/nature/atlas.json" with { type: "json" };
 import { propDefs } from "../src/content/props/catalog";
-import { drawHead } from "../src/render/characters/v2/head";
-import { Pixels, ramp } from "../src/render/characters/v2/pixels";
-import type { CharacterAppearance } from "../src/core/character";
-import type { RestingExpression } from "../src/core/persona";
-import type { CharacterPose } from "../src/render/characters/poses";
 import { poses, workPoseFor } from "../src/render/characters/poses";
 import { greetingFor } from "../src/content/characters/greetings";
 import { places } from "../src/content/geography/places";
 import { settingFor } from "../src/content/geography/resolve";
 import { smokingFrom, smokingHabit } from "../src/content/characters/smoking";
-import { defaultRenderer, workerDrawn } from "../src/render/characters/renderers";
-import { drawCharacterF, drawCharacterG } from "../src/render/characters/doll/draw";
+import { drawCharacterG } from "../src/render/characters/doll/draw";
 
 it("carries the same healed cheek scar into the world sprite", () => {
   const a = generateAppearance("sprite-scar", 4, 36, { sex: "male" });
@@ -100,57 +94,7 @@ it("selects physical work by the task instead of treating every station alike", 
   expect(workPoseFor("work", "Standing watch", "barrel")).toBeUndefined();
 });
 
-function headPixels(a: CharacterAppearance, expression: RestingExpression, pose: CharacterPose = "idle", squeezed = false) {
-  const pixels = new Map<string, string>();
-  const ctx = {
-    fillStyle: "",
-    getTransform: () => ({ a: 1, b: 0, c: 0, d: 1, e: 0, f: 0 }),
-    fillRect(x: number, y: number, w: number, h: number) {
-      for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++)
-        pixels.set(`${i},${j}`, this.fillStyle);
-    },
-    clearRect(x: number, y: number, w: number, h: number) {
-      for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++)
-        pixels.delete(`${i},${j}`);
-    },
-  };
-  const p = new Pixels(ctx as unknown as CanvasRenderingContext2D);
-  p.modeling = false;
-  if (squeezed) p.squeeze = { rows: [5, 14], cols: [5, 15] };
-  drawHead(p, a, false, false, pose, 0, 0, false, expression);
-  return pixels;
-}
-
-it("separates neutral mouths from every nose shadow in drawn and compressed heads", () => {
-  for (const nose of ["straight", "broad", "snub"] as const) {
-    const a: CharacterAppearance = { ...originalAppearance, hair: "bald", beard: "none", head: "original", jaw: "original",
-      face: { ...generateFace("expression-test", 0), nose, mouth: "soft", detail: "clear" },
-      wearing: { ...originalAppearance.wearing, headwear: "none", eyewear: "none" } };
-    for (const squeezed of [false, true]) {
-      const pixels = headPixels(a, "neutral", "idle", squeezed);
-      const gap = squeezed ? 12 : 11, mouth = gap + 1;
-      expect(pixels.get(`10,${gap}`)).toBe(ramp(a.skin, "skin").base);
-      expect(pixels.get(`11,${gap}`)).toBe(ramp(a.skin, "skin").base);
-      expect(pixels.get(`10,${mouth}`)).not.toBe(ramp(a.skin, "skin").base);
-      expect(pixels.get(`10,${mouth}`)).toBe(pixels.get(`11,${mouth}`));
-    }
-  }
-});
-
-it("draws five distinct resting faces while hurt and startle override them", () => {
-  const a: CharacterAppearance = { ...originalAppearance, hair: "bald", beard: "none", head: "original", jaw: "original" };
-  const expressions: RestingExpression[] = ["neutral", "smile", "soft", "serious", "concerned"];
-  expect(new Set(expressions.map((e) => JSON.stringify([...headPixels(a, e)]))).size).toBe(5);
-  for (const pose of ["hurt", "startle"] as const)
-    for (const expression of expressions)
-      expect(headPixels(a, expression, pose)).toEqual(headPixels(a, "neutral", pose));
-});
-
 describe("character recipes", () => {
-  // b81615cb made E the default while only C and D went to workers: 79 hitches a walk.
-  it("draws the default renderer off the main thread", () => {
-    expect(workerDrawn(defaultRenderer)).toBe(true);
-  });
   it("has repeatable independent body and clothing variety", () => {
     const people = Array.from({ length: 192 }, (_, i) =>
       generateAppearance("study", i),
@@ -371,7 +315,7 @@ it("keeps authored cuts, sleeve shapes and mantle when composing worn equipment"
   expect(composeWearing(base, {}, (id) => wearableItems[id]).front).toBeUndefined();
 });
 
-it.runIf(!!process.env.FULL)("draws the paper doll in every garment, headwear and facing, standing where E stands", () => {
+it.runIf(!!process.env.FULL)("draws every garment, headwear and facing inside the frame", () => {
   const data = new Uint8ClampedArray(80 * 80 * 4);
   const ctx = {
     clearRect: () => data.fill(0),
@@ -387,20 +331,20 @@ it.runIf(!!process.env.FULL)("draws the paper doll in every garment, headwear an
     for (const hat of headwear)
       for (let facing = 0; facing < 8; facing++) {
         const a = { ...originalAppearance, wearing: { ...originalAppearance.wearing, garment, headwear: hat } };
-        drawCharacterF(ctx, a, 2, facing % 2 ? "walk" : "idle", facing, undefined, facing);
+        drawCharacterG(ctx, a, 2, facing % 2 ? "walk" : "idle", facing, undefined, facing);
         // A stride or a turned body puts the near foot a row lower, never off the frame.
         expect(rows().at(-1)).toBeLessThanOrEqual(facing === 4 || facing === 0 ? 78 : 79);
         expect(rows().at(-1)).toBeGreaterThanOrEqual(77);
       }
-  drawCharacterF(ctx, originalAppearance, 2, "idle", 0, undefined, 4);
+  drawCharacterG(ctx, originalAppearance, 2, "idle", 0, undefined, 4);
   const filled = rows();
-  expect(filled.at(-1)! - filled[0] + 1).toBe(37);
+  expect(filled.at(-1)! - filled[0] + 1).toBe(40);
   // Every pose, frame, facing and turn beat stays inside the frame.
   for (const pose of poses)
     for (let facing = 0; facing < 8; facing++)
       for (let frame = 0; frame < 4; frame++)
         for (const turn of [-3, -2, 0, 2, 3]) {
-          drawCharacterF(ctx, originalAppearance, 2, pose, frame, undefined, facing, "neutral", turn);
+          drawCharacterG(ctx, originalAppearance, 2, pose, frame, undefined, facing, "neutral", turn);
           const r = rows();
           expect(r.length).toBeGreaterThan(20);
           expect(r[0]).toBeGreaterThan(0);

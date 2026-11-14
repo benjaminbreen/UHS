@@ -104,12 +104,11 @@ try {
     const memory = process.env.PERF_MEMORY === "1" ? await sampleMemory(page) : undefined;
     const errors = [];
     page.on("pageerror", (e) => errors.push(e.message));
-    await page.addInitScript(({ renderer }) => {
+    await page.addInitScript(() => {
       // Keep generated world seeds identical across benchmark runs.
       let serial = 0;
       crypto.randomUUID = () =>
         `00000000-0000-4000-8000-${String(++serial).padStart(12, "0")}`;
-      if (renderer) localStorage.setItem("uhs-character-sprites", renderer);
       window.longTasks = [];
       new PerformanceObserver((list) =>
         window.longTasks.push(
@@ -118,7 +117,7 @@ try {
             .map((e) => ({ start: e.startTime, ms: e.duration })),
         ),
       ).observe({ type: "longtask", buffered: true });
-    }, { renderer: process.env.PERF_RENDERER });
+    });
     const start = Date.now();
     await page.goto(base);
     await page

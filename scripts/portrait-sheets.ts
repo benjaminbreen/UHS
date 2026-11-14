@@ -10,7 +10,8 @@ import {
   noseShapes,
   type CharacterAppearance,
 } from "../src/core/character";
-import { paintConstructed, expressions, facePose } from "../src/render/portraits/constructed";
+import { expressions, type Expression } from "../src/render/portraits/constructed";
+import { paintSculpted } from "../src/render/portraits/sculpted";
 
 const which = process.argv[2] ?? "ears";
 const bare = (seed: string, index: number, age: number): CharacterAppearance => {
@@ -23,7 +24,7 @@ const bare = (seed: string, index: number, age: number): CharacterAppearance => 
     adornment: { ears: "none", nose: "none", marks: "none", markStyle: "ink", metal: "gold" },
   };
 };
-type Cell = { a: CharacterAppearance; age: number; pose?: ReturnType<typeof facePose> };
+type Cell = { a: CharacterAppearance; age: number; expression?: Expression };
 let cells: Cell[] = [];
 let cols = 6;
 let out = "";
@@ -66,7 +67,7 @@ if (which === "ears") {
   out = "artifacts/portrait-lab/expressions.png";
   cols = 6;
   cells = [3, 11].flatMap((i) =>
-    expressions.map((e) => ({ a: bare("sheet-face:1", i, 28), age: 28, pose: facePose(e, 1) })),
+    expressions.map((expression) => ({ a: bare("sheet-face:1", i, 28), age: 28, expression })),
   );
 }
 const scale = Number(process.env.S ?? 8), X = Number(process.env.X ?? 12), Y = Number(process.env.Y ?? 8), W = Number(process.env.W ?? 40), H = Number(process.env.H ?? 40), pad = 1;
@@ -76,7 +77,7 @@ const height = (rows * (H + pad) + pad) * scale;
 const rgba = new Uint8Array(width * height * 4);
 for (let i = 0; i < width * height; i++) { rgba[i*4]=0x1a; rgba[i*4+1]=0x1f; rgba[i*4+2]=0x36; rgba[i*4+3]=255; }
 cells.forEach((cell, n) => {
-  const r = paintConstructed(cell.a, cell.age, undefined, 0, false, cell.pose);
+  const r = paintSculpted(cell.a, cell.age, { expression: cell.expression });
   const ox = (pad + (n % cols) * (W + pad)) * scale;
   const oy = (pad + Math.floor(n / cols) * (H + pad)) * scale;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {

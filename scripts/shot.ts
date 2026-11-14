@@ -131,9 +131,6 @@ async function shoot(browser: Browser, site: string, out: string, prompt: string
 
   async function capture() {
     phase("opening the starting screen");
-    // UHS_SPRITES="f" picks the character renderer, as Settings → Display does.
-    if (process.env.UHS_SPRITES)
-      await page.addInitScript(`localStorage.setItem("uhs-character-sprites", ${JSON.stringify(process.env.UHS_SPRITES)})`);
     const url = new URL(site);
     url.searchParams.set("start", prompt);
     if (process.env.UHS_SEED) url.searchParams.set("seed", process.env.UHS_SEED);

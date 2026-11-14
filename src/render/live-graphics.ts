@@ -22,9 +22,6 @@ export type LiveGraphicsSettings = {
   frameCap: FrameCap;
   roundPixels: boolean;
   occlusion: boolean;
-  characterOutline: boolean;
-  /** Which character renderer the world draws with. */
-  characterSprites: "b" | "c" | "d" | "e" | "f" | "g";
   textureSampling: TextureSampling;
   canvasSampling: CanvasSampling;
   zoomDuration: number;
@@ -68,8 +65,6 @@ export const defaultLiveGraphicsSettings: LiveGraphicsSettings = {
   frameCap: 60,
   roundPixels: true,
   occlusion: false,
-  characterOutline: true,
-  characterSprites: "g",
   textureSampling: "nearest",
   canvasSampling: "pixelated",
   zoomDuration: 130,
@@ -106,7 +101,6 @@ export const defaultLiveGraphicsSettings: LiveGraphicsSettings = {
   tiltVignette: 0.41,
 };
 
-export const CHARACTER_SPRITES_KEY = "uhs-character-sprites";
 export const DISPLAY_SETTINGS_KEY = "uhs-display-settings";
 
 export function storedDisplaySettings() {
@@ -121,13 +115,4 @@ export function storedDisplaySettings() {
       if (typeof stored?.[key] === "boolean") settings[key] = stored[key];
   } catch {}
   return settings;
-}
-/** The sprite choice outlives a reload so an A/B session survives one. */
-export function storedCharacterSprites(): LiveGraphicsSettings["characterSprites"] {
-  try {
-    const id = localStorage.getItem(CHARACTER_SPRITES_KEY);
-    return id === "b" || id === "c" || id === "d" || id === "e" || id === "f" ? id : "g";
-  } catch {
-    return "g";
-  }
 }

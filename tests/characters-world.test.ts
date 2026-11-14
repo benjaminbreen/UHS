@@ -4,7 +4,7 @@ import { originalAppearance } from "../src/core/character";
 import { statsOf } from "../src/core/stats";
 import { restingExpressionOf } from "../src/core/persona";
 import { WorldCharacters } from "../src/render/characters/world";
-import { renderers } from "../src/render/characters/renderers";
+import { drawCharacterG } from "../src/render/characters/doll/draw";
 import type { CharacterFrameRequest, CharacterFrameResponse } from "../src/render/characters/worker";
 
 const device = vi.hoisted(() => ({ mobile: false }));
@@ -18,13 +18,7 @@ vi.mock("../src/render/characters/props", () => ({
   loadCarriedArt: () => Promise.resolve(new Map()),
   iconCarriedArt: vi.fn(),
 }));
-vi.mock("../src/render/characters/renderers", () => ({
-  defaultRenderer: "d",
-  renderers: Object.fromEntries(["a", "b", "c", "d"].map((id) => [id, { draw: vi.fn() }])),
-  outlineCharacter: vi.fn(),
-  outlined: () => false,
-  workerDrawn: (id: string) => id !== "a" && id !== "b",
-}));
+vi.mock("../src/render/characters/doll/draw", () => ({ drawCharacterG: vi.fn() }));
 
 class FakeWorker {
   static instances: FakeWorker[] = [];
@@ -86,10 +80,9 @@ it("separates identical appearances with different expressions and invalidates c
 });
 
 it("passes the same resting expression to synchronous rendering", () => {
-  characters.renderer = "b";
   const stats = { ...statsOf("seed", actor), extraversion: 80 };
-  characters.frame({ ...actor, stats }, "idle", 0);
-  expect(renderers.b.draw).toHaveBeenLastCalledWith(
+  characters.frame({ ...actor, id: "player", stats }, "idle", 0);
+  expect(drawCharacterG).toHaveBeenLastCalledWith(
     expect.anything(), originalAppearance, 2, "idle", 0, undefined, undefined, "smile",
   );
 });
@@ -97,7 +90,7 @@ it("passes the same resting expression to synchronous rendering", () => {
 it("deduplicates missing frames, prefetches the next, and draws off thread", () => {
   expect(characters.frame(actor, "walk", 0)).toBeUndefined();
   expect(characters.frame(actor, "walk", 0)).toBeUndefined();
-  expect(renderers.d.draw).not.toHaveBeenCalled();
+  expect(drawCharacterG).not.toHaveBeenCalled();
   expect(FakeWorker.instances.flatMap((w) => w.postMessage.mock.calls)).toHaveLength(2);
   FakeWorker.instances[0].finish();
   const first = characters.frame(actor, "walk", 0);
@@ -131,7 +124,7 @@ it.each([false, true])("prepares strides and transitions without delaying a visi
   characters = new WorldCharacters(scene as unknown as Phaser.Scene);
   const player = { ...actor, id: "player" };
   characters.frame(player, "idle", 0);
-  expect(renderers.d.draw).toHaveBeenCalledOnce();
+  expect(drawCharacterG).toHaveBeenCalledOnce();
   expect(FakeWorker.instances).toHaveLength(mobile ? 1 : 2);
   const resident = { ...actor, id: "resident", direction: 1 };
   characters.frame(resident, "idle", 0);
@@ -146,7 +139,7 @@ it.each([false, true])("prepares strides and transitions without delaying a visi
     expect(frames.every((key) => typeof key === "string")).toBe(true);
     expect(new Set(frames).size).toBe(count);
   }
-  expect(renderers.d.draw).toHaveBeenCalledOnce();
+  expect(drawCharacterG).toHaveBeenCalledOnce();
   expect(FakeWorker.instances.flatMap((w) => w.postMessage.mock.calls)).toHaveLength(calls);
 });
 
@@ -169,7 +162,7 @@ it("does not show an old appearance while its replacement is pending", () => {
 });
 
 it("retains reusable poses past three seconds and evicts unused frames later", () => {
-  characters.renderer = "b";
+  vi.stubGlobal("Worker", undefined);
   const first = characters.frame(actor, "walk", 0);
   characters.frame(actor, "idle", 0);
   scene.time.now = 5000;
@@ -183,7 +176,7 @@ it("retains reusable poses past three seconds and evicts unused frames later", (
 });
 
 it("bounds retained textures while keeping the frame currently displayed", () => {
-  characters.renderer = "b";
+  vi.stubGlobal("Worker", undefined);
   const pinned = characters.frame(actor, "idle", 0);
   for (let i = 0; i < 450; i++) {
     scene.time.now = i;
@@ -207,6 +200,6 @@ it("falls back to the original renderer if worker startup or rendering fails", (
   characters.frame(actor, "idle", 0);
   FakeWorker.instances[0].onerror?.();
   expect(characters.frame(actor, "idle", 0)).toMatch(/^character-test-/);
-  expect(renderers.d.draw).toHaveBeenCalledOnce();
+  expect(drawCharacterG).toHaveBeenCalledOnce();
   expect(FakeWorker.instances.every((w) => w.terminate.mock.calls.length > 0)).toBe(true);
 });

@@ -168,10 +168,8 @@ import {
 } from "./theme";
 import { workIcon } from "./task-icons";
 import {
-  CHARACTER_SPRITES_KEY,
   DISPLAY_SETTINGS_KEY,
   defaultLiveGraphicsSettings,
-  storedCharacterSprites,
   storedDisplaySettings,
   type LiveGraphicsSettings,
 } from "../render/live-graphics";
@@ -347,7 +345,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     () => ({
       ...defaultLiveGraphicsSettings,
       ...storedDisplaySettings(),
-      characterSprites: storedCharacterSprites(),
     }),
   );
   const liveGraphicsRef = useRef(liveGraphics);
@@ -746,10 +743,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       } catch {}
   };
   const resetLiveGraphics = () => {
-    updateLiveGraphics({
-      ...defaultLiveGraphicsSettings,
-      characterSprites: liveGraphicsRef.current.characterSprites,
-    });
+    updateLiveGraphics(defaultLiveGraphicsSettings);
     runtime.setZoom(2);
   };
   useEffect(() => {
@@ -3033,30 +3027,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       />
                     </label>
                   ))}
-                  <div className="settings-row">
-                    <span>Character sprites</span>
-                    <select
-                      aria-label="Character sprites"
-                      value={liveGraphics.characterSprites}
-                      onChange={(e) => {
-                        const next = e.target
-                          .value as LiveGraphicsSettings["characterSprites"];
-                        updateLiveGraphics({ characterSprites: next });
-                        try {
-                          localStorage.setItem(CHARACTER_SPRITES_KEY, next);
-                        } catch {
-                          /* private mode */
-                        }
-                      }}
-                    >
-                      <option value="b">B · drawn</option>
-                      <option value="c">C · modelled prototype</option>
-                      <option value="d">D · unfinished</option>
-                      <option value="e">E · modelled</option>
-                      <option value="f">F · paper doll</option>
-                      <option value="g">G · default</option>
-                    </select>
-                  </div>
                   <div className="settings-row">
                     <span>Story cards</span>
                     <select

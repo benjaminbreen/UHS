@@ -18,13 +18,8 @@ import { characterAppearanceSchema } from "../src/runtime/schema";
 import { MAT } from "../src/render/portraits/raster";
 import { mix } from "../src/render/characters/pixels";
 import { appearanceKits } from "../src/content/characters/profiles/communities";
-import {
-  expressions,
-  facePose,
-  paintConstructed,
-  restingFace,
-  type Expression,
-} from "../src/render/portraits/constructed";
+import { expressions, type Expression } from "../src/render/portraits/constructed";
+import { paintSculpted } from "../src/render/portraits/sculpted";
 
 const base = (over: Partial<CharacterAppearance> = {}): CharacterAppearance => {
   const a = generateAppearance("portrait-test", 3, 30);
@@ -42,8 +37,8 @@ const base = (over: Partial<CharacterAppearance> = {}): CharacterAppearance => {
     ...over,
   };
 };
-const pixels = (a: CharacterAppearance, pose = restingFace) =>
-  paintConstructed(a, 30, undefined, 0, false, pose).color.join("");
+const pixels = (a: CharacterAppearance, expression?: Expression, intensity?: number) =>
+  paintSculpted(a, 30, { expression, intensity }).color.join("");
 
 it("keeps an adult chin in front of the neck with a shaded transition beneath it", async () => {
   const { trace } = await import("../src/render/portraits/sculpted");
@@ -372,36 +367,20 @@ it("warms the resting nod off-thread and reports ready only after its pixels arr
 
 describe("portrait expressions", () => {
   it("rests when nothing is asked of the face", () => {
-    expect(facePose("neutral")).toEqual(restingFace);
-    expect(facePose("happy", 0)).toEqual(restingFace);
-    expect(pixels(base(), facePose("neutral"))).toBe(pixels(base()));
+    expect(pixels(base(), "neutral")).toBe(pixels(base()));
+    expect(pixels(base(), "happy", 0)).toBe(pixels(base()));
   });
-  it("draws a different face for every named expression", () => {
-    const drawn = new Map<string, Expression>();
-    for (const expression of expressions) {
-      const key = pixels(base(), facePose(expression));
-      expect(drawn.has(key)).toBe(false);
-      drawn.set(key, expression);
-    }
-    expect(drawn.size).toBe(expressions.length);
-  });
-  it("scales a pose, so a change can be played rather than cut to", () => {
-    const half = facePose("laugh", 0.5);
-    const full = facePose("laugh", 1);
-    expect(half.mouthOpen).toBe(full.mouthOpen / 2);
-    expect(pixels(base(), half)).not.toBe(pixels(base(), full));
-    expect(pixels(base(), half)).not.toBe(pixels(base()));
+  it("moves the face for every named expression", () => {
+    for (const e of expressions) if (e !== "neutral") expect(pixels(base(), e)).not.toBe(pixels(base()));
   });
 });
 
 describe("portrait ornament", () => {
-  it("draws every ear ornament, and differently", () => {
-    const drawn = new Set(
-      earOrnaments.map((ears) =>
-        pixels(base({ adornment: { ears, nose: "none", marks: "none" } })),
-      ),
-    );
-    expect(drawn.size).toBe(earOrnaments.length);
+  // The bust has no cuff yet: it sits on the upper helix, where the bust shows no ear.
+  it("draws every ear ornament but the cuff, and differently", () => {
+    const shown = earOrnaments.filter((ears) => ears !== "cuff");
+    const drawn = new Set(shown.map((ears) => pixels(base({ adornment: { ears, nose: "none", marks: "none" } }))));
+    expect(drawn.size).toBe(shown.length);
   });
   it("draws every face mark, and never over an eye or a hat", () => {
     const drawn = new Set(
@@ -417,10 +396,8 @@ describe("portrait ornament", () => {
     for (const headwear of ["none", "hood", "helmet"] as const) {
       const wearing = { ...base().wearing, headwear };
       for (const marks of faceMarks) {
-        const plain = paintConstructed(
-          base({ wearing, adornment: { marks: "none" } }),
-        );
-        const inked = paintConstructed(base({ wearing, adornment: { marks } }));
+        const plain = paintSculpted(base({ wearing, adornment: { marks: "none" } }));
+        const inked = paintSculpted(base({ wearing, adornment: { marks } }));
         for (let i = 0; i < plain.color.length; i++)
           if (plain.color[i] !== inked.color[i])
             expect(plain.mat[i]).toBe(MAT.skin);

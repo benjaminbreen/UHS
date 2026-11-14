@@ -19,8 +19,6 @@ export type Figure = {
   chestD: number;
   /** Screen offset of loose cloth's free end, by how far down it hangs (0 to 1). */
   drift: (f: number) => number;
-  /** Renderer G: loose ends flutter. */
-  refined?: boolean;
 };
 
 const away = (f: Figure) => f.cos < -0.1;
@@ -449,8 +447,8 @@ export function neckwear(f: Figure, kind: "ruff" | "cravat" | "neckerchief" | "n
   const cc = f.centre(f.shoulder);
   m.span(row, rnd(cc - w + 0.5), rnd(cc + w - 0.5));
   // The point hangs at the front, or down the back when the knot is turned round.
-  m.span(row + 1, rnd(c - 0.5), rnd(c + 0.5)).set(rnd(c + (f.refined ? f.drift(0.6) : 0)), row + 2);
-  if (f.refined) m.set(rnd(c + f.drift(1)), row + 3);
+  m.span(row + 1, rnd(c - 0.5), rnd(c + 0.5)).set(rnd(c + f.drift(0.6)), row + 2);
+  m.set(rnd(c + f.drift(1)), row + 3);
   s.put(m, KERCHIEF, { ring: "line", shade: 0.3, light: 0.3 });
 }
 

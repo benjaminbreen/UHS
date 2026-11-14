@@ -10,14 +10,7 @@ import {
   type AppearancePalette,
   type CharacterAppearance,
 } from "../../core/character";
-import {
-  defaultRenderer,
-  workerDrawn,
-  outlineCharacter,
-  outlined,
-  renderers,
-  type RendererId,
-} from "./renderers";
+import { drawCharacterG } from "./doll/draw";
 import { setSpriteLight, spriteLightFor } from "./v2/pixels";
 import { iconCarriedArt, loadCarriedArt, type CarriedArt } from "./props";
 import {
@@ -83,8 +76,6 @@ export class WorldCharacters {
   /** The hour the figures are lit for. Frames are cached per phase, so this is
    * six rasters of a pose in the worst case, not one per minute. */
   light: LightingId = "midday";
-  outline = true;
-  renderer: RendererId = defaultRenderer;
   private disposed = false;
   private lastPrune = 0;
   constructor(private scene: Phaser.Scene, private seed = "") {
@@ -166,13 +157,9 @@ export class WorldCharacters {
               );
               this.install(signature, canvas);
               const token = signature.split(":")[0];
-              const renderer = signature.split(":").at(-1);
-              for (const [id, wanted] of this.wanted) {
-                const previous = this.lastFrames.get(id);
-                if (wanted.startsWith(`${token}:`) && wanted.endsWith(`:${renderer}`) &&
-                  (!previous?.startsWith(`${token}:`) || !previous.endsWith(`:${renderer}`)))
+              for (const [id, wanted] of this.wanted)
+                if (wanted.startsWith(`${token}:`) && !this.lastFrames.get(id)?.startsWith(`${token}:`))
                   this.lastFrames.set(id, signature);
-              }
             });
           }
           this.pump();
@@ -274,7 +261,7 @@ export class WorldCharacters {
     resolved.used = this.scene.time.now;
     const a = resolved.appearance,
       art = this.carried(prop);
-    const signatureFor = (pose: CharacterPose, frame: number) => `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}:${this.light}:${this.outline ? 1 : 0}:${turn}:${condition}:${this.renderer}`;
+    const signatureFor = (pose: CharacterPose, frame: number) => `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}:${this.light}:${turn}:${condition}`;
     const signature = signatureFor(pose, frame);
     const cached = this.cache.get(signature);
     if (cached && this.wanted.get(actor.id) === signature) {
@@ -283,13 +270,12 @@ export class WorldCharacters {
       return cached.key;
     }
     this.wanted.set(actor.id, signature);
-    if (workerDrawn(this.renderer)) this.startWorkers();
-    if (this.pool.length && workerDrawn(this.renderer)) {
+    this.startWorkers();
+    if (this.pool.length) {
       const preset = lightingPreset(this.light);
       const request: CharacterFrameRequest = {
-        signature, renderer: this.renderer, appearance: a,
+        signature, appearance: a,
         direction: actor.direction, facing: actor.facing, expression: resolved.expression, pose, frame, turn, condition,
-        outline: this.outline,
         light: {
           ...spriteLightFor(preset.cast, this.light === "night"),
           warm: `#${preset.tint}`,
@@ -326,7 +312,7 @@ export class WorldCharacters {
       if (entry) this.lastFrames.set(actor.id, signature);
       else {
         const previous = this.lastFrames.get(actor.id);
-        if (previous?.startsWith(`${resolved.signature}:`) && previous.endsWith(`:${this.renderer}`))
+        if (previous?.startsWith(`${resolved.signature}:`))
           entry = this.cache.get(previous);
       }
       if (actor.id !== "player" || this.cache.has(signature)) {
@@ -348,7 +334,7 @@ export class WorldCharacters {
         warm: `#${preset.tint}`,
         cool: preset.ambientAlpha ? `#${preset.ambient}` : "#241c38",
       });
-      renderers[this.renderer].draw(
+      drawCharacterG(
         c.getContext("2d", { willReadFrequently: true })!,
         a,
         actor.direction,
@@ -359,7 +345,6 @@ export class WorldCharacters {
         resolved.expression,
         ...((turn || condition ? [turn, condition] : []) as [turn?: number, condition?: number]),
       );
-      if (this.outline && !outlined(this.renderer)) outlineCharacter(c.getContext("2d")!);
       setSpriteLight(undefined);
       entry = this.install(signature, c);
     }
@@ -373,7 +358,7 @@ export class WorldCharacters {
     if (!texture) {
       texture = `${key}-shadow-${phase}`;
       this.scene.textures
-        .addCanvas(texture, characterShadow(entry.canvas, phase, this.renderer === "f" || this.renderer === "g" ? 78 : 79))
+        .addCanvas(texture, characterShadow(entry.canvas, phase, 78))
         ?.setFilter(Phaser.Textures.FilterMode.NEAREST);
       entry.shadows.set(phase, texture);
     }

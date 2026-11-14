@@ -23,14 +23,7 @@ import {
 } from "../core/character";
 import { characterAppearanceSchema } from "../runtime/schema";
 import type { Runtime } from "../runtime/session";
-import {
-  defaultRenderer,
-  outlineCharacter,
-  outlined as finished,
-  renderers,
-  type CharacterRenderer,
-  type RendererId,
-} from "../render/characters/renderers";
+import { drawCharacterG as drawCharacter } from "../render/characters/doll/draw";
 import {
   poses,
   poseTiming,
@@ -61,11 +54,6 @@ function download(name: string, href: string) {
   a.href = href;
   a.click();
 }
-const pairs = { ab: ["a", "b"], bc: ["b", "c"], bd: ["b", "d"], cd: ["c", "d"], de: ["d", "e"] } as const satisfies Record<
-  string,
-  readonly [RendererId, RendererId]
->;
-type Pair = keyof typeof pairs;
 const FACING_NAMES = [
   "north",
   "north-east",
@@ -109,9 +97,6 @@ export function CharacterLab({
     [target, setTarget] = useState("player"),
     [locked, setLocked] = useState(false);
   const [lighting, setLighting] = useState<LightingId>("midday");
-  // Defaults to whatever the game draws; "a" stays selectable for comparison.
-  const [engine, setEngine] = useState<RendererId | Pair>(defaultRenderer);
-  const [outline, setOutline] = useState(true);
   const shadowCanvas = useRef<HTMLCanvasElement>(null);
   const hero = useRef<HTMLCanvasElement>(null),
     sheet = useRef<HTMLCanvasElement>(null),
@@ -149,21 +134,9 @@ export function CharacterLab({
     buffer.width = 80;
     buffer.height = 80;
     const b = buffer.getContext("2d")!;
-    const pair = engine in pairs ? pairs[engine as Pair] : undefined,
-      compare = !!pair;
-    const withOutline = (id: RendererId): CharacterRenderer => {
-      const draw = renderers[id].draw;
-      return outline && !finished(id)
-        ? (c, ...rest) => {
-            draw(c, ...rest);
-            outlineCharacter(c);
-          }
-        : draw;
-    };
-    const drawCharacter = withOutline(pair ? pair[1] : (engine as RendererId));
     const galleryPhases = new Map<number, HTMLCanvasElement>();
-    // `direction` is the eight-way facing here; the cardinal is what the
-    // four-view legacy renderer gets.
+    // `direction` is the eight-way facing here; the renderer also takes its
+    // cardinal.
     const cardinal = (d: number) => facingView(d).direction;
     let sheetPainted = false;
     const paint = (time: number) => {
@@ -190,29 +163,7 @@ export function CharacterLab({
         if (hero.current) {
           const c = hero.current.getContext("2d")!;
           c.clearRect(0, 0, hero.current.width, 80);
-          c.drawImage(buffer, compare ? 80 : 0, 0);
-          if (compare) {
-            withOutline(pair[0])(
-              b,
-              appearance,
-              cardinal(direction),
-              pose,
-              f,
-              art,
-              direction,
-            );
-            c.drawImage(buffer, 0, 0);
-            // The shadow and every other panel follow the right-hand one.
-            drawCharacter(
-              b,
-              appearance,
-              cardinal(direction),
-              pose,
-              f,
-              art,
-              direction,
-            );
-          }
+          c.drawImage(buffer, 0, 0);
           hero.current.dataset.frame = String(f);
         }
         if (sheet.current && !sheetPainted) {
@@ -268,8 +219,6 @@ export function CharacterLab({
     count,
     displayVariants,
     lighting,
-    engine,
-    outline,
   ]);
   const change = <K extends keyof CharacterAppearance>(
     key: K,
@@ -295,19 +244,15 @@ export function CharacterLab({
       >
         {values.map((v) => (
           <option key={v} value={v}>
-            {label === "Renderer"
-              ? v in pairs
-                ? `${v.toUpperCase().split("").join(" | ")} side by side`
-                : renderers[v as RendererId].label
-              : label === "Facing"
-                ? FACING_NAMES[Number(v)]
-                : label === "Height"
-                  ? heightLabels[Number(v) as CharacterAppearance["height"]]
-                  : label === "Build"
-                    ? ["Narrow · default", "Previous width", "Broad", "Full"][
-                        Number(v) + 1
-                      ]
-                    : v}
+            {label === "Facing"
+              ? FACING_NAMES[Number(v)]
+              : label === "Height"
+                ? heightLabels[Number(v) as CharacterAppearance["height"]]
+                : label === "Build"
+                  ? ["Narrow · default", "Previous width", "Broad", "Full"][
+                      Number(v) + 1
+                    ]
+                  : v}
           </option>
         ))}
       </select>
@@ -671,19 +616,15 @@ export function CharacterLab({
               <div className="cl-ground-line" />
               <canvas
                 ref={hero}
-                key={engine}
-                width={engine in pairs ? 160 : 80}
+                width={80}
                 height={80}
                 aria-label="Animated character preview"
                 style={{
-                  width: (engine in pairs ? 160 : 80) * zoom,
+                  width: 80 * zoom,
                   height: 80 * zoom,
                 }}
               />
               <span className="cl-preview-label">
-                {engine in pairs
-                  ? engine.toUpperCase().split("").join(" | ") + " · "
-                  : renderers[engine as RendererId].label + " · "}
                 {pose} · {FACING_NAMES[direction]} · {zoom}×
               </span>
             </div>
@@ -724,18 +665,7 @@ export function CharacterLab({
                 ["2", "3", "4", "5", "6", "8"],
                 (v) => setZoom(Number(v)),
               )}
-              {select("Renderer", engine, ["a", "b", "c", "d", "e", "ab", "bc", "bd", "cd", "de"], (v) =>
-                setEngine(v as RendererId | Pair),
-              )}
               {color("Ground", background, setBackground)}
-              <label>
-                <input
-                  type="checkbox"
-                  checked={outline}
-                  onChange={(e) => setOutline(e.target.checked)}
-                />
-                Outline
-              </label>
             </div>
             <div className="cl-pose-buttons" aria-label="Animations">
               {poses.map((p) => (

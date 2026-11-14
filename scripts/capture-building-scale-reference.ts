@@ -7,15 +7,15 @@ const browser = await chromium.launch({ channel: "chrome" });
 const page = await browser.newPage();
 await page.goto("http://127.0.0.1:5173/character-lab");
 const result = await page.evaluate(async () => {
-  const { drawCharacter, defaultRenderer } = await import(
-    "/src/render/characters/renderers.ts" as string
+  const { drawCharacterG } = await import(
+    "/src/render/characters/doll/draw.ts" as string
   );
   const { originalAppearance } = await import(
     "/src/core/character.ts" as string
   );
   const source = document.createElement("canvas");
   source.width = source.height = 80;
-  drawCharacter(
+  drawCharacterG(
     source.getContext("2d", { willReadFrequently: true })!,
     originalAppearance,
     2,
@@ -55,7 +55,6 @@ const result = await page.evaluate(async () => {
     );
   return {
     png: crop.toDataURL("image/png").split(",")[1],
-    renderer: defaultRenderer,
     sourceBounds: [x0, y0, x1 + 1, y1 + 1],
     occupied: [crop.width, crop.height],
   };
@@ -67,7 +66,6 @@ await writeFile(
   out.replace(/\.png$/, ".json"),
   `${JSON.stringify(
     {
-      renderer: result.renderer,
       appearance: "originalAppearance",
       facing: 4,
       pose: "idle",
@@ -80,5 +78,5 @@ await writeFile(
   )}\n`,
 );
 console.log(
-  `wrote ${out} (${result.occupied.join("x")}, renderer ${result.renderer})`,
+  `wrote ${out} (${result.occupied.join("x")})`,
 );

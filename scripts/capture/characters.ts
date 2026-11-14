@@ -11,13 +11,12 @@ import { withPage, characterLab, shootCanvas, writeDataUrl, base } from "./lib";
 
 const out = (name: string) => `artifacts/characters/${name}.png`;
 
-/** Two renderers side by side, A on the paler ground: people, walks, kits, a crowd and accessories. */
 /** Four people of the given trades per place, front, side walking and back. */
 async function castSheet(page: Page, name: string, rows: readonly (readonly [string, string, number, readonly string[]])[]) {
   await characterLab(page);
   await page.evaluate("window.__name = (fn) => fn");
   const sheet = await page.evaluate(async ({ rows, name }) => {
-    const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+    const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
     const { places } = await import("/src/content/geography/places.ts" as string);
     const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
     const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
@@ -39,7 +38,7 @@ async function castSheet(page: Page, name: string, rows: readonly (readonly [str
         const held = c.heldItem;
         const prop = held ? iconCarriedArt(`icon:${held}`, (g: CanvasRenderingContext2D) => drawGarmentIcon(g, garmentIconFor(held) ?? itemIconFor(held) ?? held, 0, 0), GARMENT_ICON) : undefined;
         [[2, "idle", 0, 4], [1, "walk", 2, 3], [0, "idle", 0, 0]].forEach(([dir, pose, f, facing], j) => {
-          renderers.g.draw(fc, c.appearance, dir, pose, f, prop, facing, "neutral");
+          drawCharacterG(fc, c.appearance, dir, pose, f, prop, facing, "neutral");
           ctx.drawImage(frame, 16, 12, 48, 68, x0 + (n * 3 + j) * 48, y0 + 22, 48, 68);
         });
       });
@@ -51,11 +50,11 @@ async function castSheet(page: Page, name: string, rows: readonly (readonly [str
   await writeDataUrl(sheet, out(name));
 }
 
-async function dollSheets(page: Page, pair: [string, string], prefix: string) {
+async function dollSheets(page: Page) {
   await characterLab(page);
   await page.evaluate("window.__name = (fn) => fn");
-  const sheets = await page.evaluate(async (pair) => {
-    const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+  const sheets = await page.evaluate(async () => {
+    const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
     const { places } = await import("/src/content/geography/places.ts" as string);
     const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
     const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
@@ -107,9 +106,8 @@ async function dollSheets(page: Page, pair: [string, string], prefix: string) {
     const frame = document.createElement("canvas");
     frame.width = frame.height = 80;
     const fc = frame.getContext("2d")!;
-    const [A, B] = pair;
-    const sprite = (id: string, a: any, facing: number, pose = "idle", f = 0) => {
-      renderers[id].draw(fc, a, [0, 1, 1, 2, 2, 2, 3, 3][facing], pose, f, undefined, facing, "neutral");
+    const sprite = (a: any, facing: number, pose = "idle", f = 0) => {
+      drawCharacterG(fc, a, [0, 1, 1, 2, 2, 2, 3, 3][facing], pose, f, undefined, facing, "neutral");
       return frame;
     };
     const facings = [4, 3, 2, 1, 0];
@@ -122,17 +120,12 @@ async function dollSheets(page: Page, pair: [string, string], prefix: string) {
       ctx.fillStyle = bg; ctx.fillRect(0, 0, c.width, c.height);
       return [c, ctx] as const;
     };
-    const cell = (ctx: CanvasRenderingContext2D, src: HTMLCanvasElement, col: number, row: number, tint?: string) => {
-      if (tint) { ctx.fillStyle = tint; ctx.fillRect(col * cw, row * ch, cw, ch); }
+    const cell = (ctx: CanvasRenderingContext2D, src: HTMLCanvasElement, col: number, row: number) => {
       ctx.drawImage(src, 17, 27, 46, 52, col * cw, row * ch, cw, ch);
     };
-    // People: E's five facings, then F's.
-    const [ab, abx] = paint(10, people.length);
-    people.forEach((a: any, row: number) => facings.forEach((f, i) => {
-      cell(abx, sprite(A, a, f), i, row, "#a7ae98");
-      cell(abx, sprite(B, a, f), 5 + i, row);
-    }));
-    // Walks and a run: E above F, three facings.
+    const [ab, abx] = paint(5, people.length);
+    people.forEach((a: any, row: number) => facings.forEach((f, i) => cell(abx, sprite(a, f), i, row)));
+    // Walks and a run, three facings.
     // The third walker wears something short, so the legs show.
     const short = people.find((a: any) => ["shirt", "suit", "tunic", "none", "loincloth"].includes(a.wearing.garment)) ?? people[1];
     // Walkers dressed to show what swings: feather, fez tassel, hat ribbon, drop earrings, neckerchief, watch chain.
@@ -146,57 +139,44 @@ async function dollSheets(page: Page, pair: [string, string], prefix: string) {
       [{ garment: "shirt", hood: "down", headwear: "none" }, 4],
     ] as [any, number, string?][]).map(([patch, f, pose], i) =>
       [{ ...base, wearing: { ...base.wearing, ...patch }, adornment: i === 3 ? { ...(base.adornment ?? {}), ears: "drop" } : base.adornment }, f, pose ?? "walk"] as const);
-    const [walk, wx] = paint(8, 22 + trims.length * 2);
+    const [walk, wx] = paint(8, 11 + trims.length);
     trims.forEach(([a, f, pose], p) => {
-      for (let k = 0; k < 8; k++) {
-        cell(wx, sprite(A, a, f, pose, k), k, 22 + p * 2, "#a7ae98");
-        cell(wx, sprite(B, a, f, pose, k), k, 23 + p * 2);
-      }
+      for (let k = 0; k < 8; k++) cell(wx, sprite(a, f, pose, k), k, 11 + p);
     });
     [people[0], people[5], short].forEach((a: any, p: number) => [4, 3, 2].forEach((f, i) => {
-      for (let k = 0; k < 8; k++) {
-        const pose = i === 2 && p === 1 ? "run" : "walk";
-        cell(wx, sprite(A, a, f, A === "e" ? "walk" : pose, k), k, p * 6 + i * 2, "#a7ae98");
-        cell(wx, sprite(B, a, f, pose, k), k, p * 6 + i * 2 + 1);
-      }
+      for (let k = 0; k < 8; k++) cell(wx, sprite(a, f, i === 2 && p === 1 ? "run" : "walk", k), k, p * 3 + i);
     }));
     // Idle's four frames, then talk's, front and three-quarter.
-    for (const [row, pose] of [[18, "idle"], [20, "talk"]] as const)
-      for (const [i, f] of [4, 3].entries()) for (let k = 0; k < 4; k++) {
-        cell(wx, sprite(A, short, f, pose, k), i * 4 + k, row, "#a7ae98");
-        cell(wx, sprite(B, short, f, pose, k), i * 4 + k, row + 1);
-      }
-    // Every garment, then every headwear, F only, front and three-quarter.
+    for (const [row, pose] of [[9, "idle"], [10, "talk"]] as const)
+      for (const [i, f] of [4, 3].entries()) for (let k = 0; k < 4; k++) cell(wx, sprite(short, f, pose, k), i * 4 + k, row);
+    // Every garment, then every headwear, front and three-quarter.
     const kits = [
       ...garments.map((g: string, i: number) => ({ ...people[(i * 3) % people.length], wearing: { ...people[(i * 3) % people.length].wearing, garment: g, headwear: "none", cloak: false, mantle: false } })),
       ...headwear.map((h: string, i: number) => ({ ...people[(i * 5 + 1) % people.length], wearing: { ...people[(i * 5 + 1) % people.length].wearing, headwear: h, headColor: undefined } })),
     ];
     const [kitSheet, kx] = paint(16, Math.ceil(kits.length / 8));
     kits.forEach((a: any, i: number) => {
-      cell(kx, sprite(A === "e" ? B : A, a, 4), (i % 8) * 2, Math.floor(i / 8), A === "e" ? undefined : "#a7ae98");
-      cell(kx, sprite(B, a, A === "e" ? 3 : 4), (i % 8) * 2 + 1, Math.floor(i / 8));
+      cell(kx, sprite(a, 4), (i % 8) * 2, Math.floor(i / 8));
+      cell(kx, sprite(a, 3), (i % 8) * 2 + 1, Math.floor(i / 8));
     });
     const [dress, dx] = paint(16, Math.ceil(showcase.length / 4));
-    // Front and three-quarter: B alone against E, A then B otherwise.
-    showcase.forEach((a: any, i: number) => (A === "e" ? [[B, 4], [B, 3], [B, 2], [B, 0]] : [[A, 4], [B, 4], [A, 3], [B, 3]]).forEach(([id, f]: any, j) =>
-      cell(dx, sprite(id, a, f), (i % 4) * 4 + j, Math.floor(i / 4), id === A ? "#a7ae98" : undefined)));
-    // A crowd on paving at twice native size, E then F.
+    showcase.forEach((a: any, i: number) => [4, 3, 2, 0].forEach((f, j) => cell(dx, sprite(a, f), (i % 4) * 4 + j, Math.floor(i / 4))));
+    // A crowd on paving at twice native size.
     const crowd = document.createElement("canvas");
-    crowd.width = 1440; crowd.height = 400;
+    crowd.width = 720; crowd.height = 400;
     const cx = crowd.getContext("2d")!;
     cx.imageSmoothingEnabled = false;
     for (let y = 0; y < 200; y += 8) for (let x = 0; x < 720; x += 8) {
       cx.fillStyle = ((x + y) / 8) % 2 ? "#b9a888" : "#b3a281"; cx.fillRect(x * 2, y * 2, 16, 16);
     }
-    for (const [id, ox] of [[A, 0], [B, 720]] as const)
-      people.slice(0, 18).forEach((a: any, i: number) => {
-        const f = [4, 3, 5, 2, 6, 4, 0, 1, 4, 7, 3, 4, 2, 5, 4, 6, 3, 4][i];
-        sprite(id, a, f, i % 3 ? "idle" : "walk", i);
-        cx.drawImage(frame, ox + (i % 6) * 116 + (Math.floor(i / 6) % 2) * 50 - 40, Math.floor(i / 6) * 120 - 80, 160, 160);
-      });
+    people.slice(0, 18).forEach((a: any, i: number) => {
+      const f = [4, 3, 5, 2, 6, 4, 0, 1, 4, 7, 3, 4, 2, 5, 4, 6, 3, 4][i];
+      sprite(a, f, i % 3 ? "idle" : "walk", i);
+      cx.drawImage(frame, (i % 6) * 116 + (Math.floor(i / 6) % 2) * 50 - 40, Math.floor(i / 6) * 120 - 80, 160, 160);
+    });
     return [ab.toDataURL(), walk.toDataURL(), kitSheet.toDataURL(), crowd.toDataURL(), dress.toDataURL()];
-  }, pair);
-  for (const [i, name] of ["", "-walk", "-kits", "-crowd", "-dress"].entries()) await writeDataUrl(sheets[i], out(prefix + name));
+  });
+  for (const [i, name] of ["", "-walk", "-kits", "-crowd", "-dress"].entries()) await writeDataUrl(sheets[i], out("doll" + name));
 }
 
 const presets: Record<string, (page: Page) => Promise<void>> = {
@@ -204,7 +184,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await characterLab(page, { paused: true });
     await page.evaluate("window.__name = (fn) => fn");
     const sheets = await page.evaluate(async () => {
-      const { drawCharacter } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawCharacterG: drawCharacter } = await import("/src/render/characters/doll/draw.ts" as string);
       const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
       const { places } = await import("/src/content/geography/places.ts" as string);
       const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
@@ -260,7 +240,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await characterLab(page);
     await page.evaluate("window.__name = (fn) => fn");
     const sheet = await page.evaluate(async () => {
-      const { drawCharacter } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawCharacterG: drawCharacter } = await import("/src/render/characters/doll/draw.ts" as string);
       const { places } = await import("/src/content/geography/places.ts" as string);
       const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
       const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
@@ -575,7 +555,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await page.evaluate("window.__name = (fn) => fn");
     const sheet = await page.evaluate(async () => {
       const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
-      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
       const { generateAppearance } = await import("/src/core/character.ts" as string);
       const a = generateAppearance("portrait-adornment", 4, 32, { sex: "female" });
       a.hair = "cropped"; a.beard = "none";
@@ -598,7 +578,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
         const c = document.createElement("canvas"); c.width = 64; c.height = 80;
         drawSculptedPortrait(c.getContext("2d")!, look, 32);
         const f = document.createElement("canvas"); f.width = f.height = 80;
-        renderers.g.draw(f.getContext("2d")!, look, 2, "idle", 0, undefined, 3, "neutral");
+        drawCharacterG(f.getContext("2d")!, look, 2, "idle", 0, undefined, 3, "neutral");
         const x = (i % 4) * 256, y = Math.floor(i / 4) * 288;
         ctx.drawImage(c, x + 64, y + 8, 192, 240);
         ctx.drawImage(f, 22, 27, 36, 52, x, y + 104, 64, 92);
@@ -673,49 +653,13 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     });
     await writeDataUrl(sheet, out("portrait-eyes-nose"));
   },
-  /** The sculpted bust before and after the refined model, pair by pair, with the G sprite beside each. */
-  async "portrait-ab"(page) {
-    await characterLab(page);
-    await page.evaluate("window.__name = (fn) => fn");
-    const sheet = await page.evaluate(async () => {
-      const { drawSculptedPortrait, setSculptedRefined } = await import("/src/render/portraits/sculpted.ts" as string);
-      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
-      const { places } = await import("/src/content/geography/places.ts" as string);
-      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
-      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
-      const where = [["rome", 100], ["kyoto", 1850], ["timbuktu", 1400], ["london", 1850], ["delhi", 1600], ["cusco", 1400], ["mongolia", 1200], ["paris", 2009]];
-      const people = where.flatMap(([id, year], i) => [["female", 24], ["male", 38], ["female", 62], ["male", 9]].map(([sex, age], k) =>
-        [generateCharacter(settingFor(places.find((p: any) => p.id === id), year), "portrait-ab", `p${i}-${k}`, age, undefined, undefined, undefined, sex).appearance, age]));
-      const W = 128, H = 160, cols = 4, cell = W * 2 + 64 + 12;
-      const out = document.createElement("canvas");
-      out.width = cols * cell; out.height = Math.ceil(people.length / cols) * (H + 6);
-      const ctx = out.getContext("2d")!;
-      ctx.imageSmoothingEnabled = false;
-      ctx.fillStyle = "#1c2233"; ctx.fillRect(0, 0, out.width, out.height);
-      const f = document.createElement("canvas"); f.width = f.height = 80;
-      people.forEach(([a, age]: any, i: number) => {
-        const x = (i % cols) * cell, y = Math.floor(i / cols) * (H + 6);
-        renderers.g.draw(f.getContext("2d")!, a, 2, "idle", 0, undefined, 3, "neutral");
-        ctx.fillStyle = "#3a5a3a"; ctx.fillRect(x, y, 64, H); ctx.drawImage(f, 22, 27, 36, 52, x, y + 20, 64, 92);
-        [false, true].forEach((on, j) => {
-          setSculptedRefined(on);
-          const c = document.createElement("canvas"); c.width = 64; c.height = 80;
-          drawSculptedPortrait(c.getContext("2d")!, a, age);
-          ctx.fillStyle = "#2a3a78"; ctx.fillRect(x + 64 + j * W, y, W, H); ctx.drawImage(c, x + 64 + j * W, y, W, H);
-        });
-      });
-      setSculptedRefined(true);
-      return out.toDataURL();
-    });
-    await writeDataUrl(sheet, out("portrait-ab"));
-  },
   /** Western dress from the bowler to the end of the hat: sprite and portrait, women and men, by decade. */
   async "modern-dress"(page) {
     await characterLab(page);
     await page.evaluate("window.__name = (fn) => fn");
     const sheet = await page.evaluate(async () => {
       const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
-      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
       const { places } = await import("/src/content/geography/places.ts" as string);
       const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
       const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
@@ -735,7 +679,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
         who.forEach(([sex, age, role], k) => {
           const c = generateCharacter(setting, "modern-dress", `m${r}-${k}`, age, role, undefined, undefined, sex);
           const x = k * cell;
-          renderers.g.draw(f.getContext("2d")!, c.appearance, 2, "idle", 0, undefined, 3, "neutral");
+          drawCharacterG(f.getContext("2d")!, c.appearance, 2, "idle", 0, undefined, 3, "neutral");
           ctx.fillStyle = "#3a5a3a"; ctx.fillRect(x, y + 18, 48, H); ctx.drawImage(f, 22, 27, 36, 52, x, y + 30, 48, 70);
           const pc = document.createElement("canvas"); pc.width = 64; pc.height = 80;
           drawSculptedPortrait(pc.getContext("2d")!, c.appearance, age);
@@ -766,7 +710,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await page.evaluate("window.__name = (fn) => fn");
     const sheet = await page.evaluate(async () => {
       const { drawSculptedPortrait } = await import("/src/render/portraits/sculpted.ts" as string);
-      const { drawCharacter } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawCharacterG: drawCharacter } = await import("/src/render/characters/doll/draw.ts" as string);
       const { places } = await import("/src/content/geography/places.ts" as string);
       const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
       const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
@@ -796,7 +740,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await characterLab(page);
     await page.evaluate("window.__name = (fn) => fn");
     const sheet = await page.evaluate(async () => {
-      const { drawCharacter } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawCharacterG: drawCharacter } = await import("/src/render/characters/doll/draw.ts" as string);
       const { places } = await import("/src/content/geography/places.ts" as string);
       const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
       const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
@@ -836,11 +780,9 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     });
     await writeDataUrl(night, out("baby-settle"));
   },
-  /** E against F, the paper doll: generated people in five facings and a walk,
-   * every garment and headwear, a crowd at play scale, and F's accessories and fibres. */
-  doll: (page) => dollSheets(page, ["e", "f"], "doll"),
-  /** F against G, the same sheets: every kit and accessory shown in both. */
-  "doll-g": (page) => dollSheets(page, ["f", "g"], "doll-g"),
+  /** Generated people in five facings and a walk, every garment and headwear,
+   * a crowd at play scale, and the accessories and fibres. */
+  doll: (page) => dollSheets(page),
 
   /** Generated people from sixteen places, then every headwear and garment, and a strip of head poses and expressions. */
   async ab(page) {
@@ -912,7 +854,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await characterLab(page);
     await page.getByLabel("Generated character variants").waitFor();
     const sheet = await page.evaluate(async () => {
-      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
       const { originalAppearance } = await import("/src/core/character.ts" as string);
       const expressions = ["neutral", "smile", "soft", "serious", "concerned"];
       const rows = [
@@ -934,7 +876,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
           face: { ...originalAppearance.face, nose, mouth: "soft", detail: "clear" },
           wearing: { ...originalAppearance.wearing, headwear: "none", eyewear: "none" } };
         expressions.forEach((expression, col) => {
-          renderers.d.draw(fc, a, 2, pose, 0, undefined, facing, expression);
+          drawCharacterG(fc, a, 2, pose, 0, undefined, facing, expression);
           ctx.drawImage(frame, 22, 30, 36, 48, col * 220 + 6, row * 190 + 32, 108, 144);
           ctx.drawImage(frame, 30, 36, 20, 20, col * 220 + 120, row * 190 + 62, 80, 80);
           ctx.fillStyle = "#29332f"; ctx.font = "13px monospace";
@@ -950,7 +892,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await characterLab(page);
     await page.evaluate("window.__name = (fn) => fn");
     const sheets = await page.evaluate(async () => {
-      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
       const { places } = await import("/src/content/geography/places.ts" as string);
       const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
       const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
@@ -982,7 +924,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
             const accessory = accessoryFor(wearer, { year, setting }, a.wearing.garment);
             const prop = accessory ? iconCarriedArt(`icon:${accessory}`, (c: CanvasRenderingContext2D) => drawGarmentIcon(c, accessory, 0, 0), GARMENT_ICON) : undefined;
             for (let d = 0; d < 2; d++) {
-              renderers.d.draw(fc, a, 1, "walk", 2, prop, d ? 2 : 3);
+              drawCharacterG(fc, a, 1, "walk", 2, prop, d ? 2 : 3);
               ctx.drawImage(frame, 16, 30, 48, 48, (person * 2 + d) * 160 + 8, row * 176 + 20, 144, 144);
             }
           }
@@ -1164,7 +1106,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await characterLab(page);
     await page.evaluate("window.__name = (fn) => fn");
     const sheet = await page.evaluate(async () => {
-      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
       const { places } = await import("/src/content/geography/places.ts" as string);
       const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
       const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
@@ -1186,7 +1128,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
         const held = carry ?? c.heldItem;
         const prop = held ? iconCarriedArt(`icon:${held}`, (g: CanvasRenderingContext2D) => drawGarmentIcon(g, garmentIconFor(held) ?? itemIconFor(held) ?? held, 0, 0), GARMENT_ICON) : undefined;
         for (let f = 0; f < 16; f++) {
-          renderers.g.draw(fc, a, 1, "walk", f % 8, prop, f < 8 ? 2 : 3, "neutral");
+          drawCharacterG(fc, a, 1, "walk", f % 8, prop, f < 8 ? 2 : 3, "neutral");
           ctx.drawImage(frame, 16, 8, 48, 72, f * 48, row * 72, 48, 72);
         }
       });
@@ -1200,7 +1142,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await characterLab(page);
     await page.evaluate("window.__name = (fn) => fn");
     const sheets = await page.evaluate(async () => {
-      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
       const { places } = await import("/src/content/geography/places.ts" as string);
       const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
       const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
@@ -1230,7 +1172,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
           const id = held ?? c.heldItem;
           const prop = id ? iconCarriedArt(`icon:${id}`, (g: CanvasRenderingContext2D) => drawGarmentIcon(g, garmentIconFor(id) ?? itemIconFor(id) ?? id, 0, 0), GARMENT_ICON) : undefined;
           views.forEach(([facing, f, dir], k) => {
-            renderers.g.draw(fc, c.appearance, dir, pose, f, prop, facing, "neutral");
+            drawCharacterG(fc, c.appearance, dir, pose, f, prop, facing, "neutral");
             ctx.drawImage(frame, 16, 8, 48, 72, k * 96, row * 150, 96, 144);
           });
           ctx.fillStyle = "#26352c"; ctx.font = "12px monospace"; ctx.fillText(`${pose} · ${trade}`, 4, row * 150 + 148);
@@ -1248,7 +1190,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await characterLab(page);
     await page.evaluate("window.__name = (fn) => fn");
     const sheets = await page.evaluate(async () => {
-      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
       const { places } = await import("/src/content/geography/places.ts" as string);
       const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
       const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
@@ -1292,7 +1234,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       rows.forEach(({ c, pose, label, held }, row) => {
         const prop = propOf(held);
         views.forEach(([facing, f, dir], k) => {
-          renderers.g.draw(fc, c.appearance, dir, pose, f, prop, facing, "neutral");
+          drawCharacterG(fc, c.appearance, dir, pose, f, prop, facing, "neutral");
           one.ctx.drawImage(frame, 16, 8, 48, 72, k * 96, row * 150, 96, 144);
         });
         one.ctx.fillStyle = "#26352c"; one.ctx.font = "12px monospace"; one.ctx.fillText(`${pose} · ${label}`, 4, row * 150 + 148);
@@ -1311,9 +1253,9 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       pairs.forEach(([place, year, ta, pa, tb, pb, held], row) => {
         const a = person(place, year, ta, `pair-a-${row}`).c, b = person(place, year, tb, `pair-b-${row}`).c;
         for (let f = 0; f < 4; f++) {
-          renderers.g.draw(fc, a.appearance, 1, pa, f, undefined, 2, "neutral");
+          drawCharacterG(fc, a.appearance, 1, pa, f, undefined, 2, "neutral");
           two.ctx.drawImage(frame, 16, 8, 48, 72, f * 160 + 8, row * 150, 96, 144);
-          renderers.g.draw(fc, b.appearance, 3, pb, f, propOf(held), 6, "neutral");
+          drawCharacterG(fc, b.appearance, 3, pb, f, propOf(held), 6, "neutral");
           two.ctx.drawImage(frame, 16, 8, 48, 72, f * 160 + 8 + 52, row * 150, 96, 144);
         }
         two.ctx.fillStyle = "#26352c"; two.ctx.font = "12px monospace"; two.ctx.fillText(`${pa} / ${pb}`, 4, row * 150 + 148);
@@ -1363,7 +1305,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await characterLab(page);
     await page.evaluate("window.__name = (fn) => fn");
     const sheet = await page.evaluate(async () => {
-      const { renderers } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
       const { originalAppearance } = await import("/src/core/character.ts" as string);
       const { iconCarriedArt } = await import("/src/render/characters/props.ts" as string);
       const { drawGarmentIcon, GARMENT_ICON } = await import("/src/render/garment-icons.ts" as string);
@@ -1379,7 +1321,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
         ["idle", "walk", "run"].forEach((pose, k) => {
           const row = j * 3 + k;
           for (let f = 0; f < 8; f++) {
-            renderers.d.draw(fc, a, 1, pose, f, prop, k === 0 ? f : 2);
+            drawCharacterG(fc, a, 1, pose, f, prop, k === 0 ? f : 2);
             ctx.drawImage(frame, 14, 24, 52, 54, f * 160 + 2, row * 192 + 16, 156, 162);
           }
           ctx.fillStyle = "#26352c"; ctx.font = "14px monospace"; ctx.fillText(`${id} · ${pose}`, 8, row * 192 + 187);
@@ -1393,7 +1335,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
   async weapons(page) {
     await characterLab(page);
     await page.evaluate(async () => {
-      const { drawCharacter } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawCharacterG: drawCharacter } = await import("/src/render/characters/doll/draw.ts" as string);
       const { loadCarriedArt, portableProps, iconCarriedArt } = await import("/src/render/characters/props.ts" as string);
       const { drawGarmentIcon, GARMENT_ICON } = await import("/src/render/garment-icons.ts" as string);
       const { originalAppearance } = await import("/src/core/character.ts" as string);
@@ -1486,7 +1428,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await characterLab(page);
     await page.evaluate("window.__name = (fn) => fn");
     const sheet = await page.evaluate(async () => {
-      const { renderers, outlineCharacter } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
       const { originalAppearance } = await import("/src/core/character.ts" as string);
       const { ramp } = await import("/src/render/characters/v2/pixels.ts" as string);
       const rows = [
@@ -1519,7 +1461,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
         for (let f = 0; f < 8; f++) {
           const a = { ...originalAppearance, height, physique: { sex, strength: 50, mass: 40 },
             wearing: { ...originalAppearance.wearing, garment, footwear: "shoes", color: "#b86b48", lowerColor: "#645675", motif: "plain", belt: "none" } };
-          renderers.d.draw(fc, a, 2, pose, f, undefined, facing);
+          drawCharacterG(fc, a, 2, pose, f, undefined, facing);
           const pixels = fc.getImageData(0, 0, 80, 80).data;
           let left = 80, right = -1;
           for (let y = 66; y < 76; y++) for (let x = 14; x < 66; x++) {
@@ -1529,7 +1471,6 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
             }
           }
           widths[row].push(right - left + 1);
-          outlineCharacter(fc);
           ctx.drawImage(frame, 16, 34, 48, 46, f * cellW, row * cellH, 192, 184);
           ctx.fillStyle = "#263820";
           ctx.font = "12px monospace";
@@ -1547,7 +1488,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
   async feet(page) {
     await characterLab(page);
     const sheet = await page.evaluate(async () => {
-      const { renderers, outlineCharacter } = await import("/src/render/characters/renderers.ts" as string);
+      const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
       const { originalAppearance } = await import("/src/core/character.ts" as string);
       const shoes = ["none", "sandals", "shoes", "boots", "sneakers"] as const;
       const rows = [
@@ -1574,7 +1515,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       rows.forEach(([label, garment, height, sex, facing, pose, f], row) => shoes.forEach((footwear, col) => {
         const a = { ...originalAppearance, height, physique: { sex, strength: 50, mass: 40 },
           wearing: { ...originalAppearance.wearing, garment, footwear, color: "#677b37", lowerColor: "#645675" } };
-        renderers.d.draw(fc, a, 2, pose, f, undefined, facing);
+        drawCharacterG(fc, a, 2, pose, f, undefined, facing);
         if (row === 9 && footwear === "sneakers") {
           const pixels = fc.getImageData(0, 0, 80, 80).data;
           let raisedSole = false;
@@ -1586,7 +1527,6 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
           }
           if (!raisedSole) throw Error("Raised sneaker lost its sole during run recovery");
         }
-        outlineCharacter(fc);
         ctx.drawImage(frame, 16, 34, 48, 46, col * cellW, row * cellH, 192, 184);
         ctx.fillStyle = "#263820";
         ctx.font = "12px monospace";
@@ -1597,14 +1537,12 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     await writeDataUrl(sheet, out(process.env.REVIEW_NAME ?? "feet"));
   },
 
-  /** D's adult ranges and child proportions, with identical clothing and heads. */
+  /** Adult ranges and child proportions, with identical clothing and heads. */
   async heights(page) {
     await characterLab(page);
     await page.evaluate("window.__name = (fn) => fn");
     const sheets = await page.evaluate(async () => {
-      const { renderers, outlineCharacter } = await import(
-        "/src/render/characters/renderers.ts" as string
-      );
+      const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
       const { originalAppearance } = await import("/src/core/character.ts" as string);
       const { loadCarriedArt, portableProps } = await import("/src/render/characters/props.ts" as string);
       const art = await loadCarriedArt();
@@ -1639,7 +1577,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
         return { top, bottom, height: bottom - top + 1 };
       };
       const heights = people.map((a) => {
-        renderers.d.draw(bc, a, 2, "idle", 0);
+        drawCharacterG(bc, a, 2, "idle", 0);
         return bounds().height;
       });
       for (const [i, delta] of [[1, 2], [2, 4], [3, 2], [4, 4], [5, 6]] as const)
@@ -1648,7 +1586,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       if (heights[0] - heights[6] < 8) throw Error("Child must be at least 8px shorter than tall adult");
       for (const a of people)
         for (const facing of [0, 1, 2, 3, 4, 5, 6, 7]) {
-          renderers.d.draw(bc, a, 0, "idle", 0, undefined, facing);
+          drawCharacterG(bc, a, 0, "idle", 0, undefined, facing);
           bounds();
         }
       const sheet = document.createElement("canvas");
@@ -1673,9 +1611,8 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       ctx.fillRect(0, 0, sheet.width, sheet.height);
       rows.forEach(([label, facing, pose, f, prop], row) => people.forEach((a, col) => {
         const appearance = row === 9 ? { ...a, wearing: { ...a.wearing, garment: "robe", cloak: true } } : a;
-        renderers.d.draw(bc, appearance, 2, pose, f, prop, facing);
+        drawCharacterG(bc, appearance, 2, pose, f, prop, facing);
         bounds();
-        outlineCharacter(bc);
         ctx.drawImage(buffer, 16, 34, 48, 46, col * cellW, row * cellH + 2, 144, 138);
         ctx.fillStyle = "#263820";
         ctx.fillRect(col * cellW + 8, row * cellH + 140, 128, 1);
@@ -1691,9 +1628,8 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       gc.fillRect(0, 0, gait.width, gait.height);
       people.forEach((a, i) => ["walk", "run"].forEach((pose, j) => {
         for (let f = 0; f < 8; f++) {
-          renderers.d.draw(bc, a, 1, pose, f);
+          drawCharacterG(bc, a, 1, pose, f);
           bounds();
-          outlineCharacter(bc);
           const row = i * 2 + j;
           gc.drawImage(buffer, 16, 34, 48, 46, f * 144, row * cellH + 2, 144, 138);
           gc.fillStyle = "#263820";
@@ -1705,7 +1641,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     });
     await writeDataUrl(sheets.sheet, out("heights"));
     await writeDataUrl(sheets.gait, out("height-gait"));
-    console.log("D standing heights:", sheets.heights);
+    console.log("Standing heights:", sheets.heights);
   },
 
   /** Large, medium and small heads on the game renderer, bald and haired,
@@ -1713,9 +1649,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
   async heads(page) {
     await characterLab(page);
     await page.evaluate(async () => {
-      const { drawCharacter } = await import(
-        "/src/render/characters/renderers.ts" as string
-      );
+      const { drawCharacterG: drawCharacter } = await import("/src/render/characters/doll/draw.ts" as string);
       const { originalAppearance } = await import(
         "/src/core/character.ts" as string
       );
@@ -1760,9 +1694,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
   async faces(page) {
     await characterLab(page);
     await page.evaluate(async (facing) => {
-      const { drawCharacter, outlineCharacter, outlined, defaultRenderer } = await import(
-        "/src/render/characters/renderers.ts" as string
-      );
+      const { drawCharacterG: drawCharacter } = await import("/src/render/characters/doll/draw.ts" as string);
       const { generateAppearance } = await import(
         "/src/core/character.ts" as string
       );
@@ -1786,7 +1718,6 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
           const a = generateAppearance("faces", row * cols + i, 30);
           // FACING is 0–7, north clockwise, so diagonals can be reviewed too.
           drawCharacter(bc, { ...a, skin }, Math.round(facing / 2) % 4, "idle", 0, undefined, facing);
-          if (!outlined(defaultRenderer)) outlineCharacter(bc);
           ctx.drawImage(b, 21, 32, w, h, i * w * S, row * h * S, w * S, h * S);
         }
       });
@@ -1801,9 +1732,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
   async gait(page) {
     await characterLab(page);
     await page.evaluate(async () => {
-      const { drawCharacter } = await import(
-        "/src/render/characters/renderers.ts" as string
-      );
+      const { drawCharacterG: drawCharacter } = await import("/src/render/characters/doll/draw.ts" as string);
       const { frameCount } = await import(
         "/src/render/characters/poses.ts" as string
       );
@@ -1858,9 +1787,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
   async props(page) {
     await characterLab(page);
     await page.evaluate(async () => {
-      const { drawCharacter } = await import(
-        "/src/render/characters/draw.ts" as string
-      );
+      const { drawCharacterG: drawCharacter } = await import("/src/render/characters/doll/draw.ts" as string);
       const { loadCarriedArt, portableProps } = await import(
         "/src/render/characters/props.ts" as string
       );
@@ -1897,9 +1824,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
   async loads(page) {
     await characterLab(page);
     await page.evaluate(async () => {
-      const { drawCharacter } = await import(
-        "/src/render/characters/renderers.ts" as string
-      );
+      const { drawCharacterG: drawCharacter } = await import("/src/render/characters/doll/draw.ts" as string);
       const { loadCarriedArt, portableProps } = await import(
         "/src/render/characters/props.ts" as string
       );
@@ -1952,9 +1877,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
   async polish(page) {
     await characterLab(page);
     await page.evaluate(async () => {
-      const { drawCharacter } = await import(
-        "/src/render/characters/draw.ts" as string
-      );
+      const { drawCharacterG: drawCharacter } = await import("/src/render/characters/doll/draw.ts" as string);
       const { originalAppearance } = await import(
         "/src/core/character.ts" as string
       );
@@ -2031,9 +1954,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     };
     await characterLab(page);
     await page.evaluate(async (o) => {
-      const { drawCharacter } = await import(
-        "/src/render/characters/draw.ts" as string
-      );
+      const { drawCharacterG: drawCharacter } = await import("/src/render/characters/doll/draw.ts" as string);
       const { originalAppearance } = await import(
         "/src/core/character.ts" as string
       );
@@ -2097,9 +2018,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
   async "sprite-light"(page) {
     await characterLab(page);
     const sheet = await page.evaluate(async () => {
-      const { drawCharacter } = await import(
-        "/src/render/characters/v2/draw.ts" as string
-      );
+      const { drawCharacterG: drawCharacter } = await import("/src/render/characters/doll/draw.ts" as string);
       const { setSpriteLight, spriteLightFor } = await import(
         "/src/render/characters/v2/pixels.ts" as string
       );
@@ -2153,7 +2072,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
 
   /** A spread wide enough to judge the shading engine rather than one draw:
    * dark and light palettes, bare and clothed, thin limbs, all four views.
-   * POSES, SCALE and ONLY narrow it when chasing one case; RENDERER (a–d),
+   * POSES, SCALE and ONLY narrow it when chasing one case;
    * PROP (a carried sprite) and FRAMES (all, or a list) study an action.
    * WATER cuts each figure at the scene's waterline: wade at its deepest, swimmers at theirs. */
   async "sprite-study"(page) {
@@ -2161,17 +2080,13 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       poses: (process.env.POSES ?? "idle,chop").split(","),
       scale: Number(process.env.SCALE ?? 4),
       only: process.env.ONLY === undefined ? undefined : Number(process.env.ONLY),
-      renderer: process.env.RENDERER ?? "b",
       prop: process.env.PROP,
       frames: process.env.FRAMES === "all" ? [0, 1, 2, 3] : process.env.FRAMES?.split(",").map(Number),
       water: !!process.env.WATER,
     };
     await characterLab(page);
     const sheet = await page.evaluate(async (k) => {
-      const { renderers } = await import(
-        "/src/render/characters/renderers.ts" as string
-      );
-      const drawCharacter = renderers[k.renderer].draw;
+      const { drawCharacterG: drawCharacter } = await import("/src/render/characters/doll/draw.ts" as string);
       const props = await import("/src/render/characters/props.ts" as string);
       const icons = await import("/src/render/garment-icons.ts" as string);
       const art = k.prop?.startsWith("icon:")

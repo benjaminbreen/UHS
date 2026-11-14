@@ -1,7 +1,7 @@
 import artVersion from "../../render/generated/art-version.json" with { type: "json" };
 import nature from "../../render/generated/nature-atlas.json" with { type: "json" };
 import { generateAppearance } from "../../core/character";
-import { drawCharacter } from "../../render/characters/draw";
+import { drawCharacterG } from "../../render/characters/doll/draw";
 import type { CharacterPose } from "../../render/characters/poses";
 import { ageStructure, conditionBand, conditionOf, fabricOf, weatherStructure } from "../../core/time/structure";
 import { decay, PAD_X } from "../../render/materials/decay";
@@ -299,7 +299,7 @@ export class MaterialsLab {
       const c = document.createElement("canvas");
       c.width = c.height = 80;
       const ctx = c.getContext("2d", { willReadFrequently: true })!;
-      drawCharacter(ctx, this.appearance, dir, pose, frame);
+      drawCharacterG(ctx, this.appearance, dir, pose, frame);
       s = { w: 80, h: 80, data: ctx.getImageData(0, 0, 80, 80).data };
       this.frames.set(key, s);
     }

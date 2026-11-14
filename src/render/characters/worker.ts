@@ -1,13 +1,12 @@
 import type { RestingExpression } from "../../core/persona";
 import type { CharacterAppearance } from "../../core/character";
-import { renderers, outlineCharacter, outlined, type RendererId } from "./renderers";
+import { drawCharacterG } from "./doll/draw";
 import type { CharacterPose } from "./poses";
 import type { CarriedArt } from "./props";
 import { setSpriteLight, type SpriteLight } from "./v2/pixels";
 
 export type CharacterFrameRequest = {
   signature: string;
-  renderer: RendererId;
   appearance: CharacterAppearance;
   direction: number;
   facing?: number;
@@ -16,7 +15,6 @@ export type CharacterFrameRequest = {
   frame: number;
   turn?: number;
   condition?: number;
-  outline: boolean;
   light: SpriteLight;
   prop?: Omit<CarriedArt, "image"> & { pixels: Uint8ClampedArray };
 };
@@ -46,11 +44,10 @@ self.onmessage = (event: MessageEvent<CharacterFrameRequest>) => {
     }
     setSpriteLight(request.light);
     const context = ctx as unknown as CanvasRenderingContext2D;
-    renderers[request.renderer].draw(
+    drawCharacterG(
       context, request.appearance, request.direction, request.pose,
       request.frame, prop, request.facing, request.expression, request.turn, request.condition,
     );
-    if (request.outline && !outlined(request.renderer)) outlineCharacter(context);
     const pixels = ctx.getImageData(0, 0, 80, 80).data;
     self.postMessage({ signature: request.signature, pixels }, {
       transfer: [pixels.buffer],

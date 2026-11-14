@@ -74,7 +74,6 @@ These pairs do the same job twice. Extend the first one. If your task takes you 
 |---|---|---|
 | Building painters `front_*` | oblique and older painters | building-art skill |
 | Props `props_b` | `scripts/art/props/` (17 families) | PROP_ART |
-| Character sprite renderer G (`render/characters/doll/`) | renderers b–f | CHARACTERS |
 | Living water (`render/living-water/`) | the CPU water raster, except as the Canvas fallback | WATER |
 | The family carried in `core/time/years.ts` | the invented chain in `lineage.ts`, used by time travel | TIME |
 | A direct livelihood check for the day's work entry | `pickGoals` over `GOAL_TEMPLATES`, whose other picks are thrown away | DAY |

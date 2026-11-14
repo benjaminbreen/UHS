@@ -1,8 +1,7 @@
 import type { CharacterAppearance, CharacterFace } from "../../core/character";
-import { generateEyeAlignment, generateEyeDetail } from "../../core/character";
+import { generateEyeAlignment, generateEyeDetail, generateFace } from "../../core/character";
 import { mix } from "../characters/pixels";
 import { clothColours } from "../characters/cloth";
-import { portraitFace } from "./layered";
 import type { Expression as Face } from "./constructed";
 import { MAT, Raster, tones, type Mat, type Tones } from "./raster";
 
@@ -30,15 +29,6 @@ const COS = Math.cos(YAW);
 const SIN = Math.sin(YAW);
 const LIGHT = norm([-0.5, 0.62, 0.6]);
 const METAL_LIGHT = norm([LIGHT[0], LIGHT[1], LIGHT[2] + 1]);
-/** The refined bust, the default since October 2026: a neck near the jaw's
- * width, a fuller jaw and chin, a squarer head on level shoulders, eyes and
- * brows that vary by face, hair at its own colour with volume at the sides,
- * hats sized to sit over it, and softer shadows on the skin. Off draws the
- * earlier bust. Part of every trace's cache key. */
-let refined = true;
-export function setSculptedRefined(on: boolean) {
-  refined = on;
-}
 
 type V = [number, number, number];
 type Hit = [number, number];
@@ -123,11 +113,8 @@ type Model = {
   eyeX: number;
   hairline: number;
   shoulder: number;
-  expression: Expression;
   iris: string;
 };
-
-type Expression = "calm" | "friendly" | "stern" | "tired" | "wry" | "wary";
 
 function roll(m: { seed: string }, key: string) {
   let h = 2166136261;
@@ -159,16 +146,18 @@ const MOUTHS: Record<string, [w: number, u: number, l: number]> = {
   full: [7.2, 1.5, 1.9],
   wide: [8.6, 1, 1.3],
 };
-const EXPRESSIONS: Expression[] = ["calm", "calm", "friendly", "friendly", "stern", "tired", "wary"];
 
 function identitySeed(a: CharacterAppearance, face: CharacterFace) {
-  if (!refined) return JSON.stringify([a.skin, a.hairColor, face, a.head, a.jaw, a.hair, a.beard]);
   const { hairTexture, ...anatomy } = face;
   return JSON.stringify([a.skin, a.hairColor, anatomy, a.head, a.jaw, a.beard]);
 }
 
 /** Eye colour, from skin lightness and a roll on the face. Shared with the
  * map sprites so a person's eyes match in both. */
+function portraitFace(a: CharacterAppearance, age = 30): CharacterFace {
+  return a.face ?? generateFace(`legacy:${a.skin}:${a.hairColor}:${a.hair}:${a.head}:${a.jaw}`, 0, age);
+}
+
 export function irisOf(a: CharacterAppearance, face = portraitFace(a)) {
   const lightness = [1, 3, 5].reduce((sum, i) => sum + parseInt(a.skin.slice(i, i + 2), 16), 0) / 3;
   const irises =
@@ -185,8 +174,7 @@ function model(a: CharacterAppearance, age: number): Model {
   const child = age < 14;
   const seed = identitySeed(a, face);
   const s = { seed, lineage: a.lineage };
-  const grey = refined ? clamp((age - 36 - trait(s, "grey-onset") * 14) / 42, 0, 0.85)
-    : age > 50 ? Math.min(0.75, (age - 50) / 30) : 0;
+  const grey = clamp((age - 36 - trait(s, "grey-onset") * 14) / 42, 0, 0.85);
   const lightness = [1, 3, 5].reduce((sum, i) => sum + parseInt(a.skin.slice(i, i + 2), 16), 0) / 3;
   const rec = a.record ?? {};
   // Sun deepens and warms the skin; illness drains it toward grey, or a fever flushes it.
@@ -195,10 +183,9 @@ function model(a: CharacterAppearance, age: number): Model {
     : mix(sunned, rec.sick === "pallor" ? "#a2ac96" : "#b4ae9e", rec.sick === "pallor" ? 0.3 : rec.pale ? 0.2 : 0);
   const skin = tones(skinHex, "skin");
   const hair = tones(mix(a.hairColor, "#c8c4c0", grey), "hair");
-  const old = refined ? clamp((age - 36 - trait(s, "age-onset") * 10) / 40, 0, 1)
-    : clamp((age - 45) / 35, 0, 1);
-  const sag = refined ? clamp((age - 56 - trait(s, "age-onset") * 8) / 24, 0, 1) : old;
-  const youth = refined && !child ? clamp((38 - age) / 20, 0, 1) : 0;
+  const old = clamp((age - 36 - trait(s, "age-onset") * 10) / 40, 0, 1);
+  const sag = clamp((age - 56 - trait(s, "age-onset") * 8) / 24, 0, 1);
+  const youth = !child ? clamp((38 - age) / 20, 0, 1) : 0;
   const lipBase = mix(skinHex, lightness > 170 ? "#c4506a" : "#7a2e3c", (female ? 0.6 : 0.32) * (1 - old * 0.4));
   const ph = a.physique ?? { strength: 50, sex: "unspecified" as const };
   const strength = ph.strength ?? 50, mass = ph.mass ?? 50, full = clamp((mass - 50) / 45, -1, 1);
@@ -223,18 +210,16 @@ function model(a: CharacterAppearance, age: number): Model {
   chinY -= sag * 0.5;
   // Every adult face keeps a chin between these; the extremes read as caricature.
   chinY = clamp(chinY, child ? -13.5 : -17.6, child ? -11 : -14.2);
-  // Refined: a head nearer square, and a jaw that never narrows to a point.
-  if (refined) {
-    headH -= 2.4;
-    jawW = Math.max(jawW, headW * (child ? 0.72 : female ? 0.7 : 0.75));
-    chinR += 0.8;
-  }
+  // A head nearer square, and a jaw that never narrows to a point.
+  headH -= 2.4;
+  jawW = Math.max(jawW, headW * (child ? 0.72 : female ? 0.7 : 0.75));
+  chinR += 0.8;
   headW += spread(s, "head-w", 1);
   headH += spread(s, "head-h", 1.2);
   jawW += spread(s, "jaw-w", 1.2);
   chinR = Math.max(child ? 3 : 3.7, chinR + spread(s, "chin-r", 0.6));
   chinY += spread(s, "chin-y", 1.2);
-  if (refined && !child)
+  if (!child)
     jawW = clamp(jawW, headW * (female ? 0.65 : 0.69), headW * (trait(s, "jaw-width") > 0.95 ? 0.98 : female ? 0.84 : 0.9));
   const [len0, out, wide, tip, hump, droop] = NOSES[face.nose] ?? NOSES.straight;
   const len = len0 + old * 0.7;
@@ -267,8 +252,8 @@ function model(a: CharacterAppearance, age: number): Model {
     },
     headW, headH, jawW, chinY, chinR,
     // Most cheekbones are quiet; a few people have them high and sculpted.
-    cheek: Math.max(1.4, 2.3 + trait(s, "cheekbone") ** 2 * (refined && !child ? female ? 2 : 1.5 : 2.6) + full * 0.8 + youth * 0.65 - old * (refined ? 1 : 0.5) + (female ? 0.4 : 0) - (rec.gaunt ?? 0) * 0.8),
-    chinOut: refined && !child
+    cheek: Math.max(1.4, 2.3 + trait(s, "cheekbone") ** 2 * (!child ? female ? 2 : 1.5 : 2.6) + full * 0.8 + youth * 0.65 - old + (female ? 0.4 : 0) - (rec.gaunt ?? 0) * 0.8),
+    chinOut: !child
       ? trait(s, "chin-profile") < 0.05 ? -0.9 : trait(s, "chin-profile") > 0.95 ? 1.5 : 0.35 + spread(s, "chin-out", 0.35)
       : spread(s, "chin-out", 0.9) + (!female && !child ? 0.4 : 0),
     cleft: !female && !child && trait(s, "cleft") > 0.72,
@@ -285,22 +270,18 @@ function model(a: CharacterAppearance, age: number): Model {
     // A third of the way from the nose base to the chin, as in most faces.
     mouthY: (1.5 - len * (child ? 0.65 : 1)) - ((1.5 - len * (child ? 0.65 : 1)) - (chinY - chinR * 0.4)) * 0.36,
     upper, lower,
-    neck: refined
-      ? (8.6 + (strength - 50) * 0.03 + full * 1 - (female ? 1.4 : 0)) * (child ? 0.85 : 1)
-      : (5.4 + (strength - 50) * 0.025 + full * 0.9 - (female ? 0.9 : 0)) * (child ? 0.8 : 1),
+    neck: (8.6 + (strength - 50) * 0.03 + full * 1 - (female ? 1.4 : 0)) * (child ? 0.85 : 1),
     old, sag, full,
     eyeX: 5.9 + (face.eyeSpacing === "wide" ? 0.7 : face.eyeSpacing === "close" ? -0.4 : 0) + spread(s, "eye-x", 0.3),
-    hairline: (refined ? 11.3 : 12.5) + ({ low: -1.5, average: 0, high: 1.8, "widows-peak": 0 }[face.hairline] ?? 0)
-      + (refined ? old * (female ? 0.5 : 1 + trait(s, "recession") * 2.3) : age > 55 && !female ? 2.5 : 0),
-    shoulder: (refined ? 21.5 : 20) + (strength - 50) * 0.07 + full * 2.2 + (a.height ?? 0) * 0.8 - (female ? 3 : 0) - old * 1.5 - (child ? 6 : 0),
-    expression: EXPRESSIONS[Math.floor(roll(s, "expression") * EXPRESSIONS.length)],
+    hairline: 11.3 + ({ low: -1.5, average: 0, high: 1.8, "widows-peak": 0 }[face.hairline] ?? 0)
+      + old * (female ? 0.5 : 1 + trait(s, "recession") * 2.3),
+    shoulder: 21.5 + (strength - 50) * 0.07 + full * 2.2 + (a.height ?? 0) * 0.8 - (female ? 3 : 0) - old * 1.5 - (child ? 6 : 0),
     iris: irisOf(a, face),
   };
 }
 
 // ---------------------------------------------------------------- the bust as distance fields
 
-const TAILORED = ["shirt", "coat"];
 const BARE = ["none", "loincloth", "skirt"];
 // The sprite draws a skirt with a bodice or blouse above it unless it has no sleeves.
 const garmentOf = (w: CharacterAppearance["wearing"]) => (w.garment === "skirt" && w.sleeves !== "none" ? "shirt" : w.garment);
@@ -317,7 +298,7 @@ type Scene = (pb: V, ph: V) => Hit;
 
 function build(m: Model): Scene {
   const a = m.a, n = m.nose, hw = a.wearing.headwear, style = a.hair;
-  const tex = refined && style === "curls" && m.face.hairTexture === "straight" ? "curly" : m.face.hairTexture;
+  const tex = style === "curls" && m.face.hairTexture === "straight" ? "curly" : m.face.hairTexture;
   const garment = garmentOf(a.wearing);
   const curly = tex === "curly" || tex === "coiled" || style === "curls";
   const hidden = HIDES_HAIR.includes(hw);
@@ -326,7 +307,7 @@ function build(m: Model): Scene {
   const mouthY = m.mouthY;
 
   const cranium = (p: V) => ellipsoid(p, 0, 4.5, -1.5, m.headW, m.headH, m.headW + 1);
-  const adult = refined && !m.child;
+  const adult = !m.child;
   const [jawY, jawHeight, jawDepth]: V = adult ? m.female ? [-5.5, 11, 10.2] : [-4.8, 11.7, 9.3] : [-6, 10.5, 10.5];
   const head = (p: V) => {
     let d = cranium(p);
@@ -336,11 +317,11 @@ function build(m: Model): Scene {
       ? ellipsoid(p, 0, m.chinY + m.chinR * 0.45, cz, m.chinR * 1.12, m.chinR * 0.85, m.chinR * 0.85)
       : sphere(p, 0, m.chinY + m.chinR * 0.6, cz, m.chinR), 3.5);
     if (m.cleft) d = smax(d, -capsule(p, [0, m.chinY + m.chinR * 0.9, cz + m.chinR - 0.2], [0, m.chinY - 0.2, cz + m.chinR * 0.7], 0.5), 0.4);
-    const cheekY = (adult ? m.female ? -2 : -1.7 : -2.5) - (refined ? m.sag * 1.2 : 0);
+    const cheekY = (adult ? m.female ? -2 : -1.7 : -2.5) - m.sag * 1.2;
     for (const side of [-1, 1]) d = smin(d, adult
       ? ellipsoid(p, side * (m.eyeX + 2.5), cheekY, 6.2, m.cheek * 0.95, m.cheek * (m.female ? 0.95 : 0.72), m.cheek)
       : sphere(p, side * (m.eyeX + 2.5), cheekY, 6.2, m.cheek), 4);
-    if (refined && m.sag > 0.1) for (const side of [-1, 1])
+    if (m.sag > 0.1) for (const side of [-1, 1])
       d = smin(d, ellipsoid(p, side * (m.jawW - 2.8), -10 - m.sag, 5.2, 2 + m.sag * 0.5, 3.8, 3), 2 * m.sag);
     d = smin(d, capsule(p, [-7.5, 5.2, 9.2], [7.5, 5.2, 9.2], m.ridge), 3);
 
@@ -369,68 +350,67 @@ function build(m: Model): Scene {
     const lo = ellipsoid(p, 0, mouthY - 0.55 * m.lower, 11.1, w * 0.84, m.lower * 0.82, 2.1);
     return Math.min(up, lo);
   };
-  const neck = (p: V) => capsule(p, [0, -10, -2], [0, -30, -2 - m.old * 1.5], m.neck + (refined ? clamp((-p[1] - 17) / 13, 0, 1) * 1.2 : 0));
+  const neck = (p: V) => capsule(p, [0, -10, -2], [0, -30, -2 - m.old * 1.5], m.neck + clamp((-p[1] - 17) / 13, 0, 1) * 1.2);
   const torso = (q: V) => {
     const s = m.shoulder;
     // Age rounds the upper back: the shoulders ride up and forward toward the head.
     const p: V = [q[0], q[1] - m.old * 1.8, q[2] + m.old * 1.2];
     // Shoulders slope from the neck, then the chest falls away out of frame.
-    // Refined shoulders sit level and high, as the sprite's do.
-    const sy = refined ? -29.5 : -35;
-    const innerY = refined ? -26.5 : -28;
+    // Shoulders sit level and high, as the sprite's do.
+    const sy = -29.5;
+    const innerY = -26.5;
     let d = capsule(p, [-s, sy, -3], [-5, innerY, -2.5], 6);
     d = smin(d, capsule(p, [s, sy, -3], [5, innerY, -2.5], 6), 5);
     d = smin(d, ellipsoid(p, 0, -52, -2, s + 5, 20, 11), 7);
-    d = smin(d, capsule(p, [-s - 1, refined ? -31 : -33, -3], [-s - 3, -62, -1], 6), 2.5);
-    d = smin(d, capsule(p, [s + 1, refined ? -31 : -33, -3], [s + 3, -62, -1], 6), 2.5);
-    // Refined: the neck flares into the shoulders along the trapezius.
-    return smin(d, neck(p), refined ? 5.5 : 3.5);
+    d = smin(d, capsule(p, [-s - 1, -31, -3], [-s - 3, -62, -1], 6), 2.5);
+    d = smin(d, capsule(p, [s + 1, -31, -3], [s + 3, -62, -1], 6), 2.5);
+    // The neck flares into the shoulders along the trapezius.
+    return smin(d, neck(p), 5.5);
   };
 
   // Hair: a shell over the cranium masked by the hairline, then the style's own masses.
-  // Refined: temple hair and sideburns come down in front of the ear to its middle, as the sprite's do.
-  const temple = (p: V) => (refined ? clamp((Math.abs(p[0]) - (m.headW - 4.5)) * 0.8, 0, 1) * clamp((6 - p[2]) * 0.4, 0, 1) * 6.5 : 0);
+  // Temple hair and sideburns come down in front of the ear to its middle, as the sprite's do.
+  const temple = (p: V) => clamp((Math.abs(p[0]) - (m.headW - 4.5)) * 0.8, 0, 1) * clamp((6 - p[2]) * 0.4, 0, 1) * 6.5;
   const hairPhase = trait(m, "hairline-tufts") * Math.PI * 2;
-  const part = refined ? (trait(m, "hair-part") < 0.25 ? 0 : trait(m, "hair-part") < 0.75 ? -4 : 4) : -3.5;
-  const fringe = refined ? trait(m, "fringe-length") : 0.5;
-  const frontLine = m.hairline + (refined ? 2.2 : 0);
-  const hairMask = (p: V) => p[1] - (frontLine - clamp((3 - p[2]) * 0.9, 0, 26) - (Math.abs(p[0]) > m.headW - 3.5 ? 6 : 0) - temple(p) + Math.abs(Math.sin(p[0] * 0.9 + 1)) * 1.1 - (refined ? Math.max(0, Math.sin(p[0] * 0.72 + hairPhase)) ** 6 * 1.2 : 0));
-  // Refined hair stands out at the sides, as the sprite's mass does, without growing taller.
+  const part = trait(m, "hair-part") < 0.25 ? 0 : trait(m, "hair-part") < 0.75 ? -4 : 4;
+  const fringe = trait(m, "fringe-length");
+  const frontLine = m.hairline + 2.2;
+  const hairMask = (p: V) => p[1] - (frontLine - clamp((3 - p[2]) * 0.9, 0, 26) - (Math.abs(p[0]) > m.headW - 3.5 ? 6 : 0) - temple(p) + Math.abs(Math.sin(p[0] * 0.9 + 1)) * 1.1 - Math.max(0, Math.sin(p[0] * 0.72 + hairPhase)) ** 6 * 1.2);
+  // Hair stands out at the sides, as the sprite's mass does, without growing taller.
   /** How far the hair stands off the skull, which a band round it must clear. */
-  const textureVolume = refined ? { straight: 0.85, wavy: 1.1, curly: 1.2, coiled: 1.5 }[tex] : 1;
+  const textureVolume = { straight: 0.85, wavy: 1.1, curly: 1.2, coiled: 1.5 }[tex];
   const hairDepth = (style === "bald" || hidden ? 0 : m.female && style === "original" ? 1.7 : { cropped: 1.3, original: 2.8, curls: 3.4, bob: 3, long: 2.6, braid: 1.4, topknot: 1.4 }[style] ?? 2.4) * textureVolume;
-  /** The extra volume refined hair carries at the sides. */
-  const sideVolume = refined ? { straight: 0.65, wavy: 1.3, curly: 1.8, coiled: 2.2 }[tex] * (style === "cropped" ? 0.4 : 1) : 0;
+  /** The extra volume hair carries at the sides. */
+  const sideVolume = { straight: 0.65, wavy: 1.3, curly: 1.8, coiled: 2.2 }[tex] * (style === "cropped" ? 0.4 : 1);
   const sides = (p: V) => (!hidden && style !== "bald" ? sideVolume * clamp(Math.abs(p[0]) / m.headW, 0, 1) : 0);
   const hairShell = (p: V, t: number) =>
     smax(cranium(p) - t - Math.max(0, p[1] - m.hairline + 2) * 0.12 - sides(p), -hairMask(p), 1);
-  const curlSize = refined ? tex === "coiled" ? 1.25 : style === "cropped" ? 1.9 : 2.6 : style === "curls" || tex === "curly" ? 2.4 : 1.7;
+  const curlSize = tex === "coiled" ? 1.25 : style === "cropped" ? 1.9 : 2.6;
   const curlCentres = curly && !hidden && style !== "bald" ? DIRS.map((dir): V => {
-    const extra = refined ? hairDepth + sideVolume * Math.abs(dir[0]) + Math.max(0, dir[1]) * 1.2 - curlSize * 0.35 : 1.5;
+    const extra = hairDepth + sideVolume * Math.abs(dir[0]) + Math.max(0, dir[1]) * 1.2 - curlSize * 0.35;
     return [dir[0] * (m.headW + extra), 4.5 + dir[1] * (m.headH + extra), -1.5 + dir[2] * (m.headW + extra + 1)];
   }).filter(c => hairMask(c) >= -1 && (style === "curls" || c[1] > 4.5 - (m.headH + 1.5) * 0.3)) : [];
-  if (refined && curly && !hidden && (style === "bob" || style === "long"))
+  if (curly && !hidden && (style === "bob" || style === "long"))
     for (const side of [-1, 1]) for (let k = 0; k < (style === "bob" ? 5 : 10); k++)
       curlCentres.push([side * (m.headW + 1.7 + Math.sin(k * 1.7 + hairPhase) * 0.6), -3 - k * 3.1, 4.5]);
-  const curlRadii = curlCentres.map((_, i) => curlSize * (refined ? 0.9 + Math.sin(i * 2.4 + hairPhase) * 0.18 : 1));
+  const curlRadii = curlCentres.map((_, i) => curlSize * (0.9 + Math.sin(i * 2.4 + hairPhase) * 0.18));
   const hair = (p: V): number => {
     if (style === "bald" || hidden) return 99;
-    if (refined && tex === "wavy") p = [p[0] - Math.sin(p[1] * 0.55 + hairPhase) * (style === "cropped" ? 0.25 : 0.7), p[1], p[2]];
+    if (tex === "wavy") p = [p[0] - Math.sin(p[1] * 0.55 + hairPhase) * (style === "cropped" ? 0.25 : 0.7), p[1], p[2]];
     const tall = hatted ? 0.7 : 1;
     let d = hairShell(p, hairDepth);
     // A parting on the near side of the crown.
     if (!curly && style !== "cropped" && p[2] > -4 && d < 2) d += 0.7 * Math.exp(-((p[0] - part) ** 2));
     if (tex === "coiled" && (style === "original" || style === "curls")) d = Math.min(d, smax(ellipsoid(p, 0, 7 * tall, -2, m.headW + 4, m.headH + 2 * tall, m.headW + 5), -hairMask(p), 1));
     if (!hatted && (style === "original" || style === "bob")) {
-      if (refined && part === 0) {
+      if (part === 0) {
         d = smin(d, ellipsoid(p, -4.8, frontLine + 1.5 - fringe * 0.6, 10.5, 5.5, 2.6, 3), 1);
         d = smin(d, ellipsoid(p, 4.8, frontLine + 1.5 - fringe * 0.6, 10.5, 5.5, 2.6, 3), 1);
-      } else d = smin(d, ellipsoid(p, refined ? -part * 0.6 : -3, frontLine + 1.5 - (refined ? fringe * 0.6 : 0), 10.5, 9, 3, 3.5), 2);
+      } else d = smin(d, ellipsoid(p, -part * 0.6, frontLine + 1.5 - fringe * 0.6, 10.5, 9, 3, 3.5), 2);
     }
     if (style === "bob") {
       // Falls past the ears to the jaw, framing the face, with a fringe.
       d = smin(d, smax(smax(ellipsoid(p, 0, 1, -1.5, m.headW + 3, 17.5, m.headW + 3.2), p[2] - 7 + Math.max(0, -p[1] - 4) * 0.2, 1.5), -(p[1] - m.chinY - 3), 1), 2);
-      if (!hatted && !refined) d = smin(d, ellipsoid(p, -1.5, m.hairline + 0.5, 11, 10, 3.2, 3.5), 1.5);
     }
     if (m.female && (style === "long" || style === "braid"))
       d = smin(d, smax(ellipsoid(p, 0, 3, -2, m.headW + 2.4, m.headH + 2, m.headW + 2.6), p[2] - 5, 1.5), 2);
@@ -443,21 +423,21 @@ function build(m: Model): Scene {
     if (style === "topknot") d = smin(d, sphere(p, 0, m.headH + 3.5, -7, 4.6), 1.2);
     if (style === "original" && m.female) d = smin(d, sphere(p, 0, -1, -15.5, 4.8), 1.5);
     if (curly && d < 5) {
-      if (refined && tex === "curly") d += 0.3;
+      if (tex === "curly") d += 0.3;
       for (let i = 0; i < curlCentres.length; i++) {
         const c = curlCentres[i];
-        d = smin(d, sphere(p, c[0], c[1], c[2], curlRadii[i]), refined ? 0.18 : 0.6);
+        d = smin(d, sphere(p, c[0], c[1], c[2], curlRadii[i]), 0.18);
       }
     } else if (!curly) {
       // Strands: shallow grooves radiating from the crown.
       const ang = Math.atan2(p[0], p[2] + 3);
-      if (d < 2) d += (refined ? style === "cropped" ? 0.18 : tex === "wavy" ? 0.4 : 0.28 : style === "cropped" ? 0.3 : 0.6) * Math.abs(Math.sin(ang * (refined ? 5 : 7) + (tex === "wavy" ? Math.sin(p[1] * 0.5) * 1.8 : p[1] * 0.06)));
+      if (d < 2) d += (style === "cropped" ? 0.18 : tex === "wavy" ? 0.4 : 0.28) * Math.abs(Math.sin(ang * 5 + (tex === "wavy" ? Math.sin(p[1] * 0.5) * 1.8 : p[1] * 0.06)));
     }
-    if (refined && tex === "coiled" && d < 2)
+    if (tex === "coiled" && d < 2)
       d += Math.sin(p[0] * 2.1 + Math.sin(p[2])) * Math.sin(p[1] * 1.7 + p[2] * 0.9) * 0.22;
-    if (refined && tex === "curly" && d < 2)
+    if (tex === "curly" && d < 2)
       d += Math.sin(p[0] * 1.2 + Math.sin(p[2] * 0.8)) * Math.sin(p[1] * 1.1 + p[2] * 0.7) * 0.45;
-    if (refined && hatted) d = smax(smax(d, -(hatAt(p) - 0.7), 0.5), -cover(p), 0.4);
+    if (hatted) d = smax(smax(d, -(hatAt(p) - 0.7), 0.5), -cover(p), 0.4);
     return d;
   };
 
@@ -478,11 +458,8 @@ function build(m: Model): Scene {
       case "chinstrap": d = smax(shell(1.2), smax(-(jaw + 0.2) + 0 * p[1], p[1] - m.chinY - 3.5 + clamp(-p[2] + 6, 0, 8) * -0.9, 1), 1); break;
     }
     if (b !== "sideburns" && b !== "chinstrap") {
-      const w = m.mouthW / 2 + (refined ? 1.4 : 0.8);
-      d = Math.min(d, refined
-        // A full moustache, standing off the lip and falling past the corners of the mouth, as on the sprite.
-        ? Math.min(capsule(p, [-w, mouthY + 1.7, 11.8], [w, mouthY + 1.7, 11.8], 1.8), capsule(p, [-w, mouthY + 1.4, 11.4], [-w - 0.4, mouthY - 1, 10.6], 1.2), capsule(p, [w, mouthY + 1.4, 11.4], [w + 0.4, mouthY - 1, 10.6], 1.2))
-        : capsule(p, [-w, mouthY + 1.2, 11.2], [w, mouthY + 1.2, 11.2], 1.25));
+      const w = m.mouthW / 2 + 1.4;
+      d = Math.min(d, capsule(p, [-w, mouthY + 1.7, 11.8], [w, mouthY + 1.7, 11.8], 1.8), capsule(p, [-w, mouthY + 1.4, 11.4], [-w - 0.4, mouthY - 1, 10.6], 1.2), capsule(p, [w, mouthY + 1.4, 11.4], [w + 0.4, mouthY - 1, 10.6], 1.2));
       if (b === "handlebar") {
         d = Math.min(d, capsule(p, [-w, mouthY + 1.2, 11.2], [-w - 1.8, mouthY + 3, 10.4], 0.8));
         d = Math.min(d, capsule(p, [w, mouthY + 1.2, 11.2], [w + 1.8, mouthY + 3, 10.4], 0.8));
@@ -679,7 +656,7 @@ function build(m: Model): Scene {
         const crown = ellipsoid(p, 0, brim + 4.5, -1.5, W - 0.2 - (p[1] - brim) * 0.08, 6.5, W + 0.6);
         let d = smax(crown, p[1] - top + Math.exp(-(p[0] ** 2) / 6) * 1.6 + Math.exp(-((p[2] - W) ** 2) / 6) * 1.2, 1);
         d = smax(d, brim - p[1], 0.5);
-        return Math.min(d, cylinder(p, 0, brim + Math.abs(p[0]) * 0.07 - Math.max(0, p[2]) * 0.06, -1.5, W + 7.5, refined ? 0.9 : 0.55) - 0.25);
+        return Math.min(d, cylinder(p, 0, brim + Math.abs(p[0]) * 0.07 - Math.max(0, p[2]) * 0.06, -1.5, W + 7.5, 0.9) - 0.25);
       }
       case "bowler": return Math.min(smax(sphere(p, 0, T - 3, -1.5, W + 0.5), -(p[1] - (T - 4)), 1), torus(p, 0, T - 4, -1.5, W + 2.4, 1.1));
       case "fedora": return Math.min(fedora(p)[0], fedora(p)[1]);
@@ -764,9 +741,9 @@ function build(m: Model): Scene {
         return d;
       }
       // Outside the hair's volume, or the hair swallows it.
-      // Refined bands hug the head over the hair; a ring of fixed size stood off it like a brim.
-      case "band": case "plume": return refined ? smax(cranium(p) - hairDepth - sides(p) - 0.9, Math.abs(p[1] - m.hairline - 0.5) - 1.6, 0.5) : torus(p, 0, m.hairline + 1, -1.2, W + 1.5, 1.1, 1, 1.12);
-      case "fillet": return refined ? smax(cranium(p) - hairDepth - sides(p) - 0.7, Math.abs(p[1] - m.hairline - 0.3) - 1.3, 0.4) : torus(p, 0, m.hairline + 0.5, -1.2, W + 0.1, 0.5, 1, 1.12);
+      // Bands hug the head over the hair.
+      case "band": case "plume": return smax(cranium(p) - hairDepth - sides(p) - 0.9, Math.abs(p[1] - m.hairline - 0.5) - 1.6, 0.5);
+      case "fillet": return smax(cranium(p) - hairDepth - sides(p) - 0.7, Math.abs(p[1] - m.hairline - 0.3) - 1.3, 0.4);
       case "wig": {
         let d = smax(cranium(p) - 3, -(p[1] - m.hairline + 1), 1);
         for (const y of [-2, 2, 6]) d = smin(d, capsule(p, [-W - 1, y, 6], [-W - 1, y, -6], 2.2), 1);
@@ -797,11 +774,11 @@ function build(m: Model): Scene {
       default: return 99;
     }
   };
-  // Refined: hats a size up, made to sit over the fuller hair rather than inside it.
-  const grow = refined && ["brimmed", "bowler", "top-hat", "ball-cap", "fez", "turban", "wrap", "helmet"].includes(hw) ? 1.16 : 1;
+  // Hats a size up, made to sit over the fuller hair rather than inside it.
+  const grow = ["brimmed", "bowler", "top-hat", "ball-cap", "fez", "turban", "wrap", "helmet"].includes(hw) ? 1.16 : 1;
   const hatAt = (p: V) => grow === 1 ? hat(p) : hat([p[0] / grow, (p[1] - m.hairline) / grow + m.hairline, (p[2] + 1.5) / grow - 1.5]) * grow;
   // Bands in the hat colour, as the sprite paints them.
-  const hatMat = (): Mat => (hw === "fillet" ? MAT.metal : ["band", "plume"].includes(hw) && !refined ? MAT.trim : HAT);
+  const hatMat = (): Mat => (hw === "fillet" ? MAT.metal : HAT);
   const trimmed = ["brimmed", "bowler", "top-hat", "cap", "flat-cap", "conical", "turban", "wrap", "fez", "fedora", "boater", "cloche", "pillbox"].includes(hw);
   /** A hat's trim, as the sprite pins it: a feather curling up and back from the side of
    * the crown, a cockade, or a ribbon round the crown. */
@@ -822,13 +799,11 @@ function build(m: Model): Scene {
   const earring = (p: V): number => {
     const ear = a.adornment?.ears && a.adornment.ears !== "none" ? a.adornment.ears : a.wearing.earrings ? "drop" : "none";
     if (ear === "none" || ["hood", "headscarf", "veil", "wig", "kerchief", "cloche"].includes(hw)) return 99;
-    const side = refined && p[0] > 0 ? 1 : -1;
+    const side = p[0] > 0 ? 1 : -1;
     const x = side * (m.headW + 0.2), y = -4.8 - m.old * 1.2, z = 0.8;
     switch (ear) {
-      case "hoop": return refined
-        ? Math.min(sphere(p, x, y, z + 1.2, 0.6), torus([p[0], p[2], p[1]], x, z + 1.2, y - 2.3, 1.6, 0.5, 1, 1.3))
-        : len2(len2(p[1] - y + 2, p[2] - z) - 2, p[0] - x) - 0.45;
-      case "drop": return Math.min(sphere(p, x, y, z, 0.65), capsule(p, [x, y, z], [x, y - 2, z], 0.35), ellipsoid(p, x, y - 3.2, z, refined ? 1.1 : 0.8, 1.4, 0.8));
+      case "hoop": return Math.min(sphere(p, x, y, z + 1.2, 0.6), torus([p[0], p[2], p[1]], x, z + 1.2, y - 2.3, 1.6, 0.5, 1, 1.3));
+      case "drop": return Math.min(sphere(p, x, y, z, 0.65), capsule(p, [x, y, z], [x, y - 2, z], 0.35), ellipsoid(p, x, y - 3.2, z, 1.1, 1.4, 0.8));
       // A disc set into a stretched lobe.
       case "spool": return cylinder([p[1], p[0], p[2]] as V, y - 0.5, x, z, 1.7, 0.5);
       // Rings climbing the rim of the ear.
@@ -837,24 +812,22 @@ function build(m: Model): Scene {
     }
   };
   const chain = a.wearing.neckStyle === "chain";
-  const beadCount = chain ? 12 : refined ? 6 : 8;
+  const beadCount = chain ? 12 : 6;
   const necklace: V[] = Array.from({ length: beadCount * 2 + 1 }, (_, k) => {
     const t = (k - beadCount) / beadCount;
-    return refined
-      ? [Math.sin(t * 1.15) * (m.neck + 2), -25.5 - Math.cos(t * 1.15) * 5.2, 7.8 + Math.cos(t * 1.15) * 3.2]
-      : [t * 7.5, -29.5 - (1 - t * t) * 3.6, 8.9 - t * t * 2.8];
+    return [Math.sin(t * 1.15) * (m.neck + 2), -25.5 - Math.cos(t * 1.15) * 5.2, 7.8 + Math.cos(t * 1.15) * 3.2];
   });
   /** Bead index along the necklace, or -1. */
   const bead = (p: V): [number, number] => {
-    if (!a.wearing.necklace || (!refined && TAILORED.includes(garment))) return [99, -1];
+    if (!a.wearing.necklace) return [99, -1];
     let best: [number, number] = [99, -1];
     for (let k = 0; k < necklace.length; k++) {
       const c = necklace[k];
-      const d = chain && refined && k > 0 ? capsule(p, necklace[k - 1], c, 0.4) : sphere(p, c[0], c[1], c[2], chain ? 0.5 : 0.85);
+      const d = chain && k > 0 ? capsule(p, necklace[k - 1], c, 0.4) : sphere(p, c[0], c[1], c[2], chain ? 0.5 : 0.85);
       if (d < best[0]) best = [d, k - beadCount];
     }
     if (chain) {
-      const d = ellipsoid(p, 0, refined ? -32.2 : -34.6, refined ? 11.3 : 9.4, refined ? 1.15 : 0.9, 1.3, 0.5);
+      const d = ellipsoid(p, 0, -32.2, 11.3, 1.15, 1.3, 0.5);
       if (d < best[0]) best = [d, 0];
     }
     return best;
@@ -985,14 +958,6 @@ export type SculptedOptions = {
 /** What the brows, lids and mouth are doing. */
 type Mood = { inner: number; outer: number; raise: number; open: number; heavy: boolean; corners: [number, number]; part: number; teeth: boolean; gazeY: number; flush: number };
 const calm: Mood = { inner: 0, outer: 0, raise: 0, open: 0, heavy: false, corners: [0, 0], part: 0, teeth: false, gazeY: 0, flush: 0 };
-const RESTING: Record<Expression, Partial<Mood>> = {
-  calm: {},
-  friendly: { corners: [1, 1] },
-  stern: { inner: 1, corners: [-1, -1] },
-  tired: { heavy: true },
-  wary: { inner: -1, raise: 1, open: 1 },
-  wry: { corners: [0, 1] },
-};
 const SHOWN: Record<Face, Partial<Mood>> = {
   neutral: {},
   smile: { corners: [1, 1] },
@@ -1009,7 +974,7 @@ const SHOWN: Record<Face, Partial<Mood>> = {
   tired: { heavy: true, gazeY: 0.4 },
 };
 function moodFor(m: Model, face: Face, intensity: number): Mood {
-  const rest = { ...calm, ...(refined ? m.a.restingPose : RESTING[m.expression]) };
+  const rest = { ...calm, ...m.a.restingPose };
   if (face === "neutral" || intensity <= 0) return rest;
   const shown = { ...calm, ...SHOWN[face] };
   if (intensity >= 1) return shown;
@@ -1036,13 +1001,13 @@ const headPose = (turn = 1, pitch = 0): HeadPose => ({
 });
 export function sculptedPoseReady(appearance: CharacterAppearance, age: number, turn: number, pitch: number) {
   const pose = headPose(turn, pitch);
-  return bases.has(JSON.stringify([appearance, age, pose.turn, pose.pitch, refined]));
+  return bases.has(JSON.stringify([appearance, age, pose.turn, pose.pitch]));
 }
 
 /** The lit bust is traced once per person and pose; blinks, mouths and breaths only repaint over a copy. */
 export function paintSculpted(appearance: CharacterAppearance, age = 30, options: SculptedOptions = {}): Raster {
   const pose = headPose(options.turn, options.pitch);
-  const key = JSON.stringify([appearance, age, pose.turn, pose.pitch, refined]);
+  const key = JSON.stringify([appearance, age, pose.turn, pose.pitch]);
   let base = bases.get(key);
   if (!base) {
     base = trace(appearance, age, pose);
@@ -1093,10 +1058,10 @@ export function warmSculpted(appearance: CharacterAppearance, age = 30, rest = 1
   }
   const poses = [headPose(rest, 0.5), ...(turns ? [0.75, 0.5, 0.25, 0, 1].map((turn) => headPose(turn)) : [])];
   for (const pose of poses) {
-    const key = JSON.stringify([appearance, age, pose.turn, pose.pitch, refined]);
+    const key = JSON.stringify([appearance, age, pose.turn, pose.pitch]);
     if (bases.has(key) || tracing.has(key)) continue;
     tracing.set(key, [appearance, age, pose]);
-    tracer.postMessage({ key, appearance, age, pose, refined });
+    tracer.postMessage({ key, appearance, age, pose });
   }
 }
 
@@ -1133,20 +1098,20 @@ export function trace(appearance: CharacterAppearance, age: number, pose: HeadPo
       let shadow = 1;
       for (let t = 0.9; t < 34; ) {
         const q = d(wx + nm[0] * 0.45 + LIGHT[0] * t, wy + nm[1] * 0.45 + LIGHT[1] * t, wz + nm[2] * 0.45 + LIGHT[2] * t);
-        const floor = refined && hit[1] === MAT.skin ? 0.55 : 0.35;
+        const floor = hit[1] === MAT.skin ? 0.55 : 0.35;
         if (q < 0.05) { shadow = floor; break; }
         shadow = Math.min(shadow, floor + (1 - floor) * clamp((6 * q) / t, 0, 1));
         t += Math.max(0.34, q);
       }
       const gloss = hit[1] === MAT.cloth && m.a.wearing.material === "silk" ? 1.15 : 1;
-      const v = clamp(((refined && hit[1] === MAT.skin ? 0.34 : 0.28) + 0.8 * diff * shadow) * clamp(ao, 0.45, 1) * gloss, 0, 1.2);
+      const v = clamp(((hit[1] === MAT.skin ? 0.34 : 0.28) + 0.8 * diff * shadow) * clamp(ao, 0.45, 1) * gloss, 0, 1.2);
       const ramp = m.ramps[hit[1]];
-      // Refined hair sits a step darker, so it reads as its own colour, as on the sprite, not a lit pale.
+      // Hair sits a step darker, so it reads as its own colour, as on the sprite, not a lit pale.
       // Hats too, or a red cap lit from above reads as skin.
-      const shine = refined && hit[1] === MAT.metal && !["bone", "shell"].includes(m.a.adornment?.metal ?? "gold")
+      const shine = hit[1] === MAT.metal && !["bone", "shell"].includes(m.a.adornment?.metal ?? "gold")
         ? Math.pow(Math.max(0, nm[0] * METAL_LIGHT[0] + nm[1] * METAL_LIGHT[1] + nm[2] * METAL_LIGHT[2]), 12) * 0.45 : 0;
-      let lit = refined && hit[1] === MAT.hair ? v - 0.3 : refined && hit[1] === HAT ? v - 0.15 : v + shine;
-      if (refined && hit[1] === MAT.hair) {
+      let lit = hit[1] === MAT.hair ? v - 0.3 : hit[1] === HAT ? v - 0.15 : v + shine;
+      if (hit[1] === MAT.hair) {
         const p = f.head(wx, wy, wz), tex = m.face.hairTexture;
         if (p[1] > m.mouthY + 2 || p[2] < 8 || Math.abs(p[0]) > m.headW - 2) {
           if (tex === "coiled") lit = v - 0.25;
@@ -1163,8 +1128,8 @@ export function trace(appearance: CharacterAppearance, age: number, pose: HeadPo
       }
       const tone = lit < 0.3 ? ramp.deep : lit < 0.47 ? ramp.shade : lit < 0.7 ? ramp.base : lit < 0.92 || hit[1] === MAT.skin ? ramp.light : ramp.high;
       const i = py * W + px;
-      r.color[i] = refined && hit[1] === MAT.hair && tone === ramp.light ? mix(ramp.base, ramp.light, m.face.hairTexture === "coiled" ? 0.45 : 0.65) : tone;
-      if (refined && !m.child && hit[1] === MAT.skin && py >= chinFoot[1] && py < chinFoot[1] + 6) {
+      r.color[i] = hit[1] === MAT.hair && tone === ramp.light ? mix(ramp.base, ramp.light, m.face.hairTexture === "coiled" ? 0.45 : 0.65) : tone;
+      if (!m.child && hit[1] === MAT.skin && py >= chinFoot[1] && py < chinFoot[1] + 6) {
         const p = f.body(wx, wy, wz);
         if (p[1] < -14 && p[2] < 8.5) {
           const fade = (1 - (py - chinFoot[1]) / 6) * clamp((m.neck + 1 - Math.abs(p[0])) / (m.neck * 0.65), 0, 1);
@@ -1181,7 +1146,7 @@ export function trace(appearance: CharacterAppearance, age: number, pose: HeadPo
   // Lips and skin are one surface to the outline; without this the cheek, being nearer, is outlined against the lip corner.
   const lips = [];
   for (let i = 0; i < W * H; i++) if (r.mat[i] === LIP) { lips.push(i); r.mat[i] = MAT.skin; }
-  r.contour({ ...m.ramps, [MAT.skin]: { edge: m.skin.edge, deep: m.skin.edge }, [MAT.metal]: refined ? undefined : m.ramps[MAT.metal], [LIP]: { edge: m.ramps[LIP].base, deep: m.ramps[LIP].shade } } as unknown as Record<Mat, { edge: string; deep: string }>);
+  r.contour({ ...m.ramps, [MAT.skin]: { edge: m.skin.edge, deep: m.skin.edge }, [MAT.metal]: undefined, [LIP]: { edge: m.ramps[LIP].base, deep: m.ramps[LIP].shade } } as unknown as Record<Mat, { edge: string; deep: string }>);
   for (const i of lips) r.mat[i] = LIP;
   rim(r);
   return { m, f, color: r.color, mat: r.mat, layer: r.layer, depth };
@@ -1240,19 +1205,19 @@ function features(r: Raster, depth: Float32Array, m: Model, fr: Frame, pose: Hea
   const lash = mix(s.edge, "#140c10", 0.6);
   const crease = mix(s.base, s.shade, 0.75);
   const fold = mix(s.base, s.shade, 0.6);
-  const white = refined ? mix("#f1e8dc", s.shade, 0.22) : "#f1e8dc";
+  const white = mix("#f1e8dc", s.shade, 0.22);
   const size = m.child || f.eyeSize === "large" ? 1 : f.eyeSize === "small" ? -1 : 0;
   // Rows of visible eye: never a slit, more for large, wary or young eyes.
-  // Refined: size and shape set the eye's height, so small, narrow, large and round eyes differ.
-  const agedLid = refined && m.old > 0.45 && trait(m, "age-lid") > 0.35 ? 1 : 0;
-  const open = refined ? clamp(3 + size - (f.eyeShape === "narrow" ? 1 : 0) - agedLid + (m.child ? 1 : 0) + mood.open, 2, 4) : clamp(2 + (size > 0 || (m.female && size === 0 && roll(m, "doe") > 0.4) ? 1 : 0) + (m.child ? 1 : 0) - (f.eyeShape === "narrow" && size < 0 ? 1 : 0) + mood.open, 2, 4);
+  // Size and shape set the eye's height, so small, narrow, large and round eyes differ.
+  const agedLid = m.old > 0.45 && trait(m, "age-lid") > 0.35 ? 1 : 0;
+  const open = clamp(3 + size - (f.eyeShape === "narrow" ? 1 : 0) - agedLid + (m.child ? 1 : 0) + mood.open, 2, 4);
   const tilt = f.eyeShape === "almond" ? 1 : f.eyeShape === "round" ? 0 : roll(m, "eye-tilt") < 0.3 ? -1 : 0;
   const rec = m.a.record ?? {};
-  const heavy = (!refined && f.eyelid === "monolid") || mood.heavy || !!rec.tired || (!refined && m.old > 0.6) || gazeY > 0.3;
+  const heavy = mood.heavy || !!rec.tired || gazeY > 0.3;
   const creased = !heavy && f.eyelid !== "low-crease" && f.eyelid !== "monolid";
   // Eye traits run in families: iris size, how the iris is marked, the lashes and the weight of the lid line.
   const eyeDetail = m.a.eyeDetail ?? generateEyeDetail(m.seed, 0, m.female ? "female" : "male");
-  const irisW = (trait(m, "iris-size") > (m.child ? 0.35 : 0.62) ? 3 : 2) + (refined && eyeDetail.irisSize === "large" ? 1 : 0);
+  const irisW = (trait(m, "iris-size") > (m.child ? 0.35 : 0.62) ? 3 : 2) + (eyeDetail.irisSize === "large" ? 1 : 0);
   const rimmed = trait(m, "iris-rim") > 0.5;
   const lashRoll = trait(m, "lash-style") * 0.8 + (m.female ? 0.35 : 0);
   // 0 none, 1 a flick at the corner, 2 a defined upper line, 3 full, with a lower line.
@@ -1262,13 +1227,11 @@ function features(r: Raster, depth: Float32Array, m: Model, fr: Frame, pose: Hea
   const browEnds: [number, number][] = [];
   const brows = (near: boolean, x0: number, w: number, y0: number) => {
     const brow = mix(m.hair.edge, m.hair.shade, 0.25);
-    const thick = refined
-      ? Math.max(1, Math.min(3, (f.brows === "heavy" ? 2 : 1) + (trait(m, "brow-weight") > (m.female ? 0.75 : 0.4) ? 1 : 0)))
-      : m.female ? (f.brows === "heavy" ? 2 : 1) : f.brows === "heavy" ? 3 : roll(m, "brow-thick") > 0.2 ? 2 : 1;
-    // Refined, by family: brows that rise to the outer end, run level, or fall away; some taper thin.
-    const slope = refined ? (trait(m, "brow-slope") < 0.3 ? 1 : trait(m, "brow-slope") > 0.8 ? -1 : 0) + mood.outer : 0;
-    const taper = refined && (m.female || trait(m, "brow-taper") > 0.6);
-    const arch = f.brows === "arched" || (!refined && m.female) ? 1 : 0;
+    const thick = Math.max(1, Math.min(3, (f.brows === "heavy" ? 2 : 1) + (trait(m, "brow-weight") > (m.female ? 0.75 : 0.4) ? 1 : 0)));
+    // By family: brows that rise to the outer end, run level, or fall away; some taper thin.
+    const slope = (trait(m, "brow-slope") < 0.3 ? 1 : trait(m, "brow-slope") > 0.8 ? -1 : 0) + mood.outer;
+    const taper = m.female || trait(m, "brow-taper") > 0.6;
+    const arch = f.brows === "arched" ? 1 : 0;
     // A clear band of lid and brow bone between eye and brow; women's sit higher still.
     const by = y0 - 4 - mood.raise - (creased ? 1 : 0) - (m.female ? 1 : 0) - thick + 1;
     const bw = w + 1;
@@ -1279,8 +1242,8 @@ function features(r: Raster, depth: Float32Array, m: Model, fr: Frame, pose: Hea
       const y = by + Math.round(t * mood.inner) - (arch && t > 0.2 && t < 0.7 ? 1 : 0) - (t < 0.35 ? slope : 0);
       if (t === 1) browEnds.push([x, y]);
       for (let j = 0; j < thick; j++) {
-        if ((j && (t < (refined ? 0.3 : 0.1) || t > 0.9)) || (taper && j && t < 0.4)) continue;
-        const c = refined ? mix(brow, s.shade, t < 0.15 ? 0.45 : t > 0.85 ? 0.3 : j === thick - 1 ? 0.18 : 0) : brow;
+        if ((j && (t < 0.3 || t > 0.9)) || (taper && j && t < 0.4)) continue;
+        const c = mix(brow, s.shade, t < 0.15 ? 0.45 : t > 0.85 ? 0.3 : j === thick - 1 ? 0.18 : 0);
         put(x, y + j, c, [MAT.skin, MAT.hair]);
       }
     }
@@ -1305,87 +1268,85 @@ function features(r: Raster, depth: Float32Array, m: Model, fr: Frame, pose: Hea
       brows(near, x0, w, y0 + 1);
       continue;
     }
-    const shut = blink === 1 ? Math.max(0, open - (refined ? 2 : 1)) : 0;
+    const shut = blink === 1 ? Math.max(0, open - 2) : 0;
     for (let k = 0; k < w; k++) {
       const x = x0 + k;
-      for (let j = 0; j < open; j++) r.put(x, y0 + j - lift(x), j < shut ? mix(s.base, s.shade, 0.35) : refined && j === shut ? mix(white, s.shade, 0.2) : white);
+      for (let j = 0; j < open; j++) r.put(x, y0 + j - lift(x), j < shut ? mix(s.base, s.shade, 0.35) : j === shut ? mix(white, s.shade, 0.2) : white);
       if (k === 0 || k === w - 1) {
         r.put(x, y0 + open - 1 - lift(x), mix(white, s.shade, 0.5));
-        if (refined && !shut) r.put(x, y0 - lift(x), mix(s.base, s.shade, 0.35));
+        if (!shut) r.put(x, y0 - lift(x), mix(s.base, s.shade, 0.35));
       }
-      // Refined: a soft lid line unless the face's traits call for a dark one.
-      r.put(x, y0 - 1 - lift(x) + shut, refined ? mix(lash, s.shade, lashStyle === 0 && !lidWeight && !heavy ? 0.6 : 0.25) : lash);
+      // A soft lid line unless the face's traits call for a dark one.
+      r.put(x, y0 - 1 - lift(x) + shut, mix(lash, s.shade, lashStyle === 0 && !lidWeight && !heavy ? 0.6 : 0.25));
       if (heavy) r.put(x, y0 - lift(x) + shut, mix(s.shade, s.edge, 0.3));
       if (creased && k > 0 && k < w - 1) put(x, y0 - 2 - lift(x), crease);
-      if (refined && !heavy && f.eyelid === "low-crease" && k > 1 && k < w - 1)
+      if (!heavy && f.eyelid === "low-crease" && k > 1 && k < w - 1)
         put(x, y0 - 2 - lift(x), mix(s.base, crease, 0.4));
-      if (!refined) r.put(x, y0 + open - (x === outer ? Math.max(0, lift(x)) : 0), mix(s.base, s.shade, 0.55));
     }
     // Correct the old inward pull in three-quarter while keeping normal eyes centred face-on.
     // A narrow far eye cannot hold a wide iris.
     const iw = Math.min(irisW, w - 1);
     const turned = near ? x0 + w - iw - 1 : x0 + 1, centred = x0 + Math.round((w - iw) / 2);
     const alignment = m.a.eyeAlignment ?? generateEyeAlignment(m.seed);
-    const spread = refined ? side * (pose.turn + (alignment === "inward" ? -1 : alignment === "outward" ? 1 : 0)) : 0;
+    const spread = side * (pose.turn + (alignment === "inward" ? -1 : alignment === "outward" ? 1 : 0));
     const ix = clamp(Math.round(centred + (turned - centred) * pose.turn + spread + (o.gazeX ?? 0) * 1.5), x0, x0 + w - iw);
-    const top = heavy && (!refined || open > 2) ? 1 : 0;
+    const top = heavy && open > 2 ? 1 : 0;
     const from = gazeY < -0.3 ? 0 : top;
     const rim = mix(m.iris, "#080406", 0.45);
     for (let j = Math.max(shut, from); j < open; j++) {
-      const low = gazeY > 0.3 && j === Math.max(shut, from) && (!refined || open > 2);
+      const low = gazeY > 0.3 && j === Math.max(shut, from) && open > 2;
       for (let k = 0; k < iw; k++) {
         const edge = k === 0 || k === iw - 1;
         // The pupil is the second column; a wide iris gets a darker rim and a lighter lower ring.
-        const pupil = (k === 1 || (refined && eyeDetail.pupilSize === "large" && iw >= 3 && k === 2)) && j < open - 1;
+        const pupil = (k === 1 || (eyeDetail.pupilSize === "large" && iw >= 3 && k === 2)) && j < open - 1;
         const c = low ? mix(s.shade, s.edge, 0.3)
           : pupil ? mix(m.iris, "#080406", 0.75)
           : rimmed && edge && iw === 3 ? rim
           : j === open - 1 ? mix(m.iris, "#ffffff", iw === 3 ? 0.28 : 0.15)
           : m.iris;
-        r.put(ix + k, y0 + j - (refined ? lift(ix + k) : 0), c);
+        r.put(ix + k, y0 + j - lift(ix + k), c);
       }
     }
     if (!shut && gazeY <= 0.3) {
-      r.put(ix, y0 + from - (refined ? lift(ix) : 0), refined ? mix(white, "#ffffff", 0.45) : "#ffffff");
-      if (iw === 3 && open > 2) r.put(ix + 2, y0 + open - 1 - (refined ? lift(ix + 2) : 0), mix(m.iris, "#ffffff", 0.55));
+      r.put(ix, y0 + from - lift(ix), mix(white, "#ffffff", 0.45));
+      if (iw === 3 && open > 2) r.put(ix + 2, y0 + open - 1 - lift(ix + 2), mix(m.iris, "#ffffff", 0.55));
     }
     if (lidWeight || lashStyle >= 2)
-      for (let k = near ? 0 : 1; k < w - (near ? 1 : 0); k++) r.put(x0 + k, y0 - 1 - lift(x0 + k) + shut, refined ? mix(lash, s.shade, 0.15) : mix(lash, "#000000", 0.3));
-    if (lashStyle >= 1) r.put(near ? x0 - 1 : x0 + w, y0 - (refined ? 0 : 1) - tilt, lash);
+      for (let k = near ? 0 : 1; k < w - (near ? 1 : 0); k++) r.put(x0 + k, y0 - 1 - lift(x0 + k) + shut, mix(lash, s.shade, 0.15));
+    if (lashStyle >= 1) r.put(near ? x0 - 1 : x0 + w, y0 - tilt, lash);
     if (lashStyle >= 2) {
       r.put(near ? x0 - 2 : x0 + w + 1, y0 - 2 - tilt, lash);
       for (let k = 0; k < w; k += 2) r.put(x0 + k + (near ? 0 : 1), y0 - 2 - lift(x0 + k) + shut, mix(lash, s.shade, 0.35));
     }
     if (lashStyle === 3) {
-      if (!refined) for (let k = 1; k < w - 1; k++) put(x0 + k, y0 + open, mix(lash, s.shade, 0.5), [MAT.skin]);
       r.put(near ? x0 - 1 : x0 + w, y0 - 2 - tilt, lash);
     }
-    if (refined) for (let k = 0; k < w; k++) {
+    for (let k = 0; k < w; k++) {
       const x = x0 + k;
       // Paint after the iris so the lower lid covers its bottom row too.
       r.put(x, y0 + open - 1 - lift(x), mix(s.base, s.shade, lashStyle === 3 ? 0.45 : 0.3));
       if (k === 0 || k === w - 1) r.put(x, y0 + open - 2 - lift(x), mix(s.base, s.shade, 0.3));
       if (!shut && (k === 0 || k === w - 1)) r.put(x, y0 - lift(x), mix(lash, s.shade, 0.4));
     }
-    if (refined && f.epicanthus && !shut) {
+    if (f.epicanthus && !shut) {
       const inner = near ? x0 + w - 1 : x0;
       r.put(inner, y0, mix(s.base, s.shade, 0.25));
       r.put(inner, y0 - 1, fold);
     }
     brows(near, x0, w, y0);
-    // Refined: a shadow under the eye with age or tiredness.
-    if (refined && (m.age > 38 || rec.tired)) for (let k = near ? 0 : 1; k < w - (near ? 1 : 0); k++) put(x0 + k, y0 + open + 1, mix(s.base, s.shade, rec.tired ? 0.4 : 0.15 + m.old * 0.3), [MAT.skin]);
+    // A shadow under the eye with age or tiredness.
+    if (m.age > 38 || rec.tired) for (let k = near ? 0 : 1; k < w - (near ? 1 : 0); k++) put(x0 + k, y0 + open + 1, mix(s.base, s.shade, rec.tired ? 0.4 : 0.15 + m.old * 0.3), [MAT.skin]);
     if (m.age > 42 || rec.sun === 2) put(near ? x0 - 2 : x0 + w + 1, y0 + 1, fold, [MAT.skin]);
     if (m.age > 50) put(near ? x0 - 2 : x0 + w + 1, y0 + 3, fold, [MAT.skin]);
     if (m.age > 55 || mood.heavy || rec.tired || rec.gaunt === 2)
       for (let k = 1; k < w - 1; k++) put(x0 + k, y0 + open + 2, rec.tired || rec.gaunt === 2 ? mix(s.shade, "#4a3450", 0.25) : fold, [MAT.skin]);
-    if (refined && eyeDetail.lowerLashes) for (const k of w >= 5 ? [1, 3] : [1]) {
+    if (eyeDetail.lowerLashes) for (const k of w >= 5 ? [1, 3] : [1]) {
       const x = near ? x0 + k : x0 + w - 1 - k;
       put(x, y0 + open - lift(x), mix(lash, s.shade, 0.5), [MAT.skin]);
     }
   }
 
-  if (refined && m.a.browConnection && m.a.browConnection !== "none" && browEnds.length === 2) {
+  if (m.a.browConnection && m.a.browConnection !== "none" && browEnds.length === 2) {
     const [left, right] = browEnds.sort((a, b) => a[0] - b[0]);
     const partial = m.a.browConnection === "partial";
     const brow = mix(m.hair.edge, m.hair.shade, 0.25);
@@ -1433,7 +1394,7 @@ function features(r: Raster, depth: Float32Array, m: Model, fr: Frame, pose: Hea
         for (let x = left[0] + 2; x <= right[0] - 2; x++) put(x, mid[1] + 1, "#f4ece0");
     }
     put(mid[0], mid[1] - Math.round(m.upper * 1.6) - 1, mix(s.base, s.shade, 0.5), [MAT.skin]);
-    if (m.age > 40 && nostril) line(nostril[0] - 2, nostril[1] + 1, left[0] - 2, mid[1] + 1, refined ? mix(s.base, s.shade, 0.2 + m.old * 0.4) : m.age > 58 ? mix(s.shade, s.edge, 0.2) : fold);
+    if (m.age > 40 && nostril) line(nostril[0] - 2, nostril[1] + 1, left[0] - 2, mid[1] + 1, mix(s.base, s.shade, 0.2 + m.old * 0.4));
     if (m.age > 62) {
       put(left[0] - 1, mid[1] + 2, fold, [MAT.skin]);
       put(right[0] + 1, mid[1] + 2, fold, [MAT.skin]);
@@ -1443,11 +1404,11 @@ function features(r: Raster, depth: Float32Array, m: Model, fr: Frame, pose: Hea
 
   const brow = onFace([0, 8, 12.5]);
   if (brow) {
-    const lines = refined ? Math.floor(clamp((m.age - 32) / 18 + trait(m, "age-lines") * 0.4, 0, 3)) : m.age > 70 ? 3 : m.age > 55 ? 2 : m.age > 38 ? 1 : 0;
+    const lines = Math.floor(clamp((m.age - 32) / 18 + trait(m, "age-lines") * 0.4, 0, 3));
     for (let k = 0; k < lines + (mood.raise > 1 ? 1 : 0); k++) {
-      const c = refined ? mix(s.base, s.shade, 0.25 + m.old * 0.3) : k ? fold : mix(s.base, s.shade, 0.5);
-      line(brow[0] - 7, brow[1] - k * 2, brow[0] - (refined ? 2 : -4), brow[1] - k * 2 - 1, c);
-      if (refined) line(brow[0] + 1, brow[1] - k * 2 - 1, brow[0] + 4, brow[1] - k * 2 - 1, c);
+      const c = mix(s.base, s.shade, 0.25 + m.old * 0.3);
+      line(brow[0] - 7, brow[1] - k * 2, brow[0] - 2, brow[1] - k * 2 - 1, c);
+      line(brow[0] + 1, brow[1] - k * 2 - 1, brow[0] + 4, brow[1] - k * 2 - 1, c);
     }
   }
   if (mood.inner > 1 && brow) line(brow[0] - 1, brow[1] + 3, brow[0] - 1, brow[1] + 5, fold);
@@ -1523,8 +1484,8 @@ function accessories(r: Raster, m: Model, put: Put, visible: Find, onFace: Find)
       case "burn": stroke([side * (m.eyeX + 2), -6, 9.6], [[-1, -2], [0, -2], [-2, -1], [-1, -1], [0, 0], [1, 0], [-1, 1], [0, 1]]); break;
     }
   }
-  // Refined: a mole on one face in five, somewhere of its own.
-  if (refined && roll(m, "mole") > 0.8) {
+  // A mole on one face in five, somewhere of its own.
+  if (roll(m, "mole") > 0.8) {
     const spots: V[] = [[-m.eyeX - 1, -5, 10], [m.eyeX + 1, -4, 9.5], [3, m.chinY + 2.5, 9], [-3, m.mouthY + 2, 11.5]];
     const at = onFace(spots[Math.floor(roll(m, "mole-at") * spots.length)]);
     if (at) put(at[0], at[1], mix(s.edge, "#2a1810", 0.4), [MAT.skin]);

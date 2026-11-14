@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, type RefObject } from "react";
 import type { CharacterAppearance } from "../core/character";
-import { drawCharacter } from "../render/characters/renderers";
+import { drawCharacterG } from "../render/characters/doll/draw";
 import {
   PORTRAIT_HEIGHT,
   PORTRAIT_WIDTH,
@@ -34,7 +34,7 @@ function portraitSource(appearance: CharacterAppearance, key: string) {
   const source = document.createElement("canvas");
   source.width = source.height = 80;
   const ctx = source.getContext("2d", { willReadFrequently: true })!;
-  drawCharacter(ctx, appearance, 2, "idle", 0);
+  drawCharacterG(ctx, appearance, 2, "idle", 0);
   const pixels = ctx.getImageData(0, 0, 80, 80).data;
   let x0 = 80,
     y0 = 80,
