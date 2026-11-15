@@ -1168,7 +1168,7 @@ export class Engine {
     if (plot?.asking && plot.asking.due === undefined && this.askPlot(plot)) return;
     const id = this.state.encounter?.card ?? this.state.care?.card ?? this.waitingCard();
     const card = id && this.choiceCard(id);
-    if (card && !this.cards.some((c) => c.choose?.card === id)) this.offerCard(card, this.state.care?.card === id ? this.state.care : undefined);
+    if (card && ![...this.cards, ...this.held].some((c) => c.choose?.card === id)) this.offerCard(card, this.state.care?.card === id ? this.state.care : undefined);
   }
   /** Puts a card on screen. A card about an illness waits apart from the
    * day's work, so it can come whenever someone falls ill. */
@@ -1183,7 +1183,7 @@ export class Engine {
     if (care) s.care = { card: card.id, who: care.who, ailment: care.ailment, at: s.care?.card === card.id && s.care.who === care.who ? s.care.at : s.clock };
     else if (!encounter) s.economy!.work!.card = card.id;
     const drawnStep = this.trade()?.process.steps[s.economy?.work?.drawn ?? -1];
-    this.cards.unshift({
+    const shown: PlotCard = {
       kind: "speech",
       title: ford ? "At the river" : encounter ? "On the road" : care ? (kin ? `your ${kinWord(kin.kind, kin.actor)}` : "Unwell") : !person ? (drawnStep ? this.stepTask(drawnStep) : this.dayTitle() ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
       text: cardText(card.text, words),
@@ -1203,7 +1203,9 @@ export class Engine {
           return [{ index, label: cardText(c.label, words), note, odds, minutes: minutes || undefined, coin: coin || undefined, unavailable: this.choiceProblem(c) }];
         }),
       },
-    });
+    };
+    if (care && care.who !== s.player.id) this.bring(shown, true);
+    else this.cards.unshift(shown);
   }
   private choose(id: string, n: number) {
     if (id.startsWith("plot:")) return this.plotChoose(id, n);
@@ -6079,6 +6081,22 @@ export class Engine {
    * to them in time opens on it. */
   approacher?: { id: string; situation: string; until: number };
   private approaching?: { id: string; line: string; until: number; title?: string; situation?: string; with?: string[]; onArrive?: () => void; valid?: () => boolean };
+  /** Cards someone has to bring, kept back while nobody can reach the player. */
+  private held: PlotCard[] = [];
+  private get below() {
+    return !!this.state.cave || !!this.state.sewer;
+  }
+  /** A card from home, the plot or kin: it waits while the player is underground. */
+  private bring(card: PlotCard, first = false) {
+    if (this.below) this.held.push(card);
+    else if (first) this.cards.unshift(card);
+    else this.cards.push(card);
+  }
+  /** Back above ground: what was kept back comes out, less questions no longer asked. */
+  private surface() {
+    const plot = this.state.plot, asked = plot && !plot.ended && plot.asking && this.plotQuestionId(plot);
+    this.cards.push(...this.held.splice(0).filter((c) => !c.choose?.card.startsWith("plot:") || c.choose.card === asked));
+  }
   private working = false;
   /** Plot cards waiting to be shown, oldest first. */
   cards: PlotCard[] = [];
@@ -9947,7 +9965,7 @@ export class Engine {
     a.dead = how;
     s.actors = s.actors.filter((x) => x.id !== a.id);
     this.routes.delete(a.id);
-    if (own || home) this.cards.push({ kind: "turn", title: "A Death", text: `${a.name}${word ? `, your ${word},` : ""} has died ${how}.` });
+    if (own || home) this.bring({ kind: "turn", title: "A Death", text: `${a.name}${word ? `, your ${word},` : ""} has died ${how}.` });
     else this.event(`Word goes round that ${a.name} has died ${how}.`, "social");
   }
   /** The opening card, once a life: who and where you are, and the plot. */
@@ -10000,14 +10018,14 @@ export class Engine {
       return false;
     }
     a.at = this.state.clock;
-    if (this.cards.some((c) => c.choose?.card === card)) return true;
+    if ([...this.cards, ...this.held].some((c) => c.choose?.card === card)) return true;
     const stats = this.stats(), by = a.by && this.actorsById?.get(a.by);
     const speaker = scene ? a.by : by && !by.dead && distance(by.pos, p) <= 8 ? by.id : undefined;
     if (scene && speaker && !plot.fired.includes(`offered:${a.line}`)) {
       plot.fired.push(`offered:${a.line}`);
       syncPlotAim(s, plot);
     }
-    this.cards.push({
+    this.bring({
       kind: speaker ? "speech" : "turn", title: plot.title, text: plotLine(plot, a.line, s), moment: a.line, focus: a.focus, speaker,
       ...(scene ? { scene: { plot: plot.id, began: plot.began, at: scene } } : {}),
       choose: { card, choices: a.choices.map((c, index) => ({
@@ -10068,7 +10086,7 @@ export class Engine {
     for (const e of stepPlot(s, scene)) {
       const who = "role" in e ? s.actors.find((a) => a.id === plot.cast[e.role]) : undefined;
       if (e.type === "card")
-        this.cards.push({
+        this.bring({
           kind: e.from ? "speech" : "turn", title: plot.title, text: plotLine(plot, e.line, s), moment: e.line, focus: e.focus && plot.cast[e.focus],
           speaker: e.from && plot.cast[e.from], ...(e.at ? { scene: { plot: plot.id, began: plot.began, at: e.at } } : {}),
         });
@@ -10115,7 +10133,7 @@ export class Engine {
     if (ending && plotKnown(plot)) {
       const line = plotLine(plot, ending.id, s);
       if (ending.quiet) this.event(line, "social");
-      else this.cards.push({ kind: "ending", title: plot.title, text: line, ending: ending.id });
+      else this.bring({ kind: "ending", title: plot.title, text: line, ending: ending.id });
       (s.record ??= []).push({ day: Math.floor(s.clock / 86400), clock: s.clock, card: `plot:${ending.id}`, choice: -1, line });
     }
   }
@@ -10649,6 +10667,11 @@ export class Engine {
       return;
     }
     if (p.dead || this.conversing) return;
+    // Nobody follows the player down; they come once the player is back up.
+    if (this.below && a.pos.space !== p.pos.space) {
+      ap.until = Math.max(ap.until, clock + 1800);
+      return;
+    }
     if (a.pos.space === p.pos.space && distance(a.pos, p.pos) <= 1.6) {
       this.approaching = undefined;
       a.errand = { to: copy(a.pos), label: "Waiting for an answer", until: clock + 120 };
@@ -12132,6 +12155,7 @@ export class Engine {
       if (next % 3600 === 0) this.healthStep(next);
       if (player.dead) break;
       if (next % 60 === 0 && this.state.plot && (!this.state.plot.ended || this.state.plot.gathering?.props)) this.runPlot();
+      if (this.held.length && !this.below) this.surface();
       if (this.state.asks?.length) this.helpStep();
       if (next % 600 === 0) {
         this.kinStep(next);

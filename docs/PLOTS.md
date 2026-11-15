@@ -27,9 +27,15 @@ who call on the player. Entry files: `src/content/plots/`, `src/core/plot.ts`,
   exist (the creditor from `owes`, a rival by trade), with `PlotRole` in
   `types.ts`. `stepPlot` evaluates conditions every game minute, so clocks
   measured in hours bite. `endPlot` closes it. Plot state is plain data in
-  `engine.state.plot` and crosses map travel.
+  `engine.state.plot` and crosses map travel. A life that starts underground
+  (`setting.below`) draws no plot whose opening sets a gathering.
 - **Cards.** `engine.cards` feeds `PlotCard.tsx`. A `choose` effect puts up a
   decision card. Answers fire their id for developments and endings.
+- **Reach.** Plot cards, care cards about kin and household deaths are
+  brought by someone (`engine.bring`). While the player is in a cave, sewer
+  or mine they wait in `engine.held`, and approachers stop at the surface;
+  both come once the player climbs out. Cards for questions no longer asked
+  are dropped then.
 - **Emblems.** Banners are drawn in `src/ui/plot-emblems.ts` and
   `src/ui/emblems/scenes/`, at the opening, at each card and at each ending.
 - **Clocks.** Many players see only a few game hours, so a plot opens within

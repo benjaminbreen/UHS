@@ -330,6 +330,36 @@ describe("plots played out in London, 1750", () => {
       PLOTS.pop();
     }
   });
+  it("keeps a plot's question back while the player is underground, and skips gatherings for a life begun there", () => {
+    const e = session();
+    delete e.state.plot;
+    let below = true;
+    Object.defineProperty(e, "below", { get: () => below });
+    const choice: PlotTemplate = {
+      ...commission, id: "test-below", shape: "light", weight: () => 1, cast: () => ({}),
+      begin: (c) => ({ deadline: c.clock + 86400, words: {} }),
+      opening: [{ type: "choose", line: "ask", choices: [{ id: "stay" }, { id: "go" }] }],
+      developments: [],
+      endings: [{ id: "went", when: { type: "fired", id: "go" } }],
+      wording: [{ title: "A Choice", lines: { aim: "Choose.", intro: "", threat: "", ask: "Stay or go?", "stay:label": "Stay", "go:label": "Go", went: "Gone." } }],
+    };
+    PLOTS.push(choice);
+    try {
+      drawOnly(choice, () => startPlot(e.state, setting));
+      e.advance(4 * 3600);
+      expect(e.cards.some((c) => c.choose?.card === "plot:test-below")).toBe(false);
+      below = false;
+      e.advance(60);
+      expect(e.cards.filter((c) => c.choose?.card === "plot:test-below")).toHaveLength(1);
+    } finally {
+      PLOTS.pop();
+    }
+    const state = structuredClone(e.state);
+    delete state.plot;
+    const party = { ...choice, opening: [{ type: "gather", at: "edge", when: "evening", label: "gather" }] } as PlotTemplate;
+    expect(drawOnly(party, () => startPlot(state, { ...setting, below: "cave" }))).toBeUndefined();
+    expect(drawOnly(party, () => startPlot(state, setting))?.id).toBe("test-below");
+  });
   it("ends an order only when the work is brought after the day's work is done", () => {
     const e = session();
     e.state.player.origin = { ...e.state.player.origin!, livelihood: "carpenter" };

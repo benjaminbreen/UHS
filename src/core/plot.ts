@@ -162,8 +162,11 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: str
   };
   const recent = recentPlots();
   const recentShapes = recent.map((id) => PLOTS.find((t) => t.id === id)?.shape);
+  // A life begun underground cannot be at a gathering set for this evening.
+  const below = !!(setting?.below || snapshot.cave || snapshot.sewer);
   const weighed = PLOTS
     .filter((t) => !only || t.id === only)
+    .filter((t) => only || !below || !t.opening.some((e) => e.type === "gather"))
     .map((t) => ({ t, w: t.weight(context) * (REPEAT[recent.indexOf(t.id)] ?? 1) }))
     .filter((c) => c.w > 0);
   // A shape first, worth its likeliest plot, then a plot within it in proportion to weight.
