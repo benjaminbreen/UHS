@@ -254,7 +254,8 @@
   {
     "name": "new-york-1910",
     "query": "New York 1910",
-    "radius": 40
+    "radius": 56,
+    "centre": "square"
   },
   {
     "name": "sitka-1980",
@@ -269,7 +270,8 @@
   {
     "name": "manchester-1900",
     "query": "Manchester 1900",
-    "radius": 110
+    "radius": 56,
+    "centre": "square"
   },
   {
     "name": "moscow-1975",
@@ -284,29 +286,32 @@
   {
     "name": "paris-1888",
     "query": "A traveler in Paris, 1888 CE",
-    "radius": 70,
+    "radius": 56,
     "centre": "square"
   },
   {
     "name": "london-1890",
     "query": "A clerk in London, 1890 CE",
-    "radius": 70
+    "radius": 56,
+    "centre": "square"
   },
   {
     "name": "vienna-1900",
     "query": "A traveler in Vienna, 1900 CE",
-    "radius": 70,
+    "radius": 56,
     "centre": "square"
   },
   {
     "name": "chicago-1895",
     "query": "A traveler in Chicago, 1895 CE",
-    "radius": 70
+    "radius": 56,
+    "centre": "square"
   },
   {
     "name": "tokyo-1910",
     "query": "A clerk in Tokyo, 1910 CE",
-    "radius": 70
+    "radius": 56,
+    "centre": "square"
   },
   {
     "name": "nairobi-1950",
@@ -362,7 +367,8 @@
   {
     "name": "mexico-1955",
     "query": "A clerk in Mexico City, 1955",
-    "radius": 70
+    "radius": 56,
+    "centre": "square"
   },
   {
     "name": "istanbul-1995",

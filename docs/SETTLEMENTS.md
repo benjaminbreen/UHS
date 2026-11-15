@@ -75,12 +75,24 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
 
 ### Industrial and motor-age cities
 
-- A boulevard-age European city (`perimeter-block-city`) is cut into long
-  east-west blocks, 46 to 56 cells by 20, old core included: a block holds a
-  street front of five or six buildings, and a narrower one is a building
-  between two streets. Its venues stand a whole block behind the square, and
-  from 1850 a market ground keeps a third of the town's half-width away from
-  it, so the blocks facing the square are street fronts.
+- **Street-wall cores.** Once a region has industrialised (`modernity.ts`) and
+  the town is not plotted, `siteForm` sets `streetWall` and the town is laid
+  block first (`layRows` in `blocks.ts`). Doors only ever face south, so a
+  block is one row of houses: each piece of ground between the main streets
+  is cut into rows as deep as that ring's houses are drawn (`rowDepth` in
+  `urban.ts`), a street runs along the south of each row, and lanes join one
+  row street to the next. Ground left over that would hold a street and a low
+  row gets them. A new street is laid only where both ends meet another;
+  ground that cannot be reached that way stays open, and unbuilt ground is
+  grass, not street stone. An old core the city grew round keeps its lanes,
+  and older towns are laid as before (streets first, blocks read off the
+  ground).
+- A row takes the land use of its ring (`ringOf`), so its houses fit its
+  depth; a house whose roof would stand more than a cell over the walk behind
+  is not offered to it.
+- A boulevard-age European city's venues stand a whole block behind the
+  square, and from 1850 a market ground keeps a third of the town's
+  half-width away from it.
 
 - `modernity.ts` dates two onsets per region: industry and mass car ownership.
 - After the industrial onset a city levels its site (`townTerraces` in

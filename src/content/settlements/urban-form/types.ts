@@ -95,6 +95,11 @@ export type UrbanForm = {
    * round it, so it keeps its lanes and houses inside the ring. Set from the
    * region's zoning, not by a fabric entry. */
   oldCore?: boolean;
+  /** A dense core of continuous street fronts: each block is one row of
+   * houses facing south, as deep as they are drawn, and the streets are the
+   * gaps between rows. Set once the region has industrialised, not by a
+   * fabric entry. */
+  streetWall?: boolean;
   /** Diagonal avenues cut from the square's corners to the built edge. */
   diagonals?: number;
   /** Houses stand in their own green plots rather than in rows on the street,

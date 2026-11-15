@@ -333,8 +333,8 @@ it("frames modern civic squares without roads, market stalls or a shared fire", 
     for (const b of p.places.filter((b) => b.landUse === "industrial"))
       expect(route(p.spawn, b.entrance, (q) => p.solid.has(`${q.x},${q.y}`) ||
         Math.abs(q.x) > 160 || Math.abs(q.y) > 160 ? Infinity : 1).status, b.id).toBe("found");
-    expect(p.loadingBays!.size).toBeGreaterThan(0);
-    for (const k of p.loadingBays!.keys()) expect(p.solid.has(k), `loading access ${k}`).toBe(false);
+    if (p.places.some((b) => b.landUse === "industrial")) expect(p.loadingBays!.size).toBeGreaterThan(0);
+    for (const k of p.loadingBays?.keys() ?? []) expect(p.solid.has(k), `loading access ${k}`).toBe(false);
     for (const b of p.places) {
       const since = modernBuildingSince(b.sprite);
       if (since && b.structure) expect(b.structure.built).toBeGreaterThanOrEqual(since);

@@ -23,10 +23,18 @@ for (const { name, query, seed, radius, settlementLayout, centre } of panel as a
     ? { ...r.setting, settlementLayout }
     : r.setting;
   const e = createSettingSession(setting, seed ?? "panel") as any;
-  // "centre": "square" looks at the town's middle, not at the player's door.
-  const at = centre === "square" || process.env.TOWN_CENTRE === "square"
-    ? e.world.planAt(Math.round(e.state.player.pos.x), Math.round(e.state.player.pos.y))?.site.center ?? e.state.player.pos
-    : e.state.player.pos;
+  // "centre": "square" looks at the middle of the largest town near the
+  // player, who mostly starts outside it.
+  const from = e.state.player.pos;
+  let at = from;
+  if (centre === "square" || process.env.TOWN_CENTRE === "square") {
+    let best = 0;
+    for (let dy = -240; dy <= 240; dy += 12)
+      for (let dx = -240; dx <= 240; dx += 12) {
+        const site = e.world.planAt(Math.round(from.x) + dx, Math.round(from.y) + dy)?.site;
+        if (site && site.profile.radius > best) [best, at] = [site.profile.radius, site.center];
+      }
+  }
   const cx = Math.round(at.x),
     cy = Math.round(at.y);
   const R = radius ?? 40;

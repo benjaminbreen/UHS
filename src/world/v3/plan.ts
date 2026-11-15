@@ -425,8 +425,9 @@ export function planSettlement(
   const cityGround =
     profile.radius < 45
       ? undefined
-      : !!pack.setting && industrialized(pack.setting) && !plotted && pack.setting.year < 1900
-        ? "paving"
+      // An industrial city's unbuilt ground is yard and garden, not street stone.
+      : !!pack.setting && industrialized(pack.setting) && !plotted && pack.setting.climate !== "arid"
+        ? "grass"
         : (pack.setting?.year ?? 0) >= 1900 || (plotted && !compoundCity(pack))
         ? "grass"
         : "dirt";
@@ -1451,7 +1452,7 @@ export function planSettlement(
     // or paving, with grass only as edging round the houses.
     // A modern block is yard between its buildings; an older one is earth.
     const blockGround =
-      (pack.setting?.year ?? 0) >= 1900 && cityGround !== "paving" ? "grass" : (cityGround ?? "grass");
+      (pack.setting?.year ?? 0) >= 1900 ? "grass" : (cityGround ?? "grass");
     const paintBlock = (block: Rect, given: Terrain = blockGround, role: Pavement = "yard") =>
       eachCell(block, (x, y) => {
         // Behind a Tokyo street front the yards and lanes were beaten earth.
@@ -1717,7 +1718,7 @@ export function planSettlement(
         for (let x = c.x - reach; x <= c.x + reach; x++) {
           if (!holds(x, y) || !dry({ x, y, w: 1, h: 1 }, false)) continue;
           const k = cellKey(x, y);
-          if (setSurface(k, cityGround === "dirt" ? openGround : cityGround === "paving" ? "dirt" : cityGround, 1))
+          if (setSurface(k, cityGround === "dirt" ? openGround : cityGround, 1))
             plan.pavement!.set(k, "vacant");
           const besideRoad =
             !roads.has(k) &&

@@ -26,6 +26,8 @@ export type Block = Rect & {
   /** Index of the district it lies in; 0 is the core, later ones were laid
    * out later. */
   district: number;
+  /** One row of houses facing the street along its south side. */
+  row?: true;
 };
 /** The defensive circuit, as a ring of cells with the gate openings removed. */
 export type Wall = {
@@ -52,6 +54,8 @@ export type Rail = {
   span: number;
 };
 export const RAIL_SPAN = 4;
+/** Shortest street front a row block is cut to, in cells: six or seven houses. */
+const FRONT = 32;
 export type UrbanLayout = {
   gates: Gate[];
   streets: Segment[];
@@ -208,6 +212,9 @@ export function composeUrban(
   /** Depth a block needs to hold two rows of the town's own houses back to
    * back, the front row's drawn roof included. */
   rows = 0,
+  /** In a street-wall city, how deep a row of houses is drawn this far from
+   * the centre: its block is exactly that deep. */
+  rowDepth?: (reach: number) => number,
 ): UrbanLayout {
   const half = urbanFootprint(radius, form);
   const rand = (...keys: (string | number)[]) =>
@@ -630,7 +637,8 @@ export function composeUrban(
   // from the block module, not from the settlement's size alone.
   for (const axis of ["x", "y"] as const) {
     if (core.plan === "linear" && axis !== gates[0].axis) continue;
-    const module = (axis === "x" ? core.block[0] : core.block[1]) + arterial;
+    // A row of houses wants a long front: its avenues stand further apart.
+    const module = (axis === "x" ? (form.streetWall ? Math.max(core.block[0], FRONT) : core.block[0]) : core.block[1]) + arterial;
     const count = Math.min(4, Math.floor((coreHalf * 2) / (module * 2.5)));
     for (let i = 1; i <= count; i++) {
       const at =
@@ -716,8 +724,12 @@ export function composeUrban(
   };
 
   // --- District streets ------------------------------------------------------
+  /** Laid out as rows once the squares and the railway have taken their
+   * ground; an old core the city grew round keeps its lanes. */
+  const inRows = (d: District) => !!form.streetWall && !!rowDepth && !(form.oldCore && d.core);
   for (const [i, d] of districts.entries())
-    if (grown(d.spec.plan)) grow(d, i);
+    if (inRows(d)) continue;
+    else if (grown(d.spec.plan)) grow(d, i);
     else grid(d, i);
 
   /** Lines between the arterials at the module: each gap between two
@@ -1208,6 +1220,7 @@ export function composeUrban(
           : { x: rail.level, y: bounds.y, w: rail.span, h: H },
         1,
       );
+    for (const q of quarters) clearRect(q, 0);
   }
   /** The largest open rectangle at least 8 cells each way, by the histogram
    * method over the open grid. */
@@ -1242,6 +1255,27 @@ export function composeUrban(
     return best;
   }
   let blocks: Block[] = [];
+  const blockOn = (r: Rect): Block => {
+    const mid = { x: r.x + (r.w >> 1), y: r.y + (r.h >> 1) };
+    return {
+      ...r,
+      depth: 0,
+      court: false,
+      district: Math.max(
+        0,
+        districts.findIndex((d) => inRect(mid.x, mid.y, d.rect)),
+      ),
+      reach: density
+        ? 1 - density(r.x + r.w / 2, r.y + r.h / 2)
+        : Math.max(
+            Math.abs(r.x + r.w / 2 - focus.x),
+            Math.abs(r.y + r.h / 2 - focus.y),
+          ) / half,
+    };
+  };
+  /** Ground between the main streets that was cut into rows, and the rows. */
+  const quarters: Rect[] = [];
+  const rowBlocks: Block[] = [];
   function readBlocks() {
     rasterize();
     blocks = [];
@@ -1249,30 +1283,137 @@ export function composeUrban(
       const r = largest();
       if (!r) break;
       clearRect(r, 0);
-      const mid = { x: r.x + (r.w >> 1), y: r.y + (r.h >> 1) };
-      blocks.push({
-        ...r,
-        depth: 0,
-        court: false,
-        district: Math.max(
-          0,
-          districts.findIndex((d) => inRect(mid.x, mid.y, d.rect)),
-        ),
-        reach: density
-          ? 1 - density(r.x + r.w / 2, r.y + r.h / 2)
-          : Math.max(
-              Math.abs(r.x + r.w / 2 - focus.x),
-              Math.abs(r.y + r.h / 2 - focus.y),
-            ) / half,
+      blocks.push(blockOn(r));
+    }
+    blocks.push(...settledRows());
+  }
+  /** The rows less whatever a street joined up later has since cut through. */
+  function settledRows(): Block[] {
+    let out = rowBlocks;
+    for (const s of streets) {
+      const [slo, shi] = spanOffsets(span(s.tier)), m = margin(s.tier);
+      const x = axisOf(s) === "x";
+      const a0 = across(s) - slo - m, a1 = across(s) + shi + m, l0 = lo(s) - slo - m, l1 = hi(s) + shi + m;
+      out = out.flatMap((b) => {
+        const [b0, b1, c0, c1] = x ? [b.y, b.y + b.h - 1, b.x, b.x + b.w - 1] : [b.x, b.x + b.w - 1, b.y, b.y + b.h - 1];
+        if (a1 < b0 || a0 > b1 || l1 < c0 || l0 > c1) return [b];
+        const least = x ? 6 : 10;
+        return [[b0, a0 - 1], [a1 + 1, b1]].filter(([from, to]) => to - from + 1 >= least)
+          .map(([from, to]) => (x ? { ...b, y: from, h: to - from + 1 } : { ...b, x: from, w: to - from + 1 }));
       });
     }
+    return out;
   }
+  if (form.streetWall && rowDepth) layRows(rowDepth);
   readBlocks();
+
+  /** A street-wall city, block first. Each piece of open ground between the
+   * main streets is cut into rows one house deep, each with a street along
+   * its south side, and lanes join one row street to the next. A new street
+   * is laid only where both its ends meet another, so none ends blind; ground
+   * that cannot be reached that way is left open. */
+  function layRows(depthAt: (reach: number) => number) {
+    rasterize();
+    for (const d of districts) if (!inRows(d)) clearRect(d.rect, 0);
+    const [lo1, hi1] = spanOffsets(span(1)), m1 = margin(1), s1 = span(1) + m1 * 2;
+    const [lo2, hi2] = spanOffsets(span(2)), m2 = margin(2), s2 = span(2) + m2 * 2;
+    const probe = Math.max(loA, hiA) + margin(0) + 2;
+    /** Centre line of the street passing just outside a cell, if one does. */
+    const beside = (x: number, y: number, dx: number, dy: number) => {
+      for (let k = 1; k <= probe; k++) if (lines.has(cellKey(x + dx * k, y + dy * k))) return dx ? x + dx * k : y + dy * k;
+      return undefined;
+    };
+    for (;;) {
+      const q = largest();
+      if (!q) break;
+      clearRect(q, 0);
+      quarters.push(q);
+      const base = blockOn(q);
+      const spec = districts[base.district]?.spec ?? core;
+      const depth = Math.max(6, depthAt(base.reach));
+      const right = q.x + q.w - 1, bottom = q.y + q.h - 1;
+      const westAt = (y: number) => beside(q.x, y, -1, 0),
+        eastAt = (y: number) => beside(right, y, 1, 0),
+        northAt = (x: number) => beside(x, q.y, 0, -1);
+      // The street the bottom row fronts: the one already there, or a new one.
+      const under: number[] = [];
+      for (let x = q.x; x <= right; x++) {
+        const at = beside(x, bottom, 0, 1);
+        if (at !== undefined) under.push(at);
+      }
+      const fronted = under.length >= q.w * 0.7;
+      const south = fronted ? under.sort((a, b) => a - b)[under.length >> 1] : bottom - hi1;
+      const y1 = fronted ? bottom : south - lo1 - m1 - 1;
+      const height = y1 - q.y + 1;
+      if (q.w < 10 || height < 6) continue;
+      const full = Math.max(1, Math.floor((height + s1) / (depth + s1)));
+      let spare = height - (full * depth + (full - 1) * s1);
+      // Ground left over that would hold a street and a low row gets them: the
+      // mews and workshop rows behind a city's taller fronts.
+      const low = spare >= s1 + 7 ? spare - s1 : 0;
+      if (low) spare = 0;
+      const count = full + (low ? 1 : 0);
+      const bands: { y: number; h: number; below: number }[] = [];
+      for (let i = 0, top = q.y; i < count; i++) {
+        const n = i - (low ? 1 : 0);
+        const h = low && !i ? low : depth + Math.floor(spare / full) + (n < spare % full ? 1 : 0);
+        bands.push({ y: top, h, below: i === count - 1 ? south : top + h + m1 + lo1 });
+        top += h + s1;
+      }
+      const fresh = bands.map((b) => b.below).filter((y) => y !== south || !fronted);
+      // A side with no street to end on gets a lane, if the lane can join two
+      // streets itself; otherwise nothing new can be laid here.
+      const lane = (at: (y: number) => number | undefined, x: number) => {
+        if (fresh.every((y) => at(y) !== undefined)) return { x: undefined as number | undefined, ok: true };
+        const head = northAt(x);
+        const ends = [...(head === undefined ? [] : [head]), ...fresh, ...(fronted ? [south] : [])];
+        return { x, ok: new Set(ends).size >= 2, from: Math.min(...ends), to: Math.max(...ends) };
+      };
+      const west = lane(westAt, q.x + lo2), east = lane(eastAt, right - hi2);
+      // A lane round a block too short for a street front is a ring road.
+      const ringed = (west.x !== undefined || east.x !== undefined) && q.w - (west.x === undefined ? 0 : s2) - (east.x === undefined ? 0 : s2) < FRONT * 0.75;
+      if (!west.ok || !east.ok || ringed) {
+        // Only the row the old street already fronts can be built.
+        if (fronted) rowBlocks.push({ ...blockOn({ x: q.x, y: Math.max(q.y, bottom - depth - Math.min(4, Math.max(0, q.h - depth)) + 1), w: q.w, h: Math.min(q.h, depth + 4) }), row: true });
+        continue;
+      }
+      const laid: Segment[] = [];
+      for (const side of [west, east])
+        if (side.x !== undefined) laid.push({ a: { x: side.x, y: side.from! }, b: { x: side.x, y: side.to! }, tier: 2 });
+      const x0 = west.x === undefined ? q.x : west.x + hi2 + m2 + 1,
+        x1 = east.x === undefined ? right : east.x - lo2 - m2 - 1;
+      const width = x1 - x0 + 1;
+      const module = Math.max(spec.block[0], FRONT) + s2;
+      const pieces = Math.max(1, Math.round(width / module));
+      let above: number | undefined;
+      for (const [i, band] of bands.entries()) {
+        if (band.below !== south || !fronted)
+          laid.push({ a: { x: west.x ?? westAt(band.below)!, y: band.below }, b: { x: east.x ?? eastAt(band.below)!, y: band.below }, tier: 1 });
+        let left = x0;
+        for (let j = 1; j <= pieces; j++) {
+          const cut = j === pieces
+            ? undefined
+            : x0 + Math.round((width * j) / pieces + (rand("lane", q.x, q.y, i, j) - 0.5) * (1 - spec.regularity) * module * 0.6);
+          // A lane runs from the street behind this row to the one in front.
+          const head = cut === undefined ? undefined : (above ?? northAt(cut));
+          const end = cut === undefined || head === undefined ? x1 : cut - lo2 - m2 - 1;
+          if (end !== x1 && (end - left + 1 < 12 || x1 - (cut! + hi2 + m2) < 12)) continue;
+          rowBlocks.push({ ...blockOn({ x: left, y: band.y, w: end - left + 1, h: band.h }), reach: base.reach, row: true });
+          if (end === x1) break;
+          laid.push({ a: { x: cut!, y: head! }, b: { x: cut!, y: band.below }, tier: 2 });
+          left = cut! + hi2 + m2 + 1;
+        }
+        above = band.below;
+      }
+      for (const s of laid) push(s);
+    }
+  }
   // A block left far over its district's module gets a lane through it and the
   // ground is read again; a grown district in particular leaves such gaps.
   for (let pass = 0; pass < 3; pass++) {
     let split = 0;
     for (const b of blocks) {
+      if (b.row) continue;
       const d =
         districts.find((d) =>
           inRect(b.x + (b.w >> 1), b.y + (b.h >> 1), d.rect),
@@ -1318,7 +1459,7 @@ export function composeUrban(
   // that street blind.
     for (let pass = 0; pass < 3; pass++) {
       const tol = hiA + margin(2) + 1;
-      const small = (b: Block) => b.w < 10 || b.h < 10 || ((year ?? 0) >= 1850 && b.w * b.h < 120);
+      const small = (b: Block) => !b.row && (b.w < 10 || b.h < 10 || ((year ?? 0) >= 1850 && b.w * b.h < 120));
       let merged = 0;
       for (const s of [...streets]) {
         if (s.tier !== 2) continue;
@@ -1436,7 +1577,7 @@ export function composeUrban(
   readBlocks();
   for (const b of blocks) {
     const key = `${b.x},${b.y}`;
-    b.court = b.w >= 13 && b.h >= 11 && rand(key, "court") < form.courts;
+    b.court = !b.row && b.w >= 13 && b.h >= 11 && rand(key, "court") < form.courts;
     // A blind alley is the only way into a courted compound.
     if (b.court && rand(key, "dead") < form.deadEnds) {
       const mid = b.x + (b.w >> 1);
