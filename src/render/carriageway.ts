@@ -217,7 +217,8 @@ export function carriagewayPixel(
 
   const low = kerbs.low && u < GUTTER,
     high = kerbs.high && u >= W - GUTTER;
-  if ((low || high) && m.gutter !== "none") {
+  // A lane too narrow for a cart to pass another has no channel to speak of.
+  if ((low || high) && m.gutter !== "none" && W >= 28) {
     const d = low ? u : W - 1 - u;
     const side = edge + (low ? 0 : W);
     // A drain every few lengths of kerb, never at a crossing.
@@ -235,13 +236,13 @@ export function carriagewayPixel(
     // A sett or brick street drains along a channel of long stones laid
     // lengthwise at the kerb's foot, darker and damp where the water runs.
     if (!pan || m.gutter === "sett") {
-      if (d >= GUTTER) return base;
-      const inner = d > 8;
-      const y = mod(v + (inner ? 5 : 0), 10);
-      if (d === 8 || d === GUTTER - 1 || y === 0) return [70, 72, 78];
-      const wet = !inner && valueNoise(v, side, 6, 772) > 0.55;
-      return tint(wet ? [98, 104, 110] : [118, 118, 116],
-        Math.floor(hash(Math.floor((v + (inner ? 5 : 0)) / 10), inner ? 1 : 0, 772) * 10) - 5 + (y === 1 ? 7 : 0) + (wet && y === 2 ? 14 : 0));
+      // One course, in the road's own stone a little lighter, so the channel
+      // is a line at the kerb's foot and not a second pavement.
+      if (d >= 7) return base;
+      const y = mod(v, 12);
+      if (d === 6 || y === 0) return tint(base, -14);
+      const wet = valueNoise(v, side, 6, 772) > 0.55;
+      return tint(base, (wet ? -6 : 6) + Math.floor(hash(Math.floor(v / 12), 0, 772) * 6) - 3 + (y === 1 ? 5 : 0));
     }
     if (d === GUTTER - 1) return [84, 86, 86];
     if (d >= 8) {

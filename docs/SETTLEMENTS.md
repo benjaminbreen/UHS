@@ -144,11 +144,15 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
 - `src/render/carriageway.ts` draws from that alone: gutters, drains,
   manholes, wear, paint, crossings, parking ticks. Motor-age country roads are
   blacktop with a centre line (`blacktopPixel`).
-- `src/render/street-raster.ts` draws the kerb as a stone standing proud of
-  the road (lit top, shaded face, cast shadow), keeps a kerbed sett or brick
-  carriageway darker than its footway, and frames a square with a course of
-  kerb stones wherever a made street lies beyond its walk. An older square
-  still runs into its lanes unframed.
+- `src/render/street-raster.ts` draws the kerb (`kerbTone`) as a stone seen
+  from above and a little from the south: its top is the footway's last four
+  pixels, and on the road lie as much of its front as faces south (three
+  pixels due south, none at the sides, so a corner turns smoothly), a dark
+  line at its foot and its shadow to the south and east. A kerbed sett or
+  brick carriageway is drawn darker than its footway, its channel is one
+  course in the road's own stone, and a lane under 28 pixels wide has none.
+  A square is framed with a course of kerb stones wherever a made street
+  lies beyond its walk; an older square still runs into its lanes unframed.
 - A city of rows has no diagonal avenues: they ran into the square and left
   scraps on both sides.
 - **Parked cars.** `vehicles.ts` holds a dated weighted pool per region;

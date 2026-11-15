@@ -64,7 +64,7 @@ export function streetUnionDistance(strokes: StreetStroke[], x: number, y: numbe
     const bx = stroke.b[0] - stroke.a[0], by = stroke.b[1] - stroke.a[1];
     if (Math.abs(ax * by - ay * bx) < 0.01) continue;
     // A kerb laid for cars turns a wider corner than one laid for carts.
-    const k = nearest.marks ? 1.75 : 1;
+    const k = nearest.marks ? 2.25 : 2;
     const h = Math.max(0, k - Math.abs(distance - streetDistance(stroke, x, y))) / k;
     rounded = Math.min(rounded, distance - h * h * k * 0.25);
   }
