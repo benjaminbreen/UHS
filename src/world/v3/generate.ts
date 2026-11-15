@@ -282,7 +282,7 @@ export function createSettlementWorld(
    * street of one quarter kept the raw level through ground another had
    * levelled. So they grade in rank order, each on the ground the larger
    * ones left, and every plan reads the one result. */
-  const gradesGround = (s: Site) => !!(s.pack ?? pack).setting?.terrainRevision && urbanSite(s, s.pack ?? pack);
+  const gradesGround = (s: Site) => urbanSite(s, s.pack ?? pack);
   const outranks = (a: Site, b: Site) => a.profile.radius > b.profile.radius || (a.profile.radius === b.profile.radius && a.id < b.id);
   /** Graded towns whose reach meets this box, smallest first: the last to grade. */
   function gradedTowns(x: number, y: number, reach: number, but?: Site) {
