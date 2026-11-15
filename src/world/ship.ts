@@ -73,6 +73,16 @@ export function halfWidth(kind: ShipKind, u: number) {
       return u < 0.1 ? 0.74 + 0.26 * ease(u / 0.1) : u < 0.42 ? 1 : Math.max(0, 1 - ((u - 0.42) / 0.58) ** 1.6);
     case "steamer":
       return u < 0.07 ? 0.55 + 0.45 * ease(u / 0.07) : u < 0.8 ? 1 : Math.max(0, 1 - ((u - 0.8) / 0.2) ** 1.25);
+    // A blunt cone: the heat shield astern, the nose forward.
+    case "capsule":
+      return u < 0.12 ? 0.86 + 0.14 * ease(u / 0.12) : 1 - 0.5 * ((u - 0.12) / 0.88) ** 1.4;
+    case "submarine":
+    case "aircraft":
+      return Math.sin(Math.PI * Math.max(0.02, Math.min(0.98, u))) ** 0.3;
+    case "basket":
+      return 1;
+    case "nowhere":
+      return Math.sqrt(Math.max(0, 1 - (2 * u - 1) ** 2)) ** 0.7;
   }
 }
 
@@ -175,6 +185,44 @@ export function shipLevel(seed: string, hull: Hull, deck: number, place: { lon: 
         lights.push({ x: col(0.03), y: y0 + mid, kind: "lantern" });
         break;
       }
+      case "capsule":
+        put("console", 0.6, top, 2, 1);
+        put("couch", 0.25, mid, 2, 1, false);
+        put("couch", 0.25, mid + 1, 2, 1, false);
+        put("locker", 0.08, top);
+        put("locker", 0.08, bottom);
+        lights.push({ x: col(0.4), y: y0 + mid, kind: "bulb" });
+        break;
+      case "submarine":
+        put("diesel", 0.08, top, 3, 1);
+        put("diesel", 0.08, bottom, 3, 1);
+        for (const u of [0.24, 0.31]) put("bunk", u, top, 2, 1);
+        put("mess", 0.25, bottom, 3, 1);
+        put("sub-wheel", 0.44, top);
+        put("periscope", 0.5, mid);
+        put("chart", 0.55, bottom, 2, 1);
+        put("valves", 0.6, top, 2, 1);
+        for (const u of [0.7, 0.77]) put("bunk", u, bottom, 2, 1);
+        put("torpedo", 0.86, top, 3, 1);
+        put("torpedo", 0.86, bottom, 3, 1);
+        for (const u of [0.15, 0.4, 0.65, 0.9]) lights.push({ x: col(u), y: y0 + mid, kind: "bulb" });
+        break;
+      case "aircraft":
+        put("console", 0.88, top, 2, 1);
+        put("console", 0.88, bottom, 2, 1);
+        for (let u = 0.3; u < 0.8; u += 2 / L) for (const r of [top, bottom]) put("seat", u, r, 1, 1, false);
+        put("crates", 0.1, top, 2, 1);
+        put("locker", 0.1, bottom);
+        for (const u of [0.3, 0.6, 0.85]) lights.push({ x: col(u), y: y0 + mid, kind: "bulb" });
+        break;
+      case "basket":
+        put("sandbags", 0, top);
+        put("instruments", 0.75, top);
+        break;
+      case "nowhere":
+        put("stone", 0.22, top + 1);
+        put("stone", 0.7, bottom - 1);
+        break;
       case "steamer": {
         put("hand-wheel", 0.04, mid);
         down(0.24, mid, 1, "hatch", 3, 2);
@@ -288,7 +336,8 @@ export function shipLevel(seed: string, hull: Hull, deck: number, place: { lon: 
     const around = by ? near(by)!.filter((p) => free(p.x, p.y) && !folk.some((f) => f.x === p.x && f.y === p.y)) : [];
     return around[0] ?? open.find((p) => free(p.x, p.y))!;
   })();
-  const name = use === "weather" ? "the weather deck" : { gundeck: "the gun deck", steerage: "steerage", hold: "the hold", compartments: "the hold", stokehold: "the stokehold" }[use];
+  const sealed = { capsule: "the capsule", submarine: "the boat", aircraft: "the cabin", basket: "the basket", nowhere: "nowhere" }[hull.kind as string];
+  const name = sealed ?? (use === "weather" ? "the weather deck" : { gundeck: "the gun deck", steerage: "steerage", hold: "the hold", compartments: "the hold", stokehold: "the stokehold" }[use]);
   return { space: shipSpace(deck), deck, use, hull, w, h, cells, x0, y0, things, lights, folk, entry, name };
 }
 

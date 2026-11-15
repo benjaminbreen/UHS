@@ -230,8 +230,9 @@ describe("shared World Weaver / procedural geography", () => {
       figure: "Alexander III of Macedon", work: "ruler", sex: "male", age: 24, situation: null,
       hook: "Today you mark out the walls of your new city with barley meal.",
       aim: { text: "Conquer the Persian Empire.", reason: "You are heir to Philip's war.", means: "Lead the army east." },
-      kin: [], figures: [{ name: "Hephaestion", role: "companion", sex: "male", documented: true }],
+      kin: [], figures: [{ name: "Hephaestion", role: "companion", sex: "male", documented: true, age: 26, tie: "closest friend" }],
       tidings: [{ text: "Darius is gathering a new army in Babylon.", documented: true }],
+      moment: { where: "hall", with: ["Hephaestion"], doing: "Planning the new city" },
     };
     const provider = (async () => new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify(choice) } }] }))) as typeof fetch;
     const response = await worldWeaver(
@@ -247,11 +248,20 @@ describe("shared World Weaver / procedural geography", () => {
     expect(s.player.origin?.livelihood).toBe("ruler");
     expect(s.player.age).toBe(24);
     expect(s.lifeAim?.text).toBe("Conquer the Persian Empire.");
-    expect(s.actors.some((a) => a.name === "Hephaestion")).toBe(true);
+    const friend = s.actors.find((a) => a.name === "Hephaestion")!;
+    expect(s.player.pos.space).not.toBe("outside");
+    expect(friend.pos.space).toBe(s.player.pos.space);
+    expect(friend.activity).toBe("Planning the new city");
+    expect(friend.age).toBe(26);
+    expect(friend.figure).toMatchObject({ real: true, tie: "closest friend" });
+    expect(engine.workPlan()).toBeUndefined();
+    expect(s.plot).toBeUndefined();
+    expect(s.ailments).toEqual([]);
     const text = introText(composeIntro(s, engine.world.pack.setting, "Alexandria"));
     expect(text).toContain("a king of Macedon");
     expect(text).toContain("barley meal");
     expect(text).toContain("Darius");
+    expect(text).toContain("Hephaestion is here with you.");
     expect(text).not.toContain("has come to Egypt");
   }, 60000);
   it("gives every nested object in the model's schema the strict-mode shape", () => {

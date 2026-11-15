@@ -12,7 +12,24 @@ const NEW_WORLD: Box = [-130, -56, -34, 60];
 const EUROPEAN_SEAS = [ATLANTIC, at.europe, at.mediterranean, at.caribbean, NEW_WORLD, WEST_AFRICA, at.southernAfrica, at.india, at.southeastAsia, [110, 18, 124, 32] as Box];
 const ANYWHERE: Box = [-180, -60, 180, 72];
 
+// Sealed vessels and places with no ground. Weight 0: never drawn by chance, only asked for by id.
+const SEALED = { where: [ANYWHERE], masts: [], below: [], poop: 0, forecastle: 0, freeboard: 0, look: "black", weight: 0 } as const;
+const CAPSULE = { ...SEALED, kind: "capsule", label: "Space capsule", years: [1961, 2100], length: 7, beam: 6, people: [] } as const;
+
 export const hulls: readonly Hull[] = [
+  { ...CAPSULE, id: "capsule-orbit", medium: "orbit", note: "A crewed capsule in low Earth orbit, from Vostok and Mercury on. The cabin is drawn far roomier than the real ones, which were barely larger than their couches." },
+  { ...CAPSULE, id: "capsule-lunar", medium: "lunar", years: [1968, 2100], note: "A command module in lunar orbit, as on Apollo 8 and the landings that followed." },
+  { ...CAPSULE, id: "capsule-space", medium: "stars", years: [1968, 2100], note: "A capsule coasting between Earth and Moon." },
+  { ...SEALED, id: "submarine", kind: "submarine", label: "Submarine", medium: "deep", years: [1900, 2100], length: 30, beam: 5, people: ["submariner"],
+    note: "A diesel-electric boat of the two world wars and after: control room amidships, torpedoes forward, engines aft, bunks wherever they fit." },
+  { ...SEALED, id: "aircraft", kind: "aircraft", label: "Aircraft", medium: "sky", years: [1919, 2100], length: 20, beam: 5, people: ["airman"],
+    note: "The cabin of a large aircraft in flight: a flying boat, a bomber, an airliner." },
+  { ...SEALED, id: "balloon", kind: "basket", label: "Balloon", medium: "sky", years: [1783, 2100], length: 5, beam: 5, people: [],
+    note: "The wicker car of a gas or hot-air balloon, from the Montgolfiers and Charles in 1783." },
+  { ...SEALED, id: "limbo", kind: "nowhere", label: "Limbo", medium: "mist", years: [-1000000, 10000], length: 14, beam: 10, people: [],
+    note: "A floor in mist, for a dream, a vision or an afterlife. Fiction, not a place." },
+  { ...SEALED, id: "void", kind: "nowhere", label: "The void", medium: "stars", years: [-1000000, 10000], length: 14, beam: 10, people: [],
+    note: "A floor among the stars, for a vision or a place no setting covers. Fiction, not a place." },
   {
     id: "galleon", kind: "square-rigger", label: "Galleon",
     years: [1540, 1690], where: EUROPEAN_SEAS,

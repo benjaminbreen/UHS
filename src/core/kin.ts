@@ -110,9 +110,11 @@ export function nameBriefedPeople(s: Snapshot, brief?: StartBrief) {
     .filter((a) => a.kind === "human" && !a.dead && (a.age ?? 30) >= 16 && a.householdId !== s.player.householdId && !kin.some((k) => k.actor.id === a.id))
     .sort((a, b) => Math.hypot(a.pos.x - at.x, a.pos.y - at.y) - Math.hypot(b.pos.x - at.x, b.pos.y - at.y));
   for (const f of brief.figures ?? []) {
-    const a = others.find((a) => !used.has(a.id) && sexOf(a) === f.sex);
+    // Of the nearest, whoever is closest to their age, so the face fits.
+    const near = others.filter((a) => !used.has(a.id) && sexOf(a) === f.sex).slice(0, 30);
+    const a = f.age === undefined ? near[0] : [...near].sort((x, y) => Math.abs((x.age ?? 30) - f.age!) - Math.abs((y.age ?? 30) - f.age!))[0];
     if (!a) continue;
     used.add(a.id);
-    Object.assign(a, { name: f.name, role: f.role });
+    Object.assign(a, { name: f.name, role: f.role, figure: { real: f.documented, tie: f.tie, about: f.about }, ...(f.age === undefined ? {} : { age: f.age }) });
   }
 }

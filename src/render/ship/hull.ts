@@ -20,7 +20,7 @@ export type HullGeom = {
   wx1: number;
 };
 
-const RAKE: Record<Hull["kind"], [number, number]> = {
+const RAKE: Partial<Record<Hull["kind"], [number, number]>> = {
   "square-rigger": [0.07, 0.95],
   junk: [0.04, 0.92],
   dhow: [0.1, 0.8],
@@ -32,7 +32,7 @@ export function hullGeom(level: ShipLevel): HullGeom {
   const X0 = level.x0 * 16, L = hull.length * 16, YC = level.y0 * 16 + (hull.beam * 16) / 2, half = (hull.beam * 16) / 2;
   const u = (x: number) => (x - X0) / L;
   const hw = (x: number) => halfWidth(hull.kind, Math.max(0, Math.min(1, u(x)))) * half;
-  const [r0, r1] = RAKE[hull.kind];
+  const [r0, r1] = RAKE[hull.kind] ?? [0, 1];
   const wx0 = X0 + r0 * L, wx1 = X0 + r1 * L;
   const F = hull.freeboard;
   const water = (x: number) => {
@@ -484,3 +484,82 @@ export function paintBelow(level: ShipLevel, p: ShipPalette) {
   return R;
 }
 const BRASS_DARK = "#8a6a2a";
+
+type Skin = { floor: readonly string[]; wall: readonly string[]; shell: readonly string[]; high: number; plate: "steel" | "weave" | "flag" };
+const STEEL = ["#aab0b8", "#8a9098", "#6c727a", "#4c5258", "#2e3238"];
+const SKINS: Partial<Record<Hull["kind"], Skin>> = {
+  capsule: { floor: STEEL, wall: ["#d2d8d0", "#b0bab2", "#8e9a92", "#667068", "#404844"], shell: ["#e8eaec", "#b4b8be", "#7c828a", "#4a4e56", "#24262c"], high: 22, plate: "steel" },
+  submarine: { floor: ["#8a8f8a", "#70756f", "#585d58", "#3f433f", "#262926"], wall: ["#9aa39a", "#7c867e", "#5f6962", "#434b46", "#2a302d"], shell: ["#5a6066", "#40454b", "#2c3036", "#1c1f24", "#101216"], high: 24, plate: "steel" },
+  aircraft: { floor: ["#b9a37c", "#a08a66", "#857152", "#65553e", "#43382a"], wall: ["#e2e6ea", "#c2cad0", "#9aa4ac", "#6e7882", "#464e58"], shell: ["#f0f2f4", "#c8ced4", "#98a0a8", "#646c76", "#3a4048"], high: 22, plate: "steel" },
+  basket: { floor: ["#e2bc7c", "#c49852", "#9a733c", "#6c4e2a", "#44311d"], wall: ["#d8b070", "#b88c48", "#906a36", "#644826", "#402e1c"], shell: ["#e8c890", "#c09c5c", "#8e6c3c", "#5e4426", "#3a2a1a"], high: 12, plate: "weave" },
+  nowhere: { floor: ["#e6e3ee", "#cfcbda", "#b3aec4", "#8f8aa6", "#6a6686"], wall: [], shell: [], high: 0, plate: "flag" },
+};
+
+/** A vessel that is not a ship, cut open from above: its floor, the far wall standing behind it, the near wall's top edge. */
+export function paintVessel(level: ShipLevel, p: ShipPalette) {
+  const g = hullGeom(level), kind = level.hull.kind, k = SKINS[kind]!;
+  const R = new Raster(level.w * 16, level.h * 16);
+  const dark = level.hull.medium === "stars" && kind === "nowhere";
+  const floor = dark ? ["#6a70a0", "#555a88", "#41466e", "#2e3254", "#1e2140"] : k.floor;
+  for (let x = Math.floor(g.X0); x <= Math.ceil(g.X1); x++) {
+    const n = g.north(x), s = g.south(x);
+    if (s - n < 2) continue;
+    for (let y = Math.floor(n); y < Math.ceil(s); y++) {
+      let c: string | undefined;
+      if (k.plate === "steel") c = x % 32 === 0 || y % 32 === 0 ? floor[3] : (x % 32 === 1 || y % 32 === 1) ? floor[0] : h2(x >> 1, y >> 1, 3) < 0.06 ? floor[2] : floor[1];
+      else if (k.plate === "weave") c = ((x >> 2) + (y >> 1)) % 2 ? floor[1] : (x + y) % 4 === 0 ? floor[3] : floor[2];
+      else {
+        // Flagstones that break up toward the edge and stop.
+        const edge = Math.min(y - n, s - y, x - g.X0, g.X1 - x), row = Math.floor(y / 20), col = Math.floor((x + (row % 2) * 16) / 32);
+        if (edge < 10 && h2(col, row, 9) * 10 > edge) continue;
+        c = y % 20 === 0 || (x + (row % 2) * 16) % 32 === 0 ? floor[2] : h2(col, row, 4) > 0.8 ? floor[0] : floor[1];
+      }
+      R.set(x, y, c);
+    }
+    if (!k.high) continue;
+    for (let j = 0; j < k.high; j++) {
+      const y = n - k.high + j;
+      let c = k.wall[j < 2 ? 0 : j > k.high - 4 ? 3 : 2];
+      if (kind === "basket") c = ((x >> 1) + (j >> 1)) % 2 ? k.wall[1] : k.wall[2];
+      else if (x % 24 === 0) c = k.wall[3];
+      else if (x % 24 === 1) c = k.wall[1];
+      else if (kind === "submarine" && (j === 6 || j === 7 || j === 13)) c = j === 13 ? "#8a5a34" : k.wall[j === 6 ? 0 : 3];
+      R.set(x, y, c);
+    }
+    // The outer skin, top and bottom, and the shadow the far wall throws on the floor.
+    R.fill(x, n - k.high - 3, 1, 3, k.shell[1]);
+    R.set(x, n - k.high - 3, k.shell[0]);
+    R.fill(x, s - 5, 1, 5, k.shell[2]);
+    R.set(x, s - 5, k.shell[0]);
+    R.fill(x, s, 1, 3, k.shell[4]);
+    for (let j = 0; j < 6; j++) R.shade(x, n + j, 0.4 - j * 0.06);
+  }
+  if (k.high) {
+    // The ends: the shell closing round bow and stern.
+    for (const [x0, dir] of [[g.X0, 1], [g.X1, -1]] as const)
+      for (let i = 0; i < 5; i++) {
+        const x = Math.round(x0 + dir * i), n = g.north(x0 + dir * 6), s = g.south(x0 + dir * 6);
+        R.fill(x, n - k.high - 3, 1, s - n + k.high + 6, k.shell[i === 0 ? 4 : i === 4 ? 0 : 2]);
+      }
+  }
+  // Windows in the far wall: what is outside shows through them.
+  const glass = { orbit: ["#0a1030", "#2f74b4"], lunar: ["#05060d", "#96969c"], stars: ["#05060d", "#dfe6ff"], sky: ["#7fb0e0", "#eaf4ff"], deep: ["#04101c", "#0f3a56"], mist: ["#c6c3d4", "#e4e2ee"] }[level.hull.medium ?? "stars"];
+  const ports = kind === "capsule" ? [0.42] : kind === "aircraft" ? [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8] : [];
+  for (const u of ports) {
+    const x = Math.round(g.X0 + u * level.hull.length * 16), y = Math.round(g.north(x)) - k.high + 6;
+    R.fill(x - 5, y - 1, 10, 10, k.wall[4]);
+    R.fill(x - 4, y, 8, 8, glass[0]);
+    R.fill(x - 4, y + 5, 8, 3, glass[1]);
+    R.fill(x - 3, y + 1, 2, 1, "#ffffff");
+  }
+  if (kind === "basket") {
+    // The ropes going up to the envelope, which is out of sight overhead.
+    const cx = (g.X0 + g.X1) / 2, top = 0;
+    for (const x0 of [g.X0 + 2, g.X0 + 28, g.X1 - 28, g.X1 - 2]) {
+      const y0 = g.north(x0) - k.high - 3;
+      for (let y = y0; y > top; y--) R.set(x0 + ((cx - x0) * (y0 - y)) / (y0 - top) * 0.5, y, (y & 3) === 0 ? "#6c4e2a" : "#c49852");
+    }
+  }
+  for (const t of level.things) if (!t.solid) paintFlat(R, t.art, t.x * 16, t.y * 16, t.w * 16, t.h * 16, p, t.v);
+  return R;
+}

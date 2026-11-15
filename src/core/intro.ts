@@ -281,7 +281,11 @@ export function composeIntro(s: Snapshot, setting?: WorldSetting, place?: string
     ...(setting?.brief?.hook ? sentence([{ text: setting.brief.hook }]) : []),
     ...(setting ? tiding(setting, here, s.player.origin?.community ?? "*") : []),
   ];
-  const plotted = plotParagraph(s);
+  const there = (setting?.brief?.moment?.with ?? []).flatMap((n) => s.actors.find((a) => a.name === n) ?? []).map(person);
+  const company = there.length
+    ? sentence([...there.flatMap((x, i) => [...(i === 0 ? [] : [{ text: i === there.length - 1 ? " and " : ", " }]), x]), { text: ` ${there.length > 1 ? "are" : "is"} here with you.` }])
+    : [];
+  const plotted = [...company, ...plotParagraph(s)];
   const also = next && next.weight >= 0.5 && next.kind !== top?.kind ? next : undefined;
   const told = new Set([top, also].flatMap((c) => c?.spans.flatMap((x) => (x.ref ? [x.ref] : [])) ?? []));
   const second = plotted.length ? plotted

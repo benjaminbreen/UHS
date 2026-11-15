@@ -5,6 +5,33 @@ const SAIL = { years: [-500, 2027] } as const;
 /** Who sails in a ship, crew and passengers. Lines are plain modern English;
  * the facts in them carry the period. Hulls list which of these they carry. */
 export const shipPeople: readonly SewerPerson[] = [
+  {
+    id: "submariner", scope: { years: [1900, 2100] }, kinds: ["submarine"], depths: ["deck"], post: "waist",
+    label: "Submariner", dress: "sailor", doing: "Watching a gauge", manner: "work",
+    lines: [
+      "Sixty metres. She's good for more, but nobody wants to find out how much more.",
+      "You stop smelling the diesel after a week. Then you go ashore and everyone else smells it on you.",
+      "We share the bunks. When I come off watch the man going on gets out of mine, and it's still warm.",
+      "Keep your voice down when the hydrophones are listening. Sound carries a long way in water.",
+      "Fresh bread lasts ten days. After that you cut the mould off and eat the middle.",
+    ],
+    party: [0.6, 0.3, 0.1], women: 0, ages: [18, 40], weight: 5,
+    note: "Crews of diesel-electric submarines in both world wars: hot-bunking, foul air, weeks without washing, silence when hunted.",
+    basis: "documented",
+  },
+  {
+    id: "airman", scope: { years: [1919, 2100] }, kinds: ["aircraft"], depths: ["deck"], post: "waist",
+    label: "Airman", dress: "aviator", doing: "Checking the engines by ear", manner: "work",
+    lines: [
+      "Hear that? Number three is running a little rough. It'll hold.",
+      "It's cold up here even in summer. Keep your gloves on or you'll leave skin on the metal.",
+      "The navigator says two more hours. He said that an hour ago too.",
+      "First time up? Look at the horizon, not straight down.",
+    ],
+    party: [0.7, 0.3, 0], women: 0.05, ages: [19, 45], weight: 5,
+    note: "Crews of large aircraft from the 1920s on: unheated cabins, engine noise, navigation by dead reckoning and the stars.",
+    basis: "documented",
+  },
   // The square-rigger: galleon, Indiaman, emigrant ship.
   {
     id: "sailor", scope: { years: [1500, 1900] }, kinds: ["square-rigger"], depths: ["deck"], post: "rail",

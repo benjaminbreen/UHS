@@ -327,6 +327,7 @@ import {
   type ToolClass,
 } from "./reactions";
 import type { Ask, CallIn, Favour, Place, Point, Stats, WalkOff, WallWalk, Word } from "./types";
+import { momentRooms, type StartBrief } from "../content/geography/types";
 const GROUND_HIT: Record<string, HitClass> = {
   water: "water",
   marsh: "marsh",
@@ -352,6 +353,15 @@ import { bloomsAt } from "../content/ecology/blooms";
 import { isGrassTuft } from "../content/ecology/vegetation";
 import { tideAt } from "../content/geography/waterscapes";
 const copy = <T>(x: T): T => structuredClone(x);
+/** Building claims (`civic-…`, `venue-venue.…`) that serve as each kind of room in a staged opening. */
+const MOMENT_ROOMS: Partial<Record<(typeof momentRooms)[number], RegExp>> = {
+  hall: /^civic-|town-hall|guild-hall|union-hall|meeting-house|assembly|longhouse-council|mens-house|age-set-house/,
+  temple: /^religious-|mosque|sufi-lodge|\.wat$|\.kiva$/,
+  tavern: /tavern|alehouse|teahouse|coffee-house|kahvehane|izakaya|pulqueria|chicheria|chaikhana/,
+  bath: /bath-house|hammam|sento|sweat|temazcal/,
+  school: /school|terakoya|madrasa|gurukula|calmecac|telpochcalli/,
+  theatre: /playhouse|opera-house|theatre|cinema|noh-stage/,
+};
 const listing = (xs: string[]) =>
   xs.length < 2
     ? xs.join("")
@@ -876,7 +886,8 @@ export class Engine {
    * one is done, named for a person rather than by whatever prop stands there. */
   workPlan() {
     const t = this.trade();
-    if (!t) return undefined;
+    // The day a staged opening is set on is not a working day.
+    if (!t || (this.world.pack.setting?.brief?.moment && this.state.clock < 86400)) return undefined;
     const work = this.state.economy?.work?.day === t.day ? this.state.economy.work : undefined;
     const steps = t.process.steps.map((st) => ({ ...st, task: this.stepTask(st) }));
     const today = {
@@ -2283,6 +2294,34 @@ export class Engine {
    * asked to begin underground. Stays in the open when there is none near. */
   startBelow(where: "cave" | "sewer" | "mine" | "ship") {
     const p = this.state.player.pos, d = (q: Point) => Math.hypot(q.x - p.x, q.y - p.y);
+  /** Begins the life in the room the brief names, with its people already sitting round. */
+  startMoment(m: NonNullable<StartBrief["moment"]>) {
+    const s = this.state, p = s.player, d = (b: Place) => distance({ ...doorApproach(b), space: "outside" }, p.pos);
+    const kind = MOMENT_ROOMS[m.where];
+    if (m.hour !== undefined) {
+      s.clock = Math.floor(s.clock / 86400) * 86400 + m.hour * 3600;
+      for (const e of s.events) e.time = s.clock;
+    }
+    // A village with no such building holds it at the player's house.
+    const place = (kind && this.world.places.filter((b) => kind.test(b.claim) && this.interiorOf(b.id)).sort((a, b) => d(a) - d(b))[0])
+      || (m.where === "outside" ? undefined : this.world.place(this.household(p.householdId)?.residence ?? ""));
+    if (place && this.interiorOf(place.id)) p.pos = this.indoorSpot(p, place.id);
+    const until = s.clock + 3 * 3600, { x, y, space } = p.pos, walk = this.interiorOf(space)?.walk;
+    // Standing close round the player, nearest places first.
+    const round = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1], [2, 0], [-2, 0], [0, 2], [0, -2], [2, 1], [-2, 1], [2, -1], [-2, -1]]
+      .map(([dx, dy]) => ({ x: x + dx, y: y + dy, space }))
+      .filter((c) => (!walk || walk.has(`${c.x},${c.y}`)) && !this.blocked(c.x, c.y, space));
+    for (const a of m.with.flatMap((name) => s.actors.find((a) => a.name === name && !a.dead) ?? [])) {
+      const to = round.shift();
+      if (!to) break;
+      this.moveActor(a, to);
+      a.errand = { to: copy(to), label: m.doing, until, face: { x, y } };
+      a.activity = m.doing;
+      a.offRoutine = true;
+      this.routes.delete(a.id);
+    }
+    p.activity = m.doing;
+  }
     if (where === "ship") return void shipStart(this.ships);
     // The life begins already down there: the climb takes none of the day.
     const sewers = { ...this.sewers, advance() {} }, caves = { ...this.caves, advance() {} };

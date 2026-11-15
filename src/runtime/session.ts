@@ -265,14 +265,17 @@ export function createSession(
       (["eat", "food-store", "sleep", "water", "firewood"].includes(goal.id) ? "need" : "social");
   }
   nameBriefedPeople(engine.state, pack.setting?.brief);
-  const plot = startPlot(engine.state, pack.setting);
-  engine.state.ailments ??= seedAilments(engine.state, pack.setting, new Set(Object.values(engine.state.plot?.cast ?? {})));
+  // A staged opening is the day's story: no drawn plot, and nobody down with a fever beside it.
+  const moment = pack.setting?.brief?.moment;
+  const plot = moment ? undefined : startPlot(engine.state, pack.setting);
+  engine.state.ailments ??= moment ? [] : seedAilments(engine.state, pack.setting, new Set(Object.values(engine.state.plot?.cast ?? {})));
   engine.state.bonds ??= bondsFor(engine.state, pack.setting);
   if (plot && !plot.ended && !plot.aim?.revision) {
     plot.aim = lifeAimOf(seed, pack.setting, engine.state.player, engine.state.actors, engine.state.households, engine.state);
   }
   ensureLifeAim(engine.state, pack.setting);
   if (!snapshot && pack.setting?.below) engine.startBelow(pack.setting.below);
+  if (!snapshot && moment) engine.startMoment(moment);
   return engine;
 }
 /** Origin records "unspecified" where the name kit decided sex; the drawn

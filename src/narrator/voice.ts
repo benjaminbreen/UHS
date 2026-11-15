@@ -168,7 +168,7 @@ const ANIMALS = ["dogs", "crows", "frogs", "spiders", "fish", "small birds"];
 
 /** The voice, private life and two sample lines that set one person apart from the next. */
 /** `loss` is a death on the household's record, or null when the record has none for this person. */
-export function voiceBrief(seed: string, actor: Actor, stats: Stats, localAnimals: string[], loss?: string | null) {
+export function voiceBrief(seed: string, actor: Actor, stats: Stats, localAnimals: string[], loss?: string | null, real = false) {
   const roll = (key: string) => random(seed, "voice", actor.id, key);
   const pick = <T>(list: T[], key: string) => list[Math.floor(roll(key) * list.length)];
   const age = actor.age ?? 30;
@@ -202,6 +202,8 @@ export function voiceBrief(seed: string, actor: Actor, stats: Stats, localAnimal
   const dreams = [...(child ? CHILD_DREAMS : DREAMS), ...(person ? [`${person} standing in the doorway, not speaking`, `${person} alive again, acting as if nothing happened`] : [])];
 
   const lines = [pick(register.lines, "line"), child ? pick(CHILD_LINES, "age-line") : age >= 60 ? pick(OLD_LINES, "age-line") : register.lines[(register.lines.indexOf(pick(register.lines, "line")) + 1) % register.lines.length]];
+  // A real person's dreams, dead and breakfast are their own, not rolled.
+  if (real) return `Voice: ${length}`;
   return [
     `What makes ${actor.name} this person and not another. It outweighs sounding helpful.`,
     `Voice: ${register.say} ${length}${habit}`,

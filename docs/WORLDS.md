@@ -20,6 +20,16 @@ generator turns it into a world. Entry files: `src/content/geography/types.ts`
   `UHS_WORLD_WEAVER_ACCESS_CODE` (`UHS_CLASSROOM_CODE` is an alias). Never give
   keys a `VITE_` prefix. The setting is saved whole, so replay never calls the
   model again. Tests inject a fake provider.
+  For a particular scene ("Socrates about to drink the hemlock") it also
+  returns `brief.moment`: a kind of room, who of the named kin and figures is
+  there, and what they are doing. `Engine.startMoment` starts the player in the
+  nearest building of that kind (their own house if the town has none) with
+  those people standing round for three hours, and the life then draws no plot
+  and seeds no ailments, and that day has no work card. The room is the town's
+  ordinary interior of that kind, so a prison is a public hall. Each figure
+  carries an age, a `tie` to the player and an `about` line onto their
+  stand-in (`Actor.figure`); `dialogueContext` tells them who the player is,
+  the day's hook and, for a documented figure, to answer as that real person.
 - **Places.** `src/content/geography/places.ts` holds featured anchors and
   aliases over the generated Natural Earth catalog (`places.generated.json`,
   built by `npm run prepare:atlas`). Catalog rank is modern prominence;
@@ -99,6 +109,22 @@ handles "tiny desert island 20x8", "ww2 pilot downed, floating in atlantic",
 "Everest base camp" and the like without a model. Camp kits are in
 `src/content/settlements/camps/`, layout in `src/world/v3/camps.ts`, shelter
 art in `scripts/art/camps.py`.
+
+## Vessels that are not ships
+
+A start aboard (`below: "ship"`, `ship: <hull id>`) can also be a capsule in
+Earth orbit, lunar orbit or open space, a submarine, an aircraft cabin, a
+balloon basket, or one of two floors that are nowhere (`limbo` in mist, `void`
+among stars, for a dream or an afterlife). They are hulls in
+`src/content/ships/hulls.ts` with a `medium`, weight 0 so chance never draws
+them; the ship system runs them like any voyage, and stepping out puts the
+player at the setting's place. The local parser knows "in orbit", "lunar
+orbit", "deep space", "submarine", "aboard a bomber", "balloon", "limbo" and
+"the void"; World Weaver sets `vessel`. `MediumView`
+(`src/render/ship/medium.ts`) lays the paintings in `public/backdrops/` behind
+the hull and moves them: the globe turns under a fixed limb glow and night
+side, clouds and their shadows cross the ground, mist drifts in two layers.
+A staged opening's named people are not yet put aboard.
 
 ## Where to extend
 

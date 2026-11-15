@@ -6332,7 +6332,8 @@ export class WorldScene extends Phaser.Scene {
       ? lightingPreset(this.options.lighting).hour * 3600
       : this.runtime.displayClock();
     const w = washAt(clock);
-    const graded = this.options.colorGrade !== false;
+    // Orbit, the deep and the mist keep their own light, whatever the hour at the port.
+    const graded = this.options.colorGrade !== false && !this.shipView?.level.hull.medium;
     // Fog and falling snow already lift and grey the view; the grade's own
     // lift and overcast grey on top of them flattened it to slate.
     const haze = graded && (this.weather?.condition === "mist" || this.weather?.condition === "snow") ? 1 : 0;

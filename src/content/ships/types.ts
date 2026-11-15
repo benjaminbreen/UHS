@@ -1,6 +1,8 @@
 import type { Box } from "../caves/types";
 
-export type ShipKind = "square-rigger" | "junk" | "dhow" | "steamer";
+export type ShipKind = "square-rigger" | "junk" | "dhow" | "steamer" | "capsule" | "submarine" | "aircraft" | "basket" | "nowhere";
+/** What lies round a hull that does not ride the sea: the Earth or Moon from orbit, open space, deep water, open sky, mist. */
+export type Medium = "orbit" | "lunar" | "stars" | "deep" | "sky" | "mist";
 /** Below the weather deck: berths and guns, a cargo hold, or the stokehold. */
 export type BelowDeck = "gundeck" | "steerage" | "hold" | "compartments" | "stokehold";
 
@@ -24,6 +26,8 @@ export type Hull = {
   /** A painted band of gunports, real or false. */
   ports?: "guns" | "painted" | "portholes";
   funnels?: number;
+  /** Absent for a ship on the sea. */
+  medium?: Medium;
   /** How the paint goes. */
   look: "tarred" | "navy" | "black" | "varnish" | "oiled" | "liner";
   /** A carved figure at the bow. */

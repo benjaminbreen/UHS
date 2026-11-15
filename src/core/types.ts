@@ -311,6 +311,8 @@ export type Actor = {
    * the normal case, so a resident is drawn from the schedule from the first
    * frame, before the simulation has ticked at all. */
   offRoutine?: boolean;
+  /** Someone the start brief named: a real person where `real`, what they are to the player, and their story today. */
+  figure?: { real: boolean; tie?: string; about?: string };
   lastUpdated?: number;
   goal?: Position;
   /** Out with a herd at grass: stays by it, at a place of their own. */

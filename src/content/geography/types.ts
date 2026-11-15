@@ -70,6 +70,8 @@ const sexSchema = z.enum(["male", "female"]);
 /** What World Weaver settled about the person beyond place and trade: who
  * they are if they are someone, their people, their aim and the day's news.
  * `documented` keeps the record apart from what was filled in. */
+/** Where a staged opening is set: the player's house, the nearest building of that kind, or where they stand. */
+export const momentRooms = ["home", "hall", "temple", "tavern", "bath", "school", "theatre", "outside"] as const;
 export const startBriefSchema = z
   .object({
     figure: z.string().min(1).max(120).optional(),
@@ -85,12 +87,24 @@ export const startBriefSchema = z
       .max(6)
       .optional(),
     figures: z
-      .array(z.object({ name: z.string().min(1).max(80), role: z.string().min(1).max(100), sex: sexSchema, documented: z.boolean() }).strict())
+      .array(z.object({ name: z.string().min(1).max(80), role: z.string().min(1).max(100), sex: sexSchema, documented: z.boolean(),
+        age: z.number().int().min(1).max(110).optional(),
+        /** What they are to the player, as it reads after "your": "husband", "oldest friend". */
+        tie: z.string().min(1).max(60).optional(),
+        /** Who they are and what they want today, in a sentence or two. */
+        about: z.string().min(1).max(300).optional() }).strict())
       .max(6)
       .optional(),
     tidings: z
       .array(z.object({ text: z.string().min(1).max(300), documented: z.boolean() }).strict())
       .max(3)
+      .optional(),
+    /** The opening staged: the room, who of `kin` and `figures` is there, and what they are all doing. */
+    moment: z
+      .object({ where: z.enum(momentRooms), with: z.array(z.string().min(1).max(80)).max(6), doing: z.string().min(1).max(80),
+        /** The hour it opens, when the story is not a morning's. */
+        hour: z.number().int().min(5).max(21).optional() })
+      .strict()
       .optional(),
   })
   .strict();

@@ -357,7 +357,20 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     .slice(-4)
     .map(named);
   const told = (actor.memories ?? []).filter((memory) => memory.startsWith("told:")).map((memory) => `"${memory.slice(5)}"`);
-  const known = acquaintance(runtime, actor);
+  const brief = setting?.brief, fig = actor.figure, p = state.player;
+  const playerKin = actor.relations?.some((r) => r.other === p.id) || actor.householdId === p.householdId;
+  const present = brief?.moment?.with.includes(actor.name);
+  const known = fig ? `You know the player well${fig.tie ? `: you are their ${fig.tie}` : ""}.` : acquaintance(runtime, actor);
+  // The start brief is the day's story: whoever is part of it, or knows the player, is told it.
+  const story = brief && (fig || present || playerKin || known)
+    ? [
+        `The player is ${p.name}, ${p.role.toLowerCase()}${brief.figure && brief.figure !== p.name ? ` (${brief.figure})` : ""}. You know this without being told.`,
+        (fig || present || playerKin) && brief.hook ? `What today is for the player, as written to them ("you" there is the player): ${brief.hook}` : "",
+        present ? `Also in the room: ${brief.moment!.with.filter((n) => n !== actor.name).join(", ") || "nobody else"}. They are listening, not talking to you; speak only to the player. The room is the one the day's story names, whatever "Location" calls the building.` : "",
+        fig?.real ? `You are the real ${actor.name}, ${actor.role}, as you were in ${engine.world.pack.date}. Answer from what is known of your life, views, work and people up to this date and nothing later; where the record is silent, say what you plausibly would. The same goes for what you know of the player${brief.figure ? ", who is real too" : ""}.` : "",
+        fig?.about ? `About you today (written about you, not to you): ${fig.about}` : "",
+      ].filter(Boolean).join("\n")
+    : "";
   const nameOf = (id: string) => state.actors.find((a) => a.id === id)?.name;
   const hearsay = (actor.word ?? [])
     .filter((w) => w.hops > 0 && !w.about)
@@ -397,6 +410,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     state.manifest.disease && practitioner(actor) ? `Your available treatment supplies: ${[actor.medicalStock?.antibiotic ? `${actor.medicalStock.antibiotic} antibiotic courses` : "", actor.medicalStock?.rehydration ? `${actor.medicalStock.rehydration} oral rehydration supplies` : ""].filter(Boolean).join("; ") || "no specific medicines in stock"}. An assessment or discussion cannot transfer or administer them; the player must use a care action.` : "",
     // Before the words: who has walked up, and what they are holding.
     `In front of you: ${playerPresence(runtime)}`,
+    story,
     plotContext,
     engine.trespassContext(actor),
     engine.standsGround(actor)
@@ -414,11 +428,11 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
         ? `The player has walked into ${homePlace.name}, which is your household's home as well as where you work. Whether that is normal depends on your trade: a trader, shopkeeper, innkeeper or craftsman selling goods expects buyers to walk in by day and may treat them as a customer; a herder, farmer, labourer or anyone else does not, and for them a stranger walking in is an intrusion. It is also an intrusion if the player looks odd, armed or dangerous (see "In front of you"). If it is an intrusion: ${intrusionReaction(state.manifest.seed, actor, stats)}`
         : `THE PLAYER HAS COME INTO YOUR HOME UNINVITED and is standing inside ${homePlace?.name ?? "your house"} right now.${familyPresent.length ? ` Your family ${familyPresent.join(", ")} are here too.` : ""} This is what the conversation is about until they leave or explain themselves. ${intrusionReaction(state.manifest.seed, actor, stats)} Never greet them as a customer or ask what they need.`
       : `Openness: ${openness(actor, met.length > 0 || !!known)}`,
-    `Background: ${background.join("; ")}.`,
+    fig ? "" : `Background: ${background.join("; ")}.`,
     `Doing: ${actor.activity.toLowerCase()}. Location: ${place ? `indoors, in ${place.name}` : `outdoors in ${location}, on foot in the open; no desk, counter or furniture unless the context names it`}. Now: ${now(runtime)}.`,
-    plotContext ? "On their mind: the events above and what they personally mean to you; let this concern develop across the conversation rather than repeating the obligation." : `On their mind: ${onTheirMind(state.manifest.seed, state.clock, actor)}.`,
+    plotContext ? "On their mind: the events above and what they personally mean to you; let this concern develop across the conversation rather than repeating the obligation." : fig ? "On their mind: today, as above." : `On their mind: ${onTheirMind(state.manifest.seed, state.clock, actor)}.`,
     goingWithout(runtime, household),
-    family.length ? `Family: ${family.join(", ")}.` : household ? "Family: household member." : "Family: lives alone.",
+    fig ? "" : family.length ? `Family: ${family.join(", ")}.` : household ? "Family: household member." : "Family: lives alone.",
     temperament.length ? `Temperament: ${temperament.join(", ")}.` : "",
     holds.length ? `Holds:\n- ${holds.join("\n- ")}` : "",
     possessions.length ? `Has: ${possessions.join(", ")}.` : "Has: ordinary work things.",
@@ -558,7 +572,7 @@ export async function dialogueTurn(
   ].filter(Boolean).join("\n\n");
   const { state } = runtime.engine;
   const animals = [...new Set((state.fauna ?? []).flatMap((group) => faunaProfile(group.speciesId)?.label.toLowerCase().replace(/ study$/, "") ?? []))];
-  const voice = voiceBrief(state.manifest.seed, actor, statsOf(state.manifest.seed, actor), animals, recordedLoss(runtime, actor));
+  const voice = voiceBrief(state.manifest.seed, actor, statsOf(state.manifest.seed, actor), animals, recordedLoss(runtime, actor), !!actor.figure?.real);
   const aside = plotBrief(runtime, actor) ? "" : dialogueInterruption(runtime, actor, history.length);
   const latest = [
     situation ? `Just now: ${situation}` : "",

@@ -38,6 +38,13 @@ broad dates and regions, not evidence. Edits have removed anachronisms (for
 example, poultry and New World crops in the wrong places), and matching guards
 keep each image to its region and climate.
 
+## Vessel backdrops
+
+The PNGs in `public/backdrops/` (the Earth and Moon from orbit, a starfield,
+deep water, farmland and cloud from the air, mist) were made with OpenAI image
+generation by a Codex agent on 2026-11-15; each file's prompt and processing
+are in `public/backdrops/manifest.json`. They are scenery, not evidence.
+
 ## Geography
 
 - **Natural Earth** (public domain): land, rivers and populated places,

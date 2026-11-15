@@ -1,4 +1,4 @@
-import { hullById, hullFor, shipName, shipNation, voyageDays } from "../content/ships";
+import { hullById, hullFor, mediumWords, shipName, shipNation, voyageDays } from "../content/ships";
 import { DECK, parseShipSpace, RAIL, shipLevel, shipSolid, shipSpace, type ShipLevel, type ShipThing } from "../world/ship";
 import { folkArrive, folkDeal, folkTime, type FolkHost } from "./tunnel-folk";
 import type { GameEvent, Inspection, Point, Position, Snapshot as GameState, WorldModel } from "./types";
@@ -116,6 +116,9 @@ export function shipInspect(h: ShipHost, id: string): Inspection | undefined {
   if (!c) return undefined;
   const { level } = c, hull = level.hull;
   const act = (label: string) => ({ label, enabled: true, command: { type: "interact" as const, target: id, action: "ship" as const } });
+  const words = hull.medium && mediumWords[hull.medium];
+  if (words && (id === "ship-ashore" || id === "ship-rail"))
+    return { id, name: id === "ship-ashore" ? "The way out" : "Outside", kind: "place", pos: { ...p.pos }, description: seaView(h, level), affordances: [act(id === "ship-ashore" ? words.out : "Look out")] };
   if (id === "ship-ashore")
     return {
       id, name: "The shore", kind: "place", pos: { ...p.pos },
@@ -144,6 +147,7 @@ export function shipVerb(h: ShipHost) {
 function seaView(h: ShipHost, level: ShipLevel) {
   const { lat } = placeOf(h), hour = ((h.state.clock / 3600) % 24 + 24) % 24, night = hour < 5.5 || hour > 19.5;
   const v = h.state.voyage!;
+  if (level.hull.medium) return v.landed ? mediumWords[level.hull.medium].arrive : mediumWords[level.hull.medium].view;
   if (v.landed) return "The coast is close now: surf on the beach, roofs, smoke going up.";
   const days = Math.max(1, Math.ceil((v.lands - h.state.clock) / 86400));
   const land = days > 1 ? `Nothing but sea all round. The mate reckons ${days} more days to landfall.` : "The mate says you'll see land by tomorrow morning.";
@@ -177,10 +181,11 @@ function ashore(h: ShipHost) {
   p.direction = 2;
   delete h.state.voyage;
   h.advance(30 * 60);
-  h.event("You step ashore. The ground seems to roll under your feet for the first hour.");
+  const medium = hullById.get(v.hull)?.medium;
+  h.event(medium ? mediumWords[medium].leave : "You step ashore. The ground seems to roll under your feet for the first hour.");
 }
 
-const RATION: Record<string, [string, string]> = {
+const RATION: Record<string, [string, string] | undefined> = {
   "square-rigger": ["ships-biscuit", "The cook hands out biscuit and a lump of salt meat."],
   junk: ["ship-rice", "Bowls of rice and salt fish come round from the galley."],
   dhow: ["dates", "Coffee and dates go round the crew sitting on the deck."],
@@ -199,7 +204,8 @@ export function shipTime(h: ShipHost) {
     return;
   }
   const clock = h.state.clock, hour = ((clock / 3600) % 24 + 24) % 24, day = Math.floor(clock / 86400);
-  if (!v.sick && clock > (v.seen ?? clock) + 1800 && c.level.hull.kind !== "steamer") {
+  const medium = c.level.hull.medium;
+  if (!v.sick && !medium && clock > (v.seen ?? clock) + 1800 && c.level.hull.kind !== "steamer") {
     v.sick = true;
     h.event("The deck heaves up and drops away again. Your stomach goes with it. Look at the horizon, the sailors say, not at the deck.", "world");
   }
@@ -209,14 +215,16 @@ export function shipTime(h: ShipHost) {
   if ((hour >= 7.5 && hour < 9) || (hour >= 16.5 && hour < 18)) {
     if (v.fed !== meal && !v.landed) {
       v.fed = meal;
-      const [item, line] = RATION[c.level.hull.kind];
-      p.inventory[item] = (p.inventory[item] ?? 0) + 1;
-      h.event(line, "world");
+      const ration = RATION[c.level.hull.kind];
+      if (ration) {
+        p.inventory[ration[0]] = (p.inventory[ration[0]] ?? 0) + 1;
+        h.event(ration[1], "world");
+      }
     }
   }
   if (!v.landed && clock >= v.lands) {
     v.landed = true;
-    h.event(c.level.hull.kind === "steamer" ? "The engines slow, then stop. The ship slides in to her berth. You can go ashore." : "\"Land!\" A shout from aloft. By noon the anchor goes down off the coast. You can go ashore.", "world");
+    h.event(medium ? mediumWords[medium].arrive : c.level.hull.kind === "steamer" ? "The engines slow, then stop. The ship slides in to her berth. You can go ashore." : "\"Land!\" A shout from aloft. By noon the anchor goes down off the coast. You can go ashore.", "world");
   }
   folkTime(h.folk, c.level.space, (x, y) => !shipGround(h, c.level.space, x, y));
 }

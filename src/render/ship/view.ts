@@ -2,7 +2,9 @@ import Phaser from "phaser";
 import type { Hull } from "../../content/ships";
 import type { ShipLevel } from "../../world/ship";
 import { washAt } from "../lighting";
-import { hullGeom, paintBelow, paintWeatherDeck, type HullGeom } from "./hull";
+import { hullGeom, paintBelow, paintVessel, paintWeatherDeck, type HullGeom } from "./hull";
+import { MediumView } from "./medium";
+import { mediumWords } from "../../content/ships";
 import { seaRamp, shipPalette } from "./palette";
 import type { Raster } from "./raster";
 import { paintRig, type Nation, type Rig } from "./rig";
@@ -33,12 +35,13 @@ export class ShipView {
   private lat: number;
   private born = 0;
   private next = { dolphin: 0, fish: 0, bird: 0, spout: 0, glint: 0 };
+  private medium?: MediumView;
 
   constructor(private scene: Phaser.Scene, readonly level: ShipLevel, private look: ShipLook, year: number, lat: number) {
     this.space = level.space;
     this.lat = lat;
     const W = level.w * 16, H = level.h * 16;
-    const pal = shipPalette(level.hull, year), weather = level.deck === 0;
+    const pal = shipPalette(level.hull, year), sealed = level.hull.medium, weather = level.deck === 0 && !sealed;
     const tex = (key: string, r: Raster) => {
       const k = `ship-${level.space}-${key}`;
       if (scene.textures.exists(k)) scene.textures.remove(k);
@@ -47,7 +50,8 @@ export class ShipView {
       return k;
     };
     ensureSprites(scene);
-    if (weather) {
+    if (sealed) this.medium = new MediumView(scene, sealed, W, H);
+    else if (weather) {
       const sea = seaRamp(lat);
       const k = `ship-sea-${sea[1]}`;
       if (!scene.textures.exists(k)) paintSea(scene, k, sea);
@@ -60,7 +64,7 @@ export class ShipView {
     } else {
       this.objects.push(scene.add.rectangle(-800, -600, W + 1600, H + 1200, 0x07060a).setOrigin(0, 0).setDepth(-99993));
     }
-    this.objects.push(scene.add.image(0, 0, tex("base", weather ? paintWeatherDeck(level, pal, year) : paintBelow(level, pal))).setOrigin(0, 0).setDepth(-99990));
+    this.objects.push(scene.add.image(0, 0, tex("base", sealed ? paintVessel(level, pal) : weather ? paintWeatherDeck(level, pal, year) : paintBelow(level, pal))).setOrigin(0, 0).setDepth(-99990));
     for (const t of level.things) {
       const s = paintThing(t.art, t.w, t.h, pal, t.v, year);
       if (!s) continue;
@@ -103,13 +107,14 @@ export class ShipView {
 
   update(f: ShipFrame) {
     if (!this.born) this.born = f.time;
-    const t = f.time / 1000, weather = this.level.deck === 0;
+    const t = f.time / 1000, weather = this.level.deck === 0 && !this.medium;
+    this.medium?.update(f.time, f.delta);
     const wash = washAt(f.clock);
     const dark = weather ? wash.lamps : 1;
     if (weather) {
       const c = Phaser.Display.Color.IntegerToColor(wash.color), a = wash.alpha;
       this.shade.setFillStyle(Phaser.Display.Color.GetColor(255 - (255 - c.red) * a, 255 - (255 - c.green) * a, 255 - (255 - c.blue) * a));
-    } else this.shade.setFillStyle(0x6e5c58);
+    } else this.shade.setFillStyle(this.medium ? 0xffffff : 0x6e5c58);
     for (const gl of this.glows) {
       const sway = gl.swing >= 0 ? Math.sin(t * 1.1 + gl.swing) * 3 : 0;
       const flick = 0.92 + 0.08 * Math.sin(t * 7 + gl.x);
@@ -280,13 +285,15 @@ export class ShipView {
   private hud(f: ShipFrame) {
     const cam = this.scene.cameras.main, v = cam.worldView;
     const days = Math.ceil((this.look.lands - f.clock) / 86400);
-    const where = this.look.landed ? "IN PORT · YOU CAN GO ASHORE" : days <= 1 ? "LANDFALL TOMORROW" : `${days} DAYS TO LANDFALL`;
+    const under = this.level.hull.medium && mediumWords[this.level.hull.medium].under;
+    const where = under ? (this.look.landed ? "YOU CAN GET OUT" : under) : this.look.landed ? "IN PORT · YOU CAN GO ASHORE" : days <= 1 ? "LANDFALL TOMORROW" : `${days} DAYS TO LANDFALL`;
     this.label.setPosition(v.x + 10, v.bottom - 62 / cam.zoom).setText(`${this.look.name.toUpperCase()}  ·  ${where}`);
     const age = f.time - this.born;
     this.banner.setPosition(v.centerX, v.y + v.height * 0.2).setAlpha(age < 600 ? age / 600 : age < 2600 ? 1 : Math.max(0, 1 - (age - 2600) / 900));
   }
 
   destroy() {
+    this.medium?.destroy();
     for (const o of [...this.objects, ...this.live]) o.destroy();
     for (const k of this.keys) if (this.scene.textures.exists(k)) this.scene.textures.remove(k);
   }

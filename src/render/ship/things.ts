@@ -49,7 +49,145 @@ export function paintThing(art: string, w: number, h: number, p: ShipPalette, v:
     return s;
   };
   const wood = p.rail;
+  // A plain block standing on its footprint, `rise` pixels tall.
+  const block = (rise: number, top: readonly string[], front: readonly string[], inset = 1) => {
+    const s = make(rise);
+    box(s.r, s.X + inset, s.Y + 2 - rise, W - inset * 2, H - 2, rise, top, front);
+    return s;
+  };
+  const STEEL = ["#b4bac2", "#8e949c", "#6a7078", "#484e56", "#2a2e34"];
+  const lamp = (r: Raster, x: number, y: number, col: string) => {
+    r.fill(x, y, 2, 2, col);
+    r.set(x, y, "#ffffff");
+  };
   switch (art) {
+    case "console": {
+      const s = block(13, STEEL, ["#5a6068", "#3c4148", "#2c3036", "#22252a", "#16181c"]);
+      const { r, X, Y } = s;
+      for (let i = 0; i < W - 8; i += 5) lamp(r, X + 4 + i, Y + 5 + (i % 2) * 4, ["#62e08a", "#ffc24a", "#ff5a4a", "#7fd0ff"][Math.floor(h2(i, 1, 7) * 4)]);
+      for (let i = 0; i < W - 10; i += 9) {
+        r.fill(X + 4 + i, Y - 8, 5, 5, "#16181c");
+        r.fill(X + 5 + i, Y - 7, 3, 3, "#e8ecf0");
+        r.set(X + 6 + i, Y - 6, "#ff5a4a");
+      }
+      s.glow = [{ x: X + W / 2, y: Y + 6, color: 0x9fd8ff }];
+      return s;
+    }
+    case "locker": {
+      const s = block(15, STEEL, STEEL);
+      s.r.fill(s.X + 8, s.Y + 2, 1, 11, STEEL[4]);
+      s.r.fill(s.X + 5, s.Y + 7, 2, 2, STEEL[0]);
+      return s;
+    }
+    case "couch":
+    case "seat": {
+      const cloth = art === "couch" ? ["#f0d8a8", "#d8b47c", "#b08a58", "#80623e", "#54402a"] : ["#7a94b8", "#5a749a", "#40587c", "#2c3e5c", "#1c283e"];
+      const s = block(art === "couch" ? 4 : 7, cloth, cloth, 2);
+      const { r, X, Y } = s;
+      // The headrest, or the seat's back.
+      if (art === "couch") r.fill(X + 3, Y - 1, 6, H - 5, cloth[0]);
+      else box(r, X + 2, Y - 12, W - 4, 3, 9, cloth, cloth);
+      return s;
+    }
+    case "diesel": {
+      const iron = ["#6a6c74", "#50525a", "#3a3c44", "#28292f", "#18191d"];
+      const s = block(13, iron, iron);
+      const { r, X, Y } = s;
+      for (let x = 4; x < W - 6; x += 8) {
+        r.fill(X + x, Y - 9, 5, 9, "#7c7e86");
+        r.fill(X + x, Y - 9, 5, 1, "#a8aab2");
+        r.fill(X + x + 4, Y - 9, 1, 9, "#3a3c44");
+      }
+      r.fill(X + 3, Y + 6, W - 6, 1, "#8a5a34");
+      return s;
+    }
+    case "bunk": {
+      const s = block(7, ["#e8e4d8", "#c9c4b6", "#a5a092", "#7a766c", "#4e4b46"], ["#5a6068", "#44484e", "#34383e", "#26292e", "#18191d"]);
+      s.r.fill(s.X + 2, s.Y - 4, 7, H - 4, "#f6f4ee");
+      s.r.fill(s.X + 11, s.Y - 4, W - 13, H - 4, "#6a7c92");
+      s.r.fill(s.X + 11, s.Y - 4, W - 13, 1, "#8a9cb2");
+      return s;
+    }
+    case "mess":
+    case "chart": {
+      const s = block(9, wood, wood);
+      const { r, X, Y } = s;
+      if (art === "chart") {
+        r.fill(X + 4, Y - 6, W - 9, H - 5, "#f0e8d0");
+        for (let i = 0; i < W - 12; i += 6) r.fill(X + 6 + i, Y - 5 + (i % 4), 4, 1, "#5a8ab0");
+        r.fill(X + W - 9, Y - 3, 3, 1, "#b04a3a");
+      } else for (let i = 0; i < W - 12; i += 12) {
+        r.fill(X + 5 + i, Y - 5, 5, 4, "#e8ecf0");
+        r.fill(X + 6 + i, Y - 4, 3, 2, "#c8ccd0");
+      }
+      return s;
+    }
+    case "sub-wheel": {
+      const s = block(10, STEEL, STEEL, 5);
+      const { r, X, Y } = s;
+      for (let a = 0; a < 24; a++) r.set(X + 8 + Math.cos((a / 24) * Math.PI * 2) * 5, Y - 9 + Math.sin((a / 24) * Math.PI * 2) * 5, a % 6 === 0 ? BRASS[0] : BRASS[2]);
+      r.fill(X + 7, Y - 10, 2, 2, BRASS[1]);
+      return s;
+    }
+    case "periscope": {
+      const s = make(40);
+      const { r, X, Y } = s;
+      drum(r, X + 8, Y + 10, 6, 3, 2, IRON);
+      drum(r, X + 8, Y + 8, 2, 1, 44, BRASS);
+      r.fill(X + 2, Y - 8, 5, 2, IRON[1]);
+      r.fill(X + 10, Y - 8, 5, 2, IRON[2]);
+      r.fill(X + 6, Y - 14, 5, 4, IRON[3]);
+      return s;
+    }
+    case "valves": {
+      const s = block(15, ["#5e665e", "#4a524a", "#3a403a", "#2a2e2a", "#1a1d1a"], ["#4a524a", "#3a403a", "#2e332e", "#222622", "#161816"]);
+      const { r, X, Y } = s;
+      for (let i = 0; i < W - 8; i += 8) {
+        for (let a = 0; a < 12; a++) r.set(X + 6 + i + Math.cos((a / 12) * Math.PI * 2) * 2.5, Y + 6 + Math.sin((a / 12) * Math.PI * 2) * 2.5, "#c8423a");
+        r.fill(X + 4 + i, Y - 9, 5, 5, "#e8ecf0");
+        r.set(X + 6 + i, Y - 7, "#16181c");
+      }
+      return s;
+    }
+    case "torpedo": {
+      const s = block(8, ["#9aa4a0", "#7c8682", "#5e6864", "#424a48", "#282e2c"], ["#7c8682", "#5e6864", "#4a5250", "#343a38", "#202422"]);
+      const { r, X, Y } = s;
+      r.fill(X + W - 9, Y - 6, 7, H - 3, BRASS[2]);
+      r.fill(X + W - 9, Y - 6, 7, 1, BRASS[0]);
+      r.fill(X + 2, Y - 3, W - 12, 1, "#b8c2be");
+      r.fill(X + 3, Y - 6, 3, H + 2, "#b04a3a");
+      return s;
+    }
+    case "sandbags": {
+      const s = make(8);
+      const { r, X, Y } = s;
+      for (const [x, y] of [[2, 6], [8, 7], [5, 2]]) {
+        r.fill(X + x, Y + y, 7, 5, "#c8b48a");
+        r.fill(X + x, Y + y, 7, 1, "#e4d4ac");
+        r.fill(X + x, Y + y + 4, 7, 1, "#8a7a58");
+        r.fill(X + x + 3, Y + y - 1, 1, 2, "#6c5c40");
+      }
+      return s;
+    }
+    case "instruments": {
+      const s = block(11, wood, wood, 3);
+      const { r, X, Y } = s;
+      r.fill(X + 5, Y - 8, 6, 6, BRASS[2]);
+      r.fill(X + 6, Y - 7, 4, 4, "#f0ece0");
+      r.set(X + 8, Y - 6, "#16181c");
+      r.set(X + 7, Y - 5, "#16181c");
+      return s;
+    }
+    case "stone": {
+      const s = make(24);
+      const { r, X, Y } = s;
+      const ramp = ["#d8d4e4", "#b4b0c8", "#8e8aa8", "#68648a", "#44416a"];
+      for (let y = -22; y < 14; y++) {
+        const half = y < -14 ? 3 + (y + 22) * 0.4 : 6.5 - Math.max(0, y - 8) * 0.5;
+        for (let x = -half; x <= half; x++) r.set(X + 8 + x + (y < -6 ? 1 : 0), Y + y, ramp[x < -half * 0.4 ? 1 : x > half * 0.5 ? 3 : h2(x, y >> 1, 3) < 0.2 ? 3 : 2]);
+      }
+      return s;
+    }
     case "mast-0":
     case "mast-1":
     case "mast-2":
