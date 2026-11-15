@@ -97,7 +97,6 @@ describe("regional biome variants", () => {
       lat: 25.28,
       year: 1400,
       culture: "east-asian",
-      vegetationRevision: 6,
       environment: { ecology: "tropical-woodland", colorway: "rainforest", landform: "rolling", population: "settled", start: "resident", household: "mixed" },
     } as WorldSetting;
     const trees = treeMix(guilin).map(([sprite]) => sprite);
@@ -111,7 +110,6 @@ describe("regional biome variants", () => {
     const base: WorldSetting = {
       lon: 0,
       lat: 30,
-      vegetationRevision: 6,
       environment: { ecology: "grassland", landform: "plain", population: "none", start: "wanderer", household: "mixed" },
     } as WorldSetting;
     for (const ecology of ecologies)

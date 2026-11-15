@@ -209,9 +209,7 @@ export function regionalSettlements(
       const q = usable[0],
         pack = context.packAt(q.x, q.y);
       const setting = pack.setting!;
-      const town =
-        !!setting.urbanRevision &&
-        (setting.settlement === "city" || setting.settlement === "port");
+      const town = setting.settlement === "city" || setting.settlement === "port";
       const base = settlementProfile(setting, !!p.namedId || town);
       // A town is built to the size its population implies, inside the claim
       // its entry gives it. Villages keep the flat profile sizes.

@@ -4783,7 +4783,7 @@ export class WorldScene extends Phaser.Scene {
                       ? "study-sheet-tree-broadleaf"
                       : `study-tree-${alternate}-${alternateTrees[alternate][1] - 1}`
                   : originalName;
-              const plainShrub = !tuft && (w.pack.setting?.vegetationRevision ?? 0) >= 9 &&
+              const plainShrub = !tuft && !!w.pack.setting &&
                 (/^nature-dry-scrub-(small|medium)/.test(spriteName) ||
                   random(seed, "named-shrub-art", Math.floor(x / 4), Math.floor(y / 4)) < 0.55);
               const frameAndDress =
@@ -4900,7 +4900,7 @@ export class WorldScene extends Phaser.Scene {
               if (d && d.sprite !== "rock")
                 this.makeSelectable(decoration, d.id, variety.flip);
               if (
-                (w.pack.setting?.vegetationRevision ?? 0) >= 2 &&
+                !!w.pack.setting &&
                 (originalIsTree ||
                   natureTreeSprites.includes(frame) ||
                   w.pack.trees.includes(frame))

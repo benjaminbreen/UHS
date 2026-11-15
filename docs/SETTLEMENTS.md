@@ -50,7 +50,7 @@ searches have explicit budgets; player routing is unchanged.
 
 ## Towns
 
-New worlds pin `urbanRevision: 2`. `blocks.ts` partitions a town into gates,
+`blocks.ts` partitions a town into gates,
 arterials, a public square and recursively subdivided rectangular blocks; no
 graph search runs. `urban.ts` fits parcels; a refused parcel leaves open
 ground. Towns with a defensive circuit get walls, gatehouses and towers
@@ -141,12 +141,6 @@ Town form: an entry in `urban-form/`. Street look: `streets/`. A new
 settlement feature: the planner module that owns its layer in the table above.
 `plan.ts` is large; when you add to it, prefer moving a coherent piece into
 its own module.
-
-## Legacy and duplicates
-
-Retiring or merging these is welcome; there are no saves to preserve:
-
-- `v3/urban-v1.ts` (`urbanRevision: 1`).
 
 ## Checks
 

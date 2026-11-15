@@ -33,10 +33,9 @@ export class ChunkCache {
     x: number,
     y: number,
     setting?: WorldSetting,
-    generator: 1 | 2 | 3 = setting ? 2 : 1,
   ) {
     this.ensureWorker();
-    const key = `${generator}:${packId}:${seed}:${setting ? stateHash(setting) : "v1"}`;
+    const key = `${packId}:${seed}:${setting ? stateHash(setting) : "v1"}`;
     if (key !== this.worldKey) {
       this.worldKey = key;
       this.cache.clear();
@@ -59,7 +58,6 @@ export class ChunkCache {
           packId,
           seed,
           setting,
-          generator,
           cx: cx + dx,
           cy: cy + dy,
         } satisfies ChunkRequest);

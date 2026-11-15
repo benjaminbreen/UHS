@@ -60,8 +60,8 @@ import { addBoulders } from "./boulders";
 import { forgetFaunaBlock, spawnFauna } from "./fauna";
 import { faunaAt, faunaProfile } from "../../content/fauna";
 import type { FaunaGroup } from "../../core/fauna";
-import { createReliefLandscape, reliefCell } from "./topography";
 import {
+  reliefCell,
   terrainStep,
   type HeightTier,
   type TopographyCell,
@@ -83,7 +83,6 @@ import { random } from "../../core/random";
 import { waterscape, type Waterscape } from "../../content/geography/waterscapes";
 import { crops } from "../../content/agriculture/crops";
 import { settlementProfile } from "../../content/settlements/profiles";
-import { createLandscape } from "../geography/landscape";
 import { noise } from "../geography/noise";
 import { cellKey, type Road, type SettlementPlan, type Site } from "./types";
 import { crossing, planRoad, roadCells, spanOffsets } from "./roads";
@@ -153,14 +152,9 @@ export function createSettlementWorld(
   const regional = pack.setting?.geographyRevision && !pack.setting.situation
     ? createRegionalContext(pack.setting)
     : undefined;
-  const relief = !!pack.setting?.terrainRevision;
-  const environment =
-    pack.setting?.terrainRevision === 2 ? pack.setting.environment : undefined;
-  const land = environment
-      ? createEnvironment(pack.setting!, seed, regional)
-      : relief
-        ? createReliefLandscape(pack.setting!, seed)
-        : createLandscape(pack.setting!, seed),
+  if (!pack.setting?.environment) throw Error("A local scene needs an integrated setting with an environment.");
+  const environment = pack.setting.environment;
+  const land = createEnvironment(pack.setting!, seed, regional),
     sites = new Map<string, Site | null>(prepared?.sites),
     plans = new Map<string, SettlementPlan>(prepared?.plans),
     links = new Map<string, Road[]>(prepared?.links),
@@ -283,7 +277,7 @@ export function createSettlementWorld(
     : undefined;
   if (startingSite) regionalPlanner!.setHome(startingSite.id);
   // Towns grade their own plots and streets on the land's terraces.
-  const terraces = !!pack.setting?.terraceRevision && !!environment;
+  const terraces = !!pack.setting?.terraceRevision;
   /* A metropolis is several overlapping sites. Graded each on its own, a
    * street of one quarter kept the raw level through ground another had
    * levelled. So they grade in rank order, each on the ground the larger
@@ -384,7 +378,7 @@ export function createSettlementWorld(
   }
   function site(cx: number, cy: number): Site | undefined {
     if (regionalPlanner) return regionalPlanner.sitesIn(cx, cy)[0];
-    if (environment?.population === "none") return;
+    if (environment.population === "none") return;
     if (pack.setting?.situation && (cx !== home.x || cy !== home.y)) return;
     const id = `s${cx}_${cy}`;
     if (sites.has(id)) return sites.get(id) ?? undefined;
@@ -392,7 +386,7 @@ export function createSettlementWorld(
     if (
       !isHome &&
       random(seed, "settlement-sites", cx, cy) >
-        (environment?.population === "sparse" ? 0.24 : 0.62)
+        (environment.population === "sparse" ? 0.24 : 0.62)
     ) {
       sites.set(id, null);
       return;
@@ -412,7 +406,7 @@ export function createSettlementWorld(
         y: Math.round((center.y + Math.sin(angle) * radius) / 2) * 2,
       };
     });
-    if (environment) {
+    {
       const suitability = (p: { x: number; y: number }) => {
         const f = land.sample(p.x, p.y),
           near = [
@@ -447,7 +441,7 @@ export function createSettlementWorld(
         samples.some((f) => f.water < 5) ||
         Math.max(...samples.map((f) => f.elevation)) -
           Math.min(...samples.map((f) => f.elevation)) >
-          (environment ? 0 : 28)
+          0
       )
         continue;
       const s = {
@@ -456,20 +450,12 @@ export function createSettlementWorld(
         cy,
         center: p,
         home: isHome,
-        profile:
-          relief && !environment
-            ? {
-                ...settlementProfile(pack.setting!, isHome),
-                radius: 48,
-                buildings: 8,
-                frontage: 9,
-              }
-            : {
-                ...settlementProfile(pack.setting!, isHome),
-                ...(environment?.population === "sparse"
-                  ? { buildings: 5, radius: 62 }
-                  : {}),
-              },
+        profile: {
+          ...settlementProfile(pack.setting!, isHome),
+          ...(environment.population === "sparse"
+            ? { buildings: 5, radius: 62 }
+            : {}),
+        },
       };
       sites.set(id, s);
       return s;
@@ -587,16 +573,6 @@ export function createSettlementWorld(
     const old = plans.get(s.id);
     if (old) return old;
     const connections: Road[] = [];
-    if (!relief && !roadless(pack))
-      for (const [dx, dy] of [
-        [1, 0],
-        [-1, 0],
-        [0, 1],
-        [0, -1],
-      ]) {
-        for (const neighbor of sitesIn(cx + dx, cy + dy))
-          connections.push(...link(s, neighbor));
-      }
     if (transport || trunk)
       connections.push(
         // A railway or a motorway is no street: the town does not build along it.
@@ -797,7 +773,7 @@ export function createSettlementWorld(
   }
   const roadCache = new Map<string, Map<string, Terrain>>(prepared?.roads);
   function regionalRoads(x: number, y: number) {
-    if (relief && !regional) return new Map<string, Terrain>();
+    if (!regional) return new Map<string, Terrain>();
     const c = coord(x, y),
       key = cellKey(c.x, c.y),
       old = roadCache.get(key);
@@ -862,8 +838,6 @@ export function createSettlementWorld(
       ? pack.setting
       : (regional?.settingAt(x, y) ?? pack.setting!);
   const habitatCache = new Map<string, ReturnType<typeof habitatAt>>();
-  const composedVegetation = (pack.setting?.vegetationRevision ?? 0) >= 8;
-  const patchyGrowth = (pack.setting?.vegetationRevision ?? 0) >= 9;
   /** A settlement stands in a clearing: without this a woodland village is
    * drawn on forest-floor litter and never shows its grass. Reads sites, not
    * plans, because planning itself samples habitat. */
@@ -915,7 +889,7 @@ export function createSettlementWorld(
         land.sample(x, y),
         setting.environment!.colorway,
         cleared,
-        relief ? brink(x, y) : 0,
+        brink(x, y),
       );
       if (pack.setting?.ecologyRevision === 1 && regional)
         value.blend = regional.ecologyAt(x, y).parts;
@@ -931,10 +905,10 @@ export function createSettlementWorld(
         value.exposed = Math.min(1, value.exposed + 0.2);
         value.cover *= 0.45;
       }
-      if (composedVegetation && !value.vegetation &&
+      if (!value.vegetation &&
         (value.ecology.includes("woodland") || value.colorway === "swamp"))
         value.grove = groveAt(seed, x + land.origin.x, y + land.origin.y) * (1 - cleared * 0.95);
-      if (patchyGrowth) {
+      {
         const ax = x + land.origin.x, ay = y + land.origin.y;
         const prairie = value.colorway === "prairie";
         const growth = 0.82 * noise(seed, ax, ay, 30, "ground-growth") +
@@ -968,9 +942,8 @@ export function createSettlementWorld(
           ) > 0.56))
     )
       return "rock";
-    if (f.travelRoad) return "dirt";
     if (regional?.landUse(x, y) === "fields" && f.water >= 0) return "field";
-    if (environment && f.ecologyParts) {
+    if (f.ecologyParts) {
       if (f.water < 0) return "water";
       if (f.snow) return "snow";
       const id = habitat(x, y).site!.primary;
@@ -984,50 +957,27 @@ export function createSettlementWorld(
               ? "dry"
               : "grass";
     }
-    if (environment) {
-      const profile =
-        ecologyProfiles[
-          localEcology(
-            settingAt(x, y),
-            seed,
-            x + (regional ? land.origin.x : 0),
-            y + (regional ? land.origin.y : 0),
-            f,
-          )
-        ];
-      return f.water < 0
-        ? "water"
-        : f.water < (f.shoreWidth ?? 3)
-          ? "sand"
-          : f.snow
-            ? "snow"
-            : profile.surface === "sand"
-              ? "sand"
-              : profile.surface === "damp"
-                ? "marsh"
-                : profile.surface === "dry"
-                  ? "dry"
-                  : "grass";
-    }
-    if (relief)
-      return f.water < 0
-        ? "water"
-        : f.moisture > 0.73
-          ? "marsh"
-          : f.moisture < 0.48
-            ? "dry"
-            : "grass";
+    const profile =
+      ecologyProfiles[
+        localEcology(
+          settingAt(x, y),
+          seed,
+          x + (regional ? land.origin.x : 0),
+          y + (regional ? land.origin.y : 0),
+          f,
+        )
+      ];
     return f.water < 0
       ? "water"
-      : f.snow
-        ? "snow"
-        : f.water < 4
-          ? "sand"
-          : f.moisture > 0.82 && f.water < 22
-            ? "marsh"
-            : f.elevation > 115
-              ? "rock"
-              : f.moisture < 0.3
+      : f.water < (f.shoreWidth ?? 3)
+        ? "sand"
+        : f.snow
+          ? "snow"
+          : profile.surface === "sand"
+            ? "sand"
+            : profile.surface === "damp"
+              ? "marsh"
+              : profile.surface === "dry"
                 ? "dry"
                 : "grass";
   }
@@ -1083,16 +1033,6 @@ export function createSettlementWorld(
       const t = p.surface.get(k);
       if (t === "bridge") return t;
       if (t) selected = t;
-      // A composed town paints its own ground; the worn disc is for the
-      // older lattice, whose blocks left nothing between the streets.
-      else if (
-        p.site.profile.paved &&
-        (pack.setting?.urbanRevision ?? 0) < 2 &&
-        Math.hypot(x - p.site.center.x, y - p.site.center.y) <
-          p.site.profile.radius * 0.52 &&
-        land.sample(x, y).water >= 4
-      )
-        selected = "dirt";
     }
     return selected ?? regionalRoads(x, y).get(k) ?? ground(x, y);
   }
@@ -1127,7 +1067,7 @@ export function createSettlementWorld(
             (sum, p) => sum + ecologyProfiles[p.ecology].trees * p.weight,
             0,
           ) ?? ecologyProfiles[h.ecology].trees,
-          (pack.setting?.vegetationRevision ?? 0) >= 5,
+          true,
         )
       ) {
         let sprite = vegetationTree(
@@ -1201,7 +1141,7 @@ export function createSettlementWorld(
         if (distance < tree.radius + 2) return false;
         if (distance < tree.radius + 12) near = true;
       }
-    if ((pack.setting?.vegetationRevision ?? 0) >= 7) {
+    {
       const envelope = treePlacementEnvelope(tree.sprite, { x, y }),
         visible = [...envelope.occupied, ...envelope.clearance];
       for (const p of visible) {
@@ -1269,7 +1209,7 @@ export function createSettlementWorld(
       const situation = pack.setting?.situation;
       const blocked = situation?.landform === "islet" || situation?.landform === "open-ocean" ||
         situation?.camp && situation.camp !== "none" && Math.hypot(x, y) < 25 ||
-        environment && f.travelRoad || blacktop && poleAt(x, y) ||
+        blacktop && poleAt(x, y) ||
         saltPan(seed, ax, ay, h.colorway, f.elevation === 0, h.wet, f.water) > 0.3;
       const kept = keptTree(x, y, h).length > 0;
       const stand = h.grove === undefined ? 1 : Math.max(kept ? 0.35 : 0, Math.min(1, (h.grove - 0.3) / 0.4));
@@ -1278,7 +1218,7 @@ export function createSettlementWorld(
         placesNear(plan, x, y).some((b) => x >= b.x - 1 && x <= b.x + b.w && y >= b.y + b.h && y < b.y + b.h + 6));
       const opening = h.grove !== undefined || h.site || noise(seed, ax, ay, 22, "vegetation-openings") >= 0.4;
       if (!blocked && !front && sceneryAllowed(x, y, key, f) && ground(x, y) !== "rock" && opening &&
-        !(relief && (f.water < 3 && n < 0.05 || f.water < 8 && f.moisture > 0.68 && n < 0.12)) &&
+        !(f.water < 3 && n < 0.05 || f.water < 8 && f.moisture > 0.68 && n < 0.12) &&
         random(seed, "tree-density-thinning", ax, ay) < (h.site ? 0.75 : 0.34) * shelterAt(x, y) * stand &&
         settledTree(x, y, tree)) value = tree;
     }
@@ -1302,7 +1242,6 @@ export function createSettlementWorld(
     return decorationEdit ? decorationEdit(x, y, grown) : grown;
   }
   function generated(x: number, y: number) {
-    if (environment && land.sample(x, y).travelRoad) return undefined;
     const k = cellKey(x, y);
     const old = decorations.get(k);
     if (old !== undefined) return old ?? undefined;
@@ -1331,7 +1270,7 @@ export function createSettlementWorld(
   function sceneryAllowed(x: number, y: number, k: string, f: ReturnType<typeof land.sample>) {
     if (f.landscape?.kind === "arroyo" && f.landscape.strength > 0.35) return false;
     // Nothing stands where the flood or the winter playa comes.
-    return !(Math.min(f.water, ...(f.seasonal ?? [])) < (relief ? 0 : 4) || nearby(x, y).some(p =>
+    return !(Math.min(f.water, ...(f.seasonal ?? [])) < 0 || nearby(x, y).some(p =>
       p.reserved.has(k) || p.solid.has(k) ||
       pack.setting?.placementRevision === 1 && cultivatedAt(p, x, y) ||
       p.enclosures.some(pen => Math.hypot(x - pen.gate.x, y - pen.gate.y) < 4) ||
@@ -1406,12 +1345,11 @@ export function createSettlementWorld(
       return { id: `mangrove-${x}-${y}`, x, y, sprite: "nature-mangrove", solid: true };
     if (!sceneryAllowed(x, y, k, f)) return;
     // Reeds and shore scrub may stand at a stream's cut bank; nothing else on a face.
-    if (relief && f.water > 3 && onStep(x, y)) return;
+    if (f.water > 3 && onStep(x, y)) return;
     const pole = blacktop && poleAt(x, y);
     if (pole) return pole;
-    const h = environment ? habitat(x, y) : undefined;
+    const h = habitat(x, y);
     if (
-      h &&
       saltPan(
         seed,
         x + land.origin.x,
@@ -1428,42 +1366,15 @@ export function createSettlementWorld(
         "v3-decoration",
         x + land.origin.x,
         y + land.origin.y,
-      ),
-      cover = noise(seed, x + land.origin.x, y + land.origin.y, 45, "woods");
-    const spaced =
-      (pack.setting?.vegetationRevision ?? 0) >= 2 && !!environment;
-    const proposed = spaced ? (composedVegetation ? eligibleTree(x, y) : candidate(x, y)) : undefined;
-    const tree = spaced
-      ? !!proposed &&
-        (composedVegetation || ground(x, y) !== "rock" && settledTree(x, y, proposed)) &&
-        retainsTree(
-          x,
-          y,
-          proposed,
-          composedVegetation ? eligibleTree : candidate,
-          composedVegetation ? 0.72 : (pack.setting?.vegetationRevision ?? 0) >= 3
-            ? (pack.setting?.vegetationRevision ?? 0) >= 4
-              ? 0.92
-              : 0.54
-            : 0.45,
-        )
-      : (!regional || ground(x, y) !== "rock") &&
-        (environment
-          ? f.water > (f.shoreWidth ?? 3) &&
-            habitatTree(
-              h!,
-              seed,
-              x + land.origin.x,
-              y + land.origin.y,
-              ecologyProfiles[h!.ecology].trees,
-            )
-          : x % 3 === 0 && y % 3 === 0 && n < f.moisture * cover * 0.38);
-    let colony = h?.grove === undefined
+      );
+    const proposed = eligibleTree(x, y);
+    const tree = !!proposed && retainsTree(x, y, proposed, eligibleTree, 0.72);
+    let colony = h.grove === undefined
       ? shrubColony(seed, x + land.origin.x, y + land.origin.y)
       : 0.12 + groveEdge(h.grove) * 2.8;
     // Brush thickens where open ground meets woods, and in dry country it
     // gathers in the shade round a tree's foot.
-    if (h?.site && h.grove === undefined && composedVegetation && !tree) {
+    if (h.site && h.grove === undefined && !tree) {
       const w = h.site.weights,
         woods = (w.woodland ?? 0) + (w["riparian-woodland"] ?? 0);
       const nurse = ["savanna", "dry-scrub"].includes(h.site.region.ecology) &&
@@ -1471,11 +1382,11 @@ export function createSettlementWorld(
       colony = Math.max(colony, 0.12 + woods * (1 - woods) * 14, nurse ? 4 : 0);
     }
     const sprite =
-      relief && f.water < 3 && n < 0.05
+      f.water < 3 && n < 0.05
         ? "rock"
-        : relief && f.water < 8 && f.moisture > 0.68 && n < 0.12
+        : f.water < 8 && f.moisture > 0.68 && n < 0.12
           ? "reeds"
-          : tree && environment
+          : tree
             ? ecologyProfiles[
                 localEcology(
                   settingAt(x, y),
@@ -1485,47 +1396,39 @@ export function createSettlementWorld(
                   f,
                 )
               ].tree
-            : tree
-              ? pack.trees[
-                  Math.floor(random(seed, "v3-tree", x, y) * pack.trees.length)
-                ]
+            : n <
+                // Rocks belong to rocky ground: a trace elsewhere,
+                // real scatter only where exposure is high.
+                (0.0007 +
+                  Math.max(0, h.exposed - 0.3) * 0.03 +
+                  outcrop(
+                    seed,
+                    x + land.origin.x,
+                    y + land.origin.y,
+                    h.exposed,
+                    f.summit ? f.elevation / f.summit : 0,
+                  ) *
+                    0.12) *
+                // Scree: what falls off a bank collects at its foot.
+                ([1, 2].some(
+                  (d) => land.sample(x, y - d).elevation > f.elevation,
+                )
+                  ? 3
+                  : 1)
+              ? "rock"
               : n <
-                  (environment
-                    ? // Rocks belong to rocky ground: a trace elsewhere,
-                      // real scatter only where exposure is high.
-                      (0.0007 +
-                        Math.max(0, h!.exposed - 0.3) * 0.03 +
-                        outcrop(
-                          seed,
-                          x + land.origin.x,
-                          y + land.origin.y,
-                          h!.exposed,
-                          f.summit ? f.elevation / f.summit : 0,
-                        ) *
-                          0.12) *
-                      // Scree: what falls off a bank collects at its foot.
-                      ([1, 2].some(
-                        (d) => land.sample(x, y - d).elevation > f.elevation,
-                      )
-                        ? 3
-                        : 1)
-                    : 0.006)
-                ? "rock"
-                : n <
-                    (environment
-                      ? (0.003 +
-                          Math.max(0, h!.cover - 0.35) *
-                            0.16 *
-                            (h!.ecology === "desert" ? 0.2 : 1)) *
-                        colony *
-                        (scape?.kind === "arroyo" ? (scape.strength < 1 ? 4 : 0.2) : 1)
-                      : 0.015)
-                  ? "bush"
-                  : relief && n < 0.008 && f.moisture > 0.5 && f.moisture < 0.73
-                    ? "flowers"
-                    : undefined;
+                  (0.003 +
+                    Math.max(0, h.cover - 0.35) *
+                      0.16 *
+                      (h.ecology === "desert" ? 0.2 : 1)) *
+                  colony *
+                  (scape?.kind === "arroyo" ? (scape.strength < 1 ? 4 : 0.2) : 1)
+                ? "bush"
+                : n < 0.008 && f.moisture > 0.5 && f.moisture < 0.73
+                  ? "flowers"
+                  : undefined;
     let selected = sprite;
-    if (pack.setting?.vegetationRevision && environment) {
+    {
       const local = settingAt(x, y);
       const roll = random(
         seed,
@@ -1535,9 +1438,7 @@ export function createSettlementWorld(
       );
       const patch = noise(seed, x + land.origin.x, y + land.origin.y, 9, "cover-patch");
       if (tree && sprite !== "rock" && sprite !== "reeds")
-        selected = spaced
-          ? proposed?.sprite
-          : vegetationTree(local, h!, f, roll);
+        selected = proposed?.sprite;
       else if (sprite === "bush" || sprite === "flowers")
         selected = vegetationUnderstory(local, h!, f, roll, patch);
       else if (
@@ -1575,8 +1476,7 @@ export function createSettlementWorld(
       }
     }
     if (
-      spaced &&
-      h?.grove === undefined &&
+      h.grove === undefined &&
       !tree &&
       selected &&
       selected !== "rock" &&
@@ -1591,7 +1491,6 @@ export function createSettlementWorld(
     const shelter = selected && selected !== "rock" && selected !== "reeds" ? shelterAt(x, y) : 1;
     // Thin all low scenery, including open ground outside woodland patches.
     if (
-      (pack.setting?.vegetationRevision ?? 0) >= 3 &&
       !tree &&
       selected &&
       selected !== "rock" &&
@@ -1613,24 +1512,6 @@ export function createSettlementWorld(
     )
       selected = undefined;
     if (
-      (pack.setting?.vegetationRevision ?? 0) >= 3 &&
-      !composedVegetation &&
-      tree &&
-      selected &&
-      selected !== "rock" &&
-      selected !== "reeds" &&
-      random(
-        seed,
-        "tree-density-thinning",
-        x + land.origin.x,
-        y + land.origin.y,
-      ) >=
-        (h?.site ? 0.75 : (pack.setting?.vegetationRevision ?? 0) >= 4 ? 0.34 : 0.8) *
-          shelter
-    )
-      selected = undefined;
-    if (
-      (pack.setting?.vegetationRevision ?? 0) >= 3 &&
       selected &&
       !tree &&
       selected !== "rock"
@@ -1641,8 +1522,7 @@ export function createSettlementWorld(
       );
     // Shared low-frequency gaps keep clear ground between vegetation groups.
     if (
-      (pack.setting?.vegetationRevision ?? 0) >= 4 &&
-      h?.grove === undefined && !(composedVegetation && tree) &&
+      h.grove === undefined && !tree &&
       selected &&
       selected !== "rock"
     ) {
@@ -1669,7 +1549,7 @@ export function createSettlementWorld(
         selected = undefined;
     }
     // Woodland floor: a log or stump now and then under a closed canopy.
-    if (!selected && environment && !tree) {
+    if (!selected && !tree) {
       if (
         h?.kind === "woodland" &&
         h.cover > 0.6 &&
@@ -1689,7 +1569,7 @@ export function createSettlementWorld(
     }
     // Near the houses low growth is trodden, grazed or cut for kindling. The
     // weeds of disturbed ground hold on: it is what they live on.
-    if (environment && !tree && selected && selected !== "rock" && selected !== "reeds" &&
+    if (!tree && selected && selected !== "rock" && selected !== "reeds" &&
       random(seed, "tended", x + land.origin.x, y + land.origin.y) <
         tendedAt(x, y) * (/flower/.test(selected) ? 0.5 : 1))
       selected = undefined;
@@ -1986,7 +1866,7 @@ export function createSettlementWorld(
   }
   /** A cell's final tier: the landform's, levelled across streams and set
    * by graded plots, streets and bridge decks. */
-  const form = pack.setting?.environment ? terrainFormOf(pack.setting) : undefined;
+  const form = terrainFormOf(pack.setting!);
   /** Scree fans under the faces of high bare country, thinning downslope. */
   function screeAt(x: number, y: number, f: LandSample, h: Habitat) {
     if ((f.summit ?? 0) < 70 || !(h.exposed > 0.3 || h.ecology === "tundra" || h.vegetation === "alpine" || form === "karst" || form === "volcanic"))
@@ -2056,132 +1936,114 @@ export function createSettlementWorld(
     if (t === "bridge" && f.water >= 0) t = "dirt";
     const height = tierAt(x, y, t);
     const cell = reliefCell(height, f.water, f.moisture);
-    if (environment) {
-      cell.habitat = habitat(x, y);
-      const env = settingAt(x, y).environment!;
-      cell.rock = rockAt(pack.anchor?.lon, pack.anchor?.lat, env.ecology, env.colorway);
-      if ((pack.setting?.vegetationRevision ?? 0) >= 2)
-        cell.habitat = { ...cell.habitat, layeredForest: true };
-      {
-        const h = cell.habitat;
-        const ax = x + land.origin.x,
-          ay = y + land.origin.y;
-        let scape = f.landscape;
-        if (!scape && f.glacier) scape = { kind: "glacier", strength: 1 };
-        if (!scape && f.water >= (f.shoreWidth ?? 3)) {
-          const pan = saltPan(
-            seed,
-            ax,
-            ay,
-            h.colorway,
-            f.elevation === 0,
-            h.wet,
-            f.water,
-          );
-          const rocky = outcrop(
-            seed,
-            ax,
-            ay,
-            h.exposed,
-            f.summit ? f.elevation / f.summit : 0,
-          );
-          const pond = oasis(seed, ax, ay, h.ecology, f.elevation === 0);
-          const surface = townAt(x, y) ? undefined : formSurface(form, seed, ax, ay, h.exposed);
-          if (pond) scape = { kind: "oasis", strength: pond };
-          else if (pan) scape = { kind: "pan", strength: pan };
-          else if (surface) scape = surface;
-          else {
-            const scree = screeAt(x, y, f, h);
-            if (scree) scape = { kind: "scree", strength: scree };
-            else if (rocky) scape = { kind: "outcrop", strength: rocky };
-          }
+    cell.habitat = { ...habitat(x, y), layeredForest: true };
+    const env = settingAt(x, y).environment!;
+    cell.rock = rockAt(pack.anchor?.lon, pack.anchor?.lat, env.ecology, env.colorway);
+    {
+      const h = cell.habitat;
+      const ax = x + land.origin.x,
+        ay = y + land.origin.y;
+      let scape = f.landscape;
+      if (!scape && f.glacier) scape = { kind: "glacier", strength: 1 };
+      if (!scape && f.water >= (f.shoreWidth ?? 3)) {
+        const pan = saltPan(
+          seed,
+          ax,
+          ay,
+          h.colorway,
+          f.elevation === 0,
+          h.wet,
+          f.water,
+        );
+        const rocky = outcrop(
+          seed,
+          ax,
+          ay,
+          h.exposed,
+          f.summit ? f.elevation / f.summit : 0,
+        );
+        const pond = oasis(seed, ax, ay, h.ecology, f.elevation === 0);
+        const surface = townAt(x, y) ? undefined : formSurface(form, seed, ax, ay, h.exposed);
+        if (pond) scape = { kind: "oasis", strength: pond };
+        else if (pan) scape = { kind: "pan", strength: pan };
+        else if (surface) scape = surface;
+        else {
+          const scree = screeAt(x, y, f, h);
+          if (scree) scape = { kind: "scree", strength: scree };
+          else if (rocky) scape = { kind: "outcrop", strength: rocky };
         }
-        if (scape) cell.landscape = scape;
       }
-      cell.waterVisual = {
-        distance: f.water,
-        kind: f.kind,
-        ecology: cell.habitat?.ecology ?? settingAt(x, y).environment!.ecology,
-        shoreWidth: f.shoreWidth ?? 3,
-        flow: f.waterFlow ?? [0, 1],
-        frozenMargin: f.snow,
-        ...(f.waterGradient ? { gradient: f.waterGradient } : {}),
-      };
-      if (waters && (f.water < 0 || f.seasonal || f.shelf !== undefined)) {
-        const v = cell.waterVisual;
-        if (waters.icebergs && f.kind === "sea" && f.water < 0) v.icebergs = true;
-        if (f.reef) v.reef = f.reef;
-        // Ice, tint, tide and flood are resolved from the live season in `topography`.
-        if (waterTurns || f.seasonal || f.shelf !== undefined)
-          cell.live = { ...(f.seasonal && { water: f.seasonal }), ...(f.shelf !== undefined && { shelf: f.shelf }) };
-        else if (f.kind !== "sea" && waters.tint) v.tint = waters.tint;
-      }
-      cell.biome = cell.habitat.site
-        ? cell.habitat.ecology
-        : localEcology(
-            settingAt(x, y),
-            seed,
-            x + (regional ? land.origin.x : 0),
-            y + (regional ? land.origin.y : 0),
-            f,
-          );
-      const eco = ecologyProfiles[cell.biome];
-      if (f.water >= 0)
-        cell.surface = f.snow
-          ? "snow"
-          : f.travelRoad
-            ? "soil"
-            : cell.habitat.site
-              ? t === "rock"
-                ? "gravel"
-                : t === "marsh"
-                  ? "damp"
-                  : t === "sand"
-                    ? "sand"
-                    : t === "dry"
-                      ? "dry"
-                      : "grass"
-              : eco.surface;
-      // The road off the edge of the map is metalled once cars use it.
-      if (
-        f.water >= 0 &&
-        f.travelRoad &&
-        blacktop &&
-        !regionalStrokes(x, y).length
-      ) {
-        cell.surface = "gravel";
-        cell.feature = "paving";
-        cell.streetMaterial = "asphalt";
-      }
-      // A creek's edge is painted per pixel by the ground raster (a dark wet
-      // line and stones on turf); marking whole cells as gravel drew a
-      // stepped grey band along it.
-      if (
-        f.water >= 0 &&
-        f.water < (f.shoreWidth ?? 3) &&
-        (f.shoreWidth ?? 3) >= 1.2
-      ) {
-        const shoreEcology = settingAt(x, y).environment!.ecology;
-        const stonyShore =
-          shoreEcology === "tundra" ||
-          shoreEcology === "boreal-woodland" ||
-          (f.kind === "sea" &&
-            shoreEcology !== "desert" &&
-            shoreEcology !== "tropical-woodland" &&
-            (f.shoreWidth ?? 3) < 5);
-        cell.surface =
-          f.kind === "river" ||
-          stonyShore ||
-          gravelBar(seed, x + land.origin.x, y + land.origin.y)
+      if (scape) cell.landscape = scape;
+    }
+    cell.waterVisual = {
+      distance: f.water,
+      kind: f.kind,
+      ecology: cell.habitat?.ecology ?? settingAt(x, y).environment!.ecology,
+      shoreWidth: f.shoreWidth ?? 3,
+      flow: f.waterFlow ?? [0, 1],
+      frozenMargin: f.snow,
+      ...(f.waterGradient ? { gradient: f.waterGradient } : {}),
+    };
+    if (waters && (f.water < 0 || f.seasonal || f.shelf !== undefined)) {
+      const v = cell.waterVisual;
+      if (waters.icebergs && f.kind === "sea" && f.water < 0) v.icebergs = true;
+      if (f.reef) v.reef = f.reef;
+      // Ice, tint, tide and flood are resolved from the live season in `topography`.
+      if (waterTurns || f.seasonal || f.shelf !== undefined)
+        cell.live = { ...(f.seasonal && { water: f.seasonal }), ...(f.shelf !== undefined && { shelf: f.shelf }) };
+      else if (f.kind !== "sea" && waters.tint) v.tint = waters.tint;
+    }
+    cell.biome = cell.habitat.site
+      ? cell.habitat.ecology
+      : localEcology(
+          settingAt(x, y),
+          seed,
+          x + (regional ? land.origin.x : 0),
+          y + (regional ? land.origin.y : 0),
+          f,
+        );
+    const eco = ecologyProfiles[cell.biome];
+    if (f.water >= 0)
+      cell.surface = f.snow
+        ? "snow"
+        : cell.habitat.site
+          ? t === "rock"
             ? "gravel"
-            : "sand";
-        if (cell.surface === "gravel") cell.feature = "bank";
-      }
-    } else if (height === 0 && f.water >= 0) cell.surface = "gravel";
+            : t === "marsh"
+              ? "damp"
+              : t === "sand"
+                ? "sand"
+                : t === "dry"
+                  ? "dry"
+                  : "grass"
+          : eco.surface;
+    // A creek's edge is painted per pixel by the ground raster (a dark wet
+    // line and stones on turf); marking whole cells as gravel drew a
+    // stepped grey band along it.
+    if (
+      f.water >= 0 &&
+      f.water < (f.shoreWidth ?? 3) &&
+      (f.shoreWidth ?? 3) >= 1.2
+    ) {
+      const shoreEcology = settingAt(x, y).environment!.ecology;
+      const stonyShore =
+        shoreEcology === "tundra" ||
+        shoreEcology === "boreal-woodland" ||
+        (f.kind === "sea" &&
+          shoreEcology !== "desert" &&
+          shoreEcology !== "tropical-woodland" &&
+          (f.shoreWidth ?? 3) < 5);
+      cell.surface =
+        f.kind === "river" ||
+        stonyShore ||
+        gravelBar(seed, x + land.origin.x, y + land.origin.y)
+          ? "gravel"
+          : "sand";
+      if (cell.surface === "gravel") cell.feature = "bank";
+    }
     // Shore distance ignores relief: without this, a beach's width of sand
     // is laid over the top of the cliff above it too.
     if (
-      environment &&
       cell.biome &&
       (cell.surface === "sand" || cell.surface === "gravel") &&
       f.water >= 0 &&
@@ -2222,11 +2084,9 @@ export function createSettlementWorld(
     }
     if (t === "rock") cell.surface = "gravel";
     if (t === "paving") {
-      cell.surface = environment ? "gravel" : "soil";
-      if (environment) {
-        cell.feature = "paving";
-        cell.streetMaterial = streetMaterial(settingAt(x, y));
-      }
+      cell.surface = "gravel";
+      cell.feature = "paving";
+      cell.streetMaterial = streetMaterial(settingAt(x, y));
     }
     if (regional && regionalRoads(x, y).has(cellKey(x, y)) && t !== "paving") {
       const local = regional.settingAt(x, y);
@@ -2243,47 +2103,45 @@ export function createSettlementWorld(
         cell.streetMaterial = streetMaterial(local);
       } else if (!blacktop) cell.surface = "soil";
     }
-    if (pack.setting?.urbanRevision) {
-      for (const p of nearby(x, y)) {
-        const key = cellKey(x, y);
-        const material = p.streetSurfaces?.get(key);
-        if (material && cell.feature === "paving") {
-          if (material === "earth") {
-            cell.surface = "soil";
-            delete cell.feature;
-            delete cell.streetMaterial;
-          } else cell.streetMaterial = material;
-        }
-        const pavement = p.pavement?.get(key);
-        if (pavement) cell.pavement = pavement;
-        // An earth street is drawn as the ground it reserves, like its footways.
-        else if (material === "earth") cell.pavement = "lane";
-        const plinth = p.plinths?.get(key);
-        if (plinth) cell.plinth = plinth;
-        const lane = p.lanes?.get(key);
-        if (lane && cell.feature === "paving") cell.lane = lane;
-        const geometry = p.streetGeometry?.get(key);
-        if (geometry && cell.feature === "paving") cell.streetGeometry = geometry;
-        const bay = p.loadingBays?.get(key);
-        if (bay && cell.feature === "paving") cell.loadingBay = bay;
-        const track = p.tracks?.get(key);
-        if (track && cell.feature === "paving") cell.track = track;
-        // Authored block ground and courts are areas, not thin paths. Preserve
-        // their extent instead of reinterpreting only road centers as worn soil.
-        if (t === "dirt" && p.surface.get(key) === "dirt" && !!p.pavement?.size) {
+    for (const p of nearby(x, y)) {
+      const key = cellKey(x, y);
+      const material = p.streetSurfaces?.get(key);
+      if (material && cell.feature === "paving") {
+        if (material === "earth") {
           cell.surface = "soil";
-          const use = pavement === "square" || pavement === "court" || pavement === "yard" ? pavement : undefined;
-          if (use) {
-            let form = forms.get(p);
-            if (!form) forms.set(p, (form = siteForm(p.site, pack)));
-            cell.earth = p.earth?.get(key) ?? earthFinish(form, use, pack.setting?.climate);
-          }
-          // No turf survives between the houses of a dry-country city.
-          // Except at the foot of a wall, where roof and wall runoff gathers out of the way of feet.
-          if (pack.setting?.climate === "arid" && (pavement === "yard" || pavement === "vacant"))
-            cell.groundWear = [[0, -1], [1, 0], [0, 1], [-1, 0]].some(([dx, dy]) => p.solid.has(cellKey(x + dx, y + dy))) &&
-              noise(seed, x + land.origin.x, y + land.origin.y, 3, "wallfoot") > 0.35 ? 0.3 : 1;
+          delete cell.feature;
+          delete cell.streetMaterial;
+        } else cell.streetMaterial = material;
+      }
+      const pavement = p.pavement?.get(key);
+      if (pavement) cell.pavement = pavement;
+      // An earth street is drawn as the ground it reserves, like its footways.
+      else if (material === "earth") cell.pavement = "lane";
+      const plinth = p.plinths?.get(key);
+      if (plinth) cell.plinth = plinth;
+      const lane = p.lanes?.get(key);
+      if (lane && cell.feature === "paving") cell.lane = lane;
+      const geometry = p.streetGeometry?.get(key);
+      if (geometry && cell.feature === "paving") cell.streetGeometry = geometry;
+      const bay = p.loadingBays?.get(key);
+      if (bay && cell.feature === "paving") cell.loadingBay = bay;
+      const track = p.tracks?.get(key);
+      if (track && cell.feature === "paving") cell.track = track;
+      // Authored block ground and courts are areas, not thin paths. Preserve
+      // their extent instead of reinterpreting only road centers as worn soil.
+      if (t === "dirt" && p.surface.get(key) === "dirt" && !!p.pavement?.size) {
+        cell.surface = "soil";
+        const use = pavement === "square" || pavement === "court" || pavement === "yard" ? pavement : undefined;
+        if (use) {
+          let form = forms.get(p);
+          if (!form) forms.set(p, (form = siteForm(p.site, pack)));
+          cell.earth = p.earth?.get(key) ?? earthFinish(form, use, pack.setting?.climate);
         }
+        // No turf survives between the houses of a dry-country city.
+        // Except at the foot of a wall, where roof and wall runoff gathers out of the way of feet.
+        if (pack.setting?.climate === "arid" && (pavement === "yard" || pavement === "vacant"))
+          cell.groundWear = [[0, -1], [1, 0], [0, 1], [-1, 0]].some(([dx, dy]) => p.solid.has(cellKey(x + dx, y + dy))) &&
+            noise(seed, x + land.origin.x, y + land.origin.y, 3, "wallfoot") > 0.35 ? 0.3 : 1;
       }
     }
     if (t === "dirt")
@@ -2323,7 +2181,6 @@ export function createSettlementWorld(
       if (halt) cell.platform = halt.toward;
     }
     if (
-      environment &&
       cell.surface !== "water" &&
       !cell.bridge &&
       !cell.feature
@@ -2356,7 +2213,7 @@ export function createSettlementWorld(
         );
       }
     }
-    if (environment && (!cell.field || (cell.field.yard && cell.field.crop === "pasture" && !cell.field.garden)) && cell.surface !== "water" &&
+    if ((!cell.field || (cell.field.yard && cell.field.crop === "pasture" && !cell.field.garden)) && cell.surface !== "water" &&
       !["garden", "park", "verge"].includes(cell.pavement ?? "")) {
       let wear = 0;
       for (const p of nearby(x, y))
@@ -2645,7 +2502,6 @@ export function createSettlementWorld(
       }
     }
     if (
-      environment &&
       [
         [0, -1],
         [1, 0],
@@ -3040,7 +2896,7 @@ export function createSettlementWorld(
   function passersBy(day: number) {
     let list = passing.get(day);
     if (list) return list;
-    const ways = environment && !pack.setting?.situation
+    const ways = !pack.setting?.situation
       ? entrances().filter((e): e is Way => e.walkable && !!e.point && e.path.length > 1)
       : [];
     list = wayfarerDay(world, seed, pack, ways, day);
@@ -3150,7 +3006,7 @@ export function createSettlementWorld(
           },
         }
       : {}),
-    ...(environment ? { households: [] } : {}),
+    households: [],
     generatorVersion: 3,
     setSeason: (season: string, tide = liveTide) => {
       if (season === liveSeason && tide === liveTide) return;
@@ -3159,19 +3015,11 @@ export function createSettlementWorld(
       liveTide = tide;
       waterStamp++;
     },
-    ...(relief
-      ? {
-          topography,
-          canCross: (
-            from: { x: number; y: number },
-            to: { x: number; y: number },
-          ) => {
-            return (
-              inside(to.x, to.y) && terrainStep(topography, from, to).allowed
-            );
-          },
-        }
-      : {}),
+    topography,
+    canCross: (
+      from: { x: number; y: number },
+      to: { x: number; y: number },
+    ) => inside(to.x, to.y) && terrainStep(topography, from, to).allowed,
     pack,
     settlements: [],
     places: [],
@@ -3201,7 +3049,7 @@ export function createSettlementWorld(
       decorationEdit = fn;
     },
     habitatAt: (x, y) => {
-      if (!inside(x, y) || !environment) return undefined;
+      if (!inside(x, y)) return undefined;
       const site = habitat(x, y).site;
       if (!site) return undefined;
       const cell = world.topography!(x, y),
@@ -3228,7 +3076,7 @@ export function createSettlementWorld(
         return undefined;
       return {
         terrain: ground(x, y),
-        habitat: environment ? habitat(x, y) : undefined,
+        habitat: habitat(x, y),
       };
     },
     overview: (x, y) => {
@@ -3253,9 +3101,7 @@ export function createSettlementWorld(
         : !inside(x, y) ||
           Math.abs(x + land.origin.x) > 180 * 2048 ||
           Math.abs(y + land.origin.y) > 85 * 2048 ||
-          (relief
-            ? waterDepthAt(topography, x + 0.5, y + 0.5) > MAX_WADING_DEPTH
-            : terrain(x, y) === "water") ||
+          waterDepthAt(topography, x + 0.5, y + 0.5) > MAX_WADING_DEPTH ||
           nearby(x, y).some((p) => p.solid.has(cellKey(x, y))) ||
           !!decoration(x, y)?.solid,
     chunk: (cx, cy) =>
@@ -3341,14 +3187,14 @@ export function createSettlementWorld(
     },
     activate: (x, y) => {
       for (const p of nearby(x, y)) activate(p);
-      if (environment && !pack.setting?.situation) {
+      if (!pack.setting?.situation) {
         addWildResources(world, seed, x, y);
         addBoulders(world, seed, x, y);
       }
     },
     fauna: (x, y) => [
       ...keptFauna,
-      ...(environment && !pack.setting?.situation ? attended(spawnFauna(world, seed, x, y)) : []),
+      ...(!pack.setting?.situation ? attended(spawnFauna(world, seed, x, y)) : []),
     ],
     forgetFauna: (block) => forgetFaunaBlock(world, block),
     restoreDistricts: (ids) => {
@@ -3396,7 +3242,7 @@ export function createSettlementWorld(
       // room; orchard rows may still stand close.
       const crowded = (cx: number, cy: number) => o.kind === "tree" &&
         [-1, 0, 1].some((dy) => [-1, 0, 1].some((dx) => (dx || dy) && props.has(cellKey(cx + dx, cy + dy))));
-      if (!(relief && onStep(x, y)) && !(road && road < 7) && !crowded(x, y)) continue;
+      if (!onStep(x, y) && !(road && road < 7) && !crowded(x, y)) continue;
       search: for (let r = 1; r <= 3; r++)
         for (let dy = -r; dy <= r; dy++)
           for (let dx = -r; dx <= r; dx++) {
@@ -3426,7 +3272,7 @@ export function createSettlementWorld(
     world.initialObjects.push(...p.objects);
     world.initialActors.push(...p.actors);
     keptFauna.push(...(p.fauna ?? []));
-    if (environment) populateHouseholds(world, p, seed);
+    populateHouseholds(world, p, seed);
     for (const a of p.actors) assignGender(a, pack, seed);
     world.enclosures.push(...p.enclosures);
   }
@@ -3461,8 +3307,6 @@ export function createSettlementWorld(
     startingSite?.cy ?? home.y,
     startingSite?.id,
   );
-  if (!initial && !environment)
-    throw Error("No usable settlement site near this location.");
   // A resident starts on their own doorstep: the empty middle of the common
   // made a poor first frame.
   const door = initial?.places.find((p) => p.owner === "player")?.entrance;
@@ -3471,7 +3315,6 @@ export function createSettlementWorld(
     space: "outside",
   };
   if (
-    environment &&
     !pack.setting?.situation &&
     (environment.start !== "resident" ||
       !initial ||

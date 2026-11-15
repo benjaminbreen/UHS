@@ -19,7 +19,7 @@ function fixture() {
   const base = createSession(
     "roman",
     "map-travel-test",
-    { content: 2, generator: 1 },
+    { content: 2 },
   );
   const make = (id: string, reachable = true) => {
     const side = id === a ? -192 : 191;

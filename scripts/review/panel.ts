@@ -18,8 +18,6 @@ export function panelSetting(place: string, year: number) {
   const base = settingFor(places.find((p) => p.id === place)!, year);
   return {
     ...base,
-    terrainRevision: 2,
-    vegetationRevision: 5,
     settlementPattern: "dense",
     environment: {
       ecology: "temperate-woodland",

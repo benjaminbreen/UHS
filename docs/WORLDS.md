@@ -48,12 +48,8 @@ pinned values as they are. New worlds get:
 
 | Field | New worlds | What older values mean |
 |---|---|---|
-| `terrainRevision` | 2 (environment model) | 1: the rev-1 relief study; absent: original landscape |
 | `geographyRevision` | 1 (integrated Earth geography) | absent: no regional context |
 | `ecologyRevision` | 2 (RESOLVE colourways) | 1: climate-rule envelopes only |
-| `hydrologyRevision` | 3 (native water) | 1–2: main-water reaches; 2 adds swamp |
-| `vegetationRevision` | 9 | 1–8: earlier spacing, mixes and understory |
-| `urbanRevision` | 2 (dated block grammar) | 1: fixed lattice in `v3/urban-v1.ts` |
 | `roadRevision` | 1 (sparse regional graph) | absent: older routing |
 | `streetRevision` | 1 (earth unless dated paving) | |
 | `terraceRevision` | 1 (towns level and wall their steps) | |
@@ -64,16 +60,22 @@ pinned values as they are. New worlds get:
 | `friendshipRevision`, `employmentRevision`, `beliefRevision`, `namingRevision` | 1 | |
 
 The schema for each is in `src/content/geography/types.ts`. Grep the field name
-to find every branch it controls.
+to find every branch it controls. Terrain, hydrology, vegetation and urban
+layout have no field: there is one model of each. A local scene needs a setting
+with an `environment`; `createSettlementWorld` throws without one, so pass
+settings through `integratedSetting` (or `createSettingSession`).
 
 ## Generator dispatch
 
-The manifest's `generator` picks the world builder:
+`createSession` picks the world builder from what it is given:
 
-- **3 (all new worlds):** `createSettlementWorld` in `src/world/v3/generate.ts`.
-- **2:** `createAtlasWorld` in `src/world/v2/generate.ts`, for old generator-2 saves.
-- **1:** `createWorld` in `src/world/generate.ts`, for the original pack presets
-  and `src/dev/fixtures.ts`.
+- **3, a setting:** `createSettlementWorld` in `src/world/v3/generate.ts`. Every
+  playable world.
+- **1, a pack id and no setting:** `createWorld` in `src/world/generate.ts`, a
+  small authored town with the `roman` and `neolithic` packs from
+  `src/content/legacy-packs.ts`. It is the fast fixture for mechanics tests
+  (`createSession("roman", …)`, `smallSession` in `tests/fixtures.ts`) and the
+  building lab (`src/dev/fixtures.ts`). Not a place to add generation rules.
 
 Fresh playable starts go through `prepareConnectedStart` in
 `src/runtime/map-travel.ts` (see [TRAVEL.md](TRAVEL.md)).
@@ -137,12 +139,13 @@ A staged opening's named people are not yet put aboard.
 
 Retiring these is welcome when you work nearby:
 
-- `src/world/generate.ts` (generator 1) and `src/world/v2/generate.ts` (generator 2).
-- Revision branches below the values in the table above.
+- Revision branches below the values in the table above (`ecologyRevision` 1,
+  `placementRevision` 0, `characterRevision` 1, `worksiteRevision` below 7,
+  settings without `geographyRevision`, `roadRevision` or `streetRevision`).
 
 ## Checks
 
 ```sh
-npm run test:quick -- tests/world-v2.test.ts
+npm run test:quick -- tests/world-weaver.test.ts
 npm run agent:play -- --setting "Elizabethan London" --seed check
 ```

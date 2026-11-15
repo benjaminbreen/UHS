@@ -14,9 +14,7 @@ const setting = (water: WorldSetting["water"]): WorldSetting =>
     settlement: "camp",
     water,
     season: "summer",
-    terrainRevision: 2,
     geographyMode: "configured",
-    hydrologyRevision: 2,
     environment: {
       ecology: "temperate-woodland",
       landform: "rolling",
@@ -54,32 +52,9 @@ for (const water of ["river-ns", "coast-n", "lake"] as const) {
   });
 }
 
-it("recognizes named swamp forests and floods their river margins shallowly", () => {
+it("recognizes named swamp forests", () => {
   expect(regionalEcology(109.125, 1.375, "tropical")).toEqual({
     ecology: "wetland",
     colorway: "swamp",
   });
-  const dry = createEnvironment(setting("river-ns"), "swamp-review");
-  const swamp = createEnvironment(
-    {
-      ...setting("river-ns"),
-      environment: {
-        ...setting("river-ns").environment!,
-        ecology: "wetland",
-        colorway: "swamp",
-      },
-    },
-    "swamp-review",
-  );
-  let flooded = 0;
-  for (let y = -40; y < 40; y += 2)
-    for (let x = -100; x < 40; x += 2) {
-      const before = dry.mainWater(x, y).water;
-      const after = swamp.mainWater(x, y).water;
-      if (before >= 0 && after < 0) {
-        flooded++;
-        expect(after).toBeGreaterThanOrEqual(-1.2);
-      }
-    }
-  expect(flooded).toBeGreaterThan(30);
 });

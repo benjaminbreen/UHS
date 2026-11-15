@@ -3,10 +3,7 @@ import {
   terrainTransitionTiles,
   transitionPixel,
 } from "../src/render/terrain-tiles";
-import { bankOffset, marshBasin } from "../src/world/v3/wet-features";
-import { createEnvironment } from "../src/world/v3/environment";
-import { ecologyProfiles } from "../src/content/ecology/profiles";
-import type { WorldSetting } from "../src/content/geography/types";
+import { bankOffset } from "../src/world/v3/wet-features";
 it("authored transition tiles share identical boundary pixels for matching corners", () => {
   expect(terrainTransitionTiles).toHaveLength(16);
   for (let a = 0; a < 16; a++)
@@ -41,25 +38,4 @@ it("banks vary independently, preserve quiet sections and remain continuous acro
   }
   expect(unequal).toBeGreaterThan(80);
   expect(quiet).toBeGreaterThan(50);
-});
-it("deserts reject marsh basins; admitted wetland basins enter authoritative water terrain", () => {
-  expect(marshBasin("review", 0, 0, "desert")).toBeUndefined();
-  const setting = {
-    water: "none",
-    lon: 0,
-    lat: 0,
-    season: "summer",
-    environment: { ecology: "wetland", landform: "plain" },
-  } as WorldSetting;
-  const env = createEnvironment(setting, "review");
-  let pools = 0;
-  for (let y = -120; y < 120; y += 3)
-    for (let x = -120; x < 120; x += 3) {
-      const basin = marshBasin("review", x, y, "wetland");
-      if (!basin || basin.distance >= 0 || basin.wet <= 0.57) continue;
-      const f = env.sample(x, y);
-      if (f.water < 0 && f.kind === "lake" && f.shoreWidth === 0.5) pools++;
-    }
-  expect(pools).toBeGreaterThan(0);
-  expect(ecologyProfiles.wetland.moisture).toBeGreaterThan(0.36);
 });

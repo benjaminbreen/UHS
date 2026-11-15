@@ -1009,21 +1009,6 @@ export const snapshotSchema = z.object({
         seed: z.string().min(1).max(100),
         pack: z.literal("atlas"),
         schema: z.literal(2),
-        simulation: z.literal(1),
-        hazards: z.union([z.literal(1), z.literal(2)]).optional(),
-        survival: z.literal(1).optional(),
-        disease: z.literal(1).optional(),
-        generator: z.literal(2),
-        content: z.union([z.literal(1), z.literal(2)]),
-        atlas: z.literal(2),
-        setting: settingSchema,
-      })
-      .strict(),
-    z
-      .object({
-        seed: z.string().min(1).max(100),
-        pack: z.literal("atlas"),
-        schema: z.literal(2),
         simulation: z.literal(2),
         watchRouting: z.literal(1).optional(),
         hazards: z.union([z.literal(1), z.literal(2)]).optional(),

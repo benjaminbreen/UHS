@@ -15,7 +15,7 @@ import type { WorldPreparationRequest, WorldPreparationResult } from "../src/wor
 
 it.each([true, false])("hands off a prepared world with phone memory policy %s", async (phone) => {
   const setting = settingFor(places.find((p) => p.id === "konya")!, -6499);
-  const engine = createSession("roman", "handoff", { generator: 1 });
+  const engine = createSession("roman", "handoff");
   const prepared = { sites: [], plans: [] } as unknown as WorldPreparationResult["prepared"];
   const order: string[] = [];
   const terminate = vi.fn(() => { order.push("terminate"); });

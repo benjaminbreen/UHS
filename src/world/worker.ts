@@ -7,7 +7,6 @@ import { createWorld } from "./generate";
 import { packs } from "../content/packs";
 import type { WorldModel } from "../core/types";
 import { createSettlementWorld, prepareSettlement } from "./v3/generate";
-import { createAtlasWorld } from "./v2/generate";
 import { packForSetting } from "../content/geography/pack";
 import type { WorldSetting } from "../content/geography/types";
 import { stateHash } from "../core/random";
@@ -21,7 +20,6 @@ export type WorldPreparationRequest = {
 export type WorldPreparationResult = { prepared: PreparedSettlement; playableMap?: WorldSetting["playableMap"] };
 export type ChunkRequest = {
   setting?: WorldSetting;
-  generator?: 1 | 2 | 3;
   id: string;
   packId: string;
   seed: string;
@@ -53,15 +51,13 @@ self.onmessage = (
     handleTerrainRequest(event.data);
     return;
   }
-  const { id, packId, seed, cx, cy, setting, generator } = event.data;
+  const { id, packId, seed, cx, cy, setting } = event.data;
   try {
-    const next = `${generator}:${packId}:${seed}:${setting ? stateHash(setting) : "v1"}`;
+    const next = `${packId}:${seed}:${setting ? stateHash(setting) : "v1"}`;
     if (next !== key) {
       if (!setting && !packs[packId]) throw Error("Unknown pack.");
       world = setting
-        ? generator === 3
-          ? createSettlementWorld(packForSetting(setting), seed)
-          : createAtlasWorld(packForSetting(setting), seed)
+        ? createSettlementWorld(packForSetting(setting), seed)
         : createWorld(packs[packId], seed);
       key = next;
     }

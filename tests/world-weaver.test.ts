@@ -2,24 +2,16 @@ import { describe, it, expect } from "vitest";
 import { z } from "zod";
 import { resolveSetting, settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
-import { createSession, createSettingSession as createLocalSession } from "../src/runtime/session";
+import { createSettingSession as createLocalSession } from "../src/runtime/session";
 import { composeIntro, introText } from "../src/core/intro";
 import { strictSchema } from "../server/json-schema";
-import { findPath } from "../src/core/pathfinding";
 import { worldWeaver } from "../server/world-weaver";
-import { createAtlasWorld } from "../src/world/v2/generate";
-import { packForSetting } from "../src/content/geography/pack";
-// Generator v2 fixtures deliberately stay on v2 as new starts advance to v3.
-const createSettingSession = (
-  setting: import("../src/content/geography/types").WorldSetting,
-  seed = "earth-2",
-) => createSession("atlas", seed, { setting, generator: 2 });
 const get = (text: string) => {
   const r = resolveSetting(text);
   if ("error" in r) throw Error(r.error);
   return r.setting;
 };
-describe("shared World Weaver / procedural geography", () => {
+describe("World Weaver setting resolution", () => {
   it("resolves aliases, periods, explicit BCE dates, centuries, roles and climate treatments locally", () => {
     expect(get("Elizabethan London")).toMatchObject({
       placeId: "london",
@@ -56,62 +48,6 @@ describe("shared World Weaver / procedural geography", () => {
     expect(get("19th-century Haiti").year).toBeLessThanOrEqual(1900);
     expect(get("Roman farmer in Haiti").placeId).toBe("haiti");
   });
-  it("keeps north sea and east-west river geometry independent of request order, including negative chunks", () => {
-    for (const query of [
-      "Elizabethan London",
-      "Hellenistic Alexandria",
-      "Haiti",
-      "Siberia",
-    ]) {
-      const setting = get(query),
-        a = createSettingSession(setting, "seams"),
-        b = createSettingSession(setting, "seams");
-      const coords = [
-        [-1, -1],
-        [0, -1],
-        [-1, 0],
-        [0, 0],
-        [1, 1],
-      ];
-      const chunks = coords.map(([x, y]) => a.world.chunk(x, y));
-      for (const [x, y] of [...coords].reverse()) b.world.chunk(x, y);
-      coords.forEach(([x, y], i) =>
-        expect(b.world.chunk(x, y)).toEqual(chunks[i]),
-      );
-      expect(a.world.chunk(-1, 0)[63]).toBe(a.world.terrain(-1, 0));
-      expect(a.world.blocked(a.world.spawn.x, a.world.spawn.y, "outside")).toBe(
-        false,
-      );
-    }
-    const alex = createSettingSession(get("Alexandria"), "sea").world;
-    expect(alex.terrain(0, -250)).toBe("water");
-    expect(alex.terrain(0, 80)).not.toBe("water");
-    const london = createSettingSession(get("London"), "river").world;
-    for (const x of [-300, -150, 0, 150, 300])
-      expect(
-        Array.from({ length: 130 }, (_, y) => london.terrain(x, y)).some(
-          (t) => t === "water" || t === "bridge",
-        ),
-      ).toBe(true);
-  }, 20000);
-  it("has usable nearby entrances and conserves layout through worker construction", () => {
-    for (const query of ["London", "Alexandria", "Haiti", "Siberia"]) {
-      const setting = get(query),
-        e = createSettingSession(setting, "doors");
-      for (const p of e.world.places.filter((p) => Math.hypot(p.x, p.y) < 120))
-        expect(
-          findPath(
-            e.state.player.pos,
-            p.entrance,
-            (x, y) => e.blocked(x, y),
-            5000,
-          ).length,
-          p.id,
-        ).toBeGreaterThan(0);
-      const workerWorld = createAtlasWorld(packForSetting(setting), "doors");
-      expect(workerWorld.chunk(0, 0)).toEqual(e.world.chunk(0, 0));
-    }
-  }, 20000);
   it("never calls a provider in free mode; protects and validates the optional World Weaver boundary", async () => {
     let calls = 0;
     const london = places.find((p) => p.id === "london")!;
@@ -209,9 +145,6 @@ describe("shared World Weaver / procedural geography", () => {
         )
       ).status,
     ).toBe(200);
-    const local = createSettingSession(setting, "parity"),
-      enhanced = createSettingSession(body.setting, "parity");
-    expect(local.hash()).toBe(enhanced.hash());
     const malformed = (async () =>
       new Response(
         JSON.stringify({

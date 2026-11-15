@@ -163,7 +163,6 @@ it("attaches generated hamlet lanes to centerlines rather than painted shoulders
     const setting = {
       ...resolved.setting,
       roadRevision: 1 as const,
-      terrainRevision: 2 as const,
       settlementPattern: pattern,
       environment: {
         ecology: "grassland" as const,

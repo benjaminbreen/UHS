@@ -7,7 +7,7 @@ import { habitatAppearance, habitatBand } from "../src/render/habitat-appearance
 import { rasterHabitatTile } from "../src/render/habitat-raster";
 import { habitatAt } from "../src/world/v3/habitats";
 import type { LandSample } from "../src/world/geography/landscape";
-import { reliefCell } from "../src/world/v3/topography";
+import { reliefCell } from "../src/core/topography";
 const land = (saturation: number, water = 2): LandSample => ({
   water,
   kind: "river",

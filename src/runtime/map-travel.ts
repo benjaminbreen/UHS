@@ -34,7 +34,6 @@ function travelSettings(
   year: number,
 ) {
   const setting = settingForTravelStop(map, year);
-  setting.hydrologyRevision = 3;
   const waterways: TravelWaterwayInputs = { source: { ...setting }, neighbors: [] };
   setting.playableMap = {
     id: map.networkId,

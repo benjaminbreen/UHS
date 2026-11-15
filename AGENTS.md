@@ -126,12 +126,11 @@ Fresh playable worlds use `prepareConnectedStart` in `src/runtime/map-travel.ts`
 `createSettingSession` builds a synchronous local scene for tests/reviews;
 `createSession(pack, seed, options)` handles authored packs and pinned versions.
 
-New worlds are generator 3: `src/world/v3/` builds the local scene, and
-`src/world/geography/` holds shared Earth geography. `src/world/generate.ts`
-(generator 1), `src/world/v2/` (generator 2 plus re-export shims),
-`v3/urban-v1.ts` and `src/content/legacy-packs.ts` still run, but only for old
-packs, tests and lab fixtures. Check the importers before you delete one. Do
-not extend them.
+Every playable world is generator 3: `src/world/v3/` builds the local scene,
+and `src/world/geography/` holds shared Earth geography. `src/world/generate.ts`
+(generator 1) with `src/content/legacy-packs.ts` is the small authored town
+behind `createSession("roman", …)`, the fast fixture for mechanics tests and
+the building lab. Do not add generation rules to it.
 
 `.claude/worktrees/` holds old worktrees with their own copies of the repo.
 Keep it out of searches (`grep -r --exclude-dir=.claude`).

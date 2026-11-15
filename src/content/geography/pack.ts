@@ -461,7 +461,7 @@ export function packForSetting(setting: WorldSetting): Pack {
       "Farmhouse",
     ],
     names:
-      setting.terrainRevision && early
+      early
         ? base.names
         : architecture === "classical"
           ? packTemplates.roman.names
@@ -566,10 +566,7 @@ export function packForSetting(setting: WorldSetting): Pack {
         url: "",
       });
   }
-  if (
-    setting.urbanRevision &&
-    (setting.settlement === "city" || setting.settlement === "port")
-  ) {
+  if (setting.settlement === "city" || setting.settlement === "port") {
     const civic = civicProfile(setting);
     pack.evidence.push({
       id: `civic-${civic.id}`,
@@ -580,8 +577,7 @@ export function packForSetting(setting: WorldSetting): Pack {
       limitation: civic.evidence.note,
     });
   }
-  if (setting.vegetationRevision)
-    pack.trees = treeMix(setting).map(([id]) => id);
+  pack.trees = treeMix(setting).map(([id]) => id);
   // Tree-free ecologies still need a harmless court-art fallback. Wild density stays zero.
   if (!pack.trees.length) pack.trees = ["bush"];
   if (setting.situation?.landform === "open-ocean")
