@@ -6,7 +6,10 @@ import type { WorldSetting } from "../geography/types";
  * building material, year), and the use lays its props out to fit whatever
  * rectangle the block left. The art is scripts/art/props_b/lots.py.
  */
-export type LotUse = "garden" | "drying" | "fuel" | "threshing" | "pen" | "sacred" | "ruin" | "waste" | "square";
+export type LotUse = "garden" | "drying" | "fuel" | "threshing" | "pen" | "sacred" | "ruin" | "waste" | "square" | "yard" | "court" | "stand";
+
+/** What a lot in a city of street rows stands next to; its use follows. */
+export type LotNeighbour = "station" | "works" | "shops" | "homes" | "open";
 
 /** A prop at a cell of the lot, counted from its top-left; `garden` lots
  * also want their open ground dug into beds by the yard code. */
@@ -82,8 +85,18 @@ function gardenPiece(s: Facts): string {
   return s.culture === "european" ? "lotSkeps" : "lotWaterJar";
 }
 
-function weights(s: Facts): [LotUse, number][] {
+function weights(s: Facts, beside?: LotNeighbour): [LotUse, number][] {
   const t = town(s);
+  // In a city of street rows the ground belongs to what stands beside it:
+  // a goods yard and a cab stand by the station, a coal or timber yard by
+  // the works, a tradesman's yard or a railed garden among the shops, and
+  // among houses the drying court, the allotment and the garden square.
+  // With nothing built beside it, a railed green or plain waste ground.
+  if (beside === "open") return [["square", 1.2], ["waste", 2]];
+  if (beside === "station") return [["yard", 3], ["stand", s.year < 1925 ? 3 : 0], ["square", 1]];
+  if (beside === "works") return [["yard", 4], ["fuel", 1], ["waste", 1]];
+  if (beside === "shops") return [["yard", 2.5], ["square", 2], ["waste", 0.4]];
+  if (beside === "homes") return [["court", s.year < 1960 ? 2.5 : 0.5], ["garden", 2.5], ["square", 1.5], ["waste", 0.6]];
   // From the boulevard age a European city turned its leftover ground into
   // railed garden squares; kitchen plots, pens and threshing floors had gone
   // to the edge of town. A builder's yard and the odd gap stayed.
@@ -103,8 +116,8 @@ function weights(s: Facts): [LotUse, number][] {
 
 /** What one open lot, w by h cells, becomes. `key` makes the choice stable
  * for that lot and different from its neighbour's. */
-export function planLot(s: Facts, w: number, h: number, key: string): LotPlan {
-  const table = weights(s).filter(([u]) => (u !== "threshing" && u !== "sacred") || (w >= 6 && h >= 5));
+export function planLot(s: Facts, w: number, h: number, key: string, beside?: LotNeighbour): LotPlan {
+  const table = weights(s, beside).filter(([u, v]) => v > 0 && ((u !== "threshing" && u !== "sacred") || (w >= 6 && h >= 5)));
   let roll = hash(key, "use") * table.reduce((a, [, v]) => a + v, 0), use: LotUse = "waste";
   for (const [u, v] of table) if ((roll -= v) < 0) { use = u; break; }
   const items: LotItem[] = [];
@@ -120,6 +133,32 @@ export function planLot(s: Facts, w: number, h: number, key: string): LotPlan {
     if (w >= 8) for (const x of [2, w - 3]) items.push({ prop: "lotSquareBench", x, y: walk - 1 });
     items.push({ prop: "lotPigeons", x: (w >> 1) + 2, y: walk });
     return { use, items, fenced: true, lawn: (y) => y !== walk };
+  }
+  if (use === "yard") {
+    // Goods along the back wall and one side, the middle left for the cart.
+    const goods = beside === "works" ? ["lotCoalSacks", "lotCrates", "lotBarrel", "lotLumber"]
+      : beside === "station" ? ["lotCrates", "lotSacks", "lotBarrel", "lotCrates"]
+      : ["lotCrates", "lotBarrel", "lotSacks", "lotCrate"];
+    for (let x = 1, i = 0; x < w - 2; x += 3, i++) items.push({ prop: goods[i % goods.length], x, y: back });
+    if (h >= 6) for (let y = back + 3, i = 1; y < h - 2; y += 3, i++) items.push({ prop: goods[i % goods.length], x: 1, y });
+    if (w >= 7 && h >= 5) items.push({ prop: s.year < 1930 ? (hash(key, "cart") < 0.5 ? "lotCart" : "lotHandcart") : "lotHandcart", x: w - 3, y: front });
+    return { use, items, fenced: true };
+  }
+  if (use === "court") {
+    // The week's wash across the middle, the privy and the butt at the back.
+    for (let y = back + 3, r = 0; y < h - 1 && r < 2; y += 4, r++)
+      for (let x = 2 + r * 2, n = 0; x < w - 2 && n < 3; x += 5, n++) items.push({ prop: "lotLaundry", x, y });
+    if (s.year < 1930) items.push({ prop: "lotPrivy", x: w - 2, y: back });
+    items.push({ prop: "lotWaterButt", x: 1, y: back });
+    if (w >= 7) items.push({ prop: s.year < 1900 ? "lotYardPump" : "lotWashTub", x: w >> 1, y: back });
+    return { use, items, fenced: true };
+  }
+  if (use === "stand") {
+    // Where the cabs and carts waited: rails to tie up at, and water.
+    for (let x = 2; x < w - 2; x += 4) items.push({ prop: "lotHitchingPost", x, y: back + 1 });
+    items.push({ prop: "lotStoneTrough", x: w >> 1, y: front });
+    if (w >= 10) items.push({ prop: "lotCart", x: w - 4, y: front });
+    return { use, items };
   }
   if (use === "garden") {
     if (w >= 6) {

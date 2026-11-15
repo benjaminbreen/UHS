@@ -78,18 +78,37 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
 - **Street-wall cores.** Once a region has industrialised (`modernity.ts`) and
   the town is not plotted, `siteForm` sets `streetWall` and the town is laid
   block first (`layRows` in `blocks.ts`). Doors only ever face south, so a
-  block is one row of houses: each piece of ground between the main streets
-  is cut into rows as deep as that ring's houses are drawn (`rowDepth` in
-  `urban.ts`), a street runs along the south of each row, and lanes join one
-  row street to the next. Ground left over that would hold a street and a low
-  row gets them. A new street is laid only where both ends meet another;
-  ground that cannot be reached that way stays open, and unbuilt ground is
-  grass, not street stone. An old core the city grew round keeps its lanes,
-  and older towns are laid as before (streets first, blocks read off the
-  ground).
+  block is one row of houses. Each piece of ground between the main streets
+  is cut, from its south street up, into a main row, then either a street
+  and another main row or an alley and the low row of mews, workshops or
+  back houses that fronts it (`alleys` on the fabric is the share of row
+  streets that are alleys). A row is as deep as its ring's houses are drawn
+  plus their back yards (`rowDepth` in `urban.ts`, `backs` on the fabric);
+  lanes join one row street to the next. A new street is laid only where it
+  meets another at both ends, or at one end as a close that serves a row.
+  The avenues stand far enough apart for a street and an alley between them.
+- **The square** of a row city is a block at the corner of the two main
+  streets (`cornerSquare`), not a ring road; rows bring their own streets to
+  its other sides. A court or market takes one of the row blocks.
+- **The station** takes the top of a quarter under the railway, where one is
+  deep enough: its own block and street, the ground either side left open
+  for the goods yard and the cab stand. Its forecourt is as wide as the
+  drive needs, with two planted beds for the cabs to turn round
+  (`carriageLoop` in `urban.ts`).
+- **Yards and lots.** A row house holds the ground behind it to the back of
+  its block as a fenced yard (`UrbanLot.garden`). Ground left over is cut
+  into rectangular plots (`plots` in `plan.ts`), and each gets a use from
+  what stands beside it (`planLot` with a `LotNeighbour`): a goods yard or
+  cab stand by the station, a coal or timber yard by the works, a
+  tradesman's yard or railed garden among shops, a drying court, allotment
+  or garden square among houses, a green or waste ground where nothing is
+  near. Unbuilt ground is grass, never street stone. An old core the city
+  grew round keeps its lanes, and older towns are laid as before (streets
+  first, blocks read off the ground).
 - A row takes the land use of its ring (`ringOf`), so its houses fit its
-  depth; a house whose roof would stand more than a cell over the walk behind
-  is not offered to it.
+  depth; a house whose roof would stand more than a cell over the walk
+  behind is not offered to it, and a block none fit stays open ground. A
+  zoned row city always has one works block, out toward its edge.
 - A boulevard-age European city's venues stand a whole block behind the
   square, and from 1850 a market ground keeps a third of the town's
   half-width away from it.

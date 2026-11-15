@@ -46,6 +46,8 @@ def compose(name, sheets, models, crop=None):
         draw.append(((p['y'] + p['h']) * 16 - 2 + p['x'] * .001, p['sprite'],
                      round(x + p['w'] * 8 - m['anchor'][0]), round(y + p['h'] * 16 - m['anchor'][1])))
     for o in t['objects']:
+        # An open door is drawn over its building in game; here it would be a loose slab.
+        if o.get('sprite') == 'door-open': continue
         spr, piv = frame(o['sprite']) if o.get('sprite') else (None, None)
         if not spr: continue
         x, y = px(o['x'], o['y'])

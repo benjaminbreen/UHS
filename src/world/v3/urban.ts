@@ -441,10 +441,12 @@ export function urbanNeighborhood(
       const street = streetLooks(pack.setting!, use).blocks.flatMap(({ look }) => streetFrames(look as Parameters<typeof streetFrames>[0]));
       const rebuilt = street.length ? street : modernBuildings(pack.setting!, use).filter((f) => buildingModels[f] && !/-(north|east|west)$/.test(f));
       const depths = (rebuilt.length ? rebuilt : frames).map(drawn).sort((a, b) => a - b);
-      return depths[Math.floor(depths.length * 0.75)] ?? 10;
+      // Behind a row of houses, their yards; a row of shops is built to its back wall.
+      const yard = use === "commercial" || use === "downtown" ? 0 : (form.backs ?? 3);
+      return { main: (depths[Math.floor(depths.length * 0.75)] ?? 10) + yard, low: Math.max(7, depths[Math.floor(depths.length * 0.2)] ?? 8) };
     };
     const depth = { centre: likely("commercial"), inner: likely(zoning.inner), outer: likely(zoning.outer) };
-    return (reach: number) => depth[ringOf(reach)];
+    return (reach: number, low = false) => depth[ringOf(reach)][low ? "low" : "main"];
   })() : undefined;
   const layout = composeUrban(
     site.id,
@@ -467,6 +469,9 @@ export function urbanNeighborhood(
     api.river,
     rows,
     rowDepth,
+    // The station's hall and the forecourt its cabs turn in.
+    rowDepth ? stationBuildings(pack.setting!, site.profile.radius, rand("station"))
+      .filter((f) => buildingModels[f]).slice(0, 1).map((f) => buildingModel(f).footprint)[0] as [number, number] | undefined : undefined,
   );
   const used = new Set<string>();
   const reserve = (r: Rect) => {
@@ -1267,7 +1272,7 @@ export function urbanNeighborhood(
     // Out toward the edge, not on the main crossing.
     const out = layout.blocks.filter((b) => b.row && holdsWorks(b) && b !== station &&
       [zoning!.inner, zoning!.outer].includes(uses.get(b)!)).sort((a, b) => b.reach - a.reach);
-    const works = out.slice(0, Math.ceil(out.length / 2)).sort((a, b) => off(a) - off(b))[0];
+    const works = out.slice(0, Math.ceil(out.length / 2)).filter((b) => b.reach >= 0.45).sort((a, b) => off(a) - off(b))[0];
     if (works) {
       uses.set(works, "industrial");
       quarters.set(works, quarterFor("industrial", works));
@@ -1502,7 +1507,7 @@ export function urbanNeighborhood(
         },
         use === "industrial" ? "dirt"
           // Behind a row is its own yard, never the street's stone.
-          : rank.block.row ? (pack.setting?.climate !== "arid" ? "grass" : "dirt")
+          : rank.block.row || rank.block.open ? (pack.setting?.climate !== "arid" ? "grass" : "dirt")
           // Once there are cars, a house row stands in its own ground; only
           // the business blocks are paved from wall to wall.
           : use && (form.motor ? ["downtown", "commercial"] : ["downtown", "commercial", "tenement", "rowhouse"]).includes(use) ? "paving"
@@ -1627,6 +1632,7 @@ export function urbanNeighborhood(
       .filter((b) => beside(b) && b.w >= 12 && b.h >= 10)
       .sort(
         (a, b) =>
+          Number(!!b.open) - Number(!!a.open) ||
           Math.hypot(a.x + a.w / 2 - focus.x, a.y + a.h / 2 - focus.y) -
           Math.hypot(b.x + b.w / 2 - focus.x, b.y + b.h / 2 - focus.y),
       );
@@ -1640,8 +1646,9 @@ export function urbanNeighborhood(
     const side = alongX
       ? block.y + block.h <= layout.rail!.level ? -1 : 1
       : block.x + block.w <= layout.rail!.level ? -1 : 1;
-    // Which way its door faces: away from the rails.
-    const facing = alongX
+    // Which way its door faces: away from the rails, or in a city of rows
+    // south like every other door.
+    const facing = form.streetWall ? "south" : alongX
       ? side < 0 ? "north" : "south"
       : side < 0 ? "west" : "east";
     const stations = stationBuildings(pack.setting!, site.profile.radius, rand("station"));
@@ -1657,7 +1664,9 @@ export function urbanNeighborhood(
       const model = buildingModel(frame);
       const [w, h] = model.footprint;
       if (w > block.w - 2 || h > block.h - 2) continue;
-      const rect = alongX
+      const rect = form.streetWall && !(alongX && side > 0)
+        ? { x: alongX ? block.x + ((block.w - w) >> 1) : side < 0 ? block.x + block.w - w : block.x, y: block.y + block.h - h, w, h }
+        : alongX
         ? {
             x: block.x + ((block.w - w) >> 1),
             y: side < 0 ? block.y + block.h - h : block.y,
@@ -1672,6 +1681,8 @@ export function urbanNeighborhood(
           };
       if (!fits(rect)) continue;
       const point = { x: rect.x + model.entrance[0], y: rect.y + model.entrance[1] };
+      // Planted before the forecourt is paved round them.
+      if (form.streetWall && rect.y === block.y) for (const [i, bed] of carriageLoop(block, rect).entries()) api.paintPark(bed, 900 + i);
       claimLandmark(
         {
           point,
@@ -1686,7 +1697,11 @@ export function urbanNeighborhood(
             about: "Where the line stops: a booking hall, a clock, and the platforms behind.",
           },
         },
-        { forecourt: block },
+        // In a city of rows the forecourt is as wide as the drive needs; the
+        // rest of the block is the street's to build on.
+        { forecourt: form.streetWall
+          ? { x: Math.max(block.x, rect.x - 9), y: block.y, w: Math.min(block.x + block.w, rect.x + rect.w + 9) - Math.max(block.x, rect.x - 9), h: block.h }
+          : block },
       );
       const rail = layout.rail!;
       // At least two cells wide, into the forecourt if the gap is narrower.
@@ -1705,6 +1720,22 @@ export function urbanNeighborhood(
       return block;
     }
     return undefined;
+  }
+
+  /** The station's forecourt as a turning place: two planted beds either
+   * side of the walk to the door, the cabs' drive round them, a lamp at each
+   * end of the front. Furnished while the ground is free; returns the beds. */
+  function carriageLoop(block: Block, hall: Rect): Rect[] {
+    const mid = hall.x + (hall.w >> 1), reach = Math.min(8, (block.w >> 1) - 3);
+    const front = hall.y + hall.h + 3, foot = block.y + block.h - 2;
+    if (reach < 4 || foot - front < 2) return [];
+    for (const x of [mid - reach - 1, mid + reach + 1]) api.furnish({ kind: "lamp", x, y: hall.y + hall.h + 1 });
+    const beds = [
+      { x: mid - reach + 1, y: front, w: reach - 2, h: foot - front + 1 },
+      { x: mid + 2, y: front, w: reach - 2, h: foot - front + 1 },
+    ];
+    for (const b of beds) api.furnish({ kind: "planter", x: b.x + (b.w >> 1), y: b.y + (b.h >> 1) });
+    return beds;
   }
 
   function onArterial(block: Block) {
@@ -1908,6 +1939,15 @@ export function urbanNeighborhood(
 
   function framesForBlock(block: Block) {
     if (yardRanges.get(block)) return atelierFrames;
+    // On an alley: the short houses of the block's own kind, else workshops.
+    if (block.low) {
+      const short = kitOf(block).filter((f) => drawn(f) <= block.h + 1);
+      return short.length ? short : atelierFrames;
+    }
+    return kitOf(block);
+  }
+
+  function kitOf(block: Block) {
     let pool = blockKits.get(block);
     if (pool) return pool;
     const street = streetLookFrames(block);
@@ -2471,6 +2511,7 @@ export function urbanNeighborhood(
 
   function blockLots(block: Block): UrbanLot[] {
     const rank = ranks.find((r) => r.block === block)!;
+    if (block.open) return [];
     if (form.motor && !form.oldCore && uses.get(block) === "suburb") {
       const houses = houseLots(rank);
       if (houses.length) return houses;
@@ -2626,9 +2667,9 @@ export function urbanNeighborhood(
         !!buildingModels[face === "south" ? base : `${base}-${face}`]
       );
     });
-    // A row's roofs stay on its own block, at most a cell onto the walk behind.
-    const under = block.row ? fitting.filter((f) => drawn(f) <= block.h + 1) : fitting;
-    const pool = under.length ? under : fitting;
+    // A row's roofs stay on its own block, at most a cell onto the walk
+    // behind; a block none of its houses fit stays open ground.
+    const pool = block.row ? fitting.filter((f) => drawn(f) <= block.h + 1) : fitting;
     if (!pool.length) return { lots: out, depth: 0 };
     const dominant =
       pool[Math.floor(rand("range", block.x, block.y, key) * pool.length)];
@@ -2741,6 +2782,10 @@ export function urbanNeighborhood(
         // A row's lots all reach the same back line, whatever the house depth.
         const room = open ? Math.min(GARDEN, maxDepth - deep - setback) : maxDepth - deep - setback;
         const garden =
+          // Behind a row house, its yard to the back of the block.
+          block.row && form.backs && use !== "commercial" && use !== "downtown" && use !== "industrial" && rect.y - block.y >= 2
+            ? { x: rect.x, y: block.y, w, h: rect.y - block.y, last: false }
+            :
           // A town house's yard can be two rows: room for the privy and the wash.
           (open || (form.backs && !vertical && !use)) && use !== "estate" && room >= (open ? 2 : 3)
             ? {

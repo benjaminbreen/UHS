@@ -5571,22 +5571,73 @@ export function planSettlement(
     const free = (k: string) => plan.pavement?.get(k) === "vacant" && !plan.solid.has(k) && !roads.has(k) && !plan.reserved.has(k);
     const seen = new Set<string>();
     let n = 0;
+    /** A city of rows cuts its open ground into plots: the largest rectangle
+     * left, again and again, each no wider than a few house fronts. */
+    const plots = (ground: Set<string>) => {
+      const left = new Set(ground), out: Set<string>[] = [];
+      const all = [...ground].map((k) => k.split(",").map(Number));
+      const ax = Math.min(...all.map((p) => p[0])), ay = Math.min(...all.map((p) => p[1]));
+      const aw = Math.max(...all.map((p) => p[0])) - ax + 1, ah = Math.max(...all.map((p) => p[1])) - ay + 1;
+      for (let guard = 0; guard < 40; guard++) {
+        const heights = new Int16Array(aw);
+        let best: Rect | undefined;
+        for (let y = 0; y < ah; y++) {
+          for (let x = 0; x < aw; x++) heights[x] = left.has(cellKey(ax + x, ay + y)) ? heights[x] + 1 : 0;
+          const stack: number[] = [];
+          for (let x = 0; x <= aw; x++) {
+            const hNow = x < aw ? heights[x] : 0;
+            while (stack.length && heights[stack[stack.length - 1]] >= hNow) {
+              const top = stack.pop()!, height = heights[top], from = stack.length ? stack[stack.length - 1] + 1 : 0;
+              if (height >= 4 && x - from >= 5 && (x - from) * height > (best ? best.w * best.h : 0))
+                best = { x: ax + from, y: ay + y - height + 1, w: x - from, h: height };
+            }
+            stack.push(x);
+          }
+        }
+        if (!best) break;
+        eachCell(best, (x, y) => left.delete(cellKey(x, y)));
+        const n = Math.max(1, Math.round(best.w / 16)), rows = Math.max(1, Math.round(best.h / 12));
+        for (let r = 0; r < rows; r++)
+          for (let c = 0; c < n; c++) {
+            const from = best.x + Math.round((best.w * c) / n), to = best.x + Math.round((best.w * (c + 1)) / n);
+            const top = best.y + Math.round((best.h * r) / rows), base = best.y + Math.round((best.h * (r + 1)) / rows);
+            const part = new Set<string>();
+            eachCell({ x: from, y: top, w: to - from, h: base - top }, (x, y) => part.add(cellKey(x, y)));
+            out.push(part);
+          }
+      }
+      return out;
+    };
     for (const [start] of plan.pavement ?? []) {
       if (seen.has(start) || !free(start)) continue;
-      const cells = new Set([start]), todo = [start];
+      const ground = new Set([start]), todo = [start];
       seen.add(start);
       while (todo.length) {
         const [x, y] = todo.pop()!.split(",").map(Number);
         for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
           const k = cellKey(x + dx, y + dy);
-          if (!seen.has(k) && free(k)) { seen.add(k); cells.add(k); todo.push(k); }
+          if (!seen.has(k) && free(k)) { seen.add(k); ground.add(k); todo.push(k); }
         }
       }
+      for (const cells of fabric.streetWall ? plots(ground) : [ground]) layLot(cells);
+    }
+    function layLot(cells: Set<string>) {
       const pts = [...cells].map((k) => k.split(",").map(Number));
       const x0 = Math.min(...pts.map((p) => p[0])), y0 = Math.min(...pts.map((p) => p[1]));
       const w = Math.max(...pts.map((p) => p[0])) - x0 + 1, h = Math.max(...pts.map((p) => p[1])) - y0 + 1;
-      if (w < 4 || h < 4 || cells.size < w * h * 0.7) continue;
-      const lot = planLot(pack.setting, w, h, `${seed}:${x0},${y0}`), id = `lot-${x0}-${y0}`, i = 100900 + n++ * 2;
+      if (w < 4 || h < 4 || cells.size < w * h * 0.7) return;
+      // In a city of rows, the nearest buildings say what the lot is for.
+      const near = fabric.streetWall
+        ? plan.places.filter((b) => b.x < x0 + w + 8 && b.x + b.w > x0 - 8 && b.y < y0 + h + 8 && b.y + b.h > y0 - 8)
+        : undefined;
+      const beside = !near ? undefined
+        : !near.length ? "open"
+        : near.some((b) => b.name === "Railway station") ? "station"
+        : near.some((b) => b.landUse === "industrial") ? "works"
+        // Round the square nobody dug allotments or hung washing.
+        : near.some((b) => b.landUse === "commercial" || b.landUse === "downtown") ||
+          Math.hypot(x0 + w / 2 - c.x, y0 + h / 2 - c.y) < profile.radius * 0.3 ? "shops" : "homes";
+      const lot = planLot(pack.setting!, w, h, `${seed}:${x0},${y0}`, beside), id = `lot-${x0}-${y0}`, i = 100900 + n++ * 2;
       const inLot = (x: number, y: number) => cells.has(cellKey(x, y));
       if (lot.lawn)
         for (const [x, y] of pts)
@@ -5603,7 +5654,7 @@ export function planSettlement(
         }
         plan.objects.push({ id: `${id}-${j}`, name: def.name, kind: "monument", prop: item.prop, sprite: def.sprite!, inventory: {}, pos: pos(at) });
       });
-      if (!lot.fenced && !lot.garden) continue;
+      if (!lot.fenced && !lot.garden) return;
       // Fenced against its neighbours; a gap where it meets the street.
       const fenced = (x: number, y: number) => inLot(x, y) &&
         [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {

@@ -53,6 +53,9 @@ const spanishGrid = americas.map(
 const industrialGrid = americas.map(
   (culture): UrbanFormRule => ({
     id: "modern-survey-grid",
+    // Service alleys through every block, stables and sheds along them.
+    backs: 3,
+    alleys: 1,
     label: "Surveyed grid on long blocks",
     culture,
     from: 1850,
@@ -97,6 +100,7 @@ const industrialGrid = americas.map(
 const latinGrid = americas.map(
   (culture): UrbanFormRule => ({
     id: "latin-american-metropolis",
+    backs: 4,
     label: "Damero core, colonias and self-built periphery",
     culture,
     from: 1900,
@@ -140,6 +144,7 @@ const latinGrid = americas.map(
 const sovietBloc = (["european", "inner-eurasian"] as const).map(
   (culture): UrbanFormRule => ({
     id: "soviet-microdistricts",
+    backs: 0,
     label: "Tenement rings and prefabricated microdistricts",
     culture,
     from: 1955,
@@ -191,6 +196,9 @@ export const modernForms: UrbanFormRule[] = [
   ...sovietBloc,
   {
     id: "japanese-machi",
+    // Roji: back lanes of nagaya behind the street fronts.
+    backs: 2,
+    alleys: 1,
     label: "Fine-grained blocks and land-readjustment grids",
     culture: "east-asian",
     from: 1920,
@@ -365,6 +373,8 @@ export const modernForms: UrbanFormRule[] = [
   },
   {
     id: "australasian-grid",
+    backs: 3,
+    alleys: 0.5,
     label: "Colonial grid and quarter-acre suburbs",
     culture: "european",
     from: 1840,
@@ -433,6 +443,8 @@ export const modernForms: UrbanFormRule[] = [
   },
   {
     id: "japanese-colonial-grid",
+    backs: 2,
+    alleys: 1,
     label: "Surveyed colonial grid",
     culture: "east-asian",
     from: 1895,
@@ -466,6 +478,9 @@ export const modernForms: UrbanFormRule[] = [
   },
   {
     id: "perimeter-block-city",
+    // Yards and mews behind the terraces of the north; courts in the south.
+    backs: 3,
+    alleys: 0.5,
     label: "Boulevards and perimeter blocks",
     culture: "european",
     from: 1850,
@@ -508,6 +523,9 @@ export const modernForms: UrbanFormRule[] = [
   },
   {
     id: "modern-survey-grid",
+    // Service alleys through every block, stables and sheds along them.
+    backs: 3,
+    alleys: 1,
     label: "Surveyed grid on long blocks",
     culture: "european",
     from: 1850,

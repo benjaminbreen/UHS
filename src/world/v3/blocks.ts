@@ -28,6 +28,11 @@ export type Block = Rect & {
   district: number;
   /** One row of houses facing the street along its south side. */
   row?: true;
+  /** A row on an alley: mews, workshops and back houses. */
+  low?: true;
+  /** Ground among the rows kept clear of houses: the station's block against
+   * the railway, and the yards either side of it. */
+  open?: true;
 };
 /** The defensive circuit, as a ring of cells with the gate openings removed. */
 export type Wall = {
@@ -214,8 +219,12 @@ export function composeUrban(
   rows = 0,
   /** In a street-wall city, how deep a row of houses is drawn this far from
    * the centre: its block is exactly that deep. */
-  rowDepth?: (reach: number) => number,
+  rowDepth?: (reach: number, low?: boolean) => number,
+  /** Footprint of the station a street-wall city keeps a block for against
+   * its railway, the forecourt its cabs turn in included. */
+  station?: readonly [number, number],
 ): UrbanLayout {
+  const stationDepth = station ? station[1] + 9 : 0;
   const half = urbanFootprint(radius, form);
   const rand = (...keys: (string | number)[]) =>
     random(seed, siteId, "compose", ...keys);
@@ -643,7 +652,10 @@ export function composeUrban(
   for (const axis of ["x", "y"] as const) {
     if (core.plan === "linear" && axis !== gates[0].axis) continue;
     // A row of houses wants a long front: its avenues stand further apart.
-    const module = (axis === "x" ? (form.streetWall ? Math.max(core.block[0], FRONT) : core.block[0]) : core.block[1]) + arterial;
+    // and enough depth between them for a street of its own and an alley.
+    const module = (form.streetWall && rowDepth
+      ? axis === "x" ? Math.max(core.block[0], FRONT) : 2 * (rowDepth(0.4) + span(1) + margin(1) * 2)
+      : axis === "x" ? core.block[0] : core.block[1]) + arterial;
     const count = Math.min(4, Math.floor((coreHalf * 2) / (module * 2.5)));
     for (let i = 1; i <= count; i++) {
       const at =
@@ -1321,12 +1333,13 @@ export function composeUrban(
    * its south side, and lanes join one row street to the next. A new street
    * is laid only where both its ends meet another, so none ends blind; ground
    * that cannot be reached that way is left open. */
-  function layRows(depthAt: (reach: number) => number) {
+  function layRows(depthAt: (reach: number, low?: boolean) => number) {
     rasterize();
     for (const d of districts) if (!inRows(d)) clearRect(d.rect, 0);
     const [lo1, hi1] = spanOffsets(span(1)), m1 = margin(1), s1 = span(1) + m1 * 2;
     const [lo2, hi2] = spanOffsets(span(2)), m2 = margin(2), s2 = span(2) + m2 * 2;
     const probe = Math.max(loA, hiA) + margin(0) + 2;
+    let depot = false;
     /** Centre line of the street passing just outside a cell, if one does. */
     const beside = (x: number, y: number, dx: number, dy: number) => {
       for (let k = 1; k <= probe; k++) if (lines.has(cellKey(x + dx * k, y + dy * k))) return dx ? x + dx * k : y + dy * k;
@@ -1353,23 +1366,45 @@ export function composeUrban(
       const fronted = under.length >= q.w * 0.7;
       const south = fronted ? under.sort((a, b) => a - b)[under.length >> 1] : bottom - hi1;
       const y1 = fronted ? bottom : south - lo1 - m1 - 1;
-      const height = y1 - q.y + 1;
+      // The station takes the top of one quarter that lies under the railway,
+      // with a street of its own between its forecourt and the rows.
+      const halt = !depot && !!stationDepth && rail?.axis === "x" && q.y - rail.level - rail.span >= 0 &&
+        q.y - rail.level - rail.span <= 3 && q.w >= 30 && y1 - q.y + 1 >= stationDepth + s1 + depth
+        ? q.y + stationDepth + m1 + lo1 : undefined;
+      if (halt !== undefined) depot = true;
+      const first = halt === undefined ? q.y : halt + hi1 + m1 + 1;
+      const height = y1 - first + 1;
       if (q.w < 10 || height < 6) continue;
-      const full = Math.max(1, Math.floor((height + s1) / (depth + s1)));
-      let spare = height - (full * depth + (full - 1) * s1);
-      // Ground left over that would hold a street and a low row gets them: the
-      // mews and workshop rows behind a city's taller fronts.
-      const low = spare >= s1 + 7 ? spare - s1 : 0;
-      if (low) spare = 0;
-      const count = full + (low ? 1 : 0);
-      const bands: { y: number; h: number; below: number }[] = [];
-      for (let i = 0, top = q.y; i < count; i++) {
-        const n = i - (low ? 1 : 0);
-        const h = low && !i ? low : depth + Math.floor(spare / full) + (n < spare % full ? 1 : 0);
-        bands.push({ y: top, h, below: i === count - 1 ? south : top + h + m1 + lo1 });
-        top += h + s1;
+      // Counted up from the street the bottom row fronts: a main row, then
+      // either a street and another main row, or an alley and the low row of
+      // mews and workshops that fronts it. Whatever is over deepens the yards.
+      const lowDepth = Math.min(depth, Math.max(7, depthAt(base.reach, true)));
+      const kinds: { h: number; tier: Tier }[] = [{ h: depth, tier: 1 }];
+      for (let left = height - depth, n = 0; ; n++) {
+        const alley = !!form.alleys && kinds.at(-1)!.h === depth && rand("alley", q.x, q.y, n) < form.alleys;
+        const gap = alley ? s2 : s1, h = alley ? lowDepth : depth;
+        if (left < gap + h) {
+          // Not room for a full row: a low one behind an alley, if that fits.
+          if (!alley && left >= s2 + 7) kinds.push({ h: Math.min(lowDepth, left - s2), tier: 2 });
+          break;
+        }
+        kinds.push({ h, tier: alley ? 2 : 1 });
+        left -= gap + h;
       }
-      const fresh = bands.map((b) => b.below).filter((y) => y !== south || !fronted);
+      const used = kinds.reduce((n, k, i) => n + k.h + (i ? (k.tier === 2 ? s2 : s1) : 0), 0);
+      // A little over deepens the yards; more is left at the top as open
+      // ground on the street behind, for whatever the quarter does with it.
+      const mains = kinds.filter((k) => k.h === depth);
+      const over = height - used, slack = over <= mains.length * 2 ? over : over >= 4 ? 0 : over;
+      mains.forEach((k, i) => (k.h += Math.floor(slack / mains.length) + (i < slack % mains.length ? 1 : 0)));
+      // Top down: each band, the street below it and that street's tier.
+      const bands: { y: number; h: number; below: number; tier: Tier; low: boolean }[] = [];
+      for (let i = kinds.length - 1, top = first + over - slack; i >= 0; i--) {
+        const k = kinds[i], [lo, hi, m] = k.tier === 2 ? [lo2, hi2, m2] : [lo1, hi1, m1];
+        bands.push({ y: top, h: k.h, below: i === 0 ? south : top + k.h + m + lo, tier: i === 0 ? 1 : k.tier, low: i > 0 && k.tier === 2 });
+        top += k.h + m * 2 + lo + hi + 1;
+      }
+      const fresh = [...(halt === undefined ? [] : [halt]), ...bands.map((b) => b.below).filter((y) => y !== south || !fronted)];
       // A side with no street to end on gets a lane, if the lane can join two
       // streets itself; otherwise nothing new can be laid here.
       const lane = (at: (y: number) => number | undefined, x: number) => {
@@ -1378,7 +1413,11 @@ export function composeUrban(
         const ends = [...(head === undefined ? [] : [head]), ...fresh, ...(fronted ? [south] : [])];
         return { x, ok: new Set(ends).size >= 2, from: Math.min(...ends), to: Math.max(...ends) };
       };
-      const west = lane(westAt, q.x + lo2), east = lane(eastAt, right - hi2);
+      let west = lane(westAt, q.x + lo2), east = lane(eastAt, right - hi2);
+      // A street that meets another at one end and stops at its last house
+      // is a close, not a road to nowhere: allowed where the other end joins.
+      if (!west.ok && east.ok && q.w <= 48) west = { x: undefined, ok: true };
+      else if (!east.ok && west.ok && q.w <= 48) east = { x: undefined, ok: true };
       // A lane round a block too short for a street front is a ring road.
       const ringed = (west.x !== undefined || east.x !== undefined) && q.w - (west.x === undefined ? 0 : s2) - (east.x === undefined ? 0 : s2) < FRONT * 0.75;
       if (!west.ok || !east.ok || ringed) {
@@ -1394,10 +1433,17 @@ export function composeUrban(
       const width = x1 - x0 + 1;
       const module = Math.max(spec.block[0], FRONT) + s2;
       const pieces = Math.max(1, Math.round(width / module));
-      let above: number | undefined;
+      let above: number | undefined = halt;
+      if (halt !== undefined) {
+        laid.push({ a: { x: west.x ?? westAt(halt) ?? q.x, y: halt }, b: { x: east.x ?? eastAt(halt) ?? right, y: halt }, tier: 1 });
+        // The station's own block in the middle, yards either side.
+        const wide = Math.min(width, station![0] + 14), from = x0 + ((width - wide) >> 1);
+        for (const [x, w] of [[x0, from - x0 - 1], [from, wide], [from + wide + 1, x1 - from - wide]])
+          if (w >= 8) rowBlocks.push({ ...blockOn({ x, y: q.y, w, h: stationDepth }), reach: base.reach, open: true });
+      }
       for (const [i, band] of bands.entries()) {
         if (band.below !== south || !fronted)
-          laid.push({ a: { x: west.x ?? westAt(band.below)!, y: band.below }, b: { x: east.x ?? eastAt(band.below)!, y: band.below }, tier: 1 });
+          laid.push({ a: { x: west.x ?? westAt(band.below) ?? q.x, y: band.below }, b: { x: east.x ?? eastAt(band.below) ?? right, y: band.below }, tier: band.tier });
         let left = x0;
         for (let j = 1; j <= pieces; j++) {
           const cut = j === pieces
@@ -1407,7 +1453,7 @@ export function composeUrban(
           const head = cut === undefined ? undefined : (above ?? northAt(cut));
           const end = cut === undefined || head === undefined ? x1 : cut - lo2 - m2 - 1;
           if (end !== x1 && (end - left + 1 < 12 || x1 - (cut! + hi2 + m2) < 12)) continue;
-          rowBlocks.push({ ...blockOn({ x: left, y: band.y, w: end - left + 1, h: band.h }), reach: base.reach, row: true });
+          rowBlocks.push({ ...blockOn({ x: left, y: band.y, w: end - left + 1, h: band.h }), reach: base.reach, row: true, ...(band.low ? { low: true as const } : {}) });
           if (end === x1) break;
           laid.push({ a: { x: cut!, y: head! }, b: { x: cut!, y: band.below }, tier: 2 });
           left = cut! + hi2 + m2 + 1;
