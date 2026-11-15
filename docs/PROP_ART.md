@@ -15,6 +15,10 @@ are placed, is [PROPS.md](PROPS.md). Buildings are the `building-art` skill.
 - **`scripts/art/front_props.py`** draws props baked into front-on buildings
   (wells, fountains, pots, trees). It belongs to the building painters.
 
+`props_b/solid.py` holds the shapes that put a prop in the houses' view: a
+solid of revolution (`lathe`), a box (`block`) and a lying log (`log_x`), each
+showing its top at half its depth. Use them for anything that has a top.
+
 Behaviour lives in `src/content/props/catalog.ts`; art budget and variants in
 `src/content/graphics/props.json`. That split is deliberate.
 

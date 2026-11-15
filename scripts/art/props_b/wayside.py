@@ -3,7 +3,7 @@ figure: about 17 px to the metre. Placed pixel by rule, as props_b/stores.py
 is: a lit band, a core shadow, a dark keyline. Variants are different objects
 for different countries, not recolours.
 """
-from math import sqrt, sin, pi
+from math import sin, pi
 from .core import Canvas
 from .stores import INK, WOOD, IRON, SACK, STRAW, LEAF, BLOOMS
 
@@ -161,36 +161,6 @@ def wayside_shrine(v=0):
    x = 13 + i * 2; y = 4 + i
    c.rect(x, y, x + 1, y + 2, tone)
   c.line((12, 3), (23, 9), IRON[1])
- c.outline(INK)
- return c.image()
-
-
-def hay_rick(v=0):
- """Hay stacked to shed rain: a round rick on its pole, a thatched rick, or
- a row of stooks."""
- c = Canvas(30, 30)
- h = ['#6e5a22', '#9a8030', '#c4a644', '#e2c866']
- if v == 2:                                          # stooks: sheaves leaned together
-  for cx in (6, 15, 24):
-   for y in range(12, 29):
-    half = 1 + (y - 12) * 0.28
-    for x in range(int(cx - half), int(cx + half) + 1):
-     c.set(x, y, h[3] if x < cx - 1 else h[2] if x <= cx + 1 else h[1])
-   for x in range(cx - 2, cx + 3): c.set(x, 17, h[0])
-   for x in (cx - 2, cx, cx + 2): c.set(x, 11, h[3]); c.set(x, 10, h[2])
- else:
-  _dome(c, 15, 5, 28, 12, h, band=3, stretch=0.8)
-  for y in range(8, 28, 3):                          # hay hangs in ragged tufts
-   for x in range(4, 27, 4): 
-    if c.get(x + (y % 2), y): c.set(x + (y % 2), y, h[3])
-  c.vline(15, 1, 5, WOOD[1][2]); c.set(15, 0, WOOD[1][3])
-  if v == 1:                                         # a thatched cap, roped down
-   for y in range(3, 12):
-    half = (y - 2) * 1.1
-    for x in range(int(15 - half), int(15 + half) + 1):
-     c.set(x, y, STRAW[3] if x < 13 else STRAW[2] if x < 18 else STRAW[1])
-   c.hline(5, 25, 12, STRAW[0])
-   c.line((8, 12), (5, 24), WOOD[1][1]); c.line((22, 12), (25, 24), WOOD[1][0])
  c.outline(INK)
  return c.image()
 
@@ -398,7 +368,6 @@ WAYSIDE = {
  'beehive': beehive,
  'waymark': waymark,
  'wayside-shrine': wayside_shrine,
- 'hay-rick': hay_rick,
  'dovecote': dovecote,
  'chicken-coop': chicken_coop,
 }

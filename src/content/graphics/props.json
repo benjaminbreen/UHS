@@ -223,8 +223,8 @@
       "name": "Plain wooden box",
       "group": "Storage & carrying",
       "size": [
-        19,
-        13
+        23,
+        21
       ],
       "description": "A low rectangular box with a lift-off lid, broad boards and simple corner joints.",
       "variants": [
@@ -299,7 +299,7 @@
       "group": "Storage & carrying",
       "size": [
         27,
-        24
+        28
       ],
       "description": "A framed packing case: a lid seen from above, a battened front with a crossed brace and iron nail heads.",
       "variants": [
@@ -567,17 +567,17 @@
     },
     {
       "id": "woodpile",
-      "name": "Firewood pile",
+      "name": "Firewood stack",
       "group": "Work & agriculture",
       "size": [
-        44,
-        32
+        48,
+        40
       ],
-      "description": "A compact stack of irregular logs shows bright cut ends, dark bark and gaps between pieces.",
+      "description": "Split logs stacked between stakes with the bark up, or tied faggots of brushwood.",
       "variants": [
-        "Warm wood",
-        "Dark wood",
-        "Pale wood"
+        "Cordwood",
+        "Cordwood, tall",
+        "Faggots"
       ]
     },
     {
@@ -879,8 +879,8 @@
       "name": "Anvil and block",
       "group": "Work & agriculture",
       "size": [
-        24,
-        26
+        30,
+        32
       ],
       "description": "A smith's anvil on a bound block: horn drawn out to the left, face struck smooth, iron hoop round the staves.",
       "variants": [
@@ -924,8 +924,8 @@
       "name": "Galvanised bin",
       "group": "Storage & carrying",
       "size": [
-        21,
-        28
+        22,
+        32
       ],
       "description": "A ribbed steel bin with a domed lid and a handle each side: the yard's refuse, from the factory age on.",
       "variants": [
@@ -939,8 +939,8 @@
       "name": "Steel drum",
       "group": "Storage & carrying",
       "size": [
-        20,
-        27
+        22,
+        32
       ],
       "description": "A two-hundred-litre drum with rolling hoops and a bung: fuel, water or whatever else, rusting where it stands.",
       "variants": [
@@ -955,7 +955,7 @@
       "group": "Work & agriculture",
       "size": [
         42,
-        26
+        30
       ],
       "description": "A single-wheeled barrow with a flared tray and a handle bar: a yard, a building site, a smallholding.",
       "variants": [
@@ -1629,8 +1629,8 @@
       "name": "Stacked crates",
       "group": "Storage & carrying",
       "size": [
-        43,
-        38
+        44,
+        46
       ],
       "description": "Two packing cases with a smaller third set askew on top, each in its own wood.",
       "variants": [
@@ -1645,7 +1645,7 @@
       "group": "Storage & carrying",
       "size": [
         34,
-        25
+        28
       ],
       "description": "Three tied sacks slumped against each other, gathered at the neck and full at the foot.",
       "variants": [
@@ -1706,12 +1706,12 @@
       "name": "Hay rick",
       "group": "Work & agriculture",
       "size": [
-        32,
-        32
+        50,
+        46
       ],
-      "description": "Hay stacked to shed rain: a round rick on its pole, a rick under a roped thatch cap, or a row of stooks.",
+      "description": "Hay stacked to shed rain: a straw cone round its pole, a thatched rick on staddle stones, or a row of stooks.",
       "variants": [
-        "Round rick",
+        "Straw cone",
         "Thatched rick",
         "Stooks"
       ]
@@ -2094,7 +2094,7 @@
       "group": "Work & agriculture",
       "size": [
         36,
-        28
+        34
       ],
       "description": "Clay pipes stacked on their sides in a mud bank, flight holes toward us.",
       "variants": [
@@ -3097,13 +3097,12 @@
       "name": "Chopping block",
       "group": "Work & agriculture",
       "size": [
-        26,
-        22
+        32,
+        28
       ],
-      "description": "A wide stump used as a block for splitting firewood, the axe left in it.",
+      "description": "A stump for splitting firewood, the axe left in it.",
       "variants": [
-        "Dark stump",
-        "Pale stump"
+        "Stump"
       ]
     },
     {
@@ -3180,13 +3179,13 @@
       "name": "Dung-cake stack",
       "group": "Work & agriculture",
       "size": [
-        26,
-        24
+        36,
+        42
       ],
-      "description": "A stack of dried dung cakes, the everyday fuel where wood is scarce.",
+      "description": "Dung cakes, the fuel where wood is scarce: built into a plastered store, or patted flat to dry.",
       "variants": [
-        "Stack",
-        "Stack, cakes drying"
+        "Plastered store",
+        "Cakes drying"
       ]
     },
     {
@@ -3222,13 +3221,13 @@
       "name": "Drying mud bricks",
       "group": "Work & agriculture",
       "size": [
-        40,
-        18
+        52,
+        28
       ],
-      "description": "Mud bricks set out in rows to dry, with the wooden mould and the heap of tempered mud.",
+      "description": "Mud bricks laid out in rows to dry, the dry ones stacked in open courses.",
       "variants": [
         "Brown earth",
-        "Pale earth"
+        "Pale loess"
       ]
     },
     {
@@ -3250,10 +3249,10 @@
       "name": "Threshing floor",
       "group": "Work & agriculture",
       "size": [
-        48,
-        22
+        58,
+        30
       ],
-      "description": "A round beaten floor where grain is threshed with a flint-studded sledge.",
+      "description": "A round floor of beaten earth inside a stone kerb, straw and grain on it.",
       "variants": [
         "Floor"
       ]
@@ -3277,8 +3276,8 @@
       "name": "Tanning pits",
       "group": "Work & agriculture",
       "size": [
-        42,
-        22
+        44,
+        32
       ],
       "description": "Rows of pits where hides soak in lime, then in bark liquor, to become leather.",
       "variants": [
@@ -3291,8 +3290,8 @@
       "name": "Indigo dye vats",
       "group": "Work & agriculture",
       "size": [
-        36,
-        26
+        38,
+        32
       ],
       "description": "Dye pots sunk in the ground, with indigo cloth drying on a line.",
       "variants": [
@@ -3511,15 +3510,15 @@
     },
     {"id": "monument", "name": "Square monument", "group": "Street furniture", "size": [104, 150], "description": "A square's centrepiece by era and region: bronzes, fountains, columns, crosses, steles. Generic documented types, not replicas.", "variants": ["Bronze horseman, granite plinth", "Bronze horseman, marble plinth", "Bronze orator, granite plinth", "Cloaked bronze, sandstone plinth", "Marble statue, limestone plinth", "Statue fountain, round basin", "Statue fountain, octagonal basin", "Tiered fountain", "Heroic figure with banner, granite pylon", "Soldier memorial", "Cenotaph with wreath", "Abstract corten sculpture", "Abstract steel forms", "Roman honorific column", "Roman togate statue", "Roman gilt horseman", "Market cross", "Lantern-headed market cross", "Sadirvan fountain", "Stone lantern", "Stele on a tortoise", "Chhatri", "Lion pillar", "Maya stela and altar", "Granite obelisk", "Obelisk on a pedestal", "Heroic worker, bronze"]},
     {"id": "stencil-crate", "name": "Stencilled shipping case", "group": "Storage & carrying", "size": [21, 18], "description": "A pine packing case with corner battens and a merchant's mark stencilled on the front: the steamship and railway age, 1850-1970.", "variants": ["Pine, black stencil", "Oak, white stencil", "Tea chest, tin edges"]},
-    {"id": "pallets", "name": "Stacked pallets", "group": "Storage & carrying", "size": [30, 19], "description": "Sawn-timber pallets with fork gaps between the blocks, stacked or loaded with cement sacks: the loading yard after 1950.", "variants": ["Three new", "Four weathered", "Two with a load"]},
-    {"id": "jerrycans", "name": "Jerrycans", "group": "Storage & carrying", "size": [20, 15], "description": "Two pressed-steel twenty-litre cans with the embossed X and three handles: fuel and water from 1940.", "variants": ["Olive drab", "Red fuel", "Desert sand"]},
-    {"id": "coal-sacks", "name": "Coal sacks", "group": "Storage & carrying", "size": [26, 19], "description": "The coalman's hundredweight sacks stood open at a door, coal heaped at the rolled hem: 1830-1960.", "variants": ["Three sacks", "Two sacks", "Three with a spill"]},
+    {"id": "pallets", "name": "Stacked pallets", "group": "Storage & carrying", "size": [30, 28], "description": "Sawn-timber pallets with fork gaps between the blocks, stacked or loaded with cement sacks: the loading yard after 1950.", "variants": ["Three new", "Four weathered", "Two with a load"]},
+    {"id": "jerrycans", "name": "Jerrycans", "group": "Storage & carrying", "size": [22, 18], "description": "Two pressed-steel twenty-litre cans with the embossed X and three handles: fuel and water from 1940.", "variants": ["Olive drab", "Red fuel", "Desert sand"]},
+    {"id": "coal-sacks", "name": "Coal sacks", "group": "Storage & carrying", "size": [30, 24], "description": "The coalman's hundredweight sacks stood open at a door, coal heaped at the rolled hem: 1830-1960.", "variants": ["Three sacks", "Two sacks", "Three with a spill"]},
     {"id": "newspapers", "name": "Newspaper bundles", "group": "Household", "size": [18, 15], "description": "String-tied bundles of the day's papers dropped at a kiosk or door, the top page showing its columns: from 1850.", "variants": ["White newsprint", "Two bundles", "Pink or buff sheet"]},
     {"id": "bicycle", "name": "Bicycle", "group": "Household", "size": [38, 23], "description": "A diamond-frame roadster on its stand, wire wheels, saddle and chain: from 1890.", "variants": ["Black", "Green", "Red"]},
     {"id": "handcart", "name": "Handcart", "group": "Storage & carrying", "size": [42, 32], "description": "A two-wheeled barrow pushed by its shafts, with a prop leg: the costermonger's, builder's and rag-and-bone man's, 1500-1960.", "variants": ["Sacks", "Crates of greens", "Empty"]},
-    {"id": "amphora-stack", "name": "Amphorae in sand", "group": "Storage & carrying", "size": [28, 26], "description": "Transport amphorae stood toe-down in a bed of sand against a warehouse or shop wall: the classical Mediterranean.", "variants": ["Terracotta", "Buff clay", "Red earth, two"]},
+    {"id": "amphora-stack", "name": "Amphorae in sand", "group": "Storage & carrying", "size": [32, 34], "description": "Transport amphorae stood toe-down in a bed of sand against a warehouse or shop wall: the classical Mediterranean.", "variants": ["Terracotta", "Buff clay", "Red earth, two"]},
     {"id": "hurdle", "name": "Wattle hurdle", "group": "Work & agriculture", "size": [34, 21], "description": "Hazel rods woven round split sails, pitched to pen sheep or close a gap: Neolithic to 1900 on the same pattern.", "variants": ["Fresh hazel", "Weathered", "Old, a rod gone"]},
-    {"id": "log-pile", "name": "Log pile", "group": "Work & agriculture", "size": [32, 17], "description": "Unsplit roundwood with the bark on, laid in a pyramid with sawn ends showing: a camp's or first village's fuel.", "variants": ["Pine", "Birch", "Oak"]},
+    {"id": "log-pile", "name": "Log pile", "group": "Work & agriculture", "size": [32, 28], "description": "Unsplit roundwood with the bark on, laid in a pyramid with sawn ends showing: a camp's or first village's fuel.", "variants": ["Pine", "Birch", "Oak"]},
     {"id": "trestle-table", "name": "Trestle table", "group": "Household", "size": [46, 24], "description": "A board on trestles laid for a meal: bread and trenchers in the medieval hall, a cloth and a roast later.", "variants": ["Bare board", "Linen cloth", "Checked cloth"]},
     {"id": "round-table", "name": "Round table", "group": "Household", "size": [29, 22], "description": "A round table with the dishes shared from the middle, as Chinese banquets were laid from the Song.", "variants": ["Dark wood", "Red cloth"]},
     {"id": "food-tray", "name": "Meal on the floor", "group": "Household", "size": [32, 12], "description": "A meal set out to eat sitting on the floor: a brass tray, banana leaves, or a tray-table.", "variants": ["Brass tray", "Banana leaves", "Tray-table"]},
@@ -3553,6 +3552,12 @@
     {"id": "menu-board", "name": "Menu board", "group": "Street furniture", "size": [20, 32], "description": "A drive-in's menu on posts with an order speaker.", "variants": ["Red", "Teal"]},
     {"id": "tyre-stack", "name": "Stacked tyres", "group": "Street furniture", "size": [24, 22], "description": "Tyres stacked outside a garage.", "variants": ["Tall stack", "Two stacks"]},
     {"id": "ice-chest", "name": "Ice chest", "group": "Street furniture", "size": [26, 20], "description": "The freezer cabinet outside a store's door.", "variants": ["Bagged ice", "Drinks cooler"]},
-    {"id": "produce-stand", "name": "Produce stand", "group": "Street furniture", "size": [32, 20], "description": "Crates of fruit and vegetables set out in front of a grocer.", "variants": ["Fruit", "Greens"]}
+    {"id": "produce-stand", "name": "Produce stand", "group": "Street furniture", "size": [32, 20], "description": "Crates of fruit and vegetables set out in front of a grocer.", "variants": ["Fruit", "Greens"]},
+    {"id": "lot-store", "name": "Open-lot stores", "group": "Open lots", "size": [72, 64], "description": "Fuel and fodder on open ground: stalk shocks, thorn bundles, heaps and a lumber stack.", "variants": ["Stalk bundles", "Thorn bundles", "Straw heap", "Dung heap", "Lumber stack"]},
+    {"id": "lot-drying", "name": "Open-lot drying", "group": "Open lots", "size": [80, 64], "description": "Cloth, cobs, roots and pots set out to dry.", "variants": ["European dyed cloth", "South Asian dyed cloth", "Mesoamerican dyed cloth", "Indigo cloth", "Tenter, woad", "Tenter, madder", "Hung maize", "Daikon rack", "Cloth on stretchers", "Greenware pots", "Fired pots"]},
+    {"id": "lot-ground", "name": "Open-lot ground work", "group": "Open lots", "size": [64, 40], "description": "Things laid flat on the ground: pegged hides and crops on mats.", "variants": ["Pegged hide", "Pegged hide, dark", "Chilies on a mat", "Grain on a mat", "Turmeric on a mat"]},
+    {"id": "lot-sacred", "name": "Open-lot sacred ground", "group": "Open lots", "size": [80, 80], "description": "Holy ground the graves and crosses do not cover: a pipal on its platform, a spirit house, a shrine tree, a Jewish gravestone.", "variants": ["Tree shrine", "Spirit house", "Shrine tree", "Matzevah"]},
+    {"id": "lot-ruin", "name": "Open-lot ruin", "group": "Open lots", "size": [64, 56], "description": "What a fire or the rain left: charred posts and beams, rubble, slumped earth walls, a fallen column drum.", "variants": ["Charred post", "Charred stump", "Charred beam", "Stone and tile rubble", "Mud rubble", "Slumped mud wall", "Slumped rammed wall", "Burnt rubble", "Column drum"]},
+    {"id": "lot-yard", "name": "Open-lot yard things", "group": "Open lots", "size": [112, 64], "description": "A mud trough, a stone roller, a water jar, a gourd pergola, a banana plant, a tulsi planter, a cuezcomatl granary and a date palm.", "variants": ["Mud trough", "Stone roller", "Water jar", "Gourd pergola", "Banana plant", "Tulsi planter", "Cuezcomatl", "Date palm"]}
   ]
 }

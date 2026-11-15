@@ -1,6 +1,6 @@
 """Household stores drawn to the figure, not the old 48px study canvas.
 
-The barrel, crate, woodpile and scarecrow were each about twice life size:
+The barrel and scarecrow were each about twice life size:
 a barrel stood a storey tall beside a 23px door. Sizes follow PROP_ART.md,
 about 17 source px to the metre. These are placed pixel by rule rather than
 shaded by a lighting function: at this size a form reads from a hard lit
@@ -9,6 +9,7 @@ band, a hard core shadow and a dark keyline, and a smooth ramp reads as mud.
 from math import sqrt, sin, asin, pi
 from .core import Canvas, RAMPS, soft_outline
 from .workshop import streak
+from .solid import K, lathe
 from art.front_materials import RAMPS as HOUSE_RAMPS
 
 INK = '#24140d'
@@ -67,17 +68,6 @@ def _cask(c, cx, top, bottom, widths, w, hoops, staves=3):
  return prof
 
 
-def _head(c, cx, cy, rx, ry, w):
- """The top seen from above the rim: a bright chime, the head sunk inside it."""
- for y in range(int(cy - ry), int(cy + ry) + 1):
-  for x in range(int(cx - rx), int(cx + rx) + 1):
-   u, v = (x + .5 - cx) / rx, (y + .5 - cy) / ry
-   r2 = u * u + v * v
-   if r2 > 1: continue
-   if r2 > 0.55: c.set(x, y, w[4] if u < 0.3 else w[3])
-   else: c.set(x, y, w[0] if v < -0.25 else w[1] if x % 3 == 0 else w[2])
-
-
 def barrel(v=0):
  """A 0.95 m cask seen from a little above: the head is a lit ellipse, the
  staves run top to bottom and crowd at the sides, and every hoop follows the
@@ -132,50 +122,23 @@ def barrel(v=0):
  return c.image()
 
 
-def _box(c, x0, y0, wide, tall, w, brace='x'):
- """A framed packing case: lid seen from above, then a battened front."""
- lid = 5
- c.rect(x0, y0, x0 + wide - 1, y0 + lid - 1, w[4])
- c.hline(x0, x0 + wide - 1, y0 + lid - 1, w[3])
- for x in range(x0 + 4, x0 + wide - 2, 5): c.vline(x, y0, y0 + lid - 2, w[3])
- t, b, l, r = y0 + lid, y0 + tall - 1, x0, x0 + wide - 1
- c.rect(l, t, r, b, w[2])                          # the recessed panel
- c.rect(r - 4, t, r, b, w[1])
- for y in range(t + 3, b - 1, 4):
-  c.hline(l + 2, r - 2, y, w[1])
-  c.hline(l + 3, min(r - 3, l + 6), y + 1, w[3])
- if brace:
-  n = b - t - 3
-  for i in range(n + 1):
-   x = l + 2 + round(i * (wide - 6) / max(1, n))
-   c.set(x, t + 2 + i, w[3]); c.set(x + 1, t + 2 + i, w[2])
-   if brace == 'x':
-    c.set(r - 2 - (x - l - 2), t + 2 + i, w[2]); c.set(r - 3 - (x - l - 2), t + 2 + i, w[3])
- c.rect(l, t, r, t + 1, w[3]); c.hline(l, r, t, w[4])       # battens
- c.rect(l, b - 1, r, b, w[2]); c.hline(l, r, b, w[0])
- c.rect(l, t, l + 1, b, w[3]); c.vline(l, t, b, w[4])
- c.rect(r - 1, t, r, b, w[2]); c.vline(r, t, b, w[0])
- for x, y in ((l + 1, t + 1), (r - 1, t + 1), (l + 1, b - 1), (r - 1, b - 1)):
-  c.set(x, y, IRON[0])
-
-
 def plain_box(v=0):
  """A low board box with a lift-off lid: the lid seen from above and
  overhanging by a pixel, broad boards and dovetails at the corners."""
- c = Canvas(19, 14)
+ c = Canvas(19, 17)
  c.PAD = 2
  w = BOX_WOOD[v]
- c.rect(0, 0, 18, 3, w[4])
- c.hline(0, 18, 0, w[4]); c.hline(1, 17, 1, w[3] if v == 1 else w[4])
- streak(c, 1, 17, 2, w, 3)
- c.hline(0, 18, 3, w[3]); c.hline(0, 18, 4, w[1])
- for y in range(5, 13):
-  c.hline(1, 17, y, w[2] if y < 9 else w[1] if y == 12 else w[2])
- c.hline(1, 17, 8, w[1]); c.hline(1, 17, 5, w[3])
- streak(c, 2, 15, 6, w, 2); streak(c, 2, 15, 10, w, 2)
+ c.rect(0, 0, 18, 6, w[4])
+ c.hline(0, 18, 0, w[3]); c.hline(0, 18, 5, w[4] if v == 1 else w[4])
+ for y in (2, 4): streak(c, 1, 17, y, w, 3)
+ c.hline(0, 18, 6, w[3]); c.hline(0, 18, 7, w[1])
+ for y in range(8, 16):
+  c.hline(1, 17, y, w[2] if y < 12 else w[1] if y == 15 else w[2])
+ c.hline(1, 17, 11, w[1]); c.hline(1, 17, 8, w[3])
+ streak(c, 2, 15, 9, w, 2); streak(c, 2, 15, 13, w, 2)
  for x in (1, 17):
-  for y in range(5, 13, 2): c.set(x, y, w[3] if x == 1 else w[1])
- c.hline(1, 17, 13, w[0])
+  for y in range(8, 16, 2): c.set(x, y, w[3] if x == 1 else w[1])
+ c.hline(1, 17, 16, w[0])
  soft_outline(c, w[0], w[3])
  return c.image()
 
@@ -208,57 +171,6 @@ def cardboard_box(v=0):
  return c.image()
 
 
-def crate(v=0):
- c = Canvas(22, 19)
- c.PAD = 2
- w = BOX_WOOD[v]
- _box(c, 0, 0, 22, 19, w)
- soft_outline(c, w[0], w[2])
- return c.image()
-
-
-def crate_stack(v=0):
- """Two cases and a smaller one on top, not squared up."""
- c = Canvas(37, 32)
- c.PAD = 2
- w = BOX_WOOD[v]
- _box(c, 0, 14, 19, 18, w)
- _box(c, 19, 17, 18, 15, w, brace='/')
- _box(c, 8, 0, 18, 15, w)
- c.hline(8, 25, 15, w[0])                         # the shade the top one throws
- soft_outline(c, w[0], w[2])
- return c.image()
-
-
-def woodpile(v=0):
- """A cord of logs between two stakes, chest high. The cut ends are the whole
- drawing: a bark ring, pale sapwood, a darker heart and a drying crack."""
- c = Canvas(38, 26)
- w, bark = WOOD[(v + 2) % 3], WOOD[1]
- c.rect(1, 4, 36, 25, INK)
- def log(cx, cy, split=False):
-  for yy in range(cy - 3, cy + 4):
-   for xx in range(cx - 3, cx + 4):
-    d = (xx - cx) ** 2 + (yy - cy) ** 2
-    if d > 11 or (split and yy > cy): continue
-    lit = xx - cx + yy - cy < 0
-    c.set(xx, yy, (bark[2] if lit else bark[1]) if d > 6 else w[4] if lit else w[3])
-  c.set(cx, cy, w[1]); c.set(cx + 1, cy - 1, w[2])
-  if not split: c.set(cx + 1, cy + 1, bark[1])      # the drying crack
- n = v * 5
- for row, cy in enumerate((22, 16, 10)):
-  for cx in range(4 + (row % 2) * 3, 35, 7):
-   n += 1
-   log(cx, cy, split=(n * 7 + row) % 5 == 0)
- for x in range(3, 35):                            # two logs lying along the top
-  c.set(x, 4, bark[3] if x < 19 else bark[2]); c.set(x, 5, bark[2] if x < 19 else bark[1]); c.set(x, 6, bark[0])
- for x in (12, 26): c.vline(x, 4, 6, bark[0])
- for x, tone in ((0, bark[3]), (37, bark[1])):     # the stakes
-  c.vline(x, 0, 25, tone)
- c.outline(INK)
- return c.image()
-
-
 def _sack(c, cx, base, rx, tall, p, lean=0):
  for y in range(base - tall, base + 1):
   t = (y - (base - tall)) / tall
@@ -280,14 +192,18 @@ def _sack(c, cx, base, rx, tall, p, lean=0):
 
 
 def grain_sacks(v=0):
- """Tied sacks slumped against each other."""
- c = Canvas(32, 23)
+ """Tied sacks stood together, the gathered necks and ears seen from above."""
  p = SACK if v != 1 else ['#57503a', '#7f775a', '#a8a07e', '#ccc5a3', '#e8e3c8']
- _sack(c, 7, 22, 7, 14, p, lean=-1)
- _sack(c, 24, 22, 7.5, 13, p, lean=1)
- _sack(c, 15.5, 22, 7.5, 17, p)
+ c = Canvas(32, 26)
+ for cx, by in ((8, 18), (23, 18), (15.5, 24)):
+  lathe(c, cx, by, [(0, 5.8), (2, 6.6), (7, 6.4), (10, 5.6), (11.5, 4.0), (12.2, 2.2)], p,
+        lambda z, a, i: i - (abs(a - .6) < .1 and z < 10), flat=False)
+  ny = by - 12.2 - 5.8 * K
+  c.hline(int(cx) - 1, int(cx) + 1, int(ny) + 1, p[0])
+  for dx, dy in ((-2, -1), (-1, -2), (1, -2), (2, -1), (0, -1)):
+   c.set(int(cx) + dx, int(ny) + dy, p[4] if dx < 0 else p[2])
  if v == 2:
-  for x, y in ((28, 22), (29, 22), (31, 22), (30, 21)): c.set(x, y, '#e3c264')
+  for x, y in ((28, 24), (29, 24), (31, 24), (30, 23)): c.set(x, y, '#e3c264')
  c.outline(INK)
  return c.image()
 
@@ -358,11 +274,8 @@ def scarecrow(v=0):
 
 STORES = {
  'barrel': barrel,
- 'crate': crate,
  'plain-box': plain_box,
  'cardboard-box': cardboard_box,
- 'crate-stack': crate_stack,
- 'woodpile': woodpile,
  'grain-sacks': grain_sacks,
  'flower-tub': flower_tub,
  'scarecrow': scarecrow,

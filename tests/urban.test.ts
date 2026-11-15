@@ -10,6 +10,9 @@ import { inside } from "../src/world/v3/types";
 import { roadCells } from "../src/world/v3/roads";
 import { modernBuildingSince } from "../src/content/settlements/modern-buildings";
 import { streetMix } from "../src/content/settlements/street-looks";
+import { planLot } from "../src/content/settlements/lots";
+import { propDefs } from "../src/content/props/catalog";
+import propFrames from "../src/render/generated/props.json" with { type: "json" };
 import { buildingModels } from "../src/content/graphics/models";
 import { mediterraneanStyle, watchtowerFrame, mediterraneanShrineFrame, mediterraneanInsulaFrames, retainedTowerStyle } from "../src/content/graphics/mediterranean-buildings";
 const resolved = resolveSetting("Rome 100 BCE");
@@ -385,4 +388,32 @@ it("mixes twentieth-century street looks by place and date", () => {
   expect(share(paris, ...Object.keys(paris))).toBeLessThan(0.1);
   for (const m of [santaCruz, streetMix({ lon: 18.4, lat: -33.9, year: 1960 })])
     expect(share(m, ...Object.keys(m))).toBeLessThanOrEqual(1.0001);
+});
+
+it("gives open lots a use from the place, inside the lot and drawn", () => {
+  const places = [
+    { culture: "european", climate: "temperate", architecture: "timber", settlement: "city", year: 1780 },
+    { culture: "south-asian", climate: "tropical", architecture: "courtyard", settlement: "village", year: -400 },
+    { culture: "east-southern-african", climate: "mediterranean", architecture: "mudbrick", settlement: "village", year: 1186 },
+    { culture: "east-asian", climate: "temperate", architecture: "courtyard", settlement: "village", year: 1268 },
+  ] as const;
+  const frames = propFrames.frames as Record<string, unknown>;
+  const uses = new Set<string>();
+  for (const s of places)
+    for (let i = 0; i < 40; i++) {
+      const [w, h] = [4 + (i % 9), 4 + ((i * 5) % 8)];
+      const lot = planLot(s, w, h, `${s.culture}-${i}`);
+      expect(planLot(s, w, h, `${s.culture}-${i}`)).toEqual(lot);
+      uses.add(lot.use);
+      for (const item of lot.items) {
+        expect(item.x >= 0 && item.x < w && item.y >= 0 && item.y < h, `${item.prop} in ${w}x${h}`).toBe(true);
+        expect(frames[propDefs[item.prop]?.sprite ?? ""], item.prop).toBeDefined();
+      }
+    }
+  expect(uses.size).toBeGreaterThanOrEqual(6);
+  // Dung for fuel where wood is scarce, not in a European town.
+  const fuel = (s: (typeof places)[number]) =>
+    Array.from({ length: 60 }, (_, i) => planLot(s, 9, 7, `f${i}`)).filter((l) => l.use === "fuel").flatMap((l) => l.items.map((t) => t.prop));
+  expect(fuel(places[1])).toContain("lotDungStack");
+  expect(fuel(places[0])).not.toContain("lotDungStack");
 });

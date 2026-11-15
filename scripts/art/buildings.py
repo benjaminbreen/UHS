@@ -477,6 +477,8 @@ def build_buildings(root, sprites):
             **({'campStyle':r['campStyle']} if r.get('campStyle') else {}),
             'frame':name,'label':r['label'],'footprint':r['footprint'],'entrance':r['entrance'],
             'anchor':[getattr(artist,'anchor_x',w/2),h-3],'bounds':[0,0,w,h],'height':r['height'],
+            # The painted part of the canvas: planners keep clear what is drawn, not the paper.
+            'visible':list(im.getchannel('A').getbbox() or (0,0,w,h)),
             **({'door':door_rect(artist)} if door_rect(artist) else {}),
             'occlusion':getattr(artist,'occlusion',[4,7,w-7,h-7]),'shadow':{'kind':'building','height':r['height'],'contactWidth':w-12},
             'wall':r['wall'],'roof':r['roof'],'roofMaterial':r['roofMaterial'],'attachments':r['attachments'],

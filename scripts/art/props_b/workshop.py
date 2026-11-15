@@ -1,5 +1,6 @@
 """Workshop furniture: anvil, bench, chest, loom. ~17 source pixels to a metre."""
 from .core import Canvas, RAMPS, WOOD, jitter, dither, grass
+from .solid import K, lathe
 
 
 WOOD7 = ['oak7', 'walnut7', 'ash7']
@@ -126,45 +127,28 @@ def park_bench(v=0):
 
 
 def anvil(v=0):
- """A smith's anvil on its block: horn out to the left, face about 0.8 m up.
-
- The face overhangs the block and the horn runs clear of it, or the whole
- thing reads as a mushroom.
- """
- c = Canvas(26, 24)
+ """A smith's anvil on its block: horn out to the left, face about 0.8 m up,
+ the struck face and the horn seen from above."""
+ c = Canvas(28, 30)
  m = RAMPS['iron7']
  w = RAMPS[WOOD7[(v + 1) % 3]]
- body = {                                         # x span per row
-  0: (6, 20), 1: (5, 21), 2: (5, 21), 3: (6, 20),
-  4: (8, 18), 5: (10, 16), 6: (10, 16), 7: (9, 17), 8: (7, 19), 9: (7, 19),
- }
- for y, (a, b) in body.items():
-  c.hline(a, b, y, m[4]); c.set(a, y, m[2]); c.set(b, y, m[2])
- for y, (a, b) in {2: (4, 6), 3: (0, 6), 4: (4, 6)}.items():   # the horn
-  c.hline(a, b, y, m[4])
- c.set(0, 3, m[2]); c.set(1, 3, m[4]); c.set(2, 3, m[5])
- c.hline(4, 6, 2, m[5])
- c.hline(6, 20, 0, m[6])                          # the face, struck smooth
- c.hline(5, 21, 1, m[5])
- c.hline(8, 18, 4, m[1])
- c.hline(10, 16, 6, m[2])                          # under the face, in shadow
- c.set(21, 2, m[1]); c.set(20, 3, m[1])           # the heel, squared off
- c.hline(7, 19, 9, m[1])
- for y in range(10, 24):                          # the block, staves and a hoop
-  half = 7 if y < 22 else 6
-  tone = 5 if y < 14 else 4 if y < 19 else 3
-  c.hline(13 - half, 13 + half, y, w[tone])
-  streak(c, 13 - half, 13 + half, y, w, tone)
-  c.set(13 - half, y, w[2]); c.set(13 + half, y, w[1])
- for x in range(9, 20, 4): c.vline(x, 11, 23, w[2])
- c.hline(6, 20, 10, w[6])
- c.hline(6, 20, 17, m[4]); c.hline(6, 20, 18, m[1])
- for x in (8, 13, 18): c.set(x, 17, m[6])         # hoop rivets
- if v == 2:                                       # a log stump, not a barrel
-  for x in range(7, 20): c.set(x, 11, w[6])
-  for x in range(8, 19, 3): c.vline(x, 12, 23, w[1])
-  for y in range(12, 23):
-   if jitter(y, 3) % 4 == 0: c.hline(9, 17, y, w[2])
+ cx, by = 14, 28
+ def staves(z, a, i):
+  if v != 2 and int(z) in (3, 9): return 2
+  if v != 2 and int((a + 3.2) * 5) % 3 == 0: return i - 1
+  return i - (jitter(int(z), int(a * 6)) % 7 == 0)
+ lathe(c, cx, by, [(0, 7.6), (12, 7.0)], w, staves)
+ fy = by - 12 - 7 * K - 4
+ for y, (a, b) in {fy + 4: (10, 18), fy + 5: (11, 17), fy + 6: (9, 19)}.items():
+  c.hline(a, b, int(y), m[3]); c.set(a, int(y), m[4]); c.set(b, int(y), m[1])
+ fy = int(fy)
+ c.rect(6, fy + 1, 22, fy + 3, m[4]); c.hline(6, 22, fy + 3, m[2]); c.vline(22, fy + 1, fy + 3, m[2])
+ for y in range(fy - 4, fy + 1):
+  c.hline(6, 22, y, m[6] if y == fy else m[5])
+ for i, y in enumerate(range(fy - 3, fy + 2)):
+  a = 1 + abs(y - (fy - 1)) * 1
+  c.hline(a, 5, y, m[5] if y < fy else m[3])
+ c.set(1, fy - 1, m[6]); c.set(20, fy - 2, m[0]); c.set(21, fy - 2, m[1])
  c.rim(m)
  return c.image()
 

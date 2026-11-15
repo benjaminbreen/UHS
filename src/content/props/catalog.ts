@@ -4,6 +4,7 @@ import { urbanProps } from "./urban";
 import { furnitureProps } from "./furniture";
 import { containerProps } from "./containers";
 import { equipmentProps } from "./equipment";
+import { lotProps } from "./lots";
 import type { Inventory, Point } from "../../core/types";
 import type { ShoveDef } from "../../core/shove";
 import propAtlas from "../../render/generated/props.json" with { type: "json" };
@@ -102,6 +103,7 @@ export const propDefs: Record<string, PropDef> = {
   ...urbanProps,
   ...containerProps,
   ...equipmentProps,
+  ...lotProps,
   hideBag: {
     shove: { as: "free", mass: 0.5 },
     solid: true,
@@ -252,6 +254,7 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Hay rick",
     family: "hay-rick",
+    span: [1, 0],
     container: true,
     visualClearance: [1, 1, 3, 0],
   },
@@ -768,7 +771,7 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Chopping block",
     family: "chopping-block",
-    variants: 2,
+    variants: 1,
     where: "backyard",
   },
   tripHammer: {

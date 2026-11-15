@@ -1,8 +1,8 @@
 """Regional yard work: the grinding slabs and querns that stand in for the
 generic grinding stone, and the everyday kit that says which part of the
 world a yard is in. ~17 source pixels to a metre, like the rest."""
-import math
 from .core import Canvas, RAMPS
+from .solid import K, disc
 
 BASALT = [
  ['#1d1a19', '#2f2a27', '#46403a', '#5f5850', '#7d7468', '#a09584'],
@@ -76,25 +76,6 @@ def quern(v=0, m=0):
  w = RAMPS['wood']
  c.vline(13, 1, 7, w[4]); c.vline(14, 1, 7, w[2]); c.set(13, 1, w[5])
  c.rim(s)
- return c.image()
-
-
-def chopping_block(v=0, m=0):
- """A wide stump with the axe bitten into it, split billets and chips."""
- c = Canvas(24, 20)
- b = RAMPS[('darkwood', 'wood')[v % 2]]
- p = RAMPS['palewood']
- i = RAMPS['iron']
- cyl(c, 9, 11, 6, 2, 5, b)
- ell(c, (3, 9, 15, 13), p[4]); c.hline(5, 13, 11, p[3]); c.set(9, 11, p[2])
- c.line((4, 12), (5, 10), p[2])
- pole(c, (12, 10), (19, 1), p)
- c.poly([(9, 8), (13, 9), (13, 11), (10, 11)], i[2]); c.hline(10, 12, 9, i[4])
- c.poly([(13, 15), (21, 16), (21, 17), (13, 17)], p[4]); c.hline(13, 21, 18, b[2]); c.set(21, 16, p[2])
- c.poly([(1, 15), (5, 17), (4, 18), (0, 17)], p[3]); c.line((0, 18), (4, 19), b[1])
- for x, y in [(2, 13), (16, 12), (11, 18), (7, 19), (18, 19)]:
-  c.set(x, y, p[5])
- c.rim(b)
  return c.image()
 
 
@@ -226,20 +207,6 @@ def backstrap_loom(v=0, m=0):
  return c.image()
 
 
-def dung_stack(v=0, m=0):
- """A beehive stack of dried dung cakes for fuel, and a few more drying flat
- with the maker's finger marks in them."""
- c = Canvas(24, 22)
- d = DUNG
- for row, (y, hw) in enumerate([(18, 9), (15, 8), (12, 7), (9, 5), (6, 3), (3, 1)]):
-  for x in range(11 - hw + (row % 2) * 2, 11 + hw + 1, 4):
-   ell(c, (x - 2, y - 1, x + 2, y + 2), d[1]); ell(c, (x - 2, y - 1, x + 2, y + 1), d[2]); ell(c, (x - 2, y - 2, x + 1, y), d[3]); c.set(x - 1, y - 2, d[4]); c.hline(x - 1, x + 1, y + 2, d[0])
- for x, y in [(19, 19), (22, 20), (15, 21)][: 2 + v % 2]:
-  ell(c, (x - 2, y - 1, x + 1, y + 1), d[3]); c.set(x - 1, y, d[1]); c.set(x, y, d[1])
- c.rim(d)
- return c.image()
-
-
 def dugout(v=0, m=0):
  """A dugout canoe hauled up on two log rollers, its paddle across it."""
  c = Canvas(86, 20)
@@ -289,27 +256,6 @@ def kiln(v=0, m=0):
  return c.image()
 
 
-def mud_bricks(v=0, m=0):
- """Mud bricks set out in rows to dry, a stack of finished ones, the heap
- of tempered mud and the two-cell wooden mould."""
- c = Canvas(38, 16)
- d = MUD[v % 2]
- w = RAMPS['palewood']
- for x in (31, 34):
-  for y in (2, 4, 6):
-   c.rect(x, y, x + 2, y, d[4]); c.rect(x, y + 1, x + 2, y + 1, d[2])
- for row in range(3):
-  for col in range(5):
-   x, y = 3 + col * 6 - row, 3 + row * 4
-   c.rect(x, y, x + 3, y + 1, d[3 if row else 4]); c.hline(x, x + 3, y + 2, d[1])
-   c.set(x, y, d[4])
- ell(c, (1, 12, 9, 16), d[0]); ell(c, (2, 12, 7, 15), d[1]); c.set(4, 13, d[3])
- c.rect(26, 12, 35, 15, w[1]); c.rect(27, 13, 30, 14, d[2]); c.rect(32, 13, 34, 14, d[2])
- c.hline(26, 35, 12, w[4])
- c.rim(d)
- return c.image()
-
-
 def fishing_nets(v=0, m=0):
  """A net hung to dry between two poles, floats along the head rope, and
  a pair of basket fish traps below."""
@@ -330,30 +276,6 @@ def fishing_nets(v=0, m=0):
   ell(c, (x0 - 1, y0 - 1, x0 + 2, y0 + 4), f[1]); c.set(x0, y0 + 1, f[0])
   for k in range(3, 11, 3): c.line((x0 + k, y0 - 1), (x0 + k, y0 + 3), f[1])
  c.rim(w)
- return c.image()
-
-
-def threshing_floor(v=0, m=0):
- """A round beaten threshing floor ringed with stones, straw spread over
- it, the flint-studded sledge, the grain and the chaff heap."""
- c = Canvas(46, 20)
- st = RAMPS['straw']
- ell(c, (0, 3, 45, 19), RAMPS['limestone'][2]); ell(c, (1, 4, 44, 18), '#b89868')
- for k in range(0, 360, 20):
-  x = 22 + 22 * math.cos(math.radians(k)); y = 11 + 8 * math.sin(math.radians(k))
-  c.set(x, y, RAMPS['limestone'][4 if k > 180 else 1])
- for x in range(3, 43):
-  for y in range(5, 18):
-   if (x * 7 + y * 13) % 5 == 0 and ((x - 22) / 21) ** 2 + ((y - 11) / 7) ** 2 < 1:
-    c.set(x, y, st[4 if (x + y) % 2 else 5])
- c.poly([(31, 9), (37, 2), (43, 9)], st[4]); c.poly([(37, 2), (43, 9), (39, 10)], st[3]); c.line((34, 6), (37, 3), st[6])
- ell(c, (4, 8, 11, 12), st[2]); c.hline(6, 9, 9, st[4])
- w = RAMPS['wood']
- c.poly([(14, 9), (28, 8), (29, 12), (15, 13)], w[4]); c.hline(15, 28, 13, w[1])
- c.line((13, 8), (14, 12), w[5])
- for x, y in [(17, 10), (20, 9), (23, 10), (26, 9), (19, 12), (25, 11)]:
-  c.set(x, y, '#dcd8cc')
- c.rim(RAMPS['limestone'])
  return c.image()
 
 
@@ -381,38 +303,43 @@ def lever_press(v=0, m=0):
 
 
 def tanning_pits(v=0, m=0):
- """A tannery's pits in two rows: lime, bark liquor at two strengths, and
- a hide over the edge of one."""
- c = Canvas(40, 20)
+ """A tannery's pits sunk in two rows, seen from above: lime, bark liquor at
+ two strengths, the far wall of each pit showing, a hide over one edge."""
+ c = Canvas(42, 30)
  r = RAMPS[('limestone', 'wood')[v % 2]]
  liquors = ['#d8d3c0', '#8a6a3a', '#6e4526', '#a0703a', '#5b3a22', '#c9c2a6']
- for k, (x, y) in enumerate([(1, 1), (14, 1), (27, 1), (1, 10), (14, 10), (27, 10)]):
-  c.rect(x, y, x + 11, y + 6, r[3]); c.hline(x, x + 11, y, r[5]); c.rect(x, y + 7, x + 11, y + 8, r[1])
-  c.rect(x + 1, y + 1, x + 10, y + 5, '#2a2018'); c.rect(x + 1, y + 2, x + 10, y + 5, liquors[k])
-  c.set(x + 3, y + 3, '#ffffff' if k in (0, 5) else '#c49a5a')
- c.poly([(16, 9), (24, 9), (26, 14), (22, 17), (17, 16)], HIDE[3]); c.line((17, 10), (23, 10), HIDE[4])
+ c.rect(0, 1, 41, 27, r[3]); c.hline(0, 41, 1, r[2]); c.hline(0, 41, 27, r[2]); c.hline(0, 41, 28, r[1])
+ for k, (x, y) in enumerate([(2, 3), (15, 3), (28, 3), (2, 15), (15, 15), (28, 15)]):
+  c.rect(x, y, x + 11, y + 9, r[4]); c.hline(x, x + 11, y + 9, r[5])
+  c.rect(x + 1, y + 1, x + 10, y + 3, r[1]); c.hline(x + 1, x + 10, y + 3, r[0])
+  c.rect(x + 1, y + 4, x + 10, y + 8, liquors[k])
+  c.hline(x + 2, x + 6, y + 5, '#ffffff' if k in (0, 5) else '#c49a5a')
+ c.poly([(16, 13), (24, 13), (26, 19), (22, 21), (17, 20)], HIDE[3]); c.line((17, 14), (23, 14), HIDE[4])
+ c.line((35, 9), (40, 0), RAMPS['wood'][4]); c.line((36, 9), (41, 0), RAMPS['wood'][2])
  c.rim(r)
  return c.image()
 
 
 def dye_vats(v=0, m=0):
- """Indigo dye pots sunk in the ground, their bronze-skinned liquor, and
- dyed cloth drying on a line behind them. The cloth stirs."""
- c = Canvas(34, 24)
+ """Indigo dye pots sunk to their rims in a plastered floor, the liquor
+ skinned bronze, and dyed cloth drying on a line behind. The cloth stirs."""
+ c = Canvas(36, 30)
  k = RAMPS['terracotta7']
  w = RAMPS['wood']
- c.vline(2, 2, 13, w[2]); c.vline(31, 2, 13, w[2]); c.hline(2, 31, 2, RAMPS['rope'][2])
+ c.vline(2, 2, 15, w[2]); c.vline(33, 2, 15, w[2]); c.hline(2, 33, 2, RAMPS['rope'][2])
  sway = (0, 1, 0, -1)[m % 4]
- for x0 in (5, 18):
-  for x in range(x0, x0 + 10):
-   bottom = 10 + (1 if x % 3 == 0 else 0)
+ for x0 in (5, 19):
+  for x in range(x0, x0 + 11):
+   bottom = 11 + (1 if x % 3 == 0 else 0)
    for y in range(3, bottom + 1):
     xx = x + (sway if y > 7 else 0)
     c.set(xx, y, INDIGO[2] if (x + y) % 4 else INDIGO[3])
    if (x - x0) % 3 == 1: c.set(x + sway, 6, INDIGO[4])
- for x, y in [(3, 14), (13, 15), (23, 14)]:
-  ell(c, (x, y, x + 8, y + 5), k[2]); ell(c, (x + 1, y + 1, x + 7, y + 4), INDIGO[0])
-  c.set(x + 3, y + 2, '#8a6a4a'); c.hline(x + 1, x + 7, y, k[4])
+ disc(c, 18, 22, 17.5, 6.5, MUD[0][3]); disc(c, 18, 21.6, 16.5, 5.6, MUD[0][4])
+ for x, y in ((8, 21), (18, 24), (28, 21)):
+  disc(c, x, y, 5, 2.6, k[5]); disc(c, x, y + .3, 4, 2, k[3])
+  disc(c, x, y + .5, 3.4, 1.6, INDIGO[0])
+  c.hline(x - 2, x, y, '#8a6a4a'); c.set(x + 1, y + 1, '#5a4a6a')
  c.rim(w)
  return c.image()
 
@@ -485,18 +412,14 @@ def saddle_stand(v=0, m=0):
 YARDWORK = {
  'metate': metate,
  'quern': quern,
- 'chopping-block': chopping_block,
  'trip-hammer': trip_hammer,
  'travois': travois,
  'wash-tub': wash_tub,
  'grindstone': grindstone,
  'backstrap-loom': backstrap_loom,
- 'dung-stack': dung_stack,
  'dugout': dugout,
  'kiln': kiln,
- 'mud-bricks': mud_bricks,
  'fishing-nets': fishing_nets,
- 'threshing-floor': threshing_floor,
  'lever-press': lever_press,
  'tanning-pits': tanning_pits,
  'dye-vats': dye_vats,

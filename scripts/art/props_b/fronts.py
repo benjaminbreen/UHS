@@ -89,50 +89,24 @@ def _crate(c, x, g, w, h, r, seed):
         c.set(x + i, y, r[5]); c.set(x + i, y + 1, r[2])
     for nx, ny in ((x + 1, g - h + 2), (x + w - 2, g - h + 2), (x + 1, g - 1), (x + w - 2, g - 1)):
         c.set(nx, ny, IRON[1])
-    top(c, x, x + w - 1, g - h + 1, r, 5)
+    top(c, x, x + w - 1, g - h + 1, r[1:] + r[-1:], round(w * .45))
+    for nx in (x + 1, x + w - 2): c.set(nx, g - h - round(w * .45) + 1, IRON[2]); c.set(nx, g - h - 1, IRON[1])
 
 
 def crate(v=0):
     r = WOODS[v]
-    c = Canvas(22, 22)
-    _crate(c, 1, 21, 20, 14, r, v)
+    c = Canvas(22, 26)
+    _crate(c, 1, 25, 20, 14, r, v)
     return finish(c, r)
 
 
 def crate_stack(v=0):
+    """Two crates and a smaller one set back on top of them."""
     r = WOODS[v]
-    c = Canvas(42, 38)
-    _crate(c, 1, 37, 20, 14, r, v)
-    _crate(c, 21, 37, 20, 14, WOODS[(v + 1) % 3], v + 3)
-    _crate(c, 8, 18, 16, 11, WOODS[(v + 2) % 3], v + 5)
-    return finish(c, r)
-
-
-def woodpile(v=0):
-    r = WOODS[v]
-    rng = random.Random(f'woodpile-{v}')
-    c = Canvas(44, 28)
-    # Rack posts either end, the logs stacked ends-out between them.
-    for px in (1, 42):
-        c.vline(px, 4, 27, r[4]); c.vline(px + 1, 4, 27, r[2])
-    ends = ['#5e4224', '#8a6438', '#b48a52', '#d4ae74', '#ead0a0']
-    for row in range(5):
-        y = 25 - row * 4 - (row % 2)
-        x = 4 + (row % 2) * 2
-        while x < 39:
-            rad = rng.choice([2, 2, 3])
-            for dy in range(-rad, rad + 1):
-                for dx in range(-rad, rad + 1):
-                    d = math.hypot(dx, dy)
-                    if d <= rad + .3:
-                        tone = 0 if d > rad - .6 else 2 if dx + dy > 0 else 3 if d > 1 else 4
-                        c.set(x + dx, y + dy, r[2] if d > rad - .6 else ends[tone])
-            c.set(x, y, ends[1])
-            x += rad * 2 + 1
-    # The bark of the top course, seen from above.
-    for x in range(3, 41):
-        for k in range(3):
-            c.set(x, 4 + k, r[3 + (x * 3 + k) % 3 % 2] if k else r[2])
+    c = Canvas(42, 44)
+    _crate(c, 1, 43, 20, 14, r, v)
+    _crate(c, 21, 43, 20, 14, WOODS[(v + 1) % 3], v + 3)
+    _crate(c, 9, 26, 16, 11, WOODS[(v + 2) % 3], v + 5)
     return finish(c, r)
 
 
@@ -612,12 +586,15 @@ def farm_cart(v=0):
     boards(c, 4, 16, 52, 30, r, v, across=True, widths=(4, 5))
     for x in (4, 20, 36, 52): c.vline(x, 14, 30, r[2 if x > 4 else 5])
     c.hline(4, 52, 30, r[1]); c.hline(3, 53, 14, r[6]); c.hline(3, 53, 15, r[3])
-    top(c, 4, 52, 15, r, 4)
+    for x in range(5, 52):
+        c.vline(x, 7, 9, r[3]); c.vline(x, 10, 13, r[4] if (x - 5) % 6 else r[2])
+    c.hline(4, 52, 6, r[6]); c.hline(4, 52, 9, r[2])
+    for x in (4, 52): c.vline(x, 6, 13, r[5 if x == 4 else 2])
     if v == 1:
         for x in range(3, 54):
             h = 9 + int(3 * math.sin(x * .3)) + (x * 7) % 3
             for k in range(h):
-                c.set(x, 10 - k, THATCH[[4, 5, 6, 5, 3][(x + k * 2) % 5]] if k < h - 1 else THATCH[3])
+                c.set(x, 13 - k, THATCH[[4, 5, 6, 5, 3][(x + k * 2) % 5]] if k < h - 1 else THATCH[3])
     # Two-wheeled, so broadside shows one wheel, on the axle under the load.
     wheel(c, 28, 33, 12, r, spokes=10)
     c.line((52, 26), (75, 42), r[4]); c.line((52, 27), (75, 43), r[2])
@@ -626,7 +603,7 @@ def farm_cart(v=0):
 
 
 FRONTS = {
-    'crate': crate, 'crate-stack': crate_stack, 'woodpile': woodpile, 'strapped-chest': strapped_chest,
+    'crate': crate, 'crate-stack': crate_stack, 'strapped-chest': strapped_chest,
     'bench': bench, 'park-bench': park_bench, 'municipal-planter': municipal_planter,
     'privy-shed': privy_shed, 'privy-stone': privy_stone, 'privy-outhouse': privy_outhouse,
     'privy-nightsoil': privy_nightsoil, 'privy-bench': privy_bench,

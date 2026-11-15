@@ -1,6 +1,7 @@
 import { furnitureAbout } from "./furniture";
 import { containerAbout } from "./containers";
 import { equipmentAbout } from "./equipment";
+import { lotAbout } from "./lots";
 
 /**
  * What each prop is, said plainly, for the focus card. One or two sentences
@@ -201,4 +202,5 @@ export const about: Record<string, string> = {
   ...furnitureAbout,
   ...containerAbout,
   ...equipmentAbout,
+  ...lotAbout,
 };

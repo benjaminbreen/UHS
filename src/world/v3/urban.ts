@@ -14,7 +14,7 @@ import { SITES, siteKindOf } from "./sites";
 import type { UrbanForm } from "../../content/settlements/urban-form/types";
 import { urbanBuildingLimit } from "../../content/settlements/scale";
 import type { Pack, Point } from "../../core/types";
-import { buildingModel, buildingModels, buildingRoofCells } from "../../content/graphics/models";
+import { buildingArtCells, buildingModel, buildingModels, buildingRoofCells } from "../../content/graphics/models";
 import {
   buildingScale,
   buildingScaleWeight,
@@ -418,6 +418,10 @@ export function urbanNeighborhood(
     const [w, h] = buildingModel(sanctuaryFrame(s)).footprint;
     return [w + 2 * verge, h + 3 + verge] as [number, number];
   };
+  // Two rows back to back, and behind the front one room for its drawn roof or both yards.
+  const median = (v: number[]) => v.sort((a, b) => a - b)[v.length >> 1];
+  const rows = !frames.length ? 0 : Math.min(32, 2 * median(frames.map((f) => buildingModel(f).footprint[1])) +
+    Math.max(median(frames.map((f) => marginsOf(f)[1])), 2 * (form.backs ?? 0)));
   const layout = composeUrban(
     site.id,
     site.center,
@@ -437,6 +441,7 @@ export function urbanNeighborhood(
     site.rail ?? (!!zoning && site.profile.radius >= 40),
     lampFor(pack).street,
     api.river,
+    rows,
   );
   const used = new Set<string>();
   const reserve = (r: Rect) => {
@@ -2749,7 +2754,13 @@ function marginsOf(frame: string): number[] {
   // The small street kit is drawn `height` pixels tall on its footprint.
   if (model.candidate && model.height && !model.margins)
     return [0, Math.max(0, Math.ceil((model.height - model.footprint[1] * 16) / 16))];
-  if (model.margins || !model.period) return model.margins ?? [0, 0];
   const [w, h] = model.footprint;
-  return [0, -Math.min(0, ...buildingRoofCells(frame, { x: 0, y: 0, w, h }).map((c) => c.y))];
+  if (model.period) return [0, -Math.min(0, ...buildingRoofCells(frame, { x: 0, y: 0, w, h }).map((c) => c.y))];
+  // Declared margins are missing or 0 on most front-view houses; the sprite's bounds are not.
+  const drawn = buildingArtCells(frame, { x: 0, y: 0, w, h });
+  const [right, behind] = model.margins ?? [0, 0];
+  return [
+    Math.max(right, Math.max(...drawn.map((c) => c.x)) + 1 - w),
+    Math.max(behind, -Math.min(0, ...drawn.map((c) => c.y))),
+  ];
 }

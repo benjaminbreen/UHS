@@ -130,6 +130,8 @@ DRAW_B.update(FRONTS)
 # These reviewed fronts already contain their top depth; do not extrude them.
 from .equipment_studies import EQUIPMENT_B
 DRAW_B.update(EQUIPMENT_B)
+from .lots import LOTS
+DRAW_B.update(LOTS)
 
 # Families drawn in separable layers. The renderer places the frame and sways
 # the hangings against it; the unsuffixed sprite stays whole for the lab, the

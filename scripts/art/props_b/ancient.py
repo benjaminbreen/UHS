@@ -466,16 +466,19 @@ def zir(v=0):
 def pipe_hive(v=0):
  """Egyptian hives: clay pipes laid on their sides and stacked in a mud
  bank, the round ends toward us, each with its small flight hole."""
- c = Canvas(34, 26)
+ c = Canvas(34, 32)
  mud = ['#3a2c1e', '#54402c', '#6e573c', '#8a7050', '#a58a66', '#bfa47e']
  pipe = ['#4a3422', '#6e5036', '#957050', '#b8936c', '#d2b08a']
  cols = 4 if v != 1 else 3
- top, rows = 6, (3 if v != 2 else 2)
+ top, rows = 12, (3 if v != 2 else 2)
  x0, x1 = 2, 2 + cols * 7 + 3
  y1 = top + rows * 6 + 2
- for y in range(top - 4, top):                        # the top of the bank
-  for x in range(x0 + 1, x1):
-   c.set(x, y, mud[5] if y == top - 4 else mud[4] if (x + y) % 5 else mud[3])
+ for y in range(top - 10, top):                       # the top of the bank, a pipe's length deep
+  for x in range(x0 + (y == top - 10), x1 + 1 - (y == top - 10)):
+   c.set(x, y, mud[4] if y == top - 10 else mud[5] if y == top - 1 else mud[4] if jitter(x, y) % 6 else mud[3])
+ for k in range(5):
+  x, y = x0 + 3 + jitter(k, 7) % (x1 - x0 - 5), top - 8 + jitter(k, 9) % 6
+  c.set(x, y, mud[2]); c.set(x + 1, y, mud[3])
  c.rect(x0, top, x1, y1, mud[2])                      # the face
  for x in range(x0, x1 + 1):
   if jitter(x) % 4 == 0: c.set(x, top + 1 + jitter(x, 1) % (y1 - top - 1), mud[1])

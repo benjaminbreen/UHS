@@ -6,6 +6,7 @@ back with at most two pixels of drift, as the buildings do.
 """
 from math import cos, sin, pi, sqrt
 from .core import Canvas, RAMPS, belly, revolve, revolve_x, soft_outline
+from .solid import K, disc, lathe, block, log_x
 
 COALSACK = ['#16130f', '#231d17', '#342a20', '#463829', '#5a4834', '#6f5b42', '#877255']
 OLIVE = ['#171a10', '#252b18', '#353d22', '#4a542e', '#606c3b', '#7b874d', '#9aa466']
@@ -87,81 +88,70 @@ def stencil_crate(v=0):
 
 
 def pallets(v=0):
- """Sawn-timber pallets, stacked: the loading yard after 1950."""
- c = Canvas(28, 17)
+ """Sawn-timber pallets, stacked: the loading yard after 1950. 1.2 by 1 m,
+ so the top deck runs well back."""
  p = PINE
  if v == 1: p = ['#2a2724', '#403c37', '#5a554d', '#766f64', '#918a7c', '#aaa293', '#c3bcac']
  n = [3, 4, 2][v]
- yb = 16
+ W, D = 26, 11
+ c = Canvas(W + 2, n * 3 + D + (9 if v == 2 else 2))
+ yb = c.h - 1
  for k in range(n):
   b = yb - k * 3
-  for x in range(0, 26):                          # bottom board and deck
-   c.set(x, b, p[2])
-   c.set(x, b - 2, p[5] if x < 20 else p[4])
-  for x in range(0, 26):                          # the fork gaps between blocks
-   c.set(x, b - 1, p[3] if x in (0, 1, 12, 13, 24, 25) else p[0])
-  for x in range(1, 26, 4): c.set(x + 3, b - 2, p[3])   # deck board joins
+  c.hline(1, W, b, p[2])
+  for x in range(1, W + 1): c.set(x, b - 1, p[3] if x - 1 in (0, 1, 12, 13, 24, 25) else p[0])
+  c.hline(1, W, b - 2, p[4]); c.set(W, b - 2, p[3])
  t = yb - n * 3 + 1
- for i in range(1, 3):                            # the top deck, seen from above
-  for x in range(i // 2, 26 + i // 2): c.set(x, t - i, p[6] if (x - i // 2) % 4 else p[4])
- if v == 2:                                       # a load of cement sacks
+ for y in range(t - D, t):
+  for x in range(1, W + 1):
+   gap = (t - 1 - y) % 3 == 2
+   c.set(x, y, p[1] if gap else p[6] if y == t - 1 else p[5] if (x // 9 + y) % 4 else p[4])
+ c.hline(1, W, t - D, p[3])
+ for y in range(t - D + 1, t, 3):
+  for x in (2, 13, 25): c.set(x, y, p[2])
+ if v == 2:
   s = RAMPS['linen7']
-  for k, x0 in enumerate((1, 9, 17)):
-   _ball(c, x0 + 4, t - 5, 4.4, 3.2, s, lo=2, hi=6, flat_bottom=t - 3)
-   _ball(c, x0 + 4 + (k % 2) * 2 - 1, t - 9, 4.2, 2.8, s, lo=2, hi=6, flat_bottom=t - 7)
+  for k, (x0, y0) in enumerate(((2, t - 5), (13, t - 5), (7, t - 1))):
+   _ball(c, x0 + 6, y0 - 3, 5.4, 3.4, s, lo=2, hi=6)
+   c.hline(x0 + 3, x0 + 9, y0 - 3, s[3])
  soft_outline(c, p[0], p[3])
  return c.image()
 
 
 def jerrycans(v=0):
  """Two twenty-litre cans, pressed steel with the embossed X and three
- handles: a Second World War shape that never went away."""
- c = Canvas(18, 13)
+ handles along the top: a Second World War shape that never went away."""
+ c = Canvas(20, 16)
  p = [OLIVE, RED, SAND][v]
- for n, (x0, yb) in enumerate(((0, 12), (9, 12))):
+ for n, x0 in enumerate((1, 10)):
   q = p if n == 0 else p[1:] + p[-1:]
-  for y in range(yb - 9, yb + 1):
-   for x in range(x0, x0 + 8):
-    t = 4 if x < x0 + 2 else 3 if x < x0 + 6 else 2
-    if y == yb: t = 1
-    c.set(x, y, q[t])
-  for i in range(6):                              # the embossed X
-   for x, lit in ((x0 + 1 + i, 5), (x0 + 6 - i, 1)):
-    c.set(x, yb - 7 + i + (1 if i > 2 else 0), q[lit])
-  for x in range(x0, x0 + 8): c.set(x, yb - 9, q[5])
-  for hx in (x0 + 2, x0 + 4, x0 + 6):             # three handles
-   c.set(hx, yb - 10, q[4]); c.set(hx, yb - 11, q[5] if hx < x0 + 5 else q[3])
-  c.set(x0 + 1, yb - 10, q[2]); c.set(x0, yb - 11, q[3]); c.set(x0 + 1, yb - 11, q[4])  # spout
+  fy, ty = block(c, x0, 15, 8, 10, 5, q[1:])
+  for i in range(6):
+   for x, lit in ((x0 + 1 + i, 5), (x0 + 6 - i, 2)):
+    c.set(x, fy + 2 + i + (i > 2), q[lit])
+  for hx in (x0 + 1, x0 + 3, x0 + 5):
+   c.hline(hx, hx + 1, ty - 1, q[5]); c.set(hx + 1, ty, q[2])
+  c.set(x0 + 7, ty - 1, q[3]); c.set(x0 + 7, ty - 2, q[5])
  soft_outline(c, p[0], p[3])
  return c.image()
 
 
 def coal_sacks(v=0):
- """The coalman's hundredweight sacks, stood open at a door, black with dust."""
- c = Canvas(24, 17)
+ """The coalman's hundredweight sacks stood open at a door, coal heaped in
+ the rolled mouth: seen from above, the mouth is most of the drawing."""
  p = COALSACK
- spots = ((4.5, 16, 4.6, 11), (19.5, 16, 4.4, 10), (12, 16, 5.0, 12))[v == 1:]
- for cx, b, rx, tall in spots:
-  top = b - tall
-  for y in range(top, b + 1):
-   t = (y - top) / tall
-   half = rx * (0.68 + 0.32 * sin(min(t, 0.8) / 0.8 * pi / 2))   # slumps wide at the foot
-   if y >= b - 1: half -= b - y + 1 if y == b else 0.5
-   for x in range(int(cx - half), int(cx + half) + 1):
-    u = (x + .5 - cx) / half
-    if abs(u) > 1: continue
-    tone = 5 if -0.7 < u < -0.3 else 4 if u < 0.1 else 3 if u < 0.65 else 2
-    if t > 0.85: tone -= 1
-    c.set(x, y, p[tone])
-  hw = int(rx * 0.68)
-  for x in range(int(cx) - hw, int(cx) + hw + 1):   # rolled hem, coal heaped above
-   c.set(x, top, p[6] if x < cx else p[4])
-   c.set(x, top - 1, '#0e0d10' if (x * 3) % 4 else '#434753')
-   if abs(x - cx) < hw - 1: c.set(x, top - 2, '#1b1b20' if x % 2 else '#5d6a78')
-   if abs(x - cx) < 1.5: c.set(x, top - 3, '#0e0d10')
-  c.vline(int(cx + rx * 0.4), top + 3, b - 2, p[2])   # a crease
- if v == 2:                                       # a spill at the foot
-  for x, y in ((21, 16), (22, 16), (23, 16), (22, 15), (1, 16)): c.set(x, y, '#141216')
+ c = Canvas(28, 22)
+ spots = [((6, 15), (20, 15), (13, 20)), ((9, 19), (18, 20)), ((6, 15), (20, 15), (13, 20))][v]
+ for cx, by in spots:
+  lathe(c, cx, by, [(0, 4.6), (2, 5.2), (7, 4.8), (10, 4.2)], p[1:],
+        lambda z, a, i: i - (abs(a - .9) < .12) + (z > 9.4), flat=False)
+  ty = by - 10 - 4.6 * K
+  disc(c, cx, ty, 4.3, 2.2, p[5])
+  disc(c, cx - .3, ty - .2, 3.3, 1.6, '#0e0d10')
+  disc(c, cx - .6, ty - .6, 2.2, 1.0, '#1b1b20')
+  for dx, dy in ((-1, -1), (1, 0), (-2, 0)): c.set(int(cx + dx), int(ty + dy), '#5d6a78')
+ if v == 2:
+  for x, y in ((23, 21), (24, 21), (25, 21), (24, 20), (22, 21)): c.set(x, y, '#141216')
  soft_outline(c, p[0], p[3])
  return c.image()
 
@@ -258,33 +248,27 @@ def handcart(v=0):
  return c.image()
 
 
-def _amph(c, cx, b, p, dim=0.0):
- revolve(c, cx, belly(b - 17, b - 4, [3.0, 4.6, 4.8, 3.6, 2.0, 1.1]), p, base=dim)
- for y in range(b - 21, b - 17):                   # the neck
-  c.set(int(cx) - 1, y, p[5]); c.set(int(cx), y, p[4]); c.set(int(cx) + 1, y, p[2])
- c.hline(int(cx) - 1, int(cx) + 1, b - 22, p[6])
- for y in range(b - 3, b + 1): c.set(int(cx), y, p[2])   # the toe
-
-
-def _handles(c, cx, b, p):
- """Drawn over the outline, so the neck shows through the loop."""
- for dx in (-1, 1):
-  hx = int(cx) + dx * 3
-  c.set(int(cx) + dx * 2, b - 21, p[5] if dx < 0 else p[3])
-  c.vline(hx, b - 21, b - 18, p[5] if dx < 0 else p[2])
+AMPHORA = [(0, .8), (2, 2.4), (6, 4.2), (10, 4.6), (13, 4.0), (15, 2.6), (16, 1.3), (20, 1.1), (21, 1.7)]
 
 
 def amphora_stack(v=0):
- """Transport jars at a warehouse or shop wall, stood toe-down in sand."""
+ """Transport jars at a warehouse or shop wall, stood toe-down in a bed of
+ sand, mouths up."""
  p = RAMPS[['terracotta7', 'buffclay7', 'redearth7'][v]]
- c = Canvas(26, 24)
- xs = (4, 12, 20) if v != 2 else (7, 17)
- for k, cx in enumerate(xs):
-  _amph(c, cx, 22, p)
- for x in range(0, 26):                           # the sand they are bedded in
-  c.set(x, 23, '#b39c55' if x % 5 else '#96803f'); c.set(x, 22, '#cdb975' if 2 < x < 24 else '#b39c55')
+ c = Canvas(30, 32)
+ sand = ['#6a5a39', '#8b784c', '#a99461', '#c4b07c', '#ddcc9e']
+ disc(c, 15, 27, 14.5, 4.4, sand[1]); disc(c, 14.5, 26.6, 13.6, 3.8, sand[3]); disc(c, 13.8, 26, 11, 2.6, sand[4])
+ xs = ((6, 26), (15, 27), (24, 26)) if v != 2 else ((10, 27), (20, 27))
+ for cx, by in xs:
+  lathe(c, cx, by, AMPHORA, p, flat=False)
+  my = by - 21 - .8 * K
+  disc(c, cx, my, 1.4, .8, p[0])
+  for dx in (-1, 1):
+   hx = cx + dx * 3
+   c.line((cx + dx * 1, my + 1), (hx, my + 1), p[5] if dx < 0 else p[3])
+   c.line((hx, my + 1), (hx, my + 5), p[5] if dx < 0 else p[2])
+  c.hline(int(cx - 3), int(cx + 3), by - 1, sand[2])
  soft_outline(c, p[0], p[3])
- for cx in xs: _handles(c, cx, 22, p)
  return c.image()
 
 
@@ -314,23 +298,31 @@ def hurdle(v=0):
 
 
 def log_pile(v=0):
- """Roundwood with the bark on, laid in a pyramid: the fuel of a camp or a
- first village before anyone split and corded it."""
- c = Canvas(30, 15)
+ """Roundwood with the bark on, laid in a pyramid ends out: the fuel of a
+ camp or a first village before anyone split and corded it. The sawn ends
+ face us; the bark of the top logs runs back."""
  bark = [RAMPS['darkwood'] + ['#c7a37a'], BIRCH, RAMPS['oak7']][v]
  cut = RAMPS['palewood']
- rows = (5, 4, 3, 3, 2, 1)                        # bark tone, row by row down a log
- logs = ((2, 26, 9), (0, 20, 9), (15, 29, 9), (5, 23, 4), (13, 27, 4), (8, 22, -1))
- for x0, x1, top in logs:
-  for k, t in enumerate(rows):
-   for x in range(x0, x1 + 1):
-    tone = t
-    if v == 1 and k in (2, 3) and x % 5 == 2: tone = 0        # birch lenticels
-    if v != 1 and k in (1, 2, 3) and (x * 3 + k * 5) % 7 == 0: tone = max(0, t - 2)
-    c.set(x, top + k, bark[tone])
-  for k, col in enumerate((cut[4], cut[5], cut[4], cut[2], cut[3], cut[2])):
-   c.set(x0, top + k, col); c.set(x0 + 1, top + k, cut[5] if 0 < k < 5 else bark[2])
-  c.set(x0 + 1, top + 2, cut[2]); c.set(x0 + 1, top + 3, cut[1])   # the heart
+ R, L = 3, 9
+ c = Canvas(30, 26)
+ rows = [(4, 24), (3, 19), (2, 14)]
+ for row, (n, y) in enumerate(rows):
+  for k in range(n):
+   x = 4 + row * 3.4 + k * 6.8 + (k * 7 + row) % 2
+   for yy in range(int(y - R - L * K), int(y)):
+    for xx in range(int(x - R), int(x + R) + 1):
+     u = (xx + .5 - x) / R
+     if abs(u) > 1: continue
+     t = 5 if u < -.4 else 4 if u < .2 else 3 if u < .7 else 2
+     if v == 1 and (yy + xx * 3) % 5 == 0: t = 1
+     elif v != 1 and (xx * 3 + yy * 5) % 11 == 0: t -= 1
+     c.set(xx, yy, bark[t])
+   for yy in range(int(y - R), int(y + R) + 1):
+    for xx in range(int(x - R), int(x + R) + 1):
+     d = ((xx + .5 - x) ** 2 + (yy + .5 - y) ** 2) ** .5
+     if d > R + .4: continue
+     col = bark[2] if d > R - .6 else cut[5] if (xx - x) + (yy - y) < -1 else cut[4] if d > 1 else cut[2]
+     c.set(xx, yy, col)
  soft_outline(c, bark[0], bark[3])
  return c.image()
 

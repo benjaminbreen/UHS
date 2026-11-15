@@ -1,5 +1,6 @@
 """What a yard or a street carries from the factory age on."""
 from .core import (Canvas, RAMPS, belly, jitter, revolve, soft_outline, grass)
+from .solid import K, disc, lathe
 from .workshop import streak
 
 WOOD7 = ['oak7', 'walnut7', 'ash7']
@@ -68,67 +69,43 @@ def works_fence(v=0):
 
 
 def dustbin(v=0):
- """A galvanised bin: ribbed body, rimmed lid, riveted handles, one dent."""
- c = Canvas(19, 26)
+ """A galvanised bin: ribbed body, rimmed domed lid with its knob, riveted
+ handles, one dent."""
  m = RAMPS[['galvanised7', 'blackiron7', 'rustred7'][v]]
- cx = 9.0
- revolve(c, cx, belly(6, 24, [8.6, 8.0, 7.4, 6.6]), m, gloss=1)
- for x in range(0, 19):                           # pressed ribs down the body
-  if (x + 1) % 4: continue
-  for y in range(7, 24):
-   if c.get(x, y): c.set(x, y, m[2])
- for y in (10, 16, 21):                           # rolling beads round it
-  for x in range(0, 19):
-   if c.get(x, y): c.set(x, y, m[6] if x < 9 else m[3])
-   if c.get(x, y + 1): c.set(x, y + 1, m[1])
- for y, half in ((5, 9.0), (4, 8.6), (3, 7.6), (2, 5.6)):   # the lid
-  for x in range(int(cx - half), int(cx + half) + 1):
-   u = (x + .5 - cx) / half
-   if abs(u) > 1: continue
-   c.set(x, y, m[6] if u < -0.25 else m[5] if u < 0.5 else m[3])
- for x in range(0, 19):
-  if c.get(x, 6): c.set(x, 6, m[1])               # the lid's own shadow
- for x, y in [(8, 0), (9, 0), (7, 1), (10, 1)]:   # the lifting knob
-  c.set(x, y, m[5] if x < 9 else m[3])
- for hx in (0, 18):                               # riveted side handles
-  for k in range(4):
-   c.set(hx, 12 + k, m[4] if k < 2 else m[2])
-  c.set(hx, 11, m[6]); c.set(hx, 16, m[1])
- for x, y in [(13, 18), (14, 18), (13, 19)]:      # a dent in the shaded side
+ c = Canvas(20, 30)
+ cx, by = 10, 28
+ def body(z, a, i):
+  if int(z) in (4, 10, 15): return i + 1
+  if int(z) in (5, 11): return i - 1
+  return i - (int((a + 3.2) * 4) % 2 == 0 and abs(a) < 1.4)
+ lathe(c, cx, by, [(0, 7.0), (17, 8.0)], m, body, flat=False)
+ lid = [(0, 8.6), (1, 8.6), (2.5, 7), (3.5, 4.5), (4, 2), (4.5, 1.2), (5.5, 1.2)]
+ lathe(c, cx, by + (8.6 - 7.0) * K, lid, m, z0=17)
+ for hx, lit in ((cx - 9, 5), (cx + 8, 2)):
+  for k in range(3): c.set(hx, by - 13 - 3.5 - k, m[lit]); c.set(hx + 1, by - 13 - 3.5 - k, m[lit - 1])
+ for x, y in ((14, 18), (15, 18), (14, 19)):
   if c.get(x, y): c.set(x, y, m[2])
- c.hline(5, 13, 25, m[1])
  soft_outline(c, m[0], m[2])
  return c.image()
 
 
 def steel_drum(v=0):
- """A two-hundred-litre drum: chime, two rolling hoops, a bung, rust."""
- c = Canvas(19, 27)
+ """A two-hundred-litre drum: rolling hoops, a chimed lid with its bungs,
+ rust at the foot."""
  m = RAMPS[['paintblue7', 'rustred7', 'galvanised7'][v]]
  rust = RAMPS['rustred7']
- cx = 9.0
- revolve(c, cx, belly(4, 25, [8.8, 9.0, 9.0, 8.4]), m, gloss=1)
- for y in (10, 18):                               # rolling hoops, with rivets
-  for x in range(0, 19):
-   if c.get(x, y): c.set(x, y, m[6] if x < 9 else m[3])
-   if c.get(x, y + 1): c.set(x, y + 1, m[1])
-  for x in range(2, 17, 5):
-   if c.get(x, y): c.set(x, y, m[2])
- for x in range(0, 19):                           # the top and its chime
-  u = (x + .5 - cx) / 9.0
-  if abs(u) > 1: continue
-  c.set(x, 2, m[6] if u < -0.2 else m[4] if u < 0.6 else m[2])
-  c.set(x, 3, m[5] if u < -0.2 else m[3] if u < 0.6 else m[2])
-  c.set(x, 4, m[2])
- for x, y in [(12, 3), (13, 3), (12, 4)]:         # the bung
-  c.set(x, y, m[1])
- c.set(5, 3, m[6])
- for x in range(3, 16):                           # a painted band
-  if c.get(x, 14): c.set(x, 14, m[1] if x > 9 else m[3])
- for x, y in [(1, 21), (17, 20), (2, 23), (16, 23), (3, 24)]:   # rust at the foot
+ c = Canvas(20, 30)
+ cx, by = 10, 28
+ def hoops(z, a, i):
+  if int(z) in (6, 13): return i + 1
+  if int(z) in (7, 14): return i - 2
+  return i
+ lathe(c, cx, by, [(0, 8.6), (20, 8.6)], m, hoops)
+ ty = by - 20 - 8.6 * K
+ disc(c, cx, ty, 7.4, 3.5, m[4]); disc(c, cx + .4, ty + .2, 6.8, 3.0, m[5])
+ c.set(cx + 3, int(ty) - 1, m[1]); c.set(cx + 4, int(ty) - 1, m[2]); c.set(cx - 4, int(ty) + 1, m[2])
+ for x, y in ((3, 25), (16, 24), (4, 27), (15, 27), (6, 28)):
   if c.get(x, y): c.set(x, y, rust[3])
-  if c.get(x, y + 1): c.set(x, y + 1, rust[2])
- c.hline(5, 13, 26, m[1])
  soft_outline(c, m[0], m[2])
  return c.image()
 
@@ -136,7 +113,7 @@ def steel_drum(v=0):
 def wheelbarrow(v=0):
  """A barrow: planked tray, spoked wheel in an iron tyre, two handles."""
  from math import hypot
- c = Canvas(40, 24)
+ c = Canvas(40, 28)
  steel = v == 2
  w = RAMPS['galvanised7'] if steel else RAMPS[WOOD7[v]]
  m = RAMPS['blackiron7']
@@ -179,6 +156,12 @@ def wheelbarrow(v=0):
   c.set(x, y, m[4] if x < 8 else m[2])
  for x in range(10, 22):                          # the frame down to the axle
   c.set(x, 14, w[2]); c.set(x, 15, w[1])
+ c.px = {(x, y + 4): col for (x, y), col in c.px.items()}
+ for y in range(1, 7):
+  a, b = 11 + (y < 3), 30 - (y < 3)
+  c.hline(a, b, y, w[5] if y == 1 else w[2] if y < 3 else w[1])
+  c.set(a - 1, y, w[4]); c.set(b + 1, y, w[2])
+ c.hline(10, 31, 0, w[5])
  soft_outline(c, m[0] if steel else w[0], w[2])
  return c.image()
 

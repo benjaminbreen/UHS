@@ -24,6 +24,7 @@ import { random } from "../../core/random";
 import { toAtlas, atlasSample } from "../geography/atlas";
 import type { RegionalContext } from "../regional/context";
 import type { LandSample } from "../geography/landscape";
+import { urbanRadius } from "../../content/settlements/scale";
 const seasons = ["spring", "summer", "autumn", "winter"] as const;
 /** Geography is sampled independently of settlements and player circumstances. */
 export function createEnvironment(
@@ -33,6 +34,9 @@ export function createEnvironment(
 ) {
   const cfg = s.environment!;
   const ws = waterscape(s);
+  // Texcoco's island holds the whole built city, whatever its size.
+  const home = ws.works === "chinampa" ? regional?.placeAt(0, 0) : undefined;
+  const island = Math.max(44, home?.population ? urbanRadius(home.population, s.year) + 10 : 0);
   const byS = seasons.map((season) => waterscape({ ...s, season }));
   const simpleWater = !!s.hydrologyRevision;
   const connectedWater = (s.hydrologyRevision ?? 0) >= 2;
@@ -619,7 +623,7 @@ export function createEnvironment(
       // The lake the Valley of Mexico has since lost: the city on its island,
       // open water round it, the far shore two lake-widths off.
       const r = Math.hypot(x + (noise(seed, fx, fy, 40, "texcoco-x") - 0.5) * 24, y + (noise(seed, fx, fy, 40, "texcoco-y") - 0.5) * 24);
-      const lake = Math.max(44 - r, r - 130);
+      const lake = Math.max(island - r, r - island - 86);
       if (lake < water) {
         water = lake;
         kind = "lake";

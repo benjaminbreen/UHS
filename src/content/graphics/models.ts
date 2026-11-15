@@ -14,6 +14,7 @@ for (const model of Object.values(buildingModels) as { anchor: number[]; bounds:
   const o = model.occlusion;
   if (!o || model.bounds[3] >= o[3]) continue;
   model.bounds = [0, 0, o[2], o[3] + 4];
+  delete (model as { visible?: number[] }).visible;
   model.anchor = [model.anchor[0], o[3] + 1];
   if (model.height) clearTop.set(model, Math.max(0, o[3] - model.height - 8));
 }
@@ -37,9 +38,11 @@ export function buildingArtCells(
   const model = buildingModel(frame);
   const drawX = rect.x * 16 + rect.w * 8 - model.anchor[0];
   const drawY = rect.y * 16 + rect.h * 16 - model.anchor[1];
+  // Only the painted height: side gaps between neighbours are the town's
+  // walkways, and the canvas width keeps them.
   const left = Math.floor(drawX / 16);
   const right = Math.ceil((drawX + model.bounds[2]) / 16);
-  const top = Math.floor((drawY + (clearTop.get(model) ?? 0)) / 16);
+  const top = Math.floor((drawY + ((model as { visible?: number[] }).visible?.[1] ?? clearTop.get(model) ?? 0)) / 16);
   const bottom = Math.ceil((drawY + model.bounds[3]) / 16);
   const cells: { x: number; y: number }[] = [];
   for (let y = top; y < bottom; y++)

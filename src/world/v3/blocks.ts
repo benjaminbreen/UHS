@@ -205,6 +205,9 @@ export function composeUrban(
   lit = (year ?? 0) >= 1700,
   /** River water, which a motor-age street bridges where it would stop. */
   river?: (x: number, y: number) => boolean,
+  /** Depth a block needs to hold two rows of the town's own houses back to
+   * back, the front row's drawn roof included. */
+  rows = 0,
 ): UrbanLayout {
   const half = urbanFootprint(radius, form);
   const rand = (...keys: (string | number)[]) =>
@@ -241,9 +244,12 @@ export function composeUrban(
   };
   // A town laid out for cars is one grid: quarters each with their own
   // module left streets that stopped at every seam.
-  const specs: readonly DistrictSpec[] = form.districts?.length && !motorCore
+  // A block shallower than its houses and their roofs is built on one side or
+  // left empty, so the module never falls below what the houses need.
+  const specs: readonly DistrictSpec[] = (form.districts?.length && !motorCore
     ? form.districts
-    : [{ plan: form.plan, block: form.block, regularity: form.regularity }];
+    : [{ plan: form.plan, block: form.block, regularity: form.regularity }]
+  ).map((d) => ({ ...d, block: [d.block[0], Math.max(d.block[1], rows)] as const }));
   const core = specs[0];
   const single = specs.length === 1;
   const coreHalf = single
@@ -1303,14 +1309,14 @@ export function composeUrban(
     if (!split) break;
     readBlocks();
   }
-  // From the boulevard age a city's buildings outgrew the old plots: a local
-  // street that only cuts off a scrap too small to build on is dropped, so the
-  // plan keeps its shape but not its slivers. Only a through street goes; one
-  // another street stops against would leave that street blind.
-  if ((year ?? 0) >= 1850)
+  // A local street that only cuts off a strip too narrow for a house is
+  // dropped, so the plan keeps its shape but not its slivers; from the
+  // boulevard age, when buildings outgrew the old plots, small scraps go too.
+  // Only a through street goes; one another street stops against would leave
+  // that street blind.
     for (let pass = 0; pass < 3; pass++) {
       const tol = hiA + margin(2) + 1;
-      const small = (b: Block) => b.w < 10 || b.h < 10 || b.w * b.h < 120;
+      const small = (b: Block) => b.w < 10 || b.h < 10 || ((year ?? 0) >= 1850 && b.w * b.h < 120);
       let merged = 0;
       for (const s of [...streets]) {
         if (s.tier !== 2) continue;

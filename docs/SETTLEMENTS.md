@@ -67,6 +67,9 @@ marked `inferred`. A family with no entry gets an explicitly generic fabric.
 dated civic buildings; `yards.ts` and `wayside.ts` cover yards and roadside
 features; `precincts.ts` courts, arenas and markets; `terraces.ts` how a town
 holds up a step; `boundaries.ts` how walls and fences are built.
+`lots.ts` gives ground a block left unbuilt a use from the place's facts
+(gardens, fuel, drying, threshing, pens, burial ground, ruins) and lays its
+props out in whatever rectangle is left.
 
 ### Industrial and motor-age cities
 
