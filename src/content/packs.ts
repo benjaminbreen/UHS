@@ -12,6 +12,7 @@ import { wearableItems } from "./characters/wearables";
 import { dungItems } from "./fauna/dung";
 import { vegetableItems } from "./agriculture/gardens";
 import { wareItems } from "./economy/wares";
+import { fishItems } from "./economy/fishing";
 // legacy-packs is frozen, so its items get their descriptions here.
 const baseAbout: Record<string, string> = {
   bread:
@@ -58,6 +59,7 @@ export const items: Record<
   ...dungItems,
   ...vegetableItems,
   ...wareItems,
+  ...fishItems,
   "walking-cane": { id: "walking-cane", name: "Walking cane", description: "A stout stick with a curved or knobbed head, for steadying a walk or for show.", sprite: "walking-cane", value: 4, hand: {} },
   fan: { id: "fan", name: "Folding fan", description: "Pleated paper or silk on slender ribs, snapped open to stir the air or hide a smile.", sprite: "fan", value: 3, hand: {} },
   spear: { id: "spear", name: "Hunting spear", description: "A wooden shaft tipped with a sharp point for hunting game.", sprite: "spear", value: 4, hand: { strike: true, edge: true, weapon: "spear" } },

@@ -64,16 +64,7 @@ describe("living water map presentation", () => {
           waterVisual: { ...cell().waterVisual!, ecology },
         }).palette,
     );
-    expect(colors).toEqual([
-      "tropical",
-      "blue",
-      "blue",
-      "tropical",
-      "green",
-      "tropical",
-      "tropical",
-      "polar",
-    ]);
+    expect(colors).toEqual(["murky", "murky", "blue", "murky", "murky", "murky", "murky", "polar"]);
   });
   it("narrows beaches at steep banks without mutating map cells", () => {
     const flat = cell(1),

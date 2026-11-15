@@ -34,11 +34,14 @@ export function livingProfile(cell: TopographyCell): Settings {
       ? cell.waterVisual.tint
       : ecology === "tundra"
       ? "polar"
-      : ecology === "wetland"
-        ? "green"
-        : ["temperate-woodland", "boreal-woodland"].includes(ecology)
-          ? "blue"
-          : "tropical";
+      : ecology === "boreal-woodland"
+        ? "blue"
+        : kind === "coast"
+          ? ecology === "wetland" ? "green" : ecology === "temperate-woodland" ? "blue" : "tropical"
+          // Lowland rivers and ponds carry silt and algae; creeks and big lakes settle clearer.
+          : kind === "creek" || (kind === "lake" && ecology !== "tropical-woodland")
+            ? "green"
+            : "murky";
   const swamp = cell.habitat?.colorway === "swamp";
   const frozen = !!cell.waterVisual?.frozenMargin;
   const red = ecology === "desert" && cell.habitat?.colorway === "red-earth";

@@ -1205,3 +1205,99 @@ export function playSound(
     };
   }
 }
+
+export type FishingCue =
+  | "cast" | "plop" | "nibble" | "bite" | "strike" | "early" | "escape" | "snap" | "run" | "reel" | "net-throw"
+  | "net-splash" | "haul" | "empty" | "spear" | "spear-miss" | "jump" | "gull" | "dive" | "perfect" | "tired" | "heron"
+  | "land" | "best" | "set" | "haul-set" | "full" | "leap" | "snag" | "find" | "new" | "star" | "meow" | "purr" | "steal";
+/** The fishing game's sounds: line, water, fish and the birds over them. `big` is a heavy fish or a seine. */
+export function fishingSound(cue: FishingCue, big = false): Sound {
+  const splash = (at: number, size: number, gain: number): Sound => [
+    noise(at, 0.05 + size * 0.12, gain, 1500 + size * 600, { to: 500, q: 0.8 }),
+    noise(at + 0.01, 0.2 + size * 0.25, gain * 0.5, 3600, { to: 1800, q: 0.6, filter: "highpass" }),
+    ...grains(at + 0.03, 0.15 + size * 0.2, 4 + Math.round(size * 8), (t) => bubble(t, rand(500, 1200) / (1 + size * 0.4), gain * 0.25)),
+  ];
+  switch (cue) {
+    case "cast":
+      return [noise(0, 0.32, 0.06, 900, { to: 3400, q: 1.6, attack: 0.08 }), tone(0.04, 0.28, 0.012, 1800, { to: 2600, wave: "triangle" })];
+    case "net-throw":
+      return [noise(0, 0.45, 0.08, 500, { to: 2200, q: 1.2, attack: 0.1 }), ...grains(0.1, 0.3, 6, (t) => noise(t, 0.03, 0.02, 3000, { q: 4 }))];
+    case "plop":
+      return [tone(0, 0.09, 0.07, vary(520), { to: 1150, attack: 0.003 }), ...splash(0.01, 0.2, 0.05)];
+    case "nibble":
+      return [tone(0, 0.05, 0.035, vary(1400, 0.15), { to: 2100, attack: 0.002 }), noise(0, 0.04, 0.02, 2600, { q: 3 })];
+    case "bite":
+      return [...splash(0, 0.6, 0.11), tone(0.02, 0.12, 0.06, big ? 300 : 460, { to: 160, wave: "triangle" })];
+    case "strike":
+      return [noise(0, 0.12, 0.09, 700, { to: 2800, q: 2, attack: 0.01 }), tone(0, 0.18, 0.05, 220, { to: 340, wave: "triangle" }), ...splash(0.05, big ? 0.9 : 0.5, 0.09)];
+    case "early":
+      return [tone(0, 0.16, 0.04, 420, { to: 300, wave: "triangle" }), ...splash(0, 0.2, 0.04)];
+    case "escape":
+      return [...splash(0, 0.5, 0.07), tone(0.05, 0.3, 0.03, 380, { to: 220, wave: "triangle" })];
+    case "snap":
+      // The twang of a parted line, and the reel of slack after it.
+      return [tone(0, 0.45, 0.09, 1600, { to: 140, wave: "sawtooth" }), noise(0, 0.08, 0.1, 4200, { q: 2 }), ...grains(0.05, 0.4, 7, (t) => noise(t, 0.02, 0.02, 2400, { q: 5 }))];
+    case "run":
+      return [...splash(0, big ? 0.8 : 0.4, big ? 0.09 : 0.06), ...grains(0, 0.35, 9, (t, i) => tone(t, 0.03, 0.012, 900 + i * 60, { wave: "triangle" }))];
+    case "reel":
+      return grains(0, 0.4, 10, (t) => noise(t, 0.018, 0.03, 2200, { q: 6 }));
+    case "net-splash":
+      return [...splash(0, big ? 1.3 : 0.9, 0.12), ...grains(0.02, 0.25, 14, (t) => noise(t, 0.02, 0.025, rand(2500, 5000), { q: 3 }))];
+    case "haul":
+      return [noise(0, 0.9, 0.05, 600, { to: 1200, q: 1, attack: 0.2 }), ...grains(0, 0.9, 10, (t) => tone(t, 0.06, 0.015, rand(140, 220), { wave: "triangle" }))];
+    case "empty":
+      return [tone(0, 0.2, 0.04, 330, { to: 260, wave: "triangle" }), tone(0.18, 0.3, 0.035, 250, { to: 200, wave: "triangle" })];
+    case "spear":
+      return [noise(0, 0.12, 0.08, 1200, { to: 3800, q: 1.5, attack: 0.01 }), ...splash(0.09, 0.4, 0.09)];
+    case "spear-miss":
+      return [tone(0.1, 0.15, 0.03, 300, { to: 220, wave: "triangle" })];
+    case "jump":
+      return [...splash(0, 0.25, 0.04), ...splash(0.5, 0.3, 0.05)];
+    case "dive":
+      return splash(0, 0.35, 0.05);
+    case "gull": {
+      const f = vary(1250, 0.15);
+      return [tone(0, 0.22, 0.025, f, { to: f * 1.4, wave: "triangle", attack: 0.03 }), tone(0.22, 0.3, 0.02, f * 1.3, { to: f * 0.9, wave: "triangle", attack: 0.02 }), tone(0.56, 0.2, 0.015, f * 1.2, { to: f, wave: "triangle" })];
+    }
+    case "heron":
+      return [noise(0, 0.18, 0.03, 700, { q: 4 }), tone(0, 0.18, 0.02, 180, { to: 140, wave: "sawtooth" })];
+    case "perfect":
+      return [tone(0, 0.12, 0.035, 1568, { wave: "triangle" }), tone(0.07, 0.18, 0.03, 2093, { wave: "triangle" })];
+    case "tired":
+      return [tone(0, 0.2, 0.02, 523, { wave: "triangle" })];
+    case "land": {
+      // Out of the water, a flap or two on the boards, and a bright little chime.
+      const flaps = grains(0.12, 0.45, big ? 6 : 3, (t) => noise(t, 0.035, 0.05, rand(900, 1600), { q: 1.5 }));
+      const chime = [523, 659, 784].map((f, i) => tone(0.05 + i * 0.07, 0.35, 0.03, f * (big ? 0.75 : 1), { wave: "triangle" }));
+      return [...splash(0, 0.3, 0.05), ...flaps, ...chime];
+    }
+    case "best":
+      return [523, 659, 784, 1047].map((f, i) => tone(i * 0.09, 0.45, 0.032, f, { wave: "triangle" }));
+    case "set":
+      // Gear over the side: a rope paid out, a weighted splash, a float bobbing up.
+      return [...grains(0, 0.3, 6, (t) => noise(t, 0.03, 0.02, 1800, { q: 4 })), ...splash(0.28, 0.5, 0.08), tone(0.55, 0.1, 0.03, 600, { to: 900, attack: 0.004 })];
+    case "haul-set":
+      return [...grains(0, 1, 8, (t) => tone(t, 0.08, 0.018, rand(150, 230), { wave: "triangle" })), noise(0.1, 0.9, 0.04, 700, { to: 1300, q: 1, attack: 0.2 }), ...grains(0.6, 0.5, 8, (t) => bubble(t, rand(700, 1400), 0.02))];
+    case "full":
+      return [tone(0, 0.06, 0.03, 880, { attack: 0.003 }), tone(0.09, 0.08, 0.025, 1175, { attack: 0.003 })];
+    case "leap":
+      return [...splash(0, 0.7, 0.09), noise(0.02, 0.25, 0.04, 2000, { to: 4000, q: 0.8, filter: "highpass" }), ...splash(0.55, 0.8, 0.1)];
+    case "snag":
+      return [tone(0, 0.2, 0.06, 140, { to: 90, wave: "triangle" }), noise(0, 0.1, 0.05, 500, { q: 2 })];
+    case "find":
+      return [988, 1319, 1568, 1976].map((f, i) => tone(i * 0.06, 0.5, 0.025, f, { wave: "sine" }));
+    case "new":
+      // A short fanfare for a kind never caught before.
+      return [[523, 0], [659, 0.1], [784, 0.2], [1047, 0.32], [784, 0.46], [1047, 0.56]].map(([f, at]) => tone(at, 0.4, 0.035, f, { wave: "triangle" }));
+    case "star":
+      return [tone(0, 0.25, 0.025, 2093, { wave: "sine" }), tone(0.06, 0.3, 0.02, 2637, { wave: "sine" })];
+    case "meow": {
+      const f = vary(620, 0.12);
+      return [tone(0, 0.32, 0.03, f * 0.8, { to: f * 1.25, wave: "triangle", attack: 0.04 }), tone(0.14, 0.24, 0.025, f * 1.25, { to: f * 0.7, wave: "triangle" })];
+    }
+    case "purr":
+      return grains(0, 1.2, 26, (t) => noise(t, 0.04, 0.025, 120, { q: 1.2 }));
+    case "steal":
+      return [tone(0, 0.12, 0.03, 900, { to: 1300, wave: "triangle" }), ...grains(0.1, 0.4, 6, (t) => noise(t, 0.03, 0.03, rand(600, 1100), { q: 2 }))];
+  }
+}

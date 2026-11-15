@@ -1,0 +1,175 @@
+{
+  "seaCold": [
+    { "name": "Herring", "kg": [0.1, 0.4], "fight": 0.15, "shape": "slim", "colors": ["#3d5f7a", "#dfe7ea", "#8fa4ad"], "style": "dart", "note": "The silver of the North Sea. Whole towns rose and fell with its shoals." },
+    { "name": "Mackerel", "kg": [0.3, 1], "fight": 0.45, "shape": "slim", "colors": ["#2f6b62", "#e6ece4", "#52766c"], "mark": "bars", "style": "dart", "when": { "seasons": ["summer", "autumn"] }, "note": "Comes inshore in summer in hungry, flashing packs." },
+    { "name": "Cod", "kg": [1, 9], "fight": 0.6, "shape": "deep", "colors": ["#7b6a4a", "#e4ddc8", "#8e7c58"], "mark": "spots", "note": "Salted and dried, it fed sailors and Lent for a thousand years." },
+    { "name": "Haddock", "kg": [0.5, 2.5], "fight": 0.35, "shape": "deep", "colors": ["#58595a", "#d8d8d2", "#48494a"], "mark": "stripe", "note": "Look for the dark thumbprint behind the gills." },
+    { "name": "Saithe", "kg": [1, 6], "fight": 0.55, "shape": "slim", "colors": ["#3b4a4e", "#b9c2c0", "#34403f"], "style": "dart", "note": "Also called coalfish, for its sooty back." },
+    { "name": "Plaice", "kg": [0.3, 2], "fight": 0.3, "shape": "flat", "colors": ["#7a6a4a", "#f0e8d8", "#d8703a"], "mark": "spots", "style": "sink", "note": "Lies flat on the sand with both eyes on one side." },
+    { "name": "Gurnard", "kg": [0.2, 1], "fight": 0.3, "shape": "deep", "colors": ["#b8503a", "#f0d8c8", "#5a8aa0"], "note": "It grunts when you lift it out of the water." },
+    { "name": "Spurdog", "kg": [1, 6], "fight": 0.6, "shape": "long", "colors": ["#6a6e70", "#d8d8d0", "#5a5e60"], "mark": "spots", "style": "dart", "note": "A small shark that hunts in packs. Its rough skin was used as sandpaper." },
+    { "name": "Ling", "kg": [2, 15], "fight": 0.5, "shape": "long", "colors": ["#6a6040", "#d8d0b0", "#4a4430"], "style": "sink", "note": "A long, lean cousin of the cod, dried hard as a board for winter." },
+    { "name": "Conger eel", "kg": [2, 20], "fight": 0.75, "shape": "long", "colors": ["#3a4048", "#a8acb0", "#2a3038"], "style": "sink", "when": { "hours": "night" }, "note": "Hides in wrecks and rocks by day and hunts at night." },
+    { "name": "Lobster", "kg": [0.5, 3], "fight": 0.4, "shape": "claw", "colors": ["#2a3a5a", "#6a7a9a", "#1e2a44"], "trap": true, "note": "Blue-black in the sea. It only turns red in the pot." },
+    { "name": "Crab", "kg": [0.2, 1.5], "fight": 0.2, "shape": "crab", "colors": ["#a8583a", "#e8c8a0", "#3a2a24"], "trap": true, "note": "Walks sideways into the pot and can't find the way out." },
+    { "name": "Halibut", "kg": [10, 60], "fight": 0.95, "shape": "flat", "colors": ["#5a4a3a", "#ece6da", "#4d3f31"], "mark": "spots", "style": "sink", "rare": true, "note": "The giant of the flatfish. One can feed a village." }
+  ],
+  "seaWarm": [
+    { "name": "Sardine", "kg": [0.05, 0.15], "fight": 0.1, "shape": "slim", "colors": ["#365d86", "#e6eef0", "#8aa4b8"], "mark": "spots", "style": "dart", "note": "Packed in salt by the barrel and carried inland on mules." },
+    { "name": "Anchovy", "kg": [0.02, 0.06], "fight": 0.1, "shape": "slim", "colors": ["#4a6a80", "#e8eef0", "#9ab0c0"], "mark": "stripe", "style": "dart", "when": { "hours": "night" }, "note": "Drawn up to lamps at night. Its salted guts made Roman garum." },
+    { "name": "Gilt-head bream", "kg": [0.3, 2], "fight": 0.45, "shape": "deep", "colors": ["#8c979c", "#e9ece8", "#6c7a80"], "mark": "stripe", "note": "Named for the gold bar between its eyes. Romans farmed it in ponds." },
+    { "name": "Red mullet", "kg": [0.1, 0.5], "fight": 0.25, "shape": "slim", "colors": ["#c0605a", "#f2dccc", "#d9a050"], "mark": "stripe", "note": "Rich Romans paid fortunes for big ones and watched them change colour." },
+    { "name": "Grey mullet", "kg": [0.5, 3], "fight": 0.5, "shape": "slim", "colors": ["#6c7a7e", "#dfe4e0", "#5c686a"], "mark": "stripe", "style": "leap", "note": "Jumps clean out of the water when something startles it." },
+    { "name": "Sea bass", "kg": [1, 8], "fight": 0.7, "shape": "slim", "colors": ["#5a6a72", "#e8ecea", "#4a5a62"], "style": "dart", "when": { "hours": "twilight" }, "note": "The wolf of the sea, hunting through the surf at dusk." },
+    { "name": "Dentex", "kg": [1, 8], "fight": 0.7, "shape": "deep", "colors": ["#a07a6a", "#f0e0d4", "#7a8aa0"], "mark": "spots", "note": "Big teeth, a bad temper and very good eating." },
+    { "name": "Cuttlefish", "kg": [0.3, 2], "fight": 0.3, "shape": "squid", "colors": ["#9a7a5a", "#e8d8c0", "#6a5040"], "mark": "bars", "style": "dart", "note": "Squirts ink when caught. The ink was used for writing and drawing." },
+    { "name": "Octopus", "kg": [0.5, 6], "fight": 0.5, "shape": "squid", "colors": ["#a8604a", "#e8c0a8", "#7a4030"], "mark": "spots", "trap": true, "note": "Crawls into clay pots to hide, so fishers lower pots just for it." },
+    { "name": "Moray eel", "kg": [1, 10], "fight": 0.7, "shape": "long", "colors": ["#5a5030", "#c8b880", "#4a4024"], "mark": "spots", "style": "sink", "when": { "hours": "night" }, "note": "Romans kept them in garden ponds, and some owners doted on them." },
+    { "name": "Bluefin tuna", "kg": [30, 200], "fight": 1, "shape": "slim", "colors": ["#23365a", "#c7ced2", "#d8b84a"], "style": "dart", "rare": true, "when": { "seasons": ["spring", "summer"] }, "note": "Caught in great mazes of net along the coast each spring." },
+    { "name": "Swordfish", "kg": [50, 300], "fight": 1, "shape": "long", "colors": ["#3a4a6a", "#d0d4d8", "#2a3a54"], "style": "leap", "rare": true, "note": "Hunted with harpoons from small boats in the Strait of Messina." }
+  ],
+  "seaEastAsia": [
+    { "name": "Red sea bream", "kg": [0.5, 4], "fight": 0.55, "shape": "deep", "colors": ["#d0606a", "#f4dcd8", "#c04a54"], "mark": "spots", "note": "Madai: the fish for weddings, new year and every celebration." },
+    { "name": "Japanese mackerel", "kg": [0.2, 0.8], "fight": 0.4, "shape": "slim", "colors": ["#2f6a70", "#e6eae4", "#4a7a78"], "mark": "bars", "style": "dart", "note": "Salted, grilled and eaten with rice on ordinary days." },
+    { "name": "Pacific saury", "kg": [0.1, 0.2], "fight": 0.2, "shape": "long", "colors": ["#3a5a8a", "#e0e6ea", "#d8b84a"], "style": "dart", "when": { "seasons": ["autumn"] }, "note": "Sanma: the taste of autumn, grilled until the skin crackles." },
+    { "name": "Flounder", "kg": [0.3, 3], "fight": 0.35, "shape": "flat", "colors": ["#7a6a50", "#f0eadc", "#5a4a38"], "mark": "spots", "style": "sink", "note": "Buries itself in sand with only its eyes showing." },
+    { "name": "Yellowtail", "kg": [2, 12], "fight": 0.85, "shape": "slim", "colors": ["#4a6a8a", "#e8ecea", "#d8c040"], "mark": "stripe", "style": "dart", "when": { "seasons": ["winter", "autumn"] }, "note": "Its name changes as it grows, like a person's in old Japan." },
+    { "name": "Squid", "kg": [0.2, 1.5], "fight": 0.35, "shape": "squid", "colors": ["#d0b0a0", "#f0e4dc", "#b08070"], "style": "dart", "when": { "hours": "night" }, "note": "Rises to the lamps hung over the boats on summer nights." },
+    { "name": "Pufferfish", "kg": [0.3, 2], "fight": 0.2, "shape": "deep", "colors": ["#6a7050", "#f0ecd8", "#5a6040"], "mark": "spots", "note": "Fugu. Deadly unless a trained hand cuts it." },
+    { "name": "Octopus", "kg": [0.5, 6], "fight": 0.5, "shape": "squid", "colors": ["#a8604a", "#e8c0a8", "#7a4030"], "mark": "spots", "trap": true, "note": "Crawls into clay pots to hide, so fishers lower pots just for it." },
+    { "name": "Bluefin tuna", "kg": [30, 200], "fight": 1, "shape": "slim", "colors": ["#23365a", "#c7ced2", "#d8b84a"], "style": "dart", "rare": true, "when": { "seasons": ["spring", "summer"] }, "note": "Caught in great mazes of net along the coast each spring." }
+  ],
+  "seaTropical": [
+    { "name": "Scad", "kg": [0.1, 0.4], "fight": 0.25, "shape": "slim", "colors": ["#4f7f8a", "#e2ebe8", "#c9b050"], "style": "dart", "note": "Small, plentiful and dried on racks along every reef coast." },
+    { "name": "Snapper", "kg": [1, 6], "fight": 0.6, "shape": "deep", "colors": ["#c4483c", "#f0c8b8", "#d0605a"], "note": "Bright red and always welcome at the market." },
+    { "name": "Parrotfish", "kg": [0.5, 3], "fight": 0.35, "shape": "deep", "colors": ["#3aa38a", "#9ad6c0", "#d06aa0"], "mark": "spots", "note": "Grinds coral with its beak. Much of the white sand is its work." },
+    { "name": "Milkfish", "kg": [0.5, 4], "fight": 0.7, "shape": "slim", "colors": ["#5a7a90", "#eef2f0", "#8aa0b0"], "style": "leap", "note": "Raised in seaside ponds in Java and the Philippines for centuries." },
+    { "name": "Flying fish", "kg": [0.1, 0.4], "fight": 0.4, "shape": "slim", "colors": ["#2a5a9a", "#e8eef4", "#7aa0d0"], "style": "leap", "when": { "seasons": ["summer", "spring"] }, "note": "Glides over the waves on its fins to escape whatever is chasing it." },
+    { "name": "Trevally", "kg": [1, 8], "fight": 0.8, "shape": "deep", "colors": ["#7f95a0", "#e0e8ea", "#d8b84a"], "style": "dart", "note": "Hunts in gangs along the reef edge and pulls like a horse." },
+    { "name": "Barracuda", "kg": [2, 15], "fight": 0.8, "shape": "long", "colors": ["#5a6a70", "#e0e4e0", "#3a4a50"], "mark": "bars", "style": "dart", "note": "All teeth. Big ones can make you ill to eat." },
+    { "name": "Mahi-mahi", "kg": [2, 15], "fight": 0.85, "shape": "deep", "colors": ["#3a8a6a", "#e8d850", "#2a6aa0"], "mark": "spots", "style": "leap", "note": "Flashes gold, green and blue, and fades the moment it's landed." },
+    { "name": "Moray eel", "kg": [1, 10], "fight": 0.7, "shape": "long", "colors": ["#5a6a30", "#c8c880", "#4a5424"], "mark": "spots", "style": "sink", "when": { "hours": "night" }, "note": "Lives in a hole in the reef and comes out after dark." },
+    { "name": "Octopus", "kg": [0.5, 6], "fight": 0.5, "shape": "squid", "colors": ["#a8604a", "#e8c0a8", "#7a4030"], "mark": "spots", "trap": true, "note": "Fishers lure it out of the reef with a cowrie shell on a line." },
+    { "name": "Spiny lobster", "kg": [0.5, 3], "fight": 0.4, "shape": "claw", "colors": ["#a86a3a", "#e8c890", "#5a3a24"], "mark": "spots", "trap": true, "when": { "hours": "night" }, "note": "No big claws. It walks out at night to feed." },
+    { "name": "Grouper", "kg": [5, 30], "fight": 0.9, "shape": "deep", "colors": ["#6b5a3c", "#c8b898", "#5a4a30"], "mark": "spots", "style": "sink", "rare": true, "note": "Lives for decades in one cave and fights all the way to the boat." },
+    { "name": "Sailfish", "kg": [20, 90], "fight": 1, "shape": "long", "colors": ["#2a4a7a", "#d8dce4", "#3a5aa0"], "mark": "spots", "style": "leap", "rare": true, "note": "The fastest fish in the sea. Its great sail folds flat when it swims." }
+  ],
+  "riverTemperate": [
+    { "name": "Roach", "kg": [0.1, 0.5], "fight": 0.15, "shape": "slim", "colors": ["#6a7a6c", "#dcded4", "#c8503c"], "note": "The everyday fish of English and German rivers, red-finned and bony." },
+    { "name": "Gudgeon", "kg": [0.02, 0.1], "fight": 0.1, "shape": "slim", "colors": ["#7a7058", "#e0dac8", "#8a7a5a"], "mark": "spots", "note": "Tiny and greedy. Children caught them by the dozen and fried them whole." },
+    { "name": "Perch", "kg": [0.2, 1.2], "fight": 0.35, "shape": "deep", "colors": ["#5b6b3a", "#e2dcb0", "#d86a3a"], "mark": "bars", "note": "Hunts in little gangs. Mind the spiky fin on its back." },
+    { "name": "Bream", "kg": [0.5, 3], "fight": 0.3, "shape": "deep", "colors": ["#7a6a44", "#d8ccaa", "#5c5038"], "style": "sink", "note": "Slimy, bronze and slow. Monasteries kept them in their fish ponds." },
+    { "name": "Chub", "kg": [0.3, 3], "fight": 0.45, "shape": "deep", "colors": ["#5a6a5a", "#e0e0d0", "#c06a4a"], "note": "Eats almost anything, cherries and beetles included." },
+    { "name": "Tench", "kg": [0.5, 3], "fight": 0.5, "shape": "deep", "colors": ["#4a5a30", "#c8c890", "#3a4a24"], "style": "sink", "when": { "seasons": ["summer", "spring"], "hours": "twilight" }, "note": "The doctor fish. Its slime was said to heal other fish." },
+    { "name": "Brown trout", "kg": [0.3, 3], "fight": 0.7, "shape": "slim", "colors": ["#7a6a3a", "#f0e0b0", "#6a5a30"], "mark": "spots", "style": "leap", "when": { "hours": "twilight" }, "note": "Rises to flies in the evening, in clear and quick water." },
+    { "name": "Barbel", "kg": [0.5, 5], "fight": 0.6, "shape": "slim", "colors": ["#8a7a50", "#e0d4b0", "#c08050"], "style": "sink", "note": "Feels for food along the bottom with four whiskers." },
+    { "name": "Zander", "kg": [1, 8], "fight": 0.6, "shape": "slim", "colors": ["#7a7a60", "#e8e4d0", "#6a6a50"], "mark": "bars", "style": "dart", "when": { "hours": "twilight" }, "note": "Hunts in the half-light with big, glassy eyes." },
+    { "name": "Eel", "kg": [0.3, 2], "fight": 0.6, "shape": "long", "colors": ["#4a4630", "#b8b088", "#3c3826"], "style": "sink", "when": { "hours": "night" }, "note": "Nobody knew where eels were born. Rents were paid in them by the thousand." },
+    { "name": "Crayfish", "kg": [0.03, 0.1], "fight": 0.1, "shape": "claw", "colors": ["#5a4a3a", "#a89070", "#3a2e24"], "trap": true, "when": { "hours": "night" }, "note": "Comes to a basket baited with meat after dark." },
+    { "name": "Lamprey", "kg": [0.1, 0.5], "fight": 0.3, "shape": "long", "colors": ["#5a5a50", "#c0c0b0", "#4a4a40"], "mark": "spots", "trap": true, "when": { "seasons": ["spring"] }, "note": "An English king is said to have died of eating too many." },
+    { "name": "Pike", "kg": [1, 10], "fight": 0.85, "shape": "long", "colors": ["#4f6a3a", "#dedcb4", "#8a8040"], "mark": "spots", "style": "dart", "rare": true, "note": "Waits among the reeds and strikes like an arrow." },
+    { "name": "Sturgeon", "kg": [10, 100], "fight": 0.9, "shape": "long", "colors": ["#5a5a50", "#d8d4c4", "#4a4a40"], "mark": "spots", "style": "sink", "rare": true, "when": { "seasons": ["spring", "summer"] }, "note": "Armoured, ancient and full of caviar. Kings claimed every one." }
+  ],
+  "riverNorthAmerica": [
+    { "name": "Yellow perch", "kg": [0.1, 0.8], "fight": 0.3, "shape": "deep", "colors": ["#8a8a3a", "#ecdca0", "#d8803a"], "mark": "bars", "note": "Schools in the shallows and bites all year, even through the ice." },
+    { "name": "Sunfish", "kg": [0.05, 0.4], "fight": 0.3, "shape": "deep", "colors": ["#4a6a5a", "#e8b050", "#2a4a6a"], "mark": "bars", "note": "Round as a coin and guards its nest in the sand." },
+    { "name": "Largemouth bass", "kg": [0.5, 5], "fight": 0.75, "shape": "deep", "colors": ["#4a6a3a", "#e0e0c0", "#3a5a2e"], "mark": "stripe", "style": "leap", "note": "Lurks under logs and lily pads and strikes at anything." },
+    { "name": "Walleye", "kg": [0.5, 5], "fight": 0.55, "shape": "slim", "colors": ["#8a7a40", "#ece4c8", "#6a5a30"], "style": "dart", "when": { "hours": "twilight" }, "note": "Its eyes shine like a cat's in the dark." },
+    { "name": "Channel catfish", "kg": [0.5, 10], "fight": 0.65, "shape": "long", "colors": ["#5a6070", "#d8dce0", "#4a5060"], "mark": "spots", "style": "sink", "when": { "hours": "night" }, "note": "Finds its food at night by taste, all over its whiskered skin." },
+    { "name": "Shad", "kg": [0.5, 3], "fight": 0.6, "shape": "deep", "colors": ["#4a6a7a", "#eef0ee", "#8aa0a8"], "mark": "spots", "style": "leap", "when": { "seasons": ["spring"] }, "note": "Runs up the rivers each spring in shoals so big they fed whole towns." },
+    { "name": "Eel", "kg": [0.3, 2], "fight": 0.6, "shape": "long", "colors": ["#4a4630", "#b8b088", "#3c3826"], "style": "sink", "when": { "hours": "night" }, "note": "Caught in stone weirs and smoked for the winter." },
+    { "name": "Crayfish", "kg": [0.03, 0.1], "fight": 0.1, "shape": "claw", "colors": ["#7a3a2a", "#c8906a", "#4a2a1e"], "trap": true, "when": { "hours": "night" }, "note": "Hides under stones by day and walks into baited traps at night." },
+    { "name": "Sturgeon", "kg": [10, 100], "fight": 0.9, "shape": "long", "colors": ["#5a5a50", "#d8d4c4", "#4a4a40"], "mark": "spots", "style": "sink", "rare": true, "when": { "seasons": ["spring", "summer"] }, "note": "Can live longer than a person. Some leap clear of the water." }
+  ],
+  "riverCold": [
+    { "name": "Grayling", "kg": [0.2, 1], "fight": 0.35, "shape": "slim", "colors": ["#5a6670", "#d8dcd8", "#7a5a8a"], "mark": "spots", "note": "Has a tall, flag-like back fin, and smells faintly of thyme." },
+    { "name": "Whitefish", "kg": [0.3, 1.5], "fight": 0.3, "shape": "slim", "colors": ["#6a7c86", "#e6ecec", "#8a9aa0"], "note": "Netted under the ice and frozen on the shore by the sledge-load." },
+    { "name": "Perch", "kg": [0.2, 1.2], "fight": 0.35, "shape": "deep", "colors": ["#5b6b3a", "#e2dcb0", "#d86a3a"], "mark": "bars", "note": "Hunts in little gangs. Mind the spiky fin on its back." },
+    { "name": "Arctic char", "kg": [0.5, 3], "fight": 0.55, "shape": "slim", "colors": ["#4a5a5a", "#e08050", "#e0a070"], "mark": "spots", "style": "dart", "note": "Its belly turns flame red when it spawns." },
+    { "name": "Pike", "kg": [1, 10], "fight": 0.85, "shape": "long", "colors": ["#4f6a3a", "#dedcb4", "#8a8040"], "mark": "spots", "style": "dart", "note": "Waits among the reeds and strikes like an arrow." },
+    { "name": "Burbot", "kg": [0.5, 4], "fight": 0.4, "shape": "long", "colors": ["#5a5030", "#c8b880", "#4a4024"], "mark": "spots", "style": "sink", "when": { "hours": "night", "seasons": ["winter", "autumn"] }, "note": "The only cod of fresh water. It spawns under the ice in midwinter." },
+    { "name": "Lake trout", "kg": [1, 10], "fight": 0.7, "shape": "slim", "colors": ["#4a5a50", "#e8e8d8", "#c8a070"], "mark": "spots", "style": "sink", "note": "Lives in deep, cold lakes and grows old and large there." },
+    { "name": "Salmon", "kg": [2, 12], "fight": 0.95, "shape": "slim", "colors": ["#4a5f6e", "#e6e8e4", "#5a6a70"], "mark": "spots", "style": "leap", "rare": true, "when": { "seasons": ["summer", "autumn"] }, "note": "Climbs waterfalls to reach the stream where it hatched." }
+  ],
+  "riverEastAsia": [
+    { "name": "Crucian carp", "kg": [0.2, 1], "fight": 0.25, "shape": "deep", "colors": ["#7a7a4a", "#ddd6a8", "#6a6a3c"], "note": "Funa. Packed in rice to ferment for years into narezushi." },
+    { "name": "Ayu", "kg": [0.05, 0.25], "fight": 0.3, "shape": "slim", "colors": ["#6a7a5a", "#e8e4c8", "#d8c050"], "style": "dart", "when": { "seasons": ["summer"] }, "note": "Fishers send trained cormorants after it by firelight." },
+    { "name": "Loach", "kg": [0.01, 0.05], "fight": 0.1, "shape": "long", "colors": ["#7a6a4a", "#d8ccaa", "#5a4a30"], "mark": "spots", "trap": true, "note": "Wriggles through the mud of rice paddies." },
+    { "name": "Freshwater shrimp", "kg": [0.005, 0.02], "fight": 0.05, "shape": "claw", "colors": ["#a8a890", "#e0e0d0", "#7a7a68"], "trap": true, "note": "Scooped from the weeds and simmered in soy." },
+    { "name": "Yamame trout", "kg": [0.1, 0.5], "fight": 0.6, "shape": "slim", "colors": ["#6a7a6a", "#f0e8e0", "#d06a6a"], "mark": "bars", "style": "leap", "note": "Lives high in mountain streams and darts like a shadow." },
+    { "name": "Mandarin fish", "kg": [0.5, 3], "fight": 0.55, "shape": "deep", "colors": ["#8a7a40", "#e0d4a8", "#6a5a30"], "mark": "spots", "note": "Poets praised it fat in spring, when the peach blossom falls." },
+    { "name": "Snakehead", "kg": [0.5, 4], "fight": 0.7, "shape": "long", "colors": ["#4a5a3a", "#c0c8a0", "#3e4a30"], "mark": "bars", "style": "sink", "note": "Breathes air and can live for days out of water." },
+    { "name": "Eel", "kg": [0.3, 2], "fight": 0.6, "shape": "long", "colors": ["#3a4a3a", "#c0c0a0", "#2a3a2a"], "style": "sink", "when": { "hours": "night" }, "note": "Grilled in high summer to keep up your strength." },
+    { "name": "Carp", "kg": [1, 8], "fight": 0.7, "shape": "deep", "colors": ["#8a7a3a", "#e4d6a0", "#b07a3a"], "style": "leap", "note": "If it leaps the Dragon Gate falls, the story says, it becomes a dragon." },
+    { "name": "Grass carp", "kg": [2, 15], "fight": 0.7, "shape": "slim", "colors": ["#6a7050", "#dcdcc0", "#5a6040"], "note": "Grazes on water plants like a cow, and grows as big." },
+    { "name": "Catfish", "kg": [1, 10], "fight": 0.65, "shape": "long", "colors": ["#4c4a44", "#b8b0a0", "#3e3c36"], "style": "sink", "when": { "hours": "night" }, "rare": true, "note": "In Japan the great namazu under the earth was said to cause earthquakes." }
+  ],
+  "riverDry": [
+    { "name": "Tilapia", "kg": [0.3, 2], "fight": 0.35, "shape": "deep", "colors": ["#6e8076", "#d8dccc", "#8a5a4a"], "mark": "bars", "note": "Keeps its eggs and young safe in its mouth." },
+    { "name": "Barbel", "kg": [0.5, 4], "fight": 0.45, "shape": "slim", "colors": ["#8a7a50", "#e0d4b0", "#c08050"], "style": "sink", "note": "Feels for food along the bottom with four whiskers." },
+    { "name": "Elephantfish", "kg": [0.2, 1], "fight": 0.25, "shape": "long", "colors": ["#6a6458", "#c8c0aa", "#5a5448"], "note": "Its long nose feels the mud, and it talks to its kind in faint electric pulses." },
+    { "name": "Pufferfish", "kg": [0.1, 1], "fight": 0.2, "shape": "deep", "colors": ["#7a7a50", "#ece8d0", "#5a5a40"], "mark": "spots", "note": "Swells up like a ball. Egyptians drew it floating on tomb walls." },
+    { "name": "Catfish", "kg": [1, 8], "fight": 0.6, "shape": "long", "colors": ["#5a5048", "#c0b4a0", "#4a4238"], "style": "sink", "when": { "hours": "night" }, "note": "Swims upside down to feed on the surface." },
+    { "name": "Electric catfish", "kg": [0.5, 5], "fight": 0.5, "shape": "long", "colors": ["#8a7a60", "#e0d4c0", "#5a4a3a"], "mark": "spots", "style": "sink", "note": "Gives a hard shock. Ancient doctors tried it as a cure for pain." },
+    { "name": "Nile perch", "kg": [5, 60], "fight": 1, "shape": "deep", "colors": ["#8a9496", "#e4e8e6", "#7a8486"], "style": "sink", "rare": true, "note": "Huge and silver. Egyptians wrapped some as mummies." }
+  ],
+  "riverSouthAsia": [
+    { "name": "Rohu", "kg": [1, 8], "fight": 0.55, "shape": "deep", "colors": ["#6a7a80", "#e8e4d8", "#c0605a"], "note": "The fish of a Bengali wedding, cooked in mustard." },
+    { "name": "Catla", "kg": [2, 20], "fight": 0.6, "shape": "deep", "colors": ["#5a6a70", "#e0e4e0", "#4a5a60"], "style": "sink", "note": "Big-headed and fast-growing, raised in village tanks." },
+    { "name": "Hilsa", "kg": [0.5, 2], "fight": 0.45, "shape": "deep", "colors": ["#6a7a9a", "#f0f2f4", "#8a9ab0"], "mark": "spots", "style": "dart", "when": { "seasons": ["summer", "autumn"] }, "note": "Swims upriver with the monsoon rains. Bengal waits all year for it." },
+    { "name": "Murrel", "kg": [0.5, 4], "fight": 0.7, "shape": "long", "colors": ["#4a5a3a", "#c0c8a0", "#3e4a30"], "mark": "bars", "style": "sink", "note": "A snakehead that breathes air and survives dry ponds in the mud." },
+    { "name": "Walking catfish", "kg": [0.1, 0.5], "fight": 0.4, "shape": "long", "colors": ["#4a4a40", "#b0aa98", "#3a3a30"], "style": "sink", "when": { "hours": "night" }, "note": "Can wriggle over wet ground to the next pond." },
+    { "name": "Freshwater prawn", "kg": [0.05, 0.3], "fight": 0.1, "shape": "claw", "colors": ["#5a7aa0", "#d8e0e8", "#2a4a8a"], "trap": true, "note": "A giant river prawn with long, blue claws." },
+    { "name": "Mahseer", "kg": [5, 40], "fight": 0.95, "shape": "deep", "colors": ["#a08a40", "#f0e4b8", "#d08a3a"], "style": "leap", "rare": true, "note": "The tiger of the river, famous for the fight it puts up." }
+  ],
+  "riverSoutheastAsia": [
+    { "name": "Barb", "kg": [0.1, 0.6], "fight": 0.25, "shape": "slim", "colors": ["#a09a5a", "#ece6c0", "#d06a3a"], "style": "dart", "note": "Silver, quick and turned into fish paste by the basketful." },
+    { "name": "Climbing perch", "kg": [0.05, 0.3], "fight": 0.3, "shape": "deep", "colors": ["#6a7a50", "#d8d8b0", "#5a6a40"], "note": "Said to climb trees. It can at least cross mud on its gill spines." },
+    { "name": "Giant gourami", "kg": [1, 8], "fight": 0.4, "shape": "deep", "colors": ["#8a8070", "#e8e0d0", "#6a6050"], "mark": "bars", "note": "Breathes air and builds a nest of water plants." },
+    { "name": "Snakehead", "kg": [0.5, 4], "fight": 0.7, "shape": "long", "colors": ["#4a5a3a", "#c0c8a0", "#3e4a30"], "mark": "bars", "style": "sink", "note": "Breathes air and can live for days out of water." },
+    { "name": "Clown knifefish", "kg": [0.5, 5], "fight": 0.5, "shape": "flat", "colors": ["#8a8a90", "#e8e8ec", "#5a5a60"], "mark": "spots", "style": "dart", "note": "Flat as a blade, with a row of dark spots like portholes." },
+    { "name": "Freshwater prawn", "kg": [0.05, 0.3], "fight": 0.1, "shape": "claw", "colors": ["#5a7aa0", "#d8e0e8", "#2a4a8a"], "trap": true, "note": "A giant river prawn with long, blue claws." },
+    { "name": "Giant catfish", "kg": [50, 250], "fight": 1, "shape": "long", "colors": ["#6a6a70", "#d8d8dc", "#5a5a60"], "style": "sink", "rare": true, "note": "Bigger than a man and seen only a few times a year." }
+  ],
+  "riverAfrica": [
+    { "name": "Tilapia", "kg": [0.3, 2], "fight": 0.35, "shape": "deep", "colors": ["#6e8076", "#d8dccc", "#8a5a4a"], "mark": "bars", "note": "Keeps its eggs and young safe in its mouth." },
+    { "name": "African catfish", "kg": [1, 10], "fight": 0.6, "shape": "long", "colors": ["#4a4a40", "#c0b8a0", "#3a3a30"], "mark": "spots", "style": "sink", "when": { "hours": "night" }, "note": "Can breathe air and live for days in damp mud." },
+    { "name": "Elephantfish", "kg": [0.2, 1], "fight": 0.25, "shape": "long", "colors": ["#6a6458", "#c8c0aa", "#5a5448"], "note": "Its long nose feels the mud, and it talks to its kind in faint electric pulses." },
+    { "name": "Bichir", "kg": [0.3, 2], "fight": 0.4, "shape": "long", "colors": ["#6a6a40", "#d8d4a8", "#4a4a30"], "mark": "bars", "style": "sink", "note": "Has lungs and armoured scales. Its family is older than the dinosaurs." },
+    { "name": "Freshwater crab", "kg": [0.05, 0.3], "fight": 0.1, "shape": "crab", "colors": ["#8a5a3a", "#d8b090", "#3a2a20"], "trap": true, "note": "Lives far from the sea, in burrows along the riverbank." },
+    { "name": "Tigerfish", "kg": [1, 10], "fight": 0.9, "shape": "slim", "colors": ["#8a9aa0", "#eef0ee", "#d84a3a"], "mark": "stripe", "style": "leap", "note": "Interlocking teeth like a dog's. It leaps the moment it's hooked." },
+    { "name": "Nile perch", "kg": [5, 60], "fight": 1, "shape": "deep", "colors": ["#8a9496", "#e4e8e6", "#7a8486"], "style": "sink", "rare": true, "note": "Huge and silver, and a fight to get to the bank." }
+  ],
+  "riverAustralia": [
+    { "name": "Golden perch", "kg": [0.5, 5], "fight": 0.55, "shape": "deep", "colors": ["#9a8a40", "#f0e0a0", "#7a6a30"], "note": "Swims hundreds of kilometres upriver after a flood." },
+    { "name": "Catfish", "kg": [0.5, 3], "fight": 0.5, "shape": "long", "colors": ["#5a5448", "#c8c0b0", "#4a4438"], "mark": "spots", "style": "sink", "when": { "hours": "night" }, "note": "The eel-tailed catfish builds a round nest of gravel." },
+    { "name": "Eel", "kg": [0.3, 3], "fight": 0.6, "shape": "long", "colors": ["#4a4630", "#b8b088", "#3c3826"], "style": "sink", "when": { "hours": "night" }, "note": "The Gunditjmara farmed them in stone channels for thousands of years." },
+    { "name": "Yabby", "kg": [0.03, 0.2], "fight": 0.1, "shape": "claw", "colors": ["#3a4a6a", "#a0a8c0", "#2a3048"], "trap": true, "note": "Dug out of muddy banks or coaxed up on a string with meat." },
+    { "name": "Barramundi", "kg": [2, 20], "fight": 0.9, "shape": "slim", "colors": ["#6a7a70", "#e8ecea", "#5a6a60"], "style": "leap", "note": "Explodes from the water when hooked, gill plates rattling." },
+    { "name": "Murray cod", "kg": [5, 50], "fight": 0.85, "shape": "deep", "colors": ["#5a6a3a", "#e0e0c0", "#4a5a2e"], "mark": "spots", "style": "sink", "rare": true, "note": "Ponde, the great cod that carved out the Murray River in the old story." }
+  ],
+  "riverAmazon": [
+    { "name": "Pacu", "kg": [0.5, 4], "fight": 0.45, "shape": "deep", "colors": ["#6a7276", "#d8a868", "#5a6266"], "note": "Has teeth like a person's, for cracking nuts that fall in the water." },
+    { "name": "Piranha", "kg": [0.2, 1.5], "fight": 0.55, "shape": "deep", "colors": ["#6a7470", "#d05a3c", "#4a5450"], "mark": "spots", "style": "dart", "note": "Its jaw full of teeth was used as a pair of scissors." },
+    { "name": "Catfish", "kg": [1, 10], "fight": 0.6, "shape": "long", "colors": ["#4c4a44", "#d86a3a", "#3e3c36"], "mark": "spots", "style": "sink", "when": { "hours": "night" }, "note": "A red-tailed catfish, all mouth and whiskers." },
+    { "name": "Peacock bass", "kg": [1, 7], "fight": 0.85, "shape": "deep", "colors": ["#7a8a3a", "#e8d860", "#d84a2a"], "mark": "bars", "style": "leap", "note": "Hits hard and fights like a much bigger fish." },
+    { "name": "Tambaqui", "kg": [2, 15], "fight": 0.75, "shape": "deep", "colors": ["#4a4a3c", "#d0b860", "#3a3a30"], "note": "Eats fruit that falls into the flooded forest." },
+    { "name": "Freshwater stingray", "kg": [1, 15], "fight": 0.5, "shape": "flat", "colors": ["#6a5a40", "#e8dcc8", "#4a3a28"], "mark": "spots", "style": "sink", "note": "Lies buried in the sand. Shuffle your feet when you wade." },
+    { "name": "Electric eel", "kg": [2, 15], "fight": 0.6, "shape": "long", "colors": ["#3a3a30", "#d8a050", "#2a2a24"], "style": "sink", "rare": true, "when": { "hours": "night" }, "note": "Can stun a horse. Humboldt watched it happen in 1800." },
+    { "name": "Arapaima", "kg": [30, 150], "fight": 0.9, "shape": "long", "colors": ["#4a5a50", "#e0a070", "#c04a3a"], "style": "leap", "rare": true, "note": "Rises every few minutes to gulp air. Its tongue was used as a grater." }
+  ],
+  "lakeMexico": [
+    { "name": "Charal", "kg": [0.005, 0.03], "fight": 0.05, "shape": "slim", "colors": ["#a8b0a8", "#eef0ec", "#8a9088"], "style": "dart", "note": "Tiny silver fish netted by the thousand and dried in the sun." },
+    { "name": "White fish", "kg": [0.05, 0.3], "fight": 0.3, "shape": "slim", "colors": ["#c0c8c0", "#f4f6f2", "#a0a8a0"], "mark": "stripe", "note": "Pescado blanco, so pale you can almost see through it." },
+    { "name": "Acocil", "kg": [0.005, 0.02], "fight": 0.05, "shape": "claw", "colors": ["#8a6a4a", "#c8a880", "#5a4430"], "trap": true, "note": "Little lake crayfish, eaten with chile and lime." },
+    { "name": "Axolotl", "kg": [0.05, 0.2], "fight": 0.15, "shape": "frog", "colors": ["#6a6a5a", "#c8b8a0", "#d88a8a"], "trap": true, "note": "Never grows up and keeps its frilly gills for life. Roasted in Tenochtitlan." },
+    { "name": "Goodeid", "kg": [0.02, 0.1], "fight": 0.15, "shape": "deep", "colors": ["#6a7050", "#e0dcc0", "#d8a040"], "note": "Gives birth to live young, unlike most fish." }
+  ],
+  "lakeAndes": [
+    { "name": "Ispi", "kg": [0.005, 0.03], "fight": 0.05, "shape": "slim", "colors": ["#a0a8a0", "#eceee8", "#8a908a"], "style": "dart", "note": "Tiny silver fish, fried whole by the plateful." },
+    { "name": "Carachi", "kg": [0.05, 0.3], "fight": 0.2, "shape": "deep", "colors": ["#6a6a50", "#d8d4b8", "#5a5a40"], "mark": "spots", "note": "A little killifish of Titicaca, dried in the sun by the thousand." },
+    { "name": "Boga", "kg": [0.1, 0.5], "fight": 0.3, "shape": "slim", "colors": ["#7a8070", "#e4e6dc", "#6a7060"], "note": "Swims in open water out past the reed beds." },
+    { "name": "Lake frog", "kg": [0.1, 1], "fight": 0.15, "shape": "frog", "colors": ["#5a5a3a", "#c0b890", "#4a4a30"], "mark": "spots", "trap": true, "note": "A huge, baggy-skinned frog that never leaves the lake." },
+    { "name": "Suche", "kg": [0.5, 3], "fight": 0.4, "shape": "long", "colors": ["#6a5a3a", "#d8c8a0", "#4a3a28"], "mark": "spots", "style": "sink", "rare": true, "note": "A spotted catfish that hides in the totora reeds." }
+  ]
+}

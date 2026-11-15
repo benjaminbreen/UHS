@@ -19,6 +19,8 @@ import {
 } from "../world/geography/atlas";
 import { noise } from "../world/geography/noise";
 import { boxBlur } from "../render/box-blur";
+import { livingProfile } from "../render/living-water/profile";
+import { palettes } from "../render/living-water/model";
 import type { Runtime } from "../runtime/session";
 import type { WorldModel, Point } from "../core/types";
 const PAD = 32;
@@ -359,7 +361,9 @@ function* paintBackgroundSteps(
           const cell = world.topography(wx, wy);
           if (cell.surface === "water") {
             k = "water";
-            fill = cell.waterDepth === "shallow" ? "#3d93b0" : "#2a6f93";
+            fill = cell.waterVisual
+              ? palettes[livingProfile(cell).palette].colors[cell.waterDepth === "shallow" ? 2 : 3]
+              : cell.waterDepth === "shallow" ? "#3d93b0" : "#2a6f93";
           } else if (cell.height > world.topography(wx, wy + 1).height) {
             k = "cliff";
             fill = "#8d6640";

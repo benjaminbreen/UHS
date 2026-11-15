@@ -97,7 +97,7 @@ import { FORD_CARD } from "../content/cards/hazards";
 import { bossTitle, cardText, oddsOf, pickCard } from "./cards";
 import { giftOf, type Form } from "./making";
 import { fieldParcel, findPlace, waterfrontMember, type StepPlace } from "./work-places";
-import { catchFate, catchOf, fishingPractice, fishingWords, preserveWords, waterOf, type Preserve } from "../content/economy/fishing";
+import { catchFate, catchOf, fishingPractice, fishingWords, isFishingFind, preserveWords, waterOf, type Preserve } from "../content/economy/fishing";
 import { dangerOf, gameOf, GIVE_UP_HOURS, huntFate, huntWeapon, huntWords, keepsTraps } from "../content/economy/hunting";
 import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
@@ -1060,6 +1060,14 @@ export class Engine {
       command: { type: "interact" as const, target: Engine.tileTarget(ps.at.pos.x, ps.at.pos.y), action: "work" as const },
     };
   }
+  /** The household's fishing, when the player stands at the day's fishing
+   * grounds with the fishing still to do. */
+  fishingHere() {
+    const t = this.trade(), ps = this.placeStep(t), p = this.state.player;
+    if (!t || !ps || ps.step.at !== "grounds" || this.waitingCard() || p.pos.space !== "outside" || distance(p.pos, ps.at.pos) > 2.5) return;
+    const practice = this.fishing(t.household);
+    return practice && { practice, afloat: p.afloat === "boat" };
+  }
   /** A grown man of another household, the same one every day for a seed and
    * a purpose: whoever the player answers to at work, or an official. Picked
    * from the generated people, so a replay finds the same man. */
@@ -1742,6 +1750,35 @@ export class Engine {
     const result = c.net > 0 ? `come away ${amount(c.net)} up` : c.net < 0 ? `lose ${amount(-c.net)}` : "come away even";
     const end = c.outcome === "caught" ? " You caught a cheat at the table." : c.outcome === "thrown-out" ? " You accused an honest player and were shown the door." : "";
     this.event(`You spend ${time} at ${title} and ${result}.${end}`);
+  }
+  /** A spell at the fishing grounds as the player played it: the clock moves
+   * on by the time it took, and the catch, weighed against an ordinary day's,
+   * sets what the day brings in. */
+  private landFish(c: Extract<PlayerCommand, { type: "fish" }>) {
+    const t = this.trade()!, s = this.state, inv = s.player.inventory, log = (s.fishLog ??= {});
+    const fish = c.caught.filter((f) => f.id.startsWith("fish-"));
+    const kg = fish.reduce((n, f) => n + f.kg, 0), count = fish.length, firsts: string[] = [];
+    for (const f of c.caught) {
+      inv[f.id] = (inv[f.id] ?? 0) + 1;
+      if (!f.id.startsWith("fish-")) continue;
+      if (!log[f.id]) firsts.push(this.item(f.id)!.name.toLowerCase());
+      const was = log[f.id];
+      log[f.id] = { n: (was?.n ?? 0) + 1, best: Math.max(was?.best ?? 0, f.kg) };
+    }
+    this.advance(c.minutes * 60);
+    s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
+    const was = s.economy.work?.day === t.day ? s.economy.work : undefined;
+    // An ordinary day's catch for one boat, about four kilograms an hour on the water.
+    const factor = Math.max(0.25, Math.min(2.5, kg / Math.max(6, (c.minutes / 60) * 4)));
+    s.economy.work = { ...was, day: t.day, stage: t.stage + 1, catch: factor };
+    const time = c.minutes < 50 ? `${Math.round(c.minutes / 5) * 5 || 5} minutes` : c.minutes < 90 ? "an hour" : `${Math.round(c.minutes / 60)} hours`;
+    this.event(!count ? `You fish for ${time} and land nothing.`
+      : `You fish for ${time} and land ${count === 1 ? "one fish" : `${count} fish`}, ${kg < 1 ? "under a kilogram" : `${Math.round(kg)} kilograms`} in all.`);
+    if (firsts.length) this.event(`Your first ever ${new Intl.ListFormat("en").format(firsts)}.`);
+    this.grantXp("foraging", Math.min(30, 4 + count));
+    const card = this.drawCard(t, t.stage);
+    if (t.stage + 1 < t.process.stages.length) return;
+    if (!card) this.finishWork({ ...t, stage: t.stage + 1 });
   }
   /** A wage or a day's takings in coin, moved by how the day went. */
   private takings(base: number, say: (amount: string) => string): Record<string, number> {
@@ -6820,6 +6857,10 @@ export class Engine {
       if (!tableGames.some((g) => g.id === c.game && g.kinds.includes(kind!))) return "There is no game here.";
       return -c.net > (p.inventory.coin ?? 0) ? "You can't lose more than you have." : undefined;
     }
+    if (c.type === "fish")
+      return !this.fishingHere() ? "You are not at your fishing grounds."
+        : c.caught.length > c.minutes * 3 + 6 ? "That is more fish than the time allows."
+        : c.caught.some((f) => !(f.id.startsWith("fish-") || isFishingFind(f.id)) || !this.item(f.id)) ? "That is not a fish." : undefined;
     if (c.type === "care") {
       const option = this.careOptions(c.target).find((o) => o.treatment === c.treatment);
       return option ? option.unavailable : "That care option is unavailable in this world.";
@@ -8028,6 +8069,7 @@ export class Engine {
     if (p.dead) return;
     if (c.type === "care") { this.giveCare(c.target, c.treatment); return; }
     if (c.type === "gamble") { this.gamble(c); return; }
+    if (c.type === "fish") { this.landFish(c); return; }
     this.lastImpact = undefined;
     delete this.lastTreeFind;
     this.motion = c.type === "move" ? (c.run ? "run" : "walk") : c.type === "swing" || c.type === "interact" ? "work" : "still";
@@ -11411,10 +11453,21 @@ export class Engine {
     const setting = this.world.pack.setting;
     if (!setting) return {};
     const fate = catchFate(setting), preserve = waterfrontMember(this.world, t.household) && this.preserve(t.household);
+    // A catch the player fished by hand is the fish they carry home.
+    const inv = this.state.player.inventory, fresh = Object.keys(inv).filter((id) => id.startsWith("fish-") && (inv[id] ?? 0) > 0);
     if (fate.owed) this.event(`${fate.owed.share >= 0.25 ? "A quarter" : "A tenth"} of the catch goes to ${fate.owed.to}.`);
+    for (const id of fresh) inv[id]! -= Math.round(inv[id]! * (fate.owed?.share ?? 0));
     if ((preserve === "salt" || preserve === "ferment") && !this.saltFor(t.household))
       this.event("There is no salt in the house, so the rest has to be eaten or sold fresh today.");
     else if (preserve && preserve !== "fresh") this.event(`The rest is put by: ${preserveWords[preserve].doing.toLowerCase()}.`);
+    if (fate.sold && fresh.length && this.coined()) {
+      const n = fresh.reduce((sum, id) => sum + (inv[id] ?? 0) * this.sellPrice(id), 0);
+      for (const id of fresh) delete inv[id];
+      inv.coin = (inv.coin ?? 0) + n;
+      this.event(`${fate.buyer.replace(/^./, (c) => c.toUpperCase())} buys the rest of the catch for ${amountIn(setting, n, true)}.`);
+      return n ? { coin: n } : {};
+    }
+    for (const id of fresh) delete inv[id];
     if (fate.sold) {
       const coin = this.takings(2, (amount) => `${fate.buyer.replace(/^./, (c) => c.toUpperCase())} pays you ${amount} for the fish.`);
       if (!coin.coin) this.event("You trade the fish at the market for what the house needs.");

@@ -687,6 +687,41 @@ it("takes the household boat out to fish, for NPCs and the player, where no regi
   } finally {a.runtime.dispose();}
 },120000);
 
+it("lands a hand-fished catch as fish the player carries, logs each kind, and sells the rest at landing",async()=>{
+  const a=await startAgent({setting:"Fisher in Lagos 1700",seed:"fishing-explore"},new RunRecord({mode:"run"}));
+  try {
+    const e=a.engine;
+    let today=e.workPlan()!;
+    await a.call("goto",{x:today.door!.x,y:today.door!.y});
+    await a.call("act",{command:e.workHere()!.command});
+    today=e.workPlan()!;
+    await a.call("goto",{x:today.door!.x,y:today.door!.y});
+    const boat=e.state.objects.find(o=>o.owner==="player" && o.id.endsWith("-boat"))!;
+    await a.call("act",{command:{type:"interact",target:boat.id,action:"launch"}});
+    today=e.workPlan()!;
+    await a.call("goto",{x:today.door!.x,y:today.door!.y});
+    const card=(e as any).waitingCard();
+    if(card)await a.call("act",{command:{type:"choose",card,choice:1}});
+    expect(e.fishingHere()).toBeDefined();
+    expect(e.validate({type:"fish",caught:[{id:"stone",kg:1}],minutes:60})).toBe("That is not a fish.");
+    const caught=[{id:"fish-sardine",kg:.1},{id:"fish-sardine",kg:.12},{id:"shell",kg:.1},{id:"fish-grey-mullet",kg:2.4}];
+    expect(await a.call("act",{command:{type:"fish",caught,minutes:90}})).toMatch(/land 3 fish/);
+    expect(e.state.player.inventory["fish-sardine"]).toBe(2);
+    expect(e.state.player.inventory.shell).toBeGreaterThan(0);
+    expect(e.state.fishLog!.shell).toBeUndefined();
+    expect(e.state.fishLog!["fish-grey-mullet"]).toEqual({n:1,best:2.4});
+    expect(e.state.events.some(v=>/Your first ever sardine and grey mullet/.test(v.text))).toBe(true);
+    today=e.workPlan()!;
+    await a.call("goto",{x:today.door!.x,y:today.door!.y});
+    const landing=(e as any).waitingCard();
+    if(landing)await a.call("act",{command:{type:"choose",card:landing,choice:0}});
+    const coin=e.state.player.inventory.coin??0;
+    expect(await a.call("act",{command:e.workHere()!.command})).toMatch(/buys the rest of the catch/);
+    expect(Object.keys(e.state.player.inventory).some(id=>id.startsWith("fish-"))).toBe(false);
+    expect(e.state.player.inventory.coin??0).toBeGreaterThan(coin);
+  } finally {a.runtime.dispose();}
+},120000);
+
 it("sends the catch to buyers, dues or kin, and keeps it by the climate, from capabilities and date",()=>{
   const base=resolveSetting("Fisher in Lagos 1700","fishing-fate");
   if("error" in base)throw Error(base.error);

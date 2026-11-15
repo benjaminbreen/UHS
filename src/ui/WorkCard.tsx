@@ -90,6 +90,7 @@ export function WorkCard({ runtime, onDetails, carded }: { runtime: Runtime; onD
         Tend
       </button>
     )
+    : here && engine.fishingHere() ? <button className="primary" onClick={() => runtime.openFishing()}>Fish</button>
     : here ? <span className="work-hold" data-hint={hint === "hold" || undefined}><kbd>{coarse ? "Work" : "F"}</kbd>hold</span>
     : walking ? <button onClick={() => runtime.stop()}>Stop</button>
     : target ? <button className="primary" data-hint={hint === "go" || undefined} onClick={go}>Go</button>

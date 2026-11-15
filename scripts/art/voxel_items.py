@@ -2019,6 +2019,163 @@ STUFF = {
     'reed': ('#7f9a4a', 0, None),
 }
 ITEMS.update({f'form-{k}': (k.capitalize(), lambda f=f: f((BODY, 0.2, None), (TRIM, 0.2, None))) for k, f in FORMS.items()})
+def _shade(c, k):
+    r, g, b = (int(c[i:i + 2], 16) for i in (1, 3, 5))
+    t = 0 if k < 1 else 255
+    f = abs(1 - k)
+    return '#%02x%02x%02x' % tuple(round(v + (t - v) * f) for v in (r, g, b))
+
+
+def fish_kind(f):
+    """A kind from src/content/economy/fish.json, built from its body plan."""
+    back, belly, fin = f['colors']
+    shape, mark = f['shape'], f.get('mark')
+    M = Model({'crab': (200, 55), 'claw': (28, 50), 'flat': (24, 52), 'squid': (20, 34)}.get(shape, (20, 24)))
+    X, Y, Z = M.X, M.Y, M.Z
+    name = f['name'].lower()
+    dark, eye = M.mat(_shade(back, 0.6), 0.4), M.mat('#1a1a22', 0.9)
+
+    def marks(body, top):
+        if mark == 'bars':
+            M.put(body & top & (np.floor((X + 20) / 2.2) % 2 == 0), dark)
+        elif mark == 'spots':
+            M.put(body & top & (M.noise(1.0, 7) < 0.14), dark)
+        elif mark == 'stripe':
+            M.put(body & (np.abs(Z - np.median(Z[body])) < 0.55), dark)
+
+    if shape in ('slim', 'deep'):
+        L, T, H = (10, 2.0, 2.8) if shape == 'slim' else (8.5, 2.5, 4.6)
+        cz = 8
+        body = M.put(M.ell((1, 0, cz), (L, T, H)), M.mat(back, 0.8))
+        M.put(body & (Z < cz - H * 0.2), M.mat(belly, 0.8))
+        marks(body, Z > cz - H * 0.2)
+        M.put((np.abs(Y) < 0.7) & (X < -L + 3) & (X > -L - 3.5) & (np.abs(Z - cz) < (-L + 3 - X) * 0.9 + 0.4), M.mat(fin, 0.3))
+        M.put((np.abs(Y) < 0.5) & (np.abs(X - 1) < L * 0.4) & (Z > cz + H - 0.8) & (Z < cz + H + 2 - np.abs(X - 1) * 0.35), M.mat(fin, 0.3))
+        M.put((np.abs(Y) < 0.4) & (np.abs(X + L * 0.2) < L * 0.2) & (Z < cz - H + 0.8) & (Z > cz - H - 1.4), M.mat(fin, 0.3))
+        M.put(body & (np.abs(X - 1 - L * 0.48) < 0.4), M.mat(_shade(back, 0.8), 0.5))
+        M.put(M.ell((1 + L * 0.74, -T * 0.8, cz + H * 0.22), (0.8, 0.6, 0.8)) | M.ell((1 + L * 0.74, T * 0.8, cz + H * 0.22), (0.8, 0.6, 0.8)), eye)
+        if 'catfish' in name or 'barbel' in name:
+            for side in (-1, 1):
+                M.put(M.seg((1 + L, side * 0.8, cz - 1), (L + 3.5, side * 3, cz - 3.5), 0.35), M.mat(fin, 0.3))
+    elif shape == 'long':
+        xs = np.linspace(-11, 10, 12)
+        pts = [(x, 2.0 * math.sin(x * 0.33), 6) for x in xs]
+        body = np.zeros_like(M.m, bool)
+        for i in range(len(pts) - 1):
+            r = 0.9 + 1.2 * min(1, (i + 1) / 6)
+            body |= M.seg(pts[i], pts[i + 1], r)
+        body = M.put(body, M.mat(back, 0.8))
+        M.put(body & (Z < 5.5), M.mat(belly, 0.8))
+        marks(body, Z >= 5.5)
+        tail = M.seg((-12.5, 2.0 * math.sin(-12.5 * 0.33), 6), (-11, 2.0 * math.sin(-11 * 0.33), 6), 1.6) & (np.abs(Z - 6) < 1.6)
+        M.put(tail & ~body, M.mat(fin, 0.3))
+        ridge = np.zeros_like(body)
+        for i in range(2, len(pts) - 2):
+            ridge |= M.seg((pts[i][0], pts[i][1], 7.9), (pts[i + 1][0], pts[i + 1][1], 7.9), 0.45)
+        M.put(ridge & ~body, M.mat(fin, 0.3))
+        hx, hy = 9.2, 2.0 * math.sin(9.2 * 0.33)
+        M.put(M.ell((hx, hy - 1.6, 6.8), (0.6, 0.5, 0.6)) | M.ell((hx, hy + 1.6, 6.8), (0.6, 0.5, 0.6)), eye)
+        if 'catfish' in name or name in ('suche', 'electric eel'):
+            for side in (-1, 1):
+                M.put(M.seg((10.5, hy + side * 0.9, 5.6), (12.5, hy + side * 4, 3.4), 0.35), M.mat(fin, 0.3))
+        if name in ('swordfish', 'sailfish'):
+            M.put(M.seg((10.5, hy, 6.2), (12.8, hy, 6.4), 0.5), M.mat(_shade(back, 0.8), 0.6))
+        if name == 'sailfish':
+            M.put((np.abs(Y - 2.0 * np.sin(X * 0.33)) < 0.45) & (X > -6) & (X < 7) & (Z > 7.5) & (Z < 13 - np.abs(X - 1) * 0.5), M.mat(fin, 0.4))
+    elif shape == 'flat':
+        body = M.put(M.ell((0, 0, 3), (8.5, 6.5, 1.5)), M.mat(back, 0.6))
+        M.put(body & (Z < 2.6), M.mat(belly, 0.6))
+        marks(body, Z >= 2.6)
+        frill = M.ell((0, 0, 2.8), (9.7, 7.6, 0.7)) & ~body
+        M.put(frill, M.mat(fin, 0.2))
+        M.put((X < -8) & (X > -12.5) & (np.abs(Y) < (-8 - X) * 0.9 + 0.6) & (np.abs(Z - 2.9) < 0.6), M.mat(fin, 0.2))
+        M.put(M.ell((5.2, -1.4, 4.4), (0.8, 0.8, 0.8)) | M.ell((5.8, 0.8, 4.4), (0.8, 0.8, 0.8)), eye)
+        if 'stingray' in name:
+            M.put(M.seg((-8, 0, 3), (-12, 2.5, 2.4), 0.5), M.mat(fin, 0.3))
+    elif shape == 'crab':
+        # Across the view, claws toward the camera (which looks along +Y).
+        shell = M.put(M.ell((0, 0, 4.5), (7.5, 5.5, 2.4)), M.mat(back, 0.6))
+        M.put(shell & (Z < 3.6), M.mat(belly, 0.4))
+        marks(shell, Z >= 3.6)
+        leg = M.mat(_shade(back, 0.7), 0.4)
+        for side in (-1, 1):
+            for y in (3.2, 1.2, -0.8):
+                M.put(M.seg((side * 6, y, 4), (side * 9.5, y + 1.2, 3), 0.65) | M.seg((side * 9.5, y + 1.2, 3), (side * 10.8, y + 2.6, 0.6), 0.5), leg)
+            M.put(M.seg((side * 4.5, -4, 4.5), (side * 6, -7, 5), 1.0), leg)
+            claw = M.put(M.ell((side * 6.4, -9, 5.2), (1.6, 2.5, 1.5)), M.mat(back, 0.7))
+            M.put(claw & (Y < -10.2), M.mat(fin, 0.5))
+            M.put(M.ell((side * 1.6, -4.8, 6.6), (0.6, 0.6, 0.8)), eye)
+    elif shape == 'claw':
+        shell = M.put(M.ell((3, 0, 5), (4.5, 2.6, 2.6)), M.mat(back, 0.7))
+        for i in range(6):
+            seg = M.ell((-1.6 - i * 1.6, 0, 5 - i * 0.3), (1.3, 2.4 - i * 0.22, 2.2 - i * 0.2)) & ~shell
+            M.put(seg, M.mat(back if i % 2 else _shade(back, 0.82), 0.7))
+        M.put(M.ell((-11.5, 0, 3.6), (1.4, 3.2, 0.6)), M.mat(fin, 0.4))
+        marks(shell, Z > 5)
+        for side in (-1, 1):
+            M.put(M.seg((6, side * 2, 5), (8.6, side * 4, 5.2), 0.8), M.mat(back, 0.6))
+            claw = M.put(M.ell((10.4, side * 4.4, 5.4), (2.4, 1.3, 1.1)), M.mat(back, 0.7))
+            M.put(claw & (X > 11.5), M.mat(fin, 0.5))
+            M.put(M.seg((7, side * 1, 6), (12, side * 7, 9), 0.3), M.mat(fin, 0.3))
+            for x in (3.5, 1.8, 0.2):
+                M.put(M.seg((x, side * 2.2, 3.6), (x - 0.6, side * 4.2, 0.6), 0.4), M.mat(_shade(back, 0.85), 0.3))
+            M.put(M.ell((7.2, side * 1.2, 6.5), (0.5, 0.5, 0.5)), eye)
+        M.put((M.m > 0) & (Z < 3.4) & (np.abs(Y) < 2) & (X < 7) & (X > -10), M.mat(belly, 0.4))
+    elif shape == 'squid':
+        mantle = M.put(M.ell((-3.5, 0, 8), (5, 4, 4.4)), M.mat(back, 0.6))
+        marks(mantle, Z > 6)
+        M.put(M.ell((1.8, 0, 5.4), (2.6, 3.2, 2.6)), M.mat(back, 0.6))
+        arm = M.mat(_shade(back, 0.9), 0.5)
+        under = M.mat(belly, 0.3)
+        for k in range(8):
+            a = -1.1 + k * (2.2 / 7)
+            pts = [(2.5, 0, 4)]
+            for j in range(1, 5):
+                r = j * 2.2
+                pts.append((2.5 + r * math.cos(a), r * math.sin(a) * 1.15, max(0.8, 4 - j * 1.1)))
+            curl = (2.5 + 8.8 * math.cos(a) - 1.2 * math.sin(a), 8.8 * math.sin(a) * 1.15 + 1.2 * math.cos(a), 1.6)
+            pts.append(curl)
+            for i in range(len(pts) - 1):
+                sg = M.put(M.seg(pts[i], pts[i + 1], 1.1 - i * 0.16), arm)
+                M.put(sg & (Z < pts[i][2] - 0.2), under)
+        for side in (-1, 1):
+            M.put(M.ell((2.6, side * 3, 6.2), (1.0, 0.7, 1.0)), M.mat('#f0e8c8', 0.4))
+            M.put(M.ell((3.0, side * 3.4, 6.2), (0.5, 0.5, 0.6)), eye)
+    elif shape == 'frog':
+        body = M.put(M.ell((-0.5, 0, 4.5), (5.5, 4.2, 3.2)), M.mat(back, 0.6))
+        M.put(M.ell((4, 0, 5.4), (3.2, 3.6, 2.4)), M.mat(back, 0.6))
+        M.put((M.m > 0) & (Z < 3.6), M.mat(belly, 0.5))
+        marks(body, Z >= 3.6)
+        leg = M.mat(_shade(back, 0.9), 0.5)
+        for side in (-1, 1):
+            M.put(M.seg((-3, side * 3.5, 3.4), (0, side * 6.2, 1.6), 1.3) | M.seg((0, side * 6.2, 1.6), (-4.5, side * 6.8, 0.8), 1.0), leg)
+            M.put(M.seg((3, side * 2.8, 3), (4.6, side * 4, 0.8), 0.8), leg)
+            M.put(M.ell((5, side * 2.2, 7.4), (1.1, 1.1, 1.1)), M.mat(belly, 0.5))
+            M.put(M.ell((5.6, side * 2.4, 7.6), (0.55, 0.6, 0.6)), eye)
+            if f['name'] == 'Axolotl':
+                for j in range(3):
+                    M.put(M.seg((3.4, side * 3, 6), (2.4 - j * 0.6, side * 5.2, 6.4 + j * 1.3), 0.45), M.mat(fin, 0.3))
+        if f['name'] == 'Axolotl':
+            M.put(M.seg((-5, 0, 4.4), (-11, 0, 4.8), 1.6, 0.4) & (np.abs(Y) < 0.9), M.mat(back, 0.6))
+    return M
+
+
+def _fish_slug(name):
+    import re, unicodedata
+    return re.sub('[^a-z]+', '-', unicodedata.normalize('NFD', name.lower())).strip('-')
+
+
+def _fish_kinds():
+    import json, os
+    path = os.path.join(os.path.dirname(__file__), '..', '..', 'src', 'content', 'economy', 'fish.json')
+    seen = {}
+    for kinds in json.load(open(path)).values():
+        for f in kinds:
+            seen.setdefault('fish-' + _fish_slug(f['name']), f)
+    return seen
+
+
+ITEMS.update({k: (f['name'], lambda f=f: fish_kind(f)) for k, f in _fish_kinds().items()})
 SLOTS = {BODY: 'body', item_ramp(BODY)[3]: 'body-dark', TRIM: 'trim', item_ramp(TRIM)[3]: 'trim-dark'}
 PAIRS = [('sponge', 'wood'), ('wood', 'reed'), ('clay', 'bone'), ('stone', 'wood'), ('bone', 'clay'), ('reed', 'sponge')]
 

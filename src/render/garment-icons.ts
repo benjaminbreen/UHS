@@ -57,6 +57,7 @@ export function itemIconFor(id: string): string | undefined {
   if (dated in itemArt) return dated;
   if (id in itemArt) return id;
   if (sharedArt[id]) return sharedArt[id];
+  if (id.startsWith("fish-")) return "fish";
   const sprite = (caveItems[id] ?? sewerItems[id] ?? mineItems[id])?.sprite;
   if (!sprite) return;
   const icon = caveIconForSprite[sprite] ?? sprite;

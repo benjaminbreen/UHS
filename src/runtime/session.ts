@@ -2126,6 +2126,7 @@ export class Runtime {
     if (this.workInProgress) return;
     if (!this.replay && this.armPlunge()) return undefined;
     const verb = this.verbs().primary;
+    if (verb?.kind === "work" && this.openFishing()) return verb;
     if (verb?.kind === "work") {
       this.stop(false);
       this.workHold = performance.now();
@@ -2442,8 +2443,26 @@ export class Runtime {
     this.running = true;
     this.emit();
   }
+  /** The fishing game, while it is open: the world's clock waits for its
+   * settlement, as it does for a day's work. `practice` is a dev test away
+   * from any grounds, which settles nothing. */
+  fishing?: { practice: boolean };
+  openFishing(practice = false) {
+    if (!practice && !this.engine.fishingHere()) return false;
+    this.stop(false);
+    this.workHold = undefined;
+    this.fishing = { practice };
+    this.emit();
+    return true;
+  }
+  closeFishing(spell?: { caught: { id: ItemId; kg: number }[]; minutes: number }) {
+    const practice = this.fishing?.practice;
+    this.fishing = undefined;
+    if (spell && !practice) this.command({ type: "fish", ...spell });
+    else this.emit();
+  }
   tick() {
-    if (this.timeTravelLocked || this.workInProgress || this.passing || this.engine.state.player.dead) return;
+    if (this.timeTravelLocked || this.workInProgress || this.passing || this.fishing || this.engine.state.player.dead) return;
     if (this.replay) {
       if (this.replay.playing) this.stepReplay();
       return;

@@ -47,7 +47,11 @@ change of season or tide step restyles the terrain stream.
   foam over worker-prepared shoreline and rock-displacement textures
   (`game.ts`, `mask.ts`, `coast.ts`, `banks.ts`, `polish.ts`, `shader.ts`).
   Tuned values are in `living-water/defaults.json`, shared with the lab.
-  Palette by ecology is in `living-water/profile.ts`. Decorative water rocks,
+  Palette by ecology and kind is in `living-water/profile.ts`: lowland rivers
+  and ponds are olive `murky`, creeks and temperate lakes `green`, boreal
+  water `blue`, tundra `polar`; seas keep their own colours, and a
+  waterscape tint (silt, loess, clear, reef) overrides all of it. The
+  minimap and the fishing view read the same palettes. Decorative water rocks,
   reeds and weed are cosmetic, with no collision.
 - **Legacy CPU raster (fallback).** `water-raster.ts`, `water-motifs.ts` and
   `water.ts` draw water when the renderer is Canvas or

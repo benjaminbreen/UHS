@@ -33,6 +33,12 @@ export const palettes = {
     bed: "#c8c9ae",
     foam: "#edf5e8",
   },
+  murky: {
+    label: "Lowland river · olive murk",
+    colors: ["#b8ba88", "#8e9a69", "#6d7b55", "#525f45", "#3c4837"],
+    bed: "#766d4e",
+    foam: "#d8d9b4",
+  },
   silt: {
     label: "Silt · flood brown",
     colors: ["#c4ad82", "#ad9468", "#957c55", "#7f6748", "#6a563d"],

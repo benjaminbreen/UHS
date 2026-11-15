@@ -58,6 +58,28 @@ a proper day; do not add a new step system.
 - `station`, `line`: the town's railway.
 - `workplace`, `gear`, `grounds`: the trade's institution or kit.
 
+At the `grounds` step a fisher plays the fishing game instead of holding to
+work (`src/ui/fishing/`, opened by the work card's **Fish** button or F). It
+ends in one `fish` command listing each fish landed: they go into the
+inventory as `fish-<kind>` items from `fishItems` in `fishing.ts`, and
+`state.fishLog` keeps each kind's count and heaviest. At landing,
+`settleCatch` takes the owed share out of the fish carried and the buyer pays
+their price for the rest. Agents and autopilot keep the timed step and the
+flat takings. Settings → Developer → **Fishing test** opens the game at a
+preset place without recording anything.
+
+The species live in `src/content/economy/fish.json`, grouped by water
+(`fishOf` picks the group by climate and culture). A kind may bite only at
+night, at dusk, in some seasons or in rain (`biting`), may go into traps, and
+fights in one of four styles; a leaper must be given slack while it is in the
+air. Each kind's item icon is a voxel model built from the same file by
+`scripts/art/voxel_items.py` (`--bake fish-`). Besides the cast gear, the
+player can set traps, a weir (from the bank) and a set net, which fill on
+their own and are hauled with a click. A line or trap sometimes brings up a
+find (`fishingFinds`: shells, sticks, an old boot), which lands as an item but
+not in the log. A cat may come for the creel: feed it or it takes a fish. **B**
+opens the book of this water's kinds, caught or still unknown.
+
 A role the map lacks falls back to the trade's prop. A trade that keeps a
 shop (`shopKind`) makes the player's house a named shop on the street. A
 herding player keeps their own animals in the first pen.

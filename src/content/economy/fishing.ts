@@ -1,5 +1,7 @@
 import type { WorldSetting } from "../geography/types";
 import type { SeasonId } from "../../core/season";
+import type { ItemDef, ItemId } from "../../core/types";
+import fishData from "./fish.json" with { type: "json" };
 import { capabilitiesFor } from "../characters/resolve";
 import { random } from "../../core/random";
 
@@ -119,9 +121,13 @@ const seasons: Record<WorldSetting["climate"], Record<SeasonId, number>> = {
 };
 const methodYield: Record<FishingMethod, number> = { seine: 1.2, net: 1.1, line: 0.9, trap: 0.9, spear: 0.8 };
 
+/** How hungry the fish are at an hour, against an ordinary hour. */
+export const feedingAt = (hour: number) => hour < 4 || hour >= 21 ? 0.7 : hour < 8 ? 1.25 : hour < 11 ? 1 : hour < 16 ? 0.8 : 1.15;
+export const seasonRun = (s: Pick<WorldSetting, "climate">, season: SeasonId) => seasons[s.climate][season];
+
 /** How a day's fishing went against an ordinary one, and why. `roll` is the day's luck. */
 export function catchOf(s: WorldSetting, p: FishingPractice, season: SeasonId, hour: number, roll: number) {
-  const time = hour < 4 || hour >= 21 ? 0.7 : hour < 8 ? 1.25 : hour < 11 ? 1 : hour < 16 ? 0.8 : 1.15;
+  const time = feedingAt(hour);
   const sea = seasons[s.climate][season];
   const factor = sea * time * methodYield[p.method] * (p.hull ? 1.1 : 0.9) * (0.7 + 0.6 * roll);
   const why = sea < 0.8
@@ -194,3 +200,83 @@ export function crewRole(p: FishingPractice, fate: CatchFate, slot: number, age:
   if (ashore && fate.sold && roll < (female ? 0.45 : 0.1)) return "sell";
   return "gut";
 }
+
+/** A fish as it is landed: its local name, how big they run, how it fights,
+ * when it bites and how it is drawn. Colours are back, belly and fins. `fight`
+ * 0 comes in like a weed, 1 runs the line. Kinds live in fish.json, which the
+ * voxel icon baker reads too. */
+export type FishKind = {
+  name: string; kg: [number, number]; fight: number; rare?: boolean;
+  back: number; belly: number; fin: number;
+  shape: "slim" | "deep" | "long" | "flat" | "crab" | "claw" | "squid" | "frog";
+  mark?: "bars" | "spots" | "stripe";
+  /** How it fights on a line: darts about, bores for the bottom, leaps, or just pulls. */
+  style: "dart" | "sink" | "leap" | "steady";
+  /** Taken in traps, pots and weirs rather than on a line. */
+  trap?: boolean;
+  when?: { hours?: "day" | "night" | "twilight"; seasons?: SeasonId[]; rain?: boolean };
+  note: string;
+};
+type Raw = Omit<FishKind, "back" | "belly" | "fin" | "style"> & { colors: [string, string, string]; style?: FishKind["style"] };
+const kinds = (raw: Raw[]): FishKind[] => raw.map(({ colors, ...f }) => ({
+  ...f,
+  back: parseInt(colors[0].slice(1), 16), belly: parseInt(colors[1].slice(1), 16), fin: parseInt(colors[2].slice(1), 16),
+  style: f.style ?? (f.shape === "slim" ? "dart" : f.shape === "deep" ? "steady" : "sink"),
+}));
+const waters = Object.fromEntries(Object.entries(fishData).map(([k, v]) => [k, kinds(v as Raw[])])) as Record<keyof typeof fishData, FishKind[]>;
+
+/** Whether a kind is about at this hour, season and weather. */
+/** What a line or a trap brings up that isn't a fish: item, kilograms, how often. */
+const findsAt = {
+  sea: [["shell", 0.1, 5], ["stick", 0.4, 2], ["wood", 1.2, 1], ["coin", 0.01, 0.15]],
+  fresh: [["stick", 0.4, 4], ["river-rock", 1, 2], ["pebble", 0.1, 2], ["boots", 0.8, 1], ["clay-pot", 0.6, 0.6], ["coin", 0.01, 0.15]],
+} satisfies Record<string, [ItemId, number, number][]>;
+export const fishingFinds = (water: FishingWater) => findsAt[water === "sea" ? "sea" : "fresh"];
+export const isFishingFind = (id: ItemId) => Object.values(findsAt).some((l) => l.some(([f]) => f === id));
+
+export function biting(f: FishKind, hour: number, season: SeasonId, rain: number) {
+  const w = f.when;
+  if (!w) return true;
+  if (w.seasons && !w.seasons.includes(season)) return false;
+  if (w.rain && rain <= 0) return false;
+  const h = ((hour % 24) + 24) % 24;
+  if (w.hours === "night") return h >= 20 || h < 5;
+  if (w.hours === "twilight") return (h >= 4 && h < 8) || (h >= 17 && h < 21);
+  if (w.hours === "day") return h >= 7 && h < 19;
+  return true;
+}
+
+/** What comes out of the water here, by water, climate and broad region. */
+export function fishOf(s: Pick<WorldSetting, "climate" | "culture">, water: FishingWater): FishKind[] {
+  const c = s.climate, u = s.culture, hot = c === "tropical" || c === "monsoon";
+  const americas = u === "mesoamerican" || u === "andean" || u === "other-indigenous-american";
+  if (water === "sea")
+    return hot ? waters.seaTropical : u === "east-asian" ? waters.seaEastAsia
+      : c === "mediterranean" || c === "arid" ? waters.seaWarm : waters.seaCold;
+  if (c === "boreal" || c === "tundra") return waters.riverCold;
+  if (u === "east-asian") return waters.riverEastAsia;
+  if (americas) return hot ? waters.riverAmazon : u === "andean" ? waters.lakeAndes : u === "mesoamerican" ? waters.lakeMexico : waters.riverNorthAmerica;
+  if (u === "south-asian") return waters.riverSouthAsia;
+  if (u === "southeast-asian") return waters.riverSoutheastAsia;
+  if (u === "australian-pacific") return waters.riverAustralia;
+  if (u === "west-central-african" || u === "east-southern-african") return waters.riverAfrica;
+  if (c === "arid" || u === "north-african-west-asian") return waters.riverDry;
+  return hot ? waters.riverAfrica : waters.riverTemperate;
+}
+
+export const fishItemId = (f: Pick<FishKind, "name">) => `fish-${f.name.toLowerCase().normalize("NFD").replace(/[^a-z]+/g, "-").replace(/^-|-$/g, "")}`;
+const fishWeight = ([lo, hi]: [number, number]) =>
+  hi < 1 ? `${Math.round(lo * 1000)}-${Math.round(hi * 1000)} g` : `${lo < 1 ? lo.toFixed(1) : Math.round(lo)}-${Math.round(hi)} kg`;
+/** Fresh fish, one item to each kind, worth what a typical one weighs. */
+export const fishItems: Record<ItemId, ItemDef> = Object.fromEntries(
+  Object.values(waters).flat().map((f) => {
+    const kg = Math.sqrt(f.kg[0] * f.kg[1]), id = fishItemId(f);
+    return [id, {
+      id, name: f.name, sprite: "fish",
+      value: Math.max(1, Math.min(40, Math.round((1 + kg * 1.2) * (f.rare ? 2 : 1)))),
+      edible: Math.min(60, Math.round(8 + kg * 6)),
+      description: `${f.note} ${fishWeight(f.kg)}${f.rare ? ", and seldom landed" : ""}.`,
+    }];
+  }),
+);
+

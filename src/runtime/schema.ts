@@ -566,6 +566,13 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
       outcome: z.enum(["caught", "thrown-out"]).optional(),
     })
     .strict(),
+  z
+    .object({
+      type: z.literal("fish"),
+      caught: z.array(z.object({ id: item, kg: z.number().min(0).max(400) }).strict()).max(400),
+      minutes: z.number().int().min(1).max(600),
+    })
+    .strict(),
   z.object({ type: z.literal("drop") }).strict(),
   z
     .object({ type: z.literal("give"), target: z.string().max(100), item })

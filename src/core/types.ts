@@ -549,6 +549,8 @@ export type PlayerCommand =
   | { type: "care"; target: string; treatment: import("../content/health/infections").Treatment }
   /** A sitting at a gaming table, settled when the player gets up: coin won or lost and the time it took. */
   | { type: "gamble"; game: string; net: number; minutes: number; outcome?: "caught" | "thrown-out" }
+  /** A spell at the fishing grounds, settled when the player stops: what came out of the water and the time it took. */
+  | { type: "fish"; caught: { id: ItemId; kg: number }[]; minutes: number }
   /** Time passing while the player stands still. Logged so a replay keeps the
    * same clock, but it raises no event of its own. */
   | { type: "pass"; seconds: number }
@@ -743,6 +745,8 @@ export type Snapshot = {
   relationships?: Record<string, import("./bonds").Relationship>;
   /** Household stocks, run by `core/economy.ts`. */
   economy?: Economy;
+  /** Every kind of fish the player has landed: how many, and the heaviest. */
+  fishLog?: Record<ItemId, { n: number; best: number }>;
   /** What the player's day has held so far, for the evening's account. */
   today?: {
     day: number;

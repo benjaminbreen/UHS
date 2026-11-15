@@ -136,6 +136,7 @@ import { ItemIcon, Sprite, Minimap, timeLabel } from "./components";
 import { ItemInspect, itemKind } from "./ItemInspect";
 import { MakePanel } from "./MakePanel";
 import { GamingTable, type Seat } from "./gaming/GamingTable";
+import { FISHING_PRESETS, FishingGame, fishingStart, type FishingStart } from "./fishing/FishingGame";
 import { tableGameFor } from "../content/games";
 import { venueOfClaim } from "../content/venues";
 import { setMadeItems } from "../render/voxel-items";
@@ -341,6 +342,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const [narratorOpen, setNarratorOpen] = useState(false);
   const [graphicsOpen, setGraphicsOpen] = useState(false);
   const [combatOpen, setCombatOpen] = useState(false);
+  const fishingTest = useRef<FishingStart>(undefined);
+  const [fishingPick, setFishingPick] = useState<{ preset: string; method: string; hour: string }>({ preset: "here", method: "", hour: "" });
   const [skillTestOpen, setSkillTestOpen] = useState(false);
   const [liveGraphics, setLiveGraphics] = useState<LiveGraphicsSettings>(
     () => ({
@@ -581,7 +584,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     }
   });
   // A card waits under anything opened over the world, rather than sitting on top of it.
-  const covered = runtime.workInProgress || !!modal || !!task || !!sky || audioOpen || characterOpen || portraitOpen;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const fishingStarted = useMemo(() => runtime.fishing && (fishingTest.current ?? fishingStart(runtime)), [runtime.fishing]);
+  const covered = runtime.workInProgress || !!runtime.fishing || !!modal || !!task || !!sky || audioOpen || characterOpen || portraitOpen;
   useEffect(() => {
     if (card || covered) return;
     const engine = runtime.engine;
@@ -2362,6 +2367,16 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           }}
         />
       )}
+      {fishingStarted && (
+        <FishingGame
+          start={fishingStarted}
+          practice={runtime.fishing?.practice}
+          onLeave={(spell) => {
+            fishingTest.current = undefined;
+            runtime.closeFishing(spell);
+          }}
+        />
+      )}
       {modal && modal !== "dialogue" && modal !== "time" && modal !== "evening" && modal !== "years" && (
         <div
           className="modal-backdrop"
@@ -2754,6 +2769,39 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       </small>
                     </button>
                   )}
+                  <div className="settings-fishing">
+                    <button
+                      className="action settings-featured"
+                      onClick={() => {
+                        const preset = FISHING_PRESETS.find((p) => p.id === fishingPick.preset);
+                        fishingTest.current = fishingStart(runtime, preset, (fishingPick.method || undefined) as never, fishingPick.hour ? +fishingPick.hour : undefined);
+                        setModal(null);
+                        runtime.openFishing(true);
+                      }}
+                    >
+                      Fishing test · go straight to the water
+                      <small>Plays the fishing game anywhere; the catch is not recorded</small>
+                    </button>
+                    <select value={fishingPick.preset} onChange={(e) => setFishingPick((f) => ({ ...f, preset: e.target.value }))} aria-label="Fishing place">
+                      <option value="here">Here, as this world has it</option>
+                      {FISHING_PRESETS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
+                    </select>
+                    <select value={fishingPick.method} onChange={(e) => setFishingPick((f) => ({ ...f, method: e.target.value }))} aria-label="Fishing gear">
+                      <option value="">Gear for the place</option>
+                      <option value="line">Line</option>
+                      <option value="net">Cast net</option>
+                      <option value="seine">Seine</option>
+                      <option value="spear">Spear</option>
+                    </select>
+                    <select value={fishingPick.hour} onChange={(e) => setFishingPick((f) => ({ ...f, hour: e.target.value }))} aria-label="Hour">
+                      <option value="">Hour for the place</option>
+                      <option value="5.5">Dawn</option>
+                      <option value="10">Morning</option>
+                      <option value="13">Midday</option>
+                      <option value="18">Dusk</option>
+                      <option value="23">Night</option>
+                    </select>
+                  </div>
                   <button
                     className="action settings-featured"
                     onClick={() => {
