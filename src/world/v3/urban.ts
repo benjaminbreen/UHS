@@ -1264,8 +1264,10 @@ export function urbanNeighborhood(
   if (industry && form.streetWall && !layout.blocks.some((b) => uses.get(b) === "industrial" && holdsWorks(b))) {
     const off = (b: Block) => Math.abs(((Math.atan2(b.y + b.h / 2 - site.center.y, b.x + b.w / 2 - site.center.x) -
       industry.bearing + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
-    const works = layout.blocks.filter((b) => b.row && holdsWorks(b) && b !== station &&
-      [zoning!.inner, zoning!.outer].includes(uses.get(b)!)).sort((a, b) => off(a) - off(b))[0];
+    // Out toward the edge, not on the main crossing.
+    const out = layout.blocks.filter((b) => b.row && holdsWorks(b) && b !== station &&
+      [zoning!.inner, zoning!.outer].includes(uses.get(b)!)).sort((a, b) => b.reach - a.reach);
+    const works = out.slice(0, Math.ceil(out.length / 2)).sort((a, b) => off(a) - off(b))[0];
     if (works) {
       uses.set(works, "industrial");
       quarters.set(works, quarterFor("industrial", works));
@@ -1500,7 +1502,7 @@ export function urbanNeighborhood(
         },
         use === "industrial" ? "dirt"
           // Behind a row is its own yard, never the street's stone.
-          : rank.block.row && use !== "downtown" && use !== "commercial" ? (form.motor || pack.setting?.climate !== "arid" ? "grass" : "dirt")
+          : rank.block.row ? (pack.setting?.climate !== "arid" ? "grass" : "dirt")
           // Once there are cars, a house row stands in its own ground; only
           // the business blocks are paved from wall to wall.
           : use && (form.motor ? ["downtown", "commercial"] : ["downtown", "commercial", "tenement", "rowhouse"]).includes(use) ? "paving"

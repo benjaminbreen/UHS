@@ -226,6 +226,10 @@ export function composeUrban(
   const cap = form.motor ? Infinity : radius < 40 ? 3 : radius < 60 ? 4 : 6;
   // A core laid out for cars, as against an old one the cars went round.
   const motorCore = !!form.motor && !form.oldCore;
+  /** The square is a block at the main crossing, the two main streets passing
+   * two of its sides: a town laid out for cars, and any built in rows, whose
+   * houses then face it from the north across their own street. */
+  const cornerSquare = motorCore || (!!form.streetWall && !form.oldCore);
   const arterial = Math.max(1, Math.min(form.tiers[0], cap)),
     street = Math.max(1, Math.min(form.tiers[1], arterial)),
     lane = Math.max(1, Math.min(form.tiers[2], street));
@@ -471,7 +475,7 @@ export function composeUrban(
   // Placed before the arterials so they can terminate on it. Its scale is read
   // against the radius, not the width: against the width a fifth put a third
   // of the town under one square.
-  const size = motorCore
+  const size = cornerSquare
     ? Math.max(15, Math.min(21, even(half * form.plazaScale) + 1))
     : // A boulevard-age square was a place framed by its buildings, not
       // the open ground of a market town.
@@ -521,11 +525,12 @@ export function composeUrban(
     }
   // A motor-age square is the corner block at the main crossing: both main
   // roads run straight past it.
-  const plaza = motorCore
+  const plaza = cornerSquare
     ? { x: focus.x + hiA + margin(0) + 1, y: focus.y - loA - margin(0) - size, w: size, h: size }
     : { x: focus.x - (size >> 1), y: focus.y - (size >> 1), w: size, h: size };
 
-  const framed = !motorCore && core.plan === "orthogonal";
+  // A street-wall city's rows bring their own streets to the square's sides.
+  const framed = !motorCore && core.plan === "orthogonal" && !form.streetWall;
 
   // --- Arterials -------------------------------------------------------------
   // One axis-aligned run per gate, bent where the fabric is irregular so the
@@ -1071,6 +1076,24 @@ export function composeUrban(
     for (const s of streets) mark(s);
   }
 
+  // The railway skirts the old centre, as the lines did that reached towns
+  // already built, and runs on past the edge. No street runs along it.
+  const rail: Rail | undefined = typeof railway === "object" ? railway : railway
+    ? (() => {
+        const axis = rand("rail-axis") < 0.5 ? "x" : "y";
+        const side = rand("rail-side") < 0.5 ? -1 : 1;
+        const origin = axis === "x" ? center.x : center.y;
+        return {
+          axis,
+          level:
+            (axis === "x" ? focus.y : focus.x) +
+            side * Math.round(half * (0.3 + rand("rail-at") * 0.2)),
+          lo: origin - half - 40,
+          hi: origin + half + 40,
+          span: RAIL_SPAN,
+        };
+      })()
+    : undefined;
   // --- Precinct grounds -----------------------------------------------------
   // A court, arena or market holds more ground than a block. It is cut out
   // like a square, nearest the plaza first, trying each size largest first.
@@ -1080,9 +1103,12 @@ export function composeUrban(
     q.x + q.w + m <= r.x ||
     r.y + r.h + m <= q.y ||
     q.y + q.h + m <= r.y;
+  // A city built in rows gives a court or a market one of its blocks, once
+  // the rows are cut.
+  const inBlocks = cornerSquare && !!form.streetWall && !!rowDepth;
   for (const [n, request] of (precincts ?? []).entries()) {
     let found: Rect | undefined;
-    for (const [w, h] of request.sizes) {
+    for (const [w, h] of inBlocks ? [] : request.sizes) {
       // From the boulevard age the square is fronted by buildings; what open
       // market the halls left stands a few streets off.
       for (let d = (year ?? 0) >= 1850 ? Math.round(half * 0.35) : 0; d < half && !found; d += 2)
@@ -1096,9 +1122,10 @@ export function composeUrban(
           };
           if (!clearOf(r, plaza, arterial + 2)) continue;
           // The square no longer holds the centre, so a precinct could land on the crossing.
-          if (motorCore && streets.some((s) => s.tier === 0 &&
+          if (cornerSquare && streets.some((s) => s.tier === 0 &&
             overlaps(s, { x: r.x - arterial, y: r.y - arterial, w: r.w + arterial * 2, h: r.h + arterial * 2 }))) continue;
           if (squares.some((q) => !clearOf(r, q, 3))) continue;
+          if (rail && (rail.axis === "x" ? r.y + r.h + 2 > rail.level && r.y - 2 < rail.level + rail.span : r.x + r.w + 2 > rail.level && r.x - 2 < rail.level + rail.span)) continue;
           if (grounds.some((q) => q && !clearOf(r, q, arterial + 4))) continue;
           let ok = true;
           for (let y = r.y - 2; y < r.y + r.h + 2 && ok; y++)
@@ -1146,24 +1173,6 @@ export function composeUrban(
     }
   }
 
-  // The railway skirts the old centre, as the lines did that reached towns
-  // already built, and runs on past the edge. No street runs along it.
-  const rail: Rail | undefined = typeof railway === "object" ? railway : railway
-    ? (() => {
-        const axis = rand("rail-axis") < 0.5 ? "x" : "y";
-        const side = rand("rail-side") < 0.5 ? -1 : 1;
-        const origin = axis === "x" ? center.x : center.y;
-        return {
-          axis,
-          level:
-            (axis === "x" ? focus.y : focus.x) +
-            side * Math.round(half * (0.3 + rand("rail-at") * 0.2)),
-          lo: origin - half - 40,
-          hi: origin + half + 40,
-          span: RAIL_SPAN,
-        };
-      })()
-    : undefined;
   if (rail)
     for (let i = streets.length - 1; i >= 0; i--) {
       const s = streets[i];
@@ -1210,7 +1219,7 @@ export function composeUrban(
     }
     for (const s of diagonals)
       for (const p of line(s.a, s.b)) clearAround(p.x, p.y, hiA + 2);
-    clearRect(plaza, motorCore ? 1 : form.oldCore ? 2 : Math.max(loA, hiA) + 1);
+    clearRect(plaza, cornerSquare ? 1 : form.oldCore ? 2 : Math.max(loA, hiA) + 1);
     for (const r of squares) clearRect(r, Math.max(loA, hiA) + 1);
     for (const r of grounds) if (r) clearRect(r, 1);
     if (rail)
@@ -1406,6 +1415,24 @@ export function composeUrban(
         above = band.below;
       }
       for (const s of laid) push(s);
+    }
+    if (!inBlocks) return;
+    const want = (year ?? 0) >= 1850 ? half * 0.35 : half * 0.2;
+    for (const [n, request] of (precincts ?? []).entries()) {
+      const off = (b: Block) => Math.abs(Math.hypot(b.x + b.w / 2 - focus.x, b.y + b.h / 2 - focus.y) - want);
+      for (const b of [...rowBlocks].sort((a, c) => off(a) - off(c))) {
+        const size = request.sizes.find(([w, h]) => w <= b.w && h <= b.h);
+        if (!size) continue;
+        // On the block's street front, its sides left to the houses if they hold one.
+        const ground = { x: b.x + ((b.w - size[0]) >> 1), y: b.y + b.h - size[1], w: size[0], h: size[1] };
+        grounds[n] = ground;
+        const sides = [
+          { ...b, w: ground.x - 1 - b.x },
+          { ...b, x: ground.x + ground.w + 1, w: b.x + b.w - ground.x - ground.w - 1 },
+        ].filter((r) => r.w >= 10);
+        rowBlocks.splice(rowBlocks.indexOf(b), 1, ...sides);
+        break;
+      }
     }
   }
   // A block left far over its district's module gets a lane through it and the
@@ -1732,7 +1759,7 @@ export function composeUrban(
       py = plaza.y - 1,
       qx = plaza.x + plaza.w,
       qy = plaza.y + plaza.h;
-    const edges: Segment[] = [...(motorCore || frame ? [] : [plaza]), ...squares].flatMap((r) => {
+    const edges: Segment[] = [...(cornerSquare || frame ? [] : [plaza]), ...squares].flatMap((r) => {
       const px = r.x - 1,
         py = r.y - 1,
         qx = r.x + r.w,

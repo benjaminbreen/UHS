@@ -986,6 +986,16 @@ export function planSettlement(
     eachCell(rect, (x, y) => noRoad.add(cellKey(x, y))));
   planWaterfront(plan, pack, seed, sample, dry, paint, (rect)=>gradeGround(rect,undefined,true),connect,(rect)=>
     eachCell(rect,(x,y)=>{if((pack.setting?.worksiteRevision??1)<5 || !plan.traffic.has(cellKey(x,y)))noRoad.add(cellKey(x,y));}));
+  // A street-wall city builds over the tracks its works were first reached
+  // by: its own streets pass their gates.
+  if (urban && fabric.streetWall) {
+    const yards = plan.plots.filter((p) => p.id.includes("-worksite-") || p.id.includes("-waterfront-"));
+    for (const road of plan.roads)
+      if (road.id.includes("-worksite-"))
+        roadCells(road, (x, y) => {
+          if (!yards.some((p) => x >= p.x - 1 && x <= p.x + p.w && y >= p.y - 1 && y <= p.y + p.h)) plan.reserved.delete(cellKey(x, y));
+        });
+  }
   // Mills, kilns and quays are not households: counted against the house
   // limit, three worksites left a farmstead of five with nobody living in it.
   const worksites = plan.places.length;
