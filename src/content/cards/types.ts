@@ -22,7 +22,9 @@ export type CardEffect =
   /** Walks the player to someone, the card still waiting for an answer. */
   | { type: "go"; who: string }
   /** The chance, 0 to 1, of catching an illness from it. */
-  | { type: "risk"; ailment: string; odds: number };
+  | { type: "risk"; ailment: string; odds: number }
+  /** Down a mine, something goes wrong there and then, to be run from. */
+  | { type: "peril"; kind: import("../../core/mine-peril").PerilKind };
 
 export type CardChoice = {
   label: string;
@@ -61,6 +63,8 @@ export type ChoiceCard = {
   /** Only for a hunting day: where game is owed to a lord or chief, where
    * meat is sold (false: shared among kin), and whether a big kill is in hand. */
   hunting?: { owed?: boolean; sold?: boolean; kill?: boolean };
+  /** Only down mines working these. */
+  mine?: readonly ("coal" | "metal" | "salt")[];
   /** Today's weather it needs: heat, rain or snow, or cold. */
   when?: "hot" | "wet" | "cold";
   text: string;

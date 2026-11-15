@@ -6351,6 +6351,9 @@ export class WorldScene extends Phaser.Scene {
       delta,
       open: new Set(Object.keys(e.state.lids ?? {})),
       carried,
+      clock: this.runtime.displayClock(),
+      solid: e.sewerSolid(space),
+      falls: e.state.mineFalls?.[space] ?? [],
     });
     // The water is loud where it runs close, and the trunk is a big room.
     const cx = Math.floor(x / 16), cy = Math.floor((y - 1) / 16);

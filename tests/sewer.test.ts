@@ -6,7 +6,9 @@ import { mineProfiles } from "../src/content/settlements/worksites/mines";
 import { personFits, sewerFinds, sewerKindFor, sewerPeople } from "../src/content/sewers";
 import { MOTOR_SPANS } from "../src/content/settlements/streets/markings";
 import { laneLids } from "../src/render/carriageway";
-import { sewerLevel, walkable, type SewerLevel, type SewerSite } from "../src/world/sewer";
+import { LEDGE, sewerLevel, sewerSolid, walkable, type SewerLevel, type SewerSite } from "../src/world/sewer";
+import { FALL_WARN, TUB_CELL, knock, perilField, perilStart, perilTime } from "../src/core/mine-peril";
+import type { SewerHost } from "../src/core/sewer";
 import type { Lane } from "../src/world/v3/types";
 
 const site = (id: string, place: SewerSite["place"]): SewerSite => {
@@ -98,5 +100,92 @@ describe("mines", () => {
     }
     expect(mineProfiles.every((p) => p.ore)).toBe(true);
   });
-});
 
+  describe("accidents", () => {
+    const host = (level: SewerLevel, at: { x: number; y: number }) => {
+      const solid = sewerSolid(level), said: string[] = [], kept: string[] = [];
+      const h = {
+        state: { clock: 10000, manifest: { seed: "peril" }, player: { pos: { ...at, space: level.space }, health: 100, inventory: {} }, sewer: { site: level.site, network: "mine", light: "safety-lamp", left: 5000, surge: 0 } },
+        world: { pack: { setting: { year: 1880 } } },
+        event: (t: string) => said.push(t),
+        advance: (n: number) => void (h.state.clock += n),
+        hurt: (n: number) => void (h.state.player.health -= n),
+        unblock: () => {},
+        busy: () => false,
+        remember: (t: string) => kept.push(t),
+      } as unknown as SewerHost & { state: { clock: number; player: { health: number } } };
+      const tick = (until: number) => {
+        while (h.state.clock < until) (h.state.clock += 2), perilTime(h, level, solid);
+      };
+      return { h, solid, said, kept, tick };
+    };
+    const workings = sewerLevel("a", durham, 2), road = sewerLevel("a", durham, 1);
+    const open = (level: SewerLevel) => {
+      const i = level.cells.findIndex((c, i) => walkable(c) && i > level.w * 8 && perilField(level, i, new Set()).filter((d) => d >= 0 && d <= 6).length > 20);
+      return { x: i % level.w, y: Math.floor(i / level.w) };
+    };
+
+    it("brings the roof down on whoever stands still, and not on whoever runs", () => {
+      const at = open(workings);
+      const still = host(workings, at);
+      expect(perilStart(still.h, "fall", workings, still.solid)).toBe(true);
+      still.tick(still.h.state.clock + FALL_WARN + 2);
+      expect(still.h.state.player.health).toBeLessThan(100);
+      expect(still.h.state.mineFalls![workings.space].length).toBeGreaterThan(0);
+      const p = still.h.state.player.pos;
+      expect(still.solid.has(p.y * workings.w + p.x)).toBe(false);
+
+      const ran = host(workings, at);
+      perilStart(ran.h, "fall", workings, ran.solid);
+      const far = perilField(workings, at.y * workings.w + at.x, ran.solid).findIndex((d) => d === 6);
+      Object.assign(ran.h.state.player.pos, { x: far % workings.w, y: Math.floor(far / workings.w) });
+      ran.tick(ran.h.state.clock + FALL_WARN + 2);
+      expect(ran.h.state.player.health).toBe(100);
+      expect(ran.kept).toContain("You outran a fall of roof.");
+    });
+
+    it("runs a loose tub down the rails into whoever stays on them", () => {
+      const at = road.cells.findIndex((c, i) => c === LEDGE && road.cells[i - 12] === LEDGE && road.cells[i + 12] === LEDGE);
+      const cell = { x: at % road.w, y: Math.floor(at / road.w) };
+      const stay = host(road, cell);
+      expect(perilStart(stay.h, "tub", road, stay.solid)).toBe(true);
+      const len = stay.h.state.sewer!.peril!.cells.length;
+      stay.tick(stay.h.state.clock + len * TUB_CELL + 2);
+      expect(stay.h.state.player.health).toBe(72);
+      expect(stay.h.state.sewer!.peril).toBeUndefined();
+
+      const step = host(road, cell);
+      perilStart(step.h, "tub", road, step.solid);
+      step.h.state.player.pos.y -= 1;
+      step.tick(step.h.state.clock + len * TUB_CELL + 2);
+      expect(step.h.state.player.health).toBe(100);
+    });
+
+    it("chokes whoever the afterdamp reaches, unless they have a self-rescuer", () => {
+      const at = open(workings);
+      const bare = host(workings, at);
+      expect(perilStart(bare.h, "afterdamp", workings, bare.solid)).toBe(true);
+      bare.tick(bare.h.state.clock + 600);
+      expect(bare.h.state.player.health).toBeLessThan(100);
+      const kit = host(workings, at);
+      kit.h.state.player.inventory["self-rescuer"] = 1;
+      perilStart(kit.h, "afterdamp", workings, kit.solid);
+      kit.tick(kit.h.state.clock + 600);
+      expect(kit.h.state.player.health).toBe(100);
+    });
+
+    it("digs out a miner shut in behind a fall, sooner for knocking", () => {
+      const { h, solid, kept, tick } = host(workings, open(workings));
+      h.state.mineFalls = { [workings.space]: [5 * workings.w + 5] };
+      solid.add(5 * workings.w + 5);
+      h.state.sewer!.trapped = { since: h.state.clock, rescue: h.state.clock + 7200 };
+      knock(h);
+      expect(h.state.sewer!.trapped!.rescue).toBe(h.state.clock - 600 + 7200 - 900);
+      tick(h.state.sewer!.trapped!.rescue + 2);
+      expect(h.state.sewer!.trapped).toBeUndefined();
+      expect(h.state.mineFalls[workings.space]).toBeUndefined();
+      expect(solid.has(5 * workings.w + 5)).toBe(false);
+      expect(kept.at(-1)).toMatch(/^You were dug out/);
+    });
+  });
+});

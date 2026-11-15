@@ -25,6 +25,8 @@ type Ask = {
   markets: boolean;
   /** Where work is done inside the house: its bench, else its fire. */
   inside: () => Position | undefined;
+  /** Down the nearest mine: the pit bottom, or the day's stall at the face. */
+  below: (role: "pit" | "face") => StepPlace | null;
 };
 type SitePlan = { railway?: Railway; parcels?: Parcel[]; site?: { center: Point }; fauna?: FaunaGroup[];
   waterfront?:import("../world/v3/types").SettlementPlan["waterfront"] };
@@ -55,6 +57,7 @@ export function findPlace(role: PlaceRole, ask: Ask): StepPlace | null {
   if(fishing?.grounds?.length && role==="grounds")
     return {pos:outside(fishing.grounds[ask.day%fishing.grounds.length]),label:"the fishing grounds",board:fishing.boatId};
   if(role==="gear")return findPlace("yard",ask);
+  if (role === "pit" || role === "face") return ask.below(role);
   if(role==="grounds") {
     // A fisher walks to the water however far off the house stands from it.
     const bank = bankNear(ask, home, 260);

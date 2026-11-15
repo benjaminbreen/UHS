@@ -71,7 +71,7 @@ function shuffled(themeId = pick(themes).id): Arrangement {
   };
 }
 export type CaveCue = "drip" | "bats" | "take" | "creak" | "settle";
-export type SewerCue = "lid" | "lid-down" | "ladder" | "splash" | "rats" | "drip" | "take" | "rush" | "knock" | "steam" | "rumble" | "car" | "gate" | "pick" | "tub" | "creak" | "shot";
+export type SewerCue = "lid" | "lid-down" | "ladder" | "splash" | "rats" | "drip" | "take" | "rush" | "knock" | "steam" | "rumble" | "car" | "gate" | "pick" | "tub" | "creak" | "shot" | "crack" | "fall" | "runaway" | "blast";
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const times = (n: number, gap: number, make: (at: number, i: number) => Sound): Sound =>
   Array.from({ length: n }, (_, i) => make(i * gap * rand(0.85, 1.15), i)).flat();
@@ -194,6 +194,32 @@ const sewerSounds: Record<Exclude<SewerCue, "take">, () => Sound> = {
     return echoes([tone(0, rand(0.6, 1.2), 0.025, f, { to: f * rand(1.15, 1.4), wave: "sawtooth", attack: 0.2 }), noise(0.1, 0.8, 0.012, 900, { q: 4, attack: 0.3 }),
       ...times(Math.round(rand(2, 5)), 0.09, (at) => [noise(0.9 + at, 0.02, 0.02, rand(2200, 4000), { q: 2 })])], 0.29, 2, 0.3);
   },
+  // A mine accident: the roof letting go, coming down, a tub loose on the rails, gas firing.
+  crack: () => echoes([
+    noise(0, 0.03, 0.12, 2600, { q: 0.9 }),
+    tone(0, 0.09, 0.08, 320, { to: 120, wave: "triangle", attack: 0.002 }),
+    ...times(Math.round(rand(4, 8)), 0.05, (at) => [noise(0.08 + at, 0.02, 0.025, rand(2500, 4500), { q: 2 })]),
+  ], 0.21, 3, 0.4),
+  fall: () => [
+    noise(0, 2.2, 0.22, 90, { to: 50, filter: "lowpass", attack: 0.02 }),
+    tone(0, 1.4, 0.14, 52, { to: 34, attack: 0.01 }),
+    noise(0, 0.6, 0.08, 900, { to: 300, q: 0.6, attack: 0.01 }),
+    ...times(26, 0.06, (at) => [noise(at, 0.05, 0.05 * (1 - at / 2), rand(300, 1400), { q: 1.2 })]),
+    ...times(14, 0.12, (at) => [noise(0.8 + at, 0.02, 0.015, rand(2500, 4500), { q: 2 })]),
+  ],
+  runaway: () => [
+    noise(0, 3.2, 0.09, 120, { to: 320, filter: "lowpass", attack: 0.8 }),
+    tone(0, 3.2, 0.04, 44, { to: 70, wave: "sawtooth", attack: 0.8 }),
+    // The rail joints, closer together as it gathers speed.
+    ...times(18, 0.16, (at, i) => [...ring(0.2 + at * (1 - i / 40), rand(600, 720), 0.15, 0.02), noise(0.2 + at * (1 - i / 40), 0.02, 0.04, 1400, { q: 1.5 })]),
+  ],
+  blast: () => [
+    tone(0, 2.4, 0.22, 40, { to: 24, attack: 0.01 }),
+    noise(0, 3.4, 0.16, 70, { to: 40, filter: "lowpass", attack: 0.02 }),
+    // The air rushing back after it.
+    noise(0.5, 2.6, 0.06, 400, { to: 1600, q: 0.5, attack: 0.6 }),
+    ...times(24, 0.1, (at) => [noise(0.4 + at, 0.015, 0.01, rand(2500, 4500), { q: 2 })]),
+  ],
   shot: () => [
     tone(0, 1.6, 0.16, 46, { to: 30, attack: 0.01 }),
     noise(0, 2.4, 0.09, 90, { to: 60, filter: "lowpass", attack: 0.02 }),
@@ -215,7 +241,7 @@ const caveSounds: Record<Exclude<CaveCue, "take">, () => Sound> = {
   },
   settle: () => echoes(times(Math.round(rand(2, 5)), 0.07, (at) => [noise(at, 0.02, 0.03, rand(2000, 4200), { q: 2 })]), 0.27, 2, 0.3),
 };
-const sewerGaps: Partial<Record<SewerCue, number>> = { pick: 400, tub: 3500, creak: 2000, shot: 8000, lid: 1200, "lid-down": 600, ladder: 800, rats: 1500, rush: 4000, knock: 1200, steam: 2500, rumble: 6000, car: 900, gate: 3000 };
+const sewerGaps: Partial<Record<SewerCue, number>> = { crack: 250, fall: 1500, runaway: 4000, blast: 6000, pick: 400, tub: 3500, creak: 2000, shot: 8000, lid: 1200, "lid-down": 600, ladder: 800, rats: 1500, rush: 4000, knock: 1200, steam: 2500, rumble: 6000, car: 900, gate: 3000 };
 
 /** The director the game is running under. The scene plays tool and footfall
  * sounds through it without threading a reference through every layer. */

@@ -11,6 +11,7 @@ export const mineItems: Record<string, ItemDef> = Object.fromEntries([
   def("fern-fossil", "Fossil fern", "rock", 8, "A fern frond pressed in black shale, older than any animal with a backbone on land."),
   def("pit-check", "Brass check", "coin", 1, "A numbered brass token that says its owner went down the pit."),
   def("pasty", "Pasty", "bread", 3, "Meat and turnip in a folded crust with a thick crimped edge to hold with dirty hands.", { edible: 30 }),
+  def("self-rescuer", "Self-rescuer", "water-bottle", 6, "A steel tin on the belt holding a mouthpiece and a filter. Bitten on after an explosion, it turns the afterdamp's poison into air you can breathe, for about an hour."),
   def("canary", "Canary in a cage", "feathers", 8, "A canary in a small cage. It wilts in bad air long before you would."),
   def("gold-nugget", "Gold nugget", "coin", 60, "A rough lump of native gold, heavy for its size."),
 ]);

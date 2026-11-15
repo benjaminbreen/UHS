@@ -7,6 +7,7 @@ import { findPath } from "../core/pathfinding";
 import { distance, type Actor, type ItemId, type Place, type Point } from "../core/types";
 import { doorApproach, doorId } from "../core/doors";
 import { random } from "../core/random";
+import { parseSewerSpace } from "../world/sewer";
 
 /**
  * Something the player has been set to do that outlasts one command: roam and
@@ -87,6 +88,7 @@ export class Autopilot {
         const route = this.routeNear(to, 1);
         return route.length ? { route } : { done: `There is no way through to ${label}.` };
       }
+      if (parseSewerSpace(to.space)) return this.tunnel(to.space, label);
       if (p.space !== "outside") return this.leave();
       const place = this.engine.world.places.find((pl) => pl.id === to.space);
       return place ? this.door(place, label) : { done: `You cannot get to ${label}.` };
@@ -324,9 +326,42 @@ export class Autopilot {
     return giveUp ? { command: giveUp.command } : { done: "You cannot reach the wild game here." };
   }
 
+  /** Down a mine to its level, or up and out of the one the player is in. */
+  private tunnel(space: string, label: string): Step {
+    const e = this.engine, p = e.state.player.pos, to = parseSewerSpace(space)!, here = parseSewerSpace(p.space);
+    if (!here) {
+      const mine = to.network === "mine" && e.world.places.find((b) => {
+        const d = doorApproach(b);
+        return b.institution === "mine" && `${d.x},${d.y}` === to.site;
+      });
+      if (p.space !== "outside") return this.leave();
+      return mine ? this.door(mine, label) : { done: `You cannot get to ${label}.` };
+    }
+    if (here.site !== to.site || here.network !== to.network) return this.leave();
+    const level = e.sewerOf(p.space);
+    if (!level) return { done: `You cannot get to ${label}.` };
+    if (here.depth < to.depth && level.down) return this.use(level.down, "sewer-down", label);
+    const up = level.shafts.findIndex((s) => s.to === "up");
+    return up >= 0 ? this.use(level.shafts[up], `sewer-shaft:${up}`, label) : { done: `You cannot get to ${label}.` };
+  }
+  /** Walk up to a ladder or shaft and take it. */
+  private use(at: Point, target: string, label: string): Step {
+    const p = this.engine.state.player.pos;
+    if (Math.max(Math.abs(at.x - p.x), Math.abs(at.y - p.y)) > 1) {
+      const route = this.routeNear(at, 1);
+      return route.length ? { route } : { done: `There is no way through to ${label}.` };
+    }
+    return { command: { type: "interact", target, action: "sewer" } };
+  }
   private leave(): Step {
     const e = this.engine,
       p = e.state.player;
+    const below = parseSewerSpace(p.pos.space), level = below && e.sewerOf(p.pos.space);
+    if (level) {
+      const i = level.shafts.findIndex((s) => s.to === "street");
+      const j = i >= 0 ? i : level.shafts.findIndex((s) => s.to === "up");
+      return j >= 0 ? this.use(level.shafts[j], `sewer-shaft:${j}`, "the way out") : { done: "You cannot find the way out." };
+    }
     const exit = e.state.objects.find(
       (o) => o.kind === "exit" && o.pos.space === p.pos.space,
     );

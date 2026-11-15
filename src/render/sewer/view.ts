@@ -6,6 +6,7 @@ import { DEEP, GRATE, walkable, WALL, WATER, type SewerLevel } from "../../world
 import { paintSewerObject } from "./art";
 import { mineFloats, sewerFloats } from "./flotsam";
 import { Gas } from "./gas";
+import { PerilView } from "./peril";
 import { paintSewerTerrain, paletteOf } from "./terrain";
 import { Flotsam, WaterSurface } from "../flowing-water";
 import { sewerTile } from "./water";
@@ -14,7 +15,7 @@ const CELL = 48, TALL = 64, RISE = 56, PAD = 16;
 const SUB = 2;
 const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
 
-export type SewerSound = "drip" | "rats" | "take" | "splash" | "knock" | "car" | "steam" | "rush" | "rumble" | "pick" | "tub" | "creak" | "shot";
+export type SewerSound = "drip" | "rats" | "take" | "splash" | "knock" | "car" | "steam" | "rush" | "rumble" | "pick" | "tub" | "creak" | "shot" | "crack" | "fall" | "runaway" | "blast";
 
 export type SewerFrame = {
   x: number;
@@ -30,6 +31,11 @@ export type SewerFrame = {
   open: ReadonlySet<string>;
   /** Lamps carried by the people down here, in world pixels. */
   carried: readonly { x: number; y: number }[];
+  /** The game clock as drawn, for a mine accident in motion. */
+  clock: number;
+  /** Cells no one can stand in, and the roof come down, as y * w + x. */
+  solid: ReadonlySet<number>;
+  falls: readonly number[];
 };
 
 type Rat = { im: Phaser.GameObjects.Rectangle; tail: Phaser.GameObjects.Rectangle; x: number; y: number; tx: number; ty: number; wait: number; fled: boolean };
@@ -126,6 +132,8 @@ export class SewerView {
     this.halo = scene.add.image(0, 0, "sewer-halo").setBlendMode(Phaser.BlendModes.ADD).setDepth(3001).setAlpha(0);
     this.gas = new Gas(scene, level);
     this.mine = level.network === "mine";
+    this.peril = new PerilView(scene, level);
+    this.peril.sound = (what, volume) => this.sound?.(what, volume);
     this.beams = scene.add.graphics().setDepth(3001).setBlendMode(Phaser.BlendModes.ADD);
     this.objects.push(this.halo, this.beams);
     this.hud = scene.add.graphics().setDepth(1e7);
@@ -142,6 +150,7 @@ export class SewerView {
   }
   private rock: HTMLCanvasElement;
   private mine: boolean;
+  private peril: PerilView;
 
   /** How deep someone at these world pixels stands in the channel, and which way it pulls. */
   wading(x: number, y: number, space?: string): { depth: number; flow: [number, number] } | undefined {
@@ -153,10 +162,11 @@ export class SewerView {
     return { depth: (c === DEEP ? 0.55 : 0.38) + this.surged * 0.2, flow: dir >= 0 ? [DIRS[dir][0] * pull, DIRS[dir][1] * pull] : [0, 0] };
   }
 
-  private repaint(done: Set<string>) {
+  private repaint(done: Set<string>, falls: readonly number[]) {
     const { level } = this, pal = paletteOf(level);
     const g = this.base.context;
     g.drawImage(this.rock, 0, 0);
+    for (const i of falls) paintSewerObject(g, "fall", (i % level.w) * 16, Math.floor(i / level.w) * 16, pal, ((i * 37) % 100) / 100);
     const t2 = this.top.context;
     t2.clearRect(0, 0, this.top.width, this.top.height);
     t2.drawImage(this.shade, 0, 0);
@@ -234,17 +244,18 @@ export class SewerView {
   update(f: SewerFrame) {
     const { level } = this, { w, h } = level;
     if (!this.born) this.born = f.time;
-    const stamp = f.done.join("|");
+    const stamp = `${f.done.join("|")}#${f.falls.length}`;
     if (stamp !== this.stamp) {
       this.stamp = stamp;
-      this.repaint(new Set(f.done));
+      this.repaint(new Set(f.done), f.falls);
     }
     this.bake(f);
     const lit = f.run.left > 0;
     const low = lit ? Math.min(1, f.run.left / (f.light.burns * 0.2)) : 0;
     const t = f.time / 1000;
     const flick = !lit ? 1 : f.light.flame ? 0.9 + 0.06 * Math.sin(t * 9.1) + 0.04 * Math.sin(t * 23.7 + 1.3) : 1 - (1 - low) * 0.15 * (Math.sin(t * 13) > 0.7 ? 1 : 0);
-    const reach = lit ? f.light.reach * (0.6 + 0.4 * low) : 0;
+    // Afterdamp starves a flame down to a bead.
+    const reach = lit ? f.light.reach * (0.6 + 0.4 * low) * (f.light.flame && this.peril.choke(f) ? 0.45 : 1) : 0;
     const hue = parseInt(f.light.color.slice(1), 16);
     const color = [16, 8, 0].map((s) => 0.5 + (((hue >> s) & 255) / 255) * 0.5);
     const px = f.x / 16, py = (f.y - 7) / 16;
@@ -312,6 +323,7 @@ export class SewerView {
     this.drawBeams(f);
     this.moveRats(f);
     this.effects(f, reach);
+    this.peril.update(f);
     this.drawHud(f, lit);
   }
 
@@ -576,6 +588,7 @@ export class SewerView {
     this.flotsam.destroy();
     this.surface.destroy();
     this.gas.destroy();
+    this.peril.destroy();
     const key = `sewer-${this.level.space}`;
     for (const k of [key, `${key}-sheet`, `${key}-light`, `${key}-top`]) if (this.scene.textures.exists(k)) this.scene.textures.remove(k);
   }

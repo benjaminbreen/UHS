@@ -57,6 +57,9 @@ a proper day; do not add a new step system.
   households.
 - `station`, `line`: the town's railway.
 - `workplace`, `gear`, `grounds`: the trade's institution or kit.
+- `pit` and `face` (`minePlace` in `src/core/sewer.ts`): the shaft bottom or
+  adit mouth of the household's mine, and the day's stall at a face, stope or
+  salt chamber. The last step at the pit brings the miner back up.
 
 At the `grounds` step a fisher plays the fishing game instead of holding to
 work (`src/ui/fishing/`, opened by the work card's **Fish** button or F). It
@@ -114,9 +117,20 @@ Decks in `src/content/cards/`:
 - `general.ts`: the general deck, two cards per family step (`tend-2` …
   `serve-3`), worded with `{good}` and `{work}`.
 - Trade and regional decks that override it where they match: `baker`,
-  `crafts`, `farm`, `rice`, `fishing`, `hunting`, `healer`, `rail`.
+  `crafts`, `farm`, `rice`, `fishing`, `hunting`, `healer`, `rail`, `mine`
+  (filtered by `mine` kind: coal, metal, salt).
 - `hazards.ts`: drowning, falls and rock falls, offered as choices.
 - `care.ts`: illness cards (see [LIVES.md](LIVES.md)).
+
+**Underground.** A hewer is paid by the tubs (sacks before 1750) filled at the
+face, `fillTubs` in the engine. Mine cards can start a live accident
+(`{ type: "peril" }`, `src/core/mine-peril.ts`), and the mine also rolls its
+own, more often deeper and before 1850. The four kinds are a roof fall, a
+runaway tub, afterdamp and an inrush. Each is dodged in real time: the clock
+slows to 8 game seconds a second while one is live. A fall that cuts the
+player off leaves them shut in until a rescue digs them out, sooner if they
+knock on the rails. Injuries go to health, and every outcome goes into the
+evening's record.
 
 **Picking** (`pickCard` in `src/core/cards.ts`) filters by slot, scope and
 weather. A card for this place or this weather beats a general one, and unseen

@@ -4,8 +4,9 @@ import { anyMine } from "../content/settlements/worksites/mines";
 import { worksiteProfiles } from "../content/settlements/worksites";
 import { personFits, sewerFind, sewerKindFor, sewerPeople, tunnelPerson, type SewerPerson } from "../content/sewers";
 import { laneLids } from "../render/carriageway";
-import { parseSewerSpace, sewerLevel, sewerSolid, sewerSpace, walkable, WATER, type SewerLevel, type SewerSite, type TunnelNetwork } from "../world/sewer";
+import { parseSewerSpace, rngOf, sewerLevel, sewerSolid, sewerSpace, walkable, WATER, type SewerLevel, type SewerSite, type TunnelNetwork } from "../world/sewer";
 import { doorApproach } from "./doors";
+import { knock, perilStart, perilTime, type Peril, type PerilKind, type Trapped } from "./mine-peril";
 import { person } from "../world/v3/wayfarers";
 import type { Actor, GameEvent, Snapshot as GameState, Inspection, Inventory, Place, Point, Position, WorldModel } from "./types";
 
@@ -27,6 +28,11 @@ export type SewerRun = {
   /** When firedamp last went off round the player, and when the canary last warned. */
   fired?: number;
   canary?: number;
+  /** Something going wrong down the mine; shut in behind a fall; no trouble before `calm`; the last two-minute slot rolled for it. */
+  peril?: Peril;
+  trapped?: Trapped;
+  calm?: number;
+  rolled?: number;
   took?: { at: Point; items: Inventory; clock: number };
 };
 
@@ -42,6 +48,10 @@ export type SewerHost = {
   rain(): number;
   join(a: Actor): void;
   part(id: string): void;
+  /** In the middle of the day's work, when nothing new should start. */
+  busy(): boolean;
+  /** A line kept for the evening's account of the day. */
+  remember(line: string): void;
   levels: Map<string, { level: SewerLevel; solid: Set<number> }>;
   sites: Map<string, SewerSite>;
 };
@@ -112,6 +122,7 @@ export function sewerLevelOf(h: SewerHost, space: string) {
   const solid = sewerSolid(level);
   const done = new Set(h.state.sewerDone);
   for (const t of level.things) if (t.solid && done.has(t.id) && !sewerFind(t.find)?.keeps) solid.delete(t.y * level.w + t.x);
+  for (const i of h.state.mineFalls?.[space] ?? []) solid.add(i);
   const entry = { level, solid };
   h.levels.set(space, entry);
   return entry;
@@ -160,6 +171,7 @@ function arrive(h: SewerHost, depth: number, at: "entry" | "down" | Point) {
   }
   p.pos = { ...spot, space: level.space };
   p.direction = 2;
+  run.calm = Math.max(run.calm ?? 0, h.state.clock + 300);
   populate(h, level);
   return level;
 }
@@ -187,9 +199,12 @@ export function mineEnter(h: SewerHost, b: Place) {
     return false;
   }
   h.advance(site.shaft ? 120 : 60);
+  // Issued at the lamp cabin from the 1950s: a filter mask good for an hour of afterdamp.
+  const kit = site.place.year >= 1950 && !h.state.player.inventory["self-rescuer"] ? " You clip a self-rescuer to your belt." : "";
+  if (kit) h.state.player.inventory["self-rescuer"] = 1;
   h.event(site.shaft
-    ? `${light.lit} The banksman shuts the cage gate and rings the bell. The cage drops away under you, faster than seems right, wet rock streaming past the bars, until it slows and bumps to a stop at ${level.name}.`
-    : `${light.lit} You stoop in at the adit mouth. Daylight goes grey behind you, and the air turns cool and still and smells of wet rock and lamp smoke. You walk in to ${level.name}.`);
+    ? `${light.lit}${kit} The banksman shuts the cage gate and rings the bell. The cage drops away under you, faster than seems right, wet rock streaming past the bars, until it slows and bumps to a stop at ${level.name}.`
+    : `${light.lit}${kit} You stoop in at the adit mouth. Daylight goes grey behind you, and the air turns cool and still and smells of wet rock and lamp smoke. You walk in to ${level.name}.`);
   return true;
 }
 
@@ -215,6 +230,7 @@ export function sewerTargetNear(h: SewerHost): string | undefined {
   const front = { x: p.pos.x + d[0], y: p.pos.y + d[1] };
   const score = (q: Point) => (q.x === front.x && q.y === front.y ? 0 : q.x === p.pos.x && q.y === p.pos.y ? 0.5 : 1 + Math.hypot(q.x - p.pos.x, q.y - p.pos.y));
   const options: [number, string][] = [];
+  if (h.state.sewer?.trapped) return "sewer-knock";
   if (level.down && cheb(level.down, p.pos) <= 1) options.push([score(level.down), "sewer-down"]);
   level.shafts.forEach((s, i) => {
     if (cheb(s, p.pos) <= 1) options.push([score(s) - 0.2, `sewer-shaft:${i}`]);
@@ -251,6 +267,12 @@ export function sewerInspect(h: SewerHost, id: string): Inspection | undefined {
   const { level } = c;
   const lit = h.state.sewer!.left > 0;
   const mine = level.network === "mine";
+  if (id === "sewer-knock" && h.state.sewer!.trapped)
+    return {
+      id, name: "The rails", kind: "place", pos: { ...p.pos },
+      description: "The rails run into the fallen stone and on, under it, to where the rescuers will be. Iron carries a knock a long way.",
+      affordances: [act("Knock on the rails and listen")],
+    };
   if (id === "sewer-down" && level.down)
     return {
       id, name: mine ? (level.depth === 1 ? (level.kind === "coal" ? "Staple shaft" : "Winze") : "Old ladderway") : level.depth === 1 ? "Drop shaft" : "Way down", kind: "place", pos: { ...level.down, space: level.space },
@@ -330,6 +352,7 @@ export function sewerAct(h: SewerHost, id: string) {
   const run = h.state.sewer, c = run && sewerLevelOf(h, p.pos.space);
   if (!run || !c) return;
   const { level } = c;
+  if (id === "sewer-knock") return knock(h);
   if (id === "sewer-down") {
     const next = arrive(h, level.depth + 1, "entry");
     h.advance(90);
@@ -433,7 +456,8 @@ export function sewerTime(h: SewerHost, elapsed: number) {
   }
   const { level } = c;
   const light = caveLight(run.light);
-  if (run.left > 0) {
+  // A miner's shift is lit from their own supply of candles or oil.
+  if (run.left > 0 && !h.busy()) {
     run.left -= elapsed;
     if (run.left <= 0) {
       run.left = 0;
@@ -458,6 +482,8 @@ export function sewerTime(h: SewerHost, elapsed: number) {
     h.hurt(4, "storm water in a sewer");
     h.event("The flood shoves at your legs and nearly takes your feet. Get up on the ledge.");
   }
+  if (level.network === "mine") perilTime(h, level, c.solid);
+  if (!h.state.sewer || h.state.player.dead) return;
   const near = (r: { x: number; y: number; w: number; h: number }, m: number) => p.pos.x >= r.x - m && p.pos.x <= r.x + r.w - 1 + m && p.pos.y >= r.y - m && p.pos.y <= r.y + r.h - 1 + m;
   const foul = level.rooms.find((r) => r.foul && near(r, 1));
   const flame = light.flame && run.left > 0;
@@ -530,4 +556,47 @@ function hashCode(s: string) {
   let n = 0;
   for (let i = 0; i < s.length; i++) n = (Math.imul(n, 31) + s.charCodeAt(i)) | 0;
   return n;
+}
+
+const nearestMine = (h: SewerHost, from: Point) =>
+  h.world.places.filter((b) => b.institution === "mine").sort((a, b) => cheb(doorApproach(a), from) - cheb(doorApproach(b), from))[0];
+
+/** Where a miner's day is worked: the pit bottom, or a stall at a face in the
+ * workings, a different one most days. Null where there is no mine. */
+export function minePlace(h: SewerHost, from: Point, role: "pit" | "face", day: number) {
+  const b = nearestMine(h, from), site = b && siteOf(h, doorKey(b), "mine");
+  const c = site && sewerLevelOf(h, sewerSpace(site.id, role === "pit" ? 1 : 2, "mine"));
+  if (!c) return null;
+  const { level, solid } = c;
+  const open = (x: number, y: number) => !sewerGround(h, level.space, x, y) && !solid.has(y * level.w + x);
+  if (role === "pit") {
+    const e = level.entry, spot = [[2, 1], [1, 1], [2, 0], [0, 1], [1, 0]].map(([dx, dy]) => ({ x: e.x + dx, y: e.y + dy })).find((q) => open(q.x, q.y)) ?? e;
+    return { pos: { ...spot, space: level.space }, label: level.name };
+  }
+  const rooms = level.rooms.filter((r) => r.use === "face" || r.use === "stope" || r.use === "chamber");
+  const room = rooms[Math.floor(rngOf(h.state.manifest.seed, "stall", day)() * rooms.length)];
+  if (!room) return null;
+  let spot: Point | undefined;
+  for (let y = room.y; y < room.y + room.h && !spot; y++) for (let x = room.x; x < room.x + room.w; x++) if (open(x, y)) { spot = { x, y }; break; }
+  if (!spot) return null;
+  const label = level.kind === "coal" ? "your stall at the coal face" : level.kind === "salt" ? "your bench in the salt chamber" : "your place in the stope";
+  return { pos: { ...spot, space: level.space }, label };
+}
+
+/** Up and out at the end of a shift, the way the player came in. */
+export function mineLeave(h: SewerHost) {
+  const run = h.state.sewer, c = run?.network && sewerLevelOf(h, h.state.player.pos.space);
+  const out = c && c.level.shafts.find((s) => s.to === "street");
+  if (!c || !out?.world) return false;
+  surface(h, out.world);
+  h.event(c.level.mouth === "cage" ? "You ride the cage up with the rest of the shift, black to the eyes, into the wind and the grey light at the pit top."
+    : "You walk out of the adit with the rest of the shift, blinking at the daylight.");
+  return true;
+}
+
+/** Something going wrong where the player stands down a mine, a fall of roof
+ * where the kind asked for cannot happen here. */
+export function minePeril(h: SewerHost, kind: PerilKind) {
+  const c = h.state.sewer?.network && sewerLevelOf(h, h.state.player.pos.space);
+  if (c) perilStart(h, kind, c.level, c.solid) || perilStart(h, "fall", c.level, c.solid);
 }

@@ -99,7 +99,7 @@ export type Economy = {
   /** The player's place in today's work: stages done, on which day; how it
    * is going, what the wage has gained or lost, the lines kept from its
    * cards, and the card still waiting for an answer. */
-  work?: { day: number; stage: number; quality?: number; pay?: number; lines?: string[]; card?: string; done?: boolean; drawn?: number; catch?: number; harvest?: number; since?: number };
+  work?: { day: number; stage: number; quality?: number; pay?: number; lines?: string[]; card?: string; done?: boolean; drawn?: number; catch?: number; harvest?: number; since?: number; tubs?: number };
   /** The day the household plot was last seen to. */
   side?: number;
   /** The seasons the household's field was last sown and weeded, which the harvest pays back. */
@@ -696,6 +696,8 @@ export type Snapshot = {
   /** The trip below the street, the finds taken there, and the lids left open, by street cell. */
   sewer?: import("./sewer").SewerRun;
   sewerDone?: string[];
+  /** Roof that has come down in a mine, by level space: the cells, as y * w + x. */
+  mineFalls?: Record<string, number[]>;
   lids?: Record<string, number>;
   fauna?: import("./fauna").FaunaGroup[];
   /** Animals the district has a name for, by group and member number. */

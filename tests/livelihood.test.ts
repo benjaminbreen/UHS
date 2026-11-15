@@ -570,7 +570,7 @@ it.each(["London 1650","Tokyo 1800","Nile valley 2000 BCE"])("creates reachable 
         expect(worker.heldItem).toMatch(/^prop:basket@/);
         expect(worker.pos.space).toBe("outside");
       }
-      const ask={state:e.state,world:e.world,household,day:1,client:()=>undefined,markets:true,inside:()=>undefined};
+      const ask={state:e.state,world:e.world,household,day:1,client:()=>undefined,markets:true,inside:()=>undefined,below:()=>null};
       expect(findPlace("shore",ask)?.pos).toEqual({...member.landing,space:"outside"});
       expect(findPlace("yard",ask)?.pos).toEqual({...member.sorting,space:"outside"});
       expect(e.world.activitySites?.(member.owner)?.employment?.id).toBe(member.boatId);

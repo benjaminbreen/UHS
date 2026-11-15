@@ -1041,7 +1041,8 @@ export class Runtime {
     const idle = (performance.now() - this.ambientAt) / 1000 - 0.25;
     return Math.max(
       this.engine.state.clock,
-      this.ambientBase + (idle > 0 ? idle * this.ambientRate : 0),
+      // Something coming down a mine runs at about walking pace, so standing still buys no time.
+      this.ambientBase + (idle > 0 ? idle * (this.engine.state.sewer?.peril ? 8 : this.ambientRate) : 0),
     );
   }
   resumeAmbient() {
@@ -2489,7 +2490,8 @@ export class Runtime {
         this.engine.state.clock < this.engine.combatUntil ||
         this.engine.fireUntil() > this.engine.state.clock ||
         this.charge ||
-        this.aiming
+        this.aiming ||
+        this.engine.state.sewer?.peril
           ? 6
           : IDLE_BLOCK;
       if (this.displayClock() - this.engine.state.clock >= block)

@@ -78,7 +78,7 @@ import { orderKeeper, type Penalty } from "../content/history/order";
 import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
 import { caveAct, caveBeastAt, caveGround, caveMouthsNear, caveInspect, caveLevelOf, caveStrike, caveTime, caveVerb, type CaveHost } from "./cave";
-import { lidAt, mineEnter, sewerAct, sewerGround, sewerInspect, sewerLevelOf, sewerTime, sewerVerb, type SewerHost } from "./sewer";
+import { lidAt, mineEnter, mineLeave, minePeril, minePlace, sewerAct, sewerGround, sewerInspect, sewerLevelOf, sewerTime, sewerVerb, type SewerHost } from "./sewer";
 import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structure } from "./time/structure";
 import { regardCue, WARM, WARY } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
@@ -948,8 +948,26 @@ export class Engine {
       piece: t?.piece ?? "the work",
       crop: (t && this.stepPlace({ name: "field", task: "", at: "field" }, t)?.crop) ?? "crop",
       ...this.fishingWords(t),
+      ...this.mineWords(t),
       ...(t?.process.steps.some((st) => st.scene === "hunt") ? this.huntingWords(t.household, this.state.player) : {}),
       ...herdWords(t?.kit.activity === "Tending animals" ? this.herdSpecies(this.state.player.origin?.roleLabel ?? t.kit.label) : undefined),
+    };
+  }
+  /** The day's mine in the miners' words: what they dig and what they fill. */
+  private mineWords(t: ReturnType<Engine["trade"]>): Record<string, string> {
+    const at = t?.process.steps.some((st) => st.at === "face") ? this.stepPlace({ name: "face", task: "", at: "face" }, t) : undefined;
+    const level = at && this.sewerOf(at.pos.space), top = at && this.sewerOf(at.pos.space.replace(/:\d+$/, ":1"));
+    if (!level) return { pit: "pit", out: "come up", hew: "dig", stuff: "ore", tub: "load" };
+    const year = this.world.pack.setting?.year ?? 1900, kind = level.kind;
+    return {
+      pit: top?.mouth === "cage" ? "pit bottom" : "adit level",
+      out: top?.mouth === "cage" ? "ride up" : "walk out",
+      hew: kind === "coal" ? "hew coal" : kind === "salt" ? "cut salt" : "break ore",
+      stuff: kind === "coal" ? "coal" : kind === "salt" ? "salt" : "ore",
+      tub: year < 1750 ? "sack" : "tub",
+      mine: kind,
+      // Spanish-run mines had their mayordomo; Cornish and colonial metal mines a captain.
+      boss: kind === "coal" ? "deputy" : this.world.pack.setting && this.world.pack.setting.lon < -30 && this.world.pack.setting.lat < 15 && year < 1830 ? "mayordomo" : year < 1880 ? "mine captain" : "shift boss",
     };
   }
   private fishingWords(t: ReturnType<Engine["trade"]>) {
@@ -1001,6 +1019,7 @@ export class Engine {
       day: t.day,
       client: () => this.client(t),
       markets: this.markets(),
+      below: (role) => minePlace(this.sewers, t.household.home, role, t.day),
       inside: () => {
         const space = t.household.residence;
         const room = space && this.world.place(space) ? this.interiorOf(space) : undefined;
@@ -1047,6 +1066,7 @@ export class Engine {
   }
   /** The step the player can do where they stand, at a recipe's place. */
   workHere() {
+    if (this.state.sewer?.peril || this.state.sewer?.trapped) return;
     const ps = this.placeStep();
     const p = this.state.player.pos;
     // A hunt ends on a kill, or once it has gone on long enough, wherever the hunter is.
@@ -1132,6 +1152,7 @@ export class Engine {
       (!card.needs || (!!setting && card.needs.every((n) => capabilitiesFor(setting).has(n)))) &&
       (!card.fishing || this.fishingFits(card.fishing, t)) &&
       (!card.hunting || this.huntingFits(card.hunting, t)) &&
+      (!card.mine || card.mine.some((k) => k === this.mineWords(t).mine)) &&
       card.choices.filter((c) => !this.absent(c)).length >= 2;
   }
   /** The card waiting on the current day's work; one left from a day gone by
@@ -1151,7 +1172,7 @@ export class Engine {
   /** Puts a card on screen. A card about an illness waits apart from the
    * day's work, so it can come whenever someone falls ill. */
   private offerCard(card: ChoiceCard, care?: { who: string; ailment: string }) {
-    const s = this.state, boss = bossTitle(this.world.pack.setting);
+    const s = this.state, boss = this.mineWords(this.trade()).boss ?? bossTitle(this.world.pack.setting);
     const encounter = s.encounter?.card === card.id;
     const ford = encounter && card.id === FORD_CARD.id;
     const stats = this.stats();
@@ -1237,6 +1258,7 @@ export class Engine {
         }
       }
       else if (e.type === "hurt") this.hurt(e.n, e.cause, e.injury);
+      else if (e.type === "peril") minePeril(this.sewers, e.kind);
       else if (e.type === "care") this.giveCare(care?.who ?? "player", e.treatment);
       else if (e.type === "go") {
         // Still waiting on an answer, to be asked again on arrival.
@@ -1501,13 +1523,27 @@ export class Engine {
       ...(reaped !== undefined ? { harvest: reaped } : {}),
       ...(process.steps[t.stage + 1]?.scene === "hunt" ? { since: s.clock } : {}) };
     if (caught) this.event(caught.line);
+    if (process.steps[t.stage].at === "face") this.fillTubs(t, s.economy.work);
     if (gate) gate.open = grazing(t.stage + 1);
     if (herd) herd.fold = gate!.open && process.steps[t.stage + 1]?.at !== "pasture";
     // Walked here, the card came on arrival; set down here, it comes now.
     const card = this.drawCard(t, t.stage);
     if (t.stage + 1 < process.stages.length) return;
+    if (process.steps[t.stage].at === "pit") mineLeave(this.sewers);
     // The wage waits for the last card's answer.
     if (!card) this.finishWork({ ...t, stage: t.stage + 1 });
+  }
+  /** A shift at the face, counted the way hewers were paid: by the tub,
+   * each with the hewer's own check hung on it. Now and then the shift ends
+   * with the roof coming in. */
+  private fillTubs(t: NonNullable<ReturnType<Engine["trade"]>>, work: { quality?: number; pay?: number; tubs?: number }) {
+    const roll = (k: string) => random(this.state.manifest.seed, "tubs", k, t.day);
+    const tubs = Math.max(3, Math.round((8 + this.skillLevel("stonework") * 0.5 + roll("n") * 5) * (1 + 0.15 * (work.quality ?? 0))));
+    work.tubs = tubs;
+    work.pay = (work.pay ?? 0) + Math.round((tubs - 10) / 3);
+    const w = this.mineWords(t);
+    this.event(`By the end of the shift you have filled ${tubs} ${w.tub ?? "tub"}s of ${w.stuff ?? "ore"}${w.tub === "tub" ? ", each with your check hung on it" : ""}.`);
+    if (roll("roof") < 0.18) minePeril(this.sewers, "fall");
   }
   /** Draws the card for a step, once: on arriving where it is done, or else
    * when it is done. */
@@ -1654,7 +1690,7 @@ export class Engine {
     if (work) work.done = true;
     const skill = process.skill ?? workSkill[process.family];
     const craft = skill === "crafting" ? 1 + this.skillLevel("crafting") * PER_LEVEL.craftingYield : 1;
-    const made: Record<string, number> = kit.activity === "Looking for game" ? this.settleHunt(t) : process.paid === "wage" ? this.takings(3, (amount) => `The ${bossTitle(this.world.pack.setting)} pays you ${amount}.`)
+    const made: Record<string, number> = kit.activity === "Looking for game" ? this.settleHunt(t) : process.paid === "wage" ? this.takings(3, (amount) => this.mineWords(t).mine ? `At the office window the pay clerk counts out ${amount} for your ${work?.tubs ?? "day's"} ${work?.tubs ? `${this.mineWords(t).tub}s` : "work"}.` : `The ${bossTitle(this.world.pack.setting)} pays you ${amount}.`)
       : process.paid === "fee" ? this.pay(t, this.patientHousehold(t))
       : process.steps.some((st) => st.client) ? this.pay(t)
       : this.farming(t) ? this.settleHarvest(t)
@@ -2163,6 +2199,12 @@ export class Engine {
       this.state.actors = this.state.actors.filter((a) => a.id !== id);
       this.actorsById?.delete(id);
     },
+    busy: () => this.working,
+    remember: (line) => {
+      const s = this.state, t = this.trade(), work = s.economy?.work;
+      if (work && t && work.day === t.day) work.lines = [...(work.lines ?? []), line];
+      (s.record ??= []).push({ day: t?.day ?? Math.floor(s.clock / 86400), clock: s.clock, card: "mine-accident", choice: 0, line });
+    },
     levels: new Map(),
     sites: new Map(),
   };
@@ -2174,6 +2216,10 @@ export class Engine {
   /** The sewer level a space is, if it is one. */
   sewerOf(space: string) {
     return space.startsWith("sewer:") || space.startsWith("mine:") ? sewerLevelOf(this.sewers, space)?.level : undefined;
+  }
+  /** Cells of a tunnel level no one can stand in: solid finds and fallen roof. */
+  sewerSolid(space: string): ReadonlySet<number> {
+    return sewerLevelOf(this.sewers, space)?.solid ?? new Set();
   }
   /** Put a new player down the nearest mine, sewer or cave: a start that
    * asked to begin underground. Stays in the open when there is none near. */

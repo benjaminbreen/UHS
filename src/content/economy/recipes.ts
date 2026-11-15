@@ -1319,9 +1319,9 @@ const recipes: Recipe[] = [
     day: {
       title: "Down the mine",
       steps: [
-        { name: "down", task: "Climb down to the face", scene: "walk", hours: 1 },
-        { name: "dig", task: "Dig at the face by lamplight", scene: "haul", hours: 6 },
-        { name: "up", task: "Haul the ore up and draw your pay", scene: "haul", hours: 1 },
+        { name: "down", task: "Take your lamp and go down to the {pit}", at: "pit", scene: "walk", card: "mine-down", hours: 1 },
+        { name: "hew", task: "{Hew} at the face by lamplight", at: "face", scene: "haul", card: "mine-face", hours: 6 },
+        { name: "up", task: "Send out your last {tub} and {out}", at: "pit", scene: "haul", card: "mine-up", hours: 1 },
       ],
     },
   },
