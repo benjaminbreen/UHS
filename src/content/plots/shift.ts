@@ -46,7 +46,7 @@ export const shift: PlotTemplate = {
   developments: [
     {
       id: "double",
-      when: { type: "since", hours: 1 },
+      when: { type: "all", of: [{ type: "since", hours: 1 }, { type: "working" }] },
       then: [{ type: "choose", line: "double", choices: [{ id: "cover", check: { stat: "endurance", odds: 0.5 } }, { id: "own" }, { id: "ask", check: { stat: "extraversion", skill: "speech", odds: 0.35 } }] }],
     },
     {

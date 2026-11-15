@@ -211,7 +211,7 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: str
   return plot;
 }
 
-type PlotStep = { at: (scene: PlotScene) => boolean; speaker?: string };
+type PlotStep = { at: (scene: PlotScene) => boolean; speaker?: string; working?: string };
 
 function holds(c: Condition, plot: PlotState, snapshot: Snapshot, scene?: PlotStep): boolean {
   switch (c.type) {
@@ -226,6 +226,7 @@ function holds(c: Condition, plot: PlotState, snapshot: Snapshot, scene?: PlotSt
     case "talked": return plot.fired.includes(`talked:${c.role}`);
     case "speaking": return scene?.speaker !== undefined && scene.speaker === plot.cast[c.role];
     case "at": return scene?.at(c.scene) ?? false;
+    case "working": return scene?.working !== undefined && (!c.at || scene.working === c.at);
     case "brought": return plot.fired.includes("worked") && plot.fired.lastIndexOf(`talked:${c.role}`) > plot.fired.indexOf("worked");
     case "not": return !holds(c.of, plot, snapshot, scene);
     case "all": return c.of.every((x) => holds(x, plot, snapshot, scene));

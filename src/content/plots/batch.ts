@@ -41,7 +41,7 @@ export const batch: PlotTemplate = {
   developments: [
     {
       id: "care",
-      when: { type: "since", hours: 1 },
+      when: { type: "all", of: [{ type: "since", hours: 1 }, { type: "working" }] },
       then: [{ type: "choose", line: "care", choices: [{ id: "early" }, { id: "wait", check: { stat: "conscientiousness", odds: 0.6 } }] }],
     },
     {

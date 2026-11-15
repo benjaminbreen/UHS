@@ -30,7 +30,7 @@ export const rain: PlotTemplate = {
   developments: [
     {
       id: "clouds",
-      when: { type: "since", hours: 1 },
+      when: { type: "all", of: [{ type: "since", hours: 1 }, { type: "working" }] },
       then: [{ type: "choose", line: "clouds", choices: [{ id: "cart" }, { id: "cover" }, { id: "gamble", check: { stat: "wit", skill: "farming", odds: 0.4 } }] }],
     },
   ],

@@ -170,6 +170,12 @@ it("going down costs the day and leaves a hurt, not a grave", () => {
   expect(
     snapshotSchema.safeParse(JSON.parse(JSON.stringify(engine.state))).success,
   ).toBe(true);
+  // News from home waits until the player has been up a while.
+  const news = { kind: "speech" as const, title: "", text: "Someone at home is ill." };
+  (engine as unknown as { bring(c: typeof news): void }).bring(news);
+  expect(engine.cards).not.toContain(news);
+  engine.execute({ type: "wait", seconds: 3600 });
+  expect(engine.cards).toContain(news);
 });
 
 it("cooks raw meat at a fire into something worth eating", () => {

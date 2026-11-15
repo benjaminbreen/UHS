@@ -47,6 +47,7 @@ const choices = Math.max(1, ...[...template.opening, ...template.developments.fl
   .map((e) => (e.type === "choose" ? e.choices.length : 0)));
 const ways = ["wait", "go", "work", ...roles.flatMap((r) => [`talk:${r}`, `work,talk:${r}`])];
 
+const workAt = JSON.stringify(template.developments).match(/"type":"working","at":"(\w+)"/)?.[1];
 let serial = 0;
 for (const way of ways)
   for (let pick = 0; pick < (choices > 1 ? choices : 1); pick++) {
@@ -86,13 +87,14 @@ for (const way of ways)
         log.push(`  ${((e.state.clock - start) / 3600).toFixed(1)}h (went to ${plot.gathering.label})`);
         read();
       }
-      if (step === 6)
-        for (const part of way.split(",")) {
-          if (part === "work") {
-            plot.fired.push("worked");
-            log.push("  (finished the day's work)");
-          } else if (part.startsWith("talk:")) talk(part.slice(5));
-        }
+      // Three hours at the work from the first hour, at the step the plot waits for, then it is done.
+      const working = way.split(",").includes("work");
+      (e as unknown as { working?: object }).working = working && step >= 6 && step < 24 ? { at: workAt } : undefined;
+      if (working && step === 24) {
+        plot.fired.push("worked");
+        log.push("  (finished the day's work)");
+      }
+      if (step === (working ? 24 : 6)) for (const part of way.split(",")) if (part.startsWith("talk:")) talk(part.slice(5));
       act({ type: "wait", seconds: 600 });
     }
     read();

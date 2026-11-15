@@ -1361,7 +1361,9 @@ export class Engine {
     const own = a === p, near = own || (!!a && distance(a.pos, p.pos) <= 2.5);
     const [mine, theirs] = SICK[care.ailment] ?? SICK.fever;
     const home = s.households?.find((h) => a && h.members.includes(a.id))?.residence;
-    const text = own ? mine : near ? theirs : `${a?.pos.space === home ? "Word comes from home" : "Word reaches you"}: ${theirs.charAt(0).toLowerCase() + theirs.slice(1)}`;
+    const athome = !!home && a?.pos.space === home;
+    const text = own ? mine : near || (athome && (p.pos.space === home || distance(p.pos, p.home) < 8)) ? theirs
+      : `${athome ? "Word comes from home" : "Word reaches you"}: ${theirs.charAt(0).toLowerCase() + theirs.slice(1)}`;
     const options = this.careOptions(care.who), doctor = options.find((o) => o.treatment === "consult")?.practitioner;
     const role = doctor && s.actors.find((x) => x.id === doctor.id)?.role.toLowerCase();
     const far = own && !!doctor && distance(doctor.pos, p.pos) > 2.5;
@@ -1525,11 +1527,11 @@ export class Engine {
     const setting = this.world.pack.setting, practice = process.steps[t.stage].at === "grounds" ? this.fishing(t.household) : undefined;
     const caught = practice && setting && catchOf(setting, practice, (seasonAt(setting.season, s.clock) ?? "spring") as SeasonId,
       (s.clock / 3600) % 24, random(s.manifest.seed, "catch", t.household.id, t.day));
-    this.working = true;
+    this.working = process.steps[t.stage];
     try {
       yield* this.advanceSteps((process.steps[t.stage].hours ?? process.hours / process.stages.length) * 3600);
     } finally {
-      this.working = false;
+      this.working = undefined;
     }
     const reaped = this.farming(t) ? this.tendFarm(t, process.steps[t.stage].name) : undefined;
     s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
@@ -2243,7 +2245,7 @@ export class Engine {
       return weatherAt(skySeed(this.state.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", this.state.clock).rain;
     },
     folk: undefined as never,
-    busy: () => this.working,
+    busy: () => !!this.working,
     remember: (line) => {
       const s = this.state, t = this.trade(), work = s.economy?.work;
       if (work && t && work.day === t.day) work.lines = [...(work.lines ?? []), line];
@@ -2292,8 +2294,6 @@ export class Engine {
   }
   /** Put a new player down the nearest mine, sewer or cave: a start that
    * asked to begin underground. Stays in the open when there is none near. */
-  startBelow(where: "cave" | "sewer" | "mine" | "ship") {
-    const p = this.state.player.pos, d = (q: Point) => Math.hypot(q.x - p.x, q.y - p.y);
   /** Begins the life in the room the brief names, with its people already sitting round. */
   startMoment(m: NonNullable<StartBrief["moment"]>) {
     const s = this.state, p = s.player, d = (b: Place) => distance({ ...doorApproach(b), space: "outside" }, p.pos);
@@ -2322,6 +2322,8 @@ export class Engine {
     }
     p.activity = m.doing;
   }
+  startBelow(where: "cave" | "sewer" | "mine" | "ship") {
+    const p = this.state.player.pos, d = (q: Point) => Math.hypot(q.x - p.x, q.y - p.y);
     if (where === "ship") return void shipStart(this.ships);
     // The life begins already down there: the climb takes none of the day.
     const sewers = { ...this.sewers, advance() {} }, caves = { ...this.caves, advance() {} };
@@ -4570,6 +4572,7 @@ export class Engine {
     if (rescuer) p.pos = copy(p.home);
     p.perch = undefined;
     p.activity = "Resting";
+    this.outUntil = Infinity;
     if (this.state.manifest.survival) {
       p.health = rescuer ? 35 : 20;
       for (const actor of this.state.actors) if (actor.terror) { delete actor.terror; actor.offRoutine = false; }
@@ -4592,6 +4595,7 @@ export class Engine {
       .filter(Boolean)
       .join(" ");
     this.event(text);
+    this.outUntil = this.state.clock + 3600;
     this.lastCollapse = {
       serial: (this.lastCollapse?.serial ?? 0) + 1,
       title: rescuer ? "Carried home" : "Left for dead",
@@ -4652,6 +4656,7 @@ export class Engine {
     delete p.afloat;
     delete p.swum;
     p.activity = "Resting";
+    this.outUntil = Infinity;
     this.advance(6 * 3600);
     if (this.state.manifest.survival && p.dead) return;
     p.activity = "Exploring";
@@ -4660,6 +4665,7 @@ export class Engine {
     const text =
       "Your strength gives out and the water closes over you. Hours later you wake on the shore, coughing up water, with nothing left in your hands.";
     this.event(text);
+    this.outUntil = this.state.clock + 3600;
     this.lastCollapse = {
       serial: (this.lastCollapse?.serial ?? 0) + 1,
       title: "Washed ashore",
@@ -6148,10 +6154,12 @@ export class Engine {
   private approaching?: { id: string; line: string; until: number; title?: string; situation?: string; with?: string[]; onArrive?: () => void; valid?: () => boolean };
   /** Cards someone has to bring, kept back while nobody can reach the player. */
   private held: PlotCard[] = [];
+  /** Until when the player is out cold, and then an hour coming round: nobody brings news. */
+  private outUntil = -Infinity;
   private get below() {
-    return !!this.state.cave || !!this.state.sewer || !!this.state.voyage;
+    return !!this.state.cave || !!this.state.sewer || !!this.state.voyage || this.state.clock < this.outUntil;
   }
-  /** A card from home, the plot or kin: it waits while the player is underground. */
+  /** A card from home, the plot or kin: it waits while the player is underground or out cold. */
   private bring(card: PlotCard, first = false) {
     if (this.below) this.held.push(card);
     else if (first) this.cards.unshift(card);
@@ -6162,7 +6170,8 @@ export class Engine {
     const plot = this.state.plot, asked = plot && !plot.ended && plot.asking && this.plotQuestionId(plot);
     this.cards.push(...this.held.splice(0).filter((c) => !c.choose?.card.startsWith("plot:") || c.choose.card === asked));
   }
-  private working = false;
+  /** The step of the day's work in hand. */
+  private working?: Step;
   /** Plot cards waiting to be shown, oldest first. */
   cards: PlotCard[] = [];
   /** What the last answer to a work card did, for the card to show. Never saved. */
@@ -10088,6 +10097,12 @@ export class Engine {
     }
     a.at = this.state.clock;
     if ([...this.cards, ...this.held].some((c) => c.choose?.card === card)) return true;
+    // Family on their way over would arrive on top of the question; they come another time.
+    const k = s.kin;
+    if (k) {
+      if (k.waiting && this.approaching?.id === k.waiting.id && !this.approaching.onArrive) this.approaching = k.waiting = undefined;
+      k.last = s.clock;
+    }
     const stats = this.stats(), by = a.by && this.actorsById?.get(a.by);
     const speaker = scene ? a.by : by && !by.dead && distance(by.pos, p) <= 8 ? by.id : undefined;
     if (scene && speaker && !plot.fired.includes(`offered:${a.line}`)) {
@@ -10149,7 +10164,7 @@ export class Engine {
       s.objects = s.objects.filter((o) => !set.has(o.id));
       delete g.props;
     }
-    const scene = { at: (scene: PlotScene) => this.atPlotScene(plot, scene), speaker };
+    const scene = { at: (scene: PlotScene) => this.atPlotScene(plot, scene), speaker, working: this.working && (this.working.at ?? "") };
     const fate = plot.refs?.beast && this.predatorFate(plot.refs.beast);
     if (fate && fate !== "alive" && !plot.fired.includes("beast:slain") && !plot.fired.includes(`beast:${fate}`)) plot.fired.push(`beast:${fate}`);
     for (const e of stepPlot(s, scene)) {
@@ -10413,7 +10428,7 @@ export class Engine {
     const today = Object.entries(k.said).filter(([key, at]) => at >= morning && !key.endsWith(":plot")).length;
     // Past three calls a day, three hours apart, or with work in hand, only
     // hunger and the plot bring anyone over.
-    const urgent = today >= 3 || since < 3 * 3600 || this.working || !!this.waitingCard();
+    const urgent = today >= 3 || since < 3 * 3600 || !!this.working || !!this.waitingCard();
     const store = h && s.objects.find((o) => o.id === h.storeId);
     const food = Object.entries(store?.inventory ?? {}).reduce((n, [id, c]) => n + (this.item(id)?.edible ? c ?? 0 : 0), 0);
     const call = kinCall(s, k, clock, food, (id) => !!this.laidUp(id), urgent);
@@ -10421,7 +10436,7 @@ export class Engine {
     k.said[`${call.id}:${call.need}`] = clock;
     k.last = clock;
     k.waiting = { id: call.id, need: call.need, at: clock };
-    this.approaching = { id: call.id, line: call.line, until: clock + 3600 };
+    this.approaching = { id: call.id, line: call.line, until: clock + 3600, title: this.actorsById?.get(call.id)?.name };
   }
   /** What the player can hand over toward a debt: money where there is
    * coinage, food where there is not. */
@@ -10737,7 +10752,7 @@ export class Engine {
     }
     if (p.dead || this.conversing) return;
     // Nobody follows the player down; they come once the player is back up.
-    if (this.below && a.pos.space !== p.pos.space) {
+    if (this.below && (a.pos.space !== p.pos.space || this.state.clock < this.outUntil)) {
       ap.until = Math.max(ap.until, clock + 1800);
       return;
     }

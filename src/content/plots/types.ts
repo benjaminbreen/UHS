@@ -3,6 +3,7 @@ import type { SkillId } from "../../core/skills";
 import type { WorldSetting } from "../geography/types";
 import type { CharacterScope } from "../characters/context-types";
 import type { Occasion } from "./scenes";
+import type { PlaceRole } from "../economy/processes";
 
 export const plotRoles = ["creditor", "landlord", "official", "accuser", "witness", "rival", "suspect", "host",
   "giver", "inlaw", "claimant", "elder", "customer", "patron", "kin", "friend", "neighbour", "stranger", "child",
@@ -34,6 +35,8 @@ export type Condition =
   | { type: "talked"; role: PlotRole }
   | { type: "speaking"; role: PlotRole }
   | { type: "at"; scene: PlotScene }
+  /** The player is at the day's work, at the step done `at` when given, so a card about the work finds them at it. */
+  | { type: "working"; at?: PlaceRole }
   /** The player has spoken with them after finishing a day's work since the plot began. */
   | { type: "brought"; role: PlotRole }
   /** The deadline has passed by `hours`, or is that close when negative. */

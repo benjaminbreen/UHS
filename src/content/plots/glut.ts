@@ -25,12 +25,12 @@ export const glut: PlotTemplate = {
   developments: [
     {
       id: "heavy",
-      when: { type: "since", hours: 1.5 },
+      when: { type: "all", of: [{ type: "since", hours: 1.5 }, { type: "working" }] },
       then: [{ type: "choose", line: "heavy", choices: [{ id: "carry" }, { id: "stay" }, { id: "cache", check: { stat: "wit", skill: "foraging", odds: 0.5 } }] }],
     },
     {
       id: "beasts",
-      when: { type: "all", of: [fired("stay"), { type: "since", hours: 3 }] },
+      when: { type: "all", of: [fired("stay"), { type: "since", hours: 3 }, { type: "working" }] },
       then: [{ type: "choose", line: "beasts", choices: [{ id: "shout", check: { stat: "strength", odds: 0.5 } }, { id: "leave" }] }],
     },
   ],
