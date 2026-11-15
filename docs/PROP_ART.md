@@ -26,6 +26,15 @@ thing does, one variant per place, and prints the contact sheet:
 `PYTHONPATH=scripts .venv/bin/python -m art.props_b.plaza_families`. A draw
 function that takes `frame` is animated; one such variant animates its family.
 
+Statues are `props_b/statuary.py` and its regional `statuary_*.py`. A figure
+is a `Parts` list of lit ellipsoids and tapered limbs shaded by `sculpt`, so
+one description draws at any size and in any `MATERIAL` ramp; `statue(kind,
+material, size, pedestal)` stands it on a pedestal of its tradition. `CAST`
+says which materials each kind was made in, and `variants()` is what gets
+baked: the commonest material at three sizes, the others at a city's size.
+Draw a raised limb tip first, or only its shaded underside shows. Their casts
+are on a second shadow sheet, `public/props/shadows-2`.
+
 Behaviour lives in `src/content/props/catalog.ts`; art budget and variants in
 `src/content/graphics/props.json`. That split is deliberate.
 

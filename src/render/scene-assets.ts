@@ -26,6 +26,7 @@ const atlases = {
   ecology: "/ecology/atlas",
   props: "/props/atlas",
   "prop-shadows": "/props/shadows",
+  "prop-shadows-2": "/props/shadows-2",
   vehicles: "/props/vehicles",
   trains: "/props/trains",
   "horse-voxel": "/fauna-v/horse",

@@ -6,12 +6,12 @@ import type { WorldSetting } from "../geography/types";
  * building material, year), and the use lays its props out to fit whatever
  * rectangle the block left. The art is scripts/art/props_b/lots.py.
  */
-export type LotUse = "garden" | "drying" | "fuel" | "threshing" | "pen" | "sacred" | "ruin" | "waste";
+export type LotUse = "garden" | "drying" | "fuel" | "threshing" | "pen" | "sacred" | "ruin" | "waste" | "square";
 
 /** A prop at a cell of the lot, counted from its top-left; `garden` lots
  * also want their open ground dug into beds by the yard code. */
 export type LotItem = { prop: string; x: number; y: number };
-export type LotPlan = { use: LotUse; items: LotItem[]; garden?: boolean; fenced?: boolean };
+export type LotPlan = { use: LotUse; items: LotItem[]; garden?: boolean; fenced?: boolean; /** Rows from the top left as lawn; the rest stays a gravel walk. */ lawn?: (y: number) => boolean };
 
 const hash = (...k: (string | number)[]) => {
   let h = 2166136261;
@@ -84,6 +84,11 @@ function gardenPiece(s: Facts): string {
 
 function weights(s: Facts): [LotUse, number][] {
   const t = town(s);
+  // From the boulevard age a European city turned its leftover ground into
+  // railed garden squares; kitchen plots, pens and threshing floors had gone
+  // to the edge of town. A builder's yard and the odd gap stayed.
+  if (t && s.year >= 1850 && s.culture === "european")
+    return [["square", 4], ["fuel", 1.2], ["waste", 1], ["drying", 0.3], ["ruin", 0.4], ["sacred", 0.3]];
   return [
     ["garden", t ? 3 : 4],
     ["waste", t ? 2.5 : 1.5],
@@ -105,6 +110,17 @@ export function planLot(s: Facts, w: number, h: number, key: string): LotPlan {
   const items: LotItem[] = [];
   const pick = (list: string[], i: number) => list[Math.floor(hash(key, "pick", i) * list.length)];
   const back = 1, front = h - 2;
+  if (use === "square") {
+    const walk = (h >> 1) + 1;
+    for (let x = 1; x < w - 1; x += 4) {
+      items.push({ prop: "lotPlane", x, y: back });
+      if (h >= 8) items.push({ prop: "lotPlane", x, y: front });
+    }
+    items.push({ prop: w >= 9 && h >= 7 ? "lotWorthy" : "lotUrn", x: w >> 1, y: walk - 1 });
+    if (w >= 8) for (const x of [2, w - 3]) items.push({ prop: "lotSquareBench", x, y: walk - 1 });
+    items.push({ prop: "lotPigeons", x: (w >> 1) + 2, y: walk });
+    return { use, items, fenced: true, lawn: (y) => y !== walk };
+  }
   if (use === "garden") {
     if (w >= 6) {
       items.push({ prop: gardenPiece(s), x: 1, y: back });

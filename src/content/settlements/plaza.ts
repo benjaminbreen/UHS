@@ -1,14 +1,16 @@
 import props from "../graphics/props.json" with { type: "json" };
 import type { Pack } from "../../core/types";
 import { modernity } from "./modernity";
+import { statueFor } from "./statues";
 
 /** One thing stood in a square: its sprite, what it is called, and how many
  * cells of ground its foot takes. */
 export type PlazaPiece = { sprite: string; label: string; w: number };
 
-/** What a city's square holds beside its monument, from the 1850s on: who
- * sells there and from what, where people sit, what they drink from. The
- * planner places these; it knows nothing about which city has a yatai. */
+/** What a town's square holds beside its centrepiece: who sells there and
+ * from what, where people sit, what they drink from, what stands along its
+ * sides. The planner places these; it knows nothing about which city has a
+ * yatai or a row of togate statues. */
 export type PlazaKit = {
   /** Table sets, clustered as one terrace. */
   terrace: PlazaPiece[];
@@ -18,6 +20,10 @@ export type PlazaKit = {
   fixtures: PlazaPiece[];
   /** Bandstands and fountains this square might be built round instead of a monument. */
   centres: PlazaPiece[];
+  /** Statues, stelae, lanterns or braziers standing in rows down the sides. */
+  lined: PlazaPiece[];
+  /** Market pitches beyond the two every square has: how much of it is a market. */
+  pitches: number;
   games?: PlazaPiece;
   trade?: PlazaPiece;
   water?: PlazaPiece;
@@ -51,6 +57,10 @@ type Region = {
   planter?: Row[];
   bench?: Row[];
   tree?: Row[];
+  lined?: Row[];
+  /** The sides are lined with the tradition's own statues, where it has any. */
+  statues?: boolean;
+  pitches?: number;
   pigeons?: boolean;
 };
 
@@ -234,6 +244,180 @@ const REGIONS: Record<string, Region> = {
   },
 };
 
+/** Before the boulevard age, by cultural family and date. Inferred from what
+ * each tradition's public ground is known to have held, not a survey. */
+const EARLY: Record<string, Region> = {
+  // A forum: honorific statues down the sides, the public weights, a street fountain.
+  roman: {
+    statues: true,
+    lined: [[-200, 500, "monument", "Roman honorific column", 1]],
+    fixtures: [[-300, 500, "beam-scale", "Brass pans"], [-400, 500, "censer", "Bronze tripod", 1]],
+    vendors: [[-400, 500, "amphora-stack", "Terracotta"]],
+    water: [[-300, 500, "street-fountain", "Pale limestone"]],
+    bench: [[-400, 500, "plaza-bench", "Stone", 3]],
+    pitches: 2,
+    pigeons: true,
+  },
+  // A market place: pitches over most of it, the town's scales, a rail for the horses.
+  "medieval-europe": {
+    fixtures: [[1100, 1500, "beam-scale", "Iron pans"], [500, 1500, "hitching-post", "Rail", 3]],
+    vendors: [[500, 1500, "trade-goods", "Cloth"], [500, 1500, "trade-goods", "Bales"]],
+    water: [[500, 1500, "town-well", "Granite", 3]],
+    bench: [[500, 1500, "bench", "Dark wood", 3]],
+    pitches: 6,
+    pigeons: true,
+  },
+  "early-modern-europe": {
+    fixtures: [[1500, 1850, "beam-scale", "Brass beam"], [1500, 1850, "hitching-post", "Post and ring", 3]],
+    vendors: [[1500, 1850, "handcart", "Crates of greens"], [1700, 1850, "street-barrow", "Fruit"], [1500, 1850, "handcart", "Sacks"]],
+    water: [[1500, 1700, "town-well", "Limestone", 3], [1700, 1850, "public-water", "Street pump", 1]],
+    bench: [[1500, 1850, "bench", "Warm wood", 3]],
+    planter: [[1650, 1850, "street-planter", "Stone urn", 1]],
+    pitches: 4,
+    pigeons: true,
+  },
+  // Spanish and Portuguese America: the fountain the town drinks from, stone
+  // benches, sellers sitting on the paving.
+  "colonial-america": {
+    fixtures: [[1540, 1850, "beam-scale", "Brass pans"], [1540, 1850, "hitching-post", "Post and ring", 3]],
+    vendors: [[1540, 1850, "street-vendor", "Market mat", 3], [1700, 1850, "street-vendor", "Aguas frescas"]],
+    water: [[1540, 1850, "street-fountain", "Warm stone"]],
+    bench: [[1540, 1850, "plaza-bench", "Stone", 3]],
+    planter: [[1700, 1850, "street-planter", "Stone urn", 1]],
+    pitches: 4,
+    pigeons: true,
+  },
+  // A maidan or a mosque's forecourt: water set out for whoever passes, a
+  // coffeehouse from the sixteenth century, the market round the edges.
+  islamic: {
+    terrace: [[1550, 1850, "cafe-terrace", "Coffeehouse", 3]],
+    lined: [[650, 1850, "brazier-post", "Sandstone", 1]],
+    fixtures: [[650, 1850, "beam-scale", "Brass pans"], [650, 1850, "hitching-post", "Rail", 3]],
+    vendors: [[650, 1850, "street-vendor", "Market mat", 3], [650, 1850, "trade-goods", "Cloth"], [650, 1850, "trade-goods", "Salt"]],
+    games: [[650, 1850, "game-table", "Backgammon", 3]],
+    water: [[650, 1850, "public-water", "Zeer jars"]],
+    planter: [[650, 1850, "street-planter", "Orange tree", 1]],
+    tree: [[650, 1850, "plaza-tree", "Date palm", 1]],
+    pitches: 4,
+    pigeons: true,
+  },
+  "ancient-near-east": {
+    lined: [[-3000, 650, "brazier-post", "Sandstone", 1]],
+    fixtures: [[-2500, 650, "beam-scale", "Brass pans"]],
+    vendors: [[-3000, 650, "street-vendor", "Market mat", 3], [-3000, 650, "trade-goods", "Bales"]],
+    water: [[-3000, 650, "framed-well", "Plastered rim", 3]],
+    pitches: 3,
+  },
+  // Under the tree: rope beds to sit on, a lamp pillar, sellers on the ground.
+  "south-asia": {
+    statues: true,
+    terrace: [[-500, 1850, "charpoy", "Jute rope"], [-500, 1850, "charpoy", "Coloured tape"]],
+    centres: [[-500, 1850, "plaza-centre", "Banyan platform", 5]],
+    fixtures: [[300, 1850, "sacred-marker", "Lamp pillar"], [-500, 1850, "beam-scale", "Brass pans"]],
+    vendors: [[-500, 1850, "street-vendor", "Market mat", 3], [-200, 1850, "street-vendor", "Paan stall"], [-500, 1850, "trade-goods", "Cloth"]],
+    water: [[-2600, 1850, "framed-well", "Stone blocks", 3]],
+    pitches: 4,
+  },
+  // No civic square: a crossing with its steles and lanterns, a well, a board game.
+  china: {
+    statues: true,
+    lined: [[600, 1850, "monument", "Stele on a tortoise", 1], [1000, 1850, "lantern-post", "Red paper", 1]],
+    fixtures: [[-200, 1850, "sacred-marker", "Incense burner"], [-200, 1850, "beam-scale", "Brass beam"]],
+    vendors: [[300, 1850, "street-vendor", "Baozi steamers"], [1200, 1850, "street-vendor", "Tanghulu pole", 1], [-500, 1850, "trade-goods", "Bales"]],
+    games: [[1000, 1850, "game-table", "Xiangqi", 3]],
+    water: [[-1000, 1850, "framed-well", "Stone blocks", 3]],
+    planter: [[900, 1850, "street-planter", "Pine in glazed jar", 1]],
+    pitches: 3,
+  },
+  japan: {
+    lined: [[700, 1850, "stone-lantern", "Weathered granite", 1], [1000, 1850, "lantern-post", "White paper", 1]],
+    vendors: [[1700, 1850, "street-vendor", "Yatai", 3], [700, 1850, "trade-goods", "Bales"]],
+    games: [[800, 1850, "game-table", "Go bench", 3]],
+    water: [[700, 1850, "well", "Dark stone", 3]],
+    planter: [[1000, 1850, "street-planter", "Pine in glazed jar", 1]],
+    pitches: 3,
+  },
+  korea: {
+    statues: true,
+    lined: [[1000, 1850, "lantern-post", "Pale timber", 1]],
+    vendors: [[600, 1850, "trade-goods", "Bales"]],
+    games: [[700, 1850, "game-table", "Go bench", 3]],
+    water: [[600, 1850, "well", "Grey stone", 3]],
+    planter: [[1000, 1850, "street-planter", "Pine in glazed jar", 1]],
+    pitches: 3,
+  },
+  "southeast-asia": {
+    statues: true,
+    fixtures: [[1100, 1850, "sacred-marker", "Chedi"], [100, 1850, "festival-drum", "Barrel drum", 1]],
+    vendors: [[100, 1850, "street-vendor", "Coconut stand", 3], [100, 1850, "street-vendor", "Market mat", 3]],
+    water: [[100, 1850, "public-water", "Roofed water jars"]],
+    planter: [[1300, 1850, "street-planter", "Dragon jar"]],
+    pitches: 3,
+  },
+  // The assembly ground: a plank bench in the shade, the drum, sellers on mats.
+  africa: {
+    fixtures: [[800, 1850, "festival-drum", "Standing drum", 1], [800, 1850, "pounding-mortar", "Oak", 1]],
+    vendors: [[800, 1850, "street-vendor", "Market mat", 3], [800, 1850, "trade-goods", "Salt"], [800, 1850, "trade-goods", "Cloth"]],
+    water: [[800, 1850, "well", "Sandstone", 3]],
+    bench: [[800, 1850, "plaza-bench", "Plank", 3]],
+    pitches: 4,
+  },
+  // A ceremonial plaza: carved stones before the platform, incense, braziers.
+  mesoamerica: {
+    statues: true,
+    lined: [[-300, 950, "monument", "Maya stela and altar"], [-1200, 1540, "brazier-post", "Limestone", 1]],
+    fixtures: [[-1200, 1540, "censer", "Clay bowl", 1], [-1200, 1540, "festival-drum", "Standing drum", 1]],
+    vendors: [[-1200, 1540, "street-vendor", "Market mat", 3]],
+    pitches: 2,
+  },
+  andes: {
+    statues: true,
+    lined: [[-3000, 1540, "brazier-post", "Granite", 1]],
+    fixtures: [[-3000, 1540, "censer", "Clay bowl", 1]],
+    vendors: [[-3000, 1540, "street-vendor", "Market mat", 3], [-3000, 1540, "trade-goods", "Cloth"]],
+    pitches: 2,
+  },
+  steppe: {
+    statues: true,
+    lined: [[-1200, 1850, "standing-stone", "Deer stone", 1]],
+    fixtures: [[-1000, 1850, "hitching-post", "Rail", 3]],
+    vendors: [[-1000, 1850, "trade-goods", "Bales"]],
+    water: [[-1000, 1850, "trough", "Carved stone trough", 3]],
+    pitches: 2,
+  },
+};
+
+function earlyRegions(pack: Pack): string[] {
+  const { lon, lat } = pack.anchor;
+  const year = pack.year;
+  switch (pack.setting?.culture) {
+    case "european": {
+      const america = ["latin-america", "north-america"].includes(modernity(pack.anchor).id);
+      if (america) return modernity(pack.anchor).id === "latin-america" ? ["colonial-america"] : ["early-modern-europe"];
+      return year < -400 ? [] : year < 500 ? ["roman"] : year < 1500 ? ["medieval-europe"] : ["early-modern-europe"];
+    }
+    case "north-african-west-asian":
+      return year >= 650 ? ["islamic"] : year >= -330 ? ["roman"] : ["ancient-near-east"];
+    case "south-asian":
+      return ["south-asia"];
+    case "east-asian":
+      return lon >= 129 ? ["japan"] : within(lon, lat, [124, 33, 131, 43]) ? ["korea"] : ["china"];
+    case "southeast-asian":
+      return ["southeast-asia"];
+    case "west-central-african":
+    case "east-southern-african":
+      return ["africa"];
+    case "mesoamerican":
+      return year < 1540 ? ["mesoamerica"] : ["colonial-america"];
+    case "andean":
+      return year < 1540 ? ["andes"] : ["colonial-america"];
+    case "inner-eurasian":
+      return ["steppe"];
+    default:
+      return [];
+  }
+}
+
 const within = (lon: number, lat: number, [w, s, e, n]: readonly number[]) =>
   lon >= w && lon <= e && lat >= s && lat <= n;
 
@@ -272,12 +456,13 @@ function regionsFor(pack: Pack): string[] {
   }
 }
 
-export function plazaKitFor(pack: Pack): PlazaKit | undefined {
+/** `rank` is the town's standing, 0 provincial to 2 a capital: it sizes the
+ * figures a forum or a temple approach lines its sides with. */
+export function plazaKitFor(pack: Pack, rank = 1): PlazaKit | undefined {
   const year = pack.year;
-  if (year < 1850) return undefined;
-  const regions = regionsFor(pack).map((id) => REGIONS[id]);
+  const regions = year < 1850 ? earlyRegions(pack).map((id) => EARLY[id]) : regionsFor(pack).map((id) => REGIONS[id]);
   if (!regions.length) return undefined;
-  const rows = (key: Exclude<keyof Region, "pigeons">) =>
+  const rows = (key: Exclude<keyof Region, "pigeons" | "pitches" | "statues">) =>
     (regions.find((r) => r[key])?.[key] ?? [])
       .filter(([from, to]) => year >= from && year < to)
       .map(([, , family, variant, w]) => piece(family, variant, w));
@@ -286,6 +471,14 @@ export function plazaKitFor(pack: Pack): PlazaKit | undefined {
     vendors: rows("vendors"),
     fixtures: rows("fixtures"),
     centres: rows("centres"),
+    // Two of the place's own figures first, a size below the centrepiece's.
+    lined: [
+      ...(regions.some((r) => r.statues)
+        ? [0.15, 0.65].flatMap((p) => statueFor(pack, p, rank) ?? [])
+        : []),
+      ...rows("lined"),
+    ],
+    pitches: regions.find((r) => r.pitches !== undefined)?.pitches ?? 0,
     games: rows("games")[0],
     trade: rows("trade")[0],
     water: rows("water")[0],

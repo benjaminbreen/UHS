@@ -100,6 +100,7 @@ import { stallGood } from "../../content/economy/market";
 import { stallSignFor } from "../../content/props/signage";
 import {
   focusFor,
+  ornamentArt,
   lampFor,
   marketTrades,
   ornaments,
@@ -433,14 +434,16 @@ export function planSettlement(
   // Meiji and Taisho Tokyo, before the earthquake and the war rebuilt it.
   const meiji = !!pack.setting && modernity(pack.setting).id === "japan" && pack.setting.year < 1945;
   const furniture = streetFurnitureFor(pack);
-  const kit = plazaKitFor(pack);
+  /** A town's standing by its extent: 0 provincial, 1 a city, 2 a capital. */
+  const townRank = profile.radius >= 95 ? 2 : profile.radius >= 50 ? 1 : 0;
+  const kit = plazaKitFor(pack, townRank);
   const nativeOrnament = (key: string) => {
     const name = ({ well: "wellhead", fountain: "fountain", bench: "bench", planter: "olive-planter", altar: "votive-altar" } as Record<string, string>)[key];
     return name && mediterraneanProp(pack.setting, name);
   };
   const municipal = (key: string) =>
     key === "bench" ? kit?.bench?.sprite ?? furniture?.bench
-    : key === "planter" ? furniture?.planter
+    : key === "planter" ? kit?.planter?.sprite ?? furniture?.planter
     : key === "kiosk" ? furniture?.kiosk
     : key === "post" ? furniture?.bollard
     : key === "lamp" && furniture ? lampFor(pack).sprite
@@ -1053,6 +1056,28 @@ export function planSettlement(
           if (n) break;
         }
       }
+      // What stands in rows down the two sides: a forum's statues, a
+      // crossing's lanterns, the carved stones of a ceremonial ground.
+      if (kit.lined.length && min >= 13) {
+        const each = min >= 19 ? 4 : 2;
+        let n = 0;
+        for (const x of [x0 + 1, x1 - 1])
+          for (let i = 0; i < each; i++) {
+            const y = i % 2 ? cy + aisle + 2 + 5 * (i >> 1) : cy - aisle - 2 - 5 * (i >> 1);
+            if (put(`lined-${n}`, kit.lined[(i >> 1) % kit.lined.length], x, y)) n++;
+          }
+      }
+      // A market square is pitches in rows across its south half, an aisle between.
+      for (let row = 0, n = 0; n < kit.pitches && min >= 11; row++) {
+        const y = y1 - 3 - row * 3;
+        if (y <= cy + aisle + 1) break;
+        for (let x = x0 + 2; x <= x1 - 2 && n < kit.pitches; x += 5) {
+          if (![-1, 0, 1].every((dx) => open(x + dx, y))) continue;
+          marketPitch({ x, y }, `${site.id}-market-row-${row}-${x}`, n + Math.floor(rand("stall") * 3), row);
+          for (let dx = -2; dx <= 3; dx++) for (let dy = -1; dy <= 1; dy++) held.add(cellKey(x + dx, y + dy));
+          n++;
+        }
+      }
       // Sellers work the south side, then the north-west corner.
       const quarter = Math.max(2, court.w >> 2);
       const pitches: [number, number][] = [
@@ -1098,7 +1123,7 @@ export function planSettlement(
         plan.objects.push({ id: `${site.id}-square-${tag}`, name, sprite,
           kind: "monument", pos: pos(at), inventory: {}, claim: "landscape" });
       };
-      const focus = focusFor(pack, rand("monument"), true);
+      const focus = focusFor(pack, rand("monument"), true, townRank);
       const ornament = fabric.square.focus ? ornaments[fabric.square.focus] : undefined;
       if (focus || ornament) {
         const half = Math.max(1, (focus?.w ?? 1) >> 1);
@@ -1109,7 +1134,7 @@ export function planSettlement(
           plan.streetSurfaces!.set(k, "slab");
         });
         place("focus", focus?.label ?? ornament!.label,
-          focus?.sprite ?? ornament!.focusSprite ?? ornament!.sprite, { x: cx, y: cy });
+          focus?.sprite ?? ornamentArt(pack, ornament!.id, true, rand("monument"), townRank)?.sprite ?? ornament!.focusSprite ?? ornament!.sprite, { x: cx, y: cy });
       }
       for (const [i, x] of [court.x + 2, court.x + court.w - 5].entries()) {
         for (const [j, y] of [court.y + 3, court.y + court.h - 7].entries()) {
@@ -1189,7 +1214,7 @@ export function planSettlement(
           water = true;
           const local = focus ? undefined : kit?.water;
           source.name = local?.label ?? piece.label;
-          source.sprite = local?.sprite ?? (nativeOrnament(key) || (focus && piece.focusSprite) || piece.sprite);
+          source.sprite = local?.sprite ?? (nativeOrnament(key) || ornamentArt(pack, key, focus, rand("water-art"), townRank)?.sprite || (focus && piece.focusSprite) || piece.sprite);
           source.pos = pos(spot);
           waterStand.x = spot.x + 1;
           waterStand.y = spot.y;
@@ -1204,16 +1229,18 @@ export function planSettlement(
         }
         if (focus) plan.solid.add(cellKey(spot.x, spot.y));
         // A square's centrepiece is the one ornament that has to be local.
-        const local = focus ? focusFor(pack, rand("monument"), min >= 13) : undefined;
+        const local = focus ? focusFor(pack, rand("monument"), min >= 13, townRank) : undefined;
         if (local?.w) for (let dx = 1 - (local.w >> 1); dx < local.w >> 1; dx++) plan.solid.add(cellKey(spot.x + dx, spot.y));
+        const art = ornamentArt(pack, key, focus, rand("ornament", tag), townRank);
         plan.objects.push({
           id: `${site.id}-${piece.id}-${tag}`,
-          name: local?.label ?? piece.label,
+          name: local?.label ?? art?.label ?? piece.label,
           kind: piece.kind,
           sprite:
             local?.sprite ??
             (focus ? undefined : municipal(key)) ??
             (nativeOrnament(key) || undefined) ??
+            art?.sprite ??
             ((focus && piece.focusSprite) || piece.sprite),
           pos: pos(spot),
           inventory: {},
@@ -1640,7 +1667,7 @@ export function planSettlement(
           id: `${site.id}-square-${index + 2}-${piece.id}-${tag}`,
           name: piece.label,
           kind: piece.kind,
-          sprite: nativeOrnament(key) || piece.sprite,
+          sprite: nativeOrnament(key) || ornamentArt(pack, key, false, rand("ornament", key), townRank)?.sprite || piece.sprite,
           pos: pos(at),
           inventory: {},
         });
@@ -1761,7 +1788,7 @@ export function planSettlement(
         id: `${site.id}-${item.id}-${piece.x}-${piece.y}`,
         name: lamp?.label ?? item.label,
         kind: item.kind,
-        sprite: lamp?.sprite ?? furniture?.planter ?? (nativeOrnament("planter") || undefined) ?? (fabric.motor ? "study-propb-municipal-planter-0" : item.sprite),
+        sprite: lamp?.sprite ?? furniture?.planter ?? (nativeOrnament("planter") || undefined) ?? (fabric.motor ? "study-propb-municipal-planter-0" : ornamentArt(pack, item.id, false, 0, townRank)?.sprite ?? item.sprite),
         pos: pos(piece),
         inventory: {},
       });
@@ -4145,7 +4172,7 @@ export function planSettlement(
             id: `${id}-planter-${dx < 0 ? "l" : "r"}`,
             name: ornaments.planter.label,
             kind: ornaments.planter.kind,
-            sprite: furniture?.planter ?? (nativeOrnament("planter") || ornaments.planter.sprite),
+            sprite: furniture?.planter ?? (nativeOrnament("planter") || ornamentArt(pack, "planter")?.sprite || ornaments.planter.sprite),
             pos: pos(at),
             inventory: {},
           });
@@ -5566,6 +5593,9 @@ export function planSettlement(
       if (w < 4 || h < 4 || cells.size < w * h * 0.7) continue;
       const lot = planLot(pack.setting, w, h, `${seed}:${x0},${y0}`), id = `lot-${x0}-${y0}`, i = 100900 + n++ * 2;
       const inLot = (x: number, y: number) => cells.has(cellKey(x, y));
+      if (lot.lawn)
+        for (const [x, y] of pts)
+          if (lot.lawn(y - y0) && setSurface(cellKey(x, y), "grass", 11)) plan.pavement!.set(cellKey(x, y), "garden");
       lot.items.forEach((item, j) => {
         const at = { x: x0 + item.x, y: y0 + item.y }, def = propDefs[item.prop];
         const visual = propVisualCells(item.prop, at), span = def.span?.[0] ?? 0;

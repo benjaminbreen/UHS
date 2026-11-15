@@ -72,6 +72,11 @@ const rows: Row[] = [
   ["lotTulsi", "lot-yard", 5, "Tulsi planter", "Holy basil grown on a painted plinth, watered and given a lamp every evening.", "solid"],
   ["lotCuezcomatl", "lot-yard", 6, "Cuezcomatl", "A granary of mud-plastered wattle shaped like a great jar, with a thatched cap over its mouth.", "solid"],
   ["lotDatePalm", "lot-yard", 7, "Date palm", "A date palm, its fruit ripening orange under the crown.", "solid"],
+  ["lotPlane", "plaza-tree", 0, "Plane tree", "A plane tree in an iron guard, planted and pruned by the city.", "solid"],
+  ["lotSquareBench", "street-bench", 1, "Bench", "A cast-iron bench with painted slats, the city's own pattern.", "wide"],
+  ["lotUrn", "street-planter", 0, "Planted urn", "A cast-iron urn of bedding plants, replanted each season.", "solid"],
+  ["lotWorthy", "plaza-centre", 5, "Statue", "A bronze of somebody the city once thought it would remember.", "solid"],
+  ["lotPigeons", "pigeons", 0, "Pigeons", "Town pigeons pecking at the gravel.", "flat"],
 ];
 
 export const lotProps: Record<string, PropDef> = Object.fromEntries(

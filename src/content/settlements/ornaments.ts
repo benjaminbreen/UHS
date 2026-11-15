@@ -2,6 +2,7 @@ import marketKits from "../graphics/market-kits.json" with { type: "json" };
 import type { Pack, WorldObject } from "../../core/types";
 import { mediterraneanProp } from "../graphics/mediterranean-buildings";
 import { plazaKitFor } from "./plaza";
+import { statueFor } from "./statues";
 
 /** What a public square held. Content names these per fabric; the planner only
  * places them, and the renderer only knows their sprites. A `monument` carries
@@ -176,6 +177,7 @@ export function focusFor(
   pack: Pack,
   pick = 0,
   roomy = false,
+  rank = 1,
 ): { sprite: string; label: string; w?: number } | undefined {
   // Half the squares with room for one are built round a bandstand or a
   // fountain, not a monument.
@@ -184,6 +186,9 @@ export function focusFor(
     if (pick < 0.5) return centres[Math.floor(pick * 2 * centres.length)];
     pick = pick * 2 - 1;
   }
+  // A third of the squares that put up a figure are built round it.
+  const figure = pick < 1 / 3 ? statueFor(pack, pick * 3, rank) : undefined;
+  if (figure) return figure;
   const year = pack.year;
   const culture = pack.setting?.culture;
   const urban =
@@ -256,6 +261,64 @@ export function focusFor(
   if (culture === "australian-pacific") return piece(10, "Carved post");
   // Anywhere else, a nineteenth-century town square got a clock.
   return year >= 1900 && urban ? piece(9, "Clock tower") : undefined;
+}
+
+/** The art for a role a fabric gives its square (a bench, a planter, a stele),
+ * as this place and date made it. The fabric names the role; the small
+ * generic sprites in `ornaments` below are only the last resort. `rank` is the
+ * town's standing, 0 provincial to 2 a capital, for what comes in sizes. */
+export function ornamentArt(
+  pack: Pack,
+  key: string,
+  focus = false,
+  pick = 0,
+  rank = 1,
+): { sprite: string; label?: string } | undefined {
+  const year = pack.year;
+  const culture = pack.setting?.culture;
+  const b = (family: string, v: number, label?: string) => ({ sprite: `study-propb-${family}-${v}`, label });
+  const kit = plazaKitFor(pack);
+  const eastern = culture === "east-asian" || culture === "southeast-asian";
+  const western = culture === "european" || culture === "north-african-west-asian";
+  const stone = culture === "european" ? 0 : culture === "north-african-west-asian" || culture === "south-asian" ? 1 : 2;
+  switch (key) {
+    case "lamp":
+    case "post":
+      return lampFor(pack);
+    case "bench":
+      return kit?.bench ?? b("bench", eastern ? 1 : culture === "european" ? 0 : 2, "Bench");
+    case "planter":
+      if (kit?.planter) return kit.planter;
+      if (culture === "european") return year >= 1500 ? b("street-planter", 3, "Stone urn") : b("pithos", 0, "Planted jar");
+      if (culture === "north-african-west-asian") return year >= 650 ? b("street-planter", 4, "Orange tree") : b("pithos", 1, "Planted jar");
+      if (culture === "east-asian") return b("street-planter", 7, "Pine in a glazed jar");
+      return b("pithos", 2, "Planted jar");
+    case "statue":
+      // Where no public figures stood, the role falls to the fountain.
+      return statueFor(pack, pick, focus ? rank : Math.max(0, rank - 1)) ?? b("street-fountain", stone, "Public fountain");
+    case "stele":
+      if (culture === "east-asian") return year >= 600 ? b("monument", 20, "Stele on a tortoise") : b("square-focus", 1, "Inscribed stele");
+      if (culture === "mesoamerican") return year >= -300 && year < 950 ? b("monument", 23, "Carved stela") : b("standing-stone", 4, "Carved stone");
+      if (culture === "inner-eurasian") return b("standing-stone", 1, "Deer stone");
+      if (culture === "andean" || culture === "west-central-african" || culture === "east-southern-african") return b("standing-stone", 4, "Carved stone");
+      return b("square-focus", 1, "Inscribed stele");
+    case "cross":
+      return b("monument", year >= 1300 ? 17 : 16, "Market cross");
+    case "kiosk":
+      return culture === "southeast-asian" ? b("square-focus", 2, "Spirit house") : b("square-focus", 3, "Public fountain");
+    case "altar":
+      if (culture === "mesoamerican") return b("square-focus", 5, "Stepped platform");
+      if (culture === "andean") return b("square-focus", 6, "Stone dais");
+      return b("sacred-marker", 4, "Altar");
+    case "well":
+      return b("town-well", stone, "Public well");
+    case "fountain":
+      if (!focus) return b("street-fountain", stone, "Public fountain");
+      if (culture === "north-african-west-asian" && year >= 1350) return b("monument", 18, "Ablution fountain");
+      return western && year >= 1500 ? b("monument", 5 + Math.floor(pick * 3), "Public fountain") : b("monument", 7, "Public fountain");
+    default:
+      return undefined;
+  }
 }
 
 /** What hangs at a door, where anything does. A lantern is an east and

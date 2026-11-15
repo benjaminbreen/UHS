@@ -3843,6 +3843,9 @@ export class WorldScene extends Phaser.Scene {
       ? "nature-shadows"
       : "nature-shadows-2";
   }
+  private propShadows(key: string) {
+    return this.textures.get("prop-shadows").has(key) ? "prop-shadows" : "prop-shadows-2";
+  }
   private shadow(frame: string, x: number, y: number, transient = false) {
     if (this.options.shadows === false || waterborneFrames.has(frame)) return undefined;
     let key = shadowFrame(this.shadowPhase, frame);
@@ -3856,7 +3859,7 @@ export class WorldScene extends Phaser.Scene {
       (source === "nature"
         ? this.natureShadows(key)
         : source === "props"
-          ? "prop-shadows"
+          ? this.propShadows(key)
           : frame.startsWith("vehicle-")
             ? "vehicle-shadows"
             : source.startsWith("street-buildings@")
@@ -5449,7 +5452,7 @@ export class WorldScene extends Phaser.Scene {
         texture === "nature"
           ? this.natureShadows(shadowKey)
           : texture === "props"
-            ? "prop-shadows"
+            ? this.propShadows(shadowKey)
             : frame.startsWith("vehicle-")
               ? "vehicle-shadows"
               : "lighting-shadows";

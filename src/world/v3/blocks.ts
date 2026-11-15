@@ -1071,7 +1071,9 @@ export function composeUrban(
   for (const [n, request] of (precincts ?? []).entries()) {
     let found: Rect | undefined;
     for (const [w, h] of request.sizes) {
-      for (let d = 0; d < half && !found; d += 2)
+      // From the boulevard age the square is fronted by buildings; what open
+      // market the halls left stands a few streets off.
+      for (let d = (year ?? 0) >= 1850 ? Math.round(half * 0.35) : 0; d < half && !found; d += 2)
         for (let k = 0; k < 24 && !found; k++) {
           const a = ((k + rand("ground", n) * 24) / 24) * Math.PI * 2;
           const r = {

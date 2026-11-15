@@ -69,14 +69,25 @@ features; `precincts.ts` courts, arenas and markets; `terraces.ts` how a town
 holds up a step; `boundaries.ts` how walls and fences are built.
 `lots.ts` gives ground a block left unbuilt a use from the place's facts
 (gardens, fuel, drying, threshing, pens, burial ground, ruins) and lays its
-props out in whatever rectangle is left.
+props out in whatever rectangle is left. A European city from 1850 makes
+most such ground a railed garden square (lawn, a gravel walk, planes, benches,
+a statue) and keeps no kitchen plots, pens or threshing floors.
 
 ### Industrial and motor-age cities
+
+- A boulevard-age European city (`perimeter-block-city`) is cut into long
+  east-west blocks, 46 to 56 cells by 20, old core included: a block holds a
+  street front of five or six buildings, and a narrower one is a building
+  between two streets. Its venues stand a whole block behind the square, and
+  from 1850 a market ground keeps a third of the town's half-width away from
+  it, so the blocks facing the square are street fronts.
 
 - `modernity.ts` dates two onsets per region: industry and mass car ownership.
 - After the industrial onset a city levels its site (`townTerraces` in
   `plan.ts`): rises and hollows go to the city's commonest level. Only a hill
   covering a sixth of the town, and the low margin along water, keep a step.
+  A metropolis is several overlapping sites; `generate.ts` grades them in
+  rank order (`townGrade`), largest first, so its quarters share one ground.
 - `zoning.ts` gives each block a land use after the industrial onset:
   downtown, a factory sector toward water, then housing rings dated by
   distance (`inner` before the motor onset, `outer` after), estates and

@@ -9,7 +9,7 @@ import panel from "./panel.json" with { type: "json" };
 
 const want = process.argv.slice(2);
 mkdirSync("artifacts/towns", { recursive: true });
-for (const { name, query, seed, radius, settlementLayout } of panel as any[]) {
+for (const { name, query, seed, radius, settlementLayout, centre } of panel as any[]) {
   if (want.length && !want.includes(name)) continue;
   const r = resolveSetting(query) as any;
   if (r.error) {
@@ -20,8 +20,12 @@ for (const { name, query, seed, radius, settlementLayout } of panel as any[]) {
     ? { ...r.setting, settlementLayout }
     : r.setting;
   const e = createSettingSession(setting, seed ?? "panel") as any;
-  const cx = Math.round(e.state.player.pos.x),
-    cy = Math.round(e.state.player.pos.y);
+  // "centre": "square" looks at the town's middle, not at the player's door.
+  const at = centre === "square" || process.env.TOWN_CENTRE === "square"
+    ? e.world.planAt(Math.round(e.state.player.pos.x), Math.round(e.state.player.pos.y))?.site.center ?? e.state.player.pos
+    : e.state.player.pos;
+  const cx = Math.round(at.x),
+    cy = Math.round(at.y);
   const R = radius ?? 40;
   // A city can be several sites (its quarters), each with its own plan.
   const plans = new Set<any>();

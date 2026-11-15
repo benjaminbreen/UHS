@@ -134,6 +134,8 @@ from .lots import LOTS
 DRAW_B.update(LOTS)
 from .plaza_families import PLAZA, PLAZA_ANIMATED
 DRAW_B.update(PLAZA)
+from .statuary import STATUARY
+DRAW_B.update(STATUARY)
 
 # Families drawn in separable layers. The renderer places the frame and sways
 # the hangings against it; the unsuffixed sprite stays whole for the lab, the

@@ -472,7 +472,7 @@ export const modernForms: UrbanFormRule[] = [
     to: 2026,
     bounds: [-12, 35, 40, 64],
     plan: "orthogonal",
-    block: [30, 22],
+    block: [52, 20],
     regularity: 0.9,
     courts: 0.82,
     deadEnds: 0.08,
@@ -484,9 +484,11 @@ export const modernForms: UrbanFormRule[] = [
     plazaScale: 0.16,
     civic: "head",
     districts: [
-      { plan: "organic", block: [14, 11], regularity: 0.4 },
-      { plan: "orthogonal", block: [26, 20], regularity: 0.9 },
-      { plan: "orthogonal", block: [30, 22], regularity: 0.95 },
+      // The old core was cut through and rebuilt at the new buildings' size: a
+      // block narrower than three of them has no street front to speak of.
+      { plan: "orthogonal", block: [46, 20], regularity: 0.7 },
+      { plan: "orthogonal", block: [52, 20], regularity: 0.9 },
+      { plan: "orthogonal", block: [56, 22], regularity: 0.95 },
     ],
     squares: 2,
     ring: true,

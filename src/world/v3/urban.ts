@@ -1143,7 +1143,9 @@ export function urbanNeighborhood(
             const [w, h] = model.footprint;
             // A block back from the square, and shifted along it so several
             // venues do not stack on the same approach.
-            const set = layout.plazaFront ? 1 : form.tiers[0] + 4;
+            // In a boulevard city the blocks facing the square are its street
+            // fronts, so a venue stands behind them, a whole block back.
+            const set = zoning && !form.motor ? form.block[1] + form.tiers[0] + 4 : layout.plazaFront ? 1 : form.tiers[0] + 4;
             return [0, 1, -1, 2, -2].map((step) => {
               const shift = step * (w + 3);
               const rect = {

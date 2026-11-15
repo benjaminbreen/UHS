@@ -103,20 +103,40 @@ the next scale.
   clock tower, carved post. Undefined leaves the fabric alone, which is the
   right answer for a camp, a hamlet, and for places whose assembly ground
   never had a monument in it.
-- **The square's kit**, from 1850, chosen in `plazaKitFor(pack)`
-  (`src/content/settlements/plaza.ts`) by map region and year: table sets,
-  sellers, a game table, a street trade, public water, planters, fixtures and
-  pigeons. A region is a table of rows, each with the years the thing stood in
-  the street; a more local region (Turkey, the Andes, the archipelago)
-  replaces a list of the wider one. Half the squares of 13 cells or more are
-  built round one of the kit's centrepieces (a tiered fountain, a bandstand, a
-  kiosco, a banyan platform) instead of a monument.
+- **The square's kit**, chosen in `plazaKitFor(pack)`
+  (`src/content/settlements/plaza.ts`): table sets, sellers, a game table, a
+  street trade, public water, planters, fixtures, pigeons, what stands in rows
+  down the sides, and how much of the square is market pitches. Each region is
+  a table of rows with the years a thing stood in the street. From 1850 the
+  region is a map box (Turkey, the Andes and the archipelago override the
+  wider one); before it, a cultural family and date: a Roman forum's togate
+  statues and public scales, a medieval market place's pitches and well, a
+  maidan's water jars and coffeehouse, a Chinese crossing's steles and
+  xiangqi table, a Mesoamerican plaza's braziers and drum. Half the squares
+  of 13 cells or more are built round one of the kit's centrepieces where it
+  has any.
+- **Statues** are chosen in `statueFor(pack, pick, rank)`
+  (`src/content/settlements/statues.ts`): a table per tradition of which
+  figures stood in public and when (a togate magistrate, a town's saint, a
+  guardian lion, a chacmool, a heroic worker), drawn in the material that kind
+  was made in. `rank` is the town's standing from its extent, 0 provincial to
+  2 a capital: it sets the figure's size and keeps equestrians and colossi for
+  the towns that could raise them. A third of the squares that put up figures
+  are built round one; forums, temple approaches and spirit ways line their
+  sides with them. Where a tradition put up no public figures (the Islamic
+  world before the 1920s) the role falls to a fountain.
+- **A fabric's ornament roles** (bench, planter, post, stele, cross, well,
+  fountain, altar) are filled by `ornamentArt(pack, key)` with the art of the
+  place and date. The small generic sprites in `ornaments` are a last resort
+  and no longer reach a composed square.
 - **Placing the kit** is `dressSquare` in `v3/plan.ts`, run after either
   square composer. Both axes through the centre stay clear. Tables cluster as
   one terrace against the north frontage; sellers work the south side, where a
   tall cart does not stand in front of a building; planters stand in pairs at
-  the ways in; pigeons are not solid. Counts scale with the square: one seller
-  in a 9-cell square, four and a five-table terrace at 19.
+  the ways in; monuments stand in rows down the two sides; extra market
+  pitches fill rows across the south half; pigeons are not solid. Counts scale
+  with the square: one seller in a 9-cell square, four and a five-table
+  terrace at 19.
 - **Doorway marker**, chosen in `doorwayFor(pack)`: paper lanterns in east and
   southeast Asia, a garland across the lintel in south Asia, a pierced brass
   lamp in west Asia from 700, a horn lantern in Europe from 1100 and a gas
