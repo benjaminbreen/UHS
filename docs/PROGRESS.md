@@ -25,6 +25,10 @@ The owner keeps this list.
 
 ## Recent milestones
 
+- November 14: lives at sea. About 1.5% of random starts, or a prompt such as
+  "a pilgrim on a dhow", begin aboard a square-rigger, junk, dhow or steamer
+  (`src/content/ships/`, `src/world/ship.ts`, `src/core/ship.ts`,
+  `src/render/ship/`), and go ashore at landfall.
 - November 13:
   - Dress by period and trade.
   - Soldiers and sentries.

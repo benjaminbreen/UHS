@@ -10,6 +10,11 @@ import type { GarmentKit } from "../types";
  * makes `stripes` the default motif rather than an occasional one. Indigo is
  * the region's great dye and is treated as ordinary rather than costly.
  */
+/** Box-wide herder dress would put Bamako's townspeople in it. */
+const forHerders = (k: GarmentKit): GarmentKit =>
+  Object.fromEntries(Object.entries(k).map(([key, v]) =>
+    [key, Array.isArray(v) ? v.map((o) => ({ ...o, livelihoods: ["herder"] })) : v])) as GarmentKit;
+
 export const westCentralAfrica: readonly GarmentKit[] = [
   {
     id: "wca-early",
@@ -165,7 +170,7 @@ export const westCentralAfrica: readonly GarmentKit[] = [
       { value: "none", weight: 2, means: ["poor"] },
     ],
   },
-  {
+  forHerders({
     // Fulbe herders: the men's wide robe and trousers, the conical leather and
     // straw hat against the sun, a staff over the shoulders; women in wrapped
     // cloth with amber, beads and brass in the hair.
@@ -186,7 +191,8 @@ export const westCentralAfrica: readonly GarmentKit[] = [
     neck: [{ value: "beads", weight: 5 }, { value: "none", weight: 3 }],
     accessory: [{ value: "walking-cane", weight: 4, livelihoods: ["herder"] }, { value: "none", weight: 4 }],
     dye: [{ value: "indigo", weight: 5 }, { value: "undyed", weight: 5 }, { value: "bleached", weight: 2 }],
-  },
+  }),
+
 ];
 
 /**
@@ -355,7 +361,8 @@ export const eastSouthernAfrica: readonly GarmentKit[] = [
     // beads and wire for the rich.
     id: "shona",
     label: "Zimbabwe plateau · hide, cotton and beads",
-    scope: { years: [1000, 1900], bounds: [25, -23, 34, -15] },
+    scope: { years: [1000, 1900], bounds: [25, -23, 34, -15], communities: ["indigenous-local", "local"] },
+    village: true,
     garment: [
       { value: "loincloth", weight: 4, sex: ["male"] },
       { value: "wrap", weight: 5 },
@@ -376,7 +383,8 @@ export const eastSouthernAfrica: readonly GarmentKit[] = [
     // rank and age.
     id: "nguni",
     label: "Nguni · hide aprons, skin cloaks and beadwork",
-    scope: { years: [1000, 1900], bounds: [27, -34, 33, -24] },
+    scope: { years: [1000, 1900], bounds: [27, -34, 33, -24], communities: ["indigenous-local", "local"] },
+    village: true,
     garment: [
       { value: "loincloth", weight: 6, sex: ["male"] },
       { value: "none", weight: 3, sex: ["male"] },

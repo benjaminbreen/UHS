@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { places } from "../src/content/geography/places";
+import { characterSex } from "../src/content/characters/generate";
 import population from "../src/content/geography/population.generated.json" with { type: "json" };
 import {
   randomPopulationWeightedYear,
@@ -59,15 +60,20 @@ describe("random starts", () => {
     const byId = new Map(places.map((place) => [place.id, place]));
     let chinese = 0,
       farWest = 0,
-      towns = 0;
+      towns = 0,
+      men = 0,
+      over45 = 0;
     for (let i = 0; i < 600; i++) {
       const { setting } = randomStartFromDraws(
         // 838 CE.
         new Uint32Array([(i * 2654435761) >>> 0, 0, 0x6000_0000, (i * 2246822519) >>> 0]),
         "realistic",
+        `split-${i}`,
       );
       const place = byId.get(setting.placeId)!;
       if (setting.settlement === "city" || setting.settlement === "port") towns++;
+      if (characterSex(setting.character!.appearanceSeed!, "player") === "male") men++;
+      if (setting.character!.age! >= 45) over45++;
       if (population.places[place.id as keyof typeof population.places] !== "CHN") continue;
       chinese++;
       if (place.lon < 100) farWest++;
@@ -75,6 +81,10 @@ describe("random starts", () => {
     // An even split put a third of China in Tibet and Xinjiang.
     expect(farWest / chinese).toBeLessThan(0.1);
     expect(towns / 600).toBeLessThan(0.15);
+    // Work drawn before sex made 55% of starts men; an even age draw put almost
+    // half over 45.
+    expect(Math.abs(men / 600 - 0.5)).toBeLessThan(0.06);
+    expect(over45 / 600).toBeLessThan(0.4);
   });
 
   it.runIf(!!process.env.FULL)("leaves no place unreachable, including the curated anchors", () => {

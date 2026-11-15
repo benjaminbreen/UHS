@@ -154,7 +154,8 @@ export const indigenousAmerican: readonly GarmentKit[] = [
     // and the painted buffalo robe over everything.
     id: "plains",
     label: "Great Plains · buffalo robe and moccasins",
-    scope: { years: [1700, 1885], bounds: [-112, 32, -95, 53] },
+    scope: { years: [1700, 1885], bounds: [-112, 32, -95, 53], communities: ["indigenous-local", "local"] },
+    village: true,
     garment: [
       { value: "loincloth", weight: 5, sex: ["male"] },
       { value: "shirt", weight: 3, sex: ["male"], means: ["common", "wealthy"] },

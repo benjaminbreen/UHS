@@ -3448,9 +3448,9 @@
       "id": "street-planter",
       "name": "Street planter",
       "group": "Street furniture",
-      "size": [44, 40],
-      "description": "Civic planting: a cast-iron urn of bedding, a Versailles box with a clipped bay, a concrete trough of shrubs.",
-      "variants": ["Iron urn", "Versailles box", "Concrete trough"]
+      "size": [44, 62],
+      "description": "Civic planting: urns of bedding, a Versailles box, a concrete trough, potted citrus and oleander, a pedestal vase, a pine in a glazed jar, a hydrangea tub, a dragon jar.",
+      "variants": ["Iron urn", "Versailles box", "Concrete trough", "Stone urn", "Orange tree", "Oleander", "Pedestal vase", "Pine in glazed jar", "Hydrangea tub", "Dragon jar"]
     },
     {
       "id": "tree-grate",
@@ -3488,9 +3488,9 @@
       "id": "cafe-terrace",
       "name": "Cafe terrace",
       "group": "Street furniture",
-      "size": [38, 52],
-      "description": "A marble bistro table and two cane chairs, with or without a parasol.",
-      "variants": ["Open", "Parasol"]
+      "size": [60, 50],
+      "description": "A table set out of doors: a bistro table and cane chairs, a beer-garden trestle, a coffeehouse tray with a narghile, plastic stools round a folding table, thermos flasks in the park, a picnic table.",
+      "variants": ["Open", "Parasol", "Beer garden", "Coffeehouse", "Pavement stools", "Park tea table", "Picnic table"]
     },
     {
       "id": "street-barrow",
@@ -3500,6 +3500,15 @@
       "description": "A seller’s barrow: buckets of cut flowers, banked fruit, or a striped awning stall.",
       "variants": ["Flowers", "Fruit", "Awning stall"]
     },
+    {"id": "game-table", "name": "Game table", "group": "Street furniture", "size": [58, 26], "description": "A board set up in public: concrete chess tables, a granite xiangqi table with drum stools, backgammon, a go bench.", "variants": ["Concrete chess", "Park chess", "Xiangqi", "Backgammon", "Go bench"]},
+    {"id": "plaza-centre", "name": "Plaza centrepiece", "group": "Street furniture", "size": [92, 98], "description": "What a modern square is built round: a tiered fountain, a bandstand, a kiosco, a banyan on its platform, a bronze worthy with a pigeon on his head.", "variants": ["Tiered fountain", "Bandstand", "Kiosco", "Kiosco, red roof", "Banyan platform", "Statue"]},
+    {"id": "street-vendor", "name": "Street vendor", "group": "Street furniture", "size": [74, 88], "description": "Somebody selling from a cart, a stall or a mat, each drawn for the place that had it, from a kvass barrel to a yatai.", "variants": ["Gelato tricycle", "Chestnut roaster", "Kvass barrel", "Ice-cream cart", "Hot-dog cart", "Hot-dog cart, red", "Popcorn wagon", "Paletero cart", "Elote cart", "Aguas frescas", "Emoliente cart", "Balloon seller", "Simit cart", "Orange-juice stall", "Corn and chestnut cart", "Umbrella vendor", "Suya grill", "Mkokoteni", "Duka kiosk", "Market mat", "Chai stall", "Paan stall", "Chaat cart", "Cane press", "Lime soda cart", "Kaki lima", "Kaki lima, green", "Noodle cart", "Coconut stand", "Iced drinks", "Banh mi stand", "Sweet-potato oven", "Baozi steamers", "Tanghulu pole", "Yatai", "Pojangmacha", "Yaki-imo cart", "Tteokbokki cart"]},
+    {"id": "public-water", "name": "Public water", "group": "Street furniture", "size": [46, 60], "description": "Where a street drinks: a Wallace fountain, a pump over a trough, a pedestal bubbler, a park tap, a standpipe, a hand pump, clay jars set out for passers-by.", "variants": ["Wallace fountain", "Street pump", "Pedestal bubbler", "Park tap", "Standpipe", "Hand pump", "Zeer jars", "Roofed water jars"]},
+    {"id": "plaza-bench", "name": "Plaza bench", "group": "Street furniture", "size": [50, 30], "description": "A seat in a square: a stone slab, a white wrought-iron banca, a plank bench.", "variants": ["Stone", "Wrought iron", "Plank"]},
+    {"id": "plaza-tree", "name": "Plaza tree", "group": "Street furniture", "size": [60, 84], "description": "A tree given its own ground in the paving: a plane in an iron guard, a date palm in a kerbed pit.", "variants": ["Plane in a guard", "Date palm"]},
+    {"id": "pigeons", "name": "Pigeons", "group": "Street furniture", "size": [54, 14], "description": "Town pigeons pecking at the paving.", "variants": ["Flock"]},
+    {"id": "street-trade", "name": "Street trade", "group": "Street furniture", "size": [48, 68], "description": "A trade worked in the open: a shoeshine stand, a bolero chair, a brass shoeshine box, a tailor at a treadle machine.", "variants": ["Shoeshine stand", "Bolero chair", "Shoeshine box", "Tailor"]},
+    {"id": "street-fixture", "name": "Street fixture", "group": "Street furniture", "size": [64, 92], "description": "What a city stands in its square: a post clock, a flagpole, a soda-water machine, a newspaper board, a letterbox, an exercise frame.", "variants": ["Street clock", "Flagpole", "Soda machine", "Soda machine, red", "Newspaper stand", "Notice board", "Letterbox", "Pillar postbox", "Air walker"]},
     {
       "id": "city-lamp",
       "name": "City lamp",

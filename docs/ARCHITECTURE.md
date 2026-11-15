@@ -12,7 +12,7 @@ same engine runs in the browser, in Node tests, in replay and under the agent
 | Path | Owns |
 |---|---|
 | `src/core/` | Game state, rules and commands. `engine.ts` is the authority on what happens. Also time (`core/time/`), plots, kin, health, fauna, routing, topography. |
-| `src/world/` | World generation. `v3/` builds the local scene (`v3/generate.ts`, `v3/plan.ts` for settlements). `geography/` is shared Earth geography. `regional/` holds regional constraints for the planner. `travel/` holds the map squares and journeys. `worker.ts` runs generation off the main thread. Interiors, caves and sewers sit at the top level. |
+| `src/world/` | World generation. `v3/` builds the local scene (`v3/generate.ts`, `v3/plan.ts` for settlements). `geography/` is shared Earth geography. `regional/` holds regional constraints for the planner. `travel/` holds the map squares and journeys. `worker.ts` runs generation off the main thread. Interiors, caves, sewers and ships sit at the top level. |
 | `src/content/` | Data and the resolvers that pick from it: history, geography, characters, beliefs, plots, cards, economy, props, settlements, ecology, fauna. |
 | `src/runtime/` | The live session (`session.ts`, `Runtime`), save and manifest schema (`schema.ts`), world preparation (`preparation.ts`, `prepared-store.ts`), map travel (`map-travel.ts`) and the autopilot. |
 | `src/render/` | The Phaser view (`WorldScene.ts`) and its painters, rasters and workers. |

@@ -60,6 +60,22 @@ export function proceduralName(
     )
   ];
 }
+/* Adult ages as a pre-industrial life table leaves them: Gompertz-Makeham
+ * mortality from 18, about 40% of adults living to 60. An even draw from 18 to
+ * 65 made almost half of all players over 45. */
+const adultAges = (() => {
+  const survival: number[] = [];
+  let hazard = 0;
+  for (let age = 18; age <= 75; age++) {
+    survival.push(Math.exp(-hazard));
+    hazard += 0.008 + 0.0026 * Math.exp(0.07 * (age - 18));
+  }
+  const total = survival.reduce((a, b) => a + b, 0);
+  let sum = 0;
+  return survival.map((s) => (sum += s / total));
+})();
+const adultAge = (roll: number) => 18 + adultAges.findIndex((c) => roll < c);
+
 export function populateCharacter(
   setting: WorldSetting,
   seed: string,
@@ -76,7 +92,7 @@ export function populateCharacter(
   };
   const roll = random(seed, "starting-character", setting.placeId, setting.year, "age");
   const characterSeed = setting.character?.appearanceSeed ?? seed;
-  const firstAge = setting.character?.age ?? 18 + Math.floor(roll * 48);
+  const firstAge = setting.character?.age ?? adultAge(roll);
   const first = generateCharacter(setting, characterSeed, "player", firstAge, setting.role);
   const age = setting.character?.age ?? (first.origin.livelihood === "apprentice"
     ? 18 + Math.floor(roll * 10)

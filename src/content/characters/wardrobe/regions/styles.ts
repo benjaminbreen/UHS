@@ -30,7 +30,10 @@ const UK = [-8, 49.8, 2, 59] as const;
 const WEST = [-10, 36, 20, 60] as const;
 const US = [-125, 24, -66, 49] as const;
 const JAPAN = [128, 30, 146, 46] as const;
-const at = (years: readonly [number, number], bounds: readonly [number, number, number, number]): CharacterScope => ({ years, bounds });
+// The Maghreb and Africa below the European boxes: Algiers sits at 36.8°N.
+const NOT_WEST: [number, number, number, number][] = [[-10, -40, -1, 35.95], [-1, -40, 11.5, 37.2], [11.5, -40, 20, 33.5]];
+const NOT_JAPAN: [number, number, number, number][] = [[124, 34.2, 129.6, 43.5], [128, 42.3, 139.5, 46]];
+const at = (years: readonly [number, number], bounds: readonly [number, number, number, number], except?: [number, number, number, number][]): CharacterScope => ({ years, bounds, except });
 
 const LEATHER: readonly Choice[] = [["coat"]];
 const PUNK_DYES: readonly Choice[] = [["#16121a", 3], ["#e0408a"], ["#3fbf4a"], ["#3a6ad8"], ["#d83030"], ["#f0e070", 2]];
@@ -107,7 +110,7 @@ export const streetStyles: readonly GarmentKit[] = [
     footwear: [["shoes", 1, M], ["boots", 1, F]], headwear: [["none"]],
   }),
   look("hippie", "Hippies", at([1966, 1977], US), [0.7, 0.8], YOUNG, hippie),
-  look("hippie-europe", "Hippies", at([1967, 1977], WEST), [0.72, 0.8], YOUNG, hippie),
+  look("hippie-europe", "Hippies", at([1967, 1977], WEST, NOT_WEST), [0.72, 0.8], YOUNG, hippie),
   look("hippie-australia", "Hippies", at([1967, 1977], [112, -44, 154, -10]), [0.74, 0.8], YOUNG, hippie),
   // The afro as a statement, from Black Power to the dance floor. It only takes
   // on hair that will stand up into one, so the share is of that hair.
@@ -123,26 +126,26 @@ export const streetStyles: readonly GarmentKit[] = [
     hairdress: [["shaven"]], garment: [["coat"]], dye: [["soot"], ["chrome"]], leggings: [["trousers"]], footwear: [["boots"]], headwear: [["none"]],
   }),
   look("punk", "Punks", at([1976, 1986], UK), [0.6, 0.64], YOUNG, punk),
-  look("punk-west", "Punks", at([1977, 1990], WEST), [0.6, 0.64], YOUNG, punk),
+  look("punk-west", "Punks", at([1977, 1990], WEST, NOT_WEST), [0.6, 0.64], YOUNG, punk),
   look("punk-us", "Punks", at([1976, 1990], US), [0.6, 0.63], YOUNG, punk),
-  look("punk-japan", "Punks", at([1978, 1995], JAPAN), [0.6, 0.62], YOUNG, punk),
-  look("punk-late", "Punks", at([1986, 2015], [-125, 24, 20, 60]), [0.6, 0.615], YOUNG, punk),
-  look("goth", "Goths", at([1980, 2012], WEST), [0.55, 0.585], { ages: ["youth", "adult"], under: 35 }, goth),
+  look("punk-japan", "Punks", at([1978, 1995], JAPAN, NOT_JAPAN), [0.6, 0.62], YOUNG, punk),
+  look("punk-late", "Punks", at([1986, 2015], [-125, 24, 20, 60], NOT_WEST), [0.6, 0.615], YOUNG, punk),
+  look("goth", "Goths", at([1980, 2012], WEST, NOT_WEST), [0.55, 0.585], { ages: ["youth", "adult"], under: 35 }, goth),
   look("goth-us", "Goths", at([1983, 2012], US), [0.55, 0.575], { ages: ["youth", "adult"], under: 35 }, goth),
   // Out of the Bronx: tracksuits and chains, then the baggy nineties.
   look("hip-hop", "Hip hop in New York", at([1979, 1991], [-74.3, 40.5, -73.6, 41]), [0.3, 0.5], YOUNG, hiphop80s),
   look("hip-hop-us", "Hip hop", at([1984, 1991], US), [0.4, 0.5], YOUNG, hiphop80s),
   look("hip-hop-90s", "Hip hop", at([1991, 2012], US), [0.3, 0.5], YOUNG, hiphop90s),
-  look("hip-hop-world", "Hip hop", { years: [1991, 2020] }, [0.4, 0.46], { ...YOUNG, under: 25 }, hiphop90s),
-  look("grunge", "Grunge", at([1991, 1998], [-125, 24, 20, 60]), [0.66, 0.72], YOUNG, {
+  look("hip-hop-world", "Hip hop", { years: [1991, 2020], except: [[36, 12, 72, 40]] }, [0.4, 0.46], { ...YOUNG, under: 25 }, hiphop90s),
+  look("grunge", "Grunge", at([1991, 1998], [-125, 24, 20, 60], NOT_WEST), [0.66, 0.72], YOUNG, {
     garment: [["shirt", 3], ["coat", 1]], motif: [["plaid"]], dye: [["madder"], ["chrome"], ["woad"], ["soot"]],
     hairdress: [["long"]], leggings: [["trousers"]], footwear: [["boots", 2], ["sneakers", 1]], headwear: [["none", 3], ["cap", 1]],
   }),
-  look("emo", "Emo", at([2003, 2013], [-125, -40, 20, 60]), [0.72, 0.76], { ages: ["youth"], under: 22 }, {
+  look("emo", "Emo", at([2003, 2013], [-125, -40, 20, 60], NOT_WEST), [0.72, 0.76], { ages: ["youth"], under: 22 }, {
     garment: [["tunic", 2], ["coat", 1]], dye: [["soot", 3], ["madder", 1]], motif: [["stripes", 1], ["plain", 2]],
     hairdress: [["bob"]], hairDye: [["#16121a"]], leggings: [["trousers", 1, M], ["fishnet", 1, F]], footwear: [["sneakers"]],
   }),
-  look("hipster", "Hipsters", at([2008, 2017], [-125, 24, 20, 60]), [0.76, 0.81], { ages: ["adult"], under: 36 }, {
+  look("hipster", "Hipsters", at([2008, 2017], [-125, 24, 20, 60], NOT_WEST), [0.76, 0.81], { ages: ["adult"], under: 36 }, {
     garment: [["shirt", 2], ["coat", 1]], motif: [["plaid", 2], ["plain", 1]], eyewear: [["glasses"]],
     shave: [["full", 1, M]], headwear: [["cap", 1], ["none", 2]], leggings: [["trousers"]], footwear: [["boots"], ["sneakers"]],
   }),
@@ -160,14 +163,14 @@ export const streetStyles: readonly GarmentKit[] = [
     headwear: [["kerchief", 1], ["none", 2]], eyewear: [["sunglasses", 1], ["none", 1]], hairdress: [["none"]],
   }),
   // Japanese biker gangs in long embroidered coats.
-  look("bosozoku", "Bōsōzoku", at([1972, 1996], JAPAN), [0.96, 0.98], { ...M, ages: ["youth"] }, {
+  look("bosozoku", "Bōsōzoku", at([1972, 1996], JAPAN, NOT_JAPAN), [0.96, 0.98], { ...M, ages: ["youth"] }, {
     garment: [["coat"]], dye: [["bleached"], ["soot"], ["logwood"]], headwear: [["band"]], hairdress: [["quiff"]], leggings: [["wide"]], footwear: [["boots"]],
   }),
-  look("ganguro", "Ganguro", at([1995, 2005], JAPAN), [0.9, 0.95], { ...F, ages: ["youth"] }, {
+  look("ganguro", "Ganguro", at([1995, 2005], JAPAN, NOT_JAPAN), [0.9, 0.95], { ...F, ages: ["youth"] }, {
     makeup: [["ganguro"]], headwear: [["none"]], hairdress: [["long"]], hairDye: [["#e6c48a"], ["#d9b26a"], ["#ece0c8"]], garment: [["skirt", 2], ["dress", 1]],
     dye: [["safflower"], ["weld"], ["woad"], ["bleached"]], footwear: [["boots"]], neck: [["beads"]],
   }),
-  look("lolita", "Lolita", at([1998, 2016], JAPAN), [0.86, 0.9], { ...F, ages: ["youth", "adult"], under: 28 }, {
+  look("lolita", "Lolita", at([1998, 2016], JAPAN, NOT_JAPAN), [0.86, 0.9], { ...F, ages: ["youth", "adult"], under: 28 }, {
     garment: [["dress"]], dye: [["soot", 2], ["bleached", 1], ["safflower", 1]], hairdress: [["bob", 1], ["long", 1]],
     hairOrnament: [["ribbon"]], footwear: [["shoes"]], headwear: [["none"]],
   }),

@@ -256,7 +256,7 @@ export const eastAsia: readonly GarmentKit[] = [
     // Samurai in the castle towns went armed with the two swords but without armour or spear.
     id: "japan-samurai-town",
     label: "Edo Japan · the samurai about town",
-    scope: { years: [1600, 1872], bounds: [128, 30, 146, 46] },
+    scope: { years: [1600, 1872], bounds: [128, 30, 146, 46], except: [[124, 34.2, 129.6, 43.5], [128, 42.3, 139.5, 46]] },
     priority: 3.5,
     accessory: [{ value: "none", weight: 3, livelihoods: ["samurai"] }, { value: "fan", weight: 1, livelihoods: ["samurai"] }],
     armour: [{ value: "none", weight: 1, livelihoods: ["samurai"] }],
@@ -268,7 +268,7 @@ export const eastAsia: readonly GarmentKit[] = [
     // The shaved pate and topknot, for townsmen and samurai alike until the 1871 cropping edict.
     id: "japan-chonmage",
     label: "Edo Japan · the chonmage",
-    scope: { years: [1600, 1872], bounds: [128, 30, 146, 46] },
+    scope: { years: [1600, 1872], bounds: [128, 30, 146, 46], except: [[124, 34.2, 129.6, 43.5], [128, 42.3, 139.5, 46]] },
     hairdress: [{ value: "chonmage", weight: 1, sex: ["male"], ages: ["youth", "adult", "elder"] }],
   },
 ];

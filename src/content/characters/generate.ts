@@ -511,7 +511,7 @@ export function generateCharacter(
     livelihood.rank,
   );
   const wearer = {
-    id, age, sex, livelihood: livelihood.id, rank: livelihood.rank, roles: rolesFrom(requestedRole, role),
+    id, age, sex, livelihood: livelihood.id, rank: livelihood.rank, roles: rolesFrom(requestedRole, role), community,
   };
   appearance.wearing = wardrobeFor(wearer, { year: s.year, setting: s }, appearance.wearing);
   Object.assign(appearance, groomed(appearance));

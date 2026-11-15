@@ -343,7 +343,8 @@ export const courtDress: readonly GarmentKit[] = [
   {
     id: "court-18c",
     label: "Court · wigs and panniers",
-    scope: { years: [1650, 1830] },
+    // European courts and their colonial capitals; not the Ottoman Balkans.
+    scope: { years: [1650, 1830], cultures: ["european", "andean", "mesoamerican"], except: [[18, 34, 45, 46]] },
     priority: 2,
     garment: [
       { value: "gown", weight: 7, means: ["elite"], sex: ["female"] },
@@ -391,9 +392,51 @@ export const courtDress: readonly GarmentKit[] = [
     ],
   },
   {
+    id: "court-19c-early",
+    label: "Court · the long century of state dress",
+    scope: { years: [1830, 1850] },
+    priority: 2,
+    garment: [
+      { value: "gown", weight: 7, means: ["elite"], sex: ["female"] },
+      { value: "coat", weight: 7, means: ["elite"], sex: ["male"] },
+      { value: "dress", weight: 2, means: ["elite"], sex: ["female"] },
+    ],
+    leggings: [
+      { value: "trousers", weight: 6, means: ["elite"] },
+      { value: "hose", weight: 3, means: ["elite"] },
+    ],
+    headwear: [
+      { value: "brimmed", weight: 4, means: ["elite"] },
+      { value: "fillet", weight: 3, means: ["elite"] },
+      { value: "plume", weight: 2, means: ["elite"], sex: ["female"] },
+      { value: "none", weight: 2, means: ["elite"] },
+    ],
+    footwear: [
+      { value: "shoes", weight: 5, means: ["elite"] },
+      { value: "boots", weight: 5, means: ["elite"] },
+    ],
+    over: [
+      { value: "mantle", weight: 4, means: ["elite"] },
+      { value: "cloak", weight: 3, means: ["elite"] },
+      { value: "none", weight: 4, means: ["elite"] },
+    ],
+    material: [
+      { value: "silk", weight: 8, means: ["elite"] },
+      { value: "wool", weight: 3, means: ["elite"] },
+    ],
+    dye: [
+      { value: "goldthread", weight: 4, means: ["elite"] },
+      { value: "tyrian", weight: 3, means: ["elite"] },
+      { value: "cochineal", weight: 4, means: ["elite"] },
+      { value: "soot", weight: 4, means: ["elite"] },
+      { value: "bleached", weight: 3, means: ["elite"] },
+      { value: "indigo", weight: 3, means: ["elite"] },
+    ],
+  },  {
     id: "court-19c",
     label: "Court · the long century of state dress",
-    scope: { years: [1830, 1920] },
+    // The bowler is Lock & Co.'s of 1849.
+    scope: { years: [1850, 1920] },
     priority: 2,
     garment: [
       { value: "gown", weight: 7, means: ["elite"], sex: ["female"] },

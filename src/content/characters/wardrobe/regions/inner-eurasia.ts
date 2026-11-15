@@ -162,7 +162,7 @@ export const innerEurasia: readonly GarmentKit[] = [
     // the belt, one sleeve often off the shoulder, felt boots, a fur hat.
     id: "tibetan",
     label: "Tibet · the chuba",
-    scope: { years: [600, 1950], bounds: [78, 27, 103, 38] },
+    scope: { years: [600, 1950], bounds: [78, 27, 103, 38], except: [[80, 26, 88.2, 28.6]] },
     garment: [{ value: "robe", weight: 7 }, { value: "open-robe", weight: 3 }],
     sleeves: [{ value: "long", weight: 7 }, { value: "loose", weight: 3 }],
     leggings: [{ value: "trousers", weight: 6 }],
@@ -178,7 +178,8 @@ export const innerEurasia: readonly GarmentKit[] = [
     // fur boots; women's open coats edged with appliqué fur and beads.
     id: "siberian-reindeer",
     label: "Siberian herders · reindeer-skin coats",
-    scope: { years: [1000, 1950], bounds: [44, 58, 180, 75] },
+    scope: { years: [1000, 1950], bounds: [60, 58, 180, 75] },
+    village: true,
     garment: [{ value: "coat", weight: 8 }],
     sleeves: [{ value: "long" }],
     leggings: [{ value: "trousers" }],

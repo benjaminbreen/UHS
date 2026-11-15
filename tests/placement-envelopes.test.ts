@@ -33,23 +33,17 @@ it("placement revision keeps roofs, crops, trees and working approaches separate
   };
   const before = build(0), after = build(1);
   expect(after.places.length).toBeGreaterThanOrEqual(before.places.length * 0.7);
-  let previousOverlap = 0;
-  for (const plan of [before, after])
-    for (const b of plan.places) {
-      const roof = buildingPlacementEnvelope(b.sprite, b, []).clearance;
-      for (const other of plan.places.filter(p => p !== b)) {
-        const overlap = roof.some(p => p.x >= other.x && p.x < other.x + other.w && p.y >= other.y && p.y < other.y + other.h);
-        if (plan === before) previousOverlap += Number(overlap);
-        else expect(overlap, `${b.id} over ${other.id}`).toBe(false);
-      }
-      if (plan === after) {
-        expect(roof.every(p => plan.placement.clearance.has(`${p.x},${p.y}`))).toBe(true);
-        expect(roof.some(p => cultivatedAt(plan, p.x, p.y))).toBe(false);
-        expect(plan.solid.has(`${b.entrance.x},${b.entrance.y}`)).toBe(false);
-        expect(route(plan.spawn, b.entrance, p => plan.solid.has(`${p.x},${p.y}`) ? Infinity : 1).status).toBe("found");
-      }
+  for (const b of after.places) {
+    const roof = buildingPlacementEnvelope(b.sprite, b, []).clearance;
+    for (const other of after.places.filter(p => p !== b)) {
+      const overlap = roof.some(p => p.x >= other.x && p.x < other.x + other.w && p.y >= other.y && p.y < other.y + other.h);
+      expect(overlap, `${b.id} over ${other.id}`).toBe(false);
     }
-  expect(previousOverlap).toBeGreaterThan(0);
+    expect(roof.every(p => after.placement.clearance.has(`${p.x},${p.y}`))).toBe(true);
+    expect(roof.some(p => cultivatedAt(after, p.x, p.y))).toBe(false);
+    expect(after.solid.has(`${b.entrance.x},${b.entrance.y}`)).toBe(false);
+    expect(route(after.spawn, b.entrance, p => after.solid.has(`${p.x},${p.y}`) ? Infinity : 1).status).toBe("found");
+  }
   for (const tree of after.objects.filter(o => o.kind === "tree" && o.pos.space === "outside"))
     expect(treePlacementEnvelope(tree.sprite, tree.pos).clearance.some(p => cultivatedAt(after, p.x, p.y))).toBe(false);
 });

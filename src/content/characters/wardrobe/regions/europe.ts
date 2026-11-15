@@ -307,7 +307,8 @@ export const europe: readonly GarmentKit[] = [
     // Matrons wore the long stola over the tunic and a palla outdoors.
     id: "rome-citizen",
     label: "Rome · tunic, toga and stola",
-    scope: { years: [-500, 300], bounds: [6, 36.5, 19, 47.2] },
+    // Not Carthage, nor the Po valley while it was Gaulish.
+    scope: { years: [-500, 300], bounds: [6, 36.5, 19, 47.2], except: [[6, 36.5, 11.6, 37.6], [6.5, 44, 13, 46.5]] },
     garment: [
       { value: "tunic", weight: 8, sex: ["male"] },
       { value: "dress", weight: 5, sex: ["female"], ages: ["adult", "elder"], means: ["common", "wealthy"] },
@@ -673,7 +674,45 @@ export const europe: readonly GarmentKit[] = [
     // women's long gowns with the head covered outdoors.
     id: "byzantine",
     label: "Byzantium · the banded tunic and the mantle",
-    scope: { years: [600, 1460], bounds: [19, 34.5, 30.5, 42.2] },
+    scope: { years: [600, 1326], bounds: [19, 34.5, 30.5, 42.2] },
+    garment: [
+      { value: "long-tunic", weight: 6, sex: ["male"] },
+      { value: "tunic", weight: 4, sex: ["male"], means: ["poor", "common"] },
+      { value: "dress", weight: 8, sex: ["female"] },
+      { value: "robe", weight: 3, means: ["wealthy"] },
+    ],
+    sleeves: [{ value: "long", weight: 7 }, { value: "loose", weight: 2, garments: ["robe"] }],
+    motif: [{ value: "band", weight: 6 }, { value: "plain", weight: 3 }],
+    leggings: [{ value: "hose", weight: 6 }, { value: "trousers", weight: 2, sex: ["male"] }, { value: "none", weight: 2 }],
+    headwear: [
+      { value: "none", weight: 5, sex: ["male"] },
+      { value: "cap", weight: 3, sex: ["male"] },
+      { value: "veil", weight: 6, sex: ["female"], ages: ["adult", "elder"] },
+      { value: "headscarf", weight: 3, sex: ["female"] },
+    ],
+    footwear: [{ value: "shoes", weight: 6 }, { value: "boots", weight: 2 }, { value: "sandals", weight: 2 }],
+    belt: [{ value: "leather", weight: 5 }, { value: "sash", weight: 4 }],
+    over: [{ value: "none", weight: 5 }, { value: "cloak", weight: 3, means: ["wealthy"] }, { value: "mantle", weight: 3 }],
+    material: [{ value: "linen", weight: 5 }, { value: "wool", weight: 5 }, { value: "silk", weight: 3, means: ["wealthy"] }],
+    dye: [
+      { value: "undyed", weight: 4 },
+      { value: "madder", weight: 3 },
+      { value: "woad", weight: 2 },
+      { value: "weld", weight: 2 },
+      { value: "kermes", weight: 2, means: ["wealthy"] },
+      { value: "tyrian", weight: 1, means: ["elite"] },
+      { value: "goldthread", weight: 1, means: ["wealthy"] },
+    ],
+    trimPattern: [{ value: "meander", weight: 3 }, { value: "diamond", weight: 3 }, { value: "none", weight: 3 }],
+  },  {
+    // Constantinople, Thessaloniki and the Aegean until the Ottoman conquest.
+    // Manuscripts and church mosaics show the long belted tunic with woven
+    // bands (clavi), the cloak pinned at the shoulder for the well off, and
+    // women's long gowns with the head covered outdoors.
+    id: "byzantine-late",
+    label: "Byzantium · the banded tunic and the mantle",
+    // Bursa fell in 1326 and Edirne in 1369.
+    scope: { years: [1326, 1460], bounds: [19, 34.5, 30.5, 42.2], except: [[29.05, 39.5, 30.5, 40.6], [26, 41.3, 27.5, 42.2]] },
     garment: [
       { value: "long-tunic", weight: 6, sex: ["male"] },
       { value: "tunic", weight: 4, sex: ["male"], means: ["poor", "common"] },
@@ -711,7 +750,8 @@ export const europe: readonly GarmentKit[] = [
     // pinafore dress, the head always covered once married.
     id: "rus",
     label: "Rus · the belted shirt and the kaftan",
-    scope: { years: [880, 1700], bounds: [24, 48.5, 60, 64] },
+    // Not German Livonia and Estonia.
+    scope: { years: [880, 1700], bounds: [24, 48.5, 60, 64], except: [[24, 55.7, 28.2, 60]] },
     garment: [
       { value: "tunic", weight: 6, sex: ["male"] },
       { value: "coat", weight: 3, sex: ["male"], means: ["common", "wealthy"] },
@@ -741,6 +781,7 @@ export const europe: readonly GarmentKit[] = [
     id: "sami",
     label: "Sápmi · the gákti",
     scope: { years: [1500, 1950], bounds: [14, 65.5, 41, 71] },
+    village: true,
     garment: [{ value: "long-tunic", weight: 7 }, { value: "coat", weight: 3 }],
     sleeves: [{ value: "long" }],
     motif: [{ value: "band", weight: 8 }, { value: "plain", weight: 1 }],

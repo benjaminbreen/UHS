@@ -87,7 +87,7 @@ export const sidearms: readonly GarmentKit[] = [
     label: "Japan · the swords of the samurai",
     // The pair of long and short sword marked a samurai from the late
     // sixteenth century until the 1876 ban on wearing them.
-    scope: { years: [1200, 1876], cultures: ["east-asian"], bounds: [128, 30, 146, 46] },
+    scope: { years: [1200, 1876], cultures: ["east-asian"], bounds: [128, 30, 146, 46], except: [[124, 34.2, 129.6, 43.5], [128, 42.3, 139.5, 46]] },
     sidearm: [...armed("katana", "katana"), { value: "katana", roles: ["aristocrat"], weight: 4 }],
   },
   {

@@ -111,6 +111,21 @@ it("grades modest urban foundations through one tier and keeps steeper terrain o
     (x) => ({ ...flat(), elevation: x >= 0 ? 28 : 0 }), []);
   expect(steep.places.some((b) => b.x < 0 && b.x + b.w > 0)).toBe(false);
 });
+it("settles lowland terrace fragments while retaining hills and the low river margin", () => {
+  const ground = (hill: number) => (x: number, y: number) => ({ ...flat(),
+    elevation: x < -50 ? 0 : x < -44 ? 14 : Math.abs(x) < 36 && Math.abs(y) < 9 ? hill * 14 : 28,
+    water: x < -50 ? -3 : x + 50,
+  });
+  const plan = (hill: number) => planSettlement({ id: "terraces", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
+    profile: { ...settlementProfile(setting), radius: 74 } }, packForSetting(setting), "town-terraces", ground(hill), []);
+  const lowland = plan(3), hillside = plan(6);
+  expect(lowland.groundLevels?.get("0,0")).toBe(2);
+  expect(hillside.groundLevels?.get("0,0") ?? 6).toBe(6);
+  for (const p of [lowland, hillside]) {
+    expect(p.groundLevels?.get("-47,0") ?? 1).toBe(1);
+    expect(p.groundLevels?.has("-55,0")).toBe(false);
+  }
+});
 it.runIf(!!process.env.FULL)("places regional buildings and retains historic towers in later cities with reachable entrances", () => {
   for (const [query, style, retained] of [
     ["Rome 100 BCE", "roman", false], ["medieval London", "western", false], ["Alexandria 200", "egypt", false],

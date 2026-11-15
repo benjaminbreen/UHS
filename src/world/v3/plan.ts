@@ -106,6 +106,7 @@ import {
   stallFor,
   streetFurnitureFor,
 } from "../../content/settlements/ornaments";
+import { plazaKitFor, type PlazaPiece } from "../../content/settlements/plaza";
 import type { Actor, Pack, Place, Point, Position, Terrain } from "../../core/types";
 import { proceduralName } from "../../content/geography/character";
 import { random } from "../../core/random";
@@ -319,7 +320,7 @@ export function planSettlement(
   };
   if (pack.setting?.situation && pack.setting.situation.camp !== "none") return planCamp(plan, pack, seed);
   if (urban && pack.setting?.terrainRevision) {
-    const graded = townTerraces(sample, c, r);
+    const graded = townTerraces(sample, c, r, !!pack.setting && industrialized(pack.setting));
     if (graded.size) {
       plan.groundLevels = graded;
       const raw = sample;
@@ -432,12 +433,13 @@ export function planSettlement(
   // Meiji and Taisho Tokyo, before the earthquake and the war rebuilt it.
   const meiji = !!pack.setting && modernity(pack.setting).id === "japan" && pack.setting.year < 1945;
   const furniture = streetFurnitureFor(pack);
+  const kit = plazaKitFor(pack);
   const nativeOrnament = (key: string) => {
     const name = ({ well: "wellhead", fountain: "fountain", bench: "bench", planter: "olive-planter", altar: "votive-altar" } as Record<string, string>)[key];
     return name && mediterraneanProp(pack.setting, name);
   };
   const municipal = (key: string) =>
-    key === "bench" ? furniture?.bench
+    key === "bench" ? kit?.bench?.sprite ?? furniture?.bench
     : key === "planter" ? furniture?.planter
     : key === "kiosk" ? furniture?.kiosk
     : key === "post" ? furniture?.bollard
@@ -995,6 +997,91 @@ export function planSettlement(
     pos: Point;
   }[] = [];
   if (urban) {
+    /** The kit round the monument. Both axes through the centre stay clear
+     * for people crossing; tall pieces keep to the south half, where they do
+     * not stand in front of the buildings on the north side. */
+    const dressSquare = (court: Rect, cx: number, cy: number) => {
+      if (!kit) return;
+      const min = Math.min(court.w, court.h);
+      const aisle = min >= 13 ? 1 : 0;
+      const x0 = court.x + 1, x1 = court.x + court.w - 2, y0 = court.y + 1, y1 = court.y + court.h - 2;
+      // A band of setts frames a paved square, as the motor-age one has its kerb.
+      if (!fabric.motor && profile.paved && squareStone && min >= 13)
+        eachCell(court, (x, y) => {
+          if (x === court.x || x === x1 + 1 || y === court.y || y === y1 + 1)
+            plan.streetSurfaces!.set(cellKey(x, y), squareStone === "sett" ? "slab" : "sett");
+        });
+      const held = new Set<string>();
+      for (const o of plan.objects)
+        if (o.pos.x >= court.x && o.pos.x < court.x + court.w && o.pos.y >= court.y && o.pos.y < court.y + court.h)
+          for (let dx = -1; dx <= 1; dx++)
+            for (let dy = -1; dy <= 1; dy++) held.add(cellKey(Math.round(o.pos.x) + dx, Math.round(o.pos.y) + dy));
+      const open = (x: number, y: number, crossing = false) => {
+        const k = cellKey(x, y), role = plan.pavement!.get(k);
+        return x >= x0 && x <= x1 && y >= y0 && y <= y1 &&
+          (crossing || (Math.abs(x - cx) > aisle && Math.abs(y - cy) > aisle)) &&
+          !plan.solid.has(k) && !held.has(k) && role !== "garden" && role !== "verge" && role !== "dais" &&
+          dry({ x, y, w: 1, h: 1 }, false);
+      };
+      const put = (tag: string, piece: PlazaPiece | undefined, x: number, y: number, solid = true) => {
+        if (!piece) return false;
+        const left = x - (piece.w >> 1);
+        for (let i = 0; i < piece.w; i++) if (!open(left + i, y, !solid)) return false;
+        if (solid && (plan.solid.has(cellKey(left - 1, y)) || plan.solid.has(cellKey(left + piece.w, y)))) return false;
+        for (let i = -1; i <= piece.w; i++)
+          for (let dy = -1; dy <= 1; dy++) held.add(cellKey(left + i, y + dy));
+        if (solid) for (let i = 0; i < piece.w; i++) plan.solid.add(cellKey(left + i, y));
+        plan.objects.push({ id: `${site.id}-plaza-${tag}`, name: piece.label, kind: "monument",
+          sprite: piece.sprite, pos: pos({ x, y }), inventory: {}, claim: "landscape" });
+        return true;
+      };
+      /** The nearest free spot to the one asked for, trying sideways first. */
+      const near = (tag: string, piece: PlazaPiece | undefined, x: number, y: number, solid = true) =>
+        [0, 1, -1].some((dy) => [0, 1, -1, 2, -2, 3, -3].some((dx) => put(tag, piece, x + dx, y + dy, solid)));
+      // A terrace is several tables against the north frontage, east side first.
+      if (kit.terrace.length) {
+        const pitch = Math.max(...kit.terrace.map((t) => t.w)) + 2;
+        const want = min >= 19 ? 5 : min >= 15 ? 3 : min >= 13 ? 2 : 1;
+        let n = 0;
+        for (const side of [1, -1]) {
+          for (const y of [y0 + 2, y0 + 6])
+            for (let i = 0; n < want && y < cy - aisle; i++) {
+              const x = side > 0 ? x1 - 1 - i * pitch : x0 + 2 + i * pitch;
+              if (side > 0 ? x < cx + aisle + 2 : x > cx - aisle - 2) break;
+              if (near(`table-${n}`, kit.terrace[n % kit.terrace.length], x, y)) n++;
+            }
+          if (n) break;
+        }
+      }
+      // Sellers work the south side, then the north-west corner.
+      const quarter = Math.max(2, court.w >> 2);
+      const pitches: [number, number][] = [
+        [court.x + quarter, y1 - 1], [x1 - quarter + 1, y1 - 1], [court.x + quarter, y0 + 3], [x1 - quarter + 1, y1 - 4],
+      ];
+      const sellers = min >= 19 ? 4 : min >= 15 ? 3 : min >= 13 ? 2 : min >= 9 ? 1 : 0;
+      const first = Math.floor(rand("vendor") * kit.vendors.length);
+      for (let i = 0, n = 0; i < pitches.length && n < Math.min(sellers, kit.vendors.length); i++)
+        if (near(`vendor-${n}`, kit.vendors[(first + n) % kit.vendors.length], ...pitches[i])) n++;
+      if (min >= 13) {
+        near("games", kit.games, cx - aisle - 3, cy - aisle - 2);
+        if (min >= 15) near("trade", kit.trade, cx + aisle + 3, cy + aisle + 2);
+        const corners: [number, number][] = [[cx - aisle - 3, cy + aisle + 2], [x0 + 1, cy - aisle - 3], [x1 - 1, cy + aisle + 3]];
+        kit.fixtures.slice(0, min >= 19 ? 3 : 1).forEach((piece, i) => near(`fixture-${i}`, piece, ...corners[i]));
+      }
+      // Planters stand in pairs at the ways in; a tree of the square's own beyond them.
+      const gates: [number, number, number, number][] = [[cx, y1, 1, 0], [x0, cy, 0, 1], [x1, cy, 0, 1]];
+      for (const [i, [gx, gy, dx, dy]] of gates.slice(0, min >= 13 ? 3 : 1).entries()) {
+        const d = aisle + 1;
+        if (open(gx - dx * d, gy - dy * d) && open(gx + dx * d, gy + dy * d))
+          for (const side of [-1, 1]) put(`planter-${i}-${side}`, kit.planter, gx + side * dx * d, gy + side * dy * d);
+        if (kit.tree && min >= 15 && dy)
+          for (const side of [-1, 1]) put(`tree-${i}-${side}`, kit.tree, gx, gy + side * (d + 3));
+      }
+      if (kit.pigeons) {
+        near("pigeons-0", kit.pigeons, cx + 3, socialCenter.y + 1, false);
+        if (min >= 15) near("pigeons-1", kit.pigeons, cx - aisle - 4, cy - aisle - 3, false);
+      }
+    };
     const composeModernSquare = (court: Rect) => {
       const cx = court.x + (court.w >> 1), cy = court.y + (court.h >> 1) - 2;
       plan.objects = plan.objects.filter((o) => o.id !== `${site.id}-hearth`);
@@ -1011,10 +1098,12 @@ export function planSettlement(
         plan.objects.push({ id: `${site.id}-square-${tag}`, name, sprite,
           kind: "monument", pos: pos(at), inventory: {}, claim: "landscape" });
       };
-      const focus = focusFor(pack, rand("monument"));
+      const focus = focusFor(pack, rand("monument"), true);
       const ornament = fabric.square.focus ? ornaments[fabric.square.focus] : undefined;
       if (focus || ornament) {
-        eachCell({ x: cx - 1, y: cy - 1, w: 3, h: 3 }, (x, y) => {
+        const half = Math.max(1, (focus?.w ?? 1) >> 1);
+        for (let dx = -half + 1; dx < half; dx++) plan.solid.add(cellKey(cx + dx, cy));
+        eachCell({ x: cx - half, y: cy - half, w: 2 * half + 1, h: 2 * half + 1 }, (x, y) => {
           const k = cellKey(x, y);
           plan.pavement!.set(k, "dais");
           plan.streetSurfaces!.set(k, "slab");
@@ -1044,14 +1133,15 @@ export function planSettlement(
       }
       const source = plan.objects.find((o) => o.id === `${site.id}-water`)!;
       const piped = (pack.setting?.year ?? 0) >= 1900;
-      source.name = piped ? "Drinking fountain" : "Public water pump";
-      source.sprite = piped ? "study-propb-street-fountain-0" : "study-propb-pump-0";
+      source.name = kit?.water?.label ?? (piped ? "Drinking fountain" : "Public water pump");
+      source.sprite = kit?.water?.sprite ?? (piped ? "study-propb-street-fountain-0" : "study-propb-pump-0");
       source.pos = pos({ x: court.x + 1, y: court.y + court.h - 2 });
       waterStand.x = source.pos.x + 1; waterStand.y = source.pos.y;
       place("newsstand", "Newspaper kiosk", furniture?.kiosk ?? "study-propb-newsstand-2",
         { x: court.x + court.w - 3, y: court.y + court.h - 2 }, 3);
-      socialCenter.x = cx; socialCenter.y = cy + 3;
+      socialCenter.x = cx; socialCenter.y = cy + Math.max(3, ((focus?.w ?? 1) >> 1) + 2);
       plan.spawn = { ...socialCenter };
+      dressSquare(court, cx, cy);
     };
     /** A square is composed from the fabric's spec: one centrepiece on a dais
      * scaled to the square, four corners, stalls along the lower edge. The
@@ -1068,7 +1158,7 @@ export function planSettlement(
         fire = false;
       // Gas and coal cooked indoors: an industrial city's square keeps no open fire.
       const brazier = spec.hearth === "brazier" && !industrialAge;
-      if (industrialAge && spec.hearth !== "hidden")
+      if (industrialAge && (spec.hearth !== "hidden" || !civicRect))
         plan.objects = plan.objects.filter((o) => o !== hearth);
       const bed = (rect: Rect, tag: string) => {
         if (!dry(rect, false)) return false;
@@ -1097,8 +1187,9 @@ export function planSettlement(
         if (piece.kind === "well") {
           if (water) return;
           water = true;
-          source.name = piece.label;
-          source.sprite = nativeOrnament(key) || (focus && piece.focusSprite) || piece.sprite;
+          const local = focus ? undefined : kit?.water;
+          source.name = local?.label ?? piece.label;
+          source.sprite = local?.sprite ?? (nativeOrnament(key) || (focus && piece.focusSprite) || piece.sprite);
           source.pos = pos(spot);
           waterStand.x = spot.x + 1;
           waterStand.y = spot.y;
@@ -1113,7 +1204,8 @@ export function planSettlement(
         }
         if (focus) plan.solid.add(cellKey(spot.x, spot.y));
         // A square's centrepiece is the one ornament that has to be local.
-        const local = focus ? focusFor(pack, rand("monument")) : undefined;
+        const local = focus ? focusFor(pack, rand("monument"), min >= 13) : undefined;
+        if (local?.w) for (let dx = 1 - (local.w >> 1); dx < local.w >> 1; dx++) plan.solid.add(cellKey(spot.x + dx, spot.y));
         plan.objects.push({
           id: `${site.id}-${piece.id}-${tag}`,
           name: local?.label ?? piece.label,
@@ -1197,17 +1289,14 @@ export function planSettlement(
         }
         place(key, { x: x0 + dx * 2, y: y0 + dy * 2 }, `corner-${i}`);
       }
-      if (furniture?.column && min >= 11)
-        for (const [tag, name, sprite, x, w] of [
-          ["column", "Advertising column", furniture.column, court.x + 2, 1],
-          ["cafe", "Cafe table", "study-propb-cafe-terrace-1", court.x + court.w - 4, 2],
-        ] as const) {
-          const at = { x, y: cy };
-          if (!dry({ ...at, w, h: 1 }, false) || plan.solid.has(cellKey(x, cy))) continue;
-          for (let dx = 0; dx < w; dx++) plan.solid.add(cellKey(x + dx, cy));
-          plan.objects.push({ id: `${site.id}-square-${tag}`, name, kind: "monument",
-            sprite, pos: pos(at), inventory: {} });
+      if (furniture?.column && min >= 11) {
+        const at = { x: court.x + 2, y: cy + 2 };
+        if (dry({ ...at, w: 1, h: 1 }, false) && !plan.solid.has(cellKey(at.x, at.y))) {
+          plan.solid.add(cellKey(at.x, at.y));
+          plan.objects.push({ id: `${site.id}-square-column`, name: "Advertising column", kind: "monument",
+            sprite: furniture.column, pos: pos(at), inventory: {} });
         }
+      }
       // A hidden hearth goes behind the civic range: still reachable for the
       // routines that cook and gather there, but off the square.
       if (spec.hearth === "hidden" && civicRect) {
@@ -1254,7 +1343,8 @@ export function planSettlement(
           plan.objects.push({ id: `${site.id}-square-rickshaw-${i}`, name: "Rickshaw", kind: "monument",
             sprite: "study-propb-rickshaw-0", pos: pos(at), inventory: {} });
         }
-      if (industrialAge && pack.setting?.culture === "european" && min >= 11)
+      dressSquare(court, cx, cy);
+      if (!kit && industrialAge && pack.setting?.culture === "european" && min >= 11)
         for (const [i, x] of [court.x + inset + 1, court.x + court.w - inset - 2].entries()) {
           const at = { x, y: court.y + 2 };
           if (plan.solid.has(cellKey(x, at.y)) || !dry({ ...at, w: 1, h: 1 }, false)) continue;
@@ -4211,32 +4301,6 @@ export function planSettlement(
       ...indoorStation(id, owner, livelihood),
     );
   }
-  // Before lawns, the ground in front of a door and between houses that
-  // stand close was trodden to earth: in patches, the more the closer. A
-  // village's wear is drawn soft by the generator instead; these are whole cells.
-  if ((pack.setting?.year ?? 0) < 1900 && urban && cityGround !== "paving") {
-    const crowd = new Map<string, number>();
-    const houses = plan.places.slice(worksites);
-    for (const b of houses)
-      eachCell({ x: b.x - 3, y: b.y - 3, w: b.w + 6, h: b.h + 6 }, (x, y) =>
-        crowd.set(cellKey(x, y), (crowd.get(cellKey(x, y)) ?? 0) + 1));
-    // A doorstep apron, not a blot: feet wear the ground just outside the door.
-    const door = (x: number, y: number) => houses.some((b) =>
-      Math.hypot(x - b.entrance.x, y - b.entrance.y) < 1.2 + 1.4 * noise(seed, x, y, 4, "dooryard"));
-    for (const [k, n] of crowd) {
-      if (plan.solid.has(k) || roads.has(k) || (ranks.get(k) ?? -1) > 3) continue;
-      if (plan.surface.get(k) === "field") continue;
-      const [x, y] = k.split(",").map(Number);
-      const patch = noise(seed, x, y, 5, "trodden");
-      // Between close houses only where three or more crowd together.
-      if (!door(x, y) && !(n >= 3 && patch < 0.1 + 0.1 * n)) continue;
-      if (!dry({ x, y, w: 1, h: 1 }, false)) continue;
-      // A pavement role is what makes the renderer draw plan earth as soil.
-      const kept = plan.pavement?.get(k);
-      const role = kept && !["garden", "verge", "park"].includes(kept) ? kept : "yard";
-      if (setSurface(k, "dirt", 3)) (plan.pavement ??= new Map()).set(k, role);
-    }
-  }
   // Ground no block, street or yard claimed in an earth city is earth too,
   // or the region's grass shows through as strips along the streets.
   if (urban && cityGround === "dirt" && pack.setting?.climate !== "arid")
@@ -6337,11 +6401,16 @@ function dropStubFences(
 const N4 = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
 
 /** Noise leaves a town scattered with terraces too small or narrow to build
- * on. Each dry patch of one level inside the town that has no room for a
- * house, and does not front water, takes the level it borders most. The box
- * reaches past the town so a hill running out of it keeps its full size. */
-function townTerraces(sample: Sample, c: Point, r: number) {
-  const reach = Math.ceil(r * 1.3), x0 = c.x - reach, y0 = c.y - reach, n = reach * 2 + 1;
+ * on. Each dry patch of one level that has no room for a house, and does not
+ * front water, takes the level it borders most. A lowland town, whose ground
+ * spans three levels at most, is also brought to its commonest level wherever
+ * a terrace lies mostly inside the town. An engineered city has cut and
+ * filled its site: it is levelled the same way whatever the land spans,
+ * except for a hill or hollow broad enough to be part of its shape. Whole
+ * patches move, so every bank left still follows the land. The box stays inside the plan's
+ * bounds and reaches past the town so a hill running out of it stays a hill. */
+function townTerraces(sample: Sample, c: Point, r: number, engineered: boolean) {
+  const reach = Math.ceil(Math.min(r * 1.3, r + 40)), x0 = c.x - reach, y0 = c.y - reach, n = reach * 2 + 1;
   const level = new Int16Array(n * n), wet = new Uint8Array(n * n);
   for (let j = 0; j < n; j++)
     for (let i = 0; i < n; i++) {
@@ -6375,33 +6444,69 @@ function townTerraces(sample: Sample, c: Point, r: number) {
         level[k] = best;
       }
   }
+  const tiers = new Map<number, number>();
+  for (let k = 0; k < n * n; k++)
+    if (!wet[k] && Math.hypot(x0 + (k % n) - c.x, y0 + ((k / n) | 0) - c.y) <= r)
+      tiers.set(level[k], (tiers.get(level[k]) ?? 0) + 1);
+  // A level holding a sliver of the town does not make it hill country.
+  const total = [...tiers.values()].reduce((a, b) => a + b, 0);
+  const held = [...tiers].filter(([, n]) => n >= total * 0.02).map(([t]) => t);
+  const lowland = held.length > 0 && Math.max(...held) - Math.min(...held) <= 2;
+  const base = [...tiers].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0];
+  // Ground off the city's level, as connected rises and hollows: one holding
+  // a sixth of the town is a hill the streets climb, not a bank to grade out.
+  const hill = new Uint8Array(n * n);
+  if (engineered && !lowland) {
+    const seen = new Uint8Array(n * n);
+    for (let s = 0; s < n * n; s++) {
+      if (seen[s] || wet[s] || level[s] === base) continue;
+      const part = [s];
+      let inside = 0;
+      seen[s] = 1;
+      for (let q = 0; q < part.length; q++) {
+        const i = part[q] % n, j = (part[q] / n) | 0;
+        if (Math.hypot(x0 + i - c.x, y0 + j - c.y) <= r) inside++;
+        for (const [dx, dy] of N4) {
+          const a = i + dx, b = j + dy, k = b * n + a;
+          if (a < 0 || b < 0 || a >= n || b >= n || seen[k] || wet[k] || level[k] === base) continue;
+          seen[k] = 1, part.push(k);
+        }
+      }
+      if (inside * 6 >= total) for (const k of part) hill[k] = 1;
+    }
+  }
   // A five-cell square of one level: room for a house and its doorstep.
   const CORE = 2, MIN_CORE = 40;
-  for (let pass = 0; pass < 4; pass++) {
+  for (let pass = 0; pass < (engineered ? 8 : 4); pass++) {
     const seen = new Uint8Array(n * n);
     let merged = false;
     for (let s = 0; s < n * n; s++) {
       if (seen[s] || wet[s]) continue;
       const t = level[s], part = [s], border = new Map<number, number>();
-      let cores = 0, shore = false;
+      let cores = 0, inside = 0, shore = false, edge = false;
       seen[s] = 1;
       for (let q = 0; q < part.length; q++) {
         const i = part[q] % n, j = (part[q] / n) | 0;
+        if (Math.hypot(x0 + i - c.x, y0 + j - c.y) <= r) inside++;
         let core = i >= CORE && j >= CORE && i < n - CORE && j < n - CORE;
         for (let dy = -CORE; core && dy <= CORE; dy++)
           for (let dx = -CORE; core && dx <= CORE; dx++) if (level[(j + dy) * n + i + dx] !== t) core = false;
         if (core) cores++;
         for (const [dx, dy] of N4) {
           const a = i + dx, b = j + dy;
-          if (a < 0 || b < 0 || a >= n || b >= n) { shore = true; continue; }
+          if (a < 0 || b < 0 || a >= n || b >= n) { edge = true; continue; }
           const k = b * n + a;
           if (wet[k]) shore = true;
           else if (level[k] !== t) border.set(level[k], (border.get(level[k]) ?? 0) + 1);
           else if (!seen[k]) seen[k] = 1, part.push(k);
         }
       }
-      if (shore || cores >= MIN_CORE || !border.size) continue;
-      const to = [...border].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0][0];
+      if (edge || !border.size) continue;
+      // The low margin along water stays low.
+      // A step toward the town's level each pass, so no bank doubles.
+      const flatten = (lowland || (engineered && !hill[s])) && t !== base && inside * 2 >= part.length && !(shore && t < base);
+      if ((shore || cores >= MIN_CORE) && !flatten) continue;
+      const to = flatten ? t + Math.sign(base - t) : [...border].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0][0];
       for (const k of part) level[k] = to;
       merged = true;
     }
@@ -6411,7 +6516,7 @@ function townTerraces(sample: Sample, c: Point, r: number) {
   for (let j = 0; j < n; j++)
     for (let i = 0; i < n; i++) {
       const k = j * n + i, x = x0 + i, y = y0 + j;
-      if (level[k] !== raw[k] && Math.hypot(x - c.x, y - c.y) <= r) out.set(cellKey(x, y), level[k]);
+      if (level[k] !== raw[k]) out.set(cellKey(x, y), level[k]);
     }
   return out;
 }

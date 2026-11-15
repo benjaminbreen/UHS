@@ -132,6 +132,8 @@ from .equipment_studies import EQUIPMENT_B
 DRAW_B.update(EQUIPMENT_B)
 from .lots import LOTS
 DRAW_B.update(LOTS)
+from .plaza_families import PLAZA, PLAZA_ANIMATED
+DRAW_B.update(PLAZA)
 
 # Families drawn in separable layers. The renderer places the frame and sways
 # the hangings against it; the unsuffixed sprite stays whole for the lab, the
@@ -165,6 +167,7 @@ ANIMATED = {
  'traffic-signal': 16,
  # Cloth stirs on a covered pitch.
  **{key: 4 for key in PITCHES},
+ **PLAZA_ANIMATED,
 }
 
 # Knocked-over states, drawn as their own sprite rather than a rotation.

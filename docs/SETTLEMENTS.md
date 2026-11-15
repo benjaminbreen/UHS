@@ -74,6 +74,9 @@ props out in whatever rectangle is left.
 ### Industrial and motor-age cities
 
 - `modernity.ts` dates two onsets per region: industry and mass car ownership.
+- After the industrial onset a city levels its site (`townTerraces` in
+  `plan.ts`): rises and hollows go to the city's commonest level. Only a hill
+  covering a sixth of the town, and the low margin along water, keep a step.
 - `zoning.ts` gives each block a land use after the industrial onset:
   downtown, a factory sector toward water, then housing rings dated by
   distance (`inner` before the motor onset, `outer` after), estates and

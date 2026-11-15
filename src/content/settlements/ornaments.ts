@@ -1,6 +1,7 @@
 import marketKits from "../graphics/market-kits.json" with { type: "json" };
 import type { Pack, WorldObject } from "../../core/types";
 import { mediterraneanProp } from "../graphics/mediterranean-buildings";
+import { plazaKitFor } from "./plaza";
 
 /** What a public square held. Content names these per fabric; the planner only
  * places them, and the renderer only knows their sprites. A `monument` carries
@@ -174,7 +175,15 @@ export function stallFor(
 export function focusFor(
   pack: Pack,
   pick = 0,
-): { sprite: string; label: string } | undefined {
+  roomy = false,
+): { sprite: string; label: string; w?: number } | undefined {
+  // Half the squares with room for one are built round a bandstand or a
+  // fountain, not a monument.
+  const centres = roomy ? plazaKitFor(pack)?.centres : undefined;
+  if (centres?.length) {
+    if (pick < 0.5) return centres[Math.floor(pick * 2 * centres.length)];
+    pick = pick * 2 - 1;
+  }
   const year = pack.year;
   const culture = pack.setting?.culture;
   const urban =

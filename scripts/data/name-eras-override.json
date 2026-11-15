@@ -80,6 +80,10 @@
     "GERMAN": {
       "from": 1500,
       "why": "The pool is modern: Helga and Koch, Muller and Schmidt, with a hereditary surname on everyone. It was standing in for the Ostrogoths in Italy, the Visigoths in Iberia and the migration-period Rhine."
+    },
+    "TURKISH": {
+      "from": 1934,
+      "why": "Modern given names (Burak, Serkan, Gizem) with Surname Law surnames. Earlier Turkish speakers take ottoman-turkish."
     }
   }
 }

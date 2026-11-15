@@ -103,6 +103,20 @@ the next scale.
   clock tower, carved post. Undefined leaves the fabric alone, which is the
   right answer for a camp, a hamlet, and for places whose assembly ground
   never had a monument in it.
+- **The square's kit**, from 1850, chosen in `plazaKitFor(pack)`
+  (`src/content/settlements/plaza.ts`) by map region and year: table sets,
+  sellers, a game table, a street trade, public water, planters, fixtures and
+  pigeons. A region is a table of rows, each with the years the thing stood in
+  the street; a more local region (Turkey, the Andes, the archipelago)
+  replaces a list of the wider one. Half the squares of 13 cells or more are
+  built round one of the kit's centrepieces (a tiered fountain, a bandstand, a
+  kiosco, a banyan platform) instead of a monument.
+- **Placing the kit** is `dressSquare` in `v3/plan.ts`, run after either
+  square composer. Both axes through the centre stay clear. Tables cluster as
+  one terrace against the north frontage; sellers work the south side, where a
+  tall cart does not stand in front of a building; planters stand in pairs at
+  the ways in; pigeons are not solid. Counts scale with the square: one seller
+  in a 9-cell square, four and a five-table terrace at 19.
 - **Doorway marker**, chosen in `doorwayFor(pack)`: paper lanterns in east and
   southeast Asia, a garland across the lintel in south Asia, a pierced brass
   lamp in west Asia from 700, a horn lantern in Europe from 1100 and a gas

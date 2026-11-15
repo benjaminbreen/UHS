@@ -429,6 +429,16 @@ for (const b of BACKSTOPS ?? []) {
   });
 }
 
+/* An authored older pool that `precedes` a modern one rides along in every
+ * window that offers the modern one; the resolver's era filter keeps one. */
+for (const [id, t] of Object.entries(AUTHORED) as [string, any][])
+  if (t.precedes)
+    for (const r of regions.values())
+      for (const w of r.windows.filter((w) => w.years[0] < t.era[1]))
+        w.options = w.options.flatMap((o) =>
+          o.tradition === t.precedes ? [o, { tradition: id, weight: o.weight }] : [o],
+        );
+
 for (const [id, r] of regions) if (!r.windows.length) regions.delete(id);
 
 const used = new Set<string>();

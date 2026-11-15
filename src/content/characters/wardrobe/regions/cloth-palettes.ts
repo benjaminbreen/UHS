@@ -128,7 +128,7 @@ const opts = <T,>(
  * something to trade it for, so before the first states a bright garment is a
  * rarity rather than a quarter of the street; `modern` is the other end, where
  * colour costs nothing. */
-type Era = "early" | "settled" | "modern" | "contemporary";
+type Era = "early" | "settled" | "modern" | "interwar" | "contemporary";
 
 function kit(
   culture: CultureId,
@@ -136,7 +136,7 @@ function kit(
   years: readonly [number, number],
   era: Era,
 ): GarmentKit {
-  const modern = era === "modern" || era === "contemporary";
+  const modern = era === "modern" || era === "interwar" || era === "contemporary";
   // After the war nearly everything is bought: cotton and synthetics, a
   // little wool. Hemp and felt survive as rarities, not as a work shirt.
   const bought = era === "contemporary";
@@ -157,7 +157,9 @@ function kit(
         : opts(p.fibres, 6)),
       ...(bought ? [] : opts(p.skins ?? [], 1)),
       ...opts(p.rich ?? [], 3, ["wealthy"]),
-      ...(modern ? opts(["cotton", "synthetic"] as Material[], 6) : []),
+      ...(modern ? opts(["cotton"] as Material[], 6) : []),
+      // Artificial silk was a curiosity until the viscose mills of the 1920s.
+      ...(era === "interwar" || bought ? opts(["synthetic"] as Material[], era === "interwar" ? 2 : 6) : []),
       ...(bought ? opts(["cotton"] as Material[], 10) : []),
       ...(bought ? opts(["wool"] as Material[], 2) : []),
     ],
@@ -181,6 +183,7 @@ export const clothPalettes: readonly GarmentKit[] = Object.entries(
 ).flatMap(([culture, p]) => [
   kit(culture as CultureId, p, [-1000000, -500], "early"),
   kit(culture as CultureId, p, [-500, 1850], "settled"),
-  kit(culture as CultureId, p, [1850, 1950], "modern"),
+  kit(culture as CultureId, p, [1850, 1925], "modern"),
+  kit(culture as CultureId, p, [1925, 1950], "interwar"),
   kit(culture as CultureId, p, [1950, 10001], "contemporary"),
 ]);

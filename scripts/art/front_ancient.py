@@ -184,7 +184,9 @@ def spec_for(name, r):
         region, size, v = m.group(1), m.group(2), int(m.group(3))
         W = nw * 16
         if size == 'small':
-            return ('wa-small', dict(region=region, W=W, dome=region == 'levantine' and v != 1)), (nw, fh)
+            look = ([dict(dome=True), dict(dome=False, door=0.5, windows=[(0.17, 14, 14), (0.75, 14, 14)]),
+                     dict(vaults=2, street=58)][v % 3] if region == 'levantine' else dict(dome=False))
+            return ('wa-small', dict(region=region, W=W, **look)), (nw, fh)
         if size == 'medium':
             return ('wa-court', dict(region=region, W=W, wing=max(36, W // 5), street=58, front=18, court=70,
                                      far=20, face=34, portal=0.36 + 0.1 * (v % 2))), (nw, fh)
@@ -294,10 +296,9 @@ def adopt(recipes):
         r.pop('shadowFrame', None)
         r['footprint'] = [fw, fh]
         r['entrance'] = [fw // 2, fh]
-        if spec[0] == 'izba':
-            # The izba's door is in its entrance passage at one end.
+        if spec[0] == 'izba' or spec[0] == 'wa-small' and spec[1]['region'] == 'levantine':
             info = {}
-            BUILDERS['izba'](spec[1], info)
+            BUILDERS[spec[0]](spec[1], info)
             left = info['x0'] + info['W'] / 2 - fw * 8
             r['entrance'] = [max(0, min(fw - 1, int((info['door_x'] - left) // 16))), fh]
         if spec[0].startswith('hut-'):

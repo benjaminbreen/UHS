@@ -1,5 +1,11 @@
 [
   {
+    "name": "mosul-183",
+    "query": "Mosul 183 CE",
+    "seed": "mosul-shadows-review",
+    "radius": 40
+  },
+  {
     "name": "london-1308",
     "query": "medieval London",
     "radius": 45
@@ -350,5 +356,35 @@
     "name": "madurai-1600",
     "query": "Madurai 1600",
     "radius": 40
+  },
+  {
+    "name": "mexico-1955",
+    "query": "A clerk in Mexico City, 1955",
+    "radius": 70
+  },
+  {
+    "name": "istanbul-1995",
+    "query": "A shopkeeper in Istanbul, 1995",
+    "radius": 70
+  },
+  {
+    "name": "delhi-1970",
+    "query": "A clerk in Delhi, 1970",
+    "radius": 70
+  },
+  {
+    "name": "seoul-1985",
+    "query": "A clerk in Seoul, 1985",
+    "radius": 70
+  },
+  {
+    "name": "bangkok-1990",
+    "query": "A clerk in Bangkok, 1990",
+    "radius": 70
+  },
+  {
+    "name": "shanghai-2005",
+    "query": "A clerk in Shanghai, 2005",
+    "radius": 70
   }
 ]

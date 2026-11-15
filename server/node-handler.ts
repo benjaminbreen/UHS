@@ -16,7 +16,7 @@ export const handleWorldWeaver = handler(
   worldWeaver,
   12000,
 );
-export const handleNarrator = handler("/api/narrator", narrator, 24000);
+export const handleNarrator = handler("/api/narrator", narrator, 32000);
 export const handleDialogue = handler("/api/dialogue", dialogue, 10000);
 export const handleJev = handler("/api/jev", jevRoute, 16000);
 export const handleCraft = handler("/api/craft", craft, 2000);

@@ -14,7 +14,7 @@ const json = (body: unknown, status = 200) =>
 const requestSchema = z
   .object({
     provider: z.enum(["haiku", "openai", "gemini"]),
-    system: z.string().min(1).max(12000),
+    system: z.string().min(1).max(20000),
     user: z.string().min(1).max(8000),
   })
   .strict();
@@ -72,7 +72,7 @@ export async function narrator(
   let input: z.infer<typeof requestSchema>;
   try {
     const text = await request.text();
-    if (text.length > 24000) return json({ error: "Turn is too long." }, 413);
+    if (text.length > 32000) return json({ error: "Turn is too long." }, 413);
     input = requestSchema.parse(JSON.parse(text));
   } catch {
     return json({ error: "Malformed narrator request." }, 400);

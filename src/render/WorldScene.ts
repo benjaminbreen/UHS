@@ -332,6 +332,7 @@ import { bloomAt, setBloomCut } from "./flowers";
 import { FLOOR_X, FLOOR_Y, PixelRoom } from "./interiors/pixel";
 import { CaveView } from "./cave/view";
 import { SewerView } from "./sewer/view";
+import { ShipView } from "./ship/view";
 import { paintOpenLid } from "./sewer/art";
 import { laneLids } from "./carriageway";
 import { caveLight } from "../content/caves";
@@ -803,10 +804,11 @@ export class WorldScene extends Phaser.Scene {
   /** The generated room the player is standing in, if their space has one. */
   private caveView?: CaveView;
   private sewerView?: SewerView;
+  private shipView?: ShipView;
   /** A space that draws and lights itself: a generated room or a cave. */
   private selfLit(space: string) {
     const e = this.runtime.engine;
-    return space !== "outside" && (!!e.interiorOf?.(space) || !!e.caveOf?.(space) || !!e.sewerOf?.(space));
+    return space !== "outside" && (!!e.interiorOf?.(space) || !!e.caveOf?.(space) || !!e.sewerOf?.(space) || !!e.shipOf?.(space));
   }
   private roomView?: {
     space: string;
@@ -3844,24 +3846,20 @@ export class WorldScene extends Phaser.Scene {
   private shadow(frame: string, x: number, y: number, transient = false) {
     if (this.options.shadows === false || waterborneFrames.has(frame)) return undefined;
     let key = shadowFrame(this.shadowPhase, frame);
-    const civic = /^(civic|sacred-buildings)/.test(this.texture(frame));
+    const source = this.texture(frame);
     // A building turned to face its street is the south frame's art, cast once under that name.
     const south = key.replace(/-(north|east|west)$/, "");
-    if (civic && !this.sheetFrames?.has(key) && this.sheetFrames?.has(south)) key = south;
-    // A temple's or a mosque's cast is on its own page, fetched the first time one is drawn.
-    const sacred =
-      (civic || frame.startsWith("worksite-")) && this.sheetFrames?.has(key)
-        ? this.texture(key)
-        : undefined;
-    if (sacred === "__DEFAULT") return undefined;
-    const texture = sacred ??
-      (this.texture(frame) === "nature"
+    if (!this.sheetFrames?.has(key) && this.sheetFrames?.has(south)) key = south;
+    const paged = this.sheetFrames?.has(key) ? this.texture(key) : undefined;
+    if (paged === "__DEFAULT") return undefined;
+    const texture = paged ??
+      (source === "nature"
         ? this.natureShadows(key)
-        : this.texture(frame) === "props"
+        : source === "props"
           ? "prop-shadows"
           : frame.startsWith("vehicle-")
             ? "vehicle-shadows"
-            : this.texture(frame).startsWith("street-buildings@")
+            : source.startsWith("street-buildings@")
               ? "street-shadows"
               : "lighting-shadows");
     if (!this.textures.get(texture).has(key)) key = south;
@@ -3886,6 +3884,7 @@ export class WorldScene extends Phaser.Scene {
       this.roomView ||
       this.caveView ||
       this.sewerView ||
+      this.shipView ||
       (this.snow < 0.34 && !dew) ||
       this.light.id === "night" ||
       this.light.id === "dusk" ||
@@ -3930,7 +3929,7 @@ export class WorldScene extends Phaser.Scene {
   /** The hour after a shower: drops still falling from the trees, the wet
    * ground steaming where the sun is back on it, and some days a rainbow. */
   private afterRain(delta: number) {
-    const out = !this.options.freeze && !this.roomView && !this.caveView && !this.sewerView && this.light.id !== "night";
+    const out = !this.options.freeze && !this.roomView && !this.caveView && !this.sewerView && !this.shipView && this.light.id !== "night";
     const wet = out && (this.rained || ((this.weather?.wetness ?? 0) > 0.3 && this.weather?.condition !== "rain"));
     const sun = this.sunStrength() >= 0.85;
     const view = this.cameras.main.worldView;
@@ -4002,7 +4001,7 @@ export class WorldScene extends Phaser.Scene {
   }
   /** Which way a low sun lights edges: east at sunrise, west at dusk, else 0. */
   private rimSide() {
-    if (this.roomView || this.caveView || this.sewerView || this.options.shadows === false || this.sunStrength() < 0.85) return 0;
+    if (this.roomView || this.caveView || this.sewerView || this.shipView || this.options.shadows === false || this.sunStrength() < 0.85) return 0;
     return this.light.id === "early-morning" ? 1 : this.light.id === "dusk" ? -1 : 0;
   }
   private rimColour(side: number) {
@@ -4013,7 +4012,7 @@ export class WorldScene extends Phaser.Scene {
   private figureRim() {
     const side = this.rimSide();
     if (side) return { side, colour: this.rimColour(side), alpha: 0.85 };
-    return !this.roomView && !this.caveView && !this.sewerView && (this.nightGrade?.night ?? 0) > 0.35
+    return !this.roomView && !this.caveView && !this.sewerView && !this.shipView && (this.nightGrade?.night ?? 0) > 0.35
       ? { side: -1, colour: 0xd4e2ff, alpha: 0.5 }
       : undefined;
   }
@@ -5014,14 +5013,14 @@ export class WorldScene extends Phaser.Scene {
               continue;
             }
             const placement = buildingPlacement(b);
-            // The cast texture uses the source canvas's bottom anchor; model owns its offset.
+            // Voxel casts use the canvas bottom; silhouette casts use the building's pivot.
             this.shadow(
               (placement.model as { shadowFrame?: string }).shadowFrame ??
                 b.sprite,
               placement.x,
-              placement.y +
-                placement.model.bounds[3] -
-                placement.model.anchor[1],
+              placement.y + ("voxel" in placement.model && placement.model.voxel
+                ? placement.model.bounds[3] - placement.model.anchor[1]
+                : 0),
             );
             const image = this.sprite(
               b.sprite,
@@ -6295,6 +6294,29 @@ export class WorldScene extends Phaser.Scene {
     if (level.network === "mine") gameAudio()?.setUnderground({ place: "mine", flow: Math.max(0.1, 1 - near / 6) * 0.6, echo: level.kind === "salt" ? 0.9 : 0.45, surge: level.depth < 3 ? 0.7 : 0, drips: level.depth === 3 ? 0.8 : 0.35, draught: level.depth < 3 ? 0.5 : 0.1 });
     else gameAudio()?.setUnderground({ place: "sewer", drips: 0, draught: 0, flow: Math.max(0.15, 1 - near / 7) * (level.layer === "old" ? 0.5 : 1), echo: level.layer === "trunk" ? 1 : level.layer === "old" ? 0.6 : 0.35, surge: run.surge });
   }
+  /** Aboard ship the deck paints and lights itself, with the sea going by round it. */
+  private syncShip(delta: number) {
+    const e = this.runtime.engine, space = e.state.player.pos.space;
+    const level = e.shipOf?.(space), look = e.shipLook?.();
+    if (!level || !look) {
+      this.shipView?.destroy();
+      this.shipView = undefined;
+      return;
+    }
+    let v = this.shipView;
+    if (!v || v.space !== space) {
+      v?.destroy();
+      const s = e.state.manifest.setting;
+      v = this.shipView = new ShipView(this, level, look, s?.year ?? 1800, s?.lat ?? 40);
+      this.applyGrade(0);
+    }
+    const camera = this.cameras.main;
+    const W = level.w * 16, H = level.h * 16;
+    const width = Math.max(W, camera.displayWidth), height = Math.max(H, camera.displayHeight);
+    camera.setBounds((W - width) / 2, (H - height) / 2, width, height);
+    const me = this.entities.get("player"), p = e.state.player;
+    v.update({ x: me?.x ?? p.pos.x * 16 + 8, y: me?.y ?? p.pos.y * 16 + 16, clock: this.runtime.displayClock(), time: this.time.now, delta });
+  }
   private dropRoom() {
     const v = this.roomView;
     if (!v) return;
@@ -6916,11 +6938,12 @@ export class WorldScene extends Phaser.Scene {
     if (!this.fadingOut) this.syncRoom(delta);
     if (!this.fadingOut) this.syncCave(delta);
     if (!this.fadingOut) this.syncSewer(delta);
+    if (!this.fadingOut) this.syncShip(delta);
     this.syncLids();
     this.reflect(time);
     this.glint(delta);
     this.afterRain(delta);
-    if (this.night && !this.roomView && !this.caveView && !this.sewerView) {
+    if (this.night && !this.roomView && !this.caveView && !this.sewerView && !this.shipView) {
       this.paintWash();
       this.paintLight();
     }

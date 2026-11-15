@@ -33,6 +33,9 @@ type Kit = Omit<GarmentKit, "id" | "label" | "scope" | "priority">;
 const kit = (id: string, label: string, scope: GarmentKit["scope"], parts: Kit): GarmentKit => ({
   id: `street-${id}`, label, scope, priority: 2, ...parts,
 });
+/* Protestant after the 1530s: Britain, the northern Netherlands, Saxony to
+ * Prussia, Scandinavia, Livonia, Geneva. Ministers wore a plain black gown. */
+const PROTESTANT: [number, number, number, number][] = [[-6.4, 49.8, 2, 61], [3.3, 51.5, 7.3, 53.7], [8.5, 50.2, 15, 55.1], [4, 54.5, 21, 71], [21, 56.4, 28.5, 60], [5.9, 46.1, 6.3, 46.4]];
 const held = (f: typeof clergy, ...xs: [Accessory, number][]) => xs.map(([v, w]) => f(v, w));
 
 // Clergy by the office the role names: an Orthodox priest, deacon, monk or bishop.
@@ -65,15 +68,21 @@ const orthodox: GarmentKit[] = ORTHODOX.flatMap((bounds, i) => [
 
 export const street: readonly GarmentKit[] = [
   // ---- clergy
-  kit("clergy-latin", "Monk, friar and priest: the habit, the cord, the beads", { years: [500, 1900], cultures: ["european"] }, {
+  ...[{ years: [500, 1530] as [number, number], except: ORTHODOX }, { years: [1530, 1900] as [number, number], except: [...PROTESTANT, ...ORTHODOX] }].map((when, i) =>
+  kit(`clergy-latin${i ? "-catholic" : ""}`, "Monk, friar and priest: the habit, the cord, the beads", { ...when, cultures: ["european"] }, {
     garment: [clergy("robe")], dye: [clergy("walnut", 3), clergy("soot", 3), clergy("greige", 2)],
     belt: [clergy("cord")], hood: [clergy("down", 3), clergy("none", 1)], headwear: [clergy("none")],
     accessory: held(clergy, ["beads", 4], ["censer", 1], ["none", 1]),
-  }),
+  })),
+  ...PROTESTANT.map((bounds, i) => kit(`clergy-protestant-${i}`, "The minister's black gown", { years: [1530, 1900], bounds, cultures: ["european"] }, {
+    garment: [clergy("robe")], dye: [clergy("soot")], belt: [clergy("none")], hood: [clergy("none")],
+    headwear: [clergy("none", 2), clergy("brimmed", 1)], accessory: held(clergy, ["none", 1]),
+  })),
   // The clerical tonsure, Latin clergy's mark until 1972.
-  { ...kit("clergy-latin-tonsure", "The shaved crown of the Latin clergy", { years: [500, 1900], cultures: ["european"] }, {
-    hairdress: [{ value: "tonsure", weight: 1, roles: ["cleric"], sex: ["male"], ages: ["adult", "elder"] }],
-  }) },
+  ...[{ years: [500, 1530] as [number, number], except: ORTHODOX }, { years: [1530, 1900] as [number, number], except: [...PROTESTANT, ...ORTHODOX] }].map((when, i) =>
+    kit(`clergy-latin-tonsure${i ? "-catholic" : ""}`, "The shaved crown of the Latin clergy", { ...when, cultures: ["european"] }, {
+      hairdress: [{ value: "tonsure", weight: 1, roles: ["cleric"], sex: ["male"], ages: ["adult", "elder"] }],
+    })),
   // Habits by order: Franciscan brown or undyed grey with the knotted cord, Dominican white under a black cloak,
   // Benedictine black, Cistercian undyed white; nuns veiled.
   { ...kit("clergy-orders", "Habits by order: grey and black friars, black and white monks", { years: [1100, 1950], cultures: ["european"] }, {
@@ -169,7 +178,7 @@ export const street: readonly GarmentKit[] = [
     garment: [doctor("robe", 2), doctor("coat", 2)], dye: [doctor("soot", 4), doctor("walnut", 1)],
     headwear: [doctor("cap", 2), doctor("brimmed", 1)], accessory: held(doctor, ["ledger", 1], ["none", 2]),
   }),
-  kit("doctor-victorian", "Frock coat, bowler, the black bag", { years: [1800, 1900], cultures: ["european"] }, {
+  kit("doctor-victorian", "Frock coat, bowler, the black bag", { years: [1850, 1900], cultures: ["european"] }, {
     garment: [doctor("coat")], dye: [doctor("soot", 4), doctor("walnut", 1)], headwear: [doctor("bowler")],
     neckwear: [doctor("cravat", 2), doctor("necktie", 1)], accessory: held(doctor, ["doctor-bag", 4], ["none", 1]),
   }),
@@ -195,8 +204,11 @@ export const street: readonly GarmentKit[] = [
   kit("desk-hat", "The office: necktie, a felt hat, the briefcase", { years: [1900, 1960] }, {
     garment: [desk("coat", 3), desk("shirt", 1), typist("dress", 3), typist("shirt", 1)],
     leggings: [desk("trousers")], neckwear: [desk("necktie", 4), desk("bow-tie", 1)],
-    headwear: [desk("fedora", 3), desk("bowler", 1), desk("none", 2), typist("cloche", 1), typist("none", 3)],
+    headwear: [desk("fedora", 3), desk("bowler", 1), desk("none", 2), typist("none", 3)],
     accessory: held(desk, ["briefcase", 2], ["ledger", 1], ["none", 3]),
+  }),
+  kit("desk-cloche", "The cloche at the typewriter", { years: [1915, 1936] }, {
+    headwear: [typist("cloche", 1), typist("none", 2)],
   }),
   kit("desk", "The office: shirt, tie, glasses, the briefcase", { years: [1960, 10001] }, {
     garment: [desk("coat", 2), desk("shirt", 3), typist("dress", 2), typist("shirt", 2)],

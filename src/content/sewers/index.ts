@@ -4,8 +4,10 @@ import { sewerPeople } from "./people";
 import { mineFinds } from "../mines/finds";
 import { minePeople } from "../mines/people";
 import { cavePeople } from "../caves/people";
+import { shipPeople } from "../ships/people";
 import type { Box, SewerFind, SewerKind, SewerPerson, TunnelDepth, TunnelKind } from "./types";
 import type { CaveKind } from "../caves/types";
+import type { ShipKind } from "../ships/types";
 
 export type { Box, FolkDeal, MineDepth, MineKind, SewerArt, SewerDepth, SewerFind, SewerKind, SewerPerson, TunnelDepth, TunnelKind } from "./types";
 export { SEWER_ART } from "./types";
@@ -15,8 +17,8 @@ export { sewerFinds, sewerPeople };
 const byId = new Map([...sewerFinds, ...mineFinds].map((f) => [f.id, f]));
 /** A find in any tunnels, sewer or mine. */
 export const sewerFind = (id: string) => byId.get(id);
-const people = new Map([...sewerPeople, ...minePeople, ...cavePeople].map((p) => [p.id, p]));
-/** Someone met underground: in a sewer, a mine or a cave. */
+const people = new Map([...sewerPeople, ...minePeople, ...cavePeople, ...shipPeople].map((p) => [p.id, p]));
+/** Someone met underground or aboard: in a sewer, a mine, a cave or a ship. */
 export const tunnelPerson = (id: string) => people.get(id);
 
 export type SewerPlace = { lon: number; lat: number; year: number };
@@ -44,7 +46,7 @@ const scopeFits = (s: CharacterScope, p: SewerPlace) =>
   p.year >= s.years[0] && p.year < s.years[1] && (!s.bounds || inBox(s.bounds, p.lon, p.lat)) && !(s.except && inAny(s.except, p));
 
 /** Without a depth, whether they belong anywhere in this town's sewers. */
-export function personFits(p: SewerPerson, place: SewerPlace, kind: TunnelKind | CaveKind, depth?: TunnelDepth | "mouth" | "deep", ore?: string) {
+export function personFits(p: SewerPerson, place: SewerPlace, kind: TunnelKind | CaveKind | ShipKind, depth?: TunnelDepth | "mouth" | "deep" | "deck" | "below", ore?: string) {
   return scopeFits(p.scope, place) && (!p.where || inAny(p.where, place)) && levelFits<string, string>(p.kinds, p.depths, kind, depth) && (!p.ores || (!!ore && p.ores.includes(ore)));
 }
 

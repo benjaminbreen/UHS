@@ -4,8 +4,10 @@ import { settingFor, tillersHome } from "./resolve";
 import { populateCharacter } from "./character";
 import { resolveCharacterContext } from "../characters/resolve";
 import { characterSex } from "../characters/generate";
+import { industrialized } from "../settlements/modernity";
 import { cavePeople } from "../caves/people";
 import { personFits, sewerPeople, startTimes } from "../sewers";
+import { hullFor, shipCrew } from "../ships";
 import { random } from "../../core/random";
 
 const firstRandomYear = -12999; // 13,000 BCE in astronomical numbering
@@ -72,7 +74,12 @@ const countryCatchment = catchmentYears.map((_, k) => {
     const code = mapped[p.id];
     const people = catchments[p.id]?.[k] ?? 0;
     all[code] = (all[code] ?? 0) + people;
-    if (townKinds.has(p.settlement)) towns[code] = (towns[code] ?? 0) + people;
+    // settingFor grows a mill village into a town once its region industrialises.
+    const grown =
+      p.settlement === "village" &&
+      (p.population ?? 0) >= 3000 &&
+      industrialized({ ...p, year: catchmentYears[k] });
+    if (townKinds.has(p.settlement) || grown) towns[code] = (towns[code] ?? 0) + people;
   }
   return { all, towns };
 });
@@ -131,28 +138,34 @@ export function randomStartFromDraws(
   let base = settingFor(place, year);
   if (mode === "realistic" && townKinds.has(base.settlement) && !inTown(draws[3] ?? 0, place, year))
     base = { ...base, settlement: "village", population: undefined };
+  // Sex first, then work open to it: drawing work first made men of everyone
+  // who drew a ploughman or a soldier, and 55% of starts male.
   const sex = characterSex(seed, "player");
   // Far more than their share of history, for the fun of it: one start in a
   // thousand for each cave life that fits, two for each sewer life (towns are
   // a small share of starts), more where a life was common, and at least
-  // 0.3% in all wherever any fits.
+  // 0.3% in all wherever any fits. Aboard ship: about 1.5% of all starts,
+  // over a third of those on a coast some ship of the day sails.
   const here = { lon: base.lon, lat: base.lat, year };
   const town = townKinds.has(base.settlement);
+  const hull = /^(coast|island|ocean)/.test(base.water ?? "") ? hullFor(here, seed) : undefined;
+  const crew = hull ? shipCrew(hull, here).filter((p) => (sex === "female" ? p.women > 0 : p.women < 1)) : [];
   const under = [
     ...cavePeople.filter((p) => !town && personFits(p, here, p.kinds?.[0] ?? "karst")).map((p) => ({ who: p, below: "cave" as const, odds: 0.001 * startTimes(p, here) })),
     ...sewerPeople.filter((p) => town && personFits(p, here, p.kinds?.[0] ?? "brick")).map((p) => ({ who: p, below: "sewer" as const, odds: 0.002 * startTimes(p, here) })),
+    ...crew.map((p) => ({ who: p, below: "ship" as const, odds: 0.38 / crew.length })),
   ].filter(({ who }) => (sex === "female" ? who.women > 0 : who.women < 1));
   const sum = under.reduce((n, u) => n + u.odds, 0);
   let odd = random(seed, "underground-start") / (sum && sum < 0.003 ? 0.003 / sum : 1);
   const life = under.find((u) => (odd -= u.odds) < 0);
   if (life) {
     const { who, below } = life;
-    const setting = populateCharacter({ ...base, role: who.label, characterName: who.label, below, brief: { ...base.brief, work: who.dress } }, seed);
+    const setting = populateCharacter({ ...base, role: who.label, characterName: who.label, below, ship: below === "ship" ? hull?.id : undefined, brief: { ...base.brief, work: who.dress } }, seed);
     return { seed, setting };
   }
   // The work available here, rather than a fixed five; a Kyoto start can be a
   // dyer and a Manchester one a match worker.
-  const work = resolveCharacterContext(base).livelihoods;
+  const work = resolveCharacterContext(base).livelihoods.filter((l) => !l.sex || l.sex === sex);
   let pick = unit(draws[1] ?? 0) * work.reduce((sum, l) => sum + (l.weight ?? 1), 0);
   const role = (work.find((l) => (pick -= l.weight ?? 1) < 0) ?? work[work.length - 1]).label;
   const setting = populateCharacter({ ...base, role, settlement: tillersHome(base, role) }, seed);

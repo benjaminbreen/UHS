@@ -93,6 +93,17 @@ export const americas: readonly GarmentKit[] = [
     motif: banded,
   },
   {
+    // The bowler (1849) reached Andean market women in the 1920s.
+    id: "andes-bombin",
+    label: "Andes · the bowler",
+    scope: { years: [1920, 10001], cultures: ["andean"] },
+    headwear: [
+      { value: "bowler", weight: 4, sex: ["female"] },
+      { value: "brimmed", weight: 3, sex: ["female"] },
+      { value: "none", weight: 2, sex: ["female"] },
+    ],
+  },
+  {
     id: "andes-colonial",
     label: "Andes · the loom under the shirt",
     scope: { years: [1550, 10001], cultures: ["andean"] },
@@ -112,7 +123,6 @@ export const americas: readonly GarmentKit[] = [
       { value: "brimmed", weight: 5 },
       { value: "cap", weight: 3 },
       { value: "none", weight: 3 },
-      { value: "bowler", weight: 3, sex: ["female"] },
       { value: "band", weight: 2 },
     ],
     footwear: [
@@ -127,7 +137,6 @@ export const americas: readonly GarmentKit[] = [
     material: [
       { value: "wool", weight: 7 },
       { value: "cotton", weight: 5 },
-      { value: "synthetic", weight: 2 },
     ],
     dye: andeanDyes,
     motif: banded,
@@ -214,7 +223,6 @@ export const americas: readonly GarmentKit[] = [
     material: [
       { value: "cotton", weight: 7 },
       { value: "wool", weight: 3 },
-      { value: "synthetic", weight: 2 },
     ],
     dye: mesoDyes,
     motif: banded,

@@ -1,4 +1,5 @@
 import type { CharacterScope } from "../characters/context-types";
+import type { ShipKind } from "../ships/types";
 import type { CaveKind } from "../caves/types";
 
 /** How a town's drains are built, which decides the walls, the floor and the water. */
@@ -89,9 +90,11 @@ export type SewerPerson = {
   scope: CharacterScope;
   /** Any one of these regions will do, on top of `scope.bounds`. */
   where?: readonly Box[];
-  kinds?: readonly (TunnelKind | CaveKind)[];
-  /** In a cave, "mouth" is the first level and "deep" any below it. */
-  depths?: readonly (TunnelDepth | "mouth" | "deep")[];
+  kinds?: readonly (TunnelKind | CaveKind | ShipKind)[];
+  /** In a cave, "mouth" is the first level and "deep" any below it; aboard, the weather deck or below it. */
+  depths?: readonly (TunnelDepth | "mouth" | "deep" | "deck" | "below")[];
+  /** Where aboard they keep to. */
+  post?: "helm" | "galley" | "rail" | "bow" | "waist" | "berth" | "shrine" | "furnace" | "cargo";
   ores?: readonly string[];
   /** Their role, as the wardrobe reads it: "Sewer flusher", "Urban explorer". */
   label: string;

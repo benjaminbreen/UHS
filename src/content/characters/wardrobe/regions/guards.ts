@@ -147,9 +147,12 @@ export const guards: readonly GarmentKit[] = [
     garment: [{ value: "open-robe", weight: 1, roles: ["janissary"] }],
   }), priority: 3.5 },
   // Janissaries garrisoned and policed the cities of the Balkans, Anatolia, Syria and Iraq.
-  { ...kit("ottoman-garrison", "Ottoman garrison towns: the börk at the gate", { years: [1450, 1827], bounds: [18, 29, 48, 46] }, {
-    headwear: [g("bork", 3), g("turban", 2)],
-  }), priority: 3.2 },
+  // Not Safavid Tabriz, Georgia or Venetian Corfu; Mamluk Syria and Egypt only from 1516–17.
+  ...[{ years: [1450, 1517] as [number, number], except: [[45, 35, 48, 46], [40, 41.2, 46, 44], [19.6, 39.3, 20.2, 39.9], [24, 29, 35, 31.6], [35, 31, 42, 37]] as [number, number, number, number][] },
+    { years: [1517, 1827] as [number, number], except: [[45, 35, 48, 46], [40, 41.2, 46, 44], [19.6, 39.3, 20.2, 39.9]] as [number, number, number, number][] }].map(({ years, except }, i) =>
+    ({ ...kit(`ottoman-garrison${i ? "-late" : ""}`, "Ottoman garrison towns: the börk at the gate", { years, bounds: [18, 29, 48, 46], except }, {
+      headwear: [g("bork", 3), g("turban", 2)],
+    }), priority: 3.2 })),
 
   kit("steppe", "Steppe and Silk Road: lamellar, the bow, the lance", { years: [-1000, 1700], cultures: ["inner-eurasian"] }, {
     garment: [g("open-robe", 2), g("long-tunic", 1)], footwear: [g("boots")],
@@ -187,7 +190,7 @@ export const guards: readonly GarmentKit[] = [
     armour: [g("quilted", 3), g("none", 3)],     shield: [g("none")],
     accessory: arms(["spear", 4], ["musket", 3]),
   }),
-  kit("japan-armoured", "Samurai and ashigaru: lacquered lamellar, yari and naginata", { years: [700, 1600], cultures: ["east-asian"], bounds: [128, 30, 146, 46] }, {
+  kit("japan-armoured", "Samurai and ashigaru: lacquered lamellar, yari and naginata", { years: [700, 1600], cultures: ["east-asian"], bounds: [128, 30, 146, 46], except: [[124, 34.2, 129.6, 43.5], [128, 42.3, 139.5, 46]] }, {
     garment: [g("long-tunic")], ...sandals,
     headwear: [g("kabuto", 6), g("none", 1)],
     armour: [g("lamellar")], armourColor: [g(LACQUER, 3), g(IRON, 1)],
@@ -196,7 +199,7 @@ export const guards: readonly GarmentKit[] = [
     backFlag: [g("", 3), g("#e8e0d0", 1), g("#a8362c", 1), g("#2a3a5a", 1)],
     accessory: arms(["spear", 3], ["glaive", 3], ["bow", 3]),
   }),
-  kit("japan-edo", "Edo gate guard: no armour in peacetime, the spear by the gate", { years: [1600, 1870], cultures: ["east-asian"], bounds: [128, 30, 146, 46] }, {
+  kit("japan-edo", "Edo gate guard: no armour in peacetime, the spear by the gate", { years: [1600, 1870], cultures: ["east-asian"], bounds: [128, 30, 146, 46], except: [[124, 34.2, 129.6, 43.5], [128, 42.3, 139.5, 46]] }, {
     garment: [g("open-robe", 2), g("long-tunic", 1)], ...sandals,
     headwear: [g("none")], armour: [g("none")], shield: [g("none")],
     accessory: arms(["spear", 5], ["glaive", 1]),
@@ -288,7 +291,7 @@ export const guards: readonly GarmentKit[] = [
   uniform("south-asia", "Sepoy and jawan: the pagri over khaki", { years: [1870, 1948], cultures: ["south-asian"] }, {
     headwear: [u("turban", 6), u("helmet", 1)], dye: [u("ochre", 4), u("bark", 3)], leggings: [u("wrapped", 3), u("trousers", 2)],
   }),
-  uniform("japan", "Imperial conscript: khaki, peaked cap, puttees", { years: [1873, 1946], cultures: ["east-asian"], bounds: [128, 30, 146, 46] }, {
+  uniform("japan", "Imperial conscript: khaki, peaked cap, puttees", { years: [1873, 1946], cultures: ["east-asian"], bounds: [128, 30, 146, 46], except: [[124, 34.2, 129.6, 43.5], [128, 42.3, 139.5, 46]] }, {
     headwear: [u("peaked-cap", 4), u("helmet", 2)], leggings: [u("wrapped")], dye: [u("ochre", 4), u("bark", 2)],
   }),
   uniform("pla", "PLA: soft cap, green cotton, canvas shoes", { years: [1947, 1990], cultures: ["east-asian"], bounds: [98, 18, 125, 42], except: [TAIWAN, HONG_KONG] }, {

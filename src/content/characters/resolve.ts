@@ -233,10 +233,13 @@ export function nameTraditionsFor(s: WorldSetting) {
  * continues, so subsistence work keeps the plain village tier and the crafts
  * beside it close here.
  */
+/* The countryside's own date for leaving the land, from the subsistence
+ * mixes, rather than 1900 everywhere: that put Indian and Chinese villages of
+ * 1907 among plumbers and electricians, with no potter or weaver left. */
 const industrial = (
   s: WorldSetting,
   capabilities: ReadonlySet<SocietyCapability>,
-) => capabilities.has("wage_labor") && s.year >= 1900;
+) => !!subsistenceFor(s, capabilities)?.id.startsWith("subsistence.industrial");
 function tierApplies(
   tier: NonNullable<Livelihood["tier"]>,
   s: WorldSetting,
@@ -249,10 +252,13 @@ function tierApplies(
   if (tier === "prehistoric") return !farming || s.settlement === "camp";
   if (tier === "village") return farming && s.settlement !== "camp";
   if (tier === "village-craft")
-    return farming && s.settlement !== "camp" && !industrial(s, capabilities);
+    // Mines and mills ran on these trades through the first industrial decades.
+    return farming && s.settlement !== "camp" && !(industrial(s, capabilities) && s.year >= 1900);
   if (tier === "town") return urban;
   if (tier === "industrial") return urban && capabilities.has("wage_labor");
-  return capabilities.has("wage_labor");
+  // Bus drivers and electricians reached towns first; a village gets them
+  // with its own industrial date, or from the 1950s at the latest.
+  return capabilities.has("wage_labor") && (urban || s.year >= 1950 || industrial(s, capabilities));
 }
 const dedupe = (pool: readonly Livelihood[]) => [
   ...new Map(pool.map((l) => [l.id, l])).values(),

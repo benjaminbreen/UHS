@@ -33,8 +33,8 @@ who call on the player. Entry files: `src/content/plots/`, `src/core/plot.ts`,
   decision card. Answers fire their id for developments and endings.
 - **Reach.** Plot cards, care cards about kin and household deaths are
   brought by someone (`engine.bring`). While the player is in a cave, sewer
-  or mine they wait in `engine.held`, and approachers stop at the surface;
-  both come once the player climbs out. Cards for questions no longer asked
+  or mine, or at sea, they wait in `engine.held`, and approachers stop at the
+  surface; both come once the player climbs out or goes ashore. Cards for questions no longer asked
   are dropped then.
 - **Emblems.** Banners are drawn in `src/ui/plot-emblems.ts` and
   `src/ui/emblems/scenes/`, at the opening, at each card and at each ending.

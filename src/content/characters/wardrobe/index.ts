@@ -3,6 +3,7 @@ import type { WorldSetting } from "../../geography/types";
 import { random } from "../../../core/random";
 import { matchesCharacterScope } from "../resolve";
 import { garmentKits } from "./kits";
+import { livelihoodById } from "../livelihoods";
 import type { Cloth, DyeId, Material } from "./cloth";
 import { dyeAt, dyes } from "./cloth";
 import {
@@ -156,11 +157,12 @@ export function kitsFor(
   setting: WorldSetting | undefined,
   year: number,
   pool: readonly GarmentKit[] = garmentKits,
+  community?: string,
 ) {
   return pool
     .filter((k) =>
       setting
-        ? matchesCharacterScope(k.scope, setting)
+        ? matchesCharacterScope(k.scope, setting, community)
         : // No setting to match against: only kits that ask nothing of place.
           year >= k.scope.years[0] &&
           year < k.scope.years[1] &&
@@ -175,6 +177,11 @@ export function kitsFor(
         rank(b) - rank(a) ||
         specificity(a) - specificity(b),
     );
+}
+const townWork = new Set(["town", "industrial", "modern"]);
+function forWearer(kits: readonly GarmentKit[], wearer: Wearer) {
+  const tier = wearer.livelihood && livelihoodById(wearer.livelihood)?.tier;
+  return tier && townWork.has(tier) ? kits.filter((k) => !k.village) : kits;
 }
 /**
  * What this person's cloth is: the fibre, the colour on it, and how well it
@@ -192,7 +199,7 @@ export function clothFor(
   /** Rolls the fibre afresh for another piece of the same outfit. */
   part?: string,
 ): Cloth {
-  const kits = kitsFor(place.setting, place.year, pool);
+  const kits = forWearer(kitsFor(place.setting, place.year, pool, wearer.community), wearer);
   const band = ageBandOf(wearer.age);
   const w = { ...wearer, sex: sexOf(wearer), means: meansOf(wearer) };
   const r = random(w.id, "cloth-quality");
@@ -301,7 +308,7 @@ export function wardrobeFor(
   /** Overridable so a kit can be resolved against without registering it. */
   pool: readonly GarmentKit[] = garmentKits,
 ): CharacterAppearance["wearing"] {
-  const kits = kitsFor(place.setting, place.year, pool);
+  const kits = forWearer(kitsFor(place.setting, place.year, pool, wearer.community), wearer);
   const band = ageBandOf(wearer.age);
   const w = { ...wearer, sex: sexOf(wearer), means: meansOf(wearer) };
   const chosen: Partial<Record<WardrobeSlot, unknown>> = {};
@@ -444,7 +451,7 @@ export function wardrobeFor(
 
 export function accessoryFor(wearer: Wearer, place: { year: number; setting?: WorldSetting }, garment: CharacterAppearance["wearing"]["garment"]) {
   const w = { ...wearer, sex: sexOf(wearer), means: meansOf(wearer) }, band = ageBandOf(wearer.age);
-  const options = slotOptions<Accessory>(kitsFor(place.setting, place.year), "accessory",
+  const options = slotOptions<Accessory>(forWearer(kitsFor(place.setting, place.year, undefined, wearer.community), wearer), "accessory",
     (o) => fits(o, w, band) && (!o.garments || o.garments.includes(garment)));
   const selected = weighted(options, w.id, "accessory");
   return selected === "none" ? undefined : selected;

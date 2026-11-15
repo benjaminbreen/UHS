@@ -2621,6 +2621,21 @@ export function urbanNeighborhood(
           (b === dominant ? 1.8 : 1);
         return aKey - bKey;
       });
+      const nearby = new Map<string, number>();
+      for (const lot of lots)
+        if (Math.abs(lot.point.x - (vertical ? edge : cursor)) + Math.abs(lot.point.y - (vertical ? cursor : edge)) < 20) {
+          const base = lot.frame.replace(/-(north|east|west)$/, "");
+          nearby.set(base, (nearby.get(base) ?? 0) + 1);
+        }
+      const family = (frame: string) => {
+        const m = buildingModel(frame) as typeof buildingModels[string] & { regionalHouse?: string; regionalProfile?: string };
+        return m.regionalHouse ? `${m.regionalHouse}:${m.regionalProfile}:${m.footprint.join(",")}` : frame;
+      };
+      // Reorder only interchangeable house sizes, retaining the row's fit and wealth choices.
+      const variants = new Map<string, string[]>();
+      for (const frame of choices) variants.set(family(frame), [...(variants.get(family(frame)) ?? []), frame]);
+      for (const group of variants.values()) group.sort((a, b) => (nearby.get(a) ?? 0) - (nearby.get(b) ?? 0));
+      const varied = choices.map((frame) => variants.get(family(frame))!.shift()!);
       let span = 1,
         tried = 0;
       // Not every plot is built: an orchard or a bit of green between houses.
@@ -2632,7 +2647,7 @@ export function urbanNeighborhood(
         cursor += 5;
         continue;
       }
-      for (const base of choices) {
+      for (const base of varied) {
         // Bounded: only the few best frames are put to the ground. Testing
         // every frame at every position would scan the block many times over.
         if (tried >= 12) break;

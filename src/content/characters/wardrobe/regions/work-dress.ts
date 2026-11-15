@@ -146,7 +146,7 @@ export const workDress: readonly GarmentKit[] = [
     label: "Japan · the inro at the sash",
     // A tiered case hung from the obi by a netsuke, worn by townsmen and
     // samurai through the Edo period.
-    scope: { years: [1600, 1870], cultures: ["east-asian"], bounds: [128, 30, 146, 46] },
+    scope: { years: [1600, 1870], cultures: ["east-asian"], bounds: [128, 30, 146, 46], except: [[124, 34.2, 129.6, 43.5], [128, 42.3, 139.5, 46]] },
     bag: [
       ...tradeBags,
       { value: "purse", sex: ["male"], means: ["common", "wealthy"], weight: 2 },
@@ -250,7 +250,7 @@ export const regionalShoes: readonly GarmentKit[] = [
   // The mill towns of Lancashire and Yorkshire.
   { id: "shoes-clogs-north", label: "Northern England · clogs", scope: { years: [1750, 1940], cultures: ["european"], bounds: [-3.5, 53, -1, 54.5] }, priority: 0.8,
     footwear: [{ value: "clogs", means: ["poor", "common"], share: 0.5 }] },
-  { id: "shoes-geta", label: "Japan · geta", scope: { years: [700, 1950], bounds: [128, 30, 146, 46] }, priority: 0.8,
+  { id: "shoes-geta", label: "Japan · geta", scope: { years: [700, 1950], bounds: [128, 30, 146, 46], except: [[124, 34.2, 129.6, 43.5], [128, 42.3, 139.5, 46]] }, priority: 0.8,
     footwear: [{ value: "geta", share: 0.6 }] },
   { id: "shoes-moccasins", label: "North America · moccasins", scope: { years: [-3000, 1950], cultures: ["other-indigenous-american"], bounds: [-170, 25, -50, 72] }, priority: 0.8,
     footwear: [{ value: "moccasins" }] },

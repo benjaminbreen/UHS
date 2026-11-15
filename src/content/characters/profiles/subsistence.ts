@@ -323,14 +323,30 @@ export const subsistenceMixes: readonly SubsistenceMix[] = [
     sources: ["https://doi.org/10.1017/CBO9780511607219"],
     note: "Shifting cultivation of roots and bananas, with a large share of the diet still hunted, fished and gathered from the forest and the rivers.",
   },
-  {
-    id: "subsistence.industrial",
+  /* The countryside left farming region by region, long after the towns did:
+   * rural Britain by 1850, rural France and Germany only after 1950, and rural
+   * India still has not. Each date is when most country people stopped working
+   * the land, not when the first mills came. */
+  ...([
+    ["britain", [-11, 49, 2, 61], 1850],
+    ["north-america", [-170, 24, -52, 72], 1930],
+    ["western-europe", [-11, 36, 20, 60], 1950],
+    ["australasia", [110, -48, 179, -10], 1950],
+    ["japan", [128, 30, 146, 46], 1965],
+    ["eastern-europe", [20, 36, 60, 70], 1965],
+    ["russia", [60, 45, 180, 75], 1965],
+    ["southern-africa", [16, -35, 33, -22], 1970],
+    ["latin-america", [-118, -56, -34, 24], 1990],
+    ["middle-east", [25, 12, 63, 42], 2000],
+    ["east-asia", [97, 18, 135, 54], 2010],
+  ] as const).map(([region, bounds, from]): SubsistenceMix => ({
+    id: `subsistence.industrial.${region}`,
     label: "Industrial society",
-    scope: { years: [1850, 10001] },
+    scope: { years: [from, 10001], bounds },
     priority: 6,
     requires: ["wage_labor"],
     shares: { farming: 0.12, herding: 0.03, fishing: 0.03, foraging: 0.01, other: 0.81 },
-    sources: ["https://doi.org/10.1017/CBO9781139034319"],
-    note: "Once most people work for wages, most work is not food production. Farming employs a tenth rather than half, and the rest of the settlement does everything else. Requires wage labour, so a village that has not industrialised keeps its own mix.",
-  },
+    sources: ["https://doi.org/10.1017/CBO9781139034319", "https://ourworldindata.org/employment-in-agriculture"],
+    note: "Once most country people work for wages, most work is not food production. Farming employs a tenth rather than half, and the rest of the settlement does everything else.",
+  })),
 ];

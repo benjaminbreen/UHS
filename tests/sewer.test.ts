@@ -14,6 +14,10 @@ import { caveFind } from "../src/content/caves";
 import { campFinds, cavePeople } from "../src/content/caves/people";
 import type { Actor } from "../src/core/types";
 import type { Lane } from "../src/world/v3/types";
+import { hulls, shipPeople } from "../src/content/ships";
+import { DECK, shipLevel, shipSolid } from "../src/world/ship";
+import { belowFromPrompt, resolveSetting } from "../src/content/geography/resolve";
+import { createSettingSession } from "../src/runtime/session";
 
 const site = (id: string, place: SewerSite["place"]): SewerSite => {
   const kind = sewerKindFor(place);
@@ -242,5 +246,63 @@ describe("people underground", () => {
     folkTime(h, "s", () => true);
     expect(said.some((t) => t.includes(smuggler.threat!))).toBe(true);
     expect(fought).toEqual(["folk-b-1:true", "folk-b-2:true"]);
+  });
+});
+
+describe("ships", () => {
+  it("lays out every deck of every hull with each ladder and hatch in reach and nobody in the rigging", () => {
+    for (const hull of hulls)
+      for (let deck = 0; deck <= hull.below.length; deck++) {
+        const place = { lon: (hull.where[0][0] + hull.where[0][2]) / 2, lat: (hull.where[0][1] + hull.where[0][3]) / 2, year: Math.min(hull.years[1] - 1, Math.max(hull.years[0], 1800)) };
+        const level = shipLevel("s", hull, deck, place), solid = shipSolid(level), { w } = level;
+        const open = (i: number) => level.cells[i] === DECK && !solid.has(i);
+        const seen = new Set([level.entry.y * w + level.entry.x]);
+        expect(open(level.entry.y * w + level.entry.x), `${hull.id} ${deck}`).toBe(true);
+        for (const q of seen) for (const n of [q - 1, q + 1, q - w, q + w]) if (!seen.has(n) && open(n)) seen.add(n);
+        for (const t of level.things.filter((t) => t.to !== undefined)) {
+          const near = [...seen].some((i) => (i % w) >= t.x - 1 && (i % w) <= t.x + t.w && Math.floor(i / w) >= t.y - 1 && Math.floor(i / w) <= t.y + t.h);
+          expect(near, `${hull.id} ${deck} ${t.art}`).toBe(true);
+          expect(t.to, `${hull.id} ${deck} ${t.art}`).toBeLessThanOrEqual(hull.below.length);
+        }
+        for (const f of level.folk) expect(open(f.y * w + f.x), `${hull.id} ${deck} ${f.person}`).toBe(true);
+      }
+  });
+
+  it("dresses everyone aboard and deals only in things that exist", () => {
+    for (const p of shipPeople) {
+      expect(livelihoodIds, p.id).toContain(p.dress);
+      const d = p.deal;
+      for (const id of [...Object.keys(d?.gives ?? {}), ...(d?.buys ?? []), ...(Array.isArray(d?.wants) ? d!.wants : [])]) expect(items[id], `${p.id} ${id}`).toBeDefined();
+    }
+    for (const h of hulls) for (const id of h.people) expect(shipPeople.some((p) => p.id === id), `${h.id} ${id}`).toBe(true);
+  });
+
+  it("starts aboard the ship a prompt names", () => {
+    expect(belowFromPrompt("a shipwright in amsterdam")).toBeUndefined();
+    for (const [q, ship] of [["A merchant on a junk, Guangzhou 1760", "junk"], ["A pilgrim on a dhow", "dhow"], ["A stoker on a steamer, 1912", "steamer"], ["A sailor aboard an East Indiaman, 1780", "indiaman"]] as const) {
+      const r = resolveSetting(q);
+      expect("setting" in r && [r.setting.below, r.setting.ship], q).toEqual(["ship", ship]);
+    }
+  });
+
+  it.runIf(!!process.env.FULL)("sails, goes below, makes landfall and puts the player ashore", () => {
+    const r = resolveSetting("A sailor aboard an East Indiaman, 1780");
+    if (!("setting" in r)) throw new Error(r.error);
+    const e = createSettingSession(r.setting, "voyage");
+    const shore = { ...e.state.voyage!.shore };
+    let n = 0;
+    const act = (target: string) => expect(e.act({ actionId: `v${n++}`, expectedRevision: e.state.revision, command: { type: "interact", target, action: "ship" } }).status).toBe("completed");
+    expect(e.shipLook()?.hull.id).toBe("indiaman");
+    act(e.shipVerb()!.target);
+    expect(e.state.player.pos.space).toBe("ship:voyage:1");
+    act(e.shipVerb()!.target);
+    expect(e.state.player.pos.space).toBe("ship:voyage:0");
+    for (let i = 0; i < 60 && !e.state.voyage!.landed; i++) act("ship-rail");
+    expect(e.state.voyage!.landed).toBe(true);
+    expect(e.state.player.inventory["ships-biscuit"]).toBeGreaterThan(0);
+    act("ship-ashore");
+    expect(e.state.player.pos).toEqual({ ...shore, space: "outside" });
+    expect(e.state.voyage).toBeUndefined();
+    expect(e.state.actors.some((a) => a.underground)).toBe(false);
   });
 });

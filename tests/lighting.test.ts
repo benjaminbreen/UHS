@@ -42,7 +42,6 @@ it("all shadow casters have six pivoted masks; low sun reverses direction and ni
   const casters = Object.keys(atlas.frames)
     .filter((f) => f.startsWith("midday:"))
     .map((f) => f.slice(7));
-  expect(casters).toContain("house-mud-0");
   expect(casters).toContain("human-0-0-2-0");
   for (const frame of casters)
     for (const light of lightingPresets) {
@@ -61,6 +60,24 @@ it("all shadow casters have six pivoted masks; low sun reverses direction and ni
   expect(dusk.cast[0]).toBeGreaterThan(afternoon.cast[0]);
   expect(Math.hypot(...noon.cast)).toBeLessThan(Math.hypot(...morning.cast));
   expect(night.opacity).toBe(0);
+});
+
+it("ships every building's daylight and contact masks without eagerly loading the house shadows", async () => {
+  const { lazySheets, pagedSheets, sceneAssets } = await import("../src/render/scene-assets");
+  expect(lazySheets).toContain("building-shadows");
+  expect(pagedSheets).toContain("building-shadows");
+  expect(sceneAssets(false).atlases.some((a) => a.key === "building-shadows")).toBe(false);
+  const models: Record<string, { shadowFrame?: string }> = JSON.parse(readFileSync("public/packs/models.json", "utf8"));
+  const frames = Object.assign({}, ...["lighting-shadows", "building-shadows", "modern-shadows", "landmark-shadows", "worksite-shadows", "street-shadows", "civic-shadows"]
+    .map((sheet) => JSON.parse(readFileSync(`public/packs/${sheet}.json`, "utf8")).frames));
+  const missing: string[] = [];
+  for (const [name, model] of Object.entries(models))
+    for (const light of lightingPresets) {
+      const key = shadowFrame(light.id, model.shadowFrame ?? name);
+      const f = frames[key];
+      if (!f || !Number.isFinite(f.pivot?.x) || !Number.isFinite(f.pivot?.y)) missing.push(key);
+    }
+  expect(missing).toEqual([]);
 });
 
 it("pages every building sheet frame onto a phone-sized page", async () => {

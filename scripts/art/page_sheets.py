@@ -12,7 +12,8 @@ import json, sys
 ROOT = Path(__file__).resolve().parents[2]
 PACKS = ROOT / 'public/packs'
 SHEETS = ['worksites', 'buildings', 'regional-buildings', 'camp-buildings', 'modern-buildings',
-          'street-buildings', 'street-weather', 'civic', 'sacred-buildings', 'precincts', 'worksite-shadows']
+          'street-buildings', 'street-weather', 'civic', 'sacred-buildings', 'precincts', 'worksite-shadows',
+          'building-shadows', 'modern-shadows', 'landmark-shadows']
 SIZE = 1024
 
 
@@ -49,7 +50,7 @@ def page(name):
         rects.setdefault((r['x'], r['y'], r['w'], r['h']), []).append(key)
     pages, placed = [], {}
     x = y = rowh = 0
-    for rect, keys in sorted(rects.items(), key=lambda kv: kv[1][0]):
+    for rect, keys in sorted(rects.items(), key=lambda kv: kv[1][0].split(':', 1)[-1]):
         w, h = rect[2], rect[3]
         if x + w + 2 > SIZE: x = 0; y += rowh + 2; rowh = 0
         if not pages or y + h + 2 > SIZE:

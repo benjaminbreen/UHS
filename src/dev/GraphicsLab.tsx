@@ -87,7 +87,7 @@ export function GraphicsLab() {
                 .filter(
                   (o): o is Phaser.GameObjects.Image =>
                     o instanceof Phaser.GameObjects.Image &&
-                    o.texture.key === "lighting-shadows",
+                    o.name === "cast",
                 )
                 .map((o) => o.frame.name),
             ),

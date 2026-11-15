@@ -174,13 +174,20 @@ export function settingFor(input: AtlasPlace, year = input.year): WorldSetting {
 }
 /** Where under the ground a prompt asks to start: "a cave man", "sewer
  * worker", "a collier in Durham". */
-export function belowFromPrompt(q: string): "cave" | "sewer" | "mine" | undefined {
+const SHIP_WORDS = /\baboard\b|\bat sea\b|\bon (?:board|(?:a|an|the) (?:[a-z-]+ )?(?:ship|vessel|junk|dhow|steamer|steamship|galleon|indiaman|liner|clipper))\b|\b(?:east indiam[ae]n|galleons?|junks?|dhows?|steamships?|steamers?|ocean liners?|emigrant ships?)\b|\b(?:deckhands?|stokers?|steerage|cabin boys?|ship'?s (?:boy|cook|surgeon)|lascars?|nakhoda)\b/;
+
+export function belowFromPrompt(q: string): "cave" | "sewer" | "mine" | "ship" | undefined {
+  if (SHIP_WORDS.test(q)) return "ship";
   if (/\bsewers?\b|\bsewerm[ae]n\b|\btoshers?\b|\bflushers?\b/.test(q)) return "sewer";
   if (/\b(?:a|the|gold|silver|coal|salt|tin|copper|iron|lead|mercury|emerald|diamond)\s+mines?\b|\bminers?\b|\bmining\b|\bcollier(?:y|ies|s)?\b|\bpit ?(?:m[ae]n|boys?|lads?|pon(?:y|ies)|brow)\b|\bhewers?\b|\bcoal ?face\b|\bdown the pit\b/.test(q)) return "mine";
   if (/\bcave(?:s|m[ae]n|wom[ae]n|dwellers?)?\b|\bcave (?:m[ae]n|wom[ae]n|dwellers?|people)\b|\bcaverns?\b|\bgrottos?\b/.test(q)) return "cave";
 }
 /** Where an underground start goes when the prompt names no place or date. */
-const BELOW_PLACES = { cave: ["magdalenian"], sewer: ["london", 1880], mine: ["city-cardiff", 1880] } as const;
+const BELOW_PLACES = { cave: ["magdalenian"], sewer: ["london", 1880], mine: ["city-cardiff", 1880], ship: ["london", 1790] } as const;
+/** The home waters of the ship a prompt names. */
+const shipPlace = (q: string): readonly [string, number] =>
+  /\bjunks?\b/.test(q) ? ["city-guangzhou", 1760] : /\b(?:dhows?|nakhoda)\b/.test(q) ? ["city-muscat", 1850] : /\bgalleons?\b/.test(q) ? ["city-lisbon", 1600]
+    : /\b(?:steam|stoker|liner)/.test(q) ? ["london", 1905] : /\bemigrant\b/.test(q) ? ["london", 1850] : BELOW_PLACES.ship;
 
 export function resolveSetting(
   input: string,
@@ -234,10 +241,10 @@ export function resolveSetting(
   const below = belowFromPrompt(q);
   const undated = dateFromPrompt(input, -1000001, seed) === -1000001;
   if (below && !located) {
-    const [id, year] = BELOW_PLACES[below];
+    const [id, year] = below === "ship" ? shipPlace(q) : BELOW_PLACES[below];
     const found = places.find((p) => p.id === id);
     if (found) place = year && undated ? { ...found, year } : found;
-  } else if (place && below && below !== "cave" && undated) place = { ...place, year: Math.max(place.year, 1880) };
+  } else if (place && below && below !== "cave" && below !== "ship" && undated) place = { ...place, year: Math.max(place.year, 1880) };
   if (!place) {
     const period = periods.find(([words]) => words.some((w) => has(q, w)));
     if (period)
@@ -280,11 +287,14 @@ export function resolveSetting(
         .map((label) => label.label),
     ]).sort((a, b) => b.length - a.length).find((label) => has(q, label));
     const coal = /\bcoal\b|\bcollier|\bpit\b/.test(q);
-    const underRole = below === "mine" ? (coal ? "Coal miner" : "Miner") : below === "sewer" ? (/\btosher/.test(q) ? "Tosher" : "Sewer flusher") : below === "cave" ? (s.year < -8000 ? "Hunter" : "Hermit") : undefined;
+    const underRole = below === "mine" ? (coal ? "Coal miner" : "Miner") : below === "sewer" ? (/\btosher/.test(q) ? "Tosher" : "Sewer flusher") : below === "cave" ? (s.year < -8000 ? "Hunter" : "Hermit")
+      : below === "ship" ? (/\bstokers?\b/.test(q) ? "Stoker" : /\b(?:passengers?|emigrants?|steerage|pilgrims?)\b/.test(q) ? "Passenger" : "Sailor") : undefined;
     s.role = namedRole ?? roles.find(([pattern]) => pattern.test(q))?.[1] ?? underRole ?? "Traveler";
     if (below) {
       s.below = below;
-      const work = below === "mine" ? (coal && s.year >= 1780 ? "coal-miner" : "miner") : below === "sewer" ? (/\btosher/.test(q) ? "night-soil-collector" : "navvy") : undefined;
+      if (below === "ship") s.ship = /\bjunks?\b/.test(q) ? "junk" : /\b(?:dhows?|nakhoda)\b/.test(q) ? "dhow" : /\bgalleons?\b/.test(q) ? "galleon"
+        : /\bindiam[ae]n\b/.test(q) ? "indiaman" : /\b(?:steam|stoker|liner)/.test(q) ? "steamer" : /\bemigrant\b/.test(q) ? "emigrant-ship" : undefined;
+      const work = below === "mine" ? (coal && s.year >= 1780 ? "coal-miner" : "miner") : below === "sewer" ? (/\btosher/.test(q) ? "night-soil-collector" : "navvy") : below === "ship" && s.role === "Sailor" ? "sailor" : undefined;
       if (work && !namedRole) s.brief = { ...s.brief, work };
     }
     if (has(q, "free black")) s.community = "Free Black household";

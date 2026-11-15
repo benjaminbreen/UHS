@@ -41,6 +41,64 @@ export type Population = {
   note?: string;
 };
 
+type Box = readonly [number, number, number, number];
+/* Land inside the Ottoman box that the empire did not hold, as
+ * [box, held from, held until). Independent Athens in 1911 was not a city
+ * of Muslims, Christians and Jews in millets. */
+const notOttoman: readonly [Box, number, number][] = [
+  [[22.6, 44.05, 27.3, 46], 1450, 1450], // Wallachia: tributary, never settled
+  [[26.5, 45.4, 28.3, 46], 1450, 1450], // Moldavia
+  [[43.8, 38.8, 45, 41.2], 1450, 1450], // Erevan: Persian, then Russian
+  [[19, 44.9, 22.3, 46], 1552, 1716], // Banat and Vojvodina
+  [[30.5, 44.3, 40, 46], 1450, 1783], // Crimea and the Kuban
+  [[28.3, 45.2, 30.5, 46], 1450, 1812], // Bessarabia
+  [[41.8, 41.2, 45, 46], 1450, 1801], // Georgia
+  [[41.5, 40.3, 43.8, 41.8], 1450, 1878], // Batumi and Kars
+  [[19.3, 43.2, 22.7, 44.9], 1459, 1867], // Serbia, until the garrisons left
+  [[20.5, 42.5, 22.9, 43.2], 1450, 1878], // Niš
+  [[22.3, 42.6, 28.6, 44.05], 1450, 1878], // Bulgaria
+  [[23.5, 41.8, 28, 42.6], 1450, 1878], // Eastern Rumelia
+  [[27.3, 43.7, 29.7, 45.3], 1450, 1878], // Dobruja
+  [[32, 35, 34.7, 35.8], 1571, 1878], // Cyprus
+  [[20.8, 36.3, 25.9, 38.95], 1450, 1830], // the Greek kingdom of 1830
+  [[20.8, 38.95, 23.5, 39.95], 1450, 1881], // Thessaly and Arta
+  [[23.4, 35, 26.4, 35.8], 1669, 1898], // Crete
+  [[27.6, 35.8, 28.3, 36.5], 1522, 1912], // Rhodes
+  [[19, 35, 26.35, 43.2], 1450, 1913], // Macedonia, Epirus, Albania, Kosovo
+  [[35.5, 35, 41, 37], 1516, 1923], // Mamluk Syria
+];
+/* The US box reaches Montreal, Toronto and Monterrey. */
+const notUnitedStates: readonly Box[] = [
+  [-80, 45, -60, 49], // Quebec and eastern Ontario
+  [-81.5, 43.4, -77, 45], // Toronto and the Ontario shore
+  [-117, 25, -106.5, 31.3], // Sonora and western Chihuahua
+  [-106.5, 25, -104.5, 29.5], // Chihuahua
+  [-104.5, 25, -100.5, 28.5], // Coahuila
+  [-100.5, 25, -98.5, 26.8], // Nuevo León
+];
+function ottomanCity(): Population[] {
+  const cuts = [...new Set([1450, 1923, ...notOttoman.flatMap(([, a, b]) => [a, b])])]
+    .filter((y) => y >= 1450 && y <= 1923)
+    .sort((a, b) => a - b);
+  return cuts.slice(0, -1).map((from, i) => ({
+    id: `population.ottoman-city-${from}`,
+    label: "Ottoman city",
+    scope: {
+      years: [from, cuts[i + 1]],
+      bounds: [19, 35, 45, 46],
+      except: notOttoman.filter(([, a, b]) => from < a || from >= b).map(([box]) => box),
+    },
+    priority: 3,
+    groups: [
+      { community: "ottoman-muslim", share: 55 },
+      { community: "ottoman-christian", share: 33 },
+      { community: "ottoman-jewish", share: 12 },
+    ],
+    sources: ["https://doi.org/10.1017/CHOL9780521291637"],
+    note: "Ottoman cities were plural by arrangement, not by accident: each confession governed its own affairs under the millet system. The balance differed sharply by city -- Salonica was about half Jewish through the nineteenth century, Athens almost wholly Christian.",
+  }));
+}
+
 export const populations: readonly Population[] = [
   {
     id: "population.virginia-tidewater",
@@ -86,6 +144,33 @@ export const populations: readonly Population[] = [
     note: "The Cape was built on slavery from 1658, with people brought from the Indonesian archipelago, India, Madagascar and Mozambique. Slavery at the Cape ended in 1834; the share here does not yet fall at that date.",
   },
   {
+    id: "population.great-plains",
+    label: "Great Plains before the railroads",
+    scope: { years: [1800, 1865], bounds: [-112, 32, -95, 49] },
+    priority: 6,
+    groups: [
+      { community: "indigenous-local", share: 90 },
+      { community: "us-anglo", share: 6 },
+      { community: "us-latino", share: 4 },
+    ],
+    sources: ["https://doi.org/10.1017/CHOL9780521573924"],
+    note: "Until the 1860s the Plains were Lakota, Cheyenne, Comanche and Pawnee country crossed by traders and emigrant trails; the US box made them a settled Anglo population from 1800.",
+  },
+  {
+    id: "population.great-plains-late",
+    label: "Great Plains, railroads and reservations",
+    scope: { years: [1865, 1890], bounds: [-112, 32, -95, 49] },
+    priority: 6,
+    groups: [
+      { community: "indigenous-local", share: 30 },
+      { community: "us-anglo", share: 62 },
+      { community: "african-diaspora", share: 4 },
+      { community: "us-latino", share: 4 },
+    ],
+    sources: ["https://doi.org/10.1017/CHOL9780521573924"],
+    note: "Railroads, homesteaders and cattle drives filled the Plains in a generation; by the 1880s Native nations were confined to reservations.",
+  },
+  {
     id: "population.trans-appalachian-backcountry",
     label: "Trans-Appalachian backcountry",
     scope: { years: [1760, 1840], bounds: [-92, 32, -78, 42] },
@@ -101,7 +186,7 @@ export const populations: readonly Population[] = [
   {
     id: "population.united-states",
     label: "United States",
-    scope: { years: [1800, 1940], bounds: [-125, 25, -67, 49] },
+    scope: { years: [1800, 1940], bounds: [-125, 25, -67, 49], except: notUnitedStates },
     priority: 3,
     groups: [
       { community: "us-anglo", share: 87 },
@@ -115,7 +200,7 @@ export const populations: readonly Population[] = [
   {
     id: "population.united-states-late",
     label: "United States",
-    scope: { years: [1940, 2000], bounds: [-125, 25, -67, 49] },
+    scope: { years: [1940, 2000], bounds: [-125, 25, -67, 49], except: notUnitedStates },
     priority: 3,
     groups: [
       { community: "us-anglo", share: 76 },
@@ -166,18 +251,45 @@ export const populations: readonly Population[] = [
     sources: ["https://doi.org/10.1017/CHOL9780521382892"],
     note: "California and the territories annexed in 1848, where the Spanish-speaking population predates the Anglo one and the Pacific coast cities drew Chinese settlement from the gold rush. The national average badly misdescribes this corner of the country.",
   },
+  ...ottomanCity(),
   {
-    id: "population.ottoman-city",
-    label: "Ottoman city",
-    scope: { years: [1450, 1923], bounds: [19, 35, 45, 46] },
-    priority: 3,
+    id: "population.anatolia-interior",
+    label: "Inner Anatolia",
+    scope: { years: [1450, 1915], bounds: [30, 36.5, 45, 40.8] },
+    priority: 4,
     groups: [
-      { community: "ottoman-muslim", share: 55 },
-      { community: "ottoman-christian", share: 33 },
-      { community: "ottoman-jewish", share: 12 },
+      { community: "ottoman-muslim", share: 80 },
+      { community: "ottoman-christian", share: 18 },
+      { community: "ottoman-jewish", share: 2 },
     ],
     sources: ["https://doi.org/10.1017/CHOL9780521291637"],
-    note: "Ottoman cities were plural by arrangement, not by accident: each confession governed its own affairs under the millet system. The balance differed sharply by city -- Salonica was about half Jewish through the nineteenth century, Athens almost wholly Christian.",
+    note: "Away from Istanbul, Izmir and Salonica the towns of Anatolia were overwhelmingly Muslim, with Armenian and Greek quarters and few Jews.",
+  },
+  {
+    id: "population.anatolia-interior-after-1915",
+    label: "Inner Anatolia",
+    scope: { years: [1915, 1923], bounds: [30, 36.5, 45, 40.8] },
+    priority: 4,
+    groups: [
+      { community: "ottoman-muslim", share: 96 },
+      { community: "ottoman-christian", share: 3 },
+      { community: "ottoman-jewish", share: 1 },
+    ],
+    sources: ["https://doi.org/10.1017/CHOL9780521291637"],
+    note: "The deportations and massacres of 1915 destroyed the Armenian communities of Anatolia.",
+  },
+  {
+    id: "population.salonica",
+    label: "Salonica",
+    scope: { years: [1500, 1913], bounds: [22.8, 40.5, 23.1, 40.75] },
+    priority: 4,
+    groups: [
+      { community: "ottoman-jewish", share: 50 },
+      { community: "ottoman-muslim", share: 30 },
+      { community: "ottoman-christian", share: 20 },
+    ],
+    sources: ["https://doi.org/10.1017/CHOL9780521291637"],
+    note: "Sephardi refugees from Spain made Salonica a Jewish-majority city from the sixteenth century until the Greek annexation of 1912.",
   },
   {
     id: "population.indies-port",
@@ -370,5 +482,77 @@ export const labourRegimes: readonly LabourRegime[] = [
     unfree: 0.3,
     sources: ["https://doi.org/10.1017/9781139026314"],
     note: "The nobi were a hereditary unfree class, at some points close to a third of the population, abolished in 1894.",
+  },
+  {
+    id: "labour.second-serfdom",
+    label: "East-central European serfdom",
+    scope: { years: [1550, 1848], bounds: [12, 45, 28, 58] },
+    priority: 2,
+    unfree: 0.5,
+    sources: ["https://en.wikipedia.org/wiki/Second_serfdom"],
+    note: "East of the Elbe, in Poland, Bohemia and Hungary, lords bound peasants to the estate and raised labour dues to several days a week just as the west was shedding serfdom. Ended in 1848 in the Habsburg lands, earlier in Prussia.",
+  },
+  {
+    id: "labour.cuba-sugar",
+    label: "Cuban sugar slavery",
+    scope: { years: [1838, 1886], bounds: [-85, 19.5, -74, 23.5] },
+    priority: 4,
+    unfree: 0.3,
+    sources: ["https://www.slavevoyages.org/"],
+    note: "Cuba's sugar boom drew enslaved Africans after the British islands had freed theirs; slavery lasted until 1886.",
+  },
+  {
+    id: "labour.siam",
+    label: "Ayutthaya and Bangkok Siam",
+    scope: { years: [1350, 1905], bounds: [97, 6, 106, 21] },
+    priority: 3,
+    unfree: 0.25,
+    sources: ["https://en.wikipedia.org/wiki/Slavery_in_Thailand"],
+    note: "Debt slaves and war captives, the that, were a large part of the central plain's workforce; Chulalongkorn abolished slavery in stages ending in 1905.",
+  },
+  {
+    id: "labour.swahili-coast",
+    label: "Zanzibar and the Swahili coast",
+    scope: { years: [1800, 1897], bounds: [38, -11, 42, -1] },
+    priority: 3,
+    unfree: 0.4,
+    sources: ["https://en.wikipedia.org/wiki/Zanzibar_slave_trade"],
+    note: "Clove plantations on Zanzibar and Pemba and grain estates on the mainland coast were worked by enslaved people brought from the interior; on the islands they were most of the population.",
+  },
+  {
+    id: "labour.imerina",
+    label: "Merina Madagascar",
+    scope: { years: [1790, 1896], bounds: [43, -26, 51, -12] },
+    priority: 3,
+    unfree: 0.3,
+    sources: ["https://en.wikipedia.org/wiki/Slavery_in_Madagascar"],
+    note: "Merina expansion took captives across the island; in Imerina itself perhaps a third of the people were enslaved when the French abolished slavery in 1896.",
+  },
+  {
+    id: "labour.south-india",
+    label: "Agrestic slavery in South India",
+    scope: { years: [1500, 1843], bounds: [74, 8, 81, 16] },
+    priority: 2,
+    unfree: 0.1,
+    sources: ["https://en.wikipedia.org/wiki/Slavery_in_India"],
+    note: "Field labourers of the lowest castes were bought, sold and inherited with the land in the Tamil and Kannada country; the Law Commission of 1841 counted millions across India, most of them here, before the Act of 1843 withdrew legal recognition.",
+  },
+  {
+    id: "labour.malabar",
+    label: "Malabar and Travancore",
+    scope: { years: [1500, 1855], bounds: [74, 8, 77.5, 13] },
+    priority: 3,
+    unfree: 0.15,
+    sources: ["https://en.wikipedia.org/wiki/Slavery_in_India"],
+    note: "Agrestic slaves of the Pulaya and Paraiya castes worked the rice fields and could be sold or mortgaged with them, until abolition in Travancore in 1855.",
+  },
+  {
+    id: "labour.northwest-coast",
+    label: "Northwest Coast",
+    scope: { years: [1000, 1880], bounds: [-136, 42, -122, 60] },
+    priority: 3,
+    unfree: 0.15,
+    sources: ["https://en.wikipedia.org/wiki/Indigenous_peoples_of_the_Pacific_Northwest_Coast"],
+    note: "Captives taken in raids were held as slaves by the house groups of the coast, by some estimates a sixth to a quarter of a village.",
   },
 ];

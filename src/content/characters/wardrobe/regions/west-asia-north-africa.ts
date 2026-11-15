@@ -11,13 +11,13 @@ import type { masks } from "../../../../core/character";
  * and after, not a general Islamic or Middle Eastern hat, and putting it in
  * earlier bands would be the commonest way to get this region wrong.
  */
-type Wrap = { id: string; label: string; years: [number, number]; bounds: [number, number, number, number]; colors: string[]; masks: [(typeof masks)[number], number][] };
+type Wrap = { id: string; label: string; years: [number, number]; bounds: [number, number, number, number]; communities?: string[]; except?: [number, number, number, number][]; colors: string[]; masks: [(typeof masks)[number], number][] };
 const women = { sex: ["female"], ages: ["youth", "adult", "elder"] } as const;
 function streetWraps(wraps: Wrap[]): GarmentKit[] {
-  return wraps.map(({ id, label, years, bounds, colors, masks }): GarmentKit => ({
+  return wraps.map(({ id, label, years, bounds, communities, except, colors, masks }): GarmentKit => ({
     id,
     label,
-    scope: { years, bounds },
+    scope: { years, bounds, communities, except },
     priority: 1.5,
     over: [{ value: "shroud", weight: 5, ...women, means: ["common", "wealthy", "elite"] }, { value: "none", weight: 1, ...women, means: ["common", "wealthy", "elite"] },
       { value: "shroud", weight: 2, ...women, means: ["poor"] }, { value: "none", weight: 3, ...women, means: ["poor"] }],
@@ -27,6 +27,11 @@ function streetWraps(wraps: Wrap[]): GarmentKit[] {
       { value: "none", weight: 1, ...women, means: ["poor"] }],
   }));
 }
+
+/** Townspeople of Mecca, Basra and Timbuktu did not dress as the herders. */
+const herdersOnly = (k: GarmentKit): GarmentKit =>
+  Object.fromEntries(Object.entries(k).map(([key, v]) =>
+    [key, Array.isArray(v) ? v.map((o) => ({ ...o, livelihoods: ["herder", "caravaneer"] })) : v])) as GarmentKit;
 
 export const westAsiaNorthAfrica: readonly GarmentKit[] = [
   {
@@ -143,7 +148,8 @@ export const westAsiaNorthAfrica: readonly GarmentKit[] = [
   {
     id: "wana-modern",
     label: "West Asia & North Africa · the fez, then the shirt",
-    scope: { years: [1850, 10001], cultures: ["north-african-west-asian"] },
+    // Turkey banned the fez in 1925 and Iran never wore it.
+    scope: { years: [1850, 1925], cultures: ["north-african-west-asian"], except: [[44, 25, 63.5, 39.8]] },
     sleeves: [{ value: "long", weight: 6 }, { value: "loose", weight: 3, garments: ["robe", "open-robe", "long-tunic"] }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
     motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["robe", "open-robe", "long-tunic"] }],
     garment: [
@@ -173,6 +179,69 @@ export const westAsiaNorthAfrica: readonly GarmentKit[] = [
     ],
   },
   {
+    id: "wana-modern-later",
+    label: "West Asia & North Africa · the shirt",
+    scope: { years: [1925, 10001], cultures: ["north-african-west-asian"] },
+    sleeves: [{ value: "long", weight: 6 }, { value: "loose", weight: 3, garments: ["robe", "open-robe", "long-tunic"] }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
+    motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["robe", "open-robe", "long-tunic"] }],
+    garment: [
+      { value: "long-tunic", weight: 5 },
+      { value: "shirt", weight: 5 },
+      { value: "open-robe", weight: 3 },
+      { value: "coat", weight: 2 },
+      { value: "robe", weight: 2 },
+    ],
+    leggings: [
+      { value: "trousers", weight: 5 },
+      { value: "wide", weight: 4 },
+      { value: "none", weight: 2 },
+    ],
+    headwear: [
+      { value: "wrap", weight: 5 },
+      { value: "veil", weight: 4, sex: ["female"] },
+      { value: "headscarf", weight: 3, sex: ["female"] },
+      { value: "cap", weight: 2 },
+      { value: "none", weight: 3 },
+    ],
+    footwear: [
+      { value: "shoes", weight: 6 },
+      { value: "sandals", weight: 4 },
+      { value: "boots", weight: 2 },
+    ],
+  },
+  {
+    id: "wana-modern-iran",
+    label: "Qajar Iran · the lambskin kolah",
+    scope: { years: [1850, 1925], cultures: ["north-african-west-asian"], bounds: [44, 25, 63.5, 39.8] },
+    sleeves: [{ value: "long", weight: 6 }, { value: "loose", weight: 3, garments: ["robe", "open-robe", "long-tunic"] }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
+    motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["robe", "open-robe", "long-tunic"] }],
+    garment: [
+      { value: "long-tunic", weight: 5 },
+      { value: "shirt", weight: 5 },
+      { value: "open-robe", weight: 3 },
+      { value: "coat", weight: 2 },
+      { value: "robe", weight: 2 },
+    ],
+    leggings: [
+      { value: "trousers", weight: 5 },
+      { value: "wide", weight: 4 },
+      { value: "none", weight: 2 },
+    ],
+    headwear: [
+      { value: "wrap", weight: 5 },
+      { value: "veil", weight: 4, sex: ["female"] },
+      { value: "headscarf", weight: 3, sex: ["female"] },
+      { value: "cap", weight: 3, sex: ["male"] },
+      { value: "cap", weight: 2 },
+      { value: "none", weight: 3 },
+    ],
+    footwear: [
+      { value: "shoes", weight: 6 },
+      { value: "sandals", weight: 4 },
+      { value: "boots", weight: 2 },
+    ],
+  },
+  herdersOnly({
     // Camel and goat herders of the Arabian and Syrian desert: a long shirt
     // (thawb), a head cloth held by a cord, the cloak (aba) of camel or goat
     // hair; women in long dark gowns, veiled.
@@ -191,8 +260,8 @@ export const westAsiaNorthAfrica: readonly GarmentKit[] = [
     over: [{ value: "cloak", weight: 6 }, { value: "none", weight: 3 }],
     material: [{ value: "wool", weight: 5 }, { value: "cotton", weight: 4 }],
     dye: [{ value: "undyed", weight: 6 }, { value: "soot", weight: 4 }, { value: "indigo", weight: 3 }, { value: "bark", weight: 2 }],
-  },
-  {
+  }),
+  herdersOnly({
     // Tuareg men veil the face with the tagelmust, the indigo staining the
     // skin blue; women go unveiled under a head cloth. Wide robes and trousers.
     id: "tuareg",
@@ -205,7 +274,7 @@ export const westAsiaNorthAfrica: readonly GarmentKit[] = [
     neck: [{ value: "beads", weight: 3 }, { value: "none", weight: 4 }],
     sidearm: [{ value: "sword", weight: 2, sex: ["male"], means: ["common", "wealthy"] }, { value: "none", weight: 6 }],
     dye: [{ value: "indigo", weight: 8 }, { value: "undyed", weight: 3 }, { value: "soot", weight: 2 }],
-  },
+  }),
   {
     // The Persepolis reliefs: Persians in the long pleated robe and fluted
     // hat, Medes in the riding coat, trousers and rounded felt cap.
@@ -253,17 +322,51 @@ export const westAsiaNorthAfrica: readonly GarmentKit[] = [
   // Women's street wraps, head to ankle, in the towns: the outdoor dress of
   // respectable women. Field and herding women went less covered, so the poor
   // wear them less.
+  // The Ottoman communities north of 35°: turbans for Muslims and coloured
+  // caps or turbans for Christians and Jews, then the fez for nearly everyone
+  // after Mahmud II's reform of 1829. Above the European hat kits, which
+  // otherwise put tricornes and bowlers on Salonica.
+  {
+    id: "ottoman-men-muslim",
+    label: "Ottoman towns · the turban",
+    scope: { years: [1450, 1829], bounds: [18, 35, 45, 46], communities: ["ottoman-muslim"] },
+    priority: 1.4,
+    headwear: [{ value: "turban", weight: 8, sex: ["male"] }, { value: "cap", weight: 2, sex: ["male"] }],
+  },
+  {
+    id: "ottoman-dhimmi",
+    label: "Ottoman Christians and Jews · cap, turban and kerchief",
+    scope: { years: [1450, 1829], bounds: [18, 35, 45, 46], communities: ["ottoman-christian", "ottoman-jewish"] },
+    priority: 1.4,
+    headwear: [{ value: "cap", weight: 5, sex: ["male"] }, { value: "turban", weight: 3, sex: ["male"] },
+      { value: "headscarf", weight: 6, sex: ["female"] }, { value: "none", weight: 2, sex: ["female"] }],
+  },
+  {
+    id: "ottoman-fez",
+    label: "Ottoman towns · the fez",
+    scope: { years: [1829, 1923], bounds: [18, 35, 45, 46], communities: ["ottoman-muslim", "ottoman-christian", "ottoman-jewish"] },
+    priority: 1.4,
+    headwear: [{ value: "fez", weight: 8, sex: ["male"] }, { value: "turban", weight: 1, sex: ["male"] },
+      { value: "headscarf", weight: 5, sex: ["female"] }, { value: "none", weight: 3, sex: ["female"] }],
+  },
   ...streetWraps([
     // Safavid and Qajar Iran: the chador, black or dark blue, over a white face veil (the rubandeh).
-    { id: "iran-chador", label: "Iran · the chador", years: [1500, 1979], bounds: [44, 25, 63.5, 39.8], colors: ["#24222a", "#24222a", "#2c3550"], masks: [["yashmak", 3], ["none", 2]] },
+    { id: "iran-chador", label: "Iran · the chador", years: [1500, 10001], bounds: [44, 25, 63.5, 39.8], except: [[53, 37.3, 63.5, 39.8]], colors: ["#24222a", "#24222a", "#2c3550"], masks: [["yashmak", 3], ["none", 2]] },
     // The Ottoman ferace, a long coat in a colour, with the white yaşmak below the eyes.
-    { id: "ottoman-ferace", label: "Ottoman towns · the ferace and yaşmak", years: [1500, 1880], bounds: [20, 29.5, 45, 43], colors: ["#3b4a62", "#5a3a5e", "#3e5a3a", "#5a4030"], masks: [["yashmak", 5], ["none", 1]] },
+    // North of 35° the Ottoman population draws each person's faith, and
+    // Christian and Jewish women there did not take the yaşmak or the çarşaf.
+    { id: "ottoman-ferace", label: "Ottoman towns · the ferace and yaşmak", years: [1500, 1880], bounds: [18, 35, 45, 46], communities: ["ottoman-muslim"], colors: ["#3b4a62", "#5a3a5e", "#3e5a3a", "#5a4030"], masks: [["yashmak", 5], ["none", 1]] },
+    { id: "ottoman-ferace-levant", label: "Ottoman Levant · the ferace and yaşmak", years: [1500, 1880], bounds: [20, 29.5, 45, 35], colors: ["#3b4a62", "#5a3a5e", "#3e5a3a", "#5a4030"], masks: [["yashmak", 5], ["none", 1]] },
     // From the 1880s the black çarşaf and the peçe over the face.
-    { id: "ottoman-carsaf", label: "Ottoman towns · the çarşaf", years: [1880, 1925], bounds: [20, 29.5, 45, 43], colors: ["#24222a"], masks: [["niqab", 3], ["none", 2]] },
+    { id: "ottoman-carsaf", label: "Ottoman towns · the çarşaf", years: [1880, 1925], bounds: [18, 35, 45, 46], communities: ["ottoman-muslim"], colors: ["#24222a"], masks: [["niqab", 3], ["none", 2]] },
+    { id: "ottoman-carsaf-levant", label: "Ottoman Levant · the çarşaf", years: [1880, 1925], bounds: [20, 29.5, 45, 35], colors: ["#24222a"], masks: [["niqab", 3], ["none", 2]] },
     // Cairo and the Hijaz: the black habara and the long burqu' from the nose to the chest.
-    { id: "egypt-habara", label: "Egypt and Arabia · the habara and burqu'", years: [1500, 1925], bounds: [24, 12, 45, 31.5], colors: ["#24222a", "#24222a", "#3a2e3e"], masks: [["niqab", 5], ["none", 1]] },
+    // Not Christian Ethiopia, nor Sudan, where women wore the tobe.
+    { id: "egypt-habara", label: "Egypt and Arabia · the habara and burqu'", years: [1500, 1925], bounds: [24, 12, 45, 31.5], except: [[35, 6, 43, 16.5], [24, 12, 36.5, 18]], colors: ["#24222a", "#24222a", "#3a2e3e"], masks: [["niqab", 5], ["none", 1]] },
     // The white wool haik, drawn across the face to leave one eye.
-    { id: "maghreb-haik", label: "The Maghreb · the haik", years: [900, 1960], bounds: [-10, 27, 11.5, 37.5], colors: ["#ebe3cc"], masks: [["haik", 4], ["yashmak", 2], ["none", 1]] },
+    { id: "maghreb-haik", label: "The Maghreb · the haik", years: [900, 1492], bounds: [-10, 27, 11.5, 37.5], colors: ["#ebe3cc"], masks: [["haik", 4], ["yashmak", 2], ["none", 1]] },
+    // After Granada the box's northern strip is Christian Andalusia.
+    { id: "maghreb-haik-after-granada", label: "The Maghreb · the haik", years: [1492, 1960], bounds: [-10, 27, 11.5, 37.5], except: [[-10, 36.2, -1, 37.5]], colors: ["#ebe3cc"], masks: [["haik", 4], ["yashmak", 2], ["none", 1]] },
     // The pleated burqa with its grille, Kabul to Peshawar.
     { id: "afghan-burqa", label: "Afghanistan · the burqa", years: [1800, 10001], bounds: [60, 29, 72, 38.5], colors: ["#4a6a9a", "#ebe3cc", "#7a6a4a"], masks: [["grille", 1]] },
   ]),

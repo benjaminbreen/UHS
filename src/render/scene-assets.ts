@@ -47,6 +47,9 @@ const atlases = {
   "street-shadows": "/packs/street-shadows",
   "civic-shadows": "/packs/civic-shadows",
   "worksite-shadows": "/packs/worksite-shadows",
+  "building-shadows": "/packs/building-shadows",
+  "modern-shadows": "/packs/modern-shadows",
+  "landmark-shadows": "/packs/landmark-shadows",
   topography: "/topography/atlas",
 } as const;
 /** Building sheets, in lookup order. Each decodes to up to 64 MB and most
@@ -69,6 +72,9 @@ export const lazySheets = [
   "civic-shadows",
   // The casts of work yards: only in the towns that have one.
   "worksite-shadows",
+  "building-shadows",
+  "modern-shadows",
+  "landmark-shadows",
   // Parked cars: nowhere before the motor age.
   "vehicles",
   // Rolling stock: only where a railway runs.
@@ -107,6 +113,9 @@ export const pagedSheets = [
   "sacred-buildings",
   "precincts",
   "worksite-shadows",
+  "building-shadows",
+  "modern-shadows",
+  "landmark-shadows",
 ] as const;
 const paged = (key: string) => (pagedSheets as readonly string[]).includes(key);
 export const pageImage = (key: string, page: number) =>

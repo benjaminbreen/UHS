@@ -114,6 +114,7 @@ def _cast(name):
                 d.line((x-minx,y-miny,x-minx,y-miny+1),fill=CONTACT+(83,))
         anchor=model['anchor'] if model else source.info.get('shadowAnchor',[w/2,h])
         im.info['anchor']=[anchor[0]-minx,anchor[1]-miny]
+        if model:im.info['trim']=True
         result.append((f"{phase['id']}:{name}",im))
     return result
 
@@ -122,8 +123,19 @@ def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-sh
     phases=json.loads((root/'src/content/graphics/lighting.json').read_text())
     picked=[name for name in sprites
             if name.startswith(('human-','house-','worksite-','study-','prop-broken-','urban-stall-','nature-'))
-            or name in PROPS or (buildings.get(name) or {}).get('frontClassical')]
-    picked=[name for name in picked if not name.endswith('-glow')]
+            or name in PROPS or name in buildings]
+    picked=[name for name in picked if not name.endswith('-glow')
+            and not (buildings.get(name) or {}).get('shadowFrame')
+            and not (buildings.get(name) or {}).get('voxel')]
+    # Recolours and identical facings share the projection work as well as atlas pixels.
+    groups={}
+    for name in picked:
+        source=sprites[name];model=buildings.get(name)
+        key=(source.size,source.getchannel('A').point(lambda a:255 if a>200 else 0).tobytes(),
+             model['shadow']['height'],model['footprint'][1],tuple(model['anchor']),source.info.get('shadowMinY')) if model else name
+        groups.setdefault(key,[]).append(name)
+    aliases=list(groups.values())
+    picked=[names[0] for names in aliases]
     # Each sprite's masks are independent, so the cores share them.
     global _JOB
     _JOB=(sprites,buildings,phases)
@@ -134,10 +146,19 @@ def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-sh
             cast=pool.map(_cast,picked,chunksize=8)
     else:
         cast=[_cast(name) for name in picked]
-    result=dict(kv for part in cast for kv in part)
+    result={f"{key.split(':',1)[0]}:{name}":im
+            for names,part in zip(aliases,cast) for key,im in part for name in names}
     # Worksite casts are many and large; they page in with the towns that have them.
     work={k:v for k,v in result.items() if k.split(':',1)[1].startswith('worksite-')}
-    atlas=pack_atlas({k:v for k,v in result.items() if k not in work},output or root/'public/packs',atlas_name,2048)
+    houses={k:v for k,v in result.items() if k.split(':',1)[1] in buildings and k not in work}
+    atlas=pack_atlas({k:v for k,v in result.items() if k not in work and k not in houses},output or root/'public/packs',atlas_name,2048)
     if work:pack_atlas(work,output or root/'public/packs','worksite-shadows',2048,paged=True)
+    sheets={}
+    for k,im in houses.items():
+        name=k.split(':',1)[1];m=buildings[name]
+        sheet=('landmark-shadows' if m.get('religious') or m.get('hall') or m.get('theatre') or name.startswith('precinct-') else
+               'modern-shadows' if m.get('modern') or m.get('period') or m.get('candidate') or name.startswith('mod-') else 'building-shadows')
+        sheets.setdefault(sheet,{})[k]=im
+    for sheet,masks in sheets.items():pack_atlas(masks,output or root/'public/packs',sheet,2048,paged=True)
     print(f'Built {len(result)} lighting masks; shadow atlas {atlas.size}.')
     return result

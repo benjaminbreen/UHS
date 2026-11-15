@@ -19,6 +19,13 @@ are placed, is [PROPS.md](PROPS.md). Buildings are the `building-art` skill.
 solid of revolution (`lathe`), a box (`block`) and a lying log (`log_x`), each
 showing its top at half its depth. Use them for anything that has a top.
 
+The square's furniture is `props_b/plaza.py` (the shared kit and the helpers
+that show a top: `disc`, `drum`, `box`, `parasol`) and one `plaza_*.py` per
+part of the world. `plaza_families.py` sorts them into families by the job a
+thing does, one variant per place, and prints the contact sheet:
+`PYTHONPATH=scripts .venv/bin/python -m art.props_b.plaza_families`. A draw
+function that takes `frame` is animated; one such variant animates its family.
+
 Behaviour lives in `src/content/props/catalog.ts`; art budget and variants in
 `src/content/graphics/props.json`. That split is deliberate.
 

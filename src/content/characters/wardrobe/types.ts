@@ -83,6 +83,10 @@ export type GarmentKit = {
   /** Overlays that beat ordinary regional dress whatever their scope: a
    * uniform, a pressure suit, court dress. Default 0. */
   priority?: number;
+  /** Herding and village dress: someone in town, industrial or modern work
+   * falls through to the next kit, so a railway labourer in Denver in 1880
+   * is not in a breechcloth. */
+  village?: boolean;
   garment?: readonly Option<Garment>[];
   headwear?: readonly Option<Headwear>[];
   leggings?: readonly Option<Leggings>[];
@@ -144,7 +148,7 @@ export type Accessory = "none" | "walking-cane" | "fan" | "spear" | "halberd" | 
 export type Motif = (typeof motifs)[number];
 export type WardrobeSlot = Exclude<
   keyof GarmentKit,
-  "id" | "label" | "scope" | "priority"
+  "id" | "label" | "scope" | "priority" | "village"
 >;
 export const wardrobeSlots = [
   "garment",
@@ -204,6 +208,8 @@ export type Wearer = {
   rank?: Rank;
   means?: Means;
   roles?: readonly string[];
+  /** Matched against a kit's `scope.communities`; the place's own when absent. */
+  community?: string;
 };
 export function ageBandOf(age: number | undefined): AgeBand {
   if (age === undefined) return "adult";

@@ -79,6 +79,7 @@ import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
 import { caveAct, caveBeastAt, caveGround, caveMouthsNear, caveInspect, caveLevelOf, caveStrike, caveTime, caveVerb, type CaveHost } from "./cave";
 import { folkOffer, type FolkHost } from "./tunnel-folk";
+import { shipAct, shipGround, shipInspect, shipLevelOf, shipStart, shipTime, shipVerb, voyageLook, type ShipHost } from "./ship";
 import { lidAt, mineEnter, mineLeave, minePeril, minePlace, sewerAct, sewerGround, sewerInspect, sewerLevelOf, sewerTime, sewerVerb, type SewerHost } from "./sewer";
 import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structure } from "./time/structure";
 import { regardCue, WARM, WARY } from "./regard";
@@ -2246,6 +2247,30 @@ export class Engine {
     this.sewerHost.folk = this.folk;
     return this.sewerHost;
   }
+  private shipHost: ShipHost = {
+    state: undefined as never,
+    world: undefined as never,
+    event: (text, kind, at) => this.event(text, kind, at),
+    advance: (seconds) => this.advance(seconds),
+    folk: undefined as never,
+    levels: new Map(),
+  };
+  private get ships() {
+    this.shipHost.state = this.state;
+    this.shipHost.world = this.world;
+    this.shipHost.folk = this.folk;
+    return this.shipHost;
+  }
+  /** The deck a space is, aboard the ship a life began on. */
+  shipOf(space: string) {
+    return space.startsWith("ship:") ? shipLevelOf(this.ships, space)?.level : undefined;
+  }
+  shipLook() {
+    return voyageLook(this.ships);
+  }
+  shipVerb() {
+    return this.state.voyage ? shipVerb(this.ships) : undefined;
+  }
   /** The sewer level a space is, if it is one. */
   sewerOf(space: string) {
     return space.startsWith("sewer:") || space.startsWith("mine:") ? sewerLevelOf(this.sewers, space)?.level : undefined;
@@ -2256,8 +2281,9 @@ export class Engine {
   }
   /** Put a new player down the nearest mine, sewer or cave: a start that
    * asked to begin underground. Stays in the open when there is none near. */
-  startBelow(where: "cave" | "sewer" | "mine") {
+  startBelow(where: "cave" | "sewer" | "mine" | "ship") {
     const p = this.state.player.pos, d = (q: Point) => Math.hypot(q.x - p.x, q.y - p.y);
+    if (where === "ship") return void shipStart(this.ships);
     // The life begins already down there: the climb takes none of the day.
     const sewers = { ...this.sewers, advance() {} }, caves = { ...this.caves, advance() {} };
     if (where === "mine") {
@@ -2789,7 +2815,7 @@ export class Engine {
     const key = `${space}:${x},${y}`;
     let fixed = this.terrainCollision.get(key);
     if (fixed === undefined) {
-      const cave = space.startsWith("cave:") ? caveGround(this.caves, space, x, y) : space.startsWith("sewer:") || space.startsWith("mine:") ? sewerGround(this.sewers, space, x, y) : undefined;
+      const cave = space.startsWith("cave:") ? caveGround(this.caves, space, x, y) : space.startsWith("sewer:") || space.startsWith("mine:") ? sewerGround(this.sewers, space, x, y) : space.startsWith("ship:") ? shipGround(this.ships, space, x, y) : undefined;
       const room = space === "outside" || cave !== undefined ? undefined : this.interiorOf(space);
       fixed = cave ?? (room ? !room.floor.has(`${x},${y}`) : this.world.blocked(x, y, space));
       trimCache(this.terrainCollision, 16384);
@@ -6084,7 +6110,7 @@ export class Engine {
   /** Cards someone has to bring, kept back while nobody can reach the player. */
   private held: PlotCard[] = [];
   private get below() {
-    return !!this.state.cave || !!this.state.sewer;
+    return !!this.state.cave || !!this.state.sewer || !!this.state.voyage;
   }
   /** A card from home, the plot or kin: it waits while the player is underground. */
   private bring(card: PlotCard, first = false) {
@@ -6402,6 +6428,7 @@ export class Engine {
   inspect(id: string): Inspection | undefined {
     if (id.startsWith("cave-")) return caveInspect(this.caves, id);
     if (id.startsWith("sewer-")) return sewerInspect(this.sewers, id);
+    if (id.startsWith("ship-")) return shipInspect(this.ships, id);
     const coordinates = /^decor-(-?\d+)-(-?\d+)$/.exec(id);
     if (coordinates) {
       const x = Number(coordinates[1]),
@@ -6582,7 +6609,7 @@ export class Engine {
       if (actor.kind === "human") {
         interact("talk", "Talk");
         const offer = actor.underground && folkOffer(this.folk, actor);
-        if (offer) interact(this.state.cave ? "cave" : "sewer", offer.label, close && offer.enabled, close ? offer.reason : "Walk closer");
+        if (offer) interact(this.state.cave ? "cave" : this.state.voyage ? "ship" : "sewer", offer.label, close && offer.enabled, close ? offer.reason : "Walk closer");
         for (const o of this.careOptions(actor.id).filter((o) => o.fits))
           add(o.label, o.command, !o.unavailable, o.unavailable);
         if (this.state.manifest.survival) interact("strike", "Strike (may provoke a fight)", distance(this.state.player.pos, pos) <= 1.5, "Move within arm’s reach");
@@ -9260,6 +9287,9 @@ export class Engine {
         break;
       case "sewer":
         sewerAct(this.sewers, c.target);
+        break;
+      case "ship":
+        shipAct(this.ships, c.target);
         break;
       case "enter":
         if (b && mineEnter(this.sewers, b)) break;
@@ -12125,6 +12155,7 @@ export class Engine {
       this.state.clock = next;
       if (this.state.cave) caveTime(this.caves, elapsed);
       if (this.state.sewer) sewerTime(this.sewers, elapsed);
+      if (this.state.voyage) shipTime(this.ships);
       diseaseTime(this.state, elapsed, next - elapsed);
       if (this.state.baby) this.babyStep(this.state.baby, elapsed, seconds > 240);
       this.fireExposure(elapsed, next - elapsed);

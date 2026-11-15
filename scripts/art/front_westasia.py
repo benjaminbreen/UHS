@@ -358,7 +358,7 @@ def small(region, spec=None, info=None):
     s = {**dict(W=140, dome=rg['small_dome']), **(spec or {})}
     s['extra'] = rg['small_extra']
     with pz.materials(**rg['ramps']):
-        return pz.house(s, info)
+        return pz.vaulted(s, info) if s.get('vaults') else pz.house(s, info)
 
 
 SHEET = [(f'{r} courtyard', (lambda r: lambda: courtyard(r))(r)) for r in REGIONS] + \

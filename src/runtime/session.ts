@@ -234,6 +234,7 @@ export function createSession(
           livelihood: origin?.livelihood,
           rank: origin && livelihoodById(origin.livelihood)?.rank,
           roles: rolesFrom(engine.state.player.role, origin?.roleLabel),
+          community: origin?.community,
         };
         appearance.wearing = wardrobeFor(wearer, pack, appearance.wearing);
         engine.state.player.appearance = groomed(appearance);
@@ -486,6 +487,7 @@ export class Runtime {
       livelihood: actor.origin?.livelihood,
       rank: actor.origin && livelihoodById(actor.origin.livelihood)?.rank,
       roles: rolesFrom(actor.role, actor.origin?.roleLabel),
+      community: actor.origin?.community,
     };
     const wearing = wardrobeFor(wearer, pack, base.wearing);
     // Without a cloth roll a background figure has no fibre, and every
@@ -1922,10 +1924,13 @@ export class Runtime {
     // A fire and raw meat: cooking comes before putting the stick down.
     const cave = this.engine.caveVerb();
     const sewer = cave ? undefined : this.engine.sewerVerb();
+    const ship = cave || sewer ? undefined : this.engine.shipVerb();
     if (cave)
       alternate = { kind: "climb", label: cave.label, command: { type: "interact", target: cave.target, action: "cave" } };
     else if (sewer)
       alternate = { kind: "climb", label: sewer.label, command: { type: "interact", target: sewer.target, action: "sewer" } };
+    else if (ship)
+      alternate = { kind: "climb", label: ship.label, command: { type: "interact", target: ship.target, action: "ship" } };
     else if (light)
       alternate = { kind: "look", label: "Light the stick in the fire", command: light };
     else if (fill) alternate = { kind: "look", label: "Fill the pail", command: fill };

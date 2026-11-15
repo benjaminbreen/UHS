@@ -448,7 +448,8 @@ def house(spec=None, info=None):
     street_wall(c, L, R, E, base)
     dx = L + round(W * s['door'])
     plain_door(c, dx, base)
-    lattice_window(c, L + W - 34, base - 44, 14, 14)
+    for x, w, h in s.get('windows', [(1 - 34 / W, 14, 14)]):
+        lattice_window(c, L + round(W * x), base - 44, w, h)
     spouts(c, L, R, E, (dx,))
     if s.get('extra'):
         s['extra'](c, dict(L=L, R=R, B=B, E=E, base=base, W=W, door=dx))

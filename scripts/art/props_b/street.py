@@ -10,7 +10,6 @@ CONCRETE = ['#2e2c38', '#4e4b56', '#6f6b72', '#8e8a8c', '#aba6a2', '#c8c2ba']
 STEEL = ['#1c2230', '#2e3746', '#4a5566', '#6c7888', '#98a4b0', '#c6ced4']
 INKY = (18, 12, 28)
 PALE = ['#3a2418', '#5e3c26', '#86583a', '#a8774e', '#c89a68', '#e2bd88']
-URN = ['#141a1e', '#1f2a2c', '#2e3d3c', '#445650', '#5f7466', '#8aa08a']
 GLOW = ['#d4b060', '#f2dea0', '#fbf0c8']
 BLOOMS = [RED, ['#5a2a6a', '#8a3a9a', '#c060c0', '#f0a0e8'], ['#6a4a08', '#c09018', '#f0c838', '#fff080'],
           ['#8a8078', '#c8c0b8', '#f0ece4', '#ffffff']]
@@ -163,34 +162,8 @@ def bollard(v=0):
 
 
 def planter(v=0):
-    """0 cast-iron urn of bedding plants, 1 Versailles box with a clipped bay,
-    2 concrete trough of shrubs."""
-    if v == 0:
-        c = C(22, 30)
-        b = 29
-        c.rect(7, b - 3, 14, b, URN[2])
-        c.vl(7, b - 3, b, URN[4])
-        c.rect(9, b - 8, 12, b - 4, URN[2])
-        c.vl(9, b - 8, b - 4, URN[4])
-        for y in range(b - 17, b - 8):
-            t = (y - (b - 17)) / 8
-            half = round(9 - t * t * 5)
-            for x in range(11 - half, 11 + half):
-                f = (x - (11 - half)) / (2 * half)
-                c.px(x, y, URN[4] if f < 0.2 else URN[3] if f < 0.5 else URN[2] if f < 0.8 else URN[1])
-        c.hl(1, 20, b - 18, URN[5])
-        c.hl(1, 20, b - 17, URN[2])
-        for x in range(4, 19, 3):
-            c.px(x, b - 14, URN[5])
-        sphere(c, 11, b - 20, 8.5, LEAF, lo=1, hi=5, flat=0.45)
-        c.hl(1, 20, b - 18, URN[5])
-        c.hl(1, 20, b - 17, URN[2])
-        for i, (x, y) in enumerate(((5, 22), (8, 25), (12, 26), (15, 23), (17, 20), (10, 21), (6, 19), (14, 19))):
-            col = BLOOMS[i % 2]
-            c.px(x, b - y, col[2])
-            c.px(x + 1, b - y, col[1])
-            c.px(x, b - y - 1, col[3])
-        return outline(c.im)
+    """1 Versailles box with a clipped bay, 2 concrete trough of shrubs. The
+    urns are plaza.urn; plaza_families.py makes up the family."""
     if v == 1:
         c = C(22, 40)
         b = 39
@@ -299,45 +272,6 @@ def news_kiosk(v=0):
     sphere(c, 16, b - 50, 1.6, GOLD)
     return outline(c.im)
 
-
-
-def cafe(v=0):
-    """A bistro table and two cane chairs at true height, 1 with a parasol."""
-    c = C(38, 52)
-    b = 51
-    for cx in (5, 32):
-        for y in range(b - 20, b - 10):
-            for x in range(cx - 4, cx + 5):
-                if abs(x - cx) == 4 or (y + x) % 2 == 0:
-                    c.px(x, y, '#c9a868' if (x + y) % 2 else '#9a7a44')
-        c.hl(cx - 4, cx + 4, b - 20, '#6a4a28')
-        c.rect(cx - 5, b - 10, cx + 5, b - 8, '#b89458')
-        c.hl(cx - 5, cx + 5, b - 10, '#e0c080')
-        c.hl(cx - 5, cx + 5, b - 8, '#8a6a38')
-        c.vl(cx - 4, b - 7, b, '#6a4a28')
-        c.vl(cx + 4, b - 7, b, '#6a4a28')
-        c.hl(cx - 4, cx + 4, b - 3, '#8a6a38')
-    c.vl(18, b - 13, b - 1, IRON[1])
-    c.vl(19, b - 13, b - 1, IRON[2])
-    c.hl(15, 22, b, IRON[1])
-    c.ellipse(18.5, b - 15, 7.5, 2.2, '#e9e5de')
-    c.hl(12, 25, b - 14, '#a6a1a8')
-    c.hl(13, 23, b - 16, '#fbf8f0')
-    c.rect(14, b - 18, 15, b - 16, '#f4f4ff')
-    c.px(21, b - 17, '#c8a060')
-    c.px(22, b - 17, '#8a5a28')
-    if v:
-        c.vl(18, b - 46, b - 16, OAK[2])
-        for i in range(9):
-            y = b - 47 + i
-            for x in range(18 - 2 - i * 2, 18 + 3 + i * 2):
-                col = ['#efe6d0', '#b8323a'][((x - 18) // 3) % 2]
-                if i > 6:
-                    col = mix(col, INKY, 0.25)
-                c.px(x, y, col)
-        for x in range(0, 38, 3):
-            c.px(x, b - 38, '#8e2430')
-    return outline(c.im)
 
 
 def barrow(v=0):
@@ -454,12 +388,10 @@ STREET = {
     'street-bench': bench,
     'street-bin': bin_,
     'street-bollard': bollard,
-    'street-planter': planter,
     'tree-grate': tree_grate,
     'gully-grate': gully,
     'news-kiosk': news_kiosk,
     'morris-column': column,
-    'cafe-terrace': cafe,
     'street-barrow': barrow,
     'city-lamp': city_lamp,
 }

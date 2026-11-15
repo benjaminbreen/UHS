@@ -569,6 +569,8 @@ export type PlayerCommand =
         | "cave"
         /** Whatever a manhole or a sewer target offers. */
         | "sewer"
+        /** A ladder or hatch aboard ship, the rail, or the way ashore. */
+        | "ship"
         | "enter"
         | "exit"
         | "open"
@@ -696,6 +698,8 @@ export type Snapshot = {
   /** The trip below the street, the finds taken there, and the lids left open, by street cell. */
   sewer?: import("./sewer").SewerRun;
   sewerDone?: string[];
+  /** A life begun at sea, until the player goes ashore. */
+  voyage?: import("./ship").Voyage;
   /** Roof that has come down in a mine, by level space: the cells, as y * w + x. */
   mineFalls?: Record<string, number[]>;
   /** People underground the player has already worked, traded or prayed with, by actor id. */

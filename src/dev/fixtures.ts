@@ -56,6 +56,17 @@ export const studies = {
     ],
     note: "Regional inner walls, recessed paving and directional daylight through a shared renderer.",
   },
+  westasian: {
+    label: "West Asian houses · roofs and ground contact",
+    source: "roman",
+    buildings: [
+      "westasian-courtyard-levantine-small-0",
+      "westasian-courtyard-levantine-small-1",
+      "westasian-courtyard-levantine-small-2",
+      "westasian-courtyard-iranian-medium-0",
+    ],
+    note: "House silhouettes and ground shadows under the same sun, including the compact houses used in Mosul.",
+  },
   board: {
     label: "20th-century California · construction study",
     source: "roman",

@@ -10,18 +10,23 @@ import { buildingModels } from "../graphics/models";
 const BRICK_BLOCKS = new Set([
   "britain",
   "north-america",
-  "western-europe",
   "eastern-europe",
   "australasia",
   "southern-africa",
 ]);
+/** Western Europe built its streets in brick from Flanders north and east;
+ * Paris, Lyon and the south built in stone and render. */
+const brickBuilt = (s: Pick<WorldSetting, "lon" | "lat">) => {
+  const id = modernity(s).id;
+  return BRICK_BLOCKS.has(id) || (id === "western-europe" && s.lat >= 50.5);
+};
 
 // The International Style office slab spread worldwide within a decade of
 // Lever House (1952); a city had its first by about 1960.
 const CURTAIN_WALL = 1955;
 
 export function modernCivicBuilding(s: Pick<WorldSetting, "lon" | "lat" | "year">, large = false): string | undefined {
-  return s.year >= 1900 && BRICK_BLOCKS.has(modernity(s).id)
+  return s.year >= 1900 && brickBuilt(s)
     ? `modern-civic-hall-${large ? 1 : 0}` : undefined;
 }
 
@@ -136,7 +141,7 @@ export function modernBuildings(
       s.year < (r.to ?? Infinity) &&
       (!r.regions || r.regions.includes(region)),
   ).flatMap((r) => framesOf(r.style));
-  const blocks = BRICK_BLOCKS.has(region) ? framesOf("brickshop") : [];
+  const blocks = brickBuilt(s) ? framesOf("brickshop") : [];
   const towers =
     s.year >= CURTAIN_WALL
       ? ["modern-curtain-tower-0", "modern-curtain-tower-1", "modern-curtain-tower-2"]

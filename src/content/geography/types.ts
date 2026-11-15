@@ -101,7 +101,9 @@ export const settingSchema = z
     situation: situationSchema.optional(),
     brief: startBriefSchema.optional(),
     /** Where under the ground the player starts, if not in the open. */
-    below: z.enum(["cave", "sewer", "mine"]).optional(),
+    below: z.enum(["cave", "sewer", "mine", "ship"]).optional(),
+    /** Aboard which hull, by id or kind, when the start is at sea. */
+    ship: z.string().max(40).optional(),
     // 1 is the scoped hand-written kits; 2 adds the ported naming
     // traditions and the capability-gated workforce.
     characterRevision: z.union([z.literal(1), z.literal(2)]).optional(),

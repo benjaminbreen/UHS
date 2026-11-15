@@ -509,7 +509,7 @@
       ]
     },
     "european-italy": {
-      "why": "Ostrogothic and Lombard Italy was running on modern German names with modern German surnames.",
+      "why": "Ostrogothic and Lombard Italy was running on modern German names with modern German surnames. Florence 1100 came out a third Byzantine and a third Norman.",
       "add": [
         {
           "years": [
@@ -526,11 +526,31 @@
               "weight": 4
             }
           ]
+        },
+        {
+          "years": [
+            774,
+            1400
+          ],
+          "options": [
+            {
+              "tradition": "italian",
+              "weight": 10
+            },
+            {
+              "tradition": "byzantine",
+              "weight": 1
+            },
+            {
+              "tradition": "norman-french",
+              "weight": 1
+            }
+          ]
         }
       ]
     },
     "european-iberian-peninsula": {
-      "why": "Visigothic Iberia likewise.",
+      "why": "Visigothic Iberia likewise. The Jews of al-Andalus and the Christian kingdoms are the Sephardim; they were given Ashkenazi names.",
       "add": [
         {
           "years": [
@@ -545,6 +565,34 @@
             {
               "tradition": "germanic-successor-kingdoms",
               "weight": 5
+            }
+          ]
+        },
+        {
+          "years": [
+            711,
+            1200
+          ],
+          "options": [
+            {
+              "tradition": "spanish-castilian",
+              "weight": 6
+            },
+            {
+              "tradition": "portuguese",
+              "weight": 4
+            },
+            {
+              "tradition": "galician",
+              "weight": 3
+            },
+            {
+              "tradition": "moorish-andalus",
+              "weight": 8
+            },
+            {
+              "tradition": "jewish-sephardi",
+              "weight": 2
             }
           ]
         }
@@ -568,7 +616,7 @@
       ]
     },
     "european-germanic-lands": {
-      "why": "The Rhine and the Elbe between Rome and the Carolingians, and the medieval German lands after them.",
+      "why": "The Rhine and the Elbe between Rome and the Carolingians, and the medieval German lands after them. Turkish names were half of Munich in 2000; Turks came as guest workers from 1961 and were a few percent.",
       "add": [
         {
           "years": [
@@ -597,11 +645,39 @@
               "weight": 1
             }
           ]
+        },
+        {
+          "years": [
+            1945,
+            1961
+          ],
+          "options": [
+            {
+              "tradition": "german",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1961,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "german",
+              "weight": 30
+            },
+            {
+              "tradition": "turkish",
+              "weight": 1
+            }
+          ]
         }
       ]
     },
     "european-central-europe": {
-      "why": "As the Germanic lands.",
+      "why": "As the Germanic lands. With Poland, Bohemia and Hungary split out, what is left is chiefly Slovakia and the Carpathian edge.",
       "add": [
         {
           "years": [
@@ -640,6 +716,70 @@
             {
               "tradition": "polish-medieval",
               "weight": 3
+            }
+          ]
+        },
+        {
+          "years": [
+            1500,
+            1700
+          ],
+          "options": [
+            {
+              "tradition": "hungarian-medieval",
+              "weight": 2
+            },
+            {
+              "tradition": "bohemian",
+              "weight": 1
+            },
+            {
+              "tradition": "german",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1700,
+            1918
+          ],
+          "options": [
+            {
+              "tradition": "slovak-modern",
+              "weight": 4
+            },
+            {
+              "tradition": "hungarian-modern",
+              "weight": 3
+            },
+            {
+              "tradition": "german",
+              "weight": 1
+            },
+            {
+              "tradition": "jewish-ashkenazi",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1918,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "slovak-modern",
+              "weight": 6
+            },
+            {
+              "tradition": "hungarian-modern",
+              "weight": 2
+            },
+            {
+              "tradition": "czech-modern",
+              "weight": 1
             }
           ]
         }
@@ -1150,7 +1290,7 @@
       ]
     },
     "mena-anatolia": {
-      "why": "Bronze Age Anatolia was given Persian and Greek names, both of which arrive centuries too early. The Hittite and Luwian archive at Hattusa is large and dated; use it for the period it covers.",
+      "why": "Bronze Age Anatolia was given Persian and Greek names, both of which arrive centuries too early. The Hittite and Luwian archive at Hattusa is large and dated; use it for the period it covers. Ottoman Anatolia was weighted one to one across Turks, Greeks, Armenians and Jews, and its Jews were given Ashkenazi names; they were Sephardi, and about one in a hundred.",
       "replace": [
         {
           "years": [
@@ -1300,18 +1440,18 @@
           "options": [
             {
               "tradition": "turkish",
-              "weight": 1
+              "weight": 12
             },
             {
               "tradition": "greek",
-              "weight": 1
+              "weight": 4
             },
             {
               "tradition": "armenian",
-              "weight": 1
+              "weight": 3
             },
             {
-              "tradition": "jewish-ashkenazi",
+              "tradition": "jewish-sephardi",
               "weight": 1
             }
           ]
@@ -1890,24 +2030,16 @@
       ]
     },
     "european-azores-and-madeira": {
-      "why": "Copied from Iberia, which splits evenly between Castilian, Portuguese and Galician. These islands were settled from Portugal.",
-      "add": [
+      "why": "Uninhabited until the Portuguese settled them in the 1420s.",
+      "replace": [
         {
           "years": [
-            1492,
+            1420,
             10001
           ],
           "options": [
             {
               "tradition": "portuguese",
-              "weight": 9
-            },
-            {
-              "tradition": "spanish-castilian",
-              "weight": 1
-            },
-            {
-              "tradition": "galician",
               "weight": 1
             }
           ]
@@ -2139,6 +2271,1185 @@
             },
             {
               "tradition": "gujarati-muslim",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-bosporus": {
+      "why": "Istanbul's Jews were Sephardi after 1492, not Ashkenazi.",
+      "add": [
+        {
+          "years": [
+            1453,
+            1923
+          ],
+          "options": [
+            {
+              "tradition": "turkish",
+              "weight": 20
+            },
+            {
+              "tradition": "greek",
+              "weight": 7
+            },
+            {
+              "tradition": "armenian",
+              "weight": 4
+            },
+            {
+              "tradition": "jewish-sephardi",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "south-american-central-chile": {
+      "why": "Mapuche country: Mapuche alone before the conquest, then Spanish and Mapuche side by side, the south held by the Mapuche until the 1880s.",
+      "replace": [
+        {
+          "years": [
+            -1000000,
+            1533
+          ],
+          "options": [
+            {
+              "tradition": "mapuche",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1533,
+            1820
+          ],
+          "options": [
+            {
+              "tradition": "spanish-castilian",
+              "weight": 5
+            },
+            {
+              "tradition": "mapuche",
+              "weight": 5
+            }
+          ]
+        },
+        {
+          "years": [
+            1820,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 12
+            },
+            {
+              "tradition": "mapuche",
+              "weight": 2
+            },
+            {
+              "tradition": "german",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "south-american-andes-south": {
+      "why": "Mapuche names belong to Chile south of the Aconcagua, now its own region; the highlands of Peru, Bolivia and the Argentine northwest are Quechua and Aymara country.",
+      "replace": [
+        {
+          "years": [
+            -3000,
+            1533
+          ],
+          "options": [
+            {
+              "tradition": "inca",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1533,
+            1820
+          ],
+          "options": [
+            {
+              "tradition": "inca",
+              "weight": 6
+            },
+            {
+              "tradition": "andean-modern",
+              "weight": 8
+            },
+            {
+              "tradition": "spanish-castilian",
+              "weight": 3
+            }
+          ]
+        },
+        {
+          "years": [
+            1820,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "andean-modern",
+              "weight": 14
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 12
+            },
+            {
+              "tradition": "italian",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-wallachia-moldavia": {
+      "why": "Romanian-speaking principalities; Phanariot Greeks held the thrones and much trade from 1711 to 1821, and Moldavia's towns had large Jewish quarters from the nineteenth century.",
+      "add": [
+        {
+          "years": [
+            1453,
+            1711
+          ],
+          "options": [
+            {
+              "tradition": "romanian",
+              "weight": 9
+            },
+            {
+              "tradition": "greek",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1711,
+            1821
+          ],
+          "options": [
+            {
+              "tradition": "romanian",
+              "weight": 8
+            },
+            {
+              "tradition": "greek",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "years": [
+            1821,
+            1945
+          ],
+          "options": [
+            {
+              "tradition": "romanian",
+              "weight": 8
+            },
+            {
+              "tradition": "jewish-ashkenazi",
+              "weight": 1.5
+            },
+            {
+              "tradition": "greek",
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "years": [
+            1945,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "romanian",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-serbia": {
+      "why": "Serbian, then Yugoslav from 1918 to 1991. Ottoman Muslims come from the Ottoman population while it applies.",
+      "add": [
+        {
+          "years": [
+            1453,
+            1918
+          ],
+          "options": [
+            {
+              "tradition": "serbian",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1918,
+            1991
+          ],
+          "options": [
+            {
+              "tradition": "yugoslav",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1991,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "serbian",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-bulgaria": {
+      "why": "Bulgarian, with a Turkish minority that stayed after 1878.",
+      "add": [
+        {
+          "years": [
+            1453,
+            1878
+          ],
+          "options": [
+            {
+              "tradition": "bulgarian",
+              "weight": 8
+            },
+            {
+              "tradition": "greek",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1878,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "bulgarian",
+              "weight": 9
+            },
+            {
+              "tradition": "turkish",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-balkans": {
+      "why": "With Wallachia, Serbia and Bulgaria split out, what is left is northern Greece, Macedonia, Albania and Montenegro; Romanian names had been a third of it after 1912.",
+      "add": [
+        {
+          "years": [
+            1453,
+            1912
+          ],
+          "options": [
+            {
+              "tradition": "greek",
+              "weight": 6
+            },
+            {
+              "tradition": "bulgarian",
+              "weight": 2
+            },
+            {
+              "tradition": "serbian",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "years": [
+            1912,
+            1991
+          ],
+          "options": [
+            {
+              "tradition": "greek",
+              "weight": 6
+            },
+            {
+              "tradition": "yugoslav",
+              "weight": 2
+            },
+            {
+              "tradition": "bulgarian",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1991,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "greek",
+              "weight": 6
+            },
+            {
+              "tradition": "serbian",
+              "weight": 2
+            },
+            {
+              "tradition": "bulgarian",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-poland": {
+      "why": "Polish, with large Jewish towns until the war and Germans in the west.",
+      "add": [
+        {
+          "years": [
+            900,
+            1700
+          ],
+          "options": [
+            {
+              "tradition": "polish-medieval",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1700,
+            1940
+          ],
+          "options": [
+            {
+              "tradition": "polish-modern",
+              "weight": 9
+            },
+            {
+              "tradition": "jewish-ashkenazi",
+              "weight": 1.5
+            },
+            {
+              "tradition": "german",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1940,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "polish-modern",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-bohemia": {
+      "why": "Czech with a German third until the expulsions of 1945–46.",
+      "add": [
+        {
+          "years": [
+            900,
+            1500
+          ],
+          "options": [
+            {
+              "tradition": "bohemian",
+              "weight": 2
+            },
+            {
+              "tradition": "german-medieval",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1500,
+            1700
+          ],
+          "options": [
+            {
+              "tradition": "bohemian",
+              "weight": 2
+            },
+            {
+              "tradition": "german",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1700,
+            1946
+          ],
+          "options": [
+            {
+              "tradition": "czech-modern",
+              "weight": 2
+            },
+            {
+              "tradition": "german",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1946,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "czech-modern",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-hungary": {
+      "why": "Hungarian, with German settlers after 1700 and a large Jewish population from the late eighteenth century to 1944.",
+      "add": [
+        {
+          "years": [
+            900,
+            1700
+          ],
+          "options": [
+            {
+              "tradition": "hungarian-medieval",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1700,
+            1780
+          ],
+          "options": [
+            {
+              "tradition": "hungarian-modern",
+              "weight": 9
+            },
+            {
+              "tradition": "german",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1780,
+            1945
+          ],
+          "options": [
+            {
+              "tradition": "hungarian-modern",
+              "weight": 8
+            },
+            {
+              "tradition": "german",
+              "weight": 1
+            },
+            {
+              "tradition": "jewish-ashkenazi",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1945,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "hungarian-modern",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-austria": {
+      "why": "German-speaking.",
+      "add": [
+        {
+          "years": [
+            900,
+            1500
+          ],
+          "options": [
+            {
+              "tradition": "german-medieval",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1500,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "german",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-east-germany": {
+      "why": "The GDR's naming fashions. ",
+      "add": [
+        {
+          "years": [
+            1949,
+            1990
+          ],
+          "options": [
+            {
+              "tradition": "east-german",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1990,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "german",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-eastern-europe": {
+      "why": "Moscow 1300 came out a third Mongol and Moscow 1600 half Polish.",
+      "add": [
+        {
+          "years": [
+            1240,
+            1480
+          ],
+          "options": [
+            {
+              "tradition": "russian",
+              "weight": 20
+            },
+            {
+              "tradition": "turkic-steppe",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1480,
+            1721
+          ],
+          "options": [
+            {
+              "tradition": "russian",
+              "weight": 9
+            },
+            {
+              "tradition": "polish-medieval",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "sub-saharan-african-central-sahel": {
+      "why": "Hausa city states and Kanem-Bornu, Muslim from the eleventh century.",
+      "add": [
+        {
+          "years": [
+            500,
+            1000
+          ],
+          "options": [
+            {
+              "tradition": "sahel-early",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1000,
+            1900
+          ],
+          "options": [
+            {
+              "tradition": "hausa",
+              "weight": 6
+            },
+            {
+              "tradition": "west-african-sahel",
+              "weight": 2
+            },
+            {
+              "tradition": "arabic-traditional",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "years": [
+            1900,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "hausa",
+              "weight": 6
+            },
+            {
+              "tradition": "west-african-sahel",
+              "weight": 2
+            },
+            {
+              "tradition": "arabic-traditional",
+              "weight": 2
+            },
+            {
+              "tradition": "french",
+              "weight": 0.5
+            }
+          ]
+        }
+      ]
+    },
+    "sub-saharan-african-akan-coast": {
+      "why": "Akan country, with Mande and Gur peoples to the north.",
+      "add": [
+        {
+          "years": [
+            1000,
+            1600
+          ],
+          "options": [
+            {
+              "tradition": "akan",
+              "weight": 8
+            },
+            {
+              "tradition": "west-african-sahel",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "years": [
+            1600,
+            1960
+          ],
+          "options": [
+            {
+              "tradition": "akan",
+              "weight": 8
+            },
+            {
+              "tradition": "west-african-sahel",
+              "weight": 2
+            },
+            {
+              "tradition": "english",
+              "weight": 0.5
+            }
+          ]
+        },
+        {
+          "years": [
+            1960,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "akan",
+              "weight": 8
+            },
+            {
+              "tradition": "west-african-sahel",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "sub-saharan-african-upper-guinea": {
+      "why": "Senegambia and Sierra Leone are Mande and Atlantic country; Yoruba names were up to two thirds of Freetown.",
+      "add": [
+        {
+          "years": [
+            800,
+            1200
+          ],
+          "options": [
+            {
+              "tradition": "sahel-early",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1200,
+            1500
+          ],
+          "options": [
+            {
+              "tradition": "west-african-sahel",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1500,
+            1787
+          ],
+          "options": [
+            {
+              "tradition": "west-african-sahel",
+              "weight": 9
+            },
+            {
+              "tradition": "portuguese",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1787,
+            1960
+          ],
+          "options": [
+            {
+              "tradition": "west-african-sahel",
+              "weight": 8
+            },
+            {
+              "tradition": "english",
+              "weight": 1
+            },
+            {
+              "tradition": "african-american",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1960,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "west-african-sahel",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "mena-maghreb": {
+      "why": "Fez and Oran 1700 had no Arabic names at all: the Maghrebi pool starts in 1900.",
+      "add": [
+        {
+          "years": [
+            1500,
+            1830
+          ],
+          "options": [
+            {
+              "tradition": "arabic-traditional",
+              "weight": 12
+            },
+            {
+              "tradition": "berber-amazigh",
+              "weight": 6
+            },
+            {
+              "tradition": "ottoman-turkish",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1830,
+            1900
+          ],
+          "options": [
+            {
+              "tradition": "arabic-traditional",
+              "weight": 12
+            },
+            {
+              "tradition": "berber-amazigh",
+              "weight": 6
+            },
+            {
+              "tradition": "french",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "years": [
+            1900,
+            1962
+          ],
+          "options": [
+            {
+              "tradition": "maghrebi",
+              "weight": 12
+            },
+            {
+              "tradition": "berber-amazigh",
+              "weight": 6
+            },
+            {
+              "tradition": "french",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "mena-algerian-coast": {
+      "why": "As the Maghreb.",
+      "add": [
+        {
+          "years": [
+            1500,
+            1830
+          ],
+          "options": [
+            {
+              "tradition": "arabic-traditional",
+              "weight": 12
+            },
+            {
+              "tradition": "berber-amazigh",
+              "weight": 6
+            },
+            {
+              "tradition": "ottoman-turkish",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1830,
+            1900
+          ],
+          "options": [
+            {
+              "tradition": "arabic-traditional",
+              "weight": 12
+            },
+            {
+              "tradition": "berber-amazigh",
+              "weight": 6
+            },
+            {
+              "tradition": "french",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "years": [
+            1900,
+            1962
+          ],
+          "options": [
+            {
+              "tradition": "maghrebi",
+              "weight": 12
+            },
+            {
+              "tradition": "berber-amazigh",
+              "weight": 6
+            },
+            {
+              "tradition": "french",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "mena-tunisia": {
+      "why": "As the Maghreb.",
+      "add": [
+        {
+          "years": [
+            1500,
+            1830
+          ],
+          "options": [
+            {
+              "tradition": "arabic-traditional",
+              "weight": 12
+            },
+            {
+              "tradition": "berber-amazigh",
+              "weight": 6
+            },
+            {
+              "tradition": "ottoman-turkish",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1830,
+            1900
+          ],
+          "options": [
+            {
+              "tradition": "arabic-traditional",
+              "weight": 12
+            },
+            {
+              "tradition": "berber-amazigh",
+              "weight": 6
+            },
+            {
+              "tradition": "french",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "years": [
+            1900,
+            1962
+          ],
+          "options": [
+            {
+              "tradition": "maghrebi",
+              "weight": 12
+            },
+            {
+              "tradition": "berber-amazigh",
+              "weight": 6
+            },
+            {
+              "tradition": "french",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-northern-mexico": {
+      "why": "Monterrey after 1848 came out 40% Texan Anglo with Navajo and Pueblo names.",
+      "add": [
+        {
+          "years": [
+            1600,
+            1821
+          ],
+          "options": [
+            {
+              "tradition": "texas-spanish-colonial",
+              "weight": 9
+            },
+            {
+              "tradition": "apache",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1821,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-st-lawrence": {
+      "why": "New France, then French Canada under British rule.",
+      "add": [
+        {
+          "years": [
+            1608,
+            1763
+          ],
+          "options": [
+            {
+              "tradition": "french",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1763,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "french",
+              "weight": 8
+            },
+            {
+              "tradition": "english",
+              "weight": 2
+            },
+            {
+              "tradition": "scottish",
+              "weight": 1
+            },
+            {
+              "tradition": "celtic-irish",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-ireland": {
+      "why": "Irish, with English settlers after 1170 and English and Scots plantations after 1600.",
+      "add": [
+        {
+          "years": [
+            400,
+            1170
+          ],
+          "options": [
+            {
+              "tradition": "celtic-irish",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1170,
+            1550
+          ],
+          "options": [
+            {
+              "tradition": "celtic-irish",
+              "weight": 8
+            },
+            {
+              "tradition": "english-medieval",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "years": [
+            1550,
+            1600
+          ],
+          "options": [
+            {
+              "tradition": "celtic-irish",
+              "weight": 8
+            },
+            {
+              "tradition": "english",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "years": [
+            1600,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "celtic-irish",
+              "weight": 7
+            },
+            {
+              "tradition": "english",
+              "weight": 3
+            },
+            {
+              "tradition": "scottish",
+              "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "european-greece-and-aegean": {
+      "why": "Greece 1453–1821 was half Italian.",
+      "add": [
+        {
+          "years": [
+            1453,
+            1821
+          ],
+          "options": [
+            {
+              "tradition": "greek",
+              "weight": 9
+            },
+            {
+              "tradition": "italian",
               "weight": 1
             }
           ]

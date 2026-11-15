@@ -52,8 +52,9 @@ export function planWorksites(
       profile.revision ? Math.max(42,Math.ceil(Math.hypot(w,h)/2)+24) : 30;
     // A town's square, hall and sanctuary are planned after the yards, so a
     // yard keeps clear of the civic core or it takes the temple's ground. An
-    // industrial city's grid is laid around its yards instead.
-    const core = radius >= 40 && !industrialized(s) ? Math.round(radius*.45)+Math.ceil(Math.hypot(w,h)/2) : 0;
+    // industrial city's grid is laid around its yards, but not round its
+    // square: those blocks are its street fronts.
+    const core = radius >= 40 ? Math.round(radius*(industrialized(s) ? .3 : .45))+Math.ceil(Math.hypot(w,h)/2) : 0;
     const install = (r: Rect, launch?: Launch) => {
       const id = `${plan.site.id}-worksite-${profile.id}`;
       const place = (suffix: string, frame: string, name: string, x: number, y: number): Place => {

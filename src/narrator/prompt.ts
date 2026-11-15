@@ -128,6 +128,7 @@ export function sceneDigest(engine: Engine, input: string, elsewhere = ""): stri
   const inside =
     p.pos.space !== "outside" ? engine.world.place(p.pos.space) : undefined;
   const terrain = inside ? "indoors" : engine.world.terrain(p.pos.x, p.pos.y);
+  const deck = engine.shipOf(p.pos.space);
   const near = <T extends { pos: Position }>(xs: T[], r: number, n: number) =>
     xs
       .map((x) => ({ x, d: distance(x.pos, p.pos) }))
@@ -212,7 +213,7 @@ export function sceneDigest(engine: Engine, input: string, elsewhere = ""): stri
   return [
     "SCENE",
     `Day ${Math.floor(s.clock / 86400) + 1}, ${hourWord(s.clock)}, ${season}. ${weather.label}, ${Math.round(weather.tempC)}°C${weather.night ? ", dark" : ""}.`,
-    `You are ${inside ? `inside ${inside.name}` : `outdoors on ${terrain}`}${held ? `, carrying ${held.toLowerCase()}` : ""}. You feel ${condition}.`,
+    `You are ${inside ? `inside ${inside.name}` : deck ? `aboard the ${engine.shipLook()?.name}, on ${deck.name}` : `outdoors on ${terrain}`}${held ? `, carrying ${held.toLowerCase()}` : ""}. You feel ${condition}.`,
     `Inventory: ${inventory || "nothing"}.`,
     bodySummary(s, engine.world.pack.setting),
     s.manifest.disease ? `Care actions (act {type:'care', target:'player', treatment:ID}): ${engine.careOptions().map((o) => `${o.treatment}: ${o.label}, ${o.minutes} minutes${o.coin ? `, ${o.coin} coins` : ""}; ${o.unavailable ?? o.note}${o.practitioner ? `; practitioner ${o.practitioner.id} at ${o.practitioner.pos.space} (${o.practitioner.pos.x},${o.practitioner.pos.y})` : ""}`).join(" | ")}. Symptoms do not establish a diagnosis. Narration cannot infect, cure, diagnose with certainty, or supply treatment; use the listed actions.` : "",

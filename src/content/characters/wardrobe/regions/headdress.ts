@@ -14,10 +14,10 @@ type Trim = (typeof hatTrims)[number];
 const women = (options: readonly [Ornament, number][]): readonly Option<Ornament>[] =>
   options.map(([value, weight]) => ({ value, weight, sex: ["female" as const] }));
 
-const hair = (id: string, label: string, cultures: CultureId[], years: [number, number], options: readonly Option<Ornament>[], bounds?: [number, number, number, number]): GarmentKit => ({
+const hair = (id: string, label: string, cultures: CultureId[], years: [number, number], options: readonly Option<Ornament>[], bounds?: [number, number, number, number], except?: [number, number, number, number][]): GarmentKit => ({
   id: `hair-${id}`,
   label,
-  scope: { years, cultures, ...(bounds && { bounds }) },
+  scope: { years, cultures, ...(bounds && { bounds }), ...(except && { except }) },
   hairOrnament: options,
 });
 const hat = (id: string, label: string, years: [number, number], options: readonly Option<Trim>[], cultures?: CultureId[]): GarmentKit => ({
@@ -29,7 +29,7 @@ const hat = (id: string, label: string, years: [number, number], options: readon
 
 export const headdress: readonly GarmentKit[] = [
   // Kanzashi and the lacquered kushi comb through the Edo hairstyles.
-  hair("japan", "Japan · kanzashi and combs", ["east-asian"], [1600, 1900], women([["pins", 3], ["comb", 3], ["none", 2]]), [128, 30, 146, 46]),
+  hair("japan", "Japan · kanzashi and combs", ["east-asian"], [1600, 1900], women([["pins", 3], ["comb", 3], ["none", 2]]), [128, 30, 146, 46], [[124, 34.2, 129.6, 43.5], [128, 42.3, 139.5, 46]]),
   // Hairpins (zan, binyeo) held every married woman's knot.
   hair("east-asia", "East Asia · hairpins", ["east-asian"], [-1000, 1912], women([["pins", 4], ["flower", 1], ["none", 3]])),
   // The crespine and caul: a net of gold thread or silk over gathered hair.
@@ -88,7 +88,8 @@ export const headdress: readonly GarmentKit[] = [
 ];
 
 const F = ["female"] as const, M = ["male"] as const, GROWN = ["youth", "adult", "elder"] as const;
-const JAPAN = [128, 30, 146, 46] as const, MED = [-10, 29, 42, 48] as const;
+// Busan and Vladivostok fall inside any box that holds Kyushu and Hokkaido.
+const JAPAN = [128, 30, 146, 46] as const, NOT_JAPAN: [number, number, number, number][] = [[124, 34.2, 129.6, 43.5], [128, 42.3, 139.5, 46]], MED = [-10, 29, 42, 48] as const;
 
 /** How the hair was done and the beard kept, by period and place, and what
  * the young and the old wore that others did not. */
@@ -104,12 +105,12 @@ export const hairdos: readonly GarmentKit[] = [
     hairdress: [{ value: "bun", sex: F, ages: ["adult", "elder"] }] },
   { id: "cut-korea", label: "Joseon · the married woman's chignon", scope: { years: [1392, 1910], bounds: [124.5, 33, 131, 43.5] },
     hairdress: [{ value: "bun", sex: F, ages: ["adult", "elder"] }] },
-  { id: "cut-heian", label: "Heian · hair to the floor", scope: { years: [794, 1185], bounds: JAPAN },
+  { id: "cut-heian", label: "Heian · hair to the floor", scope: { years: [794, 1185], bounds: JAPAN, except: NOT_JAPAN },
     hairdress: [{ value: "heian", sex: F, ages: GROWN, means: ["wealthy"] }], hairOrnament: [{ value: "none", sex: F, means: ["wealthy"] }] },
-  { id: "cut-shimada", label: "Edo · the shimada", scope: { years: [1650, 1880], bounds: JAPAN },
+  { id: "cut-shimada", label: "Edo · the shimada", scope: { years: [1650, 1880], bounds: JAPAN, except: NOT_JAPAN },
     hairdress: [{ value: "shimada", sex: F, ages: ["youth", "adult"] }, { value: "bun", sex: F, ages: ["elder"] }] },
   // Fulani women only, among the many peoples of the Sahel.
-  { id: "cut-fulani", label: "Sahel · the Fulani crest", scope: { years: [1000, 3000], cultures: ["west-central-african"], bounds: [-17, 9, 16, 17] },
+  { id: "cut-fulani", label: "Sahel · the Fulani crest", scope: { years: [1000, 1950], cultures: ["west-central-african"], bounds: [-17, 9, 16, 17] },
     hairdress: [{ value: "crest", sex: F, share: 0.3 }] },
   { id: "cut-victorian", label: "Europe · hair up, parted in the middle", scope: { years: [1830, 1915], cultures: ["european"] },
     hairdress: [{ value: "bun", sex: F, ages: ["adult", "elder"] }] },
@@ -127,7 +128,7 @@ export const hairdos: readonly GarmentKit[] = [
     shave: [{ value: "full", weight: 2, sex: M, ages: ["adult", "elder"] }, { value: "none", weight: 2, sex: M }] },
   { id: "shave-europe-20c", label: "Europe · shaved", scope: { years: [1920, 1970], cultures: ["european"] },
     shave: [{ value: "clean", weight: 3, sex: M }, { value: "none", weight: 1, sex: M }] },
-  { id: "shave-edo", label: "Edo · shaved", scope: { years: [1600, 1872], bounds: JAPAN }, shave: [{ value: "clean", sex: M }] },
+  { id: "shave-edo", label: "Edo · shaved", scope: { years: [1600, 1872], bounds: JAPAN, except: NOT_JAPAN }, shave: [{ value: "clean", sex: M }] },
   // Boys wore petticoats until breeched at six or so.
   { id: "child-breeching", label: "Europe · boys in skirts", scope: { years: [1550, 1900], cultures: ["european"] }, priority: 1,
     garment: [{ value: "dress", sex: M, under: 6 }] },
