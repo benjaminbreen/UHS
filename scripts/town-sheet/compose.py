@@ -1,6 +1,5 @@
-"""Composite dumped settlements from the real sprites: a look at layout, not
-at terrain. Ground is flat colour; fences and beds are schematic; buildings,
-props and trees are the game's own frames, depth-sorted as the game sorts.
+"""Composite dumped settlements from the game's own ground raster and sprites,
+laid flat (no terrain height) and depth-sorted as the game sorts.
 
     npm run town:sheet                      # dump and compose the whole panel
     npm run town:sheet -- london-1308       # one setting
@@ -15,10 +14,6 @@ from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 OUT = ROOT / 'artifacts/towns'
-GROUND = {'grass': '#5f8f3e', 'dirt': '#a58a5c', 'paving': '#8f8e84', 'kerb': '#b0aa98', 'field': '#6b5236',
-          'water': '#2f6f8f', 'sand': '#c9b77e', 'bridge': '#7a5c38', 'floor': '#b89a6b', 'dry': '#9a9a52', 'rock': '#7d7a70', 'marsh': '#4f6f4a', 'snow': '#e8eef0'}
-BOUNDARY = {'wall': '#8d8a7c', 'stones': '#8d8a7c', 'hedge': '#355f2a', 'wire': '#6d6d6d'}
-
 
 def atlases():
     out = []
@@ -32,7 +27,8 @@ def compose(name, sheets, models, crop=None):
     t = json.loads((OUT / f'{name}.json').read_text())
     R, cx, cy = t['R'], t['cx'], t['cy']
     W = (2 * R + 1) * 16
-    im = Image.new('RGBA', (W, W), GROUND['grass']); d = ImageDraw.Draw(im)
+    im = Image.frombytes('RGBA', (W, W), (OUT / f'{name}.ground').read_bytes()); im.putalpha(255)
+    d = ImageDraw.Draw(im)
     px = lambda x, y: ((x - cx + R) * 16, (y - cy + R) * 16)
 
     def frame(n):
@@ -42,23 +38,6 @@ def compose(name, sheets, models, crop=None):
                 return sheet.crop((f['x'], f['y'], f['x'] + f['w'], f['y'] + f['h'])), frames[n].get('pivot')
         return None, None
 
-    for k, s in t['surface'].items():
-        x, y = map(int, k.split(',')); a, b = px(x, y)
-        d.rectangle((a, b, a + 15, b + 15), fill=GROUND.get(s, '#ff00ff'))
-        if s == 'paving':
-            d.line((a, b + 15, a + 15, b + 15), fill='#7d7c73'); d.line((a + 7, b, a + 7, b + 15), fill='#85847a')
-    for k, f in t['fields'].items():
-        x, y = map(int, k.split(',')); a, b = px(x, y)
-        if f['crop'] not in ('pasture', 'fallow'):
-            tone = {'vegetables': '#4f8a35', 'orchard': '#3f7a33', 'vine': '#5a7f3a'}.get(f['crop'], '#b89a4a')
-            for yy in range(3, 16, 5):
-                for xx in range(2, 16, 4): d.rectangle((a + xx, b + yy - 2, a + xx + 1, b + yy), fill=tone)
-        ink = BOUNDARY.get(f.get('boundary'), '#5a3d22')
-        for bit, line in ((1, (a, b - 4, a + 15, b - 4)), (2, (a + 19, b, a + 19, b + 15)),
-                          (4, (a, b + 19, a + 15, b + 19)), (8, (a - 4, b, a - 4, b + 15))):
-            if f['fence'] & bit:
-                d.line(line, fill=ink, width=2)
-                d.rectangle((line[0] - 1, line[1] - 3, line[0] + 1, line[1] + 1), fill='#7a5630')
     draw = []
     for p in t['places']:
         m = models.get(p['sprite'])

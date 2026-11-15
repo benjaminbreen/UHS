@@ -5,6 +5,9 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolveSetting } from "../../src/content/geography/resolve";
 import { createSettingSession } from "../../src/runtime/session";
+import { rasterHabitatTile } from "../../src/render/habitat-raster";
+import { rasterWaterTile } from "../../src/render/water-raster";
+import { paintedGround } from "../../src/render/material-edges";
 import panel from "./panel.json" with { type: "json" };
 
 const want = process.argv.slice(2);
@@ -29,24 +32,25 @@ for (const { name, query, seed, radius, settlementLayout, centre } of panel as a
   const R = radius ?? 40;
   // A city can be several sites (its quarters), each with its own plan.
   const plans = new Set<any>();
-  const surface: Record<string, string> = {};
   const groundRoles: Record<string, string> = {};
+  // The game's own ground raster, laid flat: streets, kerbs, yards and fences
+  // as the player sees them, without the terrain's height.
+  const side = (2 * R + 1) * 16;
+  const ground = new Uint8Array(side * side * 4);
+  const sample = (x: number, y: number) => e.world.topography(x, y);
   for (let y = cy - R; y <= cy + R; y++)
     for (let x = cx - R; x <= cx + R; x++) {
       const p = e.world.planAt(x, y);
       if (p) plans.add(p);
-      const k = `${x},${y}`,
-        t = e.world.terrain(x, y),
-        role = p?.pavement?.get(k);
-      if (t) surface[k] = t === "paving" && role === "footway" ? `kerb` : t;
-      if (role) groundRoles[k] = role;
+      const role = p?.pavement?.get(`${x},${y}`);
+      if (role) groundRoles[`${x},${y}`] = role;
+      const cell = sample(x, y);
+      const tile = paintedGround(cell) ? rasterHabitatTile(sample, x, y, 0, 0) : rasterWaterTile(sample, x, y, 0, 0);
+      if (!tile) continue;
+      for (let row = 0; row < 16; row++)
+        ground.set(tile.pixels.subarray(row * 64, row * 64 + 64), (((y - cy + R) * 16 + row) * side + (x - cx + R) * 16) * 4);
     }
-  const fields: Record<string, unknown> = {};
-  for (const [k, f] of [...plans].flatMap((p) => [...(p.fields ?? [])])) {
-    const [x, y] = k.split(",").map(Number);
-    if (Math.abs(x - cx) <= R && Math.abs(y - cy) <= R)
-      fields[k] = { crop: f.crop, fence: f.fence, boundary: f.boundary };
-  }
+  writeFileSync(`artifacts/towns/${name}.ground`, ground);
   const near = (o: { x: number; y: number }) =>
     Math.abs(o.x - cx) <= R + 8 && Math.abs(o.y - cy) <= R + 8;
   writeFileSync(
@@ -57,9 +61,7 @@ for (const { name, query, seed, radius, settlementLayout, centre } of panel as a
       cx,
       cy,
       R,
-      surface,
       groundRoles,
-      fields,
       places: [...plans].flatMap((p) => p.places)
         .filter(near)
         .map((b: any) => ({
