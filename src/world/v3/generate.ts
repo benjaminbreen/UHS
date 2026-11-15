@@ -33,7 +33,7 @@ import {
   blacktopLine,
   roadMarkings,
 } from "../../content/settlements/streets/markings";
-import { motorized } from "../../content/settlements/modernity";
+import { industrialized, motorized } from "../../content/settlements/modernity";
 import { poleStyle } from "../../content/settlements/streets/control";
 import { keptTrees } from "../../content/settlements/yards";
 import { streetMaterial } from "../../content/settlements/streets";
@@ -87,7 +87,7 @@ import { createLandscape } from "../geography/landscape";
 import { noise } from "../geography/noise";
 import { cellKey, type Road, type SettlementPlan, type Site } from "./types";
 import { crossing, planRoad, roadCells, spanOffsets } from "./roads";
-import { planSettlement } from "./plan";
+import { planSettlement, terraceBox, townTerraces } from "./plan";
 import { siteForm, siteGate } from "./urban";
 import { earthFinish } from "../../content/settlements/urban-form";
 import type { UrbanForm } from "../../content/settlements/urban-form/types";
@@ -284,6 +284,60 @@ export function createSettlementWorld(
   if (startingSite) regionalPlanner!.setHome(startingSite.id);
   // Towns grade their own plots and streets on the land's terraces.
   const terraces = !!pack.setting?.terraceRevision && !!environment;
+  /* A metropolis is several overlapping sites. Graded each on its own, a
+   * street of one quarter kept the raw level through ground another had
+   * levelled. So they grade in rank order, each on the ground the larger
+   * ones left, and every plan reads the one result. */
+  const gradesGround = (s: Site) => !!(s.pack ?? pack).setting?.terrainRevision && urbanSite(s, s.pack ?? pack);
+  const outranks = (a: Site, b: Site) => a.profile.radius > b.profile.radius || (a.profile.radius === b.profile.radius && a.id < b.id);
+  /** Graded towns whose reach meets this box, smallest first: the last to grade. */
+  function gradedTowns(x: number, y: number, reach: number, but?: Site) {
+    const c = coord(x, y), out: Site[] = [];
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++)
+        for (const s of sitesIn(c.x + dx, c.y + dy)) {
+          const d = reach + terraceBox(s.profile.radius);
+          if (s.id !== but?.id && Math.abs(s.center.x - x) <= d && Math.abs(s.center.y - y) <= d && gradesGround(s)) out.push(s);
+        }
+    return out.sort((a, b) => (outranks(a, b) ? 1 : -1));
+  }
+  const townGrades = new Map<string, Map<string, number>>();
+  function townGrade(s: Site): Map<string, number> {
+    let grade = townGrades.get(s.id);
+    if (grade) return grade;
+    const setting = (s.pack ?? pack).setting;
+    grade = townTerraces(gradedSample(s), s.center, s.profile.radius, !!setting && industrialized(setting));
+    if (townGrades.size > 48) townGrades.delete(townGrades.keys().next().value!);
+    townGrades.set(s.id, grade);
+    return grade;
+  }
+  /** The land as the larger towns over this one have left it. */
+  function gradedSample(s: Site): typeof land.sample {
+    const above = gradedTowns(s.center.x, s.center.y, terraceBox(s.profile.radius), s).filter((o) => outranks(o, s)).map(townGrade);
+    if (!above.length) return land.sample;
+    return (x, y) => {
+      const f = land.sample(x, y), k = cellKey(x, y);
+      for (const m of above) {
+        const t = m.get(k);
+        if (t !== undefined) return { ...f, elevation: t * 14 };
+      }
+      return f;
+    };
+  }
+  const gradeBuckets = new Map<string, Site[]>();
+  /** The level the towns have graded a cell to, if any moved it. */
+  function townLevel(x: number, y: number): number | undefined {
+    if (!terraces) return;
+    const key = cellKey(Math.floor(x / 64), Math.floor(y / 64));
+    let near = gradeBuckets.get(key);
+    if (!near) gradeBuckets.set(key, near = gradedTowns(Math.floor(x / 64) * 64 + 32, Math.floor(y / 64) * 64 + 32, 32));
+    const k = cellKey(x, y);
+    for (const s of near) {
+      const t = townGrade(s).get(k);
+      if (t !== undefined) return t;
+    }
+  }
+  const groundTier = (x: number, y: number) => townLevel(x, y) ?? Math.round(land.sample(x, y).elevation / 14);
   const terraceReach = (s: Site) => Math.max(14, s.profile.radius * 0.62);
   const townBuckets = new Map<string, Site[]>();
   /** The settlement whose built ground covers this cell, if any. */
@@ -569,9 +623,10 @@ export function createSettlementWorld(
       strip ? { ...s, rail: strip } : s,
       s.pack ?? pack,
       seed,
-      land.sample,
+      terraces && gradesGround(s) ? gradedSample(s) : land.sample,
       connections,
       foreign,
+      terraces && gradesGround(s) ? townGrade(s) : undefined,
     );
     plans.set(s.id, plan);
     // Cells near this plan were decorated while it was still being drawn.
@@ -1782,8 +1837,7 @@ export function createSettlementWorld(
         stamp(at, best ? radius : Math.min(radius, 1.4), strength);
         continue;
       }
-      const tier = (point: Point) => p.groundLevels?.get(cellKey(point.x, point.y)) ??
-        Math.round(land.sample(point.x, point.y).elevation / 14);
+      const tier = (point: Point) => p.groundLevels?.get(cellKey(point.x, point.y)) ?? groundTier(point.x, point.y);
       const found = route(at, best, (to, from) =>
         open(to) && tier(to) === tier(from) ? 1 : Infinity, {
         maxNodes: 600,
@@ -1875,7 +1929,7 @@ export function createSettlementWorld(
         const f = land.sample(pt.x, pt.y);
         // A track out in the fields cuts its own level through natural contours too.
         if (f.water < 0 || (road.kind !== "path" && townAt(pt.x, pt.y)?.id !== p.site.id)) continue;
-        const tier = p.groundLevels?.get(cellKey(pt.x, pt.y)) ?? Math.round(f.elevation / 14);
+        const tier = p.groundLevels?.get(cellKey(pt.x, pt.y)) ?? groundTier(pt.x, pt.y);
         // A footpath's worn ground laps a cell either side of its line, and steps with it.
         const [lo, hi] = road.span ? spanOffsets(road.span) : [Math.max(1, road.width), Math.max(1, road.width)];
         for (let dy = -lo; dy <= hi; dy++)
@@ -1961,7 +2015,9 @@ export function createSettlementWorld(
             height = Math.min(height, Math.round(g.elevation / 14)) as HeightTier;
         }
     let graded = false;
-    if (terraces && f.water >= 0)
+    if (terraces && f.water >= 0) {
+      const town = townLevel(x, y);
+      if (town !== undefined) height = town as HeightTier, graded = true;
       for (const p of nearby(x, y)) {
         const level = p.groundLevels?.get(cellKey(x, y)) ?? streetLevels(p).get(cellKey(x, y));
         if (level === undefined) continue;
@@ -1969,6 +2025,7 @@ export function createSettlementWorld(
         graded = true;
         break;
       }
+    }
     // A country road steps square across its width: each cell takes the
     // middle tier of the road cells round it, so the lanes climb together.
     if (!graded && regional && f.water >= 0 && regionalRoads(x, y).has(cellKey(x, y))) {

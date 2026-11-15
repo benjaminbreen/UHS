@@ -185,6 +185,10 @@ export function planSettlement(
   connections: Road[],
   /** Ground inside another settlement's claim, which fields keep off. */
   foreign: (x: number, y: number) => boolean = () => false,
+  /** This town's terraces where the world graded them with its neighbours';
+   * `sample` then already carries the neighbours' and these stay out of
+   * `groundLevels`, which the world resolves across every plan itself. */
+  terraces?: Map<string, number>,
 ): SettlementPlan {
   const c = site.center,
     profile = site.profile,
@@ -321,9 +325,9 @@ export function planSettlement(
   };
   if (pack.setting?.situation && pack.setting.situation.camp !== "none") return planCamp(plan, pack, seed);
   if (urban && pack.setting?.terrainRevision) {
-    const graded = townTerraces(sample, c, r, !!pack.setting && industrialized(pack.setting));
+    const graded = terraces ?? townTerraces(sample, c, r, !!pack.setting && industrialized(pack.setting));
     if (graded.size) {
-      plan.groundLevels = graded;
+      if (!terraces) plan.groundLevels = graded;
       const raw = sample;
       sample = (x, y) => {
         const f = raw(x, y), t = graded.get(cellKey(x, y));
@@ -6430,6 +6434,9 @@ function dropStubFences(
 
 const N4 = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
 
+/** How far from a town's centre `townTerraces` may move ground. */
+export const terraceBox = (r: number) => Math.ceil(Math.min(r * 1.3, r + 40));
+
 /** Noise leaves a town scattered with terraces too small or narrow to build
  * on. Each dry patch of one level that has no room for a house, and does not
  * front water, takes the level it borders most. A lowland town, whose ground
@@ -6439,8 +6446,8 @@ const N4 = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
  * except for a hill or hollow broad enough to be part of its shape. Whole
  * patches move, so every bank left still follows the land. The box stays inside the plan's
  * bounds and reaches past the town so a hill running out of it stays a hill. */
-function townTerraces(sample: Sample, c: Point, r: number, engineered: boolean) {
-  const reach = Math.ceil(Math.min(r * 1.3, r + 40)), x0 = c.x - reach, y0 = c.y - reach, n = reach * 2 + 1;
+export function townTerraces(sample: Sample, c: Point, r: number, engineered: boolean) {
+  const reach = terraceBox(r), x0 = c.x - reach, y0 = c.y - reach, n = reach * 2 + 1;
   const level = new Int16Array(n * n), wet = new Uint8Array(n * n);
   for (let j = 0; j < n; j++)
     for (let i = 0; i < n; i++) {
