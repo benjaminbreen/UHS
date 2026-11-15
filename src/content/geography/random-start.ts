@@ -3,6 +3,10 @@ import population from "./population.generated.json" with { type: "json" };
 import { settingFor, tillersHome } from "./resolve";
 import { populateCharacter } from "./character";
 import { resolveCharacterContext } from "../characters/resolve";
+import { characterSex } from "../characters/generate";
+import { cavePeople } from "../caves/people";
+import { personFits, sewerPeople, startTimes } from "../sewers";
+import { random } from "../../core/random";
 
 const firstRandomYear = -12999; // 13,000 BCE in astronomical numbering
 const onePastPresent = 2027;
@@ -127,6 +131,25 @@ export function randomStartFromDraws(
   let base = settingFor(place, year);
   if (mode === "realistic" && townKinds.has(base.settlement) && !inTown(draws[3] ?? 0, place, year))
     base = { ...base, settlement: "village", population: undefined };
+  const sex = characterSex(seed, "player");
+  // Far more than their share of history, for the fun of it: one start in a
+  // thousand for each cave life that fits, two for each sewer life (towns are
+  // a small share of starts), more where a life was common, and at least
+  // 0.3% in all wherever any fits.
+  const here = { lon: base.lon, lat: base.lat, year };
+  const town = townKinds.has(base.settlement);
+  const under = [
+    ...cavePeople.filter((p) => !town && personFits(p, here, p.kinds?.[0] ?? "karst")).map((p) => ({ who: p, below: "cave" as const, odds: 0.001 * startTimes(p, here) })),
+    ...sewerPeople.filter((p) => town && personFits(p, here, p.kinds?.[0] ?? "brick")).map((p) => ({ who: p, below: "sewer" as const, odds: 0.002 * startTimes(p, here) })),
+  ].filter(({ who }) => (sex === "female" ? who.women > 0 : who.women < 1));
+  const sum = under.reduce((n, u) => n + u.odds, 0);
+  let odd = random(seed, "underground-start") / (sum && sum < 0.003 ? 0.003 / sum : 1);
+  const life = under.find((u) => (odd -= u.odds) < 0);
+  if (life) {
+    const { who, below } = life;
+    const setting = populateCharacter({ ...base, role: who.label, characterName: who.label, below, brief: { ...base.brief, work: who.dress } }, seed);
+    return { seed, setting };
+  }
   // The work available here, rather than a fixed five; a Kyoto start can be a
   // dyer and a Manchester one a match worker.
   const work = resolveCharacterContext(base).livelihoods;

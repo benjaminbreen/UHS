@@ -48,6 +48,12 @@ export function personFits(p: SewerPerson, place: SewerPlace, kind: TunnelKind |
   return scopeFits(p.scope, place) && (!p.where || inAny(p.where, place)) && levelFits<string, string>(p.kinds, p.depths, kind, depth) && (!p.ores || (!!ore && p.ores.includes(ore)));
 }
 
+/** How much likelier than usual a random start as them is here. */
+export function startTimes(p: SewerPerson, place: SewerPlace) {
+  const boost = p.start?.find((b) => place.year >= b.years[0] && place.year < b.years[1] && (!b.where || inAny(b.where, place)));
+  return boost?.times ?? 1;
+}
+
 // France, Belgium, Vienna, Barcelona.
 const GALLERY: Box[] = [[-5, 42.3, 6, 51.1], [6, 43, 7.7, 49.1], [2.5, 49.5, 5.9, 51.5], [16.1, 48.1, 16.6, 48.35], [1.9, 41.3, 2.3, 41.5]];
 // Poland to the Urals and on across Soviet Asia and Mongolia.

@@ -498,7 +498,9 @@ export function generateCharacter(
       "visitor",
       "household member",
     ].includes(requestedRole.toLowerCase());
-  const role = recognized ? livelihood.label : requestedRole!;
+  // A briefed player keeps the title asked for: dressed as a religious
+  // specialist, a sadhu is still a sadhu, not the local temple priest.
+  const role = recognized && !(id === "player" && s.brief?.work && requestedRole) ? livelihood.label : requestedRole!;
   const appearance = characterAppearance(
     s,
     seed,

@@ -127,6 +127,8 @@ export type SewerPerson = {
   threat?: string;
   /** Run from a foe rather than fight. */
   flee?: boolean;
+  /** Times the usual chance of a random start as one, where and when they were common. */
+  start?: readonly { times: number; years: readonly [number, number]; where?: readonly Box[] }[];
   /** What is documented, inferred or hypothetical about them, and on what. */
   note: string;
   basis: "documented" | "inferred" | "hypothesis" | "fiction";
