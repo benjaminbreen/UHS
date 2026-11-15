@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { random } from "../core/random";
 import { windowHalo } from "./window-light";
+import { shopOpen } from "../core/itinerary";
 
 /** What a voxel building publishes about its lit rooms: a rect of its glow
  * frame per household floor (kind 0) and per shop (kind 1). */
@@ -118,12 +119,6 @@ export type LifeSpec = {
 
 const within = (hour: number, [a, b]: [number, number]) => (a <= b ? hour >= a && hour < b : hour >= a || hour < b);
 
-/** When a shop opens and shuts, keyed as its lit window is, so the grille
- * comes down as the light goes out. */
-export function shopOpen(seed: string, id: string, i: number, hour: number) {
-  const r = (k: string) => random(seed, "voxel-light", id, i, k);
-  return hour >= 7 + r("open") * 1.5 && hour < 19 + r("shut") * 3;
-}
 
 type Entry = {
   image: Phaser.GameObjects.Image;
@@ -142,6 +137,7 @@ type Entry = {
 export class VoxelLife {
   private entries: Entry[] = [];
   private seed = "";
+  siesta?: [number, number];
 
   add(
     scene: Phaser.Scene,
@@ -178,7 +174,10 @@ export class VoxelLife {
       const s = e.spec;
       let frame = -1;
       if (s.k === "hours")
-        frame = (s.shop !== undefined ? !shopOpen(this.seed, e.id, s.shop, hour) : within(hour, s.on!)) ? 0 : -1;
+        // Keyed as its lit window is, so the grille comes down as the light goes out.
+        frame = (s.shop !== undefined
+          ? !shopOpen((k) => random(this.seed, "voxel-light", e.id, s.shop!, k), hour, this.siesta)
+          : within(hour, s.on!)) ? 0 : -1;
       else if (s.k === "loop")
         frame = s.night && lamps <= 0 ? -1 : Math.floor(time / s.ms! + e.i * 1.7) % s.f.length;
       else {

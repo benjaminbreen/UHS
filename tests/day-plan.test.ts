@@ -68,6 +68,18 @@ it("walks a one-off errand once and keeps the day whole", () => {
   expect(dayPlan(day, 8 * 3600).map((p) => p.label)).toContain("At the shrine");
 });
 
+it("keeps everyone in through the siesta and still closes the day", () => {
+  const stations = [
+    { pos: { x: 1, y: 1 }, activity: "work" as const, label: "The shop", minutes: 30 },
+    { pos: { x: 4, y: 1 }, activity: "visit" as const, label: "The square", minutes: 26 },
+    { pos: { x: 0, y: 0 }, activity: "rest" as const, label: "Home", minutes: 500, share: 0.4 },
+  ];
+  const day = buildItinerary(stations, 360, path, 0.5, [], [840, 960])!;
+  expect(day.period).toBeCloseTo(1440, 5);
+  for (let m = 840; m < 960; m += 5) expect(itineraryAt(day, m * 60).activity, `${m}`).toBe("rest");
+  expect(day.segments.some((s) => s.activity === "work" && s.from + 360 > 960)).toBe(true);
+});
+
 it("gives children named play destinations and one daily water errand", () => {
   const home = { x: 0, y: 0 };
   const plan = {

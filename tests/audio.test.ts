@@ -404,6 +404,11 @@ describe("town ambience", () => {
     expect(bellFor("Latin Christian", 1300)).toBe("church");
     expect(bellFor("Roman", 100)).toBeUndefined();
     expect(bellFor(undefined, 1900)).toBe("whistle");
+    expect(bellFor("Orthodox Christian", 1700, 23.7, 38)).toBe("semantron");
+    expect(bellFor("Orthodox Christian", 1911, 23.7, 38)).toBe("church");
+    expect(bellFor("Orthodox Christian", 1700, 37.6, 55.7)).toBe("church");
+    expect(bellFor("Theravada Buddhist", 1800, 100.5, 13.7)).toBe("temple");
+    expect(bellFor("Buddhism", 1750, 139.7, 35.7)).toBe("toki");
   });
   it("hears a drizzle, a downpour and what the rain falls on", () => {
     const mix = (id: string) => ambienceFor(listeningScenes.find((s) => s.id === id)!.scene);

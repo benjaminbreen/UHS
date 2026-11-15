@@ -73,6 +73,7 @@ import {
   itineraryAt,
   PACE,
   destination,
+  siestaOf,
   type Itinerary,
   type Station,
 } from "../../core/itinerary";
@@ -2924,6 +2925,7 @@ export function createSettlementWorld(
             [],
           random(seed, "day-phase", id),
           walked,
+          siestaOf(pack.setting),
         );
       // Slide the whole day so they leave the friend's door just behind the
       // friend leaving it: two tiles back, near enough to be walking together.

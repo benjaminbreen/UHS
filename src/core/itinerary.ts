@@ -98,6 +98,19 @@ export type Ambient = {
   boat?: string;
 };
 export const DAY_MINUTES = 1440;
+/** The midday shut in minutes of the day, where the town keeps one: the
+ * Mediterranean's siesta, riposo and mesimeri, half past one to half past four. */
+export function siestaOf(setting?: { lon: number; lat: number }): [number, number] | undefined {
+  if (!setting) return undefined;
+  const { lon, lat } = setting;
+  return lon >= -10 && lon <= 36 && lat >= 30 && lat <= 45 ? [810, 990] : undefined;
+}
+/** Whether a shop or stall is trading at `hour`: one clock for the shutters,
+ * the market and the shopkeepers. `r` is the shop's own roll. */
+export function shopOpen(r: (k: string) => number, hour: number, siesta?: [number, number]) {
+  if (siesta && hour * 60 >= siesta[0] && hour * 60 < siesta[1]) return false;
+  return hour >= 7 + r("open") * 1.5 && hour < 19 + r("shut") * 3;
+}
 /** Minutes to cross one tile on foot. Matches the 18-second step the simulated
  * fallback uses, so an actor keeps the same pace whichever path drives it. */
 export const PACE = 0.3;
@@ -143,6 +156,8 @@ export function buildItinerary(
   phase = 0,
   /** The day's one-off doings, each placed by its `part`. */
   once: Station[] = [],
+  /** Minutes of the day everyone stays in, out of the midday heat. */
+  siesta?: [number, number],
 ): Itinerary | undefined {
   if (stations.length < 3) return undefined;
   const night = stations[stations.length - 1];
@@ -253,8 +268,25 @@ export function buildItinerary(
     stay(night, left);
   };
   stay(night, nightMinutes);
+  // A round that would fall in the siesta waits for it to end, and the time
+  // is taken back from the later gaps so the day still closes.
+  let owed = 0;
+  const from = siesta && (siesta[0] - startMinute + DAY_MINUTES) % DAY_MINUTES;
   for (let r = 0; r < rounds; r++) {
-    home(gap(r));
+    let wait = gap(r);
+    const paid = Math.min(owed, wait);
+    wait -= paid;
+    owed -= paid;
+    if (siesta && from !== undefined) {
+      const begin = at + wait,
+        until = from + siesta[1] - siesta[0];
+      const extra = until - begin;
+      if (begin < until && begin + outing > from && extra <= (rounds - r) * share - lead - owed) {
+        wait += extra;
+        owed += extra;
+      }
+    }
+    home(wait);
     travel(fromBed, night, errands[0]);
     for (let i = 0; i < errands.length; i++) {
       stay(errands[i], dwells[i]);
@@ -263,7 +295,7 @@ export function buildItinerary(
       else travel(toBed, errands[i], night);
     }
   }
-  home(gap(rounds), true);
+  home(gap(rounds) - owed, true);
   const period = at;
   if (period <= 0) return undefined;
   return { segments, start: startMinute, period };

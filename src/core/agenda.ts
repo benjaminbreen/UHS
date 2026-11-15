@@ -55,6 +55,19 @@ export function festivalOf(setting: WorldSetting | undefined, clock: number): Fe
   return found && { ...found, rest: found.rest && found.evidence === "documented" && cal.day > 0 };
 }
 
+/** Whether today is the town's market day, where its market keeps a cycle;
+ * undefined where it does not, and trades every day alike. */
+export function marketDay(setting: WorldSetting | undefined, clock: number): boolean | undefined {
+  if (!setting) return undefined;
+  const day = Math.floor(clock / DAY);
+  const cycles = allOccasions.flatMap((o) =>
+    o.place === "market" && /market|pasar|souk|haat|saturday in town/i.test(o.label) && matchesCharacterScope(o.scope, setting, "*")
+      ? o.when.flatMap((t) => (t.type === "cycle" ? [t] : []))
+      : [],
+  );
+  return cycles.length ? cycles.some((c) => inCycle(day, c.every, c.on)) : undefined;
+}
+
 /** What the picker knows about a person, independent of the day. */
 export type Person = {
   actor: Actor;

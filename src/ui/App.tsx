@@ -78,6 +78,7 @@ import { ambienceFor } from "../audio/ambience";
 import { interiorMusic } from "../audio/interior-themes";
 import { buildingUse } from "../content/interiors/select";
 import { religiousProfile } from "../content/settlements/religious";
+import { marketDay } from "../core/agenda";
 import { ROOM_ORIGIN } from "../world/interior";
 import { pageTurn } from "../audio/handling";
 const AudioLab = lazy(() =>
@@ -958,6 +959,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       room: room && layout ? { area: room.w * room.d, finish: layout.params.finish } : p.pos.space.startsWith("cave:") ? { area: 220, finish: 2 } : undefined,
       year: setting?.year,
       faith: setting ? religiousProfile(setting)?.faith : undefined,
+      lon: setting?.lon,
+      lat: setting?.lat,
       fireDistance: Math.min(
         ...obs.objects
           .filter(
@@ -984,6 +987,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       climate: setting?.climate ?? "temperate",
       ecology: setting?.environment?.ecology,
       hour: obs.clock / 3600 - Math.floor(obs.clock / 86400) * 24,
+      day: Math.floor(obs.clock / 86400),
+      market: marketDay(setting, obs.clock),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [

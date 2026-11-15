@@ -127,6 +127,12 @@ trade's day (`dayTitle`), plus `own` entries from the day's agenda
 over and call (`kinCall` in `src/core/kin.ts`): three calls a day at most,
 three hours apart, none mid-work.
 
+**The town's rhythm.** Where a market keeps a cycle (`marketDay` in
+`agenda.ts`), nearly every stall is staffed on its day and a quarter between,
+and the town murmur rises. Shops, shutters and stalls keep one clock
+(`shopOpen` in `src/core/itinerary.ts`). Mediterranean towns (`siestaOf`) shut
+from 13:30 to 16:30, with residents indoors and stalls packed up.
+
 The **pace** setting (`src/ui/start-mode.ts`) is Quick or full. Quick jumps
 the player to the place on **Go**.
 

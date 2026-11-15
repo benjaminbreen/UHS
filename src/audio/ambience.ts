@@ -5,7 +5,7 @@ import { noise, playSound, railway, ring, tone, type Sound } from "./sfx";
 export type TownKind = "village" | "town" | "industrial" | "modern";
 /** What marks the hours: church bells, a temple bell, the call to prayer, a
  * factory whistle. */
-export type Bell = "church" | "temple" | "adhan" | "whistle";
+export type Bell = "church" | "semantron" | "temple" | "toki" | "adhan" | "whistle";
 
 /** What the rain is falling on outdoors. */
 export type Surface = "leaves" | "needles" | "grass" | "ground" | "paving";
@@ -37,6 +37,8 @@ export interface AmbienceMix {
   bell?: Bell;
   /** 0 to 1: how well the bells carry this far from the town. */
   bells: number;
+  /** Game day: Sunday and Friday are kept differently. */
+  day: number;
   hour: number;
   /** What the music is multiplied by. Rain and interiors pull it down. */
   music: number;
@@ -58,6 +60,7 @@ export const silence: AmbienceMix = {
   hard: 0,
   townKind: "village",
   bells: 0,
+  day: 0,
   hour: 12,
   music: 1,
 };
@@ -72,13 +75,18 @@ export interface Scene {
   townDistance: number;
   townSize: number;
   peopleNear: number;
+  /** Today is the town's market day. */
+  market?: boolean;
   night: boolean;
   season: "spring" | "summer" | "autumn" | "winter";
   climate: string;
   ecology?: string;
-  /** Hour of the day, 0 to 24. */
+  /** Hour of the day, 0 to 24, and the game day. */
   hour: number;
+  day?: number;
   year?: number;
+  lon?: number;
+  lat?: number;
   /** The local faith, from the settlement's religious building. */
   faith?: string;
   /** The room underfoot: floor cells, and its finish 0 to 2. */
@@ -91,19 +99,30 @@ export function townKindFor(year: number | undefined, size: number): TownKind {
 }
 // Church bells spread through Latin Europe from about the sixth century; a
 // factory whistle marks the hours of an industrial town where no faith does.
-export function bellFor(faith: string | undefined, year = 0): Bell | undefined {
-  if (faith === "Islam") return "adhan";
-  if (faith === "Buddhism") return "temple";
-  if ((faith === "Catholic" || faith === "Latin Christian") && year >= 600)
-    return "church";
+// Under the Ottomans, Orthodox churches were mostly allowed only the wooden
+// semantron; bells came back with Greek independence and never left Russia.
+// Edo's temple bells rang the hours for the town from the 1600s until the
+// clock came in 1873.
+export function bellFor(faith: string | undefined, year = 0, lon = 0, lat = 0): Bell | undefined {
+  if (faith && /Islam|Muslim/.test(faith)) return "adhan";
+  if (faith && /Buddhis/.test(faith))
+    return lon >= 129 && lon <= 146 && lat >= 30 && year >= 1600 && year < 1873 ? "toki" : "temple";
+  if (faith && /Orthodox|Armenian/.test(faith) && year >= 600)
+    return year < 1830 && lat < 48 && year >= 1450 ? "semantron" : "church";
+  if (faith && /Catholic|Christian|Protestant/.test(faith) && year >= 600) return "church";
   if (year >= 1850) return "whistle";
   return undefined;
 }
+// Game day 0 is a Wednesday (see agenda.ts).
+const SUNDAY = 4,
+  FRIDAY = 2;
 /** The hours each bell sounds. The adhan's five prayers are set to fixed
- * hours, not the sun. */
+ * hours, not the sun, and Edo's twelve temporal hours to every second hour. */
 const bellHours: Record<Bell, number[]> = {
   church: [6, 9, 12, 15, 18, 21],
+  semantron: [6, 18],
   temple: [6, 18],
+  toki: [0, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22],
   adhan: [5, 12, 15, 18, 20],
   whistle: [7, 12, 18],
 };
@@ -164,8 +183,8 @@ export function ambienceFor(scene: Scene): AmbienceMix {
   const water = scene.water ? near(scene.water.distance, 2, 22) : 0;
   const swell = scene.water?.kind === "sea" ? 1 : 0;
   const town =
-    Math.min(1, near(scene.townDistance, 6, 40) * (0.4 + scene.townSize / 12) +
-      Math.min(0.5, scene.peopleNear * 0.12)) *
+    Math.min(1, (near(scene.townDistance, 6, 40) * (0.4 + scene.townSize / 12) +
+      Math.min(0.5, scene.peopleNear * 0.12)) * (scene.market ? 1.4 : 1)) *
     // People go quiet at night and under heavy rain.
     (scene.night ? 0.25 : 1) *
     (1 - 0.6 * ramp(rain, 0.2, 0.9)) *
@@ -188,9 +207,10 @@ export function ambienceFor(scene: Scene): AmbienceMix {
     room: scene.room ? Math.min(1, Math.max(0.1, (scene.room.area - 8) / 120)) : 0,
     hard: scene.room ? scene.room.finish / 2 : 0,
     townKind: townKindFor(scene.year, scene.townSize),
-    bell: bellFor(scene.faith, scene.year),
+    bell: bellFor(scene.faith, scene.year, scene.lon, scene.lat),
     bells: near(scene.townDistance, 15, 90) * (1 - 0.6 * hush),
     hour,
+    day: scene.day ?? 0,
     // Stardew hands a downpour the whole soundstage; a drizzle leaves the
     // music be. A roof takes the edge off too.
     music: (1 - 0.75 * ramp(rain, 0.15, 0.7)) * (indoors ? 0.6 : 1),
@@ -335,7 +355,7 @@ export class Ambience {
     const ahead = before === undefined ? 0 : (mix.hour - before + 24) % 24;
     if (mix.bell && mix.bells > 0.02 && ahead > 0 && ahead < 1.5 &&
         struck !== Math.floor(before!) && bellHours[mix.bell].includes(struck))
-      this.ring(mix.bell, struck, mix.bells);
+      this.ring(mix.bell, struck, mix.bells, mix.day % 7);
     const now = this.ctx.currentTime;
     const glide = (param: AudioParam, value: number, seconds: number) =>
       instant ? param.setValueAtTime(value, now) : param.setTargetAtTime(value, now, seconds);
@@ -391,9 +411,9 @@ export class Ambience {
     const make = pick(streetSounds[kind]);
     this.oneShot(make(0.5 + 0.5 * level), this.outside, at);
   }
-  private ring(bell: Bell, hour: number, level: number) {
+  private ring(bell: Bell, hour: number, level: number, weekday: number) {
     const pan = rand(-0.5, 0.5);
-    this.oneShot(bellSound(bell, hour, level), this.outside, this.ctx.currentTime + 0.05, pan);
+    this.oneShot(bellSound(bell, hour, level, weekday), this.outside, this.ctx.currentTime + 0.05, pan);
   }
   private blip(
     into: AudioNode,
@@ -586,12 +606,33 @@ const streetSounds: Record<TownKind, Maker[]> = {
   modern: [dog, call, horn, engine, engine],
 };
 
-function bellSound(bell: Bell, hour: number, g: number): Sound {
+function bellSound(bell: Bell, hour: number, g: number, weekday: number): Sound {
   switch (bell) {
     case "church":
+      // Sunday morning a ring of four bells calls the town to church.
+      if (weekday === SUNDAY && (hour === 9 || hour === 12)) {
+        const peal = [523, 440, 392, 330];
+        return rep(24, 0.42, (at, i) => ring(at, peal[i % 4], 2.5, 0.026 * g));
+      }
       return rep(((hour + 11) % 12) + 1, 1.7, (at) => ring(at, 440, 3.5, 0.03 * g));
+    case "semantron": {
+      // A mallet on a hanging plank, slow then quickening, three times over.
+      const knocks = [0, 0.7, 1.3, 1.8, 2.2, 2.5, 2.75, 2.95, 3.1, 3.25, 3.4];
+      return rep(3, 4.4, (start) =>
+        knocks.flatMap((k) => [
+          noise(start + k, 0.07, 0.05 * g, 950, { q: 3 }),
+          tone(start + k, 0.12, 0.025 * g, 410, { to: 380, wave: "triangle", attack: 0.003 }),
+        ]),
+      );
+    }
     case "temple":
       return rep(3, 7, (at) => [...ring(at, 98, 7, 0.05 * g), tone(at, 7, 0.02 * g, 98.5)]);
+    case "toki": {
+      // Three warning strokes, then the hour's count: nine at noon and
+      // midnight, down to four, then nine again.
+      const count = 9 - ((hour / 2) % 6);
+      return rep(3 + count, 4.5, (at) => [...ring(at, 92, 8, 0.05 * g), tone(at, 8, 0.02 * g, 92.6)]);
+    }
     case "whistle":
       return [
         tone(0, 2.8, 0.02 * g, 380, { wave: "triangle", attack: 0.3, to: 372 }),
@@ -600,8 +641,10 @@ function bellSound(bell: Bell, hour: number, g: number): Sound {
     case "adhan": {
       // A sung phrase from afar: long held notes that turn at the end.
       const notes = [220, 247, 262, 247, 220, 196, 220];
+      // Friday's noon call, to the congregational prayer, is the one all hear.
+      const v = weekday === FRIDAY && hour === 12 ? 1.6 : 1;
       return notes.flatMap((f, i) =>
-        tone(i * 0.9, i === notes.length - 1 ? 2.2 : 1, 0.02 * g, f, {
+        tone(i * 0.9, i === notes.length - 1 ? 2.2 : 1, 0.02 * g * v, f, {
           to: f * (i % 2 ? 0.97 : 1.03),
           wave: "triangle",
           attack: 0.15,

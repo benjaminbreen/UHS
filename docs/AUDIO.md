@@ -61,7 +61,7 @@ coloured by the finish (thatch swallows a step, plaster hands it back).
 Outdoors is dry.
 
 `ambienceFor` builds beds from the scene: rain, wind, birds, crickets, frogs,
-water or sea, town murmur and hearth. Indoors muffles the outdoor beds. Rain
+water or sea, town murmur (louder on market day) and hearth. Indoors muffles the outdoor beds. Rain
 follows `Weather.rain` (0–1), which comes and goes in showers by climate.
 Thunder and frog calls are separate sounds.
 
@@ -73,9 +73,11 @@ Thunder and frog calls are separate sounds.
 - modern: after 1920
 
 **The hours** are marked by what the local religion implies (`bellFor`):
-- church bells from 600 CE in Latin Christian towns
+- church bells from 600 CE in Christian towns, with a four-bell peal at 9 and noon on Sundays
+- the wooden semantron at dawn and dusk in Ottoman-ruled Orthodox towns, 1450 to 1830
 - temple bells at dawn and dusk where Buddhist
-- the call to prayer at five fixed hours
+- Edo's time bells in Japan, 1600 to 1873: every second hour, three warning strokes then nine down to four
+- the call to prayer at five fixed hours, louder at Friday noon
 - a factory whistle from 1850 where no faith sounds
 
 These pairings are inference, not documented soundscapes.

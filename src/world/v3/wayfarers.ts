@@ -3,7 +3,7 @@ import { characterLivelihood, generateCharacter } from "../../content/characters
 import { resolveCharacterContext, workAt } from "../../content/characters/resolve";
 import { proceduralName } from "../../content/geography/character";
 import { wayfarersAt, type Wayfarer } from "../../content/wayfarers";
-import { DAY_MINUTES, PACE, type Itinerary, type StationActivity } from "../../core/itinerary";
+import { DAY_MINUTES, PACE, shopOpen, siestaOf, type Itinerary, type StationActivity } from "../../core/itinerary";
 import { random } from "../../core/random";
 import { route } from "../../core/routing";
 import type { Actor, Pack, Point, WorldModel } from "../../core/types";
@@ -13,6 +13,7 @@ import { faunaProfiles } from "../../content/fauna";
 import { matchesCharacterScope } from "../../content/characters/resolve";
 import { DIRECTIONS, endowmentFor, resourceName, tradeOf, type Resource } from "../../content/economy/endowments";
 import { stallSeller } from "../../content/economy/market";
+import { marketDay } from "../../core/agenda";
 
 /** A border crossing as a passer-by sees it: where it is, and what lies past it. */
 export type Way = MapEntrance & { point: Point };
@@ -83,10 +84,13 @@ export function wayfarerDay(
 
 /** A seller at each market stall most days, selling what the stall is set
  * up for: walks up at seven or so, sells till late afternoon, packs up and
- * goes. The town's own people are mostly past the routine budget, so the
+ * goes. Where the market keeps a day, nearly every stall is taken on it and
+ * few between. The town's own people are mostly past the routine budget, so the
  * market keeps its own. */
 function stallholders(world: WorldModel, seed: string, setting: NonNullable<Pack["setting"]>, day: number): Passing[] {
   const ground = { ...setting, ecology: setting.environment?.ecology };
+  const market = marketDay(setting, day * DAY_MINUTES * 60);
+  const taken = market === undefined ? 0.85 : market ? 0.97 : 0.25;
   return (world.initialObjects ?? [])
     .filter((o) => o.prop === "marketCounter" && o.sells)
     .slice(0, 24)
@@ -95,11 +99,15 @@ function stallholders(world: WorldModel, seed: string, setting: NonNullable<Pack
       const who = stallSeller(o.sells!, ground);
       // Beside the counter, opposite its sign, where they are not hidden behind it.
       const stand = [{ x: o.pos.x - 2, y: o.pos.y }, { x: o.pos.x - 2, y: o.pos.y + 1 }, { x: o.pos.x, y: o.pos.y + 1 }].find((p) => !world.blocked(p.x, p.y, "outside"));
-      if (!who || !stand || r("open") > 0.85) return [];
+      if (!who || !stand || r("open") > taken) return [];
       const from = [[0, 9], [9, 2], [-9, 2], [0, 12]].map(([dx, dy]) => ({ x: stand.x + dx, y: stand.y + dy }))
         .find((p) => !world.blocked(p.x, p.y, "outside"));
       const there = (from && across(world, from, stand)) ?? [stand];
-      const open = (7 + r("open-at")) * 60, close = (16 + r("close-at") * 1.5) * 60;
+      // The shops' clock, but a market packs up in the afternoon, or at the siesta.
+      const siesta = siestaOf(setting);
+      let open = 7 * 60;
+      while (!shopOpen((k) => r(k), open / 60, siesta)) open += 15;
+      const close = siesta ? siesta[0] : (16 + r("close-at") * 1.5) * 60;
       const start = day * DAY_MINUTES + open;
       const selling = close - open - there.length * PACE * 2;
       const itinerary = journey(

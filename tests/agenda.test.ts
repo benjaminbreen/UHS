@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { agendaOf, asDoing, calendarOf, festivalOf, type Person } from "../src/core/agenda";
+import { agendaOf, asDoing, calendarOf, festivalOf, marketDay, type Person } from "../src/core/agenda";
 import { occasions, festivals } from "../src/content/days";
 import type { Actor } from "../src/core/types";
 
@@ -157,4 +157,11 @@ it("connects local aim variants to their family and the actual person concerned"
   const teaching = days.filter((i) => i.id === "day.teach-child");
   expect(teaching.some((i) => i.subject === wanted.id && i.why.includes("It serves your life aim."))).toBe(true);
   expect(teaching.filter((i) => i.subject !== wanted.id).every((i) => !i.why.includes("It serves your life aim."))).toBe(true);
+});
+
+it("knows a market's day where it keeps a cycle, and not where it does not", () => {
+  const tenochtitlan = setting(1450, -99.1, 19.4, "mesoamerican");
+  const days = Array.from({ length: 10 }, (_, d) => marketDay(tenochtitlan, at(d)));
+  expect(days.filter(Boolean)).toHaveLength(2);
+  expect(marketDay(london, at(0))).toBeUndefined();
 });

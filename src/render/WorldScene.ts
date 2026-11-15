@@ -278,6 +278,7 @@ const DIRECTION_KEYS = [
 ];
 import {
   itineraryAt,
+  siestaOf,
   type Ambient,
   type StationActivity,
 } from "../core/itinerary";
@@ -4558,6 +4559,7 @@ export class WorldScene extends Phaser.Scene {
       this.buildings.clear();
       this.buildingAnimations.clear();
       this.voxelLife.clear();
+      this.voxelLife.siesta = siestaOf(this.runtime.engine.world.pack.setting);
       this.clockHands = [];
       this.gateDoors = [];
       this.doors.clear();
