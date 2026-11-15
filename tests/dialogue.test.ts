@@ -386,6 +386,8 @@ describe("plot conversation", () => {
       expect(context).toContain("answer that alone");
       expect(context).not.toContain("On their mind: is ");
       expect(context).not.toContain("audible fart");
+      expect(context.indexOf("Voice:")).toBeGreaterThan(context.indexOf("Conversation so far"));
+      expect(context).toContain("Dreams of:");
       if (trust > 0) {
         expect(context).toContain("The player is a friend of yours.");
         expect(context).not.toContain("family: your friend");
@@ -397,7 +399,7 @@ describe("plot conversation", () => {
       runtime.engine.state.plot!.deadline = runtime.engine.state.clock + 1800;
       expect(dialogueContext(runtime, actor)).toContain("within an hour");
       await dialogueTurn(runtime, actor.id, "I'm staying.", Array.from({ length: 24 }, (): DialogueLine => ({ speaker: "player", text: "x".repeat(400) })));
-      expect(context.length).toBeLessThanOrEqual(7000);
+      expect(context.length).toBeLessThanOrEqual(8000);
       expect(context).toContain("Player says: I'm staying.");
       runtime.engine.state.plot!.owed = 0;
       expect(dialogueContext(runtime, actor)).toContain("It has been paid");

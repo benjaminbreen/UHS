@@ -280,7 +280,7 @@ it("uses the human conversation prompts and effects, retaining the exchange unti
     return dialogue(new Request("http://localhost/api/dialogue", { ...init, headers: { "x-forwarded-for": "192.0.2.103" } }), { OPENAI_API_KEY: "test" }, async (_url, upstream) => {
       const sent = JSON.parse(String(upstream?.body));
       expect(sent.model).toBe("gpt-6-luna");
-      expect(sent.messages[0].content).toContain("historical NPC");
+      expect(sent.messages[0].content).toContain("historical simulation");
       return new Response(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ dialogue: body.user.includes("Player says:") ? "I can show you." : "Come closer.", regard: 1 }) } }] }));
     });
   };

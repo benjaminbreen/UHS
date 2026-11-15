@@ -20,6 +20,7 @@ import { distance } from "../core/types";
 import { narratorProvider } from "./turn";
 import { plotLine, plotTemplate } from "../core/plot";
 import { STANCE_VOICE, stanceOf } from "../content/plots/stance";
+import { voiceBrief } from "./voice";
 // Dialogue has no Gemini path; it follows the setting otherwise.
 const dialogueProvider = () => (narratorProvider() === "haiku" ? "haiku" : "openai");
 
@@ -207,13 +208,14 @@ function openness(actor: Actor, met: boolean) {
 // Seeded per person per day, so the same concern colours every talk that day.
 const CONCERNS = {
   child: ["wants to play", "was told off this morning", "is showing off something they found", "is hungry", "is scared of a bigger child", "has a secret they want to tell", "is bored of their chore", "wonders about something they saw yesterday"],
+  youth: ["is sick of being told what to do", "is thinking about someone they like", "wants to be somewhere else, anywhere", "is smarting from being laughed at", "is proud of something they did well and nobody noticed", "is bored", "is hungry again", "is worried about what will become of them", "had a fight with a friend", "is planning something their family would not like"],
   adult: ["is worried about money or what is owed", "is annoyed with someone in the household", "is thinking about a sick animal or relative", "has news or gossip they are itching to share", "is behind on the work and wants to finish", "is in a good mood about something small", "is fretting about the weather and the crops or trade", "has a sore back or tooth", "is waiting for someone who is late", "is planning a meal or a feast"],
   old: ["remembers how things used to be", "has aches and complains of them", "is worried about a grandchild", "has opinions about the young", "is lonely and glad of any talk"],
 };
 
 function onTheirMind(seed: string, clock: number, actor: Actor) {
   const age = actor.age ?? 30;
-  const list = age < 13 ? CONCERNS.child : age >= 60 ? CONCERNS.old : CONCERNS.adult;
+  const list = age < 13 ? CONCERNS.child : age < 20 ? CONCERNS.youth : age >= 60 ? CONCERNS.old : CONCERNS.adult;
   const day = Math.floor(clock / 86400);
   const pick = list[Math.floor(random(seed, "dialogue-concern", actor.id, day) * list.length)];
   return [
@@ -417,7 +419,6 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     goingWithout(runtime, household),
     family.length ? `Family: ${family.join(", ")}.` : household ? "Family: household member." : "Family: lives alone.",
     temperament.length ? `Temperament: ${temperament.join(", ")}.` : "",
-    `Big Five: openness ${stats.openness}/100, conscientiousness ${stats.conscientiousness}/100, extraversion ${stats.extraversion}/100, agreeableness ${stats.agreeableness}/100, neuroticism ${stats.neuroticism}/100.`,
     holds.length ? `Holds:\n- ${holds.join("\n- ")}` : "",
     possessions.length ? `Has: ${possessions.join(", ")}.` : "Has: ordinary work things.",
     rude && state.clock - rude.at < 180
@@ -487,6 +488,26 @@ function dialogueInterruption(runtime: Runtime, actor: Actor, exchange: number) 
   return "Just now, you lost your train of thought mid-sentence. Let the hesitation show, then recover or ask what you were saying.";
 }
 
+// How this person happens to answer this once: without it every question gets a straight answer.
+const MOVES: [line: string, weight: (s: ReturnType<typeof statsOf>) => number][] = [
+  ["you do not feel like answering that. Dodge it, answer something easier, or turn it back on them.", (s) => 200 - s.extraversion - s.agreeableness],
+  ["your own concern, or something you can see, pulls you off the question. Answer it in passing, if at all.", (s) => s.extraversion + s.openness],
+  ["you are more curious about the player than about their question. Ask them something.", (s) => s.extraversion + s.openness],
+  ["you say something more honest or private than you meant to.", (s) => s.extraversion + s.neuroticism],
+  ["the question rubs you the wrong way, a little. Let it show without making a scene.", (s) => 100 - s.agreeableness + s.neuroticism],
+  ["you have no patience for talk. One word, a grunt, or a look.", (s) => 2 * (100 - s.extraversion)],
+];
+function dialogueMove(runtime: Runtime, actor: Actor, exchange: number) {
+  const { state } = runtime.engine;
+  const key = ["dialogue-move", actor.id, state.clock, exchange] as const;
+  if (actor.trust < 0 || terrified(runtime, actor) || runtime.engine.trespassing(actor) || random(state.manifest.seed, ...key, "chance") >= 0.3) return "";
+  const stats = statsOf(state.manifest.seed, actor);
+  const weights = MOVES.map(([, weight]) => Math.max(1, weight(stats)));
+  let at = random(state.manifest.seed, ...key, "kind") * weights.reduce((a, b) => a + b);
+  const move = MOVES[weights.findIndex((w) => (at -= w) < 0)] ?? MOVES[0];
+  return `This turn: ${move[0]} Drop this if the player has just said something that needs a straight answer: a threat, an offer, real news.`;
+}
+
 export async function dialogueTurn(
   runtime: Runtime,
   actorId: string,
@@ -507,14 +528,19 @@ export async function dialogueTurn(
     dialogueContext(runtime, actor),
     realLanguage && setting ? languageBrief(setting.lon, setting.lat, setting.year) : "",
   ].filter(Boolean).join("\n\n");
+  const { state } = runtime.engine;
+  const animals = [...new Set((state.fauna ?? []).flatMap((group) => faunaProfile(group.speciesId)?.label.toLowerCase().replace(/ study$/, "") ?? []))];
+  const voice = voiceBrief(state.manifest.seed, actor, statsOf(state.manifest.seed, actor), animals);
+  const aside = plotBrief(runtime, actor) ? "" : dialogueInterruption(runtime, actor, history.length);
   const latest = [
     situation ? `Just now: ${situation}` : "",
-    plotBrief(runtime, actor) ? "" : dialogueInterruption(runtime, actor, history.length),
+    aside || (input.trim() && !situation && !plotBrief(runtime, actor) ? dialogueMove(runtime, actor, history.length) : ""),
     input.trim() ? `Player says: ${input.trim().slice(0, 400)}` : "Begin with one brief spoken line to the player.",
   ].filter(Boolean).join("\n\n");
-  const compose = () => [context, `Conversation so far:\n${transcript.join("\n") || "none."}`, latest].join("\n\n");
+  // The voice goes after the transcript, next to the player's line, where a small model weighs it most.
+  const compose = () => [context, `Conversation so far:\n${transcript.join("\n") || "none."}`, voice, latest].join("\n\n");
   let user = compose();
-  while (user.length > 7000 && transcript.length) {
+  while (user.length > 8000 && transcript.length) {
     transcript.shift();
     user = compose();
   }
