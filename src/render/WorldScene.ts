@@ -37,27 +37,9 @@ import { grassTuftFrame, TUFT_ATLAS } from "./ground-motifs";
 import { Mycelium } from "./mycelium";
 import { rockFrame } from "../content/ecology/rocks";
 import { propVariety, reviewedPropFrame } from "./prop-variety";
-import { ensureSignTexture, inkFor, signWidth } from "./sign-texture";
-import { secondLanguage, signLanguage, signOptions, signPaints } from "../content/settlements/signs";
+import { secondLanguage, signLanguage, signOptions, signPaints, streetTrade } from "../content/settlements/signs";
 import { drawShopSign, fitWord, SIGN_GLOW, type SignSlot } from "./shop-signs";
 /** Trades for a shopfront the kit did not name. */
-const GENERIC_TRADES = [
-  "grocery",
-  "cafe",
-  "bakery",
-  "barber",
-  "tailor",
-  "hardware",
-  "pharmacy",
-  "shop",
-  "shoes",
-  "jeweler",
-  "radio",
-  "books",
-  "butcher",
-  "sweets",
-  "juice",
-];
 import type { Place } from "../core/types";
 import type { WorldSetting } from "../content/geography/types";
 import { aerialStates, type FaunaGroup, type FaunaState } from "../core/fauna";
@@ -2962,65 +2944,6 @@ export class WorldScene extends Phaser.Scene {
       });
     });
   }
-  /** The word over a shop door.
-   *
-   * The building art paints the board and publishes its rect; the word is
-   * chosen here, from the trade, the language the street writes in, and — for
-   * the trades a family puts its own name over — the surname of whoever keeps
-   * it. The shortest word that fits the board wins, so a narrow frontage says
-   * PAIN where a wide one says BOULANGER.
-   */
-  private addBuildingSign(
-    place: Place,
-    placement: ReturnType<typeof buildingPlacement>,
-    setting: WorldSetting | undefined,
-    // The building's own drawn y: `sprite()` lifts it by the ground height,
-    // and a sign that ignores that slides down the facade on any slope.
-    top: number,
-  ) {
-    const model = placement.model as typeof placement.model & {
-      signBand?: [number, number, number, number];
-      signPaint?: string;
-      business?: string;
-    };
-    const band = model.signBand;
-    if (!band || !setting) return;
-    const language = signLanguage(setting);
-    if (!language) return;
-    const seed = this.runtime.engine.state.manifest.seed;
-    // The kit's own shopfronts carry no trade, and a street of them all
-    // reading SHOP is worse than no sign. Give each one a trade of its own.
-    const trade =
-      model.business ||
-      GENERIC_TRADES[
-        Math.floor(random(seed, "sign-trade", place.id) * GENERIC_TRADES.length)
-      ];
-    if (trade.startsWith("residential")) return;
-    const personal = random(seed, "sign-name", place.id) < 0.38;
-    const options = signOptions(
-      trade,
-      language,
-      this.ownerSurname(place),
-      personal,
-    );
-    const budget = band[2] - 6;
-    const word = options.find((option) => signWidth(option) <= budget);
-    if (!word) return;
-    const ink = inkFor(model.signPaint ?? "#b69b58");
-    const key = ensureSignTexture(this, word, ink);
-    if (!key) return;
-    const image = this.add
-      .image(
-        Math.round(placement.x - model.anchor[0] + band[0] + band[2] / 2),
-        Math.round(top - model.anchor[1] + band[1] + band[3] / 2),
-        key,
-      )
-      .setOrigin(0.5, 0.5)
-      .setTint(this.tint)
-      .setDepth(placement.depth + 1);
-    this.layers.push(image);
-  }
-
   /** Every sign spot the art left on a front: a trade, a language, a paint
    * and words for each, or nothing. A building's first spot carries its own
    * trade; the others are neighbours renting the rest of the ground floor. */
@@ -3030,7 +2953,7 @@ export class WorldScene extends Phaser.Scene {
     setting: WorldSetting | undefined,
     top: number,
   ) {
-    const model = placement.model as typeof placement.model & { shopSigns?: SignSlot[]; business?: string };
+    const model = placement.model as typeof placement.model & { shopSigns?: SignSlot[]; business?: string; signPaint?: string };
     if (!model.shopSigns?.length || !setting) return;
     const first = signLanguage(setting);
     if (!first) return;
@@ -3041,18 +2964,18 @@ export class WorldScene extends Phaser.Scene {
       const r = (k: string) => random(seed, "shop-sign", k, place.id, i);
       const own = i === 0 ? model.business : undefined;
       if (own?.startsWith("residential") || r("bare") < 0.12) return;
-      const trade = hint || own || GENERIC_TRADES[Math.floor(r("trade") * GENERIC_TRADES.length)];
+      const year = this.runtime.engine.world.pack.year;
+      const trade = hint || own || streetTrade(year, r("trade"));
       const language = second && r("language") < second[1] ? second[0] : first;
-      const options = signOptions(trade, language, this.ownerSurname(place), r("name") < 0.3);
+      const options = signOptions(trade, language, year, this.ownerSurname(place), r("name") < 0.3);
       const fit = fitWord(options, language, w, h, kind, r("word"));
       if (!fit) return;
-      const paint = paints[Math.floor(r("paint") * paints.length)];
+      const paint = kind === "band" && model.signPaint ? model.signPaint : paints[Math.floor(r("paint") * paints.length)];
       const made = drawShopSign(this, w, h, kind, paint, language, fit.word, fit.text, Math.floor(r("accent") * 15));
       if (!made) return;
       const x = Math.round(placement.x - model.anchor[0] + sx), y = Math.round(top - model.anchor[1] + sy);
       const image = this.add.image(x, y, made.key).setOrigin(0, 0).setTint(this.tint).setDepth(placement.depth + 1);
       this.layers.push(image);
-      const year = this.runtime.engine.world.pack.year;
       // Signs go off when the shop shuts, a few burn on into the night.
       const off = 21.5 + r("off") * 3;
       const lit = (h: number) => (h >= 17.5 || h < 6) && (h >= 12 ? h : h + 24) < off;
@@ -5201,7 +5124,6 @@ export class WorldScene extends Phaser.Scene {
                 this.runtime.engine.state.manifest.seed, b.id, (frame) => this.texture(frame), this.tint),
             );
             this.addChurchBanner(b, placement, w.pack.setting, image.y);
-            this.addBuildingSign(b, placement, w.pack.setting, image.y);
             this.addShopSigns(b, placement, w.pack.setting, image.y);
             if (
               (b.access === "household" ||

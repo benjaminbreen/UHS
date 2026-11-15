@@ -1,13 +1,6 @@
-/** Shop lettering, drawn at runtime rather than baked into the atlas.
- *
- * The building art paints the board and publishes its rect as `signBand`; the
- * word goes on here. That is what lets one storefront sprite read MART in
- * Cheyenne, BOULANGER in Dakar and GUZMAN wherever a shop is named after the
- * family that keeps it.
- *
- * The font is the same 3x5 capital set the atlas used, so nothing about the
- * look changes — only where it is drawn. I and J are narrower than the rest,
- * which buys roughly one more letter on a small shopfront.
+/** The 3x5 capital font shop lettering is set in, Latin and Cyrillic. I and
+ * J are narrower than the rest, which buys roughly one more letter on a small
+ * shopfront. `shop-signs.ts` draws with it.
  */
 export const GLYPHS: Record<string, string[]> = {
   A: ["010", "101", "111", "101", "101"],
@@ -84,7 +77,6 @@ export const GLYPHS: Record<string, string[]> = {
   Ю: ["10010", "10101", "11101", "10101", "10010"],
   Я: ["011", "101", "011", "101", "101"],
 };
-export const SIGN_HEIGHT = 5;
 
 /** Strip accents and anything the font cannot draw: the set is capitals, and
  * a sign that silently loses a letter is worse than one that says CAFE. */
@@ -92,70 +84,13 @@ export function signable(text: string): string {
   return text
     .replace(/Ё/g, "Е")
     .replace(/Й/g, "\u0000")
+    .replace(/[øØ]/g, "O")
+    .replace(/[æÆ]/g, "AE")
+    .replace(/ß/g, "SS")
+    .replace(/[łŁ]/g, "L")
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
     .replace(/\u0000/g, "Й")
     .toUpperCase()
     .replace(/[^A-Z0-9&'. \-А-Я]/g, "");
-}
-
-export function signWidth(text: string): number {
-  let width = 0;
-  for (const char of signable(text)) {
-    const glyph = GLYPHS[char];
-    width += glyph ? glyph[0].length + 1 : 4;
-  }
-  return Math.max(0, width - 1);
-}
-
-/** The longest prefix of `words` that fits, else the shortest word given. */
-export function fitSign(options: string[], budget: number): string | undefined {
-  const fits = options.filter((word) => signWidth(word) <= budget);
-  return fits.length ? fits[0] : undefined;
-}
-
-/**
- * A texture for one word in one ink. Keyed by both, so a street of fifty
- * GROCER signs in the same paint is one texture, not fifty.
- */
-export function ensureSignTexture(
-  scene: Phaser.Scene,
-  text: string,
-  ink: string,
-): string | undefined {
-  const word = signable(text);
-  const width = signWidth(word);
-  if (!width) return undefined;
-  const key = `sign:${word}:${ink}`;
-  if (scene.textures.exists(key)) return key;
-  const canvas = scene.textures.createCanvas(key, width, SIGN_HEIGHT);
-  if (!canvas) return undefined;
-  const ctx = canvas.getContext();
-  ctx.clearRect(0, 0, width, SIGN_HEIGHT);
-  ctx.fillStyle = ink;
-  let cursor = 0;
-  for (const char of word) {
-    const glyph = GLYPHS[char];
-    if (!glyph) {
-      cursor += 4;
-      continue;
-    }
-    glyph.forEach((row, y) =>
-      [...row].forEach((bit, x) => {
-        if (bit === "1") ctx.fillRect(cursor + x, y, 1, 1);
-      }),
-    );
-    cursor += glyph[0].length + 1;
-  }
-  canvas.refresh();
-  return key;
-}
-
-/** Black or cream, whichever the board can carry. A dark ink on a dark board
- * is the one failure that makes a sign unreadable at 1x. */
-export function inkFor(board: string): string {
-  const hex = board.replace("#", "");
-  const [r, g, b] = [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16) || 0);
-  const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.55 ? "#241c15" : "#f4e7c4";
 }

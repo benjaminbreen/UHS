@@ -102,19 +102,21 @@ holds up a step; `boundaries.ts` how walls and fences are built.
 
 ### Shop signs
 
-The building art publishes where a sign may hang; lettering is drawn at
-runtime. `src/content/settlements/signs.ts` picks the word by trade, language
-(by culture, place and date) and board width, and the owner's name where the
-trade carries one. Two paths are live:
+The building art publishes where a sign may hang (`shopSigns`); lettering is
+drawn at runtime by `src/render/shop-signs.ts`. `src/content/settlements/signs.ts`
+picks the word by trade, language (by culture, place and date) and board
+width, drops trades and words a decade has not reached (no RADIO before 1922),
+and puts the owner's name on the trades that carry one. Arabic, Persian,
+Hebrew, CJK, Devanagari and Bengali come from `sign-glyphs.generated.ts`
+(built by `scripts/art/sign_glyphs.py` from `sign-words.json`); Latin and
+Cyrillic use the 3x5 font in `sign-texture.ts`. A `band` slot letters a board
+the painter drew itself, in the model's `signPaint`.
 
-- `shopSigns` slots (most buildings): `src/render/shop-signs.ts` draws board
-  and lettering whole, including Arabic, CJK and Devanagari from
-  `sign-glyphs.generated.ts` (built by `scripts/art/sign_glyphs.py` from
-  `sign-words.json`).
-- `signBand` (older painted boards): `WorldScene.addBuildingSign` letters the
-  board via `sign-texture.ts`.
-
-New buildings should publish `shopSigns`.
+Before lettering, shops hang picture signs (`src/content/props/signage.ts`).
+Once a street letters its fronts, only the marks that outlived the hanging
+sign stay: inn, chemist, barber, pawnbroker, locksmith, tobacconist. A street
+whose language is not written yet (Greece, Hungary, Romania, the Baltic,
+Thailand and others) keeps every picture sign.
 
 ## Where to extend
 
@@ -128,8 +130,6 @@ its own module.
 Retiring or merging these is welcome; there are no saves to preserve:
 
 - `v3/urban-v1.ts` (`urbanRevision: 1`).
-- Two shop-sign paths (`signBand` and `shopSigns`); move the `signBand`
-  models to `shopSigns`.
 
 ## Checks
 

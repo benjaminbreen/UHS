@@ -7,6 +7,7 @@ import {
   wallStyles,
 } from "../src/content/props/signage";
 import { propDefs } from "../src/content/props/catalog";
+import { signLanguage, signOptions } from "../src/content/settlements/signs";
 import { resolveSetting } from "../src/content/geography/resolve";
 import { packs } from "../src/content/packs";
 import type { Pack } from "../src/core/types";
@@ -49,14 +50,47 @@ describe("compact historical signage", () => {
       const p = pack(query);
       return wallSignFor(p, signFor(p)!, emblem, venue);
     };
-    expect(hung("London 1400", 0, "tavern").key).toBe("wallsign-bush");
-    expect(hung("London 1700", 17).key).toBe("wallsign-barber");
-    expect(hung("Kyoto 1700", 0).key).toBe("wallsign-sugidama");
-    expect(hung("Beijing 1700", 0, "tavern").key).toBe("wallsign-wineflag");
+    expect(hung("London 1400", 0, "tavern")?.key).toBe("wallsign-bush");
+    expect(hung("London 1700", 17)?.key).toBe("wallsign-barber");
+    expect(hung("Kyoto 1700", 0)?.key).toBe("wallsign-sugidama");
+    expect(hung("Beijing 1700", 0, "tavern")?.key).toBe("wallsign-wineflag");
     expect(hung("Vienna 1650", 3)).toEqual({ key: "wallsign-cutout", variant: 16 });
     expect(hung("London 1650", 3)).toEqual({ key: "wallsign-painted", variant: 3 });
+    // Lettered streets keep only the marks that outlived the hanging sign.
+    expect(hung("London 1880", 18)).toEqual({ key: "wallsign-painted", variant: 18 });
+    expect(hung("London 1880", 3)).toBeUndefined();
+    expect(wallSignFor(pack("London 1880"), signFor(pack("London 1880"))!, 3, undefined, true)?.key).toBe("wallsign-painted");
+    expect(hung("Budapest 1900", 3)?.key).toBe("wallsign-fascia");
     expect(emblemFor(undefined, "locksmith")).toBe(19);
     expect(emblemFor(undefined, "butcher")).toBe(22);
+  });
+
+  it("letters a shop front in its street's language and its own decade", () => {
+    const language = (query: string) => signLanguage(settingFor(query));
+    expect(language("Berlin 1900")).toBe("de");
+    const at = (lon: number, lat: number, year: number) => signLanguage({ ...settingFor("Berlin 1900"), lon, lat, year });
+    expect(at(6.96, 50.94, 1900)).toBe("de"); // Cologne
+    expect(at(7.75, 48.58, 1900)).toBe("de"); // Strasbourg
+    expect(at(7.75, 48.58, 1950)).toBe("fr");
+    expect(at(17.03, 51.11, 1930)).toBe("de"); // Breslau
+    expect(at(17.03, 51.11, 1960)).toBe("pl");
+    expect(language("Rome 1950")).toBe("it");
+    expect(language("Warsaw 1930")).toBe("pl");
+    expect(language("Stockholm 1950")).toBe("sv");
+    expect(language("Oslo 1950")).toBe("da");
+    expect(language("Lisbon 1930")).toBe("pt");
+    expect(language("Montreal 1950")).toBe("fr");
+    expect(language("Novosibirsk 1960")).toBe("ru");
+    expect(language("Edinburgh 1900")).toBe("en");
+    expect(language("Kolkata 1950")).toBe("bn");
+    expect(language("Tel Aviv 1960")).toBe("he");
+    expect(language("Bucharest 1930")).toBeUndefined();
+    expect(language("Athens 1950")).toBeUndefined();
+    expect(signOptions("radio", "en", 1900)).toEqual([]);
+    expect(signOptions("radio", "en", 1930)).toEqual(["RADIO"]);
+    expect(signOptions("donut shop", "de", 1950)).toEqual(["LADEN"]);
+    expect(signOptions("bakery", "ru", 1900, "СМИРНОВ", true)[0]).toBe("СМИРНОВ");
+    expect(signOptions("bakery", "ru", 1960, "СМИРНОВ", true)).not.toContain("СМИРНОВ");
   });
 
   it("identifies actual trades and civic functions without a generic sacred glyph", () => {

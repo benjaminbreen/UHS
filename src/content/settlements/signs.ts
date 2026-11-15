@@ -2,18 +2,18 @@
  *
  * Signage in a Latin alphabet is a modern habit and a regional one: the word
  * is the trade's, the language is the street's, and often enough the name is
- * the family's. Scripts this 3x5 font cannot draw — Chinese, Arabic,
- * Devanagari, Thai — get no lettering at all; those streets already hang their
- * own painted boards from the prop kit, which is the right answer there.
- * Arabic, Persian, Chinese and Japanese come as bitmaps rendered offline from
- * sign-words.json; Russian uses the runtime font's Cyrillic.
+ * the family's. Arabic, Persian, Chinese, Japanese, Korean and Devanagari come
+ * as bitmaps rendered offline from sign-words.json; Russian uses the runtime
+ * font's Cyrillic. A street whose language is not written here keeps its
+ * picture boards (`content/props/signage.ts`) instead.
  */
 import type { WorldSetting } from "../geography/types";
 import SCRIPT_WORDS from "./sign-words.json" with { type: "json" };
 
 export type SignLanguage =
-  "en" | "fr" | "nl" | "es" | "pt" | "id" | "tr" | "sw" | "ru" | "ar" | "fa" | "zh" | "zhs" | "ja" | "hi" | "ko";
-export const SCRIPTED = new Set<SignLanguage>(["ar", "fa", "zh", "zhs", "ja", "hi", "ko"]);
+  | "en" | "fr" | "nl" | "es" | "pt" | "id" | "tr" | "sw" | "ru" | "de" | "it" | "pl" | "sv" | "da"
+  | "ar" | "fa" | "he" | "zh" | "zhs" | "ja" | "hi" | "bn" | "ko";
+export const SCRIPTED = new Set<SignLanguage>(["ar", "fa", "he", "zh", "zhs", "ja", "hi", "bn", "ko"]);
 
 /** Which language a modern street writes in.
  *
@@ -26,9 +26,13 @@ export function signLanguage(setting: WorldSetting): SignLanguage | undefined {
   if (year < 1800) return undefined;
   const box = (w: number, e: number, s: number, n: number) =>
     lon >= w && lon <= e && lat >= s && lat <= n;
-  // The Hindi belt and Bombay sign in Devanagari; Bengali, Gujarati, the
-  // Dravidian scripts and Urdu are not drawn yet.
-  if (culture === "south-asian") return year >= 1900 && box(72.5, 88, 18.8, 31) ? "hi" : undefined;
+  // The Hindi belt and Bombay sign in Devanagari, Bengal in Bengali; Gujarati,
+  // the Dravidian scripts and Urdu are not drawn yet.
+  if (culture === "south-asian") {
+    if (year < 1900) return undefined;
+    if (box(85.8, 92.7, 20.6, 27.3)) return "bn";
+    return box(72.5, 88, 18.8, 31) ? "hi" : undefined;
+  }
   if (culture === "east-asian") {
     if (box(128, 146, 30, 46)) return year >= 1870 ? "ja" : undefined;
     if (box(124, 131, 33, 43)) return year >= 1945 ? "ko" : year >= 1910 ? "ja" : undefined;
@@ -36,6 +40,7 @@ export function signLanguage(setting: WorldSetting): SignLanguage | undefined {
   }
   if (culture === "north-african-west-asian") {
     if (box(26, 45, 36, 42)) return year >= 1928 ? "tr" : undefined;
+    if (box(34.2, 35.7, 29.4, 33.3) && year >= 1948) return "he";
     if (year < 1850) return undefined;
     // Iran and Afghanistan; Iraq, Kuwait and the Gulf states write Arabic.
     return box(48.5, 75, 27, 40) || box(46, 48.5, 34, 40) ? "fa" : "ar";
@@ -52,13 +57,31 @@ export function signLanguage(setting: WorldSetting): SignLanguage | undefined {
     return box(29, 42, -12, 5) ? "sw" : box(30, 41, -27, -10) ? "pt" : "en";
   if (culture === "mesoamerican" || culture === "andean") return "es";
   if (culture === "european") {
-    if (box(27, 180, 41.5, 75) || box(22, 27, 41, 45)) return "ru"; // Russia and the Slavic east; Bulgaria
     if (box(-74, -34, -34, 6)) return "pt"; // Brazil
     if (box(-118, -34, -56, 25) && !box(-100, -60, 25, 50)) return "es";
+    if (box(-74.5, -57, 45, 53)) return "fr"; // Quebec
+    if (box(27, 180, 41.5, 75) || box(22.3, 27, 41.2, 44.2)) return "ru"; // Russia and the Slavic east; Bulgaria
+    if (lon < -30 || lon > 60 || lat < 34 || box(-10.7, 1.8, 49.8, 60.9)) return "en";
     if (box(3.3, 7.3, 51.2, 53.6)) return "nl"; // the Netherlands and Flanders
+    // Alsace and Lorraine letter in German while they are German.
+    if (box(5.9, 7.8, 47.4, 49.6) && lat < 49.1) return year >= 1871 && year < 1919 ? "de" : "fr";
+    // Silesia, Pomerania and East Prussia letter in German until 1945; Kaliningrad in Russian after.
+    if (box(14.1, 24.2, 49, 54.9)) {
+      if (year >= 1945) return lat > 54.3 && lon > 19.6 ? "ru" : "pl";
+      return lon >= 17.5 && lat <= 54 ? "pl" : "de";
+    }
+    if (box(5.9, 15.1, 47.3, 55.1) || box(9.5, 17.2, 46.4, 49)) return "de";
     if (box(-5, 8, 42, 51)) return "fr";
+    if (box(-9.6, -6.2, 36.9, 42.2)) return "pt";
     if (box(-10, 4, 36, 44)) return "es";
-    return "en";
+    if (box(6.6, 13.9, 43.7, 47.1) || box(8, 16.2, 40, 43.7) || box(12.4, 18.6, 36.6, 42) || box(8, 10, 38.8, 41.3))
+      return "it";
+    // Denmark, and Norway, which wrote Danish until 1907 and something close to it after.
+    if (box(8, 12.75, 54.5, 57.8) || (lat > 57.9 && lat < 71 && lon < 11.8)) return "da";
+    if (box(11.8, 24.2, 55.3, 69.1)) return "sv";
+    // Greece, the Balkans, Hungary, the Czech lands, Romania, Finland and the
+    // Baltic keep their picture boards until their languages are written here.
+    return undefined;
   }
   return "en";
 }
@@ -254,6 +277,69 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   },
 };
 
+// Words kept apart by language only so the table above stays readable.
+const MORE: Partial<Record<SignLanguage, Record<string, string[]>>> = {
+  de: {
+    "corner store": ["LADEN"], grocery: ["KOLONIALWAREN", "LEBENSMITTEL"], "neighborhood market": ["MARKT", "MARKTHALLE"],
+    bakery: ["BROT", "BACKWAREN"], cafe: ["CAFE", "KAFFEEHAUS"], diner: ["IMBISS", "GASTHAUS"], pharmacy: ["APOTHEKE"],
+    clinic: ["KLINIK", "PRAXIS"], "auto workshop": ["GARAGE", "WERKSTATT"], "gas station": ["BENZIN", "TANKSTELLE"],
+    laundromat: ["WASCHSALON"], motel: ["HOTEL", "PENSION"], barber: ["FRISEUR"], hardware: ["EISENWAREN"],
+    tailor: ["SCHNEIDER"], shoes: ["SCHUHE"], jeweler: ["UHREN", "JUWELIER"], radio: ["RADIO"], books: ["BUCHHANDLUNG"],
+    butcher: ["FLEISCH", "METZGEREI"], sweets: ["KONDITOREI"], juice: ["SAFT"], bank: ["BANK", "SPARKASSE"], shop: ["LADEN"],
+  },
+  it: {
+    "corner store": ["BOTTEGA", "ALIMENTARI"], grocery: ["ALIMENTARI", "SALUMERIA"], "neighborhood market": ["MERCATO"],
+    bakery: ["PANE", "FORNO", "PANIFICIO"], cafe: ["BAR", "CAFFE"], diner: ["OSTERIA", "TRATTORIA"], pharmacy: ["FARMACIA"],
+    clinic: ["CLINICA"], "auto workshop": ["OFFICINA"], "gas station": ["BENZINA"], laundromat: ["LAVANDERIA"],
+    motel: ["HOTEL", "ALBERGO"], barber: ["BARBIERE"], hardware: ["FERRAMENTA"], tailor: ["SARTO", "SARTORIA"],
+    shoes: ["SCARPE", "CALZATURE"], jeweler: ["OREFICE", "GIOIELLERIA"], radio: ["RADIO"], books: ["LIBRI", "LIBRERIA"],
+    butcher: ["CARNI", "MACELLERIA"], sweets: ["DOLCI", "PASTICCERIA"], juice: ["SUCCHI"], bank: ["BANCA"],
+    shop: ["NEGOZIO", "BOTTEGA"],
+  },
+  pl: {
+    "corner store": ["SKLEP"], grocery: ["SPOŻYWCZY", "KOLONIALNE"], "neighborhood market": ["TARG", "HALA"],
+    bakery: ["CHLEB", "PIEKARNIA"], cafe: ["KAWA", "KAWIARNIA"], diner: ["BAR", "RESTAURACJA"], pharmacy: ["APTEKA"],
+    clinic: ["PRZYCHODNIA"], "auto workshop": ["WARSZTAT"], "gas station": ["BENZYNA", "STACJA"], laundromat: ["PRALNIA"],
+    motel: ["HOTEL"], barber: ["FRYZJER"], hardware: ["NARZĘDZIA"], tailor: ["KRAWIEC"], shoes: ["OBUWIE"],
+    jeweler: ["JUBILER", "ZEGARMISTRZ"], radio: ["RADIO"], books: ["KSIĘGARNIA"], butcher: ["MIĘSO", "RZEŹNIK"],
+    sweets: ["CUKIERNIA"], juice: ["SOKI"], bank: ["BANK"], shop: ["SKLEP"],
+  },
+  sv: {
+    "corner store": ["LIVS", "HANDEL"], grocery: ["LIVS", "SPECERIER"], "neighborhood market": ["TORG", "SALUHALL"],
+    bakery: ["BAGERI"], cafe: ["KAFE", "KONDITORI"], diner: ["MATSAL", "SERVERING"], pharmacy: ["APOTEK"],
+    clinic: ["KLINIK"], "auto workshop": ["VERKSTAD"], "gas station": ["BENSIN"], laundromat: ["TVÄTT"],
+    motel: ["HOTELL"], barber: ["FRISÖR"], hardware: ["JÄRNHANDEL"], tailor: ["SKRÄDDARE"], shoes: ["SKOR"],
+    jeweler: ["UR", "GULDSMED"], radio: ["RADIO"], books: ["BOKHANDEL"], butcher: ["KÖTT", "SLAKTARE"],
+    sweets: ["GODIS", "KONDITORI"], juice: ["JUICE"], bank: ["BANK", "SPARBANK"], shop: ["BUTIK", "HANDEL"],
+  },
+  da: {
+    "corner store": ["KIOSK", "HANDEL"], grocery: ["KOLONIAL", "KØBMAND"], "neighborhood market": ["TORV"],
+    bakery: ["BAGER", "BAGERI"], cafe: ["CAFE", "KONDITORI"], diner: ["KRO", "SPISEHUS"], pharmacy: ["APOTEK"],
+    clinic: ["KLINIK"], "auto workshop": ["AUTO", "VÆRKSTED"], "gas station": ["BENZIN"], laundromat: ["VASKERI"],
+    motel: ["HOTEL", "PENSIONAT"], barber: ["FRISØR"], hardware: ["ISENKRAM"], tailor: ["SKRÆDDER"], shoes: ["SKO"],
+    jeweler: ["URMAGER", "GULDSMED"], radio: ["RADIO"], books: ["BØGER", "BOGHANDEL"], butcher: ["SLAGTER"],
+    sweets: ["SLIK"], juice: ["SAFT"], bank: ["BANK", "SPAREKASSE"], shop: ["BUTIK"],
+  },
+};
+for (const [language, trades] of Object.entries(MORE))
+  for (const [trade, words] of Object.entries(trades)) (WORDS[trade] ??= {})[language as SignLanguage] = words;
+
+/** The first year a trade, or a word for it, belongs on a street. */
+const TRADE_FROM: Record<string, number> = {
+  "auto workshop": 1900, "gas station": 1905, "donut shop": 1920, radio: 1922, motel: 1925, laundromat: 1934, juice: 1950,
+};
+const WORD_FROM: Record<string, number> = { TV: 1950, MART: 1930, "АЗС": 1930, "АВТОСЕРВИС": 1960, BAR: 1920 };
+
+/** Shops a builder leaves unnamed take one of these. */
+const STREET_TRADES = [
+  "grocery", "cafe", "bakery", "barber", "tailor", "hardware", "pharmacy", "shop",
+  "shoes", "jeweler", "radio", "books", "butcher", "sweets", "juice",
+];
+export function streetTrade(year: number, roll: number): string {
+  const open = STREET_TRADES.filter((trade) => (TRADE_FROM[trade] ?? 0) <= year);
+  return open[Math.floor(roll * open.length)];
+}
+
 /** Trades a family puts its own name over. A gas station is a brand; a tailor
  * is a person. */
 const PERSONAL = new Set([
@@ -276,16 +362,18 @@ const PERSONAL = new Set([
 export function signOptions(
   trade: string,
   language: SignLanguage | undefined,
+  year: number,
   surname?: string,
   personal = false,
 ): string[] {
-  if (!language) return [];
+  if (!language || (TRADE_FROM[trade] ?? 0) > year) return [];
   const scripted = (SCRIPT_WORDS as unknown as Record<string, Partial<Record<SignLanguage, string[]>>>)[trade]?.[language];
   if (SCRIPTED.has(language)) return scripted ? [...scripted] : [];
-  const words = [...(WORDS[trade]?.[language] ?? WORDS[trade]?.en ?? [])].sort(
-    (a, b) => a.length - b.length,
-  );
-  if (surname && personal && PERSONAL.has(trade) && language !== "ru") return [surname, ...words];
+  const words = (WORDS[trade]?.[language] ?? WORDS.shop[language] ?? WORDS[trade]?.en ?? [])
+    .filter((word) => (WORD_FROM[word] ?? 0) <= year)
+    .sort((a, b) => a.length - b.length);
+  // Soviet shops belonged to the state; a merchant before 1918 hung his name.
+  if (surname && personal && PERSONAL.has(trade) && !(language === "ru" && year >= 1918)) return [surname, ...words];
   return words;
 }
 
@@ -296,7 +384,8 @@ export function secondLanguage(setting: WorldSetting): [SignLanguage, number] | 
   if (first === "ar" || first === "fa") return [setting.year < 1952 ? "fr" : "en", 0.14];
   if (first === "zh" && setting.lon > 113.8 && setting.lon < 114.5) return ["en", 0.25];
   if (first === "ja") return ["en", 0.1];
-  if (first === "hi") return ["en", 0.45];
+  if (first === "hi" || first === "bn") return ["en", 0.45];
+  if (first === "he") return ["en", 0.25];
   return undefined;
 }
 
@@ -306,7 +395,7 @@ export function signPaints(setting: WorldSetting): string[] {
   if (first === "ar" || first === "fa") return ["#2f6b4f", "#b33a2e", "#2a4f8f", "#e0b23c", "#ece4cf", "#1f6f74", "#6b3a2a"];
   if (first === "zh" || first === "zhs") return ["#b8262c", "#1d5a3a", "#d9a632", "#1e3557", "#f2e8d0", "#2b2b2b"];
   if (first === "ja") return ["#f2ecdc", "#1f3b6a", "#c43c2e", "#2e6b4a", "#e9c54a", "#30303a"];
-  if (first === "hi") return ["#e8b730", "#b8302a", "#f1ead6", "#1f4e8c", "#2e7a4a", "#d2602a"];
+  if (first === "hi" || first === "bn") return ["#e8b730", "#b8302a", "#f1ead6", "#1f4e8c", "#2e7a4a", "#d2602a"];
   if (first === "ko") return ["#f3f0e6", "#1f4a8a", "#c0392b", "#2f7a52", "#f0c43a"];
   if (first === "ru") return ["#2c4a7a", "#a8322b", "#ece6d6", "#3d6b4a", "#5a5a64"];
   return ["#2f5d4a", "#9c3528", "#2b4a7a", "#d8a43b", "#ebe2cb", "#35353f", "#7a3b5e", "#c8642c"];

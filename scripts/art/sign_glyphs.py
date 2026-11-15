@@ -18,8 +18,11 @@ ARABIC_FONT = '/System/Library/Fonts/SFArabic.ttf'
 CJK_FONT = '/System/Library/Fonts/STHeiti Medium.ttc'
 DEVA_FONT = ('/System/Library/Fonts/Kohinoor.ttc', 2)      # Kohinoor Devanagari Semibold
 HANGUL_FONT = ('/System/Library/Fonts/AppleSDGothicNeo.ttc', 4)
+HEBREW_FONT = '/System/Library/Fonts/SFHebrew.ttf'
+BENGALI_FONT = ('/System/Library/Fonts/Supplemental/KohinoorBangla.ttc', 1)  # Semibold
 # (font size, threshold): the two sizes a board can take.
-SIZES = {'arabic': ((10, 105), (13, 115)), 'cjk': ((10, 110), (12, 120)), 'deva': ((12, 105), (15, 115))}
+# Hebrew shares Arabic's sizes; its thin strokes want a lower threshold.
+SIZES = {'arabic': ((10, 105), (13, 115)), 'hebrew': ((10, 55), (13, 65)), 'cjk': ((10, 110), (12, 120)), 'deva': ((12, 105), (15, 115))}
 
 # Letter -> first presentation form; four-form letters run isolated, final,
 # initial, medial; two-form letters only isolated and final.
@@ -63,6 +66,21 @@ def deva(word):
     return ''.join(out)
 
 
+def bangla(word):
+    """Bengali in visual order: i, e and ai signs go before their consonant,
+    and o and au wrap it. Words are chosen without conjuncts."""
+    out = []
+    for ch in word:
+        if ch in '\u09bf\u09c7\u09c8' and out:
+            out.insert(len(out) - 1, ch)
+        elif ch in '\u09cb\u09cc' and out:
+            out.insert(len(out) - 1, '\u09c7')
+            out.append('\u09be' if ch == '\u09cb' else '\u09d7')
+        else:
+            out.append(ch)
+    return ''.join(out)
+
+
 def draw(text, font, size, thr):
     font, index = font if isinstance(font, tuple) else (font, 0)
     f = ImageFont.truetype(font, size, index=index)
@@ -92,7 +110,7 @@ def pack(items, own=False):
 
 def main():
     words = json.loads((ROOT / 'src/content/settlements/sign-words.json').read_text())
-    arabic, cjk, hindi, hangul = set(), set(), set(), set()
+    arabic, cjk, hindi, hangul, hebrew, bengali = set(), set(), set(), set(), set(), set()
     for trade, langs in words.items():
         if trade == '_':
             continue
@@ -102,6 +120,10 @@ def main():
                     arabic.add(w)
                 elif lang == 'hi':
                     hindi.add(w)
+                elif lang == 'he':
+                    hebrew.add(w)
+                elif lang == 'bn':
+                    bengali.add(w)
                 elif lang == 'ko':
                     hangul.update(w)
                 else:
@@ -110,8 +132,13 @@ def main():
     for size, thr in SIZES['arabic']:
         for k, v in pack({w: draw(shape(w), ARABIC_FONT, size, thr) for w in sorted(arabic)}, own=True).items():
             out[f'{size}:{k}'] = v
+    for size, thr in SIZES['hebrew']:
+        for k, v in pack({w: draw(w[::-1], HEBREW_FONT, size, thr) for w in sorted(hebrew)}, own=True).items():
+            out[f'{size}:{k}'] = v
     for size, thr in SIZES['deva']:
         for k, v in pack({w: draw(deva(w), DEVA_FONT, size, thr) for w in sorted(hindi)}, own=True).items():
+            out[f'{size}:{k}'] = v
+        for k, v in pack({w: draw(bangla(w), BENGALI_FONT, size, thr) for w in sorted(bengali)}, own=True).items():
             out[f'{size}:{k}'] = v
     for size, thr in SIZES['cjk']:
         for font, chars in ((CJK_FONT, cjk), (HANGUL_FONT, hangul)):
@@ -179,9 +206,9 @@ def preview(im, slots, lang='ar', seed=0):
         pad = {'box': 3, 'paint': 0}.get(kind, 2)
         best = None
         for word in words[trade].get(lang, []):
-            sizes = (13, 10) if lang in ('ar', 'fa') else (15, 12) if lang == 'hi' else (12, 10)
+            sizes = (13, 10) if lang in ('ar', 'fa', 'he') else (15, 12) if lang in ('hi', 'bn') else (12, 10)
             for size in sizes:
-                if lang in ('ar', 'fa', 'hi'):
+                if lang in ('ar', 'fa', 'hi', 'he', 'bn'):
                     got = None if vertical else _bits(f'{size}:{word}')
                 else:
                     cells = [_bits(f'{size}:{ch}') for ch in word]

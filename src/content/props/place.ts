@@ -550,7 +550,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
               (/\b(shop|store|market|stall|apothecary|tea)\b/i.test(b.name)
                 ? 0.8
                 : 0.4));
-        const hung = sign && emblem !== undefined ? wallSignFor(world.pack, sign, emblem, venue?.kind) : undefined;
+        const hung = sign && emblem !== undefined ? wallSignFor(world.pack, sign, emblem, venue?.kind, mine) : undefined;
         const boardable = !!hung;
         // Signs keep apart, and the same mark further apart still: a row
         // of identical tea boards reads as wallpaper.

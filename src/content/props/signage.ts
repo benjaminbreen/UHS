@@ -1,5 +1,6 @@
 import type { Pack } from "../../core/types";
 import type { PropDef } from "./catalog";
+import { signLanguage } from "../settlements/signs";
 
 export const signLabels = [
   "Jug",
@@ -188,15 +189,25 @@ export function stallSignFor(pack: Pack, mark: number | undefined) {
   return { prop: `signpost-${style}`, sprite: `study-propb-signpost-${style}-${mark}`, label: signLabels[mark] };
 }
 
+/** Marks that kept hanging once shop fronts were lettered: the inn's board,
+ * the chemist's mortar, the barber's pole, the pawnbroker's balls, the
+ * locksmith's key and the tobacconist's pipe. */
+const KEPT = new Set([0, 10, 17, 18, 19, 24]);
+
 /** The sign one house hangs, from the street's style, its trade's mark and
  * its venue: an English alehouse its ale-stake, a barber his pole and basin,
  * a sake brewer the cedar ball, a Song wine shop its flag, and a baker in
- * German lands the pretzel. */
-export function wallSignFor(pack: Pack, street: { style: WallStyle }, emblem: number, venue?: string) {
+ * German lands the pretzel. Where the street letters its shop fronts, only
+ * the kept marks hang, unless the house is the player's own. */
+export function wallSignFor(pack: Pack, street: { style: WallStyle }, emblem: number, venue?: string, own = false) {
   const { lon = 0, lat = 0 } = pack.setting ?? {};
   const year = pack.year;
   const drink = venue === "tavern" || emblem === 0;
   let style: WallStyle = street.style;
+  if (style === "fascia" && pack.setting && signLanguage(pack.setting)) {
+    if (!own && !KEPT.has(emblem)) return undefined;
+    style = "painted";
+  }
   let mark = emblem;
   // The bush or ivy over a wine shop is Roman before it is English.
   if (venue === "tavern" && ((lon >= -6 && lon <= 2 && lat >= 50 && lat <= 56 && year >= 1200 && year < 1600) ||

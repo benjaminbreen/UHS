@@ -266,7 +266,7 @@ class InfillBuilding(UrbanBuilding):
         sprite can be Guzman's, a bakery or a cafe, in whatever language the
         place speaks. Baking it here meant one sprite was one word forever.
         The board is drawn full width and its rect is published in the model as
-        `signBand`; the renderer centres the word in it.
+        a `band` shop sign; the renderer centres the word in it.
         """
         if not self.sign_text or self.facing != 'south':
             return

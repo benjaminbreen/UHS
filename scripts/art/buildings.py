@@ -491,7 +491,8 @@ def build_buildings(root, sprites):
                 'from':r.get('from',0)}
                if r.get('candidate') else {}),
             **({'infill':True} if r.get('infill') else {}),
-            **({'signBand':artist.sign_band,
+            # A board the painter drew itself is lettered at runtime like any other sign spot.
+            **({'shopSigns':[[*artist.sign_band,'band']],
                 'signPaint':artist.sign_paint} if getattr(artist,'sign_band',None) else {}),
             **({'modern':True,'modernStyle':r.get('modernStyle','block'),
                 'modernRole':r.get('modernRole','home')} if r.get('modern') else {}),

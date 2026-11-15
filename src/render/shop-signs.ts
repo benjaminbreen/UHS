@@ -11,7 +11,8 @@ import { ARABIC_SIZES, CJK_SIZES, DEVA_SIZES, SCRIPT_BITMAPS } from "./sign-glyp
 import type { SignLanguage } from "../content/settlements/signs";
 import { blur } from "./window-light";
 
-export type SignKind = "board" | "box" | "paint" | "neon" | "blade";
+/** `band` letters a board the art painted itself, in the model's `signPaint`. */
+export type SignKind = "board" | "box" | "paint" | "neon" | "blade" | "band";
 /** x, y, w, h on the sprite; the kind of sign; the trade, when the art knows it. */
 export type SignSlot = [number, number, number, number, SignKind, string?];
 
@@ -71,9 +72,9 @@ function latinGlyph(char: string, scale: number): Bitmap {
 
 /** Every way this word can be set, largest first. */
 function settings(word: string, language: SignLanguage, vertical: boolean): Bitmap[] {
-  if (language === "ar" || language === "fa" || language === "hi") {
+  if (language === "ar" || language === "fa" || language === "he" || language === "hi" || language === "bn") {
     if (vertical) return [];
-    return [...(language === "hi" ? DEVA_SIZES : ARABIC_SIZES)].reverse().flatMap((size) => decoded(`${size}:${word}`) ?? []);
+    return [...(language === "hi" || language === "bn" ? DEVA_SIZES : ARABIC_SIZES)].reverse().flatMap((size) => decoded(`${size}:${word}`) ?? []);
   }
   if (language === "zh" || language === "zhs" || language === "ja" || language === "ko") {
     return [...CJK_SIZES].reverse().flatMap((size) => {
@@ -89,7 +90,8 @@ function settings(word: string, language: SignLanguage, vertical: boolean): Bitm
   });
 }
 
-const PAD: Record<SignKind, number> = { board: 2, box: 3, paint: 0, neon: 2, blade: 2 };
+/** Clear space inside the edge, across and down. */
+const PAD: Record<SignKind, [number, number]> = { board: [2, 2], box: [3, 3], paint: [0, 0], neon: [2, 2], blade: [2, 2], band: [3, 0] };
 
 /** The largest setting of any word that fits, or none: a board too small for
  * the shortest word is better left blank than crowded. */
@@ -102,7 +104,7 @@ export function fitWord(
   pick: number,
 ): { word: string; text: Bitmap } | undefined {
   const vertical = kind === "blade" || h > w * 1.6;
-  const room = [w - 2 * PAD[kind], h - 2 * PAD[kind]];
+  const room = [w - 2 * PAD[kind][0], h - 2 * PAD[kind][1]];
   const fits = options.flatMap((word) => {
     const text = settings(word, language, vertical).find((b) => b.w <= room[0] && b.h <= room[1]);
     return text ? [{ word, text }] : [];
@@ -185,6 +187,9 @@ export function drawShopSign(
       fill(1, 1, w - 2, 1, "#3e3746");
       ink = lit ? shade(tube, 0.55) : shade(tube, 0.25);
       shadow = lit ? undefined : "#15121a";
+    } else if (kind === "band") {
+      // Dark ink on a dark board is the one failure that makes a sign unreadable at 1x.
+      ink = light(paint) ? "#241c15" : "#f4e7c4";
     } else {
       // Lettered straight on a wall of unknown colour: a pale paint would vanish.
       ink = light(paint) ? shade(paint, -0.55) : paint;
