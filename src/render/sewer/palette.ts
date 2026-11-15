@@ -1,4 +1,4 @@
-import type { SewerKind } from "../../content/sewers";
+import type { MineKind, SewerKind } from "../../content/sewers";
 
 export type RGB = readonly [number, number, number];
 const hex = (h: string): RGB => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
@@ -10,7 +10,7 @@ export type SewerPalette = {
   /** The back wall: mortar or joint, dark, mid, light units. */
   face: RGB[];
   /** How the back wall is built. */
-  fabric: "brick" | "ashlar" | "cast" | "panel";
+  fabric: "brick" | "ashlar" | "cast" | "panel" | "rock" | "coal" | "salt";
   /** Walkway: joint, dark, mid, light. */
   ledge: RGB[];
   /** Room floor: joint, dark, mid, light. */
@@ -28,6 +28,9 @@ export type SewerPalette = {
   /** The dark earth behind everything, and its rim where it meets the open. */
   top: RGB;
   rim: RGB;
+  /** In a mine: what is dug, dark to light, and the timber that holds the roof up. */
+  ore?: RGB[];
+  timber?: RGB[];
 };
 
 export const sewerPalettes: Record<SewerKind, SewerPalette> = {
@@ -114,4 +117,59 @@ export const oldPalette: SewerPalette = {
   water: ramp("#141a14", "#243226", "#38503a", "#b0c4a4"),
   pipes: "none",
   rim: hex("#2c261e"),
+};
+
+const TIMBER = ramp("#3a2414", "#6a4426", "#8e6034", "#b4844c");
+
+/** Mines, by what they work. Their water is what the rock gives it: black
+ * from coal, ochre from metal sulphides, pale brine from salt. */
+export const minePalettes: Record<MineKind, SewerPalette> = {
+  coal: {
+    face: ramp("#141416", "#4a4a4e", "#5e5c5c", "#76726c"),
+    fabric: "coal",
+    ledge: ramp("#1a1a1c", "#2e2c2c", "#3a3836", "#4c4844"),
+    floor: ramp("#1c1b1c", "#353230", "#423e3a", "#56504a"),
+    coping: ramp("#5a5650", "#2a2828", "#121112"),
+    water: ramp("#0c0e10", "#1a2026", "#2c3840", "#9aa8b0"),
+    slime: hex("#6a6460"),
+    silt: ramp("#2a2826", "#3e3a36", "#555048"),
+    pipes: "none",
+    pipe: ramp("#1e1e22", "#3a3c42", "#62666e"),
+    top: hex("#070708"),
+    rim: hex("#1e1d1e"),
+    ore: ramp("#08080a", "#1c1c22", "#3a3c48", "#8a94b0"),
+    timber: TIMBER,
+  },
+  metal: {
+    face: ramp("#2e2622", "#5c4a3e", "#74604e", "#8e7a64"),
+    fabric: "rock",
+    ledge: ramp("#2a2420", "#463c34", "#56493e", "#6a5a4c"),
+    floor: ramp("#2c2622", "#4a4038", "#5a4e44", "#6e6052"),
+    coping: ramp("#8a7860", "#433a32", "#1e1a18"),
+    water: ramp("#24140a", "#4e2c12", "#84501e", "#e8b86a"),
+    slime: hex("#a8642a"),
+    silt: ramp("#3a2e26", "#54443a", "#6c5a4c"),
+    pipes: "none",
+    pipe: ramp("#2a2c30", "#45484e", "#6c7078"),
+    top: hex("#0a0807"),
+    rim: hex("#2a221e"),
+    ore: ramp("#2a3a34", "#3e6a58", "#5aa486", "#c8e8b8"),
+    timber: TIMBER,
+  },
+  salt: {
+    face: ramp("#5a5a52", "#8a8a7c", "#a4a294", "#c4c2b2"),
+    fabric: "salt",
+    ledge: ramp("#4e4c44", "#74705e", "#86826e", "#9c9882"),
+    floor: ramp("#52504a", "#7a7666", "#8e8a78", "#a6a28e"),
+    coping: ramp("#c8c4b0", "#6a675a", "#33322c"),
+    water: ramp("#1a2826", "#365048", "#5a7a6e", "#e4f0e8"),
+    slime: hex("#e8e6dc"),
+    silt: ramp("#5a564a", "#767060", "#908a76"),
+    pipes: "none",
+    pipe: ramp("#2a2c30", "#45484e", "#6c7078"),
+    top: hex("#0d0d0b"),
+    rim: hex("#36352e"),
+    ore: ramp("#6a6a62", "#a8a49a", "#d4d0c4", "#f4f2ea"),
+    timber: TIMBER,
+  },
 };

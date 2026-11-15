@@ -4456,6 +4456,8 @@ export class WorldScene extends Phaser.Scene {
       this.terrainAnchor = undefined;
     }
     this.effectsSpace = p.space;
+    // A life begun underground has no street to wait for.
+    if (p.space !== "outside" && !this.terrainStream) this.game.canvas.dataset.terrainPlayable = this.game.canvas.dataset.terrainReady = "true";
     if (w.topography && p.space === "outside") {
       if (!this.terrainStream) {
         this.terrainStream = new TerrainStream(
@@ -6240,6 +6242,7 @@ export class WorldScene extends Phaser.Scene {
     const e = this.runtime.engine, space = e.state.player.pos.space;
     const level = e.caveOf?.(space), run = e.state.cave;
     if (!level || !run) {
+      if (this.caveView) gameAudio()?.setUnderground(undefined);
       this.caveView?.destroy();
       this.caveView = undefined;
       return;
@@ -6274,6 +6277,23 @@ export class WorldScene extends Phaser.Scene {
         return texture === "__DEFAULT" || !this.textures.get(texture).has(frame) ? undefined : { texture, frame };
       },
     });
+    // The stream is loud where it runs close; still caves have far drips, and
+    // lava tubes and fissures a draught.
+    const cx = Math.floor((me?.x ?? p.pos.x * 16 + 8) / 16), cy = Math.floor(((me?.y ?? p.pos.y * 16 + 16) - 1) / 16);
+    let near = 99;
+    for (let dy = -8; dy <= 8; dy++) for (let dx = -8; dx <= 8; dx++) {
+      const x = cx + dx, y = cy + dy;
+      if (x >= 0 && y >= 0 && x < level.w && y < level.h && level.flow[y * level.w + x] >= 0) near = Math.min(near, Math.hypot(dx, dy));
+    }
+    const room = { karst: 0.75, sandstone: 0.45, lava: 0.6, fissure: 0.55, sea: 0.5, ice: 0.85 }[level.kind];
+    gameAudio()?.setUnderground({
+      place: "cave",
+      flow: level.stream ? Math.max(0.1, 1 - near / 9) : 0,
+      echo: Math.min(1, room + level.depth * 0.05),
+      surge: 0,
+      drips: level.kind === "lava" || level.kind === "sandstone" ? 0.25 : 0.8,
+      draught: { karst: 0.1, sandstone: 0.2, lava: 0.8, fissure: 0.5, sea: 0.35, ice: 0.3 }[level.kind],
+    });
   }
   private lidHoles = new Map<string, Phaser.GameObjects.Image>();
   /** Manholes left open in the street: the hole, and the lid lying beside it. */
@@ -6296,7 +6316,7 @@ export class WorldScene extends Phaser.Scene {
     const e = this.runtime.engine, space = e.state.player.pos.space;
     const level = e.sewerOf?.(space), run = e.state.sewer;
     if (!level || !run) {
-      if (this.sewerView) gameAudio()?.setSewerBed(undefined);
+      if (this.sewerView) gameAudio()?.setUnderground(undefined);
       this.sewerView?.destroy();
       this.sewerView = undefined;
       return;
@@ -6339,7 +6359,9 @@ export class WorldScene extends Phaser.Scene {
       const c = level.cells[(cy + dy) * level.w + cx + dx];
       if (c === 2 || c === 3) near = Math.min(near, Math.hypot(dx, dy));
     }
-    gameAudio()?.setSewerBed({ flow: Math.max(0.15, 1 - near / 7) * (level.layer === "old" ? 0.5 : 1), echo: level.layer === "trunk" ? 1 : level.layer === "old" ? 0.6 : 0.35, surge: run.surge });
+    // A working mine: its gutter, far picks and pumps, the ventilation drawing through; the old workings dead still.
+    if (level.network === "mine") gameAudio()?.setUnderground({ place: "mine", flow: Math.max(0.1, 1 - near / 6) * 0.6, echo: level.kind === "salt" ? 0.9 : 0.45, surge: level.depth < 3 ? 0.7 : 0, drips: level.depth === 3 ? 0.8 : 0.35, draught: level.depth < 3 ? 0.5 : 0.1 });
+    else gameAudio()?.setUnderground({ place: "sewer", drips: 0, draught: 0, flow: Math.max(0.15, 1 - near / 7) * (level.layer === "old" ? 0.5 : 1), echo: level.layer === "trunk" ? 1 : level.layer === "old" ? 0.6 : 0.35, surge: run.surge });
   }
   private dropRoom() {
     const v = this.roomView;
@@ -7525,9 +7547,9 @@ export class WorldScene extends Phaser.Scene {
         const boatObject = craft === "boat" && boatId ? this.runtime.engine.state.objects.find((o) => o.id === boatId) : undefined;
         const boatType=craft==="boat" ? boatCraft(boatObject?.sprite) ??
           (boatSetting ? fishingWaterfront(boatSetting)?.craft : undefined) : undefined;
-        const sewer = this.sewerView?.wading(im.x, im.y, wetPos?.space);
-        const water = sewer
-          ? sewer.depth
+        const under = this.sewerView?.wading(im.x, im.y, wetPos?.space) ?? this.caveView?.wading(im.x, im.y, wetPos?.space);
+        const water = under
+          ? under.depth
           : !(craft && craft !== "swimming") && sample && wetPos?.space === "outside" && !arcLift
             ? waterDepthAt(
                 sample,
@@ -7956,12 +7978,12 @@ export class WorldScene extends Phaser.Scene {
             : MAX_WADING_DEPTH,
           this.options.freeze ? 0 : time,
           moving,
-          sewer?.flow ??
+          under?.flow ??
             (sample && wetPos
               ? sample(wetPos.x, wetPos.y)?.waterVisual?.flow
               : undefined),
           swimming && (pose === "swim" || pose === "tread") ? index : undefined,
-          !!sewer,
+          !!under && !!this.sewerView,
         );
         // Asleep, only the head shows, on the pillow; the room draws the rest
         // under the covers. After wading, which uncrops anyone on dry ground.

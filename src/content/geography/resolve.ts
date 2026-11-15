@@ -172,6 +172,16 @@ export function settingFor(input: AtlasPlace, year = input.year): WorldSetting {
     }),
   );
 }
+/** Where under the ground a prompt asks to start: "a cave man", "sewer
+ * worker", "a collier in Durham". */
+export function belowFromPrompt(q: string): "cave" | "sewer" | "mine" | undefined {
+  if (/\bsewers?\b|\bsewerm[ae]n\b|\btoshers?\b|\bflushers?\b/.test(q)) return "sewer";
+  if (/\b(?:a|the|gold|silver|coal|salt|tin|copper|iron|lead|mercury|emerald|diamond)\s+mines?\b|\bminers?\b|\bmining\b|\bcollier(?:y|ies|s)?\b|\bpit ?(?:m[ae]n|boys?|lads?|pon(?:y|ies)|brow)\b|\bhewers?\b|\bcoal ?face\b|\bdown the pit\b/.test(q)) return "mine";
+  if (/\bcave(?:s|m[ae]n|wom[ae]n|dwellers?)?\b|\bcave (?:m[ae]n|wom[ae]n|dwellers?|people)\b|\bcaverns?\b|\bgrottos?\b/.test(q)) return "cave";
+}
+/** Where an underground start goes when the prompt names no place or date. */
+const BELOW_PLACES = { cave: ["magdalenian"], sewer: ["london", 1880], mine: ["city-cardiff", 1880] } as const;
+
 export function resolveSetting(
   input: string,
   seed = "earth-2",
@@ -221,6 +231,13 @@ export function resolveSetting(
     place =
       choices[Math.floor(random(seed, "starting-region", q) * choices.length)];
   const located = !!zone || (matches[0]?.score ?? 0) > 0.1 || has(q, "roman");
+  const below = belowFromPrompt(q);
+  const undated = dateFromPrompt(input, -1000001, seed) === -1000001;
+  if (below && !located) {
+    const [id, year] = BELOW_PLACES[below];
+    const found = places.find((p) => p.id === id);
+    if (found) place = year && undated ? { ...found, year } : found;
+  } else if (place && below && below !== "cave" && undated) place = { ...place, year: Math.max(place.year, 1880) };
   if (!place) {
     const period = periods.find(([words]) => words.some((w) => has(q, w)));
     if (period)
@@ -262,7 +279,14 @@ export function resolveSetting(
           (!label.ecologies || !!s.environment?.ecology && label.ecologies.includes(s.environment.ecology)))
         .map((label) => label.label),
     ]).sort((a, b) => b.length - a.length).find((label) => has(q, label));
-    s.role = namedRole ?? roles.find(([pattern]) => pattern.test(q))?.[1] ?? "Traveler";
+    const coal = /\bcoal\b|\bcollier|\bpit\b/.test(q);
+    const underRole = below === "mine" ? (coal ? "Coal miner" : "Miner") : below === "sewer" ? (/\btosher/.test(q) ? "Tosher" : "Sewer flusher") : below === "cave" ? (s.year < -8000 ? "Hunter" : "Hermit") : undefined;
+    s.role = namedRole ?? roles.find(([pattern]) => pattern.test(q))?.[1] ?? underRole ?? "Traveler";
+    if (below) {
+      s.below = below;
+      const work = below === "mine" ? (coal && s.year >= 1780 ? "coal-miner" : "miner") : below === "sewer" ? (/\btosher/.test(q) ? "night-soil-collector" : "navvy") : undefined;
+      if (work && !namedRole) s.brief = { ...s.brief, work };
+    }
     if (has(q, "free black")) s.community = "Free Black household";
     s.characterName = s.role;
     if (/\bfarm(?:er|stead)?\b/.test(q)) s.settlement = "farm";
@@ -288,6 +312,8 @@ export function resolveSetting(
       ...periods.flatMap(([words]) => words),
       ...zones.flatMap(([words]) => words),
       "free black",
+      "sewer worker", "sewer man", "sewerman", "sewer", "sewers", "tosher", "flusher", "cave man", "caveman", "cave woman", "cave", "caves", "cavern", "grotto",
+      "coal miner", "coal mine", "miner", "miners", "mine", "mining", "collier", "colliery", "pit man", "pitman", "pit boy", "hewer", "down the pit",
     ];
     for (const phrase of recognized.sort((a, b) => b.length - a.length))
       rest = rest.split(` ${normalize(phrase).replace(/-/g, " ")} `).join(" ");

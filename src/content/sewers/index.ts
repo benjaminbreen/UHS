@@ -1,15 +1,21 @@
 import type { CharacterScope } from "../characters/context-types";
 import { sewerFinds } from "./finds";
 import { sewerPeople } from "./people";
-import type { Box, SewerDepth, SewerFind, SewerKind, SewerPerson } from "./types";
+import { mineFinds } from "../mines/finds";
+import { minePeople } from "../mines/people";
+import type { Box, SewerFind, SewerKind, SewerPerson, TunnelDepth, TunnelKind } from "./types";
 
-export type { Box, SewerArt, SewerDepth, SewerFind, SewerKind, SewerPerson } from "./types";
+export type { Box, MineDepth, MineKind, SewerArt, SewerDepth, SewerFind, SewerKind, SewerPerson, TunnelDepth, TunnelKind } from "./types";
 export { SEWER_ART } from "./types";
 export { sewerItems } from "./items";
 export { sewerFinds, sewerPeople };
 
-const byId = new Map(sewerFinds.map((f) => [f.id, f]));
+const byId = new Map([...sewerFinds, ...mineFinds].map((f) => [f.id, f]));
+/** A find in any tunnels, sewer or mine. */
 export const sewerFind = (id: string) => byId.get(id);
+const people = new Map([...sewerPeople, ...minePeople].map((p) => [p.id, p]));
+/** Someone met in any tunnels, sewer or mine. */
+export const tunnelPerson = (id: string) => people.get(id);
 
 export type SewerPlace = { lon: number; lat: number; year: number };
 
@@ -18,14 +24,15 @@ const inBox = ([w, s, e, n]: Box, lon: number, lat: number) =>
   lat >= s && lat <= n && (w <= e ? lon >= w && lon <= e : lon >= w || lon <= e);
 const inAny = (boxes: readonly Box[], p: SewerPlace) => boxes.some((b) => inBox(b, p.lon, p.lat));
 
-const levelFits = (kinds: readonly SewerKind[] | undefined, depths: readonly SewerDepth[] | undefined, kind: SewerKind, depth?: SewerDepth) =>
+const levelFits = (kinds: readonly TunnelKind[] | undefined, depths: readonly TunnelDepth[] | undefined, kind: TunnelKind, depth?: TunnelDepth) =>
   (!kinds || kinds.includes(kind)) && (!depths || !depth || depths.includes(depth));
 
 /** Finds' years are inclusive. */
-export function findFits(f: SewerFind, place: SewerPlace, kind: SewerKind, depth: SewerDepth) {
+export function findFits(f: SewerFind, place: SewerPlace, kind: TunnelKind, depth: TunnelDepth, ore?: string) {
   return (
     (!f.years || (place.year >= f.years[0] && place.year <= f.years[1])) &&
     (!f.where || inAny(f.where, place)) &&
+    (!f.ores || (!!ore && f.ores.includes(ore))) &&
     levelFits(f.kinds, f.depths, kind, depth)
   );
 }
@@ -35,8 +42,8 @@ const scopeFits = (s: CharacterScope, p: SewerPlace) =>
   p.year >= s.years[0] && p.year < s.years[1] && (!s.bounds || inBox(s.bounds, p.lon, p.lat)) && !(s.except && inAny(s.except, p));
 
 /** Without a depth, whether they belong anywhere in this town's sewers. */
-export function personFits(p: SewerPerson, place: SewerPlace, kind: SewerKind, depth?: SewerDepth) {
-  return scopeFits(p.scope, place) && levelFits(p.kinds, p.depths, kind, depth);
+export function personFits(p: SewerPerson, place: SewerPlace, kind: TunnelKind, depth?: TunnelDepth, ore?: string) {
+  return scopeFits(p.scope, place) && levelFits(p.kinds, p.depths, kind, depth) && (!p.ores || (!!ore && p.ores.includes(ore)));
 }
 
 // France, Belgium, Vienna, Barcelona.

@@ -17,6 +17,16 @@ export type SewerKind =
  * them, or whatever older or stranger thing lies under that. */
 export type SewerDepth = "street" | "trunk" | "old";
 
+/** What a mine works, which decides the rock, the roads and the air. */
+export type MineKind = "coal" | "metal" | "salt";
+/** A mine's levels: the roads in from the shaft or adit, the workings off
+ * them, and the abandoned workings below. */
+export type MineDepth = "level" | "workings" | "old";
+
+/** Any network of tunnels under a place: a town's sewers or a mine. */
+export type TunnelKind = SewerKind | MineKind;
+export type TunnelDepth = SewerDepth | MineDepth;
+
 /** [west, south, east, north] in degrees. */
 export type Box = readonly [number, number, number, number];
 
@@ -28,6 +38,9 @@ export const SEWER_ART = [
   "crate", "locker", "trolley", "bicycle", "bedroll", "camp", "fatberg", "silt-heap", "barrel", "toolbag", "sandbags", "shrine",
   // On a back wall.
   "graffiti", "plaque", "valve", "gauge", "fusebox", "niche", "mural", "notice",
+  // In a mine: on the floor, then on the wall.
+  "ore", "snap", "tools", "candles", "tally", "crust", "tio", "tub", "lamp", "nugget", "rucksack", "powder", "wheel", "harness", "cage",
+  "vein", "fossil", "chalk", "barbara", "relief", "crystals", "board",
 ] as const;
 export type SewerArt = (typeof SEWER_ART)[number];
 
@@ -40,14 +53,17 @@ export type SewerFind = {
   /** Astronomical years, inclusive. */
   years?: readonly [number, number];
   where?: readonly Box[];
-  kinds?: readonly SewerKind[];
-  depths?: readonly SewerDepth[];
+  kinds?: readonly TunnelKind[];
+  depths?: readonly TunnelDepth[];
+  /** For a mine find: what the mine must work, "coal", "silver". */
+  ores?: readonly string[];
   weight?: number;
   /** What the action key does: "Pick up the ring". */
   verb: string;
   /** Game seconds the work takes. */
   time?: number;
-  /** Item counts, or a [low, high] range rolled per find. */
+  /** Item counts, or a [low, high] range rolled per find. In a mine, "ore"
+   * and "ore-rich" stand for what this mine works. */
   loot?: Readonly<Record<string, number | readonly [number, number]>>;
   /** Seconds of light it adds: fresh batteries, a carbide refill. */
   fuel?: number;
@@ -70,8 +86,9 @@ export type SewerFind = {
 export type SewerPerson = {
   id: string;
   scope: CharacterScope;
-  kinds?: readonly SewerKind[];
-  depths?: readonly SewerDepth[];
+  kinds?: readonly TunnelKind[];
+  depths?: readonly TunnelDepth[];
+  ores?: readonly string[];
   /** Their role, as the wardrobe reads it: "Sewer flusher", "Urban explorer". */
   label: string;
   /** The livelihood id they are generated as. */
@@ -80,8 +97,9 @@ export type SewerPerson = {
   doing: string;
   /** How they keep to the tunnels: a crew works along the channel, a camp
    * stays by its fire, explorers wander and photograph, a scavenger works
-   * the silt, a lookout keeps still and watches. */
-  manner: "crew" | "camp" | "explore" | "scavenge" | "lookout";
+   * the silt, a lookout keeps still and watches, a worker keeps to one spot
+   * and works it: a face, a door, a pump. */
+  manner: "crew" | "camp" | "explore" | "scavenge" | "lookout" | "work";
   /** Lines they might say, in plain modern English. One is picked per meeting. */
   lines: readonly string[];
   /** Chance of one, two or three together. */

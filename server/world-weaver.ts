@@ -51,6 +51,7 @@ const weaverSchema = z
     architecture: z.enum(architectures),
     work: z.enum(livelihoodIds as [string, ...string[]]).optional(),
     age: z.number().int().min(18).max(90).optional(),
+    below: z.enum(["cave", "sewer", "mine"]).optional(),
     ...startBriefSchema.omit({ work: true }).shape,
   })
   .strict();
@@ -130,6 +131,7 @@ WHO. Honour exactly what the description specifies and invent only what it leave
 In every case prefer an interesting moment to a typical one: a launch, a landing, a coronation, a famine, a fair, the week the news arrived.
 
 STAGING. The simulation stages a settlement (city, town, village, hamlet), a camp or a tiny island or open water. When the request lies beyond that (orbit, a moving train, a battle in progress), choose the nearest real moment it can stage and make the hook say so: Gagarin is better begun on 12 April 1961 in the field near Smelovka where he came down by parachute, met by a farm woman and her granddaughter, than nowhere. Never invent a fictional settlement or magic.
+BELOW GROUND. The player can also begin underground: below "mine" puts them down their settlement's mine, "sewer" in its sewers, "cave" in a cave nearby. Set below only when the description asks for it (a miner at the face, a sewer flusher, someone sheltering or living in a cave), and choose a place and year where it is real: a coalfield or mining district for a miner (Durham, the Rhondda, the Ruhr, Cornwall, Potosí, the Rand), a large paved city from about 1850 for sewers, cave country for a cave (the Vézère, the Mendips, Guilin). Otherwise omit it. A miner's role is the job as it was called there: hewer, putter, trapper boy, tributer, kajcha, barretero, pony driver, salt miner. A miner's work is coal-miner for coal after 1780, otherwise miner.
 The optional situation field gives the place itself: islet with width/depth in game cells for tiny islands; open-ocean with raft/boat/swimming support for people adrift; local with a camp of military (soldiers' lines), headquarters (a commander's tent among the staff tents), expedition, pastoral or gathering. people excludes the player. Omit situation for a settlement start.
 
 PLACE AND DATE. Choose a place from the catalog below and set placeId to its id, placeName/lon/lat to its values. Only when the description names somewhere absent from the catalog, or a famous moment happened elsewhere, use placeId "custom" with the real name and coordinates. climate, water, relief, culture, settlement and architecture are used only for a "custom" place; fill them plausibly regardless.
@@ -208,12 +210,14 @@ User description: ${input.prompt}`;
     const { figure, sex, hook, aim, kin, figures, tidings } = chosen;
     const brief = startBriefSchema.parse(JSON.parse(JSON.stringify({ figure: figure || undefined, work: chosen.work, sex, hook, aim,
       kin: kin?.length ? kin : undefined, figures: figures?.length ? figures : undefined, tidings: tidings?.length ? tidings : undefined })));
+    const below = chosen.below ?? ("error" in local ? undefined : local.setting.below);
     const setting = settingSchema.parse({
       ...settingFor(place, chosen.year),
       role: chosen.role,
       characterName: requestedName(input.prompt) ?? chosen.characterName,
       community: chosen.community,
       ...(Object.keys(brief).length ? { brief } : {}),
+      ...(below ? { below } : {}),
       ...(chosen.age ? { character: { age: chosen.age, hunger: 10, fatigue: 2 } } : {}),
     });
     return json({ setting: chosen.situation ? applySituation(setting, chosen.situation) : setting });

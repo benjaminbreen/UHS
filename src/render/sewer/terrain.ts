@@ -1,5 +1,6 @@
 import { BRIDGE, DEEP, FLOOR, GRATE, LEDGE, SILT, WALL, WATER, type SewerLevel } from "../../world/sewer";
-import { mix, oldPalette, sewerPalettes, shade, type RGB, type SewerPalette } from "./palette";
+import type { MineKind, SewerKind } from "../../content/sewers";
+import { minePalettes, mix, oldPalette, sewerPalettes, shade, type RGB, type SewerPalette } from "./palette";
 
 /** Pixels of back wall shown above a floor: two and a half cells. */
 export const FACE = 40;
@@ -18,10 +19,69 @@ const vn = (x: number, y: number, scale: number, s: number) => {
 const BLACK: RGB = [8, 7, 9];
 const SHADE: RGB = [22, 16, 30];
 
-export const paletteOf = (level: SewerLevel): SewerPalette => (level.layer === "old" ? oldPalette : sewerPalettes[level.kind]);
+export const paletteOf = (level: SewerLevel): SewerPalette =>
+  level.network === "mine" ? minePalettes[level.kind as MineKind] : level.layer === "old" ? oldPalette : sewerPalettes[level.kind as SewerKind];
+const mined = (p: SewerPalette) => p.fabric === "rock" || p.fabric === "coal" || p.fabric === "salt";
+
+/** A mine's back wall: cut rock, a coal seam under its shale roof, or banded salt;
+ * with the timber sets that hold the roof up. */
+function rockPixel(p: SewerPalette, r: number, px: number, py: number): RGB {
+  const f = p.face;
+  const n = vn(px, r + py * 0.3, 6, 51), m = vn(px * 0.6, r, 14, 52);
+  let c: RGB;
+  if (p.fabric === "coal") {
+    const seam = r >= 12 && r < FACE - 5;
+    if (seam) {
+      // The coal: near black, split by vertical cleat, catching the light in points.
+      c = mix(p.ore![1], p.ore![2], n > 0.6 ? 0.6 : n > 0.4 ? 0.25 : 0);
+      if (px % 7 === 0 && h2(Math.floor(px / 7), Math.floor(r / 5), 53) < 0.6) c = p.ore![0];
+      if (h2(px, r + py, 54) < 0.012) c = p.ore![3];
+      if (r === 12) c = shade(c, -6);
+    } else c = f[n < 0.35 ? 1 : n < 0.75 ? 2 : 3];
+    if (!seam && (r + Math.floor(m * 4)) % 5 === 0) c = shade(c, -10);
+  } else if (p.fabric === "salt") {
+    // Layers of rock salt, grey and honey and pink, smoothed by the picks in scallops.
+    const band = Math.floor((r + m * 6) / 4);
+    c = f[[2, 3, 2, 1, 3, 2][band % 6]];
+    if (band % 5 === 3) c = mix(c, [196, 150, 140], 0.25);
+    const scallop = ((px + Math.floor(r / 6) * 5) % 12) / 12;
+    if (scallop < 0.15) c = shade(c, 10);
+    else if (scallop > 0.85) c = shade(c, -8);
+    if (h2(px, r + py, 55) < 0.015) c = p.ore![3];
+  } else {
+    // Hard rock, blocky and fractured, with the lode's colour in it here and there.
+    c = f[n < 0.3 ? 1 : n < 0.72 ? 2 : 3];
+    if (Math.abs(((px + r * 0.6) % 23) - 11) < 0.6 && m > 0.45) c = f[0];
+    if (vn(px, r, 4, 56) > 0.8) c = mix(c, p.ore![1], 0.5);
+    if (r % 9 === 0 && h2(Math.floor(px / 5), r, 57) < 0.2) c = shade(c, -12);
+  }
+  // Stains down from drips: soot and wet on coal, ochre on metal, white bloom on salt.
+  const streak = h2(Math.floor(px / 3), 7, 17);
+  if (streak < 0.08 && r > FACE * streak * 6) c = mix(c, p.slime, 0.22);
+  // Timber sets: a leg either side of the road and a collar across, every few metres.
+  const T = p.timber!, span = p.fabric === "salt" ? 96 : 48, lx = px % span;
+  if (lx < 4 && r >= 2) c = T[lx === 0 ? 0 : lx === 1 ? 3 : lx === 2 ? 2 : 1];
+  else if (r < 4 && lx < 4 + 6) c = T[r === 0 ? 3 : r === 3 ? 0 : 2];
+  if (lx < 4 && r >= 2 && (r % 11 === 5)) c = shade(c, -14);
+  if (r < 6) c = mix(c, SHADE, (6 - r) / 9);
+  if (r >= FACE - 3) c = mix(c, BLACK, (r - (FACE - 4)) * 0.12);
+  return c;
+}
+
+/** Rails on a mine road, along it or across it: sleepers, then two rails lit along the top. */
+function railPixel(p: SewerPalette, col: RGB, px: number, py: number, along: boolean): RGB {
+  const a = along ? px : py, b = along ? py & 15 : px & 15;
+  const T = p.timber!;
+  let c = col;
+  if (a % 6 < 2 && b >= 2 && b <= 13) c = a % 6 === 0 ? T[1] : T[0];
+  if (b === 4 || b === 11) c = [150, 150, 156];
+  else if (b === 5 || b === 12) c = [70, 64, 60];
+  return c;
+}
 
 /** The back wall at row `r` of its face (0 at the top), column `px`. */
 function facePixel(p: SewerPalette, r: number, px: number, py: number): RGB {
+  if (mined(p)) return rockPixel(p, r, px, py);
   const f = p.face;
   let c: RGB;
   if (p.fabric === "brick") {
@@ -103,6 +163,13 @@ function pipesOver(p: SewerPalette, c: RGB, r: number, px: number): RGB {
 }
 
 function pavedPixel(p: SewerPalette, ramp: RGB[], px: number, py: number): RGB {
+  if (mined(p)) {
+    // Trodden rock and grit, dust thicker along the walls.
+    let c = ramp[vn(px, py, 11, 61) < 0.45 ? 1 : 2];
+    if (vn(px, py, 3, 64) > 0.8) c = ramp[3];
+    if (h2(px, py, 63) < 0.003) c = p.ore![p.fabric === "coal" ? 0 : 2];
+    return c;
+  }
   if (p.fabric === "brick") {
     // Stone setts in courses along the walkway.
     const row = Math.floor(py / 6), off = (row & 1) * 6, stone = Math.floor((px + off) / 12);
@@ -235,9 +302,15 @@ export function paintSewerTerrain(ctx: CanvasRenderingContext2D, level: SewerLev
         if (h2(px, py, 43) < 0.02) col = p.slime;
       } else {
         col = pavedPixel(p, c === FLOOR ? p.floor : p.ledge, px, py);
+        if (c === LEDGE && mined(p)) {
+          const x = px >> 4, y = py >> 4, rail = (o: number) => o === LEDGE;
+          col = railPixel(p, col, px, py, rail(cell((x - 1) * 16, py)) || rail(cell((x + 1) * 16, py)) || !(rail(cell(px, (y - 1) * 16)) || rail(cell(px, (y + 1) * 16))));
+        }
         // A walkway's edge over the channel: a coping stone, lit along its top.
         const below = cell(px, py + 1), below2 = cell(px, py + 2);
-        if (c !== BRIDGE && wet(cell(px, py - 1))) col = shade(p.coping[0], 10);
+        if (mined(p)) {
+          if (wet(cell(px, py - 1))) col = shade(p.coping[1], 8);
+        } else if (c !== BRIDGE && wet(cell(px, py - 1))) col = shade(p.coping[0], 10);
         else if (c === LEDGE && (wet(below) || below === GRATE)) col = shade(p.coping[0], -12);
         else if (c === LEDGE && (wet(below2) || below2 === GRATE)) col = p.coping[0];
         else if (c === LEDGE && (wet(cell(px - 1, py)) || wet(cell(px + 1, py)))) col = p.coping[0];

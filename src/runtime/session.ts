@@ -271,6 +271,7 @@ export function createSession(
     plot.aim = lifeAimOf(seed, pack.setting, engine.state.player, engine.state.actors, engine.state.households, engine.state);
   }
   ensureLifeAim(engine.state, pack.setting);
+  if (!snapshot && pack.setting?.below) engine.startBelow(pack.setting.below);
   return engine;
 }
 /** Origin records "unspecified" where the name kit decided sex; the drawn

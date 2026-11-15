@@ -1,13 +1,19 @@
-import { caveLight, caveLightFor } from "../content/caves";
-import { personFits, sewerFind, sewerKindFor, sewerPeople, type SewerPerson } from "../content/sewers";
+import { caveLight, caveLightFor, mineLightFor } from "../content/caves";
+import { mineKindOf, minePeople } from "../content/mines";
+import { anyMine } from "../content/settlements/worksites/mines";
+import { worksiteProfiles } from "../content/settlements/worksites";
+import { personFits, sewerFind, sewerKindFor, sewerPeople, tunnelPerson, type SewerPerson } from "../content/sewers";
 import { laneLids } from "../render/carriageway";
-import { parseSewerSpace, sewerLevel, sewerSolid, sewerSpace, walkable, WATER, type SewerLevel, type SewerSite } from "../world/sewer";
+import { parseSewerSpace, sewerLevel, sewerSolid, sewerSpace, walkable, WATER, type SewerLevel, type SewerSite, type TunnelNetwork } from "../world/sewer";
+import { doorApproach } from "./doors";
 import { person } from "../world/v3/wayfarers";
-import type { Actor, GameEvent, Snapshot as GameState, Inspection, Inventory, Point, Position, WorldModel } from "./types";
+import type { Actor, GameEvent, Snapshot as GameState, Inspection, Inventory, Place, Point, Position, WorldModel } from "./types";
 
 /** The trip below the street the player is on. */
 export type SewerRun = {
   site: string;
+  /** Down a mine rather than a town's sewers. */
+  network?: "mine";
   light: string;
   /** Game seconds of light left. */
   left: number;
@@ -18,6 +24,9 @@ export type SewerRun = {
   /** When the flood last knocked the player about. */
   soaked?: number;
   gassed?: number;
+  /** When firedamp last went off round the player, and when the canary last warned. */
+  fired?: number;
+  canary?: number;
   took?: { at: Point; items: Inventory; clock: number };
 };
 
@@ -58,16 +67,33 @@ function lidNear(world: WorldModel, at: Point) {
   return best;
 }
 
-function siteOf(h: SewerHost, id: string): SewerSite | undefined {
-  const known = h.sites.get(id);
+const doorKey = (b: Place) => {
+  const d = doorApproach(b);
+  return `${d.x},${d.y}`;
+};
+/** The mine building whose door is at this street cell. */
+const mineAt = (world: WorldModel, id: string) => world.places.find((b) => b.institution === "mine" && doorKey(b) === id);
+
+function siteOf(h: SewerHost, id: string, network: TunnelNetwork = "sewer"): SewerSite | undefined {
+  const known = h.sites.get(`${network}:${id}`);
   if (known) return known;
   const [x, y] = id.split(",").map(Number);
   const setting = h.world.geography?.packAt(x, y)?.setting ?? h.world.pack.setting;
   if (!setting) return undefined;
   const place = { lon: setting.lon, lat: setting.lat, year: setting.year };
-  const kind = sewerKindFor(place);
-  const site: SewerSite = { id, kind, place, people: sewerPeople.filter((p) => personFits(p, place, kind)) };
-  h.sites.set(id, site);
+  let site: SewerSite;
+  if (network === "mine") {
+    const b = mineAt(h.world, id);
+    if (!b) return undefined;
+    const pid = b.id.slice(b.id.indexOf("-worksite-") + 10);
+    const profile = worksiteProfiles.find((p) => p.id === pid) ?? anyMine(setting.year, pid === "coal-pit");
+    const ore = profile.ore ?? "copper", kind = mineKindOf(ore);
+    site = { id, network, kind, ore, shaft: profile.frame === "worksite-engine-mine", place, people: minePeople.filter((p) => personFits(p, place, kind, undefined, ore)) };
+  } else {
+    const kind = sewerKindFor(place);
+    site = { id, network, kind, place, people: sewerPeople.filter((p) => personFits(p, place, kind)) };
+  }
+  h.sites.set(`${network}:${id}`, site);
   return site;
 }
 
@@ -75,7 +101,7 @@ export function sewerLevelOf(h: SewerHost, space: string) {
   const known = h.levels.get(space);
   if (known) return known;
   const at = parseSewerSpace(space);
-  const site = at && siteOf(h, at.site);
+  const site = at && siteOf(h, at.site, at.network);
   if (!at || !site || at.depth < 1 || at.depth > 3) return undefined;
   const topo = h.world.topography;
   const probe = topo && { lane: (x: number, y: number) => topo(x, y)?.lane, lids: (x: number, y: number) => {
@@ -107,7 +133,7 @@ function populate(h: SewerHost, level: SewerLevel) {
   const seed = h.state.manifest.seed;
   for (const f of level.folk) {
     if (h.state.actors.some((a) => a.id === f.id)) continue;
-    const who = sewerPeople.find((p) => p.id === f.person);
+    const who = tunnelPerson(f.person);
     if (!who) continue;
     const a = person(seed, setting, f.id, who.dress, who.label, f.sex, f.age, { x: f.x, y: f.y }, Number.MAX_SAFE_INTEGER);
     a.pos = { x: f.x, y: f.y, space: level.space };
@@ -124,7 +150,7 @@ function populate(h: SewerHost, level: SewerLevel) {
 
 function arrive(h: SewerHost, depth: number, at: "entry" | "down" | Point) {
   const run = h.state.sewer!, p = h.state.player;
-  const c = sewerLevelOf(h, sewerSpace(run.site, depth));
+  const c = sewerLevelOf(h, sewerSpace(run.site, depth, run.network ?? "sewer"));
   if (!c) return undefined;
   const { level } = c;
   let spot: Point = typeof at === "object" ? at : level.entry;
@@ -138,14 +164,33 @@ function arrive(h: SewerHost, depth: number, at: "entry" | "down" | Point) {
   return level;
 }
 
-/** Back up into the street under one of the lids, which is left open. */
+/** Back up into the street under one of the lids, which is left open, or out of the mine's door. */
 function surface(h: SewerHost, world: Point) {
   const p = h.state.player;
   for (const a of [...h.state.actors]) if (a.underground) h.part(a.id);
   p.pos = { ...world, space: "outside" };
   p.direction = 2;
-  (h.state.lids ??= {})[lidKey(world)] = h.state.clock;
+  if (!h.state.sewer?.network) (h.state.lids ??= {})[lidKey(world)] = h.state.clock;
   delete h.state.sewer;
+}
+
+/** Down a mine from its headframe or adit. False when this building is no way in. */
+export function mineEnter(h: SewerHost, b: Place) {
+  if (b.institution !== "mine") return false;
+  const key = doorKey(b), site = siteOf(h, key, "mine");
+  if (!site) return false;
+  const light = mineLightFor(site.place.year, site.kind === "coal");
+  h.state.sewer = { site: key, network: "mine", light: light.id, left: light.burns, surge: 0 };
+  const level = arrive(h, 1, "entry");
+  if (!level) {
+    delete h.state.sewer;
+    return false;
+  }
+  h.advance(site.shaft ? 120 : 60);
+  h.event(site.shaft
+    ? `${light.lit} The banksman shuts the cage gate and rings the bell. The cage drops away under you, faster than seems right, wet rock streaming past the bars, until it slows and bumps to a stop at ${level.name}.`
+    : `${light.lit} You stoop in at the adit mouth. Daylight goes grey behind you, and the air turns cool and still and smells of wet rock and lamp smoke. You walk in to ${level.name}.`);
+  return true;
 }
 
 const thingAt = (h: SewerHost, id: string) => {
@@ -205,20 +250,26 @@ export function sewerInspect(h: SewerHost, id: string): Inspection | undefined {
   if (!c) return undefined;
   const { level } = c;
   const lit = h.state.sewer!.left > 0;
+  const mine = level.network === "mine";
   if (id === "sewer-down" && level.down)
     return {
-      id, name: level.depth === 1 ? "Drop shaft" : "Way down", kind: "place", pos: { ...level.down, space: level.space },
-      description: level.depth === 1 ? "A shaft with iron rungs going down to a bigger sewer. You can hear a lot of water moving down there." : "A ladder bolted into older stone, going down.",
+      id, name: mine ? (level.depth === 1 ? (level.kind === "coal" ? "Staple shaft" : "Winze") : "Old ladderway") : level.depth === 1 ? "Drop shaft" : "Way down", kind: "place", pos: { ...level.down, space: level.space },
+      description: mine
+        ? level.depth === 1 ? "A ladderway going down through the rock to the workings. The ladders are wet and the rungs worn hollow in the middle." : "Rotten ladders going down into old workings nobody has worked in years. The air coming up is still and stale."
+        : level.depth === 1 ? "A shaft with iron rungs going down to a bigger sewer. You can hear a lot of water moving down there." : "A ladder bolted into older stone, going down.",
       affordances: [act("Climb down", id, lit, "Not without a light")],
     };
   const shaft = /^sewer-shaft:(\d+)$/.exec(id);
   if (shaft) {
     const s = level.shafts[Number(shaft[1])];
     if (!s) return undefined;
+    const cage = level.mouth === "cage", adit = level.mouth === "adit";
     return {
-      id, name: s.to === "street" ? "Ladder to the street" : "Ladder up", kind: "place", pos: { x: s.x, y: s.y, space: level.space },
-      description: s.to === "street" ? "Iron rungs up to a lid in the road. Daylight shows through its pick holes." : "The ladder back up to the level above.",
-      affordances: [act(s.to === "street" ? "Climb up to the street" : "Climb up")],
+      id, name: s.to === "street" ? (cage ? "The cage" : adit ? "Way out to daylight" : "Ladder to the street") : "Ladder up", kind: "place", pos: { x: s.x, y: s.y, space: level.space },
+      description: s.to === "street"
+        ? cage ? "The iron cage that winds men and tubs up the shaft. The onsetter will ring you up." : adit ? "The adit runs back out to the hillside. A grey smudge of daylight shows at the end of it." : "Iron rungs up to a lid in the road. Daylight shows through its pick holes."
+        : "The ladder back up to the level above.",
+      affordances: [act(s.to === "street" ? (cage ? "Ring for the surface" : adit ? "Walk out" : "Climb up to the street") : "Climb up")],
     };
   }
   const found = thingAt(h, id);
@@ -282,7 +333,10 @@ export function sewerAct(h: SewerHost, id: string) {
   if (id === "sewer-down") {
     const next = arrive(h, level.depth + 1, "entry");
     h.advance(90);
-    if (next) h.event(next.layer === "trunk" ? `You climb down a long shaft into ${next.name}. The roar of water fills everything.` : `You climb down into ${next.name}. The air is still and very old.`, "world");
+    if (next) h.event(
+      next.layer === "trunk" ? `You climb down a long shaft into ${next.name}. The roar of water fills everything.`
+        : next.layer === "workings" ? `You climb down the ladders to ${next.name}. It is hot down here, and you can hear picks somewhere ahead.`
+          : `You climb down into ${next.name}. The air is still and very old.`, "world");
     return;
   }
   const shaft = /^sewer-shaft:(\d+)$/.exec(id);
@@ -290,13 +344,16 @@ export function sewerAct(h: SewerHost, id: string) {
     const s = level.shafts[Number(shaft[1])];
     if (!s) return;
     if (s.to === "street" && s.world) {
-      h.advance(40);
+      const how = level.mouth;
+      h.advance(how === "cage" ? 120 : how === "adit" ? 60 : 40);
       surface(h, s.world);
-      h.event("You push the cover up with your shoulder, shove it aside, and climb out into the street, blinking.");
+      h.event(how === "cage" ? "The onsetter rings you away. The cage climbs and climbs, and then daylight, wind and noise, and the banksman swinging the gate open."
+        : how === "adit" ? "You walk out of the adit into daylight, blinking, the warm air smelling of grass."
+          : "You push the cover up with your shoulder, shove it aside, and climb out into the street, blinking.");
       return;
     }
     const above = level.depth - 1;
-    const back = sewerLevelOf(h, sewerSpace(run.site, above))?.level;
+    const back = sewerLevelOf(h, sewerSpace(run.site, above, run.network ?? "sewer"))?.level;
     arrive(h, above, back?.down ? "down" : "entry");
     h.advance(90);
     h.event("You climb back up to the level above.");
@@ -380,13 +437,13 @@ export function sewerTime(h: SewerHost, elapsed: number) {
     run.left -= elapsed;
     if (run.left <= 0) {
       run.left = 0;
-      h.event(`${light.out} Only the daylight through the lids is left to see by.`);
+      h.event(`${light.out} ${run.network ? "It is completely dark." : "Only the daylight through the lids is left to see by."}`);
     } else if (!run.low && run.left < light.burns * 0.2) {
       run.low = true;
       h.event(light.flame ? "Your lamp is burning low." : "Your torch is going yellow. The batteries will not last much longer.");
     }
   }
-  const rain = h.rain();
+  const rain = run.network ? 0 : h.rain();
   const want = rain > 0.2 ? Math.min(1, (rain - 0.2) * 1.6) : 0;
   const was = run.surge;
   run.surge += (want - run.surge) * Math.min(1, elapsed / 240);
@@ -401,8 +458,33 @@ export function sewerTime(h: SewerHost, elapsed: number) {
     h.hurt(4, "storm water in a sewer");
     h.event("The flood shoves at your legs and nearly takes your feet. Get up on the ledge.");
   }
-  const foul = level.rooms.some((r) => r.foul && p.pos.x >= r.x - 1 && p.pos.x <= r.x + r.w && p.pos.y >= r.y - 1 && p.pos.y <= r.y + r.h);
-  if (foul && clock - (run.gassed ?? -1e9) > GAS_EVERY) {
+  const near = (r: { x: number; y: number; w: number; h: number }, m: number) => p.pos.x >= r.x - m && p.pos.x <= r.x + r.w - 1 + m && p.pos.y >= r.y - m && p.pos.y <= r.y + r.h - 1 + m;
+  const foul = level.rooms.find((r) => r.foul && near(r, 1));
+  const flame = light.flame && run.left > 0;
+  if ((p.inventory.canary ?? 0) > 0 && !foul && level.rooms.some((r) => r.foul && near(r, 6)) && clock - (run.canary ?? -1e9) > 600) {
+    run.canary = clock;
+    h.event("The canary stops singing and clings to the bottom of its cage. There is bad air close by.", "world");
+  }
+  if (foul?.damp === "fire") {
+    if (flame && !light.safe) {
+      if (clock - (run.fired ?? -1e9) > 1800) {
+        run.fired = clock;
+        run.left = 0;
+        foul.foul = false;
+        h.hurt(45, "a firedamp explosion");
+        h.event("Your naked flame touches the gas. The air itself catches: a sheet of blue fire rolls along the roof with a thump that throws you down. Your light is gone.", "world");
+      }
+    } else if (clock - (run.gassed ?? -1e9) > 600) {
+      run.gassed = clock;
+      h.event(flame ? "The flame in your safety lamp stretches up and a pale blue cap forms over it. Firedamp. The gauze is all that keeps it in." : "Your head feels light and the air smells faintly sweet. Firedamp. One spark here and it would all go up.", "world");
+    }
+  } else if (foul?.damp === "black") {
+    if (clock - (run.gassed ?? -1e9) > GAS_EVERY) {
+      if (clock - (run.gassed ?? -1e9) > 600) h.event(flame ? "Your flame shrinks to a blue bead and nearly dies. The air here is dead: blackdamp. Your chest heaves for breath." : "You can't get your breath. The air here is dead: blackdamp. Get out of it.", "world");
+      else h.hurt(8, "blackdamp");
+      run.gassed = clock;
+    }
+  } else if (foul && clock - (run.gassed ?? -1e9) > GAS_EVERY) {
     const masked = (p.inventory["gas-mask"] ?? 0) > 0;
     if (clock - (run.gassed ?? -1e9) > 600)
       h.event(masked ? "Green gas hangs here. You pull the mask on and breathe rubber." : light.flame && run.left > 0 ? "Your flame shrinks and burns blue. The green air stings your eyes and throat. Get out of it." : "The air is green and tastes of rotten eggs. Your head pounds. Get out of it.", "world");
@@ -412,7 +494,7 @@ export function sewerTime(h: SewerHost, elapsed: number) {
   for (const a of h.state.actors) {
     const u = a.underground;
     if (!u || a.pos.space !== level.space || clock < u.next) continue;
-    const who = sewerPeople.find((s) => s.id === u.person);
+    const who = tunnelPerson(u.person);
     if (!who) continue;
     meet(h, a, who);
     u.next = clock + (who.manner === "explore" ? 6 : 12);

@@ -1,28 +1,30 @@
 import type Phaser from "phaser";
+import { paintMineObject } from "./mine-art";
 import type { SewerPalette } from "./palette";
 
 type Ctx = CanvasRenderingContext2D;
-const css = (c: readonly number[], a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
-const r = (g: Ctx, color: string, x: number, y: number, w = 1, h = 1) => {
+export const css = (c: readonly number[], a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
+export const r = (g: Ctx, color: string, x: number, y: number, w = 1, h = 1) => {
   g.fillStyle = color;
   g.fillRect(x, y, w, h);
 };
-const ell = (g: Ctx, color: string, cx: number, cy: number, rx: number, ry: number) => {
+export const ell = (g: Ctx, color: string, cx: number, cy: number, rx: number, ry: number) => {
   for (let y = -ry; y <= ry; y++) {
     const half = Math.round(rx * Math.sqrt(Math.max(0, 1 - (y / (ry + 0.5)) ** 2)));
     r(g, color, cx - half, cy + y, half * 2 + 1, 1);
   }
 };
-const shadow = (g: Ctx, cx: number, cy: number, rx: number, ry = 2) => ell(g, "rgba(10,6,16,0.35)", cx, cy, rx, ry);
+export const shadow = (g: Ctx, cx: number, cy: number, rx: number, ry = 2) => ell(g, "rgba(10,6,16,0.35)", cx, cy, rx, ry);
 
-const IRON = ["#1e1e22", "#34363c", "#55585f", "#7c8088"];
+export const IRON = ["#1e1e22", "#34363c", "#55585f", "#7c8088"];
 const RUST = ["#3a2216", "#6a3a20", "#965630", "#b8784a"];
-const WOOD = ["#3a2618", "#5c3e26", "#7a5634", "#9a7248"];
+export const WOOD = ["#3a2618", "#5c3e26", "#7a5634", "#9a7248"];
 
 /** Things the tunnel is built with or grows on its own, and the things in
  * it. (x, y) is the top-left of the cell; tall things rise above it into the
  * cell above. `v` varies the drawing; `emptied` shows it as taken. */
 export function paintSewerObject(g: Ctx, art: string, x: number, y: number, p: SewerPalette, v = 0.5, emptied = false) {
+  if (paintMineObject(g, art, x, y, p, v, emptied)) return;
   const cx = x + 8, by = y + 15;
   switch (art) {
     // The ladder under a street lid: iron rungs coming down out of the vault.

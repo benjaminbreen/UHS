@@ -77,8 +77,8 @@ import { askLines, hear, telling, tidings } from "./word";
 import { orderKeeper, type Penalty } from "../content/history/order";
 import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
-import { caveAct, caveBeastAt, caveGround, caveInspect, caveLevelOf, caveStrike, caveTime, caveVerb, type CaveHost } from "./cave";
-import { sewerAct, sewerGround, sewerInspect, sewerLevelOf, sewerTime, sewerVerb, type SewerHost } from "./sewer";
+import { caveAct, caveBeastAt, caveGround, caveMouthsNear, caveInspect, caveLevelOf, caveStrike, caveTime, caveVerb, type CaveHost } from "./cave";
+import { lidAt, mineEnter, sewerAct, sewerGround, sewerInspect, sewerLevelOf, sewerTime, sewerVerb, type SewerHost } from "./sewer";
 import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structure } from "./time/structure";
 import { regardCue, WARM, WARY } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
@@ -2136,7 +2136,33 @@ export class Engine {
   }
   /** The sewer level a space is, if it is one. */
   sewerOf(space: string) {
-    return space.startsWith("sewer:") ? sewerLevelOf(this.sewers, space)?.level : undefined;
+    return space.startsWith("sewer:") || space.startsWith("mine:") ? sewerLevelOf(this.sewers, space)?.level : undefined;
+  }
+  /** Put a new player down the nearest mine, sewer or cave: a start that
+   * asked to begin underground. Stays in the open when there is none near. */
+  startBelow(where: "cave" | "sewer" | "mine") {
+    const p = this.state.player.pos, d = (q: Point) => Math.hypot(q.x - p.x, q.y - p.y);
+    // The life begins already down there: the climb takes none of the day.
+    const sewers = { ...this.sewers, advance() {} }, caves = { ...this.caves, advance() {} };
+    if (where === "mine") {
+      const b = this.world.places.filter((b) => b.institution === "mine").sort((a, b) => d(doorApproach(a)) - d(doorApproach(b)))[0];
+      if (b) mineEnter(sewers, b);
+      return;
+    }
+    if (where === "cave") {
+      const mouth = [...caveMouthsNear(this.world, p, 96)].sort((a, b) => d(a) - d(b))[0];
+      if (mouth) caveAct(caves, `cave-mouth:${mouth.x},${mouth.y}`);
+      return;
+    }
+    for (let r = 0; r < 80; r++)
+      for (let dy = -r; dy <= r; dy++)
+        for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r || !lidAt(this.world, p.x + dx, p.y + dy)) continue;
+          const id = `sewer-lid:${p.x + dx},${p.y + dy}`;
+          sewerAct(sewers, id);
+          sewerAct(sewers, id);
+          if (this.state.sewer) return;
+        }
   }
   /** What the action key does at a manhole or beside something below the street. */
   sewerVerb() {
@@ -2647,7 +2673,7 @@ export class Engine {
     const key = `${space}:${x},${y}`;
     let fixed = this.terrainCollision.get(key);
     if (fixed === undefined) {
-      const cave = space.startsWith("cave:") ? caveGround(this.caves, space, x, y) : space.startsWith("sewer:") ? sewerGround(this.sewers, space, x, y) : undefined;
+      const cave = space.startsWith("cave:") ? caveGround(this.caves, space, x, y) : space.startsWith("sewer:") || space.startsWith("mine:") ? sewerGround(this.sewers, space, x, y) : undefined;
       const room = space === "outside" || cave !== undefined ? undefined : this.interiorOf(space);
       fixed = cave ?? (room ? !room.floor.has(`${x},${y}`) : this.world.blocked(x, y, space));
       trimCache(this.terrainCollision, 16384);
@@ -9097,6 +9123,7 @@ export class Engine {
         sewerAct(this.sewers, c.target);
         break;
       case "enter":
+        if (b && mineEnter(this.sewers, b)) break;
         if (b) {
           const errand = this.state.asks?.find((x) => x.kind === "go-to" && x.place === b.id);
           const sender = errand && this.state.actors.find((x) => x.id === errand.by);

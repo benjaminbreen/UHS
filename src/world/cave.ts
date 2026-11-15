@@ -48,7 +48,13 @@ export type CaveLevel = {
   things: CaveThing[];
   decor: CaveDecor[];
   dwellers: CaveDweller[];
+  /** Which way the water runs in each wet cell: 0 N, 1 E, 2 S, 3 W, -1 still. */
+  flow: Int8Array;
+  /** A stream crossing the level: where it rises from under the back wall and where it sinks. */
+  stream?: { rise: Point; sink: Point };
 };
+
+const N4 = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
 
 export const caveSpace = (cave: string, depth: number) => `cave:${cave}:${depth}`;
 export function parseCaveSpace(space: string) {
@@ -180,6 +186,26 @@ function build(seed: string, site: CaveSite, depth: number, attempt: number): Ca
     }
   }
 
+  // A stream: out from under the back wall, wandering across, gone into the rock at a side.
+  let stream: { rise: Point; sink: Point } | undefined;
+  if (rng() < { karst: 0.75, fissure: 0.35, ice: 0.35, sandstone: 0.15, sea: 0, lava: 0 }[kind]) {
+    const west = rng() < 0.5;
+    let x = 6 + rng() * (w - 12), y = 3;
+    const tx = west ? 2 : w - 3, ty = h * (0.45 + rng() * 0.3);
+    let a = Math.PI / 2;
+    const path: Point[] = [];
+    for (let i = 0; i < (w + h) * 4 && Math.hypot(tx - x, ty - y) > 0.8; i++) {
+      const want = Math.atan2(ty - y, tx - x);
+      a += (rng() - 0.5) * 0.8 + Math.atan2(Math.sin(want - a), Math.cos(want - a)) * 0.22;
+      x = Math.max(2, Math.min(w - 3, x + Math.cos(a) * 0.7));
+      y = Math.max(3, Math.min(h - 5, y + Math.sin(a) * 0.7));
+      path.push({ x: Math.round(x), y: Math.round(y) });
+    }
+    const wide = 0.75 + rng() * 0.5;
+    for (const p of path) for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (dx * dx + dy * dy <= wide * wide + 0.3) set(p.x + dx, p.y + dy, SHALLOW);
+    stream = { rise: path[0], sink: path.at(-1)! };
+  }
+
   // A back wall is drawn three cells tall, so rock thinner than that between
   // one chamber and the next one up is broken through.
   for (let x = 0; x < w; x++)
@@ -219,7 +245,7 @@ function build(seed: string, site: CaveSite, depth: number, attempt: number): Ca
         if (cy >= 0) break;
       }
     if (cy < 0) return undefined;
-    for (let y = cy; y < h; y++) for (const dx of [-1, 0, 1]) cells[y * w + cx + dx] = y >= h - 2 ? MOUTH : FLOOR;
+    for (let y = cy; y < h; y++) for (const dx of [-1, 0, 1]) if (cells[y * w + cx + dx] !== SHALLOW) cells[y * w + cx + dx] = y >= h - 2 ? MOUTH : FLOOR;
     entry = { x: cx, y: h - 3 };
   } else {
     const faces: Point[] = [];
@@ -388,9 +414,32 @@ function build(seed: string, site: CaveSite, depth: number, attempt: number): Ca
       }
   }
 
+  // The stream runs from its rise to its sink, and any pool it feeds drains into it.
+  const flow = new Int8Array(w * h).fill(-1);
+  if (stream) {
+    const wetCell = (i: number) => cells[i] === SHALLOW || cells[i] === DEEP;
+    const seen = new Uint8Array(w * h);
+    const queue: number[] = [];
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const i = (stream.sink.y + dy) * w + stream.sink.x + dx;
+      if (wetCell(i) && !seen[i]) (seen[i] = 1), queue.push(i);
+    }
+    for (const i of queue) flow[i] = stream.sink.x < w / 2 ? 3 : 1;
+    for (let q = 0; q < queue.length; q++) {
+      const c = queue[q];
+      N4.forEach(([dx, dy], d) => {
+        const n = c + dy * w + dx;
+        if (seen[n] || !wetCell(n)) return;
+        seen[n] = 1;
+        flow[n] = (d + 2) % 4;
+        queue.push(n);
+      });
+    }
+  }
+
   const names = NAMES[kind];
   const name = depth === 1 ? "the cave mouth" : names[hash(`${seed}|${site.id}|${depth}|name`) % names.length];
-  return { space: caveSpace(site.id, depth), cave: site.id, depth, last, kind, name, w, h, cells, entry, up, down, things, decor, dwellers };
+  return { space: caveSpace(site.id, depth), cave: site.id, depth, last, kind, name, w, h, cells, entry, up, down, things, decor, dwellers, flow, stream };
 }
 
 /** Cells that stop feet whatever is taken or killed: rock, deep water, columns and big finds. */

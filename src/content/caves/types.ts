@@ -53,6 +53,10 @@ export type CaveLight = {
   reach: number;
   /** A flame flickers, warms the rock and keeps animals back. */
   flame: boolean;
+  /** A flame behind gauze that firedamp cannot get through to explode. */
+  safe?: boolean;
+  /** Carried only down mines: a candle stuck in clay, a safety lamp, a cap lamp. */
+  mine?: boolean;
   color: string;
   /** What the player is told at the mouth. */
   lit: string;

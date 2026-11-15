@@ -1013,6 +1013,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     if (p.pos.space === "outside") return audio?.setInterior(undefined);
     if (p.pos.space.startsWith("cave:")) return audio?.setInterior("cave");
     if (p.pos.space.startsWith("sewer:")) return audio?.setInterior("sewer");
+    if (p.pos.space.startsWith("mine:")) return audio?.setInterior("mine");
     const place = runtime.engine.world.place(p.pos.space);
     const faith = setting ? religiousProfile(setting)?.faith : undefined;
     audio?.setInterior(

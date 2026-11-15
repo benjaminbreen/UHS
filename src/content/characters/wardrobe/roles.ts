@@ -33,6 +33,7 @@ const patterns: Record<string, RegExp> = {
   mountaineer: /\b(mountaineer|climber|expedition member)\b/,
   // Not the Arctic "skin sewer", who sews.
   sewerman: /(?<!skin )\b(sewers?|sewerm[ae]n|flushers?|kanalarbeiter|drain clearers?|sanitation workers?|rat[- ]catchers?|rodent operatives?|toshers?|collector fitters?)\b/,
+  pitman: /\b(pitm[ae]n|colliers?|coal ?(miners?|bearers?|carriers?)|hewers?|hurriers?|onsetters?|shotfirers?|pony drivers?|tributers?|tutworkers?|kajchas?|barreteros?|mita workers?|bergm[ae]nn|salt miners?|(gold|silver|tin|copper|hard-rock|cooperative|slave) miners?|miners?|mine workers?|trapper boys?|atoyama|water bailers?|shock workers?)\b/,
   urbex: /\b(urban explorers?|urbex|cataphiles?|drainers?|graffiti writers?)\b/,
   astronaut:
     /\b(astronaut|cosmonaut|taikonaut|spacer|space ?(crew|pilot|marine)|flight engineer)\b/,

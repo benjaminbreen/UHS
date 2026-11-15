@@ -1,5 +1,5 @@
 import { millProfiles } from "./mills";
-import { mineProfiles } from "./mines";
+import { anyMine, mineProfiles } from "./mines";
 import { hospitalProfiles } from "./hospitals";
 import { processingProfiles } from "./processing";
 import { boatyardProfiles } from "./boatyards";
@@ -10,6 +10,11 @@ import { worksiteFits } from "./types";
 import type { WorldSetting } from "../../geography/types";
 export const worksiteProfiles = [...millProfiles, ...mineProfiles, ...hospitalProfiles, ...processingProfiles, ...boatyardProfiles,
   ...craftProfiles, ...estateProfiles, ...factoryProfiles];
-export const worksitesFor = (s: WorldSetting) => s.settlement === "camp" ? [] :
-  worksiteProfiles.filter(p => worksiteFits(p, s));
+export function worksitesFor(s: WorldSetting) {
+  if (s.settlement === "camp") return [];
+  const fit = worksiteProfiles.filter(p => worksiteFits(p, s));
+  // A start down a mine needs a mine, famous or not.
+  if (s.below !== "mine" || fit.some(p => p.kind === "mine")) return fit;
+  return [...fit, anyMine(s.year, s.brief?.work === "coal-miner" || /coal|collier|pit/i.test(s.role ?? ""))];
+}
 export type { WorksiteProfile } from "./types";

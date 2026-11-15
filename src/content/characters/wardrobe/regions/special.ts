@@ -92,6 +92,26 @@ export const workingSets: readonly GarmentKit[] = [
     dye: dye.map(([value, weight]) => ({ value, weight, roles: ["sewerman"] })),
     motif: [{ value: "plain", roles: ["sewerman"] }],
   })),
+  // A miner's hard felt hat with a candle stuck to it in clay, then the cloth
+  // cap of the coalfields, then the helmet and cap lamp; dirt over everything.
+  // Before caps and helmets, miners outside Europe dressed as their region did.
+  ...([
+    ["mine-felt", [1500, 1880], [["shirt", 6], ["tunic", 2]], [["brimmed", 5], ["cap", 3], ["none", 1]], [["wool", 4], ["cotton", 4], ["linen", 2]], [["soot", 5], ["umber", 3], ["ash", 2]]],
+    ["mine-cap", [1880, 1935], [["shirt", 5], ["coat", 3]], [["flat-cap", 6], ["brimmed", 2], ["helmet", 1]], [["cotton", 5], ["wool", 3]], [["soot", 6], ["umber", 2], ["ash", 2]]],
+    ["mine-helmet", [1935, 10001], [["suit", 5], ["shirt", 3]], [["helmet", 9]], [["cotton", 5], ["synthetic", 3]], [["soot", 4], ["vat", 3], ["umber", 2], ["vermilion", 1]]],
+  ] as const).map(([id, years, garment, headwear, material, dye]): GarmentKit => ({
+    id, label: `Mine work · ${years[0]}`,
+    scope: { years, except: years[0] < 1880 ? [[-82, -56, -34, 13], [-20, -35, 52, 37], [60, -11, 150, 55]] : [] },
+    priority: 4,
+    garment: garment.map(([value, weight]) => ({ value, weight, roles: ["pitman"] })),
+    leggings: [{ value: "trousers", roles: ["pitman"] }],
+    headwear: headwear.map(([value, weight]) => ({ value, weight, roles: ["pitman"] })),
+    footwear: [{ value: "boots", roles: ["pitman"] }],
+    over: [{ value: "none", roles: ["pitman"] }],
+    material: material.map(([value, weight]) => ({ value, weight, roles: ["pitman"] })),
+    dye: dye.map(([value, weight]) => ({ value, weight, roles: ["pitman"] })),
+    motif: [{ value: "plain", roles: ["pitman"] }],
+  })),
   {
     id: "urbex",
     label: "Urban explorer · dark synthetics",

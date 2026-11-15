@@ -4,9 +4,14 @@ import type { CaveBeast, CaveRun } from "../../core/cave";
 import { DEEP, SHALLOW, WALL, type CaveLevel } from "../../world/cave";
 import { paintCaveObject, paintSnake } from "./art";
 import { cavePalettes } from "./palette";
+import { Flotsam, WaterSurface } from "../flowing-water";
 import { paintCaveTerrain } from "./terrain";
+import { caveFloats, caveTile } from "./water";
 
 const CELL = 48, RISE = 40, PAD = 16;
+const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
+/** Pixels a second the stream runs at. */
+const SPEED = 18;
 /** Lightmap samples per cell edge. */
 const SUB = 2;
 
@@ -62,17 +67,26 @@ export class CaveView {
   private nextEmber = 0;
   private took = 0;
   private drips: { x: number; y: number }[];
+  private surface?: WaterSurface;
+  private flotsam?: Flotsam;
+  private lap?: Phaser.GameObjects.Graphics;
+  private shore: number[] = [];
+  private nextBubble = 0;
+  private nextCreak = 0;
   private glints: { x: number; y: number; id: string; color: number }[];
 
   constructor(private scene: Phaser.Scene, readonly level: CaveLevel) {
     this.space = level.space;
     const { w, h } = level, W = w * 16, H = h * 16;
     const key = `cave-${level.space}`;
-    for (const k of [key, `${key}-sheet`, `${key}-light`]) if (scene.textures.exists(k)) scene.textures.remove(k);
+    for (const k of [key, `${key}-sheet`, `${key}-light`, `${key}-banks`, `${key}-mask`]) if (scene.textures.exists(k)) scene.textures.remove(k);
     this.rock = document.createElement("canvas");
     this.rock.width = W;
     this.rock.height = H;
-    paintCaveTerrain(this.rock.getContext("2d")!, level);
+    const banks = scene.textures.createCanvas(`${key}-banks`, W, H)!, mask = scene.textures.createCanvas(`${key}-mask`, W, H)!;
+    this.shore = paintCaveTerrain(this.rock.getContext("2d")!, level, { top: banks.context, mask: mask.context });
+    banks.refresh();
+    mask.refresh();
     this.base = scene.textures.createCanvas(key, W, H)!;
     const tallCount = level.decor.filter((d) => d.solid).length + level.things.filter((t) => t.solid).length + 2;
     this.sheet = scene.textures.createCanvas(`${key}-sheet`, CELL * 16, CELL * Math.ceil(tallCount / 16 + 1) + 8)!;
@@ -99,6 +113,29 @@ export class CaveView {
       }
     }
     this.objects.push(scene.add.image(0, 0, key).setOrigin(0, 0).setDepth(-99990));
+    if (this.shore.length) {
+      // The water runs under its banks: strips of moving surface, seen
+      // through a mask that is thin at the shore and thick where it is deep,
+      // with the bank faces laid over them.
+      const wet = (i: number) => level.cells[i] === SHALLOW || level.cells[i] === DEEP;
+      const flow = level.flow.slice(), depth = new Uint8Array(w * h);
+      for (let i = 0; i < w * h; i++) depth[i] = +wet(i);
+      // The painted water spills a few pixels past its cells; cover that too.
+      for (let i = 0; i < w * h; i++) {
+        if (depth[i]) continue;
+        const x = i % w, y = Math.floor(i / w);
+        const n = DIRS.filter(([dx, dy]) => x + dx >= 0 && y + dy >= 0 && x + dx < w && y + dy < h).map(([dx, dy]) => (y + dy) * w + x + dx).find(wet);
+        if (n !== undefined) (depth[i] = 1), (flow[i] = level.flow[n]);
+      }
+      const pool = scene.add.container(0, 0).setDepth(-99989);
+      pool.setMask(scene.make.image({ x: 0, y: 0, key: `${key}-mask`, origin: 0 }, false).createBitmapMask());
+      const pal = cavePalettes[level.kind];
+      this.surface = new WaterSurface(scene, { w, h, flow }, (i) => depth[i], (_, across) => caveTile(scene, pal, level.kind, across), -99989, pool);
+      this.objects.push(pool, scene.add.image(0, 0, `${key}-banks`).setOrigin(0, 0).setDepth(-99987));
+      this.lap = scene.add.graphics().setDepth(-99986);
+      this.objects.push(this.lap);
+      if (level.stream) this.flotsam = new Flotsam(scene, level, wet, caveFloats, "cave-floats", 0, -99988);
+    }
     this.objects.push(
       scene.add.image(0, 0, `${key}-light`).setOrigin(0, 0).setScale(2).setDepth(3000).setBlendMode(Phaser.BlendModes.MULTIPLY),
     );
@@ -266,8 +303,59 @@ export class CaveView {
       if (Math.random() < 0.15) this.spark(hx, hy - 2, 0xffb040, 700, -16 - Math.random() * 10, 1);
     }
     this.syncBeasts(f);
+    this.drawWater(f);
     this.effects(f, lit, reach);
     this.drawHud(f, lit);
+  }
+
+  /** Lapping at the waterline, and the stream welling up and going down. */
+  private drawWater(f: CaveFrame) {
+    if (!this.lap) return;
+    const cam = this.scene.cameras.main.worldView, W = this.level.w * 16, t = f.time / 1000, g = this.lap.clear();
+    this.surface!.update(f.time, SPEED);
+    this.flotsam?.update(f.time, f.delta, 0.1, cam);
+    const foam = this.level.kind === "karst" || this.level.kind === "ice" ? 0xeaf6f2 : 0xd8ece4;
+    for (const i of this.shore) {
+      const x = i % W, y = (i - x) / W;
+      if (x < cam.x - 2 || x > cam.right + 2 || y < cam.y - 2 || y > cam.bottom + 2) continue;
+      // Slow swells along the shore, broken by a hash so they do not march.
+      const hsh = ((x * 73856093) ^ (y * 19349663)) >>> 0;
+      const swell = Math.sin(t * 1.3 - x * 0.21 - y * 0.13 + (hsh % 7) * 0.3);
+      if (swell > 0.55) g.fillStyle(foam, (swell - 0.55) * 1.4).fillRect(x, y, 1, 1);
+    }
+    const { stream } = this.level;
+    if (!stream || f.time < this.nextBubble) return;
+    this.nextBubble = f.time + 160 + Math.random() * 220;
+    for (const [at, kind] of [[stream.rise, "rise"], [stream.sink, "sink"]] as const) {
+      const cx = at.x * 16 + 8, cy = at.y * 16 + (kind === "rise" ? 4 : 8);
+      if (cx < cam.x - 32 || cx > cam.right + 32 || cy < cam.y - 32 || cy > cam.bottom + 32) continue;
+      if (kind === "rise") {
+        // Water welling up out of the arch: rings opening downstream.
+        const ring = this.scene.add.ellipse(cx + (Math.random() - 0.5) * 8, cy + 2 + Math.random() * 4, 3, 1).setStrokeStyle(1, foam, 0.7).setDepth(-99986);
+        this.live.add(ring);
+        this.scene.tweens.add({ targets: ring, width: 14, height: 5, y: ring.y + 8, alpha: 0, duration: 900, onComplete: () => (this.live.delete(ring), ring.destroy()) });
+      } else {
+        // A swirl drawn in where it sinks.
+        const a = Math.random() * Math.PI * 2, r = 9;
+        const dot = this.scene.add.rectangle(cx + Math.cos(a) * r, cy + Math.sin(a) * r * 0.5, 2, 1, foam).setDepth(-99986).setAlpha(0.8);
+        this.live.add(dot);
+        const turn = { a };
+        this.scene.tweens.add({
+          targets: turn, a: a + Math.PI * 1.5, duration: 1100,
+          onUpdate: (tw) => dot.setPosition(cx + Math.cos(turn.a) * r * (1 - tw.progress * 0.8), cy + Math.sin(turn.a) * r * 0.5 * (1 - tw.progress * 0.8)).setAlpha(0.8 * (1 - tw.progress)),
+          onComplete: () => (this.live.delete(dot), dot.destroy()),
+        });
+      }
+    }
+  }
+
+  /** How deep the water is where the player stands, and which way it pulls. */
+  wading(x: number, y: number, space?: string): { depth: number; flow: [number, number] } | undefined {
+    const { level } = this;
+    if (space !== this.space) return;
+    const i = Math.floor((y - 1) / 16) * level.w + Math.floor(x / 16), c = level.cells[i], dir = level.flow[i];
+    if (c !== SHALLOW && c !== DEEP) return;
+    return { depth: c === DEEP ? 0.55 : 0.34, flow: dir >= 0 ? [DIRS[dir][0] * 0.8, DIRS[dir][1] * 0.8] : [0, 0] };
   }
 
   private syncBeasts(f: CaveFrame) {
@@ -359,6 +447,12 @@ export class CaveView {
         this.spark(sx, sy + 1, g.color, 260, 0, 1);
       }
     }
+    if (f.time > this.nextCreak) {
+      // Ice groans as it moves; elsewhere grit now and then lets go of the roof.
+      const ice = level.kind === "ice";
+      if (this.nextCreak) this.sound?.(ice ? "creak" : "settle", 0.4 + Math.random() * 0.6);
+      this.nextCreak = f.time + (ice ? 7000 : 16000) + Math.random() * (ice ? 14000 : 30000);
+    }
     const rousedNow = f.run.roused.length;
     if (rousedNow > this.roused) {
       const id = f.run.roused[rousedNow - 1];
@@ -402,7 +496,7 @@ export class CaveView {
   }
 
   /** Set by the scene: one-shot sounds the view's own effects ask for. */
-  sound?: (what: "drip" | "bats" | "take", volume: number) => void;
+  sound?: (what: "drip" | "bats" | "take" | "creak" | "settle", volume: number) => void;
 
   private drawHud(f: CaveFrame, lit: boolean) {
     const cam = this.scene.cameras.main, v = cam.worldView;
@@ -425,8 +519,10 @@ export class CaveView {
   destroy() {
     for (const o of [...this.objects, ...this.tall.values(), ...this.live]) o.destroy();
     for (const v of this.beasts.values()) v.im.destroy();
+    this.surface?.destroy();
+    this.flotsam?.destroy();
     const key = `cave-${this.level.space}`;
-    for (const k of [key, `${key}-sheet`, `${key}-light`]) if (this.scene.textures.exists(k)) this.scene.textures.remove(k);
+    for (const k of [key, `${key}-sheet`, `${key}-light`, `${key}-banks`, `${key}-mask`]) if (this.scene.textures.exists(k)) this.scene.textures.remove(k);
   }
 }
 

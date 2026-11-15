@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { items } from "../src/content/packs";
+import { mineFinds, mineKindOf, minePeople, oreItems } from "../src/content/mines";
+import { livelihoodIds } from "../src/content/characters/livelihoods";
+import { mineProfiles } from "../src/content/settlements/worksites/mines";
 import { personFits, sewerFinds, sewerKindFor, sewerPeople } from "../src/content/sewers";
 import { MOTOR_SPANS } from "../src/content/settlements/streets/markings";
 import { laneLids } from "../src/render/carriageway";
@@ -8,7 +11,7 @@ import type { Lane } from "../src/world/v3/types";
 
 const site = (id: string, place: SewerSite["place"]): SewerSite => {
   const kind = sewerKindFor(place);
-  return { id, kind, place, people: sewerPeople.filter((p) => personFits(p, place, kind)) };
+  return { id, network: "sewer", kind, place, people: sewerPeople.filter((p) => personFits(p, place, kind)) };
 };
 
 /** Every walkable cell, every ladder and the way down reached from the entry. */
@@ -65,3 +68,35 @@ describe("sewers", () => {
     expect(sewerKindFor({ lon: 37.6, lat: 55.75, year: 1980 })).toBe("collector");
   });
 });
+
+describe("mines", () => {
+  const mine = (ore: string, place: SewerSite["place"], shaft: boolean): SewerSite => {
+    const kind = mineKindOf(ore);
+    return { id: "10,10", network: "mine", kind, ore, shaft, place, people: minePeople.filter((p) => personFits(p, place, kind, undefined, ore)) };
+  };
+  const durham = mine("coal", { lon: -1.6, lat: 54.8, year: 1880 }, true);
+
+  it("builds every level of every kind of mine joined up, with people at work", () => {
+    for (const site of [durham, mine("tin", { lon: -5.2, lat: 50.2, year: 1820 }, false), mine("salt", { lon: 20.05, lat: 49.98, year: 1900 }, false)])
+      for (const seed of ["a", "b"])
+        for (const depth of [1, 2, 3]) {
+          const level = sewerLevel(seed, site, depth);
+          expect(level.space).toBe(`mine:10,10:${depth}`);
+          expect(joined(level), `${site.ore} ${seed} ${depth}`).toBe(true);
+          expect(level.things.length).toBeGreaterThan(3);
+          if (depth === 1) expect(level.mouth).toBe(site.shaft ? "cage" : "adit");
+        }
+    expect(sewerLevel("a", durham, 2).folk.length).toBeGreaterThan(1);
+  });
+
+  it("names only items and livelihoods that exist, whatever the mine works", () => {
+    for (const ore of new Set(mineProfiles.map((p) => p.ore!))) for (const id of Object.values(oreItems(ore))) expect(items[id], ore).toBeDefined();
+    for (const f of mineFinds) for (const id of Object.keys(f.loot ?? {})) if (id !== "ore" && id !== "ore-rich") expect(items[id], `${f.id} ${id}`).toBeDefined();
+    for (const p of minePeople) {
+      expect(livelihoodIds, p.id).toContain(p.dress);
+      for (const id of p.goods ?? []) expect(items[id], `${p.id} ${id}`).toBeDefined();
+    }
+    expect(mineProfiles.every((p) => p.ore)).toBe(true);
+  });
+});
+

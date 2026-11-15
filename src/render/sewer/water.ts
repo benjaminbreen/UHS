@@ -1,8 +1,7 @@
 import Phaser from "phaser";
-import { DEEP, WATER, type SewerLevel } from "../../world/sewer";
+import { waterTexture, L, A } from "../flowing-water";
 import { mix, type RGB, type SewerPalette } from "./palette";
 
-const L = 128, A = 64;
 const TAU = Math.PI * 2;
 const SHEEN: RGB[] = [[124, 104, 160], [84, 150, 150], [176, 160, 92]];
 
@@ -41,68 +40,7 @@ function paintTile(p: SewerPalette, deep: boolean): Uint8ClampedArray {
   return out;
 }
 
-function tileKey(scene: Phaser.Scene, p: SewerPalette, name: string, deep: boolean, across: boolean) {
-  const key = `sewer-water-${name}-${deep ? "deep" : "wet"}-${across ? "y" : "x"}`;
-  if (scene.textures.exists(key)) return key;
-  const src = paintTile(p, deep);
-  const tw = across ? A : L, th = across ? L : A;
-  const t = scene.textures.createCanvas(key, tw, th)!;
-  const img = t.context.createImageData(tw, th);
-  // Running north or south, the streaks turn with it.
-  for (let y = 0; y < th; y++)
-    for (let x = 0; x < tw; x++) {
-      const at = ((across ? x : y) * L + (across ? y : x)) * 4;
-      img.data.set(src.subarray(at, at + 4), (y * tw + x) * 4);
-    }
-  t.context.putImageData(img, 0, 0);
-  t.refresh();
-  return key;
-}
-
-type Strip = { im: Phaser.GameObjects.TileSprite; x: number; y: number; dir: number; deep: boolean; drift: number };
-
-const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
-
-/** The water surface: runs of channel cells that flow the same way, each a
- * strip of the tile scrolled downstream, so the murk itself moves. */
-export class WaterSurface {
-  private strips: Strip[] = [];
-
-  constructor(scene: Phaser.Scene, level: SewerLevel, p: SewerPalette, name: string, depth: number) {
-    const { w, h, cells, flow } = level;
-    const wet = (i: number) => cells[i] === WATER || cells[i] === DEEP;
-    for (let y = 0; y < h; y++)
-      for (let x = 0; x < w; ) {
-        const i = y * w + x;
-        if (!wet(i)) {
-          x++;
-          continue;
-        }
-        const dir = flow[i], deep = cells[i] === DEEP;
-        let n = 1;
-        while (x + n < w && wet(i + n) && flow[i + n] === dir && (cells[i + n] === DEEP) === deep) n++;
-        const across = dir === 0 || dir === 2;
-        const im = scene.add.tileSprite(x * 16, y * 16, n * 16, 16, tileKey(scene, p, name, deep, across)).setOrigin(0, 0).setDepth(depth);
-        this.strips.push({ im, x: x * 16, y: y * 16, dir, deep, drift: (i * 0.618) % 1 });
-        x += n;
-      }
-  }
-
-  update(time: number, speed: number) {
-    const t = time / 1000;
-    for (const s of this.strips) {
-      let ox: number, oy: number;
-      if (s.dir < 0) (ox = t * 1.5 + Math.sin(t * 0.4 + s.drift * 6) * 3), (oy = Math.cos(t * 0.3) * 2);
-      else {
-        const v = t * speed * (s.deep ? 1.5 : 1);
-        (ox = DIRS[s.dir][0] * v), (oy = DIRS[s.dir][1] * v);
-      }
-      // Keyed to the world, so neighbouring strips stay seamless.
-      s.im.setTilePosition(Math.round(s.x - ox), Math.round(s.y - oy));
-    }
-  }
-
-  destroy() {
-    for (const s of this.strips) s.im.destroy();
-  }
+/** The sewer's tile, laid along the current or turned to run across it. */
+export function sewerTile(scene: Phaser.Scene, p: SewerPalette, name: string, deep: boolean, across: boolean) {
+  return waterTexture(scene, `sewer-water-${name}-${deep ? "deep" : "wet"}`, across, () => paintTile(p, deep));
 }

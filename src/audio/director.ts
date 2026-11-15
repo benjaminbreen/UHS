@@ -18,7 +18,7 @@ import {
 import { createMix, scheduleNote, prepareScore, type MixBus } from "./synth";
 import { events, interfaceClick, noise, playSound, ring, tone, type EventId, type Sound } from "./sfx";
 import { applyTuning, tuning } from "./sfx-tuning";
-import { Ambience, Room, SewerBed, silence, type AmbienceMix, type SewerLevels } from "./ambience";
+import { Ambience, Room, UndergroundBed, silence, type AmbienceMix, type UndergroundLevels } from "./ambience";
 import { interiorThemes, type InteriorMusic } from "./interior-themes";
 import { situationTheme, type Situation, type ThreatMusic } from "./situation-themes";
 
@@ -70,7 +70,8 @@ function shuffled(themeId = pick(themes).id): Arrangement {
     era: pick(eras),
   };
 }
-export type SewerCue = "lid" | "lid-down" | "ladder" | "splash" | "rats" | "drip" | "take" | "rush" | "knock" | "steam" | "rumble" | "car" | "gate";
+export type CaveCue = "drip" | "bats" | "take" | "creak" | "settle";
+export type SewerCue = "lid" | "lid-down" | "ladder" | "splash" | "rats" | "drip" | "take" | "rush" | "knock" | "steam" | "rumble" | "car" | "gate" | "pick" | "tub" | "creak" | "shot";
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const times = (n: number, gap: number, make: (at: number, i: number) => Sound): Sound =>
   Array.from({ length: n }, (_, i) => make(i * gap * rand(0.85, 1.15), i)).flat();
@@ -175,9 +176,46 @@ const sewerSounds: Record<Exclude<SewerCue, "take">, () => Sound> = {
     tone(2.2, 0.16, 0.14, 90, { to: 60 }),
     ...ring(2.2, 260, 1, 0.06),
   ],
+  // Down a mine: steel on rock, iron wheels on rails, timber taking weight, a shot fired far off.
+  pick: () => {
+    const f = rand(1700, 2600);
+    return echoes([noise(0, 0.025, 0.06, f, { q: 3 }), tone(0, 0.08, 0.035, f * 1.4, { to: f * 1.3, wave: "triangle", attack: 0.002 }), tone(0, 0.06, 0.05, 140, { to: 90 }),
+      ...times(Math.round(rand(1, 4)), 0.03, (at) => [noise(0.05 + at, 0.015, 0.012, rand(2500, 4500), { q: 2 })])], 0.17, 2, 0.3);
+  },
+  tub: () => [
+    noise(0, 2.6, 0.05, 160, { to: 220, filter: "lowpass", attack: 0.6 }),
+    tone(0, 2.6, 0.02, 48, { to: 54, wave: "sawtooth", attack: 0.6 }),
+    // The wheels over the rail joints.
+    ...times(8, 0.3, (at) => [...ring(0.4 + at, rand(600, 700), 0.2, 0.014), noise(0.4 + at, 0.02, 0.03, 1300, { q: 1.5 })]),
+    ...ring(2.9, 380, 0.7, 0.035),
+  ],
+  creak: () => {
+    const f = rand(160, 260);
+    return echoes([tone(0, rand(0.6, 1.2), 0.025, f, { to: f * rand(1.15, 1.4), wave: "sawtooth", attack: 0.2 }), noise(0.1, 0.8, 0.012, 900, { q: 4, attack: 0.3 }),
+      ...times(Math.round(rand(2, 5)), 0.09, (at) => [noise(0.9 + at, 0.02, 0.02, rand(2200, 4000), { q: 2 })])], 0.29, 2, 0.3);
+  },
+  shot: () => [
+    tone(0, 1.6, 0.16, 46, { to: 30, attack: 0.01 }),
+    noise(0, 2.4, 0.09, 90, { to: 60, filter: "lowpass", attack: 0.02 }),
+    noise(0, 0.08, 0.03, 700, { q: 0.8 }),
+    ...times(16, 0.1, (at) => [noise(0.6 + at, 0.015, 0.008, rand(2500, 4500), { q: 2 })]),
+  ],
 };
 /** Minimum ms between plays, for cues long or loud enough to pile up. */
-const sewerGaps: Partial<Record<SewerCue, number>> = { lid: 1200, "lid-down": 600, ladder: 800, rats: 1500, rush: 4000, knock: 1200, steam: 2500, rumble: 6000, car: 900, gate: 3000 };
+const caveSounds: Record<Exclude<CaveCue, "take">, () => Sound> = {
+  drip: () => {
+    const f = rand(900, 1800);
+    return echoes([tone(0, 0.11, 0.05, f * 1.5, { to: f, attack: 0.002 }), tone(0.03, 0.2, 0.02, f * 2.2, { to: f * 2.6 })], 0.23, 2, 0.3);
+  },
+  bats: () => Array.from({ length: 22 }, (_, i) => noise(i * 0.05 + Math.random() * 0.03, 0.035, 0.07 * (1 - i / 26), 3200 + Math.random() * 2600, { q: 3 })),
+  // Ice under strain: a low groan bending down, then a crack off the walls.
+  creak: () => {
+    const f = rand(70, 130);
+    return echoes([tone(0, rand(0.5, 1.1), 0.03, f, { to: f * rand(0.7, 0.85), wave: "triangle", attack: 0.15 }), noise(rand(0.3, 0.6), 0.04, 0.05, 1800, { q: 1.2 })], 0.31, 2, 0.35);
+  },
+  settle: () => echoes(times(Math.round(rand(2, 5)), 0.07, (at) => [noise(at, 0.02, 0.03, rand(2000, 4200), { q: 2 })]), 0.27, 2, 0.3),
+};
+const sewerGaps: Partial<Record<SewerCue, number>> = { pick: 400, tub: 3500, creak: 2000, shot: 8000, lid: 1200, "lid-down": 600, ladder: 800, rats: 1500, rush: 4000, knock: 1200, steam: 2500, rumble: 6000, car: 900, gate: 3000 };
 
 /** The director the game is running under. The scene plays tool and footfall
  * sounds through it without threading a reference through every layer. */
@@ -202,10 +240,10 @@ export class AudioDirector {
   private resumeOnVisible = false;
   private disposed = false;
   private lastSfx = new Map<string, number>();
-  private sewer?: SewerLevels;
-  private sewerKey = "";
-  private sewerBed?: SewerBed;
-  private sewerEnd?: ReturnType<typeof setTimeout>;
+  private under?: UndergroundLevels;
+  private underKey = "";
+  private underBed?: UndergroundBed;
+  private underEnd?: ReturnType<typeof setTimeout>;
   private setting = "";
   /** The building's piece; null for a room kept quiet, undefined outdoors. */
   private inside?: InteriorMusic | null;
@@ -316,7 +354,7 @@ export class AudioDirector {
       this.ambience.set(this.heard(this.scene));
       this.room = new Room(this.ctx, this.sfx);
       this.room.set(this.heard(this.scene));
-      this.syncSewer();
+      this.syncUnder();
     }
     if (this.ctx.state === "suspended") await this.ctx.resume();
     if (this.disposed) throw Error("Audio session has closed.");
@@ -748,17 +786,10 @@ export class AudioDirector {
         this.patch({ error: `Sound effect unavailable: ${String(error)}` });
     }
   }
-  /** One-shots from underground: a drop into a pool, wings, a find. */
-  caveCue(what: "drip" | "bats" | "take", volume: number) {
+  /** One-shots from a cave: a drop into a pool, wings, ice, grit, a find. */
+  caveCue(what: CaveCue, volume: number) {
     if (what === "take") return this.event("gather");
-    if (what === "drip") {
-      const f = 900 + Math.random() * 900;
-      return this.sound([tone(0, 0.11, 0.05 * volume, f * 1.5, { to: f, attack: 0.002 }), tone(0.03, 0.2, 0.02 * volume, f * 2.2, { to: f * 2.6 })], "cave-drip", Math.random() - 0.5);
-    }
-    return this.sound(
-      Array.from({ length: 22 }, (_, i) => noise(i * 0.05 + Math.random() * 0.03, 0.035, 0.07 * (1 - i / 26), 3200 + Math.random() * 2600, { q: 3 })),
-      "cave-bats",
-    );
+    return this.sound(() => caveSounds[what]().map((l) => ({ ...l, gain: l.gain * volume })), `cave-${what}`, what === "bats" ? 0 : Math.random() - 0.5);
   }
   /** One-shots from the sewers. `pan` runs from -1 (left) to 1 (right). */
   sewerCue(what: SewerCue, volume: number, pan = 0) {
@@ -770,38 +801,40 @@ export class AudioDirector {
       sewerGaps[what],
     );
   }
-  /** Running water underfoot; undefined when the player is back on the street. */
-  setSewerBed(bed: SewerLevels | undefined) {
-    if (!bed && !this.sewer) return;
+  /** The sound of the ground the player is under; undefined back in the open. */
+  setUnderground(bed: UndergroundLevels | undefined) {
+    if (!bed && !this.under) return;
     const unit = (x: number) => Math.max(0, Math.min(1, x || 0));
-    this.sewer = bed && { flow: unit(bed.flow), echo: unit(bed.echo), surge: unit(bed.surge) };
-    // The street above is re-heard only when the tunnel changes enough to matter.
-    const key = this.sewer ? `${Math.round(this.sewer.echo * 10)}:${Math.round(this.sewer.surge * 5)}` : "";
-    if (key !== this.sewerKey) {
-      this.sewerKey = key;
+    this.under = bed && { place: bed.place, flow: unit(bed.flow), echo: unit(bed.echo), surge: unit(bed.surge), drips: unit(bed.drips), draught: unit(bed.draught) };
+    // The world above is re-heard only when the space changes enough to matter.
+    const key = this.under ? `${Math.round(this.under.echo * 10)}:${Math.round(this.under.surge * 5)}` : "";
+    if (key !== this.underKey) {
+      this.underKey = key;
       this.hear();
     }
-    if (this.ctx) this.syncSewer();
+    if (this.ctx) this.syncUnder();
   }
-  private syncSewer() {
-    if (this.sewer) {
-      clearTimeout(this.sewerEnd);
-      this.sewerBed ??= new SewerBed(this.ctx!, this.sfx!);
-      this.sewerBed.set(this.sewer);
-    } else if (this.sewerBed) {
-      const bed = this.sewerBed;
-      bed.set({ flow: 0, echo: 0, surge: 0 });
-      this.sewerEnd = setTimeout(() => {
-        bed.dispose();
-        if (this.sewerBed === bed) this.sewerBed = undefined;
-      }, 4000);
+  private syncUnder() {
+    const u = this.under;
+    if (u && this.underBed?.place === u.place) {
+      clearTimeout(this.underEnd);
+      this.underBed.set(u);
+      return;
     }
+    if (this.underBed) {
+      const bed = this.underBed;
+      this.underBed = undefined;
+      bed.set({ flow: 0, echo: 0, surge: 0, drips: 0, draught: 0 });
+      this.underEnd = setTimeout(() => bed.dispose(), 4000);
+    }
+    if (u) (this.underBed = new UndergroundBed(this.ctx!, this.sfx!, u.place)).set(u);
   }
-  /** Underground the street comes through the cover: muffled, no birds or
-   * wind, and the tunnel's echo on every sound. */
+  /** Underground the world above comes through the rock or the cover:
+   * muffled, no birds or wind, and the space's echo on every sound. */
   private heard(mix: AmbienceMix): AmbienceMix {
-    const s = this.sewer;
+    const s = this.under;
     if (!s) return mix;
+    const shut = s.place === "sewer" ? 1 : 0;
     return {
       ...mix,
       inside: 1,
@@ -810,8 +843,8 @@ export class AudioDirector {
       frogs: 0,
       wind: 0,
       water: 0,
-      town: mix.town * 0.5,
-      rain: mix.rain * 0.4,
+      town: mix.town * 0.5 * shut,
+      rain: mix.rain * 0.4 * shut,
       room: 0.4 + 0.6 * Math.round(s.echo * 10) / 10,
       hard: 1,
       music: mix.music * (1 - 0.4 * Math.round(s.surge * 5) / 5),
@@ -848,8 +881,8 @@ export class AudioDirector {
     document.removeEventListener("visibilitychange", this.visibility);
     this.autoplay();
     this.ambience?.dispose();
-    clearTimeout(this.sewerEnd);
-    this.sewerBed?.dispose();
+    clearTimeout(this.underEnd);
+    this.underBed?.dispose();
     void this.ctx?.close();
     this.listeners.clear();
   }

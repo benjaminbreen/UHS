@@ -45,8 +45,20 @@ const lights: CaveLight[] = [
     lit: "You switch on your torch.", out: "The beam goes yellow, then orange, then out. The batteries are dead." },
   { id: "headlamp", name: "Headlamp", years: [2000, 10000], burns: 14000, reach: 10.5, flame: false, color: "#eef6ff",
     lit: "You switch on your headlamp.", out: "Your headlamp blinks its low-battery warning and goes dark." },
+  { id: "clay-candle", name: "Candle in clay", years: [1300, 1899], burns: 5000, reach: 6, flame: true, mine: true, color: "#ffc070",
+    lit: "You press a candle into a lump of clay on your hat brim and light it.", out: "The candle burns down into its clay and goes out." },
+  // Davy's gauze kept the flame from the gas, at the price of a dim light.
+  { id: "safety-lamp", name: "Safety lamp", years: [1816, 1929], burns: 7000, reach: 5, flame: true, safe: true, mine: true, color: "#ffd890",
+    lit: "You check the gauze is whole, lock the lamp and light it.", out: "The oil is spent. The flame shrinks inside its gauze and dies." },
+  { id: "cap-lamp", name: "Cap lamp", years: [1930, 10000], burns: 16000, reach: 9.5, flame: false, mine: true, color: "#fff4d8",
+    lit: "You clip the battery to your belt and switch on the lamp on your helmet.", out: "The cap lamp's battery is flat. The beam fades to nothing." },
 ];
-export const caveLightFor = (year: number) => lights.find((l) => year >= l.years[0] && year <= l.years[1]) ?? lights[0];
+export const caveLightFor = (year: number) => lights.find((l) => !l.mine && year >= l.years[0] && year <= l.years[1]) ?? lights[0];
+/** What a miner carries down: a safety lamp in a gassy coal pit once there was one. */
+export function mineLightFor(year: number, coal: boolean) {
+  const id = year >= 1930 ? "cap-lamp" : coal && year >= 1816 ? "safety-lamp" : year >= 1900 ? "carbide" : year >= 1300 ? "clay-candle" : undefined;
+  return id ? caveLight(id) : caveLightFor(year);
+}
 export const caveLight = (id: string) => lights.find((l) => l.id === id) ?? lights[0];
 
 /** Animals that den underground, likeliest first. */

@@ -8,7 +8,8 @@ export type InteriorMusic =
   | "workshop"
   | "hall"
   | "cave"
-  | "sewer";
+  | "sewer"
+  | "mine";
 
 const everywhere = {
   culture: [],
@@ -78,6 +79,32 @@ export const interiorThemes: Record<InteriorMusic, LayeredTheme> = {
       { voice: "bronze", stem: "percussion", loop: "-:14 E3:1:.6 -:9 E3:.5:.4 B2:1:.5 -:6.5", velocity: 0.05, pan: 0.55, enter: 6, echo: [2, 4, 0.5] },
       { voice: "pad", stem: "harmony", loop: "E3+B3:16 C3+G3:16 A2+E3:16 B2+F#3:16", velocity: 0.025, enter: 12, exit: 28 },
       { voice: "muted", stem: "harmony", loop: "-:8 B4:2 C5:1 B4:1 G4:3 -:1 A4:1 B4:1 E4:4 -:12 G4:1 A4:1 B4:2 D5:2 C5:1 B4:1 A4:4 -:4 F#4:1 G4:1 E4:6 -:10", velocity: 0.07, pan: -0.15, enter: 8, exit: 28, echo: [1.5, 2, 0.35] },
+    ],
+  },
+  mine: {
+    ...everywhere,
+    years: [-3000, 2026],
+    place: "Down a mine, any place",
+    id: "at-the-face",
+    title: "At the face",
+    subtitle:
+      "Two men drill by hand: one strikes, one turns the steel, and the beat never stops. A pump breathes far up the shaft, and the men's voices come in low and slow under it, with a band's horns behind them on the way home.",
+    evidence:
+      "Inference: hand drilling by a striker and a turner set a steady working beat in hard-rock mines, and male-voice choirs and colliery brass bands grew out of 19th-century mining towns in Wales, northern England and the Ruhr. The tune and its setting are original.",
+    bpm: 76,
+    meter: 4,
+    bars: 32,
+    key: "D minor",
+    reverb: [0.6, 5],
+    layers: [
+      { voice: "drone", stem: "bass", loop: "D2:16 A1:8 C2:8", velocity: 0.07 },
+      { voice: "crack", stem: "percussion", loop: "D4:1:.9 -:1 D4:1:.55 -:1", velocity: 0.05, pan: -0.25, echo: [0.5, 2, 0.35] },
+      { voice: "wood", stem: "percussion", loop: "-:1 A5:.5:.4 -:1.5 A5:.5:.3 -:.5", velocity: 0.03, pan: -0.2, enter: 2 },
+      { voice: "steam", stem: "percussion", loop: "D2:2 -:6", velocity: 0.03, pan: 0.5, enter: 4 },
+      { voice: "choir", stem: "melody", loop: "-:16 D3:2 F3:2 A3:3 G3:1 F3:2 E3:2 D3:4 F3:2 G3:2 A3:2 C4:2 A3:6 -:2 A3:2 G3:2 F3:2 E3:2 D3:2 C3:2 D3:6 -:2", velocity: 0.16, enter: 8, exit: 28 },
+      { voice: "choir", stem: "harmony", loop: "-:16 A2:4 D3:4 C3:4 A2:4 D3:4 F3:4 E3:8 F3:4 C3:4 A2:4 D3:8", velocity: 0.08, enter: 12, exit: 28 },
+      { voice: "horn", stem: "harmony", loop: "D3+A3:8 F3+C4:8 C3+G3:8 A2+E3:8", velocity: 0.04, enter: 20, exit: 30, pan: 0.2 },
+      { voice: "sub", stem: "bass", loop: "D1:4 -:28", velocity: 0.05, enter: 4 },
     ],
   },
   chant: {

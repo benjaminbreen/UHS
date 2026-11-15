@@ -4,17 +4,17 @@ import { sewerFind } from "../../content/sewers";
 import type { SewerRun } from "../../core/sewer";
 import { DEEP, GRATE, walkable, WALL, WATER, type SewerLevel } from "../../world/sewer";
 import { paintSewerObject } from "./art";
-import { Flotsam } from "./flotsam";
+import { mineFloats, sewerFloats } from "./flotsam";
 import { Gas } from "./gas";
-import { oldPalette, sewerPalettes } from "./palette";
 import { paintSewerTerrain, paletteOf } from "./terrain";
-import { WaterSurface } from "./water";
+import { Flotsam, WaterSurface } from "../flowing-water";
+import { sewerTile } from "./water";
 
 const CELL = 48, TALL = 64, RISE = 56, PAD = 16;
 const SUB = 2;
 const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
 
-export type SewerSound = "drip" | "rats" | "take" | "splash" | "knock" | "car" | "steam" | "rush" | "rumble";
+export type SewerSound = "drip" | "rats" | "take" | "splash" | "knock" | "car" | "steam" | "rush" | "rumble" | "pick" | "tub" | "creak" | "shot";
 
 export type SewerFrame = {
   x: number;
@@ -69,7 +69,7 @@ export class SewerView {
   private aim = 0;
   private born = 0;
   private took = 0;
-  private next = { drip: 0, knock: 0, car: 0, steam: 0, trickle: 0, splash: 0 };
+  private next = { drip: 0, knock: 0, car: 0, steam: 0, trickle: 0, splash: 0, pick: 0 };
   private lastCell = -1;
   private surged = 0;
   private wet: number[] = [];
@@ -106,11 +106,12 @@ export class SewerView {
     this.seen = new Uint8Array(w * h);
     for (let i = 0; i < w * h; i++) if (level.cells[i] === WATER || level.cells[i] === DEEP) this.wet.push(i);
     this.objects.push(scene.add.image(0, 0, key).setOrigin(0, 0).setDepth(-99990));
-    this.surface = new WaterSurface(scene, level, level.layer === "old" ? oldPalette : sewerPalettes[level.kind], level.layer === "old" ? "old" : level.kind, -99986);
+    const pal = paletteOf(level), name = level.network === "mine" ? `mine-${level.kind}` : level.layer === "old" ? "old" : level.kind;
+    this.surface = new WaterSurface(scene, level, (i) => (level.cells[i] === WATER ? 1 : level.cells[i] === DEEP ? 2 : 0), (deep, across) => sewerTile(scene, pal, name, deep, across), -99986);
     this.objects.push(scene.add.image(0, 0, `${key}-top`).setOrigin(0, 0).setDepth(-99985));
     this.water = scene.add.graphics().setDepth(-99980);
     this.objects.push(this.water);
-    this.flotsam = new Flotsam(scene, level, year);
+    this.flotsam = new Flotsam(scene, level, (i) => level.cells[i] === WATER || level.cells[i] === DEEP, level.network === "mine" ? mineFloats : sewerFloats, level.network === "mine" ? "mine-flotsam" : "sewer-flotsam", year, -99979);
     this.objects.push(scene.add.image(0, 0, `${key}-light`).setOrigin(0, 0).setScale(2).setDepth(3000).setBlendMode(Phaser.BlendModes.MULTIPLY));
     if (!scene.textures.exists("sewer-halo")) {
       const t = scene.textures.createCanvas("sewer-halo", 128, 128)!;
@@ -124,6 +125,7 @@ export class SewerView {
     }
     this.halo = scene.add.image(0, 0, "sewer-halo").setBlendMode(Phaser.BlendModes.ADD).setDepth(3001).setAlpha(0);
     this.gas = new Gas(scene, level);
+    this.mine = level.network === "mine";
     this.beams = scene.add.graphics().setDepth(3001).setBlendMode(Phaser.BlendModes.ADD);
     this.objects.push(this.halo, this.beams);
     this.hud = scene.add.graphics().setDepth(1e7);
@@ -139,6 +141,7 @@ export class SewerView {
     }
   }
   private rock: HTMLCanvasElement;
+  private mine: boolean;
 
   /** How deep someone at these world pixels stands in the channel, and which way it pulls. */
   wading(x: number, y: number, space?: string): { depth: number; flow: [number, number] } | undefined {
@@ -178,6 +181,7 @@ export class SewerView {
     for (const t of level.things) if (t.solid) stand(t.id, t.art, t.x, t.y, 0.5, done.has(t.id) && !sewerFind(t.find)?.keeps);
     if (level.down) stand("down", "down", level.down.x, level.down.y, 0, false);
     level.shafts.forEach((sh, i) => {
+      if (sh.to === "street" && level.mouth) return;
       if (sh.to === "street" || level.cells[(sh.y - 1) * level.w + sh.x] !== WALL) stand(`shaft${i}`, "ladder", sh.x, sh.y, 0, false, sh.y * 16 - 4);
     });
     this.sheet.refresh();
@@ -211,6 +215,15 @@ export class SewerView {
     for (const l of level.lamps) add(l.x + 0.5, l.y + 0.3, 5.5, [1, 0.78, 0.45], 0.75);
     for (const s of level.shafts) {
       if (s.to !== "street" || !s.world) continue;
+      // The onsetter's lamps at the shaft bottom; daylight down an adit.
+      if (level.mouth === "cage") {
+        add(s.x + 0.5, s.y + 1, 6, [1, 0.8, 0.5], 0.8);
+        continue;
+      }
+      if (level.mouth === "adit") {
+        add(s.x + 0.5, s.y + 0.5, 6.5, night ? [0.4, 0.45, 0.7] : [1, 0.97, 0.88], night ? 0.25 : 0.4 + day * 0.7);
+        continue;
+      }
       const open = f.open.has(`${s.world.x},${s.world.y}`);
       // An open lid lets a pool of daylight down; a shut one a few points through its holes.
       const sky = night ? [0.9, 0.62, 0.32] : [1, 0.97, 0.88];
@@ -392,7 +405,7 @@ export class SewerView {
     const day = Math.max(0, Math.min(1, 1.25 - Math.abs(f.hour - 12.5) / 6));
     if (day < 0.1) return;
     for (const s of this.level.shafts) {
-      if (s.to !== "street" || !s.world || !f.open.has(`${s.world.x},${s.world.y}`)) continue;
+      if (s.to !== "street" || !s.world || this.level.mouth === "cage" || (!this.level.mouth && !f.open.has(`${s.world.x},${s.world.y}`))) continue;
       const mx = s.x * 16 + 8, my = s.y * 16 + 12;
       for (let i = 0; i < 7; i++) {
         g.fillStyle(0xfff4d8, 0.03 * day);
@@ -494,7 +507,22 @@ export class SewerView {
     }
     if (now > this.next.knock) {
       this.next.knock = now + 9000 + Math.random() * 16000;
-      if (this.born < now - 3000) this.sound?.(level.layer === "street" && Math.random() < 0.5 ? "car" : level.layer === "trunk" && Math.random() < 0.4 ? "rumble" : "knock", 0.6);
+      if (this.born < now - 3000)
+        this.sound?.(this.mine
+          ? level.depth < 3 && Math.random() < 0.3 ? "shot" : level.depth < 3 && Math.random() < 0.5 ? "tub" : "creak"
+          : level.layer === "street" && Math.random() < 0.5 ? "car" : level.layer === "trunk" && Math.random() < 0.4 ? "rumble" : "knock", 0.6);
+    }
+    // Someone hewing at a face: the knock of the pick and a spit of chips.
+    if (this.mine && level.depth < 3 && now > this.next.pick) {
+      this.next.pick = now + 700 + Math.random() * 900;
+      const faces = level.rooms.filter((r) => r.use === "face" || r.use === "stope" || r.use === "chamber");
+      const r = faces[Math.floor((now / 9000) % Math.max(1, faces.length))];
+      const o = paletteOf(level).ore![3], chip = Phaser.Display.Color.GetColor(o[0], o[1], o[2]);
+      if (r) {
+        const fx = (r.x + 1 + ((now / 4000) % Math.max(1, r.w - 2))) * 16, fy = r.y * 16 + 2;
+        if (near(fx, fy, 160)) for (let k = 0; k < 3; k++) this.spark(fx + Math.random() * 6, fy + Math.random() * 3, chip, 260, 8 + Math.random() * 6, 1, fy + 20);
+        this.sound?.("pick", nearness(fx, fy) * 0.9);
+      }
     }
     // Boots in the channel.
     const cell = Math.floor((f.y - 1) / 16) * w + Math.floor(f.x / 16);
@@ -534,7 +562,10 @@ export class SewerView {
     g.fillStyle(0x2a302a).fillRect(x + 7, y - 2, 50, 4);
     g.fillStyle(frac < 0.2 ? (Math.floor(f.time / 300) % 2 ? 0xe04a2a : 0xff8a4a) : 0xd8e8a0).fillRect(x + 7, y - 2, Math.round(50 * frac), 4);
     if (f.run.surge > 0.05) g.fillStyle(0x8a6a3a).fillRect(x + 7, y + 3, Math.round(50 * f.run.surge), 1);
-    const where = this.level.layer === "street" ? "UNDER THE STREET" : this.level.layer === "trunk" ? "TRUNK SEWER" : "BELOW THE SEWERS";
+    const where = {
+      street: "UNDER THE STREET", trunk: "TRUNK SEWER", old: this.mine ? "OLD WORKINGS" : "BELOW THE SEWERS",
+      level: this.level.mouth === "cage" ? "PIT BOTTOM" : "ADIT LEVEL", workings: "IN THE WORKINGS",
+    }[this.level.layer];
     this.label.setPosition(x + 64, y).setText(`${f.light.name.toUpperCase()}  ·  ${where}`);
     const age = f.time - this.born;
     this.banner.setPosition(v.centerX, v.y + v.height * 0.2).setAlpha(age < 600 ? age / 600 : age < 2600 ? 1 : Math.max(0, 1 - (age - 2600) / 900));

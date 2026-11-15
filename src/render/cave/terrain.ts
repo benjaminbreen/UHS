@@ -77,10 +77,15 @@ function distance(W: number, H: number, seed: (x: number, y: number) => boolean,
   return d;
 }
 
+/** What sits over the moving water: banks and their faces on `top`, and in
+ * `mask` how much of the water shows, thin at the shore and thick when deep. */
+export type WaterLayers = { top: CanvasRenderingContext2D; mask: CanvasRenderingContext2D };
+
 /** The rock itself on the cell grid, as a top-down tile game draws it: floor,
- * water, a tall face at the back of every chamber, and the dark tops of the
- * rock everywhere else, rimmed where they meet the floor. */
-export function paintCaveTerrain(ctx: CanvasRenderingContext2D, level: CaveLevel) {
+ * pool beds, a tall face at the back of every chamber, and the dark tops of
+ * the rock everywhere else, rimmed where they meet the floor. Returns the
+ * waterline's pixels, packed as y * width + x, for the lapping to run along. */
+export function paintCaveTerrain(ctx: CanvasRenderingContext2D, level: CaveLevel, layers: WaterLayers): number[] {
   const { w, h, cells, kind } = level;
   const pal = cavePalettes[kind];
   const rock = FORM[kind];
@@ -115,6 +120,9 @@ export function paintCaveTerrain(ctx: CanvasRenderingContext2D, level: CaveLevel
   // open within a few pixels of rock lies in its shadow.
   const toOpen = distance(W, H, (x, y) => !wall(x, y), 16);
   const toRock = distance(W, H, (x, y) => wall(x, y), 8);
+  const toShore = distance(W, H, (x, y) => dry(x, y), 16);
+  const top = layers.top.createImageData(W, H), mask = layers.mask.createImageData(W, H);
+  const shore: number[] = [];
   const fl = pal.floor, fc = pal.face;
   const mortar = mix(fl[0], SHADE, 0.2), lit = mix(fl[2], WARM, 0.12);
   // The cliff painter gives the form; the cave's own ramp gives the colour.
@@ -125,6 +133,25 @@ export function paintCaveTerrain(ctx: CanvasRenderingContext2D, level: CaveLevel
     let k = 0;
     for (let j = 1; j < 7; j++) if (Math.abs(src[j] - l) < Math.abs(src[k] - l)) k = j;
     return dst[k];
+  };
+  const floorAt = (px: number, py: number): RGB => {
+    let col: RGB;
+    const s = slab(px, py);
+    const n = vn(px, py, 22, 5);
+    if (vn(s.ax, s.ay, 44, 3) < pal.silt) {
+      col = fl[n < 0.4 ? 0 : n < 0.75 ? 1 : 2];
+      const g = h2(px, py, 5);
+      if (g < 0.02) col = fl[0];
+      else if (g > 0.985) col = fl[3];
+    } else {
+      col = fl[[1, 2, 2, 1, 2, 3][Math.floor(h2(s.id, 0, 43) * 6)]];
+      if (n < 0.3) col = mix(col, fl[0], 0.35);
+      if (s.e < 0.8) col = mortar;
+      else if (s.e < 1.8 && s.toward > 0.3) col = mix(col, fl[0], 0.6);
+      else if (s.e < 1.8 && s.toward < -0.3) col = lit;
+      else if (h2(px, py, 6) < 0.025) col = fl[0];
+    }
+    return col;
   };
   for (let py = 0; py < H; py++)
     for (let px = 0; px < W; px++) {
@@ -142,6 +169,9 @@ export function paintCaveTerrain(ctx: CanvasRenderingContext2D, level: CaveLevel
           const r = FACE - k;
           col = tint(cliffPixel(rock, r, FACE, px, py - r));
           if (r < 2 && d < 3) col = mix(col, BLACK, 0.5);
+          // The low arch the stream comes out of.
+          const rise = level.stream?.rise, ax = rise ? px - rise.x * 16 - 8 : 99, arch = 13 - (ax * ax) / 5;
+          if (k - 1 < arch && !dry(px, py + k + 4)) col = k - 1 < arch - 1.5 ? mix(BLACK, pal.water[0], k < 4 ? 0.55 : 0.12) : mix(col, BLACK, 0.55);
         } else if (up <= 8 && !wall(px, py - up)) {
           // The front edge of a floor, its lip seen falling away into the dark.
           col = up <= 6 ? tint(cliffPixel(rock, up - 1, 6, px, py - up + 1)) : mix(fc[0], BLACK, 0.6);
@@ -161,34 +191,45 @@ export function paintCaveTerrain(ctx: CanvasRenderingContext2D, level: CaveLevel
           }
         }
       } else if (c === SHALLOW || c === DEEP) {
+        // The bed: the same floor, sunk, going dark and blue with depth.
+        // Depth as a smooth field too, so deep water has no cell corners.
+        const deep = Math.min(1, Math.max(0, field(px, py, (k) => k === DEEP) * 1.6 - 0.3));
+        const depth = Math.max(deep, Math.min(1, toShore[i0] / 14));
+        col = mix(floorAt(px, py), pal.water[0], 0.3 + depth * 0.55);
         let bank = 0;
-        while (bank < 5 && !dry(px, py - bank - 1)) bank++;
-        col = c === DEEP ? pal.water[vn(px, py, 30, 3) > 0.5 ? 1 : 0] : pal.water[1];
-        if (vn(px, py * 3, 14, 31) > 0.74) col = mix(col, pal.water[2], 0.7);
-        if (dry(px - 1, py) || dry(px + 1, py) || dry(px, py + 1)) col = pal.water[2];
-        // The floor stands a little above the water: a cut bank, then its shadow.
-        if (bank < 5 && !wall(px, py - bank - 1)) col = bank < 2 ? (bank === 0 ? fc[2] : fc[1]) : mix(pal.water[0], SHADE, 0.35);
-      } else {
-        const s = slab(px, py);
-        const n = vn(px, py, 22, 5);
-        if (vn(s.ax, s.ay, 44, 3) < pal.silt) {
-          col = fl[n < 0.4 ? 0 : n < 0.75 ? 1 : 2];
-          const g = h2(px, py, 5);
-          if (g < 0.02) col = fl[0];
-          else if (g > 0.985) col = fl[3];
-        } else {
-          col = fl[[1, 2, 2, 1, 2, 3][Math.floor(h2(s.id, 0, 43) * 6)]];
-          if (n < 0.3) col = mix(col, fl[0], 0.35);
-          if (s.e < 0.8) col = mortar;
-          else if (s.e < 1.8 && s.toward > 0.3) col = mix(col, fl[0], 0.6);
-          else if (s.e < 1.8 && s.toward < -0.3) col = lit;
-          else if (h2(px, py, 6) < 0.025) col = fl[0];
+        while (bank < 16 && !dry(px, py - bank - 1)) bank++;
+        const brink = wall(px, py - bank - 1);
+        const drop = deep > 0.5 ? 8 : 5;
+        let lay: RGB | undefined, alpha = 1;
+        if (!brink && bank < drop) {
+          // The floor stands above the water: its cut face, lit at the lip.
+          lay = tint(cliffPixel(rock, bank, drop, px, py - bank));
+          if (bank === 0) lay = mix(lay, WARM, 0.18);
+          if (bank >= drop - 1) lay = mix(lay, pal.stain, 0.25);
+        } else if (!brink && bank < drop + 6) {
+          // The face goes on down under the surface, fading.
+          lay = mix(tint(cliffPixel(rock, drop - 1, drop, px, py)), pal.water[0], 0.45);
+          alpha = 0.55 - (bank - drop) * 0.09;
+          if (bank === drop) shore.push(i0);
+        } else if (brink && bank < 6) (lay = mix(pal.water[0], SHADE, 0.4)), (alpha = 0.6 - bank * 0.1);
+        if (dry(px - 1, py) || dry(px + 1, py) || dry(px, py + 1)) {
+          lay = pal.water[3];
+          alpha = 0.6;
+          shore.push(i0);
         }
+        if (lay) top.data.set([lay[0], lay[1], lay[2], Math.round(alpha * 255)], i0 * 4);
+        mask.data.set([255, 255, 255, Math.round(255 * (0.32 + depth * 0.58))], i0 * 4);
+      } else {
+        col = floorAt(px, py);
         // The back wall shades its foot; any rock beside shades a little.
         let under = 1;
         while (under <= 10 && !wall(px, py - under)) under++;
         if (under <= 10) col = mix(col, SHADE, under <= 2 ? 0.6 : under <= 5 ? 0.4 : 0.18);
         else if (toRock[i0] <= 3) col = mix(col, SHADE, 0.38 - toRock[i0] * 0.08);
+        const rise = level.stream?.rise;
+        if (rise && Math.abs(px - rise.x * 16 - 8) < 8 && wall(px, py - 6) && !dry(px, py + 6)) col = mix(pal.water[0], BLACK, 0.35);
+        else if (!dry(px, py - 1)) col = mix(col, WARM, 0.22);
+        else if (!dry(px, py - 2)) col = mix(col, SHADE, 0.25);
         if (c === MOUTH || py > H - 64) {
           // Daylight on the floor of the mouth, burning out at the sill.
           const t = Math.max(0, Math.min(1, (py - (H - 64)) / 60));
@@ -202,4 +243,7 @@ export function paintCaveTerrain(ctx: CanvasRenderingContext2D, level: CaveLevel
       out[i + 3] = 255;
     }
   ctx.putImageData(img, 0, 0);
+  layers.top.putImageData(top, 0, 0);
+  layers.mask.putImageData(mask, 0, 0);
+  return shore;
 }
