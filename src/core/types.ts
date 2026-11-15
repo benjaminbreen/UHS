@@ -698,6 +698,8 @@ export type Snapshot = {
   sewerDone?: string[];
   /** Roof that has come down in a mine, by level space: the cells, as y * w + x. */
   mineFalls?: Record<string, number[]>;
+  /** People underground the player has already worked, traded or prayed with, by actor id. */
+  folkDealt?: string[];
   lids?: Record<string, number>;
   fauna?: import("./fauna").FaunaGroup[];
   /** Animals the district has a name for, by group and member number. */

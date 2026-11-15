@@ -6261,11 +6261,18 @@ export class WorldScene extends Phaser.Scene {
     camera.setBounds((W - width) / 2, (H - height) / 2, width, height);
     const me = this.entities.get("player");
     const p = e.state.player;
+    const carried: { x: number; y: number }[] = [];
+    for (const a of e.state.actors)
+      if (a.underground && a.heldItem === "torch" && a.pos.space === space) {
+        const im = this.entities.get(a.id);
+        carried.push({ x: im?.x ?? a.pos.x * 16 + 8, y: im?.y ?? a.pos.y * 16 + 16 });
+      }
     v.update({
       x: me?.x ?? p.pos.x * 16 + 8,
       y: me?.y ?? p.pos.y * 16 + 16,
       facing: p.direction,
       run,
+      carried,
       done: e.state.caves?.[level.cave]?.done ?? [],
       light: caveLight(run.light),
       hour: (((e.state.clock / 3600) % 24) + 24) % 24,

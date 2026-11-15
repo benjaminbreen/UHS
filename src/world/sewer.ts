@@ -612,7 +612,7 @@ function furnish(seed: string, site: SewerSite, d: Draft): SewerLevel {
       const p = [home, ...N4.map(([dx, dy]) => ({ x: home.x + dx, y: home.y + dy }))].find((q) => free(q.x, q.y) && !folk.some((f) => f.x === q.x && f.y === q.y));
       if (!p) break;
       const [lo, hi] = who.ages ?? [18, 55];
-      folk.push({ id: `sewer-${site.id}-${d.depth}-${g}-${k}`, person: who.id, x: p.x, y: p.y, sex: prng() < who.women ? "female" : "male", age: lo + Math.floor(prng() * (hi - lo + 1)) });
+      folk.push({ id: `folk-${site.network}-${site.id}-${d.depth}-${g}-${k}`, person: who.id, x: p.x, y: p.y, sex: prng() < who.women ? "female" : "male", age: lo + Math.floor(prng() * (hi - lo + 1)) });
       taken.add(p.y * w + p.x);
     }
   }

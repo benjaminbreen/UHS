@@ -4,13 +4,14 @@ import { deepTimeFinds } from "./deep-time";
 import { naturalFinds } from "./natural";
 import { americasFinds, modernFinds } from "./new-world-modern";
 import { oldWorldFinds } from "./old-world";
+import { campFinds } from "./people";
 import type { Box, CaveFind, CaveKind, CaveLight } from "./types";
 
 export type { CaveFind, CaveKind, CaveLight } from "./types";
 export { caveItems } from "./items";
 
 export const caveFinds: CaveFind[] = [...naturalFinds, ...deepTimeFinds, ...oldWorldFinds, ...americasFinds, ...modernFinds];
-const byId = new Map(caveFinds.map((f) => [f.id, f]));
+const byId = new Map([...caveFinds, ...campFinds].map((f) => [f.id, f]));
 export const caveFind = (id: string) => byId.get(id);
 
 export type CavePlace = Pick<WorldSetting, "lon" | "lat" | "year">;

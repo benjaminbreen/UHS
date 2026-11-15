@@ -56,5 +56,7 @@ export const caveItems: Record<string, ItemDef> = Object.fromEntries([
   def("tinned-food", "Tinned food", "clay-pot", 3, "Tins without labels. Probably beans.", { edible: 20 }),
   def("rope", "Coil of rope", "grass-fibre", 6, "Sound rope, left by whoever came down before you."),
   def("brandy", "Cask brandy", "wine", 14, "Spirits landed at night and never taxed.", { edible: 1 }),
+  def("cheese", "Cave cheese", "clay-pot", 4, "A small cheese ripened in a cave, with a rind as hard as wood.", { edible: 22 }),
+  def("dried-meat", "Dried meat", "meat", 3, "Strips of meat dried hard in the sun and frost: charqui, jerky, biltong.", { edible: 20 }),
   def("bone-needle", "Bone needle", "pebble", 3, "A sliver of bone with an eye drilled through it."),
 ]);

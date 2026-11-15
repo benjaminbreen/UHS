@@ -27,6 +27,8 @@ export type CaveFrame = {
   hour: number;
   time: number;
   delta: number;
+  /** Torches and lamps carried by the people down here, in world pixels. */
+  carried: readonly { x: number; y: number }[];
   /** A drawn frame for an animal, from the scene's own fauna sheets. */
   beast(species: string, state: "idle" | "wander" | "chase", dir: number, stride: number): { texture: string; frame: string } | undefined;
 };
@@ -271,12 +273,17 @@ export class CaveView {
           if (L > 0.06) this.seen[cell] = 1;
         }
         const sun = this.day[cell] * noon;
+        let fr = 0;
+        for (const c of f.carried) {
+          const u = Math.hypot((gx + 0.5) / SUB - c.x / 16, (gy + 0.5) / SUB - (c.y - 10) / 16) / 5;
+          if (u < 1) fr += (1 - u * u) * 0.7;
+        }
         if (sun > 0.1) this.seen[cell] = 1;
         const mem = this.seen[cell] ? 0.17 : 0;
         const i = (gy * gw + gx) * 3, o = (gy * gw + gx) * 4;
-        cur[i] += (Math.min(1, L * color[0] * 1.08 + sun + mem * 0.62) - cur[i]) * k;
-        cur[i + 1] += (Math.min(1, L * color[1] * 1.04 + sun * 0.97 + mem * 0.72) - cur[i + 1]) * k;
-        cur[i + 2] += (Math.min(1, L * color[2] + sun * 0.9 + mem) - cur[i + 2]) * k;
+        cur[i] += (Math.min(1, L * color[0] * 1.08 + sun + fr + mem * 0.62) - cur[i]) * k;
+        cur[i + 1] += (Math.min(1, L * color[1] * 1.04 + sun * 0.97 + fr * 0.8 + mem * 0.72) - cur[i + 1]) * k;
+        cur[i + 2] += (Math.min(1, L * color[2] + sun * 0.9 + fr * 0.55 + mem) - cur[i + 2]) * k;
         out[o] = cur[i] * 255;
         out[o + 1] = cur[i + 1] * 255;
         out[o + 2] = cur[i + 2] * 255;

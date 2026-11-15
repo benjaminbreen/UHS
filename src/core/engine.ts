@@ -78,6 +78,7 @@ import { orderKeeper, type Penalty } from "../content/history/order";
 import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
 import { caveAct, caveBeastAt, caveGround, caveMouthsNear, caveInspect, caveLevelOf, caveStrike, caveTime, caveVerb, type CaveHost } from "./cave";
+import { folkOffer, type FolkHost } from "./tunnel-folk";
 import { lidAt, mineEnter, mineLeave, minePeril, minePlace, sewerAct, sewerGround, sewerInspect, sewerLevelOf, sewerTime, sewerVerb, type SewerHost } from "./sewer";
 import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structure } from "./time/structure";
 import { regardCue, WARM, WARY } from "./regard";
@@ -2172,10 +2173,47 @@ export class Engine {
     unblock: (space, x, y) => void this.terrainCollision.delete(`${space}:${x},${y}`),
     sites: new Map(),
     levels: new Map(),
+    folk: undefined as never,
   };
+  private folkHost: FolkHost = {
+    state: undefined as never,
+    world: undefined as never,
+    event: (text, kind, at) => this.event(text, kind, at),
+    advance: (seconds) => this.advance(seconds),
+    hurt: (damage, cause, injury) => this.hurt(damage, cause, injury),
+    join: (a) => {
+      if (!this.state.actors.includes(a)) this.state.actors.push(a);
+      this.actorsById?.set(a.id, a);
+      this.syncActor(a);
+    },
+    part: (id) => {
+      this.state.actors = this.state.actors.filter((a) => a.id !== id);
+      this.actorsById?.delete(id);
+    },
+    itemName: (id) => this.item(id)?.name ?? id,
+    value: (id) => this.item(id)?.value ?? 0,
+    edible: (id) => !!this.item(id)?.edible,
+    coined: () => this.coined(),
+    provoke: (a, fight) => {
+      const clock = this.state.clock;
+      a.terror = { until: clock + 600, place: a.pos.space, fight, strikeAfter: clock + (fight ? 6 : 0), cause: fight ? "assault" : "fright" };
+      a.offRoutine = true;
+      if (fight) this.combatUntil = Math.max(this.combatUntil, clock + 600);
+    },
+    remember: (line) => {
+      const s = this.state;
+      (s.record ??= []).push({ day: this.trade()?.day ?? Math.floor(s.clock / 86400), clock: s.clock, card: "underground", choice: 0, line });
+    },
+  };
+  private get folk() {
+    this.folkHost.state = this.state;
+    this.folkHost.world = this.world;
+    return this.folkHost;
+  }
   private get caves() {
     this.caveHost.state = this.state;
     this.caveHost.world = this.world;
+    this.caveHost.folk = this.folk;
     return this.caveHost;
   }
   private sewerHost: SewerHost = {
@@ -2190,15 +2228,7 @@ export class Engine {
       const setting = this.world.pack.setting;
       return weatherAt(skySeed(this.state.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", this.state.clock).rain;
     },
-    join: (a) => {
-      if (!this.state.actors.includes(a)) this.state.actors.push(a);
-      this.actorsById?.set(a.id, a);
-      this.syncActor(a);
-    },
-    part: (id) => {
-      this.state.actors = this.state.actors.filter((a) => a.id !== id);
-      this.actorsById?.delete(id);
-    },
+    folk: undefined as never,
     busy: () => this.working,
     remember: (line) => {
       const s = this.state, t = this.trade(), work = s.economy?.work;
@@ -2211,6 +2241,7 @@ export class Engine {
   private get sewers() {
     this.sewerHost.state = this.state;
     this.sewerHost.world = this.world;
+    this.sewerHost.folk = this.folk;
     return this.sewerHost;
   }
   /** The sewer level a space is, if it is one. */
@@ -6532,6 +6563,8 @@ export class Engine {
     if (actor) {
       if (actor.kind === "human") {
         interact("talk", "Talk");
+        const offer = actor.underground && folkOffer(this.folk, actor);
+        if (offer) interact(this.state.cave ? "cave" : "sewer", offer.label, close && offer.enabled, close ? offer.reason : "Walk closer");
         for (const o of this.careOptions(actor.id).filter((o) => o.fits))
           add(o.label, o.command, !o.unavailable, o.unavailable);
         if (this.state.manifest.survival) interact("strike", "Strike (may provoke a fight)", distance(this.state.player.pos, pos) <= 1.5, "Move within arm’s reach");

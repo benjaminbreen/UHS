@@ -9,6 +9,10 @@ import { laneLids } from "../src/render/carriageway";
 import { LEDGE, sewerLevel, sewerSolid, walkable, type SewerLevel, type SewerSite } from "../src/world/sewer";
 import { FALL_WARN, TUB_CELL, knock, perilField, perilStart, perilTime } from "../src/core/mine-peril";
 import type { SewerHost } from "../src/core/sewer";
+import { folkDeal, folkOffer, folkTime, type FolkHost } from "../src/core/tunnel-folk";
+import { caveFind } from "../src/content/caves";
+import { campFinds, cavePeople } from "../src/content/caves/people";
+import type { Actor } from "../src/core/types";
 import type { Lane } from "../src/world/v3/types";
 
 const site = (id: string, place: SewerSite["place"]): SewerSite => {
@@ -187,5 +191,56 @@ describe("mines", () => {
       expect(solid.has(5 * workings.w + 5)).toBe(false);
       expect(kept.at(-1)).toMatch(/^You were dug out/);
     });
+  });
+});
+
+describe("people underground", () => {
+  it("names only items, finds and livelihoods that exist", () => {
+    for (const p of [...cavePeople, ...sewerPeople.filter((q) => q.deal)]) {
+      if (cavePeople.includes(p)) expect(livelihoodIds, p.id).toContain(p.dress);
+      if (p.keeps) expect(caveFind(p.keeps), p.id).toBeDefined();
+      const d = p.deal;
+      for (const id of [...Object.keys(d?.gives ?? {}), ...(d?.buys ?? []), ...(Array.isArray(d?.wants) ? d!.wants : [])]) expect(items[id], `${p.id} ${id}`).toBeDefined();
+    }
+    for (const f of campFinds) for (const id of Object.keys(f.loot ?? {})) expect(items[id], `${f.id} ${id}`).toBeDefined();
+  });
+
+  it("puts somebody in the caves of every inhabited region and age", () => {
+    const places: [number, number, number][] = [
+      [1, 45, -30000], [1, 45, 1700], [34.8, 38.6, 900], [39, 13, 1500], [37, -1, 1800], [19, -33, 1000], [75, 25, 200], [91, 29.6, 1400],
+      [110, 25, 1200], [135.7, 35, 1100], [114, 4, 1700], [133, -12.5, 1500], [-86, 37, 1812], [-89, 20.5, 800], [-72, -13.5, 1400],
+      [-77.5, 18.2, 1000], [105, 47, 1600], [10, 62, 1950],
+    ];
+    for (const [lon, lat, year] of places)
+      expect(cavePeople.some((p) => personFits(p, { lon, lat, year }, "karst")), `${lon},${lat} ${year}`).toBe(true);
+  });
+
+  it("works, trades and turns on an enemy", () => {
+    const said: string[] = [];
+    const tosher = sewerPeople.find((p) => p.id === "tosher")!;
+    const smuggler = cavePeople.find((p) => p.id === "smugglers-north")!;
+    const actor = (id: string, person: string, x: number) =>
+      ({ id, name: id, role: "", trust: 0, pos: { x, y: 5, space: "s" }, underground: { person, home: { x, y: 5 }, next: 0 } }) as unknown as Actor;
+    const fought: string[] = [];
+    const h = {
+      state: { clock: 0, manifest: { seed: "folk" }, player: { role: "Riding officer", pos: { x: 5, y: 7, space: "s" }, health: 100, inventory: { bread: 1 } }, actors: [actor("folk-a-0", tosher.id, 5), actor("folk-b-1", smuggler.id, 9), actor("folk-b-2", smuggler.id, 10)] },
+      event: (t: string) => said.push(t),
+      advance: (n: number) => void (h.state.clock += n),
+      hurt: () => {},
+      join: () => {},
+      itemName: (id: string) => id,
+      value: () => 1,
+      edible: (id: string) => id === "bread",
+      coined: () => true,
+      provoke: (a: Actor, fight: boolean) => void fought.push(`${a.id}:${fight}`),
+      remember: () => {},
+    } as unknown as FolkHost;
+    expect(folkOffer(h, h.state.actors[0])?.enabled).toBe(true);
+    expect(folkDeal(h, "folk-a-0")).toBe(true);
+    expect(h.state.clock).toBe(tosher.deal!.time);
+    expect(folkOffer(h, h.state.actors[0])?.enabled).toBe(false);
+    folkTime(h, "s", () => true);
+    expect(said.some((t) => t.includes(smuggler.threat!))).toBe(true);
+    expect(fought).toEqual(["folk-b-1:true", "folk-b-2:true"]);
   });
 });

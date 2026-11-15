@@ -3,6 +3,9 @@ import { faunaCombat, faunaProfile } from "../content/fauna";
 import { rockAt, type Rock } from "../content/geography/rock";
 import { caveAt } from "../render/edge-faces";
 import { caveLevel, caveLevels, caveSolid, caveSpace, parseCaveSpace, DEEP, MOUTH, WALL, type CaveLevel, type CaveSite, type CaveThing } from "../world/cave";
+import { cavePeople } from "../content/caves/people";
+import { personFits } from "../content/sewers";
+import { folkArrive, folkDeal, folkRobbed, folkTime, type FolkHost } from "./tunnel-folk";
 import type { GameEvent, Snapshot as GameState, Inspection, Inventory, Point, WorldModel } from "./types";
 
 export type CaveBeast = {
@@ -50,6 +53,7 @@ export type CaveHost = {
   unblock(space: string, x: number, y: number): void;
   sites: Map<string, CaveSite | null>;
   levels: Map<string, { level: CaveLevel; solid: Set<number> }>;
+  folk: FolkHost;
 };
 
 const rockOf = (world: WorldModel, x: number, y: number): Rock | "earth" => {
@@ -127,6 +131,7 @@ function siteOf(h: CaveHost, id: string): CaveSite | undefined {
     place: { lon: setting.lon, lat: setting.lat, year: setting.year },
     denners: caveDenners(setting),
     snakes: caveSnakes(setting, kind),
+    people: cavePeople.filter((p) => personFits(p, setting, kind)),
   };
   h.sites.set(id, site);
   return site;
@@ -164,6 +169,7 @@ export const caveBeastAt = (state: GameState, space: string, x: number, y: numbe
 const beastName = (species: string) => (species === "snake" ? "snake" : (faunaProfile(species)?.label ?? species).toLowerCase());
 
 function populate(h: CaveHost, level: CaveLevel) {
+  folkArrive(h.folk, level.space, level.folk);
   const run = h.state.cave!;
   const slain = new Set(h.state.caves?.[run.cave]?.slain);
   run.roused = [];
@@ -207,6 +213,7 @@ function leave(h: CaveHost) {
   p.pos = { ...run.mouth, space: "outside" };
   p.direction = 2;
   delete h.state.cave;
+  for (const a of [...h.state.actors]) if (a.underground) h.folk.part(a.id);
   h.event("You come out into the open air, blinking.");
 }
 
@@ -312,6 +319,7 @@ export function caveAct(h: CaveHost, id: string) {
   const run = h.state.cave, c = run && caveLevelOf(h, p.pos.space);
   if (!run || !c) return;
   const { level } = c;
+  if (id.startsWith("folk-")) return void folkDeal(h.folk, id);
   if (id === "cave-down") {
     const first = arrive(h, level.depth + 1, "entry");
     h.advance(90);
@@ -344,6 +352,7 @@ export function caveAct(h: CaveHost, id: string) {
     }
     if (f.fuel && run.left > 0) run.left = Math.min(caveLight(run.light).burns * 1.5, run.left + f.fuel * 3);
     rec.done.push(thing.id);
+    if (Object.keys(thing.loot).length) folkRobbed(h.folk, level.space, thing.find);
     if (Object.keys(thing.loot).length) run.took = { at: { x: thing.x, y: thing.y }, items: { ...thing.loot }, clock: h.state.clock };
     if (thing.solid && !f.keeps) {
       c.solid.delete(thing.y * level.w + thing.x);
@@ -504,4 +513,5 @@ export function caveTime(h: CaveHost, elapsed: number) {
       if (to) (b.dir = to.x > b.x ? 1 : to.x < b.x ? 3 : to.y > b.y ? 2 : 0), (b.x = to.x), (b.y = to.y);
     }
   }
+  folkTime(h.folk, level.space, (x, y) => !caveGround(h, level.space, x, y));
 }

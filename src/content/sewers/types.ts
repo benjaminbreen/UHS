@@ -1,4 +1,5 @@
 import type { CharacterScope } from "../characters/context-types";
+import type { CaveKind } from "../caves/types";
 
 /** How a town's drains are built, which decides the walls, the floor and the water. */
 export type SewerKind =
@@ -86,8 +87,11 @@ export type SewerFind = {
 export type SewerPerson = {
   id: string;
   scope: CharacterScope;
-  kinds?: readonly TunnelKind[];
-  depths?: readonly TunnelDepth[];
+  /** Any one of these regions will do, on top of `scope.bounds`. */
+  where?: readonly Box[];
+  kinds?: readonly (TunnelKind | CaveKind)[];
+  /** In a cave, "mouth" is the first level and "deep" any below it. */
+  depths?: readonly (TunnelDepth | "mouth" | "deep")[];
   ores?: readonly string[];
   /** Their role, as the wardrobe reads it: "Sewer flusher", "Urban explorer". */
   label: string;
@@ -113,7 +117,41 @@ export type SewerPerson = {
   /** Items they may give or sell. */
   goods?: readonly string[];
   weight: number;
+  /** Something to do with them besides talk: work alongside, trade, an offering. */
+  deal?: FolkDeal;
+  /** A cave find they set up beside them, and fight anyone for who takes it. */
+  keeps?: string;
+  /** The player's livelihoods they take for an enemy, matched against the role. */
+  foes?: RegExp;
+  /** What they say to one, just before they go for them, or run. */
+  threat?: string;
+  /** Run from a foe rather than fight. */
+  flee?: boolean;
   /** What is documented, inferred or hypothetical about them, and on what. */
   note: string;
   basis: "documented" | "inferred" | "hypothesis" | "fiction";
+};
+
+export type FolkDeal = {
+  /** The action: "Give the hermit some bread". */
+  verb: string;
+  /** What they want for it: food, money (food where there is no coin), or one of these items. */
+  wants?: "food" | "coin" | readonly string[];
+  /** How many coins or pieces of food. */
+  price?: number;
+  gives?: Readonly<Record<string, number | readonly [number, number]>>;
+  /** Coins paid for the work. */
+  wage?: number;
+  /** Items they buy off the player, at the item's value. */
+  buys?: readonly string[];
+  heal?: number;
+  /** Game seconds of light added. */
+  fuel?: number;
+  /** Damage, the cause, and the chance of it. */
+  risk?: readonly [number, string, number];
+  /** Game seconds it takes. */
+  time: number;
+  text: string;
+  /** Can be done more than once with the same person. */
+  again?: boolean;
 };

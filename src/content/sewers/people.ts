@@ -22,6 +22,13 @@ const AFGHANISTAN: Box = [60, 29, 71, 38.5];
 const NIGERIA: Box = [2.7, 4.2, 14.7, 13.9];
 const SYDNEY_MELBOURNE: Box = [143.5, -38.5, 151.6, -33.3];
 const WEST: Box = [-170, 14, 40, 72];
+const BRITAIN_IRELAND: Box = [-10.7, 49.8, 2, 59];
+const ROMAN: readonly Box[] = [[-10, 30, 42, 52], [-6, 50, 2, 56]];
+const OTTOMAN: readonly Box[] = [[19, 34, 46, 44], [29, 29, 40, 37.5], [25, 21.5, 36, 32]];
+const CHINA: Box = [98, 20, 123, 42];
+const INDUS: Box = [62, 22, 78, 34];
+const INDUSTRIAL: readonly Box[] = [[-11, 36, 25, 62], [-125, 25, -60, 50]];
+const LAW = /police|constable|watch|gendarme|officer|soldier|sheriff|marshal/i;
 
 const crew: readonly [number, number, number] = [0.2, 0.4, 0.4];
 const pair: readonly [number, number, number] = [0.4, 0.45, 0.15];
@@ -707,5 +714,162 @@ export const sewerPeople: readonly SewerPerson[] = [
     party: [0.5, 0.4, 0.1], women: 0.05, ages: [18, 50], lit: true, goods: ["scrap-copper"], weight: 0.5,
     note: "Metal theft from utility tunnels and cable runs rose with copper prices after about 2005 and is documented in many countries.",
     basis: "documented",
+  },
+  // Before the modern sewer works: older drains had their own people.
+  {
+    id: "indus-drain-cleaner", scope: { years: [-2600, -1800], bounds: INDUS }, depths: street,
+    label: "Drain cleaner", dress: "sweeper", doing: "Lifting a cover stone to clear the drain", manner: "crew",
+    lines: [
+      "Every house has a drain to the street, and every street drain has a stone you can lift. We lift them.",
+      "The sump catches the sand. Empty the sump and the drain runs.",
+      "The bricks are all the same size, in every city we've heard of. So are the drains.",
+    ],
+    party: [0.3, 0.5, 0.2], women: 0.1, ages: [14, 55], lit: true, weight: 1,
+    deal: { verb: "Help them clear the drain", time: 1800, gives: { "clay-pot": [0, 1] }, risk: [6, "foul water", 0.3],
+      text: "You scoop silt out of the sump into baskets and carry it up. Under the last of it is a whole pot somebody dropped." },
+    note: "Covered brick street drains with removable cover stones and sumps at Mohenjo-daro, Harappa and Lothal; standard brick proportions; who cleaned them is inferred.",
+    basis: "inferred",
+  },
+  {
+    id: "cloaca-convict", scope: { years: [-300, 500] }, where: ROMAN, depths: ["street", "trunk"],
+    label: "Convict cleaning the sewer", dress: "bound-labourer", doing: "Shovelling silt under guard", manner: "crew",
+    lines: [
+      "Sentenced to public works. Better the sewer than the mines, they tell me.",
+      "The Great Drain is older than the Republic. The vault still holds. Our backs don't.",
+      "Things come down here from the baths: rings, hairpins, gems that fell out of their settings. The guard takes them.",
+      "When the river is high the water comes back up the outfall. Then everyone runs.",
+    ],
+    party: [0.1, 0.3, 0.6], women: 0, ages: [16, 50], lit: true, weight: 1.5,
+    deal: { verb: "Slip them some food", wants: "food", price: 1, time: 300,
+      text: "It disappears into a tunic before the guard turns round. In return you're told, very quietly, where the gold rings turn up after the baths." },
+    note: "Pliny the Younger's letter to Trajan (Ep. 10.32) on convicts assigned to cleaning sewers; the Cloaca Maxima; finds of jewellery in Roman bath drains (Caerleon, York).",
+    basis: "documented",
+  },
+  {
+    id: "lagimci", scope: { years: [1450, 1923] }, where: OTTOMAN, depths: street,
+    label: "Sewer cleaner", dress: "sweeper", doing: "Sieving the silt in a basket", manner: "scavenge",
+    lines: [
+      "We are a guild, like the bakers. We have our own master and our own saint.",
+      "Everything the city drops comes to us in the end. Coins, rings, once a silver spoon.",
+      "The army takes men like us for the sieges. We dig under walls as well as we dig under streets.",
+      "Hold your breath at the corner. It's always worse at the corner.",
+    ],
+    party: [0.3, 0.5, 0.2], women: 0, ages: [14, 60], lit: true, weight: 1.5,
+    deal: { verb: "Sift the silt with them", time: 1800, gives: { coin: [0, 3] }, risk: [8, "foul air", 0.25],
+      text: "You shake the basket under the trickle until only the heavy things are left. They let you keep what you find, which is the custom." },
+    note: "The lağımcı guild cleaned Istanbul's sewers and searched the silt for valuables (Evliya Çelebi's guild procession); the same name was used for Ottoman sappers who mined under siege walls.",
+    basis: "documented",
+  },
+  {
+    id: "ditch-dredger", scope: { years: [1400, 1912], bounds: CHINA }, depths: street,
+    label: "Drain dredger", dress: "navvy", doing: "Hauling black mud up out of the drain", manner: "crew",
+    lines: [
+      "Every spring the covered drains are opened and dredged. The whole city stinks for a month.",
+      "The mud goes in heaps beside the street until it dries, and then the farmers buy it.",
+      "Don't fall in an open drain at night. People drown in them every year.",
+      "The office of works pays by the length. So we dredge the length, not the depth.",
+    ],
+    party: [0.1, 0.4, 0.5], women: 0, ages: [16, 55], lit: true, weight: 1.5,
+    deal: { verb: "Dredge with them for a while", time: 2 * 3600, wage: 1, risk: [6, "foul water", 0.3],
+      text: "You haul buckets of black mud up on a rope until your shoulders burn. The foreman pays you a few cash and laughs at the state of you." },
+    note: "Beijing's covered drains were opened and dredged each spring under the Ming and Qing (the 'kai gou' season), the mud sold as manure; drownings in open drains are recorded.",
+    basis: "documented",
+  },
+  {
+    id: "tosher", scope: { years: [1800, 1900], bounds: BRITAIN_IRELAND }, depths: ["street", "trunk"],
+    label: "Tosher", dress: "street-hawker", doing: "Feeling through the silt with a hoe", manner: "scavenge",
+    lines: [
+      "A good day is a few shillings in copper. A very good day is a silver spoon.",
+      "Never go down alone, and never when the tide's coming up. It comes up the sewers too.",
+      "The rats here are as big as cats and they go for your face if you corner them.",
+      "The commissioners say it's against the law now. They have to catch me first.",
+      "The lantern goes on your chest, so your hands are free.",
+    ],
+    party: [0.4, 0.5, 0.1], women: 0, ages: [14, 65], lit: true, weight: 2,
+    deal: { verb: "Go tosher-ing with them", time: 2 * 3600, gives: { coin: [1, 5] }, risk: [8, "a rat bite", 0.3],
+      text: "You follow their lantern along the brick, poking the silt with a stick. They show you where things settle in the bends, and you come out with more money than you went in with." },
+    note: "Mayhew's 'sewer-hunters' or toshers in London Labour and the London Poor (1851): long hoes, lanterns strapped to the chest, the danger of tides and rats, entry banned by the Commissioners of Sewers.",
+    basis: "documented",
+  },
+  {
+    id: "sewer-scavenger", scope: { years: [1750, 1900], except: [BRITAIN_IRELAND] }, where: INDUSTRIAL, depths: ["street", "trunk"],
+    label: "Sewer scavenger", dress: "street-hawker", doing: "Combing the silt for anything worth selling", manner: "scavenge",
+    lines: [
+      "Bones go to the boilers, rags to the paper mills, metal to the dealers. Nothing down here is worthless.",
+      "The police chase us out of the big drains. We come back the next night.",
+      "Coins wash down in the gutters after a market day.",
+    ],
+    party: [0.5, 0.4, 0.1], women: 0.05, ages: [12, 65], lit: true, weight: 1.5,
+    deal: { verb: "Search the silt with them", time: 2 * 3600, gives: { coin: [0, 3] }, risk: [8, "foul water", 0.3],
+      text: "You crouch beside them in the stink, sorting bones from stones. Most of it is nothing, and a bit of it is money." },
+    note: "Rag-pickers and sewer scavengers in 19th-century European and American cities, who sold bone, rag and metal; paralleled London's toshers.",
+    basis: "inferred",
+  },
+  {
+    id: "flusherman", scope: { years: [1848, 1900] }, where: INDUSTRIAL, depths: ["street", "trunk"],
+    label: "Flusherman", dress: "night-soil-collector", doing: "Opening a penstock to flush the channel", manner: "crew",
+    lines: [
+      "We hold the water back behind the gate, then let it all go at once. It scours the brick clean.",
+      "Two of my mates died of the fever last year. You don't drink down here, not ever.",
+      "The new main drains are a wonder. The old ones are still under them, full of everything.",
+      "Smell that? That's what killed people in the cholera. Or so they say now.",
+    ],
+    party: [0.1, 0.4, 0.5], women: 0, ages: [18, 60], lit: true, weight: 1.5,
+    deal: { verb: "Work the gate with them", time: 2 * 3600, wage: 2, risk: [10, "sewer gas", 0.3],
+      text: "You hang on the penstock chain until the gate goes up, and a wall of water roars away down the tunnel. They give you a share of the day's pay." },
+    note: "Flushermen of the Metropolitan Commission of Sewers (from 1848) and Bazalgette's system (1859–75); Paris égoutiers under Belgrand; deaths from typhoid and gas.",
+    basis: "documented",
+  },
+  {
+    id: "old-rat-catcher", scope: { years: [1700, 1900] }, depths: street,
+    label: "Rat catcher", dress: "trapper", doing: "Sending a ferret into a pipe", manner: "scavenge",
+    lines: [
+      "Rats for the pits, a shilling a dozen live. Dead ones aren't worth a thing.",
+      "Ferret goes in, rats come out. You just have to be at the right end.",
+      "Every bite I've had has gone bad. You learn to be quick.",
+    ],
+    party: [0.7, 0.3, 0], women: 0.05, ages: [16, 70], lit: true, weight: 1,
+    note: "Rat catchers such as Jack Black, Victoria's rat-catcher, supplied live rats to the rat pits; Mayhew records their trade.",
+    basis: "documented",
+  },
+  {
+    id: "on-the-run", scope: { years: [1600, 1950] }, where: [WEST, CHINA], depths: ["street", "trunk", "old"],
+    label: "Man on the run", dress: "street-hawker", doing: "Hiding in the dark", manner: "lookout",
+    lines: [
+      "You didn't see me. Say it.",
+      "They'll watch the gates for a week. After that I can walk out.",
+      "Down here the watch never comes. Down here nobody comes. Except you.",
+    ],
+    party: [0.85, 0.15, 0], women: 0.1, ages: [16, 60], lit: false, foes: LAW, flee: true, threat: "The law! Not this time!", weight: 0.8,
+    deal: { verb: "Give them some food", wants: "food", price: 1, time: 300,
+      text: "They eat it in three bites, crouched against the wall, and tell you which streets the watch walks at night." },
+    note: "Escapes and hiding through city sewers recur in police records and memoirs, from Paris and Vienna to Shanghai.",
+    basis: "inferred",
+  },
+  {
+    id: "sewer-sightseer", scope: { years: [1867, 1975], bounds: PARIS }, depths: ["street", "trunk"],
+    label: "Sightseer", dress: "clerk", doing: "Riding the sewer boat on the public tour", manner: "explore",
+    lines: [
+      "The Emperor brought kings down here for the exhibition. Now anyone can go on a Saturday.",
+      "Every tunnel has the name of the street above it. You could walk under the whole city.",
+      "It doesn't smell nearly as bad as I hoped.",
+    ],
+    party: [0.2, 0.5, 0.3], women: 0.5, ages: [10, 75], lit: false, weight: 1,
+    note: "Public tours of the Paris sewers by wagon and boat began with the 1867 Exposition Universelle and continue as the Musée des Égouts.",
+    basis: "documented",
+  },
+  {
+    id: "drain-cleaner", scope: { years: [-1000, 1900] }, depths: street,
+    label: "Drain cleaner", dress: "night-soil-collector", doing: "Clearing a blocked drain", manner: "crew",
+    lines: [
+      "The ward pays us to keep the drains running. The ward never pays enough.",
+      "Leaves, dead dogs, broken pots, shoes. People throw anything in a drain.",
+      "In a wet year this drain floods the market. In a dry year it stinks the market out.",
+    ],
+    party: [0.4, 0.4, 0.2], women: 0.05, ages: [14, 60], lit: true, weight: 0.8,
+    deal: { verb: "Help them clear it", time: 1800, wage: 1, risk: [6, "foul water", 0.3],
+      text: "You drag out a mat of rotten leaves and something that used to be a dog, and the water behind it goes with a gurgle." },
+    note: "Urban drains and their cleaning by ward or city labourers are documented from many pre-modern cities; this is a generic figure where no specific trade is known.",
+    basis: "inferred",
   },
 ];

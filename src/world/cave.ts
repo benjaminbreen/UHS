@@ -1,5 +1,7 @@
 import { caveFind, caveFinds, findFits, type CaveFind, type CaveKind, type CavePlace } from "../content/caves";
 import { oreAt } from "../content/ecology/metals";
+import { personFits, type SewerPerson } from "../content/sewers";
+import type { SewerFolk } from "./sewer";
 import { hash } from "../core/random";
 import type { Inventory, Point } from "../core/types";
 
@@ -14,6 +16,8 @@ export type CaveSite = {
   /** Species that might den here, with weights; empty where none range. */
   denners: [string, number][];
   snakes: boolean;
+  /** Who might be found in it, at this place and date. */
+  people: readonly SewerPerson[];
 };
 export type CaveThing = {
   id: string;
@@ -48,6 +52,7 @@ export type CaveLevel = {
   things: CaveThing[];
   decor: CaveDecor[];
   dwellers: CaveDweller[];
+  folk: SewerFolk[];
   /** Which way the water runs in each wet cell: 0 N, 1 E, 2 S, 3 W, -1 still. */
   flow: Int8Array;
   /** A stream crossing the level: where it rises from under the back wall and where it sinks. */
@@ -371,6 +376,40 @@ function build(seed: string, site: CaveSite, depth: number, attempt: number): Ca
     things.push({ id: `${depth}-${i}-${id}`, find: id, x: spot.x, y: spot.y, wall: f.on === "wall", solid: f.on === "floor" && !f.flat, art, name, loot });
   });
 
+  // People, and whatever camp, still or shrine they keep.
+  const folk: SewerFolk[] = [];
+  const frng = rngOf(seed, "cave-folk", site.id, depth);
+  const here = site.people.filter((p) => personFits(p, site.place, kind, depth === 1 ? "mouth" : "deep"));
+  const groups = !here.length ? 0 : (frng() < (depth === 1 ? 0.6 : 0.35) ? 1 : 0) + (frng() < 0.15 ? 1 : 0);
+  for (let g = 0; g < groups; g++) {
+    const who = pick(frng, here, (p) => p.weight)!;
+    const open = floors.filter((p) => free(p.x, p.y) && safe(p.x, p.y));
+    const near = who.manner === "lookout" && depth === 1 ? open.filter((p) => dist[p.y * w + p.x] < 10) : open;
+    const home = (near.length ? near : open)[Math.floor(frng() * (near.length || open.length))];
+    if (!home) break;
+    const kept = who.keeps && caveFind(who.keeps);
+    if (kept) {
+      const spot = [[1, -1], [-1, -1], [2, 0], [-2, 0], [0, -2], [1, 1]].map(([dx, dy]) => ({ x: home.x + dx, y: home.y + dy })).find((q) => free(q.x, q.y) && (kept.flat || safe(q.x, q.y)));
+      if (spot) {
+        const loot: Inventory = {};
+        for (const [item, n] of Object.entries(kept.loot ?? {})) {
+          const count = typeof n === "number" ? n : n[0] + Math.floor(frng() * (n[1] - n[0] + 1));
+          if (count > 0) loot[item] = count;
+        }
+        kept.flat ? taken.add(spot.y * w + spot.x) : block(spot.x, spot.y);
+        things.push({ id: `${depth}-folk-${g}-${kept.id}`, find: kept.id, x: spot.x, y: spot.y, wall: false, solid: !kept.flat, art: kept.art, name: kept.name, loot });
+      }
+    }
+    const roll = frng(), n = roll < who.party[0] ? 1 : roll < who.party[0] + who.party[1] ? 2 : 3;
+    for (let k = 0; k < n; k++) {
+      const p = [home, ...N4.map(([dx, dy]) => ({ x: home.x + dx, y: home.y + dy }))].find((q) => free(q.x, q.y) && !folk.some((f) => f.x === q.x && f.y === q.y));
+      if (!p) break;
+      const [lo, hi] = who.ages ?? [18, 55];
+      folk.push({ id: `folk-cave-${site.id}-${depth}-${g}-${k}`, person: who.id, x: p.x, y: p.y, sex: frng() < who.women ? "female" : "male", age: lo + Math.floor(frng() * (hi - lo + 1)) });
+      taken.add(p.y * w + p.x);
+    }
+  }
+
   // What the rock grows on its own: columns to walk round, litter to walk over.
   const decor: CaveDecor[] = [];
   const tall = { karst: ["stalagmite", "stalagmite", "column"], fissure: ["boulder", "boulder", "stalagmite"], lava: ["lavarock"], ice: ["icecolumn", "icecolumn", "boulder"], sea: ["searock"], sandstone: ["boulder"] }[kind];
@@ -401,7 +440,7 @@ function build(seed: string, site: CaveSite, depth: number, attempt: number): Ca
       const p = roam[Math.floor(drng() * roam.length)];
       dwellers.push({ id: `${depth}-bats-${n}`, species: "bats", ...p });
     }
-    const den = site.denners.length && depth >= Math.min(2, site.levels) && drng() < 0.45 ? pick(drng, site.denners, ([, weight]) => weight) : undefined;
+    const den = site.denners.length && !folk.length && depth >= Math.min(2, site.levels) && drng() < 0.45 ? pick(drng, site.denners, ([, weight]) => weight) : undefined;
     if (den) {
       const deep = roam.filter((p) => dist[p.y * w + p.x] > far * 0.5 && walls8(p.x, p.y) === 0);
       const p = deep[Math.floor(drng() * deep.length)];
@@ -439,7 +478,7 @@ function build(seed: string, site: CaveSite, depth: number, attempt: number): Ca
 
   const names = NAMES[kind];
   const name = depth === 1 ? "the cave mouth" : names[hash(`${seed}|${site.id}|${depth}|name`) % names.length];
-  return { space: caveSpace(site.id, depth), cave: site.id, depth, last, kind, name, w, h, cells, entry, up, down, things, decor, dwellers, flow, stream };
+  return { space: caveSpace(site.id, depth), cave: site.id, depth, last, kind, name, w, h, cells, entry, up, down, things, decor, dwellers, folk, flow, stream };
 }
 
 /** Cells that stop feet whatever is taken or killed: rock, deep water, columns and big finds. */

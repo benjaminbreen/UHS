@@ -2,13 +2,13 @@ import { caveLight, caveLightFor, mineLightFor } from "../content/caves";
 import { mineKindOf, minePeople } from "../content/mines";
 import { anyMine } from "../content/settlements/worksites/mines";
 import { worksiteProfiles } from "../content/settlements/worksites";
-import { personFits, sewerFind, sewerKindFor, sewerPeople, tunnelPerson, type SewerPerson } from "../content/sewers";
+import { personFits, sewerFind, sewerKindFor, sewerPeople } from "../content/sewers";
+import { folkArrive, folkDeal, folkTime, type FolkHost } from "./tunnel-folk";
 import { laneLids } from "../render/carriageway";
 import { parseSewerSpace, rngOf, sewerLevel, sewerSolid, sewerSpace, walkable, WATER, type SewerLevel, type SewerSite, type TunnelNetwork } from "../world/sewer";
 import { doorApproach } from "./doors";
 import { knock, perilStart, perilTime, type Peril, type PerilKind, type Trapped } from "./mine-peril";
-import { person } from "../world/v3/wayfarers";
-import type { Actor, GameEvent, Snapshot as GameState, Inspection, Inventory, Place, Point, Position, WorldModel } from "./types";
+import type { GameEvent, Snapshot as GameState, Inspection, Inventory, Place, Point, Position, WorldModel } from "./types";
 
 /** The trip below the street the player is on. */
 export type SewerRun = {
@@ -46,8 +46,7 @@ export type SewerHost = {
   unblock(space: string, x: number, y: number): void;
   /** How hard it is raining in the street, 0 to 1. */
   rain(): number;
-  join(a: Actor): void;
-  part(id: string): void;
+  folk: FolkHost;
   /** In the middle of the day's work, when nothing new should start. */
   busy(): boolean;
   /** A line kept for the evening's account of the day. */
@@ -136,29 +135,6 @@ export function sewerGround(h: SewerHost, space: string, x: number, y: number) {
   return !walkable(level.cells[y * level.w + x]) || solid.has(y * level.w + x);
 }
 
-/** Bring in whoever is down here, and see off whoever was on the last level. */
-function populate(h: SewerHost, level: SewerLevel) {
-  for (const a of h.state.actors) if (a.underground && a.pos.space !== level.space) h.part(a.id);
-  const setting = h.world.pack.setting;
-  if (!setting) return;
-  const seed = h.state.manifest.seed;
-  for (const f of level.folk) {
-    if (h.state.actors.some((a) => a.id === f.id)) continue;
-    const who = tunnelPerson(f.person);
-    if (!who) continue;
-    const a = person(seed, setting, f.id, who.dress, who.label, f.sex, f.age, { x: f.x, y: f.y }, Number.MAX_SAFE_INTEGER);
-    a.pos = { x: f.x, y: f.y, space: level.space };
-    a.home = { ...a.pos };
-    a.work = { ...a.pos };
-    a.activity = who.doing;
-    delete a.wayfarer;
-    a.offRoutine = false;
-    a.underground = { person: who.id, home: { x: f.x, y: f.y }, next: 0 };
-    if (who.lit) a.heldItem = "torch";
-    h.join(a);
-  }
-}
-
 function arrive(h: SewerHost, depth: number, at: "entry" | "down" | Point) {
   const run = h.state.sewer!, p = h.state.player;
   const c = sewerLevelOf(h, sewerSpace(run.site, depth, run.network ?? "sewer"));
@@ -172,14 +148,14 @@ function arrive(h: SewerHost, depth: number, at: "entry" | "down" | Point) {
   p.pos = { ...spot, space: level.space };
   p.direction = 2;
   run.calm = Math.max(run.calm ?? 0, h.state.clock + 300);
-  populate(h, level);
+  folkArrive(h.folk, level.space, level.folk);
   return level;
 }
 
 /** Back up into the street under one of the lids, which is left open, or out of the mine's door. */
 function surface(h: SewerHost, world: Point) {
   const p = h.state.player;
-  for (const a of [...h.state.actors]) if (a.underground) h.part(a.id);
+  for (const a of [...h.state.actors]) if (a.underground) h.folk.part(a.id);
   p.pos = { ...world, space: "outside" };
   p.direction = 2;
   if (!h.state.sewer?.network) (h.state.lids ??= {})[lidKey(world)] = h.state.clock;
@@ -314,6 +290,7 @@ export function sewerVerb(h: SewerHost) {
 
 export function sewerAct(h: SewerHost, id: string) {
   const p = h.state.player;
+  if (id.startsWith("folk-")) return void folkDeal(h.folk, id);
   const close = /^sewer-close:(-?\d+),(-?\d+)$/.exec(id);
   if (close) {
     delete h.state.lids?.[`${close[1]},${close[2]}`];
@@ -411,34 +388,6 @@ export function sewerAct(h: SewerHost, id: string) {
   h.event(`${f.text}${got.length ? ` You take ${got.join(", ")}.` : ""}`, f.tier === "prize" || f.tier === "notable" ? "world" : "action");
 }
 
-/** One step from `from` toward `to` over open floor, or none. */
-function step(h: SewerHost, level: SewerLevel, from: Point, to: Point): Point | undefined {
-  const { w } = level;
-  const blocked = (x: number, y: number) =>
-    sewerGround(h, level.space, x, y) || (h.state.player.pos.x === x && h.state.player.pos.y === y) || h.state.actors.some((a) => a.pos.space === level.space && a.pos.x === x && a.pos.y === y);
-  const dist = new Int16Array(w * level.h).fill(-1);
-  const queue = [to.y * w + to.x];
-  dist[queue[0]] = 0;
-  for (let q = 0; q < queue.length && queue.length < 900; q++) {
-    const cur = queue[q], cx = cur % w, cy = (cur - cx) / w;
-    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const x = cx + dx, y = cy + dy, i = y * w + x;
-      if (x < 0 || y < 0 || x >= w || y >= level.h || dist[i] >= 0 || sewerGround(h, level.space, x, y)) continue;
-      dist[i] = dist[cur] + 1;
-      queue.push(i);
-    }
-  }
-  let best: Point | undefined, score = 1e9;
-  for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-    const x = from.x + dx, y = from.y + dy, d = dist[y * w + x];
-    if (d < 0 || blocked(x, y)) continue;
-    if (d < score) (score = d), (best = { x, y });
-  }
-  return best;
-}
-
-const facing = (from: Point, to: Point) => (Math.abs(to.x - from.x) > Math.abs(to.y - from.y) ? (to.x > from.x ? 1 : 3) : to.y > from.y ? 2 : 0);
-
 /** Time passing below: the light burns, the water rises with rain, and the people down here go about it. */
 /** Game seconds between breaths of gas: about five seconds of play, standing or walking. */
 const GAS_EVERY = 60;
@@ -449,7 +398,7 @@ export function sewerTime(h: SewerHost, elapsed: number) {
   const c = sewerLevelOf(h, p.pos.space);
   if (!c) {
     if (p.pos.space === "outside" || !parseSewerSpace(p.pos.space)) {
-      for (const a of [...h.state.actors]) if (a.underground) h.part(a.id);
+      for (const a of [...h.state.actors]) if (a.underground) h.folk.part(a.id);
       delete h.state.sewer;
     }
     return;
@@ -517,45 +466,7 @@ export function sewerTime(h: SewerHost, elapsed: number) {
     else if (!masked) h.hurt(10, "sewer gas");
     run.gassed = clock;
   }
-  for (const a of h.state.actors) {
-    const u = a.underground;
-    if (!u || a.pos.space !== level.space || clock < u.next) continue;
-    const who = tunnelPerson(u.person);
-    if (!who) continue;
-    meet(h, a, who);
-    u.next = clock + (who.manner === "explore" ? 6 : 12);
-    const roam = who.manner === "explore" ? 10 : who.manner === "crew" ? 6 : who.manner === "scavenge" ? 3 : 0;
-    if (!roam || cheb(a.pos, p.pos) <= 2) {
-      if (cheb(a.pos, p.pos) <= 4) a.direction = facing(a.pos, p.pos);
-      continue;
-    }
-    if (!u.goal || (a.pos.x === u.goal.x && a.pos.y === u.goal.y)) {
-      const r = (k: number) => (Math.sin(clock * 12.9898 + k * 78.233 + a.id.length) * 43758.5453) % 1;
-      const gx = u.home.x + Math.round(Math.abs(r(1)) * roam * 2 - roam), gy = u.home.y + Math.round(Math.abs(r(2)) * roam * 2 - roam);
-      if (!sewerGround(h, level.space, gx, gy)) u.goal = { x: gx, y: gy };
-      continue;
-    }
-    const to = step(h, level, a.pos, u.goal);
-    if (to) {
-      a.direction = facing(a.pos, to);
-      a.pos = { ...to, space: level.space };
-      h.join(a);
-    } else delete u.goal;
-  }
-}
-
-/** Someone down here notices the player: once, with a line of their own. */
-function meet(h: SewerHost, a: Actor, who: SewerPerson) {
-  const u = a.underground!;
-  if (u.met || cheb(a.pos, h.state.player.pos) > 4) return;
-  u.met = true;
-  const line = who.lines[Math.abs(hashCode(a.id)) % who.lines.length];
-  h.event(`${a.name}, ${who.label.toLowerCase()}: “${line}”`, "social", a.pos);
-}
-function hashCode(s: string) {
-  let n = 0;
-  for (let i = 0; i < s.length; i++) n = (Math.imul(n, 31) + s.charCodeAt(i)) | 0;
-  return n;
+  folkTime(h.folk, level.space, (x, y) => !sewerGround(h, level.space, x, y));
 }
 
 const nearestMine = (h: SewerHost, from: Point) =>
