@@ -167,7 +167,8 @@ const BREAKFASTS = [
 const ANIMALS = ["dogs", "crows", "frogs", "spiders", "fish", "small birds"];
 
 /** The voice, private life and two sample lines that set one person apart from the next. */
-export function voiceBrief(seed: string, actor: Actor, stats: Stats, localAnimals: string[]) {
+/** `loss` is a death on the household's record, or null when the record has none for this person. */
+export function voiceBrief(seed: string, actor: Actor, stats: Stats, localAnimals: string[], loss?: string | null) {
   const roll = (key: string) => random(seed, "voice", actor.id, key);
   const pick = <T>(list: T[], key: string) => list[Math.floor(roll(key) * list.length)];
   const age = actor.age ?? 30;
@@ -187,12 +188,15 @@ export function voiceBrief(seed: string, actor: Actor, stats: Stats, localAnimal
   const habit = roll("has-habit") < 0.7 ? ` Habit: ${pick(HABITS, "habit")}.` : "";
 
   const orphan = !actor.relations?.some((r) => r.kind === "parent");
-  const mourned = child
+  // A household with a record has its own dead; inventing kin would contradict it.
+  const mourned = loss === null
+    ? ["a grandmother who half raised them", "a grandfather", "an uncle", "an aunt", child ? "a friend their own age" : "a close friend"]
+    : child
     ? ["a baby brother", "a baby sister", "a grandmother", "a grandfather", "a friend their own age"]
     : ["a younger brother", "a younger sister", "an older brother", "an older sister", "a grandmother who half raised them", "a close friend",
         ...(orphan && age >= 20 ? ["their mother", "their father"] : []),
         ...(age >= 30 ? ["a baby of their own", "a first husband or wife"] : [])];
-  const lost = roll("has-lost") < (child ? 0.45 : 0.2) ? undefined
+  const lost = loss ? loss : roll("has-lost") < (child ? 0.45 : 0.2) ? undefined
     : `${pick(mourned, "lost")}, ${pick(["of an illness", "in an accident", "drowned", "suddenly, nobody knew why", "after a long sickness"], "lost-how")}, ${pick(child ? ["last year", "a while ago"] : ["last year, and it is still raw", "two years ago", "a few years ago", "when they were small", "long ago"], "lost-when")}`;
   const person = lost?.split(",")[0];
   const dreams = [...(child ? CHILD_DREAMS : DREAMS), ...(person ? [`${person} standing in the doorway, not speaking`, `${person} alive again, acting as if nothing happened`] : [])];

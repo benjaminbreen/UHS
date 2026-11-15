@@ -98,6 +98,12 @@ function converse(engine: Engine, i: Extract<Intent, { type: "converse" }>) {
   actor.memories.push(
     `spoke:${delta > 0 ? "+" : ""}${delta}:${i.said.slice(0, 80)}`,
   );
+  if (i.told) {
+    // Their own words, so tomorrow's story matches today's; only the last few are kept.
+    const old = actor.memories.filter((m) => m.startsWith("told:")).slice(0, -3);
+    actor.memories = actor.memories.filter((m) => !old.includes(m));
+    actor.memories.push(`told:${i.told.slice(0, 160)}`);
+  }
   if (actor.memories.length > 40) actor.memories.shift();
   if (i.trespass) engine.trespassReply(actor, i.trespass);
   if (!i.leave && (delta <= -3 || (delta <= -2 && actor.trust <= -4))) engine.provoke(actor, "insulted me or my family");

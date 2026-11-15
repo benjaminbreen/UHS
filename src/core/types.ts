@@ -822,7 +822,7 @@ export type Intent =
   | { type: "travel"; direction: "north" | "south" | "east" | "west" }
   | { type: "regard"; delta: number; reason: string }
   | { type: "fact"; text: string }
-  | { type: "converse"; with: string; said: string; delta: number; trespass?: "warned" | "refused" | "leaving"; leave?: WalkOff; ask?: "made" | "accepted" | "declined"; favour?: Favour; callIn?: CallIn }
+  | { type: "converse"; with: string; said: string; told?: string; delta: number; trespass?: "warned" | "refused" | "leaving"; leave?: WalkOff; ask?: "made" | "accepted" | "declined"; favour?: Favour; callIn?: CallIn }
   | {
       type: "receive";
       from: string;

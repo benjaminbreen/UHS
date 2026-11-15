@@ -201,6 +201,7 @@ const intent = z.discriminatedUnion("type", [
       type: z.literal("converse"),
       with: z.string().max(100),
       said: z.string().max(120),
+      told: z.string().max(160).optional(),
       delta: z.number().min(-3).max(2),
       trespass: z.enum(["warned", "refused", "leaving"]).optional(),
       leave: z.enum(["home", "friend", "authority", "away"]).optional(),

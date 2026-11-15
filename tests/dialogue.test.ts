@@ -265,11 +265,32 @@ describe("a conversation leaves a trace", () => {
     expect(dialogueContext(runtime, actor)).toMatch(/family|Neighbours|friend|trade|knows everyone|around the quarter|Has not met/);
 
     runtime.narrate([
-      { type: "converse", with: actor.id, said: "I asked about the ford", delta: 1 },
+      { type: "converse", with: actor.id, said: "I asked about the ford", told: "It floods every spring.", delta: 1 },
     ]);
     expect(actor.trust).toBe(trust + 1);
-    expect(actor.memories.at(-1)).toContain("I asked about the ford");
+    expect(actor.memories.at(-2)).toContain("I asked about the ford");
     expect(dialogueContext(runtime, actor)).toContain("I asked about the ford");
+    expect(dialogueContext(runtime, actor)).toContain('What you told the player in earlier talk: "It floods every spring."');
+    expect(dialogueContext(runtime, actor)).not.toContain("Your memories, oldest first");
+  });
+  it("mourns the dead on the household's record rather than invented ones", async () => {
+    const start = resolveSetting("knoxville 1790");
+    if (!("setting" in start)) throw Error("Fixture setting");
+    const runtime = new Runtime(smallSession(start.setting, "loss"), { cacheTerrain: false });
+    const state = runtime.engine.state;
+    const household = state.households!.find((h) => h.id !== state.player.householdId && state.actors.some((a) => a.householdId === h.id && !/-member-/.test(a.id)))!;
+    const head = state.actors.find((a) => a.householdId === household.id && !/-member-/.test(a.id))!;
+    let context = "";
+    runtime.modelFetch = async (_url, init) => {
+      context = JSON.parse(String(init?.body)).user;
+      return new Response(JSON.stringify({ text: "Morning.", regard: 0 }));
+    };
+    household.history = [{ year: start.setting.year - 1, kind: "died", as: "daughter" }];
+    await dialogueTurn(runtime, head.id, "Hello", []);
+    expect(context).toContain("- Lost: their daughter, last year, and it is still raw.");
+    household.history = [];
+    await dialogueTurn(runtime, head.id, "Hello", []);
+    expect(context).not.toMatch(/Lost: (a baby of their own|a first husband or wife|their (mother|father|daughter))/);
   });
   it("refuses an exchange with someone out of reach", () => {
     const start = resolveSetting("knoxville 1790");

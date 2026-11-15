@@ -353,9 +353,10 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
       return object?.name.toLowerCase() ?? engine.item(token)?.name.toLowerCase() ?? token;
     });
   const grievances = (actor.memories ?? [])
-    .filter((memory) => !/^(spoke|regard):/.test(memory))
+    .filter((memory) => !/^(spoke|regard|told):/.test(memory))
     .slice(-4)
     .map(named);
+  const told = (actor.memories ?? []).filter((memory) => memory.startsWith("told:")).map((memory) => `"${memory.slice(5)}"`);
   const known = acquaintance(runtime, actor);
   const nameOf = (id: string) => state.actors.find((a) => a.id === id)?.name;
   const hearsay = (actor.word ?? [])
@@ -435,6 +436,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     gossip.length ? `Talk going round about other people, yours to pass on if the chance comes: ${gossip.join("; ")}.` : "",
     known,
     met.length ? `Already ${feeling}; remembers you saying: ${met.join("; ")}.` : known ? "" : "Has not met the player before.",
+    told.length ? `What you told the player in earlier talk: ${told.join(" ")} It stays true: keep your story the same, and do not say it again as if for the first time.` : "",
     `Setting: ${engine.world.pack.name}, ${engine.world.pack.date}. Keeps order here: ${engine.keeper()?.id === actor.id ? `you yourself, as ${orderKeeper(setting).who}; people bring you their complaints` : `${orderKeeper(setting).who}${engine.keeper() ? `, ${engine.keeper()!.name}` : ""}`}.`,
   ]
     .filter(Boolean)
@@ -488,6 +490,32 @@ function dialogueInterruption(runtime: Runtime, actor: Actor, exchange: number) 
   return "Just now, you lost your train of thought mid-sentence. Let the hesitation show, then recover or ask what you were saying.";
 }
 
+const KIN: Record<string, string> = { son: "brother", daughter: "sister", wife: "mother", husband: "father" };
+/** A death in this person's own household, in their terms: a string, or null when the record holds none for them. */
+function recordedLoss(runtime: Runtime, actor: Actor) {
+  const { state, world } = runtime.engine;
+  const history = state.households?.find((h) => h.id === actor.householdId)?.history;
+  const year = world.pack.setting?.year;
+  if (!history || year === undefined) return undefined;
+  // Events name the dead by what they were to the householder, who owns the id the others are numbered from.
+  const head = actor.id.replace(/-member-\d+$/, "");
+  const ties = (actor.relations ?? []).filter((r) => r.other === head).map((r) => r.kind);
+  const parents = (actor.relations ?? []).filter((r) => r.kind === "parent").length;
+  const born = year - (actor.age ?? 30);
+  for (const e of [...history].reverse()) {
+    if (e.kind !== "died" || e.year < born + 4) continue;
+    const child = e.as === "son" || e.as === "daughter";
+    const who = !e.as ? (e.name ? `${e.name}, of their household` : undefined)
+      : head === actor.id || (ties.includes("partner") && child) ? `their ${e.as}`
+      : ties.includes("parent") && (child || parents === 1) ? `their ${KIN[e.as] ?? ""}`
+      : undefined;
+    if (!who || who.endsWith(" ")) continue;
+    const ago = year - e.year;
+    return `${who}${e.as && e.name ? ` ${e.name}` : ""}, ${ago <= 0 ? "this year, and it is still raw" : ago === 1 ? "last year, and it is still raw" : `${ago} years ago`}`;
+  }
+  return null;
+}
+
 // How this person happens to answer this once: without it every question gets a straight answer.
 const MOVES: [line: string, weight: (s: ReturnType<typeof statsOf>) => number][] = [
   ["you do not feel like answering that. Dodge it, answer something easier, or turn it back on them.", (s) => 200 - s.extraversion - s.agreeableness],
@@ -530,7 +558,7 @@ export async function dialogueTurn(
   ].filter(Boolean).join("\n\n");
   const { state } = runtime.engine;
   const animals = [...new Set((state.fauna ?? []).flatMap((group) => faunaProfile(group.speciesId)?.label.toLowerCase().replace(/ study$/, "") ?? []))];
-  const voice = voiceBrief(state.manifest.seed, actor, statsOf(state.manifest.seed, actor), animals);
+  const voice = voiceBrief(state.manifest.seed, actor, statsOf(state.manifest.seed, actor), animals, recordedLoss(runtime, actor));
   const aside = plotBrief(runtime, actor) ? "" : dialogueInterruption(runtime, actor, history.length);
   const latest = [
     situation ? `Just now: ${situation}` : "",
@@ -621,7 +649,7 @@ export function commitDialogue(runtime: Runtime, actorId: string, said: string, 
   const priorErrand = runtime.engine.state.actors.find((a) => a.id === actorId)?.errand;
   const exchange = () => {
     if (said.trim() || reply.leave || reply.ask || reply.trespass)
-      runtime.narrate([{ type: "converse", with: actorId, said: said.slice(0, 120), delta: said.trim() ? reply.regard ?? 0 : 0, trespass: reply.trespass, leave: reply.leave, ask: reply.ask, favour: reply.favour }]);
+      runtime.narrate([{ type: "converse", with: actorId, said: said.slice(0, 120), told: said.trim() ? reply.text.slice(0, 160) : undefined, delta: said.trim() ? reply.regard ?? 0 : 0, trespass: reply.trespass, leave: reply.leave, ask: reply.ask, favour: reply.favour }]);
   };
   const gift = () => reply.receive ? runtime.narrate([{ type: "receive", from: actorId, item: reply.receive }]) : undefined;
   // Opening gifts precede a possible departure, as in the conversation modal.

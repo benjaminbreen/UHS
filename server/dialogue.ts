@@ -217,7 +217,10 @@ export async function dialogue(
       return parsed.success ? json(parsed.data) : json({ error: "The model returned an unusable explanation." }, 502);
     }
     const parsed = replySchema.safeParse(dropNulls(JSON.parse(text)));
-    if (!parsed.success) return json({ error: "The model returned an unusable line." }, 502);
+    if (!parsed.success) {
+      console.warn(`dialogue: ${model} reply failed the schema: ${parsed.error.issues[0]?.path.join(".")} ${parsed.error.issues[0]?.message}`);
+      return json({ error: "The model returned an unusable line." }, 502);
+    }
     return json({
       text: parsed.data.dialogue,
       original: input.realLanguage ? parsed.data.original : undefined,
@@ -236,8 +239,11 @@ export async function dialogue(
       ms: { upstream, total: Date.now() - began },
       tokens: { out, reasoning },
     });
-  } catch {
-    return json({ error: "The conversation timed out." }, 502);
+  } catch (error) {
+    const timedOut = error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError" || error.name === "APIUserAbortError" || error.name === "APIConnectionTimeoutError");
+    if (timedOut) return json({ error: `${name} took longer than ${thinks ? 30 : 15} seconds to answer.` }, 502);
+    console.warn(`dialogue: ${model} ${error instanceof Error ? `${error.name}: ${error.message}` : error}`);
+    return json({ error: error instanceof SyntaxError ? `${name} returned a reply that was not valid JSON.` : `${name} could not be reached.` }, 502);
   } finally {
     inFlight--;
   }
