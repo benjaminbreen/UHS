@@ -811,7 +811,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
     id: "maya-postclassic",
     label: "Postclassic Maya kingdoms",
     wiki: "https://en.wikipedia.org/wiki/Maya_civilization",
-    scope: { years: [750, 1600], bounds: [-97, 12, -78, 24] },
+    scope: { years: [950, 1600], bounds: [-97, 12, -78, 24] },
     powers: [
       {
         name: "Hunab Ku",
