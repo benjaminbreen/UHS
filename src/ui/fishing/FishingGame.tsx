@@ -46,7 +46,7 @@ export function fishingStart(runtime: Runtime, preset?: FishingPreset, method?: 
   const setup: Setup = {
     seed: `${e.state.manifest.seed}:fishing:${Math.floor(clock / 60)}:${preset?.id ?? ""}`,
     method: m, water, hull, afloat,
-    kinds: fishOf({ climate: climate as never, culture: culture as never }, water),
+    kinds: fishOf({ climate: climate as never, culture: culture as never, lon: preset ? undefined : s?.lon }, water),
     hour, run: seasonRun({ climate: climate as never }, season),
     rain: live ? weather.rain : 0, wind: live ? weather.wind.strength : 0.2,
     snow: live && weather.condition === "snow", mist: live && weather.condition === "mist",

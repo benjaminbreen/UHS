@@ -54,6 +54,20 @@
     { "name": "Grouper", "kg": [5, 30], "fight": 0.9, "shape": "deep", "colors": ["#6b5a3c", "#c8b898", "#5a4a30"], "mark": "spots", "style": "sink", "rare": true, "note": "Lives for decades in one cave and fights all the way to the boat." },
     { "name": "Sailfish", "kg": [20, 90], "fight": 1, "shape": "long", "colors": ["#2a4a7a", "#d8dce4", "#3a5aa0"], "mark": "spots", "style": "leap", "rare": true, "note": "The fastest fish in the sea. Its great sail folds flat when it swims." }
   ],
+  "seaAtlanticTropical": [
+    { "name": "Bonga shad", "kg": [0.1, 0.5], "fight": 0.2, "shape": "slim", "colors": ["#5a7f94", "#e4ecec", "#b8a060"], "style": "dart", "note": "The everyday fish of this coast, smoked by the basketful over clay ovens." },
+    { "name": "Sardinella", "kg": [0.05, 0.2], "fight": 0.15, "shape": "slim", "colors": ["#4f8098", "#e8f0f0", "#9ab0b8"], "style": "dart", "when": { "seasons": ["summer", "autumn"] }, "note": "Comes inshore in great shoals when the cold water wells up." },
+    { "name": "Grey mullet", "kg": [0.5, 3], "fight": 0.5, "shape": "slim", "colors": ["#6c7a7e", "#dfe4e0", "#5c686a"], "mark": "stripe", "style": "leap", "note": "Jumps clean out of the water when something startles it." },
+    { "name": "Tilapia", "kg": [0.3, 2], "fight": 0.35, "shape": "deep", "colors": ["#6e8076", "#d8dccc", "#8a5a4a"], "mark": "bars", "note": "Plentiful in the brackish lagoons behind the bar." },
+    { "name": "Croaker", "kg": [0.5, 4], "fight": 0.4, "shape": "slim", "colors": ["#a89070", "#ece2cc", "#8a7458"], "style": "steady", "note": "Drums with its swim bladder; you can hear it grunt as it comes up." },
+    { "name": "Snapper", "kg": [1, 6], "fight": 0.6, "shape": "deep", "colors": ["#c4483c", "#f0c8b8", "#d0605a"], "note": "Bright red and always welcome at the market." },
+    { "name": "Grouper", "kg": [5, 30], "fight": 0.9, "shape": "deep", "colors": ["#6b5a3c", "#c8b898", "#5a4a30"], "mark": "spots", "style": "sink", "rare": true, "note": "Lives for decades in one cave and fights all the way to the boat." },
+    { "name": "Barracuda", "kg": [2, 15], "fight": 0.8, "shape": "long", "colors": ["#5a6a70", "#e0e4e0", "#3a4a50"], "mark": "bars", "style": "dart", "note": "All teeth. Big ones can make you ill to eat." },
+    { "name": "Swimming crab", "kg": [0.1, 0.4], "fight": 0.1, "shape": "crab", "colors": ["#4a6a8a", "#d8d0b0", "#3a7ab0"], "trap": true, "note": "Scuttles into the baited traps set in the lagoon mud." },
+    { "name": "Pink shrimp", "kg": [0.01, 0.05], "fight": 0.05, "shape": "claw", "colors": ["#d89a8a", "#f0d0c4", "#c07060"], "trap": true, "note": "Sold dried by the measure in every market inland." },
+    { "name": "Octopus", "kg": [0.5, 6], "fight": 0.5, "shape": "squid", "colors": ["#a8604a", "#e8c0a8", "#7a4030"], "mark": "spots", "trap": true, "note": "Fishers lure it out of the reef with a cowrie shell on a line." },
+    { "name": "Tarpon", "kg": [10, 60], "fight": 0.95, "shape": "slim", "colors": ["#7a94a4", "#eef2f2", "#9aa8b0"], "style": "leap", "rare": true, "note": "A great silver fish that throws itself clear of the water when hooked." }
+  ],
   "riverTemperate": [
     { "name": "Roach", "kg": [0.1, 0.5], "fight": 0.15, "shape": "slim", "colors": ["#6a7a6c", "#dcded4", "#c8503c"], "note": "The everyday fish of English and German rivers, red-finned and bony." },
     { "name": "Gudgeon", "kg": [0.02, 0.1], "fight": 0.1, "shape": "slim", "colors": ["#7a7058", "#e0dac8", "#8a7a5a"], "mark": "spots", "note": "Tiny and greedy. Children caught them by the dozen and fried them whole." },

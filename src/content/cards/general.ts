@@ -162,7 +162,7 @@ export const GENERAL_CARDS: ChoiceCard[] = [
         note: "you may get too cold to go on · could make you ill",
         check: { stat: "endurance", odds: 0.55 },
         then: [{ type: "fatigue", n: 15 }, { type: "risk", ailment: "cough", odds: 0.1 }],
-        line: "You kept working, soaked through, and got the job done.",
+        line: "You kept working through the rain, soaked to the skin.",
         otherwise: [{ type: "day", delta: -1 }, { type: "fatigue", n: 20 }, { type: "risk", ailment: "cough", odds: 0.2 }],
         otherwiseLine: "You worked on in the rain until you were too cold to carry on.",
       },

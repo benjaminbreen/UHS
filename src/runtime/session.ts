@@ -1811,6 +1811,10 @@ export class Runtime {
       .filter((o) => distance(o.pos, p.pos) < 1.6)
       .flatMap((o) => this.engine.inspect(o.id)?.affordances ?? [])
       .find((a) => a.command.type === "interact" && a.command.action === "work");
+    const launch = held || item || p.afloat ? undefined : this.engine.state.objects
+      .filter((o) => o.owner === "player" && distance(o.pos, p.pos) < 6)
+      .flatMap((o) => this.engine.inspect(o.id)?.affordances ?? [])
+      .find((a) => a.enabled && a.command.type === "interact" && a.command.action === "launch");
     const train = this.boardable();
     const facing = this.engine.facingCell();
     const burn = {
@@ -1847,6 +1851,7 @@ export class Runtime {
     else if (train) primary = { kind: "board", label: `Board the ${train.label} train` };
     // At the day's place F does the day's work; whoever is there is still on Enter.
     else if (here) primary = { kind: "work", label: here.label, command: here.command };
+    else if (launch?.command.type === "interact") primary = { kind: "use", label: launch.label, command: launch.command };
     else if (speaker)
       primary = {
         kind: "talk",

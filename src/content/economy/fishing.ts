@@ -247,11 +247,13 @@ export function biting(f: FishKind, hour: number, season: SeasonId, rain: number
 }
 
 /** What comes out of the water here, by water, climate and broad region. */
-export function fishOf(s: Pick<WorldSetting, "climate" | "culture">, water: FishingWater): FishKind[] {
+export function fishOf(s: Pick<WorldSetting, "climate" | "culture"> & { lon?: number }, water: FishingWater): FishKind[] {
   const c = s.climate, u = s.culture, hot = c === "tropical" || c === "monsoon";
   const americas = u === "mesoamerican" || u === "andean" || u === "other-indigenous-american";
+  // West Africa and the Caribbean share the tropical Atlantic's fish, not the Indo-Pacific's.
+  const atlantic = u === "west-central-african" || americas || (s.lon !== undefined && s.lon > -100 && s.lon < 15);
   if (water === "sea")
-    return hot ? waters.seaTropical : u === "east-asian" ? waters.seaEastAsia
+    return hot ? atlantic ? waters.seaAtlanticTropical : waters.seaTropical : u === "east-asian" ? waters.seaEastAsia
       : c === "mediterranean" || c === "arid" ? waters.seaWarm : waters.seaCold;
   if (c === "boreal" || c === "tundra") return waters.riverCold;
   if (u === "east-asian") return waters.riverEastAsia;

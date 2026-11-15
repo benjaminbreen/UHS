@@ -697,6 +697,7 @@ it("lands a hand-fished catch as fish the player carries, logs each kind, and se
     today=e.workPlan()!;
     await a.call("goto",{x:today.door!.x,y:today.door!.y});
     const boat=e.state.objects.find(o=>o.owner==="player" && o.id.endsWith("-boat"))!;
+    expect(a.runtime.verbs().primary?.label).toBe("Take the boat out");
     await a.call("act",{command:{type:"interact",target:boat.id,action:"launch"}});
     today=e.workPlan()!;
     await a.call("goto",{x:today.door!.x,y:today.door!.y});
