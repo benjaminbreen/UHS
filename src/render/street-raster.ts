@@ -88,16 +88,18 @@ function kerbTone(
   // A timber sill is pegged to its posts where each length meets the next.
   const peg = timber && (at === 3 || at === span - 3);
   const profile: Record<Side, (RGB | undefined)[]> = {
-    n: [block(2), block(0), lit(stone, -2), lit(road, -2)],
-    s: [block(1), block(2), lit(stone, -2)],
-    w: [block(1), lit(stone, -2), lit(road, -1)],
-    e: [block(0), lit(stone, -2)],
+    // A stone standing proud of the road: its lit top, then the face in
+    // shade, then the shadow it throws on the carriageway.
+    n: [block(3), block(2), block(0), lit(stone, -4), lit(road, -3)],
+    s: [block(2), block(2), block(0), lit(stone, -3)],
+    w: [block(2), block(0), lit(stone, -4), lit(road, -2)],
+    e: [block(1), block(0), lit(stone, -3)],
   };
   const tone = profile[side][d];
   return peg && tone && d === 1 ? lit(stone, -4) : tone;
 }
 /** Pixels of kerb and cast shadow `kerbTone` draws on the road, past which sand banks. */
-const KERB_REACH: Record<Side, number> = { n: 4, s: 3, w: 3, e: 2 };
+const KERB_REACH: Record<Side, number> = { n: 5, s: 4, w: 4, e: 3 };
 const SQUARE_LIP: Record<Side, number[]> = { n: [1], s: [-2, 1], w: [1], e: [-1] };
 const PLATFORM_WALL: RGB = [166, 160, 146];
 const PLATFORM_FOOT: RGB = [62, 58, 52];
@@ -248,6 +250,22 @@ export function rasterStreetTile(
     const g = pavingGrade(n.pavement), other = `${m}/${g}`;
     return other === key ? [] : [{ dx, dy, material: m, grade: g, first: key < other }];
   });
+  // A square is framed: a course of long kerb stones wherever it meets a
+  // street or a footway, so it reads as a place and not as more pavement.
+  const rim = c.pavement === "square" && !track
+    ? sides.filter(([dx, dy]) => {
+        const n = at(dx, dy);
+        if (n?.feature !== "paving" || n.height !== c.height || n.pavement === "square" || n.pavement === "dais") return false;
+        // Only where streets are kerbed: an older square runs into its lanes.
+        const made = (m?: StreetMaterial) => m === "asphalt" || m === "concrete" || m === "sett" || m === "brick";
+        if (n.pavement && n.pavement !== "footway" && n.pavement !== "verge") return false;
+        for (let k = 1; k <= 5; k++) {
+          const o = at(dx * k, dy * k);
+          if (o?.feature === "paving" && !o.pavement) return made(o.streetMaterial);
+        }
+        return false;
+      })
+    : [];
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
       const wx = (x + ox) * 16 + px,
@@ -292,6 +310,8 @@ export function rasterStreetTile(
         if (d > 0 && !infill && !strokes.some((o) => streetDistance(o, ax, ay) <= strokeSection(o, ax, ay).walk)) continue;
         const road = closest.material ?? material, walk = closest.footway ?? "concrete";
         let colour: RGB = pavingStonePixel(wx, wy, d < 0 ? road : walk, "street");
+        // Hooves and iron tyres keep a kerbed carriageway darker than its footway.
+        if (d < 0 && (road === "sett" || road === "brick")) colour = lit(colour, road === "sett" ? -7 : -5);
         const made = road === "asphalt" || road === "concrete" || road === "sett" || road === "brick";
         // Paint belongs on a made road, never on flags or cobbles.
         if (d < 0 && made) {
@@ -315,7 +335,7 @@ export function rasterStreetTile(
           }
         }
         if (road !== "cobble" && road !== "slab") {
-          if (d < 0 && d > -4 && !(closest.to !== undefined && !closest.walk)) {
+          if (d < 0 && d > -5 && !(closest.to !== undefined && !closest.walk)) {
             // The kerb faces whichever way the road's edge does here.
             const gx = union(ax + 0.25, ay) - union(ax - 0.25, ay), gy = union(ax, ay + 0.25) - union(ax, ay - 0.25);
             const side: Side = Math.abs(gy) >= Math.abs(gx) ? (gy < 0 ? "n" : "s") : gx < 0 ? "w" : "e";
@@ -416,12 +436,19 @@ export function rasterStreetTile(
       // Where two pavings meet they interlock along a wandering line, stone
       // into stone, instead of each stopping at the cell's straight edge.
       for (const m of meets) {
+        if (rim.length) break;
         const d = (m.dx ? (m.dx < 0 ? px : 15 - px) : m.dy < 0 ? py : 15 - py) + 0.5;
         const jag = (jitter(wx, wy) - 0.5) * 9;
         if (d < (m.first ? jag : -jag)) {
           tone = pavingStonePixel(wx, wy, m.material, m.grade, (north || south) && !(west || east));
           break;
         }
+      }
+      for (const [dx, dy] of rim) {
+        const d = dx ? (dx < 0 ? px : 15 - px) : dy < 0 ? py : 15 - py;
+        if (d > 4) continue;
+        // A dark joint against the walk, the stone's lit top, its inner joint.
+        tone = d === 0 ? lit(KERB, -7) : d === 4 ? lit(course, -5) : mod(dx ? wy : wx, 13) === 0 ? lit(KERB, -3) : lit(KERB, d === 3 ? 0 : 3);
       }
       const kerbSide = (
         [

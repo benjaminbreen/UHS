@@ -1155,7 +1155,9 @@ export function composeUrban(
     for (const s of streets) mark(s);
   }
   const diagonals: Segment[] = [];
-  if (form.diagonals) {
+  // Not through a city of rows: its blocks are rectangles, and an avenue cut
+  // across them ran into the square and left scraps on both sides.
+  if (form.diagonals && !form.streetWall) {
     const corners = [
       [-1, -1],
       [1, -1],
