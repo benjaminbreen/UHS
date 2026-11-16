@@ -90,6 +90,17 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
 - **The square** of a row city is a block at the corner of the two main
   streets (`cornerSquare`), not a ring road; rows bring their own streets to
   its other sides. A court or market takes one of the row blocks.
+- **Square kinds.** In a city of kerbed streets `squareKind`
+  (`src/content/settlements/plaza.ts`) says how the main square is built and
+  meets its streets, by modernity region and date. A `place` (continental
+  Europe, the Soviet square, East Asia) is paved out over the footway and
+  verge to its own kerb (`reachKerb` in `plan.ts`), the street's trees
+  standing on it. A `garden` is four lawns between cross walks round the
+  centrepiece (`gardenSquare`): railed with a gate on each walk in Britain
+  and Australasia before 1940, open with a paved walk round the lawns in
+  the Americas, southern Africa and South and Southeast Asia. Elsewhere,
+  and in every older town, the square is open ground running into its
+  streets. What stands on it still comes from `PlazaKit`.
 - **The station** takes the top of a quarter under the railway, where one is
   deep enough: its own block and street, the ground either side left open
   for the goods yard and the cab stand. Its forecourt is as wide as the
@@ -194,6 +205,8 @@ its own module.
 ## Checks
 
 - `npm run town:sheet` before and after layout or yard changes.
+  `-- --square <names>` crops each to its main square and writes them side
+  by side to `artifacts/towns/squares.png`.
 - `npx tsx scripts/check-settlements.ts` and `npx tsx scripts/check-cities.ts`.
 - `npm run capture:terrain -- cities` (also `streets`, `placements`).
 - Tests: `settlements`, `urban`, `urban-form`, `road-network`,

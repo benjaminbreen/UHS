@@ -70,6 +70,9 @@ for (const { name, query, seed, radius, settlementLayout, centre } of panel as a
       cy,
       R,
       groundRoles,
+      // The main square first: `compose.py --square` crops to it.
+      squares: [...plans].flatMap((p) => p.plots).filter((q: any) => /-square-\d+$/.test(q.id) && near(q))
+        .map((q: any) => ({ x: q.x, y: q.y, w: q.w, h: q.h })),
       places: [...plans].flatMap((p) => p.places)
         .filter(near)
         .map((b: any) => ({

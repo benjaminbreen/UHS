@@ -106,7 +106,7 @@ import {
   stallFor,
   streetFurnitureFor,
 } from "../../content/settlements/ornaments";
-import { plazaKitFor, type PlazaPiece } from "../../content/settlements/plaza";
+import { plazaKitFor, squareKind, type PlazaPiece } from "../../content/settlements/plaza";
 import type { Actor, Pack, Place, Point, Position, Terrain } from "../../core/types";
 import { proceduralName } from "../../content/geography/character";
 import { random } from "../../core/random";
@@ -439,6 +439,10 @@ export function planSettlement(
   /** A town's standing by its extent: 0 provincial, 1 a city, 2 a capital. */
   const townRank = profile.radius >= 95 ? 2 : profile.radius >= 50 ? 1 : 0;
   const kit = plazaKitFor(pack, townRank);
+  /** Railings round a garden square's lawns, stood once the yards' fences can be. */
+  const squareRails: (() => void)[] = [];
+  /** Footway and verge a paved square took over, by what each cell was. */
+  const squareEdge = new Map<string, Pavement>();
   const nativeOrnament = (key: string) => {
     const name = ({ well: "wellhead", fountain: "fountain", bench: "bench", planter: "olive-planter", altar: "votive-altar" } as Record<string, string>)[key];
     return name && mediterraneanProp(pack.setting, name);
@@ -1016,7 +1020,7 @@ export function planSettlement(
       // A band of setts frames a paved square, as the motor-age one has its kerb.
       if (!fabric.motor && profile.paved && squareStone && min >= 13)
         eachCell(court, (x, y) => {
-          if (x === court.x || x === x1 + 1 || y === court.y || y === y1 + 1)
+          if ((x === court.x || x === x1 + 1 || y === court.y || y === y1 + 1) && plan.pavement!.get(cellKey(x, y)) !== "park")
             plan.streetSurfaces!.set(cellKey(x, y), squareStone === "sett" ? "slab" : "sett");
         });
       const held = new Set<string>();
@@ -1028,7 +1032,7 @@ export function planSettlement(
         const k = cellKey(x, y), role = plan.pavement!.get(k);
         return x >= x0 && x <= x1 && y >= y0 && y <= y1 &&
           (crossing || (Math.abs(x - cx) > aisle && Math.abs(y - cy) > aisle)) &&
-          !plan.solid.has(k) && !held.has(k) && role !== "garden" && role !== "verge" && role !== "dais" &&
+          !plan.solid.has(k) && !held.has(k) && role !== "garden" && role !== "park" && role !== "verge" && role !== "dais" &&
           dry({ x, y, w: 1, h: 1 }, false);
       };
       const put = (tag: string, piece: PlazaPiece | undefined, x: number, y: number, solid = true) => {
@@ -1118,7 +1122,7 @@ export function planSettlement(
       eachCell(court, (x, y) => {
         const k = cellKey(x, y);
         const border = x === court.x || x === court.x + court.w - 1 || y === court.y || y === court.y + court.h - 1;
-        plan.streetSurfaces!.set(k, border ? "basalt" : "concrete");
+        if (plan.pavement!.get(k) !== "park") plan.streetSurfaces!.set(k, border ? "basalt" : "concrete");
         plan.lanes?.delete(k);
       });
       const place = (tag: string, name: string, sprite: string, at: Point, width = 1) => {
@@ -1401,6 +1405,56 @@ export function planSettlement(
         if (profile.paved && material) plan.streetSurfaces!.set(key, material);
       });
     };
+    /** Lawns in the four quarters of a square, between walks that cross at
+     * its centrepiece and a ring round it. Railed, each lawn has a gate on
+     * the walk that runs north and south. */
+    const gardenSquare = (court: Rect, railed: boolean) => {
+      const mx = court.x + (court.w >> 1), my = court.y + (court.h >> 1) - (fabric.motor ? 2 : 0);
+      const ring = Math.min(court.w, court.h) >= 19 ? 4 : 3;
+      const lawn = new Set<string>();
+      eachCell(court, (x, y) => {
+        const ax = Math.abs(x - mx), ay = Math.abs(y - my), k = cellKey(x, y);
+        // Railed, the lawns run to the footway; open, a paved walk goes round them.
+        const rim = railed ? 0 : 2;
+        if (x < court.x + rim || y < court.y + rim || x >= court.x + court.w - rim || y >= court.y + court.h - rim) return;
+        if (ax <= 1 || ay <= 1 || Math.max(ax, ay) <= ring || !dry({ x, y, w: 1, h: 1 }, false) || !setSurface(k, "grass", 11)) return;
+        plan.pavement!.set(k, "park");
+        plan.streetSurfaces!.delete(k);
+        // Lawn, not the square's public paving.
+        roads.delete(k);
+        lawn.add(k);
+      });
+      if (!railed) return;
+      const inLawn = (x: number, y: number) => lawn.has(cellKey(x, y));
+      const fenced = (x: number, y: number) => inLawn(x, y) &&
+        [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => !inLawn(x + dx, y + dy)) &&
+        !(Math.abs(x - mx) === 2 && Math.abs(y - my) === ring + 2);
+      squareRails.push(() => encloseYard(court, (x, y) => !inLawn(x, y), fenced, () => undefined, 100800, "x", "railing", undefined, true));
+    };
+    /** A paved square runs out over the footway and the verge to the kerb of
+     * each street that passes it, so the street's trees stand on the square. */
+    const reachKerb = (court: Rect) => {
+      const carriageway = (k: string) => roads.has(k) && !plan.pavement!.get(k);
+      const depth = (dx: number, dy: number) => {
+        const from = { x: dx ? (dx < 0 ? court.x - 1 : court.x + court.w) : court.x + (court.w >> 1),
+          y: dy ? (dy < 0 ? court.y - 1 : court.y + court.h) : court.y + (court.h >> 1) };
+        for (let n = 0; n <= 5; n++) if (carriageway(cellKey(from.x + dx * n, from.y + dy * n))) return n;
+        return 0;
+      };
+      const w = depth(-1, 0), e = depth(1, 0), n = depth(0, -1), south = depth(0, 1);
+      eachCell({ x: court.x - w, y: court.y - n, w: court.w + w + e, h: court.h + n + south }, (x, y) => {
+        const k = cellKey(x, y);
+        if ((x >= court.x && x < court.x + court.w && y >= court.y && y < court.y + court.h) || carriageway(k) ||
+          plan.solid.has(k) || !dry({ x, y, w: 1, h: 1 }, false)) return;
+        const was = plan.pavement!.get(k);
+        if (!setSurface(k, "paving", 9)) return;
+        if (was) squareEdge.set(k, was);
+        plan.pavement!.set(k, "square");
+        if (squareStone) plan.streetSurfaces!.set(k, squareStone);
+        plan.reserved.add(k);
+        roads.add(k);
+      });
+    };
     const paintCourt = (court: Rect, square?: string, civicRect?: Rect) => {
       gradeGround(court);
       const material = squareStone;
@@ -1432,8 +1486,13 @@ export function planSettlement(
       if (square) {
         socialCenter.x = court.x + Math.floor(court.w / 2);
         socialCenter.y = court.y + Math.floor(court.h / 2);
+        // A city of kerbed streets builds its square to one of two patterns.
+        const kind = pack.setting && profile.paved && (fabric.streetWall || (fabric.motor && !fabric.oldCore))
+          ? squareKind(pack.setting) : undefined;
+        if (kind?.form === "garden" && Math.min(court.w, court.h) >= 13) gardenSquare(court, kind.railed);
         if (fabric.motor) composeModernSquare(court);
         else composeSquare(court, civicRect);
+        if (kind?.form === "place") reachKerb(court);
         // The centre is now the monument; anything that entered there
         // enters at its foot instead.
         for (const plot of plan.plots)
@@ -1764,10 +1823,10 @@ export function planSettlement(
         return;
       const pavement = plan.pavement!.get(k);
       // Not in the roadway: a lamp stands on the footway, a tree in the verge.
-      if (roads.has(k) && pavement !== "footway" && pavement !== "verge")
+      if (roads.has(k) && pavement !== "footway" && pavement !== "verge" && !squareEdge.has(k))
         return;
       if (piece.kind === "tree") {
-        if (pavement !== "verge") return;
+        if (pavement !== "verge" && squareEdge.get(k) !== "verge") return;
         plan.solid.add(k);
         plan.reserved.add(k);
         plan.objects.push({
@@ -5677,7 +5736,7 @@ export function planSettlement(
       );
     }
   }
-  for (const fence of [...toftQueue, ...campFences]) fence();
+  for (const fence of [...toftQueue, ...campFences, ...squareRails]) fence();
   dropStubFences([...penFields, ...toftFields], fenceCells, plan);
   if (penFields.length || toftFields.length) {
     plan.fields ??= new Map();

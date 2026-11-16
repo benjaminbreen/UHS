@@ -19,6 +19,7 @@ import {
   type GroundMaterial,
 } from "./ground-style";
 import { kerbEdgePixel, rasterStreetTile } from "./street-raster";
+import { streetUnionDistance } from "../world/v3/street-geometry";
 import { blacktopPixel } from "./carriageway";
 import { enclosed, kerbed, pavingMask, wornEdge, VERGE } from "./paving-edge";
 import { dustOf, pavingGrade, pavingStonePixel, stoneUnit } from "./paving-stones";
@@ -390,12 +391,27 @@ export function rasterHabitatTile(
   cell: TopographyCell = sample(x, y)!,
 ): GroundTileData {
   const tile = bareHabitatTile(sample, x, y, ox, oy, art, cell);
-  if (cell.streetGeometry?.edge)
+  if (cell.streetGeometry?.edge) {
+    // Ground that is not the street's own still carries the street's edge:
+    // the kerb's top, and at a rounded corner the road that turns across it.
+    const strokes = cell.streetGeometry.strokes;
+    let road: Uint8ClampedArray | undefined;
     for (let py = 0; py < 16; py++)
       for (let px = 0; px < 16; px++) {
-        const kerb = kerbEdgePixel(cell.streetGeometry.strokes, (x + ox) * 16 + px, (y + oy) * 16 + py);
-        if (kerb) tile.pixels.set(kerb, (py * 16 + px) * 4);
+        const wx = (x + ox) * 16 + px, wy = (y + oy) * 16 + py, i = (py * 16 + px) * 4;
+        const d = streetUnionDistance(strokes, (wx + 0.5) / 16, (wy + 0.5) / 16) * 16;
+        if (d >= 4) continue;
+        if (d > 0) {
+          const kerb = kerbEdgePixel(strokes, wx, wy);
+          if (kerb) tile.pixels.set(kerb, i);
+          continue;
+        }
+        road ??= rasterStreetTile((qx, qy) => qx === x && qy === y
+          ? { ...cell, feature: "paving", pavement: undefined, streetMaterial: undefined, streetGeometry: { strokes, edge: false } }
+          : sample(qx, qy), x, y, ox, oy).pixels;
+        if (road[i + 3]) tile.pixels.set(road.subarray(i, i + 4), i);
       }
+  }
   // The tide's mud laps into the shore's own cells along the same line the
   // water tiles draw it to, whatever the beach here is made of.
   const v = cell.waterVisual;

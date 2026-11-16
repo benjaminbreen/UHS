@@ -4,6 +4,7 @@ laid flat (no terrain height) and depth-sorted as the game sorts.
     npm run town:sheet                      # dump and compose the whole panel
     npm run town:sheet -- london-1308       # one setting
     python3 scripts/town-sheet/compose.py --crop 300,250,1500,1250 london-1308
+    npm run town:sheet -- --square paris-1888   # only the main square and its streets
 
 Writes artifacts/towns/<name>.png and artifacts/towns/panel.png.
 """
@@ -66,13 +67,18 @@ def compose(name, sheets, models, crop=None):
         if 0 <= x < W and 0 <= y < W:
             d.rectangle((x + 5, y + 2, x + 10, y + 14), fill='#2b2b4a' if a['kind'] == 'human' else '#e9e4d2')
     d.text((6, 4), t['label'], fill='#10210c')
-    if crop: im = im.crop(crop)
+    if crop == 'square' and t.get('squares'):
+        q = max(t['squares'], key=lambda q: q['w'] * q['h']); x, y = px(q['x'] + q['w'] // 2, q['y'] + q['h'] // 2)
+        im = im.crop((x - 288, y - 256, x + 288, y + 256))
+    elif crop and crop != 'square': im = im.crop(crop)
     im.convert('RGB').save(OUT / f'{name}.png')
     return im
 
 
 def main(argv):
     crop = None
+    if '--square' in argv:
+        crop = 'square'; argv = [v for v in argv if v != '--square']
     if '--crop' in argv:
         i = argv.index('--crop'); crop = tuple(int(v) for v in argv[i + 1].split(',')); argv = argv[:i] + argv[i + 2:]
     dump = '--dump' in argv
@@ -85,12 +91,14 @@ def main(argv):
     models = json.loads((ROOT / 'public/packs/models.json').read_text())
     done = [(n, compose(n, sheets, models, crop)) for n in names if (OUT / f'{n}.json').exists()]
     if len(done) > 1:
-        side = 480; cols = 4; rows = -(-len(done) // cols)
-        panel = Image.new('RGB', (cols * side, rows * side), '#20272a')
+        # Squares side by side at their own pixels; whole towns shrunk to a tile.
+        side = 480; cols = 2 if crop == 'square' else 4; rows = -(-len(done) // cols)
+        tw, th = (588, 524) if crop == 'square' else (side, side)
+        panel = Image.new('RGB', (cols * tw, rows * th), '#20272a')
         for i, (n, im) in enumerate(done):
-            w = im.width; c = im.crop((w // 2 - side, w // 2 - side, w // 2 + side, w // 2 + side)).resize((side, side), Image.LANCZOS)
-            panel.paste(c.convert('RGB'), ((i % cols) * side, (i // cols) * side))
-        panel.save(OUT / 'panel.png')
+            w = im.width; c = im if crop == 'square' else im.crop((w // 2 - side, w // 2 - side, w // 2 + side, w // 2 + side)).resize((side, side), Image.LANCZOS)
+            panel.paste(c.convert('RGB'), ((i % cols) * tw, (i // cols) * th))
+        panel.save(OUT / ('squares.png' if crop == 'square' else 'panel.png'))
     print('wrote', ', '.join(n for n, _ in done))
 
 
