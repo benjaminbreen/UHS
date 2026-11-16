@@ -28,8 +28,11 @@ export type FairLevel = Area & {
   tower?: boolean;
   /** Railed gardens, their inner lawn and plan, for the painter to draw curved walks and round beds. */
   gardens: { x0: number; y0: number; x1: number; y1: number; style: string; gx: number[]; gy: number[] }[];
+  /** Plots of floor set apart for exhibits, drawn darker. */
+  plots: Rect[];
 };
 
+export type Rect = { x0: number; y0: number; x1: number; y1: number };
 export const fairSpace = (fair: string, area: string) => `fair:${fair}:${area}`;
 export function parseFairSpace(space: string) {
   const m = /^fair:([a-z0-9-]+):([a-z0-9-]+)$/.exec(space);
@@ -48,7 +51,7 @@ export function fairLevel(seed: string, fair: Fair, id: string): FairLevel | und
   const rng = rngOf(seed, "fair", fair.id, id);
   const L: FairLevel = {
     space: fairSpace(fair.id, id), fair: fair.id, area: id, kind: plan.kind, floor: plan.floor, depth: 1, name: plan.name, w, h,
-    cells: new Uint8Array(w * h), entry: { x: w >> 1, y: h - 2 }, things: [], decor: [], folk: [], gardens: [], flow: new Int8Array(w * h).fill(-1),
+    cells: new Uint8Array(w * h), entry: { x: w >> 1, y: h - 2 }, things: [], decor: [], folk: [], gardens: [], plots: [], flow: new Int8Array(w * h).fill(-1),
     exits: [], buildings: [], lifts: [],
   };
   const set = (x: number, y: number, c: number) => { if (x >= 0 && y >= 0 && x < w && y < h) L.cells[y * w + x] = c; };
@@ -185,9 +188,20 @@ function interior(L: FairLevel, plan: FairArea, back: string | undefined, fill: 
     fill(door - 1, 0, door + 2, 2, FLOOR);
     edge("n", space(plan.links.n), areaName(plan.links.n), [door - 1, door + 2]);
   }
-  if (plan.kind !== "pavilion")
+  // The feet of two of the Machines' great arched ribs stand out on the floor.
+  if (plan.kind === "machines") for (const x of [12, w - 15]) for (let i = 0; i < 3; i++) L.decor.push({ type: i ? "solid" : "rib", x: x + i, y: 9, solid: true, v: 0 });
+  else if (plan.kind !== "pavilion")
     for (let x = 6; x < w - 4; x += 8) for (const y of [7, h - 7]) if (Math.abs(x - (w >> 1)) > 2) L.decor.push({ type: "column", x, y, solid: true, v: 0 });
 }
+
+/** The Machines' exhibit islands, each on its own plot of darker floor: x0, y0, x1, y1. */
+const isles = (w: number): Rect[] => {
+  const cx = w >> 1;
+  return [[2, 4, 10, 9], [39, 4, 55, 9], [2, 13, 14, 20], [w - 15, 13, w - 3, 20], [2, 24, 30, 29], [41, 24, w - 3, 29], [16, 4, 31, 9], [w - 11, 4, w - 3, 9], [cx - 8, 13, cx + 7, 20]]
+    .map(([x0, y0, x1, y1]) => ({ x0, y0, x1, y1 }));
+};
+/** Machines that fill the islands round the exhibits: the art, and its footprint. */
+export const MACHINES: [string, number, number][] = [["engine", 3, 2], ["dynamo", 2, 2], ["loom", 2, 1], ["press", 2, 1], ["dynamo", 2, 2], ["loom", 2, 1]];
 
 /** Exhibits, filler stands, decor and people. */
 function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, fair: string) {
@@ -212,7 +226,22 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
   const cx = w >> 1;
   // Indoors, bays either side of an aisle from the door to the back wall, filled from the back;
   // outdoors, along the promenade in front of the buildings and the walk at the bottom.
-  if (indoor) {
+  const inside = (r: Rect) => {
+    const out: Point[] = [];
+    for (let y = r.y0 + 1; y < r.y1; y++) for (let x = r.x0 + 1; x < r.x1; x++) out.push({ x, y });
+    return out;
+  };
+  const isle = plan.kind === "machines" ? isles(w) : [];
+  if (plan.kind === "machines") {
+    L.plots.push(...isle);
+    for (const r of isle.slice(0, 6)) spots.push(...inside(r));
+    // The demonstration line shaft, belted to the machines on its platform.
+    const d = isle[6];
+    for (let y = d.y0 + 2; y <= d.y0 + 4; y++) for (let x = d.x0 + 1; x <= d.x0 + 13; x++) {
+      taken[y * w + x] = 1;
+      L.decor.push({ type: x === d.x0 + 1 && y === d.y0 + 4 ? "demo" : "solid", x, y, solid: true, v: 0 });
+    }
+  } else if (indoor) {
     for (let y = 0; y < h; y++) for (const x of [cx - 1, cx]) taken[y * w + x] = 1;
     for (let y = 5; y < h - 3; y += 3) for (let x = 2; x < w - 2; x++) spots.push({ x, y });
     const score = (p: Point) => Math.abs(p.x - cx + 0.5) + (p.y - 5) * 1.2;
@@ -226,6 +255,8 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
   if (indoor) for (let x = 3; x < w - 4; x += 4) wallX.push(x);
   const place = (f: FairFind, n: number) => {
     const [fw, fh] = footprint(f);
+    // The Machines' locomotive has its own length of track, the great engine the middle of the hall.
+    const at = f.art === "locomotive" && isle.length ? inside(isle[7]) : fw >= 6 && isle.length ? inside(isle[8]) : spots;
     if (f.on === "wall" && indoor) {
       const i = wallX.findIndex((x) => wallFree(x, fw));
       if (i < 0) return false;
@@ -234,7 +265,7 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       L.things.push(thing(L, f, n, x, 2, true));
       return true;
     }
-    const spot = spots.find((s) => free(s.x, s.y, fw, fh + (f.art === "kiosk" ? 1 : 0)));
+    const spot = at.find((s) => free(s.x, s.y, fw, fh + (f.art === "kiosk" ? 1 : 0)));
     if (!spot) return false;
     for (let y = spot.y; y < spot.y + fh; y++) for (let x = spot.x; x < spot.x + fw; x++) taken[y * w + x] = 1;
     L.things.push(thing(L, f, n, spot.x, spot.y, false));
@@ -253,6 +284,40 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
     if (!f) break;
     used.set(f.id, (used.get(f.id) ?? 0) + 1);
     if (place(f, n)) n++;
+  }
+  // The rest of the floor: more machines down the rows, or exhibitors' stands either side of a cross aisle.
+  const block = (x: number, y: number, fw: number, fh: number) => {
+    for (let yy = y; yy < y + fh; yy++) for (let xx = x; xx < x + fw; xx++) {
+      taken[yy * w + xx] = 1;
+      if (xx !== x || yy !== y + fh - 1) L.decor.push({ type: "solid", x: xx, y: yy, solid: true, v: 0 });
+    }
+  };
+  if (plan.kind === "machines") {
+    let k = Math.floor(rng() * MACHINES.length);
+    for (const r of isle.slice(0, 6)) {
+      // One row of machines along the plot's foot, a second behind it on a deep plot, room between.
+      for (let foot = r.y1 - 1; foot - 1 > r.y0; foot -= 4) for (let x = r.x0 + 1; x < r.x1; x++) {
+        const [, fw, fh] = MACHINES[k % MACHINES.length], y = foot - fh + 1;
+        if (x + fw > r.x1 || y <= r.y0 || !free(x, y, fw, fh)) continue;
+        block(x, y, fw, fh);
+        L.decor.push({ type: "machine", x, y: foot, solid: true, v: (k % MACHINES.length) + rng() * 0.9 });
+        k++, x += fw + 1;
+      }
+      // Packing crates at the plot's edge, and a lamp at its corner.
+      for (let c = 0, tries = 0; c < 3 && tries < 20; tries++) {
+        const x = r.x0 + Math.floor(rng() * (r.x1 - r.x0 + 1)), y = rng() < 0.5 ? r.y0 : r.y1;
+        if (taken[y * w + x] || L.cells[y * w + x] !== FLOOR) continue;
+        taken[y * w + x] = 1, c++;
+        L.decor.push({ type: "crate", x, y, solid: true, v: rng() });
+      }
+      if (!taken[r.y0 * w + r.x1]) taken[r.y0 * w + r.x1] = 1, L.decor.push({ type: "lamp", x: r.x1, y: r.y0, solid: true, v: 0 });
+    }
+  } else if (plan.kind === "hall") {
+    for (const s of spots) {
+      if ((s.y - 5) % 6 || (s.x - 3) % 4 || (s.x - 3) % 12 === 8 || Math.abs(s.y - (h >> 1)) < 2 || s.x < 3 || s.x > w - 6 || !free(s.x, s.y, 3, 1)) continue;
+      block(s.x, s.y, 3, 1);
+      L.decor.push({ type: "stall", x: s.x, y: s.y, solid: true, v: rng() });
+    }
   }
   // Glazed cases down the side walls; palms in tubs in the back corners and either side of the door.
   if (indoor && plan.kind !== "machines") {

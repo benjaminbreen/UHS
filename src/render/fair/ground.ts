@@ -22,7 +22,7 @@ const FLOORS = {
   parquet: ["#ecc088", "#d8a468", "#c08850", "#9c6a3c", "#704a2a"],
   tile: ["#f4ecdc", "#ddd0b6", "#b4523e", "#88382a", "#4c2e28"],
   boards: ["#e2c492", "#caa874", "#ae8a5c", "#8a6a44", "#5e4830"],
-  iron: ["#c4c0b8", "#a8a39a", "#8a857c", "#6a665e", "#46433e"],
+  iron: ["#c8c3ba", "#aaa59c", "#8c877e", "#6a665e", "#46433e"],
 };
 const WALLS = {
   parquet: ["#fbf3e2", "#efe2c6", "#d8c6a2", "#b4a07e", "#86745a", "#5c4e3c"],
@@ -99,6 +99,10 @@ export function paintFairGround(L: FairLevel, seed: number): Raster {
       if (wv === WALL || wv === SKY) R.fill(X, Y, 3, 16, IRON_RED[2]), R.fill(X, Y, 1, 16, IRON_RED[0]);
       if (e === WALL || e === SKY) R.fill(X + 13, Y, 3, 16, IRON_RED[3]), R.fill(X + 15, Y, 1, 16, IRON_RED[4]);
     }
+  }
+  for (const p of L.plots) {
+    const x0 = (X0 + p.x0) * 16, y0 = (Y0 + p.y0) * 16, x1 = (X0 + p.x1 + 1) * 16, y1 = (Y0 + p.y1 + 1) * 16;
+    for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) R.shade(x, y, y === y0 || x === x0 ? 0.32 : y === y1 - 1 || x === x1 - 1 ? 0.08 : 0.22, [70, 64, 80]);
   }
   for (const g of L.gardens) garden(R, L, g, seed);
   if (L.fountain) basin(R, L.fountain, seed);
@@ -454,10 +458,13 @@ function floor(R: Raster, X: number, Y: number, L: FairLevel, ax: number, ay: nu
       const tone = h2(a >> 2, (b >> 3) * 3 + flip, 9);
       col = a % 4 === 3 || b % 8 === 7 ? f[2] : tone > 0.8 ? f[0] : f[1];
     } else if (kind === "tile") {
-      const sx = x % 16, sy = y % 16, d = Math.abs(sx - 7.5) + Math.abs(sy - 7.5);
-      col = d < 4 ? f[2] : d < 5 ? f[3] : sx === 0 || sy === 0 ? f[1] : f[0];
+      // Cream squares, a small red lozenge where four meet.
+      const sx = (x + 16) % 32, sy = (y + 16) % 32, d = Math.abs(sx - 15.5) + Math.abs(sy - 15.5);
+      col = d < 3 ? f[2] : d < 4 ? f[3] : x % 16 === 0 || y % 16 === 0 ? f[1] : ((x >> 4) + (y >> 4)) % 2 ? f[0] : "#efe5d2";
     } else if (kind === "iron") {
-      col = x % 16 === 0 || y % 16 === 0 ? f[3] : x % 8 === 3 && y % 8 === 3 ? f[0] : f[1];
+      // Square stone flags, each a shade of its own, a lit edge on the top and left.
+      const px = x % 16, py = y % 16, tone = h2(x >> 4, y >> 4, 4);
+      col = px === 15 || py === 15 ? f[2] : px === 0 || py === 0 ? f[0] : tone > 0.75 ? "#b4afa6" : tone < 0.2 ? "#9e998f" : f[1];
     } else {
       const plank = Math.floor(x / 6);
       col = x % 6 === 5 ? f[3] : (y + plank * 13) % 40 === 0 ? f[4] : x % 6 === 0 ? f[0] : f[1];
@@ -478,6 +485,26 @@ function floor(R: Raster, X: number, Y: number, L: FairLevel, ax: number, ay: nu
     for (let j = 4; j < 16; j += 8) R.fill(X + (ax === cx - 1 ? 7 : 0), Y + j, 9, 1, RUNNER[2]);
   }
 }
+
+
+/** National banners hung from the gallery: each a list of bands, and whether they run down the banner. */
+const BANNERS: [string[], boolean][] = [
+  [["#3a5aa8", "#f4f0e8", "#d0403a"], true], [["#2a2a30", "#f0c838", "#d0403a"], true], [["#3a8a4a", "#f4f0e8", "#d0403a"], true],
+  [["#d0403a", "#f4f0e8", "#3a5aa8"], false], [["#c8343a", "#f0c838", "#c8343a"], false], [["#f4f0e8", "#3a5aa8", "#d0403a"], false],
+];
+
+function banner(R: Raster, x: number, y: number, k: number) {
+  const [bands, down] = BANNERS[k % BANNERS.length], W = 9, H = 24;
+  for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+    if (j > H - 4 && Math.abs(i - 4) < j - (H - 4)) continue;
+    const col = bands[down ? Math.min(2, Math.floor(i / 3)) : Math.min(2, Math.floor(j / 8))];
+    R.set(x + i, y + j, col);
+    if (i === W - 1 || j === H - 1) R.shade(x + i, y + j, 0.3);
+  }
+  for (let j = 2; j < H; j++) R.shade(x + W, y + j + 1, 0.25), R.shade(x + W + 1, y + j + 2, 0.12);
+  R.fill(x - 1, y - 1, W + 2, 2, BRASS_ROD[0]); R.set(x - 2, y - 1, BRASS_ROD[1]); R.set(x + W + 1, y - 1, BRASS_ROD[1]);
+}
+const BRASS_ROD = ["#e8c060", "#a87a30"];
 
 function balustrade(R: Raster, X: number, Y: number, right: boolean) {
   R.fill(X, Y, 5, 16, STONE[1]);
@@ -520,7 +547,9 @@ function building(R: Raster, L: FairLevel, OX: number, OY: number, seed: number)
   for (let x = OX + 12; x < OX + W - 12; x += 12) R.fill(x, by + 38, 1, 7, DADO[2]);
   R.fill(OX + 8, by + 46, W - 16, 2, DADO[3]);
   const cx = OX + W / 2;
-  for (let x = OX + 16; x + 20 < OX + W - 8; x += 32) {
+  if (L.kind === "machines") ironWall(R, L, OX, ry, by, c);
+  else if (L.kind === "hall") gallery(R, L, OX, by, c);
+  else for (let x = OX + 16; x + 20 < OX + W - 8; x += 32) {
     // A pilaster, then a tall arched window between it and the next.
     R.fill(x, by + 7, 6, 29, c[0]); R.fill(x + 5, by + 7, 1, 29, c[3]); R.fill(x - 1, by + 7, 8, 2, c[2]);
     const wx = x + 13, ww = 12;
@@ -571,6 +600,48 @@ function building(R: Raster, L: FairLevel, OX: number, OY: number, seed: number)
     R.fill(dx - 4 - k * 3, sy, 40 + k * 6, 4, STONE[1]); R.fill(dx - 4 - k * 3, sy, 40 + k * 6, 1, "#fbf8f2"); R.fill(dx - 4 - k * 3, sy + 3, 40 + k * 6, 1, STONE[3]);
   }
   void seed;
+}
+
+/** A hall's back wall in two storeys: an arcade of dark bays below, and above
+ * it the gallery's balustrade with the nations' banners hung over it. */
+function gallery(R: Raster, L: FairLevel, OX: number, by: number, c: string[]) {
+  const W = L.w * 16, x0 = OX + 8, x1 = OX + W - 8;
+  // The gallery: a deep recess behind the balustrade, its own windows faint at the back.
+  R.fill(x0, by + 7, x1 - x0, 14, c[4]);
+  R.fill(x0, by + 7, x1 - x0, 2, c[5]);
+  for (let x = x0 + 10; x < x1 - 10; x += 16) R.fill(x, by + 10, 5, 6, c[3]), R.fill(x, by + 10, 2, 2, c[2]);
+  R.fill(x0, by + 18, x1 - x0, 2, c[0]); R.fill(x0, by + 20, x1 - x0, 1, c[3]);
+  for (let x = x0 + 1; x < x1 - 1; x += 3) R.fill(x, by + 21, 2, 4, c[1]), R.set(x + 1, by + 24, c[3]);
+  R.fill(x0, by + 25, x1 - x0, 2, c[0]); R.fill(x0, by + 27, x1 - x0, 1, c[4]);
+  // The arcade below: round-headed bays, dark, with a case glimpsed in each.
+  for (let x = x0 + 4; x + 18 < x1; x += 24) {
+    for (let y = by + 29; y < by + 36; y++) for (let i = 0; i < 18; i++) {
+      const top = y - (by + 29), dx = i + 0.5 - 9;
+      if (top < 4 && dx * dx + (4 - top) ** 2 * 5 > 81) continue;
+      R.set(x + i, y, top < 2 ? c[5] : c[4]);
+    }
+    R.fill(x + 5, by + 32, 8, 4, c[3]); R.fill(x + 5, by + 32, 8, 1, c[2]);
+  }
+  for (let x = x0 + 22; x < x1 - 4; x += 24) R.fill(x, by + 28, 6, 8, c[1]), R.fill(x, by + 28, 1, 8, c[0]), R.fill(x + 5, by + 28, 1, 8, c[3]);
+  // Banners from the balustrade, one over each pier, clear of the flag at the middle.
+  const mid = OX + W / 2;
+  for (let x = x0 + 22, k = 0; x < x1 - 12; x += 48, k++) if (Math.abs(x + 4 - mid) > 28) banner(R, x - 1, by + 19, k + L.w);
+}
+
+/** The Machines' back wall: glass from the dado up, between the feet of the
+ * arched ribs, which carry on up over the roof. */
+function ironWall(R: Raster, L: FairLevel, OX: number, ry: number, by: number, c: string[]) {
+  const W = L.w * 16, x0 = OX + 8, x1 = OX + W - 8;
+  for (let y = by + 7; y < by + 35; y++) for (let x = x0; x < x1; x++) {
+    const gx = (x - x0) % 10, gy = (y - by - 7) % 9;
+    R.set(x, y, gx === 0 || gy === 0 ? IRON[1] : (gx + gy) < 6 ? GLASS[1] : gy > 6 ? GLASS[3] : GLASS[2]);
+  }
+  R.fill(x0, by + 33, x1 - x0, 3, c[0]); R.fill(x0, by + 35, x1 - x0, 1, c[3]);
+  // Heavier mullions, riveted, every few panes, up the wall and over the roof.
+  for (let x = x0 + 30; x < x1 - 4; x += 70) for (let y = ry + 2; y < by + 36; y++) {
+    R.fill(x, y, 4, 1, IRON[2]); R.set(x, y, IRON[0]); R.set(x + 3, y, IRON[3]);
+    if (y % 6 === 0) R.set(x + 1, y, IRON[0]);
+  }
 }
 
 /** Round and through the middle of a Tower platform: Paris, far below, in haze. */

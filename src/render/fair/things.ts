@@ -1,5 +1,6 @@
 import { box, drum } from "../ship/things";
 import { h2, Raster } from "../ship/raster";
+import { MACHINES } from "../../world/fair";
 
 /** A sprite for a cell-sized thing: its footprint's top-left sits at (ox, oy) in the raster. */
 export type FairSprite = { r: Raster; ox: number; oy: number; glow?: { x: number; y: number }[] };
@@ -39,6 +40,9 @@ function placard(r: Raster, x: number, y: number) {
   r.fill(x + 1, y + 1, 5, 1, IRON[2]);
   r.fill(x + 1, y + 3, 4, 1, IRON[0]);
 }
+
+/** The great engine's flywheel, in px from its footprint's top-left: the view turns its spokes. */
+export const flywheel = (w: number) => ({ x: w * 16 - 62, y: 2, r: 56 });
 
 export function paintFairThing(art: string, w: number, h: number, v: number, tint?: string): FairSprite | undefined {
   const W = w * 16, H = h * 16, pad = 8;
@@ -150,52 +154,87 @@ export function paintFairThing(art: string, w: number, h: number, v: number, tin
       return done(s);
     }
     case "engine": {
-      // A horizontal steam engine on a stone bed: the flywheel, the green cylinder, bright rods.
-      const s = make(40), { r, X, Y } = s;
+      // A horizontal steam engine on an iron bed: the green cylinder and its valve chest,
+      // a bright rod to the crank, the governor's balls, and a big red flywheel.
+      if (w >= 6) return done(greatEngine(make(64), W, H), false);
+      const s = make(46), { r, X, Y } = s, bx = W - 18, by = -26;
       ground(s);
-      box(r, X + 1, Y + 4, W - 2, H - 10, 6, STONE, STONE);
-      const cy = Y - 10, rad = Math.min(19, H / 2 + 8), wx = X + W - rad - 4;
-      for (let a = 0; a < 160; a++) {
-        const ang = (a / 160) * Math.PI * 2;
-        for (const k of [0, 1, 2, 3]) r.set(wx + Math.cos(ang) * (rad - k), cy + Math.sin(ang) * (rad - k), k === 0 ? IRON[3] : k === 3 ? IRON[3] : IRON[Math.cos(ang + 0.8) < 0 ? 0 : 2]);
+      box(r, X + 1, Y + 8, W - 2, H - 16, 7, STONE, STONE);
+      r.fill(X + 3, Y + 10, W - 8, 1, IRON[0]);
+      const rad = 17, fx = X + bx, fy = Y + by + rad + 1;
+      for (let j = -rad; j <= rad; j++) for (let i = -rad; i <= rad; i++) {
+        const d = Math.hypot(i, j);
+        if (d > rad + 0.5) continue;
+        const a = Math.atan2(j, i), lightK = Math.cos(a + 2.3);
+        if (d > rad - 4) r.set(fx + i, fy + j, d > rad - 0.5 ? RED[4] : RED[lightK > 0.4 ? 0 : lightK > -0.3 ? 1 : 2]);
+        else if (d < 4) r.set(fx + i, fy + j, d < 2 ? BRASS[0] : BRASS[2]);
+        else if (Math.abs(((a / (Math.PI / 3)) % 1 + 1) % 1 - 0.5) > 0.5 - 1.6 / d) r.set(fx + i, fy + j, RED[2]);
       }
-      for (let k = 0; k < 8; k++) { const ang = (k / 8) * Math.PI * 2; for (let d = 3; d < rad - 2; d++) r.set(wx + Math.cos(ang) * d, cy + Math.sin(ang) * d, IRON[1]); }
-      drum(r, wx, cy + 2, 3, 2, 3, BRASS);
       const cyl = ["#b4d2a4", "#8ab47a", "#6a965c", "#4c7442", "#30502c"];
-      box(r, X + 4, Y - 18, 26, 8, 14, cyl, cyl);
-      r.fill(X + 4, Y - 10, 26, 1, BRASS[1]); r.fill(X + 4, Y + 3, 26, 1, BRASS[2]);
-      r.fill(X + 30, cy, wx - X - 30, 3, BRASS[1]); r.fill(X + 30, cy, wx - X - 30, 1, BRASS[0]);
-      drum(r, X + 17, Y - 18, 3, 1.5, 6, BRASS);
+      box(r, X + 2, Y - 8, 17, 6, 12, cyl, cyl);
+      for (const x of [X + 4, X + 16]) r.fill(x, Y - 2, 1, 12, BRASS[2]);
+      box(r, X + 5, Y - 15, 11, 4, 4, IRON, IRON);
+      r.fill(X + 19, fy - 1, fx - X - 19, 3, STONE[1]); r.fill(X + 19, fy - 1, fx - X - 19, 1, "#ffffff");
+      r.fill(fx - 2, fy - 2, 5, 5, BRASS[1]);
+      r.fill(X + 10, Y - 30, 1, 15, BRASS[2]);
+      for (const sx of [-4, 4]) drum(r, X + 10 + sx, Y - 26, 2, 1.5, 3, BRASS);
+      r.fill(X + 6, Y - 31, 9, 1, BRASS[1]);
       return done(s);
     }
     case "dynamo": {
-      const s = make(28), { r, X, Y } = s;
+      // An Edison dynamo: two tall field magnets wound in copper on an iron bed,
+      // joined by a yoke, the armature turning between their feet.
+      const s = make(46), { r, X, Y } = s;
       ground(s);
-      box(r, X + 2, Y + 2, W - 4, H - 8, 6, IRON, IRON);
-      const copper = ["#f0b088", "#d08858", "#ac6a40", "#844c2c", "#56301c"];
-      drum(r, X + W / 2, Y + 1, W / 2 - 6, 4, 18, copper, IRON);
-      for (let x = X + 8; x < X + W - 8; x += 3) r.fill(x, Y - 15, 1, 14, BRASS[2]);
-      r.fill(X + 5, Y - 22, W - 10, 3, IRON[1]); r.fill(X + 5, Y - 22, W - 10, 1, IRON[0]);
+      box(r, X + 1, Y + 2, W - 2, H - 8, 6, STONE, STONE);
+      const copper = ["#f4bc90", "#d88a58", "#b06a40", "#844c2c", "#56301c"];
+      for (const x of [X + 9, X + W - 9]) {
+        drum(r, x, Y + 2, 6, 2.5, 30, copper, IRON);
+        for (let y = Y - 26; y < Y + 2; y += 3) r.fill(x - 5, y, 11, 1, copper[3]);
+      }
+      box(r, X + 2, Y - 34, W - 4, 4, 5, IRON, IRON);
+      drum(r, X + W / 2, Y + 4, 6, 3, 9, IRON);
+      r.fill(X + W / 2 - 4, Y - 2, 8, 2, copper[1]);
+      drum(r, X + W / 2, Y - 34, 4, 2, 5, BRASS);
       return done(s);
     }
     case "locomotive": {
-      const s = make(40), { r, X, Y } = s, body = t ?? GREEN;
+      // An express engine on its own length of track: black smokebox and chimney, a green
+      // boiler banded in brass, a brass dome, the cab, and tall red driving wheels.
+      const s = make(40), { r, X, Y } = s, body = t ?? GREEN, black = ["#5a6272", "#3e4656", "#2a303c", "#1c2028", "#10141a"];
       ground(s);
-      r.fill(X - 2, Y + H - 6, W + 4, 3, IRON[3]); r.fill(X - 2, Y + H - 6, W + 4, 1, IRON[0]);
-      box(r, X + 4, Y - 14, W - 34, 8, 18, body, body);
-      for (let x = X + 8; x < X + W - 34; x += 10) r.fill(x, Y - 6, 1, 18, body[3]);
-      box(r, X + W - 30, Y - 28, 24, 8, 32, body, body);
-      r.fill(X + W - 26, Y - 22, 8, 8, GLASS[2]); r.fill(X + W - 26, Y - 22, 3, 3, GLASS[0]);
-      r.fill(X + W - 32, Y - 30, 28, 2, IRON[2]);
-      drum(r, X + 12, Y - 14, 4, 2, 16, IRON);
-      drum(r, X + 30, Y - 14, 4, 2, 6, BRASS);
-      for (const wx of [X + 16, X + 34, X + 52].filter((x) => x < X + W - 10)) {
-        for (let a = 0; a < 48; a++) for (const k of [0, 1]) r.set(wx + Math.cos((a / 48) * Math.PI * 2) * (8 - k), Y + 10 + Math.sin((a / 48) * Math.PI * 2) * (8 - k), k ? RED[1] : RED[3]);
-        r.fill(wx - 1, Y + 9, 3, 3, BRASS[1]);
-      }
-      r.fill(X + 14, Y + 9, 42, 2, IRON[0]);
-      r.fill(X + 4, Y - 15, W - 34, 1, BRASS[1]);
-      return done(s);
+      for (let x = X - 4; x < X + W + 4; x += 7) r.fill(x, Y + H - 9, 4, 7, DARKWOOD[x % 2 ? 2 : 3]);
+      for (const y of [Y + H - 8, Y + H - 4]) r.fill(X - 6, y, W + 12, 2, IRON[1]), r.fill(X - 6, y, W + 12, 1, IRON[0]);
+      const cyl = (x0: number, x1: number, cy: number, rad: number, ramp: readonly string[]) => {
+        for (let j = -rad; j <= rad; j++) r.fill(x0, cy + j, x1 - x0, 1, ramp[j < -rad * 0.6 ? 0 : j < -rad * 0.1 ? 1 : j < rad * 0.5 ? 2 : 3]);
+      };
+      const by = Y - 6, bl = X + 14, br = X + W - 32;
+      cyl(bl, br, by, 11, body);
+      for (let x = bl + 14; x < br - 4; x += 18) r.fill(x, by - 11, 2, 23, BRASS[2]), r.set(x, by - 11, BRASS[0]);
+      cyl(X + 3, bl, by, 12, black);
+      r.fill(X + 7, Y - 34, 7, 16, black[2]); r.fill(X + 7, Y - 34, 2, 16, black[0]); r.fill(X + 5, Y - 36, 11, 3, black[1]); r.fill(X + 5, Y - 36, 11, 1, black[0]);
+      drum(r, (bl + br) / 2, by - 10, 5, 2, 7, BRASS);
+      drum(r, bl + 12, by - 10, 3, 1.5, 4, BRASS);
+      box(r, br, Y - 30, W - 4 - (br - X), 8, 34, body, body);
+      r.fill(br + 5, Y - 20, 10, 9, GLASS[2]); r.fill(br + 5, Y - 20, 4, 4, GLASS[0]);
+      r.fill(br - 2, Y - 32, W - (br - X), 3, black[2]); r.fill(br - 2, Y - 32, W - (br - X), 1, black[0]);
+      r.fill(X + 2, Y + 4, W - 6, 2, RED[2]); r.fill(X + 2, Y + 6, W - 6, 1, black[3]);
+      const wheel = (wx: number, rad: number) => {
+        for (let j = -rad; j <= rad; j++) for (let i = -rad; i <= rad; i++) {
+          const d = Math.hypot(i, j), a = Math.atan2(j, i);
+          if (d > rad + 0.4) continue;
+          if (d > rad - 2.5) r.set(wx + i, Y + 12 - rad + 1 + j + rad - 1, d > rad - 0.6 ? RED[4] : RED[Math.cos(a + 2.3) > 0 ? 1 : 2]);
+          else if (d < 2.5) r.set(wx + i, Y + 12 + j, BRASS[1]);
+          else if (Math.abs(((a / (Math.PI / 4)) % 1 + 1) % 1 - 0.5) > 0.5 - 0.9 / d) r.set(wx + i, Y + 12 + j, RED[2]);
+        }
+      };
+      wheel(X + 12, 6);
+      const drivers: number[] = [];
+      for (let wx = X + 32; wx < X + W - 14; wx += 26) wheel(wx, 11), drivers.push(wx);
+      if (drivers.length > 1) r.fill(drivers[0], Y + 14, drivers[drivers.length - 1] - drivers[0], 2, IRON[0]);
+      for (let x = X - 4; x <= X + W + 4; x += 30) { r.fill(x, Y + H - 2, 2, 10, BRASS[2]); r.fill(x - 1, Y + H - 3, 4, 2, BRASS[0]); }
+      for (let x = X - 4; x < X + W + 4; x++) r.set(x, Y + H - 1 + Math.round(Math.sin((((x - X + 4) % 30) / 30) * Math.PI) * 3), RED[2]);
+      return done(s, false);
     }
     case "phonograph": case "telephone": {
       const s = make(26), { r, X, Y } = s;
@@ -248,13 +287,33 @@ export function paintFairThing(art: string, w: number, h: number, v: number, tin
       return done(s);
     }
     case "loom": case "press": {
-      const s = make(32), { r, X, Y } = s, frame = art === "loom" ? WOOD : IRON;
+      const s = make(48), { r, X, Y } = s;
       ground(s);
-      box(r, X + 2, Y, W - 4, H - 6, 6, frame, frame);
-      for (const x of [X + 3, X + W - 7]) { r.fill(x, Y - 26, 4, 26, frame[2]); r.fill(x, Y - 26, 1, 26, frame[0]); }
-      r.fill(X + 3, Y - 26, W - 6, 4, frame[1]); r.fill(X + 3, Y - 26, W - 6, 1, frame[0]);
-      if (art === "loom") { const c = t ?? RED; for (let x = X + 8; x < X + W - 8; x++) r.fill(x, Y - 21, 1, 16, x % 2 ? c[1] : c[2]); r.fill(X + 8, Y - 7, W - 16, 2, WOOD[3]); }
-      else { r.fill(X + 8, Y - 14, W - 16, 6, IRON[1]); r.fill(X + 8, Y - 14, W - 16, 1, IRON[0]); drum(r, X + W / 2, Y - 20, 5, 1.5, 4, BRASS); }
+      if (art === "loom") {
+        // A Jacquard loom: an oak frame, the warp running back to the cloth beam, the
+        // card chain looping down from the head on top.
+        const c = t ?? RED;
+        box(r, X + 2, Y, W - 4, H - 6, 5, WOOD, WOOD);
+        for (const x of [X + 3, X + W - 7]) { r.fill(x, Y - 34, 4, 34, WOOD[2]); r.fill(x, Y - 34, 1, 34, WOOD[0]); r.fill(x + 3, Y - 34, 1, 34, WOOD[4]); }
+        for (let x = X + 7; x < X + W - 7; x++) r.fill(x, Y - 22, 1, 18, x % 2 ? c[1] : c[2]);
+        r.fill(X + 7, Y - 8, W - 14, 4, c[3]); r.fill(X + 7, Y - 8, W - 14, 1, c[1]);
+        r.fill(X + 5, Y - 5, W - 10, 3, WOOD[1]); r.fill(X + 5, Y - 5, W - 10, 1, WOOD[0]);
+        r.fill(X + 3, Y - 26, W - 6, 3, WOOD[1]); r.fill(X + 3, Y - 26, W - 6, 1, WOOD[0]);
+        box(r, X + 8, Y - 42, W - 16, 4, 8, WOOD, DARKWOOD);
+        for (let k = 0; k < 9; k++) r.fill(X + W - 9 + (k % 2), Y - 33 + k * 2, 6, 1, k % 2 ? STONE[2] : STONE[0]);
+      } else {
+        // A printing press: an iron frame, the platen, and a big spoked wheel at its side.
+        box(r, X + 2, Y, W - 4, H - 6, 6, IRON, IRON);
+        for (const x of [X + 4, X + W - 10]) { r.fill(x, Y - 28, 5, 28, IRON[2]); r.fill(x, Y - 28, 1, 28, IRON[0]); r.fill(x + 4, Y - 28, 1, 28, IRON[4]); }
+        r.fill(X + 4, Y - 30, W - 8, 4, IRON[1]); r.fill(X + 4, Y - 30, W - 8, 1, IRON[0]);
+        r.fill(X + 9, Y - 14, W - 18, 4, STONE[1]); r.fill(X + 9, Y - 14, W - 18, 1, "#ffffff");
+        r.fill(X + 9, Y - 4, W - 18, 3, STONE[0]);
+        const wx = X + W - 4, wy = Y - 16;
+        for (let a = 0; a < 64; a++) { const g = (a / 64) * Math.PI * 2; for (const k of [0, 1]) r.set(wx + Math.cos(g) * (11 - k), wy + Math.sin(g) * (11 - k), k ? IRON[1] : IRON[3]); }
+        for (let k = 0; k < 6; k++) { const g = (k / 6) * Math.PI * 2; for (let d = 2; d < 10; d++) r.set(wx + Math.cos(g) * d, wy + Math.sin(g) * d, IRON[2]); }
+        drum(r, wx, wy + 1, 2, 1, 2, BRASS);
+        drum(r, X + W / 2, Y - 30, 4, 1.5, 4, BRASS);
+      }
       return done(s);
     }
     case "lamp-standard": {
@@ -497,5 +556,182 @@ export function paintFairDecor(type: string, v: number): FairSprite | undefined 
     r.finish();
     return { r, ox: 4, oy: 58 };
   }
+  if (type === "machine") {
+    // Anchored on its bottom-left cell, so it sorts by its front.
+    const [art, w, h] = MACHINES[Math.floor(v) % MACHINES.length], s = paintFairThing(art, w, h, v % 1);
+    return s && { ...s, oy: s.oy + (h - 1) * 16 };
+  }
+  if (type === "stall") return stall(v);
+  if (type === "rib") return rib();
+  if (type === "crate") {
+    const r = new Raster(28, 30), x = 4 + Math.round(v * 3), w = 14 - Math.round(v * 3), d = 5, hgt = 10 + Math.round(v * 4), top = 26 - hgt - d;
+    r.shadow(14, 26, 10, 3);
+    box(r, x, top, w, d, hgt, WOOD, WOOD);
+    for (const yy of [top + d + 2, top + d + hgt - 3]) r.fill(x, yy, w, 1, WOOD[3]);
+    for (let k = 0; k < hgt - 2; k++) r.set(x + 1 + Math.round((k * (w - 3)) / (hgt - 2)), top + d + 1 + k, WOOD[3]);
+    r.finish();
+    return { r, ox: 0, oy: 14 };
+  }
+  if (type === "demo") return demo();
   return undefined;
+}
+
+/** The great engine: a long cylinder on an iron bed, the rods to the crank, and a
+ * flywheel taller than a man in a slot in its stone plinth, roped off. Its spokes
+ * are drawn turning by the view. */
+function greatEngine(s: FairSprite & { X: number; Y: number }, W: number, H: number) {
+  const { r, X, Y } = s, fw = flywheel(W / 16), fx = X + fw.x, fy = Y + fw.y, black = ["#6a7486", "#465062", "#30384a", "#222836", "#141820"];
+  const cl = X + 10, cr = X + 104, bedTop = Y + 22;
+  r.shadow(X + W / 2 + 4, Y + H - 6, W / 2 + 4, 9, 0.3);
+  box(r, X + 4, Y + H - 28, W - 8, 16, 8, STONE, STONE);
+  r.fill(fx - 8, Y + H - 26, 16, 14, STONE[4]);
+  for (let j = -fw.r; j <= fw.r; j++) for (let i = -fw.r; i <= fw.r; i++) {
+    const d = Math.hypot(i, j), a = Math.atan2(j, i), k = Math.cos(a + 2.3);
+    if (d > fw.r + 0.5) continue;
+    if (d > fw.r - 8) r.set(fx + i, fy + j, d > fw.r - 0.7 || d < fw.r - 7.3 ? black[4] : black[k > 0.4 ? 0 : k > -0.3 ? 1 : 2]);
+    else if (d < 9) r.set(fx + i, fy + j, d < 3 ? BRASS[0] : d < 6 ? black[1] : black[3]);
+  }
+  // The plinth's face hides the foot of the wheel, turning in its slot.
+  r.fill(X + 4, Y + H - 12, W - 8, 8, STONE[2]); r.fill(X + 4, Y + H - 12, W - 8, 1, STONE[1]); r.fill(X + 4, Y + H - 5, W - 8, 1, STONE[4]); r.fill(X + W - 5, Y + H - 12, 1, 8, STONE[3]);
+  r.fill(fx - 8, Y + H - 12, 16, 6, STONE[4]);
+  // The bed from the cylinder to the crank, the crosshead guides on it, and the rods.
+  box(r, cr - 4, bedTop, fx - cr - 10, 10, 12, black, black);
+  r.fill(cr + 6, bedTop - 6, 40, 5, black[1]); r.fill(cr + 6, bedTop - 6, 40, 1, black[0]);
+  box(r, cr + 30, bedTop - 12, 12, 8, 8, black, black);
+  r.fill(cr, bedTop - 3, fx - cr, 3, STONE[1]); r.fill(cr, bedTop - 3, fx - cr, 1, "#ffffff");
+  // The cylinder: lagged in dark blue-black, banded in brass, the valve chest on top.
+  box(r, cl, Y - 2, cr - cl, 14, 28, black, black);
+  for (let x = cl + 12; x < cr - 4; x += 20) r.fill(x, Y + 12, 2, 28, BRASS[2]), r.set(x, Y - 10, BRASS[0]);
+  drum(r, cl, Y + 26, 4, 3, 26, black);
+  box(r, cl + 24, Y - 14, 44, 8, 8, black, black);
+  for (const x of [cl + 30, cl + 46, cl + 62]) drum(r, x, Y - 14, 2.5, 1, 7, BRASS);
+  r.fill(cl + 84, Y - 36, 1, 22, BRASS[2]); for (const sx of [-5, 5]) drum(r, cl + 84 + sx, Y - 28, 3, 2, 4, BRASS);
+  r.fill(cl + 79, Y - 37, 11, 2, BRASS[1]);
+  // Brass posts and a red rope along the front.
+  for (let x = X + 2; x <= X + W - 2; x += 28) { r.fill(x, Y + H - 12, 2, 12, BRASS[2]); r.fill(x - 1, Y + H - 13, 4, 2, BRASS[0]); }
+  for (let x = X + 2; x < X + W - 2; x++) r.set(x, Y + H - 11 + Math.round(Math.sin((((x - X - 2) % 28) / 28) * Math.PI) * 4), RED[2]);
+  return s;
+}
+
+/** A foot of one of the great ribs: a plate girder pier that splits at shoulder height
+ * into two arches curving away over the floor to the glass. */
+function rib(): FairSprite {
+  const r = new Raster(248, 216), cx = 124, foot = 208, split = 104;
+  const iron = ["#8a96a4", "#6a7684", "#4e5866", "#3a424e", "#262c36"];
+  r.shadow(cx + 6, foot - 1, 30, 7, 0.3);
+  for (const side of [-1, 1]) for (let t = 0; t <= 1; t += 0.002) {
+    const th = (t * Math.PI) / 2, x = cx + side * (8 + 100 * (1 - Math.cos(th))), y = split - (split - 6) * Math.sin(th);
+    const tx = side * 100 * Math.sin(th), ty = -(split - 6) * Math.cos(th), len = Math.hypot(tx, ty) || 1, nx = -ty / len, ny = tx / len;
+    for (let k = -8; k <= 8; k++) {
+      const e = side * k, col = Math.abs(k) === 8 ? iron[4] : e === -7 ? iron[0] : e === 7 ? iron[3] : Math.abs(k) === 5 ? iron[1] : iron[2];
+      r.set(x + nx * k, y + ny * k, col);
+      r.set(x + nx * k + 0.5, y + ny * k, col);
+    }
+    if (Math.round(t * 500) % 12 === 0) for (const k of [-3, 3]) r.set(x + nx * k, y + ny * k, iron[0]);
+  }
+  for (let y = split - 6; y < foot - 10; y++) {
+    const hw = Math.round(13 + (12 * (y - split)) / (foot - split));
+    for (let i = -hw; i <= hw; i++) {
+      const e = Math.abs(i);
+      r.set(cx + i, y, e === hw ? iron[4] : e === hw - 1 ? (i < 0 ? iron[0] : iron[3]) : e === hw - 2 ? iron[1] : iron[2]);
+    }
+    if (y % 7 === 0) for (const i of [-hw + 4, hw - 4]) r.set(cx + i, y, iron[0]);
+    if ((y - split) % 34 === 0) r.fill(cx - hw, y, hw * 2 + 1, 3, iron[1]), r.fill(cx - hw, y + 2, hw * 2 + 1, 1, iron[4]);
+  }
+  box(r, cx - 26, foot - 16, 52, 6, 10, STONE, STONE);
+  box(r, cx - 22, foot - 22, 44, 6, 4, iron, iron);
+  for (let x = cx - 18; x <= cx + 18; x += 9) r.set(x, foot - 19, iron[0]);
+  r.finish();
+  return { r, ox: 100, oy: 192 };
+}
+
+/** A demonstration of driving by belt: a line shaft on two A-frames over a platform
+ * of small machines, a belt down from the shaft to each. */
+function demo(): FairSprite {
+  const W = 13 * 16, r = new Raster(W + 16, 48 + 76), X = 8, Y = 76;
+  r.shadow(X + W / 2 + 4, Y + 44, W / 2 + 2, 6, 0.26);
+  box(r, X, Y + 8, W, 30, 8, WOOD, DARKWOOD);
+  for (let x = X + 12; x < X + W; x += 12) r.fill(x, Y + 9, 1, 28, WOOD[2]);
+  const shaft = Y - 34, feet = Y + 30;
+  const machine = (mx: number, k: number) => {
+    if (k === 0) { box(r, mx - 16, feet - 12, 32, 6, 6, IRON, IRON); box(r, mx - 16, feet - 22, 10, 5, 10, IRON, IRON); r.fill(mx - 6, feet - 16, 18, 2, STONE[1]); box(r, mx + 10, feet - 18, 6, 4, 6, IRON, IRON); }
+    else if (k === 1) { box(r, mx - 12, feet - 6, 24, 5, 4, IRON, IRON); drum(r, mx, feet - 6, 9, 4, 14, ["#f4bc90", "#d88a58", "#b06a40", "#844c2c", "#56301c"], IRON); }
+    else { box(r, mx - 10, feet - 8, 20, 5, 6, IRON, IRON); r.fill(mx - 7, feet - 30, 4, 24, IRON[2]); r.fill(mx + 3, feet - 30, 4, 24, IRON[2]); r.fill(mx - 8, feet - 32, 16, 4, IRON[1]); r.fill(mx - 8, feet - 32, 16, 1, IRON[0]); drum(r, mx, feet - 14, 5, 2, 4, BRASS); }
+    const top = k === 1 ? feet - 24 : k === 0 ? feet - 22 : feet - 32;
+    for (const dx of [-3, 3]) { r.fill(mx + dx, shaft + 3, 2, top - shaft - 3, "#5a3a24"); r.fill(mx + dx, shaft + 3, 1, top - shaft - 3, "#8a5e3c"); }
+    r.fill(mx - 4, shaft - 4, 10, 9, IRON[2]); r.fill(mx - 4, shaft - 4, 10, 1, IRON[0]); r.fill(mx - 4, shaft + 4, 10, 1, IRON[4]);
+  };
+  for (const ax of [X + 14, X + W - 14]) for (const s of [-1, 1]) for (let y = shaft; y < feet; y++) {
+    const x = ax + s * Math.round(((y - shaft) * 10) / (feet - shaft));
+    r.fill(x - 1, y, 3, 1, IRON[2]); r.set(x - 1, y, IRON[0]);
+  }
+  r.fill(X + 8, shaft, W - 16, 3, IRON[1]); r.fill(X + 8, shaft, W - 16, 1, IRON[0]); r.fill(X + 8, shaft + 2, W - 16, 1, IRON[3]);
+  [X + 50, X + 104, X + 158].forEach((mx, k) => machine(mx, k));
+  r.finish();
+  return { r, ox: X, oy: Y + 32 };
+}
+
+/** A trophy: a firm's goods stacked in tiers on a draped dais round a gilt centrepiece, roped off. */
+function trophy(v: number): FairSprite {
+  const r = new Raster(64, 76), X = 8, Y = 56, W = 48, n = Math.floor(v * 97), cx = X + W / 2;
+  const cloth = STALLS[n % STALLS.length], gilt = n % 2 ? BRASS : STONE;
+  const goods = [BRASS, RED, GLASS, GREEN, ramp(cloth[0])];
+  r.shadow(cx + 3, Y + 12, W / 2 + 2, 6, 0.26);
+  box(r, X + 2, Y - 4, W - 4, 12, 6, cloth, cloth);
+  for (let x = X + 2; x < X + W - 2; x++) r.set(x, Y + 9, (x & 1) ? BRASS[1] : BRASS[2]);
+  box(r, X + 9, Y - 12, W - 18, 9, 5, WOOD, cloth);
+  for (const [y, x0, x1] of [[Y + 6, X + 4, X + W - 6], [Y - 4, X + 11, X + W - 13]] as const)
+    for (let x = x0, k = n; x < x1; x += 5, k++) {
+      if (Math.abs(x + 2 - cx) < 7) continue;
+      const g = goods[k % goods.length], tall = 3 + (k % 3) * 2;
+      r.fill(x, y - tall, 4, tall, g[1]); r.fill(x, y - tall, 4, 1, g[0]); r.fill(x + 3, y - tall + 1, 1, tall - 1, g[3]);
+    }
+  drum(r, cx, Y - 8, 5, 2, 10, STONE);
+  drum(r, cx, Y - 18, 3, 1.5, 3, gilt);
+  for (let k = 0; k < 12; k++) drum(r, cx, Y - 21 - k, Math.round(2 + Math.sin((k / 11) * Math.PI) * 4), 1.5, 1, gilt);
+  drum(r, cx, Y - 33, 4, 1.5, 2, gilt);
+  for (const x of [X + 1, X + W - 2]) { r.fill(x, Y - 6, 2, 16, BRASS[2]); r.set(x, Y - 7, BRASS[0]); }
+  for (let i = 0; i < W - 3; i++) r.set(X + 2 + i, Y - 4 + Math.round(Math.sin((i / (W - 3)) * Math.PI) * 5), RED[2]);
+  r.finish();
+  return { r, ox: X, oy: Y };
+}
+
+const STALLS = [["#c86a5a", "#a84a40", "#86342e", "#5e2422"], ["#6a86b8", "#4e6a9c", "#3a5280", "#283a5e"], ["#7aa46a", "#5a8650", "#44683c", "#2e4a2a"], ["#d8b060", "#b88e44", "#906a30", "#664a22"], ["#a878a8", "#865a88", "#68426a", "#48304a"]];
+
+/** An exhibitor's stand, three cells wide: a nameboard on carved posts over a
+ * back screen of shelves, and a draped counter of goods in front. */
+function stall(v: number): FairSprite {
+  if (v >= 0.6) return trophy(v);
+  const r = new Raster(64, 72), X = 8, Y = 52, W = 48, n = Math.floor(v * 97);
+  const c = STALLS[n % STALLS.length], cloth = STALLS[(n + 2) % STALLS.length];
+  const goods = [BRASS, RED, GLASS, STONE, GREEN, ramp(c[0])];
+  const item = (x: number, y: number, k: number) => {
+    const g = goods[k % goods.length], kind = Math.floor(h2(x, y, n) * 4);
+    if (kind === 0) { r.fill(x, y - 6, 3, 6, g[1]); r.fill(x + 1, y - 8, 1, 2, g[2]); r.set(x, y - 6, g[0]); r.fill(x + 2, y - 5, 1, 5, g[3]); }
+    else if (kind === 1) { r.fill(x, y - 4, 5, 4, g[1]); r.fill(x, y - 4, 5, 1, g[0]); r.fill(x + 4, y - 3, 1, 3, g[3]); }
+    else if (kind === 2) drum(r, x + 2, y - 1, 2, 1, 4, g);
+    else { r.fill(x, y - 3, 6, 3, g[2]); r.fill(x, y - 3, 6, 1, g[0]); r.fill(x, y - 1, 6, 1, g[3]); }
+  };
+  r.shadow(X + W / 2 + 3, Y + 13, W / 2 + 2, 5, 0.26);
+  // Back screen, panelled, with two shelves.
+  r.fill(X + 3, Y - 38, W - 6, 36, c[2]);
+  r.fill(X + 3, Y - 38, W - 6, 1, c[1]);
+  for (let x = X + 6; x < X + W - 8; x += 13) { r.fill(x, Y - 35, 10, 30, c[1]); r.fill(x, Y - 35, 10, 1, c[0]); r.fill(x + 9, Y - 34, 1, 29, c[3]); }
+  for (const sy of [Y - 24, Y - 13]) {
+    r.fill(X + 4, sy, W - 8, 2, DARKWOOD[1]); r.fill(X + 4, sy, W - 8, 1, DARKWOOD[0]); r.fill(X + 4, sy + 2, W - 8, 1, c[3]);
+    for (let x = X + 6, k = 0; x < X + W - 10; x += 7, k++) item(x, sy, k + sy);
+  }
+  // Posts and the nameboard, a gilt crest at its middle.
+  for (const x of [X + 1, X + W - 4]) { r.fill(x, Y - 44, 3, 54, DARKWOOD[2]); r.fill(x, Y - 44, 1, 54, DARKWOOD[0]); r.fill(x + 2, Y - 44, 1, 54, DARKWOOD[3]); drum(r, x + 1, Y - 45, 2, 1, 2, BRASS); }
+  r.fill(X, Y - 46, W, 9, DARKWOOD[2]); r.fill(X, Y - 46, W, 1, DARKWOOD[0]); r.fill(X, Y - 38, W, 1, DARKWOOD[4]);
+  r.fill(X + 3, Y - 44, W - 6, 5, c[0]); r.fill(X + 3, Y - 40, W - 6, 1, c[1]);
+  for (let x = X + 8; x < X + W - 8; x += 3) if (h2(x, 1, n) > 0.3) r.fill(x, Y - 43, 2, 2, c[3]);
+  for (let j = 0; j < 5; j++) r.fill(X + W / 2 - 5 + j, Y - 50 + j, 10 - 2 * j, 1, BRASS[j < 2 ? 1 : 2]);
+  r.fill(X + W / 2 - 6, Y - 47, 12, 1, BRASS[2]);
+  // The counter: a wooden top over a valance of cloth with a gold fringe.
+  box(r, X + 3, Y, W - 6, 5, 10, WOOD, cloth);
+  for (let x = X + 3; x < X + W - 3; x++) { r.set(x, Y + 7, (x & 1) ? BRASS[1] : BRASS[2]); if ((x - X) % 8 === 4) r.fill(x, Y + 6, 1, 9, cloth[3]); }
+  for (let x = X + 6, k = 0; x < X + W - 9; x += 8, k++) item(x, Y + 3, k + 3);
+  r.finish();
+  return { r, ox: X, oy: Y };
 }

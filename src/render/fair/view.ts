@@ -3,7 +3,7 @@ import { fairFind } from "../../content/fairs";
 import { FRONT, type FairLevel } from "../../world/fair";
 import { washAt } from "../lighting";
 import { PAD, paintFairGround } from "./ground";
-import { paintFairDecor, paintFairThing, type FairSprite } from "./things";
+import { flywheel, paintFairDecor, paintFairThing, type FairSprite } from "./things";
 
 export type FairFrame = { clock: number; time: number };
 /** The texture a frame of the fair's building sheet is in; "__DEFAULT" while it loads. */
@@ -25,6 +25,7 @@ export class FairView {
   private banner: Phaser.GameObjects.Text;
   private spray?: Phaser.GameObjects.Graphics;
   private jets: { x: number; y: number; w: number }[] = [];
+  private wheels: { x: number; y: number; r: number; g: Phaser.GameObjects.Graphics }[] = [];
   private born = 0;
   /** The painted world, margin included, in pixels. */
   readonly bounds: { x: number; y: number; w: number; h: number };
@@ -81,6 +82,11 @@ export class FairView {
     if (level.fountain) this.spray = scene.add.graphics().setDepth((level.fountain.y + level.fountain.h) * 16);
     if (!this.spray && this.jets.length) this.spray = scene.add.graphics().setDepth(this.jets[0].y + 40);
     if (this.spray) this.objects.push(this.spray);
+    for (const t of level.things) if (t.art === "engine" && (t.w ?? 1) >= 6) {
+      const f = flywheel(t.w!), g = scene.add.graphics().setDepth((t.y + t.h! - 1) * 16 + 14);
+      this.objects.push(g);
+      this.wheels.push({ x: t.x * 16 + f.x, y: t.y * 16 + f.y, r: f.r, g });
+    }
     this.shade = scene.add.rectangle(-800, -600, W + 1600, H + 1200, 0xffffff).setOrigin(0, 0).setDepth(3000).setBlendMode(Phaser.BlendModes.MULTIPLY);
     const font = { fontFamily: "Silkscreen, monospace", fontSize: "8px", color: "#fff2d8", stroke: "#10141c", strokeThickness: 3 };
     for (const e of level.exits) {
@@ -125,6 +131,17 @@ export class FairView {
     }
     // The fair was lit by electricity after dark: every lamp at once.
     for (const g of this.glows) g.setAlpha((indoor ? 0.15 : 0.7 * wash.lamps) * (0.94 + 0.06 * Math.sin(t * 3 + g.x)));
+    // The great engine's flywheel turns, slowly.
+    for (const wh of this.wheels) {
+      const g = wh.g.clear();
+      for (let k = 0; k < 8; k++) {
+        const a = t * 0.9 + (k * Math.PI) / 4, c = Math.cos(a), sn = Math.sin(a);
+        for (let d = 7; d < wh.r - 5; d++) {
+          g.fillStyle(c * 0.7 - sn > 0 ? 0x5a6478 : 0x30384a).fillRect(Math.round(wh.x + c * d) - 1, Math.round(wh.y + sn * d) - 1, 3, 3);
+        }
+      }
+      g.fillStyle(0x1a1e28).fillCircle(wh.x, wh.y, 6).fillStyle(0xf0c860).fillRect(wh.x - 2, wh.y - 2, 4, 4);
+    }
     const fo = this.level.fountain;
     this.spray?.clear();
     for (const j of this.jets) {
