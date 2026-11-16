@@ -68,11 +68,13 @@ They exist so old records replay. **Nobody's saves depend on them yet.** Do not 
 
 ## Complexes
 
-Caves, sewers and mines are complexes: areas generated from the seed one at a time and walked between.
+Caves, sewers, mines and world's fairs are complexes: areas generated from the seed one at a time and walked between.
 
-- `world/complex.ts` holds the shape every area shares.
-- `core/complex.ts` holds the one run (`state.complex`), the record of each complex (`state.complexes`), the host and the dispatcher the engine calls. `core/cave.ts` and `core/sewer.ts` are the kinds.
-- `render/lamplight.ts` lights each kind's view and draws its lamp gauge.
+- `world/complex.ts` holds the shape every area shares, including exits: edge strips and doorways that take the player to the matching exit of another area (`exitAt`, `arrivalFrom`).
+- `core/complex.ts` holds the one run (`state.complex`), the record of each complex (`state.complexes`), the host and the dispatcher the engine calls. `core/cave.ts`, `core/sewer.ts` and `core/fair.ts` are the kinds.
+- `render/lamplight.ts` lights the underground kinds' views and draws their lamp gauge.
+
+A fair is authored as a plan of areas (`content/fairs/`): each area has an archetype (grounds, bridge, hall, pavilion, machines, platform) that `world/fair.ts` lays out, edge links, the buildings along its top whose doors lead to their interiors, lifts, fixed exhibits and tags that draw filler stands. The building fronts are `scripts/art/front_fair.py`, one painter per `PavilionStyle`, baked to the `fair` sheet (`npm run art:fair`); ground, exhibits and decor are painted in `render/fair/`. A prompt naming the fair starts the life at its gate (`below: "fair"`).
 
 A new kind of large interior plugs in at those three places. Do not start a parallel system for it.
 

@@ -189,14 +189,15 @@ const VESSELS: readonly (readonly [RegExp, string, string, number, string, strin
 ];
 const vesselOf = (q: string) => VESSELS.find(([words]) => words.test(q));
 
-export function belowFromPrompt(q: string): "cave" | "sewer" | "mine" | "ship" | undefined {
+export function belowFromPrompt(q: string): "cave" | "sewer" | "mine" | "ship" | "fair" | undefined {
+  if (/\bworld'?s fair\b|\bexposition\b|\beiffel tower\b/.test(q)) return "fair";
   if (SHIP_WORDS.test(q) || vesselOf(q)) return "ship";
   if (/\bsewers?\b|\bsewerm[ae]n\b|\btoshers?\b|\bflushers?\b/.test(q)) return "sewer";
   if (/\b(?:a|the|gold|silver|coal|salt|tin|copper|iron|lead|mercury|emerald|diamond)\s+mines?\b|\bminers?\b|\bmining\b|\bcollier(?:y|ies|s)?\b|\bpit ?(?:m[ae]n|boys?|lads?|pon(?:y|ies)|brow)\b|\bhewers?\b|\bcoal ?face\b|\bdown the pit\b/.test(q)) return "mine";
   if (/\bcave(?:s|m[ae]n|wom[ae]n|dwellers?)?\b|\bcave (?:m[ae]n|wom[ae]n|dwellers?|people)\b|\bcaverns?\b|\bgrottos?\b/.test(q)) return "cave";
 }
 /** Where an underground start goes when the prompt names no place or date. */
-const BELOW_PLACES = { cave: ["magdalenian"], sewer: ["london", 1880], mine: ["city-cardiff", 1880], ship: ["london", 1790] } as const;
+const BELOW_PLACES = { cave: ["magdalenian"], sewer: ["london", 1880], mine: ["city-cardiff", 1880], ship: ["london", 1790], fair: ["paris", 1889] } as const;
 /** The home waters of the ship a prompt names. */
 const shipPlace = (q: string): readonly [string, number] =>
   vesselOf(q) ? [vesselOf(q)![2], vesselOf(q)![3]] : /\bjunks?\b/.test(q) ? ["city-guangzhou", 1760] : /\b(?:dhows?|nakhoda)\b/.test(q) ? ["city-muscat", 1850] : /\bgalleons?\b/.test(q) ? ["city-lisbon", 1600]
@@ -257,7 +258,8 @@ export function resolveSetting(
     const [id, year] = below === "ship" ? shipPlace(q) : BELOW_PLACES[below];
     const found = places.find((p) => p.id === id);
     if (found) place = year && undated ? { ...found, year } : found;
-  } else if (place && below && below !== "cave" && below !== "ship" && undated) place = { ...place, year: Math.max(place.year, 1880) };
+  } else if (place && below === "fair" && undated) place = { ...place, year: 1889 };
+  else if (place && below && below !== "cave" && below !== "ship" && undated) place = { ...place, year: Math.max(place.year, 1880) };
   else if (place && undated && vesselOf(q)) place = { ...place, year: vesselOf(q)![3] };
   if (!place) {
     const period = periods.find(([words]) => words.some((w) => has(q, w)));
@@ -302,7 +304,7 @@ export function resolveSetting(
     ]).sort((a, b) => b.length - a.length).find((label) => has(q, label));
     const coal = /\bcoal\b|\bcollier|\bpit\b/.test(q);
     const underRole = below === "mine" ? (coal ? "Coal miner" : "Miner") : below === "sewer" ? (/\btosher/.test(q) ? "Tosher" : "Sewer flusher") : below === "cave" ? (s.year < -8000 ? "Hunter" : "Hermit")
-      : below === "ship" ? vesselOf(q)?.[4] ?? (/\bstokers?\b/.test(q) ? "Stoker" : /\b(?:passengers?|emigrants?|steerage|pilgrims?)\b/.test(q) ? "Passenger" : "Sailor") : undefined;
+      : below === "ship" ? vesselOf(q)?.[4] ?? (/\bstokers?\b/.test(q) ? "Stoker" : /\b(?:passengers?|emigrants?|steerage|pilgrims?)\b/.test(q) ? "Passenger" : "Sailor") : below === "fair" ? "Visitor" : undefined;
     s.role = namedRole ?? roles.find(([pattern]) => pattern.test(q))?.[1] ?? underRole ?? "Traveler";
     if (below) {
       s.below = below;

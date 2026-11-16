@@ -203,7 +203,7 @@ export function folkDeal(h: FolkHost, id: string) {
   if (deal.wage && h.coined()) add("coin", deal.wage), got.push(`${deal.wage} coin${deal.wage === 1 ? "" : "s"} for the work`);
   if (deal.heal) p.health = Math.min(100, (p.health ?? 100) + deal.heal);
   const run = h.state.complex;
-  if (deal.fuel && run && run.left > 0) run.left = Math.min(caveLight(run.light).burns * 1.5, run.left + deal.fuel);
+  if (deal.fuel && run && "left" in run && run.left > 0) run.left = Math.min(caveLight(run.light).burns * 1.5, run.left + deal.fuel);
   const line = `${parts.join(" ")} ${deal.text}${got.length ? ` You come away with ${got.join(" and ")}.` : ""}`.trim();
   h.event(line, "social", a.pos);
   if (deal.risk && random(seed, "folk-risk", a.id, h.state.clock) < deal.risk[2]) h.hurt(deal.risk[0], deal.risk[1]);

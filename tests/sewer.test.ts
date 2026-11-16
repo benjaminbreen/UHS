@@ -19,6 +19,9 @@ import { hulls, shipPeople } from "../src/content/ships";
 import { DECK, shipLevel, shipSolid } from "../src/world/ship";
 import { belowFromPrompt, resolveSetting } from "../src/content/geography/resolve";
 import { createSettingSession } from "../src/runtime/session";
+import { paris1889 } from "../src/content/fairs/paris-1889";
+import { fairLevel, fairWalkable } from "../src/world/fair";
+import { arrivalFrom } from "../src/world/complex";
 
 const site = (id: string, place: SewerSite["place"]): SewerSite => {
   const kind = sewerKindFor(place);
@@ -305,5 +308,29 @@ describe("ships", () => {
     expect(e.state.player.pos).toEqual({ ...shore, space: "outside" });
     expect(e.state.voyage).toBeUndefined();
     expect(e.state.actors.some((a) => a.underground)).toBe(false);
+  });
+});
+
+describe("fairs", () => {
+  it("joins every area of the 1889 fair both ways, and lands each arrival on open ground", () => {
+    for (const a of paris1889.areas) {
+      const L = fairLevel("seed", paris1889, a.id)!;
+      for (const e of L.exits.filter((e) => e.to !== "outside")) {
+        const B = fairLevel("seed", paris1889, e.to.split(":")[2]);
+        const at = B && arrivalFrom(B, L.space);
+        expect(at, `${a.id} -> ${e.to}`).toBeDefined();
+        expect(fairWalkable(B!.cells[at!.y * B!.w + at!.x]), `${a.id} -> ${e.to}`).toBe(true);
+      }
+      for (const l of L.lifts) expect(fairLevel("seed", paris1889, l.to.split(":")[2])!.lifts.some((m) => m.to === L.space), a.id).toBe(true);
+    }
+  });
+
+  it("starts a prompt at the fair's gate", () => {
+    const r = resolveSetting("A visitor at the Paris Exposition, 1889");
+    if (!("setting" in r)) throw new Error(r.error);
+    expect(r.setting.below).toBe("fair");
+    const e = createSettingSession(r.setting, "fair");
+    expect(e.state.player.pos.space).toBe("fair:paris-1889:trocadero");
+    expect(e.fairOf("fair:paris-1889:trocadero")?.buildings.length).toBeGreaterThan(0);
   });
 });

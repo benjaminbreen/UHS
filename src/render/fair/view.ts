@@ -1,0 +1,143 @@
+import Phaser from "phaser";
+import { fairFind } from "../../content/fairs";
+import { FRONT, type FairLevel } from "../../world/fair";
+import { washAt } from "../lighting";
+import { paintFairGround } from "./ground";
+import { paintFairDecor, paintFairThing, type FairSprite } from "./things";
+
+export type FairFrame = { clock: number; time: number };
+/** The texture a frame of the fair's building sheet is in; "__DEFAULT" while it loads. */
+export type SheetOf = (frame: string) => string;
+
+/** Matches `M` in scripts/art/front_fair.py: the frame starts this far left of the footprint. */
+const MARGIN = 12;
+const LEGS = [[6, 4, false], [41, 4, true], [6, 26, false], [41, 26, true]] as const;
+
+/** One area of a fair on screen: the ground, the buildings along the top, the
+ * exhibits and trees, a fountain playing, and the day's light. */
+export class FairView {
+  readonly space: string;
+  private keys: string[] = [];
+  private objects: Phaser.GameObjects.GameObject[] = [];
+  private pending: { frame: string; x: number; y: number; depth: number; flip: boolean }[] = [];
+  private glows: Phaser.GameObjects.Image[] = [];
+  private shade: Phaser.GameObjects.Rectangle;
+  private banner: Phaser.GameObjects.Text;
+  private spray?: Phaser.GameObjects.Graphics;
+  private born = 0;
+
+  constructor(private scene: Phaser.Scene, readonly level: FairLevel, private sheet: SheetOf) {
+    this.space = level.space;
+    const W = level.w * 16, H = level.h * 16, seed = level.space.length * 131 + level.w;
+    halo(scene);
+    const tex = (key: string, canvas: HTMLCanvasElement) => {
+      const k = `fair-${level.space}-${key}`;
+      if (scene.textures.exists(k)) scene.textures.remove(k);
+      scene.textures.addCanvas(k, canvas);
+      this.keys.push(k);
+      return k;
+    };
+    const outdoor = level.kind === "grounds" || level.kind === "bridge";
+    this.objects.push(scene.add.rectangle(-800, -600, W + 1600, H + 1200, outdoor ? 0x41692c : level.kind === "platform" ? 0x9ab0c4 : 0x2a2226).setOrigin(0, 0).setDepth(-99993));
+    this.objects.push(scene.add.image(0, 0, tex("ground", paintFairGround(level, seed).canvas())).setOrigin(0, 0).setDepth(-99990));
+    const put = (s: FairSprite, x: number, y: number, key: string, depth: number) => {
+      this.objects.push(scene.add.image(x * 16 - s.ox, y * 16 - s.oy, tex(key, s.r.canvas())).setOrigin(0, 0).setDepth(depth));
+      for (const g of s.glow ?? []) this.glow(x * 16 - s.ox + g.x, y * 16 - s.oy + g.y);
+    };
+    for (const t of level.things) {
+      const f = fairFind(t.find), s = f && paintFairThing(t.art, t.w ?? 1, t.h ?? 1, (t.x * 7 + t.y) % 10 / 10, f.tint);
+      if (s) put(s, t.x, t.y, t.id, t.wall ? -99980 : (t.y + (t.h ?? 1) - 1) * 16 + 13);
+    }
+    level.decor.forEach((d, i) => {
+      const s = paintFairDecor(d.type, d.v);
+      if (s) put(s, d.x, d.y, `decor-${i}`, d.y * 16 + 13);
+    });
+    const lift = paintFairThing("lift", 1, 1, 0);
+    level.lifts.forEach((l, i) => lift && put(lift, l.x, l.y, `lift-${i}`, l.y * 16 + 13));
+    for (const b of level.buildings) this.pending.push({ frame: `fair-${b.id}`, x: b.x * 16 - MARGIN, y: (FRONT + 1) * 16, depth: FRONT * 16 + 14, flip: false });
+    if (level.tower) for (const [x, y, flip] of LEGS) this.pending.push({ frame: "fair-tower-leg", x: x * 16 - MARGIN, y: (y + 8) * 16, depth: (y + 7) * 16 + 14, flip });
+    if (level.fountain) this.spray = scene.add.graphics().setDepth((level.fountain.y + level.fountain.h) * 16);
+    if (this.spray) this.objects.push(this.spray);
+    this.shade = scene.add.rectangle(-800, -600, W + 1600, H + 1200, 0xffffff).setOrigin(0, 0).setDepth(3000).setBlendMode(Phaser.BlendModes.MULTIPLY);
+    const font = { fontFamily: "Silkscreen, monospace", fontSize: "8px", color: "#fff2d8", stroke: "#10141c", strokeThickness: 3 };
+    for (const e of level.exits) {
+      if (!e.name) continue;
+      const x = (e.x + e.w / 2) * 16, y = (e.y + e.h / 2) * 16;
+      const into = e.w === 1 && e.h === 1;
+      const label = scene.add.text(x, into ? y + 22 : e.y === 0 ? y + 14 : e.y === level.h - 1 ? y - 6 : y, into ? e.name : `${e.x === 0 ? "◂ " : ""}${e.name}${e.x === level.w - 1 ? " ▸" : ""}`, font)
+        .setOrigin(e.x === 0 && e.w === 1 && !into ? 0 : e.x === level.w - 1 && !into ? 1 : 0.5, 0.5).setDepth(1e6).setAlpha(0.85);
+      this.objects.push(label);
+    }
+    this.banner = scene.add.text(0, 0, level.name[0].toUpperCase() + level.name.slice(1), { ...font, fontSize: "16px", strokeThickness: 4 }).setDepth(1e7).setOrigin(0.5, 0.5).setAlpha(0);
+    this.objects.push(this.shade, this.banner);
+    this.place();
+  }
+
+  /** Buildings come from a sheet that may still be loading. */
+  private place() {
+    this.pending = this.pending.filter((p) => {
+      const key = this.sheet(p.frame);
+      if (key === "__DEFAULT") return true;
+      if (!this.scene.textures.get(key).has(p.frame)) return false;
+      this.objects.push(this.scene.add.image(p.x, p.y, key, p.frame).setOrigin(0, 1).setDepth(p.depth).setFlipX(p.flip));
+      return false;
+    });
+  }
+
+  private glow(x: number, y: number) {
+    const im = this.scene.add.image(x, y, "fair-halo").setBlendMode(Phaser.BlendModes.ADD).setDepth(3001).setTint(0xffd890).setAlpha(0);
+    this.glows.push(im);
+    this.objects.push(im);
+  }
+
+  update(f: FairFrame) {
+    if (this.pending.length) this.place();
+    if (!this.born) this.born = f.time;
+    const t = f.time / 1000, wash = washAt(f.clock);
+    const indoor = this.level.kind === "hall" || this.level.kind === "pavilion" || this.level.kind === "machines";
+    if (indoor) this.shade.setFillStyle(0xf2e8dc);
+    else {
+      const c = Phaser.Display.Color.IntegerToColor(wash.color), a = wash.alpha;
+      this.shade.setFillStyle(Phaser.Display.Color.GetColor(255 - (255 - c.red) * a, 255 - (255 - c.green) * a, 255 - (255 - c.blue) * a));
+    }
+    // The fair was lit by electricity after dark: every lamp at once.
+    for (const g of this.glows) g.setAlpha((indoor ? 0.15 : 0.7 * wash.lamps) * (0.94 + 0.06 * Math.sin(t * 3 + g.x)));
+    const fo = this.level.fountain;
+    if (fo && this.spray) {
+      const g = this.spray.clear(), cx = (fo.x + fo.w / 2) * 16, cy = (fo.y + fo.h / 2) * 16;
+      const jets = fo.kind === "coutan" ? 9 : 3;
+      for (let j = 0; j < jets; j++) {
+        const ang = (j / jets) * Math.PI * 2, rx = fo.kind === "coutan" ? fo.w * 5 : 0, ry = fo.kind === "coutan" ? fo.h * 4 : 0;
+        const x0 = cx + Math.cos(ang) * rx, y0 = cy + Math.sin(ang) * ry, tall = fo.kind === "coutan" && j === 0 ? 0 : 18;
+        for (let k = 0; k < 14; k++) {
+          const p = ((t * 0.9 + k / 14 + j * 0.37) % 1);
+          const x = x0 + (cx - x0) * p * 0.5, y = y0 - Math.sin(p * Math.PI) * (tall + 12);
+          g.fillStyle(0xeaf6ff, 0.85 - p * 0.4).fillRect(Math.round(x), Math.round(y), 2, 2);
+        }
+      }
+      if (fo.kind === "coutan") for (let k = 0; k < 24; k++) {
+        const p = (t * 0.7 + k / 24) % 1, a = (k / 24) * Math.PI * 2;
+        g.fillStyle(0xffffff, 0.9 - p * 0.6).fillRect(Math.round(cx + Math.cos(a) * p * 18), Math.round(cy - 40 + p * p * 40 + Math.sin(a) * p * 6), 2, 2);
+      }
+    }
+    const cam = this.scene.cameras.main, v = cam.worldView, age = f.time - this.born;
+    this.banner.setPosition(v.centerX, v.y + v.height * 0.2).setAlpha(age < 500 ? age / 500 : age < 2400 ? 1 : Math.max(0, 1 - (age - 2400) / 800));
+  }
+
+  destroy() {
+    for (const o of this.objects) o.destroy();
+    for (const k of this.keys) if (this.scene.textures.exists(k)) this.scene.textures.remove(k);
+  }
+}
+
+function halo(scene: Phaser.Scene) {
+  if (scene.textures.exists("fair-halo")) return;
+  const t = scene.textures.createCanvas("fair-halo", 48, 48)!;
+  const gr = t.context.createRadialGradient(24, 24, 0, 24, 24, 24);
+  gr.addColorStop(0, "rgba(255,255,255,0.7)");
+  gr.addColorStop(0.35, "rgba(255,255,255,0.25)");
+  gr.addColorStop(1, "rgba(255,255,255,0)");
+  t.context.fillStyle = gr;
+  t.context.fillRect(0, 0, 48, 48);
+  t.refresh();
+}

@@ -1,13 +1,15 @@
 import type { Area, AreaThing } from "../world/complex";
 import type { CaveLevel, CaveSite } from "../world/cave";
+import type { FairLevel } from "../world/fair";
 import type { SewerLevel, SewerSite } from "../world/sewer";
+import { fairAct, fairGround, fairInspect, fairLevelOf, fairTime, fairVerb, type FairRun } from "./fair";
 import { caveAct, caveGround, caveInspect, caveLevelOf, caveTime, caveVerb, type CaveRun } from "./cave";
 import { sewerAct, sewerGround, sewerInspect, sewerLevelOf, sewerTime, sewerVerb, type SewerRun } from "./sewer";
-import type { FolkHost } from "./tunnel-folk";
+import { folkDeal, type FolkHost } from "./tunnel-folk";
 import type { GameEvent, Snapshot as GameState, Position, Point, WorldModel } from "./types";
 
 /** The trip through a complex the player is on. */
-export type ComplexRun = CaveRun | SewerRun;
+export type ComplexRun = CaveRun | SewerRun | FairRun;
 /** What a complex remembers between visits: how far in, what was taken, what was killed. */
 export type ComplexRecord = { deepest: number; done: string[]; slain: string[] };
 
@@ -31,6 +33,7 @@ export type ComplexHost = {
   caveLevels: Map<string, { level: CaveLevel; solid: Set<number> }>;
   sewerSites: Map<string, SewerSite>;
   sewerLevels: Map<string, { level: SewerLevel; solid: Set<number> }>;
+  fairLevels: Map<string, { level: FairLevel; solid: Set<number> }>;
 };
 
 /** A complex's record, by its kind and site: "cave:12,-4". */
@@ -73,34 +76,39 @@ export function takeFind(h: ComplexHost, run: ComplexRun, c: { level: Area; soli
 
 const isCave = (space: string) => space.startsWith("cave:");
 const isTunnel = (space: string) => space.startsWith("sewer:") || space.startsWith("mine:");
+const isFair = (space: string) => space.startsWith("fair:");
 
 /** The area a space is, in whichever complex. */
 export function complexArea(h: ComplexHost, space: string): Area | undefined {
-  return isCave(space) ? caveLevelOf(h, space)?.level : isTunnel(space) ? sewerLevelOf(h, space)?.level : undefined;
+  return isCave(space) ? caveLevelOf(h, space)?.level : isTunnel(space) ? sewerLevelOf(h, space)?.level : isFair(space) ? fairLevelOf(h, space)?.level : undefined;
 }
 
 /** Whether a cell of a complex's area is closed to feet; undefined when the space is not one. */
 export function complexGround(h: ComplexHost, space: string, x: number, y: number) {
-  return isCave(space) ? caveGround(h, space, x, y) : isTunnel(space) ? sewerGround(h, space, x, y) : undefined;
+  return isCave(space) ? caveGround(h, space, x, y) : isTunnel(space) ? sewerGround(h, space, x, y) : isFair(space) ? fairGround(h, space, x, y) : undefined;
 }
 
 /** What the action key does at a way in, or beside something inside. */
 export function complexVerb(h: ComplexHost) {
   const run = h.state.complex, outside = h.state.player.pos.space === "outside";
+  if (run?.kind === "fair") return fairVerb(h);
   return (outside || run?.kind === "cave" ? caveVerb(h) : undefined) ?? (outside || (run && run.kind !== "cave") ? sewerVerb(h) : undefined);
 }
 
 export function complexInspect(h: ComplexHost, id: string) {
-  return id.startsWith("cave-") ? caveInspect(h, id) : id.startsWith("sewer-") ? sewerInspect(h, id) : undefined;
+  return id.startsWith("cave-") ? caveInspect(h, id) : id.startsWith("sewer-") ? sewerInspect(h, id) : id.startsWith("fair-") ? fairInspect(h, id) : undefined;
 }
 
 export function complexAct(h: ComplexHost, id: string) {
+  if (id.startsWith("fair-")) return fairAct(h, id);
+  if (id.startsWith("folk-") && h.state.complex?.kind === "fair") return void folkDeal(h.folk, id);
   const cave = id.startsWith("cave-") || (id.startsWith("folk-") && h.state.complex?.kind === "cave");
   return cave ? caveAct(h, id) : sewerAct(h, id);
 }
 
 export function complexTime(h: ComplexHost, elapsed: number) {
   const run = h.state.complex;
-  if (run?.kind === "cave") caveTime(h, elapsed);
+  if (run?.kind === "fair") fairTime(h);
+  else if (run?.kind === "cave") caveTime(h, elapsed);
   else if (run) sewerTime(h, elapsed);
 }

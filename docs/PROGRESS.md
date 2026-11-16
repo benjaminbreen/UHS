@@ -25,6 +25,13 @@ The owner keeps this list.
 
 ## Recent milestones
 
+- November 16: the 1889 Exposition Universelle, the first world's fair. A
+  prompt naming the fair or the Eiffel Tower starts at the Trocadéro gate:
+  47 areas from the Champ de Mars to the colonial villages, pavilion
+  interiors, the Tower's lifts and platforms, and exhibits to see or buy
+  (`src/content/fairs/`, `src/world/fair.ts`, `src/core/fair.ts`,
+  `src/render/fair/`, `scripts/art/front_fair.py`). The street outside
+  has no gate into it yet.
 - November 14: lives at sea. About 1.5% of random starts, or a prompt such as
   "a pilgrim on a dhow", begin aboard a square-rigger, junk, dhow or steamer
   (`src/content/ships/`, `src/world/ship.ts`, `src/core/ship.ts`,

@@ -11,6 +11,7 @@
     "art:fauna-b": ".venv/bin/python scripts/build_fauna_b.py",
     "art:fauna-c": ".venv/bin/python scripts/build_fauna_c.py",
     "art:props": ".venv/bin/python scripts/build_props.py",
+    "art:fair": ".venv/bin/python scripts/art/front_fair.py --bake",
     "art:gold": ".venv/bin/python scripts/art/gold_master_sheet.py artifacts/gold-masters.png",
     "art:prehistoric": ".venv/bin/python scripts/art/prehistoric_expansion_sheet.py artifacts/prehistoric-expansion.png",
     "art:regional-houses": ".venv/bin/python scripts/art/regional_house_sheet.py artifacts/roman-west-asian-houses.png",

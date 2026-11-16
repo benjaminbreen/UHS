@@ -39,7 +39,7 @@ export type SewerRun = {
 };
 
 /** The tunnel run in progress, if the player is down a sewer or a mine. */
-export const tunnelRun = (s: GameState) => (s.complex && s.complex.kind !== "cave" ? s.complex : undefined);
+export const tunnelRun = (s: GameState) => (s.complex && s.complex.kind !== "cave" && s.complex.kind !== "fair" ? s.complex : undefined);
 /** What has been taken on this level's network. */
 const doneOn = (state: GameState, level: { network: TunnelNetwork; site: string }) => state.complexes?.[`${level.network}:${level.site}`]?.done;
 

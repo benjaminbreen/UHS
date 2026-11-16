@@ -10,7 +10,7 @@ const WHITE = ["#ffffff", "#ecebe4", "#cfcdc4", "#a09e96", "#6c6a64"];
 const CLAY = ["#d88a5a", "#b86a40", "#8e4e30", "#643624", "#40221a"];
 
 /** A box seen square on with its top from above: top face, front face, edges lit and rolled. */
-function box(R: Raster, x: number, y: number, w: number, d: number, hgt: number, top: readonly string[], front: readonly string[]) {
+export function box(R: Raster, x: number, y: number, w: number, d: number, hgt: number, top: readonly string[], front: readonly string[]) {
   R.fill(x, y, w, d, top[1]);
   R.fill(x, y, w, 1, top[0]);
   R.fill(x, y, 1, d, top[0]);
@@ -22,7 +22,7 @@ function box(R: Raster, x: number, y: number, w: number, d: number, hgt: number,
 }
 
 /** An upright cylinder on an ellipse, lit from the upper left by its normal. */
-function drum(R: Raster, cx: number, foot: number, rx: number, ry: number, hgt: number, ramp: readonly string[], lid?: readonly string[]) {
+export function drum(R: Raster, cx: number, foot: number, rx: number, ry: number, hgt: number, ramp: readonly string[], lid?: readonly string[]) {
   for (let y = foot - hgt - ry; y <= foot + ry; y++) for (let x = cx - rx; x <= cx + rx; x++) {
     const nx = (x - cx) / rx;
     if (Math.abs(nx) > 1) continue;

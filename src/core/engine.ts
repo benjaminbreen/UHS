@@ -78,6 +78,8 @@ import { orderKeeper, type Penalty } from "../content/history/order";
 import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
 import { caveAct, caveBeastAt, caveMouthsNear, caveLevelOf, caveStrike } from "./cave";
+import { fairEnter, fairLevelOf } from "./fair";
+import { fairAt } from "../content/fairs";
 import { complexAct, complexGround, complexInspect, complexTime, complexVerb, type ComplexHost } from "./complex";
 import { folkOffer, type FolkHost } from "./tunnel-folk";
 import { shipAct, shipGround, shipInspect, shipLevelOf, shipStart, shipTime, shipVerb, voyageLook, type ShipHost } from "./ship";
@@ -2238,6 +2240,7 @@ export class Engine {
     caveLevels: new Map(),
     sewerSites: new Map(),
     sewerLevels: new Map(),
+    fairLevels: new Map(),
   };
   private get complex() {
     this.complexHost.state = this.state;
@@ -2307,11 +2310,16 @@ export class Engine {
     }
     p.activity = m.doing;
   }
-  startBelow(where: "cave" | "sewer" | "mine" | "ship") {
+  startBelow(where: "cave" | "sewer" | "mine" | "ship" | "fair") {
     const p = this.state.player.pos, d = (q: Point) => Math.hypot(q.x - p.x, q.y - p.y);
     if (where === "ship") return void shipStart(this.ships);
     // The life begins already down there: the climb takes none of the day.
     const host = { ...this.complex, advance() {} };
+    if (where === "fair") {
+      const s = this.world.pack.setting, fair = s && fairAt(s.lon, s.lat, s.year);
+      if (fair) fairEnter(host, fair, true);
+      return;
+    }
     if (where === "mine") {
       const b = this.world.places.filter((b) => b.institution === "mine").sort((a, b) => d(doorApproach(a)) - d(doorApproach(b)))[0];
       if (b) mineEnter(host, b);
@@ -2339,6 +2347,13 @@ export class Engine {
   /** The cave level a space is, if it is one. */
   caveOf(space: string) {
     return space.startsWith("cave:") ? caveLevelOf(this.complex, space)?.level : undefined;
+  }
+  /** The area of a fair a space is, if it is one. */
+  fairOf(space: string) {
+    return space.startsWith("fair:") ? fairLevelOf(this.complex, space)?.level : undefined;
+  }
+  fairSolid(space: string): ReadonlySet<number> {
+    return fairLevelOf(this.complex, space)?.solid ?? new Set();
   }
   private interiors = new Map<string, InteriorLayout | null>();
   private wallIndex?: {
@@ -6475,7 +6490,7 @@ export class Engine {
     return [...rows.values()].slice(0, limit);
   }
   inspect(id: string): Inspection | undefined {
-    if (id.startsWith("cave-") || id.startsWith("sewer-")) return complexInspect(this.complex, id);
+    if (id.startsWith("cave-") || id.startsWith("sewer-") || id.startsWith("fair-")) return complexInspect(this.complex, id);
     if (id.startsWith("ship-")) return shipInspect(this.ships, id);
     const coordinates = /^decor-(-?\d+)-(-?\d+)$/.exec(id);
     if (coordinates) {
