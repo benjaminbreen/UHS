@@ -302,8 +302,11 @@ export function composeUrban(
     { spec: core, rect: coreRect, shape: coreRect, core: true },
   ];
   const order = [0, 1, 2, 3].sort((a, b) => rand("side", a) - rand("side", b));
+  // A city of cars or of street walls is built out on every side, corners
+  // and all; an older town grows an extension or two where its fabric says.
+  const allRound = (form.motor || form.streetWall) && !single;
   const extensions =
-    form.motor && !single
+    allRound
       ? [0, 1, 2, 3].map((i) => specs[Math.min(i + 1, specs.length - 1)])
       : specs.slice(1, 5);
   extensions.forEach((spec, i) => {
@@ -330,7 +333,7 @@ export function composeUrban(
       : { ...rect, y: s.ny > 0 ? center.y : rect.y, h: reach + coreB + 1 };
     districts.push({ spec, core: false, rect, shape });
   });
-  if (form.motor && !single) {
+  if (allRound) {
     const spec = specs[specs.length - 1];
     for (const [sx, sy] of [
       [1, 1],

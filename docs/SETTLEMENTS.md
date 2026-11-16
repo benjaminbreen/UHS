@@ -151,6 +151,11 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
   the middle, and the town of a suburb map, has shops but no downtown.
 - A city of a million claims 184 cells of its map's 192 and is built out to
   150 cells at a million people, 180 from four (`urbanRadius`).
+  Its centre stays within 16 cells of the map's middle, so it does not run
+  off one side and leave the other empty. A city of street walls, like one
+  of cars, is laid out on all four sides of its core and in the corners
+  between (`allRound` in `blocks.ts`); an older town grows only the
+  extensions its fabric lists.
   The head count is the gazetteer's, scaled to the date. The curated
   anchors (London, Paris, Rome) carry none, so theirs comes from the series
   in `city-populations.ts`; an anchor with no row there at the date is built
