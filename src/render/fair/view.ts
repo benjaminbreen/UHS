@@ -2,7 +2,7 @@ import Phaser from "phaser";
 import { fairFind } from "../../content/fairs";
 import { FRONT, type FairLevel } from "../../world/fair";
 import { washAt } from "../lighting";
-import { paintFairGround } from "./ground";
+import { PAD, paintFairGround } from "./ground";
 import { paintFairDecor, paintFairThing, type FairSprite } from "./things";
 
 export type FairFrame = { clock: number; time: number };
@@ -24,7 +24,10 @@ export class FairView {
   private shade: Phaser.GameObjects.Rectangle;
   private banner: Phaser.GameObjects.Text;
   private spray?: Phaser.GameObjects.Graphics;
+  private jets: { x: number; y: number; w: number }[] = [];
   private born = 0;
+  /** The painted world, margin included, in pixels. */
+  readonly bounds: { x: number; y: number; w: number; h: number };
 
   constructor(private scene: Phaser.Scene, readonly level: FairLevel, private sheet: SheetOf) {
     this.space = level.space;
@@ -39,7 +42,8 @@ export class FairView {
     };
     const outdoor = level.kind === "grounds" || level.kind === "bridge";
     this.objects.push(scene.add.rectangle(-800, -600, W + 1600, H + 1200, outdoor ? 0x41692c : level.kind === "platform" ? 0x9ab0c4 : 0x2a2226).setOrigin(0, 0).setDepth(-99993));
-    this.objects.push(scene.add.image(0, 0, tex("ground", paintFairGround(level, seed).canvas())).setOrigin(0, 0).setDepth(-99990));
+    this.bounds = { x: -PAD.x * 16, y: -PAD.top * 16, w: W + PAD.x * 32, h: H + (PAD.top + PAD.bottom) * 16 };
+    this.objects.push(scene.add.image(this.bounds.x, this.bounds.y, tex("ground", paintFairGround(level, seed).canvas())).setOrigin(0, 0).setDepth(-99990));
     const put = (s: FairSprite, x: number, y: number, key: string, depth: number) => {
       this.objects.push(scene.add.image(x * 16 - s.ox, y * 16 - s.oy, tex(key, s.r.canvas())).setOrigin(0, 0).setDepth(depth));
       for (const g of s.glow ?? []) this.glow(x * 16 - s.ox + g.x, y * 16 - s.oy + g.y);
@@ -48,15 +52,34 @@ export class FairView {
       const f = fairFind(t.find), s = f && paintFairThing(t.art, t.w ?? 1, t.h ?? 1, (t.x * 7 + t.y) % 10 / 10, f.tint);
       if (s) put(s, t.x, t.y, t.id, t.wall ? -99980 : (t.y + (t.h ?? 1) - 1) * 16 + 13);
     }
-    level.decor.forEach((d, i) => {
+    const indoor = level.kind === "hall" || level.kind === "pavilion" || level.kind === "machines";
+    const decor = [...level.decor];
+    // Outside a pavilion: trees along the lawn round it, lamps either side of the steps.
+    if (indoor) {
+      const door = (level.w >> 1) - 1;
+      for (let x = -6; x < level.w + 6; x += 4) for (const y of [-1, level.h + 4]) if (x < -3 || x > level.w + 2 || y > level.h) if (Math.abs(x - door) > 4 || y < 0) decor.push({ type: "tree", x, y, solid: false, v: ((x * 7 + y * 3) & 15) / 16 });
+      for (let y = 2; y < level.h + 3; y += 4) for (const x of [-4, level.w + 3]) decor.push({ type: y % 8 === 2 ? "tree" : "shrub", x, y, solid: false, v: ((x + y * 5) & 15) / 16 });
+      for (const x of [door - 3, door + 4]) decor.push({ type: "lamp", x, y: level.h + 1, solid: false, v: 0 });
+      for (const x of [door - 3, door + 4]) decor.push({ type: "urn", x, y: level.h + 3, solid: false, v: x / 10 });
+    }
+    // Round open grounds: trees behind the pavilions and down the sides, on the turf the edge runs on into.
+    if (level.kind === "grounds") {
+      const turf = (x: number, y: number) => level.cells[Math.max(0, Math.min(level.h - 1, y)) * level.w + Math.max(0, Math.min(level.w - 1, x))] === 2;
+      for (let x = -7; x < level.w + 7; x += 3) for (const y of [-6, -2, level.h + 2, level.h + 5]) if (turf(x, y)) decor.push({ type: "tree", x: x + (y & 1), y, solid: false, v: ((x * 5 + y) & 15) / 16 });
+      for (let y = 0; y < level.h + 2; y += 3) for (const x of [-6, -3, level.w + 2, level.w + 5]) if (turf(x, y)) decor.push({ type: "tree", x, y: y + (x & 1), solid: false, v: ((x + y * 3) & 15) / 16 });
+    }
+    decor.forEach((d, i) => {
+      if (d.type === "jet") return void this.jets.push({ x: d.x * 16, y: d.y * 16, w: d.v * 16 });
       const s = paintFairDecor(d.type, d.v);
       if (s) put(s, d.x, d.y, `decor-${i}`, d.y * 16 + 13);
     });
     const lift = paintFairThing("lift", 1, 1, 0);
     level.lifts.forEach((l, i) => lift && put(lift, l.x, l.y, `lift-${i}`, l.y * 16 + 13));
     for (const b of level.buildings) this.pending.push({ frame: `fair-${b.id}`, x: b.x * 16 - MARGIN, y: (FRONT + 1) * 16, depth: FRONT * 16 + 14, flip: false });
-    if (level.tower) for (const [x, y, flip] of LEGS) this.pending.push({ frame: "fair-tower-leg", x: x * 16 - MARGIN, y: (y + 8) * 16, depth: (y + 7) * 16 + 14, flip });
+    // A right-hand foot is the left one mirrored: anchor it by its outer (right) edge.
+    if (level.tower) for (const [x, y, flip] of LEGS) this.pending.push({ frame: "fair-tower-leg", x: flip ? (x + 9) * 16 + MARGIN : x * 16 - MARGIN, y: (y + 8) * 16, depth: (y + 7) * 16 + 14, flip });
     if (level.fountain) this.spray = scene.add.graphics().setDepth((level.fountain.y + level.fountain.h) * 16);
+    if (!this.spray && this.jets.length) this.spray = scene.add.graphics().setDepth(this.jets[0].y + 40);
     if (this.spray) this.objects.push(this.spray);
     this.shade = scene.add.rectangle(-800, -600, W + 1600, H + 1200, 0xffffff).setOrigin(0, 0).setDepth(3000).setBlendMode(Phaser.BlendModes.MULTIPLY);
     const font = { fontFamily: "Silkscreen, monospace", fontSize: "8px", color: "#fff2d8", stroke: "#10141c", strokeThickness: 3 };
@@ -79,7 +102,7 @@ export class FairView {
       const key = this.sheet(p.frame);
       if (key === "__DEFAULT") return true;
       if (!this.scene.textures.get(key).has(p.frame)) return false;
-      this.objects.push(this.scene.add.image(p.x, p.y, key, p.frame).setOrigin(0, 1).setDepth(p.depth).setFlipX(p.flip));
+      this.objects.push(this.scene.add.image(p.x, p.y, key, p.frame).setOrigin(p.flip ? 1 : 0, 1).setDepth(p.depth).setFlipX(p.flip));
       return false;
     });
   }
@@ -103,8 +126,17 @@ export class FairView {
     // The fair was lit by electricity after dark: every lamp at once.
     for (const g of this.glows) g.setAlpha((indoor ? 0.15 : 0.7 * wash.lamps) * (0.94 + 0.06 * Math.sin(t * 3 + g.x)));
     const fo = this.level.fountain;
+    this.spray?.clear();
+    for (const j of this.jets) {
+      const g = this.spray!, cx = j.x + j.w / 2, cy = j.y + 16;
+      for (let k = 0; k < 18; k++) {
+        const p = (t * 0.8 + k / 18) % 1, a = (k * 2.4) % (Math.PI * 2);
+        g.fillStyle(0xf4fbff, 0.95 - p * 0.6).fillRect(Math.round(cx + Math.cos(a) * p * j.w * 0.3), Math.round(cy - 26 * Math.sin(p * Math.PI) + p * 6), p < 0.2 ? 1 : 2, 2);
+      }
+      g.fillStyle(0xffffff, 0.9).fillRect(Math.round(cx), cy - 24, 1, 22);
+    }
     if (fo && this.spray) {
-      const g = this.spray.clear(), cx = (fo.x + fo.w / 2) * 16, cy = (fo.y + fo.h / 2) * 16;
+      const g = this.spray, cx = (fo.x + fo.w / 2) * 16, cy = (fo.y + fo.h / 2) * 16;
       const jets = fo.kind === "coutan" ? 9 : 3;
       for (let j = 0; j < jets; j++) {
         const ang = (j / jets) * Math.PI * 2, rx = fo.kind === "coutan" ? fo.w * 5 : 0, ry = fo.kind === "coutan" ? fo.h * 4 : 0;

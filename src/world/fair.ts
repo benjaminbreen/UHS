@@ -3,7 +3,7 @@ import { pickWeighted as pick, rngOf } from "../core/random";
 import type { Point } from "../core/types";
 import { N4, type Area, type AreaDecor, type AreaExit, type AreaFolk, type AreaThing } from "./complex";
 
-export const WALL = 0, GRAVEL = 1, LAWN = 2, WATER = 3, PAVING = 4, BED = 5, FLOOR = 6, BUILDING = 7, BRIDGE = 8, HEDGE = 9, DECK = 10;
+export const WALL = 0, GRAVEL = 1, LAWN = 2, WATER = 3, PAVING = 4, BED = 5, FLOOR = 6, BUILDING = 7, BRIDGE = 8, HEDGE = 9, DECK = 10, BOX = 11, FENCE = 12;
 /** Feet can go here. */
 export const fairWalkable = (c: number) => c === GRAVEL || c === LAWN || c === PAVING || c === FLOOR || c === BRIDGE || c === DECK;
 
@@ -120,6 +120,8 @@ function grounds(L: FairLevel, plan: FairArea, rng: () => number, fill: Fill, se
     fill(0, 0, w - 1, h - 1, GRAVEL);
     for (const [x0, y0] of [[6, 4], [41, 4], [6, 26], [41, 26]]) fill(x0, y0, x0 + 8, y0 + 7, BUILDING);
     fill(17, 13, 38, 26, LAWN);
+    for (const [y0, y1] of [[1, 11], [28, h - 2]]) fill(17, y0, cx - 5, y1, LAWN), fill(cx + 4, y0, 38, y1, LAWN);
+    fill(1, 1, 4, h - 2, LAWN); fill(w - 5, 1, w - 2, h - 2, LAWN);
     fill(cx - 3, 0, cx + 2, h - 1, PAVING);
     fill(0, mid - 2, w - 1, mid + 2, PAVING);
   }
@@ -130,18 +132,6 @@ function grounds(L: FairLevel, plan: FairArea, rng: () => number, fill: Fill, se
     fill(fx, fy, fx + fw - 1, fy + fh - 1, WATER);
     L.fountain = { x: fx, y: fy, w: fw, h: fh, kind: plan.fountain };
   }
-  // Show beds in the lawns.
-  for (let y = FRONT + 7; y < h - 5; y += 7)
-    for (const x0 of [5, w - 11]) if (at(x0, y) === LAWN && at(x0 + 5, y + 2) === LAWN) {
-      fill(x0, y, x0 + 5, y + 2, BED);
-      L.decor.push({ type: "bed", x: x0, y, solid: false, v: rng() });
-    }
-  // Trees down the avenues, lamps at the crossings, benches on the walks.
-  if (!tower) {
-    for (let y = FRONT + 6; y < h - 3; y += 5) for (const x of [cx - 5, cx + 4]) if (at(x, y) === LAWN) L.decor.push({ type: "tree", x, y, solid: true, v: rng() });
-    for (const [x, y] of [[cx - 4, FRONT + 4], [cx + 3, FRONT + 4], [cx - 4, h - 4], [cx + 3, h - 4]]) if (fairWalkable(at(x, y))) L.decor.push({ type: "lamp", x, y, solid: true, v: rng() });
-    for (const x of [7, 20, w - 21, w - 8]) if (at(x, h - 3) === GRAVEL) L.decor.push({ type: "bench", x, y: h - 4, solid: true, v: rng() });
-  }
   for (const b of plan.buildings ?? []) {
     const y = FRONT - b.h + 1;
     fill(b.x, y, b.x + b.w - 1, FRONT, BUILDING);
@@ -149,6 +139,21 @@ function grounds(L: FairLevel, plan: FairArea, rng: () => number, fill: Fill, se
     set(door.x, door.y, GRAVEL);
     L.buildings.push({ ...b, y, door });
   }
+  gardens(L, rng, fill, set, at);
+  // Open turf left over gets a few trees, never next to a walk; the wood behind the pavilions is dense.
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) {
+    const c = at(x, y);
+    if (c === HEDGE && (x + (y % 3 ? 0 : 1) * 2) % 3 === 0 && y % 2 === 1) L.decor.push({ type: "tree", x, y, solid: true, v: rng() });
+    if (c !== LAWN || (x * 3 + y * 5) % 7 !== 0) continue;
+    let open = true;
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (at(x + i, y + j) !== LAWN) open = false;
+    if (open && !L.decor.some((d) => Math.abs(d.x - x) < 3 && Math.abs(d.y - y) < 3)) L.decor.push({ type: rng() < 0.75 ? "tree" : "shrub", x, y, solid: true, v: rng() });
+  }
+  // Lamps down the avenue's edges.
+  const avenue = (x: number, y: number) => at(x, y) === PAVING && (at(x - 1, y) !== PAVING || at(x + 1, y) !== PAVING);
+  for (let y = FRONT + 2; y < h - 1; y += 6) for (const x of [cx - 3, cx + 2]) if (avenue(x, y)) L.decor.push({ type: "lamp", x, y, solid: true, v: rng() });
+  // Benches between the lamps, backs to the railings, facing across the walk.
+  for (let y = FRONT + 5; y < h - 2; y += 6) for (const x of [cx - 3, cx + 2]) if (avenue(x, y) && avenue(x, y + 1)) L.decor.push({ type: x < cx ? "bench-e" : "bench-w", x, y, solid: true, v: rng() });
   if (links.n) edge("n", space(links.n), areaName(links.n), [cx - 3, cx + 2]);
   if (links.s) edge("s", space(links.s), areaName(links.s), [cx - 3, cx + 2]);
   if (plan.gate === "s") edge("s", "outside", "the street", [cx - 3, cx + 2]);
@@ -200,16 +205,23 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
   };
   const indoor = plan.kind === "hall" || plan.kind === "pavilion" || plan.kind === "machines";
   const spots: Point[] = [];
-  if (indoor) for (let y = 6; y < h - 3; y += 4) for (let x = 3; x < w - 3; x += 5) spots.push({ x, y });
-  else if (plan.kind === "platform") for (let x = 4; x < w - 6; x += 6) for (const y of [3, h - 6]) spots.push({ x, y });
-  else for (let y = FRONT + 5; y < h - 3; y += 3) for (let x = 4; x < w - 4; x += 4) if (Math.abs(x - (w >> 1)) > 5 && L.cells[y * w + x] !== PAVING) spots.push({ x, y });
-  // Anchored exhibits nearest the middle, filler further out.
-  const cx = w >> 1, cy = indoor ? h >> 1 : FRONT + 10;
-  spots.sort((a, b) => Math.hypot(a.x - cx, a.y - cy) - Math.hypot(b.x - cx, b.y - cy));
+  const cx = w >> 1;
+  // Indoors, bays either side of an aisle from the door to the back wall, filled from the back;
+  // outdoors, along the promenade in front of the buildings and the walk at the bottom.
+  if (indoor) {
+    for (let y = 0; y < h; y++) for (const x of [cx - 1, cx]) taken[y * w + x] = 1;
+    for (let y = 5; y < h - 3; y += 3) for (let x = 2; x < w - 2; x++) spots.push({ x, y });
+    const score = (p: Point) => Math.abs(p.x - cx + 0.5) + (p.y - 5) * 1.2;
+    spots.sort((a, b) => score(a) - score(b));
+  } else if (plan.kind === "platform") for (let x = 4; x < w - 6; x += 3) for (const y of [3, h - 6]) spots.push({ x, y });
+  else {
+    for (const y of [FRONT + 2, h - 2]) for (let x = 3; x < w - 3; x++) if (Math.abs(x - cx) > 4) spots.push({ x, y });
+    spots.sort((a, b) => Math.abs(a.x - cx) - Math.abs(b.x - cx) || a.y - b.y);
+  }
   const wallX: number[] = [];
   if (indoor) for (let x = 3; x < w - 4; x += 4) wallX.push(x);
   const place = (f: FairFind, n: number) => {
-    const fw = f.w ?? 1, fh = f.h ?? 1;
+    const [fw, fh] = footprint(f);
     if (f.on === "wall" && indoor) {
       const i = wallX.findIndex((x) => wallFree(x, fw));
       if (i < 0) return false;
@@ -220,7 +232,6 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
     }
     const spot = spots.find((s) => free(s.x, s.y, fw, fh + (f.art === "kiosk" ? 1 : 0)));
     if (!spot) return false;
-    spots.splice(spots.indexOf(spot), 1);
     for (let y = spot.y; y < spot.y + fh; y++) for (let x = spot.x; x < spot.x + fw; x++) taken[y * w + x] = 1;
     L.things.push(thing(L, f, n, spot.x, spot.y, false));
     return true;
@@ -258,7 +269,100 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
 }
 
 function thing(L: FairLevel, f: FairFind, n: number, x: number, y: number, wall: boolean): AreaThing {
-  return { id: `${L.area}-${n}`, find: f.id, x, y, wall, solid: !wall, art: f.art, name: f.name, loot: {}, w: f.w, h: f.h };
+  const [fw, fh] = footprint(f);
+  return { id: `${L.area}-${n}`, find: f.id, x, y, wall, solid: !wall, art: f.art, name: f.name, loot: {}, w: fw, h: fh };
+}
+
+/** Cells an exhibit takes when its find does not say: room-sized cases and machines. */
+const SIZES: Partial<Record<FairFind["art"], [number, number]>> = {
+  vitrine: [3, 1], counter: [3, 1], bales: [2, 1], barrels: [2, 1], sacks: [2, 1], ingots: [2, 1], engine: [3, 2], dynamo: [2, 2],
+  locomotive: [4, 2], piano: [2, 1], model: [2, 2], loom: [2, 1], press: [2, 1], pyramid: [2, 2], kiosk: [2, 2],
+  painting: [2, 1], tapestry: [2, 1], carpet: [2, 1], map: [2, 1], panel: [2, 1],
+};
+const footprint = (f: FairFind): [number, number] => [f.w ?? SIZES[f.art]?.[0] ?? 1, f.h ?? SIZES[f.art]?.[1] ?? 1];
+
+/** Each closed lawn of the grounds becomes a railed garden: a parterre round a
+ * basin, an oval walk round a long bed, or a single bed, with gaps in the
+ * railing where the walks come in. */
+function gardens(L: FairLevel, rng: () => number, fill: Fill, set: Set, at: (x: number, y: number) => number) {
+  const { w, h } = L, seen = new Uint8Array(w * h);
+  const shrub = (x: number, y: number) => L.decor.push({ type: "shrub", x, y, solid: true, v: rng() });
+  const tree = (x: number, y: number) => L.decor.push({ type: "tree", x, y, solid: true, v: rng() });
+  for (let sy = 0; sy < h; sy++) for (let sx = 0; sx < w; sx++) {
+    if (seen[sy * w + sx] || at(sx, sy) !== LAWN) continue;
+    const todo = [[sx, sy]];
+    let x0 = sx, x1 = sx, y0 = sy, y1 = sy, n = 0;
+    seen[sy * w + sx] = 1;
+    while (todo.length) {
+      const [x, y] = todo.pop()!;
+      n++;
+      x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+      for (const [dx, dy] of N4) {
+        const nx = x + dx, ny = y + dy;
+        if (at(nx, ny) === LAWN && !seen[ny * w + nx]) seen[ny * w + nx] = 1, todo.push([nx, ny]);
+      }
+    }
+    const bw = x1 - x0 + 1, bh = y1 - y0 + 1;
+    if (n !== bw * bh || bw < 5 || bh < 5 || x0 === 0 || y0 === 0 || x1 === w - 1 || y1 === h - 1) continue;
+    // The railing, open where a walk meets the middle of a side.
+    for (let x = x0; x <= x1; x++) set(x, y0, FENCE), set(x, y1, FENCE);
+    for (let y = y0; y <= y1; y++) set(x0, y, FENCE), set(x1, y, FENCE);
+    const mx = x0 + (bw >> 1), my = y0 + (bh >> 1), even = bw % 2 === 0;
+    const gx = even ? [mx - 1, mx] : [mx], gy = bh % 2 === 0 ? [my - 1, my] : [my];
+    const open = (x: number, y: number) => fairWalkable(at(x, y));
+    if (gx.every((x) => open(x, y0 - 1))) for (const x of gx) set(x, y0, GRAVEL);
+    if (gx.every((x) => open(x, y1 + 1))) for (const x of gx) set(x, y1, GRAVEL);
+    if (gy.every((y) => open(x0 - 1, y))) for (const y of gy) set(x0, y, GRAVEL);
+    if (gy.every((y) => open(x1 + 1, y))) for (const y of gy) set(x1, y, GRAVEL);
+    // Urns on the railing where it runs beside the avenue.
+    for (const x of [x0, x1]) if (at(x + (x === x0 ? -1 : 1), y0 + 1) === PAVING) for (const y of [y0 + 1, y1 - 1]) L.decor.push({ type: "urn", x, y, solid: true, v: rng() });
+    const ix0 = x0 + 1, ix1 = x1 - 1, iy0 = y0 + 1, iy1 = y1 - 1, iw = ix1 - ix0 + 1, ih = iy1 - iy0 + 1;
+    const bed = (a: number, b: number, c: number, d: number) => {
+      if (c - a < 2 || d - b < 2) return void shrub(a + ((c - a) >> 1), b + ((d - b) >> 1));
+      fill(a, b, c, d, BOX);
+      fill(a + 1, b + 1, c - 1, d - 1, BED);
+    };
+    // Mirrored across the avenue: gardens at the same distance from the middle get the same plan.
+    const k = Math.sin(Math.abs(x0 + x1 - w + 1) * 12.9898 + y0 * 78.233) * 43758.5453, pick = k - Math.floor(k);
+    const style = iw >= 10 && ih >= 9 && pick < 0.5 ? "oval" : iw >= 7 && ih >= 6 && pick < 0.45 ? "parterre" : iw >= 5 && ih >= 7 && pick < 0.8 ? "lawn" : iw >= 4 && ih >= 3 ? "bed" : "grove";
+    if (style === "parterre") {
+      // Cross walks from the gaps, a basin where they meet, a hedged bed in each quarter.
+      for (const x of gx) fill(x, iy0, x, iy1, GRAVEL);
+      for (const y of gy) fill(ix0, y, ix1, y, GRAVEL);
+      const big = iw >= 10 && ih >= 9;
+      if (big) {
+        if (gy.length === 1) gy.unshift(gy[0] - 1);
+        fill(gx[0] - 1, gy[0] - 1, gx[gx.length - 1] + 1, gy[gy.length - 1] + 1, GRAVEL);
+        fill(gx[0], gy[0], gx[gx.length - 1], gy[gy.length - 1], WATER);
+        L.decor.push({ type: "jet", x: gx[0], y: gy[0], solid: false, v: gx.length });
+      }
+      const lx = gx[0] - (big ? 2 : 1), rx = gx[gx.length - 1] + (big ? 2 : 1), ty = gy[0] - (big ? 2 : 1), by = gy[gy.length - 1] + (big ? 2 : 1);
+      for (const [a, b, c, d] of [[ix0, iy0, lx, ty], [rx, iy0, ix1, ty], [ix0, by, lx, iy1], [rx, by, ix1, iy1]]) bed(a, b, c, d);
+    } else if (style === "oval") {
+      // A walk round the lawn with its corners cut, turf inside it, and a long bed down the middle.
+      const a = ix0 + 1, b = iy0 + 1, c = ix1 - 1, d = iy1 - 1;
+      for (let x = a + 1; x < c; x++) set(x, b, GRAVEL), set(x, d, GRAVEL);
+      for (let y = b + 1; y < d; y++) set(a, y, GRAVEL), set(c, y, GRAVEL);
+      for (const [x, y] of [[a + 1, b + 1], [c - 1, b + 1], [a + 1, d - 1], [c - 1, d - 1]]) set(x, y, GRAVEL);
+      if (c - a >= 6) bed(a + 2, b + 3, c - 2, d - 3);
+      else fill(a + 2, b + 3, c - 2, d - 3, BED);
+      for (const x of gx) { set(x, iy0, GRAVEL); set(x, iy1, GRAVEL); }
+      for (const y of gy) { set(ix0, y, GRAVEL); set(ix1, y, GRAVEL); }
+      for (const [x, y] of [[ix0, iy0], [ix1, iy0], [ix0, iy1], [ix1, iy1]]) tree(x, y);
+      for (const y of [b + 2, d - 2]) shrub(a + 2 + (c - a > 5 ? 1 : 0), y), shrub(c - 2 - (c - a > 5 ? 1 : 0), y);
+    } else if (style === "lawn") {
+      // Open turf: a round bed in the middle, standards either side, a tree at each end.
+      const mx = ix0 + ((iw - 1) >> 1), my = iy0 + ((ih - 1) >> 1);
+      fill(mx - 1 + (iw % 2 ? 1 : 0), my - 1, mx + 1, my + 1 + (ih % 2 ? 0 : 1), BED);
+      tree(ix0 + (iw >> 1), iy0 + 1); tree(ix0 + ((iw - 1) >> 1), iy1 - 1);
+      for (const y of [my - 3, my + 4]) if (y > iy0 + 1 && y < iy1 - 1) shrub(ix0, y), shrub(ix1, y);
+    } else if (style === "bed") {
+      bed(ix0 + 1, iy0 + (ih > 3 ? 1 : 0), ix1 - 1, iy1 - (ih > 3 ? 1 : 0));
+      if (ih > 3) for (const [x, y] of [[ix0, iy0], [ix1, iy1]]) tree(x, y);
+    } else {
+      tree(ix0 + (iw >> 1), iy0 + (ih >> 1));
+    }
+  }
 }
 
 /** Cells no one can stand in: every cell of a big exhibit, and the solid decor. */

@@ -1,198 +1,431 @@
-import { BED, BRIDGE, BUILDING, DECK, FLOOR, GRAVEL, HEDGE, LAWN, PAVING, WALL, WATER, type FairLevel } from "../../world/fair";
+import { BED, BOX, BRIDGE, BUILDING, DECK, FENCE, FLOOR, GRAVEL, HEDGE, LAWN, PAVING, WALL, WATER, type FairLevel } from "../../world/fair";
 import { h2, Raster } from "../ship/raster";
+import { paintFlag } from "./flags";
 
-const GRASS = ["#9cc865", "#7fb24f", "#6a9c43", "#568638", "#41692c"];
-const SAND = ["#f0dfb4", "#e2cb98", "#cdb27e", "#b0935f", "#8a7048"];
-const STONE = ["#e8e2d4", "#d2cab8", "#b8ae9a", "#978c7a", "#6e6558"];
-const HEDGE_G = ["#6f9c4a", "#557f38", "#40662b", "#2f4e22", "#203818"];
-const SOIL = ["#8a6448", "#714f38", "#5a3d2c", "#442d22"];
-const BLOOM = [["#ff9a8a", "#e8484a", "#a82a3a"], ["#fff0a0", "#f0c840", "#b88a2a"], ["#f4f0ff", "#c8b8f0", "#8a74c0"], ["#ffc8e0", "#e870a8", "#a8406e"]];
-const WATER_C = ["#a8dcec", "#78c0dc", "#5aa4c8", "#4686b0", "#356896"];
-const IRON_RED = ["#c07a5a", "#a05a40", "#844630", "#5e3022", "#3a1e18"];
+/** Cells of ground painted round an area, so its edges never show the void. */
+export const PAD = { x: 8, top: 8, bottom: 6 };
+// Cells round an interior that are its own building: the roof above the back wall.
+const ROOF = 20, SKY = 21;
+
+export const GRASS = ["#b4dc78", "#93c75a", "#7cb24a", "#62983c", "#4a7c30", "#355e24"];
+const SAND = ["#f4e8d2", "#e4d4b8", "#d0bc9c", "#b49e80", "#8e7a62"];
+const STONE = ["#f0ebe0", "#ddd5c6", "#c8bead", "#ab9f8c", "#82776a"];
+const BOXC = ["#8ebe56", "#6ea040", "#548632", "#3e6a26", "#2a4e1c", "#1c3814"];
+const CANOPY = ["#78a848", "#5a8c38", "#44722c", "#335a22", "#24441a", "#18301a"];
+const SOIL = ["#8c6448", "#704e38", "#563c2c"];
+const ROSES = [["#f4e4ff", "#c8a0ec", "#8e64c0"], ["#ffd2dc", "#f48aa8", "#c84a72"], ["#ff9a8a", "#e04848", "#a02838"], ["#fffaf0", "#f0e2c8", "#c8b494"], ["#fff2a8", "#f2c84a", "#c08a28"]];
+const WATER_C = ["#c8ecf6", "#94d0e8", "#6cb4da", "#4e96c4", "#3a78a8", "#2c5c88"];
+const IRON = ["#7a8490", "#4a525c", "#30363e", "#1e2228"];
+const IRON_RED = ["#cc8a66", "#a8603f", "#884a30", "#643424", "#3e2018"];
+const GLASS = ["#e4f2f6", "#b8d8e2", "#8cb8c8", "#6a96aa", "#4c7488"];
 const FLOORS = {
-  parquet: ["#e0b47c", "#c99a62", "#ad7e4c", "#8a603a", "#5e4028"],
-  tile: ["#f0e8d8", "#d8ccb4", "#9a4a3a", "#6e3428", "#3c2a28"],
-  boards: ["#d8b888", "#c0a070", "#a4845a", "#806444", "#584430"],
-  iron: ["#b8b4ac", "#9c978e", "#7e7970", "#5e5a54", "#3c3a38"],
+  parquet: ["#ecc088", "#d8a468", "#c08850", "#9c6a3c", "#704a2a"],
+  tile: ["#f4ecdc", "#ddd0b6", "#b4523e", "#88382a", "#4c2e28"],
+  boards: ["#e2c492", "#caa874", "#ae8a5c", "#8a6a44", "#5e4830"],
+  iron: ["#c4c0b8", "#a8a39a", "#8a857c", "#6a665e", "#46433e"],
 };
 const WALLS = {
-  parquet: ["#f4ead4", "#e4d6b8", "#c8b494", "#9a8466", "#6a5644"],
-  tile: ["#f0e4cc", "#dccaa8", "#b8a080", "#8a7458", "#5c4c3a"],
-  boards: ["#e8dcc0", "#d4c4a0", "#b4a07c", "#8a7858", "#5e5040"],
-  iron: ["#c4c8cc", "#a8aeb4", "#888e96", "#646a72", "#40444a"],
+  parquet: ["#fbf3e2", "#efe2c6", "#d8c6a2", "#b4a07e", "#86745a", "#5c4e3c"],
+  tile: ["#f8eed8", "#ead8b4", "#d0b890", "#aa9070", "#806a52", "#56463a"],
+  boards: ["#f2e6c8", "#e0cea6", "#c4ae84", "#9c8664", "#74624a", "#4e4234"],
+  iron: ["#dfe2e4", "#c4cad0", "#a2aab2", "#7e8790", "#5c646c", "#3e444a"],
 };
+const DADO = ["#a8744c", "#8a5a38", "#6c4428", "#4e301c"];
+const RUNNER = ["#d85a48", "#b23e34", "#862a26", "#e8c070"];
 
-/** The ground of one fair area, every cell, painted once. */
+const indoorKind = (L: FairLevel) => L.kind === "hall" || L.kind === "pavilion" || L.kind === "machines";
+
+/** The ground of one fair area and the margin round it, painted once. Cell
+ * (0, 0) of the area is at pixel (PAD.x * 16, PAD.top * 16). */
 export function paintFairGround(L: FairLevel, seed: number): Raster {
-  const { w, h } = L, R = new Raster(w * 16, h * 16);
-  const cell = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= h ? -1 : L.cells[y * w + x]);
-  const floor = FLOORS[L.floor ?? "parquet"], wallc = WALLS[L.floor ?? "parquet"];
-  const indoor = L.kind === "hall" || L.kind === "pavilion" || L.kind === "machines";
-  for (let cy = 0; cy < h; cy++) for (let cx = 0; cx < w; cx++) {
-    const c = cell(cx, cy), X = cx * 16, Y = cy * 16;
-    for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
-      const x = X + i, y = Y + j, n = h2(x, y, seed);
-      let col: string;
-      switch (c) {
-        case LAWN: case BUILDING: case HEDGE: {
-          // Mown turf: quiet base, clusters of lighter blades.
-          // Mown stripes, and a few blade clusters, quiet between.
-          const tuft = h2(x >> 3, y >> 3, seed + 3), blade = h2(x >> 1, y, seed + 4);
-          col = ((y >> 4) % 2 ? GRASS[1] : "#86b853");
-          if (tuft > 0.82 && blade > 0.7) col = GRASS[0];
-          else if (tuft < 0.1 && blade > 0.75) col = GRASS[2];
-          break;
-        }
-        case GRAVEL: {
-          // Raked gravel: an even ground with the odd pebble lit on top.
-          const k = h2(x >> 1, y >> 1, seed + 5);
-          col = k > 0.96 ? SAND[0] : k < 0.04 ? SAND[3] : k < 0.1 && y % 2 ? SAND[2] : SAND[1];
-          break;
-        }
-        case PAVING: case BRIDGE: {
-          const sx = (x + ((y >> 4) % 2) * 8) % 16, sy = y % 16;
-          col = sy === 15 || sx === 15 ? STONE[3] : sy === 0 || sx === 0 ? STONE[0] : h2((x + ((y >> 4) % 2) * 8) >> 4, y >> 4, seed) < 0.2 ? STONE[2] : STONE[1];
-          break;
-        }
-        case BED: col = n < 0.3 ? SOIL[0] : n > 0.85 ? SOIL[2] : SOIL[1]; break;
-        case WATER: {
-          const ripple = Math.sin(x * 0.35 + Math.sin(y * 0.5) * 2) + Math.sin(y * 0.9 + x * 0.05);
-          col = ripple > 1.55 ? WATER_C[0] : ripple < -1.2 ? WATER_C[3] : WATER_C[2];
-          break;
-        }
-        case DECK: {
-          // Oak planking laid on the iron, with the rail's shadow at the edges.
-          const plank = Math.floor(y / 4);
-          col = y % 4 === 3 ? FLOORS.boards[3] : h2(plank, (x + plank * 7) >> 4, seed) < 0.15 ? FLOORS.boards[2] : FLOORS.boards[1];
-          if ((x + plank * 7) % 16 === 0) col = FLOORS.boards[3];
-          break;
-        }
-        case FLOOR: col = floorPx(L.floor ?? "parquet", x, y, floor); break;
-        default: col = indoor ? wallc[3] : L.kind === "platform" ? "#8aa0b8" : HEDGE_G[3];
-      }
-      R.set(x, y, col);
+  const { w, h } = L, X0 = PAD.x, Y0 = PAD.top;
+  const R = new Raster((w + 2 * PAD.x) * 16, (h + PAD.top + PAD.bottom) * 16);
+  const indoor = indoorKind(L), door = (w >> 1) - 1;
+  const raw = (x: number, y: number) => L.cells[y * w + x];
+  const cell = (x: number, y: number): number => {
+    if (x >= 0 && y >= 0 && x < w && y < h) return raw(x, y);
+    if (L.kind === "platform") return SKY;
+    if (!indoor) {
+      const c = raw(Math.max(0, Math.min(w - 1, x)), Math.max(0, Math.min(h - 1, y)));
+      return c === FENCE || c === BOX || c === BED || c === WATER ? LAWN : c;
+    }
+    // Round a building: its roof behind, a gravel apron, a forecourt, lawn beyond.
+    if (x >= 0 && x < w && y < 0 && y >= -3) return ROOF;
+    const d = Math.max(x < 0 ? -x : x >= w ? x - w + 1 : 0, y < -3 ? -3 - y : y >= h ? y - h + 1 : 0);
+    if (y >= h && x >= door - 2 && x <= door + 3) return PAVING;
+    return d <= 2 ? GRAVEL : LAWN;
+  };
+  const at = (cx: number, cy: number) => cell(cx - X0, cy - Y0);
+  const CW = w + 2 * PAD.x, CH = h + PAD.top + PAD.bottom;
+  for (let cy = 0; cy < CH; cy++) for (let cx = 0; cx < CW; cx++) {
+    const c = at(cx, cy), X = cx * 16, Y = cy * 16;
+    switch (c) {
+      case LAWN: case BUILDING: case FENCE: lawn(R, X, Y, seed); break;
+      case GRAVEL: gravel(R, X, Y, seed); break;
+      case PAVING: case BRIDGE: paving(R, X, Y, seed); break;
+      case WATER: water(R, X, Y, at, cx, cy); break;
+      case BED: lawn(R, X, Y, seed); break;
+      case BOX: lawn(R, X, Y, seed); break;
+      case HEDGE: lawn(R, X, Y, seed); for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) R.shade(X + i, Y + j, 0.22); break;
+      case DECK: deck(R, X, Y, seed); break;
+      case FLOOR: floor(R, X, Y, L, cx - X0, cy - Y0); break;
+      case SKY: break;
+      case ROOF: break;
+      default: if (indoor) gravel(R, X, Y, seed); else canopy(R, X, Y, seed);
     }
   }
-  // Edges where surfaces meet: a lit lip on paving and a shade where turf meets gravel.
-  for (let cy = 0; cy < h; cy++) for (let cx = 0; cx < w; cx++) {
-    const c = cell(cx, cy), X = cx * 16, Y = cy * 16;
-    if (c === LAWN && [GRAVEL, PAVING].includes(cell(cx, cy - 1))) R.fill(X, Y, 16, 1, GRASS[3]);
-    if (c === LAWN && [GRAVEL, PAVING].includes(cell(cx, cy + 1))) R.fill(X, Y + 15, 16, 1, GRASS[0]);
-    if (c === LAWN && [GRAVEL, PAVING].includes(cell(cx - 1, cy))) R.fill(X, Y, 1, 16, GRASS[2]);
-    if (c === WATER && cell(cx, cy - 1) !== WATER) {
-      R.fill(X, Y, 16, 3, STONE[1]); R.fill(X, Y, 16, 1, STONE[0]); R.fill(X, Y + 3, 16, 2, WATER_C[4]);
+  // Second pass: edges, and the things built on the ground.
+  for (let cy = 0; cy < CH; cy++) for (let cx = 0; cx < CW; cx++) {
+    const c = at(cx, cy), X = cx * 16, Y = cy * 16;
+    const n = at(cx, cy - 1), s = at(cx, cy + 1), wv = at(cx - 1, cy), e = at(cx + 1, cy);
+    const soft = (k: number) => k === LAWN || k === FENCE || k === BUILDING;
+    if (soft(c)) {
+      // Turf meeting a walk: a dark cut edge on the turf, light on the walk's far side.
+      if (n === GRAVEL || n === PAVING) R.fill(X, Y, 16, 1, GRASS[4]);
+      if (s === GRAVEL || s === PAVING) { R.fill(X, Y + 15, 16, 1, GRASS[0]); }
+      if (wv === GRAVEL || wv === PAVING) R.fill(X, Y, 1, 16, GRASS[3]);
+      if (e === GRAVEL || e === PAVING) R.fill(X + 15, Y, 1, 16, GRASS[0]);
     }
-    if (c === WATER && cell(cx, cy + 1) !== WATER) { R.fill(X, Y + 13, 16, 3, STONE[2]); R.fill(X, Y + 13, 16, 1, STONE[0]); }
-    if (c === WATER && cell(cx - 1, cy) !== WATER) { R.fill(X, Y, 2, 16, STONE[1]); R.fill(X + 2, Y, 1, 16, WATER_C[4]); }
-    if (c === WATER && cell(cx + 1, cy) !== WATER) R.fill(X + 14, Y, 2, 16, STONE[2]);
-    if (c === BED) flowers(R, X, Y, cx, cy, seed);
-    if (c === BRIDGE && cell(cx - 1, cy) !== BRIDGE) parapetV(R, X, Y);
-    if (c === BRIDGE && cell(cx + 1, cy) !== BRIDGE) parapetV(R, X + 12, Y);
-    if (c === HEDGE) hedge(R, X, Y, cell(cx, cy + 1) !== HEDGE, seed + cx * 7 + cy);
-    if (c === DECK && cell(cx, cy + 1) === WALL) rail(R, X, Y + 12);
-    if (c === DECK && cell(cx, cy - 1) === WALL) rail(R, X, Y);
-    if (c === DECK && cell(cx - 1, cy) === WALL) R.fill(X, Y, 2, 16, IRON_RED[2]);
-    if (c === DECK && cell(cx + 1, cy) === WALL) R.fill(X + 14, Y, 2, 16, IRON_RED[3]);
+    if ((c === GRAVEL || c === PAVING) && (soft(n) || n === BOX || n === BED)) R.fill(X, Y, 16, 1, SAND[3]), R.fill(X, Y + 1, 16, 2, SAND[2]);
+    if (c === GRAVEL && (wv === FENCE || wv === LAWN || wv === BOX)) R.fill(X, Y, 2, 16, SAND[2]);
+    if (c === BED) roses(R, X, Y, cx, cy, seed, at);
+    if (c === BOX) box(R, X, Y, at, cx, cy, seed);
+    if (c === FENCE) fence(R, X, Y, at, cx, cy);
+    if (c === BRIDGE && wv !== BRIDGE) balustrade(R, X, Y, false);
+    if (c === BRIDGE && e !== BRIDGE) balustrade(R, X + 11, Y, true);
+    if (c === DECK) {
+      if (s === WALL) rail(R, X, Y + 11);
+      if (n === WALL || n === SKY) rail(R, X, Y);
+      if (wv === WALL || wv === SKY) R.fill(X, Y, 3, 16, IRON_RED[2]), R.fill(X, Y, 1, 16, IRON_RED[0]);
+      if (e === WALL || e === SKY) R.fill(X + 13, Y, 3, 16, IRON_RED[3]), R.fill(X + 15, Y, 1, 16, IRON_RED[4]);
+    }
   }
-  if (indoor) backWall(R, L, wallc);
+  if (indoor) building(R, L, X0 * 16, Y0 * 16, seed);
   if (L.kind === "platform") paris(R, L, seed);
   return R;
 }
 
-function floorPx(kind: keyof typeof FLOORS, x: number, y: number, f: string[]) {
-  if (kind === "parquet") {
-    // Herringbone: blocks 8 by 2, alternating direction every 8 px.
-    const flip = ((x >> 3) + (y >> 3)) % 2, a = flip ? x : y, b = flip ? y : x;
-    return a % 2 === 1 && b % 8 === 7 ? f[3] : a % 2 === 1 ? f[2] : h2(x >> 3, y >> 3, 9) < 0.2 ? f[0] : f[1];
-  }
-  if (kind === "tile") {
-    const sx = x % 16, sy = y % 16, d = Math.abs(sx - 7.5) + Math.abs(sy - 7.5);
-    return d < 4 ? f[2] : d < 5 ? f[3] : sx === 0 || sy === 0 ? f[1] : f[0];
-  }
-  if (kind === "iron") return x % 16 === 0 || y % 16 === 0 ? f[3] : (x % 8 === 3 && y % 8 === 3) ? f[0] : (x + y) % 4 === 0 ? f[2] : f[1];
-  const plank = Math.floor(x / 6);
-  return x % 6 === 5 ? f[3] : (y + plank * 13) % 40 === 0 ? f[3] : h2(plank, 1, 3) < 0.25 ? f[2] : f[1];
-}
-
-function flowers(R: Raster, X: number, Y: number, cx: number, cy: number, seed: number) {
-  const pal = BLOOM[Math.floor(h2(cx >> 2, cy, seed) * BLOOM.length)];
-  for (let j = 2; j < 15; j += 3) for (let i = 1 + (j % 2) * 2; i < 15; i += 4) {
-    R.set(X + i, Y + j + 1, GRASS[3]);
-    R.set(X + i, Y + j, pal[1]);
-    R.set(X + i + 1, Y + j, pal[2]);
-    R.set(X + i, Y + j - 1, pal[0]);
-  }
-}
-
-function parapetV(R: Raster, X: number, Y: number) {
-  R.fill(X, Y, 4, 16, STONE[1]);
-  R.fill(X, Y, 1, 16, STONE[0]);
-  R.fill(X + 3, Y, 1, 16, STONE[3]);
-  for (let j = 0; j < 16; j += 8) R.fill(X, Y + j, 4, 1, STONE[2]);
-}
-
-function hedge(R: Raster, X: number, Y: number, front: boolean, seed: number) {
+function lawn(R: Raster, X: number, Y: number, seed: number) {
   for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
-    const n = h2((X + i) >> 2, (Y + j) >> 2, seed);
-    R.set(X + i, Y + j, n > 0.7 ? HEDGE_G[1] : n < 0.2 ? HEDGE_G[3] : HEDGE_G[2]);
-    if (h2(X + i, Y + j, 4) > 0.93) R.set(X + i, Y + j, HEDGE_G[0]);
+    const x = X + i, y = Y + j;
+    // Mown in broad stripes, quiet between the tufts.
+    const stripe = ((y >> 5) + (x >> 6)) % 2, n = h2(x >> 2, y >> 2, seed + 30);
+    R.set(x, y, n > 0.9 ? GRASS[1] : n < 0.1 ? GRASS[3] : stripe ? "#88bd52" : GRASS[2]);
   }
-  if (front) { R.fill(X, Y + 12, 16, 3, HEDGE_G[3]); R.fill(X, Y + 15, 16, 1, HEDGE_G[4]); }
+  // Two or three tufts a cell: a lit blade pair over a dark root.
+  for (let k = 0; k < 3; k++) {
+    if (h2(X + k, Y, seed + 11) < 0.35) continue;
+    const tx = X + 1 + Math.floor(h2(X, Y + k, seed + 12) * 13), ty = Y + 2 + Math.floor(h2(Y, X + k, seed + 13) * 12);
+    R.set(tx, ty, GRASS[0]); R.set(tx + 2, ty, GRASS[0]);
+    R.set(tx + 1, ty + 1, GRASS[3]); R.set(tx, ty + 1, GRASS[2]); R.set(tx + 2, ty + 1, GRASS[2]);
+  }
+  if (h2(X, Y, seed + 14) > 0.9) {
+    const tx = X + 4 + Math.floor(h2(Y, X, seed + 15) * 8), ty = Y + 5 + Math.floor(h2(X, X, seed + 16) * 6);
+    const pal = ROSES[Math.floor(h2(X, Y, 17) * ROSES.length)];
+    R.set(tx, ty, pal[0]); R.set(tx + 1, ty, pal[1]); R.set(tx, ty + 1, GRASS[3]);
+  }
+}
+
+function gravel(R: Raster, X: number, Y: number, seed: number) {
+  for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) R.set(X + i, Y + j, h2((X + i) >> 3, (Y + j) >> 3, seed + 4) > 0.75 ? "#e8d9bf" : SAND[1]);
+  for (let j = 0; j < 16; j += 2) for (let i = 0; i < 16; i += 3) {
+    const k = h2(X + i, Y + j, seed + 5);
+    const x = X + i + (j % 4 ? 1 : 0), y = Y + j;
+    if (k > 0.8) { R.set(x, y, SAND[0]); R.set(x + 1, y, SAND[0]); R.set(x, y + 1, SAND[2]); R.set(x + 1, y + 1, SAND[3]); }
+    else if (k < 0.12) R.set(x, y, SAND[2]);
+  }
+}
+
+function paving(R: Raster, X: number, Y: number, seed: number) {
+  // Big flags laid in courses a half-slab out of step.
+  for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
+    const x = X + i, y = Y + j, off = ((y >> 4) % 2) * 8, sx = (x + off) % 16, sy = y % 16;
+    const slab = h2((x + off) >> 4, y >> 4, seed + 7);
+    let col = slab < 0.25 ? STONE[2] : slab > 0.85 ? STONE[0] : STONE[1];
+    if (sy === 0 || sx === 0) col = slab > 0.85 ? "#faf6ee" : STONE[0];
+    if (sy === 15 || sx === 15) col = STONE[3];
+    if (sy === 15 && sx === 15) col = STONE[4];
+    R.set(x, y, col);
+  }
+  if (h2(X, Y, seed + 8) > 0.82) R.set(X + 5 + Math.floor(h2(Y, X, 9) * 6), Y + 6, STONE[3]);
+}
+
+function water(R: Raster, X: number, Y: number, at: (x: number, y: number) => number, cx: number, cy: number) {
+  const n = at(cx, cy - 1) !== WATER, s = at(cx, cy + 1) !== WATER, wv = at(cx - 1, cy) !== WATER, e = at(cx + 1, cy) !== WATER;
+  for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
+    const x = X + i, y = Y + j;
+    const band = Math.sin(x * 0.28 + Math.sin(y * 0.45) * 1.6) + Math.sin(y * 0.7 - x * 0.08);
+    let col = band > 1.6 ? WATER_C[1] : band < -1.3 ? WATER_C[4] : WATER_C[3];
+    if (n && j < 5) col = j < 3 ? WATER_C[5] : WATER_C[4];
+    R.set(x, y, col);
+  }
+  // A stone coping all round, lit along its top.
+  const coping = (x: number, y: number, ww: number, hh: number, lit: boolean) => {
+    R.fill(x, y, ww, hh, STONE[1]);
+    R.fill(x, y, ww, 1, lit ? "#fbf8f2" : STONE[2]);
+    R.fill(x, y + hh - 1, ww, 1, STONE[3]);
+  };
+  if (n) coping(X, Y, 16, 3, true);
+  if (s) { coping(X, Y + 12, 16, 4, true); R.fill(X, Y + 11, 16, 1, WATER_C[2]); }
+  if (wv) { R.fill(X, Y, 3, 16, STONE[1]); R.fill(X, Y, 1, 16, "#fbf8f2"); R.fill(X + 3, Y, 1, 16, WATER_C[5]); }
+  if (e) { R.fill(X + 13, Y, 3, 16, STONE[2]); R.fill(X + 15, Y, 1, 16, STONE[3]); R.fill(X + 12, Y, 1, 16, WATER_C[2]); }
+}
+
+/** Clipped box: a low hedge with a lit top, a shaded face, rounded at its outer corners. */
+function box(R: Raster, X: number, Y: number, at: (x: number, y: number) => number, cx: number, cy: number, seed: number) {
+  const same = (dx: number, dy: number) => at(cx + dx, cy + dy) === BOX;
+  const n = same(0, -1), s = same(0, 1), wv = same(-1, 0), e = same(1, 0);
+  for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
+    // A hedge 10 px thick down the middle of its run; joined to its neighbours.
+    const inX = (i >= 3 || wv) && (i <= 12 || e), inY = (j >= 2 || n) && (j <= 13 || s);
+    const coreX = i >= 3 && i <= 12, coreY = j >= 2 && j <= 13;
+    if (!(inX && inY && ((coreX && (n || s || coreY)) || (coreY && (wv || e)) || (coreX && coreY)))) continue;
+    const top = !n && j < 4, face = !s && j > 10, left = !wv && i < 5, right = !e && i > 10;
+    let col = BOXC[2];
+    if (top) col = j === 2 ? BOXC[0] : BOXC[1];
+    else if (face) col = j === 13 ? BOXC[5] : BOXC[4];
+    else if (left) col = BOXC[1];
+    else if (right) col = BOXC[3];
+    else if (h2((X + i) >> 1, (Y + j) >> 1, seed + 21) > 0.78) col = BOXC[1];
+    else if (h2((X + i) >> 1, (Y + j) >> 1, seed + 22) < 0.12) col = BOXC[3];
+    R.set(X + i, Y + j, col);
+  }
+  if (!s) R.fill(X + 3, Y + 14, 10, 1, GRASS[4]);
+}
+
+/** A bed of roses: round bushes in rows, in bloom. */
+function roses(R: Raster, X: number, Y: number, cx: number, cy: number, seed: number, at: (x: number, y: number) => number) {
+  R.fill(X, Y, 16, 16, SOIL[1]);
+  for (let j = 0; j < 16; j += 3) for (let i = (j % 2) * 2; i < 16; i += 4) R.set(X + i, Y + j, SOIL[0]);
+  // One colour a bed, from the bed's top-left cell.
+  let ox = cx, oy = cy;
+  while (at(ox - 1, oy) === BED) ox--;
+  while (at(ox, oy - 1) === BED) oy--;
+  const main = Math.floor(h2(ox, oy, seed) * ROSES.length);
+  // Bushes on a jittered grid, so a long bed does not read as rows.
+  for (const [bx, by] of [[3, 3], [11, 2], [7, 9], [15, 9], [2, 13], [11, 14]] as const) {
+    const jx = Math.round((h2(X + bx, Y + by, seed + 3) - 0.5) * 4), jy = Math.round((h2(Y + by, X + bx, seed + 6) - 0.5) * 4);
+    const x = X + bx + jx, y = Y + by + jy, rx = 4 + (h2(x, y, 8) > 0.5 ? 1 : 0), ry = 4;
+    const pal = ROSES[h2(x, y, seed + 4) > 0.8 ? (main + 1 + Math.floor(h2(X, y, 5) * 3)) % ROSES.length : main];
+    for (let j = -ry; j <= ry; j++) for (let i = -rx; i <= rx; i++) {
+      if (i * i / (rx * rx) + j * j / (ry * ry) > 1) continue;
+      const lit = -i - j;
+      R.set(x + i, y + j, lit > 3 ? BOXC[1] : lit > -2 ? BOXC[2] : BOXC[3]);
+    }
+    R.fill(x - rx + 1, y + ry, rx * 2 - 1, 1, BOXC[5]);
+    for (const [fx, fy] of [[-2, -1], [1, -2], [2, 1], [-1, 1], [-3, 1], [0, -3]]) {
+      if (h2(x + fx, y + fy, 9) < 0.15) continue;
+      R.set(x + fx, y + fy, pal[1]); R.set(x + fx + 1, y + fy, pal[2]); R.set(x + fx, y + fy - 1, pal[0]);
+    }
+  }
+}
+
+/** Spear railings on a low kerb: posts at corners and gate-ends, bars between. */
+function fence(R: Raster, X: number, Y: number, at: (x: number, y: number) => number, cx: number, cy: number) {
+  const f = (dx: number, dy: number) => at(cx + dx, cy + dy) === FENCE;
+  const horiz = f(-1, 0) || f(1, 0), vert = f(0, -1) || f(0, 1);
+  const post = (x: number, y: number) => {
+    R.fill(x, y - 4, 3, 14, IRON[2]); R.fill(x, y - 4, 1, 14, IRON[1]);
+    R.fill(x - 1, y - 6, 5, 2, IRON[2]); R.set(x + 1, y - 7, IRON[0]); R.set(x, y - 6, IRON[0]);
+  };
+  if (horiz) {
+    R.fill(X, Y + 11, 16, 2, STONE[2]); R.fill(X, Y + 11, 16, 1, STONE[0]);
+    R.fill(X, Y + 2, 16, 1, IRON[2]); R.fill(X, Y + 9, 16, 1, IRON[2]);
+    for (let i = 1; i < 16; i += 3) { R.fill(X + i, Y, 1, 11, IRON[3]); R.set(X + i, Y - 1, IRON[1]); }
+    R.fill(X, Y + 13, 16, 2, GRASS[4]);
+  }
+  if (vert) {
+    R.fill(X + 6, Y, 3, 16, STONE[2]); R.fill(X + 6, Y, 1, 16, STONE[0]);
+    R.fill(X + 7, Y, 1, 16, IRON[3]);
+    for (let j = 1; j < 16; j += 3) R.set(X + 7, Y + j, IRON[0]);
+    R.fill(X + 9, Y, 2, 16, GRASS[4]);
+  }
+  const corner = horiz && vert, end = (horiz && !(f(-1, 0) && f(1, 0))) || (vert && !(f(0, -1) && f(0, 1)));
+  if (corner || end || (!horiz && !vert)) post(X + 6, Y + 3);
+}
+
+function canopy(R: Raster, X: number, Y: number, seed: number) {
+  // Park trees seen from above: leaf clumps lit on their upper left.
+  R.fill(X, Y, 16, 16, CANOPY[3]);
+  for (let k = 0; k < 4; k++) {
+    const cx = X + Math.floor(h2(X + k, Y, seed + 31) * 16), cy = Y + Math.floor(h2(Y + k, X, seed + 32) * 16), r = 4 + Math.floor(h2(X, Y + k, 33) * 3);
+    for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) {
+      if (i * i + j * j > r * r || cx + i < X || cx + i >= X + 16 || cy + j < Y || cy + j >= Y + 16) continue;
+      const lit = (-i - j) / r;
+      R.set(cx + i, cy + j, lit > 0.9 ? CANOPY[0] : lit > 0.1 ? CANOPY[1] : lit > -0.8 ? CANOPY[2] : CANOPY[4]);
+    }
+  }
+}
+
+function deck(R: Raster, X: number, Y: number, seed: number) {
+  const f = FLOORS.boards;
+  for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
+    const x = X + i, y = Y + j, plank = y >> 2, cut = (x + plank * 11) % 32;
+    R.set(x, y, y % 4 === 3 ? f[3] : cut === 0 ? f[4] : h2(plank, (x + plank * 11) >> 5, seed) < 0.2 ? f[2] : y % 4 === 0 ? f[0] : f[1]);
+  }
+}
+
+function floor(R: Raster, X: number, Y: number, L: FairLevel, ax: number, ay: number) {
+  const kind = L.floor ?? "parquet", f = FLOORS[kind], cx = L.w >> 1;
+  const border = ax === 1 || ax === L.w - 2 || ay === 3 || ay === L.h - 2;
+  for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
+    const x = X + i, y = Y + j;
+    let col: string;
+    if (kind === "parquet") {
+      // Herringbone of short blocks: quiet seams, each block a shade of its own.
+      const flip = ((x >> 3) + (y >> 3)) % 2, a = flip ? x : y, b = flip ? y : x;
+      const tone = h2(a >> 2, (b >> 3) * 3 + flip, 9);
+      col = a % 4 === 3 || b % 8 === 7 ? f[2] : tone > 0.8 ? f[0] : f[1];
+    } else if (kind === "tile") {
+      const sx = x % 16, sy = y % 16, d = Math.abs(sx - 7.5) + Math.abs(sy - 7.5);
+      col = d < 4 ? f[2] : d < 5 ? f[3] : sx === 0 || sy === 0 ? f[1] : f[0];
+    } else if (kind === "iron") {
+      col = x % 16 === 0 || y % 16 === 0 ? f[3] : x % 8 === 3 && y % 8 === 3 ? f[0] : f[1];
+    } else {
+      const plank = Math.floor(x / 6);
+      col = x % 6 === 5 ? f[3] : (y + plank * 13) % 40 === 0 ? f[4] : x % 6 === 0 ? f[0] : f[1];
+    }
+    // An inlaid border a cell in from the walls.
+    if (border && kind !== "iron") {
+      // A band of dark wood with a pale stringing line down its middle.
+      const along = ax === 1 || ax === L.w - 2 ? i : j;
+      col = along === 7 || along === 8 ? f[0] : f[3];
+    }
+    R.set(x, y, col);
+  }
+  // A red runner up the aisle from the door.
+  if ((ax === cx - 1 || ax === cx) && ay >= 4 && kind !== "iron") {
+    R.fill(X, Y, 16, 16, RUNNER[1]);
+    if (ax === cx - 1) R.fill(X + 1, Y, 2, 16, RUNNER[3]), R.fill(X, Y, 1, 16, RUNNER[2]);
+    else R.fill(X + 13, Y, 2, 16, RUNNER[3]), R.fill(X + 15, Y, 1, 16, RUNNER[2]);
+    for (let j = 4; j < 16; j += 8) R.fill(X + (ax === cx - 1 ? 7 : 0), Y + j, 9, 1, RUNNER[2]);
+  }
+}
+
+function balustrade(R: Raster, X: number, Y: number, right: boolean) {
+  R.fill(X, Y, 5, 16, STONE[1]);
+  R.fill(X, Y, 1, 16, right ? STONE[2] : "#fbf8f2");
+  R.fill(X + 4, Y, 1, 16, STONE[3]);
+  for (let j = 2; j < 16; j += 4) R.fill(X + 1, Y + j, 3, 2, STONE[0]);
 }
 
 function rail(R: Raster, X: number, Y: number) {
-  R.fill(X, Y, 16, 4, IRON_RED[2]);
+  R.fill(X, Y, 16, 5, IRON_RED[2]);
   R.fill(X, Y, 16, 1, IRON_RED[0]);
-  for (let i = 0; i < 16; i += 4) R.fill(X + i, Y + 1, 1, 3, IRON_RED[4]);
+  R.fill(X, Y + 4, 16, 1, IRON_RED[4]);
+  for (let i = 0; i < 16; i += 4) { R.fill(X + i, Y + 1, 1, 3, IRON_RED[4]); R.set(X + i + 1, Y + 1, IRON_RED[1]); }
 }
 
-/** The back wall of a hall, three cells tall: a dado, pilasters, a frieze, and high windows. */
-function backWall(R: Raster, L: FairLevel, c: string[]) {
-  const W = L.w * 16;
-  R.fill(0, 0, W, 48, c[1]);
-  R.fill(0, 0, W, 6, c[3]);
-  R.fill(0, 6, W, 2, c[0]);
-  R.fill(0, 36, W, 10, c[2]);
-  R.fill(0, 36, W, 1, c[0]);
-  R.fill(0, 46, W, 2, c[4]);
-  for (let x = 8; x < W - 8; x += 32) {
-    R.fill(x, 8, 5, 28, c[0]);
-    R.fill(x + 4, 8, 1, 28, c[2]);
-    if (x + 30 < W) {
-      R.fill(x + 12, 12, 12, 18, "#5a7894");
-      R.fill(x + 12, 12, 12, 1, c[3]);
-      for (let i = 0; i < 12; i += 4) R.fill(x + 12 + i, 12, 1, 18, c[3]);
-      R.fill(x + 13, 13, 3, 6, "#a8c8e0");
-      R.fill(x + 12, 30, 12, 1, c[0]);
+/** An interior's own building: the glazed roof behind, the back wall with its
+ * windows and flag, the side walls' tops, and the front wall with its door
+ * and steps, all round the floor the visitor walks on. */
+function building(R: Raster, L: FairLevel, OX: number, OY: number, seed: number) {
+  const { w, h } = L, W = w * 16, c = WALLS[L.floor ?? "parquet"], door = (w >> 1) - 1;
+  // The roof: a glazed lantern between solid margins, three cells deep, seen from above.
+  const ry = OY - 48;
+  R.fill(OX, ry, W, 48, c[2]);
+  for (let y = ry + 4; y < ry + 42; y++) for (let x = OX + 10; x < OX + W - 10; x++) {
+    const gx = (x - OX - 10) % 12, gy = (y - ry - 4) % 9;
+    const col = gx === 0 || gy === 0 ? IRON[1] : gx === 1 ? IRON[0] : (gx + gy) < 7 ? GLASS[1] : gy > 6 ? GLASS[3] : GLASS[2];
+    R.set(x, y, col);
+  }
+  R.fill(OX + 8, ry + 2, W - 16, 2, IRON[2]); R.fill(OX + 8, ry + 42, W - 16, 2, IRON[2]);
+  R.fill(OX, ry, W, 2, c[0]);
+  for (let x = OX + 6; x < OX + W - 6; x += 16) R.fill(x, ry, 4, 4, c[3]);
+  // The back wall's face, three cells tall.
+  const by = OY;
+  R.fill(OX + 8, by, W - 16, 48, c[1]);
+  R.fill(OX + 8, by, W - 16, 3, c[0]);
+  R.fill(OX + 8, by + 3, W - 16, 3, c[3]);
+  R.fill(OX + 8, by + 6, W - 16, 1, c[4]);
+  R.fill(OX + 8, by + 36, W - 16, 10, DADO[1]);
+  R.fill(OX + 8, by + 36, W - 16, 1, DADO[0]);
+  for (let x = OX + 12; x < OX + W - 12; x += 12) R.fill(x, by + 38, 1, 7, DADO[2]);
+  R.fill(OX + 8, by + 46, W - 16, 2, DADO[3]);
+  const cx = OX + W / 2;
+  for (let x = OX + 16; x + 20 < OX + W - 8; x += 32) {
+    // A pilaster, then a tall arched window between it and the next.
+    R.fill(x, by + 7, 6, 29, c[0]); R.fill(x + 5, by + 7, 1, 29, c[3]); R.fill(x - 1, by + 7, 8, 2, c[2]);
+    const wx = x + 13, ww = 12;
+    if (Math.abs(wx + ww / 2 - cx) < 20) continue;
+    for (let y = by + 10; y < by + 33; y++) for (let i = 0; i < ww; i++) {
+      const top = y - (by + 10), r = ww / 2, dx = i + 0.5 - r;
+      if (top < r && dx * dx + (r - top) ** 2 > r * r) continue;
+      const glass = (i + top) < 9 ? GLASS[0] : top > 17 ? GLASS[3] : GLASS[2];
+      R.set(wx + i, y, i === 0 || i === ww - 1 || i === ww >> 1 || top === 12 ? IRON[1] : glass);
     }
+    R.fill(wx - 1, by + 33, ww + 2, 2, c[0]); R.fill(wx - 1, by + 35, ww + 2, 1, c[3]);
   }
-  // Side walls in shade.
-  R.fill(0, 48, 16, L.h * 16 - 48, c[3]);
-  R.fill(W - 16, 48, 16, L.h * 16 - 48, c[4]);
-  R.fill(14, 48, 2, L.h * 16 - 48, c[2]);
+  paintFlag(R, L.area.replace(/-in$/, ""), cx - 14, by + 9, seed);
+  // The wall's foot throws a shadow on the floor.
+  for (let k = 0; k < 5; k++) for (let x = OX + 16; x < OX + W - 16; x++) R.shade(x, by + 48 + k, 0.32 - k * 0.06);
+  // Side walls seen from above, with their shadow inside.
+  const H = h * 16;
+  for (const [x, lit] of [[OX + 8, true], [OX + W - 16, false]] as const) {
+    R.fill(x, by, 8, H, c[2]);
+    R.fill(x, by, lit ? 1 : 8, H, lit ? c[0] : c[2]);
+    R.fill(lit ? x + 7 : x, by, 1, H, c[4]);
+    if (lit) for (let k = 0; k < 4; k++) for (let y = by + 48; y < by + H - 16; y++) R.shade(x + 8 + k, y, 0.28 - k * 0.06);
+  }
+  // The front wall: its top from above, its face below, the door open and steps down.
+  const fy = OY + (h - 1) * 16;
+  R.fill(OX + 8, fy, W - 16, 6, c[2]); R.fill(OX + 8, fy, W - 16, 1, c[0]);
+  R.fill(OX + 8, fy + 6, W - 16, 30, c[1]);
+  R.fill(OX + 8, fy + 6, W - 16, 2, c[3]);
+  R.fill(OX + 8, fy + 30, W - 16, 6, c[3]); R.fill(OX + 8, fy + 30, W - 16, 1, c[0]); R.fill(OX + 8, fy + 35, W - 16, 1, c[5]);
+  for (let x = OX + 16; x < OX + W - 20; x += 24) {
+    if (x + 16 > OX + door * 16 - 8 && x < OX + (door + 2) * 16 + 8) continue;
+    R.fill(x, fy + 11, 12, 16, c[4]);
+    R.fill(x + 1, fy + 12, 10, 14, GLASS[3]);
+    R.fill(x + 1, fy + 12, 4, 6, GLASS[1]);
+    R.fill(x + 5, fy + 12, 1, 14, IRON[1]); R.fill(x + 1, fy + 18, 10, 1, IRON[1]);
+    R.fill(x - 1, fy + 27, 14, 2, c[0]);
+  }
+  const dx = OX + door * 16;
+  R.fill(dx - 4, fy, 40, 36, c[0]);
+  R.fill(dx, fy, 32, 30, FLOORS[L.floor ?? "parquet"][2]);
+  for (let k = 0; k < 6; k++) R.fill(dx, fy + k, 32, 1, FLOORS[L.floor ?? "parquet"][3]);
+  // Door leaves standing open against the jambs.
+  for (const [x, lit] of [[dx - 4, true], [dx + 32, false]] as const) {
+    R.fill(x, fy + 4, 4, 28, lit ? "#4e7a46" : "#3a5e36"); R.fill(x, fy + 4, 1, 28, lit ? "#6e9a5e" : "#2a4428");
+  }
+  for (let k = 0; k < 3; k++) {
+    const sy = fy + 30 + k * 4;
+    R.fill(dx - 4 - k * 3, sy, 40 + k * 6, 4, STONE[1]); R.fill(dx - 4 - k * 3, sy, 40 + k * 6, 1, "#fbf8f2"); R.fill(dx - 4 - k * 3, sy + 3, 40 + k * 6, 1, STONE[3]);
+  }
+  void seed;
 }
 
-/** Through the middle of a Tower platform: Paris, far below, in haze. */
+/** Round and through the middle of a Tower platform: Paris, far below, in haze. */
 function paris(R: Raster, L: FairLevel, seed: number) {
-  let x0 = L.w, y0 = L.h, x1 = 0, y1 = 0;
-  for (let y = 1; y < L.h - 1; y++) for (let x = 1; x < L.w - 1; x++) if (L.cells[y * L.w + x] === WALL) {
-    x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y);
+  const OX = PAD.x * 16, OY = PAD.top * 16;
+  const haze = ["#d4dee4", "#bccad4", "#a4b4c2", "#e4dccc", "#c8bca8", "#8aa088", "#9cb0a0"];
+  const below = (x: number, y: number) => {
+    const ax = Math.floor((x - OX) / 16), ay = Math.floor((y - OY) / 16);
+    return ax < 0 || ay < 0 || ax >= L.w || ay >= L.h || L.cells[ay * L.w + ax] === WALL;
+  };
+  for (let y = 0; y < R.h; y++) for (let x = 0; x < R.w; x++) {
+    if (!below(x, y)) continue;
+    // Haussmann blocks: zinc roofs with a lit ridge, pale stone fronts, tree-lined boulevards, the river.
+    const sx = x + Math.floor(y / 40) * 7, bx = Math.floor(sx / 18), by = Math.floor(y / 13), lx = sx % 18, ly = y % 13;
+    const boulevard = Math.floor(sx / 18) % 5 === 0 && lx < 4;
+    const river = Math.abs(y - R.h * 0.32 - Math.sin(x * 0.012) * 26) < 7;
+    let col: string;
+    if (river) col = Math.abs(y - R.h * 0.32 - Math.sin(x * 0.012) * 26) > 5 ? haze[4] : "#9cbccc";
+    else if (boulevard) col = lx === 1 || lx === 2 ? (y % 3 ? haze[5] : haze[6]) : haze[3];
+    else if (ly > 10 || lx > 15) col = haze[3];
+    else if (ly > 7) col = haze[4];
+    else col = h2(bx, by, seed) < 0.12 ? haze[5] : ly === 3 ? haze[0] : ly < 3 ? haze[1] : haze[2];
+    R.set(x, y, col);
   }
-  if (x1 < x0) return;
-  const haze = ["#c4d4dc", "#aebfca", "#98aab8", "#8496a6", "#b8a898", "#9a8c80"];
-  for (let y = y0 * 16; y < (y1 + 1) * 16; y++) for (let x = x0 * 16; x < (x1 + 1) * 16; x++) {
-    // Blocks of roofs between the boulevards, the Seine across them.
-    const bx = Math.floor((x + Math.floor(y / 9) * 3) / 7), by = Math.floor(y / 9);
-    const street = x % 23 === 0 || y % 19 === 0;
-    const river = Math.abs(y - (y0 * 16 + 30) - Math.sin(x * 0.03) * 8) < 4;
-    const k = h2(bx, by, seed);
-    R.set(x, y, river ? "#8cb0c4" : street ? haze[0] : k < 0.15 ? "#8aa078" : k < 0.55 ? haze[2] : k < 0.85 ? haze[4] : haze[3]);
+  // The girders of the platform's edge.
+  for (let ay = 0; ay < L.h; ay++) for (let ax = 0; ax < L.w; ax++) {
+    if (L.cells[ay * L.w + ax] !== WALL) continue;
+    const X = OX + ax * 16, Y = OY + ay * 16;
+    const open = (dx: number, dy: number) => { const c = L.cells[(ay + dy) * L.w + ax + dx]; return ay + dy >= 0 && ay + dy < L.h && ax + dx >= 0 && ax + dx < L.w && c !== WALL; };
+    if (open(0, -1)) { R.fill(X, Y, 16, 4, IRON_RED[2]); R.fill(X, Y + 4, 16, 2, IRON_RED[4]); for (let i = 0; i < 16; i += 8) for (let k = 0; k < 8; k++) R.set(X + i + k, Y + 6 + k, IRON_RED[3]); }
+    if (open(0, 1)) R.fill(X, Y + 12, 16, 4, IRON_RED[1]);
+    if (open(1, 0)) R.fill(X + 12, Y, 4, 16, IRON_RED[3]);
+    if (open(-1, 0)) R.fill(X, Y, 4, 16, IRON_RED[2]);
   }
-  // The girders of the tower framing the drop.
-  for (let x = x0 * 16; x < (x1 + 1) * 16; x++) {
-    R.set(x, y0 * 16, IRON_RED[1]); R.set(x, y0 * 16 + 1, IRON_RED[3]);
-    R.set(x, (y1 + 1) * 16 - 1, IRON_RED[3]);
-    if ((x - x0 * 16) % 24 < 2) for (let k = 0; k < 10; k++) R.set(x + k, y0 * 16 + 2 + k, IRON_RED[2]);
-  }
-  for (let y = y0 * 16; y < (y1 + 1) * 16; y++) { R.set(x0 * 16, y, IRON_RED[2]); R.set((x1 + 1) * 16 - 1, y, IRON_RED[4]); }
 }

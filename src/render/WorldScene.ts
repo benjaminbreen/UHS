@@ -6316,9 +6316,8 @@ export class WorldScene extends Phaser.Scene {
       this.applyGrade(0);
     }
     const camera = this.cameras.main;
-    const W = level.w * 16, H = level.h * 16;
-    const width = Math.max(W, camera.displayWidth), height = Math.max(H, camera.displayHeight);
-    camera.setBounds((W - width) / 2, (H - height) / 2, width, height);
+    const b = v.bounds, width = Math.max(b.w, camera.displayWidth), height = Math.max(b.h, camera.displayHeight);
+    camera.setBounds(b.x + (b.w - width) / 2, b.y + (b.h - height) / 2, width, height);
     v.update({ clock: this.runtime.displayClock(), time: this.time.now });
   }
   /** Aboard ship the deck paints and lights itself, with the sea going by round it. */

@@ -48,6 +48,39 @@ export class Raster {
     if (!this.data[i + 3]) return;
     for (let j = 0; j < 3; j++) this.data[i + j] = this.data[i + j] * (1 - by) + tint[j] * by;
   }
+  /** Stardew's edge: a lit rim inside the top of the silhouette, and outside it
+   * a line in a deep, violet-leaning shade of what it touches, never black.
+   * Pixels fainter than `solid` alpha (cast shadows) neither take nor give an edge. */
+  finish(solid = 200) {
+    const { w, h, data: d } = this, src = new Uint8ClampedArray(d);
+    const on = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h && src[(y * w + x) * 4 + 3] >= solid;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (on(x, y)) {
+        if (!on(x, y - 1)) for (let k = 0; k < 3; k++) d[i + k] = d[i + k] + (255 - d[i + k]) * 0.22;
+        continue;
+      }
+      for (const [dx, dy, k] of [[0, 1, 0.5], [1, 0, 0.45], [-1, 0, 0.4], [0, -1, 0.36]] as const) {
+        if (!on(x + dx, y + dy)) continue;
+        const j = ((y + dy) * w + x + dx) * 4;
+        d[i] = Math.max(16, src[j] * k * 0.7 + 52 * 0.3);
+        d[i + 1] = Math.max(14, src[j + 1] * k * 0.7 + 34 * 0.3);
+        d[i + 2] = Math.max(22, src[j + 2] * k * 0.7 + 70 * 0.3);
+        d[i + 3] = 255;
+        break;
+      }
+    }
+    return this;
+  }
+  /** A soft shadow on the ground under a thing: an ellipse of see-through dark. */
+  shadow(cx: number, cy: number, rx: number, ry: number, alpha = 0.3) {
+    for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
+      const t = ((x + 0.5 - cx) / rx) ** 2 + ((y + 0.5 - cy) / ry) ** 2;
+      if (t > 1) continue;
+      const a = Math.round(alpha * (t > 0.6 ? 0.6 : 1) * 255).toString(16).padStart(2, "0");
+      this.set(x, y, `#28204a${a}`);
+    }
+  }
   put(ctx: CanvasRenderingContext2D, x = 0, y = 0) {
     ctx.putImageData(new ImageData(this.data, this.w, this.h), x, y);
   }
