@@ -148,7 +148,12 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
   `street-looks.ts`, a drive's width between neighbours, and nothing else
   built into the gaps. Frontage a block's rows left over is built in the
   place's street looks too, where it has them, and the centre's blocks are
-  cut to the depth of downtown buildings where the city has a downtown. Estates and self-built
+  cut to the depth of downtown buildings where the city has a downtown.
+- Where a city of 1900 to 1960 stands in the Iberian or Italian world, its
+  pack carries the older house of the place (`casaLook`) beside the modern
+  kit, and its housing and shop streets are built of that house; downtown,
+  estates and works take the modern buildings. The United States roadside
+  kit is built only north of Mexico. Estates and self-built
   quarters come by date and share as before. A quarter standing apart from
   the middle, and the town of a suburb map, has shops but no downtown.
 - A city of a million claims 184 cells of its map's 192 and is built out to

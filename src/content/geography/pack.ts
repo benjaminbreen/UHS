@@ -85,7 +85,6 @@ export function periodBuildings(setting: WorldSetting): string[] {
     ];
   if (culture === "east-asian") {
     const japan = lat > 30 && lat < 46 && (lon > 131 || (lon > 129.4 && lat < 35));
-    const korea = !japan && lon > 124 && lon < 130.5 && lat > 33.5 && lat < 39;
     if (japan)
       return [
         "machiya",
@@ -93,11 +92,8 @@ export function periodBuildings(setting: WorldSetting): string[] {
         "machiya-shop",
         ...(year >= 1870 ? ["giyofu-house"] : []),
       ];
-    if (korea) return ["hanok", "hanok-b", "chinese-shophouse"];
-    // South of the Yangtze's latitude the street gables step in horse-head walls.
-    if (lat < 31)
-      return ["chinese-shophouse-south", "chinese-shophouse-south-b", "chinese-courtyard-gate-south"];
-    return ["chinese-shophouse", "chinese-shophouse-b", "chinese-courtyard-gate"];
+    // Joseon and Qing cities stay with the houses their regions already build.
+    return [];
   }
   if (culture === "southeast-asian")
     return year >= 1820
@@ -321,7 +317,7 @@ export function packForSetting(setting: WorldSetting): Pack {
   const buildings = prehistoric
     ? prehistoric
     : modernCity
-      ? modernFlatFrontKit(setting)
+      ? [...casa, ...modernFlatFrontKit(setting)]
       : casa.length
         ? casa
       : euro.length

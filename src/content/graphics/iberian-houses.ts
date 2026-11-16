@@ -21,12 +21,16 @@ export type CasaLook =
   | "bahay-early"
   | "goa";
 
+/** These houses were what a street was built of until concrete took over,
+ * so a city of 1930 still has them beside its modern blocks. */
+const LAST = 1960;
+
 /** Spain, Portugal and the towns they founded from Mexico to the Plata, which
  * built stuccoed, tile-roofed courtyard houses rather than British rows. The
  * British, French and Dutch Caribbean and the Guianas are left out. */
 export function iberianTown(setting: WorldSetting) {
   const { lon, lat, year, settlement } = setting;
-  if (year >= 1900 || (settlement !== "city" && settlement !== "port")) return false;
+  if (year >= LAST || (settlement !== "city" && settlement !== "port")) return false;
   if (setting.culture === "european" && lon >= -10 && lon <= 3.5 && lat >= 36 && lat <= 44) return year >= 1500;
   const outside = ([[-78.5, 17.5, -76, 18.6], [-74.5, 17.9, -71.6, 20.1], [-63.2, 10.5, -59, 18.3], [-61, 1.5, -51.5, 9]] as const)
     .some(([w, s, e, n]) => lon >= w && lon <= e && lat >= s && lat <= n);
@@ -42,7 +46,7 @@ const near = (s: WorldSetting, lon: number, lat: number, d: number) =>
  * louvred shutters in Italy, capiz windows in the Philippines. */
 export function casaLook(setting: WorldSetting): CasaLook | undefined {
   const { lon, lat, year, culture, settlement } = setting;
-  if (year >= 1900 || settlement === "camp") return undefined;
+  if (year >= LAST || settlement === "camp") return undefined;
   const town = settlement === "city" || settlement === "port";
   if (lon < -30) {
     if (!iberianTown(setting)) return undefined;

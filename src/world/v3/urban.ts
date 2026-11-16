@@ -25,6 +25,7 @@ import { random } from "../../core/random";
 import { precinctPlans } from "../../content/settlements/precincts";
 import {
   industrialized,
+  modernity,
   motorized,
 } from "../../content/settlements/modernity";
 import { zoningFor, type LandUse } from "../../content/settlements/zoning";
@@ -211,6 +212,10 @@ function isHistoric(frame: string): boolean {
   return frame.startsWith("modern-medina-");
 }
 
+function isModernKit(frame: string): boolean {
+  return !!(buildingModels[frame] as { modern?: boolean } | undefined)?.modern;
+}
+
 function isPeriod(frame: string): boolean {
   return !!(buildingModels[frame] as { period?: boolean } | undefined)?.period;
 }
@@ -357,7 +362,7 @@ export function urbanNeighborhood(
   const americanStrip =
     modern &&
     pack.setting?.culture === "european" &&
-    (pack.setting?.lon ?? 0) < -30;
+    modernity(pack.setting!).id === "north-america";
   const candidateBases: CandidateRecipe[] = americanStrip
     ? Object.entries(buildingModels)
         .filter(([frame, model]) => {
@@ -1884,6 +1889,12 @@ export function urbanNeighborhood(
         ? modernBuildings(pack.setting, use).filter((f) => buildingModels[f])
         : [];
     if (rebuilt.length) return rebuilt;
+    // Where the pack carries the place's older house beside the modern kit,
+    // its housing and shop streets are still built of it.
+    if (use && use !== "downtown" && use !== "estate" && use !== "informal" && use !== "industrial" && frames.some(isModernKit)) {
+      const own = frames.filter((f) => !isModernKit(f) && !isPeriod(f) && FORMS[use].some((w) => f.endsWith(`-urban-${w}`)));
+      if (own.length) return own;
+    }
     // An old core is built of its own old houses, and nowhere else is.
     if (use === "historic" && historicFrames.length) {
       const shops = historicFrames.filter((f) => /-urban-shop$/.test(f));
