@@ -137,7 +137,7 @@ export class FairView {
     }
     if (fo && this.spray) {
       const g = this.spray, cx = (fo.x + fo.w / 2) * 16, cy = (fo.y + fo.h / 2) * 16;
-      const jets = fo.kind === "coutan" ? 9 : 3;
+      const jets = fo.kind === "coutan" ? 9 : 0;
       for (let j = 0; j < jets; j++) {
         const ang = (j / jets) * Math.PI * 2, rx = fo.kind === "coutan" ? fo.w * 5 : 0, ry = fo.kind === "coutan" ? fo.h * 4 : 0;
         const x0 = cx + Math.cos(ang) * rx, y0 = cy + Math.sin(ang) * ry, tall = fo.kind === "coutan" && j === 0 ? 0 : 18;
@@ -147,9 +147,19 @@ export class FairView {
           g.fillStyle(0xeaf6ff, 0.85 - p * 0.4).fillRect(Math.round(x), Math.round(y), 2, 2);
         }
       }
-      if (fo.kind === "coutan") for (let k = 0; k < 24; k++) {
-        const p = (t * 0.7 + k / 24) % 1, a = (k / 24) * Math.PI * 2;
-        g.fillStyle(0xffffff, 0.9 - p * 0.6).fillRect(Math.round(cx + Math.cos(a) * p * 18), Math.round(cy - 40 + p * p * 40 + Math.sin(a) * p * 6), 2, 2);
+      // The tazza's jet: a column up, an umbrella falling into the upper bowl, and
+      // sheets running off the lower bowl's rim into the basin.
+      const top = cy - 32, H = fo.kind === "coutan" ? 30 : 24;
+      g.fillStyle(0xffffff, 0.9).fillRect(Math.round(cx), Math.round(top - H * 0.85), 1, Math.round(H * 0.85));
+      for (let k = 0; k < 36; k++) {
+        const p = (t * 0.9 + k / 36) % 1, side = k % 2 ? 1 : -1, spread = 5 + (k % 6) * 1.6;
+        const x = cx + side * spread * p, y = top - H * 4 * p * (1 - p) * 0.85 + 10 * p;
+        g.fillStyle(0xeef8ff, 0.95 - p * 0.5).fillRect(Math.round(x), Math.round(y), 1, 2);
+      }
+      for (let k = 0; k < 28; k++) {
+        const p = (t * 1.3 + k / 28) % 1, a = (k / 28) * Math.PI * 2, rim = fo.kind === "coutan" ? 26 : 19;
+        const x = cx + Math.cos(a) * (rim + p * 3), y = cy - 10 + Math.sin(a) * rim * 0.36 + p * p * 16;
+        g.fillStyle(0xdff2ff, 0.8 - p * 0.5).fillRect(Math.round(x), Math.round(y), 1, 2);
       }
     }
     const cam = this.scene.cameras.main, v = cam.worldView, age = f.time - this.born;

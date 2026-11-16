@@ -101,6 +101,7 @@ export function paintFairGround(L: FairLevel, seed: number): Raster {
     }
   }
   for (const g of L.gardens) garden(R, L, g, seed);
+  if (L.fountain) basin(R, L.fountain, seed);
   if (indoor) building(R, L, X0 * 16, Y0 * 16, seed);
   if (L.kind === "platform") paris(R, L, seed);
   return R;
@@ -187,6 +188,27 @@ function paving(R: Raster, X: number, Y: number, seed: number) {
   }
 }
 
+/** A fountain's basin: an oval of water in a moulded coping on its paved apron,
+ * the far wall's shadow on the water and the near coping lit along its top. */
+function basin(R: Raster, f: NonNullable<FairLevel["fountain"]>, seed: number) {
+  const ox = PAD.x * 16, oy = PAD.top * 16, cx = ox + (f.x + f.w / 2) * 16, cy = oy + (f.y + f.h / 2) * 16, rx = f.w * 8 + 4, ry = f.h * 8 + 4;
+  for (let y = f.y; y < f.y + f.h; y++) for (let x = f.x; x < f.x + f.w; x++) paving(R, ox + x * 16, oy + y * 16, seed);
+  for (let y = Math.floor(cy - ry - 2); y <= cy + ry + 6; y++) for (let x = Math.floor(cx - rx - 2); x <= cx + rx + 2; x++) {
+    const e = Math.hypot((x + 0.5 - cx) / rx, (y + 0.5 - cy) / ry), d = (e - 1) * Math.min(rx, ry);
+    if (d > 1 && !(y > cy && d < 4 && Math.hypot((x + 0.5 - cx) / rx, (y - 3.5 - cy) / ry) <= 1)) continue;
+    if (d > 0) { R.set(x, y, d < 2.5 ? STONE[3] : STONE[4]); continue; }
+    if (d > -6) {
+      // The coping: lit across its top, its inner lip shaded.
+      const up = y < cy;
+      R.set(x, y, d > -1 ? (up ? "#fbf8f2" : STONE[1]) : d > -5 ? (up ? STONE[0] : STONE[1]) : STONE[3]);
+      continue;
+    }
+    const band = Math.sin(x * 0.22 + Math.sin(y * 0.4) * 1.8) + Math.sin(y * 0.6 - x * 0.07);
+    const shadow = Math.hypot((x + 0.5 - cx) / rx, (y - 6 - cy) / ry) > 1 - 6 / Math.min(rx, ry) && y < cy;
+    R.set(x, y, shadow ? WATER_C[5] : band > 1.5 ? WATER_C[1] : band < -1.2 ? WATER_C[4] : h2(x >> 2, y, seed) > 0.97 ? WATER_C[0] : WATER_C[3]);
+  }
+}
+
 type Rect = { x: number; y: number; w: number; h: number };
 const sdBox = (px: number, py: number, r: Rect, rad: number) => {
   const qx = Math.abs(px - r.x - r.w / 2) - r.w / 2 + rad, qy = Math.abs(py - r.y - r.h / 2) - r.h / 2 + rad;
@@ -222,6 +244,12 @@ function garden(R: Raster, L: FairLevel, g: FairLevel["gardens"][number], seed: 
   const cx = (X0 + X1) / 2, cy = (Y0 + Y1) / 2, ea = (X1 - X0) / 2 - 22, eb = (Y1 - Y0) / 2 - 22;
   const gxc = OX + (g.gx[0] + g.gx.length / 2) * 16, gyc = OY + (g.gy[0] + g.gy.length / 2) * 16;
   const inBasin = (px: number, py: number) => basin !== undefined && Math.hypot(px - bcx, py - bcy) < brad;
+  const inApron = (px: number, py: number) => basin !== undefined && px >= basin.x - 16 && px < basin.x + basin.w + 16 && py >= basin.y - 16 && py < basin.y + basin.h + 16;
+  // The square of gravel round a basin is drawn as a round walk, the turf filling its corners.
+  const isWalk = (px: number, py: number) => {
+    const cross = Math.abs(px - gxc) < g.gx.length * 8 || Math.abs(py - gyc) < g.gy.length * 8;
+    return walkD(px, py) <= 0 || (cell(px, py) === GRAVEL && (!basin || cross || !inApron(px, py)));
+  };
   const bedD = (px: number, py: number) => {
     let d = 1e9;
     for (const r of beds) {
@@ -267,14 +295,14 @@ function garden(R: Raster, L: FairLevel, g: FairLevel["gardens"][number], seed: 
     }
     // The hedge's face, and its shadow on the ground in front.
     if (bd < 3 && bedD(px, py - 3) <= 0) { R.set(px, py, bd < 2 ? BOXC[4] : BOXC[5]); continue; }
-    const wd = walkD(px, py), onWalk = wd <= 0 || c === GRAVEL;
+    const wd = walkD(px, py), onWalk = isWalk(px, py);
     let col = onWalk ? gravelPx(px, py, seed) : lawnPx(px, py, seed);
     if (!onWalk && wd < 1.5) col = GRASS[4];
     if (onWalk && c !== GRAVEL && wd > -1.5) col = SAND[2];
     R.set(px, py, col);
     if (bd < 8 && bedD(px, py - 8) <= 0) R.shade(px, py, 0.2);
   }
-  const walk = (x: number, y: number) => (walkD(x, y) < -2 || cell(x, y) === GRAVEL) && bedD(x, y) > 6 && !inBasin(x, y);
+  const walk = (x: number, y: number) => isWalk(x, y) && bedD(x, y) > 6 && !inBasin(x, y);
   pebbles(R, X0, Y0, X1 - X0, Y1 - Y0, seed, walk);
   for (let y = Y0; y < Y1; y += 16) for (let x = X0; x < X1; x += 16) tufts(R, x, y, seed, (px, py) => !walk(px, py) && walkD(px, py) > 3 && bedD(px, py) > 8 && cell(px, py) === LAWN && !inBasin(px, py));
   // Roses massed in the beds, one colour to a bed with a stray of another.

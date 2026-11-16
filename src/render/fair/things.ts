@@ -370,6 +370,23 @@ export function paintFairDecor(type: string, v: number): FairSprite | undefined 
     r.finish();
     return { r, ox: 8, oy: 18 };
   }
+  if (type === "tazza") {
+    // A fountain of two stone bowls on a fluted stem, standing in its basin. The
+    // sprite's middle is the right edge of its cell, the middle of the basin.
+    const big = v >= 1, r = new Raster(80, 80), cx = 40, foot = 70, W1 = big ? 26 : 19, W2 = big ? 13 : 10;
+    for (let y = foot - 4; y <= foot + 3; y++) for (let x = -16; x <= 16; x++) if ((x * x) / 256 + ((y - foot) * (y - foot)) / 16 <= 1) r.set(cx + x, y, "#3a78a8");
+    drum(r, cx, foot, big ? 9 : 7, 3, 6, STONE);
+    for (let k = 0; k < 14; k++) drum(r, cx, foot - 6 - k, 3 + (k < 3 ? 2 - k : 0), 1, 1, STONE);
+    // Lower bowl: a wide shallow dish, water brimming in it.
+    drum(r, cx, foot - 18, W1, W1 * 0.36, 5, STONE);
+    for (let j = -W1 * 0.36 + 1; j < W1 * 0.36 - 1; j++) for (let i = -W1 + 2; i < W1 - 2; i++) if ((i * i) / ((W1 - 2) ** 2) + (j * j) / ((W1 * 0.36 - 1) ** 2) <= 1) r.set(cx + i, foot - 23 + j, (i + j * 3) % 9 === 0 ? "#c8ecf6" : "#6cb4da");
+    for (let k = 0; k < 9; k++) drum(r, cx, foot - 24 - k, 2, 1, 1, STONE);
+    drum(r, cx, foot - 33, W2, W2 * 0.36, 4, STONE);
+    for (let j = -W2 * 0.36 + 1; j < W2 * 0.36 - 1; j++) for (let i = -W2 + 2; i < W2 - 2; i++) if ((i * i) / ((W2 - 2) ** 2) + (j * j) / ((W2 * 0.36 - 1) ** 2) <= 1) r.set(cx + i, foot - 37 + j, "#94d0e8");
+    drum(r, cx, foot - 37, 2, 1, 3, STONE);
+    r.finish();
+    return { r, ox: cx - 16, oy: foot - 8 };
+  }
   if (type === "case") {
     // A tall glazed case against the wall: a mahogany base, shelves of goods behind glass, a moulded top.
     const r = new Raster(24, 52), x0 = 3, foot = 44, goods = [BRASS, RED, GLASS, STONE, ramp(["#6a8ab8", "#7a9a5a", "#c8a050"][Math.floor(v * 3)])];

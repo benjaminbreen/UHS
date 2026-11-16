@@ -19,7 +19,7 @@ const areas: FairArea[] = [
   {
     id: "trocadero", name: "the Trocadéro gardens", kind: "grounds", gate: "s", links: { n: "iena" },
     buildings: [pavilion("eaux-et-forets", "the Water and Forests pavilion", "timber", 4, 14, 0, 6)],
-    stands: { tags: ["horticulture"], n: 4 }, people: [...visitors, "fair-gardener"],
+    fountain: "basin", stands: { tags: ["horticulture"], n: 4 }, people: [...visitors, "fair-gardener"],
     note: "The Trocadéro slope held horticulture and the Forestry Department's log pavilion. The 1878 palace stands behind the visitor, off the bottom of the screen.",
     basis: "documented",
   },
