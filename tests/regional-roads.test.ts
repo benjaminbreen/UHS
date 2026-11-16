@@ -89,3 +89,20 @@ it("carries a trunk railway across a map border at the same cell on both sides",
   expect(Math.abs(Math.min(...leaving) - Math.min(...entering))).toBeLessThanOrEqual(1);
   expect(trunkRoads(west, 192, 1860, sample).rails).toHaveLength(0);
 });
+
+it("runs a playable map's roads to its border crossings, not to settlements beyond the edge", () => {
+  const seam = (side: string, road = true) => ({ side, start: 0, end: 1, road, roadAt: 0.25 });
+  const playableMap = { size: 384, exits: [{ id: "a~b", seam: seam("E") }, { id: "a~c", seam: seam("N") }, { id: "a~d", seam: seam("S", false) }] };
+  const bounded = { ...context, settingAt: () => ({ year: 0, roadRevision: 1, playableMap }) } as unknown as RegionalContext;
+  const inside = [{ id: "town", cx: 0, cy: 0, center: { x: 0, y: 0 } }, { id: "hamlet", cx: 0, cy: 0, center: { x: 120, y: -100 } }] as Site[];
+  const beyond = [{ id: "phantom", cx: 1, cy: 0, center: { x: 300, y: 0 } }] as Site[];
+  const transport = regionalTransport(bounded, (x, y) => (x === 0 && y === 0 ? inside : x === 1 && y === 0 ? beyond : []), sample);
+  const area = { x: -192, y: -192, w: 384, h: 384 };
+  const records = transport.connectionsIn(area);
+  expect(records.some((r) => r.from === "phantom" || r.to === "phantom")).toBe(false);
+  const ends = transport.roadsIn(area).flatMap((r) => [r.points[0], r.points.at(-1)!]).map((p) => `${p.x},${p.y}`);
+  // A quarter of the way along each border that has a crossing; none on the one that has not.
+  expect(ends).toContain("191,-96");
+  expect(ends).toContain("-96,-192");
+  expect(ends.some((p) => p.endsWith(",191"))).toBe(false);
+});

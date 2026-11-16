@@ -36,6 +36,13 @@ export function regionalTransport(
     .filter((c) =>
       containsDate(c.dates, { year: context.settingAt(0, 0).year }),
     );
+  // A playable map is one square of the atlas, and the land past its border
+  // is another map's to build. Its roads run to each border's own crossing
+  // point, which the map on the far side shares, so a road that leaves one
+  // map arrives in the next; they do not run on to settlements this map
+  // only imagines beyond its edge.
+  const map = context.settingAt(0, 0).playableMap;
+  const half = (map?.size ?? 0) / 2;
   const point = (id: string) => {
     const p = context.activePlaces.find((p) => p.id === id);
     return p && context.local(p);
@@ -110,19 +117,30 @@ export function regionalTransport(
             ? [elbow({ x: b.x, y: a.y }), elbow({ x: a.x, y: b.y })]
             : [(shared ? directLine : line)(a, b)]
           ).find(clear);
-    const search = (from: Point, to: Point) =>
-      planRoad(
+    // The search walks a four-cell grid and would step off a map's last
+    // row: an end on the border is searched from four cells inside it, and
+    // the road runs straight out from there.
+    const inside = (p: Point): Point => {
+      if (!map || (Math.abs(p.x) < half - 4 && Math.abs(p.y) < half - 4)) return p;
+      const pull = (v: number) => Math.max(-half + 4, Math.min(half - 4, Math.round(v / 4) * 4));
+      return { x: pull(p.x), y: pull(p.y) };
+    };
+    const search = (from: Point, to: Point) => {
+      const f = inside(from), t = inside(to);
+      const road = planRoad(
         id,
-        from,
-        to,
+        f,
+        t,
         sample,
         existing,
         allowed,
         new Set(),
-        bounds([from, to]),
+        bounds([f, t]),
         1,
         4,
       );
+      return road && { ...road, points: [...line(from, f).slice(0, -1), ...road.points, ...line(t, to).slice(1)] };
+    };
     // A search only reaches a bridge that lies on its line, and otherwise
     // floods the near bank until the budget runs out. So a crossing is routed
     // as two land legs to the bridge's ends: a bridge already built first,
@@ -150,6 +168,7 @@ export function regionalTransport(
       };
     };
     let bridge: Road | undefined;
+    let spans: Road[] = [];
     let road: Road | undefined;
     if (straight)
       road = {
@@ -176,6 +195,39 @@ export function regionalTransport(
       }
       // No bridge, but the water may be a bay the road can walk round.
       road ??= search(a, b);
+      // Two rivers, or a river and a stream: a bridge over each stretch of
+      // water on the direct line, and land legs between them.
+      if (!road) {
+        const waters: Point[] = [];
+        let wet: Point[] = [];
+        for (const p of [...line(a, b), a]) {
+          if (p !== a && sample(p.x, p.y).water < 0) wet.push(p);
+          else if (wet.length) { waters.push(wet[wet.length >> 1]); wet = []; }
+        }
+        const decks = waters.map((w, n) => crossing(`${id}-bridge-${n}`, w, sample, 48));
+        if (decks.length > 1 && decks.every(Boolean)) {
+          for (const deck of decks) roadCells(deck!, (x, y) => allowed.add(cellKey(x, y)));
+          const d = (p: Point, q: Point) => Math.abs(p.x - q.x) + Math.abs(p.y - q.y);
+          const points: Point[] = [];
+          let at: Point | undefined = a;
+          let cost = 0;
+          for (const deck of decks) {
+            const ends = [deck!.points[0], deck!.points[deck!.points.length - 1]];
+            const from: Point = at!;
+            const [near, far]: Point[] = d(from, ends[0]) <= d(from, ends[1]) ? ends : [ends[1], ends[0]];
+            const leg = search(from, near);
+            if (!leg) { at = undefined; break; }
+            points.push(...leg.points, ...(near === ends[0] ? deck!.points : [...deck!.points].reverse()).slice(1, -1));
+            cost += leg.cost + deck!.cost;
+            at = far;
+          }
+          const last = at && search(at, b);
+          if (last) {
+            road = { ...last, points: [...points, ...last.points], cost: cost + last.cost };
+            spans = decks as Road[];
+          }
+        }
+      }
     } else road = search(a, b);
     const result = {
       record: {
@@ -188,7 +240,9 @@ export function regionalTransport(
       },
       roads: road
         ? [
-            ...(bridge
+            ...(spans.length
+              ? spans
+              : bridge
               ? [bridge]
               : knownBridges.filter((b) => {
                   const cells = new Set<string>();
@@ -219,13 +273,23 @@ export function regionalTransport(
     s.pack?.setting?.settlement === "camp" ||
     s.profile?.pattern === "encampment" ||
     s.profile?.pattern === "band";
+  const within = (s: Site) => !map || (Math.abs(s.center.x) < half && Math.abs(s.center.y) < half);
+  const crossings = (cx: number, cy: number): Site[] =>
+    (map?.exits ?? []).flatMap((e) => {
+      if (!e.seam?.road) return [];
+      const t = Math.round(-half + (e.seam.start + (e.seam.end - e.seam.start) * e.seam.roadAt) * (map!.size - 1));
+      const side = e.seam.side;
+      const center = { x: side === "W" ? -half : side === "E" ? half - 1 : t, y: side === "N" ? -half : side === "S" ? half - 1 : t };
+      return [{ id: `border:${e.id}`, cx, cy, center } as Site];
+    });
   const neighborCache = new Map<string, Site[]>();
   function neighbors(s: Site) {
     const oldNeighbors = neighborCache.get(s.id);
     if (oldNeighbors) return oldNeighbors;
-    const nearby: Site[] = [];
+    if (!within(s)) return [];
+    const nearby: Site[] = map ? crossings(s.cx, s.cy) : [];
     for (let y = -1; y <= 1; y++)
-      for (let x = -1; x <= 1; x++) nearby.push(...sitesIn(s.cx + x, s.cy + y));
+      for (let x = -1; x <= 1; x++) nearby.push(...sitesIn(s.cx + x, s.cy + y).filter(within));
     const selected = new Map<number, Site>();
     for (const b of nearby.sort((a, b) => a.id.localeCompare(b.id))) {
       if (s.id === b.id || roadless(b)) continue;
@@ -253,10 +317,11 @@ export function regionalTransport(
             b.center.y - s.center.y,
           );
           const witnesses = new Map(nearby.map((p) => [p.id, p]));
-          for (let y = -1; y <= 1; y++)
-            for (let x = -1; x <= 1; x++)
-              for (const p of sitesIn(b.cx + x, b.cy + y))
-                witnesses.set(p.id, p);
+          if (!map)
+            for (let y = -1; y <= 1; y++)
+              for (let x = -1; x <= 1; x++)
+                for (const p of sitesIn(b.cx + x, b.cy + y))
+                  witnesses.set(p.id, p);
           return ![...witnesses.values()].some(
             (p) =>
               p.id !== s.id &&

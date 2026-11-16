@@ -33,7 +33,13 @@ and relief run straight across. `sampleSeam` in `seams.ts` records each
 border's profile, and `boundaryWater` (`v3/boundary-water.ts`) joins water
 across it; only the outer band blends.
 `waterways.ts` and `water-edges.ts` match rivers across the edge;
-`entrances.ts` finds reachable entry points. Trunk routes (`routes.ts`) live
+`entrances.ts` finds reachable entry points. Each land border has one road
+crossing (`roadAt` on its seam, the same point from both sides), and a
+playable map's regional roads run to those crossings, not to settlements
+imagined beyond its edge (`crossings` in `regional/transport.ts`): a road
+that leaves one map arrives in the next. Where water lies between a town
+and its crossing the road bridges each stretch of it; a few crossings
+behind wide water still get no road. Trunk routes (`routes.ts`) live
 in atlas coordinates so both sides of a border draw the same road or rail.
 
 `MapTravel` in `map-travel.ts` handles a crossing: it prepares the
