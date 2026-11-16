@@ -43,43 +43,6 @@ def calabash(v=0):
  return c.image()
 
 
-def pounding_mortar(v=0):
- """A standing wooden mortar, waisted like a drum, with its pestle stood
- up in it. The hollow is seen from above."""
- c = Canvas(20, 40)
- w = RAMPS[WOOD7[v]]
- cx = 9.0
- prof = belly(23, 38, [6.0, 5.4, 3.6, 3.4, 4.6, 5.2])
- revolve(c, cx, prof, w, foot=2)
- for y in (24, 25):                                  # the lip, a lit band
-  for x in range(int(cx - prof[y]), int(cx + prof[y]) + 1):
-   c.set(x, y, w[5] if x < cx + 2 else w[3])
- for x in range(int(cx - 4.5), int(cx + 5)):         # carved foot ring
-  c.set(x, 34, w[2])
- # The mouth: a dark ellipse with the lip curving over its far side.
- for y in range(20, 26):
-  for x in range(2, 17):
-   u, t = (x + .5 - cx) / 6.0, (y + .5 - 23.0) / 2.6
-   r = u * u + t * t
-   if r > 1: continue
-   c.set(x, y, w[5] if r > 0.55 and t < 0 else w[4] if r > 0.55 else w[0] if t < 0.3 else w[1])
- soft_outline(c, w[1], w[3])
- # The pestle: long, thicker at both ends, leaning a little to the right.
- p = RAMPS[WOOD7[(v + 2) % 3]]
- for y in range(0, 24):
-  x = int(cx - 1 + (24 - y) * 0.12)
-  thick = 3 if y < 4 else 2
-  for k in range(thick):
-   c.set(x + k, y, p[5] if k == 0 else p[3] if k == 1 else p[2])
-  c.set(x + thick, y, p[1])
- c.hline(int(cx + 1), int(cx + 4), 0, p[4])
- if v == 1:                                          # a second pestle leaning out
-  for y in range(6, 36):
-   x = int(cx + 7 + (y - 6) * 0.22)
-   c.set(x, y, p[4]); c.set(x + 1, y, p[2])
- return c.image()
-
-
 CORD = {
  0: ['#4a3d26', '#6d5a36', '#907a4b', '#b09a68', '#cbb688'],
  1: ['#4a3d26', '#7b2f22', '#a8452d', '#2d4f6e', '#e0c79a'],
@@ -225,7 +188,6 @@ def stock_pen(v=0):
 
 REGIONAL = {
  'calabash': calabash,
- 'pounding-mortar': pounding_mortar,
  'charpoy': charpoy,
  'log-hive': log_hive,
  'stock-pen': stock_pen,

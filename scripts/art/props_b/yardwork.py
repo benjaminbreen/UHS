@@ -41,28 +41,6 @@ def pole(c, a, b, r):
  c.line(a, b, r[-2])
 
 
-def metate(v=0, m=0):
- """A three-legged basalt grinding slab, the mano across it and a spill of
- maize meal at the low end."""
- c = Canvas(24, 15)
- s = BASALT[v % 2]
- c.rect(11, 9, 12, 13, s[0])
- c.poly([(1, 5), (20, 3), (22, 8), (2, 11)], s[2])
- c.poly([(2, 11), (22, 8), (22, 10), (2, 13)], s[1])
- c.poly([(4, 6), (18, 4), (20, 8), (4, 10)], s[4])
- c.line((2, 11), (22, 8), s[3])
- for x, y in [(2, 6), (8, 4), (19, 5), (5, 10), (12, 10), (20, 9), (15, 6)]:
-  c.set(x, y, s[5])
- c.rect(3, 13, 4, 14, s[1]); c.set(3, 13, s[3])
- c.rect(20, 10, 21, 12, s[1]); c.set(20, 10, s[3])
- ell(c, (3, 7, 7, 10), MAIZE[2]); c.hline(4, 6, 8, MAIZE[4])
- c.hline(0, 3, 13, MAIZE[2]); c.hline(1, 2, 14, MAIZE[1]); c.set(1, 12, MAIZE[3])
- c.poly([(12, 2), (15, 2), (16, 10), (13, 10)], s[4])
- c.line((12, 2), (13, 10), s[5]); c.line((15, 2), (16, 10), s[1]); c.hline(13, 16, 11, s[0])
- c.rim(s)
- return c.image()
-
-
 def quern(v=0, m=0):
  """A rotary quern: the runner stone on its bedstone, a wooden handle peg
  and the ring of flour it has thrown out."""
@@ -76,28 +54,6 @@ def quern(v=0, m=0):
  w = RAMPS['wood']
  c.vline(13, 1, 7, w[4]); c.vline(14, 1, 7, w[2]); c.set(13, 1, w[5])
  c.rim(s)
- return c.image()
-
-
-def trip_hammer(v=0, m=0):
- """A foot-worked trip-hammer: a long beam on a pivot, its pestle over a
- stone mortar sunk in the ground, the foot end over a worn hollow."""
- c = Canvas(54, 22)
- s = RAMPS['granite']
- w = RAMPS[('wood', 'darkwood')[v % 2]]
- ell(c, (0, 14, 13, 21), s[2]); ell(c, (1, 15, 12, 20), s[4])
- ell(c, (3, 16, 10, 20), s[0]); ell(c, (4, 17, 9, 20), '#e3d6aa'); c.set(6, 18, '#fff4d0')
- ell(c, (42, 16, 53, 21), '#3a3024')
- for x in (25, 30):
-  c.vline(x, 9, 19, w[1]); c.vline(x + 1, 9, 19, w[3])
- for x in range(5, 49):
-  y = 4 + (x - 5) * 10 // 43
-  c.vline(x, y, y + 1, w[4]); c.set(x, y + 2, w[1])
- c.set(27, 10, RAMPS['iron'][3]); c.set(28, 10, RAMPS['iron'][1])
- c.rect(4, 5, 8, 12, w[2]); c.vline(4, 5, 12, w[4]); c.vline(8, 5, 12, w[1])
- c.rect(4, 13, 8, 15, s[3]); c.vline(4, 13, 15, s[5])
- c.poly([(43, 14), (51, 15), (51, 17), (43, 16)], w[4])
- c.rim(w)
  return c.image()
 
 
@@ -125,58 +81,6 @@ def travois(v=0, m=0):
  for x, y in [(74, 27), (77, 27), (75, 16), (78, 17)]:
   c.set(x, y, '#8a6a44')
  c.rim(p)
- return c.image()
-
-
-def wash_tub(v=0, m=0):
- """A coopered wash tub on a low bench, a ridged washboard stood in it and
- a wet shirt over the rim. The suds shift."""
- c = Canvas(26, 24)
- w = RAMPS[('wood', 'palewood')[v % 2]]
- i = RAMPS['iron']
- q = RAMPS['water']
- c.rect(1, 15, 24, 16, w[4]); c.hline(1, 24, 17, w[1])
- for x in (3, 21):
-  c.rect(x, 18, x + 1, 23, w[1]); c.vline(x, 18, 22, w[3])
- cyl(c, 12, 8, 8, 3, 6, w)
- for x in range(6, 19, 3):
-  dy = round(3 * max(0, 1 - ((x - 12) / 8) ** 2) ** .5)
-  c.vline(x, 8 + dy, 14 + dy, w[1])
- for k in (1, 5):
-  for x in range(4, 21):
-   dy = round(3 * max(0, 1 - ((x - 12) / 8) ** 2) ** .5)
-   c.set(x, 8 + k + dy, i[2 if x < 12 else 1])
- ell(c, (6, 6, 18, 10), q[3]); ell(c, (8, 7, 15, 9), q[4])
- for k, (x, y) in enumerate([(8, 7), (11, 8), (14, 7), (16, 9), (10, 9), (13, 9)]):
-  if (k + m) % 3: c.set(x, y, q[6])
- c.set(9 + m % 4, 8, q[6])
- c.rect(15, 1, 19, 9, w[1]); c.rect(16, 2, 18, 8, w[4])
- for y in range(3, 8, 2): c.hline(16, 18, y, w[2])
- c.poly([(3, 6), (6, 6), (5, 13), (2, 13)], '#7b4540'); c.line((4, 7), (3, 12), '#cb9470')
- c.rim(w)
- return c.image()
-
-
-def grindstone(v=0, m=0):
- """A sandstone sharpening wheel on its axle, the crank to one side and the
- lower rim running in a trough of water."""
- c = Canvas(26, 26)
- s = RAMPS['sandstone']
- w = RAMPS[('wood', 'darkwood')[v % 2]]
- i = RAMPS['iron']
- c.vline(3, 8, 22, w[1]); c.vline(22, 8, 22, w[1])
- ell(c, (6, 2, 20, 21), s[1]); ell(c, (5, 2, 19, 21), s[3])
- ell(c, (7, 4, 17, 19), s[4]); ell(c, (6, 3, 16, 17), s[3])
- c.line((7, 5), (6, 12), s[5])
- for x, y in [(9, 5), (15, 8), (8, 15), (14, 16)]:
-  c.set(x, y, s[2])
- c.rect(11, 10, 13, 12, i[1]); c.set(11, 10, i[4])
- c.hline(13, 22, 11, i[2]); c.vline(23, 6, 11, i[2]); c.hline(23, 25, 6, w[4])
- c.rect(1, 17, 24, 23, w[2]); c.hline(1, 24, 17, w[4])
- c.hline(2, 23, 18, RAMPS['water'][4]); c.set(10, 18, RAMPS['water'][6])
- for x in range(5, 24, 5): c.vline(x, 19, 23, w[1])
- c.rect(2, 24, 3, 25, w[0]); c.rect(22, 24, 23, 25, w[0])
- c.rim(w)
  return c.image()
 
 
@@ -256,29 +160,6 @@ def kiln(v=0, m=0):
  return c.image()
 
 
-def fishing_nets(v=0, m=0):
- """A net hung to dry between two poles, floats along the head rope, and
- a pair of basket fish traps below."""
- c = Canvas(36, 26)
- w = RAMPS['wood']
- net = ('#8c7b5c', '#6b4a36')[v % 2]
- c.vline(3, 2, 24, w[2]); c.vline(4, 2, 24, w[4]); c.vline(31, 2, 24, w[2]); c.vline(32, 2, 24, w[1])
- c.hline(4, 31, 3, RAMPS['rope'][2])
- for x in range(5, 31):
-  sag = round(4 * (1 - ((x - 18) / 13) ** 2))
-  for y in range(4, 15 + sag):
-   if (x + y) % 3 == 0 or (x - y) % 3 == 0: c.set(x, y, net)
-  c.set(x, 15 + sag, '#5a4a36')
-  if x % 4 == 1: c.set(x, 4, '#d8c38a')
- f = RAMPS['wicker7']
- for x0, y0 in ((6, 19), (18, 21)):
-  c.poly([(x0, y0), (x0 + 10, y0 - 2), (x0 + 11, y0 + 1), (x0, y0 + 4)], f[3])
-  ell(c, (x0 - 1, y0 - 1, x0 + 2, y0 + 4), f[1]); c.set(x0, y0 + 1, f[0])
-  for k in range(3, 11, 3): c.line((x0 + k, y0 - 1), (x0 + k, y0 + 3), f[1])
- c.rim(w)
- return c.image()
-
-
 def lever_press(v=0, m=0):
  """A beam press for olives or grapes: the beam socketed in its posts,
  a stack of pressing baskets on the stone bed, a drilled weight stone on
@@ -317,30 +198,6 @@ def tanning_pits(v=0, m=0):
  c.poly([(16, 13), (24, 13), (26, 19), (22, 21), (17, 20)], HIDE[3]); c.line((17, 14), (23, 14), HIDE[4])
  c.line((35, 9), (40, 0), RAMPS['wood'][4]); c.line((36, 9), (41, 0), RAMPS['wood'][2])
  c.rim(r)
- return c.image()
-
-
-def dye_vats(v=0, m=0):
- """Indigo dye pots sunk to their rims in a plastered floor, the liquor
- skinned bronze, and dyed cloth drying on a line behind. The cloth stirs."""
- c = Canvas(36, 30)
- k = RAMPS['terracotta7']
- w = RAMPS['wood']
- c.vline(2, 2, 15, w[2]); c.vline(33, 2, 15, w[2]); c.hline(2, 33, 2, RAMPS['rope'][2])
- sway = (0, 1, 0, -1)[m % 4]
- for x0 in (5, 19):
-  for x in range(x0, x0 + 11):
-   bottom = 11 + (1 if x % 3 == 0 else 0)
-   for y in range(3, bottom + 1):
-    xx = x + (sway if y > 7 else 0)
-    c.set(xx, y, INDIGO[2] if (x + y) % 4 else INDIGO[3])
-   if (x - x0) % 3 == 1: c.set(x + sway, 6, INDIGO[4])
- disc(c, 18, 22, 17.5, 6.5, MUD[0][3]); disc(c, 18, 21.6, 16.5, 5.6, MUD[0][4])
- for x, y in ((8, 21), (18, 24), (28, 21)):
-  disc(c, x, y, 5, 2.6, k[5]); disc(c, x, y + .3, 4, 2, k[3])
-  disc(c, x, y + .5, 3.4, 1.6, INDIGO[0])
-  c.hline(x - 2, x, y, '#8a6a4a'); c.set(x + 1, y + 1, '#5a4a6a')
- c.rim(w)
  return c.image()
 
 
@@ -389,41 +246,14 @@ def bloomery(v=0, m=0):
  return c.image()
 
 
-def saddle_stand(v=0, m=0):
- """A saddle over its rail on a woven blanket, a stirrup hanging, the
- bridle looped over the post."""
- c = Canvas(28, 22)
- w = RAMPS['wood']
- l = LEATHER
- for x in (4, 22):
-  c.line((x - 2, 21), (x, 9), w[1]); c.line((x + 2, 21), (x, 9), w[3])
- c.rect(2, 8, 25, 9, w[4]); c.hline(2, 25, 10, w[1])
- bands = ((RED, CREAM, BLUE, CREAM), (BLUE, YEL, RED, YEL))[v % 2]
- for y in range(7, 16):
-  c.hline(6 + (y > 12), 20 - (y > 12), y, bands[(y // 2) % 4])
- c.poly([(7, 7), (9, 3), (11, 6), (16, 6), (18, 2), (20, 7), (19, 10), (8, 10)], l[2])
- c.line((9, 3), (10, 6), l[4]); c.hline(11, 16, 6, l[4]); c.line((18, 2), (19, 6), l[1])
- c.vline(13, 10, 16, l[1]); c.rect(12, 17, 14, 18, RAMPS['iron'][3]); c.set(13, 17, RAMPS['iron'][1])
- c.line((24, 9), (26, 15), l[1]); c.line((26, 15), (23, 16), l[1]); c.set(25, 12, RAMPS['iron'][4])
- c.rim(w)
- return c.image()
-
-
 YARDWORK = {
- 'metate': metate,
  'quern': quern,
- 'trip-hammer': trip_hammer,
  'travois': travois,
- 'wash-tub': wash_tub,
- 'grindstone': grindstone,
  'backstrap-loom': backstrap_loom,
  'dugout': dugout,
  'kiln': kiln,
- 'fishing-nets': fishing_nets,
  'lever-press': lever_press,
  'tanning-pits': tanning_pits,
- 'dye-vats': dye_vats,
  'rice-rack': rice_rack,
  'bloomery': bloomery,
- 'saddle-stand': saddle_stand,
 }

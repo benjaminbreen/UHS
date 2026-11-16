@@ -155,83 +155,6 @@ def _hide_mask(v):
  return mask
 
 
-def hide_frame(v=0, layer='all'):
- """A hide laced into a pole frame to dry and be scraped: two posts, a
- top bar it hangs from, a lower bar its hind legs are tied to."""
- c = Canvas(40, 40)
- w = RAMPS[WOOD7[2 if v == 0 else 0]]
- h = HIDE[v]
- # Frame behind the hide.
- _post(c, 3, 3, 39, w, knots=(14, 27))
- _post(c, 34, 3, 39, w, knots=(10, 22))
- _bar(c, 1, 38, 5, w)
- _bar(c, 4, 36, 31, w)
- mask = _hide_mask(v)
- for (x, y), d in mask.items():
-  u = (x + .5 - 20) / 12
-  t = (y + .5 - 19) / 13
-  # Lit from the upper left; the stretched middle is flattest and brightest,
-  # the edges curl and darken.
-  tone = 5 - (1 if d > 0.6 else 0) - (1 if u > 0.4 else 0) - (1 if t > 0.55 else 0) + (1 if u < -0.2 and t < -0.1 and d < 0.6 else 0)
-  if v == 2 and jitter(x, y // 2, 7) % 9 == 0 and d < 0.7: tone -= 2        # the dapple
-  if jitter(x // 4, y // 3, 3) % 5 == 0: tone -= 1                             # uneven drying
-  if abs(x + .5 - 20) < 1 and 10 < y < 28: tone -= 1                          # the spine
-  if (x * 7 + y * 3) % 17 == 0: tone -= 1                                      # scraping marks
-  c.set(x, y, h[max(1, min(6, tone))])
- for (x, y) in mask:                                   # its edge, in its own dark
-  for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-   if (x + dx, y + dy) not in mask: c.set(x + dx, y + dy, h[0])
- # Ties from the legs to the frame, and the pegs it hangs from.
- r = RAMPS['rope']
- for (lx, ly), (px, py) in [((9, 11), (6, 11)), ((31, 11), (33, 11)), ((10, 28), (6, 30)), ((30, 28), (33, 30))]:
-  n = max(abs(px - lx), abs(py - ly), 1)
-  for i in range(n + 1):
-   c.set(round(lx + (px - lx) * i / n), round(ly + (py - ly) * i / n), r[2])
- for px in (15, 20, 25):
-  c.set(px, 7, INK); c.set(px, 8, h[0])
- _lash(c, 3, 5); _lash(c, 34, 5)
- grass(c, [(1, 40, 3), (37, 40, 2)])
- return c.image()
-
-
-def knapping_floor(v=0):
- """Where someone knaps: a hide laid on the ground to catch the waste, a
- core half worked, an antler billet and a hammerstone beside it, finished
- blades laid in a row, and a scatter of flakes past the hide's edge."""
- c = Canvas(34, 20)
- flint = [['#15171b', '#262a31', '#3b414c', '#56606e', '#7d8796', '#a8b1bd'],
-          ['#0b0a0d', '#17151a', '#26232b', '#3c3844', '#5e5868', '#8d869a'],
-          ['#2a1a10', '#44291a', '#633f26', '#845a37', '#a57b52', '#c49e76']][v]
- hide = HIDE[1]
- for y in range(4, 18):                               # the hide
-  for x in range(3, 29):
-   u, t = (x + .5 - 16) / 12.5, (y + .5 - 11) / 6.4
-   d = abs(u) ** 2.6 + abs(t) ** 2.6 + (jitter(x, y) % 4) * 0.04
-   if d > 1: continue
-   tone = 4 if d < 0.5 and u < 0.2 else 3 if d < 0.85 else 2
-   if (x * 5 + y * 3) % 13 == 0: tone -= 1
-   c.set(x, y, hide[tone])
- blob(c, [(12, 10.5, 3.6, 2.8)], flint)              # the core, flakes off one face
- for x, y in [(11, 9), (13, 9), (10, 11)]: c.set(x, y, flint[5])
- for k in range(4):                                   # blades in a row
-  x = 18 + k * 2
-  for y in range(8, 13):
-   c.set(x, y + (k % 2), flint[4] if y < 10 else flint[3])
-  c.set(x, 7 + (k % 2), flint[5])
- bone = ['#3f392e', '#645c4a', '#8a8068', '#aaa084', '#c4ba9c', '#d8cfb2']
- for i in range(8):                                   # the antler billet
-  c.set(6 + i, 14 - i // 3, bone[4]); c.set(6 + i, 15 - i // 3, bone[2])
- c.set(9, 11, bone[4]); c.set(9, 10, bone[3])         # a tine
- blob(c, [(24.5, 14.5, 2.2, 1.6)], WARMSTONE[1:])     # the hammerstone
- for k in range(22):                                  # waste, thickest near the core
-  r = 3 + (jitter(k, v, 9) % 13)
-  a = jitter(v, k, 4) / 97 * 6.283
-  x = int(12 + r * 1.3 * cos(a)); y = int(11 + r * 0.55 * sin(a))
-  if 0 <= x < 34 and 0 <= y < 20 and c.get(x, y) not in (flint[1], flint[2], flint[3]):
-   c.set(x, y, flint[5] if k % 3 == 0 else flint[4])
- return c.image()
-
-
 def warp_loom(v=0):
  """A warp-weighted loom: two posts and a beam, cloth growing down from the
  top, the warp held taut by rows of clay weights."""
@@ -368,101 +291,6 @@ def grain_pit(v=0):
  return c.image()
 
 
-def skull_post(v=0):
- """A post by a gate or a shrine carrying an aurochs skull, weathered grey,
- the horns sweeping out and forward."""
- c = Canvas(30, 36)
- w = RAMPS[WOOD7[1]]
- _post(c, 13, 12, 35, w, knots=(20, 29))
- bone = ['#2f2a22', '#4d463a', '#6e6654', '#8f8670', '#aca38a', '#c3baa0', '#d6cfb6']
- # The skull: broad brow, narrowing to the muzzle, seen from a little above.
- for y in range(5, 20):
-  t = (y - 5) / 14
-  half = 5.2 - 2.4 * t ** 1.4
-  for x in range(int(14.5 - half), int(14.5 + half) + 1):
-   u = (x + .5 - 14.5) / half
-   tone = 5 if u < -0.2 and t < 0.5 else 4 if u < 0.4 else 3
-   if t > 0.7: tone -= 1
-   c.set(x, y, bone[tone])
- for x in (12, 16):                                   # the orbits, deep
-  c.set(x, 9, bone[0]); c.set(x + 1, 9, bone[1]); c.set(x, 10, bone[1])
- c.vline(14, 12, 17, bone[3]); c.set(13, 18, bone[1]); c.set(15, 18, bone[1])  # nasal line
- horn = ['#1f1a14', '#3e3527', '#62553c', '#8a7a58', '#b1a07a', '#cdbd97']
- for side in (-1, 1):                                 # horns: up, out, then forward
-  for i in range(12):
-   x = 14.5 + side * (5 + i * 0.95)
-   y = 6 - 3.2 * sin(i / 11 * pi * (0.8 if v != 1 else 0.55)) + (i > 8) * (i - 8) * (0.6 if v == 1 else -0.2)
-   thick = 2 if i < 7 else 1
-   for k in range(thick):
-    c.set(x, y + k, horn[4 - (i > 8)] if k == 0 else horn[2])
-  c.set(14.5 + side * 16.4, 6 - 3.2 * sin(pi * 0.8) - 1, horn[5])
- soft_outline(c, bone[1], bone[3])
- c.hline(12, 17, 4, bone[6])
- grass(c, [(11, 36, 3), (17, 36, 2)])
- return c.image()
-
-
-def shaduf(v=0):
- """A shaduf: a sweep pole pivoting on a crossbar between two posts, a mud
- counterweight on the short end, a bucket on its rope over the water."""
- c = Canvas(54, 50)
- w = RAMPS[WOOD7[0]]
- mud = ['#2e2218', '#4a3828', '#654e36', '#806648', '#9b7f5c', '#b39770']
- for x in (19, 28):                                   # the uprights
-  if v == 2:                                          # mud-brick pillars
-   for y in range(24, 50):
-    for xx in range(x - 2, x + 4):
-     c.set(xx, y, mud[4] if xx < x else mud[3] if xx < x + 2 else mud[2])
-     if (y + (xx // 3) * 2) % 5 == 0: c.set(xx, y, mud[1])
-   c.hline(x - 2, x + 3, 23, mud[5])
-  _post(c, x, 18, 49, w)
- _bar(c, 17, 32, 19, w)                               # the pivot bar
- # The sweep: two pixels thick, lit along its top, long end high over the water.
- ax, ay, bx, by = 5, 36, 50, 7
- n = bx - ax
- for i in range(n + 1):
-  x = ax + i; y = round(ay + (by - ay) * i / n)
-  c.set(x, y - 1, INK); c.set(x, y, w[5]); c.set(x, y + 1, w[3]); c.set(x, y + 2, INK)
- _lash(c, 25, 19)
- blob(c, [(6, 38.5, 5.2, 4.4)], mud)                  # the counterweight, lumpy
- for x, y in [(4, 36), (8, 37), (6, 40)]: c.set(x, y, mud[1])
- r = RAMPS['rope']
- for y in range(8, 32): c.set(50, y, r[3] if y % 2 else r[1])
- bucket = HIDE[1] if v == 1 else ['#2d1a13', '#4a2a1c', '#6b3f27', '#8d5836', '#ab7149', '#c58f63', '#dcb086']
- blob(c, [(50, 35, 3.6, 3.0)], bucket)
- for x in range(47, 54):                              # its mouth, seen from above
-  c.set(x, 32, bucket[5] if x < 51 else bucket[3]); c.set(x, 33, bucket[1])
- c.set(50, 36, RAMPS['water'][4]); c.set(50, 38, RAMPS['water'][3])
- return c.image()
-
-
-def zir(v=0):
- """A zir: the big porous water jar standing in the ring of its wooden
- stand, sweating to cool the water, a dish beneath to catch the drip."""
- c = Canvas(24, 32)
- w = RAMPS[WOOD7[1]]
- clay = [RAMPS['buffclay7'], RAMPS['terracotta7'], RAMPS['redearth7']][v]
- for x in (4, 18):                                    # the back legs
-  c.vline(x + 1, 16, 29, w[2])
- prof = belly(3, 25, [6.6, 8.6, 9.4, 9.0, 7.4, 4.6, 1.8])
- revolve(c, 12, prof, clay)
- for y in range(1, 6):                                # the thick rolled mouth
-  for x in range(3, 22):
-   u, t = (x + .5 - 12) / 6.6, (y + .5 - 3.4) / 1.9
-   r = u * u + t * t
-   if r <= 1: c.set(x, y, clay[6] if r > 0.55 and t < 0 and u < 0.3 else clay[4] if r > 0.55 else clay[0] if t < 0.3 else clay[1])
- for k, (x, y) in enumerate([(8, 11), (14, 9), (11, 15), (16, 14), (9, 19)]):  # the sweat
-  c.set(x, y, clay[2]); c.set(x, y + 1, clay[1])
- soft_outline(c, clay[1], clay[3])
- for x in (3, 19):                                    # the front legs and the ring
-  _post(c, x, 15, 29, w)
- _bar(c, 3, 21, 15, w)
- c.set(12, 26, RAMPS['water'][5]); c.set(12, 28, RAMPS['water'][4])
- blob(c, [(12, 30.5, 4.6, 1.5)], clay)                # the drip dish
- c.hline(10, 14, 30, RAMPS['water'][3])
- return c.image()
-
-
 def pipe_hive(v=0):
  """Egyptian hives: clay pipes laid on their sides and stacked in a mud
  bank, the round ends toward us, each with its small flight hole."""
@@ -502,12 +330,7 @@ ANCIENT = {
  'seat-log': seat_log,
  'seat-stone': seat_stone,
  'seat-mat': seat_mat,
- 'hide-frame': hide_frame,
- 'knapping-floor': knapping_floor,
  'warp-loom': warp_loom,
  'grain-pit': grain_pit,
- 'skull-post': skull_post,
- 'shaduf': shaduf,
- 'zir': zir,
  'pipe-hive': pipe_hive,
 }

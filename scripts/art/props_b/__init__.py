@@ -3,12 +3,12 @@
 Built alongside the A art under the study-propb- prefix so the prop lab can
 show both. Nothing here replaces a production sprite.
 """
-from .wells import low_well, framed_well, trough, pump
+from .wells import low_well, framed_well, pump
 from .harvest import sheaf, spade
-from .town import town_well, grinder, sickle, axe, pick, drying_rack
+from .town import town_well, grinder, sickle, axe, pick
 from .workshop import chest, bench, park_bench, anvil, loom, painted_chest, workbench
-from .household import sack, cooking_pot, stool, catch, bedroll, plastic_bin, gourd
-from .industrial import dustbin, litter_bin, municipal_planter, works_fence, steel_drum, wheelbarrow, washing_line
+from .household import sack, cooking_pot, stool, bedroll, plastic_bin, gourd
+from .industrial import dustbin, litter_bin, municipal_planter, works_fence, steel_drum, wheelbarrow
 from . import fallen as _fallen
 from .lamps import LAMPS
 from .city import city_plane, city_willow, meiji_pole, rickshaw
@@ -41,7 +41,6 @@ DRAW_B = {
  **FEASTING,
  'well': low_well,
  'framed-well': framed_well,
- 'trough': trough,
  'pump': pump,
  'sheaf': sheaf,
  'spade': spade,
@@ -50,7 +49,6 @@ DRAW_B = {
  'sickle': sickle,
  'hoe': axe,
  'pick': pick,
- 'drying-rack': drying_rack,
  'strapped-chest': chest,
  'bench': bench,
  'park-bench': park_bench,
@@ -68,7 +66,6 @@ DRAW_B = {
  'sack': sack,
  'stool': stool,
  'cooking-pot': cooking_pot,
- 'catch': catch,
  'earthen-pot': pot,
  'storage-jar': storage_jar,
  'water-jug': water_jug,
@@ -87,7 +84,6 @@ DRAW_B = {
  'works-fence': works_fence,
  'steel-drum': steel_drum,
  'wheelbarrow': wheelbarrow,
- 'washing-line': washing_line,
  **LAMPS,
  **TRAFFIC,
  **STALLS,
@@ -136,6 +132,8 @@ from .plaza_families import PLAZA, PLAZA_ANIMATED
 DRAW_B.update(PLAZA)
 from .statuary import STATUARY
 DRAW_B.update(STATUARY)
+from .yard import YARD
+DRAW_B.update(YARD)
 
 # Families drawn in separable layers. The renderer places the frame and sways
 # the hangings against it; the unsuffixed sprite stays whole for the lab, the

@@ -353,60 +353,6 @@ def lever_press(variant='b'):
         so.lathe(c,86,by+6,[(0,4),(2,6),(6,6),(8,4),(9,4.8)],CLAY,hollow=(3.3,4))
     return finish(c,(55,by+2))
 
-def trough(variant='b'):
-    c=C(94,65);by=48
-    if variant=='b':
-        # Two trestle feet, pinned end boards and fitted front planks.
-        for x in [16,68]:
-            beam(c,x,37,9,14)
-            beam(c,x-3,49,15,3)
-        poly(c,[(11,20),(17,13),(72,13),(79,20),(79,45),(11,45)],WOOD[4])
-        poly(c,[(12,20),(18,14),(71,14),(78,20),(78,30),(12,30)],WOOD[2])
-        # Inner basin: back lining is in shade; water sits below the lip.
-        poly(c,[(19,18),(70,18),(73,22),(73,28),(17,28),(17,22)],WOOD[6])
-        poly(c,[(20,22),(69,22),(73,25),(70,29),(19,29),(16,25)],WATER[1])
-        line(c,[(21,24),(37,24)],WATER[3]);line(c,[(49,26),(63,26)],WATER[2])
-        for yy in range(30,45):
-            q=3 if yy<34 else 4 if yy<40 else 5
-            c.rect(11,yy,69,1,WOOD[q])
-        for yy in [35,41]:line(c,[(12,yy),(78,yy)],WOOD[6])
-        line(c,[(13,31),(77,31)],WOOD[2])
-        for a,b,y in [(23,34,33),(45,61,38),(27,38,43),(55,68,33)]:line(c,[(a,y),(b,y)],WOOD[5])
-        for x in [11,74]:
-            beam(c,x,20,6,27)
-            # End board grain, pegs and bottom bevel.
-            for yy in [26,39]:
-                c.p(x+2,yy,IRON[6]);c.p(x+2,yy-1,IRON[2])
-        line(c,[(13,20),(18,14),(71,14),(77,20)],WOOD[1])
-        line(c,[(17,29),(73,29)],WOOD[6])
-        # Two narrow iron straps lie on the face, not black bands around it.
-        for x in [22,65]:
-            c.rect(x,30,2,15,IRON[5]);c.p(x,32,IRON[2]);c.p(x,42,IRON[2])
-    else:
-        r=RAMPS['limestone']
-        # A single dressed stone, naturally rounded ends; its cavity is carved
-        # into the top, not a flat blue stripe sitting on a stone wall.
-        poly(c,[(9,22),(15,17),(75,17),(82,22),(82,38),(76,44),(16,44),(9,38)],r[4])
-        poly(c,[(10,23),(15,18),(75,18),(81,23),(81,28),(76,34),(15,34),(10,28)],r[2])
-        for yy in range(33,44):
-            inset=1 if yy<39 else 3 if yy<42 else 6
-            c.rect(9+inset,yy,74-2*inset,1,r[3 if yy<37 else 4 if yy<41 else 5])
-        # Rounded rectangle opening has a complete far lip and dark inside wall.
-        ImageDraw.Draw(c.im).rounded_rectangle((17,21,74,32),radius=5,fill=r[6])
-        ImageDraw.Draw(c.im).rounded_rectangle((19,25,72,32),radius=3,fill=WATER[1])
-        line(c,[(23,27),(38,27)],WATER[3]);line(c,[(50,29),(65,29)],WATER[2])
-        # Front lip overlaps the sunk water; square-front face stays unsheared.
-        line(c,[(15,33),(76,33)],r[1]);line(c,[(17,34),(74,34)],r[4])
-        line(c,[(11,24),(15,20),(74,20),(79,24)],r[1])
-        # Short chisel runs, a worn corner and an old plugged drain.
-        for x,y,l in [(20,37,4),(36,40,5),(62,37,4),(26,42,3),(69,41,2)]:
-            line(c,[(x,y),(x+l,y)],r[4]);c.p(x,y-1,r[2])
-        c.rect(69,36,4,4,r[5]);line(c,[(70,37),(72,37)],r[3])
-        line(c,[(15,43),(19,43)],r[6]);line(c,[(73,43),(77,41)],r[6])
-        # Small stone supports, visible clear of the carved body.
-        slab(c,17,52,13,5,6,r);slab(c,63,52,13,5,6,r)
-    return finish(c,(45,by+3))
-
 def tannur(variant='b'):
     c=C(54,54);cx,by=26,40
     if variant=='b':
@@ -631,7 +577,6 @@ STUDIES = [
     ('kiln','03  Pottery kiln','Clay updraft kiln','Brick updraft kiln'),
     ('bloomery','04  Bloomery furnace','Clay shaft / wedge bellows','Stone-clad shaft furnace'),
     ('lever_press','05  Press','Weighted timber lever press','Twin-post screw press'),
-    ('trough','06  Animal trough','Pegged timber trough','Carved stone trough'),
 ]
 
 def draw(kind, variant):
@@ -687,7 +632,6 @@ EQUIPMENT_B = {
     'kiln':lambda v=0,m=0:live_equipment('kiln',v,m),
     'bloomery':lambda v=0,m=0:live_equipment('bloomery',v,m),
     'lever-press':lambda v=0:live_equipment('lever_press',v),
-    'trough':lambda v=0:live_equipment('trough',v),
 }
 EQUIPMENT_FIRES = {
     'hearth':lambda v=0,f=0:live_equipment('hearth',0,f),

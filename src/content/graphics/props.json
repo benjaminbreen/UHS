@@ -330,16 +330,9 @@
       "id": "trough",
       "name": "Water or feed trough",
       "group": "Water sources",
-      "size": [
-        76,
-        41
-      ],
+      "size": [50, 24],
       "description": "A long low receptacle with a deep shaded interior and separately authored hollowed-wood or masonry forms.",
-      "variants": [
-        "Pegged timber trough",
-        "Carved stone trough",
-        "Pegged timber trough"
-      ]
+      "variants": ["Hollowed log", "Carved stone", "Hollowed log, mossy"]
     },
     {
       "id": "well",
@@ -494,31 +487,17 @@
       "id": "rake",
       "name": "Rake",
       "group": "Work & agriculture",
-      "size": [
-        19,
-        50
-      ],
+      "size": [20, 38],
       "description": "A head of teeth on a shaft as long as a man, stood where it was last left.",
-      "variants": [
-        "Wooden head",
-        "Rusted teeth",
-        "Fine-toothed"
-      ]
+      "variants": ["Wooden head", "Rusted teeth", "Fine-toothed"]
     },
     {
       "id": "pitchfork",
       "name": "Pitchfork",
       "group": "Work & agriculture",
-      "size": [
-        19,
-        50
-      ],
+      "size": [14, 40],
       "description": "Tines on an iron socket for hay or muck.",
-      "variants": [
-        "Three tines",
-        "Four tines",
-        "Rusted"
-      ]
+      "variants": ["Three tines", "Four tines", "Rusted"]
     },
     {
       "id": "spear",
@@ -599,46 +578,25 @@
       "id": "catch",
       "name": "Day's catch",
       "group": "Work & agriculture",
-      "size": [
-        14,
-        17
-      ],
+      "size": [16, 18],
       "description": "Two fish on a hand-line, carried from the water to the drying rack and taken down again when they are dry.",
-      "variants": [
-        "Silver",
-        "Bronze-backed",
-        "Dark"
-      ]
+      "variants": ["Silver", "Bronze-backed", "Dark"]
     },
     {
       "id": "drying-rack",
       "name": "Drying rack",
       "group": "Work & agriculture",
-      "size": [
-        47,
-        32
-      ],
+      "size": [50, 35],
       "description": "A lightweight pole frame carries a few separated hanging objects or a shallow woven drying surface.",
-      "variants": [
-        "Natural",
-        "Rust red",
-        "Muted blue"
-      ]
+      "variants": ["Mixed catch", "Split fish", "Strips of meat", "Full rack"]
     },
     {
       "id": "scarecrow",
       "name": "Bird-scaring figure or rig",
       "group": "Work & agriculture",
-      "size": [
-        27,
-        37
-      ],
+      "size": [36, 48],
       "description": "A rough pole structure carries ragged cloth, fiber bundles or hanging strips appropriate to the selected tradition.",
-      "variants": [
-        "Natural",
-        "Rust red",
-        "Muted blue"
-      ]
+      "variants": ["Natural", "Rust red", "Muted blue", "Cone hat", "Straw hat", "Bare head"]
     },
     {
       "id": "hearth",
@@ -968,16 +926,9 @@
       "id": "washing-line",
       "name": "Washing line",
       "group": "Household",
-      "size": [
-        59,
-        41
-      ],
+      "size": [58, 39],
       "description": "A line strung between two poles, pegged with washing that lifts in the wind.",
-      "variants": [
-        "Linen",
-        "Mixed",
-        "Bright"
-      ]
+      "variants": ["Linen", "Mixed", "Bright", "Linen, second wash", "Mixed, second wash", "Bright, second wash"]
     },
     {
       "id": "plastic-bin",
@@ -1223,16 +1174,9 @@
       "id": "plough",
       "name": "Plough",
       "group": "Work & agriculture",
-      "size": [
-        60,
-        40
-      ],
+      "size": [60, 40],
       "description": "A beam, a share and two handles: a scratch ard, a wheeled plough, or a steel mouldboard.",
-      "variants": [
-        "Ard",
-        "Wheeled",
-        "Steel mouldboard"
-      ]
+      "variants": ["Ard", "Wheeled", "Steel mouldboard"]
     },
     {
       "id": "water-butt",
@@ -1598,16 +1542,9 @@
       "id": "hitching-post",
       "name": "Hitching post",
       "group": "Street furniture",
-      "size": [
-        55,
-        43
-      ],
+      "size": [48, 29],
       "description": "Somewhere to tie an animal: a post with a ring, a mounting block beside one, or a rail between two.",
-      "variants": [
-        "Post and ring",
-        "Mounting block",
-        "Rail"
-      ]
+      "variants": ["Post and ring", "Mounting block", "Rail"]
     },
     {
       "id": "beam-scale",
@@ -1782,16 +1719,9 @@
       "id": "pounding-mortar",
       "name": "Standing mortar",
       "group": "Work & agriculture",
-      "size": [
-        22,
-        42
-      ],
+      "size": [25, 44],
       "description": "A waisted wooden mortar for pounding grain, with its pestle stood in it.",
-      "variants": [
-        "Oak",
-        "Walnut, two pestles",
-        "Pale timber"
-      ]
+      "variants": ["Oak", "Walnut, two pestles", "Pale timber"]
     },
     {
       "id": "charpoy",
@@ -1987,31 +1917,17 @@
       "id": "hide-frame",
       "name": "Hide on a drying frame",
       "group": "Work & agriculture",
-      "size": [
-        44,
-        44
-      ],
+      "size": [44, 43],
       "description": "A hide laced into a pole frame to dry and be scraped.",
-      "variants": [
-        "Deer",
-        "Cattle",
-        "Dappled"
-      ]
+      "variants": ["Deer", "Cattle", "Dappled"]
     },
     {
       "id": "knapping-floor",
       "name": "Knapping floor",
       "group": "Work & agriculture",
-      "size": [
-        38,
-        24
-      ],
+      "size": [39, 19],
       "description": "A hide laid to catch the waste, a half-worked core, blades in a row, an antler billet, a hammerstone and a spray of flakes.",
-      "variants": [
-        "Flint",
-        "Obsidian",
-        "Chert"
-      ]
+      "variants": ["Flint", "Obsidian", "Chert"]
     },
     {
       "id": "warp-loom",
@@ -2047,46 +1963,25 @@
       "id": "skull-post",
       "name": "Skull on a post",
       "group": "Wayside",
-      "size": [
-        34,
-        40
-      ],
+      "size": [36, 46],
       "description": "A cattle skull set on a post by a gate or a shrine.",
-      "variants": [
-        "Upswept horns",
-        "Drooping horns",
-        "Upswept horns"
-      ]
+      "variants": ["Upswept horns", "Drooping horns", "Upswept, ribboned", "Drooping, ribboned"]
     },
     {
       "id": "shaduf",
       "name": "Shaduf",
       "group": "Water",
-      "size": [
-        58,
-        54
-      ],
+      "size": [64, 48],
       "description": "A sweep pole on a post frame, a mud counterweight at one end and a bucket at the other.",
-      "variants": [
-        "Timber posts",
-        "Hide bucket",
-        "Mud pillars"
-      ]
+      "variants": ["Timber post", "Hide bucket", "Mud pillar"]
     },
     {
       "id": "zir",
       "name": "Zir water jar",
       "group": "Storage & carrying",
-      "size": [
-        28,
-        36
-      ],
+      "size": [25, 41],
       "description": "A big porous water jar on a wooden stand, a dish beneath for the drip.",
-      "variants": [
-        "Buff",
-        "Terracotta",
-        "Red earth"
-      ]
+      "variants": ["Buff", "Terracotta", "Red earth"]
     },
     {
       "id": "pipe-hive",
@@ -3068,15 +2963,9 @@
       "id": "metate",
       "name": "Metate and mano",
       "group": "Work & agriculture",
-      "size": [
-        26,
-        17
-      ],
+      "size": [32, 19],
       "description": "A three-legged basalt grinding slab with its hand stone, for grinding nixtamal maize into masa.",
-      "variants": [
-        "Basalt",
-        "Brown andesite"
-      ]
+      "variants": ["Basalt", "Brown andesite", "Basalt, maize", "Brown andesite, maize"]
     },
     {
       "id": "quern",
@@ -3096,28 +2985,17 @@
       "id": "chopping-block",
       "name": "Chopping block",
       "group": "Work & agriculture",
-      "size": [
-        32,
-        28
-      ],
+      "size": [35, 32],
       "description": "A stump for splitting firewood, the axe left in it.",
-      "variants": [
-        "Stump"
-      ]
+      "variants": ["Axe in the block", "Axe and billets", "Billet stood ready"]
     },
     {
       "id": "trip-hammer",
       "name": "Foot trip-hammer",
       "group": "Work & agriculture",
-      "size": [
-        56,
-        24
-      ],
+      "size": [60, 22],
       "description": "A dui: a pivoted beam worked by foot, its pestle falling into a sunken stone mortar to husk rice.",
-      "variants": [
-        "Plain timber",
-        "Dark timber"
-      ]
+      "variants": ["Plain timber", "Dark timber", "Plain timber, tray", "Dark timber, tray"]
     },
     {
       "id": "travois",
@@ -3136,29 +3014,17 @@
       "id": "wash-tub",
       "name": "Wash tub",
       "group": "Household",
-      "size": [
-        28,
-        26
-      ],
+      "size": [29, 28],
       "description": "A coopered wash tub on a bench with a ridged washboard.",
-      "variants": [
-        "Oak",
-        "Pale pine"
-      ]
+      "variants": ["Oak", "Pale pine", "Oak, second wash", "Pale pine, second wash"]
     },
     {
       "id": "grindstone",
       "name": "Grindstone",
       "group": "Work & agriculture",
-      "size": [
-        28,
-        28
-      ],
+      "size": [34, 30],
       "description": "A sandstone wheel on a crank axle, running in a water trough, for sharpening blades.",
-      "variants": [
-        "Oak frame",
-        "Dark frame"
-      ]
+      "variants": ["Oak frame", "Dark frame", "Oak frame, crank down", "Dark frame, crank down"]
     },
     {
       "id": "backstrap-loom",
@@ -3234,15 +3100,9 @@
       "id": "fishing-nets",
       "name": "Nets on drying poles",
       "group": "Work & agriculture",
-      "size": [
-        38,
-        28
-      ],
+      "size": [48, 32],
       "description": "A fishing net hung between poles to dry, with basket fish traps beneath.",
-      "variants": [
-        "Undyed",
-        "Tanned"
-      ]
+      "variants": ["Undyed", "Tanned", "Undyed, long floats", "Tanned, long floats"]
     },
     {
       "id": "threshing-floor",
@@ -3289,14 +3149,9 @@
       "id": "dye-vats",
       "name": "Indigo dye vats",
       "group": "Work & agriculture",
-      "size": [
-        38,
-        32
-      ],
+      "size": [56, 35],
       "description": "Dye pots sunk in the ground, with indigo cloth drying on a line.",
-      "variants": [
-        "Indigo"
-      ]
+      "variants": ["Indigo, madder and weld", "Seeded baths 1", "Seeded baths 2", "Seeded baths 3", "Seeded baths 4", "Seeded baths 5"]
     },
     {
       "id": "rice-rack",
@@ -3330,15 +3185,9 @@
       "id": "saddle-stand",
       "name": "Saddle on a stand",
       "group": "Household",
-      "size": [
-        30,
-        24
-      ],
+      "size": [32, 30],
       "description": "A saddle and blanket over a rail, the bridle hung on the post.",
-      "variants": [
-        "Red and blue",
-        "Blue and gold"
-      ]
+      "variants": ["Red and blue", "Blue and gold", "Seeded blanket 1", "Seeded blanket 2"]
     },
     {
       "id": "roman-milestone",

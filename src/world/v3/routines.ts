@@ -728,7 +728,7 @@ function attachRack(
     kind: "container",
     prop: "dryingRack",
     pos: { ...spot, space: "outside" },
-    sprite: `study-propb-drying-rack-${Math.floor(random(seed, "rack-art", id) * 3)}`,
+    sprite: `study-propb-drying-rack-${Math.floor(random(seed, "rack-art", id) * 4)}`,
     inventory: {},
     open: true,
     owner: id,

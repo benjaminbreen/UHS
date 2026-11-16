@@ -237,61 +237,6 @@ def _shaft(c, x, top, base, w, lean=0, thick=3):
  return x + (lean * (base - top)) // 12
 
 
-def rake(v=0):
- """A hay rake, head down: the way it is left standing against a wall."""
- c = Canvas(20, 50)
- w = RAMPS[WOOD7[v]]
- m = RAMPS['blackiron7'] if v != 1 else RAMPS['rustred7']
- _shaft(c, 8, 1, 36, w, lean=2)
- c.hline(8, 10, 1, w[6])
- for y in (30, 31):                                # the ferrule holding it on
-  c.hline(8, 11, y, m[4] if y % 2 else m[2])
- head = 40
- c.hline(2, 17, head - 2, w[5])                    # the head, across the foot
- c.hline(2, 17, head - 1, w[4])
- c.hline(2, 17, head, w[1])
- c.set(2, head - 2, w[6]); c.set(17, head - 1, w[0])
- teeth = range(3, 18, 2) if v == 2 else range(3, 18, 3)
- for x in teeth:                                   # teeth, pointing at the earth
-  for k, tone in enumerate((4, 4, 3, 1)):
-   c.set(x, head + 1 + k, (m if v == 1 else w)[tone])
- for i in range(6):                                # braces back up to the shaft
-  c.set(9 - i // 3, head - 3 - i, w[3])
-  c.set(12 + i // 3, head - 3 - i, w[2])
- soft_outline(c, w[0], w[2])
- grass(c, [(0, 49, 2), (17, 49, 2)])
- return c.image()
-
-
-def pitchfork(v=0):
- """A fork, tines down, stood where it was last used."""
- c = Canvas(18, 50)
- w = RAMPS[WOOD7[v]]
- m = RAMPS['blackiron7'] if v != 2 else RAMPS['rustred7']
- # The head hangs off wherever the shaft actually ends: with the offset
- # hard-coded, any lean at all left the tines floating beside the handle.
- cx = _shaft(c, 6, 1, 35, w, lean=1) + 1
- c.hline(cx - 2, cx, 1, w[6])
- for y in range(35, 39):                           # the socket
-  half = (y - 35) // 2 + 1
-  for x in range(cx - half, cx + half + 1):
-   c.set(x, y, m[5] if x < cx else m[3])
-  c.set(cx - half, y, m[2]); c.set(cx + half, y, m[1])
- c.hline(cx - 4, cx + 3, 39, m[6])
- tines = [(-4, 1), (0, 0), (4, 1)] if v != 1 else [(-5, 2), (-2, 0), (2, 0), (5, 2)]
- for dx, short in tines:                           # tines, curving into the ground
-  x = cx + dx
-  for k in range(9 - short):
-   y = 40 + k
-   bend = round(dx * k * 0.06)
-   c.set(x + bend, y, m[5] if dx <= 0 else m[3])
-   c.set(x + bend + 1, y, m[2])
-  c.set(x + round(dx * (8 - short) * 0.06), 48 - short, m[6])
- soft_outline(c, w[0], w[2])
- grass(c, [(0, 49, 2), (14, 49, 2)])
- return c.image()
-
-
 def spear(v=0):
  """A hunting spear stood on its butt: grey stone, bronze, then iron."""
  c = Canvas(12, 52)
@@ -457,8 +402,6 @@ def farm_cart(v=0):
 FARM = {
  'plough': plough,
  'water-butt': water_butt,
- 'rake': rake,
- 'pitchfork': pitchfork,
  'spear': spear,
  'shovel': shovel,
  'scythe': scythe,

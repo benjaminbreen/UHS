@@ -103,31 +103,6 @@ def stool(v=0):
  return c.image()
 
 
-def catch(v=0):
- """A hand-line of two fish, carried to the rack.
-
- Two, not three: at this size a third overlaps the others into one blob.
- """
- c = Canvas(15, 16)
- r = RAMPS['rope']
- f = [RAMPS['limestone'], RAMPS['sandstone'], RAMPS['castiron7']][v]
- for x in range(3, 12):                           # the line, held at the top
-  c.set(x, 1, r[2] if x % 2 else r[1])
- c.set(7, 2, r[1])
- for x, top, length in [(4, 4, 11), (11, 3, 9)]:
-  c.set(x, top - 1, r[1])                         # the gill loop
-  for k in range(length):
-   t = k / (length - 1)
-   half = 0 if t < .12 else 2 if t < .62 else 1
-   y = top + k
-   c.hline(x - half, x + half, y, f[4] if k % 4 else f[3])
-   c.set(x - half, y, f[2]); c.set(x + half, y, f[1])
-   if .25 < t < .7 and k % 2: c.set(x, y, f[5])
-  c.set(x - 1, top + length, f[2]); c.set(x + 1, top + length, f[2])
- soft_outline(c, f[0], f[2])
- return c.image()
-
-
 MAT = [('linen7', 'rustred7'), ('rustred7', 'linen7'), ('paintblue7', 'linen7')]
 
 

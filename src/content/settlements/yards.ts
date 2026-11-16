@@ -14,6 +14,8 @@ export type PlinthFace = "plaster" | "dressed" | "drystone" | "mud" | "earth";
 export type YardProp = {
   prop: string;
   family: string;
+  /** Sprite variants, for a family with no entry in the prop catalogue. */
+  variants?: number;
   name: string;
   /** `back` is behind the house, where the kit keeps a back yard. */
   where: "bed" | "wall" | "door" | "yard" | "back";
@@ -95,6 +97,7 @@ const toft: YardKit = {
     {
       prop: "scarecrow",
       family: "scarecrow",
+      variants: 6,
       name: "Scarecrow",
       where: "bed",
       chance: 0.35,

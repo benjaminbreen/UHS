@@ -2915,7 +2915,7 @@ export function planSettlement(
       name: item.name,
       kind: "container",
       prop: item.prop,
-      sprite: propDefs[item.prop]?.sprite ?? `study-propb-${item.family}-${Math.floor(rand("yard-art", i, n) * (propDefs[item.prop]?.variants ?? 3))}`,
+      sprite: propDefs[item.prop]?.sprite ?? `study-propb-${item.family}-${Math.floor(rand("yard-art", i, n) * (propDefs[item.prop]?.variants ?? ("variants" in item ? item.variants : undefined) ?? 3))}`,
       inventory: item.contents ?? {},
       pos: pos(at),
     });

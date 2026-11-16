@@ -441,6 +441,7 @@ export const propDefs: Record<string, PropDef> = {
     family: "drying-rack",
     visualClearance: [2, 2, 3, 0],
     container: true,
+    variants: 4,
   },
   pump: {
     solid: true,
@@ -705,6 +706,7 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Skull on a post",
     family: "skull-post",
+    variants: 4,
   },
   shaduf: {
     solid: true,
@@ -757,8 +759,8 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Metate and mano",
     family: "metate",
-    variants: 2,
     tips: true,
+    variants: 4,
   },
   quern: {
     solid: true,
@@ -771,17 +773,16 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Chopping block",
     family: "chopping-block",
-    variants: 1,
     where: "backyard",
   },
   tripHammer: {
     solid: true,
     name: "Foot trip-hammer",
     family: "trip-hammer",
-    variants: 2,
     where: "worksite",
     span: [1, 0],
     visualClearance: [1, 2, 1, 0],
+    variants: 4,
   },
   travois: {
     solid: true,
@@ -796,16 +797,16 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Wash tub",
     family: "wash-tub",
-    variants: 2,
     where: "backyard",
     breakable: "wood",
+    variants: 4,
   },
   grindstone: {
     solid: true,
     name: "Grindstone",
     family: "grindstone",
-    variants: 2,
     where: "worksite",
+    variants: 4,
   },
   backstrapLoom: {
     name: "Backstrap loom",
@@ -849,7 +850,7 @@ export const propDefs: Record<string, PropDef> = {
     span: [1, 0],
     name: "Nets on drying poles",
     family: "fishing-nets",
-    variants: 2,
+    variants: 4,
   },
   threshingFloor: {
     where: "worksite",
@@ -880,7 +881,7 @@ export const propDefs: Record<string, PropDef> = {
     where: "worksite",
     name: "Indigo dye vats",
     family: "dye-vats",
-    variants: 1,
+    variants: 6,
   },
   riceRack: {
     solid: true,
@@ -903,7 +904,7 @@ export const propDefs: Record<string, PropDef> = {
     where: "backyard",
     name: "Saddle on a stand",
     family: "saddle-stand",
-    variants: 2,
+    variants: 4,
   },
   charpoy: {
     shove: { as: "free", mass: 1.0 },
@@ -1212,6 +1213,7 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Washing line",
     family: "washing-line",
+    variants: 6,
   },
   plastic: {
     shove: { as: "free", mass: 0.3 },

@@ -229,54 +229,10 @@ def flower_tub(v=0):
  return c.image()
 
 
-def scarecrow(v=0):
- """A pole, a crosspiece and a stuffed smock, straw at every opening."""
- c = Canvas(25, 35)
- pole = WOOD[1]
- cloth = [['#5b4a2e', '#86724a', '#b09a6a', '#d2be8e', '#ece0b8'],
-          ['#5a2018', '#8a3324', '#b44a31', '#d46a47', '#ee9670'],
-          ['#1c3350', '#2b4f78', '#3f6f9f', '#5f93c0', '#93bbdc']][v]
- c.rect(12, 9, 13, 34, pole[2]); c.vline(13, 9, 34, pole[0]); c.vline(12, 26, 34, pole[3])
- c.rect(1, 13, 23, 14, pole[2]); c.hline(1, 23, 14, pole[0])
- for y in range(12, 27):                          # the smock flares to a ragged hem
-  half = 5.5 + (y - 12) * 0.2
-  for x in range(int(12.5 - half), int(12.5 + half) + 1):
-   u = (x + .5 - 12.5) / half
-   tone = 3 if u < -0.5 else 4 if u < -0.2 else 3 if u < 0.15 else 2 if u < 0.65 else 1
-   if y == 26 and x % 3 == 0: continue
-   c.set(x, y, cloth[tone])
- for y in range(12, 16):                          # sleeves
-  for x in range(3, 8): c.set(x, y, cloth[3 if y < 14 else 2])
-  for x in range(18, 23): c.set(x, y, cloth[2 if y < 14 else 1])
- for x in (9, 12, 16): c.vline(x, 18, 25, cloth[1])                 # folds
- c.hline(7, 18, 20, pole[0]); c.set(12, 21, pole[0]); c.set(12, 22, pole[1])   # rope belt
- for x, y in ((8, 22), (15, 16)):                 # patches, stitched
-  c.rect(x, y, x + 2, y + 2, SACK[3]); c.set(x, y, SACK[1]); c.set(x + 2, y + 2, SACK[1])
- for x in range(7, 19, 2):                        # straw at hem and cuffs
-  c.vline(x, 27, 28 + (x % 4 == 1), STRAW[3] if x < 12 else STRAW[1])
- for x0, step in ((0, 1), (24, -1)):
-  for i in range(3):
-   c.set(x0 + i * step, 12 + i % 2, STRAW[3]); c.set(x0 + i * step, 15 - i % 2, STRAW[2])
- for y in range(3, 11):                           # the sack head
-  half = 4.2 * sqrt(max(0, 1 - ((y - 6.5) / 4.4) ** 2))
-  for x in range(int(12.5 - half), int(12.5 + half) + 1):
-   u = (x + .5 - 12.5) / max(half, .5)
-   c.set(x, y, SACK[4] if u < -0.3 else SACK[3] if u < 0.3 else SACK[2])
- c.set(11, 6, INK); c.set(14, 6, INK); c.set(11, 5, INK); c.set(14, 5, INK)
- for x in range(10, 16): c.set(x, 8, INK if x % 2 == 0 else SACK[2])  # stitched mouth
- c.hline(9, 16, 10, pole[1])                      # the neck tie
- c.hline(5, 20, 3, STRAW[1]); c.hline(6, 19, 2, STRAW[3]); c.hline(7, 18, 3, STRAW[2])
- c.rect(9, 0, 16, 1, STRAW[2]); c.hline(9, 16, 0, STRAW[3]); c.hline(9, 16, 2, cloth[1])
- for x in (6, 10, 15, 19): c.set(x, 2, STRAW[1])
- c.outline(INK)
- return c.image()
-
-
 STORES = {
  'barrel': barrel,
  'plain-box': plain_box,
  'cardboard-box': cardboard_box,
  'grain-sacks': grain_sacks,
  'flower-tub': flower_tub,
- 'scarecrow': scarecrow,
 }

@@ -47,6 +47,11 @@ readable silhouette (wide mouth or narrow neck, handled or not, lidded or
 open), not just the hue. Open lids, broken pots, spills and debris are states
 of a family, not new families.
 
+The yard and work props in `props_b/yard.py` also seed their small details
+from the variant number (`rnd`): which garments hang on a line, which dyes are
+in the vats, whether a crow sits on the scarecrow. The first variants keep the
+meanings named in `props.json`; add more names there to bake more of them.
+
 ## Scale
 
 The ruler is the adult figure, 37px tall (`front_style.FIGURE`), not the 16px

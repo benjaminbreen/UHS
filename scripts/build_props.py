@@ -40,7 +40,7 @@ if '--equipment-only' in sys.argv:
     sprites=unpack('atlas');shadows=unpack('shadows');updates={}
     for family in catalog['families']:
         key=family['id']
-        if key not in ('hearth','three-stone-hearth','oven','kiln','bloomery','lever-press','trough'):continue
+        if key not in ('hearth','three-stone-hearth','oven','kiln','bloomery','lever-press'):continue
         for v in range(len(family['variants'])):
             base=f'study-prop{"b" if key in DRAW_B else ""}-{key}-{v}'
             frames=ANIMATED.get(key,1) if key in DRAW_B else family.get('frames',1)

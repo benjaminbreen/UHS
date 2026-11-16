@@ -859,24 +859,6 @@ def pergola():
  return c.image()
 
 
-def chopping_block():
- c = Canvas(30, 26)
- rings = lambda z, a, i: i
- lathe(c, 12, 22, [(0, 7.5), (2, 7), (9, 6.5)], BARK, lambda z, a, i: i - (int(a * 5) % 3 == 0))
- for k, rr in enumerate((6, 4, 2)):
-  disc(c, 12, 22 - 9 - 7 * K + .5, rr, rr * K, HEART[4 - k % 2 * 1 + (k == 0)])
- c.hline(9, 14, 22 - 9 - 7 * K + 1, HEART[2])
- I = RAMPS['iron']
- c.poly([(10, 10), (15, 9), (15, 12), (11, 12)], I[3]); c.hline(11, 14, 9, I[5])
- c.line((15, 10), (25, 2), BARK[5]); c.line((15, 11), (25, 3), BARK[3])
- for x, by in ((22, 25), (2, 25)):
-  block(c, x, by, 6, 2, 5, RAMPS['palewood'])
- c.rim(BARK)
- for x, y in [(6, 24), (19, 24), (27, 21)]: c.set(x, y, HEART[5])
- tufts(c, [(1, 25, 2), (16, 25, 1)])
- return c.image()
-
-
 def frond(c, x, y, ang, ln, r, droop=.06, torn=False):
  for k in range(ln):
   px, py = x + cos(ang) * k, y + sin(ang) * k + droop * k * k * .5
@@ -955,7 +937,6 @@ FAMILIES = {
  'dung-stack': [bitaura, dung_cakes],
  'mud-bricks': [mud_bricks, lambda: mud_bricks(LOESS)],
  'threshing-floor': [threshing_floor],
- 'chopping-block': [chopping_block],
 }
 SETS = {'lot-store': STORE, 'lot-drying': DRYING, 'lot-ground': GROUND, 'lot-sacred': SACRED, 'lot-ruin': RUIN, 'lot-yard': YARD, **FAMILIES}
 LOTS = {key: (lambda v, layer=None, key=key: SETS[key][v]()) for key in SETS}

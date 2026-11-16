@@ -363,58 +363,6 @@ def framed_well(v=0):
  return c.image()
 
 
-def trough(v=0):
- """A feed or water trough, about 2.8 m long and knee high.
-
- Drawn square on, the way everything else in this view is: the top face is a
- symmetric band above the front, narrower at the back, with no lateral skew.
- A three-quarter box reads as a different game's projection.
- """
- c = Canvas(46, 26)
- stone = v == 2
- # Seven steps either way, so the boards can carry grain and a lit lip.
- w = RAMPS['ash7'] if stone else RAMPS[WOOD7[v]]
- if stone: w = ['#3b3a32', '#5f5d4e', '#847f6a', '#a8a186', '#c7bfa1', '#e3dcbe', '#f2eed8']
- water = RAMPS['water']
- back, front, base = 4, 11, 22
- for y in range(back, front + 1):                 # the top edge of the walls
-  t = (y - back) / (front - back)
-  inset = round(3 * (1 - t))
-  c.hline(1 + inset, 44 - inset, y, w[5] if t < .4 else w[4])
- for y in range(back + 2, front - 1):             # the water, sunk inside
-  t = (y - back - 2) / max(front - 3 - back, 1)
-  inset = round(3 * (1 - t)) + 3
-  # Darkest against the far wall, lightening toward the near lip.
-  tone = 1 if t < .2 else 2 if t < .55 else 3
-  c.hline(1 + inset, 44 - inset, y, water[tone])
- c.hline(9, 21, back + 3, water[4]); c.hline(11, 18, back + 4, water[5])
- c.hline(27, 37, back + 4, water[4]); c.hline(30, 35, back + 5, water[3])
- for y in range(front, base + 1):                 # the front boards
-  tone = 4 if y < front + 3 else 3 if y < base - 2 else 2
-  c.hline(1, 44, y, w[tone])
-  streak(c, 1, 44, y, w, tone)
- c.hline(1, 44, front, w[6])                      # the lit lip
- c.hline(1, 44, base, w[1])
- if stone:
-  for bx in range(7, 44, 8):                      # dressed blocks
-   c.vline(bx, front + 1, base - 1, w[2])
-  c.hline(1, 44, front + 5, w[2])
- else:
-  c.hline(1, 44, front + 5, w[2])                 # the join between two boards
-  for bx in (6, 38):                              # iron straps round the ends
-   c.vline(bx, front, base, RAMPS['iron7'][3])
-   c.vline(bx + 1, front, base, RAMPS['iron7'][1])
- for ex in (0, 45):                               # the end grain, either side
-  for y in range(back + 3, base + 1):
-   c.set(ex, y, w[2] if ex == 0 else w[1])
- for lx in (3, 39):                               # feet
-  c.rect(lx, base + 1, lx + 3, base + 2, w[2])
-  c.hline(lx, lx + 3, base + 2, w[0])
- c.rim(w)
- grass(c, [(0, 25, 2), (44, 25, 2)])
- return c.image()
-
-
 def pump(v=0):
  """A hand pump is a post: one hand's width, chest high."""
  c = Canvas(14, 27)
