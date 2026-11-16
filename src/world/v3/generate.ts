@@ -3031,16 +3031,17 @@ export function createSettlementWorld(
     planOf: (siteId: string) => plans.get(siteId),
     planAt: (x, y) => {
       const c = coord(x, y);
-      // The site whose claim holds the cell, before the nearest centre: a
-      // city's quarter can be nearer than the city it belongs to.
-      const nearest = [...sitesIn(c.x, c.y)].sort(
-        (a, b) =>
-          Number(b.accepts?.(x, y) ?? false) -
-            Number(a.accepts?.(x, y) ?? false) ||
-          Math.hypot(a.center.x - x, a.center.y - y) -
-            Math.hypot(b.center.x - x, b.center.y - y),
-      )[0];
-      return nearest ? getPlan(c.x, c.y, nearest.id) : undefined;
+      // A city reaches into the chunks round its own. The site whose claim
+      // holds the cell comes first, then the one the cell lies deepest in:
+      // a hamlet's centre can be nearer than the city it stands beside.
+      let best: { id: string; cx: number; cy: number; key: number } | undefined;
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++)
+          for (const s of sitesIn(c.x + dx, c.y + dy)) {
+            const key = Math.hypot(s.center.x - x, s.center.y - y) / s.profile.radius - (s.accepts?.(x, y) ? 1000 : 0);
+            if (!best || key < best.key) best = { id: s.id, cx: c.x + dx, cy: c.y + dy, key };
+          }
+      return best && getPlan(best.cx, best.cy, best.id);
     },
     terrain: (x, y, space = "outside") =>
       space !== "outside" || inside(x, y) ? terrain(x, y, space) : "water",

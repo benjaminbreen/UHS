@@ -2,11 +2,12 @@ import type { WorldSetting } from "../geography/types";
 import type { LandUse } from "./zoning";
 import { buildingModels } from "../graphics/models";
 
-/** Twentieth-century street looks drawn by scripts/art/front_modern.py and
- * front_modern_world.py, with
- * the year each became ordinary and the blocks that build it. An `accent` is a
- * one-off (a bank, a picture palace) that stands in another look's block
- * rather than filling one. Frames are `mod-<look>-<n>-urban-<form>`. */
+/** Street looks of 1850 on, drawn by scripts/art/front_modern.py,
+ * front_modern_world.py and front_homes.py, with the year each became
+ * ordinary and the blocks that build it. An `accent` is a one-off (a bank, a
+ * picture palace) that stands in another look's block rather than filling
+ * one. After `until` builders moved on: the houses stand, but fewer blocks
+ * are theirs. Frames are `mod-<look>-<n>-urban-<form>`. */
 const LOOKS = {
   falsefront: { since: 1900, uses: ["commercial"] },
   brick: { since: 1900, uses: ["commercial", "downtown"] },
@@ -38,7 +39,14 @@ const LOOKS = {
   gas: { since: 1925, uses: ["commercial"], accent: true },
   drivein: { since: 1950, uses: ["commercial"], accent: true },
   market: { since: 1950, uses: ["commercial"], accent: true },
-} satisfies Record<string, { since: number; uses: LandUse[]; accent?: boolean }>;
+  villa: { since: 1850, until: 1914, uses: ["villa", "suburb"] },
+  "villa-stucco": { since: 1850, until: 1914, uses: ["villa", "suburb"] },
+  "villa-board": { since: 1850, until: 1914, uses: ["villa", "suburb"] },
+  suburban: { since: 1900, until: 1960, uses: ["suburb", "villa"] },
+  bungalow: { since: 1905, until: 1940, uses: ["suburb"] },
+  ranch: { since: 1945, until: 1980, uses: ["suburb"] },
+  rendered: { since: 1950, uses: ["suburb", "villa"] },
+} satisfies Record<string, { since: number; until?: number; uses: LandUse[]; accent?: boolean }>;
 export type StreetLook = keyof typeof LOOKS;
 
 type Mix = Partial<Record<StreetLook, number>>;
@@ -78,6 +86,30 @@ const HOMES: { looks: Mix; at: At; km: number; w?: number; from?: number }[] = [
   { looks: { veranda: 2, brick: 1 }, at: [[28, -26.2], [31, -29.9], [25.6, -33.9], [28.2, -25.7]], km: 700 },
   { looks: { veranda: 2, brick: 1, strip: 1, bank: 1, office: 1 }, at: [[151.2, -33.9], [153, -27.5], [145, -37.8], [115.9, -32], [138.6, -34.9]], km: 900 },
   { looks: { veranda: 1, brick: 2, strip: 1, office: 1 }, at: [[174.8, -36.8], [172.6, -43.5]], km: 600 },
+  // Houses in their own gardens. North America: board and brick, then the
+  // bungalow, then the ranch house.
+  {
+    looks: { villa: 1, "villa-board": 1.5, "villa-stucco": 0.5, suburban: 0.7, bungalow: 3, ranch: 4 },
+    at: [[-98, 39], [-82, 37], [-119, 38], [-90, 32], [-112, 45], [-81.4, 28.5], [-74, 40.7], [-87.65, 41.88], [-79.4, 43.7], [-114, 51], [-123, 49.3]],
+    km: 1300,
+  },
+  // Britain and Ireland: brick and stucco villas, then the suburban semi's kind.
+  { looks: { villa: 2, "villa-stucco": 1, suburban: 4 }, at: [[-0.12, 51.5], [-1.9, 52.48], [-2.24, 53.48], [-1.6, 54.97], [-4.25, 55.86], [-3.18, 51.48], [-6.26, 53.35]], km: 300 },
+  // Australia and New Zealand: weatherboard, the California bungalow, brick veneer.
+  { looks: { villa: 1, "villa-board": 2, suburban: 1, bungalow: 3, ranch: 2 }, at: [[151.2, -33.9], [153, -27.5], [145, -37.8], [115.9, -32], [138.6, -34.9], [174.8, -36.8], [172.6, -43.5]], km: 900 },
+  { looks: { villa: 2, "villa-stucco": 1, suburban: 1, bungalow: 2, ranch: 1 }, at: [[18.4, -33.9], [28, -26.2], [31, -29.9], [25.6, -33.9]], km: 600 },
+  // The Continent: the stucco villa, then the rendered house.
+  {
+    looks: { "villa-stucco": 3, villa: 1, rendered: 4 },
+    at: [[2.35, 48.86], [4.35, 50.85], [4.9, 52.37], [6.96, 50.94], [13.4, 52.5], [11.58, 48.14], [16.37, 48.21], [8.54, 47.37], [9.19, 45.46], [12.5, 41.9], [-3.7, 40.42], [2.17, 41.39], [-9.14, 38.72], [14.42, 50.08], [19.04, 47.5], [21.01, 52.23], [23.73, 37.98], [12.57, 55.68], [18.07, 59.33], [26.1, 44.43], [28.98, 41.01]],
+    km: 450,
+  },
+  // Latin America: the quinta, then the concrete house behind its gate.
+  { looks: { "villa-stucco": 2, rendered: 3 }, at: [[-99.1, 19.4], [-74.1, 4.7], [-66.9, 10.5], [-77, -12], [-58.4, -34.6], [-70.6, -33.4], [-46.6, -23.5], [-43.2, -22.9], [-82.37, 23.13]], km: 900 },
+  // Civil lines and garden suburbs of the colonial city: the bungalow is Bengal's own word.
+  { looks: { bungalow: 2, "villa-stucco": 1, rendered: 1 }, at: [[77.2, 28.6], [72.9, 19.1], [88.4, 22.6], [80.3, 13.1], [74.3, 31.5], [103.85, 1.29], [101.7, 3.1], [36.82, -1.29], [3.38, 6.45], [-0.19, 5.6], [39.28, -6.8]], km: 700, w: 0.6 },
+  // Villa suburbs of the eastern Mediterranean, the Maghreb and Iran.
+  { looks: { "villa-stucco": 1, rendered: 2 }, at: [[31.24, 30.04], [29.92, 31.2], [35.5, 33.89], [34.78, 32.08], [51.4, 35.7], [-7.6, 33.57], [10.18, 36.81]], km: 500, w: 0.6 },
 ];
 
 /** Who moved in and opened shops, as a share of a town's blocks by year
@@ -126,20 +158,24 @@ function curve(points: [number, number][], year: number) {
   return points[points.length - 1][1];
 }
 
-/** Adds `share` across the looks already built by `year` (and that build
- * `use`, if given); 0 if none were. */
-function spread(into: Mix, looks: Mix, share: number, year: number, use?: LandUse) {
+/** Adds `share` across the looks already built by `year` that build `use`,
+ * each weighed down once its builders have moved on; 0 if none were. */
+function spread(into: Mix, looks: Mix, share: number, year: number, use: LandUse) {
   const open = (Object.keys(looks) as StreetLook[]).filter(
-    (l) => LOOKS[l].since <= year && (!use || (LOOKS[l].uses as readonly LandUse[]).includes(use)),
+    (l) => LOOKS[l].since <= year && (LOOKS[l].uses as readonly LandUse[]).includes(use),
   );
-  const total = open.reduce((t, l) => t + looks[l]!, 0);
-  for (const l of open) into[l] = (into[l] ?? 0) + (share * looks[l]!) / total;
+  const weight = (l: StreetLook) => {
+    const until = (LOOKS[l] as { until?: number }).until ?? year;
+    return looks[l]! * Math.max(0.2, 1 - (year - until) / 25);
+  };
+  const total = open.reduce((t, l) => t + weight(l), 0);
+  for (const l of open) into[l] = (into[l] ?? 0) + (share * weight(l)) / total;
   return open.length ? share : 0;
 }
 
-/** Each look's share of a town's blocks, or of its blocks of one use. What
- * is left of 1 keeps the older modern kit. */
-export function streetMix(s: Pick<WorldSetting, "lon" | "lat" | "year">, use?: LandUse): Mix {
+/** Each look's share of a town's blocks of one use. What is left of 1 keeps
+ * the older modern kit. */
+export function streetMix(s: Pick<WorldSetting, "lon" | "lat" | "year">, use: LandUse): Mix {
   let held = 0;
   const homes: Mix = {};
   for (const h of HOMES) {

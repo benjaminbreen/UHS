@@ -37,8 +37,10 @@ for (const { name, query, seed, radius, settlementLayout, centre } of panel as a
   }
   // TOWN_DISTRICTS: the whole map as a land-use plan, without the ground raster.
   const districts = !!process.env.TOWN_DISTRICTS;
-  const cx = districts ? 0 : Math.round(at.x),
-    cy = districts ? 0 : Math.round(at.y);
+  // TOWN_AT=dx,dy looks that many cells off the centre: a suburb, the docks.
+  const [ox, oy] = (process.env.TOWN_AT ?? "0,0").split(",").map(Number);
+  const cx = districts ? 0 : Math.round(at.x) + ox,
+    cy = districts ? 0 : Math.round(at.y) + oy;
   const R = districts ? 192 : radius ?? 40;
   // A city can be several sites (its quarters), each with its own plan.
   const plans = new Set<any>();

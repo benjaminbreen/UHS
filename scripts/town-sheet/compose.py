@@ -6,6 +6,7 @@ laid flat (no terrain height) and depth-sorted as the game sorts.
     python3 scripts/town-sheet/compose.py --crop 300,250,1500,1250 london-1308
     npm run town:sheet -- --square paris-1888   # only the main square and its streets
     npm run town:sheet -- --districts chicago-1955   # the whole map as a land-use plan
+    TOWN_AT=-60,115 npm run town:sheet -- chicago-1955   # look that many cells off the centre
 
 Writes artifacts/towns/<name>.png and artifacts/towns/panel.png.
 """

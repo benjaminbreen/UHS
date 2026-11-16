@@ -390,17 +390,25 @@ it("assigns coherent, deterministic materials to civic squares and street lanes"
 
 it("mixes twentieth-century street looks by place and date", () => {
   const share = (m: Record<string, number>, ...looks: string[]) => looks.reduce((t, l) => t + (m[l] ?? 0), 0);
-  const santaCruz = streetMix({ lon: -122.03, lat: 36.97, year: 1985 });
+  const santaCruz = streetMix({ lon: -122.03, lat: 36.97, year: 1985 }, "commercial");
   expect(share(santaCruz, "brick", "strip", "bank", "office", "mission")).toBeGreaterThan(0.45);
   expect(share(santaCruz, "strip-mx", "brick-mx", "moderno")).toBeGreaterThan(0.1);
   expect(share(santaCruz, "strip-asia", "brick-cn")).toBeGreaterThan(0.005);
-  expect(streetMix({ lon: -122.03, lat: 36.97, year: 1965 })["strip-asia"]).toBeUndefined();
-  expect(Object.keys(streetMix({ lon: 139.7, lat: 35.7, year: 1985 }))).toEqual(["zakkyo"]);
-  expect(Object.keys(streetMix({ lon: 31.2, lat: 30, year: 1975 }))).toEqual(["cairo"]);
-  const paris = streetMix({ lon: 2.35, lat: 48.86, year: 1975 });
+  expect(streetMix({ lon: -122.03, lat: 36.97, year: 1965 }, "commercial")["strip-asia"]).toBeUndefined();
+  expect(Object.keys(streetMix({ lon: 139.7, lat: 35.7, year: 1985 }, "commercial"))).toEqual(["zakkyo"]);
+  expect(Object.keys(streetMix({ lon: 31.2, lat: 30, year: 1975 }, "commercial"))).toEqual(["cairo"]);
+  const paris = streetMix({ lon: 2.35, lat: 48.86, year: 1975 }, "commercial");
   expect(share(paris, ...Object.keys(paris))).toBeLessThan(0.1);
-  for (const m of [santaCruz, streetMix({ lon: 18.4, lat: -33.9, year: 1960 })])
+  for (const m of [santaCruz, streetMix({ lon: 18.4, lat: -33.9, year: 1960 }, "commercial")])
     expect(share(m, ...Object.keys(m))).toBeLessThanOrEqual(1.0001);
+  // Houses in gardens follow the same map: who built what, and when they stopped.
+  const chicago = (year: number) => streetMix({ lon: -87.65, lat: 41.88, year }, "suburb");
+  expect(Object.keys(chicago(1890)).sort()).toEqual(["villa", "villa-board", "villa-stucco"]);
+  expect(chicago(1925).bungalow).toBeGreaterThan(chicago(1925)["villa-board"]!);
+  expect(chicago(1960).ranch).toBeGreaterThan(chicago(1960).bungalow!);
+  expect(streetMix({ lon: -0.12, lat: 51.5, year: 1935 }, "suburb").suburban).toBeGreaterThan(0.5);
+  expect(streetMix({ lon: 11.58, lat: 48.14, year: 1975 }, "suburb").rendered).toBeGreaterThan(0.5);
+  expect(streetMix({ lon: 139.7, lat: 35.7, year: 1985 }, "suburb")).toEqual({});
 });
 
 it("gives open lots a use from the place, inside the lot and drawn", () => {

@@ -142,7 +142,10 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
   railway, nearest the edge first, or a sector toward the water where there
   is no line (`worksBlocks`). Shops follow the main streets and thin
   outward. A city of any size has a park or two, and the housing blocks
-  beside one, away from the works, are `villa`. Estates and self-built
+  beside one, away from the works, are `villa`. Villa and suburb blocks
+  build houses in gardens (`front_homes.py`): one kind of house to a block
+  in all its colours, the kind chosen by place and date in
+  `street-looks.ts`, a drive's width between neighbours. Estates and self-built
   quarters come by date and share as before. A quarter standing apart from
   the middle, and the town of a suburb map, has shops but no downtown.
 - A city of a million claims 184 cells of its map's 192 and is built out to

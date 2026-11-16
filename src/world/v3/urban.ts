@@ -1311,6 +1311,8 @@ export function urbanNeighborhood(
     let u = lookRank.get(block) ?? 1;
     const fabric = looks.blocks.find(({ share }) => (u -= share) < 0)?.look;
     if (!fabric) return undefined;
+    // Houses in gardens: a block is one kind of house in all its colours.
+    if (use === "villa" || use === "suburb") return streetFrames(fabric as Parameters<typeof streetFrames>[0]);
     const colouring = (look: string, key: string) => {
       const frames = streetFrames(look as Parameters<typeof streetFrames>[0]);
       const n = new Set(frames.map((f) => f.split("-urban-")[0])).size;
@@ -2488,7 +2490,8 @@ export function urbanNeighborhood(
   function houseLots(rank: (typeof ranks)[number]): UrbanLot[] {
     const block = rank.block, out: UrbanLot[] = [];
     const homes = candidateBases.filter((c) => c.kind.includes("home")).map((c) => c.base);
-    const pool = homes.length ? homes : framesForBlock(block);
+    const street = streetLookFrames(block);
+    const pool = street?.length ? street : homes.length ? homes : framesForBlock(block);
     const faces = block.h >= 14 && !block.row ? (["south", "north"] as const) : (["south"] as const);
     const room = Math.floor(block.h / faces.length);
     for (const face of faces) {
@@ -2515,7 +2518,7 @@ export function urbanNeighborhood(
             if (!place(rank, lot)) continue;
             out.push(lot);
             // Room for the drive, and for a roof wider than its walls.
-            step = w + 4 + marginsOf(frame)[0];
+            step = w + 3 + marginsOf(frame)[0];
             break;
           }
         x += step;
@@ -2527,7 +2530,6 @@ export function urbanNeighborhood(
   function blockLots(block: Block): UrbanLot[] {
     const rank = ranks.find((r) => r.block === block)!;
     if (block.open) return [];
-    // Villas are the suburb's houses until they have art of their own.
     if (form.motor && !form.oldCore && (uses.get(block) === "suburb" || uses.get(block) === "villa")) {
       const houses = houseLots(rank);
       if (houses.length) return houses;

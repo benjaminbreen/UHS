@@ -4,9 +4,9 @@ built in the European manner, as the street looks are.
 
     .venv/bin/python scripts/art/front_homes.py out.png [look ...]   # each colour and form beside the adult
 
-villa, 1850-1914: two storeys under a hipped roof, a wing brought forward
-under a gable or a tower, a bay window, a porch at the door; in brick, stucco
-or weatherboard. The seed picks its ornament: cresting, quoins, brick bands,
+villa, villa-stucco, villa-board, 1850-1914: two storeys under a hipped roof,
+a wing brought forward under a gable or a tower, a bay window, a porch at the
+door; a look for each wall, so a region builds its own. The seed picks its ornament: cresting, quoins, brick bands,
 shutters, a balustrade.
 suburban, 1900-1940: the villa's plan in brick and roughcast, a black and
 white or tile-hung gable, a round-headed porch.
@@ -1137,17 +1137,26 @@ ROSE = ramp(24, 0.04, lift=0.04)
 PALEGREY = ramp(240, 0.008, lift=0.035)
 ANTHRACITE = ramp(262, 0.012, lift=-0.22)
 BROWN = SHOP['brown']
+MAROON = ramp(22, 0.065, lift=-0.13)
 NEW = {
-    'villa': (Villa, 'Villa', [
+    'villa': (Villa, 'Brick villa', [
         dict(kind='brick', wall=RED, roof=DARKSLATE, trim=WHITE, stack=RED, door='green', doors=DOORS, bay=2),
-        dict(kind='stucco', wall=OCHRE, roof=TILE, trim=CREAM, stack=CREAM, door='brown', doors=DOORS, tower=True,
-             shutter=eu.PERSIENNE[1]),
-        dict(kind='clap', wall=BUTTER, roof=SHINGLE, trim=WHITE, stack=RED, door='oxblood', doors=DOORS, gable=SAGE),
         dict(kind='brick', wall=STOCK, roof=DARKSLATE, trim=CREAM, stack=STOCK, door='black', doors=DOORS, bay=2,
              bands=True, band=RED),
+        dict(kind='brick', wall=MAROON, roof=DARKSLATE, trim=CREAM, stack=MAROON, door='blue', doors=DOORS),
+    ]),
+    'villa-stucco': (Villa, 'Stucco villa', [
+        dict(kind='stucco', wall=OCHRE, roof=TILE, trim=CREAM, stack=CREAM, door='brown', doors=DOORS, tower=True,
+             shutter=eu.PERSIENNE[1]),
         dict(kind='stucco', wall=STUCCO, roof=DARKSLATE, trim=PORTLAND, stack=STUCCO, door='black', doors=DOORS,
              tower=True, cap='mansard', shutter=eu.PERSIENNE[0]),
+        dict(kind='stucco', wall=ROSE, roof=TILE, trim=WHITE, stack=WHITE, door='green', doors=DOORS, tower=True,
+             shutter=eu.PERSIENNE[2]),
+    ]),
+    'villa-board': (Villa, 'Weatherboard villa', [
+        dict(kind='clap', wall=BUTTER, roof=SHINGLE, trim=WHITE, stack=RED, door='oxblood', doors=DOORS, gable=SAGE),
         dict(kind='clap', wall=DUSK, roof=DARKSLATE, trim=WHITE, stack=RED, door='oxblood', doors=DOORS, gable=CREAM),
+        dict(kind='clap', wall=SAGE, roof=SHINGLE, trim=CREAM, stack=RED, door='brown', doors=DOORS, gable=BUTTER),
     ]),
     'suburban': (Suburban, 'Suburban house', [
         dict(kind='rough', wall=RED, upper=CREAM, roof=TILE, trim=WHITE, stack=RED, gable='timber', timber=BARK,
@@ -1188,15 +1197,19 @@ NEW = {
     ]),
 }
 ABOUT = {
-    'villa': ('bengal-brick', 'A villa in its own garden: a wing brought forward under a gable or a tower, a bay '
-                              'window, a porch at the door, and stacks with pots on a hipped roof.'),
+    'villa': ('bengal-brick', 'A brick villa in its own garden: a wing brought forward under a gable, a bay '
+                              'window, a hooded door, and stacks with pots on a hipped slate roof.'),
+    'villa-stucco': ('white-plaster', 'A stucco villa in the Italian manner: a tower, round-headed windows, a low '
+                                     'roof on brackets and a columned porch.'),
+    'villa-board': ('weatherboard', 'A weatherboard villa: a veranda across the front, a shingled gable over the '
+                                 'bay, painted trim.'),
     'suburban': ('bengal-brick', 'A suburban house of 1900 to 1940: brick below and roughcast above under a tiled '
                                  'roof, a bay under a gable in black and white, a round-headed porch.'),
-    'bungalow': ('clapboard', 'A bungalow: a storey and a half under one broad low roof, a porch on tapered posts '
+    'bungalow': ('weatherboard', 'A bungalow: a storey and a half under one broad low roof, a porch on tapered posts '
                               'and brick piers, shingles in the gable.'),
     'ranch': ('bengal-brick', 'A ranch house: one storey, long and low under a hipped roof with deep eaves, a '
                               'picture window, the car under the same roof.'),
-    'rendered': ('lime-plaster', 'A rendered house of 1950 to 2000: two storeys under a low tiled roof, a balcony '
+    'rendered': ('white-plaster', 'A rendered house of 1950 to 2000: two storeys under a low tiled roof, a balcony '
                                  'over the door, shutter boxes, a garage in the ground floor.'),
 }
 FORMS = {k: 'cottage shop tall' for k in NEW}
