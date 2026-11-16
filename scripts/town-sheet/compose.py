@@ -5,6 +5,7 @@ laid flat (no terrain height) and depth-sorted as the game sorts.
     npm run town:sheet -- london-1308       # one setting
     python3 scripts/town-sheet/compose.py --crop 300,250,1500,1250 london-1308
     npm run town:sheet -- --square paris-1888   # only the main square and its streets
+    npm run town:sheet -- --districts chicago-1955   # the whole map as a land-use plan
 
 Writes artifacts/towns/<name>.png and artifacts/towns/panel.png.
 """
@@ -75,8 +76,40 @@ def compose(name, sheets, models, crop=None):
     return im
 
 
+USES = {'downtown': '#3b4a8c', 'commercial': '#c9483b', 'industrial': '#7d5a9c', 'rowhouse': '#c98a3b', 'tenement': '#9c6b2a',
+        'villa': '#e3c84a', 'suburb': '#f0e0a0', 'estate': '#5aa0b8', 'informal': '#8a8a5a', 'historic': '#a05050', None: '#f4f4f4'}
+ROLES = ['#b9c7a0', '#4a4a4a', '#9a9a92', '#5f9a4e', '#c9bfa0', '#d8d0b8', '#2a2a2a', '#3f7fa8', '#a8b878']
+
+
+def districts(name):
+    """The whole map as a plan: ground by role, buildings by land use."""
+    t = json.loads((OUT / f'{name}.json').read_text()); R, cx, cy = t['R'], t['cx'], t['cy']
+    n = 2 * R + 1
+    im = Image.frombytes('P', (n, n), (OUT / f'{name}.roles').read_bytes())
+    im.putpalette([int(c[i:i + 2], 16) for c in ROLES for i in (1, 3, 5)] + [0] * (768 - 27))
+    im = im.convert('RGB').resize((n * 3, n * 3), Image.NEAREST); d = ImageDraw.Draw(im)
+    for p in t['places']:
+        x, y = (p['x'] - cx + R) * 3, (p['y'] - cy + R) * 3
+        d.rectangle((x, y, x + p['w'] * 3 - 1, y + p['h'] * 3 - 1), fill=USES.get(p.get('use'), '#f4f4f4'), outline='#202020')
+    for i, (k, c) in enumerate(USES.items()):
+        d.rectangle((6, 22 + i * 15, 18, 33 + i * 15), fill=c, outline='#202020'); d.text((24, 21 + i * 15), k or 'civic, works, other', fill='#101010')
+    d.text((6, 4), t['label'], fill='#101010')
+    im.save(OUT / f'{name}-districts.png')
+    return im
+
+
 def main(argv):
     crop = None
+    if '--districts' in argv:
+        import os, subprocess
+        argv = [v for v in argv if v not in ('--districts', '--dump')]
+        subprocess.run(['npx', 'tsx', 'scripts/town-sheet/dump.ts', *argv], cwd=ROOT, check=True, env={**os.environ, 'TOWN_DISTRICTS': '1'})
+        done = [districts(n) for n in argv]
+        if len(done) > 1:
+            panel = Image.new('RGB', (sum(i.width for i in done), done[0].height)); x = 0
+            for i in done: panel.paste(i, (x, 0)); x += i.width
+            panel.save(OUT / 'districts.png')
+        print('wrote districts for', ', '.join(argv)); return
     if '--square' in argv:
         crop = 'square'; argv = [v for v in argv if v != '--square']
     if '--crop' in argv:

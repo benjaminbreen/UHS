@@ -35,9 +35,11 @@ for (const { name, query, seed, radius, settlementLayout, centre } of panel as a
         if (site && site.profile.radius > best) [best, at] = [site.profile.radius, site.center];
       }
   }
-  const cx = Math.round(at.x),
-    cy = Math.round(at.y);
-  const R = radius ?? 40;
+  // TOWN_DISTRICTS: the whole map as a land-use plan, without the ground raster.
+  const districts = !!process.env.TOWN_DISTRICTS;
+  const cx = districts ? 0 : Math.round(at.x),
+    cy = districts ? 0 : Math.round(at.y);
+  const R = districts ? 192 : radius ?? 40;
   // A city can be several sites (its quarters), each with its own plan.
   const plans = new Set<any>();
   const groundRoles: Record<string, string> = {};
@@ -50,15 +52,24 @@ for (const { name, query, seed, radius, settlementLayout, centre } of panel as a
     for (let x = cx - R; x <= cx + R; x++) {
       const p = e.world.planAt(x, y);
       if (p) plans.add(p);
-      const role = p?.pavement?.get(`${x},${y}`);
+      // Overlapping sites: the cell's role is whichever plan gave it one.
+      let role = p?.pavement?.get(`${x},${y}`);
+      if (!role) for (const q of plans) if ((role = q.pavement?.get(`${x},${y}`))) break;
       if (role) groundRoles[`${x},${y}`] = role;
       const cell = sample(x, y);
+      if (districts) {
+        const green = role === "park" || role === "garden" || (role === "verge" && cell?.feature !== "paving");
+        ground[(y - cy + R) * (2 * R + 1) + x - cx + R] = cell?.surface === "water" ? 7 : role === "rail" || role === "platform" ? 6
+          : green ? 3 : role === "square" || role === "dais" || role === "court" ? 5 : role === "footway" || role === "verge" ? 2
+          : cell?.feature === "paving" && !role ? 1 : role === "yard" || role === "apron" ? 4 : cell?.field ? 8 : 0;
+        continue;
+      }
       const tile = paintedGround(cell) ? rasterHabitatTile(sample, x, y, 0, 0) : rasterWaterTile(sample, x, y, 0, 0);
       if (!tile) continue;
       for (let row = 0; row < 16; row++)
         ground.set(tile.pixels.subarray(row * 64, row * 64 + 64), (((y - cy + R) * 16 + row) * side + (x - cx + R) * 16) * 4);
     }
-  writeFileSync(`artifacts/towns/${name}.ground`, ground);
+  writeFileSync(`artifacts/towns/${name}.${districts ? "roles" : "ground"}`, districts ? ground.subarray(0, (2 * R + 1) ** 2) : ground);
   const near = (o: { x: number; y: number }) =>
     Math.abs(o.x - cx) <= R + 8 && Math.abs(o.y - cy) <= R + 8;
   writeFileSync(
@@ -77,6 +88,7 @@ for (const { name, query, seed, radius, settlementLayout, centre } of panel as a
         .filter(near)
         .map((b: any) => ({
           sprite: b.sprite,
+          use: b.landUse,
           x: b.x,
           y: b.y,
           w: b.w,

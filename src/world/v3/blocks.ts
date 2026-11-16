@@ -219,7 +219,7 @@ export function composeUrban(
   rows = 0,
   /** In a street-wall city, how deep a row of houses is drawn this far from
    * the centre: its block is exactly that deep. */
-  rowDepth?: (reach: number, low?: boolean) => number,
+  rowDepth?: (near: number, far: number, low?: boolean) => number,
   /** Footprint of the station a street-wall city keeps a block for against
    * its railway, the forecourt its cabs turn in included. */
   station?: readonly [number, number],
@@ -654,7 +654,7 @@ export function composeUrban(
     // A row of houses wants a long front: its avenues stand further apart.
     // and enough depth between them for a street of its own and an alley.
     const module = (form.streetWall && rowDepth
-      ? axis === "x" ? Math.max(core.block[0], FRONT) : 2 * (rowDepth(0.4) + span(1) + margin(1) * 2)
+      ? axis === "x" ? Math.max(core.block[0], FRONT) : 2 * (rowDepth(0.4, 0.4) + span(1) + margin(1) * 2)
       : axis === "x" ? core.block[0] : core.block[1]) + arterial;
     const count = Math.min(4, Math.floor((coreHalf * 2) / (module * 2.5)));
     for (let i = 1; i <= count; i++) {
@@ -1278,6 +1278,10 @@ export function composeUrban(
     return best;
   }
   let blocks: Block[] = [];
+  /** How far out a point lies, 0 at the centre to 1 at the edge. */
+  const reachAt = (x: number, y: number) => density
+    ? 1 - density(x, y)
+    : Math.max(Math.abs(x - focus.x), Math.abs(y - focus.y)) / half;
   const blockOn = (r: Rect): Block => {
     const mid = { x: r.x + (r.w >> 1), y: r.y + (r.h >> 1) };
     return {
@@ -1288,12 +1292,7 @@ export function composeUrban(
         0,
         districts.findIndex((d) => inRect(mid.x, mid.y, d.rect)),
       ),
-      reach: density
-        ? 1 - density(r.x + r.w / 2, r.y + r.h / 2)
-        : Math.max(
-            Math.abs(r.x + r.w / 2 - focus.x),
-            Math.abs(r.y + r.h / 2 - focus.y),
-          ) / half,
+      reach: reachAt(r.x + r.w / 2, r.y + r.h / 2),
     };
   };
   /** Ground between the main streets that was cut into rows, and the rows. */
@@ -1335,7 +1334,7 @@ export function composeUrban(
    * its south side, and lanes join one row street to the next. A new street
    * is laid only where both its ends meet another, so none ends blind; ground
    * that cannot be reached that way is left open. */
-  function layRows(depthAt: (reach: number, low?: boolean) => number) {
+  function layRows(depthAt: (near: number, far: number, low?: boolean) => number) {
     rasterize();
     for (const d of districts) if (!inRows(d)) clearRect(d.rect, 0);
     const [lo1, hi1] = spanOffsets(span(1)), m1 = margin(1), s1 = span(1) + m1 * 2;
@@ -1354,7 +1353,13 @@ export function composeUrban(
       quarters.push(q);
       const base = blockOn(q);
       const spec = districts[base.district]?.spec ?? core;
-      const depth = Math.max(6, depthAt(base.reach));
+      // A quarter is cut for the deepest houses of the rings it spans; each
+      // row then builds what its own distance out calls for.
+      const span: [number, number] = [
+        reachAt(Math.max(q.x, Math.min(q.x + q.w, focus.x)), Math.max(q.y, Math.min(q.y + q.h, focus.y))),
+        Math.max(...[q.x, q.x + q.w].flatMap((x) => [q.y, q.y + q.h].map((y) => reachAt(x, y)))),
+      ];
+      const depth = Math.max(6, depthAt(...span));
       const right = q.x + q.w - 1, bottom = q.y + q.h - 1;
       const westAt = (y: number) => beside(q.x, y, -1, 0),
         eastAt = (y: number) => beside(right, y, 1, 0),
@@ -1380,7 +1385,7 @@ export function composeUrban(
       // Counted up from the street the bottom row fronts: a main row, then
       // either a street and another main row, or an alley and the low row of
       // mews and workshops that fronts it. Whatever is over deepens the yards.
-      const lowDepth = Math.min(depth, Math.max(7, depthAt(base.reach, true)));
+      const lowDepth = Math.min(depth, Math.max(7, depthAt(...span, true)));
       const kinds: { h: number; tier: Tier }[] = [{ h: depth, tier: 1 }];
       for (let left = height - depth, n = 0; ; n++) {
         const alley = !!form.alleys && kinds.at(-1)!.h === depth && rand("alley", q.x, q.y, n) < form.alleys;
@@ -1441,7 +1446,7 @@ export function composeUrban(
         // The station's own block in the middle, yards either side.
         const wide = Math.min(width, station![0] + 14), from = x0 + ((width - wide) >> 1);
         for (const [x, w] of [[x0, from - x0 - 1], [from, wide], [from + wide + 1, x1 - from - wide]])
-          if (w >= 8) rowBlocks.push({ ...blockOn({ x, y: q.y, w, h: stationDepth }), reach: base.reach, open: true });
+          if (w >= 8) rowBlocks.push({ ...blockOn({ x, y: q.y, w, h: stationDepth }), open: true });
       }
       for (const [i, band] of bands.entries()) {
         if (band.below !== south || !fronted)
@@ -1455,7 +1460,7 @@ export function composeUrban(
           const head = cut === undefined ? undefined : (above ?? northAt(cut));
           const end = cut === undefined || head === undefined ? x1 : cut - lo2 - m2 - 1;
           if (end !== x1 && (end - left + 1 < 12 || x1 - (cut! + hi2 + m2) < 12)) continue;
-          rowBlocks.push({ ...blockOn({ x: left, y: band.y, w: end - left + 1, h: band.h }), reach: base.reach, row: true, ...(band.low ? { low: true as const } : {}) });
+          rowBlocks.push({ ...blockOn({ x: left, y: band.y, w: end - left + 1, h: band.h }), row: true, ...(band.low ? { low: true as const } : {}) });
           if (end === x1) break;
           laid.push({ a: { x: cut!, y: head! }, b: { x: cut!, y: band.below }, tier: 2 });
           left = cut! + hi2 + m2 + 1;

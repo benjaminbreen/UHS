@@ -35,6 +35,9 @@ export type TravelStop = TravelCell & {
   settlement: "city" | "town" | "village" | "unresearched" | "none";
   /** Farms or camps rolled for a square with no attested town. */
   countryside?: "sparse" | "settled";
+  /** A square with no town of its own inside a metropolis's built-up reach:
+   * its suburbs and satellite towns, with this many people. */
+  suburb?: { of: string; population: number };
   reason: string;
   km: number;
   pathIndex: number;

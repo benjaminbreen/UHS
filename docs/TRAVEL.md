@@ -15,6 +15,14 @@ across. It is generated about its exact centre, and `permanentExits` gives
 its four neighbours. The setting carries this as `playableMap` (size 304,
 384 or 512). A square of open sea keeps a drawn ocean.
 
+A square with no town of its own inside a great city's reach is not empty.
+`metropolisNear` (`environment.ts`) finds the city: the squares touching one
+of 400,000 people, two out from one of two million, three from one of six.
+Once the region has industrialised the square is a suburb (`suburb` on the
+map, named "Suburbs east of ..."), a town with a few per cent of the city's
+people, fewer in the outer rings, and no downtown (`suburbOf` on the
+setting); before that it is settled country.
+
 Fresh starts go through `prepareConnectedStart`. `travelSetting` turns a map
 and its exits into a `WorldSetting`.
 

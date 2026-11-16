@@ -130,11 +130,24 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
   covering a sixth of the town, and the low margin along water, keep a step.
   A metropolis is several overlapping sites; `generate.ts` grades them in
   rank order (`townGrade`), largest first, so its quarters share one ground.
-- `zoning.ts` gives each block a land use after the industrial onset:
-  downtown, a factory sector toward water, then housing rings dated by
-  distance (`inner` before the motor onset, `outer` after), estates and
-  self-built quarters. Every building carries its `landUse`. In the motor age
-  `form.motor` adds districts on all sides.
+- **Districts.** `zoning.ts` holds each region's housing and shares;
+  `landUseOf` in `urban.ts` gives every block a use from where it stands.
+  The whole city is on the map, suburbs and all, so its rings are thinner
+  than life (`rings`): the centre is the inner 30% of the way out, larger
+  than true so the core still reads as dense, and is a downtown where the
+  city is old and big enough; the housing built before cars (`inner`) takes
+  what its years are of the city's industrial age, between 30% and 60% of
+  the rest; beyond it is the later housing (`outer`), detached houses on
+  lawns in most regions. Works take the region's share of blocks along the
+  railway, nearest the edge first, or a sector toward the water where there
+  is no line (`worksBlocks`). Shops follow the main streets and thin
+  outward. A city of any size has a park or two, and the housing blocks
+  beside one, away from the works, are `villa`. Estates and self-built
+  quarters come by date and share as before. A quarter standing apart from
+  the middle, and the town of a suburb map, has shops but no downtown.
+- A city of a million claims 184 cells of its map's 192 and is built out to
+  150 cells at a million people, 180 from four (`urbanRadius`).
+- No trade stands more than a few times in one city (`repeats`).
 - An industrial town gets a double-track railway past the old centre, a
   station block with a platform, level crossings, and a girder bridge over
   rivers up to `RAIL_BRIDGE` cells.

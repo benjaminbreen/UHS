@@ -9,7 +9,7 @@ import { REGION_CELL } from "../regional/context";
 import { waterRegion } from "../../content/geography/travel/oceans";
 import { northAmericanLandscape } from "../../content/geography/travel/north-american-landscapes";
 import { kilometers, bearingTo, wrapLon } from "./geography";
-import { resolveMapEnvironment, mapClimateLabel } from "./environment";
+import { resolveMapEnvironment, mapClimateLabel, metropolisNear } from "./environment";
 import { resolveGeographicName } from "./naming";
 import { trimCache } from "../../core/cache";
 import { random } from "../../core/random";
@@ -316,8 +316,12 @@ export function permanentMap(id: string, year: number): PermanentMap {
   const { name, location } = nameOf(tile, year, water);
   const named = tableName(tile) !== undefined;
   const status = location ? settlementAt(location, year) : "none";
-  const settlement =
+  const own =
     status === "city" || status === "town" || status === "village" ? status : "none";
+  // No town of its own, but inside a great city's reach: its suburbs.
+  const metropolis = own === "none" && !water ? metropolisNear(centre, year) : undefined;
+  const suburb = metropolis?.suburban ? metropolis : undefined;
+  const settlement = suburb ? "town" : own;
   const map: PermanentMap = {
     ...centre,
     id: tileId(tile),
@@ -325,16 +329,18 @@ export function permanentMap(id: string, year: number): PermanentMap {
     environment,
     naming,
     regionId: water ? waterRegion(centre).id : northAmericanLandscape(centre)?.id,
-    name,
+    name: suburb ? `Suburbs ${compass[suburb.bearing as keyof typeof compass]} of ${suburb.of}` : name,
+    suburb: suburb && { of: suburb.of, population: suburb.population },
     climate: mapClimateLabel(environment),
     relief: environment.relief,
     water,
     culture: water ? "No resident default" : environment.culture,
-    locationId: settlement !== "none" ? location!.id : undefined,
+    locationId: own !== "none" ? location!.id : undefined,
     settlement,
     countryside:
       settlement === "none" && !water
-        ? countryside(tile, year, environment.climate)
+        // Round a great city before its industry, every square is farmed.
+        ? metropolis ? "settled" : countryside(tile, year, environment.climate)
         : undefined,
     size: TILE,
     reason: "Permanent playable map",

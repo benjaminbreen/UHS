@@ -144,6 +144,9 @@ export const settingSchema = z
     // How a town stands on its ground: houses in their own plots, or rows on
     // the street. Absent, `settlementLayout()` decides from place and date.
     settlementLayout: z.enum(["plots", "rows"]).optional(),
+    /** The metropolis this map's town is a suburb of: it has shops of its
+     * own but no downtown. */
+    suburbOf: z.string().optional(),
     roadRevision: z.literal(1).optional(),
     // Premodern streets are earth unless the place and date paved them.
     streetRevision: z.literal(1).optional(),

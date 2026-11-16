@@ -394,5 +394,29 @@
     "name": "shanghai-2005",
     "query": "A clerk in Shanghai, 2005",
     "radius": 70
+  },
+  {
+    "name": "chicago-1955",
+    "query": "Chicago 1955",
+    "radius": 56,
+    "centre": "square"
+  },
+  {
+    "name": "beijing-1985",
+    "query": "Beijing 1985",
+    "radius": 56,
+    "centre": "square"
+  },
+  {
+    "name": "taipei-1975",
+    "query": "Taipei 1975",
+    "radius": 56,
+    "centre": "square"
+  },
+  {
+    "name": "sao-paulo-1960",
+    "query": "Sao Paulo 1960",
+    "radius": 56,
+    "centre": "square"
   }
 ]

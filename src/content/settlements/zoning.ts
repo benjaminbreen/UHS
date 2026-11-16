@@ -10,6 +10,8 @@ export type LandUse =
   | "industrial"
   | "rowhouse"
   | "tenement"
+  /** The best houses, each in its own garden, on the blocks beside a park. */
+  | "villa"
   | "suburb"
   | "estate"
   | "informal";

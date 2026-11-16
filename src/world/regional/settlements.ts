@@ -219,7 +219,7 @@ export function regionalSettlements(
       const built =
         target !== undefined && p.population
           ? Math.min(radius, urbanRadius(p.population, setting.year))
-          : radius;
+          : Math.min(radius, 140);
       const profile = {
         ...base,
         radius: built,
