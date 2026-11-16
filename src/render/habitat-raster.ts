@@ -18,7 +18,7 @@ import {
   styleGroundPixel,
   type GroundMaterial,
 } from "./ground-style";
-import { rasterStreetTile } from "./street-raster";
+import { kerbEdgePixel, rasterStreetTile } from "./street-raster";
 import { blacktopPixel } from "./carriageway";
 import { enclosed, kerbed, pavingMask, wornEdge, VERGE } from "./paving-edge";
 import { dustOf, pavingGrade, pavingStonePixel, stoneUnit } from "./paving-stones";
@@ -390,6 +390,12 @@ export function rasterHabitatTile(
   cell: TopographyCell = sample(x, y)!,
 ): GroundTileData {
   const tile = bareHabitatTile(sample, x, y, ox, oy, art, cell);
+  if (cell.streetGeometry?.edge)
+    for (let py = 0; py < 16; py++)
+      for (let px = 0; px < 16; px++) {
+        const kerb = kerbEdgePixel(cell.streetGeometry.strokes, (x + ox) * 16 + px, (y + oy) * 16 + py);
+        if (kerb) tile.pixels.set(kerb, (py * 16 + px) * 4);
+      }
   // The tide's mud laps into the shore's own cells along the same line the
   // water tiles draw it to, whatever the beach here is made of.
   const v = cell.waterVisual;
@@ -422,7 +428,7 @@ function bareHabitatTile(
   cell: TopographyCell,
 ): GroundTileData {
   const street = cell.feature === "paving";
-  if (street && cell.streetGeometry && cell.habitat) {
+  if (street && cell.streetGeometry?.edge === false && cell.habitat) {
     const under = { ...cell, feature: undefined, pavement: undefined, streetMaterial: undefined, surface: "grass" as const };
     const tile = rasterGroundTile(sample, x, y, ox, oy, art, under);
     const top = rasterStreetTile(sample, x, y, ox, oy).pixels;

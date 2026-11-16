@@ -5190,7 +5190,7 @@ export function planSettlement(
       const t = plan.surface.get(k), role = plan.pavement?.get(k);
       return (t === undefined || t === "dirt" || t === "grass") && !plan.solid.has(k) && !claimed.has(k) &&
         !plan.built?.has(k) && !plan.fields?.has(k) && !gardenCells.has(k) && !plan.lanes?.has(k) &&
-        !plan.streetGeometry?.has(k) && (!role || ["yard", "court", "garden", "vacant"].includes(role));
+        !plan.streetGeometry?.get(k)?.edge === false && (!role || ["yard", "court", "garden", "vacant"].includes(role));
     };
     const ways = new Set<string>();
     for (const road of plan.roads)
@@ -6609,7 +6609,7 @@ function stepGround(plan: SettlementPlan, routes: Set<string>, seed: string, inf
   const open = (k: string) => {
     const t = plan.surface.get(k), p = plan.pavement?.get(k);
     return (t === "grass" || t === "dirt") && !routes.has(k) && !plan.solid.has(k) && !plan.fields?.has(k) &&
-      !plan.lanes?.has(k) && !plan.streetGeometry?.has(k) && (!p || p === "vacant" || (p === "court" && t === "grass"));
+      !plan.lanes?.has(k) && !plan.streetGeometry?.get(k)?.edge === false && (!p || p === "vacant" || (p === "court" && t === "grass"));
   };
   const stoneAt = (k: string) => plan.surface.get(k) === "paving" && plan.streetSurfaces?.get(k) !== "earth";
   const pave = (k: string, stone: StreetMaterial, role: Pavement) => {
@@ -6701,7 +6701,7 @@ function tidyGround(plan: SettlementPlan, routes: Set<string>, motorAge: boolean
   const at = (x: number, y: number) => plan.surface.get(cellKey(x, y));
   const open = (t?: Terrain) => t === "paving" || t === "dirt" || t === "grass";
   const fixed = (k: string) =>
-    routes.has(k) || plan.solid.has(k) || !!plan.fields?.has(k) || !!plan.streetGeometry?.has(k) ||
+    routes.has(k) || plan.solid.has(k) || !!plan.fields?.has(k) || !!plan.streetGeometry?.get(k)?.edge === false ||
     !!plan.lanes?.has(k) || ["dais", "platform", "rail", "garden", "verge", "park", "footway"].includes(plan.pavement?.get(k) ?? "");
   const take = (k: string, from: string) => {
     const t = plan.surface.get(from)!;

@@ -1,11 +1,11 @@
 import { asphaltPixel, dustOf, pavingGrade, pavingStonePixel, sandBank, sunAndSand } from "./paving-stones";
-import { carriagewayPixel, concreteRoadPixel, levelCrossing, railPixel } from "./carriageway";
+import { carriagewayPixel, concreteRoadPixel, gutterPixel, levelCrossing, railPixel } from "./carriageway";
 import { kerbCorner, kerbed, paved, pavingMask, roadwayMaterial, wornEdge } from "./paving-edge";
 import type { TopographySample } from "../core/topography";
 import type { StreetMaterial } from "../content/settlements/streets";
 import type { GroundTileData } from "./habitat-raster";
 import { cellHash as hash } from "../core/noise";
-import { streetDistance, streetUnionDistance, strokeFrame, strokeSection, throughStroke } from "../world/v3/street-geometry";
+import { streetDistance, streetUnionDistance, strokeFrame, strokeSection, throughStroke, type StreetStroke } from "../world/v3/street-geometry";
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 /** World-space value noise at stone scale, so a seam wanders by whole stones. */
 const jitter = (wx: number, wy: number) => {
@@ -102,6 +102,31 @@ function kerbTone(
   if (d === 4 + front) return KERB_FOOT;
   if (d <= 4 + front + shade) return lit(road, -4);
   return undefined;
+}
+/** No kerb past a street's last corner, where it is already the highway. */
+const kerbedHere = (s: StreetStroke) => !(s.to !== undefined && !s.walk);
+/** Unit vector from a point toward the footway: the way a kerb there faces. */
+function outward(strokes: StreetStroke[], ax: number, ay: number): [number, number] {
+  const gx = streetUnionDistance(strokes, ax + 0.25, ay) - streetUnionDistance(strokes, ax - 0.25, ay),
+    gy = streetUnionDistance(strokes, ax, ay + 0.25) - streetUnionDistance(strokes, ax, ay - 0.25);
+  const steep = Math.hypot(gx, gy) || 1;
+  return [gx / steep, gy / steep];
+}
+/** A made street's kerb at a pixel `d` from its kerb line (negative on the
+ * road): the stone's top on the footway's last four pixels, its front and
+ * shadow on the road. Undefined where there is none. */
+function kerbAt(strokes: StreetStroke[], closest: StreetStroke, d: number, ax: number, ay: number, wx: number, wy: number, under: RGB, dropped = false): RGB | undefined {
+  const road = closest.material ?? "slab";
+  if (road === "cobble" || road === "slab" || d >= 4 || d <= -6 || !kerbedHere(closest)) return undefined;
+  if (dropped) return d > -1 && d < 3 ? lit(kerbStone(road), -1) : undefined;
+  const [nx, ny] = outward(strokes, ax, ay);
+  return kerbTone(nx, ny, Math.floor(4 - d), Math.abs(ny) >= Math.abs(nx) ? wx : wy, kerbStone(road), under, false);
+}
+/** The kerb's top where it falls on ground that is not the street's own. */
+export function kerbEdgePixel(strokes: StreetStroke[], wx: number, wy: number): RGB | undefined {
+  const ax = (wx + 0.5) / 16, ay = (wy + 0.5) / 16;
+  const d = streetUnionDistance(strokes, ax, ay) * 16;
+  return d > 0 ? kerbAt(strokes, throughStroke(strokes, ax, ay), d, ax, ay, wx, wy, [0, 0, 0]) : undefined;
 }
 /** Pixels of kerb and cast shadow `kerbTone` draws on the road, past which sand banks. */
 const KERB_REACH: Record<Side, number> = { n: 9, s: 5, w: 6, e: 5 };
@@ -304,15 +329,14 @@ export function rasterStreetTile(
         pixels.set([...colour, 255], (py * 16 + px) * 4);
         continue;
       }
-      if (c.streetGeometry && !track) {
-        const { strokes, infill } = c.streetGeometry;
+      if (c.streetGeometry && !c.streetGeometry.edge && !track) {
+        const { strokes } = c.streetGeometry;
         const ax = (wx + 0.5) / 16, ay = (wy + 0.5) / 16;
         const closest = throughStroke(strokes, ax, ay);
-        const union = (qx: number, qy: number) => streetUnionDistance(strokes, qx, qy) * 16;
-        const d = union(ax, ay);
+        const d = streetUnionDistance(strokes, ax, ay) * 16;
         // Past every street's own footway the ground shows.
         // (the rounded corner's footway included: it lies outside both streets' own).
-        if (d > 0 && !infill && d / 16 > strokeSection(closest, ax, ay).walk &&
+        if (d > 0 && d / 16 > strokeSection(closest, ax, ay).walk &&
           !strokes.some((o) => streetDistance(o, ax, ay) <= strokeSection(o, ax, ay).walk)) {
           // A paved cell's own stone, where the walk's curve leaves a corner of it.
           if (c.pavement && c.streetMaterial)
@@ -327,13 +351,10 @@ export function rasterStreetTile(
         // Paint belongs on a made road, never on flags or cobbles.
         if (d < 0 && made) {
           const smooth = road === "asphalt" || road === "concrete";
-          // A real kerb is near; inside a junction's mouth there is none to gutter.
-          // Nor past the last corner, where the street is already the highway.
-          const open = closest.to !== undefined && !closest.walk;
-          const kerbs = { low: d > -18 && !open, high: d > -18 && !open };
+          const none = { low: false, high: false };
           if (c.lane)
             colour = carriagewayPixel(colour, c.lane, c.lane.at * 16 + (c.lane.axis === "x" ? py : px),
-              c.lane.axis === "x" ? wx : wy, c.lane.axis === "x" ? wy : wx, kerbs, smooth);
+              c.lane.axis === "x" ? wx : wy, c.lane.axis === "x" ? wy : wx, none, smooth);
           else if (closest.marks) {
             // Off the grid a street carries the same section in its own frame.
             const f = strokeFrame(closest, ax, ay), half = Math.round(strokeSection(closest, ax, ay).radius * 16);
@@ -342,23 +363,21 @@ export function rasterStreetTile(
             colour = carriagewayPixel(colour,
               { axis: f.xlike ? "x" : "y", at: 0, span: half / 8, junction: crossed,
                 marks: closest.to === undefined ? closest.marks : { ...closest.marks, parking: false, lanes: false } },
-              Math.floor(f.across * 16) + half, Math.floor(f.along * 16), Math.round((f.along - f.across) * 16), kerbs, smooth);
+              Math.floor(f.across * 16) + half, Math.floor(f.along * 16), Math.round((f.along - f.across) * 16), none, smooth);
+          }
+          // The channel follows the kerb round its corners: measured from the
+          // kerb line itself, not from the lane's straight edge.
+          const marks = c.lane?.marks ?? closest.marks;
+          if (marks && marks.gutter !== "none" && kerbedHere(closest) && strokeSection(closest, ax, ay).radius * 32 >= 28) {
+            const [nx, ny] = outward(strokes, ax, ay), flat = Math.abs(ny) >= Math.abs(nx);
+            const g = gutterPixel(colour, Math.floor(-d), flat ? wx : wy, Math.round((flat ? wy : wx) - d * (flat ? ny : nx)),
+              marks.gutter, smooth, !!c.lane && !c.lane.junction && Math.abs(c.lane.toJunction ?? 9) > 3 && Math.min(Math.abs(nx), Math.abs(ny)) < 0.05);
+            if (g) colour = g;
           }
         }
-        if (road !== "cobble" && road !== "slab") {
-          // The stone's top is the footway's last four pixels; its front and
-          // shadow fall on the road.
-          if (d < 4 && d > -6 && !(closest.to !== undefined && !closest.walk)) {
-            // The kerb faces whichever way the road's edge does here.
-            const gx = union(ax + 0.25, ay) - union(ax - 0.25, ay), gy = union(ax, ay + 0.25) - union(ax, ay - 0.25);
-            const steep = Math.hypot(gx, gy) || 1;
-            const dropped = c.lane?.crossing && Math.abs(c.lane.toJunction ?? 9) <= 2;
-            const tone = dropped
-              ? d > -1 && d < 3 ? lit(kerbStone(road), -1) : undefined
-              : kerbTone(gx / steep, gy / steep, Math.floor(4 - d), Math.abs(gy) >= Math.abs(gx) ? wx : wy, kerbStone(road), colour, false);
-            if (tone) colour = tone;
-          }
-        } else if (road !== walk && d >= -4 && d < 0) {
+        const kerb = kerbAt(strokes, closest, d, ax, ay, wx, wy, colour, !!c.lane?.crossing && Math.abs(c.lane.toJunction ?? 9) <= 2);
+        if (kerb) colour = kerb;
+        else if ((road === "cobble" || road === "slab") && road !== walk && d >= -4 && d < 0) {
           // Cobbles stop at a row of long edge stones and a joint, not a cut.
           const along = closest.a[1] === closest.b[1] ? wx : wy;
           colour = d >= -1 ? lit(COURSE[road], -3) : mod(along, 7) === 0 ? lit(COURSE[road], -2) : lit(COURSE[road], d >= -2 ? 2 : 0);

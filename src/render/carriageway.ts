@@ -187,6 +187,40 @@ export function laneLids(lane: Lane, x: number, y: number): { cx: number; cy: nu
 /** Which sides of this cell are kerbed. */
 export type Kerbs = { low: boolean; high: boolean };
 
+/** The channel at a kerb's foot: `d` pixels out from the kerb line, `v`
+ * along it, `side` a key for which kerb. Undefined past the channel. A sett
+ * or brick street drains along one course of its own stone; a smooth one has
+ * a poured pan. `drains` allows a grate every few lengths. */
+export function gutterPixel(base: RGB, d: number, v: number, side: number, gutter: "concrete" | "sett", pan: boolean, drains: boolean): RGB | undefined {
+  if (d < 0 || d >= GUTTER) return undefined;
+  if (drains && hash(Math.floor(v / 16), side, 771) < 0.13) {
+    const along = mod(v, 16);
+    if (along >= 2 && along <= 13 && d >= 6 && d <= 11) {
+      if (along === 2 || along === 13 || d === 6 || d === 11)
+        return d === 6 || along === 2 ? [96, 98, 96] : [54, 56, 58];
+      return mod(along, 2) ? [20, 22, 26] : d === 7 ? [104, 106, 104] : [82, 84, 84];
+    }
+    // Dark silt washed out below the grate.
+    if (along >= 3 && along <= 12 && d === 12) return tint(base, -10);
+  }
+  if (!pan || gutter === "sett") {
+    // One course, in the road's own stone a little lighter, so the channel
+    // is a line at the kerb's foot and not a second pavement.
+    if (d >= 7) return undefined;
+    const y = mod(v, 12);
+    if (d === 6 || y === 0) return tint(base, -14);
+    const wet = valueNoise(v, side, 6, 772) > 0.55;
+    return tint(base, (wet ? -6 : 6) + Math.floor(hash(Math.floor(v / 12), 0, 772) * 6) - 3 + (y === 1 ? 5 : 0));
+  }
+  if (d === GUTTER - 1) return [84, 86, 86];
+  if (d >= 8) {
+    // Leaves, grit and wet where the pan meets the binder.
+    const silt = valueNoise(v, side, 5, 773);
+    if (silt > 0.6) return tint(PAN, -22 - (silt > 0.72 ? 10 : 0));
+  }
+  if (mod(v, 24) === 0) return tint(PAN, -24);
+  return tint(PAN, (d === 0 ? -14 : d === 1 ? -6 : 0) + (hash(v, d, 774) < 0.2 ? -4 : 0));
+}
 /** One pixel of a marked carriageway. `u` runs across the road from its west
  * or north kerb, `v` along it in world pixels; `ax` is the world coordinate
  * across the road, so two parallel streets do not repeat each other. */
@@ -219,39 +253,8 @@ export function carriagewayPixel(
     high = kerbs.high && u >= W - GUTTER;
   // A lane too narrow for a cart to pass another has no channel to speak of.
   if ((low || high) && m.gutter !== "none" && W >= 28) {
-    const d = low ? u : W - 1 - u;
-    const side = edge + (low ? 0 : W);
-    // A drain every few lengths of kerb, never at a crossing.
-    const slot = Math.floor(v / 16);
-    if (toJunction > 40 && hash(slot, side, 771) < 0.13) {
-      const along = mod(v, 16);
-      if (along >= 2 && along <= 13 && d >= 6 && d <= 11) {
-        if (along === 2 || along === 13 || d === 6 || d === 11)
-          return d === 6 || along === 2 ? [96, 98, 96] : [54, 56, 58];
-        return mod(along, 2) ? [20, 22, 26] : d === 7 ? [104, 106, 104] : [82, 84, 84];
-      }
-      // Dark silt washed out below the grate.
-      if (along >= 3 && along <= 12 && d === 12) return tint(base, -10);
-    }
-    // A sett or brick street drains along a channel of long stones laid
-    // lengthwise at the kerb's foot, darker and damp where the water runs.
-    if (!pan || m.gutter === "sett") {
-      // One course, in the road's own stone a little lighter, so the channel
-      // is a line at the kerb's foot and not a second pavement.
-      if (d >= 7) return base;
-      const y = mod(v, 12);
-      if (d === 6 || y === 0) return tint(base, -14);
-      const wet = valueNoise(v, side, 6, 772) > 0.55;
-      return tint(base, (wet ? -6 : 6) + Math.floor(hash(Math.floor(v / 12), 0, 772) * 6) - 3 + (y === 1 ? 5 : 0));
-    }
-    if (d === GUTTER - 1) return [84, 86, 86];
-    if (d >= 8) {
-      // Leaves, grit and wet where the pan meets the binder.
-      const silt = valueNoise(v, side, 5, 773);
-      if (silt > 0.6) return tint(PAN, -22 - (silt > 0.72 ? 10 : 0));
-    }
-    if (mod(v, 24) === 0) return tint(PAN, -24);
-    return tint(PAN, (d === 0 ? -14 : d === 1 ? -6 : 0) + (hash(v, d, 774) < 0.2 ? -4 : 0));
+    const g = gutterPixel(base, low ? u : W - 1 - u, v, edge + (low ? 0 : W), m.gutter, pan, toJunction > 40);
+    if (g) return g;
   }
 
   const lanes = Math.max(1, Math.round((W - 2 * P) / 40));

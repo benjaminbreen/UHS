@@ -153,6 +153,13 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
   course in the road's own stone, and a lane under 28 pixels wide has none.
   A square is framed with a course of kerb stones wherever a made street
   lies beyond its walk; an older square still runs into its lanes unframed.
+- Block corners are quarter circles (`streetUnionDistance` in
+  `street-geometry.ts`, wider where the street is marked for cars), and the
+  footway, kerb and gutter are all measured from that one line, so they turn
+  together. A lamp, a tree pit or a paved verge inside a street's walk is
+  drawn with the street; ground that is not the street's own (a square, a
+  grass verge, a garden) carries `edge` geometry and gets only the kerb's
+  top where it falls there (`kerbEdgePixel`).
 - A city of rows has no diagonal avenues: they ran into the square and left
   scraps on both sides.
 - **Parked cars.** `vehicles.ts` holds a dated weighted pool per region;

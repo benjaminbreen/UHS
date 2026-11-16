@@ -2122,7 +2122,7 @@ export function createSettlementWorld(
       const lane = p.lanes?.get(key);
       if (lane && cell.feature === "paving") cell.lane = lane;
       const geometry = p.streetGeometry?.get(key);
-      if (geometry && cell.feature === "paving") cell.streetGeometry = geometry;
+      if (geometry && (cell.feature === "paving" || geometry.edge)) cell.streetGeometry = geometry;
       const bay = p.loadingBays?.get(key);
       if (bay && cell.feature === "paving") cell.loadingBay = bay;
       const track = p.tracks?.get(key);

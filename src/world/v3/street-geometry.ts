@@ -31,7 +31,9 @@ export function strokeFrame(s: StreetStroke, x: number, y: number) {
   };
 }
 
-export type StreetGeometry = { strokes: StreetStroke[]; infill: boolean };
+/** The streets whose section crosses a cell. `edge`: the cell's ground is its
+ * own (a square, a grass verge, a garden) and only the kerb falls on it. */
+export type StreetGeometry = { strokes: StreetStroke[]; edge: boolean };
 
 /** Square-ended: a made street stops at a straight edge, half a cell past
  * its last centre, rather than in a round blob. */
@@ -58,15 +60,19 @@ export function streetUnionDistance(strokes: StreetStroke[], x: number, y: numbe
     if (d < distance) { distance = d; nearest = stroke; }
   }
   let rounded = distance;
+  if (!nearest) return rounded;
+  // Where two streets meet, the corner between them is a quarter circle. A
+  // kerb laid for cars turns a wider one than a kerb laid for carts.
+  const r = (nearest.marks?.centre ?? "none") !== "none" ? 1.25 : 0.875;
+  const a = r - distance;
+  if (a <= 0) return rounded;
   for (const stroke of strokes) {
-    if (stroke === nearest || !nearest) continue;
+    if (stroke === nearest) continue;
     const ax = nearest.b[0] - nearest.a[0], ay = nearest.b[1] - nearest.a[1];
     const bx = stroke.b[0] - stroke.a[0], by = stroke.b[1] - stroke.a[1];
     if (Math.abs(ax * by - ay * bx) < 0.01) continue;
-    // A kerb laid for cars turns a wider corner than one laid for carts.
-    const k = nearest.marks ? 2.25 : 2;
-    const h = Math.max(0, k - Math.abs(distance - streetDistance(stroke, x, y))) / k;
-    rounded = Math.min(rounded, distance - h * h * k * 0.25);
+    const b = r - streetDistance(stroke, x, y);
+    if (b > 0) rounded = Math.min(rounded, r - Math.hypot(a, b));
   }
   return rounded;
 }
@@ -186,13 +192,23 @@ export function composeStreetGeometry(
   const geometry = new Map<string, StreetGeometry>();
   for (const [k, list] of index) {
     const role = plan.pavement?.get(k);
-    if (plan.solid.has(k) || (role && !["lane", "footway", "vacant"].includes(role))) continue;
     const [x, y] = k.split(",").map(Number);
     if (buildings.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h)) continue;
     const closest = throughStroke(list, x + 0.5, y + 0.5);
     const d = streetUnionDistance(list, x + 0.5, y + 0.5);
+    // A lamp, a tree in its pit and a paved verge stand on the street's own
+    // paving: they are drawn with it, corner and all, and stay what they are.
+    const fixed = plan.solid.has(k) || role === "verge";
+    const own = fixed
+      ? plan.surface.get(k) === "paving" && (!role || ["lane", "footway", "verge"].includes(role))
+      : !role || ["lane", "footway", "vacant"].includes(role);
+    if (!own) {
+      if (d > 0 && d <= 0.75) geometry.set(k, { strokes: list, edge: true });
+      continue;
+    }
     if (d > strokeSection(closest, x + 0.5, y + 0.5).walk) continue;
-    geometry.set(k, { strokes: list, infill: false });
+    geometry.set(k, { strokes: list, edge: false });
+    if (fixed) continue;
     plan.surface.set(k, "paving");
     plan.streetSurfaces!.set(k, (d <= 0 ? closest.material : closest.footway) ?? "slab");
     plan.reserved.add(k);
