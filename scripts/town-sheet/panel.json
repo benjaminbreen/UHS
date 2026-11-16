@@ -418,5 +418,35 @@
     "query": "Sao Paulo 1960",
     "radius": 56,
     "centre": "square"
+  },
+  {
+    "name": "rome-100",
+    "query": "Rome 100 CE",
+    "centre": "square"
+  },
+  {
+    "name": "seoul-1750",
+    "query": "Seoul 1750",
+    "centre": "square"
+  },
+  {
+    "name": "george-town-1880",
+    "query": "George Town, Penang 1880",
+    "centre": "square"
+  },
+  {
+    "name": "sao-paulo-2015",
+    "query": "Sao Paulo 2015",
+    "centre": "square"
+  },
+  {
+    "name": "shanghai-1930",
+    "query": "Shanghai 1930",
+    "centre": "square"
+  },
+  {
+    "name": "buenos-aires-1910",
+    "query": "Buenos Aires 1910",
+    "centre": "square"
   }
 ]
