@@ -20,6 +20,9 @@ import {
 import { atWork } from "../../core/brief";
 import {
   subsistenceFor,
+  characterCommunity,
+  characterStanding,
+  keeperContext,
   resolveCharacterContext,
   workAt,
 } from "../../content/characters/resolve";
@@ -3858,7 +3861,12 @@ export function planSettlement(
     // What the building's own art shows at the door decides who keeps it: a
     // cafe is kept by someone who would, an unnamed shop by one of the
     // shopkeeping trades, and neither is a farmer's private house.
-    const art = lot.venue ? undefined : shopArt(frame);
+    // A downtown is office blocks: most lots offices, some a bank or a department store.
+    const officeRoll = rand("office", i);
+    const art = lot.venue ? undefined : shopArt(frame) ??
+      (lot.use === "downtown" && (pack.setting?.year ?? 0) >= 1870 && officeRoll < 0.7
+        ? officeRoll < 0.45 ? "offices" : officeRoll < 0.6 ? "bank" : "department store"
+        : undefined);
     const has = (id: string) => !!characterContext?.livelihoods.some((l) => l.id === id);
     const keeper = art && owner !== "player" && !(lot.use === "industrial" && industrialAge)
       ? art === "shop"
@@ -3893,14 +3901,21 @@ export function planSettlement(
                     characterSex(seed, owner),
                   )[0]?.id ?? "farmer")
                 : unstaffed.shift();
-    const livelihood = pack.setting?.characterRevision
+    // The person's own community and standing, as generateCharacter will see
+    // them, so the trade on the door is the trade they end up with.
+    const community = pack.setting?.characterRevision ? characterCommunity(pack.setting, seed, owner) : undefined;
+    const personal = community === undefined ? undefined
+      : keeper ? keeperContext(pack.setting!, community) : resolveCharacterContext(pack.setting!, community);
+    const livelihood = personal
       ? characterLivelihood(
-          pack.setting,
+          pack.setting!,
           seed,
           owner,
           wanted,
-          undefined,
+          personal,
           characterSex(seed, owner),
+          characterStanding(pack.setting!, seed, owner, community),
+          pack.setting!.character?.age ?? 34,
         )
       : undefined;
     const role = livelihood
@@ -3951,13 +3966,7 @@ export function planSettlement(
       ? ["field", "pasture"].includes(livelihood.workplace ?? workplaceFor(livelihood.activity))
       : role === "Farmer" || role === "Herder";
     const shopfront = owner === "player" ? !!shop :
-      !!keeper || lot.quarter === "market" || lot.quarter === "craft" || (i % 4 === 1 && !rural);
-    // A downtown is office blocks: most lots offices, some a bank or a department store.
-    const officeRoll = rand("office", i);
-    const office =
-      lot.use === "downtown" && !lot.venue && (pack.setting?.year ?? 0) >= 1870 && officeRoll < 0.7
-        ? officeRoll < 0.45 ? "Offices" : officeRoll < 0.6 ? "Bank" : "Department store"
-        : undefined;
+      !!keeper || lot.quarter === "market" || lot.quarter === "craft" || (i % 4 === 1 && !rural && lot.quarter !== "elite");
     // In a camp a house is called what it is: a felt tent, a shelter, a
     // longhouse, whoever's trade is practised in it.
     const dwelling = model.label.split(" · ")[0];
@@ -3997,8 +4006,6 @@ export function planSettlement(
       id,
       name: lot.venue
         ? lot.venue.label
-        : office
-          ? office
         : lot.use === "industrial"
           ? model.label.split(" · ")[0]
         : camp
@@ -4023,7 +4030,7 @@ export function planSettlement(
       h,
       sprite: frame,
       entrance: door,
-      access: lot.venue || shopfront || office ? "public" : "household",
+      access: lot.venue || shopfront ? "public" : "household",
       owner,
       claim: lot.venue ? `venue-${lot.venue.id}` : "landscape",
       ...(pack.setting?.employmentRevision && !lot.venue && shopfront && livelihood?.id === "printer"
@@ -4324,7 +4331,8 @@ export function planSettlement(
       if (pack.setting?.characterRevision)
         Object.assign(
           a,
-          generateCharacter(pack.setting, seed, owner, pack.setting.character?.age ?? 34, role),
+          generateCharacter(pack.setting, seed, owner, pack.setting.character?.age ?? 34, role,
+            undefined, undefined, undefined, undefined, undefined, personal),
         );
       if (owner !== "player") plan.actors.push(a);
       // The threshold and the work pocket are held against scattered decoration.

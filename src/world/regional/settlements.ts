@@ -149,10 +149,14 @@ export function regionalSettlements(
       // the modern centre, and the shore can be a hundred tiles off.
       const water = context.settingAt(p.x, p.y).water;
       const shore = water !== "none";
-      // A big claim must not send the centre half a map away to find water;
-      // a city that claims its whole map stays in the middle of it, or it
-      // runs off one side and leaves the other empty.
-      const reach = radius >= 184 ? 16 : shore ? Math.min(radius, 64) : radius * 0.35;
+      // A big claim must not send the centre half a map away to find water.
+      // A city that claims its whole map stays as near the middle of it as
+      // the ground allows, or it runs off one side and leaves the other
+      // empty; where the middle is open sea it looks as far as the map goes
+      // for the island's shore.
+      const whole = radius >= 184;
+      const reach = whole ? radius : shore ? Math.min(radius, 64) : radius * 0.35;
+      const pull = whole ? 3 : 0.12;
       const step = shore ? 8 : 5;
       const candidates = [{ x: p.x, y: p.y }];
       for (let r = 6; r <= reach; r += step) {
@@ -198,7 +202,7 @@ export function regionalSettlements(
         const score = (q: typeof a) => {
           const f = sample(q.x, q.y);
           return (
-            Math.hypot(q.x - p.x, q.y - p.y) * 0.12 +
+            Math.hypot(q.x - p.x, q.y - p.y) * pull +
             (shore
               ? shorePreference(f.water, radius, available) +
                 (f.kind === wanted ? 0 : 60)

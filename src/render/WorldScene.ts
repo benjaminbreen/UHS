@@ -1,5 +1,5 @@
 import { loadVoxelItems, voxelIcon, voxelItemsReady } from "./voxel-items";
-import { waterborneFrames } from "../content/graphics/models";
+import { shopArt, waterborneFrames } from "../content/graphics/models";
 import { socialLabels } from "../core/bonds";
 import { shownStock } from "../core/economy";
 import { keepsShop } from "../core/shop";
@@ -2970,7 +2970,8 @@ export class WorldScene extends Phaser.Scene {
       // The first board is the keeper's own: the business the art names, or
       // what the keeper's work is. A private house hangs none.
       if (i === 0 && !model.business && place.access !== "public") return;
-      const own = i === 0 ? model.business ?? keeperTrade(keeper) : undefined;
+      const art = shopArt(place.sprite);
+      const own = i === 0 ? model.business ?? (art && art !== "shop" ? art : keeperTrade(keeper)) : undefined;
       if (own?.startsWith("residential") || r("bare") < (i === 0 ? 0 : 0.12)) return;
       const year = this.runtime.engine.world.pack.year;
       const trade = hint || own || streetTrade(year, r("trade"));

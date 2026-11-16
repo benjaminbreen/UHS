@@ -3,13 +3,12 @@ import {
   institutionFor,
   type Institution,
 } from "../../content/characters/workplace";
-import { resolveCharacterContext } from "../../content/characters/resolve";
+import { keeperContext, resolveCharacterContext } from "../../content/characters/resolve";
 import { generateCharacter } from "../../content/characters/generate";
 import { livelihoodById } from "../../content/characters/livelihoods";
 import { officeFor } from "../../content/interiors/offices";
 import { worksitesFor } from "../../content/settlements/worksites";
 import type { SettlementPlan, WorkSite } from "./types";
-import { shopArt } from "../../content/graphics/models";
 
 export type WorkplaceOffer = {
   id: string;
@@ -119,9 +118,9 @@ function available(plan: SettlementPlan, kind: Institution, id: string, role?: s
   );
 }
 
-/** Whoever keeps a shop works in it; no other place has to take them on. */
+/** Whoever keeps a shop or workshop of their own works in it; no other place has to take them on. */
 const keepsShop = (plan: SettlementPlan, id: string) =>
-  plan.places.some((p) => p.owner === id && p.access === "public" && !!shopArt(p.sprite));
+  plan.places.some((p) => p.owner === id && p.access === "public" && !p.claim.startsWith("venue-"));
 
 export function localWorkContext(
   plan: SettlementPlan,
@@ -139,11 +138,14 @@ export function localWorkContext(
     const requirement = supplied[offer.kind];
     if (requirement) localRequirements.add(requirement);
   }
-  const context = resolveCharacterContext(pack.setting!, community, localRequirements);
+  const keeps = keepsShop(plan, id);
+  const context = keeps
+    ? keeperContext(pack.setting!, community, localRequirements)
+    : resolveCharacterContext(pack.setting!, community, localRequirements);
   return {
     ...context,
     livelihoods: context.livelihoods.filter((l) => {
-      if (keepsShop(plan, id)) return true;
+      if (keeps) return true;
       const kind = institutionAt(l,pack,plan,id);
       return !kind || available(plan, kind, id, l.id).length > 0;
     }).map((l) => {

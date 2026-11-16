@@ -263,6 +263,9 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   sweets: { en: ["CANDY", "SWEETS"], fr: ["PATISSERIE"], nl: ["BANKET"], es: ["DULCES"], pt: ["DOCES"], tr: ["TATLI"], ru: ["КОНДИТЕРСКАЯ"] },
   juice: { en: ["JUICE"], fr: ["JUS"], nl: ["SAP"], es: ["JUGOS"], pt: ["SUCOS"], tr: ["MEYVE SUYU"], sw: ["JUISI"], ru: ["СОКИ"] },
   bank: { en: ["BANK", "SAVINGS"], fr: ["BANQUE"], nl: ["BANK"], es: ["BANCO"], pt: ["BANCO"], id: ["BANK"], tr: ["BANKA"], sw: ["BENKI"], ru: ["СБЕРКАССА"] },
+  pub: { en: ["PUB", "TAVERN"], fr: ["CAFE"], nl: ["CAFE"] },
+  offices: { en: ["OFFICES", "CHAMBERS"], fr: ["BUREAUX"] },
+  "department store": { en: ["STORES", "EMPORIUM"], fr: ["MAGASINS"] },
   /** Anything that only says it is open for business. */
   shop: {
     en: ["SHOP", "STORE"],
@@ -364,7 +367,9 @@ export const KEEPERS: Record<string, string[]> = {
   laundromat: ["laundry-worker", "washerwoman", "laundress"], "gas station": ["motor-mechanic"],
   "auto workshop": ["motor-mechanic", "blacksmith"], "tire shop": ["motor-mechanic"],
   motel: ["innkeeper", "publican"], hotel: ["innkeeper", "publican"],
-  bakery: ["baker", "confectioner"], bookshop: ["printer"],
+  bakery: ["baker", "confectioner"], bookshop: ["printer"], pub: ["publican", "innkeeper"],
+  bank: ["bank-clerk", "clerk"], offices: ["clerk", "bank-clerk"], "department store": ["shopkeeper", "trader"],
+  supermarket: ["grocer", "shopkeeper"],
 };
 /** Trades that keep an unnamed shop, so a street of them is not all one thing. */
 export const SHOP_TRADES = [

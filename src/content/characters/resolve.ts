@@ -399,6 +399,18 @@ export function workAt(
       (sex === "unspecified" || !l.sex || l.sex === sex),
   );
 }
+/** A shopkeeper's own community's work with the town's trades it lacks: the shop was asked for from those. */
+export function keeperContext(
+  s: WorldSetting,
+  community: string | undefined,
+  localRequirements?: ReadonlySet<string>,
+): CharacterContext {
+  const own = resolveCharacterContext(s, community, localRequirements);
+  if (!community) return own;
+  const known = new Set(own.livelihoods.map((l) => l.id));
+  const town = resolveCharacterContext(s, undefined, localRequirements).livelihoods.filter((l) => !known.has(l.id));
+  return { ...own, livelihoods: [...own.livelihoods, ...town] };
+}
 export function resolveCharacterContext(
   s: WorldSetting,
   community = communityFor(s),

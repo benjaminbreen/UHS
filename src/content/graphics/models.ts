@@ -23,6 +23,11 @@ export const waterborneFrames = new Set(Object.entries(worksites)
   .flatMap(([name])=>[name,...["north","east","west"].map(f=>`${name}-${f}`)])
   .concat(Object.entries(boats).flatMap(([name,spec])=>spec.finishes.flatMap(finish=>
     Array.from({length:8},(_,f)=>["","-back","-front"].map(layer=>`boat-${name}${finish}-${f}${layer}`)).flat()))));
+/** Street looks drawn for one business, by family name. */
+const LOOK_BUSINESS: Record<string, string> = {
+  pub: "pub", bank: "bank", chambers: "offices", office: "offices", emporium: "department store", diner: "diner",
+  drivein: "burger drive-in", market: "supermarket", motel: "motel", gas: "gas station", theatre: "cinema",
+};
 /** What a frame's art shows at its street door: a named business ("cafe"),
  * an unnamed "shop", or nothing for a house. Whoever is put in the building
  * and how the door is treated follow this, so a cafe is never someone's
@@ -32,6 +37,8 @@ export function shopArt(frame: string): string | undefined {
   const model = buildingModels[frame] as { business?: string; shopSigns?: unknown[]; role?: string } | undefined;
   if (!model) return undefined;
   if (model.business) return model.business.startsWith("residential") ? undefined : model.business;
+  const look = LOOK_BUSINESS[/^mod-([a-z-]+?)-\d/.exec(frame)?.[1] ?? ""];
+  if (look) return look;
   if (model.shopSigns?.length || model.role === "shop") return "shop";
   return !frame.startsWith("mod-") && /-urban-(shop|stall)(-(north|east|west))?$/.test(frame) ? "shop" : undefined;
 }
