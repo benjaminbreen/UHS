@@ -10,9 +10,9 @@ import { PerilView } from "./peril";
 import { paintSewerTerrain, paletteOf } from "./terrain";
 import { Flotsam, WaterSurface } from "../flowing-water";
 import { sewerTile } from "./water";
+import { LampHud, Lamplight } from "../lamplight";
 
 const CELL = 48, TALL = 64, RISE = 56, PAD = 16;
-const SUB = 2;
 const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
 
 export type SewerSound = "drip" | "rats" | "take" | "splash" | "knock" | "car" | "steam" | "rush" | "rumble" | "pick" | "tub" | "creak" | "shot" | "crack" | "fall" | "runaway" | "blast";
@@ -47,23 +47,14 @@ export class SewerView {
   static daylit = false;
   private base: Phaser.Textures.CanvasTexture;
   private sheet: Phaser.Textures.CanvasTexture;
-  private map: Phaser.Textures.CanvasTexture;
-  private small: CanvasRenderingContext2D;
-  private mapData: ImageData;
-  private cur: Float32Array;
-  private still: Float32Array;
+  private lamp: Lamplight;
   private stillKey = "";
-  private vis: Uint8Array;
-  private seen: Uint8Array;
   private objects: Phaser.GameObjects.GameObject[] = [];
   private tall = new Map<string, Phaser.GameObjects.Image>();
   private live = new Set<Phaser.GameObjects.GameObject>();
   private water: Phaser.GameObjects.Graphics;
   private beams: Phaser.GameObjects.Graphics;
-  private halo: Phaser.GameObjects.Image;
-  private hud: Phaser.GameObjects.Graphics;
-  private label: Phaser.GameObjects.Text;
-  private banner: Phaser.GameObjects.Text;
+  private hud: LampHud;
   private rats: Rat[] = [];
   private flotsam: Flotsam;
   private surface: WaterSurface;
@@ -71,8 +62,6 @@ export class SewerView {
   private shade: HTMLCanvasElement;
   readonly gas: Gas;
   private stamp = "?";
-  private at = -1;
-  private aim = 0;
   private born = 0;
   private took = 0;
   private next = { drip: 0, knock: 0, car: 0, steam: 0, trickle: 0, splash: 0, pick: 0 };
@@ -98,18 +87,6 @@ export class SewerView {
     this.rock = rock;
     const tallCount = level.decor.filter((d) => d.solid).length + level.things.filter((t) => t.solid).length + level.shafts.length + 2;
     this.sheet = scene.textures.createCanvas(`${key}-sheet`, CELL * 16, TALL * Math.ceil(tallCount / 16 + 1))!;
-    const small = document.createElement("canvas");
-    small.width = w * SUB;
-    small.height = h * SUB;
-    this.small = small.getContext("2d")!;
-    this.map = scene.textures.createCanvas(`${key}-light`, w * 8, h * 8)!;
-    this.map.context.imageSmoothingEnabled = true;
-    this.map.context.imageSmoothingQuality = "high";
-    this.mapData = this.small.createImageData(w * SUB, h * SUB);
-    this.cur = new Float32Array(w * SUB * h * SUB * 3);
-    this.still = new Float32Array(w * SUB * h * SUB * 3);
-    this.vis = new Uint8Array(w * h);
-    this.seen = new Uint8Array(w * h);
     for (let i = 0; i < w * h; i++) if (level.cells[i] === WATER || level.cells[i] === DEEP) this.wet.push(i);
     this.objects.push(scene.add.image(0, 0, key).setOrigin(0, 0).setDepth(-99990));
     const pal = paletteOf(level), name = level.network === "mine" ? `mine-${level.kind}` : level.layer === "old" ? "old" : level.kind;
@@ -118,29 +95,14 @@ export class SewerView {
     this.water = scene.add.graphics().setDepth(-99980);
     this.objects.push(this.water);
     this.flotsam = new Flotsam(scene, level, (i) => level.cells[i] === WATER || level.cells[i] === DEEP, level.network === "mine" ? mineFloats : sewerFloats, level.network === "mine" ? "mine-flotsam" : "sewer-flotsam", year, -99979);
-    this.objects.push(scene.add.image(0, 0, `${key}-light`).setOrigin(0, 0).setScale(2).setDepth(3000).setBlendMode(Phaser.BlendModes.MULTIPLY));
-    if (!scene.textures.exists("sewer-halo")) {
-      const t = scene.textures.createCanvas("sewer-halo", 128, 128)!;
-      const g = t.context.createRadialGradient(64, 64, 0, 64, 64, 64);
-      g.addColorStop(0, "rgba(255,255,255,0.55)");
-      g.addColorStop(0.35, "rgba(255,255,255,0.2)");
-      g.addColorStop(1, "rgba(255,255,255,0)");
-      t.context.fillStyle = g;
-      t.context.fillRect(0, 0, 128, 128);
-      t.refresh();
-    }
-    this.halo = scene.add.image(0, 0, "sewer-halo").setBlendMode(Phaser.BlendModes.ADD).setDepth(3001).setAlpha(0);
+    this.lamp = new Lamplight(scene, key, level, [0.2, 0.05], 0.5);
     this.gas = new Gas(scene, level);
     this.mine = level.network === "mine";
     this.peril = new PerilView(scene, level);
     this.peril.sound = (what, volume) => this.sound?.(what, volume);
     this.beams = scene.add.graphics().setDepth(3001).setBlendMode(Phaser.BlendModes.ADD);
-    this.objects.push(this.halo, this.beams);
-    this.hud = scene.add.graphics().setDepth(1e7);
-    const font = { fontFamily: "Silkscreen, monospace", fontSize: "8px", color: "#e6f0d8", stroke: "#0e120c", strokeThickness: 3 };
-    this.label = scene.add.text(0, 0, "", font).setDepth(1e7).setOrigin(0, 0.5);
-    this.banner = scene.add.text(0, 0, level.name[0].toUpperCase() + level.name.slice(1), { ...font, fontSize: "16px", strokeThickness: 4 }).setDepth(1e7).setOrigin(0.5, 0.5).setAlpha(0);
-    this.objects.push(this.hud, this.label, this.banner);
+    this.objects.push(this.beams);
+    this.hud = new LampHud(scene, level.name, { text: "#e6f0d8", stroke: "#0e120c" });
     for (const p of level.rats) {
       const im = scene.add.rectangle(p.x * 16 + 8, p.y * 16 + 12, 4, 2, 0x3a3030).setDepth(p.y * 16 + 10);
       const tail = scene.add.rectangle(p.x * 16 + 5, p.y * 16 + 13, 3, 1, 0x7a5a58).setDepth(p.y * 16 + 10);
@@ -199,28 +161,13 @@ export class SewerView {
 
   /** Light that does not move: wall lamps, and daylight down the shafts. */
   private bake(f: SewerFrame) {
-    const { level } = this, { w, h } = level;
+    const { level } = this;
     const day = Math.max(0, Math.min(1, 1.25 - Math.abs(f.hour - 12.5) / 6));
     const key = `${[...f.open].join(";")}|${Math.round(day * 10)}`;
     if (key === this.stillKey) return;
     this.stillKey = key;
-    const st = this.still.fill(0);
-    const gw = w * SUB;
-    const lit = new Uint8Array(w * h);
-    const add = (cx: number, cy: number, radius: number, rgb: readonly number[], power: number) => {
-      fov(level, Math.floor(cx), Math.floor(cy), Math.ceil(radius) + 1, lit);
-      for (let gy = Math.max(0, Math.floor((cy - radius) * SUB)); gy < Math.min(h * SUB, (cy + radius) * SUB); gy++)
-        for (let gx = Math.max(0, Math.floor((cx - radius) * SUB)); gx < Math.min(gw, (cx + radius) * SUB); gx++) {
-          if (!lit[(gy >> 1) * w + (gx >> 1)]) continue;
-          const d = Math.hypot((gx + 0.5) / SUB - cx, (gy + 0.5) / SUB - cy) / radius;
-          if (d >= 1) continue;
-          const L = (1 - d * d) ** 1.4 * power, i = (gy * gw + gx) * 3;
-          st[i] += L * rgb[0];
-          st[i + 1] += L * rgb[1];
-          st[i + 2] += L * rgb[2];
-          this.seen[(gy >> 1) * w + (gx >> 1)] = 1;
-        }
-    };
+    this.lamp.still.fill(0);
+    const add = (cx: number, cy: number, radius: number, rgb: readonly number[], power: number) => this.lamp.addStill(cx, cy, radius, rgb, power);
     const night = day < 0.15;
     for (const l of level.lamps) add(l.x + 0.5, l.y + 0.3, 5.5, [1, 0.78, 0.45], 0.75);
     for (const s of level.shafts) {
@@ -242,7 +189,6 @@ export class SewerView {
   }
 
   update(f: SewerFrame) {
-    const { level } = this, { w, h } = level;
     if (!this.born) this.born = f.time;
     const stamp = `${f.done.join("|")}#${f.falls.length}`;
     if (stamp !== this.stamp) {
@@ -258,68 +204,14 @@ export class SewerView {
     const reach = lit ? f.light.reach * (0.6 + 0.4 * low) * (f.light.flame && this.peril.choke(f) ? 0.45 : 1) : 0;
     const hue = parseInt(f.light.color.slice(1), 16);
     const color = [16, 8, 0].map((s) => 0.5 + (((hue >> s) & 255) / 255) * 0.5);
-    const px = f.x / 16, py = (f.y - 7) / 16;
-    const cx = Math.max(0, Math.min(w - 1, Math.floor(f.x / 16))), cy = Math.max(0, Math.min(h - 1, Math.floor((f.y - 1) / 16)));
-    if (cy * w + cx !== this.at) {
-      this.at = cy * w + cx;
-      fov(level, cx, cy, Math.ceil(Math.max(reach, 6)) + 2, this.vis);
-      for (let y = 3; y < h - 1; y++) for (let x = 0; x < w; x++)
-        if (this.vis[y * w + x] && level.cells[y * w + x] === WALL && level.cells[(y + 1) * w + x] !== WALL) this.vis[(y - 1) * w + x] = this.vis[(y - 2) * w + x] = 1;
-    }
-    const want = [-Math.PI / 2, 0, Math.PI / 2, Math.PI][f.facing] ?? 0;
-    let turn = want - this.aim;
-    while (turn > Math.PI) turn -= Math.PI * 2;
-    while (turn < -Math.PI) turn += Math.PI * 2;
-    this.aim += turn * Math.min(1, f.delta / 140);
-    const beam = lit && !f.light.flame;
-    const k = 1 - Math.exp(-f.delta / 80);
-    const gw = w * SUB, out = this.mapData.data, cur = this.cur, st = this.still;
-    // Only the samples near the camera change; the rest settle to what they were.
+    this.lamp.look(f.x, f.y, Math.ceil(Math.max(reach, 6)) + 2);
+    this.lamp.update({ x: f.x, y: f.y, facing: f.facing, delta: f.delta, reach: lit ? reach : 0, flick, color, beam: lit && !f.light.flame, carried: f.carried, daylit: SewerView.daylit });
     const cam = this.scene.cameras.main.worldView;
-    const x0 = Math.max(0, Math.floor((cam.x / 16 - 2) * SUB)), x1 = Math.min(gw, Math.ceil((cam.right / 16 + 2) * SUB));
-    const y0 = Math.max(0, Math.floor((cam.y / 16 - 3) * SUB)), y1 = Math.min(h * SUB, Math.ceil((cam.bottom / 16 + 2) * SUB));
-    for (let gy = y0; gy < y1; gy++)
-      for (let gx = x0; gx < x1; gx++) {
-        const cell = (gy >> 1) * w + (gx >> 1);
-        const sx = (gx + 0.5) / SUB, sy = (gy + 0.5) / SUB;
-        const dx = sx - px, dy = sy - py;
-        const d = Math.hypot(dx, dy);
-        let L = 0;
-        if (SewerView.daylit) L = 1;
-        else if (lit && this.vis[cell]) {
-          let r = reach;
-          if (beam && d > 1.2) {
-            let off = Math.abs(Math.atan2(dy, dx) - this.aim);
-            if (off > Math.PI) off = Math.PI * 2 - off;
-            r *= off < 0.55 ? 1 : off < 1.1 ? 1 - ((off - 0.55) / 0.55) * 0.5 : 0.5;
-          }
-          const u = d / r;
-          L = u >= 1 ? 0 : (1 - u * u) ** 0.8 * flick;
-          if (L > 0.06) this.seen[cell] = 1;
-        }
-        let fr = 0;
-        for (const c of f.carried) {
-          const u = Math.hypot(sx - c.x / 16, sy - (c.y - 10) / 16) / 5;
-          if (u < 1) fr += (1 - u * u) * 0.7;
-        }
-        const mem = this.seen[cell] ? 0.2 : 0.05;
-        const i = (gy * gw + gx) * 3, o = (gy * gw + gx) * 4;
-        cur[i] += (Math.min(1, L * color[0] * 1.08 + st[i] + fr + mem * 0.62) - cur[i]) * k;
-        cur[i + 1] += (Math.min(1, L * color[1] * 1.04 + st[i + 1] + fr * 0.8 + mem * 0.75) - cur[i + 1]) * k;
-        cur[i + 2] += (Math.min(1, L * color[2] + st[i + 2] + fr * 0.55 + mem) - cur[i + 2]) * k;
-        out[o] = cur[i] * 255;
-        out[o + 1] = cur[i + 1] * 255;
-        out[o + 2] = cur[i + 2] * 255;
-        out[o + 3] = 255;
-      }
-    this.small.putImageData(this.mapData, 0, 0);
-    this.map.context.drawImage(this.small.canvas, 0, 0, w * 8, h * 8);
-    this.map.refresh();
-    this.halo.setPosition(f.x, f.y - 10).setScale((Math.max(reach, 1) * 16 * 1.5) / 64).setTint(hue).setAlpha(lit ? (f.light.flame ? 0.18 : 0.08) * flick : 0);
+    this.lamp.halo.setPosition(f.x, f.y - 10).setScale((Math.max(reach, 1) * 16 * 1.5) / 64).setTint(hue).setAlpha(lit ? (f.light.flame ? 0.18 : 0.08) * flick : 0);
     this.drawWater(f, cam);
     this.surface.update(f.time, 14 + f.run.surge * 40);
     this.flotsam.update(f.time, f.delta, f.run.surge, cam);
-    this.gas.update(f.time, f.delta, (x, y) => SewerView.daylit || this.seen[y * this.level.w + x] === 1, f);
+    this.gas.update(f.time, f.delta, (x, y) => SewerView.daylit || this.lamp.seen[y * this.level.w + x] === 1, f);
     this.drawBeams(f);
     this.moveRats(f);
     this.effects(f, reach);
@@ -557,30 +449,26 @@ export class SewerView {
     // Grates glint where the lamp catches the bars.
     if (Math.random() < 0.02) {
       const gx = Math.floor(f.x / 16 + (Math.random() - 0.5) * reach * 2), gy = Math.floor(f.y / 16 + (Math.random() - 0.5) * reach * 2);
-      if (level.cells[gy * w + gx] === GRATE && this.vis[gy * w + gx]) this.spark(gx * 16 + 1 + Math.floor(Math.random() * 4) * 4, gy * 16 + 4 + Math.random() * 8, 0xffffff, 300);
+      if (level.cells[gy * w + gx] === GRATE && this.lamp.vis[gy * w + gx]) this.spark(gx * 16 + 1 + Math.floor(Math.random() * 4) * 4, gy * 16 + 4 + Math.random() * 8, 0xffffff, 300);
     }
   }
 
   sound?: (what: SewerSound, volume: number) => void;
 
   private drawHud(f: SewerFrame, lit: boolean) {
-    const cam = this.scene.cameras.main, v = cam.worldView;
-    const x = v.x + 10, y = v.bottom - 62 / cam.zoom;
     const frac = Math.max(0, Math.min(1, f.run.left / f.light.burns));
-    const g = this.hud;
-    g.clear();
-    g.fillStyle(0x0e120c, 0.85).fillRect(x - 2, y - 5, 62, 10);
-    g.fillStyle(lit ? 0xfff0b0 : 0x5a5650).fillRect(x + 1, y - 2, 3, 4);
-    g.fillStyle(0x2a302a).fillRect(x + 7, y - 2, 50, 4);
-    g.fillStyle(frac < 0.2 ? (Math.floor(f.time / 300) % 2 ? 0xe04a2a : 0xff8a4a) : 0xd8e8a0).fillRect(x + 7, y - 2, Math.round(50 * frac), 4);
-    if (f.run.surge > 0.05) g.fillStyle(0x8a6a3a).fillRect(x + 7, y + 3, Math.round(50 * f.run.surge), 1);
     const where = {
       street: "UNDER THE STREET", trunk: "TRUNK SEWER", old: this.mine ? "OLD WORKINGS" : "BELOW THE SEWERS",
       level: this.level.mouth === "cage" ? "PIT BOTTOM" : "ADIT LEVEL", workings: "IN THE WORKINGS",
     }[this.level.layer];
-    this.label.setPosition(x + 64, y).setText(`${f.light.name.toUpperCase()}  ·  ${where}`);
-    const age = f.time - this.born;
-    this.banner.setPosition(v.centerX, v.y + v.height * 0.2).setAlpha(age < 600 ? age / 600 : age < 2600 ? 1 : Math.max(0, 1 - (age - 2600) / 900));
+    this.hud.update(f.time, (g, x, y) => {
+      g.fillStyle(0x0e120c, 0.85).fillRect(x - 2, y - 5, 62, 10);
+      g.fillStyle(lit ? 0xfff0b0 : 0x5a5650).fillRect(x + 1, y - 2, 3, 4);
+      g.fillStyle(0x2a302a).fillRect(x + 7, y - 2, 50, 4);
+      g.fillStyle(frac < 0.2 ? (Math.floor(f.time / 300) % 2 ? 0xe04a2a : 0xff8a4a) : 0xd8e8a0).fillRect(x + 7, y - 2, Math.round(50 * frac), 4);
+      if (f.run.surge > 0.05) g.fillStyle(0x8a6a3a).fillRect(x + 7, y + 3, Math.round(50 * f.run.surge), 1);
+      return `${f.light.name.toUpperCase()}  ·  ${where}`;
+    });
   }
 
   destroy() {
@@ -589,40 +477,9 @@ export class SewerView {
     this.surface.destroy();
     this.gas.destroy();
     this.peril.destroy();
+    this.lamp.destroy();
+    this.hud.destroy();
     const key = `sewer-${this.level.space}`;
-    for (const k of [key, `${key}-sheet`, `${key}-light`, `${key}-top`]) if (this.scene.textures.exists(k)) this.scene.textures.remove(k);
+    for (const k of [key, `${key}-sheet`, `${key}-top`]) if (this.scene.textures.exists(k)) this.scene.textures.remove(k);
   }
-}
-
-/** Recursive shadowcasting: the cells seen from one cell, walls included. */
-function fov(level: SewerLevel, ox: number, oy: number, radius: number, out: Uint8Array) {
-  const { w, h, cells } = level;
-  out.fill(0);
-  if (ox < 0 || oy < 0 || ox >= w || oy >= h) return;
-  out[oy * w + ox] = 1;
-  const opaque = (x: number, y: number) => x < 0 || y < 0 || x >= w || y >= h || cells[y * w + x] === WALL;
-  const cast = (row: number, start: number, end: number, xx: number, xy: number, yx: number, yy: number) => {
-    if (start < end) return;
-    let next = 0, blocked = false;
-    for (let dist = row; dist <= radius && !blocked; dist++) {
-      const dy = -dist;
-      for (let dx = -dist; dx <= 0; dx++) {
-        const x = ox + dx * xx + dy * xy, y = oy + dx * yx + dy * yy;
-        const l = (dx - 0.5) / (dy + 0.5), r = (dx + 0.5) / (dy - 0.5);
-        if (start < r) continue;
-        if (end > l) break;
-        if (dx * dx + dy * dy <= radius * radius && x >= 0 && y >= 0 && x < w && y < h) out[y * w + x] = 1;
-        if (blocked) {
-          if (opaque(x, y)) next = r;
-          else (blocked = false), (start = next);
-        } else if (opaque(x, y) && dist < radius) {
-          blocked = true;
-          cast(dist + 1, start, l, xx, xy, yx, yy);
-          next = r;
-        }
-      }
-    }
-  };
-  const m = [[1, 0, 0, -1, -1, 0, 0, 1], [0, 1, -1, 0, 0, -1, 1, 0], [0, 1, 1, 0, 0, -1, -1, 0], [1, 0, 0, 1, -1, 0, 0, -1]];
-  for (let o = 0; o < 8; o++) cast(1, 1, 0, m[0][o], m[1][o], m[2][o], m[3][o]);
 }

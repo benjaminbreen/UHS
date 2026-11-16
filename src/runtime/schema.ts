@@ -605,8 +605,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
       target: z.string().max(100),
       action: z.enum([
         "talk",
-        "cave",
-        "sewer",
+        "complex",
         "ship",
         "enter",
         "exit",
@@ -936,11 +935,9 @@ export const snapshotSchema = z.object({
     })
     .strict()
     .optional(),
-  cave: z.any().optional(),
-  caves: z.record(z.string(), z.any()).optional(),
-  sewer: z.any().optional(),
+  complex: z.any().optional(),
+  complexes: z.record(z.string(), z.any()).optional(),
   voyage: z.any().optional(),
-  sewerDone: z.array(z.string()).optional(),
   lids: z.record(z.string(), z.number()).optional(),
   fauna: z.array(faunaGroup).max(5000).optional(),
   legends: z

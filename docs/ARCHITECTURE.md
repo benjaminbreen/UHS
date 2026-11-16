@@ -66,6 +66,16 @@ Older generators and revisions are still branched in the code:
 
 They exist so old records replay. **Nobody's saves depend on them yet.** Do not add a new revision gate when you change generation: change the current behaviour in place, and bump `PREPARED_VERSION` (`src/world/v3/prepared.ts`) when cached worlds would be wrong. When you work in an area that has old branches, deleting them and their tests is part of the job.
 
+## Complexes
+
+Caves, sewers and mines are complexes: areas generated from the seed one at a time and walked between.
+
+- `world/complex.ts` holds the shape every area shares.
+- `core/complex.ts` holds the one run (`state.complex`), the record of each complex (`state.complexes`), the host and the dispatcher the engine calls. `core/cave.ts` and `core/sewer.ts` are the kinds.
+- `render/lamplight.ts` lights each kind's view and draws its lamp gauge.
+
+A new kind of large interior plugs in at those three places. Do not start a parallel system for it.
+
 ## Where the code doubles up
 
 These pairs do the same job twice. Extend the first one. If your task takes you into this area, retire the second.
@@ -80,6 +90,7 @@ These pairs do the same job twice. Extend the first one. If your task takes you 
 | Content scoped by `CharacterScope` records | growing the `resolveHistory` registry | HISTORY |
 | Plots | life aims (`core/life-aim.ts`) | PLOTS |
 | `LayeredTheme` music | `score.ts` themes and `CulturalTheme` | AUDIO |
+| Complexes (`core/complex.ts`, `render/lamplight.ts`) | the ship's own level, host and view (`core/ship.ts`, `render/ship/view.ts`) | ARCHITECTURE |
 
 ## Topic docs
 

@@ -163,7 +163,7 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: str
   const recent = recentPlots();
   const recentShapes = recent.map((id) => PLOTS.find((t) => t.id === id)?.shape);
   // A life begun underground cannot be at a gathering set for this evening.
-  const below = !!(setting?.below || snapshot.cave || snapshot.sewer);
+  const below = !!(setting?.below || snapshot.complex);
   const weighed = PLOTS
     .filter((t) => !only || t.id === only)
     .filter((t) => only || !below || !t.opening.some((e) => e.type === "gather"))

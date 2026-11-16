@@ -567,10 +567,8 @@ export type PlayerCommand =
       target: string;
       action:
         | "talk"
-        /** Whatever a cave target offers: go in, climb, take, read. */
-        | "cave"
-        /** Whatever a manhole or a sewer target offers. */
-        | "sewer"
+        /** Whatever a way into a cave, sewer or mine offers, or a thing inside one: go in, climb, take, read. */
+        | "complex"
         /** A ladder or hatch aboard ship, the rail, or the way ashore. */
         | "ship"
         | "enter"
@@ -694,18 +692,16 @@ export type Snapshot = {
   /** Taken to whoever keeps order, waiting to be dealt with. */
   complaints?: { by: string; story: Word; at: number; spokenFor?: string; seen?: boolean }[];
   /** Animal groups: wild ones spawned as districts open, kept ones from pens. */
-  /** The trip underground in progress, and what each cave remembers. */
-  cave?: import("./cave").CaveRun;
-  caves?: Record<string, import("./cave").CaveRecord>;
-  /** The trip below the street, the finds taken there, and the lids left open, by street cell. */
-  sewer?: import("./sewer").SewerRun;
-  sewerDone?: string[];
+  /** The trip through a cave, sewer or mine in progress, and what each one remembers, by kind and site. */
+  complex?: import("./complex").ComplexRun;
+  complexes?: Record<string, import("./complex").ComplexRecord>;
   /** A life begun at sea, until the player goes ashore. */
   voyage?: import("./ship").Voyage;
   /** Roof that has come down in a mine, by level space: the cells, as y * w + x. */
   mineFalls?: Record<string, number[]>;
   /** People underground the player has already worked, traded or prayed with, by actor id. */
   folkDealt?: string[];
+  /** Manhole lids left open, by street cell. */
   lids?: Record<string, number>;
   fauna?: import("./fauna").FaunaGroup[];
   /** Animals the district has a name for, by group and member number. */

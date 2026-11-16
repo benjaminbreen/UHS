@@ -6164,7 +6164,7 @@ export class WorldScene extends Phaser.Scene {
    * player's position, the animals' drawn frames and the sound. */
   private syncCave(delta: number) {
     const e = this.runtime.engine, space = e.state.player.pos.space;
-    const level = e.caveOf?.(space), run = e.state.cave;
+    const level = e.caveOf?.(space), run = e.state.complex?.kind === "cave" ? e.state.complex : undefined;
     if (!level || !run) {
       if (this.caveView) gameAudio()?.setUnderground(undefined);
       this.caveView?.destroy();
@@ -6197,7 +6197,7 @@ export class WorldScene extends Phaser.Scene {
       facing: p.direction,
       run,
       carried,
-      done: e.state.caves?.[level.cave]?.done ?? [],
+      done: e.state.complexes?.[`cave:${level.cave}`]?.done ?? [],
       light: caveLight(run.light),
       hour: (((e.state.clock / 3600) % 24) + 24) % 24,
       time: this.time.now,
@@ -6245,7 +6245,7 @@ export class WorldScene extends Phaser.Scene {
   }
   private syncSewer(delta: number) {
     const e = this.runtime.engine, space = e.state.player.pos.space;
-    const level = e.sewerOf?.(space), run = e.state.sewer;
+    const level = e.sewerOf?.(space), run = e.state.complex?.kind === "cave" ? undefined : e.state.complex;
     if (!level || !run) {
       if (this.sewerView) gameAudio()?.setUnderground(undefined);
       this.sewerView?.destroy();
@@ -6275,7 +6275,7 @@ export class WorldScene extends Phaser.Scene {
     const x = me?.x ?? p.pos.x * 16 + 8, y = me?.y ?? p.pos.y * 16 + 16;
     v.update({
       x, y, facing: p.direction, run,
-      done: e.state.sewerDone ?? [],
+      done: e.state.complexes?.[`${level.network}:${level.site}`]?.done ?? [],
       light: caveLight(run.light),
       hour: (((e.state.clock / 3600) % 24) + 24) % 24,
       time: this.time.now,

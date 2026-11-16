@@ -1,6 +1,8 @@
-import { rngOf, walkable, LEDGE, type SewerLevel } from "../world/sewer";
+import { rngOf } from "./random";
+import { walkable, LEDGE, type SewerLevel } from "../world/sewer";
 import type { Point } from "./types";
-import type { SewerHost } from "./sewer";
+import type { ComplexHost } from "./complex";
+import { tunnelRun } from "./sewer";
 
 export type PerilKind = "fall" | "tub" | "afterdamp" | "inrush";
 /** Something going wrong down a mine, played out where the player stands.
@@ -64,8 +66,8 @@ function hazard(level: SewerLevel, year: number) {
 
 /** Starts something going wrong round the player, or false when this kind
  * cannot happen here. Nothing starts while another is under way. */
-export function perilStart(h: SewerHost, kind: PerilKind, level: SewerLevel, solid: ReadonlySet<number>): boolean {
-  const run = h.state.sewer!, p = h.state.player.pos, clock = h.state.clock, { w, cells } = level;
+export function perilStart(h: ComplexHost, kind: PerilKind, level: SewerLevel, solid: ReadonlySet<number>): boolean {
+  const run = tunnelRun(h.state)!, p = h.state.player.pos, clock = h.state.clock, { w, cells } = level;
   if (run.peril || run.trapped) return false;
   const rng = rngOf(h.state.manifest.seed, "peril", level.space, clock);
   const here = p.y * w + p.x;
@@ -138,8 +140,8 @@ export function perilStart(h: SewerHost, kind: PerilKind, level: SewerLevel, sol
 
 /** The peril playing out, and the small chance of one starting. Runs on the
  * mine's own clock with the rest of `sewerTime`. */
-export function perilTime(h: SewerHost, level: SewerLevel, solid: Set<number>) {
-  const run = h.state.sewer!, clock = h.state.clock, pos = h.state.player.pos, { w } = level;
+export function perilTime(h: ComplexHost, level: SewerLevel, solid: Set<number>) {
+  const run = tunnelRun(h.state)!, clock = h.state.clock, pos = h.state.player.pos, { w } = level;
   const peril = run.peril;
   if (peril && peril.space !== level.space) {
     if (clock >= perilEnd(peril)) delete run.peril;
@@ -245,8 +247,8 @@ export function perilTime(h: SewerHost, level: SewerLevel, solid: Set<number>) {
 }
 
 /** After a fall: shut in, with no way back to a ladder or the cage. */
-function trapCheck(h: SewerHost, level: SewerLevel, solid: Set<number>) {
-  const pos = h.state.player.pos, run = h.state.sewer!;
+function trapCheck(h: ComplexHost, level: SewerLevel, solid: Set<number>) {
+  const pos = h.state.player.pos, run = tunnelRun(h.state)!;
   const dist = perilField(level, pos.y * level.w + pos.x, solid);
   if (exits(level).some((i) => dist[i] >= 0)) return;
   const clock = h.state.clock;
@@ -257,8 +259,8 @@ function trapCheck(h: SewerHost, level: SewerLevel, solid: Set<number>) {
 }
 
 /** Knocking on the rails: the rescuers hear where to dig and come faster. */
-export function knock(h: SewerHost) {
-  const run = h.state.sewer;
+export function knock(h: ComplexHost) {
+  const run = tunnelRun(h.state);
   const t = run?.trapped;
   if (!t) return;
   h.advance(600);
@@ -271,8 +273,8 @@ export function knock(h: SewerHost) {
       : "You knock again. The answering knocks are closer, and you can hear picks.", "world");
 }
 
-function rescue(h: SewerHost, level: SewerLevel, solid: Set<number>) {
-  const run = h.state.sewer!, t = run.trapped!;
+function rescue(h: ComplexHost, level: SewerLevel, solid: Set<number>) {
+  const run = tunnelRun(h.state)!, t = run.trapped!;
   if (h.state.clock < t.rescue) return;
   delete run.trapped;
   for (const i of h.state.mineFalls?.[level.space] ?? []) {

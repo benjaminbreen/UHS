@@ -3,18 +3,20 @@ import { mineKindOf, minePeople } from "../content/mines";
 import { anyMine } from "../content/settlements/worksites/mines";
 import { worksiteProfiles } from "../content/settlements/worksites";
 import { personFits, sewerFind, sewerKindFor, sewerPeople } from "../content/sewers";
-import { folkArrive, folkDeal, folkTime, type FolkHost } from "./tunnel-folk";
+import { folkArrive, folkDeal, folkTime } from "./tunnel-folk";
 import { laneLids } from "../render/carriageway";
-import { parseSewerSpace, rngOf, sewerLevel, sewerSolid, sewerSpace, walkable, WATER, type SewerLevel, type SewerSite, type TunnelNetwork } from "../world/sewer";
+import { rngOf } from "./random";
+import { complexRecord, nearest, takeFind, type ComplexHost } from "./complex";
+import { landing } from "../world/complex";
+import { parseSewerSpace, sewerLevel, sewerSolid, sewerSpace, walkable, WATER, type SewerSite, type TunnelNetwork } from "../world/sewer";
 import { doorApproach } from "./doors";
 import { knock, perilStart, perilTime, type Peril, type PerilKind, type Trapped } from "./mine-peril";
-import type { GameEvent, Snapshot as GameState, Inspection, Inventory, Place, Point, Position, WorldModel } from "./types";
+import type { Snapshot as GameState, Inspection, Inventory, Place, Point, WorldModel } from "./types";
 
 /** The trip below the street the player is on. */
 export type SewerRun = {
+  kind: TunnelNetwork;
   site: string;
-  /** Down a mine rather than a town's sewers. */
-  network?: "mine";
   light: string;
   /** Game seconds of light left. */
   left: number;
@@ -36,24 +38,10 @@ export type SewerRun = {
   took?: { at: Point; items: Inventory; clock: number };
 };
 
-export type SewerHost = {
-  state: GameState;
-  world: WorldModel;
-  event(text: string, kind?: GameEvent["kind"], at?: Position): void;
-  advance(seconds: number): void;
-  hurt(damage: number, cause: string, injury?: string): void;
-  itemName(id: string): string;
-  unblock(space: string, x: number, y: number): void;
-  /** How hard it is raining in the street, 0 to 1. */
-  rain(): number;
-  folk: FolkHost;
-  /** In the middle of the day's work, when nothing new should start. */
-  busy(): boolean;
-  /** A line kept for the evening's account of the day. */
-  remember(line: string): void;
-  levels: Map<string, { level: SewerLevel; solid: Set<number> }>;
-  sites: Map<string, SewerSite>;
-};
+/** The tunnel run in progress, if the player is down a sewer or a mine. */
+export const tunnelRun = (s: GameState) => (s.complex && s.complex.kind !== "cave" ? s.complex : undefined);
+/** What has been taken on this level's network. */
+const doneOn = (state: GameState, level: { network: TunnelNetwork; site: string }) => state.complexes?.[`${level.network}:${level.site}`]?.done;
 
 const lidKey = (p: Point) => `${p.x},${p.y}`;
 const cheb = (a: Point, b: Point) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
@@ -83,8 +71,8 @@ const doorKey = (b: Place) => {
 /** The mine building whose door is at this street cell. */
 const mineAt = (world: WorldModel, id: string) => world.places.find((b) => b.institution === "mine" && doorKey(b) === id);
 
-function siteOf(h: SewerHost, id: string, network: TunnelNetwork = "sewer"): SewerSite | undefined {
-  const known = h.sites.get(`${network}:${id}`);
+function siteOf(h: ComplexHost, id: string, network: TunnelNetwork = "sewer"): SewerSite | undefined {
+  const known = h.sewerSites.get(`${network}:${id}`);
   if (known) return known;
   const [x, y] = id.split(",").map(Number);
   const setting = h.world.geography?.packAt(x, y)?.setting ?? h.world.pack.setting;
@@ -102,12 +90,12 @@ function siteOf(h: SewerHost, id: string, network: TunnelNetwork = "sewer"): Sew
     const kind = sewerKindFor(place);
     site = { id, network, kind, place, people: sewerPeople.filter((p) => personFits(p, place, kind)) };
   }
-  h.sites.set(`${network}:${id}`, site);
+  h.sewerSites.set(`${network}:${id}`, site);
   return site;
 }
 
-export function sewerLevelOf(h: SewerHost, space: string) {
-  const known = h.levels.get(space);
+export function sewerLevelOf(h: ComplexHost, space: string) {
+  const known = h.sewerLevels.get(space);
   if (known) return known;
   const at = parseSewerSpace(space);
   const site = at && siteOf(h, at.site, at.network);
@@ -119,15 +107,15 @@ export function sewerLevelOf(h: SewerHost, space: string) {
   } };
   const level = sewerLevel(h.state.manifest.seed, site, at.depth, probe);
   const solid = sewerSolid(level);
-  const done = new Set(h.state.sewerDone);
+  const done = new Set(doneOn(h.state, level));
   for (const t of level.things) if (t.solid && done.has(t.id) && !sewerFind(t.find)?.keeps) solid.delete(t.y * level.w + t.x);
   for (const i of h.state.mineFalls?.[space] ?? []) solid.add(i);
   const entry = { level, solid };
-  h.levels.set(space, entry);
+  h.sewerLevels.set(space, entry);
   return entry;
 }
 
-export function sewerGround(h: SewerHost, space: string, x: number, y: number) {
+export function sewerGround(h: ComplexHost, space: string, x: number, y: number) {
   const c = sewerLevelOf(h, space);
   if (!c) return undefined;
   const { level, solid } = c;
@@ -135,15 +123,14 @@ export function sewerGround(h: SewerHost, space: string, x: number, y: number) {
   return !walkable(level.cells[y * level.w + x]) || solid.has(y * level.w + x);
 }
 
-function arrive(h: SewerHost, depth: number, at: "entry" | "down" | Point) {
-  const run = h.state.sewer!, p = h.state.player;
-  const c = sewerLevelOf(h, sewerSpace(run.site, depth, run.network ?? "sewer"));
+function arrive(h: ComplexHost, depth: number, at: "entry" | "down" | Point) {
+  const run = tunnelRun(h.state)!, p = h.state.player;
+  const c = sewerLevelOf(h, sewerSpace(run.site, depth, run.kind));
   if (!c) return undefined;
   const { level } = c;
   let spot: Point = typeof at === "object" ? at : level.entry;
   if (at === "down" && level.down) {
-    const d = level.down;
-    spot = [[0, 1], [-1, 0], [1, 0], [0, -1], [1, 1], [-1, 1]].map(([dx, dy]) => ({ x: d.x + dx, y: d.y + dy })).find((q) => !sewerGround(h, level.space, q.x, q.y)) ?? level.entry;
+    spot = landing(level.down, (x, y) => sewerGround(h, level.space, x, y), level.entry);
   }
   p.pos = { ...spot, space: level.space };
   p.direction = 2;
@@ -153,25 +140,25 @@ function arrive(h: SewerHost, depth: number, at: "entry" | "down" | Point) {
 }
 
 /** Back up into the street under one of the lids, which is left open, or out of the mine's door. */
-function surface(h: SewerHost, world: Point) {
+function surface(h: ComplexHost, world: Point) {
   const p = h.state.player;
   for (const a of [...h.state.actors]) if (a.underground) h.folk.part(a.id);
   p.pos = { ...world, space: "outside" };
   p.direction = 2;
-  if (!h.state.sewer?.network) (h.state.lids ??= {})[lidKey(world)] = h.state.clock;
-  delete h.state.sewer;
+  if (tunnelRun(h.state)?.kind === "sewer") (h.state.lids ??= {})[lidKey(world)] = h.state.clock;
+  delete h.state.complex;
 }
 
 /** Down a mine from its headframe or adit. False when this building is no way in. */
-export function mineEnter(h: SewerHost, b: Place) {
+export function mineEnter(h: ComplexHost, b: Place) {
   if (b.institution !== "mine") return false;
   const key = doorKey(b), site = siteOf(h, key, "mine");
   if (!site) return false;
   const light = mineLightFor(site.place.year, site.kind === "coal");
-  h.state.sewer = { site: key, network: "mine", light: light.id, left: light.burns, surge: 0 };
+  h.state.complex = { kind: "mine", site: key, light: light.id, left: light.burns, surge: 0 };
   const level = arrive(h, 1, "entry");
   if (!level) {
-    delete h.state.sewer;
+    delete h.state.complex;
     return false;
   }
   h.advance(site.shaft ? 120 : 60);
@@ -184,44 +171,41 @@ export function mineEnter(h: SewerHost, b: Place) {
   return true;
 }
 
-const thingAt = (h: SewerHost, id: string) => {
-  const c = h.state.sewer && sewerLevelOf(h, h.state.player.pos.space);
+const thingAt = (h: ComplexHost, id: string) => {
+  const c = tunnelRun(h.state) && sewerLevelOf(h, h.state.player.pos.space);
   const thing = c?.level.things.find((t) => `sewer-thing:${t.id}` === id);
   return c && thing ? { ...c, thing } : undefined;
 };
 const useCell = (t: { x: number; y: number; wall: boolean }) => ({ x: t.x, y: t.wall ? t.y + 1 : t.y });
 
 /** What the player could use right now: the nearest thing in reach, facing first. */
-export function sewerTargetNear(h: SewerHost): string | undefined {
+export function sewerTargetNear(h: ComplexHost): string | undefined {
   const p = h.state.player;
   if (p.pos.space === "outside") {
     const lid = lidNear(h.world, p.pos);
     return lid ? `sewer-lid:${lid.x},${lid.y}` : undefined;
   }
-  const c = h.state.sewer && sewerLevelOf(h, p.pos.space);
+  const c = tunnelRun(h.state) && sewerLevelOf(h, p.pos.space);
   if (!c) return undefined;
   const { level } = c;
-  const done = new Set(h.state.sewerDone);
-  const d = [[0, -1], [1, 0], [0, 1], [-1, 0]][p.direction];
-  const front = { x: p.pos.x + d[0], y: p.pos.y + d[1] };
-  const score = (q: Point) => (q.x === front.x && q.y === front.y ? 0 : q.x === p.pos.x && q.y === p.pos.y ? 0.5 : 1 + Math.hypot(q.x - p.pos.x, q.y - p.pos.y));
-  const options: [number, string][] = [];
-  if (h.state.sewer?.trapped) return "sewer-knock";
-  if (level.down && cheb(level.down, p.pos) <= 1) options.push([score(level.down), "sewer-down"]);
+  const done = new Set(doneOn(h.state, level));
+  if (tunnelRun(h.state)?.trapped) return "sewer-knock";
+  const options: [Point, string, number?][] = [];
+  if (level.down && cheb(level.down, p.pos) <= 1) options.push([level.down, "sewer-down"]);
   level.shafts.forEach((s, i) => {
-    if (cheb(s, p.pos) <= 1) options.push([score(s) - 0.2, `sewer-shaft:${i}`]);
+    if (cheb(s, p.pos) <= 1) options.push([s, `sewer-shaft:${i}`, -0.2]);
   });
   for (const t of level.things) {
     if (done.has(t.id) && !sewerFind(t.find)?.keeps) continue;
     const near = t.wall ? p.pos.y === t.y + 1 && Math.abs(p.pos.x - t.x) <= 1 : cheb(t, p.pos) <= 1;
-    if (near) options.push([score(t) + (done.has(t.id) ? 0.4 : 0), `sewer-thing:${t.id}`]);
+    if (near) options.push([t, `sewer-thing:${t.id}`, done.has(t.id) ? 0.4 : 0]);
   }
-  return options.sort((a, b) => a[0] - b[0])[0]?.[1];
+  return nearest(p, options);
 }
 
-export function sewerInspect(h: SewerHost, id: string): Inspection | undefined {
+export function sewerInspect(h: ComplexHost, id: string): Inspection | undefined {
   const p = h.state.player;
-  const act = (label: string, target = id, enabled = true, reason?: string) => ({ label, enabled, reason, command: { type: "interact" as const, target, action: "sewer" as const } });
+  const act = (label: string, target = id, enabled = true, reason?: string) => ({ label, enabled, reason, command: { type: "interact" as const, target, action: "complex" as const } });
   const lid = /^sewer-lid:(-?\d+),(-?\d+)$/.exec(id);
   if (lid) {
     const at = { x: Number(lid[1]), y: Number(lid[2]) };
@@ -238,12 +222,12 @@ export function sewerInspect(h: SewerHost, id: string): Inspection | undefined {
       affordances: open ? [act("Climb down"), act("Put the cover back", `sewer-close:${at.x},${at.y}`)] : [act("Lift the cover")],
     };
   }
-  const c = h.state.sewer && sewerLevelOf(h, p.pos.space);
+  const c = tunnelRun(h.state) && sewerLevelOf(h, p.pos.space);
   if (!c) return undefined;
   const { level } = c;
-  const lit = h.state.sewer!.left > 0;
+  const lit = tunnelRun(h.state)!.left > 0;
   const mine = level.network === "mine";
-  if (id === "sewer-knock" && h.state.sewer!.trapped)
+  if (id === "sewer-knock" && tunnelRun(h.state)!.trapped)
     return {
       id, name: "The rails", kind: "place", pos: { ...p.pos },
       description: "The rails run into the fallen stone and on, under it, to where the rescuers will be. Iron carries a knock a long way.",
@@ -273,7 +257,7 @@ export function sewerInspect(h: SewerHost, id: string): Inspection | undefined {
   const found = thingAt(h, id);
   if (!found) return undefined;
   const { thing } = found, f = sewerFind(thing.find)!;
-  const done = h.state.sewerDone?.includes(thing.id);
+  const done = doneOn(h.state, level)?.includes(thing.id);
   return {
     id, name: thing.name, kind: "object", pos: { ...useCell(thing), space: level.space },
     description: done && !f.keeps ? "You have already been through this." : f.look,
@@ -282,13 +266,13 @@ export function sewerInspect(h: SewerHost, id: string): Inspection | undefined {
 }
 
 /** The label for the key, without building a whole inspection. */
-export function sewerVerb(h: SewerHost) {
+export function sewerVerb(h: ComplexHost) {
   const id = sewerTargetNear(h);
   const offer = id ? sewerInspect(h, id)?.affordances[0] : undefined;
   return offer?.enabled && offer.command.type === "interact" ? { label: offer.label, target: offer.command.target } : undefined;
 }
 
-export function sewerAct(h: SewerHost, id: string) {
+export function sewerAct(h: ComplexHost, id: string) {
   const p = h.state.player;
   if (id.startsWith("folk-")) return void folkDeal(h.folk, id);
   const close = /^sewer-close:(-?\d+),(-?\d+)$/.exec(id);
@@ -315,10 +299,10 @@ export function sewerAct(h: SewerHost, id: string) {
     if (!site) return;
     const year = site.place.year;
     const light = caveLightFor(Math.max(year, 1950));
-    h.state.sewer = { site: key, light: light.id, left: light.burns, surge: 0 };
+    h.state.complex = { kind: "sewer", site: key, light: light.id, left: light.burns, surge: 0 };
     const level = arrive(h, 1, "entry");
     if (!level) {
-      delete h.state.sewer;
+      delete h.state.complex;
       h.event("The shaft is choked with silt a few rungs down. There is no way through.");
       return;
     }
@@ -326,7 +310,7 @@ export function sewerAct(h: SewerHost, id: string) {
     h.event(`${light.lit} You climb down the iron rungs into ${level.name}. The noise of the street goes thin above you, and water is running somewhere close.`);
     return;
   }
-  const run = h.state.sewer, c = run && sewerLevelOf(h, p.pos.space);
+  const run = tunnelRun(h.state), c = run && sewerLevelOf(h, p.pos.space);
   if (!run || !c) return;
   const { level } = c;
   if (id === "sewer-knock") return knock(h);
@@ -353,7 +337,7 @@ export function sewerAct(h: SewerHost, id: string) {
       return;
     }
     const above = level.depth - 1;
-    const back = sewerLevelOf(h, sewerSpace(run.site, above, run.network ?? "sewer"))?.level;
+    const back = sewerLevelOf(h, sewerSpace(run.site, above, run.kind))?.level;
     arrive(h, above, back?.down ? "down" : "entry");
     h.advance(90);
     h.event("You climb back up to the level above.");
@@ -362,44 +346,23 @@ export function sewerAct(h: SewerHost, id: string) {
   const found = thingAt(h, id);
   if (!found) return;
   const { thing } = found, f = sewerFind(thing.find)!;
-  const done = (h.state.sewerDone ??= []);
-  const again = done.includes(thing.id);
-  h.advance(f.time ?? 30);
-  if (again && !f.heal) {
-    h.event(f.text);
-    return;
-  }
-  const got: string[] = [];
-  if (!again) {
-    for (const [item, n] of Object.entries(thing.loot)) {
-      if (!n) continue;
-      p.inventory[item] = (p.inventory[item] ?? 0) + n;
-      got.push(`${n} ${h.itemName(item).toLowerCase()}`);
-    }
-    if (f.fuel && run.left >= 0) run.left = Math.min(caveLight(run.light).burns * 1.5, run.left + f.fuel), (run.low = false);
-    done.push(thing.id);
-    if (Object.keys(thing.loot).length) run.took = { at: { x: thing.x, y: thing.y }, items: { ...thing.loot }, clock: h.state.clock };
-    if (thing.solid && !f.keeps) {
-      c.solid.delete(thing.y * level.w + thing.x);
-      h.unblock(level.space, thing.x, thing.y);
-    }
-  }
-  if (f.heal) p.health = Math.min(100, (p.health ?? 100) + f.heal);
-  h.event(`${f.text}${got.length ? ` You take ${got.join(", ")}.` : ""}`, f.tier === "prize" || f.tier === "notable" ? "world" : "action");
+  takeFind(h, run, c, thing, f, complexRecord(h.state, `${run.kind}:${run.site}`).done, {
+    refuel: (fuel) => void (run.left >= 0 && ((run.left = Math.min(caveLight(run.light).burns * 1.5, run.left + fuel)), (run.low = false))),
+  });
 }
 
 /** Time passing below: the light burns, the water rises with rain, and the people down here go about it. */
 /** Game seconds between breaths of gas: about five seconds of play, standing or walking. */
 const GAS_EVERY = 60;
 
-export function sewerTime(h: SewerHost, elapsed: number) {
-  const run = h.state.sewer, p = h.state.player;
+export function sewerTime(h: ComplexHost, elapsed: number) {
+  const run = tunnelRun(h.state), p = h.state.player;
   if (!run) return;
   const c = sewerLevelOf(h, p.pos.space);
   if (!c) {
     if (p.pos.space === "outside" || !parseSewerSpace(p.pos.space)) {
       for (const a of [...h.state.actors]) if (a.underground) h.folk.part(a.id);
-      delete h.state.sewer;
+      delete h.state.complex;
     }
     return;
   }
@@ -410,13 +373,13 @@ export function sewerTime(h: SewerHost, elapsed: number) {
     run.left -= elapsed;
     if (run.left <= 0) {
       run.left = 0;
-      h.event(`${light.out} ${run.network ? "It is completely dark." : "Only the daylight through the lids is left to see by."}`);
+      h.event(`${light.out} ${run.kind === "mine" ? "It is completely dark." : "Only the daylight through the lids is left to see by."}`);
     } else if (!run.low && run.left < light.burns * 0.2) {
       run.low = true;
       h.event(light.flame ? "Your lamp is burning low." : "Your torch is going yellow. The batteries will not last much longer.");
     }
   }
-  const rain = run.network ? 0 : h.rain();
+  const rain = run.kind === "mine" ? 0 : h.rain();
   const want = rain > 0.2 ? Math.min(1, (rain - 0.2) * 1.6) : 0;
   const was = run.surge;
   run.surge += (want - run.surge) * Math.min(1, elapsed / 240);
@@ -432,7 +395,7 @@ export function sewerTime(h: SewerHost, elapsed: number) {
     h.event("The flood shoves at your legs and nearly takes your feet. Get up on the ledge.");
   }
   if (level.network === "mine") perilTime(h, level, c.solid);
-  if (!h.state.sewer || h.state.player.dead) return;
+  if (!tunnelRun(h.state) || h.state.player.dead) return;
   const near = (r: { x: number; y: number; w: number; h: number }, m: number) => p.pos.x >= r.x - m && p.pos.x <= r.x + r.w - 1 + m && p.pos.y >= r.y - m && p.pos.y <= r.y + r.h - 1 + m;
   const foul = level.rooms.find((r) => r.foul && near(r, 1));
   const flame = light.flame && run.left > 0;
@@ -469,12 +432,12 @@ export function sewerTime(h: SewerHost, elapsed: number) {
   folkTime(h.folk, level.space, (x, y) => !sewerGround(h, level.space, x, y));
 }
 
-const nearestMine = (h: SewerHost, from: Point) =>
+const nearestMine = (h: ComplexHost, from: Point) =>
   h.world.places.filter((b) => b.institution === "mine").sort((a, b) => cheb(doorApproach(a), from) - cheb(doorApproach(b), from))[0];
 
 /** Where a miner's day is worked: the pit bottom, or a stall at a face in the
  * workings, a different one most days. Null where there is no mine. */
-export function minePlace(h: SewerHost, from: Point, role: "pit" | "face", day: number) {
+export function minePlace(h: ComplexHost, from: Point, role: "pit" | "face", day: number) {
   const b = nearestMine(h, from), site = b && siteOf(h, doorKey(b), "mine");
   const c = site && sewerLevelOf(h, sewerSpace(site.id, role === "pit" ? 1 : 2, "mine"));
   if (!c) return null;
@@ -495,8 +458,8 @@ export function minePlace(h: SewerHost, from: Point, role: "pit" | "face", day: 
 }
 
 /** Up and out at the end of a shift, the way the player came in. */
-export function mineLeave(h: SewerHost) {
-  const run = h.state.sewer, c = run?.network && sewerLevelOf(h, h.state.player.pos.space);
+export function mineLeave(h: ComplexHost) {
+  const run = tunnelRun(h.state), c = run?.kind === "mine" ? sewerLevelOf(h, h.state.player.pos.space) : undefined;
   const out = c && c.level.shafts.find((s) => s.to === "street");
   if (!c || !out?.world) return false;
   surface(h, out.world);
@@ -507,7 +470,7 @@ export function mineLeave(h: SewerHost) {
 
 /** Something going wrong where the player stands down a mine, a fall of roof
  * where the kind asked for cannot happen here. */
-export function minePeril(h: SewerHost, kind: PerilKind) {
-  const c = h.state.sewer?.network && sewerLevelOf(h, h.state.player.pos.space);
+export function minePeril(h: ComplexHost, kind: PerilKind) {
+  const c = tunnelRun(h.state)?.kind === "mine" && sewerLevelOf(h, h.state.player.pos.space);
   if (c) perilStart(h, kind, c.level, c.solid) || perilStart(h, "fall", c.level, c.solid);
 }

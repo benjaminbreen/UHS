@@ -1,5 +1,7 @@
 import type { Point } from "../core/types";
-import { blank, count, DEEP, FLOOR, keepJoined, LEDGE, rngOf, SILT, WALL, WATER, type Draft, type SewerDecor, type SewerRoom, type SewerSite } from "./sewer";
+import { blank, count, DEEP, FLOOR, keepJoined, LEDGE, SILT, WALL, WATER, type Draft, type SewerRoom, type SewerSite } from "./sewer";
+import type { AreaDecor } from "./complex";
+import { rngOf } from "../core/random";
 
 /** In a mine, LEDGE is a road laid with rails, FLOOR is worked ground,
  * WATER is a drainage gutter or flooded floor, DEEP the sump, SILT fallen rock. */
@@ -196,7 +198,7 @@ type Helpers = {
 
 /** A mine's furniture: tubs on the rails, stacked props, ponies in their
  * stalls, brattice on the walls, dust and spoil underfoot. */
-export function mineDecor(site: SewerSite, d: Draft, decor: SewerDecor[], lamps: Point[], rng: () => number, k: Helpers) {
+export function mineDecor(site: SewerSite, d: Draft, decor: AreaDecor[], lamps: Point[], rng: () => number, k: Helpers) {
   const { w, h, cells } = d;
   const { at, free, safe, block, taken } = k;
   const coal = site.kind === "coal", live = d.depth < 3;

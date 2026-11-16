@@ -659,7 +659,7 @@ export function Minimap({
   const revision = runtime.engine.state.revision;
   const local = runtime.engine.state.player.pos;
   const p =
-    local.space === "outside" ? local : (world.place(local.space)?.entrance ?? runtime.engine.state.cave?.mouth ?? local);
+    local.space === "outside" ? local : (world.place(local.space)?.entrance ?? (runtime.engine.state.complex?.kind === "cave" ? runtime.engine.state.complex.mouth : undefined) ?? local);
   const [size, height] = dims ?? (large ? [520, 350] : [256, 148]);
   const extent =
     span ?? (large || regional ? (world.regionExtent ?? 320) : 110);

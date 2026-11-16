@@ -8,7 +8,8 @@ import { MOTOR_SPANS } from "../src/content/settlements/streets/markings";
 import { laneLids } from "../src/render/carriageway";
 import { LEDGE, sewerLevel, sewerSolid, walkable, type SewerLevel, type SewerSite } from "../src/world/sewer";
 import { FALL_WARN, TUB_CELL, knock, perilField, perilStart, perilTime } from "../src/core/mine-peril";
-import type { SewerHost } from "../src/core/sewer";
+import type { ComplexHost } from "../src/core/complex";
+import { tunnelRun } from "../src/core/sewer";
 import { folkDeal, folkOffer, folkTime, type FolkHost } from "../src/core/tunnel-folk";
 import { caveFind } from "../src/content/caves";
 import { campFinds, cavePeople } from "../src/content/caves/people";
@@ -113,7 +114,7 @@ describe("mines", () => {
     const host = (level: SewerLevel, at: { x: number; y: number }) => {
       const solid = sewerSolid(level), said: string[] = [], kept: string[] = [];
       const h = {
-        state: { clock: 10000, manifest: { seed: "peril" }, player: { pos: { ...at, space: level.space }, health: 100, inventory: {} }, sewer: { site: level.site, network: "mine", light: "safety-lamp", left: 5000, surge: 0 } },
+        state: { clock: 10000, manifest: { seed: "peril" }, player: { pos: { ...at, space: level.space }, health: 100, inventory: {} }, complex: { kind: "mine", site: level.site, light: "safety-lamp", left: 5000, surge: 0 } },
         world: { pack: { setting: { year: 1880 } } },
         event: (t: string) => said.push(t),
         advance: (n: number) => void (h.state.clock += n),
@@ -121,7 +122,7 @@ describe("mines", () => {
         unblock: () => {},
         busy: () => false,
         remember: (t: string) => kept.push(t),
-      } as unknown as SewerHost & { state: { clock: number; player: { health: number } } };
+      } as unknown as ComplexHost & { state: { clock: number; player: { health: number } } };
       const tick = (until: number) => {
         while (h.state.clock < until) (h.state.clock += 2), perilTime(h, level, solid);
       };
@@ -157,10 +158,10 @@ describe("mines", () => {
       const cell = { x: at % road.w, y: Math.floor(at / road.w) };
       const stay = host(road, cell);
       expect(perilStart(stay.h, "tub", road, stay.solid)).toBe(true);
-      const len = stay.h.state.sewer!.peril!.cells.length;
+      const len = tunnelRun(stay.h.state)!.peril!.cells.length;
       stay.tick(stay.h.state.clock + len * TUB_CELL + 2);
       expect(stay.h.state.player.health).toBe(72);
-      expect(stay.h.state.sewer!.peril).toBeUndefined();
+      expect(tunnelRun(stay.h.state)!.peril).toBeUndefined();
 
       const step = host(road, cell);
       perilStart(step.h, "tub", road, step.solid);
@@ -186,11 +187,11 @@ describe("mines", () => {
       const { h, solid, kept, tick } = host(workings, open(workings));
       h.state.mineFalls = { [workings.space]: [5 * workings.w + 5] };
       solid.add(5 * workings.w + 5);
-      h.state.sewer!.trapped = { since: h.state.clock, rescue: h.state.clock + 7200 };
+      tunnelRun(h.state)!.trapped = { since: h.state.clock, rescue: h.state.clock + 7200 };
       knock(h);
-      expect(h.state.sewer!.trapped!.rescue).toBe(h.state.clock - 600 + 7200 - 900);
-      tick(h.state.sewer!.trapped!.rescue + 2);
-      expect(h.state.sewer!.trapped).toBeUndefined();
+      expect(tunnelRun(h.state)!.trapped!.rescue).toBe(h.state.clock - 600 + 7200 - 900);
+      tick(tunnelRun(h.state)!.trapped!.rescue + 2);
+      expect(tunnelRun(h.state)!.trapped).toBeUndefined();
       expect(h.state.mineFalls[workings.space]).toBeUndefined();
       expect(solid.has(5 * workings.w + 5)).toBe(false);
       expect(kept.at(-1)).toMatch(/^You were dug out/);

@@ -1,6 +1,6 @@
 import { caveLight } from "../content/caves";
 import { tunnelPerson, type SewerPerson } from "../content/sewers";
-import type { SewerFolk } from "../world/sewer";
+import type { AreaFolk } from "../world/complex";
 import { person } from "../world/v3/wayfarers";
 import { random } from "./random";
 import type { Actor, GameEvent, Point, Position, Snapshot as GameState, WorldModel } from "./types";
@@ -33,7 +33,7 @@ function hashCode(s: string) {
 }
 
 /** Bring in whoever is on this level, and see off whoever was on the last. */
-export function folkArrive(h: FolkHost, space: string, folk: readonly SewerFolk[]) {
+export function folkArrive(h: FolkHost, space: string, folk: readonly AreaFolk[]) {
   for (const a of h.state.actors) if (a.underground && a.pos.space !== space) h.part(a.id);
   const setting = h.world.pack.setting;
   if (!setting) return;
@@ -202,7 +202,7 @@ export function folkDeal(h: FolkHost, id: string) {
   }
   if (deal.wage && h.coined()) add("coin", deal.wage), got.push(`${deal.wage} coin${deal.wage === 1 ? "" : "s"} for the work`);
   if (deal.heal) p.health = Math.min(100, (p.health ?? 100) + deal.heal);
-  const run = h.state.cave ?? h.state.sewer;
+  const run = h.state.complex;
   if (deal.fuel && run && run.left > 0) run.left = Math.min(caveLight(run.light).burns * 1.5, run.left + deal.fuel);
   const line = `${parts.join(" ")} ${deal.text}${got.length ? ` You come away with ${got.join(" and ")}.` : ""}`.trim();
   h.event(line, "social", a.pos);

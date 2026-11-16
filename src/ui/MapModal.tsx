@@ -40,7 +40,7 @@ export function MapModal({ runtime, onClose }: { runtime: Runtime; onClose: () =
   const world = runtime.engine.world;
   const pack = world.pack;
   const player = runtime.engine.state.player.pos;
-  const here = player.space === "outside" ? player : (world.place(player.space)?.entrance ?? runtime.engine.state.cave?.mouth ?? player);
+  const here = player.space === "outside" ? player : (world.place(player.space)?.entrance ?? (runtime.engine.state.complex?.kind === "cave" ? runtime.engine.state.complex.mouth : undefined) ?? player);
   const regional = !!pack.setting;
   // An invented settlement has no atlas around it: its map is the fixed plan.
   const home = regional ? { x: here.x, y: here.y } : { x: 20, y: 25 };

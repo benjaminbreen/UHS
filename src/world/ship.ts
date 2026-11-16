@@ -1,8 +1,8 @@
 import { shipCrew, type BelowDeck, type Hull, type ShipKind } from "../content/ships";
 import type { SewerPerson } from "../content/sewers";
-import { hash } from "../core/random";
+import { rngOf } from "../core/random";
 import type { Point } from "../core/types";
-import type { SewerFolk } from "./sewer";
+import type { AreaFolk } from "./complex";
 
 export const SEA = 0, DECK = 1, RAIL = 2;
 
@@ -38,7 +38,7 @@ export type ShipLevel = {
   y0: number;
   things: ShipThing[];
   lights: ShipLight[];
-  folk: SewerFolk[];
+  folk: AreaFolk[];
   entry: Point;
   name: string;
 };
@@ -48,16 +48,6 @@ export const parseShipSpace = (space: string) => {
   const m = /^ship:voyage:(\d+)$/.exec(space);
   return m ? Number(m[1]) : undefined;
 };
-
-function rngOf(...keys: (string | number)[]) {
-  let a = hash(keys.join("|"));
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 /** Half the beam at a point along the hull, as a share of the full half-beam:
  * 0 is the stern, 1 the stem. */
@@ -292,7 +282,7 @@ export function shipLevel(seed: string, hull: Hull, deck: number, place: { lon: 
   // Stokers keep to the stokehold, and nobody else goes there; the hold is for cargo and whoever minds it.
   const crew = shipCrew(hull, place).filter((p) => p.depths?.includes(deck === 0 ? "deck" : "below") &&
     (use === "stokehold" ? p.post === "furnace" : p.post !== "furnace" && (use !== "hold" || p.post === "cargo" || p.post === "waist")));
-  const folk: SewerFolk[] = [];
+  const folk: AreaFolk[] = [];
   const near = (t: ShipThing | undefined) => t && [...Array(t.w + 2).keys()].flatMap((i) => [{ x: t.x - 1 + i, y: t.y + t.h }, { x: t.x - 1 + i, y: t.y - 1 }]).concat([{ x: t.x - 1, y: t.y }, { x: t.x + t.w, y: t.y }]);
   const thing = (re: RegExp) => things.filter((t) => re.test(t.art));
   const open: Point[] = [];

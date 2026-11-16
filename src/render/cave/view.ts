@@ -7,13 +7,12 @@ import { cavePalettes } from "./palette";
 import { Flotsam, WaterSurface } from "../flowing-water";
 import { paintCaveTerrain } from "./terrain";
 import { caveFloats, caveTile } from "./water";
+import { LampHud, Lamplight } from "../lamplight";
 
 const CELL = 48, RISE = 40, PAD = 16;
 const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
 /** Pixels a second the stream runs at. */
 const SPEED = 18;
-/** Lightmap samples per cell edge. */
-const SUB = 2;
 
 export type CaveFrame = {
   /** The player's feet, in world pixels. */
@@ -42,25 +41,15 @@ export class CaveView {
   private rock: HTMLCanvasElement;
   private base: Phaser.Textures.CanvasTexture;
   private sheet: Phaser.Textures.CanvasTexture;
-  private map: Phaser.Textures.CanvasTexture;
-  private small: CanvasRenderingContext2D;
-  private mapData: ImageData;
-  private cur: Float32Array;
-  private vis: Uint8Array;
-  private seen: Uint8Array;
-  private day: Float32Array;
+  private lamp: Lamplight;
+  private hud: LampHud;
+  private noon = -1;
   private objects: Phaser.GameObjects.GameObject[] = [];
   private tall = new Map<string, Phaser.GameObjects.Image>();
   private beasts = new Map<string, { im: Phaser.GameObjects.Image; stride: number }>();
   private live = new Set<Phaser.GameObjects.GameObject>();
-  private halo: Phaser.GameObjects.Image;
   private motes: { im: Phaser.GameObjects.Rectangle; ox: number; oy: number; phase: number }[] = [];
-  private hud: Phaser.GameObjects.Graphics;
-  private label: Phaser.GameObjects.Text;
-  private banner: Phaser.GameObjects.Text;
   private stamp = "?";
-  private at = -1;
-  private aim = 0;
   private born = 0;
   private roused = 0;
   private nextDrip = 0;
@@ -92,28 +81,6 @@ export class CaveView {
     this.base = scene.textures.createCanvas(key, W, H)!;
     const tallCount = level.decor.filter((d) => d.solid).length + level.things.filter((t) => t.solid).length + 2;
     this.sheet = scene.textures.createCanvas(`${key}-sheet`, CELL * 16, CELL * Math.ceil(tallCount / 16 + 1) + 8)!;
-    // The game samples textures nearest-neighbour, so the light is smoothed
-    // here, on the way from two samples a cell to eight pixels a cell.
-    const small = document.createElement("canvas");
-    small.width = w * SUB;
-    small.height = h * SUB;
-    this.small = small.getContext("2d")!;
-    this.map = scene.textures.createCanvas(`${key}-light`, w * 8, h * 8)!;
-    this.map.context.imageSmoothingEnabled = true;
-    this.map.context.imageSmoothingQuality = "high";
-    this.mapData = this.small.createImageData(w * SUB, h * SUB);
-    this.cur = new Float32Array(w * SUB * h * SUB * 3);
-    this.vis = new Uint8Array(w * h);
-    this.seen = new Uint8Array(w * h);
-    this.day = new Float32Array(w * h);
-    if (level.depth === 1) {
-      const lit = new Uint8Array(w * h);
-      fov(level, level.entry.x, h - 2, 14, lit);
-      for (let i = 0; i < w * h; i++) {
-        const d = Math.hypot((i % w) - level.entry.x, Math.floor(i / w) - (h - 1));
-        this.day[i] = lit[i] ? Math.max(0, 1 - d / 13) ** 1.4 : 0;
-      }
-    }
     this.objects.push(scene.add.image(0, 0, key).setOrigin(0, 0).setDepth(-99990));
     if (this.shore.length) {
       // The water runs under its banks: strips of moving surface, seen
@@ -138,18 +105,8 @@ export class CaveView {
       this.objects.push(this.lap);
       if (level.stream) this.flotsam = new Flotsam(scene, level, wet, caveFloats, "cave-floats", 0, -99988);
     }
-    this.objects.push(
-      scene.add.image(0, 0, `${key}-light`).setOrigin(0, 0).setScale(2).setDepth(3000).setBlendMode(Phaser.BlendModes.MULTIPLY),
-    );
-    if (!scene.textures.exists("cave-halo")) {
-      const t = scene.textures.createCanvas("cave-halo", 128, 128)!;
-      const g = t.context.createRadialGradient(64, 64, 0, 64, 64, 64);
-      g.addColorStop(0, "rgba(255,255,255,0.55)");
-      g.addColorStop(0.35, "rgba(255,255,255,0.2)");
-      g.addColorStop(1, "rgba(255,255,255,0)");
-      t.context.fillStyle = g;
-      t.context.fillRect(0, 0, 128, 128);
-      t.refresh();
+    this.lamp = new Lamplight(scene, key, level, [0.17, 0], 0.38);
+    if (!scene.textures.exists("cave-bat")) {
       const bat = scene.textures.createCanvas("cave-bat", 18, 5)!;
       bat.context.fillStyle = "#0c0a10";
       // Wings up, then wings down.
@@ -161,8 +118,6 @@ export class CaveView {
       paintSnake(snake.context, 0, 0);
       snake.refresh();
     }
-    this.halo = scene.add.image(0, 0, "cave-halo").setBlendMode(Phaser.BlendModes.ADD).setDepth(3001).setAlpha(0);
-    this.objects.push(this.halo);
     for (let i = 0; i < 16; i++) {
       const im = scene.add.rectangle(0, 0, 1, 1, 0xfff0d0).setBlendMode(Phaser.BlendModes.ADD).setDepth(3002).setAlpha(0);
       this.motes.push({ im, ox: (Math.random() - 0.5) * 120, oy: (Math.random() - 0.5) * 90, phase: Math.random() * 6 });
@@ -178,11 +133,7 @@ export class CaveView {
       }
       this.objects.push(shaft);
     }
-    this.hud = scene.add.graphics().setDepth(1e7);
-    const font = { fontFamily: "Silkscreen, monospace", fontSize: "8px", color: "#ffe6c0", stroke: "#120e0c", strokeThickness: 3 };
-    this.label = scene.add.text(0, 0, "", font).setDepth(1e7).setOrigin(0, 0.5);
-    this.banner = scene.add.text(0, 0, level.name[0].toUpperCase() + level.name.slice(1), { ...font, fontSize: "16px", strokeThickness: 4 }).setDepth(1e7).setOrigin(0.5, 0.5).setAlpha(0);
-    this.objects.push(this.hud, this.label, this.banner);
+    this.hud = new LampHud(scene, level.name, { text: "#ffe6c0", stroke: "#120e0c" });
     this.drips = level.decor.filter((d) => d.type === "drip").map((d) => ({ x: d.x * 16 + 3 + d.v * 10, y: d.y * 16 + 4 + d.v * 8 }));
     this.glints = level.things.flatMap((t) => {
       const glow = caveFind(t.find)?.glow;
@@ -220,7 +171,7 @@ export class CaveView {
   }
 
   update(f: CaveFrame) {
-    const { level } = this, { w, h } = level;
+    const { level } = this, { h } = level;
     if (!this.born) this.born = f.time;
     const stamp = f.done.join("|");
     if (stamp !== this.stamp) {
@@ -235,66 +186,17 @@ export class CaveView {
     const hue = parseInt(f.light.color.slice(1), 16);
     // Half way to white: firelight warms the rock without turning water green.
     const color = lit ? [16, 8, 0].map((s) => 0.5 + (((hue >> s) & 255) / 255) * 0.5) : [0.3, 0.36, 0.5];
-    const px = f.x / 16, py = (f.y - 7) / 16;
-    const cx = Math.max(0, Math.min(w - 1, Math.floor(f.x / 16))), cy = Math.max(0, Math.min(h - 1, Math.floor((f.y - 1) / 16)));
-    if (cy * w + cx !== this.at) {
-      this.at = cy * w + cx;
-      fov(level, cx, cy, Math.ceil(f.light.reach) + 2, this.vis);
-      // A back wall stands three cells tall over the floor it is seen from.
-      for (let y = 3; y < h - 1; y++) for (let x = 0; x < w; x++)
-        if (this.vis[y * w + x] && level.cells[y * w + x] === WALL && level.cells[(y + 1) * w + x] !== WALL) this.vis[(y - 1) * w + x] = this.vis[(y - 2) * w + x] = 1;
-    }
-    // A beam looks where you look; a flame lights all round.
-    const want = [-Math.PI / 2, 0, Math.PI / 2, Math.PI][f.facing] ?? 0;
-    let turn = want - this.aim;
-    while (turn > Math.PI) turn -= Math.PI * 2;
-    while (turn < -Math.PI) turn += Math.PI * 2;
-    this.aim += turn * Math.min(1, f.delta / 140);
-    const beam = lit && !f.light.flame;
     const noon = Math.max(0.12, Math.min(1, 1.25 - Math.abs(f.hour - 12.5) / 6));
-    const k = 1 - Math.exp(-f.delta / 80);
-    const gw = w * SUB, out = this.mapData.data, cur = this.cur;
-    for (let gy = 0; gy < h * SUB; gy++)
-      for (let gx = 0; gx < gw; gx++) {
-        const cell = (gy >> 1) * w + (gx >> 1);
-        const dx = (gx + 0.5) / SUB - px, dy = (gy + 0.5) / SUB - py;
-        const d = Math.hypot(dx, dy);
-        let L = 0;
-        if (CaveView.daylit) L = 1;
-        else if (this.vis[cell]) {
-          let r = reach;
-          if (beam && d > 1.2) {
-            let off = Math.abs(Math.atan2(dy, dx) - this.aim);
-            if (off > Math.PI) off = Math.PI * 2 - off;
-            r *= off < 0.55 ? 1 : off < 1.1 ? 1 - ((off - 0.55) / 0.55) * 0.62 : 0.38;
-          }
-          const u = d / r;
-          L = u >= 1 ? 0 : (1 - u * u) ** 0.8 * flick;
-          if (L > 0.06) this.seen[cell] = 1;
-        }
-        const sun = this.day[cell] * noon;
-        let fr = 0;
-        for (const c of f.carried) {
-          const u = Math.hypot((gx + 0.5) / SUB - c.x / 16, (gy + 0.5) / SUB - (c.y - 10) / 16) / 5;
-          if (u < 1) fr += (1 - u * u) * 0.7;
-        }
-        if (sun > 0.1) this.seen[cell] = 1;
-        const mem = this.seen[cell] ? 0.17 : 0;
-        const i = (gy * gw + gx) * 3, o = (gy * gw + gx) * 4;
-        cur[i] += (Math.min(1, L * color[0] * 1.08 + sun + fr + mem * 0.62) - cur[i]) * k;
-        cur[i + 1] += (Math.min(1, L * color[1] * 1.04 + sun * 0.97 + fr * 0.8 + mem * 0.72) - cur[i + 1]) * k;
-        cur[i + 2] += (Math.min(1, L * color[2] + sun * 0.9 + fr * 0.55 + mem) - cur[i + 2]) * k;
-        out[o] = cur[i] * 255;
-        out[o + 1] = cur[i + 1] * 255;
-        out[o + 2] = cur[i + 2] * 255;
-        out[o + 3] = 255;
-      }
-    this.small.putImageData(this.mapData, 0, 0);
-    this.map.context.drawImage(this.small.canvas, 0, 0, w * 8, h * 8);
-    this.map.refresh();
-
+    if (level.depth === 1 && Math.round(noon * 20) !== this.noon) {
+      // Daylight in through the mouth, by the hour.
+      this.noon = Math.round(noon * 20);
+      this.lamp.still.fill(0);
+      this.lamp.addStill(level.entry.x + 0.5, h - 0.5, 13, [1, 0.97, 0.9], noon, (d) => (1 - d) ** 1.4);
+    }
+    this.lamp.look(f.x, f.y, Math.ceil(f.light.reach) + 2);
+    this.lamp.update({ x: f.x, y: f.y, facing: f.facing, delta: f.delta, reach, flick, color, beam: lit && !f.light.flame, carried: f.carried, daylit: CaveView.daylit });
     const tint = parseInt(f.light.color.slice(1), 16);
-    this.halo.setPosition(f.x, f.y - 10).setScale((reach * 16 * 1.5) / 64).setTint(tint).setAlpha(lit ? (f.light.flame ? 0.2 : 0.1) * flick : 0);
+    this.lamp.halo.setPosition(f.x, f.y - 10).setScale((reach * 16 * 1.5) / 64).setTint(tint).setAlpha(lit ? (f.light.flame ? 0.2 : 0.1) * flick : 0);
     for (const m of this.motes) {
       m.phase += f.delta / 2600;
       const mx = f.x + m.ox + Math.sin(m.phase * 1.7 + m.oy) * 9, my = f.y - 12 + m.oy + Math.cos(m.phase + m.ox) * 6 - ((m.phase * 5) % 30);
@@ -438,7 +340,7 @@ export class CaveView {
       // Water and crystal throw the light back in points.
       const gx = Math.floor(f.x / 16 + (Math.random() - 0.5) * reach * 2), gy = Math.floor(f.y / 16 + (Math.random() - 0.5) * reach * 2);
       const c = gx >= 0 && gy >= 0 && gx < w && gy < level.h ? level.cells[gy * w + gx] : WALL;
-      if ((c === SHALLOW || c === DEEP) && this.vis[gy * w + gx]) {
+      if ((c === SHALLOW || c === DEEP) && this.lamp.vis[gy * w + gx]) {
         const sx = gx * 16 + Math.random() * 16, sy = gy * 16 + Math.random() * 16;
         const dash = scene.add.rectangle(sx, sy, 3, 1, 0xd8f4f4).setBlendMode(Phaser.BlendModes.ADD).setDepth(-99000).setAlpha(0);
         this.live.add(dash);
@@ -506,21 +408,17 @@ export class CaveView {
   sound?: (what: "drip" | "bats" | "take" | "creak" | "settle", volume: number) => void;
 
   private drawHud(f: CaveFrame, lit: boolean) {
-    const cam = this.scene.cameras.main, v = cam.worldView;
-    const x = v.x + 10, y = v.bottom - 62 / cam.zoom;
     const frac = Math.max(0, Math.min(1, f.run.left / f.light.burns));
-    const g = this.hud;
-    g.clear();
-    g.fillStyle(0x120e0c, 0.85).fillRect(x - 2, y - 5, 62, 10);
-    // The flame, or the dead wick.
-    g.fillStyle(lit ? 0xffb040 : 0x5a5650).fillRect(x + 1, y - 2, 3, 4);
-    if (lit) g.fillStyle(0xfff0a0).fillRect(x + 2, y - 3 - (Math.floor(f.time / 120) % 2), 1, 3);
-    g.fillStyle(0x3a302a).fillRect(x + 7, y - 2, 50, 4);
-    g.fillStyle(frac < 0.2 ? (Math.floor(f.time / 300) % 2 ? 0xe04a2a : 0xff8a4a) : 0xffc060).fillRect(x + 7, y - 2, Math.round(50 * frac), 4);
-    g.fillStyle(0xfff0c0, 0.5).fillRect(x + 7, y - 2, Math.round(50 * frac), 1);
-    this.label.setPosition(x + 64, y).setText(`${f.light.name.toUpperCase()}  ·  LEVEL ${this.level.depth}`);
-    const age = f.time - this.born;
-    this.banner.setPosition(v.centerX, v.y + v.height * 0.2).setAlpha(age < 600 ? age / 600 : age < 2600 ? 1 : Math.max(0, 1 - (age - 2600) / 900));
+    this.hud.update(f.time, (g, x, y) => {
+      g.fillStyle(0x120e0c, 0.85).fillRect(x - 2, y - 5, 62, 10);
+      // The flame, or the dead wick.
+      g.fillStyle(lit ? 0xffb040 : 0x5a5650).fillRect(x + 1, y - 2, 3, 4);
+      if (lit) g.fillStyle(0xfff0a0).fillRect(x + 2, y - 3 - (Math.floor(f.time / 120) % 2), 1, 3);
+      g.fillStyle(0x3a302a).fillRect(x + 7, y - 2, 50, 4);
+      g.fillStyle(frac < 0.2 ? (Math.floor(f.time / 300) % 2 ? 0xe04a2a : 0xff8a4a) : 0xffc060).fillRect(x + 7, y - 2, Math.round(50 * frac), 4);
+      g.fillStyle(0xfff0c0, 0.5).fillRect(x + 7, y - 2, Math.round(50 * frac), 1);
+      return `${f.light.name.toUpperCase()}  ·  LEVEL ${this.level.depth}`;
+    });
   }
 
   destroy() {
@@ -528,40 +426,9 @@ export class CaveView {
     for (const v of this.beasts.values()) v.im.destroy();
     this.surface?.destroy();
     this.flotsam?.destroy();
+    this.lamp.destroy();
+    this.hud.destroy();
     const key = `cave-${this.level.space}`;
-    for (const k of [key, `${key}-sheet`, `${key}-light`, `${key}-banks`, `${key}-mask`]) if (this.scene.textures.exists(k)) this.scene.textures.remove(k);
+    for (const k of [key, `${key}-sheet`, `${key}-banks`, `${key}-mask`]) if (this.scene.textures.exists(k)) this.scene.textures.remove(k);
   }
-}
-
-/** Recursive shadowcasting: the cells seen from one cell, walls included. */
-function fov(level: CaveLevel, ox: number, oy: number, radius: number, out: Uint8Array) {
-  const { w, h, cells } = level;
-  out.fill(0);
-  if (ox < 0 || oy < 0 || ox >= w || oy >= h) return;
-  out[oy * w + ox] = 1;
-  const opaque = (x: number, y: number) => x < 0 || y < 0 || x >= w || y >= h || cells[y * w + x] === WALL;
-  const cast = (row: number, start: number, end: number, xx: number, xy: number, yx: number, yy: number) => {
-    if (start < end) return;
-    let next = 0, blocked = false;
-    for (let dist = row; dist <= radius && !blocked; dist++) {
-      const dy = -dist;
-      for (let dx = -dist; dx <= 0; dx++) {
-        const x = ox + dx * xx + dy * xy, y = oy + dx * yx + dy * yy;
-        const l = (dx - 0.5) / (dy + 0.5), r = (dx + 0.5) / (dy - 0.5);
-        if (start < r) continue;
-        if (end > l) break;
-        if (dx * dx + dy * dy <= radius * radius && x >= 0 && y >= 0 && x < w && y < h) out[y * w + x] = 1;
-        if (blocked) {
-          if (opaque(x, y)) next = r;
-          else (blocked = false), (start = next);
-        } else if (opaque(x, y) && dist < radius) {
-          blocked = true;
-          cast(dist + 1, start, l, xx, xy, yx, yy);
-          next = r;
-        }
-      }
-    }
-  };
-  const m = [[1, 0, 0, -1, -1, 0, 0, 1], [0, 1, -1, 0, 0, -1, 1, 0], [0, 1, 1, 0, 0, -1, -1, 0], [1, 0, 0, 1, -1, 0, 0, -1]];
-  for (let o = 0; o < 8; o++) cast(1, 1, 0, m[0][o], m[1][o], m[2][o], m[3][o]);
 }

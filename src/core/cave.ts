@@ -2,11 +2,13 @@ import { caveDenners, caveFind, caveLight, caveLightFor, caveSnakes, type CaveKi
 import { faunaCombat, faunaProfile } from "../content/fauna";
 import { rockAt, type Rock } from "../content/geography/rock";
 import { caveAt } from "../render/edge-faces";
-import { caveLevel, caveLevels, caveSolid, caveSpace, parseCaveSpace, DEEP, MOUTH, WALL, type CaveLevel, type CaveSite, type CaveThing } from "../world/cave";
+import { caveLevel, caveLevels, caveSolid, caveSpace, parseCaveSpace, DEEP, MOUTH, WALL, type CaveLevel, type CaveSite } from "../world/cave";
 import { cavePeople } from "../content/caves/people";
 import { personFits } from "../content/sewers";
-import { folkArrive, folkDeal, folkRobbed, folkTime, type FolkHost } from "./tunnel-folk";
-import type { GameEvent, Snapshot as GameState, Inspection, Inventory, Point, WorldModel } from "./types";
+import { folkArrive, folkDeal, folkRobbed, folkTime } from "./tunnel-folk";
+import { complexRecord, nearest, takeFind, type ComplexHost } from "./complex";
+import type { Snapshot as GameState, Inspection, Inventory, Point, WorldModel } from "./types";
+import { landing, type AreaThing } from "../world/complex";
 
 export type CaveBeast = {
   id: string;
@@ -26,6 +28,7 @@ export type CaveBeast = {
 };
 /** The trip underground the player is on. */
 export type CaveRun = {
+  kind: "cave";
   cave: string;
   /** The cell outside to come back out on. */
   mouth: Point;
@@ -39,23 +42,6 @@ export type CaveRun = {
   /** What was last taken, and where, for the scene's loot burst. */
   took?: { at: Point; items: Inventory; clock: number };
 };
-/** What a cave remembers between visits. */
-export type CaveRecord = { deepest: number; done: string[]; slain: string[] };
-
-export type CaveHost = {
-  state: GameState;
-  world: WorldModel;
-  event(text: string, kind?: GameEvent["kind"]): void;
-  advance(seconds: number): void;
-  hurt(damage: number, cause: string, injury?: string): void;
-  itemName(id: string): string;
-  /** Forget what was known about a cell's collision. */
-  unblock(space: string, x: number, y: number): void;
-  sites: Map<string, CaveSite | null>;
-  levels: Map<string, { level: CaveLevel; solid: Set<number> }>;
-  folk: FolkHost;
-};
-
 const rockOf = (world: WorldModel, x: number, y: number): Rock | "earth" => {
   const cell = world.topography?.(x, y);
   const eco = cell?.habitat?.ecology;
@@ -101,14 +87,14 @@ export function* caveMouthsNear(world: WorldModel, at: Point, r: number) {
   }
 }
 
-function siteOf(h: CaveHost, id: string): CaveSite | undefined {
-  const known = h.sites.get(id);
+function siteOf(h: ComplexHost, id: string): CaveSite | undefined {
+  const known = h.caveSites.get(id);
   if (known !== undefined) return known ?? undefined;
   const [x, y] = id.split(",").map(Number);
   const mouth = caveMouthAt(h.world, x, y);
   const setting = h.world.geography?.packAt(x, y)?.setting ?? h.world.pack.setting;
   if (!mouth || !setting) {
-    h.sites.set(id, null);
+    h.caveSites.set(id, null);
     return undefined;
   }
   const eco = h.world.topography?.(x, y - 1)?.habitat;
@@ -133,28 +119,28 @@ function siteOf(h: CaveHost, id: string): CaveSite | undefined {
     snakes: caveSnakes(setting, kind),
     people: cavePeople.filter((p) => personFits(p, setting, kind)),
   };
-  h.sites.set(id, site);
+  h.caveSites.set(id, site);
   return site;
 }
 
-export function caveLevelOf(h: CaveHost, space: string) {
-  const known = h.levels.get(space);
+export function caveLevelOf(h: ComplexHost, space: string) {
+  const known = h.caveLevels.get(space);
   if (known) return known;
   const at = parseCaveSpace(space);
   const site = at && siteOf(h, at.cave);
   if (!at || !site || at.depth < 1 || at.depth > site.levels) return undefined;
   const level = caveLevel(h.state.manifest.seed, site, at.depth);
   const solid = caveSolid(level);
-  const done = new Set(h.state.caves?.[at.cave]?.done);
+  const done = new Set(h.state.complexes?.[`cave:${at.cave}`]?.done);
   // What was carried off no longer stands in the way.
   for (const t of level.things) if (t.solid && done.has(t.id) && !caveFind(t.find)?.keeps) solid.delete(t.y * level.w + t.x);
   const entry = { level, solid };
-  h.levels.set(space, entry);
+  h.caveLevels.set(space, entry);
   return entry;
 }
 
 /** Rock, deep water, columns and whatever big thing still lies there. */
-export function caveGround(h: CaveHost, space: string, x: number, y: number) {
+export function caveGround(h: ComplexHost, space: string, x: number, y: number) {
   const c = caveLevelOf(h, space);
   if (!c) return undefined;
   const { level, solid } = c;
@@ -164,14 +150,14 @@ export function caveGround(h: CaveHost, space: string, x: number, y: number) {
 }
 
 export const caveBeastAt = (state: GameState, space: string, x: number, y: number) =>
-  state.cave && state.player.pos.space === space ? state.cave.beasts.find((b) => b.x === x && b.y === y && b.mood !== "fled" && b.species !== "bats") : undefined;
+  runOf(state) && state.player.pos.space === space ? runOf(state)!.beasts.find((b) => b.x === x && b.y === y && b.mood !== "fled" && b.species !== "bats") : undefined;
 
 const beastName = (species: string) => (species === "snake" ? "snake" : (faunaProfile(species)?.label ?? species).toLowerCase());
 
-function populate(h: CaveHost, level: CaveLevel) {
+function populate(h: ComplexHost, level: CaveLevel) {
   folkArrive(h.folk, level.space, level.folk);
-  const run = h.state.cave!;
-  const slain = new Set(h.state.caves?.[run.cave]?.slain);
+  const run = runOf(h.state)!;
+  const slain = new Set(h.state.complexes?.[`cave:${run.cave}`]?.slain);
   run.roused = [];
   run.beasts = level.dwellers.filter((d) => !slain.has(d.id)).map((d) => {
     const profile = faunaProfile(d.species);
@@ -183,19 +169,17 @@ function populate(h: CaveHost, level: CaveLevel) {
   });
 }
 
-function record(h: CaveHost, cave: string) {
-  return ((h.state.caves ??= {})[cave] ??= { deepest: 1, done: [], slain: [] });
-}
+const record = (h: ComplexHost, cave: string) => complexRecord(h.state, `cave:${cave}`);
+const runOf = (s: GameState) => (s.complex?.kind === "cave" ? s.complex : undefined);
 
-function arrive(h: CaveHost, depth: number, at: "entry" | "down") {
-  const run = h.state.cave!, p = h.state.player;
+function arrive(h: ComplexHost, depth: number, at: "entry" | "down") {
+  const run = runOf(h.state)!, p = h.state.player;
   const c = caveLevelOf(h, caveSpace(run.cave, depth));
   if (!c) return false;
   const { level } = c;
   let spot: Point = level.entry;
   if (at === "down" && level.down) {
-    const d = level.down;
-    spot = [[0, 1], [-1, 0], [1, 0], [0, -1], [1, 1], [-1, 1]].map(([dx, dy]) => ({ x: d.x + dx, y: d.y + dy })).find((q) => !caveGround(h, level.space, q.x, q.y)) ?? level.entry;
+    spot = landing(level.down, (x, y) => caveGround(h, level.space, x, y), level.entry);
   }
   p.pos = { ...spot, space: level.space };
   p.direction = at === "entry" && depth === 1 ? 0 : 2;
@@ -206,61 +190,57 @@ function arrive(h: CaveHost, depth: number, at: "entry" | "down") {
   return first;
 }
 
-function leave(h: CaveHost) {
-  const run = h.state.cave;
+function leave(h: ComplexHost) {
+  const run = runOf(h.state);
   if (!run) return;
   const p = h.state.player;
   p.pos = { ...run.mouth, space: "outside" };
   p.direction = 2;
-  delete h.state.cave;
+  delete h.state.complex;
   for (const a of [...h.state.actors]) if (a.underground) h.folk.part(a.id);
   h.event("You come out into the open air, blinking.");
 }
 
-const thingAt = (h: CaveHost, id: string) => {
-  const c = h.state.cave && caveLevelOf(h, h.state.player.pos.space);
+const thingAt = (h: ComplexHost, id: string) => {
+  const c = runOf(h.state) && caveLevelOf(h, h.state.player.pos.space);
   const thing = c?.level.things.find((t) => `cave-thing:${t.id}` === id);
   return c && thing ? { ...c, thing } : undefined;
 };
 /** Where a thing is used from: the cell under a wall find, the thing's own cell otherwise. */
-const useCell = (t: CaveThing) => ({ x: t.x, y: t.wall ? t.y + 1 : t.y });
+const useCell = (t: AreaThing) => ({ x: t.x, y: t.wall ? t.y + 1 : t.y });
 
 /** What the player could use right now: the nearest thing in reach, facing first. */
-export function caveTargetNear(h: CaveHost): string | undefined {
+export function caveTargetNear(h: ComplexHost): string | undefined {
   const p = h.state.player;
   if (p.pos.space === "outside") {
     const m = caveMouthAt(h.world, p.pos.x, p.pos.y);
     return m ? `cave-mouth:${m.x},${m.y}` : undefined;
   }
-  const c = h.state.cave && caveLevelOf(h, p.pos.space);
+  const c = runOf(h.state) && caveLevelOf(h, p.pos.space);
   if (!c) return undefined;
   const { level } = c;
-  const done = new Set(h.state.caves?.[level.cave]?.done);
-  const d = [[0, -1], [1, 0], [0, 1], [-1, 0]][p.direction];
-  const front = { x: p.pos.x + d[0], y: p.pos.y + d[1] };
+  const done = new Set(h.state.complexes?.[`cave:${level.cave}`]?.done);
   const reach = (q: Point) => Math.max(Math.abs(q.x - p.pos.x), Math.abs(q.y - p.pos.y)) <= 1;
-  const score = (q: Point) => (q.x === front.x && q.y === front.y ? 0 : q.x === p.pos.x && q.y === p.pos.y ? 0.5 : 1 + Math.hypot(q.x - p.pos.x, q.y - p.pos.y));
-  const options: [number, string][] = [];
-  if (level.down && reach(level.down)) options.push([score(level.down), "cave-down"]);
-  if (level.up && reach({ x: level.up.x, y: level.up.y + 1 })) options.push([score(level.up), "cave-up"]);
+  const options: [Point, string, number?][] = [];
+  if (level.down && reach(level.down)) options.push([level.down, "cave-down"]);
+  if (level.up && reach({ x: level.up.x, y: level.up.y + 1 })) options.push([level.up, "cave-up"]);
   for (const t of level.things) {
     if (done.has(t.id) && !caveFind(t.find)?.keeps) continue;
-    const at = t.wall ? { x: t.x, y: t.y } : t;
     // A wall find is read from below it; a floor find from any side.
-    if (t.wall ? p.pos.y === t.y + 1 && Math.abs(p.pos.x - t.x) <= 1 : reach(t)) options.push([score(at) + (done.has(t.id) ? 0.4 : 0), `cave-thing:${t.id}`]);
+    if (t.wall ? p.pos.y === t.y + 1 && Math.abs(p.pos.x - t.x) <= 1 : reach(t)) options.push([t, `cave-thing:${t.id}`, done.has(t.id) ? 0.4 : 0]);
   }
-  return options.sort((a, b) => a[0] - b[0])[0]?.[1];
+  return nearest(p, options);
 }
 
-export function caveInspect(h: CaveHost, id: string): Inspection | undefined {
+export function caveInspect(h: ComplexHost, id: string): Inspection | undefined {
   const p = h.state.player;
-  const act = (label: string, enabled = true, reason?: string) => [{ label, enabled, reason, command: { type: "interact" as const, target: id, action: "cave" as const } }];
+  const act = (label: string, enabled = true, reason?: string) => [{ label, enabled, reason, command: { type: "interact" as const, target: id, action: "complex" as const } }];
   const mouth = /^cave-mouth:(-?\d+),(-?\d+)$/.exec(id);
   if (mouth) {
     const x = Number(mouth[1]), y = Number(mouth[2]);
     const site = siteOf(h, `${x},${y}`);
     if (!site) return undefined;
-    const rec = h.state.caves?.[site.id];
+    const rec = h.state.complexes?.[`cave:${site.id}`];
     const here = p.pos.space === "outside" && p.pos.x === x && p.pos.y === y;
     return {
       id, name: "Cave mouth", kind: "place", pos: { x, y, space: "outside" },
@@ -268,10 +248,10 @@ export function caveInspect(h: CaveHost, id: string): Inspection | undefined {
       affordances: act("Enter the cave", here, "Stand in the mouth"),
     };
   }
-  const c = h.state.cave && caveLevelOf(h, p.pos.space);
+  const c = runOf(h.state) && caveLevelOf(h, p.pos.space);
   if (!c) return undefined;
   const { level } = c;
-  const lit = h.state.cave!.left > 0;
+  const lit = runOf(h.state)!.left > 0;
   if (id === "cave-down" && level.down)
     return {
       id, name: "Way down", kind: "place", pos: { ...level.down, space: level.space },
@@ -287,7 +267,7 @@ export function caveInspect(h: CaveHost, id: string): Inspection | undefined {
   const found = thingAt(h, id);
   if (!found) return undefined;
   const { thing } = found, f = caveFind(thing.find)!;
-  const done = h.state.caves?.[level.cave]?.done.includes(thing.id);
+  const done = h.state.complexes?.[`cave:${level.cave}`]?.done.includes(thing.id);
   return {
     id, name: thing.name, kind: "object", pos: { ...useCell(thing), space: level.space },
     description: done && !f.keeps ? "You have already been through this." : f.look,
@@ -296,13 +276,13 @@ export function caveInspect(h: CaveHost, id: string): Inspection | undefined {
 }
 
 /** The label for the key, without building a whole inspection. */
-export function caveVerb(h: CaveHost) {
+export function caveVerb(h: ComplexHost) {
   const id = caveTargetNear(h);
   const offer = id ? caveInspect(h, id)?.affordances[0] : undefined;
   return offer?.enabled ? { label: offer.label, target: id! } : undefined;
 }
 
-export function caveAct(h: CaveHost, id: string) {
+export function caveAct(h: ComplexHost, id: string) {
   const p = h.state.player;
   const mouth = /^cave-mouth:(-?\d+),(-?\d+)$/.exec(id);
   if (mouth) {
@@ -310,13 +290,13 @@ export function caveAct(h: CaveHost, id: string) {
     const site = siteOf(h, cave);
     if (!site) return;
     const light = caveLightFor(site.place.year);
-    h.state.cave = { cave, mouth: { x: Number(mouth[1]), y: Number(mouth[2]) }, light: light.id, left: light.burns, beasts: [], roused: [] };
+    h.state.complex = { kind: "cave", cave, mouth: { x: Number(mouth[1]), y: Number(mouth[2]) }, light: light.id, left: light.burns, beasts: [], roused: [] };
     arrive(h, 1, "entry");
     h.advance(30);
     h.event(`${light.lit} The cave takes you in.`);
     return;
   }
-  const run = h.state.cave, c = run && caveLevelOf(h, p.pos.space);
+  const run = runOf(h.state), c = run && caveLevelOf(h, p.pos.space);
   if (!run || !c) return;
   const { level } = c;
   if (id.startsWith("folk-")) return void folkDeal(h.folk, id);
@@ -336,36 +316,15 @@ export function caveAct(h: CaveHost, id: string) {
   const found = thingAt(h, id);
   if (!found) return;
   const { thing } = found, f = caveFind(thing.find)!;
-  const rec = record(h, run.cave);
-  const again = rec.done.includes(thing.id);
-  h.advance(f.time ?? 30);
-  if (again && !f.heal) {
-    h.event(f.text);
-    return;
-  }
-  const got: string[] = [];
-  if (!again) {
-    for (const [item, n] of Object.entries(thing.loot)) {
-      if (!n) continue;
-      p.inventory[item] = (p.inventory[item] ?? 0) + n;
-      got.push(`${n} ${h.itemName(item).toLowerCase()}`);
-    }
-    if (f.fuel && run.left > 0) run.left = Math.min(caveLight(run.light).burns * 1.5, run.left + f.fuel * 3);
-    rec.done.push(thing.id);
-    if (Object.keys(thing.loot).length) folkRobbed(h.folk, level.space, thing.find);
-    if (Object.keys(thing.loot).length) run.took = { at: { x: thing.x, y: thing.y }, items: { ...thing.loot }, clock: h.state.clock };
-    if (thing.solid && !f.keeps) {
-      c.solid.delete(thing.y * level.w + thing.x);
-      h.unblock(level.space, thing.x, thing.y);
-    }
-  }
-  if (f.heal) p.health = Math.min(100, (p.health ?? 100) + f.heal);
-  h.event(`${f.text}${got.length ? ` You take ${got.join(", ")}.` : ""}`, f.tier === "prize" || f.tier === "notable" ? "world" : "action");
+  takeFind(h, run, c, thing, f, record(h, run.cave).done, {
+    refuel: (fuel) => void (run.left > 0 && (run.left = Math.min(caveLight(run.light).burns * 1.5, run.left + fuel * 3))),
+    taken: () => folkRobbed(h.folk, level.space, thing.find),
+  });
 }
 
 /** A blow landing on a cave cell. True when something was there to take it. */
-export function caveStrike(h: CaveHost, at: Point, damage: number) {
-  const run = h.state.cave, p = h.state.player;
+export function caveStrike(h: ComplexHost, at: Point, damage: number) {
+  const run = runOf(h.state), p = h.state.player;
   const b = run && caveBeastAt(h.state, p.pos.space, at.x, at.y);
   if (!run || !b) return false;
   b.hp -= damage;
@@ -396,7 +355,7 @@ export function caveStrike(h: CaveHost, at: Point, damage: number) {
 const cheb = (a: Point, b: Point) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
 /** One step along the shortest way from a beast to a goal, over open floor. */
-function stepToward(h: CaveHost, level: CaveLevel, from: Point, goal: Point, away = false): Point | undefined {
+function stepToward(h: ComplexHost, level: CaveLevel, from: Point, goal: Point, away = false): Point | undefined {
   const { w, h: hh } = level;
   const dist = new Int16Array(w * hh).fill(-1);
   const queue = [goal.y * w + goal.x];
@@ -421,13 +380,13 @@ function stepToward(h: CaveHost, level: CaveLevel, from: Point, goal: Point, awa
 }
 
 /** Time passing underground: the light burns, and whatever lives here acts. */
-export function caveTime(h: CaveHost, elapsed: number) {
-  const run = h.state.cave, p = h.state.player;
+export function caveTime(h: ComplexHost, elapsed: number) {
+  const run = runOf(h.state), p = h.state.player;
   if (!run) return;
   const c = caveLevelOf(h, p.pos.space);
   if (!c) {
     // Carried out some other way: asleep, rescued, dead.
-    if (p.pos.space === "outside" || !parseCaveSpace(p.pos.space)) delete h.state.cave;
+    if (p.pos.space === "outside" || !parseCaveSpace(p.pos.space)) delete h.state.complex;
     return;
   }
   const { level } = c;

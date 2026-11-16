@@ -1047,7 +1047,7 @@ export class Runtime {
     return Math.max(
       this.engine.state.clock,
       // Something coming down a mine runs at about walking pace, so standing still buys no time.
-      this.ambientBase + (idle > 0 ? idle * (this.engine.state.sewer?.peril ? 8 : this.ambientRate) : 0),
+      this.ambientBase + (idle > 0 ? idle * (this.engine.state.complex?.kind === "mine" && this.engine.state.complex.peril ? 8 : this.ambientRate) : 0),
     );
   }
   resumeAmbient() {
@@ -1925,13 +1925,10 @@ export class Runtime {
     // Something in hand and somebody in front of you: handing it over is what
     // the second slot is for, ahead of any scenery.
     // A fire and raw meat: cooking comes before putting the stick down.
-    const cave = this.engine.caveVerb();
-    const sewer = cave ? undefined : this.engine.sewerVerb();
-    const ship = cave || sewer ? undefined : this.engine.shipVerb();
-    if (cave)
-      alternate = { kind: "climb", label: cave.label, command: { type: "interact", target: cave.target, action: "cave" } };
-    else if (sewer)
-      alternate = { kind: "climb", label: sewer.label, command: { type: "interact", target: sewer.target, action: "sewer" } };
+    const below = this.engine.complexVerb();
+    const ship = below ? undefined : this.engine.shipVerb();
+    if (below)
+      alternate = { kind: "climb", label: below.label, command: { type: "interact", target: below.target, action: "complex" } };
     else if (ship)
       alternate = { kind: "climb", label: ship.label, command: { type: "interact", target: ship.target, action: "ship" } };
     else if (light)
@@ -2504,7 +2501,7 @@ export class Runtime {
         this.engine.fireUntil() > this.engine.state.clock ||
         this.charge ||
         this.aiming ||
-        this.engine.state.sewer?.peril
+        this.engine.state.complex?.kind === "mine" && this.engine.state.complex.peril
           ? 6
           : IDLE_BLOCK;
       if (this.displayClock() - this.engine.state.clock >= block)

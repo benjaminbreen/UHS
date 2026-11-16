@@ -74,6 +74,24 @@ function finish(h: number): number {
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
   return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
 }
+/** A stream of Mulberry32 draws seeded from `keys`, for generators that draw many in order. */
+export function rngOf(...keys: (string | number)[]) {
+  let a = hash(keys.join("|"));
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+export function pickWeighted<T>(rng: () => number, list: readonly T[], weight: (t: T) => number): T | undefined {
+  let total = 0;
+  for (const t of list) total += weight(t);
+  if (total <= 0) return undefined;
+  let roll = rng() * total;
+  for (const t of list) if ((roll -= weight(t)) < 0) return t;
+  return list.at(-1);
+}
 export function canonical(value: unknown): string {
   if (Array.isArray(value)) return "[" + value.map(canonical).join(",") + "]";
   if (value && typeof value === "object")

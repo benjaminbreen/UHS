@@ -1,9 +1,9 @@
 import { caveFind, caveFinds, findFits, type CaveFind, type CaveKind, type CavePlace } from "../content/caves";
 import { oreAt } from "../content/ecology/metals";
 import { personFits, type SewerPerson } from "../content/sewers";
-import type { SewerFolk } from "./sewer";
-import { hash } from "../core/random";
+import { hash, pickWeighted as pick, rngOf } from "../core/random";
 import type { Inventory, Point } from "../core/types";
+import { N4, type Area, type AreaDecor, type AreaFolk, type AreaThing } from "./complex";
 
 export const WALL = 0, FLOOR = 1, SHALLOW = 2, DEEP = 3, MOUTH = 4;
 
@@ -19,70 +19,23 @@ export type CaveSite = {
   /** Who might be found in it, at this place and date. */
   people: readonly SewerPerson[];
 };
-export type CaveThing = {
-  id: string;
-  find: string;
-  x: number;
-  y: number;
-  /** On a north face: used from the cell below. */
-  wall: boolean;
-  solid: boolean;
-  /** Art key, with any variant the generator chose. */
-  art: string;
-  name: string;
-  loot: Inventory;
-};
-export type CaveDecor = { type: string; x: number; y: number; solid: boolean; v: number };
 export type CaveDweller = { id: string; species: string; x: number; y: number };
-export type CaveLevel = {
-  space: string;
+export type CaveLevel = Area & {
   cave: string;
-  depth: number;
   last: boolean;
   kind: CaveKind;
-  name: string;
-  w: number;
-  h: number;
-  cells: Uint8Array;
-  entry: Point;
   /** The wall cell the rope up hangs on; absent on the first level, which is walked out of. */
   up?: Point;
-  /** The hole down, a cell of its own. */
-  down?: Point;
-  things: CaveThing[];
-  decor: CaveDecor[];
   dwellers: CaveDweller[];
-  folk: SewerFolk[];
-  /** Which way the water runs in each wet cell: 0 N, 1 E, 2 S, 3 W, -1 still. */
-  flow: Int8Array;
   /** A stream crossing the level: where it rises from under the back wall and where it sinks. */
   stream?: { rise: Point; sink: Point };
 };
-
-const N4 = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
 
 export const caveSpace = (cave: string, depth: number) => `cave:${cave}:${depth}`;
 export function parseCaveSpace(space: string) {
   const m = /^cave:(-?\d+,-?\d+):(\d+)$/.exec(space);
   return m ? { cave: m[1], depth: Number(m[2]) } : undefined;
 }
-
-function rngOf(...keys: (string | number)[]) {
-  let a = hash(keys.join("|"));
-  return () => {
-    a = (a + 0x6d2b79f5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-const pick = <T>(rng: () => number, list: readonly T[], weight: (t: T) => number): T | undefined => {
-  let total = 0;
-  for (const t of list) total += weight(t);
-  let roll = rng() * total;
-  for (const t of list) if ((roll -= weight(t)) < 0) return t;
-  return list.at(-1);
-};
 
 /** How far down a cave goes: shelters are shallow, limestone runs deep. */
 export function caveLevels(seed: string, id: string, kind: CaveKind) {
@@ -322,7 +275,7 @@ function build(seed: string, site: CaveSite, depth: number, attempt: number): Ca
   }
   taken.add(entry.y * w + entry.x);
 
-  const things: CaveThing[] = [];
+  const things: AreaThing[] = [];
   const faces: Point[] = [];
   for (let y = 4; y < h - 3; y++) for (let x = 3; x < w - 3; x++)
     if (at(x, y) === WALL && at(x, y - 1) === WALL && at(x, y + 1) === FLOOR && !(up && Math.abs(up.x - x) < 2 && up.y === y)) faces.push({ x, y });
@@ -377,7 +330,7 @@ function build(seed: string, site: CaveSite, depth: number, attempt: number): Ca
   });
 
   // People, and whatever camp, still or shrine they keep.
-  const folk: SewerFolk[] = [];
+  const folk: AreaFolk[] = [];
   const frng = rngOf(seed, "cave-folk", site.id, depth);
   const here = site.people.filter((p) => personFits(p, site.place, kind, depth === 1 ? "mouth" : "deep"));
   const groups = !here.length ? 0 : (frng() < (depth === 1 ? 0.6 : 0.35) ? 1 : 0) + (frng() < 0.15 ? 1 : 0);
@@ -411,7 +364,7 @@ function build(seed: string, site: CaveSite, depth: number, attempt: number): Ca
   }
 
   // What the rock grows on its own: columns to walk round, litter to walk over.
-  const decor: CaveDecor[] = [];
+  const decor: AreaDecor[] = [];
   const tall = { karst: ["stalagmite", "stalagmite", "column"], fissure: ["boulder", "boulder", "stalagmite"], lava: ["lavarock"], ice: ["icecolumn", "icecolumn", "boulder"], sea: ["searock"], sandstone: ["boulder"] }[kind];
   const litter = { karst: ["pebbles", "puddle", "crack", "straws"], fissure: ["pebbles", "crack", "scree"], lava: ["ropes", "crack", "cinders"], ice: ["snow", "frost", "crack"], sea: ["weed", "pebbles", "sandripple", "puddle"], sandstone: ["sandripple", "pebbles", "dust"] }[kind];
   for (let y = 4; y < h - 3; y++) for (let x = 3; x < w - 3; x++) {

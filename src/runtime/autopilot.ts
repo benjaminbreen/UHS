@@ -351,7 +351,7 @@ export class Autopilot {
       const route = this.routeNear(at, 1);
       return route.length ? { route } : { done: `There is no way through to ${label}.` };
     }
-    return { command: { type: "interact", target, action: "sewer" } };
+    return { command: { type: "interact", target, action: "complex" } };
   }
   private leave(): Step {
     const e = this.engine,
