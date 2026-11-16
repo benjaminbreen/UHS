@@ -20,6 +20,7 @@ import { formatHistoricalYear } from "../../core/calendar";
 import { mediterraneanInsulaFrames } from "../graphics/mediterranean-buildings";
 import { casaHouses, casaLook } from "../graphics/iberian-houses";
 import { euroHouses, euroLook } from "../graphics/european-houses";
+import { straitsHouses } from "../graphics/straits-houses";
 import type { Pack } from "../../core/types";
 import type { WorldSetting } from "./types";
 import { historyRegistry, resolveHistory } from "../history";
@@ -95,10 +96,6 @@ export function periodBuildings(setting: WorldSetting): string[] {
     // Joseon and Qing cities stay with the houses their regions already build.
     return [];
   }
-  if (culture === "southeast-asian")
-    return year >= 1820
-      ? ["straits-shophouse", "straits-shophouse-mint", "colonial-bungalow"]
-      : ["chinese-shophouse", "colonial-bungalow"];
   // South Asian cities stay with their courtyard houses: bungalows and
   // shophouses belonged to cantonments and civil lines, not the old city.
   return [];
@@ -314,8 +311,11 @@ export function packForSetting(setting: WorldSetting): Pack {
   const vernacular = vernacularHouses(setting);
   const casa = casaHouses(setting);
   const euro = euroHouses(setting);
+  const straits = casa.length ? [] : straitsHouses(setting);
   const buildings = prehistoric
     ? prehistoric
+    : straits.length
+      ? straits
     : modernCity
       ? [...casa, ...modernFlatFrontKit(setting)]
       : casa.length

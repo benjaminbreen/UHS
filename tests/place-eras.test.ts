@@ -132,6 +132,7 @@ describe("culture families by region and date", () => {
     ["city-amsterdam", 1750, /^euro-amsterdam-/],
     ["city-boston", 1820, /^period-/],
     ["city-seoul", 1750, /^eastasian-.*korean/],
+    ["city-george-town", 1880, /^mod-shophouse-/],
     ["city-buenos-aires", 1910, /^casa-oaxaca-/],
     ["city-seville", 1930, /^casa-andalucia-/],
     ["city-oslo", 421, /^house-longhouse-/],

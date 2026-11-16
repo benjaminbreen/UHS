@@ -37,6 +37,11 @@ const LOOKS = {
   chambers: { since: 1850, until: 1914, uses: ["downtown"] },
   emporium: { since: 1860, until: 1914, uses: ["downtown"] },
   pub: { since: 1850, uses: ["commercial", "downtown"], accent: true },
+  // Rows of the South China Sea (front_straits.py), by the era of their fronts.
+  shophouse: { since: 1820, until: 1900, uses: ["commercial", "rowhouse", "tenement", "downtown"] },
+  "shophouse-late": { since: 1895, until: 1940, uses: ["commercial", "rowhouse", "tenement", "downtown"] },
+  "shophouse-deco": { since: 1930, until: 1965, uses: ["commercial", "rowhouse", "tenement", "downtown"] },
+  lilong: { since: 1870, until: 1949, uses: ["rowhouse", "tenement"] },
   storey: { since: 1950, uses: ["commercial", "downtown", "tenement"] },
   habana: { since: 1900, uses: ["commercial", "downtown", "tenement"] },
   mission: { since: 1915, uses: ["commercial"] },
@@ -79,6 +84,14 @@ const HOMES: { looks: Mix; at: At; km: number; w?: number; from?: number }[] = [
   { looks: { cairo: 1 }, at: [[31.24, 30.04], [29.92, 31.2], [35.5, 33.89], [36.29, 33.51], [35.93, 31.95], [13.19, 32.89], [32.53, 15.59]], km: 700 },
   { looks: { cairo: 1 }, at: [[44.37, 33.31], [46.68, 24.71], [-7.6, 33.57], [3.06, 36.75], [10.18, 36.81]], km: 600, w: 0.5 },
   { looks: { tonglau: 1 }, at: [[114.17, 22.3], [113.26, 23.13], [113.54, 22.2], [121.47, 31.23], [103.85, 1.29], [100.33, 5.41], [100.5, 13.75], [106.7, 10.78]], km: 650 },
+  // The Straits ports and the Chinese towns of Southeast Asia.
+  {
+    looks: { shophouse: 1, "shophouse-late": 1.5, "shophouse-deco": 1 },
+    at: [[100.34, 5.41], [102.25, 2.19], [103.85, 1.29], [101.69, 3.14], [101.08, 4.6], [98.67, 3.59], [106.85, -6.2], [110.42, -6.97], [112.75, -7.25], [100.5, 13.75], [98.39, 7.88], [106.7, 10.78], [104.92, 11.56], [96.16, 16.78], [110.35, 1.55]],
+    km: 400,
+  },
+  // The lane rows of Shanghai and the other treaty ports.
+  { looks: { lilong: 1 }, at: [[121.47, 31.23], [117.2, 39.13], [114.3, 30.58], [121.55, 29.87], [118.78, 32.06], [120.38, 36.07]], km: 250 },
   { looks: { highstreet: 3, precinct: 1, chambers: 2, emporium: 1, pub: 1 }, at: [[-0.12, 51.5], [-2.6, 51.45], [-1.9, 52.48], [-2.24, 53.48], [-1.55, 53.8], [-1.6, 54.97], [-4.25, 55.86], [-3.19, 55.95], [-3.18, 51.48], [-5.93, 54.6], [-6.26, 53.35]], km: 180 },
   { looks: { storey: 1 }, at: [[3.38, 6.45], [-0.19, 5.6], [3.9, 7.38], [-1.62, 6.69], [8.52, 12], [-13.23, 8.48], [-4.01, 5.35], [9.7, 4.05]], km: 900 },
   { looks: { storey: 1 }, at: [[36.82, -1.29], [39.28, -6.8], [32.58, 0.35], [15.3, -4.32]], km: 900, w: 0.5 },

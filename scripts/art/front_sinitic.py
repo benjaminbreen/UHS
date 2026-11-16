@@ -2187,28 +2187,9 @@ def service_spec(p, style, v, w, W):
 
 
 def period_spec(base, W):
-    """The town frames: shophouses, the gate range, machiya and hanok."""
+    """The town frames of Edo and Meiji Japan: machiya, singly and in a row."""
     b = base.removeprefix('period-')
-    north, south, jp, ko = STYLES['north-chinese'], STYLES['south-chinese'], STYLES['japanese'], STYLES['korean']
-    if b in ('chinese-shophouse', 'chinese-shophouse-b'):
-        alt = b.endswith('-b')
-        return 'sino-hall', dict(W=W, form='gable', front='timber', storeys=2, gallery=not alt, upper_h=40, wall_h=58,
-                                 shop=True, door='leaves', tone=north['tone'], posts='dark',
-                                 lattice='grid' if alt else 'lozenge', ridge='upturn', curve=1, lanterns=not alt,
-                                 couplets=True, sill='board', plinth=4, seed=W + alt)
-    if b in ('chinese-shophouse-south', 'chinese-shophouse-south-b'):
-        alt = b.endswith('-b')
-        return 'sino-gable', dict(W=W, front='timber', storeys=2, gallery=not alt, upper='lattice', wall_h=58,
-                                  upper_h=40, tone=south['tone'], posts='dark', lattice='grid' if alt else 'ice',
-                                  shop=True, door='leaves', ridge='upturn', curve=0, plinth=4, gable='horse',
-                                  horse=1 if alt else 2, pent=False, seed=W + alt)
-    if b == 'chinese-courtyard-gate':
-        return 'sino-hall', dict(W=W, front='gate', wall='brick', form='gable', tone=north['tone'], posts='red',
-                                 ridge='upturn', curve=1, plinth=6, lanterns=True)
-    if b == 'chinese-courtyard-gate-south':
-        return 'sino-hall', dict(W=W, front='wall', wall='white', form='horse', tone=south['tone'], posts='dark',
-                                 door='stone', hood=True, couplets=True, ridge='upturn', curve=1, plinth=4, horse=2,
-                                 lattice='ice')
+    jp = STYLES['japanese']
     if b in ('machiya', 'machiya-b'):
         alt = b.endswith('-b')
         return 'sino-gable', dict(W=W, front='koshi', storeys=2, upper='mushiko', upper_h=30, wall_h=54,
@@ -2218,11 +2199,6 @@ def period_spec(base, W):
         unit = dict(front='koshi', storeys=2, upper='mushiko', upper_h=30, wall_h=54, tone=jp['tone'], posts='dark',
                     ridge='oni', curve=0, plinth=3, gable='plaster')
         return 'sino-row', dict(W=W, units=2, unit=unit, each=[dict(shop=True), dict(shop=False, udatsu=True)])
-    if b in ('hanok', 'hanok-b'):
-        alt = b.endswith('-b')
-        return 'sino-hall', dict(W=W, form='xieshan', front='timber', sill='white', door='leaves', plinth=12,
-                                 tone=ko['tone'], posts='timber', lattice='bars' if alt else 'grid', curve=3,
-                                 ridge='upturn', wall_h=54, seed=W + alt)
     return None
 
 

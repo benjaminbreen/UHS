@@ -416,6 +416,11 @@ it("mixes twentieth-century street looks by place and date", () => {
   expect(london(1890, "commercial").precinct).toBeUndefined();
   expect(london(1850, "commercial").highstreet).toBeUndefined();
   expect(streetMix({ lon: 72.83, lat: 18.93, year: 1900 }, "downtown").chambers).toBeGreaterThan(0.1);
+  // Rows of the South China Sea, in the fronts of their date.
+  const singapore = (year: number) => streetMix({ lon: 103.85, lat: 1.29, year }, "rowhouse");
+  expect(singapore(1925)["shophouse-late"]).toBeGreaterThan(singapore(1925).shophouse!);
+  expect(singapore(1955)["shophouse-deco"]).toBeGreaterThan(singapore(1955).shophouse!);
+  expect(streetMix({ lon: 121.47, lat: 31.23, year: 1930 }, "rowhouse").lilong).toBeGreaterThan(0.5);
 });
 
 it("gives open lots a use from the place, inside the lot and drawn", () => {

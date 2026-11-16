@@ -153,7 +153,11 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
   pack carries the older house of the place (`casaLook`) beside the modern
   kit, and its housing and shop streets are built of that house; downtown,
   estates and works take the modern buildings. The United States roadside
-  kit is built only north of Mexico. Estates and self-built
+  kit is built only north of Mexico.
+- A Southeast Asian town before its industry is built of shop-house rows
+  (`straitsHouses`, the fronts of its date); once zoned, the same looks come
+  by block from `street-looks.ts`, with the Shanghai lane house for the
+  treaty ports' housing. Estates and self-built
   quarters come by date and share as before. A quarter standing apart from
   the middle, and the town of a suburb map, has shops but no downtown.
 - A city of a million claims 184 cells of its map's 192 and is built out to
