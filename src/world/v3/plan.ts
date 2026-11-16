@@ -111,9 +111,11 @@ import type { Actor, Pack, Place, Point, Position, Terrain } from "../../core/ty
 import { proceduralName } from "../../content/geography/character";
 import { random } from "../../core/random";
 import { noise } from "../geography/noise";
+import { KEEPERS, SHOP_TRADES } from "../../content/settlements/signs";
 import {
   buildingModel,
   buildingModels,
+  shopArt,
   buildingRoofCells,
   buildingArtCells,
 } from "../../content/graphics/models";
@@ -2859,7 +2861,9 @@ export function planSettlement(
   for (const venue of housed) {
     // Its own building where the ground allows; otherwise the nearest lot and
     // the mark at the door, which is better than the venue not existing.
-    const lot = central.find((candidate) => candidate !== residence && !taken.has(candidate));
+    // Not a building whose own art names another business: a chapel behind a cafe front.
+    const named = (frame?: string) => !!frame && (shopArt(frame) ?? "shop") !== "shop";
+    const lot = central.find((candidate) => candidate !== residence && !taken.has(candidate) && !named(candidate.frame));
     if (!lot) continue;
     taken.add(lot);
     lot.venue = venue;
@@ -3758,7 +3762,7 @@ export function planSettlement(
         !lot.venue &&
         lot.quarter !== "elite" &&
         lot.use !== "downtown" && lot.use !== "industrial" &&
-        (!!playerShop || (lot.quarter !== "market" && lot.use !== "commercial")) &&
+        (!!playerShop || (lot.quarter !== "market" && lot.use !== "commercial" && !shopArt(frame))) &&
         !owners.includes("player") &&
         (!pack.setting?.environment ||
           pack.setting.environment.start === "resident")
@@ -3851,11 +3855,26 @@ export function planSettlement(
     // A settlement that keeps animals asks for someone to keep them. Drawing
     // every household freely from the dozens of trades on offer left a farm
     // with livestock and nobody whose work was livestock, so no pen was built.
+    // What the building's own art shows at the door decides who keeps it: a
+    // cafe is kept by someone who would, an unnamed shop by one of the
+    // shopkeeping trades, and neither is a farmer's private house.
+    const art = lot.venue ? undefined : shopArt(frame);
+    const has = (id: string) => !!characterContext?.livelihoods.some((l) => l.id === id);
+    const keeper = art && owner !== "player" && !(lot.use === "industrial" && industrialAge)
+      ? art === "shop"
+        ? (() => {
+            const open = SHOP_TRADES.filter(has);
+            return open[Math.floor(rand("keeper", i) * open.length)] ?? "trader";
+          })()
+        : (KEEPERS[art]?.find(has) ?? (has("shopkeeper") ? "shopkeeper" : "trader"))
+      : undefined;
     const wanted =
       owner === "player"
         ? pack.role
         : lot.use === "industrial" && industrialAge
           ? "factory-hand"
+        : keeper
+          ? keeper
         : lot.quarter === "market"
           ? "trader"
           : lot.quarter === "craft"
@@ -3927,8 +3946,12 @@ export function planSettlement(
     reserveBuilding(frame, rect, door, workPoint);
     if (owner === "player") playerTrade = role;
     const shop = owner === "player" ? playerShop : undefined;
+    // Someone whose work is in the fields or with the herd keeps no workshop at home.
+    const rural = livelihood
+      ? ["field", "pasture"].includes(livelihood.workplace ?? workplaceFor(livelihood.activity))
+      : role === "Farmer" || role === "Herder";
     const shopfront = owner === "player" ? !!shop :
-      lot.quarter === "market" || lot.quarter === "craft" || i % 4 === 1;
+      !!keeper || lot.quarter === "market" || lot.quarter === "craft" || (i % 4 === 1 && !rural);
     // A downtown is office blocks: most lots offices, some a bank or a department store.
     const officeRoll = rand("office", i);
     const office =
@@ -3984,15 +4007,15 @@ export function planSettlement(
             : dwelling
           : shop
           ? NAMED_SHOPS.has(shop.id) ? `The ${shop.label.toLowerCase()}` : shop.id === "general" ? `${role}'s shop` : `${role}'s workshop`
-          : lot.quarter === "market"
+          : keeper && art !== "shop"
+          ? art![0].toUpperCase() + art!.slice(1)
+          : keeper || lot.quarter === "market"
           ? `${role}'s shop`
           : lot.quarter === "elite"
             ? "Townhouse"
             : shopfront
               ? `${role}'s workshop`
-              : i % 4 === 2
-                ? "Household stores"
-                : "Household",
+              : "Household",
       description: aboutBuilding(frame, model.wall, model.description),
       x: rect.x,
       y: rect.y,

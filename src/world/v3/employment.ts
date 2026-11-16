@@ -9,6 +9,7 @@ import { livelihoodById } from "../../content/characters/livelihoods";
 import { officeFor } from "../../content/interiors/offices";
 import { worksitesFor } from "../../content/settlements/worksites";
 import type { SettlementPlan, WorkSite } from "./types";
+import { shopArt } from "../../content/graphics/models";
 
 export type WorkplaceOffer = {
   id: string;
@@ -118,6 +119,10 @@ function available(plan: SettlementPlan, kind: Institution, id: string, role?: s
   );
 }
 
+/** Whoever keeps a shop works in it; no other place has to take them on. */
+const keepsShop = (plan: SettlementPlan, id: string) =>
+  plan.places.some((p) => p.owner === id && p.access === "public" && !!shopArt(p.sprite));
+
 export function localWorkContext(
   plan: SettlementPlan,
   pack: Pack,
@@ -138,6 +143,7 @@ export function localWorkContext(
   return {
     ...context,
     livelihoods: context.livelihoods.filter((l) => {
+      if (keepsShop(plan, id)) return true;
       const kind = institutionAt(l,pack,plan,id);
       return !kind || available(plan, kind, id, l.id).length > 0;
     }).map((l) => {
@@ -162,6 +168,7 @@ export function assignLocalWork(
     actor.origin?.specialty ?? actor.origin?.livelihood ?? "",
   );
   let kind = kit && institutionAt(kit,pack,plan,actor.id);
+  if (keepsShop(plan, actor.id)) kind = undefined;
   if (kind && !available(plan, kind, actor.id, kit!.id).length) {
     const replacement = generateCharacter(
       pack.setting,

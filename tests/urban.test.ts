@@ -13,7 +13,8 @@ import { streetMix } from "../src/content/settlements/street-looks";
 import { planLot } from "../src/content/settlements/lots";
 import { propDefs } from "../src/content/props/catalog";
 import propFrames from "../src/render/generated/props.json" with { type: "json" };
-import { buildingModels } from "../src/content/graphics/models";
+import { buildingModels, shopArt } from "../src/content/graphics/models";
+import { livelihoodById } from "../src/content/characters/livelihoods";
 import { mediterraneanStyle, watchtowerFrame, mediterraneanShrineFrame, mediterraneanInsulaFrames, retainedTowerStyle } from "../src/content/graphics/mediterranean-buildings";
 const resolved = resolveSetting("Rome 100 BCE");
 if ("error" in resolved) throw Error(resolved.error);
@@ -205,6 +206,28 @@ it("encloses public squares and courts with varied, non-overlapping ranges and r
         expect(p.solid.has(`${q.x},${q.y}`)).toBe(false);
   }
 }, 30000);
+it.runIf(!!process.env.FULL)("keeps a building drawn as a shop open to the public, by someone whose work a shop is", () => {
+  const r = resolveSetting("Paris 1888");
+  if ("error" in r) throw Error(r.error);
+  const s = integratedSetting(r.setting);
+  const plan = planSettlement(
+    { id: "city", cx: 0, cy: 0, home: false, center: { x: 0, y: 0 }, profile: { ...settlementProfile(s), radius: 90 } },
+    packForSetting(s), "shops", flat, [],
+  );
+  const keeper = (id: string) => plan.actors.find((a) => a.id === id);
+  const shops = plan.places.filter((q) => shopArt(q.sprite) && keeper(q.owner));
+  expect(shops.length).toBeGreaterThan(10);
+  for (const q of shops) {
+    expect(q.access, q.name).toBe("public");
+    const work = livelihoodById(keeper(q.owner)!.origin?.livelihood ?? "");
+    expect(["field", "pasture"], `${q.name}: ${keeper(q.owner)!.role}`).not.toContain(work?.workplace ?? "");
+  }
+  // The art names some of them, and so does the door.
+  for (const q of shops) if (shopArt(q.sprite) === "cafe") expect(q.name).toBe("Cafe");
+  // A house is never called a store.
+  expect(plan.places.some((q) => q.name === "Household stores")).toBe(false);
+});
+
 it.runIf(!!process.env.FULL)("zones an industrial-age city into a downtown, factories and the housing of each ring's date", () => {
   const plan = (query: string) => {
     const r = resolveSetting(query);

@@ -214,6 +214,30 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
   `parkingShare` sets how full the stalls are. A parked car is an inspectable,
   solid `monument`.
 
+### A building drawn as a shop is a shop
+
+`shopArt(frame)` (`src/content/graphics/models.ts`) says what a frame's art
+shows at its street door: a business it names (a `business` in its recipe:
+"cafe", "bakery", "gas station"), an unnamed "shop" (a sign board, a period
+shop, a shop or stall form), or nothing for a house. The planner follows it:
+
+- The lot is open to the public, never a household's private door.
+- Its keeper is asked for by trade: `KEEPERS` (`signs.ts`) lists who keeps a
+  named business, likeliest first, and takes the first the place and date
+  have; an unnamed shop draws from `SHOP_TRADES`. Field and herd work is
+  never drawn for one, and local work assignment leaves a keeper in their
+  shop.
+- A named business is called what it is ("Cafe"); an unnamed one is the
+  keeper's shop ("Baker's shop").
+- The first sign board is the keeper's own: the business the art names, else
+  `keeperTrade` of the keeper's work. The other boards are neighbours. A
+  ruin or a lot with nobody keeping it has none.
+- A venue is not housed behind a front that names another business, and the
+  player's own home is not a shop unless they keep one.
+
+A household whose work is in the fields or with the herd keeps no workshop
+at home, and a private home is named "Household", never a store.
+
 ### Shop signs
 
 The building art publishes where a sign may hang (`shopSigns`); lettering is

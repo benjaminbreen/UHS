@@ -37,7 +37,7 @@ import { grassTuftFrame, TUFT_ATLAS } from "./ground-motifs";
 import { Mycelium } from "./mycelium";
 import { rockFrame } from "../content/ecology/rocks";
 import { propVariety, reviewedPropFrame } from "./prop-variety";
-import { secondLanguage, signLanguage, signOptions, signPaints, streetTrade } from "../content/settlements/signs";
+import { keeperTrade, secondLanguage, signLanguage, signOptions, signPaints, streetTrade } from "../content/settlements/signs";
 import { drawShopSign, fitWord, SIGN_GLOW, type SignSlot } from "./shop-signs";
 /** Trades for a shopfront the kit did not name. */
 import type { Place } from "../core/types";
@@ -2957,6 +2957,9 @@ export class WorldScene extends Phaser.Scene {
   ) {
     const model = placement.model as typeof placement.model & { shopSigns?: SignSlot[]; business?: string; signPaint?: string };
     if (!model.shopSigns?.length || !setting) return;
+    // A lot nobody keeps, a ruin among them, has no boards up.
+    const keeper = this.ownerRole(place);
+    if (!keeper) return;
     const first = signLanguage(setting);
     if (!first) return;
     const second = secondLanguage(setting);
@@ -2964,8 +2967,11 @@ export class WorldScene extends Phaser.Scene {
     const seed = this.runtime.engine.state.manifest.seed;
     model.shopSigns.forEach(([sx, sy, w, h, kind, hint], i) => {
       const r = (k: string) => random(seed, "shop-sign", k, place.id, i);
-      const own = i === 0 ? model.business : undefined;
-      if (own?.startsWith("residential") || r("bare") < 0.12) return;
+      // The first board is the keeper's own: the business the art names, or
+      // what the keeper's work is. A private house hangs none.
+      if (i === 0 && !model.business && place.access !== "public") return;
+      const own = i === 0 ? model.business ?? keeperTrade(keeper) : undefined;
+      if (own?.startsWith("residential") || r("bare") < (i === 0 ? 0 : 0.12)) return;
       const year = this.runtime.engine.world.pack.year;
       const trade = hint || own || streetTrade(year, r("trade"));
       const language = second && r("language") < second[1] ? second[0] : first;
@@ -3009,6 +3015,10 @@ export class WorldScene extends Phaser.Scene {
   /** The family name of whoever keeps this place, where the culture and the
    * century give people family names at all. Generation already decides that,
    * so a one-word name simply yields nothing here. */
+  private ownerRole(place: Place): string {
+    return this.runtime.engine.state.actors.find((actor) => actor.id === place.owner)?.role ?? "";
+  }
+
   private ownerSurname(place: Place): string | undefined {
     if (!place.owner) return undefined;
     const owner = this.runtime.engine.state.actors.find(

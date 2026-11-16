@@ -492,6 +492,7 @@ def build_buildings(root, sprites):
                 'business':r.get('business',''),'sign':r.get('sign',''),
                 'from':r.get('from',0)}
                if r.get('candidate') else {}),
+            **({'business':r['business']} if r.get('business') and not r.get('candidate') else {}),
             **({'infill':True} if r.get('infill') else {}),
             # A board the painter drew itself is lettered at runtime like any other sign spot.
             **({'shopSigns':[[*artist.sign_band,'band']],
