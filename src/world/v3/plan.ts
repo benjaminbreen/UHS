@@ -2925,6 +2925,41 @@ export function planSettlement(
     );
     return true;
   };
+  /** A walk-in henhouse on free cells behind the house, its door to the
+   * south. False where the yard has no room: the coop prop stands instead. */
+  const henhouse = (form: string, free: Point[], id: string, owner: string, name: string) => {
+    const frame = `yard-henhouse-${form}`;
+    const [w, h] = buildingModel(frame).footprint;
+    const open = new Set(free.map((p) => cellKey(p.x, p.y)));
+    const clear = (x: number, y: number) => {
+      const k = cellKey(x, y);
+      return open.has(k) && !plan.solid.has(k) && !roads.has(k) && (!propCells.has(k) || buildingClearance.has(k));
+    };
+    for (const at of free) {
+      let fits = true;
+      for (let y = at.y; y <= at.y + h && fits; y++)
+        for (let x = at.x; x < at.x + w && fits; x++) fits = clear(x, y);
+      if (!fits) continue;
+      const p: Place = {
+        id: `${id}-henhouse`, name, description: "A small house for the hens, with nest boxes and a perch. They are shut in here at night.",
+        x: at.x, y: at.y, w, h, sprite: frame, entrance: { x: at.x + (w >> 1), y: at.y + h },
+        owner, access: "household", claim: "yard-henhouse", entranceLabel: "Enter",
+      };
+      const door = paintedDoor(p);
+      if (door) (p.door = door), (p.entrance = { x: door.x, y: door.y + 1 });
+      eachCell(p, (x, y) => {
+        plan.solid.add(cellKey(x, y));
+        plan.built?.add(cellKey(x, y));
+        propCells.add(cellKey(x, y));
+      });
+      for (const q of buildingArtCells(frame, p)) propCells.add(cellKey(q.x, q.y));
+      propCells.add(cellKey(p.entrance.x, p.entrance.y));
+      plan.places.push(p);
+      plan.objects.push({ id: `${p.id}-exit`, kind: "exit", name: "Back to the yard", sprite: "door-open", pos: { x: 6, y: 9, space: p.id }, inventory: {}, owner });
+      return true;
+    }
+    return false;
+  };
   const propCells = new Set<string>();
   const buildingClearance = new Set<string>();
   const reserveBuilding = (sprite: string, rect: Rect, entrance: Point, work?: Point) => {
@@ -3010,7 +3045,8 @@ export function planSettlement(
     }
     const items = yards.props.filter(
       (p, n) =>
-        (!p.role || p.role.test(role)) && rand("yard-prop", i, n) < p.chance &&
+        // The player's household keeps hens wherever its neighbours might.
+        (!p.role || p.role.test(role)) && (rand("yard-prop", i, n) < p.chance || (!!p.henhouse && owner === "player")) &&
         // A town with sewers has no privies.
         !(motorAge && urban && /privy/.test(p.family)),
     );
@@ -3086,7 +3122,8 @@ export function planSettlement(
     const deepest =
       fmin + Math.floor(rand("toft-front", i) * (fmax - fmin + 1));
     const [bmin, bmax] = yards.back ?? [0, 0];
-    const rear = bmin + Math.floor(rand("toft-back", i) * (bmax - bmin + 1));
+    // A henhouse wants three rows behind the house and one to reach its door.
+    const rear = Math.max(bmin + Math.floor(rand("toft-back", i) * (bmax - bmin + 1)), bmax && items.some((p) => p.henhouse) ? 5 : 0);
     const first = rand("toft-side", i) < 0.5 ? -1 : 1;
     const tries: [number, number, number, number][] = [];
     // A platform's own apron and stair need a row clear of the fence.
@@ -3115,8 +3152,11 @@ export function planSettlement(
       for (const [front, side, bed, back] of tries) {
         // A back yard starts where the roof as drawn ends.
         const depth = 3 + (bed >> 1);
-        const xl = rect.x - wl - (side < 0 ? bed + least + 1 : 2),
-          xr = rect.x + rect.w + wr + (side > 0 ? bed + 2 : 2),
+        // A henhouse stands in the back corner on the side without the bed,
+        // which is widened to hold it.
+        const hen = back && items.some((p) => p.henhouse) ? 2 : 0;
+        const xl = rect.x - wl - (side < 0 ? bed + least + 1 : 2 + (side > 0 ? hen : 0)),
+          xr = rect.x + rect.w + wr + (side > 0 ? bed + 2 : 2 + hen),
           yt = Math.min(back ? top - back - 1 : rect.y + rect.h - 2, side ? Infinity : top - depth),
           yb = rect.y + rect.h + front;
         const toft = { x: xl, y: yt, w: xr - xl + 1, h: yb - yt + 1 };
@@ -3269,9 +3309,13 @@ export function planSettlement(
               30,
             );
           const free: Point[] = [],
-            behind: Point[] = [];
+            behind: Point[] = [],
+            back: Point[] = [];
           eachCell(toft, (x, y) => {
-            if (inHouse(x, y) || ring(x, y) || open(x, y) || inPlot(x, y) || propCells.has(cellKey(x, y))) return;
+            if (inHouse(x, y) || ring(x, y) || open(x, y) || inPlot(x, y)) return;
+            // Props keep off the strip behind the roof; a henhouse may stand there.
+            if (y < top - 1) back.push({ x, y });
+            if (propCells.has(cellKey(x, y))) return;
             if (y < top - 1) behind.push({ x, y });
             if (y < top - 1 || y > rect.y + rect.h) free.push({ x, y });
           });
@@ -3283,6 +3327,7 @@ export function planSettlement(
           items
             .filter((p) => p.where === "yard" || p.where === "back")
             .forEach((item, n) => {
+              if (item.henhouse && owner && henhouse(item.henhouse, back.sort((a, b) => b.y - a.y || a.x - b.x), id, owner, item.name)) return;
               // A privy goes at the bottom of the back yard or not at all.
               const spots = item.where === "back" && (behind.length || propDefs[item.prop]?.where === "privy") ? behind : free;
               spots.some((at) => yardProp(item, at, id, i, 40 + n));
@@ -5683,12 +5728,16 @@ export function planSettlement(
   if (yardStock.length) {
     let flocks = 0;
     const yardWeight = yardStock.reduce((t, k) => t + (k.keeping?.share ?? 1), 0);
-    for (const owner of owners) {
-      if (flocks >= Math.max(3, Math.round(owners.length / 8))) break;
-      if (owner === "player") continue;
+    const henhouseOf = (owner: string) => plan.places.find((b) => b.claim === "yard-henhouse" && b.owner === owner);
+    // Households with a henhouse first, so the cap never leaves one empty.
+    for (const owner of [...owners].sort((a, b) => +!henhouseOf(a) - +!henhouseOf(b))) {
+      const roost = henhouseOf(owner);
+      if (!roost && (owner === "player" || flocks >= Math.max(3, Math.round(owners.length / 8)))) continue;
       // A household with a henhouse keeps hens, and they scratch about it.
       const house = plan.places.find((b) => b.owner === owner);
-      const coop = house && plan.objects.find((o) => propDefs[o.prop ?? ""]?.family === "chicken-coop" && o.id.startsWith(`${house.id}-yard-`));
+      const coop = roost
+        ? { pos: pos(roost.entrance) }
+        : house && plan.objects.find((o) => propDefs[o.prop ?? ""]?.family === "chicken-coop" && o.id.startsWith(`${house.id}-yard-`));
       const hens = coop && yardStock.find((k) => k.id === "chicken");
       const yard = hens ? coop.pos : plan.slots.get(owner)?.yard[0];
       if (!yard || (!hens && plan.solid.has(cellKey(yard.x, yard.y)))) continue;
@@ -5699,7 +5748,7 @@ export function planSettlement(
         yardStock.find((k) => (pick -= k.keeping?.share ?? 1) < 0) ??
         yardStock[0];
       // Kept indoors: this house has them, you just do not see them.
-      if (random(seed, owner, "yard-seen") > (species.keeping?.seen ?? 1)) {
+      if (!roost && random(seed, owner, "yard-seen") > (species.keeping?.seen ?? 1)) {
         flocks++;
         continue;
       }
@@ -5713,7 +5762,7 @@ export function planSettlement(
             (hens && propCells.has(cellKey(x, y))) ||
             plan.solid.has(cellKey(x, y)) ||
             plan.traffic.has(cellKey(x, y)) ||
-            random(seed, owner, "hen", dx, dy) > 0.55
+            random(seed, owner, "hen", dx, dy) > (roost ? 0.8 : 0.55)
           )
             continue;
           members.push({ x, y, direction: dx < 0 ? 3 : 1 });
@@ -5731,6 +5780,7 @@ export function planSettlement(
         stride: 0,
         since: 0,
         owner,
+        ...(roost && species.social === "flock" ? { house: roost.id, roost: pos({ x: roost.x + 1, y: roost.y + 1 }) } : {}),
       } satisfies FaunaGroup);
       flocks++;
     }

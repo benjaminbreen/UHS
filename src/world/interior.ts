@@ -62,6 +62,7 @@ const FURNITURE: Partial<Record<Kind, string>> = {
   plant: "room-plant", lamp: "room-lamp", basket: "room-basket", sacks: "room-sacks", pack: "room-pack",
   coolamon: "coolamon",
   bench: "room-bench",
+  nestbox: "room-nestbox", roost: "room-roost",
 };
 const SEATS: Kind[] = ["stool", "cushions", "armchair", "sofa", "divan", "bench", "settle", "ledge", "slab", "pew", "prayer"];
 const FIRES: Kind[] = ["hearth", "firepit", "irori", "brazier", "stove", "range"];

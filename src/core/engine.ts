@@ -5810,7 +5810,10 @@ export class Engine {
         !!useOf(propDefs[o.prop ?? ""]?.family) && !this.workAt(o, true).length)
       .sort((a, b) => distance(p.pos, a.pos) - distance(p.pos, b.pos))[0];
     const use = object && useOf(propDefs[object.prop!].family);
-    return object && use && { id: object.id, label: `${use.verb} the ${object.name.toLowerCase()}`, ...use };
+    const label = use?.use === "roost"
+      ? this.state.fauna?.find((g) => g.house === p.pos.space)?.shut ? "Let the hens out" : "Shut the hens in"
+      : use && `${use.verb} the ${object.name.toLowerCase()}`;
+    return object && use && label ? { id: object.id, label, ...use } : undefined;
   }
   private useProp() {
     const u = this.usable();
@@ -5832,6 +5835,25 @@ export class Engine {
       case "pray":
         this.event(`You stand before the ${name} and make your prayer.`);
         break;
+      case "collect":
+      case "roost": {
+        const flock = this.state.fauna?.find((g) => g.house === p.pos.space);
+        if (!flock?.members.length) this.event("No hens are kept here.");
+        else if (u.use === "collect") {
+          const n = flock.eggs ?? 0;
+          flock.eggs = 0;
+          if (n) p.inventory.eggs = (p.inventory.eggs ?? 0) + n;
+          this.event(!n ? "The nest boxes are empty. The hens lay in the morning." : n === 1 ? "You take one warm egg from the straw." : `You take ${n} eggs from the straw.`);
+        } else if (flock.shut) {
+          flock.shut = false;
+          this.event("You open the pop-hole. The hens will go out when it is light.");
+        } else if (flock.burrowed === undefined) this.event("The hens are still out in the yard. They come in at dusk.");
+        else {
+          flock.shut = true;
+          this.event("You shut the pop-hole. The hens are safe for the night.");
+        }
+        break;
+      }
       default:
         p.fatigue = Math.min(100, p.fatigue + 3);
         // Anyone learns a little by putting their hands to it, trade or no trade.
@@ -7393,7 +7415,8 @@ export class Engine {
         Math.abs(g.pos.y - p.y) <= FAUNA_KEEP
       )
         return true;
-      if (g.train) return true;
+      // The player's hens keep their eggs and their shut door while the player is away.
+      if (g.train || (g.house && g.owner === "player")) return true;
       const plotted = (g.maneater ?? g.stockRaid)?.plot;
       if (plotted) return plotted === this.state.plot?.id && !this.state.plot.ended;
       if (!g.gateId) stale.add(faunaBlockOf(g.home.x, g.home.y));

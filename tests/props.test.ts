@@ -84,7 +84,8 @@ describe("interactive props", () => {
     for (const [key,culture,year] of cases) {
       const setting={culture,year,lat:35,lon:40,settlement:"village",climate:"temperate",placeId:"test"} as WorldSetting;
       const kit=propKit({...packs.roman,year,setting});
-      expect(Object.values(kit.contexts).flat(),key).toContain(key);
+      // Hens are housed by the yard kit, so a coop is not a door-side prop.
+      if(propDefs[key].family!=="chicken-coop")expect(Object.values(kit.contexts).flat(),key).toContain(key);
       const d=propDefs[key];expect(d.name).toBe(equipmentProps[key].name);
       expect(propSprite(key)).toBe(d.sprite);
       expect(frames[d.sprite!],key).toBeDefined();
@@ -567,6 +568,46 @@ it("keeps broad yard props clear of houses and one another", () => {
       }
     }
   }
+});
+
+it("houses a household's hens in a henhouse: in at dusk, eggs by morning", () => {
+  const resolved = resolveSetting("A farmer in Normandy, 1300") as any;
+  expect(resolved.error).toBeUndefined();
+  const e = createSettingSession(resolved.setting, "henhouse");
+  const houses = e.world.places.filter((b) => b.claim === "yard-henhouse");
+  expect(houses.length).toBeGreaterThan(0);
+  e.syncFauna();
+  const mine = houses.find((b) => e.state.fauna!.some((g) => g.house === b.id))!;
+  expect(mine, "a henhouse has its flock").toBeTruthy();
+  // Behind its house, never across the front of it.
+  for (const b of houses) {
+    const home = e.world.places.find((h) => h.owner === b.owner && h !== b)!;
+    expect(b.y + b.h, `${b.id} stands behind its house`).toBeLessThanOrEqual(home.y);
+  }
+  // Bring the player home so the flock is simulated, and run to midnight.
+  e.state.player.pos = { x: mine!.entrance.x, y: mine!.entrance.y + 3, space: "outside" };
+  e.syncFauna();
+  const flock = e.state.fauna!.find((g) => g.house === mine!.id)!;
+  expect(flock.members.length).toBeGreaterThan(1);
+  const hour = () => (e.state.clock / 3600) % 24;
+  for (let i = 0; i < 200 && !(hour() >= 23); i++) e.advance(600);
+  expect(flock.burrowed, "the hens have gone in").toBeGreaterThan(e.state.clock);
+  for (let i = 0; i < 200 && !(hour() >= 8 && hour() < 9); i++) e.advance(600);
+  expect(flock.burrowed).toBeUndefined();
+  expect(flock.eggs).toBeGreaterThan(0);
+  // Inside: nest boxes and a perch, and the eggs come away in the hand.
+  const room = e.interiorOf(mine!.id)!;
+  expect(room).toBeTruthy();
+  const box = e.state.objects.find((o) => o.pos.space === mine!.id && o.prop === "room-nestbox")!;
+  expect(box).toBeTruthy();
+  expect(e.state.objects.some((o) => o.pos.space === mine!.id && o.prop === "room-roost")).toBe(true);
+  const stand = [[0, 1], [1, 1], [-1, 0], [2, 0], [0, -1]].map(([dx, dy]) => ({ x: box.pos.x + dx, y: box.pos.y + dy })).find((q) => !e.blocked(q.x, q.y, mine!.id))!;
+  e.state.player.pos = { ...stand, space: mine!.id };
+  expect(e.usable()?.label).toBe("Collect eggs from the nest boxes");
+  const laid = flock.eggs!;
+  e.act({ actionId: "eggs", expectedRevision: e.state.revision, command: { type: "interact", target: box.id, action: "use-prop" } });
+  expect(e.state.player.inventory.eggs).toBe(laid);
+  expect(flock.eggs).toBe(0);
 });
 
 it("gives the shared fire its regional form", () => {

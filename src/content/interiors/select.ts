@@ -145,6 +145,7 @@ export function buildingUse(claim: string) {
   if (claim.startsWith("venue-")) return claim.slice(6);
   if (claim.startsWith("worksite-")) return claim.replace("-", ".");
   if (claim==="waterfront-gear")return "waterfront.gear";
+  if (claim==="yard-henhouse")return "yard.henhouse";
   if (/^(religious|civic)-/.test(claim)) return claim.replace("-", ".");
 }
 
@@ -190,6 +191,13 @@ export function publicInteriorFor(site: InteriorSite): InteriorProfile | undefin
       program:undefined,sleep:"none",fire:"none",smokehole:false,pole:false,trades:["household"],kits:{household:[]},clutter:[],regulars:undefined,
       furnish:["shelf","basket","crate","table","lamp"],styles:{shelf:"open"},
       looks:home.looks.map(l=>({...l,...(gear ? {wall:gear.wall,floor:gear.floor,windows:gear.windows==="none" ? 0 : 2} : {}),furnish:[]})) as unknown as InteriorProfile["looks"]};
+  }
+  if (site.use === "yard.henhouse") {
+    const home = interiorProfileFor({ ...site, use: undefined });
+    return { ...home, id: `henhouse-${home.id}`, label: "Henhouse", uses: [site.use], size: [7, 6], rooms: undefined,
+      program: undefined, sleep: "none", fire: "none", smokehole: false, pole: false, trades: ["household"], kits: { household: [] }, clutter: [], regulars: undefined,
+      furnish: ["nestbox", "roost", "basket", "sacks"],
+      looks: home.looks.map((l) => ({ ...l, windows: 1, furnish: [] })) as unknown as InteriorProfile["looks"] };
   }
   if (site.use.startsWith("worksite.")) return worksiteInterior(site.use, interiorProfileFor({ ...site, use: undefined }));
   if (site.use === "civic.illustrative-public-hall") return meetingHall(site);

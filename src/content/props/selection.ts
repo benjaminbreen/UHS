@@ -703,8 +703,9 @@ export function propKit(pack: Pack): PropKit {
   const equipment = regionalEquipment(pack.setting && { ...pack.setting, year });
   const foraging = way?.mode.includes("foraging");
   if (!foraging) {
-    contexts.work.push(...equipment.filter(k=>["chickenCoop","wovenHenShelter","stockPen","wattlePen","joinerBench","lowPlaningBench","brazier","ironPanBrazier","charcoalStove","teaStove"].includes(k)));
-    contexts.yard.push(...equipment.filter(k=>["chickenCoop","wovenHenShelter","charcoalStove"].includes(k)));
+    contexts.work.push(...equipment.filter(k=>["stockPen","wattlePen","joinerBench","lowPlaningBench","brazier","ironPanBrazier","charcoalStove","teaStove"].includes(k)));
+    // Hens are housed by the yard kit, not stood beside a door.
+    contexts.yard.push(...equipment.filter(k=>k==="charcoalStove"));
   }
   for (const context of Object.keys(contexts) as PropContext[])
     contexts[context] = contexts[context].flatMap(k=>equipmentChoices(pack.setting && { ...pack.setting, year },k));

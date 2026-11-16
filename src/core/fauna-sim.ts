@@ -520,7 +520,14 @@ function decide(
     if (hyp(g.pos, g.home) > 1.5) {
       g.state = "wander";
       g.target = { ...g.home };
-    } else g.state = "idle";
+    } else {
+      g.state = "idle";
+      if (g.house && g.roost) {
+        // In through the pop-hole for the night.
+        g.burrowed = clock + 86400;
+        for (const m of g.members) (m.x = g.roost.x), (m.y = g.roost.y);
+      }
+    }
     g.nextDecisionAt = calm();
     g.since = clock;
     return;
@@ -1146,7 +1153,7 @@ function huntPlayer(
 /** A raider a plot has loosed makes for the fold after dark. A light there,
  * or someone sitting up with the stock, sends it off; it tries again another
  * night. Returns true when it has the group's tick. */
-function raid(g: FaunaGroup, p: FaunaProfile, world: FaunaWorld, clock: number, taken: Bodies) {
+function raid(g: FaunaGroup, p: FaunaProfile, world: FaunaWorld, clock: number, taken: Bodies, groups: FaunaGroup[]) {
   const r = g.stockRaid;
   if (!r || g.provoked !== undefined) return false;
   const dark = night(world) || (r.night === false && dusk(world));
@@ -1159,6 +1166,21 @@ function raid(g: FaunaGroup, p: FaunaProfile, world: FaunaWorld, clock: number, 
     if (r.repelled === undefined || r.repelled < clock - 600) {
       r.repelled = clock;
       cue(world, g, lead, "alarm", r.at);
+    }
+    standDown(g, clock);
+    g.fright = { ...r.at };
+    return false;
+  }
+  // Hens indoors: a shut henhouse keeps them, an open one loses a bird.
+  const flock = dark && hyp(lead, r.at) <= 4 && r.took === undefined
+    ? groups.find((o) => o.house && o.burrowed !== undefined && hyp(o.home, r.at) <= 4)
+    : undefined;
+  if (flock) {
+    if (flock.shut || flock.owner !== "player") r.repelled = clock;
+    else {
+      flock.members.pop();
+      r.took = clock;
+      g.carrying = flock.speciesId;
     }
     standDown(g, clock);
     g.fright = { ...r.at };
@@ -1455,6 +1477,20 @@ export function advanceFauna(
   for (const g of [...groups].sort((a, b) => (a.id < b.id ? -1 : 1))) {
     const p = faunaProfile(g.speciesId);
     if (!p || !g.members.length) continue;
+    if (g.house) {
+      const day = Math.floor(clock / 86400);
+      if (world.hour >= 5.5 && world.hour < 18.5 && g.laid !== day) {
+        g.laid = day;
+        g.eggs = Math.min(g.members.length * 2, (g.eggs ?? 0) + Math.ceil(g.members.length * 0.6));
+      }
+      if (g.burrowed !== undefined) {
+        if (roosting(p, world.hour) || g.shut) continue;
+        g.burrowed = undefined;
+        // Out by the door; the tick's unstacking spreads them.
+        for (const m of g.members) (m.x = g.home.x), (m.y = g.home.y);
+        g.pos = { ...g.home };
+      }
+    }
     if (g.burrowed !== undefined) {
       // It does not come up while whatever sent it down is still about.
       const about =
@@ -1467,7 +1503,7 @@ export function advanceFauna(
       g.burrowed = undefined;
     }
     if (g.rabid === undefined && /feral-dog|street-dog|pariah/.test(g.speciesId)) g.rabid = world.rng(`fauna-${g.id}-rabid`) < 0.03;
-    if (raid(g, p, world, clock, taken) || threaten(g, p, world, clock) || huntPlayer(g, p, world, clock, taken)) continue;
+    if (raid(g, p, world, clock, taken, groups) || threaten(g, p, world, clock) || huntPlayer(g, p, world, clock, taken)) continue;
     // In the water an ambusher shows only its eyes until it comes.
     if (p.art.lurk)
       for (const m of g.members) {

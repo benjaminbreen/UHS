@@ -16,6 +16,9 @@ export type YardProp = {
   family: string;
   /** Sprite variants, for a family with no entry in the prop catalogue. */
   variants?: number;
+  /** A henhouse form: where the yard has room, a small building of this
+   * make stands in for the prop. */
+  henhouse?: "timber" | "wattle" | "adobe";
   name: string;
   /** `back` is behind the house, where the kit keeps a back yard. */
   where: "bed" | "wall" | "door" | "yard" | "back";
@@ -160,6 +163,7 @@ const toft: YardKit = {
       name: "Henhouse",
       where: "back",
       chance: 0.35,
+      henhouse: "wattle",
       with: [{ prop: "bucket", family: "bucket", name: "Feed bucket", dx: 1, dy: 1 }],
     },
     {
@@ -200,6 +204,7 @@ const coop: YardProp = {
   name: "Henhouse",
   where: "back",
   chance: 0.45,
+  henhouse: "timber",
   with: [{ prop: "bucket", family: "bucket", name: "Feed bucket", dx: 1, dy: 1 }],
 };
 const washing: YardProp = {
@@ -269,7 +274,7 @@ const solar: YardKit = {
   tree: { sprites: ["nature-tropical-broadleaf"], chance: 0.6 },
   props: [
     ...stores,
-    { ...coop, name: "Turkey pen", chance: 0.5 },
+    { ...coop, name: "Turkey pen", chance: 0.5, henhouse: "adobe" },
     { prop: "metate", family: "metate", name: "Metate and mano", where: "door", chance: 0.8 },
     { prop: "jar", family: "storage-jar", name: "Water jar", where: "door", chance: 0.7 },
     { prop: "threeStoneHearth", family: "three-stone-hearth", name: "Three-stone hearth", where: "yard", chance: 0.5 },

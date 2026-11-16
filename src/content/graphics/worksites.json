@@ -1488,5 +1488,35 @@
     "roof": "flat",
     "roofMaterial": "wood",
     "height": 36
+  },
+  "yard-henhouse-timber": {
+    "style": "henhouse-timber",
+    "label": "Boarded henhouse",
+    "footprint": [3, 2],
+    "description": "Boarded henhouse: a keeper's door, a pop-hole and ramp for the hens. Which households build one is decided by the yard kit.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "shingle",
+    "height": 70
+  },
+  "yard-henhouse-wattle": {
+    "style": "henhouse-wattle",
+    "label": "Wattle henhouse",
+    "footprint": [3, 2],
+    "description": "Wattle henhouse: a keeper's door, a pop-hole and ramp for the hens. Which households build one is decided by the yard kit.",
+    "wall": "lime-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch",
+    "height": 70
+  },
+  "yard-henhouse-adobe": {
+    "style": "henhouse-adobe",
+    "label": "Adobe henhouse",
+    "footprint": [3, 2],
+    "description": "Adobe henhouse: a keeper's door, a pop-hole and ramp for the hens. Which households build one is decided by the yard kit.",
+    "wall": "mud-plaster",
+    "roof": "flat",
+    "roofMaterial": "earth",
+    "height": 70
   }
 }

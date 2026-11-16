@@ -2489,6 +2489,36 @@ export class PixelRoom {
         if (q.seed % 2 === 0) this.sprite("barrel", X + 2, Y + PD - 26);
         break;
       }
+      case "nestbox": {
+        const base = Y + PD - 2;
+        this.r(X + 2, base - 13, 28, 13, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : i === 27 ? W[1] : W[2]));
+        for (let k = 0; k < 3; k++) {
+          const bx = X + 4 + k * 9;
+          this.r(bx, base - 10, 7, 8, 0x241612);
+          this.r(bx, base - 5, 7, 3, (i, j) => P.straw[(i + j + k) % 3 === 0 ? 5 : 3]);
+          if ((q.seed >> k) & 1) (this.s(bx + 2, base - 6, 0xf6eedc), this.s(bx + 3, base - 6, 0xe2d6bc));
+        }
+        this.r(X + 2, base, 28, 1, W[1]);
+        break;
+      }
+      case "roost": {
+        const base = Y + PD - 1;
+        for (const px of [X + 3, X + 27]) this.r(px, base - 20, 2, 20, (i) => W[i ? 2 : 4]);
+        this.r(X + 1, base - 15, 30, 2, (_i, j) => W[j ? 2 : 5]);
+        this.r(X + 1, base - 8, 30, 2, (_i, j) => W[j ? 1 : 4]);
+        // The flock is on the perch from dusk to dawn.
+        if (p.hour >= 18.5 || p.hour < 5.5)
+          for (let k = 0; k < 3; k++) {
+            const hx = X + 5 + k * 9, hy = base - 22, body = [0xf2ead6, 0xc07a40, 0x5a4a4a][(q.seed + k) % 3];
+            this.r(hx, hy + 2, 6, 5, body);
+            this.r(hx + 1, hy, 3, 3, body);
+            this.s(hx + 1, hy - 1, 0xd8442c);
+            this.s(hx, hy + 1, 0xe89a2c);
+            this.s(hx + 2, hy + 1, 0x241612);
+          }
+        for (let i = 0; i < 5; i++) this.s(X + 4 + hash(i, 3, q.seed) * 24, base - hash(i, 4, q.seed) * 2, P.straw[4]);
+        break;
+      }
       case "sacks": {
         this.sprite("sack", X, Y + PD - 16);
         this.sprite("sack", X + 7, Y + PD - 14, { straw: P.linen });

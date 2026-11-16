@@ -8,7 +8,7 @@ export const climbable = new Set([
   "amphora-stack", "barrel", "threshing-floor", "midden", "shell-midden",
 ]);
 
-export type Use = "pound" | "grind" | "draw" | "stir" | "warm" | "sit" | "pray" | "tend" | "weave" | "scrub" | "craft";
+export type Use = "pound" | "grind" | "draw" | "stir" | "warm" | "sit" | "pray" | "tend" | "weave" | "scrub" | "craft" | "collect" | "roost";
 
 const USE: Record<Use, { verb: string; pose: CharacterPose; minutes: number; families: string[] }> = {
   craft: { verb: "Work at", pose: "work-tend", minutes: 20, families: ["workbench"] },
@@ -21,6 +21,8 @@ const USE: Record<Use, { verb: string; pose: CharacterPose; minutes: number; fam
   pray: { verb: "Pray at", pose: "pray", minutes: 10, families: ["wayside-shrine", "standing-stone", "skull-post"] },
   tend: { verb: "Tend", pose: "work-tend", minutes: 15, families: ["trough", "stock-pen", "chicken-coop", "dovecote", "beehive", "log-hive", "pipe-hive"] },
   weave: { verb: "Work at", pose: "work-weave", minutes: 20, families: ["loom", "warp-loom", "backstrap-loom", "hide-frame", "lever-press"] },
+  collect: { verb: "Collect eggs from", pose: "work-tend", minutes: 5, families: ["nest-box"] },
+  roost: { verb: "See to", pose: "work-tend", minutes: 2, families: ["hen-roost"] },
   scrub: { verb: "Wash at", pose: "work-scrub", minutes: 15, families: ["wash-tub", "tanning-pits"] },
 };
 

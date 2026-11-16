@@ -7,6 +7,7 @@
  *        UHS_HOUR=21 npm run capture:interiors -- ... (the hour; default 11)
  *        UHS_STATUS=0,2 npm run capture:interiors -- ... (finishes; default common)
  *        npm run capture:interiors -- shops            (a shop of each kind, in a fitting house)
+ *        npm run capture:interiors -- henhouse         (the henhouse in three regions; UHS_HOUR=21 for the roost)
  */
 import { withPage, base, writeDataUrl } from "./lib";
 
@@ -35,6 +36,11 @@ await withPage({}, async (page) => {
           const b=p.scope.bounds ?? [-1,50,1,52];
           return interiorProfileFor({lon:(b[0]+b[2])/2,lat:(b[1]+b[3])/2,year:p.scope.years[0],settlement:"city",use:`worksite.${p.id}`});
         })});
+      }
+      if (ids.includes("henhouse")) {
+        const { interiorProfileFor } = await import("/src/content/interiors/select.ts" as string);
+        groups.push({name:"henhouse",profiles:[[0.2,49,1300],[139,35,1700],[-99,19,1450]].map(([lon,lat,year])=>
+          interiorProfileFor({lon,lat,year,settlement:"village",use:"yard.henhouse"}))});
       }
       if (ids.includes("shops")) {
         const { shopFor, shopKinds } = await import("/src/content/interiors/shops.ts" as string);
