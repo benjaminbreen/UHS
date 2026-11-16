@@ -133,6 +133,7 @@ import { markOf } from "../core/kin";
 import { WorldSetup } from "./WorldSetup";
 import { MapModal } from "./MapModal";
 import { ItemIcon, Sprite, Minimap, timeLabel } from "./components";
+import { AreaMap } from "./Minimap";
 import { ItemInspect, itemKind } from "./ItemInspect";
 import { MakePanel } from "./MakePanel";
 import { GamingTable, type Seat } from "./gaming/GamingTable";
@@ -439,6 +440,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     runtime.stop();
   }, [phone, restOpen, narratorOpen, runtime]);
   const [mapRegion, setMapRegion] = useState(false);
+  const areaMap = runtime.engine.complexMap();
   const [nearbyAll, setNearbyAll] = useState(false);
   const [sideTab, setSideTab] = useState<
     "around" | "inventory" | "skills" | "today"
@@ -1594,7 +1596,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               aria-label="Open regional map"
               onClick={() => setModal("map")}
             >
-              <Minimap runtime={runtime} regional={mapRegion} route={guide?.pos.space === "outside" ? guide.pos : undefined} highlight={preview && { pos: preview.pos.space === "outside" ? preview.pos : runtime.engine.world.place(preview.pos.space)?.entrance ?? preview.pos, label: preview.label }} />
+              {areaMap ? <AreaMap map={areaMap} /> : <Minimap runtime={runtime} regional={mapRegion} route={guide?.pos.space === "outside" ? guide.pos : undefined} highlight={preview && { pos: preview.pos.space === "outside" ? preview.pos : runtime.engine.world.place(preview.pos.space)?.entrance ?? preview.pos, label: preview.label }} />}
               <span className="minimap-expand" aria-hidden="true">
                 <Maximize2 size={13} />
               </span>
@@ -1941,9 +1943,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               aria-label="Open regional map"
               onClick={() => setModal("map")}
             >
-              {!phone && active && <Minimap runtime={runtime} regional={mapRegion} route={guide?.pos.space === "outside" ? guide.pos : undefined} highlight={preview && { pos: preview.pos.space === "outside" ? preview.pos : runtime.engine.world.place(preview.pos.space)?.entrance ?? preview.pos, label: preview.label }} />}
+              {!phone && active && (areaMap ? <AreaMap map={areaMap} /> : <Minimap runtime={runtime} regional={mapRegion} route={guide?.pos.space === "outside" ? guide.pos : undefined} highlight={preview && { pos: preview.pos.space === "outside" ? preview.pos : runtime.engine.world.place(preview.pos.space)?.entrance ?? preview.pos, label: preview.label }} />)}
               <span className="north">N ↑</span>
-              <span className="map-scale">
+              <span className="map-scale" style={areaMap ? { display: "none" } : undefined}>
                 <i />
                 {mapRegion
                   ? `${(runtime.engine.world.regionExtent ?? 320) * 2} m`

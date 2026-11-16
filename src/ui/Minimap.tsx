@@ -1,3 +1,4 @@
+import type { ComplexMap } from "../core/complex";
 import { habitatAppearance } from "../render/habitat-appearance";
 import { defaultGrassArt } from "../content/graphics/grass-art";
 import { soils } from "../render/habitat-raster";
@@ -943,5 +944,40 @@ export function Minimap({
         </span>
       )}
     </span>
+  );
+}
+
+/** The map of a fair or a tomb as far as it has been walked: each area a room,
+ * each way a line, and "?" for the areas not yet seen. */
+export function AreaMap({ map }: { map: ComplexMap }) {
+  const W = 256, H = 148;
+  const xs = map.nodes.map((n) => n.x), ys = map.nodes.map((n) => n.y);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const here = map.nodes.find((n) => n.here);
+  // The whole of a small complex; in a big one, the neighbourhood of where the player stands.
+  const fit = Math.min(26, (W - 16) / (x1 - x0 + 1.6), (H - 30) / (y1 - y0 + 1.2)), step = Math.max(16, fit);
+  const mid = fit < 16 && here ? here : { x: (x0 + x1) / 2, y: (y0 + y1) / 2 };
+  const at = (n: { x: number; y: number }) => ({ x: W / 2 + (n.x - mid.x) * step, y: (H - 16) / 2 + (n.y - mid.y) * step });
+  return (
+    <svg className="minimap" viewBox={`0 0 ${W} ${H}`} width={W} height={H} role="img" aria-label={`Map of ${map.title}`} shapeRendering="crispEdges">
+      <rect x={-W} width={W * 3} height={H} fill="#1b1622" />
+      {map.links.map(([a, b]) => {
+        const p = at(map.nodes[a]), q = at(map.nodes[b]);
+        return <line key={`${a}-${b}`} x1={p.x} y1={p.y} x2={q.x} y2={q.y} stroke="#8a7a9c" strokeWidth={2} />;
+      })}
+      {map.nodes.map((n) => {
+        const p = at(n), w = step * (n.small ? 0.66 : 1.5), h = step * (n.small ? 0.66 : 1.1);
+        return (
+          <g key={n.space}>
+            <title>{n.seen ? n.name : "Not seen yet"}</title>
+            <rect x={p.x - w / 2} y={p.y - h / 2} width={w} height={h} fill={n.seen ? "#cdbd9c" : "#2e2638"} stroke={n.here ? "#ffd166" : n.seen ? "#6a5a48" : "#7c6e90"} strokeWidth={n.here ? 2 : 1} strokeDasharray={n.seen ? undefined : "2 2"} />
+            {!n.seen && <text x={p.x} y={p.y + 3} textAnchor="middle" fontFamily="Silkscreen, monospace" fontSize={8} fill="#b8a8cc">?</text>}
+            {n.here && <rect x={p.x - 2} y={p.y - 2} width={4} height={4} fill="#c0392b" />}
+          </g>
+        );
+      })}
+      <rect x={-W} y={H - 16} width={W * 3} height={16} fill="#1b1622" />
+      <text x={W / 2} y={H - 6} textAnchor="middle" fontFamily="Silkscreen, monospace" fontSize={8} fill="#fff2d8">{here ? here.name.toUpperCase() : ""}</text>
+    </svg>
   );
 }

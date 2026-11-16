@@ -6,7 +6,7 @@ import { caveLevel, caveLevels, caveSolid, caveSpace, parseCaveSpace, DEEP, MOUT
 import { cavePeople } from "../content/caves/people";
 import { personFits } from "../content/sewers";
 import { folkArrive, folkDeal, folkRobbed, folkTime } from "./tunnel-folk";
-import { complexRecord, nearest, takeFind, type ComplexHost } from "./complex";
+import { burnLight, complexRecord, nearest, takeFind, type ComplexHost } from "./complex";
 import type { Snapshot as GameState, Inspection, Inventory, Point, WorldModel } from "./types";
 import { landing, type AreaThing } from "../world/complex";
 
@@ -393,16 +393,7 @@ export function caveTime(h: ComplexHost, elapsed: number) {
   if (level.cells[p.pos.y * level.w + p.pos.x] === MOUTH && p.pos.y >= level.h - 1) return leave(h);
   const light = caveLight(run.light);
   const daylight = level.depth === 1 && Math.hypot(p.pos.x - level.entry.x, p.pos.y - level.entry.y) < 5;
-  if (run.left > 0) {
-    run.left -= elapsed;
-    if (run.left <= 0) {
-      run.left = 0;
-      h.event(`${light.out} ${daylight ? "" : "The dark is complete. You will have to feel your way back."}`.trim());
-    } else if (!run.low && run.left < light.burns * 0.2) {
-      run.low = true;
-      h.event(light.flame ? "Your light is burning low. It is time to think about the way back." : "Your light is going yellow. The batteries will not last much longer.");
-    }
-  }
+  burnLight(h, run, elapsed, daylight ? "" : "The dark is complete. You will have to feel your way back.", (flame) => (flame ? "Your light is burning low. It is time to think about the way back." : "Your light is going yellow. The batteries will not last much longer."));
   const clock = h.state.clock;
   const me = { x: p.pos.x, y: p.pos.y };
   for (const b of [...run.beasts]) {

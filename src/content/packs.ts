@@ -8,6 +8,7 @@ import { caveItems } from "./caves/items";
 import { shipItems } from "./ships/items";
 import { sewerItems } from "./sewers/items";
 import { fairItemDefs } from "./fairs";
+import { tombItemDefs } from "./tombs";
 import { mineItems } from "./mines/items";
 import { floraItems } from "./ecology/flora";
 import { wearableItems } from "./characters/wearables";
@@ -57,6 +58,7 @@ export const items: Record<
   ...shipItems,
   ...sewerItems,
   ...fairItemDefs,
+  ...tombItemDefs,
   ...mineItems,
   ...floraItems,
   ...wearableItems,

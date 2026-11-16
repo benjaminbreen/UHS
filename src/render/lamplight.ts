@@ -186,6 +186,19 @@ export class LampHud {
     this.banner.setPosition(v.centerX, v.y + v.height * 0.2).setAlpha(age < 600 ? age / 600 : age < 2600 ? 1 : Math.max(0, 1 - (age - 2600) / 900));
   }
 
+  /** A flame's gauge: the wick, lit or dead, and the bar of what is left. */
+  flame(time: number, lit: boolean, frac: number, label: string) {
+    this.update(time, (g, x, y) => {
+      g.fillStyle(0x120e0c, 0.85).fillRect(x - 2, y - 5, 62, 10);
+      g.fillStyle(lit ? 0xffb040 : 0x5a5650).fillRect(x + 1, y - 2, 3, 4);
+      if (lit) g.fillStyle(0xfff0a0).fillRect(x + 2, y - 3 - (Math.floor(time / 120) % 2), 1, 3);
+      g.fillStyle(0x3a302a).fillRect(x + 7, y - 2, 50, 4);
+      g.fillStyle(frac < 0.2 ? (Math.floor(time / 300) % 2 ? 0xe04a2a : 0xff8a4a) : 0xffc060).fillRect(x + 7, y - 2, Math.round(50 * frac), 4);
+      g.fillStyle(0xfff0c0, 0.5).fillRect(x + 7, y - 2, Math.round(50 * frac), 1);
+      return label;
+    });
+  }
+
   destroy() {
     for (const o of [this.g, this.label, this.banner]) o.destroy();
   }

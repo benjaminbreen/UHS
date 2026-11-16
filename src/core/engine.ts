@@ -78,9 +78,11 @@ import { orderKeeper, type Penalty } from "../content/history/order";
 import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
 import { caveAct, caveBeastAt, caveMouthsNear, caveLevelOf, caveStrike } from "./cave";
-import { fairEnter, fairLevelOf } from "./fair";
+import { fairEnter } from "./fair";
+import { tombEnter } from "./tomb";
 import { fairAt } from "../content/fairs";
-import { complexAct, complexGround, complexInspect, complexTime, complexVerb, type ComplexHost } from "./complex";
+import { tombAt } from "../content/tombs";
+import { complexAct, complexGround, complexInspect, complexMap, complexTime, complexVerb, isComplexId, walkedArea, type ComplexHost } from "./complex";
 import { folkOffer, type FolkHost } from "./tunnel-folk";
 import { shipAct, shipGround, shipInspect, shipLevelOf, shipStart, shipTime, shipVerb, voyageLook, type ShipHost } from "./ship";
 import { lidAt, mineEnter, mineLeave, minePeril, minePlace, sewerAct, sewerLevelOf, tunnelRun } from "./sewer";
@@ -2240,7 +2242,7 @@ export class Engine {
     caveLevels: new Map(),
     sewerSites: new Map(),
     sewerLevels: new Map(),
-    fairLevels: new Map(),
+    areas: new Map(),
   };
   private get complex() {
     this.complexHost.state = this.state;
@@ -2310,7 +2312,7 @@ export class Engine {
     }
     p.activity = m.doing;
   }
-  startBelow(where: "cave" | "sewer" | "mine" | "ship" | "fair") {
+  startBelow(where: "cave" | "sewer" | "mine" | "ship" | "fair" | "tomb") {
     const p = this.state.player.pos, d = (q: Point) => Math.hypot(q.x - p.x, q.y - p.y);
     if (where === "ship") return void shipStart(this.ships);
     // The life begins already down there: the climb takes none of the day.
@@ -2318,6 +2320,11 @@ export class Engine {
     if (where === "fair") {
       const s = this.world.pack.setting, fair = s && fairAt(s.lon, s.lat, s.year);
       if (fair) fairEnter(host, fair, true);
+      return;
+    }
+    if (where === "tomb") {
+      const s = this.world.pack.setting, style = s && tombAt(s.lon, s.lat, s.year);
+      if (style) tombEnter(host, style);
       return;
     }
     if (where === "mine") {
@@ -2348,12 +2355,13 @@ export class Engine {
   caveOf(space: string) {
     return space.startsWith("cave:") ? caveLevelOf(this.complex, space)?.level : undefined;
   }
-  /** The area of a fair a space is, if it is one. */
-  fairOf(space: string) {
-    return space.startsWith("fair:") ? fairLevelOf(this.complex, space)?.level : undefined;
+  /** The area of a fair or a tomb a space is, if it is one. */
+  areaOf(space: string) {
+    return walkedArea(this.complex, space);
   }
-  fairSolid(space: string): ReadonlySet<number> {
-    return fairLevelOf(this.complex, space)?.solid ?? new Set();
+  /** The map of the fair or tomb the player is in, as far as they have walked it. */
+  complexMap() {
+    return complexMap(this.complex);
   }
   private interiors = new Map<string, InteriorLayout | null>();
   private wallIndex?: {
@@ -6490,7 +6498,7 @@ export class Engine {
     return [...rows.values()].slice(0, limit);
   }
   inspect(id: string): Inspection | undefined {
-    if (id.startsWith("cave-") || id.startsWith("sewer-") || id.startsWith("fair-")) return complexInspect(this.complex, id);
+    if (isComplexId(id)) return complexInspect(this.complex, id);
     if (id.startsWith("ship-")) return shipInspect(this.ships, id);
     const coordinates = /^decor-(-?\d+)-(-?\d+)$/.exec(id);
     if (coordinates) {

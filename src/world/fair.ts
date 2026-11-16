@@ -1,7 +1,7 @@
 import { fairFind, fairFinds, fairPeople, type Fair, type FairArea, type FairBuilding, type FairFind } from "../content/fairs";
 import { pickWeighted as pick, rngOf } from "../core/random";
 import type { Point } from "../core/types";
-import { N4, type Area, type AreaDecor, type AreaExit, type AreaFolk, type AreaThing } from "./complex";
+import { N4, type Area, type AreaDecor, type AreaExit, type AreaFolk, type AreaLift, type AreaThing } from "./complex";
 
 export const WALL = 0, GRAVEL = 1, LAWN = 2, WATER = 3, PAVING = 4, BED = 5, FLOOR = 6, BUILDING = 7, BRIDGE = 8, HEDGE = 9, DECK = 10, BOX = 11, FENCE = 12;
 /** Feet can go here. */
@@ -11,9 +11,6 @@ export const fairWalkable = (c: number) => c === GRAVEL || c === LAWN || c === P
 export const FRONT = 12;
 
 export type PlacedBuilding = FairBuilding & { y: number; door: Point };
-/** A lift or stair to another area of the same tower, used with the action key. */
-export type FairLift = { x: number; y: number; to: string; up: boolean };
-
 export type FairLevel = Area & {
   fair: string;
   area: string;
@@ -21,7 +18,7 @@ export type FairLevel = Area & {
   floor?: FairArea["floor"];
   exits: AreaExit[];
   buildings: PlacedBuilding[];
-  lifts: FairLift[];
+  lifts: AreaLift[];
   fountain?: { x: number; y: number; w: number; h: number; kind: "coutan" | "basin" };
   /** Rows the river runs between, inclusive. */
   river?: [number, number];

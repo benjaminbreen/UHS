@@ -333,6 +333,9 @@ import { FLOOR_X, FLOOR_Y, PixelRoom } from "./interiors/pixel";
 import { CaveView } from "./cave/view";
 import { SewerView } from "./sewer/view";
 import { FairView } from "./fair/view";
+import { TombView } from "./tomb/view";
+import type { FairLevel } from "../world/fair";
+import type { TombLevel } from "../world/tomb";
 import { ShipView } from "./ship/view";
 import { paintOpenLid } from "./sewer/art";
 import { laneLids } from "./carriageway";
@@ -806,11 +809,12 @@ export class WorldScene extends Phaser.Scene {
   private caveView?: CaveView;
   private sewerView?: SewerView;
   private shipView?: ShipView;
-  private fairView?: FairView;
+  /** The view of a fair's or a tomb's area: the kinds walked from area to area. */
+  private areaView?: FairView | TombView;
   /** A space that draws and lights itself: a generated room or a cave. */
   private selfLit(space: string) {
     const e = this.runtime.engine;
-    return space !== "outside" && (!!e.interiorOf?.(space) || !!e.caveOf?.(space) || !!e.sewerOf?.(space) || !!e.shipOf?.(space) || !!e.fairOf?.(space));
+    return space !== "outside" && (!!e.interiorOf?.(space) || !!e.caveOf?.(space) || !!e.sewerOf?.(space) || !!e.shipOf?.(space) || !!e.areaOf?.(space));
   }
   private roomView?: {
     space: string;
@@ -3889,7 +3893,7 @@ export class WorldScene extends Phaser.Scene {
       this.roomView ||
       this.caveView ||
       this.sewerView ||
-      this.fairView ||
+      this.areaView ||
       this.shipView ||
       (this.snow < 0.34 && !dew) ||
       this.light.id === "night" ||
@@ -3935,7 +3939,7 @@ export class WorldScene extends Phaser.Scene {
   /** The hour after a shower: drops still falling from the trees, the wet
    * ground steaming where the sun is back on it, and some days a rainbow. */
   private afterRain(delta: number) {
-    const out = !this.options.freeze && !this.roomView && !this.caveView && !this.sewerView && !this.shipView && !this.fairView && this.light.id !== "night";
+    const out = !this.options.freeze && !this.roomView && !this.caveView && !this.sewerView && !this.shipView && !this.areaView && this.light.id !== "night";
     const wet = out && (this.rained || ((this.weather?.wetness ?? 0) > 0.3 && this.weather?.condition !== "rain"));
     const sun = this.sunStrength() >= 0.85;
     const view = this.cameras.main.worldView;
@@ -4007,7 +4011,7 @@ export class WorldScene extends Phaser.Scene {
   }
   /** Which way a low sun lights edges: east at sunrise, west at dusk, else 0. */
   private rimSide() {
-    if (this.roomView || this.caveView || this.sewerView || this.shipView || this.fairView || this.options.shadows === false || this.sunStrength() < 0.85) return 0;
+    if (this.roomView || this.caveView || this.sewerView || this.shipView || this.areaView || this.options.shadows === false || this.sunStrength() < 0.85) return 0;
     return this.light.id === "early-morning" ? 1 : this.light.id === "dusk" ? -1 : 0;
   }
   private rimColour(side: number) {
@@ -4018,7 +4022,7 @@ export class WorldScene extends Phaser.Scene {
   private figureRim() {
     const side = this.rimSide();
     if (side) return { side, colour: this.rimColour(side), alpha: 0.85 };
-    return !this.roomView && !this.caveView && !this.sewerView && !this.shipView && !this.fairView && (this.nightGrade?.night ?? 0) > 0.35
+    return !this.roomView && !this.caveView && !this.sewerView && !this.shipView && !this.areaView && (this.nightGrade?.night ?? 0) > 0.35
       ? { side: -1, colour: 0xd4e2ff, alpha: 0.5 }
       : undefined;
   }
@@ -6248,7 +6252,7 @@ export class WorldScene extends Phaser.Scene {
   }
   private syncSewer(delta: number) {
     const e = this.runtime.engine, space = e.state.player.pos.space;
-    const level = e.sewerOf?.(space), run = e.state.complex?.kind === "cave" || e.state.complex?.kind === "fair" ? undefined : e.state.complex;
+    const level = e.sewerOf?.(space), run = e.state.complex?.kind === "sewer" || e.state.complex?.kind === "mine" ? e.state.complex : undefined;
     if (!level || !run) {
       if (this.sewerView) gameAudio()?.setUnderground(undefined);
       this.sewerView?.destroy();
@@ -6300,25 +6304,34 @@ export class WorldScene extends Phaser.Scene {
     if (level.network === "mine") gameAudio()?.setUnderground({ place: "mine", flow: Math.max(0.1, 1 - near / 6) * 0.6, echo: level.kind === "salt" ? 0.9 : 0.45, surge: level.depth < 3 ? 0.7 : 0, drips: level.depth === 3 ? 0.8 : 0.35, draught: level.depth < 3 ? 0.5 : 0.1 });
     else gameAudio()?.setUnderground({ place: "sewer", drips: 0, draught: 0, flow: Math.max(0.15, 1 - near / 7) * (level.layer === "old" ? 0.5 : 1), echo: level.layer === "trunk" ? 1 : level.layer === "old" ? 0.6 : 0.35, surge: run.surge });
   }
-  /** A fair's area paints itself; its buildings come from the fair sheet. */
-  private syncFair() {
+  /** A fair's or a tomb's area paints itself; the scene lends it the player's position and the lamp. */
+  private syncArea(delta: number) {
     const e = this.runtime.engine, space = e.state.player.pos.space;
-    const level = e.fairOf?.(space);
+    const level = e.areaOf?.(space);
     if (!level) {
-      this.fairView?.destroy();
-      this.fairView = undefined;
+      if (this.areaView instanceof TombView) gameAudio()?.setUnderground(undefined);
+      this.areaView?.destroy();
+      this.areaView = undefined;
       return;
     }
-    let v = this.fairView;
+    let v = this.areaView;
     if (!v || v.space !== space) {
       v?.destroy();
-      v = this.fairView = new FairView(this, level, (frame) => this.texture(frame));
+      v = this.areaView = "fair" in level ? new FairView(this, level as FairLevel, (frame) => this.texture(frame)) : new TombView(this, level as TombLevel);
+      if (import.meta.env.DEV) (window as unknown as { uhsTomb?: typeof TombView }).uhsTomb = TombView;
       this.applyGrade(0);
     }
     const camera = this.cameras.main;
     const b = v.bounds, width = Math.max(b.w, camera.displayWidth), height = Math.max(b.h, camera.displayHeight);
     camera.setBounds(b.x + (b.w - width) / 2, b.y + (b.h - height) / 2, width, height);
-    v.update({ clock: this.runtime.displayClock(), time: this.time.now });
+    if (v instanceof FairView) return void v.update({ clock: this.runtime.displayClock(), time: this.time.now });
+    const run = e.state.complex?.kind === "tomb" ? e.state.complex : undefined, me = this.entities.get("player"), p = e.state.player;
+    if (!run) return;
+    v.update({
+      x: me?.x ?? p.pos.x * 16 + 8, y: me?.y ?? p.pos.y * 16 + 16, facing: p.direction, light: caveLight(run.light), left: run.left,
+      done: e.state.complexes?.[`tomb:${run.site}`]?.done ?? [], hour: (((e.state.clock / 3600) % 24) + 24) % 24, time: this.time.now, delta,
+    });
+    gameAudio()?.setUnderground({ place: "cave", flow: 0, echo: 0.55, surge: 0, drips: 0, draught: 0.05 });
   }
   /** Aboard ship the deck paints and lights itself, with the sea going by round it. */
   private syncShip(delta: number) {
@@ -6966,12 +6979,12 @@ export class WorldScene extends Phaser.Scene {
     if (!this.fadingOut) this.syncCave(delta);
     if (!this.fadingOut) this.syncSewer(delta);
     if (!this.fadingOut) this.syncShip(delta);
-    if (!this.fadingOut) this.syncFair();
+    if (!this.fadingOut) this.syncArea(delta);
     this.syncLids();
     this.reflect(time);
     this.glint(delta);
     this.afterRain(delta);
-    if (this.night && !this.roomView && !this.caveView && !this.sewerView && !this.shipView && !this.fairView) {
+    if (this.night && !this.roomView && !this.caveView && !this.sewerView && !this.shipView && !this.areaView) {
       this.paintWash();
       this.paintLight();
     }

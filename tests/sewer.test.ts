@@ -20,6 +20,8 @@ import { DECK, shipLevel, shipSolid } from "../src/world/ship";
 import { belowFromPrompt, resolveSetting } from "../src/content/geography/resolve";
 import { createSettingSession } from "../src/runtime/session";
 import { paris1889 } from "../src/content/fairs/paris-1889";
+import { theban } from "../src/content/tombs/theban";
+import { tombLevel, tombPlan, tombWalkable } from "../src/world/tomb";
 import { fairLevel, fairWalkable } from "../src/world/fair";
 import { arrivalFrom } from "../src/world/complex";
 
@@ -331,6 +333,50 @@ describe("fairs", () => {
     expect(r.setting.below).toBe("fair");
     const e = createSettingSession(r.setting, "fair");
     expect(e.state.player.pos.space).toBe("fair:paris-1889:trocadero");
-    expect(e.fairOf("fair:paris-1889:trocadero")?.buildings.length).toBeGreaterThan(0);
+    expect(e.areaOf("fair:paris-1889:trocadero")).toMatchObject({ kind: "grounds" });
+    expect(e.complexMap()?.nodes.filter((n) => n.seen).map((n) => n.name)).toEqual(["the Trocadéro gardens"]);
+    expect(e.complexMap()?.nodes.some((n) => !n.seen && n.name === "the Pont d'Iéna")).toBe(true);
+  });
+});
+
+describe("tombs", () => {
+  it("plans a tomb from the seed whose every way lands on open floor and leads back", () => {
+    for (const seed of ["a", "b", "c", "d", "e", "f"]) {
+      const plan = tombPlan(seed, theban, "theban.0");
+      expect(plan[0].role).toBe("entrance");
+      expect(plan.filter((a) => a.role === "burial")).toHaveLength(1);
+      expect(plan.find((a) => a.role === "burial")!.finds).toContain("sarcophagus");
+      for (const a of plan) {
+        const L = tombLevel(seed, theban, "theban.0", a.id)!;
+        for (const e of L.exits.filter((e) => e.to !== "outside")) {
+          const B = tombLevel(seed, theban, "theban.0", Number(e.to.split(":")[2]))!;
+          const at = arrivalFrom(B, L.space);
+          expect(at, `${seed} ${a.id} -> ${e.to}`).toBeDefined();
+          expect(tombWalkable(B.cells[at!.y * B.w + at!.x]), `${seed} ${a.id} -> ${e.to}`).toBe(true);
+        }
+        for (const l of L.lifts) expect(tombLevel(seed, theban, "theban.0", Number(l.to.split(":")[2]))!.lifts.some((m) => m.to === L.space && m.up !== l.up), `${seed} ${a.id}`).toBe(true);
+        expect(L.things.map((t) => t.find)).toEqual(expect.arrayContaining(a.finds.filter((f) => f === "sarcophagus")));
+      }
+    }
+    expect(tombPlan("a", theban, "theban.0")).not.toEqual(tombPlan("b", theban, "theban.0"));
+  });
+
+  it("starts a tomb robber on the stair with a lamp, and a walled-up doorway comes down", () => {
+    const r = resolveSetting("A tomb robber in Thebes, 1110 BCE");
+    if (!("setting" in r)) throw new Error(r.error);
+    expect(r.setting.below).toBe("tomb");
+    const e = createSettingSession(r.setting, "tomb");
+    const run = e.state.complex;
+    expect(run?.kind === "tomb" && run.left).toBeGreaterThan(0);
+    expect(e.state.player.pos.space).toBe("tomb:theban.0:0");
+    expect(e.complexMap()?.nodes.filter((n) => n.seen)).toHaveLength(1);
+    // Walk the plan to a sealed area and break in.
+    const plan = tombPlan(e.state.manifest.seed, theban, "theban.0"), sealed = plan.find((a) => a.sealed)!;
+    const L = e.areaOf(`tomb:theban.0:${sealed.id}`)!, wall = L.things.find((t) => t.find === "blocked-doorway")!;
+    expect(e.blocked(wall.x, wall.y, L.space)).toBe(true);
+    const beside = [[0, 1], [0, -1], [1, 0], [-1, 0]].map(([dx, dy]) => ({ x: wall.x + dx * (wall.w ?? 1), y: wall.y + dy * (wall.h ?? 1) })).find((q) => !e.blocked(q.x, q.y, L.space))!;
+    e.state.player.pos = { ...beside, space: L.space };
+    expect(e.act({ actionId: "break", expectedRevision: e.state.revision, command: { type: "interact", target: `tomb-thing:${wall.id}`, action: "complex" } }).status).toBe("completed");
+    expect(e.blocked(wall.x, wall.y, L.space)).toBe(false);
   });
 });

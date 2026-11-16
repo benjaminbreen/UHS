@@ -1,7 +1,7 @@
 import type { Inventory, Point } from "../core/types";
 
 /** A complex is a set of areas the player walks between, each generated from
- * the seed when first reached: a cave's levels, a sewer's, a mine's. */
+ * the seed when first reached: a cave's levels, a fair's grounds and halls, a tomb's chambers. */
 
 export const N4 = [[0, -1], [1, 0], [0, 1], [-1, 0]] as const;
 
@@ -24,6 +24,8 @@ export type AreaThing = {
 /** A way through to another area: a strip of an edge, or a doorway. Standing
  * in it takes the player to the matching exit of `to`, one step inside it. */
 export type AreaExit = { x: number; y: number; w: number; h: number; to: string; name: string; inward: number };
+/** A lift, stair, ladder or shaft to another area, used with the action key from beside it. */
+export type AreaLift = { x: number; y: number; to: string; up: boolean };
 export type AreaDecor = { type: string; x: number; y: number; solid: boolean; v: number };
 /** Someone in an area when the player arrives, by the content id they are generated from. */
 export type AreaFolk = { id: string; person: string; x: number; y: number; sex: "male" | "female"; age: number };
@@ -44,6 +46,7 @@ export type Area = {
   /** Which way the water runs in each wet cell: 0 N, 1 E, 2 S, 3 W, -1 still. */
   flow: Int8Array;
   exits?: AreaExit[];
+  lifts?: AreaLift[];
 };
 
 /** The exit whose strip covers a cell. */

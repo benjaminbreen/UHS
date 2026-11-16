@@ -25,6 +25,12 @@ The owner keeps this list.
 
 ## Recent milestones
 
+- November 16: tombs, the first complex planned from the seed, and a map of
+  the areas walked for fairs and tombs in the sidebar. "A tomb robber in
+  Thebes, 1110 BCE" starts on the stair of a New Kingdom rock-cut tomb
+  (`src/content/tombs/`, `src/world/tomb.ts`, `src/core/tomb.ts`,
+  `src/render/tomb/`). No way in from the open world yet, and nobody else
+  is in the tomb.
 - November 16: the 1889 Exposition Universelle, the first world's fair. A
   prompt naming the fair or the Eiffel Tower starts at the Trocadéro gate:
   47 areas from the Champ de Mars to the colonial villages, pavilion

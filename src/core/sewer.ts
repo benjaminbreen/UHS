@@ -6,7 +6,7 @@ import { personFits, sewerFind, sewerKindFor, sewerPeople } from "../content/sew
 import { folkArrive, folkDeal, folkTime } from "./tunnel-folk";
 import { laneLids } from "../render/carriageway";
 import { rngOf } from "./random";
-import { complexRecord, nearest, takeFind, type ComplexHost } from "./complex";
+import { burnLight, complexRecord, nearest, takeFind, type ComplexHost } from "./complex";
 import { landing } from "../world/complex";
 import { parseSewerSpace, sewerLevel, sewerSolid, sewerSpace, walkable, WATER, type SewerSite, type TunnelNetwork } from "../world/sewer";
 import { doorApproach } from "./doors";
@@ -39,7 +39,7 @@ export type SewerRun = {
 };
 
 /** The tunnel run in progress, if the player is down a sewer or a mine. */
-export const tunnelRun = (s: GameState) => (s.complex && s.complex.kind !== "cave" && s.complex.kind !== "fair" ? s.complex : undefined);
+export const tunnelRun = (s: GameState) => (s.complex?.kind === "sewer" || s.complex?.kind === "mine" ? s.complex : undefined);
 /** What has been taken on this level's network. */
 const doneOn = (state: GameState, level: { network: TunnelNetwork; site: string }) => state.complexes?.[`${level.network}:${level.site}`]?.done;
 
@@ -369,16 +369,7 @@ export function sewerTime(h: ComplexHost, elapsed: number) {
   const { level } = c;
   const light = caveLight(run.light);
   // A miner's shift is lit from their own supply of candles or oil.
-  if (run.left > 0 && !h.busy()) {
-    run.left -= elapsed;
-    if (run.left <= 0) {
-      run.left = 0;
-      h.event(`${light.out} ${run.kind === "mine" ? "It is completely dark." : "Only the daylight through the lids is left to see by."}`);
-    } else if (!run.low && run.left < light.burns * 0.2) {
-      run.low = true;
-      h.event(light.flame ? "Your lamp is burning low." : "Your torch is going yellow. The batteries will not last much longer.");
-    }
-  }
+  if (!h.busy()) burnLight(h, run, elapsed, run.kind === "mine" ? "It is completely dark." : "Only the daylight through the lids is left to see by.", (flame) => (flame ? "Your lamp is burning low." : "Your torch is going yellow. The batteries will not last much longer."));
   const rain = run.kind === "mine" ? 0 : h.rain();
   const want = rain > 0.2 ? Math.min(1, (rain - 0.2) * 1.6) : 0;
   const was = run.surge;
