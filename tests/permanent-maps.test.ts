@@ -179,4 +179,9 @@ it("makes the squares beside a great city its suburbs, or settled country before
   expect(old.suburb).toBeUndefined();
   expect(old.settlement).toBe("none");
   expect(old.countryside).toBe("settled");
+  // A curated anchor has no head count of its own; its series stands in.
+  const london = parseTile(mapForCoordinate({ lon: -0.12, lat: 51.51 }));
+  const north = tileId({ i: london.i, j: london.j - 1 });
+  await loadTileNames([north]);
+  expect(permanentMap(north, 1890).suburb?.of).toBe("London");
 });

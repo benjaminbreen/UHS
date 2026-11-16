@@ -5,6 +5,7 @@ import { environmentFor } from "../../content/geography/defaults";
 import { farms, networkOnset } from "../../content/geography/onsets";
 import { settingFor } from "../../content/geography/resolve";
 import { populationAt } from "../../content/geography/eras";
+import { cityPopulation } from "../../content/settlements/city-populations";
 import type { AtlasPlace, WorldSetting } from "../../content/geography/types";
 import {
   atlasSample,
@@ -110,10 +111,10 @@ export type MapEnvironment = ReturnType<typeof resolveMapEnvironment>;
 export function metropolisNear(at: Coordinate, year: number) {
   let best: { of: string; population: number; bearing: string; suburban: boolean } | undefined;
   for (const p of places) {
-    if (!p.population || Math.abs(p.lat - at.lat) > 0.7) continue;
+    if (Math.abs(p.lat - at.lat) > 0.7) continue;
     const km = kilometers(p, at);
     if (km > 64 || km < 8) continue;
-    const people = populationAt(p, year) ?? 0;
+    const people = cityPopulation(p.id, year) ?? populationAt(p, year) ?? 0;
     const reach = people >= 6e6 ? 64 : people >= 2e6 ? 46 : people >= 4e5 ? 32 : 0;
     if (km > reach) continue;
     const population = Math.round(people * (km < 34 ? 0.04 : 0.012));

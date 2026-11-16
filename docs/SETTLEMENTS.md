@@ -145,11 +145,16 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
   beside one, away from the works, are `villa`. Villa and suburb blocks
   build houses in gardens (`front_homes.py`): one kind of house to a block
   in all its colours, the kind chosen by place and date in
-  `street-looks.ts`, a drive's width between neighbours. Estates and self-built
+  `street-looks.ts`, a drive's width between neighbours, and nothing else
+  built into the gaps. Estates and self-built
   quarters come by date and share as before. A quarter standing apart from
   the middle, and the town of a suburb map, has shops but no downtown.
 - A city of a million claims 184 cells of its map's 192 and is built out to
   150 cells at a million people, 180 from four (`urbanRadius`).
+  The head count is the gazetteer's, scaled to the date. The curated
+  anchors (London, Paris, Rome) carry none, so theirs comes from the series
+  in `city-populations.ts`; an anchor with no row there at the date is built
+  as a small town.
 - No trade stands more than a few times in one city (`repeats`).
 - An industrial town gets a double-track railway past the old centre, a
   station block with a platform, level crossings, and a girder bridge over

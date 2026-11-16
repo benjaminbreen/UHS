@@ -17,7 +17,9 @@ its four neighbours. The setting carries this as `playableMap` (size 304,
 
 A square with no town of its own inside a great city's reach is not empty.
 `metropolisNear` (`environment.ts`) finds the city: the squares touching one
-of 400,000 people, two out from one of two million, three from one of six.
+of 400,000 people, two out from one of two million, three from one of six
+(its series in `city-populations.ts` where it has one, else the gazetteer's
+figure at the date).
 Once the region has industrialised the square is a suburb (`suburb` on the
 map, named "Suburbs east of ..."), a town with a few per cent of the city's
 people, fewer in the outer rings, and no downtown (`suburbOf` on the

@@ -2221,7 +2221,7 @@ export function urbanNeighborhood(
         // Not a shop in a suburb or a factory yard, not a bungalow downtown.
         const use =
           useAt.get(cellKey(rect.x + (w >> 1), rect.y + (h >> 1))) ?? here;
-        if (use === "suburb" || use === "estate" || use === "industrial")
+        if (use === "suburb" || use === "villa" || use === "estate" || use === "industrial")
           continue;
         if (
           (use === "downtown" || use === "commercial") &&
@@ -2254,6 +2254,8 @@ export function urbanNeighborhood(
     const use = uses.get(block);
     if (use === "estate" || use === "industrial" || use === "tenement" || use === "rowhouse") return;
     if (form.motor && !form.oldCore && use === "suburb" && rank.built) return;
+    // Houses in gardens keep the ground between them.
+    if ((use === "villa" || use === "suburb") && rank.built && streetLookFrames(block)?.length) return;
     if (framesForBlock(block).some(tallKit)) return;
     // Offices, shops and works build over their whole block; homes keep yards.
     const own =
@@ -2794,8 +2796,9 @@ export function urbanNeighborhood(
             : vertical
               ? Math.max(spacing, margins[1])
               : spacing) +
-          // A grand house stands in its own grounds, clear of the next.
-          (grand ? 3 + Math.floor(rand("grand-gap", block.x, edge, cursor) * 3) : 0);
+          // A grand house stands in its own grounds, clear of the next; on a
+          // city street its grounds are a garden's width.
+          (grand ? (block.row ? 1 : 3) + Math.floor(rand("grand-gap", block.x, edge, cursor) * 3) : 0);
         const deep = vertical ? w : h;
         // A row's lots all reach the same back line, whatever the house depth.
         const room = open ? Math.min(GARDEN, maxDepth - deep - setback) : maxDepth - deep - setback;
