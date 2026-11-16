@@ -179,9 +179,10 @@ prop. Do not back-project a later national style into prehistory.
 | `front_sacred.py`, `front_sacred_*.py` | Temples, mosques, churches, synagogues and shrines by region, one spec contract |
 | `front_worksites.py`, `front_worksites_world.py` | Working buildings with their yard equipment |
 | `front_goods.py`, `front_props.py` | Shop interiors as bays; props baked into buildings (wells, fountains, pots, trees) |
-| `front_family.py` | The registry for spec-driven house families. `MODULES` lists `front_iberia`, `front_modern`, `front_modern_world`, `front_europe` and `front_homes` |
+| `front_family.py` | The registry for spec-driven house families. `MODULES` lists `front_iberia`, `front_modern`, `front_modern_world`, `front_europe`, `front_homes` and `front_victorian` |
 | `front_iberia.py` | The `casa` family. Its roofs, window cages, balconies, doorways and shop bays are the library for this kind of house |
 | `front_modern.py`, `front_modern_world.py`, `front_europe.py` | The 1900–1990 street; European city houses of 1700–1850 |
+| `front_victorian.py` | The city centre of 1850–1914 in the British and American manner: `chambers`, `emporium` and `pub`. `light` draws a sash under a flat, round or pointed head in its ring of stone; `rustic`, `cornice`, `pediment`, `ledge` and `urn` are its other parts |
 | `front_homes.py` | Houses in gardens, 1850 on: villas in brick, stucco and weatherboard, the suburban house, bungalow, ranch house and rendered house. `Home` is the base for a detached house; `gable`, `hip`, `bay_window`, `veranda`, `pier_post`, `casement` and `garage_door` are its parts |
 | `front_audit.py`, `front_review.py` | Checks, as advice; review sheets beside the pinned gold masters |
 

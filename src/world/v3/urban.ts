@@ -444,6 +444,10 @@ export function urbanNeighborhood(
     return { centre, inner: outlying ? centre : centre + (1 - centre) * before };
   })();
   const ringOf = (reach: number) => (reach < rings!.centre ? "centre" : reach < rings!.inner ? "inner" : "outer");
+  /** Whether the middle of this city has been rebuilt as a business district. */
+  const downtown = !!zoning && !outlying && site.profile.radius >= 50 &&
+    year >= zoning.modernity.industrial + zoning.downtownAfter &&
+    (pack.setting?.population ?? Infinity) >= (zoning.downtownFrom ?? 0);
   const rowDepth = zoning && form.streetWall ? (() => {
     const likely = (use: LandUse) => {
       const street = streetLooks(pack.setting!, use).blocks.flatMap(({ look }) => streetFrames(look as Parameters<typeof streetFrames>[0]));
@@ -453,7 +457,7 @@ export function urbanNeighborhood(
       const yard = use === "commercial" || use === "downtown" ? 0 : (form.backs ?? 3);
       return { main: (depths[Math.floor(depths.length * 0.75)] ?? 10) + yard, low: Math.max(7, depths[Math.floor(depths.length * 0.2)] ?? 8) };
     };
-    const depth = { centre: likely("commercial"), inner: likely(zoning.inner), outer: likely(zoning.outer) };
+    const depth = { centre: likely(downtown ? "downtown" : "commercial"), inner: likely(zoning.inner), outer: likely(zoning.outer) };
     return (near: number, far: number, low = false) =>
       Math.max(...[near, (near + far) / 2, far].map((reach) => depth[ringOf(reach)][low ? "low" : "main"]));
   })() : undefined;
@@ -1826,12 +1830,7 @@ export function urbanNeighborhood(
     const { industrial } = z.modernity;
     if (form.oldCore && block.district === 0) return "historic";
     const ring = ringOf(block.reach), u = block.reach;
-    if (ring === "centre")
-      return !outlying && site.profile.radius >= 50 &&
-        year >= industrial + z.downtownAfter &&
-        (pack.setting?.population ?? Infinity) >= (z.downtownFrom ?? 0)
-        ? "downtown"
-        : "commercial";
+    if (ring === "centre") return downtown ? "downtown" : "commercial";
     if (worksBlocks.has(block)) return "industrial";
     // Shops follow the main streets, thinning toward the edge.
     if (!block.low && onArterial(block) && rand("main", block.x, block.y) < Math.max(0.08, 0.95 - u * 1.1))
@@ -2178,8 +2177,10 @@ export function urbanNeighborhood(
       // The city kit's tall ranges only stand as a block's street wall; one
       // dropped behind any footway hides whatever is north of it.
       const wall = (f: string) => facing === "south" || !tallKit(f);
-      const available = here ? framesFor(quarterFor(here), here).filter(wall) : [];
-      const civicHomes = zoning && reach < 0.4
+      // Leftover frontage is built in the street looks of the place where it has them.
+      const looked = here ? streetLooks(pack.setting!, here).blocks.flatMap(({ look }) => streetFrames(look as Parameters<typeof streetFrames>[0])) : [];
+      const available = looked.length ? looked : here ? framesFor(quarterFor(here), here).filter(wall) : [];
+      const civicHomes = zoning && reach < 0.4 && !looked.length
         ? modernBuildings(pack.setting!, "tenement").filter(wall) : [];
       const choices = (
         here

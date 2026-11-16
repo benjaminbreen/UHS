@@ -409,6 +409,13 @@ it("mixes twentieth-century street looks by place and date", () => {
   expect(streetMix({ lon: -0.12, lat: 51.5, year: 1935 }, "suburb").suburban).toBeGreaterThan(0.5);
   expect(streetMix({ lon: 11.58, lat: 48.14, year: 1975 }, "suburb").rendered).toBeGreaterThan(0.5);
   expect(streetMix({ lon: 139.7, lat: 35.7, year: 1985 }, "suburb")).toEqual({});
+  // A Victorian centre: chambers and stores downtown, the parade on the shop streets.
+  const london = (year: number, use: "downtown" | "commercial") => streetMix({ lon: -0.12, lat: 51.5, year }, use);
+  expect(share(london(1890, "downtown"), "chambers", "emporium")).toBeGreaterThan(0.4);
+  expect(london(1890, "commercial").highstreet).toBeGreaterThan(0.5);
+  expect(london(1890, "commercial").precinct).toBeUndefined();
+  expect(london(1850, "commercial").highstreet).toBeUndefined();
+  expect(streetMix({ lon: 72.83, lat: 18.93, year: 1900 }, "downtown").chambers).toBeGreaterThan(0.1);
 });
 
 it("gives open lots a use from the place, inside the lot and drawn", () => {

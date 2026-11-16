@@ -31,7 +31,12 @@ const LOOKS = {
   "strip-asia": { since: 1975, uses: ["commercial"] },
   cairo: { since: 1945, uses: ["commercial", "downtown", "tenement"] },
   tonglau: { since: 1920, uses: ["commercial", "downtown", "tenement"] },
-  highstreet: { since: 1900, uses: ["commercial", "downtown"] },
+  highstreet: { since: 1860, uses: ["commercial", "downtown"] },
+  precinct: { since: 1955, uses: ["commercial", "downtown"] },
+  // The city centre before the steel frame (front_victorian.py).
+  chambers: { since: 1850, until: 1914, uses: ["downtown"] },
+  emporium: { since: 1860, until: 1914, uses: ["downtown"] },
+  pub: { since: 1850, uses: ["commercial", "downtown"], accent: true },
   storey: { since: 1950, uses: ["commercial", "downtown", "tenement"] },
   habana: { since: 1900, uses: ["commercial", "downtown", "tenement"] },
   mission: { since: 1915, uses: ["commercial"] },
@@ -57,12 +62,12 @@ type At = readonly (readonly [lon: number, lat: number])[];
  * older modern kit. `w` weighs a home against its neighbours. */
 const HOMES: { looks: Mix; at: At; km: number; w?: number; from?: number }[] = [
   {
-    looks: { brick: 3, strip: 2, diner: 0.5, motel: 0.6, bank: 1, office: 1, theatre: 0.6, gas: 0.6, drivein: 0.3, market: 0.5 },
+    looks: { brick: 3, strip: 2, diner: 0.5, motel: 0.6, bank: 1, office: 1, theatre: 0.6, gas: 0.6, drivein: 0.3, market: 0.5, chambers: 2, emporium: 1.5 },
     at: [[-98, 39], [-82, 37], [-119, 38], [-90, 32], [-112, 45], [-81.4, 28.5], [-84.4, 33.7]],
     km: 1300,
   },
   // Canada built the same Main Street, a little less of the roadside.
-  { looks: { brick: 3, strip: 1, bank: 1, office: 1, theatre: 1, gas: 0.5, market: 0.4 }, at: [[-79.4, 43.7], [-73.6, 45.5], [-114, 51], [-123, 49.3]], km: 700 },
+  { looks: { brick: 3, strip: 1, bank: 1, office: 1, theatre: 1, gas: 0.5, market: 0.4, chambers: 2, emporium: 1.5 }, at: [[-79.4, 43.7], [-73.6, 45.5], [-114, 51], [-123, 49.3]], km: 700 },
   // Tenements and brownstones of the old Northeast and Midwest.
   { looks: { walkup: 1 }, at: [[-74, 40.7], [-71.06, 42.36], [-75.16, 39.95], [-76.6, 39.3], [-87.65, 41.88], [-79.99, 40.44]], km: 450, w: 0.5 },
   // Spanish Colonial Revival, California's own; Florida's Mediterranean.
@@ -74,7 +79,7 @@ const HOMES: { looks: Mix; at: At; km: number; w?: number; from?: number }[] = [
   { looks: { cairo: 1 }, at: [[31.24, 30.04], [29.92, 31.2], [35.5, 33.89], [36.29, 33.51], [35.93, 31.95], [13.19, 32.89], [32.53, 15.59]], km: 700 },
   { looks: { cairo: 1 }, at: [[44.37, 33.31], [46.68, 24.71], [-7.6, 33.57], [3.06, 36.75], [10.18, 36.81]], km: 600, w: 0.5 },
   { looks: { tonglau: 1 }, at: [[114.17, 22.3], [113.26, 23.13], [113.54, 22.2], [121.47, 31.23], [103.85, 1.29], [100.33, 5.41], [100.5, 13.75], [106.7, 10.78]], km: 650 },
-  { looks: { highstreet: 1 }, at: [[-0.12, 51.5], [-2.6, 51.45], [-1.9, 52.48], [-2.24, 53.48], [-1.55, 53.8], [-1.6, 54.97], [-4.25, 55.86], [-3.19, 55.95], [-3.18, 51.48], [-5.93, 54.6], [-6.26, 53.35]], km: 180 },
+  { looks: { highstreet: 3, precinct: 1, chambers: 2, emporium: 1, pub: 1 }, at: [[-0.12, 51.5], [-2.6, 51.45], [-1.9, 52.48], [-2.24, 53.48], [-1.55, 53.8], [-1.6, 54.97], [-4.25, 55.86], [-3.19, 55.95], [-3.18, 51.48], [-5.93, 54.6], [-6.26, 53.35]], km: 180 },
   { looks: { storey: 1 }, at: [[3.38, 6.45], [-0.19, 5.6], [3.9, 7.38], [-1.62, 6.69], [8.52, 12], [-13.23, 8.48], [-4.01, 5.35], [9.7, 4.05]], km: 900 },
   { looks: { storey: 1 }, at: [[36.82, -1.29], [39.28, -6.8], [32.58, 0.35], [15.3, -4.32]], km: 900, w: 0.5 },
   { looks: { habana: 1 }, at: [[-82.37, 23.13], [-75.82, 20.02], [-66.1, 18.47], [-69.9, 18.48], [-75.5, 10.4]], km: 500 },
@@ -83,9 +88,9 @@ const HOMES: { looks: Mix; at: At; km: number; w?: number; from?: number }[] = [
   { looks: { tehran: 1 }, at: [[51.4, 35.7], [51.7, 32.7], [59.6, 36.3], [46.3, 38.1], [52.5, 29.6]], km: 700 },
   { looks: { delhi: 1 }, at: [[77.2, 28.6], [72.9, 19.1], [88.4, 22.6], [80.3, 13.1], [74.3, 31.5], [67, 24.9], [90.4, 23.8], [78.5, 17.4]], km: 900 },
   { looks: { veranda: 2, bokaap: 1 }, at: [[18.4, -33.9]], km: 250 },
-  { looks: { veranda: 2, brick: 1 }, at: [[28, -26.2], [31, -29.9], [25.6, -33.9], [28.2, -25.7]], km: 700 },
-  { looks: { veranda: 2, brick: 1, strip: 1, bank: 1, office: 1 }, at: [[151.2, -33.9], [153, -27.5], [145, -37.8], [115.9, -32], [138.6, -34.9]], km: 900 },
-  { looks: { veranda: 1, brick: 2, strip: 1, office: 1 }, at: [[174.8, -36.8], [172.6, -43.5]], km: 600 },
+  { looks: { veranda: 2, brick: 1, chambers: 1 }, at: [[28, -26.2], [31, -29.9], [25.6, -33.9], [28.2, -25.7]], km: 700 },
+  { looks: { veranda: 2, brick: 1, strip: 1, bank: 1, office: 1, chambers: 1.5, emporium: 1, pub: 0.6 }, at: [[151.2, -33.9], [153, -27.5], [145, -37.8], [115.9, -32], [138.6, -34.9]], km: 900 },
+  { looks: { veranda: 1, brick: 2, strip: 1, office: 1, chambers: 1.5, emporium: 1, pub: 0.6 }, at: [[174.8, -36.8], [172.6, -43.5]], km: 600 },
   // Houses in their own gardens. North America: board and brick, then the
   // bungalow, then the ranch house.
   {
@@ -137,7 +142,14 @@ const INFLUENCES: { looks: Mix; at: At; km: number; share: [year: number, share:
   { looks: { tehran: 1 }, at: [[44.4, 33.3], [69.2, 34.5], [55.3, 25.3]], km: 600, share: [[1950, 0.1], [1990, 0.2]] },
   { looks: { habana: 1 }, at: [[-80.2, 25.77]], km: 120, share: [[1960, 0.04], [1975, 0.2], [1990, 0.28]] },
   { looks: { habana: 1 }, at: [[-73.94, 40.8]], km: 60, share: [[1950, 0.03], [1975, 0.08]] },
-  { looks: { highstreet: 1 }, at: [[151.2, -33.9], [145, -37.8], [174.8, -36.8], [18.4, -33.9], [-79.4, 43.7]], km: 400, share: [[1900, 0.12], [1990, 0.06]] },
+  { looks: { highstreet: 1 }, at: [[151.2, -33.9], [145, -37.8], [174.8, -36.8], [18.4, -33.9], [-79.4, 43.7]], km: 400, share: [[1860, 0.12], [1990, 0.06]] },
+  // The business quarter of a colonial port: banks, shipping offices and stores in the home country's manner.
+  {
+    looks: { chambers: 2, emporium: 1 },
+    at: [[72.83, 18.93], [88.35, 22.57], [80.28, 13.08], [79.86, 6.93], [96.16, 16.78], [103.85, 1.29], [100.34, 5.41], [114.16, 22.28], [121.49, 31.24], [18.42, -33.92], [39.67, -4.05], [3.39, 6.45], [-76.79, 17.97]],
+    km: 150,
+    share: [[1850, 0], [1870, 0.3], [1914, 0.45], [1950, 0.3], [1990, 0.15]],
+  },
 ];
 
 const KM_PER_DEGREE = 111.2;
