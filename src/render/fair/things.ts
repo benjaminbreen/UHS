@@ -84,14 +84,26 @@ export function paintFairThing(art: string, w: number, h: number, v: number, tin
       return done(s);
     }
     case "bales": case "sacks": {
-      const s = make(18), { r, X, Y } = s, c = t ?? (art === "bales" ? ["#fbf4e2", "#ebdcc0", "#d0bc98", "#a89270", "#7a684e"] : ["#e8d4a8", "#d0b888", "#b09464", "#887048", "#5e4c32"]);
+      // Jute sacks or banded bales piled on a pallet: each a rounded bulk lit on its upper left.
+      const s = make(26), { r, X, Y } = s, jute = ["#ecd8ac", "#d6bc88", "#b89a66", "#8e7448", "#5e4c32"];
+      const c = art === "bales" ? (t ?? ["#fbf6ea", "#ece0c8", "#d4c4a4", "#ac9c7c", "#7a6c54"]) : jute;
       ground(s);
-      for (let k = 0; k < Math.max(3, W / 8); k++) {
-        const x = X + 1 + k * 8 - (k % 2), y = Y + H - 6 - (k % 2) * 7;
-        box(r, x, y - 8, 10, 4, art === "bales" ? 8 : 7, c, c);
-        if (art === "sacks") { r.fill(x + 3, y - 10, 4, 2, c[3]); r.fill(x + 4, y - 11, 2, 1, c[2]); }
-        else { r.fill(x, y - 2, 10, 1, IRON[2]); r.fill(x, y - 6, 10, 1, IRON[2]); }
-      }
+      box(r, X + 1, Y + H - 9, W - 2, 3, 4, WOOD, DARKWOOD);
+      const lump = (cx: number, foot: number, rx: number, ry: number) => {
+        for (let j = -ry; j <= ry; j++) for (let i = -rx; i <= rx; i++) {
+          const q = (i * i) / (rx * rx) + (j * j) / (ry * ry);
+          if (art === "bales" ? Math.max(Math.abs(i) / rx, Math.abs(j) / ry) > 1 || q > 1.5 : q > 1) continue;
+          const k = -i / rx * 0.8 - j / ry;
+          r.set(cx + i, foot - ry + j, c[k > 0.7 ? 0 : k > -0.1 ? 1 : k > -0.8 ? 2 : 3]);
+        }
+        r.fill(cx - rx + 1, foot, rx * 2 - 1, 1, c[4]);
+        if (art === "bales") for (const dx of [-rx / 2, rx / 2]) r.fill(cx + dx, foot - ry * 2, 1, ry * 2, IRON[2]);
+        else { r.fill(cx - 1, foot - ry * 2 - 2, 3, 3, c[2]); r.set(cx, foot - ry * 2 - 3, c[1]); r.fill(cx - 3, foot - ry - 1, 6, 1, t ? t[2] : RED[2]); }
+      };
+      const n = Math.max(2, Math.floor((W - 4) / 11));
+      for (let k = 0; k < n; k++) lump(X + 7 + k * 11, Y + H - 13, 5, 5);
+      for (let k = 0; k < n - 1; k++) lump(X + 12 + k * 11, Y + H - 21, 5, 5);
+      for (let k = 0; k < n; k++) lump(X + 7 + k * 11 + 2, Y + H - 6, 5, 4);
       return done(s);
     }
     case "barrels": {
@@ -212,17 +224,18 @@ export function paintFairThing(art: string, w: number, h: number, v: number, tin
       const s = make(art === "pyramid" ? 40 : 28), { r, X, Y } = s, m = t ?? STONE;
       ground(s);
       if (art === "pyramid") {
-        // Tiers stepping in from a stone kerb, each a top of massed bloom over a shaded face.
-        box(r, X + 1, Y + 2, W - 2, H - 8, 4, STONE, STONE);
-        for (let k = 0; k < 4; k++) {
-          const x = X + 3 + k * 5, ww = W - 6 - k * 10, d = Math.max(4, H - 12 - k * 6), top = Y + 3 + k * 3 - k * 7;
-          if (ww < 6) break;
-          // Bedding is green leaf thick with bloom; a pale tint is a heap of crystals, not plants.
-          const pale = parseInt(m[2].slice(1, 3), 16) > 200 && parseInt(m[2].slice(5, 7), 16) > 180, body = pale ? m : GREEN;
-          box(r, x, top, ww, d, 6, body, body);
-          for (let j = 0; j < d + 5; j++) for (let i = j % 2; i < ww; i += 2) {
-            const n = h2(x + i, top + j, 11);
-            if (n < 0.55) r.set(x + i, top + j, j >= d ? (n < 0.2 ? m[3] : m[2]) : n < 0.22 ? m[0] : m[1]);
+        // A round bed in tiers, each a low drum of leaf massed with bloom; a pale tint is a heap of crystals.
+        const pale = parseInt(m[2].slice(1, 3), 16) > 200 && parseInt(m[2].slice(5, 7), 16) > 180, body = pale ? m : GREEN, cx = X + W / 2;
+        drum(r, cx, Y + H - 4, W / 2 - 1, (W / 2 - 1) * 0.42, 3, STONE);
+        for (let k = 0; k < 3; k++) {
+          const rx = W / 2 - 3 - k * 6, ry = rx * 0.42, foot = Y + H - 7 - k * 7;
+          if (rx < 4) break;
+          drum(r, cx, foot, rx, ry, 6, body);
+          for (let j = -ry; j <= ry + 6; j++) for (let i = -rx; i <= rx; i++) {
+            const top = (i * i) / (rx * rx) + (j * j) / (ry * ry) <= 1, side = j > 0 && (i * i) / (rx * rx) <= 1 && j <= ry * Math.sqrt(1 - (i * i) / (rx * rx)) + 6;
+            if (!top && !side) continue;
+            const n = h2(Math.round(cx + i), Math.round(foot - 6 + j), 11 + k);
+            if (n < (top ? 0.5 : 0.3)) r.set(cx + i, foot - 6 + j, top ? (n < 0.18 ? m[0] : m[1]) : m[2]);
           }
         }
       } else {
@@ -357,11 +370,51 @@ export function paintFairDecor(type: string, v: number): FairSprite | undefined 
     r.finish();
     return { r, ox: 8, oy: 18 };
   }
+  if (type === "case") {
+    // A tall glazed case against the wall: a mahogany base, shelves of goods behind glass, a moulded top.
+    const r = new Raster(24, 52), x0 = 3, foot = 44, goods = [BRASS, RED, GLASS, STONE, ramp(["#6a8ab8", "#7a9a5a", "#c8a050"][Math.floor(v * 3)])];
+    r.shadow(12, foot, 10, 3);
+    box(r, x0, foot - 12, 18, 3, 9, DARKWOOD, DARKWOOD);
+    r.fill(x0 + 1, foot - 39, 16, 27, GLASS[2]); r.fill(x0 + 1, foot - 39, 16, 8, GLASS[1]);
+    for (const [k, sy] of [[0, foot - 33], [1, foot - 24], [2, foot - 15]] as const) {
+      r.fill(x0 + 1, sy + 6, 16, 1, DARKWOOD[1]);
+      for (let i = 0; i < 4; i++) {
+        const g = goods[Math.floor(h2(i, k, Math.floor(v * 50)) * goods.length)], x = x0 + 2 + i * 4, tall = 2 + Math.floor(h2(k, i, 7) * 4);
+        r.fill(x, sy + 6 - tall, 3, tall, g[1]); r.set(x, sy + 6 - tall, g[0]); r.fill(x + 2, sy + 7 - tall, 1, tall - 1, g[3]);
+      }
+    }
+    for (const x of [x0, x0 + 17]) r.fill(x, foot - 41, 1, 30, DARKWOOD[2]);
+    r.fill(x0 - 1, foot - 43, 20, 3, DARKWOOD[1]); r.fill(x0 - 1, foot - 43, 20, 1, DARKWOOD[0]);
+    for (let k = 0; k < 7; k++) r.set(x0 + 3 + k, foot - 37 + k, "#ffffff");
+    r.finish();
+    return { r, ox: 4, oy: 34 };
+  }
+  if (type === "palm") {
+    // A fan palm in a green-painted tub with brass hoops: fronds springing from a crown, lit on top.
+    const r = new Raster(56, 64), cx = 28, foot = 58;
+    r.shadow(cx + 4, foot, 16, 4);
+    const tub = ["#8cbc84", "#5e9a5e", "#447c46", "#305e34", "#1e4024"];
+    drum(r, cx, foot, 8, 3, 13, tub, DARKWOOD);
+    for (const y of [foot - 3, foot - 10]) r.fill(cx - 8, y, 16, 1, BRASS[2]);
+    const crown = foot - 20, leaf = LEAF[2];
+    for (let k = 0; k < 11; k++) {
+      const a = -Math.PI + (k / 10) * Math.PI + (h2(k, 1, Math.floor(v * 30)) - 0.5) * 0.25, len = 16 + h2(k, 2, Math.floor(v * 30)) * 9;
+      for (let t = 0; t <= len; t++) {
+        const droop = (t / len) ** 2 * 10, x = cx + Math.cos(a) * t, y = crown + Math.sin(a) * t * 0.8 + droop;
+        const up = Math.sin(a) < -0.4;
+        r.set(x, y, leaf[up ? 1 : 2]);
+        if (t > 3 && t % 2 === 0) for (const s of [-1, 1]) { r.set(x + s * Math.sin(a) * 2, y - s * Math.cos(a) * 1.5 + 1, leaf[up ? 2 : 3]); r.set(x + s * Math.sin(a) * 3, y - s * Math.cos(a) * 2 + 2, leaf[4]); }
+      }
+    }
+    r.fill(cx - 1, crown - 1, 3, 3, BARK[2]);
+    r.finish();
+    return { r, ox: 20, oy: 48 };
+  }
   if (type === "urn") {
     // A stone urn of geraniums on a pedestal.
     const r = new Raster(32, 44), cx = 16, foot = 38;
     r.shadow(cx + 3, foot, 9, 3);
-    box(r, cx - 6, foot - 2, 12, 4, 12, STONE, STONE);
+    box(r, cx - 6, foot - 16, 12, 4, 12, STONE, STONE);
     r.fill(cx - 7, foot - 16, 14, 2, STONE[1]); r.fill(cx - 7, foot - 16, 14, 1, STONE[0]);
     drum(r, cx, foot - 17, 2, 1, 3, STONE);
     for (let k = 0; k < 8; k++) drum(r, cx, foot - 19 - k, 3 + k * 0.75, 1.5, 1, STONE);

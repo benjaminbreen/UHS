@@ -148,57 +148,115 @@ def steps(c, cx, base, w, n, r):
 
 # ------------------------------------------------------------------ styles
 
+def balustrade(c, x0, x1, y, r, urns=48):
+    """A balustrade along a wall head: rails lit on top, turned balusters
+    between, and urns on the posts."""
+    c.rect(x0 - 2, y, x1 - x0 + 4, 2, r[0])
+    c.rect(x0 - 2, y + 2, x1 - x0 + 4, 1, r[3])
+    for x in range(x0, x1, 3):
+        c.rect(x, y + 3, 2, 6, r[2]); c.p(x, y + 4, r[1]); c.p(x + 1, y + 5, r[4]); c.p(x, y + 7, r[1])
+    c.rect(x0 - 2, y + 9, x1 - x0 + 4, 2, r[1])
+    c.rect(x0 - 2, y + 11, x1 - x0 + 4, 1, r[4])
+    n = max(1, (x1 - x0) // urns)
+    for i in range(n + 1):
+        px = x0 + (x1 - x0 - 6) * i // n
+        c.rect(px, y - 1, 6, 12, r[1]); c.rect(px, y - 1, 1, 12, r[0]); c.rect(px + 5, y - 1, 1, 12, r[4])
+        c.rect(px - 1, y - 2, 8, 2, r[0])
+        for k, half in enumerate((2, 3, 3, 2, 1)):
+            c.rect(px + 3 - half, y - 3 - k, half * 2, 1, r[1 + (k % 2)])
+        c.p(px + 3, y - 8, r[0])
+
+
 def classical(w, h, look):
-    """A pavilion in the academic manner: rendered walls, a portico of four
-    columns under a pediment, round-headed windows, a slate hip behind."""
+    """A pavilion in the academic manner: a rusticated ground course, rendered
+    walls in bays between pilasters, round-headed windows with keystones, a
+    dentilled cornice under a balustrade with urns, a portico of four columns
+    under a pediment, and a slate hip behind."""
     p = Pav(w, h)
     c, x0, x1, base, cx = p.c, p.x0, p.x1, p.base, p.cx
+    stone = RAMPS['limestone']
     wallr = [RAMPS['limestone'], RAMPS['plaster-ochre'], ramp(20, 0.05, lift=0.02)][look % 3]
     hw = min(62, p.D - 24)
     eave = base - hw
-    hip_roof(c, x0, x1, eave, p.D - hw - 6, TONES['slate-blue'])
+    hip_roof(c, x0 + 6, x1 - 6, eave - 8, p.D - hw - 10, TONES['slate-blue'], hip=0.5)
     wall(c, x0, eave, p.W, hw, 'render', wallr)
-    plinth(c, x0, base - 7, p.W, RAMPS['limestone'])
-    c.rect(x0 - 2, eave, p.W + 4, 3, RAMPS['limestone'][0])
-    c.rect(x0 - 2, eave + 3, p.W + 4, 2, RAMPS['limestone'][2])
-    cast_down(c, x0, x1, eave + 5, 3, 0.3)
-    bay = 22
+    # Rustication: channelled courses below the windows.
+    for y in range(base - 16, base - 7, 4):
+        c.rect(x0, y, p.W, 1, wallr[4]); c.rect(x0, y + 1, p.W, 1, wallr[1])
+    plinth(c, x0, base - 7, p.W, stone)
+    # Cornice: a lit fillet, dentils, the shadow it throws.
+    c.rect(x0 - 3, eave, p.W + 6, 3, stone[0])
+    c.rect(x0 - 3, eave + 3, p.W + 6, 1, stone[3])
+    for x in range(x0 - 2, x1 + 2, 3):
+        c.rect(x, eave + 4, 2, 2, stone[1]); c.p(x + 1, eave + 5, stone[4])
+    cast_down(c, x0, x1, eave + 6, 3, 0.32)
+    balustrade(c, x0, x1, eave - 12, stone)
+    bay = 24
     port = min(p.W - 24, 64)
-    for x in range(x0 + 10, x1 - 16, bay):
-        if abs(x + 7 - cx) < port // 2 + 6:
-            continue
-        window(c, 'roundhead', x + 7, eave + 14, 12, 26, RAMPS['limestone'], seed=x, glass='clear')
+    bays = [x for x in range(x0 + 12, x1 - 18, bay) if abs(x + 7 - cx) >= port // 2 + 8]
+    for x in bays:
+        window(c, 'roundhead', x + 7, eave + 14, 12, 26, stone, seed=x, glass='clear')
+        c.rect(x + 5, eave + 11, 4, 4, stone[0]); c.rect(x + 8, eave + 11, 1, 4, stone[3])
+        # Pilasters between the bays, lit on their left.
+        for px in (x - 6, x + 19):
+            if x0 + 2 < px < x1 - 6 and abs(px - cx) > port // 2 + 2:
+                c.rect(px, eave + 7, 5, hw - 23, wallr[1]); c.rect(px, eave + 7, 1, hw - 23, wallr[0]); c.rect(px + 4, eave + 7, 1, hw - 23, wallr[3])
+                c.rect(px - 1, eave + 7, 7, 2, stone[1])
     # The portico: a pediment over four columns, standing out on steps.
     pl, pr = cx - port // 2, cx + port // 2
     ptop = eave - 2
-    c.rect(pl - 2, ptop, port + 4, 6, RAMPS['limestone'][1])
-    c.rect(pl - 2, ptop, port + 4, 1, RAMPS['limestone'][0])
+    c.rect(pl - 3, ptop, port + 6, 7, stone[1])
+    c.rect(pl - 3, ptop, port + 6, 1, stone[0])
+    for x in range(pl - 2, pr + 2, 3):
+        c.p(x, ptop + 5, stone[4])
     rise = port // 4
     for k in range(rise):
-        half = (port // 2 + 3) * (rise - k) // rise
-        c.rect(cx - half, ptop - 1 - k, 2 * half, 1, RAMPS['limestone'][2] if k else RAMPS['limestone'][3])
-        c.p(cx - half, ptop - 1 - k, RAMPS['limestone'][0])
-        c.p(cx + half - 1, ptop - 1 - k, RAMPS['limestone'][4])
+        half = (port // 2 + 4) * (rise - k) // rise
+        c.rect(cx - half, ptop - 1 - k, 2 * half, 1, stone[2] if k else stone[3])
+        c.p(cx - half, ptop - 1 - k, stone[0]); c.p(cx - half + 1, ptop - 1 - k, stone[0])
+        c.p(cx + half - 1, ptop - 1 - k, stone[4])
     for k in range(rise - 4):
         half = (port // 2 - 4) * (rise - 4 - k) // (rise - 4)
-        c.rect(cx - half, ptop - 3 - k, 2 * half, 1, wallr[2])
-    doorway(c, cx, base - 6, shape='round')
+        c.rect(cx - half, ptop - 3 - k, 2 * half, 1, wallr[3])
+    # A carved cartouche in the tympanum.
+    c.rect(cx - 5, ptop - 8, 10, 5, stone[1]); c.rect(cx - 5, ptop - 8, 10, 1, stone[0]); c.p(cx, ptop - 6, GOLD[1])
+    c.rect(pl, ptop + 7, port, base - 7 - ptop - 7, wallr[4])
+    doorway(c, cx, base - 6, shape='round', r=stone)
     for i in range(4):
         x = pl + 4 + i * (port - 18) // 3
-        column(c, x + 5, ptop + 6, base - 7, RAMPS['limestone'], d=8, order='ionic')
-    steps(c, cx, base, port, 2, RAMPS['limestone'])
+        column(c, x + 5, ptop + 7, base - 7, stone, d=8, order='ionic')
+    cast_down(c, pl, pr, ptop + 7, 3, 0.35)
+    steps(c, cx, base, port, 2, stone)
     flag(c, cx, ptop - rise - 16, [ramp(250, 0.12, lift=-0.1)[2], LIGHT, ramp(28, 0.16)[2]])
     return p.done()
 
 
+def awning(c, x0, x1, y, depth, cols):
+    """A striped canvas awning seen from above, its scalloped valance hanging
+    in front and its shadow on the wall."""
+    for yy in range(y, y + depth):
+        for x in range(x0, x1):
+            on = ((x - x0) // 5) % 2
+            k = 0 if yy == y else 1 if yy - y < depth // 2 else 2
+            c.p(x, yy, cols[0][k + 1] if on else cols[1][k + 1])
+    for x in range(x0, x1):
+        on = ((x - x0) // 5) % 2
+        drop = 3 - abs(((x - x0) % 5) - 2)
+        for k in range(drop):
+            c.p(x, y + depth + k, cols[0][3] if on else cols[1][3])
+    cast_down(c, x0, x1, y + depth + 3, 4, 0.4)
+
+
 def timber(w, h, look):
-    """Timber: the forestry pavilion of logs and bark, a thatched hut, or a
-    half-timbered house. A big gable faces the crowd."""
+    """Timber: the forestry pavilion of logs under a shingle roof, its gable of
+    upright boards and a deep verandah under a striped awning; a thatched hut;
+    or a half-timbered house."""
     p = Pav(w, h)
     c, x0, x1, base, cx = p.c, p.x0, p.x1, p.base, p.cx
     hw = min(46, p.D - 30)
     eave = base - hw
     rise = p.D - hw + 10
+    oak = RAMPS['oak']
     if look == 1:
         roof_band(c, x0 - 6, x1 + 6, eave, rise, 'thatch', TONES['straw'], hip=0.35)
         fm.boards(c, x0 + 2, eave + 2, p.W - 4, hw - 2, BAMBOO, board=4)
@@ -206,25 +264,47 @@ def timber(w, h, look):
         roof_band(c, x0 - 4, x1 + 4, eave, rise, 'plain', TONES['tile-red'], hip=0.15)
         fm.half_timber(c, x0, eave + 2, p.W, hw - 2)
     else:
-        roof_band(c, x0 - 6, x1 + 6, eave, rise, 'shingle', TONES['shingle'], hip=0.0)
-        fm.logs(c, x0, eave + 2, p.W, hw - 2, RAMPS['oak'], d=6)
-        # A gable of logs ends and a bark-clad porch.
-        g = min(p.W // 2 - 8, rise)
+        roof_band(c, x0 - 6, x1 + 6, eave, rise, 'plain', TONES['tile-red'], hip=0.0)
+        fm.logs(c, x0, eave + 2, p.W, hw - 2, oak, d=6)
+        # A gable of upright boards, a round vent, bargeboards lit on the left.
+        g = min(p.W // 4, rise - 4)
         for k in range(g):
-            half = (g - k)
-            c.rect(cx - half, eave - k, 2 * half, 1, RAMPS['cedar'][2 + (k // 3) % 2])
-        for k in range(g + 2):
-            c.p(cx - (g - k) - 1, eave - k, RAMPS['oak'][1]); c.p(cx - (g - k) - 2, eave - k, RAMPS['oak'][3])
-            c.p(cx + (g - k), eave - k, RAMPS['oak'][3]); c.p(cx + (g - k) + 1, eave - k, RAMPS['oak'][5])
+            half = g - k
+            for x in range(cx - half, cx + half):
+                c.p(x, eave - k, oak[3] if (x - cx) % 4 == 0 else oak[2] if x < cx else oak[3])
+        for k in range(g + 3):
+            half = g - k + 2
+            c.rect(cx - half - 1, eave - k + 1, 2, 2, oak[1]); c.rect(cx + half - 1, eave - k + 1, 2, 2, oak[5])
+        for j in range(-3, 4):
+            for i in range(-3, 4):
+                if i * i + j * j <= 9:
+                    c.p(cx + i, eave - g // 2 + j, VOID if i * i + j * j <= 4 else oak[1])
+        cast_down(c, cx - g, cx + g, eave + 1, 2, 0.3)
     for x in range(x0 + 6, x1 - 14, 26):
         if abs(x + 6 - cx) < 22:
             continue
-        c.rect(x, eave + 12, 12, 14, RAMPS['oak'][4])
+        c.rect(x, eave + 12, 12, 14, oak[4])
         op.casement(c, x + 1, eave + 13, 10, 12, 'oak')
-    doorway(c, cx, base, 22, min(40, hw - 4), shape='square', r=RAMPS['oak'])
-    for x in (cx - 18, cx + 15):
-        c.rect(x, eave + 2, 3, hw - 2, RAMPS['oak'][2]); c.rect(x, eave + 2, 1, hw - 2, RAMPS['oak'][1])
-        cast_right(c, x + 3, eave + 2, base, 2, 0.3)
+    doorway(c, cx, base, 22, min(40, hw - 4), shape='square', r=oak)
+    if look == 0:
+        # The verandah: posts, a rail, a boarded floor, and the awning over it.
+        red, cream = ramp(18, 0.16, lift=-0.04), ramp(70, 0.03, lift=0.06)
+        awning(c, x0 - 2, x1 + 2, eave + 1, 7, [red, cream])
+        for x in list(range(x0 + 2, x1 - 2, 24)) + [x1 - 5]:
+            if abs(x - cx) < 14:
+                continue
+            c.rect(x, eave + 11, 3, hw - 14, oak[2]); c.rect(x, eave + 11, 1, hw - 14, oak[1])
+            cast_right(c, x + 3, eave + 11, base - 3, 2, 0.3)
+        for x in range(x0, x1):
+            if abs(x - cx) > 13:
+                c.p(x, base - 12, oak[1]); c.p(x, base - 11, oak[3])
+                if x % 4 == 0:
+                    c.rect(x, base - 10, 1, 7, oak[3])
+        c.rect(x0 - 2, base - 3, p.W + 4, 3, oak[2]); c.rect(x0 - 2, base - 3, p.W + 4, 1, oak[1])
+    else:
+        for x in (cx - 18, cx + 15):
+            c.rect(x, eave + 2, 3, hw - 2, oak[2]); c.rect(x, eave + 2, 1, hw - 2, oak[1])
+            cast_right(c, x + 3, eave + 2, base, 2, 0.3)
     return p.done()
 
 
@@ -341,24 +421,52 @@ def inca(w, h, look):
 
 
 def iron_glass(w, h, look):
-    """Iron and glass: a frame of painted iron bays glazed in clear and
-    coloured panes, corner turrets, and over the middle a glazed dome."""
+    """Iron and glass: a hall of painted iron bays glazed to the ground,
+    round-headed, under a ridge-and-furrow glass roof seen from above with
+    cresting along its eave; corner turrets, and over the middle a glazed dome."""
     p = Pav(w, h)
     c, x0, x1, base, cx = p.c, p.x0, p.x1, p.base, p.cx
-    paint = [ramp(240, 0.04, lift=-0.1), IRON][look % 2]
-    hw = min(64, p.D - 18)
+    paint = [ramp(150, 0.05, lift=-0.06), ramp(240, 0.03, lift=0.02)][look % 2]
+    hw = min(60, p.D - 18)
     eave = base - hw
-    slab_roof(c, x0, x1, base - p.D + 6, p.D - hw - 6, paint)
+    rtop, rdepth = base - p.D + 4, p.D - hw - 4
+    # The glass roof from above: ridges and furrows running back, sky in the panes.
+    for y in range(rtop, rtop + rdepth):
+        for x in range(x0, x1):
+            k = (x - x0) % 8
+            if k == 0:
+                c.p(x, y, paint[1])
+            elif k == 7:
+                c.p(x, y, paint[4])
+            else:
+                t = (y - rtop) / max(1, rdepth)
+                g = 1 if k < 4 else 3
+                if (y - rtop) % 10 == 0:
+                    c.p(x, y, paint[3])
+                else:
+                    c.p(x, y, SKY_GLASS[min(6, g + (1 if t > 0.6 else 0))])
+    c.rect(x0, rtop, p.W, 1, paint[2])
+    for x in range(x0, x1, 4):
+        c.rect(x + 1, eave - 5, 1, 4, paint[3]); c.p(x + 1, eave - 6, GOLD[1]); c.p(x, eave - 3, paint[2]); c.p(x + 2, eave - 3, paint[2])
     plinth(c, x0, base - 8, p.W, RAMPS['granite'])
     bay = 16
     for i, x in enumerate(range(x0, x1, bay)):
         bw = min(bay, x1 - x)
-        glazed(c, x + 1, eave + 6, bw - 2, hw - 14, paint, 3, COLOURED[i % 4] if i % 3 == 1 else SKY_GLASS)
-        c.rect(x, eave + 2, 2, hw - 8, paint[1]); c.rect(x + 1, eave + 2, 1, hw - 8, paint[3])
-    c.rect(x0, eave, p.W, 6, paint[2]); c.rect(x0, eave, p.W, 1, paint[0])
-    for x in range(x0, x1, 4):
-        c.rect(x + 1, eave - 4, 1, 4, paint[3]); c.p(x + 1, eave - 5, GOLD[1])
-    cast_down(c, x0, x1, eave + 6, 2, 0.3)
+        top = eave + 6
+        for yy in range(top, base - 8):
+            for xx in range(x + 2, x + bw - 1):
+                rr = (bw - 3) / 2
+                dx, dy = xx - (x + 2 + rr - 0.5), yy - (top + rr)
+                if dy < 0 and dx * dx + dy * dy > rr * rr:
+                    continue
+                bar = (xx - x - 2) % 4 == 3 or (yy - top) % 7 == 6
+                tint = COLOURED[i % 4] if i % 4 == 2 and yy < top + 10 else SKY_GLASS
+                lit = (xx - x) + (yy - top) * 0.5 < bw * 0.6
+                c.p(xx, yy, paint[2] if bar else tint[2 if lit else 4] if yy < base - 20 else tint[3 if lit else 5])
+        c.rect(x, eave + 2, 2, hw - 10, paint[1]); c.rect(x + 1, eave + 2, 1, hw - 10, paint[3])
+        c.rect(x - 1, eave + 2, 4, 3, paint[0])
+    c.rect(x0, eave, p.W, 4, paint[1]); c.rect(x0, eave, p.W, 1, paint[0]); c.rect(x0, eave + 3, p.W, 1, paint[4])
+    cast_down(c, x0, x1, eave + 4, 2, 0.3)
     for tx in (x0 - 2, x1 - 14):
         coursed(c, tx, eave - 12, 16, hw + 4, paint, q=1, course=8, block=16)
         dome(c, tx + 8, eave - 12, 8, paint, courses=3, lantern=(1, 4))

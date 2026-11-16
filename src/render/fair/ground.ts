@@ -100,54 +100,203 @@ export function paintFairGround(L: FairLevel, seed: number): Raster {
       if (e === WALL || e === SKY) R.fill(X + 13, Y, 3, 16, IRON_RED[3]), R.fill(X + 15, Y, 1, 16, IRON_RED[4]);
     }
   }
+  for (const g of L.gardens) garden(R, L, g, seed);
   if (indoor) building(R, L, X0 * 16, Y0 * 16, seed);
   if (L.kind === "platform") paris(R, L, seed);
   return R;
 }
 
+/** Smooth value noise in 0..1 on a grid of `k` px. */
+function vnoise(x: number, y: number, k: number, seed: number) {
+  const gx = Math.floor(x / k), gy = Math.floor(y / k), fx = x / k - gx, fy = y / k - gy;
+  const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+  const a = h2(gx, gy, seed), b = h2(gx + 1, gy, seed), c = h2(gx, gy + 1, seed), d = h2(gx + 1, gy + 1, seed);
+  return a + (b - a) * sx + (c - a) * sy + (a - b - c + d) * sx * sy;
+}
+
+function lawnPx(x: number, y: number, seed: number) {
+  // Turf in soft drifts of three tones, not stripes or pixel noise.
+  const n = vnoise(x, y, 14, seed + 30) * 0.65 + vnoise(x, y, 5, seed + 31) * 0.35;
+  return n > 0.68 ? "#88bd52" : n < 0.28 ? "#70a644" : GRASS[2];
+}
+
 function lawn(R: Raster, X: number, Y: number, seed: number) {
-  for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
-    const x = X + i, y = Y + j;
-    // Mown in broad stripes, quiet between the tufts.
-    const stripe = ((y >> 5) + (x >> 6)) % 2, n = h2(x >> 2, y >> 2, seed + 30);
-    R.set(x, y, n > 0.9 ? GRASS[1] : n < 0.1 ? GRASS[3] : stripe ? "#88bd52" : GRASS[2]);
-  }
-  // Two or three tufts a cell: a lit blade pair over a dark root.
-  for (let k = 0; k < 3; k++) {
-    if (h2(X + k, Y, seed + 11) < 0.35) continue;
+  for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) R.set(X + i, Y + j, lawnPx(X + i, Y + j, seed));
+  tufts(R, X, Y, seed);
+}
+
+/** A lit blade pair over a dark root, a few to a cell; now and then a daisy. */
+function tufts(R: Raster, X: number, Y: number, seed: number, keep?: (x: number, y: number) => boolean) {
+  for (let k = 0; k < 4; k++) {
+    if (h2(X + k, Y, seed + 11) < 0.3) continue;
     const tx = X + 1 + Math.floor(h2(X, Y + k, seed + 12) * 13), ty = Y + 2 + Math.floor(h2(Y, X + k, seed + 13) * 12);
-    R.set(tx, ty, GRASS[0]); R.set(tx + 2, ty, GRASS[0]);
-    R.set(tx + 1, ty + 1, GRASS[3]); R.set(tx, ty + 1, GRASS[2]); R.set(tx + 2, ty + 1, GRASS[2]);
+    if (keep && !keep(tx, ty)) continue;
+    const dark = lawnPx(tx, ty, seed) === GRASS[3];
+    R.set(tx, ty, dark ? GRASS[2] : GRASS[0]); R.set(tx + 2, ty - 1, dark ? GRASS[2] : GRASS[0]);
+    R.set(tx + 1, ty + 1, dark ? GRASS[4] : GRASS[3]);
   }
-  if (h2(X, Y, seed + 14) > 0.9) {
+  if (h2(X, Y, seed + 14) > 0.88) {
     const tx = X + 4 + Math.floor(h2(Y, X, seed + 15) * 8), ty = Y + 5 + Math.floor(h2(X, X, seed + 16) * 6);
+    if (keep && !keep(tx, ty)) return;
     const pal = ROSES[Math.floor(h2(X, Y, 17) * ROSES.length)];
     R.set(tx, ty, pal[0]); R.set(tx + 1, ty, pal[1]); R.set(tx, ty + 1, GRASS[3]);
   }
 }
 
+function gravelPx(x: number, y: number, seed: number) {
+  const n = vnoise(x, y, 10, seed + 4);
+  return n > 0.7 ? "#e9dbc0" : n < 0.25 ? "#dfceb0" : SAND[1];
+}
+
 function gravel(R: Raster, X: number, Y: number, seed: number) {
-  for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) R.set(X + i, Y + j, h2((X + i) >> 3, (Y + j) >> 3, seed + 4) > 0.75 ? "#e8d9bf" : SAND[1]);
-  for (let j = 0; j < 16; j += 2) for (let i = 0; i < 16; i += 3) {
-    const k = h2(X + i, Y + j, seed + 5);
-    const x = X + i + (j % 4 ? 1 : 0), y = Y + j;
-    if (k > 0.8) { R.set(x, y, SAND[0]); R.set(x + 1, y, SAND[0]); R.set(x, y + 1, SAND[2]); R.set(x + 1, y + 1, SAND[3]); }
-    else if (k < 0.12) R.set(x, y, SAND[2]);
+  for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) R.set(X + i, Y + j, gravelPx(X + i, Y + j, seed));
+  pebbles(R, X, Y, 16, 16, seed);
+}
+
+/** Pebbles raked into the gravel: a lit stone over its own small shadow. */
+function pebbles(R: Raster, X: number, Y: number, w: number, h: number, seed: number, keep?: (x: number, y: number) => boolean) {
+  for (let j = 0; j < h; j += 2) for (let i = 0; i < w; i += 3) {
+    const k = h2(X + i, Y + j, seed + 5), x = X + i + (j % 4 ? 1 : 0), y = Y + j;
+    if (keep && !keep(x, y)) continue;
+    if (k > 0.86) { R.set(x, y, SAND[0]); R.set(x + 1, y, "#fbf4e6"); R.set(x, y + 1, SAND[2]); R.set(x + 1, y + 1, SAND[3]); }
+    else if (k > 0.78) { R.set(x, y, "#c8b8a6"); R.set(x, y + 1, SAND[3]); }
+    else if (k < 0.1) R.set(x, y, SAND[2]);
   }
 }
 
 function paving(R: Raster, X: number, Y: number, seed: number) {
-  // Big flags laid in courses a half-slab out of step.
+  // Flags of uneven length in courses: each stone its own tone, lit on its upper
+  // left, seamed dark on its lower right, some still wet and catching the sky.
   for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
-    const x = X + i, y = Y + j, off = ((y >> 4) % 2) * 8, sx = (x + off) % 16, sy = y % 16;
-    const slab = h2((x + off) >> 4, y >> 4, seed + 7);
-    let col = slab < 0.25 ? STONE[2] : slab > 0.85 ? STONE[0] : STONE[1];
-    if (sy === 0 || sx === 0) col = slab > 0.85 ? "#faf6ee" : STONE[0];
-    if (sy === 15 || sx === 15) col = STONE[3];
-    if (sy === 15 && sx === 15) col = STONE[4];
+    const x = X + i, y = Y + j, row = y >> 4, sy = y & 15, off = Math.floor(h2(row, 0, seed + 6) * 8);
+    const seg = (x + off) >> 3, edge = (q: number) => q % 4 === 0 || h2(row, q, seed + 7) > 0.55;
+    let start = seg;
+    while (!edge(start) && seg - start < 3) start--;
+    const sx = x + off - start * 8, last = edge(seg + 1) && ((x + off) & 7) === 7;
+    const tone = h2(row, start, seed + 8);
+    let col = tone < 0.22 ? STONE[2] : tone > 0.8 ? STONE[0] : STONE[1];
+    if (vnoise(x, y, 24, seed + 9) > 0.7 && tone > 0.3) col = tone > 0.7 ? "#e2e6e6" : "#cfd4d6";
+    if (sy === 0 || sx === 0) col = tone > 0.8 ? "#fbf8f2" : STONE[0];
+    if (sy === 15 || last) col = STONE[3];
+    if (sy === 15 && last) col = STONE[4];
     R.set(x, y, col);
   }
-  if (h2(X, Y, seed + 8) > 0.82) R.set(X + 5 + Math.floor(h2(Y, X, 9) * 6), Y + 6, STONE[3]);
+  if (h2(X, Y, seed + 8) > 0.85) {
+    const cx = X + 4 + Math.floor(h2(Y, X, 9) * 8), cy = Y + 4 + Math.floor(h2(X, Y, 10) * 8);
+    R.set(cx, cy, STONE[3]); R.set(cx + 1, cy + 1, STONE[3]); R.set(cx + 2, cy + 1, STONE[2]);
+  }
+}
+
+type Rect = { x: number; y: number; w: number; h: number };
+const sdBox = (px: number, py: number, r: Rect, rad: number) => {
+  const qx = Math.abs(px - r.x - r.w / 2) - r.w / 2 + rad, qy = Math.abs(py - r.y - r.h / 2) - r.h / 2 + rad;
+  return Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) + Math.min(Math.max(qx, qy), 0) - rad;
+};
+const sdEllipse = (px: number, py: number, cx: number, cy: number, a: number, b: number) => (Math.hypot((px - cx) / a, (py - cy) / b) - 1) * Math.min(a, b);
+
+/** A railed garden drawn at the pixel over its cells: an oval walk, beds with
+ * rounded ends edged in clipped box, a round basin in its coping. The cells
+ * still decide where one can walk; this only rounds what they square off. */
+function garden(R: Raster, L: FairLevel, g: FairLevel["gardens"][number], seed: number) {
+  const OX = PAD.x * 16, OY = PAD.top * 16, { w } = L;
+  const X0 = OX + g.x0 * 16, Y0 = OY + g.y0 * 16, X1 = OX + (g.x1 + 1) * 16, Y1 = OY + (g.y1 + 1) * 16;
+  const cell = (px: number, py: number) => {
+    const x = Math.floor((px - OX) / 16), y = Math.floor((py - OY) / 16);
+    return x < 0 || y < 0 || x >= w || y >= L.h ? -1 : L.cells[y * w + x];
+  };
+  const seen = new Set<number>(), beds: Rect[] = [];
+  let basin: Rect | undefined;
+  for (let y = g.y0; y <= g.y1; y++) for (let x = g.x0; x <= g.x1; x++) {
+    const c = L.cells[y * w + x], k = y * w + x;
+    if (seen.has(k) || (c !== BED && c !== BOX && c !== WATER)) continue;
+    const water = c === WATER, same = (q: number) => (water ? q === WATER : q === BED || q === BOX);
+    let x1 = x, y1 = y;
+    while (x1 + 1 <= g.x1 && same(L.cells[y * w + x1 + 1])) x1++;
+    while (y1 + 1 <= g.y1 && same(L.cells[(y1 + 1) * w + x])) y1++;
+    for (let j = y; j <= y1; j++) for (let i = x; i <= x1; i++) seen.add(j * w + i);
+    const r = { x: OX + x * 16, y: OY + y * 16, w: (x1 - x + 1) * 16, h: (y1 - y + 1) * 16 };
+    if (water) basin = r;
+    else beds.push(r);
+  }
+  const bcx = basin ? basin.x + basin.w / 2 : 0, bcy = basin ? basin.y + basin.h / 2 : 0, brad = basin ? Math.min(basin.w, basin.h) / 2 + 6 : 0;
+  const cx = (X0 + X1) / 2, cy = (Y0 + Y1) / 2, ea = (X1 - X0) / 2 - 22, eb = (Y1 - Y0) / 2 - 22;
+  const gxc = OX + (g.gx[0] + g.gx.length / 2) * 16, gyc = OY + (g.gy[0] + g.gy.length / 2) * 16;
+  const inBasin = (px: number, py: number) => basin !== undefined && Math.hypot(px - bcx, py - bcy) < brad;
+  const bedD = (px: number, py: number) => {
+    let d = 1e9;
+    for (const r of beds) {
+      const rad = g.style === "parterre" ? 10 : Math.min(r.w, r.h) / 2 - 2;
+      let e = sdBox(px, py, { x: r.x + 2, y: r.y + 2, w: r.w - 4, h: r.h - 4 }, rad);
+      if (basin) e = Math.max(e, brad + 14 - Math.hypot(px - bcx, py - bcy));
+      d = Math.min(d, e);
+    }
+    return d;
+  };
+  const walkD = (px: number, py: number) => {
+    if (g.style === "oval") {
+      const e = sdEllipse(px, py, cx, cy, ea, eb);
+      let d = Math.abs(e) - 7;
+      // Spurs out to the gaps in the railing.
+      if (e > 0) d = Math.min(d, Math.abs(px - gxc) - g.gx.length * 8 + 3, Math.abs(py - gyc) - g.gy.length * 8 + 3);
+      return d;
+    }
+    if (basin) return Math.hypot(px - bcx, py - bcy) - brad - 12;
+    return 1e9;
+  };
+  for (let py = Y0; py < Y1; py++) for (let px = X0; px < X1; px++) {
+    const c = cell(px, py);
+    if (c === FENCE || c < 0) continue;
+    if (inBasin(px, py)) {
+      const r = Math.hypot(px - bcx, py - bcy);
+      if (r > brad - 5) R.set(px, py, r > brad - 1 ? STONE[3] : py < bcy - 2 || px < bcx - brad + 6 ? "#fbf8f2" : STONE[1]);
+      else {
+        const band = Math.sin(px * 0.3 + Math.sin(py * 0.5) * 1.5) + Math.sin(py * 0.8 - px * 0.1);
+        R.set(px, py, Math.hypot(px - bcx, py - bcy + 3) > brad - 5 && py < bcy ? WATER_C[5] : band > 1.5 ? WATER_C[1] : band < -1.3 ? WATER_C[4] : WATER_C[3]);
+      }
+      continue;
+    }
+    const bd = bedD(px, py);
+    if (bd <= 0) {
+      if (bd > -5) {
+        const up = bedD(px, py - 3) > 0, down = bedD(px, py + 3) > 0, left = bedD(px - 3, py) > 0, right = bedD(px + 3, py) > 0;
+        let col = up ? (bd > -1.5 ? BOXC[0] : BOXC[1]) : down ? BOXC[2] : left ? BOXC[1] : right ? BOXC[3] : BOXC[2];
+        if (!up && !down && h2(px >> 1, py >> 1, seed + 21) > 0.8) col = BOXC[1];
+        R.set(px, py, col);
+      } else R.set(px, py, (px + py * 2) % 7 === 0 ? SOIL[0] : SOIL[1]);
+      continue;
+    }
+    // The hedge's face, and its shadow on the ground in front.
+    if (bd < 3 && bedD(px, py - 3) <= 0) { R.set(px, py, bd < 2 ? BOXC[4] : BOXC[5]); continue; }
+    const wd = walkD(px, py), onWalk = wd <= 0 || c === GRAVEL;
+    let col = onWalk ? gravelPx(px, py, seed) : lawnPx(px, py, seed);
+    if (!onWalk && wd < 1.5) col = GRASS[4];
+    if (onWalk && c !== GRAVEL && wd > -1.5) col = SAND[2];
+    R.set(px, py, col);
+    if (bd < 8 && bedD(px, py - 8) <= 0) R.shade(px, py, 0.2);
+  }
+  const walk = (x: number, y: number) => (walkD(x, y) < -2 || cell(x, y) === GRAVEL) && bedD(x, y) > 6 && !inBasin(x, y);
+  pebbles(R, X0, Y0, X1 - X0, Y1 - Y0, seed, walk);
+  for (let y = Y0; y < Y1; y += 16) for (let x = X0; x < X1; x += 16) tufts(R, x, y, seed, (px, py) => !walk(px, py) && walkD(px, py) > 3 && bedD(px, py) > 8 && cell(px, py) === LAWN && !inBasin(px, py));
+  // Roses massed in the beds, one colour to a bed with a stray of another.
+  const main = Math.floor(h2(g.x0, g.y0, seed) * ROSES.length);
+  for (const r of beds) {
+    const pal0 = (main + Math.floor(h2(r.x, r.y, 3) * 2)) % ROSES.length;
+    for (let by = r.y + 6; by < r.y + r.h - 4; by += 6) for (let bx = r.x + 6 + ((by >> 1) % 2) * 3; bx < r.x + r.w - 4; bx += 7) {
+      const x = bx + Math.round((h2(bx, by, seed + 3) - 0.5) * 3), y = by + Math.round((h2(by, bx, seed + 6) - 0.5) * 3);
+      if (bedD(x, y) > -7) continue;
+      // A big bed is banded: its rim in a second colour round the main one.
+      const pal = ROSES[Math.min(r.w, r.h) > 40 && bedD(x, y) > -14 ? (pal0 + 3) % ROSES.length : h2(x, y, seed + 4) > 0.9 ? (pal0 + 2) % ROSES.length : pal0];
+      for (let j = -3; j <= 3; j++) for (let i = -4; i <= 4; i++) {
+        if (i * i / 16 + j * j / 9 > 1 || bedD(x + i, y + j) > -4) continue;
+        const lit = -i - j;
+        R.set(x + i, y + j, lit > 3 ? BOXC[1] : lit > -2 ? BOXC[2] : BOXC[3]);
+      }
+      for (const [fx, fy] of [[-2, -1], [1, -2], [2, 1], [-1, 1], [-3, 0], [0, -2]]) {
+        if (h2(x + fx, y + fy, 9) < 0.2 || bedD(x + fx, y + fy) > -4) continue;
+        R.set(x + fx, y + fy, pal[1]); R.set(x + fx + 1, y + fy, pal[2]); R.set(x + fx, y + fy - 1, pal[0]);
+      }
+    }
+  }
 }
 
 function water(R: Raster, X: number, Y: number, at: (x: number, y: number) => number, cx: number, cy: number) {
