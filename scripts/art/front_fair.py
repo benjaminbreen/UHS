@@ -360,41 +360,93 @@ def moorish(w, h, look):
 
 
 def aztec(w, h, look):
-    """The Mexican pavilion's Aztec palace: a battered stone base, a frieze of
-    stepped frets, figures in relief either side of a broad stair, and a
-    cresting of stepped merlons."""
+    """The Mexican pavilion's Aztec palace: a battered stone base, wings under a
+    painted frieze of stepped frets, corner pylons, a higher central block with
+    a trapezoid portal up a broad stair, stone rulers on pedestals either side,
+    and a cresting of stepped merlons along every roofline."""
     p = Pav(w, h)
     c, x0, x1, base, cx = p.c, p.x0, p.x1, p.base, p.cx
     stone = [OCHRE, RAMPS['sandstone']][look % 2]
     red = ramp(28, 0.13, lift=-0.12)
-    hw = min(60, p.D - 20)
+    jade = ramp(165, 0.09, lift=-0.08)
+    hw = min(56, p.D - 24)
     eave = base - hw
-    slab_roof(c, x0 + 2, x1 - 2, base - p.D + 6, p.D - hw - 6, stone)
+    # The roof terrace, paved, seen from above.
+    rt, rd = base - p.D + 6, p.D - hw - 6
+    slab_roof(c, x0 + 2, x1 - 2, rt, rd, stone)
+    for y in range(rt + 3, rt + rd - 1, 6):
+        c.rect(x0 + 3, y, p.W - 6, 1, stone[3])
+
+    def frieze(xa, xb, y):
+        c.rect(xa, y - 1, xb - xa, 10, red[3])
+        for i, x in enumerate(range(xa, xb - 7, 10)):
+            col = jade[1] if i % 2 else stone[1]
+            for (a, b, ww, hh) in ((0, 0, 8, 2), (6, 2, 2, 4), (2, 4, 4, 2), (2, 6, 2, 2)):
+                c.rect(x + a, y + b, ww, hh, col)
+        c.rect(xa, y + 9, xb - xa, 1, stone[4])
+
+    def merlons(xa, xb, y):
+        c.rect(xa - 2, y, xb - xa + 4, 3, stone[0])
+        for x in range(xa, xb - 5, 8):
+            for k in range(3):
+                c.rect(x + k, y - 2 - k * 2, 6 - 2 * k, 2, stone[1 + k % 2])
+            c.p(x + 2, y - 7, jade[1])
+
     # The talus: a sloping skirt up a third of the wall.
-    for k in range(18):
+    for k in range(16):
         inset = 6 - k // 3
         coursed(c, x0 - inset, base - 1 - k, p.W + 2 * inset, 1, stone, q=2, course=6, block=16, seed=k)
-    coursed(c, x0, eave, p.W, hw - 18, stone, q=1, course=7, block=20)
-    c.rect(x0, base - 19, p.W, 2, stone[0])
-    # The fret frieze.
-    fy = eave + 3
-    c.rect(x0, fy - 1, p.W, 10, red[3])
-    for x in range(x0, x1, 10):
-        for (a, b, ww, hh) in ((0, 0, 8, 2), (6, 2, 2, 4), (2, 4, 4, 2), (2, 6, 2, 2)):
-            c.rect(x + a, fy + b, ww, hh, stone[1])
-    c.rect(x0 - 2, eave - 2, p.W + 4, 3, stone[0])
-    for x in range(x0, x1 - 4, 8):
-        for k in range(3):
-            c.rect(x + k, eave - 4 - k * 2, 6 - 2 * k, 2, stone[1 + k % 2])
+    coursed(c, x0, eave, p.W, hw - 16, stone, q=1, course=7, block=20)
+    c.rect(x0, base - 17, p.W, 2, stone[0])
+    frieze(x0, x1, eave + 3)
+    merlons(x0, x1, eave - 2)
+    cast_down(c, x0, x1, eave + 13, 3, 0.3)
+    # Corner pylons, a storey taller, battered.
+    for tx in (x0 - 3, x1 - 15):
+        coursed(c, tx, eave - 14, 18, hw - 2, stone, q=1, course=7, block=9)
+        c.rect(tx, eave - 14, 1, hw - 2, stone[0]); c.rect(tx + 17, eave - 14, 1, hw - 2, stone[4])
+        frieze(tx + 1, tx + 17, eave - 10)
+        merlons(tx + 1, tx + 17, eave - 16)
+    # The central block over the portal.
+    cw = min(p.W // 3, 84)
+    bl, br = cx - cw // 2, cx + cw // 2
+    coursed(c, bl, eave - 22, cw, hw + 4, stone, q=1, course=7, block=14)
+    c.rect(bl, eave - 22, 1, hw + 4, stone[0]); c.rect(br - 1, eave - 22, 1, hw + 4, stone[4])
+    frieze(bl + 1, br - 1, eave - 18)
+    merlons(bl + 1, br - 1, eave - 24)
+    cast_right(c, br, eave - 22, base - 16, 3, 0.3)
+    # A sun disc over the portal.
+    for j in range(-6, 7):
+        for i in range(-6, 7):
+            d = i * i + j * j
+            if d <= 36:
+                c.p(cx + i, eave - 1 + j, GOLD[1] if d <= 9 else red[2] if d <= 20 else GOLD[2])
+    # The portal: a trapezoid, its jambs leaning in, under a gilt lintel.
+    top, pw = base - 40, 26
+    for y in range(top, base - 6):
+        lean = (base - 6 - y) // 8
+        c.rect(cx - pw // 2 + lean - 3, y, pw - 2 * lean + 6, 1, stone[3])
+        c.rect(cx - pw // 2 + lean, y, pw - 2 * lean, 1, VOID)
+    c.rect(cx - pw // 2 - 4, top - 4, pw + 8, 4, GOLD[2]); c.rect(cx - pw // 2 - 4, top - 4, pw + 8, 1, GOLD[1])
+    steps(c, cx, base, 34, 3, stone)
+    # Bronze rulers on stone pedestals, as cast for the palace, headdresses in jade and red.
+    bronze = ramp(55, 0.08, lift=-0.3)
     for side in (-1, 1):
-        rx = cx + side * (p.W // 4 + 6) - 9
-        raised(c, rx, eave + 18, 18, 22, stone, 2)
-        for (a, b, ww, hh, q) in ((7, 2, 5, 5, 4), (5, 7, 9, 8, 3), (3, 9, 2, 6, 4), (14, 9, 2, 6, 4), (6, 15, 3, 5, 4), (10, 15, 3, 5, 4)):
-            c.rect(rx + a - 2, eave + 18 + b, ww, hh, stone[q])
-        c.rect(rx + 5, eave + 20, 9, 2, GOLD[2])
-    opening(c, cx - 12, base - 40, 24, 40 - 6, lambda x, y, a, s, ww: a <= x < a + ww + max(0, (y - (base - 40)) // 8 - 2) and x >= a - max(0, (y - (base - 40)) // 8 - 2))
-    steps(c, cx, base, 30, 2, stone)
-    flag(c, cx, eave - 30, [ramp(150, 0.1)[2], LIGHT, red[1]])
+        fx = cx + side * (cw // 2 + 14)
+        c.rect(fx - 7, base - 14, 14, 9, stone[2]); c.rect(fx - 7, base - 14, 14, 1, stone[0]); c.rect(fx + 6, base - 14, 1, 9, stone[4])
+        c.rect(fx - 3, base - 22, 2, 8, bronze[3]); c.rect(fx + 1, base - 22, 2, 8, bronze[4])
+        c.rect(fx - 4, base - 33, 8, 11, bronze[3]); c.rect(fx - 4, base - 33, 2, 11, bronze[1]); c.rect(fx + 3, base - 33, 1, 11, bronze[5])
+        c.rect(fx - 5, base - 30, 1, 7, bronze[2]); c.rect(fx + 4, base - 30, 1, 7, bronze[4])
+        for j in range(-3, 4):
+            for i in range(-3, 4):
+                if i * i + j * j <= 9:
+                    c.p(fx + side * 5 + i, base - 26 + j, jade[2] if i * i + j * j > 4 else GOLD[2])
+        c.rect(fx - 2, base - 38, 4, 5, bronze[2]); c.p(fx - 2, base - 38, bronze[0])
+        for k, col in enumerate((jade[1], red[1], jade[2], red[2], jade[1])):
+            ang = math.pi * (0.15 + 0.7 * k / 4)
+            for t in range(4, 11):
+                c.p(fx + round(math.cos(ang) * t), base - 38 - round(math.sin(ang) * t), col)
+    flag(c, cx, eave - 48, [ramp(150, 0.1)[2], LIGHT, red[1]])
     return p.done()
 
 

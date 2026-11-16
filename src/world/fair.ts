@@ -344,7 +344,8 @@ function gardens(L: FairLevel, rng: () => number, fill: Fill, set: Set, at: (x: 
     for (const x of [x0, x1]) if (at(x + (x === x0 ? -1 : 1), y0 + 1) === PAVING) for (const y of [y0 + 1, y1 - 1]) L.decor.push({ type: "urn", x, y, solid: true, v: rng() });
     const ix0 = x0 + 1, ix1 = x1 - 1, iy0 = y0 + 1, iy1 = y1 - 1, iw = ix1 - ix0 + 1, ih = iy1 - iy0 + 1;
     const bed = (a: number, b: number, c: number, d: number) => {
-      if (c - a < 2 || d - b < 2) return void shrub(a + ((c - a) >> 1), b + ((d - b) >> 1));
+      // Too narrow for a box edge: a strip of bloom (the painter still edges it), or one shrub.
+      if (c - a < 2 || d - b < 2) return void (c - a >= 2 || d - b >= 2 ? fill(a, b, c, d, BED) : shrub(a + ((c - a) >> 1), b + ((d - b) >> 1)));
       fill(a, b, c, d, BOX);
       fill(a + 1, b + 1, c - 1, d - 1, BED);
     };
@@ -394,6 +395,8 @@ function gardens(L: FairLevel, rng: () => number, fill: Fill, set: Set, at: (x: 
       shrub(ix0, iy1); shrub(ix1, iy1);
     } else if (style === "bed") {
       bed(ix0 + 1, iy0 + (ih > 3 ? 1 : 0), ix1 - 1, iy1 - (ih > 3 ? 1 : 0));
+      // A walk straight through, where the railing opens.
+      for (const x of gx) for (let y = iy0; y <= iy1; y++) if (at(x, y) === BED || at(x, y) === BOX) set(x, y, LAWN);
       if (ih > 3) for (const [x, y] of [[ix0, iy0], [ix1, iy1]]) tree(x, y);
     } else {
       tree(ix0 + (iw >> 1), iy0 + (ih >> 1));
