@@ -197,6 +197,7 @@ const REST_OPTIONS: {
   { label: "Sleep until morning", seconds: (runtime) => runtime.engine.untilMorning() },
 ];
 
+const noAudio = () => () => {};
 export function App({ runtime, onReady, active = true }: { runtime: Runtime; writer: boolean; onReady?: () => void; active?: boolean }) {
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
@@ -218,6 +219,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const baby = runtime.engine.state.baby, tend = runtime.engine.tendNow();
   const speaker = runtime.nearestSpeaker();
   const [audio, setAudio] = useState<AudioDirector | null>(null);
+  const music = useSyncExternalStore(audio?.subscribe ?? noAudio, () => audio?.getSnapshot().music ?? false);
   const [sky, setSky] = useState<{ skill?: SkillId; pick?: Pick; levelUp?: boolean }>();
   const [task, setTask] = useState<TaskSource>();
   const [aimGoal, setAimGoal] = useState<string>();
@@ -1504,8 +1506,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             alternate={verbs.alternate}
             holding={!!(p.held || p.heldItem)}
             onPrimaryDown={() => runVerb("primary", true)}
-            onPrimaryUp={() => runtime.releaseCharge()}
+            // The controls hide while each stage runs; that must not end a tapped-on workday.
+            onPrimaryUp={() => verbs.primary?.kind !== "work" && runtime.releaseCharge()}
             onAlternate={() => runVerb("alternate")}
+            working={runtime.workHold !== undefined}
+            onWork={() => runtime.toggleWork()}
             tend={tend?.label}
             onTend={() => runtime.tend()}
           />
@@ -2016,7 +2021,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                           ),
                         )}
                       </div>
-                    ) : (
+                    ) : selection.description && (
                       <p>{selection.description}</p>
                     )}
                   </div>
@@ -2026,6 +2031,27 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     latin={selection.latin}
                     reopen={runtime.reselected}
                   />
+                )}
+                {selection.source && (
+                  <div className="wiki-focus">
+                    {selection.source.photo && (
+                      <a className="evidence-link" href={selection.source.photo.url} target="_blank" rel="noreferrer">
+                        {selection.source.photo.label} ↗
+                      </a>
+                    )}
+                    <a className="evidence-link" href={selection.source.url} target="_blank" rel="noreferrer">
+                      {selection.source.label} ↗
+                    </a>
+                  </div>
+                )}
+                {selection.exhibits && (
+                  <div className="context-actions">
+                    {selection.exhibits.map((exhibit) => (
+                      <button className="action" key={exhibit.id} onClick={() => runtime.select(exhibit.id)}>
+                        {exhibit.name}
+                      </button>
+                    ))}
+                  </div>
                 )}
                 {distance(p.pos, selection.pos) > 2.5 && (
                   <button
@@ -3037,6 +3063,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                   hidden={settingsTab !== "Audio"}
                 >
                   <h3>Music & sound</h3>
+                  <label className="settings-row">
+                    <span>Play music</span>
+                    <input type="checkbox" checked={music} disabled={!audio} onChange={(e) => audio?.setMusic(e.currentTarget.checked)} />
+                  </label>
                   <p>
                     Listen, adjust playback, and explore the score in the audio
                     studio.

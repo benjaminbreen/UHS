@@ -91,7 +91,12 @@ export function WorkCard({ runtime, onDetails, carded }: { runtime: Runtime; onD
       </button>
     )
     : here && engine.fishingHere() ? <button className="primary" onClick={() => runtime.openFishing()}>Fish</button>
-    : here ? <span className="work-hold" data-hint={hint === "hold" || undefined}><kbd>{coarse ? "Work" : "F"}</kbd>hold</span>
+    : here && coarse ? (
+      <button className="primary" data-hint={hint === "hold" || undefined} aria-pressed={runtime.workHold !== undefined} onClick={() => runtime.toggleWork()}>
+        {runtime.workHold !== undefined ? "Stop" : "Work"}
+      </button>
+    )
+    : here ? <span className="work-hold" data-hint={hint === "hold" || undefined}><kbd>F</kbd>hold</span>
     : walking ? <button onClick={() => runtime.stop()}>Stop</button>
     : target ? <button className="primary" data-hint={hint === "go" || undefined} onClick={go}>Go</button>
     : undefined;
@@ -122,7 +127,7 @@ export function WorkCard({ runtime, onDetails, carded }: { runtime: Runtime; onD
         </button>
         {quick && <div className="work-quick work-actions">{quick}</div>}
       </div>
-      {hint && <p className="work-hint" role="status">{hint === "go" ? "Start here" : `Hold ${coarse ? "Work" : "F"} to work`}</p>}
+      {hint && <p className="work-hint" role="status">{hint === "go" ? "Start here" : coarse ? "Tap Work to start" : "Hold F to work"}</p>}
       <div className="work-body">
         <ol className="work-steps" aria-label={`${plan.done} of ${plan.stages.length} done`}>
           {plan.steps.map((s, i) => (

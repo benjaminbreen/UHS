@@ -142,14 +142,14 @@ describe("Something at the Door", () => {
     if (first === "witness") {
       expect(talk("witness").status).toBe("completed");
       expect(today()?.facts.find((f) => f.label === "What you heard")?.text).toContain("Taro, your brother,");
-      expect(today()?.facts.map((f) => f.text).join(" ")).toContain("Chika, another member of your settlement");
+      expect(today()?.facts.map((f) => f.text).join(" ")).toContain("they saw Chika");
       expect(today()?.facts.map((f) => f.text).join(" ")).not.toContain("Wola");
       expect(e.cards.find((c) => c.speaker === witness.id)?.text).toContain("at first light");
     }
 
     suspect.pos = { ...s.player.pos, x: s.player.pos.x + 1 };
     e.advance(60, suspect.id);
-    expect(today()?.facts.find((f) => f.label === "What you noticed")?.text).toContain("Wola, your neighbor, has fresh red ochre");
+    expect(today()?.facts.find((f) => f.label === "What you noticed")?.text).toContain("Wola, your neighbour, has fresh red ochre");
     expect(e.cards.some((c) => c.choose?.card === "plot:token:blush")).toBe(false);
     if (first === "suspect") {
       expect(today()?.facts.map((f) => f.text).join(" ")).not.toMatch(/Chika|Taro/);
@@ -158,7 +158,7 @@ describe("Something at the Door", () => {
     }
     expect(talk("suspect").status).toBe("completed");
     const reply = e.cards.find((c) => c.choose?.card === "plot:token:blush")!;
-    expect(reply.text).toContain("Wola, your neighbor, admits");
+    expect(reply.text).toContain("Wola, your neighbour, admits");
     s.player.pos = { ...doorstep };
     expect(e.canShowCard(reply)).toBe(false);
     expect(answer("blush", 0).status).toBe("rejected");
@@ -326,6 +326,43 @@ describe("plots played out in London, 1750", () => {
       expect(act(e, { type: "choose", card: "plot:test-choice", choice: 1 }).status).toBe("completed");
       expect(e.lastChoice?.line).toBe("You go.");
       expect(plot.ended).toBe("went");
+    } finally {
+      PLOTS.pop();
+    }
+  });
+  it("holds a question for the shore until the player is there, and has news brought by a messenger", () => {
+    const e = session();
+    delete e.state.plot;
+    const shore: PlotTemplate = {
+      ...commission, id: "test-shore", shape: "light", weight: () => 1, cast: () => ({}),
+      begin: (c) => ({ deadline: c.clock + 86400, words: {} }),
+      opening: [{ type: "choose", line: "ask", at: "shore", choices: [{ id: "stay" }] }],
+      developments: [],
+      endings: [{ id: "stayed", when: { type: "fired", id: "stay" } }],
+      wording: [{ title: "A Choice", lines: { aim: "Choose.", intro: "", threat: "", ask: "Stay?", "stay:label": "Stay", stayed: "Stayed." } }],
+    };
+    let atShore = false;
+    (e as unknown as { atPlotScene: (p: PlotState, at: string) => boolean }).atPlotScene = (_, at) => at !== "shore" || atShore;
+    PLOTS.push(shore);
+    try {
+      drawOnly(shore, () => startPlot(e.state, setting));
+      e.advance(3 * 3600);
+      expect(e.cards.some((c) => c.choose?.card === "plot:test-shore:ask")).toBe(false);
+      atShore = true;
+      e.advance(120);
+      expect(e.cards.some((c) => c.choose?.card === "plot:test-shore:ask")).toBe(true);
+    } finally {
+      PLOTS.pop();
+    }
+    const e2 = session();
+    delete e2.state.plot;
+    const news = { ...shore, id: "test-news", opening: [{ type: "choose", line: "ask", brought: true, choices: [{ id: "stay" }] }] } as PlotTemplate;
+    PLOTS.push(news);
+    try {
+      const plot = drawOnly(news, () => startPlot(e2.state, setting))!;
+      e2.advance(120);
+      const by = e2.state.actors.find((a) => a.id === plot.asking?.by);
+      expect(by?.householdId).toBe(e2.state.player.householdId);
     } finally {
       PLOTS.pop();
     }

@@ -21,7 +21,7 @@ export const loose: PlotTemplate = {
     emblem: "loose",
     palette: { ink: "#141208", fill: "#3a3420", edge: "#8a6a3a", light: "#f2eed4", accent: "#d8c040" },
   },
-  weight: (c) => ((c.setting?.year ?? 0) > -6000 && (c.setting?.year ?? 0) < 1950 && castOf(c) ? 0.6 : 0),
+  weight: (c) => (["village", "city", "port"].includes(c.setting?.settlement ?? "") && (c.setting?.year ?? 0) > -6000 && (c.setting?.year ?? 0) < 1950 && castOf(c) ? 0.3 : 0),
   cast: (c) => castOf(c),
   begin: (c, cast) => {
     const child = cast.child!, neighbour = cast.neighbour!;

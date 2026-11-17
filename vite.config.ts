@@ -8,8 +8,18 @@ export default defineConfig({
   // Every worker is created with type "module", and the travel worker loads
   // its map names lazily, which a classic worker bundle cannot split.
   worker: { format: "es" },
+  // Pre-bundling would skip the h3 transform below.
+  optimizeDeps: { exclude: ["h3-js"] },
   plugins: [
     react(),
+    {
+      // h3-js reserves 32MB up front; its static data needs 5MB and the heap grows on demand.
+      name: "h3-small-heap",
+      transform(code, id) {
+        if (!/h3-js[\\/]dist[\\/].*\.js$/.test(id) || !code.includes("33554432")) return;
+        return code.replace('Module["TOTAL_MEMORY"] || 33554432', 'Module["TOTAL_MEMORY"] || 8388608');
+      },
+    },
     {
       name: "world-weaver-local-api",
       configureServer(server) {

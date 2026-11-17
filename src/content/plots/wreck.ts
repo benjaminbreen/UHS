@@ -1,7 +1,9 @@
 import { BRITAIN, neighbours, notable, partnerWords, pickOf, pronounWords, temper } from "./common";
 import type { PlotContext, PlotTemplate } from "./types";
 
-const coastal = (c: PlotContext) => !!c.setting && (/^coast|island/.test(c.setting.water) || c.setting.settlement === "port");
+// A beach someone can walk down to at dawn: not a city, nor a port grown into one.
+const coastal = (c: PlotContext) => !!c.setting && c.setting.settlement !== "city" && !(c.setting.settlement === "port" && c.setting.year >= 1850) &&
+  (/^coast|island/.test(c.setting.water) || c.setting.settlement === "port");
 
 const castOf = (c: PlotContext) => {
   const owner = notable(c);
@@ -39,7 +41,7 @@ export const wreck: PlotTemplate = {
       refs: { owner: owner.id, neighbour: neighbour.id, ...p.refs },
     };
   },
-  opening: [{ type: "choose", line: "beach", focus: "neighbour", choices: [{ id: "survivor" }, { id: "report" }, { id: "carry" }] }],
+  opening: [{ type: "choose", line: "beach", focus: "neighbour", at: "shore", choices: [{ id: "survivor" }, { id: "report" }, { id: "carry" }] }],
   developments: [
     { id: "told", when: { type: "fired", id: "report" }, then: [{ type: "regard", role: "patron", delta: 1 }] },
     { id: "asked", when: { type: "after", id: "carry", hours: 2 }, then: [{ type: "choose", line: "asked", focus: "patron", choices: [{ id: "hide", check: { stat: "wit", odds: 0.5 } }, { id: "give" }] }] },
@@ -74,7 +76,7 @@ export const wreck: PlotTemplate = {
     {
       title: "Wreck",
       lines: {
-        aim: "Decide what to do about the wreck.",
+        aim: "Go down to the shore and decide what to do about the wreck.",
         intro: "A ship broke up on the rocks in the night. There are {cargo} all along the tide line, and more coming in with every wave. One sailor came ashore alive, clinging to a spar, and is lying in the surf.",
         threat: "Whatever is on the beach is anyone's now, some say. {owner} won't see it that way.",
         partner: "Your {partnerKin} {partner} says to stay away from it. Somebody will come looking for those goods.",

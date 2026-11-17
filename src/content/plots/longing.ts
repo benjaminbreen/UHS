@@ -42,7 +42,7 @@ export const longing: PlotTemplate = {
   },
   payee: "neighbour",
   weight: (c) => (c.setting && capabilitiesFor(c.setting).has("coinage") && (c.household?.fortune ?? 0.5) >= 0.15 && sellerOf(c)
-    ? 0.5 * temper(c, "openness") : 0),
+    ? 0.25 * temper(c, "openness") : 0),
   cast: (c) => {
     const neighbour = sellerOf(c);
     return neighbour && { neighbour };

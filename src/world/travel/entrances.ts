@@ -1,3 +1,4 @@
+import { route } from "../../core/routing";
 import type { WorldModel } from "../../core/types";
 export type EntranceSpec = {
   seam?: import("./seams").BoundarySeam;
@@ -33,7 +34,7 @@ export function mapEntrances(
   const previous = new Int32Array(size * size).fill(-2),
     queue: number[] = [];
   const start = world.spawn;
-  if (Math.abs(start.x) >= half || Math.abs(start.y) >= half)
+  if (start.x < -half || start.x >= half || start.y < -half || start.y >= half)
     return exits.map((e) => ({
       ...e,
       path: [],
@@ -47,25 +48,39 @@ export function mapEntrances(
   const steps = [[1, 0], [-1, 0], [0, 1], [0, -1]];
   const edge: number[] = [],
     shore: number[] = [];
-  for (let head = 0; head < queue.length; head++) {
-    const i = queue[head],
-      p = point(i);
-    if (p.x === -half || p.y === -half || p.x === half - 1 || p.y === half - 1)
-      edge.push(i);
-    let coastal = false;
-    for (const [dx, dy] of steps) {
-      const q = { x: p.x + dx, y: p.y + dy };
-      if (q.x < -half || q.y < -half || q.x >= half || q.y >= half) continue;
-      const k = index(q.x, q.y);
-      water[k] ||= world.terrain(q.x, q.y) === "water" ? 1 : -1;
-      if (water[k] > 0) coastal = true;
-      if (previous[k] !== -2) continue;
-      passable[k] ||= world.blocked(q.x, q.y, "outside") ? -1 : 1;
-      if (passable[k] < 0 || (world.canCross && !world.canCross(p, q))) continue;
-      previous[k] = i;
-      queue.push(k);
+  const passableAt = (x: number, y: number) => {
+    const k = index(x, y);
+    return (passable[k] ||= world.blocked(x, y, "outside") ? -1 : 1) > 0;
+  };
+  let explored = false;
+  const explore = () => {
+    if (explored) return;
+    explored = true;
+    for (let head = 0; head < queue.length; head++) {
+      const i = queue[head],
+        p = point(i);
+      if (p.x === -half || p.y === -half || p.x === half - 1 || p.y === half - 1)
+        edge.push(i);
+      let coastal = false;
+      for (const [dx, dy] of steps) {
+        const q = { x: p.x + dx, y: p.y + dy };
+        if (q.x < -half || q.y < -half || q.x >= half || q.y >= half) continue;
+        const k = index(q.x, q.y);
+        water[k] ||= world.terrain(q.x, q.y) === "water" ? 1 : -1;
+        if (water[k] > 0) coastal = true;
+        if (previous[k] !== -2) continue;
+        if (!passableAt(q.x, q.y) || (world.canCross && !world.canCross(p, q))) continue;
+        previous[k] = i;
+        queue.push(k);
+      }
+      if (coastal) shore.push(i);
     }
-    if (coastal) shore.push(i);
+  };
+  const border: number[] = [];
+  for (let t = -half; t < half; t++) {
+    border.push(index(t, -half), index(t, half - 1));
+    if (t > -half && t < half - 1)
+      border.push(index(-half, t), index(half - 1, t));
   }
   const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
   const used = new Set<number>();
@@ -103,20 +118,36 @@ export function mapEntrances(
         (direction.includes("W") && p.x === -half)
       );
     };
+    const compare = (a: number, b: number) => {
+      const p = point(a), q = point(b);
+      return Number(used.has(a)) - Number(used.has(b)) ||
+        Math.hypot(p.x - target.x, p.y - target.y) -
+          Math.hypot(q.x - target.x, q.y - target.y) || a - b;
+    };
+    if (!explored) {
+      const best = border.filter(onSide).sort(compare).find((i) => {
+        const p = point(i);
+        return passableAt(p.x, p.y);
+      });
+      if (best !== undefined) {
+        const goal = point(best);
+        // Search backward, but test crossings in the traveller's forward direction.
+        const found = route(goal, start, (to, from) =>
+          ((to.x === start.x && to.y === start.y) || passableAt(to.x, to.y)) && (!world.canCross || world.canCross(to, from)) ? 1 : Infinity,
+          { maxNodes: size * 32, heuristicWeight: 1.2,
+            bounds: { x: -half, y: -half, w: size - 1, h: size - 1 } },
+        );
+        if (found.status === "found") {
+          used.add(best);
+          return { ...exit, point: goal, path: [goal, ...found.path].reverse(), shore: false, walkable: true };
+        }
+      }
+    }
+    // A blocked approach or exhausted search must not turn a land exit into a boat trip.
+    explore();
     const walkable = edge.some(onSide);
     const coastal = !walkable && shore.length > 0;
-    const candidates = [...(coastal ? shore : edge)]
-      .filter((i) => coastal || onSide(i))
-      .sort((a, b) => {
-        const p = point(a),
-          q = point(b);
-        return (
-          Number(used.has(a)) - Number(used.has(b)) ||
-          Math.hypot(p.x - target.x, p.y - target.y) -
-            Math.hypot(q.x - target.x, q.y - target.y) ||
-          a - b
-        );
-      });
+    const candidates = (coastal ? shore : edge).filter((i) => coastal || onSide(i)).sort(compare);
     const end = candidates[0],
       path: { x: number; y: number }[] = [];
     if (end !== undefined) {

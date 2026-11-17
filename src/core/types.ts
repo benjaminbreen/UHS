@@ -863,6 +863,8 @@ export type Inspection = {
   description: string;
   kind: string;
   pos: Position;
+  source?: { url: string; label: string; photo?: { url: string; label: string } };
+  exhibits?: readonly { id: string; name: string }[];
   claim?: string;
   affordances: Affordance[];
   inventory?: Inventory;

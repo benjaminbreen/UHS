@@ -120,7 +120,7 @@ it("places entrances on reachable boundaries and exposes blocked connections", (
   const world = {
     spawn: { x: 0, y: 0 },
     terrain: (x: number, y: number) => { terrainCalls++; terrainReads.add(`${x},${y}`); return "grass"; },
-    blocked: (x: number, y: number) => { blockedCalls++; blockedReads.add(`${x},${y}`); return x === 1; },
+    blocked: (x: number, y: number) => { blockedCalls++; blockedReads.add(`${x},${y}`); return x === 1 || (x === -2 && y !== 0); },
     canCross: (from: { y: number }, to: { x: number; y: number }) => {
       if (to.x !== -1 || to.y !== 0) return true;
       approaches.push(from.y);
@@ -135,13 +135,93 @@ it("places entrances on reachable boundaries and exposes blocked connections", (
   expect(e.path.every((p) => p.x < 1)).toBe(true);
   expect(terrainCalls).toBe(terrainReads.size);
   expect(blockedCalls).toBe(blockedReads.size);
-  expect(approaches[0]).toBe(0);
+  const gate = e.path.findIndex((p) => p.x === -1 && p.y === 0);
+  expect(e.path[gate - 1]).toEqual({x: -1, y: 1});
   expect(approaches).toContain(1);
   const boxed = {
     ...world,
     blocked: (x: number, y: number) => Math.abs(x) + Math.abs(y) > 0,
   };
   expect(mapEntrances(boxed, 16, exits)[0].point).toBeUndefined();
+});
+
+it("finds open-map exits without sampling the whole map", () => {
+  let reads = 0;
+  const world = {
+    spawn: { x: 0, y: 0 },
+    terrain: () => "grass",
+    blocked: () => { reads++; return false; },
+  } as unknown as WorldModel;
+  const exits = ["N", "E", "S", "W"].map((bearing) => ({id: bearing, to: bearing, bearing, mode: "land"}));
+  const entries = mapEntrances(world, 384, exits);
+  expect(entries.map((e) => e.point)).toEqual([
+    {x: 0, y: -192}, {x: 191, y: 0}, {x: 0, y: 191}, {x: -192, y: 0},
+  ]);
+  expect(entries.every((e) => e.walkable && !e.shore && e.path.length > 1)).toBe(true);
+  expect(reads).toBeLessThan(384 * 16);
+  expect(mapEntrances({...world, spawn: {x: -192, y: 0, space: "outside"}}, 384, [exits[3]])[0].path)
+    .toEqual([{x: -192, y: 0}]);
+});
+
+it("finds another reachable border cell when the preferred crossing is isolated", () => {
+  const world = {
+    spawn: {x: 0, y: 0},
+    terrain: () => "grass",
+    blocked: (x: number, y: number) => (x === -7 && y === 0) || (x === -8 && Math.abs(y) === 1),
+  } as unknown as WorldModel;
+  const [entry] = mapEntrances(world, 16, [{id: "west", to: "west", bearing: "W", mode: "land"}]);
+  expect(entry.point?.x).toBe(-8);
+  expect(Math.abs(entry.point!.y)).toBe(2);
+  expect(entry.walkable).toBe(true);
+  expect(entry.path.every((p) => !world.blocked(p.x, p.y, "outside"))).toBe(true);
+});
+
+it("keeps crossings inside their seam and separates exits sharing a border", () => {
+  const world = {
+    spawn: {x: 0, y: 0}, terrain: () => "grass", blocked: () => false,
+  } as unknown as WorldModel;
+  const seam = {...permanentExits(london, 1300)[0].seam!, side: "W" as const, start: 0, end: 0.25, roadAt: 0.5};
+  const exits = ["first", "second"].map((id) => ({id, to: id, bearing: "W", mode: "land", seam}));
+  const entries = mapEntrances(world, 16, exits);
+  expect(entries[0].point).toEqual({x: -8, y: -6});
+  expect(entries[1].point).not.toEqual(entries[0].point);
+  expect(entries.every((e) => e.walkable && e.point!.x === -8 && e.point!.y <= -5)).toBe(true);
+  expect(mapEntrances(world, 16, exits)).toEqual(entries);
+});
+
+it("keeps land routes when the directed search runs out of nodes", () => {
+  let terrainReads = 0;
+  const world = {
+    spawn: {x: -95, y: -94},
+    terrain: () => { terrainReads++; return "grass"; },
+    blocked: (x: number, y: number) => {
+      if (x < -95 || x > 95 || y < -94 || y > 94) return true;
+      if (y % 2 === 0) return false;
+      return x !== (((y + 93) / 2) % 2 === 0 ? 95 : -95);
+    },
+  } as unknown as WorldModel;
+  const [entry] = mapEntrances(world, 192, [{id: "east", to: "east", bearing: "E", mode: "land"}]);
+  expect(entry.point).toEqual({x: 95, y: 0});
+  expect(entry.walkable).toBe(true);
+  expect(entry.path.length).toBeGreaterThan(192 * 32);
+  expect(terrainReads).toBeGreaterThan(0);
+  for (let i = 1; i < entry.path.length; i++) {
+    const a = entry.path[i - 1], b = entry.path[i];
+    expect(Math.abs(a.x - b.x) + Math.abs(a.y - b.y)).toBe(1);
+    expect(world.blocked(b.x, b.y, "outside")).toBe(false);
+  }
+});
+
+it("uses reachable shores for water exits and dry crossings for land exits", () => {
+  const world = {
+    spawn: {x: 0, y: 0},
+    terrain: (x: number) => x > 0 ? "water" : "grass",
+    blocked: (x: number) => x > 0,
+  } as unknown as WorldModel;
+  const exits = ["E", "W"].map((bearing) => ({id: bearing, to: bearing, bearing, mode: "sea"}));
+  const [sea, land] = mapEntrances(world, 16, exits);
+  expect(sea).toMatchObject({shore: true, walkable: false, point: {x: 0, y: 0}});
+  expect(land).toMatchObject({shore: false, walkable: true, point: {x: -8, y: 0}});
 });
 
 it("bounds the existing generator without changing the underlying Earth terrain", async () => {

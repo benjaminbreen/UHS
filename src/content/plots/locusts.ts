@@ -43,7 +43,7 @@ export const locusts: PlotTemplate = {
       refs: { neighbour: neighbour.id, ...p.refs },
     };
   },
-  opening: [{ type: "choose", line: "cloud", focus: "neighbour", choices: [{ id: "fight" }, { id: "reap" }, { id: "catch" }] }],
+  opening: [{ type: "choose", line: "cloud", focus: "neighbour", brought: true, choices: [{ id: "fight" }, { id: "reap" }, { id: "catch" }] }],
   developments: [
     { id: "joined", when: { type: "fired", id: "fight" }, then: [{ type: "regard", role: "neighbour", delta: 1 }, { type: "gather", at: "edge", when: 1, label: "smoking", aim: "go", scene: "smoke" }] },
     {

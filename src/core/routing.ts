@@ -17,7 +17,7 @@ export function route(
     /** Generation can search for any cell in a network; use zero heuristic. */
     isGoal?: (point: Point) => boolean;
     minCost?: number;
-    /** Above one trades optimality for a faster, directed search. Used only when laying out country roads. */
+    /** Above one trades optimality for a faster, directed search. Used for generation routes. */
     heuristicWeight?: number;
     step?: number;
     /** Generation only; runtime movement retains its existing crossing rules. */

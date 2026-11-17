@@ -2521,6 +2521,7 @@ export class WorldScene extends Phaser.Scene {
     image: Phaser.GameObjects.Image,
     id: string,
     mirrored = false,
+    selectOnPhone = false,
   ) {
     if (this.options.lab) return;
     image.setInteractive(
@@ -2537,8 +2538,8 @@ export class WorldScene extends Phaser.Scene {
         event: Phaser.Types.Input.EventData,
       ) => {
         if (this.modalOpen || pointer.event?.target !== this.game.canvas || pointer.rightButtonDown()) return;
-        // Let the tap through to the scene, which walks.
-        if (phoneLayout()) return;
+        // Ordinary taps walk. Exhibit taps open the source card.
+        if (phoneLayout() && !selectOnPhone) return;
         event.stopPropagation();
         this.runtime.select(id);
       },
@@ -2579,6 +2580,7 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     tip.textContent = seen.name;
+    tip.classList.toggle("has-source", !!(seen.source || seen.exhibits));
     if (seen.latin) {
       const latin = document.createElement("i");
       latin.textContent = ` ${seen.latin}`;
@@ -6369,7 +6371,9 @@ export class WorldScene extends Phaser.Scene {
     let v = this.areaView;
     if (!v || v.space !== space) {
       v?.destroy();
-      v = this.areaView = "fair" in level ? new FairView(this, level as FairLevel, (frame) => this.texture(frame)) : new TombView(this, level as TombLevel);
+      v = this.areaView = "fair" in level
+        ? new FairView(this, level as FairLevel, (frame) => this.texture(frame), (image, id) => this.makeSelectable(image, id, false, true))
+        : new TombView(this, level as TombLevel);
       if (import.meta.env.DEV) (window as unknown as { uhsTomb?: typeof TombView }).uhsTomb = TombView;
       this.applyGrade(0);
     }
@@ -7908,11 +7912,11 @@ export class WorldScene extends Phaser.Scene {
           prop,
           turnMotion || passBy * 3,
           condition,
+          asleep ? undefined : this.feeling(id, human),
         );
         // A hit-stop holds the figures too, not only what is tweened.
         im.setVisible(!!texture);
         if (asleep) this.shadows.get(id)?.setVisible(false);
-          asleep ? undefined : this.feeling(id, human),
         const horse = id === "player" && this.runtime.devHorse
           ? this.horseFrame(moving, turn.facing, time)
           : undefined;
@@ -8486,10 +8490,6 @@ export class WorldScene extends Phaser.Scene {
   /** Two people together: whoever the player is talking to and the player,
    * or two people stopped at the same errand. They face each other and take
    * turns, and at a market one sells to the other. */
-  private together(id: string, at: Ambient | undefined, time: number) {
-    const engine = this.runtime.engine, talking = engine.conversing;
-    const me = this.entities.get(id);
-    if (!me) return undefined;
   /** The face someone wears for the moment: what they just said, how they
    * take the player standing near, or being ill. */
   private feeling(id: string, human: Pick<Actor, "trust" | "pos">): RestingExpression | undefined {
@@ -8505,6 +8505,10 @@ export class WorldScene extends Phaser.Scene {
     if (id !== engine.conversing && Math.hypot(human.pos.x - s.player.pos.x, human.pos.y - s.player.pos.y) > 3) return undefined;
     return trust >= 2 ? "smile" : trust < 0 ? "serious" : undefined;
   }
+  private together(id: string, at: Ambient | undefined, time: number) {
+    const engine = this.runtime.engine, talking = engine.conversing;
+    const me = this.entities.get(id);
+    if (!me) return undefined;
     let other: string | undefined, kind: "chat" | "sale" = "chat", sells = false;
     if (talking && (id === talking || id === "player")) other = id === "player" ? talking : "player";
     else if (at && !at.moving && (at.activity === "visit" || at.activity === "play" || keeps(at)) && id !== "player") {

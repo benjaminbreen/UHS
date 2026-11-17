@@ -24,8 +24,10 @@ A border is the same line of Earth seen from both sides, so coasts, rivers
 and relief run straight across. `sampleSeam` and `boundarySample` in
 `seams.ts` reconcile local noise along it; only the outer band blends.
 `waterways.ts` and `water-edges.ts` match rivers across the edge;
-`entrances.ts` finds reachable entry points. Trunk routes (`routes.ts`) live
-in atlas coordinates so both sides of a border draw the same road or rail.
+`entrances.ts` first searches inward from the preferred border crossings,
+using bounded path searches and checking movement in the travel direction. If
+a search fails, one shared flood fill finds reachable alternatives or shores.
+Trunk routes (`routes.ts`) live in atlas coordinates so both sides of a border draw the same road or rail.
 
 `MapTravel` in `map-travel.ts` handles a crossing: it prepares the
 neighbour in the worker, puts the traveller at the matching point on the far

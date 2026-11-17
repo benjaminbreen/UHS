@@ -1,4 +1,6 @@
 import type { Box } from "../sewers/types";
+import type { Inspection } from "../../core/types";
+import type { ExhibitIcon } from "../../render/fair/items";
 
 /** What an area of a fair is laid out as. */
 export type FairArchetype =
@@ -115,16 +117,26 @@ export const FAIR_ART = [
   // Floor.
   "vitrine", "counter", "bales", "barrels", "sacks", "ingots", "statue", "vase", "engine", "dynamo", "locomotive",
   "phonograph", "telephone", "piano", "model", "loom", "press", "lamp-standard", "pyramid", "kiosk", "lift", "bath",
+  "hollerith", "remington", "filter", "basin", "stove", "cupboard", "tank", "toilet", "toolset", "sewingmachine", "garment", "curtain", "chair", "mattress", "hallclock",
+  "catalog-item",
   // Wall.
   "painting", "tapestry", "carpet", "panel", "map",
 ] as const;
 export type FairArt = (typeof FAIR_ART)[number];
 
+export const FAIR_SIZES: Partial<Record<FairArt, [number, number]>> = {
+  vitrine: [3, 1], counter: [3, 1], bath: [3, 2], bales: [2, 1], barrels: [2, 1], sacks: [2, 1], ingots: [2, 1], engine: [3, 2], dynamo: [2, 2],
+  locomotive: [4, 2], piano: [2, 1], model: [2, 2], loom: [2, 1], press: [2, 1], pyramid: [2, 2], kiosk: [2, 2],
+  painting: [2, 1], tapestry: [2, 1], carpet: [2, 1], map: [2, 1], panel: [2, 1],
+  basin: [2, 1], stove: [2, 2], cupboard: [2, 1], tank: [2, 2], toilet: [2, 2], toolset: [3, 2], sewingmachine: [2, 2], filter: [2, 1], garment: [1, 1], curtain: [2, 1],
+  chair: [2, 1], mattress: [3, 2], hallclock: [1, 1],
+};
+
 export type FairFind = {
   id: string;
   name: string;
   art: FairArt;
-  on: "wall" | "floor";
+  on: "wall" | "floor" | "table" | "case";
   tier: "common" | "notable" | "prize";
   /** The areas it fits, by tag: an area's id, kind, or stand tags. */
   tags: readonly string[];
@@ -144,6 +156,8 @@ export type FairFind = {
   text: string;
   look: string;
   basis: "documented" | "inferred" | "hypothesis" | "fiction";
+  source?: Inspection["source"];
+  catalog?: { section: string; icon?: ExhibitIcon; variant?: number };
   /** Can be used again: a phonograph plays every time. */
   keeps?: boolean;
   weight?: number;

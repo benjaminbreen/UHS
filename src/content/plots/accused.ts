@@ -12,7 +12,7 @@ export const accused: PlotTemplate = {
     palette: { ink: "#18121a", fill: "#2a1f2b", edge: "#5e3a48", light: "#ece0e2", accent: "#b84a5e" },
   },
   payee: "accuser",
-  weight: (c) => (neighbours(c).length >= 3 && notable(c) ? 0.45 : 0),
+  weight: (c) => (neighbours(c).length >= 3 && notable(c) ? 0.25 : 0),
   cast: (c) => {
     const witness = notable(c);
     const others = neighbours(c).filter((a) => a.id !== witness?.id && a.householdId !== witness?.householdId);

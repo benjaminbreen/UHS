@@ -38,7 +38,7 @@ export const traders: PlotTemplate = {
       refs: { patron: patron.id, ...p.refs },
     };
   },
-  opening: [{ type: "choose", line: "arrive", focus: "patron", choices: [{ id: "self" }, { id: "broker" }, { id: "supply" }] }],
+  opening: [{ type: "choose", line: "arrive", focus: "patron", brought: true, choices: [{ id: "self" }, { id: "broker" }, { id: "supply" }] }],
   developments: [
     {
       id: "go",

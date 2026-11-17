@@ -17,9 +17,12 @@ tests.
 - **Job assignment** counts occupied workplace slots once per resident selection,
   then reuses the vacancies across eligible trades. Counts are refreshed for the
   next resident so workplace capacity and household-only jobs stay accurate.
+- **Map exits** use bounded searches from preferred crossings toward the spawn.
+  Only a failed search triggers whole-map reachability discovery; its terrain
+  and obstacle lookups are shared across exits.
 - **Terrain chunks own their resources.** `src/render/resources.ts` records
   each chunk's objects and textures, so streaming never diffs the whole scene.
-  `src/runtime/device.ts` caps the terrain worker pool, at two on a phone.
+  `src/runtime/device.ts` caps the terrain worker pool, at one on a phone.
 - **Shared geography.** It lives in `src/world/geography/`.
   `scripts/prepare-atlas-index.mjs` precomputes the land-mask index, so the
   runtime decodes it instead of scanning polygons.
@@ -45,10 +48,23 @@ so the next load can say what the dead session held. Add `?vitals=1` for an
 on-screen readout, or read `window.__vitals.now()` and `.last()` from a remote
 inspector.
 
-The biggest costs are decoded textures: the shadow, civic, prop-shadow and
-building sheets. They are already tightly packed, so cutting them means loading
-fewer frames, not repacking. Never scale a CSS sprite sheet's
-`backgroundSize`: it makes the browser rasterise the whole sheet at that size.
+Chrome at phone size (`isMobile`, scale 3) puts the renderer near 900 MB of
+private memory in play: about 400 MB of V8 (main thread ~260, terrain worker
+~136, which holds its own copy of the world), about 240 MB of ArrayBuffers, and
+the rest in Blink, decoded images and GPU buffers. `getHeapUsage` sees only
+V8; take a `disabled-by-default-memory-infra` dump to see the rest.
+
+- **Music notes** are float PCM, 0.8–1.2 MB each. `src/audio/synth.ts` stores
+  each as it arrives, detaches the worker's copy, and on a phone keeps only
+  the current and previous score's notes. Before that, ArrayBuffer garbage
+  from score changes alone reached hundreds of megabytes.
+- **h3-js** reserves 32 MB at import; `vite.config.ts` starts it at 8 MB.
+- **Terrain chunks** on a phone are kept half a chunk past the wanted ring,
+  not a chunk and a half.
+- **Decoded textures**: the shadow, civic, prop-shadow and building sheets are
+  already tightly packed, so cutting them means loading fewer frames, not
+  repacking. Never scale a CSS sprite sheet's `backgroundSize`: it makes the
+  browser rasterise the whole sheet at that size.
 
 ## Measuring
 

@@ -1,5 +1,6 @@
 import type { Note, Stem, Voice, Score } from "./score";
 import { stems } from "./score";
+import { smallMemoryDevice } from "../runtime/device";
 
 type Context = AudioContext | OfflineAudioContext;
 const caches = new WeakMap<Context, Map<string, AudioBuffer>>();
@@ -628,6 +629,11 @@ export function synthesize(
   return data;
 }
 
+/** A note is up to a megabyte, and a dropped one would wait for a collection
+ * that iOS does not wait for. Detaching frees it now. */
+const free = (data: Float32Array<ArrayBuffer>) =>
+  (data.buffer as { transfer?: (length: number) => ArrayBuffer }).transfer?.(0);
+
 function store(ctx: Context, key: string, data: Float32Array<ArrayBuffer>) {
   let cache = caches.get(ctx);
   if (!cache) {
@@ -636,6 +642,7 @@ function store(ctx: Context, key: string, data: Float32Array<ArrayBuffer>) {
   }
   const buffer = ctx.createBuffer(1, data.length, ctx.sampleRate);
   buffer.copyToChannel(data, 0);
+  free(data);
   cache.set(key, buffer);
   // Keep long listening sessions bounded as the player auditions different scores.
   if (cache.size > 128) cache.delete(cache.keys().next().value!);
@@ -680,18 +687,26 @@ export async function prepareScore(
   score: Score,
   current: () => boolean,
 ) {
-  const jobs = new Map<string, Promise<Float32Array<ArrayBuffer>>>();
+  const keys = new Set<string>(), jobs: Promise<void>[] = [];
   for (const note of score.notes) {
     const key = `${note.voice}:${note.midi}:${note.cents ?? 0}:${note.bend ?? 0}`;
-    if (jobs.has(key) || caches.get(ctx)?.has(key)) continue;
-    jobs.set(key, synthesizeOff(note.voice, note.midi, note.cents ?? 0, note.bend ?? 0, ctx.sampleRate));
+    if (keys.has(key)) continue;
+    keys.add(key);
+    if (caches.get(ctx)?.has(key)) continue;
+    // Stored as each arrives, so a score's notes are never all held twice.
+    jobs.push(synthesizeOff(note.voice, note.midi, note.cents ?? 0, note.bend ?? 0, ctx.sampleRate)
+      .then((data) => void (current() ? store(ctx, key, data) : free(data))));
   }
-  for (const [key, job] of jobs) {
-    const data = await job;
-    if (!current()) return;
-    store(ctx, key, data);
+  await Promise.all(jobs);
+  if (!current()) return;
+  // A phone keeps this score and the one it fades out of, not the last 128 notes.
+  const cache = caches.get(ctx);
+  if (cache && smallMemoryDevice()) {
+    for (const key of cache.keys()) if (!keys.has(key) && !previousKeys.has(key)) cache.delete(key);
+    previousKeys = keys;
   }
 }
+let previousKeys = new Set<string>();
 
 export interface MixBus {
   input: GainNode;

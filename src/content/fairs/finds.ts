@@ -6,6 +6,26 @@ const look = (id: string, name: string, art: FairFind["art"], tags: string[], ti
 /** What the 1889 fair showed. Anchored ones are placed by the area plan; the
  * rest fill stands in areas whose tags they share. */
 export const fairFinds: readonly FairFind[] = [
+  look("hollerith-tabulator", "Hollerith’s punch-card tabulator", "hollerith", [], "notable",
+    "Herman Hollerith’s machine counts data stored as holes in cards. When the reader closes on a card, pins through the holes complete circuits and advance the dials. This table’s location is reconstructed.",
+    "", {
+      on: "table", w: 3,
+      source: {
+        url: "https://journals.openedition.org/artefact/pdf/2572.pdf",
+        label: "Exhibition history · Musée des Arts et Métiers, inv. 11747",
+        photo: { url: "https://www.cilac.com/sites/default/files/pdf_complet/pi_ndeg73_informatique.pdf#page=66", label: "Photo of the exhibited machine · Musée des Arts et Métiers" },
+      },
+    }),
+  look("remington-standard", "Remington Standard typewriter", "remington", [], "notable",
+    "Wyckoff, Seamans & Benedict showed the Remington Standard and its accessories in the Industrial Section. On the early Remington, the typebars strike the underside of the paper. The typist lifts the carriage to read what they have typed.",
+    "", {
+      on: "table", w: 2,
+      source: {
+        url: "https://upload.wikimedia.org/wikipedia/commons/d/d4/Official_catalogue_of_the_United_States_exhibit_%28IA_cu31924021898576%29.pdf#page=191",
+        label: "Official U.S. exhibit catalog · Class 59, p. 185",
+        photo: { url: "https://commons.wikimedia.org/wiki/File:Remington_2_typewriter_(Martin_Howard_Collection).jpg", label: "Photo of a comparable Remington No. 2 · Wikimedia Commons" },
+      },
+    }),
   // The Tower.
   look("tower-ticket-office", "Tower ticket office", "kiosk", [], "common", "A booth at the foot of the leg. Two francs to the first platform, three to the second, five to the top.", "The clerk tears off your ticket. The lift is through the gate.", { verb: "Buy a ticket up", price: 2, loot: { "tower-ticket": 1 }, keeps: true }),
   look("restaurant-russian", "The Russian restaurant", "kiosk", [], "notable", "A restaurant in carved wood, serving zakuski and tea from a samovar.", "You sit by the rail with a glass of tea and look down on the crowd the size of ants.", { verb: "Take tea", price: 2, heal: 6, tint: "#b8432f" }),

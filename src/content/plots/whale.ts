@@ -3,7 +3,9 @@ import type { PlotContext, PlotTemplate } from "./types";
 
 const ICELAND = [-25, 63, -13, 67] as const;
 
-const coastal = (c: PlotContext) => !!c.setting && (/^coast|island|ocean/.test(c.setting.water) || c.setting.settlement === "port");
+// A beach someone can walk down to at dawn: not a city, nor a port grown into one.
+const coastal = (c: PlotContext) => !!c.setting && c.setting.settlement !== "city" && !(c.setting.settlement === "port" && c.setting.year >= 1850) &&
+  (/^coast|island|ocean/.test(c.setting.water) || c.setting.settlement === "port");
 
 const castOf = (c: PlotContext) => {
   const owner = notable(c);
@@ -40,7 +42,7 @@ export const whale: PlotTemplate = {
       refs: { owner: owner.id, neighbour: neighbour.id, ...p.refs },
     };
   },
-  opening: [{ type: "choose", line: "beach", focus: "neighbour", choices: [{ id: "tell" }, { id: "cut", check: { stat: "wit", odds: 0.5 } }] }],
+  opening: [{ type: "choose", line: "beach", focus: "neighbour", at: "shore", choices: [{ id: "tell" }, { id: "cut", check: { stat: "wit", odds: 0.5 } }] }],
   developments: [
     { id: "thanked", when: { type: "fired", id: "tell" }, then: [{ type: "regard", role: "patron", delta: 1 }] },
     { id: "seen", when: { type: "fired", id: "cut:failed" }, then: [{ type: "regard", role: "patron", delta: -2 }] },
@@ -89,7 +91,7 @@ export const whale: PlotTemplate = {
     {
       title: "A Whale on the Beach",
       lines: {
-        aim: "Get your share of the whale.",
+        aim: "Go down to the shore and get your share of the whale.",
         intro: "A whale has come ashore in the night. Meat, fat, bone and sinew, more than everyone here can eat.",
         threat: "There are rules about who gets which part, and {owner} will want them kept.",
         partner: "Your {partnerKin} {partner} is sharpening every knife in the house.",

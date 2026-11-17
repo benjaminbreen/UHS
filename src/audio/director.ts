@@ -21,6 +21,7 @@ import { applyTuning, tuning } from "./sfx-tuning";
 import { Ambience, Room, UndergroundBed, silence, type AmbienceMix, type UndergroundLevels } from "./ambience";
 import { interiorThemes, type InteriorMusic } from "./interior-themes";
 import { situationTheme, type Situation, type ThreatMusic } from "./situation-themes";
+import { smallMemoryDevice } from "../runtime/device";
 
 export interface AudioState {
   loading: boolean;
@@ -28,6 +29,9 @@ export interface AudioState {
   beat: number;
   arrangement: Arrangement;
   followWorld: boolean;
+  /** Whether the score plays at all. Off on a phone until chosen: each
+   * piece is tens of megabytes of synthesised notes. */
+  music: boolean;
   volume: number;
   sfxVolume: number;
   muted: boolean;
@@ -294,6 +298,7 @@ export class AudioDirector {
     beat: 0,
     arrangement: shuffled(),
     followWorld: true,
+    music: !smallMemoryDevice(),
     volume: 0.4,
     sfxVolume: 0.6,
     muted: false,
@@ -308,6 +313,7 @@ export class AudioDirector {
         if (typeof p[key] === "number" && Number.isFinite(p[key]))
           this.state[key] = Math.max(0, Math.min(1, p[key]));
       if (typeof p.muted === "boolean") this.state.muted = p.muted;
+      if (typeof p.music === "boolean") this.state.music = p.music;
     } catch {
       /* Sound still works when local preferences are unavailable. */
     }
@@ -388,7 +394,7 @@ export class AudioDirector {
   }
   async play(fadeIn = 0.8) {
     clearTimeout(this.pending);
-    if (this.state.playing || this.state.loading) return;
+    if (!this.state.music || this.state.playing || this.state.loading) return;
     if (this.dangerQueued && !this.held && this.state.followWorld) {
       this.dangerQueued = false;
       this.situation = "danger";
@@ -615,7 +621,7 @@ export class AudioDirector {
   /** A short piece over whatever is playing, which steps back for it. */
   async cue(themeId: string) {
     const ctx = this.ctx;
-    if (!ctx || this.disposed || this.held || !this.state.followWorld) return;
+    if (!ctx || this.disposed || this.held || !this.state.followWorld || !this.state.music) return;
     const score = compose({ ...this.state.arrangement, themeId, period: "day" });
     await prepareScore(ctx, score, () => !this.disposed);
     if (this.disposed || this.held) return;
@@ -761,6 +767,12 @@ export class AudioDirector {
       );
     this.persist();
   }
+  setMusic(on: boolean) {
+    this.patch({ music: on });
+    this.persist();
+    if (on) void this.play();
+    else this.stop();
+  }
   mute() {
     this.patch({ muted: !this.state.muted });
     if (this.ctx)
@@ -779,6 +791,7 @@ export class AudioDirector {
           volume: this.state.volume,
           sfxVolume: this.state.sfxVolume,
           muted: this.state.muted,
+          music: this.state.music,
         }),
       );
     } catch {

@@ -32,7 +32,7 @@ export const token: PlotTemplate = {
     emblem: "token",
     palette: { ink: "#16121c", fill: "#3a2c40", edge: "#7a5a5a", light: "#f4ece4", accent: "#e8b070" },
   },
-  weight: (c) => (c.household && castOf(c) ? 0.5 * temper(c, "openness") : 0),
+  weight: (c) => (c.household && castOf(c) ? 0.08 * temper(c, "openness") : 0),
   cast: (c) => castOf(c),
   begin: (c, cast) => {
     const suspect = cast.suspect!, neighbour = cast.neighbour!, witness = cast.witness;

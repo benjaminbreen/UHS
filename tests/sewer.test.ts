@@ -6,9 +6,12 @@ import { mineProfiles } from "../src/content/settlements/worksites/mines";
 import { personFits, sewerFinds, sewerKindFor, sewerPeople } from "../src/content/sewers";
 import { MOTOR_SPANS } from "../src/content/settlements/streets/markings";
 import { laneLids } from "../src/render/carriageway";
+import { exhibitIcon } from "../src/render/fair/items";
+import { paintFairCase, paintFairThing } from "../src/render/fair/things";
 import { LEDGE, sewerLevel, sewerSolid, walkable, type SewerLevel, type SewerSite } from "../src/world/sewer";
 import { FALL_WARN, TUB_CELL, knock, perilField, perilStart, perilTime } from "../src/core/mine-peril";
 import type { ComplexHost } from "../src/core/complex";
+import { fairInspect } from "../src/core/fair";
 import { tunnelRun } from "../src/core/sewer";
 import { folkDeal, folkOffer, folkTime, type FolkHost } from "../src/core/tunnel-folk";
 import { caveFind } from "../src/content/caves";
@@ -22,10 +25,11 @@ import { createSettingSession } from "../src/runtime/session";
 import { theban } from "../src/content/tombs/theban";
 import { tombLevel, tombPlan, tombWalkable } from "../src/world/tomb";
 import { fairLevel, fairSolid, fairWalkable } from "../src/world/fair";
-import { fairPeople, fairs } from "../src/content/fairs";
+import { FAIR_SIZES, fairAt, fairFind, fairPeople, fairs } from "../src/content/fairs";
 import { tunnelPerson } from "../src/content/sewers";
 import { commonLivelihoods } from "../src/content/characters/livelihoods.generated";
 import { arrivalFrom } from "../src/world/complex";
+import { mapForCoordinate, tileCentre } from "../src/world/travel/network";
 
 const site = (id: string, place: SewerSite["place"]): SewerSite => {
   const kind = sewerKindFor(place);
@@ -316,6 +320,169 @@ describe("ships", () => {
 });
 
 describe("fairs", () => {
+  it("places full-sized fittings on the floor with collision footprints and source inspection", () => {
+    let furnishings = 0;
+    for (const fair of fairs) for (const area of fair.areas) {
+      const level = fairLevel("scale-review", fair, area.id)!, solid = fairSolid(level);
+      for (const display of level.cases) for (const f of display.finds) {
+        expect(f.on).toBe("case");
+        expect(f.catalog?.icon, f.name).toBeDefined();
+      }
+      for (const thing of level.things) {
+        const f = fairFind(thing.find)!;
+        if (!f.catalog || f.on !== "floor") continue;
+        furnishings++;
+        const [w, h] = FAIR_SIZES[f.art]!;
+        expect([thing.w, thing.h], f.name).toEqual([w, h]);
+        expect(f.catalog.icon, f.name).toBeUndefined();
+        for (let y = thing.y; y < thing.y + h; y++) for (let x = thing.x; x < thing.x + w; x++)
+          expect(solid.has(y * level.w + x), f.name).toBe(true);
+        const sprite = paintFairThing(f.art, w, h, f.catalog.variant ?? 0)!;
+        expect(sprite.r.w > 16 || sprite.r.h > 16, f.name).toBe(true);
+        const host = {
+          state: { manifest: { seed: "scale-review" }, player: { pos: { ...level.entry, space: level.space }, inventory: {} }, complex: { kind: "fair", fair: fair.id } },
+          areas: new Map([[level.space, { level, solid }]]),
+        } as unknown as ComplexHost;
+        expect(fairInspect(host, "fair-thing:" + thing.id)).toMatchObject({ name: f.name, source: f.source, affordances: [] });
+      }
+    }
+    expect(furnishings).toBeGreaterThan(0);
+  });
+
+  it("varies reusable exhibit families in silhouette and material", () => {
+    for (const kind of ["bottle", "jar", "vase", "book", "bolt", "lock", "stockings"] as const) {
+      const images = Array.from({ length: 6 }, (_, i) => exhibitIcon(kind, i / 6).data);
+      expect(new Set(images.map((r) => r.join(","))).size, kind).toBe(6);
+      expect(new Set(images.map((r) => r.filter((_, i) => i % 4 === 3).join(","))).size, kind).toBeGreaterThanOrEqual(2);
+    }
+    const london = fairs.find((f) => f.id === "london-1884")!;
+    expect(london.finds.find((f) => f.name === "Ornamental Locks and Keys")?.catalog?.icon).toBe("lock");
+    expect(london.finds.find((f) => f.name === "Boxes of Tools")).toMatchObject({ art: "toolset", on: "floor", w: 3, h: 2 });
+    expect(fairs.flatMap((f) => f.finds).find((f) => f.name === "Campbell Lock-stitch Sewing Machines")).toMatchObject({ art: "sewingmachine", on: "floor" });
+    const copper = london.finds.find((f) => f.name === "Copper Sitz Bath in Cabinet Work");
+    expect(copper).toMatchObject({ art: "bath", on: "floor", w: 3, h: 2, catalog: { variant: 0.45 } });
+  });
+
+  it("gives catalog objects their own silhouettes and preserves the published case metals", () => {
+    const paris = fairs.find((f) => f.id === "paris-1889")!;
+    const london = fairs.find((f) => f.id === "london-1884")!;
+    const chicago = fairs.find((f) => f.id === "chicago-1893")!;
+    const icon = (fair: typeof paris, name: string) => fair.finds.find((f) => f.name === name)!.catalog!;
+    expect(icon(paris, "Kodak camera").icon).toBe("kodak");
+    expect(icon(paris, "Waterbury pocket watch").icon).toBe("longwind");
+    expect(icon(paris, "Sheffield crème dentifrice in a tube").icon).toBe("dentifrice");
+    expect(icon(london, "Tourist Filtre Rapide").icon).toBe("travelfilter");
+    expect(icon(london, "Pears' Soap").icon).toBe("soap");
+    expect(icon(london, "Writing materials and copy books").icon).toBe("book");
+    expect(icon(london, "Bolding's Patent Bottle Trap").icon).toBe("pipe");
+    expect(icon(chicago, "Heinz pickles").icon).toBe("picklejar");
+    expect(icon(chicago, "Heinz pickle watch charm").icon).toBe("picklecharm");
+    const gold = icon(paris, "Gold-cased Trenton watch"), nickel = icon(paris, "Nickel-cased Trenton watch");
+    expect(exhibitIcon(gold.icon!, gold.variant!).data).not.toEqual(exhibitIcon(nickel.icon!, nickel.variant!).data);
+    expect(exhibitIcon("longwind", 0).data).not.toEqual(exhibitIcon("watch", 0).data);
+    expect(exhibitIcon("kodak", 0).data).not.toEqual(exhibitIcon("camera", 0).data);
+    expect(exhibitIcon("picklejar", 0).data).not.toEqual(exhibitIcon("jar", 0).data);
+  });
+
+  it("sends a Chicago World's Fair prompt to the Columbian Exposition", () => {
+    const resolved = resolveSetting("A visitor at the Chicago World's Fair, 1893");
+    expect(resolved).toMatchObject({ setting: { location: "Chicago", year: 1893, below: "fair" } });
+    if (!("setting" in resolved)) throw Error(resolved.error);
+    const centre = tileCentre(mapForCoordinate(resolved.setting));
+    const chicago = fairAt(centre.lon, centre.lat, resolved.setting.year)!;
+    expect(chicago.id).toBe("chicago-1893");
+    const electricity = fairLevel("seed", chicago, "electricity")!;
+    expect(electricity.cases.flatMap((c) => c.finds).some((f) => f.name === "Westinghouse stopper lamp")).toBe(true);
+  });
+
+  it("draws hundreds of source-linked casefuls from the catalog and keeps their aisles open", () => {
+    const ids = new Set<string>();
+    let casefuls = 0, placed = 0;
+    for (const fair of fairs) {
+      const sections = new Map<string, number>();
+      for (const f of fair.finds.filter((f) => f.on === "case")) {
+        expect(ids.has(f.id), f.id).toBe(false);
+        ids.add(f.id);
+        expect(f.source?.url).toMatch(/^https:\/\/.+(?:#page=\d+|\/page\/\d+\/mode\/1up)$/);
+        const art = f.catalog!;
+        expect(exhibitIcon(art.icon!, art.variant ?? 0).data.some((value, i) => i % 4 === 3 && value > 0), f.name).toBe(true);
+        expect(fair.areas.some((a) => a.id === f.tags[0]), f.name).toBe(true);
+        const key = `${f.tags[0]}/${art.section}`;
+        sections.set(key, (sections.get(key) ?? 0) + 1);
+      }
+      for (const size of sections.values()) casefuls += Math.ceil(size / 4);
+      for (const a of fair.areas) {
+        const level = fairLevel("seed", fair, a.id)!;
+        const solid = fairSolid(level), finds = new Set<string>();
+        for (const d of level.cases) {
+          placed++;
+          const { cabinet, items } = paintFairCase(d);
+          for (const item of items) {
+            expect(cabinet.ox - item.ox).toBeGreaterThanOrEqual(0);
+            expect(cabinet.oy - item.oy).toBeGreaterThanOrEqual(0);
+            expect(cabinet.ox - item.ox + item.r.w).toBeLessThanOrEqual(cabinet.r.w);
+            expect(cabinet.oy - item.oy + item.r.h).toBeLessThanOrEqual(cabinet.r.h);
+          }
+          expect(level.decor.some((c) => c.type === "column" && c.x >= d.x && c.x < d.x + d.w && c.y > d.y && c.y - d.y <= 3)).toBe(false);
+          expect(d.finds.length).toBeGreaterThanOrEqual(1);
+          expect(d.finds.length).toBeLessThanOrEqual(4);
+          for (const f of d.finds) {
+            expect(f.catalog?.section).toBe(d.name);
+            expect(f.tags).toContain(a.id);
+            expect(finds.has(f.id), f.name).toBe(false);
+            finds.add(f.id);
+          }
+          for (let x = d.x; x < d.x + d.w; x++)
+            expect(solid.has(d.y * level.w + x)).toBe(true);
+          expect(solid.has((d.y + 1) * level.w + d.x + Math.floor(d.w / 2))).toBe(false);
+        }
+      }
+    }
+    expect(casefuls).toBeGreaterThanOrEqual(200);
+    expect(placed).toBeGreaterThanOrEqual(200);
+  });
+
+  it("inspects a display case and each of its catalog entries through the same focus card", () => {
+    const fair = fairs.find((f) => f.id === "london-1884")!;
+    const level = fairLevel("seed", fair, "foods")!;
+    const display = level.cases.find((c) => c.finds.some((f) => f.name === "Kepler Cod Liver Oil"))!;
+    const solid = fairSolid(level);
+    const state = {
+      manifest: { seed: "seed" },
+      player: { pos: { ...level.entry, space: level.space }, inventory: {} },
+      complex: { kind: "fair", fair: fair.id },
+    };
+    const host = { state, areas: new Map([[level.space, { level, solid }]]) } as unknown as ComplexHost;
+    const cabinet = fairInspect(host, display.id)!;
+    const item = cabinet.exhibits?.find((f) => f.name === "Kepler Cod Liver Oil")!;
+    expect(cabinet.name).toBe("Tonics and remedies");
+    expect(fairInspect(host, item.id)).toMatchObject({
+      name: "Kepler Cod Liver Oil", source: { label: expect.stringContaining("entry 194"), photo: { url: expect.stringContaining("sciencemuseumgroup") } },
+    });
+    expect(fairInspect(host, display.id + "#99")).toBeUndefined();
+  });
+
+  it.each([
+    ["paris-1889", "dome-hall", ["hollerith-tabulator", "remington-standard"]],
+  ] as const)("places named exhibits on a single accessible table at %s", (fairId, area, ids) => {
+    const fair = fairs.find((f) => f.id === fairId)!;
+    const level = fairLevel("seed", fair, area)!;
+    const table = level.decor.find((d) => d.type.startsWith("table:empty:"))!;
+    const solid = fairSolid(level);
+    const artifacts = level.things.filter((t) => fairFind(t.find)?.on === "table");
+    expect(artifacts.map((t) => t.find)).toEqual(ids);
+    let x = table.x + 1;
+    for (const t of artifacts) {
+      expect(t).toMatchObject({ x, y: table.y, solid: false });
+      expect(fairFind(t.find)?.source?.photo?.url).toMatch(/^https:\/\//);
+      for (let i = x; i < x + (t.w ?? 1); i++) {
+        expect(solid.has(t.y * level.w + i)).toBe(true);
+        expect(solid.has((t.y + 1) * level.w + i)).toBe(false);
+      }
+      x += t.w ?? 1;
+    }
+  });
+
   it("joins every area of every fair both ways, lands each arrival on open ground, and leaves every way out walkable", () => {
     for (const fair of fairs) {
       const reached = new Set([fair.entry]);

@@ -1,4 +1,5 @@
 import type { Fair, FairArea, FairFind } from "./types";
+import { londonCatalog } from "./london-catalog";
 
 // The International Health Exhibition, South Kensington, 8 May to 30 October
 // 1884: "the Healtheries". Four million visits to the sheds and gardens
@@ -14,6 +15,16 @@ const f = (id: string, name: string, art: FairFind["art"], tags: string[], tier:
   ({ id, name, art, on: WALL_ART.includes(art) ? "wall" : "floor", tags, tier, verb: "Look closely", time: 60, look, text, basis: "inferred", keeps: true, ...more });
 
 export const londonFinds: readonly FairFind[] = [
+  f("doulton-filter", "Doulton stoneware water filter", "filter", [], "notable",
+    "Doulton & Co. of Lambeth showed water filters at the Health Exhibition. A filter like this one used carbon to treat drinking water. A tap let households draw water from the stoneware urn.",
+    "", {
+      on: "floor", w: 2, h: 1, basis: "documented", catalog: { section: "Water purification", variant: 0.2 },
+      source: {
+        url: "https://upload.wikimedia.org/wikipedia/commons/e/e7/International_Health_Exhibition%2C_1884_-_official_catalogue_%28IA_gri_33125008618163%29.pdf",
+        label: "Official exhibition catalog · Class XXI, entry 425",
+        photo: { url: "https://collection.powerhouse.com.au/object/186480", label: "Photo of a comparable Doulton filter · Powerhouse Collection" },
+      },
+    }),
   // Fixed exhibits.
   f("anthropometric-lab", "Anthropometric Laboratory", "counter", [], "prize", "A railed-off strip of gallery where Francis Galton's attendants measure anyone who pays threepence.", "They take your height, arm span and weight, the strength of your grip and your pull, how hard you can punch, how well you see and hear. You get a card with the figures. They keep a copy.", { verb: "Be measured", price: 1, time: 900, loot: { "anthropometric-card": 1 }, basis: "documented", staff: "lhe-measurer" }),
   f("sanitary-houses", "The sanitary and insanitary houses", "model", [], "prize", "Two full-size houses side by side. One has every fault a London house has. The other is built as it should be.", "You walk through the bad one first. A cistern over the water closet, a drain leaking under the floor, arsenic green on the nursery wall: each fault has a numbered card. Then the same rooms done right.", { time: 600, w: 3, h: 2, basis: "documented", staff: "lhe-physician" }),
@@ -112,7 +123,7 @@ const areas: FairArea[] = [
   gallery("foreign", "the Foreign Galleries: France", [14, 24, 4, 6], ["france", "belgium"], 5, "The west central galleries, given to France and other foreign countries."),
   gallery("avenue", "the Central Avenue", [18, 24, 2, 6], ["garden"], 1, "The avenue down the middle of the central galleries."),
   gallery("school", "The School", [20, 24, 3, 6], ["school"], 5, "The east central gallery: the school."),
-  gallery("dwelling", "The Dwelling: Fittings", [23, 24, 3, 6], ["dwelling"], 4, "The dwelling: fittings. Doulton showed filters and stoneware; the potter at a wheel is a guess.", { exhibits: ["doulton-potter"] }),
+  gallery("dwelling", "The Dwelling: Fittings", [23, 24, 3, 6], ["dwelling"], 4, "The dwelling: fittings. Doulton showed filters and stoneware; the potter at a wheel is a guess.", { exhibits: ["doulton-filter", "doulton-potter"] }),
   gallery("east-annexe", "the East Annexe: Sanitary Appliances", [26, 24, 4, 6], ["sanitary"], 3, "Sanitary appliances. The sanitary and insanitary houses are number 2 on the plan, near here.", { exhibits: ["sanitary-houses"] }),
   gallery("aquarium", "the Aquarium", [6, 21, 4, 9], ["aquarium"], 6, "The aquarium kept from the 1883 Fisheries Exhibition, off the West Arcade.", { floor: "tile" }),
   gallery("belgium", "Belgium: the Queen's Gate Annexe", [1, 22, 5, 10], ["belgium"], 8, "The Belgian section, the largest foreign one, with the Queen's Gate entrance.", { gate: "w", exhibits: ["belgian-school"] }),
@@ -143,7 +154,7 @@ export const london1884: Fair = {
   entry: "entrance",
   areas,
   scale: 5,
-  finds: londonFinds,
+  finds: [...londonFinds, ...londonCatalog],
   ticket: 1,
   coin: ["shilling", "shillings"],
   prompt: /\bhealth exhibition\b|\bhealtheries\b/,

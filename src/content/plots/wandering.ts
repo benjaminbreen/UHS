@@ -23,7 +23,7 @@ export const wandering: PlotTemplate = {
     emblem: "path",
     palette: { ink: "#12120e", fill: "#262620", edge: "#5e5a44", light: "#efece0", accent: "#d8b070" },
   },
-  weight: (c) => (elderOf(c) && neighbours(c).length ? 0.6 : 0),
+  weight: (c) => ((c.setting?.settlement !== "city" || c.setting.year < 1850) && elderOf(c) && neighbours(c).length ? 0.6 : 0),
   cast: (c) => {
     const kin = elderOf(c);
     const neighbour = pickOf(c, neighbours(c), "wandering-neighbour");

@@ -358,6 +358,9 @@ body {
 .world-tooltip i {
   opacity: 0.72;
 }
+.world-tooltip.has-source {
+  white-space: normal;
+}
 .world-tooltip.is-shown {
   opacity: 1;
 }

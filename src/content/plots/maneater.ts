@@ -1,5 +1,5 @@
 import { faunaAt } from "../fauna";
-import { EUROPE, neighbours, partnerWords, pickOf, pronounWords, temper } from "./common";
+import { EUROPE, neighbours, partnerWords, pickOf, pronounWords, temper, within } from "./common";
 import type { Condition, PlotContext, PlotTemplate } from "./types";
 
 /** Who turned man-eater where they lived, likeliest first, with what people called them. */
@@ -18,6 +18,8 @@ const BEASTS: [string, string, string[]][] = [
 
 const beastOf = (c: PlotContext) => {
   if (!c.setting || c.setting.settlement === "city" || c.setting.year >= 1960) return;
+  // Wolves, bears and cougars were hunted out of settled Europe and North America by about 1880, though the range data keeps them.
+  if (within(c, { years: [1880, 1960], bounds: EUROPE }, { years: [1880, 1960], bounds: [-170, 15, -50, 75] })) return;
   const here = new Set(faunaAt(c.setting).map((f) => f.id));
   return BEASTS.find(([id]) => here.has(id));
 };

@@ -21,7 +21,7 @@ export const rival: PlotTemplate = {
     emblem: "rival",
     palette: { ink: "#10161a", fill: "#1c2830", edge: "#3e5262", light: "#e2eaee", accent: "#4f8fb0" },
   },
-  weight: (c) => (rivalOf(c) ? 0.8 : 0),
+  weight: (c) => (rivalOf(c) ? 0.35 : 0),
   cast: (c) => {
     const rival = rivalOf(c);
     return rival && { rival };

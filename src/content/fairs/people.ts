@@ -1,4 +1,5 @@
 import type { SewerPerson } from "../sewers/types";
+import { chicagoPeople } from "./chicago-1893";
 
 const PARIS_1889 = { years: [1889, 1889] as [number, number] };
 const alone: readonly [number, number, number] = [0.7, 0.25, 0.05];
@@ -155,6 +156,7 @@ const person = (id: string, label: string, dress: string, doing: string, manner:
 
 /** Who was at the 1889 fair. Their lines are plain modern English; the period is in what they say. */
 export const fairPeople: readonly SewerPerson[] = [
+  ...chicagoPeople,
   ...london,
   person("fair-visitor", "Visitor", "clerk", "Seeing the fair", "explore", [
     "We came for the Tower and haven't even got to it yet. Every turn there's something else.",

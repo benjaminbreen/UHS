@@ -17,7 +17,7 @@ export const follower: PlotTemplate = {
     emblem: "shadow",
     palette: { ink: "#10140e", fill: "#2c3a24", edge: "#7a6440", light: "#eef2dc", accent: "#e8c060" },
   },
-  weight: (c) => ((c.player.age ?? 30) >= 18 && castOf(c) ? 0.5 * temper(c, "agreeableness") : 0),
+  weight: (c) => ((c.player.age ?? 30) >= 18 && castOf(c) ? 0.3 * temper(c, "agreeableness") : 0),
   cast: (c) => castOf(c),
   begin: (c, cast) => {
     const child = cast.child!, neighbour = cast.neighbour!;

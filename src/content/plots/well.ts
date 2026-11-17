@@ -18,7 +18,7 @@ export const well: PlotTemplate = {
     emblem: "well",
     palette: { ink: "#0e1414", fill: "#24343a", edge: "#7a6a52", light: "#e8eee6", accent: "#78c0b4" },
   },
-  weight: (c) => ((c.setting?.year ?? 0) > B(6000) && (c.setting?.year ?? 0) < 1900 && !trade(c, /hunt|gather|herd|traveler/) && castOf(c) ? 0.5 * temper(c, "wit") : 0),
+  weight: (c) => ((c.setting?.year ?? 0) > B(6000) && (c.setting?.year ?? 0) < 1900 && !trade(c, /hunt|gather|herd|traveler/) && castOf(c) ? 0.2 * temper(c, "wit") : 0),
   cast: (c) => castOf(c),
   begin: (c, cast) => {
     const child = cast.child!, neighbour = cast.neighbour!;

@@ -1,6 +1,6 @@
 import { frostCover, snowCover } from "./snow-cover";
 import { usesLivingWater } from "./living-water/game";
-import { tellMemory, workerBudget } from "../runtime/device";
+import { smallMemoryDevice, tellMemory, workerBudget } from "../runtime/device";
 import { peekTerrainWorker, takeTerrainWorker } from "../runtime/terrain-worker-owner";
 import { seasonAt } from "../core/livelihood";
 import { tideAt } from "../content/geography/waterscapes";
@@ -299,11 +299,14 @@ export class TerrainStream {
           prefix: `stream-${id}`,
         });
       }
+    // Kept for the walk back. Each chunk holds its cells and textures, so a
+    // phone keeps half a chunk past what it wants (1.5), not a chunk and a half.
+    const keep = SIZE * (smallMemoryDevice() ? 2 : 3);
     for (const [id, chunk] of this.chunks) {
       const r = chunk.region;
       if (
-        Math.abs(r.x + SIZE / 2 - x) > halfX + SIZE * 3 ||
-        Math.abs(r.y + SIZE / 2 - y) > halfY + SIZE * 3 + 4
+        Math.abs(r.x + SIZE / 2 - x) > halfX + keep ||
+        Math.abs(r.y + SIZE / 2 - y) > halfY + keep + 4
       ) {
         this.release(chunk);
         this.chunks.delete(id);
