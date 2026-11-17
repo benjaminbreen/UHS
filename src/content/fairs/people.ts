@@ -357,6 +357,40 @@ const meadHallPeople: SewerPerson[] = [
   ], { women: 0, party: alone, ages: [20, 70], note: "Court poets who kept genealogies and praise were paid by their lords; lyres survive from several high-status graves." }),
 ];
 
+const inDomus = household([-300, 480]);
+const domusPeople: SewerPerson[] = [
+  inDomus("rm-client", "Client", "clerk", "Come to pay his respects", "explore", [
+    "I am here at dawn every day, in a toga, to say good morning. For that I get a few coins and I am asked to dinner twice a year.",
+    "When he goes down to the Forum, thirty of us walk behind him. That is what we are for.",
+    "My father was his father's client. You inherit it, like a debt.",
+  ], { weight: 3, women: 0, ages: [18, 70], note: "The morning salutatio: clients called on their patron at dawn, received the sportula, and escorted him in public." }),
+  inDomus("rm-slave", "Household slave", "servant", "Crossing the hall", "explore", [
+    "There are forty of us in this house. He knows perhaps ten of our names.",
+    "I was born here. My mother carries water; I carry the lamp in front of him at night.",
+    "If he frees me in his will, I take his name and I am his client. That is the best I can hope for.",
+  ], { weight: 3, women: 0.5, ages: [10, 60], note: "A wealthy household was staffed almost entirely by enslaved people; manumission made a freedman his former owner's client." }),
+  inDomus("rm-freedman", "Freedman secretary", "scribe", "Keeping the accounts", "work", [
+    "I keep his letters and his accounts. I was his slave for twenty years; now I am his freedman and do the same work.",
+    "He dictates walking up and down. I take it on wax and copy it fair at night.",
+  ], { women: 0, party: alone, ages: [25, 65], note: "Educated freedmen ran the correspondence and accounts of great houses." }),
+  inDomus("rm-matrona", "Lady of the house", "landowner", "Seeing to the household", "explore", [
+    "The keys are mine. Nothing leaves the storeroom without my say.",
+    "My dowry is still mine in law. He has the use of it while we are married.",
+  ], { women: 1, ages: [18, 60], note: "The materfamilias ran the household; under the marriage usual by the late Republic a wife's property stayed separate from her husband's." }),
+  inDomus("rm-guest", "Guest", "landowner", "Waiting to be seen", "explore", [
+    "I came about the election. Everyone in this hall has come about the election.",
+    "The middle couch, the lowest place: that is the seat of honour. I have never been put there.",
+  ], { women: 0.1, ages: [25, 70], note: "The place of honour at dinner was the lowest place on the middle couch, the locus consularis." }),
+  inDomus("rm-tutor", "Greek tutor", "scribe", "Teaching the children", "explore", [
+    "I teach the boys Greek and Homer. I was a free man in Athens until the war.",
+    "The children speak better Greek than Latin. Their father thinks this is my fault, and he is right.",
+  ], { women: 0, party: alone, ages: [25, 70], note: "Educated Greeks, many enslaved in war, taught the children of the Roman elite." }),
+  inDomus("rm-cook", "Cook", "cook", "Sending in the dishes", "work", [
+    "Eggs to start and apples to end, and between them whatever he wants people to talk about tomorrow.",
+    "A good cook costs more than a horse now. My grandfather's master had the baker do the cooking.",
+  ], { women: 0, party: alone, ages: [20, 60], note: "'From eggs to apples' was the proverbial course of a dinner; Livy dates the rise in the price and standing of cooks to the second century BC." }),
+];
+
 export const fairPeople: readonly SewerPerson[] = [
   ...london,
   ...versaillesPeople,
@@ -364,6 +398,7 @@ export const fairPeople: readonly SewerPerson[] = [
   ...whiteHousePeople,
   ...bigHousePeople,
   ...meadHallPeople,
+  ...domusPeople,
   person("fair-visitor", "Visitor", "clerk", "Seeing the fair", "explore", [
     "We came for the Tower and haven't even got to it yet. Every turn there's something else.",
     "Thirty-two million tickets, they say. I believe it. Look at this crowd.",

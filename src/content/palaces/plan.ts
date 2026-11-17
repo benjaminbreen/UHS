@@ -1,7 +1,7 @@
 import { rngOf } from "../../core/random";
 import type { Fair, FairArea, FairFind } from "../fairs/types";
 import { find as f } from "./kit";
-import { MADDER, meadHall, neolithicHall, UNDYED, WELD, WOAD, type PalaceStyle } from "./styles";
+import { BLACK_GROUND, CINNABAR, EGYPTIAN_BLUE, MADDER, meadHall, neolithicHall, OCHRE, romanHouse, UNDYED, WELD, WOAD, type PalaceStyle } from "./styles";
 
 // Palaces nobody drew a plan of. A kind of palace is a recipe: given a seed it chooses its rooms,
 // their sizes and colours, and sets them out in rows from the gate inward. Each kind is expanded
@@ -29,7 +29,10 @@ type Kind = {
   id: string;
   name: string;
   years: readonly [number, number];
+  /** Words that ask for this kind; `prompt` then says which of its periods an undated prompt means. */
+  asks: RegExp;
   prompt: RegExp;
+  entry: string;
   place: string;
   role: string;
   style: PalaceStyle;
@@ -76,19 +79,46 @@ function hallPlan(stone: boolean) {
   };
 }
 
+const romanFinds: readonly FairFind[] = [
+  f("strongbox", "The strongbox", "strongbox", [], "prize", "A chest bound in iron and bolted to the floor, in full view of everyone who comes in.", "It is meant to be seen. Callers who come for money in the morning are paid out of it, and they notice how heavy the lid is."),
+  f("greek-bronze", "Greek bronze", "statue", ["garden", "state"], "notable", "A bronze athlete, older than the house by four hundred years.", "Taken from a Greek city by a general and sold on. Half the good statues in Rome arrived that way.", { tint: "#6a8a6a", weight: 2 }),
+  f("falernian", "Jar of Falernian", "vase", ["dining"], "common", "A sealed jar of wine with the consul's name of its year painted on the shoulder.", "Wine is dated by who was consul when it was made. This one is older than the cook.", { tint: "#9a5a3a", weight: 2 }),
+  f("water-jar", "Water jar", "vase", ["state", "garden"], "common", "A big-bellied jar by the wall.", "The roof drains into the pool, the pool into a cistern under the floor, and the house drinks from that.", { tint: "#b88a64", weight: 2 }),
+];
+
+/** A Roman town house from the street door inward: the atrium with bedrooms beside it, the master's room and the dining room behind, the garden court at the back. */
+function domusPlan(rng: () => number): FairArea[] {
+  const house = ["rm-client", "rm-client", "rm-slave", "rm-slave", "rm-freedman", "rm-matrona", "rm-guest"], back = ["rm-slave", "rm-slave", "rm-matrona", "rm-tutor"];
+  const second = pick(rng, [OCHRE, BLACK_GROUND, EGYPTIAN_BLUE]);
+  const bed = (id: string, name: string): Slot => ({ kind: "room", wide: 5, id, name, palace: { room: "cubiculum", floor: "signinum", bays: ["fresco-alt", "fresco"], field: BLACK_GROUND }, stands: { tags: [], n: 0 }, people: back.slice(0, 2), note: "A small bedroom off the atrium: a couch, a chest, a lamp. People slept wherever in the house suited the season." });
+  const dining: Slot = { kind: "room", wide: 6, id: "triclinium", name: "the dining room", palace: { room: "triclinium", bays: ["garden", "fresco", "garden"], field: second }, stands: { tags: ["dining"], n: 1 }, people: ["rm-slave", "rm-slave", "rm-guest", "rm-cook"], note: "Three couches round a table, three diners to a couch, each leaning on the left elbow. Where you are put says what the host thinks of you." };
+  const study: Slot = { kind: "room", wide: 6, id: "tablinum", name: "the tablinum", palace: { room: "tablinum", bays: ["scrolls", "fresco", "scrolls"], field: BLACK_GROUND }, stands: { tags: [], n: 0 }, exhibits: ["strongbox"], people: ["rm-freedman", "rm-client", "rm-slave"], note: "The master's room at the head of the atrium, open to it, where he keeps his papers and receives callers." };
+  const third: Slot = rng() < 0.5 ? bed("winter-room", "the winter room") : { ...dining, id: "oecus", name: "the garden room", wide: 6, palace: { room: "triclinium", bays: ["fresco-alt", "garden"], field: second, cloth: pick(rng, [CINNABAR, EGYPTIAN_BLUE]) } };
+  const rows: { deep: number; slots: Slot[] }[] = [
+    { deep: 5, slots: [bed("bedroom", "a bedroom"), { kind: "room", wide: 9, id: "atrium", name: "the atrium", gate: "s", palace: { bays: ["fresco", "niche", "fresco-alt", "fresco"], field: second }, stands: { tags: ["state"], n: 2 }, people: house, note: "The hall inside the street door, open to the sky in the middle, with a pool under the opening to catch the rain. Every morning it fills with people who depend on the master and have come to say so." }, bed("porter", "the porter's room")] },
+    { deep: 5, slots: [dining, study, third] },
+    { deep: 6, slots: [{ kind: "room", wide: 16, id: "peristyle", name: "the garden court", palace: { room: "peristyle", floor: "signinum", bays: ["garden", "fresco", "fresco-alt"], field: second }, stands: { tags: ["garden"], n: 2 }, people: back, note: "A garden inside the house with a covered walk round it on columns: the family's part of the house, where callers are not brought." }] },
+  ];
+  return setOut(rows);
+}
+
+const ROMAN = /\b(?:caesar|senator|patrician|consul|pontifex|domus|roman (?:noble|villa|house|household)|rich roman)\b/;
 const LORD = /\b(?:warlord|chieftain|headman|jarl|thegn|thane|mead[- ]?hall|long ?house|great hall)\b/;
+const hallEnter = "woodsmoke, dogs, and a roof-tree taller than any house in the country.";
 const kinds: readonly Kind[] = [
   {
-    id: "hall-stone", name: "the big house", years: [-9500, -2001], prompt: /\b(?:neolithic|stone age)\b/, place: "konya", role: "Chieftain", style: neolithicHall,
+    id: "hall-stone", name: "the big house", years: [-9500, -2001], asks: LORD, prompt: /\b(?:neolithic|stone age)\b/, entry: "yard", place: "konya", role: "Chieftain", style: neolithicHall,
     coin: ["bead", "beads"], finds: stoneFinds, enter: "smoke through thatch, cattle in the yard, and the longest roof you have seen.", plan: hallPlan(true),
   },
+  { id: "hall-lord", name: "the lord's hall", years: [500, 1150], asks: LORD, prompt: /./, entry: "yard", place: "london", role: "Chieftain", style: meadHall, coin: ["ring", "rings"], finds: ironFinds, enter: hallEnter, plan: hallPlan(false) },
+  { id: "hall-iron", name: "the chieftain's hall", years: [-2000, 499], asks: LORD, prompt: /\b(?:bronze age|iron age)\b/, entry: "yard", place: "normandy", role: "Chieftain", style: meadHall, coin: ["ring", "rings"], finds: ironFinds, enter: hallEnter, plan: hallPlan(false) },
   {
-    id: "hall-lord", name: "the lord's hall", years: [500, 1150], prompt: /./, place: "london", role: "Chieftain", style: meadHall,
-    coin: ["ring", "rings"], finds: ironFinds, enter: "woodsmoke, dogs, and a roof-tree taller than any house in the country.", plan: hallPlan(false),
+    id: "domus", name: "the house", years: [-60, 480], asks: ROMAN, prompt: /./, entry: "atrium", place: "rome", role: "Senator", style: romanHouse,
+    coin: ["sestertius", "sestertii"], finds: romanFinds, enter: "a dim hall, a square of sky in its roof, and a pool under it.", plan: domusPlan,
   },
   {
-    id: "hall-iron", name: "the chieftain's hall", years: [-2000, 499], prompt: /\b(?:bronze age|iron age)\b/, place: "normandy", role: "Chieftain", style: meadHall,
-    coin: ["ring", "rings"], finds: ironFinds, enter: "woodsmoke, dogs, and a roof-tree taller than any house in the country.", plan: hallPlan(false),
+    id: "domus-early", name: "the house", years: [-300, -61], asks: ROMAN, prompt: /\brepublic\b/, entry: "atrium", place: "rome", role: "Senator", style: romanHouse,
+    coin: ["as", "asses"], finds: romanFinds, enter: "a dim hall, a square of sky in its roof, and a pool under it.", plan: domusPlan,
   },
 ];
 
@@ -96,9 +126,9 @@ const kinds: readonly Kind[] = [
 const PLANS = 4;
 
 export const plannedPalaces: readonly Fair[] = kinds.flatMap((k) => Array.from({ length: PLANS }, (_, i): Fair => ({
-  id: `${k.id}-${i}`, name: k.name, city: "", where: [999, 999, 999, 999], years: k.years, entry: "yard", areas: k.plan(rngOf("palace-plan", k.id, i)),
-  scale: 5, look: "palace", palace: k.style, role: k.role, finds: k.finds, ticket: 0, coin: k.coin, place: k.place, generated: true, asks: LORD,
+  id: `${k.id}-${i}`, name: k.name, city: "", where: [999, 999, 999, 999], years: k.years, entry: k.entry, areas: k.plan(rngOf("palace-plan", k.id, i)),
+  scale: 5, look: "palace", palace: k.style, role: k.role, finds: k.finds, ticket: 0, coin: k.coin, place: k.place, generated: true, asks: k.asks,
   // Asked for with no date: the kind whose own period the prompt names, or the first that takes any.
-  prompt: new RegExp(`(?=.*${LORD.source})(?=.*${k.prompt.source})`),
+  prompt: new RegExp(`(?=.*${k.asks.source})(?=.*${k.prompt.source})`),
   words: { short: "", gate: "", enter: k.enter },
 })));

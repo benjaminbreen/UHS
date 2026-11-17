@@ -154,6 +154,7 @@ export function paintFairThing(art: string, w: number, h: number, v: number, tin
       ].forEach((row, j) => [...row].forEach((ch, i) => { if (ch !== ".") r.set(cx - 6 + i, Y - 33 + j, m[+ch]); }));
       return done(s);
     }
+    case "strongbox": return paintPalaceDecor("arca", v);
     case "axe": {
       // A polished stone axe head laid on a folded hide, on a block of wood.
       const s = make(14), { r, X, Y } = s, m = t ?? STONE, cx = X + W / 2;

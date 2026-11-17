@@ -27,9 +27,9 @@ The owner keeps this list.
 
 - November 16: timber halls and the palace planner. "A Neolithic warlord",
   "A warlord in his mead hall" and "A chieftain in Gaul, 200 BC" start in a
-  generated hall in its fenced yard. Still to build as sets: the courtyard
-  house (Rome), the pillared hall, column and screen, and the Gothic and
-  Islamic variants.
+  generated hall in its fenced yard; "Caesar at home" starts in a planned
+  Roman house. Still to build as sets: the pillared hall, column and screen,
+  and the Gothic and Islamic variants.
 - November 16: palaces as a styled kit. One painter and one furnisher, driven
   by a `PalaceStyle`, build Versailles, Buckingham Palace ("A courtier at
   Buckingham Palace") and the President's House ("A clerk at the White

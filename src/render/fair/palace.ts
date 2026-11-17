@@ -43,6 +43,15 @@ export function palaceFloor(R: Raster, X: number, Y: number, L: FairLevel, ax: n
       const ex = Math.min(gx - 48, (L.w - 3) * 16 - 1 - gx), ey = Math.min(gy - 80, (L.h - 3) * 16 - 1 - gy), e = Math.min(ex, ey);
       const m = Math.abs((gx % 24) - 12) + Math.abs(((gy + (Math.floor(gx / 24) % 2) * 12) % 24) - 12);
       col = e === 0 ? CLOTH[3] : e === 3 || e === 9 ? METAL[2] : e < 12 ? (e > 4 && e < 8 && (ex + ey) % 6 < 2 ? CLOTH[1] : CLOTH[3]) : e === 12 ? CLOTH[3] : m < 2 ? CLOTH[1] : CLOTH[2];
+    } else if (kind === "mosaic") {
+      // White tesserae with a black band round the room and a small cross at intervals.
+      const ex = Math.min(gx - 16, (L.w - 1) * 16 - 1 - gx), ey = Math.min(gy - 48, (L.h - 1) * 16 - 1 - gy), e = Math.min(ex, ey);
+      const u = ((gx + (Math.floor(gy / 48) % 2) * 24) % 48) - 24, v = (gy % 48) - 24, cross = (u === 0 || v === 0) && Math.abs(u) + Math.abs(v) < 3;
+      col = (e >= 10 && e < 13) || e === 16 ? "#3e3a42" : cross && e > 22 ? "#8e8a90" : ((gx >> 1) + (gy >> 1)) % 2 ? "#ebe5d6" : "#e3dccc";
+    } else if (kind === "signinum") {
+      // Crushed tile in mortar, set with rows of white stones.
+      const dot = gx % 12 === 6 && gy % 12 === 6 || gx % 12 === 0 && gy % 12 === 0;
+      col = dot ? "#f0e8d8" : h2(gx >> 1, gy >> 1, 31) > 0.8 ? "#b46a52" : h2(gx >> 2, gy >> 2, 32) > 0.7 ? "#a25a44" : "#aa604a";
     } else if (kind === "earth") {
       // Beaten earth: broad soft patches a shade apart, a little straw trodden in.
       const o = PARQUET[0], rough = Math.floor(h2(gy >> 1, 3, 1) * 3), a = h2((gx + rough) >> 4, (gy + rough) >> 4, 11), b = h2((gx + 5 - rough) >> 3, (gy + 3) >> 3, 12);
@@ -86,6 +95,16 @@ export function palaceLight(R: Raster, L: FairLevel, OX: number, OY: number) {
       const d = Math.min(...fires.map(([fx, fy]) => Math.hypot(x - fx, (y - fy) * 1.5)), 999);
       if (d < 72) R.shade(OX + x, OY + y, 0.26 * (1 - d / 72), [255, 176, 96]);
       else if (d > 96) R.shade(OX + x, OY + y, Math.min(0.34, (d - 96) / 300), [34, 24, 34]);
+    }
+    return;
+  }
+  if (STYLE.order === "roman") {
+    // Daylight comes down through the roof: bright round the pool or the garden, dimmer toward the walls.
+    const c = L.court;
+    if (c) for (let y = 48; y < (L.h - 1) * 16; y++) for (let x = 16; x < (L.w - 1) * 16; x++) {
+      const dx = Math.max(c.x0 * 16 - x, 0, x - (c.x1 + 1) * 16), dy = Math.max(c.y0 * 16 - y, 0, y - (c.y1 + 1) * 16), d = Math.hypot(dx, dy);
+      if (d < 40) R.shade(OX + x, OY + y, 0.16 * (1 - d / 40), [255, 250, 220]);
+      else if (d > 70) R.shade(OX + x, OY + y, Math.min(0.14, (d - 70) / 900), [40, 30, 44]);
     }
     return;
   }
@@ -465,6 +484,148 @@ function shelf(R: Raster, bx: number, T: number, seed: number) {
   for (let k = 0; k < 3; k++) { const hx = bx + 13 + k * 9 + (seed % 3); R.fill(hx, T + 70, 1, 3, BONE[2]); for (let j = 0; j < 7; j++) R.fill(hx - 1 - (j > 2 ? 1 : 0), T + 73 + j, 3 + (j > 2 ? 2 : 0), 1, j % 2 ? "#7a9a5a" : "#5e7e46"); }
 }
 
+const INK = ["#4a444c", "#34303a", "#26222a"], LEAFY = ["#8ab87a", "#62945a", "#467448", "#2e5438"];
+
+/** A small picture in the middle of a painted panel: a bird on a twig, a floating figure, a bowl of fruit, a mask, a head in a round frame. */
+function vignette(R: Raster, cx: number, cy: number, seed: number) {
+  const kind = Math.floor(h2(seed, 3, 9) * 5), pale = "#f6ecd2", gold = "#e8c060";
+  if (kind === 0) {
+    R.fill(cx - 6, cy + 3, 13, 1, LEAFY[1]); R.fill(cx + 4, cy + 1, 2, 2, LEAFY[0]); R.fill(cx - 6, cy + 4, 2, 2, LEAFY[0]);
+    stamp(R, [".....11.", "...1101.", ".111112.", "1111122.", ".11222..", "..2.2..."], cx - 4, cy - 3, [gold, h2(seed, 1, 1) > 0.5 ? "#8ab4d8" : pale, "#b8a888"]);
+    R.set(cx + 4, cy - 2, gold);
+  } else if (kind === 1) {
+    stamp(R, ["...00...", "...00...", "..1221..", ".012210.", "0.1221.0", "..1221..", "..2112..", ".21..12.", ".2....2.", "2......2"], cx - 4, cy - 5, ["#f0c8a8", pale, "#9cc4d8"]);
+  } else if (kind === 2) {
+    R.fill(cx - 7, cy + 4, 15, 1, pale);
+    stamp(R, ["..3.4.3..", ".3434343.", "111111111", ".1222221.", "..12221..", "...111..."], cx - 4, cy - 2, ["", gold, "#b88838", "#c84a3a", "#7ab04e"]);
+  } else if (kind === 3) {
+    stamp(R, [".011110.", "01111112", "01211212", "01111112", "01122112", ".012212.", "..0112.."], cx - 4, cy - 3, [pale, "#e8dcc0", "#3a3038"]);
+  } else {
+    for (let a = 0; a < 28; a++) R.set(cx + Math.round(Math.cos((a / 28) * 6.283) * 6), cy + Math.round(Math.sin((a / 28) * 6.283) * 6), gold);
+    stamp(R, [".0000.", "011110", "011110", ".1111.", "222222", "222222"], cx - 3, cy - 3, ["#5a4030", "#f0c8a8", pale]);
+  }
+}
+
+/** The household shrine: a little temple front against the wall, the gods of the house painted inside it, a lamp on its shelf. */
+function shrine(R: Raster, cx: number, T: number) {
+  const top = T + 42;
+  for (let j = 0; j < 8; j++) R.fill(cx - 2 - j * 1.5, top + j, 4 + j * 3, 1, j === 7 ? CREAM[3] : CREAM[j < 2 ? 0 : 1]);
+  R.fill(cx - 13, top + 8, 26, 3, CREAM[0]); R.fill(cx - 13, top + 10, 26, 1, CREAM[3]);
+  R.fill(cx - 10, top + 11, 20, 28, "#8a2e2a"); R.fill(cx - 10, top + 11, 20, 2, "#5e1e1e");
+  for (const s of [-1, 1]) {
+    R.fill(cx + s * 11 - 1, top + 11, 3, 28, CREAM[1]); R.fill(cx + s * 11 - 1, top + 11, 1, 28, CREAM[0]); R.fill(cx + s * 11 + 1, top + 11, 1, 28, CREAM[3]);
+    stamp(R, [".00.", ".00.", "1111", "1121", ".11.", ".11.", ".11.", "1..1"], cx + s * 5 - 2, top + 22, ["#f0c8a8", "#f6ecd2", "#c84a3a"]);
+  }
+  stamp(R, [".00.", ".00.", "1111", "2112", "2112", ".11.", ".11."], cx - 2, top + 20, ["#f0c8a8", "#f6ecd2", "#e8c060"]);
+  for (let i = -8; i <= 8; i++) R.set(cx + i, top + 35 + Math.round(Math.sin(i * 0.9)), LEAFY[1]);
+  R.fill(cx - 14, top + 39, 28, 3, CREAM[0]); R.fill(cx - 14, top + 41, 28, 1, CREAM[3]); R.fill(cx - 12, top + 42, 24, 2, CREAM[2]);
+  R.fill(cx - 2, top + 37, 5, 2, GILT_BRONZE[2]); R.set(cx + 3, top + 36, FLAME[1]); R.set(cx + 3, top + 35, FLAME[0]);
+}
+
+/** A cupboard of book rolls: pigeon holes, each with the ends of two or three rolls and their tags. */
+function rolls(R: Raster, bx: number, T: number, seed: number) {
+  const x0 = bx + 8, top = T + 36, bot = T + 112, c = FRAME;
+  R.fill(x0, top, 32, bot - top, c[2]); R.fill(x0, top, 32, 2, c[0]); R.fill(x0, top, 2, bot - top, c[1]); R.fill(x0 + 30, top, 2, bot - top, c[4]); R.fill(x0, bot - 4, 32, 4, c[3]); R.fill(x0, bot - 4, 32, 1, c[1]);
+  for (let row = 0; row < 6; row++) for (let col = 0; col < 3; col++) {
+    const x = x0 + 3 + col * 9, y = top + 4 + row * 11;
+    R.fill(x, y, 8, 9, c[4]); R.fill(x, y, 8, 1, "#1e1612");
+    for (let k = 0; k < 2 + Math.floor(h2(seed + row, col, 2) * 2); k++) {
+      const rx = x + 1 + (k % 2) * 4 + (k > 1 ? 2 : 0), ry = y + (k > 1 ? 1 : 5);
+      R.fill(rx, ry, 3, 3, "#eadfc4"); R.set(rx + 1, ry + 1, "#8a7a5a"); R.set(rx, ry, "#fbf5e6");
+      if (h2(seed + k, row * 3 + col, 5) > 0.5) R.fill(rx + 3, ry + 1, 1, 2, "#c84a3a");
+    }
+  }
+}
+
+/** A garden painted on the wall as if the wall were not there: sky, a thicket of fruit trees with birds in it, a low trellis in front. */
+function paintedGarden(R: Raster, bx: number, T: number, seed: number) {
+  for (let y = T + 36; y < T + 92; y++) for (let x = bx + 4; x < bx + 44; x++) {
+    const t = y - T - 36, i = x - bx - 4, crown = 16 + Math.round(Math.sin(i * 0.42 + seed) * 5 + Math.sin(i * 1.1 + seed * 2) * 3), clump = h2((i + seed) >> 2, t >> 2, seed);
+    let col = t < crown ? (t < 8 ? "#b4d8dc" : "#c8e2dc") : LEAFY[clump > 0.7 ? 0 : clump > 0.35 ? 1 : t > 34 ? 3 : 2];
+    if (t >= crown + 3 && h2(i >> 1, t >> 1, seed + 4) > 0.94) col = (i + t) % 3 ? "#f0a030" : "#f6dc60";
+    if (t > 44) { const d = (i + t) % 6, e = (i - t + 60) % 6; col = t === 45 || t === 55 || d === 0 || e === 0 ? "#f0e6c8" : LEAFY[3]; }
+    R.set(x, y, col);
+  }
+  for (const [dx, dy] of [[10, 12], [28, 20]]) stamp(R, ["..00.", "0001.", ".000.", "..0.."], bx + 4 + dx, T + 36 + dy + (seed % 3), ["#f6f2e6", "#e8c060"]);
+}
+
+/** A Roman room's back wall: a stucco cornice, a pale upper zone with garlands, panels of colour between dark bands
+ * with gilded candelabra painted on them, and a dark dado. */
+function frescoBack(R: Raster, L: FairLevel, OX: number, T: number, seed: number) {
+  const W = L.w * 16, x0 = OX + 8, x1 = OX + W - 8, { b0, n } = palaceBays(L.w), B = T + TALL;
+  R.fill(x0, T, x1 - x0, TALL, CREAM[1]);
+  for (let k = 0; k < 7; k++) R.fill(x0, T + k, x1 - x0, 1, k < 3 ? "#4a3a34" : CREAM[k === 3 ? 4 : k === 6 ? 3 : 0]);
+  for (let x = x0; x < x1; x += 4) R.fill(x, T + 4, 2, 2, CREAM[2]);
+  R.fill(x0, T + 9, x1 - x0, 1, GILT[2]); R.fill(x0, T + 33, x1 - x0, 2, GILT[2]); R.fill(x0, T + 33, x1 - x0, 1, "#e8c060");
+  R.fill(x0, T + 35, x1 - x0, 57, INK[1]);
+  R.fill(x0, T + 92, x1 - x0, 20, INK[2]); R.fill(x0, T + 92, x1 - x0, 1, "#e8c060"); R.fill(x0, T + 93, x1 - x0, 1, GILT[2]);
+  R.fill(x0, T + 109, x1 - x0, 3, "#6a646c"); R.fill(x0, T + 109, x1 - x0, 1, "#8a848c");
+  for (let k = 0; k < n; k++) {
+    const ax = b0 + 3 * k, bx = OX + ax * 16, cx = bx + 24, s2 = seed + k * 19;
+    const hung = L.things.some((t) => t.wall && t.x >= ax && t.x < ax + 3);
+    // Above: a garland slung between two painted colonnettes.
+    for (const px of [bx + 10, bx + 37]) R.fill(px, T + 12, 1, 21, "#c89a4a"), R.fill(px - 1, T + 12, 3, 1, "#c89a4a");
+    for (let i = 0; i < 26; i++) { const y = T + 15 + Math.round(Math.sin((i / 25) * Math.PI) * 7); R.fill(bx + 11 + i, y, 1, 2, LEAFY[i % 3 === 0 ? 0 : 1]); if (i % 6 === 3) R.set(bx + 11 + i, y + 1, "#c84a3a"); }
+    // In the dado: a lozenge picked out in a thin line.
+    for (let i = 0; i < 9; i++) for (const s of [-1, 1]) { R.set(cx + s * i, T + 101 - (8 - i) / 2, GILT[1]); R.set(cx + s * i, T + 101 + (8 - i) / 2, GILT[1]); }
+    if (L.exits.some((e) => e.y === 0 && e.x === ax)) { romanDoor(R, bx, B); continue; }
+    const bay = hung ? "fresco" : STYLE.bays[k % STYLE.bays.length];
+    if (bay === "scrolls") { rolls(R, bx, T, s2); continue; }
+    if (bay === "garden") paintedGarden(R, bx, T, s2);
+    else {
+      const c = bay === "fresco-alt" ? FIELD : CLOTH;
+      R.fill(bx + 4, T + 36, 40, 55, c[1]); R.fill(bx + 4, T + 36, 40, 1, c[0]); R.fill(bx + 4, T + 90, 40, 1, c[3]); R.fill(bx + 43, T + 37, 1, 54, c[2]);
+      for (const [fx, fy, fw, fh] of [[bx + 8, T + 40, 32, 1], [bx + 8, T + 86, 32, 1], [bx + 8, T + 40, 1, 47], [bx + 39, T + 40, 1, 47]]) R.fill(fx, fy, fw, fh, "#f0e2bc");
+      if (bay === "niche") shrine(R, cx, T); else if (!hung) vignette(R, cx, T + 62, s2);
+    }
+  }
+  // Between the panels, a gilded candelabrum painted on the dark band.
+  for (let k = 0; k <= n; k++) {
+    const px = OX + (b0 + 3 * k) * 16;
+    if (px < x0 + 2 || px > x1 - 2) continue;
+    R.fill(px, T + 38, 1, 50, "#d8ac50");
+    for (let y = T + 44; y < T + 88; y += 11) { R.fill(px - 1, y, 3, 2, "#e8c060"); R.set(px - 2, y + 1, "#b88838"); R.set(px + 2, y + 1, "#b88838"); }
+    R.fill(px - 2, T + 37, 5, 1, "#e8c060"); R.fill(px - 3, T + 88, 7, 2, "#b88838"); R.fill(px - 2, T + 88, 5, 1, "#e8c060");
+  }
+}
+
+/** A Roman doorway: a stucco frame, the next room lit beyond it, and a curtain in the room's cloth drawn back on its rod. */
+function romanDoor(R: Raster, bx: number, B: number) {
+  const x0 = bx + 9, top = B - 66;
+  R.fill(x0 - 5, top - 6, 40, B - top + 6, CREAM[1]); R.fill(x0 - 5, top - 6, 40, 2, CREAM[0]); R.fill(x0 - 5, top - 6, 1, B - top + 6, CREAM[0]); R.fill(x0 + 34, top - 5, 1, B - top + 5, CREAM[3]);
+  R.fill(x0 - 5, top - 2, 40, 1, GILT[2]);
+  for (let y = top; y < B; y++) for (let x = x0; x < x0 + 30; x++) { const t = (y - top) / (B - top); R.set(x, y, t < 0.5 ? "#5a4640" : t < 0.72 ? "#8a7464" : (x + y) % 2 ? "#d8d0c0" : "#cfc6b6"); }
+  for (let k = 0; k < 6; k++) R.fill(x0, top + k, 30, 1, k < 3 ? "#3a2c2a" : "#4a3a36");
+  R.fill(x0 - 1, top + 3, 32, 1, GILT_BRONZE[2]);
+  for (let y = top + 4; y < B - 3; y++) {
+    const t = (y - top - 4) / (B - top - 7), wide = t < 0.55 ? Math.round(13 - t * 10) : Math.round(7 + (t - 0.55) * 8);
+    for (let i = 0; i < wide; i++) { const fold = (i + Math.round(t * 4)) % 4; R.set(x0 + i, y, i === wide - 1 ? CLOTH[3] : fold === 0 ? CLOTH[0] : fold === 3 ? CLOTH[2] : CLOTH[1]); }
+    if (Math.abs(t - 0.55) < 0.02) R.fill(x0, y, 8, 1, GILT_BRONZE[1]);
+  }
+}
+
+const POOL = ["#d4ece8", "#b0d8d6", "#90c0c4", "#74a4ae"];
+/** What lies under the opening in the roof: the atrium's shallow pool in its marble rim, or the kerb round a garden. */
+function openCourt(R: Raster, L: FairLevel, OX: number, OY: number) {
+  const c = L.court;
+  if (!c) return;
+  const X = OX + c.x0 * 16, Y = OY + c.y0 * 16, W = (c.x1 - c.x0 + 1) * 16, H = (c.y1 - c.y0 + 1) * 16;
+  if (c.kind === "garden") {
+    for (const [x, y, w, h, col] of [[X - 3, Y - 3, W + 6, 3, WHITE[1]], [X - 3, Y + H, W + 6, 3, WHITE[2]], [X - 3, Y, 3, H, WHITE[1]], [X + W, Y, 3, H, WHITE[2]]] as const) R.fill(x, y, w, h, col);
+    R.fill(X - 3, Y - 3, W + 6, 1, WHITE[0]); R.fill(X - 3, Y + H + 2, W + 6, 1, WHITE[4]); R.fill(X - 3, Y - 3, 1, H + 6, WHITE[0]); R.fill(X + W + 2, Y - 2, 1, H + 5, WHITE[3]);
+    for (let k = 0; k < 3; k++) for (let x = X; x < X + W; x++) R.shade(x, Y + k, 0.18 - k * 0.05);
+    return;
+  }
+  R.fill(X, Y, W, H, WHITE[1]); R.fill(X, Y, W, 1, WHITE[0]); R.fill(X, Y, 1, H, WHITE[0]); R.fill(X, Y + H - 1, W, 1, WHITE[4]); R.fill(X + W - 1, Y, 1, H, WHITE[3]);
+  R.fill(X + 3, Y + 3, W - 6, H - 6, WHITE[2]); R.fill(X + 3, Y + 3, W - 6, 1, WHITE[3]); R.fill(X + 3, Y + 3, 1, H - 6, WHITE[3]);
+  for (let y = Y + 6; y < Y + H - 6; y++) for (let x = X + 6; x < X + W - 6; x++) {
+    const t = y - Y - 6, ripple = h2((x + t) >> 3, t >> 1, 7) > 0.8 && t % 4 === 1, sky = ((x - X) + t * 2) % 90 < 26;
+    R.set(x, y, t < 3 ? POOL[3] : ripple ? POOL[0] : sky ? POOL[1] : (x >> 1) + (y >> 1) & 1 ? POOL[2] : "#8abcc0");
+  }
+  R.fill(X + 5, Y + 5, W - 10, 1, WHITE[4]); R.fill(X + 5, Y + 5, 1, H - 10, WHITE[4]); R.fill(X + 5, Y + H - 6, W - 10, 1, WHITE[0]); R.fill(X + W - 6, Y + 5, 1, H - 10, WHITE[0]);
+  for (let k = 0; k < 4; k++) for (let x = X + 2; x < X + W + 2; x++) R.shade(x, Y + H + k, 0.2 - k * 0.05);
+}
+
 /** A palace room's walls: the back wall seven cells tall, in bays of mirror, damask and doorway
  * between marble pilasters under a gilt entablature; the side and front walls seen from above. */
 export function palaceWalls(R: Raster, L: FairLevel, OX: number, OY: number, seed: number) {
@@ -476,6 +637,7 @@ export function palaceWalls(R: Raster, L: FairLevel, OX: number, OY: number, see
   // The gravel laid under every wall cell strays a pixel or two past the room.
   R.fill(OX + W, OY, 3, H + 3, DARK); R.fill(OX, OY + H, W, 3, DARK);
   if (STYLE.order === "timber") timberBack(R, L, OX, T, seed);
+  else if (STYLE.order === "roman") frescoBack(R, L, OX, T, seed);
   else {
     R.fill(x0, T, x1 - x0, TALL, CREAM[1]);
     // The dado: a gilt rail, panels outlined in gold, a skirting.
@@ -540,6 +702,7 @@ export function palaceWalls(R: Raster, L: FairLevel, OX: number, OY: number, see
       for (const jy of [Y - 4, Y + e.h * 16]) { R.fill(left ? X + 6 : X, jy, 10, 4, GILT[1]); R.fill(left ? X + 6 : X, jy, 10, 1, GILT[0]); R.fill(left ? X + 6 : X, jy + 3, 10, 1, GILT[3]); }
     }
   }
+  openCourt(R, L, OX, OY);
 }
 
 const sprite = (w: number, h: number, ox: number, foot: number) => ({ r: new Raster(w, h), ox, oy: foot - 14 });
@@ -1014,6 +1177,135 @@ export function paintPalaceDecor(kind: string, v: number, style?: PalaceStyle): 
     for (let y = 0; y < 7; y++) for (let x = 0; x < 6; x++) r.set(13 + x, 10 + y, y === 0 ? "#e0c880" : (x + y) % 2 ? "#b08a58" : "#8e6a40");
     soften(r);
     return s;
+  }
+  if (kind === "column") {
+    // A column of stuccoed brick, fluted above and painted red below, as at Pompeii.
+    const s = sprite(24, 100, 4, 99), { r } = s, cx = 12;
+    r.shadow(cx + 1, 98, 8, 2, 0.26);
+    r.fill(cx - 7, 94, 14, 4, WHITE[1]); r.fill(cx - 7, 94, 14, 1, WHITE[0]); r.fill(cx + 4, 95, 3, 3, WHITE[3]);
+    r.fill(cx - 6, 91, 12, 3, WHITE[1]); r.fill(cx - 6, 91, 12, 1, WHITE[0]); r.fill(cx - 6, 93, 12, 1, WHITE[3]);
+    for (let y = 14; y < 91; y++) for (let i = 0; i < 10; i++) {
+      const red = y > 62, tone = i < 1 ? 0 : i < 4 ? 1 : i < 7 ? 2 : 3, flute = !red && (i === 3 || i === 6);
+      r.set(cx - 5 + i, y, red ? CLOTH[Math.min(3, tone)] : flute ? WHITE[3] : WHITE[Math.min(3, tone)]);
+    }
+    r.fill(cx - 5, 62, 10, 1, WHITE[4]);
+    r.fill(cx - 6, 11, 12, 3, WHITE[1]); r.fill(cx - 6, 11, 12, 1, WHITE[0]); r.fill(cx - 7, 8, 14, 3, WHITE[1]); r.fill(cx - 7, 8, 14, 1, WHITE[0]); r.fill(cx - 7, 10, 14, 1, WHITE[3]);
+    r.fill(cx - 8, 2, 16, 6, CREAM[1]); r.fill(cx - 8, 2, 16, 1, CREAM[0]); r.fill(cx - 8, 7, 16, 1, CREAM[4]); r.fill(cx + 5, 3, 3, 4, CREAM[3]);
+    soften(r);
+    return s;
+  }
+  if (kind === "lectus") {
+    // A couch for dining or sleeping: turned legs, a raised head-board, a mattress and a bolster.
+    const s = sprite(48, 34, 0, 33), { r } = s, c = CLOTH;
+    r.shadow(24, 32, 21, 3, 0.26);
+    for (const x of [3, 42]) stamp(r, ["012", ".13", "0123", ".13", "012", ".13", "0123"], x, 25, FRAME);
+    r.fill(2, 21, 44, 4, FRAME[2]); r.fill(2, 21, 44, 1, FRAME[0]); r.fill(2, 24, 44, 1, FRAME[4]); for (let x = 8; x < 44; x += 9) r.fill(x, 22, 2, 2, GILT_BRONZE[1]);
+    r.fill(4, 14, 41, 7, c[1]); r.fill(4, 14, 41, 1, c[0]); r.fill(4, 15, 28, 1, c[0]); r.fill(4, 20, 41, 1, c[3]); for (let x = 12; x < 44; x += 7) r.fill(x, 15, 1, 5, "#f0e2bc");
+    for (let j = 0; j < 14; j++) { r.fill(1 + (j < 4 ? 3 - j : 0), 8 + j, 4, 1, FRAME[1]); r.set(1 + (j < 4 ? 3 - j : 0), 8 + j, FRAME[0]); }
+    r.fill(2, 11, 3, 3, GILT_BRONZE[1]); r.set(2, 11, GILT_BRONZE[0]);
+    r.fill(6, 9, 11, 6, "#f0e2bc"); r.fill(6, 9, 11, 1, "#fbf5e6"); r.fill(6, 14, 11, 1, "#c8b890"); r.fill(8, 10, 1, 4, c[1]); r.fill(14, 10, 1, 4, c[1]);
+    for (let j = 0; j < 8; j++) r.fill(36 + (j >> 2), 21 + j, 8 - (j >> 1), 1, j % 3 ? c[2] : c[1]);
+    soften(r);
+    return s;
+  }
+  if (kind === "lectus-side") {
+    // The same couch seen from its foot, running back into the room.
+    const s = sprite(16, 56, 0, 55), { r } = s, c = CLOTH;
+    r.shadow(8, 54, 7, 2, 0.24);
+    r.fill(1, 6, 14, 44, FRAME[2]); r.fill(1, 6, 14, 1, FRAME[0]); r.fill(1, 6, 1, 44, FRAME[1]); r.fill(14, 7, 1, 43, FRAME[4]); r.fill(1, 49, 14, 2, FRAME[3]);
+    r.fill(2, 3, 12, 4, FRAME[1]); r.fill(2, 3, 12, 1, FRAME[0]); r.fill(6, 4, 4, 2, GILT_BRONZE[1]);
+    r.fill(3, 8, 10, 40, c[1]); r.fill(3, 8, 3, 40, c[0]); r.fill(12, 8, 1, 40, c[2]); for (let y = 19; y < 47; y += 7) r.fill(3, y, 10, 1, "#f0e2bc");
+    r.fill(3, 8, 10, 6, "#f0e2bc"); r.fill(3, 8, 10, 1, "#fbf5e6"); r.fill(3, 13, 10, 1, "#c8b890");
+    for (const x of [1, 12]) stamp(r, ["012", ".13", "0123"], x, 51, FRAME);
+    soften(r);
+    return s;
+  }
+  if (kind === "mensa") {
+    // A round table on three legs, with what is being eaten.
+    const s = sprite(20, 22, 2, 21), { r } = s, cx = 10;
+    r.shadow(cx, 20, 7, 2, 0.22);
+    for (const [x, sgn] of [[cx - 6, -1], [cx - 1, 0], [cx + 4, 1]] as const) for (let j = 0; j < 9; j++) { r.fill(x + Math.round(Math.sin(j * 0.5) * sgn), 11 + j, 2, 1, FRAME[sgn > 0 ? 3 : 2]); r.set(x + Math.round(Math.sin(j * 0.5) * sgn), 11 + j, FRAME[sgn > 0 ? 2 : 0]); }
+    for (let y = -3; y <= 3; y++) for (let x = -8; x <= 8; x++) if ((x / 8.5) ** 2 + (y / 3.5) ** 2 <= 1) r.set(cx + x, 8 + y, y > 1 ? FRAME[3] : x < -3 && y < 1 ? FRAME[0] : FRAME[1]);
+    soften(r);
+    r.fill(cx - 5, 6, 3, 2, IRONC[0]); r.fill(cx - 5, 8, 3, 1, IRONC[2]); r.fill(cx, 5, 2, 2, "#c84a3a"); r.fill(cx + 2, 6, 2, 2, "#f0a030"); r.fill(cx + 1, 7, 2, 2, "#7ab04e"); r.fill(cx + 4, 8, 3, 1, "#dcb478");
+    return s;
+  }
+  if (kind === "cartibulum") {
+    // A marble table on carved supports, set with bronze: it stood at the head of the pool.
+    const s = sprite(48, 38, 0, 37), { r } = s;
+    r.shadow(24, 36, 20, 3, 0.26);
+    for (const x of [8, 34]) { r.fill(x, 20, 6, 15, WHITE[1]); r.fill(x, 20, 2, 15, WHITE[0]); r.fill(x + 4, 20, 2, 15, WHITE[3]); stamp(r, ["0112", "0122", ".12.", ".12.", "0112", "0123"], x + 1, 24, WHITE); r.fill(x - 1, 33, 8, 2, WHITE[2]); r.fill(x - 1, 33, 8, 1, WHITE[0]); }
+    r.fill(4, 13, 40, 5, WHITE[1]); r.fill(5, 12, 38, 1, WHITE[0]); r.fill(4, 13, 40, 1, WHITE[0]); r.fill(4, 18, 40, 2, WHITE[2]); r.fill(5, 20, 38, 1, WHITE[4]); r.fill(42, 13, 2, 6, WHITE[2]);
+    soften(r);
+    stamp(r, ["..01..", "..12..", ".0112.", "011223", "011223", ".0123.", ".0123."], 9, 8, GILT_BRONZE);
+    stamp(r, ["0111112223", ".01112233.", "...1223..."], 20, 12, GILT_BRONZE);
+    stamp(r, [".00.", ".00.", "0112", "0112", ".12.", "0123"], 35, 9, WHITE);
+    return s;
+  }
+  if (kind === "arca") {
+    // The strongbox: wood bound in iron, bolted to the floor.
+    const s = sprite(32, 30, 0, 29), { r } = s;
+    r.shadow(16, 28, 14, 2, 0.26);
+    r.fill(2, 11, 28, 16, FRAME[2]); r.fill(2, 11, 28, 1, FRAME[1]); r.fill(28, 12, 2, 15, FRAME[4]); r.fill(2, 26, 28, 1, FRAME[4]);
+    r.fill(1, 6, 30, 5, FRAME[1]); r.fill(2, 5, 28, 1, FRAME[0]); r.fill(1, 6, 30, 1, FRAME[0]); r.fill(1, 10, 30, 1, FRAME[4]);
+    for (const x of [5, 15, 25]) { r.fill(x, 6, 2, 21, IRONC[2]); r.fill(x, 6, 1, 21, IRONC[1]); for (let y = 8; y < 26; y += 5) r.set(x, y, IRONC[0]); }
+    r.fill(2, 17, 28, 2, IRONC[2]); r.fill(2, 17, 28, 1, IRONC[1]);
+    r.fill(12, 13, 8, 6, GILT_BRONZE[2]); r.fill(12, 13, 8, 1, GILT_BRONZE[0]); r.fill(15, 15, 2, 3, "#2a2226");
+    r.fill(3, 27, 3, 2, FRAME[4]); r.fill(26, 27, 3, 2, FRAME[4]);
+    soften(r);
+    return s;
+  }
+  if (kind === "lampstand") {
+    // A bronze stand as tall as a person, an oil lamp burning on top.
+    const s = sprite(16, 60, 0, 59), { r } = s, cx = 8;
+    r.shadow(cx, 58, 6, 2, 0.24);
+    stamp(r, ["...0123...", "...0123...", "..001233..", ".00.12.33.", "01..12..34"], cx - 5, 53, METAL);
+    for (let y = 16; y < 53; y++) { const knop = y % 12 === 4 || y % 12 === 5; r.fill(cx - (knop ? 2 : 1), y, knop ? 4 : 2, 1, METAL[1]); r.set(cx - (knop ? 2 : 1), y, METAL[0]); r.set(cx + (knop ? 1 : 0), y, METAL[3]); }
+    r.fill(cx - 4, 14, 8, 2, METAL[1]); r.fill(cx - 4, 14, 8, 1, METAL[0]); r.fill(cx - 3, 16, 6, 1, METAL[3]);
+    stamp(r, ["..0112...", "011122223", ".0122233."], cx - 5, 11, METAL);
+    soften(r);
+    r.set(cx + 3, 10, FLAME[2]); r.fill(cx + 3, 8, 1, 2, FLAME[1]); r.set(cx + 3, 7, FLAME[0]);
+    glow.push({ x: cx + 3, y: 9 });
+    return { ...s, glow };
+  }
+  if (kind === "sella") {
+    // A folding stool with a cushion.
+    const s = sprite(16, 20, 0, 19), { r } = s;
+    r.shadow(8, 18, 6, 2, 0.22);
+    for (let j = 0; j < 9; j++) { r.fill(2 + j, 9 + j, 2, 1, FRAME[1]); r.fill(12 - j, 9 + j, 2, 1, FRAME[3]); }
+    r.fill(7, 12, 2, 2, GILT_BRONZE[1]);
+    r.fill(1, 5, 14, 4, CLOTH[1]); r.fill(2, 4, 12, 1, CLOTH[0]); r.fill(1, 5, 14, 1, CLOTH[0]); r.fill(1, 8, 14, 1, CLOTH[3]); r.fill(13, 5, 2, 4, CLOTH[2]);
+    soften(r);
+    return s;
+  }
+  if (kind === "labrum") {
+    // A shallow marble basin on a fluted stem, brimming.
+    const s = sprite(28, 36, 6, 35), { r } = s, cx = 14;
+    r.shadow(cx, 34, 9, 2, 0.24);
+    r.fill(cx - 6, 30, 12, 3, WHITE[1]); r.fill(cx - 6, 30, 12, 1, WHITE[0]); r.fill(cx + 3, 31, 3, 2, WHITE[3]);
+    for (let y = 16; y < 30; y++) for (let i = 0; i < 6; i++) r.set(cx - 3 + i, y, i === 0 ? WHITE[0] : i === 2 || i === 4 ? WHITE[3] : i === 5 ? WHITE[4] : WHITE[1]);
+    for (let y = -5; y <= 5; y++) for (let x = -13; x <= 13; x++) {
+      const d = (x / 13.5) ** 2 + (y / 5.5) ** 2;
+      if (d > 1) continue;
+      r.set(cx + x, 11 + y, d < 0.5 && y < 3 ? POOL[x < -2 ? 0 : 1] : y > 2 ? WHITE[x > 5 ? 3 : 2] : x < -6 ? WHITE[0] : WHITE[1]);
+    }
+    soften(r);
+    return s;
+  }
+  if (kind === "tabula") {
+    // The master's table: book rolls, wax tablets, an inkpot and a lamp.
+    const s = sprite(48, 34, 0, 33), { r } = s;
+    r.shadow(24, 32, 21, 3, 0.26);
+    for (const x of [4, 41]) stamp(r, ["012", "013", ".13", ".13", "013", ".13", ".13", "013", "0123"], x, 23, FRAME);
+    r.fill(5, 26, 38, 1, FRAME[3]);
+    r.fill(2, 13, 44, 7, FRAME[1]); r.fill(3, 12, 42, 1, FRAME[0]); r.fill(2, 13, 44, 1, FRAME[0]); r.fill(2, 20, 44, 3, FRAME[3]); r.fill(2, 22, 44, 1, FRAME[4]); r.fill(44, 13, 2, 8, FRAME[2]);
+    soften(r);
+    for (const [x, y] of [[7, 15], [9, 17]]) { r.fill(x, y, 11, 3, "#eadfc4"); r.fill(x, y, 11, 1, "#fbf5e6"); r.fill(x, y, 1, 3, "#c8b890"); r.fill(x + 10, y, 1, 3, "#c8b890"); }
+    r.fill(22, 14, 9, 6, "#7a2e2a"); r.fill(23, 15, 7, 4, "#3a3038"); r.fill(24, 16, 4, 1, "#8a848c"); r.fill(24, 18, 3, 1, "#8a848c");
+    r.fill(33, 15, 3, 3, METAL[2]); r.set(33, 15, METAL[0]); for (let k = 0; k < 6; k++) r.set(35 + (k >> 1), 14 - k, "#fbf5e6");
+    stamp(r, ["..0112...", "011122223", ".0122233."], 37, 15, METAL); r.fill(45, 12, 1, 2, FLAME[1]); r.set(45, 11, FLAME[0]);
+    glow.push({ x: 45, y: 12 });
+    return { ...s, glow };
   }
   return undefined;
 }

@@ -68,7 +68,7 @@ export class FairView {
       for (const g of s.glow ?? []) this.glow(x * 16 - s.ox + dx + g.x, y * 16 - s.oy + dy + g.y);
     };
     for (const t of level.things) {
-      const f = fairFind(t.find), s = f && paintFairThing(t.art, t.w ?? 1, t.h ?? 1, (t.x * 7 + t.y) % 10 / 10, f.tint, level.palace?.order !== "timber");
+      const f = fairFind(t.find), s = f && paintFairThing(t.art, t.w ?? 1, t.h ?? 1, (t.x * 7 + t.y) % 10 / 10, f.tint, (level.palace?.order ?? "classical") === "classical");
       // On a palace wall a hung thing has a bay to itself: in the middle of it, at eye height.
       if (s) put(s, t.x, t.y, t.id, t.wall ? -99980 : (t.y + (t.h ?? 1) - 1) * 16 + 13, t.wall && palace ? (3 - (t.w ?? 1)) * 8 : 0, t.wall && palace ? -30 : 0);
     }

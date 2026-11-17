@@ -20,6 +20,8 @@ export type FairLevel = Area & {
   look: NonNullable<FairArea["look"]>;
   /** The style of a palace room. */
   palace?: PalaceStyle;
+  /** What is open to the sky in the middle of a Roman room: the atrium's pool, or the garden of a peristyle. */
+  court?: Rect & { kind: "pool" | "garden" };
   /** A yard of trodden earth, not a garden court. */
   rustic?: boolean;
   exits: AreaExit[];
@@ -136,6 +138,13 @@ export function fairLevel(seed: string, fair: Fair, id: string): FairLevel | und
     }
     if (plan.kind === "court") court(L, plan, rng, fill, set, at, edge, open);
     else gallery(L, fill, edge, open);
+    // A Roman room built round an opening in its roof: a shallow pool under it, or a garden.
+    if (L.palace?.order === "roman" && (L.palace.room === "atrium" || L.palace.room === "peristyle")) {
+      const pool = L.palace.room === "atrium", cx = w >> 1, my = (h >> 1) + 1;
+      const c = pool ? { x0: cx - 3, y0: my - 2, x1: cx + 2, y1: my + 1 } : { x0: 5, y0: 8, x1: w - 6, y1: h - 5 };
+      fill(c.x0, c.y0, c.x1, c.y1, pool ? WALL : LAWN);
+      L.court = { ...c, kind: pool ? "pool" : "garden" };
+    }
   }
   else interior(L, plan, fair.areas.find((a) => a.buildings?.some((b) => b.interior === id))?.id, fill, edge, space, areaName);
   // Lifts: one at each foot of the tower, or at each corner of a platform.
@@ -418,7 +427,7 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
   // Things hung on a palace wall take a bay each, from the middle outward.
   const wallX: number[] = [];
   const style = L.palace, bayOf = (k: number) => style?.bays[k % style.bays.length];
-  if (palace) for (let k = 0; k < bays.n; k++) if (bayOf(k) === "hanging" || bayOf(k) === "panel") wallX.push(bays.b0 + 3 * k);
+  if (palace) for (let k = 0; k < bays.n; k++) if (["hanging", "panel", "fresco", "fresco-alt"].includes(bayOf(k) ?? "")) wallX.push(bays.b0 + 3 * k);
   else if (indoor) for (let x = 3; x < w - 4; x += 4) wallX.push(x);
   if (palace) wallX.sort((a, b) => Math.abs(a + 1 - cx) - Math.abs(b + 1 - cx));
   const place = (f: FairFind, n: number) => {
@@ -493,6 +502,54 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       if (k % 3 === 0) post(standStaff, [{ x: x + fw, y: foot }, { x: x - 1, y: foot }]);
       k++, x += fw + 4;
     }
+  } else if (palace && style?.order === "roman") {
+    // A Roman room: little furniture, and that against the walls; what the room is for stands in the middle of it.
+    const room = style.room, c = L.court, my = (h >> 1) + 1;
+    const door = (k: number) => k < 0 || k >= bays.n || L.exits.some((e) => e.y === 0 && e.x === bays.b0 + 3 * k);
+    const put = (type: string, x: number, y: number, fw = 1, fh = 1) => {
+      if (!free(x, y - fh + 1, fw, fh)) return false;
+      block(x, y - fh + 1, fw, fh);
+      L.decor.push({ type, x, y, solid: true, v: rng() });
+      return true;
+    };
+    const stand = (type: string, x: number, y: number) => {
+      if (L.cells[y * w + x] !== FLOOR || taken[y * w + x]) return;
+      taken[y * w + x] = 1;
+      L.decor.push({ type, x, y, solid: true, v: rng() });
+    };
+    const cycle = ({ atrium: ["bust", "arca", "", "sella", "bust", ""], peristyle: ["bust", "", "labrum", "", "bust", ""], triclinium: ["cartibulum", "", "lampstand", "", "", "lampstand"], tablinum: ["arca", "", "lampstand", "sella", "", "arca"], cubiculum: ["lectus", "arca", "", "lampstand", "", "sella"] } as Record<string, string[]>)[room] ?? [];
+    const turn = Math.floor(rng() * 6);
+    for (let k = 0; k < bays.n; k++) {
+      const x = bays.b0 + 3 * k, type = cycle[(k + turn) % 6];
+      if (!type || door(k) || bayOf(k) === "scrolls" || bayOf(k) === "niche" || [0, 1, 2].some((i) => L.cells[3 * w + x + i] !== FLOOR || taken[3 * w + x + i])) continue;
+      if (type === "lectus" || type === "cartibulum") { block(x, 3, 3, 1); L.decor.push({ type: `palace:${type}`, x, y: 3, solid: true, v: rng() }); }
+      else if (type === "arca") { block(x, 3, 2, 1); L.decor.push({ type: "palace:arca", x, y: 3, solid: true, v: rng() }); }
+      else stand(`palace:${type}`, x + 1, 3);
+    }
+    if (c?.kind === "pool") {
+      for (const [x, y] of [[c.x0 - 1, c.y0 - 1], [c.x1 + 1, c.y0 - 1], [c.x0 - 1, c.y1 + 1], [c.x1 + 1, c.y1 + 1]]) stand("palace:column", x, y);
+      put("palace:cartibulum", c.x0 + 1, c.y0 - 2, 3, 1);
+    } else if (c) {
+      // Columns round the garden; in it, shrubs, a basin and herms.
+      for (let x = c.x0 - 1; x <= c.x1 + 1; x += 3) for (const y of [c.y0 - 1, c.y1 + 1]) stand("palace:column", x, y);
+      const gx = (c.x0 + c.x1) >> 1, gy = (c.y0 + c.y1) >> 1, grow = (type: string, x: number, y: number) => { if (L.cells[y * w + x] === LAWN && !taken[y * w + x]) { taken[y * w + x] = 1; L.decor.push({ type, x, y, solid: true, v: rng() }); } };
+      grow("palace:labrum", gx, gy);
+      for (const [x, y] of [[c.x0 + 1, c.y0 + 1], [c.x1 - 1, c.y0 + 1], [c.x0 + 1, c.y1 - 1], [c.x1 - 1, c.y1 - 1]]) grow("palace:bust", x, y);
+      // Clipped shrubs in a line inside the kerb, a tree toward each end, flowers round the basin.
+      for (let x = c.x0 + 3; x < c.x1 - 1; x += 2) for (const y of [c.y0, c.y1]) if (Math.abs(x - gx) > 1) grow("shrub", x, y);
+      for (let y = c.y0 + 2; y < c.y1 - 1; y += 2) for (const x of [c.x0, c.x1]) grow("shrub", x, y);
+      for (const x of [c.x0 + Math.round((c.x1 - c.x0) / 4), c.x1 - Math.round((c.x1 - c.x0) / 4)]) grow("tree", x, gy + 1);
+      for (const [dx, dy] of [[-2, -1], [2, -1], [-2, 1], [2, 1]]) grow("shrub", gx + dx, gy + dy);
+    }
+    if (room === "triclinium") {
+      // Three couches round a table, open toward the door.
+      const tx = (w >> 1) - 1;
+      put("palace:lectus", tx, my - 2, 3, 1); put("palace:lectus-side", tx - 2, my + 1, 1, 3); put("palace:lectus-side", tx + 4, my + 1, 1, 3); put("palace:mensa", tx + 1, my);
+    } else if (room === "tablinum") {
+      const tx = (w >> 1) - 1;
+      if (put("palace:tabula", tx, 9, 3, 1)) put("palace:sella", tx + 1, 11);
+    }
+    for (const x of [1, w - 2]) for (let y = 7, k = 0; y < h - 3; y += 4, k++) stand(k % 2 ? "palace:sella" : "palace:lampstand", x, y);
   } else if (palace && style?.order === "timber") {
     // A hall: the high seat in the middle of the long wall, benches and gear along it, two rows of posts,
     // fires down the middle and boards to eat at either side of them. A store has only what is stored.

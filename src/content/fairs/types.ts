@@ -128,7 +128,7 @@ export type Fair = {
 export const FAIR_ART = [
   // Floor.
   "vitrine", "counter", "bales", "barrels", "sacks", "ingots", "statue", "vase", "engine", "dynamo", "locomotive",
-  "phonograph", "telephone", "piano", "model", "loom", "press", "lamp-standard", "pyramid", "kiosk", "lift", "bath", "throne", "state-bed", "axe",
+  "phonograph", "telephone", "piano", "model", "loom", "press", "lamp-standard", "pyramid", "kiosk", "lift", "bath", "throne", "state-bed", "axe", "strongbox",
   // Wall.
   "painting", "tapestry", "carpet", "panel", "map",
 ] as const;

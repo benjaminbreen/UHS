@@ -420,6 +420,15 @@ describe("a palace planned as rooms and courts", () => {
       expect(hall.decor.some((d) => d.type === "palace:highseat")).toBe(seat);
       expect(hall.decor.some((d) => d.type === "palace:hearth")).toBe(true);
     }
+    const caesar = resolveSetting("Caesar at home");
+    if (!("setting" in caesar)) throw new Error(caesar.error);
+    expect(caesar.setting).toMatchObject({ below: "fair", year: -60, role: "Senator" });
+    expect(caesar.setting.venue).toMatch(/^domus-\d$/);
+    const house = createSettingSession(caesar.setting, "palace");
+    expect(house.state.player.pos.space).toBe(`fair:${caesar.setting.venue}:atrium`);
+    expect((house.areaOf(`fair:${caesar.setting.venue}:atrium`) as FairLevel).court).toMatchObject({ kind: "pool" });
+    expect((house.areaOf(`fair:${caesar.setting.venue}:peristyle`) as FairLevel).court).toMatchObject({ kind: "garden" });
+    expect(house.areaOf(`fair:${caesar.setting.venue}:triclinium`)!.decor.filter((d) => d.type.startsWith("palace:lectus"))).toHaveLength(3);
     const modern = resolveSetting("A warlord in Shanghai, 1925");
     if (!("setting" in modern)) throw new Error(modern.error);
     expect(modern.setting.below).toBeUndefined();

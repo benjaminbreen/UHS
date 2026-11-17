@@ -5,9 +5,13 @@
 /** What fills a bay of the back wall, three cells wide, between two piers. */
 export type PalaceBay = "mirror" | "hanging" | "panel" | "window" | "bookcase" | "hearth"
   // A timber hall's wall: bare, or hung with shields and spears, stretched hides, antlers, or a shelf of pots.
-  | "bare" | "shields" | "hides" | "antlers" | "shelf";
+  | "bare" | "shields" | "hides" | "antlers" | "shelf"
+  // A Roman wall: a painted panel in the room's colour or its second colour, a garden painted as if seen through
+  // the wall, the household shrine, or a cupboard of book rolls.
+  | "fresco" | "fresco-alt" | "garden" | "niche" | "scrolls";
 /** What a room is for, which decides its furniture. */
-export type PalaceRoom = "gallery" | "ballroom" | "drawing" | "dining" | "library" | "office" | "hall" | "store";
+export type PalaceRoom = "gallery" | "ballroom" | "drawing" | "dining" | "library" | "office" | "hall" | "store"
+  | "atrium" | "peristyle" | "triclinium" | "tablinum" | "cubiculum";
 
 export type PalaceStyle = {
   /** Panelling, light to dark: six tones. */
@@ -22,14 +26,14 @@ export type PalaceStyle = {
   cloth: readonly string[];
   /** The painted or papered wall inside a "panel" bay, when it is not the cloth. Four tones. */
   field?: readonly string[];
-  /** How the room is built: piers and a cornice, or posts carrying a roof you can see the underside of. */
-  order?: "classical" | "timber";
+  /** How the room is built: piers and a cornice, posts carrying a roof you can see the underside of, or plastered walls painted in panels. */
+  order?: "classical" | "timber" | "roman";
   /** A timber wall's filling between the posts. */
   walling?: "daub" | "plank";
   /** Before metal and before the table: no shields, trestles or carved high seat. */
   rude?: boolean;
   pier: "inset" | "fluted";
-  floor: "versailles" | "herringbone" | "marble" | "carpet" | "earth";
+  floor: "versailles" | "herringbone" | "marble" | "carpet" | "earth" | "mosaic" | "signinum";
   /** The floor's wood, as one colour the painter makes a close family from. */
   wood: string;
   /** The bays along the back wall, repeated from the left. */
@@ -93,4 +97,18 @@ export const neolithicHall: PalaceStyle = {
 export const meadHall: PalaceStyle = {
   order: "timber", walling: "plank", wall: OAK_PLANK, trim: DARK_OAK, frame: DARK_OAK, stone: FIELDSTONE, cloth: MADDER, pier: "inset", floor: "earth", wood: "#86694a",
   bays: ["hanging", "shields", "bare", "hanging", "antlers"], room: "hall", emblem: "wreath",
+};
+
+export const PLASTER = ["#fbf5e6", "#f0e7d2", "#dccfb4", "#b8a98c", "#8c7e66", "#5e5446"];
+export const CINNABAR = ["#e07a5e", "#c2503e", "#9c3a30", "#722824"];
+export const OCHRE = ["#f0d088", "#dcae54", "#b88838", "#8a6226"];
+export const BLACK_GROUND = ["#5a545c", "#3e3a42", "#2c282e", "#1e1a20"];
+export const EGYPTIAN_BLUE = ["#9cc4d8", "#6a9cbc", "#487a9c", "#325a78"];
+export const RED_OCHRE = ["#c88468", "#a8604a", "#864636", "#643226", "#44221a"];
+export const BRONZE_WOOD = ["#c49a64", "#a07846", "#7c5a32", "#5a3e22", "#3c2816"];
+
+/** A Roman house of the late Republic and the Empire: walls painted in panels of red, ochre and black over a dark dado, mosaic floors, marble and bronze. */
+export const romanHouse: PalaceStyle = {
+  order: "roman", wall: PLASTER, trim: RED_OCHRE, frame: BRONZE_WOOD, stone: CARRARA, cloth: CINNABAR, field: OCHRE, pier: "inset", floor: "mosaic", wood: "#b0624a",
+  bays: ["fresco", "fresco-alt"], room: "atrium", emblem: "wreath",
 };
