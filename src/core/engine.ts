@@ -9464,6 +9464,8 @@ export class Engine {
           this.emptyHands();
           delete prop.projectile;
           prop.carriedBy = "player";
+          // Lifted off a table, it is no longer drawn standing on one.
+          prop.sprite = prop.sprite.replace(/@\d+$/, "");
           p.held = prop.id;
           prop.pos = copy(p.pos);
           this.propOwnership(prop, "pick up");
@@ -9785,6 +9787,16 @@ export class Engine {
       case "descend":
         this.descend(c.dx || c.dy ? { dx: c.dx ?? 0, dy: c.dy ?? 0 } : undefined);
         break;
+      case "attend": {
+        // What a prop offers beyond handling it: a sign read, a fountain drunk from.
+        const at = this.state.objects.find((o) => o.id === c.target), act = propDefs[at?.prop ?? ""]?.act;
+        if (!at || !act) break;
+        if (act.water) p.inventory.water = Math.max(p.inventory.water ?? 0, this.carriesMade("vessel") ? 4 : 2);
+        if (act.rest) p.fatigue = Math.max(0, p.fatigue - act.rest);
+        this.advance((act.minutes ?? 1) * 60);
+        this.event(act.text ?? at.description ?? `${at.name}.`);
+        break;
+      }
       case "drink":
         p.inventory.water = Math.max(p.inventory.water ?? 0, this.carriesMade("vessel") ? 4 : 2);
         if (!this.state.manifest.survival) p.fatigue = Math.max(0, p.fatigue - 2);

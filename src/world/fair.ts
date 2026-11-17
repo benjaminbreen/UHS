@@ -1,5 +1,6 @@
 import { fairFind, fairPeople, type Fair, type FairArea, type FairBuilding, type FairFind } from "../content/fairs";
 import { louisQuatorze, type PalaceStyle } from "../content/palaces/styles";
+import { palaceProps } from "../content/props/palace";
 import { pickWeighted as pick, rngOf } from "../core/random";
 import type { Point } from "../core/types";
 import { N4, type Area, type AreaDecor, type AreaExit, type AreaFolk, type AreaLift, type AreaThing } from "./complex";
@@ -597,7 +598,7 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       block(x, 3, 3, 1);
       L.decor.push({ type, x, y: 3, solid: true, v: rng() });
       if (type !== "palace:console") continue;
-      for (const sx of [x, x + 3]) if (!door(sx === x ? k - 1 : k + 1) && sx < w - 1 && !L.decor.some((d) => d.type === "palace:stool" && d.x === sx)) L.decor.push({ type: "palace:stool", x: sx, y: 3, solid: false, v: rng() });
+      for (const sx of [x - 1, x + 3]) if (sx > 0 && sx < w - 1 && L.cells[3 * w + sx] === FLOOR && !taken[3 * w + sx]) { taken[3 * w + sx] = 1; L.decor.push({ type: "palace:stool", x: sx, y: 3, solid: true, v: rng() }); }
     }
     // The middle of the floor: nothing in a gallery or a ballroom, the room's business in the rest.
     const put = (type: string, x: number, y: number, fw = 1, fh = 1) => {
@@ -673,6 +674,24 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
     if (plan.kind !== "gallery") for (let y = 5; y < h - 4; y += 2) furnish("case", 1, y), furnish("case", w - 2, y);
     if (!palace) for (const [x, y] of [[2, 3], [w - 3, 3], [cx - 3, h - 2], [cx + 2, h - 2]]) furnish("palm", x, y);
   }
+  // Furniture that is in the prop catalogue goes into the world as props, to be carried, knocked over, sat on.
+  // What stands fast keeps its cells closed in the plan; what can be moved closes only the cell it is in, as a prop.
+  const made = (kind: string, v: number, raised = 0) => `made:palace:${fair.id}:${plan.id}:${kind}:${Math.floor(v * 997)}${raised ? `@${raised}` : ""}`;
+  const asProp = (kind: string, x: number, y: number, v: number, raised = 0) => (L.props ??= []).push({ key: `palace-${kind}`, sprite: made(kind, v, raised), x, y });
+  L.decor = L.decor.flatMap((d): AreaDecor[] => {
+    const kind = d.type.startsWith("palace:") ? d.type.slice(7) : "";
+    if (kind === "console") {
+      // A pier table, and on it two candlesticks and a vase or a clock, each its own thing.
+      asProp("console-bare", d.x, d.y, d.v);
+      asProp("candlestick", d.x, d.y, d.v, 25); asProp("candlestick", d.x + 2, d.y, d.v, 25);
+      asProp(Math.floor(d.v * 997) % 4 === 3 ? "clock" : "vase", d.x + 1, d.y, d.v, 25);
+      return [{ ...d, type: "solid" }];
+    }
+    const def = palaceProps[`palace-${kind}`];
+    if (!def) return [d];
+    asProp(kind, d.x, d.y, d.v);
+    return def.portable || def.topples ? [] : [{ ...d, type: "solid" }];
+  });
   // The band, in under the bandstand's roof.
   for (const d of L.decor) if (d.type === "bandstand") for (let i = 0; i < 3; i++) post(plan.band, [{ x: d.x + i, y: d.y - 1 }], true);
   // The crowd.

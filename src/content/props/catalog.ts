@@ -5,6 +5,7 @@ import { furnitureProps } from "./furniture";
 import { containerProps } from "./containers";
 import { equipmentProps } from "./equipment";
 import { lotProps } from "./lots";
+import { palaceProps } from "./palace";
 import type { Inventory, Point } from "../../core/types";
 import type { ShoveDef } from "../../core/shove";
 import propAtlas from "../../render/generated/props.json" with { type: "json" };
@@ -64,6 +65,24 @@ export type PropDef = {
   visualClearance?: [number, number, number, number];
   /** What people sit on round it, set out when the settlement is placed. */
   seats?: "log" | "stone" | "mat";
+  /** It can be sat on, by this many. */
+  seat?: number;
+  /** It would burn, and as what. Nothing lights props yet; this is for whatever does. */
+  burns?: "cloth" | "wood" | "thatch" | "paper" | "oil" | "leaf";
+  /** Something to do at it beyond handling it: read it, listen, drink from it. */
+  act?: PropAct;
+};
+
+/** What a prop offers: the words on the button, what is told when it is done, how long it takes and what it does for you. */
+export type PropAct = {
+  verb: string;
+  /** Told when done. Left out, the thing's own description is told: a sign says what is written on it. */
+  text?: string;
+  minutes?: number;
+  /** Fills the water you carry, as a well does. */
+  water?: boolean;
+  /** Rest it gives. */
+  rest?: number;
 };
 
 type Frame = { frame: { w: number; h: number }; pivot?: { x: number; y: number } };
@@ -96,9 +115,13 @@ export function propVisualCells(key: string, at: Point, sprite?: string): Point[
   return cellsAround(at, def?.visualClearance ??
     spriteReach(sprite ?? def?.sprite ?? (def && (frames[`study-propb-${def.family}-0`] ? `study-propb-${def.family}-0` : `study-prop-${def.family}-0`))));
 }
+/** A sign is read: the action tells what is written on it. */
+const read = (defs: Record<string, PropDef>) => Object.fromEntries(Object.entries(defs).map(([k, d]) => [k, { ...d, act: { verb: "Read it", minutes: 1 } }]));
+
 export const propDefs: Record<string, PropDef> = {
-  ...signpostDefs,
-  ...wallSignDefs,
+  ...read(signpostDefs),
+  ...read(wallSignDefs),
+  ...palaceProps,
   ...detailProps,
   ...urbanProps,
   ...containerProps,

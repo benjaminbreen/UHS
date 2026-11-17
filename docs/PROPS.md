@@ -324,3 +324,14 @@ reads across, as data on the prop definition.
 `tests/props.test.ts` covers conservation, hidden contents, pickup and drop,
 damage, ownership, save and replay, every era and culture kit, and
 entrance-safe placement.
+
+## Acts, seats and what burns
+
+A prop definition may carry three things beyond handling:
+
+- `act`: something to do at it, offered as its own button (`attend`): its words, what is told when it is done (the object's own description when none is given), how long it takes, and whether it fills your water or rests you. Signposts and wall signs have "Read it", which tells what the sign says. In palaces a desk and a writing table are read, a globe is turned, a marble basin is drunk from.
+- `seat`: how many it seats. The palace seats (stools, chairs, benches, sofas, couches, the high seat) are in the `sit` use, so the use key sits you on them as on a bench outdoors. Sitting is still a moment's rest and a pose, not a state; people in the room do not use these seats yet.
+- `burns`: what it would burn as (cloth, wood, thatch, paper, oil, leaf). Nothing reads this yet: fire on the map lights buildings and plants, has no `space`, and is refused indoors. It is there for the work on torches.
+
+Fairs and palaces keep their exhibits (look closely, listen, buy, sign the book, take a horn) in `core/fair.ts`; those are not props.
+

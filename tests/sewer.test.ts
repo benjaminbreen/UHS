@@ -22,6 +22,7 @@ import { createSettingSession } from "../src/runtime/session";
 import { theban } from "../src/content/tombs/theban";
 import { tombLevel, tombPlan, tombWalkable } from "../src/world/tomb";
 import { fairLevel, fairSolid, fairWalkable, type FairLevel } from "../src/world/fair";
+import { propDefs } from "../src/content/props/catalog";
 import { fairPeople, fairs } from "../src/content/fairs";
 import { tunnelPerson } from "../src/content/sewers";
 import { commonLivelihoods } from "../src/content/characters/livelihoods.generated";
@@ -403,9 +404,57 @@ describe("a palace planned as rooms and courts", () => {
     const blue = room("blue-room"), dining = room("state-dining"), library = room("library");
     expect(blue.palace).toMatchObject({ pier: "fluted", room: "drawing" });
     expect(blue.palace!.cloth).not.toEqual(dining.palace!.cloth);
-    expect(blue.decor.map((d) => d.type)).toContain("palace:sofa");
+    expect(blue.props!.map((q) => q.key)).toContain("palace-sofa");
     expect(dining.decor.some((d) => d.type.startsWith("palace:dining:"))).toBe(true);
-    expect(library.decor.map((d) => d.type)).toContain("palace:desk");
+    expect(library.props!.map((q) => q.key)).toContain("palace-desk");
+  });
+
+  it("puts palace furniture in the world as props: carried, sat on, knocked over, opened", () => {
+    const r = resolveSetting("A courtier at Versailles");
+    if (!("setting" in r)) throw new Error(r.error);
+    const e = createSettingSession(r.setting, "palace"), p = e.state.player;
+    let n = 0;
+    const act = (target: string, action: "pickup" | "use-prop" | "topple" | "look" | "take") => e.act({ actionId: `p${n++}`, expectedRevision: e.state.revision, command: { type: "interact", target, action } }).status;
+    const go = (to: string) => { const x = (e.areaOf(p.pos.space) as FairLevel).exits.find((q) => q.to.endsWith(`:${to}`))!; p.pos.x = x.x + (x.w >> 1); p.pos.y = x.y + (x.h >> 1); e.advance(1); };
+    for (const to of ["royal-court", "marble-court", "bedchamber", "mirrors"]) go(to);
+    const here = () => e.state.objects.filter((o) => o.pos.space === p.pos.space && o.prop?.startsWith("palace-"));
+    const stand = (o: { pos: { x: number; y: number } }) => { p.pos.x = o.pos.x; p.pos.y = o.pos.y + 1; };
+    expect(here().length).toBeGreaterThan(10);
+    // A candlestick comes off its table and is then drawn in the hand, not raised.
+    const candle = here().find((o) => o.prop === "palace-candlestick")!;
+    expect(candle.sprite).toMatch(/@25$/);
+    stand(candle);
+    expect(act(candle.id, "pickup")).toBe("completed");
+    expect(p.held).toBe(candle.id);
+    expect(candle.sprite).not.toMatch(/@/);
+    e.act({ actionId: "down", expectedRevision: e.state.revision, command: { type: "interact", target: candle.id, action: "drop" } });
+    // A seat is sat on.
+    const bench = here().find((o) => propDefs[o.prop!].seat)!;
+    stand(bench);
+    expect(e.usable()).toMatchObject({ id: bench.id, use: "sit" });
+    expect(act(bench.id, "use-prop")).toBe("completed");
+    // A bust goes over.
+    const bust = here().find((o) => propDefs[o.prop!].topples)!;
+    stand(bust);
+    expect(act(bust.id, "topple")).toBe("completed");
+    expect(bust.tipped).toBe(true);
+    // Going out and coming back does not stock the room twice.
+    const count = here().length;
+    go("bedchamber"); go("mirrors");
+    expect(here().length).toBe(count);
+  });
+
+  it("lets a sign on the map be read", () => {
+    const r = resolveSetting("A weaver in London, 1650");
+    if (!("setting" in r)) throw new Error(r.error);
+    const e = createSettingSession(r.setting, "signs"), p = e.state.player;
+    const sign = e.state.objects.find((o) => propDefs[o.prop ?? ""]?.act && o.pos.space === "outside");
+    if (!sign) return;
+    p.pos = { ...sign.pos, y: sign.pos.y + 1 };
+    expect(e.inspect(sign.id)?.affordances.map((a) => a.label)).toContain("Read it");
+    const before = e.state.events.length;
+    expect(e.act({ actionId: "read", expectedRevision: e.state.revision, command: { type: "interact", target: sign.id, action: "attend" } }).status).toBe("completed");
+    expect(e.state.events.length).toBeGreaterThan(before);
   });
 
   it("starts a warlord in a generated hall of his own period, and nowhere when no period fits", () => {
@@ -417,7 +466,7 @@ describe("a palace planned as rooms and courts", () => {
       expect(e.state.player.pos.space).toBe(`fair:${r.setting.venue}:yard`);
       const hall = e.areaOf(`fair:${r.setting.venue}:hall`) as FairLevel;
       expect(hall.palace).toMatchObject({ order: "timber", room: "hall" });
-      expect(hall.decor.some((d) => d.type === "palace:highseat")).toBe(seat);
+      expect(hall.props!.some((q) => q.key === "palace-highseat")).toBe(seat);
       expect(hall.decor.some((d) => d.type === "palace:hearth")).toBe(true);
     }
     const caesar = resolveSetting("Caesar at home");
@@ -428,7 +477,7 @@ describe("a palace planned as rooms and courts", () => {
     expect(house.state.player.pos.space).toBe(`fair:${caesar.setting.venue}:atrium`);
     expect((house.areaOf(`fair:${caesar.setting.venue}:atrium`) as FairLevel).court).toMatchObject({ kind: "pool" });
     expect((house.areaOf(`fair:${caesar.setting.venue}:peristyle`) as FairLevel).court).toMatchObject({ kind: "garden" });
-    expect(house.areaOf(`fair:${caesar.setting.venue}:triclinium`)!.decor.filter((d) => d.type.startsWith("palace:lectus"))).toHaveLength(3);
+    expect(house.areaOf(`fair:${caesar.setting.venue}:triclinium`)!.props!.filter((q) => q.key.startsWith("palace-lectus"))).toHaveLength(3);
     const modern = resolveSetting("A warlord in Shanghai, 1925");
     if (!("setting" in modern)) throw new Error(modern.error);
     expect(modern.setting.below).toBeUndefined();

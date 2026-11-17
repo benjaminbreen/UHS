@@ -617,6 +617,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
         "knock",
         "pay",
         "drink",
+        "attend",
         "cook",
         "store",
         "work",

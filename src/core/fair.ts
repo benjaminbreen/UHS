@@ -1,3 +1,4 @@
+import { propDefs } from "../content/props/catalog";
 import { fairById, fairFind, type Fair } from "../content/fairs";
 import { exitAt } from "../world/complex";
 import { fairLevel, fairSolid, fairSpace, fairWalkable, parseFairSpace, type FairLevel } from "../world/fair";
@@ -139,5 +140,7 @@ export function fairTime(h: ComplexHost) {
     if (next) h.event(next.name[0].toUpperCase() + next.name.slice(1) + ".", "action");
     return;
   }
-  folkTime(h.folk, c.level.space, (x, y) => !fairGround(h, c.level.space, x, y));
+  // People walk round furniture that has been moved as they do round what was built in.
+  const inWay = new Set(h.state.objects.filter((o) => o.pos.space === c.level.space && !o.carriedBy && !o.broken && propDefs[o.prop ?? ""]?.solid).map((o) => o.pos.y * c.level.w + o.pos.x));
+  folkTime(h.folk, c.level.space, (x, y) => !fairGround(h, c.level.space, x, y) && !inWay.has(y * c.level.w + x));
 }

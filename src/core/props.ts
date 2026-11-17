@@ -51,6 +51,7 @@ export function propAffordances(
       );
   }
   if (d.drink) add("drink", "Drink water");
+  if (d.act && !o.carriedBy && !o.broken) add("attend", d.act.verb);
   if (d.fire && !o.carriedBy)
     add(
       "cook",

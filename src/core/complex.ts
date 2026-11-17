@@ -1,3 +1,4 @@
+import { propDefs } from "../content/props/catalog";
 import { caveLight } from "../content/caves";
 import { arrivalFrom, landing, N4, type Area, type AreaThing } from "../world/complex";
 import type { CaveLevel, CaveSite } from "../world/cave";
@@ -12,7 +13,7 @@ import type { GameEvent, Snapshot as GameState, Position, Point, WorldModel } fr
 /** The trip through a complex the player is on. */
 export type ComplexRun = CaveRun | SewerRun | FairRun | TombRun;
 /** What a complex remembers between visits: how far in, what was taken, what was killed, which areas were walked. */
-export type ComplexRecord = { deepest: number; done: string[]; slain: string[]; seen?: string[] };
+export type ComplexRecord = { deepest: number; done: string[]; slain: string[]; seen?: string[]; /** Areas whose props have been put in the world. */ stocked?: string[] };
 /** An area as the game holds it: the level, and the cells closed to feet right now. */
 export type Cached<L extends Area = Area> = { level: L; solid: Set<number> };
 
@@ -101,6 +102,13 @@ export function arriveIn(h: ComplexHost, level: Area, key: string, from?: string
   if (lift) p.direction = 2;
   const rec = complexRecord(h.state, key);
   if (!(rec.seen ??= []).includes(level.space)) rec.seen.push(level.space);
+  if (level.props?.length && !(rec.stocked ??= []).includes(level.space)) {
+    rec.stocked.push(level.space);
+    level.props.forEach((q, i) => {
+      const def = propDefs[q.key];
+      if (def) h.state.objects.push({ id: `${level.space}:prop${i}`, prop: q.key, name: def.name, kind: "container", sprite: q.sprite, inventory: { ...def.contents }, open: false, pos: { x: q.x, y: q.y, space: level.space } });
+    });
+  }
   folkArrive(h.folk, level.space, level.folk);
 }
 

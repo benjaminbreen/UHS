@@ -1,6 +1,7 @@
 import { h2, Raster } from "../ship/raster";
 import { palaceBays, type FairLevel } from "../../world/fair";
 import type { FairSprite } from "./things";
+import { fairById } from "../../content/fairs";
 import { GILT as GILT_BRONZE, louisQuatorze, type PalaceStyle } from "../../content/palaces/styles";
 
 const MIRROR = ["#d3e0e7", "#b7c8d2", "#a0b3bf", "#899eac", "#6e8494"];
@@ -796,7 +797,13 @@ const BUST = ["#fdf6e8", "#ecdfc8", "#d4c5aa", "#b3a288", "#8c7c66"];
 export function paintPalaceDecor(kind: string, v: number, style?: PalaceStyle): FairSprite | undefined {
   use(style);
   const n = Math.floor(v * 997), glow: { x: number; y: number }[] = [];
-  if (kind === "console") {
+  if (kind === "candlestick" || kind === "vase" || kind === "clock") {
+    // What stands on a table, as a thing by itself.
+    const s = sprite(16, 26, 0, 24), { r } = s;
+    if (kind === "candlestick") candelabrum(r, 8, 24, glow); else if (kind === "vase") porcelain(r, 8, 25, n); else clock(r, 8, 25);
+    return s;
+  }
+  if (kind === "console" || kind === "console-bare") {
     // A pier table: a thick slab of white marble on a carved and gilded frame, candles and porcelain on it.
     const s = sprite(48, 62, 0, 60), { r } = s, x = 4, wd = 40, top = 32, cx = x + wd / 2;
     r.shadow(24, 59, 20, 3, 0.26);
@@ -814,6 +821,7 @@ export function paintPalaceDecor(kind: string, v: number, style?: PalaceStyle): 
     for (let k = 0; k < 5; k++) { const vx = x + 4 + Math.floor(h2(k, n, 3) * (wd - 10)); r.set(vx, top + 2, WHITE[2]); r.set(vx + 1, top + 3, WHITE[2]); r.set(vx + 2, top + 3, WHITE[2]); r.set(vx + 3, top + 4, WHITE[2]); }
     soften(r);
     // What stands on it, and its shadow on the marble.
+    if (kind === "console-bare") return s;
     for (const ix of [x + 8, x + wd - 8]) { r.fill(ix - 3, top + 4, 8, 1, WHITE[2]); candelabrum(r, ix, top + 3, glow); }
     r.fill(cx - 3, top + 5, 8, 1, WHITE[2]);
     if (n % 4 === 3) clock(r, cx, top + 4); else porcelain(r, cx, top + 4, n);
@@ -821,7 +829,7 @@ export function paintPalaceDecor(kind: string, v: number, style?: PalaceStyle): 
   }
   if (kind === "stool") {
     // A folding stool, the only seat most of the court was allowed.
-    const s = sprite(14, 18, 7, 17), { r } = s;
+    const s = sprite(14, 18, -1, 17), { r } = s;
     r.shadow(7, 16, 6, 2, 0.24);
     stamp(r, [
       ".0001111112.",
@@ -1308,4 +1316,20 @@ export function paintPalaceDecor(kind: string, v: number, style?: PalaceStyle): 
     return { ...s, glow };
   }
   return undefined;
+}
+
+/** A palace prop's picture from its sprite name, `made:palace:<fair>:<area>:<kind>:<n>` with `@<px>` when it stands on a
+ * table: the piece in its room's style, set so the middle of the foot of the picture is the middle of the foot of its cell. */
+export function palacePropPicture(frame: string) {
+  const m = /^made:palace:([^:]+):([^:]+):([^:@]+):(\d+)(?:@(\d+))?$/.exec(frame);
+  if (!m) return undefined;
+  const fair = fairById(m[1]), area = fair?.areas.find((a) => a.id === m[2]);
+  const s = paintPalaceDecor(m[3], Number(m[4]) / 997, fair?.palace && { ...fair.palace, ...area?.palace });
+  if (!s) return undefined;
+  const mid = s.ox + 8, half = Math.max(mid, s.r.w - mid), foot = s.oy + 16, out = new Raster(half * 2, foot + Number(m[5] ?? 0));
+  for (let y = 0; y < Math.min(foot, s.r.h); y++) for (let x = 0; x < s.r.w; x++) {
+    const i = (y * s.r.w + x) * 4, o = (y * out.w + x + half - mid) * 4;
+    for (let k = 0; k < 4; k++) out.data[o + k] = s.r.data[i + k];
+  }
+  return out;
 }

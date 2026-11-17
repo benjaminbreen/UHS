@@ -333,6 +333,7 @@ import { FLOOR_X, FLOOR_Y, PixelRoom } from "./interiors/pixel";
 import { CaveView } from "./cave/view";
 import { SewerView } from "./sewer/view";
 import { FairView } from "./fair/view";
+import { palacePropPicture } from "./fair/palace";
 import { TombView } from "./tomb/view";
 import type { FairLevel } from "../world/fair";
 import type { TombLevel } from "../world/tomb";
@@ -3377,6 +3378,12 @@ export class WorldScene extends Phaser.Scene {
   /** A hand-made thing set down: its own icon, in the colours of what went into it. */
   private madeTexture(frame: string) {
     if (this.textures.exists(frame)) return frame;
+    if (frame.startsWith("made:palace:")) {
+      const picture = palacePropPicture(frame)?.canvas();
+      if (!picture) return "__DEFAULT";
+      this.textures.addCanvas(frame, picture)?.add(frame, 0, 0, 0, picture.width, picture.height);
+      return frame;
+    }
     const icon = voxelItemsReady() ? voxelIcon(frame.slice(5)) : undefined;
     if (!icon) {
       void loadVoxelItems();

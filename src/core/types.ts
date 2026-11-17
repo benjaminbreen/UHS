@@ -579,6 +579,7 @@ export type PlayerCommand =
         | "open"
         | "close"
         | "drink"
+        | "attend"
         | "cook"
         | "store"
         | "work"
