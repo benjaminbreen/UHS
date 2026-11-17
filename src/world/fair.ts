@@ -198,7 +198,7 @@ const isles = (w: number): Rect[] => {
     .map(([x0, y0, x1, y1]) => ({ x0, y0, x1, y1 }));
 };
 /** Machines that fill the islands round the exhibits: the art, and its footprint. */
-export const MACHINES: [string, number, number][] = [["engine", 3, 2], ["dynamo", 2, 2], ["loom", 2, 1], ["press", 2, 1], ["dynamo", 2, 2], ["loom", 2, 1]];
+export const MACHINES: [string, number, number][] = [["engine", 3, 2], ["dynamo", 2, 2], ["pump", 3, 2], ["loom", 2, 1], ["press", 2, 1], ["dynamo", 2, 2], ["engine", 3, 2]];
 
 /** Exhibits, filler stands, decor and people. */
 function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, fair: string) {

@@ -682,48 +682,66 @@ def dome_central(w, h, look):
     return p.done()
 
 
-def tower_leg(flip=False):
-    """One foot of the Tower: a rusticated masonry pier, the leg's two girder
-    faces rising and leaning in toward the middle, braced in X panels, and
-    half of the great arch springing toward the next foot. Drawn for a left
-    foot; the right ones are mirrored. The frame runs from M px left of the
-    foot to the middle of the span between the feet."""
+# How far a lower leg's frame runs out past its foot, the way it leans.
+LOW_EXT = 150
+
+
+def tower_leg(low=False):
+    """One foot of the Tower: a stepped masonry plinth, and the leg's girder
+    faces rising from it, braced in X panels. An upper foot leans in toward
+    the middle and carries half of the great arch to the next foot; a lower
+    one leans out and away over the viewer's head, fading as it goes, so the
+    ground under the Tower stays open. Drawn for a left foot; the right ones
+    are mirrored. An upper frame runs from M px left of the foot to the
+    middle of the span; a lower one from LOW_EXT + M px left of it."""
     foot = 9 * 16
     span = (41 - 15) * 16          # inner edge to inner edge of the two feet
-    W, H = M + foot + span // 2 + 4, 8 * 16 + 260
+    ox = LOW_EXT if low else 0
+    W, H = ox + M + foot + (8 if low else span // 2 + 4), 8 * 16 + 260
     c = C(W, H)
     base = H
     stone = RAMPS['limestone']
-    # The pier: rusticated blocks under a moulded cornice.
-    px, pw, ph = M + 2, foot - 4, 30
-    coursed(c, px, base - ph, pw, ph, stone, q=1, course=8, block=20)
-    c.rect(px - 3, base - ph - 4, pw + 6, 4, stone[1]); c.rect(px - 3, base - ph - 4, pw + 6, 1, stone[0])
-    c.rect(px - 3, base - ph - 1, pw + 6, 1, stone[4])
-    cast_down(c, px, px + pw, base - ph, 3, 0.35)
-    top = base - ph - 4
+    # The plinth: three steps of dressed stone, each with its tread and its face.
+    px, pw = ox + M + 2, foot - 4
+    for k in range(3):
+        x0, w = px + k * 11, pw - k * 22
+        back, front = base - 124 + k * 9, base - 10 - k * 13
+        c.rect(x0, back, w, front - back, stone[0] if k == 2 else stone[1])
+        c.rect(x0, back, w, 1, stone[0])
+        c.rect(x0, front, w, 10, stone[2])
+        c.rect(x0, front, w, 1, stone[0])
+        c.rect(x0, front + 9, w, 1, stone[4])
+        for x in range(x0 + 17 - (k % 2) * 8, x0 + w - 2, 18):
+            c.rect(x, front + 1, 1, 8, stone[3])
+        c.rect(x0 + w - 2, back, 2, front - back + 10, stone[3])
+        c.rect(x0, back, 1, front - back, stone[0])
+    top = base - 50
     rise = top - 2
+    lean_a, lean_b = (-132, -104) if low else (96, 58)
     # Outer and inner edge of the leg's front face; the lean grows with height.
     def edges(y):
         t = (top - y) / rise
         lean = t ** 1.35
-        return M + 8 + lean * 96, M + foot - 8 + lean * 58
+        return ox + M + 26 + lean * lean_a, ox + M + foot - 26 + lean * lean_b
 
     def girder(x, y, wide, r, front=True):
         c.rect(x, y, wide, 1, r[3 if front else 4])
         if front:
-            c.p(x, y, r[1]); c.p(x + 1, y, r[1])
+            c.p(x, y, r[1]); c.p(x + 1, y, r[1]); c.p(x + 2, y, r[2])
             c.p(x + wide - 1, y, r[4])
             if (y // 3) % 2 == 0:
-                c.p(x + wide // 2, y, r[2])
+                c.p(x + wide // 2, y, r[1])
 
+    a0, b0 = edges(top)
+    c.rect(int(a0) - 5, top - 3, int(b0 - a0) + 10, 7, TOWER[4])
+    c.rect(int(a0) - 5, top - 3, int(b0 - a0) + 10, 1, TOWER[2])
     back = [mix(col, (90, 74, 106), 0.35) for col in TOWER]
-    for face, (dx, dy, r) in enumerate([(7, -5, back), (0, 0, TOWER)]):
+    for face, (dx, dy, r) in enumerate([(-9 if low else 9, -6, back), (0, 0, TOWER)]):
         front = face == 1
-        panel = 0
         y = top
         belts = []
         while y > 0:
-            p_h = int(36 - 16 * (top - y) / rise)
+            p_h = int(34 - 14 * (top - y) / rise)
             belts.append(y)
             y -= p_h
         for y in range(1, top + 1):
@@ -732,49 +750,59 @@ def tower_leg(flip=False):
             yy = y + dy
             if yy < 0:
                 continue
-            girder(int(a), yy, 6, r, front)
-            girder(int(b) - 6, yy, 6, r, front)
+            girder(int(a), yy, 8, r, front)
+            girder(int(b) - 8, yy, 8, r, front)
         # Belts across, and X braces between them.
         for i in range(len(belts) - 1):
             y0, y1 = belts[i], belts[i + 1]
-            a0, b0 = edges(y0); a1, b1 = edges(y1)
-            for k in range(3):
+            a1, b1 = edges(y1)
+            for k in range(4):
                 yy = y1 + dy + k
                 if yy >= 0:
-                    c.rect(int(a1 + dx), yy, int(b1 - a1), 1, r[[1, 2, 4][k]] if front else r[4])
+                    c.rect(int(a1 + dx), yy, int(b1 - a1), 1, r[[1, 2, 3, 4][k]] if front else r[4])
             n = max(2, int(abs(y0 - y1) * 1.5))
             for j in range(n):
                 t = j / n
                 y = y0 + (y1 - y0) * t
                 aa, bb = edges(y)
-                for xx in (aa + 6 + (bb - aa - 12) * t, bb - 6 - (bb - aa - 12) * t):
+                for xx in (aa + 8 + (bb - aa - 16) * t, bb - 8 - (bb - aa - 16) * t):
                     yy = int(y + dy)
                     if yy >= 0:
+                        c.p(int(xx + dx) - 1, yy, r[1] if front else r[4])
                         c.p(int(xx + dx), yy, r[3] if front else r[4])
                         c.p(int(xx + dx) + 1, yy, r[2] if front else r[4])
-    # Half of the great arch: a lattice band from the inner girder to the middle of the span.
-    xs, ys = edges(top - 96)[1], top - 96
-    xc, yc = W - 2, 34
-    for xi in range(int(xs) - 2, W):
-        u = min(1, max(0, (xc - xi) / (xc - xs)))
-        y = yc + (ys - yc) * (1 - math.sqrt(max(0, 1 - u * u)))
-        for k in range(17):
-            yy = int(y) + k
-            if k in (0, 16):
-                col = TOWER[1] if k == 0 else TOWER[4]
-            elif k in (1, 2, 14, 15):
-                col = TOWER[2] if k < 3 else TOWER[3]
-            elif (xi + k) % 10 in (0, 1) or (xi - k) % 10 in (0, 1):
-                col = TOWER[2]
-            elif k == 8 and xi % 10 == 5:
-                col = GOLD[1]
-            else:
-                continue
-            c.p(xi, yy, col)
+    if not low:
+        # Half of the great arch: a lattice band from the inner girder to the middle of the span.
+        xs, ys = edges(top - 96)[1], top - 96
+        xc, yc = W - 2, 34
+        for xi in range(int(xs) - 2, W):
+            u = min(1, max(0, (xc - xi) / (xc - xs)))
+            y = yc + (ys - yc) * (1 - math.sqrt(max(0, 1 - u * u)))
+            for k in range(17):
+                yy = int(y) + k
+                if k in (0, 16):
+                    col = TOWER[1] if k == 0 else TOWER[4]
+                elif k in (1, 2, 14, 15):
+                    col = TOWER[2] if k < 3 else TOWER[3]
+                elif (xi + k) % 10 in (0, 1) or (xi - k) % 10 in (0, 1):
+                    col = TOWER[2]
+                elif k == 8 and xi % 10 == 5:
+                    col = GOLD[1]
+                else:
+                    continue
+                c.p(xi, yy, col)
     finish(c)
     consolidate(c)
     im = c.im
-    return im.transpose(Image.FLIP_LEFT_RIGHT) if flip else im
+    if low:
+        # Gone overhead: the leg thins to nothing over its last stretch.
+        px_ = im.load()
+        for y in range(0, 90):
+            for x in range(im.width):
+                r_, g_, b_, a_ = px_[x, y]
+                if a_:
+                    px_[x, y] = (r_, g_, b_, int(a_ * (y / 90) ** 1.5))
+    return im
 
 
 PAINTERS = {
@@ -798,6 +826,7 @@ def buildings():
 def sprites():
     out = {f'fair-{bid}': PAINTERS[style](w, h, look) for bid, style, w, h, look in buildings()}
     out['fair-tower-leg'] = tower_leg()
+    out['fair-tower-leg-low'] = tower_leg(low=True)
     return out
 
 

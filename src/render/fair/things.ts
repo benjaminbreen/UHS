@@ -1,9 +1,11 @@
 import { box, drum } from "../ship/things";
+import { paintMachine, type MachineKind } from "../machines";
 import { h2, Raster } from "../ship/raster";
 import { MACHINES } from "../../world/fair";
 
 /** A sprite for a cell-sized thing: its footprint's top-left sits at (ox, oy) in the raster. */
-export type FairSprite = { r: Raster; ox: number; oy: number; glow?: { x: number; y: number }[] };
+/** `frames`, when there are any, are a loop played at `fps`; `r` is the first. */
+export type FairSprite = { r: Raster; ox: number; oy: number; glow?: { x: number; y: number }[]; frames?: Raster[]; fps?: number };
 
 const WOOD = ["#e4b47e", "#c8925e", "#a47044", "#7c5030", "#56361e"];
 const DARKWOOD = ["#a8704c", "#86543a", "#683e2a", "#4c2c1e", "#321c14"];
@@ -41,8 +43,11 @@ function placard(r: Raster, x: number, y: number) {
   r.fill(x + 1, y + 3, 4, 1, IRON[0]);
 }
 
-/** The great engine's flywheel, in px from its footprint's top-left: the view turns its spokes. */
-export const flywheel = (w: number) => ({ x: w * 16 - 62, y: 2, r: 56 });
+/** A working machine from the shared kit, as a sprite whose frames the view plays. */
+function machine(kind: MachineKind, w: number, h: number, v: number): FairSprite {
+  const m = paintMachine(kind, w, h, v);
+  return { r: m.frames[0], ox: m.ox, oy: m.oy, frames: m.frames, fps: m.fps };
+}
 
 export function paintFairThing(art: string, w: number, h: number, v: number, tint?: string): FairSprite | undefined {
   const W = w * 16, H = h * 16, pad = 8;
@@ -153,51 +158,9 @@ export function paintFairThing(art: string, w: number, h: number, v: number, tin
       for (let i = -4; i <= 4; i += 2) r.set(cx + i, Y - 12, BRASS[1]);
       return done(s);
     }
-    case "engine": {
-      // A horizontal steam engine on an iron bed: the green cylinder and its valve chest,
-      // a bright rod to the crank, the governor's balls, and a big red flywheel.
-      if (w >= 6) return done(greatEngine(make(64), W, H), false);
-      const s = make(46), { r, X, Y } = s, bx = W - 18, by = -26;
-      ground(s);
-      box(r, X + 1, Y + 8, W - 2, H - 16, 7, STONE, STONE);
-      r.fill(X + 3, Y + 10, W - 8, 1, IRON[0]);
-      const rad = 17, fx = X + bx, fy = Y + by + rad + 1;
-      for (let j = -rad; j <= rad; j++) for (let i = -rad; i <= rad; i++) {
-        const d = Math.hypot(i, j);
-        if (d > rad + 0.5) continue;
-        const a = Math.atan2(j, i), lightK = Math.cos(a + 2.3);
-        if (d > rad - 4) r.set(fx + i, fy + j, d > rad - 0.5 ? RED[4] : RED[lightK > 0.4 ? 0 : lightK > -0.3 ? 1 : 2]);
-        else if (d < 4) r.set(fx + i, fy + j, d < 2 ? BRASS[0] : BRASS[2]);
-        else if (Math.abs(((a / (Math.PI / 3)) % 1 + 1) % 1 - 0.5) > 0.5 - 1.6 / d) r.set(fx + i, fy + j, RED[2]);
-      }
-      const cyl = ["#b4d2a4", "#8ab47a", "#6a965c", "#4c7442", "#30502c"];
-      box(r, X + 2, Y - 8, 17, 6, 12, cyl, cyl);
-      for (const x of [X + 4, X + 16]) r.fill(x, Y - 2, 1, 12, BRASS[2]);
-      box(r, X + 5, Y - 15, 11, 4, 4, IRON, IRON);
-      r.fill(X + 19, fy - 1, fx - X - 19, 3, STONE[1]); r.fill(X + 19, fy - 1, fx - X - 19, 1, "#ffffff");
-      r.fill(fx - 2, fy - 2, 5, 5, BRASS[1]);
-      r.fill(X + 10, Y - 30, 1, 15, BRASS[2]);
-      for (const sx of [-4, 4]) drum(r, X + 10 + sx, Y - 26, 2, 1.5, 3, BRASS);
-      r.fill(X + 6, Y - 31, 9, 1, BRASS[1]);
-      return done(s);
-    }
-    case "dynamo": {
-      // An Edison dynamo: two tall field magnets wound in copper on an iron bed,
-      // joined by a yoke, the armature turning between their feet.
-      const s = make(46), { r, X, Y } = s;
-      ground(s);
-      box(r, X + 1, Y + 2, W - 2, H - 8, 6, STONE, STONE);
-      const copper = ["#f4bc90", "#d88a58", "#b06a40", "#844c2c", "#56301c"];
-      for (const x of [X + 9, X + W - 9]) {
-        drum(r, x, Y + 2, 6, 2.5, 30, copper, IRON);
-        for (let y = Y - 26; y < Y + 2; y += 3) r.fill(x - 5, y, 11, 1, copper[3]);
-      }
-      box(r, X + 2, Y - 34, W - 4, 4, 5, IRON, IRON);
-      drum(r, X + W / 2, Y + 4, 6, 3, 9, IRON);
-      r.fill(X + W / 2 - 4, Y - 2, 8, 2, copper[1]);
-      drum(r, X + W / 2, Y - 34, 4, 2, 5, BRASS);
-      return done(s);
-    }
+    case "engine": return machine(w >= 6 ? "mill-engine" : "engine", w, h, v);
+    case "dynamo": return machine("dynamo", w, h, v);
+    case "pump": return machine("pump", w, h, v);
     case "locomotive": {
       // An express engine on its own length of track: black smokebox and chimney, a green
       // boiler banded in brass, a brass dome, the cab, and tall red driving wheels.
@@ -572,45 +535,12 @@ export function paintFairDecor(type: string, v: number): FairSprite | undefined 
     r.finish();
     return { r, ox: 0, oy: 14 };
   }
-  if (type === "demo") return demo();
-  return undefined;
-}
-
-/** The great engine: a long cylinder on an iron bed, the rods to the crank, and a
- * flywheel taller than a man in a slot in its stone plinth, roped off. Its spokes
- * are drawn turning by the view. */
-function greatEngine(s: FairSprite & { X: number; Y: number }, W: number, H: number) {
-  const { r, X, Y } = s, fw = flywheel(W / 16), fx = X + fw.x, fy = Y + fw.y, black = ["#6a7486", "#465062", "#30384a", "#222836", "#141820"];
-  const cl = X + 10, cr = X + 104, bedTop = Y + 22;
-  r.shadow(X + W / 2 + 4, Y + H - 6, W / 2 + 4, 9, 0.3);
-  box(r, X + 4, Y + H - 28, W - 8, 16, 8, STONE, STONE);
-  r.fill(fx - 8, Y + H - 26, 16, 14, STONE[4]);
-  for (let j = -fw.r; j <= fw.r; j++) for (let i = -fw.r; i <= fw.r; i++) {
-    const d = Math.hypot(i, j), a = Math.atan2(j, i), k = Math.cos(a + 2.3);
-    if (d > fw.r + 0.5) continue;
-    if (d > fw.r - 8) r.set(fx + i, fy + j, d > fw.r - 0.7 || d < fw.r - 7.3 ? black[4] : black[k > 0.4 ? 0 : k > -0.3 ? 1 : 2]);
-    else if (d < 9) r.set(fx + i, fy + j, d < 3 ? BRASS[0] : d < 6 ? black[1] : black[3]);
+  if (type === "demo") {
+    // Anchored on its bottom-left cell, three rows deep.
+    const m = machine("line-shaft", 13, 3, v);
+    return { ...m, oy: m.oy + 32 };
   }
-  // The plinth's face hides the foot of the wheel, turning in its slot.
-  r.fill(X + 4, Y + H - 12, W - 8, 8, STONE[2]); r.fill(X + 4, Y + H - 12, W - 8, 1, STONE[1]); r.fill(X + 4, Y + H - 5, W - 8, 1, STONE[4]); r.fill(X + W - 5, Y + H - 12, 1, 8, STONE[3]);
-  r.fill(fx - 8, Y + H - 12, 16, 6, STONE[4]);
-  // The bed from the cylinder to the crank, the crosshead guides on it, and the rods.
-  box(r, cr - 4, bedTop, fx - cr - 10, 10, 12, black, black);
-  r.fill(cr + 6, bedTop - 6, 40, 5, black[1]); r.fill(cr + 6, bedTop - 6, 40, 1, black[0]);
-  box(r, cr + 30, bedTop - 12, 12, 8, 8, black, black);
-  r.fill(cr, bedTop - 3, fx - cr, 3, STONE[1]); r.fill(cr, bedTop - 3, fx - cr, 1, "#ffffff");
-  // The cylinder: lagged in dark blue-black, banded in brass, the valve chest on top.
-  box(r, cl, Y - 2, cr - cl, 14, 28, black, black);
-  for (let x = cl + 12; x < cr - 4; x += 20) r.fill(x, Y + 12, 2, 28, BRASS[2]), r.set(x, Y - 10, BRASS[0]);
-  drum(r, cl, Y + 26, 4, 3, 26, black);
-  box(r, cl + 24, Y - 14, 44, 8, 8, black, black);
-  for (const x of [cl + 30, cl + 46, cl + 62]) drum(r, x, Y - 14, 2.5, 1, 7, BRASS);
-  r.fill(cl + 84, Y - 36, 1, 22, BRASS[2]); for (const sx of [-5, 5]) drum(r, cl + 84 + sx, Y - 28, 3, 2, 4, BRASS);
-  r.fill(cl + 79, Y - 37, 11, 2, BRASS[1]);
-  // Brass posts and a red rope along the front.
-  for (let x = X + 2; x <= X + W - 2; x += 28) { r.fill(x, Y + H - 12, 2, 12, BRASS[2]); r.fill(x - 1, Y + H - 13, 4, 2, BRASS[0]); }
-  for (let x = X + 2; x < X + W - 2; x++) r.set(x, Y + H - 11 + Math.round(Math.sin((((x - X - 2) % 28) / 28) * Math.PI) * 4), RED[2]);
-  return s;
+  return undefined;
 }
 
 /** A foot of one of the great ribs: a plate girder pier that splits at shoulder height
@@ -643,32 +573,6 @@ function rib(): FairSprite {
   for (let x = cx - 18; x <= cx + 18; x += 9) r.set(x, foot - 19, iron[0]);
   r.finish();
   return { r, ox: 100, oy: 192 };
-}
-
-/** A demonstration of driving by belt: a line shaft on two A-frames over a platform
- * of small machines, a belt down from the shaft to each. */
-function demo(): FairSprite {
-  const W = 13 * 16, r = new Raster(W + 16, 48 + 76), X = 8, Y = 76;
-  r.shadow(X + W / 2 + 4, Y + 44, W / 2 + 2, 6, 0.26);
-  box(r, X, Y + 8, W, 30, 8, WOOD, DARKWOOD);
-  for (let x = X + 12; x < X + W; x += 12) r.fill(x, Y + 9, 1, 28, WOOD[2]);
-  const shaft = Y - 34, feet = Y + 30;
-  const machine = (mx: number, k: number) => {
-    if (k === 0) { box(r, mx - 16, feet - 12, 32, 6, 6, IRON, IRON); box(r, mx - 16, feet - 22, 10, 5, 10, IRON, IRON); r.fill(mx - 6, feet - 16, 18, 2, STONE[1]); box(r, mx + 10, feet - 18, 6, 4, 6, IRON, IRON); }
-    else if (k === 1) { box(r, mx - 12, feet - 6, 24, 5, 4, IRON, IRON); drum(r, mx, feet - 6, 9, 4, 14, ["#f4bc90", "#d88a58", "#b06a40", "#844c2c", "#56301c"], IRON); }
-    else { box(r, mx - 10, feet - 8, 20, 5, 6, IRON, IRON); r.fill(mx - 7, feet - 30, 4, 24, IRON[2]); r.fill(mx + 3, feet - 30, 4, 24, IRON[2]); r.fill(mx - 8, feet - 32, 16, 4, IRON[1]); r.fill(mx - 8, feet - 32, 16, 1, IRON[0]); drum(r, mx, feet - 14, 5, 2, 4, BRASS); }
-    const top = k === 1 ? feet - 24 : k === 0 ? feet - 22 : feet - 32;
-    for (const dx of [-3, 3]) { r.fill(mx + dx, shaft + 3, 2, top - shaft - 3, "#5a3a24"); r.fill(mx + dx, shaft + 3, 1, top - shaft - 3, "#8a5e3c"); }
-    r.fill(mx - 4, shaft - 4, 10, 9, IRON[2]); r.fill(mx - 4, shaft - 4, 10, 1, IRON[0]); r.fill(mx - 4, shaft + 4, 10, 1, IRON[4]);
-  };
-  for (const ax of [X + 14, X + W - 14]) for (const s of [-1, 1]) for (let y = shaft; y < feet; y++) {
-    const x = ax + s * Math.round(((y - shaft) * 10) / (feet - shaft));
-    r.fill(x - 1, y, 3, 1, IRON[2]); r.set(x - 1, y, IRON[0]);
-  }
-  r.fill(X + 8, shaft, W - 16, 3, IRON[1]); r.fill(X + 8, shaft, W - 16, 1, IRON[0]); r.fill(X + 8, shaft + 2, W - 16, 1, IRON[3]);
-  [X + 50, X + 104, X + 158].forEach((mx, k) => machine(mx, k));
-  r.finish();
-  return { r, ox: X, oy: Y + 32 };
 }
 
 /** A trophy: a firm's goods stacked in tiers on a draped dais round a gilt centrepiece, roped off. */
