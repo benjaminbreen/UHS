@@ -350,7 +350,8 @@ import { floraRegion } from "../content/ecology/flora";
 import { alternateTrees, lazySheets, pageImage, pagedSheets, sceneAssets } from "./scene-assets";
 import { TiltShiftPipeline } from "./tilt-shift";
 import { NightGradePipeline } from "./night-grade";
-import { healthPerson, symptomsShown, type Symptoms } from "../core/health";
+import { ailing, healthPerson, symptomsShown, type Symptoms } from "../core/health";
+import type { RestingExpression } from "../core/persona";
 import { smokingFrom, smokingHabit, type SmokeForm } from "../content/characters/smoking";
 import { Smokers } from "./smoking";
 import { RainCovers, coverFor, coverItem, shawlTint, type Cover } from "./rain-cover";
@@ -7922,6 +7923,7 @@ export class WorldScene extends Phaser.Scene {
         // A hit-stop holds the figures too, not only what is tweened.
         im.setVisible(!!texture);
         if (asleep) this.shadows.get(id)?.setVisible(false);
+          asleep ? undefined : this.feeling(id, human),
         const horse = id === "player" && this.runtime.devHorse
           ? this.horseFrame(moving, turn.facing, time)
           : undefined;
@@ -8499,6 +8501,21 @@ export class WorldScene extends Phaser.Scene {
     const engine = this.runtime.engine, talking = engine.conversing;
     const me = this.entities.get(id);
     if (!me) return undefined;
+  /** The face someone wears for the moment: what they just said, how they
+   * take the player standing near, or being ill. */
+  private feeling(id: string, human: Pick<Actor, "trust" | "pos">): RestingExpression | undefined {
+    const engine = this.runtime.engine, s = engine.state;
+    const said = id === engine.conversing ? this.runtime.conversingMood : undefined;
+    if (said === "smile" || said === "happy" || said === "laugh") return "smile";
+    if (said === "angry" || said === "stern") return "serious";
+    if (said === "sad" || said === "worried") return "concerned";
+    if (said === "wry") return "soft";
+    if (ailing(s, id, s.clock) > 0.3) return "concerned";
+    if (id === "player") return undefined;
+    const trust = human.trust ?? 0;
+    if (id !== engine.conversing && Math.hypot(human.pos.x - s.player.pos.x, human.pos.y - s.player.pos.y) > 3) return undefined;
+    return trust >= 2 ? "smile" : trust < 0 ? "serious" : undefined;
+  }
     let other: string | undefined, kind: "chat" | "sale" = "chat", sells = false;
     if (talking && (id === talking || id === "player")) other = id === "player" ? talking : "player";
     else if (at && !at.moving && (at.activity === "visit" || at.activity === "play" || keeps(at)) && id !== "player") {

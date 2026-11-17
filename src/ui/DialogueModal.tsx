@@ -198,6 +198,10 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
     const timer = window.setTimeout(() => setMood(undefined), 5000);
     return () => window.clearTimeout(timer);
   }, [mood, speaking]);
+  useEffect(() => {
+    runtime.conversingMood = mood;
+    return () => { runtime.conversingMood = undefined; };
+  }, [runtime, mood]);
 
   useEffect(() => () => beat.current?.(), []);
   // The box is disabled while they think, and a disabled box drops focus.

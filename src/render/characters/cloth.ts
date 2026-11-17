@@ -49,6 +49,8 @@ export function clothColours(w: CharacterAppearance["wearing"]) {
     // Figured waistcoats in the silks of the day; plain ones a shade off the breeches.
     vest: w.waistcoat === "figured" ? pick(["#8e2234", "#c09a3a", "#2c6448", "#e2d6bc", "#34407e"], 5)
       // Knitting wool in the shades the mills sold it in.
+      // Denim, black leather, olive and navy nylon, a red or a tan windcheater.
+      : w.waistcoat === "jacket" ? pick(["#4a6a9a", "#2a2a30", "#5a6240", "#2c3a5c", "#a8322e", "#a8875a", "#7a7e86"], 9)
       : w.waistcoat === "cardigan" ? pick(["#8a3a3a", "#3a4a6a", "#5a6a4a", "#c8b896", "#7a5a7a", "#4a4a52", "#b07a3a"], 7)
       : mix(w.lowerColor, "#2a2228", 0.25),
     apron: pick(["#e8e1cf", "#d9cdb0", "#ece7da"], 0),

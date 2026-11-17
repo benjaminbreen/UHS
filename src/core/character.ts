@@ -217,6 +217,11 @@ export const motifs = [
   "tracksuit",
   /** Rings of dye from the chest outward. */
   "tie-dye",
+  /** A round neck and no buttons: the T-shirt, plain or with a print on the chest. */
+  "tee",
+  "graphic",
+  /** A small all-over print: the cotton frock and the printed shirt. */
+  "floral",
 ] as const;
 /** What covers the leg between hem and ankle. */
 export const leggings = [
@@ -230,6 +235,12 @@ export const leggings = [
   "wide",
   /** Black net tights under a short skirt. */
   "fishnet",
+  /** Buttoned at the knee over stockings: European men, about 1600 to 1820. */
+  "breeches",
+  /** Blue denim, faded at the thigh: work wear from the 1870s, everyone's from the 1960s. */
+  "jeans",
+  /** Cut off above the knee. */
+  "shorts",
 ] as const;
 export const footwear = [
   "none",
@@ -262,10 +273,16 @@ export const aprons = ["none", "cloth", "leather",
 /** Carried at the hip: a purse on the belt, a satchel on a strap. */
 export const bags = ["none", "purse", "satchel",
   /** A wicker basket carried on the back by shoulder straps: the fishwife's creel. */
-  "creel"] as const;
+  "creel",
+  /** A nylon pack on two straps: school and the commute, from the 1970s. */
+  "backpack"] as const;
 export const wristwear = ["none", "bangles",
   /** Black cotton sleeves from wrist to elbow, to keep ink and dust off the shirt: clerks, 1850s to 1950s. */
-  "sleeve-guards"] as const;
+  "sleeve-guards",
+  /** A coat sleeve turned back deep in the facing colour: 1680s to 1790s. */
+  "cuffs",
+  /** Lace or linen frills at the end of the sleeve. */
+  "ruffles"] as const;
 /** Round the neck above the garment: a working neckerchief, a starched ruff,
  * a gentleman's cravat. */
 export const neckwear = ["none", "neckerchief", "ruff", "cravat", "necktie", "bow-tie",
@@ -283,7 +300,9 @@ export const hairOrnaments = ["none", "comb", "pins", "flower", "net", "ribbon",
 export const hatTrims = ["none", "feather", "cockade", "ribbon"] as const;
 /** A sleeveless layer over the shirt: plain cloth, or figured silk and brocade.
  * A cardigan is the knitted one with sleeves. */
-export const waistcoats = ["none", "plain", "figured", "cardigan"] as const;
+export const waistcoats = ["none", "plain", "figured", "cardigan",
+  /** A waist-length zipped jacket over the shirt: denim, leather, nylon. */
+  "jacket"] as const;
 /** A square of cloth worn over the shoulders and crossed or knotted at the front. */
 export const shawls = ["none", "plain", "fringed", "patterned"] as const;
 /** Hair as the law or the rule required it, over whatever the person would
@@ -315,7 +334,9 @@ export const drapes = ["none", "toga", "praetexta", "palla"] as const;
  * the dome of the crinoline (1856 to 1868), the bustle at the back (1870 to 1889). */
 export const silhouettes = ["none", "farthingale", "crinoline", "bustle",
   /** The waist raised under the bust, the skirt falling straight: 1795 to 1822. */
-  "empire"] as const;
+  "empire",
+  /** Side hoops: wide across the hips, flat front and back, the gown open over a petticoat: 1720s to 1780s. */
+  "pannier"] as const;
 /** Over the face: the plague doctor's beak (1619 on), the Venetian bauta, and
  * women's street veils: the Ottoman yaşmak (white, below the eyes), the
  * Egyptian burqu' (black, hanging to the chest), the haik drawn across all
@@ -1281,12 +1302,12 @@ export function pickHair(
     sex !== "male"
       ? 0.01
       : age < 30
-        ? 0.02
+        ? 0.01
         : age < 45
-          ? 0.2
+          ? 0.06
           : age < 60
-            ? 0.4
-            : 0.55;
+            ? 0.18
+            : 0.32;
   if (pool.includes("bald") && baldRoll < baldChance) return "bald";
   const sexes: ("male" | "female")[] =
     sex === "unspecified" ? ["male", "female"] : [sex];

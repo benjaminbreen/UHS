@@ -449,7 +449,10 @@ it("spawns court dress for the few, and only while it existed", () => {
   expect(meansOf({ id: "x", roles: rolesFrom("Empress of Brazil") })).toBe("elite");
   const court = crowd("european", 1760, { means: "elite", sex: "female" });
   expect(share(court, (w) => w.garment === "gown")).toBeGreaterThan(0.3);
-  expect(share(court, (w) => w.headwear === "wig")).toBeGreaterThan(0.3);
+  expect(share(court, (w) => w.silhouette === "pannier")).toBe(1);
+  expect(court.map((w) => w.headwear)).not.toContain("wig");
+  // The full-bottomed wig belongs to the court before 1715.
+  expect(share(crowd("european", 1700, { means: "elite", sex: "male" }), (w) => w.headwear === "wig")).toBeGreaterThan(0.3);
   expect(court.map((w) => w.leggings)).not.toContain("trousers");
   // Court dress reaches the elite of any region, not only Europe.
   const hawaii = crowd("australian-pacific", 1860, { means: "elite", sex: "female" }, 200, [-157, 21]);
@@ -468,8 +471,18 @@ it("dresses the future the same way everywhere, in cloth that costs nothing", ()
     );
     expect(fibres.some((c) => c.material === "synthetic")).toBe(true);
   }
-  // Before 2020 the regions still decide.
+  // Up to the present the regions still decide.
   expect(crowd("south-asian", 1990).map((w) => w.garment)).not.toContain("suit");
+  expect(crowd("european", 2025).map((w) => w.garment)).not.toContain("suit");
+});
+
+it("puts most of the present in jeans and T-shirts, and fewer where regional dress holds", () => {
+  const casual = (w: { leggings?: string; motif?: string }) => w.leggings === "jeans" || w.motif === "tee" || w.motif === "graphic";
+  expect(share(crowd("european", 2015), casual)).toBeGreaterThan(0.5);
+  expect(share(crowd("south-asian", 2015, { sex: "female" }), casual)).toBeLessThan(share(crowd("european", 2015, { sex: "female" }), casual));
+  expect(share(crowd("european", 1950), casual)).toBe(0);
+  // Men after 1900 are out of hose.
+  expect(crowd("european", 1967, { sex: "male" }).map((w) => w.leggings)).not.toContain("hose");
 });
 
 it("names modern cloth the way a modern wearer would", () => {

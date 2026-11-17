@@ -91,6 +91,9 @@ const legLabel: Record<Exclude<(typeof leggings)[number], "none">, string> = {
   sarong: "Sarong",
   wide: "Wide trousers",
   fishnet: "Fishnet tights",
+  breeches: "Breeches and stockings",
+  jeans: "Jeans",
+  shorts: "Shorts",
 };
 const footLabel: Record<Exclude<(typeof footwear)[number], "none">, string> = {
   sandals: "Sandals",
@@ -150,6 +153,12 @@ const about: Record<ItemId, string> = {
     "A tube of cloth stepped into and knotted at the waist, cool and endlessly retied.",
   "leggings-fishnet":
     "Black net tights, worn under a short skirt and laddered on purpose.",
+  "leggings-breeches":
+    "Cut to end just below the knee and buttoned or buckled there, over knitted stockings.",
+  "leggings-jeans":
+    "Riveted blue denim, cut for miners and ranch hands and worn since by nearly everyone.",
+  "leggings-shorts":
+    "Trousers cut off above the knee, for heat, sport and children.",
   "leggings-wide":
     "Loose, full trousers gathered at the waist, comfortable for squatting, riding and heat.",
   "footwear-sandals":

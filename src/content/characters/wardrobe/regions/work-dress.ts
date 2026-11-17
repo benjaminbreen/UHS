@@ -194,7 +194,7 @@ export const workDress: readonly GarmentKit[] = [
       { value: "jar", weight: 2, sex: ["female"], means: ["poor", "common"], ages: ["youth", "adult"] },
       { value: "basket", weight: 2, sex: ["female"], means: ["poor", "common"], ages: ["youth", "adult"] },
       { value: "bundle", weight: 1, means: ["poor", "common"], ages: ["youth", "adult"] },
-      { value: "none", weight: 9, ages: ["youth", "adult", "elder"] },
+      { value: "none", weight: 20, ages: ["youth", "adult", "elder"] },
     ],
   })),
   {

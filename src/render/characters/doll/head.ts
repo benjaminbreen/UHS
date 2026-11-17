@@ -33,6 +33,8 @@ export type Head = {
   drift: number;
   /** An expression the action forces: surprise, a wince, gritted teeth. */
   face?: "o" | "squint" | "grit" | "talk";
+  /** Both whites on the lit side, so the eyes look aside rather than out. */
+  sidelong?: boolean;
 };
 
 type Style = { line: number; side: number; back: number; wide: number; vol: number };
@@ -351,15 +353,15 @@ function drawFace(h: Head, lo: number) {
     if (lash) s.px(X(flick), Y(top), EYE, 3);
     if (shape === "almond" && wide === 2 && size !== "small") s.px(X(outer), Y(top), SKIN, 1);
     if (wide === 1) {
-      s.px(X(c0), Y(er + 1), lightEye ? IRIS : EYE, 3);
-      if (view !== "front" && !lightEye) s.px(X(c0 + 1), Y(er + 1), WHITE, 3);
-    } else if (lightEye) {
-      s.px(X(inner), Y(er + 1), IRIS, 3);
-      s.px(X(outer), Y(er + 1), EYE, 3);
+      s.px(X(c0), Y(er + 1), IRIS, lightEye ? 2 : 3);
+      if (view !== "front") s.px(X(c0 + 1), Y(er + 1), WHITE, 3);
     } else {
-      const lit = key < 0 !== flip ? c0 : c0 + 1;
+      // Looking out, the whites sit outboard; on a turned head both sit ahead
+      // of the pupil, matching the far eye, so the pair looks back at the viewer.
+      const lit = view !== "front" ? c0 + 1 : h.sidelong ? (key < 0 !== flip ? c0 : c0 + 1) : outer;
       s.px(X(lit), Y(er + 1), WHITE, 3);
-      s.px(X(lit === c0 ? c0 + 1 : c0), Y(er + 1), EYE, 3);
+      // A light iris a tone down, or it washes out beside the white.
+      s.px(X(lit === c0 ? c0 + 1 : c0), Y(er + 1), IRIS, lightEye ? 2 : 3);
     }
     // Lines under the eyes with age.
     if (f?.detail === "lines" || f?.detail === "weathered") s.px(X(outer), Y(er + 2), SKIN, 2);
@@ -379,7 +381,9 @@ function drawFace(h: Head, lo: number) {
       if (expression === "serious" && !outer && view === "front") r = er - 1;
       if (forced === "o") r = er - 3;
       if ((forced === "squint" || forced === "grit") && !outer) r = er - 1;
-      if (s.at(X(c0 + i), Y(r))?.mat === SKIN) s.px(X(c0 + i), Y(r), HAIR, brow === "heavy" ? 0 : 1);
+      // A resting brow is a tone lighter, so it does not run into the hairline.
+      const set = forced || expression === "concerned" || expression === "serious";
+      if (s.at(X(c0 + i), Y(r))?.mat === SKIN) s.px(X(c0 + i), Y(r), HAIR, brow === "heavy" ? 0 : set ? 1 : 2);
     }
   }
   for (const [c, r, tone] of nosePixels(a, v, key)) s.px(X(c), Y(er + r + lo), SKIN, tone);
@@ -412,20 +416,25 @@ function drawFace(h: Head, lo: number) {
       for (let c = Math.min(m0, 5); c <= Math.max(m1, 8); c++) s.px(X(c), Y(mr), LIP, 1);
     } else if (expression === "concerned") {
       for (let c = m0; c <= m1; c++) s.px(X(c), Y(mr), LIP, 1);
-      s.px(X(m0 - 1), Y(mr + 1), LIP, 2);
-      s.px(X(m1 + 1), Y(mr + 1), LIP, 2);
+      s.px(X(m0 - 1), Y(mr + 1), LIP, 1);
+      s.px(X(m1 + 1), Y(mr + 1), LIP, 1);
+    } else if (expression === "soft") {
+      // A half smile: one corner lifts.
+      for (let c = m0; c <= m1; c++) s.px(X(c), Y(mr), LIP, 1);
+      if (hash(a.hairColor + a.skin) & 1) s.px(X(m0 - 1), Y(mr - 1), LIP, 1);
+      else s.px(X(m1 + 1), Y(mr - 1), LIP, 1);
     } else {
       for (let c = m0; c <= m1; c++) {
         const edge = mouth === "wide" && (c === m0 || c === m1);
         // Full lips read as a softer, lighter line; a second row reads as an open mouth.
-        s.px(X(c), Y(mr), LIP, expression === "soft" || mouth === "narrow" || mouth === "full" || edge ? 2 : 1);
+        s.px(X(c), Y(mr), LIP, mouth === "narrow" || mouth === "full" || edge ? 2 : 1);
       }
     }
     if (f?.detail === "lines") s.px(X(m0 - 1), Y(mr - 1), SKIN, 2), s.px(X(m1 + 1), Y(mr - 1), SKIN, 2);
   } else {
     const [m0, m1] = view === "q" ? (mouth === "wide" ? [8, 10] : [9, 10]) : [11, 11];
-    for (let c = m0; c <= m1; c++) s.px(X(c), Y(mr), LIP, expression === "soft" || mouth === "narrow" ? 2 : 1);
-    if (expression === "smile") s.px(X(m0 - 1), Y(mr - 1), LIP, 1);
+    for (let c = m0; c <= m1; c++) s.px(X(c), Y(mr), LIP, mouth === "narrow" ? 2 : 1);
+    if (expression === "smile" || expression === "soft") s.px(X(m0 - 1), Y(mr - 1), LIP, 1);
   }
   if (a.wearing.eyewear && a.wearing.eyewear !== "none") {
     // Rims either side of each eye and a bridge; dark lenses fill between.
@@ -470,6 +479,24 @@ function drawHair(h: Head, st: Style, lo: number, capped: boolean) {
       if (on) hair.set(c, r);
     }
   });
+  // Hair and its outline stay a clear column off the eyes; what that takes
+  // from the temples goes back on outside the skull.
+  if (view === "front" || view === "q") {
+    const sp = a.face?.eyeSpacing === "close" ? 1 : a.face?.eyeSpacing === "wide" ? -1 : 0;
+    const lash = a.physique?.sex === "female" && !h.child ? 1 : 0;
+    const { X, Y } = local(h);
+    for (const r of [5, 6, 7]) {
+      const [c0, c1] = edge(r);
+      const left = (view === "front" ? 1 - lash : 3) + sp, right = 12 + lash - sp;
+      let cut = 0;
+      for (let c = left + 1; c <= 6; c++) if (hair.mask.has(X(c), Y(r))) hair.mask.clear(X(c), Y(r)), cut++;
+      if (cut && r < 7) hair.set(c0 - 1, r);
+      if (view !== "front") continue;
+      cut = 0;
+      for (let c = right - 1; c >= 7; c--) if (hair.mask.has(X(c), Y(r))) hair.mask.clear(X(c), Y(r)), cut++;
+      if (cut && r < 7) hair.set(c1 + 1, r);
+    }
+  }
   // The ears stay out of side-view hair.
   if (view === "side" && st.side < 5) [[5, 7], [5, 8], [6, 8]].forEach(([c, r]) => hair.mask.clear(local(h).X(c), local(h).Y(r)));
   if (view === "q" && st.side < 5) [[2, 7], [2, 8], [3, 8]].forEach(([c, r]) => hair.mask.clear(local(h).X(c), local(h).Y(r)));
@@ -513,10 +540,12 @@ function drawHair(h: Head, st: Style, lo: number, capped: boolean) {
   }
   if (!capped && (cut === "beehive" || cut === "pouf")) {
     // Backcombed up over the crown; the pouf of the 1770s stood twice as high.
-    const tall = cut === "pouf" ? 7 : 4;
+    const tall = cut === "pouf" ? 5 : 4;
     for (let i = 1; i <= tall; i++) {
       const n = Math.round(5.5 * (1 - Math.sqrt(1 - (i / (tall + 1)) ** 2)));
-      view === "side" ? hair.span(-i, 1 + Math.round(n * 0.6), 11 - n) : hair.span(-i, 1 + n, 12 - n);
+      // The pouf swells out past the skull before it rounds over.
+      const out = cut === "pouf" && i <= 3 ? 1 : 0;
+      view === "side" ? hair.span(-i, 1 + Math.round(n * 0.6) - out, 11 - n + out) : hair.span(-i, 1 + n - out, 12 - n + out);
     }
   }
   if (!capped && cut === "spikes") {
@@ -546,16 +575,24 @@ function drawHair(h: Head, st: Style, lo: number, capped: boolean) {
     if (view === "q") for (let r = line; r < back; r++) hair.set(edge(r)[0] - 1, r);
     if (view === "back" || view === "bq") for (let r = 4; r < back; r++) hair.set(edge(r)[0] - 1, r).set(edge(r)[1] + 1, r);
   }
+  // One mass with a band of light arcing over the crown, toward the side the
+  // light comes from, and a break in it.
+  const band = (x: number, y: number) => {
+    const c = x - h.x0 + (s.key < 0 ? 1 : -1);
+    return c >= 3 && c <= 10 && c !== 6 + swept * 2 && y - h.y0 === (c <= 4 || c >= 9 ? 2 : 1);
+  };
+  const facingOut = view === "front" || view === "q" || view === "side";
   s.put(hair.mask, HAIR, {
     ring: "line",
     merge: true,
     shade: 0.3,
-    light: 0.3,
-    top: true,
+    light: facingOut ? 0 : 0.3,
+    top: !facingOut,
+    bottom: facingOut,
     cast: true,
     tone: (x, y, t) => {
       if (cut === "locs" && y > h.y0 + 1) return x % 2 ? Math.min(t, 2) : t;
-      if (t === 3 && y === h.y0 + 1 && (x + swept) % 3 === 0) return 4;
+      if (facingOut && t >= 2 && band(x, y)) return 4;
       // Two strands down the back of the head, so it is not one flat mass.
       const c = x - h.x0,
         r = y - h.y0;
@@ -762,7 +799,8 @@ function mask(h: Head, lo: number) {
   const veil = a.wearing.mask;
   if (veil === "yashmak" || veil === "niqab" || veil === "haik" || veil === "grille") {
     // Street veils: below the eyes, or the whole face with one eye left free, or a grille over it.
-    const from = veil === "yashmak" || veil === "niqab" ? 7 : 3;
+    // Row 7 is the lower half of the eye.
+    const from = veil === "yashmak" || veil === "niqab" ? 8 : 3;
     const to = veil === "niqab" ? end + 4 : end + 1;
     for (let r = from; r <= to; r++) {
       const narrow = veil === "niqab" && r > end + 1 ? r - end - 1 : 0;
@@ -1166,10 +1204,10 @@ function headwear(h: Head, lo: number) {
       else k.rows(-7, [[6, 7], [6, 7], [6, 7], [6, 7], [6, 7]]);
       break;
     case "tricorne":
-      // The brim turned up on three sides; one corner points over the brow.
-      if (view === "side") k.span(-2, 4, 9).span(-1, 3, 9).span(0, -2, -1).span(0, 3, 9).span(0, 13, 15).span(1, -2, 15).span(2, 1, 12);
-      else if (view === "q") k.span(-2, 4, 9).span(-1, 3, 10).span(0, -1, 0).span(0, 3, 10).span(1, -1, 15).span(2, 2, 14).span(3, 12, 14);
-      else k.span(-2, 4, 9).span(-1, 3, 10).span(0, -1, 0).span(0, 3, 10).span(0, 13, 14).span(1, -1, 14).span(2, 1, 12).span(3, 5, 8);
+      // The brim turned up on three sides, a corner over the brow; the cocks stand well out past the head.
+      if (view === "side") k.span(-2, 4, 9).span(-1, 3, 9).span(0, -3, -2).span(0, 3, 9).span(0, 14, 16).span(1, -3, 16).span(2, 0, 13);
+      else if (view === "q") k.span(-2, 4, 9).span(-1, 3, 10).span(0, -3, -2).span(0, 2, 11).span(1, -3, 16).span(2, 0, 16).span(3, 12, 15);
+      else k.span(-2, 4, 9).span(-1, 3, 10).span(0, -3, -2).span(0, 2, 11).span(0, 15, 16).span(1, -3, 16).span(2, -1, 14).span(3, 4, 9);
       break;
     case "bicorne":
       // A half-moon worn crosswise: broad from in front, a narrow wedge in profile.

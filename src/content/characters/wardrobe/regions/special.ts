@@ -13,13 +13,14 @@ import type { GarmentKit, Option } from "../types";
  */
 const anyone = <T,>(v: T, weight = 1): Option<T> => ({ value: v, weight });
 
-/** Post-2020. Deliberately restrained: everyday clothing that survived, plus
+/** After 2040, past any year a random start lands in: the present is dressed
+ * by its regions. Deliberately restrained: everyday clothing that survived, plus
  * the coverall, and colour that costs nothing to make. */
 export const futureDress: readonly GarmentKit[] = [
   {
     id: "future",
-    label: "After 2020 · synthetic everyday",
-    scope: { years: [2020, 10001] },
+    label: "After 2040 · synthetic everyday",
+    scope: { years: [2040, 10001] },
     priority: 1,
     garment: [
       anyone("shirt", 6),
@@ -340,6 +341,32 @@ export const romanOffice: readonly GarmentKit[] = [
  * world-weaver prompt also reaches it.
  */
 export const courtDress: readonly GarmentKit[] = [
+  {
+    // The full-bottomed wig went out with Louis XIV. After it courtiers wore
+    // their own hair or a small wig, powdered and tied, under a cocked hat.
+    id: "court-georgian",
+    label: "Court · powder, lace and side hoops",
+    scope: { years: [1715, 1790], cultures: ["european", "andean", "mesoamerican"], except: [[18, 34, 45, 46]] },
+    priority: 2.5,
+    garment: [{ value: "gown", means: ["elite"], sex: ["female"] }, { value: "coat", means: ["elite"], sex: ["male"] }],
+    silhouette: [{ value: "pannier", means: ["elite"], sex: ["female"] }],
+    cut: [{ value: "full", means: ["elite"], sex: ["male"] }],
+    front: [{ value: "open", means: ["elite"], sex: ["male"] }],
+    waistcoat: [{ value: "figured", means: ["elite"], sex: ["male"] }],
+    leggings: [{ value: "breeches", means: ["elite"], sex: ["male"] }, { value: "hose", means: ["elite"], sex: ["female"] }],
+    headwear: [
+      { value: "none", weight: 5, means: ["elite"] },
+      { value: "tricorne", weight: 3, means: ["elite"], sex: ["male"] },
+      { value: "plume", weight: 2, means: ["elite"], sex: ["female"] },
+    ],
+    footwear: [{ value: "shoes", means: ["elite"] }],
+    wrist: [{ value: "cuffs", means: ["elite"], sex: ["male"] }, { value: "ruffles", means: ["elite"], sex: ["female"] }],
+    sleeves: [{ value: "short", means: ["elite"], sex: ["female"] }],
+    neckwear: [{ value: "cravat", means: ["elite"], sex: ["male"] }],
+    belt: [{ value: "none", means: ["elite"] }],
+    apron: [{ value: "none", means: ["elite"] }],
+    over: [{ value: "none", weight: 6, means: ["elite"] }, { value: "cloak", weight: 1, means: ["elite"] }],
+  },
   {
     id: "court-18c",
     label: "Court · wigs and panniers",

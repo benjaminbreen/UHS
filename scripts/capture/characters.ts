@@ -864,6 +864,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
         ["Broad nose", "broad", "#f0ceb0", 4, "idle"],
         ["Snub nose", "snub", "#f0ceb0", 3, "idle"],
         ["Dark complexion", "straight", "#70472f", 4, "idle"],
+        ["Sidelong glance", "straight", "#f0ceb0", 4, "idle"],
         ["Profile", "straight", "#f0ceb0", 2, "idle"],
         ["Hurt overrides resting face", "straight", "#f0ceb0", 4, "hurt"],
       ];
@@ -878,7 +879,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
           face: { ...originalAppearance.face, nose, mouth: "soft", detail: "clear" },
           wearing: { ...originalAppearance.wearing, headwear: "none", eyewear: "none" } };
         expressions.forEach((expression, col) => {
-          drawCharacterG(fc, a, 2, pose, 0, undefined, facing, expression);
+          drawCharacterG(fc, a, 2, pose, 0, undefined, facing, expression, 0, 0, label === "Sidelong glance");
           ctx.drawImage(frame, 22, 30, 36, 48, col * 220 + 6, row * 190 + 32, 108, 144);
           ctx.drawImage(frame, 30, 36, 20, 20, col * 220 + 120, row * 190 + 62, 80, 80);
           ctx.fillStyle = "#29332f"; ctx.font = "13px monospace";
@@ -1003,6 +1004,66 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     ["Virginia", "virginia", 1770, ["planter", "lawyer", "army-officer", "planter|female"]],
     ["Paris", "paris", 1250, ["landowner", "magistrate", "banker", "landowner|female"]],
     ["Timbuktu", "timbuktu", 1400, ["landowner", "magistrate", "merchant", "farmer"]],
+  ]),
+
+  /** Eighteenth-century Europe from court to market: coats, waistcoats, breeches, hooped gowns. */
+  georgian: (page) => castSheet(page, "georgian", [
+    ["Paris", "paris", 1760, ["nobleman", "lady|female", "merchant", "market-seller|female"]],
+    ["London", "london", 1770, ["landowner", "landowner|female", "lawyer", "farmer"]],
+    ["Paris", "paris", 1780, ["king", "queen|female", "army-officer", "laundress|female"]],
+    ["London", "london", 1740, ["banker", "merchant|female", "blacksmith", "farmer|female"]],
+    ["Paris", "paris", 1775, ["duke", "duchess|female", "clerk", "baker"]],
+    ["London", "london", 1785, ["lady|female|22", "landowner|male|62", "sailor", "weaver|female"]],
+  ]),
+
+  /** Ordinary people drawn the way random starts are: by the people alive in each year and place. */
+  async world(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
+      const { randomStartFromDraws } = await import("/src/content/geography/random-start.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const cols = 12, rows = 8, S = 2, cw = 96 * S, ch = 68 * S + 30;
+      const sheet = document.createElement("canvas"), frame = document.createElement("canvas");
+      sheet.width = cols * cw; sheet.height = rows * ch;
+      frame.width = frame.height = 80;
+      const ctx = sheet.getContext("2d")!, fc = frame.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false; ctx.fillStyle = "#9aa59a"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      let n = 0x9e3779b9;
+      const next = () => ((n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d) + 0x297a2d39) >>> 0);
+      for (let i = 0; i < cols * rows; i++) {
+        const { setting } = randomStartFromDraws(new Uint32Array([next(), next(), next(), next()]), "realistic", `audit-${i}`);
+        // The start's own seed and id, so the work drawn for this sex is worn by it.
+        const c = generateCharacter(setting, `audit-${i}`, "player", [19, 27, 34, 45, 61][i % 5], setting.role);
+        const x0 = (i % cols) * cw, y0 = Math.floor(i / cols) * ch;
+        [[2, 4], [1, 3]].forEach(([dir, facing], j) => {
+          drawCharacterG(fc, c.appearance, dir, "idle", 0, undefined, facing, "neutral");
+          ctx.drawImage(frame, 16, 12, 48, 68, x0 + j * 48 * S, y0, 48 * S, 68 * S);
+        });
+        ctx.fillStyle = "#26352c"; ctx.font = "11px monospace";
+        ctx.fillText(`${setting.location ?? ""}`.slice(0, 22) + ` ${setting.year}`, x0 + 4, y0 + 68 * S + 11);
+        ctx.fillText(`${c.role}`.slice(0, 28), x0 + 4, y0 + 68 * S + 23);
+      }
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("world"));
+  },
+
+  /** Ordinary people since 1970, a row per region: T-shirts, jeans, jackets, prints, and the dress regions kept. */
+  modern: (page) => castSheet(page, "modern", [
+    ["London", "london", 2015, ["student|male|19", "shopkeeper|female", "farmer", "teacher|female|45"]],
+    ["Delhi", "delhi", 2015, ["student|male|19", "shopkeeper|female", "farmer", "teacher|female|45"]],
+    ["Beijing", "beijing", 2015, ["student|male|19", "shopkeeper|female", "farmer", "teacher|female|45"]],
+    ["Mexico", "mexico", 2015, ["student|female|19", "shopkeeper", "farmer|female", "teacher|male|45"]],
+    ["Timbuktu", "timbuktu", 2015, ["student|female|19", "shopkeeper", "farmer|female", "teacher|male|45"]],
+    ["Java", "java", 2015, ["student|female|19", "shopkeeper", "farmer|female", "teacher|male|45"]],
+    ["Konya", "konya", 2015, ["student|male|19", "shopkeeper|female", "farmer", "teacher|female|45"]],
+    ["Paris", "paris", 1978, ["student|male|19", "shopkeeper|female", "farmer", "teacher|female|45"]],
+    ["Beijing", "beijing", 1978, ["student|male|19", "shopkeeper|female", "farmer", "teacher|female|45"]],
+    ["Kyoto", "kyoto", 2024, ["student|female|19", "shopkeeper", "farmer|female", "teacher|male|45"]],
+    ["Cusco", "cusco", 2015, ["student|male|19", "shopkeeper|female", "farmer", "teacher|female|45"]],
+    ["Delhi", "delhi", 1978, ["student|female|19", "shopkeeper", "farmer|female", "teacher|male|45"]],
   ]),
 
   /** Cocked hats, the Qing queue, the Joseon gat, the tonsure and habits by order. */

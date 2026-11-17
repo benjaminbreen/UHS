@@ -60,7 +60,19 @@ from their region, date, livelihood and means (`meansOf`). It draws from:
   roles
 
 Kits choose cuts, fronts, fibres and colours; each slot can carry its own
-restrictions. Explicit appearance recipes always win. `wardrobes.ts` is a
+restrictions. Eighteenth-century Europe is the worked example of period
+dress built from shared parts (`eu-18c-suit`, `eu-18c-gown` in
+`regions/europe.ts`, `court-georgian` in `regions/special.ts`): a coat with
+`cut: "full"` is skirted, `wrist: "cuffs"` and `"ruffles"` finish a sleeve,
+`leggings: "breeches"` shows stockings and buckled shoes, and
+`silhouette: "pannier"` opens a gown over its petticoat.
+
+The shared clothes of the present are in `regions/contemporary.ts`: T-shirts
+(`motif: "tee"` and `"graphic"`), `leggings: "jeans"` and `"shorts"`, a zipped
+`waistcoat: "jacket"`, printed dresses (`motif: "floral"`) and
+`bag: "backpack"`. Each kit carries a `share`, so in every place some people
+wear the whole look and the rest keep the region's dress; the share is lower
+where regional dress holds. Future dress (`futureDress`) starts in 2040. Explicit appearance recipes always win. `wardrobes.ts` is a
 re-export shim.
 
 ## The world sprite
@@ -92,7 +104,15 @@ There is one sprite renderer, `drawCharacterG`, the paper doll in `doll/`
 - `shadow.ts` projects the whole pose onto the ground.
 
 Resting expressions come from stats through `restingExpressionOf`
-(`src/core/persona.ts`); hurt and startle override them.
+(`src/core/persona.ts`); hurt and startle override them. `soft` is a half
+smile, one corner of the mouth lifted. Most people look straight out, the
+whites of the eyes outboard; the most anxious quarter (`sidelongOf`) look
+aside when facing the viewer, both whites on the lit side. On a turned head
+both whites sit ahead of the pupil.
+
+Over the resting face the scene passes a passing one (`WorldScene.feeling`):
+the mood of the line just spoken in conversation, a smile or a hard look for
+the player standing near by trust, and a worried face when ill.
 
 ## Portraits
 
@@ -170,6 +190,11 @@ scope rules as name kits, with wide era floors so every date lands somewhere.
 - **Review sheets.** `npm run capture:characters -- <preset>`. A wrong name
   lists them all. Useful ones:
   - `doll`, `wardrobe`, `street`, `soldiers`, `professions`
+  - `world`: 96 ordinary people drawn the way random starts are, by the
+    people alive in each year and place. Start here when asking what most
+    players will see.
+  - `georgian`: eighteenth-century Europe, court to market
+  - `modern`: ordinary people since 1970, a row per region
   - `expressions`, `weapons`, `work`
   - `portrait-age`
 - **More sheets.** `npx tsx scripts/portrait-sheets.ts expressions|ears|marks|noses|nose-ornament`.
