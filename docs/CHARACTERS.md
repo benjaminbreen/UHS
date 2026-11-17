@@ -60,7 +60,12 @@ from their region, date, livelihood and means (`meansOf`). It draws from:
   roles
 
 Kits choose cuts, fronts, fibres and colours; each slot can carry its own
-restrictions. Explicit appearance recipes always win. `wardrobes.ts` is a
+restrictions. Eighteenth-century Europe is the worked example of period
+dress built from shared parts (`eu-18c-suit`, `eu-18c-gown` in
+`regions/europe.ts`, `court-georgian` in `regions/special.ts`): a coat with
+`cut: "full"` is skirted, `wrist: "cuffs"` and `"ruffles"` finish a sleeve,
+`leggings: "breeches"` shows stockings and buckled shoes, and
+`silhouette: "pannier"` opens a gown over its petticoat. Explicit appearance recipes always win. `wardrobes.ts` is a
 re-export shim.
 
 ## The world sprite
@@ -97,6 +102,10 @@ smile, one corner of the mouth lifted. Most people look straight out, the
 whites of the eyes outboard; the most anxious quarter (`sidelongOf`) look
 aside when facing the viewer, both whites on the lit side. On a turned head
 both whites sit ahead of the pupil.
+
+Over the resting face the scene passes a passing one (`WorldScene.feeling`):
+the mood of the line just spoken in conversation, a smile or a hard look for
+the player standing near by trust, and a worried face when ill.
 
 ## Portraits
 

@@ -234,6 +234,8 @@ export class WorldCharacters {
     prop?: string,
     turn = 0,
     condition = 0,
+    /** A passing expression over the resting one. */
+    mood?: RestingExpression,
   ) {
     let resolved = this.appearances.get(actor.id);
     if (
@@ -264,7 +266,8 @@ export class WorldCharacters {
     resolved.used = this.scene.time.now;
     const a = resolved.appearance,
       art = this.carried(prop);
-    const signatureFor = (pose: CharacterPose, frame: number) => `${resolved.signature}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}:${this.light}:${turn}:${condition}`;
+    const expression = mood ?? resolved.expression;
+    const signatureFor = (pose: CharacterPose, frame: number) => `${resolved.signature}:${mood ?? ""}:${actor.facing === undefined ? actor.direction : `f${actor.facing}`}:${pose}:${frame}:${art?.sprite ?? ""}:${this.light}:${turn}:${condition}`;
     const signature = signatureFor(pose, frame);
     const cached = this.cache.get(signature);
     if (cached && this.wanted.get(actor.id) === signature) {
@@ -278,7 +281,7 @@ export class WorldCharacters {
       const preset = lightingPreset(this.light);
       const request: CharacterFrameRequest = {
         signature, appearance: a,
-        direction: actor.direction, facing: actor.facing, expression: resolved.expression, sidelong: resolved.sidelong, pose, frame, turn, condition,
+        direction: actor.direction, facing: actor.facing, expression, sidelong: resolved.sidelong, pose, frame, turn, condition,
         light: {
           ...spriteLightFor(preset.cast, this.light === "night"),
           warm: `#${preset.tint}`,
@@ -345,7 +348,7 @@ export class WorldCharacters {
         frame,
         art,
         actor.facing,
-        resolved.expression,
+        expression,
         turn,
         condition,
         resolved.sidelong,

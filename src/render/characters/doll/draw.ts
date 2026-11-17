@@ -1180,6 +1180,11 @@ type Kit = {
   /** What the sleeves are made of: the garment's cloth, or a cardigan's knit over it. */
   sleeve: number;
   silhouette: NonNullable<CharacterAppearance["wearing"]["silhouette"]>;
+  breeches: boolean;
+  /** A coat cut full: nipped at the waist, its skirts standing out to the knee. */
+  skirted: boolean;
+  cuffs: boolean;
+  ruffles: boolean;
 };
 
 function kit(a: CharacterAppearance, d: Dims): Kit {
@@ -1209,7 +1214,9 @@ function kit(a: CharacterAppearance, d: Dims): Kit {
   if (hem !== undefined) flare += w.cut === "full" ? 1 : w.cut === "fitted" ? -0.5 : 0;
   const silhouette = hem !== undefined && ["dress", "gown", "skirt"].includes(g) ? (w.silhouette ?? "none") : "none";
   // Hooped skirts sweep the ground.
-  if (silhouette === "farthingale" || silhouette === "crinoline") hem = 0;
+  if (silhouette === "farthingale" || silhouette === "crinoline" || silhouette === "pannier") hem = 0;
+  const skirted = g === "coat" && w.cut === "full";
+  if (skirted) flare = 3;
   // A column of muslin from under the bust.
   if (silhouette === "empire") [hem, flare] = [1, 0.8];
   const outfit = [...(w.color + w.trim + g + w.belt)].reduce((n, c) => (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0, 7);
@@ -1224,7 +1231,7 @@ function kit(a: CharacterAppearance, d: Dims): Kit {
     fishnet: leggings === "fishnet",
     feet: w.footwear ?? "shoes",
     guards: w.wrist === "sleeve-guards",
-    belt: bare || g === "gown" || g === "poncho" || silhouette === "empire" ? "none" : (w.belt ?? "leather"),
+    belt: bare || g === "gown" || g === "poncho" || silhouette === "empire" || silhouette === "pannier" || (skirted && w.belt !== "sash") ? "none" : (w.belt ?? "leather"),
     motif: g === "wrap" || bare ? "plain" : named === "auto" ? ["plain", "placket", "band", "yoke", "stitch"][outfit % 5] : named,
     // Most hemmed garments carry a band at the hem, whatever their motif.
     band: (outfit >> 3) % 3 !== 0,
@@ -1236,6 +1243,10 @@ function kit(a: CharacterAppearance, d: Dims): Kit {
     sarong: leggings === "sarong",
     sleeve: cardigan ? VEST : TOP,
     silhouette,
+    breeches: leggings === "breeches",
+    skirted,
+    cuffs: w.wrist === "cuffs",
+    ruffles: w.wrist === "ruffles" || (w.wrist === "cuffs" && (w.quality ?? 0) >= 1),
   };
 }
 
@@ -1497,9 +1508,11 @@ export function drawCharacterG(
       const sy = yOf(y);
       const sil = k.silhouette;
       // A cone straight from the waist, a dome, or a plain skirt bunched up behind.
-      const out = sil === "farthingale" ? (k.flare + 3) * f : sil === "crinoline" ? (k.flare + 5) * Math.sqrt(f) : k.flare * f * f * (sil === "bustle" ? 0.4 : 1);
+      // Side hoops stand straight out from the hip and hang flat front and back.
+      const out = sil === "farthingale" ? (k.flare + 3) * f : sil === "crinoline" ? (k.flare + 5) * Math.sqrt(f)
+        : sil === "pannier" ? (k.flare + 2) * Math.min(1, f * 5) : k.skirted ? k.flare * Math.sqrt(f) : k.flare * f * f * (sil === "bustle" ? 0.4 : 1);
       const base = d.hipW + out;
-      const deep = d.bellyD + (sil === "none" || sil === "bustle" ? k.flare * 0.6 * f : out * 0.75);
+      const deep = d.bellyD + (sil === "pannier" ? 1 + f : sil === "none" || sil === "bustle" ? k.flare * 0.6 * f : out * 0.75);
       const c = centre(hip);
       // A skirt seen head-on swings to the side a frame after the step.
       const swing = prev.sway * t.cos * f;
@@ -1852,17 +1865,20 @@ function waistcoat(s: Sheet, k: Kit, t: Turn, d: Dims, yOf: (y: number) => numbe
     back = t.cos < -0.2,
     coat = k.g === "coat";
   const knit = kind === "cardigan";
+  // Under a coat only the front shows.
+  if (coat && !front) return;
   const fc = (y: number) => centre(y) + d.chestD * 0.9 * t.sx * t.sin;
   const vee = d.shoulder - 4;
   // A cardigan hangs past the waist and stays open a finger's width below its V.
-  for (let y = d.hip - (knit ? 2 : 1); y <= d.shoulder - (knit ? 0 : 1); y++) {
+  // Under a skirted coat the waistcoat is long, to the thigh, and shows broad between the fronts.
+  for (let y = d.hip - (knit ? 2 : k.skirted ? 3 : 1); y <= d.shoulder - (knit ? 0 : 1); y++) {
     const c = centre(y),
       w = width(y) + (knit ? 0.3 : 0);
     for (let x = rnd(c - w + 0.5); x <= rnd(c + w - 0.5); x++) {
       const off = Math.abs(x + 0.5 - fc(y) - 0.5);
       if (front && y > vee && off < (y - vee) * 0.75) continue;
       if (front && knit && off < 0.9) continue;
-      if (coat && front && off > 1.5 * t.cos + 0.8) continue;
+      if (coat && front && off > (k.skirted ? 2.4 : 1.5) * t.cos + 0.8) continue;
       m.set(x, yOf(y));
     }
   }
@@ -1920,9 +1936,11 @@ function drawLeg(s: Sheet, t: Turn, leg: Limb, k: Kit, dark: number) {
     // Bare legs stay unlit, as bare arms do.
     light: k.legs === SKIN ? 0 : 0.3,
     dark,
-    zone: (x, y) => (boots && shin(y) ? BOOT : k.fishnet && (x + y) % 2 === 0 ? EYE : k.legs),
+    zone: (x, y) => (boots && shin(y) ? BOOT : k.fishnet && (x + y) % 2 === 0 ? EYE : k.breeches && y > ky ? SOLE : k.legs),
     tone: (_x, y, tone) =>
       wrapped && y < ay - 1 && y > ky - 2 && y % 2 === 0 ? Math.min(tone, 2)
+      // The knee band.
+      : k.breeches && y === Math.round(ky) ? Math.min(tone, 1)
       // A boot's top turns down in a lighter cuff.
       : boots && y === Math.round(ay) - 2 && tone >= 2 ? 4
       : tone,
@@ -1943,6 +1961,8 @@ function drawLeg(s: Sheet, t: Turn, leg: Limb, k: Kit, dark: number) {
       : (geta && y >= fy - 1) || (k.feet === "paduka" && y === fy) ? WOOD
       // Beadwork across the vamp.
       : k.feet === "moccasins" && y === fy - 1 && x === toe ? KERCHIEF
+      // A buckle on the instep.
+      : k.breeches && shoe === LEATHER && y === fy - 1 && x === rnd(ax) ? METAL
       : shoe,
   });
 }
@@ -1954,7 +1974,14 @@ function drawArm(s: Sheet, t: Turn, arm: Limb, k: Kit, dark: number, upperOnly =
   const upper = new Mask().line(sx, sy, ex, ey, 2);
   const fore = new Mask().line(ex, ey, hx, hy, (k.sleeves === "loose" ? 3 : 2) + flare);
   const hand = new Mask().line(hx, hy, hx, hy + 0.6, 2);
-  const all = upperOnly ? upper : new Mask().add(upper).add(fore).add(hand);
+  const sleeved = k.sleeves === "long" || k.sleeves === "loose";
+  const h0 = Math.round(hy - 0.5);
+  const frill = new Mask(), cuff = new Mask();
+  // Lace at the wrist, or falling from an elbow-length sleeve.
+  if (k.ruffles && sleeved) frill.bar(h0 - 1, hx, 3);
+  else if (k.ruffles && k.sleeves === "short") frill.bar(Math.round(ey), ex, 3).bar(Math.round(ey) + 1, ex, 4);
+  if (k.cuffs && sleeved) cuff.line(hx, h0 - 2 - (k.ruffles ? 1 : 0), hx, h0 - 2 - (k.ruffles ? 1 : 0), 3);
+  const all = upperOnly ? upper : new Mask().add(upper).add(fore).add(hand).add(frill).add(cuff);
   // Sleeves end in a cuff, or a band at the elbow when short.
   const cuffed = k.sleeves === "loose" || (k.sleeves === "long" && k.g !== "shirt" && k.g !== "suit");
   s.put(all, SKIN, {
@@ -1966,6 +1993,8 @@ function drawArm(s: Sheet, t: Turn, arm: Limb, k: Kit, dark: number, upperOnly =
     dark,
     cast: !dark,
     zone: (x, y) => {
+      if (!upperOnly && frill.has(x, y)) return WHITE;
+      if (!upperOnly && cuff.has(x, y)) return TRIM;
       if (hand.has(x, y) && !(fore.has(x, y) && y < hy - 0.5)) return SKIN;
       if (fore.has(x, y) && !upper.has(x, y)) {
         if (k.guards && k.sleeves === "long" && Math.abs(y - ey) >= Math.abs(hy - ey) * 0.3 && y < Math.round(hy)) return BOOT;
@@ -2014,7 +2043,7 @@ function garment(
   const flared = hem !== undefined && ["dress", "gown", "robe", "skirt", "long-tunic", "open-robe", "tunic", "wrap"].includes(g);
   const buttoned = g === "shirt" || g === "suit" || (g === "coat" && !open) || k.motif === "placket" || k.motif === "collar";
   const laced = (g === "dress" || g === "gown") && k.motif !== "collar";
-  const banded = k.motif === "band" || (hem !== undefined && (k.band || !!k.pattern));
+  const banded = !k.skirted && (k.motif === "band" || (hem !== undefined && (k.band || !!k.pattern)));
   const tile = k.pattern && k.pattern !== "cloud" ? tiles[k.pattern] : undefined;
   // A patterned band is three rows deep, a plain one two.
   const bandRows = tile ? 2 : 1;
@@ -2050,6 +2079,21 @@ function garment(
     if (facing && panel && y > top && y <= top + 3 && ax < 2.6) return stitch(x, y, top + 1) ? ACCENT : TRIM;
     // A white turned-down collar, its points either side of the neck.
     if (k.motif === "collar" && facing && !open && ((y === top && ax < 2.6) || (y === top + 1 && ax > 0.6 && ax < 2.1))) return WHITE;
+    if (facing && k.silhouette === "pannier") {
+      // A low square neck, a stomacher laddered with bows, and the gown open over the petticoat.
+      if (y === top && ax < 2.6) return SKIN;
+      if (y > top && y < waist && ax < 0.6 + (waist - y) * 0.45) return ax < 0.6 && (y - top) % 2 === 1 ? ACCENT : TRIM;
+      const gap = 0.8 + (y - waist) * 0.42;
+      if (y > waist && ax < gap) return INNER;
+      if (y > waist && ax < gap + 1) return TRIM;
+    }
+    if (facing && k.skirted) {
+      // Below the waistcoat the fronts fall away from each other over the breeches.
+      const gap = 1.1 + (y - hipRow - 2) * 0.35;
+      if (y > hipRow + 2 && ax < gap) return LOWER;
+      // Gold lace down both edges of a court coat.
+      if (k.quality >= 2 && y > top + 3 && y < hemRow && (y - top) % 2 === 0 && ax >= Math.max(gap, 3) && ax < Math.max(gap, 3) + 1) return METAL;
+    }
     if (facing) {
       // Open fronts: the inner layer, edged its whole length.
       if (open && ax < 1.1 && y > top) return INNER;

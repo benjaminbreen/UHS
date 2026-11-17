@@ -1006,6 +1006,16 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     ["Timbuktu", "timbuktu", 1400, ["landowner", "magistrate", "merchant", "farmer"]],
   ]),
 
+  /** Eighteenth-century Europe from court to market: coats, waistcoats, breeches, hooped gowns. */
+  georgian: (page) => castSheet(page, "georgian", [
+    ["Paris", "paris", 1760, ["nobleman", "lady|female", "merchant", "market-seller|female"]],
+    ["London", "london", 1770, ["landowner", "landowner|female", "lawyer", "farmer"]],
+    ["Paris", "paris", 1780, ["king", "queen|female", "army-officer", "laundress|female"]],
+    ["London", "london", 1740, ["banker", "merchant|female", "blacksmith", "farmer|female"]],
+    ["Paris", "paris", 1775, ["duke", "duchess|female", "clerk", "baker"]],
+    ["London", "london", 1785, ["lady|female|22", "landowner|male|62", "sailor", "weaver|female"]],
+  ]),
+
   /** Cocked hats, the Qing queue, the Joseon gat, the tonsure and habits by order. */
   hats: (page) => castSheet(page, "hats", [
     ["London", "london", 1750, ["shopkeeper", "landowner", "farmer", "shopkeeper|female"]],

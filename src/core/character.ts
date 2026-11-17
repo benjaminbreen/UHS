@@ -230,6 +230,8 @@ export const leggings = [
   "wide",
   /** Black net tights under a short skirt. */
   "fishnet",
+  /** Buttoned at the knee over stockings: European men, about 1600 to 1820. */
+  "breeches",
 ] as const;
 export const footwear = [
   "none",
@@ -265,7 +267,11 @@ export const bags = ["none", "purse", "satchel",
   "creel"] as const;
 export const wristwear = ["none", "bangles",
   /** Black cotton sleeves from wrist to elbow, to keep ink and dust off the shirt: clerks, 1850s to 1950s. */
-  "sleeve-guards"] as const;
+  "sleeve-guards",
+  /** A coat sleeve turned back deep in the facing colour: 1680s to 1790s. */
+  "cuffs",
+  /** Lace or linen frills at the end of the sleeve. */
+  "ruffles"] as const;
 /** Round the neck above the garment: a working neckerchief, a starched ruff,
  * a gentleman's cravat. */
 export const neckwear = ["none", "neckerchief", "ruff", "cravat", "necktie", "bow-tie",
@@ -315,7 +321,9 @@ export const drapes = ["none", "toga", "praetexta", "palla"] as const;
  * the dome of the crinoline (1856 to 1868), the bustle at the back (1870 to 1889). */
 export const silhouettes = ["none", "farthingale", "crinoline", "bustle",
   /** The waist raised under the bust, the skirt falling straight: 1795 to 1822. */
-  "empire"] as const;
+  "empire",
+  /** Side hoops: wide across the hips, flat front and back, the gown open over a petticoat: 1720s to 1780s. */
+  "pannier"] as const;
 /** Over the face: the plague doctor's beak (1619 on), the Venetian bauta, and
  * women's street veils: the Ottoman yaşmak (white, below the eyes), the
  * Egyptian burqu' (black, hanging to the chest), the haik drawn across all

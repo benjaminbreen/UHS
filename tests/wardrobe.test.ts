@@ -449,7 +449,10 @@ it("spawns court dress for the few, and only while it existed", () => {
   expect(meansOf({ id: "x", roles: rolesFrom("Empress of Brazil") })).toBe("elite");
   const court = crowd("european", 1760, { means: "elite", sex: "female" });
   expect(share(court, (w) => w.garment === "gown")).toBeGreaterThan(0.3);
-  expect(share(court, (w) => w.headwear === "wig")).toBeGreaterThan(0.3);
+  expect(share(court, (w) => w.silhouette === "pannier")).toBe(1);
+  expect(court.map((w) => w.headwear)).not.toContain("wig");
+  // The full-bottomed wig belongs to the court before 1715.
+  expect(share(crowd("european", 1700, { means: "elite", sex: "male" }), (w) => w.headwear === "wig")).toBeGreaterThan(0.3);
   expect(court.map((w) => w.leggings)).not.toContain("trousers");
   // Court dress reaches the elite of any region, not only Europe.
   const hawaii = crowd("australian-pacific", 1860, { means: "elite", sex: "female" }, 200, [-157, 21]);

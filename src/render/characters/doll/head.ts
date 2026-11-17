@@ -522,10 +522,12 @@ function drawHair(h: Head, st: Style, lo: number, capped: boolean) {
   }
   if (!capped && (cut === "beehive" || cut === "pouf")) {
     // Backcombed up over the crown; the pouf of the 1770s stood twice as high.
-    const tall = cut === "pouf" ? 7 : 4;
+    const tall = cut === "pouf" ? 5 : 4;
     for (let i = 1; i <= tall; i++) {
       const n = Math.round(5.5 * (1 - Math.sqrt(1 - (i / (tall + 1)) ** 2)));
-      view === "side" ? hair.span(-i, 1 + Math.round(n * 0.6), 11 - n) : hair.span(-i, 1 + n, 12 - n);
+      // The pouf swells out past the skull before it rounds over.
+      const out = cut === "pouf" && i <= 3 ? 1 : 0;
+      view === "side" ? hair.span(-i, 1 + Math.round(n * 0.6) - out, 11 - n + out) : hair.span(-i, 1 + n - out, 12 - n + out);
     }
   }
   if (!capped && cut === "spikes") {
@@ -1175,10 +1177,10 @@ function headwear(h: Head, lo: number) {
       else k.rows(-7, [[6, 7], [6, 7], [6, 7], [6, 7], [6, 7]]);
       break;
     case "tricorne":
-      // The brim turned up on three sides; one corner points over the brow.
-      if (view === "side") k.span(-2, 4, 9).span(-1, 3, 9).span(0, -2, -1).span(0, 3, 9).span(0, 13, 15).span(1, -2, 15).span(2, 1, 12);
-      else if (view === "q") k.span(-2, 4, 9).span(-1, 3, 10).span(0, -1, 0).span(0, 3, 10).span(1, -1, 15).span(2, 2, 14).span(3, 12, 14);
-      else k.span(-2, 4, 9).span(-1, 3, 10).span(0, -1, 0).span(0, 3, 10).span(0, 13, 14).span(1, -1, 14).span(2, 1, 12).span(3, 5, 8);
+      // The brim turned up on three sides, a corner over the brow; the cocks stand well out past the head.
+      if (view === "side") k.span(-2, 4, 9).span(-1, 3, 9).span(0, -3, -2).span(0, 3, 9).span(0, 14, 16).span(1, -3, 16).span(2, 0, 13);
+      else if (view === "q") k.span(-2, 4, 9).span(-1, 3, 10).span(0, -3, -2).span(0, 2, 11).span(1, -3, 16).span(2, 0, 16).span(3, 12, 15);
+      else k.span(-2, 4, 9).span(-1, 3, 10).span(0, -3, -2).span(0, 2, 11).span(0, 15, 16).span(1, -3, 16).span(2, -1, 14).span(3, 4, 9);
       break;
     case "bicorne":
       // A half-moon worn crosswise: broad from in front, a narrow wedge in profile.

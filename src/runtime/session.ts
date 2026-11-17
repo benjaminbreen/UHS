@@ -503,6 +503,8 @@ export class Runtime {
     this.appearanceDefaults.set(actor.id, { signature, value });
     return value;
   }
+  /** The face the person in conversation is wearing, set by the dialogue so their sprite wears it too. */
+  conversingMood?: import("../render/portraits/constructed").Expression;
   characterAction?: {
     serial: number;
     pose: CharacterPose;
