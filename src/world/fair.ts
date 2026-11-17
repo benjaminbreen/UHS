@@ -180,6 +180,16 @@ function court(L: FairLevel, plan: FairArea, rng: () => number, fill: Fill, set:
     for (let y = my - 1; y <= my + 1; y++) for (let x = bx - 1; x <= bx + 1; x++) L.decor.push({ type: x === bx - 1 && y === my + 1 ? "bandstand" : "solid", x, y, solid: true, v: rng() });
   }
   gardens(L, rng, fill, set, at);
+  // Open turf the gardens left: trees and flowering shrubs in loose groups, never beside a walk.
+  for (let y = 2; y < h - 2; y++) for (let x = 2; x < w - 2; x++) {
+    if (at(x, y) !== LAWN || (x * 5 + y * 3) % 4 || L.gardens.some((g) => x >= g.x0 - 1 && x <= g.x1 + 1 && y >= g.y0 - 1 && y <= g.y1 + 1)) continue;
+    let open = true;
+    for (let j = -1; j <= 1; j++) for (let i = -1; i <= 1; i++) if (at(x + i, y + j) !== LAWN) open = false;
+    if (open && !L.decor.some((d) => Math.abs(d.x - x) < 3 && Math.abs(d.y - y) < 2)) L.decor.push({ type: rng() < 0.55 ? "tree" : "shrub", x, y, solid: true, v: rng() });
+  }
+  // Benches along the outer walk, urns where the cross walks meet it, lamps at the corners.
+  for (let x = 8; x < w - 8; x += 9) if (Math.abs(x - cx) > 3) for (const y of [3, h - 4]) if (at(x, y) === GRAVEL && !open.some((o) => (o.dir === "n" || o.dir === "s") && Math.abs(o.a + 1 - x) < 3)) L.decor.push({ type: "bench", x, y, solid: true, v: rng() });
+  for (const [x, y] of [[cx - 2, 4], [cx + 2, 4], [cx - 2, h - 5], [cx + 2, h - 5]]) if (at(x, y) !== WATER) L.decor.push({ type: "urn", x, y, solid: true, v: rng() });
   for (const [x, y] of [[2, 2], [w - 3, 2], [2, h - 3], [w - 3, h - 3]]) L.decor.push({ type: "lamp", x, y, solid: true, v: rng() });
 }
 
