@@ -33,6 +33,8 @@ export type Head = {
   drift: number;
   /** An expression the action forces: surprise, a wince, gritted teeth. */
   face?: "o" | "squint" | "grit" | "talk";
+  /** Both whites on the lit side, so the eyes look aside rather than out. */
+  sidelong?: boolean;
 };
 
 type Style = { line: number; side: number; back: number; wide: number; vol: number };
@@ -351,15 +353,15 @@ function drawFace(h: Head, lo: number) {
     if (lash) s.px(X(flick), Y(top), EYE, 3);
     if (shape === "almond" && wide === 2 && size !== "small") s.px(X(outer), Y(top), SKIN, 1);
     if (wide === 1) {
-      s.px(X(c0), Y(er + 1), lightEye ? IRIS : EYE, 3);
-      if (view !== "front" && !lightEye) s.px(X(c0 + 1), Y(er + 1), WHITE, 3);
-    } else if (lightEye) {
-      s.px(X(inner), Y(er + 1), IRIS, 3);
-      s.px(X(outer), Y(er + 1), EYE, 3);
+      s.px(X(c0), Y(er + 1), IRIS, lightEye ? 2 : 3);
+      if (view !== "front") s.px(X(c0 + 1), Y(er + 1), WHITE, 3);
     } else {
-      const lit = key < 0 !== flip ? c0 : c0 + 1;
+      // Looking out, the whites sit outboard; on a turned head both sit ahead
+      // of the pupil, matching the far eye, so the pair looks back at the viewer.
+      const lit = view !== "front" ? c0 + 1 : h.sidelong ? (key < 0 !== flip ? c0 : c0 + 1) : outer;
       s.px(X(lit), Y(er + 1), WHITE, 3);
-      s.px(X(lit === c0 ? c0 + 1 : c0), Y(er + 1), EYE, 3);
+      // A light iris a tone down, or it washes out beside the white.
+      s.px(X(lit === c0 ? c0 + 1 : c0), Y(er + 1), IRIS, lightEye ? 2 : 3);
     }
     // Lines under the eyes with age.
     if (f?.detail === "lines" || f?.detail === "weathered") s.px(X(outer), Y(er + 2), SKIN, 2);
@@ -379,7 +381,9 @@ function drawFace(h: Head, lo: number) {
       if (expression === "serious" && !outer && view === "front") r = er - 1;
       if (forced === "o") r = er - 3;
       if ((forced === "squint" || forced === "grit") && !outer) r = er - 1;
-      if (s.at(X(c0 + i), Y(r))?.mat === SKIN) s.px(X(c0 + i), Y(r), HAIR, brow === "heavy" ? 0 : 1);
+      // A resting brow is a tone lighter, so it does not run into the hairline.
+      const set = forced || expression === "concerned" || expression === "serious";
+      if (s.at(X(c0 + i), Y(r))?.mat === SKIN) s.px(X(c0 + i), Y(r), HAIR, brow === "heavy" ? 0 : set ? 1 : 2);
     }
   }
   for (const [c, r, tone] of nosePixels(a, v, key)) s.px(X(c), Y(er + r + lo), SKIN, tone);
@@ -412,20 +416,25 @@ function drawFace(h: Head, lo: number) {
       for (let c = Math.min(m0, 5); c <= Math.max(m1, 8); c++) s.px(X(c), Y(mr), LIP, 1);
     } else if (expression === "concerned") {
       for (let c = m0; c <= m1; c++) s.px(X(c), Y(mr), LIP, 1);
-      s.px(X(m0 - 1), Y(mr + 1), LIP, 2);
-      s.px(X(m1 + 1), Y(mr + 1), LIP, 2);
+      s.px(X(m0 - 1), Y(mr + 1), LIP, 1);
+      s.px(X(m1 + 1), Y(mr + 1), LIP, 1);
+    } else if (expression === "soft") {
+      // A half smile: one corner lifts.
+      for (let c = m0; c <= m1; c++) s.px(X(c), Y(mr), LIP, 1);
+      if (hash(a.hairColor + a.skin) & 1) s.px(X(m0 - 1), Y(mr - 1), LIP, 1);
+      else s.px(X(m1 + 1), Y(mr - 1), LIP, 1);
     } else {
       for (let c = m0; c <= m1; c++) {
         const edge = mouth === "wide" && (c === m0 || c === m1);
         // Full lips read as a softer, lighter line; a second row reads as an open mouth.
-        s.px(X(c), Y(mr), LIP, expression === "soft" || mouth === "narrow" || mouth === "full" || edge ? 2 : 1);
+        s.px(X(c), Y(mr), LIP, mouth === "narrow" || mouth === "full" || edge ? 2 : 1);
       }
     }
     if (f?.detail === "lines") s.px(X(m0 - 1), Y(mr - 1), SKIN, 2), s.px(X(m1 + 1), Y(mr - 1), SKIN, 2);
   } else {
     const [m0, m1] = view === "q" ? (mouth === "wide" ? [8, 10] : [9, 10]) : [11, 11];
-    for (let c = m0; c <= m1; c++) s.px(X(c), Y(mr), LIP, expression === "soft" || mouth === "narrow" ? 2 : 1);
-    if (expression === "smile") s.px(X(m0 - 1), Y(mr - 1), LIP, 1);
+    for (let c = m0; c <= m1; c++) s.px(X(c), Y(mr), LIP, mouth === "narrow" ? 2 : 1);
+    if (expression === "smile" || expression === "soft") s.px(X(m0 - 1), Y(mr - 1), LIP, 1);
   }
   if (a.wearing.eyewear && a.wearing.eyewear !== "none") {
     // Rims either side of each eye and a bridge; dark lenses fill between.

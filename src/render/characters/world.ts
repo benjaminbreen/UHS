@@ -3,7 +3,7 @@ import { watchCount } from "../../runtime/vitals";
 import { lightingPreset, type LightingId } from "../lighting";
 import Phaser from "phaser";
 import { statsOf } from "../../core/stats";
-import { restingExpressionOf, type RestingExpression } from "../../core/persona";
+import { restingExpressionOf, sidelongOf, type RestingExpression } from "../../core/persona";
 import type { Actor, Stats } from "../../core/types";
 import {
   actorAppearance,
@@ -67,6 +67,7 @@ export class WorldCharacters {
       appearance: CharacterAppearance;
       signature: string;
       expression: RestingExpression;
+      sidelong: boolean;
       used: number;
     }
   >();
@@ -244,7 +245,8 @@ export class WorldCharacters {
       resolved.source !== actor.appearance
     ) {
       const appearance = actorAppearance(actor, this.palette);
-      const expression = restingExpressionOf(statsOf(this.seed, actor));
+      const stats = statsOf(this.seed, actor);
+      const expression = restingExpressionOf(stats), sidelong = sidelongOf(stats);
       resolved = {
         sprite: actor.sprite,
         age: actor.age,
@@ -253,7 +255,8 @@ export class WorldCharacters {
         source: actor.appearance,
         appearance,
         expression,
-        signature: this.token(`${JSON.stringify(appearance)}:${expression}`),
+        sidelong,
+        signature: this.token(`${JSON.stringify(appearance)}:${expression}:${sidelong}`),
         used: 0,
       };
       this.appearances.set(actor.id, resolved);
@@ -275,7 +278,7 @@ export class WorldCharacters {
       const preset = lightingPreset(this.light);
       const request: CharacterFrameRequest = {
         signature, appearance: a,
-        direction: actor.direction, facing: actor.facing, expression: resolved.expression, pose, frame, turn, condition,
+        direction: actor.direction, facing: actor.facing, expression: resolved.expression, sidelong: resolved.sidelong, pose, frame, turn, condition,
         light: {
           ...spriteLightFor(preset.cast, this.light === "night"),
           warm: `#${preset.tint}`,
@@ -343,7 +346,9 @@ export class WorldCharacters {
         art,
         actor.facing,
         resolved.expression,
-        ...((turn || condition ? [turn, condition] : []) as [turn?: number, condition?: number]),
+        turn,
+        condition,
+        resolved.sidelong,
       );
       setSpriteLight(undefined);
       entry = this.install(signature, c);

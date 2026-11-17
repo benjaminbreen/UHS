@@ -2,7 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type Phaser from "phaser";
 import { originalAppearance } from "../src/core/character";
 import { statsOf } from "../src/core/stats";
-import { restingExpressionOf } from "../src/core/persona";
+import { restingExpressionOf, sidelongOf } from "../src/core/persona";
 import { WorldCharacters } from "../src/render/characters/world";
 import { drawCharacterG } from "../src/render/characters/doll/draw";
 import type { CharacterFrameRequest, CharacterFrameResponse } from "../src/render/characters/worker";
@@ -83,7 +83,7 @@ it("passes the same resting expression to synchronous rendering", () => {
   const stats = { ...statsOf("seed", actor), extraversion: 80 };
   characters.frame({ ...actor, id: "player", stats }, "idle", 0);
   expect(drawCharacterG).toHaveBeenLastCalledWith(
-    expect.anything(), originalAppearance, 2, "idle", 0, undefined, undefined, "smile",
+    expect.anything(), originalAppearance, 2, "idle", 0, undefined, undefined, "smile", 0, 0, sidelongOf(stats),
   );
 });
 

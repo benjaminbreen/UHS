@@ -252,7 +252,7 @@ export class Sheet {
 
   resolve(palette: Ramp[], out: Uint8ClampedArray) {
     const cache = palette.map((r) =>
-      [mix(r.shadowEdge ?? r.edge, INK, 0.55), r.shadowEdge ?? r.edge, r.shade, r.base, r.light, r.edge].map(
+      [mix(r.shadowEdge ?? r.edge, INK, 0.35), r.shadowEdge ?? r.edge, r.shade, r.base, r.light, r.edge].map(
         (hex) => parseInt(hex.slice(1), 16),
       ),
     );

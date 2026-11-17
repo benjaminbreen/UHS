@@ -92,7 +92,11 @@ There is one sprite renderer, `drawCharacterG`, the paper doll in `doll/`
 - `shadow.ts` projects the whole pose onto the ground.
 
 Resting expressions come from stats through `restingExpressionOf`
-(`src/core/persona.ts`); hurt and startle override them.
+(`src/core/persona.ts`); hurt and startle override them. `soft` is a half
+smile, one corner of the mouth lifted. Most people look straight out, the
+whites of the eyes outboard; the most anxious quarter (`sidelongOf`) look
+aside when facing the viewer, both whites on the lit side. On a turned head
+both whites sit ahead of the pupil.
 
 ## Portraits
 

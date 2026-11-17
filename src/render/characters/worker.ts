@@ -11,6 +11,7 @@ export type CharacterFrameRequest = {
   direction: number;
   facing?: number;
   expression: RestingExpression;
+  sidelong: boolean;
   pose: CharacterPose;
   frame: number;
   turn?: number;
@@ -46,7 +47,7 @@ self.onmessage = (event: MessageEvent<CharacterFrameRequest>) => {
     const context = ctx as unknown as CanvasRenderingContext2D;
     drawCharacterG(
       context, request.appearance, request.direction, request.pose,
-      request.frame, prop, request.facing, request.expression, request.turn, request.condition,
+      request.frame, prop, request.facing, request.expression, request.turn, request.condition, request.sidelong,
     );
     const pixels = ctx.getImageData(0, 0, 80, 80).data;
     self.postMessage({ signature: request.signature, pixels }, {

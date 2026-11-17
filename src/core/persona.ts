@@ -74,6 +74,10 @@ export function restingExpressionOf(stats: Stats): RestingExpression {
   return "neutral";
 }
 
+/** The most anxious quarter look aside rather than straight out: the
+ * triangular 10–90 roll puts about a quarter of people at 62 or above. */
+export const sidelongOf = (stats: Stats) => stats.neuroticism >= 62;
+
 /** One word for how this person comes across. Read off the five traits only:
  * strength and wit are not personality. */
 export function dispositionOf(stats: Stats): string {

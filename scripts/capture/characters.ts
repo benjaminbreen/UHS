@@ -864,6 +864,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
         ["Broad nose", "broad", "#f0ceb0", 4, "idle"],
         ["Snub nose", "snub", "#f0ceb0", 3, "idle"],
         ["Dark complexion", "straight", "#70472f", 4, "idle"],
+        ["Sidelong glance", "straight", "#f0ceb0", 4, "idle"],
         ["Profile", "straight", "#f0ceb0", 2, "idle"],
         ["Hurt overrides resting face", "straight", "#f0ceb0", 4, "hurt"],
       ];
@@ -878,7 +879,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
           face: { ...originalAppearance.face, nose, mouth: "soft", detail: "clear" },
           wearing: { ...originalAppearance.wearing, headwear: "none", eyewear: "none" } };
         expressions.forEach((expression, col) => {
-          drawCharacterG(fc, a, 2, pose, 0, undefined, facing, expression);
+          drawCharacterG(fc, a, 2, pose, 0, undefined, facing, expression, 0, 0, label === "Sidelong glance");
           ctx.drawImage(frame, 22, 30, 36, 48, col * 220 + 6, row * 190 + 32, 108, 144);
           ctx.drawImage(frame, 30, 36, 20, 20, col * 220 + 120, row * 190 + 62, 80, 80);
           ctx.fillStyle = "#29332f"; ctx.font = "13px monospace";

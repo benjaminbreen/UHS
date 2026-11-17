@@ -508,7 +508,7 @@ function dims(a: CharacterAppearance): Dims {
   const torso = child ? 7 : (female ? [9, 9, 10, 10] : [9, 10, 10, 11])[step];
   const build = child ? 0 : [0, 0.5, 1, 1.5][a.build + 1];
   const shape = a.bodyShape ?? "straight";
-  const shoulderW = (child ? 4.5 : female ? 5 : 6) + build + (shape === "tapered" ? 0.5 : 0);
+  const shoulderW = (child ? 5 : female ? 6 : 7) + build + (shape === "tapered" ? 0.5 : 0);
   const hip = 2 + leg;
   return {
     child,
@@ -519,8 +519,8 @@ function dims(a: CharacterAppearance): Dims {
     hip,
     shoulder: hip + torso,
     shoulderW,
-    waistW: (child ? 4 : female ? 4.5 : 5.5) + build + (shape === "rounded" ? 1 : shape === "tapered" ? -0.5 : 0) - (child ? 0 : 0.75),
-    hipW: (child ? 4 : female ? 5.5 : 5) + build,
+    waistW: (child ? 4.5 : female ? 5.25 : 6.25) + build + (shape === "rounded" ? 1 : shape === "tapered" ? -0.5 : 0) - (child ? 0 : 0.75),
+    hipW: (child ? 4.5 : female ? 6 : 5.75) + build,
     chestD: 3.5 + build / 2,
     bellyD: 3 + build / 2 + (shape === "rounded" ? 1 : 0),
     upper: child ? 2.6 : 4,
@@ -1291,7 +1291,7 @@ function palette(a: CharacterAppearance): Ramp[] {
   const light = [1, 3, 5].reduce((sum, i) => sum + parseInt(a.skin.slice(i, i + 2), 16), 0) / 3;
   const female = a.physique?.sex === "female";
   p[LIP] = w.makeup === "goth" ? ramp("#2c1a30") : w.makeup === "ganguro" ? ramp("#eee4d6")
-    : ramp(mix(a.skin, light > 170 ? "#c4506a" : "#7a2e3c", female ? 0.6 : 0.32), "skin");
+    : ramp(mix(a.skin, light > 170 ? "#c4506a" : "#7a2e3c", female ? 0.6 : 0.42), "skin");
   p[IRIS] = flat(irisOf(a), mix(irisOf(a), "#231a2b", 0.4));
   p[BLUSH] = flat(mix(flush(a.skin), a.skin, 0.25));
   p[EYE] = flat("#231a2b");
@@ -1357,6 +1357,7 @@ export function drawCharacterG(
   expression: RestingExpression = "neutral",
   turn = 0,
   condition = 0,
+  sidelong = false,
 ) {
   ctx.clearRect(0, 0, W, H);
   const face8 = facing ?? [0, 2, 4, 6][direction & 3];
@@ -1405,6 +1406,7 @@ export function drawCharacterG(
     lag: prev.rise - r.rise + r.lift,
     drift: 0,
     face: r.face,
+    sidelong,
   };
   // The head sinks with the body and rises a frame late, so a step lands.
   const headRise = Math.min(r.rise, prev.rise);
@@ -1956,6 +1958,8 @@ function drawArm(s: Sheet, t: Turn, arm: Limb, k: Kit, dark: number, upperOnly =
   // Sleeves end in a cuff, or a band at the elbow when short.
   const cuffed = k.sleeves === "loose" || (k.sleeves === "long" && k.g !== "shirt" && k.g !== "suit");
   s.put(all, SKIN, {
+    // Over the body the arm's line is its own dark, so sleeve and coat read as one mass.
+    ring: "line",
     shade: 0.5,
     // Bare arms take no highlight: pale skin lit went nearly white.
     light: 0,
