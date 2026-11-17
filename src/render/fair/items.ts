@@ -91,6 +91,12 @@ const ICONS: Record<string, Icon> = {
   seeds: (r, v) => { block(r, 4, 3, 8, 11, CREAM); ball(r, 8, 7, 2, hue(v)); r.fill(8, 9, 1, 3, "#488838"); r.fill(6, 12, 5, 1, BLACK[1]); },
   shell: (r) => { ball(r, 8, 8, 5, ["#fff0f0", "#f0c0c0", "#b87878"]); for (let a = -2; a <= 2; a++) for (let d = 1; d < 6; d++) r.set(8 + Math.round(Math.sin(a * 0.5) * d), 12 - d, "#b87878"); },
   fishbowl: (r) => { ball(r, 8, 8, 5, GLASS); r.fill(5, 3, 7, 1, GLASS[0]); r.fill(7, 8, 3, 2, "#f08030"); r.set(10, 8, "#f08030"); r.set(6, 11, "#488838"); },
+  sword: (r) => { for (let k = 0; k < 10; k++) r.set(4 + k, 12 - k, k % 3 ? SILVER[0] : SILVER[1]), r.set(5 + k, 12 - k, SILVER[2]); r.fill(3, 11, 4, 1, GOLD[1]); r.fill(2, 12, 2, 2, GOLD[2]); r.fill(5, 9, 1, 4, GOLD[1]); },
+  helmet: (r) => { ball(r, 8, 8, 5, SILVER); r.fill(3, 9, 11, 2, SILVER[2]); r.fill(7, 9, 3, 5, BLACK[2]); for (let k = 0; k < 5; k++) r.set(8, 2 - 0 + k - 1, "#c83028"); r.fill(7, 1, 3, 2, "#e85848"); },
+  crown: (r) => { block(r, 3, 8, 10, 5, GOLD); for (const x of [3, 6, 9, 12]) r.fill(x, 5, 1, 3, GOLD[1]), r.set(x, 4, x % 2 ? "#d83848" : "#3868c8"); r.fill(4, 10, 8, 1, "#a82838"); for (const x of [5, 8, 11]) r.set(x, 10, WHITE[0]); },
+  chalice: (r) => { turned(r, 8, 3, [4, 4, 3, 3, 2, 1, 1, 1, 2, 3, 4], GOLD); r.fill(5, 3, 7, 1, "#a82838"); r.set(8, 8, "#d83848"); },
+  coffer: (r) => { block(r, 2, 6, 12, 8, BROWN); for (let j = 0; j < 3; j++) r.fill(2 + j, 5 - j, 12 - j * 2, 1, BROWN[1]); for (const x of [4, 11]) r.fill(x, 3, 1, 11, BLACK[1]); r.fill(7, 8, 2, 3, GOLD[1]); for (const [x, y] of [[6, 5], [9, 4], [8, 5]]) r.set(x, y, GOLD[0]); },
+  bust: (r) => { ball(r, 8, 5, 3, WHITE); turned(r, 8, 8, [2, 4, 5, 5, 3], WHITE); block(r, 5, 12, 7, 3, ["#c8ccd4", "#9098a4", "#606874"]); r.set(7, 5, WHITE[2]); r.set(9, 5, WHITE[2]); },
 };
 
 /** What each class of exhibit lays out. A class with no list of its own shows household things. */
@@ -113,6 +119,13 @@ const BY_CLASS: Record<string, readonly string[]> = {
   garden: ["flowerpot", "seeds", "vase", "book"],
   aquarium: ["fishbowl", "shell", "fish", "book"],
   entrance: ["book", "seeds", "bell", "clock"],
+  state: ["vase", "clock", "candlestick", "bust", "decanter", "lacquer", "book", "idol"],
+  dining: ["pie", "ham", "decanter", "bottle", "apples", "loaf", "candlestick", "fish", "cheese"],
+  arms: ["sword", "helmet", "sword", "boot", "glove", "bell"],
+  chapel: ["candlestick", "chalice", "book", "bell", "candlestick"],
+  kitchen: ["ham", "loaf", "fish", "eggs", "kettle", "jar", "apples", "sack", "pie"],
+  treasury: ["crown", "coffer", "chalice", "idol", "decanter", "lacquer"],
+  office: ["book", "inkwell", "candlestick", "clock", "book", "bell"],
 };
 
 const cache = new Map<string, Raster>();

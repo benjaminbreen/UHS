@@ -46,8 +46,9 @@ export type FairArea = {
   /** Where it lies on the fair's plan: left, top, width, depth, in plan units, north up. Galleries and
    * courts are sized from this, and joined to every area whose rectangle shares a stretch of edge. */
   at?: readonly [number, number, number, number];
-  /** How a gallery is built and coloured: an iron and glass exhibition shed, or a warm panelled room with deep wainscot. The fair's own look when unset. */
-  look?: "shed" | "warm";
+  /** How a gallery is built and coloured: an iron and glass exhibition shed, a warm panelled room with deep
+   * wainscot, or a palace room of white and gold panelling and tall mirrors. The fair's own look when unset. */
+  look?: "shed" | "warm" | "palace";
   /** Bandstands in a court. */
   bandstands?: number;
   /** Who plays in each of a court's bandstands, by person id. */
@@ -92,7 +93,9 @@ export type Fair = {
   entry: string;
   areas: readonly FairArea[];
   /** How its galleries look unless an area says otherwise. */
-  look?: "shed" | "warm";
+  look?: "shed" | "warm" | "palace";
+  /** What someone who starts here by a prompt is, when not a visitor. */
+  role?: string;
   /** Cells to a plan unit, for areas placed by `at`. */
   scale?: number;
   /** What it shows; an area's filler stands are drawn from these by tag. */
@@ -107,14 +110,14 @@ export type Fair = {
   /** Where a prompt naming it starts, by place id. */
   place: string;
   /** Said at the gate without the money, on going in, and on riding its lifts up. */
-  words: { short: string; enter: string; liftUp?: string; liftLook?: string };
+  words: { short: string; enter: string; gate?: string; liftUp?: string; liftLook?: string };
 };
 
 /** The painter keys an exhibit may use; each is drawn in `render/fair/things.ts`. */
 export const FAIR_ART = [
   // Floor.
   "vitrine", "counter", "bales", "barrels", "sacks", "ingots", "statue", "vase", "engine", "dynamo", "locomotive",
-  "phonograph", "telephone", "piano", "model", "loom", "press", "lamp-standard", "pyramid", "kiosk", "lift", "bath",
+  "phonograph", "telephone", "piano", "model", "loom", "press", "lamp-standard", "pyramid", "kiosk", "lift", "bath", "throne", "state-bed",
   // Wall.
   "painting", "tapestry", "carpet", "panel", "map",
 ] as const;

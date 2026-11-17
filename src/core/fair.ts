@@ -37,7 +37,7 @@ export function fairEnter(h: ComplexHost, fair: Fair, free = false) {
   h.state.complex = { kind: "fair", fair: fair.id, name: fair.name, entry: fairSpace(fair.id, fair.entry), out: { x: p.pos.x, y: p.pos.y } };
   const level = arrive(h, fairSpace(fair.id, fair.entry));
   if (!level) return void delete h.state.complex;
-  h.event(`${free ? "" : "You push through the turnstile. "}${fair.name[0].toUpperCase()}${fair.name.slice(1)}: ${level.name}, ${fair.words.enter}`, "world");
+  h.event(`${free ? "" : `${fair.words.gate ?? "You push through the turnstile."} `}${fair.name[0].toUpperCase()}${fair.name.slice(1)}: ${level.name}, ${fair.words.enter}`, "world");
 }
 
 function leave(h: ComplexHost) {

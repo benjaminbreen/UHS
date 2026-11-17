@@ -307,7 +307,7 @@ export function resolveSetting(
     ]).sort((a, b) => b.length - a.length).find((label) => has(q, label));
     const coal = /\bcoal\b|\bcollier|\bpit\b/.test(q);
     const underRole = below === "mine" ? (coal ? "Coal miner" : "Miner") : below === "sewer" ? (/\btosher/.test(q) ? "Tosher" : "Sewer flusher") : below === "cave" ? (s.year < -8000 ? "Hunter" : "Hermit")
-      : below === "ship" ? vesselOf(q)?.[4] ?? (/\bstokers?\b/.test(q) ? "Stoker" : /\b(?:passengers?|emigrants?|steerage|pilgrims?)\b/.test(q) ? "Passenger" : "Sailor") : below === "fair" ? "Visitor" : below === "tomb" ? "Tomb robber" : undefined;
+      : below === "ship" ? vesselOf(q)?.[4] ?? (/\bstokers?\b/.test(q) ? "Stoker" : /\b(?:passengers?|emigrants?|steerage|pilgrims?)\b/.test(q) ? "Passenger" : "Sailor") : below === "fair" ? fairFromPrompt(q)?.role ?? "Visitor" : below === "tomb" ? "Tomb robber" : undefined;
     s.role = namedRole ?? roles.find(([pattern]) => pattern.test(q))?.[1] ?? underRole ?? "Traveler";
     if (below) {
       s.below = below;

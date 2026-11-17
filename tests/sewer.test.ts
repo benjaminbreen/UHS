@@ -372,7 +372,21 @@ describe("a fair from a plan", () => {
     expect(at("baths")).toContain("lhe-bath-attendant");
     expect(at("belgium")).toContain("lhe-belgian");
     expect(at("foods").length).toBeGreaterThan(12);
-    for (const p of fairPeople.filter((p) => p.id.startsWith("lhe-"))) expect(commonLivelihoods.some((l) => l.id === p.dress), p.dress).toBe(true);
+    for (const p of fairPeople.filter((p) => p.id.startsWith("lhe-") || p.id.startsWith("vrs-"))) expect(commonLivelihoods.some((l) => l.id === p.dress), p.dress).toBe(true);
+  });
+});
+
+describe("a palace planned as rooms and courts", () => {
+  it("starts a courtier in the forecourt of Versailles, with the King's bed and its valet in the bedchamber", () => {
+    const r = resolveSetting("A courtier at Versailles");
+    if (!("setting" in r)) throw new Error(r.error);
+    expect(r.setting).toMatchObject({ below: "fair", year: 1701 });
+    const e = createSettingSession(r.setting, "palace");
+    expect(e.state.player.pos.space).toBe("fair:versailles:forecourt");
+    const bed = e.areaOf("fair:versailles:bedchamber")!;
+    expect(bed.things.map((t) => t.art)).toContain("state-bed");
+    expect(bed.folk.map((f) => f.person)).toContain("vrs-valet");
+    expect(e.areaOf("fair:versailles:mirrors")).toMatchObject({ look: "palace" });
   });
 });
 

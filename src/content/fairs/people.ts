@@ -150,12 +150,81 @@ const london: SewerPerson[] = [
   ], { quiet: true, women: 1, ages: [16, 30], deal: sells("Buy a flask of tea", "flask-tea", "She fills a flask from the urn and screws the top down."), note: "Temperance companies ran the cocoa rooms." }),
 ];
 
+const VERSAILLES = { years: [1682, 1789] as [number, number] };
+/** Who was at Versailles. */
+const atCourt = (id: string, label: string, dress: string, doing: string, manner: SewerPerson["manner"], lines: string[], more: Partial<SewerPerson> & { note: string }): SewerPerson =>
+  ({ id, scope: VERSAILLES, label, dress, doing, manner, lines, party: pair, women: 0.3, weight: 1, basis: "documented", ...more });
+const versaillesPeople: SewerPerson[] = [
+  atCourt("vrs-courtier", "Courtier", "landowner", "Waiting to be seen", "explore", [
+    "I have a room under the roof the size of a cupboard, and I would not give it up for a château.",
+    "If the King does not see you, you do not exist. So we stand here all day.",
+    "He said of a man last week, 'I never see him.' That man is finished.",
+    "My estate pays for all this. I have not seen my estate in four years.",
+  ], { women: 0, quiet: true, weight: 3, ages: [18, 70], note: "Attendance at court was the price of favour; nobles lodged in small rooms in the palace and its outbuildings." }),
+  atCourt("vrs-lady", "Lady of the court", "landowner", "Paying her court", "explore", [
+    "A duchess may sit on a stool in front of the Queen. Everyone else stands. Families have fought for years over that stool.",
+    "The windows are never opened and the fires smoke. You learn to carry scent.",
+    "Cards three evenings a week in the King's rooms. I lost a year's rent on Tuesday.",
+  ], { women: 1, quiet: true, weight: 2, ages: [17, 65], note: "The right to sit on a stool in the royal presence was a jealously kept privilege of duchesses." }),
+  atCourt("vrs-visitor", "Visitor from Paris", "merchant", "Come to see the King dine", "explore", [
+    "They let anyone in who is decently dressed. I hired the sword at the gate for a few sous.",
+    "We came to watch him eat his dinner. You file past behind a rail. He ate four plates of soup.",
+    "I thought there would be guards at every door. You can walk straight into the Hall of Mirrors.",
+  ], { women: 0.3, quiet: true, weight: 2, ages: [20, 65], note: "The palace was open to any respectably dressed visitor; the public could watch the King dine at the grand couvert." }),
+  atCourt("vrs-petitioner", "Petitioner", "clerk", "Carrying a petition", "explore", [
+    "I have carried this petition for three weeks. It is about a pension my father was promised.",
+    "They say if you can put it into his own hand as he walks to Mass, he reads it.",
+  ], { women: 0.3, quiet: true, ages: [25, 65], note: "Petitions could be handed to the King on his way to chapel or left for his secretaries." }),
+  atCourt("vrs-footman", "Footman", "domestic-servant", "Carrying a tray", "explore", [
+    "Mind the tray. This is for the third table, and it is already cold.",
+    "The King's meat walks a quarter of a mile from the kitchen with an armed guard. People bow to it.",
+    "There are four thousand of us in livery. I have never been in the same room as him.",
+  ], { women: 0.1, quiet: true, ages: [16, 50], note: "The King's dinner was carried in procession from the Grand Commun under guard, and saluted as it passed." }),
+  atCourt("vrs-officer", "Officer of the Guards", "soldier", "Off duty", "explore", [
+    "I bought this commission for more than my family's house. Now I wait for a war to earn it back.",
+    "The Swiss have the gates and we have the doors. Nobody has the corridors.",
+  ], { women: 0, quiet: true, ages: [20, 55], note: "Commissions were bought; the Swiss Guards kept the outer gates and the Gardes du corps the inner doors." }),
+  atCourt("vrs-abbe", "Abbé", "religious-specialist", "Looking for a patron", "explore", [
+    "Mass is at ten. The court faces the King's gallery, not the altar. I have stopped being shocked.",
+    "A bishopric is in the King's gift. So here I am, with every other priest in France.",
+  ], { women: 0, quiet: true, ages: [24, 70], note: "Court clergy sought benefices in the King's gift; at Mass the courtiers faced the royal tribune." }),
+  atCourt("vrs-guard", "Guardsman", "soldier", "On guard", "lookout", [
+    "No sword, no hat, no entry past this door. You can hire both at the gate.",
+    "Monks, beggars and anyone marked by the smallpox are turned back. Everyone else walks in.",
+  ], { women: 0, party: alone, ages: [20, 50], note: "Entry required only decent dress, a sword and a hat; monks, beggars and those freshly marked by smallpox were barred." }),
+  atCourt("vrs-valet", "First valet of the bedchamber", "domestic-servant", "Guarding the rail", "work", [
+    "Nobody passes the rail. Bow to the bed, please, as you cross.",
+    "At eight I draw the curtain and say, 'Sire, it is time.' Then the doctors, then the family, then a hundred people watch him put on his shirt.",
+  ], { women: 0, party: alone, ages: [30, 65], note: "The lever and coucher were public ceremonies ordered by rank; the first valet slept at the foot of the royal bed." }),
+  atCourt("vrs-musician", "Musician of the Chamber", "musician", "Playing", "work", [
+    "Monday, Wednesday and Thursday evenings: music, cards and a buffet in the King's rooms.",
+    "Monsieur Couperin has the organ in the chapel. I have the harpsichord here, and a wage six months late.",
+  ], { women: 0.2, party: alone, ages: [18, 60], note: "The 'appartement' evenings were held three times a week in the state rooms. Couperin was an organist of the chapel from 1693." }),
+  atCourt("vrs-secretary", "Secretary's clerk", "civil-servant", "Sorting petitions", "work", [
+    "Leave it on the table. They are read on Mondays. Do not ask me which Monday.",
+    "Write it on one sheet. He will not turn a page.",
+  ], { women: 0, party: alone, ages: [20, 60], note: "Inferred: petitions were read and annotated by the King's secretaries on set days." , basis: "inferred" }),
+  atCourt("vrs-cook", "Officer of the kitchen", "cook", "Selling from the royal tables", "work", [
+    "This came back from the King's own table an hour ago. Partridge, hardly touched.",
+    "It is my right to sell what returns. It is half my wage.",
+  ], { women: 0.1, party: alone, deal: sells("Buy a pasty", "pasty", "He cuts you a piece of cold game pasty off a silver dish that has seen better company."), note: "Kitchen officers had the right to sell dishes returned from the royal tables, from stalls by the palace." }),
+  atCourt("vrs-sword-hirer", "Sword hirer", "street-hawker", "Hiring out swords and hats", "work", [
+    "A sword and a hat, sir, and you are a gentleman until sunset.",
+    "Bring it back by dark or I keep your deposit.",
+  ], { women: 0, party: alone, ages: [25, 60], note: "Swords and hats were hired out at the gates to visitors who lacked them." }),
+  atCourt("vrs-gardener", "Fountain keeper", "market-gardener", "Working the fountains", "work", [
+    "There is not water enough for every fountain at once. We open each as the King walks toward it and shut it when he has passed.",
+    "A boy runs ahead and whistles. That is the whole secret of the gardens.",
+  ], { women: 0, party: alone, ages: [18, 60], note: "The water supply could not run all the fountains together; they were turned on in sequence ahead of the King's walk." }),
+];
+
 const person = (id: string, label: string, dress: string, doing: string, manner: SewerPerson["manner"], lines: string[], more: Partial<SewerPerson> & { note: string }): SewerPerson =>
   ({ id, scope: PARIS_1889, label, dress, doing, manner, lines, party: alone, women: 0.3, weight: 1, basis: "documented", ...more });
 
 /** Who was at the 1889 fair. Their lines are plain modern English; the period is in what they say. */
 export const fairPeople: readonly SewerPerson[] = [
   ...london,
+  ...versaillesPeople,
   person("fair-visitor", "Visitor", "clerk", "Seeing the fair", "explore", [
     "We came for the Tower and haven't even got to it yet. Every turn there's something else.",
     "Thirty-two million tickets, they say. I believe it. Look at this crowd.",

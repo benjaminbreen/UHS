@@ -25,6 +25,13 @@ The owner keeps this list.
 
 ## Recent milestones
 
+- November 16: the first palace, Versailles from 1701 ("A courtier at
+  Versailles"), on the fairs' room kit: the Hall of Mirrors, the King's
+  bedchamber, state apartments, chapel, kitchens, courts and gardens
+  (`src/content/palaces/`). Rooms can take one of three looks (exhibition
+  shed, warm panelled, palace) and are furnished with display tables of
+  individually drawn objects by class (`src/render/fair/items.ts`). No doors
+  closed by rank yet.
 - November 16: fairs from a map. An area can be given as a rectangle on the
   fair's plan and the game sizes it, joins it to its neighbours and fills it
   by class. The 1884 International Health Exhibition is the first: 35 areas

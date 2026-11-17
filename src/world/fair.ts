@@ -16,7 +16,7 @@ export type FairLevel = Area & {
   area: string;
   kind: FairArea["kind"];
   floor?: FairArea["floor"];
-  look: "shed" | "warm";
+  look: NonNullable<FairArea["look"]>;
   exits: AreaExit[];
   buildings: PlacedBuilding[];
   lifts: AreaLift[];
@@ -504,7 +504,7 @@ function thing(L: FairLevel, f: FairFind, n: number, x: number, y: number, wall:
 
 /** Cells an exhibit takes when its find does not say: room-sized cases and machines. */
 const SIZES: Partial<Record<FairFind["art"], [number, number]>> = {
-  vitrine: [3, 1], counter: [3, 1], bath: [2, 1], bales: [2, 1], barrels: [2, 1], sacks: [2, 1], ingots: [2, 1], engine: [3, 2], dynamo: [2, 2],
+  vitrine: [3, 1], counter: [3, 1], bath: [2, 1], throne: [3, 2], "state-bed": [3, 3], bales: [2, 1], barrels: [2, 1], sacks: [2, 1], ingots: [2, 1], engine: [3, 2], dynamo: [2, 2],
   locomotive: [4, 2], piano: [2, 1], model: [2, 2], loom: [2, 1], press: [2, 1], pyramid: [2, 2], kiosk: [2, 2],
   painting: [2, 1], tapestry: [2, 1], carpet: [2, 1], map: [2, 1], panel: [2, 1],
 };

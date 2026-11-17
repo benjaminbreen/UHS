@@ -150,6 +150,34 @@ export function paintFairThing(art: string, w: number, h: number, v: number, tin
       r.fill(cx - 4, Y - 10, 8, 4, m[2]);
       return done(s);
     }
+    case "throne": {
+      // A gilt armchair under a crimson canopy, on a carpeted dais of two steps.
+      const s = make(46), { r, X, Y } = s, cx = X + W / 2, crim = ["#e06a70", "#b83a46", "#8a2834", "#5e1a24"];
+      ground(s);
+      box(r, X + 1, Y + 8, W - 2, 12, 6, crim, crim); box(r, X + 7, Y + 2, W - 14, 10, 5, crim, crim);
+      for (let x = X + 2; x < X + W - 2; x += 2) r.set(x, Y + 25, BRASS[1]);
+      r.fill(cx - 15, Y - 44, 30, 8, crim[1]); r.fill(cx - 15, Y - 44, 30, 1, BRASS[0]); for (let x = cx - 15; x < cx + 15; x++) r.set(x, Y - 36 + (x % 4 < 2 ? 0 : 1), BRASS[1]);
+      r.fill(cx - 13, Y - 36, 26, 34, crim[2]); for (let x = cx - 11; x < cx + 12; x += 5) r.fill(x, Y - 34, 1, 30, crim[3]);
+      for (const x of [cx - 15, cx + 13]) r.fill(x, Y - 36, 2, 40, BRASS[2]), r.fill(x, Y - 36, 1, 40, BRASS[0]);
+      r.fill(cx - 8, Y - 26, 16, 20, BRASS[1]); r.fill(cx - 8, Y - 26, 16, 1, BRASS[0]); r.fill(cx - 6, Y - 23, 12, 14, crim[1]); r.fill(cx - 2, Y - 30, 4, 4, BRASS[0]);
+      box(r, cx - 9, Y - 8, 18, 4, 5, crim, BRASS);
+      for (const x of [cx - 10, cx + 8]) r.fill(x, Y - 12, 2, 12, BRASS[2]);
+      return done(s, false);
+    }
+    case "state-bed": {
+      // A bed of state: crimson hangings from a gilt tester, a white bolster, and the gilded rail that keeps the court back.
+      const s = make(40), { r, X, Y } = s, crim = ["#e06a70", "#b83a46", "#8a2834", "#5e1a24"];
+      ground(s);
+      r.fill(X + 3, Y - 38, W - 6, 10, crim[1]); r.fill(X + 3, Y - 38, W - 6, 2, BRASS[0]); for (let x = X + 3; x < X + W - 3; x++) r.set(x, Y - 28 + (x % 4 < 2 ? 0 : 1), BRASS[1]);
+      for (const x of [X + 3, X + W - 9]) { r.fill(x, Y - 28, 6, 46, crim[2]); r.fill(x, Y - 28, 2, 46, crim[1]); r.fill(x + 5, Y - 28, 1, 46, crim[3]); }
+      r.fill(X + 9, Y - 28, W - 18, 22, crim[3]);
+      box(r, X + 8, Y - 6, W - 16, 20, 8, ["#fffaf0", "#f2e9d6", "#dccfb4", "#b8a888", "#8a7a60"], crim);
+      r.fill(X + 10, Y - 5, W - 20, 6, "#ffffff"); r.fill(X + 10, Y, W - 20, 1, "#d8d0c0");
+      r.fill(X + 9, Y + 4, W - 18, 9, crim[1]); r.fill(X + 9, Y + 4, W - 18, 1, crim[0]); for (let x = X + 12; x < X + W - 10; x += 6) r.fill(x, Y + 6, 2, 2, BRASS[1]);
+      const ry = Y + H - 14;
+      r.fill(X, ry, W, 2, BRASS[0]); r.fill(X, ry + 9, W, 2, BRASS[2]); for (let x = X + 1; x < X + W; x += 4) r.fill(x, ry + 2, 2, 7, BRASS[1]);
+      return done(s, false);
+    }
     case "bath": {
       // A roll-top bath on brass feet, enamelled white, water in it, the taps at its head.
       const s = make(18), { r, X, Y } = s, en = ["#ffffff", "#f0f0ec", "#d4d6d8", "#a8aeb4"];
@@ -732,7 +760,53 @@ function beside(r: Raster, kind: string, x: number, base: number, c: readonly st
   }
 }
 
+/** What stands in a palace room in place of a tradesman's stand, by the room's class. */
+const FURNITURE: Record<string, string> = { state: "settee", bedchamber: "settee", dining: "hearth", kitchen: "hearth", chapel: "altar", arms: "armour", office: "bureau", treasury: "bureau" };
+
+/** A piece of palace furniture three cells wide: a gilt settee, a chimneypiece with its fire, an altar, a stand of arms, a writing bureau. */
+function furniture(kind: string, v: number): FairSprite {
+  const r = new Raster(64, 72), X = 8, Y = 52, W = 48, cx = X + W / 2, crim = v < 0.5 ? ["#e06a70", "#b83a46", "#8a2834", "#5e1a24"] : ["#7a9ad0", "#4e6eaa", "#36508a", "#243860"];
+  r.shadow(cx + 3, Y + 14, W / 2, 4, 0.26);
+  if (kind === "settee") {
+    r.fill(X + 3, Y - 16, W - 6, 16, crim[1]); r.fill(X + 3, Y - 16, W - 6, 2, BRASS[0]); r.fill(X + 3, Y - 14, W - 6, 1, BRASS[2]);
+    for (let x = X + 8; x < X + W - 6; x += 8) r.fill(x, Y - 11, 2, 2, BRASS[1]);
+    for (let x = X + 3; x < X + W - 3; x++) r.set(x, Y - 17 - Math.round(Math.sin(((x - X - 3) / (W - 6)) * Math.PI) * 3), BRASS[1]);
+    box(r, X + 2, Y, W - 4, 6, 5, crim, BRASS);
+    for (const x of [X + 1, X + W - 5]) { r.fill(x, Y - 8, 4, 14, BRASS[1]); r.fill(x, Y - 8, 1, 14, BRASS[0]); r.fill(x, Y - 9, 4, 2, BRASS[0]); }
+    for (const x of [X + 3, X + W / 2 - 1, X + W - 6]) r.fill(x, Y + 11, 3, 3, BRASS[2]);
+  } else if (kind === "hearth") {
+    box(r, X + 2, Y - 30, W - 4, 4, 40, STONE, STONE);
+    r.fill(X + 10, Y - 14, W - 20, 24, "#2a2024"); r.fill(X + 14, Y + 2, W - 28, 8, "#f08030"); r.fill(X + 17, Y + 4, W - 34, 5, "#ffd060"); r.fill(X + 12, Y + 8, W - 24, 2, DARKWOOD[3]);
+    r.fill(X + 1, Y - 32, W - 2, 3, STONE[0]); r.fill(X + 1, Y - 29, W - 2, 1, STONE[4]);
+    r.fill(cx - 9, Y - 48, 18, 15, BRASS[1]); r.fill(cx - 7, Y - 46, 14, 11, "#c4dcea"); r.fill(cx - 7, Y - 46, 5, 4, "#f4fbff");
+    for (const x of [X + 6, X + W - 9]) { r.fill(x, Y - 40, 2, 8, BRASS[1]); r.set(x, Y - 41, "#ffd060"); }
+  } else if (kind === "altar") {
+    box(r, X + 1, Y + 6, W - 2, 8, 4, STONE, STONE);
+    box(r, X + 5, Y - 12, W - 10, 8, 16, ["#ffffff", "#f6f2e8", "#e0d8c8", "#b8ae9c", "#8a8070"], ["#ffffff", "#f6f2e8", "#e0d8c8", "#b8ae9c", "#8a8070"]);
+    for (let x = X + 6; x < X + W - 6; x += 3) r.set(x, Y + 3, BRASS[1]);
+    r.fill(cx - 1, Y - 34, 3, 20, BRASS[1]); r.fill(cx - 5, Y - 28, 11, 3, BRASS[1]); r.fill(cx - 1, Y - 34, 1, 20, BRASS[0]);
+    for (const x of [X + 10, X + W - 12]) { r.fill(x, Y - 22, 2, 10, "#fffaf0"); r.set(x, Y - 24, "#ffb030"); r.set(x + 1, Y - 23, "#fff090"); r.fill(x - 1, Y - 13, 4, 2, BRASS[1]); }
+  } else if (kind === "armour") {
+    box(r, X + 2, Y + 4, W - 4, 6, 4, DARKWOOD, DARKWOOD);
+    for (const [ax, tilt] of [[cx - 14, 1], [cx + 14, -1]]) for (let k = 0; k < 44; k++) { r.set(ax + Math.round(tilt * k * 0.18), Y + 4 - k, DARKWOOD[1]); if (k > 38) r.fill(ax + Math.round(tilt * k * 0.18) - 2, Y + 4 - k, 5, 1, IRON[0]); }
+    for (let j = 0; j < 16; j++) { const half = j < 3 ? 5 : j < 10 ? 7 : 6; r.fill(cx - half, Y - 22 + j, half * 2 + 1, 1, j < 2 ? IRON[0] : IRON[1]); r.set(cx - half, Y - 22 + j, "#c4ccd8"); r.set(cx, Y - 22 + j, IRON[3]); }
+    for (let j = 0; j < 8; j++) r.fill(cx - 4 + (j > 5 ? 1 : 0), Y - 32 + j, 9 - (j > 5 ? 2 : 0), 1, j < 2 ? "#c4ccd8" : IRON[1]);
+    r.fill(cx - 3, Y - 28, 7, 1, IRON[4]); r.fill(cx - 1, Y - 36, 3, 4, "#c83028"); r.fill(cx, Y - 6, 1, 10, DARKWOOD[2]);
+  } else {
+    // A writing bureau: a slope of green leather, pigeon holes behind, papers and an inkstand.
+    box(r, X + 4, Y - 4, W - 8, 8, 12, DARKWOOD, DARKWOOD);
+    r.fill(X + 8, Y - 2, W - 16, 5, "#3e7850"); r.fill(X + 8, Y - 2, W - 16, 1, "#5e9a6a");
+    box(r, X + 6, Y - 20, W - 12, 3, 13, DARKWOOD, DARKWOOD);
+    for (let x = X + 9; x < X + W - 10; x += 7) r.fill(x, Y - 15, 5, 9, DARKWOOD[4]), r.fill(x + 1, Y - 12, 3, 6, "#f4ecd8");
+    r.fill(X + 12, Y - 1, 8, 3, "#fffaf0"); r.fill(X + 26, Y - 1, 4, 3, BRASS[1]); for (let k = 0; k < 7; k++) r.set(X + 30 + k * 0.7, Y - 1 - k, "#fffaf0");
+    for (const x of [X + 5, X + W - 7]) r.fill(x, Y + 14, 2, 3, DARKWOOD[3]);
+  }
+  r.finish();
+  return { r, ox: X, oy: Y };
+}
+
 function stall(v: number, cls = ""): FairSprite {
+  if (FURNITURE[cls]) return furniture(FURNITURE[cls], v);
   if (v >= 0.8) return trophy(v);
   const r = new Raster(80, 72), X = 8, Y = 52, W = 48, n = Math.floor(v * 97), look = CLASSES[cls];
   const c = STALLS[look ? (look.screen + (n % 2 ? 0 : 0)) % STALLS.length : n % STALLS.length], cloth = STALLS[look ? look.cloth : (n + 2) % STALLS.length];
