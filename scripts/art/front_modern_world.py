@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 
 from art import front_modern as fmod
 from art import front_iberia as ib  # noqa: E402
+from art import front_props as pr  # noqa: E402
 from art.front_modern import *  # noqa: E402,F401,F403
 from art.front_modern import (Block, C, CONCRETE, CMU, TAR, GRAVEL, ALU, STEEL, BRONZE, RUST, ROOM, GLASS, TIN,  # noqa: E402
                               BRICK, BUFF, CHOCOLATE, LIMESTONE, CREAM, WHITE, OXBLOOD, MUSTARD, SAGE, DOVE, MINT,
@@ -942,19 +943,6 @@ WALKUP_SHOPS = [('DELI', 'counter', CRIMSON, WHITE), ('GROCERY', 'shelves', JADE
                 ('PIZZA', 'counter', RED, WHITE), ('LIQUORS', 'shelves', INK, YELLOW), ('SHOE REPAIR', 'racks', OXBLOOD, CREAM)]
 
 
-def water_tower(c, cx, by, r=WOOD):
-    """A wooden roof tank on steel legs under a conical cap."""
-    for lx in (cx - 8, cx + 7):
-        c.rect(lx, by - 12, 1, 12, STEEL[3])
-    for x_, y_ in line(cx - 8, by - 1, cx + 7, by - 11) + line(cx + 7, by - 1, cx - 8, by - 11):
-        c.p(x_, y_, STEEL[3])
-    cylinder(c, cx - 9, by - 12, 18, 18, r)
-    for yy in (by - 26, by - 19):
-        c.rect(cx - 9, yy, 18, 1, STEEL[3])
-    for j in range(8):
-        c.rect(cx - j - 1, by - 34 + j, 2 * j + 3, 1, r[4] if j % 2 else r[3])
-
-
 def fire_escape(c, x, w, floors, r=INK):
     """Platforms at each floor, ladders zigzagging between them."""
     for i, (t, b) in enumerate(floors):
@@ -1056,7 +1044,7 @@ class Walkup(Block):
                     awning(c, a + 3, t0 + 21, b_ - a - 6, bg, WHITE, depth=7)
         y0 = self.deck(None, TAR, s['cornice'], y=top, clear=[(x0 + W * 2 // 3 - 12, x0 + W * 2 // 3 + 12)])
         if W >= 96:
-            water_tower(c, x0 + W * 2 // 3, y0 + min(30, self.roof_depth - 8))
+            pr.water_tank(c, x0 + W * 2 // 3, y0 + min(30, self.roof_depth - 8) - 4, R=9, H=15, legs=9, ground=TAR)
         vent(c, x0 + 12, top - 4)
         self.foot(CONCRETE)
 

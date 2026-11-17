@@ -155,6 +155,39 @@ def pool(c, x, by, w, d, kerb=STONE, water=WATER, depth=4, rim=3):
     return ty
 
 
+def water_tank(c, cx, by, r=None, R=13, H=20, legs=13, iron=None, ground=None):
+    """A wooden roof tank on a braced iron stand under a conical cap, from
+    above like every round thing: New York's, and any city's with weak mains.
+    `by` is the row its stand's centre rests on; `ground` is the ramp of the
+    roof it shades."""
+    r = r or RAMPS['oak']
+    iron = iron or ramp(260, 0.012, lift=-0.2)
+    d = R - 3
+    if ground:
+        for yy in range(-5, 6):
+            w_ = round((R + 2) * math.sqrt(1 - (yy / 6) ** 2))
+            c.rect(cx + 5 - w_, by + 1 + yy, 2 * w_, 1, ground[5])
+    for sx, sy, k in ((-d, -1, 5), (d, -1, 5), (-d, 1, 4), (d, 1, 4)):
+        fy = by + round(sy * d * so.K)
+        c.rect(cx + sx - 1, fy - legs, 3, legs, iron[k])
+        c.rect(cx + sx - 1, fy - legs, 1, legs, iron[k - 2])
+    fy = by + round(d * so.K)
+    for i in range(2 * d - 3):
+        y = round((legs - 5) * i / (2 * d - 4))
+        c.p(cx - d + 2 + i, fy - 2 - y, iron[4])
+        c.p(cx + d - 2 - i, fy - 2 - y, iron[4])
+    so.lathe(c, cx, by, [(0, R + 1.5), (2, R + 1.5)], iron, z0=legs - 2)
+
+    def staves(x, y, z, q):
+        if abs(z - H * 0.28) < 0.9 or abs(z - H * 0.72) < 0.9:
+            return iron[min(7, q + 1)]
+        a = (math.atan2(y, x) / (2 * math.pi) * 22) % 1
+        return r[min(7, q + 1)] if a < 0.16 else r[q]
+
+    so.lathe(c, cx, by, [(0, R), (H, R)], r, z0=legs, surface=staves, bias=0.12)
+    so.lathe(c, cx, by, [(0, R + 2), (1, R + 2), (7, 1), (9, 1)], r, z0=legs + H, ribs=9, bias=0.1)
+
+
 def bench(c, x, by, w, r=STONE, h=6, d=8):
     so.box(c, x, by, w, h, d, r)
 

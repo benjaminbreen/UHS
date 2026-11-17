@@ -153,6 +153,65 @@ use and place (Korean jar groups, South Asian water pots, prehistoric storage
 baskets) and sits at facade edges. Household shrines are not a universal
 prop. Do not back-project a later national style into prehistory.
 
+## Towers
+
+`Skyscraper` in `front_modern.py` is the pattern; the Moscow, Tokyo, slab and
+podium towers subclass it. Review with
+`npm run art:family -- mod out.png deco tropic vysotka`.
+
+- **One bay grid.** `BAY` and `PIER` fix the rhythm. Tiers lose whole bays
+  (`massing`), so piers line up from street to crown. Never size a tier as a
+  fraction of the width.
+- **A setback is a roof, not a shoulder.** The upper tier stands on the lower
+  tier's roof, drawn from above with `deck`. Side strips with no front parapet
+  read as buttresses.
+- **The coping is one unbroken ring** in its own stone (`cope` in the spec, a
+  beige a step off the wall colour), the same width on all four sides. Only
+  the far parapet shows an inner face. Shadows fall on the paving in two
+  steps: under the far parapet, along the left one, and to the right of
+  anything standing on the deck.
+- **Pavers are quiet**: one tone, joints one step darker and broken, in a
+  running bond. A full grid reads as graph paper.
+- **Edges take the colour they touch.** Towers set `EDGE = True`, so the
+  outline is a deep, richer shade of its neighbour (`outline(c, deep=True)`),
+  and a volume rising from a deck is edged in step 5 of its own ramp. Never
+  one dark grey for everything.
+- **Glass is saturated and two-toned**, spandrels dark and quiet. One thin
+  chevron per spandrel is the ornament; anything heavier turns to noise at
+  twelve storeys.
+- **The doorway is a part, not a tower detail.** `portal(b, cx, base, top,
+  stone, style)` in `front_modern.py` works on any `Block`: `deco` (proud
+  jambs, lintel seen from above, twice-stepped mitred reveal, glass block over
+  brass), `arch` (1880-1915, round arch and fanlight), `slab` (1950-1975,
+  glazed lobby under a canopy). It is taller than the base and breaks the
+  belt course. `sconce` and `metal_door` are its pieces. Add a style there
+  rather than drawing a doorway in a painter.
+- **`front_props.water_tank`** is the roof tank for any building: a lathe
+  solid on a braced stand, with its shadow on the roof it is given.
+- **Crowns are solids**: `ziggurat` (blocks with visible tops), `steel_crown`
+  (arches lit as cylinders, ordered slit lights; no stipple), or `penthouse`
+  and the water tank on a deep deck.
+- **Crowns belong to every tower.** `crown_step`, `crown_spire`,
+  `crown_tank`, `crown_helipad`, `crown_tiers`, `crown_dome`, `crown_plant`,
+  `crown_billboard`, `crown_lattice` and `crown_pyramid` are
+  `Skyscraper` methods picked by `crown` in the spec, so a new skyline is a
+  new spec. Add a crown as another `crown_<name>(top, hw)`.
+- **Street floors belong to every tower too**: `ground_mall` and
+  `ground_lobby` on `Skyscraper`; add `ground_<name>(t, base)`.
+- **A flat roof is a deck.** Every tower's top is `roof()` with its crown
+  standing on it and shading it; never a cap line with things perched on it.
+- **The podium tower** (`Tropic`) is the modern pattern: a street floor
+  (`ground`), a podium storey, the
+  podium roof as a `deck` with planters, then a shaft of `curtain` floors.
+  The shaft's width is fitted to whole panes. Glass varies by a pane or two
+  per floor and carries two or three short `glints`; big diagonal bands
+  read as stickers. Glass towers take no weather streaks.
+- **Light is registered as it is drawn.** `pane(..., lit_odds)` per storey so
+  whole floors are lit or dark; `sconces` and crown slits glow; `beacon` for
+  a mast light the game blinks; `tube` and `bulb_row` for neon and chasing
+  bulbs (`bulbs=True` in a deco spec rings the portal). Give a look these
+  through its spec, by era: no beacon before the 1930s, neon from the 1920s.
+
 ## The system
 
 | File | Owns |
