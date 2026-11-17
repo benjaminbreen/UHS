@@ -128,6 +128,7 @@ import type { SeasonId } from "./season";
 import { livelihoodOf } from "../world/v3/routines";
 import { floorName, floorSpace, parseFloor, towerPlan, type Tower } from "../world/tower";
 import { towerStyleFor } from "../content/towers";
+import type { Staff } from "../content/towers/tenants";
 import { buildInterior, ROOM_ORIGIN, spotsAt, type InteriorLayout, type Spot, type SpotRole } from "../world/interior";
 import { buildingUse } from "../content/interiors/select";
 import { vehicleAt } from "../world/v3/conveyances";
@@ -2824,10 +2825,52 @@ export class Engine {
   towerOf(placeId: string) {
     let t = this.towers.get(placeId);
     if (t === undefined) {
-      const place = this.world.place(placeId);
-      this.towers.set(placeId, (t = (place && towerPlan(place, this.state.manifest.seed)) ?? null));
+      const place = this.world.place(placeId), setting = this.world.pack.setting;
+      this.towers.set(placeId, (t = (place && setting && towerPlan(place, this.state.manifest.seed, setting)) ?? null));
     }
     return t ?? undefined;
+  }
+  private staffed?: string;
+  /** The people at work on the tower storey the player stands on: drawn from
+   * its firm's staff, the same people at the same desks every day, and the
+   * night staff once the office has gone home. */
+  private towerStaff() {
+    const s = this.state, space = s.player.pos.space, hour = Math.floor(s.clock / 3600);
+    if (this.staffed === `${space}:${hour}`) return;
+    this.staffed = `${space}:${hour}`;
+    const at = parseFloor(space), floor = space === "outside" ? undefined : this.towerOf(at.place)?.floors[at.n];
+    const room = floor && this.interiorOf(space), setting = this.world.pack.setting;
+    const want = new Map<string, Staff>();
+    if (floor && room && setting) {
+      const [from, to] = floor.profile.regulars?.hours ?? [8, 18], h = hour % 24;
+      const night = from <= to ? h < from || h >= to : h < from && h >= to;
+      const roster = floor.staff.filter((w) => !!w.night === night);
+      const r = (...k: (string | number)[]) => random(s.manifest.seed, "staff", space, ...k);
+      const places = Math.max(room.seats.length, Math.floor(room.walk.size / 6));
+      const count = !roster.length ? 0 : night ? 1 + Math.floor(r("night") * 2) : floor.customers ? 1 + Math.floor(r("count") * 3) : Math.min(18, Math.round(places * (floor.profile.regulars?.fill ?? 0.4)));
+      const total = roster.reduce((n, w) => n + w.weight, 0);
+      for (let i = 0; i < count; i++) {
+        let roll = r(night ? "night" : "day", i) * total;
+        want.set(`staff-${space}-${night ? "n" : "d"}${i}`, roster.find((w) => (roll -= w.weight) < 0) ?? roster[0]);
+      }
+    }
+    for (const a of s.actors.filter((a) => a.staff && !want.has(a.id))) this.folk.part(a.id);
+    const label = floor && `At work: ${floor.name.replace(/^The /, "the ")}`;
+    [...want].forEach(([id, w], index) => {
+      if (s.actors.some((a) => a.id === id)) return;
+      const r = (k: string) => random(s.manifest.seed, "staff", id, k);
+      const ages = livelihoodById(w.work)?.ages ?? [18, 66];
+      const age = ages[0] + Math.floor(r("age") ** 1.3 * (Math.min(ages[1], 66) - ages[0]));
+      const a = person(s.manifest.seed, setting!, id, w.work, undefined, r("sex") < 0.5 ? "female" : "male", age, { x: 0, y: 0 }, Number.MAX_SAFE_INTEGER);
+      delete a.wayfarer;
+      a.staff = space;
+      a.offRoutine = true;
+      a.activity = label!;
+      a.pos = this.indoorSpot(a, space, label, index);
+      a.home = { ...a.pos };
+      a.work = { ...a.pos };
+      this.folk.join(a);
+    });
   }
   /** The tower and storey the player stands in, when they are beside a lift door there. */
   towerLift() {
@@ -12456,6 +12499,9 @@ export class Engine {
     const room = space === "outside" ? undefined : this.interiorOf(space);
     const storey = parseFloor(space), place = room?.regulars && this.world.place(storey.place);
     if (!room?.regulars || !place) return;
+    // An office floor has its own staff and no callers off the street.
+    const floor = this.towerOf(place.id)?.floors[storey.n];
+    if (floor && !floor.customers) return;
     const [from, to] = room.regulars.hours;
     if (from <= to ? hour < from || hour >= to : hour < from && hour >= to) return;
     const day = Math.floor(this.state.clock / 86400);
@@ -12463,7 +12509,7 @@ export class Engine {
       .filter((a) => a.kind === "human" && (a.age ?? 30) >= 16 && !a.terror && this.world.dormant?.(a.id) &&
         this.household(a.householdId)?.residence !== space && Math.hypot(a.home.x - place.entrance.x, a.home.y - place.entrance.y) <= 60)
       .sort((a, b) => random(this.state.manifest.seed, "regular", a.id, day) - random(this.state.manifest.seed, "regular", b.id, day));
-    const label = `At ${(this.towerOf(place.id)?.floors[storey.n]?.name ?? place.name).replace(/^The /, "the ")}`;
+    const label = `At ${(floor?.name ?? place.name).replace(/^The /, "the ")}`;
     // Where people stand, as in a medieval nave or a playhouse pit, the floor sets the count.
     const places = Math.max(room.seats.length, Math.floor(room.walk.size / 6));
     this.regulars.seated = new Map(near.slice(0, Math.round(places * room.regulars.fill)).map((a, index) => [a.id, { space, label, index }]));
@@ -12667,6 +12713,7 @@ export class Engine {
         elapsed = next - this.state.clock;
       this.state.clock = next;
       complexTime(this.complex, elapsed);
+      this.towerStaff();
       if (this.state.voyage) shipTime(this.ships);
       diseaseTime(this.state, elapsed, next - elapsed);
       if (this.state.baby) this.babyStep(this.state.baby, elapsed, seconds > 240);
@@ -12731,7 +12778,7 @@ export class Engine {
       const partner = this.conversing ? actors.find((a) => a.id === this.conversing) : undefined;
       if (partner && partner.pos.space === player.pos.space && distance(partner.pos, player.pos) <= 3) player.direction = this.directionTo(player.pos, partner.pos);
       for (const a of actors) {
-        if (a.id === heldActor || a.underground) continue;
+        if (a.id === heldActor || a.underground || a.staff) continue;
         if (a.id === this.conversing && a.pos.space === player.pos.space) {
           a.direction = this.directionTo(a.pos, player.pos);
           delete a.facing;

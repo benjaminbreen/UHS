@@ -107,30 +107,14 @@ const offices = withLift({
 
 /** A Tokyo tower of the bubble years: bars, a mahjong parlour and a school
  * low down where the street can find them, open-plan offices above, a
- * lounge on top. The firms are invented. */
+ * lounge on top. */
 export const tokyo: TowerStyle = {
   id: "tokyo-1988",
   label: "Tokyo office tower",
   frames: "mod-bubble-",
   storeys: [18, 40],
-  lift: { name: "Hitachi lift", perFloor: 1.2, operator: "Lift attendant" },
+  lift: { name: "Hitachi lift", perFloor: 1.2 },
   lobby,
   section: { stone: ["#e8ccc4", "#c8a8a0", "#6a5a5a"], halves: [[0, 74]], crown: "gable" },
-  top: { id: "lounge", profile: lounge, tenants: ["Sky Lounge Orion", "Restaurant Hoshizora"], weight: 1, run: [1, 1] },
-  floors: [
-    { id: "snack", profile: snack, tenants: ["Snack Yuri", "Snack Kanon", "Club Ruby", "Bar Saffron"], weight: 6, run: [1, 1], band: [0, 0.2] },
-    { id: "mahjong", profile: mahjong, tenants: ["Mahjong Hakuraku", "Mahjong Tōfū"], weight: 4, run: [1, 1], band: [0, 0.2] },
-    { id: "school", profile: school, tenants: ["Bell English School", "Nova Conversation", "Sun Juku cram school"], weight: 3, run: [1, 1], band: [0, 0.25] },
-    {
-      id: "offices",
-      profile: offices,
-      tenants: [
-        "Hoshino Securities", "Tōyō Life Insurance", "Shinsei Trading Company", "Aoba Advertising", "Ōmori Construction",
-        "Musashi Electronics, sales", "Kawabata Architects", "Nippon Fine Chemicals", "Asahi Travel Bureau", "Sanwa Real Estate",
-        "Chūō Leasing", "Fuji Software Development",
-      ],
-      weight: 10,
-      run: [1, 4],
-    },
-  ],
+  rooms: { offices, snack, mahjong, school, lounge },
 };

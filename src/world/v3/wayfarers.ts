@@ -326,7 +326,8 @@ export function person(
   setting: NonNullable<Pack["setting"]>,
   id: string,
   dress: string,
-  label: string,
+  /** What they are called here; unset, the name their work generates with. */
+  label: string | undefined,
   sex: "male" | "female",
   age: number,
   at: Point,
@@ -336,14 +337,14 @@ export function person(
   const actor: Actor = {
     id,
     name: proceduralName(setting, seed, id),
-    role: label,
+    role: label ?? dress,
     kind: "human",
     pos: { ...pos },
     home: { ...pos },
     work: { ...pos },
     sprite: `human-${Math.floor(random(seed, id, "sprite") * 3)}-${Math.floor(random(seed, id, "shade") * 6)}`,
     inventory: { water: 1 },
-    activity: label,
+    activity: label ?? dress,
     fatigue: 0,
     hunger: 5,
     trust: 1,
@@ -353,9 +354,9 @@ export function person(
   };
   if (setting.characterRevision) {
     Object.assign(actor, generateCharacter(setting, seed, id, age, dress, undefined, undefined, sex));
-    actor.role = label;
     const origin = (actor as { origin?: { roleLabel?: string } }).origin;
-    if (origin) origin.roleLabel = label;
+    if (label) actor.role = label;
+    if (origin && label) origin.roleLabel = label;
   }
   return actor;
 }

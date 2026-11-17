@@ -28,7 +28,11 @@ each with a verb in the trade's words, a **place role**, a scene for the task
 screen and, sometimes, a card slot. `recipeFor` matches by livelihood id, then
 activity, then local name. Recipes can vary by season (`dayOf`, `pieceOf`):
 the rice farmer and cultivator have a day per season, and `{crop}` is the crop
-on the household's own parcel.
+on the household's own parcel. Days can also be dated: office staff (clerks,
+typists, secretaries, accountants, managers) keep a counting house before
+1880, a typewriter office until 1985 and a computer after, all at the
+workplace, with cards in `cards/office.ts`. Scholars and scribes keep the
+older day of writing for whoever needs it.
 
 A trade with no recipe falls back to its **process family** (`processFor` in
 `processes.ts`): tend, gather, transform, carry or serve, each with three

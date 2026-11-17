@@ -63,30 +63,14 @@ const offices = withLift({ ...typing, colorways: [...typing.colorways, ...BUREAU
 const store = withLift(officeFor("Department store", 1955)!);
 
 /** The seven Moscow high-rises of 1947-1957 and their copies in Warsaw and
- * Riga: ministries, design institutes and offices in the tiers, a shop low
- * down. The bureaus are invented; the kinds of office follow what the
- * buildings held. */
+ * Riga: offices in the tiers, a shop low down, a suite at the top. */
 export const moscow: TowerStyle = {
   id: "moscow-1955",
   label: "Moscow high-rise",
   frames: "mod-vysotka-",
   storeys: [20, 32],
-  lift: { name: "KMZ lift", perFloor: 3, operator: "Lift attendant" },
+  lift: { name: "KMZ lift", perFloor: 3 },
   lobby,
   section: { stone: ["#f0e6cc", "#d8c8a4", "#8a4a3a"], halves: [[0, 80], [0.4, 60], [0.66, 44], [0.87, 30]], crown: "spire" },
-  top: { id: "suite", profile: suite, tenants: ["The minister's offices"], weight: 1, run: [1, 1] },
-  floors: [
-    { id: "store", profile: store, tenants: ["Gastronom", "Univermag"], weight: 8, run: [1, 2], band: [0, 0.08] },
-    {
-      id: "offices",
-      profile: offices,
-      tenants: [
-        "Ministry of Heavy Machine Building", "Ministry of Transport Construction", "Gosplan, fuel section", "Mosproekt design institute",
-        "Institute of Steel Research", "Soyuzexport trading office", "Ministry of the River Fleet", "Glavmosstroy planning office",
-        "Hydroproject design bureau", "Ministry of the Coal Industry", "Central Statistical Office", "Teploproekt design institute",
-      ],
-      weight: 10,
-      run: [2, 6],
-    },
-  ],
+  rooms: { offices, store, suite },
 };

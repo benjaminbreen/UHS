@@ -1,9 +1,16 @@
-import { towerStyleFor, type FloorKind, type TowerStyle } from "../content/towers";
+import { towerStyleFor, type TowerStyle } from "../content/towers";
+import { lobbyStaff, tenants, type Staff, type Tenant } from "../content/towers/tenants";
+import { characterNameParts } from "../content/characters/generate";
+import { matchesCharacterScope, resolveCharacterContext, type CharacterContext } from "../content/characters/resolve";
+import type { WorldSetting } from "../content/geography/types";
 import type { InteriorProfile } from "../content/interiors/types";
 import type { Place } from "../core/types";
 import { random } from "../core/random";
 
-export type TowerFloor = { n: number; kind: string; name: string; profile: InteriorProfile; colorway: number };
+/** One storey: the room it is fitted out as, the firm in it and who works there. */
+export type TowerFloor = {
+  n: number; kind: string; name: string; profile: InteriorProfile; colorway: number; tenant?: string; staff: readonly Staff[]; customers?: boolean;
+};
 export type Tower = { place: string; style: TowerStyle; floors: TowerFloor[] };
 
 /** Storey n of a building is its own space: the street floor is the building's own id. */
@@ -19,32 +26,71 @@ export function floorName(n: number) {
   return n ? `the ${k}${t >= 11 && t <= 13 ? "th" : ["th", "st", "nd", "rd"][k % 10] ?? "th"} floor` : "the lobby";
 }
 
+/** A firm's name from its kind's patterns, with local surnames. */
+export function firmName(t: Pick<Tenant, "names">, s: WorldSetting, seed: string, key: string, context: CharacterContext) {
+  const r = (...k: (string | number)[]) => random(seed, "firm", key, ...k);
+  const say = (t.names.find((n) => !n.where || n.where.some((w) => matchesCharacterScope(w, s, "*"))) ?? t.names[t.names.length - 1]).say;
+  const taken = new Set<string>();
+  let i = 0;
+  return say[Math.floor(r("say") * say.length)].replace(/\{S\}|\{N\}|\[([^\]]+)\]/g, (m, alts?: string) => {
+    const k = i++;
+    if (m === "{N}") return String(1 + Math.floor(r("n", k) * 40));
+    if (alts) {
+      const o = alts.split("|");
+      return o[Math.floor(r("word", k) * o.length)];
+    }
+    for (let tries = 0; ; tries++) {
+      const name = characterNameParts(s, seed, `firm-${key}-${k}-${tries}`, context);
+      const surname = name.families[0] ?? name.personal;
+      if (!taken.has(surname) || tries > 4) return taken.add(surname), surname;
+    }
+  });
+}
+
 /** The storeys of a tower, planned from its seed: the lobby, runs of floors
- * let to one firm at a time by the kinds' weights and bands, and the top. */
-export function towerPlan(place: Place, seed: string): Tower | undefined {
+ * let to one firm at a time from the kinds that fit this place and year,
+ * and the top. */
+export function towerPlan(place: Place, seed: string, s: WorldSetting): Tower | undefined {
   const style = towerStyleFor(place.sprite);
   if (!style) return undefined;
+  const context = resolveCharacterContext(s);
+  const found = new Set(context.livelihoods.map((l) => l.id));
+  const kept = (w: Staff) => found.has(w.work) && (!w.until || s.year < w.until);
+  const fits = tenants.flatMap((t) => {
+    const room = t.room.find((k) => style.rooms[k]);
+    const staff = t.staff.filter(kept);
+    return room && found.has(t.staff[0].work) && t.where.some((w) => matchesCharacterScope(w, s, "*")) ? [{ ...t, room, staff }] : [];
+  });
+  const middle = fits.filter((t) => !t.top);
+  if (!middle.length) return undefined;
   const r = (...k: (string | number)[]) => random(seed, "tower", place.id, ...k);
   const [lo, hi] = style.storeys;
   const count = lo + Math.floor(r("storeys") * (hi - lo + 1));
-  const floors: TowerFloor[] = [{ n: 0, kind: "lobby", name: "Lobby", profile: style.lobby, colorway: Math.floor(r("lobby") * 3) }];
+  const floors: TowerFloor[] = [{
+    n: 0, kind: "lobby", name: "Lobby", profile: style.lobby, colorway: Math.floor(r("lobby") * 3), staff: lobbyStaff.filter(kept), customers: true,
+  }];
   const used = new Set<string>();
-  const take = (k: FloorKind, key: number) => {
-    const free = k.tenants.filter((t) => !used.has(t));
-    const name = (free.length ? free : k.tenants)[Math.floor(r("tenant", key) * (free.length || k.tenants.length))];
+  const take = (t: (typeof fits)[number], key: number) => {
+    let name = "";
+    for (let tries = 0; tries < 4 && (!name || used.has(name)); tries++) name = firmName(t, s, seed, `${place.id}-${key}-${tries}`, context);
     used.add(name);
-    return { kind: k.id, name, profile: k.profile, colorway: Math.floor(r("colour", key) * k.profile.colorways.length) };
+    const profile = style.rooms[t.room];
+    return { kind: t.room, name, profile, colorway: Math.floor(r("colour", key) * profile.colorways.length), tenant: t.id, staff: t.staff, customers: t.customers };
+  };
+  const pick = (from: typeof fits, u: number) => {
+    let roll = u * from.reduce((n, t) => n + t.weight, 0);
+    return from.find((t) => (roll -= t.weight) < 0) ?? from[from.length - 1];
   };
   for (let n = 1; n < count - 1; ) {
     const at = n / count;
-    const fits = style.floors.filter((k) => !k.band || (at >= k.band[0] && at <= k.band[1]));
-    let pick = r("kind", n) * fits.reduce((t, k) => t + k.weight, 0);
-    const k = fits.find((f) => (pick -= f.weight) < 0) ?? fits[fits.length - 1];
-    const run = Math.min(count - 1 - n, k.run[0] + Math.floor(r("run", n) * (k.run[1] - k.run[0] + 1)));
-    const firm = take(k, n);
+    const banded = middle.filter((t) => !t.band || (at >= t.band[0] && at <= t.band[1]));
+    const t = pick(banded.length ? banded : middle, r("kind", n));
+    const run = Math.min(count - 1 - n, t.run[0] + Math.floor(r("run", n) * (t.run[1] - t.run[0] + 1)));
+    const firm = take(t, n);
     for (let i = 0; i < run; i++) floors.push({ n: n + i, ...firm });
     n += run;
   }
-  floors.push({ n: count - 1, ...take(style.top, -1) });
+  const tops = fits.filter((t) => t.top);
+  floors.push({ n: count - 1, ...take(pick(tops.length ? tops : middle, r("top")), -1) });
   return { place: place.id, style, floors };
 }

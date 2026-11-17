@@ -68,32 +68,14 @@ const store = withLift(officeFor("Department store", 1930)!);
 
 /** The New York office tower between the 1916 zoning law and the glass slab:
  * a lobby of lifts, a banking hall or showroom low down, then floor after
- * floor of offices let to insurers, lawyers, shippers and advertisers.
- * The firms are invented; the mix follows the trades that rented downtown. */
+ * floor of offices. */
 export const newYork: TowerStyle = {
   id: "new-york-1930",
   label: "New York office tower",
   frames: "mod-deco-",
   storeys: [22, 64],
-  lift: { name: "Otis lift", perFloor: 2.5, operator: "Lift operator" },
+  lift: { name: "Otis lift", perFloor: 2.5 },
   lobby,
   section: { stone: ["#e2d2ac", "#c8b48c", "#8a7658"], halves: [[0, 74], [0.72, 58], [0.94, 42]], crown: "step" },
-  top: { id: "suite", profile: suite, tenants: ["Executive offices"], weight: 1, run: [1, 1] },
-  floors: [
-    { id: "bank", profile: bank, tenants: ["Chatham Trust Company", "Corn Exchange Bank", "Seaboard National Bank"], weight: 1, run: [1, 1], band: [0, 0.06] },
-    { id: "showroom", profile: store, tenants: ["Showrooms", "Haberdashery"], weight: 0.5, run: [1, 2], band: [0, 0.06] },
-    {
-      id: "offices",
-      profile: offices,
-      tenants: [
-        "Atlantic Mutual Insurance", "Hale, Barrow & Lisle, attorneys", "Bradley Advertising Agency", "Empire Coastwise Shipping",
-        "Sterling Textile Company", "Reliance Title & Trust", "Norden Radio Corporation", "Ward & Pell, architects",
-        "Columbia Stenographic Bureau", "Hudson Coal & Coke", "Feldman Brothers, furriers", "Grace & Ostrow, accountants",
-        "Metropolitan Casualty", "Allied Chemical Sales", "Keystone Steel, New York office", "The Pelham Press",
-        "Union Sugar Refining", "Mercantile Credit Agency", "Lowe & Carrick, stockbrokers", "Bureau of Engineering Surveys",
-      ],
-      weight: 10,
-      run: [1, 5],
-    },
-  ],
+  rooms: { offices, bank, showroom: store, suite },
 };

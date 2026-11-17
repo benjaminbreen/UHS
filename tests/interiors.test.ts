@@ -10,6 +10,7 @@ import { planBuilding } from "../src/render/interiors/building";
 import type { Place } from "../src/core/types";
 import { towerStyles } from "../src/content/towers";
 import { towerPlan } from "../src/world/tower";
+import { resolveCharacterContext } from "../src/content/characters/resolve";
 import { createSettingSession } from "../src/runtime/session";
 import { religiousProfile } from "../src/content/settlements/religious";
 import type { WorldSetting } from "../src/content/geography/types";
@@ -543,21 +544,40 @@ it("lays out hospital wards with repeated beds, a clear aisle and regional beddi
 });
 
 describe("towers", () => {
-  it("plans each style's tower: the lobby, floors in their bands, the top", () => {
-    for (const style of towerStyles) {
-      const place = { id: "t", sprite: `${style.frames}0-urban-tall` } as Place;
-      const tower = towerPlan(place, "plan")!;
-      const n = tower.floors.length;
+  const towerIn = (prompt: string, frames: string, seed = "plan") => {
+    const resolved = resolveSetting(prompt, "tower");
+    if (!("setting" in resolved)) throw Error(prompt);
+    const s = resolved.setting;
+    return { s, tower: towerPlan({ id: `t-${seed}`, sprite: `${frames}0-urban-tall` } as Place, seed, s)! };
+  };
+  it("lets each style's tower to firms of its place and year, staffed by work found there", () => {
+    for (const [prompt, style] of [["Typist in New York 1930", towerStyles[0]], ["Clerk in Moscow 1955", towerStyles[1]], ["Clerk in Tokyo 1988", towerStyles[2]]] as const) {
+      const { s, tower } = towerIn(prompt, style.frames);
+      const n = tower.floors.length, here = new Set(resolveCharacterContext(s).livelihoods.map((l) => l.id));
       expect(n, style.id).toBeGreaterThanOrEqual(style.storeys[0]);
       expect(n, style.id).toBeLessThanOrEqual(style.storeys[1]);
       expect(tower.floors.map((f) => f.n)).toEqual([...Array(n).keys()]);
-      expect([tower.floors[0].kind, tower.floors[n - 1].kind]).toEqual(["lobby", style.top.id]);
-      for (const f of tower.floors.slice(1, -1)) {
-        const band = style.floors.find((k) => k.id === f.kind)!.band;
-        if (band) expect(f.n / n, `${style.id} ${f.kind}`).toBeLessThanOrEqual(band[1]);
-        expect(f.profile.door).toBe("lift");
+      expect(tower.floors[0].kind).toBe("lobby");
+      expect(tower.floors[n - 1].kind, style.id).toMatch(/suite|lounge/);
+      for (const f of tower.floors) {
+        expect(style.rooms[f.kind] ?? style.lobby, `${style.id} ${f.kind}`).toBe(f.profile);
+        expect(f.staff.length, f.name).toBeGreaterThan(0);
+        for (const w of f.staff) expect(here.has(w.work), `${prompt}: ${w.work}`).toBe(true);
+        expect(f.name, f.tenant).not.toMatch(/[{}[\]]/);
+        if (f.n) expect(f.profile.door).toBe("lift");
       }
     }
+  });
+  it("keeps firms to their era and economy", () => {
+    const kinds = (prompt: string, frames: string) =>
+      new Set(["a", "b", "c", "d"].flatMap((seed) => towerIn(prompt, frames, seed).tower.floors.map((f) => f.tenant)));
+    const chicago = kinds("Clerk in Chicago 1925", "mod-deco-");
+    expect(chicago.has("software") || chicago.has("call-centre") || chicago.has("ministry")).toBe(false);
+    expect(chicago.has("law") || chicago.has("insurance")).toBe(true);
+    const moscow = kinds("Clerk in Moscow 1955", "mod-vysotka-");
+    expect(moscow.has("law") || moscow.has("brokers") || moscow.has("advertising")).toBe(false);
+    expect(moscow.has("ministry")).toBe(true);
+    expect(kinds("Clerk in Bangkok 2010", "mod-deco-").has("software")).toBe(true);
   });
   it.runIf(!!process.env.FULL)("lets a New York tower by its floors, and its lift carries the player up", () => {
     const resolved = resolveSetting("Typist in New York 1930", "tower");

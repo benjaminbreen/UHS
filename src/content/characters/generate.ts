@@ -14,11 +14,13 @@ import type { WorldSetting } from "../geography/types";
 import {
   characterCommunity,
   characterStanding,
+  matchesCharacterScope,
   resolveCharacterContext,
   type CharacterContext,
 } from "./resolve";
+import { jobGrades } from "./city-work";
 import { asOfficiant } from "./officiant";
-import { livelihoodById } from "./livelihoods";
+import { callingItems, livelihoodById } from "./livelihoods";
 import {
   generateAdornment,
   metalForMeans,
@@ -317,13 +319,27 @@ export function characterLivelihood(
   let roll = random(seed, "character-v1", id, "livelihood") * total;
   return resolveApprentice(pool.find((l) => (roll -= l.weight ?? 1) < 0) ?? pool[pool.length - 1]);
 }
+/** The grade this person holds their work at, by age: a junior broker, a
+ * senior partner. A local name keeps only the grades written for it. */
+export function graded(l: Livelihood, s: WorldSetting, seed: string, id: string, age: number): Livelihood {
+  const ladder = jobGrades[l.id];
+  if (!ladder) return l;
+  const fits = ladder.filter((g) => (!g.ages || (age >= g.ages[0] && age < g.ages[1])) && (!g.scope || matchesCharacterScope(g.scope, s)));
+  const own = fits.some((g) => g.scope?.bounds) ? fits.filter((g) => g.scope?.bounds || g.label === "%") : fits;
+  const local = l.label !== (livelihoodById(l.id)?.label ?? l.label);
+  const pool = own.filter((g) => g.label === "%" || !local || !g.label.includes("%"));
+  const total = pool.reduce((n, g) => n + g.weight, 0);
+  let roll = random(seed, "character-v1", id, "grade") * total;
+  const g = pool.find((g) => (roll -= g.weight) < 0);
+  return !g || g.label === "%" ? l : { ...l, label: g.label.replace("%", l.label), rank: g.rank ?? l.rank };
+}
 export function eligibleInventory(
   inventory: Inventory,
   context: CharacterContext,
 ): Inventory {
   return Object.fromEntries(
     Object.entries(inventory).filter(([key]) =>
-      context.profile.allowedItems.includes(key as keyof Inventory),
+      context.profile.allowedItems.includes(key as keyof Inventory) || callingItems.includes(key),
     ),
   );
 }
@@ -463,7 +479,7 @@ export function generateCharacter(
     inheritedTradition,
     familyNaming,
   );
-  const livelihood = characterLivelihood(
+  const drawn = characterLivelihood(
     s,
     seed,
     id,
@@ -474,11 +490,13 @@ export function generateCharacter(
     age,
   );
   // Asking for work done by one sex asks for someone of it.
-  if (requestedRole && livelihood.sex && livelihood.sex !== sex && !(id === "player" && s.brief?.sex))
-    return generateCharacter(s, seed, id, age, requestedRole, explicitName, inheritedFamilies, livelihood.sex, inheritedTradition, familyNaming, localContext);
+  if (requestedRole && drawn.sex && drawn.sex !== sex && !(id === "player" && s.brief?.sex))
+    return generateCharacter(s, seed, id, age, requestedRole, explicitName, inheritedFamilies, drawn.sex, inheritedTradition, familyNaming, localContext);
+  const livelihood = graded(drawn, s, seed, id, age);
   const recognized =
     !requestedRole ||
-    livelihood.label.toLowerCase() === requestedRole.toLowerCase() ||
+    drawn.label.toLowerCase() === requestedRole.toLowerCase() ||
+    drawn.id === requestedRole.toLowerCase() ||
     requestedRole.toLowerCase().startsWith("apprentice ") ||
     context.livelihoods.some(
       (l) =>

@@ -35,7 +35,10 @@ The owner keeps this list.
   opens the tower in section, where a floor is picked and the car rides
   there (`src/ui/TowerSection.tsx`). Windows look down on the city by
   height. Aviation lights blink and neon runs after dark, as building
-  overlays (`beacon`, `chase-<colour>`) and in the section.
+  overlays (`beacon`, `chase-<colour>`) and in the section. Floors are let
+  from a catalogue of firms scoped by era and economy
+  (`src/content/towers/tenants.ts`) and staffed by generated people in
+  graded office jobs (`city-work.ts`); office work has its own day.
 - November 16: fairs from a map. An area can be given as a rectangle on the
   fair's plan and the game sizes it, joins it to its neighbours and fills it
   by class. The 1884 International Health Exhibition is the first: 35 areas

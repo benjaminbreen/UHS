@@ -26,6 +26,7 @@ import { requirementMet } from "./requirements";
 import { citySignatures } from "./signatures";
 import { commonLivelihoods } from "./livelihoods.generated";
 import { outlawLivelihoods } from "./outlaws";
+import { cityLivelihoods } from "./city-work";
 import { workplaceFor, type Workplace } from "./workplace";
 import type { CharacterPhysique } from "../../core/character";
 import {
@@ -485,7 +486,7 @@ export function resolveCharacterContext(
     ? eligible.filter((l) => supported(l) && inScope(l, s, localRequirements))
     : eligible;
   const tiered = revised
-    ? [...commonLivelihoods, ...outlawLivelihoods].filter(
+    ? [...commonLivelihoods, ...outlawLivelihoods, ...cityLivelihoods].filter(
         (l) =>
           (!l.tier || tierApplies(l.tier, s, capabilities)) &&
           supported(l) &&
