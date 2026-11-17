@@ -2172,7 +2172,7 @@ export function urbanNeighborhood(
       // A street wall is not thinned: the kit's ranges stand shoulder to
       // shoulder along the north side of every street.
       const streetWall = zoning && door.facing.ny < 0 && !door.facing.nx && kitWall;
-      if (!americanStrip && !streetWall && rand("open", door.x, door.y) > 0.9 - 0.5 * reach)
+      if (!americanStrip && !streetWall && !downtown && !outlying && rand("open", door.x, door.y) > 0.9 - 0.5 * reach)
         continue;
       const k = cellKey(door.x, door.y);
       if (used.has(k) || !api.dry({ x: door.x, y: door.y, w: 1, h: 1 }, false))
@@ -2183,8 +2183,11 @@ export function urbanNeighborhood(
         nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
       // An industrial city's leftover ground takes its own shops and ranges;
       // the kit's kiosks along every footway read as sheds.
+      // The strip kit is for the American small town and the motor-age edge;
+      // a city with a downtown builds its leftover frontage like any other.
+      const strip = americanStrip && !((downtown || outlying) && (year < 1945 || ringOf(reach) !== "outer"));
       const here: LandUse | undefined =
-        zoning && !americanStrip
+        zoning && !strip
           ? reach < 0.4
             ? "commercial"
             : zoning.inner
