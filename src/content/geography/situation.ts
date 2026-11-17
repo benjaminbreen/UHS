@@ -141,7 +141,6 @@ export function applySituation(
     ...setting,
     situation,
     geographyMode: "configured",
-    terrainRevision: 2,
     settlement: "camp",
     architecture: "shelter",
     water:

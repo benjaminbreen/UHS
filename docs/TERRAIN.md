@@ -11,23 +11,18 @@ Entry files: `src/world/v3/environment.ts` (the land model),
 
 ## Land models
 
-`createSettlementWorld` in `src/world/v3/generate.ts` picks one of three:
-
-- **`createEnvironment`** (`v3/environment.ts`, `terrainRevision: 2`): every
-  new world. Takes Earth constraints from `src/world/geography/`, then
-  carves floodplains, derives moisture and shore materials, and assigns local
-  height tiers. Tiers are relative relief, not metres.
-- `createReliefLandscape` (`v3/topography.ts`, `terrainRevision: 1`): the
-  first relief study. Only `tests/terrain-world.test.ts` reaches it.
-- `createLandscape` (`src/world/geography/landscape.ts`): no terrain revision.
+`createSettlementWorld` in `src/world/v3/generate.ts` has one:
+**`createEnvironment`** (`v3/environment.ts`). It takes Earth constraints from
+`src/world/geography/`, then carves floodplains, derives moisture and shore
+materials, and assigns local height tiers. Tiers are relative relief, not
+metres. The setting must carry an `environment`.
 
 Supporting v3 modules: `landforms.ts` and `terrain-forms.ts` (broad relief and
 river reaches), `drainage.ts`, `boulders.ts`, `shoreline.ts`,
 `land-potential.ts`.
 
-`src/world/geography/` is shared Earth geography used by every generator.
-`src/world/v2/atlas.ts`, `landscape.ts` and `noise.ts` are two-line re-exports
-of it, kept only for three tests.
+`src/world/geography/` is shared Earth geography (`landscape.ts` holds only the
+`LandSample` type now).
 
 ## Features
 
@@ -81,14 +76,6 @@ surface, lat/lon and ecoregion; Cmd- or Ctrl-click a cell in play to call it.
 New relief, features or ground marks go into `v3/environment.ts`,
 `v3/features.ts` and the rasters above. Do not start a second land model or a
 second ground raster.
-
-## Legacy, do not extend
-
-Retiring these is welcome; there are no saves to preserve:
-
-- `v3/topography.ts` (`terrainRevision: 1`) and `tests/terrain-world.test.ts`.
-- `createLandscape` as a v3 fallback.
-- The `src/world/v2/` re-export shims (point the three tests at `src/world/geography/`).
 
 ## Labs and checks
 

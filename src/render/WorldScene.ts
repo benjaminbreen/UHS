@@ -1,5 +1,5 @@
 import { loadVoxelItems, voxelIcon, voxelItemsReady } from "./voxel-items";
-import { walkableRoof, waterborneFrames } from "../content/graphics/models";
+import { shopArt, walkableRoof, waterborneFrames } from "../content/graphics/models";
 import { socialLabels } from "../core/bonds";
 import { shownStock } from "../core/economy";
 import { keepsShop } from "../core/shop";
@@ -37,7 +37,7 @@ import { grassTuftFrame, TUFT_ATLAS } from "./ground-motifs";
 import { Mycelium } from "./mycelium";
 import { rockFrame } from "../content/ecology/rocks";
 import { propVariety, reviewedPropFrame } from "./prop-variety";
-import { secondLanguage, signLanguage, signOptions, signPaints, streetTrade } from "../content/settlements/signs";
+import { keeperTrade, secondLanguage, signLanguage, signOptions, signPaints, streetTrade } from "../content/settlements/signs";
 import { drawShopSign, fitWord, SIGN_GLOW, type SignSlot } from "./shop-signs";
 /** Trades for a shopfront the kit did not name. */
 import type { Place } from "../core/types";
@@ -3023,6 +3023,9 @@ export class WorldScene extends Phaser.Scene {
   ) {
     const model = placement.model as typeof placement.model & { shopSigns?: SignSlot[]; business?: string; signPaint?: string };
     if (!model.shopSigns?.length || !setting) return;
+    // A lot nobody keeps, a ruin among them, has no boards up.
+    const keeper = this.ownerRole(place);
+    if (!keeper) return;
     const first = signLanguage(setting);
     if (!first) return;
     const second = secondLanguage(setting);
@@ -3030,8 +3033,12 @@ export class WorldScene extends Phaser.Scene {
     const seed = this.runtime.engine.state.manifest.seed;
     model.shopSigns.forEach(([sx, sy, w, h, kind, hint], i) => {
       const r = (k: string) => random(seed, "shop-sign", k, place.id, i);
-      const own = i === 0 ? model.business : undefined;
-      if (own?.startsWith("residential") || r("bare") < 0.12) return;
+      // The first board is the keeper's own: the business the art names, or
+      // what the keeper's work is. A private house hangs none.
+      if (i === 0 && !model.business && place.access !== "public") return;
+      const art = shopArt(place.sprite);
+      const own = i === 0 ? model.business ?? (art && art !== "shop" ? art : keeperTrade(keeper)) : undefined;
+      if (own?.startsWith("residential") || r("bare") < (i === 0 ? 0 : 0.12)) return;
       const year = this.runtime.engine.world.pack.year;
       const trade = hint || own || streetTrade(year, r("trade"));
       const language = second && r("language") < second[1] ? second[0] : first;
@@ -3075,6 +3082,10 @@ export class WorldScene extends Phaser.Scene {
   /** The family name of whoever keeps this place, where the culture and the
    * century give people family names at all. Generation already decides that,
    * so a one-word name simply yields nothing here. */
+  private ownerRole(place: Place): string {
+    return this.runtime.engine.state.actors.find((actor) => actor.id === place.owner)?.role ?? "";
+  }
+
   private ownerSurname(place: Place): string | undefined {
     if (!place.owner) return undefined;
     const owner = this.runtime.engine.state.actors.find(
@@ -4859,7 +4870,7 @@ export class WorldScene extends Phaser.Scene {
                       ? "study-sheet-tree-broadleaf"
                       : `study-tree-${alternate}-${alternateTrees[alternate][1] - 1}`
                   : originalName;
-              const plainShrub = !tuft && (w.pack.setting?.vegetationRevision ?? 0) >= 9 &&
+              const plainShrub = !tuft && !!w.pack.setting &&
                 (/^nature-dry-scrub-(small|medium)/.test(spriteName) ||
                   random(seed, "named-shrub-art", Math.floor(x / 4), Math.floor(y / 4)) < 0.55);
               const frameAndDress =
@@ -4976,7 +4987,7 @@ export class WorldScene extends Phaser.Scene {
               if (d && d.sprite !== "rock")
                 this.makeSelectable(decoration, d.id, variety.flip);
               if (
-                (w.pack.setting?.vegetationRevision ?? 0) >= 2 &&
+                !!w.pack.setting &&
                 (originalIsTree ||
                   natureTreeSprites.includes(frame) ||
                   w.pack.trees.includes(frame))

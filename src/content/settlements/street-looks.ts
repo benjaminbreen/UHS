@@ -2,11 +2,12 @@ import type { WorldSetting } from "../geography/types";
 import type { LandUse } from "./zoning";
 import { buildingModels } from "../graphics/models";
 
-/** Twentieth-century street looks drawn by scripts/art/front_modern.py and
- * front_modern_world.py, with
- * the year each became ordinary and the blocks that build it. An `accent` is a
- * one-off (a bank, a picture palace) that stands in another look's block
- * rather than filling one. Frames are `mod-<look>-<n>-urban-<form>`. */
+/** Street looks of 1850 on, drawn by scripts/art/front_modern.py,
+ * front_modern_world.py and front_homes.py, with the year each became
+ * ordinary and the blocks that build it. An `accent` is a one-off (a bank, a
+ * picture palace) that stands in another look's block rather than filling
+ * one. After `until` builders moved on: the houses stand, but fewer blocks
+ * are theirs. Frames are `mod-<look>-<n>-urban-<form>`. */
 const LOOKS = {
   falsefront: { since: 1900, uses: ["commercial"] },
   brick: { since: 1900, uses: ["commercial", "downtown"] },
@@ -35,7 +36,17 @@ const LOOKS = {
   "strip-asia": { since: 1975, uses: ["commercial"] },
   cairo: { since: 1945, uses: ["commercial", "downtown", "tenement"] },
   tonglau: { since: 1920, uses: ["commercial", "downtown", "tenement"] },
-  highstreet: { since: 1900, uses: ["commercial", "downtown"] },
+  highstreet: { since: 1860, uses: ["commercial", "downtown"] },
+  precinct: { since: 1955, uses: ["commercial", "downtown"] },
+  // The city centre before the steel frame (front_victorian.py).
+  chambers: { since: 1850, until: 1914, uses: ["downtown"] },
+  emporium: { since: 1860, until: 1914, uses: ["downtown"] },
+  pub: { since: 1850, uses: ["commercial", "downtown"], accent: true },
+  // Rows of the South China Sea (front_straits.py), by the era of their fronts.
+  shophouse: { since: 1820, until: 1900, uses: ["commercial", "rowhouse", "tenement", "downtown"] },
+  "shophouse-late": { since: 1895, until: 1940, uses: ["commercial", "rowhouse", "tenement", "downtown"] },
+  "shophouse-deco": { since: 1930, until: 1965, uses: ["commercial", "rowhouse", "tenement", "downtown"] },
+  lilong: { since: 1870, until: 1949, uses: ["rowhouse", "tenement"] },
   storey: { since: 1950, uses: ["commercial", "downtown", "tenement"] },
   habana: { since: 1900, uses: ["commercial", "downtown", "tenement"] },
   mission: { since: 1915, uses: ["commercial"] },
@@ -43,7 +54,14 @@ const LOOKS = {
   gas: { since: 1925, uses: ["commercial"], accent: true },
   drivein: { since: 1950, uses: ["commercial"], accent: true },
   market: { since: 1950, uses: ["commercial"], accent: true },
-} satisfies Record<string, { since: number; uses: LandUse[]; accent?: boolean }>;
+  villa: { since: 1850, until: 1914, uses: ["villa", "suburb"] },
+  "villa-stucco": { since: 1850, until: 1914, uses: ["villa", "suburb"] },
+  "villa-board": { since: 1850, until: 1914, uses: ["villa", "suburb"] },
+  suburban: { since: 1900, until: 1960, uses: ["suburb", "villa"] },
+  bungalow: { since: 1905, until: 1940, uses: ["suburb"] },
+  ranch: { since: 1945, until: 1980, uses: ["suburb"] },
+  rendered: { since: 1950, uses: ["suburb", "villa"] },
+} satisfies Record<string, { since: number; until?: number; uses: LandUse[]; accent?: boolean }>;
 export type StreetLook = keyof typeof LOOKS;
 
 type Mix = Partial<Record<StreetLook, number>>;
@@ -54,12 +72,12 @@ type At = readonly (readonly [lon: number, lat: number])[];
  * older modern kit. `w` weighs a home against its neighbours. */
 const HOMES: { looks: Mix; at: At; km: number; w?: number; from?: number }[] = [
   {
-    looks: { brick: 3, strip: 2, diner: 0.5, motel: 0.6, bank: 1, office: 1, theatre: 0.6, gas: 0.6, drivein: 0.3, market: 0.5 },
+    looks: { brick: 3, strip: 2, diner: 0.5, motel: 0.6, bank: 1, office: 1, theatre: 0.6, gas: 0.6, drivein: 0.3, market: 0.5, chambers: 2, emporium: 1.5 },
     at: [[-98, 39], [-82, 37], [-119, 38], [-90, 32], [-112, 45], [-81.4, 28.5], [-84.4, 33.7]],
     km: 1300,
   },
   // Canada built the same Main Street, a little less of the roadside.
-  { looks: { brick: 3, strip: 1, bank: 1, office: 1, theatre: 1, gas: 0.5, market: 0.4 }, at: [[-79.4, 43.7], [-73.6, 45.5], [-114, 51], [-123, 49.3]], km: 700 },
+  { looks: { brick: 3, strip: 1, bank: 1, office: 1, theatre: 1, gas: 0.5, market: 0.4, chambers: 2, emporium: 1.5 }, at: [[-79.4, 43.7], [-73.6, 45.5], [-114, 51], [-123, 49.3]], km: 700 },
   // Tenements and brownstones of the old Northeast and Midwest.
   { looks: { walkup: 1 }, at: [[-74, 40.7], [-71.06, 42.36], [-75.16, 39.95], [-76.6, 39.3], [-87.65, 41.88], [-79.99, 40.44]], km: 450, w: 0.5 },
   // The setback towers the 1916 zoning law shaped, in the downtowns of the big cities that built them.
@@ -75,7 +93,15 @@ const HOMES: { looks: Mix; at: At; km: number; w?: number; from?: number }[] = [
   { looks: { cairo: 1 }, at: [[31.24, 30.04], [29.92, 31.2], [35.5, 33.89], [36.29, 33.51], [35.93, 31.95], [13.19, 32.89], [32.53, 15.59]], km: 700 },
   { looks: { cairo: 1 }, at: [[44.37, 33.31], [46.68, 24.71], [-7.6, 33.57], [3.06, 36.75], [10.18, 36.81]], km: 600, w: 0.5 },
   { looks: { tonglau: 1 }, at: [[114.17, 22.3], [113.26, 23.13], [113.54, 22.2], [121.47, 31.23], [103.85, 1.29], [100.33, 5.41], [100.5, 13.75], [106.7, 10.78]], km: 650 },
-  { looks: { highstreet: 1 }, at: [[-0.12, 51.5], [-2.6, 51.45], [-1.9, 52.48], [-2.24, 53.48], [-1.55, 53.8], [-1.6, 54.97], [-4.25, 55.86], [-3.19, 55.95], [-3.18, 51.48], [-5.93, 54.6], [-6.26, 53.35]], km: 180 },
+  // The Straits ports and the Chinese towns of Southeast Asia.
+  {
+    looks: { shophouse: 1, "shophouse-late": 1.5, "shophouse-deco": 1 },
+    at: [[100.34, 5.41], [102.25, 2.19], [103.85, 1.29], [101.69, 3.14], [101.08, 4.6], [98.67, 3.59], [106.85, -6.2], [110.42, -6.97], [112.75, -7.25], [100.5, 13.75], [98.39, 7.88], [106.7, 10.78], [104.92, 11.56], [96.16, 16.78], [110.35, 1.55]],
+    km: 400,
+  },
+  // The lane rows of Shanghai and the other treaty ports.
+  { looks: { lilong: 1 }, at: [[121.47, 31.23], [117.2, 39.13], [114.3, 30.58], [121.55, 29.87], [118.78, 32.06], [120.38, 36.07]], km: 250 },
+  { looks: { highstreet: 3, precinct: 1, chambers: 2, emporium: 1, pub: 1 }, at: [[-0.12, 51.5], [-2.6, 51.45], [-1.9, 52.48], [-2.24, 53.48], [-1.55, 53.8], [-1.6, 54.97], [-4.25, 55.86], [-3.19, 55.95], [-3.18, 51.48], [-5.93, 54.6], [-6.26, 53.35]], km: 180 },
   { looks: { storey: 1 }, at: [[3.38, 6.45], [-0.19, 5.6], [3.9, 7.38], [-1.62, 6.69], [8.52, 12], [-13.23, 8.48], [-4.01, 5.35], [9.7, 4.05]], km: 900 },
   { looks: { storey: 1 }, at: [[36.82, -1.29], [39.28, -6.8], [32.58, 0.35], [15.3, -4.32]], km: 900, w: 0.5 },
   { looks: { habana: 1 }, at: [[-82.37, 23.13], [-75.82, 20.02], [-66.1, 18.47], [-69.9, 18.48], [-75.5, 10.4]], km: 500 },
@@ -90,9 +116,33 @@ const HOMES: { looks: Mix; at: At; km: number; w?: number; from?: number }[] = [
   { looks: { tehran: 1 }, at: [[51.4, 35.7], [51.7, 32.7], [59.6, 36.3], [46.3, 38.1], [52.5, 29.6]], km: 700 },
   { looks: { delhi: 1 }, at: [[77.2, 28.6], [72.9, 19.1], [88.4, 22.6], [80.3, 13.1], [74.3, 31.5], [67, 24.9], [90.4, 23.8], [78.5, 17.4]], km: 900 },
   { looks: { veranda: 2, bokaap: 1 }, at: [[18.4, -33.9]], km: 250 },
-  { looks: { veranda: 2, brick: 1 }, at: [[28, -26.2], [31, -29.9], [25.6, -33.9], [28.2, -25.7]], km: 700 },
-  { looks: { veranda: 2, brick: 1, strip: 1, bank: 1, office: 1 }, at: [[151.2, -33.9], [153, -27.5], [145, -37.8], [115.9, -32], [138.6, -34.9]], km: 900 },
-  { looks: { veranda: 1, brick: 2, strip: 1, office: 1 }, at: [[174.8, -36.8], [172.6, -43.5]], km: 600 },
+  { looks: { veranda: 2, brick: 1, chambers: 1 }, at: [[28, -26.2], [31, -29.9], [25.6, -33.9], [28.2, -25.7]], km: 700 },
+  { looks: { veranda: 2, brick: 1, strip: 1, bank: 1, office: 1, chambers: 1.5, emporium: 1, pub: 0.6 }, at: [[151.2, -33.9], [153, -27.5], [145, -37.8], [115.9, -32], [138.6, -34.9]], km: 900 },
+  { looks: { veranda: 1, brick: 2, strip: 1, office: 1, chambers: 1.5, emporium: 1, pub: 0.6 }, at: [[174.8, -36.8], [172.6, -43.5]], km: 600 },
+  // Houses in their own gardens. North America: board and brick, then the
+  // bungalow, then the ranch house.
+  {
+    looks: { villa: 1, "villa-board": 1.5, "villa-stucco": 0.5, suburban: 0.7, bungalow: 3, ranch: 4 },
+    at: [[-98, 39], [-82, 37], [-119, 38], [-90, 32], [-112, 45], [-81.4, 28.5], [-74, 40.7], [-87.65, 41.88], [-79.4, 43.7], [-114, 51], [-123, 49.3]],
+    km: 1300,
+  },
+  // Britain and Ireland: brick and stucco villas, then the suburban semi's kind.
+  { looks: { villa: 2, "villa-stucco": 1, suburban: 4 }, at: [[-0.12, 51.5], [-1.9, 52.48], [-2.24, 53.48], [-1.6, 54.97], [-4.25, 55.86], [-3.18, 51.48], [-6.26, 53.35]], km: 300 },
+  // Australia and New Zealand: weatherboard, the California bungalow, brick veneer.
+  { looks: { villa: 1, "villa-board": 2, suburban: 1, bungalow: 3, ranch: 2 }, at: [[151.2, -33.9], [153, -27.5], [145, -37.8], [115.9, -32], [138.6, -34.9], [174.8, -36.8], [172.6, -43.5]], km: 900 },
+  { looks: { villa: 2, "villa-stucco": 1, suburban: 1, bungalow: 2, ranch: 1 }, at: [[18.4, -33.9], [28, -26.2], [31, -29.9], [25.6, -33.9]], km: 600 },
+  // The Continent: the stucco villa, then the rendered house.
+  {
+    looks: { "villa-stucco": 3, villa: 1, rendered: 4 },
+    at: [[2.35, 48.86], [4.35, 50.85], [4.9, 52.37], [6.96, 50.94], [13.4, 52.5], [11.58, 48.14], [16.37, 48.21], [8.54, 47.37], [9.19, 45.46], [12.5, 41.9], [-3.7, 40.42], [2.17, 41.39], [-9.14, 38.72], [14.42, 50.08], [19.04, 47.5], [21.01, 52.23], [23.73, 37.98], [12.57, 55.68], [18.07, 59.33], [26.1, 44.43], [28.98, 41.01]],
+    km: 450,
+  },
+  // Latin America: the quinta, then the concrete house behind its gate.
+  { looks: { "villa-stucco": 2, rendered: 3 }, at: [[-99.1, 19.4], [-74.1, 4.7], [-66.9, 10.5], [-77, -12], [-58.4, -34.6], [-70.6, -33.4], [-46.6, -23.5], [-43.2, -22.9], [-82.37, 23.13]], km: 900 },
+  // Civil lines and garden suburbs of the colonial city: the bungalow is Bengal's own word.
+  { looks: { bungalow: 2, "villa-stucco": 1, rendered: 1 }, at: [[77.2, 28.6], [72.9, 19.1], [88.4, 22.6], [80.3, 13.1], [74.3, 31.5], [103.85, 1.29], [101.7, 3.1], [36.82, -1.29], [3.38, 6.45], [-0.19, 5.6], [39.28, -6.8]], km: 700, w: 0.6 },
+  // Villa suburbs of the eastern Mediterranean, the Maghreb and Iran.
+  { looks: { "villa-stucco": 1, rendered: 2 }, at: [[31.24, 30.04], [29.92, 31.2], [35.5, 33.89], [34.78, 32.08], [51.4, 35.7], [-7.6, 33.57], [10.18, 36.81]], km: 500, w: 0.6 },
 ];
 
 /** Who moved in and opened shops, as a share of a town's blocks by year
@@ -120,7 +170,14 @@ const INFLUENCES: { looks: Mix; at: At; km: number; share: [year: number, share:
   { looks: { tehran: 1 }, at: [[44.4, 33.3], [69.2, 34.5], [55.3, 25.3]], km: 600, share: [[1950, 0.1], [1990, 0.2]] },
   { looks: { habana: 1 }, at: [[-80.2, 25.77]], km: 120, share: [[1960, 0.04], [1975, 0.2], [1990, 0.28]] },
   { looks: { habana: 1 }, at: [[-73.94, 40.8]], km: 60, share: [[1950, 0.03], [1975, 0.08]] },
-  { looks: { highstreet: 1 }, at: [[151.2, -33.9], [145, -37.8], [174.8, -36.8], [18.4, -33.9], [-79.4, 43.7]], km: 400, share: [[1900, 0.12], [1990, 0.06]] },
+  { looks: { highstreet: 1 }, at: [[151.2, -33.9], [145, -37.8], [174.8, -36.8], [18.4, -33.9], [-79.4, 43.7]], km: 400, share: [[1860, 0.12], [1990, 0.06]] },
+  // The business quarter of a colonial port: banks, shipping offices and stores in the home country's manner.
+  {
+    looks: { chambers: 2, emporium: 1 },
+    at: [[72.83, 18.93], [88.35, 22.57], [80.28, 13.08], [79.86, 6.93], [96.16, 16.78], [103.85, 1.29], [100.34, 5.41], [114.16, 22.28], [121.49, 31.24], [18.42, -33.92], [39.67, -4.05], [3.39, 6.45], [-76.79, 17.97]],
+    km: 150,
+    share: [[1850, 0], [1870, 0.3], [1914, 0.45], [1950, 0.3], [1990, 0.15]],
+  },
 ];
 
 const KM_PER_DEGREE = 111.2;
@@ -141,20 +198,24 @@ function curve(points: [number, number][], year: number) {
   return points[points.length - 1][1];
 }
 
-/** Adds `share` across the looks already built by `year` (and that build
- * `use`, if given); 0 if none were. */
-function spread(into: Mix, looks: Mix, share: number, year: number, use?: LandUse) {
+/** Adds `share` across the looks already built by `year` that build `use`,
+ * each weighed down once its builders have moved on; 0 if none were. */
+function spread(into: Mix, looks: Mix, share: number, year: number, use: LandUse) {
   const open = (Object.keys(looks) as StreetLook[]).filter(
-    (l) => LOOKS[l].since <= year && (!use || (LOOKS[l].uses as readonly LandUse[]).includes(use)),
+    (l) => LOOKS[l].since <= year && (LOOKS[l].uses as readonly LandUse[]).includes(use),
   );
-  const total = open.reduce((t, l) => t + looks[l]!, 0);
-  for (const l of open) into[l] = (into[l] ?? 0) + (share * looks[l]!) / total;
+  const weight = (l: StreetLook) => {
+    const until = (LOOKS[l] as { until?: number }).until ?? year;
+    return looks[l]! * Math.max(0.2, 1 - (year - until) / 25);
+  };
+  const total = open.reduce((t, l) => t + weight(l), 0);
+  for (const l of open) into[l] = (into[l] ?? 0) + (share * weight(l)) / total;
   return open.length ? share : 0;
 }
 
-/** Each look's share of a town's blocks, or of its blocks of one use. What
- * is left of 1 keeps the older modern kit. */
-export function streetMix(s: Pick<WorldSetting, "lon" | "lat" | "year">, use?: LandUse): Mix {
+/** Each look's share of a town's blocks of one use. What is left of 1 keeps
+ * the older modern kit. */
+export function streetMix(s: Pick<WorldSetting, "lon" | "lat" | "year">, use: LandUse): Mix {
   let held = 0;
   const homes: Mix = {};
   for (const h of HOMES) {

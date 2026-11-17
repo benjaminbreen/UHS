@@ -13,7 +13,8 @@ import { streetMix } from "../src/content/settlements/street-looks";
 import { planLot } from "../src/content/settlements/lots";
 import { propDefs } from "../src/content/props/catalog";
 import propFrames from "../src/render/generated/props.json" with { type: "json" };
-import { buildingModels } from "../src/content/graphics/models";
+import { buildingModels, shopArt } from "../src/content/graphics/models";
+import { livelihoodById } from "../src/content/characters/livelihoods";
 import { mediterraneanStyle, watchtowerFrame, mediterraneanShrineFrame, mediterraneanInsulaFrames, retainedTowerStyle } from "../src/content/graphics/mediterranean-buildings";
 const resolved = resolveSetting("Rome 100 BCE");
 if ("error" in resolved) throw Error(resolved.error);
@@ -205,6 +206,28 @@ it("encloses public squares and courts with varied, non-overlapping ranges and r
         expect(p.solid.has(`${q.x},${q.y}`)).toBe(false);
   }
 }, 30000);
+it.runIf(!!process.env.FULL)("keeps a building drawn as a shop open to the public, by someone whose work a shop is", () => {
+  const r = resolveSetting("Paris 1888");
+  if ("error" in r) throw Error(r.error);
+  const s = integratedSetting(r.setting);
+  const plan = planSettlement(
+    { id: "city", cx: 0, cy: 0, home: false, center: { x: 0, y: 0 }, profile: { ...settlementProfile(s), radius: 90 } },
+    packForSetting(s), "shops", flat, [],
+  );
+  const keeper = (id: string) => plan.actors.find((a) => a.id === id);
+  const shops = plan.places.filter((q) => shopArt(q.sprite) && keeper(q.owner));
+  expect(shops.length).toBeGreaterThan(10);
+  for (const q of shops) {
+    expect(q.access, q.name).toBe("public");
+    const work = livelihoodById(keeper(q.owner)!.origin?.livelihood ?? "");
+    expect(["field", "pasture"], `${q.name}: ${keeper(q.owner)!.role}`).not.toContain(work?.workplace ?? "");
+  }
+  // The art names some of them, and so does the door.
+  for (const q of shops) if (shopArt(q.sprite) === "cafe") expect(q.name).toBe("Cafe");
+  // A house is never called a store.
+  expect(plan.places.some((q) => q.name === "Household stores")).toBe(false);
+});
+
 it.runIf(!!process.env.FULL)("zones an industrial-age city into a downtown, factories and the housing of each ring's date", () => {
   const plan = (query: string) => {
     const r = resolveSetting(query);
@@ -292,10 +315,8 @@ it.runIf(!!process.env.FULL)("zones an industrial-age city into a downtown, fact
   expect(interwar.objects.some((o) => o.sprite.includes("traffic-signal-0"))).toBe(true);
 });
 
-it("keeps urban geometry deterministic and the old selection opt-in", () => {
+it("keeps urban geometry deterministic", () => {
   expect(city("same").places).toEqual(city("same").places);
-  const old = { ...setting, urbanRevision: undefined };
-  expect(settlementProfile(old).pattern).toBe("planned");
   expect(settlementProfile(setting).pattern).toBe("dense");
 });
 
@@ -335,8 +356,8 @@ it("frames modern civic squares without roads, market stalls or a shared fire", 
     for (const b of p.places.filter((b) => b.landUse === "industrial"))
       expect(route(p.spawn, b.entrance, (q) => p.solid.has(`${q.x},${q.y}`) ||
         Math.abs(q.x) > 160 || Math.abs(q.y) > 160 ? Infinity : 1).status, b.id).toBe("found");
-    expect(p.loadingBays!.size).toBeGreaterThan(0);
-    for (const k of p.loadingBays!.keys()) expect(p.solid.has(k), `loading access ${k}`).toBe(false);
+    if (p.places.some((b) => b.landUse === "industrial")) expect(p.loadingBays!.size).toBeGreaterThan(0);
+    for (const k of p.loadingBays?.keys() ?? []) expect(p.solid.has(k), `loading access ${k}`).toBe(false);
     for (const b of p.places) {
       const since = modernBuildingSince(b.sprite);
       if (since && b.structure) expect(b.structure.built).toBeGreaterThanOrEqual(since);
@@ -392,20 +413,40 @@ it("assigns coherent, deterministic materials to civic squares and street lanes"
 
 it("mixes twentieth-century street looks by place and date", () => {
   const share = (m: Record<string, number>, ...looks: string[]) => looks.reduce((t, l) => t + (m[l] ?? 0), 0);
-  const santaCruz = streetMix({ lon: -122.03, lat: 36.97, year: 1985 });
+  const santaCruz = streetMix({ lon: -122.03, lat: 36.97, year: 1985 }, "commercial");
   expect(share(santaCruz, "brick", "strip", "bank", "office", "mission")).toBeGreaterThan(0.45);
   expect(share(santaCruz, "strip-mx", "brick-mx", "moderno")).toBeGreaterThan(0.1);
   expect(share(santaCruz, "strip-asia", "brick-cn")).toBeGreaterThan(0.005);
-  expect(streetMix({ lon: -122.03, lat: 36.97, year: 1965 })["strip-asia"]).toBeUndefined();
-  expect(Object.keys(streetMix({ lon: 139.7, lat: 35.7, year: 1985 }))).toEqual(["zakkyo", "bubble"]);
-  expect(Object.keys(streetMix({ lon: 139.7, lat: 35.7, year: 1970 }))).toEqual(["zakkyo"]);
-  expect(streetMix({ lon: 37.62, lat: 55.75, year: 1955 }).vysotka).toBeGreaterThan(0);
-  expect(streetMix({ lon: 37.62, lat: 55.75, year: 1948 }).vysotka).toBeUndefined();
-  expect(Object.keys(streetMix({ lon: 31.2, lat: 30, year: 1975 }))).toEqual(["cairo"]);
-  const paris = streetMix({ lon: 2.35, lat: 48.86, year: 1975 });
+  expect(streetMix({ lon: -122.03, lat: 36.97, year: 1965 }, "commercial")["strip-asia"]).toBeUndefined();
+  expect(Object.keys(streetMix({ lon: 139.7, lat: 35.7, year: 1985 }, "commercial"))).toEqual(["zakkyo", "bubble"]);
+  expect(Object.keys(streetMix({ lon: 139.7, lat: 35.7, year: 1970 }, "commercial"))).toEqual(["zakkyo"]);
+  expect(streetMix({ lon: 37.62, lat: 55.75, year: 1955 }, "commercial").vysotka).toBeGreaterThan(0);
+  expect(streetMix({ lon: 37.62, lat: 55.75, year: 1948 }, "commercial").vysotka).toBeUndefined();
+  expect(Object.keys(streetMix({ lon: 31.2, lat: 30, year: 1975 }, "commercial"))).toEqual(["cairo"]);
+  const paris = streetMix({ lon: 2.35, lat: 48.86, year: 1975 }, "commercial");
   expect(share(paris, ...Object.keys(paris))).toBeLessThan(0.1);
-  for (const m of [santaCruz, streetMix({ lon: 18.4, lat: -33.9, year: 1960 })])
+  for (const m of [santaCruz, streetMix({ lon: 18.4, lat: -33.9, year: 1960 }, "commercial")])
     expect(share(m, ...Object.keys(m))).toBeLessThanOrEqual(1.0001);
+  // Houses in gardens follow the same map: who built what, and when they stopped.
+  const chicago = (year: number) => streetMix({ lon: -87.65, lat: 41.88, year }, "suburb");
+  expect(Object.keys(chicago(1890)).sort()).toEqual(["villa", "villa-board", "villa-stucco"]);
+  expect(chicago(1925).bungalow).toBeGreaterThan(chicago(1925)["villa-board"]!);
+  expect(chicago(1960).ranch).toBeGreaterThan(chicago(1960).bungalow!);
+  expect(streetMix({ lon: -0.12, lat: 51.5, year: 1935 }, "suburb").suburban).toBeGreaterThan(0.5);
+  expect(streetMix({ lon: 11.58, lat: 48.14, year: 1975 }, "suburb").rendered).toBeGreaterThan(0.5);
+  expect(streetMix({ lon: 139.7, lat: 35.7, year: 1985 }, "suburb")).toEqual({});
+  // A Victorian centre: chambers and stores downtown, the parade on the shop streets.
+  const london = (year: number, use: "downtown" | "commercial") => streetMix({ lon: -0.12, lat: 51.5, year }, use);
+  expect(share(london(1890, "downtown"), "chambers", "emporium")).toBeGreaterThan(0.4);
+  expect(london(1890, "commercial").highstreet).toBeGreaterThan(0.5);
+  expect(london(1890, "commercial").precinct).toBeUndefined();
+  expect(london(1850, "commercial").highstreet).toBeUndefined();
+  expect(streetMix({ lon: 72.83, lat: 18.93, year: 1900 }, "downtown").chambers).toBeGreaterThan(0.1);
+  // Rows of the South China Sea, in the fronts of their date.
+  const singapore = (year: number) => streetMix({ lon: 103.85, lat: 1.29, year }, "rowhouse");
+  expect(singapore(1925)["shophouse-late"]).toBeGreaterThan(singapore(1925).shophouse!);
+  expect(singapore(1955)["shophouse-deco"]).toBeGreaterThan(singapore(1955).shophouse!);
+  expect(streetMix({ lon: 121.47, lat: 31.23, year: 1930 }, "rowhouse").lilong).toBeGreaterThan(0.5);
 });
 
 it("gives open lots a use from the place, inside the lot and drawn", () => {

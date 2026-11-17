@@ -1223,7 +1223,8 @@ NEW = {
         dict(wall=PALEBLUE, frame=ALU, grille=INK, enclosed=0.0, shift=4)]),
     'highstreet': (HighStreet, 'British high street', [
         dict(wall=BRICK, sash=WHITE, pilaster=SAGE), dict(wall=BUFF, sash=CREAM, pilaster=OXBLOOD, arched=True, shift=3),
-        dict(kind='precinct', frame=ALU, shift=5)]),
+        dict(wall=BRICK, sash=CREAM, pilaster=INK, arched=True, shift=1)]),
+    'precinct': (HighStreet, 'Shopping precinct', [dict(kind='precinct', frame=ALU, shift=5)]),
     'storey': (Storey, 'Lagos storey-building', [
         dict(wall=SAND, frame=JADE, breeze=CONCRETE, roof=RUST, tank=DOVE),
         dict(wall=MINT, frame=COBALT, breeze=WHITE, roof=TIN, tank=COBALT, bars=CRIMSON, shift=2),
@@ -1251,6 +1252,7 @@ ABOUT = {
     'cairo': ('modern-stucco', 'A concrete apartment house over shops, with balconies, shutters and a pigeon loft on the roof.'),
     'tonglau': ('modern-stucco', 'A shop-house over an arcade, with verandahs above and signboards hung down the front.'),
     'highstreet': ('bengal-brick', 'A row of shops with signwritten fascias, flats above and a slate roof.'),
+    'precinct': ('concrete-frame', 'A shopping precinct of concrete panels, a canopy over the walk.'),
     'storey': ('modern-stucco', 'A storey-building: shops below, balconies behind breeze blocks, an iron roof.'),
     'habana': ('modern-stucco', 'A pastel building over an arcade, with tall shuttered doors and iron balconies.'),
     'mission': ('white-plaster', 'A white stucco shop building under red barrel tile, with arched windows.'),
@@ -1259,7 +1261,7 @@ ABOUT = {
     'drivein': ('white-plaster', 'A drive-in burger stand with walk-up windows and a neon arrow.'),
     'market': ('concrete-frame', 'A supermarket with its specials in the windows.'),
 }
-FORMS = dict(cairo='row shop wide tall cottage hall', tonglau='row shop tall cottage hut', highstreet='row shop wide tall hall',
+FORMS = dict(cairo='row shop wide tall cottage hall', tonglau='row shop tall cottage hut', highstreet='row shop wide tall hall', precinct='row shop wide tall hall',
              storey='row shop wide tall hall', habana='row shop wide tall hall', mission='row shop wide tall cottage hall',
              walkup='row shop tall hall', gas='row wide hall', drivein='row shop cottage', market='row wide hall')
 fmod.LOOKS.update(NEW)

@@ -1,13 +1,11 @@
 import { expect, it } from "vitest";
 import { createEnvironment } from "../src/world/v3/environment";
-import { integratedSetting } from "../src/content/geography/defaults";
 import type { WorldSetting } from "../src/content/geography/types";
 
 const setting = {
   version: 2, lon: 0, lat: 50, year: 1300, relief: 0.3,
   climate: "temperate", settlement: "village", water: "coast-n",
-  season: "summer", terrainRevision: 2, geographyMode: "earth",
-  hydrologyRevision: 1,
+  season: "summer", geographyMode: "earth",
   environment: { ecology: "grassland", landform: "rolling", population: "none", start: "wanderer", household: "mixed" },
 } as WorldSetting;
 
@@ -32,8 +30,3 @@ it("leaves dry configured countryside without invented creek ponds", () => {
       expect(land.sample(x, y).water).toBeGreaterThan(0);
 });
 
-it("pins the new water policy only when creating a new world", () => {
-  const { hydrologyRevision: _, ...old } = setting;
-  expect("hydrologyRevision" in old).toBe(false);
-  expect(integratedSetting(old).hydrologyRevision).toBe(3);
-});

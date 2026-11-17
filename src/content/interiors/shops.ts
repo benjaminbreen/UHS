@@ -9,7 +9,7 @@ import type { Kind } from "../../render/interiors/room";
  */
 type ShopKind = { id: string; label: string; match: RegExp; fixture?: Kind[] };
 export const shopKinds: ShopKind[] = [
-  { id: "bread", label: "Bakehouse", match: /bak|bread|oven|pastr|confection/, fixture: ["fixture"] },
+  { id: "bread", label: "Bakehouse", match: /bak|bread|oven|pastr|confection|pizz|donut/, fixture: ["fixture"] },
   { id: "meat", label: "Butcher's shop", match: /butch|meat|slaughter|poulter|flesh/, fixture: ["fixture"] },
   { id: "fish", label: "Fish stall", match: /fish/ },
   { id: "tools", label: "Smithy", match: /smith|iron|forge|farrier|cutler|nail|armou?r/, fixture: ["fixture", "anvil"] },
@@ -18,13 +18,13 @@ export const shopKinds: ShopKind[] = [
   { id: "cloth", label: "Draper's shop", match: /weav|fuller|cloth|draper|mercer|tailor|silk|dye|linen|wool|textile|sew/ },
   { id: "leather", label: "Leather shop", match: /leather|tann|cobbl|shoe|saddl|glov|cord/, fixture: ["fixture"] },
   { id: "candles", label: "Chandlery", match: /candle|chandl|soap|tallow|wax/ },
-  { id: "apothecary", label: "Apothecary", match: /apothec|drug|herb|physic|spice|perfum/ },
-  { id: "tea", label: "Tea shop", match: /\btea\b/ },
+  { id: "apothecary", label: "Apothecary", match: /apothec|drug|herb|physic|spice|perfum|pharmac|clinic/ },
+  { id: "tea", label: "Tea shop", match: /\btea\b|caf[eé]|coffee|diner|burger|ice cream|publican|innkeep|cook|waiter|hotel|motel/ },
   { id: "fine", label: "Workshop", match: /lacquer|paint|jewel|gold|silver|engrav|print|book|scribe|clock|glass/, fixture: ["fixture"] },
   { id: "drink", label: "Wine shop", match: /brew|wine|vint|distil|sake|ale\b/ },
   { id: "oil", label: "Oil shop", match: /\boil|press/ },
   { id: "tobacco", label: "Tobacconist", match: /tobacc|snuff|cigar|paan|betel/ },
-  { id: "general", label: "Shop", match: /trad|merchant|broker|factor|deal|grocer|shop|peddl|market|sell|monger|vendor/ },
+  { id: "general", label: "Shop", match: /trad|merchant|broker|factor|deal|grocer|shop|peddl|market|sell|monger|vendor|store|barber|hairdress|laund|station|mechanic|goods/ },
 ];
 const BY_GOOD: Record<string, string> = {
   bread: "bread", meat: "meat", fish: "fish", ironwork: "tools", timber: "timber", pots: "pots",

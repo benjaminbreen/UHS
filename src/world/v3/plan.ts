@@ -21,6 +21,9 @@ import {
 import { atWork } from "../../core/brief";
 import {
   subsistenceFor,
+  characterCommunity,
+  characterStanding,
+  townWorkContext,
   resolveCharacterContext,
   workAt,
 } from "../../content/characters/resolve";
@@ -83,7 +86,6 @@ import {
   type UrbanLot,
 } from "./urban";
 import type { Furniture } from "./blocks";
-import { urbanNeighborhoodV1 } from "./urban-v1";
 import { urbanBuildingLimit } from "../../content/settlements/scale";
 import {
   cropSprite,
@@ -108,14 +110,16 @@ import {
   stallFor,
   streetFurnitureFor,
 } from "../../content/settlements/ornaments";
-import { plazaKitFor, type PlazaPiece } from "../../content/settlements/plaza";
+import { plazaKitFor, squareKind, type PlazaPiece } from "../../content/settlements/plaza";
 import type { Actor, Pack, Place, Point, Position, Terrain } from "../../core/types";
 import { proceduralName } from "../../content/geography/character";
 import { random } from "../../core/random";
 import { noise } from "../geography/noise";
+import { KEEPERS, SHOP_TRADES } from "../../content/settlements/signs";
 import {
   buildingModel,
   buildingModels,
+  shopArt,
   buildingRoofCells,
   buildingArtCells,
 } from "../../content/graphics/models";
@@ -220,8 +224,6 @@ export function planSettlement(
   /** Resolved once: the lookup scans every dated rule, and both the square's
    * furniture and the building budget ask for it. */
   const fabric = siteForm(site, pack);
-  /** Worlds pinned to the first urban revision keep their fixed lattice. */
-  const composed = (pack.setting?.urbanRevision ?? 0) >= 2;
   const organic = !!pack.setting?.environment && profile.pattern !== "planned";
   const camp =
     profile.pattern === "encampment" || profile.pattern === "band"
@@ -325,7 +327,7 @@ export function planSettlement(
     diagnostics: { routeFailures: 0, rejectedBuildings: 0, timing: {} },
   };
   if (pack.setting?.situation && pack.setting.situation.camp !== "none") return planCamp(plan, pack, seed);
-  if (urban && pack.setting?.terrainRevision) {
+  if (urban) {
     const graded = terraces ?? townTerraces(sample, c, r, !!pack.setting && industrialized(pack.setting));
     if (graded.size) {
       if (!terraces) plan.groundLevels = graded;
@@ -429,8 +431,9 @@ export function planSettlement(
   const cityGround =
     profile.radius < 45
       ? undefined
-      : !!pack.setting && industrialized(pack.setting) && !plotted && pack.setting.year < 1900
-        ? "paving"
+      // An industrial city's unbuilt ground is yard and garden, not street stone.
+      : !!pack.setting && industrialized(pack.setting) && !plotted && pack.setting.climate !== "arid"
+        ? "grass"
         : (pack.setting?.year ?? 0) >= 1900 || (plotted && !compoundCity(pack))
         ? "grass"
         : "dirt";
@@ -442,6 +445,10 @@ export function planSettlement(
   /** A town's standing by its extent: 0 provincial, 1 a city, 2 a capital. */
   const townRank = profile.radius >= 95 ? 2 : profile.radius >= 50 ? 1 : 0;
   const kit = plazaKitFor(pack, townRank);
+  /** Railings round a garden square's lawns, stood once the yards' fences can be. */
+  const squareRails: (() => void)[] = [];
+  /** Footway and verge a paved square took over, by what each cell was. */
+  const squareEdge = new Map<string, Pavement>();
   const nativeOrnament = (key: string) => {
     const name = ({ well: "wellhead", fountain: "fountain", bench: "bench", planter: "olive-planter", altar: "votive-altar" } as Record<string, string>)[key];
     return name && mediterraneanProp(pack.setting, name);
@@ -591,14 +598,14 @@ export function planSettlement(
     // painted over it only cut dirt notches into the street.
     if (
       road &&
-      !((sharedRoads || (urban && composed)) && label.startsWith("yard-access"))
+      !((sharedRoads || urban) && label.startsWith("yard-access"))
     )
       addRoad(road);
     else if (!road) plan.diagnostics.routeFailures++;
     return road;
   };
   const marks = pack.setting && roadMarkings(pack.setting);
-  const kerb = pack.setting && urban && composed ? kerbsideFor(pack.setting) : undefined;
+  const kerb = pack.setting && urban ? kerbsideFor(pack.setting) : undefined;
   /** Each paved cell of a straight composed street records where it sits
    * across the road; where two streets overlap it is a junction. */
   // A large city's arterials carry the trams, where it ran them.
@@ -850,7 +857,6 @@ export function planSettlement(
   /** A cell a bank's rim or face crosses; the face hangs more than a cell
    * south of its rim, so the cell two above counts too. */
   const onStep = (x: number, y: number) => {
-    if (!pack.setting?.terrainRevision) return false;
     const tier = (x: number, y: number) => plan.groundLevels?.get(cellKey(x, y)) ?? Math.round(sample(x, y).elevation / 14);
     const t = tier(x, y);
     return [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1], [0, -2]].some(([dx, dy]) => tier(x + dx, y + dy) !== t);
@@ -878,10 +884,10 @@ export function planSettlement(
       )
         valid = false;
     });
-    return valid && (pack.setting?.terrainRevision ? hi - lo <= (urban || hinterland ? 14 : 0) : hi - lo < 28);
+    return valid && hi - lo <= (urban || hinterland ? 14 : 0);
   };
   const gradeGround = (rect: Rect, level?: number, worksite = false) => {
-    if ((!urban && !worksite) || !pack.setting?.terrainRevision || !dry(rect, false, rect, worksite)) return;
+    if ((!urban && !worksite) || !dry(rect, false, rect, worksite)) return;
     plan.groundLevels ??= new Map();
     level ??= Math.round(sample(rect.x + (rect.w >> 1), rect.y + (rect.h >> 1)).elevation / 14);
     eachCell(rect, (x, y) => plan.groundLevels!.set(cellKey(x, y), level!));
@@ -933,13 +939,7 @@ export function planSettlement(
     return shoreFound ?? undefined;
   };
   // Reserve the common first. Its water/hearth objects sit at the edge, never in the through route.
-  const half = pack.setting?.terrainRevision
-    ? 2
-    : profile.plaza === "court"
-      ? 4
-      : profile.plaza === "market"
-        ? 7
-        : 5;
+  const half = 2;
   const publicArea = {
     x: c.x - half,
     y: c.y - half,
@@ -949,7 +949,7 @@ export function planSettlement(
   // A composed town has its square; a second common at the centre only cost
   // the block it landed in.
   eachCell(
-    urban && composed ? { ...publicArea, w: 0, h: 0 } : publicArea,
+    urban ? { ...publicArea, w: 0, h: 0 } : publicArea,
     (x, y) => {
       if (sample(x, y).water >= 0 && (!site.accepts || site.accepts(x, y))) {
         // A camp's middle is trodden grass round the fire, not a square; so is
@@ -996,6 +996,16 @@ export function planSettlement(
     eachCell(rect, (x, y) => noRoad.add(cellKey(x, y))));
   planWaterfront(plan, pack, seed, sample, dry, paint, (rect)=>gradeGround(rect,undefined,true),connect,(rect)=>
     eachCell(rect,(x,y)=>{if((pack.setting?.worksiteRevision??1)<5 || !plan.traffic.has(cellKey(x,y)))noRoad.add(cellKey(x,y));}));
+  // A street-wall city builds over the tracks its works were first reached
+  // by: its own streets pass their gates.
+  if (urban && fabric.streetWall) {
+    const yards = plan.plots.filter((p) => p.id.includes("-worksite-") || p.id.includes("-waterfront-"));
+    for (const road of plan.roads)
+      if (road.id.includes("-worksite-"))
+        roadCells(road, (x, y) => {
+          if (!yards.some((p) => x >= p.x - 1 && x <= p.x + p.w && y >= p.y - 1 && y <= p.y + p.h)) plan.reserved.delete(cellKey(x, y));
+        });
+  }
   // Mills, kilns and quays are not households: counted against the house
   // limit, three worksites left a farmstead of five with nobody living in it.
   const worksites = plan.places.length;
@@ -1016,7 +1026,7 @@ export function planSettlement(
       // A band of setts frames a paved square, as the motor-age one has its kerb.
       if (!fabric.motor && profile.paved && squareStone && min >= 13)
         eachCell(court, (x, y) => {
-          if (x === court.x || x === x1 + 1 || y === court.y || y === y1 + 1)
+          if ((x === court.x || x === x1 + 1 || y === court.y || y === y1 + 1) && plan.pavement!.get(cellKey(x, y)) !== "park")
             plan.streetSurfaces!.set(cellKey(x, y), squareStone === "sett" ? "slab" : "sett");
         });
       const held = new Set<string>();
@@ -1028,7 +1038,7 @@ export function planSettlement(
         const k = cellKey(x, y), role = plan.pavement!.get(k);
         return x >= x0 && x <= x1 && y >= y0 && y <= y1 &&
           (crossing || (Math.abs(x - cx) > aisle && Math.abs(y - cy) > aisle)) &&
-          !plan.solid.has(k) && !held.has(k) && role !== "garden" && role !== "verge" && role !== "dais" &&
+          !plan.solid.has(k) && !held.has(k) && role !== "garden" && role !== "park" && role !== "verge" && role !== "dais" &&
           dry({ x, y, w: 1, h: 1 }, false);
       };
       const put = (tag: string, piece: PlazaPiece | undefined, x: number, y: number, solid = true) => {
@@ -1118,7 +1128,7 @@ export function planSettlement(
       eachCell(court, (x, y) => {
         const k = cellKey(x, y);
         const border = x === court.x || x === court.x + court.w - 1 || y === court.y || y === court.y + court.h - 1;
-        plan.streetSurfaces!.set(k, border ? "basalt" : "concrete");
+        if (plan.pavement!.get(k) !== "park") plan.streetSurfaces!.set(k, border ? "basalt" : "concrete");
         plan.lanes?.delete(k);
       });
       const place = (tag: string, name: string, sprite: string, at: Point, width = 1) => {
@@ -1401,6 +1411,56 @@ export function planSettlement(
         if (profile.paved && material) plan.streetSurfaces!.set(key, material);
       });
     };
+    /** Lawns in the four quarters of a square, between walks that cross at
+     * its centrepiece and a ring round it. Railed, each lawn has a gate on
+     * the walk that runs north and south. */
+    const gardenSquare = (court: Rect, railed: boolean) => {
+      const mx = court.x + (court.w >> 1), my = court.y + (court.h >> 1) - (fabric.motor ? 2 : 0);
+      const ring = Math.min(court.w, court.h) >= 19 ? 4 : 3;
+      const lawn = new Set<string>();
+      eachCell(court, (x, y) => {
+        const ax = Math.abs(x - mx), ay = Math.abs(y - my), k = cellKey(x, y);
+        // Railed, the lawns run to the footway; open, a paved walk goes round them.
+        const rim = railed ? 0 : 2;
+        if (x < court.x + rim || y < court.y + rim || x >= court.x + court.w - rim || y >= court.y + court.h - rim) return;
+        if (ax <= 1 || ay <= 1 || Math.max(ax, ay) <= ring || !dry({ x, y, w: 1, h: 1 }, false) || !setSurface(k, "grass", 11)) return;
+        plan.pavement!.set(k, "park");
+        plan.streetSurfaces!.delete(k);
+        // Lawn, not the square's public paving.
+        roads.delete(k);
+        lawn.add(k);
+      });
+      if (!railed) return;
+      const inLawn = (x: number, y: number) => lawn.has(cellKey(x, y));
+      const fenced = (x: number, y: number) => inLawn(x, y) &&
+        [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => !inLawn(x + dx, y + dy)) &&
+        !(Math.abs(x - mx) === 2 && Math.abs(y - my) === ring + 2);
+      squareRails.push(() => encloseYard(court, (x, y) => !inLawn(x, y), fenced, () => undefined, 100800, "x", "railing", undefined, true));
+    };
+    /** A paved square runs out over the footway and the verge to the kerb of
+     * each street that passes it, so the street's trees stand on the square. */
+    const reachKerb = (court: Rect) => {
+      const carriageway = (k: string) => roads.has(k) && !plan.pavement!.get(k);
+      const depth = (dx: number, dy: number) => {
+        const from = { x: dx ? (dx < 0 ? court.x - 1 : court.x + court.w) : court.x + (court.w >> 1),
+          y: dy ? (dy < 0 ? court.y - 1 : court.y + court.h) : court.y + (court.h >> 1) };
+        for (let n = 0; n <= 5; n++) if (carriageway(cellKey(from.x + dx * n, from.y + dy * n))) return n;
+        return 0;
+      };
+      const w = depth(-1, 0), e = depth(1, 0), n = depth(0, -1), south = depth(0, 1);
+      eachCell({ x: court.x - w, y: court.y - n, w: court.w + w + e, h: court.h + n + south }, (x, y) => {
+        const k = cellKey(x, y);
+        if ((x >= court.x && x < court.x + court.w && y >= court.y && y < court.y + court.h) || carriageway(k) ||
+          plan.solid.has(k) || !dry({ x, y, w: 1, h: 1 }, false)) return;
+        const was = plan.pavement!.get(k);
+        if (!setSurface(k, "paving", 9)) return;
+        if (was) squareEdge.set(k, was);
+        plan.pavement!.set(k, "square");
+        if (squareStone) plan.streetSurfaces!.set(k, squareStone);
+        plan.reserved.add(k);
+        roads.add(k);
+      });
+    };
     const paintCourt = (court: Rect, square?: string, civicRect?: Rect) => {
       gradeGround(court);
       const material = squareStone;
@@ -1432,8 +1492,13 @@ export function planSettlement(
       if (square) {
         socialCenter.x = court.x + Math.floor(court.w / 2);
         socialCenter.y = court.y + Math.floor(court.h / 2);
+        // A city of kerbed streets builds its square to one of two patterns.
+        const kind = pack.setting && profile.paved && (fabric.streetWall || (fabric.motor && !fabric.oldCore))
+          ? squareKind(pack.setting) : undefined;
+        if (kind?.form === "garden" && Math.min(court.w, court.h) >= 13) gardenSquare(court, kind.railed);
         if (fabric.motor) composeModernSquare(court);
         else composeSquare(court, civicRect);
+        if (kind?.form === "place") reachKerb(court);
         // The centre is now the monument; anything that entered there
         // enters at its foot instead.
         for (const plot of plan.plots)
@@ -1462,7 +1527,7 @@ export function planSettlement(
     // or paving, with grass only as edging round the houses.
     // A modern block is yard between its buildings; an older one is earth.
     const blockGround =
-      (pack.setting?.year ?? 0) >= 1900 && cityGround !== "paving" ? "grass" : (cityGround ?? "grass");
+      (pack.setting?.year ?? 0) >= 1900 ? "grass" : (cityGround ?? "grass");
     const paintBlock = (block: Rect, given: Terrain = blockGround, role: Pavement = "yard") =>
       eachCell(block, (x, y) => {
         // Behind a Tokyo street front the yards and lanes were beaten earth.
@@ -1728,7 +1793,7 @@ export function planSettlement(
         for (let x = c.x - reach; x <= c.x + reach; x++) {
           if (!holds(x, y) || !dry({ x, y, w: 1, h: 1 }, false)) continue;
           const k = cellKey(x, y);
-          if (setSurface(k, cityGround === "dirt" ? openGround : cityGround === "paving" ? "dirt" : cityGround, 1))
+          if (setSurface(k, cityGround === "dirt" ? openGround : cityGround, 1))
             plan.pavement!.set(k, "vacant");
           const besideRoad =
             !roads.has(k) &&
@@ -1764,10 +1829,10 @@ export function planSettlement(
         return;
       const pavement = plan.pavement!.get(k);
       // Not in the roadway: a lamp stands on the footway, a tree in the verge.
-      if (roads.has(k) && pavement !== "footway" && pavement !== "verge")
+      if (roads.has(k) && pavement !== "footway" && pavement !== "verge" && !squareEdge.has(k))
         return;
       if (piece.kind === "tree") {
-        if (pavement !== "verge") return;
+        if (pavement !== "verge" && squareEdge.get(k) !== "verge") return;
         plan.solid.add(k);
         plan.reserved.add(k);
         plan.objects.push({
@@ -1801,324 +1866,314 @@ export function planSettlement(
     const campuses = plan.plots.filter(p => p.id.includes("-worksite-") || p.id.includes("-waterfront-"));
     const urbanDry = (rect: Rect, occupied = true) => dry(rect, occupied) &&
       !campuses.some(p => rect.x < p.x+p.w && rect.x+rect.w > p.x && rect.y < p.y+p.h && rect.y+rect.h > p.y);
-    urbanLots = composed
-      ? urbanNeighborhood(site, pack, seed, {
-          lay,
-          dry: urbanDry,
-          shore: urbanShore(),
-          bank: (x, y) => {
-            const f = sample(x, y);
-            return f.water >= 4 && f.water < 6.5 && f.kind !== "lake";
-          },
-          river: (x, y) => {
-            const f = sample(x, y);
-            return f.water < 4 && f.kind === "river";
-          },
-          paintQuay: (rect) =>
-            eachCell(rect, (x, y) => {
-              const k = cellKey(x, y);
-              if (plan.solid.has(k) || roads.has(k)) return;
-              plan.reserved.add(k);
-              roads.add(k);
-              if (
-                setSurface(k, profile.paved ? "paving" : "dirt", 5) &&
-                profile.paved
-              )
-                plan.pavement!.set(k, "footway");
-            }),
-          bridge: (() => {
-            const ends = [
-              ...connections.filter((p) => p.kind === "bridge"),
-              ...(selected ? [selected] : []),
-            ].flatMap((b) => [b.points[0], b.points.at(-1)!]);
-            return ends.sort(
-              (a, b) =>
-                Math.hypot(a.x - c.x, a.y - c.y) -
-                Math.hypot(b.x - c.x, b.y - c.y),
-            )[0];
-          })(),
-          paintCourt,
-          paintForecourt,
-          paintSquare,
-          paintVerge,
-          paintVergeWalk,
-          paintFootway,
-          paintPark,
-          paintIndustrial: (rect, buildings, index) => {
-            const built = (x: number, y: number) => buildings.some((b) => inside(b, x, y));
-            const access = rect.x + rect.w - 2;
-            eachCell(rect, (x, y) => {
-              const k = cellKey(x, y);
-              if (plan.solid.has(k) || plan.lanes?.has(k)) return;
-              setSurface(k, "paving", 12);
-              plan.pavement!.set(k, "yard");
-              plan.streetSurfaces!.set(k, x >= access - 2 && !built(x, y) ? "asphalt" : "concrete");
-              plan.reserved.add(k);
-            });
-            const compound = buildings.every((b) => b.x > rect.x && b.y > rect.y &&
-              b.x + b.w <= rect.x + rect.w - 5 && b.y + b.h <= rect.y + rect.h - 5);
-            if (compound) {
-              const gate = { x: rect.x + rect.w - 1, y: rect.y + (rect.h >> 1) };
-              const parts: { x: number; y: number; frame: string }[] = [];
-              eachCell(rect, (x, y) => {
-                const horizontal = y === rect.y || y === rect.y + rect.h - 1;
-                if (!horizontal && x !== rect.x && x !== rect.x + rect.w - 1) return;
-                if (built(x, y) || (horizontal && x >= access - 3) ||
-                  (x === gate.x && Math.abs(y - gate.y) <= 2)) return;
-                parts.push({ x, y, frame: `study-propb-works-fence-${horizontal ? 0 : 1}` });
-                plan.solid.add(cellKey(x, y));
-              });
-              plan.enclosures.push({ ...rect, gate, parts });
-            }
-            plan.loadingBays ??= new Map();
-            for (const [i, b] of buildings.entries()) {
-              const bay = { x: b.x + 2, y: b.y + b.h + 1, w: Math.min(5, b.w - 4), h: 3 };
-              if (bay.y + bay.h < rect.y + rect.h)
-                eachCell(bay, (x, y) => {
-                  if (!built(x, y) && !plan.solid.has(cellKey(x, y))) plan.loadingBays!.set(cellKey(x, y), bay);
-                });
-              const at = { x: b.x + b.w - 2, y: b.y + b.h + 2 };
-              if (at.y >= rect.y + rect.h - 1 || built(at.x, at.y) || plan.solid.has(cellKey(at.x, at.y))) continue;
-              for (let n = 0; n < 2; n++) {
-                const p = { x: at.x + n, y: at.y };
-                if (p.x >= access - 2 || built(p.x, p.y)) continue;
-                plan.objects.push({ id: `${site.id}-works-${index}-drum-${i}-${n}`, name: "Factory oil drum", kind: "monument",
-                  sprite: `study-propb-steel-drum-${(i + n) % 3}`, pos: pos(p), inventory: {} });
-                plan.solid.add(cellKey(p.x, p.y));
-              }
-              const stack = { x: b.x + b.w + 1, y: at.y };
-              if (stack.x + 1 < access - 2 && !built(stack.x, stack.y) && !built(stack.x + 1, stack.y)) {
-                plan.objects.push({ id: `${site.id}-works-${index}-load-${i}`, name: "Packed factory supplies", kind: "monument",
-                  sprite: `study-propb-crate-stack-${i % 3}`, pos: pos(stack), inventory: {} });
-                plan.solid.add(cellKey(stack.x, stack.y));
-                plan.solid.add(cellKey(stack.x + 1, stack.y));
-              }
-            }
-          },
-          churchyard: (yard, church) => churchyards.push({ yard, church }),
-          plant: (at, key) => {
-            const k = cellKey(at.x, at.y);
-            const sprite = pack.trees[key % pack.trees.length],
-              envelope = treePlacementEnvelope(sprite, at);
-            if (
-              plan.solid.has(k) ||
-              roads.has(k) ||
-              plan.reserved.has(k) ||
-              envelopeConflicts(plan.placement, envelope) ||
-              !dry({ ...at, w: 1, h: 1 }, false)
-            )
-              return false;
-            claimEnvelope(plan.placement, envelope);
+    urbanLots = urbanNeighborhood(site, pack, seed, {
+        lay,
+        dry: urbanDry,
+        shore: urbanShore(),
+        bank: (x, y) => {
+          const f = sample(x, y);
+          return f.water >= 4 && f.water < 6.5 && f.kind !== "lake";
+        },
+        river: (x, y) => {
+          const f = sample(x, y);
+          return f.water < 4 && f.kind === "river";
+        },
+        paintQuay: (rect) =>
+          eachCell(rect, (x, y) => {
+            const k = cellKey(x, y);
+            if (plan.solid.has(k) || roads.has(k)) return;
             plan.reserved.add(k);
-            plan.objects.push({
-              id: `${site.id}-plot-tree-${at.x}-${at.y}`,
-              name: "Tree",
-              kind: "tree",
-              pos: pos(at),
-              sprite,
-              inventory: {},
-            });
-            return true;
-          },
-          furnish,
-          paintGround: (rect, surface) => {
-            gradeGround(rect);
+            roads.add(k);
+            if (
+              setSurface(k, profile.paved ? "paving" : "dirt", 5) &&
+              profile.paved
+            )
+              plan.pavement!.set(k, "footway");
+          }),
+        bridge: (() => {
+          const ends = [
+            ...connections.filter((p) => p.kind === "bridge"),
+            ...(selected ? [selected] : []),
+          ].flatMap((b) => [b.points[0], b.points.at(-1)!]);
+          return ends.sort(
+            (a, b) =>
+              Math.hypot(a.x - c.x, a.y - c.y) -
+              Math.hypot(b.x - c.x, b.y - c.y),
+          )[0];
+        })(),
+        paintCourt,
+        paintForecourt,
+        paintSquare,
+        paintVerge,
+        paintVergeWalk,
+        paintFootway,
+        paintPark,
+        paintIndustrial: (rect, buildings, index) => {
+          const built = (x: number, y: number) => buildings.some((b) => inside(b, x, y));
+          const access = rect.x + rect.w - 2;
+          eachCell(rect, (x, y) => {
+            const k = cellKey(x, y);
+            if (plan.solid.has(k) || plan.lanes?.has(k)) return;
+            setSurface(k, "paving", 12);
+            plan.pavement!.set(k, "yard");
+            plan.streetSurfaces!.set(k, x >= access - 2 && !built(x, y) ? "asphalt" : "concrete");
+            plan.reserved.add(k);
+          });
+          const compound = buildings.every((b) => b.x > rect.x && b.y > rect.y &&
+            b.x + b.w <= rect.x + rect.w - 5 && b.y + b.h <= rect.y + rect.h - 5);
+          if (compound) {
+            const gate = { x: rect.x + rect.w - 1, y: rect.y + (rect.h >> 1) };
+            const parts: { x: number; y: number; frame: string }[] = [];
             eachCell(rect, (x, y) => {
-              const k = cellKey(x, y);
-              if (!dry({ x, y, w: 1, h: 1 }, false)) return;
+              const horizontal = y === rect.y || y === rect.y + rect.h - 1;
+              if (!horizontal && x !== rect.x && x !== rect.x + rect.w - 1) return;
+              if (built(x, y) || (horizontal && x >= access - 3) ||
+                (x === gate.x && Math.abs(y - gate.y) <= 2)) return;
+              parts.push({ x, y, frame: `study-propb-works-fence-${horizontal ? 0 : 1}` });
+              plan.solid.add(cellKey(x, y));
+            });
+            plan.enclosures.push({ ...rect, gate, parts });
+          }
+          plan.loadingBays ??= new Map();
+          for (const [i, b] of buildings.entries()) {
+            const bay = { x: b.x + 2, y: b.y + b.h + 1, w: Math.min(5, b.w - 4), h: 3 };
+            if (bay.y + bay.h < rect.y + rect.h)
+              eachCell(bay, (x, y) => {
+                if (!built(x, y) && !plan.solid.has(cellKey(x, y))) plan.loadingBays!.set(cellKey(x, y), bay);
+              });
+            const at = { x: b.x + b.w - 2, y: b.y + b.h + 2 };
+            if (at.y >= rect.y + rect.h - 1 || built(at.x, at.y) || plan.solid.has(cellKey(at.x, at.y))) continue;
+            for (let n = 0; n < 2; n++) {
+              const p = { x: at.x + n, y: at.y };
+              if (p.x >= access - 2 || built(p.x, p.y)) continue;
+              plan.objects.push({ id: `${site.id}-works-${index}-drum-${i}-${n}`, name: "Factory oil drum", kind: "monument",
+                sprite: `study-propb-steel-drum-${(i + n) % 3}`, pos: pos(p), inventory: {} });
+              plan.solid.add(cellKey(p.x, p.y));
+            }
+            const stack = { x: b.x + b.w + 1, y: at.y };
+            if (stack.x + 1 < access - 2 && !built(stack.x, stack.y) && !built(stack.x + 1, stack.y)) {
+              plan.objects.push({ id: `${site.id}-works-${index}-load-${i}`, name: "Packed factory supplies", kind: "monument",
+                sprite: `study-propb-crate-stack-${i % 3}`, pos: pos(stack), inventory: {} });
+              plan.solid.add(cellKey(stack.x, stack.y));
+              plan.solid.add(cellKey(stack.x + 1, stack.y));
+            }
+          }
+        },
+        churchyard: (yard, church) => churchyards.push({ yard, church }),
+        plant: (at, key) => {
+          const k = cellKey(at.x, at.y);
+          const sprite = pack.trees[key % pack.trees.length],
+            envelope = treePlacementEnvelope(sprite, at);
+          if (
+            plan.solid.has(k) ||
+            roads.has(k) ||
+            plan.reserved.has(k) ||
+            envelopeConflicts(plan.placement, envelope) ||
+            !dry({ ...at, w: 1, h: 1 }, false)
+          )
+            return false;
+          claimEnvelope(plan.placement, envelope);
+          plan.reserved.add(k);
+          plan.objects.push({
+            id: `${site.id}-plot-tree-${at.x}-${at.y}`,
+            name: "Tree",
+            kind: "tree",
+            pos: pos(at),
+            sprite,
+            inventory: {},
+          });
+          return true;
+        },
+        furnish,
+        paintGround: (rect, surface) => {
+          gradeGround(rect);
+          eachCell(rect, (x, y) => {
+            const k = cellKey(x, y);
+            if (!dry({ x, y, w: 1, h: 1 }, false)) return;
+            plan.reserved.add(k);
+            roads.add(k);
+            const paved = surface === "paving";
+            if (
+              !setSurface(k, paved && !profile.paved ? "dirt" : surface, 9)
+            )
+              return;
+            plan.pavement!.set(k, "court");
+            if (paved && profile.paved && squareStone) plan.streetSurfaces!.set(k, squareStone);
+          });
+          plan.plots.push({
+            ...rect,
+            id: `${site.id}-precinct-${plan.plots.length}`,
+            kind: "public",
+            access: {
+              x: rect.x + Math.floor(rect.w / 2),
+              y: rect.y + Math.floor(rect.h / 2),
+            },
+          });
+        },
+        stall: (at, i, trade) => {
+          marketPitch(at, `${site.id}-pitch-${at.x}-${at.y}`, i, trade);
+        },
+        marker: (at, i) =>
+          plan.objects.push({
+            id: `${site.id}-court-marker-${at.x}-${at.y}`,
+            name: "Court marker",
+            description:
+              "A carved stone disc set in the floor of the court, where the play was judged.",
+            kind: "monument",
+            sprite: `precinct-marker-${i % 3}`,
+            pos: pos(at),
+            inventory: {},
+          }),
+        venueAt: (venue, at) => groundVenues.push({ venue, pos: at }),
+        paintCity,
+        paintBlock,
+        reserveGround: (rect) =>
+          eachCell(rect, (x, y) => noRoad.add(cellKey(x, y))),
+        reserveClearance: (rect) =>
+          eachCell(rect, (x, y) =>
+            plan.placement.clearance.add(cellKey(x, y)),
+          ),
+        railway: (rail) => {
+          const tracks = (plan.tracks ??= new Map());
+          const at = (v: number, a: number) =>
+            rail.axis === "x"
+              ? { x: v, y: rail.level + a }
+              : { x: rail.level + a, y: v };
+          const wet = (v: number) => {
+            const q = at(v, rail.span >> 1);
+            return sample(q.x, q.y).water < 0;
+          };
+          // A river is bridged; open sea or a lake too wide to span ends
+          // the line at the shore.
+          const reach = (from: number, end: number, step: number) => {
+            let run = 0;
+            for (let v = from; v !== end + step; v += step) {
+              run = wet(v) ? run + 1 : 0;
+              if (run > RAIL_BRIDGE) return v - step * run;
+            }
+            return end;
+          };
+          const mid = (rail.lo + rail.hi) >> 1;
+          const lo = reach(mid, rail.lo, -1),
+            hi = reach(mid, rail.hi, 1);
+          plan.railway = { axis: rail.axis, level: rail.level, lo, hi, span: rail.span };
+          for (let v = lo; v <= hi; v++)
+            for (let a = 0; a < rail.span; a++) {
+              const { x, y } = at(v, a),
+                k = cellKey(x, y);
+              if (plan.solid.has(k)) continue;
+              tracks.set(k, { axis: rail.axis, at: a });
+              // A level crossing keeps its street; the rails lie in it.
+              if (plan.lanes?.has(k)) continue;
+              const water = sample(x, y).water < 0;
+              if (!setSurface(k, water ? "bridge" : "paving", 7)) continue;
+              if (!water) plan.pavement!.set(k, "rail");
+              plan.streetSurfaces!.delete(k);
               plan.reserved.add(k);
-              roads.add(k);
-              const paved = surface === "paving";
-              if (
-                !setSurface(k, paved && !profile.paved ? "dirt" : surface, 9)
-              )
-                return;
-              plan.pavement!.set(k, "court");
-              if (paved && profile.paved && squareStone) plan.streetSurfaces!.set(k, squareStone);
-            });
-            plan.plots.push({
-              ...rect,
-              id: `${site.id}-precinct-${plan.plots.length}`,
-              kind: "public",
-              access: {
-                x: rect.x + Math.floor(rect.w / 2),
-                y: rect.y + Math.floor(rect.h / 2),
-              },
-            });
-          },
-          stall: (at, i, trade) => {
-            marketPitch(at, `${site.id}-pitch-${at.x}-${at.y}`, i, trade);
-          },
-          marker: (at, i) =>
-            plan.objects.push({
-              id: `${site.id}-court-marker-${at.x}-${at.y}`,
-              name: "Court marker",
-              description:
-                "A carved stone disc set in the floor of the court, where the play was judged.",
-              kind: "monument",
-              sprite: `precinct-marker-${i % 3}`,
-              pos: pos(at),
-              inventory: {},
+              noRoad.add(k);
+            }
+        },
+        platform: (rect, alongX, door, building) => {
+          if (plan.railway)
+            plan.railway.station = {
+              door: { x: door.x, y: door.y },
+              platform: { ...rect },
+              building: { ...building },
+              side: (alongX ? rect.y : rect.x) < plan.railway.level ? -1 : 1,
+            };
+          eachCell(rect, (x, y) => {
+            const k = cellKey(x, y);
+            if (plan.solid.has(k) || plan.lanes?.has(k) || plan.tracks?.has(k))
+              return;
+            if (!dry({ x, y, w: 1, h: 1 }, false)) return;
+            if (!setSurface(k, "paving", 8)) return;
+            plan.pavement!.set(k, "platform");
+            plan.streetSurfaces!.set(k, footwaySurface ?? "concrete");
+            plan.reserved.add(k);
+            noRoad.add(k);
+          });
+          // Lamps down the back of the platform, clear of the edge.
+          const back = alongX
+            ? plan.tracks?.has(cellKey(rect.x, rect.y - 1)) ? rect.y + rect.h - 1 : rect.y
+            : plan.tracks?.has(cellKey(rect.x - 1, rect.y)) ? rect.x + rect.w - 1 : rect.x;
+          const [start, end] = alongX
+            ? [rect.x + 2, rect.x + rect.w - 2]
+            : [rect.y + 2, rect.y + rect.h - 2];
+          for (let v = start; v < end; v += 6)
+            furnish({
+                kind: "lamp",
+                ...(alongX ? { x: v, y: back } : { x: back, y: v }),
+              });
+        },
+        buildWall: (wall, parts, overlays, stairs, beats) => {
+          for (const part of parts) {
+            const k = cellKey(part.x, part.y);
+            plan.solid.add(k);
+            plan.reserved.add(k);
+            noRoad.add(k);
+          }
+          for (const q of stairs) {
+            plan.reserved.add(cellKey(q.x, q.y));
+            noRoad.add(cellKey(q.x, q.y));
+          }
+          for (const [i, beat] of beats.entries())
+            plan.actors.push(watchman(seed, pack, `${site.id}-watch-${i}`, beat));
+          // Two guards at each gate, one either side of the road: outside it
+          // where the ground is dry, inside where the gate opens on water.
+          // A night pair relieves the day pair; whoever is off rests inside.
+          const mid = { x: wall.rect.x + wall.rect.w / 2, y: wall.rect.y + wall.rect.h / 2 };
+          const open = (q: Point) => !plan.solid.has(cellKey(q.x, q.y)) && dry({ ...q, w: 1, h: 1 }, false);
+          const rests: Point[] = [];
+          for (const [i, gap] of wall.gaps.slice(0, 4).entries()) {
+            if (!gap.length) continue;
+            const ends = [gap[0], gap[gap.length - 1]];
+            const across = ends[0].y === ends[1].y;
+            const out = across ? Math.sign(ends[0].y - mid.y) || 1 : Math.sign(ends[0].x - mid.x) || 1;
+            const lo = across ? Math.min(ends[0].x, ends[1].x) - 1 : Math.min(ends[0].y, ends[1].y) - 1;
+            const hi = across ? Math.max(ends[0].x, ends[1].x) + 1 : Math.max(ends[0].y, ends[1].y) + 1;
+            const face = across ? (out > 0 ? 2 : 0) : out > 0 ? 1 : 3;
+            for (const [j, v] of [lo, hi].entries()) {
+              const at = (o: number) => (across ? { x: v, y: ends[0].y + o } : { x: ends[0].x + o, y: v });
+              const post = [at(out), at(-out)].find(open);
+              if (!post) continue;
+              const rest = [at(-out * 3), at(-out * 4), at(-out * 2)].find(open) ?? post;
+              rests.push(rest);
+              for (const night of [false, true])
+                plan.actors.push(watchman(seed, pack, `${site.id}-gate-${i}-${j}${night ? "-n" : ""}`, [post, post],
+                  { at: post, rest: night ? rest : [{ ...rest, x: rest.x + (across ? 0 : 1), y: rest.y + (across ? 1 : 0) }].find(open) ?? rest, night, torch: night && j === 0, face },
+                  !night && j === 0 && rests.length === 1));
+            }
+          }
+          // The night watch goes round from gate to gate inside the walls.
+          if (rests.length > 1)
+            for (let k = 0; k < 2; k++) {
+              const round = [...rests.slice(k * 2), ...rests.slice(0, k * 2)].filter((_, n) => n % 2 === 0);
+              const home = rests[(k * 2 + 1) % rests.length];
+              plan.actors.push(watchman(seed, pack, `${site.id}-round-${k}`, [home, home],
+                { at: round[0], rest: { ...home, x: home.x + 1 }, night: true, torch: true, round: round.length > 1 ? round : [...round, home], leg: 0 }));
+            }
+          plan.enclosures.push({
+            ...wall.rect,
+            // A circuit has many ways in. The single gate this field records
+            // is the one a reader of the older fence contract would look for.
+            gate: [...wall.openings]
+              .map((k) => {
+                const [x, y] = k.split(",").map(Number);
+                return { x, y };
+              })
+              .sort((a, b) => a.y - b.y || a.x - b.x)[0] ?? { ...c },
+            parts: [...parts, ...overlays],
+            // A gateway is a gap with wall at both ends; a break where the
+            // circuit simply stops (at water, at a cliff) has nothing to shut.
+            gates: wall.gaps.filter((gap) => {
+              const across = gap.every((q) => q.y === gap[0].y);
+              const [a, b] = across ? [Math.min(...gap.map((q) => q.x)), Math.max(...gap.map((q) => q.x))] : [Math.min(...gap.map((q) => q.y)), Math.max(...gap.map((q) => q.y))];
+              const at = (v: number) => cellKey(across ? v : gap[0].x, across ? gap[0].y : v);
+              return plan.solid.has(at(a - 1)) && plan.solid.has(at(b + 1));
             }),
-          venueAt: (venue, at) => groundVenues.push({ venue, pos: at }),
-          paintCity,
-          paintBlock,
-          reserveGround: (rect) =>
-            eachCell(rect, (x, y) => noRoad.add(cellKey(x, y))),
-          reserveClearance: (rect) =>
-            eachCell(rect, (x, y) =>
-              plan.placement.clearance.add(cellKey(x, y)),
-            ),
-          railway: (rail) => {
-            const tracks = (plan.tracks ??= new Map());
-            const at = (v: number, a: number) =>
-              rail.axis === "x"
-                ? { x: v, y: rail.level + a }
-                : { x: rail.level + a, y: v };
-            const wet = (v: number) => {
-              const q = at(v, rail.span >> 1);
-              return sample(q.x, q.y).water < 0;
-            };
-            // A river is bridged; open sea or a lake too wide to span ends
-            // the line at the shore.
-            const reach = (from: number, end: number, step: number) => {
-              let run = 0;
-              for (let v = from; v !== end + step; v += step) {
-                run = wet(v) ? run + 1 : 0;
-                if (run > RAIL_BRIDGE) return v - step * run;
-              }
-              return end;
-            };
-            const mid = (rail.lo + rail.hi) >> 1;
-            const lo = reach(mid, rail.lo, -1),
-              hi = reach(mid, rail.hi, 1);
-            plan.railway = { axis: rail.axis, level: rail.level, lo, hi, span: rail.span };
-            for (let v = lo; v <= hi; v++)
-              for (let a = 0; a < rail.span; a++) {
-                const { x, y } = at(v, a),
-                  k = cellKey(x, y);
-                if (plan.solid.has(k)) continue;
-                tracks.set(k, { axis: rail.axis, at: a });
-                // A level crossing keeps its street; the rails lie in it.
-                if (plan.lanes?.has(k)) continue;
-                const water = sample(x, y).water < 0;
-                if (!setSurface(k, water ? "bridge" : "paving", 7)) continue;
-                if (!water) plan.pavement!.set(k, "rail");
-                plan.streetSurfaces!.delete(k);
-                plan.reserved.add(k);
-                noRoad.add(k);
-              }
-          },
-          platform: (rect, alongX, door, building) => {
-            if (plan.railway)
-              plan.railway.station = {
-                door: { x: door.x, y: door.y },
-                platform: { ...rect },
-                building: { ...building },
-                side: (alongX ? rect.y : rect.x) < plan.railway.level ? -1 : 1,
-              };
-            eachCell(rect, (x, y) => {
-              const k = cellKey(x, y);
-              if (plan.solid.has(k) || plan.lanes?.has(k) || plan.tracks?.has(k))
-                return;
-              if (!dry({ x, y, w: 1, h: 1 }, false)) return;
-              if (!setSurface(k, "paving", 8)) return;
-              plan.pavement!.set(k, "platform");
-              plan.streetSurfaces!.set(k, footwaySurface ?? "concrete");
-              plan.reserved.add(k);
-              noRoad.add(k);
-            });
-            // Lamps down the back of the platform, clear of the edge.
-            const back = alongX
-              ? plan.tracks?.has(cellKey(rect.x, rect.y - 1)) ? rect.y + rect.h - 1 : rect.y
-              : plan.tracks?.has(cellKey(rect.x - 1, rect.y)) ? rect.x + rect.w - 1 : rect.x;
-            const [start, end] = alongX
-              ? [rect.x + 2, rect.x + rect.w - 2]
-              : [rect.y + 2, rect.y + rect.h - 2];
-            for (let v = start; v < end; v += 6)
-              furnish({
-                  kind: "lamp",
-                  ...(alongX ? { x: v, y: back } : { x: back, y: v }),
-                });
-          },
-          buildWall: (wall, parts, overlays, stairs, beats) => {
-            for (const part of parts) {
-              const k = cellKey(part.x, part.y);
-              plan.solid.add(k);
-              plan.reserved.add(k);
-              noRoad.add(k);
-            }
-            for (const q of stairs) {
-              plan.reserved.add(cellKey(q.x, q.y));
-              noRoad.add(cellKey(q.x, q.y));
-            }
-            for (const [i, beat] of beats.entries())
-              plan.actors.push(watchman(seed, pack, `${site.id}-watch-${i}`, beat));
-            // Two guards at each gate, one either side of the road: outside it
-            // where the ground is dry, inside where the gate opens on water.
-            // A night pair relieves the day pair; whoever is off rests inside.
-            const mid = { x: wall.rect.x + wall.rect.w / 2, y: wall.rect.y + wall.rect.h / 2 };
-            const open = (q: Point) => !plan.solid.has(cellKey(q.x, q.y)) && dry({ ...q, w: 1, h: 1 }, false);
-            const rests: Point[] = [];
-            for (const [i, gap] of wall.gaps.slice(0, 4).entries()) {
-              if (!gap.length) continue;
-              const ends = [gap[0], gap[gap.length - 1]];
-              const across = ends[0].y === ends[1].y;
-              const out = across ? Math.sign(ends[0].y - mid.y) || 1 : Math.sign(ends[0].x - mid.x) || 1;
-              const lo = across ? Math.min(ends[0].x, ends[1].x) - 1 : Math.min(ends[0].y, ends[1].y) - 1;
-              const hi = across ? Math.max(ends[0].x, ends[1].x) + 1 : Math.max(ends[0].y, ends[1].y) + 1;
-              const face = across ? (out > 0 ? 2 : 0) : out > 0 ? 1 : 3;
-              for (const [j, v] of [lo, hi].entries()) {
-                const at = (o: number) => (across ? { x: v, y: ends[0].y + o } : { x: ends[0].x + o, y: v });
-                const post = [at(out), at(-out)].find(open);
-                if (!post) continue;
-                const rest = [at(-out * 3), at(-out * 4), at(-out * 2)].find(open) ?? post;
-                rests.push(rest);
-                for (const night of [false, true])
-                  plan.actors.push(watchman(seed, pack, `${site.id}-gate-${i}-${j}${night ? "-n" : ""}`, [post, post],
-                    { at: post, rest: night ? rest : [{ ...rest, x: rest.x + (across ? 0 : 1), y: rest.y + (across ? 1 : 0) }].find(open) ?? rest, night, torch: night && j === 0, face },
-                    !night && j === 0 && rests.length === 1));
-              }
-            }
-            // The night watch goes round from gate to gate inside the walls.
-            if (rests.length > 1)
-              for (let k = 0; k < 2; k++) {
-                const round = [...rests.slice(k * 2), ...rests.slice(0, k * 2)].filter((_, n) => n % 2 === 0);
-                const home = rests[(k * 2 + 1) % rests.length];
-                plan.actors.push(watchman(seed, pack, `${site.id}-round-${k}`, [home, home],
-                  { at: round[0], rest: { ...home, x: home.x + 1 }, night: true, torch: true, round: round.length > 1 ? round : [...round, home], leg: 0 }));
-              }
-            plan.enclosures.push({
-              ...wall.rect,
-              // A circuit has many ways in. The single gate this field records
-              // is the one a reader of the older fence contract would look for.
-              gate: [...wall.openings]
-                .map((k) => {
-                  const [x, y] = k.split(",").map(Number);
-                  return { x, y };
-                })
-                .sort((a, b) => a.y - b.y || a.x - b.x)[0] ?? { ...c },
-              parts: [...parts, ...overlays],
-              // A gateway is a gap with wall at both ends; a break where the
-              // circuit simply stops (at water, at a cliff) has nothing to shut.
-              gates: wall.gaps.filter((gap) => {
-                const across = gap.every((q) => q.y === gap[0].y);
-                const [a, b] = across ? [Math.min(...gap.map((q) => q.x)), Math.max(...gap.map((q) => q.x))] : [Math.min(...gap.map((q) => q.y)), Math.max(...gap.map((q) => q.y))];
-                const at = (v: number) => cellKey(across ? v : gap[0].x, across ? gap[0].y : v);
-                return plan.solid.has(at(a - 1)) && plan.solid.has(at(b + 1));
-              }),
-            });
-          },
-        })
-      : urbanNeighborhoodV1(
-          site,
-          pack,
-          seed,
-          connect,
-          urbanDry,
-          paintCourt,
-          paintBlock,
-        );
+          });
+        },
+      });
     composeStreetGeometry(plan, urbanLots.flatMap((lot) => lot.rect ? [lot.rect] : []), motorAge);
     // Composed buildings are installed later; crossings must already respect them.
     const crossingObstacles = new Set(plan.solid);
@@ -2692,7 +2747,7 @@ export function planSettlement(
   // Composed parcels already arrive in the order their own fabric implies, one
   // round per block. Re-sorting them by distance would spend the whole capacity
   // on the quarter beside the plaza.
-  if (!(urban && composed))
+  if (!urban)
     frontage.sort(
       (a, b) =>
         Math.hypot(a.point.x - c.x, a.point.y - c.y) -
@@ -2737,7 +2792,7 @@ export function planSettlement(
   // A composed settlement's capacity comes from its own extent and fabric; the
   // flat profile count still governs villages and the older layouts.
   const limit =
-    urban && composed
+    urban
       ? urbanBuildingLimit(
           profile.radius,
           fabric,
@@ -2810,7 +2865,9 @@ export function planSettlement(
   for (const venue of housed) {
     // Its own building where the ground allows; otherwise the nearest lot and
     // the mark at the door, which is better than the venue not existing.
-    const lot = central.find((candidate) => candidate !== residence && !taken.has(candidate));
+    // Not a building whose own art names another business: a chapel behind a cafe front.
+    const named = (frame?: string) => !!frame && (shopArt(frame) ?? "shop") !== "shop";
+    const lot = central.find((candidate) => candidate !== residence && !taken.has(candidate) && !named(candidate.frame));
     if (!lot) continue;
     taken.add(lot);
     lot.venue = venue;
@@ -3622,7 +3679,7 @@ export function planSettlement(
       continue;
     }
     const { frame, model, point, door, rect, yard, workPoint } = chosen, [w, h] = model.footprint;
-    if (urban && lot.rect && pack.setting?.terrainRevision) {
+    if (urban && lot.rect) {
       const level = Math.round(sample(lot.workPoint?.x ?? door.x, lot.workPoint?.y ?? door.y).elevation / 14);
       gradeGround(rect, level);
       gradeGround({ x: door.x, y: door.y, w: 1, h: 1 }, level);
@@ -3765,7 +3822,7 @@ export function planSettlement(
         !lot.venue &&
         lot.quarter !== "elite" &&
         lot.use !== "downtown" && lot.use !== "industrial" &&
-        (!!playerShop || (lot.quarter !== "market" && lot.use !== "commercial")) &&
+        (!!playerShop || (lot.quarter !== "market" && lot.use !== "commercial" && !shopArt(frame))) &&
         !owners.includes("player") &&
         (!pack.setting?.environment ||
           pack.setting.environment.start === "resident")
@@ -3859,11 +3916,31 @@ export function planSettlement(
     // A settlement that keeps animals asks for someone to keep them. Drawing
     // every household freely from the dozens of trades on offer left a farm
     // with livestock and nobody whose work was livestock, so no pen was built.
+    // What the building's own art shows at the door decides who keeps it: a
+    // cafe is kept by someone who would, an unnamed shop by one of the
+    // shopkeeping trades, and neither is a farmer's private house.
+    // A downtown is office blocks: most lots offices, some a bank or a department store.
+    const officeRoll = rand("office", i);
+    const art = lot.venue ? undefined : shopArt(frame) ??
+      (lot.use === "downtown" && (pack.setting?.year ?? 0) >= 1870 && officeRoll < 0.7
+        ? officeRoll < 0.45 ? "offices" : officeRoll < 0.6 ? "bank" : "department store"
+        : undefined);
+    const has = (id: string) => !!characterContext?.livelihoods.some((l) => l.id === id);
+    const keeper = art && owner !== "player" && !(lot.use === "industrial" && industrialAge)
+      ? art === "shop"
+        ? (() => {
+            const open = SHOP_TRADES.filter(has);
+            return open[Math.floor(rand("keeper", i) * open.length)] ?? "trader";
+          })()
+        : (KEEPERS[art]?.find(has) ?? (has("shopkeeper") ? "shopkeeper" : "trader"))
+      : undefined;
     const wanted =
       owner === "player"
         ? pack.role
         : lot.use === "industrial" && industrialAge
           ? "factory-hand"
+        : keeper
+          ? keeper
         : lot.quarter === "market"
           ? "trader"
           : lot.quarter === "craft"
@@ -3882,14 +3959,20 @@ export function planSettlement(
                     characterSex(seed, owner),
                   )[0]?.id ?? "farmer")
                 : unstaffed.shift();
-    const livelihood = pack.setting?.characterRevision
+    // The person's own community and standing, as generateCharacter will see
+    // them, so the trade on the door is the trade they end up with.
+    const community = pack.setting?.characterRevision ? characterCommunity(pack.setting, seed, owner) : undefined;
+    const personal = community === undefined ? undefined : townWorkContext(pack.setting!, community);
+    const livelihood = personal
       ? characterLivelihood(
-          pack.setting,
+          pack.setting!,
           seed,
           owner,
           wanted,
-          undefined,
+          personal,
           characterSex(seed, owner),
+          characterStanding(pack.setting!, seed, owner, community),
+          pack.setting!.character?.age ?? 34,
         )
       : undefined;
     const role = livelihood
@@ -3935,8 +4018,12 @@ export function planSettlement(
     reserveBuilding(frame, rect, door, workPoint);
     if (owner === "player") playerTrade = role;
     const shop = owner === "player" ? playerShop : undefined;
+    // Someone whose work is in the fields or with the herd keeps no workshop at home.
+    const rural = livelihood
+      ? ["field", "pasture"].includes(livelihood.workplace ?? workplaceFor(livelihood.activity))
+      : role === "Farmer" || role === "Herder";
     const shopfront = owner === "player" ? !!shop :
-      lot.quarter === "market" || lot.quarter === "craft" || i % 4 === 1;
+      !!keeper || lot.quarter === "market" || lot.quarter === "craft" || (i % 4 === 1 && !rural && lot.quarter !== "elite");
     // A downtown is office blocks: most lots offices, some a bank or a department store.
     const officeRoll = rand("office", i);
     const office = towerStyleFor(frame)
@@ -3983,8 +4070,6 @@ export function planSettlement(
       id,
       name: lot.venue
         ? lot.venue.label
-        : office
-          ? office
         : lot.use === "industrial"
           ? model.label.split(" · ")[0]
         : camp
@@ -3993,15 +4078,15 @@ export function planSettlement(
             : dwelling
           : shop
           ? NAMED_SHOPS.has(shop.id) ? `The ${shop.label.toLowerCase()}` : shop.id === "general" ? `${role}'s shop` : `${role}'s workshop`
-          : lot.quarter === "market"
+          : keeper && art !== "shop"
+          ? art![0].toUpperCase() + art!.slice(1)
+          : keeper || lot.quarter === "market"
           ? `${role}'s shop`
           : lot.quarter === "elite"
             ? "Townhouse"
             : shopfront
               ? `${role}'s workshop`
-              : i % 4 === 2
-                ? "Household stores"
-                : "Household",
+              : "Household",
       description: aboutBuilding(frame, model.wall, model.description),
       x: rect.x,
       y: rect.y,
@@ -4009,7 +4094,7 @@ export function planSettlement(
       h,
       sprite: frame,
       entrance: door,
-      access: lot.venue || shopfront || office ? "public" : "household",
+      access: lot.venue || shopfront ? "public" : "household",
       owner,
       claim: lot.venue ? `venue-${lot.venue.id}` : "landscape",
       ...(pack.setting?.employmentRevision && !lot.venue && shopfront && livelihood?.id === "printer"
@@ -4310,7 +4395,8 @@ export function planSettlement(
       if (pack.setting?.characterRevision)
         Object.assign(
           a,
-          generateCharacter(pack.setting, seed, owner, pack.setting.character?.age ?? 34, role),
+          generateCharacter(pack.setting, seed, owner, pack.setting.character?.age ?? 34, role,
+            undefined, undefined, undefined, undefined, undefined, personal),
         );
       if (owner !== "player") plan.actors.push(a);
       // The threshold and the work pocket are held against scattered decoration.
@@ -4472,7 +4558,7 @@ export function planSettlement(
       roadCells(road, (x, y) => throughRoads.add(cellKey(x, y)));
     // A street that reaches the town's edge without meeting another runs on
     // as a gravel road, as a street does where the houses stop.
-    if (motorAge && urban && composed)
+    if (motorAge && urban)
       for (const [i, r] of plan.roads.filter((r) => /-street-[12]/.test(r.id) && r.span).entries())
         for (const [end, from] of [[r.points[0], r.points[1]], [r.points.at(-1)!, r.points.at(-2)!]]) {
           if (!from) continue;
@@ -5258,7 +5344,7 @@ export function planSettlement(
       const t = plan.surface.get(k), role = plan.pavement?.get(k);
       return (t === undefined || t === "dirt" || t === "grass") && !plan.solid.has(k) && !claimed.has(k) &&
         !plan.built?.has(k) && !plan.fields?.has(k) && !gardenCells.has(k) && !plan.lanes?.has(k) &&
-        !plan.streetGeometry?.has(k) && (!role || ["yard", "court", "garden", "vacant"].includes(role));
+        !plan.streetGeometry?.get(k)?.edge === false && (!role || ["yard", "court", "garden", "vacant"].includes(role));
     };
     const ways = new Set<string>();
     for (const road of plan.roads)
@@ -5639,22 +5725,73 @@ export function planSettlement(
     const free = (k: string) => plan.pavement?.get(k) === "vacant" && !plan.solid.has(k) && !roads.has(k) && !plan.reserved.has(k);
     const seen = new Set<string>();
     let n = 0;
+    /** A city of rows cuts its open ground into plots: the largest rectangle
+     * left, again and again, each no wider than a few house fronts. */
+    const plots = (ground: Set<string>) => {
+      const left = new Set(ground), out: Set<string>[] = [];
+      const all = [...ground].map((k) => k.split(",").map(Number));
+      const ax = Math.min(...all.map((p) => p[0])), ay = Math.min(...all.map((p) => p[1]));
+      const aw = Math.max(...all.map((p) => p[0])) - ax + 1, ah = Math.max(...all.map((p) => p[1])) - ay + 1;
+      for (let guard = 0; guard < 40; guard++) {
+        const heights = new Int16Array(aw);
+        let best: Rect | undefined;
+        for (let y = 0; y < ah; y++) {
+          for (let x = 0; x < aw; x++) heights[x] = left.has(cellKey(ax + x, ay + y)) ? heights[x] + 1 : 0;
+          const stack: number[] = [];
+          for (let x = 0; x <= aw; x++) {
+            const hNow = x < aw ? heights[x] : 0;
+            while (stack.length && heights[stack[stack.length - 1]] >= hNow) {
+              const top = stack.pop()!, height = heights[top], from = stack.length ? stack[stack.length - 1] + 1 : 0;
+              if (height >= 4 && x - from >= 5 && (x - from) * height > (best ? best.w * best.h : 0))
+                best = { x: ax + from, y: ay + y - height + 1, w: x - from, h: height };
+            }
+            stack.push(x);
+          }
+        }
+        if (!best) break;
+        eachCell(best, (x, y) => left.delete(cellKey(x, y)));
+        const n = Math.max(1, Math.round(best.w / 16)), rows = Math.max(1, Math.round(best.h / 12));
+        for (let r = 0; r < rows; r++)
+          for (let c = 0; c < n; c++) {
+            const from = best.x + Math.round((best.w * c) / n), to = best.x + Math.round((best.w * (c + 1)) / n);
+            const top = best.y + Math.round((best.h * r) / rows), base = best.y + Math.round((best.h * (r + 1)) / rows);
+            const part = new Set<string>();
+            eachCell({ x: from, y: top, w: to - from, h: base - top }, (x, y) => part.add(cellKey(x, y)));
+            out.push(part);
+          }
+      }
+      return out;
+    };
     for (const [start] of plan.pavement ?? []) {
       if (seen.has(start) || !free(start)) continue;
-      const cells = new Set([start]), todo = [start];
+      const ground = new Set([start]), todo = [start];
       seen.add(start);
       while (todo.length) {
         const [x, y] = todo.pop()!.split(",").map(Number);
         for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
           const k = cellKey(x + dx, y + dy);
-          if (!seen.has(k) && free(k)) { seen.add(k); cells.add(k); todo.push(k); }
+          if (!seen.has(k) && free(k)) { seen.add(k); ground.add(k); todo.push(k); }
         }
       }
+      for (const cells of fabric.streetWall ? plots(ground) : [ground]) layLot(cells);
+    }
+    function layLot(cells: Set<string>) {
       const pts = [...cells].map((k) => k.split(",").map(Number));
       const x0 = Math.min(...pts.map((p) => p[0])), y0 = Math.min(...pts.map((p) => p[1]));
       const w = Math.max(...pts.map((p) => p[0])) - x0 + 1, h = Math.max(...pts.map((p) => p[1])) - y0 + 1;
-      if (w < 4 || h < 4 || cells.size < w * h * 0.7) continue;
-      const lot = planLot(pack.setting, w, h, `${seed}:${x0},${y0}`), id = `lot-${x0}-${y0}`, i = 100900 + n++ * 2;
+      if (w < 4 || h < 4 || cells.size < w * h * 0.7) return;
+      // In a city of rows, the nearest buildings say what the lot is for.
+      const near = fabric.streetWall
+        ? plan.places.filter((b) => b.x < x0 + w + 8 && b.x + b.w > x0 - 8 && b.y < y0 + h + 8 && b.y + b.h > y0 - 8)
+        : undefined;
+      const beside = !near ? undefined
+        : !near.length ? "open"
+        : near.some((b) => b.name === "Railway station") ? "station"
+        : near.some((b) => b.landUse === "industrial") ? "works"
+        // Round the square nobody dug allotments or hung washing.
+        : near.some((b) => b.landUse === "commercial" || b.landUse === "downtown") ||
+          Math.hypot(x0 + w / 2 - c.x, y0 + h / 2 - c.y) < profile.radius * 0.3 ? "shops" : "homes";
+      const lot = planLot(pack.setting!, w, h, `${seed}:${x0},${y0}`, beside), id = `lot-${x0}-${y0}`, i = 100900 + n++ * 2;
       const inLot = (x: number, y: number) => cells.has(cellKey(x, y));
       if (lot.lawn)
         for (const [x, y] of pts)
@@ -5671,7 +5808,7 @@ export function planSettlement(
         }
         plan.objects.push({ id: `${id}-${j}`, name: def.name, kind: "monument", prop: item.prop, sprite: def.sprite!, inventory: {}, pos: pos(at) });
       });
-      if (!lot.fenced && !lot.garden) continue;
+      if (!lot.fenced && !lot.garden) return;
       // Fenced against its neighbours; a gap where it meets the street.
       const fenced = (x: number, y: number) => inLot(x, y) &&
         [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
@@ -5694,7 +5831,7 @@ export function planSettlement(
       );
     }
   }
-  for (const fence of [...toftQueue, ...campFences]) fence();
+  for (const fence of [...toftQueue, ...campFences, ...squareRails]) fence();
   // A stock-keeping household has a lot rather than a garden yard: its byre
   // stands on the nearest clear ground beside the house.
   for (const want of byres) {
@@ -6448,11 +6585,11 @@ export function planSettlement(
   const pavesWalks = !!footwaySurface && footwaySurface !== "earth" && footwaySurface !== "plank";
   if (palette) stepGround(plan, roads, seed, motorAge || pavesWalks ? infillStone(palette) : undefined, pavesWalks ? squareStone : undefined);
   if (palette && urban && !motorAge) resolveGround();
-  if (pack.setting?.terrainRevision) levelAprons();
+  levelAprons();
   if (kerb) kerbFixtures(kerb);
   // A town laid out for cars was graded for them: streets and blocks one
   // step off the centre's level are brought to it, so no bank crosses a road.
-  if (pack.setting?.terrainRevision && motorAge && urban && composed) {
+  if (motorAge && urban) {
     const base = Math.round(sample(c.x, c.y).elevation / 14);
     plan.groundLevels ??= new Map();
     for (const k of new Set([...plan.groundLevels.keys(), ...plan.pavement!.keys(), ...(plan.lanes?.keys() ?? []), ...roads])) {
@@ -6672,7 +6809,7 @@ function stepGround(plan: SettlementPlan, routes: Set<string>, seed: string, inf
   const open = (k: string) => {
     const t = plan.surface.get(k), p = plan.pavement?.get(k);
     return (t === "grass" || t === "dirt") && !routes.has(k) && !plan.solid.has(k) && !plan.fields?.has(k) &&
-      !plan.lanes?.has(k) && !plan.streetGeometry?.has(k) && (!p || p === "vacant" || (p === "court" && t === "grass"));
+      !plan.lanes?.has(k) && !plan.streetGeometry?.get(k)?.edge === false && (!p || p === "vacant" || (p === "court" && t === "grass"));
   };
   const stoneAt = (k: string) => plan.surface.get(k) === "paving" && plan.streetSurfaces?.get(k) !== "earth";
   const pave = (k: string, stone: StreetMaterial, role: Pavement) => {
@@ -6764,7 +6901,7 @@ function tidyGround(plan: SettlementPlan, routes: Set<string>, motorAge: boolean
   const at = (x: number, y: number) => plan.surface.get(cellKey(x, y));
   const open = (t?: Terrain) => t === "paving" || t === "dirt" || t === "grass";
   const fixed = (k: string) =>
-    routes.has(k) || plan.solid.has(k) || !!plan.fields?.has(k) || !!plan.streetGeometry?.has(k) ||
+    routes.has(k) || plan.solid.has(k) || !!plan.fields?.has(k) || !!plan.streetGeometry?.get(k)?.edge === false ||
     !!plan.lanes?.has(k) || ["dais", "platform", "rail", "garden", "verge", "park", "footway"].includes(plan.pavement?.get(k) ?? "");
   const take = (k: string, from: string) => {
     const t = plan.surface.get(from)!;

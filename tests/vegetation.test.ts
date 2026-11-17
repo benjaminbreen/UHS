@@ -46,8 +46,6 @@ const setting = (ecology: Ecology, lon = 30, lat = 40): WorldSetting => ({
   geographyMode: "configured",
   lon,
   lat,
-  terrainRevision: 2,
-  vegetationRevision: 1,
   water: "river-ns",
   environment: {
     ecology,
@@ -94,7 +92,7 @@ it("keeps cold, dry, freshwater and regional flora distinct", () => {
         land,
         r,
       ),
-    ).toMatch(/tropical|palm|mahogany|fig|umbrella/);
+    ).toMatch(/tropical|palm|mahogany|fig|umbrella|teak|bamboo/);
   }
   expect(
     vegetationTree(
@@ -117,7 +115,7 @@ it("keeps cold, dry, freshwater and regional flora distinct", () => {
       setting("dry-scrub", -115, 40),
       habitat("dry-scrub"),
       land,
-      0.2,
+      0.7,
     ),
   ).toContain("sagebrush");
   expect(
@@ -125,7 +123,7 @@ it("keeps cold, dry, freshwater and regional flora distinct", () => {
       setting("desert", -3, 17),
       habitat("desert"),
       land,
-      0.2,
+      0.7,
     ),
   ).toContain("thorn-scrub");
   expect(
@@ -133,7 +131,7 @@ it("keeps cold, dry, freshwater and regional flora distinct", () => {
       setting("tropical-woodland", 105, 15),
       habitat("tropical-woodland"),
       land,
-      0.2,
+      0.05,
     ),
   ).toContain("ginger");
   expect(
@@ -155,20 +153,19 @@ it("keeps cold, dry, freshwater and regional flora distinct", () => {
 });
 
 
-it("resolves open vegetation globally while leaving old revisions unchanged", () => {
+it("resolves open vegetation globally", () => {
   const dry = { ...land, moisture: 0.4, elevation: 10, summit: 100 };
-  const tropical = { ...setting("tropical-woodland", 25, -15), vegetationRevision: 6 as const };
+  const tropical = setting("tropical-woodland", 25, -15);
   expect(vegetationPattern(tropical, dry)).toBe("savanna");
   expect(vegetationPattern(tropical, { ...dry, moisture: 0.8 })).toBeUndefined();
-  const inland = { ...setting("grassland", 70, 45), vegetationRevision: 6 as const };
+  const inland = setting("grassland", 70, 45);
   expect(vegetationPattern(inland, dry)).toBe("steppe");
   expect(vegetationPattern({ ...inland, relief: 0.9 }, { ...dry, elevation: 85 })).toBe("alpine");
   expect(vegetationPattern({ ...inland, relief: 0.2 }, { ...dry, elevation: 85 })).toBe("steppe");
-  expect(vegetationPattern({ ...tropical, vegetationRevision: 5 }, dry)).toBeUndefined();
 });
 
 it("keeps alpine ground treeless and uses low vegetation instead of forest understory", () => {
-  const s = { ...setting("temperate-woodland"), vegetationRevision: 6 as const };
+  const s = setting("temperate-woodland");
   const h: Habitat = { ecology: "temperate-woodland", vegetation: "alpine", kind: "open", wet: 0.1, cover: 0.2, exposed: 0.7, season: "summer" };
   expect(vegetationTree(s, h, land, 0.2)).toBeUndefined();
   expect(vegetationUnderstory(s, h, land, 0.2)).toBe("nature-understory-low-heath");

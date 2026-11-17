@@ -17,7 +17,7 @@ import {
   colorways,
 } from "../../content/ecology/profiles";
 import { patterns } from "../../content/settlements/profiles";
-import { waters, settingSchema, type WorldSetting } from "../../content/geography/types";
+import { waters, type WorldSetting } from "../../content/geography/types";
 import { settingFor } from "../../content/geography/resolve";
 import { places } from "../../content/geography/places";
 import { App } from "../../ui/App";
@@ -37,7 +37,6 @@ type Config = {
   water: (typeof waters)[number];
   season: WorldSetting["season"];
   year: number;
-  vegetationRevision: NonNullable<WorldSetting["vegetationRevision"]>;
   placementRevision: 0 | 1;
   /** Overrides the place's relief, which sets how many altitude steps exist. */
   relief: number;
@@ -60,7 +59,6 @@ const defaults: Config = {
   water: "river-ns",
   season: "summer",
   year: -6499,
-  vegetationRevision: 9,
   placementRevision: 1,
   relief: 0.35,
 };
@@ -186,10 +184,6 @@ function readConfig(): Config {
   if (q.has("year")) c.year = Number(q.get("year"));
   if (q.has("relief")) c.relief = Number(q.get("relief"));
   if (q.has("lon") && q.has("lat")) [c.lon, c.lat] = [Number(q.get("lon")), Number(q.get("lat"))];
-  if (q.has("vegetationRevision")) {
-    const revision = settingSchema.shape.vegetationRevision.safeParse(Number(q.get("vegetationRevision")));
-    if (revision.success && revision.data) c.vegetationRevision = revision.data;
-  }
   if (q.get("placementRevision") === "0") c.placementRevision = 0;
   return c;
 }
@@ -217,8 +211,6 @@ export function labSetting(c: Config): WorldSetting {
     location: c.place
       ? `${base.location} · street study`
       : `${ecologyProfiles[c.ecology].label} · procedural study`,
-    terrainRevision: 2,
-    vegetationRevision: c.vegetationRevision,
     placementRevision: c.placementRevision,
     environment: {
       ecology: c.ecology,

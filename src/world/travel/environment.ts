@@ -5,6 +5,7 @@ import { environmentFor } from "../../content/geography/defaults";
 import { farms, networkOnset } from "../../content/geography/onsets";
 import { settingFor } from "../../content/geography/resolve";
 import { populationAt } from "../../content/geography/eras";
+import { cityPopulation } from "../../content/settlements/city-populations";
 import type { AtlasPlace, WorldSetting } from "../../content/geography/types";
 import {
   atlasSample,
@@ -15,6 +16,8 @@ import {
 import { geographicClimate } from "../geography/climate";
 import { inBounds, inPolygon } from "../regional/geometry";
 import type { Coordinate, TravelStop } from "./types";
+import { industrialized } from "../../content/settlements/modernity";
+import { bearingTo, kilometers } from "./geography";
 
 export function resolveMapEnvironment(anchor: Coordinate, year: number) {
   const origin = toAtlas(anchor.lon, anchor.lat);
@@ -99,6 +102,30 @@ export function resolveMapEnvironment(anchor: Coordinate, year: number) {
 // as foragers), but once the modern network of places exists, land is farmed.
 const tilled = (w: Parameters<typeof farms>[0]) => farms(w) || w.year >= networkOnset(w);
 export type MapEnvironment = ReturnType<typeof resolveMapEnvironment>;
+/** The great city whose reach covers a point: the squares touching a city
+ * of 400,000, two out from one of two million, three from one of six. Once
+ * its region has industrialised a square there is its suburbs and satellite
+ * towns, with a few per cent of the city's people, fewer in the outer
+ * rings; before that it is close-settled country. Either way the roads out
+ * of a great city do not lead into empty land. */
+export function metropolisNear(at: Coordinate, year: number) {
+  let best: { of: string; population: number; bearing: string; suburban: boolean } | undefined;
+  for (const p of places) {
+    if (Math.abs(p.lat - at.lat) > 0.7) continue;
+    const km = kilometers(p, at);
+    if (km > 64 || km < 8) continue;
+    const people = cityPopulation(p.id, year) ?? populationAt(p, year) ?? 0;
+    const reach = people >= 6e6 ? 64 : people >= 2e6 ? 46 : people >= 4e5 ? 32 : 0;
+    if (km > reach) continue;
+    const population = Math.round(people * (km < 34 ? 0.04 : 0.012));
+    if (population >= 20000 && (!best || population > best.population))
+      // A gazetteer area is named for its basin or plain; its city is the first word.
+      best = { of: p.id.startsWith("area-") ? p.name.replace(/ (Basin|Plain|Valley|Delta|Bay|Region|Area)$/, "") : p.name,
+        population, bearing: bearingTo(p, at), suburban: industrialized({ ...at, year }) };
+  }
+  return best;
+}
+
 export function settingForTravelStop(stop: TravelStop, year: number) {
   const e =
     stop.environment.year === year
@@ -115,7 +142,7 @@ export function settingForTravelStop(stop: TravelStop, year: number) {
     id: stop.locationId ?? `travel-${stop.id}`,
     name: stop.name,
     aliases: [],
-    population: gazetteer && populationAt(gazetteer, year),
+    population: stop.suburb?.population ?? (gazetteer && populationAt(gazetteer, year)),
     ...e.anchor,
     climate: e.climate,
     relief: e.relief,
@@ -124,7 +151,7 @@ export function settingForTravelStop(stop: TravelStop, year: number) {
     water: e.water,
     year,
     settlement:
-      stop.settlement === "city"
+      stop.settlement === "city" || stop.suburb
         ? "city"
         : stop.settlement === "town" || stop.settlement === "village" || stop.countryside === "settled"
           ? "village"
@@ -133,6 +160,7 @@ export function settingForTravelStop(stop: TravelStop, year: number) {
             : "camp",
   };
   const setting = settingFor(place, year);
+  if (stop.suburb) setting.suburbOf = stop.suburb.of;
   // A map is a square of the real Earth, so its coasts are the atlas's own.
   // Open sea has no coast to match and nowhere to stand, so it keeps the
   // drawn ocean with its bars and rocks.

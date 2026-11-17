@@ -85,6 +85,8 @@ const STYLES: readonly StyleRule[] = [
     regions: ["western-europe", "eastern-europe"],
     from: 1850,
   },
+  // The belle-epoque avenues of Buenos Aires, Rio and Mexico City were built to Paris's pattern.
+  { style: "immeuble", uses: ["downtown"], regions: ["latin-america"], from: 1880 },
   {
     style: "townhouse",
     uses: ["rowhouse"],

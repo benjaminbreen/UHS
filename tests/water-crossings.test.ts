@@ -13,9 +13,7 @@ const make = (south: boolean): WorldSetting =>
     settlement: "camp",
     water: south ? "river-ns" : "none",
     season: "summer",
-    terrainRevision: 2,
     geographyMode: "configured",
-    hydrologyRevision: 3,
     ecologyRevision: 2,
     environment: {
       ecology: "temperate-woodland",

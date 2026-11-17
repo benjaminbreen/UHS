@@ -254,7 +254,8 @@
   {
     "name": "new-york-1910",
     "query": "New York 1910",
-    "radius": 40
+    "radius": 56,
+    "centre": "square"
   },
   {
     "name": "sitka-1980",
@@ -269,7 +270,8 @@
   {
     "name": "manchester-1900",
     "query": "Manchester 1900",
-    "radius": 110
+    "radius": 56,
+    "centre": "square"
   },
   {
     "name": "moscow-1975",
@@ -284,29 +286,32 @@
   {
     "name": "paris-1888",
     "query": "A traveler in Paris, 1888 CE",
-    "radius": 70,
+    "radius": 56,
     "centre": "square"
   },
   {
     "name": "london-1890",
     "query": "A clerk in London, 1890 CE",
-    "radius": 70
+    "radius": 56,
+    "centre": "square"
   },
   {
     "name": "vienna-1900",
     "query": "A traveler in Vienna, 1900 CE",
-    "radius": 70,
+    "radius": 56,
     "centre": "square"
   },
   {
     "name": "chicago-1895",
     "query": "A traveler in Chicago, 1895 CE",
-    "radius": 70
+    "radius": 56,
+    "centre": "square"
   },
   {
     "name": "tokyo-1910",
     "query": "A clerk in Tokyo, 1910 CE",
-    "radius": 70
+    "radius": 56,
+    "centre": "square"
   },
   {
     "name": "nairobi-1950",
@@ -362,7 +367,8 @@
   {
     "name": "mexico-1955",
     "query": "A clerk in Mexico City, 1955",
-    "radius": 70
+    "radius": 56,
+    "centre": "square"
   },
   {
     "name": "istanbul-1995",
@@ -388,5 +394,59 @@
     "name": "shanghai-2005",
     "query": "A clerk in Shanghai, 2005",
     "radius": 70
+  },
+  {
+    "name": "chicago-1955",
+    "query": "Chicago 1955",
+    "radius": 56,
+    "centre": "square"
+  },
+  {
+    "name": "beijing-1985",
+    "query": "Beijing 1985",
+    "radius": 56,
+    "centre": "square"
+  },
+  {
+    "name": "taipei-1975",
+    "query": "Taipei 1975",
+    "radius": 56,
+    "centre": "square"
+  },
+  {
+    "name": "sao-paulo-1960",
+    "query": "Sao Paulo 1960",
+    "radius": 56,
+    "centre": "square"
+  },
+  {
+    "name": "rome-100",
+    "query": "Rome 100 CE",
+    "centre": "square"
+  },
+  {
+    "name": "seoul-1750",
+    "query": "Seoul 1750",
+    "centre": "square"
+  },
+  {
+    "name": "george-town-1880",
+    "query": "George Town, Penang 1880",
+    "centre": "square"
+  },
+  {
+    "name": "sao-paulo-2015",
+    "query": "Sao Paulo 2015",
+    "centre": "square"
+  },
+  {
+    "name": "shanghai-1930",
+    "query": "Shanghai 1930",
+    "centre": "square"
+  },
+  {
+    "name": "buenos-aires-1910",
+    "query": "Buenos Aires 1910",
+    "centre": "square"
   }
 ]

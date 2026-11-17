@@ -1,11 +1,30 @@
 import props from "../graphics/props.json" with { type: "json" };
 import type { Pack } from "../../core/types";
-import { modernity } from "./modernity";
+import { industrialized, modernity } from "./modernity";
 import { statueFor } from "./statues";
 
 /** One thing stood in a square: its sprite, what it is called, and how many
  * cells of ground its foot takes. */
 export type PlazaPiece = { sprite: string; label: string; w: number };
+
+/** How a city's main square is built and meets its streets, once its streets
+ * are kerbed. A `place` is paved out to its own kerb, the streets passing its
+ * sides and their trees standing on it: the continental square, the Soviet
+ * one, a station front in East Asia. A `garden` is lawns between cross walks
+ * inside the public footway: behind iron railings with a gate on each walk
+ * in Britain and its settler cities until the railings went for scrap in the
+ * 1940s, open elsewhere, as a courthouse square, a Latin American plaza
+ * round its kiosk, a maidan or a padang. Undefined, the square is open
+ * ground running into its streets: a market place, a plaza mayor before its
+ * gardens. */
+export type SquareKind = { form: "place" } | { form: "garden"; railed: boolean };
+export function squareKind(s: { lon: number; lat: number; year: number }): SquareKind | undefined {
+  if (!industrialized(s)) return undefined;
+  const id = modernity(s).id;
+  if (id === "britain" || id === "australasia") return { form: "garden", railed: s.year < 1940 };
+  if (["north-america", "latin-america", "southern-africa", "south-asia", "southeast-asia"].includes(id)) return { form: "garden", railed: false };
+  return { form: "place" };
+}
 
 /** What a town's square holds beside its centrepiece: who sells there and
  * from what, where people sit, what they drink from, what stands along its

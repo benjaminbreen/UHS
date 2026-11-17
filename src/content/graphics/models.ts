@@ -32,6 +32,27 @@ export function walkableRoof(frame: string) {
     !/^(precinct|religious-meso|meso-ballcourt)-/.test(frame) &&
     (!frame.startsWith("worksite-") || /caravanserai|store-sahel|earth-fishing-house/.test(frame));
 }
+
+/** Street looks drawn for one business, by family name. */
+const LOOK_BUSINESS: Record<string, string> = {
+  pub: "pub", bank: "bank", chambers: "offices", office: "offices", emporium: "department store", diner: "diner",
+  drivein: "burger drive-in", market: "supermarket", motel: "motel", gas: "gas station", theatre: "cinema",
+};
+/** What a frame's art shows at its street door: a named business ("cafe"),
+ * an unnamed "shop", or nothing for a house. Whoever is put in the building
+ * and how the door is treated follow this, so a cafe is never someone's
+ * private home. Street looks declare their sign boards; the older families'
+ * shop and stall forms are drawn with an open shop. */
+export function shopArt(frame: string): string | undefined {
+  const model = buildingModels[frame] as { business?: string; shopSigns?: unknown[]; role?: string } | undefined;
+  if (!model) return undefined;
+  if (model.business) return model.business.startsWith("residential") ? undefined : model.business;
+  const look = LOOK_BUSINESS[/^mod-([a-z-]+?)-\d/.exec(frame)?.[1] ?? ""];
+  if (look) return look;
+  if (model.shopSigns?.length || model.role === "shop") return "shop";
+  return !frame.startsWith("mod-") && /-urban-(shop|stall)(-(north|east|west))?$/.test(frame) ? "shop" : undefined;
+}
+
 export function buildingModel(frame: string): BuildingModel {
   const model = buildingModels[frame];
   if (!model) throw new Error(`Missing building model: ${frame}`);

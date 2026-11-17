@@ -15,7 +15,7 @@ import { enclosed, kerbed, roadwayMaterial } from "../src/render/paving-edge";
 it("keeps diagonal asphalt, curb and sidewalk continuous across tile boundaries", () => {
   const stroke = { a: [-10.5, -10.5] as [number, number], b: [20.5, 20.5] as [number, number], radius: 2.5 };
   expect(streetDistance(stroke, 5.5, 5.5)).toBe(-2.5);
-  const sample = (() => ({ height: 0, surface: "grass", feature: "paving", streetMaterial: "asphalt", streetGeometry: { strokes: [stroke], infill: false } })) as TopographySample;
+  const sample = (() => ({ height: 0, surface: "grass", feature: "paving", streetMaterial: "asphalt", streetGeometry: { strokes: [stroke], edge: false } })) as TopographySample;
   const a = rasterStreetTile(sample, 0, 0, 0, 0);
   const b = rasterStreetTile(sample, -8, -8, 8, 8);
   expect(a!.pixels).toEqual(b!.pixels);

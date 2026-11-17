@@ -1854,6 +1854,12 @@ def kit_recipes(side_depth):
             'description': ABOUT[kind], 'obliqueModern': 'kit', 'seed': seed,
             'stories': storeys, 'deep': deep,
         }
+        if o.get('shop'):
+            # What the painted shopfront is: its lettering, else the goods in its window.
+            word, goods = o['shop'][1], getattr(o['shop'][2], '__name__', '')
+            out[name]['business'] = ('hotel' if word == 'HOTEL' else
+                                     dict(goods_cafe='cafe', goods_bread='bakery', goods_books='bookshop',
+                                          goods_pharma='pharmacy').get(goods, 'shop'))
         if name in IMMEUBLES:
             out[name].update(front_recipe(name, seed))
     return out

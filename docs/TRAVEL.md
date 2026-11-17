@@ -15,16 +15,33 @@ across. It is generated about its exact centre, and `permanentExits` gives
 its four neighbours. The setting carries this as `playableMap` (size 304,
 384 or 512). A square of open sea keeps a drawn ocean.
 
+A square with no town of its own inside a great city's reach is not empty.
+`metropolisNear` (`environment.ts`) finds the city: the squares touching one
+of 400,000 people, two out from one of two million, three from one of six
+(its series in `city-populations.ts` where it has one, else the gazetteer's
+figure at the date).
+Once the region has industrialised the square is a suburb (`suburb` on the
+map, named "Suburbs east of ..."), a town with a few per cent of the city's
+people, fewer in the outer rings, and no downtown (`suburbOf` on the
+setting); before that it is settled country.
+
 Fresh starts go through `prepareConnectedStart`. `travelSetting` turns a map
 and its exits into a `WorldSetting`.
 
 ## Borders
 
 A border is the same line of Earth seen from both sides, so coasts, rivers
-and relief run straight across. `sampleSeam` and `boundarySample` in
-`seams.ts` reconcile local noise along it; only the outer band blends.
+and relief run straight across. `sampleSeam` in `seams.ts` records each
+border's profile, and `boundaryWater` (`v3/boundary-water.ts`) joins water
+across it; only the outer band blends.
 `waterways.ts` and `water-edges.ts` match rivers across the edge;
-`entrances.ts` finds reachable entry points. Trunk routes (`routes.ts`) live
+`entrances.ts` finds reachable entry points. Each land border has one road
+crossing (`roadAt` on its seam, the same point from both sides), and a
+playable map's regional roads run to those crossings, not to settlements
+imagined beyond its edge (`crossings` in `regional/transport.ts`): a road
+that leaves one map arrives in the next. Where water lies between a town
+and its crossing the road bridges each stretch of it; a few crossings
+behind wide water still get no road. Trunk routes (`routes.ts`) live
 in atlas coordinates so both sides of a border draw the same road or rail.
 
 `MapTravel` in `map-travel.ts` handles a crossing: it prepares the

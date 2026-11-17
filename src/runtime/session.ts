@@ -144,7 +144,6 @@ import { z } from "zod";
 import { settingSchema, type WorldSetting } from "../content/geography/types";
 import { packForSetting } from "../content/geography/pack";
 import { createSettlementWorld, type SettlementWorld } from "../world/v3/generate";
-import { createAtlasWorld } from "../world/v2/generate";
 import { integratedSetting } from "../content/geography/defaults";
 import { ecologyProfiles } from "../content/ecology/profiles";
 import { colorwayLabels } from "../content/ecology/variants";
@@ -160,7 +159,6 @@ export type SessionOptions = {
   snapshot?: Snapshot;
   setting?: WorldSetting;
   content?: 1 | 2;
-  generator?: 1 | 2 | 3;
   prepared?: PreparedSettlement;
 };
 
@@ -168,18 +166,15 @@ export type SessionOptions = {
 export function createSession(
   packId = "roman",
   seed = packs[packId]?.defaultSeed ?? "earth-2",
-  { snapshot, setting, content = 2, generator = 3, prepared }: SessionOptions = {},
+  { snapshot, setting, content = 2, prepared }: SessionOptions = {},
 ) {
   const resolved = setting ?? snapshot?.manifest.setting;
   const pack = resolved
     ? packForSetting(settingSchema.parse(resolved))
     : packs[packId];
   if (!pack) throw Error("Unsupported content pack.");
-  const generation = snapshot?.manifest.generator ?? generator;
   let world = resolved
-    ? generation === 3
-      ? createSettlementWorld(pack, seed, prepared)
-      : createAtlasWorld(pack, seed)
+    ? createSettlementWorld(pack, seed, prepared)
     : createWorld(pack, seed);
   const version = snapshot?.manifest.content ?? content;
   if (version === 2) world = withProps(world, seed);
@@ -991,7 +986,6 @@ export class Runtime {
         this.engine.state.player.pos.x,
         this.engine.state.player.pos.y,
         this.engine.state.manifest.setting,
-        this.engine.state.manifest.generator,
       );
     if (!this.workInProgress) this.journey?.observe();
     this.cached = timed("runtime view", () => this.view(refresh && !this.workInProgress));
@@ -2679,7 +2673,6 @@ export class Runtime {
       {
         setting: envelope.manifest.generator !== 1 ? envelope.manifest.setting : undefined,
         content: envelope.manifest.content,
-        generator: envelope.manifest.generator,
       },
     );
     this.engine.state.manifest = structuredClone(envelope.manifest);
@@ -2738,7 +2731,6 @@ export class Runtime {
       {
         setting: replay.manifest.setting,
         content: replay.manifest.content,
-        generator: replay.manifest.generator,
       },
     );
     this.engine.state.manifest = structuredClone(replay.manifest);

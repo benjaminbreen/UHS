@@ -3,7 +3,7 @@ import {
   institutionFor,
   type Institution,
 } from "../../content/characters/workplace";
-import { resolveCharacterContext } from "../../content/characters/resolve";
+import { townWorkContext } from "../../content/characters/resolve";
 import { generateCharacter } from "../../content/characters/generate";
 import { livelihoodById } from "../../content/characters/livelihoods";
 import { officeFor } from "../../content/interiors/offices";
@@ -130,6 +130,10 @@ function availableWork(plan: SettlementPlan, id: string) {
   );
 }
 
+/** Whoever keeps a shop or workshop of their own works in it; no other place has to take them on. */
+const keepsShop = (plan: SettlementPlan, id: string) =>
+  plan.places.some((p) => p.owner === id && p.access === "public" && !p.claim.startsWith("venue-"));
+
 export function localWorkContext(
   plan: SettlementPlan,
   pack: Pack,
@@ -147,10 +151,12 @@ export function localWorkContext(
     const requirement = supplied[offer.kind];
     if (requirement) localRequirements.add(requirement);
   }
-  const context = resolveCharacterContext(pack.setting!, community, localRequirements);
+  const keeps = keepsShop(plan, id);
+  const context = townWorkContext(pack.setting!, community, localRequirements);
   return {
     ...context,
     livelihoods: context.livelihoods.filter((l) => {
+      if (keeps) return true;
       const kind = institutionAt(l,pack,plan,id,available);
       return !kind || available(kind, l.id).length > 0;
     }).map((l) => {
@@ -176,6 +182,7 @@ export function assignLocalWork(
     actor.origin?.specialty ?? actor.origin?.livelihood ?? "",
   );
   let kind = kit && institutionAt(kit,pack,plan,actor.id,available);
+  if (keepsShop(plan, actor.id)) kind = undefined;
   if (kind && !available(kind, kit!.id).length) {
     const replacement = generateCharacter(
       pack.setting,

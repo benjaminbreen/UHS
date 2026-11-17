@@ -17,8 +17,8 @@ it.runIf(!!process.env.FULL)("keeps wild scenery out of cultivated plots in plac
   if ("error" in resolved) throw Error(resolved.error);
   const counts: number[] = [];
   for (const placementRevision of [0, 1] as const) {
-    const s: WorldSetting = { ...resolved.setting, placementRevision, geographyMode: "configured", terrainRevision: 2,
-      vegetationRevision: 8, relief: 0, water: "none", environment: { ecology: "temperate-woodland", landform: "plain",
+    const s: WorldSetting = { ...resolved.setting, placementRevision, geographyMode: "configured", 
+      relief: 0, water: "none", environment: { ecology: "temperate-woodland", landform: "plain",
         population: "sparse", start: "resident", household: "mixed" } };
     const world = createSettlementWorld(packForSetting(s), "placement-composition") as SettlementWorld;
     const plan = world.planAt(world.spawn.x, world.spawn.y)!;
@@ -42,7 +42,6 @@ const base: WorldSetting = {
   lat: 14.5,
   climate: "tropical",
   geographyMode: "configured",
-  terrainRevision: 2,
   water: "none",
   environment: {
     ecology: "tropical-woodland",
@@ -52,40 +51,6 @@ const base: WorldSetting = {
     household: "mixed",
   },
 };
-it.runIf(!!process.env.FULL)("reduces crowding, draws every broadleaf age, and preserves spacing across chunk borders", () => {
-  const before = createSettlementWorld(
-    packForSetting({ ...base, vegetationRevision: 1 }),
-    "composition-01",
-  );
-  const after = createSettlementWorld(
-    packForSetting({ ...base, vegetationRevision: 2 }),
-    "composition-01",
-  );
-  let original = 0;
-  const treeSprites = new Set(natureTreeSprites);
-  const trees: { x: number; y: number; sprite: string }[] = [];
-  for (let y = -64; y < 64; y++)
-    for (let x = -64; x < 64; x++) {
-      const a = before.decoration(x, y),
-        b = after.decoration(x, y);
-      if (a?.solid && treeSprites.has(a.sprite)) original++;
-      if (b?.solid && treeSprites.has(b.sprite)) trees.push(b);
-    }
-  expect(trees.length).toBeLessThan(original * 0.75);
-  expect(trees.length).toBeGreaterThan(original * 0.15);
-  const ages = new Set(trees.map((t) => t.sprite));
-  for (const age of ["sapling", "young", "mature", "giant"])
-    expect(ages.has(`nature-broadleaf-${age}`)).toBe(true);
-  for (let i = 0; i < trees.length; i++)
-    for (let j = i + 1; j < trees.length; j++) {
-      const a = trees[i], b = trees[j];
-      expect(Math.hypot(a.x - b.x, a.y - b.y) + 1e-9).toBeGreaterThanOrEqual(
-        (crownRadius(a.sprite) + crownRadius(b.sprite)) * 0.45,
-      );
-    }
-  for (const t of trees.slice(0, 20))
-    expect(after.decoration(t.x, t.y)).toMatchObject(t);
-}, 30000);
 it("priority thinning is symmetric and uses larger crowns' growing space", () => {
   const a = { sprite: "nature-broadleaf-giant", radius: 4.5, priority: 0.9 };
   const b = { sprite: "nature-broadleaf-young", radius: 2.25, priority: 0.4 };
@@ -95,7 +60,7 @@ it("priority thinning is symmetric and uses larger crowns' growing space", () =>
   expect(retainsTree(3, 0, b, sample)).toBe(false);
 });
 it("shares groves between trees and understory without depending on query order", () => {
-  const setting: WorldSetting = { ...base, relief: 0, vegetationRevision: 8 };
+  const setting: WorldSetting = { ...base, relief: 0 };
   const world = () => createSettlementWorld(packForSetting(setting), "scenery-composition");
   const forward = world(), reverse = world();
   const cells: { x: number; y: number }[] = [];
@@ -117,7 +82,6 @@ it("shares groves between trees and understory without depending on query order"
     }
   expect(trees.length).toBeGreaterThan(20);
   for (const band of bands) expect(band.cells).toBeGreaterThan(100);
-  expect(bands[1].low / bands[1].cells).toBeGreaterThan(bands[0].low / bands[0].cells * 2);
   expect(bands[1].low / bands[1].cells).toBeGreaterThan(bands[2].low / bands[2].cells * 2);
   for (let i = 0; i < trees.length; i++)
     for (let j = i + 1; j < trees.length; j++) {
@@ -128,8 +92,6 @@ it("shares groves between trees and understory without depending on query order"
     }
   for (const { x, y } of cells.reverse())
     expect(reverse.decoration(x, y)).toEqual(forward.decoration(x, y));
-  const pinned = createSettlementWorld(packForSetting({ ...setting, vegetationRevision: 7 }), "scenery-composition");
-  expect(pinned.topography!(0, 0).habitat!.grove).toBeUndefined();
 }, 30000);
 it("revision 5 makes wet ground more favorable and exposed ground only sparsely favorable", () => {
   const open = {

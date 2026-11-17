@@ -43,7 +43,8 @@ export function createRegionalContext(start: WorldSetting) {
         id: p.id,
         name: p.name,
         at: [p.lon, p.lat],
-        radius: p.settlement === "village" ? 60 : 140,
+        // A city of a million claims its whole map: core, suburbs and all.
+        radius: p.settlement === "village" ? 60 : (p.population ?? 0) >= 1e6 ? 184 : 140,
         population: p.population,
         dates: { start: { year: 1990 } },
         defaults: { settlement: p.settlement, water: p.water },
@@ -77,7 +78,7 @@ export function createRegionalContext(start: WorldSetting) {
       id: start.placeId,
       name: start.location,
       at: [start.lon, start.lat],
-      radius: population ? 140 : 80,
+      radius: population ? (population >= 1e6 ? 184 : 140) : 80,
       population,
       dates: {},
       defaults: {

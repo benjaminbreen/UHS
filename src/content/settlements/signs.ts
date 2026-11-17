@@ -263,6 +263,9 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
   sweets: { en: ["CANDY", "SWEETS"], fr: ["PATISSERIE"], nl: ["BANKET"], es: ["DULCES"], pt: ["DOCES"], tr: ["TATLI"], ru: ["КОНДИТЕРСКАЯ"] },
   juice: { en: ["JUICE"], fr: ["JUS"], nl: ["SAP"], es: ["JUGOS"], pt: ["SUCOS"], tr: ["MEYVE SUYU"], sw: ["JUISI"], ru: ["СОКИ"] },
   bank: { en: ["BANK", "SAVINGS"], fr: ["BANQUE"], nl: ["BANK"], es: ["BANCO"], pt: ["BANCO"], id: ["BANK"], tr: ["BANKA"], sw: ["BENKI"], ru: ["СБЕРКАССА"] },
+  pub: { en: ["PUB", "TAVERN"], fr: ["CAFE"], nl: ["CAFE"] },
+  offices: { en: ["OFFICES", "CHAMBERS"], fr: ["BUREAUX"] },
+  "department store": { en: ["STORES", "EMPORIUM"], fr: ["MAGASINS"] },
   /** Anything that only says it is open for business. */
   shop: {
     en: ["SHOP", "STORE"],
@@ -339,6 +342,40 @@ export function streetTrade(year: number, roll: number): string {
   const open = STREET_TRADES.filter((trade) => (TRADE_FROM[trade] ?? 0) <= year);
   return open[Math.floor(roll * open.length)];
 }
+
+/** What a keeper's work puts on the board over the door. */
+const KEEPS: [RegExp, string][] = [
+  [/bak/, "bakery"], [/butch/, "butcher"], [/tailor|dress|millin|seamstr|draper/, "tailor"], [/cobbl|shoe/, "shoes"],
+  [/pharm|apothec|herbal/, "pharmacy"], [/confection/, "sweets"], [/jewel|watchm|goldsm|silversm/, "jeweler"],
+  [/print|book|station/, "books"], [/barber|hairdress/, "barber"], [/grocer/, "grocery"],
+  [/publican|innkeep|cook|waiter/, "cafe"], [/smith|ironmong/, "hardware"], [/mechanic/, "auto workshop"],
+  [/physician|doctor/, "clinic"], [/laund|washer/, "laundromat"],
+];
+export function keeperTrade(role: string): string {
+  const r = role.toLowerCase();
+  return KEEPS.find(([match]) => match.test(r))?.[1] ?? "shop";
+}
+
+/** Who keeps a business the art names, likeliest first; the first the place
+ * and date have is asked for. */
+export const KEEPERS: Record<string, string[]> = {
+  cafe: ["publican", "cook", "waiter", "confectioner"], diner: ["cook", "waiter", "publican"],
+  pizzeria: ["cook", "baker"], "burger drive-in": ["cook", "waiter"], "donut shop": ["baker", "confectioner"],
+  "ice cream stand": ["confectioner", "street-vendor"], pharmacy: ["pharmacist", "herbalist"],
+  clinic: ["physician", "nurse"], "barber shop": ["barber", "hairdresser"], grocery: ["grocer"],
+  "corner store": ["grocer"], "neighborhood market": ["grocer"],
+  laundromat: ["laundry-worker", "washerwoman", "laundress"], "gas station": ["motor-mechanic"],
+  "auto workshop": ["motor-mechanic", "blacksmith"], "tire shop": ["motor-mechanic"],
+  motel: ["innkeeper", "publican"], hotel: ["innkeeper", "publican"],
+  bakery: ["baker", "confectioner"], bookshop: ["printer"], pub: ["publican", "innkeeper"],
+  bank: ["bank-clerk", "clerk"], offices: ["clerk", "bank-clerk"], "department store": ["shopkeeper", "trader"],
+  supermarket: ["grocer", "shopkeeper"],
+};
+/** Trades that keep an unnamed shop, so a street of them is not all one thing. */
+export const SHOP_TRADES = [
+  "shopkeeper", "grocer", "baker", "butcher", "tailor", "cobbler", "pharmacist", "confectioner", "jeweller",
+  "watchmaker", "tobacconist", "printer", "barber", "hairdresser", "dressmaker", "milliner", "publican",
+];
 
 /** Trades a family puts its own name over. A gas station is a brand; a tailor
  * is a person. */

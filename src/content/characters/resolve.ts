@@ -401,6 +401,18 @@ export function workAt(
       (sex === "unspecified" || !l.sex || l.sex === sex),
   );
 }
+/** A person's own community's work with the town's trades it lacks: the town asks for its trades from those. */
+export function townWorkContext(
+  s: WorldSetting,
+  community: string | undefined,
+  localRequirements?: ReadonlySet<string>,
+): CharacterContext {
+  const own = resolveCharacterContext(s, community, localRequirements);
+  if (!community) return own;
+  const known = new Set(own.livelihoods.map((l) => l.id));
+  const town = resolveCharacterContext(s, undefined, localRequirements).livelihoods.filter((l) => !known.has(l.id));
+  return { ...own, livelihoods: [...own.livelihoods, ...town] };
+}
 export function resolveCharacterContext(
   s: WorldSetting,
   community = communityFor(s),

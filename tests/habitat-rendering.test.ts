@@ -3,7 +3,7 @@ import { ecologies } from "../src/content/ecology/profiles";
 import { groveAt, habitatAt, habitatTree } from "../src/world/v3/habitats";
 import { naturalGround, rasterHabitatTile } from "../src/render/habitat-raster";
 import type { TopographySample } from "../src/core/topography";
-import type { LandSample } from "../src/world/v2/landscape";
+import type { LandSample } from "../src/world/geography/landscape";
 import { bloomsAt } from "../src/content/ecology/blooms";
 import { kitGroundPixel, pickKit } from "../src/render/ground-kit";
 import { groundKits } from "../src/content/graphics/ground-kits";

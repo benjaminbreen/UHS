@@ -165,3 +165,23 @@ it("bounds the existing generator without changing the underlying Earth terrain"
   expect(world.decoration(5000, 5000)).toBeUndefined();
   expect(world.prepare().plans).toHaveLength(0);
 }, 30000);
+
+it("makes the squares beside a great city its suburbs, or settled country before its industry", async () => {
+  const beijing = parseTile(mapForCoordinate({ lon: 116.4, lat: 39.9 }));
+  const east = tileId({ i: beijing.i + 1, j: beijing.j });
+  await loadTileNames([east]);
+  const modern = permanentMap(east, 1985);
+  expect(modern.settlement).toBe("town");
+  expect(modern.suburb?.of).toBe("Beijing");
+  expect(modern.name).toMatch(/^Suburbs \w+ of Beijing$/);
+  expect(travelSetting(modern, permanentExits(east, 1985), 1985).suburbOf).toBe("Beijing");
+  const old = permanentMap(east, 1750);
+  expect(old.suburb).toBeUndefined();
+  expect(old.settlement).toBe("none");
+  expect(old.countryside).toBe("settled");
+  // A curated anchor has no head count of its own; its series stands in.
+  const london = parseTile(mapForCoordinate({ lon: -0.12, lat: 51.51 }));
+  const north = tileId({ i: london.i, j: london.j - 1 });
+  await loadTileNames([north]);
+  expect(permanentMap(north, 1890).suburb?.of).toBe("London");
+});

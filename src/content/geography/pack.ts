@@ -20,6 +20,7 @@ import { formatHistoricalYear } from "../../core/calendar";
 import { mediterraneanInsulaFrames } from "../graphics/mediterranean-buildings";
 import { casaHouses, casaLook } from "../graphics/iberian-houses";
 import { euroHouses, euroLook } from "../graphics/european-houses";
+import { straitsHouses } from "../graphics/straits-houses";
 import type { Pack } from "../../core/types";
 import type { WorldSetting } from "./types";
 import { historyRegistry, resolveHistory } from "../history";
@@ -85,7 +86,6 @@ export function periodBuildings(setting: WorldSetting): string[] {
     ];
   if (culture === "east-asian") {
     const japan = lat > 30 && lat < 46 && (lon > 131 || (lon > 129.4 && lat < 35));
-    const korea = !japan && lon > 124 && lon < 130.5 && lat > 33.5 && lat < 39;
     if (japan)
       return [
         "machiya",
@@ -93,16 +93,9 @@ export function periodBuildings(setting: WorldSetting): string[] {
         "machiya-shop",
         ...(year >= 1870 ? ["giyofu-house"] : []),
       ];
-    if (korea) return ["hanok", "hanok-b", "chinese-shophouse"];
-    // South of the Yangtze's latitude the street gables step in horse-head walls.
-    if (lat < 31)
-      return ["chinese-shophouse-south", "chinese-shophouse-south-b", "chinese-courtyard-gate-south"];
-    return ["chinese-shophouse", "chinese-shophouse-b", "chinese-courtyard-gate"];
+    // Joseon and Qing cities stay with the houses their regions already build.
+    return [];
   }
-  if (culture === "southeast-asian")
-    return year >= 1820
-      ? ["straits-shophouse", "straits-shophouse-mint", "colonial-bungalow"]
-      : ["chinese-shophouse", "colonial-bungalow"];
   // South Asian cities stay with their courtyard houses: bungalows and
   // shophouses belonged to cantonments and civil lines, not the old city.
   return [];
@@ -318,10 +311,13 @@ export function packForSetting(setting: WorldSetting): Pack {
   const vernacular = vernacularHouses(setting);
   const casa = casaHouses(setting);
   const euro = euroHouses(setting);
+  const straits = casa.length ? [] : straitsHouses(setting);
   const buildings = prehistoric
     ? prehistoric
+    : straits.length
+      ? straits
     : modernCity
-      ? modernFlatFrontKit(setting)
+      ? [...casa, ...modernFlatFrontKit(setting)]
       : casa.length
         ? casa
       : euro.length
@@ -461,7 +457,7 @@ export function packForSetting(setting: WorldSetting): Pack {
       "Farmhouse",
     ],
     names:
-      setting.terrainRevision && early
+      early
         ? base.names
         : architecture === "classical"
           ? packTemplates.roman.names
@@ -566,10 +562,7 @@ export function packForSetting(setting: WorldSetting): Pack {
         url: "",
       });
   }
-  if (
-    setting.urbanRevision &&
-    (setting.settlement === "city" || setting.settlement === "port")
-  ) {
+  if (setting.settlement === "city" || setting.settlement === "port") {
     const civic = civicProfile(setting);
     pack.evidence.push({
       id: `civic-${civic.id}`,
@@ -580,8 +573,7 @@ export function packForSetting(setting: WorldSetting): Pack {
       limitation: civic.evidence.note,
     });
   }
-  if (setting.vegetationRevision)
-    pack.trees = treeMix(setting).map(([id]) => id);
+  pack.trees = treeMix(setting).map(([id]) => id);
   // Tree-free ecologies still need a harmless court-art fallback. Wild density stays zero.
   if (!pack.trees.length) pack.trees = ["bush"];
   if (setting.situation?.landform === "open-ocean")

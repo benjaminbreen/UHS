@@ -147,7 +147,7 @@ export function pathField(
   const areaGround = (c: TopographyCell) => c.surface === "soil" &&
     ["court", "yard", "square", "vacant", "footway", "lane"].includes(c.pavement ?? "");
   // Trodden ground runs right up to paving it meets, with no turf between.
-  const self = areaGround(cell) || (cell.feature === "paving" && !cell.streetGeometry &&
+  const self = areaGround(cell) || (cell.feature === "paving" && cell.streetGeometry?.edge !== false &&
     [[0, -1], [-1, 0], [1, 0], [0, 1]].some(([dx, dy]) => { const n = sample(ix + dx, iy + dy); return !!n && areaGround(n); }));
   const area = materialCoverage(sample, x, y, cell.height, (c) => {
     if (!areaGround(c)) return 0;

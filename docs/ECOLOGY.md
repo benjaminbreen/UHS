@@ -52,8 +52,7 @@ once for both the ground raster and the minimap.
   radius and thins by local priority, so the same survivors appear whatever
   order chunks load in. Roads, fields, settlement claims and water are
   excluded; trunks collide, crowns fade over the player.
-- **Placement.** `src/world/v3/generate.ts`, gated by `vegetationRevision`
-  (9 for new worlds).
+- **Placement.** `src/world/v3/generate.ts` (`eligibleTree`, `decorate`).
 - **Art.** `npm run art:nature` builds `public/nature/atlas.*` and the
   precomputed `shadows*.png`. Sources include `scripts/art/world_trees.py`,
   `regional_trees.py`, `tropical_trees.py`, `shrubs.py`, `small_shrubs.py`,
@@ -71,7 +70,6 @@ parallel biome table.
 
 Retiring these is welcome; there are no saves to preserve:
 
-- `vegetationRevision` branches 1–8 in `v3/generate.ts`, `vegetation.ts` and `WorldScene.ts`.
 - `ecologyRevision: 1` (climate-rule envelopes only).
 
 ## Labs and checks

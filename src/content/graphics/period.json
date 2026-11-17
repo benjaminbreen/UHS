@@ -168,34 +168,6 @@
         "#c2beaa"
       ]
     },
-    "grey-brick": {
-      "texture": "grey-brick",
-      "timber": [
-        "#2b211b",
-        "#4d3a2c",
-        "#6e563f",
-        "#8f7454",
-        "#ad9169"
-      ],
-      "wall": [
-        "#2c2f31",
-        "#565b5c",
-        "#818785",
-        "#9fa4a1",
-        "#bcc0bb"
-      ],
-      "roof": [
-        "#2a2e30",
-        "#474d50",
-        "#646b6d",
-        "#a4aaa6"
-      ],
-      "foundation": [
-        "#3a3d3c",
-        "#6e7371",
-        "#a3a8a3"
-      ]
-    },
     "machiya-timber": {
       "texture": "timber-plaster",
       "timber": [
@@ -223,82 +195,12 @@
         "#7b7a70",
         "#b3b2a4"
       ]
-    },
-    "hanok-plaster": {
-      "texture": "panel",
-      "timber": [
-        "#2c2119",
-        "#54402f",
-        "#7a5d43",
-        "#9a7a58",
-        "#b8966f"
-      ],
-      "wall": [
-        "#4c4539",
-        "#8f8672",
-        "#dcd2b8",
-        "#eae2cc",
-        "#f7f1de"
-      ],
-      "roof": [
-        "#2a2e30",
-        "#474d50",
-        "#646b6d",
-        "#a4aaa6"
-      ],
-      "foundation": [
-        "#4a4a41",
-        "#8a8878",
-        "#c2beaa"
-      ]
-    },
-    "peach-plaster": {
-      "texture": "stucco",
-      "wall": [
-        "#4f3f36",
-        "#a0765f",
-        "#d9ac8e",
-        "#e8c5aa",
-        "#f6dfc8"
-      ],
-      "roof": [
-        "#52332d",
-        "#8d3d2c",
-        "#b44e31",
-        "#e78a51"
-      ],
-      "foundation": [
-        "#4a4a41",
-        "#8a8878",
-        "#c2beaa"
-      ]
-    },
-    "mint-plaster": {
-      "texture": "stucco",
-      "wall": [
-        "#3f4a45",
-        "#6f8d7f",
-        "#a9c9b5",
-        "#c7ddcb",
-        "#e3f0e3"
-      ],
-      "roof": [
-        "#52332d",
-        "#8d3d2c",
-        "#b44e31",
-        "#e78a51"
-      ],
-      "foundation": [
-        "#4a4a41",
-        "#8a8878",
-        "#c2beaa"
-      ]
     }
   },
   "buildings": {
     "georgian-townhouse": {
       "label": "Georgian townhouse",
-      "group": "Georgian \u00b7 Britain and colonies",
+      "group": "Georgian · Britain and colonies",
       "style": "georgian",
       "footprint": [
         4,
@@ -329,7 +231,7 @@
     },
     "georgian-terrace": {
       "label": "Georgian terrace range",
-      "group": "Georgian \u00b7 Britain and colonies",
+      "group": "Georgian · Britain and colonies",
       "style": "georgian",
       "footprint": [
         6,
@@ -361,7 +263,7 @@
     },
     "georgian-stone-house": {
       "label": "Ashlar town house",
-      "group": "Georgian \u00b7 Britain and colonies",
+      "group": "Georgian · Britain and colonies",
       "style": "georgian",
       "footprint": [
         5,
@@ -393,7 +295,7 @@
     },
     "regency-terrace": {
       "label": "Regency stucco terrace",
-      "group": "Georgian \u00b7 Britain and colonies",
+      "group": "Georgian · Britain and colonies",
       "style": "regency",
       "footprint": [
         5,
@@ -426,7 +328,7 @@
     },
     "georgian-shop": {
       "label": "Georgian bow-window shop",
-      "group": "Georgian \u00b7 Britain and colonies",
+      "group": "Georgian · Britain and colonies",
       "style": "georgian",
       "footprint": [
         4,
@@ -456,7 +358,7 @@
     },
     "federal-house": {
       "label": "Federal clapboard house",
-      "group": "American \u00b7 1780 to 1900",
+      "group": "American · 1780 to 1900",
       "style": "federal",
       "footprint": [
         5,
@@ -486,7 +388,7 @@
     },
     "greek-revival": {
       "label": "Greek Revival house",
-      "group": "American \u00b7 1780 to 1900",
+      "group": "American · 1780 to 1900",
       "style": "greek-revival",
       "footprint": [
         5,
@@ -515,7 +417,7 @@
     },
     "brownstone": {
       "label": "Brownstone row house",
-      "group": "American \u00b7 1780 to 1900",
+      "group": "American · 1780 to 1900",
       "style": "brownstone",
       "footprint": [
         4,
@@ -547,7 +449,7 @@
     },
     "brownstone-pair": {
       "label": "Brownstone double house",
-      "group": "American \u00b7 1780 to 1900",
+      "group": "American · 1780 to 1900",
       "style": "brownstone",
       "footprint": [
         6,
@@ -579,7 +481,7 @@
     },
     "italianate-row": {
       "label": "Italianate row house",
-      "group": "American \u00b7 1780 to 1900",
+      "group": "American · 1780 to 1900",
       "style": "italianate",
       "footprint": [
         4,
@@ -609,7 +511,7 @@
     },
     "mansard-house": {
       "label": "Second Empire house",
-      "group": "American \u00b7 1780 to 1900",
+      "group": "American · 1780 to 1900",
       "style": "second-empire",
       "footprint": [
         5,
@@ -639,7 +541,7 @@
     },
     "victorian-shop": {
       "label": "Victorian shop with fascia",
-      "group": "Victorian \u00b7 1840 to 1900",
+      "group": "Victorian · 1840 to 1900",
       "style": "victorian",
       "footprint": [
         4,
@@ -670,7 +572,7 @@
     },
     "victorian-grocer": {
       "label": "Corner grocer",
-      "group": "Victorian \u00b7 1840 to 1900",
+      "group": "Victorian · 1840 to 1900",
       "style": "victorian",
       "footprint": [
         5,
@@ -701,7 +603,7 @@
     },
     "cast-iron-warehouse": {
       "label": "Cast-iron warehouse",
-      "group": "Victorian \u00b7 1840 to 1900",
+      "group": "Victorian · 1840 to 1900",
       "style": "cast-iron",
       "footprint": [
         6,
@@ -731,7 +633,7 @@
     },
     "tenement-storefront": {
       "label": "Tenement with storefront",
-      "group": "Victorian \u00b7 1840 to 1900",
+      "group": "Victorian · 1840 to 1900",
       "style": "tenement",
       "footprint": [
         5,
@@ -764,7 +666,7 @@
     },
     "tenement-walkup": {
       "label": "Tenement walk-up",
-      "group": "Victorian \u00b7 1840 to 1900",
+      "group": "Victorian · 1840 to 1900",
       "style": "tenement",
       "footprint": [
         4,
@@ -793,69 +695,9 @@
       "description": "The dumbbell tenement's street face: three bays, a double door under a transom, fire escape, and a corbelled brick cornice.",
       "role": "tenement"
     },
-    "chinese-shophouse": {
-      "label": "Chinese shophouse",
-      "group": "East Asia \u00b7 Qing, Edo and Joseon",
-      "style": "chinese-shophouse",
-      "footprint": [
-        4,
-        3
-      ],
-      "entrance": [
-        2,
-        3
-      ],
-      "stories": 2,
-      "bays": 3,
-      "roofDepth": 24,
-      "wall": "grey-brick",
-      "roofMaterial": "giwa",
-      "roofStyle": "chinese",
-      "window": "lattice",
-      "door": "shop-panels",
-      "cornice": "eave",
-      "extras": [
-        "lanterns",
-        "sign-board",
-        "counter"
-      ],
-      "variant": 5,
-      "seed": 827,
-      "description": "Grey brick and a grey tile roof with raised ridge ends; folding timber shutters open the whole ground floor to the street, lanterns at the eave.",
-      "role": "shop"
-    },
-    "chinese-courtyard-gate": {
-      "label": "Courtyard house gate range",
-      "group": "East Asia \u00b7 Qing, Edo and Joseon",
-      "style": "siheyuan",
-      "footprint": [
-        6,
-        3
-      ],
-      "entrance": [
-        3,
-        3
-      ],
-      "stories": 1,
-      "bays": 4,
-      "roofDepth": 26,
-      "wall": "grey-brick",
-      "roofMaterial": "giwa",
-      "roofStyle": "chinese",
-      "window": "lattice",
-      "door": "red-gate",
-      "cornice": "eave",
-      "extras": [
-        "lanterns"
-      ],
-      "variant": 5,
-      "seed": 828,
-      "description": "The street range of a siheyuan: a studded vermilion gate with drum stones, flanked by lattice windows under a tiled roof.",
-      "role": "grand"
-    },
     "machiya": {
       "label": "Machiya townhouse",
-      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "group": "East Asia · Qing, Edo and Joseon",
       "style": "machiya",
       "footprint": [
         5,
@@ -882,7 +724,7 @@
     },
     "machiya-shop": {
       "label": "Edo merchant shop",
-      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "group": "East Asia · Qing, Edo and Joseon",
       "style": "machiya",
       "footprint": [
         6,
@@ -909,38 +751,9 @@
       "description": "A wider shop with paper-screened upper windows and a vertical signboard, the kind that lined a post-town's main street.",
       "role": "shop"
     },
-    "hanok": {
-      "label": "Hanok house",
-      "group": "East Asia \u00b7 Qing, Edo and Joseon",
-      "style": "hanok",
-      "footprint": [
-        6,
-        3
-      ],
-      "entrance": [
-        3,
-        3
-      ],
-      "stories": 1,
-      "bays": 4,
-      "roofDepth": 28,
-      "wall": "hanok-plaster",
-      "roofMaterial": "giwa",
-      "roofStyle": "giwa",
-      "window": "shoji",
-      "door": "sliding",
-      "cornice": "eave",
-      "extras": [
-        "maru"
-      ],
-      "variant": 2,
-      "seed": 831,
-      "description": "Dark posts framing white plaster panels and paper-screened windows, a raised wooden floor, and a heavy grey giwa roof whose eaves lift at the corners.",
-      "role": "house"
-    },
     "giyofu-house": {
       "label": "Meiji Western-style house",
-      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "group": "East Asia · Qing, Edo and Joseon",
       "style": "giyofu",
       "footprint": [
         5,
@@ -967,218 +780,9 @@
       "description": "Giyofu: a Japanese carpenter's idea of a Western house, with clapboard, arched sashes and a balcony, under a kawara tile roof.",
       "role": "grand"
     },
-    "straits-shophouse": {
-      "label": "Straits shophouse",
-      "group": "South and Southeast Asia \u00b7 colonial ports",
-      "style": "straits",
-      "footprint": [
-        4,
-        3
-      ],
-      "entrance": [
-        1,
-        3
-      ],
-      "stories": 2,
-      "bays": 3,
-      "roofDepth": 22,
-      "wall": "peach-plaster",
-      "roofMaterial": "terracotta",
-      "roofStyle": "gable",
-      "window": "shuttered",
-      "door": "arcade",
-      "cornice": "dentil",
-      "extras": [
-        "lanterns"
-      ],
-      "variant": 2,
-      "seed": 833,
-      "description": "Penang or Singapore about 1890: a five-foot way arcade at street level, louvred shutters above, pastel plaster and a terracotta roof.",
-      "role": "shop"
-    },
-    "straits-shophouse-mint": {
-      "label": "Straits shophouse, mint",
-      "group": "South and Southeast Asia \u00b7 colonial ports",
-      "style": "straits",
-      "footprint": [
-        5,
-        3
-      ],
-      "entrance": [
-        2,
-        3
-      ],
-      "stories": 2,
-      "bays": 3,
-      "roofDepth": 22,
-      "wall": "mint-plaster",
-      "roofMaterial": "terracotta",
-      "roofStyle": "gable",
-      "window": "shuttered",
-      "door": "arcade",
-      "cornice": "dentil",
-      "extras": [
-        "sign-board"
-      ],
-      "variant": 0,
-      "seed": 834,
-      "description": "A wider shophouse in the same family, with a vertical trade board at the arcade.",
-      "role": "shop"
-    },
-    "colonial-bungalow": {
-      "label": "Colonial verandah bungalow",
-      "group": "South and Southeast Asia \u00b7 colonial ports",
-      "style": "bungalow",
-      "footprint": [
-        7,
-        3
-      ],
-      "entrance": [
-        3,
-        3
-      ],
-      "stories": 1,
-      "bays": 5,
-      "roofDepth": 30,
-      "wall": "cream-stucco",
-      "roofMaterial": "terracotta",
-      "roofStyle": "verandah-hip",
-      "window": "shuttered",
-      "door": "double",
-      "cornice": "none",
-      "extras": [
-        "verandah"
-      ],
-      "variant": 2,
-      "seed": 835,
-      "description": "A single-story Anglo-Indian bungalow: deep verandah on slender posts, shuttered windows and a broad low hipped roof.",
-      "role": "grand"
-    },
-    "chinese-shophouse-b": {
-      "label": "Chinese shophouse, lattice front",
-      "group": "East Asia \u00b7 Qing, Edo and Joseon",
-      "style": "chinese-shophouse",
-      "footprint": [
-        4,
-        3
-      ],
-      "entrance": [
-        2,
-        3
-      ],
-      "stories": 2,
-      "bays": 3,
-      "roofDepth": 24,
-      "wall": "grey-brick",
-      "roofMaterial": "giwa",
-      "roofStyle": "chinese",
-      "window": "lattice",
-      "door": "shop-panels",
-      "cornice": "eave",
-      "extras": [
-        "lanterns",
-        "sign-board",
-        "counter"
-      ],
-      "variant": 5,
-      "seed": 841,
-      "description": "Grey brick and a grey tile roof with raised ridge ends; folding timber shutters open the whole ground floor to the street, lanterns at the eave.",
-      "role": "shop"
-    },
-    "chinese-shophouse-south": {
-      "label": "Southern shophouse",
-      "group": "East Asia \u00b7 Qing, Edo and Joseon",
-      "style": "chinese-shophouse",
-      "footprint": [
-        4,
-        3
-      ],
-      "entrance": [
-        2,
-        3
-      ],
-      "stories": 2,
-      "bays": 3,
-      "roofDepth": 24,
-      "wall": "grey-brick",
-      "roofMaterial": "giwa",
-      "roofStyle": "chinese",
-      "window": "lattice",
-      "door": "shop-panels",
-      "cornice": "eave",
-      "extras": [
-        "lanterns",
-        "sign-board",
-        "counter"
-      ],
-      "variant": 5,
-      "seed": 842,
-      "description": "A Jiangnan or Huizhou shophouse: a lime-washed gable stepped in horse-head walls over the street, a timber gallery, the shop open below.",
-      "role": "shop"
-    },
-    "chinese-shophouse-south-b": {
-      "label": "Southern shophouse",
-      "group": "East Asia \u00b7 Qing, Edo and Joseon",
-      "style": "chinese-shophouse",
-      "footprint": [
-        4,
-        3
-      ],
-      "entrance": [
-        2,
-        3
-      ],
-      "stories": 2,
-      "bays": 3,
-      "roofDepth": 24,
-      "wall": "grey-brick",
-      "roofMaterial": "giwa",
-      "roofStyle": "chinese",
-      "window": "lattice",
-      "door": "shop-panels",
-      "cornice": "eave",
-      "extras": [
-        "lanterns",
-        "sign-board",
-        "counter"
-      ],
-      "variant": 5,
-      "seed": 843,
-      "description": "A southern shophouse under its stepped gable: lattice upstairs, the shutters down on one bay and up on the next.",
-      "role": "shop"
-    },
-    "chinese-courtyard-gate-south": {
-      "label": "Southern house gate",
-      "group": "East Asia \u00b7 Qing, Edo and Joseon",
-      "style": "siheyuan",
-      "footprint": [
-        6,
-        3
-      ],
-      "entrance": [
-        3,
-        3
-      ],
-      "stories": 1,
-      "bays": 4,
-      "roofDepth": 26,
-      "wall": "grey-brick",
-      "roofMaterial": "giwa",
-      "roofStyle": "chinese",
-      "window": "lattice",
-      "door": "red-gate",
-      "cornice": "eave",
-      "extras": [
-        "lanterns"
-      ],
-      "variant": 5,
-      "seed": 844,
-      "description": "The street wall of a southern house: lime-washed, its ends carried up in horse-head walls, a dark stone door frame under a little tiled hood.",
-      "role": "grand"
-    },
     "machiya-b": {
       "label": "Machiya townhouse",
-      "group": "East Asia \u00b7 Qing, Edo and Joseon",
+      "group": "East Asia · Qing, Edo and Joseon",
       "style": "machiya",
       "footprint": [
         5,
@@ -1201,35 +805,6 @@
       "variant": 4,
       "seed": 845,
       "description": "A Kyoto-style merchant house: fine koshi lattice and an indigo noren at street level, plastered upper wall with a slit window, dark kawara tiles.",
-      "role": "house"
-    },
-    "hanok-b": {
-      "label": "Hanok house",
-      "group": "East Asia \u00b7 Qing, Edo and Joseon",
-      "style": "hanok",
-      "footprint": [
-        6,
-        3
-      ],
-      "entrance": [
-        3,
-        3
-      ],
-      "stories": 1,
-      "bays": 4,
-      "roofDepth": 28,
-      "wall": "hanok-plaster",
-      "roofMaterial": "giwa",
-      "roofStyle": "giwa",
-      "window": "shoji",
-      "door": "sliding",
-      "cornice": "eave",
-      "extras": [
-        "maru"
-      ],
-      "variant": 2,
-      "seed": 846,
-      "description": "Dark posts framing white plaster panels and paper-screened windows, a raised wooden floor, and a heavy grey giwa roof whose eaves lift at the corners.",
       "role": "house"
     }
   }

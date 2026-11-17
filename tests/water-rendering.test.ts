@@ -25,7 +25,6 @@ const setting = (
 ): WorldSetting => ({
   ...settingFor(places.find((p) => p.id === "konya")!, -6499),
   geographyMode: "configured",
-  terrainRevision: 2,
   water,
   environment: {
     ecology,

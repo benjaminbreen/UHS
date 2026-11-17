@@ -4,7 +4,7 @@ import { rasterHabitatTile } from "../src/render/habitat-raster";
 import { rasterWaterTile } from "../src/render/water-raster";
 import { habitatAt } from "../src/world/v3/habitats";
 import type { TopographyCell, TopographySample } from "../src/core/topography";
-import type { LandSample } from "../src/world/v2/landscape";
+import type { LandSample } from "../src/world/geography/landscape";
 
 const land: LandSample = {
   water: 80,

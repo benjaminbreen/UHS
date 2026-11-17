@@ -94,6 +94,41 @@ it("does not consume alcohol in households that do not want it", () => {
   expect(e.stock.brewer.drink).toBe(30);
 });
 
+it("keeps generated Multan purchases and debts consistent with the actual suppliers", () => {
+  const setting = settingFor(places.find((p) => p.id === "city-multan")!, -620);
+  const e = createSettingSession({ ...setting, role: "Cook", character: { age: 48, hunger: 0, fatigue: 0 } }, "multan-credit");
+  const households = e.state.households!;
+  const actors = [e.state.player, ...e.world.initialActors];
+  let purchases = 0, drinks = 0, credits = 0;
+  for (const h of households) {
+    for (const buy of h.buys ?? []) {
+      purchases++;
+      const supplier = households.find((s) => s.id === buy.from)!;
+      const actor = sellerOf(buy, households, actors);
+      expect(actor, `${h.id}: ${buy.good} from ${buy.from}`).toBeDefined();
+      expect(actor!.id).toBe(supplier.producers![buy.good]);
+      expect(buy.product).toBe(supplier.products![buy.good]);
+      if (buy.good === "drink") {
+        drinks++;
+        expect(h.needs).toContain("drink");
+        expect(actor!.origin?.livelihood).not.toBe("religious-specialist");
+        expect(goodName(buy.good, buy.product)).toContain("surā");
+      }
+    }
+    if (h.credit) {
+      credits++;
+      expect(h.buys).toContainEqual({ good: h.credit.good, from: h.credit.from,
+        seller: h.credit.seller, product: h.credit.product });
+      expect(h.owes).toBe(h.credit.from);
+    }
+  }
+  expect(purchases).toBeGreaterThan(0);
+  // Whether anyone here keeps a drink shop is the draw's; whoever does must find custom.
+  if (households.some((h) => h.makes?.includes("drink"))) expect(drinks).toBeGreaterThan(0);
+  expect(credits).toBeGreaterThan(0);
+  expect(households.some((h) => !h.needs?.includes("drink"))).toBe(true);
+});
+
 it.runIf(!!process.env.FULL)("routes work and children's errands to their actual destinations", () => {
   const world = panelCity("london", 1400).engine.world;
   // Any worker at a station: which trades have one depends on who the draw makes a householder.

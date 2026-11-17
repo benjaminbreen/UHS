@@ -13,11 +13,9 @@ const base = {
   settlement: "camp",
   water: "none",
   season: "summer",
-  terrainRevision: 2,
   geographyRevision: 1,
   geographyMode: "configured",
   ecologyRevision: 1,
-  hydrologyRevision: 1,
   environment: {
     ecology: "desert",
     landform: "rolling",

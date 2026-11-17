@@ -95,6 +95,11 @@ export type UrbanForm = {
    * round it, so it keeps its lanes and houses inside the ring. Set from the
    * region's zoning, not by a fabric entry. */
   oldCore?: boolean;
+  /** A dense core of continuous street fronts: each block is one row of
+   * houses facing south, as deep as they are drawn, and the streets are the
+   * gaps between rows. Set once the region has industrialised, not by a
+   * fabric entry. */
+  streetWall?: boolean;
   /** Diagonal avenues cut from the square's corners to the built edge. */
   diagonals?: number;
   /** Houses stand in their own green plots rather than in rows on the street,
@@ -109,6 +114,10 @@ export type UrbanForm = {
    * backing onto each other across a green block middle. Omitted, rows stand
    * back to back on bare ground. */
   backs?: number;
+  /** In a street-wall city, the share of row streets that are alleys: a
+   * narrow service lane behind a main row, fronted by a lower row of mews,
+   * workshops or back houses. Omitted, every row has a street of its own. */
+  alleys?: number;
   plots?: {
     block: readonly [number, number];
     garden: number;
