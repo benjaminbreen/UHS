@@ -46,7 +46,9 @@ export class FairView {
     };
     const outdoor = fairOutdoor(level.kind);
     this.objects.push(scene.add.rectangle(-800, -600, W + 1600, H + 1200, outdoor ? 0x41692c : level.kind === "platform" ? 0x9ab0c4 : 0x2a2226).setOrigin(0, 0).setDepth(-99993));
-    this.bounds = { x: -PAD.x * 16, y: -PAD.top * 16, w: W + PAD.x * 32, h: H + (PAD.top + PAD.bottom) * 16 };
+    // A gallery among other galleries fills the view: its roof behind, its front wall below, little of the lawn round it.
+    const m = level.kind === "gallery" ? { x: 1, top: 4, bottom: 3 } : PAD;
+    this.bounds = { x: -m.x * 16, y: -m.top * 16, w: W + m.x * 32, h: H + (m.top + m.bottom) * 16 };
     this.objects.push(scene.add.image(this.bounds.x, this.bounds.y, tex("ground", paintFairGround(level, seed).canvas())).setOrigin(0, 0).setDepth(-99990));
     const put = (s: FairSprite, x: number, y: number, key: string, depth: number) => {
       if (s.frames) {
@@ -70,11 +72,11 @@ export class FairView {
     const indoor = fairIndoor(level.kind);
     const decor = [...level.decor];
     // Outside a pavilion: trees along the lawn round it, lamps either side of the steps.
-    if (indoor) {
+    if (indoor && level.kind !== "gallery") {
       const door = (level.w >> 1) - 1;
       for (let x = -6; x < level.w + 6; x += 4) for (const y of [-1, level.h + 4]) if (x < -3 || x > level.w + 2 || y > level.h) if (Math.abs(x - door) > 4 || y < 0) decor.push({ type: "tree", x, y, solid: false, v: ((x * 7 + y * 3) & 15) / 16 });
       for (let y = 2; y < level.h + 3; y += 4) for (const x of [-4, level.w + 3]) decor.push({ type: y % 8 === 2 ? "tree" : "shrub", x, y, solid: false, v: ((x + y * 5) & 15) / 16 });
-      if (level.kind !== "gallery") for (const x of [door - 3, door + 4]) decor.push({ type: "lamp", x, y: level.h + 1, solid: false, v: 0 }, { type: "urn", x, y: level.h + 3, solid: false, v: x / 10 });
+      for (const x of [door - 3, door + 4]) decor.push({ type: "lamp", x, y: level.h + 1, solid: false, v: 0 }, { type: "urn", x, y: level.h + 3, solid: false, v: x / 10 });
     }
     // Round open grounds: trees behind the pavilions and down the sides, on the turf the edge runs on into.
     if (level.kind === "grounds" || level.kind === "court") {

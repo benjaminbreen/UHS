@@ -142,7 +142,7 @@ export const london1884: Fair = {
   years: [1884, 1884],
   entry: "entrance",
   areas,
-  scale: 4,
+  scale: 5,
   finds: londonFinds,
   ticket: 1,
   coin: ["shilling", "shillings"],

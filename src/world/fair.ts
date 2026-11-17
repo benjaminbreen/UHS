@@ -37,13 +37,13 @@ export function parseFairSpace(space: string) {
 }
 
 const SIZE: Partial<Record<FairArea["kind"], [number, number]>> = {
-  grounds: [56, 40], bridge: [56, 40], hall: [64, 28], pavilion: [26, 18], machines: [72, 34], platform: [48, 32],
+  grounds: [56, 40], bridge: [56, 40], hall: [64, 28], pavilion: [34, 22], machines: [72, 34], platform: [48, 32],
 };
-/** Cells wide and deep: from the area's rectangle on the plan when it has one, within what a screen or two holds. */
+/** Cells wide and deep: from the area's rectangle on the plan when it has one, no smaller than fills a screen and no larger than two or three. */
 function sizeOf(fair: Fair, plan: FairArea): [number, number] {
   if (!plan.at) return SIZE[plan.kind] ?? [40, 28];
   const k = fair.scale ?? 3;
-  return [Math.max(14, Math.min(72, Math.round(plan.at[2] * k))), Math.max(14, Math.min(44, Math.round(plan.at[3] * k)))];
+  return [Math.max(32, Math.min(84, Math.round(plan.at[2] * k))), Math.max(24, Math.min(52, Math.round(plan.at[3] * k)))];
 }
 export const fairIndoor = (kind: FairArea["kind"]) => kind === "hall" || kind === "pavilion" || kind === "machines" || kind === "gallery";
 export const fairOutdoor = (kind: FairArea["kind"]) => kind === "grounds" || kind === "bridge" || kind === "court";
@@ -423,17 +423,18 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
   } else if (plan.kind === "gallery" && plan.machinery) {
     // Machines at work in rows, each with room to walk round it.
     let k = Math.floor(rng() * MACHINES.length);
-    for (let foot = 8; foot < h - 3; foot += 5) for (let x = 3; x < w - 5; x++) {
+    for (let foot = 8; foot < h - 3; foot += 7) for (let x = 4; x < w - 6; x++) {
       const [, fw, fh] = MACHINES[k % MACHINES.length], y = foot - fh + 1;
       if (!free(x, y, fw, fh)) continue;
       block(x, y, fw, fh);
       L.decor.push({ type: "machine", x, y: foot, solid: true, v: (k % MACHINES.length) + rng() * 0.9 });
       if (k % 3 === 0) post(standStaff, [{ x: x + fw, y: foot }, { x: x - 1, y: foot }]);
-      k++, x += fw + 2;
+      k++, x += fw + 4;
     }
   } else if (plan.kind === "hall" || plan.kind === "gallery") {
     for (const s of spots) {
-      if ((s.y - 5) % 6 || (s.x - 3) % 4 || (s.x - 3) % 12 === 8 || Math.abs(s.y - (h >> 1)) < 2 || s.x < 3 || s.x > w - 6 || !free(s.x, s.y, 3, 1)) continue;
+      // A gallery from the plan keeps its stands in wide-spaced rows, with open floor between.
+      if ((s.y - 5) % (plan.kind === "gallery" ? 9 : 6) || (s.x - 3) % 4 || (s.x - 3) % 12 === 8 || Math.abs(s.y - (h >> 1)) < 2 || s.x < 3 || s.x > w - 6 || !free(s.x, s.y, 3, 1)) continue;
       block(s.x, s.y, 3, 1);
       L.decor.push({ type: "stall", x: s.x, y: s.y, solid: true, v: rng() });
       if (srng() < 0.6) post(standStaff, [{ x: s.x + 1, y: s.y + 1 }]);
@@ -453,7 +454,7 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
   for (const d of L.decor) if (d.type === "bandstand") for (let i = 0; i < 3; i++) post(plan.band, [{ x: d.x + i, y: d.y - 1 }], true);
   // The crowd.
   const who = (plan.people ?? []).map((id) => fairPeople.find((p) => p.id === id)).filter((p) => !!p);
-  const count = { grounds: 10, bridge: 8, hall: 7, pavilion: 3, machines: 7, platform: 5, gallery: Math.max(4, Math.min(14, Math.round((w * h) / 110))), court: Math.max(8, Math.min(18, Math.round((w * h) / 90))) }[plan.kind];
+  const count = { grounds: 10, bridge: 8, hall: 7, pavilion: 3, machines: 7, platform: 5, gallery: Math.max(5, Math.min(14, Math.round((w * h) / 130))), court: Math.max(8, Math.min(18, Math.round((w * h) / 120))) }[plan.kind];
   const frng = rngOf(seed, "fair-folk", fair.id, plan.id);
   for (let i = 0; i < count && who.length; i++) {
     const p = who[Math.floor(frng() * who.length)];
