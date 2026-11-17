@@ -58,7 +58,7 @@ export const labour: PlotTemplate = {
       refs: { kin: kin.id, helper: helper.id, neighbour: neighbour.id, ...p.refs },
     };
   },
-  opening: [{ type: "choose", line: "send", choices: [{ id: "midwife" }, { id: "near" }] }],
+  opening: [{ type: "choose", line: "send", focus: "kin", brought: true, choices: [{ id: "midwife" }, { id: "near" }] }],
   developments: [
     {
       id: "long-midwife",

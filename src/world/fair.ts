@@ -1,7 +1,7 @@
-import { fairFind, fairPeople, type Fair, type FairArea, type FairBuilding, type FairFind } from "../content/fairs";
+import { FAIR_SIZES, fairFind, fairPeople, type Fair, type FairArea, type FairBuilding, type FairFind } from "../content/fairs";
 import { louisQuatorze, type PalaceStyle } from "../content/palaces/styles";
 import { palaceProps } from "../content/props/palace";
-import { pickWeighted as pick, rngOf } from "../core/random";
+import { pickWeighted as pick, random, rngOf } from "../core/random";
 import type { Point } from "../core/types";
 import { N4, type Area, type AreaDecor, type AreaExit, type AreaFolk, type AreaLift, type AreaThing } from "./complex";
 
@@ -13,6 +13,8 @@ export const fairWalkable = (c: number) => c === GRAVEL || c === LAWN || c === P
 export const FRONT = 12;
 
 export type PlacedBuilding = FairBuilding & { y: number; door: Point };
+export type FairCase = Point & { id: string; name: string; w: number; finds: readonly FairFind[] };
+
 export type FairLevel = Area & {
   fair: string;
   area: string;
@@ -27,6 +29,7 @@ export type FairLevel = Area & {
   rustic?: boolean;
   exits: AreaExit[];
   buildings: PlacedBuilding[];
+  cases: FairCase[];
   lifts: AreaLift[];
   fountain?: { x: number; y: number; w: number; h: number; kind: "coutan" | "basin" };
   /** Rows the river runs between, inclusive. */
@@ -110,7 +113,7 @@ export function fairLevel(seed: string, fair: Fair, id: string): FairLevel | und
   const L: FairLevel = {
     space: fairSpace(fair.id, id), fair: fair.id, area: id, kind: plan.kind, floor: plan.floor, look, rustic: plan.rustic, palace: look === "palace" ? { ...(fair.palace ?? louisQuatorze), ...plan.palace } : undefined, depth: 1, name: plan.name, w, h,
     cells: new Uint8Array(w * h), entry: { x: w >> 1, y: h - 2 }, things: [], decor: [], folk: [], gardens: [], plots: [], flow: new Int8Array(w * h).fill(-1),
-    exits: [], buildings: [], lifts: [],
+    exits: [], buildings: [], lifts: [], cases: [],
   };
   const set = (x: number, y: number, c: number) => { if (x >= 0 && y >= 0 && x < w && y < h) L.cells[y * w + x] = c; };
   const fill = (x0: number, y0: number, x1: number, y1: number, c: number) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) set(x, y, c); };
@@ -451,13 +454,62 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
     post(f.staff ?? (f.tier === "common" && srng() < 0.5 ? standStaff : undefined), [{ x: spot.x + (fw >> 1), y: spot.y + fh }, { x: spot.x - 1, y: spot.y + fh - 1 }, { x: spot.x + fw, y: spot.y + fh - 1 }]);
     return true;
   };
+  const block = (x: number, y: number, fw: number, fh: number) => {
+    for (let yy = y; yy < y + fh; yy++) for (let xx = x; xx < x + fw; xx++) {
+      taken[yy * w + xx] = 1;
+      if (xx !== x || yy !== y + fh - 1) L.decor.push({ type: "solid", x: xx, y: yy, solid: true, v: 0 });
+    }
+  };
+  const fixed = (plan.exhibits ?? []).map(fairFind).filter((f) => !!f);
+  const tabletop = fixed.filter((f) => f.on === "table");
+  if (tabletop.length) {
+    const fw = 2 + tabletop.reduce((sum, f) => sum + (f.w ?? 1), 0), fh = 2;
+    const spot = spots.find(({ x, y }) => free(x, y, fw, fh));
+    if (spot) {
+      const y = spot.y + fh - 1;
+      block(spot.x, spot.y, fw, fh);
+      L.decor.push({ type: `table:empty:${fw}x${fh}`, x: spot.x, y, solid: true, v: 0.55 + rng() * 0.45 });
+      let x = spot.x + 1;
+      for (const f of tabletop) {
+        L.things.push({ id: `${L.area}-${f.id}`, find: f.id, x, y, wall: false, solid: false, art: f.art, name: f.name, loot: {}, w: f.w });
+        x += f.w ?? 1;
+      }
+    }
+  }
   let n = 0;
-  for (const id of plan.exhibits ?? []) {
-    const f = fairFind(id);
-    if (f && place(f, n)) n++;
+  for (const f of fixed) if ((f.on === "floor" || f.on === "wall") && place(f, n)) n++;
+  const order = (id: string) => random(seed, "fair-cases", L.space, id);
+  const furnishings = fair.finds.filter((f) => f.catalog && f.on !== "case" && f.tags.includes(plan.id))
+    .sort((a, b) => Number(!!b.source?.photo) - Number(!!a.source?.photo) || order(a.id) - order(b.id));
+  for (const f of furnishings.slice(0, Math.ceil(w * h / 150))) if (place(f, n)) n++;
+  const sections = new Map<string, FairFind[]>();
+  for (const f of fair.finds) {
+    if (f.on !== "case" || !f.catalog || !f.tags.includes(plan.id)) continue;
+    const section = sections.get(f.catalog.section) ?? [];
+    if (section.length === 0) sections.set(f.catalog.section, section);
+    section.push(f);
+  }
+  const featured = (finds: FairFind[]) => Number(finds.some((f) => f.source?.photo));
+  const groups = [...sections].sort(([a, af], [b, bf]) => featured(bf) - featured(af) || order(a) - order(b));
+  for (const [, finds] of groups) finds.sort((a, b) =>
+    Number(!!b.source?.photo) - Number(!!a.source?.photo) || order(a.id) - order(b.id));
+  const capacity = Math.ceil(w * h / 100);
+  const columns = L.decor.filter((d) => d.type === "column");
+  while (groups.length && L.cases.length < capacity) {
+    const [name, finds] = groups.shift()!;
+    const count = finds.length % 4 === 1 && finds.length > 4 ? 3 : 4;
+    const width = Math.min(finds.length, count) + 1;
+    // A column rises three cells over the exhibits behind its foot.
+    const spot = spots.find(({ x, y }) => free(x, y, width, 1) &&
+      !columns.some((d) => d.x >= x && d.x < x + width && d.y > y && d.y - y <= 3));
+    if (!spot) continue;
+    L.cases.push({ ...spot, name, w: width, id: `fair-case:${fair.id}/${plan.id}/${L.cases.length}`, finds: finds.splice(0, count) });
+    block(spot.x, spot.y, width, 1);
+    L.decor.push({ ...spot, type: "solid", solid: true, v: 0 });
+    if (finds.length) groups.push([name, finds]);
   }
   const tags = new Set([plan.id, plan.kind, ...(plan.stands?.tags ?? [])]);
-  const pool = fair.finds.filter((f) => f.tags.some((t) => tags.has(t)) && !plan.exhibits?.includes(f.id));
+  const pool = fair.finds.filter((f) => !f.catalog && (f.on === "floor" || f.on === "wall") && f.tags.some((t) => tags.has(t)) && !plan.exhibits?.includes(f.id));
   const used = new Map<string, number>();
   for (let k = 0; k < (plan.stands?.n ?? 0); k++) {
     const f = pick(rng, pool.filter((p) => (used.get(p.id) ?? 0) < (p.tier === "common" ? 2 : 1)), (p) => (p.weight ?? 1) * (p.tier === "common" ? 3 : 1));
@@ -466,12 +518,6 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
     if (place(f, n)) n++;
   }
   // The rest of the floor: more machines down the rows, or exhibitors' stands either side of a cross aisle.
-  const block = (x: number, y: number, fw: number, fh: number) => {
-    for (let yy = y; yy < y + fh; yy++) for (let xx = x; xx < x + fw; xx++) {
-      taken[yy * w + xx] = 1;
-      if (xx !== x || yy !== y + fh - 1) L.decor.push({ type: "solid", x: xx, y: yy, solid: true, v: 0 });
-    }
-  };
   if (plan.kind === "machines") {
     let k = Math.floor(rng() * MACHINES.length);
     for (const r of isle.slice(0, 6)) {
@@ -728,13 +774,7 @@ function thing(L: FairLevel, f: FairFind, n: number, x: number, y: number, wall:
   return { id: `${L.area}-${n}`, find: f.id, x, y, wall, solid: !wall, art: f.art, name: f.name, loot: {}, w: fw, h: fh };
 }
 
-/** Cells an exhibit takes when its find does not say: room-sized cases and machines. */
-const SIZES: Partial<Record<FairFind["art"], [number, number]>> = {
-  vitrine: [3, 1], counter: [3, 1], bath: [2, 1], throne: [3, 2], "state-bed": [3, 3], bales: [2, 1], barrels: [2, 1], sacks: [2, 1], ingots: [2, 1], engine: [3, 2], dynamo: [2, 2],
-  locomotive: [4, 2], piano: [2, 1], model: [2, 2], loom: [2, 1], press: [2, 1], pyramid: [2, 2], kiosk: [2, 2],
-  painting: [2, 1], tapestry: [2, 1], carpet: [2, 1], map: [2, 1], panel: [2, 1],
-};
-const footprint = (f: FairFind): [number, number] => [f.w ?? SIZES[f.art]?.[0] ?? 1, f.h ?? SIZES[f.art]?.[1] ?? 1];
+const footprint = (f: FairFind): [number, number] => [f.w ?? FAIR_SIZES[f.art]?.[0] ?? 1, f.h ?? FAIR_SIZES[f.art]?.[1] ?? 1];
 
 /** Each closed lawn of the grounds becomes a railed garden: a parterre round a
  * basin, an oval walk round a long bed, or a single bed, with gaps in the

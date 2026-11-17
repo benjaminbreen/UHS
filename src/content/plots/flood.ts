@@ -1,7 +1,7 @@
-import { B, CHINA, EGYPT, neighbours, notable, partnerWords, pickOf, pronounWords, temper } from "./common";
+import { B, CHINA, EGYPT, neighbours, working, notable, partnerWords, pickOf, pronounWords, temper } from "./common";
 import type { PlotContext, PlotTemplate } from "./types";
 
-const riverside = (c: PlotContext) => !!c.setting && /^river|lake/.test(c.setting.water);
+const riverside = (c: PlotContext) => !!c.setting && /^river|lake/.test(c.setting.water) && c.setting.settlement !== "city" && (working(c) || c.setting.year < 1850);
 
 const castOf = (c: PlotContext) => {
   const owner = notable(c);
@@ -34,7 +34,7 @@ export const flood: PlotTemplate = {
     };
   },
   opening: [{
-    type: "choose", line: "rising", focus: "neighbour",
+    type: "choose", line: "rising", focus: "neighbour", brought: true,
     choices: [{ id: "dyke", check: { stat: "endurance", odds: 0.55 } }, { id: "stores" }, { id: "cut" }],
   }],
   developments: [

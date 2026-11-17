@@ -18,7 +18,7 @@ export const store: PlotTemplate = {
     emblem: "store",
     palette: { ink: "#14120e", fill: "#2e261c", edge: "#7a6040", light: "#efe8da", accent: "#e0a050" },
   },
-  weight: (c) => (castOf(c) ? 0.5 * temper(c, "agreeableness") : 0),
+  weight: (c) => (castOf(c) ? 0.2 * temper(c, "agreeableness") : 0),
   cast: (c) => castOf(c),
   begin: (c, cast) => {
     const suspect = cast.suspect!, elder = cast.elder!;

@@ -2145,6 +2145,11 @@ export class Runtime {
     if (power) this.command({ type: "swing", power });
     else if (!this.chargeSwung) this.command({ type: "swing" });
   }
+  /** A touch screen has no F to hold: one tap works stage after stage, the next stops. */
+  toggleWork() {
+    if (this.workHold !== undefined) this.releaseCharge();
+    else this.pressSwing();
+  }
   /** X is held and a throw is being aimed. Set by the scene. */
   aiming = false;
   /** Set when the press that began the wind-up already swung. */

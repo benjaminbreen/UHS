@@ -17,7 +17,7 @@ export const feast: PlotTemplate = {
     palette: { ink: "#16120c", fill: "#2a2114", edge: "#6a4a22", light: "#f2e6cc", accent: "#d08a2c" },
   },
   payee: "host",
-  weight: (c) => ((c.household?.fortune ?? 0.5) >= 0.25 && hostOf(c) ? 0.6 : 0),
+  weight: (c) => ((c.household?.fortune ?? 0.5) >= 0.25 && hostOf(c) ? 0.3 : 0),
   cast: (c) => {
     const host = hostOf(c);
     return host && { host };

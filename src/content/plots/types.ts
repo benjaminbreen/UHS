@@ -10,7 +10,8 @@ export const plotRoles = ["creditor", "landlord", "official", "accuser", "witnes
   "helper", "buyer", "beloved"] as const;
 export type PlotRole = typeof plotRoles[number];
 
-export type PlotScene = "doorstep" | PlotRole;
+/** A cast member to stand by, the household door, or a place on the map: the shore or the field. */
+export type PlotScene = "doorstep" | PlotRole | "shore" | "field";
 
 /** What kind of day the plot makes. The draw balances shapes, so the many
  * plots where someone comes to demand something do not crowd out the rest. */
@@ -65,7 +66,9 @@ export type Effect =
   | { type: "approach"; role: PlotRole; line: string }
   /** The world stops for a decision; the banner shows the scene at `line`. `from` walks up and asks
    * it in person: only for a question they would put to you themselves. */
-  | { type: "choose"; line: string; focus?: PlotRole; from?: PlotRole; at?: PlotScene; choices: PlotChoice[] }
+  | { type: "choose"; line: string; focus?: PlotRole; from?: PlotRole; at?: PlotScene; choices: PlotChoice[];
+      /** News someone from the household, else a cast member, comes to tell you, instead of a card out of nowhere. */
+      brought?: boolean }
   /** A turn: the world stops and the card shows this line, the camera on `focus`. */
   | { type: "card"; line: string; focus?: PlotRole; from?: PlotRole; at?: PlotScene }
   | { type: "note"; line: string }

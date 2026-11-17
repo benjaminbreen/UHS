@@ -35,7 +35,7 @@ export type PlotState = {
   introduced?: string[];
   /** A choice card waiting on an answer, and when it was last put up; `due`, while it has yet to be
    * brought, and `by`, whoever comes to ask it. */
-  asking?: { line: string; focus?: string; by?: string; choices: PlotChoice[]; at: number; due?: number; scene?: PlotScene };
+  asking?: { line: string; focus?: string; by?: string; choices: PlotChoice[]; at: number; due?: number; scene?: PlotScene; shown?: boolean };
   /** The life aim the plot displaced, given back when it ends. */
   aim?: Snapshot["lifeAim"];
 };
@@ -63,19 +63,27 @@ export type PlotCard = {
 
 export const plotTemplate = (plot: PlotState) => PLOTS.find((t) => t.id === plot.id);
 
-function plotPerson(player: Actor, actor: Actor) {
+/** Who someone is to the player: "your mother", "your neighbour", else their trade. */
+function plotRelation(player: Actor, actor: Actor) {
   const relation = player.relations?.find((r) => r.other === actor.id)?.kind;
   const sex = sexOf(actor);
   const kin = (male: string, female: string, neutral: string) => sex === "male" ? male : sex === "female" ? female : neutral;
-  if (relation === "parent") return `${actor.name}, your ${kin("father", "mother", "parent")}`;
-  if (relation === "child") return `${actor.name}, your ${kin("son", "daughter", "child")}`;
+  if (relation === "parent") return `your ${kin("father", "mother", "parent")}`;
+  if (relation === "child") return `your ${kin("son", "daughter", "child")}`;
   if (actor.relations?.some((r) => r.kind === "parent" && player.relations?.some((p) => p.kind === "parent" && p.other === r.other)))
-    return `${actor.name}, your ${kin("brother", "sister", "sibling")}`;
-  if (relation === "ritual-kin") return `${actor.name}, your kin by ceremony`;
-  if (relation && relation !== "co-resident") return `${actor.name}, your ${relation}`;
-  if (relation === "co-resident" || (actor.householdId && actor.householdId === player.householdId))
-    return `${actor.name}, a member of your household`;
-  return `${actor.name}, ${distance(player.home, actor.home) <= 32 ? "your neighbor" : "another member of your settlement"}`;
+    return `your ${kin("brother", "sister", "sibling")}`;
+  if (relation === "ritual-kin") return "your kin by ceremony";
+  if (relation && relation !== "co-resident") return `your ${relation}`;
+  if (relation === "co-resident" || (actor.householdId && actor.householdId === player.householdId)) return "one of your household";
+  if (distance(player.home, actor.home) <= 32) return "your neighbour";
+  const role = actor.role?.toLowerCase();
+  return role ? `${/^[aeiou]/.test(role) ? "an" : "a"} ${role}` : "";
+}
+
+function plotPerson(player: Actor, actor: Actor, possessive = "") {
+  const d = plotRelation(player, actor);
+  if (possessive) return d.startsWith("your ") ? `${d} ${actor.name}${possessive}` : `${actor.name}${possessive}`;
+  return d ? `${actor.name}, ${d}` : actor.name;
 }
 
 export function plotLine(plot: PlotState, key: string, snapshot?: Snapshot, stance?: Stance) {
@@ -90,17 +98,17 @@ export function plotLine(plot: PlotState, key: string, snapshot?: Snapshot, stan
     if (w.endsWith("Who")) {
       const role = w.slice(0, -3), actor = actorOf(role);
       if (snapshot && !introduced.includes(role)) introduced.push(role);
-      const who = snapshot && actor ? plotPerson(snapshot.player, actor)
-        : plot.words[role] ? `${plot.words[role]}, another member of your settlement` : "someone from your settlement";
-      return who + (possessive ?? "");
+      if (snapshot && actor) return plotPerson(snapshot.player, actor, possessive);
+      return (plot.words[role] ?? "someone from round about") + (possessive ?? "");
     }
-    const actor = plot.refs?.[w] && w !== "partner" && !introduced.includes(w) && !possessive ? actorOf(w) : undefined;
+    const actor = plot.refs?.[w] && w !== "partner" && !introduced.includes(w) ? actorOf(w) : undefined;
     if (snapshot && actor) {
       introduced.push(w);
-      return `${plotPerson(snapshot.player, actor)},`;
+      const who = plotPerson(snapshot.player, actor, possessive);
+      return possessive || who === actor.name ? who : `${who},`;
     }
     return (plot.words[w] ?? "") + (possessive ?? "");
-  }).replace(/,([.,;:!?])/g, "$1");
+  }).replace(/,([.,;:!?])/g, "$1").replace(/,$/, "");
 }
 
 export function plotKnown(plot: PlotState) {
@@ -128,6 +136,8 @@ const REPEAT = [0.15, 0.35, 0.6, 0.8];
 const QUIET = 0.25;
 /** Debts, levies and accusations were the weight of most lives; one shape among eleven undersells them. */
 const CLAIM = 2;
+/** The day's own work is where most of a life went; a plot about it should come up for about one life in three that has one. */
+const WORK = 3;
 
 /** Plots of the last few lives in this browser, newest first. Outside a
  * browser there are none, so seeded runs and tests choose the same way. */
@@ -183,7 +193,7 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: str
   const shapes = [...new Set(weighed.map((c) => c.t.shape))].map((shape) => ({
     shape,
     w: Math.max(...weighed.filter((c) => c.t.shape === shape).map((c) => c.w)) * (REPEAT[recentShapes.indexOf(shape)] ?? 1)
-      * (shape === "claim" ? CLAIM : 1),
+      * (shape === "claim" ? CLAIM : shape === "work" ? WORK : 1),
   }));
   const total = shapes.reduce((n, c) => n + c.w, 0);
   const keys = chapter === undefined ? [] : [chapter];

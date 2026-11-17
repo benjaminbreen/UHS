@@ -1,4 +1,5 @@
 import type { SewerPerson } from "../sewers/types";
+import { chicagoPeople } from "./chicago-1893";
 
 const PARIS_1889 = { years: [1889, 1889] as [number, number] };
 const alone: readonly [number, number, number] = [0.7, 0.25, 0.05];
@@ -392,6 +393,7 @@ const domusPeople: SewerPerson[] = [
 ];
 
 export const fairPeople: readonly SewerPerson[] = [
+  ...chicagoPeople,
   ...london,
   ...versaillesPeople,
   ...buckinghamPeople,

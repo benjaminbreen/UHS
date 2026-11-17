@@ -31,7 +31,7 @@ export const estate: PlotTemplate = {
     palette: { ink: "#16120f", fill: "#2a211b", edge: "#6a4a3a", light: "#efe4da", accent: "#a8705a" },
   },
   payee: "claimant",
-  weight: (c) => (ruled(c.setting) && (c.player.age ?? 30) >= 25 && claimantOf(c) && notable(c) ? 0.5 : 0),
+  weight: (c) => (ruled(c.setting) && (c.player.age ?? 30) >= 25 && claimantOf(c) && notable(c) ? 0.3 : 0),
   cast: (c) => {
     const claimant = claimantOf(c);
     const witness = notable(c);

@@ -3921,7 +3921,7 @@ export function planSettlement(
     // shopkeeping trades, and neither is a farmer's private house.
     // A downtown is office blocks: most lots offices, some a bank or a department store.
     const officeRoll = rand("office", i);
-    const art = lot.venue ? undefined : shopArt(frame) ??
+    const art = lot.venue ? undefined : towerStyleFor(frame) ? "offices" : shopArt(frame) ??
       (lot.use === "downtown" && (pack.setting?.year ?? 0) >= 1870 && officeRoll < 0.7
         ? officeRoll < 0.45 ? "offices" : officeRoll < 0.6 ? "bank" : "department store"
         : undefined);
@@ -4024,13 +4024,6 @@ export function planSettlement(
       : role === "Farmer" || role === "Herder";
     const shopfront = owner === "player" ? !!shop :
       !!keeper || lot.quarter === "market" || lot.quarter === "craft" || (i % 4 === 1 && !rural && lot.quarter !== "elite");
-    // A downtown is office blocks: most lots offices, some a bank or a department store.
-    const officeRoll = rand("office", i);
-    const office = towerStyleFor(frame)
-      ? "Offices"
-      : lot.use === "downtown" && !lot.venue && (pack.setting?.year ?? 0) >= 1870 && officeRoll < 0.7
-        ? officeRoll < 0.45 ? "Offices" : officeRoll < 0.6 ? "Bank" : "Department store"
-        : undefined;
     // In a camp a house is called what it is: a felt tent, a shelter, a
     // longhouse, whoever's trade is practised in it.
     const dwelling = model.label.split(" · ")[0];

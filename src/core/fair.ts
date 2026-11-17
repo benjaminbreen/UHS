@@ -55,6 +55,19 @@ export function fairInspect(h: ComplexHost, id: string): Inspection | undefined 
   const p = h.state.player, c = fairRun(h) && fairLevelOf(h, p.pos.space);
   if (!c) return undefined;
   const { level } = c;
+  if (id.startsWith("fair-case:")) {
+    const [caseId, slot] = id.split("#");
+    const display = level.cases.find((d) => d.id === caseId);
+    if (!display) return undefined;
+    const pos = { x: display.x + Math.floor(display.w / 2), y: display.y + 1, space: level.space };
+    if (slot === undefined) return {
+      id, name: display.name, kind: "object", pos, description: "", affordances: [],
+      exhibits: display.finds.map((f, i) => ({ id: `${caseId}#${i}`, name: f.name })),
+    };
+    const f = display.finds[Number(slot)];
+    if (!f || id !== `${caseId}#${Number(slot)}`) return undefined;
+    return { id, name: f.name, kind: "object", pos, description: f.look, source: f.source, affordances: [] };
+  }
   const act = (label: string, enabled = true, reason?: string) => ({ label, enabled, reason, command: { type: "interact" as const, target: id, action: "complex" as const } });
   const lift = /^fair-lift:(\d+)$/.exec(id);
   if (lift) {
@@ -71,6 +84,10 @@ export function fairInspect(h: ComplexHost, id: string): Inspection | undefined 
   }
   const thing = thingOf(level, id), f = thing && fairFind(thing.find);
   if (!thing || !f) return undefined;
+  if (f.on === "table" || f.catalog) return {
+    id, name: thing.name, kind: "object", pos: { x: thing.x + Math.floor((thing.w ?? 1) / 2), y: thing.y + (thing.h ?? 1), space: level.space },
+    description: f.look, source: f.source, affordances: [],
+  };
   const done = complexRecord(h.state, `fair:${level.fair}`).done.includes(thing.id);
   const broke = !!f.price && (p.inventory.coin ?? 0) < f.price;
   const spent = done && !f.keeps && !f.price;
@@ -83,7 +100,7 @@ export function fairInspect(h: ComplexHost, id: string): Inspection | undefined 
 
 export function fairVerb(h: ComplexHost) {
   const c = fairRun(h) && fairLevelOf(h, h.state.player.pos.space);
-  const id = c && areaTarget(h.state.player, c.level, "fair", (t) => !!t.prop), offer = id ? fairInspect(h, id)?.affordances[0] : undefined;
+  const id = c && areaTarget(h.state.player, c.level, "fair", (t) => !!t.prop || fairFind(t.find)?.on === "table" || !!fairFind(t.find)?.catalog), offer = id ? fairInspect(h, id)?.affordances[0] : undefined;
   return offer?.enabled && offer.command.type === "interact" ? { label: offer.label, target: offer.command.target } : undefined;
 }
 
@@ -107,7 +124,7 @@ export function fairAct(h: ComplexHost, id: string) {
     return;
   }
   const thing = thingOf(level, id), f = thing && fairFind(thing.find);
-  if (!thing || !f) return;
+  if (!thing || !f || f.on === "table" || f.catalog) return;
   if (!f.price) return takeFind(h, run, c, { ...thing, loot: lootOf(f) }, f, complexRecord(h.state, `fair:${level.fair}`).done, { refuel() {} });
   if ((p.inventory.coin ?? 0) < f.price) return void h.event("You don't have the money.");
   p.inventory.coin = (p.inventory.coin ?? 0) - f.price;

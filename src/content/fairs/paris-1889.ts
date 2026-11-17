@@ -1,5 +1,6 @@
 import type { Fair, FairArea, FairBuilding } from "./types";
 import { fairFinds } from "./finds";
+import { parisCatalog } from "./paris-catalog";
 
 // The Exposition Universelle of 1889, 6 May to 31 October, for the centenary of
 // the Revolution: the Champ de Mars, the Trocadéro across the Seine, the Quai
@@ -92,7 +93,7 @@ const areas: FairArea[] = [
   },
   {
     id: "dome-hall", name: "the Galleries of Various Industries", kind: "hall", floor: "tile", links: { n: "machines" },
-    exhibits: ["sevres", "gobelins", "baccarat", "christofle", "menier"], stands: { tags: ["industries"], n: 14 },
+    exhibits: ["hollerith-tabulator", "remington-standard", "sevres", "gobelins", "baccarat", "christofle", "menier"], stands: { tags: ["industries"], n: 14 },
     people: ["fair-visitor", "fair-visitor", "fair-provincial", "fair-attendant", "fair-guard"],
     note: "Under the dome and down the thirty-metre gallery: porcelain, tapestry, crystal, silver, furniture and food, French and foreign.",
     basis: "documented",
@@ -210,10 +211,10 @@ export const paris1889: Fair = {
   years: [1889, 1889],
   entry: "trocadero",
   areas,
-  finds: fairFinds,
+  finds: [...fairFinds, ...parisCatalog],
   ticket: 1,
   coin: ["franc", "francs"],
-  prompt: /\bworld'?s fair\b|\bexposition\b|\beiffel tower\b/,
+  prompt: /\bworld[' ]?s fair\b|\bexposition\b|\beiffel tower\b/,
   place: "paris",
   words: {
     short: "A franc at the turnstile, and you don't have it.",

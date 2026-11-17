@@ -13,7 +13,7 @@ import { processFor } from "../src/content/economy/processes";
 import { pieceOf, recipeFor } from "../src/content/economy/recipes";
 import type { SettlementPlan } from "../src/world/v3/types";
 import { goodsOf } from "../src/content/economy/goods";
-import { goodName, productFor } from "../src/content/economy/products";
+import { goodName, productFor, sellerOf } from "../src/content/economy/products";
 import { resolveSetting, settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
 import { createSettingSession, Runtime, WORK_STAGE_MS } from "../src/runtime/session";

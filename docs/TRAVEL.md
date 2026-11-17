@@ -35,7 +35,10 @@ and relief run straight across. `sampleSeam` in `seams.ts` records each
 border's profile, and `boundaryWater` (`v3/boundary-water.ts`) joins water
 across it; only the outer band blends.
 `waterways.ts` and `water-edges.ts` match rivers across the edge;
-`entrances.ts` finds reachable entry points. Each land border has one road
+`entrances.ts` first searches inward from the preferred border crossings,
+using bounded path searches and checking movement in the travel direction. If
+a search fails, one shared flood fill finds reachable alternatives or shores.
+Each land border has one road
 crossing (`roadAt` on its seam, the same point from both sides), and a
 playable map's regional roads run to those crossings, not to settlements
 imagined beyond its edge (`crossings` in `regional/transport.ts`): a road

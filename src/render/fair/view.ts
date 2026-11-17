@@ -1,10 +1,11 @@
 import Phaser from "phaser";
 import { fairFind } from "../../content/fairs";
+import { hash } from "../../core/random";
 import { fairIndoor, fairOutdoor, FRONT, type FairLevel } from "../../world/fair";
 import { washAt } from "../lighting";
 import { PAD, paintFairGround } from "./ground";
 import { PALACE_RISE } from "./palace";
-import { paintFairDecor, paintFairThing, type FairSprite } from "./things";
+import { paintFairCase, paintFairDecor, paintFairThing, type FairSprite } from "./things";
 
 export type FairFrame = { clock: number; time: number };
 /** The texture a frame of the fair's building sheet is in; "__DEFAULT" while it loads. */
@@ -34,7 +35,7 @@ export class FairView {
   /** The painted world, margin included, in pixels. */
   readonly bounds: { x: number; y: number; w: number; h: number };
 
-  constructor(private scene: Phaser.Scene, readonly level: FairLevel, private sheet: SheetOf) {
+  constructor(private scene: Phaser.Scene, readonly level: FairLevel, private sheet: SheetOf, select: (image: Phaser.GameObjects.Image, id: string) => void) {
     this.space = level.space;
     const W = level.w * 16, H = level.h * 16, seed = level.space.length * 131 + level.w;
     halo(scene);
@@ -53,6 +54,7 @@ export class FairView {
     this.bounds = { x: -m.x * 16, y: -m.top * 16, w: W + m.x * 32, h: H + (m.top + m.bottom) * 16 };
     this.objects.push(scene.add.image(-PAD.x * 16, -PAD.top * 16, tex("ground", paintFairGround(level, seed).canvas())).setOrigin(0, 0).setDepth(-99990));
     const put = (s: FairSprite, x: number, y: number, key: string, depth: number, dx = 0, dy = 0) => {
+      let im: Phaser.GameObjects.Image;
       if (s.frames) {
         // The frames side by side, eight to a row.
         const fw = s.r.w, fh = s.r.h, n = s.frames.length, sheet = document.createElement("canvas");
@@ -61,17 +63,29 @@ export class FairView {
         s.frames.forEach((f, i) => f.put(sheet.getContext("2d")!, (i % 8) * fw, Math.floor(i / 8) * fh));
         const k = tex(key, sheet), texture = scene.textures.get(k);
         for (let i = 0; i < n; i++) texture.add(i, 0, (i % 8) * fw, Math.floor(i / 8) * fh, fw, fh);
-        const im = scene.add.image(x * 16 - s.ox + dx, y * 16 - s.oy + dy, k, 0).setOrigin(0, 0).setDepth(depth);
-        this.objects.push(im);
+        im = scene.add.image(x * 16 - s.ox + dx, y * 16 - s.oy + dy, k, 0).setOrigin(0, 0).setDepth(depth);
         this.working.push({ im, n, fps: s.fps ?? 10 });
-      } else this.objects.push(scene.add.image(x * 16 - s.ox + dx, y * 16 - s.oy + dy, tex(key, s.r.canvas())).setOrigin(0, 0).setDepth(depth));
+      } else im = scene.add.image(x * 16 - s.ox + dx, y * 16 - s.oy + dy, tex(key, s.r.canvas())).setOrigin(0, 0).setDepth(depth);
+      this.objects.push(im);
       for (const g of s.glow ?? []) this.glow(x * 16 - s.ox + dx + g.x, y * 16 - s.oy + dy + g.y);
+      return im;
     };
     for (const t of level.things) {
       if (t.prop) continue;
-      const f = fairFind(t.find), s = f && paintFairThing(t.art, t.w ?? 1, t.h ?? 1, (t.x * 7 + t.y) % 10 / 10, f.tint, (level.palace?.order ?? "classical") === "classical");
-      // On a palace wall a hung thing has a bay to itself: in the middle of it, at eye height.
-      if (s) put(s, t.x, t.y, t.id, t.wall ? -99980 : (t.y + (t.h ?? 1) - 1) * 16 + 13, t.wall && palace ? (3 - (t.w ?? 1)) * 8 : 0, t.wall && palace ? -30 : 0);
+      const f = fairFind(t.find);
+      if (!f) continue;
+      const variant = f.catalog ? f.catalog.variant ?? (hash(f.id) % 6) / 6 : (t.x * 7 + t.y) % 10 / 10;
+      const s = paintFairThing(t.art, t.w ?? 1, t.h ?? 1, variant, f.tint, (level.palace?.order ?? "classical") === "classical");
+      if (!s) continue;
+      const tabletop = f.on === "table";
+      const im = put(s, t.x, t.y, t.id, t.wall ? -99980 : (t.y + (t.h ?? 1) - 1) * 16 + (tabletop ? 13.5 : 13), t.wall && palace ? (3 - (t.w ?? 1)) * 8 : 0, t.wall && palace ? -30 : 0);
+      if (tabletop || f.catalog) select(im, `fair-thing:${t.id}`);
+    }
+    for (const display of level.cases) {
+      const depth = display.y * 16 + 13;
+      const { cabinet, items } = paintFairCase(display);
+      select(put(cabinet, display.x, display.y, display.id, depth), display.id);
+      for (const item of items) select(put(item, display.x, display.y, item.id, depth + 0.5), item.id);
     }
     const indoor = fairIndoor(level.kind);
     const decor = [...level.decor];

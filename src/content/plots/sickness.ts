@@ -28,7 +28,7 @@ export const sickness: PlotTemplate = {
       refs: { patron: patron.id, elder: elder.id, ...p.refs },
     };
   },
-  opening: [{ type: "choose", line: "news", focus: "patron", choices: [{ id: "shut" }, { id: "help" }, { id: "leave" }] }],
+  opening: [{ type: "choose", line: "news", focus: "patron", brought: true, choices: [{ id: "shut" }, { id: "help" }, { id: "leave" }] }],
   developments: [
     { id: "gate", when: { type: "after", id: "shut", hours: 2 }, then: [{ type: "choose", line: "gate", focus: "patron", choices: [{ id: "turn" }, { id: "shelter" }] }] },
     { id: "nursed", when: { type: "fired", id: "help" }, then: [{ type: "regard", role: "elder", delta: 2 }] },

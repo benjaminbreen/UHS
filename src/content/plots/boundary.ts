@@ -1,4 +1,4 @@
-import { B, BRITAIN, dueOf, EGYPT, elderOf, ITALY, neighbours, partnerWords, pickOf, pronounWords, temper, working } from "./common";
+import { B, BRITAIN, dueOf, EGYPT, elderOf, ITALY, neighbours, partnerWords, pickOf, pronounWords, temper, trade, working } from "./common";
 import type { PlotContext, PlotTemplate } from "./types";
 
 const pairOf = (c: PlotContext) => {
@@ -19,7 +19,7 @@ export const boundary: PlotTemplate = {
     emblem: "stone",
     palette: { ink: "#12140e", fill: "#2a3020", edge: "#6a6a3c", light: "#ecebd8", accent: "#e0b060" },
   },
-  weight: (c) => (working(c) && pairOf(c) ? 0.5 * temper(c, "conscientiousness") : 0),
+  weight: (c) => (working(c) && !trade(c, /herd|shepherd/) && c.setting?.settlement !== "city" && pairOf(c) ? 0.5 * temper(c, "conscientiousness") : 0),
   cast: (c) => pairOf(c) ?? undefined,
   begin: (c, cast) => {
     const { suspect, neighbour, elder } = cast as Required<typeof cast>;

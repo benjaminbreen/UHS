@@ -495,7 +495,7 @@ export function AudioLab({
                     className="audio-play"
                     disabled={state.loading}
                     onClick={() =>
-                      state.playing ? director.pause() : void director.play()
+                      state.playing ? director.pause() : director.setMusic(true)
                     }
                     aria-label={state.playing ? "Pause music" : "Play music"}
                   >
@@ -519,7 +519,7 @@ export function AudioLab({
                     className="audio-icon"
                     onClick={() => {
                       director.stop();
-                      void director.play();
+                      director.setMusic(true);
                     }}
                     aria-label="Restart music"
                   >

@@ -2525,6 +2525,7 @@ export class WorldScene extends Phaser.Scene {
     image: Phaser.GameObjects.Image,
     id: string,
     mirrored = false,
+    selectOnPhone = false,
   ) {
     if (this.options.lab) return;
     image.setInteractive(
@@ -2541,8 +2542,8 @@ export class WorldScene extends Phaser.Scene {
         event: Phaser.Types.Input.EventData,
       ) => {
         if (this.modalOpen || pointer.event?.target !== this.game.canvas || pointer.rightButtonDown()) return;
-        // Let the tap through to the scene, which walks.
-        if (phoneLayout()) return;
+        // Ordinary taps walk. Exhibit taps open the source card.
+        if (phoneLayout() && !selectOnPhone) return;
         event.stopPropagation();
         this.runtime.select(id);
       },
@@ -2583,6 +2584,7 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
     tip.textContent = seen.name;
+    tip.classList.toggle("has-source", !!(seen.source || seen.exhibits));
     if (seen.latin) {
       const latin = document.createElement("i");
       latin.textContent = ` ${seen.latin}`;
@@ -6402,7 +6404,9 @@ export class WorldScene extends Phaser.Scene {
     let v = this.areaView;
     if (!v || v.space !== space) {
       v?.destroy();
-      v = this.areaView = "fair" in level ? new FairView(this, level as FairLevel, (frame) => this.texture(frame)) : new TombView(this, level as TombLevel);
+      v = this.areaView = "fair" in level
+        ? new FairView(this, level as FairLevel, (frame) => this.texture(frame), (image, id) => this.makeSelectable(image, id, false, true))
+        : new TombView(this, level as TombLevel);
       if (import.meta.env.DEV) (window as unknown as { uhsTomb?: typeof TombView }).uhsTomb = TombView;
       this.applyGrade(0);
     }

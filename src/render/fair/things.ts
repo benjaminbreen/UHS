@@ -1,11 +1,12 @@
 import { box, drum } from "../ship/things";
-import { exhibitItem, stamp } from "./items";
+import { exhibitIcon, exhibitItem, stamp } from "./items";
 import { paintPalaceDecor } from "./palace";
 import { fairById, fairFind } from "../../content/fairs";
 import { louisQuatorze, type PalaceStyle } from "../../content/palaces/styles";
+import { hash } from "../../core/random";
 import { paintMachine, type MachineKind } from "../machines";
 import { h2, Raster } from "../ship/raster";
-import { MACHINES } from "../../world/fair";
+import { MACHINES, type FairCase } from "../../world/fair";
 
 /** A sprite for a cell-sized thing: its footprint's top-left sits at (ox, oy) in the raster. */
 /** `frames`, when there are any, are a loop played at `fps`; `r` is the first. */
@@ -53,7 +54,19 @@ function machine(kind: MachineKind, w: number, h: number, v: number): FairSprite
   return { r: m.frames[0], ox: m.ox, oy: m.oy, frames: m.frames, fps: m.fps };
 }
 
-export function paintFairThing(art: string, w: number, h: number, v: number, tint?: string, labelled = true, style?: PalaceStyle): FairSprite | undefined {
+export function paintFairCase(display: FairCase) {
+  const cabinet = paintFairThing("vitrine", display.w, 1, (hash(display.name) % 3) / 3, undefined, true, undefined, false)!;
+  const columns = display.finds.length > 2 ? 2 : display.finds.length;
+  const gap = Math.floor((display.w * 16 - columns * 16) / (columns + 1));
+  const items = display.finds.map((f, i) => {
+    const art = f.catalog!, row = Math.floor(i / columns);
+    const x = display.finds.length === 3 && row ? display.w * 8 - 8 : gap + i % columns * (16 + gap);
+    return { r: exhibitIcon(art.icon!, art.variant ?? (hash(f.id) % 6) / 6), ox: -x, oy: columns < display.finds.length ? 24 - row * 16 : 16, id: `${display.id}#${i}` };
+  });
+  return { cabinet, items };
+}
+
+export function paintFairThing(art: string, w: number, h: number, v: number, tint?: string, labelled = true, style?: PalaceStyle, stocked = true): FairSprite | undefined {
   const W = w * 16, H = h * 16, pad = 8;
   const make = (rise: number): FairSprite & { X: number; Y: number } => ({ r: new Raster(W + pad * 2, H + rise + pad + 4), ox: pad, oy: rise, X: pad, Y: rise });
   const t = tint ? ramp(tint) : undefined;
@@ -64,14 +77,115 @@ export function paintFairThing(art: string, w: number, h: number, v: number, tin
   };
   const ground = (s: { r: Raster; X: number; Y: number }) => s.r.shadow(s.X + W / 2 + 2, s.Y + H - 3, W / 2 + 2, 5, 0.28);
   switch (art) {
+    case "hollerith": {
+      const r = new Raster(48, 34);
+      r.fill(2, 2, 26, 30, DARKWOOD[4]);
+      r.fill(3, 2, 24, 2, WOOD[1]);
+      r.fill(3, 4, 23, 24, DARKWOOD[1]);
+      r.fill(5, 5, 19, 22, IRON[3]);
+      r.fill(4, 28, 23, 3, DARKWOOD[2]);
+      for (let y = 8; y < 26; y += 5) for (let x = 8; x < 23; x += 5) {
+        r.fill(x - 1, y - 1, 3, 3, BRASS[2]);
+        r.set(x, y, STONE[0]);
+        r.set(x + 1, y, BRASS[4]);
+      }
+      r.fill(10, 25, 9, 2, BRASS[2]);
+      r.fill(29, 27, 17, 5, DARKWOOD[4]);
+      r.fill(30, 26, 15, 3, DARKWOOD[1]);
+      r.fill(32, 24, 10, 3, BRASS[2]);
+      r.fill(32, 20, 2, 5, BRASS[3]);
+      r.fill(32, 19, 11, 2, BRASS[1]);
+      r.fill(40, 18, 5, 2, IRON[4]);
+      r.fill(34, 25, 7, 4, STONE[1]);
+      for (const x of [35, 37, 39]) r.set(x, 26, DARKWOOD[3]);
+      r.finish();
+      return { r, ox: 0, oy: 40 };
+    }
+    case "remington": {
+      const r = new Raster(32, 26);
+      r.fill(4, 15, 24, 9, IRON[4]);
+      r.fill(6, 11, 20, 7, IRON[3]);
+      r.fill(8, 12, 16, 2, IRON[1]);
+      r.fill(4, 16, 24, 5, IRON[2]);
+      r.fill(8, 22, 16, 1, BRASS[2]);
+      r.fill(2, 8, 28, 4, IRON[4]);
+      r.fill(4, 8, 24, 1, IRON[0]);
+      r.fill(9, 1, 14, 8, STONE[0]);
+      r.fill(21, 1, 2, 7, STONE[2]);
+      r.fill(11, 5, 8, 1, STONE[3]);
+      r.fill(11, 7, 5, 1, STONE[3]);
+      r.set(2, 7, BRASS[2]);
+      for (let x = 7; x < 27; x += 3) {
+        r.set(x, 16, STONE[0]);
+        r.set(x - 1, 18, STONE[1]);
+        r.set(x, 20, STONE[2]);
+      }
+      r.finish();
+      return { r, ox: 0, oy: 32 };
+    }
+    case "filter": {
+      const r = new Raster(32, 36), clay = v < 0.5 ? ["#e6ba75", "#c28c4c", "#9b6339", "#72462d", "#4b3228"] : STONE;
+      drum(r, 15, 34, 8, 2, 4, clay);
+      drum(r, 15, 29, 10, 3, 18, clay);
+      for (const y of [14, 24]) {
+        r.fill(6, y, 18, 2, "#426777");
+        r.fill(7, y, 14, 1, "#7196a0");
+      }
+      for (const x of [8, 12, 16, 20]) {
+        r.set(x, 19, clay[0]);
+        r.set(x + 1, 18, clay[0]);
+        r.set(x + 1, 20, clay[3]);
+      }
+      drum(r, 15, 12, 10, 3, 3, clay);
+      drum(r, 15, 8, 7, 2, 3, clay);
+      drum(r, 15, 5, 2, 1, 3, clay);
+      r.fill(22, 27, 6, 3, BRASS[3]);
+      r.fill(22, 27, 6, 1, BRASS[1]);
+      r.fill(26, 28, 3, 4, BRASS[2]);
+      r.set(26, 26, BRASS[0]);
+      r.finish();
+      return { r, ox: 0, oy: 20 };
+    }
     case "vitrine": {
+      if (!stocked) {
+        const s = make(36), { r, X, Y } = s, back = Y - (w >= 4 ? 27 : 19);
+        const oak = ["#c7a179", "#a37c58", "#80593f", "#5e3d30", "#3c2930"];
+        const felt = [["#84958b", "#667d72", "#4a6059"], ["#a78388", "#87616e", "#624956"], ["#858b9f", "#636d86", "#464f68"]][Math.floor(v * 3) % 3];
+        ground(s);
+        r.fill(X, back + 1, W, Y + 14 - back, oak[3]);
+        r.fill(X + 1, back, W - 2, Y + 10 - back, oak[1]);
+        r.fill(X + 2, back + 1, W - 4, 1, oak[0]);
+        r.fill(X + 3, back + 3, W - 6, Y + 7 - back - 3, oak[4]);
+        r.fill(X + 5, back + 5, W - 10, Y + 5 - back - 5, felt[1]);
+        r.fill(X + 5, back + 5, W - 10, 1, felt[2]);
+        r.fill(X + 5, Y + 4, W - 10, 1, felt[0]);
+        r.fill(X + 1, Y + 9, W - 2, 3, oak[0]);
+        r.fill(X + 2, Y + 12, W - 4, 6, oak[2]);
+        for (let x = X + 4; x < X + W - 6; x += 20) {
+          const width = Math.min(16, X + W - 4 - x);
+          r.fill(x, Y + 14, width, 3, oak[3]);
+          r.fill(x + 1, Y + 15, width - 2, 1, oak[1]);
+        }
+        r.fill(X + 1, Y + 18, W - 2, 2, oak[4]);
+        for (const x of [X + 3, X + W - 7]) {
+          r.fill(x, Y + 20, 4, 2, oak[3]); r.set(x, Y + 20, oak[1]);
+        }
+        r.fill(X + (W >> 1) - 5, Y + 11, 10, 3, BRASS[3]);
+        r.fill(X + (W >> 1) - 4, Y + 11, 8, 1, BRASS[1]);
+        r.fill(X + 3, back + 2, W - 6, 1, "#abc2bd");
+        r.fill(X + 3, back + 3, 1, Y + 6 - back - 3, "#9eafa9");
+        r.fill(X + W - 4, back + 3, 1, Y + 6 - back - 3, "#6d8987");
+        r.fill(X + 4, Y + 6, W - 8, 1, "#c2cdc2");
+        for (let i = 0; i < 4; i++) r.set(X + 6 + i, back + 7 + i, "#b7cac1");
+        return done(s, false);
+      }
       // A long glazed case on a cabinet, its goods laid out in a row behind the glass.
       const s = make(30), { r, X, Y } = s, goods = t ?? BRASS;
       ground(s);
       box(r, X + 1, Y + 1, W - 2, H - 8, 10, DARKWOOD, DARKWOOD);
       for (let x = X + 6; x < X + W - 6; x += 12) r.fill(x, Y + H - 5, 8, 3, DARKWOOD[1]);
-      const gy = Y - 16;
-      r.fill(X + 2, gy, W - 4, 18, GLASS[2]);
+      const gy = Y - 16, glassH = Y + 2 - gy;
+      r.fill(X + 2, gy, W - 4, glassH, GLASS[2]);
       r.fill(X + 2, gy, W - 4, 7, GLASS[1]);
       for (let i = 0; i < W - 10; i += 7) {
         const x = X + 6 + i, kind = Math.floor(h2(i, 3, Math.floor(v * 97)) * 4);
@@ -80,8 +194,8 @@ export function paintFairThing(art: string, w: number, h: number, v: number, tin
         else if (kind === 2) { drum(r, x + 2, gy + 14, 2, 1, 7, goods); }
         else { r.fill(x, gy + 11, 6, 3, goods[2]); r.fill(x, gy + 11, 6, 1, goods[0]); }
       }
-      r.fill(X + 2, gy - 1, W - 4, 1, BRASS[1]); r.fill(X + 2, gy + 17, W - 4, 1, BRASS[2]);
-      for (const x of [X + 2, X + W - 3, X + (W >> 1)]) r.fill(x, gy - 1, 1, 19, BRASS[2]);
+      r.fill(X + 2, gy - 1, W - 4, 1, BRASS[1]); r.fill(X + 2, Y + 1, W - 4, 1, BRASS[2]);
+      for (const x of [X + 2, X + W - 3, X + (W >> 1)]) r.fill(x, gy - 1, 1, glassH + 1, BRASS[2]);
       for (let k = 0; k < 6; k++) r.set(X + 6 + k, gy + 1 + k, "#ffffff"), r.set(X + 7 + k, gy + 1 + k, GLASS[0]);
       return done(s);
     }
@@ -195,17 +309,203 @@ export function paintFairThing(art: string, w: number, h: number, v: number, tin
       return done(s, false);
     }
     case "bath": {
-      // A roll-top bath on brass feet, enamelled white, water in it, the taps at its head.
-      const s = make(18), { r, X, Y } = s, en = ["#ffffff", "#f0f0ec", "#d4d6d8", "#a8aeb4"];
+      const s = make(18), { r, X, Y } = s;
+      const en = t ?? (v < 1 / 3 ? STONE : v < 2 / 3 ? ["#efc5a0", "#ce9367", "#ac7048", "#805036", "#56372c"] : IRON);
       ground(s);
-      const x0 = X + 2, x1 = X + W - 3, top = Y + H - 16, bot = Y + H - 4;
-      for (let y = top; y <= bot; y++) {
-        const inset = y > bot - 3 ? (y - (bot - 3)) * 2 : 0;
-        r.fill(x0 + inset, y, x1 - x0 - inset * 2, 1, y < top + 3 ? en[1] : y > bot - 2 ? en[3] : en[2]);
+      const cx = X + W / 2, foot = Y + H - 8, rx = W / 2 - 4, ry = H / 2 - 6;
+      drum(r, cx, foot, rx, ry, 8, en);
+      drum(r, cx, foot - 8, rx - 3, ry - 2, 0, [en[0], en[2], en[3], en[3], en[4]]);
+      drum(r, cx, foot - 7, rx - 5, ry - 4, 0, GLASS);
+      for (const x of [X + 9, X + W - 11]) {
+        r.fill(x, Y + H - 1, 3, 4, BRASS[3]); r.set(x, Y + H - 1, BRASS[0]);
       }
-      r.fill(x0 - 1, top - 1, x1 - x0 + 2, 2, en[0]); r.fill(x0 + 2, top, x1 - x0 - 4, 2, "#8ec4d8");
-      for (const fx of [x0 + 3, x1 - 5]) r.fill(fx, bot + 1, 2, 3, BRASS[2]);
-      r.fill(x0 + 1, top - 7, 2, 7, BRASS[1]); r.fill(x0 + 1, top - 8, 5, 2, BRASS[0]); r.fill(x0 + 5, top - 6, 1, 3, BRASS[2]);
+      r.fill(X + 8, Y + 2, 2, 13, BRASS[2]); r.fill(X + 8, Y + 2, 1, 13, BRASS[0]);
+      r.fill(X + 8, Y + 2, 7, 2, BRASS[1]); r.fill(X + 13, Y + 4, 2, 4, BRASS[3]);
+      for (const x of [X + 5, X + 11]) drum(r, x, Y + 7, 2, 1, 2, BRASS);
+      return done(s);
+    }
+    case "basin": {
+      const s = make(32), { r, X, Y } = s, cx = X + W / 2;
+      const enamel = t ?? (v < 0.5 ? STONE : ["#e6c6ab", "#ca9a75", "#a67555", "#80563e", "#543c31"]);
+      ground(s);
+      if (Math.floor(v * 6) % 2 === 0) {
+        box(r, X + 4, Y - 7, W - 8, 10, 18, WOOD, DARKWOOD);
+        for (const x of [X + 6, X + W - 8]) r.fill(x, Y + 21, 2, 3, DARKWOOD[3]);
+        r.fill(cx, Y + 8, 1, 12, DARKWOOD[4]); r.set(cx - 3, Y + 11, BRASS[1]); r.set(cx + 3, Y + 11, BRASS[1]);
+      } else {
+        drum(r, cx, Y + 14, 7, 3, 3, enamel);
+        drum(r, cx, Y + 11, 4, 2, 18, enamel);
+      }
+      drum(r, cx, Y - 4, W / 2 - 4, 6, 6, enamel);
+      drum(r, cx, Y - 10, W / 2 - 7, 4, 0, GLASS);
+      r.fill(cx + 6, Y - 18, 2, 8, BRASS[2]); r.fill(cx + 2, Y - 18, 6, 2, BRASS[1]);
+      r.fill(cx + 2, Y - 16, 1, 3, BRASS[2]); r.set(cx + 6, Y - 19, BRASS[0]);
+      return done(s);
+    }
+    case "stove": {
+      const s = make(40), { r, X, Y } = s;
+      const metal = t ?? (v < 0.5 ? IRON : ["#a1b2a6", "#758f80", "#516c60", "#374e46", "#253b36"]);
+      const shape = Math.floor(v * 6) % 3, cx = X + W / 2;
+      ground(s);
+      if (shape === 2) {
+        drum(r, cx, Y + H - 8, W / 2 - 5, 7, 29, metal);
+        drum(r, cx, Y - 7, 4, 2, 11, metal);
+        box(r, cx - 6, Y + 6, 12, 1, 9, metal, IRON);
+        r.fill(cx - 3, Y + 9, 6, 4, "#b06a42"); r.set(cx + 4, Y + 11, BRASS[1]);
+      } else {
+        box(r, X + 2, Y - 8, W - 4, H - 8, 18, metal, metal);
+        for (const x of [X + 9, X + W - 10]) for (const y of [Y - 2, Y + 8]) drum(r, x, y, 4, 2, 1, IRON);
+        box(r, X + 6, Y + H - 21, W - 12, 1, 12, metal, IRON);
+        r.fill(X + 8, Y + H - 18, W - 16, 1, BRASS[1]);
+        if (shape === 0) for (let x = X + 8; x < X + W - 7; x += 3) {
+          r.fill(x, Y + H - 15, 2, 5, "#b06a42"); r.set(x, Y + H - 14, "#e8bc6b");
+        }
+      }
+      return done(s);
+    }
+    case "chair": {
+      const s = make(40), { r, X, Y } = s, m = t ?? (v < 0.5 ? WOOD : DARKWOOD);
+      ground(s);
+      box(r, X + 5, Y - 25, W - 10, 4, 22, m, m);
+      r.fill(X + 8, Y - 18, W - 16, 15, v < 0.5 ? "#6e7771" : "#735364");
+      box(r, X + 3, Y - 1, W - 6, H - 5, 4, m, m);
+      for (const x of [X + 4, X + W - 7]) {
+        r.fill(x, Y + H - 2, 3, 8, m[3]); r.fill(x, Y + H - 2, 1, 7, m[0]);
+      }
+      for (const x of [X + 2, X + W - 4]) r.fill(x, Y - 5, 3, H - 1, m[2]);
+      return done(s);
+    }
+    case "mattress": {
+      const s = make(16), { r, X, Y } = s, cover = t ?? (v < 0.5 ? STONE : ["#b4c0ba", "#96a89f", "#798b84", "#5d7068", "#40534c"]);
+      ground(s);
+      box(r, X + 2, Y + 2, W - 4, H - 8, 7, WOOD, DARKWOOD);
+      box(r, X + 3, Y - 1, W - 6, H - 8, 6, cover, cover);
+      for (let x = X + 7; x < X + W - 4; x += 6) r.fill(x, Y + 1, 1, H - 11, cover[3]);
+      for (let y = Y + 4; y < Y + H - 10; y += 6) for (let x = X + 7; x < X + W - 4; x += 6) r.set(x, y, cover[0]);
+      for (const x of [X + 4, X + W - 7]) r.fill(x, Y + H + 1, 3, 3, DARKWOOD[3]);
+      return done(s);
+    }
+    case "hallclock": {
+      const s = make(56), { r, X, Y } = s, m = t ?? (v < 0.5 ? WOOD : DARKWOOD), cx = X + W / 2;
+      ground(s);
+      box(r, X + 2, Y - 44, W - 4, 7, 51, m, m);
+      r.fill(X, Y - 46, W, 3, m[2]); r.fill(X + 1, Y - 46, W - 2, 1, m[0]);
+      drum(r, cx, Y - 27, 5, 5, 0, BRASS); drum(r, cx, Y - 27, 4, 4, 0, STONE);
+      r.fill(cx, Y - 30, 1, 4, IRON[3]); r.fill(cx, Y - 27, 3, 1, IRON[3]);
+      r.fill(X + 4, Y - 17, W - 8, 23, IRON[3]); r.fill(X + 5, Y - 16, 1, 20, GLASS[3]);
+      r.fill(cx, Y - 16, 1, 18, BRASS[1]); drum(r, cx, Y + 2, 3, 2, 1, BRASS);
+      r.fill(X, Y + 14, W, 3, m[3]); r.fill(X + 1, Y + 14, W - 2, 1, m[1]);
+      return done(s);
+    }
+    case "cupboard": {
+      const s = make(52), { r, X, Y } = s, m = t ?? (v < 0.5 ? WOOD : DARKWOOD), tall = Math.floor(v * 6) % 2 === 0;
+      const top = Y - (tall ? 34 : 20), height = tall ? 40 : 26;
+      ground(s);
+      box(r, X + 3, top, W - 6, 9, height, m, m);
+      r.fill(X + 1, top - 2, W - 2, 3, m[1]); r.fill(X + 2, top - 2, W - 4, 1, m[0]);
+      const mid = X + W / 2;
+      for (const x of [X + 6, mid + 2]) {
+        r.fill(x, top + 13, W / 2 - 8, height - 8, m[3]);
+        r.fill(x + 1, top + 14, W / 2 - 10, height - 10, m[2]);
+      }
+      r.fill(mid, top + 10, 1, height - 2, m[4]);
+      for (const x of [mid - 3, mid + 3]) drum(r, x, top + 12 + height / 2, 1, 1, 1, BRASS);
+      for (const x of [X + 4, X + W - 7]) r.fill(x, Y + 16, 3, 4, m[3]);
+      return done(s);
+    }
+    case "tank": {
+      const s = make(42), { r, X, Y } = s, m = t ?? (v < 1 / 3 ? IRON : v < 2 / 3 ? ["#e8bc8f", "#ca9164", "#a36e48", "#775036", "#503a2c"] : STONE);
+      ground(s);
+      if (Math.floor(v * 6) % 2) {
+        drum(r, X + W / 2, Y + H - 7, W / 2 - 5, 8, 33, m);
+        for (const y of [Y - 1, Y + 18]) r.fill(X + 6, y, W - 12, 2, IRON[2]);
+        drum(r, X + W / 2, Y - 8, 3, 2, 5, m);
+      } else {
+        box(r, X + 3, Y - 14, W - 6, H - 10, 24, m, m);
+        r.fill(X + 3, Y - 15, W - 6, 2, m[0]);
+        for (const x of [X + 6, X + W - 7]) for (const y of [Y + 11, Y + 26]) r.set(x, y, m[0]);
+      }
+      r.fill(X + W - 7, Y + H - 9, 8, 3, BRASS[2]); r.fill(X + W - 1, Y + H - 7, 3, 7, BRASS[3]);
+      r.fill(X + W - 7, Y + H - 10, 6, 1, BRASS[0]);
+      return done(s);
+    }
+    case "toilet": {
+      const s = make(32), { r, X, Y } = s, cx = X + W / 2, enclosed = Math.floor(v * 6) % 2 === 0;
+      const m = t ?? STONE;
+      ground(s);
+      box(r, X + 6, Y - 11, W - 12, 7, 14, enclosed ? WOOD : m, enclosed ? DARKWOOD : m);
+      if (enclosed) {
+        box(r, X + 4, Y + 5, W - 8, H - 15, 7, WOOD, DARKWOOD);
+        drum(r, cx, Y + 12, W / 2 - 9, 4, 0, IRON);
+      } else {
+        drum(r, cx, Y + H - 3, 7, 4, 8, m);
+        drum(r, cx, Y + H - 12, W / 2 - 5, 7, 5, m);
+        drum(r, cx, Y + H - 17, W / 2 - 8, 4, 0, IRON);
+      }
+      r.fill(X + W - 7, Y - 2, 2, 6, BRASS[2]); r.set(X + W - 5, Y - 2, BRASS[0]);
+      return done(s);
+    }
+    case "toolset": {
+      const s = make(30), { r, X, Y } = s, m = t ?? (v < 0.5 ? WOOD : DARKWOOD);
+      ground(s);
+      box(r, X + 2, Y - 8, W - 4, H - 8, 12, m, m);
+      for (const x of [X + 5, X + W - 8]) {
+        r.fill(x, Y + H - 4, 3, 8, m[3]); r.fill(x, Y + H - 4, 1, 7, m[0]);
+      }
+      r.fill(X + 5, Y - 22, W - 10, 12, DARKWOOD[3]); r.fill(X + 5, Y - 22, W - 10, 1, m[0]);
+      for (let i = 0; i < 4; i++) {
+        const x = X + 10 + i * 8;
+        r.fill(x, Y - 18, 2, 8, WOOD[1]); r.fill(x - 2, Y - 19, 6, 2, IRON[0]);
+        r.fill(x - 2, Y + i % 2 * 5 - 3, 2, 11, WOOD[2]);
+        r.fill(x - 3, Y + i % 2 * 5 - 6, 4, 4, i % 2 ? IRON[0] : BRASS[1]);
+      }
+      box(r, X + 8, Y + H - 10, W - 16, 1, 7, m, DARKWOOD);
+      for (const x of [X + W / 2 - 6, X + W / 2 + 6]) r.set(x, Y + H - 6, BRASS[0]);
+      return done(s);
+    }
+    case "sewingmachine": {
+      const s = make(40), { r, X, Y } = s, cx = X + W / 2, metal = t ?? (v < 0.5 ? IRON : ["#86aaa1", "#5d8579", "#3f625a", "#2b4942", "#1d3430"]);
+      ground(s);
+      box(r, X + 1, Y - 4, W - 2, H - 14, 4, WOOD, DARKWOOD);
+      for (const x of [X + 5, X + W - 8]) r.fill(x, Y + H - 14, 3, 15, IRON[2]);
+      drum(r, cx, Y + H - 2, W / 2 - 7, 3, 1, IRON);
+      box(r, X + 5, Y - 2, W - 10, 7, 3, metal, metal);
+      r.fill(X + W - 13, Y - 20, 6, 21, metal[2]); r.fill(X + 7, Y - 21, W - 15, 5, metal[1]);
+      r.fill(X + 7, Y - 17, 4, 10, metal[2]); r.fill(X + 8, Y - 7, 1, 7, IRON[0]);
+      r.fill(X + 7, Y - 21, W - 15, 1, metal[0]);
+      drum(r, X + W - 6, Y - 9, 5, 2, 7, IRON); r.fill(X + W - 6, Y - 15, 1, 5, IRON[0]);
+      drum(r, X + W - 11, Y - 22, 2, 1, 6, BRASS);
+      r.fill(X + 13, Y - 18, 5, 1, BRASS[1]);
+      return done(s);
+    }
+    case "garment": {
+      const s = make(36), { r, X, Y } = s, cx = X + W / 2;
+      const cloth = t ?? ramp(["#945760", "#527395", "#5f8963", "#a1854e", "#806587", "#528a88"][Math.floor(v * 6) % 6]);
+      ground(s);
+      drum(r, cx, Y + H - 3, 6, 2, 2, DARKWOOD); r.fill(cx, Y - 8, 1, H + 5, IRON[2]);
+      drum(r, cx, Y - 29, 2, 1, 3, WOOD);
+      for (let y = -25; y < 5; y++) {
+        const half = y < -20 ? 5 : y < -12 ? 4 : Math.floor(v * 6) % 2 ? 4 : 5;
+        r.fill(cx - half, Y + y, half * 2 + 1, 1, cloth[2]); r.set(cx - half, Y + y, cloth[0]); r.set(cx + half, Y + y, cloth[3]);
+      }
+      r.fill(cx - 9, Y - 23, 4, 15, cloth[2]); r.fill(cx + 6, Y - 23, 4, 15, cloth[3]);
+      r.fill(cx - 2, Y - 25, 4, 3, STONE[1]); r.fill(cx, Y - 21, 1, 25, cloth[4]);
+      for (const y of [-18, -12, -6, 0]) r.set(cx + 1, Y + y, BRASS[1]);
+      return done(s);
+    }
+    case "curtain": {
+      const s = make(48), { r, X, Y } = s;
+      const c = t ?? ramp(["#945760", "#527395", "#5f8963", "#a1854e", "#806587", "#528a88"][Math.floor(v * 6) % 6]);
+      r.fill(X, Y - 42, W, 2, BRASS[2]);
+      for (let y = -39; y < H - 3; y++) {
+        const width = Math.floor(v * 6) % 2 === 0 && y > -18 && y < -6 ? 5 : W / 2 - 3;
+        for (const x of [X + 2, X + W - width - 2]) {
+          r.fill(x, Y + y, width, 1, c[2]);
+          for (let fold = x + 2; fold < x + width; fold += 4) r.set(fold, Y + y, c[1]);
+          r.set(x, Y + y, c[0]);
+        }
+      }
+      r.fill(X + 2, Y - 10, 5, 2, BRASS[1]); r.fill(X + W - 7, Y - 10, 5, 2, BRASS[1]);
       return done(s);
     }
     case "vase": {
@@ -717,6 +1017,7 @@ function table(cls: string, w: number, h: number, v: number): FairSprite {
   r.fill(X, face, W, 10, TABLE.front); r.fill(X, face, W, 1, TABLE.rim); r.fill(X, face + 9, W, 1, TABLE.foot); r.fill(X + W - 1, face, 1, 10, TABLE.panel);
   for (let x = X + 3; x < X + W - 4; x += 16) { r.fill(x, face + 3, Math.min(11, X + W - 4 - x), 4, TABLE.panel); r.fill(x, face + 3, Math.min(11, X + W - 4 - x), 1, TABLE.foot); }
   r.finish();
+  if (cls === "empty") return { r, ox: X, oy: Y + (h - 1) * 16 };
   // The exhibits, back row first so the front row stands over it.
   const rows = w === 1 ? h : h - 1, pitch = (face - top - 17) / Math.max(1, rows - 1);
   for (let j = 0; j < rows; j++) for (let i = 0; i < w; i++) {

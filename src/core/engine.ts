@@ -10608,11 +10608,23 @@ export class Engine {
       aim: s.plot && !s.plot.ended && plotKnown(s.plot) ? s.plot.aim?.text ?? s.lifeAim?.text : s.lifeAim?.text,
     });
   }
+  /** Who runs to tell you: the nearest of the household able to, else of the cast, never the one it is about. */
+  private messenger(plot: PlotState, about?: string) {
+    const s = this.state, p = s.player.pos, h = this.household(s.player.householdId);
+    const able = (a: Actor) => !a.dead && a.id !== s.player.id && a.id !== about && (a.age ?? 30) >= 8 && a.id !== plot.cast.kin;
+    const near = (ids: string[]) => ids.map((id) => this.actorsById?.get(id)).filter((a): a is Actor => !!a && able(a))
+      .sort((a, b) => distance(a.pos, p) - distance(b.pos, p))[0];
+    return (near(h?.members ?? []) ?? near(Object.values(plot.cast)))?.id;
+  }
   private withinPlotReach(id: string) {
     const actor = this.actorsById?.get(id) ?? this.state.actors.find((a) => a.id === id);
     return !!actor && !actor.dead && distance(this.state.player.pos, actor.pos) <= 2.5 && this.visible(actor.pos);
   }
   private atPlotScene(plot: PlotState, scene: PlotScene) {
+    if (scene === "shore" || scene === "field") {
+      const t = this.trade(), place = t && this.findPlace(scene, t), p = this.state.player.pos;
+      return !place || (p.space === "outside" && distance(p, place.pos) <= 10);
+    }
     if (scene !== "doorstep") return this.withinPlotReach(plot.cast[scene]);
     const p = this.state.player, h = this.household(p.householdId);
     const door = this.farmDoor(h);
@@ -10644,6 +10656,7 @@ export class Engine {
       return false;
     }
     a.at = this.state.clock;
+    a.shown = true;
     if ([...this.cards, ...this.held].some((c) => c.choose?.card === card)) return true;
     // Family on their way over would arrive on top of the question; they come another time.
     const k = s.kin;
@@ -10696,8 +10709,8 @@ export class Engine {
       if (by && !by.dead && !this.approaching) this.approaching = { id: by.id, line: "", until: s.clock + 1800, onArrive: () => this.askPlot(plot) };
       else this.askPlot(plot);
     }
-    // A decision put away unanswered comes back after half an hour.
-    else if (ask && ask.due === undefined && s.clock >= ask.at + 1800) this.askPlot(plot);
+    // A decision put away unanswered comes back after half an hour; one waiting on a place comes when you get there.
+    else if (ask && ask.due === undefined && (s.clock >= ask.at + 1800 || (ask.scene && !ask.shown && this.atPlotScene(plot, ask.scene)))) this.askPlot(plot);
     // People set out a little early, so the place is full when it starts.
     if (g && s.clock >= g.start - 1200 && s.clock < g.until) {
       if (!g.met) this.convene(plot, g);
@@ -10749,8 +10762,9 @@ export class Engine {
       else if (e.type === "owe" && plot.owed) plot.owed = Math.max(1, Math.round(plot.owed * e.times));
       else if (e.type === "choose") {
         // The day's first decision waits a minute or three of play.
-        const due = !e.at && s.clock - plot.began < 1800 ? plot.began + 1200 + Math.floor(this.rng(`${plot.id}:due`) * 2400) : undefined;
-        plot.asking = { line: e.line, focus: e.focus && plot.cast[e.focus], by: e.from && plot.cast[e.from], choices: e.choices, at: s.clock, scene: e.at, ...(due ? { due } : {}) };
+        const by = e.from ? plot.cast[e.from] : e.brought ? this.messenger(plot, e.focus && plot.cast[e.focus]) : undefined;
+        const due = !e.at && s.clock - plot.began < 1800 ? plot.began + 1200 + Math.floor(this.rng(`${plot.id}:due`) * 2400) : !e.at && e.brought && by ? s.clock : undefined;
+        plot.asking = { line: e.line, focus: e.focus && plot.cast[e.focus], by, choices: e.choices, at: s.clock, scene: e.at, ...(due ? { due } : {}) };
         if (!due) this.askPlot(plot);
       }
       else if (e.type === "gather") this.appoint(plot, e);

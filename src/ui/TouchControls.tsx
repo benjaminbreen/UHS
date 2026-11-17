@@ -68,6 +68,8 @@ export function TouchControls({
   onPrimaryDown,
   onPrimaryUp,
   onAlternate,
+  working,
+  onWork,
   tend,
   onTend,
 }: {
@@ -79,6 +81,8 @@ export function TouchControls({
   onPrimaryDown: () => void;
   onPrimaryUp: () => void;
   onAlternate: () => void;
+  working: boolean;
+  onWork: () => void;
   /** What the baby needs, when the hands can give it. */
   tend?: string;
   onTend: () => void;
@@ -257,8 +261,11 @@ export function TouchControls({
             className="touch-primary"
             data-kind={primary.kind}
             aria-label={primary.label}
+            aria-pressed={primary.kind === "work" ? working : undefined}
             {...(primary.kind === "shoot"
               ? aimHold(() => scene()?.touchBow(true), () => scene()?.touchBow(false))
+              : primary.kind === "work"
+              ? { onClick: () => { buzz(); onWork(); } }
               : hold(onPrimaryDown, onPrimaryUp))}
           >
             <Primary size={24} />

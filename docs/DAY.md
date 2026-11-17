@@ -14,7 +14,8 @@ Entry files: `src/content/economy/recipes.ts`, `src/content/economy/processes.ts
 The player wakes at the trade's hour (a recipe's `rises`: bakers at three,
 farmers at dawn). Today lists the day's work, its occasions (festivals,
 errands, commissions) and the plot. Each entry is somewhere. The player walks
-there, a card may come up, and holding F does the step. At night the ledger
+there, a card may come up, and holding F does the step (on a phone, one tap of Work works on
+until tapped again). At night the ledger
 tells the day back and offers **Another day**, **Let the years pass** or
 **To the end**.
 
