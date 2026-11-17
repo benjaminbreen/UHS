@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { interiorProfiles, resolveRoom } from "../src/content/interiors";
 import { interiorProfileFor } from "../src/content/interiors/select";
-import { buildInterior } from "../src/world/interior";
+import { buildInterior, ROOM_ORIGIN } from "../src/world/interior";
+import { resolveSetting } from "../src/content/geography/resolve";
 import { planRoom, roomMask, type Shape } from "../src/render/interiors/room";
 import { LETTERS, SPRITES } from "../src/render/interiors/sprites";
 import { ALTARS } from "../src/render/interiors/altars";
 import { planBuilding } from "../src/render/interiors/building";
 import type { Place } from "../src/core/types";
+import { towerStyles } from "../src/content/towers";
+import { towerPlan } from "../src/world/tower";
+import { resolveCharacterContext } from "../src/content/characters/resolve";
 import { createSettingSession } from "../src/runtime/session";
 import { religiousProfile } from "../src/content/settlements/religious";
 import type { WorldSetting } from "../src/content/geography/types";
@@ -537,4 +541,77 @@ it("lays out hospital wards with repeated beds, a clear aisle and regional beddi
     if(site.use==="worksite.sri-lankan-infirmary") expect(pr.rooms?.filter(r=>r.role==="sleep")).toHaveLength(4);
     else expect(pr.program).toBe("ward");
   }
+});
+
+describe("towers", () => {
+  const towerIn = (prompt: string, frames: string, seed = "plan") => {
+    const resolved = resolveSetting(prompt, "tower");
+    if (!("setting" in resolved)) throw Error(prompt);
+    const s = resolved.setting;
+    return { s, tower: towerPlan({ id: `t-${seed}`, sprite: `${frames}0-urban-tall` } as Place, seed, s)! };
+  };
+  it("lets each style's tower to firms of its place and year, staffed by work found there", () => {
+    for (const [prompt, style] of [["Typist in New York 1930", towerStyles[0]], ["Clerk in Moscow 1955", towerStyles[1]], ["Clerk in Tokyo 1988", towerStyles[2]]] as const) {
+      const { s, tower } = towerIn(prompt, style.frames);
+      const n = tower.floors.length, here = new Set(resolveCharacterContext(s).livelihoods.map((l) => l.id));
+      expect(n, style.id).toBeGreaterThanOrEqual(style.storeys[0]);
+      expect(n, style.id).toBeLessThanOrEqual(style.storeys[1]);
+      expect(tower.floors.map((f) => f.n)).toEqual([...Array(n).keys()]);
+      expect(tower.floors[0].kind).toBe("lobby");
+      expect(tower.floors[n - 1].kind, style.id).toMatch(/suite|lounge/);
+      for (const f of tower.floors) {
+        expect(style.rooms[f.kind] ?? style.lobby, `${style.id} ${f.kind}`).toBe(f.profile);
+        expect(f.staff.length, f.name).toBeGreaterThan(0);
+        for (const w of f.staff) expect(here.has(w.work), `${prompt}: ${w.work}`).toBe(true);
+        expect(f.name, f.tenant).not.toMatch(/[{}[\]]/);
+        if (f.n) expect(f.profile?.door).toBe("lift");
+      }
+    }
+  });
+  it("lets an office building and a block of flats by the storeys drawn, with stairs where there was no lift", () => {
+    const plan = (prompt: string, sprite: string, o: Partial<Place>) => {
+      const resolved = resolveSetting(prompt, "tower");
+      if (!("setting" in resolved)) throw Error(prompt);
+      return towerPlan({ id: "b", sprite, ...o } as Place, "plan", resolved.setting)!;
+    };
+    const office = plan("Clerk in Chicago 1965", "mod-office-0-urban-tall", { name: "Offices" });
+    expect(office.floors).toHaveLength(7);
+    expect(office.floors[0].kind).toBe("lobby");
+    expect(office.style.lift.name).toBe("Lift");
+    const flats = plan("Clerk in New York 1920", "mod-walkup-0-urban-tall", { name: "Tenement", access: "household" });
+    expect(flats.floors[0].kind).toBe("home");
+    expect(flats.floors[0].profile).toBeUndefined();
+    expect(flats.floors.slice(1).every((f) => f.kind === "flat")).toBe(true);
+    expect(flats.style.lift.name).toBe("Stairs");
+    expect(plan("Clerk in Moscow 1975", "mod-panelka-0-urban-tall", { name: "Flats", access: "household" }).style.lift.name).toBe("Lift");
+    expect(plan("Clerk in Chicago 1965", "mod-brick-0-urban-row", { name: "Offices" })).toBeUndefined();
+  });
+  it("keeps firms to their era and economy", () => {
+    const kinds = (prompt: string, frames: string) =>
+      new Set(["a", "b", "c", "d"].flatMap((seed) => towerIn(prompt, frames, seed).tower.floors.map((f) => f.tenant)));
+    const chicago = kinds("Clerk in Chicago 1925", "mod-deco-");
+    expect(chicago.has("software") || chicago.has("call-centre") || chicago.has("ministry")).toBe(false);
+    expect(chicago.has("law") || chicago.has("insurance")).toBe(true);
+    const moscow = kinds("Clerk in Moscow 1955", "mod-vysotka-");
+    expect(moscow.has("law") || moscow.has("brokers") || moscow.has("advertising")).toBe(false);
+    expect(moscow.has("ministry")).toBe(true);
+    expect(kinds("Clerk in Bangkok 2010", "mod-deco-").has("software")).toBe(true);
+  });
+  it.runIf(!!process.env.FULL)("lets a New York tower by its floors, and its lift carries the player up", () => {
+    const resolved = resolveSetting("Typist in New York 1930", "tower");
+    if (!("setting" in resolved)) throw Error("Fixture setting");
+    const e = createSettingSession(resolved.setting, "tower");
+    const place = e.world.places.find((p) => p.sprite?.startsWith("mod-deco-"));
+    expect(place, "a deco tower downtown").toBeTruthy();
+    const tower = e.towerOf(place!.id)!;
+    expect(tower.floors.length).toBeGreaterThanOrEqual(22);
+    expect(new Set(tower.floors.map((f) => f.name)).size).toBeGreaterThan(4);
+    const lobby = e.interiorOf(place!.id)!;
+    const door = lobby.props.find((q) => q.kind === "elevator")!;
+    e.state.player.pos = { x: door.x + ROOM_ORIGIN, y: door.y + ROOM_ORIGIN + 1, space: place!.id };
+    expect(e.towerLift()?.n).toBe(0);
+    e.act({ actionId: "lift", expectedRevision: e.state.revision, command: { type: "interact", action: "lift", target: "12" } });
+    expect(e.state.player.pos.space).toBe(`${place!.id}@12`);
+    expect(e.towerLift()?.n).toBe(12);
+  });
 });

@@ -19,6 +19,7 @@ deterministic pipeline in `src/content/characters/`. It makes no model calls.
 | `profiles/names.ts`, `name-kits.ts`, `profiles/*-names.ts` | Naming samples; `name-kits.ts` only assembles regional modules |
 | `profiles/communities.ts` | Community scenarios and appearance kits (`AppearanceKit`), including adornment pools |
 | `livelihoods.ts`, `livelihoods.generated.ts` | Livelihoods and their activity and supply kits |
+| `outlaws.ts`, `city-work.ts` | Authored livelihoods beside the ported tables: robbers; office staff and bar staff. `city-work.ts` also holds `jobGrades`, the ladder an office ran on (Junior Broker, Senior Partner, Section Chief), drawn by age in `graded` (`generate.ts`); the livelihood id stays the same, the label and rank change |
 | `resolve.ts` | Selection by year, geographic box, culture and community (`matchesCharacterScope`) |
 | `validate.ts` | Reference and evidence checks on load. Equal-specificity conflicts fail rather than depending on file order |
 | `generate.ts` | Independent seeded streams per world seed, actor and purpose, so changing a role never rerolls a face or a name |

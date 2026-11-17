@@ -308,6 +308,8 @@ export type Actor = {
   /** Met below the street: who they are generated from, where they keep to,
    * when they next act, and whether they have spoken to the player. */
   underground?: { person: string; home: Point; next: number; goal?: Point; met?: boolean };
+  /** At work on this tower storey, there while the player is. */
+  staff?: string;
   /** Set while a need has pulled this actor off their daily routine. Absent is
    * the normal case, so a resident is drawn from the schedule from the first
    * frame, before the simulation has ticked at all. */
@@ -576,6 +578,8 @@ export type PlayerCommand =
         | "ship"
         | "enter"
         | "exit"
+        /** Ride a tower's lift to the storey named by the target. */
+        | "lift"
         | "open"
         | "close"
         | "drink"

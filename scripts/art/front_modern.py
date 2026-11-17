@@ -27,6 +27,8 @@ from art import front_materials as fm  # noqa: E402
 from art.front_materials import C, RAMPS, ramp, h2  # noqa: E402
 from art import front_openings as op  # noqa: E402
 from art import front_iberia as ib  # noqa: E402
+from art import front_props as pr  # noqa: E402
+from art import front_solid as so  # noqa: E402
 from art.front_kit import outline, consolidate, FONT  # noqa: E402
 
 ALU = ramp(245, 0.01, lift=0.04)
@@ -105,7 +107,7 @@ NEON = {'red': ((255, 214, 196), (255, 70, 60)), 'pink': ((255, 220, 240), (255,
         'amber': ((255, 240, 200), (255, 168, 40)), 'white': ((255, 255, 240), (200, 220, 255))}
 LAMP = {'warm': ((255, 206, 120), (255, 228, 164)), 'cool': ((176, 222, 214), (214, 244, 232)),
         'shop': ((255, 236, 196), (255, 250, 228)), 'tv': ((120, 170, 255), (190, 220, 255)),
-        'dim': ((214, 140, 70), (240, 176, 100))}
+        'dim': ((214, 140, 70), (240, 176, 100)), 'office': ((255, 214, 128), (255, 234, 170))}
 FRAMES = 16
 
 DIGITS = {'0': '111101101101111', '1': '010110010010111', '2': '110001010100111', '3': '110001010001110',
@@ -691,7 +693,7 @@ class Block:
         self.W = cells * 16
         n = s.get('floors') or self.FLOORS.get(self.form, 2)
         self.floors = n
-        self.hs = [s.get('h0', self.H0)] + [s.get('h1', self.H1)] * (n - 1)
+        self.hs = self.heights(n)
         self.para = s.get('para', self.PARA)
         self.left, self.right = self.margins()
         self.x0 = 16 + self.left
@@ -706,6 +708,7 @@ class Block:
         self.plan()
 
     all_shop = False
+    EDGE = False        # True: outline in a deep shade of each colour it touches
     stacks = ()
     # A flat roof shows half the footprint's depth: room to walk on.
     DEPTH = dict(row=48, tall=48, wide=56, hall=56, shop=40, cottage=30, hut=28, stall=24)
@@ -730,6 +733,9 @@ class Block:
 
     def plan(self):
         pass
+
+    def heights(self, n):
+        return [self.s.get('h0', self.H0)] + [self.s.get('h1', self.H1)] * (n - 1)
 
     def floor(self, i):
         """(top, bottom) of storey i, the ground floor 0."""
@@ -786,7 +792,7 @@ class Block:
                     if not q[3] or sum(q[:3]) > 3 * 172:
                         continue
                     t = hi if yy - y > h * 0.55 else lo
-                    a = 0.62 if kind != 'dim' else 0.45
+                    a = 0.45 if kind == 'dim' else 0.88 if kind == 'office' else 0.62
                     g[xx, yy] = tuple(int(q[i] * (1 - a) + t[i] * a) for i in range(3)) + (255,)
         for x, y, w, h, *mode in self.signs:
             if mode and not lit(mode[0], k):
@@ -956,7 +962,9 @@ class Block:
                 r, i = index[q]
                 c.p(x, y, r[min(7, i + 1)])
 
-        for x, y, w, h, *_ in self.panes:
+        for x, y, w, h, kind, _ in self.panes:
+            if w < 4 or kind == 'office':
+                continue
             sill = y + h + 5
             if sill > self.base - 50:
                 continue
@@ -975,7 +983,7 @@ class Block:
         self.paint()
         c = self.c
         self.weather()
-        outline(c)
+        outline(c, self.EDGE)
         consolidate(c)
         for y in range(c.h):
             for x in range(c.w):
@@ -1781,6 +1789,1413 @@ class Office(Block):
             text(tmp, 0, 0, word, (1, 1, 1, 255), None, 2)
             self.neon['roofname'] = dict(mode='steady', colour='red', px={
                 (lx + xx, ly + yy) for yy in range(tmp.h) for xx in range(tmp.w) if tmp.px[xx, yy][3]})
+        self.foot(GRANITE)
+
+
+# ------------------------------------------------------------------ the grand doorway
+
+def sconce(b, x, y, r=None, wall=None):
+    """A bracket lamp: a tall opal glass in a brass cage. It lights the wall
+    round it by day, and glows at night."""
+    c, r = b.c, r or BRASS
+    if wall:
+        for yy in range(y - 1, y + 14):
+            for xx in range(x - 1, x + 7):
+                q = c.g(xx, yy)
+                if q in wall and wall.index(q) > 0 and (xx in (x - 1, x + 6)) + (yy in (y - 1, y + 13)) < 2:
+                    c.p(xx, yy, wall[wall.index(q) - 1])
+    c.rect(x + 1, y, 4, 13, r[3])
+    c.rect(x, y + 1, 6, 11, r[3])
+    c.rect(x + 1, y + 1, 4, 11, CREAM[0])
+    c.rect(x + 1, y + 2, 2, 9, WHITE[0])
+    c.rect(x + 4, y + 2, 1, 10, CREAM[1])
+    c.rect(x + 2, y + 13, 2, 2, r[5])
+    b.signs.append((x + 1, y + 1, 4, 11))
+    for yy in (y + 3, y + 6, y + 9):
+        b.lamp(x + 2, yy)
+
+
+def metal_door(b, cx, by, w, h, r=None, leaves=1):
+    """A metal-framed glass door: a thick frame, dark glass with the street's
+    light across its corner, a push bar and a kick plate."""
+    c, r = b.c, r or BRASS
+    x, y = cx - w // 2, by - h
+    c.rect(x, y, w, h, r[2])
+    c.rect(x, y, w, 1, r[0])
+    c.rect(x, y + 1, 1, h - 1, r[1])
+    c.rect(x + w - 1, y + 1, 1, h - 1, r[4])
+    lw = (w - 4 - (leaves - 1) * 2) // leaves
+    for k in range(leaves):
+        gx, gy, gh = x + 2 + k * (lw + 2) + 1, y + 4, h - 13
+        gw = lw - 2
+        c.rect(gx - 1, gy - 1, gw + 2, gh + 2, r[5])
+        c.rect(gx, gy, gw, gh, ROOM[6])
+        c.rect(gx, gy, gw, gh * 2 // 5, ROOM[5])
+        for i in range(min(gw - 1, gh // 2)):
+            c.p(gx + gw - 1 - i, gy + 1 + i, SKYGLASS[2])
+            c.p(gx + gw - 1 - i, gy + 2 + i, SKYGLASS[3])
+            if i < gw - 5:
+                c.p(gx + gw - 1 - i, gy + 6 + i, SKYGLASS[5])
+        c.rect(gx - 1, gy + gh * 13 // 20, gw + 2, 2, r[1])
+        c.rect(gx - 1, gy + gh * 13 // 20 + 2, gw + 2, 1, r[5])
+        b.panes.append((gx, gy, gw, gh, 'shop', True))
+    c.rect(x + 1, by - 6, w - 2, 5, r[3])
+    c.rect(x + 1, by - 6, w - 2, 1, r[1])
+    c.rect(x, by - 1, w, 1, r[5])
+
+
+def splay(c, x0, y0, x1, y1, d, left, head, right):
+    """A reveal d deep round an opening, mitred at the head: the side that
+    faces the light, the soffit in shadow, the side that faces away."""
+    for i in range(d):
+        c.rect(x0 + i, y0 + i, 1, y1 - y0 - i, left)
+        c.rect(x1 - 1 - i, y0 + i, 1, y1 - y0 - i, right)
+        c.rect(x0 + i + 1, y0 + i, x1 - x0 - 2 * i - 2, 1, head)
+
+
+def glass_block(b, x, y, w, h):
+    c = b.c
+    for yy in range(h):
+        for xx in range(w):
+            i, j = xx % 5, yy % 6
+            c.p(x + xx, y + yy, WHITE[1] if i == 0 or j == 0 else SKYGLASS[2] if i + j < 5 else SKYGLASS[3])
+    c.rect(x, y, w, 2, SKYGLASS[4])
+    b.panes.append((x + 1, y + 1, w - 1, h - 1, 'shop', True))
+
+
+PORTALS = ('deco', 'arch', 'slab')
+
+
+def portal(b, cx, base, top, stone, style='deco', door=None, pw=56, bulbs=False):
+    """A doorway taller than the storey it stands in, for any building grand
+    enough to want one. `top` is the head of its frame; the door is the
+    block's own door_size, raised on two steps.
+
+    deco: 1920-1940. Proud jambs, a lintel block whose top is seen from above
+          with a sunk panel, a reveal stepping in twice, glass block over brass.
+    arch: 1880-1915. Channelled jambs, a round arch with a keystone under a
+          cornice, a fanlight over bronze doors.
+    slab: 1950-1975. A lobby glazed to full height in a thin metal frame, a
+          canopy slab seen from above, two glass leaves."""
+    c = b.c
+    door = door or (ALU if style == 'slab' else BRASS)
+    dw, dh = b.door_size
+    px, J = cx - pw // 2, (pw - dw) // 2 - 7
+    sill = base - 8
+    X0, X1 = px + J, px + pw - J
+
+    def feet():
+        for jx in (px - 2, X1 - 1):
+            c.rect(jx, base - 8, J + 3, 8, stone[1])
+            c.rect(jx, base - 8, J + 3, 1, stone[0])
+            c.rect(jx + J + 2, base - 7, 1, 7, stone[3])
+            c.rect(jx, base - 1, J + 3, 1, stone[3])
+        for k, y in enumerate((sill, sill + 4)):
+            c.rect(X0 + 2 - 2 * k, y, X1 - X0 - 4 + 4 * k, 4, stone[1])
+            c.rect(X0 + 2 - 2 * k, y, X1 - X0 - 4 + 4 * k, 1, stone[0])
+            c.rect(X0 + 2 - 2 * k, y + 3, X1 - X0 - 4 + 4 * k, 1, stone[4])
+
+    def jambs(t):
+        c.rect(px, t, J, base - t, stone[1])
+        c.rect(px, t, 1, base - t, stone[0])
+        c.rect(px + J - 1, t, 1, base - t, stone[2])
+        c.rect(X1, t, J, base - t, stone[1])
+        c.rect(X1, t, 1, base - t, stone[0])
+        c.rect(px + pw - 2, t, 1, base - t, stone[2])
+        c.rect(px + pw - 1, t, 1, base - t, stone[4])
+        st = base - b.hs[0] + 10
+        c.rect(px + pw, st, 3, base - 8 - st, stone[3])
+
+    if style == 'slab':
+        fr = door
+        c.rect(px, top, pw, base - top, stone[2])
+        c.rect(px, top, pw, 1, stone[4])
+        gx, gw = px + 4, pw - 8
+        c.rect(gx - 1, top + 3, gw + 2, base - top - 3, fr[4])
+        cy = base - dh - 8
+        for k, x in enumerate(range(gx, gx + gw, gw // 4 + 1)):
+            w_ = min(gw // 4, gx + gw - x)
+            c.rect(x, top + 4, w_, cy - top - 4, SKYGLASS[3])
+            c.rect(x, top + 4, w_, (cy - top) // 2, SKYGLASS[2])
+            for i in range(min(w_ - 2, 8)):
+                c.p(x + w_ - 2 - i, top + 6 + i, SKYGLASS[1])
+            b.panes.append((x, top + 4, w_, cy - top - 4, 'shop', True))
+        side = (gw - dw - 2) // 2
+        for x in (gx, gx + gw - side):
+            c.rect(x, cy + 8, side, base - cy - 12, ROOM[6])
+            c.rect(x, cy + 8, side, (base - cy) // 3, ROOM[5])
+            for i in range(side - 2):
+                c.p(x + side - 2 - i, cy + 10 + i, SKYGLASS[3])
+            c.rect(x, base - 4, side, 4, stone[3])
+            b.panes.append((x, cy + 8, side, base - cy - 12, 'shop', True))
+        metal_door(b, cx, base, dw, dh, fr, leaves=2)
+        # the canopy: its top from above, a thin fascia, its shadow on the glass
+        c.rect(px - 6, cy - 9, pw + 12, 9, stone[1])
+        c.rect(px - 6, cy - 9, pw + 12, 1, stone[0])
+        c.rect(px - 6, cy - 9, 1, 9, stone[0])
+        c.rect(px - 3, cy - 6, pw + 6, 1, stone[2])
+        c.rect(px - 6, cy, pw + 12, 3, fr[2])
+        c.rect(px - 6, cy, pw + 12, 1, fr[0])
+        c.rect(px - 6, cy + 3, pw + 12, 1, fr[5])
+        op.cast(c, gx - 1, cy + 4, gw + 2, 4, 0.6)
+        if bulbs:
+            b.bulb_row([(xx, cy + 2) for xx in range(px - 3, px + pw + 4, 4)], 'portal')
+        return
+
+    c.rect(px, top, pw, base - top, stone[4])
+    if style == 'arch':
+        ow = X1 - X0
+        R = ow // 2
+        sy = top + 14 + R
+        jambs(top)
+        for yy in range(top + 6, base - 8, 7):
+            for x in (px, X1):
+                c.rect(x + 1, yy, J - 2, 1, stone[3])
+        c.rect(X0, top, ow, sy - top, stone[2])
+        inner = R - 5
+        for yy in range(sy - R, sy + 1):
+            for xx in range(X0, X1):
+                dx, dy = xx + 0.5 - cx, sy - yy
+                rr = math.hypot(dx, dy)
+                if rr <= inner:
+                    lit_ = dx < -inner * 0.3
+                    c.p(xx, yy, stone[5] if rr > inner - 3 and not lit_ and dy > inner * 0.55 else
+                        stone[4] if rr > inner - 3 and dx < 0 else stone[3] if rr > inner - 3 else ROOM[6])
+                elif rr <= R:
+                    a = math.degrees(math.atan2(dy, dx))
+                    c.p(xx, yy, stone[3] if a % 22.5 < 3 else stone[0] if rr > R - 1.2 else stone[1])
+                elif rr <= R + 1.2:
+                    c.p(xx, yy, stone[4])
+        c.rect(cx - 3, sy - R - 3, 7, 10, stone[0])
+        c.rect(cx - 3, sy - R - 3, 1, 10, stone[1])
+        c.rect(cx + 3, sy - R - 3, 1, 10, stone[3])
+        c.rect(cx - 2, sy - R + 7, 5, 1, stone[4])
+        splay(c, X0, sy, X1, sill, 3, stone[4], stone[4], stone[3])
+        c.rect(X0 + 3, sy, ow - 6, sill - sy, ROOM[6])
+        # the fanlight: glass in bronze bars
+        fr_ = inner - 3
+        for yy in range(sy - fr_, sy):
+            for xx in range(cx - fr_, cx + fr_ + 1):
+                dx, dy = xx + 0.5 - cx, sy - yy
+                rr = math.hypot(dx, dy)
+                if rr <= fr_:
+                    a = math.degrees(math.atan2(dy, dx))
+                    bar = rr > fr_ - 1 or (rr > 3 and min(abs(a - k) for k in (45, 90, 135)) * rr < 40) or rr < 3
+                    c.p(xx, yy, door[4] if bar else SKYGLASS[2] if dy > fr_ * 0.5 else SKYGLASS[3])
+        b.panes.append((cx - fr_, sy - fr_, 2 * fr_, fr_, 'shop', True))
+        c.rect(X0 + 3, sy - 1, ow - 6, 2, door[3])
+        metal_door(b, cx, sill, ow - 6, sill - sy - 1, door, leaves=2)
+        # cornice
+        c.rect(px - 3, top - 6, pw + 6, 6, stone[0])
+        c.rect(px - 3, top - 2, pw + 6, 1, stone[1])
+        c.rect(px - 3, top, pw + 6, 5, stone[1])
+        c.rect(px - 3, top + 5, pw + 6, 1, stone[3])
+        for xx in range(px - 1, px + pw + 2, 4):
+            c.rect(xx, top + 6, 2, 2, stone[1])
+        c.rect(px - 3, top + 8, pw + 6, 1, stone[5])
+        c.rect(px + pw + 2, top - 5, 1, 13, stone[3])
+        feet()
+        return
+
+    jambs(top)
+    Y0 = top + 12
+    c.rect(X0, Y0, X1 - X0, sill - Y0, stone[4])
+    splay(c, X0, Y0, X1, sill, 4, stone[3], stone[4], stone[2])
+    splay(c, X0 + 4, Y0 + 4, X1 - 4, sill, 3, stone[4], stone[5], stone[3])
+    op.cast(c, X0, Y0, X1 - X0, 3, 0.72)
+    ix = cx - dw // 2
+    glass_block(b, ix, Y0 + 7, dw, sill - dh - 2 - Y0 - 7)
+    c.rect(ix, sill - dh - 2, dw, 2, door[4])
+    metal_door(b, cx, sill, dw, dh, door)
+    # the lintel: its top from above with a sunk panel, its face, its shadow
+    c.rect(px - 3, top - 9, pw + 6, 9, stone[0])
+    c.rect(px - 3, top - 1, pw + 6, 1, stone[1])
+    c.rect(px + 4, top - 7, pw - 8, 4, stone[2])
+    c.rect(px + 4, top - 7, pw - 8, 1, stone[4])
+    c.rect(px + 4, top - 6, 1, 3, stone[3])
+    c.rect(px - 3, top, pw + 6, 11, stone[1])
+    c.rect(px - 3, top + 6, pw + 6, 1, stone[2])
+    c.rect(px - 3, top + 7, pw + 6, 1, stone[0])
+    c.rect(px - 3, top + 10, pw + 6, 1, stone[3])
+    c.rect(px - 3, top + 11, pw + 6, 1, stone[5])
+    c.rect(px + pw + 2, top - 8, 1, 19, stone[3])
+    if bulbs:
+        b.bulb_row([(xx, Y0 + 2) for xx in range(X0 + 6, X1 - 4, 4)], 'portal')
+    feet()
+
+
+# ------------------------------------------------------------------ the setback skyscraper
+
+GLAZE = {'blue': ramp(240, 0.095, lift=-0.03), 'green': ramp(172, 0.075, lift=-0.03), 'sky': ramp(226, 0.09, lift=0.02),
+         'bronze': ramp(58, 0.06, lift=-0.1)}
+GILT = ramp(82, 0.125, lift=0.0)
+
+DECK = ramp(5, 0.022, lift=-0.01)           # the paving of a terrace, seen from above
+SANDSTONE = ramp(80, 0.085, lift=0.04)     # buff Indiana limestone and tan brick
+SALMON = ramp(38, 0.12, lift=0.03)          # salmon face brick
+BRASS = ramp(88, 0.15, lift=0.02)
+TERRACOTTA = ramp(45, 0.09, lift=-0.08)
+SKYGLASS = ramp(228, 0.1, lift=0.03)        # a tower's windows, the sky in them
+
+
+class Skyscraper(Block):
+    """The setback skyscraper of New York and Chicago, 1923-1955: a stone base
+    round a portal taller than the base, a shaft of piers running unbroken past
+    dark spandrels, terraces where the 1916 zoning law stepped it back, and a
+    crown: stepped, stacked steel arches, or the water tank on a plain roof.
+
+    The other towers build on its parts. Everything sits on one bay grid, so
+    piers line up tier over tier. A tier that steps in stands on the roof of
+    the one below, drawn from above (`deck`): parapet all round, paving,
+    the upper tier's shadow. Lights are registered as they are drawn: panes
+    (some floors lit, some dark), sconces, crown lights, the beacon."""
+    FLOORS = dict(tall=14, row=10, wide=12, hall=11)
+    H0, H1, PARA, HEAD = 70, 38, 4, 150
+    BAY, PIER, RIM, CAP = 16, 6, 5, 14
+    EDGE = True
+
+    def __init__(self, s, form='row', cells=12, seed=0):
+        # The tall form reaches the look's full height; the rest stand at half
+        # to four fifths of it, so a downtown is not a wall of the tallest.
+        u = h2(seed, 17, 91)
+        k = 0.7 + 0.3 * u if form == 'tall' else 0.5 + 0.3 * u
+        super().__init__(dict(s, floors=s.get('floors') or max(6, round(self.FLOORS['tall'] * k)), wear=s.get('wear', 0.2)), form, cells, seed)
+        self.decks = []
+
+    def plan(self):
+        self.door_x = self.x0 + self.W // 2
+        self.door_size = (26, 46)
+
+    @property
+    def mid(self):
+        return (self.x0 + self.x1) // 2
+
+    def bays(self):
+        """Windows across the full width, and the width of a corner pier.
+        Every tier keeps the same corner pier, so piers line up tier over tier."""
+        n = (self.W - 12 + self.PIER) // self.BAY
+        return n, (self.W - n * self.BAY + self.PIER) // 2
+
+    def massing(self):
+        """Bays lost from each side at storey i: the shaft, a middle tier or two,
+        and a top tier of one or two storeys, each a bay narrower each side."""
+        n, nb = self.floors, self.bays()[0]
+        u, v = h2(self.seed, 3, 5), h2(self.seed, 7, 2)
+        steps = [1 + (n >= 10 and u > 0.5), 2 + round(v * 2) if n >= 9 else 2]
+        if n >= 12 and nb >= 11:
+            steps.append(2 + round(u * 2))
+        steps = steps[:max(1, (nb - 3) // 2)]
+        out, at = [0] * n, n
+        for k, count in enumerate(steps):
+            for i in range(max(2, at - count), at):
+                out[i] = len(steps) - k
+            at -= count
+        return out
+
+    def half(self, i):
+        """Half the width of storey i's face."""
+        m = self.massing()[i]
+        return self.W // 2 - self.BAY * m - (self.bays()[1] - self.PIER if m else 0)
+
+    def tiers(self):
+        """(first storey, last storey, half-width) of each tier above the street floor."""
+        out, i, n = [], 1, self.floors
+        while i < n:
+            hw, j = self.half(i), i
+            while j + 1 < n and self.half(j + 1) == hw:
+                j += 1
+            out.append((i, j, hw))
+            i = j + 1
+        return out
+
+    def heights(self, n):
+        """A tier that steps in stands CAP higher: room for the terrace in
+        front of its foot and the parapet of the tier below."""
+        hs = super().heights(n)
+        for f, _, _ in self.tiers()[1:]:
+            hs[f] += self.CAP
+        return hs
+
+    def beacon(self, x, y):
+        """An aviation light: a dark red lens by day; the game blinks it at night."""
+        c = self.c
+        c.rect(x - 1, y - 1, 3, 3, CRIMSON[3])
+        c.p(x - 1, y - 1, CRIMSON[1])
+        c.p(x + 1, y + 1, CRIMSON[5])
+        self.overlays.append(['beacon', x - 3, y - 3])
+
+    # ------------------------------------------------ parts every tower uses
+
+    def coping(self, a, z, y, r, h=5):
+        """The ledge along a tier's top: a lit upper face, its front, a dark
+        lip, and its shadow on the wall below."""
+        c = self.c
+        c.rect(a - 1, y, z - a + 2, h, r[1])
+        c.rect(a - 1, y, z - a + 2, 1, r[0])
+        c.rect(a - 1, y + h - 2, z - a + 2, 1, r[2])
+        c.rect(a - 1, y + h - 1, z - a + 2, 1, r[5])
+        op.cast(c, a, y + h, z - a, 2, 0.72)
+
+    def deck(self, a, z, back, foot, r, tier=None):
+        """The roof of a tier from above: paving inside a coping that runs
+        unbroken round all four sides, the far parapet's inner face towards
+        us, its shadow and the left parapet's on the paving, and the near
+        parapet closing it CAP rows below `foot`, the row the next tier stands
+        on. `tier` is the x-range of the volume rising out of it."""
+        c, P = self.c, self.RIM
+        cop, DECK = self.s.get('cope', r), self.s.get('deck', globals()['DECK'])
+        front = foot + self.CAP
+        near = front - P - 3
+        for yy in range(back + P, near):
+            row = (yy - back) // 9
+            for xx in range(a + P, z - P):
+                u = xx - a + (row % 2) * 5
+                joint = ((yy - back) % 9 == 0 and h2(u // 10, row, 5) < 0.6) or (u % 10 == 0 and h2(u // 10, row, 9) < 0.45)
+                c.p(xx, yy, DECK[4] if joint else DECK[3])
+        fx, fw, sy = a + P, z - a - 2 * P, back + P + 4
+        c.rect(fx, back + P, fw, 4, cop[2])
+        c.rect(fx, back + P + 3, fw, 1, cop[4])
+        c.rect(fx, sy, fw, 3, DECK[5])
+        c.rect(fx, sy + 3, fw, 2, DECK[4])
+        c.rect(fx, sy, 3, near - sy, DECK[5])
+        c.rect(fx + 3, sy + 3, 1, near - sy - 3, DECK[4])
+        if tier:
+            l, rr = tier
+            for k in range(min(8, z - P - rr)):
+                c.rect(rr + k, sy, 1, foot + 3 - sy, DECK[5] if k < 5 else DECK[4])
+            c.rect(l + 3, foot + 1, min(rr - l + 5, z - P - l - 3), 2, DECK[5])
+        ring = near + P - back
+        c.rect(a, back, z - a, P, cop[1])
+        c.rect(a, back, P, ring, cop[1])
+        c.rect(z - P, back, P, ring, cop[1])
+        c.rect(a, near, z - a, P, cop[1])
+        c.rect(a, back, z - a, 1, cop[0])
+        c.rect(a, back, 1, ring, cop[0])
+        c.rect(a + P, near, z - a - 2 * P, 1, cop[0])
+        c.rect(z - P, back + P, 1, near - back - P, cop[0])
+        c.rect(a + P - 1, back + P, 1, near - back - P, cop[2])
+        c.rect(z - 1, back + 1, 1, ring - 1, cop[2])
+        c.rect(a, near + P, z - a, front - near - P - 1, cop[2])
+        c.rect(a, front - 1, z - a, 1, cop[5])
+        op.cast(c, a, front, z - a, 3, 0.7)
+
+    def edges(self, a, z, t, b, r):
+        """A tier's corners: lit on the left, turning away into shade on the right."""
+        c = self.c
+        c.rect(a, t, 2, b - t, r[1])
+        c.rect(a, t, 1, b - t, r[0])
+        c.rect(z - 2, t, 2, b - t, r[3])
+        c.rect(z - 1, t, 1, b - t, r[5])
+
+    def pane(self, x, y, w, h, g, lit_odds=0.42, kind='office'):
+        """Glass set deep in the wall: the head's shadow, the sky in the upper
+        half, the street in the lower, the pier's shadow down its left."""
+        c = self.c
+        c.rect(x, y, w, h, g[3])
+        c.rect(x, y, w, h * 9 // 20, g[2])
+        c.rect(x, y + 1, w, 1, g[1])
+        c.rect(x, y, w, 1, g[5])
+        c.rect(x, y + 1, 1, h - 1, g[4])
+        self.panes.append((x, y + 1, w, h - 1, kind, h2(x, y, self.seed) < lit_odds))
+
+    def stone_base(self, a, z, t, base, stone, pw=28, ph=14):
+        """Ashlar in big quiet blocks under a belt course, on a plinth."""
+        c = self.c
+        c.rect(a, t, z - a, base - t, stone[2])
+        for k, yy in enumerate(range(t + 7, base - 7, ph)):
+            c.rect(a, yy, z - a, 1, stone[4])
+            c.rect(a, yy + 1, z - a, 1, stone[1])
+            for xx in range(a + (k % 2) * (pw // 2), z, pw):
+                c.rect(xx, yy + 1, 1, min(ph, base - 7 - yy) - 1, stone[4])
+        c.rect(z - 3, t, 3, base - t, stone[3])
+        c.rect(a, t, 1, base - t, stone[1])
+        # belt course
+        c.rect(a - 1, t - 2, z - a + 2, 2, stone[0])
+        c.rect(a - 1, t, z - a + 2, 5, stone[1])
+        c.rect(a - 1, t + 5, z - a + 2, 1, stone[3])
+        c.rect(a - 1, t + 6, z - a + 2, 1, stone[5])
+        op.cast(c, a, t + 7, z - a, 3, 0.74)
+        # plinth
+        c.rect(a - 1, base - 7, z - a + 2, 7, stone[3])
+        c.rect(a - 1, base - 7, z - a + 2, 1, stone[1])
+        c.rect(a - 1, base - 1, z - a + 2, 1, stone[5])
+        for xx in range(a + pw // 2, z, pw):
+            c.rect(xx, base - 6, 1, 5, stone[4])
+
+    # ------------------------------------------------ the deco tower
+
+    def storey(self, i, a, z, t, b):
+        """Piers running unbroken past glass, a sill, and a dark spandrel with a
+        chevron; whole floors are lit or dark together at night."""
+        c, s = self.c, self.s
+        wall, sp, acc, g = s['wall'], s['spandrel'], s['accent'], SKYGLASS
+        B, P = self.BAY, self.PIER
+        n = (z - a - 2 * P + P) // B
+        wc = (z - a - n * B + P) // 2
+        ww, gh = B - P, round((b - t) * 0.5)
+        odds = 0.08 + 0.75 * h2(i, 41, self.seed) ** 2
+        c.rect(a, t, z - a, b - t, wall[2])
+        for k in range(n):
+            x = a + wc + k * B
+            self.pane(x, t, ww, gh, g, odds)
+            c.rect(x, t + gh, ww, 1, wall[1])
+            c.rect(x, t + gh + 1, ww, 1, wall[3])
+            sy, sh = t + gh + 2, b - t - gh - 5
+            c.rect(x, sy, ww, sh, sp[5])
+            c.rect(x, sy, ww, 1, sp[6])
+            c.rect(x, sy, 1, sh, sp[6])
+            for j in range(1, ww - 1):
+                c.p(x + j, sy + sh // 2 + 2 - min(j - 1, ww - 2 - j), acc[3])
+            c.rect(x, b - 3, ww, 1, wall[1])
+            c.rect(x, b - 1, ww, 1, wall[3])
+            if k < n - 1:
+                px = x + ww
+                c.rect(px, t, P, b - t, wall[1])
+                c.rect(px, t, 1, b - t, wall[0])
+                c.rect(px + P - 2, t, 1, b - t, wall[2])
+                c.rect(px + P - 1, t, 1, b - t, wall[4])
+        c.rect(a, t, wc, b - t, wall[1])
+        c.rect(a, t, 1, b - t, wall[0])
+        c.rect(a + wc - 1, t, 1, b - t, wall[3])
+        c.rect(z - wc, t, wc, b - t, wall[2])
+        c.rect(z - wc, t, 1, b - t, wall[1])
+        c.rect(z - 2, t, 1, b - t, wall[3])
+        c.rect(z - 1, t, 1, b - t, wall[4])
+
+    def body(self, r):
+        """Every storey above the street, tier by tier. Each tier that steps in
+        rises out of the roof of the one below."""
+        c, mid, tiers = self.c, self.mid, self.tiers()
+        for k, (f, l, hw) in enumerate(tiers):
+            a, z = mid - hw, mid + hw
+            foot = self.floor(f)[1] - (self.CAP if k else 0)
+            if k:
+                lo = tiers[k - 1][2]
+                depth = min(round(2.4 * (lo - hw)) + 10, foot - self.floor(l)[0] - 6, 64)
+                self.deck(mid - lo, mid + lo, foot - depth, foot, r, (a, z))
+                self.decks.append((lo, hw, foot - depth, foot + self.CAP - self.RIM - 2))
+            for i in range(f, l + 1):
+                t, b = self.floor(i)
+                self.storey(i, a, z, t, min(b, foot))
+            if k:
+                c.rect(a - 1, foot - depth + self.RIM, 1, depth - self.RIM + 1, r[5])
+                c.rect(z, foot - depth + self.RIM, 1, depth - self.RIM + 1, r[5])
+                c.rect(a, foot, z - a, 1, r[5])
+        f, l, hw = tiers[-1]
+        return self.floor(l)[0], hw
+
+    def roof(self, top, hw, r, depth=14):
+        """The top tier's own roof, from above, for the crown to stand on.
+        Returns its far edge; things stand on row top - CAP."""
+        self.deck(self.mid - hw, self.mid + hw, top - self.CAP - depth, top - self.CAP, r)
+        return top - self.CAP - depth
+
+    def crown_step(self, top, hw):
+        """A stepped crown: each step a block with its top seen from above, a
+        row of slit lights, and a low shoulder either side; then a mast."""
+        c, mid, g, wall = self.c, self.mid, SKYGLASS, self.skin
+        self.coping(mid - hw, mid + hw, top - 6, wall, 6)
+        y, w_ = top - 6, hw - 5
+        for k in range(3):
+            if w_ < 16:
+                break
+            h_ = 17 - k
+            sh = h_ // 2
+            c.rect(mid - w_ - 4, y - sh, 2 * w_ + 8, sh, wall[2])
+            c.rect(mid - w_ - 4, y - sh - 2, 2 * w_ + 8, 2, wall[0])
+            c.rect(mid - w_ - 4, y - sh, 1, sh, wall[1])
+            c.rect(mid + w_ + 3, y - sh - 1, 1, sh + 1, wall[4])
+            c.rect(mid - w_, y - h_, 2 * w_, h_, wall[2])
+            c.rect(mid - w_, y - h_, 2, h_, wall[1])
+            c.rect(mid + w_ - 2, y - h_, 2, h_, wall[3])
+            c.rect(mid + w_ - 1, y - h_, 1, h_, wall[4])
+            c.rect(mid - w_ - 1, y - h_ - 1, 1, h_ - sh - 1, wall[6])
+            c.rect(mid + w_, y - h_ - 1, 1, h_ - sh - 1, wall[6])
+            n = (2 * w_ - 8) // 8
+            x = mid - (n * 8 - 5) // 2
+            for j in range(n):
+                c.rect(x + j * 8, y - h_ + 5, 3, h_ - 10, g[6])
+                c.rect(x + j * 8, y - h_ + 5, 3, 1, g[7])
+                c.rect(x + j * 8, y - 5, 3, 1, wall[1])
+                self.panes.append((x + j * 8, y - h_ + 6, 3, h_ - 11, 'warm', (j + k) % 3 != 1))
+            y -= h_
+            c.rect(mid - w_ - 1, y - 4, 2 * w_ + 2, 4, wall[1])
+            c.rect(mid - w_ - 1, y - 4, 2 * w_ + 2, 2, wall[0])
+            c.rect(mid - w_ - 1, y, 2 * w_ + 2, 1, wall[4])
+            y -= 2
+            w_ -= 9
+        w_ += 3
+        c.rect(mid - w_, y - 8, 2 * w_, 8, wall[2])
+        c.rect(mid - w_, y - 8, 2, 8, wall[1])
+        c.rect(mid + w_ - 1, y - 8, 1, 8, wall[4])
+        c.rect(mid - w_ - 1, y - 16, 2 * w_ + 2, 8, wall[1])
+        c.rect(mid - w_ - 1, y - 16, 2 * w_ + 2, 1, wall[0])
+        c.rect(mid - w_ - 1, y - 16, 1, 8, wall[0])
+        c.rect(mid - w_ + 2, y - 14, 2 * w_ - 4, 4, DECK[3])
+        c.rect(mid - w_ + 2, y - 14, 2 * w_ - 4, 1, DECK[5])
+        c.rect(mid - w_ - 1, y - 8, 2 * w_ + 2, 1, wall[4])
+        self.mast(mid, y - 11, 30)
+
+    def mast(self, x, y, h):
+        c = self.c
+        c.rect(x - 2, y - 3, 5, 3, STEEL[4])
+        c.rect(x - 2, y - 3, 5, 1, STEEL[2])
+        c.rect(x - 1, y - h, 3, h - 3, STEEL[2])
+        c.rect(x - 1, y - h, 1, h - 3, STEEL[0])
+        c.rect(x + 1, y - h, 1, h - 3, STEEL[5])
+        self.beacon(x, y - h - 2)
+
+    def steel_crown(self, y, R):
+        """Stacked steel arches, each narrower and standing behind the last,
+        slit lights following each arch, then a needle in three lengths."""
+        c, mid, g = self.c, self.mid, SKYGLASS
+
+        def tone(nx):
+            return 3 if nx < -0.86 else 1 if nx < -0.6 else 0 if nx < -0.38 else 1 if nx < -0.05 else 2 if nx < 0.38 else 3 if nx < 0.74 else 4
+
+        for k, f in enumerate((1.0, 0.74, 0.5, 0.3)):
+            r_ = round(R * f)
+            if r_ < 6:
+                break
+            ry = round(r_ * (0.78 + 0.12 * k))
+
+            def rise(i):
+                return round(ry * math.sqrt(max(0.0, 1 - (i / (r_ + 0.5)) ** 2))) + 4
+
+            if k:
+                c.rect(mid - r_ - 1, y - 1, 2 * r_ + 5, 2, STEEL[5])
+            for i in range(-r_, r_ + 1):
+                h_, t_ = rise(i), tone(i / r_)
+                c.rect(mid + i, y - h_, 1, h_, STEEL[t_])
+                c.p(mid + i, y - h_, STEEL[0] if i < r_ * 0.3 else STEEL[2])
+                if h_ > 8 and abs(i) < r_ - 1:
+                    c.p(mid + i, y - h_ + 3, STEEL[t_ + 2])
+            c.rect(mid - r_, y - 4, 2 * r_ + 1, 1, STEEL[4])
+            c.rect(mid - r_, y - 1, 2 * r_ + 1, 1, STEEL[6])
+            for row in range(2 if r_ >= 22 else 1):
+                for i in range(-r_ + 5, r_ - 4, 4):
+                    wy = y - rise(i) + 6 + row * 7
+                    if wy + 3 < y - 6 and (row == 0 or abs(i) < r_ * 0.62):
+                        c.rect(mid + i, wy, 2, 3, g[5] if i < 0 else g[6])
+                        self.panes.append((mid + i, wy, 2, 3, 'warm', (i // 4 + k + row) % 3 != 0))
+            y -= round(ry * 0.62) + 4
+        y -= round(R * 0.12)
+        for w_, h_ in ((7, 6), (5, 10), (3, 12), (1, 12)):
+            c.rect(mid - w_ // 2, y - h_, w_, h_, STEEL[2])
+            c.rect(mid - w_ // 2, y - h_, max(1, w_ // 3), h_, STEEL[0])
+            if w_ > 1:
+                c.rect(mid + w_ // 2, y - h_, 1, h_, STEEL[5])
+                c.rect(mid - w_ // 2, y - 1, w_, 1, STEEL[4])
+            y -= h_
+        self.beacon(mid, y - 2)
+
+    def penthouse(self, x, by, wall, cop, w=26, h=21):
+        """The stair bulkhead on a plain roof: brick, a steel door, its roof from above."""
+        c = self.c
+        c.rect(x + w, by - h + 5, 6, h - 5, DECK[5])
+        c.rect(x + 3, by, w + 3, 2, DECK[5])
+        c.rect(x, by - h, w, h, wall[2])
+        for yy in range(by - h + 3, by, 4):
+            c.rect(x, yy, w, 1, wall[3])
+        c.rect(x, by - h, 1, h, wall[1])
+        c.rect(x + w - 2, by - h, 2, h, wall[4])
+        c.rect(x - 1, by - h - 7, w + 2, 7, cop[1])
+        c.rect(x - 1, by - h - 7, w + 2, 1, cop[0])
+        c.rect(x - 1, by - h - 7, 1, 7, cop[0])
+        c.rect(x - 1, by - h - 1, w + 2, 1, cop[3])
+        c.rect(x - 1, by - h, w + 2, 1, wall[5])
+        c.rect(x + 7, by - 13, 10, 13, wall[4])
+        c.rect(x + 8, by - 12, 8, 12, ROOM[6])
+        c.rect(x + 8, by - 12, 8, 1, ROOM[7])
+        c.p(x + 14, by - 6, GOLD[2])
+
+    # ------------------------------------------------ crowns, for any tower
+
+    def crown(self, top, hw):
+        getattr(self, 'crown_' + self.s['crown'])(top, hw)
+
+    @property
+    def skin(self):
+        s = self.s
+        return s.get('wall') or s.get('panel') or s.get('granite') or s['mullion']
+
+    def crown_spire(self, top, hw):
+        self.roof(top, hw, self.skin, 12)
+        self.steel_crown(top - self.CAP - 1, hw - 9)
+
+    def crown_tank(self, top, hw):
+        """A plain roof: the stair bulkhead and a water tank."""
+        wall, mid = self.skin, self.mid
+        self.roof(top, hw, wall, 46)
+        fy = top - self.CAP - 4
+        self.penthouse(mid - hw + 13, fy - 2, wall, self.s.get('cope', wall))
+        pr.water_tank(self.c, mid + hw - 28, fy - 9, SHAKE, ground=self.s.get('deck', DECK))
+
+    def crown_helipad(self, top, hw):
+        """A roof slab from above with a landing circle, an H, and a light at
+        each corner."""
+        c, mid = self.c, self.mid
+        back = self.roof(top, hw, self.skin, 34)
+        cy = (back + top - self.CAP) // 2 + 4
+        rx, ry = min(hw - 14, 44), 11
+        for yy in range(cy - ry, cy + ry + 1):
+            for xx in range(mid - rx, mid + rx + 1):
+                e = ((xx - mid) / rx) ** 2 + ((yy - cy) / ry) ** 2
+                if e <= 1:
+                    c.p(xx, yy, DOVE[5] if e > 0.9 else SAFFRON[2] if 0.62 < e < 0.8 else DOVE[3] if e > 0.5 or yy > cy + 2 else DOVE[2])
+        for xx in (mid - 6, mid + 4):
+            c.rect(xx, cy - 5, 2, 10, WHITE[0])
+        c.rect(mid - 4, cy - 1, 8, 2, WHITE[0])
+        for bx in (mid - hw + 9, mid + hw - 10):
+            for by_ in (back + 13, top - self.CAP - 5):
+                c.rect(bx - 2, by_ - 1, 5, 4, DOVE[4])
+                self.beacon(bx, by_)
+
+    def crown_tiers(self, top, hw):
+        """Glass roofs stepping in, each seen from above inside a pale rim
+        with its front below it, then a mast."""
+        c, mid, pan = self.c, self.mid, self.skin
+        g = GLAZE.get(self.s.get('glass'), SKYGLASS)
+        self.coping(mid - hw, mid + hw, top - 5, pan, 5)
+        y, w_ = top - 5, hw - 3
+        for k in range(4):
+            if w_ < 14:
+                break
+            F, D = 8, 14
+            c.rect(mid - w_, y - F, 2 * w_, F, g[4])
+            c.rect(mid - w_, y - F, 2 * w_, 3, g[3])
+            c.rect(mid - w_, y - F, 2, F, pan[1])
+            c.rect(mid + w_ - 2, y - F, 2, F, pan[3])
+            c.rect(mid - w_, y - 1, 2 * w_, 1, pan[4])
+            ty = y - F - D
+            c.rect(mid - w_, ty, 2 * w_, D, pan[1])
+            c.rect(mid - w_, ty, 2 * w_, 1, pan[0])
+            c.rect(mid - w_, ty, 1, D, pan[0])
+            c.rect(mid + w_ - 1, ty + 1, 1, D - 1, pan[2])
+            c.rect(mid - w_, y - F - 1, 2 * w_, 1, pan[3])
+            c.rect(mid - w_ + 3, ty + 3, 2 * w_ - 6, D - 6, g[2])
+            c.rect(mid - w_ + 3, ty + 3, 2 * w_ - 6, 2, g[4])
+            c.rect(mid - w_ + 3, ty + 3, 2, D - 6, g[4])
+            y, w_ = y - F - 5, w_ - 11
+        self.mast(mid, y - 6, 52)
+
+    def crown_dome(self, top, hw):
+        """A gilt dome on a glazed drum, standing on the roof."""
+        c, mid, pan = self.c, self.mid, self.skin
+        back = self.roof(top, hw, pan, 30)
+        by = (back + top - self.CAP) // 2 + 6
+        R = round(hw * 0.72)
+        c.rect(mid - R + 4, by + round(R * so.K) - 2, 2 * R, 3, self.s.get('deck', DECK)[5])
+
+        def lights(x, y, z, q):
+            a = (math.atan2(y, x) / (2 * math.pi) * 20) % 1
+            return pan[q] if a < 0.22 or z < 2 or z > 10 else ROOM[6] if z > 4 else ROOM[5]
+
+        so.lathe(c, mid, by, [(0, R), (12, R)], pan, surface=lights)
+        self.panes.append((mid - R + 2, by - 12, 2 * R - 4, 10, 'warm', True))
+        so.lathe(c, mid, by, [(0, R + 2), (3, R + 2)], pan, z0=12)
+        so.dome(c, mid, by, R - 2, GILT, z0=15, courses=0)
+        ty = by - 15 - (R - 2)
+        c.rect(mid, ty - 12, 1, 12, GILT[4])
+        c.rect(mid - 1, ty - 2, 3, 2, GILT[2])
+        self.beacon(mid, ty - 14)
+
+    def crown_plant(self, top, hw):
+        """A flat roof with the plant room behind louvres; a cleaners' cradle
+        on its davits or an aerial mast if the spec asks."""
+        c, mid, s, r = self.c, self.mid, self.s, self.skin
+        back = self.roof(top, hw, r, 30)
+        fy = top - self.CAP - 5
+        pw = hw
+        px = mid - pw // 2
+        c.rect(px + pw, fy - 16, 6, 16, self.s.get('deck', DECK)[5])
+        unit(c, px, fy, pw, 18, 8, r, louvres=True)
+        if s.get('cradle'):
+            dx = mid + hw - 34
+            c.rect(dx, fy - 8, 24, 6, STEEL[2])
+            c.rect(dx, fy - 8, 24, 1, STEEL[0])
+            c.rect(dx, fy - 2, 24, 1, STEEL[5])
+            for lx in (dx + 3, dx + 20):
+                c.rect(lx, fy - 8, 1, top - fy + 8, STEEL[3])
+        if s.get('mast'):
+            mx = px + pw - 8
+            c.rect(mx, fy - 62, 2, 44, STEEL[2])
+            c.rect(mx, fy - 62, 1, 44, STEEL[0])
+            for k in range(5):
+                c.rect(mx - 3, fy - 56 + k * 8, 8, 1, STEEL[3])
+            self.beacon(mx + 1, fy - 64)
+
+    def crown_billboard(self, top, hw):
+        """A roof with a hoarding on a steel frame; the game letters and lights it."""
+        c, mid = self.c, self.mid
+        self.roof(top, hw, self.skin, 22)
+        fy = top - self.CAP - 6
+        bw = round(hw * 1.5)
+        bx = mid - bw // 2
+        c.rect(bx + 6, fy - 1, bw, 3, self.s.get('deck', DECK)[5])
+        for px in (bx + 5, mid, bx + bw - 6):
+            c.rect(px, fy - 12, 2, 12, STEEL[5])
+            c.rect(px, fy - 12, 1, 12, STEEL[3])
+        for x_, y_ in line(bx + 7, fy - 11, mid - 1, fy - 2) + line(mid + 2, fy - 2, bx + bw - 7, fy - 11):
+            c.p(x_, y_, STEEL[4])
+        c.rect(bx - 2, fy - 44, bw + 4, 33, INK[2])
+        c.rect(bx - 2, fy - 44, bw + 4, 1, INK[0])
+        c.rect(bx - 2, fy - 44, 1, 33, INK[1])
+        c.rect(bx + bw + 1, fy - 43, 1, 32, INK[4])
+        c.rect(bx, fy - 42, bw, 29, INK[4])
+        self.sign(bx + 1, fy - 41, bw - 2, 27, 'neon')
+
+    def crown_lattice(self, top, hw):
+        """A red and white lattice mast with its dishes, on a plain roof."""
+        c, mid = self.c, self.mid
+        self.roof(top, hw, self.skin, 24)
+        mx, my = mid + hw // 3, top - self.CAP - 8
+        c.rect(mx - 5, my - 1, 16, 3, self.s.get('deck', DECK)[5])
+        for j in range(66):
+            w_ = round(6 * (1 - j / 74)) + 1
+            r = CRIMSON if (j // 9) % 2 == 0 else WHITE
+            c.p(mx - w_, my - j, r[2])
+            c.p(mx + w_, my - j, r[4])
+            if j % 5 == 0:
+                c.rect(mx - w_, my - j, 2 * w_ + 1, 1, r[3])
+            elif w_ > 1:
+                c.p(mx - w_ + 1 + (j % 5) * (2 * w_ - 1) // 5, my - j, r[3])
+        for k, dy in enumerate((24, 40)):
+            ex = mx + (8 if k == 0 else -12)
+            so.sphere(c, ex + 2, my - dy + 3, 0, 3, WHITE)
+        c.rect(mx, my - 78, 1, 12, STEEL[2])
+        self.beacon(mx, my - 80)
+        self.beacon(mx - 5, my - 34)
+
+    def crown_pyramid(self, top, hw):
+        """A glass pyramid over an atrium: the face towards us, and the
+        slivers of its two sides running back to the far corners."""
+        c, mid, r = self.c, self.mid, self.skin
+        g = self.glass
+        self.roof(top, hw, r, 26)
+        fy, pw, bd, H = top - self.CAP - 5, hw - 13, 14, round(hw * 0.5)
+        ax, ay = mid, fy - bd // 2 - H
+        c.rect(mid - pw + 6, fy, 2 * pw, 2, self.s.get('deck', DECK)[5])
+
+        def tri(p0, p1, p2, paint):
+            xs, ys = (p0[0], p1[0], p2[0]), (p0[1], p1[1], p2[1])
+            for yy in range(min(ys), max(ys) + 1):
+                for xx in range(min(xs), max(xs) + 1):
+                    d = [(b_[0] - a_[0]) * (yy - a_[1]) - (b_[1] - a_[1]) * (xx - a_[0])
+                         for a_, b_ in ((p0, p1), (p1, p2), (p2, p0))]
+                    if all(v >= 0 for v in d) or all(v <= 0 for v in d):
+                        c.p(xx, yy, paint(xx, yy))
+
+        tri((mid - pw, fy), (mid - pw, fy - bd), (ax, ay), lambda x, y: g[1])
+        tri((mid + pw, fy), (mid + pw, fy - bd), (ax, ay), lambda x, y: g[5])
+        tri((mid - pw, fy), (mid + pw, fy), (ax, ay),
+            lambda x, y: ALU[1] if (fy - y) % 8 == 0 or (x - mid) % 12 == 0 else g[2] if x < mid else g[3])
+        for x_, y_ in line(mid - pw, fy, ax, ay):
+            c.p(x_, y_, ALU[0])
+        for x_, y_ in line(mid + pw, fy, ax, ay):
+            c.p(x_, y_, ALU[3])
+        c.rect(mid - pw, fy, 2 * pw + 1, 1, r[3])
+        self.panes.append((mid - pw // 2, fy - H // 2, pw, H // 2, 'cool', True))
+        c.rect(ax, ay - 10, 1, 10, STEEL[2])
+        self.beacon(ax, ay - 12)
+
+    @property
+    def glass(self):
+        return GLAZE.get(self.s.get('glass'), SKYGLASS)
+
+    def glints(self, a, z, top, bottom):
+        """A few streaks of sky across the glass: short, steep, sparse."""
+        c, g = self.c, self.glass
+        n = max(2, (bottom - top) // 90)
+        for k in range(n):
+            x = a + 10 + round(h2(k, 3, self.seed) * (z - a - 44))
+            y = top + 40 + round((k + 0.8 * h2(k, 8, self.seed)) * (bottom - top - 50) / n)
+            for j in range(26 + round(h2(k, 5, self.seed) * 16)):
+                for dx in (0, 1, 2):
+                    if c.g(x + dx + j // 2, y - j) in (g[2], g[3]):
+                        c.p(x + dx + j // 2, y - j, g[1])
+
+    # ------------------------------------------------ street floors, for any tower
+
+    def ground_mall(self, t, base):
+        """Shops in a wall of glass, the door under a glass canopy."""
+        c, s = self.c, self.s
+        x0, W, mid = self.x0, self.W, self.mid
+        g, pan = self.glass, self.skin
+        c.rect(x0, t, W, base - t, pan[3])
+        op.cast(c, x0, t, W, 4, 0.72)
+        shopfront(self, x0 + 4, t + 14, W - 8, base - t - 14, ALU, pan, 'racks', transom=0, pitch=24)
+        for sx_ in (x0 + 6, mid + 34):
+            if mid - 34 - x0 - 6 >= 24:
+                self.sign(sx_, t + 4, min(40, mid - 34 - x0 - 6), 8, 'box')
+        dw, dh = self.door_size
+        c.rect(mid - dw // 2 - 3, base - dh - 4, dw + 6, dh + 4, ALU[2])
+        c.rect(mid - dw // 2 - 3, base - dh - 4, 1, dh + 4, ALU[0])
+        c.rect(mid + dw // 2 + 2, base - dh - 4, 1, dh + 4, ALU[4])
+        metal_door(self, mid, base, dw, dh, ALU, leaves=2)
+        cy, cw = base - dh - 5, dw + 30
+        for j in range(8):
+            w_ = cw - 2 * (7 - j)
+            c.rect(mid - w_ // 2, cy - 8 + j, w_, 1, g[1] if j < 6 else g[2])
+        c.rect(mid - cw // 2 + 7, cy - 8, cw - 14, 1, g[0])
+        c.rect(mid - cw // 2, cy, cw, 2, ALU[1])
+        c.rect(mid - cw // 2, cy, cw, 1, ALU[0])
+        c.rect(mid - cw // 2, cy + 2, cw, 1, ALU[5])
+        op.cast(c, mid - cw // 2 + 2, cy + 3, cw - 2, 3, 0.66)
+
+    def ground_lobby(self, t, base):
+        """An office lobby: stone panels either side of a glazed doorway."""
+        c, s = self.c, self.s
+        x0, x1, W, mid = self.x0, self.x1, self.W, self.mid
+        g, stone = self.glass, s.get('stone', GRANITE)
+        c.rect(x0, t, W, base - t, stone[2])
+        for xx in range(x0 + 24, x1 - 4, 24):
+            c.rect(xx, t, 1, base - t - 6, stone[4])
+        c.rect(x0, t + (base - t) // 2, W, 1, stone[4])
+        c.rect(x0, base - 6, W, 6, stone[3])
+        c.rect(x0, base - 6, W, 1, stone[1])
+        op.cast(c, x0, t, W, 4, 0.72)
+        for wx in (x0 + 10, x1 - 10 - 30):
+            if abs(wx + 15 - mid) > 52:
+                c.rect(wx - 1, t + 13, 32, 30, stone[4])
+                c.rect(wx, t + 14, 30, 28, g[3])
+                c.rect(wx, t + 14, 30, 10, g[2])
+                c.rect(wx, t + 14, 30, 1, g[6])
+                c.rect(wx + 15, t + 14, 1, 28, ALU[2])
+                self.panes.append((wx, t + 15, 30, 27, 'shop', True))
+        portal(self, mid, base, t + 6, stone, 'slab', pw=60)
+        for sx in (mid - 30 - 16, mid + 30 + 10):
+            sconce(self, sx, base - 40, ALU, stone)
+
+    def paint(self):
+        s, base, mid = self.s, self.base, self.mid
+        stone = s['stone']
+        top, hw = self.body(s['wall'])
+        self.crown(top, hw)
+        t0 = self.floor(0)[0]
+        self.stone_base(self.x0, self.x1, t0, base, stone)
+        portal(self, mid, base, t0 - 22, stone, s.get('portal', 'deco'), s.get('door'), 56 if self.W >= 144 else 50, s.get('bulbs', False))
+        for sx in (mid - 28 - 20, mid + 28 + 14):
+            sconce(self, sx, base - 42, wall=stone)
+        self.foot(stone)
+
+
+def star_px(cx, cy, r):
+    """A five-pointed star, point up, as a set of pixels."""
+    pts = [(cx + (r if k % 2 == 0 else r * 0.42) * math.cos(-math.pi / 2 + k * math.pi / 5),
+            cy + (r if k % 2 == 0 else r * 0.42) * math.sin(-math.pi / 2 + k * math.pi / 5)) for k in range(10)]
+    out = set()
+    for yy in range(cy - r - 1, cy + r + 2):
+        for xx in range(cx - r - 1, cx + r + 2):
+            inside = False
+            for k in range(10):
+                (ax, ay), (bx, by) = pts[k], pts[k - 1]
+                if (ay > yy) != (by > yy) and xx < ax + (yy - ay) * (bx - ax) / (by - ay):
+                    inside = not inside
+            if inside:
+                out.add((xx, yy))
+    return out
+
+
+def ruby_star(c, cx, cy, r, gilt):
+    """The Kremlin's ruby star: red glass in a gilt rim, lit from within."""
+    px = star_px(cx, cy, r)
+    for x, y in px:
+        rim = any((x + dx, y + dy) not in px for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+        c.p(x, y, gilt[1] if rim and (x < cx or y < cy) else gilt[3] if rim else
+            CRIMSON[1] if x < cx else CRIMSON[2] if x == cx else CRIMSON[3])
+    return px
+
+
+def obelisk(c, x, by, h, r, tip=GOLD):
+    """A corner pinnacle: a plinth, a tapering shaft, a gilt ball; returns its tip."""
+    c.rect(x - 3, by - 4, 7, 4, r[2])
+    c.rect(x - 3, by - 4, 7, 1, r[0])
+    c.rect(x + 3, by - 4, 1, 4, r[4])
+    for j in range(h):
+        y = by - 5 - j
+        if j < h * 0.6:
+            c.p(x - 1, y, r[1])
+            c.p(x, y, r[2])
+            c.p(x + 1, y, r[3])
+        else:
+            c.p(x, y, r[1] if j % 2 else r[2])
+    top = by - 5 - h
+    c.rect(x - 1, top - 2, 2, 2, tip[1])
+    c.p(x, top - 1, tip[3])
+    return top - 3
+
+
+class Vysotka(Skyscraper):
+    """One of Moscow's high-rises of 1947-1957: a red granite base round a
+    tall arched portal, cream ceramic tiers that step in behind balustraded
+    terraces with an obelisk at each corner, a lantern and drum, and a gilt
+    spire carrying a ruby star in a wreath, floodlit at night."""
+    FLOORS = dict(tall=15, row=11, wide=12, hall=12)
+    H0, H1, PARA, HEAD = 74, 38, 4, 200
+
+    def plan(self):
+        self.door_x = self.x0 + self.W // 2
+        self.door_size = (26, 50)
+
+    def half(self, i):
+        f = i / self.floors
+        k = 1 if f < 0.4 else 0.7 if f < 0.66 else 0.48 if f < 0.87 else 0.32
+        return int(self.W * k) // 2
+
+    def casement(self, cx, t, wall, trim):
+        c = self.c
+        x, y, w, h = cx - 4, t + 6, 8, 20
+        raised(c, x - 2, y - 2, w + 4, h + 3, trim, 1)
+        op.glass(c, x, y, w, h)
+        c.rect(x + w // 2, y, 1, h, WHITE[2])
+        c.rect(x, y + h // 3, w, 1, WHITE[2])
+        self.panes.append((x, y, w, h, 'warm', h2(x, y, self.seed) < 0.48))
+        raised(c, x - 2, y + h + 1, w + 4, 2, trim, 1)
+        op.cast(c, x - 2, y + h + 3, w + 4, 1, 0.7)
+        c.rect(x, y + h + 5, w, 4, wall[3])
+        c.rect(x, y + h + 5, w, 1, wall[4])
+        c.rect(x, y + h + 8, w, 1, wall[1])
+
+    def cornice(self, a, z, y, trim):
+        c = self.c
+        c.rect(a - 3, y, z - a + 6, 3, trim[1])
+        c.rect(a - 3, y, z - a + 6, 1, trim[0])
+        for xx in range(a - 2, z + 2, 3):
+            c.p(xx, y + 3, trim[2])
+        c.rect(a - 3, y + 4, z - a + 6, 1, trim[3])
+        op.cast(c, a, y + 5, z - a, 2, 0.72)
+
+    def balustrade(self, a, z, y, trim):
+        c = self.c
+        c.rect(a, y - 9, z - a, 2, trim[1])
+        c.rect(a, y - 9, z - a, 1, trim[0])
+        for xx in range(a + 1, z - 1, 3):
+            c.rect(xx, y - 7, 2, 6, trim[2])
+            c.p(xx + 1, y - 7, trim[3])
+            c.p(xx, y - 4, trim[1])
+        c.rect(a, y - 1, z - a, 1, trim[3])
+
+    def storey(self, i, a, z, t, b):
+        """Cream ceramic with tall casements; the narrow upper tiers have
+        pilaster strips between them, the wide wings quoins at the corners."""
+        c, s = self.c, self.s
+        wall, trim = s['wall'], s['trim']
+        c.rect(a, t, z - a, b - t, wall[2])
+        nb = max(2, round((z - a) / 16))
+        for k in range(nb):
+            self.casement(a + 4 + round((z - a - 8) * (k + 0.5) / nb), t, wall, trim)
+        if z - a < self.half(1) * 2:
+            for k in range(1, nb):
+                px = a + 2 + round((z - a - 8) * k / nb)
+                c.rect(px, t, 4, b - t, wall[1])
+                c.rect(px, t, 1, b - t, wall[0])
+                c.rect(px + 3, t, 1, b - t, wall[3])
+        else:
+            c.rect(a, b - 2, z - a, 2, wall[1])
+            c.rect(a, b - 2, z - a, 1, wall[0])
+            for qx, q in ((a + 2, 1), (z - 7, 2)):
+                for yy in range(t, b, 6):
+                    c.rect(qx, yy, 5, 5, trim[q])
+                    c.rect(qx, yy + 5, 5, 1, trim[3])
+
+    def paint(self):
+        c, s = self.c, self.s
+        x0, x1, W, base, mid = self.x0, self.x1, self.W, self.base, self.mid
+        wall, trim, plinth, gilt = s['wall'], s['trim'], s['plinth'], s['spire']
+        top, hw = self.body(trim)
+        # balustrades along each terrace's edge, an obelisk at each corner
+        tips = []
+        for lo, hi, back, front in self.decks:
+            for a, z in ((mid - lo + 4, mid - hi - 1), (mid + hi + 1, mid + lo - 4)):
+                self.balustrade(a, z, front, trim)
+            for ox in (mid - lo + 4, mid + lo - 5):
+                tips.append((ox, obelisk(c, ox, front, 14 if lo == self.half(1) else 11, trim, gilt)))
+        ry = self.roof(top, hw, trim, 12)
+        self.balustrade(mid - hw + 4, mid + hw - 4, top, trim)
+        for ox in (mid - hw + 4, mid + hw - 5):
+            self.beacon(ox, obelisk(c, ox, top, 16, trim, gilt))
+        for ox, ty in tips[-2:]:
+            self.beacon(ox, ty)
+        top = ry + 9
+        # the lantern: three tall arches under a cornice
+        bw = max(12, round(hw * 0.7))
+        ly = top - 9
+        c.rect(mid - bw, ly - 30, 2 * bw, 30, wall[2])
+        c.rect(mid - bw, ly - 30, 1, 30, wall[0])
+        c.rect(mid + bw - 1, ly - 30, 1, 30, wall[4])
+        for k in (-1, 0, 1):
+            ax = mid + k * round(bw * 0.62)
+            for yy in range(ly - 24, ly - 4):
+                hw_ = 3 if yy > ly - 22 else 2 if yy > ly - 24 else 1
+                c.rect(ax - hw_, yy, 2 * hw_ + 1, 1, ROOM[5] if yy < ly - 14 else ROOM[4])
+            self.panes.append((ax - 3, ly - 22, 7, 18, 'warm', True))
+            raised(c, ax - 4, ly - 4, 9, 2, trim, 1)
+        self.cornice(mid - bw, mid + bw, ly - 33, trim)
+        # the drum, ribbed, round in plan
+        dw = max(7, round(bw * 0.62))
+        dy = ly - 33
+        for xx in range(mid - dw, mid + dw):
+            u = (xx - mid + 0.5) / dw
+            q = 1 if u < -0.55 else 2 if u < 0.15 else 3 if u < 0.7 else 4
+            c.rect(xx, dy - 16, 1, 16, wall[q])
+            if (xx - mid) % 4 == 0 and abs(u) < 0.8:
+                c.rect(xx, dy - 13, 1, 9, ROOM[5])
+        c.rect(mid - dw - 1, dy - 18, 2 * dw + 2, 2, trim[1])
+        c.rect(mid - dw - 1, dy - 18, 2 * dw + 2, 1, trim[0])
+        # the spire, gilt and ribbed, with a small lantern a third of the way up
+        sy, H = dy - 18, s.get('spire_h', 62)
+        for j in range(H):
+            w_ = round((dw * 0.55) * (1 - j / H) ** 1.2) + 1
+            if H * 0.28 < j < H * 0.28 + 6:
+                w_ += 2
+            y = sy - j
+            for xx in range(mid - w_, mid + w_ + 1):
+                d = xx - mid
+                col = gilt[0] if d == 0 else gilt[1] if d == -w_ else gilt[2] if d < 0 else gilt[4] if d == w_ else gilt[3]
+                if j % 9 == 4:
+                    col = gilt[1] if d <= 0 else gilt[3]
+                elif j % 9 == 5 and d:
+                    col = gilt[4]
+                c.p(xx, y, col)
+        # the wreath, and the star in it
+        cy = sy - H - 8
+        for a in range(-7, 8):
+            for side in (-1, 1):
+                ang = math.pi / 2 + side * (0.4 + a * 0.13)
+                c.p(mid + round(9 * math.cos(ang)), cy + round(8 * math.sin(ang)), gilt[1] if a % 2 else gilt[3])
+        c.rect(mid - 1, cy + 6, 3, 3, gilt[2])
+        px = ruby_star(c, mid, cy, 7, gilt)
+        self.neon['star'] = dict(mode='steady', colour='red', px=px)
+        # floodlights wash the spire and the lantern after dark
+        self.signs.append((mid - dw - 1, cy - 10, 2 * dw + 2, sy - cy + 10))
+        # the base: red granite, a gilt star over the portal, shops either side
+        t0 = self.floor(0)[0]
+        fm.rustication(c, x0, t0, W, base - t0, plinth, 8, 26)
+        raised(c, x0 - 2, t0 - 2, W + 4, 4, plinth, 1)
+        pw = 56
+        px0 = mid - pw // 2
+        portal(self, mid, base, t0 - 10, plinth, 'arch', gilt, pw)
+        fy = t0 - 40
+        c.rect(mid - 9, fy - 2, 18, 18, wall[3])
+        c.rect(mid - 9, fy - 2, 18, 1, wall[4])
+        for a in range(-6, 7):
+            for side in (-1, 1):
+                ang = math.pi / 2 + side * (0.5 + a * 0.13)
+                c.p(mid + round(7 * math.cos(ang)), fy + 7 + round(6 * math.sin(ang)), gilt[1] if a % 2 else gilt[2])
+        ruby_star(c, mid, fy + 6, 4, gilt)
+        for a, z in ((x0 + 4, px0 - 8), (px0 + pw + 8, x1 - 4)):
+            if z - a < 24:
+                continue
+            shopfront(self, a, base - 46, z - a, 44, BRONZE, plinth, 'shelves', transom=8, pitch=14)
+            self.sign(a + 1, t0 + 6, z - a - 2, 12, 'neon')
+        self.edges(x0, x1, t0, base, plinth)
+        self.foot(plinth)
+
+
+class Bubble(Skyscraper):
+    """A Tokyo office tower of the bubble years, 1985-1995: a polished granite
+    base round a glass lobby, ribbon windows of tinted glass between granite
+    spandrels, a rounded corner, a column of lit tenant signs up one side,
+    and on the roof a glass gable, a billboard or a red-and-white mast with
+    the aviation lights blinking."""
+    FLOORS = dict(tall=16, row=12, wide=13, hall=13)
+    H0, H1, PARA, HEAD = 76, 34, 4, 130
+
+    def half(self, i):
+        return self.W // 2
+
+    def paint(self):
+        c, s, sd = self.c, self.s, self.seed
+        x0, x1, W, base = self.x0, self.x1, self.W, self.base
+        mid = (x0 + x1) // 2
+        gr, g, tube = s['granite'], self.glass, s['tubes']
+        n = self.floors
+        kx, kw = x0 + 3, 20
+        signs = min(n - 1, 7 + sd % 3)
+        fx = kx + kw + 3
+        sx = (fx + x1 - 12) // 2
+        for i in range(1, n):
+            t, b = self.floor(i)
+            sb = b - 11
+            for yy in range(t, sb):
+                c.rect(fx, yy, x1 - fx, 1, g[4] if yy == t else g[2] if yy < t + (sb - t) * 0.42 else g[3])
+            odds = 0.1 + 0.7 * h2(i, 41, sd) ** 2
+            for xx in range(fx, x1 - 12, 12):
+                c.rect(xx, t, 1, sb - t, ALU[2])
+                self.panes.append((xx + 1, t + 1, 11, sb - t - 1, 'office', h2(xx, i, sd) < odds))
+            c.rect(fx, sb, x1 - fx, 11, gr[2])
+            c.rect(fx, sb, x1 - fx, 1, gr[0])
+            c.rect(fx, sb + 1, x1 - fx, 1, gr[1])
+            c.rect(fx, b - 1, x1 - fx, 1, gr[4])
+            c.rect(fx, sb + 5, x1 - fx, 1, gr[3])
+            # the rounded corner: the glass and the stone turn away from the light
+            for j in range(12):
+                q = 1 if j < 4 else 2 if j < 8 else 3
+                xx = x1 - 12 + j
+                for yy in range(t, b):
+                    if yy < sb:
+                        c.p(xx, yy, g[min(6, (4 if yy == t else 3) + q - (j == 1))])
+                    else:
+                        c.p(xx, yy, gr[min(6, 2 + q)] if j != 1 else gr[0])
+            c.rect(fx - 3, t, 3, b - t, gr[1])
+            c.rect(fx - 3, t, 1, b - t, gr[0])
+            # the stair slot: a glazed recess between granite fins, its landings showing
+            for xx in range(sx - 4, sx + 5):
+                d = xx - sx
+                c.rect(xx, t, 1, b - t, gr[1] if d == -4 else gr[2] if d == -3 else gr[4] if d in (3, 4) else
+                       g[4] if d == -2 else g[3])
+            c.rect(sx - 2, t + (b - t) // 2, 5, 1, ALU[3])
+            c.rect(sx - 2, b - 2, 5, 2, gr[3])
+            self.panes.append((sx - 2, t, 5, b - t - 2, 'cool', True))
+        # the column of tenant signs on its steel frame, a neon tube beside each
+        ty = self.floor(signs)[0]
+        t0 = self.floor(0)[0]
+        c.rect(kx - 1, ty, kw + 2, t0 - ty, gr[3])
+        for xx in (kx, kx + kw - 1):
+            c.rect(xx, ty - 4, 1, t0 - ty + 4, ALU[3])
+        c.rect(kx, ty - 4, kw, 1, ALU[1])
+        for i in range(1, signs + 1):
+            t, b = self.floor(i)
+            self.sign(kx + 2, t + 2, kw - 4, b - t - 4, "box")
+            colour = tube[i % len(tube)]
+            for yy in range(t + 3, t + 31):
+                c.p(kx - 2, yy, DAYTUBE[colour])
+            self.overlays.append([f'chase-{colour}', kx - 3, t + 3])
+        for i in range(signs + 1, n):
+            t, b = self.floor(i)
+            c.rect(kx - 1, t, kw + 2, b - t, gr[2])
+            c.rect(kx - 1, t, 1, b - t, gr[1])
+            c.rect(kx - 1, b - 1, kw + 2, 1, gr[4])
+        top = self.floor(n - 1)[0]
+        self.glints(fx, x1 - 12, top, t0)
+        c.rect(x0, top, 1, t0 - top, gr[0])
+        self.crown(top, W // 2)
+        self.ground_lobby(t0, base)
+        c.rect(x0 - 1, t0 - 2, W + 2, 2, gr[0])
+        c.rect(x0 - 1, t0, W + 2, 3, gr[1])
+        c.rect(x0 - 1, t0 + 3, W + 2, 1, gr[4])
+        self.foot(GRANITE)
+
+
+class Slab(Skyscraper):
+    """The glass slab of the 1950s and 60s, after Lever House and the Seagram
+    Building: a plain box of glass hung on a grid of mullions with no setback,
+    a lobby set back behind columns on an open plaza, the plant hidden behind
+    louvres on top. The blinds stop at three heights, as Seagram's did."""
+    FLOORS = dict(tall=16, row=11, wide=12, hall=12)
+    H0, H1, PARA, HEAD = 80, 32, 4, 70
+
+    def half(self, i):
+        return self.W // 2
+
+    def paint(self):
+        c, s, sd = self.c, self.s, self.seed
+        x0, x1, W, base = self.x0, self.x1, self.W, self.base
+        mid = (x0 + x1) // 2
+        g, mull, sp = self.glass, s['mullion'], s['spandrel']
+        n = self.floors
+        t0 = self.floor(0)[0]
+        ft = self.floor(n - 1)[0]
+        for i in range(1, n):
+            t, b = self.floor(i)
+            sb = b - 9
+            if i == n - 1:
+                # the plant floor: louvres across the whole face
+                for yy in range(t, b):
+                    c.rect(x0, yy, W, 1, mull[2] if (yy - t) % 3 == 0 else mull[4] if (yy - t) % 3 == 1 else mull[3])
+                continue
+            for yy in range(t, sb):
+                c.rect(x0, yy, W, 1, g[4] if yy == t else g[2] if yy < t + (sb - t) * 0.4 else g[3])
+            odds = 0.1 + 0.7 * h2(i, 41, sd) ** 2
+            for bx in range(x0, x1 - 2, 8):
+                bay = (bx - x0) // 8
+                k = h2(bay, i, sd)
+                drop = 0 if k < 0.8 else (sb - t) // 2 if k < 0.95 else sb - t - 1
+                if drop:
+                    c.rect(bx + 2, t, 6, drop, s['blind'][3])
+                    c.rect(bx + 2, t + drop - 1, 6, 1, s['blind'][4])
+                self.panes.append((bx + 2, t, 6, sb - t, 'office', h2(bay, i, sd + 3) < odds))
+            c.rect(x0, sb, W, 9, sp[3])
+            c.rect(x0, sb, W, 1, sp[1])
+            c.rect(x0, b - 1, W, 1, sp[4])
+        self.glints(x0, x1, ft + self.H1, t0)
+        # the mullions run the full height, past glass and spandrel alike
+        for xx in range(x0, x1 - 2, 8):
+            c.rect(xx, ft, 1, t0 - ft, mull[1])
+            c.rect(xx + 1, ft, 1, t0 - ft, mull[3])
+        c.rect(x1 - 2, ft, 2, t0 - ft, mull[4])
+        c.rect(x0, ft, 1, t0 - ft, mull[0])
+        # the window cleaners' cradle, part way down the face
+        if s.get('cradle'):
+            gi = max(2, round(n * 0.62))
+            gy, gx = self.floor(gi)[0] + 6, x0 + (W * 2) // 3
+            for lx in (gx + 2, gx + 19):
+                c.rect(lx, ft - 4, 1, gy - ft + 4, ALU[3])
+            c.rect(gx, gy, 22, 8, ALU[2])
+            c.rect(gx, gy, 22, 1, ALU[0])
+            c.rect(gx, gy + 3, 22, 1, ALU[3])
+            c.rect(gx + 21, gy, 1, 8, ALU[4])
+            op.cast(c, gx, gy + 8, 22, 3, 0.7)
+        # the lobby, set back under the slab behind its columns
+        c.rect(x0, t0, W, base - t0, ROOM[5])
+        c.rect(x0, t0, W, 3, mull[4])
+        lx0, lx1 = x0 + 10, x1 - 10
+        for yy in range(t0 + 12, base):
+            c.rect(lx0, yy, lx1 - lx0, 1, ROOM[5] if yy < t0 + 24 else ROOM[4] if yy < base - 6 else TRAV[3])
+        # the lift core in travertine, seen through the glass
+        cw = min(64, (lx1 - lx0) // 2)
+        c.rect(mid - cw // 2, t0 + 16, cw, base - t0 - 22, s['column'][3])
+        c.rect(mid - cw // 2, t0 + 16, cw, 1, s['column'][5])
+        for xx in range(mid - cw // 2 + 16, mid + cw // 2, 16):
+            c.rect(xx, t0 + 17, 1, base - t0 - 23, s['column'][4])
+        for k, xx in enumerate(range(lx0 + 6, lx1 - 10, 37)):
+            for i in range(14):
+                c.p(xx + 9 - i // 2, t0 + 22 + i, SKYGLASS[4])
+        for xx in range(lx0, lx1, 12):
+            c.rect(xx, t0 + 12, 1, base - t0 - 12, mull[2])
+        c.rect(lx0, t0 + 12, lx1 - lx0, 1, mull[1])
+        self.panes.append((lx0 + 1, t0 + 13, lx1 - lx0 - 2, base - t0 - 19, 'shop', True))
+        op.cast(c, x0, t0 + 3, W, 14, 0.5)
+        col = s['column']
+        for xx in list(range(x0 + 4, x1 - 8, 40)) + [x1 - 10]:
+            if abs(xx + 3 - mid) < 18:
+                continue
+            c.rect(xx, t0 + 3, 6, base - t0 - 3, col[2])
+            c.rect(xx, t0 + 3, 1, base - t0 - 3, col[0])
+            c.rect(xx + 5, t0 + 3, 1, base - t0 - 3, col[4])
+        self.sign(mid - 26, t0 + 4, 52, 6, 'box')
+        metal_door(self, mid, base, 28, 46, mull, leaves=2)
+        c.rect(mid - 26, base - 57, 52, 7, col[1])
+        c.rect(mid - 26, base - 57, 52, 1, col[0])
+        c.rect(mid - 26, base - 50, 52, 2, mull[2])
+        c.rect(mid - 26, base - 48, 52, 1, mull[5])
+        op.cast(c, mid - 24, base - 47, 48, 3, 0.66)
+        c.rect(x0 - 1, ft - 3, W + 2, 3, mull[2])
+        c.rect(x0 - 1, ft - 3, W + 2, 1, mull[0])
+        self.crown_plant(ft - 3, W // 2)
+        self.foot(s['column'])
+
+
+class Tropic(Skyscraper):
+    """The glass tower on a podium, as built from Bangkok to Manila in the
+    1990s and 2000s and, with another ground floor and crown, almost anywhere
+    since 1970. The podium's roof is a deck with planters, seen from above; the
+    shaft rises out of it in reflective glass between panelled corners, with
+    a sunshade at every floor and a stripe of other glass up the middle.
+
+    The spec picks the parts: `ground` (mall: shops and a canopied door;
+    lobby: stone and a glazed doorway), `crown` (any Skyscraper crown), the
+    glass, the panel and the stripe."""
+    FLOORS = dict(tall=18, row=13, wide=14, hall=14)
+    H0, H1, PARA, HEAD = 66, 32, 4, 130
+    POD, PANE, CAP = 3, 10, 24
+
+    def half(self, i):
+        # a width that fits whole panes either side of the stripe
+        return self.W // 2 if i < self.POD else 13 + 10 * round((self.W * 0.64 - 26) / 20)
+
+    def storey(self, i, a, z, t, b):
+        if i >= self.POD:
+            self.curtain(i, a, z, t, b)
+
+    def curtain(self, i, a, z, t, b):
+        """One floor of curtain wall: panelled corners, two rows of panes, the
+        stripe, and a sunshade whose top is lit and whose shadow falls on the
+        glass below."""
+        c, s, sd = self.c, self.s, self.seed
+        g, pan, strip = GLAZE[s['glass']], s['panel'], GLAZE[s['strip']]
+        C_ = 8
+        gx, gw = a + C_, z - a - 2 * C_
+        sw = self.PANE + (gw - self.PANE) % (2 * self.PANE)
+        sx = gx + (gw - sw) // 2
+        gh = b - t - 3
+        odds = 0.08 + 0.7 * h2(i, 41, sd) ** 2
+        for x in list(range(gx, sx, self.PANE)) + list(range(sx + sw, gx + gw, self.PANE)):
+            for k, (y, h) in enumerate(((t, gh // 2), (t + gh // 2, gh - gh // 2))):
+                light = h2(x, i * 2 + k, sd) < (0.22 if k == 0 else 0.08)
+                c.rect(x, y, self.PANE, h, g[2] if light else g[3])
+                c.rect(x, y, self.PANE, 1, g[4])
+            c.rect(x, t, 1, gh, g[4])
+            self.panes.append((x + 1, t + 1, self.PANE - 1, gh - 1, 'office', h2(x, i, sd) < odds))
+        c.rect(sx, t, sw, gh, strip[3])
+        c.rect(sx, t, 1, gh, strip[5])
+        c.rect(sx + 1, t, 1, gh, strip[2])
+        c.rect(sx + sw - 1, t, 1, gh, strip[5])
+        c.rect(sx + 1, t + gh // 2, sw - 2, 1, strip[4])
+        c.rect(gx, t, gw, 1, g[6])
+        c.rect(gx, t + 1, gw, 1, g[5])
+        c.rect(gx, b - 3, gw, 1, ALU[0])
+        c.rect(gx, b - 2, gw, 1, ALU[1])
+        c.rect(gx, b - 1, gw, 1, ALU[4])
+        for k, cx in enumerate((a, z - C_)):
+            c.rect(cx, t, C_, b - t, pan[1] if k == 0 else pan[2])
+            c.rect(cx, t, 1, b - t, pan[0] if k == 0 else pan[1])
+            c.rect(cx + C_ - 1, t, 1, b - t, pan[3] if k == 0 else pan[4])
+            c.rect(cx + 1, b - 1, C_ - 2, 1, pan[3])
+            c.p(cx + 4, t + 4, DAYTUBE[s['led']])
+            if (i - self.POD) % 2 == 0 and i < self.floors - 1:
+                self.overlays.append([f"chase-{s['led']}", cx + 3, t + 2])
+
+    def podium(self, t, b):
+        """The podium above the street floor: panels, a ribbon of tinted
+        windows, a video screen over the door, and a fascia below."""
+        c, s = self.c, self.s
+        x0, x1, W, mid = self.x0, self.x1, self.W, self.mid
+        g, pan = GLAZE[s['glass']], s['panel']
+        c.rect(x0, t, W, b - t, pan[2])
+        for yy in range(t + 3, b - 8, 15):
+            c.rect(x0, yy, W, 1, pan[3])
+        for xx in range(x0 + 20, x1 - 4, 20):
+            c.rect(xx, t + 3, 1, b - t - 9, pan[3])
+        c.rect(x0, t, 1, b - t, pan[1])
+        c.rect(x1 - 3, t, 3, b - t, pan[3])
+        wy, wh = b - 26, 13
+        c.rect(x0 + 5, wy - 1, W - 10, wh + 2, pan[4])
+        c.rect(x0 + 6, wy, W - 12, wh, g[3])
+        c.rect(x0 + 6, wy, W - 12, 4, g[2])
+        c.rect(x0 + 6, wy, W - 12, 1, g[5])
+        for xx in range(x0 + 6, x1 - 6, 9):
+            c.rect(xx, wy, 1, wh, ALU[1])
+        c.rect(x0 + 5, wy + wh + 1, W - 10, 1, pan[1])
+        self.panes.append((x0 + 6, wy + 1, W - 12, wh - 1, 'shop', True))
+        sw, sh = 52, 30
+        lx, ly = mid - sw // 2, t + 10
+        c.rect(lx - 3, ly - 3, sw + 6, sh + 6, ALU[2])
+        c.rect(lx - 3, ly - 3, sw + 6, 1, ALU[0])
+        c.rect(lx - 3, ly - 3, 1, sh + 6, ALU[0])
+        c.rect(lx + sw + 2, ly - 2, 1, sh + 5, ALU[4])
+        c.rect(lx - 3, ly + sh + 2, sw + 6, 1, ALU[5])
+        c.rect(lx - 1, ly - 1, sw + 2, sh + 2, INK[5])
+        c.rect(lx, ly, sw, sh, INK[4])
+        self.overlays.append(['led', lx, ly])
+        op.cast(c, lx - 2, ly + sh + 3, sw + 6, 2, 0.74)
+        for sx_ in (x0 + 8, x1 - 8 - 36):
+            if abs(sx_ + 18 - mid) > 50:
+                self.sign(sx_, t + 14, 36, 14, 'neon')
+        # the fascia over the street floor: its top lit, its shadow below
+        c.rect(x0 - 1, b - 7, W + 2, 2, ALU[0])
+        c.rect(x0 - 1, b - 5, W + 2, 4, ALU[1])
+        c.rect(x0 - 1, b - 1, W + 2, 1, ALU[4])
+
+    def weather(self):
+        pass        # glass and composite panel are washed, not left to streak
+
+    def paint(self):
+        c, s = self.c, self.s
+        x0, x1, base, mid = self.x0, self.x1, self.base, self.mid
+        pan, P = s['panel'], self.POD
+        top, hw = self.body(pan)
+        a, z = mid - hw, mid + hw
+        self.glints(a + 8, z - 8, top, self.floor(P)[1] - self.CAP)
+        lo, _, back, near = self.decks[0]
+        for px in (x0 + 9, x1 - 9 - 13):
+            pr.planter(c, px, near - 2, 13, 10, ('shrub',), TERRACOTTA)
+            pr.shrub(c, px + 6.5, near - 9, 6)
+        self.crown(top, hw)
+        t0 = self.floor(0)[0]
+        self.podium(self.floor(P - 1)[0], t0)
+        getattr(self, 'ground_' + s.get('ground', 'mall'))(t0, base)
         self.foot(GRANITE)
 
 
@@ -3645,6 +5060,31 @@ LOOKS = {
         dict(glass='bronze', mullion=BRONZE, spandrel=BRONZE, roofname='MUTUAL'),
         dict(glass='green', mullion=ALU, spandrel=INK, pier=PINKGRAN, pediment=True),
     ]),
+    'deco': (Skyscraper, 'Setback skyscraper', [
+        dict(wall=SANDSTONE, stone=LIMESTONE, cope=LIMESTONE, spandrel=ROOM, accent=SANDSTONE, crown='step'),
+        dict(wall=WHITE, stone=GRANITE, cope=TERRA, spandrel=ROOM, accent=STEEL, crown='spire'),
+        dict(wall=SALMON, stone=LIMESTONE, cope=LIMESTONE, spandrel=SALMON, accent=SALMON, crown='tank', bulbs=True),
+    ]),
+    'vysotka': (Vysotka, 'Stalinist high-rise', [
+        dict(wall=CREAM, trim=WHITE, plinth=REDGRAN, spire=GOLD, spire_h=64),
+        dict(wall=BUFF, trim=CREAM, plinth=GRANITE, spire=GOLD, spire_h=52),
+        dict(wall=WHITE, trim=LIMESTONE, plinth=REDGRAN, spire=STEEL, spire_h=58),
+    ]),
+    'bubble': (Bubble, 'Bubble-era office tower', [
+        dict(granite=PINKGRAN, stone=PINKGRAN, glass='blue', tubes=['pink', 'blue', 'amber'], crown='pyramid', deck=CONCRETE),
+        dict(granite=DOVE, stone=GRANITE, glass='green', tubes=['blue', 'green', 'pink'], crown='billboard', deck=CONCRETE),
+        dict(granite=TRAV, stone=TRAV, glass='sky', tubes=['amber', 'pink', 'red'], crown='lattice', deck=CONCRETE),
+    ]),
+    'slab': (Slab, 'Glass slab tower', [
+        dict(glass='bronze', mullion=BRONZE, spandrel=BRONZE, column=TRAV, blind=CREAM),
+        dict(glass='green', mullion=STEEL, spandrel=TEAL, column=STEEL, blind=WHITE, cradle=True),
+        dict(glass='blue', mullion=ALU, spandrel=INK, column=GRANITE, blind=CREAM, mast=True),
+    ]),
+    'tropic': (Tropic, 'Southeast Asian glass tower', [
+        dict(glass='blue', panel=WHITE, strip='green', led='blue', crown='helipad', deck=CONCRETE),
+        dict(glass='green', panel=DOVE, strip='blue', led='green', crown='tiers', deck=CONCRETE),
+        dict(glass='sky', panel=CREAM, strip='bronze', led='amber', crown='dome', deck=CONCRETE),
+    ]),
     'theatre': (Theatre, 'Picture palace', [
         dict(wall=TERRA, accent=RED, accent2=GOLD, name='STATE', neon='red', marquee=['TONIGHT', 'DOUBLE FEATURE']),
         dict(wall=CREAM, accent=TEAL, accent2=GOLD, name='LYRIC', neon='blue', marquee=['NOW SHOWING', 'AT 7 & 9']),
@@ -3723,7 +5163,12 @@ ABOUT = {
     'motel': ('modern-stucco', 'A motel: a row of rooms, each door on the parking lot, and a pole sign by the road.'),
     'bank': ('white-plaster', 'A savings bank in stone and glass with a time-and-temperature sign.'),
     'strip': ('bengal-brick', 'A strip center: a row of small shops under one shake mansard.'),
+    'deco': ('limestone', 'A setback office tower of brick piers over a limestone base, with a stepped or steel crown.'),
+    'vysotka': ('limestone', 'A Stalinist high-rise in tiers of cream ceramic over red granite, under a spire and a ruby star.'),
+    'bubble': ('blue-glass', 'A Tokyo office tower of tinted glass and polished granite, with tenant signs up one side.'),
     'office': ('blue-glass', 'A curtain-wall office block of glass and aluminium.'),
+    'slab': ('blue-glass', 'A slab of glass on a grid of mullions, its lobby set back behind columns on a plaza.'),
+    'tropic': ('blue-glass', 'A tower of reflective glass and white panels over a podium of shops, with a helipad, stepped glass roofs or a gilt dome on top.'),
     'theatre': ('ochre-plaster', 'A picture palace with a marquee and a lit vertical sign.'),
     'moderno': ('modern-stucco', 'A concrete apartment block over shops with roll-down shutters and painted signs.'),
     'zakkyo': ('white-plaster', 'A narrow building of small tiles with a different bar or shop on every floor.'),
@@ -3790,6 +5235,48 @@ def animations():
                 c.p(gx + dx + gw - 1, 1 + yy, col[3])
             c.p(gx + 1, 0, INK[3])
         out[f'animation-wash-{f}'] = c.im
+    # A podium's video screen: four advertisements, shown by day and night.
+    ads = [(CRIMSON, WHITE, SAFFRON), (COBALT, WHITE, TURQ), (JADE, SAFFRON, WHITE), (HOTPINK, WHITE, AZURE)]
+    for f, (bg, bar, mark) in enumerate(ads):
+        c = C(48, 36)
+        c.rect(0, 0, 48, 36, bg[2])
+        c.rect(0, 24, 48, 12, bg[3])
+        if f % 2 == 0:
+            for yy in range(6, 22):
+                for xx in range(28, 44):
+                    if (xx - 36) ** 2 + (yy - 14) ** 2 <= 56:
+                        c.p(xx, yy, mark[1] if xx + yy < 50 else mark[2])
+        else:
+            c.rect(30, 5, 12, 18, mark[2])
+            c.rect(30, 5, 12, 2, mark[0])
+            c.rect(41, 5, 1, 18, mark[4])
+        c.rect(4, 6, 20, 4, bar[0])
+        c.rect(4, 12, 14, 2, bar[1])
+        c.rect(4, 16, 17, 2, bar[1])
+        c.rect(4, 27, 10, 5, bar[0])
+        c.rect(5, 28, 8, 3, bg[1])
+        out[f'animation-led-{f}'] = c.im
+    # Lights the game shows only after dark: an aviation beacon's slow blink,
+    # and a neon tube with its light running down it.
+    for f in range(4):
+        im = Image.new('RGBA', (7, 7))
+        k = (1.0, 0.5, 0, 0)[f]
+        for yy in range(7):
+            for xx in range(7):
+                d = abs(xx - 3) + abs(yy - 3)
+                if k and d <= 3:
+                    im.putpixel((xx, yy), (255, 226, 214, 255) if d == 0 and k == 1 else
+                                (255, 60, 50, round((255, 230, 120, 45)[d] * k)))
+        out[f'animation-beacon-{f}'] = im
+    for colour, (core, glow) in NEON.items():
+        for f in range(4):
+            im = Image.new('RGBA', (3, 28))
+            for yy in range(28):
+                if (yy // 4 - f) % 4:
+                    im.putpixel((1, yy), core + (255,))
+                    for xx in (0, 2):
+                        im.putpixel((xx, yy), glow + (130,))
+            out[f'animation-chase-{colour}-{f}'] = im
     return out
 
 
@@ -3808,7 +5295,7 @@ from art import front_family  # noqa: E402
 FORMS = dict(
     falsefront='row shop tall cottage', brick='row shop wide tall hall', diner='row shop cottage',
     motel='row wide cottage hall', bank='row shop tall hall', strip='row shop wide hall',
-    office='row wide tall hall', theatre='row tall hall', moderno='row shop wide tall cottage hall',
+    office='row wide tall hall', deco='row wide tall hall', vysotka='row wide tall hall', bubble='row wide tall hall', slab='row wide tall hall', tropic='row wide tall hall', theatre='row tall hall', moderno='row shop wide tall cottage hall',
     zakkyo='row shop tall cottage hut', stalinka='row wide tall hall', panelka='row wide tall hall',
     tehran='row shop wide tall hall', delhi='row shop tall cottage hut', veranda='row shop wide tall cottage',
     bokaap='row shop cottage hut')
@@ -3848,7 +5335,7 @@ def now():
 SHOW = {'falsefront': [('row', 12), ('tall', 10), ('cottage', 6)], 'brick': [('row', 12), ('tall', 10), ('shop', 7)],
         'diner': [('row', 10), ('shop', 7)], 'motel': [('hall', 17), ('cottage', 6)],
         'bank': [('row', 12), ('tall', 10)], 'strip': [('hall', 17), ('row', 8)],
-        'office': [('tall', 10), ('row', 12), ('shop', 7)], 'theatre': [('row', 11), ('tall', 9)],
+        'office': [('tall', 10), ('row', 12), ('shop', 7)], 'deco': [('tall', 9), ('tall', 12)], 'vysotka': [('tall', 10), ('tall', 12)], 'bubble': [('tall', 9), ('tall', 11)], 'slab': [('tall', 9), ('tall', 12)], 'tropic': [('tall', 9), ('tall', 11)], 'theatre': [('row', 11), ('tall', 9)],
         'moderno': [('row', 12), ('tall', 10), ('shop', 7)], 'zakkyo': [('tall', 6), ('row', 7), ('hut', 4)],
         'stalinka': [('row', 12), ('tall', 10), ('shop', 7)], 'panelka': [('row', 12), ('tall', 9), ('cottage', 6)],
         'tehran': [('row', 12), ('tall', 9), ('shop', 7)], 'delhi': [('row', 12), ('tall', 8), ('cottage', 6)],

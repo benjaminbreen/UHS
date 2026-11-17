@@ -190,7 +190,7 @@ function aroundCourt(boxes: Box[], court: Box) {
  * house with its roof ladder keep their own way in. */
 function single(profile: InteriorProfile, c: RoomChoice, room?: number): Building {
   const params = resolveRoom(profile, { ...c, room });
-  if (params.door !== "none") params.entrance = Math.floor(params.w / 2);
+  if (params.door !== "none" && params.door !== "lift") params.entrance = Math.floor(params.w / 2);
   const props = planRoom(params).filter((q) => params.entrance === undefined || q.kind !== "door");
   props.forEach((q, i) => ((q.id = i), (q.room = 0)));
   const mask = roomMask(params);

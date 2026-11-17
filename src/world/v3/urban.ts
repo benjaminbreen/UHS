@@ -30,6 +30,7 @@ import {
 import { zoningFor, type LandUse } from "../../content/settlements/zoning";
 import { modernBuildings, modernCivicBuilding, stationBuildings } from "../../content/settlements/modern-buildings";
 import { streetFrames, streetLooks } from "../../content/settlements/street-looks";
+import { towerStyleFor } from "../../content/towers";
 import {
   BOULEVARD,
   MOTOR_SPANS,
@@ -2767,6 +2768,8 @@ function marginsOf(frame: string): number[] {
   const model = buildingModel(frame) as { margins?: number[]; period?: boolean; candidate?: boolean; height?: number; footprint: number[]; anchor: number[] };
   // A twentieth-century street block keeps the ground its facade is drawn
   // over, and an alley behind that.
+  // A tower rises over the blocks behind it, as towers do; it keeps only an alley's worth.
+  if (towerStyleFor(frame)) return [0, 10];
   if (frame.startsWith("mod-")) return [0, Math.ceil(model.anchor[1] / 16) - model.footprint[1] + 2];
   // The small street kit is drawn `height` pixels tall on its footprint.
   if (model.candidate && model.height && !model.margins)

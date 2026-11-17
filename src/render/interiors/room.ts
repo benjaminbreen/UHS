@@ -5,13 +5,16 @@ export type WallPattern =
   | "bark" | "hide" | "felt" | "canvas" | "shoji" | "reed" | "deco" | "wallpaper" | "fresco" | "whakairo" | "spathe" | "band" | "ashlar" | "frieze";
 export type FloorPattern =
   | "plank" | "tile" | "parquet" | "earth" | "mat" | "rushes" | "sand" | "flag" | "carpet" | "paper" | "terrazzo" | "linoleum" | "broadloom";
-export type Door = "door" | "flap" | "curtain" | "opening" | "none";
+/** "lift": an upper floor of a tower, reached by its lift; no door and no ladder. */
+export type Door = "door" | "flap" | "curtain" | "opening" | "none" | "lift";
 export type WindowStyle = "shutter" | "lattice" | "shoji" | "stained" | "none";
 export type Fire = "hearth" | "firepit" | "irori" | "brazier" | "stove" | "none";
 /** 0 humble, 1 common, 2 elite: how finished the surfaces are. */
 export type Finish = 0 | 1 | 2;
 export type RoomParams = {
   seed: number;
+  /** Storeys above the street, in a tower: its windows look out over the city. */
+  storey?: number;
   w: number;
   d: number;
   shape: Shape;
@@ -781,7 +784,7 @@ export function planRoom(p: RoomParams): Prop[] {
   if (p.entrance !== undefined) {
     doorX = p.entrance;
     for (const y of [d - 1, d - 2]) if (inside(doorX, y)) occ[y][doorX] = 2;
-  } else if (p.door !== "none") {
+  } else if (p.door !== "none" && p.door !== "lift") {
     doorX = onWall(1, (x) => edge(x) + (p.shape === "round" || p.shape === "oval" ? -Math.abs(x + 0.5 - w / 2) * 0.3 : 0));
     add("door", doorX, top[doorX], 1, 0, true, p.door === "opening");
     occ[top[doorX]][doorX] = 2;

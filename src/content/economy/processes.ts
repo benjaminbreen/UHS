@@ -213,6 +213,7 @@ export type Process = {
   skill?: SkillId;
   wiki?: string[];
   paid?: Recipe["paid"];
+  boss?: string;
   rises: number;
   bench?: string[];
   steps: Step[];
@@ -251,7 +252,7 @@ export function processFor(kit: Livelihood, revision = 0, season: SeasonId = "sp
       ...(i && (hunting || !st.card) ? { card: hunting ? `hunt-${i + 1}` : `${family}-${i + 1}` } : {}),
     }));
   return {
-    family, ...processFamilies[family], title: day?.title, skill: hunting ? "hunting" : recipe?.skill, wiki: recipe?.wiki, paid: recipe?.paid, rises: recipe?.rises ?? 6, bench: recipe?.bench,
+    family, ...processFamilies[family], title: day?.title, skill: hunting ? "hunting" : recipe?.skill, wiki: recipe?.wiki, paid: recipe?.paid, boss: recipe?.boss, rises: recipe?.rises ?? 6, bench: recipe?.bench,
     steps, stages: steps.map((s) => s.name),
     stations:recipe?.stations ?? stations, makes: goodsOf(kit, revision), indoors: indoors.has(kit.activity),
   };

@@ -121,6 +121,7 @@ const RESIZE_SETTLE_MS = 250;
 import { narratorProvider, PROVIDER_KEY } from "../narrator/turn";
 import { NarratorPanel, turnTime } from "./NarratorPanel";
 import { ShopModal } from "./ShopModal";
+import { TowerSection } from "./TowerSection";
 import { DialogueModal } from "./DialogueModal";
 import { WorkCard } from "./WorkCard";
 import { Toasts } from "./Toasts";
@@ -280,6 +281,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     | "evening"
     | "years"
     | "shop"
+    | "lift"
     | null
   >(null);
   const [shopWith, setShopWith] = useState<string>();
@@ -454,6 +456,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     if (verb?.kind === "talk" && verb.actor) openDialogue(verb.actor);
     // Where to is the map's question: it plans the journey by rail.
     if (verb?.kind === "board") setModal("map");
+    if (verb?.kind === "lift") setModal("lift");
     // Whoever answered a knock is standing in their own doorway waiting to be
     // spoken to; opening the conversation is what knocking was for.
     const answered = runtime.engine.doorAnswer;
@@ -2697,6 +2700,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 ))}
               </>
             )}
+            {modal === "lift" && <TowerSection runtime={runtime} onClose={() => setModal(null)} />}
             {modal === "map" && (
               <MapModal runtime={runtime} onClose={() => { runtime.rail = undefined; setModal(null); }} />
             )}

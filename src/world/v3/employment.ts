@@ -9,6 +9,7 @@ import { livelihoodById } from "../../content/characters/livelihoods";
 import { officeFor } from "../../content/interiors/offices";
 import { worksitesFor } from "../../content/settlements/worksites";
 import type { SettlementPlan, WorkSite } from "./types";
+import { floorName, floorSpace, towerPlan } from "../tower";
 
 export type WorkplaceOffer = {
   id: string;
@@ -32,6 +33,7 @@ function institutionAt(l: Parameters<typeof institutionFor>[0], pack: Pack, plan
 export function workplacesIn(
   plan: SettlementPlan,
   pack: Pack,
+  seed?: string,
 ): WorkplaceOffer[] {
   const offers: WorkplaceOffer[] = [];
   const add = (
@@ -53,7 +55,13 @@ export function workplacesIn(
         p.entrance,
         Math.max(4, Math.min(24, Math.floor((p.w * p.h) / 12))),
       );
-    const office = officeFor(p.name, pack.year);
+    // Each storey of a tower is let to a firm, which hires its own staff.
+    const tower = seed && pack.setting ? towerPlan(p, seed, pack.setting) : undefined;
+    // Flats keep a cleaner, not a staff to hire.
+    for (const f of tower?.floors ?? []) if (f.staff.length && f.stay !== "home")
+      add(floorSpace(p.id, f.n), f.kind === "bank" ? "bank" : "administration", f.n ? `${f.name}, ${floorName(f.n)}` : p.name, p.entrance, 2,
+        [...new Set(f.staff.filter((w) => !w.night).map((w) => w.work))]);
+    const office = !tower && officeFor(p.name, pack.year);
     if (office) {
       if (office.id === "banking-hall")
         add(p.id, "bank", p.name, p.entrance, 4);
@@ -240,7 +248,7 @@ export function prepareLocalWork(
   seed: string,
 ) {
   if (!pack.setting?.employmentRevision) return;
-  plan.employment = workplacesIn(plan, pack);
+  plan.employment = workplacesIn(plan, pack, seed);
   // The player's requested work has first claim; ordinary residents follow stable plan order.
   const owners = [...plan.work].sort(
     ([a], [b]) => Number(b === "player") - Number(a === "player"),

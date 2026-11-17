@@ -149,8 +149,9 @@ def cast(c, x, y, w, n, k0=0.66):
                 c.p(xx, y + i, darken(q, f, (0.96, 0.94, 1.06)))
 
 
-def outline(c):
-    """Outline tinted from the colour it touches, never flat black."""
+def outline(c, deep=False):
+    """Outline tinted from the colour it touches, never flat black. `deep`
+    keeps the hue: a darker, richer shade of the neighbour, as Stardew does."""
     todo = []
     for y in range(c.h):
         for x in range(c.w):
@@ -158,6 +159,10 @@ def outline(c):
                 continue
             for dx, dy in ((0, 1), (1, 0), (-1, 0), (0, -1)):
                 q = c.g(x + dx, y + dy)
+                if q[3] and deep:
+                    m = sum(q[:3]) / 3
+                    todo.append((x, y, tuple(int(min(255, max(0, m + (q[i] - m) * 2.2)) * 0.4 + (42, 22, 34)[i] * 0.1) for i in range(3)) + (255,)))
+                    break
                 if q[3]:
                     todo.append((x, y, tuple(int(q[i] * OUTLINE_K * 0.6 + (42, 22, 34)[i] * 0.4) for i in range(3)) + (255,)))
                     break

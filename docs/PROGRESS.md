@@ -43,6 +43,27 @@ The owner keeps this list.
   shed, warm panelled, palace) and are furnished with display tables of
   individually drawn objects by class (`src/render/fair/items.ts`). No doors
   closed by rank yet.
+- November 16: skyscrapers. Downtown New York, Chicago and their neighbours
+  build setback towers from 1923 (`mod-deco` in `front_modern.py`), Moscow,
+  Warsaw and Riga Stalin's high-rises from 1952 (`mod-vysotka`), Tokyo,
+  Osaka and Nagoya glass towers from 1974 (`mod-bubble`), with bars and a
+  mahjong parlour low down. Each
+  storey is an ordinary interior let to a firm, planned from the seed by a
+  `TowerStyle` (`src/content/towers/`, `src/world/tower.ts`); the lift door
+  opens the tower in section, where a floor is picked and the car rides
+  there (`src/ui/TowerSection.tsx`). Windows look down on the city by
+  height. Aviation lights blink and neon runs after dark, as building
+  overlays (`beacon`, `chase-<colour>`) and in the section. Floors are let
+  from a catalogue of firms scoped by era and economy
+  (`src/content/towers/tenants.ts`) and staffed by generated people in
+  graded office jobs (`city-work.ts`); office work has its own day. Floors
+  are real workplaces with their own hours, overtime and night shifts;
+  some are flats, hotels or a doctor's practice. American downtowns also
+  build glass slabs from 1952 (`mod-slab`), and Bangkok, Kuala Lumpur,
+  Singapore, Jakarta, Manila and Saigon podium towers from 1990
+  (`mod-tropic`) with a video screen, a helipad, spire or gilt dome, and a
+  rooftop bar. Towers stand at half to full height; office buildings and
+  blocks of flats of four storeys or more have their floors too.
 - November 16: fairs from a map. An area can be given as a rectangle on the
   fair's plan and the game sizes it, joins it to its neighbours and fills it
   by class. The 1884 International Health Exhibition is the first: 35 areas

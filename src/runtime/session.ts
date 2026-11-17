@@ -98,7 +98,9 @@ export type Verb = {
     /** Work a prop that is too heavy to lift: a quern, a well, a bench. */
     | "use"
     /** Mid-fight: catch the next blow from in front. */
-    | "guard";
+    | "guard"
+    /** At a tower's lift door: the UI opens the section to pick a floor. */
+    | "lift";
   /** What the HUD prints beside the key. */
   label: string;
   /** Talk: whom to open the dialogue panel on. Inspect: what to select. */
@@ -1942,7 +1944,9 @@ export class Runtime {
     // A fire and raw meat: cooking comes before putting the stick down.
     const below = this.engine.complexVerb();
     const ship = below ? undefined : this.engine.shipVerb();
+    const lift = this.engine.towerLift();
     if (fighting) alternate = { kind: "guard", label: "Guard" };
+    else if (lift) alternate = { kind: "lift", label: "Take the lift" };
     else if (below)
       alternate = { kind: "climb", label: below.label, command: { type: "interact", target: below.target, action: "complex" } };
     else if (ship)
@@ -2006,7 +2010,7 @@ export class Runtime {
       return undefined;
     }
     this.stop(false);
-    if (verb.kind === "talk") return verb;
+    if (verb.kind === "talk" || verb.kind === "lift") return verb;
     if (verb.kind === "guard") {
       this.engine.guard();
       this.emit();

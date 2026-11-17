@@ -8,7 +8,7 @@ import { populateCharacter } from "../src/content/geography/character";
 import { packForSetting } from "../src/content/geography/pack";
 import { livelihoodOf } from "../src/world/v3/routines";
 import { goodsOf } from "../src/content/economy/goods";
-import { settingFor } from "../src/content/geography/resolve";
+import { resolveSetting, settingFor } from "../src/content/geography/resolve";
 import { settingSchema } from "../src/content/geography/types";
 import { generateBrowConnection } from "../src/core/character";
 import { featuredPlaces, places } from "../src/content/geography/places";
@@ -617,4 +617,26 @@ it("draws a plausible street in 1899 Denver", () => {
     expect(outlookOf(`pub-${i}`, { ...publican, id: "pub", age: 40 } as never, s).stances.map((x) => x.id)).not.toContain("stance.us-temperance");
   const topHats = people.filter((p) => p.appearance.wearing.headwear === "top-hat");
   for (const p of topHats) expect(livelihoodById(p.origin.livelihood)?.rank).toBe("gentry");
+});
+
+it("grades office work by age and place: juniors young, partners not, a Tokyo ladder in Tokyo", () => {
+  const at = (prompt: string) => {
+    const r = resolveSetting(prompt, "grades");
+    if (!("setting" in r)) throw Error(prompt);
+    return r.setting;
+  };
+  const ny = at("Broker in New York 1985");
+  const young = Array.from({ length: 40 }, (_, i) => generateCharacter(ny, "grades", `y${i}`, 23, "broker").role);
+  const old = Array.from({ length: 40 }, (_, i) => generateCharacter(ny, "grades", `o${i}`, 55, "broker").role);
+  expect(young).toContain("Junior Broker");
+  expect(young.some((r) => /Senior|Partner|Executive/.test(r))).toBe(false);
+  expect(old.some((r) => /Senior Broker|Partner|Brokerage Executive/.test(r))).toBe(true);
+  expect(old).not.toContain("Junior Broker");
+  const tokyo = at("Office worker in Tokyo 1988");
+  const salarymen = Array.from({ length: 60 }, (_, i) => generateCharacter(tokyo, "grades", `t${i}`, 48, "office-worker").role);
+  expect(salarymen.some((r) => /Section Chief|Department Head/.test(r))).toBe(true);
+  expect(salarymen.some((r) => /Office Supervisor|Office Manager/.test(r))).toBe(false);
+  const secretary = generateCharacter(ny, "grades", "s", 30, "secretary");
+  expect(secretary.origin.livelihood).toBe("secretary");
+  expect(secretary.inventory.ledger).toBe(1);
 });

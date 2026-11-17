@@ -2096,8 +2096,18 @@ export class PixelRoom {
           for (let i = 0; i < 10; i++) {
             const hill = 14 + Math.round(3 * Math.sin((i + q.seed % 7) * 0.5) + 2 * Math.sin(i * 1.3));
             let c = sky(p.hour, j / h);
-            if (j > hill) c = mix(mix(0x1a2436, 0x6c8f5a, sunNow.strength), c, 0.25);
-            if ((p.hour > 20 || p.hour < 5) && hash(i, j, q.seed) < 0.05 && j < hill) c = 0xfff2c8;
+            if (p.storey !== undefined) {
+              // Rooftops and towers fall away down the pane the higher the storey; haze takes the far ones.
+              const k = Math.min(1, p.storey / 45), b = (i + q.seed) >> 1;
+              const roof = Math.round(3 + k * 14 + hash(b, 3, q.seed) * (7 - k * 5)) - (hash(b, 5, q.seed) < 0.3 * (1 - k) ? 7 : 0);
+              if (j >= roof) {
+                c = mix(mix(0x1c2232, 0x7a7c88, sunNow.strength), c, 0.15 + k * 0.45 - (j - roof) * 0.02);
+                if ((p.hour > 19 || p.hour < 6) && hash(i, j, q.seed) < 0.12) c = 0xffe0a0;
+              }
+            } else {
+              if (j > hill) c = mix(mix(0x1a2436, 0x6c8f5a, sunNow.strength), c, 0.25);
+              if ((p.hour > 20 || p.hour < 5) && hash(i, j, q.seed) < 0.05 && j < hill) c = 0xfff2c8;
+            }
             if (!q.broken && (i - j + 40) % 9 < 1) c = mix(c, 0xffffff, 0.3);
             if (q.broken) {
               // Shards left in the corners of each pane, jagged toward the middle.
@@ -3088,6 +3098,16 @@ export class PixelRoom {
       }
       case "elevator": {
         const x0 = X + 1, top = oy - 38;
+        if (p.styles.elevator === "stair") {
+          // The stairwell door: treads climbing away to the right in the dark, a rail over them.
+          this.r(x0 - 1, top - 2, 16, 40, (i, j) => (i < 2 || i > 13 || j < 2 ? P.trim[i < 2 || j < 2 ? 1 : 2] : P.iron[0]));
+          for (let k = 0; k < 6; k++) {
+            const y = top + 32 - k * 6, x = x0 + 1 + k * 2;
+            this.r(x, y, 13 - k * 2, 2, (_, j) => (j ? P.wood[3] : P.wood[1]));
+          }
+          for (let k = 0; k < 12; k++) this.s(x0 + 2 + k, top + 22 - k * 3, P.wood[2]);
+          break;
+        }
         this.r(x0 - 1, top - 8, 16, 46, (i, j) => (j < 8 ? (Math.abs(i - 7.5) < 8 - j * 0.9 ? P.brass[j % 2 ? 3 : 4] : P.trim[2]) : i < 2 || i > 13 ? P.brass[i % 13 === 0 ? 2 : 4] : P.trim[1]));
         for (let j = 0; j < 36; j++)
           for (let i = 2; i < 14; i++) {

@@ -11,7 +11,7 @@ export const ledger: PlotTemplate = {
     emblem: "desk",
     palette: { ink: "#12100c", fill: "#2a2418", edge: "#6a5434", light: "#f0eadc", accent: "#e8a840" },
   },
-  weight: (c) => (trade(c, /scribe|clerk|notary|office-worker|civil-servant|tax-collector/) ? 0.7 * temper(c, "conscientiousness") : 0),
+  weight: (c) => (trade(c, /scribe|clerk|notary|office-worker|civil-servant|tax-collector|accountant|secretary|typist|bank-manager|insurance-agent/) ? 0.7 * temper(c, "conscientiousness") : 0),
   cast: () => ({}),
   begin: (c) => {
     const { deadline, due } = dueOf(c.clock);

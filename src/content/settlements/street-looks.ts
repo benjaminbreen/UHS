@@ -15,6 +15,11 @@ const LOOKS = {
   bank: { since: 1955, uses: ["downtown", "commercial"], accent: true },
   strip: { since: 1960, uses: ["commercial"] },
   office: { since: 1955, uses: ["downtown"] },
+  deco: { since: 1923, uses: ["downtown", "commercial"] },
+  vysotka: { since: 1952, uses: ["downtown", "commercial"], accent: true },
+  bubble: { since: 1974, uses: ["downtown", "commercial"] },
+  slab: { since: 1952, uses: ["downtown"] },
+  tropic: { since: 1990, uses: ["downtown", "commercial"] },
   theatre: { since: 1915, uses: ["downtown", "commercial"], accent: true },
   moderno: { since: 1940, uses: ["commercial", "downtown", "tenement"] },
   zakkyo: { since: 1960, uses: ["commercial", "downtown", "tenement"] },
@@ -57,6 +62,10 @@ const HOMES: { looks: Mix; at: At; km: number; w?: number; from?: number }[] = [
   { looks: { brick: 3, strip: 1, bank: 1, office: 1, theatre: 1, gas: 0.5, market: 0.4 }, at: [[-79.4, 43.7], [-73.6, 45.5], [-114, 51], [-123, 49.3]], km: 700 },
   // Tenements and brownstones of the old Northeast and Midwest.
   { looks: { walkup: 1 }, at: [[-74, 40.7], [-71.06, 42.36], [-75.16, 39.95], [-76.6, 39.3], [-87.65, 41.88], [-79.99, 40.44]], km: 450, w: 0.5 },
+  // The setback towers the 1916 zoning law shaped, in the downtowns of the big cities that built them.
+  { looks: { deco: 1 }, at: [[-74, 40.71], [-87.63, 41.88], [-83.05, 42.33], [-75.16, 39.95], [-79.99, 40.44], [-81.69, 41.5], [-90.2, 38.63]], km: 160, w: 0.6, from: 1923 },
+  // The glass slabs that followed Lever House and Seagram into every big downtown.
+  { looks: { slab: 1 }, at: [[-74, 40.71], [-87.63, 41.88], [-118.25, 34.05], [-95.37, 29.76], [-96.8, 32.78], [-122.4, 37.79], [-84.39, 33.75], [-79.99, 40.44], [-83.05, 42.33], [-75.16, 39.95], [-93.27, 44.98], [-104.99, 39.74], [-79.38, 43.65]], km: 200, w: 0.4, from: 1952 },
   // Spanish Colonial Revival, California's own; Florida's Mediterranean.
   { looks: { mission: 1 }, at: [[-118.24, 34.05], [-119.7, 34.42], [-117.16, 32.72], [-122.03, 36.97], [-121.9, 37.3]], km: 350, w: 0.35, from: 1915 },
   { looks: { mission: 1 }, at: [[-80.2, 25.8], [-112.07, 33.45]], km: 250, w: 0.15, from: 1920 },
@@ -71,6 +80,12 @@ const HOMES: { looks: Mix; at: At; km: number; w?: number; from?: number }[] = [
   { looks: { storey: 1 }, at: [[36.82, -1.29], [39.28, -6.8], [32.58, 0.35], [15.3, -4.32]], km: 900, w: 0.5 },
   { looks: { habana: 1 }, at: [[-82.37, 23.13], [-75.82, 20.02], [-66.1, 18.47], [-69.9, 18.48], [-75.5, 10.4]], km: 500 },
   { looks: { zakkyo: 1 }, at: [[139.7, 35.7], [135.5, 34.7], [130.4, 33.6], [141.3, 43.1]], km: 600, from: 1955 },
+  // The office towers of Shinjuku, Marunouchi and Umeda, after the height limit went in 1963.
+  { looks: { bubble: 1 }, at: [[139.7, 35.69], [135.5, 34.7], [136.9, 35.17]], km: 120, w: 0.25, from: 1974 },
+  // The towers of the boom years in Bangkok, Kuala Lumpur, Singapore, Jakarta, Manila and Saigon.
+  { looks: { tropic: 1 }, at: [[100.53, 13.73], [101.69, 3.15], [103.85, 1.29], [106.83, -6.2], [121.02, 14.55], [106.7, 10.78], [112.75, -7.25]], km: 150, w: 0.3, from: 1990 },
+  // Stalin's high-rises: the seven in Moscow, and the gifts to Warsaw and Riga.
+  { looks: { vysotka: 1 }, at: [[37.62, 55.75], [21.01, 52.23], [24.11, 56.95]], km: 80, w: 0.06, from: 1952 },
   { looks: { stalinka: 1, panelka: 1 }, at: [[37.6, 55.8], [30.3, 59.9], [30.5, 50.4], [27.6, 53.9], [44.5, 48.7], [82.9, 55], [69.2, 41.3], [76.9, 43.2], [49.1, 55.8], [104.3, 52.3], [131.9, 43.1]], km: 650, from: 1930 },
   { looks: { tehran: 1 }, at: [[51.4, 35.7], [51.7, 32.7], [59.6, 36.3], [46.3, 38.1], [52.5, 29.6]], km: 700 },
   { looks: { delhi: 1 }, at: [[77.2, 28.6], [72.9, 19.1], [88.4, 22.6], [80.3, 13.1], [74.3, 31.5], [67, 24.9], [90.4, 23.8], [78.5, 17.4]], km: 900 },

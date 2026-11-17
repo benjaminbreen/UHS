@@ -508,6 +508,7 @@ def build_buildings(root, sprites):
             **({'doorLeaf':False} if getattr(artist,'door_leaf',True) is False else {}),
             **({'glow':name.split('-north')[0].split('-east')[0].split('-west')[0]+'-glow',
                 'obliqueModern':r['obliqueModern']} if r.get('obliqueModern') else {}),
+            **({'stories':r['stories']} if r.get('frontFamily') else {}),
             **({'overlays':artist.overlays} if getattr(artist,'overlays',None) else {}),
             **({'shopSigns':artist.shop_signs} if getattr(artist,'shop_signs',None) else {}),
             **({'glow':re.sub(r'-(north|east|west)$','',name)+'-glow'} if getattr(artist,'night',None) is not None else {}),

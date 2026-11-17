@@ -397,7 +397,10 @@ it("mixes twentieth-century street looks by place and date", () => {
   expect(share(santaCruz, "strip-mx", "brick-mx", "moderno")).toBeGreaterThan(0.1);
   expect(share(santaCruz, "strip-asia", "brick-cn")).toBeGreaterThan(0.005);
   expect(streetMix({ lon: -122.03, lat: 36.97, year: 1965 })["strip-asia"]).toBeUndefined();
-  expect(Object.keys(streetMix({ lon: 139.7, lat: 35.7, year: 1985 }))).toEqual(["zakkyo"]);
+  expect(Object.keys(streetMix({ lon: 139.7, lat: 35.7, year: 1985 }))).toEqual(["zakkyo", "bubble"]);
+  expect(Object.keys(streetMix({ lon: 139.7, lat: 35.7, year: 1970 }))).toEqual(["zakkyo"]);
+  expect(streetMix({ lon: 37.62, lat: 55.75, year: 1955 }).vysotka).toBeGreaterThan(0);
+  expect(streetMix({ lon: 37.62, lat: 55.75, year: 1948 }).vysotka).toBeUndefined();
   expect(Object.keys(streetMix({ lon: 31.2, lat: 30, year: 1975 }))).toEqual(["cairo"]);
   const paris = streetMix({ lon: 2.35, lat: 48.86, year: 1975 });
   expect(share(paris, ...Object.keys(paris))).toBeLessThan(0.1);

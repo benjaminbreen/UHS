@@ -1,4 +1,5 @@
 import { planWorksites } from "./worksites";
+import { towerStyleFor } from "../../content/towers";
 import { planWaterfront } from "./waterfront";
 import { modernBuildingSince } from "../../content/settlements/modern-buildings";
 import { regionalLook } from "../../content/graphics/regional-looks";
@@ -3786,6 +3787,7 @@ export function planSettlement(
       !(motorAge && (edge < 0.4 || lot.use === "industrial")) &&
       // A curtain wall is too young to have been abandoned decades ago.
       (model as { obliqueModern?: string }).obliqueModern !== "tower" &&
+      !towerStyleFor(frame) &&
       (modernBuildingSince(frame) ?? -Infinity) < (pack.setting?.year ?? 0) - 85 &&
       rand("ruin", i) < 0.05 + 0.05 * edge
     ) {
@@ -3937,8 +3939,9 @@ export function planSettlement(
       lot.quarter === "market" || lot.quarter === "craft" || i % 4 === 1;
     // A downtown is office blocks: most lots offices, some a bank or a department store.
     const officeRoll = rand("office", i);
-    const office =
-      lot.use === "downtown" && !lot.venue && (pack.setting?.year ?? 0) >= 1870 && officeRoll < 0.7
+    const office = towerStyleFor(frame)
+      ? "Offices"
+      : lot.use === "downtown" && !lot.venue && (pack.setting?.year ?? 0) >= 1870 && officeRoll < 0.7
         ? officeRoll < 0.45 ? "Offices" : officeRoll < 0.6 ? "Bank" : "Department store"
         : undefined;
     // In a camp a house is called what it is: a felt tent, a shelter, a

@@ -17,6 +17,7 @@ import {
   Sword,
   Target,
   TrainFront,
+  ArrowUpDown,
   type LucideIcon, Baby } from "lucide-react";
 import type { Verb } from "../runtime/session";
 
@@ -35,6 +36,7 @@ const ICONS: Record<Verb["kind"], LucideIcon> = {
   inspect: Search,
   door: DoorOpen,
   board: TrainFront,
+  lift: ArrowUpDown,
   work: Hammer,
   use: Hand,
   guard: Shield,

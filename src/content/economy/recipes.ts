@@ -27,6 +27,8 @@ export type Recipe = {
   /** How the day turns into coin: a hired hand's wage, a seller's takings,
    * or a fee from the household served. */
   paid?: "wage" | "takings" | "fee";
+  /** Who pays a wage, where it is not a foreman. */
+  boss?: string;
   /** The hour the trade's day began; dawn work at 5, a baker at 3. */
   rises?: number;
   /** The prop families the trade works at inside its house, best first; the
@@ -852,6 +854,56 @@ const recipes: Recipe[] = [
           { name: "gather", task: "Bring in what's ripe", at: "field", scene: "gather", hours: 3 },
           { name: "dry", task: "Dry, salt and pack it", at: "home", scene: "cook", card: "house-pot", hours: 4 },
           { name: "store", task: "Seal it in the store", at: "yard", scene: "haul", hours: 1 },
+        ],
+      },
+    ],
+  },
+  {
+    // Clerks of the modern tables are office staff, not scribes at the market.
+    ids: [
+      "clerk", "bank-clerk", "typist", "office-worker", "civil-servant", "programmer", "secretary", "receptionist", "stenographer",
+      "office-assistant", "office-lady", "accountant", "insurance-agent", "draughtsman", "telemarketer", "software-developer", "manager", "bank-manager",
+    ],
+    rises: 7,
+    paid: "wage",
+    boss: "supervisor",
+    skill: "speech",
+    wiki: ["Office", "Clerk", "Office worker"],
+    day: [
+      {
+        title: "A day at the counting house",
+        when: { years: [-3000, 1880] },
+        steps: [
+          { name: "letters", task: "Copy yesterday's letters into the letter book", at: "workplace", scene: "craft", hours: 3 },
+          { name: "post", task: "Post the day's sales and payments to the ledger", at: "workplace", scene: "craft", card: "office-desk", hours: 4 },
+          { name: "close", task: "Show the books to the principal", at: "workplace", scene: "talk", card: "office-boss", hours: 1 },
+        ],
+      },
+      {
+        title: "A day at the office",
+        when: { years: [1880, 1985] },
+        steps: [
+          { name: "post", task: "Open and sort the morning post", at: "workplace", scene: "craft", hours: 1 },
+          { name: "desk", task: "Type, file and answer the telephone", at: "workplace", scene: "craft", card: "office-desk", hours: 6 },
+          { name: "sign", task: "Take the day's letters in to be signed", at: "workplace", scene: "talk", card: "office-boss", hours: 1 },
+        ],
+      },
+      {
+        title: "Month's end",
+        when: { years: [1880, 10001] },
+        steps: [
+          { name: "gather", task: "Chase the figures the other departments owe you", at: "workplace", scene: "talk", hours: 2 },
+          { name: "reconcile", task: "Make the month's accounts agree", at: "workplace", scene: "craft", card: "office-desk", hours: 6 },
+          { name: "report", task: "Hand the report up the line", at: "workplace", scene: "talk", card: "office-boss", hours: 1 },
+        ],
+      },
+      {
+        title: "A day at the office",
+        when: { years: [1985, 10001] },
+        steps: [
+          { name: "inbox", task: "Work through the inbox", at: "workplace", scene: "craft", hours: 1 },
+          { name: "desk", task: "Get through the day's work at your desk", at: "workplace", scene: "craft", card: "office-desk", hours: 6 },
+          { name: "meeting", task: "Sit in on the afternoon meeting", at: "workplace", scene: "talk", card: "office-boss", hours: 1 },
         ],
       },
     ],
