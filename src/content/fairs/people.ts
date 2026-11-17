@@ -9,32 +9,145 @@ const LONDON_1884 = { years: [1884, 1884] as [number, number] };
 /** Who was at the Health Exhibition. */
 const londoner = (id: string, label: string, dress: string, doing: string, manner: SewerPerson["manner"], lines: string[], more: Partial<SewerPerson> & { note: string }): SewerPerson =>
   ({ id, scope: LONDON_1884, label, dress, doing, manner, lines, party: alone, women: 0.3, weight: 1, basis: "inferred", ...more });
+const sells = (verb: string, item: string, text: string) => ({ verb, wants: "coin" as const, price: 1, gives: { [item]: 1 }, time: 60, text });
 const london: SewerPerson[] = [
+  // The crowd.
   londoner("lhe-visitor", "Visitor", "clerk", "Seeing the exhibition", "explore", [
     "They call it the Healtheries. Four million through the gates, the paper says.",
     "We came for the fountains. After dark they light them from underneath and the colours change.",
     "It's a shilling to get in. Half a crown on Wednesdays, to keep people like me out.",
     "I walked through the bad house and now I want to go home and look at our drains.",
-  ], { party: pair, women: 0.5, ages: [14, 70], note: "About four million visits in six months; a shilling on most days. The dearer midweek day is a guess from other South Kensington exhibitions." }),
-  londoner("lhe-family", "Family on a day out", "farmer", "Having a day out", "explore", [
-    "The children have had a bun, a glass of milk from a real cow and a ride in a lift. That's the whole week's money.",
-    "We came up by the Underground to South Kensington. There's a subway being dug straight to the door.",
-    "My boy wants to be measured by the scientific gentleman. Threepence to be told he's short.",
-  ], { party: group, women: 0.55, ages: [6, 60], note: "The exhibition drew working families on shilling days; the District Railway's subway to the site opened the next year." }),
-  londoner("lhe-attendant", "Exhibitor's attendant", "merchant", "Minding a stand", "work", [
-    "Everything on the stand can be ordered. Delivery in a fortnight, anywhere in London.",
-    "The jury came round on Thursday with a thermometer and a notebook. We're hoping for a gold medal.",
-    "People stop, read every card, and buy nothing. But they remember the name.",
-  ], { women: 0.2, note: "Exhibitors were firms selling what they showed; juries awarded medals by class." }),
+  ], { party: pair, women: 0.5, ages: [16, 70], quiet: true, weight: 3, note: "About four million visits in six months; a shilling on most days. The dearer midweek day is a guess from other South Kensington exhibitions." }),
+  londoner("lhe-family", "Parent on a day out", "shop-assistant", "Having a day out", "explore", [
+    "The children have had a bun and a glass of milk from a real cow. That's the week's money gone.",
+    "We came up by the Underground to South Kensington. They're digging a subway straight to the door.",
+    "My boy wants the scientific gentleman to measure him. Threepence to be told he's short.",
+  ], { party: group, women: 0.55, ages: [24, 55], quiet: true, weight: 2, note: "The exhibition drew working families on shilling days; the District Railway's subway to the site opened the next year." }),
+  londoner("lhe-child", "Child", "errand-boy", "Running ahead", "explore", [
+    "I had milk out of a real cow!",
+    "There's a street with a man in armour. Come and see!",
+    "Father says we can't afford the Chinese dinner.",
+  ], { party: pair, women: 0.5, ages: [7, 13], quiet: true, weight: 2, note: "Children came with families and in Board school parties." }),
+  londoner("lhe-servant", "Servant on her day off", "domestic-servant", "Having her afternoon off", "explore", [
+    "My mistress gave me the shilling and said go and learn something about kitchens.",
+    "A gas stove would save me blacking the range every morning. She'll never buy one.",
+  ], { party: pair, women: 1, ages: [16, 40], quiet: true, note: "Domestic service was the largest employment for women in London." }),
+  londoner("lhe-soldier", "Soldier on leave", "soldier", "Walking out", "explore", [
+    "The band's ours. I came to hear them and stayed for the ale.",
+    "They've an ambulance wagon on show that's better than anything we had in Egypt.",
+  ], { women: 0, ages: [19, 40], quiet: true, note: "Soldiers from the London barracks; the army's ambulance exhibits are on the plan." }),
+  londoner("lhe-nurse", "Hospital nurse", "nurse", "Looking at the ambulance exhibits", "explore", [
+    "I came for the sickroom fittings. A bed you can wash down is worth ten doctors.",
+    "Half of what's shown here my ward has been asking for these three years.",
+  ], { women: 1, ages: [22, 50], quiet: true, note: "Trained nursing was twenty years old; hospital and sickroom fittings were a class of the exhibition." }),
+  londoner("lhe-doctor", "Doctor", "physician", "Looking at the sanitary exhibits", "explore", [
+    "I tell my patients to come. A trapped drain will do them more good than my medicine.",
+    "Typhoid comes up the waste pipe. Everyone here knows it now, and ten years ago nobody did.",
+  ], { women: 0, ages: [28, 65], quiet: true, note: "The exhibition's council was led by sanitary doctors and engineers." }),
+  londoner("lhe-tradesman", "Plumber up from the country", "plumber", "Studying the fittings", "explore", [
+    "I've come to see the new closets. My customers read about them and now I have to fit them.",
+    "Glass pipes, so you can see the flush. I'd like a set of those to show people.",
+  ], { women: 0, ages: [22, 60], quiet: true, note: "Tradesmen came to study the appliances; the Plumbers' Company held a congress at the exhibition." }),
   londoner("lhe-constable", "Constable", "policeman", "Keeping order", "lookout", [
     "Mind your pockets by the fountains after dark. That's where the crowd is thickest.",
     "Lost children are kept at the office by the Exhibition Road entrance.",
     "Keep to the right in the arcades, please.",
   ], { women: 0, note: "The Metropolitan Police kept a detachment in the grounds." }),
-  londoner("lhe-bandsman", "Bandsman", "clerk", "Between sets", "work", [
-    "We play twice a day in the gardens. The Guards have the other stand.",
+  // The band.
+  londoner("lhe-bandsman", "Bandsman of the Guards", "musician", "Playing", "work", [
+    "We play twice a day, marches and selections. The Coldstreams have the other stand.",
+    "Requests go to the bandmaster. He ignores them.",
     "The Chinese band plays by their tea house. People come to stare more than to listen.",
-  ], { women: 0, note: "Military bands played daily in the gardens; a band of Chinese musicians came with the Chinese court.", basis: "documented" }),
+  ], { quiet: true, women: 0, ages: [18, 45], note: "Military bands played daily in the gardens; a band of Chinese musicians came with the Chinese court.", basis: "documented" }),
+  // People at the stands and exhibits.
+  londoner("lhe-attendant", "Exhibitor's attendant", "shop-assistant", "Minding a stand", "work", [
+    "Everything on the stand can be ordered. Delivery in a fortnight, anywhere in London.",
+    "The jury came round on Thursday with a thermometer and a notebook. We're hoping for a gold medal.",
+    "People stop, read every card, and buy nothing. But they remember the name.",
+  ], { quiet: true, women: 0.25, note: "Exhibitors were firms selling what they showed; juries awarded medals by class." }),
+  londoner("lhe-measurer", "Laboratory attendant", "scientist", "Measuring visitors", "work", [
+    "Stand against the rod, please. Mr Galton wants ten thousand people measured before the autumn.",
+    "Squeeze this as hard as you can. Most men think they are stronger than they are.",
+    "Read the smallest line of print you can at arm's length. No, without leaning.",
+  ], { women: 0, note: "Galton's Anthropometric Laboratory measured 9,337 people at the exhibition for threepence each.", basis: "documented" }),
+  londoner("lhe-bacteriologist", "Laboratory demonstrator", "scientist", "Showing cultures", "work", [
+    "This plate was touched with one drop of Thames water three days ago. Count the colonies.",
+    "The method is Dr Koch's, from Berlin. Until last year nobody in London had seen it done.",
+  ], { women: 0, note: "The exhibition had a working biological laboratory demonstrating Koch's culture methods under Watson Cheyne.", basis: "documented" }),
+  londoner("lhe-physician", "Sanitary lecturer", "physician", "Showing people through the houses", "work", [
+    "Count the faults in the first house. Most visitors find every one of them in their own home.",
+    "That green paper is coloured with arsenic. Damp makes it give off a gas. It is in half the nurseries in London.",
+  ], { women: 0, note: "The sanitary and insanitary houses were shown with numbered faults and attendants to explain them.", basis: "documented" }),
+  londoner("lhe-plumber", "Sanitary engineer's man", "plumber", "Demonstrating a closet", "work", [
+    "The trap holds two inches of water. That water is all that stands between your bedroom and the sewer.",
+    "Pull the chain. Two gallons, and the pan is clean. The old pan closets never were.",
+  ], { quiet: true, women: 0, note: "Makers demonstrated water closets flushing, often with glass pipes." }),
+  londoner("lhe-engineer", "Engine minder", "engineer", "Tending the machinery", "work", [
+    "She makes ninety turns a minute all day and I oil her every hour.",
+    "Keep your coat-tails out of the belts, sir.",
+  ], { quiet: true, women: 0, note: "Machinery in Motion was run under steam all day by the exhibitors' own men." }),
+  londoner("lhe-electrician", "Electrician", "electrician", "Watching the dynamos", "work", [
+    "Every lamp in the gardens runs off these. If a belt slips, the fountain goes dark and ten thousand people groan.",
+    "Don't touch the brass. I mean it.",
+  ], { women: 0, note: "The exhibition's electric lighting plant was the largest yet set up in London.", basis: "documented" }),
+  londoner("lhe-schoolteacher", "Schoolteacher", "schoolteacher", "Explaining the classroom", "work", [
+    "Light should fall from the left, so the hand does not shadow the page.",
+    "Sixty children to a room is the Board's limit. I have had ninety.",
+  ], { quiet: true, women: 0.6, note: "The School was a class of the exhibition; the London School Board showed its own practice." }),
+  londoner("lhe-tailor", "Dress exhibitor", "tailor", "Showing the clothing", "work", [
+    "Wool lets the skin breathe. That is the whole of Dr Jaeger's system.",
+    "No, madam, there is no corset in it. That is the point.",
+  ], { quiet: true, women: 0.4, note: "Jaeger's woollen clothing and the Rational Dress Society both exhibited.", basis: "documented" }),
+  londoner("lhe-printer", "Printer in old dress", "printer", "Working the old press", "work", [
+    "The press is real, and so is the heat in these hose.",
+    "A ballad sheet for a penny, printed while you watch, as they did it before the Fire.",
+  ], { women: 0, note: "Old London Street had craftsmen in period dress working in the houses.", basis: "documented" }),
+  londoner("lhe-potter", "Potter", "potter", "Throwing jars", "work", [
+    "It's a filter jar. Charcoal goes in the middle and the water comes out fit to drink.",
+    "People would sooner watch the wheel than look at a hundred finished pots.",
+  ], { women: 0, note: "Inferred: Doulton exhibited filters and stoneware; a working wheel is a guess." }),
+  londoner("lhe-bath-attendant", "Bath attendant", "domestic-servant", "Showing the baths", "work", [
+    "Hot and cold laid on, and the waste runs to a trapped drain. Feel the water.",
+    "The geyser heats a bath in ten minutes. Mind you open the window when it's lit.",
+  ], { quiet: true, women: 0.5, note: "Baths were shown plumbed and working." }),
+  londoner("lhe-belgian", "Belgian exhibitor", "merchant", "Minding the Belgian stands", "work", [
+    "Every commune in Belgium must keep a school now. We have sent you a whole classroom.",
+    "Our stove burns small coal all night. Your open grates send the heat up the chimney.",
+  ], { quiet: true, women: 0.1, note: "Belgium's was the largest foreign section, strong in school exhibits." }),
+  // People who sell food and drink.
+  londoner("lhe-baker", "Baker", "baker", "Baking", "work", [
+    "No hand touches the dough from the sack to the oven. That's what the machine is for.",
+    "Hot loaves every twenty minutes. A penny.",
+  ], { women: 0, deal: sells("Buy a loaf", "bread", "The loaf is too hot to hold. He wraps it in a sheet of paper."), note: "Machine bakeries worked all day in the exhibition and sold what they baked.", basis: "documented" }),
+  londoner("lhe-dairymaid", "Dairymaid", "dairymaid", "Working the dairy", "work", [
+    "The separator does in a minute what the cream pan does in a day.",
+    "This cheese was milk on Monday.",
+  ], { women: 1, deal: sells("Buy a piece of cheese", "cheese", "She cuts a wedge with a wire and weighs it."), note: "Working dairies with cows, separators and churns were among the most popular exhibits.", basis: "documented" }),
+  londoner("lhe-grocer", "Provision merchant's man", "grocer", "Selling from the stand", "work", [
+    "Australian mutton, cooked in the tin. Sixpence a pound against a shilling at the butcher's.",
+    "Open it, heat it, eat it. It has been two months at sea and is as good as the day it was sealed.",
+  ], { quiet: true, women: 0.1, deal: sells("Buy a tin of meat", "tinned-food", "He hands you a tin with a sheep on the label and tells you how to open it."), note: "Tinned and preserved foods were a large part of the Food class." }),
+  londoner("lhe-pieman", "Pieman", "confectioner", "Selling pies", "work", [
+    "Hot pies! Mutton or eel. Mind, the gravy's scalding.",
+    "I sell more by this door in a day than in a week on the Brompton Road.",
+  ], { quiet: true, women: 0.1, deal: sells("Buy a pasty", "pasty", "He forks a pasty out of the tin box and puts it in your hand."), note: "Inferred: hot food was sold from stalls in the food galleries." }),
+  londoner("lhe-brewer", "Brewer's man", "brewer", "Drawing ale", "work", [
+    "Pure malt and hops, and the chemist's certificate is on the cask.",
+    "The temperance people have the cocoa rooms. I have a queue.",
+  ], { quiet: true, women: 0, deal: sells("Buy a glass of ale", "ale", "He draws it from the cask and wipes the glass on his apron first."), note: "Brewers exhibited in the Food class with analysts' certificates of purity." }),
+  londoner("lhe-waiter", "Waiter", "waiter", "Waiting at table", "work", [
+    "The cooks are from Peking. I only carry it, and I could not tell you what half of it is.",
+    "Sixpence for three courses and not a scrap of meat. We serve hundreds a day.",
+    "Pay at the desk as you go in, please. That's the system here.",
+  ], { quiet: true, women: 0.2, note: "The exhibition's dining rooms ranged from sixpenny dinners to table d'hôte." }),
+  londoner("lhe-cook", "Cookery teacher", "cook", "Giving a lesson", "work", [
+    "Scrag end of mutton, an onion and a carrot: dinner for four for sixpence. Watch.",
+    "My girls will go into service. A cook who can make a stew gets two pounds a year more.",
+  ], { women: 1, note: "The National Training School for Cookery gave public lessons at the exhibition.", basis: "documented" }),
+  londoner("lhe-tea-girl", "Girl at the counter", "domestic-servant", "Serving", "work", [
+    "Cocoa, tea or coffee, a penny the cup. No, we don't serve beer.",
+    "Take the cup back to the counter, please. We're short.",
+  ], { quiet: true, women: 1, ages: [16, 30], deal: sells("Buy a flask of tea", "flask-tea", "She fills a flask from the urn and screws the top down."), note: "Temperance companies ran the cocoa rooms." }),
 ];
 
 const person = (id: string, label: string, dress: string, doing: string, manner: SewerPerson["manner"], lines: string[], more: Partial<SewerPerson> & { note: string }): SewerPerson =>

@@ -317,6 +317,17 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
     return true;
   };
   const indoor = fairIndoor(plan.kind);
+  // Someone posted at a thing: on the first of `cells` that is open, or the first at all when `force`d.
+  const srng = rngOf(seed, "fair-staff", fair.id, plan.id);
+  const post = (id: string | undefined, cells: Point[], force = false) => {
+    const who = fairPeople.find((p) => p.id === id);
+    const at = cells.find((c) => c.x > 0 && c.y > 0 && c.x < w - 1 && c.y < h - 1 && (force || (fairWalkable(L.cells[c.y * w + c.x]) && !taken[c.y * w + c.x])));
+    if (!who || !at) return;
+    const [lo, hi] = who.ages ?? [18, 60];
+    L.folk.push({ id: `${L.space}:staff${L.folk.length}`, person: who.id, x: at.x, y: at.y, sex: srng() < who.women ? "female" : "male", age: lo + Math.floor(srng() * (hi - lo + 1)) });
+    taken[at.y * w + at.x] = 1;
+  };
+  const standStaff = fair.staff && ((plan.stands?.tags ?? []).map((t) => fair.staff![t]).find(Boolean) ?? fair.staff[""]);
   const spots: Point[] = [];
   const cx = w >> 1;
   // Indoors, bays either side of an aisle from the door to the back wall, filled from the back;
@@ -358,12 +369,14 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       const x = wallX.splice(i, 1)[0];
       for (let xx = x; xx < x + fw; xx++) taken[2 * w + xx] = 1;
       L.things.push(thing(L, f, n, x, 2, true));
+      post(f.staff, [{ x, y: 3 }, { x: x + fw, y: 3 }]);
       return true;
     }
     const spot = at.find((s) => free(s.x, s.y, fw, fh + (f.art === "kiosk" ? 1 : 0)));
     if (!spot) return false;
     for (let y = spot.y; y < spot.y + fh; y++) for (let x = spot.x; x < spot.x + fw; x++) taken[y * w + x] = 1;
     L.things.push(thing(L, f, n, spot.x, spot.y, false));
+    post(f.staff ?? (f.tier === "common" && srng() < 0.5 ? standStaff : undefined), [{ x: spot.x + (fw >> 1), y: spot.y + fh }, { x: spot.x - 1, y: spot.y + fh - 1 }, { x: spot.x + fw, y: spot.y + fh - 1 }]);
     return true;
   };
   let n = 0;
@@ -415,6 +428,7 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       if (!free(x, y, fw, fh)) continue;
       block(x, y, fw, fh);
       L.decor.push({ type: "machine", x, y: foot, solid: true, v: (k % MACHINES.length) + rng() * 0.9 });
+      if (k % 3 === 0) post(standStaff, [{ x: x + fw, y: foot }, { x: x - 1, y: foot }]);
       k++, x += fw + 2;
     }
   } else if (plan.kind === "hall" || plan.kind === "gallery") {
@@ -422,6 +436,7 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       if ((s.y - 5) % 6 || (s.x - 3) % 4 || (s.x - 3) % 12 === 8 || Math.abs(s.y - (h >> 1)) < 2 || s.x < 3 || s.x > w - 6 || !free(s.x, s.y, 3, 1)) continue;
       block(s.x, s.y, 3, 1);
       L.decor.push({ type: "stall", x: s.x, y: s.y, solid: true, v: rng() });
+      if (srng() < 0.6) post(standStaff, [{ x: s.x + 1, y: s.y + 1 }]);
     }
   }
   // Glazed cases down the side walls; palms in tubs in the back corners and either side of the door.
@@ -434,9 +449,11 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
     for (let y = 5; y < h - 4; y += 2) furnish("case", 1, y), furnish("case", w - 2, y);
     for (const [x, y] of [[2, 3], [w - 3, 3], [cx - 3, h - 2], [cx + 2, h - 2]]) furnish("palm", x, y);
   }
-  // People.
+  // The band, in under the bandstand's roof.
+  for (const d of L.decor) if (d.type === "bandstand") for (let i = 0; i < 3; i++) post(plan.band, [{ x: d.x + i, y: d.y - 1 }], true);
+  // The crowd.
   const who = (plan.people ?? []).map((id) => fairPeople.find((p) => p.id === id)).filter((p) => !!p);
-  const count = { grounds: 10, bridge: 8, hall: 7, pavilion: 3, machines: 7, platform: 5, gallery: Math.max(3, Math.round((w * h) / 220)), court: 9 }[plan.kind];
+  const count = { grounds: 10, bridge: 8, hall: 7, pavilion: 3, machines: 7, platform: 5, gallery: Math.max(4, Math.min(14, Math.round((w * h) / 110))), court: Math.max(8, Math.min(18, Math.round((w * h) / 90))) }[plan.kind];
   const frng = rngOf(seed, "fair-folk", fair.id, plan.id);
   for (let i = 0; i < count && who.length; i++) {
     const p = who[Math.floor(frng() * who.length)];
@@ -459,7 +476,7 @@ function thing(L: FairLevel, f: FairFind, n: number, x: number, y: number, wall:
 
 /** Cells an exhibit takes when its find does not say: room-sized cases and machines. */
 const SIZES: Partial<Record<FairFind["art"], [number, number]>> = {
-  vitrine: [3, 1], counter: [3, 1], bales: [2, 1], barrels: [2, 1], sacks: [2, 1], ingots: [2, 1], engine: [3, 2], dynamo: [2, 2],
+  vitrine: [3, 1], counter: [3, 1], bath: [2, 1], bales: [2, 1], barrels: [2, 1], sacks: [2, 1], ingots: [2, 1], engine: [3, 2], dynamo: [2, 2],
   locomotive: [4, 2], piano: [2, 1], model: [2, 2], loom: [2, 1], press: [2, 1], pyramid: [2, 2], kiosk: [2, 2],
   painting: [2, 1], tapestry: [2, 1], carpet: [2, 1], map: [2, 1], panel: [2, 1],
 };

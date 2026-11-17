@@ -149,6 +149,20 @@ export function paintFairThing(art: string, w: number, h: number, v: number, tin
       r.fill(cx - 4, Y - 10, 8, 4, m[2]);
       return done(s);
     }
+    case "bath": {
+      // A roll-top bath on brass feet, enamelled white, water in it, the taps at its head.
+      const s = make(18), { r, X, Y } = s, en = ["#ffffff", "#f0f0ec", "#d4d6d8", "#a8aeb4"];
+      ground(s);
+      const x0 = X + 2, x1 = X + W - 3, top = Y + H - 16, bot = Y + H - 4;
+      for (let y = top; y <= bot; y++) {
+        const inset = y > bot - 3 ? (y - (bot - 3)) * 2 : 0;
+        r.fill(x0 + inset, y, x1 - x0 - inset * 2, 1, y < top + 3 ? en[1] : y > bot - 2 ? en[3] : en[2]);
+      }
+      r.fill(x0 - 1, top - 1, x1 - x0 + 2, 2, en[0]); r.fill(x0 + 2, top, x1 - x0 - 4, 2, "#8ec4d8");
+      for (const fx of [x0 + 3, x1 - 5]) r.fill(fx, bot + 1, 2, 3, BRASS[2]);
+      r.fill(x0 + 1, top - 7, 2, 7, BRASS[1]); r.fill(x0 + 1, top - 8, 5, 2, BRASS[0]); r.fill(x0 + 5, top - 6, 1, 3, BRASS[2]);
+      return done(s);
+    }
     case "vase": {
       const s = make(32), { r, X, Y } = s, m = t ?? ["#b8d4f4", "#7aa4e0", "#4a74b8", "#30508c", "#1e3460"];
       ground(s);

@@ -22,7 +22,9 @@ import { createSettingSession } from "../src/runtime/session";
 import { theban } from "../src/content/tombs/theban";
 import { tombLevel, tombPlan, tombWalkable } from "../src/world/tomb";
 import { fairLevel, fairSolid, fairWalkable } from "../src/world/fair";
-import { fairs } from "../src/content/fairs";
+import { fairPeople, fairs } from "../src/content/fairs";
+import { tunnelPerson } from "../src/content/sewers";
+import { commonLivelihoods } from "../src/content/characters/livelihoods.generated";
 import { arrivalFrom } from "../src/world/complex";
 
 const site = (id: string, place: SewerSite["place"]): SewerSite => {
@@ -335,6 +337,7 @@ describe("fairs", () => {
         for (let q = 0; q < queue.length; q++) for (const n of [queue[q] - 1, queue[q] + 1, queue[q] - L.w, queue[q] + L.w])
           if (n >= 0 && n < L.w * L.h && !seen[n] && fairWalkable(L.cells[n]) && !solid.has(n)) (seen[n] = 1), queue.push(n);
         for (const e of L.exits) expect(seen[(e.y + (e.h >> 1)) * L.w + e.x + (e.w >> 1)], `${tag}: the way to ${e.to}`).toBe(1);
+        for (const who of L.folk) expect(tunnelPerson(who.person), `${tag}: ${who.person}`).toBeDefined();
       }
     }
   });
@@ -359,6 +362,17 @@ describe("a fair from a plan", () => {
     const e = createSettingSession(r.setting, "fair");
     expect(e.state.player.pos.space).toBe("fair:london-1884:entrance");
     expect(e.complexMap()?.nodes.filter((n) => !n.seen).map((n) => n.name).sort()).toEqual(["Foods: the South Gallery", "the Cheap Dining Room", "the East Arcade: Heating and Cooking Apparatus"]);
+  });
+  it("staffs the Health Exhibition with people of real livelihoods: a band, scientists, sellers of food", () => {
+    const at = (id: string) => fairLevel("seed", fairs.find((f) => f.id === "london-1884")!, id)!.folk.map((f) => f.person);
+    expect(at("upper-garden").filter((p) => p === "lhe-bandsman")).toHaveLength(6);
+    expect(at("science")).toContain("lhe-measurer");
+    expect(at("education")).toContain("lhe-bacteriologist");
+    expect(at("bakeries")).toContain("lhe-baker");
+    expect(at("baths")).toContain("lhe-bath-attendant");
+    expect(at("belgium")).toContain("lhe-belgian");
+    expect(at("foods").length).toBeGreaterThan(12);
+    for (const p of fairPeople.filter((p) => p.id.startsWith("lhe-"))) expect(commonLivelihoods.some((l) => l.id === p.dress), p.dress).toBe(true);
   });
 });
 

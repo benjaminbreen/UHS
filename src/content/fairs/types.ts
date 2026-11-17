@@ -48,6 +48,8 @@ export type FairArea = {
   at?: readonly [number, number, number, number];
   /** Bandstands in a court. */
   bandstands?: number;
+  /** Who plays in each of a court's bandstands, by person id. */
+  band?: string;
   /** A gallery of machinery at work, in place of exhibitors' stands. */
   machinery?: boolean;
   /** The Tower stands over these grounds. */
@@ -91,6 +93,8 @@ export type Fair = {
   scale?: number;
   /** What it shows; an area's filler stands are drawn from these by tag. */
   finds: readonly FairFind[];
+  /** Who minds a filler stand, by the first of the area's stand tags that has an entry; "" for any other. Person ids. */
+  staff?: Readonly<Record<string, string>>;
   /** Coins at the gate, and what the coin is called: one, many. */
   ticket: number;
   coin: readonly [string, string];
@@ -106,7 +110,7 @@ export type Fair = {
 export const FAIR_ART = [
   // Floor.
   "vitrine", "counter", "bales", "barrels", "sacks", "ingots", "statue", "vase", "engine", "dynamo", "locomotive",
-  "phonograph", "telephone", "piano", "model", "loom", "press", "lamp-standard", "pyramid", "kiosk", "lift",
+  "phonograph", "telephone", "piano", "model", "loom", "press", "lamp-standard", "pyramid", "kiosk", "lift", "bath",
   // Wall.
   "painting", "tapestry", "carpet", "panel", "map",
 ] as const;
@@ -128,6 +132,8 @@ export type FairFind = {
   verb: string;
   time?: number;
   loot?: Readonly<Record<string, number | readonly [number, number]>>;
+  /** Someone posted at it, by person id: the exhibitor, the cook, the demonstrator. */
+  staff?: string;
   /** Francs it costs: a ride, a drink, a souvenir. */
   price?: number;
   heal?: number;

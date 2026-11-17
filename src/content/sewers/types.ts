@@ -115,6 +115,8 @@ export type SewerPerson = {
   women: number;
   /** Ages, inclusive. */
   ages?: readonly [number, number];
+  /** One of a crowd: most of them pass without a word unless spoken to. */
+  quiet?: boolean;
   /** Carries a light of their own, which lights the tunnel round them. */
   lit?: boolean;
   /** Items they may give or sell. */

@@ -99,6 +99,7 @@ function meet(h: FolkHost, a: Actor, who: SewerPerson) {
   const u = a.underground!;
   if (u.met || cheb(a.pos, h.state.player.pos) > (who.foes ? 6 : 4)) return;
   u.met = true;
+  if (who.quiet && Math.abs(hashCode(a.id)) % 4) return;
   if (who.threat && foe(h, who)) {
     for (const o of party(h, a)) o.underground!.met = true;
     h.event(`${a.name}, ${who.label.toLowerCase()}: “${who.threat}”`, "social", a.pos);
