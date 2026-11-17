@@ -49,7 +49,7 @@ const areas: FairArea[] = [
   room("bedchamber", "the King's Bedchamber", [20, 15, 4, 4], ["bedchamber"], 0, "The King rises and goes to bed here in public, each garment handed to him by someone with the right to hand it.", { exhibits: ["kings-bed"] }),
   room("queens", "the Queen's Apartments", [8, 13, 6, 6], ["state"], 3, "The south range of state rooms. With no queen since 1683 they belong to the first lady of the court.", { exhibits: ["gobelins"] }),
   room("state", "the King's State Apartments", [26, 13, 6, 6], ["state"], 3, "Seven rooms in a row, each named for a planet's god. The last, Apollo's, is the throne room.", { exhibits: ["throne", "rigaud-portrait", "harpsichord"] }),
-  room("mirrors", "the Hall of Mirrors", [14, 11, 12, 4], ["state"], 4, "Seventeen windows on the gardens and seventeen arches of mirror facing them, 357 mirrors in all. Everyone crosses it to reach the King, so everyone waits here to be seen."),
+  room("mirrors", "the Hall of Mirrors", [14, 11, 12, 4], ["state"], 4, "Seventeen windows on the gardens and seventeen arches of mirror facing them, 357 mirrors in all. Everyone crosses it to reach the King, so everyone waits here to be seen.", { mirrors: true }),
   open("parterre", "the Water Parterre", [12, 5, 16, 6], "Two great basins on the terrace under the Hall of Mirrors.", { fountain: "basin" }),
   open("latona", "the Latona Fountain", [14, 0, 12, 5], "The fountain of Latona, at the head of the walk down to the Grand Canal.", { fountain: "coutan" }),
 ];

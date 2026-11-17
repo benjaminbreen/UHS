@@ -1,5 +1,6 @@
 import { box, drum } from "../ship/things";
 import { exhibitItem, stamp } from "./items";
+import { paintPalaceDecor } from "./palace";
 import { paintMachine, type MachineKind } from "../machines";
 import { h2, Raster } from "../ship/raster";
 import { MACHINES } from "../../world/fair";
@@ -142,12 +143,14 @@ export function paintFairThing(art: string, w: number, h: number, v: number, tin
       ground(s);
       box(r, X + 1, Y - 4, W - 2, 6, 14, STONE, STONE);
       const cx = X + W / 2;
-      drum(r, cx, Y - 6, 4, 1.5, 18, m);
-      drum(r, cx, Y - 24, 3, 1, 8, m);
-      drum(r, cx, Y - 33, 2.5, 2, 4, m);
-      r.fill(cx + 4, Y - 42, 2, 14, m[2]); r.fill(cx + 4, Y - 42, 1, 14, m[1]);
-      r.fill(cx - 6, Y - 28, 2, 10, m[1]);
-      r.fill(cx - 4, Y - 10, 8, 4, m[2]);
+      // A standing figure in drapery, lit from the upper left.
+      [
+        "....0112....", "...001122...", "...011123...", "...011123...", "....1123....", "....112.....",
+        "..00111223..", ".0001112233.", ".00111122334", "0011.1122.34", "001..1122.34", "01...1122.33",
+        "01..01122.23", "11..011223.3", ".1..0112233.", "....0112233.", "...00112233.", "...00112233.",
+        "...01112233.", "...01212323.", "...01212323.", "...01212323.", "..001212323.", "..001212323.",
+        "..0012123233", "..0112123233", "..0112223233", ".00112223333", ".01122233334",
+      ].forEach((row, j) => [...row].forEach((ch, i) => { if (ch !== ".") r.set(cx - 6 + i, Y - 33 + j, m[+ch]); }));
       return done(s);
     }
     case "throne": {
@@ -471,6 +474,7 @@ export function paintFairDecor(type: string, v: number): FairSprite | undefined 
     r.finish();
     return { r, ox: 4, oy: 34 };
   }
+  if (type.startsWith("palace:")) return paintPalaceDecor(type.slice(7), v);
   if (type === "palm") {
     // A fan palm in a green-painted tub with brass hoops: fronds springing from a crown, lit on top.
     const r = new Raster(56, 64), cx = 28, foot = 58;
@@ -676,7 +680,9 @@ const STALLS = [["#c86a5a", "#a84a40", "#86342e", "#5e2422"], ["#6a86b8", "#4e6a
 
 /** An exhibitor's stand, three cells wide: a nameboard on carved posts over a
  * back screen of shelves, and a draped counter of goods in front. */
-const TABLE = { rim: "#d49a5e", top: "#a0623a", grain: "#8e5430", front: "#b87844", panel: "#96592e", foot: "#62381c" };
+const WOOD_TABLE = { rim: "#d49a5e", top: "#a0623a", grain: "#8e5430", front: "#b87844", panel: "#96592e", foot: "#62381c" };
+/** A palace table: a marble top in a gilt frame. */
+const GILT_TABLE = { rim: "#f6d266", top: "#f2eee6", grain: "#dcd6ca", front: "#d9a23a", panel: "#a87424", foot: "#70481a" };
 const BAIZE = [["#5e9a6a", "#3e7850", "#2a583a"], ["#b8504a", "#963632", "#6e2424"], ["#5a78b0", "#3e5a92", "#2a406e"], ["#b89a58", "#96783c", "#6e5628"]];
 
 /** A display table seen from a little above, `w` cells by `h`: a broad top with a
@@ -684,13 +690,13 @@ const BAIZE = [["#5e9a6a", "#3e7850", "#2a583a"], ["#b8504a", "#963632", "#6e242
  * its own thing; a panelled front below. Anchored on its bottom-left cell. */
 function table(cls: string, w: number, h: number, v: number): FairSprite {
   const W = w * 16, H = h * 16, X = 4, Y = 10, r = new Raster(W + 8, H + Y + 6), n = Math.floor(v * 9973);
-  const top = Y - 3, face = Y + H - 11;
+  const top = Y - 3, face = Y + H - 11, TABLE = FURNITURE[cls] ? GILT_TABLE : WOOD_TABLE;
   r.shadow(X + W / 2 + 2, Y + H - 1, W / 2 + 1, 4, 0.28);
   r.fill(X, top, W, face - top, TABLE.top);
   for (let y = top + 3; y < face; y += 4) for (let x = X + 2; x < X + W - 2; x++) if (h2(x >> 3, y, n) > 0.55) r.set(x, y, TABLE.grain);
   // The rim, lit along the back and the left.
   r.fill(X, top, W, 2, TABLE.rim); r.fill(X, top, 2, face - top, TABLE.rim); r.fill(X + W - 2, top, 2, face - top, TABLE.grain); r.fill(X, face - 2, W, 2, TABLE.rim);
-  if (v > 0.45) {
+  if (v > 0.45 && !FURNITURE[cls]) {
     const c = BAIZE[n % BAIZE.length];
     r.fill(X + 3, top + 3, W - 6, face - top - 6, c[1]); r.fill(X + 3, top + 3, W - 6, 1, c[0]); r.fill(X + 3, face - 4, W - 6, 1, c[2]);
     for (let x = X + 4; x < X + W - 4; x += 2) r.set(x, face - 4, "#e8c060");

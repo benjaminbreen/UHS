@@ -3,6 +3,7 @@ import { fairFind } from "../../content/fairs";
 import { fairIndoor, fairOutdoor, FRONT, type FairLevel } from "../../world/fair";
 import { washAt } from "../lighting";
 import { PAD, paintFairGround } from "./ground";
+import { PALACE_RISE } from "./palace";
 import { paintFairDecor, paintFairThing, type FairSprite } from "./things";
 
 export type FairFrame = { clock: number; time: number };
@@ -47,10 +48,11 @@ export class FairView {
     const outdoor = fairOutdoor(level.kind);
     this.objects.push(scene.add.rectangle(-800, -600, W + 1600, H + 1200, outdoor ? 0x41692c : level.kind === "platform" ? 0x9ab0c4 : 0x2a2226).setOrigin(0, 0).setDepth(-99993));
     // A gallery among other galleries fills the view: its roof behind, its front wall below, little of the lawn round it.
-    const m = level.kind === "gallery" ? { x: 1, top: 4, bottom: 3 } : PAD;
+    const palace = level.look === "palace";
+    const m = palace ? { x: 1, top: PALACE_RISE / 16, bottom: 1 } : level.kind === "gallery" ? { x: 1, top: 4, bottom: 3 } : PAD;
     this.bounds = { x: -m.x * 16, y: -m.top * 16, w: W + m.x * 32, h: H + (m.top + m.bottom) * 16 };
     this.objects.push(scene.add.image(-PAD.x * 16, -PAD.top * 16, tex("ground", paintFairGround(level, seed).canvas())).setOrigin(0, 0).setDepth(-99990));
-    const put = (s: FairSprite, x: number, y: number, key: string, depth: number) => {
+    const put = (s: FairSprite, x: number, y: number, key: string, depth: number, dx = 0, dy = 0) => {
       if (s.frames) {
         // The frames side by side, eight to a row.
         const fw = s.r.w, fh = s.r.h, n = s.frames.length, sheet = document.createElement("canvas");
@@ -59,15 +61,16 @@ export class FairView {
         s.frames.forEach((f, i) => f.put(sheet.getContext("2d")!, (i % 8) * fw, Math.floor(i / 8) * fh));
         const k = tex(key, sheet), texture = scene.textures.get(k);
         for (let i = 0; i < n; i++) texture.add(i, 0, (i % 8) * fw, Math.floor(i / 8) * fh, fw, fh);
-        const im = scene.add.image(x * 16 - s.ox, y * 16 - s.oy, k, 0).setOrigin(0, 0).setDepth(depth);
+        const im = scene.add.image(x * 16 - s.ox + dx, y * 16 - s.oy + dy, k, 0).setOrigin(0, 0).setDepth(depth);
         this.objects.push(im);
         this.working.push({ im, n, fps: s.fps ?? 10 });
-      } else this.objects.push(scene.add.image(x * 16 - s.ox, y * 16 - s.oy, tex(key, s.r.canvas())).setOrigin(0, 0).setDepth(depth));
-      for (const g of s.glow ?? []) this.glow(x * 16 - s.ox + g.x, y * 16 - s.oy + g.y);
+      } else this.objects.push(scene.add.image(x * 16 - s.ox + dx, y * 16 - s.oy + dy, tex(key, s.r.canvas())).setOrigin(0, 0).setDepth(depth));
+      for (const g of s.glow ?? []) this.glow(x * 16 - s.ox + dx + g.x, y * 16 - s.oy + dy + g.y);
     };
     for (const t of level.things) {
       const f = fairFind(t.find), s = f && paintFairThing(t.art, t.w ?? 1, t.h ?? 1, (t.x * 7 + t.y) % 10 / 10, f.tint);
-      if (s) put(s, t.x, t.y, t.id, t.wall ? -99980 : (t.y + (t.h ?? 1) - 1) * 16 + 13);
+      // On a palace wall a hung thing has a bay to itself: in the middle of it, at eye height.
+      if (s) put(s, t.x, t.y, t.id, t.wall ? -99980 : (t.y + (t.h ?? 1) - 1) * 16 + 13, t.wall && palace ? (3 - (t.w ?? 1)) * 8 : 0, t.wall && palace ? -30 : 0);
     }
     const indoor = fairIndoor(level.kind);
     const decor = [...level.decor];
@@ -107,7 +110,7 @@ export class FairView {
       if (!e.name) continue;
       const x = (e.x + e.w / 2) * 16, y = (e.y + e.h / 2) * 16;
       const into = e.w === 1 && e.h === 1;
-      const label = scene.add.text(x, into ? y + 22 : e.y === 0 ? y + 14 : e.y === level.h - 1 ? y - 6 : y, into ? e.name : `${e.x === 0 ? "◂ " : ""}${e.name}${e.x === level.w - 1 ? " ▸" : ""}`, font)
+      const label = scene.add.text(x, into ? y + 22 : e.y === 0 ? (palace ? -18 : y + 14) : e.y === level.h - 1 ? y - 6 : y, into ? e.name : `${e.x === 0 ? "◂ " : ""}${e.name}${e.x === level.w - 1 ? " ▸" : ""}`, font)
         .setOrigin(e.x === 0 && e.w === 1 && !into ? 0 : e.x === level.w - 1 && !into ? 1 : 0.5, 0.5).setDepth(1e6).setAlpha(0.85);
       this.objects.push(label);
     }

@@ -17,6 +17,7 @@ export type FairLevel = Area & {
   kind: FairArea["kind"];
   floor?: FairArea["floor"];
   look: NonNullable<FairArea["look"]>;
+  mirrors?: boolean;
   exits: AreaExit[];
   buildings: PlacedBuilding[];
   lifts: AreaLift[];
@@ -87,14 +88,20 @@ function openings(ways: FairWay[], w: number, h: number, inset: number) {
   return out;
 }
 
+/** A palace room's back wall is set out in bays three cells wide: the first bay's cell, and how many. */
+export function palaceBays(w: number) {
+  const n = Math.floor((w - 2) / 3);
+  return { b0: 1 + ((w - 2 - 3 * n) >> 1), n };
+}
+
 /** One area of a fair: always the same for the same world, fair and area. */
 export function fairLevel(seed: string, fair: Fair, id: string): FairLevel | undefined {
   const plan = fair.areas.find((a) => a.id === id);
   if (!plan) return undefined;
-  const [w, h] = sizeOf(fair, plan);
+  const [w, h] = sizeOf(fair, plan), look = plan.kind === "gallery" ? plan.look ?? fair.look ?? "shed" : "shed";
   const rng = rngOf(seed, "fair", fair.id, id);
   const L: FairLevel = {
-    space: fairSpace(fair.id, id), fair: fair.id, area: id, kind: plan.kind, floor: plan.floor, look: plan.look ?? fair.look ?? "shed", depth: 1, name: plan.name, w, h,
+    space: fairSpace(fair.id, id), fair: fair.id, area: id, kind: plan.kind, floor: plan.floor, look, mirrors: plan.mirrors, depth: 1, name: plan.name, w, h,
     cells: new Uint8Array(w * h), entry: { x: w >> 1, y: h - 2 }, things: [], decor: [], folk: [], gardens: [], plots: [], flow: new Int8Array(w * h).fill(-1),
     exits: [], buildings: [], lifts: [],
   };
@@ -113,6 +120,16 @@ export function fairLevel(seed: string, fair: Fair, id: string): FairLevel | und
   else if (plan.kind === "platform") platform(L, fill, set);
   else if (plan.kind === "gallery" || plan.kind === "court") {
     const open = openings(fairWays(fair, plan), w, h, plan.kind === "court" ? 4 : 5).map((o) => ({ ...o, to: o.to === "outside" ? "outside" : space(o.to), name: o.to === "outside" ? "the street" : areaName(o.to) }));
+    if (look === "palace") {
+      // A door through the back wall takes a whole bay.
+      const { b0, n } = palaceBays(w), used = new Set<number>();
+      for (const o of open) if (o.dir === "n") {
+        let k = Math.max(0, Math.min(n - 1, Math.round((o.a - b0) / 3)));
+        while (used.has(k)) k = (k + 1) % n;
+        used.add(k);
+        o.a = b0 + 3 * k;
+      }
+    }
     if (plan.kind === "court") court(L, plan, rng, fill, set, at, edge, open);
     else gallery(L, fill, edge, open);
   }
@@ -358,26 +375,32 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       L.decor.push({ type: x === d.x0 + 1 && y === d.y0 + 4 ? "demo" : "solid", x, y, solid: true, v: 0 });
     }
   } else if (indoor) {
-    for (let y = 0; y < h; y++) for (const x of [cx - 1, cx]) taken[y * w + x] = 1;
-    for (let y = 5; y < h - 3; y += 3) for (let x = 2; x < w - 2; x++) spots.push({ x, y });
-    const score = (p: Point) => Math.abs(p.x - cx + 0.5) + (p.y - 5) * 1.2;
+    if (L.look !== "palace") for (let y = 0; y < h; y++) for (const x of [cx - 1, cx]) taken[y * w + x] = 1;
+    const y0 = L.look === "palace" ? 7 : 5;
+    for (let y = y0; y < h - 3; y += 3) for (let x = 2; x < w - 2; x++) spots.push({ x, y });
+    const score = (p: Point) => Math.abs(p.x - cx + 0.5) + (p.y - y0) * 1.2;
     spots.sort((a, b) => score(a) - score(b));
   } else if (plan.kind === "platform") for (let x = 4; x < w - 6; x += 3) for (const y of [3, h - 6]) spots.push({ x, y });
   else {
     for (const y of plan.kind === "court" ? [2, h - 3] : [FRONT + 2, h - 2]) for (let x = 3; x < w - 3; x++) if (Math.abs(x - cx) > 4) spots.push({ x, y });
     spots.sort((a, b) => Math.abs(a.x - cx) - Math.abs(b.x - cx) || a.y - b.y);
   }
+  const palace = L.look === "palace", bays = palaceBays(w);
+  // Things hung on a palace wall take a bay each, from the middle outward.
   const wallX: number[] = [];
-  if (indoor) for (let x = 3; x < w - 4; x += 4) wallX.push(x);
+  if (palace) for (let k = 0; k < bays.n; k++) wallX.push(bays.b0 + 3 * k);
+  else if (indoor) for (let x = 3; x < w - 4; x += 4) wallX.push(x);
+  if (palace) wallX.sort((a, b) => Math.abs(a + 1 - cx) - Math.abs(b + 1 - cx));
   const place = (f: FairFind, n: number) => {
     const [fw, fh] = footprint(f);
     // The Machines' locomotive has its own length of track, the great engine the middle of the hall.
     const at = f.art === "locomotive" && isle.length ? inside(isle[7]) : fw >= 6 && isle.length ? inside(isle[8]) : spots;
     if (f.on === "wall" && indoor) {
-      const i = wallX.findIndex((x) => wallFree(x, fw));
+      if (L.mirrors) return false;
+      const i = wallX.findIndex((x) => wallFree(palace ? x + 1 : x, palace ? 1 : fw));
       if (i < 0) return false;
       const x = wallX.splice(i, 1)[0];
-      for (let xx = x; xx < x + fw; xx++) taken[2 * w + xx] = 1;
+      for (let xx = x; xx < x + (palace ? 3 : fw); xx++) taken[2 * w + xx] = 1;
       L.things.push(thing(L, f, n, x, 2, true));
       post(f.staff, [{ x, y: 3 }, { x: x + fw, y: 3 }]);
       return true;
@@ -441,6 +464,42 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       if (k % 3 === 0) post(standStaff, [{ x: x + fw, y: foot }, { x: x - 1, y: foot }]);
       k++, x += fw + 4;
     }
+  } else if (palace) {
+    // Against the back wall, bay by bay: pier tables with stools either side, busts, benches, and the room's own piece once.
+    const cls = plan.stands?.tags[0] ?? "", own = cls !== "state" && cls !== "bedchamber";
+    const door = (k: number) => k < 0 || k >= bays.n || L.exits.some((e) => e.y === 0 && e.x === bays.b0 + 3 * k);
+    const cycle = ["console", "bust", "console", "", "bench", ""], turn = Math.floor(rng() * 6), mid = bays.n >> 1;
+    for (let k = 0; k < bays.n; k++) {
+      const x = bays.b0 + 3 * k;
+      if (door(k) || taken[2 * w + x + 1] || [0, 1, 2].some((i) => L.cells[3 * w + x + i] !== FLOOR || taken[3 * w + x + i])) continue;
+      const type = own && k === (door(mid) ? mid + 1 : mid) ? `stall:${cls}` : `palace:${cycle[(k + turn) % 6]}`;
+      if (type === "palace:") continue;
+      if (type === "palace:bust") { taken[3 * w + x + 1] = 1; L.decor.push({ type, x: x + 1, y: 3, solid: true, v: rng() }); continue; }
+      block(x, 3, 3, 1);
+      L.decor.push({ type, x, y: 3, solid: true, v: rng() });
+      if (type !== "palace:console") continue;
+      for (const sx of [x, x + 3]) if (!door(sx === x ? k - 1 : k + 1) && sx < w - 1 && !L.decor.some((d) => d.type === "palace:stool" && d.x === sx)) L.decor.push({ type: "palace:stool", x: sx, y: 3, solid: false, v: rng() });
+    }
+    // A room deep enough to spare the floor has tables of its treasures down the middle.
+    if (h >= 30) for (let x = 5; x < w - 8; ) {
+      const fw = 4 + Math.floor(rng() * 3), y = (h >> 1) - 1;
+      if (!free(x, y, fw, 2)) { x++; continue; }
+      block(x, y, fw, 2);
+      L.decor.push({ type: `table:${cls}:${fw}x2`, x, y: y + 1, solid: true, v: rng() });
+      x += fw + 5;
+    }
+    // Candle stands and stools down the side walls; orange trees in tubs along the windows.
+    for (const x of [1, w - 2]) for (let y = 7, k = 0; y < h - 3; y += 3, k++) {
+      if (L.cells[y * w + x] !== FLOOR || taken[y * w + x]) continue;
+      taken[y * w + x] = 1;
+      L.decor.push({ type: k % 2 ? "palace:stool" : "palace:torchere", x: k % 2 && x === 1 ? 2 : x, y, solid: true, v: rng() });
+    }
+    for (let k = 0; k <= bays.n; k += 2) {
+      const x = Math.min(w - 2, bays.b0 + 3 * k), y = h - 3;
+      if (L.cells[y * w + x] !== FLOOR || taken[y * w + x] || taken[(y + 1) * w + x]) continue;
+      taken[y * w + x] = 1;
+      L.decor.push({ type: "palace:orange", x, y, solid: true, v: rng() });
+    }
   } else if (plan.kind === "gallery") {
     // Display tables laid with the area's class of thing, a stand between every two, in rows with open floor between.
     const cls = plan.stands?.tags[0] ?? "";
@@ -475,7 +534,7 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       taken[y * w + x] = 1;
     };
     if (plan.kind !== "gallery") for (let y = 5; y < h - 4; y += 2) furnish("case", 1, y), furnish("case", w - 2, y);
-    for (const [x, y] of [[2, 3], [w - 3, 3], [cx - 3, h - 2], [cx + 2, h - 2]]) furnish("palm", x, y);
+    if (!palace) for (const [x, y] of [[2, 3], [w - 3, 3], [cx - 3, h - 2], [cx + 2, h - 2]]) furnish("palm", x, y);
   }
   // The band, in under the bandstand's roof.
   for (const d of L.decor) if (d.type === "bandstand") for (let i = 0; i < 3; i++) post(plan.band, [{ x: d.x + i, y: d.y - 1 }], true);

@@ -1,6 +1,7 @@
 import { BED, BOX, BRIDGE, BUILDING, DECK, FENCE, FLOOR, GRAVEL, HEDGE, LAWN, PAVING, WALL, WATER, fairIndoor, type FairLevel } from "../../world/fair";
 import { h2, Raster } from "../ship/raster";
 import { paintFlag } from "./flags";
+import { palaceFloor, palaceLight, palaceWalls } from "./palace";
 
 /** Cells of ground painted round an area, so its edges never show the void. */
 export const PAD = { x: 8, top: 8, bottom: 6 };
@@ -35,9 +36,6 @@ const BOARDS = ["#efd29c", "#e0bd80", "#d2ab6c", "#b08a52"];
 /** The warm look: orange boards laid up the room, walls of the same wood, a deep wainscot. */
 const WARM_BOARDS = ["#f0b06a", "#de9448", "#c87c36", "#9c5a22"];
 const WARM_WALL = ["#f6c884", "#e4a25a", "#c8803c", "#a05e28", "#74401a", "#4c2810"];
-/** The palace look: white panelling picked out in gold. */
-const PALACE_WALL = ["#fffaf0", "#f2e9d6", "#dccfb4", "#b8a888", "#8a7a60", "#5e5040"];
-const GILT = ["#fff4b8", "#f0c860", "#c08e30", "#8a6022"];
 const COLUMN = ["#7fae8a", "#4f8262", "#356048", "#22402f"];
 const BUNTING = ["#d0403a", "#f4f0e8", "#3a5aa8", "#f0c838"];
 const RUNNER = ["#d85a48", "#b23e34", "#862a26", "#e8c070"];
@@ -115,7 +113,8 @@ export function paintFairGround(L: FairLevel, seed: number): Raster {
     const x0 = (X0 + p.x0) * 16, y0 = (Y0 + p.y0) * 16, x1 = (X0 + p.x1 + 1) * 16, y1 = (Y0 + p.y1 + 1) * 16;
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) R.shade(x, y, y === y0 || x === x0 ? 0.32 : y === y1 - 1 || x === x1 - 1 ? 0.08 : 0.22, [70, 64, 80]);
   }
-  if (L.kind === "gallery") skylight(R, L, X0 * 16, Y0 * 16);
+  if (L.kind === "gallery" && L.look === "palace") palaceLight(R, L, X0 * 16, Y0 * 16);
+  else if (L.kind === "gallery") skylight(R, L, X0 * 16, Y0 * 16);
   for (const g of L.gardens) garden(R, L, g, seed);
   if (L.fountain) basin(R, L.fountain, seed);
   if (indoor) building(R, L, X0 * 16, Y0 * 16, seed);
@@ -459,6 +458,7 @@ function deck(R: Raster, X: number, Y: number, seed: number) {
 }
 
 function floor(R: Raster, X: number, Y: number, L: FairLevel, ax: number, ay: number) {
+  if (L.look === "palace") return palaceFloor(R, X, Y, L, ax, ay);
   const kind = L.floor ?? "parquet", f = FLOORS[kind], cx = L.w >> 1;
   const border = ax === 1 || ax === L.w - 2 || ay === 3 || ay === L.h - 2;
   for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
@@ -539,7 +539,8 @@ function rail(R: Raster, X: number, Y: number) {
  * windows and flag, the side walls' tops, and the front wall with its door
  * and steps, all round the floor the visitor walks on. */
 function building(R: Raster, L: FairLevel, OX: number, OY: number, seed: number) {
-  const { w, h } = L, W = w * 16, c = L.kind !== "gallery" || L.look === "shed" ? WALLS[L.floor ?? "parquet"] : L.look === "warm" ? WARM_WALL : PALACE_WALL, door = (w >> 1) - 1;
+  if (L.look === "palace") return palaceWalls(R, L, OX, OY, seed);
+  const { w, h } = L, W = w * 16, c = L.kind !== "gallery" || L.look === "shed" ? WALLS[L.floor ?? "parquet"] : WARM_WALL, door = (w >> 1) - 1;
   // The roof: a glazed lantern between solid margins, three cells deep, seen from above.
   const ry = OY - 48;
   R.fill(OX, ry, W, 48, c[2]);
@@ -564,7 +565,6 @@ function building(R: Raster, L: FairLevel, OX: number, OY: number, seed: number)
   const cx = OX + W / 2;
   if (L.kind === "machines") ironWall(R, L, OX, ry, by, c);
   else if (L.kind === "gallery" && L.look === "warm") panelled(R, L, OX, by, c);
-  else if (L.kind === "gallery" && L.look === "palace") boiserie(R, L, OX, by, c);
   else if (L.kind === "gallery") shed(R, L, OX, by, c);
   else if (L.kind === "hall") gallery(R, L, OX, by, c);
   else for (let x = OX + 16; x + 20 < OX + W - 8; x += 32) {
@@ -668,40 +668,6 @@ function panelled(R: Raster, L: FairLevel, OX: number, by: number, c: string[]) 
   R.fill(x0, by + 26, x1 - x0, 20, c[3]);
   for (let x = x0 + 3; x < x1; x += 6) R.fill(x, by + 27, 1, 18, c[4]), R.fill(x + 1, by + 27, 1, 18, c[2]);
   R.fill(x0, by + 44, x1 - x0, 2, c[5]);
-}
-
-/** A palace room's back wall: gilt cornice, tall round-headed mirrors between
- * fluted pilasters with gilt capitals, crimson hangings in the bays between, and a panelled dado. */
-function boiserie(R: Raster, L: FairLevel, OX: number, by: number, c: string[]) {
-  const W = L.w * 16, x0 = OX + 8, x1 = OX + W - 8;
-  R.fill(x0, by, x1 - x0, 5, GILT[1]); R.fill(x0, by, x1 - x0, 1, GILT[0]); R.fill(x0, by + 4, x1 - x0, 1, GILT[3]);
-  for (let x = x0 + 2; x < x1 - 2; x += 4) R.set(x, by + 2, GILT[3]);
-  R.fill(x0, by + 5, x1 - x0, 31, c[1]);
-  for (let bx = x0 + 8, k = 0; bx + 6 < x1; bx += 40, k++) {
-    // The pilaster.
-    R.fill(bx, by + 6, 6, 30, c[0]); R.fill(bx + 5, by + 6, 1, 30, c[3]); R.fill(bx + 2, by + 9, 1, 26, c[2]);
-    R.fill(bx - 1, by + 5, 8, 4, GILT[1]); R.fill(bx - 1, by + 5, 8, 1, GILT[0]); R.fill(bx - 1, by + 8, 8, 1, GILT[3]);
-    const px = bx + 12, pw = 22;
-    if (px + pw > x1 - 4) continue;
-    if (k % 2 === 0) {
-      // A mirror in a gilt frame, the room's light caught in it.
-      for (let y = by + 8; y < by + 35; y++) for (let i = 0; i < pw; i++) {
-        const top = y - (by + 8), rr = pw / 2, dx = i + 0.5 - rr;
-        if (top < 9 && dx * dx + ((9 - top) * 1.3) ** 2 > rr * rr) continue;
-        const edge = i < 2 || i >= pw - 2 || top > 24 || (top < 9 && dx * dx + ((11 - top) * 1.3) ** 2 > rr * rr);
-        R.set(px + i, y, edge ? GILT[i < 2 || top < 3 ? 0 : 1] : (i + top) % 11 < 3 ? "#f4fbff" : top > 14 ? "#9cb8cc" : "#c4dcea");
-      }
-    } else {
-      // A crimson hanging with a gold fringe.
-      R.fill(px, by + 8, pw, 26, "#a83440"); R.fill(px, by + 8, pw, 1, GILT[1]);
-      for (let i = 0; i < pw; i += 4) R.fill(px + i, by + 9, 1, 24, "#862430"), R.fill(px + i + 1, by + 9, 1, 24, "#c04a54");
-      for (let i = 0; i < pw; i++) R.set(px + i, by + 34, i % 2 ? GILT[1] : GILT[2]);
-    }
-  }
-  // The dado: panels outlined in gold.
-  R.fill(x0, by + 36, x1 - x0, 10, c[0]); R.fill(x0, by + 36, x1 - x0, 1, GILT[1]);
-  for (let x = x0 + 4; x + 14 < x1; x += 18) { R.fill(x, by + 39, 14, 1, GILT[2]); R.fill(x, by + 44, 14, 1, GILT[2]); R.fill(x, by + 39, 1, 6, GILT[2]); R.fill(x + 13, by + 39, 1, 6, GILT[2]); }
-  R.fill(x0, by + 46, x1 - x0, 2, c[4]);
 }
 
 /** An exhibition shed's back wall: boarded, between iron columns, a tall round-headed

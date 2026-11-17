@@ -49,6 +49,8 @@ export type FairArea = {
   /** How a gallery is built and coloured: an iron and glass exhibition shed, a warm panelled room with deep
    * wainscot, or a palace room of white and gold panelling and tall mirrors. The fair's own look when unset. */
   look?: "shed" | "warm" | "palace";
+  /** A palace room whose back wall is mirror in every bay. */
+  mirrors?: boolean;
   /** Bandstands in a court. */
   bandstands?: number;
   /** Who plays in each of a court's bandstands, by person id. */
