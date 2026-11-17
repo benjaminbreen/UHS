@@ -87,7 +87,7 @@ The rest of this paragraph is the hand-planned kinds. A fair's area has each are
 
 A new kind of large interior plugs in at those three places. Do not start a parallel system for it.
 
-A tower is not a complex. Its storeys are ordinary interiors, so the people who work there have desks, regulars and a day like any other building's. Storey n of a place is the space `<place>@<n>` (`world/tower.ts`: `floorSpace`, `parseFloor`), and `interiorOf` builds it from the tower's plan: which firm has the floor, its interior profile and colouring. A `TowerStyle` in `content/towers/` gives the frames that are towers, the range of storeys, the lift, the lobby and the kinds of floor. Beside a lift door the action key opens `ui/TowerSection.tsx`, the tower in section, and choosing a floor rides there (the `lift` action).
+A tower is not a complex. Its storeys are ordinary interiors, so the people who work there have desks, regulars and a day like any other building's. Storey n of a place is the space `<place>@<n>` (`world/tower.ts`: `floorSpace`, `parseFloor`), and `interiorOf` builds it from the tower's plan: which firm has the floor, its interior profile and colouring. A `TowerStyle` in `content/towers/` gives the frames that are towers, the range of storeys, the lift, the lobby and the kinds of floor. Beside a lift door the action key opens `ui/TowerSection.tsx`, the tower in section, and choosing a floor rides there (the `lift` action). The style's `section` gives the cutaway its stone, setbacks and crown.
 
 ## Where the code doubles up
 

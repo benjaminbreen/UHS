@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Runtime } from "../runtime/session";
 import { floorName, type Tower } from "../world/tower";
 
-const FH = 12, W = 176, CROWN = 46, STREET = 14;
+const FH = 12, W = 176, STREET = 14;
+const CROWNS = { step: 46, spire: 92, gable: 50 } as const;
 const hex = (h: string, k = 1) => {
   const n = parseInt(h.slice(1), 16);
   const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.max(0, Math.min(255, Math.round(v * k))));
@@ -15,40 +16,126 @@ const hash = (...k: number[]) => {
 };
 const COATS = ["#2e3448", "#4a3a2e", "#3a4a3a", "#5a2e2e", "#6a6070", "#2a2a2a"];
 
-/** Half the building's width at storey i: it steps back near the top, as the outside does. */
-const halfAt = (i: number, n: number) => (i < n * 0.72 ? 74 : i < n - 2 ? 58 : 42);
+const NEON = ["#ff4aa8", "#4ac8ff", "#ffb03a", "#6aff8a"];
+const crownOf = (tower: Tower) => CROWNS[tower.style.section.crown];
+
+/** Half the building's width at storey i: it steps back as the outside does. */
+const halfAt = (tower: Tower, i: number, n: number) => {
+  let half = 74;
+  for (const [from, h] of tower.style.section.halves) if (i >= from * n) half = h;
+  return half;
+};
+
+/** An aviation light: a slow blink after dark, a dull red lens by day. */
+function beacon(g: CanvasRenderingContext2D, x: number, y: number, night: boolean, now: number, phase = 0) {
+  const on = night && (now / 1500 + phase) % 1 < 0.35;
+  if (on) {
+    g.fillStyle = "rgba(255,60,50,0.35)";
+    g.fillRect(x - 2, y - 2, 6, 6);
+  }
+  g.fillStyle = on ? "#ff5a48" : "#8a2a24";
+  g.fillRect(x, y, 2, 2);
+}
+
+function crown(g: CanvasRenderingContext2D, tower: Tower, n: number, top: number, night: boolean, now: number) {
+  const cx = W / 2, [lit, stone, dark] = tower.style.section.stone, half = halfAt(tower, n - 1, n);
+  const kind = tower.style.section.crown;
+  if (kind === "step") {
+    let hw = half - 6, y = top;
+    for (let k = 0; k < 3; k++, hw -= 9) {
+      y -= 8;
+      g.fillStyle = stone;
+      g.fillRect(cx - hw, y, hw * 2, 8);
+      g.fillStyle = lit;
+      g.fillRect(cx - hw, y, hw * 2, 1);
+      g.fillStyle = "#3a3448";
+      for (let x = cx - hw + 4; x < cx + hw - 3; x += 5) g.fillRect(x, y + 3, 2, 4);
+    }
+    g.fillStyle = "#9aa4b0";
+    g.fillRect(cx - 1, y - 18, 2, 18);
+    beacon(g, cx - 1, y - 20, night, now);
+  } else if (kind === "spire") {
+    // balustrade and obelisks, the lantern, the drum, the gilt spire and the star
+    g.fillStyle = lit;
+    g.fillRect(cx - half, top - 3, half * 2, 1);
+    for (let x = cx - half + 1; x < cx + half; x += 2) g.fillRect(x, top - 2, 1, 2);
+    for (const x of [cx - half, cx + half - 2]) {
+      g.fillStyle = stone;
+      g.fillRect(x, top - 10, 2, 8);
+      beacon(g, x, top - 12, night, now, x > cx ? 0.5 : 0);
+    }
+    const lw = Math.round(half * 0.7);
+    g.fillStyle = stone;
+    g.fillRect(cx - lw, top - 16, lw * 2, 14);
+    g.fillStyle = lit;
+    g.fillRect(cx - lw - 1, top - 17, lw * 2 + 2, 2);
+    g.fillStyle = night ? "#e8b860" : "#3a3040";
+    for (const k of [-1, 0, 1]) g.fillRect(cx + k * Math.round(lw * 0.6) - 1, top - 13, 3, 9);
+    const dw = Math.round(lw * 0.6);
+    g.fillStyle = stone;
+    g.fillRect(cx - dw, top - 24, dw * 2, 7);
+    g.fillStyle = dark;
+    for (let x = cx - dw + 2; x < cx + dw - 1; x += 3) g.fillRect(x, top - 23, 1, 5);
+    for (let j = 0; j < 44; j++) {
+      const w = Math.round(dw * 0.6 * (1 - j / 44)) + 1;
+      g.fillStyle = j % 8 === 4 ? "#f0d890" : "#c8a040";
+      g.fillRect(cx - w, top - 25 - j, w, 1);
+      g.fillStyle = j % 8 === 4 ? "#c8a040" : "#8a6a28";
+      g.fillRect(cx, top - 25 - j, w, 1);
+    }
+    const sy = top - 76;
+    if (night) {
+      const a = 0.25 + 0.1 * Math.sin(now / 700);
+      g.fillStyle = `rgba(255,60,50,${a})`;
+      g.beginPath();
+      g.arc(cx, sy, 9, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.fillStyle = night ? "#ff6a50" : "#b02a24";
+    g.beginPath();
+    for (let k = 0; k < 10; k++) {
+      const r = k % 2 ? 2 : 5, ang = -Math.PI / 2 + (k * Math.PI) / 5;
+      g.lineTo(cx + r * Math.cos(ang), sy + r * Math.sin(ang));
+    }
+    g.fill();
+    g.fillStyle = "#e0c060";
+    g.fillRect(cx - 6, sy + 5, 2, 1);
+    g.fillRect(cx + 4, sy + 5, 2, 1);
+  } else {
+    // a glass gable on a granite band, a mast at the apex, a light at each corner
+    g.fillStyle = stone;
+    g.fillRect(cx - half - 1, top - 3, half * 2 + 2, 3);
+    for (let j = 0; j < 20; j++) {
+      const w = Math.round((half - 4) * (1 - j / 20));
+      g.fillStyle = night ? "#2a3a52" : j % 5 ? "#8ab0c8" : "#c8d8e0";
+      g.fillRect(cx - w, top - 4 - j, w * 2, 1);
+    }
+    g.fillStyle = "#9aa4b0";
+    g.fillRect(cx, top - 34, 1, 10);
+    beacon(g, cx - 1, top - 36, night, now);
+    beacon(g, cx - half, top - 6, night, now, 0.5);
+    beacon(g, cx + half - 2, top - 6, night, now, 0.5);
+  }
+}
 
 function paint(g: CanvasRenderingContext2D, tower: Tower, here: number, car: number, hover: number | undefined, hour: number) {
-  const n = tower.floors.length, H = CROWN + n * FH + STREET, cx = W / 2;
-  const night = hour < 7 || hour >= 19, working = hour >= 9 && hour < 17;
+  const CROWN = crownOf(tower), n = tower.floors.length, H = CROWN + n * FH + STREET, cx = W / 2;
+  const night = hour < 7 || hour >= 19, working = hour >= 9 && hour < 17, now = performance.now();
   const sky = g.createLinearGradient(0, 0, 0, H);
   sky.addColorStop(0, night ? "#141826" : "#7ea6c8");
   sky.addColorStop(1, night ? "#2a2438" : "#d8e2e4");
   g.fillStyle = sky;
   g.fillRect(0, 0, W, H);
   const yOf = (i: number) => CROWN + (n - 1 - i) * FH;
-  const stone = "#c8b48c", stoneLit = "#e2d2ac", stoneDark = "#8a7658";
-  // the crown over the top storey: steps and a mast
-  let hw = halfAt(n - 1, n) - 6, y = yOf(n - 1);
-  for (let k = 0; k < 3; k++, hw -= 9) {
-    y -= 8;
-    g.fillStyle = stone;
-    g.fillRect(cx - hw, y, hw * 2, 8);
-    g.fillStyle = stoneLit;
-    g.fillRect(cx - hw, y, hw * 2, 1);
-    g.fillStyle = "#3a3448";
-    for (let x = cx - hw + 4; x < cx + hw - 3; x += 5) g.fillRect(x, y + 3, 2, 4);
-  }
-  g.fillStyle = "#9aa4b0";
-  g.fillRect(cx - 1, y - 18, 2, 18);
-  g.fillStyle = night && Math.floor(performance.now() / 600) % 2 ? "#ff4a3a" : "#a03028";
-  g.fillRect(cx - 1, y - 20, 2, 2);
+  const [stoneLit, stone, stoneDark] = tower.style.section.stone;
+  crown(g, tower, n, yOf(n - 1), night, now);
+  const evening = (k: string) => k === "snack" || k === "mahjong" || k === "lounge";
   for (const f of tower.floors) {
-    const i = f.n, top = yOf(i), half = halfAt(i, n), x0 = cx - half, x1 = cx + half;
+    const i = f.n, top = yOf(i), half = halfAt(tower, i, n), x0 = cx - half, x1 = cx + half;
     const way = f.profile.colorways[f.colorway % f.profile.colorways.length];
-    const lit = !night || (f.kind !== "lobby" ? hash(i, 7) < 0.3 : true);
+    const lit = !night || f.kind === "lobby" || (evening(f.kind) ? hour < 2 || hour >= 17 : hash(i, 7) < 0.3);
     const dim = lit ? 1 : 0.32;
-    const busy = f.kind === "lobby" ? hour >= 7 && hour < 20 : working;
+    const busy = f.kind === "lobby" ? hour >= 7 && hour < 20 : evening(f.kind) ? lit && (hour >= 17 || hour < 2) : working;
     // the room: wall, a darker dado, the floor slab
     g.fillStyle = hex(way.wall, dim);
     g.fillRect(x0, top, half * 2, FH - 2);
@@ -73,7 +160,32 @@ function paint(g: CanvasRenderingContext2D, tower: Tower, here: number, car: num
         g.fillRect(a, floorY - 3, b - a, 3);
         g.fillStyle = accent;
         for (let x = a; x < b; x += 2) g.fillRect(x, floorY - 7, 1, 4);
-      } else if (f.kind === "showroom") {
+      } else if (f.kind === "snack" || f.kind === "lounge") {
+        // a bar along one side, bottles glowing on the shelf behind it
+        g.fillStyle = ink;
+        g.fillRect(a, floorY - 4, Math.min(22, b - a), 4);
+        for (let x = a + 1; x < a + Math.min(22, b - a) - 1; x += 3) {
+          g.fillStyle = NEON[Math.floor(hash(i, x) * NEON.length)];
+          g.fillRect(x, top + 2, 1, 2);
+        }
+        g.fillStyle = accent;
+        for (let x = a + 26; x < b - 5; x += 10) g.fillRect(x, floorY - 3, 5, 1);
+      } else if (f.kind === "mahjong") {
+        for (let x = a + 2; x < b - 7; x += 12) {
+          g.fillStyle = "#2a6a3a";
+          g.fillRect(x, floorY - 3, 7, 1);
+          g.fillStyle = ink;
+          g.fillRect(x + 1, floorY - 2, 1, 2);
+          g.fillRect(x + 5, floorY - 2, 1, 2);
+          g.fillStyle = "#f0e8c8";
+          g.fillRect(x + 3, top + 1, 1, 2);
+        }
+      } else if (f.kind === "school") {
+        g.fillStyle = "#2a3a2e";
+        g.fillRect(a + 1, top + 2, 8, 4);
+        g.fillStyle = ink;
+        for (let x = a + 12; x < b - 4; x += 6) g.fillRect(x, floorY - 3, 4, 1);
+      } else if (f.kind === "showroom" || f.kind === "store") {
         for (let x = a + 1; x < b - 6; x += 9) {
           g.fillStyle = ink;
           g.fillRect(x, floorY - 4, 6, 4);
@@ -116,7 +228,17 @@ function paint(g: CanvasRenderingContext2D, tower: Tower, here: number, car: num
       g.lineWidth = 1;
       g.strokeRect(x0 - 0.5, top + 0.5, half * 2 + 1, FH - 2);
     }
-    if (i < n - 1 && halfAt(i + 1, n) < half) {
+    // the tenants' signs up the outside of a Tokyo tower, lit and running after dark
+    if (evening(f.kind) || f.kind === "school") {
+      const col = NEON[i % NEON.length];
+      g.fillStyle = night ? col : hex("#d0d0d0", 0.9);
+      g.fillRect(x0 - 7, top + 1, 4, FH - 3);
+      if (night && Math.floor(now / 160 + i) % 4 === 0) {
+        g.fillStyle = "rgba(255,255,255,0.6)";
+        g.fillRect(x0 - 7, top + 1, 4, FH - 3);
+      }
+    }
+    if (i < n - 1 && halfAt(tower, i + 1, n) < half) {
       g.fillStyle = stoneLit;
       g.fillRect(x0 - 2, top - 1, half * 2 + 4, 1);
     }
@@ -127,7 +249,7 @@ function paint(g: CanvasRenderingContext2D, tower: Tower, here: number, car: num
   g.fillRect(cx - 7, shaftTop, 14, shaftBottom - shaftTop);
   g.fillStyle = "#3a3440";
   for (let yy = shaftTop; yy < shaftBottom; yy += FH) g.fillRect(cx - 7, yy + FH - 1, 14, 1);
-  const carY = CROWN + (n - 1 - car) * FH;
+  const carY = yOf(car);
   g.fillStyle = "#6a6070";
   g.fillRect(cx - 1, shaftTop, 1, carY - shaftTop);
   g.fillRect(cx + 1, shaftTop, 1, carY - shaftTop);
@@ -197,10 +319,10 @@ export function TowerSection({ runtime, onClose }: { runtime: Runtime; onClose: 
     const el = scroller.current, c = canvas.current;
     if (!el || !c) return;
     const frame = requestAnimationFrame(() => {
-      el.scrollTop = (CROWN + (n - 1 - here) * FH) * (c.clientHeight / c.height) - el.clientHeight / 2;
+      el.scrollTop = (crownOf(tower!) + (n - 1 - here) * FH) * (c.clientHeight / c.height) - el.clientHeight / 2;
     });
     return () => cancelAnimationFrame(frame);
-  }, [n, here]);
+  }, [n, here, tower]);
   if (!tower) return <p>There is no lift here.</p>;
   const go = (to: number) => {
     if (ride.current || to === here) return;
@@ -209,7 +331,7 @@ export function TowerSection({ runtime, onClose }: { runtime: Runtime; onClose: 
   const floorAt = (e: React.MouseEvent<HTMLCanvasElement>) => {
     const c = e.currentTarget, r = c.getBoundingClientRect();
     const y = ((e.clientY - r.top) / r.height) * c.height;
-    const i = n - 1 - Math.floor((y - CROWN) / FH);
+    const i = n - 1 - Math.floor((y - crownOf(tower)) / FH);
     return i >= 0 && i < n ? i : undefined;
   };
   return (
@@ -221,7 +343,7 @@ export function TowerSection({ runtime, onClose }: { runtime: Runtime; onClose: 
           <canvas
             ref={canvas}
             width={W}
-            height={CROWN + n * FH + STREET}
+            height={crownOf(tower) + n * FH + STREET}
             onMouseMove={(e) => setHover(floorAt(e))}
             onMouseLeave={() => setHover(undefined)}
             onClick={(e) => {

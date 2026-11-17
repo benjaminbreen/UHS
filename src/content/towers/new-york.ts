@@ -1,9 +1,6 @@
-import { officeFor } from "../interiors/offices";
+import { officeFor, withLift } from "../interiors/offices";
 import type { InteriorProfile } from "../interiors/types";
 import type { TowerStyle } from "./index";
-
-// An upper floor is reached by the lift, not from the street.
-const withLift = (p: InteriorProfile): InteriorProfile => ({ ...p, door: "lift", furnish: ["elevator", ...p.furnish] });
 
 const DECO = [
   { name: "Walnut and brass", wall: "#d8ccb0", trim: "#3a2a1e", floor: "#c8b89c", wood: "#4a2e1e", accent: "#b8903a" },
@@ -80,6 +77,7 @@ export const newYork: TowerStyle = {
   storeys: [22, 64],
   lift: { name: "Otis lift", perFloor: 2.5, operator: "Lift operator" },
   lobby,
+  section: { stone: ["#e2d2ac", "#c8b48c", "#8a7658"], halves: [[0, 74], [0.72, 58], [0.94, 42]], crown: "step" },
   top: { id: "suite", profile: suite, tenants: ["Executive offices"], weight: 1, run: [1, 1] },
   floors: [
     { id: "bank", profile: bank, tenants: ["Chatham Trust Company", "Corn Exchange Bank", "Seaboard National Bank"], weight: 1, run: [1, 1], band: [0, 0.06] },

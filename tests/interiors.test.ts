@@ -8,6 +8,8 @@ import { LETTERS, SPRITES } from "../src/render/interiors/sprites";
 import { ALTARS } from "../src/render/interiors/altars";
 import { planBuilding } from "../src/render/interiors/building";
 import type { Place } from "../src/core/types";
+import { towerStyles } from "../src/content/towers";
+import { towerPlan } from "../src/world/tower";
 import { createSettingSession } from "../src/runtime/session";
 import { religiousProfile } from "../src/content/settlements/religious";
 import type { WorldSetting } from "../src/content/geography/types";
@@ -541,6 +543,22 @@ it("lays out hospital wards with repeated beds, a clear aisle and regional beddi
 });
 
 describe("towers", () => {
+  it("plans each style's tower: the lobby, floors in their bands, the top", () => {
+    for (const style of towerStyles) {
+      const place = { id: "t", sprite: `${style.frames}0-urban-tall` } as Place;
+      const tower = towerPlan(place, "plan")!;
+      const n = tower.floors.length;
+      expect(n, style.id).toBeGreaterThanOrEqual(style.storeys[0]);
+      expect(n, style.id).toBeLessThanOrEqual(style.storeys[1]);
+      expect(tower.floors.map((f) => f.n)).toEqual([...Array(n).keys()]);
+      expect([tower.floors[0].kind, tower.floors[n - 1].kind]).toEqual(["lobby", style.top.id]);
+      for (const f of tower.floors.slice(1, -1)) {
+        const band = style.floors.find((k) => k.id === f.kind)!.band;
+        if (band) expect(f.n / n, `${style.id} ${f.kind}`).toBeLessThanOrEqual(band[1]);
+        expect(f.profile.door).toBe("lift");
+      }
+    }
+  });
   it.runIf(!!process.env.FULL)("lets a New York tower by its floors, and its lift carries the player up", () => {
     const resolved = resolveSetting("Typist in New York 1930", "tower");
     if (!("setting" in resolved)) throw Error("Fixture setting");

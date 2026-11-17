@@ -4,6 +4,9 @@ import type { InteriorProfile, Look } from "./types";
  * bank's hall, a department store's floor of showcases. Read from the name
  * the town plan gives the building. */
 const made = new Map<string, InteriorProfile>();
+/** A room on an upper floor of a tower, reached by the lift, not from the street. */
+export const withLift = (p: InteriorProfile): InteriorProfile => ({ ...p, door: "lift", furnish: ["elevator", ...p.furnish] });
+
 export function officeFor(name: string, year: number): InteriorProfile | undefined {
   const kind = /^Bank/.test(name) ? "bank" : /^Department store/.test(name) ? "store" : /^Offices/.test(name) ? (year < 1900 ? "counting" : year < 1980 ? "typing" : "open") : undefined;
   if (!kind) return;

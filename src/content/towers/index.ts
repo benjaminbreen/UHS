@@ -1,5 +1,7 @@
 import type { InteriorProfile } from "../interiors/types";
+import { moscow } from "./moscow";
 import { newYork } from "./new-york";
+import { tokyo } from "./tokyo";
 
 /** A kind of storey: what it is, the room it is, and who takes it. */
 export type FloorKind = {
@@ -26,7 +28,10 @@ export type TowerStyle = {
   floors: readonly FloorKind[];
   /** The top storey: a suite or a lookout. */
   top: FloorKind;
+  /** How the lift's cutaway draws it: stone as lit, face and shade; the
+   * face's half-width from each fraction of the height up; the crown. */
+  section: { stone: [string, string, string]; halves: [number, number][]; crown: "step" | "spire" | "gable" };
 };
 
-export const towerStyles: readonly TowerStyle[] = [newYork];
+export const towerStyles: readonly TowerStyle[] = [newYork, moscow, tokyo];
 export const towerStyleFor = (frame: string | undefined) => (frame ? towerStyles.find((s) => frame.startsWith(s.frames)) : undefined);

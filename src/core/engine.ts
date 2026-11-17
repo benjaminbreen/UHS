@@ -127,6 +127,7 @@ import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
 import { livelihoodOf } from "../world/v3/routines";
 import { floorName, floorSpace, parseFloor, towerPlan, type Tower } from "../world/tower";
+import { towerStyleFor } from "../content/towers";
 import { buildInterior, ROOM_ORIGIN, spotsAt, type InteriorLayout, type Spot, type SpotRole } from "../world/interior";
 import { buildingUse } from "../content/interiors/select";
 import { vehicleAt } from "../world/v3/conveyances";
@@ -6182,7 +6183,8 @@ export class Engine {
         const place = (this.world.places ?? []).find(
           (r) => q.x >= r.x && q.x < r.x + r.w && q.y >= r.y && q.y < r.y + r.h,
         );
-        if (place) return this.roofClimb(place, q);
+        // Nobody scales a skyscraper; its roof is the lift's top floor.
+        if (place) return towerStyleFor(place.sprite) ? undefined : this.roofClimb(place, q);
         // A wall walk is a surface, not a perch: step onto it and the wall
         // top is ground until you climb down the far side.
         if (this.wallAt(q.x, q.y, "outside"))
@@ -6201,7 +6203,7 @@ export class Engine {
         };
       }
     }
-    const place = (this.world.places ?? []).find((q) => near(q.entrance));
+    const place = (this.world.places ?? []).find((q) => near(q.entrance) && !towerStyleFor(q.sprite));
     if (place)
       return {
         id: place.id,

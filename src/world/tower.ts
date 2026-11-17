@@ -13,7 +13,7 @@ export function parseFloor(space: string) {
   return i < 0 ? { place: space, n: 0 } : { place: space.slice(0, i), n: Number(space.slice(i + 1)) };
 }
 
-/** A storey as the lift names it, the American way: the street floor is the first. */
+/** A storey as the lift names it, the street floor the first, as in New York, Moscow and Tokyo. */
 export function floorName(n: number) {
   const k = n + 1, t = k % 100;
   return n ? `the ${k}${t >= 11 && t <= 13 ? "th" : ["th", "st", "nd", "rd"][k % 10] ?? "th"} floor` : "the lobby";

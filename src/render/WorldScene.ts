@@ -472,6 +472,8 @@ type BuildingAnimation = {
   kind: string;
   period: number;
   phase: number;
+  /** An aviation light or a neon tube: shown only after dark. */
+  light?: boolean;
 };
 type FireEffect = {
   image: Phaser.GameObjects.Image;
@@ -2974,7 +2976,9 @@ export class WorldScene extends Phaser.Scene {
         )
         .setOrigin(0, 0)
         .setDepth(placement.depth + 1);
-      if (!kind.startsWith("flame")) image.setTint(this.tint);
+      const light = kind === "beacon" || kind.startsWith("chase-");
+      if (!kind.startsWith("flame") && !light) image.setTint(this.tint);
+      if (light) image.setVisible(false);
       this.layers.push(image);
       this.buildingAnimations.set(`${id}-overlay-${i}`, {
         image,
@@ -2993,8 +2997,13 @@ export class WorldScene extends Phaser.Scene {
                     ? 70
                     : kind === "turbine"
                       ? 130
-                      : 240,
+                      : kind === "beacon"
+                        ? 380
+                        : kind.startsWith("chase-")
+                          ? 160
+                          : 240,
         phase: random(seed, "building-overlay", id, i) * 4,
+        light,
       });
     });
   }
@@ -7141,6 +7150,10 @@ export class WorldScene extends Phaser.Scene {
           : Math.floor(time / animation.period + animation.phase) % 4;
         const name = `animation-${animation.kind}-${frame}`;
         if (animation.image.frame.name !== name) animation.image.setFrame(name);
+        if (animation.light) {
+          if (animation.image.visible !== lampDark > 0) animation.image.setVisible(lampDark > 0);
+          if (animation.image.alpha !== lampDark) animation.image.setAlpha(lampDark);
+        }
       }
     if (
       this.game.canvas.dataset.buildingAnimations !==

@@ -1804,6 +1804,12 @@ class Skyscraper(Block):
         k = 1 if i < n - 4 else 0.72 if i < n - 1 else 0.46
         return int(W * k) // 2
 
+    def beacon(self, x, y):
+        """An aviation light: a dark red lens by day; the game blinks it at night."""
+        self.c.rect(x - 1, y, 3, 2, CRIMSON[3])
+        self.c.p(x, y, CRIMSON[1])
+        self.overlays.append(['beacon', x - 3, y - 3])
+
     def paint(self):
         c, s, sd = self.c, self.s, self.seed
         x0, x1, W, base = self.x0, self.x1, self.W, self.base
@@ -1882,7 +1888,7 @@ class Skyscraper(Block):
                 y -= h_ + 2
             c.rect(mid - 1, y - 30, 2, 30, STEEL[2])
             c.p(mid - 1, y - 30, STEEL[0])
-            self.tube([(mid, y - 32)], 'red', 'beacon', 'blink')
+            self.beacon(mid, y - 32)
         elif crown == 'spire':
             y = top - 3
             for k in range(4):
@@ -1951,6 +1957,407 @@ class Skyscraper(Block):
             c.rect(lx, base - 32, 4, 8, GOLD[2])
             c.rect(lx + 1, base - 31, 2, 5, CREAM[0])
             self.lamp(lx + 2, base - 29)
+        self.foot(GRANITE)
+
+
+def star_px(cx, cy, r):
+    """A five-pointed star, point up, as a set of pixels."""
+    pts = [(cx + (r if k % 2 == 0 else r * 0.42) * math.cos(-math.pi / 2 + k * math.pi / 5),
+            cy + (r if k % 2 == 0 else r * 0.42) * math.sin(-math.pi / 2 + k * math.pi / 5)) for k in range(10)]
+    out = set()
+    for yy in range(cy - r - 1, cy + r + 2):
+        for xx in range(cx - r - 1, cx + r + 2):
+            inside = False
+            for k in range(10):
+                (ax, ay), (bx, by) = pts[k], pts[k - 1]
+                if (ay > yy) != (by > yy) and xx < ax + (yy - ay) * (bx - ax) / (by - ay):
+                    inside = not inside
+            if inside:
+                out.add((xx, yy))
+    return out
+
+
+def ruby_star(c, cx, cy, r, gilt):
+    """The Kremlin's ruby star: red glass in a gilt rim, lit from within."""
+    px = star_px(cx, cy, r)
+    for x, y in px:
+        rim = any((x + dx, y + dy) not in px for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+        c.p(x, y, gilt[1] if rim and (x < cx or y < cy) else gilt[3] if rim else
+            CRIMSON[1] if x < cx else CRIMSON[2] if x == cx else CRIMSON[3])
+    return px
+
+
+def obelisk(c, x, by, h, r, tip=GOLD):
+    """A corner pinnacle: a plinth, a tapering shaft, a gilt ball; returns its tip."""
+    c.rect(x - 3, by - 4, 7, 4, r[2])
+    c.rect(x - 3, by - 4, 7, 1, r[0])
+    c.rect(x + 3, by - 4, 1, 4, r[4])
+    for j in range(h):
+        y = by - 5 - j
+        if j < h * 0.6:
+            c.p(x - 1, y, r[1])
+            c.p(x, y, r[2])
+            c.p(x + 1, y, r[3])
+        else:
+            c.p(x, y, r[1] if j % 2 else r[2])
+    top = by - 5 - h
+    c.rect(x - 1, top - 2, 2, 2, tip[1])
+    c.p(x, top - 1, tip[3])
+    return top - 3
+
+
+class Vysotka(Skyscraper):
+    """One of Moscow's high-rises of 1947-1957: a red granite base round a
+    tall arched portal, cream ceramic tiers that step in behind balustraded
+    terraces with an obelisk at each corner, a lantern and drum, and a gilt
+    spire carrying a ruby star in a wreath, floodlit at night."""
+    FLOORS = dict(tall=15, row=11, wide=12, hall=12)
+    H0, H1, PARA, HEAD = 74, 38, 4, 200
+
+    def plan(self):
+        self.door_x = self.x0 + self.W // 2
+        self.door_size = (26, 50)
+
+    def half(self, i):
+        f = i / self.floors
+        k = 1 if f < 0.4 else 0.7 if f < 0.66 else 0.48 if f < 0.87 else 0.32
+        return int(self.W * k) // 2
+
+    def casement(self, cx, t, wall, trim):
+        c = self.c
+        x, y, w, h = cx - 4, t + 6, 8, 20
+        raised(c, x - 2, y - 2, w + 4, h + 3, trim, 1)
+        op.glass(c, x, y, w, h)
+        c.rect(x + w // 2, y, 1, h, WHITE[2])
+        c.rect(x, y + h // 3, w, 1, WHITE[2])
+        self.panes.append((x, y, w, h, 'warm', h2(x, y, self.seed) < 0.48))
+        raised(c, x - 2, y + h + 1, w + 4, 2, trim, 1)
+        op.cast(c, x - 2, y + h + 3, w + 4, 1, 0.7)
+        c.rect(x, y + h + 5, w, 4, wall[3])
+        c.rect(x, y + h + 5, w, 1, wall[4])
+        c.rect(x, y + h + 8, w, 1, wall[1])
+
+    def cornice(self, a, z, y, trim):
+        c = self.c
+        c.rect(a - 3, y, z - a + 6, 3, trim[1])
+        c.rect(a - 3, y, z - a + 6, 1, trim[0])
+        for xx in range(a - 2, z + 2, 3):
+            c.p(xx, y + 3, trim[2])
+        c.rect(a - 3, y + 4, z - a + 6, 1, trim[3])
+        op.cast(c, a, y + 5, z - a, 2, 0.72)
+
+    def balustrade(self, a, z, y, trim):
+        c = self.c
+        c.rect(a, y - 9, z - a, 2, trim[1])
+        c.rect(a, y - 9, z - a, 1, trim[0])
+        for xx in range(a + 1, z - 1, 3):
+            c.rect(xx, y - 7, 2, 6, trim[2])
+            c.p(xx + 1, y - 7, trim[3])
+            c.p(xx, y - 4, trim[1])
+        c.rect(a, y - 1, z - a, 1, trim[3])
+
+    def paint(self):
+        c, s = self.c, self.s
+        x0, x1, W, base = self.x0, self.x1, self.W, self.base
+        mid = (x0 + x1) // 2
+        wall, trim, plinth, gilt = s['wall'], s['trim'], s['plinth'], s['spire']
+        n = self.floors
+        wing = self.half(1)
+        for i in range(1, n):
+            t, b = self.floor(i)
+            hw = self.half(i)
+            a, z = mid - hw, mid + hw
+            c.rect(a, t, z - a, b - t, wall[2])
+            nb = max(2, round((z - a) / 16))
+            for k in range(nb):
+                self.casement(a + 4 + round((z - a - 8) * (k + 0.5) / nb), t, wall, trim)
+            if hw < wing:
+                # the tower's pilaster strips run unbroken up each tier
+                for k in range(nb + 1):
+                    px = a if k == 0 else z - 4 if k == nb else a + 2 + round((z - a - 8) * k / nb)
+                    c.rect(px, t, 4, b - t, wall[1])
+                    c.rect(px, t, 1, b - t, wall[0])
+                    c.rect(px + 3, t, 1, b - t, wall[3])
+            else:
+                c.rect(a, b - 2, z - a, 2, wall[1])
+                c.rect(a, b - 2, z - a, 1, wall[0])
+                for qx, q in ((a, 1), (z - 5, 2)):
+                    for yy in range(t, b, 6):
+                        c.rect(qx, yy, 5, 5, trim[q])
+                        c.rect(qx, yy + 5, 5, 1, trim[3])
+        # each tier ends in a cornice; where the next steps in, a terrace
+        tips = []
+        for i in range(1, n):
+            hw = self.half(i)
+            if i < n - 1 and self.half(i + 1) == hw:
+                continue
+            y = self.floor(i)[0]
+            self.cornice(mid - hw, mid + hw, y, trim)
+            if i == n - 1:
+                break
+            hi = self.half(i + 1)
+            for a, z in ((mid - hw, mid - hi), (mid + hi, mid + hw)):
+                self.balustrade(a, z, y, trim)
+            cast_right(c, mid + hi, y - 8, 7, 2)
+            for ox in (mid - hw + 1, mid + hw - 2):
+                tips.append((ox, obelisk(c, ox, y, 14 if hw == wing else 11, trim, gilt)))
+        top = self.floor(n - 1)[0]
+        hw = self.half(n - 1)
+        # the top tier's terrace, its corner obelisks carrying the lights
+        self.balustrade(mid - hw, mid + hw, top, trim)
+        for ox in (mid - hw + 1, mid + hw - 2):
+            self.beacon(ox, obelisk(c, ox, top, 16, trim, gilt))
+        for ox, ty in tips[-2:]:
+            self.beacon(ox, ty)
+        # the lantern: three tall arches under a cornice
+        bw = max(12, round(hw * 0.7))
+        ly = top - 9
+        c.rect(mid - bw, ly - 30, 2 * bw, 30, wall[2])
+        c.rect(mid - bw, ly - 30, 1, 30, wall[0])
+        c.rect(mid + bw - 1, ly - 30, 1, 30, wall[4])
+        for k in (-1, 0, 1):
+            ax = mid + k * round(bw * 0.62)
+            for yy in range(ly - 24, ly - 4):
+                hw_ = 3 if yy > ly - 22 else 2 if yy > ly - 24 else 1
+                c.rect(ax - hw_, yy, 2 * hw_ + 1, 1, ROOM[5] if yy < ly - 14 else ROOM[4])
+            self.panes.append((ax - 3, ly - 22, 7, 18, 'warm', True))
+            raised(c, ax - 4, ly - 4, 9, 2, trim, 1)
+        self.cornice(mid - bw, mid + bw, ly - 33, trim)
+        # the drum, ribbed, round in plan
+        dw = max(7, round(bw * 0.62))
+        dy = ly - 33
+        for xx in range(mid - dw, mid + dw):
+            u = (xx - mid + 0.5) / dw
+            q = 1 if u < -0.55 else 2 if u < 0.15 else 3 if u < 0.7 else 4
+            c.rect(xx, dy - 16, 1, 16, wall[q])
+            if (xx - mid) % 4 == 0 and abs(u) < 0.8:
+                c.rect(xx, dy - 13, 1, 9, ROOM[5])
+        c.rect(mid - dw - 1, dy - 18, 2 * dw + 2, 2, trim[1])
+        c.rect(mid - dw - 1, dy - 18, 2 * dw + 2, 1, trim[0])
+        # the spire, gilt and ribbed, with a small lantern a third of the way up
+        sy, H = dy - 18, s.get('spire_h', 62)
+        for j in range(H):
+            w_ = round((dw * 0.55) * (1 - j / H) ** 1.2) + 1
+            if H * 0.28 < j < H * 0.28 + 6:
+                w_ += 2
+            y = sy - j
+            for xx in range(mid - w_, mid + w_ + 1):
+                d = xx - mid
+                col = gilt[0] if d == 0 else gilt[1] if d == -w_ else gilt[2] if d < 0 else gilt[4] if d == w_ else gilt[3]
+                if j % 9 == 4:
+                    col = gilt[1] if d <= 0 else gilt[3]
+                elif j % 9 == 5 and d:
+                    col = gilt[4]
+                c.p(xx, y, col)
+        # the wreath, and the star in it
+        cy = sy - H - 8
+        for a in range(-7, 8):
+            for side in (-1, 1):
+                ang = math.pi / 2 + side * (0.4 + a * 0.13)
+                c.p(mid + round(9 * math.cos(ang)), cy + round(8 * math.sin(ang)), gilt[1] if a % 2 else gilt[3])
+        c.rect(mid - 1, cy + 6, 3, 3, gilt[2])
+        px = ruby_star(c, mid, cy, 7, gilt)
+        self.neon['star'] = dict(mode='steady', colour='red', px=px)
+        # floodlights wash the spire and the lantern after dark
+        self.signs.append((mid - dw - 1, cy - 10, 2 * dw + 2, sy - cy + 10))
+        # the base: red granite, a gilt star over the portal, shops either side
+        t0 = self.floor(0)[0]
+        fm.rustication(c, x0, t0, W, base - t0, plinth, 8, 26)
+        raised(c, x0 - 2, t0 - 2, W + 4, 4, plinth, 1)
+        pw = 40
+        px0 = mid - pw // 2
+        for cx in (px0 - 3, px0 + pw - 3):
+            c.rect(cx, t0 + 4, 6, base - t0 - 4, plinth[2])
+            c.rect(cx, t0 + 4, 1, base - t0 - 4, plinth[0])
+            c.rect(cx + 5, t0 + 4, 1, base - t0 - 4, plinth[4])
+            raised(c, cx - 1, t0 + 4, 8, 4, trim, 1)
+        ax, aw = px0 + 4, pw - 8
+        for i in range(aw):
+            tt = (i - aw / 2 + 0.5) / (aw / 2)
+            rise = round(12 * math.sqrt(max(0.0, 1 - tt * tt)))
+            for yy in range(t0 + 22 - rise, base):
+                c.p(ax + i, yy, ROOM[6] if yy < t0 + 22 else ROOM[5])
+            c.p(ax + i, t0 + 21 - rise, plinth[1])
+        for yy in range(t0 + 13, base - 52):
+            for xx in range(ax + 3, ax + aw - 3):
+                c.p(xx, yy, gilt[2] if (xx - ax) % 5 == 0 or (yy - t0) % 5 == 0 else TINT['sky'][3])
+        self.panes.append((ax + 3, t0 + 13, aw - 6, base - 52 - t0 - 13, 'warm', True))
+        glass_door(self, mid, base, 24, 48, gilt)
+        fy = t0 - 18
+        c.rect(mid - 9, fy - 2, 18, 18, wall[3])
+        c.rect(mid - 9, fy - 2, 18, 1, wall[4])
+        for a in range(-6, 7):
+            for side in (-1, 1):
+                ang = math.pi / 2 + side * (0.5 + a * 0.13)
+                c.p(mid + round(7 * math.cos(ang)), fy + 7 + round(6 * math.sin(ang)), gilt[1] if a % 2 else gilt[2])
+        ruby_star(c, mid, fy + 6, 4, gilt)
+        for a, z in ((x0 + 4, px0 - 6), (px0 + pw + 6, x1 - 4)):
+            if z - a < 24:
+                continue
+            shopfront(self, a, base - 46, z - a, 44, BRONZE, plinth, 'shelves', transom=8, pitch=14)
+            self.sign(a + 1, t0 + 6, z - a - 2, 12, 'neon')
+        for lx in (px0 - 10, px0 + pw + 6):
+            c.rect(lx, base - 36, 4, 10, gilt[2])
+            c.rect(lx + 1, base - 35, 2, 6, CREAM[0])
+            self.lamp(lx + 2, base - 32)
+        self.foot(plinth)
+
+
+class Bubble(Skyscraper):
+    """A Tokyo office tower of the bubble years, 1985-1995: a polished granite
+    base round a glass lobby, ribbon windows of tinted glass between granite
+    spandrels, a rounded corner, a column of lit tenant signs up one side,
+    and on the roof a glass gable, a billboard or a red-and-white mast with
+    the aviation lights blinking."""
+    FLOORS = dict(tall=16, row=12, wide=13, hall=13)
+    H0, H1, PARA, HEAD = 76, 34, 4, 130
+
+    def half(self, i):
+        return self.W // 2
+
+    def paint(self):
+        c, s, sd = self.c, self.s, self.seed
+        x0, x1, W, base = self.x0, self.x1, self.W, self.base
+        mid = (x0 + x1) // 2
+        gr, g, tube = s['granite'], TINT[s['glass']], s['tubes']
+        n = self.floors
+        kx, kw = x0 + 3, 20
+        signs = min(n - 1, 7 + sd % 3)
+        fx = kx + kw + 3
+        sx = (fx + x1 - 12) // 2
+        for i in range(1, n):
+            t, b = self.floor(i)
+            sb = b - 11
+            for yy in range(t, sb):
+                c.rect(fx, yy, x1 - fx, 1, g[4] if yy == t else g[2] if yy < t + (sb - t) * 0.42 else g[3])
+            # one broad sky reflection runs across the whole face
+            for xx in range(fx, x1):
+                for yy in range(t + 1, sb):
+                    u = (xx - fx + (yy - base) // 2 + sd * 7) % 150
+                    if u < 14:
+                        c.p(xx, yy, g[1] if 4 <= u < 9 else g[2])
+            for xx in range(fx, x1 - 12, 12):
+                c.rect(xx, t, 1, sb - t, ALU[2])
+                self.panes.append((xx + 1, t + 1, 11, sb - t - 1, 'cool', h2(xx, i, sd) < 0.66))
+            c.rect(fx, sb, x1 - fx, 11, gr[2])
+            c.rect(fx, sb, x1 - fx, 1, gr[0])
+            c.rect(fx, sb + 1, x1 - fx, 1, gr[1])
+            c.rect(fx, b - 1, x1 - fx, 1, gr[4])
+            c.rect(fx, sb + 5, x1 - fx, 1, gr[3])
+            # the rounded corner: the glass and the stone turn away from the light
+            for j in range(12):
+                q = 1 if j < 4 else 2 if j < 8 else 3
+                xx = x1 - 12 + j
+                for yy in range(t, b):
+                    if yy < sb:
+                        c.p(xx, yy, g[min(6, (4 if yy == t else 3) + q - (j == 1))])
+                    else:
+                        c.p(xx, yy, gr[min(6, 2 + q)] if j != 1 else gr[0])
+            c.rect(fx - 3, t, 3, b - t, gr[1])
+            c.rect(fx - 3, t, 1, b - t, gr[0])
+            # the stair slot: a glazed recess between granite fins, its landings showing
+            for xx in range(sx - 4, sx + 5):
+                d = xx - sx
+                c.rect(xx, t, 1, b - t, gr[1] if d == -4 else gr[2] if d == -3 else gr[4] if d in (3, 4) else
+                       g[4] if d == -2 else g[3])
+            c.rect(sx - 2, t + (b - t) // 2, 5, 1, ALU[3])
+            c.rect(sx - 2, b - 2, 5, 2, gr[3])
+            self.panes.append((sx - 2, t, 5, b - t - 2, 'cool', True))
+        # the column of tenant signs on its steel frame, a neon tube beside each
+        ty = self.floor(signs)[0]
+        t0 = self.floor(0)[0]
+        c.rect(kx - 1, ty, kw + 2, t0 - ty, gr[3])
+        for xx in (kx, kx + kw - 1):
+            c.rect(xx, ty - 4, 1, t0 - ty + 4, ALU[3])
+        c.rect(kx, ty - 4, kw, 1, ALU[1])
+        for i in range(1, signs + 1):
+            t, b = self.floor(i)
+            self.sign(kx + 2, t + 2, kw - 4, b - t - 4, "box")
+            colour = tube[i % len(tube)]
+            for yy in range(t + 3, t + 31):
+                c.p(kx - 2, yy, DAYTUBE[colour])
+            self.overlays.append([f'chase-{colour}', kx - 3, t + 3])
+        for i in range(signs + 1, n):
+            t, b = self.floor(i)
+            c.rect(kx - 1, t, kw + 2, b - t, gr[2])
+            c.rect(kx - 1, t, 1, b - t, gr[1])
+            c.rect(kx - 1, b - 1, kw + 2, 1, gr[4])
+        # the base: polished piers round a glass lobby, a steel canopy at the door
+        c.rect(x0, t0, W, base - t0, GRANITE[3])
+        c.rect(x0, t0, W, 4, gr[1])
+        c.rect(x0, t0, W, 1, gr[0])
+        for yy in range(t0 + 18, base):
+            c.rect(x0 + 2, yy, W - 4, 1, ROOM[4] if yy < t0 + 21 else g[2] if yy < t0 + 30 else g[3] if yy < base - 4 else TRAV[3])
+        for xx in range(x0 + 2, x1 - 2, 8):
+            c.rect(xx, t0 + 18, 1, base - t0 - 18, ALU[3])
+        c.rect(x0 + 2, t0 + 30, W - 4, 1, ALU[2])
+        self.panes.append((x0 + 2, t0 + 18, W - 4, base - t0 - 18, 'shop', True))
+        for xx in range(x0, x1 - 6, 32):
+            c.rect(xx, t0 + 4, 6, base - t0 - 4, GRANITE[2])
+            c.rect(xx, t0 + 4, 1, base - t0 - 4, GRANITE[1])
+            c.rect(xx + 5, t0 + 4, 1, base - t0 - 4, GRANITE[4])
+        c.rect(x1 - 6, t0 + 4, 6, base - t0 - 4, GRANITE[3])
+        self.sign(mid - 30, t0 + 6, 60, 9, 'box')
+        glass_door(self, mid, base, 24, 44, ALU)
+        c.rect(mid - 22, base - 52, 44, 5, ALU[2])
+        c.rect(mid - 22, base - 52, 44, 1, ALU[0])
+        c.rect(mid - 22, base - 48, 44, 1, ALU[4])
+        op.cast(c, mid - 20, base - 47, 40, 3, 0.66)
+        for lx in (mid - 18, mid + 17):
+            c.rect(lx, base - 47, 1, 2, ALU[3])
+            self.lamp(lx, base - 45, 'shop')
+        # the crown
+        top = self.floor(n - 1)[0]
+        crown = s['crown']
+        c.rect(x0 - 1, top - 6, W + 2, 6, gr[2])
+        c.rect(x0 - 1, top - 6, W + 2, 1, gr[0])
+        c.rect(x0 - 1, top - 1, W + 2, 1, gr[4])
+        if crown == 'gable':
+            gw, gh = W // 2 - 6, 36
+            for j in range(gh):
+                w_ = round(gw * (1 - j / gh))
+                y = top - 7 - j
+                for xx in range(mid - w_, mid + w_ + 1):
+                    col = g[2] if xx < mid else g[3]
+                    if (xx - mid + j) % 9 == 0 or (xx - mid - j) % 9 == 0 or j % 7 == 0:
+                        col = ALU[2] if xx < mid else ALU[3]
+                    if abs(abs(xx - mid) - w_) < 1:
+                        col = gr[1] if xx < mid else gr[3]
+                    c.p(xx, y, col)
+            c.rect(mid, top - 7 - gh - 12, 1, 12, ALU[2])
+            self.beacon(mid, top - 7 - gh - 14)
+        elif crown == 'billboard':
+            bw, by = round(W * 0.72), top - 14
+            bx = mid - bw // 2
+            for px in (bx + 4, mid, bx + bw - 5):
+                c.rect(px, by, 2, 8, INK[3])
+            for x_, y_ in line(bx + 6, by, bx + bw - 7, top - 7):
+                c.p(x_, y_, INK[3])
+            c.rect(bx - 1, by - 28, bw + 2, 28, INK[2])
+            c.rect(bx - 1, by - 28, bw + 2, 1, INK[1])
+            self.sign(bx + 1, by - 27, bw - 2, 25, 'neon')
+        else:
+            mx, my = x1 - W // 3, top - 7
+            for j in range(64):
+                w_ = round(5 * (1 - j / 70)) + 1
+                band = (j // 8) % 2
+                r = CRIMSON if band == 0 else WHITE
+                c.p(mx - w_, my - j, r[2])
+                c.p(mx + w_, my - j, r[3])
+                if j % 4 == 0:
+                    c.rect(mx - w_, my - j, 2 * w_ + 1, 1, r[2])
+                elif j % 4 == 2:
+                    c.p(mx - w_ + (j // 2) % (2 * w_ + 1), my - j, r[3])
+            for k, dy in enumerate((22, 36)):
+                ex, ey = mx + (7 if k == 0 else -11), my - dy
+                for yy in range(5):
+                    w_ = (2, 3, 3, 3, 2)[yy]
+                    c.rect(ex, ey + yy - 2, w_, 1, WHITE[1] if k else WHITE[3])
+            c.rect(mx, my - 76, 1, 12, ALU[2])
+            self.beacon(mx, my - 78)
+            self.beacon(mx - 4, my - 32)
+        for bx in (x0 + 2, x1 - 3):
+            self.beacon(bx, top - 9)
         self.foot(GRANITE)
 
 
@@ -3820,6 +4227,16 @@ LOOKS = {
         dict(wall=WHITE, stone=GRANITE, spandrel=INK, accent=STEEL, crown='spire'),
         dict(wall=BRICK, stone=LIMESTONE, spandrel=CHOCOLATE, accent=SAGE, crown='tank'),
     ]),
+    'vysotka': (Vysotka, 'Stalinist high-rise', [
+        dict(wall=CREAM, trim=WHITE, plinth=REDGRAN, spire=GOLD, spire_h=64),
+        dict(wall=BUFF, trim=CREAM, plinth=GRANITE, spire=GOLD, spire_h=52),
+        dict(wall=WHITE, trim=LIMESTONE, plinth=REDGRAN, spire=STEEL, spire_h=58),
+    ]),
+    'bubble': (Bubble, 'Bubble-era office tower', [
+        dict(granite=PINKGRAN, glass='blue', tubes=['pink', 'blue', 'amber'], crown='gable'),
+        dict(granite=DOVE, glass='green', tubes=['blue', 'green', 'pink'], crown='billboard'),
+        dict(granite=TRAV, glass='sky', tubes=['amber', 'pink', 'red'], crown='mast'),
+    ]),
     'theatre': (Theatre, 'Picture palace', [
         dict(wall=TERRA, accent=RED, accent2=GOLD, name='STATE', neon='red', marquee=['TONIGHT', 'DOUBLE FEATURE']),
         dict(wall=CREAM, accent=TEAL, accent2=GOLD, name='LYRIC', neon='blue', marquee=['NOW SHOWING', 'AT 7 & 9']),
@@ -3899,6 +4316,8 @@ ABOUT = {
     'bank': ('white-plaster', 'A savings bank in stone and glass with a time-and-temperature sign.'),
     'strip': ('bengal-brick', 'A strip center: a row of small shops under one shake mansard.'),
     'deco': ('limestone', 'A setback office tower of brick piers over a limestone base, with a stepped or steel crown.'),
+    'vysotka': ('limestone', 'A Stalinist high-rise in tiers of cream ceramic over red granite, under a spire and a ruby star.'),
+    'bubble': ('blue-glass', 'A Tokyo office tower of tinted glass and polished granite, with tenant signs up one side.'),
     'office': ('blue-glass', 'A curtain-wall office block of glass and aluminium.'),
     'theatre': ('ochre-plaster', 'A picture palace with a marquee and a lit vertical sign.'),
     'moderno': ('modern-stucco', 'A concrete apartment block over shops with roll-down shutters and painted signs.'),
@@ -3966,6 +4385,27 @@ def animations():
                 c.p(gx + dx + gw - 1, 1 + yy, col[3])
             c.p(gx + 1, 0, INK[3])
         out[f'animation-wash-{f}'] = c.im
+    # Lights the game shows only after dark: an aviation beacon's slow blink,
+    # and a neon tube with its light running down it.
+    for f in range(4):
+        im = Image.new('RGBA', (7, 7))
+        k = (1.0, 0.5, 0, 0)[f]
+        for yy in range(7):
+            for xx in range(7):
+                d = abs(xx - 3) + abs(yy - 3)
+                if k and d <= 3:
+                    im.putpixel((xx, yy), (255, 226, 214, 255) if d == 0 and k == 1 else
+                                (255, 60, 50, round((255, 230, 120, 45)[d] * k)))
+        out[f'animation-beacon-{f}'] = im
+    for colour, (core, glow) in NEON.items():
+        for f in range(4):
+            im = Image.new('RGBA', (3, 28))
+            for yy in range(28):
+                if (yy // 4 - f) % 4:
+                    im.putpixel((1, yy), core + (255,))
+                    for xx in (0, 2):
+                        im.putpixel((xx, yy), glow + (130,))
+            out[f'animation-chase-{colour}-{f}'] = im
     return out
 
 
@@ -3984,7 +4424,7 @@ from art import front_family  # noqa: E402
 FORMS = dict(
     falsefront='row shop tall cottage', brick='row shop wide tall hall', diner='row shop cottage',
     motel='row wide cottage hall', bank='row shop tall hall', strip='row shop wide hall',
-    office='row wide tall hall', deco='row wide tall hall', theatre='row tall hall', moderno='row shop wide tall cottage hall',
+    office='row wide tall hall', deco='row wide tall hall', vysotka='row wide tall hall', bubble='row wide tall hall', theatre='row tall hall', moderno='row shop wide tall cottage hall',
     zakkyo='row shop tall cottage hut', stalinka='row wide tall hall', panelka='row wide tall hall',
     tehran='row shop wide tall hall', delhi='row shop tall cottage hut', veranda='row shop wide tall cottage',
     bokaap='row shop cottage hut')
@@ -4024,7 +4464,7 @@ def now():
 SHOW = {'falsefront': [('row', 12), ('tall', 10), ('cottage', 6)], 'brick': [('row', 12), ('tall', 10), ('shop', 7)],
         'diner': [('row', 10), ('shop', 7)], 'motel': [('hall', 17), ('cottage', 6)],
         'bank': [('row', 12), ('tall', 10)], 'strip': [('hall', 17), ('row', 8)],
-        'office': [('tall', 10), ('row', 12), ('shop', 7)], 'deco': [('tall', 9), ('tall', 12)], 'theatre': [('row', 11), ('tall', 9)],
+        'office': [('tall', 10), ('row', 12), ('shop', 7)], 'deco': [('tall', 9), ('tall', 12)], 'vysotka': [('tall', 10), ('tall', 12)], 'bubble': [('tall', 9), ('tall', 11)], 'theatre': [('row', 11), ('tall', 9)],
         'moderno': [('row', 12), ('tall', 10), ('shop', 7)], 'zakkyo': [('tall', 6), ('row', 7), ('hut', 4)],
         'stalinka': [('row', 12), ('tall', 10), ('shop', 7)], 'panelka': [('row', 12), ('tall', 9), ('cottage', 6)],
         'tehran': [('row', 12), ('tall', 9), ('shop', 7)], 'delhi': [('row', 12), ('tall', 8), ('cottage', 6)],
