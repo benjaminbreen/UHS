@@ -106,7 +106,7 @@ export function arriveIn(h: ComplexHost, level: Area, key: string, from?: string
     rec.stocked.push(level.space);
     level.props.forEach((q, i) => {
       const def = propDefs[q.key];
-      if (def) h.state.objects.push({ id: `${level.space}:prop${i}`, prop: q.key, name: def.name, kind: "container", sprite: q.sprite, inventory: { ...def.contents }, open: false, pos: { x: q.x, y: q.y, space: level.space } });
+      if (def) h.state.objects.push({ id: `${level.space}:prop${i}`, prop: q.key, name: def.name, kind: "container", sprite: q.sprite, description: q.description, inventory: { ...def.contents }, open: false, pos: { x: q.x, y: q.y, space: level.space } });
     });
   }
   folkArrive(h.folk, level.space, level.folk);

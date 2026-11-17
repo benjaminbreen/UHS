@@ -333,5 +333,13 @@ A prop definition may carry three things beyond handling:
 - `seat`: how many it seats. The palace seats (stools, chairs, benches, sofas, couches, the high seat) are in the `sit` use, so the use key sits you on them as on a bench outdoors. Sitting is still a moment's rest and a pose, not a state; people in the room do not use these seats yet.
 - `burns`: what it would burn as (cloth, wood, thatch, paper, oil, leaf). Nothing reads this yet: fire on the map lights buildings and plants, has no `space`, and is refused indoors. It is there for the work on torches.
 
-Fairs and palaces keep their exhibits (look closely, listen, buy, sign the book, take a horn) in `core/fair.ts`; those are not props.
+An act may also cost coin (`price`), hand you things (`gives`), restore health (`heal`), be done only once (`once`; the object's `open` records that it has been), and be told as a world event or a small action (`told`). The use key offers a prop's act like any other use, and the click menu lists it.
+
+Every exhibit of a fair or a palace is a prop of this kind (`content/props/exhibits.ts`, one definition per find, key `exhibit-<find>`): look closely, listen, buy a plate, sign the book, take a horn of mead. The area still plans where each stands and keeps its cells closed; the object in the world is what is drawn and used. Only machines at work stay with the fair's own view, which plays their frames.
+
+A prop that carries a flame gives light through the map's lamp code (`lampLight` in `render/fire.ts`): palace candlesticks, candle stands and lamp stands are lit by day at half strength and fully after dark, flicker, and are lit again where they are put down. A lamp being carried gives no light.
+
+## One system for every interior
+
+Anything in a room that a person could handle, use, sit on, read, buy from or burn is a prop in the catalogue, placed as a `WorldObject` in that room's space, whatever built the room: a house interior, a fair gallery, a palace, a hall, a tomb. What it allows is said by its definition (`portable`, `topples`, `tips`, `breakable`, `container`, `seat`, `burns`, `act`), and the engine's prop code does the rest. An area generator lists its props on the level (`props`) and `arriveIn` puts them in the world. Do not give a new kind of interior its own list of things with its own actions. Scenery that is part of the building (walls, columns, hearths built in, floors) is painted by the area's view and is not a prop. Tomb finds are the one older list still to move.
 

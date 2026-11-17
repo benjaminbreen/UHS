@@ -444,6 +444,32 @@ describe("a palace planned as rooms and courts", () => {
     expect(here().length).toBe(count);
   });
 
+  it("makes exhibits props with acts: looked at closely for nothing, bought for coin", () => {
+    const r = resolveSetting("A courtier at Versailles");
+    if (!("setting" in r)) throw new Error(r.error);
+    const e = createSettingSession(r.setting, "palace"), p = e.state.player;
+    const go = (to: string) => { const x = (e.areaOf(p.pos.space) as FairLevel).exits.find((q) => q.to.endsWith(`:${to}`))!; p.pos.x = x.x + (x.w >> 1); p.pos.y = x.y + (x.h >> 1); e.advance(1); };
+    const attend = (id: string) => e.act({ actionId: `a${e.state.revision}`, expectedRevision: e.state.revision, command: { type: "interact", target: id, action: "attend" } }).status;
+    for (const to of ["royal-court", "marble-court", "bedchamber"]) go(to);
+    const bed = e.state.objects.find((o) => o.prop === "exhibit-kings-bed" && o.pos.space === p.pos.space)!;
+    expect(bed.sprite).toMatch(/^made:exhibit:versailles:bedchamber:kings-bed:/);
+    p.pos = { ...bed.pos, y: bed.pos.y + 1 };
+    expect(e.inspect(bed.id)).toMatchObject({ description: expect.stringContaining("crimson and gold") });
+    expect(e.usable()).toMatchObject({ id: bed.id, label: "Look closely" });
+    expect(attend(bed.id)).toBe("completed");
+    expect(e.state.events.at(-1)!.text).toContain("Nobody passes the rail");
+    // The area no longer offers it by its own system.
+    expect(e.complexVerb()).toBeUndefined();
+    for (const to of ["marble-court", "royal-court", "grand-commun"]) go(to);
+    const stall = e.state.objects.find((o) => o.prop === "exhibit-serdeau" && o.pos.space === p.pos.space)!;
+    p.pos = { ...stall.pos, y: stall.pos.y + 1 };
+    p.inventory.coin = 0;
+    expect(e.inspect(stall.id)!.affordances.find((a) => a.label === "Buy a plate")).toMatchObject({ enabled: false, reason: "Not enough money" });
+    p.inventory.coin = 3;
+    expect(attend(stall.id)).toBe("completed");
+    expect(p.inventory.coin).toBe(2);
+  });
+
   it("lets a sign on the map be read", () => {
     const r = resolveSetting("A weaver in London, 1650");
     if (!("setting" in r)) throw new Error(r.error);

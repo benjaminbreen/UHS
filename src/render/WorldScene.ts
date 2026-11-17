@@ -334,6 +334,7 @@ import { CaveView } from "./cave/view";
 import { SewerView } from "./sewer/view";
 import { FairView } from "./fair/view";
 import { palacePropPicture } from "./fair/palace";
+import { exhibitPicture } from "./fair/things";
 import { TombView } from "./tomb/view";
 import type { FairLevel } from "../world/fair";
 import type { TombLevel } from "../world/tomb";
@@ -3221,7 +3222,9 @@ export class WorldScene extends Phaser.Scene {
     x: number,
     y: number,
   ) {
-    if (this.streetLights.get(id)?.lamp.tech === lamp.tech) return;
+    // A lamp that can be carried is lit again where it is put down.
+    const lit = this.streetLights.get(id);
+    if (lit?.lamp.tech === lamp.tech && (!lamp.always || (lit.pool.getData("at") as string) === `${x},${y}`)) return;
     this.douseLamp(id);
     const seed = this.runtime.engine.state.manifest.seed;
     // Frame pixels to world, mirrored about the origin when the prop is flipped.
@@ -3265,6 +3268,7 @@ export class WorldScene extends Phaser.Scene {
       // in turn rather than in a random sparkle.
       order: ((((x + y * 0.6) / 700 + random(seed, "lamp-round", id) * 0.08) % 1) + 1) % 1,
     });
+    this.streetLights.get(id)!.pool.setData("at", `${x},${y}`);
   }
   private douseLamp(id: string) {
     const lamp = this.streetLights.get(id);
@@ -3378,8 +3382,8 @@ export class WorldScene extends Phaser.Scene {
   /** A hand-made thing set down: its own icon, in the colours of what went into it. */
   private madeTexture(frame: string) {
     if (this.textures.exists(frame)) return frame;
-    if (frame.startsWith("made:palace:")) {
-      const picture = palacePropPicture(frame)?.canvas();
+    if (frame.startsWith("made:palace:") || frame.startsWith("made:exhibit:")) {
+      const picture = (frame.startsWith("made:exhibit:") ? exhibitPicture(frame) : palacePropPicture(frame))?.canvas();
       if (!picture) return "__DEFAULT";
       this.textures.addCanvas(frame, picture)?.add(frame, 0, 0, 0, picture.width, picture.height);
       return frame;
@@ -7105,11 +7109,11 @@ export class WorldScene extends Phaser.Scene {
     const lampDark = this.options.lighting ? lightAlpha[this.light.id] : washAt(lampClock).lamps;
     if (perf.fires)
       for (const lamp of this.streetLights.values()) {
-        const alpha = lampDark
+        const alpha = Math.max(lamp.lamp.power * (lamp.lamp.always ?? 0), lampDark
           ? lamp.lamp.power *
             lampDark *
             (this.options.lighting ? 1 : lampOn(lamp.lamp.tech, lampHour, lamp.order))
-          : 0;
+          : 0);
         const { flicker } = lamp.lamp;
         const step = this.options.freeze
           ? 0

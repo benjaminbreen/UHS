@@ -1,3 +1,4 @@
+import { palacePropLights } from "./fair/palace";
 import type Phaser from "phaser";
 import type { LightingId } from "./lighting";
 /** Animated fire props: frame `x` has siblings `x-f1..` in the atlas; the
@@ -64,6 +65,8 @@ export type Lamp = {
   /** A shade over the bulb throws the light down in a cone; an enclosed
    * lantern or a flame sends it every way. */
   cone: boolean;
+  /** Lit by day as well, at this share of its light: candles and lamps indoors. */
+  always?: number;
 };
 const LAMPS: Record<LampTech, Omit<Lamp, "tech" | "radius" | "heads" | "cone">> = {
   fire: { flicker: 2, tone: [255, 186, 112], power: 0.9 },
@@ -107,6 +110,11 @@ const HEADS: Record<string, [number, number][]> = {
  * and sets when a cobra head went over to LED.
  * The toran (door marker 6) is a garland. */
 export function lampLight(frame: string, year = 1900, roll = 0.5): Lamp | undefined {
+  if (frame.startsWith("made:palace:")) {
+    // Candles and lamps among the furniture burn wherever they are put down.
+    const heads = palacePropLights(frame);
+    return heads.length ? { tech: "oil", radius: heads.length > 1 || frame.includes(":torchere:") ? 26 : 18, heads, cone: false, always: 0.5, ...LAMPS.oil } : undefined;
+  }
   const m = /^study-propb-(torch-post|brazier-post|lantern-post|gas-lamp|electric-lamp|sodium-lamp|city-lamp|door-lantern)-(\d)$/.exec(frame);
   if (!m || (m[1] === "door-lantern" && m[2] === "6")) return undefined;
   const kind = m[1];

@@ -11,9 +11,9 @@ export const climbable = new Set([
   "amphora-stack", "barrel", "threshing-floor", "midden", "shell-midden",
 ]);
 
-export type Use = "pound" | "grind" | "draw" | "stir" | "warm" | "sit" | "pray" | "tend" | "weave" | "scrub" | "craft" | "collect" | "roost" | "milk" | "fodder";
+export type Use = "attend" | "pound" | "grind" | "draw" | "stir" | "warm" | "sit" | "pray" | "tend" | "weave" | "scrub" | "craft" | "collect" | "roost" | "milk" | "fodder";
 
-const USE: Record<Use, { verb: string; pose: CharacterPose; minutes: number; families: string[] }> = {
+const USE: Record<Exclude<Use, "attend">, { verb: string; pose: CharacterPose; minutes: number; families: string[] }> = {
   craft: { verb: "Work at", pose: "work-tend", minutes: 20, families: ["workbench"] },
   pound: { verb: "Pound", pose: "work-pound", minutes: 15, families: ["pounding-mortar", "anvil", "knapping-floor", "chopping-block", "trip-hammer", "grindstone"] },
   grind: { verb: "Grind at", pose: "work-grind", minutes: 20, families: ["quern", "metate", "grinder", "palace-quern"] },
@@ -32,7 +32,7 @@ const USE: Record<Use, { verb: string; pose: CharacterPose; minutes: number; fam
 };
 
 const byFamily = new Map(
-  Object.entries(USE).flatMap(([use, u]) => u.families.map((f) => [f, use as Use] as const)),
+  Object.entries(USE).flatMap(([use, u]) => u.families.map((f) => [f, use as Exclude<Use, "attend">] as const)),
 );
 
 export function useOf(family: string | undefined) {

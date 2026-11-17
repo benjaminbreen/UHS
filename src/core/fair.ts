@@ -83,7 +83,7 @@ export function fairInspect(h: ComplexHost, id: string): Inspection | undefined 
 
 export function fairVerb(h: ComplexHost) {
   const c = fairRun(h) && fairLevelOf(h, h.state.player.pos.space);
-  const id = c && areaTarget(h.state.player, c.level, "fair"), offer = id ? fairInspect(h, id)?.affordances[0] : undefined;
+  const id = c && areaTarget(h.state.player, c.level, "fair", (t) => !!t.prop), offer = id ? fairInspect(h, id)?.affordances[0] : undefined;
   return offer?.enabled && offer.command.type === "interact" ? { label: offer.label, target: offer.command.target } : undefined;
 }
 

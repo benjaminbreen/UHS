@@ -801,7 +801,7 @@ export function paintPalaceDecor(kind: string, v: number, style?: PalaceStyle): 
     // What stands on a table, as a thing by itself.
     const s = sprite(16, 26, 0, 24), { r } = s;
     if (kind === "candlestick") candelabrum(r, 8, 24, glow); else if (kind === "vase") porcelain(r, 8, 25, n); else clock(r, 8, 25);
-    return s;
+    return { ...s, glow };
   }
   if (kind === "console" || kind === "console-bare") {
     // A pier table: a thick slab of white marble on a carved and gilded frame, candles and porcelain on it.
@@ -1318,18 +1318,26 @@ export function paintPalaceDecor(kind: string, v: number, style?: PalaceStyle): 
   return undefined;
 }
 
+const pictures = new Map<string, { picture: Raster; lights: [number, number][] } | undefined>();
+function palaceProp(frame: string) {
+  if (pictures.has(frame)) return pictures.get(frame);
+  const m = /^made:palace:([^:]+):([^:]+):([^:@]+):(\d+)(?:@(\d+))?$/.exec(frame);
+  const fair = m ? fairById(m[1]) : undefined, area = fair?.areas.find((a) => a.id === m![2]);
+  const s = m ? paintPalaceDecor(m[3], Number(m[4]) / 997, fair?.palace && { ...fair.palace, ...area?.palace }) : undefined;
+  let made: { picture: Raster; lights: [number, number][] } | undefined;
+  if (s) {
+    const mid = s.ox + 8, half = Math.max(mid, s.r.w - mid), foot = s.oy + 16, picture = new Raster(half * 2, foot + Number(m![5] ?? 0));
+    for (let y = 0; y < Math.min(foot, s.r.h); y++) for (let x = 0; x < s.r.w; x++) {
+      const i = (y * s.r.w + x) * 4, o = (y * picture.w + x + half - mid) * 4;
+      for (let k = 0; k < 4; k++) picture.data[o + k] = s.r.data[i + k];
+    }
+    made = { picture, lights: (s.glow ?? []).map((g) => [g.x + half - mid, g.y]) };
+  }
+  pictures.set(frame, made);
+  return made;
+}
 /** A palace prop's picture from its sprite name, `made:palace:<fair>:<area>:<kind>:<n>` with `@<px>` when it stands on a
  * table: the piece in its room's style, set so the middle of the foot of the picture is the middle of the foot of its cell. */
-export function palacePropPicture(frame: string) {
-  const m = /^made:palace:([^:]+):([^:]+):([^:@]+):(\d+)(?:@(\d+))?$/.exec(frame);
-  if (!m) return undefined;
-  const fair = fairById(m[1]), area = fair?.areas.find((a) => a.id === m[2]);
-  const s = paintPalaceDecor(m[3], Number(m[4]) / 997, fair?.palace && { ...fair.palace, ...area?.palace });
-  if (!s) return undefined;
-  const mid = s.ox + 8, half = Math.max(mid, s.r.w - mid), foot = s.oy + 16, out = new Raster(half * 2, foot + Number(m[5] ?? 0));
-  for (let y = 0; y < Math.min(foot, s.r.h); y++) for (let x = 0; x < s.r.w; x++) {
-    const i = (y * s.r.w + x) * 4, o = (y * out.w + x + half - mid) * 4;
-    for (let k = 0; k < 4; k++) out.data[o + k] = s.r.data[i + k];
-  }
-  return out;
-}
+export const palacePropPicture = (frame: string) => palaceProp(frame)?.picture;
+/** Where its flames are in that picture, for a piece that carries candles or a lamp. */
+export const palacePropLights = (frame: string) => palaceProp(frame)?.lights ?? [];

@@ -51,7 +51,8 @@ export function propAffordances(
       );
   }
   if (d.drink) add("drink", "Drink water");
-  if (d.act && !o.carriedBy && !o.broken) add("attend", d.act.verb);
+  // `open` on a thing with an act means the act has been done; only once-only acts end there.
+  if (d.act && !o.carriedBy && !o.broken && !(d.act.once && o.open)) add("attend", d.act.verb, (s.player.inventory.coin ?? 0) >= (d.act.price ?? 0), "Not enough money");
   if (d.fire && !o.carriedBy)
     add(
       "cook",

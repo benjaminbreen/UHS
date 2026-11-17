@@ -12,6 +12,8 @@ export type AreaThing = {
   y: number;
   /** On a north face: used from the cell below. */
   wall: boolean;
+  /** In the world as a prop, which is then what is drawn and used; this entry only keeps its cells in the plan. */
+  prop?: boolean;
   solid: boolean;
   /** Art key, with any variant the generator chose. */
   art: string;
@@ -28,7 +30,7 @@ export type AreaExit = { x: number; y: number; w: number; h: number; to: string;
 export type AreaLift = { x: number; y: number; to: string; up: boolean };
 export type AreaDecor = { type: string; x: number; y: number; solid: boolean; v: number };
 /** A prop the area puts in the world the first time it is walked into: its key in the prop catalogue, and the sprite it is drawn with. */
-export type AreaProp = { key: string; sprite: string; x: number; y: number };
+export type AreaProp = { key: string; sprite: string; x: number; y: number; description?: string };
 /** Someone in an area when the player arrives, by the content id they are generated from. */
 export type AreaFolk = { id: string; person: string; x: number; y: number; sex: "male" | "female"; age: number };
 

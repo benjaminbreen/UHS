@@ -226,6 +226,9 @@ for (const d of [2, 1, 0, 3]) drawCharacter(ctx, appearance, d, "walk", 0);
   noisy palettes and dithered gradients in what you changed; a fault that is a
   deliberate choice stays. Run it whole, or `oblique_audit.py` for the older
   oblique painters, only when shared art code changed.
+- What can be handled, used, sat on, read, bought from or burned in any room is a
+  prop in the catalogue with its flags and its `act`, not a list private to that
+  kind of interior. See "One system for every interior" in `docs/PROPS.md`.
 - Never assert wall-clock timings in tests. Use `scripts/capture-benchmark.ts`.
 - Other agents share this checkout. Check `git status`, preserve unrelated
   changes, and do not sweep them into your commit.

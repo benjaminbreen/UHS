@@ -692,6 +692,17 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
     asProp(kind, d.x, d.y, d.v);
     return def.portable || def.topples ? [] : [{ ...d, type: "solid" }];
   });
+  // Exhibits are props too, each with the act its find gives it. Machines at work stay with the view, which plays their frames.
+  for (const t of L.things) {
+    const f = fairFind(t.find);
+    if (!f || ["engine", "dynamo", "pump", "loom", "press", "locomotive", "lift"].includes(t.art)) continue;
+    const tall = t.h ?? 1;
+    (L.props ??= []).push({
+      key: `exhibit-${f.id}`, x: t.x, y: t.y + tall - 1, description: `${f.look}${f.price ? ` ${f.price} ${fair.coin[f.price === 1 ? 0 : 1]}.` : ""}`,
+      sprite: `made:exhibit:${fair.id}:${plan.id}:${f.id}:${t.w ?? 1}x${tall}:${(t.x * 7 + t.y) % 10}${t.wall ? ":wall" : ""}`,
+    });
+    t.prop = true;
+  }
   // The band, in under the bandstand's roof.
   for (const d of L.decor) if (d.type === "bandstand") for (let i = 0; i < 3; i++) post(plan.band, [{ x: d.x + i, y: d.y - 1 }], true);
   // The crowd.

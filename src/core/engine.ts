@@ -6014,19 +6014,45 @@ export class Engine {
     const object = this.state.objects
       .filter((o) => o.pos.space === p.pos.space && !o.carriedBy && !o.broken &&
         Math.max(Math.abs(o.pos.x - p.pos.x), Math.abs(o.pos.y - p.pos.y)) <= 1 &&
-        !!useOf(propDefs[o.prop ?? ""]?.family) && !this.workAt(o, true).length)
+        (!!useOf(propDefs[o.prop ?? ""]?.family) || this.attendable(o)) && !this.workAt(o, true).length)
       // The stall or the nest box before the stool that stands beside it.
       .sort((a, b) => +!chore(a) - +!chore(b) || distance(p.pos, a.pos) - distance(p.pos, b.pos))[0];
-    const use = object && useOf(propDefs[object.prop!].family);
-    const label = use?.use === "roost"
+    const act = object && propDefs[object.prop!].act;
+    // A prop's own act goes by the use key like any other use.
+    const use = object && (useOf(propDefs[object.prop!].family) ?? (act && { use: "attend" as const, verb: act.verb, pose: "work-tend" as const, minutes: act.minutes ?? 1, families: [] }));
+    const label = use?.use === "attend" ? use.verb : use?.use === "roost"
       ? this.state.fauna?.find((g) => g.house === p.pos.space)?.shut ? "Let the hens out" : "Shut the hens in"
       : use && `${use.verb} the ${object.name.toLowerCase()}`;
     return object && use && label ? { id: object.id, label, ...use } : undefined;
+  }
+  private attendable(o: WorldObject) {
+    const act = propDefs[o.prop ?? ""]?.act;
+    return !!act && !(act.once && o.open) && (this.state.player.inventory.coin ?? 0) >= (act.price ?? 0);
+  }
+  /** Doing what a prop offers: a sign read, a fountain drunk from, a plate bought, a book signed. */
+  private propAct(o: WorldObject) {
+    const act = propDefs[o.prop ?? ""]?.act, p = this.state.player;
+    if (!act) return;
+    if ((p.inventory.coin ?? 0) < (act.price ?? 0)) return void this.event("You don't have the money.");
+    if (act.price) p.inventory.coin = (p.inventory.coin ?? 0) - act.price;
+    const got: string[] = [];
+    if (!(act.once && o.open)) for (const [item, n] of Object.entries(act.gives ?? {})) {
+      if (!n) continue;
+      p.inventory[item] = (p.inventory[item] ?? 0) + n;
+      got.push(`${n} ${this.item(item)?.name.toLowerCase() ?? item}`);
+    }
+    if (act.water) p.inventory.water = Math.max(p.inventory.water ?? 0, this.carriesMade("vessel") ? 4 : 2);
+    if (act.rest) p.fatigue = Math.max(0, p.fatigue - act.rest);
+    if (act.heal) p.health = Math.min(100, (p.health ?? 100) + act.heal);
+    o.open = true;
+    this.advance((act.minutes ?? 1) * 60);
+    this.event(`${act.text ?? o.description ?? `${o.name}.`}${got.length ? ` You take ${got.join(", ")}.` : ""}`, act.told ?? "action");
   }
   private useProp() {
     const u = this.usable();
     if (!u) return;
     const p = this.state.player;
+    if (u.use === "attend") return void this.propAct(this.state.objects.find((o) => o.id === u.id)!);
     this.advance(u.minutes * 60);
     const name = this.state.objects.find((o) => o.id === u.id)?.name.toLowerCase() ?? "it";
     switch (u.use) {
@@ -9788,13 +9814,8 @@ export class Engine {
         this.descend(c.dx || c.dy ? { dx: c.dx ?? 0, dy: c.dy ?? 0 } : undefined);
         break;
       case "attend": {
-        // What a prop offers beyond handling it: a sign read, a fountain drunk from.
-        const at = this.state.objects.find((o) => o.id === c.target), act = propDefs[at?.prop ?? ""]?.act;
-        if (!at || !act) break;
-        if (act.water) p.inventory.water = Math.max(p.inventory.water ?? 0, this.carriesMade("vessel") ? 4 : 2);
-        if (act.rest) p.fatigue = Math.max(0, p.fatigue - act.rest);
-        this.advance((act.minutes ?? 1) * 60);
-        this.event(act.text ?? at.description ?? `${at.name}.`);
+        const at = this.state.objects.find((o) => o.id === c.target);
+        if (at) this.propAct(at);
         break;
       }
       case "drink":

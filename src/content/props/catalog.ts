@@ -5,6 +5,7 @@ import { furnitureProps } from "./furniture";
 import { containerProps } from "./containers";
 import { equipmentProps } from "./equipment";
 import { lotProps } from "./lots";
+import { exhibitProps } from "./exhibits";
 import { palaceProps } from "./palace";
 import type { Inventory, Point } from "../../core/types";
 import type { ShoveDef } from "../../core/shove";
@@ -83,6 +84,16 @@ export type PropAct = {
   water?: boolean;
   /** Rest it gives. */
   rest?: number;
+  /** What it costs, in coin, each time. */
+  price?: number;
+  /** What it hands you. */
+  gives?: Inventory;
+  /** Health it restores. */
+  heal?: number;
+  /** Done once, it has no more to offer. */
+  once?: boolean;
+  /** How it is told: as something that happened in the world, or as a small thing you did. */
+  told?: "world" | "action";
 };
 
 type Frame = { frame: { w: number; h: number }; pivot?: { x: number; y: number } };
@@ -122,6 +133,7 @@ export const propDefs: Record<string, PropDef> = {
   ...read(signpostDefs),
   ...read(wallSignDefs),
   ...palaceProps,
+  ...exhibitProps,
   ...detailProps,
   ...urbanProps,
   ...containerProps,

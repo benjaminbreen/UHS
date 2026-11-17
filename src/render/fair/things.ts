@@ -1,7 +1,8 @@
 import { box, drum } from "../ship/things";
 import { exhibitItem, stamp } from "./items";
 import { paintPalaceDecor } from "./palace";
-import type { PalaceStyle } from "../../content/palaces/styles";
+import { fairById, fairFind } from "../../content/fairs";
+import { louisQuatorze, type PalaceStyle } from "../../content/palaces/styles";
 import { paintMachine, type MachineKind } from "../machines";
 import { h2, Raster } from "../ship/raster";
 import { MACHINES } from "../../world/fair";
@@ -52,7 +53,7 @@ function machine(kind: MachineKind, w: number, h: number, v: number): FairSprite
   return { r: m.frames[0], ox: m.ox, oy: m.oy, frames: m.frames, fps: m.fps };
 }
 
-export function paintFairThing(art: string, w: number, h: number, v: number, tint?: string, labelled = true): FairSprite | undefined {
+export function paintFairThing(art: string, w: number, h: number, v: number, tint?: string, labelled = true, style?: PalaceStyle): FairSprite | undefined {
   const W = w * 16, H = h * 16, pad = 8;
   const make = (rise: number): FairSprite & { X: number; Y: number } => ({ r: new Raster(W + pad * 2, H + rise + pad + 4), ox: pad, oy: rise, X: pad, Y: rise });
   const t = tint ? ramp(tint) : undefined;
@@ -154,7 +155,7 @@ export function paintFairThing(art: string, w: number, h: number, v: number, tin
       ].forEach((row, j) => [...row].forEach((ch, i) => { if (ch !== ".") r.set(cx - 6 + i, Y - 33 + j, m[+ch]); }));
       return done(s);
     }
-    case "strongbox": return paintPalaceDecor("arca", v);
+    case "strongbox": return paintPalaceDecor("arca", v, style);
     case "axe": {
       // A polished stone axe head laid on a folded hide, on a block of wood.
       const s = make(14), { r, X, Y } = s, m = t ?? STONE, cx = X + W / 2;
@@ -859,4 +860,23 @@ function stall(v: number, cls = ""): FairSprite {
   if (look) beside(r, look.side, X + W + 2, Y + 12, cloth, n);
   r.finish();
   return { r, ox: X, oy: Y };
+}
+
+/** An exhibit's picture from its sprite name, `made:exhibit:<fair>:<area>:<find>:<w>x<h>:<n>` with `:wall` when it hangs:
+ * drawn as the area would draw it, the middle of the foot of the picture at the middle of the foot of its nearest left cell. */
+export function exhibitPicture(frame: string) {
+  const m = /^made:exhibit:([^:]+):([^:]+):([^:]+):(\d+)x(\d+):(\d+)(:wall)?$/.exec(frame);
+  const fair = m && fairById(m[1]), area = fair?.areas.find((a) => a.id === m![2]), f = m && fairFind(m[3]);
+  if (!m || !fair || !f) return undefined;
+  const palace = area?.kind === "gallery" && (area.look ?? fair.look) === "palace", style = palace ? { ...(fair.palace ?? louisQuatorze), ...area?.palace } : undefined;
+  const w = Number(m[4]), h = Number(m[5]);
+  const s = paintFairThing(f.art, w, h, Number(m[6]) / 10, f.tint, (style?.order ?? "classical") === "classical", style);
+  if (!s) return undefined;
+  // On a palace wall a hung thing has a bay to itself: in the middle of it, at eye height.
+  const hung = !!m[7] && palace, mid = s.ox + 8 - (hung ? (3 - w) * 8 : 0), half = Math.max(mid, s.r.w - mid), foot = Math.min(s.r.h, s.oy + h * 16), out = new Raster(half * 2, foot + (hung ? 30 : 0));
+  for (let y = 0; y < foot; y++) for (let x = 0; x < s.r.w; x++) {
+    const i = (y * s.r.w + x) * 4, o = (y * out.w + x + half - mid) * 4;
+    for (let k = 0; k < 4; k++) out.data[o + k] = s.r.data[i + k];
+  }
+  return out;
 }
