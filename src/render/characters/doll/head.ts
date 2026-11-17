@@ -799,7 +799,8 @@ function mask(h: Head, lo: number) {
   const veil = a.wearing.mask;
   if (veil === "yashmak" || veil === "niqab" || veil === "haik" || veil === "grille") {
     // Street veils: below the eyes, or the whole face with one eye left free, or a grille over it.
-    const from = veil === "yashmak" || veil === "niqab" ? 7 : 3;
+    // Row 7 is the lower half of the eye.
+    const from = veil === "yashmak" || veil === "niqab" ? 8 : 3;
     const to = veil === "niqab" ? end + 4 : end + 1;
     for (let r = from; r <= to; r++) {
       const narrow = veil === "niqab" && r > end + 1 ? r - end - 1 : 0;

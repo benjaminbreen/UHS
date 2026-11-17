@@ -1289,12 +1289,12 @@ export function pickHair(
     sex !== "male"
       ? 0.01
       : age < 30
-        ? 0.02
+        ? 0.01
         : age < 45
-          ? 0.2
+          ? 0.06
           : age < 60
-            ? 0.4
-            : 0.55;
+            ? 0.18
+            : 0.32;
   if (pool.includes("bald") && baldRoll < baldChance) return "bald";
   const sexes: ("male" | "female")[] =
     sex === "unspecified" ? ["male", "female"] : [sex];

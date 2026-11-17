@@ -435,7 +435,8 @@ export function wardrobeFor(
     hairDye: chosen.hairDye as string | undefined,
     silhouette: chosen.silhouette as CharacterAppearance["wearing"]["silhouette"],
     mask: chosen.mask as CharacterAppearance["wearing"]["mask"],
-    headLoad: chosen.headLoad as CharacterAppearance["wearing"]["headLoad"],
+    // A load rides on bare hair or a cloth, not on a crowned or brimmed hat.
+    headLoad: ["none", "headscarf", "kerchief", "wrap", "turban", "veil"].includes(headwear) ? (chosen.headLoad as CharacterAppearance["wearing"]["headLoad"]) : undefined,
     handwork: chosen.handwork as CharacterAppearance["wearing"]["handwork"],
     // Worn up, a hood is headwear; it cannot also lie on the shoulders.
     hood: headwear === "hood" ? undefined : (chosen.hood as CharacterAppearance["wearing"]["hood"]),

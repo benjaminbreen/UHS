@@ -1016,6 +1016,39 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     ["London", "london", 1785, ["lady|female|22", "landowner|male|62", "sailor", "weaver|female"]],
   ]),
 
+  /** Ordinary people drawn the way random starts are: by the people alive in each year and place. */
+  async world(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
+      const { randomStartFromDraws } = await import("/src/content/geography/random-start.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const cols = 12, rows = 8, S = 2, cw = 96 * S, ch = 68 * S + 30;
+      const sheet = document.createElement("canvas"), frame = document.createElement("canvas");
+      sheet.width = cols * cw; sheet.height = rows * ch;
+      frame.width = frame.height = 80;
+      const ctx = sheet.getContext("2d")!, fc = frame.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false; ctx.fillStyle = "#9aa59a"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      let n = 0x9e3779b9;
+      const next = () => ((n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d) + 0x297a2d39) >>> 0);
+      for (let i = 0; i < cols * rows; i++) {
+        const { setting } = randomStartFromDraws(new Uint32Array([next(), next(), next(), next()]), "realistic", `audit-${i}`);
+        const c = generateCharacter(setting, "audit", `audit-${i}`, [19, 27, 34, 45, 61][i % 5], setting.role);
+        const x0 = (i % cols) * cw, y0 = Math.floor(i / cols) * ch;
+        [[2, 4], [1, 3]].forEach(([dir, facing], j) => {
+          drawCharacterG(fc, c.appearance, dir, "idle", 0, undefined, facing, "neutral");
+          ctx.drawImage(frame, 16, 12, 48, 68, x0 + j * 48 * S, y0, 48 * S, 68 * S);
+        });
+        ctx.fillStyle = "#26352c"; ctx.font = "11px monospace";
+        ctx.fillText(`${setting.location ?? ""}`.slice(0, 22) + ` ${setting.year}`, x0 + 4, y0 + 68 * S + 11);
+        ctx.fillText(`${c.role}`.slice(0, 28), x0 + 4, y0 + 68 * S + 23);
+      }
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("world"));
+  },
+
   /** Cocked hats, the Qing queue, the Joseon gat, the tonsure and habits by order. */
   hats: (page) => castSheet(page, "hats", [
     ["London", "london", 1750, ["shopkeeper", "landowner", "farmer", "shopkeeper|female"]],

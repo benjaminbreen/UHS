@@ -471,8 +471,9 @@ it("dresses the future the same way everywhere, in cloth that costs nothing", ()
     );
     expect(fibres.some((c) => c.material === "synthetic")).toBe(true);
   }
-  // Before 2020 the regions still decide.
+  // Up to the present the regions still decide.
   expect(crowd("south-asian", 1990).map((w) => w.garment)).not.toContain("suit");
+  expect(crowd("european", 2025).map((w) => w.garment)).not.toContain("suit");
 });
 
 it("names modern cloth the way a modern wearer would", () => {

@@ -183,6 +183,10 @@ scope rules as name kits, with wide era floors so every date lands somewhere.
 - **Review sheets.** `npm run capture:characters -- <preset>`. A wrong name
   lists them all. Useful ones:
   - `doll`, `wardrobe`, `street`, `soldiers`, `professions`
+  - `world`: 96 ordinary people drawn the way random starts are, by the
+    people alive in each year and place. Start here when asking what most
+    players will see.
+  - `georgian`: eighteenth-century Europe, court to market
   - `expressions`, `weapons`, `work`
   - `portrait-age`
 - **More sheets.** `npx tsx scripts/portrait-sheets.ts expressions|ears|marks|noses|nose-ornament`.

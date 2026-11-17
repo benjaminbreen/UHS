@@ -13,13 +13,14 @@ import type { GarmentKit, Option } from "../types";
  */
 const anyone = <T,>(v: T, weight = 1): Option<T> => ({ value: v, weight });
 
-/** Post-2020. Deliberately restrained: everyday clothing that survived, plus
+/** After 2040, past any year a random start lands in: the present is dressed
+ * by its regions. Deliberately restrained: everyday clothing that survived, plus
  * the coverall, and colour that costs nothing to make. */
 export const futureDress: readonly GarmentKit[] = [
   {
     id: "future",
-    label: "After 2020 · synthetic everyday",
-    scope: { years: [2020, 10001] },
+    label: "After 2040 · synthetic everyday",
+    scope: { years: [2040, 10001] },
     priority: 1,
     garment: [
       anyone("shirt", 6),
