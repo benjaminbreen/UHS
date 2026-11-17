@@ -2790,7 +2790,8 @@ export class Engine {
         frame: place.sprite,
         climate: s.climate,
       },
-      { fortune: household?.fortune, activity: head && livelihoodOf(this.world.pack, head)?.activity, hour: (this.state.clock / 3600) % 24, good: household?.makes?.[0], bench: propDefs[this.object(`${space}-work`)?.prop ?? ""]?.family, profile: floor?.profile, colorway: floor?.colorway, storey: floor && storey.n },
+      { fortune: household?.fortune, activity: head && livelihoodOf(this.world.pack, head)?.activity, hour: (this.state.clock / 3600) % 24, good: household?.makes?.[0], bench: propDefs[this.object(`${space}-work`)?.prop ?? ""]?.family, profile: floor?.profile, colorway: floor?.colorway, storey: floor && storey.n,
+        lift: floor?.kind === "home" ? (this.towerOf(place.id)!.style.lift.name === "Stairs" ? "stair" : "lift") : undefined },
     );
     this.interiors.set(space, room);
     const move = (id: string, p: Point) => {
@@ -2862,7 +2863,7 @@ export class Engine {
       const day = floor.staff.filter((w) => !w.night), after = floor.staff.filter((w) => w.night);
       const places = Math.max(room.seats.length, Math.floor(room.walk.size / 6));
       const present = s.actors.filter((a) => !a.staff && a.kind === "human" && a.id !== s.player.id && a.pos.space === space).length;
-      const desks = !day.length ? 0 : floor.customers || floor.stay ? 1 + Math.floor(r("count") * 3) : Math.min(18, Math.round(places * (floor.profile.regulars?.fill ?? 0.4)));
+      const desks = !day.length ? 0 : floor.customers || floor.stay ? 1 + Math.floor(r("count") * 3) : Math.min(18, Math.round(places * (floor.profile?.regulars?.fill ?? 0.4)));
       const staying = night && late ? Math.round(desks * floor.late) : night ? 0 : desks - present;
       for (let i = 0; i < staying; i++) want.set(`staff-${space}-d${i}`, { work: pick(day, `day-${i}`), doing: `${night ? "Working late" : "At work"}: ${name}` });
       for (let i = 0; night && after.length && i < 1 + Math.floor(r("night") * 2); i++) want.set(`staff-${space}-n${i}`, { work: pick(after, `night-${i}`), doing: `On the night shift: ${name}` });

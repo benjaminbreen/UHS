@@ -15,7 +15,8 @@ export type TowerStyle = {
   frames: string;
   storeys: [number, number];
   lift: { name: string; perFloor: number };
-  lobby: InteriorProfile;
+  /** None where the street floor is the household's own home, as in a block of flats. */
+  lobby?: InteriorProfile;
   /** By the room kind a tenant asks for: offices, a bank, a bar. */
   rooms: Readonly<Record<string, InteriorProfile>>;
   /** How the lift's cutaway draws it: stone as lit, face and shade; the

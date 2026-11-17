@@ -1,4 +1,6 @@
 import { towerStyleFor, type TowerStyle } from "../content/towers";
+import { blockStyle } from "../content/towers/blocks";
+import { buildingModels } from "../content/graphics/models";
 import { lobbyStaff, overtime, tenants, type Staff, type Tenant } from "../content/towers/tenants";
 import { characterNameParts } from "../content/characters/generate";
 import { matchesCharacterScope, resolveCharacterContext, type CharacterContext } from "../content/characters/resolve";
@@ -9,7 +11,7 @@ import { random } from "../core/random";
 
 /** One storey: the room it is fitted out as, the firm in it and who works there. */
 export type TowerFloor = {
-  n: number; kind: string; name: string; profile: InteriorProfile; colorway: number; tenant?: string; staff: readonly Staff[]; customers?: boolean;
+  n: number; kind: string; name: string; profile?: InteriorProfile; colorway: number; tenant?: string; staff: readonly Staff[]; customers?: boolean;
   /** The staff's hours; `late` is the share of them still working for a few hours after. */
   hours: readonly [number, number]; late: number;
   stay?: Tenant["stay"];
@@ -53,10 +55,37 @@ export function firmName(t: Pick<Tenant, "names">, s: WorldSetting, seed: string
 /** The storeys of a tower, planned from its seed: the lobby, runs of floors
  * let to one firm at a time from the kinds that fit this place and year,
  * and the top. */
+/** Storeys as drawn: a skyscraper has several to each drawn floor, a block one each. */
+const drawn = (frame: string) => (buildingModels[frame] as { stories?: number } | undefined)?.stories ?? 0;
+const tallest = new Map<string, number>();
+function tallestOf(style: TowerStyle) {
+  let n = tallest.get(style.frames);
+  if (n === undefined) tallest.set(style.frames, (n = Math.max(1, ...Object.keys(buildingModels).filter((k) => k.startsWith(style.frames)).map(drawn))));
+  return n;
+}
+
+/** A skyscraper by its frame; else an office building or a block of flats of four storeys or more. */
+function styleOf(place: Place, s: WorldSetting): { style: TowerStyle; count: (u: number) => number } | undefined {
+  const style = towerStyleFor(place.sprite), n = drawn(place.sprite);
+  if (style) {
+    const [lo, hi] = style.storeys, k = n ? n / tallestOf(style) : 1;
+    return { style, count: (u) => Math.max(lo, Math.round(hi * k * (0.85 + 0.15 * u))) };
+  }
+  if (n < 4) return undefined;
+  if (place.name === "Offices" && s.year >= 1870) return { style: blockStyle("offices", s.year, n), count: () => n };
+  if (place.access === "household" && place.sprite.startsWith("mod-")) return { style: blockStyle("flats", s.year, n), count: () => n };
+  return undefined;
+}
+
+// Every block of flats in a city asks; the answer is the city's.
+const contexts = new WeakMap<WorldSetting, CharacterContext>();
+
 export function towerPlan(place: Place, seed: string, s: WorldSetting): Tower | undefined {
-  const style = towerStyleFor(place.sprite);
-  if (!style) return undefined;
-  const context = resolveCharacterContext(s);
+  const of = styleOf(place, s);
+  if (!of) return undefined;
+  const style = of.style;
+  let context = contexts.get(s);
+  if (!context) contexts.set(s, (context = resolveCharacterContext(s)));
   const found = new Set(context.livelihoods.map((l) => l.id));
   const kept = (w: Staff) => found.has(w.work) && (!w.until || s.year < w.until);
   const fits = tenants.flatMap((t) => {
@@ -67,13 +96,13 @@ export function towerPlan(place: Place, seed: string, s: WorldSetting): Tower | 
   const middle = fits.filter((t) => !t.top);
   if (!middle.length) return undefined;
   const r = (...k: (string | number)[]) => random(seed, "tower", place.id, ...k);
-  const [lo, hi] = style.storeys;
-  const count = lo + Math.floor(r("storeys") * (hi - lo + 1));
+  const count = of.count(r("storeys"));
   const late = overtime.find((o) => o.where.some((w) => matchesCharacterScope(w, s, "*")))?.share ?? 0;
-  const floors: TowerFloor[] = [{
-    n: 0, kind: "lobby", name: "Lobby", profile: style.lobby, colorway: Math.floor(r("lobby") * 3), staff: lobbyStaff.filter(kept), customers: true,
-    hours: style.lobby.regulars?.hours ?? [8, 19], late: 0,
-  }];
+  const floors: TowerFloor[] = [style.lobby ? {
+    n: 0, kind: "lobby", name: "Lobby", profile: style.lobby, colorway: Math.floor(r("lobby") * 3), customers: true, late: 0,
+    staff: lobbyStaff.filter((w) => kept(w) && (w.work !== "lift-attendant" || style.lift.name !== "Stairs")),
+    hours: style.lobby.regulars?.hours ?? [8, 19],
+  } : { n: 0, kind: "home", name: place.name, colorway: 0, staff: [], hours: [0, 24], late: 0 }];
   const used = new Set<string>();
   const take = (t: (typeof fits)[number], key: number) => {
     let name = "";

@@ -44,7 +44,8 @@ The owner keeps this list.
   build glass slabs from 1952 (`mod-slab`), and Bangkok, Kuala Lumpur,
   Singapore, Jakarta, Manila and Saigon podium towers from 1990
   (`mod-tropic`) with a video screen, a helipad, spire or gilt dome, and a
-  rooftop bar.
+  rooftop bar. Towers stand at half to full height; office buildings and
+  blocks of flats of four storeys or more have their floors too.
 - November 16: fairs from a map. An area can be given as a rectangle on the
   fair's plan and the game sizes it, joins it to its neighbours and fills it
   by class. The 1884 International Health Exhibition is the first: 35 areas

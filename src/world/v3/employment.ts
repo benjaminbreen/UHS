@@ -9,7 +9,6 @@ import { livelihoodById } from "../../content/characters/livelihoods";
 import { officeFor } from "../../content/interiors/offices";
 import { worksitesFor } from "../../content/settlements/worksites";
 import type { SettlementPlan, WorkSite } from "./types";
-import { towerStyleFor } from "../../content/towers";
 import { floorName, floorSpace, towerPlan } from "../tower";
 
 export type WorkplaceOffer = {
@@ -57,8 +56,9 @@ export function workplacesIn(
         Math.max(4, Math.min(24, Math.floor((p.w * p.h) / 12))),
       );
     // Each storey of a tower is let to a firm, which hires its own staff.
-    const tower = seed && pack.setting && towerStyleFor(p.sprite) ? towerPlan(p, seed, pack.setting) : undefined;
-    for (const f of tower?.floors ?? [])
+    const tower = seed && pack.setting ? towerPlan(p, seed, pack.setting) : undefined;
+    // Flats keep a cleaner, not a staff to hire.
+    for (const f of tower?.floors ?? []) if (f.staff.length && f.stay !== "home")
       add(floorSpace(p.id, f.n), f.kind === "bank" ? "bank" : "administration", f.n ? `${f.name}, ${floorName(f.n)}` : p.name, p.entrance, 2,
         [...new Set(f.staff.filter((w) => !w.night).map((w) => w.work))]);
     const office = !tower && officeFor(p.name, pack.year);

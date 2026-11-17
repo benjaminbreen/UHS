@@ -113,7 +113,7 @@ function wheelThrown({ lon, lat, year }: InteriorSite) {
 /** Builds the room a household lives in: its profile from place and date, its
  * finish from the household's fortune, its furniture from the trade. Rooms
  * are larger than the building outside; that is deliberate. */
-export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: number; activity?: string; hour?: number; good?: string; bench?: string; profile?: InteriorProfile; colorway?: number; storey?: number }): InteriorLayout {
+export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: number; activity?: string; hour?: number; good?: string; bench?: string; profile?: InteriorProfile; colorway?: number; storey?: number; lift?: "lift" | "stair" }): InteriorLayout {
   const seed = seedOf(place.id);
   const found = interiorProfileFor(site);
   // Çatalhöyük's plan behind a street door, where the house outside has one.
@@ -121,7 +121,9 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   // An industrial lot is its works; a house open to the street is its keeper's shop, if their trade keeps one.
   const works = o.profile ?? (buildingUse(place.claim) ? undefined : place.landUse === "industrial" ? factoryFor(place.name, site.year, seed) : place.landUse === "downtown" ? officeFor(place.name, site.year) : undefined);
   const kind = !works && place.access === "public" && !buildingUse(place.claim) && !home.uses ? shopKind(`${place.name} ${o.activity ?? ""}`, o.good) : undefined;
-  const profile = works ?? (kind ? shopFor(home, kind, site, o.bench) : home);
+  const own = works ?? (kind ? shopFor(home, kind, site, o.bench) : home);
+  // The ground floor of a block of flats: the way up beside the family's own rooms.
+  const profile = o.lift ? { ...own, furnish: ["elevator" as const, ...(own.furnish ?? [])], styles: o.lift === "stair" ? { ...own.styles, elevator: "stair" } : own.styles } : own;
   const status: Finish = o.fortune === undefined ? 1 : o.fortune < 0.34 ? 0 : o.fortune < 0.72 ? 1 : 2;
   const [tw, td] = profile.rooms?.[0].size ?? profile.size;
   const k = [0.85, 1, 1.2][status];

@@ -346,7 +346,7 @@ export const tenants: readonly Tenant[] = [
       { where: JP, say: ["{S} Mansion, residences", "Company flats"] },
       { say: ["Apartments", "Private apartments", "The {S} residence"] },
     ],
-    staff: [{ work: "housemaid", weight: 1, until: 1960 }, { work: "cleaner", weight: 1 }],
+    staff: [{ work: "cleaner", weight: 1 }, { work: "housemaid", weight: 1, until: 1960 }],
     weight: 2,
     run: [2, 8],
     stay: "home",

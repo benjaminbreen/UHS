@@ -167,7 +167,7 @@ function paint(g: CanvasRenderingContext2D, tower: Tower, here: number, car: num
   const evening = (k: string) => k === "snack" || k === "mahjong" || k === "lounge";
   for (const f of tower.floors) {
     const i = f.n, top = yOf(i), half = halfAt(tower, i, n), x0 = cx - half, x1 = cx + half;
-    const way = f.profile.colorways[f.colorway % f.profile.colorways.length];
+    const ways = f.profile?.colorways ?? [{ name: "", wall: "#d8ccb4", trim: "#3a2a1e", floor: "#8a6a48", wood: "#5a3a24", accent: "#6a3a2a" }], way = ways[f.colorway % ways.length];
     const [from, to] = f.hours, open = from <= to ? hour >= from && hour < to : hour >= from || hour < to;
     const home = !!f.stay && hour >= 17 && hour < 23 && hash(i, 7) < 0.8;
     const lit = !night || open || home || hash(i, 7) < 0.3;

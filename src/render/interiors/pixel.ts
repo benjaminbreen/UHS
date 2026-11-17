@@ -3098,6 +3098,16 @@ export class PixelRoom {
       }
       case "elevator": {
         const x0 = X + 1, top = oy - 38;
+        if (p.styles.elevator === "stair") {
+          // The stairwell door: treads climbing away to the right in the dark, a rail over them.
+          this.r(x0 - 1, top - 2, 16, 40, (i, j) => (i < 2 || i > 13 || j < 2 ? P.trim[i < 2 || j < 2 ? 1 : 2] : P.iron[0]));
+          for (let k = 0; k < 6; k++) {
+            const y = top + 32 - k * 6, x = x0 + 1 + k * 2;
+            this.r(x, y, 13 - k * 2, 2, (_, j) => (j ? P.wood[3] : P.wood[1]));
+          }
+          for (let k = 0; k < 12; k++) this.s(x0 + 2 + k, top + 22 - k * 3, P.wood[2]);
+          break;
+        }
         this.r(x0 - 1, top - 8, 16, 46, (i, j) => (j < 8 ? (Math.abs(i - 7.5) < 8 - j * 0.9 ? P.brass[j % 2 ? 3 : 4] : P.trim[2]) : i < 2 || i > 13 ? P.brass[i % 13 === 0 ? 2 : 4] : P.trim[1]));
         for (let j = 0; j < 36; j++)
           for (let i = 2; i < 14; i++) {

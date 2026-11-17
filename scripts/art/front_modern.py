@@ -1794,6 +1794,13 @@ class Skyscraper(Block):
     FLOORS = dict(tall=14, row=10, wide=12, hall=11)
     H0, H1, PARA, HEAD = 70, 38, 4, 150
 
+    def __init__(self, s, form='row', cells=12, seed=0):
+        # The tall form reaches the look's full height; the rest stand at half
+        # to four fifths of it, so a downtown is not a wall of the tallest.
+        u = h2(seed, 17, 91)
+        k = 0.7 + 0.3 * u if form == 'tall' else 0.5 + 0.3 * u
+        super().__init__(dict(s, floors=s.get('floors') or max(6, round(self.FLOORS['tall'] * k))), form, cells, seed)
+
     def plan(self):
         self.door_x = self.x0 + self.W // 2
         self.door_size = (26, 46)

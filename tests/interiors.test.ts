@@ -564,9 +564,27 @@ describe("towers", () => {
         expect(f.staff.length, f.name).toBeGreaterThan(0);
         for (const w of f.staff) expect(here.has(w.work), `${prompt}: ${w.work}`).toBe(true);
         expect(f.name, f.tenant).not.toMatch(/[{}[\]]/);
-        if (f.n) expect(f.profile.door).toBe("lift");
+        if (f.n) expect(f.profile?.door).toBe("lift");
       }
     }
+  });
+  it("lets an office building and a block of flats by the storeys drawn, with stairs where there was no lift", () => {
+    const plan = (prompt: string, sprite: string, o: Partial<Place>) => {
+      const resolved = resolveSetting(prompt, "tower");
+      if (!("setting" in resolved)) throw Error(prompt);
+      return towerPlan({ id: "b", sprite, ...o } as Place, "plan", resolved.setting)!;
+    };
+    const office = plan("Clerk in Chicago 1965", "mod-office-0-urban-tall", { name: "Offices" });
+    expect(office.floors).toHaveLength(7);
+    expect(office.floors[0].kind).toBe("lobby");
+    expect(office.style.lift.name).toBe("Lift");
+    const flats = plan("Clerk in New York 1920", "mod-walkup-0-urban-tall", { name: "Tenement", access: "household" });
+    expect(flats.floors[0].kind).toBe("home");
+    expect(flats.floors[0].profile).toBeUndefined();
+    expect(flats.floors.slice(1).every((f) => f.kind === "flat")).toBe(true);
+    expect(flats.style.lift.name).toBe("Stairs");
+    expect(plan("Clerk in Moscow 1975", "mod-panelka-0-urban-tall", { name: "Flats", access: "household" }).style.lift.name).toBe("Lift");
+    expect(plan("Clerk in Chicago 1965", "mod-brick-0-urban-row", { name: "Offices" })).toBeUndefined();
   });
   it("keeps firms to their era and economy", () => {
     const kinds = (prompt: string, frames: string) =>
