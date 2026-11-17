@@ -7919,11 +7919,11 @@ export class WorldScene extends Phaser.Scene {
           prop,
           turnMotion || passBy * 3,
           condition,
+          asleep ? undefined : this.feeling(id, human),
         );
         // A hit-stop holds the figures too, not only what is tweened.
         im.setVisible(!!texture);
         if (asleep) this.shadows.get(id)?.setVisible(false);
-          asleep ? undefined : this.feeling(id, human),
         const horse = id === "player" && this.runtime.devHorse
           ? this.horseFrame(moving, turn.facing, time)
           : undefined;
@@ -8497,10 +8497,6 @@ export class WorldScene extends Phaser.Scene {
   /** Two people together: whoever the player is talking to and the player,
    * or two people stopped at the same errand. They face each other and take
    * turns, and at a market one sells to the other. */
-  private together(id: string, at: Ambient | undefined, time: number) {
-    const engine = this.runtime.engine, talking = engine.conversing;
-    const me = this.entities.get(id);
-    if (!me) return undefined;
   /** The face someone wears for the moment: what they just said, how they
    * take the player standing near, or being ill. */
   private feeling(id: string, human: Pick<Actor, "trust" | "pos">): RestingExpression | undefined {
@@ -8516,6 +8512,10 @@ export class WorldScene extends Phaser.Scene {
     if (id !== engine.conversing && Math.hypot(human.pos.x - s.player.pos.x, human.pos.y - s.player.pos.y) > 3) return undefined;
     return trust >= 2 ? "smile" : trust < 0 ? "serious" : undefined;
   }
+  private together(id: string, at: Ambient | undefined, time: number) {
+    const engine = this.runtime.engine, talking = engine.conversing;
+    const me = this.entities.get(id);
+    if (!me) return undefined;
     let other: string | undefined, kind: "chat" | "sale" = "chat", sells = false;
     if (talking && (id === talking || id === "player")) other = id === "player" ? talking : "player";
     else if (at && !at.moving && (at.activity === "visit" || at.activity === "play" || keeps(at)) && id !== "player") {
