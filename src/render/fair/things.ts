@@ -1,4 +1,5 @@
 import { box, drum } from "../ship/things";
+import { exhibitItem, stamp } from "./items";
 import { paintMachine, type MachineKind } from "../machines";
 import { h2, Raster } from "../ship/raster";
 import { MACHINES } from "../../world/fair";
@@ -563,6 +564,10 @@ export function paintFairDecor(type: string, v: number): FairSprite | undefined 
     r.finish();
     return { r, ox: 8, oy: 70 };
   }
+  if (type.startsWith("table:")) {
+    const [, cls, size] = type.split(":"), [w, h] = size.split("x").map(Number);
+    return table(cls, w, h, v);
+  }
   if (type.startsWith("stall")) return stall(v, type.slice(6));
   if (type === "rib") return rib();
   if (type === "crate") {
@@ -643,6 +648,37 @@ const STALLS = [["#c86a5a", "#a84a40", "#86342e", "#5e2422"], ["#6a86b8", "#4e6a
 
 /** An exhibitor's stand, three cells wide: a nameboard on carved posts over a
  * back screen of shelves, and a draped counter of goods in front. */
+const TABLE = { rim: "#d49a5e", top: "#a0623a", grain: "#8e5430", front: "#b87844", panel: "#96592e", foot: "#62381c" };
+const BAIZE = [["#5e9a6a", "#3e7850", "#2a583a"], ["#b8504a", "#963632", "#6e2424"], ["#5a78b0", "#3e5a92", "#2a406e"], ["#b89a58", "#96783c", "#6e5628"]];
+
+/** A display table seen from a little above, `w` cells by `h`: a broad top with a
+ * raised rim, sometimes laid with cloth, and on it one exhibit to a cell, each
+ * its own thing; a panelled front below. Anchored on its bottom-left cell. */
+function table(cls: string, w: number, h: number, v: number): FairSprite {
+  const W = w * 16, H = h * 16, X = 4, Y = 10, r = new Raster(W + 8, H + Y + 6), n = Math.floor(v * 9973);
+  const top = Y - 3, face = Y + H - 11;
+  r.shadow(X + W / 2 + 2, Y + H - 1, W / 2 + 1, 4, 0.28);
+  r.fill(X, top, W, face - top, TABLE.top);
+  for (let y = top + 3; y < face; y += 4) for (let x = X + 2; x < X + W - 2; x++) if (h2(x >> 3, y, n) > 0.55) r.set(x, y, TABLE.grain);
+  // The rim, lit along the back and the left.
+  r.fill(X, top, W, 2, TABLE.rim); r.fill(X, top, 2, face - top, TABLE.rim); r.fill(X + W - 2, top, 2, face - top, TABLE.grain); r.fill(X, face - 2, W, 2, TABLE.rim);
+  if (v > 0.45) {
+    const c = BAIZE[n % BAIZE.length];
+    r.fill(X + 3, top + 3, W - 6, face - top - 6, c[1]); r.fill(X + 3, top + 3, W - 6, 1, c[0]); r.fill(X + 3, face - 4, W - 6, 1, c[2]);
+    for (let x = X + 4; x < X + W - 4; x += 2) r.set(x, face - 4, "#e8c060");
+  }
+  r.fill(X, face, W, 10, TABLE.front); r.fill(X, face, W, 1, TABLE.rim); r.fill(X, face + 9, W, 1, TABLE.foot); r.fill(X + W - 1, face, 1, 10, TABLE.panel);
+  for (let x = X + 3; x < X + W - 4; x += 16) { r.fill(x, face + 3, Math.min(11, X + W - 4 - x), 4, TABLE.panel); r.fill(x, face + 3, Math.min(11, X + W - 4 - x), 1, TABLE.foot); }
+  r.finish();
+  // The exhibits, back row first so the front row stands over it.
+  const rows = w === 1 ? h : h - 1, pitch = (face - top - 17) / Math.max(1, rows - 1);
+  for (let j = 0; j < rows; j++) for (let i = 0; i < w; i++) {
+    if (h2(i, j, n) < 0.08) continue;
+    stamp(r, exhibitItem(cls, n + i * 17 + j * 131), X + i * 16, Math.round(top - 1 + j * pitch));
+  }
+  return { r, ox: X, oy: Y + (h - 1) * 16 };
+}
+
 /** What a stand of each class looks like: the colours of its screen and counter cloth, and what stands beside it. */
 const CLASSES: Record<string, { screen: number; cloth: number; side: string }> = {
   food: { screen: 2, cloth: 3, side: "barrel" }, dress: { screen: 4, cloth: 0, side: "mannequin" }, dwelling: { screen: 1, cloth: 3, side: "washstand" },

@@ -441,13 +441,29 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       if (k % 3 === 0) post(standStaff, [{ x: x + fw, y: foot }, { x: x - 1, y: foot }]);
       k++, x += fw + 4;
     }
-  } else if (plan.kind === "hall" || plan.kind === "gallery") {
+  } else if (plan.kind === "gallery") {
+    // Display tables laid with the area's class of thing, a stand between every two, in rows with open floor between.
+    const cls = plan.stands?.tags[0] ?? "";
+    let k = Math.floor(rng() * 3);
+    for (let y = 6; y < h - 6; y += 9) for (let x = 4; x < w - 6; ) {
+      const stand = k % 3 === 2, fw = stand ? 3 : 5 + Math.floor(rng() * 4), fh = stand ? 1 : 3, ty = stand ? y + 2 : y;
+      if (x + fw > w - 3 || !free(x, ty, fw, fh)) { x++; continue; }
+      block(x, ty, fw, fh);
+      L.decor.push({ type: stand ? `stall:${cls}` : `table:${cls}:${fw}x${fh}`, x, y: ty + fh - 1, solid: true, v: rng() });
+      if (srng() < 0.55) post(standStaff, [{ x: x + (fw >> 1), y: ty + fh }]);
+      k++, x += fw + 2;
+    }
+    // More tables down the side walls, three cells long, clear of the doorways.
+    for (const x of [1, w - 2]) for (let y = 6; y + 2 < h - 3; y += 5) {
+      if ([0, 1, 2].some((j) => L.cells[(y + j) * w + x] !== FLOOR || taken[(y + j) * w + x])) continue;
+      block(x, y, 1, 3);
+      L.decor.push({ type: `table:${cls}:1x3`, x, y: y + 2, solid: true, v: rng() });
+    }
+  } else if (plan.kind === "hall") {
     for (const s of spots) {
-      // A gallery from the plan keeps its stands in wide-spaced rows, with open floor between.
-      if ((s.y - 5) % (plan.kind === "gallery" ? 9 : 6) || (s.x - 3) % 4 || (s.x - 3) % 12 === 8 || Math.abs(s.y - (h >> 1)) < 2 || s.x < 3 || s.x > w - 6 || !free(s.x, s.y, 3, 1)) continue;
+      if ((s.y - 5) % 6 || (s.x - 3) % 4 || (s.x - 3) % 12 === 8 || Math.abs(s.y - (h >> 1)) < 2 || s.x < 3 || s.x > w - 6 || !free(s.x, s.y, 3, 1)) continue;
       block(s.x, s.y, 3, 1);
-      // A stand of the area's class: "stall:food".
-      L.decor.push({ type: plan.kind === "gallery" && plan.stands?.tags[0] ? `stall:${plan.stands.tags[0]}` : "stall", x: s.x, y: s.y, solid: true, v: rng() });
+      L.decor.push({ type: "stall", x: s.x, y: s.y, solid: true, v: rng() });
       if (srng() < 0.6) post(standStaff, [{ x: s.x + 1, y: s.y + 1 }]);
     }
   }
@@ -458,7 +474,7 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       L.decor.push({ type, x, y, solid: true, v: rng() });
       taken[y * w + x] = 1;
     };
-    for (let y = 5; y < h - 4; y += 2) furnish("case", 1, y), furnish("case", w - 2, y);
+    if (plan.kind !== "gallery") for (let y = 5; y < h - 4; y += 2) furnish("case", 1, y), furnish("case", w - 2, y);
     for (const [x, y] of [[2, 3], [w - 3, 3], [cx - 3, h - 2], [cx + 2, h - 2]]) furnish("palm", x, y);
   }
   // The band, in under the bandstand's roof.
