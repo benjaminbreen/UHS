@@ -39,7 +39,7 @@ def pack_atlas(sprites, output, name, width=1024, *, module=False, paged=False):
     # Keep each texture within a conservative GPU limit as modular kits grow.
     # Repack wider before allocating; never silently emit an unusable tall atlas.
     # A sheet the game loads only as 1024px pages may run taller.
-    if y+rowh+2>(16384 if paged and width>=4096 else 4096):
+    if y+rowh+2>(32768 if paged and width>=4096 else 4096):
         if width<4096:return pack_atlas(sprites,output,name,width*2,module=module,paged=paged)
         raise ValueError(f'{name} needs multiple pages: exceeds 4096 pixels')
     atlas=Image.new('RGBA',(width,y+rowh+2))
