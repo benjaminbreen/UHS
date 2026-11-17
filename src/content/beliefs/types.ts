@@ -17,6 +17,13 @@ export type RelationKind =
   /** Taught by, or founded the line that teaches. */
   | "taught-by";
 export type Relation = { kind: RelationKind; of: string };
+export type Realm =
+  | "latin" | "orthodox" | "protestant" | "islam" | "jewish" | "dust" | "zoroastrian"
+  | "egypt" | "greek" | "norse" | "celtic" | "mexica" | "maya" | "andean"
+  | "hindu" | "buddhist" | "pure-land" | "jain" | "sikh" | "chinese" | "japanese"
+  | "steppe" | "african" | "country" | "ocean" | "path" | "forest" | "pueblo" | "arctic" | "earth"
+  | "slavic" | "uralic" | "tungusic" | "bon" | "kongo" | "yoruba" | "akan" | "malagasy"
+  | "northwest" | "mountain" | "california" | "barrow";
 export type BeliefFeature = "sacred-texts";
 export type Practice =
   | string
@@ -82,5 +89,7 @@ export type BeliefSystem = {
   /** Who officiates, if anyone does. */
   specialist?: string;
   afterlife?: string;
+  /** Where the dead go, for the death scene: see `afterlife.ts`. */
+  realm: Realm;
   evidence: Evidence;
 };

@@ -41,6 +41,8 @@ async function castSheet(page: Page, name: string, rows: readonly (readonly [str
           drawCharacterG(fc, c.appearance, dir, pose, f, prop, facing, "neutral");
           ctx.drawImage(frame, 16, 12, 48, 68, x0 + (n * 3 + j) * 48, y0 + 22, 48, 68);
         });
+        ctx.fillStyle = "#26352c"; ctx.font = "11px monospace";
+        ctx.fillText(`${c.role}${held ? ` · ${held}` : ""}`.slice(0, 22), x0 + n * 3 * 48 + 4, y0 + 104);
       });
       ctx.fillStyle = "#26352c"; ctx.font = "12px monospace";
       ctx.fillText(`${label} ${year}`, x0 + 4, y0 + 14);
@@ -1280,6 +1282,32 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
   ]),
 
   /** Soldiers, doctors, money, estates and the twentieth century's work. */
+  accosters: (page) => castSheet(page, "accosters", [
+    ["Rome", "rome", 100, ["Latro", "Latro", "Grassator", "Pickpocket|female"]],
+    ["Lyon", "city-lyon", 400, ["Bagauda", "Bagauda", "Bagauda|male|19", "Deserter"]],
+    ["York", "york", 1300, ["Outlaw", "Outlaw", "Cutpurse", "Cutpurse|female"]],
+    ["Bordeaux", "city-bordeaux", 1380, ["Routier", "Routier", "Routier|male|22", "Cutpurse"]],
+    ["Magdeburg", "city-magdeburg", 1630, ["Marauder", "Marauder", "Marauder|male|20", "Bandit"]],
+    ["London", "london", 1750, ["Highwayman", "Highwayman", "Footpad", "Press Gang Man"]],
+    ["London", "london", 1862, ["Garrotter", "Garrotter", "Pickpocket", "Pickpocket|female"]],
+    ["Dublin", "city-dublin", 1700, ["Rapparee", "Rapparee", "Footpad", "Pickpocket"]],
+    ["Naples", "city-naples", 1863, ["Brigand", "Brigand", "Brigand|male|20", "Pickpocket"]],
+    ["Seville", "city-seville", 1800, ["Bandolero", "Bandolero", "Bandolero|male|22", "Street Robber"]],
+    ["Athens", "athens", 1800, ["Klepht", "Klepht", "Klepht|male|20", "Deserter"]],
+    ["Belgrade", "city-belgrade", 1750, ["Haiduk", "Haiduk", "Haiduk|male|20", "Pickpocket"]],
+    ["Kyoto", "kyoto", 1550, ["Mountain Bandit", "Mountain Bandit", "Mountain Bandit|male|20", "Pickpocket"]],
+    ["Kyoto", "kyoto", 1800, ["Ronin", "Ronin", "Suri", "Suri|female"]],
+    ["Xi'an", "city-xian", 1700, ["Bandit", "Bandit", "Bandit|male|20", "Street Robber"]],
+    ["Shanghai", "city-shanghai", 1925, ["Tufei", "Tufei", "Street Robber", "Pickpocket"]],
+    ["Delhi", "delhi", 1820, ["Dacoit", "Dacoit", "Dacoit|male|20", "Street Robber"]],
+    ["Riyadh", "city-riyadh", 1850, ["Raider", "Raider", "Raider|male|20", "Deserter"]],
+    ["Mexico City", "city-mexico-city", 1880, ["Bandido", "Bandido", "Bandido|male|20", "Street Robber"]],
+    ["Recife", "city-recife", 1925, ["Cangaceiro", "Cangaceiro", "Cangaceiro|male|20", "Deserter"]],
+    ["Sydney", "city-sydney", 1840, ["Bushranger", "Bushranger", "Street Robber", "Pickpocket|female"]],
+    ["Denver", "city-denver", 1875, ["Road Agent", "Road Agent", "Road Agent|male|20", "Street Robber"]],
+    ["Paris", "paris", 1905, ["Apache", "Apache", "Apache|male|19", "Pickpocket|female"]],
+    ["New York", "city-new-york", 1990, ["Mugger", "Mugger", "Pickpocket", "Pickpocket|female"]],
+  ]),
   professions: (page) => castSheet(page, "professions", [
     ["Paris", "paris", 1916, ["soldier", "soldier", "physician", "typist"]],
     ["Moscow", "area-moscow-basin", 1942, ["soldier", "guerrilla", "civil-servant", "engineer"]],

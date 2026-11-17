@@ -18,6 +18,7 @@ import {
 const europeanBase: readonly BeliefSystem[] = [
   {
     id: "europe-foragers",
+    realm: "earth",
     label: "European forager practice",
     wiki: "https://en.wikipedia.org/wiki/Paleolithic_religion",
     scope: { years: [-40000, -3000], bounds: [-25, 34, 48, 72] },
@@ -103,6 +104,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "europe-early-farming",
+    realm: "barrow",
     label: "European early farming practice",
     wiki: "https://en.wikipedia.org/wiki/Proto-Indo-European_religion",
     scope: { years: [-3000, 400], bounds: [-25, 34, 48, 72] },
@@ -201,6 +203,7 @@ const europeanBase: readonly BeliefSystem[] = [
 
   {
     id: "aegean-bronze-age",
+    realm: "greek",
     label: "Mycenaean Aegean practice",
     wiki: "https://en.wikipedia.org/wiki/Mycenaean_religion",
     scope: { years: [-1600, -1100], bounds: [19, 35, 29, 42] },
@@ -293,6 +296,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "classical-greek",
+    realm: "greek",
     label: "Classical Greek practice",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Greek_religion",
     scope: { years: [-1100, -27], bounds: [19, 36, 29, 42] },
@@ -402,6 +406,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "republican-roman",
+    realm: "greek",
     label: "Republican Roman practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_ancient_Rome",
     scope: { years: [-753, -27], bounds: [8, 38, 18, 48] },
@@ -500,6 +505,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "imperial-roman",
+    realm: "greek",
     label: "Imperial Roman practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_ancient_Rome",
     // The Levant and North Africa are tagged West Asian.
@@ -609,6 +615,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "celtic-britain",
+    realm: "celtic",
     label: "Iron Age insular Celtic practice",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Celtic_religion",
     scope: { years: [-800, 400], bounds: [-11, 49.5, 2, 61] },
@@ -717,6 +724,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "anglo-saxon-paganism",
+    realm: "norse",
     label: "Anglo-Saxon pagan practice",
     wiki: "https://en.wikipedia.org/wiki/Anglo-Saxon_paganism",
     scope: { years: [450, 650], bounds: [-3, 50.5, 2, 55.5] },
@@ -753,6 +761,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "celtic-gaul",
+    realm: "celtic",
     label: "Iron Age Gallic practice",
     wiki: "https://en.wikipedia.org/wiki/Gallo-Roman_religion",
     scope: { years: [-500, 100], bounds: [-9.5, 36, 8, 51] },
@@ -833,6 +842,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "norse-scandinavia",
+    realm: "norse",
     label: "Viking Age Norse practice",
     wiki: "https://en.wikipedia.org/wiki/Old_Norse_religion",
     scope: { years: [400, 1100], bounds: [4, 54, 32, 72] },
@@ -923,6 +933,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "slavic-paganism",
+    realm: "slavic",
     label: "Pre-Christian Slavic practice",
     wiki: "https://en.wikipedia.org/wiki/Slavic_paganism",
     scope: { years: [400, 1000], bounds: [15, 45, 40, 57] },
@@ -1007,6 +1018,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "frankish-christian-early",
+    realm: "latin",
     features: ["sacred-texts"],
     label: "Early medieval Frankish Christian practice",
     wiki: "https://en.wikipedia.org/wiki/Christianization_of_the_Franks",
@@ -1088,6 +1100,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "catholic-high-medieval",
+    realm: "latin",
     features: ["sacred-texts"],
     label: "High medieval Catholic practice",
     wiki: "https://en.wikipedia.org/wiki/Catholic_Church_in_the_Middle_Ages",
@@ -1186,6 +1199,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "reformation-protestant",
+    realm: "protestant",
     features: ["sacred-texts"],
     label: "Reformation Protestant practice",
     wiki: "https://en.wikipedia.org/wiki/Reformation",
@@ -1263,6 +1277,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "orthodox-russia",
+    realm: "orthodox",
     features: ["sacred-texts"],
     label: "Russian Orthodox Christianity",
     wiki: "https://en.wikipedia.org/wiki/Russian_Orthodox_Church",
@@ -1293,6 +1308,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "catholic-early-modern",
+    realm: "latin",
     features: ["sacred-texts"],
     label: "Early modern Catholic practice",
     wiki: "https://en.wikipedia.org/wiki/Counter-Reformation",
@@ -1380,6 +1396,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "european-enlightenment",
+    realm: "protestant",
     label: "European Enlightenment-era practice",
     wiki: "https://en.wikipedia.org/wiki/Age_of_Enlightenment",
     scope: { years: [1700, 1800], bounds: [-26, 30, 50, 72] },
@@ -1461,6 +1478,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "european-industrial",
+    realm: "protestant",
     label: "Industrial-era European practice",
     wiki: "https://en.wikipedia.org/wiki/Secularization",
     scope: { years: [1800, 2025], bounds: [-26, 30, 50, 72] },
@@ -1535,6 +1553,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "us-urban-congregations",
+    realm: "protestant",
     label: "American city congregations",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_the_United_States",
     scope: { years: [1820, 2025], bounds: [-125, 24, -66, 50] },
@@ -1604,6 +1623,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "byzantine-orthodox",
+    realm: "orthodox",
     features: ["sacred-texts"],
     label: "Byzantine Orthodox practice",
     wiki: "https://en.wikipedia.org/wiki/Byzantine_Empire",
@@ -1692,6 +1712,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "post-roman-christian-mediterranean",
+    realm: "latin",
     features: ["sacred-texts"],
     label: "Post-Roman Christian practice",
     wiki: "https://en.wikipedia.org/wiki/Christianization_of_the_Roman_Empire",
@@ -1780,6 +1801,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "latin-christendom-late-medieval",
+    realm: "latin",
     features: ["sacred-texts"],
     label: "Late medieval Latin Christian practice",
     wiki: "https://en.wikipedia.org/wiki/Late_Middle_Ages",

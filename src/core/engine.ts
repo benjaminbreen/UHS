@@ -101,6 +101,7 @@ import { processFor, type PlaceRole, type ProcessFamily, type Step } from "../co
 import { pieceOf, recipeFor } from "../content/economy/recipes";
 import { CARDS, type CardChoice, type ChoiceCard } from "../content/cards";
 import { FORD_CARD } from "../content/cards/hazards";
+import { accosterAt, accosters, cutpurseAt } from "../content/accosters";
 import { bossTitle, cardText, oddsOf, pickCard } from "./cards";
 import { giftOf, type Form } from "./making";
 import { fieldParcel, findPlace, waterfrontMember, type StepPlace } from "./work-places";
@@ -167,7 +168,7 @@ import { beastOf } from "../content/economy/carrying";
 import { climbable, useOf } from "../content/props/uses";
 import { workplaceFor } from "../content/characters/workplace";
 import { propSprite } from "../content/props/place";
-import { buildingRoofCells } from "../content/graphics/models";
+import { buildingModel, buildingRoofCells, walkableRoof } from "../content/graphics/models";
 import {
   levelOf,
   marksmanReach,
@@ -1038,6 +1039,7 @@ export class Engine {
       client: () => this.client(t),
       markets: this.markets(),
       below: (role) => minePlace(this.complex, t.household.home, role, t.day),
+      outbuilding: (kind) => this.outbuildingSpot(t.household, kind),
       inside: () => {
         const space = t.household.residence;
         const room = space && this.world.place(space) ? this.interiorOf(space) : undefined;
@@ -1047,6 +1049,24 @@ export class Engine {
         return { x: at.x, y: at.y, space };
       },
     });
+  }
+  /** Where to stand to work in a household's byre or henhouse. */
+  private outbuildingSpot(household: Household, kind: "byre" | "henhouse"): Position | undefined {
+    const place = this.world.places.find((b) => b.claim === `yard-${kind}` && !!b.owner && household.members.includes(b.owner));
+    const room = place && this.interiorOf(place.id);
+    return place && room ? { ...room.workCell, space: place.id } : undefined;
+  }
+  /** A dairy or poultry trade may begin its first morning already at work
+   * among the animals. Returns true when it moved the player. */
+  startAtWork() {
+    const p = this.state.player, t = this.trade();
+    // The dairy trades work in the byre; a smallholder sees to the hens first.
+    const kind = !t ? undefined : t.process.steps.some((s) => s.at === "byre") ? "byre" : t.kit.activity === "Working the smallholding" ? "henhouse" : undefined;
+    if (!t || !kind || random(this.state.manifest.seed, "start-at-work") > 0.5) return false;
+    const at = this.outbuildingSpot(t.household, kind);
+    if (!at) return false;
+    p.pos = at;
+    return true;
   }
   /** Fixes the day's places and people at its first command, so a replay that
    * never drew the panel finds the same patient, field and client. */
@@ -1278,6 +1298,13 @@ export class Engine {
         }
       }
       else if (e.type === "hurt") this.hurt(e.n, e.cause, e.injury);
+      else if (e.type === "fight") this.setUpon();
+      else if (e.type === "pressed") {
+        // Held on the tender until a captain found them useless or a friend paid: two days, and a beating.
+        this.event("They march you down to the tender. It is two days before you talk or buy your way off it.");
+        this.advance(2 * 86400);
+        this.hurt(10, "the press gang", "bruised ribs");
+      }
       else if (e.type === "peril") minePeril(this.complex, e.kind);
       else if (e.type === "care") this.giveCare(care?.who ?? "player", e.treatment);
       else if (e.type === "go") {
@@ -1359,6 +1386,7 @@ export class Engine {
         choices: [{ ...cross, check: { ...check, odds: check.odds + swimming - load } }, retreat],
       };
     }
+    if (id.startsWith("accost:")) return this.accostCard(id);
     if (id !== "care-symptoms") return CARDS.find((c) => c.id === id);
     const s = this.state, care = s.care, p = s.player;
     if (!care) return;
@@ -2007,7 +2035,7 @@ export class Engine {
     const p = this.state.player;
     if (o.owner === "player" || o.owner === p.id || (!o.owner && action !== "strike")) return;
     // Smashing things inside an occupied home is a break-in however the door was opened.
-    const home = action === "break" && p.pos.space !== "outside" ? this.world.place(p.pos.space) : undefined;
+    const home = (action === "break" || action === "topple") && p.pos.space !== "outside" ? this.world.place(p.pos.space) : undefined;
     if (home && this.state.households?.some((h) => h.residence === home.id && h.id !== p.householdId))
       this.breakIn(home, `Saw player smash things in ${home.name.toLowerCase()} with an axe`, "smashed things in");
     const memory = `property:${o.id}`;
@@ -2099,6 +2127,11 @@ export class Engine {
   }
   witnessedOffense?: { id: string; at: number; situation: string; severity: number };
   private witnessReaction(w: Actor, what: string, severity: number) {
+    if (this.fighting()) {
+      if (w.terror?.fight) this.shout(w);
+      else this.shout(w, w.terror ? "Help! Somebody help!" : "Stop it! Stop!");
+      return;
+    }
     const pending = this.witnessedOffense;
     if (pending && this.state.clock - pending.at < 10 && pending.severity > severity) return;
     this.witnessedOffense = {
@@ -3816,6 +3849,7 @@ export class Engine {
     a.memories.push("The player stayed in my home after being told to leave");
     this.regard(a, -3, "fury");
     this.provoke(a, "refused to leave my home");
+    if (a.terror?.fight) a.terror.strikeAfter = Math.min(a.terror.strikeAfter ?? Infinity, this.state.clock + 6);
   }
   standsGround(a: Actor) {
     const stats = statsOf(this.state.manifest.seed, a);
@@ -3999,7 +4033,9 @@ export class Engine {
     const i = this.intrusion;
     if (i.done) {
       const by = this.state.actors.find((a) => a.id === i.by);
-      if (by && this.trespassing(by) && clock - (i.warnedAt ?? i.since) >= 90) this.escalateIntrusion(by);
+      const hour = (clock / 3600) % 24;
+      // Told to go and still there: at night that is a fight in seconds.
+      if (by && this.trespassing(by) && clock - (i.warnedAt ?? i.since) >= (hour >= 21 || hour < 5 ? 15 : 45)) this.escalateIntrusion(by);
       return;
     }
     if (clock - i.since < 12) return;
@@ -4011,7 +4047,7 @@ export class Engine {
     a.offRoutine = true;
     a.direction = this.directionTo(a.pos, p.pos);
     if (Math.max(Math.abs(a.pos.x - p.pos.x), Math.abs(a.pos.y - p.pos.y)) > 1) {
-      const step = findPath(a.pos, p.pos, (x, y) => this.blocked(x, y, a.pos.space) || !!this.actorAt({ ...a.pos, x, y }, a.id), 400)[0];
+      const step = findPath(a.pos, p.pos, (x, y) => !(x === p.pos.x && y === p.pos.y) && (this.blocked(x, y, a.pos.space) || !!this.actorAt({ ...a.pos, x, y }, a.id)), 400)[0];
       if (step && !(step.x === p.pos.x && step.y === p.pos.y)) this.moveActor(a, { ...a.pos, ...step });
       return;
     }
@@ -4031,8 +4067,11 @@ export class Engine {
   private witnessAssault(person: Actor) {
     person.memories.push("The player struck me");
     this.witnessReaction(person, "The player struck you", 12);
+    const side = new Set([...kinOf(this.state).map((k) => k.actor.id), ...this.state.actors.filter((a) => a.defends).map((a) => a.id)]);
     for (const w of this.witnesses(15, person.pos)) {
       if (w.id === person.id) continue;
+      // The player's own people see a fight they are part of, not a crime to report.
+      if (side.has(w.id) && this.fighting()) continue;
       const memory = `Saw player strike ${person.name}`;
       w.memories.push(memory);
       this.witnessReaction(w, memory, 6);
@@ -4044,8 +4083,18 @@ export class Engine {
   private strikePerson(person: Actor, force: number, push: readonly number[]) {
     const damage = Math.max(3, Math.round(force * (0.7 + this.stats().strength / 100) * 4));
     person.health = Math.max(0, (person.health ?? 100) - damage);
+    // A stray blow in a fight lands on your own side: they yell, they don't turn on you.
+    if (this.fighting() && !person.terror && (person.defends || person.trust >= 3 || kinOf(this.state).some((k) => k.actor.id === person.id))) {
+      this.cue(person.id, "struck", this.state.player.pos);
+      this.stagger(person, push);
+      this.regard(person, -1);
+      this.shout(person, "Hey! Watch it, it's me!");
+      this.event(`You catch ${person.name} by mistake.`);
+      return;
+    }
     if (this.state.manifest.disease && this.item(this.state.player.heldItem ?? "")?.hand?.edge)
       person.injury = { name: "a cut", until: this.state.clock + 3 * 86400, since: this.state.clock, open: true };
+    this.cue(person.id, "struck", this.state.player.pos);
     this.witnessAssault(person);
     this.regard(person, -6, "fury");
     if (person.terror?.cause === "anger") delete person.terror;
@@ -4222,6 +4271,7 @@ export class Engine {
   private brawl() {
     const p = this.state.player;
     for (const a of this.state.actors) {
+      if (a.defends) this.defend(a);
       const t = a.terror;
       if (!t) continue;
       if (this.state.clock > t.until) {
@@ -4233,21 +4283,53 @@ export class Engine {
       }
       if (a.pos.space !== p.pos.space || p.dead || distance(a.pos, p.pos) > 10) continue;
       const near = Math.max(Math.abs(a.pos.x - p.pos.x), Math.abs(a.pos.y - p.pos.y));
+      if (t.fight && (a.health ?? 100) < 30) {
+        t.fight = false;
+        t.cause = "fright";
+        t.windup = undefined;
+        this.shout(a, "Enough! Enough!");
+        this.event(`${a.name} has had enough and backs away.`, "social");
+      }
       a.activity = t.fight ? (this.state.clock >= (t.strikeAfter ?? 0) ? "Attacking you" : "Squaring up to you") : t.cause === "fright" ? "Running from you" : "Backing away";
-      if (t.fight && near <= 1) {
+      // Temper sets the pace: the hot-headed rush and swing fast, the wary
+      // wind up slowly and step back after each blow. A long tool keeps its distance.
+      const stats = statsOf(this.state.manifest.seed, a);
+      const hot = stats.agreeableness < 35 || stats.extraversion > 70, wary = !hot && stats.neuroticism > 55;
+      const reach = weaponOf(undefined, this.item(a.heldItem ?? "")?.hand).reach ?? 1;
+      const away = [Math.sign(a.pos.x - p.pos.x), Math.sign(a.pos.y - p.pos.y)];
+      if (t.fight && t.windup !== undefined) {
+        a.direction = this.directionTo(a.pos, p.pos);
+        if (this.state.clock < t.windup) continue;
+        t.windup = undefined;
+        this.struckBy(a, reach);
+        if (wary) this.stagger(a, away);
+        continue;
+      }
+      if (t.fight && reach > 1 && near <= 1 && this.state.clock >= (t.strikeAfter ?? 0)) {
+        this.stagger(a, away);
+        continue;
+      }
+      if (t.fight && near <= reach) {
+        // Ticks are six seconds: half a household swings on the off beat, so their blows do not land as one.
+        const beat = (this.state.clock + (random(this.state.manifest.seed, "blow-beat", a.id) < 0.5 ? 0 : 6)) % 12 === 0;
         if (this.state.clock < (t.strikeAfter ?? 0)) {
-          if (this.state.clock % 12 === 0) this.shovedBy(a);
+          if (beat) this.shovedBy(a);
           continue;
         }
         // A blow every twelve seconds, and none just after being driven back.
-        if (this.state.clock % 12 !== 0 || this.state.clock - (t.staggered ?? -99) < 12) continue;
-        this.struckBy(a);
+        if (!beat || this.state.clock - (t.staggered ?? -99) < 12) continue;
+        // About a real second to jump clear, step out of reach or raise a guard.
+        t.windup = this.state.clock + (hot ? 12 : wary ? 24 : 18);
+        this.cue(a.id, "windup", p.pos);
+        if (random(this.state.manifest.seed, "fight-shout", a.id, this.state.clock) < 0.3) this.shout(a);
         continue;
       }
       if (t.fight) {
         // Round the furniture, not just straight at you.
-        const step = findPath(a.pos, p.pos, (x, y) => this.blocked(x, y, a.pos.space) || !!this.actorAt({ ...a.pos, x, y }, a.id), 400)[0];
-        if (step && !(step.x === p.pos.x && step.y === p.pos.y)) this.moveActor(a, { ...a.pos, ...step });
+        // The player's own cell is the goal, not an obstacle; blocking it made every search fail at full cost.
+        const path = findPath(a.pos, p.pos, (x, y) => !(x === p.pos.x && y === p.pos.y) && (this.blocked(x, y, a.pos.space) || !!this.actorAt({ ...a.pos, x, y }, a.id)), 400);
+        for (const step of path.slice(0, hot ? 2 : 1))
+          if (!(step.x === p.pos.x && step.y === p.pos.y)) this.moveActor(a, { ...a.pos, ...step });
         a.direction = Math.abs(p.pos.x - a.pos.x) > Math.abs(p.pos.y - a.pos.y) ? (p.pos.x > a.pos.x ? 1 : 3) : p.pos.y > a.pos.y ? 2 : 0;
         continue;
       }
@@ -4368,22 +4450,142 @@ export class Engine {
   /** A householder's blow: a fist, or whatever they are holding. It knocks
    * the player back a step; enough of them and the player goes down, to wake
    * wherever someone carries them. */
-  private struckBy(a: Actor) {
+  private struckBy(a: Actor, reach = 1) {
     const p = this.state.player;
     this.brokeOff = a.id;
     const armed = !!a.heldItem;
-    const damage = (armed ? 12 : 7) + Math.floor(random(this.state.manifest.seed, "blow", a.id, this.state.clock) * 5);
+    this.cue(a.id, "strike", p.pos);
+    if (p.pos.space !== a.pos.space || Math.max(Math.abs(a.pos.x - p.pos.x), Math.abs(a.pos.y - p.pos.y)) > reach || this.state.clock - this.lastJump <= 6) {
+      this.event(`${a.name} swings and misses.`);
+      return;
+    }
+    if (this.state.clock - this.hurtAt < 20) return;
+    if (this.state.clock <= this.guardUntil && p.direction === this.directionTo(p.pos, a.pos)) {
+      this.cue("player", "block", a.pos);
+      this.stagger(a, [Math.sign(a.pos.x - p.pos.x), Math.sign(a.pos.y - p.pos.y)]);
+      if (a.terror) a.terror.staggered = this.state.clock;
+      this.event(`You block ${a.name}'s blow and drive them back.`);
+      return;
+    }
+    const damage = (armed ? 10 : 5) + Math.floor(random(this.state.manifest.seed, "blow", a.id, this.state.clock) * 5);
     const dir = { x: Math.sign(p.pos.x - a.pos.x), y: Math.sign(p.pos.y - a.pos.y) };
     const next = { ...p.pos, x: p.pos.x + dir.x, y: p.pos.y + dir.y };
     if (!this.blocked(next.x, next.y, next.space) && !this.actorAt(next, "player")) p.pos = next;
     p.health = Math.max(0, (p.health ?? 100) - damage);
-    this.cue(a.id, "strike", p.pos);
+    this.hurtAt = this.state.clock;
     if (this.state.manifest.disease && this.item(a.heldItem ?? "")?.hand?.edge)
       p.injury = { name: "a cut", until: this.state.clock + 3 * 86400, since: this.state.clock, open: true };
     this.cue("player", "struck", a.pos);
     this.flinch(p.pos);
     this.event(`${a.name.toUpperCase()} HITS YOU${armed ? ` WITH THE ${this.item(a.heldItem!)?.name.toUpperCase() ?? "WEAPON"}` : ""}! (-${damage})`);
     if (p.health <= 0) this.pendingCollapse = { by: a.name, part: "cracked ribs" };
+  }
+  /** Kin or a friend who sees the player in a fight. Once a fight, the nearest
+   * steps in and has their say; what they say decides what they do. */
+  allyCall?: string;
+  private allySide?: { id: string; foe: string; at: number };
+  private sideWith(clock: number) {
+    if (!this.fighting() || this.conversing || (this.allySide && clock - this.allySide.at < 600)) return;
+    const p = this.state.player;
+    const foe = this.state.actors.find((a) => a.terror?.fight && a.pos.space === p.pos.space && distance(a.pos, p.pos) <= 10);
+    if (!foe) return;
+    const kin = new Set(kinOf(this.state).map((k) => k.actor.id));
+    const ally = this.state.actors
+      .filter((a) => a.kind === "human" && !a.dead && !a.terror && !a.defends && a.id !== foe.id && (a.age ?? 30) >= 12 &&
+        a.pos.space === p.pos.space && distance(a.pos, p.pos) <= 8 && (kin.has(a.id) || a.trust >= 3))
+      .sort((x, y) => distance(x.pos, p.pos) - distance(y.pos, p.pos))[0];
+    if (!ally) return;
+    this.allySide = { id: ally.id, foe: foe.id, at: clock };
+    this.allyCall = ally.id;
+    ally.offRoutine = true;
+    ally.direction = this.directionTo(ally.pos, p.pos);
+    this.cue(ally.id, "alarm", p.pos);
+  }
+  allyContext(a: Actor) {
+    const side = this.allySide, foe = side?.id === a.id ? this.state.actors.find((x) => x.id === side.foe) : undefined;
+    if (!foe?.terror?.fight) return "";
+    const kin = kinOf(this.state).find((k) => k.actor.id === a.id)?.kind;
+    const who = kin ? `your ${kin === "partner" ? "spouse" : kin === "child" ? "parent" : kin === "parent" ? "child" : "sibling"}` : "your friend";
+    const started = foe.terror.cause === "assault" ? `and the player threw the first blow at ${foe.name}` : `and ${foe.name} came at the player`;
+    return `A FIGHT IS HAPPENING RIGHT NOW in front of you. The player, ${who}, is trading blows with ${foe.name}, ${started}. React at once in one or two short lines, as this person really would, from your temperament and how you feel about each of them: egg them on, scream at them to stop, or wade in yourself. No greeting. Set side.`;
+  }
+  sideReply(a: Actor, side: "join" | "cheer" | "stop" | "leave") {
+    const foe = this.allySide?.id === a.id ? this.state.actors.find((x) => x.id === this.allySide!.foe) : undefined;
+    if (!foe?.terror?.fight) return;
+    const clock = this.state.clock;
+    if (side === "join" || side === "cheer") {
+      a.defends = { foe: foe.id, until: clock + 900, cheer: side === "cheer" || undefined };
+      a.offRoutine = true;
+      if (side === "join") {
+        this.event(`${a.name} wades in against ${foe.name}!`, "social");
+        this.combatUntil = Math.max(this.combatUntil, clock + 300);
+      }
+      return;
+    }
+    if (side === "leave") {
+      this.event(`${a.name} wants no part of it and walks off.`, "social");
+      this.walkOff(a, "home");
+      return;
+    }
+    for (const f of this.state.actors) {
+      if (!f.terror?.fight || f.pos.space !== a.pos.space) continue;
+      delete f.terror;
+      f.offRoutine = false;
+    }
+    this.combatUntil = clock;
+    a.offRoutine = false;
+    this.event(`${a.name} pulls you away from ${foe.name}.`, "social");
+  }
+  /** An ally's tick: closes on the foe and hits them, or stands by and cheers. */
+  private defend(a: Actor) {
+    const d = a.defends!, clock = this.state.clock;
+    const foe = this.state.actors.find((x) => x.id === d.foe);
+    if (!foe || foe.dead || !foe.terror?.fight || clock > d.until || a.pos.space !== foe.pos.space) {
+      delete a.defends;
+      a.offRoutine = false;
+      return;
+    }
+    a.direction = this.directionTo(a.pos, foe.pos);
+    if (d.cheer) {
+      a.activity = "Cheering you on";
+      const lines = ["Go on! Hit them!", "Don't let up!", "Get them!", "You've got this!"];
+      if (random(this.state.manifest.seed, "cheer", a.id, clock) < 0.12)
+        this.shout(a, lines[Math.floor(random(this.state.manifest.seed, "cheer-line", a.id, clock) * lines.length)]);
+      return;
+    }
+    a.activity = `Fighting ${foe.name}`;
+    if (Math.max(Math.abs(a.pos.x - foe.pos.x), Math.abs(a.pos.y - foe.pos.y)) > 1) {
+      const step = findPath(a.pos, foe.pos, (x, y) => !(x === foe.pos.x && y === foe.pos.y) && (this.blocked(x, y, a.pos.space) || !!this.actorAt({ ...a.pos, x, y }, a.id)), 400)[0];
+      if (step && !(step.x === foe.pos.x && step.y === foe.pos.y)) this.moveActor(a, { ...a.pos, ...step });
+      return;
+    }
+    if (clock % 12 !== 6) return;
+    const damage = 5 + Math.floor(random(this.state.manifest.seed, "ally-blow", a.id, clock) * 5);
+    foe.health = Math.max(0, (foe.health ?? 100) - damage);
+    this.cue(a.id, "strike", foe.pos);
+    this.cue(foe.id, "struck", a.pos);
+    this.stagger(foe, [Math.sign(foe.pos.x - a.pos.x), Math.sign(foe.pos.y - a.pos.y)]);
+    this.event(`${a.name} hits ${foe.name}.`, "social");
+    if (foe.health <= 0) this.dies(foe, "of injuries after a fight");
+  }
+  /** Raise a guard: a blow from in front that lands in the next second is caught. */
+  guard() {
+    this.guardUntil = this.state.clock + 18;
+    this.cue("player", "halt");
+  }
+  /** After a blow lands, about a real second in which no other can. */
+  private hurtAt = -99;
+  private guardUntil = -99;
+  fighting() {
+    return this.state.clock < this.combatUntil && this.state.actors.some((a) => a.terror?.fight && a.pos.space === this.state.player.pos.space);
+  }
+  /** What someone yells mid-fight, over their head. */
+  private shout(a: Actor, text?: string) {
+    const lines = a.terror?.cause === "fright" ? ["Help! Somebody help!", "Leave us alone!"]
+      : this.intrusion?.place === a.pos.space ? ["Get out of my house!", "Out! Now!", "Thief!", "You'll regret this!"]
+      : ["Come on, then!", "You asked for this!", "Had enough?", "Stay down!"];
+    text ??= lines[Math.floor(random(this.state.manifest.seed, "shout", a.id, this.state.clock) * lines.length)];
+    this.signal({ kind: "say", who: a.id, text });
   }
   /** Squaring up before the first blow: chest to chest, a push, no harm. */
   private shovedBy(a: Actor) {
@@ -4564,7 +4766,9 @@ export class Engine {
       .sort((x, y) => x.d - y.d)[0]?.a;
     this.emptyHands();
     const lost: string[] = [];
-    for (const item of ["meat", "hide", "feathers"]) {
+    // Robbers who beat you take the money first.
+    const robbed = this.state.actors.some((a) => a.id.startsWith("robber-") && a.terror?.fight);
+    for (const item of robbed ? ["coin", "meat", "hide", "feathers"] : ["meat", "hide", "feathers"]) {
       const n = p.inventory[item] ?? 0;
       const gone = Math.ceil(n / 2);
       if (!gone) continue;
@@ -5806,11 +6010,13 @@ export class Engine {
   usable() {
     const p = this.state.player;
     if (p.perch) return undefined;
+    const chore = (o: WorldObject) => /^(collect|roost|milk|fodder)$/.test(useOf(propDefs[o.prop ?? ""]?.family)?.use ?? "");
     const object = this.state.objects
       .filter((o) => o.pos.space === p.pos.space && !o.carriedBy && !o.broken &&
         Math.max(Math.abs(o.pos.x - p.pos.x), Math.abs(o.pos.y - p.pos.y)) <= 1 &&
         !!useOf(propDefs[o.prop ?? ""]?.family) && !this.workAt(o, true).length)
-      .sort((a, b) => distance(p.pos, a.pos) - distance(p.pos, b.pos))[0];
+      // The stall or the nest box before the stool that stands beside it.
+      .sort((a, b) => +!chore(a) - +!chore(b) || distance(p.pos, a.pos) - distance(p.pos, b.pos))[0];
     const use = object && useOf(propDefs[object.prop!].family);
     const label = use?.use === "roost"
       ? this.state.fauna?.find((g) => g.house === p.pos.space)?.shut ? "Let the hens out" : "Shut the hens in"
@@ -5837,6 +6043,23 @@ export class Engine {
       case "pray":
         this.event(`You stand before the ${name} and make your prayer.`);
         break;
+      case "milk":
+      case "fodder": {
+        const herd = this.state.fauna?.find((g) => g.house === p.pos.space);
+        const day = Math.floor(this.state.clock / 86400);
+        if (!herd?.members.length) this.event("No cattle are kept here.");
+        else if (u.use === "fodder") {
+          this.event(herd.fed === day ? "The manger is already full." : "You fork hay into the manger. The cows will milk better for it tomorrow.");
+          herd.fed = day;
+        } else if (herd.burrowed === undefined) this.event("The cows are out at grass. They are milked here in the evening and first thing in the morning.");
+        else {
+          const n = herd.milk ?? 0;
+          herd.milk = 0;
+          if (n) p.inventory.milk = (p.inventory.milk ?? 0) + n;
+          this.event(!n ? "She has been milked dry already." : `You milk into the pail: ${n} ${n === 1 ? "measure" : "measures"} of warm milk.`);
+        }
+        break;
+      }
       case "collect":
       case "roost": {
         const flock = this.state.fauna?.find((g) => g.house === p.pos.space);
@@ -5864,7 +6087,7 @@ export class Engine {
     }
   }
   climbable():
-    | { id: string; label: string; rise: number; at: Point; to?: Point; drop?: number }
+    | { id: string; label: string; rise: number; at: Point; to?: Point; drop?: number; roof?: boolean; by?: "ladder" | "stairs" }
     | undefined {
     const p = this.state.player;
     if (p.perch || this.onWall()) return undefined;
@@ -5925,7 +6148,7 @@ export class Engine {
         const place = (this.world.places ?? []).find(
           (r) => q.x >= r.x && q.x < r.x + r.w && q.y >= r.y && q.y < r.y + r.h,
         );
-        if (place) return { id: place.id, label: "the roof", rise: 22, at: q };
+        if (place) return this.roofClimb(place, q);
         // A wall walk is a surface, not a perch: step onto it and the wall
         // top is ground until you climb down the far side.
         if (this.wallAt(q.x, q.y, "outside"))
@@ -6012,6 +6235,8 @@ export class Engine {
     drop?: number;
     at?: Point;
     to?: Point;
+    roof?: boolean;
+    by?: "ladder" | "stairs";
   }) {
     const p = this.state.player;
     if (target.to) {
@@ -6028,9 +6253,75 @@ export class Engine {
       // Standing on the thing, not beside it: the renderer draws the player
       // over this cell while pos, and so collision, stays put.
       ...(target.at ? { at: { ...target.at } } : {}),
+      ...(target.roof ? { roof: true } : {}),
+      ...(target.by ? { by: target.by } : {}),
     };
+    if (target.by) {
+      this.advance(15);
+      this.event(`You go up the ${target.by === "ladder" ? "ladder" : "stairs"} onto the roof.`);
+      return;
+    }
     this.advance(40);
     this.event(`You climb ${target.label} and settle at the top.`);
+  }
+  /** Up onto a building: by its ladder or stairs where the house has them,
+   * otherwise a scramble. A fall is from as many storeys as it stands. */
+  private roofClimb(place: Place, at: Point) {
+    const m = buildingModel(place.sprite) as { roofAccess?: string; stories?: number; height?: number };
+    const access: "ladder" | "stairs" | undefined = m.roofAccess === "ladder" || m.roofAccess === "stairs" ? m.roofAccess : undefined;
+    return {
+      id: place.id,
+      label: "the roof",
+      rise: 22,
+      at,
+      drop: 1 + (m.stories ?? ((m.height ?? 40) >= 80 ? 2 : 1)),
+      roof: walkableRoof(place.sprite),
+      ...(access ? { by: access } : {}),
+    };
+  }
+  /** Across a one-cell alley onto the next flat roof, landing on its edge. */
+  roofLeap(dx: number, dy: number) {
+    const at = this.state.player.perch?.at;
+    if (!at || !dx === !dy || this.roofStep(dx, dy)) return undefined;
+    const run = this.roofRun?.dx === dx && this.roofRun.dy === dy ? this.roofRun.n : 0;
+    // A standing jump clears one cell of alley; a sprint along the roof, a street.
+    const reach = run >= 3 ? 5 : run >= 1 ? 3 : 1;
+    for (let k = 1; k <= reach + 1; k++) {
+      const x = at.x + k * dx, y = at.y + k * dy;
+      const place = this.world.places?.find((r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h);
+      if (!place) continue;
+      return k > 1 && walkableRoof(place.sprite) ? { x, y, place, distance: k } : undefined;
+    }
+    return undefined;
+  }
+  /** Steps sprinted in a row along a roof, for how far the next leap carries. */
+  private roofRun?: { dx: number; dy: number; n: number };
+  private leapRoof(leap: NonNullable<ReturnType<Engine["roofLeap"]>>, dx: number, dy: number) {
+    const p = this.state.player;
+    if (!p.perch) return;
+    p.perch.at = { x: leap.x, y: leap.y };
+    p.perch.on = leap.place.id;
+    p.direction = dy < 0 ? 0 : dx > 0 ? 1 : dy > 0 ? 2 : 3;
+    p.facing = facingFromStep(dx, dy, p.direction);
+    const distance = Math.min(4, leap.distance) as 2 | 3 | 4;
+    this.lastLeap = { kind: "leap", distance, seconds: 1, reason: "You jump the gap." };
+    this.advance(1 + leap.distance * 0.3);
+    const across = leap.distance - 1;
+    this.event(across >= 3
+      ? `You fly ${across} cells over the street and land rolling on the roof of ${leap.place.name}.`
+      : across === 2 ? `You clear the lane in one bound onto the roof of ${leap.place.name}.`
+        : `You jump the alley onto the roof of ${leap.place.name}.`);
+  }
+  /** The next cell along a flat roof, which may be a neighbour's roof that
+   * touches this one. */
+  roofStep(dx: number, dy: number) {
+    const at = this.state.player.perch?.at;
+    if (!at || (!dx && !dy)) return undefined;
+    const x = at.x + dx, y = at.y + dy;
+    const place = (this.world.places ?? []).find(
+      (r) => x >= r.x && x < r.x + r.w && y >= r.y && y < r.y + r.h,
+    );
+    return place && walkableRoof(place.sprite) ? { x, y, place } : undefined;
   }
   /** Where a directional dismount would land, or undefined if that side is
    * shut. A perch is left from the cell climbed, not the one walked in from,
@@ -6047,6 +6338,12 @@ export class Engine {
   descend(dir?: { dx: number; dy: number }) {
     const p = this.state.player;
     delete this.lastLeap;
+    const leap = dir && p.perch?.roof ? this.roofLeap(dir.dx, dir.dy) : undefined;
+    if (leap) {
+      this.leapRoof(leap, dir!.dx, dir!.dy);
+      return;
+    }
+    this.roofRun = undefined;
     const jump = dir && this.dismountCell(dir.dx, dir.dy);
     if (jump) {
       const label = p.perch?.label ?? "the wall";
@@ -6089,7 +6386,12 @@ export class Engine {
       return;
     }
     if (!p.perch) return;
-    const label = p.perch.label;
+    const label = p.perch.by ? `the ${p.perch.by}` : p.perch.label;
+    const at = p.perch.roof ? p.perch.at : undefined;
+    const beside = at && [[0, 1], [1, 0], [-1, 0], [0, -1]]
+      .map(([dx, dy]) => ({ x: at.x + dx, y: at.y + dy }))
+      .find((q) => !this.blocked(q.x, q.y, "outside"));
+    if (beside) p.pos = { ...beside, space: p.pos.space };
     p.perch = undefined;
     this.advance(20);
     this.event(`You climb down from ${label}.`);
@@ -7138,6 +7440,9 @@ export class Engine {
         return "Aim away from yourself.";
       return undefined;
     }
+    if (p.perch?.roof && c.type === "move" && !c.jump && !c.traverse)
+      return this.roofStep(c.dx, c.dy) || (c.run && this.roofLeap(c.dx, c.dy)) ? undefined
+        : c.run ? "Nothing to land on that way." : "That's the edge of the roof. Jump or climb down.";
     if (p.perch && (c.type === "move" || c.type === "throw"))
       return `Climb down from ${p.perch.label} first.`;
     if (c.type === "move" || c.type === "throw") {
@@ -8565,6 +8870,7 @@ export class Engine {
         bow: ["Your arrow finds its mark.", "You loose an arrow."],
         crossbow: ["Your bolt strikes home.", "You loose a bolt and span the crossbow again."],
         musket: ["Your shot strikes home.", "You fire, and stop to load again."],
+        pistol: ["Your shot strikes home.", "You fire, and stop to load again."],
         rifle: ["Your shot strikes home.", "You fire."],
         blowgun: ["Your dart sticks. The poison will take a few minutes.", "Your dart flies wide."],
       };
@@ -8742,6 +9048,25 @@ export class Engine {
           `You ${c.run ? "fling" : "throw"} ${prop.name.toLowerCase()} ${distance} pace${distance > 1 ? "s" : ""} away.`,
         );
       this.advance(3);
+      return;
+    }
+    if (c.type === "move" && p.perch?.roof) {
+      const to = this.roofStep(c.dx, c.dy);
+      // Sprinting off the edge is the jump itself, if there is a roof to reach.
+      const leap = !to && c.run ? this.roofLeap(c.dx, c.dy) : undefined;
+      if (leap) {
+        this.leapRoof(leap, c.dx, c.dy);
+        return;
+      }
+      const run = this.roofRun;
+      this.roofRun = c.run && to ? { dx: c.dx, dy: c.dy, n: run?.dx === c.dx && run.dy === c.dy ? run.n + 1 : 1 } : undefined;
+      if (to) {
+        p.perch.at = { x: to.x, y: to.y };
+        p.perch.on = to.place.id;
+      }
+      p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+      p.facing = facingFromStep(c.dx, c.dy, p.direction);
+      this.advance((c.dx && c.dy ? 1.4 : 1) * (c.run ? 0.5 : 1));
       return;
     }
     if (c.type === "move") {
@@ -9795,28 +10120,54 @@ export class Engine {
       .map(([bearing, dx, dy]) => ({ bearing, pos: { ...p, x: p.x + dx, y: p.y + dy }, ...this.danger({ ...p, x: p.x + dx, y: p.y + dy }) }));
   }
 
+  /** Robbers, footpads, press gangs: who stops the player depends on where and
+   * when they are. A lonely road is the old danger; a town's dark streets the
+   * other. The chance is checked every five minutes out of doors. */
   private roadEncounter() {
-    const s = this.state, p = s.player;
-    if (!s.manifest.survival || p.dead || p.pos.space !== "outside" || p.activity === "Sleeping" || p.activity === "Resting" ||
-      this.conversing || p.activity !== "Exploring" || s.encounter || s.care || this.waitingCard() || (p.encounterAfter ?? 0) > s.clock) return;
+    const s = this.state, p = s.player, setting = this.world.pack.setting;
+    if (!setting || p.dead || p.pos.space !== "outside" || p.activity === "Sleeping" || p.activity === "Resting" ||
+      this.conversing || this.fighting() || s.encounter || s.care || this.waitingCard() || (p.encounterAfter ?? 0) > s.clock) return;
     const risk = this.danger();
-    if (risk.threats.length || !risk.hourlyRisk || random(s.manifest.seed, "roadside", risk.area, Math.floor(s.clock / 300)) >= risk.hourlyRisk / 12) return;
+    if (risk.threats.length) return;
+    const night = risk.reasons.includes("After dark");
+    const town = setting.settlement === "city" || setting.settlement === "port";
+    const roll = (what: string, hourly: number) => random(s.manifest.seed, what, risk.area, Math.floor(s.clock / 300)) < hourly / 12;
+    if (!risk.areaRisk) {
+      if (!town || !risk.reasons.includes("Close to buildings")) return;
+      if (!night) {
+        const cutpurse = cutpurseAt(setting);
+        if (cutpurse && (p.inventory.coin ?? 0) > 0 && roll("cutpurse", 0.03 * cutpurse.rate)) {
+          const n = Math.min(p.inventory.coin!, 1 + Math.floor(this.rng("cutpurse") * 3));
+          p.inventory.coin! -= n;
+          p.encounterAfter = s.clock + 6 * 3600;
+          this.event(`Someone bumps into you in the crowd. Later you find your purse lighter by ${n} coin${n > 1 ? "s" : ""}.`, "world");
+        }
+        return;
+      }
+    }
+    const where = risk.areaRisk ? "road" : "street";
+    const who = accosterAt(setting, where, s.manifest.seed, `${risk.area}:${Math.floor(s.clock / 86400)}`);
+    if (!who) return;
+    const base = where === "road" ? risk.hourlyRisk : setting.year >= 1900 ? 0.02 : 0.05;
+    if (!roll("roadside", Math.min(0.6, base * who.rate))) return;
+    p.encounterAfter = s.clock + 12 * 3600;
+    const card = `accost:${who.id}`;
     const stop = () => {
-      s.encounter = { card: "roadside-robbery", at: copy(p.pos), clock: s.clock };
-      this.event("People step into your path and demand your valuables.", "world");
-      this.offerCard(CARDS.find((c) => c.id === "roadside-robbery")!);
+      s.encounter = { card, at: copy(p.pos), clock: s.clock };
+      this.event(`${who.label} stop you.`, "world");
+      this.offerCard(this.choiceCard(card)!);
     };
-    const setting = this.world.pack.setting;
     // Just out of sight, so they are seen coming.
-    const from = setting && !this.approaching && Array.from({ length: 8 }, (_, i) => {
+    const from = !this.approaching && Array.from({ length: 8 }, (_, i) => {
       const t = ((i + Math.floor(this.rng("robbers") * 8)) * Math.PI) / 4;
       return { x: Math.round(p.pos.x + Math.cos(t) * (SIGHT + 2)), y: Math.round(p.pos.y + Math.sin(t) * (SIGHT + 2)), space: "outside" as const };
     }).find((q) => !this.blocked(q.x, q.y, q.space) && !this.blocked(q.x + 1, q.y, q.space) &&
       this.findRoute(q, this.beside(p.pos), "robber", 5000).path.length);
-    p.encounterAfter = s.clock + 86400;
     if (!from) return stop();
-    const robbers = [0, 1].map((i) => ({
-      ...person(s.manifest.seed, setting, `robber-${s.clock}-${i}`, "traveler", "Stranger", "male", 19 + Math.floor(this.rng(`robber:${i}`) * 20), { x: from.x + i, y: from.y }, s.clock + 900),
+    const [lo, hi] = who.party;
+    const n = lo + Math.floor(this.rng("party") * (hi - lo + 1));
+    const robbers = Array.from({ length: n }, (_, i) => ({
+      ...person(s.manifest.seed, setting, `robber-${s.clock}-${i}`, who.livelihood, "Stranger", "male", 19 + Math.floor(this.rng(`robber:${i}`) * 20), { x: from.x + (i % 3), y: from.y + Math.floor(i / 3) }, s.clock + 900),
       trust: -2,
       lastUpdated: s.clock,
     }));
@@ -9825,9 +10176,49 @@ export class Engine {
       this.actorsById?.set(a.id, a);
       this.syncActor(a);
     }
-    this.event("Two strangers are heading straight for you.", "world");
-    this.approaching = { id: robbers[0].id, line: "", until: s.clock + 600, with: [robbers[1].id], onArrive: stop };
+    this.event(n === 1 ? "A stranger is heading straight for you." : `${n} strangers are heading straight for you.`, "world");
+    this.approaching = { id: robbers[0].id, line: "", until: s.clock + 600, with: robbers.slice(1).map((a) => a.id), onArrive: stop };
     return true;
+  }
+  /** What the player can do when stopped, by what the accosters want. */
+  private accostCard(id: string): ChoiceCard | undefined {
+    const who = accosters.find((a) => `accost:${a.id}` === id);
+    if (!who) return;
+    const coin = this.state.player.inventory.coin ?? 0, take = Math.min(coin, who.aim === "forage" ? 1 : 3);
+    const fight: CardChoice = { label: "Fight them", note: "a real fight · there are more of them", then: [{ type: "fight" }], line: `You fought the ${who.label.toLowerCase()}.` };
+    const run: CardChoice = {
+      label: "Run for it", note: "easier when fed and rested · a fight if they catch you",
+      check: { stat: "agility", skill: "wayfaring", odds: who.aim === "press" ? 0.5 : 0.55 },
+      then: [{ type: "minutes", n: 10 }, { type: "fatigue", n: 12 }], line: `You got away from the ${who.label.toLowerCase()}.`,
+      otherwise: [{ type: "fight" }], otherwiseLine: "They caught you.",
+    };
+    const choices: CardChoice[] = who.aim === "press"
+      ? [
+          { label: "Insist you are no seaman", note: "your wits against their quota", check: { stat: "wit", skill: "speech", odds: 0.5 },
+            then: [{ type: "minutes", n: 10 }], line: "You talked the press gang out of taking you.",
+            otherwise: [{ type: "pressed" }], otherwiseLine: "They took you anyway." },
+          run, fight,
+        ]
+      : [
+          take
+            ? { label: who.aim === "forage" ? "Give them your food and a coin" : `Hand over ${take} coin${take > 1 ? "s" : ""}`, note: "lose it · avoid a fight",
+                then: [{ type: "item", item: "coin", n: -take }, ...(who.aim === "forage" ? [{ type: "forfeit" } as const] : []), { type: "minutes", n: 5 }], line: `You paid the ${who.label.toLowerCase()} and they let you pass.` }
+            : { label: "Give them something you carry", note: "lose one item · avoid a fight", then: [{ type: "forfeit" }, { type: "minutes", n: 5 }], line: "You gave up a possession and were allowed to go." },
+          run, fight,
+        ];
+    return { id, slot: "roadside", evidence: who.evidence, text: who.demand, choices };
+  }
+  /** Refused, or caught running: the accosters set on the player for real. */
+  private setUpon() {
+    const s = this.state, clock = s.clock;
+    for (const a of s.actors) {
+      if (!a.id.startsWith("robber-") || a.dead) continue;
+      delete a.errand;
+      delete a.wayfarer;
+      a.offRoutine = true;
+      a.terror = { until: clock + 1200, place: a.pos.space, fight: true, strikeAfter: clock + 6, cause: "anger" };
+    }
+    this.combatUntil = Math.max(this.combatUntil, clock + 1200);
   }
   /** The robbers go their way once it is settled, and are dropped past the next rise. */
   private robbersLeave() {
@@ -10772,6 +11163,10 @@ export class Engine {
       return;
     }
     if (p.dead || this.conversing) return;
+    if (this.fighting()) {
+      ap.until = Math.max(ap.until, clock + 600);
+      return;
+    }
     // Nobody follows the player down; they come once the player is back up.
     if (this.below && (a.pos.space !== p.pos.space || this.state.clock < this.outUntil)) {
       ap.until = Math.max(ap.until, clock + 1800);
@@ -12273,6 +12668,7 @@ export class Engine {
       if (next % 300 === 0) this.syncWayfarers(next);
       this.burnStep();
       this.brawl();
+      this.sideWith(this.state.clock);
       this.watch();
       this.passersBy();
       if (next % 600 === 0) this.runIndoors(next);

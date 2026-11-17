@@ -3,6 +3,7 @@ import type { BeliefSystem } from "../types";
 export const andes: readonly BeliefSystem[] = [
   {
     id: "andean-foragers",
+    realm: "earth",
     label: "Foragers and early farmers of the Andes",
     wiki: "https://en.wikipedia.org/wiki/Andean_civilizations",
     scope: { years: [-20000, -900], bounds: [-82, -40, -60, 13] },
@@ -76,6 +77,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "andean-regional-states",
+    realm: "andean",
     label: "Andean regional states and traditions",
     wiki: "https://en.wikipedia.org/wiki/Andean_civilizations",
     scope: { years: [-900, 1450], bounds: [-82, -40, -60, 13] },
@@ -154,6 +156,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "chavin-horizon",
+    realm: "andean",
     label: "Chavin horizon practice",
     wiki: "https://en.wikipedia.org/wiki/Chav%C3%ADn_culture",
     scope: { years: [-900, -200], bounds: [-78, -12, -76, -8] },
@@ -224,6 +227,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "moche-coast",
+    realm: "andean",
     label: "Moche coastal practice",
     wiki: "https://en.wikipedia.org/wiki/Moche_culture",
     scope: { years: [-100, 750], bounds: [-81, -9, -78, -5] },
@@ -295,6 +299,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "nazca-coast",
+    realm: "andean",
     label: "Nazca coastal practice",
     wiki: "https://en.wikipedia.org/wiki/Nazca_culture",
     scope: { years: [-100, 750], bounds: [-76, -16, -74, -14] },
@@ -371,6 +376,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "tiwanaku-altiplano",
+    realm: "andean",
     label: "Tiwanaku altiplano practice",
     wiki: "https://en.wikipedia.org/wiki/Tiwanaku",
     scope: { years: [-300, 1000], bounds: [-70, -19, -68, -15] },
@@ -454,6 +460,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "inca-state",
+    realm: "andean",
     priority: 1,
     label: "Inca state religion",
     wiki: "https://en.wikipedia.org/wiki/Inca_religion",
@@ -536,6 +543,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "inca-village",
+    realm: "andean",
     label: "Inca village practice",
     wiki: "https://en.wikipedia.org/wiki/Inca_religion",
     scope: { years: [1450, 1532], bounds: [-81, -17, -66, 1.5] },
@@ -624,6 +632,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "colonial-syncretism",
+    realm: "latin",
     features: ["sacred-texts"],
     label: "Early colonial syncretic practice",
     wiki: "https://en.wikipedia.org/wiki/Extirpation_of_idolatry",
@@ -716,6 +725,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "andean-village-modern",
+    realm: "latin",
     label: "Andean village practice, modern",
     wiki: "https://en.wikipedia.org/wiki/Andean_civilizations",
     scope: { years: [1700, 2025], bounds: [-82, -40, -60, 13] },

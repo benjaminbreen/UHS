@@ -413,6 +413,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     story,
     plotContext,
     engine.trespassContext(actor),
+    engine.allyContext(actor),
     engine.standsGround(actor)
       ? "If the player refuses to leave your private home or gives a grave insult, you will stand your ground and threaten to strike; the engine carries out this response. Do not claim to leave or seek help instead."
       : "If the player refuses to leave your private home or gives a grave insult, you will shout for help and leave to report them; the engine carries out this response. Do not claim to attack them.",
@@ -602,6 +603,7 @@ export async function dialogueTurn(
       receive?: DialogueGift;
       regard?: number;
       trespass?: "warned" | "refused" | "leaving";
+      side?: "join" | "cheer" | "stop" | "leave";
       mood?: Expression;
       action?: string;
       leave?: WalkOff;
@@ -640,7 +642,7 @@ export async function dialogueTurn(
     }
     // The furious have their say and go; a householder throwing you out stays put.
     else if (angerLevel(actor, runtime.engine.state.clock) === 3 && !runtime.engine.trespassing(actor)) data.leave ??= "away";
-    return { text: data.text.trim(), original: data.original?.trim() || undefined, language: data.language?.trim() || undefined, action: data.action?.trim() || undefined, context: user, trespass: data.trespass, leave: data.leave, lead: data.lead, ask: data.ask, favour: data.favour, trade: data.trade, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
+    return { text: data.text.trim(), original: data.original?.trim() || undefined, language: data.language?.trim() || undefined, action: data.action?.trim() || undefined, context: user, trespass: data.trespass, side: data.side, leave: data.leave, lead: data.lead, ask: data.ask, favour: data.favour, trade: data.trade, receive: data.receive, regard: data.regard, mood: data.mood, error: undefined };
   } catch (cause) {
     // An abort is the player closing the conversation, not a failure.
     if (cause instanceof DOMException && cause.name === "AbortError")
@@ -652,7 +654,7 @@ export async function dialogueTurn(
 export type DialogueReply = Omit<DialogueLine, "speaker"> & {
   leave?: WalkOff; lead?: string; ask?: "made" | "accepted" | "declined"; favour?: Favour;
   trade?: boolean; receive?: DialogueGift; regard?: number; mood?: Expression;
-  trespass?: "warned" | "refused" | "leaving"; ended?: boolean;
+  trespass?: "warned" | "refused" | "leaving"; side?: "join" | "cheer" | "stop" | "leave"; ended?: boolean;
   error?: string; aborted?: boolean;
 };
 
@@ -662,8 +664,8 @@ export function commitDialogue(runtime: Runtime, actorId: string, said: string, 
   const before = trust();
   const priorErrand = runtime.engine.state.actors.find((a) => a.id === actorId)?.errand;
   const exchange = () => {
-    if (said.trim() || reply.leave || reply.ask || reply.trespass)
-      runtime.narrate([{ type: "converse", with: actorId, said: said.slice(0, 120), told: said.trim() ? reply.text.slice(0, 160) : undefined, delta: said.trim() ? reply.regard ?? 0 : 0, trespass: reply.trespass, leave: reply.leave, ask: reply.ask, favour: reply.favour }]);
+    if (said.trim() || reply.leave || reply.ask || reply.trespass || reply.side)
+      runtime.narrate([{ type: "converse", with: actorId, said: said.slice(0, 120), told: said.trim() ? reply.text.slice(0, 160) : undefined, delta: said.trim() ? reply.regard ?? 0 : 0, trespass: reply.trespass, side: reply.side, leave: reply.leave, ask: reply.ask, favour: reply.favour }]);
   };
   const gift = () => reply.receive ? runtime.narrate([{ type: "receive", from: actorId, item: reply.receive }]) : undefined;
   // Opening gifts precede a possible departure, as in the conversation modal.
@@ -678,6 +680,9 @@ export function commitDialogue(runtime: Runtime, actorId: string, said: string, 
   } else if (actor?.terror?.fight) {
     reply.ended = true;
     reply.action = "raises a hand, ready to strike";
+  } else if (reply.side) {
+    // Said in the middle of a fight: one line, and then they act on it.
+    reply.ended = true;
   } else if (actor?.errand && (actor.errand !== priorErrand || distance(actor.pos, runtime.engine.state.player.pos) > 2.5)) {
     reply.ended = true;
     reply.action = actor.activity.toLowerCase();

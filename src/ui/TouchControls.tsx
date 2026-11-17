@@ -13,6 +13,7 @@ import {
   Mountain,
   PersonStanding,
   Search,
+  Shield,
   Sword,
   Target,
   TrainFront,
@@ -36,6 +37,7 @@ const ICONS: Record<Verb["kind"], LucideIcon> = {
   board: TrainFront,
   work: Hammer,
   use: Hand,
+  guard: Shield,
 };
 
 /** The scene's side of the controls. */

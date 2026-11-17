@@ -820,6 +820,54 @@ def henhouse(style,info):
     return c.im
 
 
+def byre(style,info):
+    """A cowshed: a wide half-door with its top leaf open on the dark stalls,
+    a hay door in the wall above the manger end, slit vents. Timber, wattle or
+    rubble under thatch; adobe under a flat roof."""
+    from art import front_materials as m
+    from art import front_solid as so
+    kind=style.rsplit('-',1)[1]
+    W=64;L=8;B=96;H=44
+    c=C(W+16,B+6)
+    wall,roof,post={'timber':(RAMPS['pine'],RAMPS['thatch'],OAK),
+        'wattle':(RAMPS['render'],RAMPS['thatch'],OAK),
+        'stone':(RAMPS['granite'],RAMPS['thatch'],OAK),
+        'adobe':(RAMPS['adobe'],RAMPS['adobe'],RAMPS['pine'])}[kind]
+    {'timber':m.boards,'wattle':m.render,'stone':m.rubble,'adobe':m.adobe}[kind](c,L,B-H,W,H,wall)
+    c.rect(L,B-H,2,H,wall[1]);c.rect(L+W-2,B-H,2,H,wall[4])
+    c.rect(L,B-3,W,3,wall[4])
+    if kind=='wattle':
+        for x in (L+4,L+44,L+60):c.rect(x,B-H,2,H,post[3]);c.rect(x,B-H,1,H,post[2])
+    if kind=='adobe':
+        so.box(c,L-2,B-H,W+4,5,36,roof)
+        c.rect(L,B-H-20,W,14,roof[2]);c.rect(L,B-H-20,W,2,roof[3])
+        for x in range(L+6,L+W-4,11):c.rect(x,B-H+2,3,3,post[5]);c.rect(x,B-H+2,3,1,post[3])
+    else:
+        d=30
+        m.thatch(c,L-6,B-H-d,W+12,d,roof)
+        c.rect(L-6,B-H-d,W+12,2,roof[1]);c.rect(L-6,B-H-2,W+12,2,roof[5])
+        c.rect(L-6,B-H-d-3,W+12,3,roof[2]);c.rect(L-6,B-H-d-3,W+12,1,roof[0])
+    c.rect(L,B-H,W,2,wall[6])
+    dx=L+22
+    c.rect(dx-14,B-40,28,40,post[7])
+    # The lower leaf shut, the upper one swung in: the dark of the stalls shows.
+    for x in range(dx-12,dx+12,4):c.rect(x,B-19,4,19,post[3]);c.rect(x,B-19,1,19,post[2])
+    c.rect(dx-12,B-20,24,2,post[2]);c.rect(dx-12,B-6,24,2,post[5])
+    c.rect(dx-9,B-33,6,3,RAMPS['thatch'][1]);c.rect(dx-7,B-30,9,2,RAMPS['thatch'][2])
+    for x in (dx-15,dx+12):bevel(c,x,B-40,3,40,post,3)
+    bevel(c,dx-15,B-43,30,3,post,3)
+    c.rect(dx+8,B-14,2,3,IRON[3])
+    hx=L+51
+    c.rect(hx-7,B-36,14,12,post[7])
+    for y,q in ((B-30,1),(B-28,2),(B-26,3)):c.rect(hx-6,y,12,2,RAMPS['thatch'][q])
+    for x in (hx-9,hx+7):c.rect(x,B-37,2,14,post[4])
+    c.rect(hx-9,B-38,18,2,post[2]);c.rect(hx-9,B-24,18,2,post[5])
+    for x in (L+46,L+57):c.rect(x,B-16,2,7,post[7])
+    info.update(x0=L,W=W,base=B,door_x=dx,door_h=40,door_width=24)
+    consolidate(c,rare=6)
+    return c.im
+
+
 def shore_equipment(style,info):
     from art import front_solid as so
     c=C(128,92);cx=64;by=80;d=ImageDraw.Draw(c.im)
@@ -1011,6 +1059,7 @@ def draw(style, info):
     if style in ('net-rail','seine-pegs','fish-trays','fish-mat'):return shore_equipment(style,info)
     if style.startswith(('plank-skiff-','reed-skiff-')):return clinker_hull(style.rsplit('-',1)[1],info,True,'plank' if style.startswith('plank-') else 'reed')
     if style.startswith('henhouse-'):return henhouse(style,info)
+    if style.startswith('byre-'):return byre(style,info)
     if style in ('fishing-cottage','fishing-gear'):return fishing_building(style,info)
     if style in ('net-frame','fish-table'):return fishing_equipment(style,info)
     if style.startswith('fishing-boat-'):return clinker_hull(style.rsplit('-',1)[1],info,True)

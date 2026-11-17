@@ -2519,6 +2519,33 @@ export class PixelRoom {
         for (let i = 0; i < 5; i++) this.s(X + 4 + hash(i, 3, q.seed) * 24, base - hash(i, 4, q.seed) * 2, P.straw[4]);
         break;
       }
+      case "stall": {
+        const base = Y + PD - 1;
+        for (let i = 0; i < 26; i++) this.s(X + 3 + i, base - (hash(i, 5, q.seed) < 0.5 ? 0 : 1), P.straw[i % 3 === 0 ? 5 : 3]);
+        // The cow stands here from dusk until she has been milked.
+        if (p.hour >= 19 || p.hour < 8) {
+          const hide = [0x8a5a34, 0x3a2e2a, 0xb8763c][q.seed % 3], dark = [0x5e3a20, 0x221a18, 0x7e4a22][q.seed % 3];
+          this.r(X + 6, base - 13, 19, 9, (i, j) => (j > 6 || i > 16 ? dark : hide));
+          this.r(X + 8, base - 11, 5, 4, 0xf2ead6);
+          for (const lx of [X + 7, X + 11, X + 19, X + 23]) this.r(lx, base - 4, 2, 4, dark);
+          this.r(X + 1, base - 16, 7, 6, hide);
+          this.r(X + 1, base - 11, 5, 2, 0xe6c8b0);
+          this.s(X + 3, base - 14, 0x1a1210);
+          this.s(X + 1, base - 17, 0xe8e0cc), this.s(X + 7, base - 17, 0xe8e0cc);
+          this.r(X + 25, base - 12, 1, 7, dark);
+        }
+        for (const px of [X, X + 30]) this.r(px, base - 18, 2, 18, (i) => W[i ? 2 : 4]);
+        this.r(X, base - 10, 32, 2, (_i, j) => W[j ? 1 : 4]);
+        break;
+      }
+      case "manger": {
+        const base = Y + PD - 1;
+        this.r(X + 2, base - 9, 28, 9, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : i === 27 ? W[1] : j > 6 ? W[1] : W[2]));
+        this.r(X + 4, base - 13, 24, 5, (i, j) => P.straw[(i * 3 + j * 5 + (q.seed % 7)) % 4 === 0 ? 5 : j < 2 ? 4 : 3]);
+        for (let i = 0; i < 6; i++) this.s(X + 5 + hash(i, 6, q.seed) * 22, base - 14, P.straw[5]);
+        for (const px of [X + 4, X + 26]) this.r(px, base, 2, 1, W[1]);
+        break;
+      }
       case "sacks": {
         this.sprite("sack", X, Y + PD - 16);
         this.sprite("sack", X + 7, Y + PD - 14, { straw: P.linen });

@@ -23,6 +23,15 @@ export const waterborneFrames = new Set(Object.entries(worksites)
   .flatMap(([name])=>[name,...["north","east","west"].map(f=>`${name}-${f}`)])
   .concat(Object.entries(boats).flatMap(([name,spec])=>spec.finishes.flatMap(finish=>
     Array.from({length:8},(_,f)=>["","-back","-front"].map(layer=>`boat-${name}${finish}-${f}${layer}`)).flat()))));
+/** A roof you can walk about on. Packed earth is laid flat; the models' own
+ * `roof: "flat"` is a recipe default that boats and Gothic churches carry too.
+ * An earth granary is a dome, and courts, pyramids and work yards are open. */
+export function walkableRoof(frame: string) {
+  const m = buildingModels[frame] as { roofMaterial?: string; serviceStyle?: string } | undefined;
+  return !!m && m.roofMaterial === "earth" && !m.serviceStyle &&
+    !/^(precinct|religious-meso|meso-ballcourt)-/.test(frame) &&
+    (!frame.startsWith("worksite-") || /caravanserai|store-sahel|earth-fishing-house/.test(frame));
+}
 export function buildingModel(frame: string): BuildingModel {
   const model = buildingModels[frame];
   if (!model) throw new Error(`Missing building model: ${frame}`);

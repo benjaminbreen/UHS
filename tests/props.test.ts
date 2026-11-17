@@ -610,6 +610,38 @@ it("houses a household's hens in a henhouse: in at dusk, eggs by morning", () =>
   expect(flock.eggs).toBe(0);
 });
 
+it("gives a dairymaid a byre: cows in at night, milked there, and her day's work inside it", () => {
+  const resolved = resolveSetting("A dairymaid in Normandy, 1300") as any;
+  expect(resolved.error).toBeUndefined();
+  const e = createSettingSession(resolved.setting, "byre");
+  expect(e.state.player.origin?.livelihood).toMatch(/dairy|milk/);
+  const byre = e.world.places.find((b) => b.claim === "yard-byre" && b.owner === "player")!;
+  expect(byre, "the dairymaid's household has a byre").toBeTruthy();
+  // The day's first work is inside it, and some mornings begin there.
+  expect(e.workPlan()?.places[0]?.pos.space).toBe(byre.id);
+  expect([byre.id, "outside"]).toContain(e.state.player.pos.space);
+  e.state.player.pos = { x: byre.entrance.x, y: byre.entrance.y + 3, space: "outside" };
+  e.syncFauna();
+  const cows = e.state.fauna!.find((g) => g.house === byre.id)!;
+  expect(cows.members.length).toBeGreaterThan(0);
+  const hour = () => (e.state.clock / 3600) % 24;
+  for (let i = 0; i < 200 && !(hour() >= 22); i++) e.advance(600);
+  expect(cows.burrowed, "the cows are in").toBeGreaterThan(e.state.clock);
+  for (let i = 0; i < 200 && !(hour() >= 6 && hour() < 7); i++) e.advance(600);
+  expect(cows.milk).toBeGreaterThan(0);
+  e.interiorOf(byre.id);
+  const stall = e.state.objects.find((o) => o.pos.space === byre.id && o.prop === "room-stall")!;
+  expect(stall).toBeTruthy();
+  expect(e.state.objects.some((o) => o.pos.space === byre.id && o.prop === "room-manger")).toBe(true);
+  const stand = [[0, 1], [1, 1], [-1, 0], [2, 0], [0, -1]].map(([dx, dy]) => ({ x: stall.pos.x + dx, y: stall.pos.y + dy })).find((q) => !e.blocked(q.x, q.y, byre.id))!;
+  e.state.player.pos = { ...stand, space: byre.id };
+  const milk = cows.milk!;
+  e.act({ actionId: "milk", expectedRevision: e.state.revision, command: { type: "interact", target: stall.id, action: "use-prop" } });
+  expect(e.state.player.inventory.milk).toBe(milk);
+  for (let i = 0; i < 200 && !(hour() >= 9 && hour() < 10); i++) e.advance(600);
+  expect(cows.burrowed, "turned out after milking").toBeUndefined();
+});
+
 it("gives the shared fire its regional form", () => {
   const fire = (culture: string, year: number, extra: object = {}) =>
     propKit({

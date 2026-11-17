@@ -64,7 +64,9 @@ const ACTS: Record<
   "take-coin": { pose: "receive", ms: 1200, move: "lean", pass: "coin" },
   pay: { pose: "pay", ms: 1100 },
   halt: { pose: "halt-hand", ms: 1600 },
+  windup: { pose: "raise-hand", ms: 900, mark: { glyph: "bang", color: 0xe0402e }, move: "shake" },
   strike: { pose: "swing", ms: 480, move: "shake" },
+  block: { pose: "halt-hand", ms: 700 },
   struck: { pose: "hurt", ms: 520, move: "shake", sound: "alarm" },
   // Mark only: whatever the two are doing goes on underneath.
   chatter: { ms: 1400, mark: { glyph: "dots", color: 0x5c6470 } },
@@ -80,6 +82,9 @@ const beast = (image: Sprite) => image.texture.key.startsWith("fauna");
 const COOLDOWN_MS = 4000;
 /** Cues that play out before a reaction to them is shown. */
 const EXCHANGES = new Set<CueKind>(["greet", "take", "take-coin", "pay"]);
+/** A fight's beats come faster than the cooldown and must all show. */
+const BLOWS = new Set<CueKind>(["windup", "strike", "struck", "block"]);
+const SAY_MS = 1800;
 /** Thrown apart by a collision, and settled again. */
 const RECOIL_MS = 320;
 const STEAM = [0xffffff, 0xe8e2d6];
@@ -126,6 +131,8 @@ export class CueEffects {
       collided: (who: string, dx: number, dy: number, run: boolean) => void;
       /** How this person greets someone, here and now. */
       greeting: (who: string) => CharacterPose;
+      /** Flash and hold on a blow landed or caught. */
+      hit: (who: string, blocked: boolean) => void;
     },
   ) {}
 
@@ -137,7 +144,15 @@ export class CueEffects {
       this.seen = s.serial;
       if (s.kind === "cue") this.play(s.who, s.cue, s.toward);
       else if (s.kind === "bump") this.bump(s.who, s.dx, s.dy, s.run);
+      else if (s.kind === "say") this.say(s.who, s.text);
     }
+  }
+
+  private said = new Map<string, { text: Phaser.GameObjects.Text; until: number }>();
+  private say(who: string, line: string) {
+    this.said.get(who)?.text.destroy();
+    const text = this.scene.add.text(0, 0, line, { fontFamily: "Silkscreen, monospace", fontSize: "8px", color: "#fff4d6", stroke: "#1a1410", strokeThickness: 3 }).setOrigin(0.5, 1).setDepth(1e7);
+    this.said.set(who, { text, until: this.scene.time.now + SAY_MS });
   }
 
   private bump(who: string, dx: number, dy: number, run: boolean) {
@@ -190,7 +205,7 @@ export class CueEffects {
       return;
     }
     const key = `${who}:${kind}`;
-    if (now - (this.last.get(key) ?? -COOLDOWN_MS) < COOLDOWN_MS) return;
+    if (!BLOWS.has(kind) && now - (this.last.get(key) ?? -COOLDOWN_MS) < COOLDOWN_MS) return;
     this.last.set(key, now);
     this.stop(who);
     const act = ACTS[kind];
@@ -216,6 +231,7 @@ export class CueEffects {
     if (p.pose && who === "player") this.view.playerPose(p.pose);
     if (act.pass && toward) this.pass(toward.x * 16 + 8, toward.y * 16 + 16, image, act.pass, 180);
     if (act.sound && !beast(image)) void gameAudio()?.event(act.sound);
+    if (kind === "struck" || kind === "block") this.view.hit(who, kind === "block");
   }
 
   private stop(who: string) {
@@ -251,6 +267,15 @@ export class CueEffects {
 
   update() {
     const time = this.scene.time.now;
+    for (const [who, s] of this.said) {
+      const image = this.view.entityAt(who);
+      if (!image?.visible || time >= s.until) {
+        s.text.destroy();
+        this.said.delete(who);
+        continue;
+      }
+      s.text.setPosition(Math.round(image.x), Math.round(image.y - HEAD - 12)).setAlpha(Math.min(1, (s.until - time) / 300));
+    }
     for (const [who, p] of this.playing) {
       const image = this.view.entityAt(who);
       if (!image || time >= p.until) {

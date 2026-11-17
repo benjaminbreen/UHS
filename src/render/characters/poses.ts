@@ -88,6 +88,8 @@ export const poses = [
   "curtsy",
   "clap",
   "raise-hand",
+  /** Arms opened and the face lifted: the death scene. */
+  "transcend",
   // Two people together: one listens while the other talks.
   "listen",
   "fold-arms",
@@ -240,6 +242,7 @@ export function poseTiming(pose: CharacterPose) {
   if (pose === "play-strum" || pose === "play-drum") return 150;
   if (pose === "play-flute") return 220;
   if (pose === "pray") return 340;
+  if (pose === "transcend") return 420;
   if (pose === "cense") return 260;
   if (pose === "call") return 200;
   if (pose === "listen" || pose === "fold-arms") return 420;

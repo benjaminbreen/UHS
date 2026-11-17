@@ -14,6 +14,9 @@ tests.
   - `src/runtime/prepared-store.ts` caches it.
   - On desktop, `src/runtime/terrain-worker-owner.ts` hands the warmed worker to
     the terrain stream. On phones it terminates, and terrain gets a fresh one.
+- **Job assignment** counts occupied workplace slots once per resident selection,
+  then reuses the vacancies across eligible trades. Counts are refreshed for the
+  next resident so workplace capacity and household-only jobs stay accurate.
 - **Terrain chunks own their resources.** `src/render/resources.ts` records
   each chunk's objects and textures, so streaming never diffs the whole scene.
   `src/runtime/device.ts` caps the terrain worker pool, at two on a phone.

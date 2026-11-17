@@ -509,6 +509,11 @@ it("enables and caps hospital work only after a ward has actually fitted", () =>
   expect(localWorkContext(plan,pack,"attendant").livelihoods.some(l=>l.id==="hospital-attendant")).toBe(true);
   for(let i=0;i<5;i++) plan.work.set(`staff-${i}`,{...workSite(),employment:{id:"ward",kind:"hospital",label:"Bimaristan"}});
   expect(localWorkContext(plan,pack,"sixth").livelihoods.some(l=>l.id==="hospital-attendant")).toBe(false);
+  expect(localWorkContext(plan,pack,"staff-0").livelihoods.some(l=>l.id==="hospital-attendant")).toBe(true);
+  plan.work.delete("staff-0");
+  expect(localWorkContext(plan,pack,"sixth").livelihoods.some(l=>l.id==="hospital-attendant")).toBe(true);
+  plan.work.set("office-worker", {...workSite(), employment:{id:"ward",kind:"administration",label:"Bimaristan"}});
+  expect(localWorkContext(plan,pack,"sixth").livelihoods.some(l=>l.id==="hospital-attendant")).toBe(true);
 });
 
 it("does not send coal miners to a metal mine or give every miner obsidian", () => {

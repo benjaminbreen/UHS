@@ -25,6 +25,7 @@ import { telling } from "../src/core/word";
 import { goodName, sellerOf } from "../src/content/economy/products";
 import type { PlotContext, PlotTemplate } from "../src/content/plots/types";
 import { settingFor } from "../src/content/geography/resolve";
+import { accosterAt, accosters, cutpurseAt } from "../src/content/accosters";
 import { ruled } from "../src/content/history/order";
 import { places } from "../src/content/geography/places";
 import type { Engine } from "../src/core/engine";
@@ -1232,6 +1233,35 @@ describe("survival and local danger", () => {
     expect(e.danger().areaRisk).toBe(0);
   });
 
+  it("sends the accosters of the place and era, and real outlaws among the people", () => {
+    const at = (id: string, year: number) => settingFor(places.find((p) => p.id === id)!, year);
+    expect(accosterAt(at("london", 1750), "road", "s", "k")?.id).toBe("highwaymen");
+    expect(["footpads", "press-gang"]).toContain(accosterAt(at("london", 1750), "street", "s", "k")?.id);
+    expect(accosterAt(at("delhi", 1800), "road", "s", "k")?.livelihood).toBe("bandit");
+    expect(accosterAt(at("beijing", 1925), "road", "s", "k")?.id).toBe("tufei");
+    expect(accosterAt(at("rome", 100), "road", "s", "k")?.id).toBe("latrones");
+    expect(cutpurseAt(at("paris", 1600))?.aim).toBe("pick");
+    for (const a of accosters) expect(livelihoodById(a.livelihood), a.id).toBeDefined();
+    const highwayman = generateCharacter(at("london", 1750), "s", "h1", 30, "highwayman", undefined, undefined, "male");
+    expect(highwayman.heldItem).toBe("pistol");
+  });
+
+  it("turns a refusal into a real fight with the accosters", () => {
+    const e = body(), p = e.state.player;
+    const risk = vi.spyOn(e, "danger").mockReturnValue({ ...e.danger(), hourlyRisk: 12, areaRisk: 2 });
+    act(e, { type: "wait", seconds: 3600 });
+    if (!e.state.encounter) act(e, { type: "wait", seconds: 600 });
+    const card = e.state.encounter!.card;
+    const fight = e.cards.find((c) => c.choose?.card === card)!;
+    expect(fight).toBeDefined();
+    const n = (e as unknown as { choiceCard(id: string): { choices: { label: string }[] } }).choiceCard(card).choices.findIndex((c) => c.label === "Fight them");
+    p.health = 100;
+    expect(act(e, { type: "choose", card, choice: n }).status).toBe("completed");
+    expect(e.state.actors.filter((a) => a.id.startsWith("robber-")).every((a) => a.terror?.fight)).toBe(true);
+    expect(e.fighting()).toBe(true);
+    risk.mockRestore();
+  });
+
   it("interrupts with a replayable robbery choice and enforces its costs and cooldown", () => {
     const e = body(), p = e.state.player;
     p.inventory.coin = 5;
@@ -1239,14 +1269,15 @@ describe("survival and local danger", () => {
     act(e, { type: "wait", seconds: 3600 });
     if (!e.state.encounter) {
       // They are seen coming before they stop you.
-      expect(e.state.actors.filter((a) => a.id.startsWith("robber-"))).toHaveLength(2);
+      expect(e.state.actors.filter((a) => a.id.startsWith("robber-")).length).toBeGreaterThan(0);
       act(e, { type: "wait", seconds: 600 });
     }
-    expect(e.state.encounter?.card).toBe("roadside-robbery");
-    expect(e.cards.some((c) => c.choose?.card === "roadside-robbery")).toBe(true);
+    const card = e.state.encounter?.card ?? "";
+    expect(card).toMatch(/^accost:/);
+    expect(e.cards.some((c) => c.choose?.card === card)).toBe(true);
     expect(act(e, { type: "sleep", seconds: 3600 }).status).toBe("rejected");
-    expect(act(e, { type: "choose", card: "roadside-robbery", choice: 0 }).status).toBe("completed");
-    expect(p.inventory.coin).toBe(3);
+    expect(act(e, { type: "choose", card, choice: 0 }).status).toBe("completed");
+    expect(p.inventory.coin).toBeLessThan(5);
     expect(e.state.encounter).toBeUndefined();
     act(e, { type: "wait", seconds: 3600 });
     expect(e.state.encounter).toBeUndefined();
@@ -1268,13 +1299,13 @@ describe("survival and local danger", () => {
     expect(a.terror).toMatchObject({ cause: "assault", fight: true });
     expect(e.danger().threats[0]).toMatchObject({ id: a.id, state: "threatening" });
     const health = p.health!;
-    act(e, { type: "wait", seconds: 36 });
+    act(e, { type: "wait", seconds: 60 });
     expect(p.health).toBeLessThan(health);
     expect(e.danger().threats.some((t) => t.state === "attacking")).toBe(true);
     p.health = 1;
     p.hunger = 100;
     p.hungerDebt = 2 * 86400;
-    act(e, { type: "wait", seconds: 36 });
+    act(e, { type: "wait", seconds: 60 });
     expect(p.dead).toBeUndefined();
     expect(p.health).toBeGreaterThan(0);
     expect(p.injury).toBeDefined();

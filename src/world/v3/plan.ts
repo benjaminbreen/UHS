@@ -2925,10 +2925,10 @@ export function planSettlement(
     );
     return true;
   };
-  /** A walk-in henhouse on free cells behind the house, its door to the
-   * south. False where the yard has no room: the coop prop stands instead. */
-  const henhouse = (form: string, free: Point[], id: string, owner: string, name: string) => {
-    const frame = `yard-henhouse-${form}`;
+  /** A walk-in henhouse or byre on free cells behind the house, its door to
+   * the south. False where the yard has no room. */
+  const outbuilding = ({ kind, form }: NonNullable<YardProp["building"]>, free: Point[], id: string, owner: string, name: string) => {
+    const frame = `yard-${kind}-${form}`;
     const [w, h] = buildingModel(frame).footprint;
     const open = new Set(free.map((p) => cellKey(p.x, p.y)));
     const clear = (x: number, y: number) => {
@@ -2941,9 +2941,12 @@ export function planSettlement(
         for (let x = at.x; x < at.x + w && fits; x++) fits = clear(x, y);
       if (!fits) continue;
       const p: Place = {
-        id: `${id}-henhouse`, name, description: "A small house for the hens, with nest boxes and a perch. They are shut in here at night.",
+        id: `${id}-${kind}`, name,
+        description: kind === "byre"
+          ? "A shed where the cattle stand at night, with a manger for their hay. They are milked here in the morning."
+          : "A small house for the hens, with nest boxes and a perch. They are shut in here at night.",
         x: at.x, y: at.y, w, h, sprite: frame, entrance: { x: at.x + (w >> 1), y: at.y + h },
-        owner, access: "household", claim: "yard-henhouse", entranceLabel: "Enter",
+        owner, access: "household", claim: `yard-${kind}`, entranceLabel: "Enter",
       };
       const door = paintedDoor(p);
       if (door) (p.door = door), (p.entrance = { x: door.x, y: door.y + 1 });
@@ -2951,6 +2954,7 @@ export function planSettlement(
         plan.solid.add(cellKey(x, y));
         plan.built?.add(cellKey(x, y));
         propCells.add(cellKey(x, y));
+        plan.reserved.add(cellKey(x, y));
       });
       for (const q of buildingArtCells(frame, p)) propCells.add(cellKey(q.x, q.y));
       propCells.add(cellKey(p.entrance.x, p.entrance.y));
@@ -2961,6 +2965,8 @@ export function planSettlement(
     return false;
   };
   const propCells = new Set<string>();
+  /** Byres wanted: the yard's back corner first, else the nearest clear ground. */
+  const byres: { item: YardProp; id: string; owner: string; rect: Rect }[] = [];
   const buildingClearance = new Set<string>();
   const reserveBuilding = (sprite: string, rect: Rect, entrance: Point, work?: Point) => {
     if (!placed) return;
@@ -3046,10 +3052,11 @@ export function planSettlement(
     const items = yards.props.filter(
       (p, n) =>
         // The player's household keeps hens wherever its neighbours might.
-        (!p.role || p.role.test(role)) && (rand("yard-prop", i, n) < p.chance || (!!p.henhouse && owner === "player")) &&
+        (!p.role || p.role.test(role)) && (rand("yard-prop", i, n) < p.chance || (!!p.building && (owner === "player" || (p.building.kind === "byre" ? /dairy|milk/i : /cottager|crofter/i).test(role)))) &&
         // A town with sewers has no privies.
         !(motorAge && urban && /privy/.test(p.family)),
     );
+    for (const p of items) if (p.building?.kind === "byre" && owner) byres.push({ item: p, id, owner, rect });
     const privy = privies[Math.floor(rand("privy-kind", i) * privies.length)];
     if (privy && !(motorAge && urban) && rand("privy-here", i) < 0.55)
       items.push({ prop: privy, family: propDefs[privy].family, name: propDefs[privy].name, where: "back", chance: 1 });
@@ -3122,12 +3129,15 @@ export function planSettlement(
     const deepest =
       fmin + Math.floor(rand("toft-front", i) * (fmax - fmin + 1));
     const [bmin, bmax] = yards.back ?? [0, 0];
-    // A henhouse wants three rows behind the house and one to reach its door.
-    const rear = Math.max(bmin + Math.floor(rand("toft-back", i) * (bmax - bmin + 1)), bmax && items.some((p) => p.henhouse) ? 5 : 0);
+    // An animal house wants three rows behind the house and one to reach its door.
+    const rear = Math.max(bmin + Math.floor(rand("toft-back", i) * (bmax - bmin + 1)), bmax && items.some((p) => p.building) ? 5 : 0);
     const first = rand("toft-side", i) < 0.5 ? -1 : 1;
-    const tries: [number, number, number, number][] = [];
+    const tries: [number, number, number, number, number][] = [];
+    // Extra width for an animal house in the back corner, given up where it will not fit.
+    const wing = items.some((p) => p.building?.kind === "byre") ? 3 : items.some((p) => p.building) ? 2 : 0;
     // A platform's own apron and stair need a row clear of the fence.
     const least = apron + 1;
+    for (const wide of wing ? [wing, 0] : [0])
     for (const back of rear ? [rear, 0] : [0])
       for (let front = Math.max(least, deepest); front >= least; front--)
         // A bed to one side, then the other, then behind the house where
@@ -3137,7 +3147,7 @@ export function planSettlement(
           for (const bed of [8, 7, 6, 5, 4].slice(
             Math.floor(rand("toft-bed", i) * 3),
           ))
-            tries.push([front, side, bed, back]);
+            tries.push([front, side, bed, back, wide]);
     yardPlans.push(() => {
       // A wall right round stands clear of the art's sides, which may be
       // wider than the footprint.
@@ -3149,12 +3159,12 @@ export function planSettlement(
       // Ground under the house's own roof and eaves is its own.
       const underRoof = (x: number, y: number) =>
         y >= top && y < rect.y + rect.h && x >= rect.x - el && x < rect.x + rect.w + er;
-      for (const [front, side, bed, back] of tries) {
+      for (const [front, side, bed, back, wide] of tries) {
         // A back yard starts where the roof as drawn ends.
         const depth = 3 + (bed >> 1);
-        // A henhouse stands in the back corner on the side without the bed,
-        // which is widened to hold it.
-        const hen = back && items.some((p) => p.henhouse) ? 2 : 0;
+        // An animal house stands in the back corner on the side without the
+        // bed, which is widened to hold it.
+        const hen = back ? wide : 0;
         const xl = rect.x - wl - (side < 0 ? bed + least + 1 : 2 + (side > 0 ? hen : 0)),
           xr = rect.x + rect.w + wr + (side > 0 ? bed + 2 : 2 + hen),
           yt = Math.min(back ? top - back - 1 : rect.y + rect.h - 2, side ? Infinity : top - depth),
@@ -3327,7 +3337,8 @@ export function planSettlement(
           items
             .filter((p) => p.where === "yard" || p.where === "back")
             .forEach((item, n) => {
-              if (item.henhouse && owner && henhouse(item.henhouse, back.sort((a, b) => b.y - a.y || a.x - b.x), id, owner, item.name)) return;
+              if (item.building && owner && outbuilding(item.building, back.sort((a, b) => b.y - a.y || a.x - b.x), id, owner, item.name)) return;
+              if (item.building?.kind === "byre") return;
               // A privy goes at the bottom of the back yard or not at all.
               const spots = item.where === "back" && (behind.length || propDefs[item.prop]?.where === "privy") ? behind : free;
               spots.some((at) => yardProp(item, at, id, i, 40 + n));
@@ -5681,6 +5692,20 @@ export function planSettlement(
     }
   }
   for (const fence of [...toftQueue, ...campFences]) fence();
+  // A stock-keeping household has a lot rather than a garden yard: its byre
+  // stands on the nearest clear ground beside the house.
+  for (const want of byres) {
+    if (plan.places.some((p) => p.id === `${want.id}-byre`)) continue;
+    const { rect } = want, near: Point[] = [];
+    for (let y = rect.y - 9; y <= rect.y + rect.h + 4; y++)
+      for (let x = rect.x - 10; x <= rect.x + rect.w + 9; x++) {
+        const k = cellKey(x, y);
+        if (!plan.reserved.has(k) && !plan.traffic.has(k) && sample(x, y).water >= 4) near.push({ x, y });
+      }
+    const cx = rect.x + rect.w / 2, cy = rect.y + rect.h / 2;
+    near.sort((a, b) => Math.hypot(a.x - cx, a.y - cy) - Math.hypot(b.x - cx, b.y - cy));
+    outbuilding(want.item.building!, near, want.id, want.owner, want.item.name);
+  }
   dropStubFences([...penFields, ...toftFields], fenceCells, plan);
   if (penFields.length || toftFields.length) {
     plan.fields ??= new Map();
@@ -5784,6 +5809,33 @@ export function planSettlement(
       } satisfies FaunaGroup);
       flocks++;
     }
+  }
+  // A household with a byre keeps a cow or two in it: out in the yard by
+  // day, in at dusk, milked there morning and evening.
+  const milker = penStock.find((k) => ["cattle", "water-buffalo", "yak", "goat", "sheep", "camel"].includes(k.id));
+  for (const byre of milker ? plan.places.filter((b) => b.claim === "yard-byre" && b.owner) : []) {
+    const members: FaunaMember[] = [];
+    for (const [dx, dy] of [[0, 1], [1, 2], [-1, 2], [0, 3]]) {
+      const x = byre.entrance.x + dx, y = byre.entrance.y + dy;
+      if (members.length < 2 + (random(seed, byre.id, "third-cow") < 0.3 ? 1 : 0) && !plan.solid.has(cellKey(x, y)) && !plan.traffic.has(cellKey(x, y)))
+        members.push({ x, y, direction: dx < 0 ? 3 : 1 });
+    }
+    if (!members.length) continue;
+    (plan.fauna ??= []).push({
+      id: `${site.id}-byre-${byre.owner}`,
+      speciesId: milker!.id,
+      members,
+      pos: pos(members[0]),
+      home: pos(byre.entrance),
+      homeRadius: 5,
+      state: "graze",
+      nextDecisionAt: 0,
+      stride: 0,
+      since: 0,
+      owner: byre.owner,
+      house: byre.id,
+      roost: pos({ x: byre.x + 1, y: byre.y + 1 }),
+    } satisfies FaunaGroup);
   }
   // Most places have a dog or two about, whatever else they keep: lying by a
   // door, or a pair of them together.

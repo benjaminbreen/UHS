@@ -5,6 +5,7 @@ import { applyBeliefKits } from "../kits/apply";
 const westAsiaBase: readonly BeliefSystem[] = [
   {
     id: "natufian",
+    realm: "earth",
     label: "Natufian hamlets of the Levant",
     wiki: "https://en.wikipedia.org/wiki/Natufian_culture",
     scope: { years: [-13000, -9500], bounds: [33, 29, 38, 37] },
@@ -67,6 +68,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "west-asia-foragers",
+    realm: "earth",
     label: "Foraging communities of West Asia and North Africa",
     wiki: "https://en.wikipedia.org/wiki/Paleolithic_religion",
     scope: { years: [-13000, -2000], bounds: [-20, 10, 65, 45] },
@@ -145,6 +147,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "berber-pre-islamic",
+    realm: "dust",
     label: "Pre-Islamic Berber practice",
     wiki: "https://en.wikipedia.org/wiki/Traditional_Berber_religion",
     scope: { years: [-1000, 700], bounds: [-17, 20, 8, 37] },
@@ -180,6 +183,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "west-asia-early-farming",
+    realm: "barrow",
     label: "Early farming and herding communities",
     wiki: "https://en.wikipedia.org/wiki/Neolithic_religion",
     scope: { years: [-2000, 400], bounds: [-18, 12, 62, 42] },
@@ -254,6 +258,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "sumerian-city-states",
+    realm: "dust",
     label: "Sumerian city-state religion",
     wiki: "https://en.wikipedia.org/wiki/Sumerian_religion",
     scope: { years: [-3500, -1500], bounds: [40, 29, 48.5, 37] },
@@ -337,6 +342,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "old-babylonian",
+    realm: "dust",
     label: "Old Babylonian practice",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Mesopotamian_religion",
     scope: { years: [-2000, -1400], bounds: [40, 29, 48.5, 37] },
@@ -421,6 +427,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "neo-assyrian",
+    realm: "dust",
     label: "Neo-Assyrian state religion",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Mesopotamian_religion",
     scope: { years: [-1000, -500], bounds: [38, 32, 48.5, 40] },
@@ -504,6 +511,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "levantine-canaanite",
+    realm: "dust",
     label: "Levantine Canaanite religion",
     wiki: "https://en.wikipedia.org/wiki/Canaanite_religion",
     scope: { years: [-1500, -300], bounds: [33, 30, 40, 37] },
@@ -587,6 +595,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "israelite-judahite",
+    realm: "dust",
     label: "Judahite monarchy religion",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Israelite_religion",
     scope: { years: [-1000, -400], bounds: [34, 30, 36, 33.4] },
@@ -678,6 +687,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "second-temple-judaism",
+    realm: "jewish",
     features: ["sacred-texts"],
     label: "Second Temple Jewish practice",
     wiki: "https://en.wikipedia.org/wiki/Second_Temple_Judaism",
@@ -790,6 +800,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "achaemenid-zoroastrian",
+    realm: "zoroastrian",
     label: "Achaemenid Zoroastrian Iran",
     wiki: "https://en.wikipedia.org/wiki/Zoroastrianism_in_Iran",
     scope: { years: [-700, -200], bounds: [46, 24, 63, 40] },
@@ -895,6 +906,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "hellenistic-syria",
+    realm: "greek",
     label: "Hellenistic Syrian syncretism",
     wiki: "https://en.wikipedia.org/wiki/Hellenistic_religion",
     scope: { years: [-400, 100], bounds: [32, 31, 42, 39] },
@@ -972,6 +984,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "sasanian-zoroastrian",
+    realm: "zoroastrian",
     label: "Sasanian Zoroastrian Iran",
     wiki: "https://en.wikipedia.org/wiki/Zoroastrianism_in_Iran",
     scope: { years: [100, 700], bounds: [43.5, 24, 63, 40] },
@@ -1078,6 +1091,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "pre-islamic-arabia",
+    realm: "dust",
     label: "Pre-Islamic Arabian polytheism",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_pre-Islamic_Arabia",
     scope: { years: [200, 650], bounds: [34, 12, 60, 30.5] },
@@ -1166,6 +1180,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "early-islamic",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Early Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Early_Islam",
@@ -1272,6 +1287,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "medieval-sunni-islam",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Medieval Sunni Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Sunni_Islam",
@@ -1379,6 +1395,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "coptic-orthodox",
+    realm: "orthodox",
     features: ["sacred-texts"],
     label: "Coptic Orthodox Christianity",
     wiki: "https://en.wikipedia.org/wiki/Coptic_Orthodox_Church_of_Alexandria",
@@ -1477,6 +1494,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "ottoman-sufi",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Ottoman Sufi-inflected Islam",
     wiki: "https://en.wikipedia.org/wiki/Sufism",
@@ -1570,6 +1588,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "post-1069-egypt",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Post-Fatimid Egyptian Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Egypt",
@@ -1654,6 +1673,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "nubian-nile-islam",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Nubian Nile and Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Sudan",
@@ -1745,6 +1765,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "maghreb-berber-islam",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Maghrebi Berber Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Maraboutism",
@@ -1830,6 +1851,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "arabian-peninsula-broader",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Islamic practice across the Arabian Peninsula",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Saudi_Arabia",
@@ -1936,6 +1958,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "persian-sufi-islam",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Persian Sufi Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Sufism",
@@ -2025,6 +2048,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "anatolian-ottoman-islam",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Anatolian Ottoman Islamic practice",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Turkey",
@@ -2110,6 +2134,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "caucasus-caspian-islam",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Caucasus and Caspian Islamic and traditional practice",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Russia",
@@ -2193,6 +2218,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "modern-west-asia-islam",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Modern Islamic practice in West Asia and North Africa",
     wiki: "https://en.wikipedia.org/wiki/Islam_by_country",

@@ -6,6 +6,7 @@ import type { BeliefSystem } from "../types";
 export const egypt: readonly BeliefSystem[] = [
   {
     id: "egypt-old-middle-kingdom",
+    realm: "egypt",
     label: "Old and Middle Kingdom Egyptian practice",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Egyptian_religion",
     scope: { years: [-3100, -1550], bounds: [24, 22, 34, 32] },
@@ -46,6 +47,7 @@ export const egypt: readonly BeliefSystem[] = [
   },
   {
     id: "egypt-late-period",
+    realm: "egypt",
     label: "Late Egyptian temple practice",
     wiki: "https://en.wikipedia.org/wiki/Late_Period_of_ancient_Egypt",
     scope: { years: [-1069, 200], bounds: [24, 22, 34, 32] },
@@ -85,6 +87,7 @@ export const egypt: readonly BeliefSystem[] = [
   },
   {
     id: "egypt-new-kingdom",
+    realm: "egypt",
     label: "New Kingdom Egyptian practice",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Egyptian_religion",
     scope: { years: [-1550, -1069], bounds: [24, 22, 34, 32] },
@@ -198,6 +201,7 @@ export const egypt: readonly BeliefSystem[] = [
   },
   {
     id: "late-roman-egypt",
+    realm: "orthodox",
     label: "Late Roman Egypt",
     wiki: "https://en.wikipedia.org/wiki/Christianity_in_Egypt",
     scope: {

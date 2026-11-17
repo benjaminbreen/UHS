@@ -445,7 +445,7 @@ export class ToolEffects {
   }
   private playThrow(effect: ThrowEffect) {
     if (effect.launcher === "hawk") return this.playHawk(effect);
-    const gun = effect.launcher === "musket" || effect.launcher === "rifle";
+    const gun = effect.launcher === "musket" || effect.launcher === "pistol" || effect.launcher === "rifle";
     const from = this.point(effect.from),
       to = this.point(effect.to);
     const span = Math.max(
@@ -486,8 +486,8 @@ export class ToolEffects {
       this.scene.time.delayedCall(flight, land);
       return;
     }
-    if (gun) this.muzzle(from, to, effect.launcher === "musket");
-    void gameAudio()?.sound(effect.launcher ? projectileRelease(effect.launcher as "crossbow") : effect.arrow ? projectileRelease("arrow") :
+    if (gun) this.muzzle(from, to, effect.launcher !== "rifle");
+    void gameAudio()?.sound(effect.launcher ? projectileRelease((effect.launcher === "pistol" ? "musket" : effect.launcher) as "crossbow") : effect.arrow ? projectileRelease("arrow") :
       effect.sling ? projectileRelease("stone") :
       effect.straight ? projectileRelease("spear") : strike("haft", "air", "whoosh"), "throw");
     const held = effect.small && !effect.arrow && !gun ? heldTexture(this.scene, frame) : undefined;

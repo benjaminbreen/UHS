@@ -1,6 +1,6 @@
 import type { PersonBrief } from "./brief";
 import type { CharacterAppearance, WearSlot } from "./character";
-import type { Flop, Form, Made } from "./making";
+import type { Flop, Form, Made, Take } from "./making";
 import type { LandscapeStyle } from "../content/graphics/landscapes";
 import type { WorldSetting } from "../content/geography/types";
 export type PackId = string;
@@ -297,7 +297,8 @@ export type Actor = {
   facing?: number;
   /** Perched on top of something: one cell, no roaming. `rise` is the sprite
    * lift in world pixels. `drop` is the physical height in terrain tiers. */
-  perch?: { on: string; label: string; rise: number; at?: Point; drop?: number };
+  /** `roof`: up on a flat roof, where `at` walks across the footprint. */
+  perch?: { on: string; label: string; rise: number; at?: Point; drop?: number; roof?: boolean; by?: "ladder" | "stairs" };
   /** Bees from a robbed hive at `at`, after the player until the clock passes `until`. */
   bees?: { until: number; at: Point };
   held?: string;
@@ -335,7 +336,9 @@ export type Actor = {
   post?: { at: Point; rest: Point; night?: boolean; torch?: boolean; face?: number; round?: Point[]; leg?: number; called?: number; arrive?: number; doing?: string; with?: string; beside?: number };
   /** Terrified by someone breaking into their home: until when, which home,
    * whether they fight or cower, and when a blow last set them back. */
-  terror?: { until: number; place: string; fight: boolean; staggered?: number; strikeAfter?: number; cause?: "assault" | "anger" | "fright" };
+  /** Someone on the player's side of a fight: piling in on `foe`, or cheering. */
+  defends?: { foe: string; until: number; cheer?: boolean };
+  terror?: { until: number; place: string; fight: boolean; staggered?: number; strikeAfter?: number; windup?: number; cause?: "assault" | "anger" | "fright" };
 };
 /** A cell of a town wall's walk. `corner` is where a diagonal's band crosses
  * the cell, which is where someone walking it stands. */
@@ -819,12 +822,12 @@ export type Intent =
       consumes?: { item: ItemId; quantity: number }[];
     }
   /** Two carried things worked into a new one; `from` is body, then trim. */
-  | { type: "make"; from: [ItemId, ItemId]; name: string; description: string; form: Form | "nothing"; difficulty: number; minutes?: number; flop?: Flop; said?: string }
+  | { type: "make"; from: [ItemId, ItemId]; name: string; description: string; form: Form | "nothing"; difficulty: number; minutes?: number; flop?: Flop; crude?: Take; fine?: Take; said?: string }
   | { type: "pass"; minutes: number }
   | { type: "travel"; direction: "north" | "south" | "east" | "west" }
   | { type: "regard"; delta: number; reason: string }
   | { type: "fact"; text: string }
-  | { type: "converse"; with: string; said: string; told?: string; delta: number; trespass?: "warned" | "refused" | "leaving"; leave?: WalkOff; ask?: "made" | "accepted" | "declined"; favour?: Favour; callIn?: CallIn }
+  | { type: "converse"; with: string; said: string; told?: string; delta: number; trespass?: "warned" | "refused" | "leaving"; side?: "join" | "cheer" | "stop" | "leave"; leave?: WalkOff; ask?: "made" | "accepted" | "declined"; favour?: Favour; callIn?: CallIn }
   | {
       type: "receive";
       from: string;

@@ -6,6 +6,7 @@ import type { BeliefSystem } from "../types";
 export const australiaPacific: readonly BeliefSystem[] = [
   {
     id: "aboriginal-australia-general",
+    realm: "country",
     label: "Aboriginal Australian practice (general)",
     wiki: "https://en.wikipedia.org/wiki/Australian_Aboriginal_mythology",
     scope: { years: [-60000, 1788], bounds: [110, -50, 160, 30] },
@@ -71,6 +72,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "oceanic-maritime-societies-early",
+    realm: "country",
     label: "Oceanic maritime and forager societies",
     wiki: "https://en.wikipedia.org/wiki/History_of_Oceania",
     scope: { years: [-60000, 500], bounds: [110, -50, 180, 30] },
@@ -139,6 +141,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "papuan-highlands-early",
+    realm: "earth",
     label: "Papuan Highlands practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_Papua_New_Guinea",
     scope: { years: [1000, 1800], bounds: [140, -13, 150, 2] },
@@ -210,6 +213,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "early-melanesia-lapita",
+    realm: "ocean",
     label: "Early Melanesian practice (Lapita era)",
     wiki: "https://en.wikipedia.org/wiki/Lapita_culture",
     scope: { years: [-1500, 1000], bounds: [160, -25, 180, -10] },
@@ -281,6 +285,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "vanuatu-new-caledonia-tradition",
+    realm: "ocean",
     label: "Vanuatu and New Caledonian practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_Vanuatu",
     scope: { years: [1000, 1800], bounds: [162, -25, 172, -15] },
@@ -356,6 +361,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "hawaiian-christian",
+    realm: "protestant",
     label: "Hawaiian Christian and ʻaumakua practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_Hawaii",
     scope: { years: [1820, 2025], bounds: [-160, 18, -154, 23] },
@@ -390,6 +396,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "samoan-polynesian",
+    realm: "ocean",
     label: "Samoan and Polynesian practice",
     wiki: "https://en.wikipedia.org/wiki/Polynesian_narrative",
     scope: { years: [1000, 1800], bounds: [-180, -25, -160, 5] },
@@ -465,6 +472,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "hawaiian-precontact",
+    realm: "ocean",
     label: "Hawaiian practice (precontact)",
     wiki: "https://en.wikipedia.org/wiki/Hawaiian_religion",
     // Nobody lived here before about 1000; anyone placed earlier is a
@@ -546,6 +554,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "maori-aotearoa-precontact",
+    realm: "ocean",
     label: "Māori practice in Aotearoa (precontact)",
     wiki: "https://en.wikipedia.org/wiki/Māori_traditional_religion",
     scope: { years: [500, 1769], bounds: [165, -48, 180, -30] },
@@ -642,6 +651,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "micronesian-practice",
+    realm: "ocean",
     label: "Micronesian practice",
     wiki: "https://en.wikipedia.org/wiki/Micronesian_mythology",
     scope: { years: [500, 1800], bounds: [130, -15, 180, 15] },
@@ -714,6 +724,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "pacific-mission-christianity",
+    realm: "protestant",
     features: ["sacred-texts"],
     label: "Pacific mission Christianity",
     wiki: "https://en.wikipedia.org/wiki/Christianity_in_Oceania",
@@ -796,6 +807,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "australian-settler-christianity",
+    realm: "protestant",
     label: "Australian settler practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_Australia",
     scope: { years: [1788, 2025], bounds: [138, -44, 154, -26] },
@@ -830,6 +842,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "aboriginal-australia-colonial",
+    realm: "country",
     label: "Aboriginal Australia and Christian missions (colonial era)",
     wiki: "https://en.wikipedia.org/wiki/Australian_Aboriginal_mythology",
     scope: { years: [1788, 2025], bounds: [110, -50, 160, -10] },
@@ -900,6 +913,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "samoan-tongan-early",
+    realm: "ocean",
     label: "Early Samoan and Tongan settlement",
     wiki: "https://en.wikipedia.org/wiki/Samoan_mythology",
     scope: { years: [-8000, 2000], bounds: [-180, -25, -160, -10] },
@@ -970,6 +984,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "fiji-traditions",
+    realm: "ocean",
     label: "Fijian practice",
     wiki: "https://en.wikipedia.org/wiki/Fijian_mythology",
     scope: { years: [1000, 1800], bounds: [177, -20, 181, -16] },
@@ -1045,6 +1060,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "south-island-aotearoa",
+    realm: "ocean",
     label: "South Island Māori practice",
     wiki: "https://en.wikipedia.org/wiki/Māori_traditional_religion",
     scope: { years: [500, 1769], bounds: [165, -48, 178, -40] },

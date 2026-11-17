@@ -20,6 +20,7 @@ import { workDress, tradeDress, regionalShoes } from "./regions/work-dress";
 import { layers } from "./regions/layers";
 import { sidearms } from "./regions/sidearms";
 import { guards } from "./regions/guards";
+import { outlaws } from "./regions/outlaws";
 import { street } from "./regions/street";
 import { embroidery } from "./regions/embroidery";
 import { hairdos, headdress } from "./regions/headdress";
@@ -401,7 +402,7 @@ export const regionalKits: readonly GarmentKit[] = [
   ...clothPalettes,
   // Uniforms, court dress and the future: overlays that beat regional dress.
   ...specialSets,
-  ...guards, ...street,
+  ...guards, ...outlaws, ...street,
 ];
 
 export const garmentKits: readonly GarmentKit[] = [

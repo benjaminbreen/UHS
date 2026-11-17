@@ -9,6 +9,8 @@ import {
 import { places } from "../src/content/geography/places";
 import type { Actor } from "../src/core/types";
 import { deityIconFor } from "../src/content/beliefs/deity-icons";
+import { hopeFor, passage } from "../src/content/beliefs/afterlife";
+import { existsSync } from "node:fs";
 
 const actor = (
   id = "a1",
@@ -496,4 +498,26 @@ it("resolves authored profile centers without ambiguous precedence", () => {
     }
   }
   expect([...conflicts]).toEqual([]);
+});
+
+it("sends the dead where their own tradition held", () => {
+  const sys = (id: string) => beliefSystems.find((b) => b.id === id)!;
+  const life = { cause: "of a fever", year: 1350, age: 40, mourners: 2, deeds: [], observance: "regular" as const };
+  const struck = [{ what: "struck Ana", tone: -8 }, { what: "stole from Ana's household", tone: -6 }];
+  expect(passage(life, sys("latin-christendom-late-medieval")).title).toBe("Purgatory");
+  expect(passage({ ...life, deeds: struck }, sys("latin-christendom-late-medieval")).lines[0]).toContain("struck Ana");
+  expect(passage({ ...life, year: 1500 }, sys("mexica-aztec")).title).toBe("Mictlan");
+  expect(passage({ ...life, year: 1500, cause: "by drowning" }, sys("mexica-aztec")).title).toBe("Tlalocan");
+  expect(passage({ ...life, year: 1500, cause: "in childbirth" }, sys("mexica-aztec")).plate).toContain("mexica/sun");
+  expect(passage({ ...life, mourners: 0, year: 1600 }, sys("nguni-ancestor-veneration")).title).toBe("Wandering");
+  expect(passage({ ...life, year: 1900, observance: "indifferent" }, sys("european-industrial")).title).toBe("Nothing after");
+  expect(passage({ ...life, year: 900, cause: "in battle" }, sys("norse-scandinavia")).title).toBe("Valhalla");
+  expect(passage({ ...life, year: 1400, deeds: struck }, sys("medieval-japan-pure-land")).title).toBe("The Pure Land");
+  expect(passage({ ...life, year: 1600, mourners: 0 }, sys("late-imperial-village")).title).toBe("A hungry ghost");
+  expect(passage({ ...life, year: 1300, deeds: struck }, sys("yoruba-orisha")).title).toBe("Orun apadi");
+  expect(passage({ ...life, year: 1600 }, sys("manchu-jurchen-practice")).title).toBe("The clan tree");
+  const lives = [life, { ...life, deeds: struck }, { ...life, mourners: 0, cause: "in battle" }, { ...life, observance: "devout" as const, age: 80 }];
+  for (const b of [...beliefSystems, unscopedBeliefs])
+    for (const plate of [...lives.map((l) => passage({ ...l, year: b.scope.years[0] }, b).plate), hopeFor(b)])
+      expect(existsSync(`public/backdrops/${plate}`), `${b.id}: ${plate}`).toBe(true);
 });

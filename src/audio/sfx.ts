@@ -798,6 +798,12 @@ export const events = {
     tone(0, 0.25, 0.12, hz(58), { wave: "triangle" }),
   ],
   hour: () => run([5, 8, 12], 0.24, 0.15, 1.2),
+  /** The moment of death: a low knell under a slow fall down D minor. */
+  death: () => [
+    tone(0, 2.8, 0.14, hz(38), { wave: "triangle", attack: 0.01 }),
+    ...ring(0, hz(62), 2.4, 0.05),
+    ...[69, 65, 62, 57].map((m, i) => tone(0.4 + i * 0.45, 1.5, 0.1 - i * 0.015, hz(m), { wave: "triangle", attack: 0.02 })),
+  ],
   /** A skill rising: a quick climb that opens out and rings. */
   levelUp: () => [
     ...run([5, 7, 9, 12], 0.07, 0.2, 0.5),

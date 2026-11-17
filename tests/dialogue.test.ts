@@ -148,6 +148,7 @@ describe("dialogue endpoint", () => {
       "mood",
       "regard",
       "trespass",
+      "side",
       "action",
       "dialogue",
       "language",
@@ -172,7 +173,7 @@ describe("dialogue endpoint", () => {
       return reply({ dialogue: "Where are you going?", original: "Où vas-tu?", regard: 0 });
     });
     const properties = sent?.response_format.json_schema.schema.properties;
-    expect(Object.keys(properties)).toEqual(["mood", "regard", "trespass", "action", "dialogue", "language", "original", "leave", "lead", "ask", "trade", "favour", "receive"]);
+    expect(Object.keys(properties)).toEqual(["mood", "regard", "trespass", "side", "action", "dialogue", "language", "original", "leave", "lead", "ask", "trade", "favour", "receive"]);
     expect(sent?.messages[0].content).toContain("translate that exact line");
     expect(sent?.reasoning).toEqual({ effort: "low" });
   });
@@ -537,6 +538,62 @@ describe("provoked householders", () => {
       expect(e.state.events.some((x) => x.text.includes("lowers their fists"))).toBe(true);
       e.regard(actor, -3, "alarm", true);
       expect(actor.terror).toBeUndefined();
+    } finally { runtime.dispose(); }
+  });
+
+  it("telegraphs each blow: stepping away dodges it, a guard facing them blocks it", () => {
+    const { runtime, e, actor } = houseConversation("aggressive");
+    try {
+      const p = e.state.player;
+      e.conversing = undefined;
+      actor.pos = { ...p.pos, x: p.pos.x - 1 };
+      actor.terror = { until: e.state.clock + 600, place: actor.pos.space, fight: true, strikeAfter: e.state.clock, cause: "anger" };
+      e.combatUntil = e.state.clock + 600;
+      const windup = () => { for (let i = 0; i < 4 && actor.terror?.windup === undefined; i++) e.advance(6); };
+      windup();
+      expect(actor.terror.windup).toBeDefined();
+      p.pos = { ...p.pos, x: p.pos.x + 2 };
+      e.advance(18);
+      expect(p.health).toBe(100);
+      expect(e.state.events.some((x) => x.text.includes("swings and misses"))).toBe(true);
+      actor.pos = { ...p.pos, x: p.pos.x - 1 };
+      actor.terror.staggered = undefined;
+      windup();
+      p.direction = 3;
+      e.guard();
+      e.advance(18);
+      expect(p.health).toBe(100);
+      expect(e.state.events.some((x) => x.text.includes("You block"))).toBe(true);
+      actor.health = 20;
+      e.advance(6);
+      expect(actor.terror?.fight).toBe(false);
+      expect(e.state.events.some((x) => x.text.includes("has had enough"))).toBe(true);
+    } finally { runtime.dispose(); }
+  });
+
+  it("calls a friend into the player's fight, who acts on the side they take", () => {
+    const { runtime, e, actor } = houseConversation("aggressive");
+    try {
+      const s = e.state, p = s.player;
+      e.conversing = undefined;
+      const ally = { ...structuredClone(actor), id: "ally", name: "Ally", trust: 5, terror: undefined, offRoutine: false, householdId: p.householdId };
+      ally.pos = { ...p.pos, y: p.pos.y + 1 };
+      s.actors.push(ally);
+      actor.pos = { ...p.pos, x: p.pos.x - 1 };
+      actor.terror = { until: s.clock + 600, place: actor.pos.space, fight: true, strikeAfter: s.clock + 600, cause: "anger" };
+      e.combatUntil = s.clock + 600;
+      e.advance(6);
+      expect(e.allyCall).toBe("ally");
+      expect(e.allyContext(ally)).toContain("A FIGHT IS HAPPENING");
+      e.sideReply(ally, "join");
+      const before = actor.health!;
+      e.advance(60);
+      expect(actor.health).toBeLessThan(before);
+      expect(s.events.some((x) => x.text.includes("Ally hits"))).toBe(true);
+      (e as unknown as { strikePerson(a: typeof ally, f: number, push: number[]): void }).strikePerson(ally, 1, [0, 1]);
+      expect(ally.terror).toBeUndefined();
+      expect(s.events.some((x) => x.text.includes("by mistake"))).toBe(true);
+      e.sideReply(ally, "stop");
     } finally { runtime.dispose(); }
   });
 

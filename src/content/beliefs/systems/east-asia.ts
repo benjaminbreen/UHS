@@ -9,6 +9,7 @@ import {
 const eastAsiaBase: readonly BeliefSystem[] = [
   {
     id: "east-asia-pottery-foragers",
+    realm: "earth",
     label: "The first potters: late Ice Age East Asia",
     wiki: "https://en.wikipedia.org/wiki/J%C5%8Dmon_period",
     scope: { years: [-20000, -8000], bounds: [90, 15, 150, 55] },
@@ -67,6 +68,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "neolithic-east-asia-foragers",
+    realm: "earth",
     label: "Neolithic East Asia foraging and early settlement",
     wiki: "https://en.wikipedia.org/wiki/Chinese_Neolithic",
     scope: { years: [-8000, -1600], bounds: [90, 15, 150, 55] },
@@ -140,6 +142,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "early-bronze-farming-era",
+    realm: "chinese",
     label: "Early Bronze Age farming societies",
     wiki: "https://en.wikipedia.org/wiki/Chinese_Bronze_Age",
     scope: { years: [-1600, 300], bounds: [95, 20, 145, 50] },
@@ -204,6 +207,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "shang-oracle",
+    realm: "chinese",
     label: "Shang oracle bone practice",
     wiki: "https://en.wikipedia.org/wiki/Oracle_bone",
     scope: { years: [-1600, -1046], bounds: [105, 30, 122, 41] },
@@ -258,6 +262,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "zhou-heaven-rites",
+    realm: "chinese",
     label: "Early Zhou Heaven and ancestral rites",
     wiki: "https://en.wikipedia.org/wiki/Tian",
     scope: { years: [-1046, -500], bounds: [100, 25, 123, 43] },
@@ -317,6 +322,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "warring-states-qin",
+    realm: "chinese",
     label: "Warring States and Qin period belief",
     wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
     scope: { years: [-500, -206], bounds: [95, 20, 123, 43] },
@@ -383,6 +389,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "han-popular",
+    realm: "chinese",
     label: "Han dynasty popular religion",
     wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
     scope: { years: [-206, 300], bounds: [95, 18, 123, 43] },
@@ -456,6 +463,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "six-dynasties-buddhism",
+    realm: "buddhist",
     features: ["sacred-texts"],
     label: "Six Dynasties Buddhist practice",
     wiki: "https://en.wikipedia.org/wiki/Chinese_Buddhism",
@@ -521,6 +529,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "tang-syncretism",
+    realm: "chinese",
     features: ["sacred-texts"],
     label: "Tang dynasty syncretism",
     wiki: "https://en.wikipedia.org/wiki/Sanjiao",
@@ -598,6 +607,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "song-ming-pantheon",
+    realm: "chinese",
     features: ["sacred-texts"],
     label: "Song and Ming household pantheon",
     wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
@@ -688,6 +698,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "late-imperial-village",
+    realm: "chinese",
     label: "Late imperial rural practice",
     wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
     scope: { years: [1700, 1912], bounds: [95, 18, 123, 43] },
@@ -751,6 +762,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "jomon-japan",
+    realm: "earth",
     label: "Jōmon practice",
     wiki: "https://en.wikipedia.org/wiki/J%C5%8Dmon_period",
     scope: { years: [-14000, -900], bounds: [129, 30, 146, 46] },
@@ -786,6 +798,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "korean-three-kingdoms",
+    realm: "chinese",
     label: "Korean Three Kingdoms shamanic practice",
     wiki: "https://en.wikipedia.org/wiki/Korean_shamanism",
     scope: { years: [-37, 800], bounds: [124, 33, 131, 43.5] },
@@ -851,6 +864,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "koryo-buddhism",
+    realm: "buddhist",
     features: ["sacred-texts"],
     label: "Koryo kingdom Buddhism",
     wiki: "https://en.wikipedia.org/wiki/Buddhism_in_Korea",
@@ -920,6 +934,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "kofun-nara-japan",
+    realm: "japanese",
     label: "Kofun to Nara Japanese practice",
     wiki: "https://en.wikipedia.org/wiki/Kofun_period",
     scope: { years: [250, 794], bounds: [129, 30, 142, 42] },
@@ -958,6 +973,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "heian-shinto-buddhism",
+    realm: "japanese",
     features: ["sacred-texts"],
     label: "Heian period Shinto-Buddhist synthesis",
     wiki: "https://en.wikipedia.org/wiki/Shinbutsu-sh%C5%ABg%C5%8D",
@@ -1035,6 +1051,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "medieval-japan-pure-land",
+    realm: "pure-land",
     features: ["sacred-texts"],
     label: "Medieval Japan Pure Land Buddhism",
     wiki: "https://en.wikipedia.org/wiki/Pure_Land_Buddhism",
@@ -1106,6 +1123,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "tokugawa-household-buddhism",
+    realm: "pure-land",
     features: ["sacred-texts"],
     label: "Tokugawa household Buddhism",
     wiki: "https://en.wikipedia.org/wiki/Danka_system",
@@ -1178,6 +1196,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "joseon-korea-confucianism",
+    realm: "chinese",
     features: ["sacred-texts"],
     label: "Joseon Korea Confucian and shamanic tradition",
     wiki: "https://en.wikipedia.org/wiki/Korean_Confucianism",
@@ -1244,6 +1263,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "ryukyu-ancestor-kami",
+    realm: "japanese",
     label: "Ryukyu Islands ancestor and kami veneration",
     wiki: "https://en.wikipedia.org/wiki/Ryukyuan_religion",
     scope: { years: [1200, 1950], bounds: [123, 24, 133, 32] },
@@ -1310,6 +1330,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "southwest-china-farming",
+    realm: "chinese",
     label: "Southwest China and Southeast Asia borderland practice",
     wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
     scope: { years: [1000, 1950], bounds: [90, 15, 110, 35] },
@@ -1374,6 +1395,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "tibetan-buddhism",
+    realm: "buddhist",
     label: "Tibetan Buddhist practice",
     wiki: "https://en.wikipedia.org/wiki/Tibetan_Buddhism",
     scope: { years: [780, 2025], bounds: [85, 27.8, 98, 33.5], cultures: ["east-asian", "south-asian", "inner-eurasian"] },
@@ -1413,6 +1435,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "tibetan-plateau-practice",
+    realm: "bon",
     features: ["sacred-texts"],
     label: "Tibetan Plateau and Qaidam Basin pastoralist tradition",
     wiki: "https://en.wikipedia.org/wiki/Bon",
@@ -1479,6 +1502,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "manchu-jurchen-practice",
+    realm: "tungusic",
     label: "Jurchen and Manchu practice",
     wiki: "https://en.wikipedia.org/wiki/Manchu_shamanism",
     scope: { years: [500, 1920], bounds: [121, 41, 135, 53], cultures: ["east-asian", "inner-eurasian"] },
@@ -1514,6 +1538,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "modern-east-asia",
+    realm: "chinese",
     label: "Modern East Asian practice and transition",
     wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
     scope: { years: [1900, 2025], bounds: [90, 15, 150, 55] },

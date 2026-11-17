@@ -91,6 +91,11 @@ const byActivity: Record<string, Entry> = {
   "Keeping the house": ["serve"],
   "Keeping the record": ["serve"],
   "Standing watch": ["serve"],
+  "Watching the road": ["gather"],
+  "Foraging the country": ["gather"],
+  "Working the streets": ["serve"],
+  "Working the crowd": ["serve"],
+  "Pressing men for the navy": ["serve"],
   "Overseeing the estate": ["serve"],
   "Hearing cases": ["serve"],
   "Drilling the company": ["serve"],
@@ -117,8 +122,9 @@ const indoors = new Set([
 ]);
 
 /** Where a recipe's step is done, found on the map rather than at a prop. */
-/** `home` is inside the house at its work spot, `yard` the store out front, `door` the street door. */
-export type PlaceRole = "workplace" | "station" | "line" | "home" | "yard" | "door" | "field" | "pasture" | "water" | "sick" | "market" | "client" | "wild" | "shore" | "well" | "gear" | "grounds" | "pit" | "face";
+/** `home` is inside the house at its work spot, `yard` the store out front, `door` the street door.
+ * `byre` and `henhouse` are inside the household's own, or its yard where it has none. */
+export type PlaceRole = "workplace" | "station" | "line" | "home" | "yard" | "door" | "field" | "pasture" | "water" | "sick" | "market" | "client" | "wild" | "shore" | "well" | "gear" | "grounds" | "pit" | "face" | "byre" | "henhouse";
 /** One stage of a day: a short name for the strip, the thing to do, and
  * whether it happens at a client's house instead of at home. A recipe's step
  * also names its place, the task screen's scene for it and its card. */

@@ -6,6 +6,13 @@ import { CharacterSprite } from "./CharacterSprite";
 import { inWords } from "../core/concerns";
 import { typicalDeathAge } from "../core/time/mortality";
 import { ItemIcon } from "./components";
+import { beliefOf, beliefsFor, unscopedBeliefs } from "../content/beliefs";
+import { passage } from "../content/beliefs/afterlife";
+import { deeds } from "../core/word";
+import { gameAudio } from "../audio/director";
+import { drawCharacterG } from "../render/characters/doll/draw";
+import type { CharacterAppearance } from "../core/character";
+import { useEffect, useRef, useState } from "react";
 import "./time/time.css";
 
 const counted = (n: number) => (n === 1 ? "one" : inWords(n));
@@ -16,8 +23,32 @@ function children(born: number, living: number) {
   return `${counted(living).replace(/^./, (c) => c.toUpperCase())} of your ${counted(born)} children outlived you.`;
 }
 
-/** The end of a life: who died, of what, how old, where and when; then going
- * on as one of the household, or closing the life. */
+type Stage = "fall" | "rise" | "realm" | "words" | "card";
+// When each stage begins, in ms from the death.
+const AT: [Stage, number][] = [["rise", 2200], ["realm", 4200], ["words", 6400], ["card", 13000]];
+
+/** The figure in the death scene: arms opening, then a slow breathing hold. */
+function Rising({ appearance }: { appearance: CharacterAppearance }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const ctx = ref.current?.getContext("2d");
+    if (!ctx) return;
+    let frame = 0;
+    const draw = () => drawCharacterG(ctx, appearance, 2, "transcend", frame);
+    draw();
+    const timer = window.setInterval(() => {
+      frame = frame < 2 ? frame + 1 : frame === 2 ? 3 : 2;
+      draw();
+    }, 700);
+    return () => window.clearInterval(timer);
+  }, [appearance]);
+  return <canvas ref={ref} className="passing-figure" width={80} height={80} />;
+}
+
+/** The end of a life. A scene first: the dark comes down, the figure rises,
+ * and the place their own tradition sent them fills in behind. Then who died,
+ * of what, how old, where and when; then going on as one of the household,
+ * or closing the life. */
 export function DeathCard({ runtime, onClose }: { runtime: Runtime; onClose: () => void }) {
   const engine = runtime.engine, s = engine.state, p = s.player;
   const setting = engine.world.pack.setting;
@@ -35,16 +66,64 @@ export function DeathCard({ runtime, onClose }: { runtime: Runtime; onClose: () 
     partner ? `${partner.name.split(" ")[0]} outlived you.` : "",
     typical ? `Most people here who reached twenty lived to about ${typical}. You lived to ${p.age}.` : "",
   ].filter(Boolean);
+  const appearance = runtime.appearanceFor(p);
+  const system = setting ? beliefsFor(setting, p.origin?.community) : unscopedBeliefs;
+  const [after] = useState(() =>
+    passage(
+      {
+        cause: p.dead ?? "",
+        year: setting?.year ?? 0,
+        age: p.age ?? 0,
+        mourners: kin.size,
+        deeds: deeds(s),
+        observance: beliefOf(s.manifest.seed, p, system).observance,
+      },
+      system,
+    ),
+  );
+  const still = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  const [stage, setStage] = useState<Stage>(still ? "card" : "fall");
+  useEffect(() => {
+    if (still) return void gameAudio()?.setSituation("passing");
+    void gameAudio()?.event("death");
+    const timers = AT.map(([next, ms]) => window.setTimeout(() => {
+      setStage((was) => (was === "card" ? was : next));
+      if (next === "rise") void gameAudio()?.setSituation("passing");
+    }, ms));
+    return () => timers.forEach(window.clearTimeout);
+  }, [still]);
+  const skip = () => {
+    if (stage === "card") return;
+    if (stage === "fall" || stage === "rise") void gameAudio()?.setSituation("passing");
+    setStage("card");
+  };
   const best = (s.made ?? [])
     .map((m) => ({ ...m, def: engine.item(m.item) }))
     .filter((m) => m.def && !m.def.made?.flop)
     .sort((a, b) => b.def!.value - a.def!.value)[0];
   return (
-    <div className="collapse-notice death-card" role="alertdialog" aria-label={`${p.name} has died`}>
-      <div>
+    <div
+      className={`collapse-notice death-card stage-${stage}`}
+      role="alertdialog"
+      aria-label={`${p.name} has died`}
+      onClick={skip}
+      onKeyDown={(e) => (e.key === "Enter" || e.key === " " || e.key === "Escape") && skip()}
+    >
+      <div className="passing-dark" />
+      <div className="passing-realm" style={{ backgroundImage: `url(/backdrops/${after.plate})` }} />
+      <div className="passing-vignette" />
+      {stage === "fall" && <span className="passing-ellipsis">…</span>}
+      {stage !== "card" && <Rising appearance={appearance} />}
+      {stage === "words" && (
+        <div className="passing-words">
+          {after.title && <h2>{after.title}</h2>}
+          {after.lines.map((line) => <p key={line}>{line}</p>)}
+        </div>
+      )}
+      {stage === "card" && <div className="death-body">
         <small>A LIFE ENDS</small>
         <span className="death-portrait">
-          <CharacterSprite appearance={runtime.appearanceFor(p)} age={p.age} portrait />
+          <CharacterSprite appearance={appearance} age={p.age} portrait />
         </span>
         <h2>{p.name}</h2>
         <p>
@@ -53,6 +132,7 @@ export function DeathCard({ runtime, onClose }: { runtime: Runtime; onClose: () 
           {setting?.location ?? engine.world.pack.name}
           {setting ? `, ${formatHistoricalYear(setting.year)}` : ""}
         </p>
+        {after.title && <p className="death-realm">{after.title}. {after.lines[0]}</p>}
         {summary.length > 0 && <p className="death-summary">{summary.join(" ")}</p>}
         {best && (
           <p className="make-death">
@@ -84,7 +164,7 @@ export function DeathCard({ runtime, onClose }: { runtime: Runtime; onClose: () 
         <button className="death-close" autoFocus={!heirs.length} onClick={onClose}>
           Close this life
         </button>
-      </div>
+      </div>}
     </div>
   );
 }

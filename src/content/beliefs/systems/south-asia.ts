@@ -10,6 +10,7 @@ import { puranicHinduCore, puranicHinduDevotionOptions } from "../kits/hindu";
 const southAsiaBase: readonly BeliefSystem[] = [
   {
     id: "prehistoric-foragers",
+    realm: "earth",
     label: "Prehistoric forager practice",
     wiki: "https://en.wikipedia.org/wiki/Prehistoric_religion",
     scope: { years: [-13000, -3000], bounds: [60, 5, 92, 37] },
@@ -73,6 +74,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "early-farming-neolithic",
+    realm: "barrow",
     label: "Early farming and herding communities",
     wiki: "https://en.wikipedia.org/wiki/Neolithic_Revolution",
     scope: { years: [-5000, -2300], bounds: [60, 5, 92, 37] },
@@ -141,6 +143,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "indus-valley",
+    realm: "earth",
     label: "Indus Valley ritual practice",
     wiki: "https://en.wikipedia.org/wiki/Indus_Valley_Civilisation",
     scope: { years: [-2300, -1300], bounds: [60, 23, 77, 34] },
@@ -206,6 +209,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "vedic-early",
+    realm: "hindu",
     features: ["sacred-texts"],
     label: "Early Vedic practice",
     wiki: "https://en.wikipedia.org/wiki/Historical_Vedic_religion",
@@ -280,6 +284,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "vedic-late-upanishadic",
+    realm: "hindu",
     features: ["sacred-texts"],
     label: "Later Vedic and Upanishadic thought",
     wiki: "https://en.wikipedia.org/wiki/Upanishads",
@@ -349,6 +354,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "early-buddhism",
+    realm: "buddhist",
     features: ["sacred-texts"],
     label: "Early Buddhism",
     wiki: "https://en.wikipedia.org/wiki/Pre-sectarian_Buddhism",
@@ -434,6 +440,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "jainism",
+    realm: "jain",
     features: ["sacred-texts"],
     label: "Jain practice",
     wiki: "https://en.wikipedia.org/wiki/Jainism",
@@ -515,6 +522,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "gupta-puranic",
+    realm: "hindu",
     features: ["sacred-texts"],
     label: "Gupta-era Puranic Hinduism",
     wiki: "https://en.wikipedia.org/wiki/Puranas",
@@ -615,6 +623,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "tamil-shaivism",
+    realm: "hindu",
     features: ["sacred-texts"],
     label: "Tamil Shaivism",
     wiki: "https://en.wikipedia.org/wiki/Shaiva_Siddhanta",
@@ -690,6 +699,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "krishna-vaishnavism",
+    realm: "hindu",
     features: ["sacred-texts"],
     label: "Medieval Krishna Vaishnavism",
     wiki: "https://en.wikipedia.org/wiki/Krishnaism",
@@ -762,6 +772,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "sikh-gurus",
+    realm: "sikh",
     features: ["sacred-texts"],
     label: "Sikh Gurus",
     wiki: "https://en.wikipedia.org/wiki/Sikhism",
@@ -836,6 +847,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "village-goddess-practice",
+    realm: "hindu",
     label: "Village goddess and spirit practice",
     wiki: "https://en.wikipedia.org/wiki/Gramadevata",
     scope: { years: [-3000, 1950], bounds: [60, 5, 97, 37] },
@@ -925,6 +937,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "theravada-sri-lanka",
+    realm: "buddhist",
     features: ["sacred-texts"],
     label: "Theravada Buddhism in Sri Lanka",
     wiki: "https://en.wikipedia.org/wiki/Buddhism_in_Sri_Lanka",
@@ -1021,6 +1034,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "himalayan-newar",
+    realm: "buddhist",
     features: ["sacred-texts"],
     label: "Himalayan and Newar syncretic practice",
     wiki: "https://en.wikipedia.org/wiki/Newar_Buddhism",
@@ -1098,6 +1112,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "delhi-sultanate",
+    realm: "islam",
     label: "Delhi Sultanate practice",
     wiki: "https://en.wikipedia.org/wiki/Delhi_Sultanate",
     scope: { years: [1206, 1526], bounds: [76, 26.5, 79, 29.5] },
@@ -1133,6 +1148,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "mughal-delhi",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Mughal Delhi and Agra",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_the_Mughal_Empire",
@@ -1217,6 +1233,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "indo-islamic-sufi",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Indo-Islamic Sufi practice",
     wiki: "https://en.wikipedia.org/wiki/Sufism_in_India",
@@ -1301,6 +1318,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "modern-india",
+    realm: "hindu",
     label: "Modern Indian practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_India",
     scope: { years: [1947, 2025], bounds: [68, 6, 97, 35.5] },
@@ -1338,6 +1356,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "hindu-reform",
+    realm: "hindu",
     features: ["sacred-texts"],
     label: "Colonial-era Hindu reform",
     wiki: "https://en.wikipedia.org/wiki/Brahmo_Samaj",
@@ -1423,6 +1442,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "maritime-island-practice",
+    realm: "ocean",
     label: "Maritime and island practice",
     wiki: "https://en.wikipedia.org/wiki/Indian_Ocean_trade",
     scope: { years: [-1000, 1900], bounds: [72, 5, 97, 14] },
@@ -1498,6 +1518,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "deccan-regional",
+    realm: "hindu",
     label: "Deccan regional practice",
     wiki: "https://en.wikipedia.org/wiki/Deccan_Plateau",
     scope: { years: [-1000, 1600], bounds: [73, 12, 85, 24] },
@@ -1570,6 +1591,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "northeast-regional",
+    realm: "earth",
     label: "Northeast regional practice",
     wiki: "https://en.wikipedia.org/wiki/Donyi-Polo",
     scope: { years: [-500, 1800], bounds: [88, 20, 97, 28.3] },
@@ -1645,6 +1667,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "bengal-specific",
+    realm: "hindu",
     label: "Bengal regional practice",
     wiki: "https://en.wikipedia.org/wiki/Bengali_Hindus",
     scope: { years: [-500, 2025], bounds: [86, 21, 93, 26.6] },

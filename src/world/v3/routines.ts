@@ -1021,6 +1021,14 @@ export function routineFor(
         : "workshop";
   if (place === "wild" && kit?.activity === "Looking for game" && outdoors.wild.length)
     return huntRoutine(plan, seed, pack, id, home, outdoors.wild, actor);
+  // Whoever keeps the cows or the hens begins the day's work in their house.
+  const keeps = !kit ? undefined : /dairy|milk/.test(kit.id) ? "byre" : kit.activity === "Working the smallholding" ? "henhouse" : undefined;
+  const house = keeps && plan.places.find((p) => p.access === "household" && !p.claim.startsWith("yard-") && Math.hypot(p.entrance.x - home.x, p.entrance.y - home.y) <= 2);
+  const shed = house && plan.places.find((p) => p.claim === `yard-${keeps}` && p.owner === house.owner);
+  if (shed) {
+    const rest = routineFor(plan, seed, pack, id, site);
+    return [inside(plan, shed.entrance, `Working in the ${keeps}`, keeps === "byre" ? 90 : 45, shed.id), ...rest.slice(0, -1), inside(plan, shed.entrance, `Working in the ${keeps}`, 45, shed.id), rest[rest.length - 1]];
+  }
   const errands = workdayFor(
     place,
     plan,

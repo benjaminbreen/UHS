@@ -154,8 +154,8 @@ export type FaunaGroup = {
   /** Burrowers: clock until which they are down the hole, out of sight.
    * Housed poultry use it too, for the night indoors. */
   burrowed?: number;
-  /** Poultry with a henhouse: its place id, and a cell under its roof where
-   * the flock is kept while it is indoors. */
+  /** Poultry with a henhouse, cattle with a byre: its place id, and a cell
+   * under its roof where the animals are kept while they are indoors. */
   house?: string;
   roost?: Position;
   /** The keeper has shut the henhouse: the flock stays in until let out. */
@@ -163,6 +163,9 @@ export type FaunaGroup = {
   /** Eggs waiting in the nest boxes, and the day they were last laid. */
   eggs?: number;
   laid?: number;
+  /** Housed cattle: milk waiting to be drawn, and the day the manger was last filled. */
+  milk?: number;
+  fed?: number;
   /** Young: the group of the adults they keep to. */
   follows?: string;
   /** Kept stock: the way worked out to its target, round the crops. */

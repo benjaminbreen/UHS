@@ -37,6 +37,20 @@ how they behave, and which art sets draw them. Entry files:
   A raider from the raid plot is turned away by a shut henhouse and takes a
   bird from the player's open one. Where the yard has no room the coop is
   still a prop and the hens roost beside it.
+- **Byres.** The same for cattle (`yard-byre-*`, claim `yard-byre`): a cow
+  or two of the local milking species, out by day and in from dusk until
+  eight, giving `milk` morning and evening and more on a manger filled the
+  day before. Inside, the stall is milked at and the manger filled. A byre
+  stands in the yard's back corner, or on the nearest clear ground for a
+  stock-keeping household, which has a lot rather than a garden yard.
+- **Who works there.** The dairy trades (`dairymaid`, `milkmaid`,
+  `dairy-farmer`) have their own recipe whose first and last steps are `at:
+  "byre"`, a place role that resolves inside the household's byre, and their
+  household always gets one. Smallholders (`cottager`, `crofter`) always get
+  a henhouse. NPCs of those trades begin and end the working day inside, and
+  the player of one has an even chance of starting the game there
+  (`startAtWork`). There is no poultry trade: the profiles' work lists are
+  generated, and none offers one.
 
 ## Art sets
 

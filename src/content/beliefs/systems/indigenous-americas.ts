@@ -5,6 +5,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "paleoindian-americas",
+    realm: "path",
     label: "Paleoindian and Archaic forager practice",
     scope: { years: [-13000, -1500], bounds: [-170, -56, -32, 83] },
     powers: [
@@ -76,6 +77,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "early-farming-americas",
+    realm: "path",
     label: "Early agricultural Americas practice",
     scope: { years: [-1500, -500], bounds: [-170, -56, -32, 83] },
     powers: [
@@ -146,6 +148,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "middle-period-americas",
+    realm: "path",
     label: "Middle period Americas practice",
     wiki: "https://en.wikipedia.org/wiki/Viracocha",
     scope: { years: [-500, 1200], bounds: [-170, -56, -32, 83] },
@@ -220,6 +223,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "early-complex-americas",
+    realm: "path",
     label: "Early complex societies practice",
     wiki: "https://en.wikipedia.org/wiki/Chiefdom",
     scope: { years: [1200, 1500], bounds: [-170, -56, -32, 83] },
@@ -292,6 +296,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "historic-contact-americas",
+    realm: "path",
     label: "Historic Americas practice at contact",
     wiki: "https://en.wikipedia.org/wiki/Indigenous_peoples_of_the_Americas",
     scope: { years: [1500, 1901], bounds: [-170, -56, -32, 83] },
@@ -376,6 +381,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "southwest-early-foragers",
+    realm: "pueblo",
     label: "Southwest early forager and farmer practice",
     scope: { years: [-2000, 100], bounds: [-115, 28, -103, 37] },
     powers: [
@@ -440,6 +446,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "ancestral-puebloan",
+    realm: "pueblo",
     label: "Ancestral Puebloan practice",
     wiki: "https://en.wikipedia.org/wiki/Ancestral_Puebloans",
     scope: { years: [100, 1450], bounds: [-115, 27, -101, 37] },
@@ -519,6 +526,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "california-foragers",
+    realm: "california",
     label: "California forager and early farmer practice",
     scope: { years: [-8000, 1500], bounds: [-125, 32, -114, 42] },
     powers: [
@@ -590,6 +598,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "california-coast-maritime",
+    realm: "california",
     label: "California coast maritime practice",
     scope: { years: [-3000, 1500], bounds: [-125, 32, -117, 42] },
     powers: [
@@ -664,6 +673,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "great-basin-foragers",
+    realm: "path",
     label: "Great Basin forager practice",
     scope: { years: [-8000, 1500], bounds: [-120, 34, -112, 43] },
     powers: [
@@ -738,6 +748,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "eastern-woodlands-early",
+    realm: "path",
     label: "Eastern Woodlands early forager and farmer practice",
     scope: { years: [-3000, 800], bounds: [-90, 35, -70, 50] },
     powers: [
@@ -810,6 +821,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "mississippian-southeast",
+    realm: "path",
     label: "Mississippian practice",
     wiki: "https://en.wikipedia.org/wiki/Southeastern_Ceremonial_Complex",
     scope: { years: [800, 1600], bounds: [-100, 25, -75, 48] },
@@ -890,6 +902,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "eastern-woodlands-algonquian",
+    realm: "path",
     label: "Eastern Woodlands Algonquian practice",
     wiki: "https://en.wikipedia.org/wiki/Algonquian_mythology",
     scope: { years: [1200, 1901], bounds: [-90, 38, -65, 52] },
@@ -969,6 +982,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "eastern-woodlands-iroquoian",
+    realm: "path",
     label: "Eastern Woodlands Iroquoian practice",
     wiki: "https://en.wikipedia.org/wiki/Haudenosaunee_creation_myth",
     scope: { years: [1200, 1901], bounds: [-81, 41.5, -73.5, 46.5] },
@@ -1059,6 +1073,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "great-plains-historic",
+    realm: "path",
     label: "Great Plains historic practice",
     wiki: "https://en.wikipedia.org/wiki/Lakota_mythology",
     scope: { years: [1200, 1901], bounds: [-110, 28, -90, 55] },
@@ -1142,6 +1157,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "northwest-coast-historic",
+    realm: "northwest",
     label: "Northwest Coast historic practice",
     wiki: "https://en.wikipedia.org/wiki/Raven_Tales",
     scope: { years: [1200, 1901], bounds: [-135, 42, -115, 62] },
@@ -1216,6 +1232,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "subarctic-boreal",
+    realm: "path",
     label: "Subarctic boreal forager practice",
     wiki: "https://en.wikipedia.org/wiki/Wisakedjak",
     scope: { years: [-3000, 1500], bounds: [-140, 50, -80, 68] },
@@ -1297,6 +1314,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "subarctic-historic",
+    realm: "path",
     label: "Subarctic historic practice",
     wiki: "https://en.wikipedia.org/wiki/Wisakedjak",
     scope: { years: [1500, 1901], bounds: [-140, 50, -80, 68] },
@@ -1379,6 +1397,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "arctic-thule-inuit",
+    realm: "arctic",
     label: "Arctic Thule and Inuit practice",
     wiki: "https://en.wikipedia.org/wiki/Inuit_religion",
     scope: { years: [1000, 1901], bounds: [-180, 55, -60, 83] },
@@ -1459,6 +1478,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "caribbean-early",
+    realm: "forest",
     label: "Caribbean early forager and farmer practice",
     scope: { years: [-2000, 500], bounds: [-85, 10, -55, 30] },
     powers: [
@@ -1520,6 +1540,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "taino-caribbean",
+    realm: "forest",
     label: "Taíno Caribbean practice",
     scope: { years: [500, 1600], bounds: [-85, 10, -55, 30] },
     powers: [
@@ -1591,6 +1612,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "amazonia-early",
+    realm: "forest",
     label: "Amazonian early farmer and forager practice",
     scope: { years: [-2000, 1500], bounds: [-80, -8, -45, 5] },
     powers: [
@@ -1664,6 +1686,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "amazonian-ethnographic",
+    realm: "forest",
     label: "Amazonian ethnographic practice",
     wiki: "https://en.wikipedia.org/wiki/Jurupari",
     scope: { years: [1500, 1901], bounds: [-80, -8, -45, 5] },
@@ -1741,6 +1764,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "brazil-atlantic-coast",
+    realm: "forest",
     label: "Brazilian Atlantic coast and forest practice",
     wiki: "https://en.wikipedia.org/wiki/Tup%C3%A3",
     scope: { years: [-2000, 1901], bounds: [-62, -32, -32, -2] },
@@ -1820,6 +1844,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "patagonian-southern-cone",
+    realm: "path",
     label: "Patagonian and southern cone practice",
     wiki: "https://en.wikipedia.org/wiki/Elal",
     scope: { years: [-2000, 1901], bounds: [-75, -56, -50, -25] },
@@ -1896,6 +1921,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "california-historic",
+    realm: "california",
     label: "California historic practice",
     wiki: "https://en.wikipedia.org/wiki/Chinigchinich",
     scope: { years: [1500, 1901], bounds: [-125, 30, -114, 50] },
@@ -1973,6 +1999,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "great-basin-historic",
+    realm: "path",
     label: "Great Basin historic practice",
     wiki: "https://en.wikipedia.org/wiki/Southern_Paiute_people",
     scope: { years: [1500, 1901], bounds: [-120, 32, -109, 43] },
@@ -2045,6 +2072,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "caribbean-historic",
+    realm: "forest",
     label: "Caribbean indigenous historic practice",
     wiki: "https://en.wikipedia.org/wiki/Ta%C3%ADno_mythology",
     scope: { years: [1600, 1901], bounds: [-85, 10, -55, 30] },

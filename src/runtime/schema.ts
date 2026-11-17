@@ -84,7 +84,7 @@ const itemDef = z
     flammable: z.boolean().optional(),
     floats: z.boolean().optional(),
     hand: z.object({ strike: z.boolean().optional(), edge: z.boolean().optional() }).strict().optional(),
-    made: z.object({ form: z.enum(forms), body: item, trim: item, flop: z.literal(true).optional() }).strict().optional(),
+    made: z.object({ form: z.enum(forms), body: item, trim: item, flop: z.literal(true).optional(), grade: z.enum(["crude", "fine"]).optional() }).strict().optional(),
   })
   .strict();
 const stat = z.number().int().min(0).max(100);
@@ -174,6 +174,8 @@ const intent = z.discriminatedUnion("type", [
       difficulty: z.number().min(1).max(5),
       minutes: z.number().min(1).max(240).optional(),
       flop: z.object({ name: z.string().min(1).max(40), description: z.string().max(160), form: z.enum(forms) }).strict().optional(),
+      crude: z.object({ name: z.string().min(1).max(40), description: z.string().max(160) }).strict().optional(),
+      fine: z.object({ name: z.string().min(1).max(40), description: z.string().max(160) }).strict().optional(),
       said: z.string().max(200).optional(),
     })
     .strict(),
@@ -204,6 +206,7 @@ const intent = z.discriminatedUnion("type", [
       told: z.string().max(160).optional(),
       delta: z.number().min(-3).max(2),
       trespass: z.enum(["warned", "refused", "leaving"]).optional(),
+      side: z.enum(["join", "cheer", "stop", "leave"]).optional(),
       leave: z.enum(["home", "friend", "authority", "away"]).optional(),
       ask: z.enum(["made", "accepted", "declined"]).optional(),
       favour: z.object({ kind: z.enum(["bring", "talk-to", "go-to", "help"]), target: z.string().max(60), what: z.string().max(100) }).strict().optional(),

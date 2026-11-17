@@ -187,6 +187,7 @@ export type Launcher = { ammo: string; range: number; damage: number; perDraw: n
 export const launchers: Record<string, Launcher> = {
   bow: { ammo: "arrow", range: 10, damage: 3, perDraw: 5, stun: 4, reload: 2 },
   crossbow: { ammo: "bolt", range: 12, damage: 9, perDraw: 0, stun: 6, reload: 8 },
+  pistol: { ammo: "shot", range: 6, damage: 14, perDraw: 0, stun: 10, reload: 25 },
   musket: { ammo: "shot", range: 11, damage: 16, perDraw: 0, stun: 10, reload: 20 },
   rifle: { ammo: "cartridge", range: 16, damage: 18, perDraw: 0, stun: 10, reload: 3 },
   blowgun: { ammo: "dart", range: 9, damage: 1, perDraw: 0, stun: 2, reload: 2, poison: true },
@@ -288,8 +289,12 @@ export const cueKinds = [
   "pay",
   /** A guard's flat palm: stop there. */
   "halt",
+  /** A fist drawn back: the blow lands when the wind-up ends. */
+  "windup",
   /** A blow thrown at somebody. */
   "strike",
+  /** A blow caught on the guard. */
+  "block",
   /** A blow taken. */
   "struck",
   /** Marks over two people talking, the scene's own: talk, fondness, a quarrel, a question. */
@@ -336,6 +341,8 @@ export type Signal = { serial: number } & (
     }
   | { kind: "dodged"; group: string; n: number }
   | { kind: "bark"; group: string; n: number }
+  /** A line shouted mid-fight, shown over the head instead of in a conversation. */
+  | { kind: "say"; who: string; text: string }
   /** A pest has taken the crop off a cell. */
   | { kind: "eaten"; at: Point; species: string }
 );

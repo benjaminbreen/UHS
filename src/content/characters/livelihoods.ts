@@ -1,5 +1,6 @@
 import type { Livelihood } from "./context-types";
 import { commonLivelihoods } from "./livelihoods.generated";
+import { outlawLivelihoods } from "./outlaws";
 
 /**
  * Shared playable activity kits. Quantities are gameplay choices, not
@@ -123,7 +124,7 @@ export const notableLivelihoods: readonly Livelihood[] = [
   { id: "magnate", label: "Magnate", activity: "Exchanging goods", rank: "elite", inventory: { water: 2, bread: 2 } },
 ];
 const index = new Map(
-  [...livelihoods, ...commonLivelihoods, ...notableLivelihoods].map((l) => [l.id, l]),
+  [...livelihoods, ...commonLivelihoods, ...outlawLivelihoods, ...notableLivelihoods].map((l) => [l.id, l]),
 );
 /** Every work id a start brief may name. */
 export const livelihoodIds = [...index.keys()];

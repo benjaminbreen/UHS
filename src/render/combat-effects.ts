@@ -113,6 +113,26 @@ export class CombatEffects {
       this.hitStop(effect.creature!.killed);
     });
   }
+  /** A person struck, or a blow caught on the player's guard. */
+  personHit(id: string, blocked: boolean) {
+    const image = this.view.entityAt(id);
+    if (!image) return;
+    if (blocked) {
+      this.burst(image.x, image.y - 14, STARS, 6);
+      this.scene.cameras.main.shake(70, 0.002);
+      void gameAudio()?.sound(strike("haft", "trunk", "thud"), "block");
+    } else {
+      image.setTintFill(0xffffff);
+      this.scene.time.delayedCall(HIT_STOP_MS + 40, () => {
+        if (image.active) image.clearTint().setTint(this.view.tint());
+      });
+      this.hitStop(false);
+    }
+    this.scene.tweens.timeScale = 0;
+    this.scene.time.delayedCall(HIT_STOP_MS, () => {
+      this.scene.tweens.timeScale = 1;
+    });
+  }
   private hitStop(hard: boolean) {
     this.scene.cameras.main.shake(hard ? 140 : 90, hard ? 0.004 : 0.002);
     void gameAudio()?.sound(
@@ -340,7 +360,7 @@ export class CombatEffects {
       if (e.serial <= this.seen) continue;
       this.seen = e.serial;
       // How people took things is `CueEffects`' business.
-      if (e.kind === "cue" || e.kind === "bump") continue;
+      if (e.kind === "cue" || e.kind === "bump" || e.kind === "say") continue;
       if (e.kind === "eaten") {
         // Torn leaf and husk where the crop went.
         const at = this.cell(e.at);

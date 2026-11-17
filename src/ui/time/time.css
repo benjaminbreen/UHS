@@ -797,3 +797,100 @@
   line-height: 1.45;
   color: var(--muted);
 }
+
+/* The death scene: dark, the figure rising, the realm behind, then the card. */
+.collapse-notice.death-card { background: none; overflow: hidden; }
+.death-card > .passing-dark,
+.death-card > .passing-realm,
+.death-card > .passing-vignette {
+  position: absolute;
+  inset: 0;
+  max-width: none;
+  padding: 0;
+  pointer-events: none;
+}
+.passing-dark {
+  background: radial-gradient(circle at 50% 48%, transparent 0 34px, #05070fd0 120px, #05070f 70%);
+  animation: passing-fade 1.6s ease-out both;
+}
+.passing-dark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #05070f;
+  opacity: 0;
+  transition: opacity 1.4s ease-in;
+}
+.death-card:not(.stage-fall) .passing-dark::after { opacity: 1; }
+.passing-realm {
+  background: center / cover no-repeat;
+  image-rendering: pixelated;
+  animation: passing-drift 40s ease-out both;
+}
+.passing-vignette {
+  background:
+    radial-gradient(ellipse 38% 48% at 50% 56%, #05070ff0 0, #05070fd0 40%, #05070f70 70%, transparent 100%),
+    radial-gradient(ellipse at 50% 50%, transparent 55%, #05070fc0 100%);
+}
+.passing-realm, .passing-vignette { opacity: 0; transition: opacity 2.6s ease-in-out; }
+.death-card:is(.stage-realm, .stage-words, .stage-card) :is(.passing-realm, .passing-vignette) { opacity: 1; }
+.death-card.stage-card .passing-realm { opacity: 0.38; }
+.passing-ellipsis {
+  position: absolute;
+  left: 50%;
+  top: calc(48% - 58px);
+  transform: translateX(-50%);
+  font: 22px var(--pixel);
+  color: var(--cream);
+  animation: passing-fade 0.6s 0.8s steps(3) both;
+}
+.passing-figure {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 240px;
+  height: 240px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 10px #fff3c880);
+  opacity: 0;
+  transform: translate(-50%, -62%);
+  transition: opacity 1.6s ease-out, transform 6s ease-out;
+}
+.death-card:not(.stage-fall) .passing-figure { opacity: 1; transform: translate(-50%, -70%); }
+.passing-words {
+  position: absolute;
+  left: 50%;
+  top: calc(50% + 70px);
+  width: min(34em, calc(100% - 32px));
+  transform: translateX(-50%);
+  text-shadow: 0 1px 3px #000;
+}
+.passing-words h2 { animation: passing-fade 1.4s both; }
+.passing-words p {
+  margin: 0 0 8px;
+  font: 15px/1.5 var(--prose);
+  color: var(--cream);
+  animation: passing-fade 1.4s both;
+}
+.passing-words p:nth-of-type(1) { animation-delay: 1.2s; }
+.passing-words p:nth-of-type(2) { animation-delay: 3s; }
+.death-body {
+  position: relative;
+  max-width: 460px;
+  padding: 18px 24px;
+  background: #05070fc8;
+  border-radius: 6px;
+  animation: passing-fade 1s ease-out both;
+}
+.death-realm {
+  font-family: var(--prose);
+  font-size: 14px;
+  font-style: italic;
+  color: var(--muted);
+}
+@keyframes passing-fade { from { opacity: 0; } }
+@keyframes passing-drift { from { transform: scale(1.06); } }
+@media (max-width: 560px) {
+  .passing-figure { width: 160px; height: 160px; }
+  .passing-words { top: calc(50% + 40px); }
+}

@@ -25,6 +25,8 @@ type Ask = {
   markets: boolean;
   /** Where work is done inside the house: its bench, else its fire. */
   inside: () => Position | undefined;
+  /** Inside the household's byre or henhouse, where it has one. */
+  outbuilding?: (kind: "byre" | "henhouse") => Position | undefined;
   /** Down the nearest mine: the pit bottom, or the day's stall at the face. */
   below: (role: "pit" | "face") => StepPlace | null;
 };
@@ -76,6 +78,10 @@ export function findPlace(role: PlaceRole, ask: Ask): StepPlace | null {
     const pos = s.player.work;
     const place = pos.space !== "outside" ? world.place(pos.space) : world.places.find((p) => p.access === "public" && Math.hypot(p.entrance.x - pos.x, p.entrance.y - pos.y) < 2);
     return { pos: { ...pos }, label: place?.name ?? "your workplace" };
+  }
+  if (role === "byre" || role === "henhouse") {
+    const at = ask.outbuilding?.(role);
+    return at ? { pos: at, label: `your ${role}` } : findPlace("yard", ask);
   }
   if (role === "door") return { pos: doorOf(household), label: "your door" };
   if (role === "home") {
@@ -241,14 +247,26 @@ function bankNear(ask: Ask, from: Point, reach: number): Position | undefined {
   // Relief maps keep their rivers as depth, not as a terrain kind.
   const wet = (x: number, y: number) =>
     topo ? waterDepthAt(topo, x + 0.5, y + 0.5) > 0.2 : world.terrain(x, y, "outside") === "water";
-  for (let r = 1; r <= reach; r++)
+  // Walked outward from the house, so the bank is the nearest one on foot,
+  // not one under a cliff or across water.
+  const fx = Math.round(from.x), fy = Math.round(from.y), w = 2 * reach + 1;
+  const free = (x: number, y: number) => Math.abs(x - fx) <= reach && Math.abs(y - fy) <= reach && !world.blocked(x, y, "outside");
+  const steps = [[0, 1], [1, 0], [0, -1], [-1, 0]];
+  const seen = new Set<number>(), queue: Point[] = [];
+  const visit = (x: number, y: number) => {
+    const k = (y - fy + reach) * w + (x - fx + reach);
+    if (!seen.has(k)) { seen.add(k); queue.push({ x, y }); }
+  };
+  // The house itself stands on blocked cells; set off from the ground around it.
+  for (let r = 0; r <= 3 && !queue.length; r++)
     for (let dy = -r; dy <= r; dy++)
-      for (let dx = -r; dx <= r; dx++) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-        const x = Math.round(from.x) + dx, y = Math.round(from.y) + dy;
-        if (!wet(x, y)) continue;
-        const bank = [[0, 1], [1, 0], [0, -1], [-1, 0]].map(([ax, ay]) => ({ x: x + ax, y: y + ay }))
-          .find((c) => !wet(c.x, c.y) && !world.blocked(c.x, c.y, "outside"));
-        if (bank) return outside(bank);
-      }
+      for (let dx = -r; dx <= r; dx++) if (free(fx + dx, fy + dy)) visit(fx + dx, fy + dy);
+  for (let i = 0; i < queue.length; i++) {
+    const c = queue[i];
+    if (!wet(c.x, c.y) && steps.some(([dx, dy]) => wet(c.x + dx, c.y + dy))) return outside(c);
+    for (const [dx, dy] of steps) {
+      const n = { x: c.x + dx, y: c.y + dy };
+      if (free(n.x, n.y) && (world.canCross?.(c, n) ?? true)) visit(n.x, n.y);
+    }
+  }
 }

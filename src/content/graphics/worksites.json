@@ -1518,5 +1518,45 @@
     "roof": "flat",
     "roofMaterial": "earth",
     "height": 70
+  },
+  "yard-byre-timber": {
+    "style": "byre-timber",
+    "label": "Boarded byre",
+    "footprint": [4, 2],
+    "description": "Boarded byre: a half-door on the stalls and a hay door over the manger. Which households build one is decided by the yard kit.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "thatch",
+    "height": 80
+  },
+  "yard-byre-wattle": {
+    "style": "byre-wattle",
+    "label": "Wattle byre",
+    "footprint": [4, 2],
+    "description": "Wattle byre: a half-door on the stalls and a hay door over the manger. Which households build one is decided by the yard kit.",
+    "wall": "lime-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch",
+    "height": 80
+  },
+  "yard-byre-stone": {
+    "style": "byre-stone",
+    "label": "Stone byre",
+    "footprint": [4, 2],
+    "description": "Stone byre: a half-door on the stalls and a hay door over the manger. Which households build one is decided by the yard kit.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "thatch",
+    "height": 80
+  },
+  "yard-byre-adobe": {
+    "style": "byre-adobe",
+    "label": "Adobe byre",
+    "footprint": [4, 2],
+    "description": "Adobe byre: a half-door on the stalls and a hay door over the manger. Which households build one is decided by the yard kit.",
+    "wall": "mud-plaster",
+    "roof": "flat",
+    "roofMaterial": "earth",
+    "height": 80
   }
 }

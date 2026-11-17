@@ -8,6 +8,7 @@ import {
 export const innerEurasia: readonly BeliefSystem[] = [
   {
     id: "inner-eurasia-foragers",
+    realm: "steppe",
     label: "Inner Eurasian forager and early pastoral practice",
     wiki: "https://en.wikipedia.org/wiki/Prehistoric_religion",
     scope: { years: [-8000, -1200], bounds: [25, 25, 180, 82] },
@@ -84,6 +85,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "steppe-bronze-age",
+    realm: "steppe",
     label: "Bronze Age steppe pastoralist practice",
     wiki: "https://en.wikipedia.org/wiki/Proto-Indo-European_religion",
     scope: { years: [-2000, -800], bounds: [25, 38, 150, 65] },
@@ -176,6 +178,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "caucasus-early-peoples",
+    realm: "earth",
     label: "Caucasian mountain and foothill practice",
     wiki: "https://en.wikipedia.org/wiki/Circassian_mythology",
     scope: { years: [-2000, 1400], bounds: [35, 40, 60, 50] },
@@ -248,6 +251,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "volga-uralic-peoples",
+    realm: "uralic",
     label: "Volga and Uralic peoples' early practice",
     wiki: "https://en.wikipedia.org/wiki/Proto-Uralic_religion",
     scope: { years: [-1500, 900], bounds: [42, 48, 70, 62] },
@@ -324,6 +328,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "scythian-practice",
+    realm: "steppe",
     label: "Scythian religious practice",
     wiki: "https://en.wikipedia.org/wiki/Scythian_religion",
     scope: { years: [-900, 100], bounds: [25, 38, 130, 60] },
@@ -391,6 +396,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "post-scythian-steppe",
+    realm: "steppe",
     label: "Post-Scythian steppe and Central Asian pastoral practice",
     wiki: "https://en.wikipedia.org/wiki/Tengrism",
     scope: { years: [-250, 550], bounds: [40, 38, 110, 56] },
@@ -469,6 +475,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "xiongnu-steppe",
+    realm: "steppe",
     label: "Xiongnu steppe confederation practice",
     wiki: "https://en.wikipedia.org/wiki/Tengrism",
     scope: { years: [-300, 200], bounds: [60, 38, 140, 62] },
@@ -538,6 +545,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "turkic-tengrism",
+    realm: "steppe",
     label: "Early Turkic Tengrism",
     wiki: "https://en.wikipedia.org/wiki/Tengrism",
     scope: { years: [550, 1150], bounds: [50, 38, 130, 58] },
@@ -606,6 +614,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "sogdian-zoroastrianism",
+    realm: "zoroastrian",
     label: "Sogdian Zoroastrian and Manichaean practice",
     wiki: "https://en.wikipedia.org/wiki/Zoroastrianism",
     scope: { years: [-300, 1000], bounds: [60, 35, 80, 50] },
@@ -670,6 +679,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "tibetan-bon",
+    realm: "bon",
     label: "Tibetan Bon tradition",
     wiki: "https://en.wikipedia.org/wiki/Bon",
     // Lhasa and the plateau are tagged South Asian.
@@ -746,6 +756,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "siberian-shamanism",
+    realm: "uralic",
     label: "Siberian shamanic practice",
     wiki: "https://en.wikipedia.org/wiki/Siberian_shamanism",
     scope: { years: [-1000, 1950], bounds: [60, 50, 180, 78] },
@@ -824,6 +835,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "central-asian-islam",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Central Asian Islamic practice with Sufi and shrine elements",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Central_Asia",
@@ -897,6 +909,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "mongol-chinggis",
+    realm: "steppe",
     label: "Mongol practice under Chinggis Khan",
     wiki: "https://en.wikipedia.org/wiki/Mongolian_shamanism",
     scope: { years: [1150, 1280], bounds: [55, 38, 135, 58] },
@@ -980,6 +993,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "siberian-russian-hybrid",
+    realm: "orthodox",
     label: "Russian Orthodox Christianity in Siberia",
     wiki: "https://en.wikipedia.org/wiki/Russian_Orthodox_Church",
     scope: {
@@ -1013,6 +1027,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "tarim-basin-peoples",
+    realm: "buddhist",
     label: "Tarim Basin oasis and desert practice",
     wiki: "https://en.wikipedia.org/wiki/Silk_Road_transmission_of_Buddhism",
     scope: { years: [-1000, 1900], bounds: [75, 35, 95, 44] },
@@ -1086,6 +1101,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "post-mongol-steppe",
+    realm: "steppe",
     label: "Post-Mongol Turkic and Tatar steppe practice",
     wiki: "https://en.wikipedia.org/wiki/Tengrism",
     scope: { years: [1300, 1700], bounds: [40, 40, 120, 60] },
@@ -1154,6 +1170,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "mongolian-buddhism",
+    realm: "buddhist",
     label: "Mongolian Buddhist practice",
     wiki: "https://en.wikipedia.org/wiki/Buddhism_in_Mongolia",
     scope: { years: [1578, 2025], bounds: [87, 41.5, 120, 52.5], cultures: ["inner-eurasian", "east-asian"] },
@@ -1191,6 +1208,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "far-northeast-siberia",
+    realm: "uralic",
     label: "Far northeast Siberia and Arctic peoples",
     wiki: "https://en.wikipedia.org/wiki/Shamanism_in_Siberia",
     scope: { years: [-2000, 1950], bounds: [130, 55, 180, 75] },
@@ -1264,6 +1282,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "volga-river-peoples-medieval",
+    realm: "uralic",
     label: "Medieval and early modern Volga river peoples",
     wiki: "https://en.wikipedia.org/wiki/Mari_native_religion",
     scope: { years: [600, 1800], bounds: [40, 48, 70, 65] },

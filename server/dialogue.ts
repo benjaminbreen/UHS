@@ -46,6 +46,8 @@ const replySchema = z.object({
     .describe("1 if the player's words warmed this person toward them, 0 otherwise. -1 for rudeness, mockery or sarcasm; -2 for a real insult or being called a liar or cheat; -3 for cursing them to their face, a threat, a slur, or insulting their family. A friend takes a grave insult as hard as a stranger, or harder."),
   trespass: z.enum(["warned", "refused", "leaving"]).optional()
     .describe("Only when the context says the player is trespassing in your private home, never a shop visit or an invitation. warned: this line tells them to leave. refused: their latest words refuse or evade an earlier demand to leave, however politely; an apology or genuine explanation is not a refusal. leaving: they agree to go."),
+  side: z.enum(["join", "cheer", "stop", "leave"]).optional()
+    .describe("Only when the context says the player is in a fight in front of you. join: you pile in against the person they are fighting. cheer: you urge them on. stop: you pull them apart or make them stop. leave: you want no part of it and walk off."),
   action: z.string().min(1).max(80).optional()
     .describe("A few words, lower case, for something done rather than said (burps, wipes her hands, shoos the goat), using only what is really there. Omit unless something new happens."),
   dialogue: z.string().min(1).max(500)
@@ -228,6 +230,7 @@ export async function dialogue(
       receive: parsed.data.receive,
       regard: parsed.data.regard,
       trespass: parsed.data.trespass,
+      side: parsed.data.side,
       mood: parsed.data.mood,
       action: parsed.data.action,
       leave: parsed.data.leave,

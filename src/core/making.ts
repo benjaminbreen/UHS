@@ -31,8 +31,12 @@ export type Making = {
   minutes: number;
   /** What the player is left holding if their hands fail. */
   flop: Flop;
+  /** The thing as a beginner's hands make it, and as a master's. */
+  crude?: Take;
+  fine?: Take;
 };
-export type Flop = { name: string; description: string; form: Form };
+export type Take = { name: string; description: string };
+export type Flop = Take & { form: Form };
 
 const flops: Record<Form, string> = {
   figure: "Thing with one arm",
@@ -75,6 +79,7 @@ export function guessMaking(a: ItemDef, b: ItemDef, text: string): Making {
     difficulty: 2,
     minutes: 20,
     flop: { name: flops[form], description: `It was meant to be a ${noun}. It is not one.`, form },
+    crude: { name: `Lopsided ${noun}`, description: `A ${noun}, if you are kind about it.` },
   };
 }
 
@@ -85,8 +90,8 @@ export function giftOf(def: ItemDef, name: string, age = 30) {
   if (made.flop) return { regard: -1, line: `${name} looks at it, then at you, and takes it to be polite.` };
   if (age < 13 && (made.form === "figure" || made.form === "mask"))
     return { regard: 2, line: `${name} holds it up, gives it a name, and will not put it down.` };
-  if (def.name.startsWith("Fine ")) return { regard: 2, line: `${name} turns it over twice. "You made this?"` };
-  if (def.name.startsWith("Crude ")) return { regard: 0, line: `${name} takes it and thanks you, a little carefully.` };
+  if (made.grade === "fine") return { regard: 2, line: `${name} turns it over twice. "You made this?"` };
+  if (made.grade === "crude") return { regard: 0, line: `${name} takes it and thanks you, a little carefully.` };
   return { regard: 1, line: `${name} looks it over and nods. It is well made.` };
 }
 
@@ -103,4 +108,4 @@ export function madeTraits(form: Form, a: ItemDef, b: ItemDef): Partial<ItemDef>
 }
 
 /** `flop` marks a failed attempt: it has the shape but does none of the work. */
-export type Made = { form: Form; body: ItemId; trim: ItemId; flop?: true };
+export type Made = { form: Form; body: ItemId; trim: ItemId; flop?: true; grade?: "crude" | "fine" };

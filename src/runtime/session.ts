@@ -96,7 +96,9 @@ export type Verb = {
     /** A stage of the day's work at your station; held, it goes on. */
     | "work"
     /** Work a prop that is too heavy to lift: a quern, a well, a bench. */
-    | "use";
+    | "use"
+    /** Mid-fight: catch the next blow from in front. */
+    | "guard";
   /** What the HUD prints beside the key. */
   label: string;
   /** Talk: whom to open the dialogue panel on. Inspect: what to select. */
@@ -276,6 +278,7 @@ export function createSession(
   ensureLifeAim(engine.state, pack.setting);
   if (!snapshot && pack.setting?.below) engine.startBelow(pack.setting.below);
   if (!snapshot && moment) engine.startMoment(moment);
+  else if (!snapshot && !pack.setting?.below) engine.startAtWork();
   return engine;
 }
 /** Origin records "unspecified" where the name kit decided sex; the drawn
@@ -660,7 +663,8 @@ export class Runtime {
       if (jostle)
         this.jostleEffect = { serial: ++this.characterSerial, ...jostle };
       const leap = this.engine.lastLeap;
-      if (leap)
+      if (leap && this.engine.state.player.perch?.roof) this.characterAction = this.roofLeapAction(leap);
+      else if (leap)
         this.characterAction = {
           serial: ++this.characterSerial,
           // A ledge scramble already reports itself as a climb; it was
@@ -772,6 +776,10 @@ export class Runtime {
       // A directional dismount is a jump off the edge; a plain one is a
       // climb back down the way you came.
       const leap = this.engine.lastLeap;
+      if (leap && this.engine.state.player.perch?.roof) {
+        this.characterAction = this.roofLeapAction(leap);
+        return;
+      }
       this.characterAction = {
         serial: ++this.characterSerial,
         pose: leap ? "jump" : "climb",
@@ -1291,6 +1299,8 @@ export class Runtime {
       difficulty: making.difficulty,
       minutes: making.minutes,
       flop: making.flop,
+      crude: making.crude,
+      fine: making.fine,
       said: intent,
     }]);
     if (result?.status !== "completed") return { text: (result?.status === "rejected" && result.reason) || "You cannot do that just now." };
@@ -1795,6 +1805,8 @@ export class Runtime {
           }
         : undefined;
     const speaker = this.facingSpeaker();
+    // In a fight F is the blow and E the guard.
+    const fighting = this.engine.fighting();
     const other = speaker ? undefined : this.nearestSpeaker();
     const place = this.facingPlace();
     const door = this.doorVerb();
@@ -1846,7 +1858,7 @@ export class Runtime {
     else if (item?.id === "bow")
       primary = { kind: "shoot", label: (p.inventory.arrow ?? 0) > 0 ? "Draw bow" : "No arrows" };
     else if (item && launchers[item.id])
-      primary = { kind: "shoot", label: this.engine.ammo() ? { crossbow: "Aim crossbow", musket: "Aim gun", rifle: "Aim rifle", blowgun: "Raise blowgun" }[item.id]! : `No ${this.engine.items[launchers[item.id].ammo].name.toLowerCase()}` };
+      primary = { kind: "shoot", label: this.engine.ammo() ? { crossbow: "Aim crossbow", musket: "Aim gun", pistol: "Aim pistol", rifle: "Aim rifle", blowgun: "Raise blowgun" }[item.id]! : `No ${this.engine.items[launchers[item.id].ammo].name.toLowerCase()}` };
     else if (item?.id === "hawk")
       primary = { kind: "shoot", label: "Cast off the hawk" };
     else if (item?.id === "snare")
@@ -1857,7 +1869,7 @@ export class Runtime {
     // At the day's place F does the day's work; whoever is there is still on Enter.
     else if (here) primary = { kind: "work", label: here.label, command: here.command };
     else if (launch?.command.type === "interact") primary = { kind: "use", label: launch.label, command: launch.command };
-    else if (speaker)
+    else if (speaker && !fighting)
       primary = {
         kind: "talk",
         label: `Talk to ${speaker.name}`,
@@ -1891,6 +1903,7 @@ export class Runtime {
                     ? `Brand with ${hands.name.toLowerCase()}`
                     : `Swing ${hands.name.toLowerCase()}`,
       };
+    else if (speaker && !held && !item) primary = { kind: "strike", label: `Hit ${speaker.name}` };
     else if (held)
       primary = { kind: "throw", label: `Throw ${held.name.toLowerCase()}` };
     else if (item)
@@ -1927,7 +1940,8 @@ export class Runtime {
     // A fire and raw meat: cooking comes before putting the stick down.
     const below = this.engine.complexVerb();
     const ship = below ? undefined : this.engine.shipVerb();
-    if (below)
+    if (fighting) alternate = { kind: "guard", label: "Guard" };
+    else if (below)
       alternate = { kind: "climb", label: below.label, command: { type: "interact", target: below.target, action: "complex" } };
     else if (ship)
       alternate = { kind: "climb", label: ship.label, command: { type: "interact", target: ship.target, action: "ship" } };
@@ -1991,6 +2005,11 @@ export class Runtime {
     }
     this.stop(false);
     if (verb.kind === "talk") return verb;
+    if (verb.kind === "guard") {
+      this.engine.guard();
+      this.emit();
+      return verb;
+    }
     if (verb.kind === "board") {
       const train = this.boardable();
       this.rail = train;
@@ -2231,6 +2250,16 @@ export class Runtime {
     );
     if (small && this.notice) this.notice += " Step again to go over it.";
     return result;
+  }
+  /** Roof to roof: the further the leap, the higher and longer the flight. */
+  private roofLeapAction(leap: NonNullable<Engine["lastLeap"]>) {
+    return {
+      serial: ++this.characterSerial,
+      pose: "jump" as const,
+      at: performance.now(),
+      arc: { height: 6 + leap.distance * 9, duration: 180 + leap.distance * 120 },
+      after: (leap.distance >= 4 ? "roll" : "land") as "roll" | "land",
+    };
   }
   /** The last step refused by something small enough to step over. */
   private bump?: { dx: number; dy: number };

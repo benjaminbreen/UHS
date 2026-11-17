@@ -112,6 +112,72 @@ const recipes: Recipe[] = [
     ]},
   },
   {
+    ids: ["bandit", "highwayman"],
+    skill: "arms",
+    wiki: ["Banditry", "Highwayman"],
+    paid: "takings",
+    day: {
+      title: "A day on the road",
+      steps: [
+        { name: "watch", task: "Watch the road from cover", at: "wild", scene: "rest", card: "road-watch", hours: 5 },
+        { name: "split", task: "Divide the take with the band", at: "home", scene: "talk", card: "road-split", hours: 1 },
+      ],
+    },
+  },
+  {
+    ids: ["marauder"],
+    skill: "arms",
+    wiki: ["Marauder", "Desertion"],
+    paid: "takings",
+    day: {
+      title: "Living off the country",
+      steps: [
+        { name: "forage", task: "Find food in the farms", at: "wild", scene: "walk", card: "forage", hours: 4 },
+        { name: "watch", task: "Watch the road", at: "wild", scene: "rest", card: "road-watch", hours: 3 },
+      ],
+    },
+  },
+  {
+    ids: ["footpad"],
+    skill: "arms",
+    wiki: ["Footpad", "Mugging"],
+    paid: "takings",
+    rises: 14,
+    day: {
+      title: "A night in the streets",
+      steps: [
+        { name: "drink", task: "Wait in the tavern and watch who has money", at: "market", scene: "talk", hours: 3 },
+        { name: "rob", task: "Follow a mark into the dark", at: "market", scene: "walk", card: "street-rob", hours: 3 },
+      ],
+    },
+  },
+  {
+    ids: ["cutpurse"],
+    skill: "trade",
+    wiki: ["Pickpocketing"],
+    paid: "takings",
+    day: {
+      title: "A day in the crowd",
+      steps: [
+        { name: "crowd", task: "Work the market crowd", at: "market", scene: "market", card: "crowd-lift", hours: 4 },
+        { name: "fence", task: "Sell what you lifted", at: "market", scene: "talk", hours: 2 },
+      ],
+    },
+  },
+  {
+    ids: ["press-gang"],
+    skill: "arms",
+    wiki: ["Impressment"],
+    paid: "wage",
+    day: {
+      title: "A day with the press gang",
+      steps: [
+        { name: "muster", task: "Report to {boss} at the rendezvous", at: "market", scene: "talk", hours: 1 },
+        { name: "sweep", task: "Sweep the waterfront for seamen", at: "market", scene: "walk", card: "press-take", hours: 5 },
+      ],
+    },
+  },
+  {
     ids: ["tax-collector"],
     skill: "speech",
     wiki: ["Tax collector"],
@@ -250,6 +316,20 @@ const recipes: Recipe[] = [
           { name: "muck", task: "Spread muck on the field", at: "field", scene: "haul", card: "farm-muck", hours: 3 },
         ],
       },
+    },
+  },
+  {
+    ids: ["dairymaid", "milkmaid", "dairy-farmer"],
+    rises: 5,
+    skill: "animals",
+    wiki: ["Dairy farming", "Milkmaid"],
+    day: {
+      title: "Milking",
+      steps: [
+        { name: "milk", task: "Milk the cows in the byre", at: "byre", scene: "herd", hours: 2 },
+        { name: "out", task: "Turn the cows out to grass", at: "pasture", scene: "herd", hours: 4 },
+        { name: "evening", task: "Bring the cows in and milk them again", at: "byre", scene: "herd", hours: 2 },
+      ],
     },
   },
   {

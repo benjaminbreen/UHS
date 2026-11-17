@@ -24,7 +24,11 @@ export type CardEffect =
   /** The chance, 0 to 1, of catching an illness from it. */
   | { type: "risk"; ailment: string; odds: number }
   /** Down a mine, something goes wrong there and then, to be run from. */
-  | { type: "peril"; kind: import("../../core/mine-peril").PerilKind };
+  | { type: "peril"; kind: import("../../core/mine-peril").PerilKind }
+  /** The card's accosters set on the player: a real fight. */
+  | { type: "fight" }
+  /** Taken by a press gang and held for days. */
+  | { type: "pressed" };
 
 export type CardChoice = {
   label: string;

@@ -290,3 +290,108 @@ it("retries a failed watch route when the gates open", () => {
   expect(route).toHaveBeenCalledTimes(2);
   expect(route).toHaveBeenLastCalledWith(guard.pos, { ...guard.post.at, space: "outside" }, guard.id, 5000);
 });
+
+it("walks a flat roof and its neighbour's, and sits on a pitched one", () => {
+  const engine = createSession("roman", "roofs");
+  engine.state.actors = [];
+  engine.state.objects = [];
+  const house = (id: string, x: number, sprite: string) =>
+    ({ id, name: id, description: "", x, y: -3, w: 3, h: 3, sprite, entrance: { x: x + 1, y: 0 },
+      access: "household", owner: "", claim: "", entranceLabel: "" }) as never;
+  engine.world.places = [house("a", 0, "house-mud-0"), house("b", 3, "house-mud-0"), house("c", 6, "house-cottage-timber-0")];
+  engine.world.blocked = (x, y) => x >= 0 && x < 9 && y >= -3 && y < 0;
+  engine.world.decoration = () => undefined;
+  engine.world.enclosures = [];
+  engine.state.player.pos = { x: 1, y: 0, space: "outside" };
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+
+  runtime.climb();
+  expect(engine.state.player.perch).toMatchObject({ on: "a", roof: true, at: { x: 1, y: -1 } });
+  expect(runtime.move(0, -1)?.status).toBe("completed");
+  for (let i = 0; i < 3; i++) runtime.move(1, 0);
+  expect(engine.state.player.perch).toMatchObject({ on: "b", at: { x: 4, y: -2 } });
+  // The pitched roof next door is not walked onto.
+  runtime.move(1, 0);
+  runtime.move(1, 0);
+  expect(runtime.move(1, 0)?.status).toBe("rejected");
+  // Climbing down comes down beside where you stand, not where you went up.
+  runtime.move(0, 1);
+  runtime.climb();
+  expect(engine.state.player.perch).toBeUndefined();
+  expect(engine.state.player.pos).toMatchObject({ x: 5, y: 0 });
+
+  engine.state.player.pos = { x: 7, y: 0, space: "outside" };
+  runtime.climb();
+  expect(engine.state.player.perch).toMatchObject({ on: "c" });
+  expect(engine.state.player.perch?.roof).toBeFalsy();
+  expect(runtime.move(0, -1)?.status).toBe("rejected");
+  runtime.dispose();
+});
+
+it("jumps a one-cell alley between flat roofs, and goes up a house's own ladder", () => {
+  const engine = createSession("roman", "roof-leap");
+  engine.state.actors = [];
+  engine.state.objects = [];
+  const house = (id: string, x: number, w: number, sprite: string) =>
+    ({ id, name: id, description: "", x, y: -3, w, h: 3, sprite, entrance: { x: x + 1, y: 0 },
+      access: "household", owner: "", claim: "", entranceLabel: "" }) as never;
+  engine.world.places = [house("a", 0, 3, "house-mud-0"), house("b", 4, 3, "house-mud-0"), house("c", 10, 9, "westasian-courtyard-iranian-small-0")];
+  engine.world.blocked = (x, y) => y >= -3 && y < 0 && ((x >= 0 && x < 3) || (x >= 4 && x < 7) || (x >= 10 && x < 19));
+  engine.world.decoration = () => undefined;
+  engine.world.enclosures = [];
+  engine.state.player.pos = { x: 1, y: 0, space: "outside" };
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+
+  runtime.climb();
+  runtime.move(1, 0);
+  expect(engine.state.player.perch?.at).toEqual({ x: 2, y: -1 });
+  runtime.climb(1, 0);
+  expect(engine.state.player.perch).toMatchObject({ on: "b", at: { x: 4, y: -1 } });
+  // Two cells of air is too far: off that side is a drop to the ground.
+  runtime.move(1, 0);
+  runtime.move(1, 0);
+  runtime.climb(1, 0);
+  expect(engine.state.player.perch).toBeUndefined();
+  expect(engine.state.player.pos).toMatchObject({ x: 7, y: -1 });
+
+  engine.state.player.pos = { x: 12, y: 0, space: "outside" };
+  const before = engine.state.clock;
+  runtime.climb();
+  expect(engine.state.player.perch).toMatchObject({ on: "c", roof: true, by: "ladder" });
+  expect(engine.state.clock - before).toBeLessThan(40);
+  runtime.dispose();
+});
+
+it("sprints off a roof edge across a street, and only as far as the run-up carries", () => {
+  const engine = createSession("roman", "roof-sprint");
+  engine.state.actors = [];
+  engine.state.objects = [];
+  const house = (id: string, x: number, w: number) =>
+    ({ id, name: id, description: "", x, y: -3, w, h: 3, sprite: "house-mud-0", entrance: { x: x + 1, y: 0 },
+      access: "household", owner: "", claim: "", entranceLabel: "" }) as never;
+  // A five-cell street, then a three-cell lane.
+  engine.world.places = [house("a", 0, 6), house("b", 11, 3), house("c", 17, 3)];
+  engine.world.blocked = (x, y) => y >= -3 && y < 0 && !!(engine.world.places as { x: number; w: number }[]).some((p) => x >= p.x && x < p.x + p.w);
+  engine.world.decoration = () => undefined;
+  engine.world.enclosures = [];
+  engine.state.player.pos = { x: 0, y: 0, space: "outside" };
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  const sprint = (dx: number) => runtime.command({ type: "move", dx, dy: 0, run: true });
+
+  runtime.climb();
+  expect(engine.state.player.perch?.at).toEqual({ x: 0, y: -1 });
+  // No run-up: the street is too wide, and walking off the edge is refused.
+  for (let i = 0; i < 5; i++) runtime.move(1, 0);
+  expect(sprint(1)?.status).toBe("rejected");
+  for (let i = 0; i < 5; i++) runtime.move(-1, 0);
+  for (let i = 0; i < 5; i++) sprint(1);
+  expect(sprint(1)?.status).toBe("completed");
+  expect(engine.state.player.perch).toMatchObject({ on: "b", at: { x: 11, y: -1 } });
+  expect(engine.lastLeap?.distance).toBe(4);
+  // Momentum carries on: two more strides and over the lane.
+  sprint(1);
+  sprint(1);
+  sprint(1);
+  expect(engine.state.player.perch).toMatchObject({ on: "c", at: { x: 17, y: -1 } });
+  runtime.dispose();
+});

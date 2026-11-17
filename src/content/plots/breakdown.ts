@@ -1,7 +1,8 @@
-import { dueOf, neighbours, partnerWords, pickOf, pronounWords, temper } from "./common";
+import { dueOf, neighbours, partnerWords, pickOf, pronounWords, seasonOf, temper } from "./common";
+import type { PlaceRole } from "../economy/processes";
 import type { Condition, PlotContext, PlotTemplate } from "./types";
 
-type Break = { trade: RegExp; years?: [number, number]; broke: string; mend: string; buy?: string };
+type Break = { trade: RegExp; years?: [number, number]; season?: string; at?: PlaceRole; broke: string; mend: string; buy?: string };
 
 const BREAKS: Break[] = [
   { trade: /weaver/, broke: "the beam that holds the warp on your loom has split", mend: "You lash the beam with cord and wedge it tight" },
@@ -12,7 +13,11 @@ const BREAKS: Break[] = [
   { trade: /canoe-builder/, broke: "the head of your adze has come loose from its handle", mend: "You soak the binding and lash the stone head on again", buy: "Trade for a new adze" },
   { trade: /fisher|net-maker/, broke: "something big went through your net and tore a hole you could walk through", mend: "You sit on the shore with the needle and twine and close the hole mesh by mesh" },
   { trade: /miller/, broke: "a paddle has broken off the waterwheel", mend: "You cut a new paddle and peg it in, standing waist-deep in the race" },
-  { trade: /ploughman|farmer|peasant|serf|villein|fellah|tenant|sharecropper|crofter/, years: [-4000, 1920], broke: "the share has come off your plough halfway down a furrow", mend: "You peg the share back on with new wedges" },
+  // Hand-worked ground (terraces, paddies, gardens) breaks a hoe, not a plough.
+  { trade: /terrace|rice|paddy|garden|swidden|milpa/, season: "spring", at: "field", broke: "the blade of your hoe has split from the handle in the first row", mend: "You cut a new wedge, drive it into the eye and soak the haft so it swells tight", buy: "Buy a new hoe" },
+  { trade: /ploughman|farmer|peasant|serf|villein|fellah|tenant|sharecropper|crofter/, years: [-4000, 1920], season: "spring", at: "field", broke: "the share has come off your plough halfway down a furrow", mend: "You peg the share back on with new wedges", buy: "Buy a new share" },
+  { trade: /farm|peasant|serf|villein|fellah|tenant|sharecropper|crofter|grow|cultivat|tiller/, season: "summer", at: "field", broke: "the blade of your hoe has split from the handle in the middle of the weeding", mend: "You cut a new wedge, drive it into the eye and soak the haft so it swells tight", buy: "Buy a new hoe" },
+  { trade: /farm|peasant|serf|villein|fellah|tenant|sharecropper|crofter|grow|cultivat|tiller/, season: "autumn", at: "field", broke: "your sickle has snapped at the tang with half the field still standing", mend: "You bind the blade back into the handle with wire and cord", buy: "Buy a new sickle" },
   { trade: /delivery-rider/, broke: "the chain has come off your bike and bent", mend: "You hammer the link straight on the kerb and get it back on" },
   { trade: /carter|cabman|muleteer/, broke: "a wheel has come off the cart", mend: "You jack up the axle on a stone and fit the wheel back with a new pin" },
   { trade: /rickshaw-puller/, broke: "a tyre on your rickshaw has burst", mend: "You patch the tube at a stall by the road" },
@@ -21,14 +26,18 @@ const BREAKS: Break[] = [
 
 const breakOf = (c: PlotContext) => {
   const job = c.player.origin?.livelihood ?? "", year = c.setting?.year ?? 0;
-  return BREAKS.find((b) => b.trade.test(job) && (!b.years || (year >= b.years[0] && year < b.years[1])));
+  return BREAKS.find((b) => b.trade.test(job) && (!b.years || (year >= b.years[0] && year < b.years[1])) && (!b.season || b.season === seasonOf(c)));
 };
 
 const any = (...of: Condition[]): Condition => ({ type: "not", of: { type: "all", of: of.map((c) => ({ type: "not", of: c })) } });
 const done: Condition = { type: "fired", id: "worked" };
 
+/** Kin first, then someone in the same trade, who will own the tool; else the nearest households. */
 const lenderOf = (c: PlotContext) => {
-  const pool = neighbours(c).slice(0, 8);
+  const near = neighbours(c).sort((a, b) => Math.hypot(a.home.x - c.player.home.x, a.home.y - c.player.home.y) - Math.hypot(b.home.x - c.player.home.x, b.home.y - c.player.home.y));
+  const kin = near.filter((a) => c.player.relations?.some((r) => r.other === a.id && r.kind !== "co-resident"));
+  const trade = near.filter((a) => a.role === c.player.role);
+  const pool = kin.length ? kin : trade.length ? trade.slice(0, 3) : near.slice(0, 3);
   return pool.length ? pickOf(c, pool, "breakdown-lender") : undefined;
 };
 
@@ -51,12 +60,17 @@ export const breakdown: PlotTemplate = {
     const p = partnerWords(c);
     return {
       deadline,
-      words: { due, broke: b.broke, mend: b.mend, buy: b.buy ?? "Buy a new one", neighbour: neighbour.name, ...pronounWords(neighbour), ...p.words },
+      words: { due, at: b.at ?? "", broke: b.broke, Broke: b.broke[0].toUpperCase() + b.broke.slice(1), mend: b.mend, buy: b.buy ?? "Buy a new one", neighbour: neighbour.name, ...pronounWords(neighbour), ...p.words },
       refs: { neighbour: neighbour.id, ...p.refs },
     };
   },
-  opening: [{ type: "choose", line: "broke", choices: [{ id: "mend", check: { stat: "wit", skill: "crafting", odds: 0.55 } }, { id: "borrow" }, { id: "buy" }] }],
+  opening: [],
   developments: [
+    {
+      id: "broke",
+      when: { type: "working", atWord: "at" },
+      then: [{ type: "choose", line: "broke", choices: [{ id: "mend", check: { stat: "wit", skill: "crafting", odds: 0.55 } }, { id: "borrow" }, { id: "buy" }] }],
+    },
     {
       id: "worse",
       when: { type: "all", of: [{ type: "fired", id: "mend:failed" }, { type: "since", hours: 1 }] },
@@ -75,12 +89,12 @@ export const breakdown: PlotTemplate = {
       title: "Something Breaks",
       lines: {
         aim: "Get going again, and get the day's work done {due}.",
-        intro: "Early this morning, {broke}. Everything stops until it's fixed.",
+        intro: "Today something you work with will give out, and everything stops until it's fixed.",
         threat: "A lost day puts you a day behind, and the work will still be waiting tomorrow.",
         partner: "Your {partnerKin} {partner} has heard the news and asks how long it will take.",
         "kin-partner": "Can it be fixed today?",
         "cast-neighbour": "Has the tools you need, and might lend them.",
-        broke: "Nothing gets done until it's fixed. You could mend it yourself and hope it holds, borrow one from {neighbour}, or pay for a new one.",
+        broke: "{Broke}. Nothing gets done until it's fixed. You could mend it yourself and hope it holds, borrow one from {neighbour}, or pay for a new one.",
         "mend:label": "Mend it yourself",
         "mend:then": "It looks rough, but it holds.",
         "mend:failed": "It holds for a few minutes and then gives way again, worse than before.",

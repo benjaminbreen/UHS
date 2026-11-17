@@ -3,6 +3,7 @@ import type { BeliefSystem } from "../types";
 export const eastSouthernAfrica: readonly BeliefSystem[] = [
   {
     id: "regional-foragers-deep",
+    realm: "earth",
     label: "Forager practice across southern and eastern Africa",
     scope: { years: [-20000, -500], bounds: [10, -36, 52, 18] },
     wiki: "https://en.wikipedia.org/wiki/Prehistoric_religion",
@@ -67,6 +68,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "san-forager-practice",
+    realm: "earth",
     label: "San forager practice",
     scope: { years: [-8000, 500], bounds: [10, -36, 45, 10] },
     wiki: "https://en.wikipedia.org/wiki/San_religion",
@@ -141,6 +143,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "early-farmers-herders",
+    realm: "african",
     label: "Early farming and herding communities",
     scope: { years: [-500, 500], bounds: [10, -36, 52, 18] },
     wiki: "https://en.wikipedia.org/wiki/Bantu_expansion",
@@ -207,6 +210,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "early-bantu-iron-age",
+    realm: "african",
     label: "Early Bantu Iron Age farming practice",
     scope: { years: [-500, 500], bounds: [18, -34, 45, 2] },
     wiki: "https://en.wikipedia.org/wiki/Bantu_expansion",
@@ -274,6 +278,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "iron-age-development",
+    realm: "african",
     label: "Iron Age settlement and regional development",
     scope: { years: [500, 1200], bounds: [10, -36, 52, 12] },
     wiki: "https://en.wikipedia.org/wiki/African_Iron_Age",
@@ -339,6 +344,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "aksumite-pre-christian",
+    realm: "african",
     label: "Aksumite pre-Christian practice",
     scope: { years: [100, 350], bounds: [33, 5, 44, 17] },
     wiki: "https://en.wikipedia.org/wiki/Kingdom_of_Aksum",
@@ -401,6 +407,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "ethiopian-orthodox-christian",
+    realm: "orthodox",
     features: ["sacred-texts"],
     label: "Ethiopian Orthodox Christian practice",
     scope: { years: [350, 2025], bounds: [30, 0, 52, 18] },
@@ -473,6 +480,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "early-swahili-coast",
+    realm: "islam",
     label: "Early Swahili coast Islam with older layers",
     scope: { years: [800, 2025], bounds: [38.8, -14, 46, 4] },
     wiki: "https://en.wikipedia.org/wiki/Swahili_culture",
@@ -540,6 +548,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "great-zimbabwe-shona",
+    realm: "african",
     label: "Great Zimbabwe and Shona royal practice",
     scope: { years: [1100, 1600], bounds: [26, -26, 36, -12] },
     wiki: "https://en.wikipedia.org/wiki/Shona_religion",
@@ -614,6 +623,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "medieval-kingdoms",
+    realm: "african",
     label: "Medieval kingdoms and settlement networks",
     scope: { years: [1200, 1700], bounds: [10, -36, 52, 12] },
     wiki: "https://en.wikipedia.org/wiki/African_Iron_Age",
@@ -685,6 +695,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "nguni-ancestor-veneration",
+    realm: "african",
     label: "Nguni ancestor veneration",
     scope: { years: [1400, 1800], bounds: [26, -36, 34, -26] },
     wiki: "https://en.wikipedia.org/wiki/Nguni_people",
@@ -758,6 +769,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "zulu-mfecane-era",
+    realm: "african",
     label: "Zulu practice during the Mfecane expansion",
     scope: { years: [1700, 1920], bounds: [26, -34, 34, -24] },
     wiki: "https://en.wikipedia.org/wiki/Zulu_religion",
@@ -821,6 +833,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "maasai-pastoral-practice",
+    realm: "african",
     label: "Maasai pastoral practice",
     scope: { years: [1400, 1920], bounds: [32, -6, 38.5, 4] },
     wiki: "https://en.wikipedia.org/wiki/Maasai_mythology",
@@ -894,6 +907,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "malagasy-razana-practice",
+    realm: "malagasy",
     label: "Malagasy razana practice",
     scope: { years: [600, 2025], bounds: [39, -26, 52, -10] },
     wiki: "https://en.wikipedia.org/wiki/Malagasy_mythology",
@@ -971,6 +985,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "buganda-balubaale",
+    realm: "african",
     label: "Buganda balubaale practice",
     scope: { years: [1400, 1920], bounds: [28, -4, 36, 4] },
     wiki: "https://en.wikipedia.org/wiki/Buganda",
@@ -1061,6 +1076,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "modern-east-southern-africa",
+    realm: "protestant",
     label: "Modern East and Southern African practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_Africa",
     scope: { years: [1920, 2025], bounds: [10, -36, 52, 18] },
@@ -1096,6 +1112,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "early-modern-regional-states",
+    realm: "african",
     label: "Early modern regional states and Christian mission zones",
     scope: { years: [1700, 1920], bounds: [10, -36, 52, 18] },
     wiki: "https://en.wikipedia.org/wiki/History_of_Africa",

@@ -48,7 +48,8 @@ export function dangerAt(world: WorldModel, s: Snapshot, pos: Position = s.playe
     score, level: labels[score], areaRisk,
     area: `${Math.floor(pos.x / 32)},${Math.floor(pos.y / 32)}`,
     reasons, threats,
-    hourlyRisk: areaRisk === 0 ? 0 : (year >= 1900 ? 0.015 : 0.04) * areaRisk * (night ? 1.5 : 1),
+    // Before modern policing a lonely road was a real risk; the accoster's own rate scales this.
+    hourlyRisk: areaRisk === 0 ? 0 : (year >= 1900 ? 0.02 : 0.06) * areaRisk * (night ? 1.5 : 1),
   };
 }
 

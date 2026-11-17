@@ -16,9 +16,10 @@ export type YardProp = {
   family: string;
   /** Sprite variants, for a family with no entry in the prop catalogue. */
   variants?: number;
-  /** A henhouse form: where the yard has room, a small building of this
-   * make stands in for the prop. */
-  henhouse?: "timber" | "wattle" | "adobe";
+  /** An animal house: where the yard has room, a small building of this
+   * kind and make stands in the back corner. A henhouse falls back to the
+   * coop prop; a byre to nothing. */
+  building?: { kind: "henhouse" | "byre"; form: "timber" | "wattle" | "stone" | "adobe" };
   name: string;
   /** `back` is behind the house, where the kit keeps a back yard. */
   where: "bed" | "wall" | "door" | "yard" | "back";
@@ -85,6 +86,14 @@ const stores: YardProp[] = [
 
 /** Northern Europe, 400-1800: the toft. A fenced front yard, a vegetable bed
  * to one side, a fruit tree, and the stores of whoever lives there. */
+const byre = (form: "timber" | "wattle" | "stone" | "adobe", chance = 0.2): YardProp => ({
+  prop: "byre",
+  family: "byre",
+  name: "Byre",
+  where: "back",
+  chance,
+  building: { kind: "byre", form },
+});
 const toft: YardKit = {
   id: "toft",
   boundary: "era",
@@ -96,6 +105,7 @@ const toft: YardKit = {
   beds: ["vegetables", "vegetables", "beans", "flax"],
   tree: { sprites: ["nature-oak"], chance: 0.5 },
   props: [
+    byre("wattle"),
     ...stores,
     {
       prop: "scarecrow",
@@ -163,7 +173,7 @@ const toft: YardKit = {
       name: "Henhouse",
       where: "back",
       chance: 0.35,
-      henhouse: "wattle",
+      building: { kind: "henhouse", form: "wattle" },
       with: [{ prop: "bucket", family: "bucket", name: "Feed bucket", dx: 1, dy: 1 }],
     },
     {
@@ -204,7 +214,7 @@ const coop: YardProp = {
   name: "Henhouse",
   where: "back",
   chance: 0.45,
-  henhouse: "timber",
+  building: { kind: "henhouse", form: "timber" },
   with: [{ prop: "bucket", family: "bucket", name: "Feed bucket", dx: 1, dy: 1 }],
 };
 const washing: YardProp = {
@@ -228,6 +238,7 @@ const cottage: YardKit = {
   beds: ["vegetables", "potato", "beans", "vegetables"],
   tree: { sprites: ["nature-broadleaf-young"], chance: 0.55 },
   props: [
+    byre("timber"),
     ...stores,
     coop,
     washing,
@@ -274,7 +285,7 @@ const solar: YardKit = {
   tree: { sprites: ["nature-tropical-broadleaf"], chance: 0.6 },
   props: [
     ...stores,
-    { ...coop, name: "Turkey pen", chance: 0.5, henhouse: "adobe" },
+    { ...coop, name: "Turkey pen", chance: 0.5, building: { kind: "henhouse", form: "adobe" } },
     { prop: "metate", family: "metate", name: "Metate and mano", where: "door", chance: 0.8 },
     { prop: "jar", family: "storage-jar", name: "Water jar", where: "door", chance: 0.7 },
     { prop: "threeStoneHearth", family: "three-stone-hearth", name: "Three-stone hearth", where: "yard", chance: 0.5 },
@@ -424,6 +435,7 @@ const croft: YardKit = {
   beds: ["wheat", "barley", "beans", "flax"],
   tree: { chance: 0.5 },
   props: [
+    byre("stone"),
     ...stores,
     {
       prop: "trough",
@@ -540,6 +552,7 @@ const angan: YardKit = {
   styles: { wrap: 0.55, side: 0.3, open: 0.15 },
   beds: ["vegetables", "beans"],
   props: [
+    byre("adobe"),
     ...stores,
     {
       prop: "charpoy",

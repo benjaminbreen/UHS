@@ -31,6 +31,8 @@ export type PlotState = {
   gathering?: { at: Position; place?: string; start: number; until: number; label: string; met?: boolean; scene?: Occasion; props?: string[] };
   /** When some fired ids fired, for `after`. */
   firedAt?: Record<string, number>;
+  /** Roles already named on a card with who they are to the player. */
+  introduced?: string[];
   /** A choice card waiting on an answer, and when it was last put up; `due`, while it has yet to be
    * brought, and `by`, whoever comes to ask it. */
   asking?: { line: string; focus?: string; by?: string; choices: PlotChoice[]; at: number; due?: number; scene?: PlotScene };
@@ -81,16 +83,24 @@ export function plotLine(plot: PlotState, key: string, snapshot?: Snapshot, stan
   const wording = plotTemplate(plot)?.wording;
   const lines = wording?.[plot.wording]?.lines[key] !== undefined ? wording[plot.wording].lines : wording?.at(-1)?.lines;
   const line = (stance && lines?.[`${key}.${stance}`]) || lines?.[key] || "";
-  return line.replace(/\{(\w+)\}/g, (_, w: string) => {
+  const introduced = (plot.introduced ??= []);
+  const actorOf = (role: string) => snapshot?.actors.find((a) => a.id === (plot.refs?.[role] ?? plot.cast[role]));
+  // A card's first mention of someone says who they are; the partner's lines already do.
+  return line.replace(/\{(\w+)\}('s)?/g, (_, w: string, possessive?: string) => {
     if (w.endsWith("Who")) {
-      const role = w.slice(0, -3);
-      const actor = snapshot?.actors.find((a) => a.id === (plot.refs?.[role] ?? plot.cast[role]));
-      if (snapshot && actor) return plotPerson(snapshot.player, actor);
-      const name = plot.words[role];
-      return name ? `${name}, another member of your settlement` : "someone from your settlement";
+      const role = w.slice(0, -3), actor = actorOf(role);
+      if (snapshot && !introduced.includes(role)) introduced.push(role);
+      const who = snapshot && actor ? plotPerson(snapshot.player, actor)
+        : plot.words[role] ? `${plot.words[role]}, another member of your settlement` : "someone from your settlement";
+      return who + (possessive ?? "");
     }
-    return plot.words[w] ?? "";
-  });
+    const actor = plot.refs?.[w] && w !== "partner" && !introduced.includes(w) && !possessive ? actorOf(w) : undefined;
+    if (snapshot && actor) {
+      introduced.push(w);
+      return `${plotPerson(snapshot.player, actor)},`;
+    }
+    return (plot.words[w] ?? "") + (possessive ?? "");
+  }).replace(/,([.,;:!?])/g, "$1");
 }
 
 export function plotKnown(plot: PlotState) {
@@ -226,7 +236,10 @@ function holds(c: Condition, plot: PlotState, snapshot: Snapshot, scene?: PlotSt
     case "talked": return plot.fired.includes(`talked:${c.role}`);
     case "speaking": return scene?.speaker !== undefined && scene.speaker === plot.cast[c.role];
     case "at": return scene?.at(c.scene) ?? false;
-    case "working": return scene?.working !== undefined && (!c.at || scene.working === c.at);
+    case "working": {
+      const at = c.at ?? (c.atWord ? plot.words[c.atWord] : undefined);
+      return scene?.working !== undefined && (!at || scene.working === at);
+    }
     case "brought": return plot.fired.includes("worked") && plot.fired.lastIndexOf(`talked:${c.role}`) > plot.fired.indexOf("worked");
     case "not": return !holds(c.of, plot, snapshot, scene);
     case "all": return c.of.every((x) => holds(x, plot, snapshot, scene));

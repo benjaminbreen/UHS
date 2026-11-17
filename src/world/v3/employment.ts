@@ -20,12 +20,12 @@ export type WorkplaceOffer = {
   owner?:string;
 };
 
-function institutionAt(l: Parameters<typeof institutionFor>[0], pack: Pack, plan:SettlementPlan, id:string) {
+function institutionAt(l: Parameters<typeof institutionFor>[0], pack: Pack, plan:SettlementPlan, id:string, available = availableWork(plan, id)) {
   if(l.id==="fisher" && plan.waterfront?.members.some(m=>id===m.owner || id.startsWith(`${m.owner}-member-`)))return "fishery" as const;
   const processing = (pack.setting?.worksiteRevision ?? 1) >= 2 && worksitesFor(pack.setting!)
     .some(p=>p.revision && p.roles?.includes(l.id));
   return institutionFor(l,processing) ??
-    plan.employment?.find(o=>o.roles?.includes(l.id) && available(plan,o.kind,id,l.id).length)?.kind;
+    plan.employment?.find(o=>o.roles?.includes(l.id) && available(o.kind,l.id).length)?.kind;
 }
 
 /** Only placed workplaces count; a venue that failed to fit supplies no jobs. */
@@ -104,17 +104,21 @@ export function workplacesIn(
   return offers;
 }
 
-function available(plan: SettlementPlan, kind: Institution, id: string, role?: string) {
-  return (plan.employment ?? []).filter(
-    (o) =>
-      o.kind === kind && (!o.roles || !role || o.roles.includes(role)) &&
-      (!o.owner || id===o.owner || id.startsWith(`${o.owner}-member-`)) &&
-      [...plan.work].filter(
-        ([worker, site]) =>
-          worker !== id &&
-          site.employment?.id === o.id &&
-          site.employment.kind === kind,
-      ).length < o.capacity,
+function availableWork(plan: SettlementPlan, id: string) {
+  const occupied = new Map<string, Map<Institution, number>>();
+  for (const [worker, site] of plan.work) {
+    if (worker === id || !site.employment) continue;
+    const { id: workplace, kind } = site.employment;
+    let counts = occupied.get(workplace);
+    if (!counts) occupied.set(workplace, counts = new Map());
+    counts.set(kind, (counts.get(kind) ?? 0) + 1);
+  }
+  const vacancies = (plan.employment ?? []).filter((o) =>
+    (!o.owner || id === o.owner || id.startsWith(`${o.owner}-member-`)) &&
+    (occupied.get(o.id)?.get(o.kind) ?? 0) < o.capacity,
+  );
+  return (kind: Institution, role?: string) => vacancies.filter((o) =>
+    o.kind === kind && (!o.roles || !role || o.roles.includes(role)),
   );
 }
 
@@ -124,6 +128,7 @@ export function localWorkContext(
   id: string,
   community?: string,
 ) {
+  const available = availableWork(plan, id);
   const localRequirements = new Set<string>();
   const supplied: Partial<Record<Institution, string>> = {
     school: "schools", administration: "office", factory: "factories", railway: "railways", printing: "print", mill: "mills",
@@ -138,12 +143,12 @@ export function localWorkContext(
   return {
     ...context,
     livelihoods: context.livelihoods.filter((l) => {
-      const kind = institutionAt(l,pack,plan,id);
-      return !kind || available(plan, kind, id, l.id).length > 0;
+      const kind = institutionAt(l,pack,plan,id,available);
+      return !kind || available(kind, l.id).length > 0;
     }).map((l) => {
       // Weights sum to 100; a worksite's trades are often a fraction of one,
       // which left a placed caravanserai empty in a town of forty.
-      const hiring = plan.employment?.some((o) => !o.owner && o.roles?.includes(l.id) && available(plan, o.kind, id, l.id).length);
+      const hiring = plan.employment?.some((o) => !o.owner && o.roles?.includes(l.id) && available(o.kind, l.id).length);
       return hiring && (l.weight ?? 1) < 3 ? { ...l, weight: 3 } : l;
     }),
   };
@@ -158,11 +163,12 @@ export function assignLocalWork(
   site: WorkSite,
 ) {
   if (!pack.setting?.employmentRevision || actor.role === "Child") return;
+  const available = availableWork(plan, actor.id);
   let kit = livelihoodById(
     actor.origin?.specialty ?? actor.origin?.livelihood ?? "",
   );
-  let kind = kit && institutionAt(kit,pack,plan,actor.id);
-  if (kind && !available(plan, kind, actor.id, kit!.id).length) {
+  let kind = kit && institutionAt(kit,pack,plan,actor.id,available);
+  if (kind && !available(kind, kit!.id).length) {
     const replacement = generateCharacter(
       pack.setting,
       seed,
@@ -192,7 +198,7 @@ export function assignLocalWork(
         p.name = p.name.replace(`${oldRole}'s `, `${actor.role}'s `);
     }
     kit = livelihoodById(actor.origin?.livelihood ?? "");
-    kind = kit && institutionAt(kit,pack,plan,actor.id);
+    kind = kit && institutionAt(kit,pack,plan,actor.id,available);
   }
   site.role = actor.role;
   delete site.employment;
@@ -202,7 +208,7 @@ export function assignLocalWork(
   }
   const owns = (id: string) => plan.plots.some(p => p.id === id && p.owner === actor.id) ||
     plan.places.some(p => p.id === id && p.owner === actor.id);
-  const options = available(plan, kind, actor.id, kit!.id).sort(
+  const options = available(kind, kit!.id).sort(
     (a, b) =>
       Number(!owns(a.id)) - Number(!owns(b.id)) ||
       Math.hypot(a.pos.x - site.home.x, a.pos.y - site.home.y) -

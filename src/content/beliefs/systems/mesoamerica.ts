@@ -3,6 +3,7 @@ import type { BeliefSystem } from "../types";
 export const mesoamerica: readonly BeliefSystem[] = [
   {
     id: "mesoamerican-foragers",
+    realm: "earth",
     label: "Ancestral Mesoamerican beliefs",
     wiki: "https://en.wikipedia.org/wiki/Archaic_period_in_the_Americas",
     scope: { years: [-10000, -800], bounds: [-107, 12, -78, 25] },
@@ -74,6 +75,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "early-mesoamerican-farming",
+    realm: "earth",
     label: "Early Mesoamerican farming communities",
     wiki: "https://en.wikipedia.org/wiki/Mesoamerican_chronology",
     scope: { years: [-3000, -300], bounds: [-107, 12, -78, 25] },
@@ -150,6 +152,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "olmec-early",
+    realm: "mountain",
     label: "Olmec ritual practice",
     wiki: "https://en.wikipedia.org/wiki/Olmecs",
     scope: { years: [-1500, -200], bounds: [-96.5, 17, -93, 19] },
@@ -222,6 +225,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "maya-preclassic",
+    realm: "maya",
     label: "Preclassic Maya cosmology",
     wiki: "https://en.wikipedia.org/wiki/Maya_civilization",
     scope: { years: [-1000, 300], bounds: [-97, 12, -78, 24] },
@@ -303,6 +307,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "maya-classic",
+    realm: "maya",
     label: "Classic Maya kingdoms",
     wiki: "https://en.wikipedia.org/wiki/Maya_civilization",
     scope: { years: [100, 950], bounds: [-97, 12, -78, 24] },
@@ -393,6 +398,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "central-american-traditions",
+    realm: "mountain",
     label: "Central American belief systems",
     wiki: "https://en.wikipedia.org/wiki/Pre-Columbian_era",
     scope: { years: [-800, 1550], bounds: [-96, 8, -78, 20] },
@@ -461,6 +467,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "teotihuacan-classical",
+    realm: "mexica",
     label: "Teotihuacan ritual practice",
     wiki: "https://en.wikipedia.org/wiki/Teotihuacan",
     scope: { years: [50, 850], bounds: [-100, 18, -98, 21] },
@@ -533,6 +540,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "zapotec-montealbán",
+    realm: "mountain",
     label: "Zapotec Monte Albán practice",
     wiki: "https://en.wikipedia.org/wiki/Zapotec_civilization",
     scope: { years: [-500, 1000], bounds: [-98.5, 15, -94.5, 18.7] },
@@ -607,6 +615,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "west-mexican-traditions",
+    realm: "mountain",
     label: "West Mexican ritual practice",
     wiki: "https://en.wikipedia.org/wiki/Pur%C3%A9pecha_people",
     scope: { years: [-500, 1600], bounds: [-107, 16, -98, 25] },
@@ -683,6 +692,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "toltec-central-mexico",
+    realm: "mexica",
     label: "Toltec-era Central Mexican practice",
     wiki: "https://en.wikipedia.org/wiki/Toltec",
     scope: { years: [850, 1250], bounds: [-100.5, 18.5, -97.5, 21] },
@@ -719,6 +729,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "mexica-aztec",
+    realm: "mexica",
     label: "Mexica (Aztec) practice",
     wiki: "https://en.wikipedia.org/wiki/Aztec_religion",
     scope: { years: [1250, 1600], bounds: [-104, 15, -94, 23] },
@@ -809,6 +820,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "maya-postclassic",
+    realm: "maya",
     label: "Postclassic Maya kingdoms",
     wiki: "https://en.wikipedia.org/wiki/Maya_civilization",
     scope: { years: [950, 1600], bounds: [-97, 12, -78, 24] },
@@ -916,6 +928,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "colonial-mesoamerica-syncretic",
+    realm: "latin",
     features: ["sacred-texts"],
     label: "Colonial Mesoamerica syncretism",
     wiki: "https://en.wikipedia.org/wiki/Colonial_Mexico",
@@ -1004,6 +1017,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "modern-mesoamerica",
+    realm: "latin",
     features: ["sacred-texts"],
     label: "Modern Mesoamerican traditions",
     wiki: "https://en.wikipedia.org/wiki/Folk_Catholicism",

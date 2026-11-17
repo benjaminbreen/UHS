@@ -51,6 +51,7 @@ export const beliefSystems: readonly BeliefSystem[] = [
  * not invented here; these are the things anyone can point at. */
 export const unscopedBeliefs: BeliefSystem = {
   id: "unscoped",
+  realm: "earth",
   label: "Local practice",
   scope: { years: [-1000000, 10001] },
   powers: [

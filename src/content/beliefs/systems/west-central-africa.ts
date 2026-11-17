@@ -3,6 +3,7 @@ import type { BeliefSystem } from "../types";
 export const westCentralAfrica: readonly BeliefSystem[] = [
   {
     id: "west-central-foragers",
+    realm: "earth",
     label: "West-central African forager practice",
     wiki: "https://en.wikipedia.org/wiki/Traditional_African_religion",
     scope: { years: [-8000, -500], bounds: [-18, -10, 32, 20] },
@@ -73,6 +74,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "early-bantu-farmers",
+    realm: "kongo",
     label: "Early Bantu farming and herding practice",
     wiki: "https://en.wikipedia.org/wiki/Bantu_mythology",
     scope: { years: [-500, 500], bounds: [-18, -10, 32, 20] },
@@ -146,6 +148,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
 
   {
     id: "regional-kingdoms-era",
+    realm: "kongo",
     label: "Regional kingdoms and savanna practice",
     wiki: "https://en.wikipedia.org/wiki/Bantu_mythology",
     scope: { years: [500, 1200], bounds: [-18, -10, 32, 20] },
@@ -227,6 +230,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
 
   {
     id: "islamic-trade-era",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Islamic trade and adaptation",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Africa",
@@ -309,6 +313,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "yoruba-orisha",
+    realm: "yoruba",
     label: "Yoruba orisha practice",
     wiki: "https://en.wikipedia.org/wiki/Yoruba_religion",
     scope: { years: [900, 1750], bounds: [2.5, 6, 6, 9.5] },
@@ -404,6 +409,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "igbo-chi",
+    realm: "african",
     label: "Igbo chi and earth practice",
     wiki: "https://en.wikipedia.org/wiki/Odinani",
     scope: { years: [900, 1750], bounds: [6, 4, 12, 10] },
@@ -481,6 +487,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "akan-suman",
+    realm: "akan",
     label: "Akan suman and abosom practice",
     wiki: "https://en.wikipedia.org/wiki/Akan_religion",
     scope: { years: [1000, 1750], bounds: [-6, 4, 1, 9] },
@@ -554,6 +561,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "dogon-mande",
+    realm: "african",
     label: "Dogon cosmology and Mande spirit practice",
     wiki: "https://en.wikipedia.org/wiki/Dogon_religion",
     scope: { years: [1200, 1750], bounds: [-17.5, 10, -1, 17] },
@@ -632,6 +640,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "hausa-bori",
+    realm: "african",
     label: "Hausa bori and spirit possession",
     wiki: "https://en.wikipedia.org/wiki/Bori_(religion)",
     scope: { years: [1000, 1500], bounds: [4, 10, 15, 15] },
@@ -704,6 +713,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
 
   {
     id: "hausa-islamic",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Hausa Islam with older layered practice",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Nigeria",
@@ -781,6 +791,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "fon-vodun",
+    realm: "african",
     label: "Fon and Dahomey vodun",
     wiki: "https://en.wikipedia.org/wiki/West_African_Vodun",
     scope: { years: [1400, 1900], bounds: [0.5, 6, 2.8, 10] },
@@ -864,6 +875,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "kongo-nkisi",
+    realm: "kongo",
     label: "Kongo nkisi and ancestral power",
     wiki: "https://en.wikipedia.org/wiki/Kongo_religion",
     scope: { years: [1450, 1850], bounds: [10, -10, 28, 5] },
@@ -944,6 +956,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "central-forest-spirits",
+    realm: "african",
     label: "Central African forest spirits and earth power",
     wiki: "https://en.wikipedia.org/wiki/Kongo_religion",
     scope: { years: [1000, 1800], bounds: [8.5, -10, 32, 6] },
@@ -1027,6 +1040,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
 
   {
     id: "atlantic-trade-era",
+    realm: "african",
     label: "Atlantic trade era adaptation",
     wiki: "https://en.wikipedia.org/wiki/Traditional_African_religion",
     scope: { years: [1600, 1850], bounds: [-18, -10, 32, 20] },
@@ -1102,6 +1116,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "colonial-period",
+    realm: "protestant",
     label: "Colonial period and Christian expansion",
     wiki: "https://en.wikipedia.org/wiki/Christianity_in_Africa",
     scope: { years: [1850, 1950], bounds: [-18, -10, 32, 20] },
@@ -1180,6 +1195,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "modern-west-central-africa",
+    realm: "african",
     label: "Modern West and Central African practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_Africa",
     scope: { years: [1950, 2025], bounds: [-18, -10, 32, 20] },
@@ -1216,6 +1232,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "yoruba-nineteenth-century-christian",
+    realm: "protestant",
     features: ["sacred-texts"],
     label: "Yoruba Christian mission encounter",
     wiki: "https://en.wikipedia.org/wiki/Christianity_in_Nigeria",

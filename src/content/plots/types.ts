@@ -36,7 +36,8 @@ export type Condition =
   | { type: "speaking"; role: PlotRole }
   | { type: "at"; scene: PlotScene }
   /** The player is at the day's work, at the step done `at` when given, so a card about the work finds them at it. */
-  | { type: "working"; at?: PlaceRole }
+  /** `atWord` names the plot word holding the place, for a plot whose place depends on the trade. */
+  | { type: "working"; at?: PlaceRole; atWord?: string }
   /** The player has spoken with them after finishing a day's work since the plot began. */
   | { type: "brought"; role: PlotRole }
   /** The deadline has passed by `hours`, or is that close when negative. */

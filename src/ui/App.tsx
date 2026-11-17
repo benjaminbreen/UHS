@@ -33,6 +33,7 @@ import {
   Download,
   Footprints,
   Hourglass,
+  Hammer,
   History as TimeHistory,
   Map as MapIcon,
   MessageCircle,
@@ -527,7 +528,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   };
   useEffect(() => {
     const reaction = runtime.engine.witnessedOffense;
-    if (!reaction || (modal && modal !== "dialogue")) return;
+    if (!reaction || (modal && modal !== "dialogue") || runtime.engine.fighting()) return;
     runtime.engine.witnessedOffense = undefined;
     if (obs.clock - reaction.at > 30) return;
     setSaid(undefined);
@@ -539,12 +540,20 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     const id = runtime.engine.confronter;
     if (!id || modal === "dialogue") return;
     runtime.engine.confronter = undefined;
+    if (!runtime.engine.fighting()) openDialogue(id);
+  }, [view]);
+  useEffect(() => {
+    const id = runtime.engine.allyCall;
+    if (!id || modal === "dialogue") return;
+    runtime.engine.allyCall = undefined;
     openDialogue(id);
   }, [view]);
   useEffect(() => {
-    if (!runtime.engine.brokeOff) return;
+    const id = runtime.engine.brokeOff;
+    if (!id) return;
     runtime.engine.brokeOff = undefined;
-    if (modal === "dialogue") setModal(null);
+    // A blow from someone else does not cut off an ally having their say.
+    if (modal === "dialogue" && id === dialogueActorId) setModal(null);
   }, [view]);
   // Walking off mid-conversation hands the camera back to the player.
   const walkedOff = useRef(false);
@@ -1034,7 +1043,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     [audio, setting?.culture, setting?.year, setting?.lon, setting?.lat],
   );
   audio?.setClock(obs.clock, isPlayful(statsOf(runtime.engine.state.manifest.seed, p)));
-  useEffect(() => audio?.setSituation(p.dead ? "passing" : undefined), [audio, p.dead]);
+  // The death scene in DeathCard starts the passing music on its own beat.
+  useEffect(() => { if (!p.dead) audio?.setSituation(undefined); }, [audio, p.dead]);
   useEffect(() => {
     if (!audio || p.dead) return;
     const engine = runtime.engine, state = engine.state;
@@ -1703,6 +1713,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 <MapIcon size={17} />
                 <span>Travel</span>
                 <kbd>M</kbd>
+              </button>
+              <button onClick={() => setMaking({})} aria-label="Make something" data-tip="Make something">
+                <Hammer size={17} />
+                <span>Make</span>
               </button>
               <div className="rest-menu" ref={restMenu}>
                 {restOpen && (

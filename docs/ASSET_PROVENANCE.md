@@ -45,6 +45,10 @@ deep water, farmland and cloud from the air, mist) were made with OpenAI image
 generation by a Codex agent on 2026-11-15; each file's prompt and processing
 are in `public/backdrops/manifest.json`. They are scenery, not evidence.
 
+The afterlife paintings in `public/backdrops/afterlife/` were made the same
+way. They are imagined scenes in the idiom of each tradition’s religious art
+and do not serve as historical evidence.
+
 ## Geography
 
 - **Natural Earth** (public domain): land, rivers and populated places,

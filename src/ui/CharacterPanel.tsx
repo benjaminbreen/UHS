@@ -59,6 +59,7 @@ import {
   wikiFor,
 } from "../content/beliefs";
 import { glyphForPower } from "../content/beliefs/icons";
+import { hopeFor } from "../content/beliefs/afterlife";
 import { deityIconFor } from "../content/beliefs/deity-icons";
 import { GlyphIcon } from "./GlyphIcon";
 import { stanceIcon } from "./StanceIcon";
@@ -281,6 +282,25 @@ type PowerNode = {
   tier: "primary" | "secondary";
 };
 
+const OBSERVANCE: Record<PersonalBelief["observance"], string> = {
+  devout: "keeps the faith devoutly",
+  regular: "keeps the observances regularly",
+  occasional: "keeps the observances now and then",
+  indifferent: "pays the observances little mind",
+};
+
+/** A reconstructed name's asterisk, drawn in a face that has one. */
+function PowerName({ name }: { name: string }) {
+  return name.startsWith("*") ? (
+    <>
+      <span className="reconstructed" title="Reconstructed name">*</span>
+      {name.slice(1)}
+    </>
+  ) : (
+    <>{name}</>
+  );
+}
+
 export function beliefHierarchy(belief: PersonalBelief) {
   const featured = belief.system.powers
     .filter((power) => power.rank === "paramount")
@@ -313,6 +333,8 @@ export function beliefHierarchy(belief: PersonalBelief) {
     })),
   ];
   const positions = new Map(nodes.map((node) => [node.power.name, node]));
+  // Map units: the 268px map is 300 tall, so these clear the boxes (120 and 112px).
+  const edge = (node: PowerNode) => (node.tier === "primary" ? node.y + 68 : node.y - 63);
   const edges: { key: string; kind: RelationKind | "tier"; path: string }[] =
     nodes.flatMap((node) =>
       (node.power.relations ?? []).flatMap((relation) => {
@@ -322,8 +344,8 @@ export function beliefHierarchy(belief: PersonalBelief) {
         // leaves from the far side and loops clear, so it never crosses the
         // icons sitting between the two ends.
         const sameRow = node.tier === target.tier;
-        const startY = node.tier === "primary" ? node.y + 42 : node.y - 42;
-        const endY = target.tier === "primary" ? target.y + 42 : target.y - 42;
+        const startY = edge(node);
+        const endY = edge(target);
         // Within a row the line runs through the gap between the rows, clear of
         // the icons standing between its two ends.
         const midY = sameRow
@@ -352,11 +374,11 @@ export function beliefHierarchy(belief: PersonalBelief) {
         undefined,
       );
       if (!parent) continue;
-      const midY = Math.round((parent.y + 42 + (node.y - 42)) / 2);
+      const midY = Math.round((edge(parent) + edge(node)) / 2);
       edges.push({
         key: `${parent.power.name}-tier-${node.power.name}`,
         kind: "tier",
-        path: `M ${parent.x} ${parent.y + 42} V ${midY} H ${node.x} V ${node.y - 42}`,
+        path: `M ${parent.x} ${edge(parent)} V ${midY} H ${node.x} V ${edge(node)}`,
       });
     }
   }
@@ -521,6 +543,7 @@ export function CharacterPanel({
   const [selectedPowerName, setSelectedPowerName] = useState<
     string | undefined
   >(undefined);
+  const [allPowers, setAllPowers] = useState(false);
   const state = runtime.engine.state,
     seed = state.manifest.seed,
     pack = runtime.engine.world.pack;
@@ -598,6 +621,7 @@ export function CharacterPanel({
       : unscopedBeliefs,
   );
   const hierarchy = beliefHierarchy(belief);
+  const firstName = actor.name.split(" ")[0];
   const selectedPower =
     belief.system.powers.find((power) => power.name === selectedPowerName) ??
     belief.patron ??
@@ -692,7 +716,7 @@ export function CharacterPanel({
       data-tab={tab}
       style={
         {
-          "--panel-scene": `url("${sceneFor(culture, pack.setting?.year)}")`,
+          "--panel-scene": `url("${tab === "beliefs" ? `/backdrops/${hopeFor(belief.system)}` : sceneFor(culture, pack.setting?.year)}")`,
           "--culture-accent": accentFor(culture),
           "--culture-pattern": patternFor(culture),
         } as CSSProperties
@@ -1306,18 +1330,16 @@ export function CharacterPanel({
           <div className="belief-main">
             <div className="belief-intro">
               <div>
-                <h3>Belief and devotion</h3>
+                <p className="belief-person">
+                  {firstName} {OBSERVANCE[belief.observance]}.
+                  {belief.patron && ` ${firstName}'s own devotion is to ${belief.patron.name}.`}
+                </p>
                 <h1>{belief.system.label}</h1>
-                <p>{belief.keeps ?? (belief.system.practice[0] && practiceText(belief.system.practice[0]))}</p>
                 <dl className="belief-measures">
-                  <div>
-                    <dt>Observance</dt>
-                    <dd>{belief.observance}</dd>
-                  </div>
-                  {belief.patron && (
-                    <div>
-                      <dt>Personal devotion</dt>
-                      <dd>{belief.patron.name}</dd>
+                  {belief.system.afterlife && (
+                    <div className="belief-after">
+                      <dt>After death</dt>
+                      <dd>{belief.system.afterlife}</dd>
                     </div>
                   )}
                 </dl>
@@ -1348,24 +1370,51 @@ export function CharacterPanel({
                   aria-pressed={selectedPower.name === node.power.name}
                 >
                   <PowerIcon power={node.power} />
-                  <strong>{node.power.name}</strong>
+                  <strong><PowerName name={node.power.name} /></strong>
                   <small>
                     {node.tier === "primary" ? "foundational" : "important"}
                   </small>
                 </button>
               ))}
               {hierarchy.hidden > 0 && (
-                <span className="more-powers">+{hierarchy.hidden} known</span>
+                <div className="more-powers">
+                  <button onClick={() => setAllPowers((open) => !open)} aria-expanded={allPowers}>
+                    +{hierarchy.hidden} more
+                  </button>
+                  {allPowers && (
+                    <ul>
+                      {belief.system.powers
+                        .filter((power) => !hierarchy.nodes.some((node) => node.power === power))
+                        .map((power) => (
+                          <li key={power.name}>
+                            <button
+                              aria-pressed={selectedPower.name === power.name}
+                              onClick={() => {
+                                setSelectedPowerName(power.name);
+                                setAllPowers(false);
+                              }}
+                            >
+                              <PowerName name={power.name} />
+                              <small>{power.domain}</small>
+                            </button>
+                          </li>
+                        ))}
+                    </ul>
+                  )}
+                </div>
               )}
             </div>
             <div className="power-detail">
               <div className="power-identity">
-                <h1>{selectedPower.name}</h1>
+                <h1><PowerName name={selectedPower.name} /></h1>
                 <div className="power-portrait">
                   <PowerIcon power={selectedPower} large />
                 </div>
               </div>
               <div className="power-copy">
+                <span className="evidence-badge" data-status={belief.system.evidence.status}>
+                  {belief.system.evidence.status}
+                </span>
                 <h2>{selectedPower.domain}.</h2>
                 {selectedPower.gloss && <p>{selectedPower.gloss}</p>}
                 <p>{belief.system.evidence.claim}</p>
@@ -1378,35 +1427,34 @@ export function CharacterPanel({
                         : "Central to this tradition"}
                     </dd>
                   </div>
-                  <div>
-                    <dt>Relation</dt>
-                    <dd>
-                      {selectedPower.relations?.length
-                        ? selectedPower.relations
-                            .map(
-                              (relation) =>
-                                `${relation.kind.replaceAll("-", " ")} ${relation.of}`,
-                            )
-                            .join(" · ")
-                        : hierarchy.nodes.find(
-                              (node) => node.power.name === selectedPower.name,
-                            )?.tier === "primary"
-                          ? "Foundational"
-                          : "Important"}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>Confidence</dt>
-                    <dd>{belief.system.evidence.status}</dd>
-                  </div>
+                  {!!selectedPower.relations?.length && (
+                    <div>
+                      <dt>Relation</dt>
+                      <dd>
+                        {selectedPower.relations
+                          .map((relation) => `${relation.kind.replaceAll("-", " ")} ${relation.of}`)
+                          .join(" · ")}
+                      </dd>
+                    </div>
+                  )}
                 </dl>
               </div>
               <div className="belief-practices">
                 <h3>Practices</h3>
                 <ul>
-                  {belief.system.practice.slice(0, 3).map((practice) => (
-                    <li key={practiceText(practice)}>{practiceText(practice)}</li>
-                  ))}
+                  {belief.keeps && (
+                    <li className="kept">
+                      <small>{firstName} keeps this</small>
+                      {belief.keeps}
+                    </li>
+                  )}
+                  {belief.system.practice
+                    .map(practiceText)
+                    .filter((text) => text !== belief.keeps)
+                    .slice(0, belief.keeps ? 2 : 3)
+                    .map((text) => (
+                      <li key={text}>{text}</li>
+                    ))}
                 </ul>
                 {wikiFor(belief.system, selectedPower) && (
                   <a

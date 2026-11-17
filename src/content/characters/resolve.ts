@@ -25,6 +25,7 @@ import { livelihoods } from "./livelihoods";
 import { requirementMet } from "./requirements";
 import { citySignatures } from "./signatures";
 import { commonLivelihoods } from "./livelihoods.generated";
+import { outlawLivelihoods } from "./outlaws";
 import { workplaceFor, type Workplace } from "./workplace";
 import type { CharacterPhysique } from "../../core/character";
 import {
@@ -339,7 +340,7 @@ function weighted(
     // Plains bands alike put about half the adults on game, not a few specialists.
     const band = l.id === "hunter" && (s.settlement === "camp" || !capabilities.has("settled_agriculture")) ? 1.6 : 1;
     // In a war the town fills with troops: quartered, garrisoned or passing through.
-    const war = l.id === "soldier" && requirementMet("war", s) ? 3 : 1;
+    const war = (l.id === "soldier" || l.id === "marauder") && requirementMet("war", s) ? (l.id === "marauder" ? 4 : 3) : 1;
     const boost = band * war * signatures.reduce((n, g) => n * (g.boost[l.id] ?? 1), 1);
     // Share of the settlement for this class, split by weight within it.
     return { ...l, weight: (shares[c] * (l.weight ?? 1) * era(l) * boost * 100) / total };
@@ -484,7 +485,7 @@ export function resolveCharacterContext(
     ? eligible.filter((l) => supported(l) && inScope(l, s, localRequirements))
     : eligible;
   const tiered = revised
-    ? commonLivelihoods.filter(
+    ? [...commonLivelihoods, ...outlawLivelihoods].filter(
         (l) =>
           (!l.tier || tierApplies(l.tier, s, capabilities)) &&
           supported(l) &&

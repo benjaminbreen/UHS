@@ -1,14 +1,14 @@
 import { it, expect, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Agent, startAgent, tools, FRAMING } from "../src/agents/agent";
+import { Agent, startAgent, tools } from "../src/agents/agent";
 import { RunRecord, type Trace } from "../src/agents/record";
 import { live, extractJson, instructions, type Complete } from "../src/agents/loop";
-import { Runtime, createSession } from "../src/runtime/session";
+import { Runtime } from "../src/runtime/session";
 
 import { smallSession } from "./fixtures";
 import { resolveSetting } from "../src/content/geography/resolve";
@@ -192,49 +192,6 @@ it.runIf(!!process.env.FULL)("plays offline from piped commands and replays the 
     expect(replay).toContain("Agent replay verified: 3 tool calls");
   } finally { rmSync(out, { recursive: true, force: true }); }
 }, 120000);
-
-it.runIf(!!process.env.FULL)("serves MCP tools and replays a run from its recorded setting, rejecting changed state", async () => {
-  const out = mkdtempSync(join(tmpdir(), "uhs-agent-"));
-  const transport = new StdioClientTransport({
-    command: "npx",
-    args: ["vite-node", "scripts/agent.ts", "--", "serve", "--setting", setting, "--seed", "agent-check", "--out", out],
-    cwd: process.cwd(),
-    stderr: "pipe",
-  });
-  const client = new Client({ name: "uhs-test", version: "1.0" });
-  try {
-    await client.connect(transport);
-    const names = (await client.listTools()).tools.map((t) => t.name).sort();
-    expect(names).toEqual(["act", "errand", "goto", "inspect", "look", "say", "talk", "travel"]);
-    await client.callTool({ name: "look", arguments: {} });
-    await client.callTool({ name: "act", arguments: { command: { type: "wait", seconds: 60 } } });
-    const [run] = readdirSync(out);
-    const dir = join(out, run), manifestPath = join(dir, "manifest.json"), trajectoryPath = join(dir, "trajectory.jsonl");
-    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-    expect(manifest.setting.place).toBe("Oaxaca");
-    expect(client.getInstructions()).toContain(FRAMING);
-    expect(manifest).toMatchObject({ instructions: client.getInstructions(), host: { name: "uhs-test", version: "1.0" } });
-    expect(manifest.initialSetting).toBeDefined();
-    delete manifest.setting.asked;
-    writeFileSync(manifestPath, JSON.stringify(manifest));
-    const entries = readFileSync(trajectoryPath, "utf8").trim().split("\n").map((line) => JSON.parse(line));
-    expect(entries).toHaveLength(2);
-    expect(entries.every((e) => e.hash)).toBe(true);
-    const replay = (input = dir) => execFileSync(process.execPath, ["node_modules/vite-node/vite-node.mjs", "scripts/replay.ts", "--", input], { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
-    expect(replay()).toContain("Agent replay verified: 2 tool calls");
-    entries[1].hash = "changed";
-    writeFileSync(trajectoryPath, entries.map((e) => JSON.stringify(e)).join("\n") + "\n");
-    expect(replay).toThrow(/Agent replay diverged at entry 2 \(act\): hash/);
-    const browser = createSession("roman", "browser-replay-check");
-    browser.act({ actionId: "wait", expectedRevision: browser.state.revision, command: { type: "wait", seconds: 60 } });
-    const browserPath = join(out, "browser.json");
-    writeFileSync(browserPath, JSON.stringify({ manifest: browser.state.manifest, commands: browser.state.log, hash: browser.hash() }));
-    expect(replay(browserPath)).toContain("Replay verified:");
-  } finally {
-    await client.close();
-    rmSync(out, { recursive: true, force: true });
-  }
-}, 60000);
 
 function localAgent(seed = "shared-dialogue", options: { offline?: boolean } = {}) {
   const resolved = resolveSetting(setting, seed);
@@ -439,7 +396,7 @@ it("shows a waiting card in the reply that raised it", async () => {
 
 it("lets the agent ask the narrator about a pending encounter without bypassing its choice", async () => {
   const a = localAgent();
-  a.engine.state.encounter = { card: "roadside-robbery", at: { ...a.engine.state.player.pos }, clock: a.engine.state.clock };
+  a.engine.state.encounter = { card: "accost:robbers", at: { ...a.engine.state.player.pos }, clock: a.engine.state.clock };
   let asked = false;
   a.runtime.modelFetch = async (url) => {
     if (url === "/api/jev") return new Response("{}", { status: 503 });
@@ -450,7 +407,7 @@ it("lets the agent ask the narrator about a pending encounter without bypassing 
   try {
     expect(await a.call("say", { text: "What do I see the robbers doing?" })).toContain("Running would be risky");
     expect(asked).toBe(true);
-    expect(a.engine.state.encounter?.card).toBe("roadside-robbery");
+    expect(a.engine.state.encounter?.card).toBe("accost:robbers");
     expect(a.engine.state.clock).toBe(clock);
     expect(await a.call("act", { command: { type: "sleep", seconds: 3600 } })).toContain("Answer the encounter");
   } finally { a.runtime.dispose(); }

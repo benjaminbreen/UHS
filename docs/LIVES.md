@@ -59,14 +59,50 @@ New worlds pin `manifest.survival = 1`:
 - Sheltered sleep restores fatigue. There is no thirst upkeep.
 
 `src/core/danger.ts` rates the ground nearby from buildings, cover, people,
-guards and darkness. A robbery is a choice card: surrender, run or resist. It
-has a one-day cooldown. NPCs defend themselves and can retaliate after
+guards and darkness. NPCs defend themselves and can retaliate after
 serious provocation, with a visible threat first.
+
+## Robbers and accosters
+
+In every game, not only survival, the player can be stopped out of doors
+(`roadEncounter` in `engine.ts`). `src/content/accosters.ts` says who, by place
+and era, each with a source note: latrones on Roman roads, highwaymen and
+footpads in Georgian England, a press gang in its ports, marauders in the
+Thirty Years' War, dacoits, klephts, tufei, cangaceiros, bushrangers and
+general robbers where nothing more specific is on file.
+- **Where.** A lonely road (danger's area risk) by day or night, or a town's
+  streets after dark. In a town by day a pickpocket may lighten the purse with
+  no confrontation.
+- **How often.** The danger's hourly risk times the accoster's `rate`: high in
+  wartime and on lawless frontiers, low after modern policing. One encounter
+  per twelve hours at most.
+- **The scene.** The party walks up dressed and armed as their livelihood, and
+  a card offers pay, run or fight (press gangs: argue, run or fight). Fighting,
+  or being caught running, starts a real fight. Robbers who beat the player
+  take half their coin; a press gang holds them two days.
+
+The same people are livelihoods (`src/content/characters/outlaws.ts`), dressed
+by `wardrobe/regions/outlaws.ts`, with days in `recipes.ts` and cards in
+`cards/outlaws.ts`, so the player sometimes starts as one.
+`npm run capture:characters -- accosters` draws them.
 
 ## Death and going on
 
-When the player dies, in a day or in the years, `DeathCard.tsx` names the
-cause, age, place and year. The player then chooses:
+When the player dies, in a day or in the years, `DeathCard.tsx` first plays
+a short scene: a knell, the world darkens round the player with a "…", the
+figure rises in the `transcend` pose as the passing music begins, and the
+place their tradition sent them fills in behind, with two lines. Click skips
+it. Each belief system names a `realm`, and `src/content/beliefs/afterlife.ts`
+judges within it by what that tradition cared about: conduct for Latin
+Christians (gossip about the player, from `deeds()` in `word.ts`), the
+weighing of the heart for Egyptians, how they died for the Mexica, whether
+kin are left to remember them for ancestor traditions. Someone indifferent
+to religion after 1750 gets nothing after. The paintings are in
+`public/backdrops/afterlife/`. Each realm also names the end its people hoped
+for (`hopeFor`), which the character panel's Beliefs tab shows behind the
+tradition.
+
+The card then names the cause, age, place and year. The player chooses:
 
 - **Go on as** one of the household aged twelve or more: the `become`
   command, which swaps identity and carries the household, plot and record.

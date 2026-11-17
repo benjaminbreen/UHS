@@ -315,6 +315,12 @@ const social: Partial<Record<CharacterPose, readonly Key[]>> = {
     { hands: [[-1, -2.5, 3.4]], nod: 1, lean: 0.5 },
     { hands: [[-4, -2.5, 3.4]], mid: 0.4, nod: 1, lean: 0.7 },
   ],
+  transcend: [
+    { hands: [[1.8, 3, 1]], nod: -1 },
+    { hands: [[3.2, 6.5, 0.8]], nod: -1, rise: 1 },
+    { hands: [[3.8, 8.5, 0.6]], nod: -1, rise: 2, shoulders: 1 },
+    { hands: [[3.6, 7.8, 0.6]], nod: -1, rise: 1 },
+  ],
   "raise-hand": [{ one: [0, 0, 1.5] }, { one: [0.6, 5, 1.6] }, { one: [0.6, 5.4, 1.8], nod: 1 }, { one: [0.6, 5, 1.6] }],
   "halt-hand": [
     { one: [-1, -1, 3] },

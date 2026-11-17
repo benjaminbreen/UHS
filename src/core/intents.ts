@@ -106,6 +106,7 @@ function converse(engine: Engine, i: Extract<Intent, { type: "converse" }>) {
   }
   if (actor.memories.length > 40) actor.memories.shift();
   if (i.trespass) engine.trespassReply(actor, i.trespass);
+  if (i.side) engine.sideReply(actor, i.side);
   if (!i.leave && (delta <= -3 || (delta <= -2 && actor.trust <= -4))) engine.provoke(actor, "insulted me or my family");
   if (i.ask) engine.answerAsk(actor, i.ask, i.favour);
   if (i.callIn) return engine.callIn(actor, i.callIn);
@@ -279,12 +280,16 @@ function make(engine: Engine, i: Extract<Intent, { type: "make" }>) {
     level = engine.skillLevel("crafting");
   engine.advance(clamp(Math.round(i.minutes ?? 20), 5, 240) * 60);
   const won = engine.rng("make") < oddsOf({ stat: "wit", skill: "crafting", odds: 0.95 - difficulty * 0.13 }, engine.stats(), level);
-  for (const part of [a, b]) p.inventory[part.id] = (p.inventory[part.id] ?? 0) - 1;
+  // A knife or an adze is worked with, not worked into the thing.
+  for (const part of a.hand?.edge && b.hand?.edge ? [a, b] : [a, b].filter((d) => !d.hand?.edge))
+    p.inventory[part.id] = (p.inventory[part.id] ?? 0) - 1;
   const flop = won ? undefined : (i.flop ?? { name: "Ruined " + b.name.toLowerCase(), description: "It did not work.", form: "bundle" as const });
-  const grade = flop ? "" : level < difficulty * 2 ? "Crude " : level >= difficulty * 2 + 8 ? "Fine " : "";
-  const plain = (flop?.name ?? i.name).replace(/^(crude|rough|simple|fine|makeshift)\s+/i, "").slice(0, 34);
-  const name = grade ? grade + plain.toLowerCase() : plain[0].toUpperCase() + plain.slice(1);
-  const made = { form: flop?.form ?? i.form, body: a.id, trim: b.id, ...(flop ? { flop: true as const } : {}) };
+  const grade = flop ? undefined : level < difficulty * 2 ? "crude" as const : level >= difficulty * 2 + 8 ? "fine" as const : undefined;
+  // The model writes each grade's own name; without one, the plain name gets a word in front.
+  const take = flop ?? (grade && i[grade]) ?? i;
+  const plain = take.name.replace(/^(crude|rough|simple|fine|makeshift)\s+/i, "").slice(0, 34);
+  const name = grade && take === i ? (grade === "crude" ? "Crude " : "Fine ") + plain.toLowerCase() : plain[0].toUpperCase() + plain.slice(1);
+  const made = { form: flop?.form ?? i.form, body: a.id, trim: b.id, ...(flop ? { flop: true as const } : {}), ...(grade ? { grade } : {}) };
   s.catalog ??= {};
   let id = "x-" + (slug(name) || "thing");
   for (let n = 2; s.catalog[id] && JSON.stringify(s.catalog[id].made) !== JSON.stringify(made); n++)
@@ -292,9 +297,9 @@ function make(engine: Engine, i: Extract<Intent, { type: "make" }>) {
   const def: ItemDef = (s.catalog[id] ??= {
     id,
     name,
-    description: (flop?.description ?? i.description).slice(0, 160),
+    description: take.description.slice(0, 160),
     sprite: lookSprites.wood,
-    value: flop ? 0 : Math.round((a.value + b.value) * (grade === "Crude " ? 1 : grade ? 2 : 1.4)) + difficulty,
+    value: flop ? 0 : Math.round((a.value + b.value) * (grade === "crude" ? 1 : grade ? 2 : 1.4)) + difficulty,
     made,
     ...(flop ? {} : madeTraits(i.form, a, b)),
   });

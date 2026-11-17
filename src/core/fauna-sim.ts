@@ -337,6 +337,11 @@ function standing(p: FaunaProfile, state: FaunaState) {
 const roosting = (p: FaunaProfile, hour: number) =>
   p.category === "domestic" && p.social === "flock" && !p.swims && (hour >= 18.5 || hour < 5.5);
 
+/** Animals with a house are in it at night: hens with the light, cattle from
+ * dusk until they have been milked. */
+const indoors = (p: FaunaProfile, g: FaunaGroup, hour: number) =>
+  roosting(p, hour) || (!!g.house && p.social !== "flock" && (hour >= 19 || hour < 8));
+
 /** Grazing stock eat morning and evening and lie up through the heat. */
 const midday = (hour: number) => hour >= 11 && hour < 15;
 /** Cells a scavenger winds remains from. */
@@ -516,14 +521,14 @@ function decide(
     g.since = clock;
     return;
   }
-  if (roosting(p, world.hour)) {
+  if (indoors(p, g, world.hour)) {
     if (hyp(g.pos, g.home) > 1.5) {
       g.state = "wander";
       g.target = { ...g.home };
     } else {
       g.state = "idle";
       if (g.house && g.roost) {
-        // In through the pop-hole for the night.
+        // In for the night.
         g.burrowed = clock + 86400;
         for (const m of g.members) (m.x = g.roost.x), (m.y = g.roost.y);
       }
@@ -1481,10 +1486,12 @@ export function advanceFauna(
       const day = Math.floor(clock / 86400);
       if (world.hour >= 5.5 && world.hour < 18.5 && g.laid !== day) {
         g.laid = day;
-        g.eggs = Math.min(g.members.length * 2, (g.eggs ?? 0) + Math.ceil(g.members.length * 0.6));
+        if (p.social === "flock") g.eggs = Math.min(g.members.length * 2, (g.eggs ?? 0) + Math.ceil(g.members.length * 0.6));
+        // A cow gives more on a full manger.
+        else g.milk = Math.min(g.members.length * 4, (g.milk ?? 0) + g.members.length * (g.fed === day - 1 ? 2 : 1));
       }
       if (g.burrowed !== undefined) {
-        if (roosting(p, world.hour) || g.shut) continue;
+        if (indoors(p, g, world.hour) || g.shut) continue;
         g.burrowed = undefined;
         // Out by the door; the tick's unstacking spreads them.
         for (const m of g.members) (m.x = g.home.x), (m.y = g.home.y);

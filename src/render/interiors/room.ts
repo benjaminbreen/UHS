@@ -67,7 +67,7 @@ export type Kind =
   | "desk" | "scrolls"
   | "firewood" | "broom"
   | "bed" | "mat" | "boxbed" | "chest" | "table" | "stool" | "lowtable" | "cushions" | "divan"
-  | "plant" | "lamp" | "lantern" | "rug" | "cat" | "nestbox" | "roost"
+  | "plant" | "lamp" | "lantern" | "rug" | "cat" | "nestbox" | "roost" | "stall" | "manger"
   | "firepit" | "irori" | "brazier" | "stove" | "pole" | "ladder"
   | "quern" | "hides" | "coolamon" | "screen" | "fountain" | "pack"
   | "armchair" | "sofa" | "radio" | "range" | "icebox" | "clock" | "elevator" | "clutter" | "frame"
@@ -734,6 +734,7 @@ const RULES: Partial<Record<Kind, Rule>> = {
   vat: { w: 1, d: 1, place: "wall" }, bolts: { w: 1, d: 1, place: "wall" }, firewood: { w: 1, d: 1, place: "fire" },
   scrolls: { w: 1, d: 1, place: "wall" }, stool: { w: 1, d: 1, place: "any" }, broom: { w: 1, d: 1, place: "corner" },
   potrack: { w: 2, d: 1, place: "wall" }, nestbox: { w: 2, d: 1, place: "wall" }, roost: { w: 2, d: 1, place: "wall" },
+  stall: { w: 2, d: 1, place: "wall" }, manger: { w: 2, d: 1, place: "wall" },
   armchair: { w: 1, d: 1, place: "any" }, sofa: { w: 3, d: 1, place: "side" }, radio: { w: 1, d: 1, place: "wall" },
   range: { w: 2, d: 1, place: "wall" }, icebox: { w: 1, d: 1, place: "wall" }, counter: { w: 3, d: 1, place: "centre" },
   loom: { w: 3, d: 2, place: "wall" }, spinwheel: { w: 1, d: 1, place: "any" }, throw: { w: 1, d: 1, place: "any" },

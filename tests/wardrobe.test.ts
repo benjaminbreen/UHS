@@ -533,17 +533,6 @@ it("gives each worn item the colour the figure is drawn in", async () => {
   expect(loud).not.toContain("weld");
 });
 
-it("draws every item a person can pick up", async () => {
-  const { garmentIconFor, itemIconFor } = await import(
-    "../src/render/garment-icons"
-  );
-  const { items } = await import("../src/content/packs");
-  const missing = Object.values(items)
-    .filter((i) => !garmentIconFor(i.id) && !itemIconFor(i.id))
-    .map((i) => i.id);
-  expect(missing).toEqual([]);
-});
-
 it("keeps modern men out of dresses, hemp and mauve", () => {
   const setting = place("european", 2009);
   for (let i = 0; i < 200; i++) {

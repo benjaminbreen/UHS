@@ -1,5 +1,5 @@
 import { loadVoxelItems, voxelIcon, voxelItemsReady } from "./voxel-items";
-import { waterborneFrames } from "../content/graphics/models";
+import { walkableRoof, waterborneFrames } from "../content/graphics/models";
 import { socialLabels } from "../core/bonds";
 import { shownStock } from "../core/economy";
 import { keepsShop } from "../core/shop";
@@ -154,7 +154,7 @@ import {
   type LiveGraphicsSettings,
 } from "./live-graphics";
 import { ToolEffects, ROLL_MS, projectileArrowTexture } from "./tool-effects";
-const LAUNCHERS = new Set(["bow", "sling", "crossbow", "musket", "rifle", "blowgun", "hawk"]);
+const LAUNCHERS = new Set(["bow", "sling", "crossbow", "musket", "pistol", "rifle", "blowgun", "hawk"]);
 /** Hunting gear drawn from its item icon, not from a prop atlas. */
 const HUNT_ICONS = ["bow", "arrow", "sling", "throwing-stick", "blowgun", "dart", "bolt", "shot", "cartridge", "snare", "hawk"];
 import { CombatEffects, faunaSpriteId, mixTint } from "./combat-effects";
@@ -607,6 +607,11 @@ export class WorldScene extends Phaser.Scene {
     return (this.cueFx ??= new CueEffects(this, {
       entityAt: (id) => this.entities.get(id),
       playerPose: (pose) => this.runtime.playPose(pose),
+      hit: (who, blocked) => {
+        this.combat().personHit(who, blocked);
+        const player = this.entities.get("player");
+        if (who === "player" && !blocked && player) this.feel.blink(player);
+      },
       collided: (who, dx, dy, run) => this.collided(who, dx, dy, run),
       greeting: (who) => {
         const a = this.humanActors.get(who);
@@ -1436,6 +1441,13 @@ export class WorldScene extends Phaser.Scene {
     const [dx, dy] = walk.corner ? WALK_CORNER[walk.corner] : [0, 0];
     return { rise: WALK_RISE[walk.kind], dx, dy };
   }
+  /** On a roof the player draws over the building, whose depth is its front
+   * edge rather than the row they stand on. */
+  private roofDepth() {
+    const perch = this.runtime.engine.state.player.perch;
+    const place = perch?.at && this.runtime.engine.world.place(perch.on);
+    return place ? Math.max(0, (place.y + place.h) * 16 - (perch.at!.y * 16 + 16)) : 0;
+  }
   private watching?: { frame: number; by: Map<string, Actor> };
   /** The watch, by id, rebuilt once a frame. */
   private watchers() {
@@ -1456,11 +1468,27 @@ export class WorldScene extends Phaser.Scene {
     // The thing's own sprite is the honest height: a firewood stack stands
     // three times a pot. Overlap a couple of pixels so the feet sit in it
     // rather than float above the silhouette.
+    if (perch.at && this.runtime.engine.world.place(perch.on)) return this.roofRise(perch.on, perch.at);
     const on = this.entities.get(perch.on);
     if (on) return Math.max(4, Math.round(on.displayHeight) - 3);
     // Up a tree you sit in the fork, not on the canopy.
     const plant = this.plantHeights.get(perch.on);
     return plant ? Math.max(6, Math.round(plant * 0.45)) : perch.rise;
+  }
+  /** How far above its own cell a roof cell's surface is drawn. A flat roof's
+   * rows spread between the top of the sprite and the top of the front wall;
+   * a pitched one is sat on at the ridge. */
+  private roofRise(id: string, at: { x: number; y: number }) {
+    const place = this.runtime.engine.world.place(id)!;
+    const { model, y: base } = buildingPlacement(place);
+    const m = model as { anchor: number[]; occlusion: number[]; visible?: number[]; height?: number };
+    const top = base - m.anchor[1] + (m.visible?.[1] ?? m.occlusion[1]);
+    const front = base - (m.height ?? 32);
+    const row = at.y - place.y;
+    const feet = walkableRoof(place.sprite) && front > top
+      ? top + ((row + 0.8) / place.h) * (front - top)
+      : top + 6;
+    return Math.round(at.y * 16 + 16 - feet);
   }
   /** The cell a perched player is drawn over, which is the thing they climbed
    * rather than the ground they walked in from. */
@@ -1625,7 +1653,7 @@ export class WorldScene extends Phaser.Scene {
   /** At a run, a rock or a pot is cleared without a key press. */
   private vault(dx: number, dy: number, time: number) {
     const engine = this.runtime.engine;
-    if (!engine.vaultAhead(dx, dy)) return false;
+    if (engine.state.player.perch || !engine.vaultAhead(dx, dy)) return false;
     const ditch = engine.ditchAhead(dx, dy);
     if ((!this.shiftHeld || this.runSteps < 2) && !engine.fenceAhead(dx, dy) && !ditch) return false;
     const before = { ...engine.state.player.pos };
@@ -1869,6 +1897,24 @@ export class WorldScene extends Phaser.Scene {
       const x = Math.round(im.x), y = this.headTop(im) - 3 + bob;
       g.fillStyle(0x1a1410, 0.9).fillPoints([{ x, y: y - 4 }, { x: x + 4, y }, { x, y: y + 4 }, { x: x - 4, y }], true);
       g.fillStyle(mark === "kin" ? 0xd9523f : 0xf2cf6b, 1).fillPoints([{ x, y: y - 3 }, { x: x + 3, y }, { x, y: y + 3 }, { x: x - 3, y }], true);
+    }
+  }
+  private fightBars?: Phaser.GameObjects.Graphics;
+  /** Health over everyone in a fight, the player included, while it lasts. */
+  private drawFightBars() {
+    const e = this.runtime.engine, g = (this.fightBars ??= this.add.graphics().setDepth(1e7 - 2));
+    g.clear();
+    if (!e.fighting()) return;
+    const p = e.state.player;
+    const people = [{ id: "player", health: p.health ?? 100 }, ...e.state.actors
+      .filter((a) => a.terror?.fight && a.pos.space === p.pos.space)
+      .map((a) => ({ id: a.id, health: a.health ?? 100 }))];
+    for (const { id, health } of people) {
+      const im = this.entities.get(id);
+      if (!im?.visible) continue;
+      const x = Math.round(im.x) - 8, y = this.headTop(im) - 6, w = Math.round((16 * Math.max(0, health)) / 100);
+      g.fillStyle(0x1a1410, 0.9).fillRect(x - 1, y - 1, 18, 4);
+      g.fillStyle(health > 50 ? 0x6fbf4a : health > 25 ? 0xe0b040 : 0xd9523f, 1).fillRect(x, y, w, 2);
     }
   }
   /** The top of the head as drawn: the frame is taller than the body, and a sleeper is only a head on the pillow. */
@@ -5230,6 +5276,7 @@ export class WorldScene extends Phaser.Scene {
       const hides =
         this.liveGraphics.occlusion &&
         !this.options.lab &&
+        this.runtime.engine.state.player.perch?.on !== id &&
         p.y * 16 + 14 < image.depth &&
         buildingContains(b, feetX, feetY - 12) &&
         [[0, -4], [0, -12], [0, -22], [-4, -14], [4, -14]].filter(([dx, dy]) => {
@@ -5489,13 +5536,16 @@ export class WorldScene extends Phaser.Scene {
       const previous = this.destinations.get(id);
       // Climbing moves the sprite without moving the tile, so the tile alone
       // cannot say whether there is anything to redraw.
+      const perch = id === "player" ? this.runtime.engine.state.player.perch : undefined;
       const perchKey =
         id === "player"
-          ? (this.runtime.engine.state.player.perch?.on ??
+          ? (perch?.roof ? "roof" : perch?.on ??
             (this.runtime.engine.onWall() ? "wall" : ""))
           : "";
       const wasPerched = (im.getData("perch") as string | undefined) ?? "";
+      const roofAt = perch?.roof && perch.at ? `${perch.at.x},${perch.at.y}` : "";
       const moved =
+        (im.getData("roofAt") ?? "") !== roofAt ||
         !previous ||
         previous.x !== pos.x ||
         previous.y !== pos.y ||
@@ -5512,6 +5562,7 @@ export class WorldScene extends Phaser.Scene {
       if (!moved) return;
       this.destinations.set(id, { ...pos });
       im.setData("perch", perchKey);
+      im.setData("roofAt", roofAt);
       const roll =
         rt.shoveEffect?.path &&
         rt.shoveEffect.serial !== this.rolledSerial &&
@@ -7214,6 +7265,7 @@ export class WorldScene extends Phaser.Scene {
     this.drawGuide(time);
     this.drawTraders(time);
     this.drawCastMarks(time);
+    this.drawFightBars();
     this.combat().consume(this.runtime.swingEffect);
     this.combat().consumeThrow(this.runtime.throwEffect);
     this.combat().consumeEvents(this.runtime.engine.signals);
@@ -7471,7 +7523,7 @@ export class WorldScene extends Phaser.Scene {
         // cell south, whose top would otherwise hide nothing.
         (perched
           ? id === "player" && this.runtime.engine.state.player.perch
-            ? perched + 4
+            ? perched + 4 + this.roofDepth()
             : perched + 2 - (this.wallFooting(id)?.dy ?? 0)
           : 0) +
         this.lift(im.x, (this.destinations.get(id)?.y ?? 0) * 16 + 16) -

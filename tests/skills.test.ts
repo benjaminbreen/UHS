@@ -321,7 +321,7 @@ it("makes a new thing from two carried things, by its shape and what went in", (
   expect(engine.item(id)).toMatchObject({
     name: "Fine log raft",
     floats: true,
-    made: { form: "raft", body: "wood", trim: "stone" },
+    made: { form: "raft", body: "wood", trim: "stone", grade: "fine" },
   });
   expect(p.inventory).toMatchObject({ wood: 2, stone: 0, [id]: 1 });
   expect(engine.state.clock - clock).toBe(1800);
@@ -341,4 +341,14 @@ it("makes a new thing from two carried things, by its shape and what went in", (
   expect(p.inventory["x-half-a-raft"]).toBeGreaterThan(0);
   expect(giftOf(engine.item("x-half-a-raft")!, "Ana").regard).toBe(-1);
   expect(giftOf(engine.item(id)!, "Ana").line).toContain("You made this?");
+
+  // A beginner who succeeds gets the model's own name for a beginner's work, and keeps the knife.
+  p.skills = {};
+  p.inventory = { wood: 8, knife: 1 };
+  engine.state.catalog!.knife = { id: "knife", name: "Knife", sprite: "", value: 2, hand: { edge: true } } as never;
+  const goddess = { type: "make" as const, from: ["wood", "knife"] as [string, string], name: "carved goddess", description: "", form: "figure" as const,
+    difficulty: 1, crude: { name: "Goddess, approximately", description: "She has a face, of a kind." }, flop: { name: "Stick with a notch", description: "", form: "pole" as const } };
+  for (let n = 0; n < 8 && !engine.item("x-goddess-approximately"); n++) engine.execute({ type: "narrate", intents: [goddess] });
+  expect(engine.item("x-goddess-approximately")).toMatchObject({ description: "She has a face, of a kind.", made: { grade: "crude" } });
+  expect(p.inventory.knife).toBe(1);
 });

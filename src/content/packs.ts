@@ -106,6 +106,8 @@ export const items: Record<
   snare: { id: "snare", name: "Snare", description: "A running noose of cord or wire on a peg, set where a hare or a bird runs. Set it, leave it overnight, and come back to see what it has caught.", sprite: "snare", value: 1, hand: {} },
   hound: { id: "hound", name: "Hunting dog", description: "A dog that goes out with you: it runs down hares and birds and holds a deer or a boar at bay until you come up. Dogs hunted with people for at least fifteen thousand years.", sprite: "hound", value: 20 },
   hawk: { id: "hawk", name: "Hawk", description: "A trained hawk or falcon carried hooded on a gloved fist and cast off at birds and hares. It comes back to the fist for meat.", sprite: "hawk", value: 40, hand: {} },
+  cudgel: { id: "cudgel", name: "Cudgel", description: "A short, heavy stick with a knobbed head: a lathi, a shillelagh, a footpad's bludgeon. Cheap, easily hidden, and enough to put a traveller on the ground.", sprite: "cudgel", value: 2, hand: { strike: true } },
+  pistol: { id: "pistol", name: "Pistol", description: "A short gun fired from one hand, loaded from the muzzle with a ball and powder. One shot, then a long reload: a highwayman's threat more than his weapon.", sprite: "pistol", value: 24, hand: {} },
   sling: { id: "sling", name: "Sling", description: "Two cords and a pouch; whirled overhead, it hurls a stone hard enough to kill.", sprite: "sling", value: 3, hand: {} },
 };
 export const packs: Record<string, Pack> = resolvePlayablePacks();

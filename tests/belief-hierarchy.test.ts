@@ -28,6 +28,7 @@ const hathor: Power = {
 const belief: PersonalBelief = {
   system: {
     id: "test-egypt",
+    realm: "egypt",
     label: "Test Egyptian practice",
     scope: { years: [-1550, -1069] },
     powers: [amun, osiris, isis, hathor],

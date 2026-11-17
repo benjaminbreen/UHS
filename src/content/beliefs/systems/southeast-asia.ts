@@ -8,6 +8,7 @@ import { theravadaTripleGem } from "../kits/buddhist";
 const southeastAsiaBase: readonly BeliefSystem[] = [
   {
     id: "se-asia-early-foragers",
+    realm: "earth",
     label: "Early forager and hunter communities",
     scope: { years: [-8000, -2000], bounds: [92, -11, 142, 25] },
     wiki: "https://en.wikipedia.org/wiki/Prehistory_of_Southeast_Asia",
@@ -74,6 +75,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-austronesian-animism",
+    realm: "ocean",
     label: "Austronesian ancestor and spirit practice",
     scope: { years: [-2000, 800], bounds: [92, -11, 142, 25] },
     wiki: "https://en.wikipedia.org/wiki/Austronesian_peoples",
@@ -152,6 +154,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-early-hindu-buddhism",
+    realm: "hindu",
     features: ["sacred-texts"],
     label: "Early Hindu-Buddhist kingdoms and villages",
     scope: { years: [-500, 1200], bounds: [92, -10, 145, 24] },
@@ -224,6 +227,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-funan-hindu-buddhism",
+    realm: "hindu",
     features: ["sacred-texts"],
     label: "Funan and early Champa Hindu-Buddhist courts",
     scope: { years: [1, 650], bounds: [99, 8, 108, 16] },
@@ -303,6 +307,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-angkorian-devaraja",
+    realm: "hindu",
     label: "Khmer Angkorian devaraja cult",
     scope: { years: [790, 1431], bounds: [102, 10, 106, 15] },
     wiki: "https://en.wikipedia.org/wiki/Devaraja",
@@ -383,6 +388,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-theravada-burma",
+    realm: "buddhist",
     features: ["sacred-texts"],
     label: "Theravada Burma with nat worship",
     scope: { years: [1050, 1885], bounds: [92, 9, 102, 29] },
@@ -465,6 +471,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-theravada-siam",
+    realm: "buddhist",
     features: ["sacred-texts"],
     label: "Theravada Siam and Lao practice",
     scope: { years: [1238, 1885], bounds: [99, 13, 108, 21] },
@@ -550,6 +557,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-majapahit",
+    realm: "hindu",
     label: "Majapahit Hindu-Buddhist Java",
     scope: { years: [1200, 1600], bounds: [100, -11, 130, -4] },
     wiki: "https://en.wikipedia.org/wiki/Majapahit",
@@ -635,6 +643,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-islamic-java-malay",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Islamic Java and Malay sultanates",
     scope: { years: [1200, 1900], bounds: [92, -10, 130, 10] },
@@ -722,6 +731,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "champa-hindu-buddhist",
+    realm: "hindu",
     label: "Cham Hindu and Buddhist practice",
     wiki: "https://en.wikipedia.org/wiki/Champa",
     scope: { years: [200, 1471], bounds: [106.5, 10.5, 109.5, 17] },
@@ -758,6 +768,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-vietnamese-ancestor",
+    realm: "chinese",
     label: "Vietnamese ancestor veneration and Mahayana",
     scope: { years: [-200, 1900], bounds: [104, 8, 109, 24] },
     wiki: "https://en.wikipedia.org/wiki/Vietnamese_folk_religion",
@@ -843,6 +854,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-upland-animism",
+    realm: "earth",
     label: "Upland and forest animism",
     // A catch-all for the hills; any lowland tradition in the box wins.
     priority: -1,
@@ -923,6 +935,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-philippine-anito",
+    realm: "latin",
     label: "Philippine anito practice and Catholic syncretism",
     scope: { years: [1000, 1900], bounds: [117, 5, 127, 20] },
     wiki: "https://en.wikipedia.org/wiki/Philippine_mythology",
@@ -1015,6 +1028,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-sulawesi-moluccas-islam",
+    realm: "islam",
     features: ["sacred-texts"],
     label: "Islamic sultanates in Sulawesi and the Moluccas",
     scope: { years: [1200, 1900], bounds: [110, -11, 145, 5] },
@@ -1103,6 +1117,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-colonial-modernization",
+    realm: "buddhist",
     label: "Colonial and postcolonial modernization",
     scope: { years: [1850, 2025], bounds: [92, -11, 142, 25] },
     wiki: "https://en.wikipedia.org/wiki/History_of_Southeast_Asia",

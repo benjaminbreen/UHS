@@ -23,7 +23,7 @@ export function telling(w: Word, name: (id: string) => string | undefined) {
   if (w.about || (!w.object && !w.victim)) return w.act;
   const whose = w.victim ? name(w.victim) : undefined;
   if (w.hops >= 3) return w.tone < 0 ? "made trouble for people" : "did people good turns";
-  if (!w.object) return `${w.act} ${w.hops >= 2 || !whose ? "someone" : whose}`;
+  if (!w.object || w.object === whose) return `${w.act} ${w.hops >= 2 || !whose ? "someone" : whose}`;
   return w.hops >= 2 || !whose ? `${w.act} a ${w.object}` : `${w.act} ${whose}'s ${w.object}`;
 }
 
@@ -43,6 +43,21 @@ export function reputation(s: Snapshot) {
     }
   const name = (id: string) => s.actors.find((a) => a.id === id)?.name;
   return told.sort((x, y) => y.people - x.people).map(({ w, people }) => ({ what: telling(w, name), tone: w.tone, people }));
+}
+
+/** Everything anyone saw or heard the player do, each deed once, as the
+ * person who saw it would tell it. */
+export function deeds(s: Snapshot) {
+  const seen: Word[] = [];
+  for (const a of s.actors)
+    for (const w of a.word ?? []) {
+      if (w.about) continue;
+      const t = seen.find((x) => same(x, w));
+      if (!t) seen.push({ ...w });
+      else if (w.hops < t.hops) Object.assign(t, w);
+    }
+  const name = (id: string) => s.actors.find((a) => a.id === id)?.name;
+  return seen.sort((x, y) => x.tone - y.tone).map((w) => ({ what: telling({ ...w, hops: Math.min(w.hops, 1) }, name), tone: w.tone }));
 }
 
 export const askLines: Record<Ask["kind"], (what: string) => string> = {
