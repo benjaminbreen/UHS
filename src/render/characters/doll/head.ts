@@ -479,6 +479,24 @@ function drawHair(h: Head, st: Style, lo: number, capped: boolean) {
       if (on) hair.set(c, r);
     }
   });
+  // Hair and its outline stay a clear column off the eyes; what that takes
+  // from the temples goes back on outside the skull.
+  if (view === "front" || view === "q") {
+    const sp = a.face?.eyeSpacing === "close" ? 1 : a.face?.eyeSpacing === "wide" ? -1 : 0;
+    const lash = a.physique?.sex === "female" && !h.child ? 1 : 0;
+    const { X, Y } = local(h);
+    for (const r of [5, 6, 7]) {
+      const [c0, c1] = edge(r);
+      const left = (view === "front" ? 1 - lash : 3) + sp, right = 12 + lash - sp;
+      let cut = 0;
+      for (let c = left + 1; c <= 6; c++) if (hair.mask.has(X(c), Y(r))) hair.mask.clear(X(c), Y(r)), cut++;
+      if (cut && r < 7) hair.set(c0 - 1, r);
+      if (view !== "front") continue;
+      cut = 0;
+      for (let c = right - 1; c >= 7; c--) if (hair.mask.has(X(c), Y(r))) hair.mask.clear(X(c), Y(r)), cut++;
+      if (cut && r < 7) hair.set(c1 + 1, r);
+    }
+  }
   // The ears stay out of side-view hair.
   if (view === "side" && st.side < 5) [[5, 7], [5, 8], [6, 8]].forEach(([c, r]) => hair.mask.clear(local(h).X(c), local(h).Y(r)));
   if (view === "q" && st.side < 5) [[2, 7], [2, 8], [3, 8]].forEach(([c, r]) => hair.mask.clear(local(h).X(c), local(h).Y(r)));
@@ -557,16 +575,24 @@ function drawHair(h: Head, st: Style, lo: number, capped: boolean) {
     if (view === "q") for (let r = line; r < back; r++) hair.set(edge(r)[0] - 1, r);
     if (view === "back" || view === "bq") for (let r = 4; r < back; r++) hair.set(edge(r)[0] - 1, r).set(edge(r)[1] + 1, r);
   }
+  // One mass with a band of light arcing over the crown, toward the side the
+  // light comes from, and a break in it.
+  const band = (x: number, y: number) => {
+    const c = x - h.x0 + (s.key < 0 ? 1 : -1);
+    return c >= 3 && c <= 10 && c !== 6 + swept * 2 && y - h.y0 === (c <= 4 || c >= 9 ? 2 : 1);
+  };
+  const facingOut = view === "front" || view === "q" || view === "side";
   s.put(hair.mask, HAIR, {
     ring: "line",
     merge: true,
     shade: 0.3,
-    light: 0.3,
-    top: true,
+    light: facingOut ? 0 : 0.3,
+    top: !facingOut,
+    bottom: facingOut,
     cast: true,
     tone: (x, y, t) => {
       if (cut === "locs" && y > h.y0 + 1) return x % 2 ? Math.min(t, 2) : t;
-      if (t === 3 && y === h.y0 + 1 && (x + swept) % 3 === 0) return 4;
+      if (facingOut && t >= 2 && band(x, y)) return 4;
       // Two strands down the back of the head, so it is not one flat mass.
       const c = x - h.x0,
         r = y - h.y0;

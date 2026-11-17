@@ -1937,8 +1937,10 @@ function drawLeg(s: Sheet, t: Turn, leg: Limb, k: Kit, dark: number) {
     light: k.legs === SKIN ? 0 : 0.3,
     dark,
     zone: (x, y) => (boots && shin(y) ? BOOT : k.fishnet && (x + y) % 2 === 0 ? EYE : k.breeches && y > ky ? SOLE : k.legs),
-    tone: (_x, y, tone) =>
+    tone: (x, y, tone) =>
       wrapped && y < ay - 1 && y > ky - 2 && y % 2 === 0 ? Math.min(tone, 2)
+      // A bare knee.
+      : k.legs === SKIN && !k.fishnet && tone === 3 && y === Math.round(ky) && x === rnd(kx) ? 2
       // The knee band.
       : k.breeches && y === Math.round(ky) ? Math.min(tone, 1)
       // A boot's top turns down in a lighter cuff.
@@ -2143,6 +2145,9 @@ function garment(
     if (k.material === "silk" && Math.round(dx) === Math.round(key * 2)) return 4;
     // Barkcloth is painted: bands of dark pigment, ticked between.
     if (k.material === "barkcloth" && ((y - top) % 4 === 3 || ((y - top) % 8 < 3 && (x - Math.round(c)) % 4 === 0))) return 1;
+    // Bare to the waist: the line under the chest, and the navel.
+    if (bare && facing && y === top + 3 && Math.abs(dx) > 0.6 && Math.abs(dx) < 3.2) return 2;
+    if (bare && facing && y === yOf(d.hip + 1) && Math.abs(dx) < 0.6) return 2;
     // The cloth blouses over a belt.
     if (k.belt !== "none" && !bare && y === yOf(d.hip + 2)) return 2;
     // Pockets on a coat, either side below the belt.
