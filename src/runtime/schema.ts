@@ -612,6 +612,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
         "ship",
         "enter",
         "exit",
+        "lift",
         "open",
         "close",
         "knock",

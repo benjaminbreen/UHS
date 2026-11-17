@@ -1784,6 +1784,176 @@ class Office(Block):
         self.foot(GRANITE)
 
 
+# ------------------------------------------------------------------ the setback skyscraper
+
+class Skyscraper(Block):
+    """The setback skyscraper of New York and Chicago, 1923-1955: a stone base
+    round a bronze portal, a shaft of brick piers running unbroken past dark
+    spandrels, terraces where the 1916 zoning law stepped it back, and a crown:
+    stepped, a steel spire, or a plain parapet round the water tank."""
+    FLOORS = dict(tall=14, row=10, wide=12, hall=11)
+    H0, H1, PARA, HEAD = 70, 38, 4, 150
+
+    def plan(self):
+        self.door_x = self.x0 + self.W // 2
+        self.door_size = (26, 46)
+
+    def half(self, i):
+        """Half the width of storey i's face; the top storeys step back twice."""
+        n, W = self.floors, self.W
+        k = 1 if i < n - 4 else 0.72 if i < n - 1 else 0.46
+        return int(W * k) // 2
+
+    def paint(self):
+        c, s, sd = self.c, self.s, self.seed
+        x0, x1, W, base = self.x0, self.x1, self.W, self.base
+        mid = (x0 + x1) // 2
+        wall, stone, sp, acc = s['wall'], s['stone'], s['spandrel'], s['accent']
+        g = TINT['sky']
+        n = self.floors
+        for i in range(n):
+            t, b = self.floor(i)
+            hw = self.half(i)
+            a, z = mid - hw, mid + hw
+            if i == 0:
+                panels(c, a, t, z - a, b - t, stone, 24, 14, 2, sd)
+                continue
+            c.rect(a, t, z - a, b - t, wall[3])
+            # bays of 16: a pier, then a window over a spandrel in the recess
+            for bx in range(a, z - 6, 16):
+                c.rect(bx, t, 5, b - t, wall[2])
+                c.rect(bx, t, 1, b - t, wall[1])
+                c.rect(bx + 4, t, 1, b - t, wall[4])
+                wx, ww = bx + 6, min(9, z - bx - 7)
+                if ww < 5:
+                    continue
+                wy, wh = t + 4, b - t - 15
+                for yy in range(wy, wy + wh):
+                    c.rect(wx, yy, ww, 1, g[2] if yy < wy + wh * 0.45 else g[3])
+                c.rect(wx, wy, ww, 1, g[4])
+                c.rect(wx, wy + wh // 2, ww, 1, CREAM[3])
+                c.p(wx, wy + 1, g[1])
+                self.panes.append((wx, wy, ww, wh, 'warm', h2(wx, wy, sd) < 0.42))
+                # the spandrel, with a chevron in the accent
+                c.rect(wx, wy + wh, ww, 11, sp[3])
+                c.rect(wx, wy + wh, ww, 1, sp[1])
+                for k in range(ww):
+                    c.p(wx + k, wy + wh + 5 - min(k, ww - 1 - k) // 2 + 1, acc[2])
+            c.rect(z - 5, t, 5, b - t, wall[2])
+            c.rect(z - 1, t, 1, b - t, wall[4])
+            c.rect(a, t, 1, b - t, wall[1])
+            if i == 1:
+                c.rect(a, b - 4, z - a, 4, stone[1])
+                c.rect(a, b - 4, z - a, 1, stone[0])
+                for xx in range(a, z):
+                    c.p(xx, b - 2 + (abs(xx % 8 - 4) > 2), acc[3])
+        # terraces where the face steps back, seen from above
+        for i in range(1, n):
+            lo, hi = self.half(i - 1), self.half(i)
+            if hi >= lo:
+                continue
+            y = self.floor(i)[1]
+            for a, z in ((mid - lo, mid - hi), (mid + hi, mid + lo)):
+                c.rect(a, y - 7, z - a, 7, TAR[2])
+                c.rect(a, y - 7, z - a, 2, wall[1])
+                c.rect(a, y - 7, z - a, 1, wall[0])
+                c.rect(a, y - 1, z - a, 1, wall[0])
+            cast_right(c, mid + hi, y - 5, 5, 2)
+            op.cast(c, mid - hi, y, 2 * hi, 2, 0.8)
+        top = self.floor(n - 1)[0]
+        hw = self.half(n - 1)
+        crown = s['crown']
+        c.rect(mid - hw - 1, top - 3, 2 * hw + 2, 3, acc[2])
+        c.rect(mid - hw - 1, top - 3, 2 * hw + 2, 1, acc[0])
+        if crown == 'step':
+            y = top - 3
+            for k, w_ in enumerate((hw - 6, hw - 14, hw - 22)):
+                if w_ < 6:
+                    break
+                h_ = 12
+                c.rect(mid - w_, y - h_, 2 * w_, h_, wall[2])
+                c.rect(mid - w_, y - h_, 1, h_, wall[1])
+                c.rect(mid + w_ - 1, y - h_, 1, h_, wall[4])
+                for xx in range(mid - w_ + 4, mid + w_ - 3, 6):
+                    c.rect(xx, y - h_ + 3, 2, h_ - 5, sp[3])
+                c.rect(mid - w_ - 1, y - h_ - 2, 2 * w_ + 2, 2, acc[1])
+                c.rect(mid - w_ - 1, y - h_ - 2, 2 * w_ + 2, 1, acc[0])
+                op.cast(c, mid - w_, y - h_, 2 * w_, 2, 0.8)
+                y -= h_ + 2
+            c.rect(mid - 1, y - 30, 2, 30, STEEL[2])
+            c.p(mid - 1, y - 30, STEEL[0])
+            self.tube([(mid, y - 32)], 'red', 'beacon', 'blink')
+        elif crown == 'spire':
+            y = top - 3
+            for k in range(4):
+                r_ = hw - 4 - k * (hw // 5)
+                if r_ < 6:
+                    break
+                for i in range(-r_, r_ + 1):
+                    h_ = round(r_ * 0.75 * math.sqrt(max(0.0, 1 - (i / r_) ** 2)))
+                    for j in range(h_):
+                        e = h_ - j
+                        col = STEEL[1] if e <= 2 else STEEL[2] if i < 0 else STEEL[3]
+                        if 3 < e < h_ - 3 and abs(i) < r_ - 3 and (i + 64) % 6 < 2 and e % 5 < 3:
+                            col = g[4]
+                        c.p(mid + i, y - j, col)
+                    c.p(mid + i, y - h_, STEEL[0])
+                y -= round(r_ * 0.75) - 3
+            for j in range(46):
+                w_ = max(0, round(3 * (1 - j / 46)))
+                c.rect(mid - w_, y - j, w_ + 1, 1, STEEL[1])
+                c.rect(mid + 1, y - j, w_, 1, STEEL[3])
+            c.p(mid, y - 46, STEEL[0])
+        else:
+            # the water tank on its steel stand, behind a plain parapet
+            c.rect(mid - hw, top - 8, 2 * hw, 5, wall[2])
+            c.rect(mid - hw, top - 8, 2 * hw, 1, wall[0])
+            tx, tw, ty = mid + hw // 3 - 9, 18, top - 30
+            for lx in (tx + 2, tx + tw - 4):
+                c.rect(lx, ty + 14, 2, 10, INK[2])
+            c.rect(tx + 1, ty + 18, tw - 2, 1, INK[3])
+            for xx in range(tw):
+                col = SHAKE[1] if xx < 3 else SHAKE[2] if xx < tw - 4 else SHAKE[4]
+                c.rect(tx + xx, ty, 1, 14, col)
+            for yy in (ty + 3, ty + 9):
+                c.rect(tx, yy, tw, 1, INK[3])
+            for xx in range(tw + 2):
+                h_ = round(5 * (1 - abs(xx - (tw + 1) / 2) / ((tw + 2) / 2)))
+                c.rect(tx - 1 + xx, ty - h_, 1, h_, SHAKE[3] if xx > tw / 2 else SHAKE[1])
+            bx = mid - hw + 6
+            c.rect(bx, top - 20, 16, 12, wall[2])
+            c.rect(bx, top - 20, 16, 2, wall[0])
+            c.rect(bx + 5, top - 15, 6, 7, INK[3])
+        # the portal: two storeys of stone round bronze doors under a stepped head
+        t1 = self.floor(1)[0] + 8
+        pw = 40 if W >= 128 else 32
+        px = mid - pw // 2
+        c.rect(px - 4, t1, pw + 8, base - t1, stone[1])
+        c.rect(px - 4, t1, 1, base - t1, stone[0])
+        c.rect(px + pw + 3, t1, 1, base - t1, stone[4])
+        for k in range(3):
+            c.rect(px + k * 3, t1 + 4 + k * 3, pw - k * 6, base - t1 - 4 - k * 3, stone[2 + k])
+        rx, rw = px + 9, pw - 18
+        c.rect(rx, t1 + 13, rw, base - t1 - 13, ROOM[5])
+        for yy in range(t1 + 15, base - 48):
+            for xx in range(rx + 2, rx + rw - 2):
+                a_, b_ = (xx - rx) % 5, (yy - t1) % 6
+                c.p(xx, yy, acc[1] if a_ == 0 or b_ == 0 else g[3] if (xx + yy) % 7 else g[2])
+        self.panes.append((rx + 2, t1 + 15, rw - 4, base - 48 - t1 - 15, 'warm', True))
+        c.rect(rx, base - 48, rw, 2, acc[1])
+        glass_door(self, mid, base, 22, 44, GOLD)
+        op.cast(c, rx, t1 + 13, rw, 3, 0.6)
+        for xx in range(px - 4, px + pw + 4):
+            c.p(xx, t1 - 1, stone[0])
+        for k in range(4):
+            c.rect(mid - 3 - k * 3, t1 - 5 - k * 3 + 3, 6 + k * 6, 2, acc[2 if k % 2 else 1])
+        for lx in (px - 9, px + pw + 5):
+            c.rect(lx, base - 32, 4, 8, GOLD[2])
+            c.rect(lx + 1, base - 31, 2, 5, CREAM[0])
+            self.lamp(lx + 2, base - 29)
+        self.foot(GRANITE)
+
+
 # ------------------------------------------------------------------ the picture palace
 
 class Theatre(Block):
@@ -3645,6 +3815,11 @@ LOOKS = {
         dict(glass='bronze', mullion=BRONZE, spandrel=BRONZE, roofname='MUTUAL'),
         dict(glass='green', mullion=ALU, spandrel=INK, pier=PINKGRAN, pediment=True),
     ]),
+    'deco': (Skyscraper, 'Setback skyscraper', [
+        dict(wall=BUFF, stone=LIMESTONE, spandrel=INK, accent=GOLD, crown='step'),
+        dict(wall=WHITE, stone=GRANITE, spandrel=INK, accent=STEEL, crown='spire'),
+        dict(wall=BRICK, stone=LIMESTONE, spandrel=CHOCOLATE, accent=SAGE, crown='tank'),
+    ]),
     'theatre': (Theatre, 'Picture palace', [
         dict(wall=TERRA, accent=RED, accent2=GOLD, name='STATE', neon='red', marquee=['TONIGHT', 'DOUBLE FEATURE']),
         dict(wall=CREAM, accent=TEAL, accent2=GOLD, name='LYRIC', neon='blue', marquee=['NOW SHOWING', 'AT 7 & 9']),
@@ -3723,6 +3898,7 @@ ABOUT = {
     'motel': ('modern-stucco', 'A motel: a row of rooms, each door on the parking lot, and a pole sign by the road.'),
     'bank': ('white-plaster', 'A savings bank in stone and glass with a time-and-temperature sign.'),
     'strip': ('bengal-brick', 'A strip center: a row of small shops under one shake mansard.'),
+    'deco': ('limestone', 'A setback office tower of brick piers over a limestone base, with a stepped or steel crown.'),
     'office': ('blue-glass', 'A curtain-wall office block of glass and aluminium.'),
     'theatre': ('ochre-plaster', 'A picture palace with a marquee and a lit vertical sign.'),
     'moderno': ('modern-stucco', 'A concrete apartment block over shops with roll-down shutters and painted signs.'),
@@ -3808,7 +3984,7 @@ from art import front_family  # noqa: E402
 FORMS = dict(
     falsefront='row shop tall cottage', brick='row shop wide tall hall', diner='row shop cottage',
     motel='row wide cottage hall', bank='row shop tall hall', strip='row shop wide hall',
-    office='row wide tall hall', theatre='row tall hall', moderno='row shop wide tall cottage hall',
+    office='row wide tall hall', deco='row wide tall hall', theatre='row tall hall', moderno='row shop wide tall cottage hall',
     zakkyo='row shop tall cottage hut', stalinka='row wide tall hall', panelka='row wide tall hall',
     tehran='row shop wide tall hall', delhi='row shop tall cottage hut', veranda='row shop wide tall cottage',
     bokaap='row shop cottage hut')
@@ -3848,7 +4024,7 @@ def now():
 SHOW = {'falsefront': [('row', 12), ('tall', 10), ('cottage', 6)], 'brick': [('row', 12), ('tall', 10), ('shop', 7)],
         'diner': [('row', 10), ('shop', 7)], 'motel': [('hall', 17), ('cottage', 6)],
         'bank': [('row', 12), ('tall', 10)], 'strip': [('hall', 17), ('row', 8)],
-        'office': [('tall', 10), ('row', 12), ('shop', 7)], 'theatre': [('row', 11), ('tall', 9)],
+        'office': [('tall', 10), ('row', 12), ('shop', 7)], 'deco': [('tall', 9), ('tall', 12)], 'theatre': [('row', 11), ('tall', 9)],
         'moderno': [('row', 12), ('tall', 10), ('shop', 7)], 'zakkyo': [('tall', 6), ('row', 7), ('hut', 4)],
         'stalinka': [('row', 12), ('tall', 10), ('shop', 7)], 'panelka': [('row', 12), ('tall', 9), ('cottage', 6)],
         'tehran': [('row', 12), ('tall', 9), ('shop', 7)], 'delhi': [('row', 12), ('tall', 8), ('cottage', 6)],

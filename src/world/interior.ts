@@ -2,6 +2,7 @@ import { buildingUse, interiorProfileFor, type InteriorSite } from "../content/i
 import { shopFor, shopKind } from "../content/interiors/shops";
 import { factoryFor } from "../content/interiors/factories";
 import { officeFor } from "../content/interiors/offices";
+import type { InteriorProfile } from "../content/interiors/types";
 import { planBuilding, type PlacedRoom, type RoomPlan } from "../render/interiors/building";
 import type { Finish, Kind, Prop, RoomParams, Trade } from "../render/interiors/room";
 import type { Place, Point } from "../core/types";
@@ -112,13 +113,13 @@ function wheelThrown({ lon, lat, year }: InteriorSite) {
 /** Builds the room a household lives in: its profile from place and date, its
  * finish from the household's fortune, its furniture from the trade. Rooms
  * are larger than the building outside; that is deliberate. */
-export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: number; activity?: string; hour?: number; good?: string; bench?: string }): InteriorLayout {
+export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: number; activity?: string; hour?: number; good?: string; bench?: string; profile?: InteriorProfile; colorway?: number; storey?: number }): InteriorLayout {
   const seed = seedOf(place.id);
   const found = interiorProfileFor(site);
   // Çatalhöyük's plan behind a street door, where the house outside has one.
   const home = found.door === "none" && !site.roofHatch && site.frame ? { ...found, door: "door" as const } : found;
   // An industrial lot is its works; a house open to the street is its keeper's shop, if their trade keeps one.
-  const works = buildingUse(place.claim) ? undefined : place.landUse === "industrial" ? factoryFor(place.name, site.year, seed) : place.landUse === "downtown" ? officeFor(place.name, site.year) : undefined;
+  const works = o.profile ?? (buildingUse(place.claim) ? undefined : place.landUse === "industrial" ? factoryFor(place.name, site.year, seed) : place.landUse === "downtown" ? officeFor(place.name, site.year) : undefined);
   const kind = !works && place.access === "public" && !buildingUse(place.claim) && !home.uses ? shopKind(`${place.name} ${o.activity ?? ""}`, o.good) : undefined;
   const profile = works ?? (kind ? shopFor(home, kind, site, o.bench) : home);
   const status: Finish = o.fortune === undefined ? 1 : o.fortune < 0.34 ? 0 : o.fortune < 0.72 ? 1 : 2;
@@ -128,7 +129,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   const building = planBuilding(profile, {
     seed,
     status,
-    colorway: -1,
+    colorway: o.colorway ?? -1,
     w: Math.max(6, Math.round(tw * k)),
     d: Math.max(5, Math.round(td * k)),
     shape: seed % 10 < 6 ? shapes[0] : shapes[seed % shapes.length],
@@ -137,6 +138,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   });
   const { plan, props } = building;
   if (!wheelThrown(site)) for (const r of plan.rooms) r.styles = { ...r.styles, throw: "coil" };
+  if (o.storey !== undefined) for (const r of plan.rooms) r.storey = o.storey;
   // The house as a whole: its size, its way in, and the first room's look for what is not a room's own.
   const params: RoomParams = { ...plan.rooms[0], w: plan.w, d: plan.d, entrance: plan.entrance[0] >= 0 ? plan.entrance[0] : undefined };
   const mask = plan.mask;

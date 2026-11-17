@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { interiorProfiles, resolveRoom } from "../src/content/interiors";
 import { interiorProfileFor } from "../src/content/interiors/select";
-import { buildInterior } from "../src/world/interior";
+import { buildInterior, ROOM_ORIGIN } from "../src/world/interior";
+import { resolveSetting } from "../src/content/geography/resolve";
 import { planRoom, roomMask, type Shape } from "../src/render/interiors/room";
 import { LETTERS, SPRITES } from "../src/render/interiors/sprites";
 import { ALTARS } from "../src/render/interiors/altars";
@@ -537,4 +538,24 @@ it("lays out hospital wards with repeated beds, a clear aisle and regional beddi
     if(site.use==="worksite.sri-lankan-infirmary") expect(pr.rooms?.filter(r=>r.role==="sleep")).toHaveLength(4);
     else expect(pr.program).toBe("ward");
   }
+});
+
+describe("towers", () => {
+  it.runIf(!!process.env.FULL)("lets a New York tower by its floors, and its lift carries the player up", () => {
+    const resolved = resolveSetting("Typist in New York 1930", "tower");
+    if (!("setting" in resolved)) throw Error("Fixture setting");
+    const e = createSettingSession(resolved.setting, "tower");
+    const place = e.world.places.find((p) => p.sprite?.startsWith("mod-deco-"));
+    expect(place, "a deco tower downtown").toBeTruthy();
+    const tower = e.towerOf(place!.id)!;
+    expect(tower.floors.length).toBeGreaterThanOrEqual(22);
+    expect(new Set(tower.floors.map((f) => f.name)).size).toBeGreaterThan(4);
+    const lobby = e.interiorOf(place!.id)!;
+    const door = lobby.props.find((q) => q.kind === "elevator")!;
+    e.state.player.pos = { x: door.x + ROOM_ORIGIN, y: door.y + ROOM_ORIGIN + 1, space: place!.id };
+    expect(e.towerLift()?.n).toBe(0);
+    e.act({ actionId: "lift", expectedRevision: e.state.revision, command: { type: "interact", action: "lift", target: "12" } });
+    expect(e.state.player.pos.space).toBe(`${place!.id}@12`);
+    expect(e.towerLift()?.n).toBe(12);
+  });
 });

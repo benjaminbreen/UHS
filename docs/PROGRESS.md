@@ -25,6 +25,13 @@ The owner keeps this list.
 
 ## Recent milestones
 
+- November 16: skyscrapers. Downtown New York, Chicago and their neighbours
+  build setback towers from 1923 (`mod-deco` in `front_modern.py`). Each
+  storey is an ordinary interior let to a firm, planned from the seed by a
+  `TowerStyle` (`src/content/towers/`, `src/world/tower.ts`); the lift door
+  opens the tower in section, where a floor is picked and the car rides
+  there (`src/ui/TowerSection.tsx`). Windows look down on the city by
+  height. Only the New York style so far; Moscow and Tokyo are next.
 - November 16: fairs from a map. An area can be given as a rectangle on the
   fair's plan and the game sizes it, joins it to its neighbours and fills it
   by class. The 1884 International Health Exhibition is the first: 35 areas

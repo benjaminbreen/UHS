@@ -15,6 +15,7 @@ const LOOKS = {
   bank: { since: 1955, uses: ["downtown", "commercial"], accent: true },
   strip: { since: 1960, uses: ["commercial"] },
   office: { since: 1955, uses: ["downtown"] },
+  deco: { since: 1923, uses: ["downtown", "commercial"] },
   theatre: { since: 1915, uses: ["downtown", "commercial"], accent: true },
   moderno: { since: 1940, uses: ["commercial", "downtown", "tenement"] },
   zakkyo: { since: 1960, uses: ["commercial", "downtown", "tenement"] },
@@ -57,6 +58,8 @@ const HOMES: { looks: Mix; at: At; km: number; w?: number; from?: number }[] = [
   { looks: { brick: 3, strip: 1, bank: 1, office: 1, theatre: 1, gas: 0.5, market: 0.4 }, at: [[-79.4, 43.7], [-73.6, 45.5], [-114, 51], [-123, 49.3]], km: 700 },
   // Tenements and brownstones of the old Northeast and Midwest.
   { looks: { walkup: 1 }, at: [[-74, 40.7], [-71.06, 42.36], [-75.16, 39.95], [-76.6, 39.3], [-87.65, 41.88], [-79.99, 40.44]], km: 450, w: 0.5 },
+  // The setback towers the 1916 zoning law shaped, in the downtowns of the big cities that built them.
+  { looks: { deco: 1 }, at: [[-74, 40.71], [-87.63, 41.88], [-83.05, 42.33], [-75.16, 39.95], [-79.99, 40.44], [-81.69, 41.5], [-90.2, 38.63]], km: 160, w: 0.6, from: 1923 },
   // Spanish Colonial Revival, California's own; Florida's Mediterranean.
   { looks: { mission: 1 }, at: [[-118.24, 34.05], [-119.7, 34.42], [-117.16, 32.72], [-122.03, 36.97], [-121.9, 37.3]], km: 350, w: 0.35, from: 1915 },
   { looks: { mission: 1 }, at: [[-80.2, 25.8], [-112.07, 33.45]], km: 250, w: 0.15, from: 1920 },

@@ -2096,8 +2096,18 @@ export class PixelRoom {
           for (let i = 0; i < 10; i++) {
             const hill = 14 + Math.round(3 * Math.sin((i + q.seed % 7) * 0.5) + 2 * Math.sin(i * 1.3));
             let c = sky(p.hour, j / h);
-            if (j > hill) c = mix(mix(0x1a2436, 0x6c8f5a, sunNow.strength), c, 0.25);
-            if ((p.hour > 20 || p.hour < 5) && hash(i, j, q.seed) < 0.05 && j < hill) c = 0xfff2c8;
+            if (p.storey !== undefined) {
+              // Rooftops and towers fall away down the pane the higher the storey; haze takes the far ones.
+              const k = Math.min(1, p.storey / 45), b = (i + q.seed) >> 1;
+              const roof = Math.round(3 + k * 14 + hash(b, 3, q.seed) * (7 - k * 5)) - (hash(b, 5, q.seed) < 0.3 * (1 - k) ? 7 : 0);
+              if (j >= roof) {
+                c = mix(mix(0x1c2232, 0x7a7c88, sunNow.strength), c, 0.15 + k * 0.45 - (j - roof) * 0.02);
+                if ((p.hour > 19 || p.hour < 6) && hash(i, j, q.seed) < 0.12) c = 0xffe0a0;
+              }
+            } else {
+              if (j > hill) c = mix(mix(0x1a2436, 0x6c8f5a, sunNow.strength), c, 0.25);
+              if ((p.hour > 20 || p.hour < 5) && hash(i, j, q.seed) < 0.05 && j < hill) c = 0xfff2c8;
+            }
             if (!q.broken && (i - j + 40) % 9 < 1) c = mix(c, 0xffffff, 0.3);
             if (q.broken) {
               // Shards left in the corners of each pane, jagged toward the middle.

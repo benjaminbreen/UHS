@@ -576,6 +576,8 @@ export type PlayerCommand =
         | "ship"
         | "enter"
         | "exit"
+        /** Ride a tower's lift to the storey named by the target. */
+        | "lift"
         | "open"
         | "close"
         | "drink"

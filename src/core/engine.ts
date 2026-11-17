@@ -126,6 +126,7 @@ import { inWords, kinWord } from "./concerns";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
 import { livelihoodOf } from "../world/v3/routines";
+import { floorName, floorSpace, parseFloor, towerPlan, type Tower } from "../world/tower";
 import { buildInterior, ROOM_ORIGIN, spotsAt, type InteriorLayout, type Spot, type SpotRole } from "../world/interior";
 import { buildingUse } from "../content/interiors/select";
 import { vehicleAt } from "../world/v3/conveyances";
@@ -2761,18 +2762,20 @@ export class Engine {
     if (space === "outside" || space.startsWith("cave:")) return undefined;
     const known = this.interiors.get(space);
     if (known !== undefined) return known ?? undefined;
-    const place = this.world.place(space);
+    const storey = parseFloor(space);
+    const place = this.world.place(storey.place);
+    const floor = place && this.towerOf(place.id)?.floors[storey.n];
     const entrance = place?.entrance;
     const s = (entrance && this.world.geography?.packAt(entrance.x,entrance.y)?.setting) ?? this.world.pack.setting;
     const household = this.state.households?.find((h) => h.residence === space);
-    if (!place || (place.access !== "household" && !household && !buildingUse(place.claim)) || !s) {
+    if (!place || (storey.n && !floor) || (!floor && place.access !== "household" && !household && !buildingUse(place.claim)) || !s) {
       this.interiors.set(space, null);
       return undefined;
     }
     const head = [this.state.player, ...this.state.actors].find((a) => a.id === (household?.members[0] ?? place.owner));
     const exit = this.state.objects.find((o) => o.kind === "exit" && o.pos.space === space);
     const room = buildInterior(
-      place,
+      floor ? { ...place, id: space, name: floor.name } : place,
       {
         lon: s.lon,
         lat: s.lat,
@@ -2784,7 +2787,7 @@ export class Engine {
         frame: place.sprite,
         climate: s.climate,
       },
-      { fortune: household?.fortune, activity: head && livelihoodOf(this.world.pack, head)?.activity, hour: (this.state.clock / 3600) % 24, good: household?.makes?.[0], bench: propDefs[this.object(`${space}-work`)?.prop ?? ""]?.family },
+      { fortune: household?.fortune, activity: head && livelihoodOf(this.world.pack, head)?.activity, hour: (this.state.clock / 3600) % 24, good: household?.makes?.[0], bench: propDefs[this.object(`${space}-work`)?.prop ?? ""]?.family, profile: floor?.profile, colorway: floor?.colorway, storey: floor && storey.n },
     );
     this.interiors.set(space, room);
     const move = (id: string, p: Point) => {
@@ -2814,6 +2817,37 @@ export class Engine {
       }
     for (const k of [...this.terrainCollision.keys()]) if (k.startsWith(`${space}:`)) this.terrainCollision.delete(k);
     return room;
+  }
+  private towers = new Map<string, Tower | null>();
+  /** The storeys of a building that is a tower, planned once. */
+  towerOf(placeId: string) {
+    let t = this.towers.get(placeId);
+    if (t === undefined) {
+      const place = this.world.place(placeId);
+      this.towers.set(placeId, (t = (place && towerPlan(place, this.state.manifest.seed)) ?? null));
+    }
+    return t ?? undefined;
+  }
+  /** The tower and storey the player stands in, when they are beside a lift door there. */
+  towerLift() {
+    const p = this.state.player, at = parseFloor(p.pos.space), tower = this.towerOf(at.place);
+    const room = tower && this.interiorOf(p.pos.space);
+    if (!room || !room.props.some((q) => q.kind === "elevator" && Math.abs(q.x + ROOM_ORIGIN - p.pos.x) <= 1 && Math.abs(q.y + ROOM_ORIGIN - p.pos.y) <= 2)) return undefined;
+    return { tower, n: at.n };
+  }
+  /** Up or down to storey `to`: some seconds a floor, and out beside the lift there. */
+  private rideLift(to: number) {
+    const at = this.towerLift(), floor = at?.tower.floors[to];
+    if (!at || !floor || to === at.n) return;
+    const space = floorSpace(at.tower.place, to), room = this.interiorOf(space);
+    if (!room) return;
+    this.advance(Math.round(10 + Math.abs(to - at.n) * at.tower.style.lift.perFloor));
+    const door = room.props.find((q) => q.kind === "elevator");
+    const spot = door && [1, 2, 0].map((dy) => ({ x: door.x + ROOM_ORIGIN, y: door.y + ROOM_ORIGIN + dy })).find((q) => room.walk.has(`${q.x},${q.y}`));
+    const p = this.state.player;
+    p.pos = { ...(spot ?? room.entry), space };
+    p.direction = 2;
+    this.event(`The lift takes you ${to > at.n ? "up" : "down"} to ${floorName(to)}: ${floor.name}.`);
   }
   private indoorUses = new Map<string, Spot & { role: SpotRole; space: string; cooking?: boolean }>();
   /** What someone indoors is at: the bed they lie in, the seat they sit on,
@@ -7425,6 +7459,10 @@ export class Engine {
       if (!at || !this.gatherable(at.x, at.y)) return "There is nothing here to gather.";
       return distance(p.pos, { ...at, space: p.pos.space }) <= 1.5 ? undefined : "Walk closer to reach it.";
     }
+    if (c.type === "interact" && c.action === "lift") {
+      const at = this.towerLift();
+      return !at ? "There is no lift here." : !at.tower.floors[Number(c.target)] || Number(c.target) === at.n ? "The lift does not go there." : undefined;
+    }
     if (c.type === "interact" && c.action === "climb") {
       if (p.perch) return `You are already up ${p.perch.label}.`;
       return this.climbable() ? undefined : "There is nothing here to climb.";
@@ -9709,6 +9747,9 @@ export class Engine {
             this.event(`${line[0].toUpperCase()}${line.slice(1)} ${here.length > 1 ? "are" : "is"} here.`, "social");
           }
         }
+        break;
+      case "lift":
+        this.rideLift(Number(c.target));
         break;
       case "exit": {
         const home = this.world.place(p.pos.space);
@@ -12411,7 +12452,7 @@ export class Engine {
     if (this.regulars?.key === key) return this.regulars.seated;
     this.regulars = { key };
     const room = space === "outside" ? undefined : this.interiorOf(space);
-    const place = room?.regulars && this.world.place(space);
+    const storey = parseFloor(space), place = room?.regulars && this.world.place(storey.place);
     if (!room?.regulars || !place) return;
     const [from, to] = room.regulars.hours;
     if (from <= to ? hour < from || hour >= to : hour < from && hour >= to) return;
@@ -12420,7 +12461,7 @@ export class Engine {
       .filter((a) => a.kind === "human" && (a.age ?? 30) >= 16 && !a.terror && this.world.dormant?.(a.id) &&
         this.household(a.householdId)?.residence !== space && Math.hypot(a.home.x - place.entrance.x, a.home.y - place.entrance.y) <= 60)
       .sort((a, b) => random(this.state.manifest.seed, "regular", a.id, day) - random(this.state.manifest.seed, "regular", b.id, day));
-    const label = `At ${place.name.replace(/^The /, "the ")}`;
+    const label = `At ${(this.towerOf(place.id)?.floors[storey.n]?.name ?? place.name).replace(/^The /, "the ")}`;
     // Where people stand, as in a medieval nave or a playhouse pit, the floor sets the count.
     const places = Math.max(room.seats.length, Math.floor(room.walk.size / 6));
     this.regulars.seated = new Map(near.slice(0, Math.round(places * room.regulars.fill)).map((a, index) => [a.id, { space, label, index }]));

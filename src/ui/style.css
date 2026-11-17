@@ -7212,6 +7212,22 @@ button:disabled {
   cursor: pointer;
 }
 
+.modal-lift { width: min(720px, 100%); max-height: 94dvh; display: flex; flex-direction: column; }
+.tower-section { display: flex; flex-direction: column; min-height: 0; gap: 8px; }
+.tower-section h2 { margin: 0; }
+.tower-body { display: grid; grid-template-columns: auto 1fr; gap: 16px; min-height: 0; max-height: 72dvh; }
+.tower-cut { overflow-y: auto; border: 2px solid var(--gold); background: #141826; }
+.tower-cut canvas { display: block; width: 352px; image-rendering: pixelated; cursor: pointer; }
+.tower-directory { list-style: none; margin: 0; padding: 0; overflow-y: auto; font-size: 13px; }
+.tower-directory button { display: flex; gap: 10px; width: 100%; text-align: left; padding: 3px 6px; background: none; border: 0; color: var(--cream); cursor: pointer; }
+.tower-directory .floors { min-width: 44px; color: var(--gold); font-variant-numeric: tabular-nums; }
+.tower-directory li.here button { background: rgba(232, 192, 96, 0.18); }
+.tower-directory li.hover button, .tower-directory button:hover { background: rgba(255, 255, 255, 0.08); }
+@media (max-width: 640px) {
+  .tower-body { grid-template-columns: 1fr; }
+  .tower-cut canvas { width: 100%; }
+}
+
 .modal-map {
   width: min(1280px, 100%);
   max-height: 94dvh;
