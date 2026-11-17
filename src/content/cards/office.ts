@@ -131,8 +131,7 @@ export const OFFICE_CARDS: ChoiceCard[] = [
   {
     id: "office-late",
     slot: "office-boss",
-    who: "official",
-    as: "your supervisor",
+    who: "boss",
     scope: ALWAYS,
     evidence: "inferred",
     text: "Just before you go home, {name} drops a pile of work on your desk. “I need this first thing tomorrow.”",
@@ -154,8 +153,7 @@ export const OFFICE_CARDS: ChoiceCard[] = [
   {
     id: "office-credit",
     slot: "office-boss",
-    who: "official",
-    as: "your supervisor",
+    who: "boss",
     scope: ALWAYS,
     evidence: "inferred",
     text: "{Name} presents your work to the people upstairs as their own.",

@@ -3,7 +3,7 @@ import type { Runtime } from "../runtime/session";
 import { floorName, type Tower } from "../world/tower";
 
 const FH = 12, W = 176, STREET = 14;
-const CROWNS = { step: 46, spire: 92, gable: 50 } as const;
+const CROWNS = { step: 46, spire: 92, gable: 50, flat: 40, dome: 84 } as const;
 const hex = (h: string, k = 1) => {
   const n = parseInt(h.slice(1), 16);
   const c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => Math.max(0, Math.min(255, Math.round(v * k))));
@@ -101,6 +101,41 @@ function crown(g: CanvasRenderingContext2D, tower: Tower, n: number, top: number
     g.fillStyle = "#e0c060";
     g.fillRect(cx - 6, sy + 5, 2, 1);
     g.fillRect(cx + 4, sy + 5, 2, 1);
+  } else if (kind === "flat") {
+    // the louvred plant room, a cap, a mast with two lights
+    g.fillStyle = stone;
+    g.fillRect(cx - half - 1, top - 4, half * 2 + 2, 4);
+    g.fillStyle = lit;
+    g.fillRect(cx - half - 1, top - 4, half * 2 + 2, 1);
+    const pw = Math.round(half / 2);
+    g.fillStyle = dark;
+    g.fillRect(cx - pw, top - 12, pw * 2, 8);
+    g.fillStyle = stone;
+    for (let y = top - 11; y < top - 4; y += 2) g.fillRect(cx - pw + 1, y, pw * 2 - 2, 1);
+    g.fillStyle = "#9aa4b0";
+    g.fillRect(cx + pw - 6, top - 36, 1, 24);
+    beacon(g, cx + pw - 7, top - 38, night, now);
+    beacon(g, cx - half, top - 6, night, now, 0.5);
+    beacon(g, cx + half - 2, top - 6, night, now, 0.5);
+  } else if (kind === "dome") {
+    // a colonnade round the rooftop bar, a gilt dome, a mast
+    const cw = Math.round(half * 0.7);
+    g.fillStyle = stone;
+    g.fillRect(cx - half - 1, top - 3, half * 2 + 2, 3);
+    g.fillStyle = night ? "#f0c070" : "#3a3040";
+    g.fillRect(cx - cw, top - 13, cw * 2, 10);
+    g.fillStyle = lit;
+    for (let x = cx - cw; x <= cx + cw - 2; x += Math.round(cw / 3)) g.fillRect(x, top - 13, 2, 10);
+    g.fillRect(cx - cw - 1, top - 15, cw * 2 + 2, 2);
+    const r = cw - 2;
+    for (let x = -r; x <= r; x++) {
+      const h = Math.round(r * 0.9 * Math.sqrt(1 - (x / r) ** 2));
+      g.fillStyle = x < -r / 3 ? "#f0d890" : x < r / 3 ? "#c8a040" : "#8a6a28";
+      g.fillRect(cx + x, top - 15 - h, 1, h);
+    }
+    g.fillStyle = "#c8a040";
+    g.fillRect(cx, top - 26 - r, 1, 10);
+    beacon(g, cx - 1, top - 28 - r, night, now);
   } else {
     // a glass gable on a granite band, a mast at the apex, a light at each corner
     g.fillStyle = stone;
@@ -120,7 +155,7 @@ function crown(g: CanvasRenderingContext2D, tower: Tower, n: number, top: number
 
 function paint(g: CanvasRenderingContext2D, tower: Tower, here: number, car: number, hover: number | undefined, hour: number) {
   const CROWN = crownOf(tower), n = tower.floors.length, H = CROWN + n * FH + STREET, cx = W / 2;
-  const night = hour < 7 || hour >= 19, working = hour >= 9 && hour < 17, now = performance.now();
+  const night = hour < 7 || hour >= 19, now = performance.now();
   const sky = g.createLinearGradient(0, 0, 0, H);
   sky.addColorStop(0, night ? "#141826" : "#7ea6c8");
   sky.addColorStop(1, night ? "#2a2438" : "#d8e2e4");
@@ -133,9 +168,11 @@ function paint(g: CanvasRenderingContext2D, tower: Tower, here: number, car: num
   for (const f of tower.floors) {
     const i = f.n, top = yOf(i), half = halfAt(tower, i, n), x0 = cx - half, x1 = cx + half;
     const way = f.profile.colorways[f.colorway % f.profile.colorways.length];
-    const lit = !night || f.kind === "lobby" || (evening(f.kind) ? hour < 2 || hour >= 17 : hash(i, 7) < 0.3);
+    const [from, to] = f.hours, open = from <= to ? hour >= from && hour < to : hour >= from || hour < to;
+    const home = !!f.stay && hour >= 17 && hour < 23 && hash(i, 7) < 0.8;
+    const lit = !night || open || home || hash(i, 7) < 0.3;
     const dim = lit ? 1 : 0.32;
-    const busy = f.kind === "lobby" ? hour >= 7 && hour < 20 : evening(f.kind) ? lit && (hour >= 17 || hour < 2) : working;
+    const busy = open || home;
     // the room: wall, a darker dado, the floor slab
     g.fillStyle = hex(way.wall, dim);
     g.fillRect(x0, top, half * 2, FH - 2);

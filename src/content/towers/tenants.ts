@@ -24,6 +24,10 @@ export type Tenant = {
   top?: true;
   /** Open to the public, who fill it beside the few who work there. */
   customers?: true;
+  /** The hours its staff keep, where they differ from the room's. */
+  hours?: readonly [number, number];
+  /** Lived in or stayed in: people at home or guests, beside the staff. */
+  stay?: "home" | "guests";
 };
 
 type Box = readonly [number, number, number, number];
@@ -66,6 +70,14 @@ const night: Staff[] = [
   { work: "security-guard", weight: 1, night: true }, { work: "town-watchman", weight: 1, night: true, until: 1950 },
 ];
 
+/** The share of an office still at its desks for a few hours after closing. */
+export const overtime: readonly { where: readonly CharacterScope[]; share: number }[] = [
+  // Zangyo: unpaid evening overtime was the expected sign of commitment.
+  { where: [at([1955, 10001], JAPAN), at([1965, 10001], [124, 33, 131, 39])], share: 0.5 },
+  { where: SOVIET_YEARS, share: 0.05 },
+  { where: [at([1850, 10001])], share: 0.15 },
+];
+
 /** The building's own people, in the lobby. */
 export const lobbyStaff: readonly Staff[] = [
   { work: "doorman", weight: 2 }, { work: "lift-attendant", weight: 2 }, { work: "receptionist", weight: 2 },
@@ -82,7 +94,8 @@ export const tenants: readonly Tenant[] = [
     names: [
       { where: JP, say: ["{S} Law Office", "{S} & {S} Law Offices"] },
       { where: [...ASIA, ...LATIN], say: ["{S} & {S}, advocates", "{S}, {S} & Partners"] },
-      { say: ["{S}, {S} & {S}", "{S} & {S}, attorneys", "{S}, {S}, {S} & {S}", "{S} & {S} LLP"] },
+      { where: [at([1995, 10001], NORTH_AMERICA), at([1995, 10001], BRITAIN)], say: ["{S} & {S} LLP", "{S}, {S} & {S}"] },
+      { say: ["{S}, {S} & {S}", "{S} & {S}, attorneys", "{S}, {S}, {S} & {S}"] },
     ],
     staff: [{ work: "lawyer", weight: 4 }, { work: "clerk", weight: 1 }, ...desk, ...night],
     weight: 3,
@@ -124,6 +137,8 @@ export const tenants: readonly Tenant[] = [
     staff: [{ work: "broker", weight: 4 }, { work: "clerk", weight: 1 }, { work: "telephone-operator", weight: 1 }, { work: "manager", weight: 1 }, ...desk, ...night],
     weight: 2,
     run: [1, 4],
+    // The exchange opened at ten; the back office was in long before.
+    hours: [7, 18],
   },
   {
     id: "trading",
@@ -188,6 +203,8 @@ export const tenants: readonly Tenant[] = [
     staff: [{ work: "journalist", weight: 4 }, { work: "typist", weight: 1 }, { work: "office-boy", weight: 1 }, { work: "telephone-operator", weight: 1 }, ...night],
     weight: 1,
     run: [1, 2],
+    // A morning paper was written in the afternoon and put to bed after midnight.
+    hours: [11, 24],
   },
   {
     id: "typing-bureau",
@@ -219,6 +236,8 @@ export const tenants: readonly Tenant[] = [
     staff: [{ work: "telemarketer", weight: 6 }, { work: "manager", weight: 1 }, { work: "office-assistant", weight: 1 }, ...night],
     weight: 2,
     run: [1, 3],
+    // Shifts into the evening, and through the night where the calls are from another continent.
+    hours: [8, 23],
   },
   {
     id: "government",
@@ -283,6 +302,69 @@ export const tenants: readonly Tenant[] = [
     staff: [{ work: "clerk", weight: 3 }, { work: "civil-servant", weight: 1 }, { work: "accountant", weight: 1 }, { work: "typist", weight: 2 }, ...night],
     weight: 1.5,
     run: [1, 2],
+  },
+  {
+    id: "doctors",
+    room: ["clinic"],
+    where: market(1900),
+    names: [
+      { where: JP, say: ["{S} Clinic", "{S} Internal Medicine"] },
+      { say: ["Dr {S}'s practice", "{S} & {S}, physicians and surgeons", "{S} Medical Group"] },
+    ],
+    staff: [{ work: "physician", weight: 2 }, { work: "nurse", weight: 2 }, { work: "receptionist", weight: 1 }, ...night],
+    weight: 1,
+    run: [1, 1],
+    customers: true,
+  },
+  {
+    id: "dentist",
+    room: ["clinic"],
+    where: market(1900),
+    names: [{ where: JP, say: ["{S} Dental Clinic"] }, { say: ["Dr {S}, dental surgeon", "{S} Dental Practice"] }],
+    staff: [{ work: "dentist", weight: 2 }, { work: "nurse", weight: 1 }, { work: "receptionist", weight: 1 }],
+    weight: 0.7,
+    run: [1, 1],
+    customers: true,
+  },
+  {
+    id: "polyclinic",
+    room: ["clinic"],
+    where: SOVIET_YEARS,
+    names: [{ say: ["Departmental polyclinic No. {N}", "Ministry medical unit"] }],
+    staff: [{ work: "physician", weight: 2 }, { work: "nurse", weight: 3 }],
+    weight: 0.7,
+    run: [1, 1],
+    customers: true,
+  },
+  {
+    id: "flats",
+    room: ["flat"],
+    where: [at([1900, 10001])],
+    names: [
+      // Kotelnicheskaya and Kudrinskaya housed the Soviet elite: artists, scientists, test pilots.
+      { where: SOVIET_YEARS, say: ["Flats for [writers|scientists|ministry staff|test pilots|artists]"] },
+      { where: JP, say: ["{S} Mansion, residences", "Company flats"] },
+      { say: ["Apartments", "Private apartments", "The {S} residence"] },
+    ],
+    staff: [{ work: "housemaid", weight: 1, until: 1960 }, { work: "cleaner", weight: 1 }],
+    weight: 2,
+    run: [2, 8],
+    stay: "home",
+  },
+  {
+    id: "hotel",
+    room: ["hotel"],
+    where: [at([1900, 10001])],
+    names: [
+      { where: SOVIET_YEARS, say: ["Hotel [Ukraina|Leningradskaya|Moskva|Intourist]"] },
+      { where: JP, say: ["Hotel {S} Plaza", "{S} Tower Hotel"] },
+      { say: ["The {S} Hotel", "Hotel {S}", "The [Plaza|Regent|Carlton|Astor] Tower Hotel"] },
+    ],
+    staff: [{ work: "chambermaid", weight: 3 }, { work: "bellhop", weight: 1 }, { work: "waiter", weight: 1 }],
+    weight: 1.5,
+    run: [3, 12],
+    band: [0.3, 1],
+    stay: "guests",
   },
   {
     id: "bank",
@@ -359,7 +441,11 @@ export const tenants: readonly Tenant[] = [
     room: ["lounge"],
     customers: true,
     where: [at([1960, 10001])],
-    names: [{ where: JP, say: ["Sky Lounge [Orion|Hoshizora|Ginga]", "Restaurant Hoshizora"] }, { say: ["The [Summit|Skyline|Rainbow] Room"] }],
+    names: [
+      { where: JP, say: ["Sky Lounge [Orion|Hoshizora|Ginga]", "Restaurant Hoshizora"] },
+      { where: [at([1990, 10001], SOUTHEAST_ASIA)], say: ["[Cloud|Horizon|Orchid|Monsoon] Sky Bar"] },
+      { say: ["The [Summit|Skyline|Rainbow] Room"] },
+    ],
     staff: [{ work: "waiter", weight: 3 }, { work: "bartender", weight: 1 }, { work: "cook", weight: 1 }],
     weight: 1,
     run: [1, 1],

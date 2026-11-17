@@ -38,7 +38,13 @@ The owner keeps this list.
   overlays (`beacon`, `chase-<colour>`) and in the section. Floors are let
   from a catalogue of firms scoped by era and economy
   (`src/content/towers/tenants.ts`) and staffed by generated people in
-  graded office jobs (`city-work.ts`); office work has its own day.
+  graded office jobs (`city-work.ts`); office work has its own day. Floors
+  are real workplaces with their own hours, overtime and night shifts;
+  some are flats, hotels or a doctor's practice. American downtowns also
+  build glass slabs from 1952 (`mod-slab`), and Bangkok, Kuala Lumpur,
+  Singapore, Jakarta, Manila and Saigon podium towers from 1990
+  (`mod-tropic`) with a video screen, a helipad, spire or gilt dome, and a
+  rooftop bar.
 - November 16: fairs from a map. An area can be given as a rectangle on the
   fair's plan and the game sizes it, joins it to its neighbours and fills it
   by class. The 1884 International Health Exhibition is the first: 35 areas

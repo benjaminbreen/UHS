@@ -2977,7 +2977,7 @@ export class WorldScene extends Phaser.Scene {
         .setOrigin(0, 0)
         .setDepth(placement.depth + 1);
       const light = kind === "beacon" || kind.startsWith("chase-");
-      if (!kind.startsWith("flame") && !light) image.setTint(this.tint);
+      if (!kind.startsWith("flame") && !light && kind !== "led") image.setTint(this.tint);
       if (light) image.setVisible(false);
       this.layers.push(image);
       this.buildingAnimations.set(`${id}-overlay-${i}`, {
@@ -3001,7 +3001,9 @@ export class WorldScene extends Phaser.Scene {
                         ? 380
                         : kind.startsWith("chase-")
                           ? 160
-                          : 240,
+                          : kind === "led"
+                            ? 2400
+                            : 240,
         phase: random(seed, "building-overlay", id, i) * 4,
         light,
       });

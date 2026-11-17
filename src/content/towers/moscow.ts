@@ -1,3 +1,4 @@
+import { clinic, flat, hotel } from "./rooms";
 import { officeFor, withLift } from "../interiors/offices";
 import type { InteriorProfile } from "../interiors/types";
 import type { TowerStyle } from "./index";
@@ -72,5 +73,5 @@ export const moscow: TowerStyle = {
   lift: { name: "KMZ lift", perFloor: 3 },
   lobby,
   section: { stone: ["#f0e6cc", "#d8c8a4", "#8a4a3a"], halves: [[0, 80], [0.4, 60], [0.66, 44], [0.87, 30]], crown: "spire" },
-  rooms: { offices, store, suite },
+  rooms: { offices, store, suite, flat, hotel, clinic },
 };

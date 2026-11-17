@@ -1,3 +1,4 @@
+import { clinic, flat, hotel } from "./rooms";
 import { officeFor, withLift } from "../interiors/offices";
 import type { InteriorProfile } from "../interiors/types";
 import type { TowerStyle } from "./index";
@@ -116,5 +117,5 @@ export const tokyo: TowerStyle = {
   lift: { name: "Hitachi lift", perFloor: 1.2 },
   lobby,
   section: { stone: ["#e8ccc4", "#c8a8a0", "#6a5a5a"], halves: [[0, 74]], crown: "gable" },
-  rooms: { offices, snack, mahjong, school, lounge },
+  rooms: { offices, snack, mahjong, school, lounge, hotel, clinic, flat },
 };

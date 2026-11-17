@@ -1,3 +1,4 @@
+import { clinic, flat, hotel } from "./rooms";
 import { officeFor, withLift } from "../interiors/offices";
 import type { InteriorProfile } from "../interiors/types";
 import type { TowerStyle } from "./index";
@@ -77,5 +78,5 @@ export const newYork: TowerStyle = {
   lift: { name: "Otis lift", perFloor: 2.5 },
   lobby,
   section: { stone: ["#e2d2ac", "#c8b48c", "#8a7658"], halves: [[0, 74], [0.72, 58], [0.94, 42]], crown: "step" },
-  rooms: { offices, bank, showroom: store, suite },
+  rooms: { offices, bank, showroom: store, suite, flat, hotel, clinic },
 };

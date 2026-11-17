@@ -906,7 +906,7 @@ export class Engine {
       pay: work?.pay ?? 0,
       lines: work?.lines ?? [],
       waiting: !!this.waitingCard(),
-      boss: t.process.paid === "wage" ? bossTitle(this.world.pack.setting) : undefined,
+      boss: t.process.paid === "wage" ? t.process.boss ?? bossTitle(this.world.pack.setting) : undefined,
       hours: t.process.steps.map((st) => st.hours ?? t.process.hours / t.process.stages.length),
       deadline: this.state.plot && !this.state.plot.ended ? this.state.plot.deadline : undefined,
       expect: t.process.paid === "wage" || t.process.paid === "takings"
@@ -963,7 +963,7 @@ export class Engine {
     const t = this.trade();
     const made = t?.process.makes[0];
     return {
-      boss: bossTitle(this.world.pack.setting),
+      boss: t?.process.boss ?? bossTitle(this.world.pack.setting),
       name: name ?? "they",
       work: t?.kit.activity.toLowerCase(),
       good: made ? (t.household.products?.[made] ? goodName(made, t.household.products[made]) : goodName(made)) : "work",
@@ -1042,6 +1042,7 @@ export class Engine {
       client: () => this.client(t),
       markets: this.markets(),
       below: (role) => minePlace(this.complex, t.household.home, role, t.day),
+      desk: () => this.desk(),
       outbuilding: (kind) => this.outbuildingSpot(t.household, kind),
       inside: () => {
         const space = t.household.residence;
@@ -1213,7 +1214,7 @@ export class Engine {
   /** Puts a card on screen. A card about an illness waits apart from the
    * day's work, so it can come whenever someone falls ill. */
   private offerCard(card: ChoiceCard, care?: { who: string; ailment: string }) {
-    const s = this.state, boss = this.mineWords(this.trade()).boss ?? bossTitle(this.world.pack.setting);
+    const s = this.state, boss = this.mineWords(this.trade()).boss ?? this.trade()?.process.boss ?? bossTitle(this.world.pack.setting);
     const encounter = s.encounter?.card === card.id;
     const ford = encounter && card.id === FORD_CARD.id;
     const stats = this.stats();
@@ -1743,7 +1744,7 @@ export class Engine {
     if (work) work.done = true;
     const skill = process.skill ?? workSkill[process.family];
     const craft = skill === "crafting" ? 1 + this.skillLevel("crafting") * PER_LEVEL.craftingYield : 1;
-    const made: Record<string, number> = kit.activity === "Looking for game" ? this.settleHunt(t) : process.paid === "wage" ? this.takings(3, (amount) => this.mineWords(t).mine ? `At the office window the pay clerk counts out ${amount} for your ${work?.tubs ?? "day's"} ${work?.tubs ? `${this.mineWords(t).tub}s` : "work"}.` : `The ${bossTitle(this.world.pack.setting)} pays you ${amount}.`)
+    const made: Record<string, number> = kit.activity === "Looking for game" ? this.settleHunt(t) : process.paid === "wage" ? this.takings(3, (amount) => this.mineWords(t).mine ? `At the office window the pay clerk counts out ${amount} for your ${work?.tubs ?? "day's"} ${work?.tubs ? `${this.mineWords(t).tub}s` : "work"}.` : `The ${process.boss ?? bossTitle(this.world.pack.setting)} pays you ${amount}.`)
       : process.paid === "fee" ? this.pay(t, this.patientHousehold(t))
       : process.steps.some((st) => st.client) ? this.pay(t)
       : this.farming(t) ? this.settleHarvest(t)
@@ -2830,34 +2831,49 @@ export class Engine {
     }
     return t ?? undefined;
   }
+  /** The player's desk, where their employer is a firm on a tower storey. */
+  private desk(): StepPlace | undefined {
+    const job = this.world.activitySites?.("player")?.employment?.id, at = job && parseFloor(job);
+    const floor = at && this.towerOf(at.place)?.floors[at.n], room = floor && this.interiorOf(job);
+    const seat = room && (room.seats[room.seats.length - 1] ?? room.workCell);
+    return seat ? { pos: { x: seat.x, y: seat.y, space: job }, label: at.n ? `${floor.name}, ${floorName(at.n)}` : floor.name } : undefined;
+  }
   private staffed?: string;
-  /** The people at work on the tower storey the player stands on: drawn from
-   * its firm's staff, the same people at the same desks every day, and the
-   * night staff once the office has gone home. */
+  /** The people on the tower storey the player stands on: its firm's staff,
+   * the same people at the same desks every day, some still there after
+   * hours, then the night staff; and on a lived-in floor, those at home or
+   * staying there. */
   private towerStaff() {
     const s = this.state, space = s.player.pos.space, hour = Math.floor(s.clock / 3600);
     if (this.staffed === `${space}:${hour}`) return;
     this.staffed = `${space}:${hour}`;
     const at = parseFloor(space), floor = space === "outside" ? undefined : this.towerOf(at.place)?.floors[at.n];
     const room = floor && this.interiorOf(space), setting = this.world.pack.setting;
-    const want = new Map<string, Staff>();
+    const want = new Map<string, { work: string; doing: string }>();
     if (floor && room && setting) {
-      const [from, to] = floor.profile.regulars?.hours ?? [8, 18], h = hour % 24;
-      const night = from <= to ? h < from || h >= to : h < from && h >= to;
-      const roster = floor.staff.filter((w) => !!w.night === night);
+      const [from, to] = floor.hours, h = hour % 24, name = floor.name.replace(/^The /, "the ");
+      const open = (h: number) => (from <= to ? h >= from && h < to : h >= from || h < to);
+      const night = !open(h), late = night && [1, 2, 3].some((k) => open((h - k + 24) % 24));
       const r = (...k: (string | number)[]) => random(s.manifest.seed, "staff", space, ...k);
+      const pick = (roster: readonly Staff[], k: string) => {
+        let roll = r(k) * roster.reduce((n, w) => n + w.weight, 0);
+        return (roster.find((w) => (roll -= w.weight) < 0) ?? roster[0]).work;
+      };
+      const day = floor.staff.filter((w) => !w.night), after = floor.staff.filter((w) => w.night);
       const places = Math.max(room.seats.length, Math.floor(room.walk.size / 6));
-      const count = !roster.length ? 0 : night ? 1 + Math.floor(r("night") * 2) : floor.customers ? 1 + Math.floor(r("count") * 3) : Math.min(18, Math.round(places * (floor.profile.regulars?.fill ?? 0.4)));
-      const total = roster.reduce((n, w) => n + w.weight, 0);
-      for (let i = 0; i < count; i++) {
-        let roll = r(night ? "night" : "day", i) * total;
-        want.set(`staff-${space}-${night ? "n" : "d"}${i}`, roster.find((w) => (roll -= w.weight) < 0) ?? roster[0]);
-      }
+      const present = s.actors.filter((a) => !a.staff && a.kind === "human" && a.id !== s.player.id && a.pos.space === space).length;
+      const desks = !day.length ? 0 : floor.customers || floor.stay ? 1 + Math.floor(r("count") * 3) : Math.min(18, Math.round(places * (floor.profile.regulars?.fill ?? 0.4)));
+      const staying = night && late ? Math.round(desks * floor.late) : night ? 0 : desks - present;
+      for (let i = 0; i < staying; i++) want.set(`staff-${space}-d${i}`, { work: pick(day, `day-${i}`), doing: `${night ? "Working late" : "At work"}: ${name}` });
+      for (let i = 0; night && after.length && i < 1 + Math.floor(r("night") * 2); i++) want.set(`staff-${space}-n${i}`, { work: pick(after, `night-${i}`), doing: `On the night shift: ${name}` });
+      // Their own work, whatever it is: the people who live or stay here.
+      for (let i = 0; floor.stay && i < 2 + Math.floor(r("stay") * 3); i++)
+        want.set(`staff-${space}-h${i}`, { work: "", doing: floor.stay === "home" ? "At home" : `Staying at ${name}` });
     }
     for (const a of s.actors.filter((a) => a.staff && !want.has(a.id))) this.folk.part(a.id);
-    const label = floor && `At work: ${floor.name.replace(/^The /, "the ")}`;
     [...want].forEach(([id, w], index) => {
-      if (s.actors.some((a) => a.id === id)) return;
+      const known = s.actors.find((a) => a.id === id);
+      if (known) return void (known.activity = w.doing);
       const r = (k: string) => random(s.manifest.seed, "staff", id, k);
       const ages = livelihoodById(w.work)?.ages ?? [18, 66];
       const age = ages[0] + Math.floor(r("age") ** 1.3 * (Math.min(ages[1], 66) - ages[0]));
@@ -2865,8 +2881,8 @@ export class Engine {
       delete a.wayfarer;
       a.staff = space;
       a.offRoutine = true;
-      a.activity = label!;
-      a.pos = this.indoorSpot(a, space, label, index);
+      a.activity = w.doing;
+      a.pos = this.indoorSpot(a, space, w.doing, index);
       a.home = { ...a.pos };
       a.work = { ...a.pos };
       this.folk.join(a);
@@ -12001,10 +12017,11 @@ export class Engine {
       const rack = this.object(sites.rackId);
       if (rack) rack.open = at.activity !== "rest";
     }
-    const indoorPlace = at.placeId && this.world.place(at.placeId);
+    // A tower storey is a space of its own under the building's id.
+    const indoorPlace = at.placeId && this.world.place(parseFloor(at.placeId).place);
     const homeRest = at.activity === "rest" && !at.placeId;
     const room = indoorPlace && !this.burningPlace(indoorPlace.id)
-      ? indoorPlace.id
+      ? at.placeId
       : homeRest && household?.residence && !this.burningPlace(household.residence)
         ? household.residence
         : undefined;

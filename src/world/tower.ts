@@ -1,5 +1,5 @@
 import { towerStyleFor, type TowerStyle } from "../content/towers";
-import { lobbyStaff, tenants, type Staff, type Tenant } from "../content/towers/tenants";
+import { lobbyStaff, overtime, tenants, type Staff, type Tenant } from "../content/towers/tenants";
 import { characterNameParts } from "../content/characters/generate";
 import { matchesCharacterScope, resolveCharacterContext, type CharacterContext } from "../content/characters/resolve";
 import type { WorldSetting } from "../content/geography/types";
@@ -10,6 +10,9 @@ import { random } from "../core/random";
 /** One storey: the room it is fitted out as, the firm in it and who works there. */
 export type TowerFloor = {
   n: number; kind: string; name: string; profile: InteriorProfile; colorway: number; tenant?: string; staff: readonly Staff[]; customers?: boolean;
+  /** The staff's hours; `late` is the share of them still working for a few hours after. */
+  hours: readonly [number, number]; late: number;
+  stay?: Tenant["stay"];
 };
 export type Tower = { place: string; style: TowerStyle; floors: TowerFloor[] };
 
@@ -66,8 +69,10 @@ export function towerPlan(place: Place, seed: string, s: WorldSetting): Tower | 
   const r = (...k: (string | number)[]) => random(seed, "tower", place.id, ...k);
   const [lo, hi] = style.storeys;
   const count = lo + Math.floor(r("storeys") * (hi - lo + 1));
+  const late = overtime.find((o) => o.where.some((w) => matchesCharacterScope(w, s, "*")))?.share ?? 0;
   const floors: TowerFloor[] = [{
     n: 0, kind: "lobby", name: "Lobby", profile: style.lobby, colorway: Math.floor(r("lobby") * 3), staff: lobbyStaff.filter(kept), customers: true,
+    hours: style.lobby.regulars?.hours ?? [8, 19], late: 0,
   }];
   const used = new Set<string>();
   const take = (t: (typeof fits)[number], key: number) => {
@@ -75,7 +80,8 @@ export function towerPlan(place: Place, seed: string, s: WorldSetting): Tower | 
     for (let tries = 0; tries < 4 && (!name || used.has(name)); tries++) name = firmName(t, s, seed, `${place.id}-${key}-${tries}`, context);
     used.add(name);
     const profile = style.rooms[t.room];
-    return { kind: t.room, name, profile, colorway: Math.floor(r("colour", key) * profile.colorways.length), tenant: t.id, staff: t.staff, customers: t.customers };
+    return { kind: t.room, name, profile, colorway: Math.floor(r("colour", key) * profile.colorways.length), tenant: t.id, staff: t.staff, customers: t.customers,
+      hours: t.hours ?? profile.regulars?.hours ?? [9, 17], late: t.customers || t.stay ? 0 : late, stay: t.stay };
   };
   const pick = (from: typeof fits, u: number) => {
     let roll = u * from.reduce((n, t) => n + t.weight, 0);

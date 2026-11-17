@@ -27,6 +27,8 @@ export type Recipe = {
   /** How the day turns into coin: a hired hand's wage, a seller's takings,
    * or a fee from the household served. */
   paid?: "wage" | "takings" | "fee";
+  /** Who pays a wage, where it is not a foreman. */
+  boss?: string;
   /** The hour the trade's day began; dawn work at 5, a baker at 3. */
   rises?: number;
   /** The prop families the trade works at inside its house, best first; the
@@ -863,6 +865,8 @@ const recipes: Recipe[] = [
       "office-assistant", "office-lady", "accountant", "insurance-agent", "draughtsman", "telemarketer", "software-developer", "manager", "bank-manager",
     ],
     rises: 7,
+    paid: "wage",
+    boss: "supervisor",
     skill: "speech",
     wiki: ["Office", "Clerk", "Office worker"],
     day: [

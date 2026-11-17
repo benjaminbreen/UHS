@@ -29,6 +29,8 @@ type Ask = {
   outbuilding?: (kind: "byre" | "henhouse") => Position | undefined;
   /** Down the nearest mine: the pit bottom, or the day's stall at the face. */
   below: (role: "pit" | "face") => StepPlace | null;
+  /** A desk on the tower storey the player is employed on. */
+  desk?: () => StepPlace | undefined;
 };
 type SitePlan = { railway?: Railway; parcels?: Parcel[]; site?: { center: Point }; fauna?: FaunaGroup[];
   waterfront?:import("../world/v3/types").SettlementPlan["waterfront"] };
@@ -75,6 +77,8 @@ export function findPlace(role: PlaceRole, ask: Ask): StepPlace | null {
     return h ? { pos: doorOf(h), label: host ? `${host.name.split(" ")[0]}'s house` : "a neighbour's house" } : null;
   };
   if (role === "workplace") {
+    const desk = ask.desk?.();
+    if (desk) return desk;
     const pos = s.player.work;
     const place = pos.space !== "outside" ? world.place(pos.space) : world.places.find((p) => p.access === "public" && Math.hypot(p.entrance.x - pos.x, p.entrance.y - pos.y) < 2);
     return { pos: { ...pos }, label: place?.name ?? "your workplace" };
