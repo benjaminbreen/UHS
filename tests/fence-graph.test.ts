@@ -112,7 +112,8 @@ describe("yard kits", () => {
       for (const year of [-5000, 900, 1300, 1780, 1880])
         for (const climate of ["temperate", "arid", "mediterranean"]) {
           const k = kit(culture, year, climate);
-          if (k.props.some((p) => p.where === "back")) expect(k.back, `${k.id}`).toBeDefined();
+          // A byre is a building: with no back yard it stands on clear ground beside the house.
+          if (k.props.some((p) => p.where === "back" && !p.building)) expect(k.back, `${k.id}`).toBeDefined();
         }
   });
 });

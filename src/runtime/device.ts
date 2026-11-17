@@ -12,7 +12,7 @@ let cached: boolean | undefined;
 /** A phone or small tablet: treat memory as the scarce resource. */
 export function smallMemoryDevice() {
   if (cached !== undefined) return cached;
-  if (typeof window === "undefined") return (cached = false);
+  if (typeof window === "undefined" || !window.screen) return (cached = false);
   const memory = (navigator as { deviceMemory?: number }).deviceMemory;
   if (memory !== undefined && memory <= 4) return (cached = true);
   const coarse = window.matchMedia?.("(pointer: coarse)").matches ?? false;
