@@ -46,6 +46,8 @@ export type FairArea = {
   /** Where it lies on the fair's plan: left, top, width, depth, in plan units, north up. Galleries and
    * courts are sized from this, and joined to every area whose rectangle shares a stretch of edge. */
   at?: readonly [number, number, number, number];
+  /** How a gallery is built and coloured: an iron and glass exhibition shed, or a warm panelled room with deep wainscot. The fair's own look when unset. */
+  look?: "shed" | "warm";
   /** Bandstands in a court. */
   bandstands?: number;
   /** Who plays in each of a court's bandstands, by person id. */
@@ -89,6 +91,8 @@ export type Fair = {
   /** The area a visitor comes in by. */
   entry: string;
   areas: readonly FairArea[];
+  /** How its galleries look unless an area says otherwise. */
+  look?: "shed" | "warm";
   /** Cells to a plan unit, for areas placed by `at`. */
   scale?: number;
   /** What it shows; an area's filler stands are drawn from these by tag. */

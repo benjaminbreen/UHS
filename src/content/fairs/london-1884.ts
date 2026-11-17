@@ -96,7 +96,7 @@ const court = (id: string, name: string, at: [number, number, number, number], n
   ({ id, name, kind: "court", at, stands: { tags: ["garden"], n: 3 }, people: crowd, note, basis: "documented", ...more });
 
 const areas: FairArea[] = [
-  gallery("albert-hall", "the Royal Albert Hall", [16, 0, 8, 5], ["school"], 2, "School furniture on the top floor, the library and ladies' clothing round the corridors; the north entrance.", { gate: "n", floor: "parquet", exhibits: ["school-furniture", "reading-room"] }),
+  gallery("albert-hall", "the Royal Albert Hall", [16, 0, 8, 5], ["school"], 2, "School furniture on the top floor, the library and ladies' clothing round the corridors; the north entrance.", { gate: "n", look: "warm", exhibits: ["school-furniture", "reading-room"] }),
   gallery("conservatory", "the Conservatory", [16, 5, 8, 4], ["garden"], 2, "The Horticultural Society's conservatory, between the Hall and the gardens.", { floor: "tile" }),
   gallery("west-quadrant", "the West Quadrant: Historical Dress", [10, 5, 6, 4], ["dress"], 2, "Historical dress on the ground floor, dining rooms above.", { exhibits: ["historical-dress"] }),
   gallery("east-quadrant", "the East Quadrant: Modern Dress", [24, 5, 6, 4], ["dress"], 4, "Modern dress.", { exhibits: ["rational-dress"] }),
@@ -116,21 +116,21 @@ const areas: FairArea[] = [
   gallery("east-annexe", "the East Annexe: Sanitary Appliances", [26, 24, 4, 6], ["sanitary"], 3, "Sanitary appliances. The sanitary and insanitary houses are number 2 on the plan, near here.", { exhibits: ["sanitary-houses"] }),
   gallery("aquarium", "the Aquarium", [6, 21, 4, 9], ["aquarium"], 6, "The aquarium kept from the 1883 Fisheries Exhibition, off the West Arcade.", { floor: "tile" }),
   gallery("belgium", "Belgium: the Queen's Gate Annexe", [1, 22, 5, 10], ["belgium"], 8, "The Belgian section, the largest foreign one, with the Queen's Gate entrance.", { gate: "w", exhibits: ["belgian-school"] }),
-  gallery("education", "the City and Guilds Institute: Education", [33, 24, 5, 6], ["school"], 3, "Education, in the new Technical Institute on Exhibition Road.", { floor: "parquet", exhibits: ["hygienic-lab", "technical-students"] }),
+  gallery("education", "the City and Guilds Institute: Education", [33, 24, 5, 6], ["school"], 3, "Education, in the new Technical Institute on Exhibition Road.", { look: "warm", exhibits: ["hygienic-lab", "technical-students"] }),
   gallery("japan", "the Japanese Section", [33, 30, 4, 4], ["japan"], 4, "Japan."),
   gallery("cheap-dining", "the Cheap Dining Room", [33, 34, 4, 6], ["refreshments"], 1, "The cheap dining room.", { floor: "tile", exhibits: ["duval-dinner"] }),
   gallery("apartments", "the Complete Fitted Apartments", [14, 30, 6, 3], ["dwelling"], 4, "Whole rooms fitted and furnished."),
   gallery("baths", "the Baths", [20, 30, 6, 3], ["baths"], 5, "Baths, marked C on the plan between the Dwelling and the fitted apartments.", { floor: "tile" }),
   gallery("cocoa-rooms", "the Cocoa Rooms", [6, 30, 8, 3], ["cocoa", "refreshments"], 2, "Cocoa rooms and refreshments at the foot of the West Arcade.", { floor: "tile", exhibits: ["cocoa-stall"] }),
   gallery("east-corridor", "the East Corridor", [26, 30, 4, 10], ["sanitary", "dwelling"], 4, "The corridor from the east annexe down to the food galleries."),
-  gallery("old-london", "Old London Street", [8, 33, 10, 3], [], 0, "A full-size street of houses copied from London before the Great Fire, with craftsmen at work in them.", { floor: "iron", exhibits: ["old-london-gate", "old-london-printer"] }),
+  gallery("old-london", "Old London Street", [8, 33, 10, 3], [], 0, "A full-size street of houses copied from London before the Great Fire, with craftsmen at work in them.", { look: "warm", exhibits: ["old-london-gate", "old-london-printer"] }),
   gallery("water-pavilion", "the London Water Companies' Pavilion", [18, 33, 6, 5], ["sanitary"], 2, "The pavilion of the London water companies.", { floor: "tile", exhibits: ["water-works"] }),
   gallery("electric", "Machinery for Electric Lighting", [8, 36, 6, 4], ["machinery"], 0, "The engines and dynamos that lit the exhibition.", { machinery: true, floor: "iron", exhibits: ["lighting-engines"] }),
   gallery("bakeries", "the Bakeries", [14, 38, 12, 2], ["food"], 2, "Bakeries at work.", { floor: "tile", exhibits: ["bakery-ovens"] }),
   gallery("foods", "Foods: the South Gallery", [6, 40, 24, 3], ["food"], 10, "The long south gallery of foods."),
   gallery("entrance", "the Principal Entrances", [30, 40, 5, 4], ["entrance"], 2, "The principal entrances from Exhibition Road.", { gate: "e", floor: "tile" }),
   gallery("dairy", "the Dairies", [8, 43, 6, 3], ["food"], 2, "Working dairies.", { floor: "tile", exhibits: ["working-dairy"] }),
-  gallery("dining", "the Dining Rooms", [14, 43, 12, 3], ["refreshments"], 1, "Dining rooms and the School of Cookery.", { floor: "tile", exhibits: ["school-of-cookery", "vegetarian-dinner"] }),
+  gallery("dining", "the Dining Rooms", [14, 43, 12, 3], ["refreshments"], 1, "Dining rooms and the School of Cookery.", { look: "warm", exhibits: ["school-of-cookery", "vegetarian-dinner"] }),
   court("promenade", "the South Promenade", [6, 46, 22, 3], "The promenade along the south front."),
 ];
 

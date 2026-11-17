@@ -16,6 +16,7 @@ export type FairLevel = Area & {
   area: string;
   kind: FairArea["kind"];
   floor?: FairArea["floor"];
+  look: "shed" | "warm";
   exits: AreaExit[];
   buildings: PlacedBuilding[];
   lifts: AreaLift[];
@@ -93,7 +94,7 @@ export function fairLevel(seed: string, fair: Fair, id: string): FairLevel | und
   const [w, h] = sizeOf(fair, plan);
   const rng = rngOf(seed, "fair", fair.id, id);
   const L: FairLevel = {
-    space: fairSpace(fair.id, id), fair: fair.id, area: id, kind: plan.kind, floor: plan.floor, depth: 1, name: plan.name, w, h,
+    space: fairSpace(fair.id, id), fair: fair.id, area: id, kind: plan.kind, floor: plan.floor, look: plan.look ?? fair.look ?? "shed", depth: 1, name: plan.name, w, h,
     cells: new Uint8Array(w * h), entry: { x: w >> 1, y: h - 2 }, things: [], decor: [], folk: [], gardens: [], plots: [], flow: new Int8Array(w * h).fill(-1),
     exits: [], buildings: [], lifts: [],
   };
@@ -147,7 +148,6 @@ function gallery(L: FairLevel, fill: Fill, edge: Edge, open: Opening[]) {
     else fill(o.dir === "w" ? 0 : w - 1, o.a, o.dir === "w" ? 0 : w - 1, o.a + 2, FLOOR);
     edge(o.dir, o.to, o.name, [o.a, o.a + 2]);
   }
-  if (w >= 26 && h >= 20) for (let x = 6; x < w - 4; x += 8) for (const y of [7, h - 7]) if (Math.abs(x - (w >> 1)) > 2) L.decor.push({ type: "column", x, y, solid: true, v: 0 });
 }
 
 /** A garden court from the plan: a walk round the edge and a cross through the

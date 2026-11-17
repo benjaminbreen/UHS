@@ -32,6 +32,9 @@ const WALLS = {
 };
 const DADO = ["#a8744c", "#8a5a38", "#6c4428", "#4e301c"];
 const BOARDS = ["#efd29c", "#e0bd80", "#d2ab6c", "#b08a52"];
+/** The warm look: orange boards laid up the room, walls of the same wood, a deep wainscot. */
+const WARM_BOARDS = ["#f0b06a", "#de9448", "#c87c36", "#9c5a22"];
+const WARM_WALL = ["#f6c884", "#e4a25a", "#c8803c", "#a05e28", "#74401a", "#4c2810"];
 const COLUMN = ["#7fae8a", "#4f8262", "#356048", "#22402f"];
 const BUNTING = ["#d0403a", "#f4f0e8", "#3a5aa8", "#f0c838"];
 const RUNNER = ["#d85a48", "#b23e34", "#862a26", "#e8c070"];
@@ -473,8 +476,10 @@ function floor(R: Raster, X: number, Y: number, L: FairLevel, ax: number, ay: nu
       col = px === 15 || py === 15 ? f[2] : px === 0 || py === 0 ? f[0] : tone > 0.75 ? "#b4afa6" : tone < 0.2 ? "#9e998f" : f[1];
     } else {
       // Boards laid across: long planks with staggered butt joints, each plank a tone of its own.
-      const plank = y >> 3, run = x + plank * 37, tone = h2(plank, run >> 6, 5);
-      col = y % 8 === 7 || run % 64 === 0 ? BOARDS[3] : y % 8 === 0 ? BOARDS[0] : tone > 0.72 ? BOARDS[2] : BOARDS[1];
+      const warm = L.look === "warm", b = warm ? WARM_BOARDS : BOARDS;
+      // The warm room's boards run up the room; the shed's run across it.
+      const across = warm ? x : y, along = warm ? y : x, plank = across >> 3, run = along + plank * 37, tone = h2(plank, run >> 6, 5);
+      col = across % 8 === 7 || run % 64 === 0 ? b[3] : across % 8 === 0 ? b[0] : tone > 0.72 ? b[2] : b[1];
     }
     // An inlaid border a cell in from the walls.
     if (border && kind !== "iron") {
@@ -531,7 +536,7 @@ function rail(R: Raster, X: number, Y: number) {
  * windows and flag, the side walls' tops, and the front wall with its door
  * and steps, all round the floor the visitor walks on. */
 function building(R: Raster, L: FairLevel, OX: number, OY: number, seed: number) {
-  const { w, h } = L, W = w * 16, c = WALLS[L.floor ?? "parquet"], door = (w >> 1) - 1;
+  const { w, h } = L, W = w * 16, c = L.look === "warm" && L.kind === "gallery" ? WARM_WALL : WALLS[L.floor ?? "parquet"], door = (w >> 1) - 1;
   // The roof: a glazed lantern between solid margins, three cells deep, seen from above.
   const ry = OY - 48;
   R.fill(OX, ry, W, 48, c[2]);
@@ -555,6 +560,7 @@ function building(R: Raster, L: FairLevel, OX: number, OY: number, seed: number)
   R.fill(OX + 8, by + 46, W - 16, 2, DADO[3]);
   const cx = OX + W / 2;
   if (L.kind === "machines") ironWall(R, L, OX, ry, by, c);
+  else if (L.kind === "gallery" && L.look === "warm") panelled(R, L, OX, by, c);
   else if (L.kind === "gallery") shed(R, L, OX, by, c);
   else if (L.kind === "hall") gallery(R, L, OX, by, c);
   else for (let x = OX + 16; x + 20 < OX + W - 8; x += 32) {
@@ -642,6 +648,22 @@ function skylight(R: Raster, L: FairLevel, OX: number, OY: number) {
       R.shade(OX + x, OY + y, j === 0 || j === 29 ? 0.07 : 0.13, [255, 248, 216]);
     }
   }
+}
+
+/** A warm room's back wall: small square windows glowing high up, a moulding, and a
+ * deep wainscot of upright boards under it. */
+function panelled(R: Raster, L: FairLevel, OX: number, by: number, c: string[]) {
+  const W = L.w * 16, x0 = OX + 8, x1 = OX + W - 8;
+  R.fill(x0, by + 7, x1 - x0, 15, c[2]);
+  for (let x = x0 + 20; x + 14 < x1 - 8; x += 40) {
+    R.fill(x - 2, by + 8, 18, 13, c[4]); R.fill(x, by + 9, 14, 11, "#fff2c0");
+    R.fill(x, by + 9, 14, 4, "#fffbe4"); R.fill(x + 6, by + 9, 2, 11, c[3]); R.fill(x, by + 14, 14, 1, c[3]);
+    R.fill(x - 2, by + 21, 18, 1, c[0]);
+  }
+  R.fill(x0, by + 22, x1 - x0, 3, c[0]); R.fill(x0, by + 25, x1 - x0, 1, c[4]);
+  R.fill(x0, by + 26, x1 - x0, 20, c[3]);
+  for (let x = x0 + 3; x < x1; x += 6) R.fill(x, by + 27, 1, 18, c[4]), R.fill(x + 1, by + 27, 1, 18, c[2]);
+  R.fill(x0, by + 44, x1 - x0, 2, c[5]);
 }
 
 /** An exhibition shed's back wall: boarded, between iron columns, a tall round-headed
