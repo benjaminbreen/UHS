@@ -19,10 +19,10 @@ import { hulls, shipPeople } from "../src/content/ships";
 import { DECK, shipLevel, shipSolid } from "../src/world/ship";
 import { belowFromPrompt, resolveSetting } from "../src/content/geography/resolve";
 import { createSettingSession } from "../src/runtime/session";
-import { paris1889 } from "../src/content/fairs/paris-1889";
 import { theban } from "../src/content/tombs/theban";
 import { tombLevel, tombPlan, tombWalkable } from "../src/world/tomb";
-import { fairLevel, fairWalkable } from "../src/world/fair";
+import { fairLevel, fairSolid, fairWalkable } from "../src/world/fair";
+import { fairs } from "../src/content/fairs";
 import { arrivalFrom } from "../src/world/complex";
 
 const site = (id: string, place: SewerSite["place"]): SewerSite => {
@@ -314,16 +314,28 @@ describe("ships", () => {
 });
 
 describe("fairs", () => {
-  it("joins every area of the 1889 fair both ways, and lands each arrival on open ground", () => {
-    for (const a of paris1889.areas) {
-      const L = fairLevel("seed", paris1889, a.id)!;
-      for (const e of L.exits.filter((e) => e.to !== "outside")) {
-        const B = fairLevel("seed", paris1889, e.to.split(":")[2]);
-        const at = B && arrivalFrom(B, L.space);
-        expect(at, `${a.id} -> ${e.to}`).toBeDefined();
-        expect(fairWalkable(B!.cells[at!.y * B!.w + at!.x]), `${a.id} -> ${e.to}`).toBe(true);
+  it("joins every area of every fair both ways, lands each arrival on open ground, and leaves every way out walkable", () => {
+    for (const fair of fairs) {
+      const reached = new Set([fair.entry]);
+      for (const id of reached) for (const e of fairLevel("seed", fair, id)!.exits) if (e.to !== "outside") reached.add(e.to.split(":")[2]);
+      for (const a of fair.areas) {
+        const L = fairLevel("seed", fair, a.id)!, solid = fairSolid(L), tag = `${fair.id} ${a.id}`;
+        for (const e of L.exits.filter((e) => e.to !== "outside")) {
+          const B = fairLevel("seed", fair, e.to.split(":")[2]);
+          const at = B && arrivalFrom(B, L.space);
+          expect(at, `${tag} -> ${e.to}`).toBeDefined();
+          expect(fairWalkable(B!.cells[at!.y * B!.w + at!.x]), `${tag} -> ${e.to}`).toBe(true);
+        }
+        for (const l of L.lifts) expect(fairLevel("seed", fair, l.to.split(":")[2])!.lifts.some((m) => m.to === L.space), tag).toBe(true);
+        if (!a.at) continue;
+        expect(reached.has(a.id), `${tag} can be reached from the entry`).toBe(true);
+        // On foot from where one arrives to every way out.
+        const seen = new Uint8Array(L.w * L.h), queue = [L.entry.y * L.w + L.entry.x];
+        seen[queue[0]] = 1;
+        for (let q = 0; q < queue.length; q++) for (const n of [queue[q] - 1, queue[q] + 1, queue[q] - L.w, queue[q] + L.w])
+          if (n >= 0 && n < L.w * L.h && !seen[n] && fairWalkable(L.cells[n]) && !solid.has(n)) (seen[n] = 1), queue.push(n);
+        for (const e of L.exits) expect(seen[(e.y + (e.h >> 1)) * L.w + e.x + (e.w >> 1)], `${tag}: the way to ${e.to}`).toBe(1);
       }
-      for (const l of L.lifts) expect(fairLevel("seed", paris1889, l.to.split(":")[2])!.lifts.some((m) => m.to === L.space), a.id).toBe(true);
     }
   });
 
@@ -336,6 +348,17 @@ describe("fairs", () => {
     expect(e.areaOf("fair:paris-1889:trocadero")).toMatchObject({ kind: "grounds" });
     expect(e.complexMap()?.nodes.filter((n) => n.seen).map((n) => n.name)).toEqual(["the Trocadéro gardens"]);
     expect(e.complexMap()?.nodes.some((n) => !n.seen && n.name === "the Pont d'Iéna")).toBe(true);
+  });
+});
+
+describe("a fair from a plan", () => {
+  it("starts a prompt naming the Health Exhibition at its Exhibition Road entrance", () => {
+    const r = resolveSetting("A visitor at the Health Exhibition");
+    if (!("setting" in r)) throw new Error(r.error);
+    expect(r.setting).toMatchObject({ below: "fair", year: 1884 });
+    const e = createSettingSession(r.setting, "fair");
+    expect(e.state.player.pos.space).toBe("fair:london-1884:entrance");
+    expect(e.complexMap()?.nodes.filter((n) => !n.seen).map((n) => n.name).sort()).toEqual(["Foods: the South Gallery", "the Cheap Dining Room", "the East Arcade: Heating and Cooking Apparatus"]);
   });
 });
 

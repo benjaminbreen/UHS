@@ -1,4 +1,5 @@
 import { applySituation, situationFromPrompt } from "./situation";
+import { fairFromPrompt } from "../fairs";
 import { formatHistoricalYear } from "../../core/calendar";
 import { eraAt, glacialTundraLatitude } from "../history/dates";
 import { random } from "../../core/random";
@@ -190,7 +191,7 @@ const VESSELS: readonly (readonly [RegExp, string, string, number, string, strin
 const vesselOf = (q: string) => VESSELS.find(([words]) => words.test(q));
 
 export function belowFromPrompt(q: string): "cave" | "sewer" | "mine" | "ship" | "fair" | "tomb" | undefined {
-  if (/\bworld'?s fair\b|\bexposition\b|\beiffel tower\b/.test(q)) return "fair";
+  if (fairFromPrompt(q)) return "fair";
   if (/\btombs?\b|\btomb[- ]?robbers?\b|\bburial chambers?\b|\bvalley of the kings\b/.test(q)) return "tomb";
   if (SHIP_WORDS.test(q) || vesselOf(q)) return "ship";
   if (/\bsewers?\b|\bsewerm[ae]n\b|\btoshers?\b|\bflushers?\b/.test(q)) return "sewer";
@@ -256,10 +257,11 @@ export function resolveSetting(
   const below = belowFromPrompt(q);
   const undated = dateFromPrompt(input, -1000001, seed) === -1000001;
   if (below && !located) {
-    const [id, year] = below === "ship" ? shipPlace(q) : BELOW_PLACES[below];
+    const fair = fairFromPrompt(q);
+    const [id, year] = below === "ship" ? shipPlace(q) : below === "fair" && fair ? [fair.place, fair.years[0]] : BELOW_PLACES[below];
     const found = places.find((p) => p.id === id);
     if (found) place = year && undated ? { ...found, year } : found;
-  } else if (place && below === "fair" && undated) place = { ...place, year: 1889 };
+  } else if (place && below === "fair" && undated) place = { ...place, year: fairFromPrompt(q)?.years[0] ?? 1889 };
   else if (place && below && below !== "cave" && below !== "ship" && below !== "tomb" && undated) place = { ...place, year: Math.max(place.year, 1880) };
   else if (place && undated && vesselOf(q)) place = { ...place, year: vesselOf(q)![3] };
   if (!place) {

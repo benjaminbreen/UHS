@@ -32,12 +32,12 @@ function arrive(h: ComplexHost, space: string, from?: string) {
 /** In at the gate, paying unless `free`. */
 export function fairEnter(h: ComplexHost, fair: Fair, free = false) {
   const p = h.state.player;
-  if (!free && (p.inventory.coin ?? 0) < fair.ticket) return void h.event(`A franc at the turnstile, and you don't have it.`);
+  if (!free && (p.inventory.coin ?? 0) < fair.ticket) return void h.event(fair.words.short);
   if (!free) p.inventory.coin = (p.inventory.coin ?? 0) - fair.ticket;
   h.state.complex = { kind: "fair", fair: fair.id, name: fair.name, entry: fairSpace(fair.id, fair.entry), out: { x: p.pos.x, y: p.pos.y } };
   const level = arrive(h, fairSpace(fair.id, fair.entry));
   if (!level) return void delete h.state.complex;
-  h.event(`${free ? "" : "You push through the turnstile. "}${fair.name}: ${level.name}, and the crowd, and the Tower over everything.`, "world");
+  h.event(`${free ? "" : "You push through the turnstile. "}${fair.name[0].toUpperCase()}${fair.name.slice(1)}: ${level.name}, ${fair.words.enter}`, "world");
 }
 
 function leave(h: ComplexHost) {
@@ -45,7 +45,7 @@ function leave(h: ComplexHost) {
   for (const a of [...h.state.actors]) if (a.underground) h.folk.part(a.id);
   p.pos = { ...run.out, space: "outside" };
   delete h.state.complex;
-  h.event("You go out through the gate into the ordinary street.");
+  h.event("You go out through the gate into the street.");
 }
 
 const thingOf = (level: FairLevel, id: string) => level.things.find((t) => `fair-thing:${t.id}` === id);
@@ -60,10 +60,11 @@ export function fairInspect(h: ComplexHost, id: string): Inspection | undefined 
     const l = level.lifts[Number(lift[1])];
     if (!l) return undefined;
     const to = fairLevelOf(h, l.to)?.level.name ?? "the next platform";
-    const ticket = level.area === "tower" && (p.inventory["tower-ticket"] ?? 0) < 1;
+    const fair = fairById(level.fair), pass = fair?.areas.find((a) => a.id === level.area)?.liftTicket;
+    const ticket = !!pass && (p.inventory[pass] ?? 0) < 1;
     return {
       id, name: l.up ? "Lift up" : "Lift down", kind: "place", pos: { x: l.x, y: l.y, space: level.space },
-      description: l.up ? `A lift car on its rails, climbing the curve of the leg to ${to}. An operator stands at the gate.` : `The car down to ${to}.`,
+      description: l.up ? `${fair?.words.liftLook ?? "A lift"} to ${to}. An operator stands at the gate.` : `The car down to ${to}.`,
       affordances: [act(l.up ? `Ride up to ${to}` : `Ride down to ${to}`, !ticket, "You need a ticket from the office")],
     };
   }
@@ -74,7 +75,7 @@ export function fairInspect(h: ComplexHost, id: string): Inspection | undefined 
   const spent = done && !f.keeps && !f.price;
   return {
     id, name: thing.name, kind: "object", pos: { x: thing.x, y: thing.wall ? thing.y + 1 : thing.y, space: level.space },
-    description: `${f.look}${f.price ? ` ${f.price} franc${f.price === 1 ? "" : "s"}.` : ""}`,
+    description: `${f.look}${f.price ? ` ${f.price} ${fairById(level.fair)?.coin[f.price === 1 ? 0 : 1] ?? "coins"}.` : ""}`,
     affordances: spent ? [] : [act(f.verb, !broke, "Not enough money")],
   };
 }
@@ -94,13 +95,14 @@ export function fairAct(h: ComplexHost, id: string) {
   if (lift) {
     const l = level.lifts[Number(lift[1])];
     if (!l) return;
-    if (level.area === "tower") {
-      if ((p.inventory["tower-ticket"] ?? 0) < 1) return void h.event("The operator holds out a hand for your ticket.");
-      p.inventory["tower-ticket"] = (p.inventory["tower-ticket"] ?? 0) - 1;
+    const fair = fairById(level.fair), pass = fair?.areas.find((a) => a.id === level.area)?.liftTicket;
+    if (pass) {
+      if ((p.inventory[pass] ?? 0) < 1) return void h.event("The operator holds out a hand for your ticket.");
+      p.inventory[pass] = (p.inventory[pass] ?? 0) - 1;
     }
     h.advance(l.up ? 420 : 300);
     const next = arrive(h, l.to, level.space);
-    if (next) h.event(l.up ? `The car grinds up the curve of the leg, Paris dropping away under the girders, and opens onto ${next.name}.` : `The car carries you down to ${next.name}.`, "world");
+    if (next) h.event(l.up ? `${fair?.words.liftUp ?? "The lift carries you up to"} ${next.name}.` : `The car carries you down to ${next.name}.`, "world");
     return;
   }
   const thing = thingOf(level, id), f = thing && fairFind(thing.find);

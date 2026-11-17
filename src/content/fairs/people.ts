@@ -5,11 +5,44 @@ const alone: readonly [number, number, number] = [0.7, 0.25, 0.05];
 const pair: readonly [number, number, number] = [0.35, 0.45, 0.2];
 const group: readonly [number, number, number] = [0.2, 0.4, 0.4];
 
+const LONDON_1884 = { years: [1884, 1884] as [number, number] };
+/** Who was at the Health Exhibition. */
+const londoner = (id: string, label: string, dress: string, doing: string, manner: SewerPerson["manner"], lines: string[], more: Partial<SewerPerson> & { note: string }): SewerPerson =>
+  ({ id, scope: LONDON_1884, label, dress, doing, manner, lines, party: alone, women: 0.3, weight: 1, basis: "inferred", ...more });
+const london: SewerPerson[] = [
+  londoner("lhe-visitor", "Visitor", "clerk", "Seeing the exhibition", "explore", [
+    "They call it the Healtheries. Four million through the gates, the paper says.",
+    "We came for the fountains. After dark they light them from underneath and the colours change.",
+    "It's a shilling to get in. Half a crown on Wednesdays, to keep people like me out.",
+    "I walked through the bad house and now I want to go home and look at our drains.",
+  ], { party: pair, women: 0.5, ages: [14, 70], note: "About four million visits in six months; a shilling on most days. The dearer midweek day is a guess from other South Kensington exhibitions." }),
+  londoner("lhe-family", "Family on a day out", "farmer", "Having a day out", "explore", [
+    "The children have had a bun, a glass of milk from a real cow and a ride in a lift. That's the whole week's money.",
+    "We came up by the Underground to South Kensington. There's a subway being dug straight to the door.",
+    "My boy wants to be measured by the scientific gentleman. Threepence to be told he's short.",
+  ], { party: group, women: 0.55, ages: [6, 60], note: "The exhibition drew working families on shilling days; the District Railway's subway to the site opened the next year." }),
+  londoner("lhe-attendant", "Exhibitor's attendant", "merchant", "Minding a stand", "work", [
+    "Everything on the stand can be ordered. Delivery in a fortnight, anywhere in London.",
+    "The jury came round on Thursday with a thermometer and a notebook. We're hoping for a gold medal.",
+    "People stop, read every card, and buy nothing. But they remember the name.",
+  ], { women: 0.2, note: "Exhibitors were firms selling what they showed; juries awarded medals by class." }),
+  londoner("lhe-constable", "Constable", "policeman", "Keeping order", "lookout", [
+    "Mind your pockets by the fountains after dark. That's where the crowd is thickest.",
+    "Lost children are kept at the office by the Exhibition Road entrance.",
+    "Keep to the right in the arcades, please.",
+  ], { women: 0, note: "The Metropolitan Police kept a detachment in the grounds." }),
+  londoner("lhe-bandsman", "Bandsman", "clerk", "Between sets", "work", [
+    "We play twice a day in the gardens. The Guards have the other stand.",
+    "The Chinese band plays by their tea house. People come to stare more than to listen.",
+  ], { women: 0, note: "Military bands played daily in the gardens; a band of Chinese musicians came with the Chinese court.", basis: "documented" }),
+];
+
 const person = (id: string, label: string, dress: string, doing: string, manner: SewerPerson["manner"], lines: string[], more: Partial<SewerPerson> & { note: string }): SewerPerson =>
   ({ id, scope: PARIS_1889, label, dress, doing, manner, lines, party: alone, women: 0.3, weight: 1, basis: "documented", ...more });
 
 /** Who was at the 1889 fair. Their lines are plain modern English; the period is in what they say. */
 export const fairPeople: readonly SewerPerson[] = [
+  ...london,
   person("fair-visitor", "Visitor", "clerk", "Seeing the fair", "explore", [
     "We came for the Tower and haven't even got to it yet. Every turn there's something else.",
     "Thirty-two million tickets, they say. I believe it. Look at this crowd.",

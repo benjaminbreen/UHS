@@ -524,6 +524,31 @@ export function paintFairDecor(type: string, v: number): FairSprite | undefined 
     const [art, w, h] = MACHINES[Math.floor(v) % MACHINES.length], s = paintFairThing(art, w, h, v % 1);
     return s && { ...s, oy: s.oy + (h - 1) * 16 };
   }
+  if (type === "bandstand") {
+    // An octagonal bandstand: a stone base with steps, slim iron columns, a tented roof and a gilt finial.
+    const r = new Raster(64, 90), stone = ["#f6f0e2", "#e2d9c6", "#c4baa6", "#9c9282"], zinc = ["#a8c8ba", "#7fa898", "#5e8878", "#44685c"];
+    r.shadow(34, 85, 27, 5, 0.3);
+    for (let y = 60; y < 76; y++) { const half = 24 - Math.round(Math.abs(y - 68) * 0.5); r.fill(32 - half, y, half * 2, 1, y < 62 ? stone[0] : stone[1]); }
+    for (let y = 72; y < 84; y++) { const half = 24 - Math.max(0, y - 80); r.fill(32 - half, y, half * 2, 1, y === 83 ? stone[3] : stone[2]); }
+    for (let k = 0; k < 3; k++) r.fill(25 - k, 75 + k * 3, 14 + k * 2, 3, stone[1]), r.fill(25 - k, 75 + k * 3, 14 + k * 2, 1, stone[0]);
+    for (let y = 32; y < 62; y++) for (let x = 9; x < 55; x++) r.set(x, y, "#2c2640b0");
+    for (const [x, foot] of [[14, 62], [24, 60], [40, 60], [50, 62], [8, 68], [56, 68], [21, 72], [43, 72]]) {
+      r.fill(x, 30, 2, foot - 30, "#f4efe2"); r.fill(x + 1, 30, 1, foot - 30, "#c8c0ac"); r.fill(x - 1, foot - 2, 4, 2, "#e2d9c6");
+    }
+    for (const [x0, x1, y] of [[9, 21, 60], [45, 57, 60], [9, 14, 56], [51, 56, 56]]) { r.fill(x0, y, x1 - x0, 1, "#f4efe2"); for (let x = x0; x < x1; x += 2) r.fill(x, y + 1, 1, 5, "#ddd4be"); r.fill(x0, y + 6, x1 - x0, 1, "#c8c0ac"); }
+    for (let y = 8; y < 31; y++) {
+      const half = Math.round(((y - 8) / 22) * 30) + 1;
+      for (let i = -half; i <= half; i++) {
+        const seg = Math.floor(((i + half) / (half * 2 + 1)) * 6);
+        r.set(32 + i, y, zinc[seg < 2 ? 0 : seg < 4 ? 1 : 2]);
+        if (half > 3 && Math.abs(((i + half) / (half * 2 + 1)) * 6 - Math.round(((i + half) / (half * 2 + 1)) * 6)) < 0.5 / half * 3) r.set(32 + i, y, zinc[3]);
+      }
+    }
+    for (let x = 1; x < 63; x++) r.set(x, 31 + ((x >> 1) % 2), "#f4efe2"), r.set(x, 30, "#fbf8f0");
+    r.fill(31, 2, 2, 6, "#f2ca62"); r.fill(30, 4, 4, 2, "#fff4b8");
+    r.finish();
+    return { r, ox: 8, oy: 70 };
+  }
   if (type === "stall") return stall(v);
   if (type === "rib") return rib();
   if (type === "crate") {

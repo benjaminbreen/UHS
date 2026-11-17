@@ -13,7 +13,11 @@ export type FairArchetype =
   /** A machinery hall: big engines in rows, a central aisle. */
   | "machines"
   /** A platform of a tower: a railed deck round the open middle. */
-  | "platform";
+  | "platform"
+  /** A gallery sized from the plan: aisles and bays of stands, a way through wherever another area adjoins. */
+  | "gallery"
+  /** A garden court sized from the plan: walks round railed lawns, a fountain or bandstands in the middle. */
+  | "court";
 
 /** How a building's front is drawn; each is a painter in `scripts/art/front_fair.py`. */
 export type PavilionStyle =
@@ -39,6 +43,17 @@ export type FairArea = {
   id: string;
   name: string;
   kind: FairArchetype;
+  /** Where it lies on the fair's plan: left, top, width, depth, in plan units, north up. Galleries and
+   * courts are sized from this, and joined to every area whose rectangle shares a stretch of edge. */
+  at?: readonly [number, number, number, number];
+  /** Bandstands in a court. */
+  bandstands?: number;
+  /** A gallery of machinery at work, in place of exhibitors' stands. */
+  machinery?: boolean;
+  /** The Tower stands over these grounds. */
+  tower?: boolean;
+  /** What the liftman takes at each ride, by item id. */
+  liftTicket?: string;
   /** The areas through each edge: north, east, south, west. */
   links?: { n?: string; e?: string; s?: string; w?: string };
   /** The way up and down a tower: lifts and stairs to these areas. */
@@ -72,8 +87,19 @@ export type Fair = {
   /** The area a visitor comes in by. */
   entry: string;
   areas: readonly FairArea[];
-  /** Francs at the gate. */
+  /** Cells to a plan unit, for areas placed by `at`. */
+  scale?: number;
+  /** What it shows; an area's filler stands are drawn from these by tag. */
+  finds: readonly FairFind[];
+  /** Coins at the gate, and what the coin is called: one, many. */
   ticket: number;
+  coin: readonly [string, string];
+  /** Words in a prompt that mean this fair. */
+  prompt: RegExp;
+  /** Where a prompt naming it starts, by place id. */
+  place: string;
+  /** Said at the gate without the money, on going in, and on riding its lifts up. */
+  words: { short: string; enter: string; liftUp?: string; liftLook?: string };
 };
 
 /** The painter keys an exhibit may use; each is drawn in `render/fair/things.ts`. */

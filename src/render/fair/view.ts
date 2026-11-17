@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { fairFind } from "../../content/fairs";
-import { FRONT, type FairLevel } from "../../world/fair";
+import { fairIndoor, fairOutdoor, FRONT, type FairLevel } from "../../world/fair";
 import { washAt } from "../lighting";
 import { PAD, paintFairGround } from "./ground";
 import { paintFairDecor, paintFairThing, type FairSprite } from "./things";
@@ -44,7 +44,7 @@ export class FairView {
       this.keys.push(k);
       return k;
     };
-    const outdoor = level.kind === "grounds" || level.kind === "bridge";
+    const outdoor = fairOutdoor(level.kind);
     this.objects.push(scene.add.rectangle(-800, -600, W + 1600, H + 1200, outdoor ? 0x41692c : level.kind === "platform" ? 0x9ab0c4 : 0x2a2226).setOrigin(0, 0).setDepth(-99993));
     this.bounds = { x: -PAD.x * 16, y: -PAD.top * 16, w: W + PAD.x * 32, h: H + (PAD.top + PAD.bottom) * 16 };
     this.objects.push(scene.add.image(this.bounds.x, this.bounds.y, tex("ground", paintFairGround(level, seed).canvas())).setOrigin(0, 0).setDepth(-99990));
@@ -67,18 +67,17 @@ export class FairView {
       const f = fairFind(t.find), s = f && paintFairThing(t.art, t.w ?? 1, t.h ?? 1, (t.x * 7 + t.y) % 10 / 10, f.tint);
       if (s) put(s, t.x, t.y, t.id, t.wall ? -99980 : (t.y + (t.h ?? 1) - 1) * 16 + 13);
     }
-    const indoor = level.kind === "hall" || level.kind === "pavilion" || level.kind === "machines";
+    const indoor = fairIndoor(level.kind);
     const decor = [...level.decor];
     // Outside a pavilion: trees along the lawn round it, lamps either side of the steps.
     if (indoor) {
       const door = (level.w >> 1) - 1;
       for (let x = -6; x < level.w + 6; x += 4) for (const y of [-1, level.h + 4]) if (x < -3 || x > level.w + 2 || y > level.h) if (Math.abs(x - door) > 4 || y < 0) decor.push({ type: "tree", x, y, solid: false, v: ((x * 7 + y * 3) & 15) / 16 });
       for (let y = 2; y < level.h + 3; y += 4) for (const x of [-4, level.w + 3]) decor.push({ type: y % 8 === 2 ? "tree" : "shrub", x, y, solid: false, v: ((x + y * 5) & 15) / 16 });
-      for (const x of [door - 3, door + 4]) decor.push({ type: "lamp", x, y: level.h + 1, solid: false, v: 0 });
-      for (const x of [door - 3, door + 4]) decor.push({ type: "urn", x, y: level.h + 3, solid: false, v: x / 10 });
+      if (level.kind !== "gallery") for (const x of [door - 3, door + 4]) decor.push({ type: "lamp", x, y: level.h + 1, solid: false, v: 0 }, { type: "urn", x, y: level.h + 3, solid: false, v: x / 10 });
     }
     // Round open grounds: trees behind the pavilions and down the sides, on the turf the edge runs on into.
-    if (level.kind === "grounds") {
+    if (level.kind === "grounds" || level.kind === "court") {
       const turf = (x: number, y: number) => level.cells[Math.max(0, Math.min(level.h - 1, y)) * level.w + Math.max(0, Math.min(level.w - 1, x))] === 2;
       for (let x = -7; x < level.w + 7; x += 3) for (const y of [-6, -2, level.h + 2, level.h + 5]) if (turf(x, y)) decor.push({ type: "tree", x: x + (y & 1), y, solid: false, v: ((x * 5 + y) & 15) / 16 });
       for (let y = 0; y < level.h + 2; y += 3) for (const x of [-6, -3, level.w + 2, level.w + 5]) if (turf(x, y)) decor.push({ type: "tree", x, y: y + (x & 1), solid: false, v: ((x + y * 3) & 15) / 16 });
@@ -136,7 +135,7 @@ export class FairView {
     if (this.pending.length) this.place();
     if (!this.born) this.born = f.time;
     const t = f.time / 1000, wash = washAt(f.clock);
-    const indoor = this.level.kind === "hall" || this.level.kind === "pavilion" || this.level.kind === "machines";
+    const indoor = fairIndoor(this.level.kind);
     if (indoor) this.shade.setFillStyle(0xf2e8dc);
     else {
       const c = Phaser.Display.Color.IntegerToColor(wash.color), a = wash.alpha;

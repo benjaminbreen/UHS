@@ -1,4 +1,4 @@
-import { BED, BOX, BRIDGE, BUILDING, DECK, FENCE, FLOOR, GRAVEL, HEDGE, LAWN, PAVING, WALL, WATER, type FairLevel } from "../../world/fair";
+import { BED, BOX, BRIDGE, BUILDING, DECK, FENCE, FLOOR, GRAVEL, HEDGE, LAWN, PAVING, WALL, WATER, fairIndoor, type FairLevel } from "../../world/fair";
 import { h2, Raster } from "../ship/raster";
 import { paintFlag } from "./flags";
 
@@ -33,7 +33,7 @@ const WALLS = {
 const DADO = ["#a8744c", "#8a5a38", "#6c4428", "#4e301c"];
 const RUNNER = ["#d85a48", "#b23e34", "#862a26", "#e8c070"];
 
-const indoorKind = (L: FairLevel) => L.kind === "hall" || L.kind === "pavilion" || L.kind === "machines";
+const indoorKind = (L: FairLevel) => fairIndoor(L.kind);
 
 /** The ground of one fair area and the margin round it, painted once. Cell
  * (0, 0) of the area is at pixel (PAD.x * 16, PAD.top * 16). */
@@ -52,7 +52,7 @@ export function paintFairGround(L: FairLevel, seed: number): Raster {
     // Round a building: its roof behind, a gravel apron, a forecourt, lawn beyond.
     if (x >= 0 && x < w && y < 0 && y >= -3) return ROOF;
     const d = Math.max(x < 0 ? -x : x >= w ? x - w + 1 : 0, y < -3 ? -3 - y : y >= h ? y - h + 1 : 0);
-    if (y >= h && x >= door - 2 && x <= door + 3) return PAVING;
+    if (L.kind !== "gallery" && y >= h && x >= door - 2 && x <= door + 3) return PAVING;
     return d <= 2 ? GRAVEL : LAWN;
   };
   const at = (cx: number, cy: number) => cell(cx - X0, cy - Y0);
@@ -548,7 +548,7 @@ function building(R: Raster, L: FairLevel, OX: number, OY: number, seed: number)
   R.fill(OX + 8, by + 46, W - 16, 2, DADO[3]);
   const cx = OX + W / 2;
   if (L.kind === "machines") ironWall(R, L, OX, ry, by, c);
-  else if (L.kind === "hall") gallery(R, L, OX, by, c);
+  else if (L.kind === "hall" || L.kind === "gallery") gallery(R, L, OX, by, c);
   else for (let x = OX + 16; x + 20 < OX + W - 8; x += 32) {
     // A pilaster, then a tall arched window between it and the next.
     R.fill(x, by + 7, 6, 29, c[0]); R.fill(x + 5, by + 7, 1, 29, c[3]); R.fill(x - 1, by + 7, 8, 2, c[2]);
@@ -562,7 +562,7 @@ function building(R: Raster, L: FairLevel, OX: number, OY: number, seed: number)
     }
     R.fill(wx - 1, by + 33, ww + 2, 2, c[0]); R.fill(wx - 1, by + 35, ww + 2, 1, c[3]);
   }
-  paintFlag(R, L.area.replace(/-in$/, ""), cx - 14, by + 9, seed);
+  if (L.kind !== "gallery") paintFlag(R, L.area.replace(/-in$/, ""), cx - 14, by + 9, seed);
   // The wall's foot throws a shadow on the floor.
   for (let k = 0; k < 5; k++) for (let x = OX + 16; x < OX + W - 16; x++) R.shade(x, by + 48 + k, 0.32 - k * 0.06);
   // Side walls seen from above, with their shadow inside.
@@ -586,6 +586,26 @@ function building(R: Raster, L: FairLevel, OX: number, OY: number, seed: number)
     R.fill(x + 1, fy + 12, 4, 6, GLASS[1]);
     R.fill(x + 5, fy + 12, 1, 14, IRON[1]); R.fill(x + 1, fy + 18, 10, 1, IRON[1]);
     R.fill(x - 1, fy + 27, 14, 2, c[0]);
+  }
+  if (L.kind === "gallery") {
+    // Open doorways through to the galleries and courts that adjoin: the floor carried through between two jambs.
+    for (const e of L.exits) {
+      for (let ay = e.y === 0 ? 0 : e.y; ay < (e.y === 0 ? 3 : e.y + e.h); ay++) for (let ax = e.x; ax < e.x + e.w; ax++) floor(R, OX + ax * 16, OY + ay * 16, L, ax, ay);
+      const X = OX + e.x * 16, Y = OY + e.y * 16, wide = e.w * 16, deep = e.h * 16;
+      if (e.y === 0) {
+        for (let k = 0; k < 14; k++) for (let x = X; x < X + wide; x++) R.shade(x, by + k, 0.5 - k * 0.035);
+        for (const jx of [X - 5, X + wide]) R.fill(jx, by, 5, 48, c[0]), R.fill(jx + 4, by, 1, 48, c[3]), R.fill(jx, by + 44, 5, 4, c[2]);
+        R.fill(X - 5, by, wide + 10, 3, c[2]); R.fill(X - 5, by + 3, wide + 10, 1, c[4]);
+      } else if (e.y === h - 1) {
+        R.fill(X, fy + 16, wide, 20, FLOORS[L.floor ?? "parquet"][2]);
+        for (let k = 0; k < 20; k++) for (let x = X; x < X + wide; x++) R.shade(x, fy + 16 + k, 0.1 + k * 0.02);
+        for (const jx of [X - 5, X + wide]) R.fill(jx, fy, 5, 36, c[0]), R.fill(jx + 4, fy, 1, 36, c[3]);
+      } else {
+        R.fill(X, Y - 4, 16, 4, c[0]); R.fill(X, Y - 1, 16, 1, c[3]);
+        R.fill(X, Y + deep, 16, 4, c[0]); R.fill(X, Y + deep + 3, 16, 1, c[4]);
+      }
+    }
+    return;
   }
   const dx = OX + door * 16;
   R.fill(dx - 4, fy, 40, 36, c[0]);

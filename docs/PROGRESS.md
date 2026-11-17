@@ -25,6 +25,12 @@ The owner keeps this list.
 
 ## Recent milestones
 
+- November 16: fairs from a map. An area can be given as a rectangle on the
+  fair's plan and the game sizes it, joins it to its neighbours and fills it
+  by class. The 1884 International Health Exhibition is the first: 35 areas
+  from its General Plan ("A visitor at the Health Exhibition"). The machines
+  in its galleries and in Paris's come from `src/render/machines.ts`, a kit of
+  animated machinery not tied to fairs.
 - November 16: tombs, the first complex planned from the seed, and a map of
   the areas walked for fairs and tombs in the sidebar. "A tomb robber in
   Thebes, 1110 BCE" starts on the stair of a New Kingdom rock-cut tomb

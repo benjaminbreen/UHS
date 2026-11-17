@@ -1,4 +1,4 @@
-import { fairFind, fairFinds, fairPeople, type Fair, type FairArea, type FairBuilding, type FairFind } from "../content/fairs";
+import { fairFind, fairPeople, type Fair, type FairArea, type FairBuilding, type FairFind } from "../content/fairs";
 import { pickWeighted as pick, rngOf } from "../core/random";
 import type { Point } from "../core/types";
 import { N4, type Area, type AreaDecor, type AreaExit, type AreaFolk, type AreaLift, type AreaThing } from "./complex";
@@ -36,15 +36,61 @@ export function parseFairSpace(space: string) {
   return m ? { fair: m[1], area: m[2] } : undefined;
 }
 
-const SIZE: Record<FairArea["kind"], [number, number]> = {
+const SIZE: Partial<Record<FairArea["kind"], [number, number]>> = {
   grounds: [56, 40], bridge: [56, 40], hall: [64, 28], pavilion: [26, 18], machines: [72, 34], platform: [48, 32],
 };
+/** Cells wide and deep: from the area's rectangle on the plan when it has one, within what a screen or two holds. */
+function sizeOf(fair: Fair, plan: FairArea): [number, number] {
+  if (!plan.at) return SIZE[plan.kind] ?? [40, 28];
+  const k = fair.scale ?? 3;
+  return [Math.max(14, Math.min(72, Math.round(plan.at[2] * k))), Math.max(14, Math.min(44, Math.round(plan.at[3] * k)))];
+}
+export const fairIndoor = (kind: FairArea["kind"]) => kind === "hall" || kind === "pavilion" || kind === "machines" || kind === "gallery";
+export const fairOutdoor = (kind: FairArea["kind"]) => kind === "grounds" || kind === "bridge" || kind === "court";
+
+type Dir = "n" | "e" | "s" | "w";
+/** A way out of an area placed on the plan: its side, how far along it (0 to 1), and where it leads. */
+export type FairWay = { dir: Dir; at: number; to: string };
+
+/** The ways out of an area placed on the plan: one to each area whose rectangle
+ * shares at least two units of an edge with it, and its gate. */
+export function fairWays(fair: Fair, plan: FairArea): FairWay[] {
+  if (!plan.at) return [];
+  const [ax, ay, aw, ah] = plan.at, out: FairWay[] = [];
+  const shared = (a0: number, a1: number, b0: number, b1: number) => (Math.min(a1, b1) - Math.max(a0, b0) >= 2 ? (Math.min(a1, b1) + Math.max(a0, b0)) / 2 : undefined);
+  for (const b of fair.areas) {
+    if (b === plan || !b.at) continue;
+    const [bx, by, bw, bh] = b.at, mx = shared(ax, ax + aw, bx, bx + bw), my = shared(ay, ay + ah, by, by + bh);
+    if (mx !== undefined && by + bh === ay) out.push({ dir: "n", at: (mx - ax) / aw, to: b.id });
+    if (mx !== undefined && by === ay + ah) out.push({ dir: "s", at: (mx - ax) / aw, to: b.id });
+    if (my !== undefined && bx + bw === ax) out.push({ dir: "w", at: (my - ay) / ah, to: b.id });
+    if (my !== undefined && bx === ax + aw) out.push({ dir: "e", at: (my - ay) / ah, to: b.id });
+  }
+  if (plan.gate) out.push({ dir: plan.gate, at: 0.5, to: "outside" });
+  return out;
+}
+
+/** Where each way's opening starts along its side, three cells wide, kept `inset` from the corners and apart from each other. */
+function openings(ways: FairWay[], w: number, h: number, inset: number) {
+  const out: (FairWay & { a: number })[] = [];
+  for (const dir of ["n", "e", "s", "w"] as const) {
+    const len = dir === "n" || dir === "s" ? w : h;
+    let last = -9;
+    for (const way of ways.filter((y) => y.dir === dir).sort((p, q) => p.at - q.at)) {
+      const a = Math.max(inset, last + 5, Math.min(len - inset - 3, Math.round(way.at * len) - 1));
+      if (a > len - inset - 3) continue;
+      out.push({ ...way, a });
+      last = a;
+    }
+  }
+  return out;
+}
 
 /** One area of a fair: always the same for the same world, fair and area. */
 export function fairLevel(seed: string, fair: Fair, id: string): FairLevel | undefined {
   const plan = fair.areas.find((a) => a.id === id);
   if (!plan) return undefined;
-  const [w, h] = SIZE[plan.kind];
+  const [w, h] = sizeOf(fair, plan);
   const rng = rngOf(seed, "fair", fair.id, id);
   const L: FairLevel = {
     space: fairSpace(fair.id, id), fair: fair.id, area: id, kind: plan.kind, floor: plan.floor, depth: 1, name: plan.name, w, h,
@@ -55,7 +101,7 @@ export function fairLevel(seed: string, fair: Fair, id: string): FairLevel | und
   const fill = (x0: number, y0: number, x1: number, y1: number, c: number) => { for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) set(x, y, c); };
   const at = (x: number, y: number) => (x >= 0 && y >= 0 && x < w && y < h ? L.cells[y * w + x] : WALL);
   const space = (area: string) => fairSpace(fair.id, area);
-  const edge = (dir: "n" | "e" | "s" | "w", to: string, name: string, span: [number, number]) => {
+  const edge = (dir: Dir, to: string, name: string, span: [number, number]) => {
     const [a, b] = span;
     L.exits.push(dir === "n" ? { x: a, y: 0, w: b - a + 1, h: 1, to, name, inward: 2 } : dir === "s" ? { x: a, y: h - 1, w: b - a + 1, h: 1, to, name, inward: 0 }
       : dir === "w" ? { x: 0, y: a, w: 1, h: b - a + 1, to, name, inward: 1 } : { x: w - 1, y: a, w: 1, h: b - a + 1, to, name, inward: 3 });
@@ -64,6 +110,11 @@ export function fairLevel(seed: string, fair: Fair, id: string): FairLevel | und
   // The ground of the kind.
   if (plan.kind === "grounds" || plan.kind === "bridge") grounds(L, plan, rng, fill, set, at, edge, space, areaName);
   else if (plan.kind === "platform") platform(L, fill, set);
+  else if (plan.kind === "gallery" || plan.kind === "court") {
+    const open = openings(fairWays(fair, plan), w, h, plan.kind === "court" ? 4 : 5).map((o) => ({ ...o, to: o.to === "outside" ? "outside" : space(o.to), name: o.to === "outside" ? "the street" : areaName(o.to) }));
+    if (plan.kind === "court") court(L, plan, rng, fill, set, at, edge, open);
+    else gallery(L, fill, edge, open);
+  }
   else interior(L, plan, fair.areas.find((a) => a.buildings?.some((b) => b.interior === id))?.id, fill, edge, space, areaName);
   // Lifts: one at each foot of the tower, or at each corner of a platform.
   for (const [i, to] of (plan.lifts ?? []).entries()) {
@@ -77,16 +128,63 @@ export function fairLevel(seed: string, fair: Fair, id: string): FairLevel | und
   const gate = L.exits.find((e) => e.to === "outside") ?? L.exits[0];
   if (gate) L.entry = { x: gate.x + (gate.w >> 1) + N4[gate.inward][0], y: gate.y + (gate.h >> 1) + N4[gate.inward][1] };
   else if (L.lifts[0]) L.entry = { x: L.lifts[0].x, y: L.lifts[0].y + 1 };
-  furnish(L, plan, rng, seed, fair.id);
+  furnish(L, plan, rng, seed, fair);
   return L;
 }
 
 type Fill = (x0: number, y0: number, x1: number, y1: number, c: number) => void;
 type Set = (x: number, y: number, c: number) => void;
-type Edge = (dir: "n" | "e" | "s" | "w", to: string, name: string, span: [number, number]) => void;
+type Edge = (dir: Dir, to: string, name: string, span: [number, number]) => void;
+type Opening = { dir: Dir; a: number; to: string; name: string };
+
+/** A gallery from the plan: one floor inside its walls, and a doorway three cells wide to each area that adjoins it. */
+function gallery(L: FairLevel, fill: Fill, edge: Edge, open: Opening[]) {
+  const { w, h } = L;
+  fill(1, 3, w - 2, h - 2, FLOOR);
+  for (const o of open) {
+    if (o.dir === "n") fill(o.a, 0, o.a + 2, 2, FLOOR);
+    else if (o.dir === "s") fill(o.a, h - 1, o.a + 2, h - 1, FLOOR);
+    else fill(o.dir === "w" ? 0 : w - 1, o.a, o.dir === "w" ? 0 : w - 1, o.a + 2, FLOOR);
+    edge(o.dir, o.to, o.name, [o.a, o.a + 2]);
+  }
+  if (w >= 26 && h >= 20) for (let x = 6; x < w - 4; x += 8) for (const y of [7, h - 7]) if (Math.abs(x - (w >> 1)) > 2) L.decor.push({ type: "column", x, y, solid: true, v: 0 });
+}
+
+/** A garden court from the plan: a walk round the edge and a cross through the
+ * middle, railed gardens in the quarters, a fountain or bandstands, and a
+ * paved way in from each area that adjoins it. */
+function court(L: FairLevel, plan: FairArea, rng: () => number, fill: Fill, set: Set, at: (x: number, y: number) => number, edge: Edge, open: Opening[]) {
+  const { w, h } = L, cx = w >> 1, my = h >> 1;
+  fill(0, 0, w - 1, h - 1, LAWN);
+  fill(1, 1, w - 2, 3, GRAVEL); fill(1, h - 4, w - 2, h - 2, GRAVEL); fill(1, 1, 3, h - 2, GRAVEL); fill(w - 4, 1, w - 2, h - 2, GRAVEL);
+  fill(cx - 1, 1, cx + 1, h - 2, PAVING);
+  fill(1, my - 1, w - 2, my + 1, PAVING);
+  for (const o of open) {
+    if (o.dir === "n") fill(o.a, 0, o.a + 2, 3, PAVING);
+    else if (o.dir === "s") fill(o.a, h - 4, o.a + 2, h - 1, PAVING);
+    else if (o.dir === "w") fill(0, o.a, 3, o.a + 2, PAVING);
+    else fill(w - 4, o.a, w - 1, o.a + 2, PAVING);
+    edge(o.dir, o.to, o.name, [o.a, o.a + 2]);
+  }
+  if (plan.fountain) {
+    const fw = w >= 34 ? 12 : 8, fh = h >= 26 ? 8 : 6, fx = cx - (fw >> 1), fy = my - (fh >> 1);
+    fill(fx - 2, fy - 2, fx + fw + 1, fy + fh + 1, PAVING);
+    fill(fx, fy, fx + fw - 1, fy + fh - 1, WATER);
+    L.fountain = { x: fx, y: fy, w: fw, h: fh, kind: plan.fountain };
+    L.decor.push({ type: "tazza", x: cx - 1, y: fy + (fh >> 1), solid: true, v: plan.fountain === "coutan" ? 1 : 0 });
+  }
+  // Bandstands on the cross walk, each on a paved round with room to pass.
+  for (let k = 0; k < (plan.bandstands ?? 0); k++) {
+    const bx = Math.round((w * (k * 2 + 1)) / ((plan.bandstands ?? 1) * 2));
+    fill(bx - 3, my - 3, bx + 3, my + 3, PAVING);
+    for (let y = my - 1; y <= my + 1; y++) for (let x = bx - 1; x <= bx + 1; x++) L.decor.push({ type: x === bx - 1 && y === my + 1 ? "bandstand" : "solid", x, y, solid: true, v: rng() });
+  }
+  gardens(L, rng, fill, set, at);
+  for (const [x, y] of [[2, 2], [w - 3, 2], [2, h - 3], [w - 3, h - 3]]) L.decor.push({ type: "lamp", x, y, solid: true, v: rng() });
+}
 
 function grounds(L: FairLevel, plan: FairArea, rng: () => number, fill: Fill, set: Set, at: (x: number, y: number) => number, edge: Edge, space: (a: string) => string, areaName: (a: string) => string) {
-  const { w, h } = L, links = plan.links ?? {}, cx = w >> 1, tower = plan.id === "tower", mid = tower ? 19 : 26;
+  const { w, h } = L, links = plan.links ?? {}, cx = w >> 1, tower = !!plan.tower, mid = tower ? 19 : 26;
   fill(0, 0, w - 1, h - 1, LAWN);
   if (plan.kind === "bridge") {
     // The Seine across the middle, quays either side, and the bridge over it.
@@ -201,7 +299,7 @@ const isles = (w: number): Rect[] => {
 export const MACHINES: [string, number, number][] = [["engine", 3, 2], ["dynamo", 2, 2], ["pump", 3, 2], ["loom", 2, 1], ["press", 2, 1], ["dynamo", 2, 2], ["engine", 3, 2]];
 
 /** Exhibits, filler stands, decor and people. */
-function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, fair: string) {
+function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, fair: Fair) {
   const { w, h } = L;
   const taken = new Uint8Array(w * h);
   for (const d of L.decor) if (d.solid) taken[d.y * w + d.x] = 1;
@@ -215,10 +313,10 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
     return true;
   };
   const wallFree = (x: number, fw = 1) => {
-    for (let xx = x - 1; xx <= x + fw; xx++) if (xx < 1 || xx >= w - 1 || taken[2 * w + xx] || L.cells[3 * w + xx] !== FLOOR) return false;
+    for (let xx = x - 1; xx <= x + fw; xx++) if (xx < 1 || xx >= w - 1 || taken[2 * w + xx] || L.cells[3 * w + xx] !== FLOOR || L.cells[2 * w + xx] !== WALL) return false;
     return true;
   };
-  const indoor = plan.kind === "hall" || plan.kind === "pavilion" || plan.kind === "machines";
+  const indoor = fairIndoor(plan.kind);
   const spots: Point[] = [];
   const cx = w >> 1;
   // Indoors, bays either side of an aisle from the door to the back wall, filled from the back;
@@ -245,7 +343,7 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
     spots.sort((a, b) => score(a) - score(b));
   } else if (plan.kind === "platform") for (let x = 4; x < w - 6; x += 3) for (const y of [3, h - 6]) spots.push({ x, y });
   else {
-    for (const y of [FRONT + 2, h - 2]) for (let x = 3; x < w - 3; x++) if (Math.abs(x - cx) > 4) spots.push({ x, y });
+    for (const y of plan.kind === "court" ? [2, h - 3] : [FRONT + 2, h - 2]) for (let x = 3; x < w - 3; x++) if (Math.abs(x - cx) > 4) spots.push({ x, y });
     spots.sort((a, b) => Math.abs(a.x - cx) - Math.abs(b.x - cx) || a.y - b.y);
   }
   const wallX: number[] = [];
@@ -274,7 +372,7 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
     if (f && place(f, n)) n++;
   }
   const tags = new Set([plan.id, plan.kind, ...(plan.stands?.tags ?? [])]);
-  const pool = fairFinds.filter((f) => f.tags.some((t) => tags.has(t)) && !plan.exhibits?.includes(f.id));
+  const pool = fair.finds.filter((f) => f.tags.some((t) => tags.has(t)) && !plan.exhibits?.includes(f.id));
   const used = new Map<string, number>();
   for (let k = 0; k < (plan.stands?.n ?? 0); k++) {
     const f = pick(rng, pool.filter((p) => (used.get(p.id) ?? 0) < (p.tier === "common" ? 2 : 1)), (p) => (p.weight ?? 1) * (p.tier === "common" ? 3 : 1));
@@ -309,7 +407,17 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       }
       if (!taken[r.y0 * w + r.x1]) taken[r.y0 * w + r.x1] = 1, L.decor.push({ type: "lamp", x: r.x1, y: r.y0, solid: true, v: 0 });
     }
-  } else if (plan.kind === "hall") {
+  } else if (plan.kind === "gallery" && plan.machinery) {
+    // Machines at work in rows, each with room to walk round it.
+    let k = Math.floor(rng() * MACHINES.length);
+    for (let foot = 8; foot < h - 3; foot += 5) for (let x = 3; x < w - 5; x++) {
+      const [, fw, fh] = MACHINES[k % MACHINES.length], y = foot - fh + 1;
+      if (!free(x, y, fw, fh)) continue;
+      block(x, y, fw, fh);
+      L.decor.push({ type: "machine", x, y: foot, solid: true, v: (k % MACHINES.length) + rng() * 0.9 });
+      k++, x += fw + 2;
+    }
+  } else if (plan.kind === "hall" || plan.kind === "gallery") {
     for (const s of spots) {
       if ((s.y - 5) % 6 || (s.x - 3) % 4 || (s.x - 3) % 12 === 8 || Math.abs(s.y - (h >> 1)) < 2 || s.x < 3 || s.x > w - 6 || !free(s.x, s.y, 3, 1)) continue;
       block(s.x, s.y, 3, 1);
@@ -328,8 +436,8 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
   }
   // People.
   const who = (plan.people ?? []).map((id) => fairPeople.find((p) => p.id === id)).filter((p) => !!p);
-  const count = { grounds: 10, bridge: 8, hall: 7, pavilion: 3, machines: 7, platform: 5 }[plan.kind];
-  const frng = rngOf(seed, "fair-folk", fair, plan.id);
+  const count = { grounds: 10, bridge: 8, hall: 7, pavilion: 3, machines: 7, platform: 5, gallery: Math.max(3, Math.round((w * h) / 220)), court: 9 }[plan.kind];
+  const frng = rngOf(seed, "fair-folk", fair.id, plan.id);
   for (let i = 0; i < count && who.length; i++) {
     const p = who[Math.floor(frng() * who.length)];
     for (let tries = 0; tries < 30; tries++) {

@@ -1,4 +1,5 @@
 import type { Fair, FairArea, FairBuilding } from "./types";
+import { fairFinds } from "./finds";
 
 // The Exposition Universelle of 1889, 6 May to 31 October, for the centenary of
 // the Revolution: the Champ de Mars, the Trocadéro across the Seine, the Quai
@@ -30,7 +31,7 @@ const areas: FairArea[] = [
     basis: "documented",
   },
   {
-    id: "tower", name: "the foot of the Eiffel Tower", kind: "grounds", links: { s: "iena", n: "central-gardens", e: "americas", w: "bourdonnais" },
+    id: "tower", name: "the foot of the Eiffel Tower", kind: "grounds", tower: true, liftTicket: "tower-ticket", links: { s: "iena", n: "central-gardens", e: "americas", w: "bourdonnais" },
     lifts: ["tower-first"], exhibits: ["tower-ticket-office"], people: [...visitors, "fair-hawker", "tower-liftman"],
     note: "The four legs stood on the Champ de Mars over a garden. Lifts ran up the legs: French ones in the east and west, American Otis cars in the north and south.",
     basis: "documented",
@@ -209,5 +210,15 @@ export const paris1889: Fair = {
   years: [1889, 1889],
   entry: "trocadero",
   areas,
+  finds: fairFinds,
   ticket: 1,
+  coin: ["franc", "francs"],
+  prompt: /\bworld'?s fair\b|\bexposition\b|\beiffel tower\b/,
+  place: "paris",
+  words: {
+    short: "A franc at the turnstile, and you don't have it.",
+    enter: "and the crowd, and the Tower over everything.",
+    liftUp: "The car grinds up the curve of the leg, Paris dropping away under the girders, and opens onto",
+    liftLook: "A lift car on its rails, climbing the curve of the leg",
+  },
 };
