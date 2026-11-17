@@ -214,7 +214,7 @@ export function createEnvironment(
       settled.push({ ...w, stream });
       if (own) list.push({ ...w, stream });
     }
-    trimCache(joinedBlocks, 64);
+    trimCache(joinedBlocks, 1024);
     joinedBlocks.set(key, list);
     return list;
   };
@@ -314,7 +314,7 @@ export function createEnvironment(
         if (trail) list.push({ stream: trail, kind: "trail", ceiling });
       }
     }
-    trimCache(streamBlocks, 64);
+    trimCache(streamBlocks, 1024);
     streamBlocks.set(key, list);
     return list;
   };
