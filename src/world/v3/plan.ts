@@ -22,7 +22,7 @@ import {
   subsistenceFor,
   characterCommunity,
   characterStanding,
-  keeperContext,
+  townWorkContext,
   resolveCharacterContext,
   workAt,
 } from "../../content/characters/resolve";
@@ -3904,8 +3904,7 @@ export function planSettlement(
     // The person's own community and standing, as generateCharacter will see
     // them, so the trade on the door is the trade they end up with.
     const community = pack.setting?.characterRevision ? characterCommunity(pack.setting, seed, owner) : undefined;
-    const personal = community === undefined ? undefined
-      : keeper ? keeperContext(pack.setting!, community) : resolveCharacterContext(pack.setting!, community);
+    const personal = community === undefined ? undefined : townWorkContext(pack.setting!, community);
     const livelihood = personal
       ? characterLivelihood(
           pack.setting!,

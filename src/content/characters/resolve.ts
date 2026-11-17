@@ -399,8 +399,8 @@ export function workAt(
       (sex === "unspecified" || !l.sex || l.sex === sex),
   );
 }
-/** A shopkeeper's own community's work with the town's trades it lacks: the shop was asked for from those. */
-export function keeperContext(
+/** A person's own community's work with the town's trades it lacks: the town asks for its trades from those. */
+export function townWorkContext(
   s: WorldSetting,
   community: string | undefined,
   localRequirements?: ReadonlySet<string>,

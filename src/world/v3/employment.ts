@@ -3,7 +3,7 @@ import {
   institutionFor,
   type Institution,
 } from "../../content/characters/workplace";
-import { keeperContext, resolveCharacterContext } from "../../content/characters/resolve";
+import { townWorkContext } from "../../content/characters/resolve";
 import { generateCharacter } from "../../content/characters/generate";
 import { livelihoodById } from "../../content/characters/livelihoods";
 import { officeFor } from "../../content/interiors/offices";
@@ -139,9 +139,7 @@ export function localWorkContext(
     if (requirement) localRequirements.add(requirement);
   }
   const keeps = keepsShop(plan, id);
-  const context = keeps
-    ? keeperContext(pack.setting!, community, localRequirements)
-    : resolveCharacterContext(pack.setting!, community, localRequirements);
+  const context = townWorkContext(pack.setting!, community, localRequirements);
   return {
     ...context,
     livelihoods: context.livelihoods.filter((l) => {

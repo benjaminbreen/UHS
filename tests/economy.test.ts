@@ -126,7 +126,8 @@ it("keeps generated Multan purchases and debts consistent with the actual suppli
     }
   }
   expect(purchases).toBeGreaterThan(0);
-  expect(drinks).toBeGreaterThan(0);
+  // Whether anyone here keeps a drink shop is the draw's; whoever does must find custom.
+  if (households.some((h) => h.makes?.includes("drink"))) expect(drinks).toBeGreaterThan(0);
   expect(credits).toBeGreaterThan(0);
   expect(households.some((h) => !h.needs?.includes("drink"))).toBe(true);
 });

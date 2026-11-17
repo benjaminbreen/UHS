@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { createSettingSession, type Runtime } from "../src/runtime/session";
 import { plotLine, startPlot, type PlotState } from "../src/core/plot";
 import { STANCE_VOICE, stanceOf } from "../src/content/plots/stance";
@@ -210,6 +210,8 @@ describe("Something at the Door", () => {
 });
 
 describe("plots played out in London, 1750", () => {
+  // The build is charged here, not to whichever case runs first.
+  beforeAll(() => void session(), 180_000);
   it("binds a seeded debt, sends the creditor over, and ends it by payment or seizure", () => {
     const e = smallSession({ ...setting, economyRevision: 1 }, "b");
     const local = e.world.pack.setting!;
