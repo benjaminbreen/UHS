@@ -65,7 +65,14 @@ dress built from shared parts (`eu-18c-suit`, `eu-18c-gown` in
 `regions/europe.ts`, `court-georgian` in `regions/special.ts`): a coat with
 `cut: "full"` is skirted, `wrist: "cuffs"` and `"ruffles"` finish a sleeve,
 `leggings: "breeches"` shows stockings and buckled shoes, and
-`silhouette: "pannier"` opens a gown over its petticoat. Explicit appearance recipes always win. `wardrobes.ts` is a
+`silhouette: "pannier"` opens a gown over its petticoat.
+
+The shared clothes of the present are in `regions/contemporary.ts`: T-shirts
+(`motif: "tee"` and `"graphic"`), `leggings: "jeans"` and `"shorts"`, a zipped
+`waistcoat: "jacket"`, printed dresses (`motif: "floral"`) and
+`bag: "backpack"`. Each kit carries a `share`, so in every place some people
+wear the whole look and the rest keep the region's dress; the share is lower
+where regional dress holds. Future dress (`futureDress`) starts in 2040. Explicit appearance recipes always win. `wardrobes.ts` is a
 re-export shim.
 
 ## The world sprite
@@ -187,6 +194,7 @@ scope rules as name kits, with wide era floors so every date lands somewhere.
     people alive in each year and place. Start here when asking what most
     players will see.
   - `georgian`: eighteenth-century Europe, court to market
+  - `modern`: ordinary people since 1970, a row per region
   - `expressions`, `weapons`, `work`
   - `portrait-age`
 - **More sheets.** `npx tsx scripts/portrait-sheets.ts expressions|ears|marks|noses|nose-ornament`.

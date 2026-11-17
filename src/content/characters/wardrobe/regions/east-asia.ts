@@ -158,7 +158,7 @@ export const eastAsia: readonly GarmentKit[] = [
   {
     id: "ea-modern",
     label: "East Asia · the shirt, and the robe kept for occasions",
-    scope: { years: [1900, 10001], cultures: ["east-asian"] },
+    scope: { years: [1900, 1950], cultures: ["east-asian"] },
     front: [{ value: "cross", garments: ["open-robe", "robe", "long-tunic"] }],
     sleeves: [{ value: "long", weight: 5 }, { value: "loose", weight: 4, garments: ["robe", "open-robe", "long-tunic"] }, { value: "short", weight: 2, garments: ["tunic", "shirt"] }],
     motif: [{ value: "plain", weight: 8 }, { value: "band", weight: 2, garments: ["robe", "open-robe", "long-tunic"] }],
@@ -172,7 +172,7 @@ export const eastAsia: readonly GarmentKit[] = [
     leggings: [
       { value: "trousers", weight: 7 },
       { value: "wide", weight: 2 },
-      { value: "hose", weight: 2 },
+      { value: "hose", weight: 2, sex: ["female"] },
     ],
     headwear: [
       { value: "none", weight: 5 },
@@ -186,6 +186,24 @@ export const eastAsia: readonly GarmentKit[] = [
       { value: "sandals", weight: 3 },
       { value: "boots", weight: 2 },
     ],
+  },
+  {
+    // After the revolutions and the war the robe left the street: shirts,
+    // jackets and trousers for both sexes, the straw hat still in the fields.
+    id: "ea-contemporary",
+    label: "East Asia · shirt, jacket and trousers",
+    scope: { years: [1950, 10001], cultures: ["east-asian"] },
+    sleeves: [{ value: "long", weight: 5 }, { value: "short", weight: 3, garments: ["shirt"] }],
+    motif: [{ value: "plain", weight: 8 }, { value: "placket", weight: 2, garments: ["shirt", "coat"] }],
+    garment: [{ value: "shirt", weight: 7 }, { value: "coat", weight: 3 }, { value: "dress", weight: 2, sex: ["female"] }],
+    leggings: [{ value: "trousers", weight: 8 }, { value: "hose", weight: 2, sex: ["female"] }],
+    headwear: [
+      { value: "none", weight: 6 },
+      { value: "cap", weight: 2 },
+      { value: "conical", weight: 3, livelihoods: ["farmer", "fisher"] },
+      { value: "ball-cap", weight: 2, ages: ["child", "youth", "adult"] },
+    ],
+    footwear: [{ value: "shoes", weight: 7 }, { value: "sandals", weight: 2 }, { value: "boots", weight: 2 }],
   },
   {
     // Goguryeo tomb paintings to Goryeo: a short jacket over wide trousers for

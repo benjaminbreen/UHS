@@ -722,7 +722,7 @@ export const europe: readonly GarmentKit[] = [
     ],
     leggings: [
       { value: "trousers", weight: 8 },
-      { value: "hose", weight: 2 },
+      { value: "hose", weight: 2, sex: ["female"] },
       { value: "none", weight: 1 },
     ],
     headwear: [

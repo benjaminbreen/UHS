@@ -122,9 +122,11 @@ function bib(f: Figure, kind: "pinafore" | "overalls") {
 
 /** A purse hung from the belt, or a satchel on a strap across the body. */
 /** A wicker creel on the back, its rim above the shoulders, on two straps. */
-export function creel(f: Figure, layer: "behind" | "over") {
+/** A basket or a pack on the back by two shoulder straps. */
+export function creel(f: Figure, layer: "behind" | "over", kind: "creel" | "backpack" = "creel") {
   const { s, yOf } = f;
   const back = away(f);
+  const pack = kind === "backpack";
   if (layer === "over" && !back) {
     if (f.cos < 0.3) return;
     const straps = new Mask();
@@ -132,16 +134,19 @@ export function creel(f: Figure, layer: "behind" | "over") {
       const x = sideX(f, f.shoulder, side * (f.shoulderW - 2), f.chestD);
       straps.line(x, yOf(f.shoulder), sideX(f, f.shoulder - 4, side * (f.waistW - 1), f.chestD), yOf(f.shoulder - 4), 1);
     }
-    s.put(straps, LEATHER, { ring: "none", shade: 0 });
+    s.put(straps, pack ? KERCHIEF : LEATHER, { ring: "none", shade: 0, dark: pack ? 1 : 0 });
     return;
   }
   if (layer === "over" ? !back : back) return;
   const m = new Mask();
-  for (let y = f.hip - 1; y <= f.shoulder + 3; y++) {
-    const half = (f.shoulderW - 1 + (y - f.hip) * 0.12) * Math.abs(f.cos) + 3 * Math.abs(f.sin);
-    const c = sideX(f, y, 0, -(f.chestD + 2.5));
+  // A pack sits between the shoulders and the belt, narrower than the back.
+  for (let y = f.hip + (pack ? 1 : -1); y <= f.shoulder + (pack ? 0 : 3); y++) {
+    const half = pack ? (f.waistW - 1) * Math.abs(f.cos) + 2 * Math.abs(f.sin) : (f.shoulderW - 1 + (y - f.hip) * 0.12) * Math.abs(f.cos) + 3 * Math.abs(f.sin);
+    const c = sideX(f, y, 0, -(f.chestD + (pack ? 1.5 : 2.5)));
     m.span(yOf(y), rnd(c - half + 0.5), rnd(c + half - 0.5));
   }
+  // A pocket across the lower half.
+  if (pack) return void s.put(m, KERCHIEF, { ring: "ink", shade: 0.35, light: 0.2, top: true, bottom: true, tone: (_x, y, t) => (y === yOf(f.hip + 3) && t >= 2 ? t - 1 : t) });
   s.put(m, STRAW, { ring: "ink", shade: 0.35, light: 0.25, top: true, bottom: true, tone: (x, y, t) => (t >= 2 && (x + y) % 3 === 0 ? t - 1 : t) });
 }
 

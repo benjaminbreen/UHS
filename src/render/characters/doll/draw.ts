@@ -1181,6 +1181,8 @@ type Kit = {
   sleeve: number;
   silhouette: NonNullable<CharacterAppearance["wearing"]["silhouette"]>;
   breeches: boolean;
+  jeans: boolean;
+  shorts: boolean;
   /** A coat cut full: nipped at the waist, its skirts standing out to the knee. */
   skirted: boolean;
   cuffs: boolean;
@@ -1221,7 +1223,7 @@ function kit(a: CharacterAppearance, d: Dims): Kit {
   if (silhouette === "empire") [hem, flare] = [1, 0.8];
   const outfit = [...(w.color + w.trim + g + w.belt)].reduce((n, c) => (Math.imul(n, 31) + c.charCodeAt(0)) >>> 0, 7);
   const named = w.motif ?? "auto";
-  const cardigan = w.waistcoat === "cardigan" && !bare && g !== "poncho";
+  const cardigan = (w.waistcoat === "cardigan" || w.waistcoat === "jacket") && !bare && g !== "poncho";
   return {
     g,
     sleeves: cardigan ? "long" : sleeves,
@@ -1244,6 +1246,8 @@ function kit(a: CharacterAppearance, d: Dims): Kit {
     sleeve: cardigan ? VEST : TOP,
     silhouette,
     breeches: leggings === "breeches",
+    jeans: leggings === "jeans",
+    shorts: leggings === "shorts",
     skirted,
     cuffs: w.wrist === "cuffs",
     ruffles: w.wrist === "ruffles" || (w.wrist === "cuffs" && (w.quality ?? 0) >= 1),
@@ -1321,6 +1325,8 @@ function palette(a: CharacterAppearance): Ramp[] {
   p[ORN] = ramp({ gold: "#d9a441", silver: "#c8ccd4", copper: "#c07040", bone: "#e8dcc0", shell: "#f0e0d0", jet: "#34303c" }[ad?.metal ?? "gold"] ?? "#d9a441");
   p[MARK] = ramp(ad?.markColor ?? (ad?.markStyle === "paint" ? "#b8352c" : "#2a3550"));
   const pick = <T,>(list: readonly T[], salt: number) => list[(n + salt) % list.length];
+  // Denim from raw indigo to stonewash, and black.
+  if (w.leggings === "jeans") p[LOWER] = ramp(pick(["#3f5f8f", "#2f4468", "#6f8fb4", "#3f5f8f", "#2c2e38"], 4));
   // What a hair ornament is made of: tortoiseshell or gold combs, gold pins,
   // flowers, a gold net, a dyed ribbon.
   const ornament = w.hairOrnament;
@@ -1554,7 +1560,7 @@ export function drawCharacterG(
   const carrying = a.wearing.infant;
   if (carrying && !backView) infant(fig, "behind", a.wearing.infantMood, a.wearing.infantCarry);
   if (carrying && backView) infant(fig, "under", a.wearing.infantMood, a.wearing.infantCarry);
-  if (a.wearing.bag === "creel" && !carrying) creel(fig, "behind");
+  if ((a.wearing.bag === "creel" || a.wearing.bag === "backpack") && !carrying) creel(fig, "behind", a.wearing.bag);
   const { zone, tone } = garment(k, d, t, yOf, centre, hem, bare, s.key);
   s.put(body, TOP, { zone, tone, shade: 0.34, light: fabricLight[k.material ?? "cotton"], top: true, bottom: hem !== undefined });
   if (hem !== undefined) hemDetail(s, a, t, yOf(hem), centre(hip));
@@ -1589,7 +1595,7 @@ export function drawCharacterG(
   if (w.apron && w.apron !== "none" && !bare) apron(fig, w.apron);
   if (w.bag === "purse" || w.bag === "satchel") bag(fig, w.bag);
   // A watch chain looped from the middle button to the waistcoat pocket.
-  if ((k.g === "suit" || vested) && t.cos > 0.3) {
+  if ((k.g === "suit" || (vested && vest !== "cardigan" && vest !== "jacket")) && t.cos > 0.3) {
     const y = yOf(hip + 3), c = centre(hip + 3), side = s.key;
     [[1, 0], [2, 1], [3, 1], [4, 0]].forEach(([dx, dy], i) => s.px(rnd(c + side * dx * t.cos), y + dy, METAL, i === 0 || i === 3 ? 3 : 4));
   }
@@ -1633,7 +1639,7 @@ export function drawCharacterG(
   }
   if (carrying && backView) infant(fig, "behind", a.wearing.infantMood, a.wearing.infantCarry);
   if (carrying && !backView) infant(fig, "over", a.wearing.infantMood, a.wearing.infantCarry);
-  if (w.bag === "creel" && !carrying) creel(fig, "over");
+  if ((w.bag === "creel" || w.bag === "backpack") && !carrying) creel(fig, "over", w.bag);
 
   if (w.shroud) shroud(s, t, d, yOf, centre, w.mask === "grille");
 
@@ -1859,12 +1865,13 @@ function drawSidearm(s: Sheet, t: Turn, kind: Sidearm, h: Hang, short: boolean, 
  * below it, with welted pockets and two points at the waist. The back is the
  * cheaper lining, drawn in with a buckled strap. Under an open coat only the
  * opening shows it. */
-function waistcoat(s: Sheet, k: Kit, t: Turn, d: Dims, yOf: (y: number) => number, centre: (y: number) => number, width: (y: number) => number, kind: "plain" | "figured" | "cardigan") {
+function waistcoat(s: Sheet, k: Kit, t: Turn, d: Dims, yOf: (y: number) => number, centre: (y: number) => number, width: (y: number) => number, kind: "plain" | "figured" | "cardigan" | "jacket") {
   const m = new Mask();
   const front = t.cos > 0.2,
     back = t.cos < -0.2,
     coat = k.g === "coat";
-  const knit = kind === "cardigan";
+  // A cardigan and a zipped jacket hang the same way: sleeved, open, past the waist.
+  const knit = kind === "cardigan" || kind === "jacket";
   // Under a coat only the front shows.
   if (coat && !front) return;
   const fc = (y: number) => centre(y) + d.chestD * 0.9 * t.sx * t.sin;
@@ -1892,8 +1899,9 @@ function waistcoat(s: Sheet, k: Kit, t: Turn, d: Dims, yOf: (y: number) => numbe
     // Knit ribbing at the hem.
     tone: knit ? (x, y, tn) => (y === yOf(d.hip - 2) && x % 2 === 0 ? Math.min(tn, 2) : tn) : undefined,
   });
-  if (front && knit) {
+  if (front && kind === "cardigan") {
     for (let y = d.hip; y <= vee; y += 2) s.px(rnd(fc(y) - 1.2 * t.cos), yOf(y), METAL, 3);
+  } else if (knit) {
   } else if (front) {
     for (let y = d.hip; y <= vee; y += 2) s.px(rnd(fc(y)), yOf(y), METAL, 4);
     if (!coat) for (const side of [-1, 1]) for (const dx of [2, 3]) s.px(rnd(fc(d.hip + 1) + side * dx * t.cos), yOf(d.hip + 1), VEST, 1);
@@ -1936,11 +1944,13 @@ function drawLeg(s: Sheet, t: Turn, leg: Limb, k: Kit, dark: number) {
     // Bare legs stay unlit, as bare arms do.
     light: k.legs === SKIN ? 0 : 0.3,
     dark,
-    zone: (x, y) => (boots && shin(y) ? BOOT : k.fishnet && (x + y) % 2 === 0 ? EYE : k.breeches && y > ky ? SOLE : k.legs),
+    zone: (x, y) => (boots && shin(y) ? BOOT : k.fishnet && (x + y) % 2 === 0 ? EYE : k.breeches && y > ky ? SOLE : k.shorts && y > ky - 1 ? SKIN : k.legs),
     tone: (x, y, tone) =>
       wrapped && y < ay - 1 && y > ky - 2 && y % 2 === 0 ? Math.min(tone, 2)
       // A bare knee.
       : k.legs === SKIN && !k.fishnet && tone === 3 && y === Math.round(ky) && x === rnd(kx) ? 2
+      // Denim worn pale on the thigh.
+      : k.jeans && tone === 3 && y === Math.round((hy + ky) / 2) && x === rnd((hx + kx) / 2) ? 4
       // The knee band.
       : k.breeches && y === Math.round(ky) ? Math.min(tone, 1)
       // A boot's top turns down in a lighter cuff.
@@ -2043,7 +2053,8 @@ function garment(
   const open = g === "coat" || g === "open-robe";
   const long = hem !== undefined && hem <= 3;
   const flared = hem !== undefined && ["dress", "gown", "robe", "skirt", "long-tunic", "open-robe", "tunic", "wrap"].includes(g);
-  const buttoned = g === "shirt" || g === "suit" || (g === "coat" && !open) || k.motif === "placket" || k.motif === "collar";
+  const tee = k.motif === "tee" || k.motif === "graphic";
+  const buttoned = (g === "shirt" && !tee) || g === "suit" || (g === "coat" && !open) || k.motif === "placket" || k.motif === "collar";
   const laced = (g === "dress" || g === "gown") && k.motif !== "collar";
   const banded = !k.skirted && (k.motif === "band" || (hem !== undefined && (k.band || !!k.pattern)));
   const tile = k.pattern && k.pattern !== "cloud" ? tiles[k.pattern] : undefined;
@@ -2102,9 +2113,11 @@ function garment(
       if (open && ax < 2.1 && y > top && (g === "open-robe" || y < top + 4)) return TRIM;
       // Necklines: a V on shirts and robes, a square on dresses, a band otherwise.
       if (y === top && ax < 1.6) return g === "shirt" || g === "robe" || laced ? SKIN : TRIM;
-      if (y === top + 1 && ax < 0.6 && (g === "robe" || g === "shirt")) return g === "shirt" ? SKIN : TRIM;
+      if (y === top + 1 && ax < 0.6 && (g === "robe" || (g === "shirt" && !tee))) return g === "shirt" ? SKIN : TRIM;
       if (g === "robe" && y > top && y <= top + 3 && Math.abs(ax - (y - top) * 0.5 - 0.3) < 0.5) return TRIM;
-      if ((g === "shirt" || g === "suit") && y === top && ax < 2.6) return TRIM;
+      if ((g === "shirt" || g === "suit") && !tee && y === top && ax < 2.6) return TRIM;
+      // A print across the chest.
+      if (k.motif === "graphic" && y >= top + 3 && y <= top + 4 && ax < 1.6) return TRIM;
       if (buttoned && ax < 0.6 && y > top + 1 && y < waist && (y - top) % 2 === 0) return g === "shirt" ? TRIM : METAL;
       if (laced && ax < 0.6 && y > top && y < waist && (y - top) % 2 === 1) return TRIM;
       if (g === "wrap") {
@@ -2127,6 +2140,7 @@ function garment(
     if (m === "tracksuit" && y <= hipRow && ((facing && ax < 0.6 && y > top) || Math.abs(ax - (d.shoulderW * Math.abs(t.cos) - 1.2)) < 0.5)) return WHITE;
     if (m === "tie-dye" && y <= hemRow && Math.round(Math.hypot(dx, y - top - 4)) % 3 === 0) return TRIM;
     if (m === "stitch" && y === hemRow - 2 && x % 2 === 0) return TRIM;
+    if (m === "floral" && y % 2 === 0 && (((x + 2 * y) % 5) + 5) % 5 === 0) return TRIM;
     if (m === "yoke" && y <= top + 1) return TRIM;
     if (m === "stripes" && (y - top) % 3 === 2) return TRIM;
     if (m === "plaid" && ((y - top) % 3 === 2 || (x - Math.round(c)) % 3 === 0)) return TRIM;

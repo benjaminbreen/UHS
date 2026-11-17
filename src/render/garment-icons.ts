@@ -29,6 +29,8 @@ const byId: Record<string, string> = {
   "headwear-tam": "beret",
   "leggings-fishnet": "hose",
   "leggings-breeches": "trousers",
+  "leggings-jeans": "trousers",
+  "leggings-shorts": "trousers",
   "footwear-moccasins": "shoes",
   "footwear-slippers": "shoes",
   "footwear-geta": "sandals",

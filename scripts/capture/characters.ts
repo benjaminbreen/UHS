@@ -1034,7 +1034,8 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       const next = () => ((n = Math.imul(n ^ (n >>> 15), 0x2c1b3c6d) + 0x297a2d39) >>> 0);
       for (let i = 0; i < cols * rows; i++) {
         const { setting } = randomStartFromDraws(new Uint32Array([next(), next(), next(), next()]), "realistic", `audit-${i}`);
-        const c = generateCharacter(setting, "audit", `audit-${i}`, [19, 27, 34, 45, 61][i % 5], setting.role);
+        // The start's own seed and id, so the work drawn for this sex is worn by it.
+        const c = generateCharacter(setting, `audit-${i}`, "player", [19, 27, 34, 45, 61][i % 5], setting.role);
         const x0 = (i % cols) * cw, y0 = Math.floor(i / cols) * ch;
         [[2, 4], [1, 3]].forEach(([dir, facing], j) => {
           drawCharacterG(fc, c.appearance, dir, "idle", 0, undefined, facing, "neutral");
@@ -1048,6 +1049,22 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     });
     await writeDataUrl(sheet, out("world"));
   },
+
+  /** Ordinary people since 1970, a row per region: T-shirts, jeans, jackets, prints, and the dress regions kept. */
+  modern: (page) => castSheet(page, "modern", [
+    ["London", "london", 2015, ["student|male|19", "shopkeeper|female", "farmer", "teacher|female|45"]],
+    ["Delhi", "delhi", 2015, ["student|male|19", "shopkeeper|female", "farmer", "teacher|female|45"]],
+    ["Beijing", "beijing", 2015, ["student|male|19", "shopkeeper|female", "farmer", "teacher|female|45"]],
+    ["Mexico", "mexico", 2015, ["student|female|19", "shopkeeper", "farmer|female", "teacher|male|45"]],
+    ["Timbuktu", "timbuktu", 2015, ["student|female|19", "shopkeeper", "farmer|female", "teacher|male|45"]],
+    ["Java", "java", 2015, ["student|female|19", "shopkeeper", "farmer|female", "teacher|male|45"]],
+    ["Konya", "konya", 2015, ["student|male|19", "shopkeeper|female", "farmer", "teacher|female|45"]],
+    ["Paris", "paris", 1978, ["student|male|19", "shopkeeper|female", "farmer", "teacher|female|45"]],
+    ["Beijing", "beijing", 1978, ["student|male|19", "shopkeeper|female", "farmer", "teacher|female|45"]],
+    ["Kyoto", "kyoto", 2024, ["student|female|19", "shopkeeper", "farmer|female", "teacher|male|45"]],
+    ["Cusco", "cusco", 2015, ["student|male|19", "shopkeeper|female", "farmer", "teacher|female|45"]],
+    ["Delhi", "delhi", 1978, ["student|female|19", "shopkeeper", "farmer|female", "teacher|male|45"]],
+  ]),
 
   /** Cocked hats, the Qing queue, the Joseon gat, the tonsure and habits by order. */
   hats: (page) => castSheet(page, "hats", [
