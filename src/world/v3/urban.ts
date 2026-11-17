@@ -431,7 +431,10 @@ export function urbanNeighborhood(
   const rows = !frames.length ? 0 : Math.min(32, 2 * median(frames.map((f) => buildingModel(f).footprint[1])) +
     Math.max(median(frames.map((f) => marginsOf(f)[1])), 2 * (form.backs ?? 0)));
   /** Cells from a frame's drawn top to the foot of its wall. */
-  const drawn = (f: string) => Math.max(buildingModel(f).footprint[1], Math.ceil(buildingModel(f).anchor[1] / 16));
+  // A tower stands on its footprint and rises over the rows behind it; counting
+  // its drawn height left every tower block as open ground.
+  const drawn = (f: string) => towerStyleFor(f) ? buildingModel(f).footprint[1]
+    : Math.max(buildingModel(f).footprint[1], Math.ceil(buildingModel(f).anchor[1] / 16));
   // A row's block is as deep as its houses stand drawn: what the centre, the
   // inner rings and the later ones are likely to build, before any block exists.
   /** Which ring of a street-wall city a block lies in, from its distance out

@@ -740,7 +740,9 @@ def modern_recipes():
             'description': st.about, 'obliqueModern': 'grammar', 'style': key,
             'seed': seed, 'stories': storeys, 'deep': storeys >= 6,
         }
-    out.update(kit_recipes(side_depth))
+    # The grammar's municipal hall keeps its id; the kit's French mairie under
+    # the same id flew a tricolour over every brick-built town hall in the world.
+    out.update({k: v for k, v in kit_recipes(side_depth).items() if not k.startswith('modern-civic-hall-')})
     for name, (kind, footprint, seed, storeys, label) in MODERN_BUILDINGS.items():
         fw, fh = footprint
         height = (STOREY + 10 + STOREY * (storeys - 1) + 17 if kind == 'block' else

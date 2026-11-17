@@ -4811,8 +4811,11 @@ export function planSettlement(
       .map(([k]) => k);
   const penStock = keptFor("pen");
   // A dog is not an alternative to hens: it has a pass of its own below.
+  // Hog laws cleared an industrial city's streets of pigs and loose fowl
+  // (New York's by the 1860s); hens stay where a house has a henhouse.
+  const cityStock = urban && industrialAge;
   const yardStock = keptFor("yard").filter(
-    (k) => k.id !== "dog" && k.id !== "cat",
+    (k) => k.id !== "dog" && k.id !== "cat" && (!cityStock || k.id === "chicken"),
   );
   const dog = kept.find((k) => k.id === "dog");
   const cat = kept.find((k) => k.id === "cat");
@@ -5890,7 +5893,7 @@ export function planSettlement(
     // Households with a henhouse first, so the cap never leaves one empty.
     for (const owner of [...owners].sort((a, b) => +!henhouseOf(a) - +!henhouseOf(b))) {
       const roost = henhouseOf(owner);
-      if (!roost && (owner === "player" || flocks >= Math.max(3, Math.round(owners.length / 8)))) continue;
+      if (!roost && (cityStock || owner === "player" || flocks >= Math.max(3, Math.round(owners.length / 8)))) continue;
       // A household with a henhouse keeps hens, and they scratch about it.
       const house = plan.places.find((b) => b.owner === owner);
       const coop = roost

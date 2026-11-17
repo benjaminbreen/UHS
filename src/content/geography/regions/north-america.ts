@@ -1,8 +1,6 @@
 import type { RegionalProfile, Provenance, Coordinate } from "./types";
 const dates = { start: { year: 1850 }, end: { year: 1914 } };
 const modernDates = { start: { year: 1914 }, end: { year: 2100 } };
-/** Land and water hold for both periods; only the places change. */
-const featureDates = { start: { year: 1850 } };
 const evidence: Provenance = {
   status: "inferred",
   sources: [
@@ -11,17 +9,20 @@ const evidence: Provenance = {
   ],
   note: "Deliberately simplified land/water and urban shapes, informed by nineteenth-century maps; not digitized shorelines or exact dated development limits. Shared building art remains approximate.",
 };
+// Drawn out to mid-channel on both sides, so the atlas's shoreline, not this
+// polygon, is the island's edge.
 const manhattan: Coordinate[] = [
-  [-74.018, 40.701],
-  [-74.012, 40.725],
-  [-74.008, 40.756],
-  [-73.978, 40.798],
-  [-73.935, 40.873],
-  [-73.911, 40.874],
-  [-73.933, 40.825],
-  [-73.94, 40.793],
-  [-73.969, 40.739],
-  [-73.974, 40.709],
+  [-74.03, 40.695],
+  [-74.026, 40.71],
+  [-74.016, 40.752],
+  [-73.985, 40.81],
+  [-73.945, 40.88],
+  [-73.905, 40.876],
+  [-73.922, 40.80],
+  [-73.94, 40.775],
+  [-73.956, 40.752],
+  [-73.978, 40.71],
+  [-73.99, 40.697],
 ];
 const longIsland: Coordinate[] = [
   [-73.8, 40.53],
@@ -33,75 +34,9 @@ const longIsland: Coordinate[] = [
   [-73.902, 40.795],
   [-73.8, 40.84],
 ];
+// Land and water come from the atlas, whose coastline is finer than a drawn
+// polygon here: it keeps the East River between Manhattan and Brooklyn.
 const newYorkFeatures: RegionalProfile["features"] = [
-  {
-    id: "new-york-harbor",
-    kind: "sea",
-    geometry: [
-      [-74.27, 40.48],
-      [-73.8, 40.48],
-      [-73.8, 40.92],
-      [-74.27, 40.92],
-    ],
-    dates: featureDates,
-    evidence,
-  },
-  {
-    id: "manhattan-land",
-    kind: "land",
-    geometry: manhattan,
-    dates: featureDates,
-    evidence,
-  },
-  {
-    id: "new-jersey-land",
-    kind: "land",
-    geometry: [
-      [-74.27, 40.55],
-      [-74.13, 40.64],
-      [-74.065, 40.685],
-      [-74.028, 40.74],
-      [-73.925, 40.92],
-      [-74.27, 40.92],
-    ],
-    dates: featureDates,
-    evidence,
-  },
-  {
-    id: "long-island-land",
-    kind: "land",
-    geometry: longIsland,
-    dates: featureDates,
-    evidence,
-  },
-  {
-    id: "staten-island-land",
-    kind: "land",
-    geometry: [
-      [-74.255, 40.5],
-      [-74.225, 40.56],
-      [-74.175, 40.645],
-      [-74.085, 40.649],
-      [-74.055, 40.6],
-      [-74.14, 40.54],
-    ],
-    dates: featureDates,
-    evidence,
-  },
-  {
-    id: "bronx-land",
-    kind: "land",
-    geometry: [
-      [-73.917, 40.92],
-      [-73.912, 40.86],
-      [-73.93, 40.815],
-      [-73.88, 40.806],
-      [-73.8, 40.84],
-      [-73.8, 40.92],
-    ],
-    dates: featureDates,
-    evidence,
-  },
   {
     id: "central-park",
     kind: "park",
@@ -213,7 +148,6 @@ export const northAmerica: RegionalProfile[] = [
         radius: 140,
         population: 8000000,
         // Narrow island: the built extent runs north-south.
-        aspect: 0.45,
         cores: [
           { at: [-74.009, 40.708], radius: 60 },
           { at: [-73.985, 40.755], radius: 70, weight: 0.9 },

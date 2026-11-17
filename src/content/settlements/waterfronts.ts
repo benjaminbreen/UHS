@@ -3,6 +3,7 @@ import { bce } from "../history/dates";
 import type { WorldSetting } from "../geography/types";
 import { hullWeights, waterOf, type FishingMethod } from "../economy/fishing";
 import { lifeway } from "./lifeways";
+import { industrialized } from "./modernity";
 import { lifewayHouses, vernacularHouses } from "../graphics/regional-houses";
 
 export type WaterfrontProfile = {
@@ -68,6 +69,8 @@ export function fishingWaterfront(s:WorldSetting):WaterfrontProfile|undefined {
   if(authored || (s.worksiteRevision??1)<7 || s.settlement==="camp" || s.settlement==="farm" || !waterOf(s) || !Object.keys(hullWeights(s)).length)return authored;
   // A people that builds its own village form keeps it: a ring or a row of
   // its own houses, not stand-in shore houses outside it.
+  // An industrial metropolis has docks, not a fishing landing on its shore.
+  if(industrialized(s) && (s.settlement==="port" || s.settlement==="city") && (s.population??0)>=100000)return;
   const way=lifeway(s);
   if(way && lifewayHouses(way,s).length)return;
   const [stand,gear]=shelters[s.architecture];

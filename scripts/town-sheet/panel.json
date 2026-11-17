@@ -197,6 +197,11 @@
     "radius": 36
   },
   {
+    "name": "new-york-1930",
+    "query": "New York 1930",
+    "radius": 40
+  },
+  {
     "name": "new-york-2000",
     "query": "New York 2000",
     "radius": 40

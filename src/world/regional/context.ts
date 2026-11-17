@@ -339,7 +339,7 @@ export function createRegionalContext(start: WorldSetting) {
           characterCommunity: start.characterCommunity,
           architecture: start.architecture,
           settlement: start.settlement,
-          settlementPattern: start.settlementPattern,
+          settlementPattern: start.settlementPattern ?? s.settlementPattern,
           climate: start.climate,
           relief: start.relief,
         };

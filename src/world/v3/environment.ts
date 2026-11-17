@@ -785,8 +785,9 @@ export function createEnvironment(
           : baseTier;
     // A sea cliff: the land stands straight up behind a narrow beach, two to
     // four steps high, and comes down again inland a step at a time. Low,
-    // marshy and mangrove shores keep their beaches.
-    if (kind === "sea" && water >= 0 && habitat.ecology !== "wetland" && !reef) {
+    // marshy and mangrove shores keep their beaches, and a town's shore is
+    // left low enough to build a quay on.
+    if (kind === "sea" && water >= 0 && habitat.ecology !== "wetland" && !reef && !town) {
       const bluff = noise(seed, fx, fy, 64, "sea-cliffs") * 0.8 + Math.min(relief, 0.6) * 0.5;
       if (bluff > 0.55) {
         const tall = 2 + Math.min(2, Math.floor((bluff - 0.55) * 9));
