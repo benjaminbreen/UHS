@@ -1,6 +1,7 @@
 import { box, drum } from "../ship/things";
 import { exhibitItem, stamp } from "./items";
 import { paintPalaceDecor } from "./palace";
+import type { PalaceStyle } from "../../content/palaces/styles";
 import { paintMachine, type MachineKind } from "../machines";
 import { h2, Raster } from "../ship/raster";
 import { MACHINES } from "../../world/fair";
@@ -387,7 +388,7 @@ export function paintFairThing(art: string, w: number, h: number, v: number, tin
 }
 
 /** Trees, shrubs, urns, lamps, benches and columns in the grounds and halls. */
-export function paintFairDecor(type: string, v: number): FairSprite | undefined {
+export function paintFairDecor(type: string, v: number, style?: PalaceStyle): FairSprite | undefined {
   if (type === "tree") {
     // A park chestnut or plane: a dome of leaf clumps, each lit on its upper left, on a pale trunk.
     const r = new Raster(72, 92), cx = 36, foot = 86, leaf = LEAF[Math.floor(v * LEAF.length)];
@@ -474,7 +475,7 @@ export function paintFairDecor(type: string, v: number): FairSprite | undefined 
     r.finish();
     return { r, ox: 4, oy: 34 };
   }
-  if (type.startsWith("palace:")) return paintPalaceDecor(type.slice(7), v);
+  if (type.startsWith("palace:")) return paintPalaceDecor(type.slice(7), v, style);
   if (type === "palm") {
     // A fan palm in a green-painted tub with brass hoops: fronds springing from a crown, lit on top.
     const r = new Raster(56, 64), cx = 28, foot = 58;

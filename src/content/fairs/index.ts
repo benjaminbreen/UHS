@@ -2,7 +2,9 @@ import type { ItemDef } from "../../core/types";
 import { fairFinds, fairItems } from "./finds";
 import { london1884, londonItems } from "./london-1884";
 import { paris1889 } from "./paris-1889";
+import { buckingham } from "../palaces/buckingham";
 import { versailles, versaillesItems } from "../palaces/versailles";
+import { whiteHouse } from "../palaces/white-house";
 import type { Fair } from "./types";
 
 export type { Fair, FairArchetype, FairArea, FairArt, FairBuilding, FairFind, PavilionStyle } from "./types";
@@ -11,7 +13,7 @@ export { fairFinds };
 export { fairPeople } from "./people";
 
 /** Every venue planned as areas: the fairs, and the palaces, which are laid out and walked the same way. */
-export const fairs: readonly Fair[] = [paris1889, london1884, versailles];
+export const fairs: readonly Fair[] = [paris1889, london1884, versailles, buckingham, whiteHouse];
 export const fairById = (id: string) => fairs.find((f) => f.id === id);
 const finds = new Map(fairs.flatMap((fair) => fair.finds).map((f) => [f.id, f]));
 export const fairFind = (id: string) => finds.get(id);

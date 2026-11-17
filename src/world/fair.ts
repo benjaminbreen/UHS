@@ -1,4 +1,5 @@
 import { fairFind, fairPeople, type Fair, type FairArea, type FairBuilding, type FairFind } from "../content/fairs";
+import { louisQuatorze, type PalaceStyle } from "../content/palaces/styles";
 import { pickWeighted as pick, rngOf } from "../core/random";
 import type { Point } from "../core/types";
 import { N4, type Area, type AreaDecor, type AreaExit, type AreaFolk, type AreaLift, type AreaThing } from "./complex";
@@ -17,7 +18,8 @@ export type FairLevel = Area & {
   kind: FairArea["kind"];
   floor?: FairArea["floor"];
   look: NonNullable<FairArea["look"]>;
-  mirrors?: boolean;
+  /** The style of a palace room. */
+  palace?: PalaceStyle;
   exits: AreaExit[];
   buildings: PlacedBuilding[];
   lifts: AreaLift[];
@@ -101,7 +103,7 @@ export function fairLevel(seed: string, fair: Fair, id: string): FairLevel | und
   const [w, h] = sizeOf(fair, plan), look = plan.kind === "gallery" ? plan.look ?? fair.look ?? "shed" : "shed";
   const rng = rngOf(seed, "fair", fair.id, id);
   const L: FairLevel = {
-    space: fairSpace(fair.id, id), fair: fair.id, area: id, kind: plan.kind, floor: plan.floor, look, mirrors: plan.mirrors, depth: 1, name: plan.name, w, h,
+    space: fairSpace(fair.id, id), fair: fair.id, area: id, kind: plan.kind, floor: plan.floor, look, palace: look === "palace" ? { ...(fair.palace ?? louisQuatorze), ...plan.palace } : undefined, depth: 1, name: plan.name, w, h,
     cells: new Uint8Array(w * h), entry: { x: w >> 1, y: h - 2 }, things: [], decor: [], folk: [], gardens: [], plots: [], flow: new Int8Array(w * h).fill(-1),
     exits: [], buildings: [], lifts: [],
   };
@@ -388,7 +390,8 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
   const palace = L.look === "palace", bays = palaceBays(w);
   // Things hung on a palace wall take a bay each, from the middle outward.
   const wallX: number[] = [];
-  if (palace) for (let k = 0; k < bays.n; k++) wallX.push(bays.b0 + 3 * k);
+  const style = L.palace, bayOf = (k: number) => style?.bays[k % style.bays.length];
+  if (palace) for (let k = 0; k < bays.n; k++) if (bayOf(k) === "hanging" || bayOf(k) === "panel") wallX.push(bays.b0 + 3 * k);
   else if (indoor) for (let x = 3; x < w - 4; x += 4) wallX.push(x);
   if (palace) wallX.sort((a, b) => Math.abs(a + 1 - cx) - Math.abs(b + 1 - cx));
   const place = (f: FairFind, n: number) => {
@@ -396,7 +399,6 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
     // The Machines' locomotive has its own length of track, the great engine the middle of the hall.
     const at = f.art === "locomotive" && isle.length ? inside(isle[7]) : fw >= 6 && isle.length ? inside(isle[8]) : spots;
     if (f.on === "wall" && indoor) {
-      if (L.mirrors) return false;
       const i = wallX.findIndex((x) => wallFree(palace ? x + 1 : x, palace ? 1 : fw));
       if (i < 0) return false;
       const x = wallX.splice(i, 1)[0];
@@ -465,13 +467,14 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       k++, x += fw + 4;
     }
   } else if (palace) {
-    // Against the back wall, bay by bay: pier tables with stools either side, busts, benches, and the room's own piece once.
-    const cls = plan.stands?.tags[0] ?? "", own = cls !== "state" && cls !== "bedchamber";
+    // Against the back wall, bay by bay, by what the room is for; the room's own piece once.
+    const cls = plan.stands?.tags[0] ?? "", room = style?.room ?? "gallery", own = !!cls && cls !== "state" && cls !== "bedchamber";
     const door = (k: number) => k < 0 || k >= bays.n || L.exits.some((e) => e.y === 0 && e.x === bays.b0 + 3 * k);
-    const cycle = ["console", "bust", "console", "", "bench", ""], turn = Math.floor(rng() * 6), mid = bays.n >> 1;
+    const cycle = { gallery: ["console", "bust", "console", "", "bench", ""], ballroom: ["bench", "", "console", "", "bench", "bust"], drawing: ["console", "sofa", "", "bust", "sofa", ""], dining: ["console", "", "bust", "console", "", ""], library: ["", "bust", "", "bench", "", ""], office: ["console", "", "sofa", "", "bust", ""] }[room];
+    const turn = Math.floor(rng() * 6), mid = bays.n >> 1;
     for (let k = 0; k < bays.n; k++) {
-      const x = bays.b0 + 3 * k;
-      if (door(k) || taken[2 * w + x + 1] || [0, 1, 2].some((i) => L.cells[3 * w + x + i] !== FLOOR || taken[3 * w + x + i])) continue;
+      const x = bays.b0 + 3 * k, built = bayOf(k) === "bookcase" || bayOf(k) === "hearth";
+      if (door(k) || built || taken[2 * w + x + 1] || [0, 1, 2].some((i) => L.cells[3 * w + x + i] !== FLOOR || taken[3 * w + x + i])) continue;
       const type = own && k === (door(mid) ? mid + 1 : mid) ? `stall:${cls}` : `palace:${cycle[(k + turn) % 6]}`;
       if (type === "palace:") continue;
       if (type === "palace:bust") { taken[3 * w + x + 1] = 1; L.decor.push({ type, x: x + 1, y: 3, solid: true, v: rng() }); continue; }
@@ -480,8 +483,26 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       if (type !== "palace:console") continue;
       for (const sx of [x, x + 3]) if (!door(sx === x ? k - 1 : k + 1) && sx < w - 1 && !L.decor.some((d) => d.type === "palace:stool" && d.x === sx)) L.decor.push({ type: "palace:stool", x: sx, y: 3, solid: false, v: rng() });
     }
-    // A room deep enough to spare the floor has tables of its treasures down the middle.
-    if (h >= 30) for (let x = 5; x < w - 8; ) {
+    // The middle of the floor: nothing in a gallery or a ballroom, the room's business in the rest.
+    const put = (type: string, x: number, y: number, fw = 1, fh = 1) => {
+      if (!free(x, y - fh + 1, fw, fh)) return false;
+      block(x, y - fh + 1, fw, fh);
+      L.decor.push({ type, x, y, solid: true, v: rng() });
+      return true;
+    };
+    const my = Math.max(9, (h >> 1) + 1);
+    if (room === "dining") {
+      const len = Math.max(5, Math.min(15, w - 14)) | 1;
+      put(`palace:dining:${len}`, (w - len) >> 1, my, len, 2);
+    } else if (room === "drawing") {
+      // Sofas with a chair either side, in groups down the room.
+      for (let gx = 6; gx + 3 < w - 6; gx += 11) if (put("palace:sofa", gx, my, 3, 1)) { put("palace:chair", gx - 2, my + 2); put("palace:chair", gx + 4, my + 2); }
+    } else if (room === "library" || room === "office") {
+      const dx = room === "office" ? w >> 2 : (w >> 1) - 1, dy = room === "office" ? 9 : my;
+      if (put("palace:desk", dx, dy, 3, 1)) { put("palace:globe", dx - 3, dy); put("palace:chair", dx + 5, dy + 2); put("palace:chair", dx - 4, dy + 2); }
+      if (room === "library") for (const gx of [6, w - 10]) put(`table:${cls || "office"}:3x2`, gx, my + 1, 3, 2);
+    } else if (room === "gallery" && h >= 30) for (let x = 5; x < w - 8; ) {
+      // A gallery deep enough to spare the floor has tables of its treasures down the middle.
       const fw = 4 + Math.floor(rng() * 3), y = (h >> 1) - 1;
       if (!free(x, y, fw, 2)) { x++; continue; }
       block(x, y, fw, 2);

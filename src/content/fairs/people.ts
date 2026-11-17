@@ -222,9 +222,96 @@ const person = (id: string, label: string, dress: string, doing: string, manner:
   ({ id, scope: PARIS_1889, label, dress, doing, manner, lines, party: alone, women: 0.3, weight: 1, basis: "documented", ...more });
 
 /** Who was at the 1889 fair. Their lines are plain modern English; the period is in what they say. */
+/** Who was in a palace between two years. */
+const household = (years: [number, number]) => (id: string, label: string, dress: string, doing: string, manner: SewerPerson["manner"], lines: string[], more: Partial<SewerPerson> & { note: string }): SewerPerson =>
+  ({ id, scope: { years }, label, dress, doing, manner, lines, party: pair, women: 0.3, weight: 1, basis: "documented", quiet: true, ...more });
+const atPalace = household([1856, 1901]);
+const buckinghamPeople: SewerPerson[] = [
+  atPalace("bp-guest", "Guest at court", "landowner", "Waiting to be presented", "explore", [
+    "My daughter is to be presented at three. She has practised the curtsey for a month with a tablecloth pinned on for a train.",
+    "You kiss the Queen's hand, then you walk out backwards, in a train nine feet long, without looking round.",
+    "We sat two hours in the carriage in the Mall with the crowd looking in at the windows.",
+    "Since the Prince died she is hardly ever here. Half the year the house is under dust sheets.",
+  ], { women: 0.6, weight: 3, ages: [18, 70], note: "Presentation at a Drawing Room, with court dress and train, marked a young woman's entry into society; after 1861 the Queen was seldom in residence." }),
+  atPalace("bp-lady", "Lady in waiting", "landowner", "In attendance", "explore", [
+    "I am in waiting one month in three. Mostly it is standing, and reading the newspapers aloud.",
+    "No one sits until she sits. No one speaks to her first.",
+  ], { women: 1, ages: [22, 65], note: "Ladies of the household served in rotation and were bound by the etiquette of standing and silence." }),
+  atPalace("bp-equerry", "Equerry", "soldier", "On duty", "explore", [
+    "I see to the carriages and horses, and to who rides in which. That last part is the hard one.",
+    "The drains under this house were so bad the Prince had them rebuilt. You can still smell the kitchens upstairs.",
+  ], { women: 0, ages: [28, 60], note: "Equerries were army officers of the household; Prince Albert reorganised the palace's notoriously poor drains and management in the 1840s." }),
+  atPalace("bp-footman", "Footman", "domestic-servant", "Carrying a tray", "explore", [
+    "We are picked by height and matched in pairs. I am five foot ten and paid less than the six-footers.",
+    "Powder in the hair for state days. It is flour and soap, and it itches.",
+    "Until the Prince sorted it out, one department laid the fire and another lit it, so nobody did either.",
+  ], { women: 0, ages: [18, 45], note: "Footmen were hired and paid by height and wore powdered hair on state occasions; divided responsibility between household departments was reformed in the 1840s." }),
+  atPalace("bp-housemaid", "Housemaid", "domestic-servant", "Between rooms", "explore", [
+    "There are forty of us and we are not to be seen. If a guest comes, you face the wall.",
+    "Six hundred rooms. I have been here two years and I still get lost.",
+  ], { women: 1, ages: [16, 40], note: "Under-servants were expected to keep out of sight of the family and guests." }),
+  atPalace("bp-page", "Page of the Presence", "domestic-servant", "Minding the door", "work", [
+    "Sign the book, if you please. Name and address, clearly.",
+    "A boy got in three times in the forties and slept under a sofa. They found him by the fingermarks on the bolster.",
+  ], { women: 0, party: alone, ages: [25, 60], note: "'The boy Jones' broke into the palace repeatedly between 1838 and 1841." }),
+  atPalace("bp-guardsman", "Guardsman", "soldier", "On sentry", "lookout", [
+    "Two hours on, four off. You do not speak and you do not smile.",
+    "The guard changes in the forecourt. People come to watch the band more than us.",
+  ], { women: 0, party: alone, quiet: false, ages: [19, 40], note: "The Foot Guards mounted the Queen's Guard at the palace." }),
+  atPalace("bp-musician", "Musician of the Queen's band", "musician", "Playing", "work", [
+    "The Queen's private band: we play at dinner and for the dancing. She used to sing with us.",
+    "Herr Mendelssohn played on this piano. The parrot screamed until someone carried it out.",
+  ], { women: 0.1, party: alone, ages: [20, 60], note: "Mendelssohn's visits of 1842 are described in his own letters, parrot included." }),
+];
+
+const atWhiteHouse = household([1818, 1900]);
+const whiteHousePeople: SewerPerson[] = [
+  atWhiteHouse("wh-caller", "Caller", "merchant", "Come to see the house", "explore", [
+    "It is our house, so I walked in. Nobody asked my name.",
+    "On reception days you stand in line, shake his hand and are out of the door in a minute.",
+    "At Jackson's inauguration the crowd stood on the chairs in muddy boots. They got people out by putting the punch on the lawn.",
+  ], { weight: 3, women: 0.4, ages: [18, 70], note: "The house was open to callers and public receptions through the century; the 1829 inaugural crowd is well recorded." }),
+  atWhiteHouse("wh-office-seeker", "Office seeker", "clerk", "Waiting to see the President", "explore", [
+    "I want the post office at home. I worked for the ticket, and that is how it is paid.",
+    "I have sat on these stairs for nine days. There are forty of us.",
+    "One of us shot Garfield over a consulship. After that they started setting exams.",
+  ], { weight: 2, women: 0.05, ages: [22, 65], note: "Federal jobs were party rewards and applicants besieged each new President; Garfield's assassination in 1881 led to the civil service act of 1883." }),
+  atWhiteHouse("wh-congressman", "Congressman", "landowner", "Come on business", "explore", [
+    "I have six men from my district who want places, and he has one place.",
+    "Congress votes the money to furnish this house, and then complains about the furniture.",
+  ], { women: 0, ages: [30, 70], note: "Members of Congress pressed the claims of constituents for appointments; furnishing appropriations were regularly attacked." }),
+  atWhiteHouse("wh-servant", "House servant", "domestic-servant", "Carrying a tray", "explore", [
+    "The President pays the household out of his own salary. So there are not many of us.",
+    "Before the war most of the people working in this house were owned by the men who lived in it.",
+    "The kitchen is in the basement and the dining room is not. Everything arrives lukewarm.",
+  ], { women: 0.4, ages: [16, 60], note: "Presidents paid domestic staff themselves; before 1865 many presidents staffed the house with enslaved people." }),
+  atWhiteHouse("wh-secretary", "Private secretary", "civil-servant", "Sorting the mail", "work", [
+    "There are two of us to open every letter that comes to the President. Most of them want a job.",
+    "He sees anybody who waits long enough. I wish he would not.",
+  ], { women: 0, party: alone, ages: [22, 50], note: "The President's office staff was a handful of private secretaries for most of the century." }),
+  atWhiteHouse("wh-officer", "Army officer", "soldier", "Waiting with a dispatch", "explore", [
+    "A dispatch from the War Department. It is next door; I walked.",
+    "In the war there were soldiers camped in the East Room.",
+  ], { women: 0, ages: [22, 55], note: "Troops were quartered in the East Room in April 1861." }),
+  atWhiteHouse("wh-doorkeeper", "Doorkeeper", "domestic-servant", "At the north door", "work", [
+    "Leave your card on the tray. If he is seeing people, go up; if not, come back tomorrow.",
+    "I have kept this door for five Presidents. The callers are always the same.",
+  ], { women: 0, party: alone, quiet: false, ages: [30, 70], note: "A doorkeeper at the north entrance received callers' cards; several served through many administrations." }),
+  atWhiteHouse("wh-gardener", "Gardener", "market-gardener", "Working the grounds", "work", [
+    "The south grounds are open. People bring their dinner on band days.",
+    "There were sheep and a cow or two on this lawn before now. It saves mowing.",
+  ], { women: 0, party: alone, ages: [20, 65], note: "The south grounds were public for concerts; livestock grazed the lawns at various dates. The cow is inferred from several administrations' household cows.", basis: "inferred" }),
+  atWhiteHouse("wh-bandsman", "Marine bandsman", "musician", "Playing", "work", [
+    "The Marine Band. We play here for receptions and on the lawn on Saturdays in summer.",
+    "They call us the President's Own. We have played for every one of them since Jefferson.",
+  ], { women: 0, party: alone, ages: [18, 55], note: "The Marine Band has played at the house since 1801 and gave public concerts on the south grounds." }),
+];
+
 export const fairPeople: readonly SewerPerson[] = [
   ...london,
   ...versaillesPeople,
+  ...buckinghamPeople,
+  ...whiteHousePeople,
   person("fair-visitor", "Visitor", "clerk", "Seeing the fair", "explore", [
     "We came for the Tower and haven't even got to it yet. Every turn there's something else.",
     "Thirty-two million tickets, they say. I believe it. Look at this crowd.",

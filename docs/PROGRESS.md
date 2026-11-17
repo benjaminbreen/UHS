@@ -25,6 +25,12 @@ The owner keeps this list.
 
 ## Recent milestones
 
+- November 16: palaces as a styled kit. One painter and one furnisher, driven
+  by a `PalaceStyle`, build Versailles, Buckingham Palace ("A courtier at
+  Buckingham Palace") and the President's House ("A clerk at the White
+  House"): bays of mirror, damask, window, bookcase and chimneypiece; parquet,
+  herringbone, marble and carpet; galleries, ballrooms, drawing rooms, dining
+  rooms, libraries and offices.
 - November 16: the first palace, Versailles from 1701 ("A courtier at
   Versailles"), on the fairs' room kit: the Hall of Mirrors, the King's
   bedchamber, state apartments, chapel, kitchens, courts and gardens

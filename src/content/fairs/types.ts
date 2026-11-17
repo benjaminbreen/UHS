@@ -1,3 +1,4 @@
+import type { PalaceStyle } from "../palaces/styles";
 import type { Box } from "../sewers/types";
 
 /** What an area of a fair is laid out as. */
@@ -49,8 +50,8 @@ export type FairArea = {
   /** How a gallery is built and coloured: an iron and glass exhibition shed, a warm panelled room with deep
    * wainscot, or a palace room of white and gold panelling and tall mirrors. The fair's own look when unset. */
   look?: "shed" | "warm" | "palace";
-  /** A palace room whose back wall is mirror in every bay. */
-  mirrors?: boolean;
+  /** What this palace room changes from the palace's own style. */
+  palace?: Partial<PalaceStyle>;
   /** Bandstands in a court. */
   bandstands?: number;
   /** Who plays in each of a court's bandstands, by person id. */
@@ -96,6 +97,8 @@ export type Fair = {
   areas: readonly FairArea[];
   /** How its galleries look unless an area says otherwise. */
   look?: "shed" | "warm" | "palace";
+  /** The style its palace rooms are built and furnished in. */
+  palace?: PalaceStyle;
   /** What someone who starts here by a prompt is, when not a visitor. */
   role?: string;
   /** Cells to a plan unit, for areas placed by `at`. */

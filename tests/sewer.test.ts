@@ -21,7 +21,7 @@ import { belowFromPrompt, resolveSetting } from "../src/content/geography/resolv
 import { createSettingSession } from "../src/runtime/session";
 import { theban } from "../src/content/tombs/theban";
 import { tombLevel, tombPlan, tombWalkable } from "../src/world/tomb";
-import { fairLevel, fairSolid, fairWalkable } from "../src/world/fair";
+import { fairLevel, fairSolid, fairWalkable, type FairLevel } from "../src/world/fair";
 import { fairPeople, fairs } from "../src/content/fairs";
 import { tunnelPerson } from "../src/content/sewers";
 import { commonLivelihoods } from "../src/content/characters/livelihoods.generated";
@@ -387,6 +387,25 @@ describe("a palace planned as rooms and courts", () => {
     expect(bed.things.map((t) => t.art)).toContain("state-bed");
     expect(bed.folk.map((f) => f.person)).toContain("vrs-valet");
     expect(e.areaOf("fair:versailles:mirrors")).toMatchObject({ look: "palace" });
+  });
+
+  it("builds Buckingham Palace and the White House from the same kit, each room in its own style", () => {
+    for (const [prompt, space, year] of [["A courtier at Buckingham Palace", "fair:buckingham:forecourt", 1856], ["A clerk at the White House", "fair:white-house:north-grounds", 1818]] as const) {
+      const r = resolveSetting(prompt);
+      if (!("setting" in r)) throw new Error(r.error);
+      expect(r.setting).toMatchObject({ below: "fair", year });
+      expect(createSettingSession(r.setting, "palace").state.player.pos.space).toBe(space);
+    }
+    const r = resolveSetting("A clerk at the White House");
+    if (!("setting" in r)) throw new Error(r.error);
+    const e = createSettingSession(r.setting, "palace");
+    const room = (id: string) => e.areaOf(`fair:white-house:${id}`) as FairLevel;
+    const blue = room("blue-room"), dining = room("state-dining"), library = room("library");
+    expect(blue.palace).toMatchObject({ pier: "fluted", room: "drawing" });
+    expect(blue.palace!.cloth).not.toEqual(dining.palace!.cloth);
+    expect(blue.decor.map((d) => d.type)).toContain("palace:sofa");
+    expect(dining.decor.some((d) => d.type.startsWith("palace:dining:"))).toBe(true);
+    expect(library.decor.map((d) => d.type)).toContain("palace:desk");
   });
 });
 

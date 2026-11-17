@@ -1,4 +1,6 @@
 import type { Fair, FairArea, FairFind } from "../fairs/types";
+import { find as f, palacePlan } from "./kit";
+import { louisQuatorze } from "./styles";
 
 // The palace of Versailles from 1701, when the King's bedchamber was moved to
 // the middle of the house, to 1789. A palace is planned the way a fair is: rooms
@@ -6,10 +8,6 @@ import type { Fair, FairArea, FairFind } from "../fairs/types";
 // screen is west, from the town gate through the courts to the Hall of Mirrors
 // and out to the gardens, so the plan is the visitor's own way in. The rooms
 // and their order follow the palace; their sizes are squeezed.
-
-const WALL_ART = ["painting", "tapestry", "carpet", "panel", "map"];
-const f = (id: string, name: string, art: FairFind["art"], tags: string[], tier: FairFind["tier"], look: string, text: string, more: Partial<FairFind> = {}): FairFind =>
-  ({ id, name, art, on: WALL_ART.includes(art) ? "wall" : "floor", tags, tier, verb: "Look closely", time: 60, look, text, basis: "documented", keeps: true, ...more });
 
 const finds: readonly FairFind[] = [
   f("kings-bed", "The King's bed", "state-bed", [], "prize", "A bed hung in crimson and gold behind a gilded rail, in the exact middle of the palace, facing the rising sun.", "Nobody passes the rail unless the King calls them. Courtiers bow to the bed when they cross the room, whether he is in it or not.", { staff: "vrs-valet" }),
@@ -32,10 +30,7 @@ export const versaillesItems = {
 } as const;
 
 const court = ["vrs-courtier", "vrs-courtier", "vrs-courtier", "vrs-lady", "vrs-lady", "vrs-visitor", "vrs-petitioner", "vrs-footman", "vrs-officer", "vrs-abbe"];
-const room = (id: string, name: string, at: [number, number, number, number], tags: string[], n: number, note: string, more: Partial<FairArea> = {}): FairArea =>
-  ({ id, name, kind: "gallery", at, floor: "parquet", stands: { tags, n }, people: court, note, basis: "documented", ...more });
-const open = (id: string, name: string, at: [number, number, number, number], note: string, more: Partial<FairArea> = {}): FairArea =>
-  ({ id, name, kind: "court", at, stands: { tags: ["garden"], n: 3 }, people: [...court, "vrs-gardener"], note, basis: "documented", ...more });
+const { room, open } = palacePlan(court, ["vrs-gardener"]);
 
 const areas: FairArea[] = [
   open("forecourt", "the forecourt", [10, 30, 20, 6], "The outer court inside the town gate, where carriages set down and swords are hired.", { gate: "s", exhibits: ["sword-hire"], people: [...court, "vrs-guard"] }),
@@ -43,13 +38,13 @@ const areas: FairArea[] = [
   open("marble-court", "the Marble Court", [16, 19, 8, 5], "The small court of black and white marble under the King's windows.", { stands: { tags: ["state"], n: 2 } }),
   room("grand-commun", "the Grand Commun: the kitchens", [4, 24, 8, 6], ["kitchen"], 4, "The great service building beside the palace, where the court's food was cooked and its officers lodged.", { floor: "tile", look: "warm", exhibits: ["serdeau"], people: ["vrs-footman", "vrs-footman", "vrs-visitor"] }),
   room("ministers", "the Ministers' Wing", [28, 24, 6, 6], ["office"], 1, "The wing of the secretaries of state. The petition table stood in the guard room on set days; it is put here with the clerks.", { exhibits: ["petition-table"], basis: "inferred" }),
-  room("guard-room", "the King's Guard Room", [10, 19, 6, 5], ["arms"], 1, "The room of the bodyguard, at the head of the stair, which everyone crosses to reach the King.", { floor: "tile", people: [...court, "vrs-guard", "vrs-guard"] }),
-  room("chapel", "the Royal Chapel", [24, 19, 6, 5], ["chapel"], 1, "The King hears Mass here every morning from the gallery, with the court below facing him and not the altar. The present chapel was finished in 1710.", { floor: "tile" }),
+  room("guard-room", "the King's Guard Room", [10, 19, 6, 5], ["arms"], 1, "The room of the bodyguard, at the head of the stair, which everyone crosses to reach the King.", { palace: { floor: "marble" }, people: [...court, "vrs-guard", "vrs-guard"] }),
+  room("chapel", "the Royal Chapel", [24, 19, 6, 5], ["chapel"], 1, "The King hears Mass here every morning from the gallery, with the court below facing him and not the altar. The present chapel was finished in 1710.", { palace: { floor: "marble" } }),
   room("antechamber", "the Bull's-Eye Antechamber", [16, 15, 4, 4], ["state"], 2, "The room outside the bedchamber, named for its oval window, where the court waits each morning to be let in."),
   room("bedchamber", "the King's Bedchamber", [20, 15, 4, 4], ["bedchamber"], 0, "The King rises and goes to bed here in public, each garment handed to him by someone with the right to hand it.", { exhibits: ["kings-bed"] }),
   room("queens", "the Queen's Apartments", [8, 13, 6, 6], ["state"], 3, "The south range of state rooms. With no queen since 1683 they belong to the first lady of the court.", { exhibits: ["gobelins"] }),
   room("state", "the King's State Apartments", [26, 13, 6, 6], ["state"], 3, "Seven rooms in a row, each named for a planet's god. The last, Apollo's, is the throne room.", { exhibits: ["throne", "rigaud-portrait", "harpsichord"] }),
-  room("mirrors", "the Hall of Mirrors", [14, 11, 12, 4], ["state"], 4, "Seventeen windows on the gardens and seventeen arches of mirror facing them, 357 mirrors in all. Everyone crosses it to reach the King, so everyone waits here to be seen.", { mirrors: true }),
+  room("mirrors", "the Hall of Mirrors", [14, 11, 12, 4], ["state"], 4, "Seventeen windows on the gardens and seventeen arches of mirror facing them, 357 mirrors in all. Everyone crosses it to reach the King, so everyone waits here to be seen.", { palace: { bays: ["mirror"] } }),
   open("parterre", "the Water Parterre", [12, 5, 16, 6], "Two great basins on the terrace under the Hall of Mirrors.", { fountain: "basin" }),
   open("latona", "the Latona Fountain", [14, 0, 12, 5], "The fountain of Latona, at the head of the walk down to the Grand Canal.", { fountain: "coutan" }),
 ];
@@ -64,6 +59,7 @@ export const versailles: Fair = {
   areas,
   scale: 5,
   look: "palace",
+  palace: louisQuatorze,
   role: "Courtier",
   finds,
   ticket: 0,

@@ -89,7 +89,7 @@ export class FairView {
     }
     decor.forEach((d, i) => {
       if (d.type === "jet") return void this.jets.push({ x: d.x * 16, y: d.y * 16, w: d.v * 16 });
-      const s = paintFairDecor(d.type, d.v);
+      const s = paintFairDecor(d.type, d.v, level.palace);
       if (s) put(s, d.x, d.y, `decor-${i}`, d.y * 16 + 13);
     });
     const lift = paintFairThing("lift", 1, 1, 0);

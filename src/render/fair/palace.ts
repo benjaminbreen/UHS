@@ -1,21 +1,30 @@
 import { h2, Raster } from "../ship/raster";
 import { palaceBays, type FairLevel } from "../../world/fair";
 import type { FairSprite } from "./things";
+import { GILT as GILT_BRONZE, louisQuatorze, type PalaceStyle } from "../../content/palaces/styles";
 
-const CREAM = ["#fffaf0", "#f4ead8", "#e2d4ba", "#c2b092", "#94826a", "#665848"];
-const GILT = ["#fff6c0", "#f6d266", "#d9a23a", "#a87424", "#70481a"];
-/** Rouge griotte, the red marble of the pilasters. */
-const ROUGE = ["#e6c0b0", "#c98474", "#ad5e54", "#8c4440", "#683030"];
 const MIRROR = ["#d3e0e7", "#b7c8d2", "#a0b3bf", "#899eac", "#6e8494"];
-const CRIMSON = ["#e0666a", "#b83c46", "#8e2a36", "#641c28"];
-const HANGINGS = [CRIMSON, ["#7fae84", "#4e8258", "#386444", "#264830"], ["#7e9cd0", "#5070aa", "#3a548a", "#283c64"], ["#e6c070", "#c49844", "#9c7430", "#705020"]];
 const WHITE = ["#ffffff", "#f2eee6", "#dcd6ca", "#b8b0a2", "#8c8478"];
-/** Parquet panels, each a close family of honey browns: the two woven strips, the ground between, the frame, the lines, the joint. */
-const PARQUET = [
-  { a: "#cd9052", b: "#c68a4c", ground: "#bd8044", frame: "#ca8d4f", shade: "#b87b40", joint: "#ad7039" },
-  { a: "#ca8d4f", b: "#c38749", ground: "#ba7d42", frame: "#c78a4d", shade: "#b5783e", joint: "#ad7039" },
-  { a: "#d09355", b: "#c98d4f", ground: "#c08347", frame: "#cd9052", shade: "#bb7e42", joint: "#ad7039" },
-];
+/** Candlesticks, clocks and candle stands are gilt bronze whatever the room's woodwork. */
+const METAL = GILT_BRONZE;
+
+// The style being painted. Every painter here is called with a level or a style and runs to
+// the end before the next, so the materials are set once at the door and read as constants.
+let CREAM: readonly string[] = louisQuatorze.wall, GILT: readonly string[] = louisQuatorze.trim, FRAME: readonly string[] = louisQuatorze.frame;
+let ROUGE: readonly string[] = louisQuatorze.stone, CLOTH: readonly string[] = louisQuatorze.cloth, FIELD: readonly string[] = louisQuatorze.cloth;
+let PARQUET = woods(louisQuatorze.wood), STYLE: PalaceStyle = louisQuatorze;
+function use(style: PalaceStyle = louisQuatorze) {
+  if (style === STYLE) return;
+  STYLE = style;
+  CREAM = style.wall; GILT = style.trim; FRAME = style.frame; ROUGE = style.stone; CLOTH = style.cloth; FIELD = style.field ?? style.cloth;
+  PARQUET = woods(style.wood);
+}
+
+/** A floor's wood as three close families of one colour: two strips, the ground between, the frame, the shade, the joint. */
+function woods(hex: string) {
+  const n = parseInt(hex.slice(1), 16), tone = (k: number) => "#" + [n >> 16, (n >> 8) & 255, n & 255].map((v, i) => Math.max(0, Math.min(255, Math.round(v * k * (k < 1 ? 1 - (1 - k) * 0.25 * i : 1)))).toString(16).padStart(2, "0")).join("");
+  return [1, 0.985, 1.015].map((f) => ({ a: tone(1.02 * f), b: tone(0.985 * f), ground: tone(0.94 * f), frame: tone(1.005 * f), shade: tone(0.915 * f), joint: tone(0.86) }));
+}
 const DARK = "#2a2226";
 /** How far the back wall rises above the room's top row, and its whole height. */
 export const PALACE_RISE = 64;
@@ -24,11 +33,21 @@ const TALL = PALACE_RISE + 48;
 /** A palace floor, by the room's kind of floor: parquet de Versailles in panels a
  * bay square, or black and white marble. */
 export function palaceFloor(R: Raster, X: number, Y: number, L: FairLevel, ax: number, ay: number) {
-  const { b0 } = palaceBays(L.w);
+  use(L.palace);
+  const { b0 } = palaceBays(L.w), kind = STYLE.floor, rug = kind === "carpet" && ax >= 3 && ax < L.w - 3 && ay >= 5 && ay < L.h - 3;
   for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
     const gx = ax * 16 + i, gy = ay * 16 + j;
     let col: string;
-    if (L.floor === "tile" || L.floor === "iron") {
+    if (rug) {
+      // A carpet: a border of two gold lines round a field of small lozenges, all in the room's cloth.
+      const ex = Math.min(gx - 48, (L.w - 3) * 16 - 1 - gx), ey = Math.min(gy - 80, (L.h - 3) * 16 - 1 - gy), e = Math.min(ex, ey);
+      const m = Math.abs((gx % 24) - 12) + Math.abs(((gy + (Math.floor(gx / 24) % 2) * 12) % 24) - 12);
+      col = e === 0 ? CLOTH[3] : e === 3 || e === 9 ? METAL[2] : e < 12 ? (e > 4 && e < 8 && (ex + ey) % 6 < 2 ? CLOTH[1] : CLOTH[3]) : e === 12 ? CLOTH[3] : m < 2 ? CLOTH[1] : CLOTH[2];
+    } else if (kind === "herringbone" || kind === "carpet") {
+      // Short blocks laid in a herringbone: two tones for the two ways they run, a joint a shade down.
+      const o = PARQUET[0], flip = ((gx >> 3) + (gy >> 3)) % 2 === 0, along = flip ? gx : gy, across = flip ? gy : gx;
+      col = across % 4 === 3 || along % 8 === 7 ? o.ground : flip ? o.a : o.b;
+    } else if (kind === "marble") {
       // Marble squares set on the diagonal: soft black and warm white, a thin joint, one vein to a slab.
       const p = Math.floor((gx + gy) / 24), q = Math.floor((gx - gy + 4800) / 24), black = (p + q) % 2 === 0;
       const pu = (gx + gy) % 24, qu = (gx - gy + 4800) % 24, vein = Math.abs(pu - 6 - Math.floor(h2(p, q, 2) * 10) - (qu >> 2)) === 0 && qu > 3 && qu < 20;
@@ -54,6 +73,7 @@ export function palaceFloor(R: Raster, X: number, Y: number, L: FairLevel, ax: n
 
 /** Sun through the windows of the wall the viewer stands behind: a leaning patch of panes on the floor, one to a bay. */
 export function palaceLight(R: Raster, L: FairLevel, OX: number, OY: number) {
+  use(L.palace);
   const { b0, n } = palaceBays(L.w), foot = OY + (L.h - 1) * 16 - 4, tall = 46;
   for (let k = 0; k < n; k++) for (let j = 0; j < tall; j++) for (let i = 0; i < 32; i++) {
     // Three panes across, four down, under a round head; the glazing bars fall as shadow.
@@ -131,11 +151,11 @@ function mirror(R: Raster, bx: number, T: number) {
 }
 
 /** A bay hung with damask in a gilt frame, and a picture on it unless something is hung there already. */
-function hanging(R: Raster, bx: number, T: number, c: string[], seed: number, bare: boolean) {
+function hanging(R: Raster, bx: number, T: number, c: readonly string[], seed: number, bare: boolean, plain = false) {
   R.fill(bx + 9, T + 21, 30, 68, GILT[1]); R.fill(bx + 9, T + 21, 30, 1, GILT[0]); R.fill(bx + 9, T + 21, 1, 68, GILT[0]); R.fill(bx + 38, T + 22, 1, 67, GILT[3]); R.fill(bx + 10, T + 88, 29, 1, GILT[3]);
   for (let y = T + 23; y < T + 87; y++) for (let x = bx + 11; x < bx + 37; x++) {
     const m = Math.abs((x - bx) % 10 - 5) + Math.abs((y - T + ((x - bx) % 20 < 10 ? 0 : 7)) % 14 - 7);
-    R.set(x, y, x === bx + 11 || y === T + 23 ? c[3] : m < 2 ? c[0] : m === 4 ? c[2] : c[1]);
+    R.set(x, y, x === bx + 11 || y === T + 23 ? c[3] : plain ? c[1] : m < 2 ? c[0] : m === 4 ? c[2] : c[1]);
   }
   if (bare) return;
   // A picture in a gilt frame: a head and shoulders against the dark, or a stretch of country.
@@ -173,31 +193,127 @@ function doorway(R: Raster, bx: number, T: number) {
     const y0 = top + Math.round(i * 0.8), y1 = B - 1 - Math.round(i * 1.6);
     for (let y = y0; y <= y1; y++) {
       const t = (y - y0) / (y1 - y0), rail = t < 0.05 || t > 0.95 || Math.abs(t - 0.34) < 0.025 || Math.abs(t - 0.68) < 0.025, stile = i === 1 || i === 7;
-      R.set(x, y, i === 0 ? GILT[lit ? 0 : 1] : i === 8 ? GILT[4] : rail || stile ? GILT[lit ? 1 : 2] : i === 2 ? GILT[lit ? 3 : 4] : GILT[lit ? 2 : 3]);
+      R.set(x, y, i === 0 ? FRAME[lit ? 0 : 1] : i === 8 ? FRAME[4] : rail || stile ? FRAME[lit ? 1 : 2] : i === 2 ? FRAME[lit ? 3 : 4] : FRAME[lit ? 2 : 3]);
     }
   }
-  R.fill(x0 + 7, top + 34, 1, 3, GILT[0]); R.fill(x0 + 22, top + 34, 1, 3, GILT[0]);
+  R.fill(x0 + 7, top + 34, 1, 3, FRAME[0]); R.fill(x0 + 22, top + 34, 1, 3, FRAME[0]);
   // The carpet over the sill and out onto the floor.
   for (let y = B - 12; y < B + 9; y++) for (let x = x0 + 2; x < x0 + 28; x++) {
     const ex = Math.min(x - x0 - 2, x0 + 27 - x), ey = B + 8 - y;
-    R.set(x, y, ex === 0 || ey === 0 ? CRIMSON[3] : ex === 2 || ey === 2 ? GILT[1] : (x + y) % 6 === 0 && ex > 3 && ey > 3 ? CRIMSON[0] : y < B ? CRIMSON[2] : CRIMSON[1]);
+    R.set(x, y, ex === 0 || ey === 0 ? CLOTH[3] : ex === 2 || ey === 2 ? METAL[1] : (x + y) % 6 === 0 && ex > 3 && ey > 3 ? CLOTH[0] : y < B ? CLOTH[2] : CLOTH[1]);
   }
-  // Over the door, the King's sun in a gilt panel.
+  // Over the door, a device in a framed panel: the King's sun, or a wreath.
   const cx = bx + 24, cy = T + 33;
   R.fill(bx + 9, T + 21, 30, 24, GILT[1]); R.fill(bx + 9, T + 21, 30, 1, GILT[0]); R.fill(bx + 9, T + 21, 1, 24, GILT[0]); R.fill(bx + 38, T + 22, 1, 23, GILT[3]);
   R.fill(bx + 11, T + 23, 26, 20, "#f8f0de"); R.fill(bx + 11, T + 23, 26, 1, CREAM[3]); R.fill(bx + 11, T + 23, 1, 20, CREAM[3]);
+  if (STYLE.emblem === "wreath") {
+    for (let a = 0; a < 24; a++) { const x = cx + Math.round(Math.cos((a / 24) * 6.283) * 8), y = cy + Math.round(Math.sin((a / 24) * 6.283) * 7); R.fill(x, y, 2, 2, GILT[a % 3 === 0 ? 3 : 2]); R.set(x, y, GILT[a % 3 === 0 ? 2 : 1]); }
+    R.fill(cx - 1, cy + 6, 3, 3, GILT[3]);
+    return;
+  }
   for (let a = 0; a < 16; a++) for (let d = 5; d < (a % 2 ? 8 : 10); d++) R.set(cx + Math.round(Math.cos((a / 16) * 6.283) * d), cy + Math.round(Math.sin((a / 16) * 6.283) * d * 0.9), a % 2 ? GILT[2] : GILT[1]);
   for (let y = -4; y <= 4; y++) for (let x = -4; x <= 4; x++) if (x * x + y * y <= 18) R.set(cx + x, cy + y, x + y < -3 ? GILT[0] : x + y > 3 ? GILT[3] : GILT[1]);
   R.set(cx - 2, cy - 1, GILT[4]); R.set(cx + 1, cy - 1, GILT[4]); R.fill(cx - 1, cy + 2, 3, 1, GILT[3]);
 }
 
+/** A plain pilaster in the wall's own paint, fluted, on the same capital, base and pedestal. */
+function fluted(R: Raster, px: number, T: number, seed: number) {
+  pilaster(R, px, T, seed);
+  R.fill(px - 7, T + 28, 14, 56, CREAM[1]); R.fill(px - 7, T + 28, 2, 56, CREAM[0]); R.fill(px + 5, T + 28, 2, 56, CREAM[3]);
+  for (const i of [-4, -1, 2]) { R.fill(px + i, T + 31, 1, 51, CREAM[3]); R.fill(px + i + 1, T + 31, 1, 51, CREAM[0]); R.set(px + i, T + 30, CREAM[2]); R.set(px + i, T + 82, CREAM[2]); }
+  R.fill(px - 5, T + 97, 10, 9, CREAM[1]); R.fill(px - 5, T + 97, 10, 1, CREAM[3]); R.fill(px - 5, T + 97, 1, 9, CREAM[3]); R.fill(px - 4, T + 105, 9, 1, CREAM[0]);
+}
+
+const SKY = ["#f2f8fa", "#d8ecf6", "#c2e0f0", "#b0d4ea"], TREES = ["#a8c890", "#8cb47c", "#74a06a"];
+
+/** A tall sash window on a garden: daylight, treetops low in the glass, curtains in the room's cloth drawn back under a pelmet. */
+function sash(R: Raster, bx: number, T: number) {
+  const x0 = bx + 9, top = T + 21, bot = T + 89;
+  R.fill(x0, top, 30, bot - top, GILT[1]); R.fill(x0, top, 30, 1, GILT[0]); R.fill(x0, top, 1, bot - top, GILT[0]); R.fill(x0 + 29, top + 1, 1, bot - top - 1, GILT[3]); R.fill(x0 + 1, bot - 1, 29, 1, GILT[3]);
+  for (let y = top + 2; y < bot - 3; y++) for (let x = x0 + 2; x < x0 + 28; x++) {
+    const t = y - top, i = x - x0 - 2, crown = 50 + Math.round(Math.sin(i * 0.55 + bx) * 3 + Math.sin(i * 1.3) * 1.5);
+    const bar = i === 8 || i === 17 || t === 18 || t === 34 || t === 50;
+    R.set(x, y, bar ? WHITE[0] : t > crown ? TREES[t > crown + 6 ? 2 : (i + t) % 5 < 2 ? 0 : 1] : ((i + t) % 37 < 5 ? SKY[0] : SKY[t < 16 ? 3 : t < 34 ? 2 : 1]));
+  }
+  R.fill(x0 + 1, bot - 3, 28, 2, WHITE[1]); R.fill(x0 + 1, bot - 3, 28, 1, WHITE[0]);
+  // Curtains: gathered folds, held back by a cord two thirds of the way down.
+  for (const left of [true, false]) for (let y = top + 8; y < bot - 3; y++) {
+    const t = (y - top - 8) / (bot - top - 11), wide = t < 0.62 ? Math.round(9 - t * 6) : Math.round(4 + (t - 0.62) * 9);
+    for (let i = 0; i < wide; i++) {
+      const fold = (i + Math.round(t * 3)) % 3;
+      R.set(left ? x0 + 2 + i : x0 + 27 - i, y, i === wide - 1 ? CLOTH[3] : fold === 0 ? CLOTH[0] : fold === 1 ? CLOTH[1] : CLOTH[2]);
+    }
+    if (Math.abs(t - 0.62) < 0.02) for (let i = 0; i < 5; i++) R.set(left ? x0 + 2 + i : x0 + 27 - i, y, METAL[1]);
+  }
+  // The pelmet, scalloped, with a fringe.
+  for (let i = 0; i < 28; i++) {
+    const drop = 8 + Math.round(Math.abs(Math.sin((i / 28) * Math.PI * 3)) * 3);
+    R.fill(x0 + 1 + i, top + 1, 1, drop, i % 9 === 0 ? CLOTH[2] : CLOTH[1]); R.set(x0 + 1 + i, top + 1, CLOTH[0]); R.set(x0 + 1 + i, top + 1 + drop, METAL[i % 2 ? 1 : 2]);
+  }
+}
+
+const BOOKS = [["#b85a4a", "#8e3c34"], ["#5a7ea8", "#3e5c82"], ["#6a9462", "#4a7046"], ["#c8a45c", "#9c7c3c"], ["#8a6a8e", "#644a68"], ["#d8ccb0", "#b0a488"], ["#7a5a40", "#56402c"]];
+
+/** A bookcase to the floor: a cornice, shelves of books in runs of a colour, cupboards below. */
+function bookcase(R: Raster, bx: number, T: number, seed: number) {
+  const x0 = bx + 8, wd = 32, top = T + 20, bot = T + 112, c = FRAME;
+  R.fill(x0, top, wd, bot - top, c[2]); R.fill(x0, top, 2, bot - top, c[1]); R.fill(x0 + wd - 2, top, 2, bot - top, c[3]);
+  R.fill(x0 - 1, top, wd + 2, 3, c[1]); R.fill(x0 - 1, top, wd + 2, 1, c[0]); R.fill(x0 - 1, top + 3, wd + 2, 1, c[4]);
+  for (let sh = 0; sh < 5; sh++) {
+    const y = top + 5 + sh * 14;
+    R.fill(x0 + 2, y, wd - 4, 12, c[4]);
+    for (let x = x0 + 2, k = 0; x < x0 + wd - 3; k++) {
+      // A run of volumes the same binding, then another.
+      const b = BOOKS[Math.floor(h2(seed + sh, k >> 1, 9) * BOOKS.length)], wide = 2 + (h2(seed, sh * 31 + k, 4) > 0.6 ? 1 : 0), tall = 9 + Math.floor(h2(seed + k, sh, 6) * 3);
+      if (h2(seed + sh * 7, k, 8) < 0.07) { x += 2; continue; }
+      const ww = Math.min(wide, x0 + wd - 2 - x);
+      R.fill(x, y + 12 - tall, ww, tall, b[0]); R.fill(x + ww - 1, y + 12 - tall, 1, tall, b[1]); if (tall > 10) R.fill(x, y + 15 - tall, ww - 1, 1, METAL[2]);
+      x += ww;
+    }
+    R.fill(x0 + 2, y + 12, wd - 4, 2, c[1]); R.fill(x0 + 2, y + 12, wd - 4, 1, c[0]);
+  }
+  const cy = top + 76;
+  R.fill(x0 + 2, cy, wd - 4, bot - cy - 3, c[2]);
+  for (const dx of [x0 + 3, x0 + wd / 2 + 1]) { R.fill(dx, cy + 2, wd / 2 - 4, bot - cy - 7, c[1]); R.fill(dx, cy + 2, wd / 2 - 4, 1, c[0]); R.fill(dx, cy + 2, 1, bot - cy - 7, c[0]); R.fill(dx + 1, cy + 3, wd / 2 - 6, bot - cy - 9, c[2]); }
+  R.fill(x0 + wd / 2 - 2, cy + 6, 1, 2, METAL[1]); R.fill(x0 + wd / 2 + 1, cy + 6, 1, 2, METAL[1]);
+  R.fill(x0 - 1, bot - 3, wd + 2, 3, c[3]); R.fill(x0 - 1, bot - 3, wd + 2, 1, c[1]);
+}
+
+/** A chimneypiece: a white marble surround with the fire lit, a clock and candles on the shelf, a glass over it. */
+function chimneypiece(R: Raster, bx: number, T: number) {
+  const x0 = bx + 6, wd = 36, shelf = T + 72, bot = T + 112, cx = bx + 24;
+  // The glass over the mantel.
+  R.fill(x0 + 4, T + 24, wd - 8, 44, GILT[1]); R.fill(x0 + 4, T + 24, wd - 8, 1, GILT[0]); R.fill(x0 + 4, T + 24, 1, 44, GILT[0]); R.fill(x0 + wd - 5, T + 25, 1, 43, GILT[3]);
+  for (let y = T + 26; y < T + 68; y++) for (let x = x0 + 6; x < x0 + wd - 6; x++) R.set(x, y, x === x0 + 6 || y === T + 26 ? MIRROR[4] : glass(x - bx, y - T, y - T - 26));
+  crest(R, cx, T + 20);
+  // The surround.
+  R.fill(x0, shelf + 3, wd, bot - shelf - 3, WHITE[1]); R.fill(x0, shelf + 3, 3, bot - shelf - 3, WHITE[0]); R.fill(x0 + wd - 3, shelf + 3, 3, bot - shelf - 3, WHITE[3]);
+  R.fill(x0 + 3, shelf + 5, wd - 6, 6, WHITE[2]); R.fill(x0 + 3, shelf + 5, wd - 6, 1, WHITE[3]); R.fill(cx - 4, shelf + 6, 8, 4, WHITE[1]); R.fill(cx - 3, shelf + 7, 6, 2, WHITE[3]);
+  for (const jx of [x0 + 2, x0 + wd - 8]) { R.fill(jx, shelf + 11, 6, bot - shelf - 14, WHITE[1]); R.fill(jx, shelf + 11, 1, bot - shelf - 14, WHITE[0]); R.fill(jx + 2, shelf + 13, 1, bot - shelf - 18, WHITE[3]); R.fill(jx + 5, shelf + 11, 1, bot - shelf - 14, WHITE[3]); }
+  R.fill(x0 - 2, shelf, wd + 4, 3, WHITE[0]); R.fill(x0 - 2, shelf + 2, wd + 4, 1, WHITE[2]); R.fill(x0 - 1, shelf + 3, wd + 2, 1, WHITE[4]);
+  R.fill(x0 - 1, bot - 3, wd + 2, 3, WHITE[2]); R.fill(x0 - 1, bot - 3, wd + 2, 1, WHITE[0]);
+  // The fire.
+  const fx = x0 + 8, fw = wd - 16, fy = shelf + 11;
+  R.fill(fx, fy, fw, bot - fy - 3, "#33282c"); R.fill(fx, fy, fw, 2, "#241c20"); R.fill(fx, fy, 2, bot - fy - 3, "#241c20");
+  for (let i = 2; i < fw - 2; i++) {
+    const tall = 4 + Math.round(Math.abs(Math.sin(i * 0.9 + bx)) * 7);
+    for (let j = 0; j < tall; j++) R.set(fx + i, bot - 6 - j, j < tall * 0.35 ? "#fff0a0" : j < tall * 0.7 ? "#ffb838" : "#e8702a");
+  }
+  R.fill(fx + 2, bot - 5, fw - 4, 2, "#5a3a2a"); R.fill(fx + 1, bot - 9, 1, 6, METAL[2]); R.fill(fx + fw - 2, bot - 9, 1, 6, METAL[2]);
+  // On the shelf.
+  clock(R, cx, shelf - 1); candelabrum(R, x0 + 6, shelf - 1, []); candelabrum(R, x0 + wd - 7, shelf - 1, []);
+}
+
 /** A palace room's walls: the back wall seven cells tall, in bays of mirror, damask and doorway
  * between marble pilasters under a gilt entablature; the side and front walls seen from above. */
 export function palaceWalls(R: Raster, L: FairLevel, OX: number, OY: number, seed: number) {
+  use(L.palace);
   const { w, h } = L, W = w * 16, H = h * 16, T = OY - PALACE_RISE, B = OY + 48, x0 = OX + 8, x1 = OX + W - 8;
   const { b0, n } = palaceBays(w);
   const exitAt = (x: number, y: number) => L.exits.some((e) => x >= e.x && x < e.x + e.w && y >= e.y && y < e.y + e.h);
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if ((y < 3 || x === 0 || x === w - 1 || y === h - 1) && !(exitAt(x, y) && y >= 3)) R.fill(OX + x * 16, OY + y * 16, 16, 16, DARK);
+  // The gravel laid under every wall cell strays a pixel or two past the room.
+  R.fill(OX + W, OY, 3, H + 3, DARK); R.fill(OX, OY + H, W, 3, DARK);
   R.fill(x0, T, x1 - x0, TALL, CREAM[1]);
   // The dado: a gilt rail, panels outlined in gold, a skirting.
   R.fill(x0, T + 92, x1 - x0, 1, GILT[2]); R.fill(x0, T + 93, x1 - x0, 1, CREAM[0]);
@@ -209,14 +325,17 @@ export function palaceWalls(R: Raster, L: FairLevel, OX: number, OY: number, see
   };
   // What is left over at either end of the bays: plain panelling.
   for (const [a, b] of [[x0 + 8, OX + b0 * 16 - 8], [OX + (b0 + 3 * n) * 16 + 8, x1 - 8]]) { panel(a + 2, T + 22, b - a - 4, 66); panel(a + 2, T + 96, b - a - 4, 11); }
-  const hue = HANGINGS[(seed >> 1) % HANGINGS.length];
   for (let k = 0; k < n; k++) {
     const ax = b0 + 3 * k, bx = OX + ax * 16;
     const hung = L.things.some((t) => t.wall && t.x >= ax && t.x < ax + 3);
     if (L.exits.some((e) => e.y === 0 && e.x === ax)) { doorway(R, bx, T); continue; }
-    panel(bx + 10, T + 96, 28, 11);
-    if (hung || (!L.mirrors && k % 3 !== 1)) hanging(R, bx, T, hue, seed + k * 17, hung);
-    else mirror(R, bx, T);
+    const bay = hung ? (STYLE.bays.includes("panel") ? "panel" : "hanging") : STYLE.bays[k % STYLE.bays.length];
+    if (bay !== "bookcase" && bay !== "hearth") panel(bx + 10, T + 96, 28, 11);
+    if (bay === "mirror") mirror(R, bx, T);
+    else if (bay === "window") sash(R, bx, T);
+    else if (bay === "bookcase") bookcase(R, bx, T, seed + k * 31);
+    else if (bay === "hearth") chimneypiece(R, bx, T);
+    else hanging(R, bx, T, bay === "panel" ? FIELD : CLOTH, seed + k * 17, hung, bay === "panel");
   }
   // The entablature: a cornice with dentils, a frieze of red marble with gilt brackets, egg and dart under it.
   R.fill(x0, T, x1 - x0, 1, GILT[0]); R.fill(x0, T + 1, x1 - x0, 1, GILT[2]);
@@ -224,7 +343,7 @@ export function palaceWalls(R: Raster, L: FairLevel, OX: number, OY: number, see
   R.fill(x0, T + 5, x1 - x0, 1, GILT[2]);
   for (let x = x0; x < x1; x++) {
     if ((x - x0) % 4 < 2) R.fill(x, T + 3, 1, 2, CREAM[3]);
-    for (let y = T + 6; y < T + 12; y++) R.set(x, y, marble(x, y * 3, y === T + 6 ? 3 : 2, seed + 9));
+    for (let y = T + 6; y < T + 12; y++) R.set(x, y, STYLE.pier === "fluted" ? CREAM[y === T + 6 ? 3 : 2] : marble(x, y * 3, y === T + 6 ? 3 : 2, seed + 9));
     const m = (x - OX - b0 * 16 + 480 + 2) % 24;
     if (m < 4) R.fill(x, T + 6, 1, 6, m === 0 ? GILT[0] : m === 3 ? GILT[3] : GILT[1]);
     else if (m === 13 || m === 14) R.fill(x, T + 8, 1, 2, m === 13 ? GILT[0] : GILT[2]);
@@ -232,7 +351,7 @@ export function palaceWalls(R: Raster, L: FairLevel, OX: number, OY: number, see
   }
   R.fill(x0, T + 14, x1 - x0, 1, GILT[3]);
   for (let k = 0; k < 4; k++) for (let x = x0; x < x1; x++) R.shade(x, T + 15 + k, 0.3 - k * 0.07);
-  for (let k = 0; k <= n; k++) pilaster(R, OX + (b0 + 3 * k) * 16, T, seed + k);
+  for (let k = 0; k <= n; k++) (STYLE.pier === "fluted" ? fluted : pilaster)(R, OX + (b0 + 3 * k) * 16, T, seed + k);
   // The wall's foot throws a shadow on the floor.
   for (let k = 0; k < 6; k++) for (let x = OX + 16; x < OX + W - 16; x++) if (R.has(x, B + k)) R.shade(x, B + k, 0.3 - k * 0.05);
   // Side walls from above, gilt along the inner edge; open where a doorway goes through.
@@ -300,7 +419,7 @@ function candelabrum(r: Raster, cx: number, base: number, glow: { x: number; y: 
     ".....0123.....",
     "....011223....",
     "...01122233...",
-  ], cx - 7, base - 13, GILT);
+  ], cx - 7, base - 13, METAL);
   for (const [dx, top] of [[-5, base - 17], [-1, base - 20], [4, base - 17]]) {
     const tall = dx === -1 ? 7 : 6;
     r.fill(cx + dx, top, 1, tall, WAX[0]); r.fill(cx + dx + 1, top, 1, tall, WAX[1]);
@@ -334,33 +453,34 @@ function clock(r: Raster, cx: number, base: number) {
     "..112233..",
     ".01122233.",
     "0112222334",
-  ], cx - 5, base - 10, GILT);
+  ], cx - 5, base - 10, METAL);
   r.fill(cx - 2, base - 7, 4, 5, "#fffaf0"); r.fill(cx + 1, base - 7, 1, 5, "#e6dcc8"); r.fill(cx - 1, base - 6, 1, 2, "#3a3038"); r.set(cx, base - 5, "#3a3038");
 }
 
 /** A gilt cabriole leg: a heavy knee, a waist, a scrolled foot. `s` is -1 for the left leg. */
 function leg(r: Raster, x: number, top: number, s: number) {
   const rows = ["0123", "0123", "0123", ".012", ".013", ".013", ".013", ".012", "0123", "0123", "0113"];
-  rows.forEach((row, j) => [...row].forEach((ch, i) => { if (ch !== ".") r.set(x + (s < 0 ? i : 3 - i), top + j, GILT[s < 0 ? +ch : [1, 2, 3, 4][+ch]]); }));
+  rows.forEach((row, j) => [...row].forEach((ch, i) => { if (ch !== ".") r.set(x + (s < 0 ? i : 3 - i), top + j, FRAME[s < 0 ? +ch : [1, 2, 3, 4][+ch]]); }));
 }
 
 const BUST = ["#fdf6e8", "#ecdfc8", "#d4c5aa", "#b3a288", "#8c7c66"];
 
 /** The furniture of a palace room, drawn to stand against the back wall or on the open floor. */
-export function paintPalaceDecor(kind: string, v: number): FairSprite | undefined {
+export function paintPalaceDecor(kind: string, v: number, style?: PalaceStyle): FairSprite | undefined {
+  use(style);
   const n = Math.floor(v * 997), glow: { x: number; y: number }[] = [];
   if (kind === "console") {
     // A pier table: a thick slab of white marble on a carved and gilded frame, candles and porcelain on it.
     const s = sprite(48, 62, 0, 60), { r } = s, x = 4, wd = 40, top = 32, cx = x + wd / 2;
     r.shadow(24, 59, 20, 3, 0.26);
     // The apron, carved in scrolls, with a mask at its middle.
-    r.fill(x + 2, top + 8, wd - 4, 6, GILT[2]); r.fill(x + 2, top + 8, wd - 4, 1, GILT[3]); r.fill(x + 2, top + 9, wd - 4, 1, GILT[1]);
-    for (let i = x + 5; i < x + wd - 5; i += 5) { r.fill(i, top + 10, 2, 2, GILT[0]); r.set(i + 2, top + 11, GILT[1]); r.fill(i + 1, top + 12, 3, 1, GILT[3]); }
-    for (let i = x + 2; i < x + wd - 2; i++) r.set(i, top + 13 + ((i - x) % 5 === 2 ? 1 : 0), GILT[3]);
-    stamp(r, ["011223", "001123", "011223", ".0123.", "..13.."], cx - 3, top + 10, GILT);
+    r.fill(x + 2, top + 8, wd - 4, 6, FRAME[2]); r.fill(x + 2, top + 8, wd - 4, 1, FRAME[3]); r.fill(x + 2, top + 9, wd - 4, 1, FRAME[1]);
+    for (let i = x + 5; i < x + wd - 5; i += 5) { r.fill(i, top + 10, 2, 2, FRAME[0]); r.set(i + 2, top + 11, FRAME[1]); r.fill(i + 1, top + 12, 3, 1, FRAME[3]); }
+    for (let i = x + 2; i < x + wd - 2; i++) r.set(i, top + 13 + ((i - x) % 5 === 2 ? 1 : 0), FRAME[3]);
+    stamp(r, ["011223", "001123", "011223", ".0123.", "..13.."], cx - 3, top + 10, FRAME);
     leg(r, x + 2, top + 14, -1); leg(r, x + wd - 6, top + 14, 1);
-    r.fill(x + 6, top + 21, wd - 12, 2, GILT[2]); r.fill(x + 6, top + 21, wd - 12, 1, GILT[1]); r.fill(x + wd / 2, top + 22, wd / 2 - 6, 1, GILT[3]);
-    stamp(r, [".01.", "0123", "0123", ".13."], cx - 2, top + 18, GILT);
+    r.fill(x + 6, top + 21, wd - 12, 2, FRAME[2]); r.fill(x + 6, top + 21, wd - 12, 1, FRAME[1]); r.fill(x + wd / 2, top + 22, wd / 2 - 6, 1, FRAME[3]);
+    stamp(r, [".01.", "0123", "0123", ".13."], cx - 2, top + 18, FRAME);
     // The slab: its top seen from above, its front edge below, the corners eased.
     r.fill(x + 1, top, wd - 2, 1, WHITE[0]); r.fill(x, top + 1, wd, 5, WHITE[1]); r.fill(x, top + 1, wd, 1, WHITE[0]);
     r.fill(x, top + 6, wd, 2, WHITE[2]); r.fill(x + 1, top + 8, wd - 2, 1, WHITE[3]); r.fill(x + wd - 2, top + 1, 2, 7, WHITE[2]);
@@ -383,21 +503,21 @@ export function paintPalaceDecor(kind: string, v: number): FairSprite | undefine
       "011111112223",
       "112222222333",
       "122222223333",
-    ], 1, 3, ["#f29a90", "#d85a58", "#b23c44", "#8a2a36"]);
-    r.fill(1, 9, 12, 2, GILT[2]); r.fill(1, 9, 12, 1, GILT[1]); r.fill(1, 9, 3, 1, GILT[0]); r.fill(10, 10, 3, 1, GILT[3]);
-    for (const x of [1, 10]) stamp(r, ["012", "013", ".13", "013", "123"], x, 11, GILT);
+    ], 1, 3, CLOTH);
+    r.fill(1, 9, 12, 2, FRAME[2]); r.fill(1, 9, 12, 1, FRAME[1]); r.fill(1, 9, 3, 1, FRAME[0]); r.fill(10, 10, 3, 1, FRAME[3]);
+    for (const x of [1, 10]) stamp(r, ["012", "013", ".13", "013", "123"], x, 11, FRAME);
     soften(r);
     return s;
   }
   if (kind === "bench") {
     // A long bench in crimson velvet on a gilt frame.
-    const s = sprite(48, 24, 0, 23), { r } = s, c = ["#f29a90", "#d85a58", "#b23c44", "#8a2a36"];
+    const s = sprite(48, 24, 0, 23), { r } = s, c = CLOTH;
     r.shadow(24, 22, 21, 3, 0.26);
     r.fill(3, 4, 42, 1, c[0]); r.fill(2, 5, 44, 5, c[1]); r.fill(2, 5, 30, 1, c[0]); r.fill(2, 10, 44, 3, c[2]); r.fill(2, 12, 44, 1, c[3]); r.fill(44, 5, 2, 7, c[2]);
     for (let x = 8; x < 44; x += 7) r.set(x, 7, c[2]), r.set(x, 8, c[0]);
-    r.fill(2, 13, 44, 3, GILT[2]); r.fill(2, 13, 44, 1, GILT[1]); r.fill(2, 13, 12, 1, GILT[0]); r.fill(2, 15, 44, 1, GILT[3]);
-    for (let x = 6; x < 44; x += 5) r.set(x, 14, GILT[0]);
-    for (const x of [2, 15, 30, 43]) stamp(r, ["012", "013", ".13", "013", "123"], x, 16, GILT);
+    r.fill(2, 13, 44, 3, FRAME[2]); r.fill(2, 13, 44, 1, FRAME[1]); r.fill(2, 13, 12, 1, FRAME[0]); r.fill(2, 15, 44, 1, FRAME[3]);
+    for (let x = 6; x < 44; x += 5) r.set(x, 14, FRAME[0]);
+    for (const x of [2, 15, 30, 43]) stamp(r, ["012", "013", ".13", "013", "123"], x, 16, FRAME);
     soften(r);
     return s;
   }
@@ -487,10 +607,93 @@ export function paintPalaceDecor(kind: string, v: number): FairSprite | undefine
       ".0011222333..",
       "001.0123.233.",
       "01..0123..34.",
-    ], cx - 6, 28, GILT);
+    ], cx - 6, 28, METAL);
     soften(r);
     candelabrum(r, cx, 27, glow);
     return { ...s, glow };
+  }
+  if (kind === "sofa") {
+    // A sofa: an upholstered back under a carved rail, scrolled arms, a deep seat.
+    const s = sprite(48, 36, 0, 35), { r } = s, c = CLOTH;
+    r.shadow(24, 34, 21, 3, 0.26);
+    for (let x = 4; x < 44; x++) { const rise = Math.round(Math.sin(((x - 4) / 39) * Math.PI) * 3); r.fill(x, 7 - rise, 1, 2, FRAME[x < 20 ? 1 : 2]); r.set(x, 7 - rise, FRAME[x < 24 ? 0 : 1]); r.fill(x, 9 - rise, 1, 10 + rise, x % 8 === 3 ? c[2] : c[1]); r.set(x, 9 - rise, c[0]); }
+    for (let x = 9; x < 42; x += 8) r.set(x, 12, c[3]), r.set(x, 11, c[0]);
+    r.fill(3, 19, 42, 5, c[1]); r.fill(3, 19, 42, 1, c[0]); r.fill(3, 20, 26, 1, c[0]); r.fill(3, 24, 42, 4, c[2]); r.fill(3, 27, 42, 1, c[3]);
+    for (const [x, lit] of [[1, true], [42, false]] as const) { r.fill(x, 12, 5, 16, c[lit ? 1 : 2]); r.fill(x, 11, 5, 2, FRAME[1]); r.fill(x, 11, 3, 1, FRAME[0]); r.fill(x + (lit ? 0 : 4), 13, 1, 15, lit ? c[0] : c[3]); r.fill(x + 1, 13, 3, 3, FRAME[2]); r.set(x + 1, 13, FRAME[0]); }
+    r.fill(1, 28, 46, 2, FRAME[2]); r.fill(1, 28, 46, 1, FRAME[1]); r.fill(1, 28, 14, 1, FRAME[0]);
+    for (const x of [2, 16, 29, 43]) stamp(r, ["012", "013", ".13", "013", "123"], x, 30, FRAME);
+    soften(r);
+    return s;
+  }
+  if (kind === "chair" || kind === "chair-back") {
+    // A side chair, facing the room or turned to a table.
+    const s = sprite(16, 28, 0, 27), { r } = s, c = CLOTH, back = kind === "chair-back";
+    r.shadow(8, 26, 6, 2, 0.22);
+    r.fill(3, 2, 10, 13, FRAME[2]); r.fill(3, 2, 10, 1, FRAME[0]); r.fill(3, 2, 1, 13, FRAME[1]); r.fill(12, 3, 1, 12, FRAME[3]); r.fill(4, 1, 8, 1, FRAME[1]);
+    if (back) { r.fill(5, 4, 6, 9, FRAME[3]); r.fill(5, 4, 6, 1, FRAME[4]); r.fill(7, 5, 2, 8, FRAME[2]); }
+    else { r.fill(5, 4, 6, 9, c[1]); r.fill(5, 4, 6, 1, c[0]); r.fill(5, 4, 1, 9, c[0]); r.fill(10, 5, 1, 8, c[2]); }
+    r.fill(2, 15, 12, 4, back ? FRAME[2] : c[1]); r.fill(2, 15, 12, 1, back ? FRAME[1] : c[0]); r.fill(2, 18, 12, 1, back ? FRAME[3] : c[2]);
+    r.fill(2, 19, 12, 2, FRAME[2]); r.fill(2, 19, 12, 1, FRAME[1]);
+    for (const x of [2, 11]) stamp(r, ["012", "013", ".13", "013", "123"], x, 21, FRAME);
+    soften(r);
+    return s;
+  }
+  if (kind.startsWith("dining:")) {
+    // A table laid for dinner: a white cloth, a plate to each chair, candles and dishes down the middle,
+    // chairs behind it facing out and chairs in front with their backs to the room.
+    const cells = Number(kind.slice(7)), W = cells * 16, s = sprite(W, 68, 0, 50), { r } = s, c = CLOTH;
+    r.shadow(W / 2, 53, W / 2 - 2, 4, 0.26);
+    for (let x = 12; x + 10 < W - 6; x += 16) { r.fill(x, 3, 10, 14, FRAME[2]); r.fill(x, 3, 10, 1, FRAME[0]); r.fill(x, 3, 1, 14, FRAME[1]); r.fill(x + 9, 4, 1, 13, FRAME[3]); r.fill(x + 2, 5, 6, 10, c[1]); r.fill(x + 2, 5, 6, 1, c[0]); r.fill(x + 7, 6, 1, 9, c[2]); }
+    r.fill(3, 15, W - 6, 1, WHITE[0]); r.fill(2, 16, W - 4, 24, WHITE[1]); r.fill(2, 16, W - 4, 1, WHITE[0]); r.fill(W - 4, 17, 2, 23, WHITE[2]);
+    for (let x = 2; x < W - 2; x++) { const fold = x % 7; r.fill(x, 40, 1, 9 + (fold === 3 ? 1 : 0), fold === 0 ? WHITE[3] : fold < 3 ? WHITE[2] : WHITE[1]); }
+    r.fill(2, 40, W - 4, 1, WHITE[2]);
+    soften(r);
+    for (let x = 12; x + 10 < W - 6; x += 16) for (const y of [19, 33]) {
+      r.fill(x + 1, y, 8, 4, WHITE[0]); r.fill(x + 2, y - 1, 6, 1, WHITE[0]); r.fill(x + 2, y + 4, 6, 1, WHITE[3]); r.fill(x + 3, y + 1, 4, 2, WHITE[2]); r.fill(x, y + 1, 1, 2, WHITE[3]);
+      r.fill(x + 10, y, 1, 4, "#c8ccd4"); r.set(x + 10, y, "#eef0f4");
+    }
+    for (let x = 20, k = 0; x < W - 14; x += 32, k++) {
+      if (k % 2 === 0) candelabrum(r, x, 30, glow);
+      else { stamp(r, ["..0112..", ".001122.", "00112233", ".012233.", "..0123..", ".001233."], x - 4, 24, METAL); for (const [dx, dy, col] of [[-2, -2, "#e04a3a"], [1, -3, "#f0a030"], [3, -2, "#7ab04e"], [0, -1, "#c83a5a"]] as const) r.fill(x + dx, 24 + dy, 2, 2, col); }
+    }
+    for (let x = 12; x + 10 < W - 6; x += 16) {
+      r.fill(x, 40, 10, 13, FRAME[2]); r.fill(x, 40, 10, 1, FRAME[0]); r.fill(x, 40, 1, 13, FRAME[1]); r.fill(x + 9, 41, 1, 12, FRAME[3]); r.fill(x + 2, 42, 6, 9, FRAME[3]); r.fill(x + 4, 43, 2, 8, FRAME[2]);
+      r.fill(x - 1, 53, 12, 3, FRAME[2]); r.fill(x - 1, 53, 12, 1, FRAME[1]);
+      for (const lx of [x - 1, x + 8]) stamp(r, ["012", "013", ".13", "013", "123"], lx, 56, FRAME);
+      r.fill(x - 1, 39, 1, 1, FRAME[4]);
+    }
+    return { ...s, glow };
+  }
+  if (kind === "desk") {
+    // A pedestal desk with a leather top, papers and an inkstand on it, and its chair behind.
+    const s = sprite(48, 44, 0, 43), { r } = s;
+    r.shadow(24, 42, 21, 3, 0.26);
+    r.fill(19, 2, 10, 13, FRAME[2]); r.fill(19, 2, 10, 1, FRAME[0]); r.fill(19, 2, 1, 13, FRAME[1]); r.fill(21, 4, 6, 10, CLOTH[1]); r.fill(21, 4, 6, 1, CLOTH[0]);
+    r.fill(2, 15, 44, 1, FRAME[0]); r.fill(1, 16, 46, 8, FRAME[1]); r.fill(1, 16, 46, 1, FRAME[0]); r.fill(45, 17, 2, 7, FRAME[2]);
+    r.fill(5, 17, 38, 6, "#4a8060"); r.fill(5, 17, 38, 1, "#6aa07c"); r.fill(5, 22, 38, 1, "#366048"); for (let x = 5; x < 43; x += 2) r.set(x, 17, METAL[2]);
+    r.fill(1, 24, 46, 2, FRAME[2]); r.fill(1, 25, 46, 1, FRAME[4]);
+    for (const x of [2, 31]) { r.fill(x, 26, 15, 15, FRAME[2]); r.fill(x, 26, 1, 15, FRAME[1]); r.fill(x + 14, 26, 1, 15, FRAME[4]); for (const y of [27, 32, 37]) { r.fill(x + 2, y, 11, 4, FRAME[1]); r.fill(x + 2, y, 11, 1, FRAME[0]); r.fill(x + 2, y + 3, 11, 1, FRAME[3]); r.fill(x + 6, y + 1, 3, 1, METAL[1]); } }
+    r.fill(17, 26, 14, 9, FRAME[4]); r.fill(17, 26, 14, 3, FRAME[3]);
+    soften(r);
+    r.fill(9, 18, 8, 4, "#fffaf0"); r.fill(11, 19, 8, 4, "#f4ecd8"); r.fill(12, 20, 5, 1, "#8a8478");
+    r.fill(30, 19, 7, 3, METAL[2]); r.fill(30, 19, 7, 1, METAL[1]); r.fill(31, 17, 2, 2, "#2a2a3a"); r.fill(34, 17, 2, 2, "#2a2a3a"); for (let k = 0; k < 6; k++) r.set(36 + (k >> 1), 16 - k, "#fffaf0");
+    candelabrum(r, 40, 19, glow);
+    return { ...s, glow };
+  }
+  if (kind === "globe") {
+    // A library globe in a wooden stand, a brass meridian over it.
+    const s = sprite(18, 34, 1, 33), { r } = s, cx = 9, cy = 12;
+    r.shadow(cx, 32, 7, 2, 0.24);
+    for (const dx of [-5, 4]) stamp(r, ["01", "12", "12", "12", "12", "12", "12", "23"], cx + dx, 23, FRAME);
+    r.fill(cx - 6, 21, 13, 3, FRAME[2]); r.fill(cx - 6, 21, 13, 1, FRAME[0]); r.fill(cx - 6, 23, 13, 1, FRAME[4]); r.fill(cx - 4, 28, 9, 1, FRAME[3]);
+    for (let y = -8; y <= 8; y++) for (let x = -8; x <= 8; x++) {
+      if (x * x + y * y > 68) continue;
+      const k = (-x * 0.7 - y) / 8, land = h2((x + 20 + n) >> 1, (y + 20) >> 1, n) > 0.55;
+      r.set(cx + x, cy + y, land ? (k > 0.3 ? "#c8c486" : k > -0.3 ? "#a8a468" : "#84804e") : k > 0.5 ? "#b8d8e4" : k > 0 ? "#8cb8cc" : k > -0.5 ? "#6a98b0" : "#4e7a94");
+    }
+    soften(r);
+    for (let a = 0; a < 40; a++) { const t = (a / 40) * 6.283; r.set(cx + Math.round(Math.cos(t) * 9), cy + Math.round(Math.sin(t) * 9), METAL[Math.cos(t) + Math.sin(t) < 0 ? 1 : 3]); }
+    return s;
   }
   return undefined;
 }
