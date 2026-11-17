@@ -436,7 +436,8 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       // A gallery from the plan keeps its stands in wide-spaced rows, with open floor between.
       if ((s.y - 5) % (plan.kind === "gallery" ? 9 : 6) || (s.x - 3) % 4 || (s.x - 3) % 12 === 8 || Math.abs(s.y - (h >> 1)) < 2 || s.x < 3 || s.x > w - 6 || !free(s.x, s.y, 3, 1)) continue;
       block(s.x, s.y, 3, 1);
-      L.decor.push({ type: "stall", x: s.x, y: s.y, solid: true, v: rng() });
+      // A stand of the area's class: "stall:food".
+      L.decor.push({ type: plan.kind === "gallery" && plan.stands?.tags[0] ? `stall:${plan.stands.tags[0]}` : "stall", x: s.x, y: s.y, solid: true, v: rng() });
       if (srng() < 0.6) post(standStaff, [{ x: s.x + 1, y: s.y + 1 }]);
     }
   }

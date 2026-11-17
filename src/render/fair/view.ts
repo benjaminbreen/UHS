@@ -49,7 +49,7 @@ export class FairView {
     // A gallery among other galleries fills the view: its roof behind, its front wall below, little of the lawn round it.
     const m = level.kind === "gallery" ? { x: 1, top: 4, bottom: 3 } : PAD;
     this.bounds = { x: -m.x * 16, y: -m.top * 16, w: W + m.x * 32, h: H + (m.top + m.bottom) * 16 };
-    this.objects.push(scene.add.image(this.bounds.x, this.bounds.y, tex("ground", paintFairGround(level, seed).canvas())).setOrigin(0, 0).setDepth(-99990));
+    this.objects.push(scene.add.image(-PAD.x * 16, -PAD.top * 16, tex("ground", paintFairGround(level, seed).canvas())).setOrigin(0, 0).setDepth(-99990));
     const put = (s: FairSprite, x: number, y: number, key: string, depth: number) => {
       if (s.frames) {
         // The frames side by side, eight to a row.

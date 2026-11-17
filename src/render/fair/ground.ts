@@ -31,6 +31,9 @@ const WALLS = {
   iron: ["#dfe2e4", "#c4cad0", "#a2aab2", "#7e8790", "#5c646c", "#3e444a"],
 };
 const DADO = ["#a8744c", "#8a5a38", "#6c4428", "#4e301c"];
+const BOARDS = ["#efd29c", "#e0bd80", "#d2ab6c", "#b08a52"];
+const COLUMN = ["#7fae8a", "#4f8262", "#356048", "#22402f"];
+const BUNTING = ["#d0403a", "#f4f0e8", "#3a5aa8", "#f0c838"];
 const RUNNER = ["#d85a48", "#b23e34", "#862a26", "#e8c070"];
 
 const indoorKind = (L: FairLevel) => fairIndoor(L.kind);
@@ -49,10 +52,12 @@ export function paintFairGround(L: FairLevel, seed: number): Raster {
       const c = raw(Math.max(0, Math.min(w - 1, x)), Math.max(0, Math.min(h - 1, y)));
       return c === FENCE || c === BOX || c === BED || c === WATER ? LAWN : c;
     }
+    // A gallery stands among other galleries: nothing is drawn round it.
+    if (L.kind === "gallery") return ROOF;
     // Round a building: its roof behind, a gravel apron, a forecourt, lawn beyond.
     if (x >= 0 && x < w && y < 0 && y >= -3) return ROOF;
     const d = Math.max(x < 0 ? -x : x >= w ? x - w + 1 : 0, y < -3 ? -3 - y : y >= h ? y - h + 1 : 0);
-    if (L.kind !== "gallery" && y >= h && x >= door - 2 && x <= door + 3) return PAVING;
+    if (y >= h && x >= door - 2 && x <= door + 3) return PAVING;
     return d <= 2 ? GRAVEL : LAWN;
   };
   const at = (cx: number, cy: number) => cell(cx - X0, cy - Y0);
@@ -104,6 +109,7 @@ export function paintFairGround(L: FairLevel, seed: number): Raster {
     const x0 = (X0 + p.x0) * 16, y0 = (Y0 + p.y0) * 16, x1 = (X0 + p.x1 + 1) * 16, y1 = (Y0 + p.y1 + 1) * 16;
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) R.shade(x, y, y === y0 || x === x0 ? 0.32 : y === y1 - 1 || x === x1 - 1 ? 0.08 : 0.22, [70, 64, 80]);
   }
+  if (L.kind === "gallery") skylight(R, L, X0 * 16, Y0 * 16);
   for (const g of L.gardens) garden(R, L, g, seed);
   if (L.fountain) basin(R, L.fountain, seed);
   if (indoor) building(R, L, X0 * 16, Y0 * 16, seed);
@@ -466,8 +472,9 @@ function floor(R: Raster, X: number, Y: number, L: FairLevel, ax: number, ay: nu
       const px = x % 16, py = y % 16, tone = h2(x >> 4, y >> 4, 4);
       col = px === 15 || py === 15 ? f[2] : px === 0 || py === 0 ? f[0] : tone > 0.75 ? "#b4afa6" : tone < 0.2 ? "#9e998f" : f[1];
     } else {
-      const plank = Math.floor(x / 6);
-      col = x % 6 === 5 ? f[3] : (y + plank * 13) % 40 === 0 ? f[4] : x % 6 === 0 ? f[0] : f[1];
+      // Boards laid across: long planks with staggered butt joints, each plank a tone of its own.
+      const plank = y >> 3, run = x + plank * 37, tone = h2(plank, run >> 6, 5);
+      col = y % 8 === 7 || run % 64 === 0 ? BOARDS[3] : y % 8 === 0 ? BOARDS[0] : tone > 0.72 ? BOARDS[2] : BOARDS[1];
     }
     // An inlaid border a cell in from the walls.
     if (border && kind !== "iron") {
@@ -548,7 +555,8 @@ function building(R: Raster, L: FairLevel, OX: number, OY: number, seed: number)
   R.fill(OX + 8, by + 46, W - 16, 2, DADO[3]);
   const cx = OX + W / 2;
   if (L.kind === "machines") ironWall(R, L, OX, ry, by, c);
-  else if (L.kind === "hall" || L.kind === "gallery") gallery(R, L, OX, by, c);
+  else if (L.kind === "gallery") shed(R, L, OX, by, c);
+  else if (L.kind === "hall") gallery(R, L, OX, by, c);
   else for (let x = OX + 16; x + 20 < OX + W - 8; x += 32) {
     // A pilaster, then a tall arched window between it and the next.
     R.fill(x, by + 7, 6, 29, c[0]); R.fill(x + 5, by + 7, 1, 29, c[3]); R.fill(x - 1, by + 7, 8, 2, c[2]);
@@ -595,7 +603,10 @@ function building(R: Raster, L: FairLevel, OX: number, OY: number, seed: number)
       if (e.y === 0) {
         for (let k = 0; k < 14; k++) for (let x = X; x < X + wide; x++) R.shade(x, by + k, 0.5 - k * 0.035);
         for (const jx of [X - 5, X + wide]) R.fill(jx, by, 5, 48, c[0]), R.fill(jx + 4, by, 1, 48, c[3]), R.fill(jx, by + 44, 5, 4, c[2]);
-        R.fill(X - 5, by, wide + 10, 3, c[2]); R.fill(X - 5, by + 3, wide + 10, 1, c[4]);
+        // A painted board over the doorway, where the name of the next room goes.
+        R.fill(X - 12, by + 2, wide + 24, 11, COLUMN[2]); R.fill(X - 12, by + 2, wide + 24, 1, COLUMN[0]); R.fill(X - 12, by + 12, wide + 24, 1, COLUMN[3]);
+        for (const y of [by + 4, by + 10]) R.fill(X - 10, y, wide + 20, 1, "#e8c060");
+        for (const x of [X - 10, X + wide + 9]) R.fill(x, by + 4, 1, 7, "#e8c060");
       } else if (e.y === h - 1) {
         R.fill(X, fy + 16, wide, 20, FLOORS[L.floor ?? "parquet"][2]);
         for (let k = 0; k < 20; k++) for (let x = X; x < X + wide; x++) R.shade(x, fy + 16 + k, 0.1 + k * 0.02);
@@ -620,6 +631,49 @@ function building(R: Raster, L: FairLevel, OX: number, OY: number, seed: number)
     R.fill(dx - 4 - k * 3, sy, 40 + k * 6, 4, STONE[1]); R.fill(dx - 4 - k * 3, sy, 40 + k * 6, 1, "#fbf8f2"); R.fill(dx - 4 - k * 3, sy + 3, 40 + k * 6, 1, STONE[3]);
   }
   void seed;
+}
+
+/** Sunlight through the roof lantern: pale slanted panes across the floor, in the rhythm of the glazing. */
+function skylight(R: Raster, L: FairLevel, OX: number, OY: number) {
+  for (let cy = 5; cy < L.h - 3; cy += 6) for (let cx = 3; cx < L.w - 5; cx += 7) {
+    for (let j = 0; j < 30; j++) for (let i = 0; i < 44; i++) {
+      const x = cx * 16 + i + (j >> 1), y = cy * 16 + j;
+      if (x >= (L.w - 1) * 16 || y >= (L.h - 1) * 16 || i % 22 > 19) continue;
+      R.shade(OX + x, OY + y, j === 0 || j === 29 ? 0.07 : 0.13, [255, 248, 216]);
+    }
+  }
+}
+
+/** An exhibition shed's back wall: boarded, between iron columns, a tall round-headed
+ * window in each bay and bunting strung from column to column. */
+function shed(R: Raster, L: FairLevel, OX: number, by: number, c: string[]) {
+  const W = L.w * 16, x0 = OX + 8, x1 = OX + W - 8, bay = 64;
+  for (let x = x0 + 7; x < x1; x += 8) R.fill(x, by + 7, 1, 29, c[2]);
+  for (let bx = x0 + 12; bx < x1 - 12; bx += bay) {
+    // The window, in the middle of the bay.
+    const wx = bx + 18, ww = 28;
+    if (wx + ww < x1 - 4) {
+      for (let y = by + 9; y < by + 34; y++) for (let i = 0; i < ww; i++) {
+        const top = y - (by + 9), rr = ww / 2, dx = i + 0.5 - rr;
+        if (top < 10 && dx * dx + ((10 - top) * 1.4) ** 2 > rr * rr) continue;
+        const frame = i < 2 || i >= ww - 2 || (top < 10 && dx * dx + ((12 - top) * 1.4) ** 2 > rr * rr) || top > 22;
+        const bar = i % 7 === 0 || top % 8 === 2;
+        R.set(wx + i, y, frame ? c[0] : bar ? "#f4fbfd" : i + top < 20 ? GLASS[1] : top > 16 ? GLASS[3] : GLASS[2]);
+      }
+      R.fill(wx - 2, by + 34, ww + 4, 2, c[0]); R.fill(wx - 2, by + 36, ww + 4, 1, c[4]);
+    }
+    // The column, with its cap and foot.
+    R.fill(bx, by + 5, 6, 41, COLUMN[1]); R.fill(bx, by + 5, 2, 41, COLUMN[0]); R.fill(bx + 5, by + 5, 1, 41, COLUMN[3]);
+    R.fill(bx - 2, by + 4, 10, 4, COLUMN[1]); R.fill(bx - 2, by + 4, 10, 1, COLUMN[0]); R.fill(bx - 2, by + 7, 10, 1, COLUMN[3]);
+    R.fill(bx - 1, by + 43, 8, 4, COLUMN[2]); R.fill(bx - 1, by + 43, 8, 1, COLUMN[0]);
+    // Bunting to the next column.
+    if (bx + bay < x1 - 12) for (let i = 6; i < bay; i++) {
+      const sag = Math.round(Math.sin((i / bay) * Math.PI) * 6), y = by + 8 + sag;
+      R.set(bx + i, y, "#7a6a52");
+      const k = (i - 6) % 8;
+      if (k < 7) for (let j = 1; j <= 6 - Math.abs(k - 3) * 2 + 1; j++) R.set(bx + i, y + j, BUNTING[Math.floor((i - 6) / 8) % BUNTING.length]);
+    }
+  }
 }
 
 /** A hall's back wall in two storeys: an arcade of dark bays below, and above

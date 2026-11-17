@@ -563,7 +563,7 @@ export function paintFairDecor(type: string, v: number): FairSprite | undefined 
     r.finish();
     return { r, ox: 8, oy: 70 };
   }
-  if (type === "stall") return stall(v);
+  if (type.startsWith("stall")) return stall(v, type.slice(6));
   if (type === "rib") return rib();
   if (type === "crate") {
     const r = new Raster(28, 30), x = 4 + Math.round(v * 3), w = 14 - Math.round(v * 3), d = 5, hgt = 10 + Math.round(v * 4), top = 26 - hgt - d;
@@ -643,10 +643,63 @@ const STALLS = [["#c86a5a", "#a84a40", "#86342e", "#5e2422"], ["#6a86b8", "#4e6a
 
 /** An exhibitor's stand, three cells wide: a nameboard on carved posts over a
  * back screen of shelves, and a draped counter of goods in front. */
-function stall(v: number): FairSprite {
-  if (v >= 0.6) return trophy(v);
-  const r = new Raster(64, 72), X = 8, Y = 52, W = 48, n = Math.floor(v * 97);
-  const c = STALLS[n % STALLS.length], cloth = STALLS[(n + 2) % STALLS.length];
+/** What a stand of each class looks like: the colours of its screen and counter cloth, and what stands beside it. */
+const CLASSES: Record<string, { screen: number; cloth: number; side: string }> = {
+  food: { screen: 2, cloth: 3, side: "barrel" }, dress: { screen: 4, cloth: 0, side: "mannequin" }, dwelling: { screen: 1, cloth: 3, side: "washstand" },
+  sanitary: { screen: 1, cloth: 2, side: "washstand" }, heating: { screen: 0, cloth: 3, side: "stove" }, school: { screen: 2, cloth: 1, side: "globe" },
+  baths: { screen: 1, cloth: 2, side: "towels" }, india: { screen: 0, cloth: 3, side: "vase" }, china: { screen: 0, cloth: 3, side: "vase" },
+  japan: { screen: 0, cloth: 1, side: "vase" }, belgium: { screen: 3, cloth: 0, side: "stove" }, france: { screen: 1, cloth: 0, side: "barrel" },
+  refreshments: { screen: 3, cloth: 0, side: "barrel" }, cocoa: { screen: 3, cloth: 2, side: "barrel" }, garden: { screen: 2, cloth: 3, side: "vase" },
+};
+
+/** Something standing beside a stand, its foot at `base`: what the stand's trade keeps to hand. */
+function beside(r: Raster, kind: string, x: number, base: number, c: readonly string[], n: number) {
+  r.shadow(x + 6, base + 1, 8, 3, 0.24);
+  if (kind === "barrel") {
+    drum(r, x + 5, base, 5, 2, 12, WOOD, DARKWOOD);
+    for (const y of [base - 3, base - 10]) r.fill(x, y, 11, 1, IRON[2]);
+    // A sack leaning on it, tied at the neck.
+    for (let j = 0; j < 9; j++) r.fill(x + 8 - (j > 2 ? 1 : 0), base - 8 + j, 6 + (j > 2 ? 1 : 0), 1, j < 2 ? "#e8dcc0" : j > 6 ? "#b8a888" : "#d4c6a6");
+    r.fill(x + 9, base - 9, 3, 1, "#8a6a4a");
+  } else if (kind === "mannequin") {
+    // A dress form on a turned stand, in the stand's colour.
+    r.fill(x + 6, base - 9, 1, 9, DARKWOOD[1]); r.fill(x + 3, base - 1, 7, 2, DARKWOOD[2]);
+    for (let j = 0; j < 14; j++) {
+      const half = j < 2 ? 2 : j < 6 ? 4 : j < 9 ? 3 : 4 + ((j - 9) >> 1);
+      r.fill(x + 6 - half, base - 23 + j, half * 2 + 1, 1, j < 1 ? c[0] : j > 11 ? c[3] : c[1]);
+      r.set(x + 6 - half, base - 23 + j, c[0]); r.set(x + 6 + half, base - 23 + j, c[3]);
+    }
+    r.fill(x + 5, base - 25, 3, 2, BRASS[1]); r.fill(x + 4, base - 21, 5, 1, "#f4f0e8");
+  } else if (kind === "washstand") {
+    box(r, x + 1, base - 12, 12, 3, 9, ["#fbfbf8", "#ecece6", "#cfd2d2", "#a8aeb0", "#80888c"], DARKWOOD);
+    r.fill(x + 3, base - 12, 8, 2, "#9ec8d8"); r.fill(x + 10, base - 18, 2, 6, BRASS[1]); r.fill(x + 8, base - 18, 3, 1, BRASS[0]);
+    drum(r, x + 4, base - 13, 2, 1, 5, ["#ffffff", "#ecece6", "#cfd2d2", "#a8aeb0", "#80888c"]);
+  } else if (kind === "stove") {
+    box(r, x + 1, base - 14, 12, 3, 11, IRON, IRON);
+    r.fill(x + 4, base - 8, 6, 4, "#f08a3a"); r.fill(x + 5, base - 7, 4, 2, "#ffd070"); r.fill(x + 3, base - 9, 8, 1, IRON[4]);
+    r.fill(x + 5, base - 30, 3, 16, IRON[2]); r.fill(x + 5, base - 30, 1, 16, IRON[0]); r.fill(x + 4, base - 31, 5, 1, IRON[1]);
+    for (const fx of [x + 2, x + 11]) r.fill(fx, base, 1, 2, IRON[3]);
+  } else if (kind === "globe") {
+    r.fill(x + 6, base - 8, 1, 8, DARKWOOD[1]); r.fill(x + 3, base - 1, 7, 2, DARKWOOD[2]);
+    for (let j = -5; j <= 5; j++) for (let i = -5; i <= 5; i++) if (i * i + j * j <= 27) r.set(x + 6 + i, base - 13 + j, h2(i + 9, j + 9, n) > 0.55 ? (i + j < 0 ? "#8ac48a" : "#5e9a62") : i + j < -2 ? "#9ec8e8" : i + j > 4 ? "#3e6a9c" : "#5e8ec4");
+    for (let a = -5; a <= 5; a++) r.set(x + 6 + a, base - 13 - Math.round(Math.sqrt(36 - a * a) * 0.9) - 1, BRASS[1]);
+  } else if (kind === "towels") {
+    for (const tx of [x + 1, x + 11]) r.fill(tx, base - 18, 1, 18, BRASS[2]);
+    r.fill(x + 1, base - 18, 11, 1, BRASS[0]); r.fill(x + 1, base - 9, 11, 1, BRASS[1]);
+    r.fill(x + 3, base - 17, 7, 7, "#fbfbf8"); r.fill(x + 3, base - 11, 7, 1, "#c8d8e0"); r.fill(x + 3, base - 13, 7, 1, "#9ec8d8");
+    r.fill(x + 4, base - 8, 5, 6, "#f4ece0"); r.fill(x + 4, base - 3, 5, 1, "#d0c4b0");
+  } else {
+    // A tall vase on a little table.
+    box(r, x + 2, base - 7, 10, 3, 5, DARKWOOD, DARKWOOD);
+    for (let k = 0; k < 15; k++) drum(r, x + 7, base - 7 - k, 1.5 + Math.sin((k / 15) * Math.PI) * 3, 1, 1, c);
+    for (let i = -3; i <= 3; i += 2) r.set(x + 7 + i, base - 15, BRASS[1]);
+  }
+}
+
+function stall(v: number, cls = ""): FairSprite {
+  if (v >= 0.8) return trophy(v);
+  const r = new Raster(80, 72), X = 8, Y = 52, W = 48, n = Math.floor(v * 97), look = CLASSES[cls];
+  const c = STALLS[look ? (look.screen + (n % 2 ? 0 : 0)) % STALLS.length : n % STALLS.length], cloth = STALLS[look ? look.cloth : (n + 2) % STALLS.length];
   const goods = [BRASS, RED, GLASS, STONE, GREEN, ramp(c[0])];
   const item = (x: number, y: number, k: number) => {
     const g = goods[k % goods.length], kind = Math.floor(h2(x, y, n) * 4);
@@ -675,6 +728,7 @@ function stall(v: number): FairSprite {
   box(r, X + 3, Y, W - 6, 5, 10, WOOD, cloth);
   for (let x = X + 3; x < X + W - 3; x++) { r.set(x, Y + 7, (x & 1) ? BRASS[1] : BRASS[2]); if ((x - X) % 8 === 4) r.fill(x, Y + 6, 1, 9, cloth[3]); }
   for (let x = X + 6, k = 0; x < X + W - 9; x += 8, k++) item(x, Y + 3, k + 3);
+  if (look) beside(r, look.side, X + W + 2, Y + 12, cloth, n);
   r.finish();
   return { r, ox: X, oy: Y };
 }
