@@ -407,6 +407,23 @@ describe("a palace planned as rooms and courts", () => {
     expect(dining.decor.some((d) => d.type.startsWith("palace:dining:"))).toBe(true);
     expect(library.decor.map((d) => d.type)).toContain("palace:desk");
   });
+
+  it("starts a warlord in a generated hall of his own period, and nowhere when no period fits", () => {
+    for (const [prompt, kind, seat] of [["A Neolithic warlord", "hall-stone", true], ["A warlord in his mead hall", "hall-lord", true], ["A chieftain in Gaul, 200 BC", "hall-iron", true]] as const) {
+      const r = resolveSetting(prompt);
+      if (!("setting" in r)) throw new Error(r.error);
+      expect(r.setting.venue).toMatch(new RegExp(`^${kind}-\\d$`));
+      const e = createSettingSession(r.setting, "palace");
+      expect(e.state.player.pos.space).toBe(`fair:${r.setting.venue}:yard`);
+      const hall = e.areaOf(`fair:${r.setting.venue}:hall`) as FairLevel;
+      expect(hall.palace).toMatchObject({ order: "timber", room: "hall" });
+      expect(hall.decor.some((d) => d.type === "palace:highseat")).toBe(seat);
+      expect(hall.decor.some((d) => d.type === "palace:hearth")).toBe(true);
+    }
+    const modern = resolveSetting("A warlord in Shanghai, 1925");
+    if (!("setting" in modern)) throw new Error(modern.error);
+    expect(modern.setting.below).toBeUndefined();
+  });
 });
 
 describe("tombs", () => {

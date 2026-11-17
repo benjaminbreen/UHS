@@ -80,7 +80,7 @@ import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ec
 import { caveAct, caveBeastAt, caveMouthsNear, caveLevelOf, caveStrike } from "./cave";
 import { fairEnter } from "./fair";
 import { tombEnter } from "./tomb";
-import { fairAt } from "../content/fairs";
+import { fairAt, fairById } from "../content/fairs";
 import { tombAt } from "../content/tombs";
 import { complexAct, complexGround, complexInspect, complexMap, complexTime, complexVerb, isComplexId, walkedArea, type ComplexHost } from "./complex";
 import { folkOffer, type FolkHost } from "./tunnel-folk";
@@ -2351,7 +2351,7 @@ export class Engine {
     // The life begins already down there: the climb takes none of the day.
     const host = { ...this.complex, advance() {} };
     if (where === "fair") {
-      const s = this.world.pack.setting, fair = s && fairAt(s.lon, s.lat, s.year);
+      const s = this.world.pack.setting, fair = s && ((s.venue ? fairById(s.venue) : undefined) ?? fairAt(s.lon, s.lat, s.year));
       if (fair) fairEnter(host, fair, true);
       return;
     }

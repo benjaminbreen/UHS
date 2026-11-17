@@ -22,7 +22,7 @@ export class FairView {
   readonly space: string;
   private keys: string[] = [];
   private objects: Phaser.GameObjects.GameObject[] = [];
-  private pending: { frame: string; x: number; y: number; depth: number; flip: boolean }[] = [];
+  private pending: { frame: string; x: number; y: number; depth: number; flip: boolean; mid?: boolean }[] = [];
   private glows: Phaser.GameObjects.Image[] = [];
   private shade: Phaser.GameObjects.Rectangle;
   private banner: Phaser.GameObjects.Text;
@@ -68,7 +68,7 @@ export class FairView {
       for (const g of s.glow ?? []) this.glow(x * 16 - s.ox + dx + g.x, y * 16 - s.oy + dy + g.y);
     };
     for (const t of level.things) {
-      const f = fairFind(t.find), s = f && paintFairThing(t.art, t.w ?? 1, t.h ?? 1, (t.x * 7 + t.y) % 10 / 10, f.tint);
+      const f = fairFind(t.find), s = f && paintFairThing(t.art, t.w ?? 1, t.h ?? 1, (t.x * 7 + t.y) % 10 / 10, f.tint, level.palace?.order !== "timber");
       // On a palace wall a hung thing has a bay to itself: in the middle of it, at eye height.
       if (s) put(s, t.x, t.y, t.id, t.wall ? -99980 : (t.y + (t.h ?? 1) - 1) * 16 + 13, t.wall && palace ? (3 - (t.w ?? 1)) * 8 : 0, t.wall && palace ? -30 : 0);
     }
@@ -87,8 +87,12 @@ export class FairView {
       for (let x = -7; x < level.w + 7; x += 3) for (const y of [-6, -2, level.h + 2, level.h + 5]) if (turf(x, y)) decor.push({ type: "tree", x: x + (y & 1), y, solid: false, v: ((x * 5 + y) & 15) / 16 });
       for (let y = 0; y < level.h + 2; y += 3) for (const x of [-6, -3, level.w + 2, level.w + 5]) if (turf(x, y)) decor.push({ type: "tree", x, y: y + (x & 1), solid: false, v: ((x + y * 3) & 15) / 16 });
     }
+    // Round a yard the map's own trees stand, which are broader than the park's: fewer of them, and none across a way out.
+    if (level.rustic) for (const d of decor) if (d.type === "tree") d.type = (d.x * 3 + d.y) % 3 || level.exits.some((e) => Math.abs(e.x + e.w / 2 - d.x) < 5 && Math.abs(e.y + e.h / 2 - d.y) < 8) ? "none" : `atlas:nature-${["broadleaf-mature", "beech", "broadleaf-young"][Math.floor(d.v * 3)]}:1`;
     decor.forEach((d, i) => {
       if (d.type === "jet") return void this.jets.push({ x: d.x * 16, y: d.y * 16, w: d.v * 16 });
+      // A frame from the game's own prop and tree sheets, standing in the middle of its cells.
+      if (d.type.startsWith("atlas:")) { const [, frame, wide] = d.type.split(":"); return void this.pending.push({ frame, x: (d.x + Number(wide) / 2) * 16, y: d.y * 16 + 15, depth: d.y * 16 + 13, flip: false, mid: true }); }
       const s = paintFairDecor(d.type, d.v, level.palace);
       if (s) put(s, d.x, d.y, `decor-${i}`, d.y * 16 + 13);
     });
@@ -125,7 +129,7 @@ export class FairView {
       const key = this.sheet(p.frame);
       if (key === "__DEFAULT") return true;
       if (!this.scene.textures.get(key).has(p.frame)) return false;
-      this.objects.push(this.scene.add.image(p.x, p.y, key, p.frame).setOrigin(p.flip ? 1 : 0, 1).setDepth(p.depth).setFlipX(p.flip));
+      this.objects.push(this.scene.add.image(p.x, p.y, key, p.frame).setOrigin(p.mid ? 0.5 : p.flip ? 1 : 0, 1).setDepth(p.depth).setFlipX(p.flip));
       return false;
     });
   }
@@ -141,13 +145,15 @@ export class FairView {
     if (!this.born) this.born = f.time;
     const t = f.time / 1000, wash = washAt(f.clock);
     const indoor = fairIndoor(this.level.kind);
-    if (indoor) this.shade.setFillStyle(0xf2e8dc);
+    // A hall has no windows: dimmer, and its fires and torches count for more.
+    const dim = this.level.palace?.order === "timber";
+    if (indoor) this.shade.setFillStyle(dim ? 0xd6c2aa : 0xf2e8dc);
     else {
       const c = Phaser.Display.Color.IntegerToColor(wash.color), a = wash.alpha;
       this.shade.setFillStyle(Phaser.Display.Color.GetColor(255 - (255 - c.red) * a, 255 - (255 - c.green) * a, 255 - (255 - c.blue) * a));
     }
     // The fair was lit by electricity after dark: every lamp at once.
-    for (const g of this.glows) g.setAlpha((indoor ? 0.15 : 0.7 * wash.lamps) * (0.94 + 0.06 * Math.sin(t * 3 + g.x)));
+    for (const g of this.glows) g.setAlpha((dim ? 0.5 : indoor ? 0.15 : 0.7 * wash.lamps) * (0.94 + 0.06 * Math.sin(t * 3 + g.x)));
     for (const m of this.working) m.im.setFrame(Math.floor(t * m.fps) % m.n);
     const fo = this.level.fountain;
     this.spray?.clear();

@@ -1,5 +1,5 @@
 import { applySituation, situationFromPrompt } from "./situation";
-import { fairFromPrompt } from "../fairs";
+import { fairFromPrompt, venueFor } from "../fairs";
 import { formatHistoricalYear } from "../../core/calendar";
 import { eraAt, glacialTundraLatitude } from "../history/dates";
 import { random } from "../../core/random";
@@ -297,6 +297,8 @@ export function resolveSetting(
       [/\bweaver\b/, "Weaver"],
       [/\bsailor\b/, "Sailor"],
     ];
+    // A generated palace exists only for some years: asked for outside them, the start is an ordinary one.
+    const venue = below === "fair" ? venueFor(q, s.year, seed) : undefined, inside = below === "fair" && !venue ? undefined : below;
     const context = resolveCharacterContext(s);
     const namedRole = context.livelihoods.flatMap((livelihood) => [
       livelihood.label,
@@ -306,11 +308,12 @@ export function resolveSetting(
         .map((label) => label.label),
     ]).sort((a, b) => b.length - a.length).find((label) => has(q, label));
     const coal = /\bcoal\b|\bcollier|\bpit\b/.test(q);
-    const underRole = below === "mine" ? (coal ? "Coal miner" : "Miner") : below === "sewer" ? (/\btosher/.test(q) ? "Tosher" : "Sewer flusher") : below === "cave" ? (s.year < -8000 ? "Hunter" : "Hermit")
-      : below === "ship" ? vesselOf(q)?.[4] ?? (/\bstokers?\b/.test(q) ? "Stoker" : /\b(?:passengers?|emigrants?|steerage|pilgrims?)\b/.test(q) ? "Passenger" : "Sailor") : below === "fair" ? fairFromPrompt(q)?.role ?? "Visitor" : below === "tomb" ? "Tomb robber" : undefined;
+    const underRole = !inside ? undefined : below === "mine" ? (coal ? "Coal miner" : "Miner") : below === "sewer" ? (/\btosher/.test(q) ? "Tosher" : "Sewer flusher") : below === "cave" ? (s.year < -8000 ? "Hunter" : "Hermit")
+      : below === "ship" ? vesselOf(q)?.[4] ?? (/\bstokers?\b/.test(q) ? "Stoker" : /\b(?:passengers?|emigrants?|steerage|pilgrims?)\b/.test(q) ? "Passenger" : "Sailor") : below === "fair" ? venue?.role ?? "Visitor" : below === "tomb" ? "Tomb robber" : undefined;
     s.role = namedRole ?? roles.find(([pattern]) => pattern.test(q))?.[1] ?? underRole ?? "Traveler";
-    if (below) {
+    if (inside) {
       s.below = below;
+      if (venue) s.venue = venue.id;
       if (below === "ship") s.ship = vesselOf(q)?.[1] ?? (/\bjunks?\b/.test(q) ? "junk" : /\b(?:dhows?|nakhoda)\b/.test(q) ? "dhow" : /\bgalleons?\b/.test(q) ? "galleon"
         : /\bindiam[ae]n\b/.test(q) ? "indiaman" : /\b(?:steam|stoker|liner)/.test(q) ? "steamer" : /\bemigrant\b/.test(q) ? "emigrant-ship" : undefined);
       const work = below === "mine" ? (coal && s.year >= 1780 ? "coal-miner" : "miner") : below === "sewer" ? (/\btosher/.test(q) ? "night-soil-collector" : "navvy") : below === "ship" ? vesselOf(q)?.[5] || (s.role === "Sailor" ? "sailor" : undefined) : undefined;

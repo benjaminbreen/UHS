@@ -1,5 +1,7 @@
 import { BED, BOX, BRIDGE, BUILDING, DECK, FENCE, FLOOR, GRAVEL, HEDGE, LAWN, PAVING, WALL, WATER, fairIndoor, type FairLevel } from "../../world/fair";
 import { h2, Raster } from "../ship/raster";
+import { boundaryStyles } from "../../content/settlements/boundaries";
+import { drawEw, drawNs, drawPost } from "../boundary-forms";
 import { paintFlag } from "./flags";
 import { palaceFloor, palaceLight, palaceWalls } from "./palace";
 
@@ -70,7 +72,7 @@ export function paintFairGround(L: FairLevel, seed: number): Raster {
     const c = at(cx, cy), X = cx * 16, Y = cy * 16;
     switch (c) {
       case LAWN: case BUILDING: case FENCE: lawn(R, X, Y, seed); break;
-      case GRAVEL: gravel(R, X, Y, seed); break;
+      case GRAVEL: if (L.rustic) trodden(R, X, Y, seed); else gravel(R, X, Y, seed); break;
       case PAVING: case BRIDGE: paving(R, X, Y, seed); break;
       case WATER: water(R, X, Y, at, cx, cy); break;
       case BED: lawn(R, X, Y, seed); break;
@@ -95,6 +97,7 @@ export function paintFairGround(L: FairLevel, seed: number): Raster {
       if (wv === GRAVEL || wv === PAVING) R.fill(X, Y, 1, 16, GRASS[3]);
       if (e === GRAVEL || e === PAVING) R.fill(X + 15, Y, 1, 16, GRASS[0]);
     }
+    if (L.rustic) continue;
     if ((c === GRAVEL || c === PAVING) && (soft(n) || n === BOX || n === BED)) R.fill(X, Y, 16, 1, SAND[3]), R.fill(X, Y + 1, 16, 2, SAND[2]);
     if (c === GRAVEL && (wv === FENCE || wv === LAWN || wv === BOX)) R.fill(X, Y, 2, 16, SAND[2]);
     if (c === BED) roses(R, X, Y, cx, cy, seed, at);
@@ -115,6 +118,7 @@ export function paintFairGround(L: FairLevel, seed: number): Raster {
   }
   if (L.kind === "gallery" && L.look === "palace") palaceLight(R, L, X0 * 16, Y0 * 16);
   else if (L.kind === "gallery") skylight(R, L, X0 * 16, Y0 * 16);
+  if (L.rustic) hurdles(R, L, X0 * 16, Y0 * 16);
   for (const g of L.gardens) garden(R, L, g, seed);
   if (L.fountain) basin(R, L.fountain, seed);
   if (indoor) building(R, L, X0 * 16, Y0 * 16, seed);
@@ -156,6 +160,30 @@ function tufts(R: Raster, X: number, Y: number, seed: number, keep?: (x: number,
     if (keep && !keep(tx, ty)) return;
     const pal = ROSES[Math.floor(h2(X, Y, 17) * ROSES.length)];
     R.set(tx, ty, pal[0]); R.set(tx + 1, ty, pal[1]); R.set(tx, ty + 1, GRASS[3]);
+  }
+}
+
+/** A yard's fence: the map's own wattle hurdles round the edge, open at each way out. */
+function hurdles(R: Raster, L: FairLevel, OX: number, OY: number) {
+  const s = boundaryStyles.wattle!, W = L.w * 16, H = L.h * 16;
+  const put = (x: number, y: number, c: number[]) => R.set(OX + x, OY + y, "#" + c.map((v) => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join(""));
+  const runs = (len: number, side: (e: FairLevel["exits"][number]) => [number, number] | undefined) => {
+    const gaps = L.exits.map(side).filter((g) => !!g).sort((a, b) => a[0] - b[0]), out: [number, number][] = [];
+    let from = 2;
+    for (const [a, b] of gaps) { if (a * 16 > from) out.push([from, a * 16]); from = b * 16; }
+    if (from < len - 2) out.push([from, len - 2]);
+    return out;
+  };
+  for (const [y, edge] of [[10, 0], [H - 3, L.h - 1]]) for (const [a, b] of runs(W, (e) => (e.y === edge && e.h === 1 ? [e.x, e.x + e.w] : undefined))) { drawEw(s, a, b, y, true, true, put); drawPost(s, a, y, "end", put); drawPost(s, b - 1, y, "end", put); }
+  for (const [x, edge] of [[2, 0], [W - 4, L.w - 1]]) for (const [a, b] of runs(H, (e) => (e.x === edge && e.w === 1 ? [e.y, e.y + e.h] : undefined))) drawNs(s, x, Math.max(a, 10), Math.min(b, H - 3), true, true, put);
+}
+
+const EARTH = ["#a08462", "#9a7e5e", "#94785a", "#8c7054"];
+/** Earth trodden bare: soft patches a shade apart, ragged where it meets the grass. */
+function trodden(R: Raster, X: number, Y: number, seed: number) {
+  for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
+    const x = X + i, y = Y + j, a = h2((x + (y >> 2) % 3) >> 4, (y + (x >> 3) % 2) >> 4, seed + 21), b = h2((x + 5) >> 3, (y + 3) >> 3, seed + 22);
+    R.set(x, y, h2(x >> 1, y, seed + 23) > 0.994 ? EARTH[0] : a > 0.6 && b > 0.45 ? EARTH[0] : a < 0.3 && b < 0.55 ? EARTH[3] : b > 0.85 ? EARTH[2] : EARTH[1]);
   }
 }
 

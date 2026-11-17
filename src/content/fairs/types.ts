@@ -52,6 +52,8 @@ export type FairArea = {
   look?: "shed" | "warm" | "palace";
   /** What this palace room changes from the palace's own style. */
   palace?: Partial<PalaceStyle>;
+  /** A court that is a yard: bare earth and trodden paths, a fence round it, no lamps, urns or railed gardens. */
+  rustic?: boolean;
   /** Bandstands in a court. */
   bandstands?: number;
   /** Who plays in each of a court's bandstands, by person id. */
@@ -112,6 +114,10 @@ export type Fair = {
   coin: readonly [string, string];
   /** Words in a prompt that mean this fair. */
   prompt: RegExp;
+  /** One of several plans generated for the same kind of place; a start picks among those that are asked for and whose years fit. */
+  generated?: boolean;
+  /** Words that ask for a generated kind in any of its periods; `prompt` then says which period an undated prompt means. */
+  asks?: RegExp;
   /** Where a prompt naming it starts, by place id. */
   place: string;
   /** Said at the gate without the money, on going in, and on riding its lifts up. */
@@ -122,7 +128,7 @@ export type Fair = {
 export const FAIR_ART = [
   // Floor.
   "vitrine", "counter", "bales", "barrels", "sacks", "ingots", "statue", "vase", "engine", "dynamo", "locomotive",
-  "phonograph", "telephone", "piano", "model", "loom", "press", "lamp-standard", "pyramid", "kiosk", "lift", "bath", "throne", "state-bed",
+  "phonograph", "telephone", "piano", "model", "loom", "press", "lamp-standard", "pyramid", "kiosk", "lift", "bath", "throne", "state-bed", "axe",
   // Wall.
   "painting", "tapestry", "carpet", "panel", "map",
 ] as const;

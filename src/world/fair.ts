@@ -20,6 +20,8 @@ export type FairLevel = Area & {
   look: NonNullable<FairArea["look"]>;
   /** The style of a palace room. */
   palace?: PalaceStyle;
+  /** A yard of trodden earth, not a garden court. */
+  rustic?: boolean;
   exits: AreaExit[];
   buildings: PlacedBuilding[];
   lifts: AreaLift[];
@@ -103,7 +105,7 @@ export function fairLevel(seed: string, fair: Fair, id: string): FairLevel | und
   const [w, h] = sizeOf(fair, plan), look = plan.kind === "gallery" ? plan.look ?? fair.look ?? "shed" : "shed";
   const rng = rngOf(seed, "fair", fair.id, id);
   const L: FairLevel = {
-    space: fairSpace(fair.id, id), fair: fair.id, area: id, kind: plan.kind, floor: plan.floor, look, palace: look === "palace" ? { ...(fair.palace ?? louisQuatorze), ...plan.palace } : undefined, depth: 1, name: plan.name, w, h,
+    space: fairSpace(fair.id, id), fair: fair.id, area: id, kind: plan.kind, floor: plan.floor, look, rustic: plan.rustic, palace: look === "palace" ? { ...(fair.palace ?? louisQuatorze), ...plan.palace } : undefined, depth: 1, name: plan.name, w, h,
     cells: new Uint8Array(w * h), entry: { x: w >> 1, y: h - 2 }, things: [], decor: [], folk: [], gardens: [], plots: [], flow: new Int8Array(w * h).fill(-1),
     exits: [], buildings: [], lifts: [],
   };
@@ -121,7 +123,7 @@ export function fairLevel(seed: string, fair: Fair, id: string): FairLevel | und
   if (plan.kind === "grounds" || plan.kind === "bridge") grounds(L, plan, rng, fill, set, at, edge, space, areaName);
   else if (plan.kind === "platform") platform(L, fill, set);
   else if (plan.kind === "gallery" || plan.kind === "court") {
-    const open = openings(fairWays(fair, plan), w, h, plan.kind === "court" ? 4 : 5).map((o) => ({ ...o, to: o.to === "outside" ? "outside" : space(o.to), name: o.to === "outside" ? "the street" : areaName(o.to) }));
+    const open = openings(fairWays(fair, plan), w, h, plan.kind === "court" ? 4 : 5).map((o) => ({ ...o, to: o.to === "outside" ? "outside" : space(o.to), name: o.to === "outside" ? (plan.rustic ? "the fields" : "the street") : areaName(o.to) }));
     if (look === "palace") {
       // A door through the back wall takes a whole bay.
       const { b0, n } = palaceBays(w), used = new Set<number>();
@@ -175,6 +177,31 @@ function gallery(L: FairLevel, fill: Fill, edge: Edge, open: Opening[]) {
 function court(L: FairLevel, plan: FairArea, rng: () => number, fill: Fill, set: Set, at: (x: number, y: number) => number, edge: Edge, open: Opening[]) {
   const { w, h } = L, cx = w >> 1, my = h >> 1;
   fill(0, 0, w - 1, h - 1, LAWN);
+  if (plan.rustic) {
+    // A yard: trodden earth in the middle and a path worn to each way out; woodpiles, and trees left standing at the edges.
+    for (let y = my - 4; y <= my + 4; y++) for (let x = cx - 9; x <= cx + 9; x++) if (((x - cx) / 9.5) ** 2 + ((y - my) / 4.5) ** 2 < 1) set(x, y, GRAVEL);
+    for (const o of open) {
+      if (o.dir === "n" || o.dir === "s") { const y0 = o.dir === "n" ? 0 : my, y1 = o.dir === "n" ? my : h - 1; fill(o.a, y0, o.a + 2, y1, GRAVEL); fill(Math.min(o.a, cx), my - 1, Math.max(o.a + 2, cx), my + 1, GRAVEL); }
+      else { const x0 = o.dir === "w" ? 0 : cx, x1 = o.dir === "w" ? cx : w - 1; fill(x0, o.a, x1, o.a + 2, GRAVEL); fill(cx - 1, Math.min(o.a, my), cx + 1, Math.max(o.a + 2, my), GRAVEL); }
+      edge(o.dir, o.to, o.name, [o.a, o.a + 2]);
+    }
+    // What stands in a yard, from the map's own props: a stock pen, woodpiles, a hay rick, a trough, a chopping block.
+    const things: [string, number][] = [["stock-pen-0", 5], ["woodpile-0", 3], ["hay-rick-1", 3], ["trough-0", 3], ["chopping-block-0", 2], ["woodpile-1", 3], ["drying-rack-0", 3]];
+    for (const [frame, fw] of things) for (let tries = 0; tries < 30; tries++) {
+      const x = 3 + Math.floor(rng() * (w - 6 - fw)), y = 4 + Math.floor(rng() * (h - 7));
+      if (Array.from({ length: fw + 2 }, (_, k) => x - 1 + k).some((xx) => at(xx, y) !== LAWN || at(xx, y - 1) !== LAWN || at(xx, y + 1) !== LAWN) || L.decor.some((d) => Math.abs(d.x - x) < fw + 3 && Math.abs(d.y - y) < 4)) continue;
+      for (let k = 0; k < fw; k++) L.decor.push({ type: k ? "solid" : `atlas:study-propb-${frame}:${fw}`, x: x + k, y, solid: true, v: rng() });
+      break;
+    }
+    // A few trees left standing along the fence.
+    for (let i = 0; i < Math.round((w + h) / 14); i++) for (let tries = 0; tries < 20; tries++) {
+      const side = Math.floor(rng() * 4), x = side < 2 ? 3 + Math.floor(rng() * (w - 6)) : side === 2 ? 3 + Math.floor(rng() * 2) : w - 5 + Math.floor(rng() * 2), y = side === 0 ? 4 + Math.floor(rng() * 2) : side === 1 ? h - 3 : 5 + Math.floor(rng() * (h - 8));
+      if (L.decor.some((d) => Math.abs(d.x - x) < 6 && Math.abs(d.y - y) < 4) || ![-1, 0, 1].every((j) => [-1, 0, 1].every((k) => at(x + k, y + j) === LAWN))) continue;
+      L.decor.push({ type: `atlas:nature-${["broadleaf-mature", "broadleaf-young", "beech"][Math.floor(rng() * 3)]}:1`, x, y, solid: true, v: rng() });
+      break;
+    }
+    return;
+  }
   fill(1, 1, w - 2, 3, GRAVEL); fill(1, h - 4, w - 2, h - 2, GRAVEL); fill(1, 1, 3, h - 2, GRAVEL); fill(w - 4, 1, w - 2, h - 2, GRAVEL);
   fill(cx - 1, 1, cx + 1, h - 2, PAVING);
   fill(1, my - 1, w - 2, my + 1, PAVING);
@@ -466,11 +493,43 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       if (k % 3 === 0) post(standStaff, [{ x: x + fw, y: foot }, { x: x - 1, y: foot }]);
       k++, x += fw + 4;
     }
+  } else if (palace && style?.order === "timber") {
+    // A hall: the high seat in the middle of the long wall, benches and gear along it, two rows of posts,
+    // fires down the middle and boards to eat at either side of them. A store has only what is stored.
+    const hall = style.room === "hall", rude = !!style.rude, mid = bays.n >> 1;
+    const door = (k: number) => k < 0 || k >= bays.n || L.exits.some((e) => e.y === 0 && e.x === bays.b0 + 3 * k);
+    const seat = !hall ? -1 : !door(mid) ? mid : mid + 1;
+    const cycle = !hall ? ["pots", "rack", "pots", "loom", "quern", "pots"] : rude ? ["platform", "pots", "platform", "loom", "", "quern"] : ["platform", "rack", "platform", "", "loom", "pots"];
+    const turn = Math.floor(rng() * 6);
+    for (let k = 0; k < bays.n; k++) {
+      const x = bays.b0 + 3 * k;
+      if (door(k) || [0, 1, 2].some((i) => L.cells[3 * w + x + i] !== FLOOR || taken[3 * w + x + i])) continue;
+      // Tall gear goes where the wall is bare; a bench goes under anything hung up.
+      const want = k === seat ? "highseat" : cycle[(k + turn) % 6], type = (want === "loom" || want === "rack") && bayOf(k) !== "bare" ? "platform" : want;
+      if (!type) continue;
+      if (type === "pots" || type === "quern") { taken[3 * w + x + 1] = 1; L.decor.push({ type: `palace:${type}`, x: x + 1, y: 3, solid: true, v: rng() }); continue; }
+      block(x, 3, 3, 1);
+      L.decor.push({ type: `palace:${type}`, x, y: 3, solid: true, v: rng() });
+    }
+    const put = (type: string, x: number, y: number, fw = 1, fh = 1) => {
+      if (!free(x, y - fh + 1, fw, fh)) return false;
+      block(x, y - fh + 1, fw, fh);
+      L.decor.push({ type, x, y, solid: true, v: rng() });
+      return true;
+    };
+    const hy = (h >> 1) + 1;
+    if (hall) {
+      const fires = Math.max(1, Math.round(w / 26));
+      for (let i = 0; i < fires; i++) put("palace:hearth", Math.round((w * (i * 2 + 1)) / (fires * 2)) - 2, hy, 4, 2);
+      for (const y of [7, h - 5]) for (let k = 1; k < bays.n; k += 2) put("palace:post", bays.b0 + 3 * k, y);
+      for (const y of [hy - 5, hy + 4]) for (let x = 5; x + 3 < w - 4; x += 8) put(rude ? (rng() < 0.5 ? "palace:pots" : "palace:quern") : "palace:trestle", x, y, rude ? 1 : 3, 1);
+    } else for (const y of [8, h - 5]) for (let k = 1; k < bays.n; k += 3) put("palace:post", bays.b0 + 3 * k, y);
+    for (const x of [1, w - 2]) for (let y = 6; y < h - 3; y += 4) if (L.cells[y * w + x] === FLOOR && !taken[y * w + x]) { taken[y * w + x] = 1; L.decor.push({ type: "palace:pots", x, y, solid: true, v: rng() }); }
   } else if (palace) {
     // Against the back wall, bay by bay, by what the room is for; the room's own piece once.
     const cls = plan.stands?.tags[0] ?? "", room = style?.room ?? "gallery", own = !!cls && cls !== "state" && cls !== "bedchamber";
     const door = (k: number) => k < 0 || k >= bays.n || L.exits.some((e) => e.y === 0 && e.x === bays.b0 + 3 * k);
-    const cycle = { gallery: ["console", "bust", "console", "", "bench", ""], ballroom: ["bench", "", "console", "", "bench", "bust"], drawing: ["console", "sofa", "", "bust", "sofa", ""], dining: ["console", "", "bust", "console", "", ""], library: ["", "bust", "", "bench", "", ""], office: ["console", "", "sofa", "", "bust", ""] }[room];
+    const cycle = ({ gallery: ["console", "bust", "console", "", "bench", ""], ballroom: ["bench", "", "console", "", "bench", "bust"], drawing: ["console", "sofa", "", "bust", "sofa", ""], dining: ["console", "", "bust", "console", "", ""], library: ["", "bust", "", "bench", "", ""], office: ["console", "", "sofa", "", "bust", ""] } as Record<string, string[]>)[room] ?? [];
     const turn = Math.floor(rng() * 6), mid = bays.n >> 1;
     for (let k = 0; k < bays.n; k++) {
       const x = bays.b0 + 3 * k, built = bayOf(k) === "bookcase" || bayOf(k) === "hearth";

@@ -307,11 +307,63 @@ const whiteHousePeople: SewerPerson[] = [
   ], { women: 0, party: alone, ages: [18, 55], note: "The Marine Band has played at the house since 1801 and gave public concerts on the south grounds." }),
 ];
 
+const inBigHouse = household([-6000, -2001]);
+const bigHousePeople: SewerPerson[] = [
+  inBigHouse("nh-kin", "Kinsman", "farmer", "In from the fields", "explore", [
+    "We cut and carried every post of this house. Forty people for a whole summer.",
+    "When the barley failed two winters ago, we ate from his baskets. Now we owe him days at harvest.",
+    "He has more cattle than anyone on this river. That is why people listen to him.",
+  ], { weight: 3, women: 0.5, ages: [14, 60], basis: "inferred", note: "Inferred: big houses took communal labour to build; standing came from stored food, cattle and the debts of people fed in bad years." }),
+  inBigHouse("nh-herder", "Herder", "herder", "Minding the cattle", "explore", [
+    "The cattle come inside the fence at night. Men from up the valley took six last autumn.",
+    "A bull was killed for the feast when the house was finished. Its skull is the one on the wall.",
+  ], { women: 0.2, ages: [12, 55], basis: "inferred", note: "Inferred from cattle bone at feasting sites and palisaded enclosures of the period." }),
+  inBigHouse("nh-potter", "Potter", "potter", "Coiling a jar", "work", [
+    "Clay from the stream bank, crushed flint mixed in so it does not crack in the fire.",
+    "The marks round the rim are my mother's marks. Anyone who sees the pot knows whose it is.",
+  ], { women: 0.8, party: alone, ages: [16, 60], basis: "inferred", note: "Tempered, coil-built, bonfire-fired pottery with decoration particular to a community is documented; who made it is inferred." }),
+  inBigHouse("nh-elder", "Elder", "healer", "Sitting by the fire", "explore", [
+    "The green axe came to his father from the south, hand to hand. Nobody here has seen the mountain it is from.",
+    "My grandmother's people hunted here before anyone planted. We are the ones who came with the seed.",
+  ], { women: 0.5, ages: [45, 75], basis: "inferred", note: "Alpine jadeite axes were exchanged across western Europe; farming arrived with incoming groups. The speaker's account is invented." }),
+  inBigHouse("nh-child-minder", "Child minder", "child-minder", "Minding the small ones", "explore", [
+    "Six families sleep under this roof. Somebody has to count the children.",
+    "Keep them away from the hearth and out of the grain. That is the whole of it.",
+  ], { women: 0.8, ages: [12, 65], basis: "inferred", note: "Inferred: long houses are generally read as housing several related households." }),
+];
+
+const inHall = household([-2000, 1150]);
+const meadHallPeople: SewerPerson[] = [
+  inHall("mh-warrior", "Warrior of the household", "soldier", "At the benches", "explore", [
+    "I eat his bread and sleep on his bench. When he fights, I stand in front of him. That is the bargain.",
+    "He gave me this sword and an arm-ring. If I outlive him in a fight, I can never show my face here again.",
+    "We leave our spears at the door. Knives stay on, for the meat.",
+  ], { weight: 3, women: 0, ages: [16, 50], note: "The bond of lord and retainer, paid in food, gifts and a place in the hall, runs through the early medieval sources." }),
+  inHall("mh-guest", "Guest", "landowner", "Come to speak to the lord", "explore", [
+    "I hold land two days north. I came to ask for his daughter for my son, and I brought a horse.",
+    "You are seated by your rank. Watch who sits nearest him and you know how things stand.",
+  ], { women: 0.2, ages: [20, 65], note: "Seating by rank and gift exchange between households are well attested." }),
+  inHall("mh-servant", "Servant", "servant", "Carrying the ale", "explore", [
+    "The lady carries the cup to him first, then to each man in order. After that it is me and a jug.",
+    "Forty men eat here every night. The farms send food as rent, and it is never enough by spring.",
+  ], { women: 0.6, ages: [12, 55], note: "The lady's cup-bearing by rank appears in Beowulf; food rents supported a lord's household." }),
+  inHall("mh-weaver", "Weaver", "weaver", "At the loom", "work", [
+    "The stones keep the threads tight. You weave from the top down and beat the cloth upward.",
+    "The hangings behind his seat took two of us a winter.",
+  ], { women: 1, party: alone, ages: [14, 60], note: "The warp-weighted loom, with its clay or stone weights, was the standard loom of the period." }),
+  inHall("mh-poet", "Poet", "musician", "Tuning a lyre", "work", [
+    "I keep the names of his fathers, nine back, and what each one did. When I sing them, he pays me.",
+    "A lord nobody sings about is forgotten in two generations. He knows that.",
+  ], { women: 0, party: alone, ages: [20, 70], note: "Court poets who kept genealogies and praise were paid by their lords; lyres survive from several high-status graves." }),
+];
+
 export const fairPeople: readonly SewerPerson[] = [
   ...london,
   ...versaillesPeople,
   ...buckinghamPeople,
   ...whiteHousePeople,
+  ...bigHousePeople,
+  ...meadHallPeople,
   person("fair-visitor", "Visitor", "clerk", "Seeing the fair", "explore", [
     "We came for the Tower and haven't even got to it yet. Every turn there's something else.",
     "Thirty-two million tickets, they say. I believe it. Look at this crowd.",

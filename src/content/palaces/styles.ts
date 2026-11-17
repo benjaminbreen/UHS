@@ -3,9 +3,11 @@
 // overrides what differs: the Blue Room is the house style with blue cloth and blue walls.
 
 /** What fills a bay of the back wall, three cells wide, between two piers. */
-export type PalaceBay = "mirror" | "hanging" | "panel" | "window" | "bookcase" | "hearth";
+export type PalaceBay = "mirror" | "hanging" | "panel" | "window" | "bookcase" | "hearth"
+  // A timber hall's wall: bare, or hung with shields and spears, stretched hides, antlers, or a shelf of pots.
+  | "bare" | "shields" | "hides" | "antlers" | "shelf";
 /** What a room is for, which decides its furniture. */
-export type PalaceRoom = "gallery" | "ballroom" | "drawing" | "dining" | "library" | "office";
+export type PalaceRoom = "gallery" | "ballroom" | "drawing" | "dining" | "library" | "office" | "hall" | "store";
 
 export type PalaceStyle = {
   /** Panelling, light to dark: six tones. */
@@ -20,8 +22,14 @@ export type PalaceStyle = {
   cloth: readonly string[];
   /** The painted or papered wall inside a "panel" bay, when it is not the cloth. Four tones. */
   field?: readonly string[];
+  /** How the room is built: piers and a cornice, or posts carrying a roof you can see the underside of. */
+  order?: "classical" | "timber";
+  /** A timber wall's filling between the posts. */
+  walling?: "daub" | "plank";
+  /** Before metal and before the table: no shields, trestles or carved high seat. */
+  rude?: boolean;
   pier: "inset" | "fluted";
-  floor: "versailles" | "herringbone" | "marble" | "carpet";
+  floor: "versailles" | "herringbone" | "marble" | "carpet" | "earth";
   /** The floor's wood, as one colour the painter makes a close family from. */
   wood: string;
   /** The bays along the back wall, repeated from the left. */
@@ -63,4 +71,26 @@ export const victorianState: PalaceStyle = {
 export const federal: PalaceStyle = {
   wall: IVORY, trim: WHITE_PAINT, frame: MAHOGANY, stone: CARRARA, cloth: CRIMSON, field: BLUSH, pier: "fluted", floor: "carpet", wood: "#b47c46",
   bays: ["panel", "window", "panel"], room: "drawing", emblem: "wreath",
+};
+
+export const DAUB = ["#eadcc0", "#d8c6a4", "#c2ae8a", "#a48e6c", "#7e6a50", "#564634"];
+export const OAK_PLANK = ["#c8a47a", "#ae8a60", "#94724c", "#765838", "#584028", "#3c2a1a"];
+export const ROUGH_TIMBER = ["#b89a74", "#9a7c58", "#7c6044", "#5e4632", "#422f22"];
+export const DARK_OAK = ["#a07e58", "#806040", "#644830", "#4a3422", "#322216"];
+export const FIELDSTONE = ["#d0cac0", "#b0aaa0", "#8e8880", "#6c6660", "#4c4844"];
+export const MADDER = ["#e09078", "#c0624e", "#98443a", "#6e2e2a"];
+export const WOAD = ["#9ab4cc", "#6a8cae", "#4a6a8c", "#324a66"];
+export const UNDYED = ["#e8dcc4", "#cfc0a2", "#b0a082", "#8a7a62"];
+export const WELD = ["#eed890", "#d4b85c", "#ae9240", "#806a2c"];
+
+/** A big house of the Neolithic: wattle and daub between rough posts, beaten earth, hides and antlers, nothing of metal. */
+export const neolithicHall: PalaceStyle = {
+  order: "timber", walling: "daub", rude: true, wall: DAUB, trim: ROUGH_TIMBER, frame: ROUGH_TIMBER, stone: FIELDSTONE, cloth: UNDYED, pier: "inset", floor: "earth", wood: "#8c7254",
+  bays: ["bare", "hides", "bare", "antlers", "shelf"], room: "hall", emblem: "wreath",
+};
+
+/** A lord's hall of the Iron Age and the early Middle Ages: plank walls, carved posts, woven hangings, shields on the wall. */
+export const meadHall: PalaceStyle = {
+  order: "timber", walling: "plank", wall: OAK_PLANK, trim: DARK_OAK, frame: DARK_OAK, stone: FIELDSTONE, cloth: MADDER, pier: "inset", floor: "earth", wood: "#86694a",
+  bays: ["hanging", "shields", "bare", "hanging", "antlers"], room: "hall", emblem: "wreath",
 };

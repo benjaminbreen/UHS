@@ -52,12 +52,12 @@ function machine(kind: MachineKind, w: number, h: number, v: number): FairSprite
   return { r: m.frames[0], ox: m.ox, oy: m.oy, frames: m.frames, fps: m.fps };
 }
 
-export function paintFairThing(art: string, w: number, h: number, v: number, tint?: string): FairSprite | undefined {
+export function paintFairThing(art: string, w: number, h: number, v: number, tint?: string, labelled = true): FairSprite | undefined {
   const W = w * 16, H = h * 16, pad = 8;
   const make = (rise: number): FairSprite & { X: number; Y: number } => ({ r: new Raster(W + pad * 2, H + rise + pad + 4), ox: pad, oy: rise, X: pad, Y: rise });
   const t = tint ? ramp(tint) : undefined;
   const done = (s: FairSprite & { X: number; Y: number }, card = true) => {
-    if (card) placard(s.r, s.X + 1, s.Y + H - 2);
+    if (card && labelled) placard(s.r, s.X + 1, s.Y + H - 2);
     s.r.finish();
     return s;
   };
@@ -153,6 +153,16 @@ export function paintFairThing(art: string, w: number, h: number, v: number, tin
         "..0012123233", "..0112123233", "..0112223233", ".00112223333", ".01122233334",
       ].forEach((row, j) => [...row].forEach((ch, i) => { if (ch !== ".") r.set(cx - 6 + i, Y - 33 + j, m[+ch]); }));
       return done(s);
+    }
+    case "axe": {
+      // A polished stone axe head laid on a folded hide, on a block of wood.
+      const s = make(14), { r, X, Y } = s, m = t ?? STONE, cx = X + W / 2;
+      ground(s);
+      box(r, X + 2, Y - 2, W - 4, 5, 9, WOOD, DARKWOOD);
+      r.fill(X + 1, Y - 3, W - 2, 3, "#c8a880"); r.fill(X + 1, Y - 3, W - 2, 1, "#e0c49c"); r.fill(X + 1, Y, W - 2, 1, "#9a7c58");
+      for (let j = 0; j < 11; j++) { const hw = j < 2 ? 1 : j < 8 ? 2 + (j >> 2) : 4; r.fill(cx - hw, Y - 13 + j, hw * 2, 1, m[2]); r.set(cx - hw, Y - 13 + j, m[0]); r.set(cx - hw + 1, Y - 13 + j, m[1]); r.set(cx + hw - 1, Y - 13 + j, m[3]); }
+      r.fill(cx - 4, Y - 2, 8, 1, m[1]);
+      return done(s, false);
     }
     case "throne": {
       // A gilt armchair under a crimson canopy, on a carpeted dais of two steps.
