@@ -25,11 +25,30 @@ The owner keeps this list.
 
 ## Recent milestones
 
+- November 17: everyday rooms and period layouts for palaces. Bedchambers,
+  antechambers, guard rooms, chapels, kitchens, baths and closets in all
+  three orders, in rooms as small as 14 by 13 cells; private rooms open only
+  where their plan says. New generated kinds: a manor ("A baron in his manor,
+  1300"), a Baroque palace ("A courtier in a palace in Vienna, 1750") and a
+  nineteenth-century great house ("A guest at a country house in Kent,
+  1880").
+- November 17: the pillared hall. A fourth order with three kinds of column,
+  and a processional plan from gate to throne: "A scribe in Pharaoh's
+  palace", "A satrap's palace", "A wanax in his megaron".
+- November 17: column and screen. A fifth order for Chinese and Japanese
+  palaces, each with its own plan: "A eunuch in the Forbidden City", "A
+  retainer in the shogun's palace".
+- November 17: the last palace sets and their people. A king's castle, an
+  Islamic palace, a Mexica palace and an Inca's house; every palace kind
+  lists its household's posts, a prompt about a ruler or anyone of a court
+  starts inside ("A late medieval king", "An Aztec noble", "A palace guard
+  in Beijing, 1750"), and a quarter of city starts that name no work begin
+  at court. Not built: a door from the open map into a palace, doors closed
+  by rank, and palaces before the periods listed in ARCHITECTURE.md.
 - November 16: timber halls and the palace planner. "A Neolithic warlord",
   "A warlord in his mead hall" and "A chieftain in Gaul, 200 BC" start in a
   generated hall in its fenced yard; "Caesar at home" starts in a planned
-  Roman house. Still to build as sets: the pillared hall, column and screen,
-  and the Gothic and Islamic variants.
+  Roman house.
 - November 16: palaces as a styled kit. One painter and one furnisher, driven
   by a `PalaceStyle`, build Versailles, Buckingham Palace ("A courtier at
   Buckingham Palace") and the President's House ("A clerk at the White

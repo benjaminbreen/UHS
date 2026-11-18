@@ -163,6 +163,8 @@ describe("character recipes", () => {
     // atlas; both are checked so no portable object goes unpictured.
     for (const p of portableProps) {
       const wild = propDefs[p.id as keyof typeof propDefs].family === "boulder";
+      // Palace furniture is painted on demand (render/fair/palace.ts), not cut from an atlas.
+      if (propDefs[p.id as keyof typeof propDefs].family.startsWith("palace-")) continue;
       if (wild)
         expect(
           Object.keys(natureAtlas.frames).some((f) =>

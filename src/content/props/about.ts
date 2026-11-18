@@ -2,6 +2,8 @@ import { furnitureAbout } from "./furniture";
 import { containerAbout } from "./containers";
 import { equipmentAbout } from "./equipment";
 import { lotAbout } from "./lots";
+import { palaceAbout } from "./palace";
+import { exhibitAbout } from "./exhibits";
 
 /**
  * What each prop is, said plainly, for the focus card. One or two sentences
@@ -203,4 +205,6 @@ export const about: Record<string, string> = {
   ...containerAbout,
   ...equipmentAbout,
   ...lotAbout,
+  ...palaceAbout,
+  ...exhibitAbout,
 };

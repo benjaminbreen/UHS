@@ -1,5 +1,6 @@
 import { applySituation, situationSchema } from "../src/content/geography/situation";
 import { resolveSetting } from "../src/content/geography/resolve";
+import { fairById, venueFor } from "../src/content/fairs";
 import { createHash, randomUUID, timingSafeEqual } from "node:crypto";
 import { overLimit } from "./rate-limit";
 import { z } from "zod";
@@ -216,7 +217,13 @@ User description: ${input.prompt}`;
     const { figure, sex, hook, aim, kin, figures, tidings, moment } = chosen;
     const brief = startBriefSchema.parse(JSON.parse(JSON.stringify({ figure: figure || undefined, work: chosen.work, sex, hook, aim,
       kin: kin?.length ? kin : undefined, figures: figures?.length ? figures : undefined, tidings: tidings?.length ? tidings : undefined, moment })));
-    const below = chosen.vessel ? "ship" : chosen.below ?? ("error" in local ? undefined : local.setting.below);
+    const asked = chosen.vessel ? "ship" : chosen.below ?? ("error" in local ? undefined : local.setting.below);
+    // A palace start is worked out again for the place and year chosen here, and also from who the person turned out to be:
+    // a ruler, a courtier or anyone whose title names a post in a ruler's household begins inside it.
+    const named = "error" in local ? undefined : fairById(local.setting.venue ?? "");
+    const venue = asked && asked !== "fair" ? undefined : named && !named.generated ? named
+      : [q, chosen.role.toLowerCase(), chosen.work === "ruler" ? "king" : chosen.work === "courtier" ? "courtier" : ""].map((text) => text && venueFor(text, chosen.year, "earth-2", place.lon, place.lat)).find((v) => !!v) || undefined;
+    const below = venue ? "fair" : asked === "fair" ? undefined : asked;
     const setting = settingSchema.parse({
       ...settingFor(place, chosen.year),
       role: chosen.role,
@@ -224,6 +231,7 @@ User description: ${input.prompt}`;
       community: chosen.community,
       ...(Object.keys(brief).length ? { brief } : {}),
       ...(below ? { below } : {}),
+      ...(venue ? { venue: venue.id } : {}),
       ...(chosen.vessel ? { ship: chosen.vessel } : {}),
       ...(chosen.age ? { character: { age: chosen.age, hunger: 10, fatigue: 2 } } : {}),
     });
