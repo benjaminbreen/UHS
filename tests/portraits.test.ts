@@ -469,6 +469,20 @@ describe("portrait ornament", () => {
 });
 
 describe("portrait noses", () => {
+  it("keeps the underside of a low nose visible as the head turns", async () => {
+    const { trace } = await import("../src/render/portraits/sculpted");
+    const a = base({ head: "broad", face: { ...base().face!, nose: "flat", noseBridge: "low" } });
+    const brightness = (hex: string) => [1, 3, 5].reduce((sum, i) => sum + parseInt(hex.slice(i, i + 2), 16), 0);
+    for (const age of [10, 33]) for (const turn of [0, 1]) {
+      const pose = { turn, pitch: 0 };
+      const { m, f } = trace(a, age, pose);
+      const nose = m.nose, tip = 2.15 - nose.len - nose.droop * 0.35;
+      const [tx, ty] = f.projectHead([0, tip + 0.6, nose.tipZ + nose.tip * 0.72]);
+      const [x, y] = f.projectHead([0, tip - 2.15, nose.tipZ + nose.tip * 0.72 - 0.55]);
+      const r = paintSculpted(a, age, pose);
+      for (const dx of [0, 1]) expect(brightness(r.at(x + dx, y))).toBeLessThan(brightness(r.at(tx, ty)) * 0.84);
+    }
+  });
   it("draws all nine profiles, and differently", () => {
     const drawn = new Set(
       noseShapes.map((nose) =>
