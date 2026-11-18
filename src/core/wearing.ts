@@ -31,6 +31,9 @@ export function bareWearing(base: Wearing): Wearing {
     eyewear: "none",
     earrings: false,
     cloak: false,
+    shroud: undefined,
+    mask: undefined,
+    neckwear: undefined,
     mantle: false,
     belt: "none",
     shoulderCloth: false,
@@ -72,6 +75,7 @@ export function composeWearing(
       }
     }
   }
+  if (out.shroud) { out.headwear = "veil"; out.headColor = out.cloakColor; }
   // The body garment's cloth, carried out of the item id so the drawing and
   // the item's name describe the same thing.
   const body = worn.body ? parseCloth(worn.body) : undefined;
@@ -86,6 +90,7 @@ export function wornFromWearing(
   w: Wearing,
   cloth?: Cloth,
   fibres?: Partial<Record<WearSlot, Material>>,
+  adornment?: CharacterAppearance["adornment"],
 ): Worn {
   // Cloth rides in the item id, so the inventory stays a plain count of ids
   // and nothing in the save format has to change to carry it.
@@ -102,14 +107,19 @@ export function wornFromWearing(
   };
   const worn: Worn = {};
   if (w.garment !== "none") worn.body = of(`garment-${w.garment}`, w.color);
-  if (w.headwear !== "none") worn.head = of(`headwear-${w.headwear}`, w.headColor ?? w.lowerColor, "head");
-  if (w.cloak) worn.over = of("cloak", w.cloakColor, "over");
+  if (!w.shroud && w.headwear !== "none") worn.head = of(`headwear-${w.headwear}`, w.headColor ?? w.lowerColor, "head");
+  if (w.shroud) worn.over = dyeAt(w.cloakColor) ? of("street-wrap", w.cloakColor, "over") : "street-wrap";
+  else if (w.cloak) worn.over = of("cloak", w.cloakColor, "over");
   else if (w.mantle) worn.over = of("mantle", w.cloakColor, "over");
   else if (w.shoulderCloth) worn.over = of("shoulder-cloth", w.cloakColor, "over");
   if (w.belt && w.belt !== "none") worn.belt = of(`belt-${w.belt}`, w.trim);
   if (w.necklace) worn.neck = w.neckStyle === "chain" ? "chain" : "necklace";
   if (w.eyewear && w.eyewear !== "none") worn.eyes = w.eyewear;
-  if (w.earrings) worn.ears = "earrings";
+  if (w.mask && w.mask !== "none") worn.face = `mask-${w.mask}`;
+  if (w.neckwear && w.neckwear !== "none") worn.neckwear = `neckwear-${w.neckwear}`;
+  if (adornment?.ears && adornment.ears !== "none") worn.ears = `ear-${adornment.ears}`;
+  else if (w.earrings) worn.ears = "earrings";
+  if (adornment?.nose && adornment.nose !== "none") worn.nose = `nose-${adornment.nose}`;
   if (w.leggings && w.leggings !== "none") worn.legs = of(`leggings-${w.leggings}`, w.lowerColor, "legs");
   if (w.footwear && w.footwear !== "none")
     worn.feet = of(`footwear-${w.footwear}`, w.lowerColor);

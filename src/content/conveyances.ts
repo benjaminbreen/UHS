@@ -86,7 +86,7 @@ export const conveyances: readonly Conveyance[] = [
     label: "Farm cart",
     doing: "Bringing the cart in",
     from: 1100,
-    to: 1800,
+    to: 1925,
     regions: [EUROPE],
     speed: 0.1,
     gait: "walk",

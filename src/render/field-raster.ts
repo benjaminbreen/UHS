@@ -50,9 +50,9 @@ export const tilled = Object.fromEntries(
 ) as Record<Ecology, Rgb[]>;
 
 const paddy = {
-  water: [54, 84, 90],
-  deep: [42, 66, 74],
-  sky: [138, 170, 178],
+  water: [105, 146, 141],
+  deep: [69, 112, 108],
+  sky: [153, 182, 171],
   mud: [88, 78, 58],
 };
 const flood = { water: [150, 128, 92], deep: [128, 108, 78], sky: [198, 182, 146], mud: [112, 96, 70] };
@@ -246,39 +246,24 @@ export function rasterFieldTile(
         const trough = t < 0.3;
         const top = t >= 0.85;
         const ink = plant(along, row, dc);
-        // One value per 3 px of row, so variation is along the row, not
-        // pixel noise.
-        const rowHash = hash(Math.floor(along / 3), row, 831);
         if (wet) {
-          // Still water between the bunds, shaded a row under the north
-          // and west bund and glinting along the far side; the crop stands
-          // in rows.
-          const bx = mod(wx, 16),
-            by = mod(wy, 16);
-          const shadeRow = by <= 1 || bx <= 1;
-          const farLip = by === 14 || bx === 14;
           const pool = f.flood ? flood : paddy;
-          rgb = shadeRow ? pool.deep : pool.water;
-          if (farLip && hash(Math.floor((axis === "x" ? wx : wy) / 5), 0, 837) > 0.5)
-            rgb = pool.sky;
-          if (
-            mod(along, 8) < 2 &&
-            hash(Math.floor(along / 8), row, 835) > 0.9 &&
-            !top
-          )
-            rgb = pool.sky;
-          const ridge = t >= 0.6;
-          if (f.flood) {
-            // An open sheet over the basin: nothing stands above it.
-          } else if (stage === "bare" || stage === "sown") {
-            if (ridge) rgb = shade(paddy.mud, wash + (top ? 4 : -4));
-          } else if (stage === "green") {
-            if (ridge) rgb = mix(paddy.mud, leaf, top ? 0.5 : 0.3);
-          } else if (stage === "ripe") {
-            if (top) rgb = shade(hue, rowHash > 0.6 ? 14 : 4);
-            else if (ridge) rgb = shade(hue, -18);
-          } else if (ridge) rgb = shade(tan, -6);
-          if (ink && !f.flood) rgb = leafRamp[ink - 1];
+          const bank = Math.min(f.edges & 1 ? py : 32, f.edges & 8 ? px : 32);
+          const reflection = noise(wx * 0.55, wy * 1.45, 35, 833);
+          rgb = bank < 2 ? pool.deep : reflection < 0.36 ? mix(pool.water, pool.deep, 0.32)
+            : reflection > 0.64 ? mix(pool.water, pool.sky, 0.42) : pool.water;
+          const ripple = mod(wy + Math.floor(noise(wx, wy, 48, 831) * 3), 11) === 0 &&
+            hash(Math.floor(wx / 6), wy, 835) > 0.85;
+          rgb = ripple ? mix(rgb, pool.sky, 0.7) : shade(rgb, wash);
+          if (!f.flood && stage !== "bare") {
+            const tuft = mod(along + (row & 1) * 5, PLANT_PITCH);
+            if (stage === "ripe") {
+              rgb = mix(rgb, soil[2], 0.45);
+              if (t > 0.68 && tuft < 7) rgb = shade(hue, tuft < 2 ? 5 : -22);
+            } else if (stage === "green" && top && tuft < 6) rgb = leaf;
+            else if (stage === "stubble" && top && tuft < 3) rgb = tan;
+            if (ink) rgb = leafRamp[ink - 1];
+          }
         } else {
           rgb = soilAt(t, wx, wy, wash);
           if (stage === "sown") {

@@ -800,6 +800,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     }
   };
   useEffect(() => {
+    let fieldHold: string | undefined, nextStroke = 0;
     const listener = (e: KeyboardEvent) => {
       if (runtime.timeTravelLocked || runtime.workInProgress) return;
       if ((e.metaKey || e.ctrlKey) && e.code === "Digit3") {
@@ -844,11 +845,23 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       )
         return;
       if (e.code === "Space") e.preventDefault();
+      if (e.code === "KeyF" && e.repeat && fieldHold && performance.now() >= nextStroke) {
+        const action = runtime.fieldVerb()?.command;
+        if (action?.action === fieldHold) {
+          runtime.command(action);
+          nextStroke = performance.now() + 330;
+        }
+        return;
+      }
       if ((e.code === "KeyE" || e.code === "KeyF") && !e.repeat) {
         e.preventDefault();
         if (e.code === "KeyE") runVerb("alternate");
         else if (!["bow", "sling"].includes(runtime.engine.state.player.heldItem ?? ""))
-          runVerb("primary", true);
+          {
+            const action = runVerb("primary", true)?.command?.action;
+            fieldHold = action && ["sow-strip", "reap", "harvest"].includes(action) ? action : undefined;
+            nextStroke = performance.now() + 330;
+          }
       }
       if (e.key === "=" || e.key === "+") runtime.stepZoom(1);
       if (e.key === "-" || e.key === "_") runtime.stepZoom(-1);
@@ -873,10 +886,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       if (e.key.toLowerCase() === "n") setModal("notebook");
     };
     const release = (e: KeyboardEvent) => {
-      if (e.code === "KeyF") runtime.releaseCharge();
+      if (e.code === "KeyF") { fieldHold = undefined; runtime.releaseCharge(); }
     };
     // A keyup lost to another window would leave the wind-up running.
     const cancel = () => {
+      fieldHold = undefined;
       runtime.charge = undefined;
       runtime.releaseCharge();
     };

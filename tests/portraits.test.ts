@@ -86,6 +86,20 @@ it("changes hair silhouettes while keeping facial proportions and eye colour fix
   }
 });
 
+it("keeps a shaved face recognisable and a veiled speaking mouth covered", async () => {
+  const { trace } = await import("../src/render/portraits/sculpted");
+  const a = base();
+  const bearded = trace({ ...a, beard: "long" }, 30, { turn: 0, pitch: 0 }).m;
+  const shaven = trace(a, 30, { turn: 0, pitch: 0 }).m;
+  expect([bearded.seed, bearded.iris, bearded.headW]).toEqual([shaven.seed, shaven.iris, shaven.headW]);
+  const wrapped = { ...a, wearing: { ...a.wearing, over: "shroud", headwear: "veil", mask: "ruband" } } as const;
+  for (const turn of [0, 1]) {
+    const covered = paintSculpted(wrapped, 30, { turn, mouth: 0 }).color;
+    expect(paintSculpted(wrapped, 30, { turn, mouth: 2 }).color).toEqual(covered);
+    expect(paintSculpted({ ...wrapped, wearing: { ...wrapped.wearing, mask: "none" } }, 30, { turn }).color).not.toEqual(covered);
+  }
+});
+
 it("leaves visible forehead above the brows for cropped hair and bobs", async () => {
   const { trace } = await import("../src/render/portraits/sculpted");
   const a = base();
@@ -311,6 +325,20 @@ it("shows worn earrings even when no adornment style was recorded", async () => 
     expect(paintSculpted({ ...a, adornment: { nose } }).color).not.toEqual(paintSculpted(a).color);
 });
 
+it("keeps the fitted coat over its waistcoat and tucks the tie behind the waistcoat", () => {
+  const a = base();
+  const wearing = { ...a.wearing, garment: "coat", cut: "fitted", front: "open", motif: "plain", neckwear: "necktie" } as const;
+  const shirt = paintSculpted({ ...a, wearing: { ...wearing, waistcoat: "none" } });
+  const vested = paintSculpted({ ...a, wearing: { ...wearing, waistcoat: "plain" } });
+  const tiePixels = (r: typeof shirt, y: number) => r.mat.slice(y * r.w, (y + 1) * r.w).filter(m => m === MAT.trim).length;
+  expect(tiePixels(vested, 58)).toBeGreaterThan(0);
+  expect(tiePixels(vested, 75)).toBeLessThan(tiePixels(shirt, 75));
+  for (const y of [64, 70, 76]) {
+    const side = y * shirt.w + 4;
+    expect(vested.mat.slice(side, side + 12)).toEqual(shirt.mat.slice(side, side + 12));
+  }
+});
+
 it("keeps necklaces visible over tailored garments and cheek paint above blush", async () => {
   const { paintSculpted } = await import("../src/render/portraits/sculpted");
   for (const garment of ["shirt", "coat"] as const) {
@@ -408,7 +436,7 @@ describe("portrait ornament", () => {
     const pools = {
       ears: ["spool"] as const,
       nose: ["ring"] as const,
-      marks: ["cheek-lines"] as const,
+      marks: [{ shape: "cheek-lines", style: "scar" }] as const,
     };
     const child = generateAdornment("seed", 0, 6, "female", pools);
     expect(child.marks).toBe("none");
@@ -432,7 +460,7 @@ describe("portrait ornament", () => {
     for (const kit of appearanceKits) {
       const pools = kit.adornment ?? {};
       for (const ears of pools.ears ?? []) expect(earOrnaments).toContain(ears);
-      for (const marks of pools.marks ?? []) expect(faceMarks).toContain(marks);
+      for (const marks of pools.marks ?? []) expect(faceMarks).toContain(marks === "none" ? marks : marks.shape);
       // A pool with no "none" in it puts an ornament on every single person.
       if (pools.marks) expect(pools.marks).toContain("none");
       if (pools.ears) expect(pools.ears).toContain("none");

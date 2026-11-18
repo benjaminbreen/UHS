@@ -1,3 +1,4 @@
+import { vehicleAt } from "../world/v3/conveyances";
 import type { TimeTravel } from "../core/time/travel";
 import { launchers, type FaunaTier } from "../core/combat";
 import { gameAudio } from "../audio/director";
@@ -35,6 +36,7 @@ import {
   type Sex,
 } from "../content/characters/wardrobes";
 import { composeWearing, wornFromWearing } from "../core/wearing";
+import { festivalOf } from "../core/agenda";
 import { restingPortraitPoseOf } from "../core/persona";
 import { statsOf } from "../core/stats";
 import { smokingHabit, supplyFor } from "../content/characters/smoking";
@@ -241,6 +243,7 @@ export function createSession(
           appearance.wearing,
           clothFor(wearer, pack, undefined, appearance.wearing.color),
           fibresFor(wearer, pack),
+          appearance.adornment,
         );
       }
     }
@@ -334,6 +337,57 @@ export const JUMP_CHARGE_MS = 240;
 export const jumpMs = (distance: number) => 300 + 50 * distance;
 // Whole steps only: at 1.5x some art pixels draw 1 screen pixel wide and others 2.
 export const ZOOM_STEPS = [1, 2, 3, 4, 6];
+type VisibleActor = Pick<Actor, "id" | "sprite" | "appearance" | "age" | "worn"> &
+      Partial<Pick<Actor, "role" | "origin" | "health" | "hunger" | "fatigue" | "injury" | "scars" | "householdId" | "stats" | "pos">>;
+
+/** What the actor's life has done to their body, in steps coarse enough to key a portrait. */
+function bodyRecord(engine: Engine, actor: VisibleActor): BodyRecord | undefined {
+  const r: BodyRecord = {};
+  const fortune = actor.householdId
+    ? engine.state.households?.find((h) => h.id === actor.householdId)?.fortune
+    : undefined;
+  if ((actor.hunger ?? 0) > 70) r.gaunt = fortune !== undefined && fortune < 0.25 ? 2 : 1;
+  if ((actor.fatigue ?? 0) > 65) r.tired = true;
+  if ((actor.health ?? 100) < 40) r.pale = true;
+  const clock = engine.state.clock;
+  if (actor.pos?.space === "outside" && clock % 86400 >= 8 * 3600) {
+    const powders = festivalOf(engine.world.pack.setting, clock)?.facePowders;
+    if (powders?.length) {
+      const roll = random(engine.state.manifest.seed, "festival-powder", actor.id, Math.floor(clock / 86400));
+      if (roll < 0.7) r.powder = powders[Math.floor(roll / 0.7 * powders.length)];
+    }
+  }
+  const ill = (engine.state.ailments ?? [])
+    .filter((x) => x.who === actor.id && severity(x, clock) >= 0.3)
+    .sort((a, b) => severity(b, clock) - severity(a, clock))[0];
+  const look = ill && ailmentDef(ill.id).look;
+  if (look) r.sick = look;
+  if (actor.injury && actor.injury.until > engine.state.clock) r.injury = actor.injury.name;
+  if (actor.scars?.length) r.scars = actor.scars;
+  const kit = livelihoodOf(engine.world.pack, actor as Actor);
+  if (kit) {
+    const place = kit.workplace ?? workplaceFor(kit.activity);
+    if (["wild", "water", "field", "pasture", "carrying", "extraction"].includes(place))
+      r.sun = (actor.age ?? 30) > 35 ? 2 : 1;
+    if (place === "extraction" || /smith|charcoal|coll|forge|miner|kiln|lime|found/.test(kit.id)) r.soot = true;
+  }
+  return Object.keys(r).length ? r : undefined;
+}
+export function resolvedAppearance(engine: Engine, actor: VisibleActor, drawn: CharacterAppearance): CharacterAppearance {
+  const record = bodyRecord(engine, actor);
+  return {
+    ...drawn,
+    ...(record ? { record } : {}),
+    restingPose: restingPortraitPoseOf(statsOf(engine.state.manifest.seed, actor)),
+    adornment: actor.worn ? {
+      ...drawn.adornment,
+      ears: (actor.worn.ears && engine.item(actor.worn.ears)?.wear?.ornament?.ears) || "none",
+      nose: (actor.worn.nose && engine.item(actor.worn.nose)?.wear?.ornament?.nose) || "none",
+    } : drawn.adornment,
+    wearing: actor.worn ? composeWearing(drawn.wearing, actor.worn, id => engine.item(id)) : drawn.wearing,
+  };
+}
+
 export class Runtime {
   timeTravel?: TimeTravel;
   timeTravelLocked = false;
@@ -403,25 +457,13 @@ export class Runtime {
       };
     return this.cachedPalette.value;
   }
-  appearanceFor(
-    actor: Pick<Actor, "id" | "sprite" | "appearance" | "age" | "worn"> &
-      Partial<Pick<Actor, "role" | "origin" | "health" | "hunger" | "fatigue" | "injury" | "scars" | "householdId" | "stats">>,
-  ): CharacterAppearance {
-    const drawn = actor.appearance
-      ? actorAppearance(actor)
-      : this.defaultAppearance(actor);
-    const record = this.bodyRecord(actor);
-    const base = { ...drawn, ...(record ? { record } : {}), restingPose: restingPortraitPoseOf(statsOf(this.engine.state.manifest.seed, actor)) };
+  appearanceFor(actor: VisibleActor): CharacterAppearance {
+    const drawn = actor.appearance ? actorAppearance(actor) : this.defaultAppearance(actor);
+    const base = resolvedAppearance(this.engine, actor, drawn);
     const setting = this.engine.world.pack.setting;
     const carry = infantCarry(setting?.culture, setting?.year);
     if (carry && this.carriesInfant(actor)) base.wearing = { ...base.wearing, infant: true, infantMood: this.infantMood(actor.id), infantCarry: carry };
-    if (!actor.worn) return base;
-    return {
-      ...base,
-      wearing: composeWearing(base.wearing, actor.worn, (id) =>
-        this.engine.item(id),
-      ),
-    };
+    return base;
   }
   private infantCarriers = new Map<string, { key: string; ids: string[] }>();
   /** The player's baby shows its mood; other people's doze and wake by the half hour. */
@@ -442,34 +484,6 @@ export class Runtime {
       this.infantCarriers.set(h.id, (hit = { key, ids: carriers(s, h, (id) => people.find((p) => p.id === id)) }));
     }
     return hit.ids.includes(actor.id);
-  }
-  /** What the actor's life has done to their body, in steps coarse enough to key a portrait. */
-  private bodyRecord(
-    actor: Partial<Pick<Actor, "id" | "origin" | "age" | "health" | "hunger" | "fatigue" | "injury" | "scars" | "householdId">>,
-  ): BodyRecord | undefined {
-    const r: BodyRecord = {};
-    const fortune = actor.householdId
-      ? this.engine.state.households?.find((h) => h.id === actor.householdId)?.fortune
-      : undefined;
-    if ((actor.hunger ?? 0) > 70) r.gaunt = fortune !== undefined && fortune < 0.25 ? 2 : 1;
-    if ((actor.fatigue ?? 0) > 65) r.tired = true;
-    if ((actor.health ?? 100) < 40) r.pale = true;
-    const clock = this.engine.state.clock;
-    const ill = actor.id === undefined ? undefined : (this.engine.state.ailments ?? [])
-      .filter((x) => x.who === actor.id && severity(x, clock) >= 0.3)
-      .sort((a, b) => severity(b, clock) - severity(a, clock))[0];
-    const look = ill && ailmentDef(ill.id).look;
-    if (look) r.sick = look;
-    if (actor.injury && actor.injury.until > this.engine.state.clock) r.injury = actor.injury.name;
-    if (actor.scars?.length) r.scars = actor.scars;
-    const kit = livelihoodOf(this.engine.world.pack, actor as Actor);
-    if (kit) {
-      const place = kit.workplace ?? workplaceFor(kit.activity);
-      if (["wild", "water", "field", "pasture", "carrying", "extraction"].includes(place))
-        r.sun = (actor.age ?? 30) > 35 ? 2 : 1;
-      if (place === "extraction" || /smith|charcoal|coll|forge|miner|kiln|lime|found/.test(kit.id)) r.soot = true;
-    }
-    return Object.keys(r).length ? r : undefined;
   }
   private defaultAppearance(
     actor: Pick<Actor, "id" | "sprite" | "appearance" | "age"> &
@@ -556,6 +570,15 @@ export class Runtime {
   private recordToolEffect(command: PlayerCommand, previousPlant?: string) {
     if (command.type !== "interact") return;
     const action = command.action;
+    if (action === "sow-strip" || action === "harvest") {
+      const cell = /^(?:decor|crop)-(-?\d+)-(-?\d+)$/.exec(command.target);
+      if (cell) {
+        const p = this.engine.state.player;
+        this.toolEffect = { serial: ++this.characterSerial, kind: action === "sow-strip" ? "plant" : "gather",
+          at: { x: +cell[1], y: +cell[2] }, from: p.pos, facing: p.direction, contactMs: 150 };
+      }
+      return;
+    }
     if (
       action !== "chop" &&
       action !== "dig" &&
@@ -607,7 +630,7 @@ export class Runtime {
           : poseContactMs(this.toolPose(action as ToolAction)),
       from: { x: p.x, y: p.y },
       facing: this.engine.state.player.direction,
-      sprite: previousPlant,
+      sprite: action === "reap" && this.engine.world.topography?.(at.x, at.y)?.field ? "grain" : previousPlant,
       ...(action === "mine" && this.engine.oreAt(at) ? { ore: true } : {}),
     };
   }
@@ -621,7 +644,7 @@ export class Runtime {
     if (!allowedHeights(actor.age).includes(parsed.height))
       throw Error("That height is not available for this character’s age.");
     actor.appearance = parsed;
-    actor.worn = wornFromWearing(parsed.wearing);
+    actor.worn = wornFromWearing(parsed.wearing, undefined, undefined, parsed.adornment);
     this.onChange?.();
     this.emit();
   }
@@ -801,6 +824,7 @@ export class Runtime {
       : undefined;
     const pose: CharacterPose | undefined = (
       {
+        "sow-strip": "stoop",
         pickup: "pickup",
         drop: "drop",
         climb: "climb",
@@ -1777,6 +1801,47 @@ export class Runtime {
     const m = Math.round(((departs % DAY) + DAY) % DAY / 60);
     return { departs, label: `${Math.floor(m / 60) % 24}.${String(m % 60).padStart(2, "0")}` };
   }
+  fieldVerb(aim?: { x: number; y: number }): Verb | undefined {
+    const e = this.engine, p = e.state.player;
+    if (p.pos.space !== "outside" || p.perch || p.afloat || e.fighting()) return;
+    const verb = (action: NonNullable<Verb["command"]>["action"], target: string, label: string): Verb =>
+      ({ kind: "use", label, command: { type: "interact", target, action } });
+    if (p.guidingPlough) return aim ? undefined : verb("guide-plough", p.guidingPlough, "Hand back the handles");
+    const driver = e.state.actors.find(a => {
+      if (!a.mount || a.mount.place !== 0) return false;
+      const v = e.world.vehicle?.(a.mount.vehicle);
+      if (!v?.team) return false;
+      const at = a.plough ? v.path[a.plough.step] : vehicleAt(v, e.cartClock(v.id, e.state.clock));
+      return Math.hypot(at.x - p.pos.x, at.y - p.pos.y) <= 2.5 && (!aim || Math.round(at.x) === aim.x && Math.round(at.y) === aim.y);
+    });
+    if (driver && !p.held && !p.heldItem) {
+      const choices = e.inspect(driver.id)?.affordances;
+      const actions = p.drivingCart ? ["load-cart", "unload-cart", "halt-cart", "walk-on"] : ["guide-plough", "take-reins"];
+      const offer = actions.map(action => choices?.find(o => o.enabled && o.command.type === "interact" && o.command.action === action)).find(Boolean);
+      if (offer?.command.type === "interact") return verb(offer.command.action, driver.id, offer.label);
+    }
+    if (p.drivingCart || p.heldItem || (p.held && e.heldTool() !== "scythe")) return;
+    const ahead = e.facingCell();
+    const cells = aim ? [aim] : [ahead, p.pos, { x: p.pos.x - 1, y: p.pos.y }, { x: p.pos.x + 1, y: p.pos.y },
+      { x: p.pos.x, y: p.pos.y - 1 }, { x: p.pos.x, y: p.pos.y + 1 }];
+    for (const q of cells) {
+      if (Math.hypot(p.pos.x - q.x, p.pos.y - q.y) > 1.5) continue;
+      const key = q.x + "," + q.y;
+      if (!p.held && e.state.tiles?.[key]?.puddled) {
+        const target = `decor-${q.x}-${q.y}`;
+        if (e.inspect(target)?.affordances.some(a => a.enabled && a.command.type === "interact" && a.command.action === "sow-strip"))
+          return verb("sow-strip", target, "Plant rice seedlings");
+      }
+      const field = e.world.topography?.(q.x, q.y)?.field;
+      if (field?.stage !== "ripe") continue;
+      const target = `crop-${q.x}-${q.y}`, crop = e.inspect(target);
+      if (!crop || crop.claim === "owned" || !crop.affordances.some(a => a.enabled && a.command.type === "interact" && a.command.action === "harvest")) continue;
+      if (p.held) {
+        const tile = Engine.tileTarget(q.x, q.y);
+        if (!e.toolProblem("reap", tile)) return verb("reap", tile, `Reap ${crop.name.toLowerCase()}`);
+      } else return verb("harvest", target, `Gather ${crop.name.toLowerCase()}`);
+    }
+  }
   verbs(): { primary?: Verb; alternate?: Verb } {
     const c = this.propControls();
     const p = this.engine.state.player;
@@ -1847,6 +1912,7 @@ export class Runtime {
       ...this.engine.state.objects.map((o) => ({ type: "interact" as const, target: o.id, action: "fill" as const })),
     ].find((command) => !this.engine.validate(command));
     const hive = this.engine.hiveInReach();
+    const farm = this.fieldVerb();
     if (!this.engine.validate(douse))
       primary = { kind: "strike", label: "Douse the fire", command: douse };
     else if (hive)
@@ -1865,6 +1931,7 @@ export class Runtime {
       primary = { kind: "shoot", label: this.engine.ammo() ? "Whirl sling" : "No stones" };
     else if (train) primary = { kind: "board", label: `Board the ${train.label} train` };
     // At the day's place F does the day's work; whoever is there is still on Enter.
+    else if (farm) primary = farm;
     else if (here) primary = { kind: "work", label: here.label, command: here.command };
     else if (launch?.command.type === "interact") primary = { kind: "use", label: launch.label, command: launch.command };
     else if (speaker && !fighting)
@@ -2036,7 +2103,7 @@ export class Runtime {
       return verb;
     }
     if (verb.command) {
-      if (verb.kind !== "work") this.selected = verb.command.target;
+      if (verb.kind !== "work" && verb.kind !== "use") this.selected = verb.command.target;
       this.command(verb.command);
       return verb;
     }

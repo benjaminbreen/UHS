@@ -13,6 +13,9 @@ export type TileEdit = {
   /** Low vegetation taken off with the scythe. */
   cut?: boolean;
   dug?: boolean;
+  puddled?: boolean;
+  sowing?: { crop: import("../content/agriculture/types").CropId; owner: string; season: number };
+  furrow?: "x" | "y";
   /** Dug by an animal, not a person: the clock it was, since it grows over. */
   scraped?: number;
   /** The clock the standing crop here was picked: picked for the rest of
@@ -64,7 +67,8 @@ export function editedDecoration(
 ): Decoration | undefined {
   if (!edit) return base;
   const at = { x, y, id: `decor-${x}-${y}`, solid: false };
-  if (edit.dug) return { ...at, sprite: FURROW_SPRITE };
+  if (edit.puddled && edit.furrow) return { ...at, sprite: `vv-puddled-${edit.furrow}` };
+  if (edit.dug) return { ...at, sprite: edit.furrow ? `vv-furrow-${edit.furrow}` : FURROW_SPRITE };
   if (edit.stage === "clear") return undefined;
   if (edit.stage === "logs") return { ...at, sprite: LOGS_SPRITE };
   if (edit.stage === "stump") return { ...at, sprite: STUMP_SPRITE };
@@ -79,6 +83,10 @@ const workedNames: Record<string, string> = {
   [STUMP_SPRITE]: "stump",
   [STEMS_SPRITE]: "cut stems",
   [THORNS_SPRITE]: "cut stems",
+  "vv-puddled-x": "puddled rice bed",
+  "vv-puddled-y": "puddled rice bed",
+  "vv-furrow-x": "ploughed earth",
+  "vv-furrow-y": "ploughed earth",
   [FURROW_SPRITE]: "turned earth",
   [STUBBLE_SPRITE]: "cut stubble",
 };

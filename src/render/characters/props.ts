@@ -3,6 +3,7 @@ import natureAtlas from "../generated/nature-atlas.json" with { type: "json" };
 import { propDefs } from "../../content/props/catalog";
 import propsB from "../generated/props-b.json" with { type: "json" };
 import { artStamp } from "../scene-assets";
+import { palacePropPicture } from "../fair/palace";
 const redrawnFamilies = new Set<string>(propsB);
 export type CarriedArt = {
   sprite: string;
@@ -21,6 +22,13 @@ class CroppedArt extends Map<string, CarriedArt> {
   get(sprite: string) {
     const known = super.get(sprite);
     if (known) return known;
+    if (sprite.startsWith("made:palace:")) {
+      const picture = palacePropPicture(sprite);
+      if (!picture) return undefined;
+      const art = crop(picture.canvas(), sprite, { x: 0, y: 0, w: picture.w, h: picture.h });
+      if (art) this.set(sprite, art);
+      return art;
+    }
     const native = sprite in natureAtlas.frames;
     const frame = (native ? natureAtlas.frames : atlas.frames) as Record<string,{frame:{x:number;y:number;w:number;h:number}}>;
     if (!frame[sprite]) return undefined;
@@ -29,7 +37,7 @@ class CroppedArt extends Map<string, CarriedArt> {
     return art;
   }
 }
-function crop(image: HTMLImageElement, sprite: string, {x,y,w,h}: {x:number;y:number;w:number;h:number}): CarriedArt | undefined {
+function crop(image: CanvasImageSource, sprite: string, {x,y,w,h}: {x:number;y:number;w:number;h:number}): CarriedArt | undefined {
   const c = document.createElement("canvas");
   c.width = w;
   c.height = h;
@@ -55,7 +63,7 @@ function crop(image: HTMLImageElement, sprite: string, {x,y,w,h}: {x:number;y:nu
   out
     .getContext("2d")!
     .drawImage(c, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
-  const kind = sprite.includes("stick")
+  const kind = !sprite.startsWith("made:palace:") && sprite.includes("stick")
     ? "stick"
     : /-(pitchfork|rake|scythe|shovel|spear)-/.test(sprite)
       ? "haft"
@@ -90,7 +98,7 @@ export const portableProps = Object.entries(propDefs)
   .map(([id, d]) => ({
     id,
     name: d.name,
-    sprite: d.sprite ?? `study-prop${redrawnFamilies.has(d.family) ? "b" : ""}-${d.family}-0`,
+    sprite: d.family.startsWith("palace-") ? `made:palace:versailles:gallery:${d.family.slice(7)}:0` : d.sprite ?? `study-prop${redrawnFamilies.has(d.family) ? "b" : ""}-${d.family}-0`,
   }));
 
 /** An inventory item in the hand, drawn from the icon art rather than the

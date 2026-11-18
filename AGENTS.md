@@ -105,6 +105,8 @@ have. `python3 scripts/art/oblique_audit.py` needs none of them and works
 anywhere. If an art command dies on a missing module, that is the cause; say so
 rather than working around it.
 
+For a major visual or gameplay change, include an inspected screenshot or contact sheet in the reply. Show the changed activity at play scale and, when regional variation matters, show representative settings. Label any offline render as such.
+
 Review screenshots under `artifacts/` are local-only and not in the repo. Docs
 cite them as a record of past review; a missing one is expected, not a problem.
 Regenerate what you need rather than hunting for it.

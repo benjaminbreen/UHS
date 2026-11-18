@@ -13,6 +13,7 @@ import {
   headwear,
 } from "../src/core/character";
 import { characterAppearanceSchema } from "../src/runtime/schema";
+import { palacePropPicture } from "../src/render/fair/palace";
 import { portableProps } from "../src/render/characters/props";
 import atlas from "../public/props/atlas.json" with { type: "json" };
 import natureAtlas from "../public/nature/atlas.json" with { type: "json" };
@@ -171,6 +172,8 @@ describe("character recipes", () => {
             f.startsWith("nature-boulder-"),
           ),
         ).toBe(true);
+      else if (p.sprite.startsWith("made:palace:"))
+        expect(palacePropPicture(p.sprite)?.data.some((value, i) => i % 4 === 3 && value > 0), p.name).toBe(true);
       else expect(p.sprite.startsWith("nature-") ? natureAtlas.frames : atlas.frames).toHaveProperty(p.sprite);
     }
   });

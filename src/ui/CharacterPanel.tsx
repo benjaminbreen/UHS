@@ -393,12 +393,12 @@ function rarityFor(id: string | undefined) {
   const q = id ? parseCloth(id) : undefined;
   return q ? rarityOf(q.cloth) : "common";
 }
-/** The eight places something can sit on a person, read top to bottom: the
- * head and what hangs off it, then the body and what it carries. Four across
- * rather than three, so the grid is two rows and the sidebar stays in view. */
 const EQUIP_SLOTS = [
   { slot: "head", label: "Head" },
   { slot: "ears", label: "Ears" },
+  { slot: "nose", label: "Nose" },
+  { slot: "face", label: "Face" },
+  { slot: "neckwear", label: "Neckwear" },
   { slot: "neck", label: "Neck" },
   { slot: "over", label: "Over" },
   { slot: "eyes", label: "Eyes" },

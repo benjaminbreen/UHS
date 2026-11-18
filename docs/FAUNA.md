@@ -67,7 +67,8 @@ The game loads these atlases (`src/render/scene-assets.ts`):
   `scripts/art/rig.py` and one module per body plan (`cervid.py`, `felid.py` …).
   `FaunaProfile.directions` marks these species; `faunaFrames(profile, state,
   facing)` picks frames.
-- **Voxel horse** (`public/fauna-v/`): a horse and horse-drawn vehicles,
+- **Draft teams.** The pony cart, hooded buffalo cart and the plough (paired oxen on dry land or one water buffalo in a paddy) draw their own kept animals from the directional fauna atlas, with their individual coats. Hitched members follow the implement and resume ordinary herd movement when unyoked. Cart beds, wheels and the plough beam use the conveyance atlas. The chariot still includes its horses in its baked frame.
+- **Voxel horse** (`public/fauna-v/`): the developer’s mount and the conveyance equipment,
   from `scripts/art/voxel_rig.py` and `vehicles.py`.
 
 Sizes are set against the 37 px adult. Coats are recoloured at runtime from

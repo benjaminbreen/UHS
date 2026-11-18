@@ -3,9 +3,9 @@
     .venv/bin/python scripts/art/vehicles.py artifacts/vehicles/sheet.png [model ...]
     .venv/bin/python scripts/art/vehicles.py build
 
-A model is a spec, not a drawing: its team (species, size, how many and
-where), how they are put to (a pole and yoke, or shafts and a collar), its
-wheels, its car or bed, its load, and the places its crew stand or sit. The
+The farm equipment is drawn without its animals. The runtime places the
+kept animals alongside it, with their own coat and gait. The chariot keeps
+its baked team. Each vehicle carries its own crew places. The
 crew are not drawn here. The game seats its own people in those places, so a
 charioteer who jumps down is the person who was driving. To let them sit in
 the vehicle rather than on it, every frame ships as two layers, split by
@@ -22,9 +22,8 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from art import voxel_rig as rig  # noqa: E402
 from art.voxel_rig import (  # noqa: E402
-    SCALE, MATS, KEYS, box, capsule, ellipsoid, horse_parts, harness, bridle, pose, tidy, wheel, smin,
+    SCALE, MATS, box, capsule, ellipsoid, horse_parts, harness, bridle, pose, tidy, wheel,
 )
 from art.voxel import render  # noqa: E402
 from art.city_kit import outline  # noqa: E402
@@ -89,64 +88,6 @@ def equid(P, kind, gait, t, at, tack='bridle', marks=()):
     anchors['shoulder'] = lambda s, sp=sp, a=a: unwarp(np.array([9.5, s * 5.6, 18.5]) + a['B'], sp) + at
     return [(n, d * k) for n, d in parts], anchors
 
-
-def bovine(P, kind, gait, t, at):
-    """Cattle and buffalo: a long deep barrel on short legs, the head carried
-    low off a thick neck, horns by kind -- an ox's short and upcurved, a water
-    buffalo's great crescents swept back."""
-    P = P - at
-    g = rig.GAITS[gait]
-    bob = -0.35 * abs(math.sin(2 * math.pi * t * 2)) if gait != 'idle' else 0.0
-    nod = 0.7 * math.sin(2 * math.pi * t * 2)
-    B = np.array([0, 0, bob])
-    coat = 'buffalo' if kind == 'buffalo' else 'ox'
-    body = ellipsoid(P, np.array([0, 0, 17.5]) + B, np.array([12.0, 7.0, 7.2]))
-    body = smin(body, ellipsoid(P, np.array([8.8, 0, 16.6]) + B, np.array([5.6, 6.2, 7.6])), 2.5)
-    body = smin(body, ellipsoid(P, np.array([-9.6, 0, 18.0]) + B, np.array([5.6, 6.4, 6.8])), 2.5)
-    neck_a = np.array([10.5, 0, 19.8]) + B
-    poll = np.array([16.2, 0, 21.2 + nod]) + B
-    muzzle = np.array([20.4, 0, 14.6 + nod]) + B
-    body = smin(body, capsule(P, neck_a, poll + np.array([-0.8, 0, -1.2]), 4.8, 3.4), 2.0)
-    head = capsule(P, poll, muzzle, 3.3, 2.7)
-    body = smin(body, head, 1.2)
-    parts = [(coat, body)]
-    parts.append(('nose', ellipsoid(P, muzzle + np.array([0.6, 0, -0.4]), np.array([1.6, 2.4, 1.6]))))
-    if kind != 'buffalo':
-        parts.append((coat, ellipsoid(P, np.array([12.4, 0, 13.4]) + B, np.array([3.8, 1.5, 3.8]))))
-    for s in (-1, 1):
-        parts.append((coat, capsule(P, poll + np.array([-0.6, s * 2.6, -1.0]), poll + np.array([-1.0, s * 5.0, -1.6]), 0.9, 0.5)))
-        if kind == 'buffalo':
-            mid = poll + np.array([-2.6, s * 8.0, 1.8])
-            parts.append(('horn', capsule(P, poll + np.array([0.2, s * 1.8, 0.8]), mid, 1.8, 1.3)))
-            parts.append(('horn', capsule(P, mid, poll + np.array([-7.0, s * 6.0, 4.6]), 1.3, 0.5)))
-        else:
-            parts.append(('horn', capsule(P, poll + np.array([0.2, s * 1.9, 0.9]), poll + np.array([0.6, s * 4.2, 3.2]), 0.9, 0.4)))
-    # Tail to the hock with its switch.
-    sway = math.sin(2 * math.pi * t) * 1.0
-    dock = np.array([-14.6, 0, 21.0]) + B
-    tip = np.array([-16.2, sway, 8.0]) + B
-    parts.append((coat, capsule(P, dock, tip, 0.8, 0.6)))
-    parts.append(('nose', ellipsoid(P, tip + np.array([0, 0, -1.0]), np.array([1.0, 1.0, 1.6]))))
-    for leg, (hu, hw, l1, l2) in {'LF': (9.0, 12.4, 5.8, 5.6), 'RF': (9.0, 12.4, 5.8, 5.6),
-                                  'LH': (-9.6, 14.0, 6.6, 6.2), 'RH': (-9.6, 14.0, 6.6, 6.2)}.items():
-        v = 3.9 if leg[0] == 'L' else -3.9
-        fu, fh = rig.foot('walk' if gait != 'idle' else 'idle', leg, t)
-        fu *= 0.8
-        hip = (hu, hw + bob)
-        fet = (hu + fu + 0.8, fh * 0.8 + 2.2)
-        knee = rig.two_bone(hip, fet, l1, l2, 1 if leg[1] == 'F' else -1)
-        H, K, F = (np.array([p[0], v, p[1]]) for p in (hip, knee, fet))
-        parts.append((coat, capsule(P, H + np.array([0, 0, 2.5]), K, 3.0 if leg[1] == 'F' else 3.5, 1.6)))
-        parts.append((coat, capsule(P, K, F, 1.5, 1.3)))
-        parts.append(('nose', capsule(P, F, F + np.array([1.0, 0, -1.8]), 1.35, 1.4)))
-    parts = [(n, d * 1.0) for n, d in parts]
-    anchors = {'poll': poll + at, 'muzzle': muzzle + at, 'neck': neck_a + at,
-               'withers': np.array([8.5, 0, 24.6]) + B + at,
-               'shoulder': lambda s, B=B: np.array([10.5, s * 6.2, 17.0]) + B + at}
-    return parts, anchors
-
-
-# ------------------------------------------------------------------ vehicles
 
 def d_shape(P, c, half_u, half_v, round_front):
     """Signed distance in the u-v plane to a floor rounded at its front."""
@@ -228,6 +169,8 @@ MODELS = {
         label='Farm cart and pony', centre=-9.0, gaits=('walk',),
         crew=[(-16.8, 2.6, 13.4, 'sit', False)],
     ),
+    'ox-plough': dict(label='Ox plough', centre=-7.0, gaits=('walk',),
+        crew=[(-31, 1, 0, 'walk', False)]),
     'buffalo-cart': dict(
         label='Buffalo cart', centre=-7.0, gaits=('walk',),
         crew=[(-15.8, 0.0, 15.0, 'sit', False), (-21.5, 2.6, 15.0, 'sit', True), (-24.2, -2.4, 15.0, 'sit', True)],
@@ -264,22 +207,20 @@ def model_parts(name, gait, t, P, crew=False):
         for s in (-1, 1):
             parts.append(('screen', capsule(P, np.array([-25.4, s * 9.9, 13.0]), np.array([-29.2, s * 9.9, 23.0]), 0.9, 1.1)))
     elif name == 'farm-cart-pony':
-        p, a = equid(P, 'pony', gait, t, np.array([0.0, 0, 0]), tack='harness')
-        parts += p
+        P = P * np.array([1, 0.78, 1])
         r, spokes = 9.6, 10
         hub = np.array([-22.6, 0, r])
         spin = -2 * math.pi * 2 / spokes * t
         for s in (-1, 1):
             parts += [(n if n != 'wheel' else 'greywood', d) for n, d in wheel(P, hub + np.array([0, s * 9.2, 0]), spin, r=r, spokes=spokes)]
-            parts.append(('greywood', capsule(P, np.array([-15.2, s * 5.2, 12.2]), a['shoulder'](s), 0.65, 0.55)))
+            parts.append(('greywood', capsule(P, np.array([-15.2, s * 5.2, 12.2]), np.array([4, s * 4.2, 14]), 0.65, 0.55)))
         parts.append(('iron', capsule(P, hub + np.array([0, -9.2, 0]), hub + np.array([0, 9.2, 0]), 0.6, 0.6)))
         parts += cart_bed(P, np.array([-23.0, 0, 0]), (7.6, 8.2), 12.6, 5.4, wood='greywood')
         parts.append(('hay', ellipsoid(P, np.array([-25.5, 0, 16.0]), np.array([5.0, 6.8, 3.6]))))
         parts.append(('sack', ellipsoid(P, np.array([-20.2, -3.4, 14.8]), np.array([1.8, 1.6, 2.2]))))
         parts.append(('sack', ellipsoid(P, np.array([-20.4, -0.2, 14.6]), np.array([1.8, 1.6, 2.0]))))
     elif name == 'buffalo-cart':
-        p, a = bovine(P, 'buffalo', gait, t, np.array([0.0, 0, 0]))
-        parts += p
+        P = P * np.array([1, 0.76, 1])
         r, spokes = 11.6, 14
         hub = np.array([-24.2, 0, r])
         spin = -2 * math.pi * 2 / spokes * t
@@ -288,7 +229,7 @@ def model_parts(name, gait, t, P, crew=False):
         parts.append(('wood', capsule(P, hub + np.array([0, -9.4, 0]), hub + np.array([0, 9.4, 0]), 0.7, 0.7)))
         # The yoke across the neck before the hump, the shafts back from it
         # to the bed, lashed.
-        yk = a['withers'] + np.array([2.6, 0, -0.4])
+        yk = np.array([5, 0, 19])
         parts.append(('wood', capsule(P, yk + np.array([0, -7.2, 0]), yk + np.array([0, 7.2, 0]), 0.8, 0.8)))
         for s in (-1, 1):
             parts.append(('wood', capsule(P, yk + np.array([0, s * 5.8, 0]), np.array([-15.8, s * 5.6, 14.6]), 0.7, 0.7)))
@@ -302,6 +243,13 @@ def model_parts(name, gait, t, P, crew=False):
         parts.append(('thatch', roof))
         for uu in (-19.0, -32.0):
             parts.append(('wood', np.maximum(np.abs(arch + 0.2) - 0.5, np.maximum(np.abs(u - uu) - 0.5, 15.0 - P[..., 2]))))
+    elif name == 'ox-plough':
+        def timber(start, end, thick, tip):
+            return ('wood', capsule(P, np.array(start), np.array(end), thick, tip))
+        parts += [timber((5, -16, 20), (5, 16, 20), 1.2, 1.2),
+                  timber((5, 0, 20), (-22, 0, 4), 0.85, 1.3),
+                  timber((-16, 0, 1), (-29, 0, 15), 1.4, 0.8),
+                  ('iron', capsule(P, np.array([-13, 0, 0.9]), np.array([-21, 0, 2]), 0.5, 1.6))]
     if crew:
         for (cu, cv, cw, posture, child) in MODELS[name]['crew']:
             parts += figure(P, (cu, cv, cw), posture, child)
@@ -348,6 +296,20 @@ def layers(name, gait, t, heading, crew=False):
     return Image.fromarray(back), Image.fromarray(front)
 
 
+def furrows():
+    strip = Image.new('RGBA', (16, 16))
+    for x in range(16):
+        for y, colour in enumerate(('#785539', '#9b7450', '#503c30', '#48372d', '#685039', '#846146')):
+            strip.putpixel((x, 6 + y + int(x in (3, 4, 11))), tuple(bytes.fromhex(colour[1:])) + (255,))
+    mud = Image.new('RGBA', (16, 16))
+    for x in range(16):
+        offset = round(1.4 * math.sin(x * math.tau / 16))
+        for y, rgba in enumerate(((92, 111, 97, 130), (107, 100, 74, 200), (87, 82, 63, 220), (79, 77, 60, 210), (99, 101, 81, 180), (109, 139, 127, 140))):
+            mud.putpixel((x, 5 + y + offset), rgba)
+    return {'vv-furrow-x': strip, 'vv-furrow-y': strip.transpose(Image.Transpose.TRANSPOSE),
+            'vv-puddled-x': mud, 'vv-puddled-y': mud.transpose(Image.Transpose.TRANSPOSE)}
+
+
 def build(out_dir, generated):
     import json
     from art.atlas import pack_atlas
@@ -366,6 +328,7 @@ def build(out_dir, generated):
             # Per facing: [dx, dy, depth, posture, child] for each crew place.
             'crew': {str(f): crew_screen(name, h) for f, h in FACINGS.items()},
         }
+    sprites.update(furrows())
     pack_atlas(sprites, Path(out_dir), 'vehicles', 2048)
     (generated / 'conveyances.generated.json').write_text(json.dumps(catalog, indent=1))
 

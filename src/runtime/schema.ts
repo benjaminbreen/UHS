@@ -1,3 +1,5 @@
+import { crops } from "../content/agriculture/crops";
+import type { CropId } from "../content/agriculture/types";
 import { faunaStates } from "../core/fauna";
 import { treatments } from "../content/health/infections";
 import { faunaTiers } from "../core/combat";
@@ -248,6 +250,8 @@ const purchase = z.object({
 });
 const pixelColor = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 export const characterAppearanceSchema = z.object({
+  faceSeed: z.string().optional(),
+  lineage: z.string().optional(),
   physique: z
     .object({
       strength: z.number().int().min(0).max(100),
@@ -467,6 +471,12 @@ const actor = z.object({
   goal: pos.optional(),
   tends: z.object({ herd: z.string(), seat: z.number() }).optional(),
   wayfarer: z.object({ until: z.number() }).optional(),
+  plough: z.object({ vehicle: z.string(), step: z.number().int().nonnegative(), at: z.number(), resting: z.boolean().optional(), sown: z.number().int().optional() }).optional(),
+  freight: z.object({ grain: z.number().nonnegative(), day: z.number().int(), to: z.string() }).optional(),
+  mount: z.object({ vehicle: z.string(), place: z.number().int().nonnegative() }).optional(),
+  guidingPlough: z.string().optional(),
+  drivingCart: z.object({ vehicle: z.string(), haltedAt: z.number().optional() }).optional(),
+  cartOffsets: z.record(z.string(), z.number()).optional(),
   watch: z.object({ path: z.array(point).max(400), loop: z.boolean(), speed: z.number(), waits: z.tuple([z.number(), z.number()]), phase: z.number() }).optional(),
   post: z.object({ at: point, rest: point, night: z.boolean().optional(), torch: z.boolean().optional(), face: z.number().optional(), round: z.array(point).max(40).optional(), leg: z.number().optional(), called: z.number().optional(), arrive: z.number().optional(), doing: z.string().max(80).optional(), with: z.string().max(200).optional(), beside: z.number().optional() }).optional(),
 });
@@ -625,6 +635,15 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
         "harvest",
         "gather",
         "tend-plot",
+        "load-cart",
+        "unload-cart",
+        "sow-strip",
+        "take-reins",
+        "walk-on",
+        "halt-cart",
+        "return-reins",
+        "guide-plough",
+        "yoke",
         "use-prop",
         "capture",
         "herd",
@@ -795,6 +814,8 @@ const faunaGroup = z
       .optional(),
     ring: z.number().optional(),
     owner: z.string().optional(),
+    hitch: z.string().optional(),
+    draft: z.boolean().optional(),
     gateId: z.string().optional(),
     pasture: pos.optional(),
     fold: z.boolean().optional(),
@@ -925,6 +946,8 @@ export const snapshotSchema = z.object({
         .object({
           day: z.number().int(),
           stage: z.number().int(),
+          cart: z.string().optional(),
+          delivered: z.boolean().optional(),
           quality: z.number().int().optional(),
           pay: z.number().int().optional(),
           lines: z.array(z.string().max(300)).max(20).optional(),
@@ -1073,6 +1096,9 @@ export const snapshotSchema = z.object({
           wood: z.number().int().nonnegative().max(99).optional(),
           cut: z.boolean().optional(),
           dug: z.boolean().optional(),
+          puddled: z.boolean().optional(),
+          furrow: z.enum(["x", "y"]).optional(),
+          sowing: z.object({ crop: z.enum(Object.keys(crops) as [CropId, ...CropId[]]), season: z.number().int(), owner: z.string() }).optional(),
           scraped: z.number().optional(),
           picked: z.number().optional(),
           burnt: z.boolean().optional(),
@@ -1118,6 +1144,7 @@ export const snapshotSchema = z.object({
       total: z.number().optional(),
       seized: z.number().optional(),
       fired: z.array(z.string().max(40)).max(40),
+      introduced: z.array(z.string().max(40)).optional(),
       firedAt: z.record(z.string().max(40), z.number()).optional(),
       asking: z.object({
         line: z.string().max(40),

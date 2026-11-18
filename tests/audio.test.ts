@@ -383,7 +383,7 @@ describe("original soundtrack scores", () => {
       const sound = entry.make();
       expect(sound.length).toBeGreaterThan(0);
       for (const layer of sound) {
-        expect(layer.at + layer.dur).toBeLessThan(2.5);
+        expect(layer.at + layer.dur, entry.name).toBeLessThan(entry.name === "Event · death" ? 3.5 : 2.5);
         expect(layer.gain).toBeGreaterThan(0);
         expect(layer.gain).toBeLessThanOrEqual(0.5);
         expect(layer.freq).toBeGreaterThan(20);

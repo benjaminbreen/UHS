@@ -13,6 +13,7 @@ from math import atan2, hypot, pi, sqrt
 from PIL import Image
 from .core import RAMPS
 
+FRONT_WIDTH = 1.18
 PX = 17
 DEPTH = 0.5          # ground depth on screen, as a share of the prop scale
 
@@ -260,7 +261,7 @@ def render(spec, paint, heading):
  Lp, Wp = int(round(car.L * PX)), int(round(car.W * PX))
  Hp = int(round((car.H + max((car.get('fin') or (0, 0))[1], 0) + 0.1) * PX))
  side = heading in 'ew'
- across = Lp if side else Wp                 # screen width
+ across = Lp if side else round(Wp * FRONT_WIDTH)                 # screen width
  depth = Wp if side else Lp                  # ground depth
  W = across + 4
  H = Hp + int(depth * DEPTH) + 4
@@ -277,8 +278,8 @@ def render(spec, paint, heading):
    # (x, y) in model metres: y from the left side of the car.
    if heading == 'e': x, y = (a + .5) / PX, (g + .5) / PX
    elif heading == 'w': x, y = (Lp - a - .5) / PX, (Wp - g - .5) / PX
-   elif heading == 's': x, y = (Lp - g - .5) / PX, (Wp - a - .5) / PX
-   else: x, y = (g + .5) / PX, (a + .5) / PX
+   elif heading == 's': x, y = (Lp - g - .5) / PX, (Wp - (a + .5) * Wp / across) / PX
+   else: x, y = (g + .5) / PX, (a + .5) * Wp / across / PX
    d = abs(y - car.hw)
    zt = car.top(x, d)
    if zt is None: continue
@@ -544,7 +545,7 @@ def vehicle_shadows(sprites, phases):
   if paint != '0': continue
   spec = MODELS[model]
   side = heading in 'ew'
-  w = (spec['L'] if side else spec['W']) * PX
+  w = (spec['L'] if side else spec['W'] * FRONT_WIDTH) * PX
   deep = (spec['W'] if side else spec['L']) * PX * DEPTH
   ax, ay = im.info['anchor']
   lift = spec['H'] * PX * 0.35

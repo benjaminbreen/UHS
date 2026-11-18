@@ -121,6 +121,8 @@ export const poses = [
   "sit",
   /** On a stool, a chair or a bench, feet on the floor. */
   "sit-seat",
+  "drive-cart",
+  "guide-plough",
 ] as const;
 export type CharacterPose = (typeof poses)[number];
 /** A small set of physical verbs shared by trades in every era. */
@@ -173,7 +175,7 @@ export function workPoseFor(activity: string, label: string, family = "", trade 
 export const poseFrames = 4;
 /** The walk and the run have eight: four beats for each foot. */
 export const frameCount = (pose: CharacterPose) =>
-  pose === "walk" || pose === "run" ? 8 : poseFrames;
+  pose === "walk" || pose === "run" || pose === "guide-plough" ? 8 : poseFrames;
 export function poseTiming(pose: CharacterPose) {
   if (pose === "wade") return 210;
   if (pose === "swim") return 190;

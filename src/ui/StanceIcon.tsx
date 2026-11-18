@@ -75,7 +75,7 @@ import {
   Swords,
   Tablet,
   Tornado,
-  Tractor,
+  createLucideIcon,
   TreePine,
   UserRound,
   Users,
@@ -92,6 +92,10 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { GlyphId } from "../render/glyphs";
+
+const Plough = createLucideIcon("Plough", [
+  ["path", { d: "m2 6 4 1 8 12 5-6 3-1M6 8l12 5M9 12l-3 7H3", key: "beam" }],
+]);
 
 /**
  * A line icon for each glyph a stance can carry. The world uses pixel glyphs;
@@ -171,7 +175,7 @@ const icons: Partial<Record<GlyphId, LucideIcon>> = {
   "offering-bowl": Soup,
   "ore": Gem,
   "pillar": Landmark,
-  "plough": Tractor,
+  "plough": Plough,
   "pot": Amphora,
   "rain": CloudRain,
   "river": Waves,

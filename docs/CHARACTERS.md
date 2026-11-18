@@ -119,12 +119,18 @@ the player standing near by trust, and a worried face when ill.
 
 `src/render/portraits/sculpted.ts` draws the bust the game shows
 (`src/ui/CharacterSprite.tsx` calls `drawSculptedPortrait`). It matches the G
-sprite's clothes and colours through `clothColours`.
+sprite's clothes and colours through `clothColours`. Both use the worn face veil,
+outer wrap, neckwear and ornaments. The portrait draws the wrap over the
+shoulders and the face veil over the animated mouth. Fitted coats show a shirt
+front, folded collar points and lapels. A worn necktie sits under the collar
+and disappears behind the waistcoat.
 - **Expressions.** `constructed.ts` names the twelve expressions, the blink
   frames and the speaking mouth (`visemeFor`). The bust's `SHOWN` table turns
   each expression into brow, lid and mouth offsets, scaled by `intensity`, over
   the person's `restingPose`.
-  - Blinking and the speaking mouth run on their own clocks.
+  - Blinking and speech run on their own clocks. The mouth curves around the
+    jaw and opens widest at the centre. The nose profile sets the bridge,
+    tip and nostril positions in both views.
 - **Mood in dialogue.** In conversation the NPC wears the `mood` the model
   chose for its own line, a field of the dialogue reply beside `regard`. Only
   `regard` moves `actor.trust`.
@@ -132,10 +138,14 @@ sprite's clothes and colours through `clothColours`.
   brow connection, eye alignment and detail, injury scars and
   adornment each have their own seeded stream. Adding one never rerolls the
   others.
+- **Likeness.** The stored face seed keeps anatomy and eye colour stable when
+  a person shaves or changes clothes.
 - **Ageing.** One stored recipe ages continuously: cheeks, jaw, lids, greying,
   hairline and lines.
 - **Adornment.** Ear and nose ornaments and face marks (ink, scar or paint) come
-  from `AppearanceKit.adornment`. A kit that names none gets none.
+  from `AppearanceKit.adornment`. A mark pairs its placement with a material
+  and pigment. A kit can restrict it by place, period, age and sex. Holi powder
+  comes from the festival day and can appear alongside permanent marks.
   - The drawn marks are schematic. They stand for the practice of marking the
     face, never for a particular community's design or meaning.
   - `describeAdornment` (`src/core/character.ts`) names what is worn, in plain

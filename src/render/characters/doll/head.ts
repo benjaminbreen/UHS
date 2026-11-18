@@ -389,7 +389,7 @@ function drawFace(h: Head, lo: number) {
   for (const [c, r, tone] of nosePixels(a, v, key)) s.px(X(c), Y(er + r + lo), SKIN, tone);
   // A flush only where it suits: women, children, a smile, a soft face.
   const cheeks = { front: [2 - Math.min(0, sp), 11 + Math.min(0, sp)], q: [4], side: [9] }[v];
-  if (female || h.child || expression === "smile" || expression === "soft")
+  if (a.record?.powder || female || h.child || expression === "smile" || expression === "soft")
     for (const c of cheeks) s.px(X(c), Y(8 + lo), BLUSH, 3);
   if (f?.detail === "freckles")
     for (const c of view === "front" ? [3, 10] : view === "q" ? [4] : [9]) s.px(X(c), Y(9 + lo), SKIN, 2);
@@ -797,18 +797,18 @@ function mask(h: Head, lo: number) {
   const [c0, c1] = view === "front" ? [1, 12] : view === "q" ? [3, 14] : [6, 14];
   const eyes = view === "front" ? [[3, 4], [9, 10]] : view === "q" ? [[5, 6], [10, 10]] : [[9, 9]];
   const veil = a.wearing.mask;
-  if (veil === "yashmak" || veil === "niqab" || veil === "haik" || veil === "grille") {
+  if (veil === "ruband" || veil === "yashmak" || veil === "niqab" || veil === "haik" || veil === "grille") {
     // Street veils: below the eyes, or the whole face with one eye left free, or a grille over it.
     // Row 7 is the lower half of the eye.
     const from = veil === "yashmak" || veil === "niqab" ? 8 : 3;
-    const to = veil === "niqab" ? end + 4 : end + 1;
+    const to = veil === "niqab" || veil === "ruband" ? end + 4 : end + 1;
     for (let r = from; r <= to; r++) {
       const narrow = veil === "niqab" && r > end + 1 ? r - end - 1 : 0;
       k.span(r, view === "front" ? c0 + 1 + narrow : c0 + narrow, view === "front" ? c1 - 1 - narrow : c1);
     }
-    s.put(k.mask, veil === "yashmak" ? WHITE : HAT, {
+    s.put(k.mask, veil === "yashmak" || veil === "ruband" ? WHITE : HAT, {
       ring: "line", shade: 0.3, light: 0.2, bottom: true,
-      tone: veil === "grille" ? (x, y, t) => (y >= Y(5) && y <= Y(7) && (x + y) % 2 === 0 ? 1 : t) : undefined,
+      tone: veil === "grille" || veil === "ruband" ? (x, y, t) => (y >= Y(5) && y <= Y(7) && (x + y) % 2 === 0 ? 1 : t) : undefined,
     });
     if (veil === "haik") for (let c = eyes[0][0]; c <= eyes[0][1]; c++) s.px(X(c), Y(6), EYE, 0);
     return;

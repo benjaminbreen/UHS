@@ -14,6 +14,7 @@ export { GARMENT_ICON };
 /** Item id to drawing. Two slots can want the same word — a head wrap is not
  * a wrapped cloth, a wide belt is not wide trousers — so the slot decides. */
 const byId: Record<string, string> = {
+  "street-wrap": "cloak",
   "headwear-wrap": "wrap_head",
   "headwear-nasal": "helmet",
   "headwear-kettle": "helmet",
@@ -39,6 +40,9 @@ const byId: Record<string, string> = {
 export function garmentIconFor(baseId: string): string | undefined {
   const mapped = byId[baseId];
   if (mapped) return mapped;
+  if (baseId.startsWith("mask-")) return "veil";
+  if (baseId.startsWith("neckwear-")) return "sash";
+  if (baseId.startsWith("ear-") || baseId.startsWith("nose-")) return "earrings";
   const key = baseId.replace(
     /^(garment|headwear|leggings|footwear|belt)-/,
     "",

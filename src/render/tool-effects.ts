@@ -21,6 +21,8 @@ export type ToolEffectKind =
   | "cut"
   | "buck"
   | "dig"
+  | "plant"
+  | "gather"
   | "reap"
   | "mine"
   | "shatter"
@@ -829,6 +831,20 @@ export class ToolEffects {
   }
   private play(effect: ToolEffect) {
     const kind = effect.kind;
+    if (kind === "plant" || kind === "gather") {
+      const at = this.point(effect.at);
+      if (kind === "plant") {
+        this.ring(at, 0xb6ceae);
+        this.burst(at, WATER, 3, 0.35);
+        const tuft = this.scene.add.graphics().setPosition(at.x, at.y).setDepth(at.y + 1);
+        tuft.lineStyle(1, 0x88ad51).lineBetween(0, 0, -3, -5).lineBetween(0, 0, 1, -7);
+        this.live.add(tuft);
+        this.scene.tweens.add({ targets: tuft, angle: { from: -24, to: 0 }, alpha: { from: 1, to: 0 }, duration: 340,
+          ease: "Back.easeOut", onComplete: () => { this.live.delete(tuft); tuft.destroy(); } });
+      } else this.shred(at, LEAF);
+      void gameAudio()?.sound(() => kind === "plant" ? strike("haft", "water", "splash").map(l => ({ ...l, gain: l.gain * 0.32 })) : work("cut"), "work");
+      return;
+    }
     if (kind === "fill" || kind === "douse")
       void gameAudio()?.sound(() => work(kind), kind);
     else
@@ -858,7 +874,7 @@ export class ToolEffects {
         this.burst(this.point(cell), SOIL, 6, 1.1);
     if (effect.kind === "reap" || effect.kind === "cut")
       for (const cell of effect.cells ?? [effect.at]) {
-        this.shred(this.point(cell), LEAF);
+        this.shred(this.point(cell), effect.kind === "reap" && effect.sprite === "grain" ? [0xbc8946, 0xe7c676, 0xb49f55] : LEAF);
       }
     if (effect.kind === "hit" || effect.kind === "buck")
       this.burst(
