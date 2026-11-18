@@ -52,6 +52,8 @@ export type FairArea = {
   /** How a gallery is built and coloured: an iron and glass exhibition shed, a warm panelled room with deep
    * wainscot, or a palace room of white and gold panelling and tall mirrors. The fair's own look when unset. */
   look?: "shed" | "warm" | "palace";
+  /** A private room: the only areas it has a door to, of those that adjoin it. Unset, it opens to all of them. */
+  opens?: readonly string[];
   /** What this palace room changes from the palace's own style. */
   palace?: Partial<PalaceStyle>;
   /** A court that is a yard: bare earth and trodden paths, a fence round it, no lamps, urns or railed gardens. */
@@ -118,6 +120,12 @@ export type Fair = {
   prompt: RegExp;
   /** One of several plans generated for the same kind of place; a start picks among those that are asked for and whose years fit. */
   generated?: boolean;
+  /** Words that name a generated kind's people or period; among kinds that fit a prompt, one it names is preferred. */
+  named?: RegExp;
+  /** Who lives and works in a palace, for a start there. */
+  posts?: readonly FairPost[];
+  /** A generated kind is built only in this part of the world. */
+  within?: Box;
   /** Words that ask for a generated kind in any of its periods; `prompt` then says which period an undated prompt means. */
   asks?: RegExp;
   /** Where a prompt naming it starts, by place id. */
@@ -125,6 +133,9 @@ export type Fair = {
   /** Said at the gate without the money, on going in, and on riding its lifts up. */
   words: { short: string; enter: string; gate?: string; liftUp?: string; liftLook?: string };
 };
+
+/** A post in a ruler's household: its title (the word that asked for it when blank), the words in a prompt that ask for it, the livelihood id it is worked as, and its share of the household. */
+export type FairPost = readonly [role: string, words: RegExp, work: string, weight: number];
 
 /** The painter keys an exhibit may use; each is drawn in `render/fair/things.ts`. */
 export const FAIR_ART = [

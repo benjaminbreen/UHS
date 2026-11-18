@@ -583,7 +583,7 @@ describe("a palace planned as rooms and courts", () => {
     let n = 0;
     const act = (target: string, action: "pickup" | "use-prop" | "topple" | "look" | "take") => e.act({ actionId: `p${n++}`, expectedRevision: e.state.revision, command: { type: "interact", target, action } }).status;
     const go = (to: string) => { const x = (e.areaOf(p.pos.space) as FairLevel).exits.find((q) => q.to.endsWith(`:${to}`))!; p.pos.x = x.x + (x.w >> 1); p.pos.y = x.y + (x.h >> 1); e.advance(1); };
-    for (const to of ["royal-court", "marble-court", "bedchamber", "mirrors"]) go(to);
+    for (const to of ["royal-court", "guard-room", "antechamber", "mirrors"]) go(to);
     const here = () => e.state.objects.filter((o) => o.pos.space === p.pos.space && o.prop?.startsWith("palace-"));
     const stand = (o: { pos: { x: number; y: number } }) => { p.pos.x = o.pos.x; p.pos.y = o.pos.y + 1; };
     expect(here().length).toBeGreaterThan(10);
@@ -607,7 +607,7 @@ describe("a palace planned as rooms and courts", () => {
     expect(bust.tipped).toBe(true);
     // Going out and coming back does not stock the room twice.
     const count = here().length;
-    go("bedchamber"); go("mirrors");
+    go("antechamber"); go("mirrors");
     expect(here().length).toBe(count);
   });
 
@@ -617,7 +617,7 @@ describe("a palace planned as rooms and courts", () => {
     const e = createSettingSession(r.setting, "palace"), p = e.state.player;
     const go = (to: string) => { const x = (e.areaOf(p.pos.space) as FairLevel).exits.find((q) => q.to.endsWith(`:${to}`))!; p.pos.x = x.x + (x.w >> 1); p.pos.y = x.y + (x.h >> 1); e.advance(1); };
     const attend = (id: string) => e.act({ actionId: `a${e.state.revision}`, expectedRevision: e.state.revision, command: { type: "interact", target: id, action: "attend" } }).status;
-    for (const to of ["royal-court", "marble-court", "bedchamber"]) go(to);
+    for (const to of ["royal-court", "guard-room", "antechamber", "bedchamber"]) go(to);
     const bed = e.state.objects.find((o) => o.prop === "exhibit-kings-bed" && o.pos.space === p.pos.space)!;
     expect(bed.sprite).toMatch(/^made:exhibit:versailles:bedchamber:kings-bed:/);
     p.pos = { ...bed.pos, y: bed.pos.y + 1 };
@@ -627,7 +627,7 @@ describe("a palace planned as rooms and courts", () => {
     expect(e.state.events.at(-1)!.text).toContain("Nobody passes the rail");
     // The area no longer offers it by its own system.
     expect(e.complexVerb()).toBeUndefined();
-    for (const to of ["marble-court", "royal-court", "grand-commun"]) go(to);
+    for (const to of ["antechamber", "guard-room", "royal-court", "grand-commun"]) go(to);
     const stall = e.state.objects.find((o) => o.prop === "exhibit-serdeau" && o.pos.space === p.pos.space)!;
     p.pos = { ...stall.pos, y: stall.pos.y + 1 };
     p.inventory.coin = 0;
@@ -648,6 +648,131 @@ describe("a palace planned as rooms and courts", () => {
     const before = e.state.events.length;
     expect(e.act({ actionId: "read", expectedRevision: e.state.revision, command: { type: "interact", target: sign.id, action: "attend" } }).status).toBe("completed");
     expect(e.state.events.length).toBeGreaterThan(before);
+  });
+
+  it("gives every palace door a way back and every room a way in", () => {
+    for (const fair of fairs.filter((f) => f.look === "palace")) {
+      const levels = new Map(fair.areas.map((a) => [a.id, fairLevel("doors", fair, a.id)!]));
+      const ways = (id: string) => levels.get(id)!.exits.map((x) => x.to.split(":").pop()!).filter((to) => to !== "outside");
+      for (const id of levels.keys()) for (const to of ways(id)) expect(ways(to), `${fair.id}: ${to} back to ${id}`).toContain(id);
+      const seen = new Set([fair.entry]), queue = [fair.entry];
+      while (queue.length) for (const to of ways(queue.pop()!)) if (!seen.has(to)) seen.add(to), queue.push(to);
+      expect([...levels.keys()].filter((id) => !seen.has(id)), fair.id).toEqual([]);
+    }
+  });
+
+  it("lays a palace out the way its builders did, with the private rooms last", () => {
+    const start = (prompt: string) => {
+      const r = resolveSetting(prompt);
+      if (!("setting" in r)) throw new Error(r.error);
+      const fair = fairs.find((f) => f.id === r.setting.venue)!;
+      return { venue: r.setting.venue, room: (id: string) => fairLevel("palace", fair, id)! };
+    };
+    const ways = (L: FairLevel) => L.exits.map((x) => x.to.split(":").pop()).sort();
+    const has = (L: FairLevel, kind: string) => L.props!.some((q) => q.key === `palace-${kind}`);
+    // Versailles: the King's rooms in a row, each reached only through the one before.
+    const king = start("A courtier at Versailles");
+    expect(ways(king.room("bedchamber"))).toEqual(["antechamber", "cabinet"]);
+    expect(ways(king.room("antechamber"))).toEqual(["bedchamber", "guard-room", "mirrors"]);
+    expect(has(king.room("guard-room"), "armsrack")).toBe(true);
+    expect(has(king.room("chapel"), "altar")).toBe(true);
+    expect(has(king.room("bedchamber"), "bed")).toBe(false);
+    // A manor: the lord's chamber past one end of the hall, the service past the other.
+    const manor = start("A baron in his manor, 1300");
+    expect(manor.venue).toMatch(/^manor-\d$/);
+    expect(ways(manor.room("hall"))).toEqual(["buttery", "chamber", "pantry", "yard"]);
+    expect(ways(manor.room("buttery"))).toEqual(["hall"]);
+    expect(ways(manor.room("kitchen"))).toEqual(["pantry", "yard"]);
+    expect(manor.room("chamber").w).toBeLessThan(20);
+    expect(has(manor.room("chamber"), "bed")).toBe(true);
+    expect(has(manor.room("kitchen"), "cauldron")).toBe(true);
+    // A Baroque palace: guard room, antechamber, bedchamber, cabinet.
+    const palace = start("A courtier in a palace in Vienna, 1750");
+    expect(palace.venue).toMatch(/^palace-baroque-\d$/);
+    expect(ways(palace.room("guard-room"))).toEqual(["antechamber", "vestibule"]);
+    expect(ways(palace.room("bedchamber"))).toEqual(["antechamber", "cabinet"]);
+    expect(ways(palace.room("cabinet"))).toEqual(["bedchamber"]);
+    expect(has(palace.room("bedchamber"), "bed")).toBe(true);
+    expect(has(palace.room("bath"), "tub")).toBe(true);
+    // A nineteenth-century house: every room off the corridor.
+    const house = start("A guest at a country house in Kent, 1880");
+    expect(house.venue).toMatch(/^palace-house-\d$/);
+    for (const id of ["dining-room", "library"]) expect(ways(house.room(id))).toEqual(["corridor"]);
+    expect(ways(house.room("bathroom"))).toEqual(["bedroom"]);
+    // A Roman house: the kitchen and the bath off the garden court.
+    const domus = start("Caesar at home");
+    expect(has(domus.room("kitchen"), "focus")).toBe(true);
+    expect(domus.room("bath").court).toMatchObject({ kind: "pool" });
+    expect(ways(domus.room("bedroom"))).toEqual(["atrium"]);
+    // A pillared hall on its line from the gate: court, porch, hall and throne, and the ruler's own rooms behind the throne.
+    for (const [prompt, kind, columns] of [["A scribe in Pharaoh's palace", "palace-egypt", "papyrus"], ["A satrap's palace", "palace-persia", "persian"], ["A wanax in his megaron", "palace-aegean", "aegean"]] as const) {
+      const court = start(prompt), hall = court.room("hall");
+      expect(court.venue).toMatch(new RegExp(`^${kind}-\\d$`));
+      expect(hall.palace).toMatchObject({ order: "pillared", columns });
+      expect(has(hall, "daisthrone")).toBe(true);
+      expect(hall.decor.filter((d) => d.type === "palace:pillar").length).toBeGreaterThanOrEqual(4);
+      expect(hall.decor.some((d) => d.type === "palace:roundhearth")).toBe(columns === "aegean");
+      expect(ways(court.room("porch"))).toEqual(["court", "guard", "hall", "stores"]);
+      expect(ways(court.room("chamber"))).toEqual(["bath", "hall"]);
+    }
+    // A hall of posts and screens: courts on a line in China, rooms stepping back corner to corner in Japan.
+    const china = start("A eunuch in the Forbidden City"), japan = start("A retainer in the shogun's palace");
+    expect(china.venue).toMatch(/^palace-china-\d$/);
+    expect(china.room("hall").palace).toMatchObject({ order: "screened", columns: "lacquer" });
+    expect(ways(china.room("hall"))).toEqual(["guard", "inner-court", "outer-court", "study"]);
+    expect(ways(china.room("bedchamber"))).toEqual(["bath", "inner-court"]);
+    expect(china.room("hall").decor.some((d) => d.type === "palace:pillar")).toBe(true);
+    expect(japan.venue).toMatch(/^palace-japan-\d$/);
+    expect(japan.room("great-room").palace).toMatchObject({ columns: "cypress", floor: "tatami" });
+    expect(ways(japan.room("great-room"))).toEqual(["garden", "guard", "inner-room", "waiting-room"]);
+    expect(ways(japan.room("private-room"))).toEqual(["bath", "garden", "inner-room"]);
+    expect(has(japan.room("great-room"), "zabuton")).toBe(true);
+    expect(japan.room("great-room").decor.some((d) => d.type === "palace:pillar")).toBe(false);
+    for (const court of [china, japan]) expect(has(court.room(court === china ? "hall" : "great-room"), "daisthrone")).toBe(true);
+    // Variants of those: a king's hall in stone, an Inca's in fitted blocks; an Islamic and a Mexica palace on columns.
+    const castle = start("A late medieval king"), divan = start("A sultan in Istanbul, 1600"), tecpan = start("An Aztec noble"), kancha = start("An Inca noble in Cusco");
+    expect(castle.venue).toMatch(/^palace-gothic-\d$/);
+    expect(castle.room("hall").palace).toMatchObject({ order: "timber", walling: "stone" });
+    expect(ways(castle.room("privy-chamber"))).toEqual(["great-chamber"]);
+    expect(divan.venue).toMatch(/^palace-islamic-\d$/);
+    expect(divan.room("pool-court").court).toMatchObject({ kind: "pool" });
+    expect(divan.room("inner-court").court).toMatchObject({ kind: "garden" });
+    expect(ways(divan.room("bedchamber"))).toEqual(["inner-court"]);
+    expect(tecpan.venue).toMatch(/^palace-mexica-\d$/);
+    expect(tecpan.room("hall").palace).toMatchObject({ order: "pillared", columns: "mexica" });
+    expect(kancha.venue).toMatch(/^palace-inca-\d$/);
+    expect(kancha.room("hall").palace).toMatchObject({ order: "timber", walling: "ashlar" });
+    // Nobody built any of these in Haiti.
+    const far = resolveSetting("A servant in a palace in Haiti, 1750");
+    if (!("setting" in far)) throw new Error(far.error);
+    expect(far.setting.venue).toBeUndefined();
+  });
+
+  it("starts the people of a ruler's household inside it, by the post the prompt names", () => {
+    const at = (prompt: string, seed?: string) => {
+      const r = resolveSetting(prompt, seed);
+      if (!("setting" in r)) throw new Error(r.error);
+      return r.setting;
+    };
+    for (const [prompt, kind, role, work] of [
+      ["A late medieval king", "palace-gothic", "King", "ruler"], ["A sultan in Istanbul, 1600", "palace-islamic", "Sultan", "ruler"], ["A palace guard in Beijing, 1750", "palace-china", "Guardsman", "soldier"],
+      ["A footman in Paris, 1700", "palace-baroque", "Footman", "servant"], ["A keeper of the knots, Cusco 1500", "palace-inca", "Keeper of the knots", "scribe"], ["A fan-bearer in Thebes, 1350 BC", "palace-egypt", "Fan-bearer", "servant"],
+      ["A lady-in-waiting, Kyoto 1650", "palace-japan", "Lady-in-waiting", "courtier"], ["An Aztec noble", "palace-mexica", "Noble", "courtier"],
+    ] as const) {
+      const s = at(prompt);
+      expect(s, prompt).toMatchObject({ below: "fair", role });
+      expect(s.venue, prompt).toMatch(new RegExp(`^${kind}-\\d$`));
+      expect(s.brief?.work, prompt).toBe(work);
+    }
+    // A ruler named in passing, or in a street name, is not who the prompt is about.
+    for (const prompt of ["A baker serving the king of France, 1700", "King Street grocer in London 1880", "A cook in Paris, 1700", "A weaver in London, 1650"]) expect(at(prompt).below, prompt).toBeUndefined();
+    // Some of those in a capital who name no work are found at court, each in one of the household's own posts.
+    const fair = (id: string) => fairs.find((f) => f.id === id)!;
+    const court = Array.from({ length: 80 }, (_, i) => at("Beijing 1750", `court${i}`)).filter((s) => s.below === "fair");
+    expect(court.length).toBeGreaterThan(8);
+    expect(court.length).toBeLessThan(36);
+    for (const s of court) expect(fair(s.venue!).posts!.map((p) => p[0])).toContain(s.role);
+    expect(Array.from({ length: 40 }, (_, i) => at("London 2000", `court${i}`)).filter((s) => s.below).length).toBe(0);
   });
 
   it("starts a warlord in a generated hall of his own period, and nowhere when no period fits", () => {

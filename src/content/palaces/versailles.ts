@@ -1,6 +1,6 @@
 import type { Fair, FairArea, FairFind } from "../fairs/types";
 import { find as f, palacePlan } from "./kit";
-import { louisQuatorze } from "./styles";
+import { louisQuatorze, service } from "./styles";
 
 // The palace of Versailles from 1701, when the King's bedchamber was moved to
 // the middle of the house, to 1789. A palace is planned the way a fair is: rooms
@@ -36,12 +36,14 @@ const areas: FairArea[] = [
   open("forecourt", "the forecourt", [10, 30, 20, 6], "The outer court inside the town gate, where carriages set down and swords are hired.", { gate: "s", exhibits: ["sword-hire"], people: [...court, "vrs-guard"] }),
   open("royal-court", "the Royal Court", [12, 24, 16, 6], "The inner court between the ministers' wings. Only carriages with the right to enter it pass the second gate."),
   open("marble-court", "the Marble Court", [16, 19, 8, 5], "The small court of black and white marble under the King's windows.", { stands: { tags: ["state"], n: 2 } }),
-  room("grand-commun", "the Grand Commun: the kitchens", [4, 24, 8, 6], ["kitchen"], 4, "The great service building beside the palace, where the court's food was cooked and its officers lodged.", { floor: "tile", look: "warm", exhibits: ["serdeau"], people: ["vrs-footman", "vrs-footman", "vrs-visitor"] }),
+  room("grand-commun", "the Grand Commun: the kitchens", [4, 24, 8, 6], ["kitchen"], 4, "The great service building beside the palace, where the court's food was cooked and its officers lodged.", { palace: { ...service, room: "kitchen", bays: ["hearth", "panel", "panel"] }, exhibits: ["serdeau"], people: ["vrs-footman", "vrs-footman", "vrs-visitor"] }),
   room("ministers", "the Ministers' Wing", [28, 24, 6, 6], ["office"], 1, "The wing of the secretaries of state. The petition table stood in the guard room on set days; it is put here with the clerks.", { exhibits: ["petition-table"], basis: "inferred" }),
-  room("guard-room", "the King's Guard Room", [10, 19, 6, 5], ["arms"], 1, "The room of the bodyguard, at the head of the stair, which everyone crosses to reach the King.", { palace: { floor: "marble" }, people: [...court, "vrs-guard", "vrs-guard"] }),
-  room("chapel", "the Royal Chapel", [24, 19, 6, 5], ["chapel"], 1, "The King hears Mass here every morning from the gallery, with the court below facing him and not the altar. The present chapel was finished in 1710.", { palace: { floor: "marble" } }),
-  room("antechamber", "the Bull's-Eye Antechamber", [16, 15, 4, 4], ["state"], 2, "The room outside the bedchamber, named for its oval window, where the court waits each morning to be let in."),
-  room("bedchamber", "the King's Bedchamber", [20, 15, 4, 4], ["bedchamber"], 0, "The King rises and goes to bed here in public, each garment handed to him by someone with the right to hand it.", { exhibits: ["kings-bed"] }),
+  room("guard-room", "the King's Guard Room", [10, 19, 6, 5], ["arms"], 1, "The room of the bodyguard, at the head of the stair, which everyone crosses to reach the King.", { palace: { floor: "marble", room: "guard", bays: ["panel"] }, opens: ["royal-court", "antechamber", "queens"], people: [...court.slice(0, 4), "vrs-guard", "vrs-guard"] }),
+  room("chapel", "the Royal Chapel", [24, 19, 6, 5], ["chapel"], 1, "The King hears Mass here every morning from the gallery, with the court below facing him and not the altar. The present chapel was finished in 1710.", { palace: { floor: "marble", room: "chapel", bays: ["hanging", "panel"] } }),
+  // The King's apartment, in the order a visitor is let through it: guard room, antechamber, bedchamber, cabinet.
+  room("antechamber", "the Bull's-Eye Antechamber", [14, 15, 4, 4], ["state"], 1, "The room outside the bedchamber, named for its oval window, where the court waits each morning to be let in.", { palace: { room: "antechamber" }, opens: ["guard-room", "bedchamber", "mirrors"] }),
+  room("bedchamber", "the King's Bedchamber", [18, 15, 4, 4], ["bedchamber"], 0, "The King rises and goes to bed here in public, each garment handed to him by someone with the right to hand it.", { palace: { room: "bedchamber", bays: ["hanging", "panel", "hanging"] }, opens: ["antechamber", "cabinet"], exhibits: ["kings-bed"], people: ["vrs-valet", "vrs-courtier", "vrs-officer"] }),
+  room("cabinet", "the Council Cabinet", [22, 15, 4, 4], [], 0, "The King works here with his ministers, a few at a time, at a table covered in green velvet. What is decided at it is law by evening.", { palace: { room: "closet", bays: ["mirror", "bookcase", "mirror"] }, opens: ["bedchamber", "mirrors"], people: ["vrs-secretary", "vrs-officer"] }),
   room("queens", "the Queen's Apartments", [8, 13, 6, 6], ["state"], 3, "The south range of state rooms. With no queen since 1683 they belong to the first lady of the court.", { exhibits: ["gobelins"] }),
   room("state", "the King's State Apartments", [26, 13, 6, 6], ["state"], 3, "Seven rooms in a row, each named for a planet's god. The last, Apollo's, is the throne room.", { exhibits: ["throne", "rigaud-portrait", "harpsichord"] }),
   room("mirrors", "the Hall of Mirrors", [14, 11, 12, 4], ["state"], 4, "Seventeen windows on the gardens and seventeen arches of mirror facing them, 357 mirrors in all. Everyone crosses it to reach the King, so everyone waits here to be seen.", { palace: { bays: ["mirror"] } }),

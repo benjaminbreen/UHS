@@ -2,7 +2,7 @@ import { h2, Raster } from "../ship/raster";
 import { palaceBays, type FairLevel } from "../../world/fair";
 import type { FairSprite } from "./things";
 import { fairById } from "../../content/fairs";
-import { GILT as GILT_BRONZE, louisQuatorze, type PalaceStyle } from "../../content/palaces/styles";
+import { GILT as GILT_BRONZE, louisQuatorze, WALNUT, type PalaceStyle } from "../../content/palaces/styles";
 
 const MIRROR = ["#d3e0e7", "#b7c8d2", "#a0b3bf", "#899eac", "#6e8494"];
 const WHITE = ["#ffffff", "#f2eee6", "#dcd6ca", "#b8b0a2", "#8c8478"];
@@ -35,9 +35,10 @@ const TALL = PALACE_RISE + 48;
  * bay square, or black and white marble. */
 export function palaceFloor(R: Raster, X: number, Y: number, L: FairLevel, ax: number, ay: number) {
   use(L.palace);
-  const { b0 } = palaceBays(L.w), kind = STYLE.floor, rug = kind === "carpet" && ax >= 3 && ax < L.w - 3 && ay >= 5 && ay < L.h - 3;
+  const { b0 } = palaceBays(L.w), laid = STYLE.floor, rug = laid === "carpet" && ax >= 3 && ax < L.w - 3 && ay >= 5 && ay < L.h - 3;
   for (let j = 0; j < 16; j++) for (let i = 0; i < 16; i++) {
     const gx = ax * 16 + i, gy = ay * 16 + j;
+    const kind = laid === "carpet" && STYLE.order === "pillared" ? "flags" : laid;
     let col: string;
     if (rug) {
       // A carpet: a border of two gold lines round a field of small lozenges, all in the room's cloth.
@@ -62,6 +63,19 @@ export function palaceFloor(R: Raster, X: number, Y: number, L: FairLevel, ax: n
       // Short blocks laid in a herringbone: two tones for the two ways they run, a joint a shade down.
       const o = PARQUET[0], flip = ((gx >> 3) + (gy >> 3)) % 2 === 0, along = flip ? gx : gy, across = flip ? gy : gx;
       col = across % 4 === 3 || along % 8 === 7 ? o.ground : flip ? o.a : o.b;
+    } else if (kind === "flags") {
+      // Big slabs of stone in courses, each a shade of its own, a fine joint between.
+      const row = Math.floor(gy / 24), u = (gx + (row % 2) * 18) % 36, slab = h2(Math.floor((gx + (row % 2) * 18) / 36), row, 41);
+      const F = STYLE.order === "screened" ? ROUGE : CREAM;
+      col = u === 0 || gy % 24 === 0 ? F[3] : slab > 0.7 ? F[1] : F[2];
+    } else if (kind === "tatami") {
+      // Straw mats two cells long, laid in courses, each bound along its long edges in dark cloth.
+      const row = Math.floor((gy - 48) / 16), u = (((gx - 16 + (row % 2) * 16) % 32) + 32) % 32, v = (((gy - 48) % 16) + 16) % 16;
+      col = v === 0 ? "#8e9a6c" : u === 0 ? "#b4b07e" : (gx + (v >> 1)) % 2 ? "#cbc792" : "#c6c28c";
+    } else if (kind === "plaster") {
+      // A plastered floor, painted: a pale field inside a border of two coloured lines.
+      const ex = Math.min(gx - 16, (L.w - 1) * 16 - 1 - gx), ey = Math.min(gy - 48, (L.h - 1) * 16 - 1 - gy), e = Math.min(ex, ey);
+      col = e >= 8 && e < 11 ? CLOTH[2] : e === 13 || e === 14 ? FIELD[2] : CREAM[1];
     } else if (kind === "marble") {
       // Marble squares set on the diagonal: soft black and warm white, a thin joint, one vein to a slab.
       const p = Math.floor((gx + gy) / 24), q = Math.floor((gx - gy + 4800) / 24), black = (p + q) % 2 === 0;
@@ -344,11 +358,11 @@ const THATCH = ["#6a5438", "#584430", "#463626", "#34281c"], BONE = ["#f4ecd8", 
 /** A timber hall's back wall: the underside of the thatch on its rafters, a wall plate, daub or planks between
  * posts with braces, and in each bay something hung up or a doorway. */
 function timberBack(R: Raster, L: FairLevel, OX: number, T: number, seed: number) {
-  const W = L.w * 16, x0 = OX + 8, x1 = OX + W - 8, { b0, n } = palaceBays(L.w), plank = STYLE.walling === "plank", B = T + TALL;
+  const W = L.w * 16, x0 = OX + 8, x1 = OX + W - 8, { b0, n } = palaceBays(L.w), plank = STYLE.walling === "plank", stone = STYLE.walling === "stone", ashlar = STYLE.walling === "ashlar", B = T + TALL;
   for (let y = T; y < T + 38; y++) for (let x = x0; x < x1; x++) {
-    // Reed thatch in courses, blacker with smoke toward the ridge.
+    // Reed thatch in courses, blacker with smoke toward the ridge; over a stone hall, oak boards on their rafters.
     const t = y - T, course = Math.floor(t / 5), reed = h2((x + course * 3) >> 1, course, seed);
-    R.set(x, y, t % 5 === 4 ? THATCH[3] : reed > 0.72 ? THATCH[0] : reed < 0.2 ? THATCH[2] : THATCH[1]);
+    R.set(x, y, stone ? (t % 9 === 8 ? GILT[4] : h2(x >> 4, Math.floor(t / 9), seed) > 0.5 ? GILT[3] : GILT[2]) : t % 5 === 4 ? THATCH[3] : reed > 0.72 ? THATCH[0] : reed < 0.2 ? THATCH[2] : THATCH[1]);
     R.shade(x, y, 0.5 - (t / 38) * 0.4, [24, 18, 20]);
   }
   for (let x = OX + b0 * 16 - 24; x < x1; x += 24) if (x > x0) { R.fill(x - 1, T, 3, 38, GILT[3]); R.fill(x - 1, T, 1, 38, GILT[2]); for (let y = T; y < T + 20; y++) for (let i = -1; i < 2; i++) R.shade(x + i, y, 0.4 - (y - T) * 0.02, [24, 18, 20]); }
@@ -356,7 +370,15 @@ function timberBack(R: Raster, L: FairLevel, OX: number, T: number, seed: number
   for (let x = x0 + 5; x < x1; x += 12) R.fill(x, T + 41, 2, 2, GILT[4]);
   for (let y = T + 45; y < T + 108; y++) for (let x = x0; x < x1; x++) {
     let col: string;
-    if (plank) {
+    if (stone) {
+      // Cut stone in even courses, each block a shade of its own.
+      const row = Math.floor((y - T) / 9), u = (x - x0 + (row % 2) * 9) % 18, tone = h2(Math.floor((x - x0 + (row % 2) * 9) / 18), row, seed);
+      col = u === 0 || (y - T) % 9 === 0 ? CREAM[3] : tone > 0.7 ? CREAM[0] : tone < 0.25 ? CREAM[2] : CREAM[1];
+    } else if (ashlar) {
+      // Great blocks fitted without mortar, each face a little cushioned: lit at the top, shaded at the foot.
+      const row = Math.floor((y - T - 45) / 13), u = (x - x0 + (row % 2) * 11 + Math.floor(h2(row, 2, seed) * 6)) % 23, v = (y - T - 45) % 13, tone = h2(Math.floor((x - x0 + (row % 2) * 11) / 23), row, seed + 1);
+      col = u === 0 || v === 0 ? CREAM[4] : u === 1 || v === 1 ? CREAM[0] : u === 22 || v === 12 ? CREAM[3] : tone > 0.6 ? CREAM[1] : CREAM[2];
+    } else if (plank) {
       // Upright planks, each a tone of its own, a dark joint between.
       const p = Math.floor((x - x0) / 6), tone = h2(p, 3, seed), knot = h2(p, (y - T) >> 3, seed + 5) > 0.965 && (x - x0) % 6 > 1 && (x - x0) % 6 < 4;
       col = (x - x0) % 6 === 5 ? CREAM[4] : knot ? CREAM[4] : (x - x0) % 6 === 0 ? CREAM[tone > 0.5 ? 0 : 1] : tone > 0.66 ? CREAM[1] : tone < 0.3 ? CREAM[3] : CREAM[2];
@@ -378,9 +400,26 @@ function timberBack(R: Raster, L: FairLevel, OX: number, T: number, seed: number
     else if (bay === "hides") hide(R, bx + 24, T + 76, s2);
     else if (bay === "antlers") antlers(R, bx + 24, T + 78);
     else if (bay === "shelf") shelf(R, bx, T, s2);
+    else if (bay === "lancet") {
+      // Two pointed lights of coloured glass under a round one, in a frame of cut stone.
+      const cx = bx + 24, glassy = [FIELD[1], CLOTH[1], "#e8c860", FIELD[2], CLOTH[2]];
+      for (let y = 0; y < 52; y++) for (let x = -13; x <= 13; x++) {
+        const rise = y < 16 ? Math.sqrt(Math.max(0, 1 - ((16 - y) / 16) ** 2)) * 13 : 13;
+        if (Math.abs(x) > rise) continue;
+        const edge = Math.abs(x) > rise - 2 || y === 51, bar = x === 0 || (y > 14 && y % 9 === 5), eye = y < 14 && x * x + (y - 8) * (y - 8) < 22;
+        R.set(cx + x, T + 50 + y, edge ? CREAM[x < 0 ? 0 : 3] : eye ? (x * x + (y - 8) * (y - 8) < 8 ? "#e8c860" : CLOTH[1]) : bar ? "#3a3440" : glassy[Math.floor(h2((x + 20) >> 2, y >> 2, s2) * 5)]);
+      }
+      R.fill(cx - 15, T + 102, 30, 3, CREAM[0]); R.fill(cx - 15, T + 104, 30, 1, CREAM[3]);
+    } else if (bay === "niche") {
+      // A niche wider at the foot than the head, something of gold or fine clay stood in it.
+      const cx = bx + 24;
+      for (let y = 0; y < 34; y++) { const half = 7 + Math.round((y / 33) * 3); R.fill(cx - half, T + 58 + y, half * 2, 1, y < 3 ? CREAM[5] : CREAM[4]); R.set(cx - half, T + 58 + y, CREAM[5]); R.set(cx + half - 1, T + 58 + y, CREAM[3]); }
+      R.fill(cx - 10, T + 92, 20, 1, CREAM[0]);
+      if (s2 % 3) jar(R, cx, T + 91, [2, 3, 4, 4, 3, 2, 1, 2], s2); else { R.fill(cx - 2, T + 78, 4, 13, "#e8c860"); R.fill(cx - 3, T + 80, 6, 4, "#e8c860"); R.fill(cx - 1, T + 75, 3, 3, "#f6e08a"); R.fill(cx + 1, T + 80, 1, 11, "#b08a30"); }
+    }
   }
-  // Posts at every bay, braced up to the plate.
-  for (let k = 0; k <= n; k++) {
+  // Posts at every bay, braced up to the plate. Fitted stone needs none.
+  if (!ashlar) for (let k = 0; k <= n; k++) {
     const px = OX + (b0 + 3 * k) * 16;
     for (let y = T + 45; y < T + 108; y++) for (let i = 0; i < 3; i++) R.shade(px + 4 + i, y, 0.2 - i * 0.06, [30, 22, 24]);
     for (const s of [-1, 1]) for (let j = 0; j < 10; j++) { R.fill(px + s * (4 + j) - (s < 0 ? 2 : 0), T + 56 - j, 3, 4, GILT[s < 0 ? 2 : 3]); R.fill(px + s * (4 + j) - (s < 0 ? 2 : 0), T + 56 - j, 3, 1, GILT[s < 0 ? 0 : 1]); }
@@ -627,6 +666,257 @@ function openCourt(R: Raster, L: FairLevel, OX: number, OY: number) {
   for (let k = 0; k < 4; k++) for (let x = X + 2; x < X + W + 2; x++) R.shade(x, Y + H + k, 0.2 - k * 0.05);
 }
 
+const SKIN = ["#c87a50", "#a85e3a", "#84462c"], HAIR = "#2a2226";
+/** Someone walking in file, in profile with the shoulders square: bare to the waist in a white kilt, or robed and bearded, carrying a gift. */
+function walker(R: Raster, x: number, base: number, robed: boolean, seed: number) {
+  const gift = seed % 3;
+  if (robed) {
+    for (let y = base - 26; y < base - 1; y++) { const t = (y - base + 26) / 25, wd = 7 + Math.round(t * 2); R.fill(x + 1, y, wd, 1, CLOTH[1]); R.set(x + 1, y, CLOTH[0]); R.set(x + wd, y, CLOTH[3]); if ((y - base) % 5 === 0) R.fill(x + 2, y, wd - 2, 1, CLOTH[2]); }
+    R.fill(x + 2, base - 15, 6, 1, GILT[1]);
+  } else {
+    R.fill(x + 1, base - 26, 8, 3, SKIN[0]); R.fill(x + 2, base - 23, 6, 4, SKIN[0]); R.fill(x + 7, base - 23, 1, 4, SKIN[2]); R.fill(x + 1, base - 26, 8, 1, FIELD[1]);
+    for (let j = 0; j < 8; j++) R.fill(x + 2 - (j > 3 ? 1 : 0), base - 19 + j, 6 + (j > 3 ? 2 : 0), 1, j === 0 ? GILT[1] : "#f6f0e2");
+    R.fill(x + 8, base - 16, 1, 5, "#cfc6b2");
+    R.fill(x + 2, base - 11, 2, 10, SKIN[1]); R.fill(x + 6, base - 11, 2, 10, SKIN[0]);
+  }
+  R.fill(x + 1, base - 1, 4, 1, robed ? HAIR : SKIN[1]); R.fill(x + 6, base - 1, 4, 1, robed ? HAIR : SKIN[0]);
+  R.fill(x + 4, base - 31, 4, 5, SKIN[0]); R.set(x + 8, base - 29, SKIN[0]); R.set(x + 6, base - 30, HAIR);
+  R.fill(x + 3, base - 32, 5, 2, HAIR); R.fill(x + 2, base - 31, 2, robed ? 4 : 6, HAIR);
+  if (robed) { R.fill(x + 6, base - 27, 3, 2, HAIR); R.fill(x + 3, base - 34, 5, 2, CLOTH[0]); }
+  // The arm held out, and what it carries.
+  R.fill(x + 8, base - 23, 4, 1, SKIN[1]); R.fill(x + 11, base - 24, 1, 2, SKIN[1]);
+  if (gift === 0) { R.fill(x + 11, base - 29, 3, 5, GILT[1]); R.fill(x + 11, base - 29, 1, 5, GILT[0]); R.fill(x + 12, base - 30, 1, 1, GILT[2]); }
+  else if (gift === 1) R.fill(x + 12, base - 33, 1, 32, GILT[2]);
+  else { R.fill(x + 11, base - 27, 3, 3, FIELD[1]); R.set(x + 12, base - 28, LEAFY[0]); R.set(x + 11, base - 29, LEAFY[1]); R.set(x + 13, base - 29, LEAFY[1]); }
+}
+
+/** A lion walking, in a ramp of three tones and a mane. */
+function lion(R: Raster, x: number, y: number, c: readonly string[], mane: string) {
+  [
+    "0......................33.",
+    ".0...................33333",
+    ".0..1111111111111111.33133",
+    "..011111111111111111333111",
+    "..11111111111111111133311.",
+    "..1111111111111111113.....",
+    "..1122221111111122211.....",
+    "..11...111...111..111.....",
+    "..11....11...11....11.....",
+    ".111...111..111...111.....",
+  ].forEach((row, j) => [...row].forEach((ch, i) => { if (ch !== ".") R.set(x + i, y + j, ch === "3" ? mane : c[+ch]); }));
+  R.set(x + 24, y + 2, HAIR);
+}
+
+/** The back wall of a pillared hall: a painted cornice, a pale wall with people, beasts or pattern painted bay by bay, and a dado of stone. */
+function pillaredBack(R: Raster, L: FairLevel, OX: number, T: number, seed: number) {
+  const W = L.w * 16, x0 = OX + 8, x1 = OX + W - 8, { b0, n } = palaceBays(L.w), B = T + TALL, own = STYLE.columns ?? "papyrus", kind = own === "mexica" ? "aegean" : own === "moorish" ? "persian" : own;
+  for (let y = T; y < B; y++) for (let x = x0; x < x1; x++) {
+    const patch = h2((x + ((y >> 3) % 2) * 5) >> 4, y >> 3, seed);
+    R.set(x, y, patch > 0.88 ? CREAM[0] : CREAM[1]);
+  }
+  if (own === "moorish") {
+    // Rows of little hanging cells carved in plaster, and under them a band of writing in gold on blue.
+    for (let j = 0; j < 3; j++) for (let x = x0; x < x1; x++) { const u = (x - x0 + j * 3) % 6; R.set(x, T + j * 3, u === 0 ? CREAM[4] : CREAM[1]); R.set(x, T + j * 3 + 1, u < 2 ? CREAM[3] : CREAM[0]); R.set(x, T + j * 3 + 2, u === 2 || u === 3 ? CREAM[4] : CREAM[2]); }
+    R.fill(x0, T + 9, x1 - x0, 8, ROUGE[2]); R.fill(x0, T + 9, x1 - x0, 1, "#e8c860"); R.fill(x0, T + 16, x1 - x0, 1, "#e8c860");
+    for (let x = x0 + 2; x < x1 - 2; x++) { const u = (x - x0) % 14, y = T + 13 + Math.round(Math.sin(u * 0.9 + (x >> 4)) * 1.6); if (u < 11) R.set(x, y, "#f6e08a"); if (u === 3 || u === 8) R.fill(x, T + 11, 1, 3, "#f6e08a"); if (u === 5) R.set(x, T + 15, "#f6e08a"); }
+  } else if (own === "mexica") {
+    // A row of white discs on red, and under them a stepped fret.
+    R.fill(x0, T, x1 - x0, 9, GILT[2]); R.fill(x0, T, x1 - x0, 1, GILT[1]);
+    for (let x = x0 + 4; x < x1 - 3; x += 8) { R.fill(x - 2, T + 2, 5, 5, CREAM[0]); R.fill(x - 1, T + 1, 3, 7, CREAM[0]); R.fill(x - 1, T + 3, 3, 3, GILT[1]); }
+    R.fill(x0, T + 9, x1 - x0, 8, CREAM[0]); R.fill(x0, T + 9, x1 - x0, 1, GILT[3]);
+    for (let x = x0; x < x1; x++) { const u = (x - x0) % 12; R.fill(x, T + 10 + (u < 3 ? 4 : u < 6 ? 2 : u < 9 ? 0 : 5), 1, u < 9 ? 6 - (u < 3 ? 4 : u < 6 ? 2 : 0) : 1, FIELD[2]); }
+    R.fill(x0, T + 16, x1 - x0, 1, GILT[3]);
+  } else if (kind === "papyrus") {
+    // A cavetto cornice: upright leaves in red, blue and green, curling forward over a round moulding.
+    const leaf = [CLOTH, ROUGE.slice(1), FIELD, GILT];
+    for (let x = x0; x < x1; x++) { const k = Math.floor((x - x0) / 3) % 4, c = leaf[k]; for (let j = 0; j < 12; j++) R.set(x, T + 2 + j, (x - x0) % 3 === 2 ? CREAM[3] : j < 3 ? c[0] : j < 9 ? c[1] : c[2]); }
+    R.fill(x0, T, x1 - x0, 2, GILT[1]); R.fill(x0, T, x1 - x0, 1, GILT[0]);
+    R.fill(x0, T + 14, x1 - x0, 3, GILT[1]); R.fill(x0, T + 14, x1 - x0, 1, GILT[0]); R.fill(x0, T + 16, x1 - x0, 1, GILT[3]);
+    for (let x = x0 + 2; x < x1; x += 6) R.fill(x, T + 15, 2, 1, ROUGE[2]);
+  } else if (kind === "persian") {
+    // Stepped battlements over a band of glazed brick: rosettes on blue between yellow lines.
+    for (let x = x0; x < x1; x++) { const u = (x - x0) % 12, step = u < 2 || u > 9 ? 0 : u < 4 || u > 7 ? 2 : 4; R.fill(x, T + 4 - step, 1, step + 1, ROUGE[1]); if (step) R.set(x, T + 4 - step, ROUGE[0]); }
+    R.fill(x0, T + 5, x1 - x0, 12, FIELD[2]); R.fill(x0, T + 5, x1 - x0, 1, GILT[1]); R.fill(x0, T + 16, x1 - x0, 1, GILT[1]);
+    for (let x = x0 + 6; x < x1 - 4; x += 12) { R.fill(x - 2, T + 9, 5, 3, "#f4f0e0"); R.fill(x - 1, T + 8, 3, 5, "#f4f0e0"); R.set(x, T + 10, GILT[1]); }
+    for (let x = x0; x < x1; x += 2) R.set(x, T + 6 + ((x - x0) % 4 ? 0 : 9), FIELD[0]);
+  } else {
+    // The round ends of the roof beams in a row, and under them a running wave.
+    R.fill(x0, T, x1 - x0, 9, GILT[2]); R.fill(x0, T, x1 - x0, 1, GILT[1]); R.fill(x0, T + 8, x1 - x0, 1, GILT[4]);
+    for (let x = x0 + 4; x < x1 - 3; x += 8) { R.fill(x - 2, T + 2, 5, 5, CREAM[1]); R.fill(x - 1, T + 1, 3, 7, CREAM[1]); R.fill(x - 1, T + 2, 2, 2, CREAM[0]); R.set(x + 1, T + 5, CREAM[3]); }
+    R.fill(x0, T + 9, x1 - x0, 8, FIELD[2]);
+    for (let x = x0; x < x1; x++) { const u = (x - x0) % 10, y = T + 12 + Math.round(Math.sin((u / 10) * 6.283) * 2); R.fill(x, y, 1, 2, "#f4f0e0"); if (u === 7) R.fill(x, y - 2, 2, 2, "#f4f0e0"); }
+    R.fill(x0, T + 17, x1 - x0, 1, GILT[2]);
+  }
+  for (let k = 0; k < 4; k++) for (let x = x0; x < x1; x++) R.shade(x, T + 17 + k, 0.22 - k * 0.05, [40, 30, 30]);
+  // The dado: cut tile in stars, coloured bands in Egypt, slabs of stone elsewhere.
+  if (own === "moorish") {
+    const tiles = [ROUGE[1], FIELD[1], "#e0b050", "#2e2a30", CREAM[0]];
+    for (let y = T + 80; y < T + 108; y++) for (let x = x0; x < x1; x++) {
+      const u = (x - x0) % 12, v = (y - T - 80) % 12, d = Math.abs(u - 6) + Math.abs(v - 6), cell = Math.floor((x - x0) / 12) + Math.floor((y - T - 80) / 12);
+      R.set(x, y, d === 6 || d === 3 ? CREAM[0] : d < 3 ? tiles[2] : d < 6 ? tiles[cell % 2] : tiles[3]);
+    }
+    R.fill(x0, T + 78, x1 - x0, 2, "#2e2a30"); R.fill(x0, T + 79, x1 - x0, 1, CREAM[0]); R.fill(x0, T + 108, x1 - x0, 4, WHITE[2]); R.fill(x0, T + 108, x1 - x0, 1, WHITE[0]);
+  } else if (kind === "papyrus") {
+    R.fill(x0, T + 90, x1 - x0, 22, ROUGE[3]);
+    for (const [y, c] of [[90, GILT[1]], [92, CLOTH[1]], [94, GILT[1]], [107, GILT[2]]] as const) R.fill(x0, T + y, x1 - x0, y === 92 ? 2 : 1, c);
+    for (let x = x0 + 3; x < x1; x += 7) { R.fill(x, T + 97, 1, 9, ROUGE[1]); R.fill(x - 1, T + 97, 3, 2, ROUGE[1]); R.set(x, T + 96, GILT[1]); }
+    R.fill(x0, T + 108, x1 - x0, 4, "#2e2a30");
+  } else {
+    const st = kind === "persian" ? ROUGE : WHITE;
+    R.fill(x0, T + 90, x1 - x0, 22, st[1]); R.fill(x0, T + 90, x1 - x0, 1, st[0]); R.fill(x0, T + 91, x1 - x0, 1, kind === "persian" ? st[3] : GILT[2]); R.fill(x0, T + 108, x1 - x0, 4, st[3]); R.fill(x0, T + 108, x1 - x0, 1, st[2]);
+    for (let x = x0 + 14; x < x1; x += 24) R.fill(x, T + 92, 1, 16, st[2]);
+    for (let x = x0; x < x1; x++) for (let y = T + 93; y < T + 107; y++) if (h2((x + (y - T) * 2) >> 2, (y - T) >> 1, seed + 3) > 0.9 && (x + y) % 3 === 0) R.set(x, y, st[2]);
+  }
+  for (let k = 0; k < n; k++) {
+    const ax = b0 + 3 * k, bx = OX + ax * 16, s2 = seed + k * 23, hung = L.things.some((t) => t.wall && t.x >= ax && t.x < ax + 3);
+    if (L.exits.some((e) => e.y === 0 && e.x === ax)) { romanDoor(R, bx, B); continue; }
+    const bay = hung ? "bare" : STYLE.bays[k % STYLE.bays.length];
+    if (bay === "arch" || (bay === "lattice" && own === "moorish")) {
+      // A horseshoe arch: blind and filled with carved plaster, or open behind a wooden lattice.
+      const cx = bx + 24, open = bay === "lattice";
+      for (let y = 0; y < 52; y++) for (let x = -15; x <= 15; x++) {
+        const half = y < 20 ? Math.sqrt(Math.max(0, 1 - ((20 - y) / 20) ** 2)) * 15 : y < 30 ? 15 : 15 - (y - 30) * 0.12;
+        if (Math.abs(x) > half) continue;
+        const rim = Math.abs(x) > half - 2, inner = Math.abs(x) > half - 3;
+        R.set(cx + x, T + 24 + y, rim ? (((x + 30) >> 1) + (y >> 1)) % 2 ? CLOTH[1] : CREAM[0] : inner ? CREAM[4]
+          : open ? ((x + y + 60) % 5 === 0 || (x - y + 60) % 5 === 0 ? FRAME[2] : y < 30 ? "#cfe4ee" : "#b4d4a8")
+          : (Math.abs(((x + 40) % 8) - 4) + Math.abs((y % 8) - 4) === 4 ? CREAM[3] : (x + 40) % 8 === 4 && y % 8 === 4 ? "#e8c860" : CREAM[1]));
+      }
+      R.fill(cx - 17, T + 22, 34, 1, CREAM[3]); R.fill(cx - 17, T + 76, 34, 1, CREAM[3]);
+    } else if (bay === "relief") {
+      // People in file on a ground line, all walking the same way.
+      R.fill(bx + 5, T + 82, 38, 1, GILT[2]); R.fill(bx + 5, T + 83, 38, 2, kind === "papyrus" ? FIELD[1] : CLOTH[2]);
+      for (let i = 0; i < 2; i++) walker(R, bx + 8 + i * 17, T + 82, kind === "persian", s2 + i);
+      if (kind === "papyrus") for (let j = 0; j < 5; j++) { R.fill(bx + 7 + ((j * 7 + s2) % 5), T + 28 + j * 4, 3 + ((j + s2) % 3), 2, j % 2 ? ROUGE[2] : CLOTH[2]); R.fill(bx + 36 + ((j * 5 + s2) % 4), T + 28 + j * 4, 2 + ((j * 3 + s2) % 3), 2, j % 2 ? FIELD[2] : ROUGE[3]); }
+    } else if (bay === "beast") {
+      // A lion on a coloured ground, framed.
+      const glazed = kind !== "papyrus" && own !== "mexica", g = kind === "aegean" ? CLOTH : FIELD;
+      if (glazed) { R.fill(bx + 5, T + 48, 38, 30, g[2]); R.fill(bx + 5, T + 48, 38, 1, GILT[1]); R.fill(bx + 5, T + 77, 38, 1, GILT[1]); R.fill(bx + 5, T + 48, 1, 30, GILT[1]); R.fill(bx + 42, T + 48, 1, 30, GILT[1]); for (let x = bx + 8; x < bx + 41; x += 5) { R.set(x, T + 51, g[0]); R.set(x, T + 74, g[0]); } }
+      else if (own === "mexica") R.fill(bx + 5, T + 73, 38, 2, GILT[2]);
+      else { R.fill(bx + 5, T + 73, 38, 1, GILT[2]); for (let i = 0; i < 9; i++) for (const sgn of [-1, 1]) { R.fill(bx + 24 + sgn * (3 + i * 2) - (sgn < 0 ? 1 : 0), T + 40 + (i >> 2), 2, 3 + (i < 6 ? 2 : 0), i % 2 ? FIELD[1] : ROUGE[2]); } R.fill(bx + 21, T + 38, 6, 6, CLOTH[1]); R.fill(bx + 22, T + 37, 4, 8, CLOTH[1]); R.fill(bx + 22, T + 39, 2, 2, CLOTH[0]); }
+      const cat = own === "mexica" ? ["#f6d488", "#e0b050", "#b88838"] : glazed ? [GILT[0], GILT[1], GILT[2]] : [GILT[1], GILT[2], GILT[3]];
+      lion(R, bx + 11, T + (glazed ? 58 : 62), cat, own === "mexica" ? cat[1] : kind === "aegean" ? "#f4f0e0" : GILT[3]);
+      // A jaguar is spotted.
+      if (own === "mexica") for (let i = 0; i < 7; i++) R.set(bx + 15 + i * 2 + (i % 2), T + 65 + (i % 3), HAIR);
+      if (kind === "aegean" && glazed) for (const px of [bx + 8, bx + 38]) for (let j = 0; j < 14; j++) { R.set(px + (j % 4 === 1 ? 1 : j % 4 === 3 ? -1 : 0), T + 74 - j, FIELD[0]); if (j % 4 === 2) R.fill(px - 1, T + 74 - j, 3, 1, "#f4f0e0"); }
+    } else if (bay === "bands") {
+      // Bands of pattern, as on a woven hanging.
+      for (let j = 0; j < 4; j++) {
+        const y = T + 34 + j * 12, c = j % 2 ? FIELD : CLOTH;
+        R.fill(bx + 5, y, 38, 9, c[1]); R.fill(bx + 5, y, 38, 1, c[0]); R.fill(bx + 5, y + 8, 38, 1, c[3]);
+        for (let x = bx + 6; x < bx + 42; x++) { const u = (x - bx) % 8; if (kind === "aegean") R.set(x, y + 4 + Math.round(Math.sin((u / 8) * 6.283) * 2), "#f4f0e0"); else if (kind === "persian") { if (u === 3) R.fill(x - 1, y + 4, 3, 1, GILT[1]), R.fill(x, y + 3, 1, 3, GILT[1]); } else R.set(x, y + 2 + Math.abs(u - 4), GILT[1]); }
+      }
+    }
+  }
+  // Between the bays: a strip of writing in Egypt, a pilaster of stone or a painted band elsewhere.
+  for (let k = 0; k <= n; k++) {
+    const px = OX + (b0 + 3 * k) * 16;
+    if (px < x0 + 4 || px > x1 - 4) continue;
+    if (kind === "papyrus") {
+      R.fill(px - 4, T + 20, 8, 70, CREAM[0]); R.fill(px - 4, T + 20, 1, 70, ROUGE[2]); R.fill(px + 3, T + 20, 1, 70, ROUGE[2]);
+      for (let y = T + 23; y < T + 88; y += 4) { const g = Math.floor(h2(k, y, seed + 7) * 5); R.fill(px - 2 + (g % 2), y, 2 + (g > 2 ? 1 : 0), 2, g === 0 ? CLOTH[2] : g === 4 ? ROUGE[3] : HAIR); if (g % 2) R.set(px + 1, y + 2, HAIR); }
+    } else {
+      const c = own === "moorish" ? WHITE : kind === "persian" ? ROUGE : GILT, foot = own === "moorish" ? 60 : 72;
+      R.fill(px - 4, T + 18, 8, foot, c[1]); R.fill(px - 4, T + 18, 2, foot, c[0]); R.fill(px + 2, T + 18, 2, foot, c[3]);
+      R.fill(px - 5, T + 18, 10, 3, c[0]); R.fill(px - 5, T + 20, 10, 1, c[3]);
+    }
+  }
+}
+
+const PAPER = ["#fbf8ee", "#f0ebdc", "#dcd6c4"], BEAM_BLUE = ["#9ab8e8", "#4a78c0", "#2e549a"];
+/** A pine painted on a screen: a leaning trunk and flat boughs. */
+function pine(R: Raster, x: number, y: number, seed: number) {
+  for (let j = 0; j < 30; j++) R.fill(x + 6 + Math.round(Math.sin(j / 7 + seed) * 3) + (j >> 3), y + 34 - j, 2, 1, j % 5 === 0 ? "#5a3e2a" : "#7a5638");
+  for (const [dx, dy, w] of [[0, 4, 14], [10, 9, 12], [-2, 14, 13], [9, 19, 11], [1, 24, 10]]) { R.fill(x + dx, y + dy, w, 3, LEAFY[2]); R.fill(x + dx + 1, y + dy - 1, w - 3, 1, LEAFY[1]); R.fill(x + dx + 2, y + dy + 3, w - 5, 1, LEAFY[3]); }
+}
+
+/** The back wall of a screened hall: posts with screens between them. Lacquer and painted beams under brackets, or bare cypress, paper and gold leaf under a transom. */
+function screenedBack(R: Raster, L: FairLevel, OX: number, T: number, seed: number) {
+  const W = L.w * 16, x0 = OX + 8, x1 = OX + W - 8, { b0, n } = palaceBays(L.w), B = T + TALL, jp = STYLE.columns === "cypress", top = jp ? 24 : 28;
+  R.fill(x0, T, x1 - x0, TALL, CREAM[1]);
+  if (jp) {
+    // A transom of thin upright bars over a rail.
+    R.fill(x0, T, x1 - x0, 3, GILT[3]); R.fill(x0, T + 3, x1 - x0, 15, CREAM[0]);
+    for (let x = x0 + 1; x < x1; x += 3) R.fill(x, T + 5, 1, 12, GILT[2]);
+    R.fill(x0, T + 4, x1 - x0, 1, GILT[2]); R.fill(x0, T + 17, x1 - x0, 1, GILT[2]);
+    R.fill(x0, T + 18, x1 - x0, 5, GILT[1]); R.fill(x0, T + 18, x1 - x0, 1, GILT[0]); R.fill(x0, T + 22, x1 - x0, 1, GILT[4]);
+    R.fill(x0, T + 106, x1 - x0, 6, GILT[2]); R.fill(x0, T + 106, x1 - x0, 1, GILT[0]); R.fill(x0, T + 111, x1 - x0, 1, GILT[4]);
+  } else {
+    // Bracket sets in blue and green edged with white, over a beam painted in panels and lined with gold.
+    R.fill(x0, T, x1 - x0, 11, "#28343c");
+    for (let x = x0 + 1, k = 0; x < x1 - 9; x += 12, k++) {
+      const c = k % 2 ? BEAM_BLUE : FIELD;
+      for (const [dx, dy, w] of [[3, 0, 4], [1, 3, 8], [0, 7, 10]]) { R.fill(x + dx, T + dy + 1, w, 3, c[1]); R.fill(x + dx, T + dy, w, 1, PAPER[0]); R.fill(x + dx + w - 1, T + dy + 1, 1, 3, c[2]); }
+    }
+    R.fill(x0, T + 11, x1 - x0, 15, FIELD[2]); R.fill(x0, T + 11, x1 - x0, 1, CLOTH[1]); R.fill(x0, T + 25, x1 - x0, 1, CLOTH[1]); R.fill(x0, T + 26, x1 - x0, 1, CLOTH[3]);
+    R.fill(x0, T + 100, x1 - x0, 12, ROUGE[1]); R.fill(x0, T + 100, x1 - x0, 1, ROUGE[0]);
+    for (let y = T + 104; y < B; y += 4) R.fill(x0, y, x1 - x0, 1, ROUGE[2]);
+    for (let x = x0; x < x1; x += 10) for (let j = 0; j < 3; j++) R.set(x + (j % 2) * 5, T + 101 + j * 4, ROUGE[2]);
+  }
+  for (let k = 0; k < 4; k++) for (let x = x0; x < x1; x++) R.shade(x, T + top - 1 + k, 0.2 - k * 0.05, [40, 30, 30]);
+  for (let k = 0; k < n; k++) {
+    const ax = b0 + 3 * k, bx = OX + ax * 16, cx = bx + 24, s2 = seed + k * 29, hung = L.things.some((t) => t.wall && t.x >= ax && t.x < ax + 3);
+    if (!jp) {
+      // The beam's panel over the bay: blue with a gold line that coils like a dragon.
+      R.fill(bx + 8, T + 14, 32, 9, BEAM_BLUE[1]); R.fill(bx + 8, T + 14, 32, 1, CLOTH[0]); R.fill(bx + 8, T + 22, 32, 1, CLOTH[2]); R.fill(bx + 8, T + 14, 1, 9, CLOTH[1]); R.fill(bx + 39, T + 14, 1, 9, CLOTH[1]);
+      for (let i = 0; i < 26; i++) R.set(bx + 11 + i, T + 18 + Math.round(Math.sin(i * 0.8 + s2) * 2), CLOTH[i % 5 === 0 ? 0 : 1]);
+    }
+    if (L.exits.some((e) => e.y === 0 && e.x === ax)) { romanDoor(R, bx, B); continue; }
+    const bay = hung ? "bare" : STYLE.bays[k % STYLE.bays.length], foot = jp ? 106 : 100;
+    if (bay === "lattice" && jp) {
+      // Paper screens: two leaves, a fine grid of wood over white paper, a board at the foot.
+      R.fill(bx + 5, T + top, 38, foot - top, GILT[2]);
+      for (const lx of [bx + 6, bx + 25]) {
+        R.fill(lx, T + top + 1, 17, foot - top - 13, PAPER[0]); R.fill(lx, T + foot - 12, 17, 11, GILT[1]); R.fill(lx, T + foot - 12, 17, 1, GILT[0]);
+        for (let x = lx + 5; x < lx + 17; x += 6) R.fill(x, T + top + 1, 1, foot - top - 13, GILT[1]);
+        for (let y = T + top + 8; y < T + foot - 13; y += 8) R.fill(lx, y, 17, 1, GILT[1]);
+        R.fill(lx, T + top + 1, 17, 2, PAPER[1]);
+      }
+    } else if (bay === "lattice") {
+      // A lattice window over a carved panel, all in red lacquer.
+      R.fill(bx + 6, T + top + 2, 36, 50, GILT[2]); R.fill(bx + 6, T + top + 2, 36, 1, GILT[0]); R.fill(bx + 41, T + top + 3, 1, 49, GILT[4]);
+      for (let y = 0; y < 44; y++) for (let x = 0; x < 30; x++) R.set(bx + 9 + x, T + top + 5 + y, (x + y) % 8 === 0 || (x - y + 80) % 8 === 0 || x % 15 === 0 || y % 22 === 0 ? GILT[1] : PAPER[y < 3 ? 2 : 1]);
+      R.fill(bx + 6, T + top + 54, 36, foot - top - 54, GILT[2]); R.fill(bx + 6, T + top + 54, 36, 1, GILT[0]);
+      R.fill(bx + 10, T + top + 58, 28, foot - top - 62, GILT[3]); R.fill(bx + 10, T + top + 58, 28, 1, GILT[4]);
+      for (const dx of [-6, 0, 6]) R.fill(cx + dx - 1, T + top + 63, 3, 3, CLOTH[1]), R.set(cx + dx, T + top + 62, CLOTH[0]);
+    } else if (bay === "screen" && jp) {
+      // Sliding screens covered in gold leaf, a pine painted across them.
+      R.fill(bx + 5, T + top, 38, foot - top, HAIR); R.fill(bx + 6, T + top + 1, 36, foot - top - 2, FIELD[1]);
+      for (let y = T + top + 1; y < T + foot - 1; y++) for (let x = bx + 6; x < bx + 42; x++) { const cl = h2((x + (y >> 2)) >> 3, y >> 3, s2); if (cl > 0.72) R.set(x, y, FIELD[0]); else if (cl < 0.12) R.set(x, y, FIELD[2]); }
+      pine(R, bx + 12, T + top + 20, s2);
+      R.fill(bx + 5, T + foot - 14, 38, 1, FIELD[3]); R.fill(cx, T + top, 1, foot - top, HAIR);
+      for (const dx of [-4, 3]) R.fill(cx + dx, T + top + 44, 2, 3, HAIR);
+    } else if (bay === "screen") {
+      // A landscape in ink: far hills, nearer hills, mist between, a red seal.
+      R.fill(bx + 6, T + top + 4, 36, 54, FRAME[2]); R.fill(bx + 6, T + top + 4, 36, 1, FRAME[0]); R.fill(bx + 8, T + top + 6, 32, 50, PAPER[1]);
+      for (let x = 0; x < 32; x++) {
+        const far = 16 + Math.round(Math.sin(x / 5 + s2) * 6 + Math.sin(x / 2.3 + s2) * 2), near = 30 + Math.round(Math.sin(x / 4 + s2 * 2) * 5 + Math.sin(x / 1.7) * 2);
+        for (let y = far; y < 50; y++) R.set(bx + 8 + x, T + top + 6 + y, y > near ? (y > near + 8 ? "#5c6c74" : "#7c8c94") : y > far + 9 ? PAPER[0] : "#b4c0c4");
+      }
+      R.fill(bx + 35, T + top + 9, 3, 3, "#c8402e");
+    } else if (bay === "scroll") {
+      // A hanging scroll; in Japan in its alcove, over a vase with one branch in it.
+      if (jp) { R.fill(bx + 5, T + top, 38, foot - top, CREAM[2]); R.fill(bx + 5, T + top, 38, 3, CREAM[4]); R.fill(bx + 5, T + top, 2, foot - top, CREAM[3]); R.fill(bx + 5, T + foot - 8, 38, 8, GILT[2]); R.fill(bx + 5, T + foot - 8, 38, 1, GILT[0]); }
+      const sx = jp ? cx - 10 : cx - 7, sy = T + top + (jp ? 8 : 6);
+      R.fill(sx - 1, sy, 16, 2, FRAME[3]); R.fill(sx, sy + 2, 14, 6, CLOTH[2]); R.fill(sx, sy + 8, 14, 34, PAPER[0]); R.fill(sx, sy + 42, 14, 6, CLOTH[2]); R.fill(sx - 1, sy + 48, 16, 2, FRAME[3]);
+      for (const col of [3, 8]) for (let j = 0; j < 7; j++) { const g = Math.floor(h2(k * 3 + col, j, seed + 9) * 4); R.fill(sx + col, sy + 11 + j * 4, 2 + (g > 1 ? 1 : 0), g % 2 ? 2 : 3, HAIR); }
+      if (jp) { jar(R, cx + 11, T + foot - 8, [2, 3, 3, 2, 1, 1], s2); for (let j = 0; j < 12; j++) R.set(cx + 11 + (j >> 2), T + foot - 15 - j, "#5a3e2a"); for (const [dx, dy] of [[1, -20], [3, -24], [0, -26], [4, -18]]) R.fill(cx + 11 + dx, T + foot + dy, 2, 2, "#f0b0b8"); }
+      else R.fill(sx + 10, sy + 37, 3, 3, "#c8402e");
+    }
+  }
+  // The posts.
+  for (let k = 0; k <= n; k++) {
+    const px = OX + (b0 + 3 * k) * 16;
+    if (px < x0 + 4 || px > x1 - 4) continue;
+    if (jp) { R.fill(px - 3, T + 18, 6, 94, GILT[2]); R.fill(px - 3, T + 18, 2, 94, GILT[1]); R.fill(px + 2, T + 18, 1, 94, GILT[4]); }
+    else {
+      for (let y = T + 26; y < T + 106; y++) for (let i = -5; i < 5; i++) R.set(px + i, y, GILT[i < -4 ? 0 : i < -1 ? 1 : i < 3 ? 2 : 3]);
+      R.fill(px - 5, T + 30, 10, 2, CLOTH[1]); R.fill(px - 5, T + 30, 3, 1, CLOTH[0]);
+      R.fill(px - 7, T + 106, 14, 6, ROUGE[1]); R.fill(px - 7, T + 106, 14, 1, ROUGE[0]); R.fill(px + 3, T + 107, 4, 5, ROUGE[3]); R.fill(px - 6, T + 108, 12, 1, ROUGE[2]);
+    }
+  }
+}
+
 /** A palace room's walls: the back wall seven cells tall, in bays of mirror, damask and doorway
  * between marble pilasters under a gilt entablature; the side and front walls seen from above. */
 export function palaceWalls(R: Raster, L: FairLevel, OX: number, OY: number, seed: number) {
@@ -639,6 +929,8 @@ export function palaceWalls(R: Raster, L: FairLevel, OX: number, OY: number, see
   R.fill(OX + W, OY, 3, H + 3, DARK); R.fill(OX, OY + H, W, 3, DARK);
   if (STYLE.order === "timber") timberBack(R, L, OX, T, seed);
   else if (STYLE.order === "roman") frescoBack(R, L, OX, T, seed);
+  else if (STYLE.order === "pillared") pillaredBack(R, L, OX, T, seed);
+  else if (STYLE.order === "screened") screenedBack(R, L, OX, T, seed);
   else {
     R.fill(x0, T, x1 - x0, TALL, CREAM[1]);
     // The dado: a gilt rail, panels outlined in gold, a skirting.
@@ -661,7 +953,7 @@ export function palaceWalls(R: Raster, L: FairLevel, OX: number, OY: number, see
       else if (bay === "window") sash(R, bx, T);
       else if (bay === "bookcase") bookcase(R, bx, T, seed + k * 31);
       else if (bay === "hearth") chimneypiece(R, bx, T);
-      else hanging(R, bx, T, bay === "panel" ? FIELD : CLOTH, seed + k * 17, hung, bay === "panel");
+      else hanging(R, bx, T, bay === "panel" ? FIELD : CLOTH, seed + k * 17, hung || ["kitchen", "guard", "bath"].includes(STYLE.room), bay === "panel");
     }
     // The entablature: a cornice with dentils, a frieze of red marble with gilt brackets, egg and dart under it.
     R.fill(x0, T, x1 - x0, 1, GILT[0]); R.fill(x0, T + 1, x1 - x0, 1, GILT[2]);
@@ -796,6 +1088,8 @@ const BUST = ["#fdf6e8", "#ecdfc8", "#d4c5aa", "#b3a288", "#8c7c66"];
 /** The furniture of a palace room, drawn to stand against the back wall or on the open floor. */
 export function paintPalaceDecor(kind: string, v: number, style?: PalaceStyle): FairSprite | undefined {
   use(style);
+  // What a palace's servants and guards use is plain wood, whatever the room's furniture is.
+  if ((style?.order ?? "classical") === "classical" && ["trestle", "armsrack", "dresser", "barrel"].includes(kind)) FRAME = WALNUT;
   const n = Math.floor(v * 997), glow: { x: number; y: number }[] = [];
   if (kind === "candlestick" || kind === "vase" || kind === "clock") {
     // What stands on a table, as a thing by itself.
@@ -1152,7 +1446,7 @@ export function paintPalaceDecor(kind: string, v: number, style?: PalaceStyle): 
       for (const x of [28, 35]) { r.fill(x, 12, 2, 38, "#a07e58"); r.fill(x, 12, 1, 38, "#c8a47a"); r.fill(x - 3, 13, 6, 4, ROUGE[1]); r.fill(x - 3, 13, 6, 1, ROUGE[0]); r.fill(x - 4, 14, 1, 2, ROUGE[2]); r.fill(x - 1, 17, 4, 1, BONE[1]); }
     } else {
       for (const x of [10, 17, 30, 38]) { r.fill(x, 4, 1, 46, x % 2 ? "#c8a47a" : "#a88860"); for (let j = 0; j < 6; j++) r.fill(x - (j > 1 && j < 5 ? 1 : 0), j, j > 1 && j < 5 ? 3 : 1, 1, IRONC[x < 20 ? 0 : 1]); }
-      shield(r, 16, 40, 9, n); shield(r, 34, 41, 9, n + 5);
+      if (STYLE.order !== "screened") { shield(r, 16, 40, 9, n); shield(r, 34, 41, 9, n + 5); }
     }
     return s;
   }
@@ -1314,6 +1608,439 @@ export function paintPalaceDecor(kind: string, v: number, style?: PalaceStyle): 
     stamp(r, ["..0112...", "011122223", ".0122233."], 37, 15, METAL); r.fill(45, 12, 1, 2, FLAME[1]); r.set(45, 11, FLAME[0]);
     glow.push({ x: 45, y: 12 });
     return { ...s, glow };
+  }
+  if (kind === "pillar" && STYLE.order === "screened") {
+    // A post of a screened hall: round and lacquered red on a stone drum under a painted bracket, or squared cypress on a pad.
+    const s = sprite(32, 82, 8, 81), { r } = s, cx = 16;
+    r.shadow(cx + 1, 80, 9, 2, 0.26);
+    if (STYLE.columns === "cypress") {
+      r.fill(cx - 6, 77, 12, 3, ROUGE[1]); r.fill(cx - 6, 77, 12, 1, ROUGE[0]); r.fill(cx + 3, 78, 3, 2, ROUGE[3]);
+      for (let y = 8; y < 77; y++) for (let i = -4; i < 4; i++) r.set(cx + i, y, GILT[i === -4 ? 0 : i < 0 ? 1 : i < 3 ? (h2(i, y >> 4, n) > 0.75 ? 3 : 2) : 3]);
+      r.fill(cx - 8, 2, 16, 6, GILT[2]); r.fill(cx - 8, 2, 16, 1, GILT[0]); r.fill(cx + 5, 3, 3, 5, GILT[3]);
+    } else {
+      r.fill(cx - 8, 74, 16, 6, ROUGE[1]); r.fill(cx - 7, 73, 14, 1, ROUGE[0]); r.fill(cx - 8, 74, 16, 1, ROUGE[0]); r.fill(cx + 4, 75, 4, 5, ROUGE[3]); r.fill(cx - 7, 77, 14, 1, ROUGE[2]);
+      for (let y = 16; y < 74; y++) for (let i = -5; i < 5; i++) r.set(cx + i, y, GILT[i < -4 ? 0 : i < -1 ? 1 : i < 3 ? 2 : 3]);
+      r.fill(cx - 5, 20, 10, 3, CLOTH[1]); r.fill(cx - 5, 20, 4, 1, CLOTH[0]); r.fill(cx + 3, 21, 2, 2, CLOTH[3]);
+      for (const [half, y, c] of [[5, 12, FIELD], [8, 8, BEAM_BLUE], [11, 4, FIELD]] as const) { r.fill(cx - half, y, half * 2, 4, c[1]); r.fill(cx - half, y, half * 2, 1, PAPER[0]); r.fill(cx + half - 2, y + 1, 2, 3, c[2]); }
+      r.fill(cx - 12, 1, 24, 3, GILT[2]); r.fill(cx - 12, 1, 24, 1, GILT[1]);
+    }
+    soften(r);
+    return s;
+  }
+  if (kind === "daisthrone" && STYLE.order === "screened") {
+    const s = sprite(48, 74, 0, 72), { r } = s, jp = STYLE.columns === "cypress";
+    r.shadow(24, 71, 23, 3, 0.26);
+    if (jp) {
+      // The raised seat of a Japanese lord: a step of mats, a cushion and an armrest, a gold folding screen behind, his sword on its stand.
+      for (const [x, dy] of [[2, 2], [13, 0], [24, 2], [35, 0]]) { r.fill(x, 14 + dy, 11, 36, FIELD[1]); r.fill(x, 14 + dy, 11, 1, FIELD[0]); r.fill(x + 10, 15 + dy, 1, 35, FIELD[3]); r.fill(x, 14 + dy, 1, 36, HAIR); }
+      r.fill(2, 13, 44, 2, HAIR); r.fill(6, 26, 14, 3, LEAFY[2]); r.fill(8, 24, 9, 2, LEAFY[1]); r.fill(27, 32, 14, 3, LEAFY[2]); r.fill(29, 30, 9, 2, LEAFY[1]); for (let j = 0; j < 22; j++) r.fill(22 + Math.round(Math.sin(j / 6) * 3), 48 - j, 2, 1, "#7a5638");
+      r.fill(0, 58, 48, 12, GILT[2]); r.fill(0, 58, 48, 1, GILT[0]); r.fill(0, 69, 48, 1, GILT[4]);
+      r.fill(1, 50, 46, 9, "#c9c58e"); r.fill(1, 50, 46, 1, "#dcd8a4"); r.fill(1, 50, 1, 9, "#3a4a3a"); r.fill(46, 50, 1, 9, "#3a4a3a"); r.fill(24, 50, 1, 9, "#3a4a3a");
+      r.fill(16, 51, 16, 6, CLOTH[1]); r.fill(16, 51, 16, 1, CLOTH[0]); r.fill(16, 56, 16, 1, CLOTH[3]); r.set(24, 53, CLOTH[0]);
+      r.fill(34, 49, 9, 2, FRAME[1]); r.fill(35, 51, 1, 4, FRAME[2]); r.fill(41, 51, 1, 4, FRAME[2]);
+      r.fill(4, 53, 9, 1, HAIR); r.fill(3, 52, 2, 1, CLOTH[1]); for (const x of [5, 11]) r.fill(x, 54, 1, 3, FRAME[2]);
+    } else {
+      // The dragon throne: a carved and gilded seat on a platform of three steps, a screen of five leaves behind it.
+      for (const [x, dy] of [[4, 8], [12, 4], [20, 0], [28, 4], [36, 8]]) { r.fill(x, 6 + dy, 8, 40 - dy, METAL[2]); r.fill(x, 6 + dy, 8, 1, METAL[0]); r.fill(x, 6 + dy, 1, 40 - dy, METAL[1]); r.fill(x + 7, 7 + dy, 1, 39 - dy, METAL[4]); r.fill(x + 2, 10 + dy, 4, 30 - dy, GILT[2]); for (let j = 0; j < 22 - dy; j += 3) r.set(x + 3 + (j % 2), 12 + dy + j, METAL[0]); }
+      r.fill(0, 60, 48, 10, GILT[2]); r.fill(0, 60, 48, 1, METAL[1]); r.fill(0, 65, 48, 1, GILT[3]); r.fill(0, 69, 48, 1, GILT[4]);
+      r.fill(5, 52, 38, 8, GILT[1]); r.fill(5, 52, 38, 1, METAL[1]); r.fill(40, 53, 3, 7, GILT[3]);
+      r.fill(12, 28, 24, 12, METAL[2]); r.fill(12, 28, 24, 1, METAL[0]); r.fill(14, 30, 20, 9, CLOTH[1]); r.fill(14, 30, 20, 1, CLOTH[0]);
+      r.fill(11, 40, 26, 5, CLOTH[1]); r.fill(11, 40, 26, 1, CLOTH[0]); r.fill(11, 44, 26, 1, CLOTH[3]);
+      r.fill(10, 45, 28, 7, METAL[2]); r.fill(10, 45, 28, 1, METAL[1]); r.fill(36, 46, 2, 6, METAL[4]); for (let x = 13; x < 36; x += 4) r.set(x, 48, METAL[0]);
+      for (const x of [8, 37]) { r.fill(x, 32, 3, 20, METAL[1]); r.fill(x, 32, 1, 20, METAL[0]); r.fill(x - 1, 30, 5, 3, METAL[0]); }
+      r.fill(18, 54, 12, 4, METAL[2]); r.fill(18, 54, 12, 1, METAL[0]);
+    }
+    soften(r);
+    return s;
+  }
+  if (kind === "lantern") {
+    // A lantern: silk in a red frame on a tall stand with a tassel, or paper on four legs.
+    const jp = STYLE.columns === "cypress", s = jp ? sprite(16, 34, 0, 33) : sprite(16, 56, 0, 55), { r } = s, cx = 8, lit = ["#fff6d0", "#ffe9a8", "#f4cc74"];
+    r.shadow(cx, jp ? 32 : 54, 6, 2, 0.22);
+    if (jp) {
+      for (const x of [3, 12]) r.fill(x, 4, 1, 28, FRAME[2]);
+      r.fill(3, 4, 10, 1, FRAME[1]); r.fill(3, 24, 10, 1, FRAME[2]); r.fill(4, 5, 8, 19, lit[1]); r.fill(4, 5, 3, 19, lit[0]); r.fill(10, 6, 2, 18, lit[2]);
+      for (const y of [11, 17]) r.fill(4, y, 8, 1, FRAME[1]);
+      r.fill(7, 5, 1, 19, FRAME[1]);
+      soften(r);
+      glow.push({ x: cx, y: 14 });
+    } else {
+      stamp(r, ["...0123...", "..001233..", ".00.12.33.", "01..12..34"], cx - 5, 50, FRAME);
+      for (let y = 24; y < 50; y++) { r.set(cx - 1, y, FRAME[1]); r.set(cx, y, FRAME[3]); }
+      r.fill(cx - 4, 2, 8, 2, GILT[1]); r.fill(cx - 5, 4, 10, 1, GILT[2]);
+      for (let y = 5; y < 19; y++) { const half = y < 8 ? y - 2 : y > 15 ? 21 - y : 6; r.fill(cx - half, y, half * 2, 1, lit[1]); r.fill(cx - half, y, Math.max(1, half - 2), 1, lit[0]); r.set(cx + half - 1, y, lit[2]); r.set(cx - half, y, GILT[1]); r.set(cx + half - 1, y, GILT[2]); if (half > 2) r.set(cx, y, GILT[1]); }
+      r.fill(cx - 4, 19, 8, 2, GILT[2]); for (let j = 0; j < 5; j++) r.set(cx + (j % 2), 21 + j, GILT[1]);
+      soften(r);
+      glow.push({ x: cx, y: 12 });
+    }
+    return { ...s, glow };
+  }
+  if (kind === "zabuton") {
+    // A flat square cushion to kneel on.
+    const s = sprite(16, 12, 0, 11), { r } = s;
+    r.fill(2, 3, 12, 6, CLOTH[1]); r.fill(3, 2, 10, 1, CLOTH[0]); r.fill(2, 3, 12, 1, CLOTH[0]); r.fill(2, 8, 12, 1, CLOTH[3]); r.fill(12, 4, 2, 4, CLOTH[2]); r.set(8, 5, CLOTH[0]); r.set(8, 6, CLOTH[3]);
+    soften(r);
+    return s;
+  }
+  if (kind === "lowtable") {
+    // A low table, a teapot and two cups on it.
+    const s = sprite(24, 18, 4, 17), { r } = s;
+    r.shadow(12, 16, 10, 2, 0.22);
+    r.fill(1, 7, 22, 4, FRAME[1]); r.fill(2, 6, 20, 1, FRAME[0]); r.fill(1, 7, 22, 1, FRAME[0]); r.fill(1, 10, 22, 1, FRAME[4]); r.fill(21, 8, 2, 3, FRAME[3]);
+    for (const x of [2, 20]) r.fill(x, 11, 2, 5, FRAME[3]), r.fill(x, 11, 1, 5, FRAME[2]);
+    soften(r);
+    stamp(r, [".011.", "01123", "01123", ".123."], 9, 3, CHINA); r.set(14, 4, CHINA[2]); r.set(8, 5, CHINA[3]);
+    for (const x of [5, 17]) { r.fill(x, 5, 2, 2, CHINA[0]); r.set(x + 1, 6, CHINA[2]); }
+    return s;
+  }
+  if (kind === "bed" && STYLE.columns === "cypress") {
+    // Bedding laid on the mats: a mattress, a quilt in the room's colour, a small hard pillow.
+    const s = sprite(48, 38, 0, 36), { r } = s, c = CLOTH;
+    r.fill(6, 2, 36, 32, PAPER[1]); r.fill(6, 2, 36, 1, PAPER[0]); r.fill(6, 33, 36, 1, PAPER[2]); r.fill(40, 3, 2, 31, PAPER[2]);
+    r.fill(17, 4, 14, 4, c[2]); r.fill(17, 4, 14, 1, c[0]); r.fill(17, 7, 14, 1, c[3]);
+    r.fill(5, 11, 38, 22, c[1]); r.fill(5, 11, 38, 3, PAPER[0]); r.fill(5, 14, 38, 1, c[0]); r.fill(40, 14, 3, 19, c[2]); r.fill(5, 32, 38, 1, c[3]);
+    for (let y = 18; y < 31; y += 5) for (let x = 9 + ((y >> 2) % 2) * 4; x < 39; x += 8) { r.fill(x, y, 2, 2, PAPER[0]); r.set(x + 1, y + 1, c[0]); }
+    soften(r);
+    return s;
+  }
+  if (kind === "pillar") {
+    // A column of a pillared hall, in its people's manner.
+    const s = sprite(32, 82, 8, 81), { r } = s, cx = 16, how = STYLE.columns ?? "papyrus";
+    r.shadow(cx + 1, 80, 10, 2, 0.28);
+    if (how === "papyrus") {
+      // Bundled papyrus: a thick shaft drawn in at the foot and bound with painted rings, opening into a bell.
+      r.fill(cx - 9, 75, 18, 5, WHITE[1]); r.fill(cx - 9, 75, 18, 1, WHITE[0]); r.fill(cx + 5, 76, 4, 4, WHITE[3]);
+      for (let y = 22; y < 75; y++) {
+        const t = (y - 22) / 53, half = 6 + (t > 0.8 ? -Math.round((t - 0.8) * 10) : t > 0.4 ? 1 : 0), ring = (y > 23 && y < 31) || (y > 60 && y < 70);
+        for (let i = -half; i < half; i++) {
+          const tone = i < -half + 1 ? 0 : i < -1 ? 1 : i < half - 2 ? 2 : 3;
+          r.set(cx + i, y, ring ? [GILT, ROUGE.slice(1), CLOTH][(y >> 1) % 3][Math.min(3, tone)] : (i + half) % 4 === 3 && tone > 0 && tone < 3 ? CREAM[3] : CREAM[tone]);
+        }
+      }
+      for (let j = 0; j < 14; j++) { const half = 6 + Math.round(((13 - j) / 13) ** 1.6 * 8); for (let i = -half; i < half; i++) { const band = Math.floor((i + 21) / 3) % 3, tone = i < -half + 2 ? 0 : i < 2 ? 1 : 2; r.set(cx + i, 8 + j, j === 0 ? GILT[i < 0 ? 0 : 1] : [FIELD, ROUGE.slice(1), GILT][band][tone]); } }
+      r.fill(cx - 7, 2, 14, 6, CREAM[1]); r.fill(cx - 7, 2, 14, 1, CREAM[0]); r.fill(cx + 4, 3, 3, 5, CREAM[3]);
+    } else if (how === "moorish") {
+      // A slender marble shaft with rings at the neck, a carved capital, and a block of plaster to take the arch.
+      r.fill(cx - 5, 76, 10, 4, WHITE[1]); r.fill(cx - 5, 76, 10, 1, WHITE[0]); r.fill(cx + 2, 77, 3, 3, WHITE[3]);
+      for (let y = 26; y < 76; y++) for (let i = -3; i < 3; i++) r.set(cx + i, y, WHITE[i === -3 ? 0 : i < 1 ? 1 : i === 1 ? 2 : 3]);
+      for (const y of [26, 29, 72]) { r.fill(cx - 4, y, 8, 2, WHITE[1]); r.fill(cx - 4, y, 8, 1, WHITE[0]); r.set(cx + 3, y + 1, WHITE[3]); }
+      for (let j = 0; j < 10; j++) { const half = 4 + Math.round(((9 - j) / 9) * 4); for (let i = -half; i < half; i++) r.set(cx + i, 16 + j, (i + j) % 3 === 0 ? WHITE[3] : WHITE[i < -1 ? 0 : i < half - 2 ? 1 : 2]); }
+      r.fill(cx - 10, 4, 20, 12, CREAM[1]); r.fill(cx - 10, 4, 20, 1, CREAM[0]); r.fill(cx + 7, 5, 3, 11, CREAM[3]); r.fill(cx - 10, 15, 20, 1, CREAM[4]);
+      for (let y = 6; y < 14; y += 2) for (let x = -8 + (y % 4); x < 7; x += 4) r.set(cx + x, y, CREAM[3]);
+    } else if (how === "mexica") {
+      // A square pier of white stucco, banded in red top and bottom, a sign carved on its face.
+      for (let y = 6; y < 78; y++) for (let i = -7; i < 7; i++) { const band = y < 16 || y > 66; r.set(cx + i, y, band ? GILT[i === -7 ? 0 : i < 3 ? 1 : i < 6 ? 2 : 3] : CREAM[i === -7 ? 0 : i < 3 ? 1 : i < 6 ? 2 : 3]); }
+      r.fill(cx - 7, 16, 14, 1, GILT[3]); r.fill(cx - 7, 66, 14, 1, GILT[3]);
+      r.fill(cx - 3, 34, 6, 6, FIELD[1]); r.fill(cx - 2, 33, 4, 8, FIELD[1]); r.fill(cx - 1, 36, 2, 2, GILT[1]); for (const y of [44, 47]) r.fill(cx - 4, y, 8, 2, GILT[2]);
+      r.fill(cx - 9, 2, 18, 5, CREAM[1]); r.fill(cx - 9, 2, 18, 1, CREAM[0]); r.fill(cx + 6, 3, 3, 4, CREAM[3]); r.fill(cx - 8, 78, 16, 2, CREAM[3]);
+    } else if (how === "persian") {
+      // A slender fluted shaft on a bell, and on top two bulls back to back to carry the beam.
+      const st = ROUGE;
+      for (let j = 0; j < 8; j++) { const half = 5 + Math.round((j / 7) * 4); r.fill(cx - half, 72 + j, half * 2, 1, st[1]); r.set(cx - half, 72 + j, st[0]); r.fill(cx + half - 3, 72 + j, 3, 1, st[3]); if (j > 1) for (let i = -half + 2; i < half - 3; i += 3) r.set(cx + i, 72 + j, st[2]); }
+      r.fill(cx - 5, 69, 10, 3, st[1]); r.fill(cx - 5, 69, 10, 1, st[0]);
+      for (let y = 20; y < 69; y++) for (let i = -4; i < 4; i++) r.set(cx + i, y, i === -4 ? st[0] : i === -2 || i === 1 ? st[2] : i === 3 ? st[3] : st[1]);
+      r.fill(cx - 5, 17, 10, 3, st[1]); r.fill(cx - 5, 17, 10, 1, st[0]); r.fill(cx - 5, 19, 10, 1, st[3]);
+      [
+        "..0.0..................0.0..",
+        "..0.0..................0.0..",
+        ".00000................00000.",
+        "001110011111111111111001112.",
+        "011110111111111111111101112.",
+        "01e1101111111111111111011e2.",
+        "0111.01111111111111111.1112.",
+        ".11...111111111111111...12..",
+        ".......2222222222222........",
+      ].forEach((row, j) => [...row].forEach((ch, i) => { if (ch !== ".") r.set(cx - 14 + i, 8 + j, ch === "e" ? HAIR : WHITE[+ch + 1]); }));
+      r.fill(cx - 8, 3, 16, 5, GILT[3]); r.fill(cx - 8, 3, 16, 1, GILT[2]);
+    } else {
+      // A shaft that narrows downward, a round cushion, a square block.
+      r.fill(cx - 6, 76, 12, 4, WHITE[1]); r.fill(cx - 6, 76, 12, 1, WHITE[0]); r.fill(cx + 3, 77, 3, 3, WHITE[3]);
+      for (let y = 20; y < 76; y++) { const half = 6 - Math.round(((y - 20) / 56) * 2); for (let i = -half; i < half; i++) r.set(cx + i, y, CLOTH[i < -half + 1 ? 0 : i < 0 ? 1 : i < half - 1 ? 2 : 3]); }
+      r.fill(cx - 6, 18, 12, 2, GILT_BRONZE[1]); r.fill(cx - 6, 18, 12, 1, GILT_BRONZE[0]);
+      for (let j = 0; j < 7; j++) { const half = 7 + [1, 2, 2, 2, 1, 0, -1][j]; r.fill(cx - half, 11 + j, half * 2, 1, "#3e3a42"); r.fill(cx - half, 11 + j, 3, 1, "#6a6670"); r.fill(cx + half - 3, 11 + j, 3, 1, "#26222a"); }
+      r.fill(cx - 9, 4, 18, 7, CREAM[1]); r.fill(cx - 9, 4, 18, 1, CREAM[0]); r.fill(cx + 6, 5, 3, 6, CREAM[3]); r.fill(cx - 9, 10, 18, 1, CREAM[4]);
+    }
+    soften(r);
+    return s;
+  }
+  if (kind === "daisthrone") {
+    // The seat of whoever rules here, on a dais of two steps, a footstool before it and a fan either side.
+    const s = sprite(48, 70, 0, 68), { r } = s, how = STYLE.columns ?? "papyrus", m = how === "aegean" ? WHITE : how === "mexica" ? ["#f6e4a4", "#e0c478", "#bc9c54", "#8c7036", "#5e4a22"] : METAL, st = how === "papyrus" ? CREAM : how === "persian" ? ROUGE : WHITE;
+    r.shadow(24, 67, 23, 3, 0.26);
+    r.fill(0, 58, 48, 9, st[2]); r.fill(0, 58, 48, 1, st[0]); r.fill(0, 62, 48, 1, st[3]); r.fill(0, 66, 48, 1, st[4]);
+    r.fill(5, 50, 38, 8, st[1]); r.fill(5, 50, 38, 1, st[0]); r.fill(5, 57, 38, 1, st[3]); r.fill(40, 51, 3, 7, st[3]);
+    for (let x = 2; x < 46; x += 6) r.fill(x, 60, 3, 1, how === "aegean" ? GILT[1] : CLOTH[1]);
+    if (how === "aegean") { for (let y = 10; y < 36; y++) { const half = 7 + Math.round(Math.sin(((y - 10) / 26) * 9.4) * 1.5) - (y < 14 ? 14 - y : 0); r.fill(24 - half, y, half * 2, 1, m[1]); r.set(24 - half, y, m[0]); r.fill(24 + half - 2, y, 2, 1, m[3]); } }
+    else { r.fill(16, 8, 16, 28, m[2]); r.fill(16, 8, 16, 1, m[0]); r.fill(16, 8, 1, 28, m[1]); r.fill(31, 9, 1, 27, m[4]); r.fill(18, 11, 12, 22, CLOTH[1]); r.fill(18, 11, 12, 1, CLOTH[0]); for (let y = 14; y < 32; y += 4) for (let x = 20; x < 29; x += 4) r.set(x + ((y >> 2) % 2) * 2, y, m[0]); r.fill(20, 5, 8, 3, m[1]); r.fill(22, 3, 4, 2, m[0]); }
+    r.fill(13, 36, 22, 6, how === "aegean" ? m[1] : CLOTH[1]); r.fill(13, 36, 22, 1, how === "aegean" ? m[0] : CLOTH[0]); r.fill(13, 41, 22, 1, how === "aegean" ? m[3] : CLOTH[3]);
+    r.fill(12, 42, 24, 8, m[2]); r.fill(12, 42, 24, 1, m[1]); r.fill(34, 43, 2, 7, m[4]);
+    for (const x of [11, 34]) { r.fill(x, 28, 3, 22, m[1]); r.fill(x, 28, 1, 22, m[0]); r.fill(x - 1, 26, 5, 3, m[0]); r.fill(x - 1, 28, 5, 1, m[3]); }
+    r.fill(18, 52, 12, 5, m[2]); r.fill(18, 52, 12, 1, m[0]); r.fill(19, 53, 10, 2, CLOTH[2]);
+    soften(r);
+    if (how !== "aegean") for (const x of [5, 42]) {
+      r.fill(x, 14, 1, 44, GILT[2]);
+      for (let a = 0; a < 7; a++) { const t = (a / 6 - 0.5) * 2.6, ex = Math.round(Math.sin(t) * 5), ey = Math.round(Math.cos(t) * 9); for (let k = 2; k <= 9; k++) r.set(x + Math.round((ex * k) / 9), 14 - Math.round((ey * k) / 9), a % 2 ? "#f4f0e0" : how === "papyrus" ? FIELD[1] : CLOTH[1]); }
+      r.fill(x - 1, 13, 3, 2, GILT[0]);
+    }
+    return s;
+  }
+  if (kind === "brazier") {
+    // A bronze bowl of coals on three legs.
+    const s = sprite(16, 30, 0, 29), { r } = s, cx = 8;
+    r.shadow(cx, 28, 6, 2, 0.22);
+    for (let j = 0; j < 14; j++) { r.set(cx - 2 - (j >> 2), 14 + j, METAL[1]); r.set(cx + 2 + (j >> 2), 14 + j, METAL[3]); r.set(cx, 14 + j, METAL[2]); }
+    r.fill(cx - 3, 20, 7, 1, METAL[2]);
+    stamp(r, ["01111111123", "01111122223", ".011222233.", "..0122233.."], cx - 5, 10, METAL);
+    soften(r);
+    for (let x = -4; x <= 4; x++) { const k = h2(x + 7, n, 9); r.set(cx + x, 9, k > 0.55 ? FLAME[1] : FLAME[2]); if (k > 0.5 && Math.abs(x) < 4) r.set(cx + x, 8, FLAME[k > 0.8 ? 0 : 1]); if (k > 0.8) r.set(cx + x, 7, FLAME[0]); }
+    r.set(cx - 1, 4, "#d8d4d0"); r.set(cx, 2, "#e8e4e0"); r.set(cx + 1, 5, "#d8d4d0");
+    glow.push({ x: cx, y: 8 });
+    return { ...s, glow };
+  }
+  if (kind === "roundhearth") {
+    // The great round hearth of a megaron: a plastered rim painted with flames, and the fire in the middle of it.
+    const s = sprite(80, 52, 0, 46), { r } = s;
+    for (let y = 0; y < 46; y++) for (let x = 0; x < 80; x++) {
+      const d = ((x - 39.5) / 39) ** 2 + ((y - 22.5) / 22) ** 2;
+      if (d > 1) continue;
+      const a = Math.atan2((y - 22.5) * 1.77, x - 39.5), tooth = Math.floor((a + 3.2) * 7) % 2 === 0;
+      r.set(x, y, d > 0.9 ? WHITE[y > 26 ? 3 : 1] : d > 0.66 ? (tooth ? CLOTH[1] : WHITE[0]) : d > 0.6 ? "#3e3a42" : d > 0.2 ? (h2(x >> 2, y >> 1, n) > 0.5 ? "#5a4640" : "#4e3e38") : h2(x >> 1, y, n + 2) > 0.6 ? FLAME[2] : "#8a3a22");
+    }
+    soften(r);
+    for (let x = 30; x < 50; x++) { const k = h2(x >> 1, n, 4), tall = Math.round(k * 9) + (Math.abs(x - 40) < 5 ? 4 : 0); for (let j = 0; j < tall; j++) r.set(x, 24 - j, j > tall - 3 ? FLAME[0] : j > tall / 2 ? FLAME[1] : FLAME[2]); }
+    glow.push({ x: 40, y: 20 });
+    return { ...s, glow };
+  }
+  if (kind === "bed" && STYLE.order === "timber") {
+    // A lord's bed: a carved head, a bolster, a striped blanket and a fur thrown over the foot.
+    const s = sprite(48, 48, 0, 46), { r } = s, fur = ["#f2ece0", "#d8d0c0", "#b4ab9a", "#8e8676"];
+    r.shadow(24, 45, 22, 3, 0.26);
+    r.fill(2, 4, 44, 12, FRAME[2]); r.fill(2, 4, 44, 1, FRAME[0]); r.fill(2, 15, 44, 1, FRAME[4]);
+    for (let x = 6; x < 42; x += 6) { r.fill(x, 7, 4, 6, FRAME[3]); r.fill(x, 7, 4, 1, FRAME[4]); r.set(x + 1, 9, FRAME[1]); r.set(x + 2, 10, FRAME[1]); }
+    for (const x of [1, 44]) { r.fill(x, 1, 3, 40, FRAME[1]); r.fill(x, 1, 1, 40, FRAME[0]); r.fill(x + 2, 2, 1, 39, FRAME[3]); r.fill(x, 0, 3, 2, FRAME[0]); }
+    r.fill(4, 16, 40, 24, CLOTH[1]); r.fill(4, 16, 40, 1, CLOTH[0]);
+    for (const y of [23, 27, 33]) r.fill(4, y, 40, 1, y === 27 ? BONE[0] : CLOTH[3]);
+    r.fill(40, 17, 4, 23, CLOTH[2]);
+    r.fill(7, 14, 34, 5, BONE[0]); r.fill(7, 18, 34, 1, BONE[2]); r.fill(7, 14, 34, 1, "#ffffff"); r.fill(23, 15, 1, 3, BONE[2]);
+    for (let y = 30; y < 41; y++) for (let x = 18; x < 44; x++) { const d = ((x - 31) / 13) ** 2 + ((y - 36) / 6) ** 2 + (h2(x >> 1, y >> 1, n) - 0.5) * 0.3; if (d < 1) r.set(x, y, fur[d > 0.75 ? 2 : (x + y) % 3 === 0 ? 2 : x < 30 ? 0 : 1]); }
+    r.fill(2, 40, 44, 5, FRAME[2]); r.fill(2, 40, 44, 1, FRAME[0]); r.fill(2, 44, 44, 1, FRAME[4]);
+    soften(r);
+    return s;
+  }
+  if (kind === "bed") {
+    // A state bed: a tester hung with the room's silk, curtains tied back at the head, white linen, a coverlet to the floor.
+    const s = sprite(48, 82, 0, 80), { r } = s, c = CLOTH;
+    r.shadow(24, 79, 23, 3, 0.28);
+    r.fill(6, 12, 36, 24, c[2]);
+    for (let y = 14; y < 34; y += 5) for (let x = 9 + (y % 2) * 3; x < 40; x += 6) { r.set(x, y, c[1]); r.set(x + 1, y + 1, c[3]); }
+    r.fill(8, 22, 32, 14, FRAME[2]); r.fill(8, 22, 32, 1, FRAME[0]); r.fill(10, 24, 28, 10, c[1]); r.fill(10, 24, 28, 1, c[0]); r.fill(22, 20, 4, 3, FRAME[0]);
+    r.fill(5, 36, 38, 38, c[1]); r.fill(5, 36, 38, 1, c[0]); r.fill(39, 37, 4, 37, c[2]);
+    for (let x = 9; x < 38; x += 7) r.fill(x, 47, 1, 26, c[2]), r.fill(x + 1, 47, 1, 26, c[0]);
+    r.fill(5, 44, 38, 2, FRAME[1]); r.fill(5, 44, 38, 1, FRAME[0]);
+    r.fill(5, 72, 38, 2, FRAME[1]); r.fill(5, 73, 38, 1, FRAME[3]);
+    for (let x = 6; x < 42; x += 3) r.fill(x, 74, 2, 3 + (x % 2), FRAME[x % 2 ? 1 : 2]);
+    r.fill(8, 33, 32, 6, WHITE[1]); r.fill(8, 33, 32, 1, WHITE[0]); r.fill(8, 38, 32, 1, WHITE[3]); r.fill(23, 34, 2, 4, WHITE[2]);
+    r.fill(6, 39, 36, 5, WHITE[1]); r.fill(6, 39, 36, 1, WHITE[0]); r.fill(6, 43, 36, 1, WHITE[2]);
+    for (const [x, lit] of [[1, true], [41, false]] as const) {
+      for (let y = 10; y < 46; y++) { const wd = y < 30 ? 6 : 6 - Math.min(3, (y - 30) >> 2); r.fill(lit ? x : x + 6 - wd, y, wd, 1, c[lit ? 1 : 2]); r.set(lit ? x : x + 5, y, lit ? c[0] : c[3]); if (y % 2) r.set(x + 3, y, c[lit ? 2 : 3]); }
+      r.fill(x, 30, 6, 2, FRAME[1]); r.fill(x, 30, 6, 1, FRAME[0]);
+      r.fill(lit ? x : x + 4, 46, 2, 32, FRAME[lit ? 1 : 2]); r.fill(lit ? x : x + 4, 46, 1, 32, FRAME[lit ? 0 : 1]);
+    }
+    r.fill(0, 0, 48, 3, FRAME[1]); r.fill(0, 0, 48, 1, FRAME[0]); r.fill(0, 3, 48, 7, c[1]); r.fill(0, 3, 48, 1, c[0]); r.fill(44, 3, 4, 7, c[2]);
+    for (let x = 0; x < 48; x++) { const drop = x % 8 < 4 ? 2 : 0; r.fill(x, 10, 1, 1 + drop, c[x % 8 < 4 ? 1 : 2]); r.set(x, 10 + drop, FRAME[x % 4 < 2 ? 0 : 2]); }
+    for (const x of [8, 22, 36]) stamp(r, [".00.", "0112", ".12."], x, 5, FRAME);
+    soften(r);
+    return s;
+  }
+  if (kind === "chest") {
+    // A chest for clothes and linen: a panelled front, a lock plate.
+    const s = sprite(32, 26, 0, 25), { r } = s;
+    r.shadow(16, 24, 14, 2, 0.26);
+    r.fill(2, 9, 28, 14, FRAME[2]); r.fill(2, 9, 28, 1, FRAME[1]); r.fill(28, 10, 2, 13, FRAME[4]); r.fill(2, 22, 28, 1, FRAME[4]);
+    for (const x of [4, 18]) { r.fill(x, 12, 10, 8, FRAME[3]); r.fill(x, 12, 10, 1, FRAME[4]); r.fill(x, 12, 1, 8, FRAME[4]); r.fill(x + 1, 19, 9, 1, FRAME[1]); r.fill(x + 9, 13, 1, 7, FRAME[1]); }
+    r.fill(1, 4, 30, 5, FRAME[1]); r.fill(2, 3, 28, 1, FRAME[0]); r.fill(1, 4, 30, 1, FRAME[0]); r.fill(1, 8, 30, 1, FRAME[4]);
+    r.fill(14, 9, 4, 4, METAL[2]); r.fill(14, 9, 4, 1, METAL[0]); r.set(15, 11, "#2a2226");
+    r.fill(3, 23, 3, 2, FRAME[4]); r.fill(26, 23, 3, 2, FRAME[4]);
+    soften(r);
+    return s;
+  }
+  if (kind === "washstand") {
+    // A basin and a ewer on a stand, a towel over the rail.
+    const s = sprite(16, 34, 0, 33), { r } = s;
+    r.shadow(8, 32, 6, 2, 0.22);
+    for (const x of [2, 12]) stamp(r, ["01", "12", "12", "12", "12", "12", "12", "12", "12", "12", "12", "23"], x, 20, FRAME);
+    r.fill(3, 26, 10, 1, FRAME[3]);
+    r.fill(1, 17, 14, 3, FRAME[1]); r.fill(1, 17, 14, 1, FRAME[0]); r.fill(1, 19, 14, 1, FRAME[4]);
+    soften(r);
+    stamp(r, ["0111112", "0122223", ".01123."], 2, 14, CHINA);
+    stamp(r, [".01.", "0112", ".12.", "0112", "0123", "0123", ".12."], 9, 8, CHINA); r.set(13, 10, CHINA[2]); r.set(13, 11, CHINA[2]);
+    r.fill(1, 20, 4, 6, WHITE[1]); r.fill(1, 20, 1, 6, WHITE[0]); r.fill(4, 21, 1, 5, WHITE[3]); r.fill(1, 25, 4, 1, CLOTH[1]);
+    return s;
+  }
+  if (kind === "tub") {
+    // A bath: copper lined with a linen sheet in a palace, a stave-built tub in a hall.
+    const s = sprite(32, 26, 0, 25), { r } = s, wood = STYLE.order === "timber" || STYLE.order === "screened", clay = STYLE.order === "pillared", m = wood ? FRAME : clay ? [...CLAY, "#4a2e22"] : ["#f4c098", "#d8905e", "#b46a40", "#88492c", "#5e311e"];
+    r.shadow(16, 24, 15, 2, 0.26);
+    for (let y = 0; y < 22; y++) for (let x = 0; x < 32; x++) {
+      const top = ((x - 15.5) / 15) ** 2 + ((y - 7) / 6) ** 2, inner = ((x - 15.5) / 12.5) ** 2 + ((y - 7) / 4.2) ** 2, body = y >= 7 && Math.abs(x - 15.5) <= 15 - Math.max(0, y - 14) * 0.5;
+      if (inner < 1) r.set(x, y, y < 6 ? (wood || clay ? m[4] : WHITE[3]) : POOL[x < 12 ? 0 : (x + y) % 5 === 0 ? 0 : x < 22 ? 1 : 2]);
+      else if (top < 1) r.set(x, y, wood || clay ? m[x < 10 ? 0 : 1] : WHITE[x < 10 ? 0 : x > 24 ? 2 : 1]);
+      else if (body) r.set(x, y, m[x < 5 ? 0 : x < 14 ? 1 : x < 24 ? 2 : 3]);
+    }
+    if (wood) { for (let x = 3; x < 30; x += 4) r.fill(x, 12, 1, 9, m[3]); for (const y of [13, 19]) { r.fill(1 + (y > 15 ? 2 : 0), y, 30 - (y > 15 ? 4 : 0), 1, IRONC[2]); r.fill(2 + (y > 15 ? 2 : 0), y, 9, 1, IRONC[0]); } }
+    else if (clay) for (let x = 3; x < 29; x += 3) r.set(x, 13 + (x % 2), m[0]);
+    else { r.fill(3, 21, 3, 3, m[3]); r.fill(26, 21, 3, 3, m[4]); r.fill(4, 12, 1, 6, m[0]); r.fill(22, 4, 8, 2, WHITE[1]); r.fill(24, 6, 6, 9, WHITE[1]); r.fill(24, 6, 1, 9, WHITE[0]); r.fill(29, 7, 1, 8, WHITE[3]); r.fill(24, 14, 6, 1, WHITE[3]); }
+    soften(r);
+    return s;
+  }
+  if (kind === "screen") {
+    // A folding screen of three leaves, covered in the room's silk.
+    const s = sprite(32, 54, 0, 52), { r } = s, c = CLOTH;
+    r.shadow(16, 51, 14, 2, 0.24);
+    for (const [x, dy, lit] of [[1, 2, 1], [11, 0, 0], [21, 2, 1]] as const) {
+      r.fill(x, 4 + dy, 10, 46, FRAME[lit ? 1 : 2]); r.fill(x, 4 + dy, 10, 1, FRAME[0]); r.fill(x + 9, 5 + dy, 1, 45, FRAME[4]);
+      r.fill(x + 1, 6 + dy, 8, 30, c[lit ? 1 : 2]); r.fill(x + 1, 6 + dy, 8, 1, c[lit ? 0 : 1]);
+      for (let y = 9 + dy; y < 34 + dy; y += 6) { r.set(x + 3 + (y % 4), y, c[lit ? 0 : 1]); r.set(x + 4 + (y % 4), y + 1, c[3]); }
+      r.fill(x + 1, 38 + dy, 8, 10, FRAME[3]); r.fill(x + 2, 39 + dy, 6, 8, FRAME[2]); r.fill(x + 2, 39 + dy, 6, 1, FRAME[4]);
+    }
+    soften(r);
+    return s;
+  }
+  if (kind === "wardrobe") {
+    // A press for clothes: two panelled doors under a cornice.
+    const s = sprite(32, 64, 0, 62), { r } = s;
+    r.shadow(16, 61, 15, 3, 0.28);
+    r.fill(2, 6, 28, 52, FRAME[2]); r.fill(2, 6, 1, 52, FRAME[1]); r.fill(29, 6, 1, 52, FRAME[4]);
+    r.fill(0, 1, 32, 5, FRAME[1]); r.fill(0, 1, 32, 1, FRAME[0]); r.fill(0, 5, 32, 1, FRAME[4]); r.fill(1, 6, 30, 1, FRAME[3]);
+    for (const x of [4, 17]) for (const [y, ph] of [[10, 22], [35, 18]]) { r.fill(x, y, 11, ph, FRAME[1]); r.fill(x, y, 11, 1, FRAME[4]); r.fill(x, y, 1, ph, FRAME[4]); r.fill(x + 1, y + ph - 1, 10, 1, FRAME[0]); r.fill(x + 10, y + 1, 1, ph - 1, FRAME[0]); r.fill(x + 2, y + 2, 7, ph - 4, FRAME[2]); }
+    r.fill(15, 8, 2, 48, FRAME[4]); r.fill(14, 30, 1, 4, METAL[1]); r.fill(17, 30, 1, 4, METAL[1]);
+    r.fill(1, 56, 30, 3, FRAME[1]); r.fill(1, 56, 30, 1, FRAME[0]); r.fill(2, 59, 4, 3, FRAME[4]); r.fill(26, 59, 4, 3, FRAME[4]);
+    soften(r);
+    return s;
+  }
+  if (kind === "altar") {
+    // An altar: a white cloth over a frontal in the room's colour, a cross, a candle either side. Dressed stone in a timber chapel.
+    const s = sprite(48, 58, 0, 56), { r } = s, c = CLOTH, stone = STYLE.order === "timber", old = STYLE.order === "pillared" || STYLE.order === "screened" || !!STYLE.rude;
+    r.shadow(24, 55, 22, 3, 0.26);
+    r.fill(0, 50, 48, 5, ROUGE[1]); r.fill(0, 50, 48, 1, ROUGE[0]); r.fill(0, 54, 48, 1, ROUGE[3]);
+    if (stone) { r.fill(4, 30, 40, 20, ROUGE[1]); r.fill(4, 30, 1, 20, ROUGE[0]); r.fill(42, 30, 2, 20, ROUGE[3]); for (const y of [36, 43]) r.fill(4, y, 40, 1, ROUGE[2]); for (let x = 10; x < 42; x += 9) r.fill(x + ((x >> 3) % 2) * 4, 31, 1, 5, ROUGE[2]), r.fill(x, 37, 1, 6, ROUGE[2]); r.fill(18, 30, 12, 20, c[1]); r.fill(18, 30, 1, 20, c[0]); r.fill(29, 30, 1, 20, c[3]); }
+    else { r.fill(4, 30, 40, 20, c[1]); r.fill(4, 30, 1, 20, c[0]); r.fill(42, 30, 2, 20, c[2]); r.fill(4, 49, 40, 1, c[3]); for (const x of [8, 39]) r.fill(x, 30, 1, 20, GILT[1]); }
+    if (!old) { r.fill(22, 34, 4, 12, GILT[1]); r.fill(18, 37, 12, 3, GILT[1]); r.fill(22, 34, 1, 12, GILT[0]); r.fill(18, 37, 12, 1, GILT[0]); }
+    r.fill(2, 24, 44, 6, WHITE[1]); r.fill(3, 23, 42, 1, WHITE[0]); r.fill(2, 24, 44, 1, WHITE[0]); r.fill(2, 29, 44, 2, WHITE[2]); for (let x = 3; x < 45; x += 3) r.set(x, 31, WHITE[1]);
+    soften(r);
+    const m = stone ? FRAME : METAL;
+    // Before the cross: bread, fruit and a jar set out for a god.
+    if (old) { for (const [x, col] of [[15, "#dcb478"], [20, "#e8c890"], [29, "#c84a3a"], [33, "#7ab04e"]] as const) { r.fill(x, 21, 4, 3, col); r.fill(x + 1, 20, 2, 1, col); } jar(r, 25, 23, [2, 3, 3, 2, 1, 2], n); }
+    else { r.fill(23, 4, 2, 18, m[1]); r.fill(18, 9, 12, 2, m[1]); r.fill(23, 4, 1, 18, m[0]); r.fill(18, 9, 12, 1, m[0]); r.fill(21, 22, 6, 2, m[2]); r.fill(21, 22, 6, 1, m[1]); }
+    for (const x of [9, 38]) { r.fill(x - 2, 22, 5, 2, m[2]); r.fill(x - 2, 22, 5, 1, m[0]); r.fill(x - 1, 20, 3, 2, m[1]); r.fill(x, 10, 1, 10, WAX[0]); r.set(x, 19, WAX[1]); r.set(x, 9, FLAME[1]); r.set(x, 8, FLAME[0]); glow.push({ x, y: 9 }); }
+    return { ...s, glow };
+  }
+  if (kind === "dresser") {
+    // A kitchen dresser: cupboards below, plates and copper pans on the shelves above.
+    const s = sprite(48, 62, 0, 60), { r } = s, cu = ["#f4c098", "#d8905e", "#b46a40", "#88492c"];
+    r.shadow(24, 59, 22, 3, 0.26);
+    r.fill(2, 4, 44, 34, FRAME[3]); r.fill(2, 4, 44, 1, FRAME[0]); r.fill(2, 4, 2, 34, FRAME[1]); r.fill(44, 4, 2, 34, FRAME[4]);
+    for (const y of [15, 26]) { r.fill(2, y, 44, 2, FRAME[1]); r.fill(2, y, 44, 1, FRAME[0]); }
+    r.fill(1, 37, 46, 3, FRAME[1]); r.fill(1, 37, 46, 1, FRAME[0]); r.fill(1, 39, 46, 1, FRAME[4]);
+    r.fill(2, 40, 44, 17, FRAME[2]); r.fill(44, 40, 2, 17, FRAME[4]);
+    for (const x of [4, 18, 32]) { r.fill(x, 42, 12, 13, FRAME[1]); r.fill(x, 42, 12, 1, FRAME[4]); r.fill(x, 42, 1, 13, FRAME[4]); r.fill(x + 1, 54, 11, 1, FRAME[0]); r.fill(x + 9, 47, 1, 3, METAL[1]); }
+    r.fill(3, 57, 4, 3, FRAME[4]); r.fill(41, 57, 4, 3, FRAME[4]);
+    soften(r);
+    for (let x = 6; x < 42; x += 9) for (let y = -4; y <= 4; y++) for (let dx = -4; dx <= 4; dx++) { const d = dx * dx + y * y; if (d <= 17) r.set(x + dx, 10 + y, d > 10 ? CHINA[dx + y > 0 ? 3 : 1] : d < 4 ? CHINA[2] : CHINA[0]); }
+    for (const [x, rad] of [[8, 4], [19, 3], [29, 4], [39, 3]] as const) { for (let y = -rad; y <= rad; y++) for (let dx = -rad; dx <= rad; dx++) if (dx * dx + y * y <= rad * rad + 1) r.set(x + dx, 21 + y - (4 - rad), cu[dx + y < -2 ? 0 : dx + y < 2 ? 1 : 2]); r.fill(x, 16, 1, 2, cu[3]); }
+    jar(r, 9, 36, [2, 3, 3, 2, 2], n); jar(r, 24, 36, [3, 4, 4, 4, 3, 2, 2], n + 3); r.fill(33, 32, 9, 5, "#dcb478"); r.fill(33, 32, 9, 1, "#f0d098"); r.fill(33, 36, 9, 1, "#b88c50");
+    return s;
+  }
+  if (kind === "cauldron") {
+    // A pot hung from a tripod over embers.
+    const s = sprite(20, 34, 2, 33), { r } = s, cx = 10;
+    r.shadow(cx, 32, 8, 2, 0.24);
+    for (let j = 0; j < 27; j++) { const dx = 2 + Math.round((j * 6) / 26); r.set(cx - dx, 5 + j, IRONC[1]); r.set(cx + dx, 5 + j, IRONC[3]); }
+    r.fill(cx - 2, 3, 5, 2, IRONC[2]); r.fill(cx - 2, 3, 5, 1, IRONC[0]); r.fill(cx, 5, 1, 9, IRONC[2]);
+    for (let y = 0; y < 11; y++) { const half = [4, 6, 7, 7, 7, 7, 6, 6, 5, 4, 2][y]; r.fill(cx - half, 14 + y, half * 2 + 1, 1, "#3e3a42"); r.fill(cx - half, 14 + y, 2, 1, "#6a6670"); r.fill(cx + half - 1, 14 + y, 2, 1, "#26222a"); }
+    r.fill(cx - 5, 13, 11, 1, "#8a8690"); r.fill(cx - 3, 14, 7, 1, "#c8a070"); r.set(cx - 1, 14, "#e8c890");
+    soften(r);
+    for (let x = -5; x <= 5; x++) { const k = h2(x + 9, n, 3); r.set(cx + x, 30, k > 0.6 ? FLAME[1] : k > 0.3 ? FLAME[2] : "#8a3a22"); if (k > 0.5 && Math.abs(x) < 4) r.set(cx + x, 29, FLAME[k > 0.8 ? 0 : 2]); }
+    r.fill(cx - 6, 31, 13, 1, "#4a3a34");
+    r.set(cx - 2, 10, "#e8e4e0"); r.set(cx - 1, 8, "#f4f0ec"); r.set(cx + 2, 9, "#e8e4e0"); r.set(cx + 1, 6, "#f4f0ec");
+    glow.push({ x: cx, y: 29 });
+    return { ...s, glow };
+  }
+  if (kind === "barrel") {
+    // A cask stood on end.
+    const s = sprite(16, 26, 0, 25), { r } = s;
+    r.shadow(8, 24, 7, 2, 0.24);
+    for (let y = 0; y < 19; y++) { const half = 5 + (y > 3 && y < 15 ? 2 : y > 1 && y < 17 ? 1 : 0); for (let x = -half; x <= half; x++) r.set(8 + x, 5 + y, FRAME[x < -3 ? 0 : x < 0 ? 1 : x < 4 ? 2 : 3]); }
+    for (const x of [5, 8, 11]) r.fill(x, 6, 1, 17, FRAME[3]);
+    for (const y of [7, 12, 20]) { const half = y === 12 ? 7 : 6; r.fill(8 - half, y, half * 2 + 1, 1, IRONC[2]); r.fill(8 - half, y, 4, 1, IRONC[0]); }
+    for (let x = -5; x <= 5; x++) for (let y = -2; y <= 2; y++) if ((x / 5.5) ** 2 + (y / 2.5) ** 2 <= 1) r.set(8 + x, 4 + y, FRAME[y < 0 ? 0 : 1]);
+    r.fill(6, 4, 4, 1, FRAME[2]); r.set(8, 3, FRAME[3]);
+    soften(r);
+    return s;
+  }
+  if (kind === "oven") {
+    // A domed bread oven of clay, its mouth glowing.
+    const s = sprite(32, 36, 0, 34), { r } = s, c = ["#ecd8b8", "#d4b890", "#b4946c", "#8c6e4e", "#644c36"];
+    r.shadow(16, 33, 15, 3, 0.26);
+    for (let y = 0; y < 24; y++) for (let x = 0; x < 32; x++) {
+      const d = ((x - 15.5) / 15) ** 2 + ((y - 23) / 22) ** 2;
+      if (d <= 1) r.set(x, y + 2, c[d > 0.86 && x > 16 ? 3 : x + y < 16 ? 0 : x < 13 ? 1 : x < 24 ? 2 : 3]);
+    }
+    r.fill(0, 26, 32, 7, c[2]); r.fill(0, 26, 32, 1, c[1]); r.fill(0, 26, 6, 7, c[1]); r.fill(27, 27, 5, 6, c[3]); r.fill(0, 32, 32, 1, c[4]);
+    for (let k = 0; k < 14; k++) r.set(3 + ((k * 7 + n) % 26), 6 + ((k * 5) % 18), c[3]);
+    soften(r);
+    for (let y = 0; y < 10; y++) { const half = y < 3 ? 2 + y : 5; r.fill(16 - half, 16 + y, half * 2, 1, y > 6 ? "#7a2e1c" : "#2a1c18"); }
+    r.fill(12, 24, 8, 2, FLAME[2]); r.fill(14, 23, 4, 1, FLAME[1]); r.set(15, 22, FLAME[0]);
+    r.fill(10, 15, 12, 1, c[4]); r.fill(10, 16, 1, 10, c[4]); r.fill(21, 16, 1, 10, c[0]);
+    glow.push({ x: 16, y: 23 });
+    return { ...s, glow };
+  }
+  if (kind === "focus") {
+    // A Roman cooking bench: plastered masonry, charcoal on top under a pot on a trivet, firewood in the arch below.
+    const s = sprite(48, 44, 0, 42), { r } = s;
+    r.shadow(24, 41, 22, 3, 0.26);
+    r.fill(1, 18, 46, 23, CREAM[2]); r.fill(1, 18, 1, 23, CREAM[1]); r.fill(44, 19, 3, 22, CREAM[4]); r.fill(1, 40, 46, 1, CREAM[5]);
+    r.fill(0, 14, 48, 5, CREAM[1]); r.fill(1, 13, 46, 1, CREAM[0]); r.fill(0, 14, 48, 1, CREAM[0]); r.fill(0, 18, 48, 1, CREAM[4]);
+    for (let y = 0; y < 14; y++) { const half = y < 5 ? 4 + y * 2 : 12; r.fill(24 - half, 27 + y, half * 2, 1, "#3a2c26"); }
+    for (const [x, y] of [[15, 37], [20, 35], [26, 37], [22, 39], [30, 39]]) { r.fill(x, y, 7, 2, "#a07e58"); r.fill(x, y, 7, 1, "#c8a47a"); r.set(x, y + 1, "#e8d4b0"); }
+    soften(r);
+    r.fill(4, 14, 18, 3, "#3e3430");
+    for (let x = 5; x < 21; x++) { const k = h2(x, n, 5); if (k > 0.45) r.set(x, 14 + (x % 2), k > 0.8 ? FLAME[0] : k > 0.6 ? FLAME[1] : FLAME[2]); }
+    for (const x of [7, 18]) r.fill(x, 10, 1, 5, IRONC[2]);
+    r.fill(6, 10, 14, 1, IRONC[1]);
+    stamp(r, [".0111112.", "011222223", "012222233", ".1222233."], 8, 6, CLAY);
+    jar(r, 30, 17, [2, 3, 4, 4, 3, 2, 2], n); r.fill(36, 14, 9, 2, IRONC[2]); r.fill(36, 14, 9, 1, IRONC[0]); r.fill(44, 13, 4, 1, IRONC[3]);
+    glow.push({ x: 13, y: 14 });
+    return { ...s, glow };
+  }
+  if (kind === "closestool") {
+    // A close stool: a padded box with a lid.
+    const s = sprite(16, 24, 0, 23), { r } = s;
+    r.shadow(8, 22, 6, 2, 0.22);
+    r.fill(2, 2, 12, 8, FRAME[2]); r.fill(2, 2, 12, 1, FRAME[0]); r.fill(4, 4, 8, 5, CLOTH[1]); r.fill(4, 4, 8, 1, CLOTH[0]);
+    r.fill(1, 10, 14, 3, CLOTH[1]); r.fill(1, 10, 14, 1, CLOTH[0]); r.fill(1, 12, 14, 1, CLOTH[3]);
+    r.fill(1, 13, 14, 8, FRAME[2]); r.fill(1, 13, 1, 8, FRAME[1]); r.fill(14, 13, 1, 8, FRAME[4]); r.fill(3, 15, 10, 4, FRAME[3]); r.fill(3, 15, 10, 1, FRAME[4]); r.fill(7, 16, 2, 1, METAL[1]);
+    r.fill(1, 21, 3, 2, FRAME[4]); r.fill(12, 21, 3, 2, FRAME[4]);
+    soften(r);
+    return s;
+  }
+  if (kind === "armsrack") {
+    // The guard's arms: muskets stood in a rack, a halberd at either end.
+    const s = sprite(48, 60, 0, 58), { r } = s;
+    r.shadow(24, 57, 20, 3, 0.24);
+    for (const x of [4, 42]) r.fill(x, 26, 2, 31, FRAME[2]), r.fill(x, 26, 1, 31, FRAME[1]);
+    r.fill(3, 30, 42, 3, FRAME[2]); r.fill(3, 30, 42, 1, FRAME[0]); r.fill(3, 50, 42, 3, FRAME[3]); r.fill(3, 50, 42, 1, FRAME[1]);
+    soften(r);
+    for (let x = 12; x <= 36; x += 6) {
+      r.fill(x, 8, 1, 30, IRONC[1]); r.set(x, 8, IRONC[0]); r.fill(x + 1, 22, 1, 16, IRONC[3]);
+      r.fill(x - 1, 34, 3, 18, "#8a5a3a"); r.fill(x - 1, 34, 1, 18, "#b07e56"); r.fill(x - 2, 44, 5, 9, "#8a5a3a"); r.fill(x - 2, 44, 1, 9, "#b07e56"); r.fill(x + 2, 45, 1, 8, "#5e3a24"); r.fill(x - 2, 53, 5, 1, METAL[2]);
+      r.fill(x + 1, 36, 2, 2, METAL[1]);
+    }
+    for (const [x, s2] of [[7, 1], [40, -1]] as const) {
+      r.fill(x, 6, 1, 50, "#a88860"); stamp(r, s2 > 0 ? ["..0..", "..0..", ".001.", "00012", "00122", ".012.", "..1.."] : ["..0..", "..0..", ".001.", "01222", "00122", ".012.", "..1.."], x - 2, 0, IRONC);
+      r.fill(x - 1, 8, 3, 2, CLOTH[1]);
+    }
+    return s;
   }
   return undefined;
 }

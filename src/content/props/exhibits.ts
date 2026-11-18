@@ -11,3 +11,6 @@ export const exhibitProps: Record<string, PropDef> = Object.fromEntries(fairs.fl
     gives: f.loot && Object.fromEntries(Object.entries(f.loot).map(([k, n]) => [k, typeof n === "number" ? n : n[0]])),
   },
 } satisfies PropDef]));
+
+/** An exhibit is described by what a visitor sees of it. */
+export const exhibitAbout: Record<string, string> = Object.fromEntries(fairs.flatMap((fair) => fair.finds).map((f) => [`exhibit-${f.id}`, f.look]));

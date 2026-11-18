@@ -392,6 +392,190 @@ const domusPeople: SewerPerson[] = [
   ], { women: 0, party: alone, ages: [20, 60], note: "'From eggs to apples' was the proverbial course of a dinner; Livy dates the rise in the price and standing of cooks to the second century BC." }),
 ];
 
+const inEgypt = household([-1550, -332]);
+const egyptPeople: SewerPerson[] = [
+  inEgypt("eg-scribe", "Scribe", "scribe", "Checking a tally", "work", [
+    "Every jar that comes into this house is written down twice, once by me and once by a man who is paid to doubt me.",
+    "I was at school from the age of five. The teacher said a boy's ears are on his back: he listens when he is beaten.",
+  ], { weight: 2, women: 0, ages: [16, 65], note: "Palace administration ran on written accounts; the school texts praising the scribe's life over every other trade survive in many copies." }),
+  inEgypt("eg-servant", "Palace servant", "servant", "Carrying a jar", "explore", [
+    "I carry water from the garden pool to the bath room and I carry it out again. It is not hard work, and it is indoors.",
+    "The floors are painted with ducks and reeds. We are told to walk round the edges.",
+  ], { weight: 3, women: 0.5, ages: [12, 55], note: "Painted plaster floors with marsh scenes are known from the palaces at Malkata and Amarna." }),
+  inEgypt("eg-guard", "Doorkeeper", "soldier", "Standing at a door", "lookout", [
+    "Past me is the hall of columns. Past the hall is the throne. You stop where you are told to stop.",
+    "Most of the guard are Nubians and men from the western desert. The king pays well and on time.",
+  ], { women: 0, party: alone, ages: [18, 50], note: "Foreign troops, Nubian Medjay among them, served as palace and police guards in the New Kingdom." }),
+  inEgypt("eg-official", "Official", "landowner", "Waiting for an audience", "explore", [
+    "I govern a district twelve days upriver. I have been waiting here nine days to say so.",
+    "When you come before him you put your forehead on the floor. Seven times is polite.",
+  ], { women: 0.1, ages: [25, 70], note: "Letters to the king open with the formula of falling at his feet seven times and seven times." }),
+];
+
+const inPersia = household([-550, -330]);
+const persiaPeople: SewerPerson[] = [
+  inPersia("pe-guard", "Spearman of the guard", "soldier", "Standing in file", "lookout", [
+    "There are ten thousand of us. When one dies another is put in his place the same day, so there are always ten thousand.",
+    "The butt of my spear is a golden apple. The ones nearest the king have pomegranates.",
+  ], { weight: 2, women: 0, ages: [18, 45], note: "Herodotus describes the ten thousand 'Immortals' and the golden apples and pomegranates on their spear butts." }),
+  inPersia("pe-usher", "Usher", "clerk", "Deciding who goes in", "work", [
+    "Nobody comes before the king unless I lead him in. You keep your hands in your sleeves and you do not speak first.",
+    "Every nation brings what it is known for. The Indians bring gold dust. The Arabs bring a camel.",
+  ], { women: 0, party: alone, ages: [25, 65], note: "The Persepolis reliefs show delegations of the subject peoples led in by ushers, each bringing its own gift." }),
+  inPersia("pe-envoy", "Envoy with gifts", "merchant", "Waiting to be led in", "explore", [
+    "We walked three months to bring him two rams and a bolt of cloth. It is the bringing that counts.",
+    "They gave us bread, wine and a sheep a day on the road, and wrote it all down at every stop.",
+  ], { weight: 2, women: 0, ages: [20, 60], note: "The Persepolis Fortification tablets record daily rations issued to travellers on the royal roads." }),
+  inPersia("pe-servant", "Palace servant", "servant", "Carrying a covered dish", "explore", [
+    "Fifteen thousand people eat from the king's kitchen every day. I have never seen him.",
+    "He eats behind a curtain. He can see the guests and they cannot see him.",
+  ], { weight: 2, women: 0.4, ages: [12, 55], note: "Greek writers reported the scale of the king's table and that he dined screened from his guests." }),
+];
+
+const inAegean = household([-2000, -1100]);
+const aegeanPeople: SewerPerson[] = [
+  inAegean("ae-scribe", "Tablet writer", "scribe", "Scratching a clay tablet", "work", [
+    "This tablet says how many sheep the shepherd at the far village owes us. Next year I will crush it and write a new one.",
+    "Oil, wool, bronze, chariot wheels. If the house owns it, somebody here has counted it.",
+  ], { weight: 2, women: 0, ages: [16, 60], note: "The Linear B tablets are palace accounts of livestock, cloth, oil, bronze and personnel, kept on unbaked clay for a year at a time." }),
+  inAegean("ae-servant", "Palace servant", "servant", "Carrying a jar of oil", "explore", [
+    "The store rooms hold jars taller than I am, sunk in the floor. I fill the small jars from the big ones.",
+    "The oil is boiled with herbs here and sold abroad as scent. The whole house smells of it.",
+  ], { weight: 3, women: 0.6, ages: [12, 55], note: "Perfumed oil was a palace industry at Pylos, recorded in the tablets and shipped in stirrup jars." }),
+  inAegean("ae-guard", "Follower of the king", "soldier", "Leaning on a spear", "lookout", [
+    "I ride in a chariot behind the king when he goes out. The palace gave me the chariot and can take it back.",
+    "My helmet is made of boars' tusks. It took thirty boars.",
+  ], { women: 0, ages: [18, 50], note: "The tablets list chariots issued to named men, and 'followers' attached to the king; boar's tusk helmets survive." }),
+  inAegean("ae-priestess", "Priestess", "landowner", "Come from the shrine", "explore", [
+    "I hold land in the god's name and I am arguing with the village about the rent. The tablet writers are tired of both of us.",
+    "At the feast the king pours the first cup on the floor, by the hearth. Then everyone may drink.",
+  ], { women: 1, party: alone, ages: [25, 70], note: "A Pylos tablet records a land dispute between the priestess Eritha and the local community." }),
+];
+
+const inChina = household([1368, 1911]);
+const chinaPeople: SewerPerson[] = [
+  inChina("cn-eunuch", "Palace eunuch", "servant", "Carrying a message", "explore", [
+    "There are several thousand of us. We open the doors, carry the meals, keep the accounts and hear everything.",
+    "I was sold to the palace at nine. My family ate for two years on what they were paid.",
+  ], { weight: 3, women: 0, ages: [12, 70], note: "Ming and Qing palaces were staffed by eunuchs in the thousands, mostly from poor families of the northern provinces." }),
+  inChina("cn-official", "Official", "clerk", "Waiting for the audience", "explore", [
+    "The audience is at dawn. We wait in the cold from three in the morning, in order of rank, and nobody coughs.",
+    "I sat the examinations four times. The square on my robe is a crane, which means the first rank. My father was a farmer.",
+  ], { weight: 2, women: 0, ages: [28, 75], note: "Officials were recruited by examination and ranked in nine grades shown by the bird on the badge of the robe; court audiences were held at dawn." }),
+  inChina("cn-guard", "Guardsman", "soldier", "Standing at a gate", "lookout", [
+    "Every gate has a tally. You show your half, I show mine, and if they do not fit you do not go in.",
+    "Nobody but the emperor walks through the middle door. I have never seen it opened for anyone else.",
+  ], { women: 0, ages: [18, 50], note: "Entry to the palace was by matching tallies, and the central gateway on the axis was reserved for the emperor." }),
+  inChina("cn-maid", "Palace maid", "servant", "Carrying a tray", "work", [
+    "We come in at thirteen and go home at twenty-five, if we are not noticed. Being noticed is not always good luck.",
+    "The inner court is ours and the eunuchs'. No other man comes past the middle gate.",
+  ], { weight: 2, women: 1, ages: [13, 30], note: "Qing palace maids were drawn from bannermen's families and released to marry in their twenties." }),
+];
+
+const inJapan = household([1580, 1868]);
+const japanPeople: SewerPerson[] = [
+  inJapan("jp-retainer", "Retainer", "soldier", "Kneeling in his place", "lookout", [
+    "I draw eighty bales of rice a year for sitting here every third day. My grandfather earned it with a spear.",
+    "The long sword stays at the door. The short one stays in my belt, and if I draw it in this house I die for it.",
+  ], { weight: 3, women: 0, ages: [16, 65], note: "Samurai stipends were paid in rice; drawing a sword inside the shogun's palace was a capital offence." }),
+  inJapan("jp-lord", "Visiting lord", "landowner", "Waiting to be received", "explore", [
+    "How far up the room I may sit was settled before my grandfather was born. I am an outside lord, so I sit near the door.",
+    "Every other year I live in the capital. My wife and my heir live there always. Nobody calls them hostages.",
+  ], { women: 0, party: alone, ages: [20, 70], note: "Lords were seated by hereditary category, and under alternate attendance kept their families permanently in Edo." }),
+  inJapan("jp-page", "Page", "servant", "Sliding a screen open", "work", [
+    "You open a screen kneeling, with two hands, in three movements. I practised for a year before I was let near a guest.",
+    "The floor in the corridor squeaks on purpose. Nobody walks up on his lordship quietly.",
+  ], { weight: 2, women: 0.2, ages: [12, 30], note: "The 'nightingale floors' of Nijo Castle sound underfoot; whether that was intended is argued over." }),
+  inJapan("jp-lady", "Lady-in-waiting", "landowner", "Come from the inner rooms", "explore", [
+    "The inner rooms are run by women, and a man who is not the lord needs leave to come in.",
+    "I arrange the alcove each morning: one scroll, one branch. Two branches would be loud.",
+  ], { women: 1, party: alone, ages: [18, 60], note: "The private quarters of a great household were administered by its women; the alcove display of scroll and flowers was a formal art." }),
+];
+
+const atCastle = household([1151, 1520]);
+const castlePeople: SewerPerson[] = [
+  atCastle("gc-guard", "Man-at-arms", "soldier", "On watch at a door", "lookout", [
+    "I am paid by the quarter, fed at the lower tables and given a coat in the king's colours once a year.",
+    "Nobody comes armed past the great chamber door. I take the swords and I give them back.",
+  ], { weight: 2, women: 0, ages: [18, 55], note: "Royal and noble households retained paid men-at-arms in livery; ordinances regulated who might go armed within the court." }),
+  atCastle("gc-usher", "Usher of the hall", "servant", "Seating people by rank", "work", [
+    "I know every man's rank and where it puts him at table. A mistake at dinner is remembered for years.",
+    "Two meals a day for three hundred people. What is left goes out at the gate to the poor, and they know the hour.",
+  ], { weight: 3, women: 0.1, ages: [14, 60], note: "Household ordinances set out seating by rank in hall and the giving of broken meats as alms at the gate." }),
+  atCastle("gc-clerk", "Clerk of the household", "scribe", "Writing up the day's account", "work", [
+    "Every loaf and every candle is written down each night and added up each week. The king's house runs on parchment.",
+    "I am in minor orders, which means I can read, and that I may not marry. One of those I regret.",
+  ], { women: 0, party: alone, ages: [18, 65], note: "Daily household accounts survive from many late medieval courts; their clerks were usually in minor orders." }),
+  atCastle("gc-lady", "Lady of the chamber", "landowner", "Come from the queen's rooms", "explore", [
+    "I wait on the queen: I hold what she hands me and I hear what she does not say aloud.",
+    "My husband has an office here because of me, not the other way about.",
+  ], { women: 1, party: alone, ages: [16, 60], note: "Ladies and damsels of the queen's chamber were salaried members of the household and channels of patronage." }),
+];
+
+const atDivan = household([700, 1900]);
+const divanPeople: SewerPerson[] = [
+  atDivan("is-guard", "Palace guard", "soldier", "Standing at a gate", "lookout", [
+    "I was bought as a boy, trained in the barracks and freed into the guard. I have no family but the men beside me.",
+    "Past the second gate nobody rides, nobody shouts, and nobody goes further without being sent for.",
+  ], { weight: 2, women: 0, ages: [18, 50], note: "Slave soldiers, bought young and trained in the ruler's household, formed palace guards from Abbasid Baghdad to Ottoman Istanbul." }),
+  atDivan("is-eunuch", "Eunuch of the household", "servant", "Carrying a message inward", "explore", [
+    "I can go where the guards cannot and where the women cannot. Every message between the two halves of this house passes through me.",
+    "The chief of us answers only to the ruler, and holds the keys to the inner gate.",
+  ], { weight: 2, women: 0, ages: [14, 70], note: "Eunuchs guarded the boundary between the public and private quarters, and the chief eunuch was among the great officers of the court." }),
+  atDivan("is-secretary", "Secretary", "scribe", "Drafting a decree", "work", [
+    "The decree must be in the correct hand, with the correct titles in the correct order, or it is not a decree.",
+    "The council sits four mornings a week. Anyone may bring a complaint, and it is my job to write it shorter.",
+  ], { weight: 2, women: 0, ages: [20, 70], note: "Chancery secretaries were trained in prescribed scripts and formulas; council sessions heard petitions from subjects." }),
+  atDivan("is-petitioner", "Petitioner", "merchant", "Waiting with a paper in his hand", "explore", [
+    "The tax farmer took twice what was owed. I have come two hundred miles to say so, and I will wait as long as it takes.",
+    "You hand it to the secretary, the secretary reads it to the council, and the ruler listens from behind a grille. You never know if he is there.",
+  ], { weight: 2, women: 0.1, ages: [20, 70], note: "Subjects could petition the ruler's council directly; at the Ottoman court the sultan might listen unseen from a screened window." }),
+  atDivan("is-lady", "Woman of the household", "landowner", "Crossing the inner court", "explore", [
+    "The ruler's mother runs this side of the house. She has her own income, her own secretary, and the last word.",
+    "We are taught to read, to sew, to play and to keep accounts. Some of us leave to be married to governors.",
+  ], { women: 1, ages: [14, 60], note: "The harem was a household with its own hierarchy and training, headed in the Ottoman case by the sultan's mother." }),
+];
+
+const atTecpan = household([1325, 1521]);
+const tecpanPeople: SewerPerson[] = [
+  atTecpan("az-guard", "Warrior of the guard", "soldier", "Standing with a shield", "lookout", [
+    "I have taken four captives, so I may wear this lip plug and stand in this court. A man who has taken none carries loads.",
+    "You go barefoot before him, in a plain cloak, with your eyes down. Even the great lords do.",
+  ], { weight: 2, women: 0, ages: [18, 50], note: "Rank among Mexica warriors followed the number of captives taken; all who came before the ruler did so barefoot and plainly dressed." }),
+  atTecpan("az-steward", "Steward", "clerk", "Checking a tribute list", "work", [
+    "Four hundred loads of cloaks from this province every eighty days. If it is short, I am the one who walks there to ask why.",
+    "The storehouses feed the palace, the army and the city in a bad year. The count is kept in pictures.",
+  ], { weight: 2, women: 0, ages: [25, 65], note: "Stewards (calpixque) collected provincial tribute on fixed schedules recorded in painted registers such as the Matrícula de Tributos." }),
+  atTecpan("az-painter", "Painter of books", "scribe", "Painting a folded book", "work", [
+    "Red and black: that is what we call knowing things. I paint the tribute, the days and the lines of the families.",
+    "My father taught me the signs. There are no letters. You have to know what you are looking at.",
+  ], { women: 0.1, party: alone, ages: [18, 65], note: "The tlacuilo painted screenfold records; 'the red, the black' was the Nahuatl phrase for writing and wisdom." }),
+  atTecpan("az-servant", "Palace servant", "servant", "Carrying a covered dish", "explore", [
+    "Three hundred dishes are set out for him at each meal, on little braziers to keep them warm. He picks a few. The court eats the rest.",
+    "After he eats he drinks chocolate, beaten to a foam, from a gold cup. I have carried it. I have never tasted it.",
+  ], { weight: 3, women: 0.6, ages: [12, 55], note: "Spanish eyewitnesses described the hundreds of dishes kept warm for Moctezuma and the foamed cacao served after." }),
+];
+
+const atKancha = household([1400, 1533]);
+const kanchaPeople: SewerPerson[] = [
+  atKancha("in-guard", "Guard of the Inca", "soldier", "Standing at the gate", "lookout", [
+    "The guard is drawn from the peoples he trusts. My village sends ten men every year, as its tax.",
+    "Nobody looks at him. You come in with a load on your back, however great you are, to show you are his.",
+  ], { weight: 2, women: 0, ages: [18, 50], note: "Labour, including guard service, was the Inca tax; those approaching the ruler carried a token burden and kept their eyes lowered." }),
+  atKancha("in-quipu", "Keeper of the knots", "scribe", "Running cords through his fingers", "work", [
+    "This cord is llamas, this one maize, this one men fit to fight. Colour tells you what, the knots tell you how many.",
+    "I can read you every storehouse from here to the sea. If my count is wrong, I answer for it with my life.",
+  ], { weight: 2, women: 0, party: alone, ages: [25, 70], note: "Khipukamayuq kept the state's decimal accounts on knotted cords; the system recorded numbers and categories without writing." }),
+  atKancha("in-aclla", "Chosen woman", "weaver", "Weaving at a loom", "work", [
+    "I was chosen at ten and brought here. We weave the cloth he wears once and then burns, and we brew the maize beer for the feasts.",
+    "Some of us are given as wives to lords he wants to bind. I may go; I may weave here until I am old.",
+  ], { weight: 2, women: 1, ages: [10, 60], note: "The aqllakuna were selected girls who wove fine cumbi cloth and brewed chicha for the state; some were given in marriage as royal favours." }),
+  atKancha("in-servant", "Servant for life", "servant", "Carrying a jar", "explore", [
+    "I belong to his house, not to a village. I pay no tax, I own no land, and my children will serve his children.",
+    "When he dies he keeps this house, his servants and his lands. The new Inca has to build his own.",
+  ], { weight: 3, women: 0.4, ages: [12, 60], note: "Yanakuna were hereditary retainers outside the village system; a dead ruler's estate stayed with his mummy and lineage." }),
+];
+
 export const fairPeople: readonly SewerPerson[] = [
   ...chicagoPeople,
   ...london,
@@ -401,6 +585,15 @@ export const fairPeople: readonly SewerPerson[] = [
   ...bigHousePeople,
   ...meadHallPeople,
   ...domusPeople,
+  ...egyptPeople,
+  ...persiaPeople,
+  ...aegeanPeople,
+  ...chinaPeople,
+  ...japanPeople,
+  ...castlePeople,
+  ...divanPeople,
+  ...tecpanPeople,
+  ...kanchaPeople,
   person("fair-visitor", "Visitor", "clerk", "Seeing the fair", "explore", [
     "We came for the Tower and haven't even got to it yet. Every turn there's something else.",
     "Thirty-two million tickets, they say. I believe it. Look at this crowd.",
