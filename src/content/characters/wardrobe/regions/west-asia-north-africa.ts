@@ -350,8 +350,12 @@ export const westAsiaNorthAfrica: readonly GarmentKit[] = [
       { value: "headscarf", weight: 5, sex: ["female"] }, { value: "none", weight: 3, sex: ["female"] }],
   },
   ...streetWraps([
-    // Safavid and Qajar Iran: the chador, black or dark blue, over a white face veil (the rubandeh).
-    { id: "iran-chador", label: "Iran · the chador", years: [1500, 10001], bounds: [44, 25, 63.5, 39.8], except: [[53, 37.3, 63.5, 39.8]], colors: ["#24222a", "#24222a", "#2c3550"], masks: [["yashmak", 3], ["none", 2]] },
+    // Qajar street dress paired the wrap with a separate white openwork face veil.
+    { id: "iran-chador", label: "Iran · chador and ruband", years: [1500, 1926], bounds: [44, 25, 63.5, 39.8], except: [[53, 37.3, 63.5, 39.8]], colors: ["#24222a", "#24222a", "#2c3550"], masks: [["ruband", 3], ["none", 2]] },
+    ...([[1926, 1936], [1941, 2040]] as [number, number][]).map(years => ({
+      id: `iran-open-chador-${years[0]}`, label: "Iran · open-faced chador", years, bounds: [44, 25, 63.5, 39.8] as Wrap["bounds"],
+      except: [[53, 37.3, 63.5, 39.8]] as Wrap["except"], colors: ["#24222a", "#302e36"], masks: [["none", 1]] as Wrap["masks"],
+    })),
     // The Ottoman ferace, a long coat in a colour, with the white yaşmak below the eyes.
     // North of 35° the Ottoman population draws each person's faith, and
     // Christian and Jewish women there did not take the yaşmak or the çarşaf.

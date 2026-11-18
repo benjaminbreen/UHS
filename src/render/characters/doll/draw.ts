@@ -761,6 +761,19 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     const up = frame === 1 || frame === 2;
     hands[0] = [d.shoulderW + 2, sh - (up ? 2 : 4), 1.5];
     hands[1] = [-(d.shoulderW + 2), sh - (up ? 2 : 4), 1.5];
+  } else if (pose === "drive-cart" || pose === "guide-plough") {
+    seated = pose === "drive-cart";
+    if (seated) {
+      rise = -Math.round(d.leg * 0.45);
+      for (const [i, side] of [[0, 1], [1, -1]] as const)
+        feet[i] = { at: [side * hipX, 2, 4], knee: 3 };
+    } else if (frame) {
+      step(3.6, 1.3, 0, false);
+      rise = tilt = 0;
+    }
+    lean = seated ? 1.6 + (frame === 2 ? 0.5 : 0) : 2.6;
+    for (const [i, side] of [[0, 1], [1, -1]] as const)
+      hands[i] = [side * (seated ? 3 : 4), sh - (seated ? 4 : 6), seated ? 6 : 5];
   } else if (pose === "sit" || pose === "sit-seat") {
     seated = true;
     const drop = pose === "sit" ? d.leg - 1 : Math.round(d.leg * 0.45);
@@ -1155,6 +1168,15 @@ function project(t: Turn, p: J): J {
   return [CX + p[0] * t.cos + p[2] * t.sx * t.sin, GY - p[1] + p[2] * t.cos * TILT + Math.max(0, -p[0] * t.sx * t.sin) * 0.3, z];
 }
 
+/** Reins and handles end at the same projected joints that paint the fingers. */
+export function crewHands(a: CharacterAppearance, pose: "guide-plough" | "drive-cart", facing: number, frame: number) {
+  const t = turnOf(facing);
+  return posed(dims(a), a, pose, frame, t.sx).arms.map(arm => {
+    const [x, y] = project(t, arm.end);
+    return { x: Math.round(x - W / 2), y: Math.round(y - H) };
+  });
+}
+
 // ---------------------------------------------------------------- the kit
 
 type Kit = {
@@ -1308,7 +1330,7 @@ function palette(a: CharacterAppearance): Ramp[] {
   p[LIP] = w.makeup === "goth" ? ramp("#2c1a30") : w.makeup === "ganguro" ? ramp("#eee4d6")
     : ramp(mix(a.skin, light > 170 ? "#c4506a" : "#7a2e3c", female ? 0.6 : 0.42), "skin");
   p[IRIS] = flat(irisOf(a), mix(irisOf(a), "#231a2b", 0.4));
-  p[BLUSH] = flat(mix(flush(a.skin), a.skin, 0.25));
+  p[BLUSH] = flat(mix(a.record?.powder ?? flush(a.skin), a.skin, 0.25));
   p[EYE] = flat("#231a2b");
   p[GLASS] = ramp(hat === "visor" ? "#b8d8e8" : "#2c3440");
   p[STUBBLE] = ramp(mix(a.skin, a.hairColor, 0.4), "skin");

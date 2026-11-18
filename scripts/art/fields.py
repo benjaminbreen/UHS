@@ -178,11 +178,13 @@ def grain(name, stage, v):
     no keyline. Heavier art made a field read as a picket fence."""
     w, h = 16, 24
     im, d = canvas(w, h)
-    d.ellipse((3, h - 5, w - 4, h - 2), fill=SHADOW)
+    if name != 'rice':
+        d.ellipse((3, h - 5, w - 4, h - 2), fill=SHADOW)
     ripe = stage == 'ripe'
     if name == 'rice':
-        d.ellipse((1, h - 6, w - 2, h - 2), fill=WATER[0])
-        d.line((3, h - 4, 5, h - 4), fill=WATER[1])
+        d.line((4, h - 3, 11, h - 3), fill=(57, 85, 56, 130))
+        if not ripe:
+            d.line((10, h - 2, 13, h - 2), fill=(164, 191, 151, 115))
     stem = [STRAW[1], STRAW[2]] if ripe else [G[0], G[2]]
     blade = [STRAW[0], STRAW[2]] if ripe else [G[1], G[3]]
     pal = ramp(HUE[name]) if ripe else [G[1], G[3], G[4]]
@@ -202,7 +204,10 @@ def grain(name, stage, v):
         d.line((x, by, x + s * 3, by - 3), fill=blade[front])
         if not ripe:
             d.line((x, by - 4, x - s * 2, by - 7), fill=blade[front])
-        ear(name, d, tx, top, pal if front else [pal[0], pal[0], pal[1]], s)
+        if name == 'rice' and not ripe:
+            d.line((x, base, tx, top), fill=blade[front])
+        else:
+            ear(name, d, tx, top, pal if front else [pal[0], pal[0], pal[1]], s)
     return im
 def maize(stage, v):
     w, h = 16, 32
@@ -695,10 +700,18 @@ def sprout(name, kind, v):
     leaves, and the woody crops are set out as a rooted cutting."""
     w, h = SIZES[name]
     im, d = canvas(w, h)
+    if name == 'rice':
+        cx, base = w // 2, h - 4
+        d.line((cx - 2, base + 1, cx + 2, base + 1), fill=(57, 92, 73, 155))
+        d.line((cx + 2, base + 2, cx + 5, base + 2), fill=(170, 195, 167, 115))
+        for dx, up, colour in ((-4, 5, '#466f48'), (-2, 7, '#698c45'), (1, 8, '#a3bb58'), (3, 5, '#527e45')):
+            d.line((cx + (dx > 0), base, cx + dx + v, base - up), fill=colour)
+        d.point((cx, base - 2), fill='#aabc61')
+        return im
     ground(d, w, h, inset=max(1, w // 2 - 4))
     part, parts_done = parts(im)
     cx, base = w // 2, h - 3
-    if name in ('rice', 'taro'):
+    if name == 'taro':
         # Only the puddle the seedling stands in, not the whole cell.
         d.rectangle((cx - 5, h - 6, cx + 5, h - 3), fill=WATER[0])
         d.line((cx - 3, h - 5, cx, h - 5), fill=WATER[1])

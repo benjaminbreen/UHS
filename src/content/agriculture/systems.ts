@@ -18,6 +18,7 @@ const mediterraneanCultures: CultureId[] = [
 const mediterraneanTerraces = mediterraneanCultures.map(
   (culture): FarmSystemRule => ({
     id: "mediterranean-terrace-and-wheat",
+    oxPloughFrom: -800,
     label: "Olive and vine terraces over wheat land",
     culture,
     from: -800,
@@ -291,6 +292,7 @@ const highland = (
 export const farmSystems: FarmSystemRule[] = [
   {
     id: "medieval-open-field-strips",
+    oxPloughFrom: 800,
     label: "Open-field strips in three courses",
     culture: "european",
     from: 800,
@@ -390,6 +392,7 @@ export const farmSystems: FarmSystemRule[] = [
   },
   {
     id: "mesopotamian-canal-strips",
+    oxPloughFrom: -3500,
     label: "Canal-fed strips and date groves",
     culture: "north-african-west-asian",
     from: -3500,
@@ -426,6 +429,7 @@ export const farmSystems: FarmSystemRule[] = [
   ...riceBasins,
   {
     id: "north-china-millet-wheat-blocks",
+    oxPloughFrom: -206,
     label: "Dry-farmed millet and wheat blocks",
     culture: "east-asian",
     from: -1500,
@@ -457,6 +461,7 @@ export const farmSystems: FarmSystemRule[] = [
   },
   {
     id: "south-asian-paddy-and-millet",
+    oxPloughFrom: -600,
     label: "Monsoon paddy with millet and cotton",
     culture: "south-asian",
     from: -1500,
@@ -895,6 +900,7 @@ export const farmSystems: FarmSystemRule[] = [
   },
   {
     id: "ethiopian-highland-plough-and-terrace",
+    oxPloughFrom: 100,
     label: "Plough land with stone terraces",
     culture: "east-southern-african",
     from: -500,

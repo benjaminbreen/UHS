@@ -203,6 +203,8 @@ export const street: readonly GarmentKit[] = [
   }),
   kit("desk-hat", "The office: necktie, a felt hat, the briefcase", { years: [1900, 1960] }, {
     garment: [desk("coat", 3), desk("shirt", 1), typist("dress", 3), typist("shirt", 1)],
+    dye: [desk("soot", 3), desk("ash", 3), desk("woad", 2), desk("walnut", 1)],
+    motif: [desk("plain")],
     leggings: [desk("trousers")], neckwear: [desk("necktie", 4), desk("bow-tie", 1)],
     headwear: [desk("fedora", 3), desk("bowler", 1), desk("none", 2), typist("none", 3)],
     accessory: held(desk, ["briefcase", 2], ["ledger", 1], ["none", 3]),

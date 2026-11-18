@@ -18,7 +18,7 @@ ATLASES = ['public/packs/boats.png', 'public/packs/worksites.png', 'public/packs
            'public/props/atlas.png', 'public/props/shadows.png', 'public/props/shadows-2.png',
            'public/nature/atlas.png', 'public/nature/shadows.png', 'public/nature/shadows-2.png',
            'public/ecology/atlas.png',
-           'public/props/vehicles.png', 'public/props/vehicle-shadows.png']
+           'public/fauna-v/vehicles.png', 'public/props/vehicles.png', 'public/props/vehicle-shadows.png']
 
 
 def write_stamp(root):

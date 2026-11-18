@@ -1,3 +1,4 @@
+import { besideTeam, vehicleAt } from "../world/v3/conveyances";
 import { loadVoxelItems, voxelIcon, voxelItemsReady } from "./voxel-items";
 import { shopArt, walkableRoof, waterborneFrames } from "../content/graphics/models";
 import { socialLabels } from "../core/bonds";
@@ -13,7 +14,7 @@ import { fishingWaterfront } from "../content/settlements/waterfronts";
 import { TrainLayer } from "./trains";
 import { CabLayer } from "./cabs";
 import { BabyEffects } from "./baby-effects";
-import { VehicleLayer, crewPlace, vehiclePose } from "./vehicles";
+import { VehicleLayer, crewFrame, crewPlace, ploughStep, vehiclePose } from "./vehicles";
 import type { CharacterAppearance } from "../core/character";
 import type { SettlementPlan } from "../world/v3/types";
 import { ruinTexture, releaseRuins } from "./ruins";
@@ -136,6 +137,7 @@ import {
   bumpPerson,
   cockCrow,
   thump,
+  scrape,
   footstep,
   type DungStep,
   type FungusStep,
@@ -344,7 +346,7 @@ import { laneLids } from "./carriageway";
 import { caveLight } from "../content/caves";
 import type { Kind, Prop } from "./interiors/room";
 import { ROOM_ORIGIN } from "../world/interior";
-import { setCropSelector, setCropCut, setCropsIndoors } from "./crops";
+import { addCrops, cropsAt, setCropSelector, setCropCut, setCropsIndoors } from "./crops";
 import { setFloraRegion } from "../content/ecology/blooms";
 import { floraRegion } from "../content/ecology/flora";
 import { alternateTrees, lazySheets, pageImage, pagedSheets, sceneAssets } from "./scene-assets";
@@ -873,7 +875,7 @@ export class WorldScene extends Phaser.Scene {
   private vehicleLayer = new VehicleLayer(this, (frame) => this.texture(frame));
   /** Crew in their vehicles: sitting or standing, which way the vehicle
    * faces, and the depth that puts them between its two layers. */
-  private mounted = new Map<string, { seated: boolean; facing: number; depth: number }>();
+  private mounted = new Map<string, { role: CharacterPose; frame: number; facing: number; depth: number }>();
   private mountedActors = new Map<string, Actor>();
   private courtyardLighting = new CourtyardLighting(this);
   private buildings = new Map<string, Phaser.GameObjects.Image>();
@@ -1195,6 +1197,8 @@ export class WorldScene extends Phaser.Scene {
       }
     });
     const clearInput = () => {
+      this.rowGoal = undefined;
+      this.plantDrag = false;
       this.heldDirections.clear();
       this.touchStick = undefined;
       this.shiftHeld = this.spaceDown = false;
@@ -1233,6 +1237,26 @@ export class WorldScene extends Phaser.Scene {
         this.runtime.inspectCell(x, y);
         return;
       }
+      if (pointer.leftButtonDown()) {
+        const engine = this.runtime.engine, player = engine.state.player;
+        const mark = this.fieldPrompt?.visible && this.fieldPrompt.getBounds().contains(p.x, p.y);
+        const farmer = player.guidingPlough && engine.state.actors.find(a => a.id === player.guidingPlough);
+        const v = farmer && farmer.plough && engine.world.vehicle?.(farmer.plough.vehicle);
+        if (v && farmer && farmer.plough) {
+          const step = farmer.plough.step;
+          const end = step < v.rowLength! - 1 ? v.rowLength! - 1 : step === v.rowLength! - 1 ? step + 1 : v.path.length - 1;
+          const goal = mark ? end : v.path.findIndex((q, i) => i > step && i <= end && q.x === x && q.y === y);
+          if (goal > step) this.rowGoal = { farmer: farmer.id, step: goal };
+          return;
+        }
+        const field = this.runtime.fieldVerb(mark ? undefined : { x, y })?.command;
+        if (field) {
+          this.runtime.stop(false);
+          this.runtime.command(field);
+          this.plantDrag = field.action === "sow-strip";
+          return;
+        }
+      }
       // A finger is a blunt pointer and walking is what it is mostly for: on a
       // phone a tap goes where it points instead of opening a panel over the
       // world. The Inspect button and the Around you list still select.
@@ -1263,6 +1287,10 @@ export class WorldScene extends Phaser.Scene {
     this.input.on(
       "pointermove",
       (pointer: Phaser.Input.Pointer, over: unknown[]) => {
+        if (this.plantDrag && pointer.isDown && !this.modalOpen && this.pinchSpread() === undefined) {
+          const cmd = this.runtime.fieldVerb(this.pointerCell(pointer))?.command;
+          if (cmd?.action === "sow-strip") this.runtime.command(cmd);
+        }
         if (pointer.event instanceof MouseEvent) {
           this.mouseTarget = this.pointerCell(pointer);
           if (this.aimStarted !== undefined && this.aimInput === "mouse")
@@ -1294,6 +1322,7 @@ export class WorldScene extends Phaser.Scene {
       );
     });
     const endPinch = () => {
+      this.plantDrag = false;
       this.pinchStart = undefined;
     };
     this.input.on("pointerup", endPinch);
@@ -2779,21 +2808,21 @@ export class WorldScene extends Phaser.Scene {
   }
   /** Where someone in a vehicle is drawn: their crew place in it, turned
    * with it, in tile units as the ambient crowd is placed. */
-  private mountAt(a: Actor, clock: number): Ambient | undefined {
-    const v = a.mount && this.runtime.engine.world.vehicle?.(a.mount.vehicle);
+  private mountAt(a: Actor, clock: number, player = false): Ambient | undefined {
+    const e = this.runtime.engine, v = a.mount && e.world.vehicle?.(a.mount.vehicle);
     if (!v || !a.mount) return undefined;
-    const pose = vehiclePose(v, clock);
+    const p = e.state.player, step = a.plough && ploughStep(a.plough, clock);
+    const t = e.cartClock(v.id, clock), pose = vehiclePose(v, t, step);
     const place = crewPlace(v, pose, a.mount.place);
     if (!place) return undefined;
-    this.mounted.set(a.id, { seated: place.seated, facing: pose.facing, depth: place.depth });
-    return {
-      x: (place.x - 8) / 16,
-      y: (place.y - 16) / 16,
-      activity: "visit",
-      label: v.doing,
-      moving: false,
-      direction: Math.round(pose.facing / 2) % 4,
-    };
+    const at = vehicleAt(v, t, step), walking = at.moving && !(p.drivingCart?.vehicle === v.id && p.drivingCart.haltedAt !== undefined);
+    const beside = !player && a.mount.place === 0 && (p.guidingPlough === a.id || p.drivingCart?.vehicle === v.id);
+    const helper = beside && besideTeam(at);
+    const x = helper ? helper.x * 16 + 8 : place.x;
+    const y = helper ? helper.y * 16 + 16 : place.y;
+    const role = beside ? (walking ? "walk" : "idle") : place.role;
+    this.mounted.set(player ? "player" : a.id, { role, frame: crewFrame(role, at.along, at.moving), facing: pose.facing, depth: beside ? y : place.depth });
+    return { x: (x - 8) / 16, y: (y - 16) / 16, activity: "visit", label: v.doing, moving: walking, direction: Math.round(pose.facing / 2) % 4 };
   }
   /** The developer's horse: its gait from the player's pace, its heading
    * from their facing, eight frames a stride. */
@@ -2850,6 +2879,42 @@ export class WorldScene extends Phaser.Scene {
   }
   /** The railway of the town the player is in, and of any town beside it
    * whose line runs into view. */
+  private fieldPrompt?: Phaser.GameObjects.Text;
+  private rowGoal?: { farmer: string; step: number };
+  private nextFieldStep = 0;
+  private plantDrag = false;
+  private lastPloughBeat = new Map<string, number>();
+
+  private drawFieldPrompt(time: number) {
+    const e = this.runtime.engine, p = e.state.player;
+    const guide = p.guidingPlough && e.state.actors.find(a => a.id === p.guidingPlough);
+    const v = guide && guide.plough && e.world.vehicle?.(guide.plough.vehicle);
+    let label = "", x = p.pos.x, y = p.pos.y, offset = 36;
+    if (v && guide && guide.plough) {
+      const step = guide.plough.step, next = v.path[step + 1];
+      if (next) {
+        const turn = step + 1 === v.rowLength;
+        const q = turn ? next : v.path[step < v.rowLength! - 1 ? v.rowLength! - 1 : v.path.length - 1];
+        x = q.x; y = q.y; offset = 13;
+        const direction = turn ? (next.x > p.pos.x ? "↱" : next.x < p.pos.x ? "↰" : next.y > p.pos.y ? "↴" : "↱") :
+          next.x > p.pos.x ? "→" : next.x < p.pos.x ? "←" : next.y > p.pos.y ? "↓" : "↑";
+        label = turn ? direction + " Turn" : direction;
+        if (this.rowGoal?.farmer === guide.id && step < this.rowGoal.step && time >= this.nextFieldStep) {
+          this.nextFieldStep = time + 260;
+          this.runtime.command({ type: "move", dx: next.x - p.pos.x, dy: next.y - p.pos.y });
+        } else if (this.rowGoal && step >= this.rowGoal.step) this.rowGoal = undefined;
+      }
+    } else {
+      this.rowGoal = undefined;
+      const farmer = p.pos.space === "outside" && e.state.actors.find(a => a.plough && a.mount && Math.hypot(a.pos.x - p.pos.x, a.pos.y - p.pos.y) <= 2.5);
+      if (farmer && !p.drivingCart && !p.held && !p.heldItem && e.state.fauna?.some(g => g.hitch === farmer.plough?.vehicle)) {
+        x = farmer.pos.x; y = farmer.pos.y; label = phoneLayout() ? "Take handles" : "F  Take handles";
+      }
+    }
+    if (!label || this.modalOpen || this.options.lab) { this.fieldPrompt?.setVisible(false); return; }
+    const text = this.fieldPrompt ??= this.add.text(0, 0, "", { fontFamily: "sans-serif", fontSize: "9px", color: "#fff2c9", backgroundColor: "#364034", padding: { x: 3, y: 1 } }).setOrigin(0.5, 1).setDepth(1e7);
+    text.setText(label).setVisible(true).setPosition(x * 16 + 8, y * 16 + 12 - offset - this.lift(x * 16 + 8, y * 16 + 12));
+  }
   private driveTrains(time: number) {
     const e = this.runtime.engine;
     const w = e.world as typeof e.world & { planAt?: (x: number, y: number) => SettlementPlan | undefined };
@@ -2871,8 +2936,41 @@ export class WorldScene extends Phaser.Scene {
       p,
     );
     this.cabs.update(plan, w.pack.setting, e.state.manifest.seed, this.runtime.displayClock(), this.cameras.main.worldView, this.tint);
-    this.vehicleLayer.update(plan?.vehicles ?? [], this.runtime.displayClock(), this.cameras.main.worldView, this.tint,
-      (x, y) => this.lift(x, y));
+    const clock = this.runtime.displayClock(), light = lightingPreset(this.shadowPhase);
+    const vehicles = [...(plan?.vehicles ?? [])];
+    const teams = new Map<string, FaunaGroup>();
+    if (p.space === "outside") for (const group of e.state.fauna ?? []) {
+      if (!group.hitch || Math.abs(group.pos.x - p.x) > 100 || Math.abs(group.pos.y - p.y) > 100) continue;
+      teams.set(group.hitch, group);
+      if (!vehicles.some(v => v.id === group.hitch)) {
+        const v = w.vehicle?.(group.hitch);
+        if (v) vehicles.push(v);
+      }
+    }
+    this.vehicleLayer.update(vehicles,
+      v => {
+        if (!v.rowLength) return;
+        const work = e.state.actors.find(a => a.id === v.crew[0])?.plough;
+        if (!work) return 0;
+        const previous = this.lastPloughBeat.get(v.id);
+        this.lastPloughBeat.set(v.id, work.step);
+        const q = v.path[work.step], range = Math.hypot(q.x - p.x, q.y - p.y);
+        if (previous !== undefined && work.step > previous && range < 11 && !this.options.freeze) {
+          const wet = v.seedCrop === "rice", turn = work.step === v.rowLength;
+          void gameAudio()?.sound(() => (turn ? scrape("timber", "wheels") :
+            [...scrape(wet ? "water" : "soil"), ...(footstep(wet ? "paddy" : "furrow", false) ?? [])])
+            .map(l => ({ ...l, gain: l.gain * (1 - range / 12) * 0.55 })), "field-work", Math.max(-1, Math.min(1, (q.x - p.x) / 8)), 150);
+        }
+        return ploughStep(work, clock);
+      },
+      (v, i) => {
+        const g = teams.get(v.id), member = g?.members[i];
+        return g && member ? this.animalArt(g, faunaSpriteId(g.id, member.n ?? i)) : undefined;
+      }, clock, this.cameras.main.worldView, this.tint, (x, y) => this.lift(x, y),
+      light.cast, light.opacity * this.sunStrength(), this.options.shadows !== false,
+      (id, t) => e.cartClock(id, t),
+      v => e.state.player.guidingPlough === v.crew[0] || e.state.player.drivingCart?.vehicle === v.id
+        ? e.state.player : this.mountedActors.get(v.crew[0]));
   }
   /** Doors swing to follow the door objects the engine owns.
    *
@@ -4512,6 +4610,7 @@ export class WorldScene extends Phaser.Scene {
       e.state.manifest.seed,
       w.pack.id,
       p.space,
+      seasonIndex(e.state.clock),
       // Felled trees, cut growth and fresh furrows change the scenery.
       e.state.tilesRevision ?? 0,
       bx,
@@ -4596,6 +4695,17 @@ export class WorldScene extends Phaser.Scene {
         startY = Math.max(by - halfY, -limit);
       const width = Math.max(0, Math.min(bx + halfX + 16, limit) - startX),
         height = Math.max(0, Math.min(by + halfY + 16, limit) - startY);
+      if (p.space === "outside" && w.topography && tiles) {
+        const spots = [];
+        for (const [key, edit] of Object.entries(tiles)) {
+          if (!edit.sowing) continue;
+          const [x, y] = key.split(",").map(Number);
+          if (x < startX || x >= startX + width || y < startY || y >= startY + height) continue;
+          const top = y * 16 - w.topography(x, y).height * TERRAIN_RISE;
+          spots.push(...cropsAt(w.topography, x, y, 0, 0, top));
+        }
+        addCrops(this, spots, { objects: this.layers, textures: [] });
+      }
       if (mapHalf !== undefined) {
         const g = this.add.graphics().setDepth(1000000),
           h = mapHalf * 8,
@@ -5896,7 +6006,7 @@ export class WorldScene extends Phaser.Scene {
     const struck = this.combat().pending(rt.swingEffect, rt.throwEffect);
     for (const g of [...(e.state.fauna ?? []), ...this.testFauna]) {
       if (
-        Math.abs(g.pos.x - p.x) > range ||
+        g.hitch || Math.abs(g.pos.x - p.x) > range ||
         Math.abs(g.pos.y - p.y) > range ||
         (g.burrowed ?? 0) > e.state.clock
       )
@@ -5932,21 +6042,7 @@ export class WorldScene extends Phaser.Scene {
         );
         const phase = this.poseOffset(id) % 8;
         const facing = FACINGS[m.direction] ?? "east";
-        let art = this.faunaArt.get(id);
-        if (!art) {
-          const look = faunaLook(
-            g.speciesId,
-            e.state.manifest.seed,
-            g.id,
-            id,
-            w.pack?.setting,
-            this.season,
-          );
-          art = look
-            ? `${look.art}+${look.coat.replace(/-/g, "_")}`
-            : g.speciesId;
-          this.faunaArt.set(id, art);
-        }
+        const art = this.animalArt(g, id);
         renderEntity(
           id,
           this.faunaFrame(
@@ -6968,6 +7064,17 @@ export class WorldScene extends Phaser.Scene {
       );
     }
   }
+  private animalArt(g: FaunaGroup, id: string) {
+    let art = this.faunaArt.get(id);
+    if (!art) {
+      const e = this.runtime.engine;
+      const look = faunaLook(g.speciesId, e.state.manifest.seed, g.id, id, e.world.pack.setting, this.season);
+      art = look ? `${look.art}+${look.coat.replace(/-/g, "_")}` : g.speciesId;
+      this.faunaArt.set(id, art);
+    }
+    return art;
+  }
+
   /** One cast per pose and facing rather than per frame: legs moving inside a
    * shadow are not worth eight textures. */
   private shadeFauna(
@@ -7201,6 +7308,7 @@ export class WorldScene extends Phaser.Scene {
       }
     mark("building animations");
     this.driveTrains(time);
+    this.drawFieldPrompt(time);
     mark("trains");
     if (perf.wind)
       for (const wind of this.windSprites) {
@@ -7553,6 +7661,16 @@ export class WorldScene extends Phaser.Scene {
         arcLift = 0;
       }
       const perched = this.perchRise(id);
+      if (id === "player") {
+        const e = this.runtime.engine, p = e.state.player;
+        const owner = p.guidingPlough ?? (p.drivingCart && e.world.vehicle?.(p.drivingCart.vehicle)?.crew[0]);
+        const driver = owner && (this.mountedActors.get(owner) ?? e.state.actors.find(a => a.id === owner));
+        const at = driver && this.mountAt(driver, this.runtime.displayClock(), true);
+        if (at) {
+          const x = at.x * 16 + 8, y = at.y * 16 + 16;
+          im.setPosition(x, y - this.lift(x, y));
+        } else this.mounted.delete(id);
+      }
       const seat = this.mounted.get(id), under = im.getData("underfoot") as boolean | undefined;
       this.shadows.get(id)?.setVisible(!seat && !under);
       // Anchored at its near edge, so everyone standing on it would sort behind it.
@@ -7672,7 +7790,7 @@ export class WorldScene extends Phaser.Scene {
         else if (recovering) pose = "recover";
         else if (moving)
           pose = id === "player" && this.shiftHeld ? "run" : "walk";
-        else if (seat) pose = seat.seated ? "sit" : "idle";
+        else if (seat) pose = seat.role;
         else if (human.errand?.pose && human.pos.x === human.errand.to.x && human.pos.y === human.errand.to.y) pose = human.errand.pose;
         else if (pair) pose = pair.pose;
         else if (at) pose = work?.pose ?? this.ambientPose(id, at, time);
@@ -7795,8 +7913,9 @@ export class WorldScene extends Phaser.Scene {
           g.frame = gaitFrame;
           g.pose = pose;
         }
+        if (seat) pose = seat.role;
         const index =
-          motion
+          seat ? seat.frame : motion
             ? motion.index
             : slinging
             ? Math.floor(this.slingTurns(time - this.aimStarted!) * 3) % 3
@@ -7856,7 +7975,7 @@ export class WorldScene extends Phaser.Scene {
             : undefined;
           this.workBeat(id, pose, String(action.serial), site, im);
         }
-        const prop =
+        const prop = seat ? undefined :
           heldSprite ??
           rainProp ??
           (at?.activity === "haul-catch" && (!work || work.pose === "work-hang" && work.index < 2) ? CATCH : undefined) ??
@@ -7875,8 +7994,7 @@ export class WorldScene extends Phaser.Scene {
             ? facingFromStep(work.site.x - at!.x, work.site.y - at!.y, at!.direction)
             : undefined;
         const ahead = asleep ? 4 :
-          motion?.facing ??
-          seat?.facing ??
+          seat?.facing ?? motion?.facing ??
           (id === "player" ? this.blockedFacing : undefined) ??
           cued?.facing ??
           (pair && pose === pair.pose ? pair.facing : undefined) ??
@@ -7905,6 +8023,7 @@ export class WorldScene extends Phaser.Scene {
             : ahead;
         let turn = this.turning.get(id);
         if (!turn) this.turning.set(id, (turn = { facing: wanted, until: 0 }));
+        else if (seat) { turn.facing = seat.facing; turn.next = turn.sign = undefined; }
         else if (motion?.facing !== undefined) {
           // A spin is the turn itself: no easing between facings.
           if (turn.facing !== wanted) this.afterimage(im);
@@ -7978,7 +8097,7 @@ export class WorldScene extends Phaser.Scene {
           const afoot =
             pose === "run" && index % 4 === 1 && water <= 0.025 && !arcLift;
           // Heel strikes: frames 2 and 6 of the walk, 1 and 5 of the run.
-          const heel = moving && index % 4 === (pose === "run" ? 1 : 2);
+          const heel = (!seat || pose === "guide-plough" || pose === "walk") && moving && index % 4 === (pose === "run" ? 1 : 2);
           if (
             heel &&
             !arcLift &&
@@ -8089,7 +8208,7 @@ export class WorldScene extends Phaser.Scene {
             .setDepth(pillow.depth);
         } else if (im.angle) im.setAngle(0).setOrigin(0.5, 1);
         if (!texture || swimming) this.shadows.get(id)?.setVisible(false);
-        if (texture && !swimming && this.options.shadows !== false) {
+        if (texture && !swimming && seat?.role !== "drive-cart" && seat?.role !== "sit-seat" && this.options.shadows !== false) {
           const shadowTexture = this.characters.shadow(
             texture,
             this.shadowPhase,

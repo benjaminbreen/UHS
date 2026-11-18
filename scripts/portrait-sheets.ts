@@ -24,7 +24,7 @@ const bare = (seed: string, index: number, age: number): CharacterAppearance => 
     adornment: { ears: "none", nose: "none", marks: "none", markStyle: "ink", metal: "gold" },
   };
 };
-type Cell = { a: CharacterAppearance; age: number; expression?: Expression };
+type Cell = { a: CharacterAppearance; age: number; expression?: Expression; turn?: number };
 let cells: Cell[] = [];
 let cols = 6;
 let out = "";
@@ -49,20 +49,29 @@ if (which === "ears") {
   out = "artifacts/portrait-lab/noses.png";
   cols = 9;
   cells = noseShapes.map((n) => ({ a: { ...person, face: { ...person.face!, nose: n } }, age: 28 }));
-} else if (which === "world") {
-  out = "artifacts/portrait-lab/world-adornment.png";
+} else if (which === "world" || which === "cast") {
+  out = which === "cast" ? "artifacts/portrait-lab/cast.png" : "artifacts/portrait-lab/world-adornment.png";
   cols = 8;
-  const { characterAppearance } = await import("../src/content/characters/generate");
+  const { characterAppearance, generateCharacter } = await import("../src/content/characters/generate");
   const { integratedSetting } = await import("../src/content/geography/defaults");
   const { settingFor } = await import("../src/content/geography/resolve");
   const { places } = await import("../src/content/geography/places");
-  cells = ["congo", "kyoto", "rome"].flatMap((id) => {
-    const setting = integratedSetting(settingFor(places.find((q) => q.id === id)!));
-    return Array.from({ length: 8 }, (_, i) => {
-      const age = 20 + ((i * 7) % 45);
-      return { a: characterAppearance(setting, `sheet-${id}`, `npc-${i}`, age), age };
+  const settings: [string, number?][] = which === "world" ? [["congo"], ["kyoto"], ["rome"]] : [
+    ["city-seoul", 1953], ["timbuktu", 1450], ["rome", 100], ["city-manila", 1870],
+    ["cusco", 1450], ["paris", 1760], ["delhi", 1600], ["city-samarkand", 1420],
+    ["kyoto", 1850], ["city-mombasa", 1900], ["city-chicago", 1935], ["city-oaxaca", 1650],
+  ];
+  cells = settings.flatMap(([id, year], row) => {
+    const setting = integratedSetting(settingFor(places.find((q) => q.id === id)!, year));
+    return Array.from({ length: which === "cast" ? 2 : 8 }, (_, i) => {
+      const age = which === "cast" ? [13, 37, 68, 29, 46, 21, 58, 9][(row * 2 + i) % 8] : 20 + ((i * 7) % 45);
+      const seed = `sheet-${id}`, who = `npc-${i}`;
+      if (which === "world") return { a: characterAppearance(setting, seed, who, age), age };
+      const sex = (row + i) % 2 ? "male" : "female";
+      return { a: generateCharacter(setting, seed, who, age, undefined, undefined, undefined, sex).appearance, age };
     });
   });
+  if (which === "cast") cells = cells.flatMap(cell => [{ ...cell, turn: 1 }, { ...cell, turn: 0 }]);
 } else if (which === "expressions") {
   out = "artifacts/portrait-lab/expressions.png";
   cols = 6;
@@ -70,14 +79,14 @@ if (which === "ears") {
     expressions.map((expression) => ({ a: bare("sheet-face:1", i, 28), age: 28, expression })),
   );
 }
-const scale = Number(process.env.S ?? 8), X = Number(process.env.X ?? 12), Y = Number(process.env.Y ?? 8), W = Number(process.env.W ?? 40), H = Number(process.env.H ?? 40), pad = 1;
+const scale = Number(process.env.S ?? (which === "cast" ? 2 : 8)), X = Number(process.env.X ?? 12), Y = Number(process.env.Y ?? 8), W = Number(process.env.W ?? 40), H = Number(process.env.H ?? 40), pad = 1;
 const rows = Math.ceil(cells.length / cols);
 const width = (cols * (W + pad) + pad) * scale;
 const height = (rows * (H + pad) + pad) * scale;
 const rgba = new Uint8Array(width * height * 4);
 for (let i = 0; i < width * height; i++) { rgba[i*4]=0x1a; rgba[i*4+1]=0x1f; rgba[i*4+2]=0x36; rgba[i*4+3]=255; }
 cells.forEach((cell, n) => {
-  const r = paintSculpted(cell.a, cell.age, { expression: cell.expression });
+  const r = paintSculpted(cell.a, cell.age, { expression: cell.expression, turn: cell.turn });
   const ox = (pad + (n % cols) * (W + pad)) * scale;
   const oy = (pad + Math.floor(n / cols) * (H + pad)) * scale;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {

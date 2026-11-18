@@ -155,6 +155,7 @@ export type FarmZone = {
 };
 
 export type FarmSystem = {
+  oxPloughFrom?: number;
   id: string;
   label: string;
   geometry: ParcelGeometry;

@@ -90,7 +90,7 @@ import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structur
 import { regardCue, WARM, WARY } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
-import { addStock, collectClaim, dayOfWork, dearness, grainDays, importShare, runEconomy, stockOf } from "./economy";
+import { addStock, collectClaim, dayOfWork, dearness, grainDays, importShare, openStock, runEconomy, stockOf } from "./economy";
 import { goodsOf } from "../content/economy/goods";
 import { keepsShop, sellsTrade, stockFor, TRADER } from "./shop";
 import { isStallholder, isWayfarer, person } from "../world/v3/wayfarers";
@@ -131,7 +131,7 @@ import { towerStyleFor } from "../content/towers";
 import type { Staff } from "../content/towers/tenants";
 import { buildInterior, ROOM_ORIGIN, spotsAt, type InteriorLayout, type Spot, type SpotRole } from "../world/interior";
 import { buildingUse } from "../content/interiors/select";
-import { vehicleAt } from "../world/v3/conveyances";
+import { besideTeam, vehicleAt, vehicleSchedule, type Vehicle } from "../world/v3/conveyances";
 import type { DailyGoal, GoalContext } from "../content/goals/types";
 import { route, type RouteResult } from "./routing";
 import { terrainJump, terrainLeap, type LeapResult } from "./topography";
@@ -379,6 +379,7 @@ const listing = (xs: string[]) =>
 const ROUTINE_BUILDS_PER_ADVANCE = 32;
 /** The generated decoration function of each world, before any engine wrapped
  * it in its own tile edits. */
+const baseTopography = new WeakMap<WorldModel, NonNullable<WorldModel["topography"]>>();
 const grownDecoration = new WeakMap<WorldModel, WorldModel["decoration"]>();
 function reverseRelation(actor: Actor, relation: SocialRelation): SocialRelation["kind"] {
   if (relation.reciprocal) return relation.reciprocal;
@@ -404,7 +405,7 @@ const treeName = (sprite: string) =>
 function migrateWorn(snapshot: Snapshot): Snapshot {
   for (const actor of [snapshot.player, ...snapshot.actors])
     if (actor.kind === "human" && actor.appearance && !actor.worn)
-      actor.worn = wornFromWearing(actor.appearance.wearing);
+      actor.worn = wornFromWearing(actor.appearance.wearing, undefined, undefined, actor.appearance.adornment);
   return snapshot;
 }
 
@@ -563,6 +564,19 @@ export class Engine {
         .set(world, world.decoration.bind(world))
         .get(world)!) as WorldModel["decoration"];
     world.decoration = (x, y) => edited(x, y, grown(x, y));
+    if (world.topography) {
+      const base = baseTopography.get(world) ?? world.topography.bind(world);
+      baseTopography.set(world, base);
+      world.topography = (x, y) => {
+        const land = base(x, y), edit = land.field && this.state.tiles?.[tileKey(x, y)];
+        const seed = edit?.sowing, setting = world.pack.setting;
+        if (!land.field || !seed || !setting) return land;
+        const season = seasonIndex(this.state.clock);
+        const stage = season === seed.season ? "sown" : this.pickedNow(edit) ? "stubble" :
+          cropStage(seed.crop, seasonAt(setting.season, this.state.clock) as Season, setting.lat);
+        return { ...land, field: { ...land.field, owner: seed.owner, crop: seed.crop, stage } };
+      };
+    }
     for (const [id, structure] of Object.entries(this.state.places ?? {})) {
       const place = world.place(id);
       if (place) this.setStructure(place, structure);
@@ -898,7 +912,11 @@ export class Engine {
     // The day a staged opening is set on is not a working day.
     if (!t || (this.world.pack.setting?.brief?.moment && this.state.clock < 86400)) return undefined;
     const work = this.state.economy?.work?.day === t.day ? this.state.economy.work : undefined;
-    const steps = t.process.steps.map((st) => ({ ...st, task: this.stepTask(st) }));
+    const steps = t.process.steps.map(st => {
+      const team = this.teamJob(st, t);
+      const task = team && ({ plant: team.a.mount ? "Puddle the rice bed with the buffalo" : "Transplant the worked rice bed", break: "Plough the strip with the oxen", load: "Load the grain cart at the farm", road: "Drive the grain cart to market", unload: "Deliver the grain and step down" } as Record<string, string>)[st.name];
+      return { ...st, task: task ?? this.stepTask(st) };
+    });
     const today = {
       title: this.dayTitle(t),
       places: t.process.steps.map((st) => this.stepWhere(st, t) ?? undefined),
@@ -1088,9 +1106,48 @@ export class Engine {
     const at = step && this.stepWhere(step, t!);
     return at ? { step: step!, at } : undefined;
   }
+  private teamJob(step: Step, t: NonNullable<ReturnType<Engine["trade"]>>) {
+    const plough = t.process.skill === "farming" && ["break", "sow", "plant"].includes(step.name);
+    const cart = t.kit.id === "carter" && ["load", "road", "unload"].includes(step.name);
+    if (!plough && !cart) return;
+    const world = this.world as Partial<import("../world/v3/generate").SettlementWorld>;
+    const home = t.household.home;
+    const plan = world.planAt?.(home.x, home.y);
+    for (const v of plan?.vehicles ?? []) {
+      if (plough ? !v.rowLength : !v.farmOwner) continue;
+      const a = this.state.actors.find(actor => actor.id === v.crew[0]);
+      if (!a || a.dead) continue;
+      let point: Point, label: string;
+      if (plough) {
+        if ((step.name === "plant") !== (v.seedCrop === "rice")) continue;
+        if (!a.plough || a.plough.sown !== undefined || a.plough.resting) continue;
+        if (step.name === "break" && !a.mount || step.name !== "break" && !a.mount && a.plough.step !== v.path.length - 1) continue;
+        if (step.name === "sow" && a.mount) continue;
+        const setting = world.pack?.setting;
+        if (step.name !== "break" && (!setting || !v.seedCrop ||
+          cropStage(v.seedCrop, seasonAt(setting.season, this.state.clock) as Season, setting.lat) !== "sown")) continue;
+        point = v.path[a.plough.step];
+        label = v.seedCrop === "rice" ? "the buffalo’s rice bed" : "the ox-ploughed strip";
+      } else {
+        const work = this.state.economy?.work;
+        if (t.stage && work?.cart !== v.id) continue;
+        if (!t.stage && !a.freight?.grain) {
+          const source = this.state.households?.find(h => h.members.includes(v.farmOwner!));
+          if (!source || (this.state.economy?.stock[source.id]?.grain ?? Infinity) < source.members.length * 7 + 1) continue;
+        }
+        const riding = this.state.player.drivingCart?.vehicle === v.id;
+        const market = step.name === "unload" || (step.name === "road" && t.stage > 0 && work?.delivered);
+        point = market ? v.path[0] : (step.name === "road" && riding) ? this.state.player.pos : v.path[v.path.length - 1];
+        label = market ? "the grain cart at market" : riding && step.name === "road" ? "the loaded cart" : "the farm loading lane";
+      }
+      return { v, a, pos: { ...point, space: "outside" }, label };
+    }
+  }
   /** Where a step is done: its place, or for work at a tool the trade has no
    * tool for here, the house or yard. Null means at the trade's own prop. */
   private stepWhere(step: Step, t: NonNullable<ReturnType<Engine["trade"]>>) {
+    const job = this.teamJob(step, t);
+    if (job) return { pos: job.pos, label: job.label };
     return this.stepPlace(step, t) ??
       (!step.at && !this.hasProp(t) ? this.stepPlace({ ...step, at: this.fallback(t), label: PROPLESS[t.process.family] }, t) : null);
   }
@@ -1109,7 +1166,7 @@ export class Engine {
   /** The step the player can do where they stand, at a recipe's place. */
   workHere() {
     if (tunnelRun(this.state)?.peril || tunnelRun(this.state)?.trapped) return;
-    const ps = this.placeStep();
+    const t = this.trade(), ps = this.placeStep(t);
     const p = this.state.player.pos;
     // A hunt ends on a kill, or once it has gone on long enough, wherever the hunter is.
     if (ps?.step.scene === "hunt")
@@ -1117,8 +1174,9 @@ export class Engine {
         ? { label: "Give up and head home", command: { type: "interact" as const, target: Engine.tileTarget(p.x, p.y), action: "work" as const } }
         : undefined;
     if (!ps || this.waitingCard() || p.space !== ps.at.pos.space || distance(p, ps.at.pos) > 2.5) return;
+    const team = t && this.teamJob(ps.step, t);
     return {
-      label: this.stepTask(ps.step),
+      label: team?.v.seedCrop === "rice" ? (team.a.mount ? "Guide the buffalo along the bed" : "Transplant the rice seedlings") : team?.v.rowLength && ps.step.name === "break" ? "Guide the oxen along the row" : this.stepTask(ps.step),
       command: { type: "interact" as const, target: Engine.tileTarget(ps.at.pos.x, ps.at.pos.y), action: "work" as const },
     };
   }
@@ -1542,11 +1600,68 @@ export class Engine {
       tomorrow: { condition: w.condition, label: w.label, tempC: w.tempC },
     };
   }
-  private *doWork(hunted = false) {
+  private *doWork(hunted = false, performed = false) {
     const t = this.trade();
     if (!t || t.stage >= t.process.stages.length) return;
     const s = this.state;
     const { process } = t;
+    const step = process.steps[t.stage], job = this.teamJob(step, t);
+    let cart: string | undefined;
+    if (job && !performed) {
+      const { v, a } = job, p = s.player;
+      if ((step.name === "break" || step.name === "plant" && a.mount) && a.plough) {
+        if (!this.ploughStock(a)?.hitch) this.populateNearby();
+        if (!this.ploughStock(a)?.hitch) { this.event("Bring the draft team back to the plough first."); return; }
+        p.guidingPlough = a.id;
+        p.pos = { ...v.path[a.plough.step], space: "outside" };
+        const pace = this.fieldPace(18);
+        this.turnFurrow(a, v, s.clock + pace);
+        yield* this.advanceSteps(pace);
+        if (a.mount || step.name === "plant") return;
+        performed = true;
+      } else if (step.name === "sow" || step.name === "plant") {
+        if (!this.sowStrip(a, v)) { this.event("The farm needs seed grain to sow this strip."); return; }
+        this.event(v.seedCrop === "rice" ? "You press the nursery seedlings into the soft mud in small clumps." : "You scatter seed along the turned rows.");
+      } else if (step.name === "load") {
+        if (p.drivingCart && p.drivingCart.vehicle !== v.id) return;
+        if (p.drivingCart?.haltedAt !== undefined) {
+          (p.cartOffsets ??= {})[v.id] = this.cartClock(v.id, s.clock) - s.clock;
+          delete p.drivingCart.haltedAt;
+        }
+        const end = v.path[v.path.length - 1];
+        const { phase, drive, cycle } = vehicleSchedule(v, this.cartClock(v.id, s.clock));
+        if (phase < drive || phase >= drive + v.waits[0]) yield* this.advanceSteps(Math.ceil((drive - phase + cycle) % cycle));
+        if (a.freight?.grain || this.cartFreight(a, v, true, true)) {
+          cart = v.id;
+          p.drivingCart = { vehicle: v.id, haltedAt: s.clock };
+          p.pos = { ...end, space: "outside" };
+          this.event(`You take the reins with ${a.freight!.grain} measures of grain aboard.`);
+          performed = true;
+        } else this.event("There is no grain consignment today. You load the other goods.");
+      } else if (step.name === "road" && s.economy?.work?.delivered) {
+        performed = true;
+      } else if (step.name === "road") {
+        if (p.drivingCart?.vehicle !== v.id) { this.event("Take the reins of the loaded cart first."); return; }
+        const t0 = this.cartClock(v.id, s.clock), at = vehicleAt(v, t0);
+        const n = v.path.length - 1;
+        if (at.along < n) { this.event("Bring the cart to the farm loading lane first."); return; }
+        const { drive, phase } = vehicleSchedule(v, t0);
+        const resume = t0 + Math.max(0, drive + v.waits[0] - phase);
+        (p.cartOffsets ??= {})[v.id] = resume - s.clock;
+        delete p.drivingCart.haltedAt;
+        yield* this.advanceSteps(Math.ceil((2 * n - at.along) / v.speed) + 1);
+        p.drivingCart.haltedAt = s.clock;
+        this.event("The cart reaches the market.");
+        performed = true;
+      } else if (step.name === "unload") {
+        if (!s.economy?.work?.delivered && (p.drivingCart?.vehicle !== v.id || !this.cartFreight(a, v, false, true) || a.freight?.grain)) return;
+        if (p.drivingCart?.vehicle === v.id) {
+          (p.cartOffsets ??= {})[v.id] = this.cartClock(v.id, s.clock) - s.clock;
+          delete p.drivingCart;
+        }
+        performed = true;
+      }
+    }
     const empty = process.steps[t.stage].scene === "hunt" && !hunted;
     if (empty && !this.huntOver()) return;
     if (empty) this.emptyHanded(t);
@@ -1566,15 +1681,16 @@ export class Engine {
       (s.clock / 3600) % 24, random(s.manifest.seed, "catch", t.household.id, t.day));
     this.working = process.steps[t.stage];
     try {
-      yield* this.advanceSteps((process.steps[t.stage].hours ?? process.hours / process.stages.length) * 3600);
+      if (!performed) yield* this.advanceSteps((process.steps[t.stage].hours ?? process.hours / process.stages.length) * 3600);
     } finally {
       this.working = undefined;
     }
-    const reaped = this.farming(t) ? this.tendFarm(t, process.steps[t.stage].name) : undefined;
+    const reaped = this.farming(t) && !(performed && (step.name === "reap" || step.name === "cut"))
+      ? this.tendFarm(t, step.name) : undefined;
     s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
     const was = s.economy.work?.day === t.day ? s.economy.work : undefined;
-    s.economy.work = { ...was, day: t.day, stage: t.stage + 1, ...(caught ? { catch: caught.factor } : {}),
-      ...(reaped !== undefined ? { harvest: reaped } : {}),
+    s.economy.work = { ...was, day: t.day, stage: t.stage + 1, ...(cart ? { cart } : {}), ...(caught ? { catch: caught.factor } : {}),
+      ...(reaped !== undefined ? { harvest: (was?.harvest ?? 0) + reaped } : {}),
       ...(process.steps[t.stage + 1]?.scene === "hunt" ? { since: s.clock } : {}) };
     if (caught) this.event(caught.line);
     if (process.steps[t.stage].at === "face") this.fillTubs(t, s.economy.work);
@@ -2553,6 +2669,22 @@ export class Engine {
         o.pos.y === p.y,
     );
   }
+  private reapForHousehold(x: number, y: number) {
+    const t = this.trade(), step = t?.process.steps[t.stage];
+    if (!t || !step || !["cut", "reap"].includes(step.name) || !this.farming(t) || this.waitingCard()) return false;
+    const field = this.world.topography?.(x, y)?.field, parcel = fieldParcel(this.world, t.household);
+    if (!field || !parcel || field.parcel !== parcel.id || !this.worksFor(field.owner) ||
+        x < parcel.rect.x || y < parcel.rect.y || x >= parcel.rect.x + parcel.rect.w || y >= parcel.rect.y + parcel.rect.h) return false;
+    const econ = this.state.economy ??= { hour: Math.floor(this.state.clock / 3600), stock: {}, short: {} };
+    if (econ.work?.day !== t.day) econ.work = { day: t.day, stage: t.stage };
+    econ.work.harvest = (econ.work.harvest ?? 0) + 1;
+    return true;
+  }
+  private finishReapingStroke() {
+    const n = this.state.economy?.work?.harvest ?? 0;
+    this.event(`You lay the cut stalks together for the household (${n} patches reaped).`);
+    if (n >= 4) for (const _ of this.doWork(false, true)) {}
+  }
   /** Take the crop off one cell. Your own ground is work and pays in skill;
    * somebody else's is theft, and the neighbours mind it. */
   private pickCrop(x: number, y: number) {
@@ -2564,6 +2696,12 @@ export class Engine {
     const edit = this.editAt(x, y);
     edit.picked = this.state.clock;
     this.tilesChanged();
+    if (this.reapForHousehold(x, y)) {
+      this.grantXp("farming", 6);
+      this.advance(this.fieldPace(20));
+      this.finishReapingStroke();
+      return;
+    }
     // A practised hand gets more off the same plant.
     const extra =
       this.rng("harvest") <
@@ -2626,6 +2764,7 @@ export class Engine {
     const p = this.state.player;
     let cut: { name: string; x: number; y: number; owner?: string } | undefined;
     const got: Record<string, number> = {};
+    let household = false;
     for (const h of hits) {
       if (h.solid) continue;
       const { x, y } = h.at;
@@ -2640,6 +2779,7 @@ export class Engine {
       if (!cut || (!this.worksFor(field.owner) && this.worksFor(cut.owner)))
         cut = { name: plant.name, x, y, owner: field.owner };
       if (field.stage !== "ripe") continue;
+      if (this.reapForHousehold(x, y)) { household = true; continue; }
       const item = plant.yields ?? crop.yields;
       got[item] = (got[item] ?? 0) + 1;
       h.loot = [...(h.loot ?? []), { item, n: 1 }];
@@ -2666,6 +2806,8 @@ export class Engine {
         lost: { what: `the ${name} cut down`, pos: { x: at.x, y: at.y, space: "outside" } },
       });
     } else this.grantXp("farming", 2);
+    if (household) this.finishReapingStroke();
+    if (household && !Object.keys(got).length) return `You cut a swathe of ${name} for the household.`;
     const gathered = Object.entries(got).map(([item, n]) => this.lootName(item, n));
     return gathered.length
       ? `You cut down the ${name} and gather ${listing(gathered)}.`
@@ -5506,6 +5648,168 @@ export class Engine {
     edit.trodden = true;
     this.tilesChanged();
   }
+  cartClock(id: string, clock: number) {
+    const p = this.state.player;
+    return (p.drivingCart?.vehicle === id ? p.drivingCart.haltedAt ?? clock : clock) + (p.cartOffsets?.[id] ?? 0);
+  }
+
+  private householdStore(h: Household) {
+    const s = this.state;
+    const econ = s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
+    return econ.stock[h.id] ?? openStock(econ, h, h.members.filter(id =>
+      id === "player" || s.actors.some(a => a.id === id && (a.age ?? 20) >= 14)).length);
+  }
+
+  private riceBedFarmer(x: number, y: number) {
+    const world = this.world as Partial<import("../world/v3/generate").SettlementWorld>;
+    const v = world.planAt?.(x, y)?.vehicles?.find(v => v.seedCrop === "rice" && v.path.some(q => q.x === x && q.y === y));
+    return v && this.state.actors.find(a => a.id === v.crew[0] && !a.dead);
+  }
+
+  private sowStrip(a: Actor, v: Vehicle, cell?: Point) {
+    const work = a.plough, crop = v.seedCrop, setting = this.world.pack.setting;
+    if (!work || !crop || work.sown !== undefined || work.step !== v.path.length - 1 || !setting) return false;
+    const now = this.state.clock, season = seasonAt(setting.season, now) as Season;
+    if (cropStage(crop, season, setting.lat) !== "sown") return false;
+    const h = this.household(a.householdId), stock = h && this.householdStore(h);
+    const remaining = v.path.filter(q => !this.state.tiles?.[tileKey(q.x, q.y)]?.sowing);
+    const batch = cell ? remaining.filter(q => q.x === cell.x && q.y === cell.y) : remaining;
+    if (!batch.length || !stock) return false;
+    if (remaining.length === v.path.length) {
+      if ((stock.grain ?? 0) < 1) return false;
+      stock.grain--;
+    }
+    const planted = seasonIndex(now);
+    if (batch.length === remaining.length) work.sown = planted;
+    work.at = now;
+    for (const q of batch) {
+      const edit = this.editAt(q.x, q.y);
+      delete edit.dug;
+      delete edit.furrow;
+      delete edit.puddled;
+      delete edit.picked;
+      edit.sowing = { crop, owner: a.id, season: planted };
+    }
+    this.tilesChanged();
+    return true;
+  }
+
+  private tendStrip(a: Actor, clock: number) {
+    const work = a.plough!, v = this.world.vehicle?.(work.vehicle);
+    if (!v?.seedCrop) return;
+    if (work.step < v.path.length - 1) {
+      const setting = this.world.pack.setting;
+      if (v.seedCrop === "rice" && work.step === 0 && setting &&
+          cropStage("rice", seasonAt(setting.season, clock) as Season, setting.lat) === "sown") {
+        const team = this.state.fauna?.find(g => g.id === v.team);
+        if (team?.members.length === 1) {
+          a.mount = { vehicle: v.id, place: 0 };
+          team.hitch = v.id;
+          work.at = clock;
+          this.moveActor(a, { ...v.path[0], space: "outside" });
+        }
+      }
+      return;
+    }
+    if (work.sown === undefined) {
+      if (clock - work.at >= (v.seedCrop === "rice" ? 600 : 86400)) this.sowStrip(a, v);
+      return;
+    }
+    const h = this.household(a.householdId), econ = this.state.economy;
+    if (!h || !econ) return;
+    const season = seasonIndex(clock);
+    const crop = this.world.topography?.(v.path[0].x, v.path[0].y)?.field;
+    const setting = this.world.pack.setting!;
+    if (season > work.sown && season < work.sown + 4 && cropStage(v.seedCrop, seasonAt(setting.season, clock) as Season, setting.lat) === "ripe") {
+      for (const q of v.path) {
+        const edit = this.editAt(q.x, q.y);
+        if (edit.sowing && !this.pickedNow(edit) && addStock(econ, h, "grain", GRAIN_PER_CELL) > 0) {
+          edit.picked = clock;
+          this.tilesChanged();
+        }
+      }
+    } else if (crop && season >= work.sown + 4 && (v.seedCrop !== "rice" || cropStage("rice", seasonAt(setting.season, clock) as Season, setting.lat) === "sown")) {
+      const team = this.state.fauna?.find(g => g.id === v.team);
+      if (!team || team.members.length !== (v.seedCrop === "rice" ? 1 : 2)) return;
+      for (const q of v.path) delete this.editAt(q.x, q.y).sowing;
+      a.plough = { vehicle: v.id, step: 0, at: clock };
+      a.mount = { vehicle: v.id, place: 0 };
+      team.hitch = v.id;
+      this.moveActor(a, { ...v.path[0], space: "outside" });
+      this.tilesChanged();
+    }
+  }
+
+  private cartFreight(a: Actor, v: Vehicle, load: boolean, player: boolean) {
+    const s = this.state, econ = s.economy;
+    if (!v.farmOwner) return 0;
+    if (load) {
+      const day = Math.floor(s.clock / 86400);
+      if (a.freight?.grain || !player && a.freight?.day === day) return 0;
+      const farm = s.households?.find(h => h.members.includes(v.farmOwner!));
+      const stock = farm && this.householdStore(farm);
+      if (!stock || !farm) return 0;
+      const grain = Math.min(12, Math.floor((stock.grain ?? 0) - farm.members.length * 7));
+      if (grain <= 0) return 0;
+      const market = v.path[0];
+      const buyer = s.households?.filter(h => h !== farm && !h.makes?.includes("grain") &&
+        Math.hypot(h.home.x - market.x, h.home.y - market.y) <= 64 && (s.economy?.stock[h.id]?.grain ?? 0) < 24)
+        .sort((a,b) => Number(!!b.makes?.includes("bread")) - Number(!!a.makes?.includes("bread")) ||
+          Math.hypot(a.home.x-market.x,a.home.y-market.y) - Math.hypot(b.home.x-market.x,b.home.y-market.y))[0];
+      if (!buyer) return 0;
+      stock.grain -= grain;
+      a.freight = { grain, day, to: buyer.id };
+      return grain;
+    }
+    const cargo = a.freight, buyer = cargo && this.household(cargo.to);
+    if (!buyer || !cargo?.grain || !econ) return 0;
+    this.householdStore(buyer);
+    const delivered = addStock(econ, buyer, "grain", cargo.grain);
+    cargo.grain -= delivered;
+    if (!cargo.grain && econ.work?.cart === v.id) econ.work.delivered = true;
+    if (player && delivered) {
+      this.grantXp("wayfaring", Math.ceil(delivered / 2));
+      this.event(`You deliver ${delivered} measures of grain at the market.`);
+    }
+    return delivered;
+  }
+
+  private ploughStock(a: Actor) {
+    const id = a.mount && this.world.vehicle?.(a.mount.vehicle)?.team;
+    return id ? this.state.fauna?.find(g => g.id === id) : undefined;
+  }
+
+  private turnFurrow(a: Actor, v: Vehicle, clock: number) {
+    const work = a.plough!, team = this.state.fauna?.find(g => g.hitch === v.id);
+    if (!team || team.members.length < (v.seedCrop === "rice" ? 1 : 2) || work.step >= v.path.length - 1) return;
+    const old = v.path[work.step], q = v.path[++work.step];
+    work.at = clock;
+    if (work.step + 1 === v.rowLength && this.state.player.guidingPlough === a.id) {
+      const turn = v.path[work.step + 1];
+      this.event(`The row ends. Lift the share and turn ${turn.x > q.x ? "east" : turn.x < q.x ? "west" : turn.y < q.y ? "north" : "south"} for the return pass.`);
+    }
+    if (work.step !== v.rowLength) {
+      const axis = old.x === q.x ? "y" : "x";
+      for (const cell of [old, q]) Object.assign(this.editAt(cell.x, cell.y), v.seedCrop === "rice" ? { puddled: true, furrow: axis } : { dug: true, furrow: axis });
+      this.tilesChanged();
+    }
+    if (this.state.player.guidingPlough === a.id) {
+      const p = this.state.player;
+      p.pos = { ...q, space: "outside" };
+      p.direction = q.y < old.y ? 0 : q.x > old.x ? 1 : q.y > old.y ? 2 : 3;
+      p.facing = facingFromStep(q.x - old.x, q.y - old.y, p.direction);
+      this.grantXp("farming", 1);
+    }
+    if (work.step === v.path.length - 1) {
+      if (this.state.player.guidingPlough === a.id) this.event(v.seedCrop === "rice" ? "At the bund you lift the share and unyoke the buffalo. The bed is ready for seedlings." : "At the headland you lift the share. The oxen are unyoked.");
+      if (this.state.player.guidingPlough === a.id) delete this.state.player.guidingPlough;
+      delete team.hitch;
+      team.home = { ...q, space: "outside" };
+      delete a.mount;
+      this.moveActor(a, { ...q, space: "outside" });
+    }
+  }
+
   /** Scenery is cached until something tells the renderer the ground changed. */
   private tilesChanged() {
     this.state.tilesRevision = (this.state.tilesRevision ?? 0) + 1;
@@ -5564,7 +5868,7 @@ export class Engine {
         ? undefined
         : `You cannot dig ${surface}.`;
     }
-    if (this.cropAt(at.x, at.y)) return undefined;
+    if (this.reapable(at) || this.cropAt(at.x, at.y)) return undefined;
     return plantClass(plant?.sprite) === "grass"
       ? undefined
       : "Nothing here to cut.";
@@ -5594,6 +5898,10 @@ export class Engine {
   }
   lastToolCells?: Point[];
   /** Whether a cell in the swathe beyond the aimed one can take the stroke. */
+  private reapable(at: Point) {
+    const f = this.world.topography?.(at.x, at.y)?.field;
+    return f && crops[f.crop]?.kind === "grain" && f.stage === "ripe" && !this.pickedNow(this.state.tiles?.[tileKey(at.x, at.y)]);
+  }
   private workable(action: ToolAction, at: Point) {
     if (this.world.blocked(at.x, at.y, "outside")) return false;
     const plant = this.world.decoration(at.x, at.y);
@@ -5605,7 +5913,7 @@ export class Engine {
         this.world.terrain(at.x, at.y, "outside"),
       );
     }
-    return !!this.cropAt(at.x, at.y) || plantClass(plant?.sprite) === "grass";
+    return !!this.reapable(at) || !!this.cropAt(at.x, at.y) || plantClass(plant?.sprite) === "grass";
   }
   /** Axe, spade and scythe. Validation has already run on the aimed cell. */
   private useTool(action: ToolAction, target: string) {
@@ -5638,10 +5946,13 @@ export class Engine {
         (q) => (q.x === at.x && q.y === at.y) || this.workable(action, q),
       );
       this.lastToolCells = cells;
+      const grain: Hit[] = cells.filter(q => this.reapable(q)).map(at => ({ at, hit: "crop", kind: "swish", solid: false }));
+      const reaped = grain.length ? this.cutCrops(grain) : undefined;
       const cut: string[] = [];
       const wild: Species[] = [];
       let stubble = false;
       for (const q of cells) {
+        if (grain.some(h => h.at === q)) continue;
         const crop = this.cropAt(q.x, q.y);
         if (crop) {
           harvestResource(p, crop, this.state.clock);
@@ -5656,16 +5967,16 @@ export class Engine {
       }
       if (stubble) this.tilesChanged();
       const got = this.gather(wild);
-      this.advance(this.fieldPace(cut.length ? 30 : 15));
+      this.advance(this.fieldPace(cut.length || reaped ? 30 : 15));
       this.grantXp("farming", cut.length * 6 + (cells.length - cut.length));
       this.event(
-        cut.length > 1
+        reaped ?? (cut.length > 1
           ? `You lay a swathe of ${cut[0]} and gather it.`
           : cut.length
             ? `You cut the ${cut[0]} and gather it.`
             : got.length
               ? `You cut the ${wild[0].common.toLowerCase()} and gather ${listing(got)}.`
-              : "You cut the growth back to stubble.",
+              : "You cut the growth back to stubble."),
       );
       return;
     }
@@ -6933,6 +7244,10 @@ export class Engine {
       const plant = this.world.decoration(x, y);
       if (!plant || plant.id !== id || plant.sprite === "rock") return;
       const worked = isWorkedGround(plant.sprite);
+      const puddled = !!this.state.tiles?.[tileKey(x, y)]?.puddled;
+      const farmer = puddled && this.riceBedFarmer(x, y);
+      const ready = farmer && !farmer.mount && farmer.plough?.sown === undefined;
+      const planting = ready && this.world.pack.setting && cropStage("rice", seasonAt(this.world.pack.setting.season, this.state.clock) as Season, this.world.pack.setting.lat) === "sown";
       const species = worked
         ? undefined
         : this.plantSpecies(plant.sprite, x, y);
@@ -6946,12 +7261,12 @@ export class Engine {
         latin: species?.latin,
         sprite: plant.sprite,
         kind: "vegetation",
-        description: worked
+        description: puddled ? (ready ? "The buffalo has finished. This soft mud can take rice seedlings in the planting season." : "The buffalo is mixing the submerged soil. The bund holds the water in.") : worked
           ? "Ground you have worked."
           : plant.solid
             ? "A tree growing in the surrounding landscape."
             : "Low vegetation growing in the surrounding landscape.",
-        affordances: [],
+        affordances: planting ? [{ label: "Transplant rice seedlings", command: { type: "interact", action: "sow-strip", target: id }, enabled: distance(this.state.player.pos, pos) <= 1.5 && this.state.player.pos.space === "outside" }] : [],
       };
     }
     const bloom = /^bloom-(-?\d+)-(-?\d+)$/.exec(id);
@@ -7069,8 +7384,11 @@ export class Engine {
     const actor = this.state.actors.find((a) => a.id === id);
     const object = this.state.objects.find((o) => o.id === id);
     const place = this.world.place(id);
+    const mounted = actor?.mount && this.world.vehicle?.(actor.mount.vehicle);
+    const onCart = mounted && mounted.team && !mounted.rowLength ? vehicleAt(mounted, this.cartClock(mounted.id, this.state.clock)) : undefined;
+    const crew = onCart && (mounted && mounted.crew[0] === id && this.state.player.drivingCart?.vehicle === mounted.id ? besideTeam(onCart) : onCart);
     const pos =
-      actor?.pos ??
+      (crew ? { x: crew.x, y: crew.y, space: "outside" } : undefined) ?? actor?.pos ??
       object?.pos ??
       (place ? { ...place.entrance, space: "outside" } : undefined);
     if (!pos || (!place && !this.visible(pos))) return;
@@ -7102,6 +7420,38 @@ export class Engine {
       interact("descend", "Climb down", true);
     if (actor) {
       if (actor.kind === "human") {
+        const cart = actor.mount?.place === 0 && mounted;
+        if (cart && cart.team && !cart.rowLength) {
+          const p = this.state.player, drive = p.drivingCart;
+          const rolling = vehicleAt(cart, this.cartClock(cart.id, this.state.clock)).moving && drive?.haltedAt === undefined;
+          if (drive?.vehicle === cart.id) {
+            const end = cart.path[cart.path.length - 1], at = vehicleAt(cart, this.cartClock(cart.id, this.state.clock));
+            if (cart.farmOwner && !rolling && !actor.freight?.grain && at.x === end.x && at.y === end.y)
+              interact("load-cart", "Load grain from the farm", true);
+            if (cart.farmOwner && !rolling && actor.freight?.grain && at.x === cart.path[0].x && at.y === cart.path[0].y)
+              interact("unload-cart", "Deliver the grain", true);
+            if (rolling) interact("halt-cart", "Halt the cart", true);
+            else {
+              interact("walk-on", "Walk on", true);
+              interact("return-reins", "Hand back the reins and step down", true);
+            }
+          } else if (!drive && !p.guidingPlough && !p.perch && !p.afloat)
+            interact("take-reins", "Take the reins", close && !rolling, rolling ? "Wait for the cart to stop" : "Walk closer");
+        }
+        if (actor.plough && !actor.mount && actor.plough.sown === undefined) {
+          const v = this.world.vehicle?.(actor.plough.vehicle), setting = this.world.pack.setting;
+          if (v?.seedCrop && actor.plough.step === v.path.length - 1 && (v.seedCrop !== "rice" || (pos.space === "outside" && distance(pos, { ...v.path[v.path.length - 1], space: "outside" }) <= 2)) && setting && cropStage(v.seedCrop, seasonAt(setting.season, this.state.clock) as Season, setting.lat) === "sown")
+            interact("sow-strip", v.seedCrop === "rice" ? "Transplant rice seedlings into the puddled bed" : `Sow the worked strip with ${crops[v.seedCrop].label.toLowerCase()}`, close && (this.state.economy?.stock[actor.householdId ?? ""]?.grain ?? 0) >= 1, "The farm needs seed grain");
+        }
+        if (actor.plough && actor.mount && !this.state.player.drivingCart) {
+          const team = this.ploughStock(actor);
+          const buffalo = team?.speciesId === "water-buffalo";
+          if (team?.members.length === (buffalo ? 1 : 2)) {
+            if (team.hitch) interact("guide-plough", this.state.player.guidingPlough === id ? "Hand back the plough" : "Take the plough handles");
+            interact("yoke", `${team.hitch ? "Unyoke" : "Yoke"} the ${buffalo ? "buffalo" : "oxen"}`,
+              close && (Boolean(team.hitch) || distance(team.pos, pos) <= 6), "Bring the team close to the plough");
+          }
+        }
         interact("talk", "Talk");
         const offer = actor.underground && folkOffer(this.folk, actor);
         if (offer) interact(this.state.voyage ? "ship" : "complex", offer.label, close && offer.enabled, close ? offer.reason : "Walk closer");
@@ -7139,7 +7489,7 @@ export class Engine {
         id,
         name: actor.name,
         brief,
-        description: brief
+        description: actor.freight?.grain ? `The cart carries ${actor.freight.grain} measures of grain for the market.` : brief
           ? `${briefText(brief)}${observedIllnesses(this.state, actor.id, this.world.pack.setting).map((a) => ` Symptoms: ${a.name}; ${a.trend ?? "ongoing"}.`).join("")}${npcDanger(actor, this.state.clock) !== "none" ? ` Danger: ${npcDanger(actor, this.state.clock)}.` : ""}`
           : `${actor.activity}. ${actor.owner ? "Part of a household’s flock." : "Moving through the landscape."}`,
         kind: actor.kind,
@@ -7471,6 +7821,8 @@ export class Engine {
     if ((p.stocked ?? 0) > this.state.clock && c.type !== "wait" && c.type !== "sleep" && !(c.type === "interact" && c.action === "talk"))
       return "You are serving your sentence.";
     if (this.state.encounter && !(c.type === "choose" && c.card === this.state.encounter.card)) return "Answer the encounter before doing anything else.";
+    if (p.drivingCart && (c.type === "move" || c.type === "interact" && c.action === "enter"))
+      return "Halt the cart and hand back the reins to step down.";
     if (c.type === "gamble") {
       const kind = p.pos.space === "outside" ? undefined : venueOfClaim(this.world.place(p.pos.space)?.claim ?? "")?.kind;
       if (!tableGames.some((g) => g.id === c.game && g.kinds.includes(kind!))) return "There is no game here.";
@@ -7649,6 +8001,7 @@ export class Engine {
       );
       if (occupant) return;
       const beast = this.jostle(c.dx, c.dy);
+      if (beast?.found.g.hitch && p.guidingPlough === beast.found.g.owner) return;
       if (beast && !beast.to && !beast.small && !beast.crossing)
         return `The ${beast.label.toLowerCase()} does not move for you.`;
       return;
@@ -7848,7 +8201,7 @@ export class Engine {
       )
         return true;
       // The player's hens keep their eggs and their shut door while the player is away.
-      if (g.train || (g.house && g.owner === "player")) return true;
+      if (g.hitch || g.draft || g.train || (g.house && g.owner === "player")) return true;
       const plotted = (g.maneater ?? g.stockRaid)?.plot;
       if (plotted) return plotted === this.state.plot?.id && !this.state.plot.ended;
       if (!g.gateId) stale.add(faunaBlockOf(g.home.x, g.home.y));
@@ -8037,7 +8390,7 @@ export class Engine {
    * follows her in a line. */
   private calvesFor(g: FaunaGroup) {
     const p = faunaProfile(g.speciesId);
-    if (!p || g.train || p.young) return [];
+    if (!p || g.draft || g.train || p.young) return [];
     const seed = this.state.manifest.seed;
     const out: [FaunaMember, FaunaMember][] = [];
     const season = this.world.pack.setting?.season;
@@ -8292,7 +8645,7 @@ export class Engine {
         }
     if (near.some((g) => !g.members.length)) this.state.fauna = this.state.fauna?.filter((g) => g.members.length);
     advanceFauna(
-      near,
+      near.filter(g => !g.hitch),
       {
         blocked: (x, y) => this.blocked(x, y, "outside"),
         canCross: this.world.canCross
@@ -9196,6 +9549,31 @@ export class Engine {
       return;
     }
     if (c.type === "move") {
+      const ploughman = p.guidingPlough && this.state.actors.find(a => a.id === p.guidingPlough);
+      if (ploughman && ploughman.mount && ploughman.plough) {
+        const v = this.world.vehicle?.(ploughman.mount.vehicle);
+        const q = v?.path[ploughman.plough.step + 1];
+        const after = v?.path[ploughman.plough.step + 2];
+        const early = v && q && after && ploughman.plough.step + 2 === v.rowLength &&
+          c.dx === after.x - q.x && c.dy === after.y - q.y;
+        if (early) {
+          const pace = this.fieldPace(18);
+          this.turnFurrow(ploughman, v, this.state.clock + pace);
+          this.advance(pace);
+        }
+        const dest = early ? after : q;
+        if (v && dest && p.pos.space === "outside" && dest.x === p.pos.x + c.dx && dest.y === p.pos.y + c.dy) {
+          const pace = this.fieldPace(18);
+          const t = ploughman.plough.step === v.path.length - 2 ? this.trade() : undefined;
+          const stage = t?.process.steps[t.stage];
+          const paidWork = t && stage?.name === "break" && !this.waitingCard() && this.teamJob(stage, t)?.v.id === v.id;
+          this.turnFurrow(ploughman, v, this.state.clock + pace);
+          this.advance(pace);
+          if (paidWork && !ploughman.mount) for (const _ of this.doWork(false, true)) {}
+          return;
+        }
+        return;
+      }
       delete this.lastShove;
       if (!c.jump && !c.traverse && !(c.dx && c.dy) && p.pos.space === "outside" &&
           this.shakeTree(p.pos.x + c.dx, p.pos.y + c.dy)) {
@@ -9793,6 +10171,96 @@ export class Engine {
             "social",
           );
           this.runPlot();
+        }
+        break;
+      case "yoke":
+        if (a?.plough && a.mount) {
+          const team = this.ploughStock(a);
+          if (!team) break;
+          if (team.hitch) {
+            delete team.hitch;
+            a.plough.resting = true;
+            team.home = { ...a.pos };
+            if (p.guidingPlough === a.id) delete p.guidingPlough;
+            this.event("You lift off the yoke and let the team graze.");
+          } else {
+            team.hitch = a.mount.vehicle;
+            delete a.plough.resting;
+            a.plough.at = this.state.clock;
+            this.event("You fasten the yoke to the plough beam.");
+          }
+          this.advance(12);
+        }
+        break;
+      case "load-cart":
+      case "unload-cart": {
+        const v = a?.mount && this.world.vehicle?.(a.mount.vehicle);
+        if (a && v) {
+          const amount = this.cartFreight(a, v, c.action === "load-cart", true);
+          if (c.action === "load-cart") this.event(amount ? `You load ${amount} measures of grain for the market.` : "There is no surplus grain consigned to market.");
+        }
+        break;
+      }
+      case "sow-strip": {
+        const at = /^decor-(-?\d+)-(-?\d+)$/.exec(c.target);
+        const farmer = a ?? (at ? this.riceBedFarmer(+at[1], +at[2]) : undefined);
+        const v = farmer?.plough && this.world.vehicle?.(farmer.plough.vehicle);
+        const trade = this.trade(), step = trade?.process.steps[trade.stage];
+        const paid = v && trade && step && !this.waitingCard() && this.teamJob(step, trade)?.v.id === v.id;
+        if (farmer && v && this.sowStrip(farmer, v, at ? { x: +at[1], y: +at[2] } : undefined)) {
+          this.grantXp("farming", 8);
+          this.event(v.seedCrop === "rice" ? "You set clumps of rice seedlings into the puddled bed." : "You scatter the farm’s seed grain along the furrows.");
+          if (paid && farmer.plough?.sown !== undefined) for (const _ of this.doWork(false, true)) {}
+        } else this.event("The farm needs seed stock before this bed can be planted.");
+        break;
+      }
+      case "take-reins":
+      case "walk-on":
+      case "halt-cart":
+      case "return-reins": {
+        const cart = a?.mount && this.world.vehicle?.(a.mount.vehicle);
+        if (!cart || !a) break;
+        const now = this.state.clock, t = this.cartClock(cart.id, now);
+        const at = vehicleAt(cart, t);
+        if (c.action === "take-reins") {
+          p.drivingCart = { vehicle: cart.id, haltedAt: now };
+          p.pos = { x: Math.round(at.x), y: Math.round(at.y), space: "outside" };
+          this.event("You climb onto the front board and take the reins. Tell the team to walk on when you are ready.");
+        } else if (c.action === "halt-cart") {
+          p.drivingCart!.haltedAt = now;
+          this.event("You draw in the reins and the cart stops.");
+        } else {
+          let resume = t;
+          if (c.action === "walk-on" && !at.moving) {
+            const { drive, cycle, phase } = vehicleSchedule(cart, t);
+            resume += (phase < drive + cart.waits[0] ? drive + cart.waits[0] : cycle) - phase + 0.001;
+          }
+          (p.cartOffsets ??= {})[cart.id] = resume - now;
+          if (c.action === "walk-on") {
+            delete p.drivingCart!.haltedAt;
+            this.event("The team walks on along the lane.");
+          } else {
+            delete p.drivingCart;
+            const step = [[0,1],[1,0],[-1,0],[0,-1]].find(([dx,dy]) => !this.playerBlocked(p.pos.x+dx, p.pos.y+dy));
+            if (step) p.pos = { ...p.pos, x: p.pos.x + step[0], y: p.pos.y + step[1] };
+            this.event("You step down and the carter takes the reins.");
+          }
+        }
+        break;
+      }
+      case "guide-plough":
+        if (a?.plough && a.mount) {
+          if (p.guidingPlough === a.id) {
+            delete p.guidingPlough;
+            this.event("You hand back the plough.");
+          } else {
+            const v = this.world.vehicle!(a.mount.vehicle)!;
+            p.guidingPlough = a.id;
+            p.pos = { ...v.path[a.plough.step], space: "outside" };
+            const next = v.path[a.plough.step + 1];
+            const direction = next.x > p.pos.x ? "east" : next.x < p.pos.x ? "west" : next.y < p.pos.y ? "north" : "south";
+            this.event(`You take the handles. Walk ${direction} along the strip, or step away to hand them back.`);
+          }
         }
         break;
       case "follow":
@@ -12777,6 +13245,14 @@ export class Engine {
       const next = Math.min(end, (Math.floor(this.state.clock / 6) + 1) * 6),
         elapsed = next - this.state.clock;
       this.state.clock = next;
+      if (player.drivingCart) {
+        const cart = this.world.vehicle?.(player.drivingCart.vehicle);
+        if (cart) {
+          const at = vehicleAt(cart, this.cartClock(cart.id, next));
+          player.pos = { x: Math.round(at.x), y: Math.round(at.y), space: "outside" };
+          player.facing = at.facing;
+        } else delete player.drivingCart;
+      }
       complexTime(this.complex, elapsed);
       this.towerStaff();
       if (this.state.voyage) shipTime(this.ships);
@@ -12909,15 +13385,46 @@ export class Engine {
           a.offRoutine = false;
           continue;
         }
+        if (a.plough && !a.mount && next % 3600 === 0 && next % 86400 >= 6 * 3600 && next % 86400 < 18 * 3600)
+          this.tendStrip(a, next);
+        if (a.plough && !a.mount && a.plough.step > 0 && a.plough.sown === undefined && next - a.plough.at < 3600 && this.world.vehicle?.(a.plough.vehicle)?.seedCrop === "rice") {
+          a.activity = "Sorting rice seedlings at the bund";
+          continue;
+        }
         if (a.kind === "human" && a.mount) {
           const v = this.world.vehicle?.(a.mount.vehicle);
           if (v) {
-            const at = vehicleAt(v, next);
-            const x = Math.round(at.x),
-              y = Math.round(at.y);
+            if (a.plough && !a.plough.resting && player.guidingPlough !== a.id && next - a.plough.at >= 24 &&
+                (next % 86400) >= 6 * 3600 && (next % 86400) < 18 * 3600 &&
+                distance(player.pos, a.pos) < 24)
+              this.turnFurrow(a, v, next);
+            const at = vehicleAt(v, this.cartClock(v.id, next), a.plough?.step);
+            if (v.farmOwner && a.id === v.crew[0] && !at.moving && next % 60 === 0) {
+              const end = v.path[v.path.length - 1];
+              const load = at.x === end.x && at.y === end.y;
+              const driving = player.drivingCart?.vehicle === v.id;
+              if (!driving) this.cartFreight(a, v, load, false);
+            }
+            if (v.team && a.id === v.crew[0]) {
+              const team = this.state.fauna?.find(g => g.hitch === v.id);
+              if (team?.members.length) {
+                const dx = Math.sin(at.heading), dy = -Math.cos(at.heading);
+                team.members.forEach((m, i) => {
+                  const side = team.members.length > 1 ? (i ? 0.65 : -0.65) : 0;
+                  const lead = v.rowLength ? 2 : 0.8;
+                  m.x = Math.round(at.x + dx * lead - dy * side);
+                  m.y = Math.round(at.y + dy * lead + dx * side);
+                  m.direction = (Math.round(at.facing / 2) % 4) as 0 | 1 | 2 | 3;
+                });
+                team.pos = { x: team.members[0].x, y: team.members[0].y, space: "outside" };
+              }
+            }
+            const helping = a.id === v.crew[0] && (player.guidingPlough === a.id || player.drivingCart?.vehicle === v.id);
+            const person = helping ? besideTeam(at) : at;
+            const x = Math.round(person.x), y = Math.round(person.y);
             if (a.pos.x !== x || a.pos.y !== y || a.pos.space !== "outside")
               this.moveActor(a, { x, y, space: "outside" });
-            a.activity = v.doing;
+            a.activity = helping ? "Walking alongside the team" : v.doing;
             a.offRoutine = false;
           }
           continue;

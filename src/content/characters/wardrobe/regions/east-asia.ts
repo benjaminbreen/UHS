@@ -206,6 +206,22 @@ export const eastAsia: readonly GarmentKit[] = [
     footwear: [{ value: "shoes", weight: 7 }, { value: "sandals", weight: 2 }, { value: "boots", weight: 2 }],
   },
   {
+    id: "south-korea-farm-work",
+    label: "Postwar South Korea · field clothes",
+    scope: { years: [1953, 1980], bounds: [125, 33, 130, 38.6], cultures: ["east-asian"] },
+    priority: 1.2,
+    headwear: [
+      { value: "kerchief", weight: 4, livelihoods: ["farmer"], sex: ["female"] },
+      { value: "conical", weight: 1, livelihoods: ["farmer"] },
+      { value: "brimmed", weight: 2, livelihoods: ["farmer"] },
+      { value: "none", weight: 4, livelihoods: ["farmer"] },
+      { value: "cap", weight: 2, livelihoods: ["farmer"] },
+    ],
+    garment: [{ value: "shirt", weight: 5, livelihoods: ["farmer"] }, { value: "coat", weight: 2, livelihoods: ["farmer"] }],
+    dye: [{ value: "bleached", weight: 4, livelihoods: ["farmer"] }, { value: "indigo", weight: 2, livelihoods: ["farmer"] },
+      { value: "greige", weight: 2, livelihoods: ["farmer"] }, { value: "ash", livelihoods: ["farmer"] }],
+  },
+  {
     // Goguryeo tomb paintings to Goryeo: a short jacket over wide trousers for
     // men, a jacket over a long wrapped skirt for women, the head cloth or cap.
     id: "korea-early",

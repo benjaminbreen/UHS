@@ -341,7 +341,7 @@ export const silhouettes = ["none", "farthingale", "crinoline", "bustle",
  * women's street veils: the Ottoman yaşmak (white, below the eyes), the
  * Egyptian burqu' (black, hanging to the chest), the haik drawn across all
  * but one eye, and the burqa's grille. */
-export const masks = ["none", "beak", "bauta", "yashmak", "niqab", "haik", "grille"] as const;
+export const masks = ["none", "beak", "bauta", "ruband", "yashmak", "niqab", "haik", "grille"] as const;
 /** Carried on the head on a cloth pad: a water jar, a basket, a bundle. */
 export const headLoads = ["none", "jar", "basket", "bundle"] as const;
 /** Work done walking: the distaff under the arm and the spindle turning below the hand. */
@@ -530,6 +530,9 @@ export const wearSlots = [
   "legs",
   "feet",
   "eyes",
+  "face",
+  "nose",
+  "neckwear",
 ] as const;
 export type WearSlot = (typeof wearSlots)[number];
 /** `calf` is the twentieth century's: a dress or skirt stopping below the knee over stockings. */
@@ -639,11 +642,9 @@ export type AdornmentPools = {
   nose?: readonly NoseOrnament[];
   /** Where a nose ornament is one sex's convention, not everyone's. */
   noseSex?: CharacterPhysique["sex"];
-  marks?: readonly FaceMark[];
-  /** Where marks are a coming-of-age thing rather than a childhood one. */
+  marks?: readonly ("none" | { shape: Exclude<FaceMark, "none">; style: MarkStyle; color?: string })[];
   marksFrom?: number;
-  markStyle?: readonly MarkStyle[];
-  markColors?: readonly string[];
+  marksSex?: CharacterPhysique["sex"];
   metals?: readonly OrnamentMetal[];
 };
 const worldwideEars: readonly EarOrnament[] = [
@@ -666,15 +667,6 @@ const worldwideMetals: readonly OrnamentMetal[] = [
   "bone",
   "shell",
 ];
-/** Ink blues and blacks, ochre and lime paint, and one pale chalk. */
-export const markColors = [
-  "#2a2740",
-  "#1d2a30",
-  "#38212e",
-  "#7a3320",
-  "#b8792c",
-  "#d9cdb4",
-] as const;
 /**
  * Roughly what an ornament in this material is worth. Not a price: enough of
  * an ordering that a person in worn cloth is not drawn in gold.
@@ -729,16 +721,12 @@ export function generateAdornment(
     pools.noseSex !== undefined &&
     pools.noseSex !== "unspecified" &&
     sex !== pools.noseSex;
-  const marks: FaceMark =
-    age < (pools.marksFrom ?? 12)
-      ? "none"
-      : pick("marks", pools.marks ?? (["none"] as const));
+  const mark = age < (pools.marksFrom ?? 12) || (pools.marksSex && sex !== pools.marksSex)
+    ? "none" : pick("marks", pools.marks ?? ["none"] as const);
   return {
     ears: child && (ears === "spool" || ears === "hoop") ? "stud" : ears,
     nose: child || wrongSex ? "none" : pick("nose", nosePool),
-    marks,
-    markStyle: pick("mark-style", pools.markStyle ?? (["ink"] as const)),
-    markColor: pick("mark-color", pools.markColors ?? markColors),
+    ...(mark === "none" ? { marks: mark } : { marks: mark.shape, markStyle: mark.style, markColor: mark.color }),
     metal: pick("metal", pools.metals ?? worldwideMetals),
   };
 }
@@ -789,6 +777,7 @@ const MARK_STYLE_WORD: Record<MarkStyle, string> = {
  */
 export function describeAdornment(a: CharacterAppearance): AdornmentNote[] {
   const notes: AdornmentNote[] = [];
+  if (a.record?.powder) notes.push({ kind: "mark", label: "Festival powder on the cheeks" });
   const metal = METAL_WORD[a.adornment?.metal ?? "gold"];
   const worn = a.adornment?.ears;
   // A worn pair of earrings with no style recorded draws as a drop.
@@ -883,12 +872,14 @@ export type BodyRecord = {
   /** Years of outdoor work: 1 some, 2 a lifetime. */
   sun?: 1 | 2;
   soot?: boolean;
+  powder?: string;
 };
 export type CharacterAppearance = {
   physique?: CharacterPhysique;
   face?: CharacterFace;
   /** Shared by a family line, so kin share the small proportions that no face field names. */
   lineage?: string;
+  faceSeed?: string;
   record?: BodyRecord;
   injuryScar?: InjuryScar;
   eyeAlignment?: (typeof eyeAlignments)[number];
@@ -1115,6 +1106,7 @@ export function generateAppearance(
   };
   return {
     physique,
+    faceSeed: `${seed}:${index}`,
     face: generateFace(seed, index, age),
     adornment: generateAdornment(seed, index, age, sex),
     injuryScar: generateInjuryScar(seed, index, age, sex),

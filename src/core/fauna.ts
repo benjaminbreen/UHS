@@ -146,6 +146,8 @@ export type FaunaGroup = {
    * the party, rather than deciding anything. */
   train?: boolean;
   /** Kept animals: who tends them, which gate they pass, where they graze. */
+  draft?: boolean;
+  hitch?: string;
   owner?: string;
   /** A hunting dog: it keeps to its owner and runs down game near them. */
   hound?: boolean;

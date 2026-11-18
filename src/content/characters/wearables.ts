@@ -2,6 +2,10 @@ import {
   beltStyles,
   footwear,
   garments,
+  masks,
+  neckwear,
+  noseOrnaments,
+  earOrnaments,
   headwear,
   leggings,
   type CharacterAppearance,
@@ -396,6 +400,22 @@ export const wearableItems: Record<ItemId, ItemDef> = Object.fromEntries(([
       wear: { slot: "eyes", look: { eyewear: "sunglasses" } },
     },
   ],
+  ["street-wrap", { id: "street-wrap", name: "Full-length head and shoulder wrap", sprite: "wool", value: 3,
+    wear: { slot: "over", look: { shroud: true } } }],
+  ...masks.filter(mask => mask !== "none").map(mask => [`mask-${mask}`, {
+    id: `mask-${mask}`, name: { ruband: "Ruband (latticed face veil)", yashmak: "Yashmak (face veil)", niqab: "Niqab", haik: "Haik face covering", grille: "Pleated face grille", beak: "Beaked mask", bauta: "Bauta mask" }[mask],
+    sprite: "wool", value: 2, wear: { slot: "face", look: { mask } },
+  }]),
+  ...neckwear.filter(kind => kind !== "none").map(kind => [`neckwear-${kind}`, {
+    id: `neckwear-${kind}`, name: kind[0].toUpperCase() + kind.slice(1).replaceAll("-", " "), sprite: "wool", value: 2,
+    wear: { slot: "neckwear", look: { neckwear: kind } },
+  }]),
+  ...earOrnaments.filter(ears => ears !== "none").map(ears => [`ear-${ears}`, {
+    id: `ear-${ears}`, name: `Ear ${ears}`, sprite: "coin", value: 3, wear: { slot: "ears", look: { earrings: true }, ornament: { ears } },
+  }]),
+  ...noseOrnaments.filter(nose => nose !== "none").map(nose => [`nose-${nose}`, {
+    id: `nose-${nose}`, name: nose === "septum" ? "Septum ring" : `Nose ${nose}`, sprite: "coin", value: 3, wear: { slot: "nose", look: {}, ornament: { nose } },
+  }]),
   [
     "earrings",
     {

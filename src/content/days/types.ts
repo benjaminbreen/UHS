@@ -74,6 +74,7 @@ export type Occasion = QualifiedContent & {
  * day of the solar year, or by a repeating count of days.
  */
 export type Festival = QualifiedContent & {
+  facePowders?: readonly string[];
   scope: CharacterScope;
   evidence: Evidence["status"];
   /** Day of the year, 1-366, northern reckoning; or a repeating cycle. */

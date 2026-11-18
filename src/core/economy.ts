@@ -31,6 +31,12 @@ const rates: Record<string, { make: number; need?: number }> = {
  * comes in at harvest and is kept in the granary the year round. */
 const GRANARY_DAYS = 250;
 const cap = (good: string) => (rates[good]?.make ?? 1) * (good === "grain" ? GRANARY_DAYS : 3);
+/** Open a store at the same stock whether a carter or the hourly market reaches it first. */
+export function openStock(economy: Economy, h: Household, hands: number) {
+  return economy.stock[h.id] ??= Object.fromEntries((h.makes ?? []).map(g =>
+    [g, g === "grain" ? Math.min(cap(g), rates.grain.make * hands * 56) : rates[g]?.make ?? 1]));
+}
+
 /** Share of a city's needs that arrives from outside it: grain ships, wine
  * carts, the hinterland's market days. A village feeds itself or goes short. */
 export const importShare: Partial<Record<string, number>> = {
@@ -111,9 +117,7 @@ export function runEconomy(
         ];
       // A granary starts the game holding half a year's grain, so a world
       // begun before the harvest is not a famine.
-      const stock = (economy.stock[h.id] ??= Object.fromEntries(
-        (h.makes ?? []).map((g) => [g, g === "grain" ? Math.min(cap(g), (rates[g]?.make ?? 1) * (hands.get(h.id) ?? 0) * 56) : rates[g]?.make ?? 1]),
-      ));
+      const stock = openStock(economy, h, hands.get(h.id) ?? 0);
       const share = (hands.get(h.id) ?? 0) / 24 / (h.makes?.length || 1);
       for (const good of h.makes ?? []) {
         let n = Math.min(
@@ -122,9 +126,14 @@ export function runEconomy(
         );
         const input = inputOf(h, good);
         const from = input && nearest.get(h.id + input);
-        if (from) {
-          n = Math.min(n, economy.stock[from.id]?.[input!] ?? 0);
-          if (n > 0) economy.stock[from.id][input!] -= n;
+        if (input && n > 0) {
+          const stored = Math.min(stock[input] ?? 0, n);
+          if (stored) stock[input] -= stored;
+          if (from) {
+            const bought = Math.min(n - stored, economy.stock[from.id]?.[input] ?? 0);
+            if (bought) economy.stock[from.id][input] -= bought;
+            n = stored + bought;
+          }
         }
         if (n > 0) stock[good] = (stock[good] ?? 0) + n;
       }
@@ -140,7 +149,9 @@ export function runEconomy(
         if (take(seller, good, want)) continue;
         // Short of bread, a household buys grain from its nearest farm.
         const plain = standsIn[good] && nearest.get(h.id + standsIn[good]);
-        if (plain && take(plain, standsIn[good], want)) continue;
+        const substitute = standsIn[good];
+        if (substitute && (stock[substitute] ?? 0) >= want && take(h, substitute, want)) continue;
+        if (plain && take(plain, substitute, want)) continue;
         // A fishing house's own catch is not something the grain ships bring.
         if (!imports || need === "fish" || !take(market, need, want)) short.push(need);
       }

@@ -158,6 +158,7 @@ export type AppearanceKit = QualifiedContent & {
    * would need its own sources. Omitted kits get a thin worldwide spread.
    */
   adornment?: AdornmentPools;
+  markScope?: CharacterScope;
 };
 export type CommunityProfile = QualifiedContent & {
   scope: CharacterScope;

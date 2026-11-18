@@ -747,6 +747,7 @@ export const southAsiaFestivals: Festival[] = [
   {
     id: "fest.north-india.holi",
     label: "Holi",
+    facePowders: ["#be3652", "#db8637", "#a94968"],
     scope: { years: [700, 1950] as Years, bounds: [68, 20, 90, 32] as Bounds, cultures },
     evidence: "documented",
     date: { dayOfYear: 75 },

@@ -22,6 +22,12 @@ tells the day back and offers **Another day**, **Let the years pass** or
 Every card trades one scarce thing for another: hours, coin, the batch, the
 goodwill of a person. No choice is free and every effect shows on the ledger.
 
+On dry fallow land in the medieval open-field, Mediterranean wheat, Mesopotamian canal, northern Chinese millet–wheat (from 206 BCE), Ethiopian highland (from 100 CE), and South Asian paddy–millet profiles (from 600 BCE), a village can put up to three farmers to work with ox teams when its plots have room. Inspect a farmer to take the handles, then walk the indicated row and turn at the headland. A cultivator’s **Break the ground** step can also lead to a working team. Each Work action cuts another length. Once the strip is turned, the farmer releases the oxen. In the local cereal’s sowing season, the household spends seed grain to plant the rows. On mixed rice holdings this dry strip takes an upland cereal. The player can help sow, or the farmer sows on a later working day. These cells grow that cereal by its calendar. Grain picked by hand is gone when the farmer brings the remaining crop into store. The strip can be worked again the following year.
+
+In mainland Southeast Asian rice basins from 1200 onward, a rice holding with a suitable flooded bed can put one water buffalo to a plough in the spring planting season. The rice farmer’s transplanting work leads to the bed. Walk behind the buffalo, turn inside the bund and hand the handles back at any point. The farmer resumes that pass. The mixed mud stays visible until somebody plants it. Inspect the finished bed to transplant nursery seedlings, or leave the farmer to plant on a later working hour. The household supplies the seed stock and keeps the harvest.
+
+European pony carts can appear from 1100 through 1924. Where a pony or buffalo cart can reach a grain holding, its lane joins the farm to the market. The carter loads up to twelve measures of surplus grain on a working trip, leaving a week’s grain per household member at home. Delivery transfers the load to a local household, with bakers preferred. Their grain is available for bread or household consumption. Inspect a stopped cart’s driver to take the reins, load at the farm, drive the lane, and unload at market. On a carter’s hauling day the three Work steps use the same cart and stocks. Carts without a reachable grain holding still run their ordinary routes.
+
 ## Work: recipes and family steps
 
 Each kind of work has a **recipe** (`Recipe` in `recipes.ts`): three steps,

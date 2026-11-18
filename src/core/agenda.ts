@@ -40,19 +40,25 @@ function covers(cal: ReturnType<typeof calendarOf>, dayOfYear: number) {
 const inCycle = (day: number, every: number, on: number) =>
   ((day % every) + every) % every === on;
 
+const festivalDays = new WeakMap<WorldSetting, { day: number; festival?: Festival }>();
+
 /**
  * The day the whole settlement keeps, if today is one. The arrival day never
  * rests: the player is told the morning's work is beginning.
  */
 export function festivalOf(setting: WorldSetting | undefined, clock: number): Festival | undefined {
   if (!setting) return undefined;
+  const cached = festivalDays.get(setting);
+  if (cached?.day === Math.floor(clock / DAY)) return cached.festival;
   const cal = calendarOf(setting, clock);
   const found = allFestivals.find(
     (f) =>
       matchesCharacterScope(f.scope, setting, "*") &&
       ("dayOfYear" in f.date ? covers(cal, f.date.dayOfYear) : inCycle(cal.day, f.date.every, f.date.on)),
   );
-  return found && { ...found, rest: found.rest && found.evidence === "documented" && cal.day > 0 };
+  const festival = found && { ...found, rest: found.rest && found.evidence === "documented" && cal.day > 0 };
+  festivalDays.set(setting, { day: cal.day, festival });
+  return festival;
 }
 
 /** Whether today is the town's market day, where its market keeps a cycle;

@@ -24,7 +24,7 @@ export type ItemDef = {
   sprite: string;
   value: number;
   /** A wearable: the slot it occupies and the look it adds when worn. */
-  wear?: { slot: WearSlot; look: Partial<CharacterAppearance["wearing"]> };
+  wear?: { slot: WearSlot; look: Partial<CharacterAppearance["wearing"]>; ornament?: Pick<NonNullable<CharacterAppearance["adornment"]>, "ears" | "nose"> };
   /** Can be taken in hand. `strike` means it swings; `edge` means it cuts
    * rather than thumps. */
   hand?: { strike?: boolean; edge?: boolean; weapon?: "spear" };
@@ -99,7 +99,7 @@ export type Economy = {
   /** The player's place in today's work: stages done, on which day; how it
    * is going, what the wage has gained or lost, the lines kept from its
    * cards, and the card still waiting for an answer. */
-  work?: { day: number; stage: number; quality?: number; pay?: number; lines?: string[]; card?: string; done?: boolean; drawn?: number; catch?: number; harvest?: number; since?: number; tubs?: number };
+  work?: { day: number; stage: number; cart?: string; delivered?: boolean; quality?: number; pay?: number; lines?: string[]; card?: string; done?: boolean; drawn?: number; catch?: number; harvest?: number; since?: number; tubs?: number };
   /** The day the household plot was last seen to. */
   side?: number;
   /** The seasons the household's field was last sown and weeded, which the harvest pays back. */
@@ -323,6 +323,11 @@ export type Actor = {
   /** Passing through: off the map, and out of the snapshot, after `until`. */
   /** `train`: the pack animals the lead walker drives, as fauna. */
   wayfarer?: { until: number; train?: { species: string; count: number } };
+  plough?: { vehicle: string; step: number; at: number; resting?: boolean; sown?: number };
+  freight?: { grain: number; day: number; to: string };
+  guidingPlough?: string;
+  drivingCart?: { vehicle: string; haltedAt?: number };
+  cartOffsets?: Record<string, number>;
   /** In a vehicle, in one of its crew places; the vehicle moves them. */
   mount?: { vehicle: string; place: number };
   /** Stepped down from a vehicle for a while, to go back to it after. */
@@ -590,6 +595,15 @@ export type PlayerCommand =
         | "harvest"
         | "gather"
         | "tend-plot"
+        | "load-cart"
+        | "unload-cart"
+        | "sow-strip"
+        | "take-reins"
+        | "walk-on"
+        | "halt-cart"
+        | "return-reins"
+        | "guide-plough"
+        | "yoke"
         | "use-prop"
         | "capture"
         | "herd"

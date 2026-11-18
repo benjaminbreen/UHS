@@ -412,7 +412,8 @@ export function characterAppearance(
     0,
     age,
     sex,
-    kit.adornment ?? { ears: ["none", "none", "none", "stud"] },
+    kit.markScope && !matchesCharacterScope(kit.markScope, s, context.community)
+      ? { ...kit.adornment, marks: undefined } : kit.adornment ?? { ears: ["none", "none", "none", "stud"] },
   );
   // Re-roll the beard against the kit's density, not against the base roll:
   // filtering the base result would compound the two and leave almost every
@@ -577,7 +578,7 @@ export function generateCharacter(
     role,
     inventory,
     appearance,
-    worn: wornFromWearing(appearance.wearing, cloth, fibresFor(wearer, { year: s.year, setting: s })),
+    worn: wornFromWearing(appearance.wearing, cloth, fibresFor(wearer, { year: s.year, setting: s }), appearance.adornment),
     origin: {
       revision: 1 as const,
       profile: context.profile.id,
