@@ -48,7 +48,7 @@ if (which === "ears") {
 } else if (which === "noses") {
   out = "artifacts/portrait-lab/noses.png";
   cols = 9;
-  cells = noseShapes.map((n) => ({ a: { ...person, face: { ...person.face!, nose: n } }, age: 28 }));
+  cells = [1, 0].flatMap(turn => noseShapes.map(nose => ({ a: { ...person, face: { ...person.face!, nose } }, age: 28, turn })));
 } else if (which === "world" || which === "cast") {
   out = which === "cast" ? "artifacts/portrait-lab/cast.png" : "artifacts/portrait-lab/world-adornment.png";
   cols = 8;
@@ -79,7 +79,10 @@ if (which === "ears") {
     expressions.map((expression) => ({ a: bare("sheet-face:1", i, 28), age: 28, expression })),
   );
 }
-const scale = Number(process.env.S ?? (which === "cast" ? 2 : 8)), X = Number(process.env.X ?? 12), Y = Number(process.env.Y ?? 8), W = Number(process.env.W ?? 40), H = Number(process.env.H ?? 40), pad = 1;
+const fullBust = which === "cast";
+const scale = Number(process.env.S ?? (fullBust ? 2 : 8)), pad = 1;
+const X = Number(process.env.X ?? (fullBust ? 0 : 12)), Y = Number(process.env.Y ?? (fullBust ? 0 : 8));
+const W = Number(process.env.W ?? (fullBust ? 64 : 40)), H = Number(process.env.H ?? (fullBust ? 80 : 40));
 const rows = Math.ceil(cells.length / cols);
 const width = (cols * (W + pad) + pad) * scale;
 const height = (rows * (H + pad) + pad) * scale;

@@ -130,7 +130,8 @@ and disappears behind the waistcoat.
   the person's `restingPose`.
   - Blinking and speech run on their own clocks. The mouth curves around the
     jaw and opens widest at the centre. The nose profile sets the bridge,
-    tip and nostril positions in both views.
+    tip and nostril positions in both views. A short shadow beneath the tip
+    follows the turn of the head.
 - **Mood in dialogue.** In conversation the NPC wears the `mood` the model
   chose for its own line, a field of the dialogue reply beside `regard`. Only
   `regard` moves `actor.trust`.
@@ -152,6 +153,10 @@ and disappears behind the waistcoat.
     words, under **Worn and marked** in the panel.
 
 `raster.ts` is the bust's pixel buffer: materials, draw order and contour.
+
+The offline `npx tsx scripts/portrait-sheets.ts cast` sheet renders 24 fixed
+characters in front and three-quarter views. The `noses` preset holds the
+person fixed and varies only the nose profile.
 
 ## The character panel
 
