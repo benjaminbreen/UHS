@@ -401,7 +401,7 @@ const EARLY: Record<string, Region> = {
     lined: [[-1200, 1850, "standing-stone", "Deer stone", 1]],
     fixtures: [[-1000, 1850, "hitching-post", "Rail", 3]],
     vendors: [[-1000, 1850, "trade-goods", "Bales"]],
-    water: [[-1000, 1850, "trough", "Carved stone trough", 3]],
+    water: [[-1000, 1850, "trough", "Carved stone", 3]],
     pitches: 2,
   },
 };

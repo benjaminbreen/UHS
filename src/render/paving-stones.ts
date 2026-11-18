@@ -1,4 +1,5 @@
 import type { StreetMaterial } from "../content/settlements/streets";
+import type { WharfPlatform } from "../world/v3/harbor";
 import type { Pavement } from "../world/v3/types";
 import { cellHash as hash, valueNoise } from "../core/noise";
 import { shade } from "./palette";
@@ -19,7 +20,22 @@ const sett: readonly Color[] = [
 const brick: readonly Color[] = [
   [162, 112, 78], [153, 105, 76], [165, 117, 84], [157, 109, 81],
 ];
-export type PavingGrade = "fine" | "street" | "broad" | "dais" | "court" | "yard";
+export type PavingGrade = "fine" | "street" | "broad" | "dais" | "court" | "yard" | "wharf";
+// Granite ramps lose their kerb height across a cart-wide opening on the south face.
+export function curbRiseAt(pad: WharfPlatform, wx: number) {
+  const gap=Math.abs(wx-(pad.gateX+.5)*16);
+  return Math.round(pad.rise*Math.min(1,Math.max(0,(gap-14)/9)));
+}
+export function wharfInset(x: number, y: number, w: number, h: number) {
+  const side=Math.min(x,w-1-x), end=Math.min(y,h-1-y);
+  return Math.min(side,end,(side+end-7)*Math.SQRT1_2);
+}
+export function platformSection(pad: WharfPlatform, wx: number, wy: number) {
+  const walk=pad.approach;
+  if (!walk) return pad;
+  return wharfInset(wx-walk.x*16,wy-walk.y*16,walk.w*16,walk.h*16)>
+    wharfInset(wx-pad.x*16,wy-pad.y*16,pad.w*16,pad.h*16) ? walk : pad;
+}
 export function pavingGrade(pavement?: Pavement): PavingGrade {
   return pavement === "dais" ? "dais"
     : pavement === "square" ? "broad"
@@ -27,6 +43,7 @@ export function pavingGrade(pavement?: Pavement): PavingGrade {
     : pavement === "yard" || pavement === "apron" ? "yard" : "street";
 }
 const grades: Record<PavingGrade, { w: number; h: number; lift: number }> = {
+  wharf: { w: 7, h: 5, lift: 0 },
   fine: { w: 18, h: 12, lift: 0 },
   street: { w: 18, h: 12, lift: 0 },
   broad: { w: 26, h: 16, lift: 3 },
@@ -224,6 +241,22 @@ export function pavingStonePixel(
     if (i === 2 && (cut === 2 || cut === 35)) return [111, 91, 68];
     if (i === 1) return tint(face, 5);
     if (i === 3 && mod(v, 13) > 4 && mod(v, 13) < 9) return tint(face, -4);
+    return face;
+  }
+  if (material === "sett" && grade === "wharf") {
+    const lift=[0,0,1,1,1,0,0,0][mod(Math.floor(wx/9),8)];
+    const row=Math.floor((wy+lift)/5), width=7+Math.floor(hash(row,0,711)*3);
+    const run=wx+Math.floor(hash(row,0,713)*width), nominal=Math.floor(run/width);
+    const split=(i:number)=>i*width+Math.floor(hash(i,row,709)*3);
+    const col=run<split(nominal) ? nominal-1 : nominal;
+    const x=run-split(col), end=split(col+1)-run-1, y=mod(wy+lift,5), stone=hash(col,row,716);
+    const patch = valueNoise(col,row,8,723);
+    const stoneFace: Color = stone < .22 ? [151,138,123] : stone < .48 ? [157,149,134]
+      : stone < .73 ? [145,141,135] : [165,152,135];
+    const face = patch<.42 ? mixC(stoneFace,[119,126,131],.34) : patch>.59 ? tint(stoneFace,4) : stoneFace;
+    if (y===4 || end===0 || (x===0 && y===0 && stone<.4)) return patch<.42 ? [111,109,106] : [124,117,106];
+    if (y===0 && x>0 && end>1) return tint(face,stone<.4 ? 4 : 9);
+    if (end===1 && y>1) return tint(face,-8);
     return face;
   }
   if (material === "concrete") {

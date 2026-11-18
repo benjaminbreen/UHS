@@ -5,6 +5,8 @@ looking at it. Building drawing rules are in the `building-art` skill
 (`.claude/skills/building-art/SKILL.md`); props are in [PROP_ART.md](PROP_ART.md);
 terrain, water and vegetation have their own docs, listed in `AGENTS.md`.
 
+Game sprites are authored at native pixel resolution. AI-generated mockups serve as visual references only.
+
 ## Labs
 
 All are routes in `src/main.tsx`, served by the dev server and the production
@@ -24,6 +26,8 @@ build. They never write saves.
 
 For a shot of the real game use `npm run shot`; for a town without a browser,
 `npm run town:sheet`.
+
+Outdoor play uses a mild tilt-shift by default. A broad band around the player stays sharp, with more blur at the top of the view than at the bottom. Rooms stay sharp throughout. Players can toggle “Tilt-shift blur” in Settings.
 
 ## Ownership
 

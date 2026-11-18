@@ -9457,6 +9457,7 @@ button:disabled {
 .toast-icon { flex: none; margin-top: 3px; color: var(--gold); }
 .toast-text { flex: 1; min-width: 0; padding-top: 1px; overflow-wrap: anywhere; }
 .toast-count { margin-left: 8px; color: var(--muted); font: 11px var(--sans); white-space: nowrap; }
+.toast-action { align-self: center; min-height: 32px; padding: 3px 8px; color: var(--cream); border: 1px solid var(--teal); border-radius: 4px; font: 600 13px var(--sans); }
 .toast-dismiss {
   display: grid;
   place-items: center;
@@ -9604,6 +9605,8 @@ button:disabled {
   .world-status > .work-card:not([data-open]) { max-width: calc(100% - 96px); }
   .world-status:has(> .work-card[data-open]) { z-index: 5; }
   .world-status > .work-card:not([data-open]) :is(.work-sub, .work-span) { display: none; }
+  .world-status > .work-card[data-field]:not([data-open]) .work-sub { display: block; font-size: 11px; }
+  .work-card[data-field] .work-quick button { min-height: 44px; }
   .world-status > .work-card:not([data-open]) .work-title b { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .work-card-head { min-height: 44px; }
   .work-more { width: 40px; height: 40px; }
@@ -9713,6 +9716,19 @@ button:disabled {
 }
 
 .shop { display: flex; flex-direction: column; gap: 12px; }
+.shop-handoff { position: relative; float: right; display: flex; justify-content: space-between; width: 96px; margin-inline: 8px 36px; }
+.shop-handoff > span { position: absolute; top: 7px; left: 14px; width: 24px; height: 24px; animation: shop-handoff 850ms ease-in-out both; }
+@keyframes shop-handoff {
+  0% { opacity: 0; transform: translate(0, 2px); }
+  18% { opacity: 1; }
+  50% { transform: translate(22px, -3px); }
+  85% { opacity: 1; }
+  100% { opacity: 0; transform: translate(44px, 2px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shop-handoff > span { animation-name: shop-received; left: 36px; }
+  @keyframes shop-received { from, to { opacity: 1; } }
+}
 .shop h2 { margin: 2px 0 0; }
 .shop-lede, .shop-purse { margin: 0; color: var(--muted); font-size: 14px; }
 .shop-tabs { display: flex; gap: 6px; }

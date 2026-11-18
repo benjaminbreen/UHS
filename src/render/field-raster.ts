@@ -1,9 +1,9 @@
 import { crops } from "../content/agriculture/crops";
 import type { CropId } from "../content/agriculture/types";
 import { paletteKey, type Ecology } from "../content/ecology/profiles";
-import type { TopographyCell, TopographySample } from "../core/topography";
+import { acrossFieldRow, type TopographyCell, type TopographySample } from "../core/topography";
 import { defaultGrassArt, type GrassArt } from "../content/graphics/grass-art";
-import { enclosurePixel, riserPixel } from "./fences";
+import { benchEdges, benchPixel, enclosurePixel } from "./fences";
 import { headlandDepths, innerDistance, troddenPixel } from "./headland";
 import { paintFences } from "./fence-pass";
 import { standingStyle } from "../content/settlements/boundaries";
@@ -46,7 +46,7 @@ const tilledRamps: Record<Ecology, string[]> = {
   savanna: ["#61391a", "#845a2b", "#a5743d", "#c08d50"],
 };
 export const tilled = Object.fromEntries(
-  Object.entries(tilledRamps).map(([k, v]) => [k, v.map(decode)]),
+  Object.entries(tilledRamps).map(([k, v]) => [k, v.map(c => mix(decode(c), decode(v[1]), 0.26))]),
 ) as Record<Ecology, Rgb[]>;
 
 const paddy = {
@@ -59,6 +59,18 @@ const flood = { water: [150, 128, 92], deep: [128, 108, 78], sky: [198, 182, 146
 const tan = [190, 168, 116];
 /** Plants along a ridge, in world pixels. */
 const PLANT_PITCH = 10;
+
+export function fieldRidge(f: NonNullable<TopographyCell["field"]>) {
+  const pitch = 10 + Math.floor(hash(f.parcel, 0, 871) * 4);
+  const scale = Math.hypot(1, f.rowSlope ?? 0);
+  return (wx: number, wy: number) => {
+    const along = f.axis === "x" ? wx : wy;
+    const across = acrossFieldRow(f, wx, wy) / scale;
+    const drift = Math.floor(noise(along, across, 96, 813) * 3) - 1;
+    const shifted = across + drift, p = mod(shifted, pitch);
+    return { along, row: Math.floor(shifted / pitch), crest: (p - (pitch >> 1)) * scale, phase: (p + 0.5) / pitch };
+  };
+}
 
 /** Foliage colour of a crop: its ripe hue pulled toward leaf green, then
  * darkened, so every crop's green stage is its own green. */
@@ -130,30 +142,25 @@ export function rasterFieldTile(
   const stage = kind === "fallow" ? "bare" : f.stage;
   const wet = f.wet && !f.ditch;
   const axis = f.ditch ? ditchAxis(sample, x, y) : f.axis;
+  const banks = f.rowSlope === undefined ? f.edges : (f.riser ?? 0) | (f.footway ?? 0) | (f.margin ?? 0);
 
   // Rows run along the axis, phased on world pixels so strips in one
   // furlong share rows. The pitch is the parcel's own, so neighbouring
   // fields differ, and a parcel has its own grain: how speckled the soil
   // is and how lumpy the ridge.
-  const pitch = 10 + Math.floor(hash(f.parcel, 0, 871) * 4);
+  const ridge = fieldRidge(f);
   const grain = 0.05 + hash(f.parcel, 1, 871) * 0.09;
   const lumpy = 0.15 + hash(f.parcel, 2, 871) * 0.25;
   const furrow = (wx: number, wy: number) => {
-    const along = axis === "x" ? wx : wy;
-    const across = axis === "x" ? wy : wx;
-    const band = Math.floor(across / 64);
-    const drift = Math.floor(noise(along, band * 64, 96, 813) * 3) - 1;
-    const shifted = across + drift;
-    const p = mod(shifted, pitch);
-    const row = Math.floor(shifted / pitch);
+    const { along, row, crest, phase } = ridge(wx, wy);
     // Height across the ridge, 0 in the trough and 1 on the crest, as a
     // rounded profile rather than flat steps; lumps along the row and a
     // per-pixel dither break the contour lines up.
-    const round = 0.5 - 0.5 * Math.cos(((p + 0.5) / pitch) * Math.PI * 2);
+    const round = 0.5 - 0.5 * Math.cos(phase * Math.PI * 2);
     const lump = (noise(along, row * 7, 5, 883) - 0.5) * lumpy;
     const dither = (hash(wx, wy, 887) - 0.5) * 0.28;
     const t = Math.min(1, Math.max(0, round + lump + dither));
-    return { t, along, row, dc: p - (pitch >> 1) };
+    return { t, along, row, dc: crest };
   };
   // Soil tone for a ridge height: trough shadow to dry crest, with flecks
   // of lighter crumb on the crest and darker clods in the trough.
@@ -195,8 +202,9 @@ export function rasterFieldTile(
     const j = Math.floor(hash(k, row, 861) * 3) - 1;
     const da = along - (k * PLANT_PITCH + 4 + j);
     // Screen-vertical is across the row when rows run east-west.
-    const u = axis === "x" ? da : dc;
-    const v = axis === "x" ? dc : da;
+    const cross = Math.round(dc + (f.rowSlope ?? 0) * da);
+    const u = axis === "x" ? da : cross;
+    const v = axis === "x" ? cross : da;
     const gx = u + (GLYPH_W >> 1);
     const gy = v + GLYPH_BASE;
     if (gx < 0 || gx >= GLYPH_W || gy < 0 || gy >= GLYPH_H) return 0;
@@ -248,7 +256,7 @@ export function rasterFieldTile(
         const ink = plant(along, row, dc);
         if (wet) {
           const pool = f.flood ? flood : paddy;
-          const bank = Math.min(f.edges & 1 ? py : 32, f.edges & 8 ? px : 32);
+          const bank = Math.min(banks & 1 ? py : 32, banks & 8 ? px : 32);
           const reflection = noise(wx * 0.55, wy * 1.45, 35, 833);
           rgb = bank < 2 ? pool.deep : reflection < 0.36 ? mix(pool.water, pool.deep, 0.32)
             : reflection > 0.64 ? mix(pool.water, pool.sky, 0.42) : pool.water;
@@ -282,17 +290,15 @@ export function rasterFieldTile(
           if (ink) rgb = leafRamp[ink - 1];
         }
       }
-      // The soil stops short of the enclosure: a trodden headland with a
-      // dotted lip where the last furrow ends.
       if (f.fence && !f.ditch && !f.yard) {
         const { inner: m } = headlandDepths(wx, wy);
         const inner = innerDistance(f.fence, px, py, m);
-        if (inner <= m) {
-          const s = m - inner;
-          // A dark lip where the last furrow ends, broken here and there.
-          if (s < 1.1)
-            rgb = hash(Math.floor(wx / 5), Math.floor(wy / 5), 923) < 0.15 ? soil[1] : soil[0];
-          else rgb = troddenPixel(wx, wy, 0, headland);
+        const d = inner - m;
+        if (d < 3) {
+          const earth = troddenPixel(wx, wy, 0, headland);
+          rgb = d < -2 ? earth : mix(earth, rgb, (d + 2) / 5);
+          if (d > 0 && d < 1.2 && hash(Math.floor(wx / 5), Math.floor(wy / 5), 923) > 0.32)
+            rgb = shade(rgb, -8);
         }
       }
       if (autumn && !wet && kind !== "pasture")
@@ -306,7 +312,7 @@ export function rasterFieldTile(
 
   // Thin parcel lines inside an enclosure. The enclosure itself stands
   // outside the headland and is drawn by the ground pass round the field.
-  if (f.edges & ~f.fence && !f.ditch && f.boundary !== "none") {
+  if (f.edges & ~f.fence && f.rowSlope === undefined && !f.ditch && f.boundary !== "none") {
     const enclosure = {
       fence: 0,
       edges: f.edges & ~f.fence,
@@ -328,27 +334,16 @@ export function rasterFieldTile(
         put(px, py, rgb);
       }
   }
-  if (f.riser)
+  const edges = f.rowSlope !== undefined || f.riser ? benchEdges(sample, x, y) : [];
+  if (edges.length)
     for (let py = 0; py < 16; py++)
       for (let px = 0; px < 16; px++) {
         const i = (py * 16 + px) * 4;
         const ground = [pixels[i], pixels[i + 1], pixels[i + 2]];
-        let rgb = riserPixel(f.riser, px, py, gx + px, gy + py, f.boundary === "wall", palette, ground);
+        let rgb = benchPixel(edges, px, py, gx + px, gy + py, palette, soil, ground);
         if (!rgb) continue;
         if (frozen) rgb = mix(rgb, [206, 212, 204], 0.5);
         put(px, py, rgb);
-      }
-  // Past a cut corner's diagonal the cell is the trodden apron round the field.
-  if (f.cut)
-    for (let py = 0; py < 16; py++)
-      for (let px = 0; px < 16; px++) {
-        const t = Math.max(
-          f.cut & 1 ? px - py : 0,
-          f.cut & 2 ? px + py - 15 : 0,
-          f.cut & 4 ? py - px : 0,
-          f.cut & 8 ? 15 - px - py : 0,
-        );
-        if (t > 0) put(px, py, t === 1 ? soil[0] : troddenPixel(gx + px, gy + py, t / 16, headland));
       }
   if (!frozen)
     paintFences(sample, x, y, ox, oy, put, (px, py, v) => {

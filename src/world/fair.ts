@@ -622,6 +622,15 @@ function furnish(L: FairLevel, plan: FairArea, rng: () => number, seed: string, 
       L.decor.push({ type: name, x, y: 2 + deep, solid: true, v: rng() });
       if (type === "console" || type === "altar") for (const sx of [x - 1, x + 3]) if (sx > 0 && sx < w - 1) stand(type === "console" ? "palace:stool" : order === "pillared" || order === "screened" ? "palace:brazier" : "palace:torchere", sx, 3);
     }
+    if (room === "assembly") {
+      put("palace:desk", hx - 1, 5, 3);
+      for (let x = 4; x < w - 5; x += 5) {
+        if (Math.abs(x + 1 - hx) < 4) continue;
+        const curve = Math.round(4 * ((x + 1 - hx) / hx) ** 2);
+        for (let y = 11; y < h - 2; y += 4)
+          if (put("palace:desk", x, y - curve, 3)) stand("palace:stool", x + 1, y - curve + 1);
+      }
+    }
     // Benches facing the altar, an aisle between.
     if (room === "chapel" && order !== "pillared" && order !== "screened") for (let y = my; y < h - 3; y += 3) for (let gx = 2; gx + 3 <= w - 2; gx += 4) if (gx + 2 < hx - 1 || gx > hx) put("palace:bench", gx, y, 3, 1);
     // A room built round an opening in its roof: columns at the pool or along the garden, and the garden planted.

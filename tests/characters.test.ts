@@ -320,6 +320,15 @@ it("keeps authored cuts, sleeve shapes and mantle when composing worn equipment"
   expect(composeWearing(base, {}, (id) => wearableItems[id]).front).toBeUndefined();
 });
 
+it("equips a printed tee and a chain independently of a collared shirt", () => {
+  const base = { ...originalAppearance.wearing, garment: "tee" as const, motif: "graphic" as const, necklace: true, neckStyle: "chain" as const };
+  const worn = wornFromWearing(base);
+  const item = (id: string) => wearableItems[id];
+  expect(worn).toMatchObject({ body: "garment-tee", neck: "chain" });
+  expect(composeWearing(base, worn, item)).toMatchObject({ garment: "tee", motif: "graphic", neckStyle: "chain" });
+  expect(composeWearing(base, { body: "garment-shirt" }, item)).toMatchObject({ garment: "shirt", motif: undefined, necklace: false });
+});
+
 it.runIf(!!process.env.FULL)("draws every garment, headwear and facing inside the frame", () => {
   const data = new Uint8ClampedArray(80 * 80 * 4);
   const ctx = {

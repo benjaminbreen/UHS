@@ -1,3 +1,5 @@
+import { seasonAt } from "../../core/livelihood";
+import { isDockworker } from "../../content/characters/city-work";
 import { fishingWaterfront } from "../../content/settlements/waterfronts";
 import { assignGender } from "../../content/characters/gender";
 import { herdersFor } from "./herders";
@@ -8,7 +10,7 @@ import { carryKit } from "../../content/economy/carrying";
 import { commutes, isVisitor, railDay } from "./rail-travellers";
 import { bindWorkStations, dayStations, livelihoodOf, placeFor } from "./routines";
 import { adjacentTerrain } from "../travel/terrain-preview";
-import { waterDepthAt, MAX_WADING_DEPTH } from "../../core/water-field";
+import { waterDepthAt, MAX_WADING_DEPTH, QUAY_APRON } from "../../core/water-field";
 import { mapEntrances, type MapEntrance } from "../travel/entrances";
 import { plantClass, understorySize } from "../../content/ecology/vegetation";
 import {
@@ -51,6 +53,7 @@ import { createRegionalContext } from "../regional/context";
 import { regionalSettlements, shorePreference } from "../regional/settlements";
 import { regionalTransport } from "../regional/transport";
 import type { GeographicArea } from "../../core/geography";
+import { harborRoutine, porterRoutine, type Harbor } from "./harbor";
 import { createEnvironment, localEcology } from "./environment";
 import { ecologyProfiles } from "../../content/ecology/profiles";
 import { floraRegion, speciesAt } from "../../content/ecology/flora";
@@ -222,15 +225,72 @@ export function createSettlementWorld(
       : undefined;
   /** Track segments near each cell, in map coordinates. */
   const trunkArt = new Map<string, [number, number, number, number][]>();
-  for (const line of trunk?.rails ?? [])
+  const indexTrack = (line: readonly Point[], remove=false) => {
     for (let i = 1; i < line.length; i++) {
       const a = line[i - 1], b = line[i];
       for (let y = Math.floor(Math.min(a.y, b.y)) - 3; y <= Math.max(a.y, b.y) + 3; y++)
         for (let x = Math.floor(Math.min(a.x, b.x)) - 3; x <= Math.max(a.x, b.x) + 3; x++) {
           const k = cellKey(x, y);
-          trunkArt.set(k, [...(trunkArt.get(k) ?? []), [a.x, a.y, b.x, b.y]]);
+          const segments=trunkArt.get(k) ?? [];
+          if (remove) {
+            const keep=segments.filter(([x,y,u,v])=>x!==a.x || y!==a.y || u!==b.x || v!==b.y);
+            if (keep.length) trunkArt.set(k,keep); else trunkArt.delete(k);
+          } else trunkArt.set(k,[...segments,[a.x,a.y,b.x,b.y]]);
         }
     }
+  };
+  for (const line of trunk?.rails ?? []) indexTrack(line);
+  const yardLeads=new Set<string>();
+  const connectYard=(plan: SettlementPlan) => {
+    const h=plan.harbor;
+    if (!h || !trunk || yardLeads.has(plan.site.id)) return;
+    yardLeads.add(plan.site.id);
+    const dir=-h.sign, start={x:h.rails.x+dir*3,y:h.rails.y+2};
+    let nearest: {p:Point; ux:number; uy:number} | undefined, best=Infinity;
+    for(const line of trunk.rails) for(let i=1;i<line.length;i++) {
+      const p=line[i], prev=line[i-1], forward=(p.x-start.x)*dir;
+      const dx=p.x-prev.x, dy=p.y-prev.y, len=Math.hypot(dx,dy);
+      if(forward<6 || forward>24 || Math.abs(p.y-start.y)>26 || len<.01) continue;
+      const score=Math.abs(forward-12)+Math.abs(p.y-start.y);
+      if(score>=best) continue;
+      best=score;
+      const face=dx*dir<0 ? -1 : 1;
+      nearest={p,ux:face*dx/len,uy:face*dy/len};
+    }
+    if(!nearest) return;
+    const {p,ux,uy}=nearest, reach=Math.min(7,Math.abs(p.x-start.x)*.48);
+    const bend=Array.from({length:13},(_,i)=>{
+      const t=i/12,u=1-t;
+      return {x:u**3*start.x+3*u*u*t*(start.x+dir*reach)+3*u*t*t*(p.x-ux*reach)+t**3*p.x,
+        y:(u**3+3*u*u*t)*start.y+3*u*t*t*(p.y-uy*reach)+t**3*p.y};
+    });
+    if(bend.some(q=>land.sample(Math.round(q.x),Math.round(q.y)).water<0 ||
+      plan.places.some(b=>q.x>b.x-2 && q.x<b.x+b.w+2 && q.y>b.y-2 && q.y<b.y+b.h+2)))return;
+    for(let y=0;y<4;y++) for(let i=3;i<=10;i++)
+      plan.tracks?.delete(cellKey(h.rails.x+dir*i,h.rails.y+y));
+    // Several atlas routes can share the last few metres into a port. Bring each terminal arm into the yard lead.
+    const inYard=(q:Point)=>h.yard.some(r=>r.y===Math.round(q.y) && q.x>=r.x-1 && q.x<r.x+r.w+1);
+    for (const line of trunk.rails) {
+      const reverse=inYard(line[line.length-1]);
+      if (!reverse && !inYard(line[0])) continue;
+      const away=reverse ? [...line].reverse() : line;
+      if (Math.hypot(away[0].x-p.x,away[0].y-p.y)>48) continue;
+      const join=away.findIndex(q=>(q.x-p.x)*ux+(q.y-p.y)*uy>=-.01);
+      if (join<1 || join>=away.length-1) continue;
+      const a=away[join-1], b=away[join];
+      const length=Math.hypot(b.x-a.x,b.y-a.y);
+      if (!length || Math.abs((p.x-a.x)*(b.y-a.y)-(p.y-a.y)*(b.x-a.x))/length>3) continue;
+      if (trunk.stations.some(st=>away.slice(0,join).some(q=>Math.hypot(st.x-q.x,st.y-q.y)<6))) continue;
+      indexTrack(line,true);
+      const rest=away.slice(join);
+      if (Math.hypot(rest[0].x-p.x,rest[0].y-p.y)<.25) rest.shift();
+      rest.unshift(p);
+      line.splice(0,line.length,...(reverse ? rest.reverse() : rest));
+      indexTrack(line);
+    }
+    indexTrack(bend);
+  };
+  for(const plan of plans.values())connectYard(plan);
   /** Cells of the trunk roads, as against the railways. */
   const highway = new Set<string>();
   for (const r of trunk?.roads ?? []) if (r.kind === "street") roadCells(r, (x, y) => highway.add(cellKey(x, y)));
@@ -603,7 +663,14 @@ export function createSettlementWorld(
       connections,
       foreign,
       terraces && gradesGround(s) ? townGrade(s) : undefined,
+      s.home ? land.piers?.() : undefined,
+      (x, y) => trunkArt.get(cellKey(x,y))?.some(([ax,ay,bx,by]) => {
+        const dx=bx-ax, dy=by-ay;
+        const t=Math.max(0,Math.min(1,((x+.5-ax)*dx+(y+.5-ay)*dy)/(dx*dx+dy*dy || 1)));
+        return Math.hypot(x+.5-ax-t*dx,y+.5-ay-t*dy)<2.6;
+      }) ?? false,
     );
+    connectYard(plan);
     plans.set(s.id, plan);
     // Cells near this plan were decorated while it was still being drawn.
     decorations.clear();
@@ -926,6 +993,7 @@ export function createSettlementWorld(
   }
   function ground(x: number, y: number): Terrain {
     const f = land.sample(x, y);
+    if (f.quay && f.water >= 0 && f.water < QUAY_APRON - 0.75) return "paving";
     if (
       !f.ecologyParts &&
       regional &&
@@ -1268,7 +1336,7 @@ export function createSettlementWorld(
     return crowns > 3 ? 0 : wear;
   }
   function sceneryAllowed(x: number, y: number, k: string, f: ReturnType<typeof land.sample>) {
-    if (f.landscape?.kind === "arroyo" && f.landscape.strength > 0.35) return false;
+    if (f.quay || f.landscape?.kind === "arroyo" && f.landscape.strength > 0.35) return false;
     // Nothing stands where the flood or the winter playa comes.
     return !(Math.min(f.water, ...(f.seasonal ?? [])) < 0 || nearby(x, y).some(p =>
       p.reserved.has(k) || p.solid.has(k) ||
@@ -1328,6 +1396,15 @@ export function createSettlementWorld(
     for (const p of nearby(x, y)) {
       const planted = p.landmarks?.get(k);
       if (planted) return { id: `landmark-${x}-${y}`, x, y, sprite: planted, solid: true };
+      const edge = p.fields?.get(k);
+      if (edge?.edges && !p.canals?.has(k) && !edge.garden && !edge.yard && edge.crop !== "pasture" && !p.solid.has(k)) {
+        const dry = !edge.wet && (environment?.ecology === "desert" || environment?.ecology === "dry-scrub");
+        const patch = noise(seed, x, y, 4, "field-weeds") + random(seed, "field-weeds", x, y) * 0.24;
+        const threshold = edge.margin ? (dry ? 0.66 : 0.58) :
+          edge.rowSlope !== undefined && !edge.riser && !edge.footway ? 0.79 : 0.68;
+        if (patch > threshold)
+          return { id: `decor-${x}-${y}`, x, y, sprite: dry ? "dry-grass-tuft" : "grass-tuft", solid: false };
+      }
     }
     if (situation?.camp && situation.camp !== "none" && Math.hypot(x, y) < 25) return;
     const f = land.sample(x, y);
@@ -1771,6 +1848,10 @@ export function createSettlementWorld(
         if (!levels.has(k)) levels.set(k, level);
       });
     }
+    for (const {pier} of p.launches ?? []) if (pier) {
+      for (let y=pier.y;y<pier.y+pier.h;y++) for (let x=pier.x;x<pier.x+pier.w;x++)
+        levels.set(cellKey(x,y),pier.level);
+    }
     // A rail deck runs level between the banks it spans.
     for (const [k, track] of p.tracks ?? []) {
       if (p.surface.get(k) !== "bridge" || levels.has(k)) continue;
@@ -1929,11 +2010,14 @@ export function createSettlementWorld(
     if (t === "bridge" && !decked) height = 1;
     return height;
   }
+  const cartWear = new WeakMap<Harbor, ReturnType<typeof pathArt>>();
   function rawCell(x: number, y: number): TopographyCell {
     const f = land.sample(x, y);
     let t = terrain(x, y);
     // A deck's ends rest on the banks; only the span over water is timber.
-    if (t === "bridge" && f.water >= 0) t = "dirt";
+    const pier = t === "bridge" && nearby(x,y).some(p=>p.launches?.some(({pier:r})=>
+      r && x>=r.x && y>=r.y && x<r.x+r.w && y<r.y+r.h));
+    if (t === "bridge" && f.water >= 0 && !pier) t = "dirt";
     const height = tierAt(x, y, t);
     const cell = reliefCell(height, f.water, f.moisture);
     cell.habitat = { ...habitat(x, y), layeredForest: true };
@@ -1982,6 +2066,7 @@ export function createSettlementWorld(
       shoreWidth: f.shoreWidth ?? 3,
       flow: f.waterFlow ?? [0, 1],
       frozenMargin: f.snow,
+      ...(f.quay ? { quay: f.quay } : {}),
       ...(f.waterGradient ? { gradient: f.waterGradient } : {}),
     };
     if (waters && (f.water < 0 || f.seasonal || f.shelf !== undefined)) {
@@ -2058,7 +2143,7 @@ export function createSettlementWorld(
       const track = nearby(x, y)
         .map((p) => p.tracks?.get(cellKey(x, y)))
         .find(Boolean);
-      return { ...cell, surface: "soil", bridge: true, ...(track && { track }) };
+      return { ...cell, surface: "soil", bridge: true, ...(pier && {pier}), ...(track && { track }) };
     }
     if (t === "field") {
       cell.surface = "soil";
@@ -2086,7 +2171,7 @@ export function createSettlementWorld(
     if (t === "paving") {
       cell.surface = "gravel";
       cell.feature = "paving";
-      cell.streetMaterial = streetMaterial(settingAt(x, y));
+      cell.streetMaterial = f.quay ?? streetMaterial(settingAt(x, y));
     }
     if (regional && regionalRoads(x, y).has(cellKey(x, y)) && t !== "paving") {
       const local = regional.settingAt(x, y);
@@ -2224,6 +2309,27 @@ export function createSettlementWorld(
       if (wear && !metalled) cell.groundWear = Math.max(cell.groundWear ?? 0, wear);
       const tended = tendedAt(x, y);
       if (tended) cell.tended = tended;
+    }
+    const port=startingSite && plans.get(startingSite.id)?.harbor;
+    if(port && y>=port.yard[0].y && y<=port.yard[port.yard.length-1].y){
+      if(f.water>=0 && port.yard.some(row=>row.y===y && x>=row.x && x<row.x+row.w)){
+        cell.surface="gravel";cell.feature="paving";cell.streetMaterial="sett";
+        cell.wharf=true;
+        cell.pavement=cell.track ? "rail" : "yard";
+        let index=cartWear.get(port);
+        if (!index) {
+          index=pathArt(port.cartways);
+          cartWear.set(port,index);
+        }
+        cell.cartWear=index.get(cellKey(x,y));
+        cell.wharfDrain=port.drains.find(({inlet,outlet})=>
+          x+1>=Math.min(inlet.x,outlet.x)-.65 && x<=Math.max(inlet.x,outlet.x)+.65 &&
+          y+1>=Math.min(inlet.y,outlet.y)-.65 && y<=Math.max(inlet.y,outlet.y)+.65);
+        const beside=(r: {x:number;y:number;w:number;h:number})=>
+          x>=r.x-1 && x<r.x+r.w+1 && y>=r.y-1 && y<r.y+r.h+1;
+        cell.wharfPlatform=port.platforms.find(p=>beside(p) || p.approach && beside(p.approach));
+        delete cell.streetGeometry;delete cell.lane;delete cell.loadingBay;
+      }
     }
     return cell;
   }
@@ -2409,7 +2515,8 @@ export function createSettlementWorld(
     const c = topographyCell(x, y);
     if (c.habitat?.lushness !== undefined) c.habitat.season = liveSeason;
     if (c.field) {
-      c.field.stage = cropStage(c.field.crop, liveSeason, pack.setting?.lat ?? 0);
+      c.field.stage = c.field.unplanted
+        ? "bare" : cropStage(c.field.crop, liveSeason, pack.setting?.lat ?? 0);
       if (c.field.flood !== undefined) {
         c.field.flood = (liveWaters?.flood ?? 0) >= 0.6;
         c.field.wet = c.field.flood || crops[c.field.crop].wet === true;
@@ -2487,10 +2594,11 @@ export function createSettlementWorld(
     for (const plan of nearby(x, y)) {
       const slope = slopesFor(plan).get(key);
       if (slope) {
+        const launch=plan.launches?.find(l=>x>=l.lane.x && x<l.lane.x+l.lane.w && y>=l.lane.y && y<l.lane.y+l.lane.h);
         const result = {
           ...c,
           ramp: slope,
-          rampStyle: plan.launches?.some(l=>x>=l.lane.x && x<l.lane.x+l.lane.w && y>=l.lane.y && y<l.lane.y+l.lane.h) ? "timber" : rampStyleFor(
+          rampStyle: launch ? (launch.pier ? "landing" : "timber") : rampStyleFor(
             c,
             plan.site.profile.paved ? "paved" : "town",
             x,
@@ -2501,7 +2609,7 @@ export function createSettlementWorld(
         return result;
       }
     }
-    if (
+    if (!c.wharf &&
       [
         [0, -1],
         [1, 0],
@@ -2549,7 +2657,8 @@ export function createSettlementWorld(
         continue;
       const actor = world.initialActors.find((a) => a.id === id);
       const plan = planForEntity(id);
-      if (dayKey(actor, plan, built) === dayKey(actor, plan, today)) routineDay.set(id, today);
+      if (dayKey(actor, plan, built) === dayKey(actor, plan, today) &&
+          !(it.segments.some(s => s.target?.family === "wild-food") && seasonAt(pack.setting!.season, built * 86400 + 43200) !== seasonAt(pack.setting!.season, clock))) routineDay.set(id, today);
       else {
         routines.delete(id);
         routineDay.delete(id);
@@ -2608,6 +2717,14 @@ export function createSettlementWorld(
             startingSite?.id,
           )
         : planForEntity(id);
+    if (plan?.anchorage && id.endsWith("-lighter-porter")) {
+      const itinerary=porterRoutine(plan.anchorage);
+      routines.set(id,itinerary);return itinerary;
+    }
+    if (plan?.harbor && id.includes("-wharfhand-")) {
+      const itinerary=harborRoutine(plan.harbor,Number(id.slice(id.lastIndexOf("-")+1)));
+      routines.set(id,itinerary);return itinerary;
+    }
     let stations = plan?.stations.get(id);
     const site = plan?.work.get(id);
     // Whether this resident is inside the settlement's budget, decided by a
@@ -2646,8 +2763,8 @@ export function createSettlementWorld(
         ));
       once = [...stations.filter((s) => s.part), ...once];
       stations = stations.filter((s) => !s.part);
-      stations = bindWorkStations(plan, id, self, stations, world);
-      once = bindWorkStations(plan, id, self, once, world);
+      stations = bindWorkStations(plan, id, self, stations, world, today);
+      once = bindWorkStations(plan, id, self, once, world, today);
     }
     if (stations && site && stations.length > 1) {
       // Buildings and terrain are in world.blocked; the furniture the plan puts
@@ -3028,6 +3145,8 @@ export function createSettlementWorld(
     enclosures: [],
     spawn: { x: 0, y: 0, space: "outside" },
     trunk: trunk && { ...trunk, crossings: [...crossings] },
+    anchorage: (site) => plans.get(site ?? startingSite?.id ?? "")?.anchorage,
+    harbor: () => startingSite ? plans.get(startingSite.id)?.harbor : undefined,
     planOf: (siteId: string) => plans.get(siteId),
     planAt: (x, y) => {
       const c = coord(x, y);
@@ -3122,10 +3241,11 @@ export function createSettlementWorld(
         )?.work.get(id);
       return planForEntity(id)?.work.get(id);
     },
-    itinerary: (id) =>
-      isWayfarer(id)
+    itinerary(id) {
+      return this.outing?.actor === id ? this.outing.route : isWayfarer(id)
         ? (journeys.get(id) ?? (passersBy(Number(id.split("-")[1])), journeys.get(id)))
-        : routineFor(id),
+        : routineFor(id);
+    },
     wayfarers: (clock) => {
       const day = Math.floor(clock / 86400),
         now = clock / 60;
@@ -3157,8 +3277,8 @@ export function createSettlementWorld(
         items: day.items.map((item) => ({ ...item, pos: where(item.place, item.subjectAt) })),
       };
     },
-    routinePending: (id) => !isWayfarer(id) && !routines.has(id),
-    dormant: (id) => dormant.has(id),
+    routinePending(id) { return this.outing?.actor !== id && !isWayfarer(id) && !routines.has(id); },
+    dormant(id) { return this.outing?.actor !== id && dormant.has(id); },
     rotateRoutines,
     propSlots: (id) => {
       return planForEntity(id)?.slots.get(id);
@@ -3379,6 +3499,11 @@ export function createSettlementWorld(
         "No dry starting location found; try another seed or water setting.",
       );
     world.spawn = { ...spot, space: "outside" };
+  }
+  const port = initial?.harbor;
+  if (port && !pack.setting?.situation && isDockworker(pack.setting?.role ?? "")) {
+    const apron={x:port.crane.x-port.sign*17,y:port.crane.y+1};
+    if (!world.blocked(apron.x,apron.y,"outside")) world.spawn={...apron,space:"outside"};
   }
   if (pack.setting?.situation?.landform === "islet")
     world.spawn = { x: 0, y: 1, space: "outside" };

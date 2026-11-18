@@ -35,6 +35,7 @@ const atlases = {
   atlas: "/packs/atlas",
   worksites: "/packs/worksites",
   boats: "/packs/boats",
+  harbor: "/packs/harbor",
   fair: "/packs/fair",
   buildings: "/packs/buildings",
   "regional-buildings": "/packs/regional-buildings",
@@ -59,6 +60,7 @@ const atlases = {
  * only once something in the world is drawn from it. */
 export const lazySheets = [
   "boats",
+  "harbor",
   "fair",
   "worksites",
   "buildings",

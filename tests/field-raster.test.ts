@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { rasterFieldTile } from "../src/render/field-raster";
+import { benchEdges, benchPixel } from "../src/render/fences";
+import { openFieldMargin } from "../src/render/headland";
 import { rasterHabitatTile } from "../src/render/habitat-raster";
 import { rasterWaterTile } from "../src/render/water-raster";
 import { habitatAt } from "../src/world/v3/habitats";
@@ -113,6 +115,7 @@ describe("field raster", () => {
   it("rasterizes a world cell identically from any chunk origin", () => {
     for (const f of [
       field(),
+      field({ axis: "y", rowSlope: -0.75, stage: "green" }),
       field({
         crop: "rice",
         wet: true,
@@ -139,11 +142,76 @@ describe("field raster", () => {
       expect(c).toEqual(a);
     }
   });
+  it.each([-1, 1])("carries a diagonal furrow across tiles at slope %i", slope => {
+    const f = field({ rowSlope: slope, stage: "bare" });
+    const tiles = [0, 1].map(y => [0, 1].map(x => render(f, x, y)));
+    const at = (x: number, y: number) => luma(tiles[y >> 4][x >> 4], x % 16, y % 16);
+    let along = 0, across = 0;
+    for (let y = 1; y < 31; y++) for (let x = 0; x < 31; x++) {
+      along += Math.abs(at(x,y) - at(x+1,y+slope));
+      across += Math.abs(at(x,y) - at(x+1,y-slope));
+    }
+    expect(across).toBeGreaterThan(along * 2);
+  });
+  it.each(["riser", "footway"] as const)("joins a diagonal %s through every tile corner", kind => {
+    const sample: TopographySample = (x,y) => ({ height: 1, surface: "soil",
+      field: field({ rowSlope: -1, boundary: "wall", [kind]: x+y === 0 ? 6 : 0 }) });
+    const tones = Array.from({length: 7}, () => [80,95,60]);
+    for (let wx = -32; wx < 32; wx++) {
+      const wy = 23-wx, x = Math.floor(wx/16), y = Math.floor(wy/16);
+      const lines = benchEdges(sample,x,y);
+      expect(benchPixel(lines,wx-x*16,wy-y*16,wx,wy,tones,tones,tones[0])).toBeDefined();
+    }
+  });
   it("dispatches farmed cells from the habitat raster", () => {
     const f = field();
     expect(rasterHabitatTile(world(f), 2, 2, 0, 0).pixels).toEqual(
       render(f, 2, 2),
     );
+  });
+  it.each(["sand", "snow"] as const)("ends the rows in local %s on both sides of an open margin", surface => {
+    const farm = field({ axis: "y", rowSlope: 0, stage: "bare", edges: 2, margin: 2 });
+    const ground: TopographyCell = { height: 0, surface,
+      habitat: habitatAt("desert", "spring", "margin", 0, 0, land) };
+    const sample: TopographySample = x => x <= 0 ? { ...ground, feature: "field", field: farm } : ground;
+    const left = rasterHabitatTile(sample, 0, 0, 0, 0).pixels;
+    const right = rasterHabitatTile(sample, 1, 0, 0, 0).pixels;
+    const bare = rasterFieldTile(sample, 0, 0, 0, 0).pixels;
+    const virgin = rasterHabitatTile(() => ground, 1, 0, 0, 0).pixels;
+    let seam = 0, hard = 0, spill = 0;
+    for (let y = 0; y < 16; y++) {
+      expect(pixel(left, 2, y)).toBe(pixel(bare, 2, y));
+      expect(pixel(right, 13, y)).toBe(pixel(virgin, 13, y));
+      seam += Math.abs(luma(left, 15, y) - luma(right, 0, y));
+      hard += Math.abs(luma(bare, 15, y) - luma(virgin, 0, y));
+      spill += Math.abs(luma(right, 0, y) - luma(virgin, 0, y));
+    }
+    expect(seam).toBeLessThan(hard / 2);
+    expect(spill).toBeGreaterThan(0);
+    for (const x of [0, 1]) {
+      const shifted: TopographySample = (i, j) => sample(i + 17, j - 9);
+      expect(rasterHabitatTile(shifted, x - 17, 9, 17, -9).pixels).toEqual(x ? right : left);
+    }
+    for (const edge of [{ ...ground, height: 1 }, { ...ground, surface: "water" as const },
+      { ...ground, feature: "paving" as const }, { ...ground, field: field({ parcel: 2 }) }]) {
+      const border: TopographySample = x => x <= 0 ? sample(x, 0) : edge;
+      expect(openFieldMargin(border, 0, 0, border(0, 0)!)).toBeUndefined();
+    }
+  });
+  it("wraps the margin through inward and outward bends across tile seams", () => {
+    const ground: TopographyCell = { height: 0, surface: "grass", habitat: habitatAt("grassland", "spring", "bend", 0, 0, land) };
+    const farm = { ...ground, field: field({ rowSlope: 1, margin: 6 }) };
+    const sample: TopographySample = (x, y) => x + y <= 0 ? farm : ground;
+    const depth = (wx: number, wy: number) => {
+      const x = Math.floor(wx / 16), y = Math.floor(wy / 16), c = sample(x, y)!;
+      return openFieldMargin(sample, x, y, c)?.depth(wx - x * 16, wy - y * 16) ?? (c.field ? 8 : -8);
+    };
+    expect(depth(15, 15)).toBeLessThan(0);
+    expect(depth(16, 0)).toBeGreaterThan(0);
+    for (let wy = -16; wy <= 16; wy++) {
+      expect(Math.abs(depth(15, wy) - depth(16, wy))).toBeLessThanOrEqual(1);
+      expect(depth(16, wy)).toBeCloseTo(depth(0, wy + 16));
+    }
   });
 
   const canalWorld =

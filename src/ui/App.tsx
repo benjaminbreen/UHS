@@ -76,7 +76,8 @@ import { sexFromName } from "../content/characters/name-sex";
 import { AudioDirector, gameAudio } from "../audio/director";
 import { threatMusic } from "../audio/situation-themes";
 import { ambienceFor } from "../audio/ambience";
-import { interiorMusic } from "../audio/interior-themes";
+import { courtMusic, interiorMusic } from "../audio/interior-themes";
+import { fairById } from "../content/fairs";
 import { buildingUse } from "../content/interiors/select";
 import { religiousProfile } from "../content/settlements/religious";
 import { marketDay } from "../core/agenda";
@@ -286,7 +287,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     | "lift"
     | null
   >(null);
-  const [shopWith, setShopWith] = useState<string>();
+  const [shopWith, setShopWith] = useState<{ id: string; item?: string }>();
   const [yearsToEnd, setYearsToEnd] = useState(false);
   const trader = runtime.nearestTrader();
   const modalPanel = useRef<HTMLElement>(null);
@@ -541,12 +542,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     setSituation(reaction.situation);
     setModal("dialogue");
   }, [view, modal, obs.clock, runtime]);
-  useEffect(() => {
-    const id = runtime.engine.confronter;
-    if (!id || modal === "dialogue") return;
-    runtime.engine.confronter = undefined;
-    if (!runtime.engine.fighting()) openDialogue(id);
-  }, [view]);
   useEffect(() => {
     const id = runtime.engine.allyCall;
     if (!id || modal === "dialogue") return;
@@ -876,7 +871,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       if (e.key.toLowerCase() === "t" && !e.repeat) {
         const near = runtime.nearestTrader();
         if (near) {
-          setShopWith(near.id);
+          setShopWith({ id: near.id });
           setModal("shop");
         }
       }
@@ -1049,6 +1044,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     if (p.pos.space.startsWith("cave:")) return audio?.setInterior("cave");
     if (p.pos.space.startsWith("sewer:")) return audio?.setInterior("sewer");
     if (p.pos.space.startsWith("mine:")) return audio?.setInterior("mine");
+    if (p.pos.space.startsWith("fair:")) return audio?.setInterior(courtMusic(fairById(p.pos.space.split(":")[1])?.palace));
     const place = runtime.engine.world.place(p.pos.space);
     const faith = setting ? religiousProfile(setting)?.faith : undefined;
     audio?.setInterior(
@@ -1175,8 +1171,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   // On a phone the card stacks under the notices; on a desktop it is the
   // Today tab's work row until the day's work is done.
   const workPlan = runtime.engine.workPlan();
-  const workLive = !phone && !!workPlan &&
-    !(workPlan.done >= workPlan.stages.length && !workPlan.waiting && !(workPlan.side && !workPlan.side.done));
+  const workLive = !phone && !!workPlan && (!!workPlan.field || workPlan.done < workPlan.stages.length ||
+    workPlan.waiting || !!(workPlan.side && !workPlan.side.done));
   const workDone = !!workPlan && workPlan.done >= workPlan.stages.length;
   useEffect(() => {
     if (runtime.workHold !== undefined) audio?.work("hold");
@@ -1188,6 +1184,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     <WorkCard
       runtime={runtime}
       carded={!!card}
+      onFieldAction={() => { if (phone) setSidebar(false); }}
       onDetails={() => {
         const work = runtime.engine.dailyGoals().find((g) => g.slot === "work");
         if (work) setTask({ kind: "goal", id: work.id });
@@ -1406,7 +1403,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 setDialogueActorId(null);
               }}
               onTrade={() => {
-                setShopWith(dialogueActorId);
+                setShopWith({ id: dialogueActorId });
                 setDialogueActorId(null);
                 setModal("shop");
               }}
@@ -1533,7 +1530,22 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           />
           <div className="world-status">
             <div className="hud-top">
-            <Toasts onHistory={() => {
+            <Toasts actionFor={event => {
+              const hit = event.interaction;
+              if (covered || (hit?.kind !== "wares" && hit?.kind !== "warning")) return;
+              const engine = runtime.engine, actor = engine.state.actors.find(a => a.id === hit.actor);
+              if (!actor) return;
+              if (hit.kind === "warning") {
+                if (engine.canAnswerWarning(actor)) return { label: "Answer", run: () => openDialogue(actor.id) };
+                return;
+              }
+              if (hit.kind !== "wares" || actor.trust < 0 || !engine.withinEarshot(actor, 8) || !engine.shopOf(actor.id)?.stock[hit.item]) return;
+              if (distance(actor.pos, p.pos) > 2.5) return { label: "Locate", run: () => runtime.setGuide({ ...actor.pos, label: actor.name }) };
+              return { label: "Trade", run: () => {
+                setShopWith({ id: actor.id, item: hit.item });
+                setModal("shop");
+              } };
+            }} onHistory={() => {
               runtime.select();
               setSideTab("today"); setSidebar(true);
               if (phone) setSheetSnap("half");
@@ -1690,7 +1702,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     label={`Trade with ${trader.name.split(" ")[0]}`}
                     kind="trade"
                     onClick={() => {
-                      setShopWith(trader.id);
+                      setShopWith({ id: trader.id });
                       setModal("shop");
                     }}
                   />
@@ -2092,7 +2104,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 )}
                 <div className="context-actions">
                   {runtime.engine.shopOf(selection.id) && (
-                    <button className="action" onClick={() => { setShopWith(selection.id); setModal("shop"); }}>
+                    <button className="action" onClick={() => { setShopWith({ id: selection.id }); setModal("shop"); }}>
                       <ShoppingBag size={16} />
                       <span>Trade</span>
                       <ArrowRight size={13} />
@@ -2476,7 +2488,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 </Suspense>
               )}
             {modal === "shop" && shopWith && (
-              <ShopModal runtime={runtime} actorId={shopWith} onClose={() => setModal(null)} />
+              <ShopModal runtime={runtime} actorId={shopWith.id} initialItem={shopWith.item} onClose={() => setModal(null)} />
             )}
             {modal === "character" && (
               <CharacterPanel

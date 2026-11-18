@@ -6,6 +6,7 @@ import { settlementProfile } from "../src/content/settlements/profiles";
 import { planSettlement } from "../src/world/v3/plan";
 import { route } from "../src/core/routing";
 import { civicProfile } from "../src/content/settlements/civic";
+import { plazaKitFor } from "../src/content/settlements/plaza";
 import { inside } from "../src/world/v3/types";
 import { roadCells } from "../src/world/v3/roads";
 import { modernBuildingSince } from "../src/content/settlements/modern-buildings";
@@ -42,6 +43,26 @@ function city(seed: string, radius = 74) {
     [],
   );
 }
+it("uses the carved stone trough in a medieval steppe plaza", () => {
+  const r = resolveSetting("Farmer in Kazakh forest steppe, Ural Mountains, 1239 CE");
+  if ("error" in r) throw Error(r.error);
+  const pack = packForSetting(integratedSetting(r.setting));
+  expect(plazaKitFor(pack)?.water?.sprite).toBe("study-propb-trough-1");
+});
+
+it("varies the plaster on neighbouring Oaxacan shops", () => {
+  const r = resolveSetting("Weaver in Oaxaca 1650");
+  if ("error" in r) throw Error(r.error);
+  const s = integratedSetting(r.setting);
+  const p = planSettlement({ id: "oaxaca", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
+    profile: { ...settlementProfile(s), radius: 74 } }, packForSetting(s), "visual-review", flat, []);
+  const shops = p.places.filter((b) => /^casa-oaxaca-\d+-urban-shop(?:-north)?$/.test(b.sprite));
+  const pairs = shops.flatMap((a) => shops.filter((b) => b.y === a.y && b.x === a.x + a.w + 1)
+    .map((b) => [a.sprite.replace(/-north$/, ""), b.sprite.replace(/-north$/, "")]));
+  expect(pairs.length).toBeGreaterThan(3);
+  expect(pairs.filter(([a, b]) => a !== b).length).toBeGreaterThan(pairs.length * 0.8);
+});
+
 it.runIf(!!process.env.FULL)("preserves ground purpose across settlement forms without turning parcel interiors into roads", () => {
   const seen = new Set<string>();
   for (const query of ["Rome 100 BCE", "London 1650", "Kyoto 1700", "Isfahan 1600", "Cairo 1200",

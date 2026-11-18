@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { ChevronRight, Clock3, Coins, EyeOff, MessageCircle, Sparkles, Sprout } from "lucide-react";
+import { ChevronRight, Clock3, Coins, EyeOff, MessageCircle, Pause, Play, Sparkles, Sprout } from "lucide-react";
 import { workIcon } from "./task-icons";
+import { BASKET_SIZE } from "../core/livelihood";
 import type { Runtime } from "../runtime/session";
 
 /** "½h", "7h", "1½h": a step's length at a glance. */
@@ -26,7 +27,7 @@ const see = (hint: string) => {
 
 /** Today's work: the step in hand, where, how long, and one thing to press.
  * Opened, the day's steps, how it is going and what it should pay. */
-export function WorkCard({ runtime, onDetails, carded }: { runtime: Runtime; onDetails: () => void; carded: boolean }) {
+export function WorkCard({ runtime, onDetails, carded, onFieldAction }: { runtime: Runtime; onDetails: () => void; carded: boolean; onFieldAction: () => void }) {
   const [open, setOpen] = useState(false);
   const [closedOn, setClosedOn] = useState<number>();
   const [cheer, setCheer] = useState<number>();
@@ -34,7 +35,7 @@ export function WorkCard({ runtime, onDetails, carded }: { runtime: Runtime; onD
   const plan = engine.workPlan();
   const JobIcon = workIcon(engine.state.player.role);
   const day = Math.floor(engine.state.clock / 86400);
-  const mainDone = !!plan && plan.done >= plan.stages.length && !plan.waiting;
+  const mainDone = !!plan && !plan.field && plan.done >= plan.stages.length && !plan.waiting;
   const side = plan?.side;
   // The trade first, then the garden; the day is done when both are.
   const garden = mainDone && side && !side.done ? side : undefined;
@@ -54,24 +55,30 @@ export function WorkCard({ runtime, onDetails, carded }: { runtime: Runtime; onD
   const station = plan.station;
   const now = Math.min(plan.done, plan.steps.length - 1);
   const near = (at: { x: number; y: number; space: string }) => at.space === p.space && Math.hypot(at.x - p.x, at.y - p.y) < 1.6;
-  const here = garden ? near(garden.pos) : !!engine.workHere() || (!!station && near(station.pos));
+  const field = plan.field, gather = plan.gather, pass = field?.selected;
+  const round = pass?.id ?? (gather && !gather.choosing ? gather.id : undefined);
+  const here = gather ? gather.here : field ? field.here : garden ? near(garden.pos) : !!engine.workHere() || (!!station && near(station.pos));
   // Indoors, Go goes through the door to the bench itself.
   const target = garden ? garden.pos : station && station.pos.space !== "outside" ? station.pos : plan.door;
   const place = garden ? "your garden" : plan.where;
-  const task = finished ? "Done for today" : garden ? garden.task : plan.steps[now].task;
-  const hours = finished || garden || plan.steps[now].scene === "hunt" ? undefined : plan.hours[now];
+  const task = gather ? gather.title : field ? field.words?.title ?? (here ? "Choose fieldwork" : "Work your field") : finished ? "Done for today" : garden ? garden.task : plan.steps[now].task;
+  const hours = gather || field || finished || garden || plan.steps[now].scene === "hunt" ? undefined : plan.hours[now];
   const late = hours !== undefined && plan.deadline !== undefined && engine.state.clock < plan.deadline &&
     engine.state.clock + hours * 3600 > plan.deadline;
   const coarse = matchMedia("(pointer: coarse)").matches;
+  const progress = gather && !gather.choosing ? `${gather.count}/${BASKET_SIZE} handfuls · ${gather.label}` : pass && field?.words && (coarse
+    ? `${pass.count}/${pass.count + pass.cells.length} ${field.words.unit.split(" ")[0]}`
+    : `${pass.count} of ${pass.count + pass.cells.length} ${field.words.unit}`);
   const walking = runtime.autopilot?.plan.kind === "go";
-  const hint = finished || walking || carded ? undefined
+  const hint = finished || walking || carded || field || gather ? undefined
     : here ? (seen("hold") || plan.done > 0 ? undefined : "hold")
     : target && !seen("go") ? "go" : undefined;
   if (plan.done > 0 && !seen("hold")) see("hold");
   const go = () => {
     if (!target) return;
     see("go");
-    runtime.setOff({ kind: "go", to: target, label: place ?? task });
+    if (field) runtime.setGuide("work");
+    runtime.setOff({ kind: "go", to: target, label: place ?? task, field: !!field });
   };
   const hunting = plan.activity === "Looking for game" && !finished;
   const quick = hunting && !plan.waiting ? (
@@ -84,6 +91,17 @@ export function WorkCard({ runtime, onDetails, carded }: { runtime: Runtime; onD
         <MessageCircle size={14} />
       </button>
     )
+    : round ? <button className="primary" onClick={() => {
+      if (runtime.autopilot?.plan.kind === "workday") runtime.stop();
+      else { runtime.setOff({kind:"workday", workPass:round}); runtime.emit(false); onFieldAction(); }
+    }} aria-pressed={runtime.autopilot?.plan.kind === "workday"} title={gather ? "Walk to the patch, gather and carry your basket home" : "Walk the row and work each patch until the pass is finished"}>
+      {runtime.autopilot?.plan.kind === "workday" ? <Pause size={12} aria-hidden /> : <Play size={12} aria-hidden />}
+      {runtime.autopilot?.plan.kind === "workday" ? "Stop" : gather ? (gather.home ? "Take home" : "Gather") : pass?.count ? "Resume row" : "Work row"}
+    </button>
+    : (field?.here || gather?.choosing) ? (!carded && <button className="primary" onClick={() => {
+      const action = engine.workHere();
+      if (action) { onFieldAction(); runtime.command(action.command); }
+    }}>Choose</button>)
     : here && garden ? (
       <button className="primary" onClick={() => runtime.command({ type: "interact", target: garden.id, action: "tend-plot" })}>
         <Sprout size={13} />
@@ -106,6 +124,7 @@ export function WorkCard({ runtime, onDetails, carded }: { runtime: Runtime; onD
       className="work-card"
       data-open={open || undefined}
       data-here={here || undefined}
+      data-field={field || gather ? true : undefined}
       data-holding={runtime.workHold !== undefined || undefined}
       data-finished={finished || undefined}
       aria-label="Today's work"
@@ -114,8 +133,8 @@ export function WorkCard({ runtime, onDetails, carded }: { runtime: Runtime; onD
         <button className="work-card-head" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
           <span className="work-icon">{finished ? <Sparkles size={15} /> : garden ? <Sprout size={15} /> : <JobIcon size={15} />}</span>
           <span className="work-title">
-            <b key={task}>{task}</b>
-            {!finished && place && <span className="work-sub">{place}</span>}
+            <b key={task}>{coarse && pass && field?.words ? field.words.verb : task}</b>
+            {!finished && place && <span className="work-sub">{progress || place}</span>}
           </span>
           {hours !== undefined && (
             <span className="work-span" data-late={late || undefined} title={late ? "This runs past your deadline" : undefined}>
@@ -134,7 +153,7 @@ export function WorkCard({ runtime, onDetails, carded }: { runtime: Runtime; onD
             <li key={s.name} data-done={i < plan.done || undefined} data-now={(i === plan.done && !garden) || undefined}>
               <i />
               <span>{s.task}</span>
-              <em>{span(plan.hours[i])}</em>
+              {!gather && plan.hours[i] > 0 && <em>{span(plan.hours[i])}</em>}
               {plan.places[i] && <small>{plan.places[i]!.label}</small>}
             </li>
           ))}

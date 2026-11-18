@@ -22,6 +22,7 @@ const label: Record<CharacterAppearance["wearing"]["garment"], string> = {
   robe: "Robe",
   dress: "Dress",
   shirt: "Shirt",
+  tee: "T-shirt",
   coat: "Coat",
   wrap: "Wrapped cloth",
   "open-robe": "Open robe",
@@ -35,7 +36,7 @@ const sleeves: Partial<
     CharacterAppearance["wearing"]["garment"],
     NonNullable<CharacterAppearance["wearing"]["sleeves"]>
   >
-> = { tunic: "short", "long-tunic": "long", skirt: "short", dress: "long", shirt: "long",
+> = { tee: "short", tunic: "short", "long-tunic": "long", skirt: "short", dress: "long", shirt: "long",
   robe: "loose", "open-robe": "long", coat: "long", wrap: "none", poncho: "none", loincloth: "none", gown: "loose", suit: "long" };
 const headLabel: Record<Exclude<(typeof headwear)[number], "none">, string> = {
   band: "Headband",
@@ -131,6 +132,7 @@ const about: Record<ItemId, string> = {
     "A loose, full-length garment with wide sleeves, worn for dignity as much as for warmth.",
   "garment-dress":
     "A fitted body and a full skirt in one piece, sewn to measure and kept for years.",
+  "garment-tee": "A knit pullover with a ribbed crew neck and a straight hem.",
   "garment-shirt":
     "Buttoned or laced at the neck with long sleeves; worn next to the skin or under a coat.",
   "garment-coat":

@@ -1,6 +1,14 @@
 import { z } from "zod";
 import type { AtlasPlace, WorldSetting } from "./types";
 
+export const normalize = (s: string) =>
+  s
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, " ")
+    .trim();
+
 export const situationSchema = z
   .object({
     landform: z.enum(["local", "islet", "open-ocean"]).default("local"),

@@ -19,6 +19,9 @@ export type FieldCell = {
   crop: CropId;
   /** Furrow direction. */
   axis: "x" | "y";
+  /** Cross-axis cells per cell along a contour row. Level grid plots omit it. */
+  rowSlope?: number;
+  unplanted?: true;
   /** Edges on which the parcel ends: north 1, east 2, south 4, west 8. */
   edges: number;
   /** Edges of the enclosure the parcel belongs to, same bits: a furlong of
@@ -35,9 +38,10 @@ export type FieldCell = {
   flood?: boolean;
   /** Edges, same bits, where the ground drops to the bench below. */
   riser?: number;
-  /** Corners cut off on the diagonal: north-east 1, south-east 2, south-west
-   * 4, north-west 8. A bench's outline follows a slanting hillside. */
-  cut?: number;
+  /** Sides carrying the narrow footway between terrace plots. */
+  footway?: number;
+  /** Open sides against uncultivated ground, in the same order as edges. */
+  margin?: number;
   /** A kitchen garden bed: planted close, cropped in succession, and drawn
    * right up to its fence. */
   garden?: boolean;
@@ -580,9 +584,8 @@ export function planFarmland(input: {
 
   // --- Hillsides -------------------------------------------------------------
   // A terrace system farms the ground near a step on benches that follow the
-  // step's line: each bench a band at a set share of the way from the lip
-  // below to the foot of the rise above, so a bench narrows where the ledge
-  // does and bends with it. The grid leaves this ground alone.
+  // step's line. Bands measured from the lip taper where the next rise
+  // cuts them off. The grid leaves this ground alone.
   const benched = !!(slopeZone.terrace || uplandZone.terrace);
   // Benches near the town only: further out the grid's fields stop at steps.
   const hillReach = Math.min(outer, edge + 48);
@@ -649,30 +652,27 @@ export function planFarmland(input: {
    * so the cuts between plots run up the slope, cut again by bench. */
   const plots: { cells: number[]; bench: number; tier: number; slice: number }[] =
     [];
-  /** Cells left unsown between slices: a path up the terraces. */
-  const stairs = new Set<number>();
+  /** Edges between slices used as footpaths up the terraces. */
+  const stairs = new Uint8Array(benchAt.length);
   if (benched) {
     const open = new Uint8Array(benchAt.length);
+    const plantable = new Uint8Array(benchAt.length);
     for (let y = 0; y < side; y++)
       for (let x = 0; x < side; x++) {
         const wx = bx0 + x,
           wy = by0 + y,
           i = y * side + x;
-        // The town itself is never terraced; its rim is only a neighbour.
         const d = Math.hypot(wx - c.x, wy - c.y);
-        if (d < edge - 1) continue;
         const f = sample(wx, wy);
         level[i] = Math.round(f.elevation / 14);
         const terrace = terraceOfTier(level[i]);
         open[i] = +(
           !!terrace &&
-          d >= edge &&
           f.water >= (terrace.wet ? 3 : 4) &&
-          !f.snow &&
-          f.moisture > 0.12 &&
-          !taken(wx, wy) &&
-          !foreign(wx, wy)
+          !f.snow && f.moisture > 0.12
         );
+        // A road or the edge of town stops the crop, but does not turn the hillside.
+        plantable[i] = +(open[i] && d >= edge && !taken(wx, wy) && !foreign(wx, wy));
       }
     const tierOf = (x: number, y: number) =>
       boxed(x, y) ? level[slot(x, y)] : tierAt(x, y);
@@ -699,25 +699,19 @@ export function planFarmland(input: {
       const terrace = terraceOfTier(level[i])!;
       const d = down[i] / 5;
       const u = up[i] < 0 ? Infinity : up[i] / 5;
+      rise[i] = d;
       // The cell at the lip and at the foot stays a grass bank.
-      if (d < 1 || u < 1) continue;
+      if (!plantable[i] || d < 1 || u < 1) continue;
       // A bench swells and pinches as it follows the hill.
       const drift =
         (noise(seed, bx0 + (i % side), by0 + ((i / side) | 0), 12, "bench") - 0.5) *
         terrace.sinuous *
         terrace.depth *
         1.6;
-      const span = d + u;
-      let b: number;
-      if (span <= terrace.reach) {
-        betweenSteps[i] = 1;
-        const n = Math.max(1, Math.round(span / terrace.depth));
-        b = Math.max(0, Math.min(n - 1, Math.floor(((d + drift) / span) * n)));
-      } else if (d <= terrace.reach)
-        b = Math.max(0, Math.floor((d - 1 + drift) / terrace.depth));
-      else continue;
-      benchAt[i] = b;
-      rise[i] = d;
+      if (d > terrace.reach) continue;
+      betweenSteps[i] = +(d + u <= terrace.reach);
+      const width = betweenSteps[i] ? Math.max(3, terrace.depth) : terrace.depth;
+      benchAt[i] = Math.max(0, Math.floor((d - 1 + drift * 0.6) / width));
     }
     // Seeds a plot's length apart along the first bench.
     const seeds: number[] = [];
@@ -752,17 +746,12 @@ export function planFarmland(input: {
       if (benchAt[i] < 0 || label[i] < 0) continue;
       const x = i % side,
         y = (i / side) | 0;
-      let stair = false;
-      for (const [dx, dy] of N4) {
+      for (const [sideIndex, [dx, dy]] of N4.entries()) {
         const nx = x + dx,
           ny = y + dy;
         if (nx < 0 || ny < 0 || nx >= side || ny >= side) continue;
         const l = label[ny * side + nx];
-        if (l >= 0 && l < label[i] && stairCut(l, label[i])) stair = true;
-      }
-      if (stair) {
-        stairs.add(i);
-        continue;
+        if (l >= 0 && l < label[i] && stairCut(l, label[i])) stairs[i] |= 1 << sideIndex;
       }
       const k = `${label[i]}:${benchAt[i]}`;
       let plot = byPlot.get(k);
@@ -849,8 +838,23 @@ export function planFarmland(input: {
   const ordered = plots
     .map((p) => ({ ...p, d: dist(centreOf(p.cells)) }))
     .sort((a, b) => a.d - b.d);
-  const riseAt = (x: number, y: number, i: number) =>
-    hill(x, y) && level[slot(x, y)] === level[i] ? rise[slot(x, y)] : rise[i];
+  const riseAt = (x: number, y: number, i: number) => {
+    const j = slot(x, y);
+    return boxed(x, y) && level[j] === level[i] && Number.isFinite(rise[j]) ? rise[j] : rise[i];
+  };
+  const contourRows = (keys: string[], gradient: (x: number, y: number) => number[]) => {
+    let xx = 0, xy = 0, yy = 0;
+    for (const key of keys) {
+      const [x, y] = key.split(",").map(Number), [dx, dy] = gradient(x, y);
+      xx += dx * dx; xy += dx * dy; yy += dy * dy;
+    }
+    // The principal fall line is unchanged if the slope faces the other way.
+    const angle = Math.atan2(2 * xy, xx - yy) / 2;
+    const tx = -Math.sin(angle), ty = Math.cos(angle);
+    const horizontal = Math.abs(tx) > Math.abs(ty);
+    return { axis: horizontal ? "x" as const : "y" as const,
+      rowSlope: Math.round((horizontal ? ty / tx : tx / ty) * 4) / 4 };
+  };
   for (const plot of ordered) {
     if (benchParcels.size >= benchCap) break;
     const keys: string[] = [];
@@ -883,7 +887,7 @@ export function planFarmland(input: {
           continue;
         // A path up the slope is the way in, where the plot has one.
         const score =
-          dist(q) - (boxed(q.x, q.y) && stairs.has(slot(q.x, q.y)) ? 40 : 0);
+          dist(q) - (stairs[slot(x, y)] || boxed(q.x, q.y) && stairs[slot(q.x, q.y)] ? 40 : 0);
         if (score < best) [best, access] = [score, q];
       }
     }
@@ -906,22 +910,16 @@ export function planFarmland(input: {
       y0 = Infinity,
       x1 = -Infinity,
       y1 = -Infinity;
-    // One furrow direction to a plot: across the way most of it falls.
-    let fall = 0;
-    for (const key of keys) {
-      const [x, y] = key.split(",").map(Number);
+    const rows = contourRows(keys, (x, y) => {
       const i = slot(x, y);
-      fall +=
-        Math.abs(riseAt(x + 2, y, i) - riseAt(x - 2, y, i)) -
-        Math.abs(riseAt(x, y + 2, i) - riseAt(x, y - 2, i));
-    }
-    const axis = fall > 0 ? "y" : "x";
+      return [riseAt(x + 2, y, i) - riseAt(x - 2, y, i), riseAt(x, y + 2, i) - riseAt(x, y - 2, i)];
+    });
     for (const key of keys) {
       const [x, y] = key.split(",").map(Number);
       fields.set(key, {
         parcel: id,
         crop,
-        axis,
+        ...rows,
         edges: 0,
         fence: 0,
         boundary,
@@ -1042,14 +1040,16 @@ export function planFarmland(input: {
         y0 = Infinity,
         x1 = -Infinity,
         y1 = -Infinity;
+      const rows = contourRows(lot.keys, (x, y) => [
+        sample(x + 2, y).water - sample(x - 2, y).water,
+        sample(x, y + 2).water - sample(x, y - 2).water,
+      ]);
       for (const key of lot.keys) {
         const [x, y] = key.split(",").map(Number);
-        const gx = sample(x + 2, y).water - sample(x - 2, y).water;
-        const gy = sample(x, y + 2).water - sample(x, y - 2).water;
         fields.set(key, {
           parcel: id,
           crop,
-          axis: Math.abs(gx) > Math.abs(gy) ? "y" : "x",
+          ...rows,
           edges: 0,
           fence: 0,
           boundary: system.boundary,
@@ -1572,6 +1572,7 @@ export function planFarmland(input: {
       const n = fields.get(cellKey(x + dx, y + dy));
       // Bench against bench is the terrace wall, not a fence: drawn on the
       // upper side, where the drop is.
+      if (!n || n.parcel !== cell.parcel) edges |= bit;
       if (terraced && n && benchParcels.has(n.parcel)) {
         const here = slot(x, y), there = slot(x + dx, y + dy);
         // A lone brink supports one half-step; an actual tier change draws its own face.
@@ -1580,10 +1581,10 @@ export function planFarmland(input: {
           benchAt[here] > benchAt[there] &&
           (benchAt[there] === 0 || (betweenSteps[here] && betweenSteps[there]))
         ) riser |= bit;
+        if (level[here] === level[there] && (stairs[here] & bit)) cell.footway = (cell.footway ?? 0) | bit;
         // Plots along one bench are parted by a marker stone, not a wall.
         continue;
       }
-      if (!n || n.parcel !== cell.parcel) edges |= bit;
       // A terrace has its risers and the brink below it, and no wall round it;
       // nor do lots along a bank.
       if (terraced || bankParcels.has(cell.parcel)) {
@@ -1593,8 +1594,7 @@ export function planFarmland(input: {
     cell.edges = edges;
     cell.fence = fence;
     if (riser) cell.riser = riser;
-    const cut = [3, 6, 12, 9].reduce((m, pair, k) => m | ((open & pair) === pair ? 1 << k : 0), 0);
-    if (cut) cell.cut = cut;
+    if (open) cell.margin = open;
     if (["none", "ditch", "baulk"].includes(cell.boundary)) {
       const era = eraEnclosure(setting.year);
       if (era !== "none") cell.enclosure = era;
@@ -1611,6 +1611,29 @@ export function planFarmland(input: {
       const cell = fields.get(cellKey(p.access.x + dx, p.access.y + dy));
       if (cell && cell.parcel === p.id) cell.fence &= ~bit;
     }
+  const nearGate = new Map<number, Point>();
+  const accessById = new Map(parcels.map(p => [p.id, p.access]));
+  for (const [key, cell] of fields) {
+    const gate = accessById.get(cell.parcel);
+    if (!gate || !cell.edges || crops[cell.crop].kind !== "grain") continue;
+    const [x, y] = key.split(",").map(Number), best = nearGate.get(cell.parcel);
+    if (!best || Math.hypot(x - gate.x, y - gate.y) < Math.hypot(best.x - gate.x, best.y - gate.y))
+      nearGate.set(cell.parcel, { x, y });
+  }
+  for (const p of parcels) {
+    const start = nearGate.get(p.id);
+    if (!start) continue;
+    const strip = [start], limit = Math.min(5, Math.ceil(p.cells / 8));
+    fields.get(cellKey(start.x, start.y))!.unplanted = true;
+    for (const at of strip)
+      for (const [dx, dy] of N4) {
+        if (strip.length >= limit) break;
+        const x = at.x + dx, y = at.y + dy, next = fields.get(cellKey(x, y));
+        if (next?.parcel !== p.id || !next.edges || next.unplanted) continue;
+        next.unplanted = true;
+        strip.push({ x, y });
+      }
+  }
   // A canal reaches the last field in its wedge and no further.
   for (const k of [...canals]) {
     const [x, y] = k.split(",").map(Number);

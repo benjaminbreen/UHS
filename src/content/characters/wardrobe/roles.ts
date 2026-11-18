@@ -69,7 +69,7 @@ const patterns: Record<string, RegExp> = {
   tradesman:
     /\b(boilermaker|welder|mechanic|machinist|plumber|electrician|pipefitter|ironworker|steelworker|roofer|mason|bricklayer|labou?rer|construction|longshoreman|dockworker|trucker|truck driver|lineman|miner|carpenter|roughneck|factory worker)\b/,
   office:
-    /\b(clerk|accountant|lawyer|attorney|banker|manager|executive|secretary|receptionist|teacher|professor|analyst|salesman|saleswoman|realtor|insurance|administrator|consultant|doctor|pharmacist)\b/,
+    /\b(president|prime minister|clerk|accountant|lawyer|attorney|banker|manager|executive|secretary|receptionist|teacher|professor|analyst|salesman|saleswoman|realtor|insurance|administrator|consultant|doctor|pharmacist)\b/,
   // Who wears regalia, and who wears the dress of a court office.
   monarch: /\b(emperor|empress|king|queen|pharaoh|sultan|sultana|shah|shahanshah|khan|khagan|tsar|tsarina|mansa|negus|tlatoani|ajaw|ahau|sapa inca|maharaja|maharani|raja|rajah|rani|basileus|tenno|monarch|sovereign|chieftain|sachem|cacique|ariki|alii|ali'i)\b/,
   official: /\b(vizier|minister|chancellor|mandarin|governor|satrap|nomarch|daimyo|kuge|scribe of the king|grand secretary)\b/,

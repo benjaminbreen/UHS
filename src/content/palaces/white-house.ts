@@ -48,6 +48,11 @@ export const whiteHouse: Fair = {
   palace: federal,
   role: "Clerk",
   finds,
+  posts: [["Clerk", /\b(?:clerk|secretary)\b/, "scribe", 1], ["President", /\bpresident\b/, "ruler", 0]],
+  residents: [
+    ["Abraham Lincoln", "President", "male", 1809, 1861, 1865, "office"],
+    ["Ulysses S. Grant", "President", "male", 1822, 1869, 1877, "office"],
+  ],
   ticket: 0,
   coin: ["dollar", "dollars"],
   prompt: /\bwhite house\b|\bpresident'?s house\b/,
@@ -58,4 +63,33 @@ export const whiteHouse: Fair = {
     gate: "Nobody stops you at the gate.",
     enter: "a white house on a lawn, the front door standing open.",
   },
+};
+
+const wing = palacePlan(["wh-aide"]);
+export const westWing: Fair = {
+  ...whiteHouse, id: "west-wing", name: "the White House", years: [1935, 2026], entry: "west-lobby",
+  prompt: /\b(?:white house|oval office|west wing|us president|american president|president of the united states)\b/,
+  areas: [
+    wing.room("west-lobby", "the West Wing lobby", [0, 0, 5, 4], [], 0, "An aide checks the day's appointments.", { gate: "w", palace: { room: "vestibule" }, basis: "inferred" }),
+    wing.room("outer-office", "the outer office", [5, 0, 5, 4], [], 0, "Staff prepare papers and take calls outside the President's door.", { palace: { room: "office" }, basis: "inferred" }),
+    wing.room("oval-office", "the Oval Office", [10, 0, 6, 5], [], 0, "The President's desk faces the chairs where visitors sit. The windows look onto the grounds.", { palace: { room: "office", bays: ["window", "window", "panel", "hearth"] }, basis: "inferred" }),
+  ],
+  staff: { "": "wh-aide" }, finds: [], words: { short: "", enter: "the offices of the President and the White House staff." },
+  posts: [["President", /\bpresident\b/, "ruler", 0], ["White House aide", /\b(?:aide|secretary|clerk)\b/, "civil-servant", 1]],
+  residents: [
+    ["Franklin D. Roosevelt", "President", "male", 1882, 1935, 1945, "oval-office"],
+    ["Harry S Truman", "President", "male", 1884, 1945, 1953, "oval-office"],
+    ["Dwight D. Eisenhower", "President", "male", 1890, 1953, 1961, "oval-office"],
+    ["John F. Kennedy", "President", "male", 1917, 1961, 1963, "oval-office"],
+    ["Lyndon B. Johnson", "President", "male", 1908, 1963, 1969, "oval-office"],
+    ["Richard Nixon", "President", "male", 1913, 1969, 1974, "oval-office"],
+    ["Gerald Ford", "President", "male", 1913, 1974, 1977, "oval-office"],
+    ["Jimmy Carter", "President", "male", 1924, 1977, 1981, "oval-office"],
+    ["Ronald Reagan", "President", "male", 1911, 1981, 1989, "oval-office"],
+    ["George H. W. Bush", "President", "male", 1924, 1989, 1993, "oval-office"],
+    ["Bill Clinton", "President", "male", 1946, 1993, 2001, "oval-office"],
+    ["George W. Bush", "President", "male", 1946, 2001, 2009, "oval-office"],
+    ["Barack Obama", "President", "male", 1961, 2009, 2017, "oval-office"],
+    ["Joe Biden", "President", "male", 1942, 2021, 2025, "oval-office"],
+  ],
 };

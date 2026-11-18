@@ -343,8 +343,8 @@
   },
   "wagon1": {
    "kind": "wagon",
-   "length": 48,
-   "height": 42,
+   "length": 112,
+   "height": 45,
    "width": 30,
    "sideHeight": 46,
    "steam": false

@@ -249,3 +249,15 @@ it("keeps all ground uses and materials seamless across negative chunk origins",
       expect(rasterStreetTile(sample, 0, 0, -17, -19).pixels).toEqual(rasterStreetTile(sample, -17, -19, 0, 0).pixels);
     }
 });
+
+it("carries cart wear and drain slots over the same wharf stones across chunk origins", () => {
+  const base: TopographySample = () => ({height:0,surface:"gravel",feature:"paving",pavement:"yard",wharf:true,streetMaterial:"sett"});
+  const yard: TopographySample = (x,y) => ({...base(x,y)!,
+    cartWear:[{a:[-10,0],b:[10,1],radius:1.2}],
+    wharfDrain:{inlet:{x:.5,y:.5},outlet:{x:-5,y:2}}});
+  for (const x of [-1,0,1]) {
+    const tile=rasterStreetTile(yard,x,0,0,0).pixels;
+    expect(tile).toEqual(rasterStreetTile(yard,x+16,-16,-16,16).pixels);
+    expect(tile).not.toEqual(rasterStreetTile(base,x,0,0,0).pixels);
+  }
+});

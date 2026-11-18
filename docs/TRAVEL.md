@@ -54,6 +54,8 @@ at a time. The traveller keeps personal seed, cultural context, concern and
 home household; residents and scenery use the destination's. One weather seed,
 `manifest.sky`, follows the journey.
 
+On connected maps a gathering household can send one adult out along a walkable road to a food patch near the far entrance. The two local walks meet at that crossing. The same resident picks on the neighbouring map, walks the road back with the basket, and empties it at their own store. The trip runs on the game clock.
+
 ## Journeys
 
 Choosing a point on the Earth map calls `journeyPlan`, which prices the route

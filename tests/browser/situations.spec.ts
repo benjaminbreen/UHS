@@ -247,7 +247,9 @@ test("running impacts hurt and fatal fire offers a new world", async ({ page }) 
 });
 
 test("refusing to leave during dialogue ends talk and produces a real threat", async ({ page }) => {
+  let requests = 0;
   await page.route("**/api/dialogue", async (route) => {
+    requests++;
     const { user } = route.request().postDataJSON();
     const refused = user.includes("Player says: No, I'm staying.");
     await route.fulfill({ json: { text: refused ? "Get out of my house." : "Leave my house.", regard: refused ? -1 : 0, trespass: refused ? "refused" : "warned" } });
@@ -255,6 +257,9 @@ test("refusing to leave during dialogue ends talk and produces a real threat", a
   await page.goto("/");
   await page.locator("#opening-prompt").fill("A Roman baker in Ostia, 100 CE");
   await page.getByRole("button", { name: "Begin", exact: true }).click();
+  const confirm = page.locator(".modal-world").getByRole("button", { name: "Begin", exact: true });
+  await confirm.or(page.locator(".arrival")).waitFor({ state: "visible", timeout: 30000 });
+  if (await confirm.isVisible()) await confirm.click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   await expect(page.locator(".game-container canvas")).toHaveAttribute("data-ready", "true", { timeout: 40000 });
   await page.getByRole("button", { name: /Begin your day/ }).click();
@@ -277,10 +282,21 @@ test("refusing to leave during dialogue ends talk and produces a real threat", a
     actor.stats = { strength: 60, agility: 60, endurance: 60, wit: 50, openness: 50, conscientiousness: 50, extraversion: 100, agreeableness: 0, neuroticism: 0 };
     actor.pos = { x, y, space: house.id };
     e.state.player.pos = { x: x + 1, y, space: house.id };
-    e.confronter = actor.id;
+    for (const id of h.members) {
+      const member = e.state.actors.find((a: any) => a.id === id);
+      if (member) { member.trust = 0; member.relations = []; }
+    }
+    actor.activity = "At home";
+    actor.offRoutine = true;
+    e.confront(e.state.clock);
     e.state.plot = undefined;
     r.emit();
   });
+  const answer = page.locator(".toast").getByRole("button", { name: "Answer" });
+  await expect(answer).toBeVisible();
+  expect(requests).toBe(0);
+  await page.screenshot({ path: "artifacts/household-warning.png" });
+  await answer.click();
   const conversation = page.getByRole("dialog", { name: /Conversation with/ });
   await expect(conversation.getByText(/^(Leave my house\.|LEAVE MY HOUSE!!)$/)).toBeVisible();
   const respond = conversation.getByRole("button", { name: "Respond", exact: true });
@@ -440,8 +456,8 @@ test("a walking NPC stays beside the player while the conversation is open", asy
     e.world.itinerary = (id: string) => id === actor.id ? routine : itinerary?.(id);
     const pending = e.world.routinePending?.bind(e.world);
     e.world.routinePending = (id: string) => id === actor.id ? false : pending?.(id);
-    e.confronter = actor.id;
     r.emit();
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "q", bubbles: true }));
     return { id: actor.id, pos };
   });
   const conversation = page.getByRole("dialog", { name: /Conversation with/ });

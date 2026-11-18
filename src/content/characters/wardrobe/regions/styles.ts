@@ -61,7 +61,7 @@ const goth = {
   neck: [["chain"]],
 } as const;
 const hiphop80s = {
-  garment: [["coat", 2], ["tunic", 1]],
+  garment: [["coat", 2], ["tee", 1]],
   motif: [["tracksuit", 3], ["plain", 1]],
   dye: [["woad"], ["madder"], ["soot"], ["weld"]],
   leggings: [["trousers"]],
@@ -71,7 +71,7 @@ const hiphop80s = {
   neck: [["chain", 3], ["none", 1]],
 } as const;
 const hiphop90s = {
-  garment: [["tunic", 3], ["coat", 1]],
+  garment: [["tee", 3], ["coat", 1]],
   motif: [["jersey", 2], ["plain", 2], ["tracksuit", 1]],
   leggings: [["wide"]],
   headwear: [["ball-cap", 3], ["none", 2], ["hood", 1]],
@@ -142,7 +142,7 @@ export const streetStyles: readonly GarmentKit[] = [
     hairdress: [["long"]], leggings: [["trousers"]], footwear: [["boots", 2], ["sneakers", 1]], headwear: [["none", 3], ["cap", 1]],
   }),
   look("emo", "Emo", at([2003, 2013], [-125, -40, 20, 60], NOT_WEST), [0.72, 0.76], { ages: ["youth"], under: 22 }, {
-    garment: [["tunic", 2], ["coat", 1]], dye: [["soot", 3], ["madder", 1]], motif: [["stripes", 1], ["plain", 2]],
+    garment: [["tee", 2], ["coat", 1]], dye: [["soot", 3], ["madder", 1]], motif: [["stripes", 1], ["plain", 2]],
     hairdress: [["bob"]], hairDye: [["#16121a"]], leggings: [["trousers", 1, M], ["fishnet", 1, F]], footwear: [["sneakers"]],
   }),
   look("hipster", "Hipsters", at([2008, 2017], [-125, 24, 20, 60], NOT_WEST), [0.76, 0.81], { ages: ["adult"], under: 36 }, {

@@ -24,6 +24,9 @@ export type LandSample = {
    * a narrow stream: lets the shoreline be reconstructed per pixel rather
    * than interpolated between cell centres a channel wide apart. */
   waterGradient?: readonly [number, number];
+  /** Beside a city's bulkhead or pier, on either side of the wall: what the
+   * made ground there is laid with. */
+  quay?: "sett" | "plank";
   /** Width in tiles of the intertidal shelf, on a tidal sea. */
   shelf?: number;
   /** Sea inside a reef: "lagoon" is an atoll's enclosed water. */

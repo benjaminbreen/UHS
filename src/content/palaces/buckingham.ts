@@ -50,6 +50,8 @@ export const buckingham: Fair = {
   palace: victorianState,
   role: "Courtier",
   finds,
+  posts: [["Courtier", /\bcourtier\b/, "courtier", 1], ["Queen", /\bqueen\b/, "ruler", 0]],
+  residents: [["Queen Victoria", "Queen", "female", 1819, 1856, 1901, "throne-room"]],
   ticket: 0,
   coin: ["shilling", "shillings"],
   prompt: /\bbuckingham\b/,

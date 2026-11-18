@@ -164,7 +164,7 @@ export const ecologyProfiles: Record<
     trees: number;
     tree: string;
     surface: "grass" | "damp" | "dry" | "sand" | "snow";
-    resources: readonly ("fruit" | "berries" | "wood" | "reeds" | "grazing")[];
+    resources: readonly ("fruit" | "berries" | "wood" | "reeds" | "grazing" | "greens" | "roots" | "acorn")[];
   }
 > = {
   grassland: {
@@ -173,7 +173,7 @@ export const ecologyProfiles: Record<
     trees: 0.08,
     tree: "oak",
     surface: "grass",
-    resources: ["berries", "wood", "grazing"],
+    resources: ["berries", "wood", "grazing", "greens", "roots"],
   },
   savanna: {
     label: "Savanna",
@@ -181,7 +181,7 @@ export const ecologyProfiles: Record<
     trees: 0.07,
     tree: "acacia",
     surface: "dry",
-    resources: ["wood", "grazing", "berries"],
+    resources: ["wood", "grazing", "berries", "greens", "roots"],
   },
   "temperate-woodland": {
     label: "Temperate woodland",
@@ -189,7 +189,7 @@ export const ecologyProfiles: Record<
     trees: 0.4,
     tree: "oak",
     surface: "grass",
-    resources: ["fruit", "berries", "wood", "grazing"],
+    resources: ["fruit", "berries", "wood", "grazing", "greens", "roots", "acorn"],
   },
   "boreal-woodland": {
     label: "Boreal woodland",
@@ -197,7 +197,7 @@ export const ecologyProfiles: Record<
     trees: 0.36,
     tree: "cypress",
     surface: "grass",
-    resources: ["berries", "wood", "grazing"],
+    resources: ["berries", "wood", "grazing", "greens", "roots"],
   },
   "tropical-woodland": {
     label: "Tropical woodland",
@@ -205,7 +205,7 @@ export const ecologyProfiles: Record<
     trees: 0.5,
     tree: "hackberry",
     surface: "damp",
-    resources: ["fruit", "wood", "reeds"],
+    resources: ["fruit", "wood", "reeds", "roots"],
   },
   wetland: {
     label: "Wetland",
@@ -213,7 +213,7 @@ export const ecologyProfiles: Record<
     trees: 0.1,
     tree: "hackberry",
     surface: "damp",
-    resources: ["reeds", "wood", "grazing"],
+    resources: ["reeds", "wood", "grazing", "greens", "roots"],
   },
   "dry-scrub": {
     label: "Dry scrubland",
@@ -221,7 +221,7 @@ export const ecologyProfiles: Record<
     trees: 0.08,
     tree: "acacia",
     surface: "dry",
-    resources: ["wood", "grazing", "berries"],
+    resources: ["wood", "grazing", "berries", "greens", "roots"],
   },
   desert: {
     label: "Desert",
@@ -229,7 +229,7 @@ export const ecologyProfiles: Record<
     trees: 0.015,
     tree: "acacia",
     surface: "sand",
-    resources: ["wood"],
+    resources: ["wood", "roots"],
   },
   tundra: {
     label: "Tundra",
@@ -237,6 +237,6 @@ export const ecologyProfiles: Record<
     trees: 0,
     tree: "bush",
     surface: "dry",
-    resources: ["berries", "grazing"],
+    resources: ["berries", "grazing", "greens", "roots"],
   },
 };

@@ -56,6 +56,18 @@ function bilinearWaterDistance(sample: TopographySample, x: number, y: number) {
     (d(ix, iy + 1) * (1 - fx) + d(ix + 1, iy + 1) * fx) * fy
   );
 }
+/** Cells of laid apron behind a quay wall, measured square to the wall. */
+export const QUAY_APRON = 3.75;
+/** Rows of wall face showing below a quay's rim. */
+export const QUAY_DROP = 14;
+/** Water before a quay, dredged for berths: six cells deeper at the wall
+ * than a beach would be, easing to the natural bed eight cells out. Nothing
+ * on the quay itself or on the wall face below its southern rim. */
+export function quayWater(sample: TopographySample, x: number, y: number) {
+  const d = waterDistance(sample, x, y);
+  if (d >= 0 || waterDistance(sample, x, y - QUAY_DROP / 16) >= 0) return;
+  return d - 6 * Math.max(0, 1 + d / 8);
+}
 export function coastDistance(
   distance: number,
   x: number,
@@ -116,6 +128,8 @@ export function waterContactDistance(
 export const MAX_WADING_DEPTH = 0.85;
 export function waterDepthAt(sample: TopographySample, x: number, y: number) {
   const c = sample(Math.floor(x), Math.floor(y));
+  // Nobody wades off a quay: it is dry stone to the wall and deep beyond it.
+  if (c?.waterVisual?.quay && !c.bridge && !c.ramp) return waterDistance(sample, x, y) >= 0 ? 0 : Infinity;
   if (
     !c ||
     c.bridge ||

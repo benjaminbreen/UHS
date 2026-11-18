@@ -142,10 +142,29 @@ export function railPixel(u: number, v: number, wx: number, wy: number): RGB {
 
 /** Rails set flush where a street crosses the line on the level, with
  * timber planking between them. */
-export function levelCrossing(base: RGB, u: number, v: number, planks: boolean): RGB {
+export function levelCrossing(base: RGB, u: number, v: number, planks: boolean | "wharf"): RGB {
   for (const tc of TRACKS) {
     const d = u - tc;
-    if (Math.abs(d) > GAUGE + 1) continue;
+    const wharf = planks === "wharf";
+    if (Math.abs(d) > GAUGE + (wharf ? 4 : 1)) continue;
+    if (!planks || wharf) {
+      const side=Math.sign(d), flange=Math.abs(d)-GAUGE;
+      const joint=mod(v+(side<0 ? 0 : 23),61);
+      if (flange===0) return joint===0 ? [83,75,68] : [190,180,156];
+      if (flange===-1) return [66,59,55];
+      if (flange===1) return joint<4 ? [94,77,62] : [130,102,79];
+      if (flange===-2 && joint<4) return [93,80,68];
+      if (wharf) {
+        const tie = mod(v, 8);
+        if (tie < 3) {
+          if (flange === 2) return tie === 0 ? [160,143,117] : [69,62,54];
+          const grain = hash(Math.floor(v/8),tc,823);
+          return tint([102,83,65], (grain>.6 ? 8 : 0) + (tie===0 ? 9 : tie===2 ? -15 : 0));
+        }
+        if (flange < 0) return tint(base,-14);
+      }
+      return base;
+    }
     for (const r of [tc - GAUGE, tc + GAUGE]) {
       if (u === r) return [178, 180, 174];
       if (u === r + 1) return [34, 34, 36];

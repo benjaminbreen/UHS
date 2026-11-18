@@ -551,7 +551,7 @@ it("keeps broad yard props clear of houses and one another", () => {
     const walls = new Set<string>(), roofs = new Set<string>();
     for (const b of e.world.places)
       for (const p of buildingArtCells(b.sprite, b)) (p.y < b.y ? roofs : walls).add(`${p.x},${p.y}`);
-    const yard = e.state.objects.filter(
+    const yard = e.world.initialObjects.filter(
       (o) => o.pos.space === "outside" && o.prop && propDefs[o.prop] && !wallSignDefs[o.prop],
     );
     expect(yard.length).toBeGreaterThan(50);

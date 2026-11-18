@@ -90,6 +90,7 @@ export class TimeTravel {
         age: year - person.born,
         pos: { ...source.state.player.pos, space: "outside" },
         memories: [],
+        encounters: undefined,
       };
       if (
         engine.blocked(

@@ -13,6 +13,10 @@ export type TileEdit = {
   /** Low vegetation taken off with the scythe. */
   cut?: boolean;
   dug?: boolean;
+  banked?: number;
+  fieldSeason?: number;
+  tended?: { at: number; job: import("./work-places").FieldJob };
+  watered?: number;
   puddled?: boolean;
   sowing?: { crop: import("../content/agriculture/types").CropId; owner: string; season: number };
   furrow?: "x" | "y";
@@ -67,7 +71,8 @@ export function editedDecoration(
 ): Decoration | undefined {
   if (!edit) return base;
   const at = { x, y, id: `decor-${x}-${y}`, solid: false };
-  if (edit.puddled && edit.furrow) return { ...at, sprite: `vv-puddled-${edit.furrow}` };
+  if ((edit.puddled || edit.watered !== undefined) && edit.furrow) return { ...at, sprite: `vv-puddled-${edit.furrow}` };
+  if (edit.banked !== undefined && edit.furrow && !edit.dug) return { ...at, sprite: `vv-furrow-${edit.furrow}` };
   if (edit.dug) return { ...at, sprite: edit.furrow ? `vv-furrow-${edit.furrow}` : FURROW_SPRITE };
   if (edit.stage === "clear") return undefined;
   if (edit.stage === "logs") return { ...at, sprite: LOGS_SPRITE };

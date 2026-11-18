@@ -86,7 +86,16 @@ it.each(["Fisher in Bergen 1700","Fisher in Tokyo 1800","Fisher in Nile valley 2
     expect(basket).toBeDefined();
     const boat=plan.objects.find(o=>o.id===member.boatId)!;
     expect(boat.owner).toBe(member.owner);
-    expect(boat.sprite).toBe(`${profile.boat}-${direction.id}`);
+    const facing=profile.pier ? shoreDirections.find(d=>d.x===-direction.y && d.y===direction.x)! : direction;
+    expect(boat.sprite).toBe(`${profile.boat}-${facing.id}`);
+    if(profile.pier) {
+      const pier=member.launch.pier!;
+      const {x,y}=member.launch.water;
+      expect(plan.surface.get(`${x-direction.x},${y-direction.y}`)).toBe("bridge");
+      expect(plan.surface.get(`${x},${y}`)).not.toBe("bridge");
+      expect(boat.mooring).toBeDefined();
+      for(let j=0;j<pier.h;j++)for(let i=0;i<pier.w;i++)expect(plan.surface.get(`${pier.x+i},${pier.y+j}`)).toBe("bridge");
+    }
     expect(plan.places.find(p=>p.id===member.homeId)?.sprite).toBe(profile.home);
     expect(plan.objects.find(p=>p.id===member.netsId)?.sprite).toBe(profile.nets);
     expect(sample(boat.pos.x,boat.pos.y).water).toBeLessThan(0);

@@ -1,3 +1,4 @@
+import { crops } from "../content/agriculture/crops";
 import { vehicleAt } from "../world/v3/conveyances";
 import type { TimeTravel } from "../core/time/travel";
 import { launchers, type FaunaTier } from "../core/combat";
@@ -50,7 +51,7 @@ import {
 import type { Actor, Intent, ItemId, Position } from "../core/types";
 import { guessMaking, type Making } from "../core/making";
 import { useOf } from "../content/props/uses";
-import { poseContactMs, poseTiming, workPoseFor, type CharacterPose } from "../render/characters/poses";
+import { fieldPose, poseContactMs, poseTiming, workPoseFor, type CharacterPose } from "../render/characters/poses";
 import { livelihoodOf } from "../world/v3/routines";
 import { workplaceFor } from "../content/characters/workplace";
 import { infantCarry } from "../content/characters/wardrobe/regions/work-dress";
@@ -65,6 +66,7 @@ import { allowedHeights, type BodyRecord, type CharacterAppearance } from "../co
 import { characterAppearanceSchema } from "./schema";
 import { heldObject, nearbyProp } from "../core/props";
 import { withProps } from "../content/props/place";
+import { amountIn } from "../content/economy/money";
 import { propDefs } from "../content/props/catalog";
 import { Engine } from "../core/engine";
 import { caveMouthsNear } from "../core/cave";
@@ -562,10 +564,8 @@ export class Runtime {
   /** The plant a chop is about to land on, read before the engine takes it. */
   private toolTargetPlant(command: PlayerCommand) {
     if (command.type !== "interact" || command.action !== "chop") return;
-    const at = /^tile:(-?\d+),(-?\d+)$/.exec(command.target);
-    return at
-      ? this.engine.world.decoration(Number(at[1]), Number(at[2]))?.sprite
-      : undefined;
+    const at = this.engine.tileAt(command.target);
+    return at && this.engine.world.decoration(at.x, at.y)?.sprite;
   }
   private recordToolEffect(command: PlayerCommand, previousPlant?: string) {
     if (command.type !== "interact") return;
@@ -588,9 +588,8 @@ export class Runtime {
       action !== "fill"
     )
       return;
-    const parsed = /^tile:(-?\d+),(-?\d+)$/.exec(command.target);
-    if (!parsed) return;
-    const at = { x: Number(parsed[1]), y: Number(parsed[2]) };
+    const at = this.engine.tileAt(command.target);
+    if (!at) return;
     const stage = this.engine.state.tiles?.[`${at.x},${at.y}`]?.stage;
     const kind: ToolEffect["kind"] =
       action === "douse" || action === "fill"
@@ -672,6 +671,31 @@ export class Runtime {
           };
         }
       }
+      return;
+    }
+    if (command.type === "interact" && command.action === "gather-work") {
+      const patch = this.engine.state.objects.find(o => o.id === command.target);
+      if (patch?.resource) {
+        const p = this.engine.state.player, at = patch.pos;
+        const pose = patch.resource.item === "roots" ? fieldPose.prepare : fieldPose.weed;
+        this.characterAction = { serial: ++this.characterSerial, pose, at: performance.now(), target: patch.id };
+        this.toolEffect = { serial: ++this.characterSerial, kind: "gather", at, from: { ...p.pos }, facing: p.direction,
+          pose, contactMs: poseContactMs(pose), sprite: this.engine.item(patch.resource.item)?.sprite };
+      }
+      return;
+    }
+    if (command.type === "interact" && command.action === "fieldwork") {
+      const job = this.engine.lastFieldStroke, at = this.engine.tileAt(command.target);
+      if (!job || !at) return;
+      const p = this.engine.state.player, field = this.engine.world.topography?.(at.x, at.y)?.field;
+      const pose = fieldPose[job];
+      const kind = { weed: "gather", prepare: "dig", bank: "dig", plant: "plant", harvest: "reap", water: "fill" } as const;
+      this.characterAction = { serial: ++this.characterSerial, pose, at: performance.now() };
+      this.toolEffect = {
+        serial: ++this.characterSerial, kind: kind[job], at, from: { x: p.pos.x, y: p.pos.y }, facing: p.direction,
+        pose, contactMs: poseContactMs(pose), soil: field?.wet ? "water" : "soil",
+        sprite: job === "harvest" && field && crops[field.crop].kind === "grain" ? "grain" : undefined,
+      };
       return;
     }
     this.recordToolEffect(command, previousPlant);
@@ -1416,6 +1440,7 @@ export class Runtime {
     }
   }
   private completeDispatch(command: PlayerCommand, result: ReturnType<Engine["act"]>) {
+    if (command.type === "choose" && (command.card.startsWith("field:") || command.card.startsWith("patch:")) && result.status === "completed") this.guide = "work";
     this.notice = result.reason ?? "";
     if (result.status !== "rejected") this.onChange?.();
     if (command.type === "interact" && command.action === "work") {
@@ -1845,6 +1870,17 @@ export class Runtime {
   verbs(): { primary?: Verb; alternate?: Verb } {
     const c = this.propControls();
     const p = this.engine.state.player;
+    const truck = p.drivingVehicle
+      ? this.engine.state.objects.find((o) => o.id === p.drivingVehicle)
+      : this.engine.state.objects.find((o) => o.motor && this.engine.vehicleCab(o));
+    if (truck)
+      return {
+        primary: {
+          kind: "use",
+          label: p.drivingVehicle ? "Park and step out" : truck.motor!.taken ? "Drive the truck" : "Take the truck",
+          command: { type: "interact", action: p.drivingVehicle ? "leave-vehicle" : "drive-vehicle", target: truck.id },
+        },
+      };
     const held = c.held;
     const def = propDefs[held?.prop ?? ""];
     // An inventory item taken in hand stands in for a carried prop.
@@ -1886,7 +1922,8 @@ export class Runtime {
           }
         : undefined;
     let primary: Verb | undefined;
-    const here = held || item ? undefined : this.engine.workHere();
+    const nearbyWork = this.engine.workHere();
+    const here = held || item ? (nearbyWork?.command.action === "fieldwork" || nearbyWork?.command.action === "gather-work") && !held ? nearbyWork : undefined : nearbyWork;
     const work = here ? { ...here, enabled: true } : held || item ? undefined : this.engine.state.objects
       .filter((o) => distance(o.pos, p.pos) < 1.6)
       .flatMap((o) => this.engine.inspect(o.id)?.affordances ?? [])
@@ -1895,8 +1932,15 @@ export class Runtime {
       .filter((o) => o.owner === "player" && distance(o.pos, p.pos) < 6)
       .flatMap((o) => this.engine.inspect(o.id)?.affordances ?? [])
       .find((a) => a.enabled && a.command.type === "interact" && a.command.action === "launch");
+    const tiller=!held && !p.mount && !p.drivingCart && this.engine.state.objects
+      .filter(o=>o.vessel && distance(o.pos,p.pos)<=12)
+      .flatMap(o=>this.engine.inspect(o.id)?.affordances??[])
+      .filter(a=>a.enabled && a.command.type==="interact" && (a.command.action==="launch" || a.command.action==="unload"))
+      .sort((a,b)=>Number(b.command.type==="interact" && b.command.action==="unload")-Number(a.command.type==="interact" && a.command.action==="unload"))[0];
     const train = this.boardable();
     const facing = this.engine.facingCell();
+    const fixture = !fighting && !descend && !p.afloat && this.engine.state.objects.find(o =>
+      o.pos.space===p.pos.space && o.pos.x===facing.x && o.pos.y===facing.y && (o.kind==="gate" || o.prop==="ferryTicketBooth" || o.lighterage || o.id===p.deliveryBale));
     const burn = {
       type: "interact" as const,
       target: Engine.tileTarget(facing.x, facing.y),
@@ -1929,8 +1973,23 @@ export class Runtime {
       primary = { kind: "strike", label: "Set a snare", command: { type: "interact", target: Engine.tileTarget(facing.x, facing.y), action: "snare" } };
     else if (item?.id === "sling")
       primary = { kind: "shoot", label: this.engine.ammo() ? "Whirl sling" : "No stones" };
+    else if (fixture && fixture.kind==="gate")
+      primary = { kind:"door", label:fixture.open ? "Close gate" : "Open gate", command:{type:"interact",target:fixture.id,action:fixture.open ? "close" : "open"} };
+    else if (fixture && (fixture.lighterage || p.deliveryBale===fixture.id)) {
+      const job=this.engine.inspect(fixture.id)?.affordances.find(a=>a.command.type==="interact" && a.command.action==="unload");
+      if(job?.enabled && job.command.type==="interact") primary={kind:"use",label:job.label,command:job.command};
+    }
+    else if (fixture && fixture.prop==="ferryTicketBooth") {
+      const act=propDefs[fixture.prop].act!, setting=this.engine.world.pack.setting;
+      const price=setting ? amountIn(setting,act.price!,true) : "one coin";
+      primary={kind:"use",label:act.verb+" · "+price,command:{type:"interact",target:fixture.id,action:"attend"}};
+    }
+    else if (tiller && tiller.command.type==="interact")primary={kind:"use",label:tiller.label,command:tiller.command};
     else if (train) primary = { kind: "board", label: `Board the ${train.label} train` };
     // At the day's place F does the day's work; whoever is there is still on Enter.
+    else if (here?.command.action === "fieldwork" || here?.command.action === "gather-work") primary = {kind:"use", label:here.label, command:here.command};
+    else if (this.engine.state.workday?.field && !held && this.engine.workPlan()?.field?.here)
+      primary = {kind:"use", label:"Walk to the next patch"};
     else if (farm) primary = farm;
     else if (here) primary = { kind: "work", label: here.label, command: here.command };
     else if (launch?.command.type === "interact") primary = { kind: "use", label: launch.label, command: launch.command };
@@ -2071,6 +2130,11 @@ export class Runtime {
       return undefined;
     }
     this.stop(false);
+    if (verb.kind === "use" && !verb.command && this.engine.state.workday?.field) {
+      this.setOff({kind:"workday",workPass:this.engine.state.workday.field.id,single:true});
+      this.emit(false);
+      return verb;
+    }
     if (verb.kind === "talk" || verb.kind === "lift") return verb;
     if (verb.kind === "guard") {
       this.engine.guard();
@@ -2145,6 +2209,9 @@ export class Runtime {
     return t;
   }
   playPose(pose: CharacterPose) {
+    const action = this.characterAction;
+    if (pose === "startle" && action && this.toolEffect?.pose === action.pose &&
+        this.toolEffect.serial === action.serial + 1 && performance.now() - action.at < poseTiming(action.pose) * 4) return;
     this.characterAction = {
       serial: ++this.characterSerial,
       pose,
@@ -2186,8 +2253,8 @@ export class Runtime {
     const plan = this.engine.workPlan();
     const station = plan?.station;
     const garden = plan && plan.done >= plan.stages.length && plan.side && !plan.side.done ? plan.side : undefined;
-    if (garden) return p.space === "outside" ? { pos: garden.pos, label: "Your garden", work: true } : undefined;
-    if (!plan || plan.done >= plan.stages.length) {
+    if (garden && !plan?.field) return p.space === "outside" ? { pos: garden.pos, label: "Your garden", work: true } : undefined;
+    if (!plan || !plan.field && plan.done >= plan.stages.length) {
       this.guide = undefined;
       return;
     }
@@ -2196,7 +2263,7 @@ export class Runtime {
       const entrance = this.engine.world.place(pos.space)?.entrance;
       pos = entrance ? { ...entrance, space: "outside" } : undefined;
     }
-    return pos && { pos, label: plan.where, work: true };
+    return pos && { pos, label: plan.field?.words?.verb ?? plan.where, work: true };
   }
   releaseCharge() {
     if (this.workHold !== undefined) {
@@ -2299,6 +2366,7 @@ export class Runtime {
   }
   move(dx: number, dy: number, traverse = false, run = false) {
     this.stop(false);
+    if(this.engine.state.player.drivingVehicle)return this.command({type:"move",dx,dy});
     // A pot stops you once, which is long enough to read what it is and to
     // pick it up if that is what you wanted. Walk into it again and you step
     // over it: a yard of vessels should cost a hop, not a detour. A crate is
@@ -2485,6 +2553,12 @@ export class Runtime {
   }
   walkTo(target: Point) {
     this.stop(false);
+    const here = this.engine.state.player.pos;
+    if (here.x === target.x && here.y === target.y) {
+      this.notice = "";
+      this.emit();
+      return true;
+    }
     let candidates = [target];
     if (this.engine.playerBlocked(target.x, target.y))
       candidates = [
@@ -2501,11 +2575,12 @@ export class Runtime {
         this.running = true;
         this.notice = "";
         this.emit();
-        return;
+        return true;
       }
     }
     this.notice = "No walkable route to that spot.";
     this.emit();
+    return false;
   }
   approach(id: string) {
     this.flushAmbient();
@@ -2682,6 +2757,12 @@ export class Runtime {
     if (this.engine.state.encounter) {
       this.stop();
       return;
+    }
+    const reached = this.engine.state.player.pos;
+    if (result?.status === "completed" && this.running && reached.space === p.space &&
+        (reached.x !== step.x || reached.y !== step.y)) {
+      const end = this.route.at(-1) ?? step;
+      this.route = this.pathTo(end);
     }
     if (result?.status === "rejected") {
       if (this.autopilot) {

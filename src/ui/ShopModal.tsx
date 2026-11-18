@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CharacterSprite } from "./CharacterSprite";
 import { Minus, Plus } from "lucide-react";
 import type { Runtime } from "../runtime/session";
 import type { Inventory, ItemId } from "../core/types";
@@ -8,16 +9,18 @@ import { amountIn } from "../content/economy/money";
 const rows = (inv: Inventory, skip?: (id: ItemId) => boolean) =>
   Object.entries(inv).filter(([id, n]) => (n ?? 0) > 0 && !skip?.(id)) as [ItemId, number][];
 
-export function ShopModal({ runtime, actorId, onClose }: {
+export function ShopModal({ runtime, actorId, initialItem, onClose }: {
   runtime: Runtime;
   actorId: string;
+  initialItem?: ItemId;
   onClose: () => void;
 }) {
   const engine = runtime.engine;
   const [tab, setTab] = useState<"buy" | "sell">("buy");
-  const [picked, setPicked] = useState<ItemId>();
+  const [picked, setPicked] = useState<ItemId | undefined>(initialItem);
   const [count, setCount] = useState(1);
-  const [offer, setOffer] = useState<{ give: Inventory; take: Inventory }>({ give: {}, take: {} });
+  const [offer, setOffer] = useState<{ give: Inventory; take: Inventory }>({ give: {}, take: initialItem ? { [initialItem]: 1 } : {} });
+  const [handoff, setHandoff] = useState<{ item: ItemId; serial: number }>();
   const [note, setNote] = useState<string>();
   // Once open it stays open: a shopkeeper stepping from the counter mid-sale still sells.
   const shop = engine.shopOf(actorId, true);
@@ -29,11 +32,22 @@ export function ShopModal({ runtime, actorId, onClose }: {
   const deal = (give: Inventory, take: Inventory) => {
     const result = runtime.command({ type: "deal", target: actorId, give, take });
     setNote(result?.status === "completed" ? undefined : (result?.reason ?? "They decline."));
+    if (result?.status === "completed") {
+      const item = rows(take, id => id === "coin")[0]?.[0];
+      if (item) setHandoff(last => ({ item, serial: (last?.serial ?? 0) + 1 }));
+    }
     return result?.status === "completed";
   };
   const prices = engine.priceNote(shop.stock, actorId);
   const heading = (
     <header className="shop-head">
+      <div className="shop-handoff" aria-hidden="true">
+        <CharacterSprite appearance={runtime.appearanceFor(shop.actor)} />
+        {handoff && <span key={handoff.serial} onAnimationEnd={() => setHandoff(undefined)}>
+          <ItemIcon id={handoff.item} sprite={runtime.item(handoff.item)?.sprite} scale={1} />
+        </span>}
+        <CharacterSprite appearance={runtime.appearanceFor(engine.state.player)} />
+      </div>
       <div className="eyebrow">{shop.actor.role}</div>
       <h2>{shop.actor.name.split(" ")[0]}’s goods</h2>
       {prices && <p className="shop-lede">{prices}</p>}
@@ -92,7 +106,11 @@ export function ShopModal({ runtime, actorId, onClose }: {
   const confirm = () => {
     if (!picked || n < 1) return;
     const cost = { coin: n * price(picked) }, goods = { [picked]: n };
-    if (tab === "buy" ? deal(cost, goods) : deal(goods, cost)) setCount(1);
+    const last = n === have(picked);
+    if (tab === "buy" ? deal(cost, goods) : deal(goods, cost)) {
+      if (last) setPicked(undefined);
+      setCount(1);
+    }
   };
   return (
     <div className="shop">

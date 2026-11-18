@@ -34,13 +34,14 @@ import {
   bankPixel,
   fenceStands,
   fieldsNear,
-  headlandDepths,
+  headlandDepths, openFieldMargin, paintOpenMargin,
   nearestField,
   troddenPixel,
   weedPixel,
 } from "./headland";
 import { transitionPixel, fringePixel, groundClumps } from "./terrain-tiles";
 import {
+  quayPixel,
   paintedGround,
   pathField,
   shoreDistance,
@@ -415,6 +416,15 @@ export function rasterHabitatTile(
   // The tide's mud laps into the shore's own cells along the same line the
   // water tiles draw it to, whatever the beach here is made of.
   const v = cell.waterVisual;
+  // A quay's wall and the edge of its apron cross these cells at the wall's
+  // own angle. A paved cell keeps its top: a street may run along the quay.
+  if (v?.quay && cell.surface !== "water" && !cell.bridge)
+    for (let py = 0; py < 16; py++)
+      for (let px = 0; px < 16; px++) {
+        const stone = quayPixel(sample, x + (px + 0.5) / 16, y + (py + 0.5) / 16,
+          (x + ox) * 16 + px, (y + oy) * 16 + py, v.quay, cell.feature !== "paving");
+        if (stone) tile.pixels.set([...stone, 255], (py * 16 + px) * 4);
+      }
   if (v?.shelf !== undefined && v.distance < 1.6 && cell.surface !== "water" && cell.feature !== "paving" && !cell.bridge)
     for (let py = 0; py < 16; py++)
       for (let px = 0; px < 16; px++) {
@@ -426,7 +436,7 @@ export function rasterHabitatTile(
     const ramps = cell.habitat ? habitatRamps(cell.habitat, art) : { soilPalette: soils.grassland, palette: art.palettes.grassland };
     plinthOver(tile.pixels, sample, x, y, ox, oy, ramps.soilPalette, ramps.palette);
   }
-  if (cell.rail) railOver(tile.pixels, cell.rail, x, y, ox, oy, cell.crossing, cell.platform);
+  if (cell.rail) railOver(tile.pixels, cell.rail, x, y, ox, oy, cell.crossing, cell.platform, false, cell.wharf);
   if (snowCover() || frostCover()) snowOver(tile.pixels, sample, x, y, ox, oy, cell);
   return tile;
 }
@@ -591,8 +601,17 @@ function rasterGroundTile(
   as?: Habitat,
 ): GroundTileData {
   // Yard grass is the same turf as outside the fence; only beds are tilled.
-  if (cell.field && !(cell.field.yard && cell.field.crop === "pasture"))
-    return rasterFieldTile(sample, x, y, ox, oy, art, cell);
+  if (cell.field && !(cell.field.yard && cell.field.crop === "pasture")) {
+    const tile = rasterFieldTile(sample, x, y, ox, oy, art, cell);
+    const margin = openFieldMargin(sample, x, y, cell);
+    if (margin) {
+      const h = margin.outside.habitat!;
+      const under = rasterGroundTile(sample, x, y, ox, oy, art, margin.outside, h);
+      paintOpenMargin(tile.pixels, under.pixels, tilled[cell.habitat?.ecology ?? h.ecology][2],
+        (x + ox) * 16, (y + oy) * 16, margin.depth, cell.surface === "snow");
+    }
+    return tile;
+  }
   const h = as ?? cell.habitat!;
   if (!as) {
     const own = groundLook(h);
@@ -2130,7 +2149,7 @@ function rasterGroundTile(
   // fence outside it, with weeds along the bank's foot. Post and rail is
   // a standing sprite with its foot on the fence line, so it is drawn
   // over whatever ring band its post rises across.
-  if (!frozen && cell.surface !== "water") {
+  if (cell.surface !== "water") {
     const style = { ecology: h.ecology, palette };
     const facing = (dx: number, dy: number) =>
       dx < 0 ? 2 : dx > 0 ? 8 : dy < 0 ? 4 : 1;
@@ -2138,16 +2157,22 @@ function rasterGroundTile(
       cy = y + oy;
     // A yard's grass runs up to its fence; only farmland has a headland.
     const around = fieldsNear(sample, x, y).filter((n) => !n.field.yard);
-    for (let py = 0; py < 16 && around.length; py++)
+    if (around.some(n => n.field.margin && Math.abs(n.dx) <= 1 && Math.abs(n.dy) <= 1) && !sample(x, y)?.field) {
+      const margin = openFieldMargin(sample, x, y, cell);
+      if (margin) paintOpenMargin(pixels, pixels, tilled[h.ecology][2], gx, gy, margin.depth, frozen);
+    }
+    const hasHeadland = !frozen && around.some(n => n.field.rowSlope === undefined);
+    for (let py = 0; py < 16 && hasHeadland; py++)
       for (let px = 0; px < 16; px++) {
         const near = nearestField(around, px, py);
         if (!near) continue;
         const wx = gx + px,
           wy = gy + py;
-        const { buffer, fence } = headlandDepths(wx, wy);
         // Corner-rounded and gently waved so a field's trodden apron is not
         // a ruled rectangle.
         const { dx, dy, field } = near;
+        if (field.rowSlope !== undefined) continue;
+        const { buffer, fence } = headlandDepths(wx, wy);
         const d =
           near.d +
           (dx && dy ? 2.5 : 0) +

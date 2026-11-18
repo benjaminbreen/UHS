@@ -125,6 +125,9 @@ export const poses = [
   "guide-plough",
 ] as const;
 export type CharacterPose = (typeof poses)[number];
+export const fieldPose = {
+  weed: "stoop", prepare: "till", bank: "till", plant: "work-tend", harvest: "reap", water: "work-pour",
+} as const satisfies Record<import("../../core/work-places").FieldJob, CharacterPose>;
 /** A small set of physical verbs shared by trades in every era. */
 export function workPoseFor(activity: string, label: string, family = "", trade = "", held = ""): CharacterPose | undefined {
   const task = label.toLowerCase();
@@ -146,6 +149,7 @@ export function workPoseFor(activity: string, label: string, family = "", trade 
   if (activity === "draw-water" || (activity === "haul" && family === "seine-rope")) return "tug";
   if (activity === "haul-catch" && family === "drying-rack") return "work-hang";
   if (activity === "cook") return "work-stir";
+  if (activity === "gather" && family === "wild-food") return /root/.test(task) ? "till" : /fruit tree/.test(task) ? "work-tend" : "stoop";
   if ((activity === "gather" && /plant|crop|herb|fruit|berry/.test(task)) ||
       (activity === "tend" && (/crop|field|weed|row|plant|garden|farm|flock|herd|animal|water|hive/.test(task) ||
         /crop|stock-pen|trough|beehive|log-hive|pipe-hive/.test(family)))) return "work-tend";

@@ -619,4 +619,13 @@
 }
 .work-changes span[data-good] { color: #c4e2b6; background: #5d915033; }
 @keyframes work-in { from { opacity: 0; transform: translateY(3px); } }
+.plot-floor .plot-speech .plot-speech-body[data-fieldwork] > p { min-height: 0; }
+.field-controls { display: block; margin-top: 5px; color: var(--soft); font: 14px/1.4 var(--book); }
+.field-controls kbd, .field-controls b { color: var(--light); }
+@media (max-width: 700px), (max-height: 540px) {
+  .plot-floor:has(.work-choices) { padding: 6px 8px max(8px, env(safe-area-inset-bottom)); }
+  .plot-floor .plot-speech:has(.work-choices) { max-height: calc(100% - 6px); overflow-y: auto; overscroll-behavior: contain; }
+  .plot-speech:has(.work-choices) .plot-speech-row { padding: 10px 12px; }
+  .work-choices button { min-height: 44px; }
+}
 @media (prefers-reduced-motion: reduce) { .work-outcome, .work-changes { animation: none; } }

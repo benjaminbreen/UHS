@@ -64,6 +64,13 @@ export const versailles: Fair = {
   palace: louisQuatorze,
   role: "Courtier",
   finds,
+  posts: [["Courtier", /\bcourtier\b/, "courtier", 1], ["Cook", /\bcook\b/, "cook", 1], ["Secretary", /\b(?:clerk|scribe|secretary)\b/, "scribe", 1], ["King", /\bking\b/, "ruler", 0], ["Queen", /\bqueen\b/, "ruler", 0]],
+  residents: [
+    ["Louis XIV", "King", "male", 1638, 1701, 1715, "cabinet"],
+    ["Louis XV", "King", "male", 1710, 1728, 1774, "cabinet"],
+    ["Louis XVI", "King", "male", 1754, 1774, 1789, "cabinet"],
+    ["Marie Antoinette", "Queen", "female", 1755, 1774, 1789, "queens"],
+  ],
   ticket: 0,
   coin: ["livre", "livres"],
   prompt: /\bversailles\b|\bsun king\b/,

@@ -30,8 +30,9 @@ how they behave, and which art sets draw them. Entry files:
 - **Henhouses.** Where a yard kit (`src/content/settlements/yards.ts`) gives
   a household a henhouse and the yard has room, `plan.ts` builds a small
   walk-in building (`yard-henhouse-*`, claim `yard-henhouse`) and links the
-  household's flock to it by `house`. The flock goes in at dusk and is out of
-  sight and out of a predator's reach until morning (the sim reuses
+  household's flock to it by `house`. The flock routes around obstacles to
+  reach the henhouse at dusk and is out of sight and out of a predator's reach
+  until morning (the sim reuses
   `burrowed`), lays into `eggs` each day, and stays in while `shut`. Inside,
   the nest boxes give up the eggs and the perch shuts or opens the pop-hole.
   A raider from the raid plot is turned away by a shut henhouse and takes a

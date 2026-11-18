@@ -52,6 +52,17 @@ const newYorkFeatures: RegionalProfile["features"] = [
     evidence,
   },
   {
+    id: "hudson-harbor-reach",
+    kind: "sea",
+    geometry: [
+      [-74.057,40.698],[-74.058,40.720],[-74.054,40.740],[-74.044,40.760],[-74.031,40.780],
+      [-74.018,40.800],[-74.002,40.820],[-73.971,40.820],[-73.983,40.800],[-73.995,40.780],
+      [-74.004,40.760],[-74.010,40.740],[-74.013,40.720],[-74.017,40.704],
+    ],
+    dates: { start: { year: 1850 } },
+    evidence: {...evidence,note:"A widened playable Hudson fairway between Manhattan and the New Jersey waterfront. The banks are compressed map geometry."},
+  },
+  {
     id: "central-park",
     kind: "park",
     geometry: [

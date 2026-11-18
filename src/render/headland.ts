@@ -118,6 +118,65 @@ export type HeadlandStyle = {
   palette: Rgb[];
 };
 
+const nativeMargin = (c: TopographyCell) => c.habitat && !c.field && !c.feature && !c.pavement && !c.solid &&
+  !c.pathArt?.length && !c.ramp && !c.bridge && c.surface !== "water";
+
+export function openFieldMargin(sample: TopographySample, x: number, y: number, cell: TopographyCell) {
+  const planted = cell.field ? 1 : 0;
+  if (cell.field ? cell.field.rowSlope === undefined || cell.field.ditch || cell.field.yard : !nativeMargin(cell)) return;
+  const mask = new Uint8Array(9).fill(planted);
+  let outside = planted ? undefined : cell, edge = cell.field?.margin;
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    if (!dx && !dy) continue;
+    const c = sample(x + dx, y + dy);
+    if (!c || c.height !== cell.height) continue;
+    const i = 4 + dx + dy * 3;
+    if (c.field && c.field.rowSlope !== undefined && !c.field.ditch && !c.field.yard) {
+      mask[i] = 1;
+      edge ||= c.field.margin;
+    } else if (nativeMargin(c)) {
+      mask[i] = 0;
+      outside ??= c;
+    }
+  }
+  if (!edge || !outside || !mask.includes(1 - planted)) return;
+  // Interpolate the same four cell centres on either side of the tile seam.
+  const depth = (px: number, py: number) => {
+    const dx = px < 8 ? -1 : 1, dy = py < 8 ? -3 : 3;
+    const u = Math.abs(px - 7.5) / 16, v = Math.abs(py - 7.5) / 16;
+    const near = planted * (1 - u) + mask[4 + dx] * u;
+    const far = mask[4 + dy] * (1 - u) + mask[4 + dx + dy] * u;
+    return 16 * (near * (1 - v) + far * v - 0.5);
+  };
+  return { outside, depth };
+}
+
+export function paintOpenMargin(pixels: Uint8ClampedArray, native: Uint8ClampedArray, soil: Rgb,
+  gx: number, gy: number, depth: (px: number, py: number) => number, frozen: boolean) {
+  if (frozen) soil = mix(soil, [206, 212, 204], 0.6);
+  for (let py = 0; py < 16; py++) for (let px = 0; px < 16; px++) {
+    const d = depth(px, py);
+    if (d >= 7 || d <= -6) continue;
+    const wx = gx + px, wy = gy + py, i = (py * 16 + px) * 4;
+    const patch = noise(wx, wy, 17, 943);
+    const crumb = hash(Math.floor(wx / 2), wy, 947);
+    const cut = d + (patch - 0.5) * 3, lip = cut + (crumb - 0.5) * 2.4;
+    const earth = Math.round(Math.min(1, Math.max(0, (lip + 3.5) / 6.5)) * 5) / 5;
+    const bed = Math.round(Math.min(1, Math.max(0, (lip - 2) / 4)) * 5) / 5;
+    const turn = cut > 2 && cut < 3.1 && patch > 0.34 ? -18 : cut >= 3.1 && cut < 4.2 && patch > 0.37 ? 7 : 0;
+    const cx = Math.floor(wx / 5), cy = Math.floor(wy / 4), stone = hash(cx, cy, 951);
+    const sx = wx - cx * 5 - Math.floor(stone * 11), sy = wy - cy * 4 - Math.floor(hash(cx, cy, 953) * 3);
+    const clod = stone < 0.33 && sx >= 0 && sx < 2 && cut > -3.5 && cut < 2.8;
+    for (let k = 0; k < 3; k++) {
+      const ground = native[i + k], loam = soil[k] * 0.69 + ground * 0.31 + (crumb - 0.5) * 12;
+      const shoulder = ground + (loam - ground) * earth;
+      const row = pixels === native ? soil[k] : pixels[i + k];
+      pixels[i + k] = shoulder + (row - shoulder) * bed + turn +
+        (clod && sy === 0 ? 10 : clod && sy === 1 ? -18 : 0);
+    }
+  }
+}
+
 /** A line is broken where a block of a few pixels drops out. */
 const broken = (wx: number, wy: number, salt: number, gap = 0.12) =>
   hash(Math.floor(wx / 5), Math.floor(wy / 5), salt) < gap;

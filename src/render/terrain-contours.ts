@@ -1409,7 +1409,8 @@ function rasterWallContours(
       if (!cell || !dir) continue;
       const t = cell.height;
       const soil = soilFor(cell.habitat?.ecology, cell.habitat?.colorway);
-      const style = cell.rampStyle ?? "cut";
+      const landing = cell.rampStyle === "landing";
+      const style = landing ? "cut" : cell.rampStyle ?? "cut";
       const rampKit = kitFor(cell.habitat?.ecology, cell.habitat?.colorway);
       const turf = rampKit
         ? kitPalette(rampKit)
@@ -1648,7 +1649,12 @@ function rasterWallContours(
           let rgb: readonly number[];
           // Ground borrowed from the tiles either side already has its snow.
           let snowed = false;
-          if (style === "graded") {
+          const margin = Math.min(before*16+u,(after+1)*16-1-u);
+          if (landing && margin < 4) {
+            const peg = ((along ? wy : wx) % 18 + 18) % 18;
+            rgb = peg < 3 ? (peg === 0 ? [182,147,98] : timber) :
+              margin === 0 ? [74,55,39] : margin === 1 ? [164,126,83] : timberLight;
+          } else if (style === "graded") {
             // The street's own surface carried up the grade, a little darker.
             const c = cell.streetMaterial
               ? pavingStonePixel(

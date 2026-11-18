@@ -1,4 +1,8 @@
-import { crops } from "../content/agriculture/crops";
+import { isDockworker } from "../content/characters/city-work";
+import { cropStage, farmSystem, type Season } from "../content/agriculture";
+import { seasonIndex } from "./livelihood";
+import { isGrassTuft } from "../content/ecology/vegetation";
+import { crops, pickable } from "../content/agriculture/crops";
 import type { PlaceRole } from "../content/economy/processes";
 import { propDefs } from "../content/props/catalog";
 import type { Engine } from "./engine";
@@ -54,6 +58,11 @@ export function waterfrontMember(world: Engine["world"], household: Household) {
 export function findPlace(role: PlaceRole, ask: Ask): StepPlace | null {
   const { state: s, household } = ask, world = ask.world as World;
   const home = household.home, seed = s.manifest.seed;
+  const harbor = world.harbor?.();
+  const dockworker = isDockworker(s.player.role);
+  if (harbor && dockworker && role === "workplace") return {pos:outside(harbor.shed),label:"the pier freight warehouse"};
+  if (harbor && role === "shore" && (dockworker || /boatman|ferryman/i.test(s.player.role)))
+    return {pos:outside(dockworker ? harbor.crane : harbor.gate),label:"the working pier"};
   const fishing=waterfrontMember(world,household);
   if(fishing && role==="shore")return {pos:outside(fishing.landing),label:"your household's fishing landing"};
   if(fishing && role==="yard")return {pos:outside(fishing.sorting),label:"your catch-sorting table"};
@@ -220,7 +229,7 @@ export function findPlace(role: PlaceRole, ask: Ask): StepPlace | null {
 
 /** The parcel a household works: its own first, however far out, and grain
  * before garden stuff; the nearest field else. */
-export function fieldParcel(world: Engine["world"], household: Household): Parcel | undefined {
+export function fieldParcels(world: Engine["world"], household: Household): Parcel[] {
   const w = world as World, home = household.home;
   const plan = (household.residence && w.planOf?.(household.residence.replace(/-h\d+$/, ""))) ||
     w.planAt?.(Math.round(home.x), Math.round(home.y));
@@ -229,7 +238,58 @@ export function fieldParcel(world: Engine["world"], household: Household): Parce
   return (plan?.parcels ?? [])
     .filter((p) => p.state !== "abandoned" && p.crop !== "pasture")
     .sort((a, b) => Number(mine(b)) - Number(mine(a)) || Number(grain(b)) - Number(grain(a)) ||
-      distance(outside(a.access), home) - distance(outside(b.access), home))[0];
+      distance(outside(a.access), home) - distance(outside(b.access), home));
+}
+
+export function fieldParcel(world: Engine["world"], household: Household) {
+  return fieldParcels(world, household)[0];
+}
+
+export const fieldJobs = ["weed", "prepare", "plant", "harvest", "bank", "water"] as const;
+export type FieldJob = typeof fieldJobs[number];
+export type FieldPass = { id: string; job: FieldJob; cells: Point[]; count: number };
+export const fieldMinutes = { weed: 5, prepare: 10, plant: 6, harvest: 8, bank: 7, water: 6 };
+
+export function fieldWords(job: FieldJob, crop: Parcel["crop"], wet: boolean, setting: NonNullable<Engine["world"]["pack"]["setting"]>) {
+  const name = crops[crop].label.toLowerCase();
+  switch (job) {
+    case "weed": return { title: "Clear the weedy edge", verb: "Pull weeds", unit: "clumps cleared", note: "Pull the grass while leaving the crop standing." };
+    case "prepare": {
+      const hand = /andean|swidden|milpa/.test(farmSystem(setting).id) || /swidden/i.test(setting.role ?? "");
+      return wet ? { title: "Puddle a planting bed", verb: "Work the mud", unit: "beds puddled", note: "Soften the wet ground for transplanting." }
+        : { title: hand ? "Open planting holes" : "Loosen a planting row", verb: hand ? "Open a hole" : "Turn the soil", unit: "patches opened", note: "Break the bare earth along the row for the next planting." };
+    }
+    case "water": return { title: "Water the young crop", verb: "Water seedlings", unit: "patches watered", note: "Lift water from the bank onto the roots. The soil stays damp today." };
+    case "bank": return { title: `Firm the soil around the ${name}`, verb: "Firm the soil", unit: "patches tended", note: "Draw loose soil up around the growing stems." };
+    case "plant": return { title: wet ? `Transplant ${name}` : `Sow ${name}`, verb: wet ? "Set seedlings" : "Plant seed", unit: "patches planted", note: "Plant the prepared soil using seed from the household store." };
+    case "harvest": return { title: `Bring in the ${name}`, verb: "Gather the crop", unit: "patches harvested", note: "Take the ripe crop off this row for the household store." };
+  }
+}
+
+export function onParcel(world: Engine["world"], parcel: Parcel, p: Position) {
+  const r = parcel.rect;
+  if (p.space !== "outside" || p.x < r.x - 1 || p.y < r.y - 1 || p.x > r.x + r.w || p.y > r.y + r.h) return false;
+  return [[0,0], [1,0], [-1,0], [0,1], [0,-1]].some(([dx,dy]) => {
+    const x = p.x + dx, y = p.y + dy;
+    return x >= r.x && y >= r.y && x < r.x+r.w && y < r.y+r.h && world.topography?.(x,y)?.field?.parcel === parcel.id;
+  });
+}
+
+/** Jobs available on this particular cell, before anyone commits a stroke. */
+export function cellJobs(world: Engine["world"], state: Snapshot, at: Point, season: Season, seedStock: number): FieldJob[] {
+  const f = world.topography?.(at.x, at.y)?.field, setting = world.pack.setting;
+  if (!f || !setting || f.garden || f.yard || f.ditch || f.flood || f.crop === "pasture") return [];
+  const edit = state.tiles?.[`${at.x},${at.y}`], jobs: FieldJob[] = [];
+  if (isGrassTuft(world.decoration(at.x, at.y)?.sprite)) jobs.push("weed");
+  if (!f.wet && !edit?.dug && (f.stage === "sown" || f.stage === "green")) {
+    if (edit?.banked !== seasonIndex(state.clock)) jobs.push("bank");
+    if (edit?.watered === undefined && [[0, 1], [1, 0], [0, -1], [-1, 0]].some(([dx, dy]) =>
+      world.topography?.(at.x + dx, at.y + dy)?.surface === "water")) jobs.push("water");
+  }
+  if (f.stage === "ripe" && (edit?.picked === undefined || seasonIndex(edit.picked) !== seasonIndex(state.clock)) && pickable(crops[f.crop])) jobs.push("harvest");
+  if ((f.stage === "bare" || f.stage === "stubble") && !edit?.dug && !edit?.sowing) jobs.push("prepare");
+  if (edit?.dug && !edit.sowing && seedStock >= 1 && crops[f.crop].kind === "grain" && cropStage(f.crop, season, setting.lat) === "sown") jobs.push("plant");
+  return jobs;
 }
 
 /** Open ground 25 to 60 cells from the house: no building, no field, no water. */

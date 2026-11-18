@@ -73,6 +73,16 @@ props out in whatever rectangle is left. A European city from 1850 makes
 most such ground a railed garden square (lawn, a gravel walk, planes, benches,
 a statue) and keeps no kitchen plots, pens or threshing floors.
 
+Western Zhou farms and villages in the northern Yellow River region use an
+inferred household layout. Thatched timber-and-earth houses open onto swept
+ground with a millet mortar and a gathering basket where space permits.
+Household beds grow millet or beans behind low earthen walls or wattle.
+
+In Oaxaca and other towns using the same courtyard shop kit, the planner
+favours fronts used less often by neighbouring shops of the same size. Oaxaca
+has a cut-stone doorway, a taller arched doorway and a low shop with its
+counter on the left.
+
 ### Industrial and motor-age cities
 
 - **Street-wall cores.** Once a region has industrialised (`modernity.ts`) and
@@ -170,7 +180,52 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
   row apart, each run stopping at the shore, and one row to each block.
 - Manhattan is drawn a quarter wider than the atlas has it (`manhattan-land`
   in `regions/north-america.ts`), most of it taken from the Hudson, so its
-  avenues fit. The region map still shows the atlas's island.
+  avenues fit. The local lower-Hudson water polygon from 1850 gives the working waterfront a navigable channel on its west side. The region map still shows the atlas's island.
+- **Edo fishing landings.** A graded earth approach with timber edging leads to a short plank stage. The household’s wasen rides alongside on a slack line. Open bays in the gear store hold rope and sculls. Net rails and sorting trays stand on worn earth, with carrying baskets and a hooped tub where the yard has room. Fishers board from the end of the stage.
+- **Docklands.** An industrial city or port of 100,000 or more (`docklands`
+  in `content/settlements/waterfronts.ts`) has a built shore instead of a
+  beach or fishing landing. `bulkhead` in `v3/shoreline.ts` reads the natural
+  shore off a 12-cell lattice, which straightens it into runs at the coast's
+  own angle, and runs timber piers out from it square to the grid, 28 cells
+  apart, 20 cells long or 12 where the water is narrow. The environment takes
+  that as the place's water distance, so everything downstream sees the made
+  shore. It covers the city's own map, on ground joined to the centre: a far
+  bank and a stream too narrow to berth in keep their natural banks. Behind
+  the wall is a 3.75-cell apron of granite setts, level with the ground back
+  to the first terrace; nothing is built within four cells of the water, as
+  on any shore. In North American, British and western European steam ports
+  from 1885 through 1955, two suitable neighbouring east- or west-facing piers
+  can take a working ferry house and sawtooth freight shed. Cast-iron railings
+  line the front and back of the ferry court. Face the swing gate and press F
+  to open or close it. At the booth, F buys a printed ferry ticket for one unit
+  of local currency. A flat-roofed dispatch store fits where the yard has room. The crossing requires
+  a reachable far bank and the coaster needs room to clear the pier and turn upriver.
+  A double-ended ferry calls every ten minutes, with four minutes alongside.
+  Travellers board at either landing. Longshore workers carry freight between
+  the crane and the warehouse. The hourly grain consignment passes from the
+  cargo sling to warehouse stock and then to the freight wagon. The crane
+  takes six cases per call from the open hatch, slews over the pier and lowers
+  each onto the growing stack. The warehouse tally advances when the sling
+  lets go. A platform truck beside the siding carries the outgoing cases until
+  the wagon departs. A wheelbarrow stands by the loading doors. Where there
+  is room, a delivery truck collects consignments outside dispatch. Other motor-era docks
+  can have a concrete loading bay at the landward end of a pier. The pre-1950
+  truck has a bonnet and canvas body. The later truck has a forward cab and
+  ribbed freight box. Both vary in wheelbase and paint by seed and turn through
+  eight headings. A clear route to a nearby building gives the lorry driver a
+  delivery round. The driver walks from the cab to the tailboard, transfers
+  grain, and spends about an hour inside the receiving building. At an
+  unattended cab, F takes the truck. Movement keys steer and F parks it.
+  The load stays aboard when the player takes over.
+  Players can work the sling or take the crossing at the
+  departures board. A double-track yard serves the warehouse. The railheads,
+  tie plates and worn timber sleepers sit flush with the quay setts. Iron
+  bollards stand on the coping between piers. Wheel-polished stone runs from
+  the pier and siding to the dispatch doors and the street. The loading banks
+  and ferry walk have raised granite curbs with lowered crossings. Stone
+  channels take runoff through iron grates toward the quay. Where a nearby main line leaves room,
+  a curved lead joins the yard.
+  A dockworker starts on the freight apron.
 - `npx tsx scripts/town-sheet/density.ts "New York 1930" "Chicago 1950"`
   counts a generated city's buildings, tall buildings, towers and strip
   shops over the whole map. Run it before and after changing layout.
@@ -298,3 +353,19 @@ its own module.
 - `npm run capture:terrain -- cities` (also `streets`, `placements`).
 - Tests: `settlements`, `urban`, `urban-form`, `road-network`,
   `regional-roads`, `street-rendering`, `city-panel`.
+
+
+### Dhow anchorages
+
+A coastal dhow yard with enough clear water can support a trading dhow offshore
+and an open lighter beside the launching way. The planner checks the sailing
+circuit and the walk from the landing to the yard store. Both boats have a
+named pilot, an inventory and eight headings. Hull finish and sheer vary by
+seed. Sailcloth and its ties vary independently, with a locally common cloth
+for each cultural family and century. Rigging, people and cloth bales are separate layers.
+
+The lighter loads cloth alongside the trader and discharges it at the landing.
+A porter carries a bale to the store. The player can carry one for a fee, take
+the lighter out, transfer to the dhow alongside, or land the cargo themselves.
+Inspect the vessel to see the available actions. Near the landing, stepping
+ashore leaves the boat at its mooring.

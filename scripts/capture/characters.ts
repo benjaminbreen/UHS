@@ -665,7 +665,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       const { places } = await import("/src/content/geography/places.ts" as string);
       const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
       const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
-      const where = [["london", 1895], ["paris", 1912], ["city-chicago", 1925], ["city-anchorage", 1939], ["london", 1942], ["city-new-york", 1955]];
+      const where = [["london", 1895], ["paris", 1912], ["city-chicago", 1925], ["city-anchorage", 1939], ["london", 1942], ["city-new-york", 1955], ["ahrensburg", 1991], ["city-seoul", 2001], ["city-chicago", 2015]];
       const who = [["female", 34, "Laundry Worker"], ["male", 40, undefined], ["female", 62, undefined], ["male", 26, "Factory Hand"], ["female", 22, undefined], ["male", 58, undefined]];
       const W = 96, H = 120, cell = 48 + W, cols = who.length;
       const out = document.createElement("canvas");

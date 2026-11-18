@@ -9,6 +9,7 @@ import { culturalThemes } from "../src/audio/cultural-themes";
 import { compose, type Arrangement } from "../src/audio/score";
 import { situationThemes } from "../src/audio/situation-themes";
 import { layeredThemes } from "../src/audio/layered-themes";
+import { interiorThemes } from "../src/audio/interior-themes";
 
 const output = join(process.cwd(), "public/audio/previews");
 await mkdir(output, { recursive: true });
@@ -47,7 +48,7 @@ const previews: Arrangement[] = [
 const wanted = process.argv.slice(2);
 if (wanted.length) {
   previews.push(
-    ...[...situationThemes(), ...layeredThemes].map((t) => ({
+    ...[...situationThemes(), ...layeredThemes, ...Object.values(interiorThemes)].map((t) => ({
       themeId: t.id,
       season: "spring" as const,
       period: "day" as const,

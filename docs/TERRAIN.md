@@ -63,6 +63,14 @@ surface, lat/lon and ecoregion; Cmd- or Ctrl-click a cell in play to call it.
   silhouettes; `field-raster.ts` draws farmed ground; `material-edges.ts` owns
   the path field. Path strokes are simplified in `src/world/v3/path-art.ts`
   for drawing only; routes stay authoritative.
+- **Farmland.** Level fields follow the parcel grid. On benches and riverbanks
+  each plot takes its row direction from the local slope or shoreline. Crop
+  rows and hand-worked soil follow that direction. At open margins, furrows
+  taper through loose earth into the surrounding sand or turf. Cuttable tufts
+  grow in patches along the edge, sparser and straw-coloured on dry ground.
+  Raised banks and footways join across tile edges. A short strip near the entrance to a
+  cereal plot is kept open for planting. Sheaves stand at cereal-field edges
+  in harvest and stubble seasons and leave the underlying crop cells intact.
 - **Streets.** `src/content/settlements/streets/` chooses material by place
   and date; `street-raster.ts` and `carriageway.ts` draw it (see
   [SETTLEMENTS.md](SETTLEMENTS.md)).

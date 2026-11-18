@@ -9,7 +9,8 @@ import { lifewayHouses, vernacularHouses } from "../graphics/regional-houses";
 export type WaterfrontProfile = {
   id:string; years:readonly [number,number]; bounds:readonly [number,number,number,number];
   craft?:"clinker"|"wasen"|"papyrus"; method?:FishingMethod; home:string; gear:string; boat:string; nets:string; sorting:string;
-  households:readonly [number,number]; waters?:readonly ("sea"|"river"|"lake")[]; revision?:number; cultures?:readonly WorldSetting["culture"][];
+  pier?:boolean; households:readonly [number,number]; waters?:readonly ("sea"|"river"|"lake")[]; revision?:number; cultures?:readonly WorldSetting["culture"][];
+  containers?:readonly {prop:string;name:string;fish?:number}[];
   gearInterior?:{wall:Look["wall"];floor:Look["floor"];door:InteriorProfile["door"];windows:InteriorProfile["windowStyle"]};
   practice?:{boat:string; boatDescription:string; homeDescription:string; gearDescription:string;
     nets:string; catch:string; prepare:string; receive:string; landingActivity:"work"|"haul"; sort:string; share:string};
@@ -23,9 +24,10 @@ export const waterfrontProfiles:readonly WaterfrontProfile[]=[{
     "https://www.museumnord.no/en/our-venues/"],
   note:"A reconstructed small northern European fishing waterfront: permanent shore households, gear stores, open clinker boats and shared landing access. This is not a surveyed fishing village or seasonal crew lodging. Preservation methods and offshore voyages are not inferred from these buildings.",
 },{
-  id:"edo-inshore-fishing",craft:"wasen",method:"net",revision:6,cultures:["east-asian"],years:[1750,1868],bounds:[129,30,142,41],
+  id:"edo-inshore-fishing",pier:true,craft:"wasen",method:"net",revision:6,cultures:["east-asian"],years:[1750,1868],bounds:[129,30,142,41],
   home:"worksite-plank-fishing-house",gear:"worksite-plank-fishing-store",
   boat:"worksite-plank-skiff",nets:"worksite-net-rail",sorting:"worksite-fish-trays",
+  containers:[{prop:"taru",name:"Hooped tub for the catch",fish:2},{prop:"liddedBasket",name:"Covered carrying basket"}],
   households:[2,3],sources:["https://www.britishmuseum.org/collection/object/A_1910-0614-0-16-1-3",
     "https://traditionalwoodenboat.jpn.org/"],
   note:"Late Edo inshore and river fishing. Broad-planked open boats with a stern scull, timber shore houses and stores, net repair and fresh-catch handling. A reconstruction of ordinary working spaces, not a surveyed village; it does not generalise specialised whitebait lift nets or offshore fleets to every landing.",
@@ -56,6 +58,11 @@ export function waterfrontFor(s:WorldSetting) {
     (s.worksiteRevision??1)>=(p.revision??4) && (!p.cultures || p.cultures.includes(s.culture)) && s.year>=p.years[0] && s.year<p.years[1] && s.lon>=p.bounds[0] && s.lat>=p.bounds[1] && s.lon<=p.bounds[2] && s.lat<=p.bounds[3]) : undefined;
 }
 
+/** An industrial metropolis has docks on its shore: a bulkhead and made
+ * ground, not a beach or a fishing landing. */
+export const docklands=(s:WorldSetting)=>
+  industrialized(s) && (s.settlement==="port" || s.settlement==="city") && (s.population??0)>=100000;
+
 const shelters:Record<WorldSetting["architecture"],[string,string]>={
   mudbrick:["worksite-earth-fishing-house","worksite-reed-gear-shelter"],courtyard:["worksite-earth-fishing-house","worksite-reed-gear-shelter"],
   timber:["worksite-fishing-cottage","worksite-fishing-gear"],classical:["worksite-fishing-cottage","worksite-fishing-gear"],
@@ -69,8 +76,7 @@ export function fishingWaterfront(s:WorldSetting):WaterfrontProfile|undefined {
   if(authored || (s.worksiteRevision??1)<7 || s.settlement==="camp" || s.settlement==="farm" || !waterOf(s) || !Object.keys(hullWeights(s)).length)return authored;
   // A people that builds its own village form keeps it: a ring or a row of
   // its own houses, not stand-in shore houses outside it.
-  // An industrial metropolis has docks, not a fishing landing on its shore.
-  if(industrialized(s) && (s.settlement==="port" || s.settlement==="city") && (s.population??0)>=100000)return;
+  if(docklands(s))return;
   const way=lifeway(s);
   if(way && lifewayHouses(way,s).length)return;
   const [stand,gear]=shelters[s.architecture];

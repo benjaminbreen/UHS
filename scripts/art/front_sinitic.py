@@ -248,6 +248,8 @@ class Hall:
             fm.render(c, x, y, w, h, WHITE)
         elif kind == 'brick':
             fm.brick(c, x, y, w, h, GREY_BRICK, mortar=MORTAR)
+        elif kind == 'daub':
+            fm.render(c, x, y, w, h, EARTH)
         elif kind == 'earth':
             for yy in range(y, y + h):
                 lay = (yy - y) // 7
@@ -497,7 +499,20 @@ class Hall:
         self.door_x = cx
         dw, dh = 24, 46
         post = POSTS[s['posts']]
-        if s['door'] == 'stone':
+        if s['door'] == 'mat':
+            for post_x in (x0 + 2, x1 - 5):
+                c.rect(post_x, top, 3, h, TIMBER[4])
+                c.rect(post_x, top, 1, h, TIMBER[2])
+            left, head = cx - dw // 2, foot - dh
+            c.rect(left - 2, head - 3, dw + 4, dh + 3, TIMBER[4])
+            c.rect(left, head, dw, dh, VOID)
+            fall = 10 + s['seed'] % 12
+            for y in range(fall):
+                c.rect(left, head + y, dw, 1, STRAW[(3, 4, 5)[y % 3]])
+            for x in (left + 4, left + dw - 5):
+                c.rect(x, head, 1, fall + 2, TIMBER[5])
+            c.rect(left - 3, head - 4, dw + 6, 2, TIMBER[2])
+        elif s['door'] == 'stone':
             # a dark stone frame, its lintel standing proud
             fx = cx - dw // 2 - 5
             for yy in range(foot - dh - 6, foot):
@@ -520,13 +535,19 @@ class Hall:
             self.door_hood(cx, foot - dh - (8 if s['door'] == 'stone' else 6), dw + 22)
         # windows: small and high, framed in stone
         ww, wh = 16, 16
-        spots = [x0 + 18, x1 - 18 - ww]
+        inset = 7 if s['door'] == 'mat' else 18
+        spots = [x0 + inset, x1 - inset - ww]
         if x1 - x0 > 150:
             spots += [x0 + (cx - x0) // 2 - ww // 2, cx + (x1 - cx) // 2 - ww // 2]
         for wx in spots:
             if abs(wx + ww // 2 - cx) < dw // 2 + 18:
                 continue
             wy = top + 12
+            if s['door'] == 'mat':
+                c.rect(wx, wy, ww, 10, VOID)
+                for xx in range(wx + 2, wx + ww, 5):
+                    c.rect(xx, wy, 2, 10, TIMBER[3])
+                continue
             self.lattice(wx, wy, ww, wh, s['lattice'], DARK_TIMBER)
             for xx in range(wx - 3, wx + ww + 3):
                 c.p(xx, wy + wh + 2, STONE[1]); c.p(xx, wy + wh + 3, STONE[3])
@@ -588,6 +609,10 @@ class Hall:
         k_hip = 0.6
         mid = top + round(rise * 0.42) if form == 'xieshan' else top
         thatch = s['roof'] in ('thatch', 'rice')
+        straw = None
+        if s['door'] == 'mat':
+            straw = C(R - L, rise + 1)
+            fm.thatch(straw, 0, 0, straw.w, straw.h, STRAW, course=13)
         for x in range(L - 2, R + 2):
             yb = eave - self.lift(x)
             for y in range(top - 2, yb + 1):
@@ -604,7 +629,11 @@ class Hall:
                 if y < top:
                     continue
                 t = (y - top) / max(1, yb - top)
-                if thatch:
+                if straw:
+                    col = straw.g(x - L, y - top)
+                    if hip and x >= R - round(rise * k_hip) + inset // 2:
+                        col = mix(col, STRAW[6], 0.35)
+                elif thatch:
                     col = thatch_px(x, y, RICE_STRAW if s['roof'] == 'rice' else STRAW, top, s['roof'] == 'rice')
                     if hip and x < l + (inset // 2 + 1):
                         col = mix(col, (255, 244, 220, 255), 0.0)
@@ -838,6 +867,8 @@ class Hall:
                         stone=set(), sills=self.sills, chimneys=[]), s['wear'], s['seed'])
         if info is not None:
             info.update(x0=self.x0, W=self.W, base=self.base - 1, door_x=self.door_x, door_h=self.door_h)
+            if s['door'] == 'mat':
+                info['leaf'] = False
         self.roof_span = (self.x0 - self.over, self.x0 + self.W + self.over)
         self.stacks = []
         finish(c)
@@ -2082,6 +2113,9 @@ def house_spec(p, size, v, w, W, fn):
         return dict(base, form='xieshan', front='timber', sill='white', door='leaves', plinth=12,
                     wall_h=54, beam='caihua' if size == 'grand' else 'bare', brackets=size == 'grand')
     if p == 'early-chinese':
+        if (size == 'small' and v < 2) or (size == 'medium' and v == 0):
+            return dict(base, form='gable' if v else 'hip', front='wall', wall='daub', roof='thatch',
+                        posts='timber', door='mat', plinth=0, wall_h=52, rise=30 + 4 * v)
         thatch = poor or size == 'tiny'
         if size in ('tiny', 'small'):
             return dict(base, form='hip', front='wall', wall='earth', roof='thatch' if thatch else 'tile',

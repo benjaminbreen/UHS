@@ -31,12 +31,12 @@ function arrive(h: ComplexHost, space: string, from?: string) {
 }
 
 /** In at the gate, paying unless `free`. */
-export function fairEnter(h: ComplexHost, fair: Fair, free = false) {
+export function fairEnter(h: ComplexHost, fair: Fair, free = false, room = fair.entry) {
   const p = h.state.player;
   if (!free && (p.inventory.coin ?? 0) < fair.ticket) return void h.event(fair.words.short);
   if (!free) p.inventory.coin = (p.inventory.coin ?? 0) - fair.ticket;
   h.state.complex = { kind: "fair", fair: fair.id, name: fair.name, entry: fairSpace(fair.id, fair.entry), out: { x: p.pos.x, y: p.pos.y } };
-  const level = arrive(h, fairSpace(fair.id, fair.entry));
+  const level = arrive(h, fairSpace(fair.id, room));
   if (!level) return void delete h.state.complex;
   h.event(`${free ? "" : `${fair.words.gate ?? "You push through the turnstile."} `}${fair.name[0].toUpperCase()}${fair.name.slice(1)}: ${level.name}, ${fair.words.enter}`, "world");
 }

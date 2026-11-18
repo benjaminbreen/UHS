@@ -87,6 +87,8 @@ export type WorkSite = {
   offset: number;
 };
 export type SettlementPlan = {
+  anchorage?: import("./harbor").Anchorage;
+  harbor?: import("./harbor").Harbor;
   waterfront?: {
     id:string; profile:string; repairYardId?:string; landingId:string;
     preserve?:import("../../content/economy/fishing").Preserve;
@@ -94,7 +96,7 @@ export type SettlementPlan = {
       landing:Point; launch:import("./shoreline").Launch; nets:Point; sorting:Point;
       practice?:import("../../content/economy/fishing").FishingPractice; grounds?:Point[];
       process?:{id:string; pos:Point};
-      handling?:{kind:"beach"|"timber-steps"; yard:Rect; sale:Point; basketId?:string; gear:Point}}[];
+      handling?:{kind:"beach"|"timber-steps"|"earth-ramp"; yard:Rect; sale:Point; basketId?:string; gear:Point}}[];
   };
   launches?: import("./shoreline").Launch[];
   site: Site;

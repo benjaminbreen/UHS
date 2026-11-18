@@ -267,6 +267,15 @@ const buckinghamPeople: SewerPerson[] = [
 
 const atWhiteHouse = household([1818, 1900]);
 const whiteHousePeople: SewerPerson[] = [
+  household([1859, 2026])("senate-clerk", "Senate clerk", "civil-servant", "Preparing the roll", "work", [
+    "I'll read the names as soon as the vote begins.",
+  ], { ages: [22, 65], note: "A composite Senate clerk.", basis: "inferred" }),
+  household([1859, 2026])("senate-member", "Senator", "statesman", "Reading a bill", "work", [
+    "I want to hear the amendment before I vote.",
+  ], { ages: [30, 75], note: "A composite senator taking part in a floor debate.", basis: "inferred" }),
+  household([1935, 2026])("wh-aide", "White House aide", "civil-servant", "Checking the schedule", "work", [
+    "The next appointment is here. I'll bring the papers in.",
+  ], { ages: [22, 65], note: "A composite member of the West Wing office staff.", basis: "inferred" }),
   atWhiteHouse("wh-caller", "Caller", "merchant", "Come to see the house", "explore", [
     "It is our house, so I walked in. Nobody asked my name.",
     "On reception days you stand in line, shake his hand and are out of the door in a minute.",

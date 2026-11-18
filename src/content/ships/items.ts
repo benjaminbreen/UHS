@@ -5,6 +5,7 @@ const def = (id: string, name: string, sprite: string, value: number, descriptio
 
 /** Rations and cargo aboard ship. */
 export const shipItems: Record<string, ItemDef> = Object.fromEntries([
+  def("ferry-ticket", "Ferry ticket", "papyrus", 0, "A printed passenger ticket with a numbered stub and a space for the conductor’s punch."),
   def("ships-biscuit", "Ship's biscuit", "bread", 1, "Hard flat bread baked twice so it keeps for years. Knock it on the table before you bite.", { edible: 14 }),
   def("salt-meat", "Salt meat", "meat", 2, "Beef or pork packed in brine in a cask. Soak it first or it will make you thirsty all day.", { edible: 22 }),
   def("ship-rice", "Rice and salt fish", "grain", 1, "A bowl of rice with a strip of salted fish on top.", { edible: 24 }),

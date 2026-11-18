@@ -37,6 +37,11 @@ export type TopographyCell = {
   pavement?: import("../world/v3/types").Pavement;
   lane?: import("../world/v3/types").Lane;
   streetGeometry?: import("../world/v3/street-geometry").StreetGeometry;
+  wharf?: true;
+  wharfDrain?: import("../world/v3/harbor").WharfDrain;
+  wharfPlatform?: import("../world/v3/harbor").WharfPlatform;
+  /** Cart strokes in world cells, shared across the paved yard. */
+  cartWear?: PathStroke[];
   loadingBay?: import("../world/v3/types").Rect;
   track?: import("../world/v3/types").Track;
   streetMaterial?: import("../content/settlements/streets").StreetMaterial;
@@ -71,6 +76,8 @@ export type TopographyCell = {
     parcel: number;
     crop: import("../content/agriculture/types").CropId;
     axis: "x" | "y";
+    rowSlope?: number;
+    unplanted?: true;
     edges: number;
     boundary: import("../content/agriculture/types").Boundary;
     wet: boolean;
@@ -83,7 +90,8 @@ export type TopographyCell = {
     flood?: boolean;
     /** Edges, same bits, where a terrace wall drops to the bench below. */
     riser?: number;
-    cut?: number;
+    footway?: number;
+    margin?: number;
     /** Inside a household's or church's yard rather than the farmland. */
     yard?: boolean;
     garden?: boolean;
@@ -114,6 +122,9 @@ export type TopographyCell = {
     shoreWidth: number;
     flow: readonly [number, number];
     frozenMargin: boolean;
+    /** A city's bulkhead or pier: the shore is a wall, not a beach, and the
+     * ground behind it is laid with this. */
+    quay?: "sett" | "plank";
     /** Unit gradient of `distance` at the cell centre, for narrow streams. */
     gradient?: readonly [number, number];
     /** Walkable ice; "floes" is broken pack drifting on open water. */
@@ -130,16 +141,22 @@ export type TopographyCell = {
   /** On the lower tile, pointing toward its one-tier-higher neighbor. */
   ramp?: Direction;
   /** How the ramp is drawn; movement does not read it. */
-  rampStyle?: "cut" | "slope" | "steps" | "sand" | "timber" | "graded";
+  rampStyle?: "cut" | "slope" | "steps" | "sand" | "timber" | "graded" | "landing";
   /** How a settlement walls a step below this cell; absent, an earth bank.
    * Presentation only. */
   edge?: import("../content/settlements/terraces").EdgeStyle;
   bridge?: boolean;
+  pier?: boolean;
   solid?: boolean;
   /** Knee-high: a jump passes over it, but nobody lands on it. A pot in a
    * doorway should cost a hop, not a detour. */
   over?: boolean;
 };
+export function acrossFieldRow(field: NonNullable<TopographyCell["field"]>, x: number, y: number) {
+  const slope = field.rowSlope ?? 0;
+  return field.axis === "x" ? y - slope * x : x - slope * y;
+}
+
 export type TopographySample = (
   x: number,
   y: number,

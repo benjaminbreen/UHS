@@ -35,6 +35,32 @@ function strain(r: Resource, clock: number) {
   r.takenAt = clock;
   r.readyAt = clock + r.regrowSeconds * (1 + 0.25 * (r.strain - 1));
 }
+export const BASKET_SIZE = 6;
+export function foodPatch(o: WorldObject, season: string) {
+  const r = o.resource;
+  return r && ["berries", "fruit", "greens", "roots", "acorn"].includes(r.item) && r.seasons.includes(season);
+}
+function takeFromPatch(o: WorldObject, item: ItemId, count: number, clock: number) {
+  o.inventory[item] = (o.inventory[item] ?? 0) - count;
+  o.depleted = !Object.values(o.inventory).some(n => n && n > 0);
+  if (o.depleted && o.resource) strain(o.resource, clock);
+}
+export function pickHandful(a: Actor, o: WorldObject, clock: number, season: string) {
+  const item = o.resource?.item;
+  if (!item || !foodPatch(o, season) || o.depleted || !(o.inventory[item] ?? 0) || distance(a.pos, o.pos) > 1.5 ||
+    a.basket && (a.basket.item !== item || a.basket.count >= BASKET_SIZE)) return false;
+  takeFromPatch(o, item, 1, clock);
+  (a.basket ??= { item, count: 0 }).count++;
+  return true;
+}
+export function emptyBasket(a: Actor, store: WorldObject) {
+  const b = a.basket;
+  if (!b || distance(a.pos, store.pos) > 2.2) return;
+  store.inventory[b.item] = (store.inventory[b.item] ?? 0) + b.count;
+  store.depleted = false;
+  delete a.basket;
+  return b;
+}
 /** The same finite transfer is used by player harvesting and NPC work. */
 export function harvestResource(a: Actor, o: WorldObject, clock: number) {
   if (o.depleted || distance(a.pos, o.pos) > 2.2) return false;
@@ -43,11 +69,9 @@ export function harvestResource(a: Actor, o: WorldObject, clock: number) {
     const item = key as ItemId;
     a.inventory[item] = (a.inventory[item] ?? 0) + (n ?? 0);
     amount += n ?? 0;
-    o.inventory[item] = 0;
+    if (n) takeFromPatch(o, item, n, clock);
   }
   if (!amount) return false;
-  o.depleted = true;
-  if (o.resource) strain(o.resource, clock);
   return true;
 }
 const arms = ["rifle", "spear", "halberd", "glaive", "musket", "bow", "macuahuitl", "crossbow", "sling"];

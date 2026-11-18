@@ -197,6 +197,8 @@ def spec_for(name, r):
     elif base.startswith('eastasian-courtyard'):
         # a compound is wide already; at the houses' scale it would fill a block
         nw = max(3, round(fw * 1.2))
+    elif base in ('eastasian-house-early-chinese-small-0', 'eastasian-house-early-chinese-small-1'):
+        nw = 6
     got = sino.spec_for(base, r, nw, fh)
     return got and (got, (nw, fh))
 
@@ -296,7 +298,10 @@ def adopt(recipes):
         r.pop('shadowFrame', None)
         r['footprint'] = [fw, fh]
         r['entrance'] = [fw // 2, fh]
-        if spec[0] == 'izba' or spec[0] == 'wa-small' and spec[1]['region'] == 'levantine':
+        if spec[0] == 'sino-hall' and spec[1].get('door') == 'mat':
+            r.update(wall='mud-plaster', roofMaterial='thatch', attachments=[])
+        if (spec[0] == 'izba' or spec[0] == 'wa-small' and spec[1]['region'] == 'levantine'
+                or spec[0] == 'sino-hall' and spec[1].get('door') == 'mat'):
             info = {}
             BUILDERS[spec[0]](spec[1], info)
             left = info['x0'] + info['W'] / 2 - fw * 8

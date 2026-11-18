@@ -68,8 +68,8 @@ dress built from shared parts (`eu-18c-suit`, `eu-18c-gown` in
 `leggings: "breeches"` shows stockings and buckled shoes, and
 `silhouette: "pannier"` opens a gown over its petticoat.
 
-The shared clothes of the present are in `regions/contemporary.ts`: T-shirts
-(`motif: "tee"` and `"graphic"`), `leggings: "jeans"` and `"shorts"`, a zipped
+The shared clothes of the present are in `regions/contemporary.ts`: crew-neck T-shirts
+(`garment: "tee"`, with plain, printed and sports variants), `leggings: "jeans"` and `"shorts"`, a zipped
 `waistcoat: "jacket"`, printed dresses (`motif: "floral"`) and
 `bag: "backpack"`. Each kit carries a `share`, so in every place some people
 wear the whole look and the rest keep the region's dress; the share is lower

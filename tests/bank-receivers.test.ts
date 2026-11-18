@@ -110,3 +110,19 @@ it("casts only onto visible ground and assigns its actual projected row", () => 
   expect(count).toBeGreaterThan(100);
   expect(rasterBankShadows(rims, cells, [0, 0], 0, mask)).toBeUndefined();
 });
+
+it("casts a raised wharf curb across chunk edges and leaves the dropped crossing open", () => {
+  const wharfPlatform = {x:16,y:4,w:5,h:3,gateX:18,rise:6,finish:"brick" as const};
+  const cells = Array.from({length:32*32},()=>({height:0,surface:"gravel" as const,wharfPlatform}));
+  const shadow = (originX: number, sun: [number,number], x: number,y: number) => {
+    const layers = rasterBankShadows([],cells,sun,.3,undefined,{x:originX,y:0}) ?? [];
+    return layers.some(l=>{
+      const dx=x-originX*16-l.x,dy=y-l.y;
+      return dx>=0 && dx<l.width && dy>=0 && dy<l.height && l.pixels[(dy*l.width+dx)*4+3]>0;
+    });
+  };
+  expect(shadow(0,[-1,0],254,85)).toBe(true);
+  expect(shadow(0,[1,0],254,85)).toBe(false);
+  expect(shadow(16,[0,1],267,119)).toBe(true);
+  expect(shadow(16,[0,1],296,115)).toBe(false);
+});

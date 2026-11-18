@@ -1,3 +1,4 @@
+import type { Point } from "../../core/types";
 import { preparedSite, type PreparedSite } from "../v3/prepared";
 import { random } from "../../core/random";
 import { settlementProfile } from "../../content/settlements/profiles";
@@ -260,8 +261,11 @@ export function regionalSettlements(
           for (let x = q.x - built + 4; x < q.x + built; x += 8)
             if (site.accepts(x, y)) held.push({ x, y });
         const mid = { x: held.reduce((t, c) => t + c.x, 0) / (held.length || 1), y: held.reduce((t, c) => t + c.y, 0) / (held.length || 1) };
-        if (held.length && Math.hypot(mid.x - q.x, mid.y - q.y) > built * 0.15)
-          site.center = held.reduce((best, c) => Math.hypot(c.x - mid.x, c.y - mid.y) < Math.hypot(best.x - mid.x, best.y - mid.y) ? c : best);
+        if (held.length && Math.hypot(mid.x - q.x, mid.y - q.y) > built * 0.15) {
+          const nearer=(best:Point,c:Point)=>Math.hypot(c.x-mid.x,c.y-mid.y)<Math.hypot(best.x-mid.x,best.y-mid.y) ? c : best;
+          const centre=held.reduce(nearer);
+          site.center=sample(centre.x,centre.y).water>=5 ? centre : usable.reduce(nearer);
+        }
       }
       result.push(site);
     }

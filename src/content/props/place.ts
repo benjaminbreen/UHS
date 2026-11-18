@@ -299,7 +299,7 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
       done.add(o.id);
       unindex(o);
       const planned = world.generatorVersion === 3 &&
-        (!!o.prop || /^study-(prop|classical)/.test(o.sprite) || o.sprite.startsWith("worksite-"));
+        (!!o.prop || /^study-(prop|classical)/.test(o.sprite) || o.sprite.startsWith("worksite-") || o.sprite.startsWith("harbor-"));
       if (planned) {
         /* Explicit settlement furniture retains its function. */
         if (o.prop) {

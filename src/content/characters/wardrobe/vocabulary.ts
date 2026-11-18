@@ -55,7 +55,7 @@ export function dyeWord(dye: DyeId, year: number, fallback: string): string {
 /** Silhouette to shop-window name. Keyed by the garment slot value, so an
  * unlisted one keeps whatever the item catalogue calls it. */
 const modernGarments: Record<string, string> = {
-  tunic: "T-shirt",
+  tee: "T-shirt",
   "long-tunic": "tunic dress",
   wrap: "sarong",
   "open-robe": "open jacket",
@@ -101,11 +101,7 @@ export function modernNoun(
   }
   if (noun === "shirt")
     return {
-      noun: pick(
-        year >= 1970 && cloth.material === "cotton"
-          ? ["button-down shirt", "work shirt", "sweatshirt", "polo shirt", "flannel shirt"]
-          : ["button-down shirt", "work shirt", "shirt"],
-      ),
+      noun: pick(["button-down shirt", "work shirt", "shirt"]),
       material: cloth.material !== "cotton",
     };
   if (noun === "boots")

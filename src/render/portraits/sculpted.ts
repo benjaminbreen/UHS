@@ -20,6 +20,8 @@ const LOWER = 14 as Mat;
 const APRON = 15 as Mat;
 const FELT_BAND = 16 as Mat;
 const LAPEL = 17 as Mat;
+const CHAIN = 18 as Mat;
+const PRINT = 19 as Mat;
 
 /** Screen position of the model origin (between the eyes, a little behind). */
 const OX = 31;
@@ -249,6 +251,8 @@ function model(a: CharacterAppearance, age: number): Model {
       [MAT.skin]: skin,
       [MAT.hair]: hair,
       [MAT.cloth]: cloth,
+      [CHAIN]: tones("#b5b9b8", "cloth"),
+      [PRINT]: tones(c.trim, "cloth"),
       [LAPEL]: tones(mix(c.top, cloth.light, 0.22), "cloth"),
       [MAT.trim]: tones(c.trim, "cloth"),
       [MAT.metal]: tones({ gold: "#d9a441", silver: "#c8ccd4", copper: "#c07040", bone: "#e8dcc0", shell: "#f0e0d0", jet: "#34303c" }[a.adornment?.metal ?? "gold"] ?? "#d9a441", "cloth"),
@@ -484,16 +488,17 @@ function build(m: Model): Scene {
   const mat = a.wearing.material ?? "wool";
   const thick = ["fur", "hide", "felt"].includes(mat) ? 1.5 : mat === "silk" ? 0.8 : 1.05;
   const collar = (p: V) => p[1] + 25 - Math.abs(p[0]) * 0.5;
+  const crewEdge = (p: V) => p[1] + 22.5 + Math.max(0, p[2] + 2) * 0.53 - 0.073 * p[0] * p[0];
   const vee = (p: V, depth: number, slope: number, off = 0) => Math.max(-28 - depth + slope * Math.abs(p[0] - off) - p[1], -2 - p[2]);
   const round = (p: V) => ellipsoid(p, 0, -27.5, 6.5, 7, 4, 7);
   /** The neck opening: negative inside it. */
   // A collared dress or blouse buttons to a small round neck.
-  const collared = a.wearing.motif === "collar" && !["coat", "robe", "open-robe", "gown", "poncho", "suit"].includes(garment);
+  const collared = garment !== "tee" && a.wearing.motif === "collar" && !["coat", "robe", "open-robe", "gown", "poncho", "suit"].includes(garment);
   const neckwear = a.wearing.neckwear;
   const tied = neckwear === "necktie" || neckwear === "bow-tie";
   const tailored = (garment === "coat" && a.wearing.cut === "fitted") || (tied && (garment === "coat" || garment === "shirt"));
   const cut = (p: V): number => {
-    if (tailored && garment === "shirt") return 99;
+    if (garment === "tee" || (tailored && garment === "shirt")) return 99;
     if (collared) return Math.min(round(p) + 1.5, Math.max(Math.abs(p[0]) - 0.8, -(p[1] + 32), -2 - p[2]));
     switch (garment) {
       case "shirt": return vee(p, 4, 1.4);
@@ -509,8 +514,10 @@ function build(m: Model): Scene {
         return a.wearing.motif === "placket" ? Math.min(round(p), Math.max(Math.abs(p[0]) - 0.9, -(p[1] + 36), -2 - p[2])) : round(p);
     }
   };
+  const teeShell = (p: V) => smin(torso(p), ellipsoid(p, 0, -44, -1.6, m.shoulder + 1, 17, 9.5), 3) - thick;
   const cloth = (p: V): number => {
     if (BARE.includes(garment) || d0(p) > 6) return 99;
+    if (garment === "tee") return smax(teeShell(p), crewEdge(p), 0.45);
     let d = smax(torso(p) - thick, collar(p), 1);
     if (garment === "wrap") {
       // Draped from the near shoulder across the chest; the far shoulder stays bare.
@@ -619,13 +626,17 @@ function build(m: Model): Scene {
   const vestOpening = (p: V) => Math.max(Math.abs(p[0]) - (p[1] + 41) * 0.6, -2 - p[2]);
   const vest = (p: V): number => {
     if (!vested) return 99;
-    let d = smax(torso(p) - (garment === "coat" ? thick * 0.8 : thick + 0.6), collar(p) + 1.5, 1);
-    // A cardigan has sleeves and stays open down the front below a shallow V.
+    if (w.waistcoat === "jacket") {
+      const front = Math.max(Math.abs(p[0]) - (3.1 + clamp((p[1] + 40) * 0.2, 0, 4)), -2 - p[2]);
+      const shell = garment === "tee" ? teeShell(p) : torso(p) - thick;
+      return Math.max(shell - 1.25, collar(p) - 1.8, -front);
+    }
     if (w.waistcoat === "cardigan") {
-      d = smax(torso(p) - thick - 1, collar(p) + 0.5, 1);
+      let d = smax(torso(p) - thick - 1, collar(p) + 0.5, 1);
       d = smax(d, -Math.max(Math.abs(p[0]) - Math.max(1.4, (p[1] + 36) * 0.7), -2 - p[2]), 0.5);
       return d < 1 ? d + 0.12 * Math.abs(Math.sin(p[0] * 2.4)) : d;
     }
+    let d = smax(torso(p) - (garment === "coat" ? thick * 0.8 : thick + 0.6), collar(p) + 1.5, 1);
     // Sleeveless: the shirt's sleeves show at the armholes.
     d = smax(d, Math.abs(p[0]) - (m.shoulder - 2.5), 1);
     if (garment === "coat") d = Math.max(d, cut(p) - 0.15);
@@ -637,7 +648,7 @@ function build(m: Model): Scene {
   const hood = (p: V): number => {
     if (!hooded) return 99;
     let d = smin(ellipsoid(p, 0, -25, -7, 7.5, 4.5, 4.5), torus(p, 0, -27, -2.5, m.neck + 2.2, 1.8), 2);
-    if (garment !== "shirt") {
+    if (garment !== "shirt" && garment !== "tee") {
       const tongues = Math.sin(p[0] * 1.3) > 0 ? 1.6 : 0;
       d = Math.min(d, smax(smax(torso(p) - thick - 1.3, collar(p) - 0.5, 1), -(p[1] + 38 + tongues), 0.3));
     }
@@ -874,23 +885,32 @@ function build(m: Model): Scene {
     }
   };
   const chain = a.wearing.neckStyle === "chain";
-  const beadCount = chain ? 12 : 6;
-  const necklace: V[] = Array.from({ length: beadCount * 2 + 1 }, (_, k) => {
+  const beadCount = 6;
+  const necklace: V[] = !w.necklace ? [] : Array.from({ length: beadCount * 2 + 1 }, (_, k) => {
     const t = (k - beadCount) / beadCount;
+    if (chain) {
+      const x = t * (m.neck + 0.7);
+      const y = -35.5 + 12 * Math.pow(Math.abs(t), 1.55);
+      // Lay each link on the front of this wearer's chest.
+      let lo = -2, hi = 18;
+      for (let i = 0; i < 9; i++) {
+        const z = (lo + hi) / 2;
+        const p: V = [x, y, z];
+        if ((garment === "tee" ? teeShell(p) : torso(p) - thick) < 0) lo = z;
+        else hi = z;
+      }
+      return [x, y, hi + 0.35];
+    }
     return [Math.sin(t * 1.15) * (m.neck + 2), -25.5 - Math.cos(t * 1.15) * 5.2, 7.8 + Math.cos(t * 1.15) * 3.2];
   });
   /** Bead index along the necklace, or -1. */
   const bead = (p: V): [number, number] => {
-    if (!a.wearing.necklace) return [99, -1];
+    if (!necklace.length || p[1] > -21 || p[1] < -38 || Math.abs(p[0]) > m.neck + 4) return [99, -1];
     let best: [number, number] = [99, -1];
     for (let k = 0; k < necklace.length; k++) {
       const c = necklace[k];
-      const d = chain && k > 0 ? capsule(p, necklace[k - 1], c, 0.4) : sphere(p, c[0], c[1], c[2], chain ? 0.5 : 0.85);
+      const d = chain && k > 0 ? capsule(p, necklace[k - 1], c, 0.5) : sphere(p, c[0], c[1], c[2], chain ? 0.5 : 0.85);
       if (d < best[0]) best = [d, k - beadCount];
-    }
-    if (chain) {
-      const d = ellipsoid(p, 0, -32.2, 11.3, 1.15, 1.3, 0.5);
-      if (d < best[0]) best = [d, 0];
     }
     return best;
   };
@@ -917,7 +937,7 @@ function build(m: Model): Scene {
     take(sash(p), CLOAK);
     const sh = shawl(p);
     if (sh < best[0]) best = [sh, shawlMat(p)];
-    take(hood(p), garment === "shirt" ? MAT.cloth : CLOAK);
+    take(hood(p), garment === "shirt" || garment === "tee" ? MAT.cloth : CLOAK);
     take(cape(p), CLOAK);
     if (w.shroud && p[1] < -10) {
       const fall = clamp((-p[1] - 10) / 22, 0, 1);
@@ -933,7 +953,7 @@ function build(m: Model): Scene {
     take(hatBand(q), hw === "plume" ? SHIRT : hw === "fedora" ? FELT_BAND : MAT.trim);
     take(earring(q), MAT.metal);
     const [bd, k] = bead(p);
-    take(bd, a.wearing.neckStyle === "chain" || k % 2 ? MAT.metal : MAT.trim);
+    take(bd, chain ? CHAIN : k % 2 ? MAT.metal : MAT.trim);
     return best;
   };
 
@@ -949,7 +969,17 @@ function build(m: Model): Scene {
     // Distance out from the neck opening: cloth lies where the cut is positive.
     const edge = cut(p);
     if (garment === "wrap") return Math.abs(p[1] + 24 + (p[0] + 6) * 0.85) < 1.4 ? MAT.trim : MAT.cloth;
-    const trimmed = !["shirt", "coat", "suit"].includes(garment) && !collared;
+    if (garment === "tee") {
+      if (crewEdge(p) > -1.2) return motif === "jersey" ? MAT.trim : COLLAR;
+      const x = p[0], y = -p[1] - 33;
+      if (p[2] > 0 && motif === "graphic" && Math.abs(x) < 5.2 && y >= 0 && y < 7) {
+        if (x * x + (y - 3.4) ** 2 < 14 && y < 3.4) return PRINT;
+        if (Math.abs(y - 4.6 + x * 0.21) < 0.8 || Math.abs(y - 7 + x * 0.21) < 0.65) return PRINT;
+      }
+      if (motif === "jersey" && ((Math.abs(x) > m.shoulder - 2 && Math.abs(y - 0.5) < 0.9) ||
+          (p[2] > 0 && y >= 0 && y < 7 && (y < 1.7 ? Math.abs(x) < 3 : Math.abs(x - 2.5 + y * 0.55) < 0.9)))) return PRINT;
+    }
+    const trimmed = !["tee", "shirt", "coat", "suit"].includes(garment) && !collared;
     const band = garment === "robe" || garment === "open-robe" ? 2.4 : garment === "poncho" ? 0.9 : 1.3;
     if (trimmed && edge < band) return motif === "stitch" && Math.sin(p[0] * 3 + p[1] * 3) > 0.3 ? MAT.cloth : MAT.trim;
     if (garment === "open-robe" && Math.abs(p[0]) < 7.5 && p[1] < -28) return MAT.trim;
@@ -1180,7 +1210,7 @@ export function trace(appearance: CharacterAppearance, age: number, pose: HeadPo
       const ramp = m.ramps[hit[1]];
       // Hair sits a step darker, so it reads as its own colour, as on the sprite, not a lit pale.
       // Hats too, or a red cap lit from above reads as skin.
-      const shine = hit[1] === MAT.metal && !["bone", "shell"].includes(m.a.adornment?.metal ?? "gold")
+      const shine = hit[1] === CHAIN || (hit[1] === MAT.metal && !["bone", "shell"].includes(m.a.adornment?.metal ?? "gold"))
         ? Math.pow(Math.max(0, nm[0] * METAL_LIGHT[0] + nm[1] * METAL_LIGHT[1] + nm[2] * METAL_LIGHT[2]), 12) * 0.45 : 0;
       let lit = hit[1] === MAT.hair ? v - 0.3 : hit[1] === HAT ? v - 0.15 : v + shine;
       if (hit[1] === MAT.hair) {
@@ -1211,7 +1241,7 @@ export function trace(appearance: CharacterAppearance, age: number, pose: HeadPo
           r.color[i] = mix(r.color[i], ramp.deep, fade * 0.35);
         }
       }
-      r.mat[i] = hit[1];
+      r.mat[i] = hit[1] === CHAIN ? MAT.metal : hit[1] === PRINT ? MAT.cloth : hit[1];
       // Nearer pixels take a higher layer, so the contour lands on the front form.
       r.layer[i] = Math.round((wz + 50) * 20);
       depth[i] = wz;
@@ -1679,7 +1709,7 @@ function garmentDetail(r: Raster, m: Model, project: Frame["projectBody"]) {
   if (w.waistcoat && w.waistcoat !== "none") {
     const vest = on([VEST]);
     if (w.waistcoat === "figured") for (let y = -31; y > -46; y -= 2.6) for (let x = -9; x <= 9; x += 2.6) vest(x + (Math.round(y) % 2 ? 1.3 : 0), y, 9.2, metal.light);
-    for (const y of [-42, -45]) vest(0, y, 9.7, metal.high);
+    if (w.waistcoat !== "jacket") for (const y of [-42, -45]) vest(0, y, 9.7, metal.high);
   }
   if (w.shawl && w.shawl !== "none") {
     on([SHAWL, MAT.trim, MAT.cloth, INNER])(0, -38, 10.2, metal.high);
@@ -1688,9 +1718,10 @@ function garmentDetail(r: Raster, m: Model, project: Frame["projectBody"]) {
       for (const side of [-1, 1]) for (let x = 9; x <= 16; x += 1.4) on([MAT.cloth, MAT.trim, INNER, SHIRT, CLOAK, MAT.skin])(side * x, -40, 4, m.ramps[SHAWL].shade);
   }
   // A hoodie's drawstrings.
-  if (w.hood === "down" && g === "shirt" && w.headwear !== "hood")
+  if (w.hood === "down" && (g === "shirt" || g === "tee") && w.headwear !== "hood")
     for (const side of [-1, 1]) for (let y = -29; y > -38; y -= 0.8) mark(side * 1.7, y, 9.2 + (-29 - y) * 0.05, trim.base);
   switch (g) {
+    case "tee": break;
     case "shirt":
       for (const y of [-33, -38, -43]) button(0.2, y, 9.4, tones("#e8e4da", "cloth"));
       break;

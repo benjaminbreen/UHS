@@ -1558,5 +1558,41 @@
     "roof": "flat",
     "roofMaterial": "earth",
     "height": 80
+  },
+  "worksite-transit-shed": {
+    "style": "transit-shed",
+    "label": "Pier freight warehouse",
+    "footprint": [
+      15,
+      7
+    ],
+    "description": "Pier freight warehouse. Brick waterfront building with a public entrance.",
+    "wall": "grey-brick",
+    "roof": "gable",
+    "roofMaterial": "slate"
+  },
+  "worksite-ferry-terminal": {
+    "style": "ferry-terminal",
+    "label": "Municipal ferry house",
+    "footprint": [
+      10,
+      5
+    ],
+    "description": "Municipal ferry house. Brick waterfront building with a public entrance.",
+    "wall": "grey-brick",
+    "roof": "gable",
+    "roofMaterial": "slate"
+  },
+  "worksite-wharf-store": {
+    "style": "wharf-store",
+    "label": "Wharf dispatch office",
+    "footprint": [
+      11,
+      6
+    ],
+    "description": "Brick dispatch office with loading shutters, a tally window and a tarred roof.",
+    "wall": "grey-brick",
+    "roof": "flat",
+    "roofMaterial": "tar"
   }
 }

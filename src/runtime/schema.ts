@@ -1,3 +1,4 @@
+import { fieldJobs } from "../core/work-places";
 import { crops } from "../content/agriculture/crops";
 import type { CropId } from "../content/agriculture/types";
 import { faunaStates } from "../core/fauna";
@@ -368,6 +369,18 @@ export const characterAppearanceSchema = z.object({
     backFlag: z.string().optional(),
   }),
 });
+const event = z.object({
+  id: z.number().int(),
+  time: z.number().int(),
+  text: z.string(),
+  kind: z.enum(["action", "social", "world", "system"]),
+  pos: pos.optional(),
+  interaction: z.discriminatedUnion("kind", [
+    z.object({ actor: z.string(), kind: z.literal("wares"), item, price: z.number().positive().optional() }),
+    z.object({ actor: z.string(), kind: z.literal("gift"), item, accepted: z.boolean() }),
+    z.object({ actor: z.string(), kind: z.enum(["warning", "welcome"]), place: z.string() }),
+  ]).optional(),
+});
 const actor = z.object({
   stats: stats.optional(),
   health: z.number().min(0).max(100).optional(),
@@ -428,6 +441,7 @@ const actor = z.object({
       }),
     )
     .optional(),
+  basket: z.object({ item, count: z.number().int().min(1).max(6) }).optional(),
   knownResources: z.array(z.string()).optional(),
   task: z.object({ target: z.string(), until: z.number() }).optional(),
   id: z.string(),
@@ -456,6 +470,7 @@ const actor = z.object({
   follows: z.string().optional(),
   consentUntil: z.number().optional(),
   memories: z.array(z.string()),
+  encounters: z.array(event).max(4).optional(),
   held: z.string().optional(),
   heldItem: z.string().max(64).optional(),
   underground: z.any().optional(),
@@ -475,12 +490,16 @@ const actor = z.object({
   freight: z.object({ grain: z.number().nonnegative(), day: z.number().int(), to: z.string() }).optional(),
   mount: z.object({ vehicle: z.string(), place: z.number().int().nonnegative() }).optional(),
   guidingPlough: z.string().optional(),
+  drivingVehicle: z.string().optional(),
   drivingCart: z.object({ vehicle: z.string(), haltedAt: z.number().optional() }).optional(),
   cartOffsets: z.record(z.string(), z.number()).optional(),
   watch: z.object({ path: z.array(point).max(400), loop: z.boolean(), speed: z.number(), waits: z.tuple([z.number(), z.number()]), phase: z.number() }).optional(),
   post: z.object({ at: point, rest: point, night: z.boolean().optional(), torch: z.boolean().optional(), face: z.number().optional(), round: z.array(point).max(40).optional(), leg: z.number().optional(), called: z.number().optional(), arrive: z.number().optional(), doing: z.string().max(80).optional(), with: z.string().max(200).optional(), beside: z.number().optional() }).optional(),
 });
 const object = z.object({
+  motor: z.object({ facing:z.number().int().min(0).max(7), long:z.boolean(), taken:z.boolean().optional(), lastCall:z.number().int().optional(), handled:z.number().int().optional(), intakeDay:z.number().int().optional(), delay:z.number().optional(), yielding:z.boolean().optional() }).optional(),
+  passage: z.object({ destination: point, back:z.boolean() }).optional(),
+  freight: z.object({store:z.string(),call:z.number().int()}).optional(),
   resource: z
     .object({
       item,
@@ -527,13 +546,6 @@ const object = z.object({
   seasons: z.array(z.string()).optional(),
   tipped: z.boolean().optional(),
   size: z.tuple([z.number(), z.number()]).optional(),
-});
-const event = z.object({
-  id: z.number().int(),
-  time: z.number().int(),
-  text: z.string(),
-  kind: z.enum(["action", "social", "world", "system"]),
-  pos: pos.optional(),
 });
 export const playerCommandSchema = z.discriminatedUnion("type", [
   z
@@ -637,7 +649,11 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
         "tend-plot",
         "load-cart",
         "unload-cart",
+        "fieldwork",
+        "gather-work",
         "sow-strip",
+        "drive-vehicle",
+        "leave-vehicle",
         "take-reins",
         "walk-on",
         "halt-cart",
@@ -658,6 +674,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
         "look",
         "climb",
         "descend",
+        "passage", "unload",
         "launch",
         "chop",
         "dig",
@@ -922,6 +939,9 @@ export const snapshotSchema = z.object({
     .optional(),
   workday: z
     .object({
+      patch: z.string().optional(),
+      patchChoices: z.object({ card:z.string().max(64), ids:z.array(z.string()).max(3) }).optional(),
+      field: z.object({ id: z.string(), job: z.enum(fieldJobs), cells: z.array(z.object({ x: z.number().int(), y: z.number().int() })).max(6), count: z.number().int().min(0).max(6) }).optional(),
       day: z.number().int(),
       places: z.record(
         z.string(),
@@ -1096,6 +1116,10 @@ export const snapshotSchema = z.object({
           wood: z.number().int().nonnegative().max(99).optional(),
           cut: z.boolean().optional(),
           dug: z.boolean().optional(),
+          banked: z.number().int().optional(),
+          fieldSeason: z.number().int().optional(),
+          tended: z.object({ at: z.number().int(), job: z.enum(fieldJobs) }).optional(),
+          watered: z.number().int().optional(),
           puddled: z.boolean().optional(),
           furrow: z.enum(["x", "y"]).optional(),
           sowing: z.object({ crop: z.enum(Object.keys(crops) as [CropId, ...CropId[]]), season: z.number().int(), owner: z.string() }).optional(),

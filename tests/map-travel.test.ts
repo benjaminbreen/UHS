@@ -312,3 +312,41 @@ it("prices a long journey in days, overland where it can and by sea where it mus
   const cebu = journeyPlan({ lon: 120.98, lat: 14.6 }, { lon: 123.9, lat: 10.3 });
   expect(cebu.sea).toBeGreaterThan(cebu.land);
 });
+
+it("follows one resident across the paired entrance, picking on the far map and delivering the same food at home", async () => {
+  const {make,exits,runtime}=fixture();
+  const home=runtime.engine, away=make(b), worker=home.state.actors.find(a=>a.kind==="human")!;
+  worker.id="food-worker";worker.pos={x:-189,y:0,space:"outside"};worker.home={...worker.pos};
+  worker.householdId="food-family";worker.origin={revision:1,profile:"test",community:"local",livelihood:"gatherer",notes:[]};
+  home.world.pack.setting!.characterRevision=1;
+  home.state.households=[{id:"food-family",members:[worker.id],home:worker.home,storeId:"food-store"}];
+  const store={id:"food-store",name:"Household basket",kind:"container" as const,pos:{...worker.home},sprite:"basket",inventory:{fruit:0}};
+  const patch={id:"next-food",name:"Wild fruit tree",kind:"tree" as const,pos:{x:184,y:0,space:"outside"},sprite:"ecology-fruit-tree",
+    inventory:{fruit:6},resource:{item:"fruit",capacity:6,regrowSeconds:86400,seasons:["spring","summer","autumn","winter"],readyAt:0}};
+  home.state.objects.push(store);away.state.objects.push(patch);
+  home.world.blocked=away.world.blocked=()=>false;
+  const travel=new MapTravel(runtime,a,1300,async()=>away,exits,()=>[]);
+  travel.observe();await Promise.resolve();await Promise.resolve();await Promise.resolve();
+  travel.observe();
+  expect(home.world.outing?.actor).toBe(worker.id);
+  const there=away.world.outing!.route, pause=there.segments.find(s=>s.activity==="gather")!;
+  home.state.clock=Math.ceil((there.start+pause.from+5)*60/12)*12-12;
+  home.advance(12);
+  expect(home.state.actors.some(a=>a.id===worker.id)).toBe(false);
+  expect(worker.basket?.count).toBe(1);
+  expect(Math.hypot(worker.pos.x-patch.pos.x,worker.pos.y-patch.pos.y)).toBeLessThanOrEqual(1.5);
+  await travel.cross(travel.entrances[0]);
+  expect(runtime.engine.state.actors.find(a=>a.id===worker.id)?.name).toBe(worker.name);
+  const back=home.world.outing!.route, unload=back.segments.find(s=>s.activity==="haul")!;
+  runtime.engine.state.clock=(back.start+unload.from-0.1)*60;
+  away.world.outing!.tick(runtime.engine.state.clock);
+  expect(worker.basket).toEqual({item:"fruit",count:6});
+  await travel.cross(travel.entrances[0]);
+  expect(runtime.engine.state.actors.filter(a=>a.id===worker.id)).toHaveLength(1);
+  runtime.engine.state.clock=(back.start+unload.from+1)*60;
+  home.world.outing!.tick(runtime.engine.state.clock);
+  expect(runtime.engine.state.objects.find(o=>o.id===store.id)?.inventory.fruit).toBe(6);
+  expect(patch.inventory.fruit).toBe(0);
+  expect(runtime.engine.state.actors.find(a=>a.id===worker.id)?.basket).toBeUndefined();
+  runtime.dispose();
+});

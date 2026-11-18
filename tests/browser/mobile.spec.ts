@@ -192,14 +192,14 @@ test("pinch zooms the world and a tap still walks", async ({ page, browserName }
         shadows: ["nature-shadows", "prop-shadows", "lighting-shadows"].some(
           (key) => game.textures.exists(key),
         ),
-        tiltShift: game.scene
+        tiltShiftMatchesRenderer: !!game.renderer.gl === game.scene
           .getScene("world")
           .cameras.main.postPipelines.some(
             (pipeline: any) => pipeline.name === "TiltShift",
           ),
       };
     }),
-  ).toEqual({ terrainWorkers: 1, characterWorkers: 1, shadows: false, tiltShift: false });
+  ).toEqual({ terrainWorkers: 1, characterWorkers: 1, shadows: false, tiltShiftMatchesRenderer: true });
   // Without this the browser pinch-zooms the page over the game instead.
   await expect(canvas).toHaveCSS("touch-action", "none");
   expect(

@@ -234,7 +234,12 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   };
   const cell = (s?: Spot) => s && { x: s.x, y: s.y };
   // The pieces the household's bed, chest and work objects sit on stay put.
-  const bound = new Set([beds[0]?.propId, work[0]?.propId, storeSpots[0]?.propId]);
+  const station = work[0];
+  const bound = new Set([
+    beds[0]?.propId,
+    station?.kind === "nestbox" || station?.kind === "stall" ? undefined : station?.propId,
+    storeSpots[0]?.propId,
+  ]);
   for (const q of props) if (loose(q) && bound.has(q.id)) for (let y = q.y; y < q.y + Math.max(1, q.d); y++) for (let x = q.x; x < q.x + q.w; x++) floor.delete(key(at(x, y)));
   const furniture = props
     .filter((q) => loose(q) && !bound.has(q.id))

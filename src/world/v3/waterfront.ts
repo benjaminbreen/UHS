@@ -6,6 +6,7 @@ import { resolveCharacterContext } from "../../content/characters/resolve";
 import { fishingWaterfront } from "../../content/settlements/waterfronts";
 import { boatArt, fishingPractice, fishingWords, hullNames, preserveOf, preserveWords, waterOf, type FishingWater, type Hull } from "../../content/economy/fishing";
 import { propVisualCells } from "../../content/props/catalog";
+import { propSprite } from "../../content/props/place";
 import { random } from "../../core/random";
 import type { Sample } from "./roads";
 import type { Rect, SettlementPlan } from "./types";
@@ -20,7 +21,7 @@ const overlaps=(a:Rect,b:Rect)=>a.x<b.x+b.w && a.x+a.w>b.x && a.y<b.y+b.h && a.y
 export function planWaterfront(
   plan:SettlementPlan,pack:Pack,seed:string,sample:Sample,
   dry:(r:Rect,occupied?:boolean,core?:Rect,hinterland?:boolean)=>boolean,
-  paint:(r:Rect,t:Terrain,reserve?:boolean)=>void,grade:(r:Rect)=>void,
+  paint:(r:Rect,t:Terrain,reserve?:boolean,rank?:number,role?:"yard"|"lane")=>void,grade:(r:Rect)=>void,
   connect:(a:Point,b:Point,label:string,width?:number,area?:Rect,preview?:boolean)=>unknown,reserve:(r:Rect)=>void,
 ) {
   const s=pack.setting,profile=s && fishingWaterfront(s);
@@ -105,11 +106,15 @@ export function planWaterfront(
       const salt=`${seed}:${id}-${n}`;
       const drawn=fishingPractice(s,"river",salt,1);
       const hull=authoredHull ?? drawn.hull;
-      const boatFrame=`${general ? boatArt(hull,s) : profile.boat}-${direction.id}`;
+      const facing=profile.pier ? shoreDirections.find(d=>d.x===tx && d.y===ty)! : direction;
+      const boatFrame=`${general ? boatArt(hull,s) : profile.boat}-${facing.id}`;
       // Hulls drawn only from the boat atlas moor on the plank skiff's footprint.
       const [bw,bh]=buildingModel(boatFrame.startsWith("boat-moored-") ? `worksite-plank-skiff-${direction.id}` : boatFrame).footprint;
       const mooring=revised ? Math.floor((dx ? bw : bh)/2) : 5;
-      const boat={x:launch.water.x+dx*mooring,y:launch.water.y+dy*mooring};
+      const bank={...launch.water};
+      if(profile.pier)launch.water={x:bank.x+2*dx,y:bank.y+2*dy};
+      const alongside=profile.pier ? Math.ceil((dx ? bh : bw)/2) : 0;
+      const boat={x:launch.water.x+dx*mooring+tx*alongside,y:launch.water.y+dy*mooring+ty*alongside};
       const water=sample(boat.x,boat.y).kind as FishingWater;
       if(profile.waters && !profile.waters.some(k=>k===water))continue;
       const berth={x:boat.x-Math.floor(bw/2),y:boat.y-Math.floor(bh/2),w:bw,h:bh};
@@ -167,7 +172,16 @@ export function planWaterfront(
           if(clear && !sortSite)sortSite={at,patch};
         }
       }
-      const netSite=equipment(gear,7,4);
+      let netSite=equipment(gear,7,4);
+      if(profile.pier && sortSite) {
+        for(const side of [1,-1]) {
+          const at={x:landing.x+tx*7*side-dx*2,y:landing.y+ty*7*side-dy*2};
+          const patch={x:at.x-3,y:at.y-2,w:7,h:5};
+          if(!overlaps(patch,sortSite.patch) && yards.every(y=>!overlaps(y,patch)) && dry(patch,true,patch,true)) {
+            netSite={at,patch};break;
+          }
+        }
+      }
       if(!netSite || !sortSite) {
         for(const p of [home,gear])cells(p,(x,y)=>plan.solid.delete(key(x,y)));
         continue;
@@ -188,7 +202,7 @@ export function planWaterfront(
       }
       for(const [i,p] of [home,gear].entries()) {
         claim(yards[i]);grade(p);
-        paint({x:p.x-1,y:p.y+p.h,w:p.w+2,h:2},"dirt");
+        paint({x:p.x-1,y:p.y+p.h,w:p.w+2,h:2},"dirt",true,3,profile.pier ? "yard" : undefined);
         cells(p,(x,y)=>plan.built?.add(key(x,y)));
         for(const q of buildingArtCells(p.sprite,p))plan.placement.clearance.add(key(q.x,q.y));
         plan.places.push(p);
@@ -196,13 +210,31 @@ export function planWaterfront(
       }
       claim(launch.lane);claim(berth);
       (plan.launches??=[]).push(launch);
-      for(const p of launch.dry)paint({...p,w:1,h:1},"dirt");
+      if(profile.pier) {
+        const root={x:bank.x-3*dx,y:bank.y-3*dy};
+        const level=Math.round(sample(root.x,root.y).elevation/14);
+        const tip={x:launch.water.x-dx,y:launch.water.y-dy};
+        launch.pier={x:Math.min(root.x,tip.x)-Math.abs(tx),y:Math.min(root.y,tip.y)-Math.abs(ty),
+          w:1+4*Math.abs(dx)+2*Math.abs(tx),h:1+4*Math.abs(dy)+2*Math.abs(ty),level};
+        const length=(root.x-base.x)*dx+(root.y-base.y)*dy;
+        const start=Math.max(0,length-7);
+        const high=Math.round(sample(base.x+start*dx,base.y+start*dy).elevation/14);
+        plan.groundLevels??=new Map();
+        launch.dry=[];
+        for(let i=0;i<length;i++)for(let j=-1;j<=1;j++) {
+          const x=base.x+i*dx+j*tx,y=base.y+i*dy+j*ty;
+          paint({x,y,w:1,h:1},"dirt",true,4,"lane");
+          if(i>=start)plan.groundLevels.set(key(x,y),Math.round(high+(level-high)*(i-start+1)/(length-start)));
+          launch.dry.push({x,y});
+        }
+        cells(launch.pier,(x,y)=>{plan.surface.set(key(x,y),"bridge");plan.reserved.add(key(x,y));});
+      } else for(const p of launch.dry)paint({...p,w:1,h:1},"dirt");
       for(const patch of [netSite.patch,sortSite.patch])claim(patch);
       const boatId=`${id}-${n}-boat`,netsId=`${id}-${n}-nets`,catchId=`${id}-${n}-catch`;
       const fishing={...fishingPractice(s,water,salt,1),...(hull ? {hull} : {}),...(profile.method ? {method:profile.method} : {})};
       const craft=general && hull ? hullNames[hull] : undefined;
       plan.objects.push(
-        {id:boatId,name:craft?.name ?? practice?.boat ?? "Household fishing boat",kind:"monument",sprite:boatFrame,pos:{...boat,space:"outside"},inventory:{},owner,
+        {id:boatId,name:craft?.name ?? practice?.boat ?? "Household fishing boat",kind:"monument",sprite:boatFrame,...(launch.pier && {mooring:{x:launch.water.x-dx+tx,y:launch.water.y-dy+ty}}),pos:{...boat,space:"outside"},inventory:{},owner,
           description:craft?.description ?? practice?.boatDescription ?? "An open clinker-built rowing boat with thwarts and stored oars, moored at its household's landing."},
         {id:catchId,name:practice?.catch ?? (general ? "Catch-sorting place" : "Catch-sorting table"),kind:"container",sprite:profile.sorting,pos:{...sortingAt,space:"outside"},inventory:{fish:4,water:2},owner},
         {id:netsId,name:practice?.nets ?? (general ? `${fishingWords[fishing.method].gear.replace(/^the /,"").replace(/^./,c=>c.toUpperCase())}, being mended` : "Lines and nets being repaired"),kind:"container",
@@ -256,10 +288,33 @@ export function planWaterfront(
           plan.solid.add(key(keepAt.x,keepAt.y));
           if(prop==="dryingRack")plan.work.get(owner)!.rackId=process.id;
         }
-        claim(sortSite.patch);paint(sortSite.patch,"dirt");
+        if(profile.containers) {
+          const occupied=new Set(plan.objects.filter(o=>o.pos.space==="outside").flatMap(o=>
+            (o.prop ? propVisualCells(o.prop,o.pos,o.sprite) : [o.pos]).map(p=>key(p.x,p.y))));
+          for(const [i,{prop,name,fish}] of profile.containers.entries()) {
+            const sprite=propSprite(prop);
+            const at=[[3,-1],[-3,-1],[3,2],[-3,2]].map(([x,y])=>({x:sortingAt.x+x,y:sortingAt.y+y})).find(q=>
+              propVisualCells(prop,q,sprite).every(p=>sample(p.x,p.y).water>=0 && !plan.solid.has(key(p.x,p.y)) &&
+                !plan.traffic.has(key(p.x,p.y)) && !occupied.has(key(p.x,p.y))));
+            if(!at)continue;
+            plan.objects.push({id:`${id}-${n}-gear-${i}`,name,kind:"container",
+              prop,sprite,owner,pos:{...at,space:"outside"},inventory:fish ? {fish} : {}});
+            for(const p of propVisualCells(prop,at,sprite)){occupied.add(key(p.x,p.y));claim({...p,w:1,h:1});}
+          }
+        }
+        claim(sortSite.patch);
+        if(profile.pier) {
+          for(const patch of [sortSite.patch,netSite.patch]) {
+            grade(patch);
+            for(let j=0;j<patch.h;j++) {
+              const inset=j===0 || j===patch.h-1 ? 1 : 0;
+              paint({x:patch.x+inset,y:patch.y+j,w:patch.w-2*inset,h:1},"dirt",true,4,"yard");
+            }
+          }
+        } else paint(sortSite.patch,"dirt");
         let lo=Infinity,hi=-Infinity;
         for(const p of launch.dry){const h=Math.round(sample(p.x,p.y).elevation/14);lo=Math.min(lo,h);hi=Math.max(hi,h);}
-        handling={kind:hi>lo ? "timber-steps" : "beach",yard:sortSite.patch,sale,basketId:basket ? basketId : undefined,gear:gear.entrance};
+        handling={kind:launch.pier ? "earth-ramp" : hi>lo ? "timber-steps" : "beach",yard:sortSite.patch,sale,basketId:basket ? basketId : undefined,gear:gear.entrance};
       }
       district.members.push({owner,homeId:home.id,gearId:gear.id,boatId,netsId,catchId,landing,launch,nets,sorting,
         practice:fishing,grounds:groundsFrom(boat),...(process ? {process} : {}),...(handling ? {handling} : {})});

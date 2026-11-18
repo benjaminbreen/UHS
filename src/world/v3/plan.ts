@@ -1,3 +1,4 @@
+import { harborStaff, planHarbor } from "./harbor";
 import { planWorksites } from "./worksites";
 import { towerStyleFor } from "../../content/towers";
 import { planWaterfront } from "./waterfront";
@@ -88,7 +89,6 @@ import {
 import type { Furniture } from "./blocks";
 import { urbanBuildingLimit } from "../../content/settlements/scale";
 import {
-  cropSprite,
   eraEnclosure,
   planFarmland,
   territoryReach,
@@ -97,6 +97,7 @@ import {
 import { faunaAt, faunaProfile } from "../../content/fauna";
 import type { FaunaGroup, FaunaMember } from "../../core/fauna";
 import { crops } from "../../content/agriculture/crops";
+import { cropStage } from "../../content/agriculture";
 import { farms } from "../../content/geography/onsets";
 import { route } from "../../core/routing";
 import { stallGood } from "../../content/economy/market";
@@ -194,6 +195,8 @@ export function planSettlement(
    * `sample` then already carries the neighbours' and these stay out of
    * `groundLevels`, which the world resolves across every plan itself. */
   terraces?: Map<string, number>,
+  piers: readonly import("./shoreline").QuayPier[] = [],
+  railbed: (x: number, y: number) => boolean = () => false,
 ): SettlementPlan {
   const c = site.center,
     profile = site.profile,
@@ -350,23 +353,25 @@ export function planSettlement(
   const rand = (...k: (string | number)[]) =>
     random(seed, "settlement-3", site.id, ...k);
   const pos = (p: Point): Position => ({ ...p, space: "outside" });
-  /** Cut grain stands at the field edge once the harvest is in; the renderer
-   * only draws it in the seasons listed, so a summer field stays clear. */
   const sheaves = (
     id: string,
     rect: { x: number; y: number; w: number; h: number },
     access: Point,
     free: (x: number, y: number) => boolean,
+    crop: CropId = "wheat",
   ) => {
-    let placed = 0;
-    for (let i = 0; i < 9 && placed < 3; i++) {
+    const seasons = (["spring", "summer", "autumn", "winter"] as const).filter(s =>
+      ["ripe", "stubble"].includes(cropStage(crop, s, pack.setting?.lat ?? 0)));
+    const occupied = new Set<string>();
+    for (let i = 0; i < 9 && occupied.size < 3; i++) {
       const along = Math.floor(rand(id, "sheaf-x", i) * rect.w);
       const x = rect.x + along;
       const near = access.y > rect.y + rect.h / 2;
       const row = i % 3;
       const y = near ? rect.y + rect.h - 1 - row : rect.y + row;
-      if (!free(x, y)) continue;
-      placed++;
+      const key = cellKey(x, y);
+      if (!free(x, y) || occupied.has(key) || x === access.x && y === access.y) continue;
+      occupied.add(key);
       plan.objects.push({
         id: `${id}-sheaf${i}`,
         name: "Sheaf of grain",
@@ -375,7 +380,7 @@ export function planSettlement(
         pos: pos({ x, y }),
         sprite: `study-propb-sheaf-${Math.floor(rand(id, "sheaf-art", i) * 3)}`,
         inventory: { grain: 2 },
-        seasons: ["autumn", "winter"],
+        seasons,
         claim: "landscape",
       });
     }
@@ -992,6 +997,7 @@ export function planSettlement(
     sprite: "fire",
     inventory: {},
   });
+  if (piers.length) planHarbor(plan,pack,piers,sample,r=>paint(r,"paving",true,13,"apron"),railbed,seed);
   planWorksites(plan, pack, seed, sample, dry, paint, (rect) => gradeGround(rect, undefined, true), connect, (rect) =>
     eachCell(rect, (x, y) => noRoad.add(cellKey(x, y))));
   planWaterfront(plan, pack, seed, sample, dry, paint, (rect)=>gradeGround(rect,undefined,true),connect,(rect)=>
@@ -3010,6 +3016,8 @@ export function planSettlement(
         x: at.x, y: at.y, w, h, sprite: frame, entrance: { x: at.x + (w >> 1), y: at.y + h },
         owner, access: "household", claim: `yard-${kind}`, entranceLabel: "Enter",
       };
+      const art = buildingArtCells(frame, p);
+      if (kind === "byre" && art.some(({ x, y }) => propCells.has(cellKey(x, y)) && !buildingClearance.has(cellKey(x, y)))) continue;
       const door = paintedDoor(p);
       if (door) (p.door = door), (p.entrance = { x: door.x, y: door.y + 1 });
       eachCell(p, (x, y) => {
@@ -3018,7 +3026,7 @@ export function planSettlement(
         propCells.add(cellKey(x, y));
         plan.reserved.add(cellKey(x, y));
       });
-      for (const q of buildingArtCells(frame, p)) propCells.add(cellKey(q.x, q.y));
+      for (const q of art) propCells.add(cellKey(q.x, q.y));
       propCells.add(cellKey(p.entrance.x, p.entrance.y));
       plan.places.push(p);
       plan.objects.push({ id: `${p.id}-exit`, kind: "exit", name: "Back to the yard", sprite: "door-open", pos: { x: 6, y: 9, space: p.id }, inventory: {}, owner });
@@ -3397,13 +3405,13 @@ export function planSettlement(
           free.sort(near);
           behind.sort((a, b) => a.y - b.y || near(a, b));
           items
-            .filter((p) => p.where === "yard" || p.where === "back")
+            .filter((p) => p.where === "yard" || p.where === "back" || p.where === "apron")
             .forEach((item, n) => {
               if (item.building && owner && outbuilding(item.building, back.sort((a, b) => b.y - a.y || a.x - b.x), id, owner, item.name)) return;
               if (item.building?.kind === "byre") return;
               // A privy goes at the bottom of the back yard or not at all.
               const spots = item.where === "back" && (behind.length || propDefs[item.prop]?.where === "privy") ? behind : free;
-              spots.some((at) => yardProp(item, at, id, i, 40 + n));
+              spots.some((at) => (item.where !== "apron" || at.y >= rect.y + rect.h) && yardProp(item, at, id, i, 40 + n));
             });
           if (yards.tree && rand("yard-tree", i) < yards.tree.chance) {
             const at = {
@@ -3430,7 +3438,8 @@ export function planSettlement(
       }
       // No room for a yard: the ground at the walls is kept all the same.
       if (yards.ground || apron)
-        toftQueue.push(() =>
+        toftQueue.push(() => {
+          const front: Point[] = [];
           eachCell({ x: base.x - 2, y: base.y - 1, w: base.w + 4, h: base.h + 3 }, (x, y) => {
             const k = cellKey(x, y),
               mine = x >= base.x && x < base.x + base.w && y >= base.y && y < base.y + base.h;
@@ -3439,7 +3448,12 @@ export function planSettlement(
               !setSurface(k, "dirt", 3) && plan.surface.get(k) !== "dirt") return;
             plan.pavement!.set(k, "yard");
             if (yards.ground) (plan.earth ??= new Map()).set(k, yards.ground);
-          }));
+            if (y >= rect.y + rect.h && !atWork(x, y) && Math.abs(x - door.x) > 1)
+              front.push({ x, y });
+          });
+          items.filter((p) => p.where === "apron").forEach((item, n) =>
+            front.some((at) => yardProp(item, at, id, i, 40 + n)));
+        });
     });
   };
   /** A town plot's back garden. Fenced on its low side and, where it shows,
@@ -3568,6 +3582,7 @@ export function planSettlement(
   // herder: drawn freely, a caravanserai's keeper was too rare to turn up.
   const unstaffed = plan.places.slice(0, worksites).flatMap((p) =>
     p.workRoles?.find((r) => characterContext?.livelihoods.some((l) => l.id === r)) ?? []);
+  const portYards=plan.harbor?.yard ?? plan.plots.filter(p=>p.id.endsWith("-waterfront-loading-bay"));
   for (let j = 0; j < frontage.length && plan.places.length - worksites < limit; j++) {
     const lot = frontage[j];
     const { point: frontagePoint, nx, ny } = lot,
@@ -3638,13 +3653,15 @@ export function planSettlement(
         : { x: rect.x + (nx > 0 ? w + 2 : nx < 0 ? -2 : Math.floor(w / 2)), y: rect.y + (ny > 0 ? h + 2 : Math.floor(h / 2)) });
       while (!lot.workPoint && (nx || ny) && art.has(cellKey(workPoint.x, workPoint.y)))
         workPoint = { x: workPoint.x + nx, y: workPoint.y + ny };
-      return { frame, model, point, door, rect, yard, workPoint };
+      const coversPort=portYards.some(row=>row.y+row.h>top && row.y<rect.y+h &&
+        left<row.x+row.w && right>=row.x);
+      return { frame, model, point, door, rect, yard, workPoint, coversPort };
     };
     const fits = (f: ReturnType<typeof fit>) => {
       // A country house wants level ground behind its roof and before its
       // door: both overhang the footprint, and a bank there cuts them.
       const level = urban || lot.rect ? f.rect : { ...f.rect, y: f.rect.y - 1, h: f.rect.h + 2 };
-      if (!dry(f.yard, !lot.rect, level)) return false;
+      if (f.coversPort || !dry(f.yard, !lot.rect, level)) return false;
       if (!placed || lot.rect) return true;
       const envelope = buildingPlacementEnvelope(f.frame, f.rect, [f.door, f.workPoint]);
       if (envelope.occupied.some(p => plan.placement.clearance.has(cellKey(p.x, p.y))) ||
@@ -4678,51 +4695,11 @@ export function planSettlement(
           access: parcel.access,
         });
         const crop = crops[parcel.crop];
-        // A worked parcel is stooked after harvest; a pasture or fallow is not.
-        if (crop.kind !== "pasture" && crop.kind !== "fallow")
+        if (crop.kind === "grain")
           sheaves(id, parcel.rect, parcel.access, (x, y) =>
-            farmland.fields.has(cellKey(x, y)),
+            farmland.fields.get(cellKey(x, y))?.parcel === parcel.id, crop.id,
           );
-        if (crop.kind === "pasture" || crop.kind === "fallow") continue;
-        // A few tended plants per parcel: what the farmer's round visits and
-        // the harvest comes from. The ground raster draws the crop itself.
-        let n = 0;
-        for (
-          let y = parcel.rect.y + 2;
-          y < parcel.rect.y + parcel.rect.h - 1;
-          y += 5
-        )
-          for (
-            let x = parcel.rect.x + 2;
-            x < parcel.rect.x + parcel.rect.w - 1;
-            x += 5
-          ) {
-            if (n >= 4 || !farmland.fields.has(cellKey(x, y))) continue;
-            n++;
-            plan.objects.push({
-              id: `${id}-crop-${x - parcel.rect.x}-${y - parcel.rect.y}`,
-              name: crop.label,
-              kind: "crop",
-              pos: pos({ x, y }),
-              sprite: cropSprite(parcel.crop),
-              inventory: crop.yields ? { [crop.yields]: 3 } : {},
-              ...(crop.yields
-                ? {
-                    resource: {
-                      item: crop.yields,
-                      capacity: 3,
-                      regrowSeconds: 28 * 86400,
-                      seasons: (
-                        ["spring", "summer", "autumn", "winter"] as const
-                      ).filter((season) => crop.calendar[season] === "ripe"),
-                      readyAt: 0,
-                    },
-                  }
-                : {}),
-              owner: parcel.owner,
-              claim: "landscape",
-            });
-          }
+
       }
     }
     plan.diagnostics.timing!.fields = Math.round(now() - tFields);
@@ -6288,7 +6265,7 @@ export function planSettlement(
     if (object.prop)
       claimEnvelope(plan.placement, {
         occupied:
-          propDefs[object.prop]?.solid && !object.broken ? [object.pos] : [],
+          propDefs[object.prop]?.solid && !object.broken && !object.seasons ? [object.pos] : [],
         access: [],
         clearance: propVisualCells(object.prop, object.pos, object.sprite),
       });
@@ -6602,9 +6579,10 @@ export function planSettlement(
   footTraffic(plan.roads);
   const tRoutines = now();
   planRoutines(plan, seed, pack, sample);
+  harborStaff(plan,pack,seed);
   railVisitors(plan, seed, pack);
   railStaff(plan, seed, pack);
-  planConveyances(plan, seed, pack);
+  planConveyances(plan, seed, pack, sample);
   planSoldiers(plan, seed, pack);
   // Props and routine markers claim ground after the fields were planted.
   for (const k of plan.fields?.keys() ?? [])

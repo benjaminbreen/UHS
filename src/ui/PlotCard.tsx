@@ -525,7 +525,7 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
             />
           </div>
         )}
-        <div className="plot-speech-body">
+        <div className="plot-speech-body" data-fieldwork={card.choose && /^(field|patch):/.test(card.choose.card) || undefined}>
           <span className="plot-name">{speaker?.name ?? card.title}{speaker && card.choose && <small>{card.title}</small>}</span>
           {outcome ? (
             <p className="work-outcome" aria-live="polite">
@@ -537,6 +537,12 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
               {line ? typed : "…"}
               {!done && <span className="plot-rest" aria-hidden="true">{line.slice(typed.length)}</span>}
             </p>
+          )}
+          {card.choose && /^(field|patch):/.test(card.choose.card) && !outcome && (
+            <small className="field-controls">
+              {matchMedia("(pointer: coarse)").matches ? "Walk to a patch and tap the action." : <>Walk to a patch and press <kbd>F</kbd>.</>}
+              {" "}Choose <b>{card.choose.card.startsWith("patch:") ? "Gather" : "Work row"}</b> to finish it automatically.
+            </small>
           )}
           {outcome && <Changes changes={outcome.changes} />}
           {lore && done && (

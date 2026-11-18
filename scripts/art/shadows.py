@@ -39,7 +39,10 @@ def soften(mask, radius):
 def _cast(name):
     """Every phase's mask for one sprite, as (key, image) pairs."""
     sprites,buildings,phases=_JOB
-    source=sprites[name]
+    return sprite_cast(name,sprites[name],buildings.get(name),phases)
+
+
+def sprite_cast(name,source,model,phases):
     result=[]
     w,h=source.size
     ys,xs=np.nonzero(np.asarray(source.getchannel('A'))>200)
@@ -51,7 +54,6 @@ def _cast(name):
     if 'shadowMinY' in source.info:opaque=[(x,y) for x,y in opaque if y>=source.info['shadowMinY']]
     if not opaque:return result
     top=min(y for x,y in opaque)
-    model=buildings.get(name)
     if model and model.get('shadowFrame'):return result
     height=model['shadow']['height'] if model else bottom-top
     ground_depth=min(12,model['footprint'][1]*3) if model else 0
@@ -74,7 +76,7 @@ def _cast(name):
         # Only upright silhouettes lay their width across the cast. A low,
         # wide object (rock, shrub, log) rotated that way reads as a shadow
         # thrown the other way from every tree beside it.
-        upright=(bottom-top)>1.15*max(1,max(feet)-min(feet))
+        upright=source.info.get('upright',(bottom-top)>1.15*max(1,max(feet)-min(feet)))
         ux,uy=(1,0) if model or not length or not upright else (vy/length*.75,-vx/length*.75)
         center=(min(feet)+max(feet))/2
         # A building stands on its wall foot, which curves round a drum and

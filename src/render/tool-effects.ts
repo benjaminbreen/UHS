@@ -38,6 +38,7 @@ export type ToolEffect = {
   at: { x: number; y: number };
   cells?: Point[];
   contactMs?: number;
+  soil?: "soil" | "water";
   from: { x: number; y: number };
   /** The plant as it stood, before the blow landed. */
   sprite?: string;
@@ -833,6 +834,11 @@ export class ToolEffects {
     const kind = effect.kind;
     if (kind === "plant" || kind === "gather") {
       const at = this.point(effect.at);
+      if (kind === "plant" && effect.soil === "soil") {
+        this.burst(at, [0xd4b677, 0xbc9154, 0x866735], 4, 0.4);
+        void gameAudio()?.sound(() => strike("haft", "soil", "thud").map(l => ({ ...l, gain: l.gain * 0.25 })), "work");
+        return;
+      }
       if (kind === "plant") {
         this.ring(at, 0xb6ceae);
         this.burst(at, WATER, 3, 0.35);
@@ -843,6 +849,11 @@ export class ToolEffects {
           ease: "Back.easeOut", onComplete: () => { this.live.delete(tuft); tuft.destroy(); } });
       } else this.shred(at, LEAF);
       void gameAudio()?.sound(() => kind === "plant" ? strike("haft", "water", "splash").map(l => ({ ...l, gain: l.gain * 0.32 })) : work("cut"), "work");
+      return;
+    }
+    if (kind === "dig" && effect.soil === "water") {
+      this.burst(this.point(effect.at), WATER, 5, 0.6);
+      void gameAudio()?.sound(() => strike("haft", "water", "splash"), "work");
       return;
     }
     if (kind === "fill" || kind === "douse")

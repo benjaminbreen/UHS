@@ -1,6 +1,8 @@
+import { gathersPlants } from "../content/characters/livelihoods";
+import { FERRY_PERIOD, anchorageAt, serviceAnchorage, transferCloth, serviceFreight } from "../world/v3/harbor";
 import { updateRelationships } from "./bonds";
 import { dangerAt, npcDanger } from "./danger";
-import { afloatAt } from "./watercraft";
+import { afloatAt, hullOverlap, navigableHull } from "./watercraft";
 import { wornFromWearing } from "./wearing";
 import {
   clothName,
@@ -10,6 +12,7 @@ import {
 import { waterDepthAt, wadingCost, MAX_WADING_DEPTH } from "./water-field";
 import { trimCache } from "./cache";
 import {
+  BASKET_SIZE, emptyBasket, foodPatch, pickHandful,
   depositSupplies,
   harvestResource,
   householdActivity,
@@ -104,7 +107,7 @@ import { FORD_CARD } from "../content/cards/hazards";
 import { accosterAt, accosters, cutpurseAt } from "../content/accosters";
 import { bossTitle, cardText, oddsOf, pickCard } from "./cards";
 import { giftOf, type Form } from "./making";
-import { fieldParcel, findPlace, waterfrontMember, type StepPlace } from "./work-places";
+import { cellJobs, fieldJobs, fieldMinutes, fieldParcels, fieldWords, onParcel, type FieldJob, findPlace, waterfrontMember, type StepPlace } from "./work-places";
 import { catchFate, catchOf, fishingPractice, fishingWords, isFishingFind, preserveWords, waterOf, type Preserve } from "../content/economy/fishing";
 import { dangerOf, gameOf, GIVE_UP_HOURS, huntFate, huntWeapon, huntWords, keepsTraps } from "../content/economy/hunting";
 import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
@@ -131,10 +134,10 @@ import { towerStyleFor } from "../content/towers";
 import type { Staff } from "../content/towers/tenants";
 import { buildInterior, ROOM_ORIGIN, spotsAt, type InteriorLayout, type Spot, type SpotRole } from "../world/interior";
 import { buildingUse } from "../content/interiors/select";
-import { besideTeam, vehicleAt, vehicleSchedule, type Vehicle } from "../world/v3/conveyances";
+import { deliveryAt, truckBody, truckOffset, besideTeam, vehicleAt, vehicleSchedule, type Vehicle } from "../world/v3/conveyances";
 import type { DailyGoal, GoalContext } from "../content/goals/types";
 import { route, type RouteResult } from "./routing";
-import { terrainJump, terrainLeap, type LeapResult } from "./topography";
+import { acrossFieldRow, terrainJump, terrainLeap, type LeapResult } from "./topography";
 import { boundaryGraph } from "../render/fence-pass";
 import { advanceFauna, stepAllowed } from "./fauna-sim";
 import { ageDung, capDung, dungObject } from "./dung";
@@ -585,9 +588,40 @@ export class Engine {
     this.syncSeason();
   }
   /** Tells the world the season and tide on the clock, for its fields and water. */
+  private fieldDay = -1;
+  private objectSeason?: string;
   private syncSeason() {
+    const season = seasonIndex(this.state.clock);
+    const day = Math.floor(this.state.clock / 86400);
+    if (this.fieldDay !== day) {
+      this.fieldDay = day;
+      let changed = false;
+      for (const edit of Object.values(this.state.tiles ?? {})) {
+        if (edit.watered !== undefined && edit.watered !== day) {
+          delete edit.watered;
+          changed = true;
+        }
+        if (edit.fieldSeason === undefined || edit.fieldSeason === season) continue;
+        delete edit.cut; delete edit.banked;
+        if (season - edit.fieldSeason >= 4) {
+          delete edit.dug; delete edit.puddled; delete edit.furrow; delete edit.sowing; delete edit.fieldSeason;
+        }
+        changed = true;
+      }
+      if (changed) this.tilesChanged();
+    }
     const setting = this.world.pack.setting;
-    if (setting) this.world.setSeason?.(seasonAt(setting.season, this.state.clock), tideAt(setting, this.state.clock));
+    if (setting) {
+      const now = seasonAt(setting.season, this.state.clock);
+      this.world.setSeason?.(now, tideAt(setting, this.state.clock));
+      if (now !== this.objectSeason) {
+        this.objectSeason = now;
+        this.state.objects = this.state.objects.filter(o => !o.seasons || o.seasons.includes(now) || o.carriedBy);
+        const present = new Set(this.state.objects.map(o => o.id));
+        for (const o of this.world.initialObjects)
+          if (o.seasons?.includes(now) && !present.has(o.id)) this.state.objects.push(copy(o));
+      }
+    }
   }
   /** A cell picked this season; the crop stands again the next. */
   private pickedNow(edit?: TileEdit) {
@@ -917,9 +951,19 @@ export class Engine {
       const task = team && ({ plant: team.a.mount ? "Puddle the rice bed with the buffalo" : "Transplant the worked rice bed", break: "Plough the strip with the oxen", load: "Load the grain cart at the farm", road: "Drive the grain cart to market", unload: "Deliver the grain and step down" } as Record<string, string>)[st.name];
       return { ...st, task: task ?? this.stepTask(st) };
     });
+    const field = this.handField(t);
+    if (field?.scheduled) steps[t.stage] = { ...steps[t.stage], task: field.words?.title ?? (field.here ? "Choose fieldwork" : "Work your field") };
+    const gather = this.gathering(t);
+    if (gather) steps[t.stage] = { ...steps[t.stage], task: gather.title };
     const today = {
-      title: this.dayTitle(t),
-      places: t.process.steps.map((st) => this.stepWhere(st, t) ?? undefined),
+      gather, field, title: this.dayTitle(t),
+      places: t.process.steps.map((st) => {
+        if (gathersPlants(t.kit)) {
+          const place = st.name === "home" ? this.object(t.household.storeId) : this.state.workday?.patch && this.object(this.state.workday.patch);
+          return place ? { pos:place.pos, label:st.name === "home" ? "your household store" : place.name } : undefined;
+        }
+        return this.stepWhere(st, t) ?? undefined;
+      }),
       quality: work?.quality ?? 0,
       pay: work?.pay ?? 0,
       lines: work?.lines ?? [],
@@ -935,10 +979,10 @@ export class Engine {
     const ps = this.placeStep(t);
     // Out on the water is reached by the boat, from the water's edge.
     const launch = ps?.at.board && !this.state.player.afloat ? waterfrontMember(this.world, t.household)?.launch : undefined;
-    if (ps)
+    if (field || gather || ps)
       return { activity: t.kit.activity, stages: t.process.stages, steps, done: t.stage, station: undefined,
-        where: launch ? "your boat" : ps.at.label,
-        door: launch ? { x: launch.water.x - launch.direction.x, y: launch.water.y - launch.direction.y, space: "outside" } : ps.at.pos,
+        where: gather?.label ?? field?.label ?? (launch ? "your boat" : ps!.at.label),
+        door: gather ? gather.target : field ? { ...(field.target ?? field.parcel.access), space: "outside" } : launch ? { x: launch.water.x - launch.direction.x, y: launch.water.y - launch.direction.y, space: "outside" } : ps!.at.pos,
         side: this.sideJob(), ...today };
     const station = this.workStation();
     const target = typeof station === "object" ? station : undefined;
@@ -963,6 +1007,230 @@ export class Engine {
       side: this.sideJob(),
       ...today,
     };
+  }
+  private holdings = new Map<string, ReturnType<typeof fieldParcels>>();
+  private farmParcels(h: Household) {
+    let parcels = this.holdings.get(h.id);
+    if (!parcels) {
+      parcels = fieldParcels(this.world, h);
+      if (parcels.length) this.holdings.set(h.id, parcels);
+    }
+    return parcels;
+  }
+  private handField(t = this.trade()) {
+    const step = t?.process.steps[t.stage], setting = this.world.pack.setting;
+    if (!t || !setting || !this.farming(t) || (setting.brief?.moment && this.state.clock < 86400)) return;
+    const team = step && this.teamJob(step, t);
+    const scheduled = step?.at === "field" && !team;
+    const parcels = this.farmParcels(t.household);
+    if (!parcels.length) return;
+    const p = this.state.player.pos;
+    const pass = this.state.workday?.day === t.day ? this.state.workday.field : undefined;
+    const idOf = (q: typeof parcels[number]) => `field:${t.day}:${t.stage}:${q.access.x},${q.access.y}`;
+    const current = pass && parcels.find(q => idOf(q) === pass.id);
+    const nearby = parcels.find(q => onParcel(this.world, q, p));
+    if (!scheduled && !current) {
+      if (!nearby) return;
+      const due = step && this.stepWhere(step, t);
+      if (due && distance(p, due.pos) <= 2.5) return;
+    }
+    const parcel = current ?? nearby ?? parcels[0];
+    const id = idOf(parcel);
+    const household = this.state.households?.find(h => parcel.owner && h.members.includes(parcel.owner)) ?? t.household;
+    const stored = pass?.id === id ? pass : undefined;
+    const season = seasonAt(setting.season, this.state.clock) as Season;
+    const stock = this.state.economy?.stock[household.id]?.grain ?? 0;
+    const fromPlayer = (q: Point) => Math.hypot(q.x - p.x, q.y - p.y);
+    const available = stored?.cells.filter(q => cellJobs(this.world, this.state, q, season, stock).includes(stored.job));
+    const selected = stored;
+    const here = onParcel(this.world, parcel, p) || p.space === "outside" && fromPlayer(parcel.access) <= 1.5;
+    const wet = !!this.world.topography?.(parcel.access.x, parcel.access.y)?.field?.wet || crops[parcel.crop].wet === true;
+    const words = selected && fieldWords(selected.job, parcel.crop, wet, setting);
+    const target = available?.reduce<Point | undefined>((best, q) => !best || fromPlayer(q) < fromPlayer(best) ? q : best, undefined);
+    const label = parcel.owner && t.household.members.includes(parcel.owner) ? "your field" : "the hired field";
+    return { parcel, household, scheduled, id, here, selected, available, wet, words, target, label };
+  }
+  private gathering(t = this.trade()) {
+    if (!t || !gathersPlants(t.kit) || t.stage >= t.process.stages.length) return;
+    const s = this.state, p = s.player, day = s.workday;
+    const patch = day?.day === t.day && day.patch ? this.object(day.patch) : undefined;
+    const season = seasonAt(this.world.pack.setting?.season ?? "spring", s.clock);
+    const available = !!patch && foodPatch(patch, season) && !patch.depleted && (patch.inventory[patch.resource!.item] ?? 0) > 0;
+    const home = t.stage === 2 || !!p.basket && (!available || p.basket.count >= BASKET_SIZE);
+    const store = this.object(t.household.storeId);
+    const target = home ? store?.pos : available ? patch!.pos : undefined;
+    const choosing = !target;
+    const label = home ? "your household store" : patch && available ? patch.name.toLowerCase() : "seasonal wild food";
+    const verb = home ? "Empty basket" : patch?.resource?.item === "roots" ? "Dig a root" : "Pick a handful";
+    const title = choosing ? "Choose a gathering patch" : home ? "Bring the basket home" : patch!.name;
+    return { choosing, home, target, patch, store, season, title, label, verb,
+      here: !target || distance(p.pos, target) <= 1.5, count: p.basket?.count ?? 0,
+      id: `gather:${t.day}:${day?.patch ?? ""}` };
+  }
+  private showPatches() {
+    const t = this.trade(), g = this.gathering(t);
+    if (!t || !g?.choosing) return;
+    const p = this.state.player.pos;
+    const from = p.space === "outside" ? p : { ...(this.world.place(p.space)?.entrance ?? t.household.home), space: "outside" };
+    const candidates = this.state.objects.filter(o => foodPatch(o, g.season) && !o.depleted &&
+      (o.inventory[o.resource!.item] ?? 0) > 0 && (!o.owner || t.household.members.includes(o.owner)) && distance(from, o.pos) <= 110)
+      .sort((a, b) => distance(from, a.pos) - distance(from, b.pos) || a.id.localeCompare(b.id));
+    const options: WorldObject[] = [];
+    for (const o of [...candidates.filter((o,i) => candidates.findIndex(q => q.resource!.item === o.resource!.item) === i), ...candidates]) {
+      if (options.includes(o)) continue;
+      const stand = [o.pos, { ...o.pos, y:o.pos.y+1 }, { ...o.pos, x:o.pos.x-1 }, { ...o.pos, x:o.pos.x+1 }, { ...o.pos, y:o.pos.y-1 }];
+      if (distance(from,o.pos) > 1.5 && !stand.some(q => !this.playerBlocked(q.x,q.y,"outside") && this.findRoute(from,q,"player",4800).status === "found")) continue;
+      options.push(o);
+      if (options.length === 3) break;
+    }
+    const card = `patch:${t.day}:${this.state.revision}`;
+    this.fixDay();
+    this.state.workday!.patchChoices = { card, ids:options.map(o => o.id) };
+    if (this.cards.some(c => c.choose?.card === card)) return;
+    const choices = options.map((o,index) => {
+      const bearing = ["east","southeast","south","southwest","west","northwest","north","northeast"][(Math.round(Math.atan2(o.pos.y-from.y,o.pos.x-from.x)/(Math.PI/4))+8)%8];
+      const n = o.inventory[o.resource!.item]!;
+      return { index, label: o.name, note: `${Math.round(distance(from,o.pos))} paces ${bearing} · ${n} handful${n === 1 ? "" : "s"}` };
+    });
+    this.cards.push({ kind: "speech", title: "Gathering wild food",
+      text: choices.length ? "Where will you take your basket?" : "Nothing ripe is within reach here. Try farther along the settlement edge.",
+      choose: { card, choices: choices.length ? choices : [{ index: 0, label: "Keep looking" }] } });
+  }
+  private *gatherWork() {
+    const t = this.trade(), g = this.gathering(t);
+    if (!t || !g?.here) return;
+    if (g.choosing) { this.showPatches(); return; }
+    const p = this.state.player;
+    if (g.home && g.store) {
+      const load = emptyBasket(p, g.store);
+      if (load) {
+        const made = this.today().made;
+        made[load.item] = (made[load.item] ?? 0) + load.count;
+        this.event(`You leave ${load.count} handfuls of ${this.item(load.item)?.name.toLowerCase() ?? load.item} in the household store.`);
+      }
+      if (t.stage === 0) return;
+      if (t.stage === 1) yield* this.doWork(false, true);
+      yield* this.doWork(false, true);
+    } else if (g.patch && pickHandful(p, g.patch, this.state.clock, g.season)) {
+      p.direction = this.directionTo(p.pos, g.patch.pos);
+      p.facing = facingFromStep(g.patch.pos.x-p.pos.x,g.patch.pos.y-p.pos.y,p.direction);
+      this.grantXp("foraging", 2);
+      yield* this.advanceSteps(this.knows("quick-picker") ? 90 : 180);
+      if (p.basket!.count === BASKET_SIZE || g.patch.depleted) {
+        yield* this.doWork(false, true);
+        this.event("Time to bring the basket home.");
+      }
+    }
+  }
+  private fieldOptions(field: NonNullable<ReturnType<Engine["handField"]>>) {
+    const { parcel } = field, { rect } = parcel, p = this.state.player.pos;
+    const setting = this.world.pack.setting!;
+    const season = seasonAt(setting.season, this.state.clock) as Season;
+    const stock = this.state.economy?.stock[field.household.id]?.grain ?? 0;
+    const reachable = new Set([tileKey(p.x, p.y)]), queue: Point[] = [p];
+    const inReach = new Set<string>();
+    for (let i = 0; i < queue.length; i++) {
+      const from = queue[i];
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+        const at = { x: from.x + dx, y: from.y + dy }, key = tileKey(at.x, at.y);
+        inReach.add(key);
+        if (dx && dy || reachable.has(key) || !onParcel(this.world, parcel, { ...at, space: "outside" }) ||
+            this.playerBlocked(at.x, at.y) || !this.playerCanCross(from, at)) continue;
+        reachable.add(key);
+        queue.push(at);
+      }
+    }
+    const targets: Record<FieldJob, Point[]> = { weed: [], prepare: [], plant: [], harvest: [], bank: [], water: [] };
+    for (let y = rect.y; y < rect.y + rect.h; y++) for (let x = rect.x; x < rect.x + rect.w; x++) {
+      if (!inReach.has(tileKey(x, y)) || this.world.topography?.(x, y)?.field?.parcel !== parcel.id) continue;
+      for (const job of cellJobs(this.world, this.state, { x, y }, season, stock)) targets[job].push({ x, y });
+    }
+    const options = [];
+    const fromPlayer = (q: Point) => Math.hypot(q.x - p.x, q.y - p.y);
+    for (const job of ["harvest", "plant", "water", "weed", "prepare", "bank"] as const) {
+      const limit = job === "plant" ? Math.min(6, Math.floor(stock)) : 6;
+      const patches = targets[job].sort((a, b) => fromPlayer(a) - fromPlayer(b));
+      if (!patches.length) continue;
+      const first = patches[0], soil = this.world.topography!(first.x, first.y).field!;
+      const rowDistance = (q: Point) => Math.abs(acrossFieldRow(soil, q.x - first.x, q.y - first.y));
+      if (job !== "weed") patches.sort((a, b) => rowDistance(a) - rowDistance(b));
+      options.push({ job, cells: patches.slice(0, limit), ...fieldWords(job, parcel.crop, soil.wet, setting) });
+      if (options.length === 3) break;
+    }
+    return options;
+  }
+  private showFieldJobs() {
+    const t = this.trade(), field = this.handField(t);
+    if (!t || !field?.here || field.selected) return;
+    this.householdStore(field.household);
+    const choices = this.fieldOptions(field).map(o => ({
+      index: fieldJobs.indexOf(o.job), label: o.title, note: o.note, minutes: o.cells.length * fieldMinutes[o.job],
+    }));
+    if (!choices.length) choices.push({ index: fieldJobs.length, label: "Finish the field round", note: "There is no more work ready on this parcel.", minutes: 0 });
+    if (!this.cards.some(c => c.choose?.card === field.id))
+      this.cards.push({ kind: "speech", title: field.label, text: `What will you work on in the ${crops[field.parcel.crop].label.toLowerCase()} field?`,
+        choose: { card: field.id, choices } });
+  }
+  lastFieldStroke?: FieldJob;
+  private applyFieldCell(job: FieldJob, q: Point, h: Household, clock = this.state.clock) {
+    const field = this.world.topography!(q.x, q.y).field!, edit = this.editAt(q.x, q.y);
+    edit.fieldSeason = seasonIndex(clock);
+    edit.tended = { at: clock, job };
+    if (job === "water") {
+      edit.watered = Math.floor(clock / 86400);
+      edit.furrow = field.axis;
+    }
+    if (job === "weed") edit.cut = true;
+    if (job === "bank") { edit.banked = edit.fieldSeason; edit.furrow = field.axis; }
+    if (job === "prepare") {
+      edit.dug = true; edit.furrow = field.axis;
+      if (field.wet) edit.puddled = true;
+    }
+    if (job === "plant") {
+      this.householdStore(h).grain -= 1;
+      edit.sowing = { crop: field.crop, owner: field.owner ?? h.members[0], season: edit.fieldSeason };
+      delete edit.dug; delete edit.puddled; delete edit.furrow;
+    }
+    if (job === "harvest") edit.picked = clock;
+    this.tilesChanged();
+  }
+  private *fieldStroke() {
+    const t = this.trade(), field = this.handField(t);
+    if (!t || !field) return;
+    const pass = field.selected, q = field.target;
+    if (!pass) { this.showFieldJobs(); return; }
+    if (!q) {
+      this.event("There are no more patches ready on this row.");
+      if (field.scheduled && pass.count) yield* this.doWork(false, true, pass.job);
+      if (this.state.workday?.field === pass) delete this.state.workday.field;
+      return;
+    }
+    const p = this.state.player;
+    if (p.pos.x !== q.x || p.pos.y !== q.y) {
+      p.direction = this.directionTo(p.pos, q);
+      p.facing = facingFromStep(q.x - p.pos.x, q.y - p.pos.y, p.direction);
+    }
+    this.applyFieldCell(pass.job, q, field.household);
+    const econ = this.state.economy ??= { hour: Math.floor(this.state.clock / 3600), stock: {}, short: {} };
+    if (econ.work?.day !== t.day) econ.work = { day: t.day, stage: t.stage };
+    if (pass.job === "harvest") {
+      const good = crops[field.parcel.crop].yields!;
+      if (good === "grain" && field.scheduled && field.household.id === t.household.id) econ.work.harvest = (econ.work.harvest ?? 0) + 1;
+      else addStock(econ, field.household, good, good === "grain" ? GRAIN_PER_CELL : 1);
+    }
+    if (field.household.id === t.household.id && (pass.job === "weed" || pass.job === "plant"))
+      (econ.farm ??= {})[pass.job === "weed" ? "weeded" : "sown"] = seasonIndex(this.state.clock);
+    pass.cells = field.available!.filter(cell => cell !== q);
+    pass.count++;
+    this.lastFieldStroke = pass.job;
+    p.fatigue = Math.min(100, p.fatigue + 1);
+    this.grantXp("farming", 2);
+    yield* this.advanceSteps(fieldMinutes[pass.job] * 60);
+    if (!pass.cells.length) {
+      this.event(`${field.words!.title} — ${pass.count} ${field.words!.unit}.`);
+      if (field.scheduled && this.trade()?.day === t.day) yield* this.doWork(false, true, pass.job);
+      if (this.state.workday?.field === pass) delete this.state.workday.field;
+    }
   }
   private dayTitle(t = this.trade()) {
     return t?.process.title && cardText(t.process.title, this.cardWords());
@@ -1076,7 +1344,8 @@ export class Engine {
   private outbuildingSpot(household: Household, kind: "byre" | "henhouse"): Position | undefined {
     const place = this.world.places.find((b) => b.claim === `yard-${kind}` && !!b.owner && household.members.includes(b.owner));
     const room = place && this.interiorOf(place.id);
-    return place && room ? { ...room.workCell, space: place.id } : undefined;
+    const at = room?.work[0] ?? room?.entry;
+    return place && at ? { x: at.x, y: at.y, space: place.id } : undefined;
   }
   /** A dairy or poultry trade may begin its first morning already at work
    * among the animals. Returns true when it moved the player. */
@@ -1168,6 +1437,20 @@ export class Engine {
     if (tunnelRun(this.state)?.peril || tunnelRun(this.state)?.trapped) return;
     const t = this.trade(), ps = this.placeStep(t);
     const p = this.state.player.pos;
+    const gather = this.gathering(t);
+    if (gather) {
+      if (!gather.here || this.waitingCard()) return;
+      return { label: gather.choosing ? gather.title : gather.verb, command: { type: "interact" as const,
+        target: gather.choosing ? "player" : (gather.home ? gather.store! : gather.patch!).id, action: "gather-work" as const } };
+    }
+    const field = this.handField(t);
+    if (field) {
+      if (this.waitingCard() || !field.here) return;
+      const q = field.target ?? p;
+      if (field.selected && Math.hypot(q.x-p.x,q.y-p.y)>1.5) return;
+      const label = field.selected && !field.target ? "Finish row" : field.words?.verb ?? "Choose fieldwork";
+      return { label, command: { type: "interact" as const, target: Engine.tileTarget(q.x, q.y), action: "fieldwork" as const } };
+    }
     // A hunt ends on a kill, or once it has gone on long enough, wherever the hunter is.
     if (ps?.step.scene === "hunt")
       return this.huntOver() && !this.waitingCard() && p.space === "outside"
@@ -1307,6 +1590,26 @@ export class Engine {
     else this.cards.unshift(shown);
   }
   private choose(id: string, n: number) {
+    if (id.startsWith("patch:")) {
+      const patch = this.state.workday?.patchChoices?.ids[n];
+      delete this.state.workday!.patchChoices;
+      if (patch) {
+        this.fixDay();
+        this.state.workday!.patch = patch;
+        if (this.trade()?.stage === 0) for (const _ of this.doWork(false, true)) {}
+      }
+      this.lastChoice = undefined;
+      return;
+    }
+    if (id.startsWith("field:")) {
+      const field = this.handField()!;
+      this.fixDay();
+      const option = this.fieldOptions(field).find(o => fieldJobs.indexOf(o.job) === n);
+      if (option) this.state.workday!.field = { id, job: option.job, cells: option.cells, count: 0 };
+      else if (n === fieldJobs.length && field.scheduled) for (const _ of this.doWork(false, true, "finished")) {}
+      this.lastChoice = undefined;
+      return;
+    }
     if (id.startsWith("plot:")) return this.plotChoose(id, n);
     if (id.startsWith("help:")) return this.helpChoose(id, n);
     if (id.startsWith("wall:")) return this.wallAnswer(n);
@@ -1600,13 +1903,14 @@ export class Engine {
       tomorrow: { condition: w.condition, label: w.label, tempC: w.tempC },
     };
   }
-  private *doWork(hunted = false, performed = false) {
+  private *doWork(hunted = false, performed = false, hand?: FieldJob | "finished") {
     const t = this.trade();
     if (!t || t.stage >= t.process.stages.length) return;
     const s = this.state;
     const { process } = t;
     const step = process.steps[t.stage], job = this.teamJob(step, t);
     let cart: string | undefined;
+    if (!performed && this.gathering(t)) return;
     if (job && !performed) {
       const { v, a } = job, p = s.player;
       if ((step.name === "break" || step.name === "plant" && a.mount) && a.plough) {
@@ -1685,7 +1989,7 @@ export class Engine {
     } finally {
       this.working = undefined;
     }
-    const reaped = this.farming(t) && !(performed && (step.name === "reap" || step.name === "cut"))
+    const reaped = !hand && this.farming(t) && !(performed && (step.name === "reap" || step.name === "cut"))
       ? this.tendFarm(t, step.name) : undefined;
     s.economy ??= { hour: Math.floor(s.clock / 3600), stock: {}, short: {} };
     const was = s.economy.work?.day === t.day ? s.economy.work : undefined;
@@ -1697,7 +2001,9 @@ export class Engine {
     if (gate) gate.open = grazing(t.stage + 1);
     if (herd) herd.fold = gate!.open && process.steps[t.stage + 1]?.at !== "pasture";
     // Walked here, the card came on arrival; set down here, it comes now.
-    const card = this.drawCard(t, t.stage);
+    const handEvent = hand && (s.workday?.field?.count ?? 0) >= 3 &&
+      ({ harvest: "reap", plant: "sow", weed: "weed", prepare: "break", bank: "tend", water: "water", finished: "" })[hand] === step.name;
+    const card = (!hand || handEvent) && this.drawCard(t, t.stage);
     if (t.stage + 1 < process.stages.length) return;
     if (process.steps[t.stage].at === "pit") mineLeave(this.complex);
     // The wage waits for the last card's answer.
@@ -1842,7 +2148,7 @@ export class Engine {
   }
   private arrive() {
     const t = this.trade();
-    if (!t || t.stage >= t.process.stages.length || this.waitingCard() || !t.process.steps[t.stage].card) return;
+    if (!t || t.stage >= t.process.stages.length || this.waitingCard() || !t.process.steps[t.stage].card || this.handField(t) || this.gathering(t)) return;
     const ps = this.placeStep(t), p = this.state.player.pos;
     const station = ps ? undefined : this.workStation();
     const at = ps ? ps.at.pos : typeof station === "object" ? station.pos : undefined;
@@ -1860,7 +2166,7 @@ export class Engine {
     if (work) work.done = true;
     const skill = process.skill ?? workSkill[process.family];
     const craft = skill === "crafting" ? 1 + this.skillLevel("crafting") * PER_LEVEL.craftingYield : 1;
-    const made: Record<string, number> = kit.activity === "Looking for game" ? this.settleHunt(t) : process.paid === "wage" ? this.takings(3, (amount) => this.mineWords(t).mine ? `At the office window the pay clerk counts out ${amount} for your ${work?.tubs ?? "day's"} ${work?.tubs ? `${this.mineWords(t).tub}s` : "work"}.` : `The ${process.boss ?? bossTitle(this.world.pack.setting)} pays you ${amount}.`)
+    const made: Record<string, number> = gathersPlants(kit) ? {} : kit.activity === "Looking for game" ? this.settleHunt(t) : process.paid === "wage" ? this.takings(3, (amount) => this.mineWords(t).mine ? `At the office window the pay clerk counts out ${amount} for your ${work?.tubs ?? "day's"} ${work?.tubs ? `${this.mineWords(t).tub}s` : "work"}.` : `The ${process.boss ?? bossTitle(this.world.pack.setting)} pays you ${amount}.`)
       : process.paid === "fee" ? this.pay(t, this.patientHousehold(t))
       : process.steps.some((st) => st.client) ? this.pay(t)
       : this.farming(t) ? this.settleHarvest(t)
@@ -1873,7 +2179,7 @@ export class Engine {
     }
     // Work that makes nothing the town trades in, a forager's or a fisher's,
     // comes home in the hand instead.
-    if (kit.activity !== "Looking for game" && !this.farming(t) && !Object.keys(made).length)
+    if (kit.activity !== "Looking for game" && !gathersPlants(kit) && !this.farming(t) && !Object.keys(made).length)
       for (const [item, n] of Object.entries(kit.inventory ?? {}))
         if (n && item !== "tool" && item !== "water" && this.item(item)) {
           s.player.inventory[item] = (s.player.inventory[item] ?? 0) + n;
@@ -2314,8 +2620,9 @@ export class Engine {
       this.state.randomCounter++,
     );
   }
-  event(text: string, kind: GameEvent["kind"] = "action", pos?: Position) {
+  event(text: string, kind: GameEvent["kind"] = "action", pos?: Position, interaction?: GameEvent["interaction"]) {
     const e = {
+      ...(interaction && { interaction }),
       id: (this.state.events.at(-1)?.id ?? 0) + 1,
       time: this.state.clock,
       text,
@@ -2324,6 +2631,12 @@ export class Engine {
     };
     this.state.events.push(e);
     if (this.state.events.length > 160) this.state.events.shift();
+    return e;
+  }
+  private rememberExchange(a: Actor, text: string, interaction: NonNullable<GameEvent["interaction"]>) {
+    const events = (a.encounters ??= []);
+    events.push(this.event(text, "social", a.pos, interaction));
+    if (events.length > 4) events.shift();
   }
   private tickObstacles?: Map<string, typeof this.state.objects>;
   // Per-advance indexes. All undefined outside advance(), where the callers
@@ -2335,6 +2648,11 @@ export class Engine {
   private objectsById?: Map<string, WorldObject>;
   private householdsById?: Map<string, Household>;
   private loads?: ReturnType<typeof carryKit>;
+  gatheringBasket() { return (this.loads ??= carryKit(this.world.pack)).basket; }
+  fieldLoad(job?: FieldJob) {
+    if (job === "prepare" || job === "bank") return (this.loads ??= carryKit(this.world.pack)).tool;
+    if (job === "water") return (this.loads ??= carryKit(this.world.pack)).vessel;
+  }
   private resourceObjects?: WorldObject[];
   private terrainCollision = new Map<string, boolean>();
   private folkHost: FolkHost = {
@@ -2472,7 +2790,7 @@ export class Engine {
     const host = { ...this.complex, advance() {} };
     if (where === "fair") {
       const s = this.world.pack.setting, fair = s && ((s.venue ? fairById(s.venue) : undefined) ?? fairAt(s.lon, s.lat, s.year));
-      if (fair) fairEnter(host, fair, true);
+      if (fair) fairEnter(host, fair, true, s?.venueRoom);
       return;
     }
     if (where === "tomb") {
@@ -2672,7 +2990,7 @@ export class Engine {
   private reapForHousehold(x: number, y: number) {
     const t = this.trade(), step = t?.process.steps[t.stage];
     if (!t || !step || !["cut", "reap"].includes(step.name) || !this.farming(t) || this.waitingCard()) return false;
-    const field = this.world.topography?.(x, y)?.field, parcel = fieldParcel(this.world, t.household);
+    const field = this.world.topography?.(x, y)?.field, parcel = this.farmParcels(t.household)[0];
     if (!field || !parcel || field.parcel !== parcel.id || !this.worksFor(field.owner) ||
         x < parcel.rect.x || y < parcel.rect.y || x >= parcel.rect.x + parcel.rect.w || y >= parcel.rect.y + parcel.rect.h) return false;
     const econ = this.state.economy ??= { hour: Math.floor(this.state.clock / 3600), stock: {}, short: {} };
@@ -2855,6 +3173,126 @@ export class Engine {
         : this.objectsById.get(id)
       : this.state.objects.find((o) => o.id === id);
   }
+  private motorIndex?: { objects: WorldObject[]; size: number; trucks: WorldObject[] };
+  private motorVehicles() {
+    const objects = this.state.objects;
+    if (this.motorIndex?.objects !== objects || this.motorIndex.size !== objects.length)
+      this.motorIndex = { objects, size: objects.length, trucks: objects.filter((o) => o.motor) };
+    return this.motorIndex.trucks;
+  }
+  vehicleCab(o: WorldObject) {
+    const m = o.motor,
+      p = this.state.player;
+    if (!m || p.pos.space !== "outside" || p.held || p.perch || p.afloat || p.guidingPlough || p.drivingCart) return false;
+    if (!m.taken) {
+      const v = this.world.vehicle?.(o.id);
+      if (v?.delivery && deliveryAt(v, this.state.clock - (m.delay ?? 0)).cab) return false;
+    }
+    return [2, -2].some((side) => distance(p.pos, { ...truckOffset(o.pos, m.facing, 2, side), space: "outside" }) <= 1.5);
+  }
+  private cabExit(o: WorldObject) {
+    for (const side of [2, -2, 3, -3]) {
+      const pos = { ...truckOffset(o.pos, o.motor!.facing, 2, side), space: "outside" };
+      if (
+        !this.blocked(pos.x, pos.y, pos.space) &&
+        !this.actorAt(pos, "player") &&
+        this.world.terrain(pos.x, pos.y) !== "water"
+      )
+        return pos;
+    }
+  }
+  private driveBlocked(o: WorldObject, dx: number, dy: number) {
+    if (!Number.isInteger(dx) || !Number.isInteger(dy) || Math.max(Math.abs(dx), Math.abs(dy)) !== 1) return true;
+    const f = facingFromStep(dx, dy, 0),
+      m = o.motor!;
+    const clear = (x: number, y: number, face: number) =>
+      truckBody({ x, y }, face, m.long).every((cell) => {
+        const { x, y } = cell;
+        return (
+          !this.blocked(x, y, "outside", o.id) &&
+          this.world.terrain(x, y) !== "water" &&
+          !this.actorAt({ ...cell, space: "outside" }, "player")
+        );
+      });
+    const { x, y } = o.pos;
+    if (this.world.canCross && !truckBody(o.pos, f, m.long).every(cell =>
+      this.world.canCross!(cell, {x:cell.x+dx, y:cell.y+dy}))) return true;
+    return !clear(x + dx, y + dy, f) || !clear(x, y, f) || !!(dx && dy && (!clear(x + dx, y, f) || !clear(x, y + dy, f)));
+  }
+  private serviceDelivery(o: WorldObject, v: Vehicle, driver: Actor, clock: number, elapsed: number) {
+    const m = o.motor!,
+      job = v.delivery!;
+    if (m.taken) return;
+    if (driver.dead) {
+      m.taken = true;
+      return;
+    }
+    const at = deliveryAt(v, clock - (m.delay ?? 0)),
+      t = at.truck;
+    const occupied =
+      t.moving &&
+      truckBody(t, t.facing, m.long).some(
+        (p) => this.playerOn({ ...p, space: "outside" }) || this.actorAt({ ...p, space: "outside" }, driver.id),
+      );
+    if (occupied) {
+      m.yielding = true;
+      m.delay = (m.delay ?? 0) + elapsed;
+      return;
+    }
+    delete m.yielding;
+    o.pos = { x: Math.round(t.x), y: Math.round(t.y), space: "outside" };
+    m.facing = t.facing;
+    o.sprite = o.sprite.replace(/-\d$/, "-" + t.facing);
+    const pos = at.cab
+      ? { ...o.pos, space: "cab:" + v.id }
+      : at.inOffice
+        ? { ...(this.interiorOf(job.place)?.entry ?? { x: 1, y: 1 }), space: job.place }
+        : { ...at.person, space: "outside" };
+    if (pos.x !== driver.pos.x || pos.y !== driver.pos.y || pos.space !== driver.pos.space) {
+      driver.direction = this.directionTo(driver.pos, pos);
+      this.moveActor(driver, pos);
+    }
+    driver.heldItem = at.working && Math.floor(clock / 4) % 2 === 0 ? "prop:sack@hand" : undefined;
+    driver.offRoutine = true;
+    driver.activity = at.cab
+      ? v.doing
+      : at.inOffice
+        ? "Checking the delivery paperwork"
+        : at.working
+          ? at.depot
+            ? "Loading the truck"
+            : "Unloading the truck"
+          : at.walking ? "Walking the delivery round" : "Checking the load";
+    if (!at.handled) return;
+    const other = this.object(at.depot ? job.store : job.customer);
+    if (!other) return;
+    const day = Math.floor(clock / 86400);
+    if (at.depot && m.intakeDay !== day) {
+      if (m.intakeDay !== undefined && !this.object(o.id.replace(/-delivery$/, "-manifest"))) {
+        other.inventory.grain = Math.max(other.inventory.grain ?? 0, 18);
+        other.depleted = false;
+      }
+      m.intakeDay = day;
+    }
+    if (m.lastCall !== at.call) {
+      m.lastCall = at.call;
+      m.handled = 0;
+    }
+    const capacity = m.long ? 8 : 5;
+    const due = Math.floor(at.handled * capacity);
+    const [from, to] = at.depot ? [other, o] : [o, other];
+    const count = Math.min(
+      from.inventory.grain ?? 0,
+      due - (m.handled ?? 0),
+      at.depot ? capacity - (o.inventory.grain ?? 0) : capacity,
+    );
+    if (count > 0) {
+      from.inventory.grain! -= count;
+      to.inventory.grain = (to.inventory.grain ?? 0) + count;
+      to.depleted = false;
+    }
+    m.handled = due;
+  }
   /** Rolled from the name so it follows the player across maps without being saved. */
   canSwim() {
     const p = this.state.player;
@@ -2877,6 +3315,18 @@ export class Engine {
       d.made?.form === form && !d.made?.flop && ((p.inventory[d.id] ?? 0) > 0 || p.heldItem === d.id));
   }
   playerCanCross(from: Point, to: Point) {
+    const ship=this.state.player.boat && this.object(this.state.player.boat)?.vessel;
+    if(ship){
+      const heading=facingFromStep(to.x-from.x,to.y-from.y,0),large=ship.form==="dhow";
+      if(!navigableHull(to,heading,large,(x,y)=>!this.offMap(x,y) && this.wet(x,y)))return false;
+      const other=this.object(ship.site+(ship.form==="dhow" ? "-lighter" : "-dhow"));
+      if(other?.vessel){
+        const v=other.vessel;
+        const overlap=hullOverlap(to,heading,large,other.pos,v.heading,!large);
+        if(overlap>0 && overlap>=hullOverlap(from,ship.heading,large,other.pos,v.heading,!large))return false;
+      }
+      return true;
+    }
     const deep = this.deep(from.x, from.y) || this.deep(to.x, to.y);
     const p = this.floater(deep);
     if (afloatAt(this.world, p, from.x, from.y) && afloatAt(this.world, p, to.x, to.y))
@@ -2896,9 +3346,16 @@ export class Engine {
   /** A household's private rooms open to its own, and to anyone one of them
    * trusts well: Stardew's two hearts. */
   welcomeIn(space: string) {
-    const h = this.state.households?.find((g) => g.residence === space);
-    if (!h || h.members.includes("player")) return true;
-    return h.members.some((id) => (this.state.actors.find((a) => a.id === id)?.trust ?? 0) >= 2);
+    const place = this.world.place(parseFloor(space).place);
+    const h = place && this.state.households?.find(g => g.residence === place.id);
+    return !place || !h || this.householdWelcome(h, place);
+  }
+  private householdWelcome(h: Household, place: Place) {
+    const s = this.state;
+    return h.id === s.player.householdId || h.members.includes(s.player.id) || place.owner === s.player.id ||
+      (s.permissions[place.owner] ?? 0) > s.clock ||
+      s.actors.some(a => !a.dead && h.members.includes(a.id) && (a.trust >= 2 ||
+        (a.trust >= 0 && a.relations?.some(r => r.other === s.player.id && ["friend", "partner", "parent", "child"].includes(r.kind)))));
   }
   /** The generated room of a house, built the first time anyone needs it.
    * The household's bed, chest, work station and way out move onto the
@@ -3136,10 +3593,13 @@ export class Engine {
     }
     return fixed;
   }
-  blocked(x: number, y: number, space = this.state.player.pos.space) {
+  blocked(x: number, y: number, space = this.state.player.pos.space, exceptVehicle?: string) {
     const key = `${space}:${x},${y}`;
     return (
       this.ground(x, y, space) ||
+      (space==="outside" && this.motorVehicles().some(o=>o.motor && o.id!==exceptVehicle &&
+        Math.abs(o.pos.x-x)<=4 && Math.abs(o.pos.y-y)<=4 &&
+        truckBody(o.pos,o.motor.facing,o.motor.long).some(c=>c.x===x && c.y===y))) ||
       (space === "outside" && this.gateShut(x, y)) ||
       (!!caveBeastAt(this.state, space, x, y)) ||
       (
@@ -4052,27 +4512,41 @@ export class Engine {
     const owner = this.state.actors.find((a) => a.id === place.owner);
     if (owner) this.complain(owner, { act, object: "home", victim: owner.id, tone: -10, at: this.state.clock, hops: 0 });
   }
-  /** Walk into a house uninvited and whoever heads it, the owner or the eldest
-   * at home, comes at you a few seconds later to order you out. */
   trespassing(a: Actor) {
-    const p = this.state.player, place = this.world.place(p.pos.space);
-    return !!place && p.pos.space !== "outside" && a.pos.space === p.pos.space &&
-      place.access !== "public" && a.householdId !== p.householdId &&
-      !!this.state.households?.some((h) => h.id === a.householdId && h.residence === place.id) &&
-      (this.state.permissions[place.owner] ?? 0) <= this.state.clock;
+    const space = this.state.player.pos.space;
+    const place = space !== "outside" && this.world.place(parseFloor(space).place);
+    return !!place && place.access !== "public" && a.pos.space === space &&
+      !!this.state.households?.some(h => h.id === a.householdId && h.residence === place.id && !this.householdWelcome(h, place));
+  }
+  withinEarshot(a: Actor, radius: number) {
+    const p = this.state.player.pos;
+    if (a.dead || distance(p, a.pos) > radius || !this.visible(a.pos)) return false;
+    const room = p.space !== "outside" && this.interiorOf(p.space);
+    if (!room) return true;
+    const dx = a.pos.x - p.x, dy = a.pos.y - p.y, steps = Math.max(Math.abs(dx), Math.abs(dy));
+    for (let i = 1; i < steps; i++)
+      if (!room.floor.has(`${Math.round(p.x + dx * i / steps)},${Math.round(p.y + dy * i / steps)}`)) return false;
+    return true;
+  }
+  canAnswerWarning(a: Actor) {
+    return !/sleep/i.test(a.activity) && this.intrusion?.by === a.id && this.intrusion.done && !this.intrusion.escalated &&
+      this.trespassing(a) && this.withinEarshot(a, 6);
   }
   trespassContext(a: Actor) {
     if (!this.trespassing(a)) return "";
-    const warned = this.intrusion?.place === a.pos.space && this.intrusion.done;
+    const warned = this.intrusion?.place === parseFloor(a.pos.space).place && this.intrusion.by === a.id && this.intrusion.done;
+    if (this.intrusion?.done && !warned) return "Someone else in your household already asked the player to leave.";
     return warned
       ? "You have ALREADY told the player to leave your private home. They are still inside. A refusal or deliberate evasion now escalates this encounter; do not restart with a greeting."
       : "The player is inside your private home without permission. Tell them to leave; set trespass to warned when you do.";
   }
   trespassReply(a: Actor, response: "warned" | "refused" | "leaving") {
     if (!this.trespassing(a) || response === "leaving") return;
-    const clock = this.state.clock, place = a.pos.space;
+    const clock = this.state.clock, place = parseFloor(a.pos.space).place;
     if (this.intrusion?.place !== place) this.intrusion = { place, since: clock };
     const i = this.intrusion;
+    if (i.done && (response === "warned" || i.by !== a.id)) return;
+    if (!i.done && response === "warned") this.rememberExchange(a, `${a.name} asks you to leave their home.`, { actor: a.id, kind: "warning", place });
     i.by = a.id;
     i.done = true;
     i.warnedAt ??= clock;
@@ -4257,49 +4731,46 @@ export class Engine {
   }
   private confront(clock: number) {
     const p = this.state.player;
-    const place = p.pos.space !== "outside" ? this.world.place(p.pos.space) : undefined;
-    const h = place && this.state.households?.find((x) => x.residence === place.id && x.id !== p.householdId);
-    const invited = place && (this.state.permissions[place.owner] ?? 0) > clock;
-    if (!place || !h || place.access === "public" || invited || p.dead) {
-      const by = this.intrusion?.by && this.actorsById?.get(this.intrusion.by);
+    const space = p.pos.space;
+    const place = space !== "outside" && this.world.place(parseFloor(space).place);
+    const h = place && this.state.households?.find(x => x.residence === place.id);
+    if (this.intrusion && (this.intrusion.place !== (place && place.id) || p.dead)) {
+      const by = this.state.actors.find(a => a.id === this.intrusion?.by);
       if (by && !by.terror) by.offRoutine = false;
       this.intrusion = this.confronting = undefined;
-      return;
     }
-    if (this.intrusion?.place !== place.id) this.intrusion = { place: place.id, since: clock };
-    const i = this.intrusion;
+    if (!place || !h || place.access === "public" || place.owner === p.id || h.id === p.householdId || h.members.includes(p.id) || p.dead) return;
+    const i = this.intrusion ??= { place: place.id, since: clock };
+    if (i.welcomed) return;
     if (i.done) {
       const by = this.state.actors.find((a) => a.id === i.by);
       const hour = (clock / 3600) % 24;
       // Told to go and still there: at night that is a fight in seconds.
-      if (by && this.trespassing(by) && clock - (i.warnedAt ?? i.since) >= (hour >= 21 || hour < 5 ? 15 : 45)) this.escalateIntrusion(by);
+      if (by && this.canAnswerWarning(by) && clock - (i.warnedAt ?? i.since) >= (hour >= 21 || hour < 5 ? 15 : 45)) this.escalateIntrusion(by);
       return;
     }
-    if (clock - i.since < 12) return;
-    const home = this.state.actors.filter((a) => a.kind === "human" && !a.dead && a.pos.space === place.id && h.members.includes(a.id) && (a.age ?? 30) >= 15);
-    // A break-in is already a fight; nobody stops to talk.
-    if (!home.length || home.some((a) => a.terror)) return;
-    const a = home.find((x) => x.id === place.owner) ?? home.sort((x, y) => (y.age ?? 30) - (x.age ?? 30))[0];
+    const home = this.state.actors.filter(a => a.kind === "human" && h.members.includes(a.id) &&
+      a.pos.space === space && !/sleep/i.test(a.activity) && this.withinEarshot(a, 6) && this.indoorUse(a.id, a.pos)?.role !== "bed");
+    if (!home.length || home.some(a => a.terror) || this.fighting()) return;
+    const a = home.find(a => a.id === place.owner) ?? home.sort((a, b) => distance(a.pos, p.pos) - distance(b.pos, p.pos))[0];
+    a.direction = this.directionTo(a.pos, p.pos);
+    if (this.householdWelcome(h, place)) {
+      i.welcomed = true;
+      this.cue(a.id, "greet", p.pos);
+      this.rememberExchange(a, `${a.name} looks up. “Come in.”`, { actor: a.id, kind: "welcome", place: space });
+      return;
+    }
     i.by = a.id;
     a.offRoutine = true;
-    a.direction = this.directionTo(a.pos, p.pos);
-    if (Math.max(Math.abs(a.pos.x - p.pos.x), Math.abs(a.pos.y - p.pos.y)) > 1) {
-      const step = findPath(a.pos, p.pos, (x, y) => !(x === p.pos.x && y === p.pos.y) && (this.blocked(x, y, a.pos.space) || !!this.actorAt({ ...a.pos, x, y }, a.id)), 400)[0];
-      if (step && !(step.x === p.pos.x && step.y === p.pos.y)) this.moveActor(a, { ...a.pos, ...step });
-      return;
-    }
     i.done = true;
     i.warnedAt = clock;
+    const familiar = a.trust > 0 || a.relations?.some(r => r.other === p.id) || a.memories.some(m => m.startsWith("spoke:")) || a.encounters?.length;
     this.regard(a, -2, "anger");
-    a.memories.push(`Found player in ${place.name.toLowerCase()} uninvited`);
+    const line = familiar ? `${p.name.split(" ")[0]}, knock next time. I need you to leave.`
+      : (a.age ?? 30) < 15 ? "Who are you? Get out!" : this.standsGround(a) ? "Get out of my house!" : "Who let you in? Please leave.";
+    this.rememberExchange(a, `${a.name} spots you. “${line}”`, { actor: a.id, kind: "warning", place: space });
     hear(a, { act: "walked uninvited into", object: "home", victim: a.id, tone: -3, at: clock, hops: 0 });
     this.confronting = a.id;
-    if (!this.conversing) this.confronter = a.id;
-    this.approacher = {
-      id: a.id,
-      situation: "THE PLAYER IS INSIDE YOUR HOME UNINVITED and you have marched straight up to them. Yell at them to GET OUT, in CAPITALS with exclamation marks. Demand who they are. Do not ask politely.",
-      until: clock + 300,
-    };
   }
   private witnessAssault(person: Actor) {
     person.memories.push("The player struck me");
@@ -4819,7 +5290,7 @@ export class Engine {
   /** What someone yells mid-fight, over their head. */
   private shout(a: Actor, text?: string) {
     const lines = a.terror?.cause === "fright" ? ["Help! Somebody help!", "Leave us alone!"]
-      : this.intrusion?.place === a.pos.space ? ["Get out of my house!", "Out! Now!", "Thief!", "You'll regret this!"]
+      : this.intrusion?.place === parseFloor(a.pos.space).place ? ["Get out of my house!", "Out! Now!", "Thief!", "You'll regret this!"]
       : ["Come on, then!", "You asked for this!", "Had enough?", "Stay down!"];
     text ??= lines[Math.floor(random(this.state.manifest.seed, "shout", a.id, this.state.clock) * lines.length)];
     this.signal({ kind: "say", who: a.id, text });
@@ -5567,7 +6038,7 @@ export class Engine {
   static tileTarget(x: number, y: number) {
     return `tile:${x},${y}`;
   }
-  private tileAt(target: string): Point | undefined {
+  tileAt(target: string): Point | undefined {
     const m = /^tile:(-?\d+),(-?\d+)$/.exec(target);
     return m ? { x: Number(m[1]), y: Number(m[2]) } : undefined;
   }
@@ -6949,7 +7420,8 @@ export class Engine {
           h.members.includes(actorId) && h.members.includes(place.owner),
       ) ||
       (actorId === "player" &&
-        (this.state.permissions[place.owner] ?? 0) > this.state.clock);
+        ((this.state.permissions[place.owner] ?? 0) > this.state.clock ||
+          !!this.state.households?.some(h => h.residence === place.id && this.householdWelcome(h, place))));
     return doorAccess({
       access: place.access,
       invited,
@@ -6995,10 +7467,14 @@ export class Engine {
       for (const a of this.state.actors)
         if (a.id !== actorId && a.pos.space === start.space)
           occupied.add(`${a.pos.x},${a.pos.y}`);
+    const outdoors = actorId === "player" && start.space === "outside";
+    if (outdoors) this.doorOf("");
     return route(
       start,
       target,
       (to, from) => {
+        // Crossing this threshold would end the outdoor leg inside a house.
+        if (outdoors && (to.x !== target.x || to.y !== target.y) && this.doorsByCell?.has(tileKey(to.x,to.y))) return Infinity;
         if (
           start.space === "outside" &&
           this.world.canCross &&
@@ -7542,6 +8018,11 @@ export class Engine {
       };
     }
     if (!object) return;
+    if(object.motor) {
+      const aboard=this.state.player.drivingVehicle===id;
+      interact(aboard ? "leave-vehicle" : "drive-vehicle",aboard ? "Step out of the cab" : "Drive the truck",
+        aboard ? !!this.cabExit(object) : this.vehicleCab(object),"Walk up to an unattended cab");
+    }
     if (object.prop) {
       const def = propDefs[object.prop];
       return {
@@ -7569,6 +8050,7 @@ export class Engine {
           .filter(Boolean)
           .join(" "),
         affordances: [
+          ...affordances.filter(a => a.command.type === "interact" && a.command.action === "use-prop" && use?.use !== "attend"),
           ...propAffordances(this.state, object, close),
           ...this.workAt(object, close),
           ...(this.state.households?.some(
@@ -7629,6 +8111,24 @@ export class Engine {
       // answers is the knock's business, not the prompt's.
       else interact("knock", "Knock and wait");
     }
+    if(object.passage)interact("passage","Take the cross-river ferry",close && !this.state.player.afloat,"Walk to the boarding gate");
+    if(object.vessel) {
+      const p=this.state.player, dock=this.world.anchorage?.(object.vessel.site);
+      if(p.boat===object.id && dock){
+        const nearShore=Math.hypot(object.pos.x-dock.shore.x,object.pos.y-dock.shore.y)<=3;
+        if(nearShore) interact("launch","Tie up and step ashore",true);
+        if(object.vessel.form==="lighter"){
+          const trader=this.object(object.vessel.site+"-dhow");
+          if(nearShore && object.inventory.cloth)interact("unload","Land the cloth bales",true);
+          else if(trader && distance(object.pos,trader.pos)<=6 && (trader.inventory.cloth??0)>0 && (object.inventory.cloth??0)<3)
+            interact("unload","Load cloth from the dhow",true);
+        }
+      } else if(this.atBoat(object)) interact("launch","Take the tiller of the "+object.name.toLowerCase(),true);
+    }
+    if(object.lighterage) interact("unload","Take a bale to the shore store",close && !this.state.player.deliveryBale && (object.inventory.cloth??0)>0,
+      this.state.player.deliveryBale ? "Deliver the bale you are carrying" : "Wait for the lighter to land its cargo");
+    if(this.state.player.deliveryBale===object.id) interact("unload","Stack the bale and collect your fee",close);
+    if(object.freight)interact("unload","Work the cargo sling",close && (object.inventory.grain??0)>0,"Waiting for the next consignment");
     const boat = this.ownBoat(object);
     if (boat) {
       const p = this.state.player;
@@ -7642,15 +8142,18 @@ export class Engine {
       interact("rest", "Rest for 20 minutes");
       interact("sleep", "Sleep until morning");
     }
-    if (object.kind === "tree")
-      interact(
+    if (object.kind === "tree") {
+      const gathering = this.state.workday?.patch === id && this.gathering();
+      if (gathering && !gathering.home && !gathering.choosing) interact("gather-work",gathering.verb,gathering.here,"Walk up to the patch");
+      else interact(
         "harvest",
         object.resource
           ? `Gather ${this.items[object.resource.item].name.toLowerCase()}`
           : "Gather fallen branches",
         close && !object.depleted,
-        object.depleted ? "The fallen wood has been gathered" : "Walk closer",
+        object.depleted ? "Already gathered" : "Walk closer",
       );
+    }
     if (object.kind === "crop")
       interact(
         "harvest",
@@ -7676,7 +8179,11 @@ export class Engine {
       name: object.name,
       description: object.resource
         ? `${object.name}. ${object.depleted ? "Currently depleted or out of season." : `${object.inventory[object.resource.item] ?? 0} available.`} Harvest season: ${object.resource.seasons.join(", ")}.`
-        : object.description
+        : object.vessel
+          ? `${object.description} ${object.inventory.cloth ? `${object.inventory.cloth} cloth bale${object.inventory.cloth===1 ? "" : "s"} aboard.` : "The hold is empty."}`
+          : object.motor
+          ? [object.description, object.inventory.grain ? `The truck carries ${object.inventory.grain} ${object.inventory.grain===1 ? "sack" : "sacks"} of grain.` : "The freight body is empty."].join(" ")
+          : object.description
           ? object.description
           : object.kind === "tree"
             ? object.depleted
@@ -7793,6 +8300,10 @@ export class Engine {
         const move = command.type === "move" && this.state.encounter?.card !== FORD_CARD.id;
         const crossed = beforeFord && distance(beforeFord, this.state.player.pos) > 0;
         if (move || crossed) this.arrive();
+        if ((move || crossed) || (command.type === "interact" && ["enter", "exit", "lift"].includes(command.action))) {
+          this.confront(this.state.clock);
+          this.marketCall();
+        }
         if (move) this.gateToll(command.dx, command.dy);
         if (this.state.plot && !this.state.plot.ended && plotTemplate(this.state.plot)?.journal &&
             (move || crossed || (command.type === "interact" && (command.action === "enter" || command.action === "exit"))))
@@ -7821,6 +8332,22 @@ export class Engine {
     if ((p.stocked ?? 0) > this.state.clock && c.type !== "wait" && c.type !== "sleep" && !(c.type === "interact" && c.action === "talk"))
       return "You are serving your sentence.";
     if (this.state.encounter && !(c.type === "choose" && c.card === this.state.encounter.card)) return "Answer the encounter before doing anything else.";
+    if (c.type === "interact" && c.action === "leave-vehicle") {
+      const o = this.object(c.target);
+      return p.drivingVehicle === c.target && o?.motor && this.cabExit(o)
+        ? undefined
+        : "There is no clear space beside the cab.";
+    }
+    if (p.drivingVehicle) {
+      const o = this.object(p.drivingVehicle);
+      if (c.type === "move")
+        return !c.jump && o?.motor && !this.driveBlocked(o, c.dx, c.dy) ? undefined : "The truck cannot pass there.";
+      if (c.type !== "pass" && c.type !== "wait" && c.type !== "choose") return "Step out of the cab first.";
+    }
+    if (c.type === "interact" && c.action === "drive-vehicle") {
+      const o = this.object(c.target);
+      return o && this.vehicleCab(o) ? undefined : "Walk up to the cab while the driver is away.";
+    }
     if (p.drivingCart && (c.type === "move" || c.type === "interact" && c.action === "enter"))
       return "Halt the cart and hand back the reins to step down.";
     if (c.type === "gamble") {
@@ -7861,8 +8388,26 @@ export class Engine {
       }
     }
     if (c.type === "interact" && c.action === "fill") return this.fillProblem(c.target);
-    if (c.type === "interact" && c.action === "work" && this.tileAt(c.target))
-      return this.workHere()?.command.target === c.target ? undefined : "There is no work for you here.";
+    if (c.type === "choose" && c.card.startsWith("patch:")) {
+      const t = this.trade(), g = this.gathering(t);
+      const options = this.state.workday?.patchChoices;
+      if (!g?.choosing || !t || !options || options.card !== c.card || this.state.workday?.day !== t.day || this.waitingCard()) return "This gathering round has ended.";
+      if (!options.ids.length && c.choice === 0) return;
+      const o = this.object(options.ids[c.choice]);
+      return o && foodPatch(o,g.season) && !o.depleted && (!o.owner || t.household.members.includes(o.owner)) ? undefined : "That patch is no longer ready.";
+    }
+    if (c.type === "interact" && (c.action === "gather-work" || c.action === "fieldwork" || c.action === "work" && this.tileAt(c.target))) {
+      const here = this.workHere()?.command;
+      if (here?.action !== c.action || here.target !== c.target)
+        return c.action === "fieldwork" ? "Walk to the marked patch in the field." : "There is no work for you here.";
+      return;
+    }
+    if (c.type === "choose" && c.card.startsWith("field:")) {
+      const t = this.trade(), field = this.handField(t);
+      if (!t || !field?.here || field.selected || c.card !== field.id || this.waitingCard()) return "Return to the field to choose your work.";
+      const options=this.fieldOptions(field);
+      return (options.length ? options.some(o=>fieldJobs.indexOf(o.job) === c.choice) : c.choice === fieldJobs.length) ? undefined : "That work is no longer available.";
+    }
     if (c.type === "choose" && c.card.startsWith("wall:")) return this.wallAnswerProblem(c.card, c.choice);
     if (c.type === "choose" && c.card.startsWith("toll:")) return this.tollAnswerProblem(c.card, c.choice);
     if (c.type === "choose" && c.card.startsWith("plot:")) {
@@ -7940,6 +8485,12 @@ export class Engine {
       if (c.jump && heldObject(this.state) && !this.armed())
         return "Put down the held object before jumping.";
       if (c.jump && c.traverse) return "Choose one movement style.";
+      const vessel=c.type==="move" && p.boat ? this.object(p.boat)?.vessel : undefined;
+      if(vessel && c.type==="move"){
+        if(!this.playerCanCross(p.pos,{x:p.pos.x+c.dx,y:p.pos.y+c.dy})) return "The hull needs more clear water.";
+        if(c.traverse || c.jump) return "Use the movement keys to steer.";
+        return;
+      }
       if (p.afloat && (c.traverse || c.jump)) return "Paddle or swim with the movement keys while afloat.";
       if (c.traverse || c.jump) {
         const leap = this.traversal(p.pos, c.dx, c.dy, c.jump, c.run);
@@ -8069,17 +8620,17 @@ export class Engine {
       return "There is no clear adjacent place to put it down.";
     const target = this.inspect(c.target);
     if (!target) return "That target is not visible.";
+    if (c.type === "interact" && c.action === "talk" && this.confronting === c.target) {
+      const witness = this.state.actors.find(a => a.id === c.target);
+      if (witness && this.canAnswerWarning(witness)) return;
+    }
     // A boat is boarded from the water's edge, not from beside its hull.
     const launch = c.type === "interact" && c.action === "launch" ? this.object(c.target) : undefined;
     if (launch ? !this.atBoat(launch) : distance(p.pos, target.pos) > 2.5) return "Move closer first.";
     if (c.type === "give") {
       const a = this.state.actors.find((a) => a.id === c.target);
-      if (!a || a.kind !== "human") return "There is nobody there to take it.";
+      if (!a || a.dead || a.kind !== "human") return "There is nobody there to take it.";
       if (p.heldItem !== c.item) return "You are not holding that.";
-      // A gift is not a way around a grievance, but after a day it can end
-      // one that was not too deep.
-      if (a.trust < 0 && (a.trust <= -6 || this.state.clock - (a.wronged ?? 0) < 86400))
-        return "They will not take anything from you yet.";
       return undefined;
     }
     if (c.type === "deal") {
@@ -8146,9 +8697,8 @@ export class Engine {
   private populatedDistrict = "";
   /** One line per intent from the last narrate command. */
   lastOutcomes: string[] = [];
-  populateNearby() {
+  populateNearby(p = this.state.player.pos) {
     if (!this.world.activate) return;
-    const p = this.state.player.pos;
     if (p.space !== "outside") return;
     const key = `${Math.floor(p.x / 128)},${Math.floor(p.y / 128)}`;
     if (key === this.populatedDistrict) return;
@@ -8164,13 +8714,13 @@ export class Engine {
       [...this.state.actors, ...this.state.objects].map((o) => o.id),
     );
     for (const actor of this.world.initialActors)
-      if (!ids.has(actor.id))
+      if (!ids.has(actor.id) && actor.id !== this.world.outing?.actor)
         this.state.actors.push({
           ...copy(actor),
           lastUpdated: this.state.clock,
         });
     for (const object of this.world.initialObjects)
-      if (!ids.has(object.id)) {
+      if (!ids.has(object.id) && (!object.seasons || object.seasons.includes(this.objectSeason ?? ""))) {
         const next = copy(object);
         if (this.world.pack.setting?.environment)
           refreshResource(
@@ -9047,6 +9597,51 @@ export class Engine {
       return;
     }
     if (p.dead) return;
+    if (c.type === "interact" && (c.action === "drive-vehicle" || c.action === "leave-vehicle")) {
+      const o = this.object(c.target)!;
+      if (c.action === "leave-vehicle") {
+        const exit = this.cabExit(o);
+        if (!exit) return;
+        p.pos = exit;
+        delete p.drivingVehicle;
+        this.event("You park the truck and step down.");
+      } else {
+        const v = this.world.vehicle?.(o.id),
+          driver = v && this.state.actors.find((a) => a.id === v.crew[0]);
+        if (driver && !o.motor!.taken) {
+          delete driver.mount;
+          driver.offRoutine = false;
+          delete driver.heldItem;
+          this.offend({
+            owner: driver.id,
+            at: { ...o.pos },
+            lost: { what: "the delivery truck", pos: { ...o.pos } },
+            cost: (theirs) => (theirs ? 8 : 3),
+            story: { act: "took", object: "the delivery truck" },
+            memory: () => "Saw player take " + o.id,
+            text: (w) => w.name + " saw you take the truck.",
+          });
+        }
+        o.motor!.taken = true;
+        p.drivingVehicle = o.id;
+        p.pos = { ...o.pos };
+        p.facing = o.motor!.facing;
+        this.event("You climb into the cab.");
+      }
+      this.advance(1);
+      return;
+    }
+    if (p.drivingVehicle && c.type === "move") {
+      const o = this.object(p.drivingVehicle)!;
+      const f = facingFromStep(c.dx, c.dy, 0);
+      o.pos = { space: "outside", x: o.pos.x + c.dx, y: o.pos.y + c.dy };
+      o.motor!.facing = p.facing = f;
+      o.sprite = o.sprite.replace(/-\d$/, "-" + f);
+      p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+      p.pos = { ...o.pos };
+      this.advance(1);
+      return;
+    }
     if (c.type === "care") { this.giveCare(c.target, c.treatment); return; }
     if (c.type === "gamble") { this.gamble(c); return; }
     if (c.type === "fish") { this.landFish(c); return; }
@@ -9549,6 +10144,15 @@ export class Engine {
       return;
     }
     if (c.type === "move") {
+      const ship=p.boat ? this.object(p.boat) : undefined;
+      if(ship?.vessel){
+        p.pos={...p.pos,x:p.pos.x+c.dx,y:p.pos.y+c.dy};
+        ship.pos={...p.pos};ship.vessel.heading=facingFromStep(c.dx,c.dy,p.direction);
+        p.facing=ship.vessel.heading;p.direction=Math.floor((p.facing+1)/2)%4;
+        ship.vessel.underway=true;ship.vessel.lastMove=this.state.clock;p.activity=ship.vessel.form==="dhow" ? "Sailing" : "Rowing";
+        this.populateNearby();this.advance(4);return;
+      }
+
       const ploughman = p.guidingPlough && this.state.actors.find(a => a.id === p.guidingPlough);
       if (ploughman && ploughman.mount && ploughman.plough) {
         const v = this.world.vehicle?.(ploughman.mount.vehicle);
@@ -9866,36 +10470,44 @@ export class Engine {
     if (c.type === "give") {
       const a = this.state.actors.find((a) => a.id === c.target)!;
       const def = this.item(c.item)!;
+      if (a.trust < 0 && (a.trust <= -6 || this.state.clock - (a.wronged ?? 0) < 86400)) {
+        this.cue(a.id, "refuse", p.pos);
+        this.rememberExchange(a, `${a.name} refuses your offer of ${def.name.toLowerCase()}. They are still upset with you.`, { actor: a.id, kind: "gift", item: c.item, accepted: false });
+        return;
+      }
       delete p.heldItem;
       this.faceEachOther(a);
       this.cue(a.id, c.item === "coin" ? "take-coin" : "take", p.pos);
       a.inventory[c.item] = (a.inventory[c.item] ?? 0) + 1;
       // Someone hungry eats what they are handed, there and then.
-      if (def.edible && a.hunger > 40) {
+      const eaten = a.hunger > 40 ? def.edible : 0;
+      if (eaten) {
         a.inventory[c.item]!--;
-        a.hunger = Math.max(0, a.hunger - def.edible);
+        a.hunger = Math.max(0, a.hunger - eaten);
       }
       if (this.state.kin) this.state.kin.talked[a.id] = this.state.clock;
       const peace = a.trust < 0;
       this.regard(a, peace ? 3 : 1);
       const gift = def.made && giftOf(def, a.name, a.age);
       if (gift) this.regard(a, gift.regard);
-      a.memories.push(`You gave them ${def.name.toLowerCase()}${gift ? " you made yourself" : ""}${peace ? " to make peace" : ""}.`);
       if (peace) {
         a.word = a.word?.filter((w) => w.hops > 0 || w.tone >= 0);
         if (this.state.complaints) this.state.complaints = this.state.complaints.filter((x) => x.by !== a.id);
       }
       const ask = this.state.asks?.find((x) => x.by === a.id && (x.kind === "food" ? !!def.edible : x.item === c.item));
       if (ask) this.grant(ask, a);
-      this.advance(20, a.id);
       const alms = a.origin?.livelihood === "religious-specialist" && (c.item === "coin" || !!def.edible) && !peace;
       if (alms) this.regard(a, 1);
-      this.event(
-        alms
-          ? `You put ${def.name.toLowerCase()} in ${a.name}'s ${a.heldItem === "alms-bowl" ? "bowl" : "hand"}. "${BLESSINGS[this.world.pack.setting?.culture ?? ""] ?? "Bless you for it."}"`
-          : `You hand ${def.name.toLowerCase()} to ${a.name}. ${peace ? "They take it, and the grudge with it." : gift ? gift.line : "They take it."}`,
-        "social",
-      );
+      const response = alms
+        ? `"${BLESSINGS[this.world.pack.setting?.culture ?? ""] ?? "Bless you for it."}"`
+        : gift?.line;
+      const text = [
+        `${a.name} accepts your ${gift ? "handmade " : ""}${def.name.toLowerCase()}${peace ? " as an offer to make peace" : ""}.`,
+        response,
+        eaten ? "They eat it right away." : "",
+      ].filter(Boolean).join(" ");
+      this.rememberExchange(a, text, { actor: a.id, kind: "gift", item: c.item, accepted: true });
+      this.advance(20, a.id);
       if (advanceLifeAim(this.state, { type: "give", actor: a.id, item: c.item }))
         this.event("You have completed a step toward your life aim.");
       return;
@@ -10102,6 +10714,10 @@ export class Engine {
     switch (c.action) {
       case "talk":
         if (a) {
+          if (this.intrusion?.done && this.intrusion.by === a.id && this.trespassing(a)) {
+            this.faceEachOther(a);
+            return;
+          }
           const b = this.state.baby;
           if (b?.with === "player" && b.mood === "watching" && a.kind === "human" && !this.cooed.has(a.id)) {
             this.cooed.add(a.id);
@@ -10150,11 +10766,6 @@ export class Engine {
           else this.cue(a.id, "anger", p.pos);
           this.grantXp("speech", 8);
           if (a.trust >= 2) this.state.permissions[a.id] = this.state.clock + 3600 * 3;
-          else
-            this.event(
-              `${a.name}: “Something has gone missing. Return it before asking for favors.”`,
-              "social",
-            );
           if (a.trust >= 0 && advanceLifeAim(this.state, { type: "talk", actor: a.id }))
             this.event("You have completed a step toward your life aim.");
         }
@@ -10409,11 +11020,55 @@ export class Engine {
         p.activity = p.afloat ? p.afloat === "swimming" ? "Swimming" : "Paddling" : depth > 0 ? "Wading" : "Exploring";
         this.event("You rest beside the household’s work. Your fatigue eases.");
         break;
+      case "gather-work":
+        yield* this.gatherWork();
+        break;
+      case "fieldwork":
+        this.lastFieldStroke = undefined;
+        yield* this.fieldStroke();
+        break;
       case "work":
         yield* this.doWork();
         break;
+      case "passage":
+        if(o?.passage){
+          const phase=(this.state.clock+(o.passage.back?600:0))%FERRY_PERIOD;
+          const journey=(phase<240?600-phase:FERRY_PERIOD+600-phase);
+          yield* this.advanceSteps(Math.ceil(journey));
+          if(!p.dead){p.pos={...o.passage.destination,space:"outside"};this.event("You step off the cross-river ferry.");}
+        }
+        break;
+      case "unload":
+        if(o?.vessel?.form==="lighter" && p.boat===o.id){
+          const dock=this.world.anchorage?.(o.vessel.site),trader=this.object(o.vessel.site+"-dhow");
+          const landing=this.state.objects.find(x=>x.lighterage?.site===o.vessel!.site);
+          const landed=dock && landing && Math.hypot(o.pos.x-dock.shore.x,o.pos.y-dock.shore.y)<=3 && o.inventory.cloth;
+          const n=landed ? transferCloth(o,landing!,3) : trader && distance(o.pos,trader.pos)<=6 ? transferCloth(trader,o,3-(o.inventory.cloth??0)) : 0;
+          if(n)this.event(landed ? "You set the bales down at the landing." : "You stow the cloth under the thwarts.");
+        } else if(o?.lighterage && !p.deliveryBale && (o.inventory.cloth??0)>0){
+          o.inventory.cloth!--;p.deliveryBale=o.lighterage.store;
+          this.event("You shoulder a bale of cloth. Take it to the shaded store beside the boatyard.");
+        } else if(o && p.deliveryBale===o.id){
+          delete p.deliveryBale;o.inventory.cloth=(o.inventory.cloth??0)+1;p.inventory.coin=(p.inventory.coin??0)+1;
+          this.event("You stack the cloth under cover. The storekeeper pays you one coin.");
+        } else if(o?.freight && (o.inventory.grain??0)>0){
+          const store=this.object(o.freight.store);
+          if(store){o.inventory.grain!--;store.inventory.grain=(store.inventory.grain??0)+1;
+            this.advance(60);this.event("You land a sling of grain and enter it in the warehouse tally.");}
+        }
+        break;
       case "launch":
-        if (o && this.atBoat(o) && !o.away && !p.afloat) {
+        if(o?.vessel && this.atBoat(o)){
+          const a=this.world.anchorage?.(o.vessel.site);
+          if(!a)break;
+          if(p.boat===o.id){
+            p.pos={...a.landing,space:"outside"};this.aboard(p,undefined,p.pos.x,p.pos.y);
+            this.event("You make the boat fast and step ashore.");
+          } else {
+            this.aboard(p,o.id,o.pos.x,o.pos.y);p.pos={...o.pos};o.vessel.manual=true;
+            p.facing=o.vessel.heading;this.event("You take the tiller. Use the movement keys to steer.");
+          }
+        } else if (o && this.atBoat(o) && !o.away && !p.afloat) {
           p.pos = { x: o.pos.x, y: o.pos.y, space: "outside" };
           this.aboard(p, o.id, o.pos.x, o.pos.y);
           p.activity = "Paddling";
@@ -10605,7 +11260,6 @@ export class Engine {
   /** Whoever the player is in conversation with stands still, facing them. */
   conversing?: string;
   /** The householder who has come to throw the player out; the UI opens the talk. */
-  confronter?: string;
   /** Who just hit the player, so the UI drops any conversation with them. */
   brokeOff?: string;
   /** Onlookers to a fight, and when they lose interest. */
@@ -10620,7 +11274,7 @@ export class Engine {
   private noticed = new Set<string>();
   /** Who is ordering the player out of their house right now; they shout. */
   confronting?: string;
-  private intrusion?: { place: string; since: number; by?: string; done?: boolean; warnedAt?: number; escalated?: boolean };
+  private intrusion?: { place: string; since: number; by?: string; welcomed?: boolean; done?: boolean; warnedAt?: number; escalated?: boolean };
   private wallChallenge?: { id: string; warnedAt?: number; escalated?: boolean; answered?: boolean; leave?: number; chase?: { from: number } };
   /** Clock second each actor last took offence at a collision or a swing,
    * so leaning on them or swinging again does not keep costing trust. */
@@ -11532,7 +12186,7 @@ export class Engine {
   /** Open for trade now: at the stall, or by day in a workshop at home,
    * which is where most crafts sold from. Never asleep or ill in bed. */
   private sellsNow(a: Actor) {
-    if (!sellsTrade(this.world.pack, a) || /^Resting/.test(a.activity)) return false;
+    if (a.dead || !sellsTrade(this.world.pack, a) || /sleep|^resting/i.test(a.activity)) return false;
     const day = this.world.itinerary?.(a.id);
     if (day && itineraryAt(day, this.state.clock).activity === "rest" && a.activity !== "At home") return false;
     if (keepsShop(this.world.pack, a)) return a.activity !== "At home";
@@ -11543,6 +12197,35 @@ export class Engine {
     // On the front step of their own workshop counts: crafts sold from the doorway.
     const house = home ? this.world.place(home) : undefined, door = house && (house.door ?? house.entrance);
     return !!door && Math.abs(a.pos.x - door.x) + Math.abs(a.pos.y - door.y) <= 3;
+  }
+  recentMarketCall(id: string) {
+    return this.state.events.filter(e => e.interaction?.kind === "wares" && e.interaction.actor === id && this.state.clock - e.time < 300).at(-1);
+  }
+  private heardStalls = new Set<string>();
+  private marketCall() {
+    const s = this.state, p = s.player;
+    if (this.conversing || this.confronting || this.working || s.encounter || p.dead || this.fighting()) return;
+    const traders = this.traders().map(t => t.actor).filter(a => !a.terror && a.trust >= 0 && this.withinEarshot(a, 8));
+    const near = traders.filter(a => distance(p.pos, a.pos) <= 5);
+    const fresh = near.filter(a => !this.heardStalls.has(a.id));
+    this.heardStalls = new Set(traders.filter(a => near.includes(a) || this.heardStalls.has(a.id)).map(a => a.id));
+    for (const a of fresh.sort((a, b) => distance(p.pos, a.pos) - distance(p.pos, b.pos) || a.id.localeCompare(b.id))) {
+      if (this.recentMarketCall(a.id)) continue;
+      const shop = this.shopOf(a.id);
+      if (!shop || this.trespassing(a) || (a.pos.space !== "outside" && this.indoorUse(a.id, a.pos)?.role === "bed")) continue;
+      const goods = Object.keys(shop.stock).filter(id => id !== "coin" && (shop.stock[id] ?? 0) > 0 && (this.item(id)?.value ?? 0) > 0);
+      if (!goods.length) continue;
+      const item = goods[Math.floor(random(s.manifest.seed, "market-call", a.id, Math.floor(s.clock / 3600)) * goods.length)];
+      const name = this.item(item)!.name;
+      const price = shop.coined ? this.buyPrice(item, a.id) : undefined;
+      const money = price && (this.world.pack.setting ? amountIn(this.world.pack.setting, price, true) : `${price} ${price === 1 ? "coin" : "coins"}`);
+      const lines = money ? [`${name} for ${money}!`, `${name} here! Just ${money}.`, `Looking for ${name.toLowerCase()}? ${money}!`]
+        : [`${name} for barter!`, `Looking for ${name.toLowerCase()}? I’ll barter.`];
+      const line = lines[Math.floor(random(s.manifest.seed, "stall-voice", a.id, Math.floor(s.clock / 3600)) * lines.length)];
+      this.event(`${a.name} calls out, “${line}”`, "social", a.pos,
+        { actor: a.id, kind: "wares", item, price });
+      return;
+    }
   }
   /** A seller's wares in a line: "Sells salt, wool and cloth · buys rice". */
   tradeLine(id: string) {
@@ -12513,7 +13196,7 @@ export class Engine {
   }
   /** Places an actor from their precomputed day. Sleeping moves them inside
    * the house, so nobody stands at the door overnight. */
-  private followRoutine(a: Actor, routine: Itinerary, clock: number) {
+  private followRoutine(a: Actor, routine: Itinerary, clock: number, tick = true) {
     const at = itineraryAt(routine, clock);
     this.aboard(a, at.boat, Math.round(at.x), Math.round(at.y));
     const household = this.household(a.householdId);
@@ -12541,6 +13224,13 @@ export class Engine {
       : homeRest && household?.residence && !this.burningPlace(household.residence)
         ? household.residence
         : undefined;
+    if (homeRest && a.basket && household) {
+      const store = this.object(household.storeId);
+      if (store && distance(store.pos, { x:at.x, y:at.y, space:"outside" }) <= 2.2) {
+        this.moveActor(a, { x:Math.round(at.x), y:Math.round(at.y), space:"outside" });
+        emptyBasket(a, store);
+      }
+    }
     if (at.activity === "rest" && room) {
       const index = Math.max(0, household?.members.indexOf(a.id) ?? 0);
       if (a.pos.space !== room || a.activity !== at.label) this.moveActor(a, this.indoorSpot(a, room, at.label, index));
@@ -12565,6 +13255,42 @@ export class Engine {
     });
     a.direction = at.direction;
     a.activity = at.label;
+    if (tick && !at.moving && at.target?.family === "wild-food" && clock % 120 === 0) {
+      const patch = this.object(at.target.id);
+      if (patch) pickHandful(a, patch, clock, seasonAt(this.world.pack.setting?.season ?? "spring", clock));
+    }
+    if (!at.moving && at.target?.family === "food-store") {
+      const store = this.object(at.target.id);
+      if (store) emptyBasket(a, store);
+    }
+    if (a.basket) a.heldItem = this.gatheringBasket();
+    if (!at.moving && at.activity === "tend" && at.target?.family === "crop" && household &&
+        Math.hypot(at.target.x - at.x, at.target.y - at.y) <= 1.5) {
+      const q = at.target, key = tileKey(q.x, q.y), setting = this.world.pack.setting;
+      if (clock % 300 === 0 && setting && this.state.tiles?.[key]?.tended?.at !== clock) {
+        const soil = this.world.topography?.(q.x, q.y)?.field, day = this.state.workday;
+        const reserved = day?.day === Math.floor(clock / 86400) && day.field?.cells.some(c => c.x === q.x && c.y === q.y);
+        if (soil && !reserved) {
+          const farm = this.state.households?.find(h => soil.owner && h.members.includes(soil.owner)) ?? household;
+          const season = seasonAt(setting.season, clock) as Season;
+          const jobs = cellJobs(this.world, this.state, q, season, this.householdStore(farm).grain ?? 0);
+          const job = jobs.includes("harvest") ? "harvest" : jobs[0];
+          if (job) {
+            this.applyFieldCell(job, q, farm, clock);
+            if (job === "harvest") {
+              const good = crops[soil.crop].yields!;
+              addStock(this.state.economy!, farm, good, good === "grain" ? GRAIN_PER_CELL : 1);
+            }
+          }
+        }
+      }
+      const mark = this.state.tiles?.[key]?.tended;
+      if (mark && clock - mark.at < 30 * 60) {
+        a.activity = { weed: "Pulling weeds", prepare: "Opening a planting bed", plant: "Setting seed",
+          harvest: "Gathering the crop", water: "Watering seedlings", bank: "Earthing up the row" }[mark.job];
+        a.heldItem = this.fieldLoad(mark.job);
+      }
+    }
     if (at.activity !== "rest" && ["lute", "drum", "flute"].includes(a.heldItem ?? "") && a.origin?.livelihood === "musician")
       a.activity = `Playing the ${this.item(a.heldItem!)?.name.toLowerCase()}`;
   }
@@ -12575,6 +13301,16 @@ export class Engine {
     return m && m.boatId === o.id ? m : undefined;
   }
   private atBoat(o: WorldObject) {
+    if(o.vessel) {
+      const p=this.state.player,a=this.world.anchorage?.(o.vessel.site);
+      if(!a || p.pos.space!=="outside" || p.drivingCart || p.mount || p.perch || p.held || p.deliveryBale) return false;
+      if(p.boat===o.id) return true;
+      if(o.vessel.underway && !o.vessel.manual) return false;
+      const from=this.object(p.boat);
+      if(from?.vessel)return from.vessel.site===o.vessel.site && distance(from.pos,o.pos)<=6;
+      return distance(p.pos,o.pos)<=2.5 || o.vessel.form==="lighter" &&
+        Math.hypot(o.pos.x-a.shore.x,o.pos.y-a.shore.y)<=3 && distance(p.pos,{...a.landing,space:"outside"})<=2.5;
+    }
     const boat = this.ownBoat(o), p = this.state.player.pos;
     return !!boat && Math.min(distance(p, o.pos), distance(p, { ...boat.launch.water, space: "outside" })) <= 2.5;
   }
@@ -12598,7 +13334,7 @@ export class Engine {
     if (step === "sow" || step === "plant") farm.sown = now;
     if (step === "weed") farm.weeded = now;
     if (step !== "reap" && step !== "cut") return;
-    const parcel = fieldParcel(this.world, t.household);
+    const parcel = this.farmParcels(t.household)[0];
     if (!parcel) return 0;
     let cells = 0;
     for (let y = parcel.rect.y; y < parcel.rect.y + parcel.rect.h; y++)
@@ -12631,21 +13367,19 @@ export class Engine {
     const grain = cells * GRAIN_PER_CELL * tended * luck * (1 + 0.25 * (work.quality ?? 0));
     const kept = addStock(s.economy, t.household, "grain", grain);
     const weeks = Math.round(kept / Math.max(1, t.household.members.length) / 7);
-    const crop = crops[fieldParcel(this.world, t.household)?.crop as CropId]?.label.toLowerCase() ?? "grain";
+    const crop = crops[this.farmParcels(t.household)[0]?.crop as CropId]?.label.toLowerCase() ?? "grain";
     this.event(`${luck < 0.85 ? "A poor year." : luck > 1.2 ? "A good year." : "An ordinary year."} You bring in ${cells} rows of ${crop}: enough to feed the house for about ${weeks} weeks.`);
     if (claim?.share) this.event(`${shareWords(claim.share).replace(/^./, (c) => c.toUpperCase())} of it is owed to ${claim.to}, collected in the ${claim.due}.`);
     if (!sown) this.event("The field was never properly sown this year, and it shows.");
     else if (!weeded) this.event("The weeds took their share.");
     return kept ? { grain: kept } : {};
   }
-  private parcels = new Map<string, ReturnType<typeof fieldParcel>>();
   /** A farm's making this hour against an ordinary hour's: the grain comes in
    * when its crop is ripe, by the size of its field and the year it was. */
   harvestYield(h: Household, hour: number) {
     const setting = this.world.pack.setting;
     if (!setting) return 1;
-    if (!this.parcels.has(h.id)) this.parcels.set(h.id, fieldParcel(this.world, h));
-    const parcel = this.parcels.get(h.id), crop = parcel && crops[parcel.crop as CropId];
+    const parcel = this.farmParcels(h)[0], crop = parcel && crops[parcel.crop as CropId];
     const ripe = crop ? Object.values(crop.calendar).filter((st) => st === "ripe").length : 0;
     if (!parcel || !ripe) return 1;
     const clock = hour * 3600;
@@ -12659,7 +13393,7 @@ export class Engine {
   /** The farm day a crop's stage this season calls for: sowing, weeding,
    * harvest, or the slack season when the field is bare. */
   private cropSeason(household: Household, season: SeasonId): SeasonId {
-    const crop = fieldParcel(this.world, household)?.crop;
+    const crop = this.farmParcels(household)[0]?.crop;
     if (!crop || !crops[crop]) return season;
     const stage = cropStage(crop as CropId, season, this.world.pack.setting?.lat ?? 0);
     return stage === "sown" ? "spring" : stage === "green" ? "summer" : stage === "ripe" ? "autumn" : "winter";
@@ -13197,7 +13931,10 @@ export class Engine {
     this.barriersAt = new Map();
     this.objectsById = new Map();
     this.resourceObjects = [];
+    const slings:WorldObject[]=[], lighterLandings:WorldObject[]=[];
     for (const o of this.state.objects) {
+      if(o.freight)slings.push(o);
+      if(o.lighterage)lighterLandings.push(o);
       if (!this.objectsById.has(o.id)) this.objectsById.set(o.id, o);
       if (o.resource) this.resourceObjects.push(o);
       if (o.kind !== "gate" && o.kind !== "door" && !o.prop) continue;
@@ -13233,6 +13970,22 @@ export class Engine {
     );
     updateRelationships(this.state);
     this.syncBaby();
+    const deliveries=this.motorVehicles().flatMap(o=>{
+      const v=this.world.vehicle?.(o.id), driver=v && this.actorsById!.get(v.crew[0]);
+      return v?.delivery && driver && !o.motor!.taken ? [{o,v,driver}] : [];
+    });
+    const drivers=new Set(deliveries.map(d=>d.driver.id));
+    const anchorages=lighterLandings.flatMap(pile=>{
+      const job=pile.lighterage!,a=this.world.anchorage?.(job.site),store=this.objectsById!.get(job.store);
+      const dhow=this.objectsById!.get(job.site+"-dhow"),lighter=this.objectsById!.get(job.site+"-lighter");
+      if(!a || !store || !dhow?.vessel || !lighter?.vessel)return [];
+      const crew=[dhow,lighter].map(o=>{
+        const pilot=this.actorsById!.get(o.vessel!.skipper);
+        if(pilot)drivers.add(pilot.id);
+        return {o,pilot};
+      });
+      return [{pile,a,store,dhow,lighter,crew,porter:this.actorsById!.get(job.porter)}];
+    });
     const end = this.state.clock + seconds;
     const player = this.state.player;
     // Building a routine costs a path search per station, and a city has a
@@ -13245,6 +13998,28 @@ export class Engine {
       const next = Math.min(end, (Math.floor(this.state.clock / 6) + 1) * 6),
         elapsed = next - this.state.clock;
       this.state.clock = next;
+      for(const {pile,a,store,dhow,lighter,crew,porter} of anchorages){
+        const sailing=anchorageAt(a,next);
+        for(const {o,pilot} of crew){
+          const v=o.vessel!,pose=sailing[v.form],atHelm=player.boat===o.id;
+          if(!atHelm && v.manual && !pose.moving && Math.hypot(o.pos.x-pose.x,o.pos.y-pose.y)<1.6)v.manual=false;
+          if(!pilot || pilot.dead)v.manual=true;
+          if(v.manual)v.underway=next-(v.lastMove??-Infinity)<8;
+          if(!v.manual){
+            o.pos.x=Math.round(pose.x);o.pos.y=Math.round(pose.y);v.heading=pose.heading;v.underway=pose.moving;
+          }
+          if(pilot && !pilot.dead){
+            pilot.pos={...o.pos};pilot.boat=o.id;pilot.afloat="boat";pilot.facing=v.heading;
+            pilot.offRoutine=true;this.syncActor(pilot);
+          }
+        }
+        serviceAnchorage(pile,store,dhow,lighter,next,porter);
+      }
+      for(const sling of slings){
+        const store=this.objectsById.get(sling.freight!.store),wagon=this.objectsById.get(sling.freight!.store.replace(/-store$/,"-wagon"));
+        if(store && wagon)serviceFreight(sling,store,wagon,next,this.objectsById.get(store.id.replace(/-store$/,"-delivery-dispatch")));
+      }
+      for(const {o,v,driver} of deliveries)this.serviceDelivery(o,v,driver,next,elapsed);
       if (player.drivingCart) {
         const cart = this.world.vehicle?.(player.drivingCart.vehicle);
         if (cart) {
@@ -13315,11 +14090,12 @@ export class Engine {
         const season = seasonAt(this.world.pack.setting.season, next);
         for (const o of this.resourceObjects) refreshResource(o, next, season);
       }
+      this.world.outing?.tick(next);
       this.walkAway(next);
       const partner = this.conversing ? actors.find((a) => a.id === this.conversing) : undefined;
       if (partner && partner.pos.space === player.pos.space && distance(partner.pos, player.pos) <= 3) player.direction = this.directionTo(player.pos, partner.pos);
       for (const a of actors) {
-        if (a.id === heldActor || a.underground || a.staff) continue;
+        if (drivers.has(a.id) || a.id === heldActor || a.id === this.world.outing?.actor || a.underground || a.staff) continue;
         if (a.id === this.conversing && a.pos.space === player.pos.space) {
           a.direction = this.directionTo(a.pos, player.pos);
           delete a.facing;
@@ -13635,13 +14411,13 @@ export class Engine {
     // itinerary time that the renderer draws after the command.
     for (const a of actors) {
       if (
-        a.id === heldActor || a.id === this.conversing ||
+        a.id === heldActor || a.id === this.conversing || a.id === this.world.outing?.actor ||
         a.kind !== "human" || a.offRoutine || a.task || a.tends || a.errand ||
         a.hunger > 45 || this.world.routinePending?.(a.id)
       )
         continue;
       const routine = this.world.itinerary?.(a.id);
-      if (routine) this.followRoutine(a, routine, this.state.clock);
+      if (routine) this.followRoutine(a, routine, this.state.clock, false);
     }
     updateRelationships(this.state);
     this.tickObstacles = undefined;
@@ -13652,6 +14428,8 @@ export class Engine {
     this.objectsById = undefined;
     this.householdsById = undefined;
     this.resourceObjects = undefined;
+    if (this.world.pack.setting && seasonAt(this.world.pack.setting.season, this.state.clock) !== this.objectSeason)
+      this.syncSeason();
     const fallen = this.pendingCollapse;
     if (fallen) {
       this.pendingCollapse = undefined;

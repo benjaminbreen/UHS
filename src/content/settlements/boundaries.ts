@@ -1,5 +1,6 @@
 import type { Boundary } from "../agriculture/types";
 import type { WorldSetting } from "../geography/types";
+import { westernZhouFarm } from "./lifeways";
 
 /** How a standing boundary is built, which decides how it is drawn.
  * rail: posts with rails or wire between. paling: close upright stakes.
@@ -259,6 +260,7 @@ export function yardBoundaries(setting: WorldSetting | undefined): Weighted {
     case "south-asian":
       return [["mud", 0.4], ["thorn", 0.35], ["bamboo", 0.25]];
     case "east-asian":
+      if (westernZhouFarm(setting)) return [["mud", 0.5], ["wattle", 0.5]];
       return year < -800
         ? [["rammed", 0.5], ["wattle", 0.5]]
         : [["bamboo", 0.45], ["rammed", 0.35], ["hedge", 0.2]];

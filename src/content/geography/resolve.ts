@@ -1,5 +1,5 @@
-import { applySituation, situationFromPrompt } from "./situation";
-import { courtStart, fairFromPrompt, postFor, venueFor } from "../fairs";
+import { applySituation, normalize, situationFromPrompt } from "./situation";
+import { courtStart, fairFromPrompt, postFor, residentFromPrompt, requestedRoom, venueFor } from "../fairs";
 import { formatHistoricalYear } from "../../core/calendar";
 import { eraAt, glacialTundraLatitude } from "../history/dates";
 import { random } from "../../core/random";
@@ -14,13 +14,7 @@ import { localLabels } from "../characters/livelihood-labels.generated";
 import { placeAtYear } from "./eras";
 import { workplaceFor } from "../characters/workplace";
 import { settingSchema, type AtlasPlace, type WorldSetting } from "./types";
-export const normalize = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/[^a-z0-9-]+/g, " ")
-    .trim();
+export { normalize } from "./situation";
 const has = (q: string, word: string) =>
   ` ${q} `.includes(` ${normalize(word)} `);
 const periods: [string[], number, number][] = [
@@ -234,6 +228,12 @@ export function resolveSetting(
       return { setting, description: describeSetting(setting), needsInterpretation: false };
     }
   } catch (error) { return { error: error instanceof Error ? error.message : "Invalid starting situation." }; }
+  let requestedYear: number;
+  try { requestedYear = dateFromPrompt(input, -1000001, seed); }
+  catch (error) { return { error: error instanceof Error ? error.message : "Invalid starting date." }; }
+  const resident = residentFromPrompt(q, seed, requestedYear);
+  const [figure, title, sex, born, first, last, homeRoom] = resident?.person ?? [];
+  const locationWords = resident ? resident.aliases.reduce((text, name) => text.replace(name, ""), q) : q;
   const generic = new Set(periods.flatMap(([words]) => words));
   const matches = places
     .map((place) => ({
@@ -241,27 +241,28 @@ export function resolveSetting(
       score: Math.max(
         0,
         ...[place.name, ...place.aliases]
-          .filter((a) => has(q, a))
+          .filter((a) => has(locationWords, a))
           .map((a) => (generic.has(a) ? 0.1 : normalize(a).length)),
       ),
     }))
     .filter((p) => p.score)
     .sort((a, b) => b.score - a.score);
-  const zone = zones.find(([words]) => words.some((w) => has(q, w)));
+  const zone = zones.find(([words]) => words.some((w) => has(locationWords, w)));
   const choices = zone ? places.filter((p) => zone[1].includes(p.id)) : [];
   let place = matches[0]?.place;
   if ((!place || matches[0].score <= 0.1) && choices.length)
     place =
       choices[Math.floor(random(seed, "starting-region", q) * choices.length)];
-  const located = !!zone || (matches[0]?.score ?? 0) > 0.1 || has(q, "roman");
-  const below = belowFromPrompt(q);
-  const undated = dateFromPrompt(input, -1000001, seed) === -1000001;
-  if (below && !located) {
-    const fair = fairFromPrompt(q);
+  const located = !!zone || (matches[0]?.score ?? 0) > 0.1 || has(locationWords, "roman");
+  const requestedFair = resident?.venue ?? fairFromPrompt(q, located ? place : undefined);
+  const below = requestedFair ? "fair" : belowFromPrompt(q);
+  const undated = requestedYear === -1000001;
+  if (below && (!located || (requestedFair?.named?.test(q) && (matches[0]?.score ?? 0) <= 0.1))) {
+    const fair = requestedFair;
     const [id, year] = below === "ship" ? shipPlace(q) : below === "fair" && fair ? [fair.place, fair.years[0]] : BELOW_PLACES[below];
     const found = places.find((p) => p.id === id);
     if (found) place = year && undated ? { ...found, year } : found;
-  } else if (place && below === "fair" && undated) place = { ...place, year: fairFromPrompt(q)?.years[0] ?? 1889 };
+  } else if (place && below === "fair" && undated) place = { ...place, year: requestedFair?.years[0] ?? 1889 };
   else if (place && below && below !== "cave" && below !== "ship" && below !== "tomb" && undated) place = { ...place, year: Math.max(place.year, 1880) };
   else if (place && undated && vesselOf(q)) place = { ...place, year: vesselOf(q)![3] };
   if (!place) {
@@ -285,7 +286,16 @@ export function resolveSetting(
         "No place or period matched. Try a place such as Normandy, Beijing, Haiti, London, or Alexandria; or choose one from the list.",
     };
   try {
-    const s = settingFor(place, dateFromPrompt(input, place.year, seed));
+    const defaultYear = first !== undefined && last !== undefined ? Math.min(first + 1, last) : place.year;
+    let year = dateFromPrompt(locationWords, defaultYear, seed);
+    const period = periods.find(([words]) => words.some((w) => has(locationWords, w)));
+    if (requestedFair && period && !/\d/.test(q)) {
+      const from = Math.max(period[1], requestedFair.years[0]), to = Math.min(period[2], requestedFair.years[1]);
+      if (from <= to) year = from + Math.floor(random(seed, "starting-year", q) * (to - from + 1));
+    }
+    if (resident && first !== undefined && last !== undefined && (year < first || year > last || place.id !== resident.venue.place))
+      return { error: `${figure} is playable in ${places.find((p) => p.id === resident.venue.place)?.name}, ${formatHistoricalYear(first)}–${formatHistoricalYear(last)}.` };
+    const s = settingFor(place, year);
     const roles: [RegExp, string][] = [
       [/\bhunter\b/, "Hunter"],
       [/\blegionary\b|\bsoldier\b/, "Legionary"],
@@ -298,7 +308,7 @@ export function resolveSetting(
       [/\bsailor\b/, "Sailor"],
     ];
     // A generated palace exists only for some years: asked for outside them, the start is an ordinary one.
-    const venue = below === "fair" ? venueFor(q, s.year, seed, s.lon, s.lat) : undefined, inside = below === "fair" && !venue ? undefined : below;
+    const venue = resident?.venue ?? (below === "fair" ? venueFor(q, s.year, seed, s.lon, s.lat) : undefined), inside = below === "fair" && !venue ? undefined : below;
     const context = resolveCharacterContext(s);
     const namedRole = context.livelihoods.flatMap((livelihood) => [
       livelihood.label,
@@ -309,10 +319,11 @@ export function resolveSetting(
     ]).sort((a, b) => b.length - a.length).find((label) => has(q, label));
     const coal = /\bcoal\b|\bcollier|\bpit\b/.test(q);
     // In a palace, the post the prompt names: a guard, a scribe, the ruler.
-    const post = venue ? postFor(venue, q) : undefined;
+    const room = venue && requestedRoom(venue, q);
+    const post = venue ? postFor(venue, title?.toLowerCase() ?? q) : undefined;
     const underRole = !inside ? undefined : below === "mine" ? (coal ? "Coal miner" : "Miner") : below === "sewer" ? (/\btosher/.test(q) ? "Tosher" : "Sewer flusher") : below === "cave" ? (s.year < -8000 ? "Hunter" : "Hermit")
       : below === "ship" ? vesselOf(q)?.[4] ?? (/\bstokers?\b/.test(q) ? "Stoker" : /\b(?:passengers?|emigrants?|steerage|pilgrims?)\b/.test(q) ? "Passenger" : "Sailor") : below === "fair" ? post?.role ?? venue?.role ?? "Visitor" : below === "tomb" ? "Tomb robber" : undefined;
-    s.role = namedRole ?? roles.find(([pattern]) => pattern.test(q))?.[1] ?? underRole ?? "Traveler";
+    s.role = title ?? post?.role ?? namedRole ?? roles.find(([pattern]) => pattern.test(q))?.[1] ?? underRole ?? "Traveler";
     if (inside) {
       s.below = below;
       if (venue) s.venue = venue.id;
@@ -320,14 +331,16 @@ export function resolveSetting(
         : /\bindiam[ae]n\b/.test(q) ? "indiaman" : /\b(?:steam|stoker|liner)/.test(q) ? "steamer" : /\bemigrant\b/.test(q) ? "emigrant-ship" : undefined);
       const work = below === "mine" ? (coal && s.year >= 1780 ? "coal-miner" : "miner") : below === "sewer" ? (/\btosher/.test(q) ? "night-soil-collector" : "navvy") : below === "ship" ? vesselOf(q)?.[5] || (s.role === "Sailor" ? "sailor" : undefined) : undefined;
       if (work && !namedRole) s.brief = { ...s.brief, work };
-      if (post && !namedRole) s.brief = { ...s.brief, work: post.work };
+      if (post) s.brief = { ...s.brief, work: post.work, sex: sex ?? post.sex, figure };
+      s.venueRoom = room?.area.id ?? homeRoom ?? post?.room;
+      if (born !== undefined) s.character = { age: year - born, appearanceSeed: figure, hunger: 10, fatigue: 0 };
     } else if (!below && s.role === "Traveler" && s.settlement === "city") {
       // Much of a capital lived in and around its ruler's house: some who name no work start there, in a post of the household.
       const court = courtStart(q, s.year, seed, s.lon, s.lat);
       if (court) { s.below = "fair"; s.venue = court.venue.id; s.role = court.role; s.brief = { ...s.brief, work: court.work }; }
     }
     if (has(q, "free black")) s.community = "Free Black household";
-    s.characterName = s.role;
+    s.characterName = figure ?? s.role;
     if (/\bfarm(?:er|stead)?\b/.test(q)) s.settlement = "farm";
     else s.settlement = tillersHome(s, s.role);
     if (/\bcamp\b|\blegionary\b|\bshaman\b/.test(q)) s.settlement = "camp";
@@ -347,6 +360,9 @@ export function resolveSetting(
     // Recognizing one keyword is not evidence that the whole request was understood.
     let rest = ` ${q.replace(/-/g, " ")} `;
     const recognized = [
+      ...(resident?.aliases ?? []),
+      ...(venue ? [venue.prompt.exec(q)?.[0], venue.named?.exec(q)?.[0], room?.label, venue.role, post?.match, title,
+        "palace", "royal", "court", "household", "circa", "female", "male", "play as", "start as", "begin as"] : []),
       ...places.flatMap((p) => [p.name, ...p.aliases]),
       ...periods.flatMap(([words]) => words),
       ...zones.flatMap(([words]) => words),
@@ -354,7 +370,7 @@ export function resolveSetting(
       "sewer worker", "sewer man", "sewerman", "sewer", "sewers", "tosher", "flusher", "cave man", "caveman", "cave woman", "cave", "caves", "cavern", "grotto",
       "coal miner", "coal mine", "miner", "miners", "mine", "mining", "collier", "colliery", "pit man", "pitman", "pit boy", "hewer", "down the pit",
     ];
-    for (const phrase of recognized.sort((a, b) => b.length - a.length))
+    for (const phrase of recognized.filter((word): word is string => !!word).sort((a, b) => b.length - a.length))
       rest = rest.split(` ${normalize(phrase).replace(/-/g, " ")} `).join(" ");
     rest = rest.replace(
       /\b\d+(?:st|nd|rd|th)?\b|\b(?:bce|bc|ce|ad|century|year)\b/g,
@@ -370,16 +386,16 @@ export function resolveSetting(
         " ",
       )
       .trim();
-    const dated = dateFromPrompt(input, -1000001, seed) !== -1000001;
-    const needsInterpretation = !located || !dated || !!rest;
+    const dated = !undated;
+    const needsInterpretation = (!venue && (!located || !dated)) || !!rest;
     const setting = populateCharacter(s, seed);
     return {
       setting,
       description: describeSetting(setting),
       needsInterpretation,
-      reason: !located
+      reason: !needsInterpretation ? undefined : !venue && !located
         ? "No specific place or culture zone was identified."
-        : !dated
+        : !venue && !dated
           ? "No period or date was identified."
           : rest
             ? "Some details need interpretation."

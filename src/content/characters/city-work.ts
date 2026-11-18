@@ -14,7 +14,15 @@ const soviet = (label: string, weight = 1): NonNullable<Livelihood["labels"]>[nu
   { scope: { years: [1946, 1990], bounds: EAST_BLOC }, label, weight },
 ];
 
+export const isDockworker = (role: string) => /^(dockworker|longshoreman|stevedore)$/i.test(role);
+
 export const cityLivelihoods: readonly Livelihood[] = [
+  {
+    id: "dockworker", label: "Dockworker", activity: "Carrying supplies", tier: "industrial",
+    years: [1850, 10001], needs: ["water"], weight: 0.5,
+    rank: "labouring", inventory: {water: 1, coin: 1},
+    labels: [{scope:{years:[1850,10001],bounds:NORTH_AMERICA},label:"Longshoreman"},{scope:{years:[1850,10001],bounds:BRITAIN},label:"Stevedore"}],
+  },
   {
     id: "secretary",
     label: "Secretary",

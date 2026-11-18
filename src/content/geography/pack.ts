@@ -1,4 +1,4 @@
-import { lifeway } from "../settlements/lifeways";
+import { lifeway, westernZhouFarm } from "../settlements/lifeways";
 import { resolveCharacterContext } from "../characters/resolve";
 import { characterName, generateCharacter } from "../characters/generate";
 import { treeMix } from "../ecology/vegetation";
@@ -133,6 +133,8 @@ function modernFlatFrontKit(setting: WorldSetting): string[] {
  * excavated record is clearest about. Inferred and illustrative. */
 function prehistoricBuildings(setting: WorldSetting): string[] | undefined {
   const { year, culture, climate, architecture, lon, lat } = setting;
+  if (westernZhouFarm(setting))
+    return ["small-0", "small-1", "medium-0"].map((v) => `eastasian-house-early-chinese-${v}`);
   if (year >= -800) return;
   const round = [
     "house-round-0",

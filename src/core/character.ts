@@ -89,6 +89,7 @@ export const garments = [
   "gown",
   /** A sealed one-piece: pressure suit, flight suit, coverall. */
   "suit",
+  "tee",
 ] as const;
 /** Appended, never reordered. */
 /** Appended, never reordered — see the note on `garments`. */
@@ -217,8 +218,7 @@ export const motifs = [
   "tracksuit",
   /** Rings of dye from the chest outward. */
   "tie-dye",
-  /** A round neck and no buttons: the T-shirt, plain or with a print on the chest. */
-  "tee",
+  /** A screen print across the chest. */
   "graphic",
   /** A small all-over print: the cotton frock and the printed shirt. */
   "floral",

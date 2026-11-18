@@ -335,7 +335,7 @@ export function wardrobeFor(
   // Trousers or a sarong under a wrap are their own cloth. A robe or dress
   // stays one colour to the hem, so what shows below it does too.
   const long = ["robe", "open-robe", "dress", "long-tunic", "gown"].includes(garment);
-  const separateLower = (leggings !== "none" && !long) || ["shirt", "skirt", "coat", "none", "loincloth", "poncho"].includes(garment);
+  const separateLower = (leggings !== "none" && !long) || ["tee", "shirt", "skirt", "coat", "none", "loincloth", "poncho"].includes(garment);
   const lower = separateLower ? weighted(palette, w.id, "dye-lower") : dye;
   // Trim on the lower cloth's colour would vanish against it.
   const trim = (chosen.trim as DyeId | undefined) ?? weighted(palette.filter((o) => o.value !== lower), w.id, "dye-trim");

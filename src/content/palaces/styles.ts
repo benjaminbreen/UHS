@@ -16,7 +16,7 @@ export type PalaceBay = "mirror" | "hanging" | "panel" | "window" | "bookcase" |
   // A pointed window of coloured glass, and a blind arch filled with carved plaster.
   | "lancet" | "arch";
 /** What a room is for, which decides its furniture. */
-export type PalaceRoom = "gallery" | "ballroom" | "drawing" | "dining" | "library" | "office" | "hall" | "store"
+export type PalaceRoom = "assembly" | "gallery" | "ballroom" | "drawing" | "dining" | "library" | "office" | "hall" | "store"
   | "atrium" | "peristyle" | "triclinium" | "tablinum" | "cubiculum"
   // The rooms round the great ones, in any order of building: where the household sleeps, waits, stands guard, prays, cooks and washes.
   | "bedchamber" | "antechamber" | "guard" | "vestibule" | "chapel" | "kitchen" | "bath" | "closet";

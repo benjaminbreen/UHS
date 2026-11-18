@@ -2,6 +2,7 @@ import type { Actor, Favour, Household, WalkOff } from "../core/types";
 import { healthReport, observedIllnesses, practitioner } from "../core/health";
 import { orderKeeper } from "../content/history/order";
 import { telling } from "../core/word";
+import { amountIn } from "../content/economy/money";
 import { goodName, sellerOf } from "../content/economy/products";
 import { describeStats, statsOf } from "../core/stats";
 import { skySeed, weatherAt } from "../core/weather";
@@ -186,7 +187,7 @@ function acquaintance(runtime: Runtime, actor: Actor) {
 /** Whether the player character would know who this is: kin, neighbour,
  * trading partner, or someone they have already spoken with. */
 export function knowsPlayer(runtime: Runtime, actor: Actor) {
-  return !!acquaintance(runtime, actor) || (actor.memories ?? []).some((m) => m.startsWith("spoke:"));
+  return !!actor.encounters?.length || !!acquaintance(runtime, actor) || (actor.memories ?? []).some((m) => m.startsWith("spoke:"));
 }
 
 function openness(actor: Actor, met: boolean) {
@@ -267,17 +268,24 @@ export function shout(text: string) {
 const TRADER = /merchant|trader|peddler|pedlar|shop|seller|vendor|hawker|broker|dealer|monger|innkeeper|tavern|chandler|grocer|baker|potter|smith/i;
 function forSale(runtime: Runtime, actor: Actor, stats: ReturnType<typeof statsOf>) {
   const shop = runtime.engine.shopOf(actor.id);
-  const goods = shop && Object.entries(shop.stock).filter(([, n]) => (n ?? 0) > 0)
-    .map(([id]) => runtime.engine.item(id)?.name.toLowerCase()).filter(Boolean).slice(0, 8);
-  if (!goods?.length) return "";
+  if (!shop) return "";
+  const setting = runtime.engine.world.pack.setting;
+  const goods = Object.entries(shop.stock).filter(([id, n]) => id !== "coin" && (n ?? 0) > 0).slice(0, 8).map(([id]) => {
+    const name = runtime.engine.item(id)?.name.toLowerCase() ?? id;
+    if (!shop.coined) return name;
+    const price = runtime.engine.buyPrice(id, actor.id);
+    return `${name} (${setting ? amountIn(setting, price, true) : `${price} coins`})`;
+  });
+  if (!goods.length) return "";
   // Talkative, open, not too soft, and selling for a living: the one who calls out to passers-by.
   const eager = stats.extraversion * 0.4 + stats.openness * 0.2 + (100 - stats.agreeableness) * 0.15 + (TRADER.test(actor.role) ? 30 : 0);
   const pitch = eager >= 60
-    ? "You are keen to sell: unless the player is clearly busy or hostile, bring your goods up yourself early on, praise them, name a price, and set \"trade\" if they show any interest."
+    ? "You are keen to sell: unless the player is clearly busy or hostile, bring your goods up yourself early on, praise them, and set \"trade\" if they show any interest."
     : eager >= 40
       ? "If the talk gives you an opening, you may mention what you have for sale."
       : "You do not push your goods; sell if asked.";
-  return `You have goods out for sale here: ${goods.join(", ")}. If the player wants to buy or sell, agree and set "trade". ${pitch} How hard anyone sells also follows the custom of this place and date: haggling and calling out to strangers is normal in some markets and unseemly in others.`;
+  const call = runtime.engine.recentMarketCall(actor.id);
+  return `${call ? `You recently called to passers-by: ${call.text} ` : ""}${shop.coined ? "Your current prices" : "Goods you offer for barter"}: ${goods.join(", ")}. If the player wants to buy or sell, agree and set "trade". ${pitch} How hard anyone sells also follows the custom of this place and date: haggling and calling out to strangers is normal in some markets and unseemly in others.`;
 }
 
 export function dialogueContext(runtime: Runtime, actor: Actor) {
@@ -289,23 +297,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
   const household = actor.householdId
     ? state.households?.find((h) => h.id === actor.householdId)
     : undefined;
-  const playerHome = state.households?.find(
-    (h) => h.residence === state.player.pos.space && h.id === actor.householdId,
-  );
-  const homePlace = playerHome
-    ? engine.world.place(playerHome.residence!)
-    : undefined;
-  const invited = homePlace?.owner
-    ? (state.permissions[homePlace.owner] ?? 0) > state.clock
-    : false;
-  // A shop or inn is walked into; the player's own family's house is theirs.
-  const intruding =
-    !!playerHome && !invited && actor.householdId !== state.player.householdId;
-  const familyPresent = playerHome?.members
-    .filter((id) => id !== actor.id)
-    .map((id) => state.actors.find((candidate) => candidate.id === id))
-    .filter((candidate) => candidate?.pos.space === state.player.pos.space)
-    .map((candidate) => candidate!.name) ?? [];
+  const intruding = engine.trespassing(actor);
   const family = (actor.relations ?? [])
     .map((relation) => {
       const other = [state.player, ...state.actors].find((candidate) => candidate.id === relation.other);
@@ -425,10 +417,8 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
       ? `${actor.terror!.cause === "assault" ? "THE PLAYER HAS STRUCK YOU." : actor.terror!.cause === "anger" ? "YOU HAVE LOST YOUR TEMPER AND ARE THREATENING THE PLAYER." : "YOU ARE TERRIFIED. The player has broken into your home with a heavy tool and is inside, or right there, smashing things."} ${actor.terror!.fight ? "You are fighting them off: scream at them to get out, threaten, call for help." : "You are cowering: plead, beg them not to hurt anyone, scream for help."} Speak ONLY IN CAPITAL LETTERS, breathless, with many exclamation marks!!! Nothing calm, nothing polite, no questions about what they want.`
       : anger(actor, state.clock),
     intruding
-      ? homePlace?.access === "public"
-        ? `The player has walked into ${homePlace.name}, which is your household's home as well as where you work. Whether that is normal depends on your trade: a trader, shopkeeper, innkeeper or craftsman selling goods expects buyers to walk in by day and may treat them as a customer; a herder, farmer, labourer or anyone else does not, and for them a stranger walking in is an intrusion. It is also an intrusion if the player looks odd, armed or dangerous (see "In front of you"). If it is an intrusion: ${intrusionReaction(state.manifest.seed, actor, stats)}`
-        : `THE PLAYER HAS COME INTO YOUR HOME UNINVITED and is standing inside ${homePlace?.name ?? "your house"} right now.${familyPresent.length ? ` Your family ${familyPresent.join(", ")} are here too.` : ""} This is what the conversation is about until they leave or explain themselves. ${intrusionReaction(state.manifest.seed, actor, stats)} Never greet them as a customer or ask what they need.`
-      : `Openness: ${openness(actor, met.length > 0 || !!known)}`,
+      ? engine.canAnswerWarning(actor) ? "You are waiting for their answer." : intrusionReaction(state.manifest.seed, actor, stats)
+      : `Openness: ${openness(actor, met.length > 0 || !!known || !!actor.encounters?.length)}`,
     fig ? "" : `Background: ${background.join("; ")}.`,
     `Doing: ${actor.activity.toLowerCase()}. Location: ${place ? `indoors, in ${place.name}` : `outdoors in ${location}, on foot in the open; no desk, counter or furniture unless the context names it`}. Now: ${now(runtime)}.`,
     plotContext ? "On their mind: the events above and what they personally mean to you; let this concern develop across the conversation rather than repeating the obligation." : fig ? "On their mind: today, as above." : `On their mind: ${onTheirMind(state.manifest.seed, state.clock, actor)}.`,
@@ -440,6 +430,11 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     rude && state.clock - rude.at < 180
       ? `Just now, ${Math.max(1, Math.round((state.clock - rude.at) / 60))} minute(s) ago, the player ${rude.what}. Remark on it first, in your own way: annoyed, startled, sarcastic, amused or wary. A bump is small; a weapon swung near you is not.`
       : "",
+    ...(actor.encounters ?? []).map(e => {
+      const age = Math.max(0, state.clock - e.time);
+      const when = age < 300 ? "Just now" : age < 86400 ? `${Math.floor(age / 60)} minutes ago` : `${Math.floor(age / 86400)} day(s) ago`;
+      return `${when}, firsthand (account addressed to the player): ${e.text}`;
+    }),
     grievances.length
       ? `Your memories, oldest first (these may be older events): ${grievances.join("; ")}. This happened; it is not hearsay, and you have not forgotten it.`
       : "",
@@ -450,7 +445,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     actor.owes ? "The player gave you a day's help with your work, and you owe them one in return. If they call it in, honour it." : "",
     gossip.length ? `Talk going round about other people, yours to pass on if the chance comes: ${gossip.join("; ")}.` : "",
     known,
-    met.length ? `Already ${feeling}; remembers you saying: ${met.join("; ")}.` : known ? "" : "Has not met the player before.",
+    met.length ? `Already ${feeling}; remembers you saying: ${met.join("; ")}.` : known || actor.encounters?.length ? "" : "Has not met the player before.",
     told.length ? `What you told the player in earlier talk: ${told.join(" ")} It stays true: keep your story the same, and do not say it again as if for the first time.` : "",
     `Setting: ${engine.world.pack.name}, ${engine.world.pack.date}. Keeps order here: ${engine.keeper()?.id === actor.id ? `you yourself, as ${orderKeeper(setting).who}; people bring you their complaints` : `${orderKeeper(setting).who}${engine.keeper() ? `, ${engine.keeper()!.name}` : ""}`}.`,
   ]
@@ -574,10 +569,13 @@ export async function dialogueTurn(
   const { state } = runtime.engine;
   const animals = [...new Set((state.fauna ?? []).flatMap((group) => faunaProfile(group.speciesId)?.label.toLowerCase().replace(/ study$/, "") ?? []))];
   const voice = voiceBrief(state.manifest.seed, actor, statsOf(state.manifest.seed, actor), animals, recordedLoss(runtime, actor), !!actor.figure?.real);
-  const aside = plotBrief(runtime, actor) ? "" : dialogueInterruption(runtime, actor, history.length);
+  const lastEncounter = actor.encounters?.at(-1);
+  const continuing = lastEncounter && state.clock - lastEncounter.time < 300;
+  const aside = continuing || plotBrief(runtime, actor) ? "" : dialogueInterruption(runtime, actor, history.length);
   const latest = [
     situation ? `Just now: ${situation}` : "",
-    aside || (input.trim() && !situation && !plotBrief(runtime, actor) ? dialogueMove(runtime, actor, history.length) : ""),
+    aside || (input.trim() && !continuing && !situation && !plotBrief(runtime, actor) ? dialogueMove(runtime, actor, history.length) : ""),
+    continuing && !history.length ? "Continue from your latest firsthand exchange if relevant. Its outcome is settled." : "",
     input.trim() ? `Player says: ${input.trim().slice(0, 400)}` : "Begin with one brief spoken line to the player.",
   ].filter(Boolean).join("\n\n");
   // The voice goes after the transcript, next to the player's line, where a small model weighs it most.

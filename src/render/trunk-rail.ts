@@ -23,6 +23,7 @@ export function railOver(
   platform?: readonly [number, number],
   /** Over water: a timber trestle carries the rails. */
   trestle = false,
+  wharf = false,
 ) {
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
@@ -56,6 +57,12 @@ export function railOver(
       if (townward && out > 0 && out <= PLATFORM) {
         const flag = Math.round(along) % 9 === 0 || out === 12;
         pixels.set(out <= 2 ? [66, 62, 58, 255] : out <= 4 ? [206, 200, 184, 255] : out === PLATFORM ? [112, 106, 96, 255] : flag ? [146, 140, 128, 255] : [172, 166, 152, 255], i);
+        continue;
+      }
+      if (best*16 > BED+1) continue;
+      if (wharf) {
+        const c=levelCrossing([pixels[i],pixels[i+1],pixels[i+2]],Math.round(across)+TRACK,Math.round(along),"wharf");
+        pixels.set([...c,255],i);
         continue;
       }
       if (crossing || trestle) {

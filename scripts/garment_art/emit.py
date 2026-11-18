@@ -1,6 +1,6 @@
 from shapes import ART
 ORDER = [
- ('body', ['tunic','long-tunic','shirt','coat','robe','open-robe','dress','gown',
+ ('body', ['tunic','long-tunic','tee','shirt','coat','robe','open-robe','dress','gown',
            'skirt','wrap','poncho','loincloth','suit']),
  ('over', ['cloak','mantle','shoulder-cloth']),
  ('head', ['band','cap','hood','wrap_head','turban','headscarf','veil','brimmed',

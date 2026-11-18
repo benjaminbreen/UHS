@@ -952,6 +952,23 @@ describe("shared deterministic foundation", () => {
     ).toBe("rejected");
     expect(e.hash()).toBe(hash);
   });
+  it.each([true, false])("calls out available stock once on approach (coined=%s)", coined => {
+    const e = createSession();
+    const a = e.state.actors[0];
+    Object.assign(a, { id: "wayfarer-test", kind: "human", role: "Merchant", age: 40, activity: "Trading", trust: 0, offRoutine: true });
+    const p = e.state.player;
+    a.pos = { ...p.pos, x: p.pos.x + 2 };
+    e.state.actors = [a];
+    a.shop = { day: Math.floor(e.state.clock / 86400), stock: { bread: 5, salt: 0 }, purse: 10 };
+    vi.spyOn(e, "coined").mockReturnValue(coined);
+    const approach = () => act(e, { type: "move", dx: 1, dy: 0 });
+    const call = approach().events.find(event => event.interaction?.kind === "wares");
+    expect(call?.interaction).toEqual({ actor: a.id, kind: "wares", item: "bread", price: coined ? e.buyPrice("bread", a.id) : undefined });
+    expect(call?.text.includes("barter")).toBe(!coined);
+    expect(a.encounters).toBeUndefined();
+    act(e, { type: "move", dx: -1, dy: 0 });
+    expect(approach().events.some(event => event.interaction?.kind === "wares")).toBe(false);
+  });
   it("deals from a person's stock at fixed prices, and keeps the sale", () => {
     const e = createSession();
     const a = e.state.actors[0];

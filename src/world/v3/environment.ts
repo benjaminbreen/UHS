@@ -22,6 +22,9 @@ import { toAtlas, atlasSample } from "../geography/atlas";
 import type { RegionalContext } from "../regional/context";
 import type { LandSample } from "../geography/landscape";
 import { urbanRadius } from "../../content/settlements/scale";
+import { docklands } from "../../content/settlements/waterfronts";
+import { bulkhead } from "./shoreline";
+import { QUAY_APRON } from "../../core/water-field";
 const seasons = ["spring", "summer", "autumn", "winter"] as const;
 /** Geography is sampled independently of settlements and player circumstances. */
 export function createEnvironment(
@@ -515,6 +518,10 @@ export function createEnvironment(
       ? { kind: "qanat", strength: 1 }
       : undefined;
   };
+  const dockHome = regional && docklands(s) ? regional.placeAt(0, 0) : undefined;
+  // A metropolis fills its own map; elsewhere it is built out to its radius.
+  const docks = dockHome && bulkhead((x, y) => nativeWater(x, y).water,
+    s.playableMap ? { x: 0, y: 0 } : regional!.local(dockHome), s.playableMap ? s.playableMap.size / 2 : dockHome.radius);
   const calculate = (x: number, y: number): LandSample => {
     const situation = s.situation;
     if (situation && (situation.landform !== "local" || Math.hypot(x, y) < (situation.camp === "expedition" ? 27 : 32))) {
@@ -532,6 +539,16 @@ export function createEnvironment(
     const fx = regional ? x + origin.x : x,
       fy = regional ? y + origin.y : y;
     let { water, floodplain, shoreWidth, waterFlow, kind, reef } = nativeWater(x, y);
+    const madeShore = docks?.(x, y, water);
+    if (madeShore) {
+      water = madeShore.water;
+      // 1.2 is the narrowest shore the renderers do not take for a creek's.
+      shoreWidth = 1.2;
+      reef = undefined;
+    }
+    // The apron behind the wall, and the berths' depth of water before it.
+    // One cell past the apron: its edge is drawn across the cells it cuts.
+    const quay = madeShore?.laid && water < QUAY_APRON + 1 && water > -8 ? madeShore.laid : undefined;
     const town = regional
       ? (() => {
           const place = regional.placeAt(x, y);
@@ -639,7 +656,8 @@ export function createEnvironment(
         // The creek's distance field runs six cells out so the shore raster
         // interpolates smoothly; the terrace rule below ignores it (a small
         // distance would otherwise read as a floodplain and flatten a ring).
-        if (creekWater < water && creekWater < 6) {
+        // A creek reaching the harbour runs out under a pier, not across it.
+        if (creekWater < water && creekWater < 6 && madeShore?.laid !== "plank") {
           water = creekWater;
           waterGradient =
             pool < d.distance - width
@@ -777,17 +795,19 @@ export function createEnvironment(
     // Every shore keeps a low margin two to four cells deep: a bank standing
     // at the water's edge cuts the shoreline square along its cells.
     const margin = 2.6 + noise(seed, fx, fy, 13, "shore-margin") * 1.6;
+    // Made ground is level from the wall back to the first terrace: a step
+    // behind the apron would follow the cell grid along a diagonal quay.
     let level =
-      water < Math.max(floodplain, margin) || (reaches && water < Math.max(...reaches))
+      water < Math.max(floodplain, margin, madeShore ? terrace : 0) || (reaches && water < Math.max(...reaches))
         ? 0
-        : water < terrace
+        : water < terrace + (madeShore ? 10 : 0)
           ? Math.min(1, baseTier)
           : baseTier;
     // A sea cliff: the land stands straight up behind a narrow beach, two to
     // four steps high, and comes down again inland a step at a time. Low,
     // marshy and mangrove shores keep their beaches, and a town's shore is
     // left low enough to build a quay on.
-    if (kind === "sea" && water >= 0 && habitat.ecology !== "wetland" && !reef && !town) {
+    if (kind === "sea" && water >= 0 && habitat.ecology !== "wetland" && !reef && !town && !madeShore) {
       const bluff = noise(seed, fx, fy, 64, "sea-cliffs") * 0.8 + Math.min(relief, 0.6) * 0.5;
       if (bluff > 0.55) {
         const tall = 2 + Math.min(2, Math.floor((bluff - 0.55) * 9));
@@ -824,7 +844,8 @@ export function createEnvironment(
       ...(landscape && water >= 0 ? { landscape } : {}),
       ...(fall ? { fall: true } : {}),
       ...(waterGradient ? { waterGradient } : {}),
-      ...(kind === "sea" && ws.tide >= 0.3 && !reef ? { shelf: 1 + ws.tide * 9 } : {}),
+      ...(quay ? { quay } : {}),
+      ...(kind === "sea" && ws.tide >= 0.3 && !reef && !madeShore ? { shelf: 1 + ws.tide * 9 } : {}),
       ...(reef ? { reef } : {}),
       ...(reaches || wetPlaya !== undefined
         ? {
@@ -866,7 +887,7 @@ export function createEnvironment(
     }
     return value;
   };
-  return { origin: toAtlas(s.lon, s.lat), sample, mainWater, tributariesAt: (x: number, y: number) => streamsNear(x, y).filter((s) => s.kind === "creek").map((s) => s.stream) };
+  return { origin: toAtlas(s.lon, s.lat), piers: docks ? docks.piers : undefined, sample, mainWater, tributariesAt: (x: number, y: number) => streamsNear(x, y).filter((s) => s.kind === "creek").map((s) => s.stream) };
 }
 /** Local habitats vary inside the selected climatic envelope. */
 export function localEcology(

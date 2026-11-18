@@ -1,3 +1,4 @@
+import { gathersPlants } from "../../content/characters/livelihoods";
 import { assignLocalWork, localWorkContext } from "./employment";
 import { inheritLikeness } from "../../core/character";
 import { motorized } from "../../content/settlements/modernity";
@@ -184,6 +185,8 @@ export function populateHouseholds(
       place.condition = conditionOf(place.structure);
     }
     let partnerId: string | undefined, firstPartnerId: string | undefined;
+    const gatheringPartner = (gathersPlants(kit) || kit?.activity === "Looking for game" && year < 1800)
+      ? story.residents.find(m => !m.role && m.age >= 16 && m.age < 70) : undefined;
     story.residents.forEach((m, i) => {
       const memberId = `${owner}-member-${i}`;
       const child = m.role === "Child";
@@ -257,7 +260,7 @@ export function populateHouseholds(
                 ? "servant"
                 : m.role === "Apprentice"
                   ? kit?.label ?? "apprentice"
-                  : undefined,
+                  : m === gatheringPartner ? "Gatherer" : undefined,
             undefined,
             inherited,
             sex,
@@ -575,7 +578,9 @@ export function addWildResources(
             (localPack.setting!.environment!.ecology === "desert" ? 0.12 : 0.72)
           )
             continue;
-          const local = world.topography?.(px, py).biome;
+          const ground = world.topography?.(px, py);
+          if (ground?.waterVisual?.quay || ground?.feature === "paving") continue;
+          const local = ground?.biome;
           const resourceSet =
             local && local in ecologyProfiles
               ? ecologyProfiles[local as keyof typeof ecologyProfiles].resources
@@ -585,40 +590,25 @@ export function addWildResources(
               Math.floor(random(seed, k, ix, iy, "type") * resourceSet.length)
             ];
           const item = type === "grazing" ? "fodder" : type;
-          const availability =
-            localPack.setting!.environment!.ecology === "tropical-woodland"
-              ? seasons
-              : type === "fruit"
-                ? ["summer", "autumn"]
-                : type === "berries"
-                  ? ["summer", "autumn"]
-                  : seasons;
+          const tropical = eco === ecologyProfiles["tropical-woodland"];
+          const availability = tropical ? seasons
+            : type === "fruit" || type === "berries" ? ["summer", "autumn"]
+            : type === "greens" ? ["spring", "summer"]
+            : type === "acorn" ? ["autumn"]
+            : seasons;
           const available = availability.includes(localPack.setting!.season);
-          const sprite =
-            type === "fruit"
-              ? "ecology-fruit-tree"
-              : type === "berries"
-                ? "ecology-berry-bush"
-                : type === "wood"
-                  ? "ecology-branches"
-                  : type === "reeds"
-                    ? "reeds"
-                    : "ecology-grazing";
+          const [name, sprite] = {
+            fruit: ["Wild fruit tree", "ecology-fruit-tree"], berries: ["Berry patch", "ecology-berry-bush"],
+            wood: ["Fallen branches", "ecology-branches"], reeds: ["Reed bed", "reeds"],
+            grazing: ["Grazing patch", "ecology-grazing"], greens: ["Wild greens", "ecology-greens"],
+            roots: ["Edible root bed", "ecology-roots"], acorn: ["Fallen acorns", "ecology-acorns"],
+          }[type];
           if (localPack.setting?.placementRevision === 1 && type === "fruit" &&
             treePlacementEnvelope(sprite, { x: px, y: py }).clearance.some(p => world.protectedCell?.(p.x, p.y)))
             continue;
           const o: WorldObject = {
             id: `resource-${px}-${py}`,
-            name:
-              type === "fruit"
-                ? "Wild fruit tree"
-                : type === "berries"
-                  ? "Berry patch"
-                  : type === "wood"
-                    ? "Fallen branches"
-                    : type === "reeds"
-                      ? "Reed bed"
-                      : "Grazing patch",
+            name,
             kind: "tree",
             pos: { x: px, y: py, space: "outside" },
             sprite,

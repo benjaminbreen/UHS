@@ -1490,6 +1490,11 @@ def house(look, variant=0, form='row', cells=12, seed=0):
     floors = 1 if small or form == 'shop' else L['tall'] if form == 'tall' else max(2, L['floors']) if form == 'hall' \
         else L['floors']
     s.update(W=cells * 16, floors=floors, seed=seed, shop=form in ('shop', 'stall'))
+    if look == 'oaxaca' and form == 'shop':
+        if variant == 1:
+            s.update(portal='arco', dw=24, h0=78)
+        elif variant == 2:
+            s.update(door=1, portal='liso', dw=22, dh=44, h0=64)
     if form == 'hall':
         s.update(door=max(2, int((cells * 16 + 10) / 46)) // 2, escudo=True)
     return Casa(s)

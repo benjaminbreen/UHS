@@ -862,6 +862,33 @@ def wagon(spec, frame):
             h = 2 + int(h2(x // 2, 1, spec.get('seed', 1)) * 3)
             for y in range(top - h, top):
                 c.px(x, y, COAL[(x + y) % 3 + 1])
+    elif kind == 'boxcar':
+        top = floor - 23
+        for x in range(2,L-2):
+            grain = body[2 if x%4==0 else 4 if h2(x//4,2,4)>.63 else 3]
+            c.vl(x,top,floor,grain)
+        for x in range(3,L-3,19):
+            c.vl(x,top,floor,body[1]);c.vl(x+1,top+1,floor-1,body[4])
+            for y in range(top+3,floor,7):c.px(x+1,y,body[5])
+        mid=L//2
+        c.rect(mid-13,top+2,mid+12,floor-2,body[2])
+        for x in range(mid-11,mid+12,3):c.vl(x,top+4,floor-4,body[3])
+        for y in (top+2,floor-3):c.hl(mid-13,mid+13,y,IRON[4])
+        c.vl(mid+7,top+9,floor-7,IRON[5]);c.hl(mid+5,mid+8,floor-7,IRON[3])
+        for y in range(top-10,top):
+            inset=max(0,(top-4-y)//2)
+            c.hl(2+inset,L-3-inset,y,('#695952','#987454','#ae8463','#a17959','#997356','#8d684e','#86664f','#805e49','#765746','#654d40')[y-top+10])
+        for x in range(8,L-6,13):
+            for y in range(top-9,top):
+                offset=max(0,(top-y-3)//3)
+                c.px(x+offset,y,'#614b40');c.px(x+offset+1,y,'#b78c69')
+        c.rect(7,top-8,L-8,top-6,'#866953')
+        c.hl(8,L-9,top-8,'#c4a47a');c.hl(8,L-9,top-5,'#604e43')
+        c.hl(2,L-3,top,'#402f2c');c.hl(3,L-4,top+1,'#ad7e56')
+        for y in range(top+4,floor,4):c.hl(L-12,L-7,y,IRON[5])
+        for x in (L-13,L-6):c.vl(x,top+2,floor,IRON[3])
+        for x in range(12,34,4):c.hl(x,x+1,top+9,'#cab79a')
+        for x in range(13,25,3):c.hl(x,x+1,top+12,'#a7957e')
     elif kind == 'van':
         top = floor - 26
         for x in range(2, L - 2):
@@ -1406,7 +1433,7 @@ SETS = {
     'american': dict(loco=american_loco(), coaches=STEAM_SETS['american']['coaches'], wagons=WAGONS_EARLY,
                      brake=dict(length=48, kind='brake', livery='red', spoked=True)),
     'american-late': dict(loco=STEAM_SETS['american-late']['loco'], coaches=STEAM_SETS['american-late']['coaches'],
-                          wagons=WAGONS, brake=dict(length=48, kind='brake', livery='red')),
+                          wagons=[WAGONS[0],dict(length=112,kind='boxcar',livery='chocolate',bogies=True),WAGONS[2]], brake=dict(length=48, kind='brake', livery='red')),
     'edwardian': dict(loco=big_loco(), coaches=STEAM_SETS['edwardian']['coaches']
                       + [_coach(length=144, livery='teak', upper='teak', lined=True, win_w=11, win_gap=5, frames=True)],
                       wagons=WAGONS, brake=dict(length=48, kind='brake', livery='grey')),

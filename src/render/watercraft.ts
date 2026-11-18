@@ -22,6 +22,32 @@ export function mooredBoatFrame(frame:string,variation=0) {
   return frame;
 }
 
+/** The rope belongs to the moored hull and leaves the scene when the boat puts out. */
+export function drawMooring(scene: Phaser.Scene, hull: Phaser.GameObjects.Image, x: number, y: number, frame: string, still: boolean) {
+  if (hull.getData("mooring")) return;
+  const rope = scene.add.graphics().setDepth(hull.depth + 1);
+  hull.setData("mooring", rope);
+  const horizontal = /-(east|west)$/.test(frame);
+  x += /-(east|south)$/.test(frame) ? 8 : -8;
+  y += /-(south|west)$/.test(frame) ? 7 : -7;
+  const restY = hull.y;
+  const endX = Math.round(hull.x + Math.sign(x - hull.x) * (horizontal ? 35 : 9));
+  const paint = () => {
+    hull.y = restY + (still ? 0 : Math.round(Math.sin(scene.time.now / 900 + endX)));
+    const endY = Math.round(hull.y + (horizontal ? -6 : Math.sign(y - hull.y) * 24 - 6));
+    const length = Math.max(1, Math.abs(endX-x), Math.abs(endY-y));
+    rope.clear();
+    for (let i=0;i<=length;i++) {
+      const t=i/length, px=Math.round(x+(endX-x)*t), py=Math.round(y+(endY-y)*t+20*t*(1-t));
+      rope.fillStyle(0x715235).fillRect(px,py+1,2,1);
+      rope.fillStyle(i%4===0 ? 0xb88c58 : 0xd6b77c).fillRect(px,py,2,1);
+    }
+  };
+  paint();
+  const wave = !still && scene.time.addEvent({delay:440,loop:true,callback:paint});
+  hull.once("destroy", () => { if (wave) wave.remove(); rope.destroy(); });
+}
+
 export class Watercraft {
   private image?: Phaser.GameObjects.Image;
   private crewSeat?: readonly number[];

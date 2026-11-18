@@ -6,6 +6,8 @@ import {
   yardBoundaries,
 } from "../src/content/settlements/boundaries";
 import { yardKit } from "../src/content/settlements/yards";
+import { resolveSetting } from "../src/content/geography/resolve";
+import { packForSetting } from "../src/content/geography/pack";
 import type { TopographyCell } from "../src/core/topography";
 
 type Field = NonNullable<TopographyCell["field"]>;
@@ -93,6 +95,19 @@ describe("yard boundaries", () => {
 describe("yard kits", () => {
   const kit = (culture: string, year: number, climate = "temperate") =>
     yardKit({ culture, climate, year } as never);
+
+  it("pairs Western Zhou farmhouses with millet yards and bare earthen or wattle fences", () => {
+    const r = resolveSetting("Gatherer in Anyang 900 BCE");
+    if ("error" in r) throw Error(r.error);
+    const farm = { ...r.setting, settlement: "farm" as const, lon: 113.90625, lat: 38.53125 };
+    const yard = yardKit(farm);
+    expect(yard.beds).toContain("millet");
+    expect(yard.props.find((p) => p.prop === "poundingMortar")?.with?.[0].prop).toBe("basket");
+    expect(yardBoundaries(farm).map(([b]) => b)).toEqual(["mud", "wattle"]);
+    expect(packForSetting(farm).buildings.every((f) => f.startsWith("eastasian-house-early-chinese-"))).toBe(true);
+    for (const other of [{ ...farm, year: -1600 }, { ...farm, lat: 24 }])
+      expect(yardKit(other).id).toBe("croft");
+  });
 
   it("gives a house of the brick centuries a front garden and a back yard", () => {
     for (const [culture, year] of [["european", 1780], ["european", 1880], ["other-indigenous-american", 1780]] as const) {

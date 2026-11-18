@@ -163,11 +163,12 @@ const ROUTE_SEARCH = 4000;
 /** The way from `from` to `to` for stock that must not cross the crops, by
  * breadth-first search over cells it may step on. Undefined when there is no
  * way within the search, and the animal walks straight at it instead. */
-function route(world: FaunaWorld, p: FaunaProfile, from: Point, to: Point) {
+function route(world: FaunaWorld, p: FaunaProfile, from: Point, to: Point, limit = ROUTE_SEARCH) {
+  if (world.blocked(to.x, to.y) && !(p.swims && afloat(world, to))) return;
   const key = (c: Point) => `${c.x},${c.y}`;
   const came = new Map<string, Point | null>([[key(from), null]]);
   const queue: Point[] = [from];
-  for (let i = 0; i < queue.length && came.size < ROUTE_SEARCH; i++) {
+  for (let i = 0; i < queue.length && came.size < limit; i++) {
     const at = queue[i];
     if (at.x === to.x && at.y === to.y) {
       const path: Point[] = [];
@@ -189,14 +190,15 @@ function route(world: FaunaWorld, p: FaunaProfile, from: Point, to: Point) {
   return undefined;
 }
 
-/** Where the leader steps for next: the next cell of its route for kept
- * grazers, the target itself for everything else. */
+/** Kept grazers and stock returning to shelter can go around obstacles. */
 function waypoint(world: FaunaWorld, p: FaunaProfile, g: FaunaGroup, leader: Point) {
   const target = g.target!;
-  if (p.category !== "domestic" || !p.art.graze) return target;
+  const returning = g.house && indoors(p, g, world.hour) && hyp(target, g.home) === 0;
+  if (!returning && (p.category !== "domestic" || !p.art.graze)) return target;
+  const limit = p.art.graze ? ROUTE_SEARCH : 256;
   const end = g.route?.[g.route.length - 1];
   if (!end || end.x !== target.x || end.y !== target.y)
-    g.route = route(world, p, leader, target);
+    g.route = route(world, p, leader, target, limit);
   const r = g.route;
   if (!r?.length) return target;
   // Shoved off its line by the others, it picks the route up further on.
@@ -204,7 +206,7 @@ function waypoint(world: FaunaWorld, p: FaunaProfile, g: FaunaGroup, leader: Poi
   for (let i = 0; i < Math.min(r.length, 8); i++)
     if (hyp(r[i], leader) < hyp(r[near], leader)) near = i;
   if (hyp(r[near], leader) > 3) {
-    g.route = route(world, p, leader, target);
+    g.route = route(world, p, leader, target, limit);
     return g.route?.[0] ?? target;
   }
   r.splice(0, hyp(r[near], leader) < 1 ? near + 1 : near);

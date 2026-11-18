@@ -1,3 +1,6 @@
+import { gathersPlants } from "../../content/characters/livelihoods";
+import { foodPatch, seasonAt } from "../../core/livelihood";
+import { crops as farmCrops } from "../../content/agriculture/crops";
 import { waterfrontProfiles } from "../../content/settlements/waterfronts";
 import { catchFate, crewRole, fishingWords, preserveWords, type CrewRole } from "../../content/economy/fishing";
 import { huntFate } from "../../content/economy/hunting";
@@ -26,7 +29,7 @@ import { keeperLivesIn, publicInteriorFor } from "../../content/interiors/select
 import type { Rank } from "../../content/characters/context-types";
 import type { StanceTag } from "../../content/outlook/types";
 import type { WorldSetting } from "../../content/geography/types";
-import { cellKey, type SettlementPlan, type WorkSite } from "./types";
+import { cellKey, type Plot, type SettlementPlan, type WorkSite } from "./types";
 import { propDefs, propVisualCells } from "../../content/props/catalog";
 import { processFor } from "../../content/economy/processes";
 import { MAX_WADING_DEPTH, waterDepthAt } from "../../core/water-field";
@@ -129,23 +132,22 @@ function farmerRoutine(
   seed: string,
   id: string,
   owner: string,
-  field: { access: Point },
+  field: Plot,
 ): Station[] {
-  const grown = plan.objects.filter(
-    (o) => o.kind === "crop" && o.owner === owner,
-  );
-  const crops = grown.map((o) => ({ x: o.pos.x, y: o.pos.y }));
-  const load = grown.find((o) => o.resource)?.resource?.item;
-  // Walk the rows in a stable order so the circuit reads as a pass over the
-  // field rather than a shuffle between random plants.
-  crops.sort((a, b) => a.y - b.y || a.x - b.x);
-  const rotate = Math.floor(random(seed, "routine", id, "row") * 4);
-  const rows = crops
-    .filter((_, i) => i % Math.max(1, Math.ceil(crops.length / 4)) === 0)
-    .slice(0, 4);
-  const picked = rows.length
-    ? rows.map((_, i) => rows[(i + rotate) % rows.length])
-    : [field.access];
+  const parcel = plan.parcels?.find(p => p.access.x === field.access.x && p.access.y === field.access.y)
+    ?? plan.parcels?.find(p => p.owner === field.owner);
+  const crops: Point[] = [];
+  if (parcel) {
+    const r = parcel.rect;
+    for (let y = r.y; y < r.y+r.h; y++) for (let x = r.x; x < r.x+r.w; x++) {
+      const k = cellKey(x,y), f = plan.fields?.get(k);
+      if (f?.parcel === parcel.id && f.edges && !plan.solid.has(k)) crops.push({x,y});
+    }
+  }
+  const offset = Math.floor(random(seed,"field-row",id)*Math.max(1,crops.length));
+  const picked = crops.length ? Array.from({length:Math.min(6,crops.length)}, (_,i) =>
+    crops[(offset+i*Math.max(1,Math.floor(crops.length/6)))%crops.length]) : [field.access];
+  const load = parcel ? farmCrops[parcel.crop].yields : plan.objects.find(o => o.kind === "crop" && o.owner === field.owner)?.resource?.item;
   const water = wellAt(plan, field.access, true);
   const depot = store(plan, owner);
   return [
@@ -157,13 +159,16 @@ function farmerRoutine(
       minutes: 15,
       carry: "tool" as const,
     },
-    ...picked.map((pos, i) => ({
-      pos,
-      activity: "tend" as const,
-      label: i % 2 ? "Weeding the rows" : "Watering the crop",
-      minutes: 45,
-      carry: "tool" as const,
-    })),
+    ...picked.map((target, i): Station => {
+      const pos = parcel && [[0, 1], [1, 0], [0, -1], [-1, 0]]
+        .map(([dx, dy]) => ({ x: target.x + dx, y: target.y + dy }))
+        .find(q => {
+          const key = cellKey(q.x, q.y);
+          return plan.fields?.get(key)?.parcel === parcel.id && !plan.solid.has(key) && !plan.canals?.has(key);
+        });
+      return { pos: pos ?? target, activity: "tend", label: i % 2 ? "Tending the field edge" : "Working a planting row",
+        target: { ...target, family: "crop" }, minutes: 45, carry: "tool" };
+    }),
     // Down the far side for birds and beasts before going in.
     ...(crops.length
       ? [{
@@ -797,6 +802,7 @@ export function bindWorkStations(
   actor: Actor | undefined,
   stations: Station[],
   world: WorldModel,
+  day = 0,
 ) {
   const kit = livelihoodOf(world.pack, actor);
   const process = kit && processFor(kit, world.pack.setting?.economyRevision);
@@ -831,7 +837,32 @@ export function bindWorkStations(
     }
     return best;
   };
-  return stations.map((s) => {
+  const gathering = gathersPlants(kit);
+  const season = seasonAt(world.pack.setting?.season ?? "spring", day * 86400 + 43200);
+  const patches = gathering ? objects.filter(o => !o.owner && foodPatch(o,season)) : [];
+  const used = new Set<string>();
+  const storeId = gathering && world.households?.find(h => h.id === actor?.householdId)?.storeId;
+  const depot = storeId && objects.find(o => o.id === storeId);
+  if (depot && stations.some(s => s.activity === "gather") && !stations.some(s => s.activity === "haul")) {
+    const last = stations.map(s => s.activity).lastIndexOf("gather") + 1;
+    stations = [...stations.slice(0,last), { pos:depot.pos, activity:"haul", label:"Unloading the gathering basket", minutes:8 }, ...stations.slice(last)];
+  }
+  return stations.flatMap((s): Station[] | Station => {
+    if (gathering && s.activity === "gather") {
+      const patch = patches.filter(o => !used.has(o.id) && Math.hypot(o.pos.x-s.pos.x,o.pos.y-s.pos.y) < 65)
+        .sort((a,b) => Math.hypot(a.pos.x-s.pos.x,a.pos.y-s.pos.y) - Math.hypot(b.pos.x-s.pos.x,b.pos.y-s.pos.y))[0];
+      const stand = patch && beside(patch, s.pos);
+      if (!stand) return [];
+      used.add(patch.id);
+      return { ...s, pos:stand, toward:patch.name.toLowerCase(), label:`Gathering at the ${patch.name.toLowerCase()}`,
+        carry:carryKit(world.pack).basket, target:{ id:patch.id, x:patch.pos.x,y:patch.pos.y,family:"wild-food" } };
+    }
+    if (depot && s.activity === "haul") {
+      const stand = beside(depot, s.pos);
+      if (stand) return { ...s, pos:stand, label:"Unloading the gathering basket", toward:"the household store",
+        target:{ id:depot.id,x:depot.pos.x,y:depot.pos.y,family:"food-store" } };
+    }
+    if (s.activity === "tend" && s.target?.family === "crop") return s;
     if (!(["work", "tend", "cook", "haul-catch", "draw-water"] as string[]).includes(s.activity)) return s;
     const label = s.label.toLowerCase();
     const washing = /wash|launder|scrub.*cloth/.test(label);
@@ -1051,7 +1082,7 @@ export function routineFor(
       : craftRoutine(plan, seed, id, id, home, site.work, label)),
     socialStop(plan, seed, id, home, actor, pack.setting),
     ...fireside(plan, seed, id, home, pack.year),
-    night(home),
+    field ? { ...night(home), share:0.53, rises:300 + Math.round(random(seed,"field-dawn",id)*45) } : night(home),
   ];
 }
 function workdayFor(
@@ -1064,7 +1095,7 @@ function workdayFor(
   label: string,
   outdoors: Outdoors,
   year: number,
-  field?: { access: Point },
+  field?: Plot,
   pasture?: { x: number; y: number; w: number; h: number },
   indoorTrade = false,
 ): Station[] {

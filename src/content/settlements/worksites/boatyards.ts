@@ -17,7 +17,7 @@ export const boatyardProfiles: readonly WorksiteProfile[] = [{
   label:"Dhow-building yard",siting:"shoreline",
   scope:{years:[800,1950],bounds:[32,-26,77,30]},
   frame:"worksite-dhow-yard",outbuilding:{frame:"worksite-store-swahili",label:"Timber and coir store"},
-  launch:{frame:"worksite-dhow-hull",wayFrame:"worksite-timber-way",width:5,dryLength:14,reach:36,waterLength:8,
+  launch:{fleet:"lateen",frame:"worksite-dhow-hull",wayFrame:"worksite-timber-way",width:5,dryLength:14,reach:36,waterLength:8,
     label:"Dhow on stocks",description:"Teak planks laid edge to edge, sewn with coir or later nailed, round a raked stem. The clear ground ahead leads to launching water."},
   capacity:3,supplies:[{prop:"woodpile",label:"Teak and mangrove poles"},{prop:"bench",label:"Shipwright's bench"}],
   basis:"reconstructed",

@@ -23,5 +23,26 @@ for x,y in [(4,10),(8,14),(12,8)]:
 grazing=Image.new('RGBA',(32,20));d=ImageDraw.Draw(grazing)
 for x,y in [(5,13),(11,9),(17,16),(24,11),(28,18)]:
  d.line((x,y,x-3,y-5),fill='#466d3c',width=2);d.line((x,y,x+1,y-7),fill='#bac16e',width=1);d.line((x+1,y,x+4,y-4),fill='#6d8c43',width=2)
+def patch(kind, count):
+ im=Image.new('RGBA',(34,19));d=ImageDraw.Draw(im)
+ for i,(x,y) in enumerate([(19,6),(7,10),(25,12),(13,16),(28,7),(3,14)]):
+  if i>=count:continue
+  if kind=='acorns':
+   d.ellipse((x-2,y-2,x+2,y+2),fill='#735036')
+   d.line((x-2,y-2,x+1,y-2),fill='#54452d');d.point((x+1,y),fill='#d5a362')
+   d.point((x+3,y-2),fill='#a18348')
+   continue
+  if kind=='roots':
+   d.ellipse((x-3,y-1,x+3,y+1),fill='#73583e');d.line((x,y-2,x+2,y-2),fill='#d1a967')
+  for dx,dy in [(-4,-3),(0,-6),(4,-3)]:
+   tip=(x+dx,y+dy+(i%2))
+   d.polygon([(x,y),(x+dx//2-1,y+dy//2),tip,(x+dx//2+1,y+dy//2+1)],fill='#345339')
+   d.line((x+dx//2,y+dy//2,*tip),fill='#86aa55' if dx<=0 else '#66904c')
+  d.point((x,y-2),fill='#bdc777')
+ return im
 out=root/'public/ecology';out.mkdir(exist_ok=True)
-pack_atlas({'ecology-fruit-tree':tree,'ecology-berry-bush':bush,'ecology-berry-bush-picked':picked,'ecology-fruit-item':fruit,'ecology-berries-item':berries,'ecology-branches':wood,'ecology-grazing':grazing},out,'atlas', module=True)
+sprites={'ecology-fruit-tree':tree,'ecology-berry-bush':bush,'ecology-berry-bush-picked':picked,'ecology-fruit-item':fruit,'ecology-berries-item':berries,'ecology-branches':wood,'ecology-grazing':grazing}
+for kind in ('greens','roots','acorns'):
+ for suffix,count in [('',6),('-thin',2)]:
+  sprites[f'ecology-{kind}{suffix}']=patch(kind,count)
+pack_atlas(sprites,out,'atlas',module=True)

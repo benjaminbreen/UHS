@@ -44,6 +44,7 @@ type Kind = {
   words?: RegExp;
   /** Who lives and works here: the title, the words that ask for it (the word itself is the title when none is given), the work, and how many of them there are. */
   posts: readonly FairPost[];
+  residents?: Fair["residents"];
   /** The part of the world that built this way. */
   within?: Box;
   entry: string;
@@ -518,7 +519,8 @@ function divanPlan(rng: () => number): FairArea[] {
   ]);
 }
 
-const ROMAN = /\b(?:caesar|senator|patrician|consul|pontifex|domus|roman (?:noble|villa|house|household)|rich roman)\b/;
+const MATRON = /\b(?:matrona?|noblewoman|(?:noble|patrician|rich|wealthy|aristocratic)(?: roman)? (?:woman|lady))\b/;
+const ROMAN = /\b(?:caesar|senator|patrician|consul|pontifex|domus|roman (?:noble(?:woman|man)?|matron|aristocrat|palace|villa|house|household)|rich roman)\b/;
 const LORD = /\b(?:warlord|chieftain|headman|jarl|thegn|thane|mead[- ]?hall|long ?house|great hall)\b/;
 const MANOR = /\b(?:manor(?: house)?|baron|great hall|medieval lord|lord of the manor)\b/;
 const PALACE = /\b(?:(?<!crystal )palace|ch[aâ]teau|schloss|residenz|palazzo|stately home|country house)\b/;
@@ -530,7 +532,7 @@ const EUROPE: Box = [-11, 35, 45, 66], ROMAN_WORLD: Box = [-10, 28, 42, 56];
 const hallEnter = "woodsmoke, dogs, and a roof-tree taller than any house in the country.";
 const GUARD = /\b(?:guards?(?:m[ae]n)?|sentr(?:y|ies)|soldiers?|warriors?|spearm[ae]n|m[ae]n[- ]at[- ]arms)\b/, SERVANT = /\b(?:servants?|maids?|pages?|footm[ae]n|attendants?|slaves?|ushers?|grooms?|valets?)\b/, SCRIBE = /\b(?:scribes?|clerks?|secretar(?:y|ies)|stewards?|officials?|accountants?)\b/, COOK = /\b(?:cooks?|bakers?|brewers?|kitchen [a-z]+|scullions?)\b/, NOBLE = /\b(?:nobles?|noble(?:man|woman)|courtiers?|lords?|lad(?:y|ies))\b/;
 const hallPosts: readonly FairPost[] = [["Chieftain", /\b(?:warlord|chieftain|headman|jarl|king|queen)\b/, "ruler", 0], ["Warrior of the household", GUARD, "soldier", 4], ["Servant of the hall", SERVANT, "servant", 3], ["Weaver of the hall", /\bweavers?\b/, "weaver", 2], ["Poet of the hall", /\b(?:poets?|bards?|skalds?|singers?)\b/, "musician", 1]];
-const domusPosts: readonly FairPost[] = [["Senator", /\b(?:caesar|senator|patrician|consul|pontifex|noble)\b/, "ruler", 0], ["Household slave", SERVANT, "servant", 6], ["Doorkeeper", GUARD, "servant", 1], ["Secretary of the house", SCRIBE, "scribe", 2], ["Cook of the house", COOK, "cook", 1], ["Client", /\bclients?\b/, "courtier", 3]];
+const domusPosts: readonly FairPost[] = [["Noblewoman", MATRON, "landowner", 0], ["", /\b(?:nobleman|aristocrat)\b/, "landowner", 0], ["Senator", /\b(?:caesar|senator|patrician|consul|pontifex|noble)\b/, "ruler", 0], ["Household slave", SERVANT, "servant", 6], ["Doorkeeper", GUARD, "servant", 1], ["Secretary of the house", SCRIBE, "scribe", 2], ["Cook of the house", COOK, "cook", 1], ["Client", /\bclients?\b/, "courtier", 3]];
 const kinds: readonly Kind[] = [
   {
     id: "hall-stone", name: "the big house", years: [-9500, -2001], asks: LORD, words: /\b(?:neolithic|stone age)\b/, entry: "yard", place: "konya", role: "Chieftain", style: neolithicHall,
@@ -540,11 +542,12 @@ const kinds: readonly Kind[] = [
   { id: "hall-lord", name: "the lord's hall", years: [500, 1150], asks: LORD, within: EUROPE, entry: "yard", place: "london", role: "Chieftain", style: meadHall, posts: hallPosts, coin: ["ring", "rings"], finds: ironFinds, enter: hallEnter, plan: hallPlan(false) },
   { id: "hall-iron", name: "the chieftain's hall", years: [-2000, 499], asks: LORD, words: /\b(?:bronze age|iron age)\b/, within: EUROPE, entry: "yard", place: "normandy", role: "Chieftain", style: meadHall, posts: hallPosts, coin: ["ring", "rings"], finds: ironFinds, enter: hallEnter, plan: hallPlan(false) },
   {
-    id: "domus", name: "the house", years: [-60, 480], asks: ROMAN, within: ROMAN_WORLD, entry: "atrium", place: "rome", role: "Senator", style: romanHouse, posts: domusPosts,
+    residents: [["Julius Caesar", "Senator", "male", -99, -59, -43, "atrium"], ["Cicero", "Senator", "male", -105, -60, -42, "tablinum"]],
+    id: "domus", name: "the house", years: [-60, 480], asks: any(ROMAN, COURT, PALACE, MATRON), words: /\b(?:roman|rome|domus|caesar|senator|patrician|consul|pontifex)\b/, within: ROMAN_WORLD, entry: "atrium", place: "rome", role: "Senator", style: romanHouse, posts: domusPosts,
     coin: ["sestertius", "sestertii"], finds: romanFinds, enter: "a dim hall, a square of sky in its roof, and a pool under it.", plan: domusPlan,
   },
   {
-    id: "domus-early", name: "the house", years: [-300, -61], asks: ROMAN, words: /\brepublic\b/, within: ROMAN_WORLD, entry: "atrium", place: "rome", role: "Senator", style: romanHouse, posts: domusPosts,
+    id: "domus-early", name: "the house", years: [-300, -61], asks: any(ROMAN, COURT, PALACE, MATRON), words: /\brepublic\b/, within: ROMAN_WORLD, entry: "atrium", place: "rome", role: "Senator", style: romanHouse, posts: domusPosts,
     coin: ["as", "asses"], finds: romanFinds, enter: "a dim hall, a square of sky in its roof, and a pool under it.", plan: domusPlan,
   },
   // Kinds that a prompt names by their people come before those any "palace" or "king" would mean.
@@ -564,6 +567,7 @@ const kinds: readonly Kind[] = [
     coin: ["measure of barley", "measures of barley"], finds: aegean.finds, enter: "a paved court, red columns, and the smell of oil.", plan: axisPlan(aegean),
   },
   {
+    residents: [["Kangxi Emperor", "Emperor", "male", 1654, 1672, 1722, "hall"], ["Qianlong Emperor", "Emperor", "male", 1711, 1735, 1796, "hall"]],
     id: "palace-china", name: "the palace", years: [1368, 1911], asks: any(PALACE, COURT, /\b(?:mandarin|forbidden city|yamen)\b/), words: /\b(?:forbidden city|mandarin|eunuch|yamen|chinese|china|ming|qing)\b/, within: [98, 20, 124, 42], entry: "outer-court", place: "beijing", role: "Official", style: chinesePalace,
     posts: [["Emperor", /\b(?:emperor|empress|king|queen|prince|princess)\b/, "ruler", 0], ["Palace eunuch", /\b(?:eunuchs?|servants?|attendants?|pages?)\b/, "servant", 5], ["Official", /\b(?:mandarins?|officials?|scribes?|clerks?|secretar(?:y|ies)|nobles?|courtiers?)\b/, "scribe", 3], ["Guardsman", GUARD, "soldier", 3], ["Palace maid", /\b(?:maids?|concubines?|lad(?:y|ies))\b/, "servant", 3], ["Cook of the imperial kitchen", COOK, "cook", 2]],
     coin: ["tael", "taels"], finds: chinaFinds, enter: "a red wall, a gate with three doors, and a court paved to the horizon.", plan: courtAxisPlan,
@@ -574,6 +578,7 @@ const kinds: readonly Kind[] = [
     coin: ["mon", "mon"], finds: japanFinds, enter: "raked gravel, a carved gate, and a roof of cypress bark sweeping down to meet you.", plan: shoinPlan,
   },
   {
+    residents: [["Moctezuma II", "Tlatoani", "male", 1466, 1502, 1520, "hall"]],
     id: "palace-mexica", name: "the palace", years: [1325, 1521], asks: any(PALACE, COURT, /\b(?:tlatoani|tecpan|moctezuma|montezuma)\b/), words: /\b(?:aztecs?|mexica|tenochtitlan|texcoco|tlatoani|tecpan|moctezuma|montezuma|nahua)\b/, within: [-106, 14, -86, 23], entry: "court", place: "mexico", role: "Noble", style: mexicaPalace,
     posts: [["Tlatoani", /\b(?:tlatoani|king|emperor|ruler|moctezuma|montezuma)\b/, "ruler", 0], ["Noble", NOBLE, "courtier", 2], ["Warrior of the guard", GUARD, "soldier", 3], ["Steward", /\b(?:stewards?|officials?|clerks?)\b/, "scribe", 2], ["Painter of books", /\b(?:scribes?|painters?)\b/, "scribe", 2], ["Palace servant", SERVANT, "servant", 4], ["Palace cook", COOK, "cook", 3]],
     coin: ["cacao bean", "cacao beans"], finds: mexica.finds, enter: "white walls banded in red, a court full of flowering trees, and every voice kept low.", plan: axisPlan(mexica),
@@ -584,6 +589,7 @@ const kinds: readonly Kind[] = [
     coin: ["length of cloth", "lengths of cloth"], finds: inca.finds, enter: "a wall of stones fitted like a puzzle, a narrow gate, and thatch as thick as a man is tall.", plan: axisPlan(inca),
   },
   {
+    residents: [["Suleiman the Magnificent", "Sultan", "male", 1494, 1520, 1566, "hall"]],
     id: "palace-islamic", name: "the palace", years: [700, 1900], asks: any(PALACE, COURT, /\b(?:vizier|harem|seraglio|alhambra|topkapi|divan)\b/), words: /\b(?:sultan|caliph|emir|shah|vizier|harem|seraglio|alhambra|topkapi|divan|ottoman|abbasid|mughal|safavid|mamluk|moorish)\b/, within: [-10, 12, 80, 45], entry: "outer-court", place: "city-istanbul", role: "Secretary", style: islamicPalace,
     posts: [["", /\b(?:sultan|caliph|emir|shah|king|queen|emperor|prince|princess)\b/, "ruler", 0], ["Vizier", /\b(?:viziers?|nobles?|courtiers?)\b/, "courtier", 1], ["Palace guard", GUARD, "soldier", 4], ["Eunuch of the household", /\b(?:eunuchs?|servants?|attendants?|pages?|slaves?)\b/, "servant", 4], ["Secretary", SCRIBE, "scribe", 3], ["Palace cook", COOK, "cook", 3], ["Woman of the household", /\b(?:concubines?|lad(?:y|ies)|maids?)\b/, "courtier", 2]],
     coin: ["dirham", "dirhams"], finds: divanFinds, enter: "a gate deep enough to shelter in, a court full of people waiting, and beyond it another gate.", plan: divanPlan,
@@ -618,7 +624,7 @@ const titled = (k: Kind) => any(k.asks, new RegExp(`\\b(?:${k.posts.filter((p) =
 
 export const plannedPalaces: readonly Fair[] = kinds.map((k) => ({ ...k, asks: titled(k) })).flatMap((k) => Array.from({ length: PLANS }, (_, i): Fair => ({
   id: `${k.id}-${i}`, name: k.name, city: "", where: [999, 999, 999, 999], years: k.years, entry: k.entry, areas: k.plan(rngOf("palace-plan", k.id, i)),
-  scale: 1, look: "palace", palace: k.style, within: k.within, named: k.words, posts: k.posts, role: k.role, finds: k.finds, ticket: 0, coin: k.coin, place: k.place, generated: true, asks: k.asks,
+  scale: 1, look: "palace", palace: k.style, within: k.within, named: k.words, posts: k.posts, residents: k.residents, role: k.role, finds: k.finds, ticket: 0, coin: k.coin, place: k.place, generated: true, asks: k.asks,
   // Asked for with no date: the kind whose own period the prompt names, or the first that takes any.
   prompt: new RegExp(`(?=.*(?:${k.asks.source}))${k.words ? `(?=.*${k.words.source})` : ""}`),
   words: { short: "", gate: "", enter: k.enter },

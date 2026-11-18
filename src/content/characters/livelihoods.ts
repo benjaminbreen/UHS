@@ -19,7 +19,7 @@ export const livelihoods: readonly Livelihood[] = [
     rank: "labouring",
     weight: 14,
     label: "Gatherer",
-    activity: "Gathering supplies",
+    activity: "Gathering plants",
     inventory: { water: 2, fruit: 2 },
   },
   {
@@ -135,3 +135,5 @@ export const livelihoodIds = [...index.keys()];
 export function livelihoodById(id: string) {
   return index.get(id);
 }
+
+export const gathersPlants = (kit?: Livelihood) => kit?.activity === "Gathering plants" && kit.id !== "shellfish-gatherer";

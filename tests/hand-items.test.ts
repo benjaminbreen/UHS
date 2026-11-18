@@ -42,7 +42,15 @@ it("will not take a gift from somebody it has a grievance with", () => {
   other.pos = { ...e.state.player.pos };
   other.trust = -1;
   rt.command({ type: "hold", item: "bread" });
-  expect(
-    e.validate({ type: "give", target: other.id, item: "bread" }),
-  ).toBeTruthy();
+  expect(rt.command({ type: "give", target: other.id, item: "coin" })?.status).toBe("rejected");
+  expect(other.encounters).toBeUndefined();
+  const request = { actionId: "offer-bread", expectedRevision: e.state.revision,
+    command: { type: "give" as const, target: other.id, item: "bread" } };
+  const result = e.act(request);
+  expect(result.status).toBe("completed");
+  expect(result.events.at(-1)?.interaction).toEqual({ actor: other.id, kind: "gift", item: "bread", accepted: false });
+  expect(e.act(request)).toEqual(result);
+  expect(other.encounters).toHaveLength(1);
+  expect(e.state.player.heldItem).toBe("bread");
+  expect(other.trust).toBe(-1);
 });

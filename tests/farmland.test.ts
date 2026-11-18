@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { panelCity, panelSetting } from "../scripts/review/panel";
+import { cropStage } from "../src/content/agriculture";
 import { crops, pickable } from "../src/content/agriculture/crops";
 import { packs } from "../src/content/packs";
 import { settlementProfile } from "../src/content/settlements/profiles";
@@ -8,10 +9,93 @@ import type { SettlementWorld } from "../src/world/v3/generate";
 import { vehicleAt, vehicleSchedule } from "../src/world/v3/conveyances";
 import { planFarmland } from "../src/world/v3/farmland";
 import { smallSession } from "./fixtures";
+import { resolveSetting } from "../src/content/geography/resolve";
+import { Autopilot } from "../src/runtime/autopilot";
+import { cellJobs } from "../src/core/work-places";
 
 /** Farmland round a town: parcels exist, keep off the built ground, reach
  * a lane, and carry the system the culture and date imply. */
 describe("farmland", () => {
+  it("only puts a seasonal grain sheaf on the map while it is standing", () => {
+    const e = smallSession({ ...panelSetting("london", 1400), season: "spring" });
+    const pos = { x: 21, y: 41, space: "outside" };
+    e.world.blocked = () => false;
+    e.world.initialObjects.push({ id: "edge-sheaf", name: "Sheaf of grain", prop: "sheaf", sprite: "sheaf",
+      kind: "container", pos, seasons: ["autumn"], inventory: { grain: 2 } });
+    for (const [season, present] of [[2, true], [3, false], [6, true]] as const) {
+      e.state.clock = 32400 + season * 28 * 86400;
+      e.advance(1);
+      expect(e.state.objects.filter(o => o.id === "edge-sheaf")).toHaveLength(present ? 1 : 0);
+      expect(e.blocked(pos.x, pos.y, pos.space)).toBe(present);
+    }
+  });
+  it("opens the field card away from the gate and finishes a hand-started row on autopilot", () => {
+    const start = resolveSetting("Maize cultivator in Ica, 246 CE", "ica-field-review");
+    if ("error" in start) throw Error(start.error);
+    const e = smallSession(start.setting), s = e.state;
+    const parcel = { id: 9, owner: "player", crop: "maize", cells: 12, access: { x: 21, y: 41 },
+      rect: { x: 21, y: 41, w: 6, h: 2 } } as const;
+    Object.assign(e.world, { planAt: () => ({ parcels: [parcel] }), blocked: () => false });
+    e.world.topography = (x,y) => ({ height: 0, surface: "soil",
+      ...(x >= 21 && x <= 26 && [41,42].includes(y) ? {field:{parcel:9, crop:"maize", stage:"sown",
+        owner:"player", axis:"x", edges:1, boundary:"none",wet:false,fence:0}} : {}) });
+    e.world.decoration = (x,y) => y === 41 && !s.tiles?.[`${x},${y}`]?.cut ?
+      { id:`decor-${x}-${y}`, x,y,sprite:"grass-tuft",solid:false } : undefined;
+    s.player.pos={x:26,y:44,space:"outside"};
+    let i = 0;
+    const act = (command: Parameters<typeof e.validate>[0]) => {
+      const result=e.act({actionId:`field-${++i}`,expectedRevision:s.revision,command});
+      expect(result.status,result.reason).toBe("completed");
+    };
+    expect(e.workHere()).toBeUndefined();
+    act({type:"move",dx:0,dy:-1});
+    const now=s.clock;
+    act(e.workHere()!.command);
+    const card=e.cards.at(-1)!.choose!;
+    expect(card.choices.map(c=>c.label)).toContain("Clear the weedy edge");
+    expect(card.choices.some(c=>/harvest|bring in/i.test(c.label))).toBe(false);
+    act({type:"choose",card:card.card,choice:card.choices.find(c=>c.label==="Clear the weedy edge")!.index});
+    expect(s.clock).toBe(now);
+    act({type:"move",dx:0,dy:-1});
+    act(e.workHere()!.command);
+    expect(s.tiles?.["26,41"]?.cut).toBe(true);
+    expect(s.workday!.field!.count).toBe(1);
+    const pilot = new Autopilot({kind:"workday",workPass:card.card},e);
+    let finished=false;
+    for(let n=0;n<100 && !finished;n++) {
+      const step=pilot.next();
+      if ("route" in step) for (const q of step.route) act({type:"move",dx:q.x-s.player.pos.x,dy:q.y-s.player.pos.y});
+      if ("command" in step) act(step.command);
+      if ("done" in step) finished=true;
+    }
+    expect(finished).toBe(true);
+    expect(s.workday!.field).toBeUndefined();
+    expect(Object.values(s.tiles!).filter(c=>c.cut)).toHaveLength(6);
+    expect(s.clock-now).toBeGreaterThanOrEqual(30*60);
+    const q={x:24,y:41};
+    const maizeSeason = (["spring", "summer", "autumn", "winter"] as const)
+      .find(season => cropStage("maize", season, start.setting.lat) === "sown")!;
+    s.tiles!["24,41"].dug = true;
+    expect(cellJobs(e.world, s, q, maizeSeason, 0)).not.toContain("plant");
+    expect(cellJobs(e.world, s, q, maizeSeason, 1)).toContain("plant");
+    const outside = e.world.topography!;
+    e.world.topography = (x, y) => x === q.x && y === q.y - 1 ? { height: 0, surface: "water", waterDepth: "shallow" } : outside(x, y);
+    delete s.tiles!["24,41"].dug;
+    expect(cellJobs(e.world, s, q, maizeSeason, 0)).toContain("water");
+    expect(cellJobs(e.world, s, { x: 21, y: 41 }, maizeSeason, 0)).not.toContain("water");
+    s.economy!.work!.stage = e.workPlan()!.steps.length;
+    s.economy!.work!.done = true;
+    act(e.workHere()!.command);
+    const extra = e.cards.at(-1)!.choose!;
+    act({ type: "choose", card: extra.card, choice: extra.choices.find(c => c.label === "Water the young crop")!.index });
+    for (const to of e.findRoute(s.player.pos, { x: 24, y: 42 }).path) {
+      if (e.workHere()) break;
+      act({ type: "move", dx: to.x - s.player.pos.x, dy: to.y - s.player.pos.y });
+    }
+    act(e.workHere()!.command);
+    expect(s.tiles!["24,41"].watered).toBe(Math.floor(s.clock / 86400));
+    expect(s.economy!.work!.stage).toBe(3);
+  });
   it("lets a player drive the pony cart, halt on the lane and return the same cart to its driver", () => {
     const e = createSettingSession(panelSetting("london", 1350), "strip");
     const p = e.state.player, plan = (e.world as SettlementWorld).planAt(p.pos.x, p.pos.y)!;
@@ -208,12 +292,12 @@ describe("farmland", () => {
 
   it("draws one half-step behind a lone brink and several between terrain tiers", () => {
     const setting = { ...panelSetting("london", 1650), culture: "south-asian" as const, lon: 85.88, lat: 20.47 };
-    const riserRows = (upper: number) => {
+    const hillside = (upper: number, slope = 0) => {
       const farm = planFarmland({
         site: { id: "brink", cx: 0, cy: 0, center: { x: 0, y: 0 }, home: true, profile: { ...settlementProfile(setting), radius: 25 } },
         pack: { ...packs.roman, setting },
         seed: "brink",
-        sample: (_x, y) => ({ elevation: y < upper ? 28 : y < -30 ? 14 : 0, water: 80, kind: "river", moisture: 0.7, snow: false }),
+        sample: (x, y) => ({ elevation: y-slope*x < upper ? 28 : y-slope*x < -30 ? 14 : 0, water: 80, kind: "river", moisture: 0.7, snow: false }),
         urban: true,
         connections: [],
         taken: () => false,
@@ -227,14 +311,35 @@ describe("farmland", () => {
         holding: () => 0,
         reachable: () => true,
       })!;
-      return [...farm.fields]
+      return [...farm.fields];
+    };
+    const riserRows = (upper: number) => hillside(upper)
         .filter(([, f]) => (f.riser ?? 0) & 4)
         .map(([key]) => Number(key.split(",")[1]));
-    };
     const shelf = riserRows(-Infinity);
     expect(shelf.length).toBeGreaterThan(0);
     expect(Math.min(...shelf)).toBeGreaterThanOrEqual(-35);
     expect(Math.min(...riserRows(-46))).toBeLessThan(-40);
+    for (const slope of [-1, 1]) {
+      const fields = hillside(-50, slope).filter(([, f]) => f.rowSlope !== undefined);
+      const diagonal = fields.filter(([, f]) => Math.sign(f.rowSlope!) === slope);
+      expect(diagonal.length).toBeGreaterThan(fields.length * 0.7);
+      const headings = new Map<number, Set<string>>();
+      const benches = new Map(fields);
+      let shared = 0;
+      for (const [key, f] of fields) {
+        if (!headings.has(f.parcel)) headings.set(f.parcel, new Set());
+        headings.get(f.parcel)!.add(`${f.axis}/${f.rowSlope}`);
+        const [x, y] = key.split(",").map(Number), next = benches.get(`${x+1},${y}`);
+        if (next && next.parcel !== f.parcel) {
+          expect(f.edges & 2).toBe(2);
+          expect((f.margin ?? 0) & 2).toBe(0);
+          shared++;
+        }
+      }
+      expect(shared).toBeGreaterThan(0);
+      expect([...headings.values()].every(h => h.size === 1)).toBe(true);
+    }
   });
 
   it("does not wrap irrigation round the town in a diamond", () => {
@@ -308,16 +413,15 @@ describe("farmland", () => {
           c.engine.world.terrain(p.access.x, p.access.y),
           `access ${p.id}`,
         ).not.toBe("water");
-      // Owned parcels are the nearest ones, and their owners have crops to tend.
-      const owned = plan.parcels!.filter((p: { owner?: string }) => p.owner);
-      for (const p of owned.slice(0, 20))
-        expect(
-          plan.objects.some(
-            (o: { kind: string; owner?: string }) =>
-              o.kind === "crop" && o.owner === p.owner,
-          ),
-          `crops for ${p.owner}`,
-        ).toBe(true);
+      for (const p of plan.parcels!.filter((p: { owner?: string }) => p.owner).slice(0, 20)) {
+        expect([...plan.fields!.values()].some(cell => cell.parcel === p.id && cell.owner === p.owner)).toBe(true);
+        expect(plan.objects.some((o: { id: string }) => o.id.startsWith(`${plan.site.id}-parcel${p.id}-crop-`))).toBe(false);
+      }
+      for (const o of plan.objects) {
+        if (o.prop !== "sheaf" || !o.id.includes("-parcel")) continue;
+        const f = plan.fields!.get(`${o.pos.x},${o.pos.y}`);
+        expect(f && o.id.startsWith(`${plan.site.id}-parcel${f.parcel}-sheaf`), o.id).toBe(true);
+      }
       // Every household whose work is the fields holds some: the walk check
       // hands a household the next parcel it can reach rather than leaving it
       // with none.

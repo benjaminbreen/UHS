@@ -477,7 +477,7 @@ it("dresses the future the same way everywhere, in cloth that costs nothing", ()
 });
 
 it("puts most of the present in jeans and T-shirts, and fewer where regional dress holds", () => {
-  const casual = (w: { leggings?: string; motif?: string }) => w.leggings === "jeans" || w.motif === "tee" || w.motif === "graphic";
+  const casual = (w: { leggings?: string; garment: string }) => w.leggings === "jeans" || w.garment === "tee";
   expect(share(crowd("european", 2015), casual)).toBeGreaterThan(0.5);
   expect(share(crowd("south-asian", 2015, { sex: "female" }), casual)).toBeLessThan(share(crowd("european", 2015, { sex: "female" }), casual));
   expect(share(crowd("european", 1950), casual)).toBe(0);
@@ -505,9 +505,9 @@ it("names modern cloth the way a modern wearer would", () => {
   );
   // Rayon before the war, and nothing renamed before the shops.
   expect(
-    clothName("Tunic", { material: "synthetic", dye: "woad", quality: 0 }, "x", {
+    clothName("T-shirt", { material: "synthetic", dye: "woad", quality: 0 }, "x", {
       year: 1930,
-      id: "garment-tunic",
+      id: "garment-tee",
     }),
   ).toMatch(/^Blue (rayon|viscose) T-shirt$/);
   // Nothing is renamed before the shops that sold it.

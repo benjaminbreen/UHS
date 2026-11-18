@@ -1,16 +1,17 @@
-import { besideTeam, vehicleAt } from "../world/v3/conveyances";
+import { besideTeam, deliveryAt, vehicleAt } from "../world/v3/conveyances";
 import { loadVoxelItems, voxelIcon, voxelItemsReady } from "./voxel-items";
 import { shopArt, walkableRoof, waterborneFrames } from "../content/graphics/models";
 import { socialLabels } from "../core/bonds";
 import { shownStock } from "../core/economy";
 import { keepsShop } from "../core/shop";
-import { parseLoad } from "../content/economy/carrying";
+import { carryKit, parseLoad } from "../content/economy/carrying";
 import { propDefs } from "../content/props/catalog";
 import { portableProps } from "./characters/props";
 import { drawGarmentIcon } from "./garment-icons";
-import { Watercraft, mooredBoatFrame, boatPosture, boatCraft } from "./watercraft";
+import { Watercraft, drawMooring, mooredBoatFrame, boatPosture, boatCraft } from "./watercraft";
 import { FishingGear, type Gear } from "./fishing-gear";
 import { fishingWaterfront } from "../content/settlements/waterfronts";
+import { HarborLayer } from "./harbor";
 import { TrainLayer } from "./trains";
 import { CabLayer } from "./cabs";
 import { BabyEffects } from "./baby-effects";
@@ -110,7 +111,7 @@ import { WorldCharacters } from "./characters/world";
 import { entityInView, npcMotion } from "./entity-presentation";
 import { FaunaMotion } from "./fauna-motion";
 import { spriteShadow } from "./characters/shadow";
-import { frameCount, heldFrame, poseTiming, workPoseFor, type CharacterPose } from "./characters/poses";
+import { fieldPose, frameCount, heldFrame, poseTiming, workPoseFor, type CharacterPose } from "./characters/poses";
 import type { Actor, Stats } from "../core/types";
 import { statsOf } from "../core/stats";
 import { waterStyle } from "./water-style";
@@ -220,13 +221,6 @@ const HALT_MS = 200;
 const GAIT_GAP_MS = 60;
 /** The rock back as a walk swings round three eighths or more. */
 const PIVOT_MS = 90;
-/** Tiles within which someone notices the player, and beyond which they
- * forget they have; how long before the same person notices again, and the
- * least gap between any two, so a crowd does not go off like a flashbulb. */
-const NOTICE_TILES = 3;
-const FORGET_TILES = 5;
-const NOTICE_AGAIN_MS = 60000;
-const NOTICE_GAP_MS = 1500;
 /** A shove into whatever blocked the way: out two pixels and back. */
 const BUMP_MS = 110;
 /** Knocked back off a wall at a run. */
@@ -310,7 +304,7 @@ import {
   leafLitter,
   turnsColour,
 } from "./season-art";
-import { seasonAt, seasonIndex } from "../core/livelihood";
+import { foodPatch, seasonAt, seasonIndex } from "../core/livelihood";
 import {
   FIRE_FRAME_MS,
   LIGHT_FLICKER,
@@ -347,6 +341,7 @@ import { caveLight } from "../content/caves";
 import type { Kind, Prop } from "./interiors/room";
 import { ROOM_ORIGIN } from "../world/interior";
 import { addCrops, cropsAt, setCropSelector, setCropCut, setCropsIndoors } from "./crops";
+import { fieldRidge } from "./field-raster";
 import { setFloraRegion } from "../content/ecology/blooms";
 import { floraRegion } from "../content/ecology/flora";
 import { alternateTrees, lazySheets, pageImage, pagedSheets, sceneAssets } from "./scene-assets";
@@ -425,7 +420,7 @@ const workTargets: Partial<Record<CharacterPose, readonly string[]>> = {
   "work-rinse": ["shallow-water"],
   "work-fish": ["shallow-water", "fish-weir"],
   "work-hang": ["drying-rack"],
-  "work-tend": ["crop", "hoe", "rake", "sheaf", "stock-pen", "trough", "beehive", "log-hive", "pipe-hive", "chicken-coop"],
+  "work-tend": ["crop", "wild-food", "hoe", "rake", "sheaf", "stock-pen", "trough", "beehive", "log-hive", "pipe-hive", "chicken-coop"],
   "work-sort": ["market-counter", "beam-scale", "crate-stack", "grain-sacks", "bench", "barrel", "storage-jar"],
 };
 type WindSprite = {
@@ -685,9 +680,6 @@ export class WorldScene extends Phaser.Scene {
       pivot?: number;
     }
   >();
-  private near = new Set<string>();
-  private noticedAt = new Map<string, number>();
-  private lastNotice = -Infinity;
   /** When each engine-stepped NPC last got a new tile, to pace the next. */
   private stepAt = new Map<string, number>();
   /** Where the player is pushing while the way is blocked. The engine never
@@ -870,6 +862,7 @@ export class WorldScene extends Phaser.Scene {
     if (!craft) this.crafts.set(id, (craft = new Watercraft(this, (frame) => this.texture(frame))));
     return craft;
   }
+  private harbor = new HarborLayer(this, frame => this.texture(frame));
   private trains = new TrainLayer(this, (frame) => this.texture(frame));
   private cabs = new CabLayer(this, (frame) => this.texture(frame));
   private vehicleLayer = new VehicleLayer(this, (frame) => this.texture(frame));
@@ -1080,7 +1073,7 @@ export class WorldScene extends Phaser.Scene {
     this.events.once("destroy", () => watchModals.disconnect());
     this.cameras.main.setBackgroundColor("#819253");
     this.applyLiveGraphics(
-      this.options.lab ? { roundPixels: true, zoomDuration: 0 } : {},
+      this.options.lab ? { roundPixels: true, zoomDuration: 0, tiltShift: false } : {},
     );
     const filterTexture = (_key: string, texture: Phaser.Textures.Texture) =>
       texture.setFilter(this.textureFilter());
@@ -1262,8 +1255,7 @@ export class WorldScene extends Phaser.Scene {
       // world. The Inspect button and the Around you list still select.
       if (phoneLayout()) {
         this.runtime.select(undefined);
-        this.runtime.walkTo({ x, y });
-        this.walkGoal = this.time.now;
+        this.walkFromPointer(x, y);
         return;
       }
       const obs = this.runtime.getSnapshot().observation;
@@ -1280,8 +1272,7 @@ export class WorldScene extends Phaser.Scene {
         this.runtime.select((actor || object || place)!.id);
       else {
         this.runtime.select(undefined);
-        this.runtime.walkTo({ x, y });
-        this.walkGoal = this.time.now;
+        this.walkFromPointer(x, y);
       }
     });
     this.input.on(
@@ -1374,6 +1365,7 @@ export class WorldScene extends Phaser.Scene {
       this.crafts.forEach((c) => c.dispose());
       this.fishingGear.dispose();
       this.crafts.clear();
+      this.harbor.dispose();
       this.trains.dispose();
       this.cabs.dispose();
       this.vehicleLayer.dispose();
@@ -1725,6 +1717,12 @@ export class WorldScene extends Phaser.Scene {
   private targetImage?: Phaser.GameObjects.Image;
   private targetShown = false;
   private walkGoal?: number;
+  private missedWalk?: { x: number; y: number; at: number; space: string };
+  private walkFromPointer(x: number, y: number) {
+    const reached = this.runtime.walkTo({ x, y });
+    this.walkGoal = reached ? this.time.now : undefined;
+    this.missedWalk = reached ? undefined : { x, y, at: this.time.now, space: this.runtime.engine.state.player.pos.space };
+  }
   /** Corner brackets on the cell F or E would act on. */
   private drawTarget(time: number) {
     const engine = this.runtime.engine;
@@ -1787,22 +1785,24 @@ export class WorldScene extends Phaser.Scene {
     const route = this.runtime.route;
     if (!route.length) this.walkGoal = undefined;
     const end = this.walkGoal !== undefined ? route[route.length - 1] : undefined;
-    const at = end
+    if (this.missedWalk && (time - this.missedWalk.at > 480 || this.missedWalk.space !== engine.state.player.pos.space)) this.missedWalk = undefined;
+    const at = this.missedWalk ?? (end
       ? { ...end, at: this.walkGoal! }
       : settled && !this.targetImage && time >= this.nextInput - 40
         ? this.targetCell
-        : undefined;
+        : undefined);
     if (!at) return;
     const cx = at.x * 16 + 8,
       cy = at.y * 16 + 8 - this.lift(at.x * 16 + 8, at.y * 16 + 16);
     // Snaps in from wide when it first lands on a cell, then breathes.
     const settle = Math.min(1, (time - at.at) / 140);
     const r = 9 + (1 - settle) * 5 + Math.sin(time / 180) * 0.8;
+    const miss = this.missedWalk ? Math.min(1, (time - at.at) / 160) : 0;
     const arm = 3;
-    mark.setDepth(cy + 8 + 4050).setAlpha(0.35 + 0.55 * settle);
+    mark.setDepth(cy + 8 + 4050).setAlpha(this.missedWalk ? 1 - Math.max(0, time - at.at - 300) / 180 : 0.35 + 0.55 * settle);
     for (const [color, w] of [
       [0x1a1410, 3],
-      [0xfff4d0, 1],
+      [this.missedWalk ? 0xffab83 : 0xfff4d0, 1],
     ] as const) {
       mark.lineStyle(w, color, 1);
       for (const [sx, sy] of [
@@ -1811,12 +1811,12 @@ export class WorldScene extends Phaser.Scene {
         [1, 1],
         [-1, 1],
       ]) {
-        const x = cx + sx * r,
-          y = cy + sy * r * 0.8;
+        const x = cx + sx * r * (1 - miss),
+          y = cy + sy * r * 0.8 * (1 - miss);
         mark.beginPath();
-        mark.moveTo(x - sx * arm, y);
+        mark.moveTo(x - sx * arm, y - sy * arm * miss);
         mark.lineTo(x, y);
-        mark.lineTo(x, y - sy * arm);
+        mark.lineTo(x - sx * arm * miss, y - sy * arm);
         mark.strokePath();
       }
     }
@@ -2370,30 +2370,6 @@ export class WorldScene extends Phaser.Scene {
     return action.after === "land" ? 0 : poseTiming(action.after) * 4;
   }
   /** People near enough to have seen it react. Show only. */
-  /** Someone idle or walking by looks round at the player coming close. */
-  private notice(
-    id: string,
-    im: Phaser.GameObjects.Image,
-    pose: CharacterPose,
-    time: number,
-  ) {
-    const me = this.entities.get("player");
-    if (!me) return;
-    const tiles = Math.hypot(im.x - me.x, im.y - me.y) / 16;
-    if (tiles > FORGET_TILES) this.near.delete(id);
-    if (tiles > NOTICE_TILES || this.near.has(id)) return;
-    if (pose !== "idle" && pose !== "breathe") return;
-    if (
-      time - this.lastNotice < NOTICE_GAP_MS ||
-      time - (this.noticedAt.get(id) ?? -Infinity) < NOTICE_AGAIN_MS
-    )
-      return;
-    this.lastNotice = time;
-    this.noticedAt.set(id, time);
-    this.near.add(id);
-    const trust = this.humanActors.get(id)?.trust ?? 0;
-    this.cues.react(id, trust >= 2 ? "wave" : trust >= 0 ? "greet" : "notice", { x: (me.x - 8) / 16, y: (me.y - 16) / 16 });
-  }
   private onlookers(x: number, y: number, tiles: number, kind: CueKind) {
     const toward = { x: (x - 8) / 16, y: (y - 16) / 16 };
     for (const id of this.humanActors.keys()) {
@@ -2612,7 +2588,9 @@ export class WorldScene extends Phaser.Scene {
       this.hideHover();
       return;
     }
-    tip.textContent = seen.name;
+    const action = seen.affordances.find(a => a.enabled && a.command.type === "interact" &&
+      !["strike", "topple", "follow", "climb"].includes(a.command.action));
+    tip.textContent = action ? `${seen.name} · ${action.label}` : seen.name;
     tip.classList.toggle("has-source", !!(seen.source || seen.exhibits));
     if (seen.latin) {
       const latin = document.createElement("i");
@@ -2811,6 +2789,13 @@ export class WorldScene extends Phaser.Scene {
   private mountAt(a: Actor, clock: number, player = false): Ambient | undefined {
     const e = this.runtime.engine, v = a.mount && e.world.vehicle?.(a.mount.vehicle);
     if (!v || !a.mount) return undefined;
+    if (v.delivery) {
+      const motor=this.entities.get(v.id)?.getData("motor") as WorldObject["motor"];
+      if(motor?.taken || a.pos.space!=="outside")return;
+      const at=deliveryAt(v,clock-(motor?.delay??0));
+      if(!at.cab && !at.inOffice)return {x:at.x,y:at.y,activity:"visit",label:a.activity,moving:at.walking,direction:a.direction};
+      return;
+    }
     const p = e.state.player, step = a.plough && ploughStep(a.plough, clock);
     const t = e.cartClock(v.id, clock), pose = vehiclePose(v, t, step);
     const place = crewPlace(v, pose, a.mount.place);
@@ -2923,6 +2908,10 @@ export class WorldScene extends Phaser.Scene {
     const lines = plan?.railway
       ? [{ key: plan.site.id, line: plan.railway, radius: plan.site.profile.radius }]
       : [];
+    const clock = this.runtime.displayClock(), light = lightingPreset(this.shadowPhase);
+    const harbor = p.space === "outside" ? w.harbor?.() : undefined;
+    this.harbor.update(harbor,w.pack.setting,clock,this.tint,this.cameras.main.worldView,e.state.objects,
+      light.cast,this.options.shadows === false ? 0 : light.opacity*this.sunStrength(),plan?.anchorage ?? (p.space==="outside" ? w.anchorage?.() : undefined),e.state.player.boat);
     this.trains.update(
       lines,
       w.pack.setting,
@@ -2936,8 +2925,24 @@ export class WorldScene extends Phaser.Scene {
       p,
     );
     this.cabs.update(plan, w.pack.setting, e.state.manifest.seed, this.runtime.displayClock(), this.cameras.main.worldView, this.tint);
-    const clock = this.runtime.displayClock(), light = lightingPreset(this.shadowPhase);
     const vehicles = [...(plan?.vehicles ?? [])];
+    for (const v of vehicles) {
+      if (!v.delivery) continue;
+      const image = this.entities.get(v.id),
+        motor = image?.getData("motor") as WorldObject["motor"];
+      if (!image || !motor || motor.taken || motor.yielding) continue;
+      const pose = vehicleAt(v, clock - (motor.delay ?? 0));
+      const x = pose.x * 16 + 8,
+        y = pose.y * 16 + 16 - this.lift(x, pose.y * 16 + 16);
+      const frame = v.model.replace(/-\d$/, "-" + pose.facing);
+      if (image.frame.name !== frame) image.setTexture("harbor", frame).setOriginFromFrame();
+      image.setPosition(x, y).setDepth(pose.y * 16 + 10);
+      const shadow = this.shadows.get(v.id);
+      const key = shadowFrame(this.shadowPhase, frame);
+      if (shadow && shadow.frame.name !== key && this.textures.get("harbor").has(key))
+        shadow.setTexture("harbor", key).setOriginFromFrame();
+      shadow?.setPosition(x, y);
+    }
     const teams = new Map<string, FaunaGroup>();
     if (p.space === "outside") for (const group of e.state.fauna ?? []) {
       if (!group.hitch || Math.abs(group.pos.x - p.x) > 100 || Math.abs(group.pos.y - p.y) > 100) continue;
@@ -3735,7 +3740,7 @@ export class WorldScene extends Phaser.Scene {
     if (!(renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer)) return;
     const camera = this.cameras.main;
     const g = this.liveGraphics;
-    if (!g.tiltShift) {
+    if (!g.tiltShift || this.runtime.engine.state.player.pos.space !== "outside") {
       if (this.tiltShift) camera.removePostPipeline("TiltShift");
       this.tiltShift = undefined;
       return;
@@ -4331,6 +4336,7 @@ export class WorldScene extends Phaser.Scene {
           : e.state.player.pos,
       w = e.world;
     if (this.holdForFade(w, p.space, e.state.clock)) return;
+    if (this.hoverId) this.showHover(this.hoverId, this.input.activePointer);
     // Sprite ids repeat from world to world; their coats should not.
     if (w !== this.drawnWorld) this.faunaArt.clear();
     if (this.drawnWorld && w !== this.drawnWorld && this.testFauna.length) {
@@ -4567,6 +4573,7 @@ export class WorldScene extends Phaser.Scene {
       this.terrainStream?.setHidden(p.space !== "outside");
       this.terrainAnchor = undefined;
     }
+    if (p.space !== this.effectsSpace) this.applyTiltShift();
     this.effectsSpace = p.space;
     // A life begun underground has no street to wait for.
     if (p.space !== "outside" && !this.terrainStream) this.game.canvas.dataset.terrainPlayable = this.game.canvas.dataset.terrainReady = "true";
@@ -4720,7 +4727,13 @@ export class WorldScene extends Phaser.Scene {
         for (const e of rt.journey?.entrances ?? [])
           if (e.point) {
             g.fillStyle(e.mode === "land" ? 0xf0ca82 : 0x64c3d4);
-            g.fillCircle(e.point.x * 16 + 8, e.point.y * 16 + 8, 14);
+            const port=w.harbor?.();
+            if(port && Math.abs(e.point.x-port.gate.x)<14 && Math.abs(e.point.y-port.gate.y)<6){
+              const x=e.point.x*16+8,y=e.point.y*16+8;
+              g.fillStyle(0x675b49).fillRect(x-1,y-13,3,15);
+              g.fillStyle(0x374e49).fillRect(x-7,y-17,15,8);
+              g.fillStyle(0xe8cf99).fillRect(x-4,y-14,8,1).fillRect(x+2,y-15,1,3);
+            }else g.fillCircle(e.point.x * 16 + 8, e.point.y * 16 + 8, 14);
           }
         this.layers.push(g);
       }
@@ -4968,8 +4981,10 @@ export class WorldScene extends Phaser.Scene {
               const originalName = previewRock ? "rock" : d!.sprite;
               const tuft = isGrassTuft(originalName);
               const seed = e.state.manifest.seed;
-              const tuftX = tuft ? Math.floor(random(seed, "tuft-x", x, y) * 7) - 3 : 0;
-              const tuftY = tuft ? 2 + Math.floor(random(seed, "tuft-y", x, y) * 6) : 0;
+              const tuftField = tuft ? w.topography?.(x, y)?.field : undefined;
+              const rim = tuftField?.margin ?? 0;
+              const tuftX = tuft ? Math.floor(random(seed, "tuft-x", x, y) * 7) - 3 + (rim & 2 ? 4 : 0) - (rim & 8 ? 4 : 0) : 0;
+              const tuftY = tuft ? 2 + Math.floor(random(seed, "tuft-y", x, y) * 6) + (rim & 1 ? 7 : 0) - (rim & 4 ? 2 : 0) : 0;
               const originalIsTree =
                 natureTreeSprites.includes(originalName) ||
                 w.pack.trees.includes(originalName);
@@ -5046,6 +5061,15 @@ export class WorldScene extends Phaser.Scene {
               if (variety.tint !== 0xffffff)
                 tint = blendTint(tint, variety.tint);
               const worked = e.state.tiles?.[`${x},${y}`];
+              if (worked?.tended && worked.furrow && /^vv-(furrow|puddled)-/.test(originalName)) {
+                const field = w.topography?.(x, y).field;
+                if (field) {
+                  const horizontal = field.axis === "x", slope = field.rowSlope ?? 0;
+                  const { crest } = fieldRidge(field)(x * 16 + 8, y * 16 + 8);
+                  decoration.setOrigin(0.5).setPosition(decoration.x - (horizontal ? 0 : crest),
+                    decoration.y - 8 - (horizontal ? crest : 0)).setRotation(Math.atan(horizontal ? slope : -slope));
+                }
+              }
               if (worked?.burnt) tint = blendTint(tint, 0x4a3f36);
               if (tint !== this.tint) decoration.setTint(tint);
               const ecology = w.pack.setting?.environment?.ecology ?? "grassland";
@@ -5095,6 +5119,17 @@ export class WorldScene extends Phaser.Scene {
                   ...(this.plantImages.get(key) ?? []),
                   decoration,
                 ]);
+                if (rim && random(seed, "margin-clump", x, y) < 0.65) {
+                  const alongY = !!(rim & 10), side = variety.flip ? -1 : 1;
+                  const px = Math.max(1, Math.min(15, 8 + tuftX + (alongY ? 2 : 6) * side));
+                  const py = Math.max(1, Math.min(15, 16 - tuftY + (alongY ? 6 : -2) * side));
+                  const second = grassTuftFrame(this, w.topography?.(x, y)?.habitat, spriteName === "dry-grass-tuft",
+                    this.season, random(seed, "margin-blades", x, y));
+                  const blades = this.sprite(second, x * 16 + px, y * 16 + py, y * 16 + py - 4)
+                    .setFlipX(!variety.flip).setTint(tint);
+                  this.plantImages.get(key)!.push(blades);
+                  this.makeSelectable(blades, d.id, !variety.flip);
+                }
               }
               if (d && d.sprite !== "rock")
                 this.makeSelectable(decoration, d.id, variety.flip);
@@ -5515,7 +5550,7 @@ export class WorldScene extends Phaser.Scene {
     this.workObjects.clear();
     for (const o of obs.objects) {
       if (o.pos.space !== "outside" || o.carriedBy) continue;
-      const family = o.kind === "crop" ? "crop"
+      const family = o.kind === "crop" ? "crop" : foodPatch(o,this.season) ? "wild-food"
         : o.kind === "well" ? propDefs[o.prop ?? ""]?.family ?? "well"
         : propDefs[o.prop ?? ""]?.family;
       if (!family) continue;
@@ -5649,7 +5684,7 @@ export class WorldScene extends Phaser.Scene {
       const shade = this.shadows.get(id);
       const shadowKey = shadowFrame(this.shadowPhase, frame);
       const shadowTexture =
-        texture === "nature"
+        texture === "harbor" ? texture : texture === "nature"
           ? this.natureShadows(shadowKey)
           : texture === "props"
             ? this.propShadows(shadowKey)
@@ -5809,7 +5844,7 @@ export class WorldScene extends Phaser.Scene {
       )
         continue;
       if (o.seasons && !o.seasons.includes(this.season)) continue;
-      if (o.away) continue;
+      if (o.away || o.vessel) continue;
       if (o.kind === "crop") {
         // Visual clumps share one authoritative harvest target, including depletion.
         for (const row of [-2, 0, 2]) {
@@ -5836,23 +5871,30 @@ export class WorldScene extends Phaser.Scene {
         o.id,
         o.resource && o.depleted && o.sprite === "ecology-fruit-tree"
           ? "oak"
+          : o.resource && (o.inventory[o.resource.item] ?? 0) <= 3 && ["ecology-greens", "ecology-roots", "ecology-acorns"].includes(o.sprite)
+            ? o.sprite + "-thin"
           : o.resource && o.depleted && o.sprite === "ecology-berry-bush"
             ? "ecology-berry-bush-picked"
             : o.kind === "gate"
-              ? o.open
-                ? "gate-open"
-                : "gate"
+              ? (o.sprite === "harbor-gate" ? "harbor-gate" : "gate") + (o.open ? "-open" : "")
               : o.tipped
                 ? this.layerOf(o.sprite, "fallen") ?? o.sprite
                 : o.lean
                   ? this.layerOf(o.sprite, o.lean < 0 ? "lean-left" : "lean-right") ?? o.sprite
                   : o.sprite === "crate"
                     ? crateFrame(random(e.state.manifest.seed, "crate-art", o.id))
+                    : o.sprite==="harbor-bale-mat-0" ? "harbor-bale-mat-"+Math.min(3,o.inventory.cloth??0)
                     : mooredBoatFrame(o.sprite,random(e.state.manifest.seed,"boat-finish",o.owner??o.id)),
         o.prop === "outcrop" && o.size
           ? { ...o.pos, x: o.pos.x + (o.size[0] - 1) / 2, y: o.pos.y + o.size[1] - 1 }
           : o.pos,
       );
+      if(o.motor)this.entities.get(o.id)?.setData("motor",o.motor);
+      if (o.mooring) {
+        const hull=this.entities.get(o.id)!;
+        const x=o.mooring.x*16+8, y=o.mooring.y*16+8;
+        drawMooring(this,hull,x,y-this.lift(x,y)-5,o.sprite,!!this.options.freeze);
+      }
       // A sign off the wall drops its shadow on the wall behind it.
       if (o.prop?.startsWith("wallsign-")) {
         renderEntity(`${o.id}:wall`, o.sprite, o.pos, false, o.id, false, true);
@@ -5951,22 +5993,15 @@ export class WorldScene extends Phaser.Scene {
     this.loadWeights.clear();
     // An item taken in hand is drawn the same way a carried prop is, but a
     // real object in the hand wins.
-    if (e.state.player.heldItem)
-      this.heldSprites.set("player", `icon:${e.state.player.heldItem}`);
-    if (e.state.player.heldItem && /^(wood|basket|vessel|bundle|grain|water)$/.test(e.state.player.heldItem))
-      this.loadWeights.set("player", 1);
-    for (const a of e.state.actors)
-      if (a.heldItem) {
-        const load = parseLoad(a.heldItem);
-        const sprite =
-          load && portableProps.find((p) => p.id === load.prop)?.sprite.replace(/-0$/, `-${load.variant}`);
-        this.heldSprites.set(
-          a.id,
-          sprite ? `${sprite}@${load!.style}` : `icon:${a.heldItem}`,
-        );
-        if (load || /^(wood|basket|vessel|bundle|grain|water)$/.test(a.heldItem))
-          this.loadWeights.set(a.id, 1);
-      }
+    const fieldLoad = e.fieldLoad(e.state.workday?.field?.job);
+    for (const a of [e.state.player, ...e.state.actors]) {
+      const held = (a.deliveryBale ? carryKit(e.world.pack).bundle : a.heldItem) ?? (a.id === "player" && (a.basket || e.state.workday?.patch && e.state.economy?.work?.stage === 1) ? e.gatheringBasket() : a.id === "player" ? fieldLoad : undefined);
+      if (!held) continue;
+      const load = parseLoad(held);
+      const sprite = load && portableProps.find(p => p.id === load.prop)?.sprite.replace(/-0$/, `-${load.variant}`);
+      this.heldSprites.set(a.id, sprite ? `${sprite}${a.basket && load?.prop === "basket" ? `+${a.basket.item}+${a.basket.count >= 4 ? 2 : 1}` : ""}@${load!.style}` : `icon:${held}`);
+      if (load || /^(wood|basket|vessel|bundle|grain|water)$/.test(held)) this.loadWeights.set(a.id, 1);
+    }
     for (const object of e.state.objects)
       if (object.carriedBy) {
         this.heldSprites.set(object.carriedBy, object.sprite);
@@ -6001,6 +6036,8 @@ export class WorldScene extends Phaser.Scene {
         !!at,
       );
     }
+    this.entities.get("player")?.setVisible(!e.state.player.drivingVehicle);
+    this.shadows.get("player")?.setVisible(!e.state.player.drivingVehicle);
     this.faunaSprites.clear();
     this.stunned.clear();
     const struck = this.combat().pending(rt.swingEffect, rt.throwEffect);
@@ -7504,7 +7541,12 @@ export class WorldScene extends Phaser.Scene {
           : (this.pendingDirection ?? held);
         this.pendingDirection = undefined;
         const back = this.lastRunDir;
-        if (
+        if ((dx || dy) && this.runtime.engine.state.player.drivingVehicle) {
+          this.nextInput=time+95*Math.hypot(dx,dy);
+          this.motionDuration=this.nextInput-time;
+          this.lastTick=time;
+          this.runtime.move(dx,dy,false);
+        } else if (
           (dx || dy) &&
           this.shiftHeld &&
           this.runSteps >= 2 &&
@@ -7644,6 +7686,11 @@ export class WorldScene extends Phaser.Scene {
     }
     // Depth and the selection marker follow the displayed position, not the next tile.
     for (const [id, im] of this.entities) {
+      if(id==="player" && this.runtime.engine.state.player.drivingVehicle) {
+        im.setVisible(false);
+        this.shadows.get(id)?.setVisible(false);
+        continue;
+      }
       const frame = this.actorFrames.get(id);
       // Height above the tile, mid-jump. Depth sorts on where the feet would
       // be, or a jumper passes behind whatever they are jumping over.
@@ -7672,9 +7719,14 @@ export class WorldScene extends Phaser.Scene {
         } else this.mounted.delete(id);
       }
       const seat = this.mounted.get(id), under = im.getData("underfoot") as boolean | undefined;
-      this.shadows.get(id)?.setVisible(!seat && !under);
+      const rider=this.ambient.get(id);
+      const pilotSeat=this.harbor.pilotSeat(id);
+      const deck=pilotSeat ?? (rider?.boat==="harbor-ferry" ? this.harbor.deckAt(rider.x,rider.y) : undefined);
+      if(pilotSeat)im.setPosition(Math.round(pilotSeat.x),Math.round(pilotSeat.y));
+      else if(deck && rider) im.setPosition(Math.round(rider.x*16+8),Math.round(deck.y));
+      this.shadows.get(id)?.setVisible(!seat && !under && !deck);
       // Anchored at its near edge, so everyone standing on it would sort behind it.
-      const depth = under ? im.y - 6 * 16 : seat ? seat.depth : 
+      const depth = deck ? deck.depth : under ? im.y - 6 * 16 : seat ? seat.depth :
         im.y +
         arcLift +
         // Standing on the thing means drawing in front of it, foliage and
@@ -7709,7 +7761,7 @@ export class WorldScene extends Phaser.Scene {
           id === "player" &&
           this.pushingAt !== undefined &&
           time - this.pushingAt < PUSH_MS;
-        const moving = (at ? at.moving : this.tweens.isTweening(im)) || pushing;
+        const moving = (!deck?.moving && (at ? at.moving : this.tweens.isTweening(im))) || pushing;
         const action =
           id === "player" ? this.runtime.characterAction : undefined;
         const elapsed = action ? performance.now() - action.at : Infinity;
@@ -7746,9 +7798,9 @@ export class WorldScene extends Phaser.Scene {
         }
         const sample = this.runtime.engine.world.topography;
         const wetPos = this.destinations.get(id);
-        const outFishing = id !== "player" && at?.boat && sample && wetPos?.space === "outside" &&
+        const outFishing = id !== "player" && at?.boat && at.boat!=="harbor-ferry" && sample && wetPos?.space === "outside" &&
           waterDepthAt(sample, at.x + 0.5, at.y + 0.5) > 0.2;
-        const craft = outFishing ? "boat" as const
+        const craft = pilotSeat ? undefined : outFishing ? "boat" as const
           : id === "player" && wetPos?.space === "outside" ? this.runtime.engine.state.player.afloat : undefined;
         const boatSetting=this.runtime.engine.state.manifest.setting;
         const boatId = outFishing ? at!.boat : id === "player" ? this.runtime.engine.state.player.boat : undefined;
@@ -7756,7 +7808,7 @@ export class WorldScene extends Phaser.Scene {
         const boatType=craft==="boat" ? boatCraft(boatObject?.sprite) ??
           (boatSetting ? fishingWaterfront(boatSetting)?.craft : undefined) : undefined;
         const under = this.sewerView?.wading(im.x, im.y, wetPos?.space) ?? this.caveView?.wading(im.x, im.y, wetPos?.space);
-        const water = under
+        const water = deck ? 0 : under
           ? under.depth
           : !(craft && craft !== "swimming") && sample && wetPos?.space === "outside" && !arcLift
             ? waterDepthAt(
@@ -7767,10 +7819,10 @@ export class WorldScene extends Phaser.Scene {
             : 0;
         // A puddle wets the feet without making anyone wade.
         const puddle =
-          water <= 0.025 && !arcLift && wetPos?.space === "outside"
+          !deck && water <= 0.025 && !arcLift && wetPos?.space === "outside"
             ? puddleUnder(this, im.x, im.y - 1)
             : undefined;
-        if (wetPos?.space === "outside" && !arcLift && water <= 0.025 && !(craft && craft !== "swimming"))
+        if (!deck && wetPos?.space === "outside" && !arcLift && water <= 0.025 && !(craft && craft !== "swimming"))
           reflectIn(this, id, im);
         const heldSprite = this.heldSprites.get(id);
         const loadWeight = this.loadWeights.get(id) ?? 0;
@@ -7803,8 +7855,8 @@ export class WorldScene extends Phaser.Scene {
         if (moving && water > 0.025 && !active && !winding) pose = "wade";
         const swimming = craft === "swimming" && water > 0.025 && !active && !winding;
         if (swimming) pose = moving ? "swim" : "tread";
-        if (craft && craft !== "swimming") pose = boatPosture(boatType);
-        if (id !== "player") this.notice(id, im, pose, time);
+        if (pilotSeat?.rowing) pose = "sit";
+        else if (craft && craft !== "swimming") pose = boatPosture(boatType);
         // Someone reacting stops what they were doing to do it.
         const cued =
           id !== "player" && !moving ? this.cues.poseFor(id) : undefined;
@@ -8009,6 +8061,7 @@ export class WorldScene extends Phaser.Scene {
             boatType,
             random(this.runtime.engine.state.manifest.seed,"boat-finish",id === "player" && !boatId ? "player" : owner ?? id));
         }
+        im.setData("aboard",!!deck || craft==="boat" || craft==="raft");
         const family = at && !at.moving ? at.target?.family : undefined;
         const gear = outFishing && family?.startsWith("fishing-") ? family.slice(8) as Gear : family === "seine-rope" ? "rope" : undefined;
         if (gear) this.fishingGear.draw(id, gear, im.x, im.y, { x: at!.target!.x * 16 + 8, y: at!.target!.y * 16 + 8 }, im.depth, time, this.poseOffset(id));
@@ -8208,7 +8261,7 @@ export class WorldScene extends Phaser.Scene {
             .setDepth(pillow.depth);
         } else if (im.angle) im.setAngle(0).setOrigin(0.5, 1);
         if (!texture || swimming) this.shadows.get(id)?.setVisible(false);
-        if (texture && !swimming && seat?.role !== "drive-cart" && seat?.role !== "sit-seat" && this.options.shadows !== false) {
+        if (texture && !swimming && !deck && seat?.role !== "drive-cart" && seat?.role !== "sit-seat" && this.options.shadows !== false) {
           const shadowTexture = this.characters.shadow(
             texture,
             this.shadowPhase,
@@ -8519,6 +8572,8 @@ export class WorldScene extends Phaser.Scene {
     let pose = workPoseFor(at.activity, at.label, this.workSite(at)?.family, trade, held);
     if (!pose) return undefined;
     const site = this.workSite(at, pose);
+    const field = site?.family === "crop" && !site.id && this.runtime.engine.state.tiles?.[`${site.x},${site.y}`]?.tended;
+    if (field && this.runtime.engine.state.clock - field.at < 30 * 60) pose = fieldPose[field.job];
     // A hoe in hand chops at the rows rather than miming.
     if (pose === "work-tend" && /weed|hoe|till|dig|plant/i.test(at.label) && this.heldSprites.get(id)?.includes("-hoe-"))
       pose = "pick-strike";
@@ -8600,6 +8655,13 @@ export class WorldScene extends Phaser.Scene {
     } else if (pose === "work-hang") {
       mark(-2, -4, 3, 1, 0xc59d69, -1, 3, 350);
       mark(2, -3, 2, 1, 0x8f7355, 2, 3, 420);
+    } else if (site?.family === "crop" && pose === "work-pour") {
+      mark(0, -5, 1, 2, 0xabced0, 2, 5);
+      mark(2, -4, 1, 2, 0x8baeb7, 3, 4);
+    } else if ((site?.family === "crop" || site?.family === "wild-food") && (pose === "till" || pose === "reap" || pose === "stoop" || pose === "pick-strike")) {
+      const color = pose === "reap" ? 0xc3a057 : pose === "stoop" ? 0x91ac57 : 0x967346;
+      mark(-1, 1, 2, 1, color, -4, -2);
+      mark(1, 0, 1, 2, color, 4, -3);
     } else if (pose === "work-tend") {
       mark(-2, 0, 2, 1, 0x816841, -4, 3);
       mark(2, -1, 1, 2, 0x9fba69, 3, -5, 480);

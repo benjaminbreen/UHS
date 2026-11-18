@@ -2792,6 +2792,8 @@ export function urbanNeighborhood(
         }
       const family = (frame: string) => {
         const m = buildingModel(frame) as typeof buildingModels[string] & { regionalHouse?: string; regionalProfile?: string };
+        const shop = /^(casa-[a-z-]+)-\d+-urban-shop$/.exec(frame);
+        if (shop) return `${shop[1]}-urban-shop:${m.footprint.join(",")}`;
         return m.regionalHouse ? `${m.regionalHouse}:${m.regionalProfile}:${m.footprint.join(",")}` : frame;
       };
       // Reorder only interchangeable house sizes, retaining the row's fit and wealth choices.

@@ -16,7 +16,6 @@ export const workplaces = [
 export type Workplace = (typeof workplaces)[number];
 const byActivity: Record<string, Workplace> = {
   "Gathering plants": "wild",
-  "Gathering supplies": "wild",
   "Looking for game": "wild",
   "Cutting timber": "wild",
   "Working timber": "wild",

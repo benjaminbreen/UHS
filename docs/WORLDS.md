@@ -10,7 +10,18 @@ generator turns it into a world. Entry files: `src/content/geography/types.ts`
 - **Procedural.** `src/content/geography/resolve.ts` reads bundled place names,
   period words, dates, roles and seasons offline. Exact dates beat period
   words; a period picks a year from its range with the world seed. Years are
-  astronomical (0 is 1 BCE). Unrecognised details are flagged, not dropped.
+  astronomical (0 is 1 BCE). A household title selects a local palace plan and
+  the room for that work. An explicit room takes priority, so a Roman noblewoman
+  starts in the atrium and a Roman noblewoman in the kitchen starts there.
+  Named residents carry a name, office, sex, birth year and playable years.
+  Richard Nixon starts in the Oval Office in 1970. The West Wing is a simplified
+  three-room plan based on the [post-1934 office](https://www.whitehousehistory.org/questions/has-every-president-worked-in-the-oval-office).
+  The [public-domain congressional roster](https://github.com/unitedstates/congress-legislators)
+  supplies historical US senators from 1859 onward. A title or date can select a
+  different office for the same person: “Senator Richard Nixon” opens in the
+  Senate chamber. Its desks follow the [Senate seating plans](https://www.senate.gov/art-artifacts/decorative-art/furniture/senate-chamber-desks/content/choosing-seats.htm).
+  Visitors use the venue entrance. The setup preview shows the opening room.
+  Unrecognised details are flagged, not dropped.
 - **World Weaver.** If the local matcher cannot resolve a request, the optional
   `/api/world-weaver` endpoint (`server/world-weaver.ts`, Vercel handler
   `api/world-weaver.ts`) interprets it into the same fields, including

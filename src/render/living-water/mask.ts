@@ -1,5 +1,5 @@
 import type { TerrainReceivers } from "../terrain-contours";
-import { waterContactDistance } from "../../core/water-field";
+import { quayWater, waterContactDistance } from "../../core/water-field";
 import { coastDistance, coastBeachWidth } from "./coast";
 import type { ShorePolish } from "./polish";
 import { cellHash, valueNoise } from "../../core/noise";
@@ -66,12 +66,12 @@ export function rasterLivingWater(
       const cell = sample(tx, ty);
       if (
         !cell?.waterVisual ||
-        cell.bridge ||
+        (cell.bridge && !cell.pier) ||
         cell.trestle ||
         cell.ramp ||
         cell.waterVisual.kind === "canal" ||
-        cell.feature === "paving" ||
-        cell.surface === "soil"
+        (cell.feature === "paving" && !cell.waterVisual.quay) ||
+        (cell.surface === "soil" && !cell.pier)
       )
         continue;
       const visual = cell.waterVisual,
@@ -114,7 +114,11 @@ export function rasterLivingWater(
       const shoreTiers = new Map<number, boolean>();
       for (let py = 0; py < 16; py++)
         for (let px = 0; px < 16; px++) {
-          const contact = waterContactDistance(
+          // A quay's stone and wall face are the raster's, and its line is
+          // ruled: no scallop.
+          const berth = visual.quay && quayWater(sample, tx + (px + 0.5) / 16, ty + (py + 0.5) / 16);
+          if (visual.quay && berth === undefined) continue;
+          const contact = berth || waterContactDistance(
             sample,
             tx + (px + 0.5) / 16,
             ty + (py + 0.5) / 16,
@@ -154,7 +158,7 @@ export function rasterLivingWater(
               : receiver;
           const lowGround = receivers
             ? liftedReceiver === tier ||
-              (liftedReceiver === -1 && cell.surface === "water")
+              (liftedReceiver === -1 && (cell.surface === "water" || cell.pier))
             : true;
           if (d > localBeach || !lowGround) continue;
           // Ice, mud, floes, bergs and reef crests are the raster's.
@@ -235,7 +239,7 @@ export function rasterLivingWater(
       !cell?.waterVisual || cell.bridge || cell.trestle || cell.ramp ||
       (!refined && cell.surface !== "water") ||
       (refined && (cell.height > 0 || cell.feature === "paving" || cell.surface === "soil")) ||
-      cell.waterVisual.kind === "canal"
+      cell.waterVisual.kind === "canal" || cell.waterVisual.quay
     ) return;
     const depth = depthAt(x, y);
     const beach = livingBeachWidth(sample, Math.floor(x / 16), Math.floor(y / 16), ox / 16, oy / 16, polish);

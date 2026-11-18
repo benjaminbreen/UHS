@@ -124,6 +124,7 @@ export type Fair = {
   named?: RegExp;
   /** Who lives and works in a palace, for a start there. */
   posts?: readonly FairPost[];
+  residents?: readonly (readonly [name: string, role: string, sex: "male" | "female", born: number, first: number, last: number, room: string])[];
   /** A generated kind is built only in this part of the world. */
   within?: Box;
   /** Words that ask for a generated kind in any of its periods; `prompt` then says which period an undated prompt means. */

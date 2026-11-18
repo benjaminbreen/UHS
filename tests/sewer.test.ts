@@ -545,8 +545,8 @@ describe("a fair from a plan", () => {
 });
 
 describe("a palace planned as rooms and courts", () => {
-  it("starts a courtier in the forecourt of Versailles, with the King's bed and its valet in the bedchamber", () => {
-    const r = resolveSetting("A courtier at Versailles");
+  it("starts a visitor in the forecourt of Versailles, with the King's bed and its valet in the bedchamber", () => {
+    const r = resolveSetting("A visitor at Versailles");
     if (!("setting" in r)) throw new Error(r.error);
     expect(r.setting).toMatchObject({ below: "fair", year: 1701 });
     const e = createSettingSession(r.setting, "palace");
@@ -558,7 +558,7 @@ describe("a palace planned as rooms and courts", () => {
   });
 
   it("builds Buckingham Palace and the White House from the same kit, each room in its own style", () => {
-    for (const [prompt, space, year] of [["A courtier at Buckingham Palace", "fair:buckingham:forecourt", 1856], ["A clerk at the White House", "fair:white-house:north-grounds", 1818]] as const) {
+    for (const [prompt, space, year] of [["A visitor at Buckingham Palace", "fair:buckingham:forecourt", 1856], ["A clerk at the White House", "fair:white-house:office", 1818]] as const) {
       const r = resolveSetting(prompt);
       if (!("setting" in r)) throw new Error(r.error);
       expect(r.setting).toMatchObject({ below: "fair", year });
@@ -577,7 +577,7 @@ describe("a palace planned as rooms and courts", () => {
   });
 
   it("puts palace furniture in the world as props: carried, sat on, knocked over, opened", () => {
-    const r = resolveSetting("A courtier at Versailles");
+    const r = resolveSetting("A visitor at Versailles");
     if (!("setting" in r)) throw new Error(r.error);
     const e = createSettingSession(r.setting, "palace"), p = e.state.player;
     let n = 0;
@@ -612,7 +612,7 @@ describe("a palace planned as rooms and courts", () => {
   });
 
   it("makes exhibits props with acts: looked at closely for nothing, bought for coin", () => {
-    const r = resolveSetting("A courtier at Versailles");
+    const r = resolveSetting("A visitor at Versailles");
     if (!("setting" in r)) throw new Error(r.error);
     const e = createSettingSession(r.setting, "palace"), p = e.state.player;
     const go = (to: string) => { const x = (e.areaOf(p.pos.space) as FairLevel).exits.find((q) => q.to.endsWith(`:${to}`))!; p.pos.x = x.x + (x.w >> 1); p.pos.y = x.y + (x.h >> 1); e.advance(1); };
@@ -671,7 +671,7 @@ describe("a palace planned as rooms and courts", () => {
     const ways = (L: FairLevel) => L.exits.map((x) => x.to.split(":").pop()).sort();
     const has = (L: FairLevel, kind: string) => L.props!.some((q) => q.key === `palace-${kind}`);
     // Versailles: the King's rooms in a row, each reached only through the one before.
-    const king = start("A courtier at Versailles");
+    const king = start("A visitor at Versailles");
     expect(ways(king.room("bedchamber"))).toEqual(["antechamber", "cabinet"]);
     expect(ways(king.room("antechamber"))).toEqual(["bedchamber", "guard-room", "mirrors"]);
     expect(has(king.room("guard-room"), "armsrack")).toBe(true);
@@ -748,6 +748,27 @@ describe("a palace planned as rooms and courts", () => {
     expect(far.setting.venue).toBeUndefined();
   });
 
+  it("carries the requested identity and room through the procedural start", () => {
+    for (const [prompt, role, sex, room] of [
+      ["a Roman noblewoman", "Noblewoman", "female", "atrium"],
+      ["Richard Nixon", "President", "male", "oval-office"],
+      ["Senator Richard Nixon", "Senator", "male", "chamber"],
+      ["Margaret Chase Smith", "Senator", "female", "chamber"],
+      ["an empress in Beijing, 1750", "Empress", "female", "hall"],
+      ["a Roman nobleman in the kitchen, 100 CE", "Nobleman", "male", "kitchen"],
+    ] as const) {
+      const r = resolveSetting(prompt);
+      if (!("setting" in r)) throw new Error(r.error);
+      expect(r.needsInterpretation, prompt).toBe(false);
+      expect(r.setting).toMatchObject({ role, venueRoom: room, brief: { sex } });
+      if (prompt === "Richard Nixon") expect(r.setting).toMatchObject({
+        characterName: prompt, placeId: "city-washington-d-c", year: 1970, character: { age: 57 }, brief: { figure: prompt },
+      });
+    }
+    expect(resolveSetting("Richard Nixon, 1850")).toHaveProperty("error");
+    expect(resolveSetting("Richard Nixon in Paris, 1970")).toHaveProperty("error");
+  });
+
   it("starts the people of a ruler's household inside it, by the post the prompt names", () => {
     const at = (prompt: string, seed?: string) => {
       const r = resolveSetting(prompt, seed);
@@ -781,7 +802,7 @@ describe("a palace planned as rooms and courts", () => {
       if (!("setting" in r)) throw new Error(r.error);
       expect(r.setting.venue).toMatch(new RegExp(`^${kind}-\\d$`));
       const e = createSettingSession(r.setting, "palace");
-      expect(e.state.player.pos.space).toBe(`fair:${r.setting.venue}:yard`);
+      expect(e.state.player.pos.space).toBe(`fair:${r.setting.venue}:hall`);
       const hall = e.areaOf(`fair:${r.setting.venue}:hall`) as FairLevel;
       expect(hall.palace).toMatchObject({ order: "timber", room: "hall" });
       expect(hall.props!.some((q) => q.key === "palace-highseat")).toBe(seat);

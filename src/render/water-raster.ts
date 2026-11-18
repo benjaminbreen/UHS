@@ -1,8 +1,8 @@
 import { railOver } from "./trunk-rail";
 import { rasterHabitatTile } from "./habitat-raster";
-import { shoreDistance, shorePixel, tidalFlat } from "./material-edges";
+import { quayPixel, shoreDistance, shorePixel, tidalFlat } from "./material-edges";
 import type { TopographyCell, TopographySample } from "../core/topography";
-import { bareShelf } from "../core/water-field";
+import { bareShelf, quayWater } from "../core/water-field";
 import { TERRAIN_RISE } from "./terrain-projection";
 import { cellHash, valueNoise } from "../core/noise";
 import {
@@ -380,7 +380,15 @@ export function rasterWaterTile(
     for (let px = 0; px < 16; px++) {
       const wx = gx + px,
         wy = gy + py;
-      const distance = waterDistance(
+      const laid = cell.bridge ? undefined : cell.waterVisual?.quay;
+      const berth = laid && quayWater(sample, x + (px + 0.5) / 16, y + (py + 0.5) / 16);
+      const stone = laid && berth === undefined &&
+        quayPixel(sample, x + (px + 0.5) / 16, y + (py + 0.5) / 16, wx, wy, laid, true);
+      if (stone) {
+        pixels.set([...stone, 255], (py * 16 + px) * 4);
+        continue;
+      }
+      const distance = berth ?? waterDistance(
         sample,
         x + (px + 0.5) / 16,
         y + (py + 0.5) / 16,

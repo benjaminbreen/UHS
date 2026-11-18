@@ -607,7 +607,7 @@ export class TerrainStream {
     for (const [id, chunk] of this.chunks) this.shadeChunk(chunk, id);
   }
   setSun(sun: SunPhase) {
-    if (sun.id === this.sun.id) return;
+    if (sun.id === this.sun.id && sun.opacity === this.sun.opacity) return;
     this.sun = sun;
     for (const [id, chunk] of this.chunks) this.shadeChunk(chunk, id);
   }

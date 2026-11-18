@@ -2,7 +2,8 @@ import type Phaser from "phaser";
 import { gustAt } from "./wind";
 import { crops } from "../content/agriculture/crops";
 import type { Crop, CropId, CropStage } from "../content/agriculture/types";
-import type { TopographyCell, TopographySample } from "../core/topography";
+import { acrossFieldRow, type TopographyCell, type TopographySample } from "../core/topography";
+import { fieldRidge } from "./field-raster";
 import { own, type RenderResources } from "./resources";
 import { cellHash as hash } from "../core/noise";
 
@@ -81,23 +82,29 @@ export function cropsAt(
   const wx = x + ox,
     wy = y + oy;
   const along = f.axis === "x" ? wx : wy,
-    across = f.axis === "x" ? wy : wx;
+    across = Math.floor(acrossFieldRow(f, wx + 0.5, wy + 0.5));
   // Lattice by habit: grains and canes every second cell along the row,
   // staggered; trees every fourth on a staggered grid; vines in rows.
   let on: boolean;
   if (tree) on = mod(across, 4) === 0 && mod(along + (mod(across, 8) ? 2 : 0), 4) === 0;
   else if (crop.kind === "vine") on = mod(across, 3) === 0 && mod(along, 2) === 0;
-  else on = mod(along + mod(across, 2), 2) === 0;
+  else on = mod(along, 2) === Math.floor(hash(Math.floor(along / 2), across, 649) * 2);
   if (!on) return [];
   // Keep the base clear of a boundary on the cell's outer rows.
   const jx = Math.floor(hash(wx, wy, 651) * 5) - 2,
     jy = Math.floor(hash(wx, wy, 653) * 5) - 2;
   let px = 8 + jx,
     py = 10 + jy;
-  if (f.edges & 8) px = Math.max(px, 5);
-  if (f.edges & 2) px = Math.min(px, 10);
-  if (f.edges & 1) py = Math.max(py, 6);
-  if (f.edges & 4) py = Math.min(py, 12);
+  if (!tree) {
+    const { crest } = fieldRidge(f)(wx * 16 + px, wy * 16 + py);
+    if (f.axis === "x") py = Math.max(2, Math.min(14, Math.round(py - crest)));
+    else px = Math.max(2, Math.min(14, Math.round(px - crest)));
+  }
+  const margin = f.margin ?? 0;
+  if (f.edges & 8) px = Math.max(px, margin & 8 ? 7 : 5);
+  if (f.edges & 2) px = Math.min(px, margin & 2 ? 9 : 10);
+  if (f.edges & 1) py = Math.max(py, margin & 1 ? 7 : 6);
+  if (f.edges & 4) py = Math.min(py, margin & 4 ? 9 : 12);
   return [
     {
       x: x * 16 + px,

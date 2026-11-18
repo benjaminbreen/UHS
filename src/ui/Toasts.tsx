@@ -6,7 +6,9 @@ const LIFE_MS = 4200;
 type Notice = GameEvent & { count: number };
 const icons = { action: ArrowRight, social: MessageCircle, world: Compass, system: Info };
 
-function Toast({ event, paused, onRemove }: { event: Notice; paused: boolean; onRemove: (id: number) => void }) {
+type NoticeAction = { label: string; run: () => void };
+
+function Toast({ event, paused, onRemove, action }: { action?: NoticeAction; event: Notice; paused: boolean; onRemove: (id: number) => void }) {
   const [leaving, setLeaving] = useState(false);
   const remaining = useRef(Math.min(10000, LIFE_MS + Math.max(0, event.text.length - 70) * 35));
   useEffect(() => {
@@ -30,6 +32,7 @@ function Toast({ event, paused, onRemove }: { event: Notice; paused: boolean; on
         <div className="toast-body">
           <Icon size={17} className="toast-icon" aria-hidden="true" />
           <span className="toast-text">{event.text}{event.count > 1 && <small className="toast-count" aria-label={`${event.count} times`}>×{event.count}</small>}</span>
+          {action && <button className="toast-action" onClick={() => { action.run(); onRemove(event.id); }}>{action.label}</button>}
           <button className="toast-dismiss" aria-label="Dismiss notification" onClick={() => setLeaving(true)}><X size={14} /></button>
         </div>
       </div>
@@ -38,7 +41,8 @@ function Toast({ event, paused, onRemove }: { event: Notice; paused: boolean; on
 }
 
 /** New events surface briefly at the top of the world, newest first. */
-export function Toasts({ events, omit, space, home, onHistory }: {
+export function Toasts({ events, omit, space, home, onHistory, actionFor }: {
+  actionFor?: (e: GameEvent) => NoticeAction | undefined;
   events: GameEvent[];
   omit: (string | undefined)[];
   space?: string;
@@ -79,16 +83,17 @@ export function Toasts({ events, omit, space, home, onHistory }: {
         // The home notice is shown before the engine's own line for the same entry arrives.
         next = [{ ...e, count: previous && previous.id >= 0 ? previous.count + 1 : 1 }, ...next.filter((t) => t.text !== e.text)];
       }
-      return next.slice(0, 3);
+      return next.filter(t => !t.interaction || t.pos?.space === space)
+        .sort((a, b) => Number(b.interaction?.kind === "warning") - Number(a.interaction?.kind === "warning")).slice(0, 3);
     });
-  }, [last?.id, omissionKey]);
+  }, [last?.id, omissionKey, space]);
   return (
     <div ref={root} className="toasts" aria-label="Notifications"
       onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
       onFocusCapture={() => setFocused(true)}
       onBlurCapture={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setFocused(false); }}>
       <div className="toast-list" role="status" aria-live="polite" aria-relevant="additions text">
-        {shown.filter((t) => !omit.includes(t.text)).map((event) => <Toast key={event.id} event={event} paused={hovered || focused} onRemove={remove} />)}
+        {shown.filter((t) => !omit.includes(t.text) && (!t.interaction || t.pos?.space === space)).map((event) => <Toast key={event.id} event={event} paused={hovered || focused} onRemove={remove} action={actionFor?.(event)} />)}
       </div>
       {shown.length > 0 && <button className="toasts-history" onClick={onHistory}><History size={13} />Recent events</button>}
     </div>

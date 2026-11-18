@@ -5,6 +5,8 @@ drawn is [PROP_ART.md](PROP_ART.md).
 
 ## Controls and behavior
 
+Hovering a target shows its name and an available action. When a click or tap finds no walking route, the destination brackets close into a cross.
+
 - **Space:** drop a held object first; otherwise pick up a nearby portable prop, preferring the facing direction. With no item available, tap for a two-tile jump or hold 240 ms for a three-tile jump that can climb two altitude levels. Jumps use the held movement direction, or the facing direction when stationary. A hold launches once; release before jumping again.
 - **F, holding a stout stick:** strike a nearby breakable container. Clay takes one strike, fiber two, wood three; these are explicit game balancing values, not physical claims.
 - **E:** drink at a water source or look inside a nearby container. A nearby water source takes priority; otherwise, when holding a container, E examines that container.

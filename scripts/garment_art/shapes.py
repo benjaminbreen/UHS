@@ -6,6 +6,7 @@ ART['tunic'] = garment(3, 16, 11, 11, 9, 12, sl='short', nk='round',
                        hem=15, foldcols=(9, 15))
 ART['long-tunic'] = garment(2, 21, 11, 11, 9, 14, sl='long', nk='round',
                             hem=20, foldcols=(8, 16))
+ART['tee'] = garment(4, 18, 13, 11, 11, 11, sl='short', nk='round', foldcols=())
 ART['shirt'] = garment(3, 18, 11, 10, 9, 11, sl='long', nk='collar',
                        open_=(4, 17, False), foldcols=(8, 16))
 ART['coat'] = garment(2, 22, 12, 11, 9, 15, sl='long', nk='collar',

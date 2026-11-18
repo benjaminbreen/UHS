@@ -289,7 +289,7 @@ const recipes: Recipe[] = [
       spring: {
         title: "Ploughing and sowing",
         steps: [
-          { name: "seed", task: "Fetch the seed from the store", at: "yard", scene: "haul", hours: 1 },
+          { name: "fieldwork", task: "Work your field", at: "field", scene: "tend", hours: 1 },
           { name: "break", task: "Break the ground", at: "field", scene: "tend", card: "farm-plough", hours: 4 },
           { name: "sow", task: "Sow the {crop}", at: "field", scene: "tend", card: "farm-sow", hours: 3 },
         ],
@@ -1041,6 +1041,15 @@ const recipes: Recipe[] = [
     ],
   },
   {
+    ids: ["dockworker"], rises: 5, skill: "wayfaring", wiki: ["Stevedore"], paid: "wage",
+    day: {title: "Working the cargo pier",steps:[
+      {name:"muster",task:"Join the gang at the pier",at:"shore",scene:"talk",hours:1},
+      {name:"discharge",task:"Land the cargo and tally the sacks",at:"shore",scene:"haul",hours:3},
+      {name:"store",task:"Carry the consignment to the warehouse",at:"workplace",scene:"haul",hours:2},
+      {name:"pay",task:"Collect your pay from the foreman",at:"workplace",scene:"talk",hours:.5},
+    ]},
+  },
+  {
     ids: ["porter"],
     rises: 5,
     skill: "wayfaring",
@@ -1127,44 +1136,14 @@ const recipes: Recipe[] = [
     rises: 6,
     skill: "foraging",
     wiki: ["Foraging", "Hunter-gatherer"],
-    day: [
-      {
-        title: "Gathering greens",
-        when: { seasons: ["spring"] },
-        steps: [
-          { name: "walk", task: "Walk out to the damp ground", at: "wild", scene: "walk", hours: 1 },
-          { name: "pick", task: "Pick young shoots and greens", at: "wild", scene: "gather", card: "gather-2", hours: 4 },
-          { name: "home", task: "Bring them home", at: "yard", scene: "haul", card: "gather-3", hours: 1 },
-        ],
-      },
-      {
-        title: "Picking fruit",
-        when: { seasons: ["summer"] },
-        steps: [
-          { name: "walk", task: "Walk out to the fruiting thickets", at: "wild", scene: "walk", hours: 1 },
-          { name: "pick", task: "Pick berries and fruit", at: "wild", scene: "gather", card: "gather-2", hours: 4 },
-          { name: "dry", task: "Spread some to dry for later", at: "yard", scene: "craft", card: "gather-3", hours: 1 },
-        ],
-      },
-      {
-        title: "Gathering nuts",
-        when: { seasons: ["autumn"] },
-        steps: [
-          { name: "walk", task: "Walk out to the nut trees", at: "wild", scene: "walk", hours: 1 },
-          { name: "gather", task: "Gather nuts and acorns", at: "wild", scene: "gather", card: "gather-2", hours: 4 },
-          { name: "store", task: "Carry them home to the store pit", at: "yard", scene: "haul", card: "gather-3", hours: 1 },
-        ],
-      },
-      {
-        title: "Digging roots",
-        when: { seasons: ["winter"] },
-        steps: [
-          { name: "walk", task: "Walk out with the digging stick", at: "wild", scene: "walk", hours: 1 },
-          { name: "dig", task: "Dig roots and tubers", at: "wild", scene: "gather", card: "gather-2", hours: 4 },
-          { name: "home", task: "Carry them home", at: "yard", scene: "haul", card: "gather-3", hours: 1 },
-        ],
-      },
-    ],
+    day: {
+      title: "Gathering wild food",
+      steps: [
+        { name: "walk", task: "Choose a gathering patch", at: "wild", scene: "walk", hours: 0 },
+        { name: "pick", task: "Fill your basket", at: "wild", scene: "gather", hours: 0.5 },
+        { name: "home", task: "Bring the basket home", at: "yard", scene: "haul", card: "gather-3", hours: 0.25 },
+      ],
+    },
   },
   {
     ids: ["shellfish-gatherer"],

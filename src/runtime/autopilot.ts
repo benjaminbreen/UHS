@@ -17,8 +17,8 @@ import { parseSewerSpace } from "../world/sewer";
  */
 export type Plan =
   | { kind: "forage"; item?: ItemId }
-  | { kind: "go"; to: Point & { space?: string }; label: string }
-  | { kind: "workday" }
+  | { kind: "go"; to: Point & { space?: string }; label: string; field?: boolean }
+  | { kind: "workday"; workPass?: string; single?: boolean }
   | { kind: "roam"; run: boolean }
   | { kind: "seek"; actor: string; label: string };
 
@@ -63,7 +63,7 @@ export class Autopilot {
     if (p.fatigue >= TIRED) return { done: "You are too tired to go on." };
     switch (this.plan.kind) {
       case "go":
-        return this.go(this.plan.to, this.plan.label);
+        return this.go(this.plan.to, this.plan.label, this.plan.field);
       case "forage":
         return this.forage(this.plan.item);
       case "workday":
@@ -79,7 +79,7 @@ export class Autopilot {
     this.stuck++;
   }
 
-  private go(to: Point & { space?: string }, label: string): Step {
+  private go(to: Point & { space?: string }, label: string, field = false): Step {
     const p = this.engine.state.player.pos;
     // Somewhere indoors: out of wherever you are, through its door, across the room.
     if (to.space && to.space !== "outside") {
@@ -97,7 +97,7 @@ export class Autopilot {
     const left = Math.hypot(to.x - p.x, to.y - p.y);
     // Walked past it counts: a leg may end a few cells beyond.
     const past = (to.x - p.x) * (to.x - this.origin.x) + (to.y - p.y) * (to.y - this.origin.y) <= 0;
-    if (left <= 2 || (past && left < 5)) return { done: `You reach ${label}.` };
+    if (field ? left <= 1.5 : left <= 2 || (past && left < 5)) return { done: `You reach ${label}.` };
     // Long walks go in legs, one search across a whole region being too slow.
     // A leg that ends in a river or a wall swings aside and tries again.
     const k = Math.min(1, LEG / left),
@@ -107,7 +107,7 @@ export class Autopilot {
         x: Math.round(p.x + Math.cos(heading + turn) * left * k),
         y: Math.round(p.y + Math.sin(heading + turn) * left * k),
       };
-      const route = this.routeNear(aim, k < 1 ? 4 : 2);
+      const route = this.routeNear(aim, k < 1 ? 4 : field ? 1 : 2);
       if (route.length) {
         this.stuck = 0;
         return { route };
@@ -249,15 +249,27 @@ export class Autopilot {
     const e = this.engine,
       p = e.state.player;
     const work = e.workPlan();
+    const field = work?.field;
+    if (this.plan.kind === "workday" && this.plan.workPass &&
+        ((field?.selected?.id ?? work?.gather?.id) !== this.plan.workPass || (this.plan.single && this.found > 0)))
+      return { done: this.plan.single ? "One patch worked." : this.plan.workPass.startsWith("gather:") ? "The gathering round is finished." : "The field pass is finished." };
     if (work?.steps[work.done]?.scene === "hunt") return this.hunt();
+    if (work?.waiting) return { wait: true };
+    if (work?.gather?.target && !work.gather.here)
+      return this.go(work.gather.target, work.gather.label, true);
+    if (work?.gather?.choosing && this.plan.kind === "workday" && this.plan.workPass) return { done: "Choose a fresh patch." };
+    if (field?.selected && !e.workHere()) {
+      if (p.pos.space !== "outside") return this.leave();
+      const route = this.routeNear(field.target ?? field.parcel.access, 1, true);
+      return route.length ? { route } : { done: "You cannot reach the next patch." };
+    }
     const here = e.workHere();
     if (here) {
       this.pause = 6;
+      if (field?.selected) this.found++;
       return { command: here.command };
     }
-    const plan = e.workPlan();
-    // Choices are the player's: the errand waits for the answer, then goes on.
-    if (plan?.waiting) return { wait: true };
+    const plan = work;
     const at = plan && plan.done < plan.steps.length ? plan.places[plan.done] : undefined;
     if (at) {
       if (at.pos.space && at.pos.space !== p.pos.space) {
@@ -438,7 +450,7 @@ export class Autopilot {
   }
 
   /** A route to the spot, or to the nearest open cell within `slack` of it. */
-  private routeNear(to: Point, slack: number): Point[] {
+  private routeNear(to: Point, slack: number, exact = false): Point[] {
     const e = this.engine,
       p = e.state.player.pos;
     const ends: Point[] = [];
@@ -448,12 +460,13 @@ export class Autopilot {
     let tries = 0;
     for (const end of ends) {
       if (e.playerBlocked(end.x, end.y) || (end.x === p.x && end.y === p.y)) continue;
-      if (tries++ >= 3) break;
+      if (!exact && tries++ >= 3) break;
       const path =
         e.state.manifest.simulation === 2
           ? e.findRoute(p, end).path
           : findPath(p, end, (x, y) => e.playerBlocked(x, y));
-      if (path.length) return path;
+      const last = path.at(-1);
+      if (last && (!exact || last.x === end.x && last.y === end.y)) return path;
     }
     return [];
   }

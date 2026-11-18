@@ -19,9 +19,28 @@ class CroppedArt extends Map<string, CarriedArt> {
   constructor(private image: HTMLImageElement, private nature: HTMLImageElement) {
     super();
   }
-  get(sprite: string) {
+  get(sprite: string): CarriedArt | undefined {
     const known = super.get(sprite);
     if (known) return known;
+    const [base, food, fill] = sprite.split("+");
+    if (food && !sprite.includes("@") && base.includes("open-basket")) {
+      const plain = this.get(base);
+      if (!plain) return undefined;
+      const image = document.createElement("canvas");
+      image.width = plain.width; image.height = plain.height + 2;
+      const ctx = image.getContext("2d")!;
+      ctx.drawImage(plain.image, 0, 2);
+      const [shade, light] = food === "berries" ? ["#614059","#cb7194"] : food === "greens" ? ["#446638","#a5c661"]
+        : food === "fruit" ? ["#a65e32","#eab559"] : ["#88583c","#d8ab71"];
+      const mid = Math.floor(image.width / 2);
+      for (const [x,y] of (fill === "2" ? [[-3,2],[1,2],[-1,0],[3,1]] : [[0,3],[-2,3]])) {
+        ctx.fillStyle = shade; ctx.fillRect(mid+x,y,3,2);
+        ctx.fillStyle = light; ctx.fillRect(mid+x,y,2,1);
+      }
+      const art = { ...plain, sprite, image, height:image.height };
+      this.set(sprite, art);
+      return art;
+    }
     if (sprite.startsWith("made:palace:")) {
       const picture = palacePropPicture(sprite);
       if (!picture) return undefined;

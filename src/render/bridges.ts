@@ -74,7 +74,9 @@ export function drawBridges(
       top = minY * 16 - elevation * TERRAIN_RISE,
       w = (maxX - minX + 1) * 16 + 6,
       h = (maxY - minY + 1) * 16;
-    footprints.push({ x: left, y: top, width: w, height: h + 6 });
+    const pier = sample(minX, minY)?.pier;
+    const skirt = pier ? 14 : 6;
+    footprints.push({ x: left, y: top, width: w, height: h + skirt });
     const deck = scene.add.graphics();
     const rect = (
       x: number,
@@ -88,11 +90,19 @@ export function drawBridges(
       deck.fillRect(x - left, y - top, w, h);
     };
     // Water remains visible below the suspended span and its front bearer.
-    const shadow = own(resources, scene.add.graphics().setDepth(-2000));
-    shadow.fillStyle(0x153d50, 0.55);
-    shadow.fillRect(left + 3, top + h + 5, w - 2, 10);
     const track = sample(minX, minY)?.track;
-    if (track && track.axis === "y") shadow.fillRect(left + w, top + 4, 5, h);
+    if (pier) {
+      for (let px = left + 2; px < left + w - 3; px += 24) {
+        rect(px, top + h + 4, 6, 9, 0x4e4035);
+        rect(px + 1, top + h + 5, 3, 6, 0x906b48);
+        rect(px + 1, top + h + 11, 4, 2, 0x5e5745);
+      }
+    } else {
+      const shadow = own(resources, scene.add.graphics().setDepth(-2000));
+      shadow.fillStyle(0x153d50, 0.55);
+      shadow.fillRect(left + 3, top + h + 5, w - 2, 10);
+      if (track && track.axis === "y") shadow.fillRect(left + w, top + 4, 5, h);
+    }
     if (track) railDeck(rect, left, top, w, h, track.axis === "x", track.at);
     else {
       rect(left, top, w, h + 5, 0x533b2c);
@@ -117,7 +127,10 @@ export function drawBridges(
         } else {
           rect(left + 2, top + u, w - 4, 4, shade);
           rect(left + 2, top + u, w - 4, 1, 0xd4ae70);
-          rect(left + 6, top + u + 3, w - 14, 1, 0x956c42);
+          const knot = (u * 13) % Math.max(1, w - 18);
+          rect(left + 5 + knot, top + u + 3, Math.min(9, w - 7 - knot), 1, 0x956c42);
+          rect(left + 5, top + u + 1, 1, 1, 0x614b34);
+          rect(left + w - 6, top + u + 1, 1, 1, 0x614b34);
         }
       }
       rect(left, top, w, 2, 0xe0b97c);
@@ -129,7 +142,7 @@ export function drawBridges(
     // the deck and walkers retain the same depth order as raised ground.
     const texture = `${region?.prefix ?? "contour"}-bridge-${minX}-${minY}`;
     if (scene.textures.exists(texture)) scene.textures.remove(texture);
-    deck.generateTexture(texture, w, h + 6);
+    deck.generateTexture(texture, w, h + skirt);
     resources.textures.push(texture);
     deck.destroy();
     for (let offset = 0; offset < h; offset += 16)
@@ -138,7 +151,7 @@ export function drawBridges(
         scene.add
           .image(left, top, texture)
           .setOrigin(0)
-          .setCrop(0, offset, w, offset + 16 >= h ? 22 : 16)
+          .setCrop(0, offset, w, offset + 16 >= h ? 16 + skirt : 16)
           .setDepth((minY + offset / 16) * 16 + 2),
       );
     // End posts have lit caps, shaded sides and feet below the deck.
@@ -165,6 +178,13 @@ export function drawBridges(
           box(px + 4, py - 9, 1, 17, 0x715036);
           box(px - 1, py - 13, 7, 3, 0xdbc087);
           box(px, py - 12, 5, 2, 0xe7c88c);
+          if (pier) {
+            box(px, py - 12, 3, 1, 0xb4895f);
+            for (const y of [py - 6, py - 4]) {
+              box(px - 1, y, 7, 2, 0x775239);
+              box(px, y, 5, 1, 0xc3a16d);
+            }
+          }
         }
   }
   return footprints;

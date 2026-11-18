@@ -1,5 +1,6 @@
 import { inventedNameNote } from "../content/characters/invented-name";
 import { resolveCharacterContext } from "../content/characters/resolve";
+import { fairById } from "../content/fairs";
 import { Flag } from "lucide-react";
 import { formatHistoricalYear } from "../core/calendar";
 import { describedRegionAt, regionAt } from "../content/geography/region-label";
@@ -13,6 +14,8 @@ export function StartPreview({ setting }: { setting: WorldSetting }) {
   // the visible tag comes from the described one, which never shows a backstop.
   const culture = regionAt(setting.lon, setting.lat)?.culture;
   const region = describedRegionAt(setting.lon, setting.lat);
+  const venue = setting.venue && fairById(setting.venue);
+  const room = venue && venue.areas.find((a) => a.id === (setting.venueRoom ?? venue.entry));
   return (
     <div
       className="start-preview"
@@ -29,9 +32,9 @@ export function StartPreview({ setting }: { setting: WorldSetting }) {
               {region.label}
             </span>
           )}
-          {setting.location} · {formatHistoricalYear(setting.year)}
+          {setting.location} · {formatHistoricalYear(setting.year)}{room && ` · ${room.name}`}
         </p>
-        {context && (
+        {setting.brief?.figure ? <small>Historical figure</small> : context && (
           <small
             className="character-context-note"
             title={

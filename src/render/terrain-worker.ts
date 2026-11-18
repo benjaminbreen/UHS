@@ -187,7 +187,7 @@ function rasterRegion(region: TerrainRegion): Omit<TerrainResponse, "id"> {
     if (!livingEnabled || !c.waterVisual) return c;
     // A creek keeps its own narrow shore: the living beach width is for
     // rivers and coasts and would give it the river's sand ramp.
-    if (c.waterVisual.shoreWidth < 1.2) return c;
+    if (c.waterVisual.shoreWidth < 1.2 || c.waterVisual.quay) return c;
     const key = `${x},${y}`;
     let painted = paintCells.get(key);
     if (!painted) {

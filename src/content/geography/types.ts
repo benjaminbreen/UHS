@@ -120,6 +120,7 @@ export const settingSchema = z
     ship: z.string().max(40).optional(),
     /** Which fair or palace, by id, when the start is inside one that no place on the map stands for. */
     venue: z.string().max(40).optional(),
+    venueRoom: z.string().max(60).optional(),
     // 1 is the scoped hand-written kits; 2 adds the ported naming
     // traditions and the capability-gated workforce.
     characterRevision: z.union([z.literal(1), z.literal(2)]).optional(),

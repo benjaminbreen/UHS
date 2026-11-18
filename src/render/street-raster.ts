@@ -1,7 +1,7 @@
-import { asphaltPixel, dustOf, pavingGrade, pavingStonePixel, sandBank, sunAndSand } from "./paving-stones";
+import { asphaltPixel, curbRiseAt, platformSection, wharfInset, dustOf, pavingGrade, pavingStonePixel, sandBank, sunAndSand } from "./paving-stones";
 import { carriagewayPixel, concreteRoadPixel, gutterPixel, levelCrossing, railPixel } from "./carriageway";
 import { kerbCorner, kerbed, paved, pavingMask, roadwayMaterial, wornEdge } from "./paving-edge";
-import type { TopographySample } from "../core/topography";
+import type { TopographyCell, TopographySample } from "../core/topography";
 import type { StreetMaterial } from "../content/settlements/streets";
 import type { GroundTileData } from "./habitat-raster";
 import { cellHash as hash } from "../core/noise";
@@ -13,6 +13,8 @@ const jitter = (wx: number, wy: number) => {
   const a = hash(ix, iy, 611), b = hash(ix + 1, iy, 611), c = hash(ix, iy + 1, 611), d = hash(ix + 1, iy + 1, 611);
   return (a + (b - a) * tx + (c - a) * ty + (a - b - c + d) * tx * ty) * 0.8 + hash(wx >> 2, wy >> 2, 612) * 0.2;
 };
+const streetGrade=(cell:TopographyCell,material:StreetMaterial)=>material==="sett" &&
+  (cell.wharf || (cell.waterVisual?.quay==="sett" && !cell.lane)) ? "wharf" : pavingGrade(cell.pavement);
 type RGB = readonly number[];
 type Color = readonly [number, number, number];
 const clamp = (n: number) => Math.max(0, Math.min(255, Math.round(n)));
@@ -135,6 +137,93 @@ const PLATFORM_WALL: RGB = [166, 160, 146];
 const PLATFORM_FOOT: RGB = [62, 58, 52];
 const SAFETY_LINE: RGB = [222, 196, 92];
 export { wornEdge };
+function cartwayPixel(base: RGB, strokes: NonNullable<TopographyCell["cartWear"]>, wx: number, wy: number): RGB {
+  const x=(wx+.5)/16,y=(wy+.5)/16;
+  let nearest=Infinity, road=Infinity;
+  for (const {a,b,radius} of strokes) {
+    const dx=b[0]-a[0], dy=b[1]-a[1];
+    const t=Math.max(0,Math.min(1,((x-a[0])*dx+(y-a[1])*dy)/(dx*dx+dy*dy || 1)));
+    const sq=(x-a[0]-t*dx)**2+(y-a[1]-t*dy)**2;
+    nearest=Math.min(nearest,sq);
+    if (radius>1.5) road=Math.min(road,sq);
+  }
+  const dist=Math.sqrt(nearest)*16;
+  if (dist>34) return base;
+  const edge=Math.sqrt(road)*16, bond=jitter(Math.floor(wx/7)*7,Math.floor(wy/5)*5);
+  if (edge < 32+bond*2) {
+    const face=pavingStonePixel(wx,wy,"cobble","street");
+    const coverage=Math.min(1,(34+bond*2-edge)/8);
+    base=mix(base,mix(face,[95,104,103],.44),coverage*(.22+bond*.12));
+  }
+  const grit=jitter(wx,wy), wash=Math.max(0,Math.min(1,(25+grit*5-dist)/10));
+  const polished=Math.max(0,1-Math.abs(dist-10.5-grit*2)/3.1);
+  const swept=mix(base,[95,94,95],wash*(.06+grit*.10));
+  return mix(swept,[186,178,160],polished*(.06+grit*.20));
+}
+
+function wharfDrainPixel(base: RGB, drain: NonNullable<TopographyCell["wharfDrain"]>, wx: number, wy: number): RGB {
+  const dx=drain.outlet.x-drain.inlet.x,dy=drain.outlet.y-drain.inlet.y,len=Math.hypot(dx,dy);
+  const x=wx+.5-drain.inlet.x*16,y=wy+.5-drain.inlet.y*16;
+  const v=(x*dx+y*dy)/len, u=(y*dx-x*dy)/len*Math.sign(dx);
+  // A flanged iron cover takes wheel loads at either end. The open run is two sloping courses of gutter stones.
+  if (v < -8 || v > len*16+4) return base;
+  const end=v<11 || v>len*16-16;
+  const d=Math.abs(u);
+  if (end && d<6) {
+    if (d>4.8 || v < -6.5 || v>len*16+2 || Math.abs(v-10)<1 || Math.abs(v-len*16+16)<1)
+      return u<0 ? [145,141,127] : [70,71,67];
+    const bar=mod(Math.floor(v),4);
+    return bar===0 ? [132,133,122] : bar===1 ? [91,92,85] : [48,53,52];
+  }
+  if (d>6.4) return base;
+  const joint=mod(Math.floor(v)+(u<0 ? 5 : 0),12);
+  if (d>5) return mix(base,[167,157,135],.55);
+  if (d<1.5) return [82,89,87];
+  if (joint===0) return [97,99,93];
+  return u<0 ? [127,126,116] : joint===1 ? [159,153,135] : [146,143,128];
+}
+
+function wharfPlatformPixel(base: RGB, pad: NonNullable<TopographyCell["wharfPlatform"]>, wx: number, wy: number): RGB {
+  const rect=platformSection(pad,wx,wy);
+  const x=wx-rect.x*16, y=wy-rect.y*16, w=rect.w*16, h=rect.h*16;
+  const side=Math.min(x,w-1-x), end=Math.min(y,h-1-y);
+  const inset=wharfInset(x,y,w,h);
+  const front=y>h/2 && end<=side, along=end<side ? wx : wy;
+  const rise=front ? curbRiseAt(pad,wx) : pad.rise;
+  if (inset<0) {
+    const d=Math.floor(-inset-1);
+    if (front && d<rise) {
+      const seam=mod(along+3,24);
+      return d===rise-1 ? [77,75,71] : d===0 ? [142,138,126]
+        : seam===0 ? [98,98,93] : [123,120,111];
+    }
+    const g=d-(front ? rise : 0);
+    if (g<0 || g>12) return base;
+    const key=(end<side ? pad.y : pad.x)+(front ? 17 : 0);
+    const grate=pad.finish==="slab" && front && end<side-6 && rise===pad.rise && mod(Math.floor(along/16),7)<3;
+    return gutterPixel(mix(base,[109,116,118],.38),g,along,key,"sett",false,grate) ?? base;
+  }
+  const gate=front && rise<pad.rise;
+  if (inset<5 && !gate) {
+    const seam=mod(along,24);
+    if (inset<1) return front || x>w/2 && side<end ? [147,141,127] : [204,196,171];
+    if (inset>3.8) return [119,116,106];
+    return seam===0 ? [120,117,107] : seam===1 ? [194,183,159] : [178,170,150];
+  }
+  let top: RGB=pavingStonePixel(wx,wy,pad.finish,"court");
+  if (pad.finish!=="slab") {
+    const stain=jitter(wx>>1,wy>>1);
+    top=mix(top,[103,102,93],Math.max(0,stain-.42)*.55);
+    const scuff=Math.abs(Math.abs(wx-(pad.gateX+.5)*16)-10);
+    if (scuff<2 && stain>.43) top=mix(top,[174,165,147],.26);
+  }
+  if (gate && end<14) {
+    const run=Math.min(1,end/14), grip=mod(Math.floor(end),4)===1;
+    return mix(base,grip ? [136,129,116] : [168,158,140],.38+.48*run);
+  }
+  return pad.finish==="brick" ? mix(top,[114,101,90],.36) : top;
+}
+
 /** Shared native-pixel paving materials. Place/date selection happens in content. */
 export function rasterStreetTile(
   sample: TopographySample,
@@ -151,7 +240,7 @@ export function rasterStreetTile(
         : undefined) ??
       c.streetMaterial ??
       "slab",
-    grade = pavingGrade(c.pavement),
+    grade = streetGrade(c,material),
     dust = dustOf(c.biome),
     pixels = new Uint8ClampedArray(1024);
   const dais = c.pavement === "dais";
@@ -276,7 +365,7 @@ export function rasterStreetTile(
     if (n?.feature !== "paving" || n.height !== c.height || n.track || n.pavement === "dais" || n.pavement === "platform") return [];
     if (kerbed(sample, x + dx, y + dy) || lip.some(([lx, ly]) => lx === dx && ly === dy)) return [];
     const m = (n.pavement === "footway" ? roadwayMaterial(sample, x + dx, y + dy) : undefined) ?? n.streetMaterial ?? "slab";
-    const g = pavingGrade(n.pavement), other = `${m}/${g}`;
+    const g = streetGrade(n,m), other = `${m}/${g}`;
     return other === key ? [] : [{ dx, dy, material: m, grade: g, first: key < other }];
   });
   // A square is framed: a course of long kerb stones wherever it meets a
@@ -295,6 +384,10 @@ export function rasterStreetTile(
         return false;
       })
     : [];
+  const yardCurbs = c.wharf && !track ? sides.filter(([dx,dy]) => {
+    const other=at(dx,dy);
+    return other && !other.wharf && other.surface!=="water" && !other.waterVisual?.quay && !other.track && !other.rail;
+  }) : [];
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
       const wx = (x + ox) * 16 + px,
@@ -302,7 +395,7 @@ export function rasterStreetTile(
       if (track && c.pavement === "rail") {
         const alongX = track.axis === "x";
         pixels.set(
-          [...railPixel(track.at * 16 + (alongX ? py : px), alongX ? wx : wy, wx, wy), 255],
+          [...(c.wharf ? levelCrossing(pavingStonePixel(wx,wy,"sett","wharf"),track.at*16+(alongX ? py : px),alongX ? wx : wy,"wharf") : railPixel(track.at * 16 + (alongX ? py : px), alongX ? wx : wy, wx, wy)), 255],
           (py * 16 + px) * 4,
         );
         const wall = face && py < 5;
@@ -417,7 +510,7 @@ export function rasterStreetTile(
               ? worn(-1, 0)
               : worn(1, 0);
       tone = pavingStonePixel(
-        wx, wy, material, grade, (north || south) && !(west || east),
+        wx, wy, material, grade, c.waterVisual?.quay === "plank" || ((north || south) && !(west || east)),
       );
       if (lane) {
         const alongX = lane.axis === "x";
@@ -451,6 +544,7 @@ export function rasterStreetTile(
           }
         tone = mix(tone, GRIME, k * (0.6 + fleck * 0.8));
       }
+      if (c.cartWear) tone=cartwayPixel(tone,c.cartWear,wx,wy);
       const course = COURSE[material];
       if (border < 3 && !nearest)
         tone = cutEdge(
@@ -515,6 +609,15 @@ export function rasterStreetTile(
         const d = dx ? (dx < 0 ? px : 15 - px) : dy < 0 ? py : 15 - py;
         const v = SQUARE_LIP[side][d];
         if (v !== undefined) tone = lit(tone, v);
+      }
+      for (const [dx,dy] of yardCurbs) {
+        const d=dx ? (dx<0 ? px : 15-px) : (dy<0 ? py : 15-py);
+        const along=dx ? wy : wx;
+        if (d<7) {
+          const seam=mod(along,21)===0;
+          tone=d===0 ? [90,83,77] : d===1 ? [112,102,91] : seam ? [122,115,101]
+            : d===2 ? [197,182,155] : d<5 ? [169,157,137] : d===5 ? [130,122,110] : [109,102,94];
+        }
       }
       for (const t of tactile) {
         const d = t.dx ? (t.dx < 0 ? px : 15 - px) : t.dy < 0 ? py : 15 - py;
@@ -668,6 +771,8 @@ export function rasterStreetTile(
         tone = sunAndSand(tone as Color, dust, wx, wy, material === "asphalt");
         if (bank) tone = sandBank(tone as Color, dust, bank[0], bank[1], bank[2]);
       }
+      if (c.wharfPlatform) tone=wharfPlatformPixel(tone,c.wharfPlatform,wx,wy);
+      if (c.wharfDrain) tone=wharfDrainPixel(tone,c.wharfDrain,wx,wy);
       const i = (py * 16 + px) * 4;
       pixels.set([...tone, 255], i);
     }

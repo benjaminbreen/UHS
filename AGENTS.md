@@ -2,6 +2,8 @@
 
 A pixel-art historical simulation. Vite + TypeScript, Vitest, Playwright.
 
+Draw game assets directly as pixel art in the project’s Stardew Valley / Haunted Chocolatier house style. AI-generated images are for discussion and visual references only. Never use them as game assets or asset textures.
+
 ## You own this code
 
 Work on this codebase as its maintainer, not as a visitor adding one feature.

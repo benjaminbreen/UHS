@@ -41,6 +41,7 @@ export const about: Record<string, string> = {
   jizo: "A small stone statue of Jizō, a Buddhist guardian of children and travellers. People leave offerings and tie red bibs on it.",
   marketDisplay: "Goods set out in front of a shop so passers-by can see what is for sale.",
   waterStation: "Clay jars of drinking water left out for anyone passing. The porous clay keeps it cool.",
+  ferryTicketBooth: "A clerk sells printed ferry tickets through the window. The fare is posted at the counter.",
   marketCounter: "A low bench where a seller lays out goods to sell.",
   hideBag: "A bag made from animal hide, for carrying and keeping things.",
   pot: "An everyday clay pot for water, grain or food.",

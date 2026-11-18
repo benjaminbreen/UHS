@@ -22,6 +22,7 @@ export function bareWearing(base: Wearing): Wearing {
     ...base,
     garment: "none",
     sleeves: "none",
+    motif: undefined,
     cut: undefined,
     front: undefined,
     hem: undefined,
@@ -58,6 +59,7 @@ export function composeWearing(
       out = { ...out, ...def.wear.look };
       if (slot === "body") {
         if (def.wear.look.garment === base.garment) {
+          out.motif = def.wear.look.motif ?? base.motif;
           out.cut = def.wear.look.cut ?? base.cut;
           out.front = def.wear.look.front ?? base.front;
           out.hem = def.wear.look.hem ?? base.hem;

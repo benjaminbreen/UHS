@@ -1,3 +1,4 @@
+import { BASKET_SIZE, foodPatch, seasonAt } from "../../core/livelihood";
 import { borne, carryKit } from "../../content/economy/carrying";
 import { characterLivelihood, generateCharacter } from "../../content/characters/generate";
 import { resolveCharacterContext, workAt } from "../../content/characters/resolve";
@@ -6,7 +7,7 @@ import { wayfarersAt, type Wayfarer } from "../../content/wayfarers";
 import { DAY_MINUTES, PACE, shopOpen, siestaOf, type Itinerary, type StationActivity } from "../../core/itinerary";
 import { random } from "../../core/random";
 import { route } from "../../core/routing";
-import type { Actor, Pack, Point, WorldModel } from "../../core/types";
+import type { Actor, Pack, Point, WorldModel, WorldObject } from "../../core/types";
 import type { MapEntrance } from "../travel/entrances";
 import { habitatTagsAt } from "./fauna";
 import { faunaProfiles } from "../../content/fauna";
@@ -201,6 +202,48 @@ function trip(
   });
 }
 
+/** One resident's food run, on the two sides of the same entrance. All times are game minutes. */
+export function gatheringJourney(home: WorldModel, away: WorldModel, exit: Way, entry: Way, worker: Actor,
+  store: WorldObject, patches: WorldObject[], clock: number) {
+  const season = seasonAt(away.pack.setting?.season ?? "spring", clock);
+  const dryPath = (world: WorldModel, from: Point, target: Point) => {
+    for (const [dx,dy] of [[0,1],[1,0],[0,-1],[-1,0],[0,0]]) {
+      const to = { x:target.x+dx, y:target.y+dy };
+      if (world.blocked(to.x,to.y,"outside")) continue;
+      const path = across(world,from,to);
+      if (path) return path;
+    }
+  };
+  const ware = patches.filter(o => !o.owner && foodPatch(o,season) && !o.depleted && (o.inventory[o.resource!.item] ?? 0) > 0)
+    .map(o => ({ o, d:Math.hypot(o.pos.x-entry.point.x,o.pos.y-entry.point.y) }))
+    .filter(({d}) => d >= 3 && d <= 50).sort((a,b) => a.d-b.d);
+  const from = worker.pos.space === "outside" ? worker.pos : home.place(worker.pos.space)?.entrance ?? worker.home;
+  const intoRoad = (p: Point) => exit.path.reduce((best,q,i) =>
+    Math.hypot(q.x-p.x,q.y-p.y) < Math.hypot(exit.path[best].x-p.x,exit.path[best].y-p.y) ? i : best, 0);
+  const join = intoRoad(from), off = intoRoad(store.pos);
+  const start = across(home,from,exit.path[join]), end = dryPath(home,exit.path[off],store.pos);
+  if (!start || !end) return;
+  const there = [...start,...exit.path.slice(join+1)], back = [...exit.path.slice(off+1).reverse(), ...end];
+  const basket = carryKit(home.pack).basket;
+  for (const {o} of ware.slice(0,5)) {
+    const walk = dryPath(away,entry.point,o.pos);
+    if (!walk) continue;
+    const leave = clock/60, cross = leave+(there.length-1)*PACE;
+    const pick = cross+(walk.length-1)*PACE, turn = pick+BASKET_SIZE*4;
+    const again = turn+(walk.length-1)*PACE;
+    const gather = journey([
+      {path:walk,label:`Walking to the ${o.name.toLowerCase()}`,carry:basket, stop:{activity:"gather",label:`Gathering at the ${o.name.toLowerCase()}`,minutes:turn-pick,target:{id:o.id,...o.pos,family:"wild-food"}}},
+      {path:[...walk].reverse(),label:"Taking the basket back to the settlement",carry:basket}
+    ],cross,PACE);
+    const town = journey([
+      {path:there,label:`Going gathering beyond the ${DIRECTIONS[exit.bearing] ?? exit.bearing} road`,carry:basket,
+        stop:{activity:"rest",label:"Gathering beyond the settlement",minutes:again-cross}},
+      {path:back,label:"Bringing the basket home",carry:basket, stop:{activity:"haul",label:"Unloading the basket",minutes:4}}
+    ],leave,PACE);
+    return { town, gather, cross, pick, again, unload:again+(back.length-1)*PACE, patch:o.id, store:store.id, basket };
+  }
+}
+
 function pick<T>(items: readonly T[], weight: (t: T) => number, u: number) {
   const total = items.reduce((s, t) => s + weight(t), 0);
   let x = u * total;
@@ -297,7 +340,7 @@ function joined(a: Way, b: Way) {
 /** One member of a party: a walk, maybe a stop, and gone. `lag` puts them
  * that many tiles behind whoever leads. */
 function journey(
-  legs: { path: Point[]; label: string; carry?: string; stop?: { activity: StationActivity; label: string; minutes: number } }[],
+  legs: { path: Point[]; label: string; carry?: string; stop?: { activity: StationActivity; label: string; minutes: number; target?: Segment["target"] } }[],
   start: number,
   pace: number,
 ): Itinerary {
@@ -312,7 +355,7 @@ function journey(
     }
     last = leg.path[leg.path.length - 1];
     if (leg.stop) {
-      segments.push({ from: at, to: at + leg.stop.minutes, pos: last, activity: leg.stop.activity, label: leg.stop.label, carry: leg.carry });
+      segments.push({ from: at, to: at + leg.stop.minutes, pos: last, activity: leg.stop.activity, label: leg.stop.label, carry: leg.carry, target: leg.stop.target });
       at += leg.stop.minutes;
     }
   }

@@ -5,6 +5,8 @@ import type { TopographyCell, TopographySample } from "../core/topography";
 import { valueNoise, cellHash } from "../core/noise";
 import { waterStyle, waterBand } from "./water-style";
 import { groundStyle } from "./ground-style";
+import { QUAY_APRON, QUAY_DROP, waterDistance } from "../core/water-field";
+import { pavingStonePixel } from "./paving-stones";
 
 export function paintedGround(c: TopographyCell) {
   // A dry channel is ground, but the canal raster draws its bed and berms.
@@ -407,6 +409,55 @@ export function tidalFlat(cell: TopographyCell, d: number, wx: number, wy: numbe
   // A crest's seaward edge catches the light.
   const above = valueNoise(wx + warp * 0.6, wy - 1, 52, 643) * 0.5 + valueNoise(wx, wy - 1 + warp * 0.4, 21, 644) * 0.32 + valueNoise(wx, wy - 1, 8, 645) * 0.18 + (t - 0.5) * 0.16;
   return above < 0.64 ? mud[4] : mud[3];
+}
+const QUAY_STONE = [144,133,118];
+export function quayPixel(
+  sample: TopographySample, x: number, y: number, wx: number, wy: number,
+  laid: "sett" | "plank", top: boolean,
+): number[] | undefined {
+  const d=waterDistance(sample,x,y), wood=laid==="plank";
+  if (d>=QUAY_APRON) return;
+  const lip=wood ? 5 : 13;
+  if (d>=(lip+7)/16) {
+    if (!top) return;
+    return [...pavingStonePixel(wx,wy,laid,wood ? "street" : "wharf",wood)];
+  }
+  const gx=waterDistance(sample,x+.25,y)-d, gy=waterDistance(sample,x,y+.25)-d;
+  const along=Math.abs(gx)>Math.abs(gy) ? wy : wx;
+  const mod=(a:number,b:number)=>((a%b)+b)%b;
+  const at=Math.floor(d*16);
+  // The cap is inset on the bank. Its water-side arris and the wet toe remain visible on a west-facing quay.
+  if (at>=lip) {
+    const seam=mod(along,wood ? 47 : 22)===0;
+    if (wood) return at===5 ? [209,165,111] : seam ? [90,63,46] : at===10 ? [114,83,56] : [158,117,75];
+    if (at===lip) return [220,201,166];
+    if (at===lip+1) return [193,178,154];
+    if (at===lip+6) return [123,117,108];
+    return seam ? [121,112,100] : at===lip+5 ? [161,150,133] : [184,171,150];
+  }
+  const south=waterDistance(sample,x,y-QUAY_DROP/16);
+  if (d<0 && south<0) return;
+  const row=lip-1-at, height=lip+Math.max(0,Math.round((south-d)*16));
+  if (wood) {
+    const post=mod(along,34);
+    if (post<5) return post===0 ? [157,123,81] : post<3 ? [117,83,55] : [66,56,49];
+    if (row>=height-2) return [45,53,52];
+    if (row===1 && post===9) return [202,171,115];
+    if (height>12 && row>4 && row<height-2) {
+      const brace=Math.abs((post-6)*.38-(row-4));
+      if (brace<1) return [147,109,73];
+      if (brace<2) return [73,56,44];
+    }
+    if (row===3 || row===8) return [65,53,44];
+    return row===0 ? [109,80,55] : [125,91,60];
+  }
+  if (row>=height-1) return [42,62,66];
+  if (row>=height-3) return [75,85,81];
+  if (row===0) return [100,91,83];
+  const block=mod(along+(row>5 ? 8 : 0),17);
+  if (block===0 || row===5) return [92,88,86];
+  const grain=cellHash(Math.floor(along/17),row>5 ? 1 : 0,732);
+  return QUAY_STONE.map(c=>c+(grain>.58 ? 5 : -3)-(row*2)+(block===1 ? 6 : 0));
 }
 export function shorePixel(
   cell: TopographyCell,

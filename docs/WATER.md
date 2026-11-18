@@ -41,6 +41,16 @@ change of season or tide step restyles the terrain stream.
 
 ## Rendering
 
+- **Quays.** Cells beside a city's bulkhead or pier carry
+  `waterVisual.quay` (`"sett"` or `"plank"`). `quayPixel` in
+  `material-edges.ts` draws individual coping stones, the wet foot of the masonry,
+  timber edge beams and the laid apron. South-facing edges expose more wall.
+  Ground and water tiles follow the same shoreline distance field. The
+  living-water mask leaves those pixels alone, takes no scallop there, and
+  reads the water as dredged (`quayWater` in `core/water-field.ts`): six
+  cells deeper at the wall, easing to the natural bed eight cells out.
+  Nobody wades off a quay.
+
 - **Living water (default).** `WorldScene` sets `waterRenderer ??= "living"`.
   `src/render/living-water/` draws WebGL colour forms, caustics, waves and
   foam over worker-prepared shoreline and rock-displacement textures

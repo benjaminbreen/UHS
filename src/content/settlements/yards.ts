@@ -1,6 +1,6 @@
 import type { WorldSetting } from "../geography/types";
 import type { Boundary, CropId } from "../agriculture/types";
-import { lifeway } from "./lifeways";
+import { lifeway, westernZhouFarm } from "./lifeways";
 import type { EarthFinish } from "./urban-form/types";
 
 /** What a house platform is faced with. plaster: lime stucco over rubble.
@@ -21,8 +21,8 @@ export type YardProp = {
    * coop prop; a byre to nothing. */
   building?: { kind: "henhouse" | "byre"; form: "timber" | "wattle" | "stone" | "adobe" };
   name: string;
-  /** `back` is behind the house, where the kit keeps a back yard. */
-  where: "bed" | "wall" | "door" | "yard" | "back";
+  /** An apron uses the kept ground at the front even when a full yard cannot fit. */
+  where: "bed" | "wall" | "door" | "apron" | "yard" | "back";
   chance: number;
   /** Only for residents whose livelihood matches. */
   role?: RegExp;
@@ -334,6 +334,22 @@ const plain: YardKit = {
   beds: ["vegetables"],
   tree: { chance: 0.45 },
   props: [...stores],
+};
+
+const zhouFarm: YardKit = {
+  id: "zhou-farm",
+  boundary: "era",
+  ground: "swept",
+  front: [2, 4],
+  styles: { wrap: 0.15, side: 0.4, open: 0.45 },
+  beds: ["millet", "millet", "beans"],
+  props: [
+    {
+      prop: "poundingMortar", family: "pounding-mortar", name: "Millet mortar", where: "apron", chance: 1, contents: { grain: 2 },
+      with: [{ prop: "basket", family: "open-basket", name: "Gathering basket", contents: { reeds: 2 }, dx: 2, dy: 0 }],
+    },
+    { prop: "jar", family: "storage-jar", name: "Storage jar", where: "yard", chance: 0.55 },
+  ],
 };
 
 /** China, Korea and Japan: a bamboo clump or a broadleaf behind the house.
@@ -649,6 +665,7 @@ export function yardKit(setting: WorldSetting | undefined): YardKit {
       : way.mode === "sedentary-foraging"
         ? shoreYard
         : bandCamp;
+  if (westernZhouFarm(setting)) return zhouFarm;
   if (setting.year < -800) return croft;
   const { culture, climate, year } = setting;
   if (culture === "european" && climate === "mediterranean") return court;

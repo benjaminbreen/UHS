@@ -114,7 +114,10 @@ export function personBrief(
     (actor.heldItem
       ? (loadName(actor.heldItem) ?? itemName(actor.heldItem))
       : undefined);
-  if (held) moment.push({ text: ", carrying " }, { text: held, tone: "thing" });
+  const basket = actor.basket;
+  const food = basket && itemName(basket.item)?.toLowerCase();
+  if (basket && food) moment.push({ text: ", carrying " }, { text: `a basket with ${basket.count} handful${basket.count === 1 ? "" : "s"} of ${food}`, tone: "thing" });
+  else if (held) moment.push({ text: ", carrying " }, { text: held, tone: "thing" });
   // One body note at most, worst first: a card that lists every gauge reads
   // like a status screen.
   const note =

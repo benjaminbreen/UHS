@@ -1,3 +1,4 @@
+import { gathersPlants } from "../characters/livelihoods";
 import type { Livelihood } from "../characters/context-types";
 import type { SeasonId } from "../../core/season";
 import type { SkillId } from "../../core/skills";
@@ -35,7 +36,6 @@ const byActivity: Record<string, Entry> = {
   "Keeping the hives": ["tend", "beehive", "log-hive", "pipe-hive"],
 
   "Gathering plants": ["gather", "open-basket"],
-  "Gathering supplies": ["gather", "open-basket"],
   "Looking for game": ["gather", "spear", "hide-frame"],
   "Cutting timber": ["gather", "woodpile"],
   "Gathering fuel": ["gather", "woodpile"],
@@ -249,7 +249,7 @@ export function processFor(kit: Livelihood, revision = 0, season: SeasonId = "sp
       // drawn at the well.
       ...(st.at === "wild" && workplace === "extraction" ? { at: undefined } : {}),
       ...(st.name === "load" && kit.activity === "Carrying water" ? { at: undefined, task: "Fill the vessels at the well" } : {}),
-      ...(i && (hunting || !st.card) ? { card: hunting ? `hunt-${i + 1}` : `${family}-${i + 1}` } : {}),
+      ...(i && (hunting || !st.card && !gathersPlants(kit)) ? { card: hunting ? `hunt-${i + 1}` : `${family}-${i + 1}` } : {}),
     }));
   return {
     family, ...processFamilies[family], title: day?.title, skill: hunting ? "hunting" : recipe?.skill, wiki: recipe?.wiki, paid: recipe?.paid, boss: recipe?.boss, rises: recipe?.rises ?? 6, bench: recipe?.bench,

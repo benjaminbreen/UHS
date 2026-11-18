@@ -549,7 +549,7 @@ export function liveOn(engine: Engine, life: Life, year: number): Engine {
     if (hh) (hh.history ??= []).push({ year: died, kind: "died", name: a.name });
     if (random(seed, "years-town", a.id, "newcomer") < 0.7) {
       const n = 18 + Math.floor(random(seed, "years-town", a.id, "newcomer-age") * 22) + Math.min(span, year - died);
-      Object.assign(a, generateCharacter({ ...base, year: died }, seed, `${a.id}@${died}`, n), { age: n, relations: [], memories: [] });
+      Object.assign(a, generateCharacter({ ...base, year: died }, seed, `${a.id}@${died}`, n), { age: n, relations: [], memories: [], encounters: undefined });
       if (hh) hh.history!.push({ year: died + 1, kind: "joined", name: a.name });
       for (const b of s.actors) if (b.relations) b.relations = b.relations.filter((r) => r.other !== a.id);
       if (p.relations) p.relations = p.relations.filter((r) => r.other !== a.id);

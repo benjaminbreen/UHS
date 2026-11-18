@@ -87,6 +87,11 @@ export type Lifeway = {
 
 const EARTH = [-180, -90, 180, 90] as const;
 
+export function westernZhouFarm({ culture, year, lon, lat, settlement }: WorldSetting): boolean {
+  return culture === "east-asian" && (settlement === "farm" || settlement === "village") &&
+    year >= -1045 && year <= -770 && lon >= 103.5 && lon <= 120 && lat >= 33 && lat <= 40.5;
+}
+
 export const lifeways: readonly Lifeway[] = [
   {
     id: "bedouin",

@@ -210,6 +210,7 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
   }, [busy]);
 
   if (!actor) return null;
+  const recent = actor.encounters?.at(-1);
   const appearance = runtime.appearanceFor(actor);
   const resting: Expression =
     actor.trust < 0 ? "stern" : actor.trust > 2 ? "smile" : "neutral";
@@ -362,6 +363,7 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
               )
             : latest && <SpokenLine key={latest.text} line={latest} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} voice={speaks} />}
           {busy && <p className="dialogue-thinking"><span /><span /><span /></p>}
+          {error && !history.length && recent && runtime.engine.state.clock - recent.time < 300 && <p className="dialogue-last">{recent.text}</p>}
           {error && <p className="dialogue-error">{error}</p>}
         </div>
         <div className="dialogue-foot">

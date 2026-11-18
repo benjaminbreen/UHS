@@ -255,6 +255,7 @@ export type Actor = {
   gender?: { term: string; pronoun?: "they" };
   householdId?: string;
   relations?: SocialRelation[];
+  basket?: { item: ItemId; count: number };
   knownResources?: string[];
   task?: { target: string; until: number };
   /** Somewhere they have taken themselves off to, off their routine until `until`. */
@@ -292,6 +293,7 @@ export type Actor = {
   follows?: string;
   consentUntil?: number;
   memories: string[];
+  encounters?: GameEvent[];
   direction: number;
   /** Render-only eight-way facing; `direction` remains authoritative. */
   facing?: number;
@@ -305,6 +307,7 @@ export type Actor = {
   /** An inventory item taken in hand. A carried world object wins over this,
    * and the engine never lets both be set. */
   heldItem?: ItemId;
+  deliveryBale?: string;
   /** Met below the street: who they are generated from, where they keep to,
    * when they next act, and whether they have spoken to the player. */
   underground?: { person: string; home: Point; next: number; goal?: Point; met?: boolean };
@@ -326,6 +329,7 @@ export type Actor = {
   plough?: { vehicle: string; step: number; at: number; resting?: boolean; sown?: number };
   freight?: { grain: number; day: number; to: string };
   guidingPlough?: string;
+  drivingVehicle?: string;
   drivingCart?: { vehicle: string; haltedAt?: number };
   cartOffsets?: Record<string, number>;
   /** In a vehicle, in one of its crew places; the vehicle moves them. */
@@ -382,6 +386,11 @@ export type Place = {
   landUse?: import("../content/settlements/zoning").LandUse;
 };
 export type WorldObject = {
+  motor?: { facing: number; long: boolean; taken?: boolean; lastCall?: number; handled?: number; intakeDay?: number; delay?: number; yielding?: boolean };
+  passage?: { destination: Point; back: boolean };
+  freight?: { store: string; call: number };
+  vessel?: { form: "dhow" | "lighter"; site: string; skipper: string; finish: number; canvas?: number; heading: number; manual?: boolean; underway?: boolean; lastMove?: number; loadCall?: number };
+  lighterage?: { store: string; porter: string; site: string; lift: number };
   resource?: Resource;
   prop?: string;
   carriedBy?: "player";
@@ -390,6 +399,7 @@ export type WorldObject = {
   submerged?: boolean;
   /** A moored boat out on the water with someone in it. */
   away?: boolean;
+  mooring?: Point;
   damage?: number;
   id: string;
   name: string;
@@ -426,7 +436,7 @@ export type WorldObject = {
   open?: boolean;
   depleted?: boolean;
   claim?: string;
-  /** Drawn only in these seasons. Standing sheaves are not a summer sight. */
+  /** Seasons when this object stands on the map. */
   seasons?: string[];
   /** Dung, by how it lies; `laid` is the clock it fell. */
   dung?: import("../content/fauna/dung").DungKind;
@@ -525,6 +535,10 @@ export type WorldManifest = {
   sky?: string;
 };
 export type GameEvent = {
+  interaction?:
+    | { actor: string; kind: "gift"; item: ItemId; accepted: boolean }
+    | { actor: string; kind: "warning" | "welcome"; place: string }
+    | { actor: string; kind: "wares"; item: ItemId; price?: number };
   id: number;
   time: number;
   text: string;
@@ -597,7 +611,11 @@ export type PlayerCommand =
         | "tend-plot"
         | "load-cart"
         | "unload-cart"
+        | "gather-work"
+        | "fieldwork"
         | "sow-strip"
+        | "drive-vehicle"
+        | "leave-vehicle"
         | "take-reins"
         | "walk-on"
         | "halt-cart"
@@ -619,6 +637,7 @@ export type PlayerCommand =
         | "strike"
         | "climb"
         | "descend"
+        | "passage" | "unload"
         | "launch"
         | "chop"
         | "dig"
@@ -786,7 +805,7 @@ export type Snapshot = {
   /** The account of the day just slept on. */
   evening?: Evening;
   /** The day's work places and people, fixed at its first command. */
-  workday?: { day: number; places: Record<string, { pos: Position; label: string; patient?: string; crop?: string; board?: string } | null> };
+  workday?: { day: number; field?: import("./work-places").FieldPass; patch?: string; patchChoices?: { card: string; ids: string[] }; places: Record<string, { pos: Position; label: string; patient?: string; crop?: string; board?: string } | null> };
   /** Everything the player has made by hand, with what they said they were doing. */
   made?: { item: ItemId; clock: number; said: string }[];
   /** Every choice made at work over the life, for the account of it. */
@@ -924,6 +943,8 @@ export type Observation = {
   manifest: WorldManifest;
 };
 export interface WorldModel {
+  anchorage?: (site?: string) => import("../world/v3/harbor").Anchorage | undefined;
+  harbor?: () => import("../world/v3/harbor").Harbor | undefined;
   temporal?: { origin: import("../content/geography/types").WorldSetting; year: number };
   geography?: import("./geography").WorldGeography;
   households?: Household[];
@@ -939,6 +960,7 @@ export interface WorldModel {
   propSlots?(placeId: string): { yard: Point[]; work: Point[]; furnished?: boolean } | undefined;
   /** A resident's whole day as a route. Built on demand and cached by the
    * world: sampling it costs a binary search, not a path search. */
+  outing?: { actor: string; route: import("./itinerary").Itinerary; tick: (clock: number) => void };
   itinerary?(actorId: string): import("./itinerary").Itinerary | undefined;
   /** A vehicle working a settlement, by id, and warded ground by id. */
   vehicle?(id: string): import("../world/v3/conveyances").Vehicle | undefined;

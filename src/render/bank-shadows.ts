@@ -2,6 +2,7 @@ import type { TerrainReceivers } from "./terrain-contours";
 import type { TopographyCell } from "../core/topography";
 import { TERRAIN_RISE } from "./terrain-projection";
 import { boundaryCasts } from "./fence-pass";
+import { curbRiseAt, platformSection, wharfInset } from "./paving-stones";
 import { SHADOW } from "./shadow-style";
 import {
   TERRAIN_CHUNK_SIZE as SIZE,
@@ -141,7 +142,32 @@ export function rasterBankShadows(
       oy = origin.y * 16;
     const inMap = (x: number, y: number) =>
       x >= -PAD * 16 && x < SIZE * 16 + PAD * 16 && y >= top && y < top + H;
-    const cast = Math.hypot(vx, vy);
+    // Sample backwards from the receiving stone, so a kerb on the next chunk casts across the seam only once.
+    for (let cy=0;cy<SIZE;cy++) for (let cx=0;cx<SIZE;cx++) {
+      const cell=cells[(cy+PAD)*stride+cx+PAD], pad=cell?.wharfPlatform;
+      if (!pad) continue;
+      const reach=Math.ceil(pad.rise*Math.max(Math.abs(cast[0]),Math.abs(cast[1])));
+      const foot=(wx:number,wy:number)=>{
+        const rect=platformSection(pad,wx,wy);
+        return wharfInset(wx-rect.x*16,wy-rect.y*16,rect.w*16,rect.h*16+curbRiseAt(pad,wx));
+      };
+      for (let iy=0;iy<16;iy++) for (let ix=0;ix<16;ix++) {
+        const px=cx*16+ix, wy=oy+cy*16+iy, wx=ox+px;
+        const inset=foot(wx,wy);
+        if (inset>=0 || inset < -reach-1) continue;
+        const py=cy*16+iy-cell.height*R;
+        if (tierAt(px,py)!==cell.height) continue;
+        for (let k=1;k<=reach;k++) {
+          const z=pad.rise*k/reach, sx=wx-cast[0]*z, sy=wy-cast[1]*z;
+          if (foot(sx,sy)<0 || (sy>(pad.y+pad.h)*16-10 && z>curbRiseAt(pad,sx))) continue;
+          const j=at(px,py);
+          alpha[j]=Math.max(alpha[j], k===reach && reach>2 ? a*.55 : a);
+          x0=Math.min(x0,px); x1=Math.max(x1,px); y0=Math.min(y0,py); y1=Math.max(y1,py);
+          break;
+        }
+      }
+    }
+    const postCast = Math.hypot(vx, vy);
     boundaryCasts(
       (cx, cy) => cellAt(cx, cy)?.field,
       origin.x - PAD + 3,
@@ -158,7 +184,7 @@ export function rasterBankShadows(
           if (!inMap(lx, ly)) return;
           const below = tierAt(lx, ly);
           if (!(below >= 0)) return;
-          const steps = Math.max(1, Math.ceil((h1 - h0) * cast));
+          const steps = Math.max(1, Math.ceil((h1 - h0) * postCast));
           for (let k = 0; k <= steps; k++) {
             const h = h0 + ((h1 - h0) * k) / steps;
             const px = Math.round(lx + vx * h),

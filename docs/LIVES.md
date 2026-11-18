@@ -6,6 +6,8 @@ the concerns the opening card reads. Entry files: `src/core/health.ts`,
 `src/content/health/`, `src/core/bonds.ts`, `src/core/concerns.ts`,
 `src/core/danger.ts`, `src/ui/DeathCard.tsx`.
 
+A person remembers their four latest gift exchanges and household greetings or warnings. Conversation uses the same account shown in recent events, including whether they refused an offer or ate the food. An awake resident who sees an uninvited stranger enter can ask them to leave. Invited guests, friends, close family and visitors with a warm household relationship get a welcome. Answer opens the conversation with that resident. Walking away ends the warning. Nearby traders call out an item they have for sale, with its current price or an offer to barter. Locate points to the seller, and Trade opens the shop with that item selected.
+
 ## Conditions
 
 `src/content/health/conditions.ts` with `conditionsOf` in

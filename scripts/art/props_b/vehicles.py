@@ -523,6 +523,223 @@ MODELS = {
 }
 
 
+def delivery_lorry(late, long_body, paint):
+ """Broadside at a loading door, at the parked cars' 17 pixels per metre."""
+ from PIL import ImageDraw
+ cab = PAINT[paint]
+ start = 31 if late else 43
+ end = start + (65 if long_body else 51)
+ im = Image.new('RGBA', (end + 8, 65))
+ d = ImageDraw.Draw(im)
+ rect, poly, line = d.rectangle, d.polygon, d.line
+ iron, buff = '#303638', '#d3b580'
+ floor = 51
+ d.ellipse((3,47,end+6,61), fill=(38,34,36,65))
+ d.ellipse((9,51,end,58), fill=(36,33,34,115))
+ rect((7,42,end,49),fill='#373d3a',outline='#232829')
+ rect((33,48,start+13,53),fill='#595650',outline=iron)
+ for x in (16,end-14):
+  d.ellipse((x-9,floor-8,x+8,floor+8),fill='#28292b',outline='#26252a')
+  d.arc((x-8,43,x+7,57),175,308,fill='#55504a',width=2)
+  d.ellipse((x-5,46,x+4,55),fill=cab[2],outline='#181f21')
+  d.ellipse((x-3,47,x+2,52),fill='#948d76',outline='#5e6056')
+  d.point((x-2,48),fill='#c5bb9d')
+ # The high side panel and the crown of its roof occupy different planes.
+ side = '#a18258' if not late else '#a8b1ab'
+ top = '#d4bd90' if not late else '#d4dad0'
+ edge = '#6a5945' if not late else '#606b6b'
+ poly([(start,13),(start+4,5),(end+2,5),(end+4,9),(end,14)],fill=top,outline=edge)
+ rect((start,13,end,42),fill=side,outline=edge)
+ poly([(end,14),(end+4,9),(end+4,37),(end,43)],fill=edge,outline='#545751')
+ line((start+2,14,end-1,14),fill='#ead9af' if not late else '#e6e9d9')
+ if late:
+  for y in range(17,40,3):
+   line((start+2,y,end-2,y),fill='#879692')
+   line((start+2,y+1,end-2,y+1),fill='#c5cbc0')
+  rect((start+9,21,start+28,32), fill='#e0dfc7',outline='#7d8c84')
+  rect((start+11,24,start+15,29),fill=cab[3])
+  for y,l in ((24,8),(27,6),(29,9)):line((start+17,y,start+17+l,y),fill='#64716a')
+ else:
+  for x in range(start+3,end-5,12):
+   poly([(x,15),(x+2,15),(x+4,29),(x+2,34)],fill='#a8885c')
+   poly([(x+3,35),(x+10,28),(x+7,35),(x+6,38)],fill='#94764f')
+   line((x+5,34,x+8,30),fill='#b99a68')
+  for x in range(start+3,end,12):
+   line((x,14,x+1,28,x,39),fill='#b99b6e')
+   line((x+1,37,x+3,34),fill='#8c714e')
+   line((x+2,7,x,11),fill='#b99f75')
+  rect((start+1,38,end-1,42),fill='#836444')
+  for x in range(start+4,end,8):
+   line((x,38,x-1,41),fill=buff)
+ line((start,43,end,43),fill=cab[1],width=3)
+ line((start+1,42,end,42),fill=cab[4])
+ rect((end+2,40,end+4,43),fill='#923d2b')
+ if late:
+  poly([(3,35),(6,18),(12,13),(26,13),(31,17),(31,45),(5,46)],fill=cab[3],outline=cab[0])
+  poly([(5,19),(12,12),(27,12),(30,15),(11,17)],fill=cab[5],outline=cab[2])
+  poly([(5,31),(8,20),(13,18),(11,31)],fill=GLASS[4],outline=GLASS[1])
+  poly([(14,19),(27,18),(27,29),(13,30)],fill=GLASS[3],outline=GLASS[1])
+  line((17,21,23,20,18,25),fill=GLASS[5],width=2)
+  line((13,32,27,31,27,43),fill=cab[1])
+  rect((3,36,9,41),fill='#4a5153')
+  for y in (37,39):line((3,y,8,y),fill='#98a29a')
+  rect((3,33,7,35),fill=LAMP[2],outline='#847e67')
+  line((5,44,1,44,1,47,9,47),fill='#9ca59c',width=2)
+  rect((18,32,26,33),fill=cab[5])
+ else:
+  poly([(19,31),(22,19),(27,15),(39,15),(42,20),(42,43),(21,45)],fill=cab[3],outline=cab[0])
+  poly([(20,20),(24,13),(38,12),(42,16),(39,18),(24,18)],fill=cab[5],outline=cab[1])
+  line((24,14,37,13),fill=cab[6])
+  poly([(21,28),(23,20),(26,19),(25,28)],fill=GLASS[5],outline=GLASS[2])
+  rect((28,19,37,28),fill=GLASS[2],outline=cab[0])
+  poly([(29,20),(36,20),(30,25),(29,25)],fill=GLASS[5])
+  line((26,30,38,30,38,42,27,42,26,30),fill=cab[1])
+  d.arc((28,33,36,39),180,340,fill='#cdbc8b')
+  line((30,37,33,37),fill='#b2976f')
+  poly([(3,38),(6,31),(20,28),(25,32),(25,42),(4,44)],fill=cab[3],outline=cab[1])
+  poly([(6,32),(12,29),(20,28),(24,31),(11,34)],fill=cab[5])
+  for x in (14,17,20):line((x,35,x-1,39),fill=cab[1])
+  rect((3,35,7,43),fill='#b4a886',outline='#505451')
+  for x in (4,6):line((x,36,x,41),fill='#676657')
+  d.ellipse((4,32,9,37),fill=LAMP[2],outline='#7c7359')
+  line((1,46,7,47),fill='#b1ab95',width=2)
+  line((25,46,40,46),fill='#727b6a',width=3)
+ line((19 if late else 34,32,22 if late else 37,32),fill='#c5c0a8')
+ for x in (16,end-14):
+  d.arc((x-10,40,x+10,61),184,352,fill=cab[1],width=3)
+  d.arc((x-10,40,x+10,61),198,282,fill=cab[4],width=2)
+ for x in (16,end-14):
+  for dx,dy in ((-3,1),(1,3),(2,-1)):d.point((x+dx,floor+dy),fill='#ab9b7d')
+  line((x+4,49,x+5,51),fill='#383a37')
+ line((start+4,49,start+9,51,start+16,50),fill='#656459')
+ line((6,30,3,27,3,25) if late else (24,29,22,24,20,24),fill=iron)
+ im.info['anchor']=[(end+4)//2,55]
+ return im
+
+
+def delivery_headings(late, long_body, paint):
+ """Project the painted sides, with a separate radiator, tailboard and roof."""
+ from math import sin, cos
+ from PIL import ImageDraw, ImageOps
+ broad = delivery_lorry(late, long_body, paint)
+ box = 31 if late else 43
+ end = box + (65 if long_body else 51)
+ cab = PAINT[paint]
+ frames = []
+ for facing in range(8):
+  if facing in (2, 6):
+   frame = broad if facing == 6 else ImageOps.mirror(broad)
+   ax, ay = broad.info['anchor']
+   frame.info['anchor'] = [ax if facing == 6 else frame.width-1-ax, ay]
+   frames.append(frame)
+   continue
+  theta = facing*pi/4
+  sx, sy = -sin(theta), cos(theta)
+  im = Image.new('RGBA', (150, 138))
+  d = ImageDraw.Draw(im)
+  def at(u,v,z):
+   return (round(75+(u-end/2)*sx+v*sy),round(89+((u-end/2)*sy-v*sx)*.54-z))
+  def panel(points,fill,edge=None):
+   d.polygon([at(*p) for p in points], fill=fill, outline=edge)
+  def stroke(points,colour,width=1):
+   d.line([at(*p) for p in points],fill=colour,width=width)
+  def side_texture(x0,x1,side):
+   # Side art's axle is at row 51 and the tyre rests at 59.
+   a,b,c=at(x0,side,59),at(x1,side,59),at(x0,side,0)
+   dx=b[0]-a[0]
+   if not dx:return
+   scale=(x1-x0)/dx
+   slope=(b[1]-a[1])/dx
+   tex=broad.crop((x0,0,x1,60))
+   # The horizontal sprite includes its own roof. Only project the side below its eave.
+   tex.paste((0,0,0,0),(0,0,tex.width,13 if x0>=box else 18 if x0>=20 or late else 29))
+   alpha=tex.getchannel('A').point(lambda a:255 if a==255 else 0)
+   tex.putalpha(alpha)
+   mapped=tex.transform(im.size,Image.Transform.AFFINE,
+     (scale,0,-a[0]*scale,-slope,1,a[0]*slope-a[1]),Image.Resampling.NEAREST)
+   im.alpha_composite(mapped)
+  panel([(2,-14,0),(end,-14,0),(end+2,13,0),(4,16,0)],(32,31,36,70))
+  near= -15 if sx>0 else 15
+  # Paint each body back-to-front; the bonnet is lower than the cab.
+  sections=[(3,box-1,41 if late else 27,'nose'),(box,end,46,'box')]
+  if not late:sections[:1]=[(3,23,27,'nose'),(22,box-1,41,'cab')]
+  for lo,hi,h,kind in sorted(sections,key=lambda s:(s[0]+s[1])*sy):
+   isbox=kind=='box'
+   w=15 if isbox else (10 if kind=='nose' and not late else 13)
+   side=w if near>0 else -w
+   side_texture(lo,hi,side)
+   u=hi if sy>0 else lo
+   face='#a78c62' if isbox and not late else '#98a6a2' if isbox else cab[3]
+   def end_panel(v0,v1,z0,z1,colour,edge=None):
+    panel([(u,v0,z0),(u,v1,z0),(u,v1,z1),(u,v0,z1)],colour,edge)
+   end_panel(-w,w,14,h,face,'#444a46')
+   if isbox:
+    for v in (-w+2,w-2,0):
+     stroke([(u,v,16),(u,v,h-1)],'#69675b' if late else '#7e674a')
+    end_panel(-w,w,12,16,cab[1])
+    if late:
+     for v in (-8,8):
+      stroke([(u,v,18),(u,v,h-3)],'#c6cbc1')
+      end_panel(v-2,v+1,26,28,'#515c5d')
+    else:
+     for v in (-10,-5,4,10):
+      stroke([(u,v,17),(u,v+2,23),(u,v,32)],'#c5a679')
+    for v in (-w+2,w-2):end_panel(v-1,v+1,13,15,'#b55036')
+   elif kind=='cab' or late:
+    end_panel(-w+2,w-2,h-13,h-3,GLASS[3],cab[1])
+    stroke([(u,-w+4,h-6),(u,-w+1,h-9)],GLASS[5],2)
+    stroke([(u,0,h-12),(u,0,h-3)],cab[2])
+   if kind=='nose':
+    end_panel(-6,6,15,25,'#383f40','#c9bca1')
+    for z in (17,20,23):stroke([(u,-5,z),(u,5,z)],'#8e9892')
+    for v in (-w+2,w-2):end_panel(v-2,v+1,21,24,LAMP[2])
+    end_panel(-w-1,w+1,12,14,'#b5b3a3')
+   if abs(sx)<.001:
+    for v in (-w+2,w-2):
+     end_panel(v-2,v+2,1,12,'#333438')
+     stroke([(u,v-1,2),(u,v-1,9)],'#57534d')
+    end_panel(-w+3,w-3,8,13,'#363b38')
+    end_panel(-4,3,11,14,'#c1b18a','#5b5951')
+   roof=('#c9ae7b' if not late else '#c1cbc4') if isbox else cab[5]
+   crown=2 if isbox and not late else 1
+   for sign,colour in [(-1,roof),(1,('#dac298' if not late else '#d3d9d0') if isbox else cab[4])]:
+    panel([(lo,sign*w,h),(hi,sign*w,h),(hi,0,h+crown),(lo,0,h+crown)],colour)
+   stroke([(lo,-w,h),(hi,-w,h),(hi,w,h),(lo,w,h),(lo,-w,h)],'#817359' if isbox else cab[2])
+   if isbox:
+    for x in range(lo+5,hi-2,11 if not late else 19):
+     stroke([(x,-w+1,h),(x,0,h+crown),(x,w-1,h)],'#baa177' if not late else '#a4b1ac')
+     stroke([(x+1,1,h+crown),(x+1,w-2,h)],'#e3cba0' if not late else '#dce1d6')
+    stroke([(lo+1,-w+1,h),(hi-1,-w+1,h)],'#e6d1a8' if not late else '#e3e7dc')
+    if sy>0:
+     if not late:
+      for sign in [-1,1]:
+       panel([(u,sign*w,h-1),(u,sign*3,h),(u,sign*(w-2),h-16)],'#c8ab78')
+       stroke([(u,sign*(w-2),h-15),(u,sign*4,h-2)],'#8e744e')
+      end_panel(-w+1,w-1,13,19,'#846a4d','#64523d')
+      stroke([(u,-w+2,17),(u,w-2,17)],'#b49b74')
+     for v in (-w+3,w-3):
+      for z in (18,32): end_panel(v-2,v+2,z,z+1,'#61665e')
+     end_panel(-w+1,w-1,10,12,'#777f79','#515951')
+   else:
+    stroke([(lo+1,-w+2,h),(hi-1,-w+2,h)],cab[6])
+    if kind=='nose' and not late:
+     stroke([(lo+1,0,h+1),(hi-2,0,h+1)],cab[6])
+     for sign in (-1,1):
+      end_panel(sign*(w-2)-2,sign*(w-2)+2,21,25,'#b4aa8a',cab[1])
+      end_panel(sign*(w-2)-1,sign*(w-2)+1,22,24,LAMP[2])
+    else:
+     for v in (-w+4,w-4):
+      stroke([(u,v,h-11),(u,v+3,h-8)],'#81999b')
+     for sign in (-1,1):
+      stroke([(lo+2,sign*w,h-12),(lo+2,sign*(w+3),h-8)],'#3d4545')
+      stroke([(lo+2,sign*(w+3),h-8),(lo+2,sign*(w+3),h-5)],'#88968b',2)
+  bounds=im.getbbox()
+  frame=im.crop(bounds)
+  frame.info['anchor']=[75-bounds[0],89-bounds[1]]
+  frames.append(frame)
+ return frames
+
+
 def vehicle_sprites():
  """Every model in every paint and heading, keyed for the atlas."""
  out = {}

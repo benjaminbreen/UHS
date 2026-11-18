@@ -1,3 +1,4 @@
+import type { PalaceStyle } from "../content/palaces/styles";
 import type { LayeredTheme } from "./layered-themes";
 
 export type InteriorMusic =
@@ -9,7 +10,12 @@ export type InteriorMusic =
   | "hall"
   | "cave"
   | "sewer"
-  | "mine";
+  | "mine"
+  | "court-baroque"
+  | "court-china"
+  | "court-roman"
+  | "court-islamic"
+  | "court-hall";
 
 const everywhere = {
   culture: [],
@@ -28,9 +34,159 @@ const jig = [
   "G4:1 A4:1 G4:1 F#4:2 E4:1", "D4:5 -:1",
 ].join(" ");
 
+// A minuet: two eight-bar strains, the first played again after the second.
+const minuetA = "D5:1 G5:1 F#5:1 E5:1 D5:2 C5:1 B4:1 A4:1 B4:2 G4:1 A4:1 B4:1 C5:1 D5:1 E5:.5 D5:.5 C5:1 B4:1 A4:1.5 G4:.5 G4:3";
+const minuetB = "B4:1 E5:1 D#5:1 E5:1 B4:2 C5:1 A4:1 F#4:1 G4:2 E4:1 A4:1 D5:1 C#5:1 D5:1 A4:1 F#4:1 G4:.5 A4:.5 B4:1 A4:1 D5:3";
+const minuetBassA = "G2:2 B2:1 C3:2 D3:1 E3:1 D3:1 C3:1 G2:2 B2:1 C3:2 A2:1 B2:1 C3:1 A2:1 D3:2 D2:1 G2:3";
+const minuetBassB = "E3:2 B2:1 E3:2 G3:1 A2:2 B2:1 E3:2 E2:1 F#2:2 A2:1 D3:2 F#2:1 G2:1 E2:1 A2:1 D3:2 D2:1";
+const minuetKeysA = [
+  "G3:.5 B3:.5 D4:.5 G4:.5 D4:.5 B3:.5", "C4:.5 E4:.5 G4:.5 E4:.5 D4:.5 F#4:.5", "E4:.5 G4:.5 B4:.5 G4:.5 C4:.5 E4:.5", "G3:.5 B3:.5 D4:.5 G4:.5 D4:.5 B3:.5",
+  "C4:.5 E4:.5 G4:.5 E4:.5 A3:.5 C4:.5", "B3:.5 D4:.5 G4:.5 E4:.5 C4:.5 A3:.5", "D4:.5 F#4:.5 A4:.5 F#4:.5 D4:.5 C4:.5", "G3:.5 B3:.5 D4:.5 G4:1.5",
+].join(" ");
+const minuetKeysB = [
+  "E3:.5 G3:.5 B3:.5 E4:.5 B3:.5 G3:.5", "E3:.5 G3:.5 B3:.5 G4:.5 E4:.5 B3:.5", "A3:.5 C4:.5 E4:.5 C4:.5 B3:.5 D#4:.5", "E3:.5 G3:.5 B3:.5 E4:.5 B3:.5 G3:.5",
+  "F#3:.5 A3:.5 D4:.5 A3:.5 F#3:.5 A3:.5", "D4:.5 F#4:.5 A4:.5 F#4:.5 D4:.5 A3:.5", "G3:.5 B3:.5 E3:.5 G3:.5 A3:.5 C#4:.5", "D3:.5 A3:.5 D4:.5 F#4:1.5",
+].join(" ");
+
+// A tune on five notes, in two halves of eight bars.
+const audienceA = "A4:1 B4:.5 D5:.5 E5:2 D5:1 B4:1 A4:2 F#4:1 A4:.5 B4:.5 A4:1 F#4:1 E4:3 -:1 D4:1 E4:.5 F#4:.5 A4:2 B4:1 D5:1 B4:1 A4:1 F#4:1 E4:1 D4:1.5 E4:.5 D4:4";
+const audienceB = "D5:1 E5:.5 F#5:.5 E5:2 D5:1 B4:1 D5:2 A4:1 B4:.5 A4:.5 F#4:1 E4:1 F#4:3 -:1 A4:1 F#4:.5 E4:.5 D4:2 E4:1 F#4:1 A4:1 B4:1 A4:1 F#4:1 E4:1.5 D4:.5 D4:4";
+
+const romanA = "E4:1 F4:1 G4:2 A4:2 G4:1 F4:1 E4:2 D4:1 E4:1 F4:3 -:1 A4:1 B4:1 C5:2 B4:1 A4:1 G4:2 F4:1 G4:1 F4:1 E4:1 E4:4";
+const romanB = "C5:2 D5:1 C5:1 B4:2 A4:2 G4:1 A4:1 B4:1 C5:1 A4:3 -:1 A4:1 G4:1 F4:2 G4:1 F4:1 E4:2 D4:1 E4:1 F4:1 D4:1 E4:4";
+
+// Hijaz on D: the step from E flat to F sharp is what makes it.
+const courtyardA = "D4:1 Eb4:1 F#4:2 G4:1 A4:1 G4:1 F#4:1 Eb4:2 F#4:1 Eb4:1 D4:3 -:1 A4:1 Bb4:1 C5:2 Bb4:1 A4:1 G4:1 A4:1 F#4:1 G4:.5 F#4:.5 Eb4:1 F#4:1 D4:4";
+const courtyardB = "D5:2 C5:1 Bb4:1 A4:2 Bb4:.5 A4:.5 G4:1 A4:1 Bb4:1 C5:1 D5:1 A4:3 -:1 G4:1 A4:1 Bb4:1 A4:1 G4:1 F#4:1 Eb4:2 F#4:1 G4:1 F#4:.5 Eb4:.5 F#4:1 D4:4";
+
+const tableA = "D4:1 F4:1 A4:1 G4:2 F4:1 E4:1 G4:1 E4:1 D4:2 C4:1 D4:1 F4:1 A4:1 C5:2 A4:1 G4:1 F4:1 E4:1 D4:3";
+const tableB = "A4:1 C5:1 D5:1 C5:2 A4:1 G4:1 A4:1 C5:1 A4:3 F4:1 G4:1 A4:1 G4:2 E4:1 F4:1 E4:1 C4:1 D4:3";
+
 /** Music that replaces the outdoor score while the player is inside a building.
  * Original sketches; no culture or date claims beyond the choice of room. */
 export const interiorThemes: Record<InteriorMusic, LayeredTheme> = {
+  "court-baroque": {
+    culture: ["european"],
+    years: [1650, 1789],
+    place: "A palace of the Baroque",
+    id: "the-kings-supper",
+    title: "The King's Supper",
+    subtitle:
+      "A minuet for a room where people are watched while they eat: violins carry the tune, a harpsichord fills in under them, and a flute joins when the first strain comes round again.",
+    evidence:
+      "Inference: the minuet in two repeated strains over a harpsichord and bass viol is the commonest dance of the French court from the 1660s, and music was played at the king's public supper. This tune is original.",
+    bpm: 104,
+    meter: 3,
+    bars: 32,
+    key: "G major",
+    reverb: [0.35, 2.4],
+    sections: [{ bar: 0, label: "First strain" }, { bar: 8, label: "Again, with the flute" }, { bar: 16, label: "Second strain" }, { bar: 24, label: "First strain" }],
+    layers: [
+      { voice: "strings", stem: "melody", loop: `${minuetA} ${minuetA} ${minuetB} ${minuetA}`, velocity: 0.44, pan: -0.15 },
+      { voice: "flute", stem: "melody", loop: `${minuetA} -:24 ${minuetA}`, velocity: 0.26, pan: 0.25, enter: 8, transpose: 12 },
+      { voice: "harpsichord", stem: "harmony", loop: `${minuetKeysA} ${minuetKeysA} ${minuetKeysB} ${minuetKeysA}`, velocity: 0.29, pan: 0.1 },
+      { voice: "cello", stem: "bass", loop: `${minuetBassA} ${minuetBassA} ${minuetBassB} ${minuetBassA}`, velocity: 0.44 },
+    ],
+  },
+  "court-china": {
+    culture: ["east-asian"],
+    years: [1368, 1911],
+    place: "A Chinese palace hall",
+    id: "audience-at-dawn",
+    title: "Audience at Dawn",
+    subtitle:
+      "A zither sets out a tune on five notes over slow bronze bells; a fiddle answers it in long slides, and a bamboo flute takes the tune up the second time through.",
+    evidence:
+      "Inference: court ceremony used sets of tuned bells and stone chimes with zithers and flutes, on five-note modes; the fiddle belongs to the later, lighter palace music. This tune is original and makes no claim to any surviving score.",
+    bpm: 60,
+    meter: 4,
+    bars: 32,
+    key: "D, five notes",
+    reverb: [0.5, 3.5],
+    sections: [{ bar: 0, label: "Zither and bells" }, { bar: 8, label: "The fiddle answers" }, { bar: 16, label: "With the flute" }],
+    layers: [
+      { voice: "pluck", stem: "melody", loop: `${audienceA} ${audienceB}`, velocity: 0.56, pan: -0.2 },
+      { voice: "pluck", stem: "harmony", loop: "D3:1 A3:1 D4:2 D3:1 A3:1 B3:2 B2:1 F#3:1 B3:2 A2:1 E3:1 A3:2 D3:1 A3:1 D4:2 E3:1 B3:1 E4:2 A2:1 E3:1 A3:2 D3:1 A3:1 D4:2", velocity: 0.28, pan: 0.2, enter: 4 },
+      { voice: "bronze", stem: "harmony", loop: "D4:1:.9 -:7 A3:1:.7 -:7 B3:1:.7 -:7 A3:1:.6 -:7", velocity: 0.28, pan: 0.35, echo: [2, 2, 0.4] },
+      { voice: "erhu", stem: "melody", loop: "-:4 ~A4:3 B4:1 A4:2 F#4:2 ~E4:4 -:8 ~D5:3 B4:1 ~A4:4 -:4 F#4:2 E4:2 ~D4:6 -:2 -:16", velocity: 0.31, pan: 0.15, enter: 8 },
+      { voice: "flute", stem: "melody", loop: `A5:1 B5:.5 D6:.5 E6:2 -:4 F#5:1 A5:.5 B5:.5 A5:1 F#5:1 -:4 D5:1 E5:.5 F#5:.5 A5:2 -:4 F#5:1 E5:1 D5:1.5 E5:.5 D5:4 ${audienceB}`, velocity: 0.25, pan: -0.05, enter: 16, transpose: -12 },
+      { voice: "drone", stem: "bass", loop: "D2:16 A1:8 D2:8", velocity: 0.14 },
+      { voice: "wood", stem: "percussion", loop: "-:15 C6:1:.4 -:15 C6:.5:.4 C6:.5:.3", velocity: 0.11, pan: 0.5 },
+      { voice: "gong", stem: "percussion", loop: "D2:1 -:63", velocity: 0.22 },
+    ],
+  },
+  "court-roman": {
+    culture: ["european", "north-african-west-asian"],
+    years: [-200, 400],
+    place: "A Roman house",
+    id: "after-the-third-course",
+    title: "After the Third Course",
+    subtitle:
+      "A lyre plays for the couches while the dishes go round; a double pipe joins it, and a frame drum keeps the time.",
+    evidence:
+      "Inference: lyre and double pipe (aulos, tibia) players were hired to entertain at dinner, and Greek music, which Romans adopted, used modes like this one on E. The tune is original; almost no Roman music survives.",
+    bpm: 80,
+    meter: 4,
+    bars: 32,
+    key: "E, Phrygian",
+    reverb: [0.4, 2],
+    sections: [{ bar: 0, label: "The lyre" }, { bar: 8, label: "The pipe joins" }],
+    layers: [
+      { voice: "harp", stem: "melody", loop: `${romanA} ${romanB} ${romanA} ${romanB}`, velocity: 0.44, pan: -0.15 },
+      { voice: "reed", stem: "melody", loop: `${romanB} ${romanA} ${romanB}`, velocity: 0.24, pan: 0.25, enter: 8 },
+      { voice: "pluck", stem: "harmony", loop: "E3:1 B3:1 E4:1 B3:1 A2:1 E3:1 A3:1 E3:1", velocity: 0.2, pan: 0.2 },
+      { voice: "drone", stem: "bass", loop: "E2:16 A1:8 E2:8", velocity: 0.12 },
+      { voice: "frame", stem: "percussion", loop: "D3:1:.9 -:.5 D3:.5:.4 D3:1:.6 -:1", velocity: 0.14, pan: 0.4, enter: 4 },
+    ],
+  },
+  "court-islamic": {
+    culture: ["north-african-west-asian"],
+    years: [700, 1800],
+    place: "A palace of the Islamic world",
+    id: "water-in-the-court",
+    title: "Water in the Court",
+    subtitle:
+      "An oud plays a tune in Hijaz over a frame drum; a reed flute answers it in long slides, and a plucked zither fills in the second time through.",
+    evidence:
+      "Inference: oud, ney, qanun and frame drum are the instruments of court music from Baghdad to Granada, and Hijaz is one of the old modes. The tune is original.",
+    bpm: 72,
+    meter: 4,
+    bars: 32,
+    key: "D, Hijaz",
+    reverb: [0.45, 2.6],
+    sections: [{ bar: 0, label: "The oud" }, { bar: 8, label: "The ney answers" }, { bar: 16, label: "With the qanun" }],
+    layers: [
+      { voice: "oud", stem: "melody", loop: `${courtyardA} ${courtyardB} ${courtyardA} ${courtyardB}`, velocity: 0.7, pan: -0.15 },
+      { voice: "ney", stem: "melody", loop: "~D5:4 C5:2 Bb4:2 ~A4:8 -:16 ~G4:4 F#4:2 Eb4:2 ~D4:8 -:16 ~A4:4 Bb4:2 A4:2 ~G4:4 F#4:4 D4:8 -:8", velocity: 0.4, pan: 0.2, enter: 8 },
+      { voice: "pluck", stem: "harmony", loop: "D3:.5 A3:.5 D4:.5 A3:.5 D3:.5 A3:.5 D4:1 G2:.5 D3:.5 G3:.5 D3:.5 D3:.5 A3:.5 D4:1", velocity: 0.28, pan: 0.3, enter: 16 },
+      { voice: "drone", stem: "bass", loop: "D2:16", velocity: 0.17 },
+      { voice: "frame", stem: "percussion", loop: "D3:1:.9 D3:.5:.5 D3:.5:.5 -:.5 D3:.5:.6 D3:1:.8", velocity: 0.13, pan: 0.35, enter: 4 },
+    ],
+  },
+  "court-hall": {
+    culture: ["european"],
+    years: [500, 1500],
+    place: "A lord's hall",
+    id: "at-the-high-table",
+    title: "At the High Table",
+    subtitle:
+      "A harp plays a dance in three for the hall; a fiddle takes it up, then a recorder an octave above, over a drone and a tabor.",
+    evidence:
+      "Inference: harpers played in lords' halls from the early Middle Ages, and fiddle, recorder and tabor were the minstrel's band of the later ones; the dance is in the D mode most surviving tunes use. The tune is original.",
+    bpm: 120,
+    meter: 3,
+    bars: 32,
+    key: "D, Dorian",
+    reverb: [0.35, 2.2],
+    sections: [{ bar: 0, label: "The harp" }, { bar: 8, label: "The fiddle" }, { bar: 16, label: "The recorder" }],
+    layers: [
+      { voice: "harp", stem: "melody", loop: `${tableA} ${tableB} ${tableA} ${tableB}`, velocity: 0.42, pan: -0.2 },
+      { voice: "strings", stem: "melody", loop: `${tableB} ${tableA} ${tableB}`, velocity: 0.3, pan: 0.15, enter: 8 },
+      { voice: "flute", stem: "melody", loop: `${tableA} ${tableB}`, velocity: 0.2, pan: 0.3, enter: 16, transpose: 12 },
+      { voice: "drone", stem: "bass", loop: "D2:12 A1:6 D2:6", velocity: 0.13 },
+      { voice: "frame", stem: "percussion", loop: "D3:1:.9 D3:.5:.4 D3:.5:.5 D3:1:.6", velocity: 0.14, pan: 0.4, enter: 4 },
+    ],
+  },
   cave: {
     ...everywhere,
     years: [-1000000, 10000],
@@ -225,6 +381,16 @@ export const interiorThemes: Record<InteriorMusic, LayeredTheme> = {
     ],
   },
 };
+
+/** The court music of a palace, by how it is built; undefined where none is written yet, and the outdoor score plays on. */
+export function courtMusic(style: PalaceStyle | undefined): InteriorMusic | undefined {
+  if (!style) return undefined;
+  if (style.columns === "lacquer") return "court-china";
+  if (style.columns === "moorish") return "court-islamic";
+  if (style.order === "roman") return "court-roman";
+  if (style.order === "timber") return style.rude || style.walling === "ashlar" ? undefined : "court-hall";
+  return (style.order ?? "classical") === "classical" && style.emblem === "sun" ? "court-baroque" : undefined;
+}
 
 /** Which piece a building's use calls for; undefined means the room is left quiet. */
 export function interiorMusic(use: string | undefined, faith: string | undefined, home: boolean): InteriorMusic | undefined {

@@ -1,3 +1,4 @@
+import type { TopographySample } from "../core/topography";
 import type { Boundary } from "../content/agriculture/types";
 import type { GroundMotifOverrides } from "./ground-motifs";
 import { stoneMotifs, turfTick } from "./ground-motifs";
@@ -123,62 +124,68 @@ export function enclosurePixel(
   }
 }
 
-/** A terrace riser on the cell's `riser` edges, where the ground drops to the
- * bench below. Seen from the south, a drop to the south shows its whole
- * face; any other way, only the top of the wall and a sliver of its side.
- * Walled systems build it of dry stone, the rest bank it in turf. */
-export function riserPixel(
-  riser: number,
-  px: number,
-  py: number,
-  wx: number,
-  wy: number,
-  stoneFaced: boolean,
-  palette: Rgb[],
-  ground: Rgb,
-): Rgb | undefined {
-  // A drop on two adjacent sides is one wall across the corner; `t` is how
-  // far past that diagonal the pixel is, towards the drop.
-  const t =
-    (riser & 6) === 6 ? px + py - 15
-    : (riser & 12) === 12 ? py - px
-    : (riser & 3) === 3 ? px - py
-    : (riser & 9) === 9 ? 15 - px - py
-    : undefined;
-  const face = t !== undefined && riser & 4 ? t + 3 : riser & 4 ? py - 10 : -1;
-  if (t !== undefined && riser & 4 && (face < 0 || face > 5)) return undefined;
-  if (face >= 0) {
-    if (face === 5) return shade(ground, -30);
-    if (!stoneFaced) {
-      if (face === 0) return palette[6];
-      const bank = mix(palette[0], palette[5], face / 5);
-      return turfTickAt(wx, wy) ? shade(bank, 6) : bank;
+/** Join the midpoints of real bench edges around each corner. Both tiles
+ * sharing an edge paint the same line, including where a bank turns. */
+export function benchEdges(sample: TopographySample, x: number, y: number) {
+  const field = (dx: number, dy: number) => sample(x + dx, y + dy)?.field;
+  const grid = [-1, 0, 1].map(dy => [-1, 0, 1].map(dx => field(dx, dy)));
+  type End = { x: number; y: number; nx: number; ny: number; material: Boundary | "footway" };
+  const lines: { x: number; y: number; dx: number; dy: number; len2: number; nx: number; ny: number; material: Boundary | "footway" }[] = [];
+  const join = (a: End, b: End) => {
+    const dx = b.x - a.x, dy = b.y - a.y, len2 = dx * dx + dy * dy;
+    const sign = (a.nx + b.nx) * -dy + (a.ny + b.ny) * dx < 0 ? -1 : 1;
+    const scale = sign / Math.sqrt(len2);
+    lines.push({ x: a.x, y: a.y, dx, dy, len2, nx: -dy * scale, ny: dx * scale, material: a.material });
+  };
+  for (const kind of ["riser", "footway"] as const) {
+    if (!grid.some(row => row.some(f => f?.[kind]))) continue;
+    for (let cy = 0; cy < 2; cy++) for (let cx = 0; cx < 2; cx++) {
+      const nw = grid[cy][cx], ne = grid[cy][cx + 1], sw = grid[cy + 1][cx], se = grid[cy + 1][cx + 1];
+      const vx = cx * 16, vy = cy * 16, ends: End[] = [];
+      const edge = (a: typeof nw, b: typeof nw, bit: number, opposite: number, ex: number, ey: number, nx: number, ny: number) => {
+        if ((a?.[kind] ?? 0) & bit) ends.push({ x: vx + ex, y: vy + ey, nx, ny, material: kind === "footway" ? kind : a!.boundary });
+        else if ((b?.[kind] ?? 0) & opposite) ends.push({ x: vx + ex, y: vy + ey, nx: -nx, ny: -ny, material: kind === "footway" ? kind : b!.boundary });
+      };
+      edge(nw, sw, 4, 1, -8, 0, 0, 1);
+      edge(ne, se, 4, 1, 8, 0, 0, 1);
+      edge(nw, ne, 2, 8, 0, -8, 1, 0);
+      edge(sw, se, 2, 8, 0, 8, 1, 0);
+      if (ends.length === 2) join(ends[0], ends[1]);
+      else for (const end of ends) join(end, { ...end, x: vx, y: vy });
     }
-    if (face === 0) return mod(wx + 2, 7) === 0 ? stone.capJoint : stone.cap;
-    // Two courses of rough blocks, joints staggered and set at random.
-    const course = face < 3 ? 0 : 1;
-    const run = Math.floor((wx + course * 4) / 6);
-    const joint = mod(wx + course * 4, 6) === 0 || face === 2 || face === 4;
-    if (joint) return stone.faceJoint;
-    const tone = hash(run, course + Math.floor(wy / 16) * 2, 851);
-    return tone > 0.7 ? stone.face : tone > 0.3 ? stone.foot : shade(stone.foot, -10);
   }
-  // Outermost pixel is the drop, then the wall's side, then its top.
-  const north = t !== undefined || (riser & 1 && py < 4);
-  const d = t !== undefined ? 2 - t : north ? py : riser & 2 ? 15 - px : riser & 8 ? px : 99;
-  if (d < 0 || d > 4) return undefined;
-  if (d === 0) return shade(ground, -34);
-  const along = north ? wx : wy;
-  if (stoneFaced) {
-    if (d === 4 || (north && d === 3)) return mod(along + 2, 7) === 0 ? stone.capJoint : stone.cap;
-    if (mod(along + (d > 2 ? 3 : 0), 6) === 0) return stone.faceJoint;
-    const tone = hash(Math.floor(along / 6), d > 2 ? 1 : 0, 851);
-    return tone > 0.6 ? stone.face : stone.foot;
-  }
-  return d >= 3 ? palette[6] : mix(palette[0], palette[5], d === 1 ? 0.8 : 0.4);
+  return lines;
 }
 
-const turfTickAt = (wx: number, wy: number) => hash(wx, wy, 853) > 0.82;
+export function benchPixel(lines: ReturnType<typeof benchEdges>, px: number, py: number,
+  wx: number, wy: number, palette: Rgb[], soil: Rgb[], ground: Rgb): Rgb | undefined {
+  let nearest: typeof lines[number] | undefined, best = 25, depth = 0;
+  for (const line of lines) {
+    const x = px + 0.5 - line.x, y = py + 0.5 - line.y;
+    const t = Math.max(0, Math.min(1, (x * line.dx + y * line.dy) / line.len2));
+    const d2 = (x - t * line.dx) ** 2 + (y - t * line.dy) ** 2;
+    if (line.material === "footway") {
+      if (d2 < 6.25) return shade(mix(soil[3], palette[0], 0.25), hash(wx, wy, 851) < 0.12 ? -7 : 0);
+      if (d2 < 10) return mix(soil[2], palette[0], 0.52);
+      continue;
+    }
+    if (d2 >= best) continue;
+    best = d2; nearest = line; depth = x * line.nx + y * line.ny;
+  }
+  if (!nearest) return;
+  const face = 1.4 + 2.4 * Math.max(0, nearest.ny);
+  if (depth < -1.3 || depth > face + 0.8 || best > (Math.max(1.3, Math.abs(depth)) + 0.6) ** 2) return;
+  if (depth > face) return shade(ground, -15);
+  if (nearest.material === "wall") {
+    const along = Math.abs(nearest.nx) > Math.abs(nearest.ny) ? wy : wx;
+    const joint = mod(along + (depth > 1.6 ? 3 : 0), 7) === 0;
+    return depth < 0 ? (joint ? stone.capJoint : stone.cap) : joint ? stone.faceJoint : depth < 1.5 ? stone.face : stone.foot;
+  }
+  const grassy = nearest.material === "baulk";
+  const lip = mix(soil[3], palette[0], grassy ? 0.66 : 0.25);
+  const bank = mix(soil[1], palette[5], grassy ? 0.42 : 0.15);
+  return depth < 0 ? lip : shade(bank, depth < 1 ? 5 : -3);
+}
 
 export function bold(
   e: Enclosure,

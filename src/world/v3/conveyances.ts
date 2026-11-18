@@ -10,6 +10,7 @@ import { requirementMet } from "../../content/characters/requirements";
 import { localLabel } from "../../content/characters/officiant";
 import { proceduralName } from "../../content/geography/character";
 import { conveyancesFor, type Conveyance } from "../../content/conveyances";
+import type { Sample } from "./roads";
 import { cellKey, type Rect, type SettlementPlan } from "./types";
 
 /** A vehicle working a settlement, and who is in it. Where it is comes from
@@ -28,6 +29,7 @@ export type Vehicle = {
   waits: [number, number];
   phase: number;
   crew: string[];
+  delivery?: { store: string; customer: string; place: string; walks: [Point[], Point[]]; tails: [number, number] };
   team?: string;
   rowLength?: number;
   seedCrop?: CropId;
@@ -100,10 +102,189 @@ export function vehicleAt(
   };
 }
 
+export function truckOffset(p: Point, facing: number, forward: number, side: number): Point {
+  const a = (facing * Math.PI) / 4;
+  return {
+    x: Math.round(p.x + forward * Math.sin(a) + side * Math.cos(a)),
+    y: Math.round(p.y - forward * Math.cos(a) + side * Math.sin(a)),
+  };
+}
+
+export function truckBody(p: Point, facing: number, long: boolean) {
+  const cells: Point[] = [],
+    length = long ? 3 : 2;
+  for (let i = -length; i <= length; i++) for (let j = -1; j <= 1; j++) cells.push(truckOffset(p, facing, i, j));
+  return cells;
+}
+
+export function deliveryAt(v: Vehicle, clock: number) {
+  const truck = vehicleAt(v, clock),
+    { phase, cycle, drive } = vehicleSchedule(v, clock);
+  const depot = phase >= 2 * drive + v.waits[0],
+    stop = depot ? 0 : 1;
+  const time = phase - (depot ? 2 * drive + v.waits[0] : drive);
+  const wait = v.waits[depot ? 1 : 0],
+    path = v.delivery!.walks[stop];
+  const service = 50,
+    pace = 2;
+  const workAt = v.delivery!.tails[stop] * pace;
+  const workTime = Math.max(0, Math.min(service, time - workAt));
+  const steps = Math.max(0, Math.min(time - workTime, wait - time));
+  const index = Math.min(path.length - 1, Math.floor(steps / pace));
+  const cab = truck.moving || time < 1 || wait - time < 1;
+  const inOffice = !depot && !cab && steps >= path.length * pace;
+  const a = path[index],
+    b = path[Math.min(index + 1, path.length - 1)];
+  const fraction = steps / pace - Math.floor(steps / pace);
+  const walking = !cab && !inOffice && index < path.length - 1 && (time < workAt || time >= workAt + service);
+  return {
+    truck,
+    depot,
+    cab,
+    inOffice,
+    person: a,
+    walking,
+    x: a.x + (b.x - a.x) * fraction,
+    y: a.y + (b.y - a.y) * fraction,
+    working: !cab && time >= workAt && time < workAt + service,
+    handled: cab ? 0 : workTime / service,
+    call: 2 * Math.floor((clock + v.phase * cycle) / cycle) + (depot ? 1 : 0),
+  };
+}
+
+function planDelivery(plan: SettlementPlan, seed: string, pack: Pack, sample: Sample) {
+  const truck = plan.objects.find((o) => o.motor);
+  if (!truck) return;
+  const start = truck.pos,
+    motor = truck.motor!;
+  const blocked = new Set(plan.solid);
+  for (const o of plan.objects) if (o !== truck && o.pos.space === "outside") blocked.add(cellKey(o.pos.x, o.pos.y));
+  const dry = new Map<string, boolean>();
+  const open = (p: Point) => {
+    const key = cellKey(p.x, p.y);
+    if (!dry.has(key)) dry.set(key, !blocked.has(key) && sample(p.x, p.y).water > 0);
+    return dry.get(key)!;
+  };
+  const bounds = { x: start.x - 65, y: start.y - 65, w: 131, h: 131 };
+  const lane = (p: Point, from: Point) => {
+    const facing = p.y < from.y ? 0 : p.y > from.y ? 4 : 2;
+    if (!truckBody(p, facing, motor.long).every(open)) return Infinity;
+    const k = cellKey(p.x, p.y);
+    return plan.lanes?.has(k) ? 1 : plan.traffic.has(k) ? 2 : plan.surface.has(k) ? 3 : 7;
+  };
+  const gap = (p: Point) => Math.hypot(p.x - start.x, p.y - start.y);
+  const commercial = (claim: string) =>
+    /warehouse|shop|market|merchant|grocer|bakery|factory|workshop/i.test(claim) ? 0 : 1;
+  const places = plan.places
+    .filter((p) => gap(p.entrance) > 9 && gap(p.entrance) < 55)
+    .sort((a, b) => commercial(a.claim) - commercial(b.claim) || gap(a.entrance) - gap(b.entrance));
+  for (const place of places.slice(0, 16)) {
+    const door = place.entrance;
+    const path = route(start, door, lane, {
+      bounds,
+      maxNodes: 4500,
+      isGoal: (p) =>
+        gap(p) > 7 && Math.hypot(p.x - door.x, p.y - door.y) <= 5 && Math.hypot(p.x - door.x, p.y - door.y) >= 2,
+    });
+    if (path.status !== "found" || path.path.length < 6) continue;
+    const road = [{ x: start.x, y: start.y }, ...path.path];
+    const v: Vehicle = {
+      id: truck.id,
+      model: truck.sprite,
+      conveyance: "delivery-truck",
+      label: truck.name,
+      doing: "Driving the delivery truck",
+      gait: "trot",
+      path: road,
+      loop: false,
+      speed: 0.35,
+      waits: [3850, 240],
+      phase: 0,
+      crew: [],
+    };
+    // Start each town's first morning with its lorry at the loading bay.
+    const cycle = vehicleSchedule(v, 0).cycle;
+    v.phase = ((((cycle - 180 - 9 * 3600) % cycle) + cycle) % cycle) / cycle;
+    const walks: Point[][] = [],
+      tails: number[] = [];
+    for (const [i, at] of [
+      vehicleAt(v, cycle - 120 - v.phase * cycle),
+      vehicleAt(v, (road.length - 1) / v.speed + 1 - v.phase * cycle),
+    ].entries()) {
+      const body = new Set(truckBody(at, at.facing, motor.long).map((p) => cellKey(p.x, p.y)));
+      const pass = (p: Point) => (open(p) && !body.has(cellKey(p.x, p.y)) ? 1 : Infinity);
+      for (const side of Math.sin(at.heading) < 0 ? [-2, 2] : [2, -2]) {
+        const cab = truckOffset(at, at.facing, 2, side),
+          tail = truckOffset(at, at.facing, -(motor.long ? 4 : 3), side / 2);
+        if (!Number.isFinite(pass(cab)) || !Number.isFinite(pass(tail))) continue;
+        const rear = route(cab, tail, pass, { bounds, maxNodes: 150 });
+        if (rear.status !== "found") continue;
+        // The building entrance itself may have a door object.
+        const office = i
+          ? route(tail, door, (p) => (p.x === door.x && p.y === door.y ? 1 : pass(p)), { bounds, maxNodes: 350 })
+          : undefined;
+        if (office && office.status !== "found") continue;
+        walks.push([cab, ...rear.path, ...(office?.path ?? [])]);
+        tails.push(rear.path.length);
+        break;
+      }
+      if (walks.length !== i + 1) break;
+    }
+    if (walks.length !== 2) continue;
+    const driver = crewMember(
+      seed,
+      pack,
+      v.id,
+      v.doing,
+      { role: "Truck Driver", livelihood: "lorry-driver", age: [21, 60] },
+      0,
+      start,
+    );
+    driver.role = driver.origin?.livelihood === "lorry-driver" ? (driver.origin.roleLabel ?? driver.role) : driver.role;
+    const store = v.id + "-dispatch",
+      customer = v.id + "-receiving";
+    v.delivery = { store, customer, place: place.id, walks: walks as [Point[], Point[]], tails: tails as [number, number] };
+    v.crew.push(driver.id);
+    driver.pos = { ...walks[0][tails[0]], space: "outside" };
+    plan.actors.push(driver);
+    plan.vehicles!.push(v);
+    const footway = new Set(walks.flat().map((p) => cellKey(p.x, p.y)));
+    const roadway = new Set(road.map((p) => cellKey(p.x, p.y)));
+    for (const [id, name, stop, grain] of [
+      [store, "Road freight awaiting collection", walks[0][tails[0]], 18],
+      [customer, "Delivered freight", door, 0],
+    ] as const) {
+      const neighbours = [1, 2, 3].flatMap((n) =>
+        [
+          [1, 0],
+          [-1, 0],
+          [0, -1],
+          [0, 1],
+          [1, 1],
+          [-1, 1],
+        ].map(([dx, dy]) => ({ x: stop.x + n * dx, y: stop.y + n * dy })),
+      );
+      const pos =
+        neighbours.find((p) => open(p) && !footway.has(cellKey(p.x, p.y)) && !roadway.has(cellKey(p.x, p.y))) ?? stop;
+      plan.objects.push({
+        id,
+        name,
+        pos: { ...pos, space: "outside" },
+        kind: "container",
+        sprite: "harbor-case",
+        inventory: { grain },
+      });
+    }
+    motor.facing = vehicleAt(v, 9 * 3600).facing;
+    truck.sprite = truck.sprite.replace(/-\d$/, "-" + motor.facing);
+    return;
+  }
+}
+
 /** The settlement's vehicles and their crews, from what its time and place
  * drove. A patrol goes round the warded ground; a haul runs from the road out
  * of town to the square and back. */
-export function planConveyances(plan: SettlementPlan, seed: string, pack: Pack) {
+export function planConveyances(plan: SettlementPlan, seed: string, pack: Pack, sample: Sample) {
   const setting = pack.setting;
   if (!setting) return;
   const open = (p: Point) => !plan.solid.has(cellKey(p.x, p.y));
@@ -114,6 +295,7 @@ export function planConveyances(plan: SettlementPlan, seed: string, pack: Pack) 
     return r.status === "found" ? r.path : undefined;
   };
   const vehicles: Vehicle[] = (plan.vehicles ??= []);
+  planDelivery(plan,seed,pack,sample);
   const grain = plan.parcels?.find(p => p.owner && crops[p.crop].kind === "grain" && p.state !== "abandoned");
   for (const c of conveyancesFor(setting)) {
     const n = c.work === "haul" && grain ? Math.max(1, c.count(plan.site.profile.radius)) : c.count(plan.site.profile.radius);
@@ -126,7 +308,7 @@ export function planConveyances(plan: SettlementPlan, seed: string, pack: Pack) 
       const workingLane = farmLane && farmLane.length >= 7;
       const path = workingLane ? [market!, ...farmLane] : c.work === "patrol" ? patrol(ward, open, leg) : haul(plan, roll, leg);
       if (!path || path.length < 8) continue;
-      const crew = c.crew.map((member, i) => crewMember(seed, pack, id, c, member, i, path[0]));
+      const crew = c.crew.map((member, i) => crewMember(seed, pack, id, c.doing, member, i, path[0]));
       for (const a of crew) plan.actors.push(a);
       vehicles.push({
         id,
@@ -276,7 +458,7 @@ function nearestOpen(p: Point, open: (p: Point) => boolean) {
   return p;
 }
 
-function crewMember(seed: string, pack: Pack, vehicle: string, c: Conveyance,
+function crewMember(seed: string, pack: Pack, vehicle: string, doing: string,
   member: Conveyance["crew"][number], place: number, at: Point): Actor {
   const setting = pack.setting!;
   const id = `${vehicle}-crew-${place}`;
@@ -293,7 +475,7 @@ function crewMember(seed: string, pack: Pack, vehicle: string, c: Conveyance,
     work: { ...pos },
     sprite: `human-${place % 3}-${Math.floor(roll("sprite") * 6)}`,
     inventory: { water: 1 },
-    activity: c.doing,
+    activity: doing,
     fatigue: 0,
     hunger: 5,
     trust: 1,

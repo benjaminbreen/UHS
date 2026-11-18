@@ -41,6 +41,8 @@ once for both the ground raster and the minimap.
   `src/world/v3/land-potential.ts`) gives physical
   arable, pasture, fishing, timber and similar opportunities.
 
+Wild food patches hold finite amounts. Temperate greens come up in spring and summer, berries and fruit in summer and autumn, and fallen acorns in autumn in temperate woodland. Edible root beds can be dug year-round. Residents and the player draw from the same patch. A picked-out patch regrows after its recovery time in an eligible season.
+
 ## Vegetation
 
 - **Mixes.** `vegetation.ts` holds weighted tree and understory mixes and

@@ -1,3 +1,5 @@
+import { smallSession } from "./fixtures";
+import { Autopilot } from "../src/runtime/autopilot";
 import { householdStory } from "../src/world/v3/household-story";
 import { learnerArrangementFor, learnerArrangements } from "../src/content/households/learners";
 import { residenceCustoms, residenceFor } from "../src/content/households/residence";
@@ -554,6 +556,12 @@ it.each(["London 1650","Tokyo 1800","Nile valley 2000 BCE"])("creates reachable 
     expect(await a.call("goto",{...member.landing})).toMatch(/^ARRIVED/);
     expect(await a.call("goto",{target:member.catchId})).toMatch(/^ARRIVED/);
     expect(await a.call("inspect",{target:member.catchId})).toContain(`"${e.inspect(member.catchId)!.name}"`);
+    if(member.launch.pier) {
+      const {water,direction}=member.launch;
+      expect(await a.call("goto",{x:water.x-direction.x,y:water.y-direction.y})).toMatch(/^ARRIVED/);
+      expect(await a.call("act",{command:{type:"interact",target:member.boatId,action:"launch"}})).toMatch(/climb in/);
+      expect(e.state.player.afloat).toBe("boat");
+    }
     if(profile.revision===6) {
       process.stdout.write(`${query}: ${plan.waterfront!.members.length} fishing households; ${profile.id}; agent reached and inspected ${profile.practice!.catch.toLowerCase()}\n`);
       return;
@@ -745,4 +753,53 @@ it("sends NPC hunters out to the far country and home with the kill",async()=>{
 it("puts the rifle in a guerrilla's hands", () => {
   const a = { inventory: { rifle: 1 }, origin: { livelihood: "guerrilla" } } as never;
   expect(personalItem(a)).toBe("rifle");
+});
+
+it("gathers individual handfuls by hand and finishes the same basket on the work button", () => {
+  const start = resolveSetting("A gatherer in Neolithic Europe, 5000 BCE", "gather-basket");
+  if ("error" in start) throw Error(start.error);
+  const e = smallSession({...start.setting,season:"spring"}), s=e.state;
+  const p=s.player, store=s.objects.find(o=>o.id===s.households![0].storeId)!;
+  const pos=(x:number,y:number)=>({x,y,space:"outside"});
+  Object.assign(e.world,{blocked:()=>false,canCross:()=>true});
+  p.pos=pos(20,40); store.pos=pos(20,41);
+  const patch={id:"resource-26-40",name:"Wild greens",kind:"tree" as const,sprite:"ecology-greens",pos:pos(26,40),
+    inventory:{greens:6},resource:{item:"greens",capacity:6,regrowSeconds:86400,seasons:["spring"],readyAt:0}};
+  s.objects.push(patch,{...patch,id:"unripe",name:"Berry patch",inventory:{berries:0},resource:{...patch.resource,item:"berries",seasons:["summer"]}});
+  let i=0;
+  const act=(command:Parameters<Engine["validate"]>[0])=>{
+    const result=e.act({actionId:`forage-${++i}`,expectedRevision:s.revision,command});
+    expect(result.status,result.reason).toBe("completed");
+  };
+  for(let x=20;x<25;x++) act({type:"move",dx:1,dy:0});
+  act(e.workHere()!.command);
+  const card=e.cards.at(-1)!.choose!;
+  expect(card.choices.map(c=>c.label)).toEqual(["Wild greens"]);
+  act({type:"choose",card:card.card,choice:0});
+  act(e.workHere()!.command);
+  expect(p.basket).toEqual({item:"greens",count:1});
+  expect(patch.inventory.greens).toBe(5);
+  const pilot=new Autopilot({kind:"workday",workPass:e.workPlan()!.gather!.id},e);
+  for(let n=0;n<150;n++){
+    const step=pilot.next();
+    if("route" in step) for(const q of step.route) act({type:"move",dx:q.x-p.pos.x,dy:q.y-p.pos.y});
+    if("command" in step) act(step.command);
+    if("done" in step) break;
+  }
+  expect(p.basket).toBeUndefined();
+  expect(store.inventory.greens).toBe(6);
+  expect(patch.inventory.greens).toBe(0);
+  expect(s.today?.made.greens).toBe(6);
+});
+
+it("shows a visiting gatherer on their outing in the furnished settlement", () => {
+  const start = resolveSetting("A gatherer in Purnia, 6500 BCE", "gather-basket");
+  if ("error" in start) throw Error(start.error);
+  const { world } = createSettingSession(start.setting, "gather-basket");
+  const id = "visiting-gatherer";
+  const route = { start:360, period:1440, segments:[{ from:0, to:24, pos:world.spawn, activity:"gather" as const, label:"Picking fruit" }] };
+  world.outing = { actor:id, route, tick:()=>{} };
+  expect(world.itinerary!(id)).toBe(route);
+  expect(world.routinePending!(id)).toBe(false);
+  expect(world.dormant!(id)).toBe(false);
 });

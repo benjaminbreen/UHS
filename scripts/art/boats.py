@@ -123,6 +123,7 @@ def wasen_ne_master(palette, depth):
 
 
 def layers(facing, form='clinker', finish=0):
+    W,H,BASE,SCALE = 176,136,78,1.3
     c = C(W, H)
     depth = np.full((H, W), np.inf)
     palette = {**RAMPS, 'rope':ramp(67,.06,lift=-.2), **FINISHES[form][finish][1]}
@@ -484,6 +485,7 @@ def layers(facing, form='clinker', finish=0):
 def build():
     from art.atlas import pack_atlas
     from art.stamp import write_stamp
+    harbor_art()
     sprites={}
     catalog={}
     for form,finishes,moorings in [
@@ -551,8 +553,252 @@ def review(out):
     sheet(items,out,columns=4)
 
 
+def harbor_art(review_path=None, review_dhow=False):
+    from art.atlas import pack_atlas
+    from art.front_worksites import harbor_crane
+    from art.steamships import steamship, trading_dhow, cloth_bale
+    items={}
+    for form in ('harbor-ferry','coastal-freighter'):
+        for heading in range(8):items[f'{form}-{heading}']=steamship(heading,form)
+    items['harbor-cloth-bale']=cloth_bale()
+    mat=Image.new('RGBA',(49,32))
+    weave=ImageDraw.Draw(mat)
+    weave.polygon([(2,19),(32,16),(47,24),(16,29),(2,23)],fill='#816447',outline='#624d3c')
+    for x in range(5,33,4):
+        weave.line((x,20-(x-5)//9,x+12,27-(x-5)//9),fill='#c79e69')
+    for n in range(4):
+        stack=mat.copy()
+        for x,y in [(20,6),(7,11),(10,0)][:n]:stack.alpha_composite(items['harbor-cloth-bale'],(x,y))
+        stack.info['anchor']=[24,25]
+        items[f'harbor-bale-mat-{n}']=stack
+    for heading in range(8):
+        for finish in range(3):
+            for form in ('dhow','lighter'):
+                items[f'harbor-{form}-{finish}-{heading}']=trading_dhow(heading,form=='lighter',finish=finish)
+        for furled in (False,True):
+            form='rig-furled' if furled else 'rig'
+            for canvas in range(3):
+                items[f'harbor-{form}-{canvas}-{heading}']=trading_dhow(heading,furled=furled,finish=canvas,rig=True)
+    if review_path:
+        labels=('N','NE','E','SE','S','SW','W','NW')
+        views=[]
+        if review_dhow:
+            for label,form,finish,rig in [('Dhow','dhow',0,'rig'),('Furled','dhow',1,'rig-furled'),('Lighter','lighter',2,None)]:
+                for heading,bearing in enumerate(labels):
+                    canvas=Image.new('RGBA',(266,252))
+                    frames=[items[f'harbor-{form}-{finish}-{heading}']]
+                    if rig:frames.append(items[f'harbor-{rig}-{finish}-{heading}'])
+                    for frame in frames:
+                        x,y=frame.info['anchor']
+                        canvas.alpha_composite(frame,(133-x,170-y))
+                    views.append((f'{label} · {bearing}',canvas.crop(canvas.getbbox())))
+        else:
+            for form in ('harbor-ferry','coastal-freighter'):
+                for heading,bearing in enumerate(labels):
+                    im=items[f'{form}-{heading}']
+                    views.append((f'{form} · {bearing}',im.crop(im.getbbox())))
+        sheet(views,review_path,zoom=2,columns=4,masters=False)
+    for facing in (-1,1):
+        for pose in range(25):items[f'wharf-crane-{facing}-{pose}']=harbor_crane(facing,pose)
+    for name in ('pile','cleat','case','bollard'):
+        im=Image.new('RGBA',(31,35));d=ImageDraw.Draw(im)
+        if name=='pile':
+            d.polygon([(8,7),(21,7),(21,29),(18,33),(9,32)],fill='#6c4835',outline='#433d37')
+            d.rectangle((10,8,13,29),fill='#ab794d');d.line((15,10,14,19,15,26),fill='#82543b')
+            d.rectangle((9,27,20,30),fill='#52463b')
+            for y in (13,22):
+                d.arc((7,y-3,22,y+3),0,180,fill='#323d3e',width=3)
+                d.arc((7,y-4,22,y+2),35,160,fill='#a39879')
+            d.ellipse((7,3,22,10),fill='#dfb97c',outline='#634b37');d.arc((10,4,19,8),135,460,fill='#ae8558')
+        elif name=='bollard':
+            d.ellipse((4,24,29,31),fill=(45,40,42,100))
+            d.polygon([(3,23),(7,20),(20,20),(24,24),(21,28),(4,28)],fill='#585757',outline='#3e4344')
+            for x in (6,19):d.point((x,24),fill='#ccc3a7')
+            d.ellipse((8,20,19,25),fill='#32393b')
+            d.rectangle((9,13,18,22),fill='#4d5353')
+            d.line((10,14,10,21),fill='#919386',width=2)
+            d.ellipse((6,10,21,17),fill='#333c40')
+            d.ellipse((6,8,21,14),fill='#717a72',outline='#444b49')
+            d.arc((7,9,20,13),160,300,fill='#cdc3a1')
+        elif name=='cleat':
+            d.ellipse((5,23,24,29),fill='#544f43');d.rectangle((11,17,18,26),fill='#595950',outline='#3e403d')
+            d.rounded_rectangle((5,15,24,19),2,fill='#878779',outline='#404441');d.line((7,16,21,16),fill='#beb798')
+        else:
+            d.rectangle((4,14,23,30),fill='#a9703e',outline='#634332')
+            d.polygon([(4,14),(9,10),(27,10),(23,14)],fill='#e7bd81',outline='#976a46')
+            d.polygon([(23,14),(27,10),(27,26),(23,30)],fill='#855735',outline='#604534')
+            for y in (18,23,28):d.line((5,y,22,y),fill='#8b5e3b')
+            for x in (6,20):d.rectangle((x,15,x+1,28),fill='#e4b676')
+            d.line((7,27,20,15),fill='#724b32',width=3);d.line((8,27,21,15),fill='#d9aa6e',width=2)
+            d.rectangle((13,20,17,23),fill='#e1cca0');d.line((14,22,16,22),fill='#886d4c')
+        im.info['anchor']=[15,30 if name in ('case','pile') else 26];items['harbor-'+name]=im
+    im=Image.new('RGBA',(39,45));d=ImageDraw.Draw(im)
+    d.ellipse((2,34,36,42),fill=(35,51,54,95))
+    for x,y,lean in ((8,9,-3),(24,8,3),(16,4,0)):
+        d.polygon([(x-4,y),(x+4,y),(x+lean+4,39),(x+lean-4,39)],fill='#825936',outline='#423e33')
+        d.line((x-2,y+2,x+lean-2,35),fill='#c49662',width=2)
+        d.polygon([(x+lean-4,32),(x+lean+4,31),(x+lean+4,39),(x+lean-4,39)],fill='#555342')
+        d.ellipse((x-5,y-2,x+5,y+3),fill='#d9b078',outline='#70543a')
+    for y in (16,19,23):
+        d.line((4,y,13,y+2,22,y+2,30,y-1),fill='#4e4539',width=3)
+        d.line((4,y-1,14,y+1,22,y+1,29,y-2),fill='#c5a57b')
+    for xx,yy,length in ((1,39,5),(11,41,4),(24,39,7),(30,37,3)):
+        d.line((xx,yy,xx+length,yy),fill=(172,204,191,195))
+    im.info['anchor']=[17,38];items['harbor-dolphin']=im
+    im=Image.new('RGBA',(27,24));d=ImageDraw.Draw(im)
+    for y in (8,19):
+        d.polygon([(3,y),(10,y-9),(16,y-9),(23,y),(19,y),(13,y-6),(9,y)],fill='#7c6251',outline='#423c39')
+        d.line((4,y-1,11,y-8),fill='#bd9771',width=2)
+    d.rectangle((10,2,16,15),fill='#875d43',outline='#503f38')
+    d.line((10,2,10,14),fill='#dfb087',width=2)
+    for y in (5,12):d.point((14,y),fill='#d2c1a4')
+    im.info['anchor']=[13,15];items['harbor-buffer']=im
+    truck=Image.new('RGBA',(66,43));d=ImageDraw.Draw(truck)
+    d.ellipse((5,28,65,40),fill=(43,40,45,72))
+    for x in (16,48):
+        d.rectangle((x-3,24,x+3,32),fill='#424346')
+        d.ellipse((x-5,27,x+5,37),fill='#393d40',outline='#49403b')
+        d.ellipse((x-3,29,x+3,35),fill='#81756a')
+        d.ellipse((x-1,30,x+1,33),fill='#c6aa83')
+    d.polygon([(5,22),(13,14),(61,14),(55,23)],fill='#bf9466',outline='#6b5647')
+    for x in range(14,56,7):d.line((x,22,x+6,15),fill='#987551')
+    d.polygon([(5,22),(55,22),(55,28),(5,28)],fill='#854d37',outline='#544239')
+    d.polygon([(55,22),(61,15),(61,21),(55,28)],fill='#634a3d')
+    d.line((6,23,53,23),fill='#d29a65')
+    for x in (9,25,41,52):d.point((x,26),fill='#c7ab81')
+    for x,y in ((11,14),(5,22)):
+        d.line((x,y,x-2,y-13),fill='#3a4544',width=2)
+        d.line((x+1,y-1,x-1,y-12),fill='#99856b')
+    d.line((3,9,9,2),fill='#584636',width=3)
+    d.line((3,8,9,1),fill='#ba936c')
+    truck.info['anchor']=[32,33];items['harbor-freight-truck']=truck
+    laden=truck.copy()
+    for x,y in ((14,20),(36,19)):
+        laden.alpha_composite(items['harbor-case'],(x-4,y-29))
+    laden.info['anchor']=[32,33];items['harbor-freight-truck-laden']=laden
+    from art.props_b.vehicles import delivery_headings
+    for era,paints in [('bonnet',('green','maroon','navy','olive')),('cabover',('teal','red','sky','orange'))]:
+        for length in range(2):
+            for v,paint in enumerate(paints):
+                for heading,frame in enumerate(delivery_headings(era=='cabover',length,paint)):
+                    items[f'harbor-lorry-{era}-{length}-{v}-{heading}']=frame
+    im=Image.new('RGBA',(46,62));d=ImageDraw.Draw(im)
+    oak,trim,light,green='#694634','#b69059','#e0c290','#334e42'
+    d.ellipse((4,52,45,61),fill=(46,38,43,85))
+    d.rectangle((6,19,36,56),fill=oak,outline='#3d3832')
+    d.polygon([(36,20),(42,15),(42,51),(36,57)],fill='#4e3d32',outline='#3c3832')
+    d.polygon([(38,26),(40,24),(40,37),(38,39)],fill='#657975')
+    d.rectangle((10,22,32,39),fill='#333b38',outline=trim)
+    d.polygon([(11,23),(18,23),(12,30),(11,30)],fill='#85958a')
+    d.rectangle((21,23,31,38),fill='#45463c')
+    d.polygon([(22,37),(23,34),(26,33),(29,34),(31,37)],fill='#697369')
+    d.rectangle((24,27,28,33),fill='#c49c71')
+    d.line((25,29,25,31),fill='#e9bd82');d.point((28,30),fill='#705336')
+    d.polygon([(23,27),(24,24),(28,24),(30,27)],fill='#656b5d');d.line((23,27,30,27),fill='#3e4139')
+    d.line((24,34,26,36,27,34),fill='#e0cba6')
+    d.line((29,37,31,37),fill='#d9b284')
+    for x in (11,13):d.line((x,32,x,37),fill='#908365')
+    d.rectangle((12,35,16,37),fill='#b79765');d.line((12,35,15,35),fill='#e6ce9d')
+    d.line((19,22,19,38),fill=trim,width=2)
+    d.rectangle((6,39,36,42),fill='#684d35');d.line((5,39,37,39),fill=light,width=2)
+    d.rectangle((12,44,30,52),fill=green,outline=trim)
+    # A ticket and its perforated stub, legible below the window at native size.
+    d.rectangle((16,46,26,50),fill='#e3c184');d.line((23,46,23,50),fill='#9b7755')
+    for y in (47,49):d.point((16,y),fill=green)
+    for x in (7,33):
+        d.rectangle((x,20,x+2,55),fill=trim);d.line((x,21,x,54),fill='#cda873')
+    d.rectangle((5,55,36,57),fill='#453d32');d.line((6,55,35,55),fill=trim)
+    d.polygon([(1,22),(5,15),(22,3),(27,3),(44,16),(45,20),(36,23)],fill='#a39c80',outline='#524e44')
+    d.polygon([(22,4),(7,20),(1,21),(5,16)],fill='#cbbd99')
+    d.polygon([(25,4),(36,21),(44,19),(42,16)],fill='#777e70')
+    for foot in (9,16,26,35):d.line((24,5,foot,20),fill='#706e5d');d.line((24,5,foot+1,19),fill='#c7bb96')
+    d.line((2,21,35,22,44,19),fill='#e0cca3');d.line((2,23,35,24,44,21),fill='#514c3d',width=2)
+    d.ellipse((21,1,26,5),fill='#857457',outline='#535145');d.point((23,2),fill=light)
+    im.info['anchor']=[22,56];items['harbor-ticket-office']=im
+
+    iron,edge,glint='#313c3b','#53605a','#a29d83'
+    for form in ('panel','post','gate','gate-open'):
+        gate=form.startswith('gate')
+        im=Image.new('RGBA',(22 if gate else 16,32));d=ImageDraw.Draw(im)
+        if not gate:
+            d.rectangle((0,25,15,29),fill='#776e60')
+            d.rectangle((0,25,15,26),fill='#b0a48a')
+            for x in (1,5,9,13):
+                d.line((x,9,x,24),fill=iron)
+                d.line((x,11,x,15),fill=edge)
+                d.polygon([(x,6),(x-1,10),(x+1,10)],fill=iron)
+                d.point((x,7),fill=glint)
+            for y in (12,21):
+                d.line((0,y,15,y),fill=edge);d.line((0,y+1,15,y+1),fill=iron)
+            if form=='post':
+                d.rectangle((1,6,5,27),fill=iron)
+                d.line((2,7,2,25),fill='#808776')
+                for y in (5,23,26):d.rectangle((0,y,6,y+1),fill=edge)
+                d.ellipse((0,1,6,7),fill=iron);d.line((2,2,4,2),fill=glint)
+        else:
+            for flip in (False,True):
+                def xy(x,y):return (21-x if flip else x,y)
+                end,dy=(4,-8) if form.endswith('open') else (10,0)
+                for i in range(4):
+                    t=i/3; x=round(2+(end-2)*t); y=round(dy*t)
+                    d.line((xy(x,9+y-int(3*t)),xy(x,26+y)),fill=iron)
+                for y in (12,23,26):
+                    d.line((xy(2,y),xy(end,y+dy)),fill=edge if y==12 else iron)
+                d.line((xy(2,10),xy(end,5+dy)),fill=iron,width=2)
+                post=18 if flip else 0
+                d.rectangle((post,5,post+3,28),fill=iron)
+                d.line((post+1,5,post+1,25),fill='#818778')
+                d.ellipse((post,2,post+3,6),fill=edge);d.point((post+1,3),fill=glint)
+            if form=='gate':d.line((9,16,12,16),fill=trim)
+        im.info['anchor']=[im.width//2,28];items['harbor-'+(form if gate else 'fence-'+form)]=im
+    # Enamel departures clock above the chalkboard. A separate foot holds the board off the wet deck.
+    im=Image.new('RGBA',(35,56));d=ImageDraw.Draw(im)
+    for x in (7,24):
+        d.polygon([(x,24),(x+3,24),(x+4,52),(x,54)],fill='#394c46',outline='#36413d')
+        d.line((x+1,27,x+1,51),fill='#859383')
+    d.rectangle((4,20,29,46),fill='#506c62',outline='#343f3d')
+    d.rectangle((7,23,26,42),fill='#374441',outline='#ab956c')
+    d.line((9,27,23,27),fill='#d8ccab')
+    for x,y,length in ((10,31,6),(19,31,4),(10,34,5),(19,34,3),(10,38,7),(20,38,3)):
+        d.line((x,y,x+length,y),fill='#a9afa0')
+    d.polygon([(2,23),(5,19),(28,19),(32,23)],fill='#a9956d',outline='#4f584e')
+    d.ellipse((8,3,25,20),fill='#666c56',outline='#36433e')
+    d.ellipse((10,5,23,18),fill='#dfd1a7',outline='#9e976f')
+    for x,y in ((16,6),(22,11),(16,17),(11,11)):d.point((x,y),fill='#696453')
+    d.line((16,7,16,11,20,12),fill='#544e45')
+    d.line((9,46,28,46),fill='#ada48a')
+    im.info['anchor']=[17,53];items['harbor-departures']=im
+    # Platform scale: cast base, timber load deck and tall enamel dial with a red needle.
+    im=Image.new('RGBA',(63,58));d=ImageDraw.Draw(im)
+    d.polygon([(3,43),(16,34),(54,34),(60,44),(49,53),(3,51)],fill='#525751',outline='#484a45')
+    d.polygon([(4,42),(17,35),(55,35),(48,46),(4,46)],fill='#ad9068',outline='#776b56')
+    for xx in range(12,46,7):d.line((xx,44,xx+10,37),fill='#806c51')
+    d.line((5,47,47,47,56,38),fill='#c0ac87',width=2)
+    d.polygon([(47,37),(48,14),(52,14),(54,36)],fill='#617064',outline='#3d4f47')
+    d.line((49,16,49,35),fill='#a5a48a')
+    d.ellipse((42,3,58,19),fill='#596758',outline='#3c4b42')
+    d.ellipse((44,5,56,17),fill='#ddcda6',outline='#97977f')
+    d.line((46,9,47,10),fill='#6d7265');d.line((54,8,53,9),fill='#6d7265')
+    d.line((50,12,47,7),fill='#a0523f');d.point((50,12),fill='#654e42')
+    for x,y in ((10,34),(25,39)):
+        d.polygon([(x,y+5),(x+1,y-3),(x+5,y-8),(x+4,y-11),(x+9,y-10),(x+8,y-7),(x+14,y-3),(x+15,y+3),(x+12,y+6),(x+2,y+6)],fill='#b08e5f',outline='#6b5841')
+        d.line((x+4,y+2,x+4,y-1,x+7,y-5),fill='#d7b881',width=2)
+        d.line((x+6,y-8,x+10,y-8),fill='#635543');d.line((x+10,y+4,x+13,y+2),fill='#826b4f')
+    im.info['anchor']=[30,50];items['harbor-platform-scale']=im
+    from art.shadows import sprite_cast
+    from art.stamp import write_stamp
+    phases=json.loads((ROOT/'src/content/graphics/lighting.json').read_text())
+    for key,im in list(items.items()):
+        if key.startswith(('harbor-lorry','harbor-ticket-office','harbor-fence','harbor-gate')):
+            im.info['shadowAnchor']=im.info['anchor']
+            im.info['upright']=False
+            items.update(sprite_cast(key,im,None,phases))
+    pack_atlas(items,ROOT/'public/packs','harbor',2048)
+    write_stamp(ROOT)
+
 if __name__=='__main__':
     if sys.argv[1:2]==['build']:build()
+    elif sys.argv[1:2]==['harbor']:harbor_art(sys.argv[2] if len(sys.argv)>2 else None,sys.argv[3:4]==['dhow'])
     elif sys.argv[1:2]==['nile']:painted_review(sys.argv[2] if len(sys.argv)>2 else 'artifacts/boats/nile-eight-directions.png','papyrus')
     elif sys.argv[1:2]==['painted']:painted_review(sys.argv[2] if len(sys.argv)>2 else 'artifacts/boats/wasen-painted.png')
     elif sys.argv[1:2]==['hulls']:hulls(sys.argv[2] if len(sys.argv)>2 else 'artifacts/boats/hulls.png')

@@ -55,6 +55,7 @@ export type Station = {
   /** On the night station only: this resident's share of the day out of
    * doors. Defaults to OUTDOOR_SHARE. */
   share?: number;
+  rises?: number;
   /** On the night station only: minutes per tile. Defaults to PACE. */
   pace?: number;
   /** What they have in their hands here, and on the walk to it. */
@@ -173,7 +174,7 @@ export function buildItinerary(
   const pace = night.pace ?? PACE;
   const walk = (legs: Point[][]) =>
     legs.reduce((n, leg) => n + length(leg) * pace, 0);
-  const dwells = errands.map((s) => Math.min(dwellCap[s.activity], s.minutes));
+  const dwells = errands.map((s) => Math.min(s.activity === "tend" && s.target?.family === "crop" ? 26 : dwellCap[s.activity], s.minutes));
   const dwellSum = dwells.reduce((n, d) => n + d, 0);
   // Out of the door, round the errands, back through it.
   const outing = dwellSum + walk(between) + walk([toBed, fromBed]);
@@ -207,6 +208,7 @@ export function buildItinerary(
   // The leading gap borrows from the trailing one, sliding the whole day.
   const share = (indoors - nightMinutes) / rounds;
   const lead = Math.min(1, Math.max(0, phase)) * share;
+  if (night.rises !== undefined) startMinute = (night.rises - nightMinutes - lead + DAY_MINUTES) % DAY_MINUTES;
   const gap = (i: number) =>
     i === 0 ? lead : i === rounds ? share - lead : share;
   const segments: Segment[] = [];

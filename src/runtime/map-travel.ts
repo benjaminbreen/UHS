@@ -1,3 +1,8 @@
+import { gathersPlants } from "../content/characters/livelihoods";
+import { gatheringJourney, type Way } from "../world/v3/wayfarers";
+import { livelihoodOf } from "../world/v3/routines";
+import { BASKET_SIZE, emptyBasket, pickHandful, refreshResource, seasonAt } from "../core/livelihood";
+import { itineraryAt } from "../core/itinerary";
 import { withTravelWaterways, type TravelWaterwayInputs } from "../world/travel/waterways";
 import { Engine } from "../core/engine";
 import { seedAilments } from "../core/health";
@@ -11,7 +16,7 @@ import {
 } from "../world/travel/geography";
 import { toAtlas } from "../world/geography/atlas";
 import type { Coordinate } from "../world/travel/types";
-import type { PlayerCommand, Point, Snapshot } from "../core/types";
+import type { Actor, PlayerCommand, Point, Snapshot } from "../core/types";
 import type { Runtime } from "./session";
 import { releaseTerrainWorker } from "./terrain-worker-owner";
 import {
@@ -104,6 +109,10 @@ function borderDistances({ x, y }: Point, half: number) {
 export class MapTravel {
   readonly visited = new Map<string, Snapshot>();
   busy = false;
+  private foodTrip?: { home:Prepared; away:Prepared; worker:Actor; round:NonNullable<ReturnType<typeof gatheringJourney>>; beats:number; across:boolean };
+  private foodDay = new Map<string, number>();
+  private foodSearch?: { id:string; day:number; tried:Set<string>; retry:number };
+  private entered = new Set<string>();
   private closed = false;
   private staged?: Prepared;
   private pending?: {
@@ -123,6 +132,7 @@ export class MapTravel {
     private validate = connectionPath,
   ) {
     runtime.journey = this;
+    this.entered.add(id);
   }
   get entrances(): MapEntrance[] {
     return (this.runtime.engine.world as SettlementWorld).entrances?.() ?? [];
@@ -134,13 +144,85 @@ export class MapTravel {
     return {
       id: this.id,
       busy: this.busy,
-      visited: this.visited.size + 1,
+      visited: this.entered.size,
       prepared: this.staged?.id,
       preparing: this.pending?.id,
       exits: this.entrances,
     };
   }
+  private gatherer() {
+    const e = this.runtime.engine, day = Math.floor(e.state.clock/86400), hour = e.state.clock/3600%24;
+    if (this.foodTrip || this.foodDay.get(this.id) === day || hour < 6 || hour >= 14) return;
+    if (this.foodSearch?.id !== this.id || this.foodSearch.day !== day)
+      this.foodSearch = { id:this.id, day, tried:new Set(), retry:0 };
+    if (e.state.clock < this.foodSearch.retry) return;
+    const worker = e.state.actors.find(a => a.kind === "human" && !a.dead && !a.basket && !a.mount && !a.tends && !a.errand &&
+      a.householdId && gathersPlants(livelihoodOf(e.world.pack,a)));
+    if (!worker) this.foodSearch.retry = e.state.clock + 300;
+    return worker;
+  }
+  private startGathering(away: Prepared, worker:Actor) {
+    const home = { id:this.id, engine:this.runtime.engine };
+    const exit = this.entrances.find(e => e.to === away.id && e.walkable && e.point);
+    const entry = (away.engine.world as SettlementWorld).entrances?.().find(e => e.id === exit?.id && e.walkable && e.point);
+    const storeId = home.engine.state.households?.find(h => h.id === worker.householdId)?.storeId;
+    const store = home.engine.state.objects.find(o => o.id === storeId);
+    if (!exit?.point || !exit.path.length || !entry?.point || !store || away.engine.state.actors.some(a => a.id === worker.id)) return;
+    away.engine.populateNearby({ ...entry.point, space:"outside" });
+    const season = seasonAt(away.engine.world.pack.setting?.season ?? "spring",home.engine.state.clock);
+    for (const patch of away.engine.state.objects) if (patch.resource) refreshResource(patch,home.engine.state.clock,season);
+    const round = gatheringJourney(home.engine.world,away.engine.world,exit as Way,entry as Way,worker,store,away.engine.state.objects,home.engine.state.clock);
+    if (!round) return;
+    this.foodTrip = { home, away, round, worker, beats:0, across:false };
+    for (const [side,route] of [[home,round.town],[away,round.gather]] as const)
+      side.engine.world.outing = { actor:worker.id, route, tick:clock => this.walkGatherer(clock) };
+    this.walkGatherer(home.engine.state.clock);
+    return true;
+  }
+  private walkGatherer(clock:number) {
+    const trip = this.foodTrip;
+    if (!trip) return;
+    const {home,away,worker,round} = trip, minute = clock/60;
+    if (worker.dead) { this.finishGathering(trip); return; }
+    const patch = minute >= round.pick+4 && trip.beats < BASKET_SIZE ? away.engine.state.objects.find(o => o.id === round.patch) : undefined;
+    const remote = minute >= round.cross && minute < round.again;
+    if (patch) {
+      const season = seasonAt(away.engine.world.pack.setting?.season ?? "spring",clock);
+      while (trip.beats < BASKET_SIZE && minute >= round.pick + (trip.beats+1)*4) {
+        const when = (round.pick + ++trip.beats*4)*60;
+        const at = itineraryAt(round.gather,when-0.01);
+        worker.pos = { x:Math.round(at.x),y:Math.round(at.y),space:"outside" };
+        pickHandful(worker,patch,when,season);
+      }
+    }
+    if (trip.across !== remote) {
+      const source = (trip.across ? away : home).engine.state, dest = (remote ? away : home).engine.state;
+      source.actors = source.actors.filter(a => a.id !== worker.id);
+      dest.actors.push(worker);
+      trip.across = remote;
+    }
+    const at = itineraryAt(remote ? round.gather : round.town, Math.min(clock,round.unload*60+1));
+    worker.pos = { x:Math.round(at.x),y:Math.round(at.y),space:"outside" };
+    worker.activity = at.label; worker.direction = at.direction; worker.offRoutine = false;
+    worker.lastUpdated = clock; worker.heldItem = round.basket;
+    if (minute >= round.unload) {
+      const store = home.engine.state.objects.find(o => o.id === round.store);
+      if (store) emptyBasket(worker,store);
+      this.finishGathering(trip);
+    }
+  }
+  private finishGathering(trip:NonNullable<MapTravel["foodTrip"]>) {
+    delete trip.worker.heldItem;
+    for (const side of [trip.home,trip.away]) {
+      delete side.engine.world.outing;
+      if (side.id !== this.id) this.visited.set(side.id,side.engine.snapshot());
+    }
+    this.foodTrip = undefined;
+  }
   private load(id: string): Promise<Prepared> {
+    const trip = this.foodTrip;
+    const side = trip && (trip.home.id === id ? trip.home : trip.away.id === id ? trip.away : undefined);
+    if (side) return Promise.resolve(side);
     if (this.staged?.id === id) return Promise.resolve(this.staged);
     if (this.pending?.id === id) return this.pending.promise;
     this.pending?.abort.abort();
@@ -180,6 +262,8 @@ export class MapTravel {
   }
   observe() {
     if (this.closed || this.busy) return;
+    const trip = this.foodTrip;
+    if (trip && this.id !== trip.home.id && this.id !== trip.away.id) this.walkGatherer(this.runtime.engine.state.clock);
     const { player, manifest } = this.runtime.engine.state;
     const p = player.pos;
     this.approach = undefined;
@@ -213,7 +297,18 @@ export class MapTravel {
       best = score;
     }
     if (routeEntrance && routeEnd) this.approach = { entrance: routeEntrance, from: routeEnd };
-    const id = this.approach?.entrance.to;
+    const worker = this.gatherer();
+    const search = this.foodSearch;
+    const edge = worker && this.entrances.filter(e => e.walkable && e.point && e.path.length > 1 && !search!.tried.has(e.to) && !this.prefetchFailures.has(e.to))
+      .sort((a,b) => a.path.length-b.path.length)[0];
+    const id = this.approach?.entrance.to ?? edge?.to;
+    if (worker && search) {
+      if (!edge) this.foodDay.set(this.id,search.day);
+      else if (id && !search.tried.has(id) && this.staged?.id === id) {
+        search.tried.add(id);
+        if (this.startGathering(this.staged,worker) || search.tried.size >= 3) this.foodDay.set(this.id,search.day);
+      }
+    }
     if (!id || this.staged?.id === id || this.pending?.id === id || this.prefetchFailures.has(id)) return;
     const pending = this.load(id);
     const signal = this.pending?.abort.signal;
@@ -365,6 +460,7 @@ export class MapTravel {
     point: { x: number; y: number },
     seconds: number,
   ) {
+    this.walkGatherer(this.runtime.engine.state.clock);
     const source = this.runtime.engine.snapshot();
     const player = structuredClone(source.player);
     player.identity ??= {
@@ -401,6 +497,14 @@ export class MapTravel {
       if (player.held === oldId) player.held = object.id;
     }
     this.visited.set(this.id, source);
+    const trip = this.foodTrip;
+    const side = trip && (trip.home.id === this.id ? trip.home : trip.away.id === this.id ? trip.away : undefined);
+    if (side) {
+      side.engine.state = source;
+      const resident = source.actors.find(a => a.id === trip!.worker.id);
+      if (resident) trip!.worker = resident;
+    }
+    delete player.drivingVehicle;
     player.pos = { ...point, space: "outside" };
     player.home = next.player.home;
     player.work = next.player.work;
@@ -442,6 +546,8 @@ export class MapTravel {
     next.lifeAim = source.lifeAim;
     this.visited.delete(to);
     this.id = to;
+    this.entered.add(to);
+    this.walkGatherer(next.clock);
     this.staged = undefined;
     this.runtime.replace(destination.engine, true);
   }
@@ -588,6 +694,7 @@ export class MapTravel {
     this.pending?.abort.abort();
     if (this.staged) releaseTerrainWorker(this.staged.engine.world);
     this.staged = undefined;
+    if (this.foodTrip) { delete this.foodTrip.home.engine.world.outing; delete this.foodTrip.away.engine.world.outing; this.foodTrip = undefined; }
     this.visited.clear();
     if (this.runtime.journey === this) this.runtime.journey = undefined;
   }

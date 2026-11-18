@@ -186,6 +186,7 @@ export function temporalWorld(
               a.age ?? 34,
             ),
             memories: [],
+            encounters: undefined,
           },
     );
   if (setting.namingRevision) {

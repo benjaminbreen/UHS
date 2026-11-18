@@ -720,10 +720,34 @@ def fishing_equipment(style,info):
 def shore_building(style,info):
     if style.startswith('plank-fishing-'):
         home=style.endswith('house')
-        return sino.hall(dict(W=144 if home else 100,bays=3,wall_h=58 if home else 52,
+        im=sino.hall(dict(W=144 if home else 100,bays=3,wall_h=58 if home else 52,
             roof='thatch',tone='dark',form='hip' if home else 'gable',front='timber',
             posts='timber',wall='earth',sill='wood',lattice='bars',door='plain',
             ridge='plain',curve=0,plinth=5,rise=42 if home else 34,pent=False,seed=219,wear=.5),info)
+        if home:return im
+        # The projecting roof shelters two open bays flanking the store door.
+        d=ImageDraw.Draw(im);wood=RAMPS['pine'];cord=RAMPS['thatch']
+        sill=info['base']-9
+        for x in (info['x0']+4,info['x0']+71):
+            d.rectangle((x,sill-40,x+24,sill),fill=OAK[6])
+            for i in (3,9,14,21):d.line((x+i,sill-37,x+i,sill-2),fill=OAK[5])
+            d.rectangle((x,sill-40,x+24,sill-35),fill=OAK[7])
+            d.line((x,sill,x+24,sill),fill=wood[2])
+        x=info['x0']+4
+        for i in range(3):
+            y=sill-31+i*2
+            d.ellipse((x+3+i,y,x+16+i,y+16),outline=cord[5],width=2)
+            d.arc((x+3+i,y,x+16+i,y+16),130,305,fill=cord[2])
+        d.rectangle((x+10,sill-33,x+12,sill-28),fill=wood[2])
+        d.ellipse((x+2,sill-11,x+22,sill-3),fill=wood[4],outline=OAK[6])
+        d.rectangle((x+3,sill-8,x+21,sill-2),fill=wood[4])
+        d.ellipse((x+2,sill-12,x+22,sill-6),fill=OAK[6],outline=wood[2])
+        d.line((x+3,sill-4,x+21,sill-4),fill=cord[2])
+        x=info['x0']+71
+        for i in (0,5,11):
+            d.line((x+i+3,sill-1,x+i+10,sill-34+i//4),fill=wood[2],width=2)
+            d.polygon([(x+i+6,sill-18),(x+i+9,sill-20),(x+i+8,sill-9),(x+i+3,sill-1),(x+i+2,sill-4)],fill=wood[3])
+        return im
     from art.front_materials import kahgel
     from art import front_solid as so
     home=style=='earth-fishing-house'
@@ -1055,6 +1079,9 @@ def processing(style, info):
 
 
 def draw(style, info):
+    if style == 'wharf-store':return dispatch_office(info)
+    if style == 'transit-shed':return transit_shed(info)
+    if style == 'ferry-terminal':return ferry_house(info)
     if style in ('plank-fishing-house','plank-fishing-store','earth-fishing-house','reed-gear-shelter'):return shore_building(style,info)
     if style in ('net-rail','seine-pegs','fish-trays','fish-mat'):return shore_equipment(style,info)
     if style.startswith(('plank-skiff-','reed-skiff-')):return clinker_hull(style.rsplit('-',1)[1],info,True,'plank' if style.startswith('plank-') else 'reed')
@@ -1149,10 +1176,333 @@ class FrontWorksitePainter:
         self.door_x = info['door_x']
         self.door_size = (info.get('door_width',22),info['door_h'])
         self.no_door = info.get('doorless',False)
+        self.door_leaf = info.get('door_leaf',True)
         self.door_ground = info['base']+1
         self.bottom = self.door_ground
         _PAINTED[style] = dict(self.__dict__)
     def render(self): return self.image
+
+
+def harbor_crane(facing, pose=0):
+    im=Image.new('RGBA',(185,143));d=ImageDraw.Draw(im)
+    foot=(92,124)
+    theta=math.radians(125*(1-pose/24))
+    dx,dy=math.cos(theta)*74,math.sin(theta)*38
+    def p(x,y):return (round(foot[0]+facing*x),round(foot[1]+y))
+    def plate(points,fill,edge=None):
+        d.polygon([p(x,y) for x,y in points],fill=fill,outline=edge)
+    def bar(a,b,w=3,lit='#b18f5d'):
+        x,y=p(*a);u,v=p(*b)
+        d.line((x,y,u,v),fill='#303b41',width=w)
+        d.line((x-1,y-1,u-1,v-1),fill=lit,width=max(1,w-2))
+    def drum(x,y,r,fill):
+        a,b=p(x,y);d.ellipse((a-r,b-r,a+r,b+r),fill=fill,outline='#333b3e')
+        d.arc((a-r+1,b-r+1,a+r-1,b+r-1),175,295,fill='#d1af76')
+        d.point((a,b),fill='#d2bd90')
+    # Bolted granite plinth, fixed gantry, and a rotating bed with its machine house.
+    plate([(-25,-5),(-18,-13),(19,-13),(27,-5),(27,2),(-25,2)],'#635d57','#443e3c')
+    plate([(-25,-5),(-18,-13),(19,-13),(27,-5)],'#a39a82','#6b6559')
+    for x in (-19,16):
+        bar((x,-7),(x*.65,-35),6);bar((x+2,-8),(x+6,-32),3,'#796b54')
+    bar((-18,-8),(11,-33),3);bar((19,-8),(-12,-33),3)
+    plate([(-23,-36),(-17,-42),(17,-42),(23,-36),(23,-32),(-23,-32)],'#505755','#303a3c')
+    bar((-21,-36),(22,-36),3,'#bd9e72')
+    for y in range(-31,-7,4):bar((-19,y),(-14,y),1,'#a29677')
+    bar((-20,-31),(-20,-6),2);bar((-14,-31),(-14,-6),2)
+    plate([(-20,-39),(-20,-59),(-16,-63),(6,-63),(10,-58),(10,-39)],'#a16840','#3c4241')
+    plate([(-21,-57),(-16,-65),(6,-65),(12,-57)],'#809088','#394c4e')
+    bar((-20,-57),(11,-57),2,'#c7bea0')
+    for x in (-16,-9,-2):
+        plate([(x,-54),(x+5,-54),(x+5,-47),(x,-47)],'#344e53')
+        bar((x+1,-53),(x+4,-53),1,'#a4c4ba')
+    for x in range(-16,8,4):bar((x,-45),(x,-41),1,'#7c513c')
+    for leg in (-15,14):bar((leg,-39),(0,-75),4,'#987d57')
+    drum(0,-73,4,'#947249')
+    tip=(dx,dy-103)
+    heel=(7,-48);back=(-1,-62)
+    bar((-13,-47),(0,-74),2)
+    bar((0,-74),tip,2,'#83795f')
+    for j in range(6):
+        t=j/6;u=(j+1)/6
+        a=(heel[0]+(dx-heel[0])*t,heel[1]+(tip[1]-heel[1])*t)
+        b=(back[0]+(dx-back[0])*t,back[1]+(tip[1]-back[1])*t)
+        n=(back[0]+(dx-back[0])*u,back[1]+(tip[1]-back[1])*u)
+        bar(a,b,2,'#a38454');bar(a,n,2,'#b38c56')
+    bar(heel,tip,4,'#9a774c');bar(back,tip,3,'#dfb579')
+    drum(*heel,4,'#787c68');drum(*tip,4,'#a67c46')
+    # The frame pivot is the sheave socket; the crane stands at (92,124).
+    im.info['anchor']=list(p(*tip));im.info['trim']=True
+    return im
+
+
+def ferry_house(info):
+    from art.front_materials import brick, slate
+    from art.front_openings import sash
+    W, base = 160,117
+    c=C(W+16,base+4)
+    d=ImageDraw.Draw(c.im)
+    masonry=ramp(42,.076,lift=-.06)
+    sill=RAMPS['limestone']
+    x, wall = 8,46
+    brick(c,x,wall,W,base-wall,masonry,bond='flemish')
+    slate(c,x-3,13,W+6,wall-11)
+    for dx in range(31):
+        d.line((x-4+dx,12,x-4+dx,wall-2-dx),fill=(0,0,0,0))
+        d.line((x+W+3-dx,12,x+W+3-dx,wall-2-dx),fill=(0,0,0,0))
+    for yy in range(14,wall):
+        front=(yy-13)/(wall-13)
+        for xx in range(x-3,x+W+3):
+            col=c.g(xx,yy)
+            if col[3] and (xx < x+37-round(18*front) or xx > x+W-37+round(18*front)):
+                step=8 if xx<x+W//2 else -20
+                c.p(xx,yy,tuple(max(0,min(255,k+step)) for k in col[:3])+(255,))
+    for a,b in ((37,18),(W-37,W-18)):
+        d.line((x+a,14,x+b,wall-1),fill='#a8a5a1',width=2)
+    d.line((x+28,13,x+W-28,13),fill='#b3a38d',width=3)
+    for i in (30,W-33):
+        brick(c,x+i,4,9,15,masonry);c.rect(x+i-2,3,13,3,sill[4])
+    for dy,col in [(0,sill[5]),(2,sill[2]),(4,masonry[5])]:c.rect(x-3,wall+dy,W+6,2,col)
+    for off in range(0,W+1,40):
+        brick(c,x+min(off,W-6),wall+7,6,base-wall-8,masonry)
+        c.rect(x+min(off,W-6),wall+7,1,base-wall-9,masonry[1])
+    cx=x+W//2
+    for mid in (x+26,cx,x+W-26):
+        yy=base-42
+        d.ellipse((mid-18,yy-14,mid+18,yy+16),fill=sill[2],outline=masonry[5],width=2)
+        d.ellipse((mid-14,yy-10,mid+14,yy+15),fill='#425952',outline=sill[5])
+        d.line((mid-13,yy+1,mid+13,yy+1),fill='#c3ac85',width=2)
+        for k in (-8,0,8):d.line((mid,yy+1,mid+k,yy-7),fill='#a08e72')
+        if mid==cx:bevel(c,mid-14,yy+4,29,40,OAK,4)
+        else:sash(c,mid-13,yy+4,27,34,paint='green')
+        for side in (-1,1):bevel(c,mid+side*17-1,yy+2,3,42,sill,3)
+    bevel(c,cx-27,base-52,55,5,OAK,3);dw=25
+    for xx in (cx-12,cx+1):
+        d.rectangle((xx,base-37,xx+10,base-4),fill='#4c4940',outline='#40372e')
+        d.rectangle((xx+2,base-35,xx+8,base-19),fill='#63796f')
+        d.line((xx+3,base-34,xx+7,base-30),fill='#a3ada0')
+        d.rectangle((xx+2,base-14,xx+8,base-7),outline='#907458')
+    d.ellipse((cx-7,wall-12,cx+7,wall+2),fill='#4b4a41',outline='#baa582')
+    d.ellipse((cx-5,wall-10,cx+5,wall),fill='#ecdfb7')
+    d.line((cx,wall-9,cx,wall-5,cx+3,wall-4),fill='#514c3e')
+    for dx in (x+7,x+W-10):
+        d.line((dx,base-7,dx,wall+8),fill='#555748',width=2)
+        d.rectangle((dx-3,wall+12,dx+3,wall+21),fill='#d7b374',outline='#504b3e')
+    for i in range(3):
+        d.line((cx-18-i,base-2+i,cx+18+i,base-2+i),fill=('#b89e7c','#72685c','#a99a7d')[i])
+    poly=[(cx-21,base-54),(cx+21,base-54),(cx+27,base-46),(cx-27,base-46)]
+    d.polygon(poly,fill='#77958a',outline='#445b56')
+    for k in range(-17,20,7):d.line((cx+k,base-53,cx+k+round(k/8),base-47),fill='#acc1a7')
+    d.rectangle((cx-27,base-46,cx+27,base-43),fill='#50645b')
+    for k in (-22,22):d.line((cx+k,base-43,cx+k,base-37,cx+k+(4 if k<0 else -4),base-43),fill='#615747',width=2)
+    d.rectangle((cx+22,base-33,cx+34,base-14),fill='#b39b70',outline='#4f5045')
+    d.rectangle((cx+24,base-30,cx+32,base-16),fill='#decfaf')
+    for yy in range(base-28,base-17,3):d.line((cx+25,yy,cx+30,yy),fill='#9d927c')
+    info.update(x0=x,W=W,base=base,door_x=cx,door_width=dw,door_h=40)
+    return c.im
+
+
+def freight_case(c,x,y,w,h):
+    d=ImageDraw.Draw(c.im)
+    c.rect(x,y,w,h,OAK[4])
+    d.polygon([(x,y),(x+3,y-3),(x+w+2,y-3),(x+w-1,y)],fill=OAK[2])
+    d.line((x+2,y+h-2,x+w-3,y+1),fill=OAK[1])
+    c.rect(x,y,2,h,OAK[3]);c.rect(x+w-2,y,2,h,OAK[3])
+
+
+def freight_shutter(c,x,y,w,h,paint):
+    c.rect(x,y,w,h,paint[4])
+    for yy in range(y+2,y+h-1,4):
+        c.rect(x,yy,w,1,paint[5]);c.rect(x+1,yy+1,w-2,1,paint[3])
+    c.rect(x+1,y+h-4,w-2,2,paint[2])
+
+
+def dispatch_office(info):
+    from art.front_materials import brick
+    from art.front_modern import Block, skylight, vent
+    from art.front_openings import cast, reveal, sash
+    from art.front_victorian import ledge
+    b=Block(dict(floors=1,h0=58,para=6,roof_depth=41),'shop',11,1930)
+    c,x,y,w,base=b.c,b.x0,b.top,b.W,b.base
+    d=ImageDraw.Draw(c.im)
+    wall=ramp(34,.104,lift=-.08);grout=ramp(48,.058,lift=-.15)
+    trim=ramp(65,.065,lift=-.05);paint=ramp(161,.053,lift=-.17)
+    brick(c,x,y,w,base-y,wall,mortar=grout)
+    membrane=ramp(72,.018,lift=-.22)
+    b.deck(membrane=membrane,coping=trim,furnish=False)
+    for u,v in ((24,15),(w-53,20)):
+        xx,yy=x+u,y-v
+        c.rect(xx+1,yy-6,23,7,membrane[4])
+        for a in range(xx+3,xx+21,4):
+            c.rect(a,yy-5,2,4,membrane[2])
+        skylight(c,xx,yy-6,24,10)
+        d.polygon([(xx+2,yy-18),(xx+20,yy-18),(xx+24,yy-15),(xx-1,yy-15)],fill=trim[3],outline=membrane[4])
+        cast(c,xx+3,yy+1,22,3,.70)
+    vent(c,x+w-23,y-13,7);b.coping(trim)
+    ledge(c,x-1,y+5,w+2,trim,3)
+    for u in (2,55,115,169):
+        brick(c,x+u,y+10,5,base-y-11,wall,mortar=grout)
+        c.rect(x+u,y+10,1,base-y-12,wall[2]);cast(c,x+u+5,y+10,2,base-y-10,.68)
+    doors=[(x+11,38),(x+65,44)]
+    for n,(a,dw) in enumerate(doors):
+        top=base-43
+        c.rect(a-2,top-2,dw+4,45,wall[5])
+        c.rect(a,top,dw,42,OAK[7])
+        if n:
+            c.rect(a+3,top+5,dw-6,35,OAK[6])
+            for u,v,ww,hh in ((21,12,16,11),(24,22,12,8),(8,9,13,8)):
+                freight_case(c,a+u,base-v,ww,hh)
+        else:
+            freight_shutter(c,a+2,top+2,dw-4,39,paint)
+        reveal(c,a,top,dw,42,3);ledge(c,a-3,top-3,dw+6,trim,3)
+        c.rect(a+2,base-2,dw-3,2,OAK[2])
+    sash(c,x+126,base-42,23,25,paint='green')
+    ledge(c,x+124,base-16,27,trim,2)
+    c.rect(x+153,base-41,12,40,paint[5]); c.rect(x+155,base-37,8,14,paint[3])
+    d.line((x+155,base-35,x+160,base-36),fill=trim[2]);c.rect(x+161,base-20,2,2,trim[1])
+    for a in (x+55,x+116):
+        c.rect(a,y+15,1,11,OAK[6])
+        d.polygon([(a-4,y+22),(a+5,y+22),(a+2,y+18),(a-1,y+18)],fill=paint[4])
+        c.rect(a-1,y+23,3,3,trim[0])
+    c.rect(x,base,w,3,trim[4]);c.rect(x,base,w,1,trim[2])
+    consolidate(c,rare=3)
+    info.update(x0=x,W=w,base=base,door_x=x+87,door_width=40,door_h=42,door_leaf=False)
+    return c.im
+
+
+def transit_shed(info):
+    from art.front_materials import brick, mix
+    from art.front_openings import cast, reveal
+    from art.front_victorian import ledge
+    c=C(260,192)
+    d=ImageDraw.Draw(c.im)
+    wall=ramp(38,.118,lift=-.055)
+    wall=[mix(tone,wall[4],.23) for tone in wall]
+    grout=ramp(46,.069,lift=-.17)
+    sandstone=ramp(65,.083,lift=-.035)
+    steel=ramp(243,.031,lift=-.09)
+    glass=ramp(226,.045,lift=-.015)
+    paint=ramp(161,.055,lift=-.17)
+    brick(c,9,76,241,102,wall,mortar=grout)
+    c.rect(8,37,244,55,steel[5])
+    c.rect(8,37,244,3,wall[3]); c.rect(10,40,240,2,steel[6])
+    c.rect(8,40,3,50,sandstone[3]); c.rect(247,40,5,51,wall[4])
+    c.rect(249,40,2,51,sandstone[3])
+    for i in range(4):
+        x=13+58*i
+        def roof(u,v):
+            return (round(x+u*41+v*3),round(51-u*24+v*39))
+        def pane(a,b,e,f,tone):
+            d.polygon([roof(a,b),roof(e,b),roof(e,f),roof(a,f)],fill=tone)
+        def seam(a,b,e,f,tone,width=1):
+            d.line([roof(a,b),roof(e,f)],fill=tone,width=width)
+        d.polygon([roof(1,0),(x+58,51),(x+61,90),roof(1,1)],fill=steel[5],outline=steel[6])
+        for j in (.19,.43,.68,.92):
+            d.line([roof(1,j),(x+58+round(3*j),51+round(39*j))],fill=steel[4])
+        pane(0,0,1,1,steel[4])
+        for u in (.065,.34,.63,.93):seam(u,.02,u,.99,steel[3])
+        for v in (.27,.73):seam(0,v,.98,v,steel[5])
+        pane(.20,.10,.82,.89,steel[6])
+        pane(.22,.12,.80,.86,sandstone[4])
+        for row in range(3):
+            v=.14+row*.235
+            pane(.25,v,.77,v+.19,glass[(3,2,3)[(row+i)%3]])
+            d.polygon([roof(.26,v+.16),roof(.55,v+.025),roof(.69,v+.025),roof(.39,v+.16)],fill=glass[1])
+            seam(.25,v+.185,.78,v+.185,steel[6],2)
+            seam(.24,v+.215,.79,v+.215,sandstone[2])
+        seam(.22,.11,.22,.87,steel[2])
+        seam(.22,.11,.80,.11,steel[2])
+        if i==2:
+            pane(.25,.14,.77,.34,steel[6])
+            d.polygon([roof(.25,.14),roof(.77,.14),roof(.74,.24),roof(.22,.24)],fill=glass[2],outline=steel[4])
+            seam(.22,.24,.74,.24,steel[1])
+        seam(0,0,1,0,steel[2],2)
+        seam(1,0,1,1,steel[2],2)
+        # The brick cross wall closes the tooth below the front edge of the roof.
+        tip=roof(1,1)
+        d.polygon([roof(0,1),tip,(x+61,90)],fill=wall[5])
+        for yy in range(tip[1]+3,90):
+            left=round(tip[0]-(yy-tip[1])*41/24)+2
+            right=round(tip[0]+(yy-tip[1])*17/24)-2
+            if left>=right:continue
+            d.line((left,yy,right,yy),fill=grout[4] if yy%4==0 else wall[4])
+            if yy%4:
+                for xx in range(left,right):
+                    if (xx+(yy//4%2)*4)%9==0:d.point((xx,yy),fill=grout[4])
+        d.line([roof(0,1),tip,(x+61,90)],fill=steel[6],width=3)
+        seam(.01,1,1,1,steel[2])
+        c.rect(tip[0]-1,tip[1]+8,3,5,wall[6])
+    ledge(c,6,91,248,sandstone,4)
+    cast(c,10,95,238,6,.62)
+    for x in (10,68,146,230):
+        cast(c,x+5,100,5,73,.66)
+        brick(c,x,96,6,79,wall,mortar=grout)
+        c.rect(x,97,1,79,wall[2])
+        ledge(c,x-1,98,9,sandstone,2)
+    def sash(x,y,w,h,lit):
+        c.rect(x-2,y-2,w+4,h+3,wall[5])
+        c.rect(x,y,w,h,steel[6])
+        for col in range(3):
+            for row in range(3):
+                a=x+2+col*5; b=y+2+row*6
+                c.rect(a,b,4,5,glass[(3,5,4,5,3,4)[(col+row+lit)%6]])
+                if (col+row+lit)%4==0:c.rect(a,b,2,1,glass[1])
+        reveal(c,x,y,w,h,2)
+        c.rect(x-2,y-3,w+4,2,sandstone[2])
+        ledge(c,x-2,y+h,w+4,sandstone,2)
+    for i,x in enumerate((21,43,82,106,158,181,205)):
+        sash(x,106,17,20,i)
+    for x,w in ((21,41),(84,58),(159,41),(208,16)):
+        c.rect(x-2,132,w+4,44,wall[5])
+        c.rect(x,134,w,42,steel[7])
+        if x==84:
+            c.rect(89,143,48,28,(57,47,46,255))
+            c.rect(89,143,7,24,(68,50,44,255))
+            for yy in (150,156,162):
+                d.line((89,yy,95,yy-3),fill=(79,59,47,255))
+            c.rect(99,144,32,2,(46,40,40,255))
+            c.rect(89,166,48,6,(80,59,48,255))
+            for xx,yy,ww,hh in ((118,158,17,12),(109,163,14,8),(121,149,11,7)):
+                freight_case(c,xx,yy,ww,hh)
+        else:
+            freight_shutter(c,x+2,137,w-4,37,paint)
+            if x==208:c.rect(x+4,143,7,11,glass[4])
+        reveal(c,x,133,w,42,3)
+        ledge(c,x-3,131,w+6,sandstone,3)
+    for x in (21,159):
+        c.rect(x+4,138,32,2,paint[5]); c.rect(x+4,141,32,1,paint[2])
+        for yy in (151,165):
+            for dx in (5,32):
+                c.rect(x+dx,yy,4,2,steel[5]);c.p(x+dx+1,yy,steel[2])
+    for x,y in ((16,127),(75,126),(148,126),(233,127)):
+        c.rect(x,y,4,2,steel[4]);c.rect(x+1,y-1,2,4,steel[4])
+    for xx in (90,96):
+        d.line((xx,171,xx+3,155),fill=OAK[3],width=2)
+    d.line((91,165,97,165),fill=OAK[2],width=2)
+    d.ellipse((87,169,92,174),fill=steel[6],outline=steel[3])
+    c.rect(117,165,4,3,sandstone[1]);c.rect(118,166,2,1,OAK[5])
+    c.rect(142,145,3,23,wall[5]);c.rect(142,145,1,22,sandstone[3])
+    c.rect(224,146,5,8,steel[5]);c.rect(225,147,3,3,sandstone[1])
+    # A short iron hood leaves the other loading doors and their lintels exposed.
+    d.polygon([(78,136),(84,128),(141,128),(148,136)],fill=paint[2],outline=paint[5])
+    for x in range(86,141,9):d.line((x,129,x-2,134),fill=paint[1])
+    c.rect(78,136,71,3,paint[5]); cast(c,80,139,68,4,.58)
+    for x in (78,144):
+        d.polygon([(x,139),(x+5,139),(x,148)],fill=steel[5])
+    for x in (17,152):
+        d.line((x,140,x,135,x+5,135,x+5,139),fill=steel[5],width=2)
+        d.polygon([(x+2,141),(x+9,141),(x+7,138),(x+4,138)],fill=paint[4])
+        c.rect(x+4,142,3,4,sandstone[0]);c.rect(x+5,146,2,1,steel[5])
+    d.polygon([(6,178),(11,172),(245,172),(253,178)],fill=sandstone[3],outline=sandstone[5])
+    for x in range(13,246,24):d.line((x,173,x-2,177),fill=sandstone[4])
+    c.rect(6,179,248,6,OAK[4]);c.rect(6,178,248,2,sandstone[1])
+    for x in range(10,250,31):
+        c.rect(x,180,6,8,OAK[6]);c.rect(x,180,2,6,OAK[3]);c.p(x+3,181,steel[2])
+    for x in (8,247):
+        d.line((x,97,x,163,x+2,167),fill=steel[5],width=3)
+        d.line((x-1,98,x-1,162),fill=steel[2])
+    consolidate(c,rare=3)
+    info.update(x0=9,W=240,base=183,door_x=113,door_width=38,door_h=41,door_leaf=False)
+    return c.im
 
 
 if __name__ == '__main__':
