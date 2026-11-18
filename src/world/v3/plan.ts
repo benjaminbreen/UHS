@@ -1922,7 +1922,11 @@ export function planSettlement(
           const compound = buildings.every((b) => b.x > rect.x && b.y > rect.y &&
             b.x + b.w <= rect.x + rect.w - 5 && b.y + b.h <= rect.y + rect.h - 5);
           if (compound) {
-            const gate = { x: rect.x + rect.w - 1, y: rect.y + (rect.h >> 1) };
+            // The gate is the open cell of the east fence nearest its middle.
+            const gx = rect.x + rect.w - 1, mid = rect.y + (rect.h >> 1);
+            const gate = { x: gx, y: Array.from({ length: rect.h }, (_, i) => rect.y + i)
+              .sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid))
+              .find((y) => !plan.solid.has(cellKey(gx, y))) ?? mid };
             const parts: { x: number; y: number; frame: string }[] = [];
             eachCell(rect, (x, y) => {
               const horizontal = y === rect.y || y === rect.y + rect.h - 1;

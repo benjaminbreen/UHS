@@ -341,6 +341,7 @@ export function urbanNeighborhood(
     diagonals: 0,
     plazaScale: fabric.plazaScale * 0.6,
     greenSpaces: (fabric.greenSpaces ?? 0) / 3,
+    lattice: fabric.plan === "orthogonal" && !!fabric.streetWall,
   };
   const plotted = plottedTown(pack);
   const compound = compoundCity(pack);
@@ -457,7 +458,7 @@ export function urbanNeighborhood(
   // over the street behind it, as it does in any street of tall buildings.
   const drawn = (f: string) => {
     const [, deep] = buildingModel(f).footprint, tall = Math.ceil(buildingModel(f).anchor[1] / 16);
-    return towerStyleFor(f) ? deep : Math.max(deep, closeRows ? Math.min(tall, deep + 5) : tall);
+    return towerStyleFor(f) ? deep : Math.max(deep, closeRows ? Math.min(tall, deep + 8) : tall);
   };
   // A row's block is as deep as its houses stand drawn: what the centre, the
   // inner rings and the later ones are likely to build, before any block exists.
@@ -473,11 +474,12 @@ export function urbanNeighborhood(
    * before cars takes what its years are of the city's industrial age. */
   const rings = zoning && (() => {
     const { industrial, motor } = zoning.modernity;
-    const centre = outlying ? 0.2 : site.profile.radius >= 50 ? 0.3 : 0.18;
+    const centre = outlying ? 0.2 : site.profile.radius < 50 ? 0.18 : landShare <= 0.45 ? 0.42 : 0.3;
     const before = year > motor ? Math.max(0.3, Math.min(0.6, (motor - industrial) / (year - industrial))) : 0.8;
     return { centre, inner: outlying ? centre : centre + (1 - centre) * before };
   })();
-  const ringOf = (reach: number) => (reach < rings!.centre ? "centre" : reach < rings!.inner ? "inner" : "outer");
+  // A city short of land has no ring of houses on lawns: it is built up to its shore.
+  const ringOf = (reach: number) => (reach < rings!.centre ? "centre" : reach < rings!.inner || landShare <= 0.45 ? "inner" : "outer");
   /** Whether the middle of this city has been rebuilt as a business district. */
   const downtown = !!zoning && !outlying && site.profile.radius >= 50 &&
     year >= zoning.modernity.industrial + zoning.downtownAfter &&
@@ -551,7 +553,11 @@ export function urbanNeighborhood(
   const bodies = new Set<string>(),
     shade = new Set<string>();
   const overhang = (lot: UrbanLot): Rect[] => {
-    const [right, behind] = marginsOf(lot.frame);
+    const [right, drawnBehind] = marginsOf(lot.frame);
+    // Where rows stand close a tall front keeps a street's width behind it:
+    // nothing is built against its back, but the row across the next street
+    // stands under its roofline, as in any city.
+    const behind = closeRows ? Math.min(drawnBehind, 6) : drawnBehind;
     const r = lot.rect;
     // A terrace keeps only the ground its roofs cover; a detached house also
     // keeps a little air on every side.
@@ -1586,9 +1592,11 @@ export function urbanNeighborhood(
   }
   for (const [i, rank] of ranks.entries())
     if (uses.get(rank.block) === "industrial" && rank.built)
-      api.paintIndustrial?.(rank.block, lots.filter((l) => l.use === "industrial" &&
-        l.rect.x >= rank.block.x && l.rect.x < rank.block.x + rank.block.w &&
-        l.rect.y >= rank.block.y && l.rect.y < rank.block.y + rank.block.h).map((l) => l.rect), i);
+      // Whatever else stands on the block is in the yard too: a fence drawn
+      // without it would run through its walls.
+      api.paintIndustrial?.(rank.block, lots.filter((l) =>
+        l.rect.x + l.rect.w > rank.block.x && l.rect.x < rank.block.x + rank.block.w &&
+        l.rect.y + l.rect.h > rank.block.y && l.rect.y < rank.block.y + rank.block.h).map((l) => l.rect), i);
   // Open ground in a plotted town grows trees: singly and in twos and
   // threes, never in a house's overhang or its garden.
   if ((plotted || uses.size) && api.plant)

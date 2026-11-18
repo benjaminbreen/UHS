@@ -1344,12 +1344,64 @@ export function composeUrban(
     const [lo2, hi2] = spanOffsets(span(2)), m2 = margin(2), s2 = span(2) + m2 * 2;
     const probe = Math.max(loA, hiA) + margin(0) + 2;
     let depot = false;
+    if (form.lattice) {
+      const ok = (x: number, y: number) => inRect(x, y, bounds) && holds(x, y, wallMargin + 1) && (!usable || usable(x, y));
+      const mA = margin(0), depth = Math.max(6, depthAt(0, 0.6));
+      const stepX = Math.max(core.block[0], FRONT) + loA + hiA + 1 + mA * 2, stepY = depth + lo1 + hi1 + 1 + m1 * 2;
+      // The two main streets are the lattice's own lines.
+      const ax = streets.find((s) => s.tier === 0 && s.a.x === s.b.x)?.a.x ?? focus.x,
+        ay = streets.find((s) => s.tier === 0 && s.a.y === s.b.y)?.a.y ?? focus.y;
+      const from = (o: number, step: number, lo: number, hi: number) => {
+        const out: number[] = [];
+        for (let v = o - Math.ceil((o - lo) / step) * step; v <= hi; v += step) out.push(v);
+        return out;
+      };
+      const xs = from(ax, stepX, bounds.x, bounds.x + W), ys = from(ay, stepY, bounds.y, bounds.y + H);
+      // A street runs wherever its line is on buildable ground, and stops at the shore.
+      const runs = (fixed: number, upright: boolean, tier: Tier) => {
+        const len = upright ? H : W, o = upright ? bounds.y : bounds.x;
+        for (let v = 0, start = -1; v <= len; v++) {
+          const on = v < len && (upright ? ok(fixed, o + v) : ok(o + v, fixed));
+          if (on && start < 0) start = v;
+          if (!on && start >= 0) {
+            if (v - start >= 10) push(upright ? { a: { x: fixed, y: o + start }, b: { x: fixed, y: o + v - 1 }, tier } : { a: { x: o + start, y: fixed }, b: { x: o + v - 1, y: fixed }, tier });
+            start = -1;
+          }
+        }
+      };
+      for (const x of xs) if (x !== ax) runs(x, true, 0);
+      for (const y of ys) if (y !== ay) runs(y, false, 1);
+      rasterize();
+      for (const [j, x] of xs.entries())
+        for (const [k, y] of ys.entries()) {
+          const x0 = x + hiA + mA + 1, x1 = (xs[j + 1] ?? x + stepX) - loA - mA - 1;
+          const top = y + hi1 + m1 + 1;
+          // The row stands on the street to its south: the widest run of
+          // ground that is open from there back, as deep as it stays open.
+          let best: Rect | undefined;
+          for (let bottom = (ys[k + 1] ?? y + stepY) - lo1 - m1 - 1, tries = 0; tries < 5 && !best; bottom--, tries++)
+            for (let h = bottom - top + 1; h >= 6; h--)
+              for (let x2 = x0, start = -1; x2 <= x1 + 1; x2++) {
+                let clear = x2 <= x1;
+                for (let yy = bottom - h + 1; clear && yy <= bottom; yy++) clear = inRect(x2, yy, bounds) && !!open[idx(x2, yy)];
+                if (clear && start < 0) start = x2;
+                if (!clear && start >= 0) {
+                  if (x2 - start >= 8 && (x2 - start) * h > (best ? best.w * best.h : 0)) best = { x: start, y: bottom - h + 1, w: x2 - start, h };
+                  start = -1;
+                }
+              }
+          if (!best) continue;
+          clearRect(best, 0);
+          quarters.push(best);
+          rowBlocks.push({ ...blockOn(best), row: true });
+        }
+    }
     /** Centre line of the street passing just outside a cell, if one does. */
     const beside = (x: number, y: number, dx: number, dy: number) => {
       for (let k = 1; k <= probe; k++) if (lines.has(cellKey(x + dx * k, y + dy * k))) return dx ? x + dx * k : y + dy * k;
       return undefined;
     };
-    for (;;) {
+    for (; !form.lattice; ) {
       const q = largest();
       if (!q) break;
       clearRect(q, 0);

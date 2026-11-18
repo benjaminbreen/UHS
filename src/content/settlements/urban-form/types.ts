@@ -100,6 +100,9 @@ export type UrbanForm = {
    * gaps between rows. Set once the region has industrialised, not by a
    * fabric entry. */
   streetWall?: boolean;
+  /** Streets on one even lattice over all the ground there is, avenues one
+   * way and cross streets the other: a gridded city short of land. */
+  lattice?: boolean;
   /** Diagonal avenues cut from the square's corners to the built edge. */
   diagonals?: number;
   /** Houses stand in their own green plots rather than in rows on the street,

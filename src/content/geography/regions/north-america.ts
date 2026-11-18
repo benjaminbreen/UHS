@@ -38,6 +38,20 @@ const longIsland: Coordinate[] = [
 // polygon here: it keeps the East River between Manhattan and Brooklyn.
 const newYorkFeatures: RegionalProfile["features"] = [
   {
+    // The atlas's island pushed 16 cells into the Hudson and 4 into the East
+    // River: a quarter wider than life, so the avenues fit. Both rivers stay.
+    id: "manhattan-land",
+    kind: "land",
+    geometry: [
+      [-74.02, 40.698], [-74.019, 40.72], [-74.015, 40.74], [-74.008, 40.76], [-73.996, 40.78],
+      [-73.983, 40.8], [-73.971, 40.82], [-73.959, 40.84], [-73.946, 40.86], [-73.936, 40.875],
+      [-73.914, 40.875], [-73.916, 40.86], [-73.929, 40.84], [-73.935, 40.82], [-73.931, 40.8],
+      [-73.943, 40.78], [-73.957, 40.76], [-73.97, 40.74], [-73.972, 40.72], [-74.01, 40.698],
+    ],
+    dates: { start: { year: 1850 } },
+    evidence,
+  },
+  {
     id: "central-park",
     kind: "park",
     geometry: [

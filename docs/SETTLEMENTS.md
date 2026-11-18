@@ -84,9 +84,10 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
   back houses that fronts it (`alleys` on the fabric is the share of row
   streets that are alleys). A row is as deep as its ring's houses are drawn
   plus their back yards (`rowDepth` in `urban.ts`, `backs` on the fabric);
-  in a city with a business district rows stand closer, at most five cells
-  behind a footprint, and a tall front rises over the street behind it. A
-  tower counts by its footprint alone.
+  in a city with a business district rows stand closer, at most eight cells
+  behind a footprint, and a tall front rises over the street behind it: it
+  keeps a street's width clear at its back, and the row across the next
+  street stands under its roofline. A tower counts by its footprint alone.
   Lanes join one row street to the next. A new street is laid only where it
   meets another at both ends, or at one end as a close that serves a row;
   ground against a shore or the town's edge takes a dead-end street from the
@@ -162,7 +163,14 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
   on (an island, a point, a strip between rivers), the site is centred on
   its buildable ground (`settlements.ts`) and built tight (`landShare` in
   `urban.ts`): three-cell avenues without verges, no extra squares or
-  diagonals, a smaller square, a third of the parks, no railway across it.
+  diagonals, a smaller square, a third of the parks, no railway across it,
+  a centre that is 42% of the way out and no ring of houses on lawns. If its
+  fabric is a grid, its streets are one even lattice (`lattice` on the form,
+  `layRows` in `blocks.ts`): avenues at the block's width, cross streets a
+  row apart, each run stopping at the shore, and one row to each block.
+- Manhattan is drawn a quarter wider than the atlas has it (`manhattan-land`
+  in `regions/north-america.ts`), most of it taken from the Hudson, so its
+  avenues fit. The region map still shows the atlas's island.
 - `npx tsx scripts/town-sheet/density.ts "New York 1930" "Chicago 1950"`
   counts a generated city's buildings, tall buildings, towers and strip
   shops over the whole map. Run it before and after changing layout.
