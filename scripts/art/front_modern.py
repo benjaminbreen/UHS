@@ -1148,7 +1148,8 @@ class BrickBlock(Block):
     """Main Street's two-part block, 1900-1925: a shop in plate glass and cast
     iron below, offices or rooms in brick above, a corbelled cornice and a
     stone panel with the year it went up."""
-    FLOORS = dict(row=2, tall=3, shop=1, cottage=1, hut=1, stall=1, hall=3)
+    # cottage and hut are the loft building on a narrow lot
+    FLOORS = dict(row=2, tall=3, shop=1, cottage=4, hut=4, stall=1, hall=3)
     H0, H1, PARA, HEAD = 62, 50, 22, 24
 
     def plan(self):
@@ -5293,9 +5294,9 @@ from art import front_family  # noqa: E402
 
 # The street forms each look is built in; the rest would only fill the atlas.
 FORMS = dict(
-    falsefront='row shop tall cottage', brick='row shop wide tall hall', diner='row shop cottage',
+    falsefront='row shop tall cottage', brick='row shop wide tall hall cottage hut', diner='row shop cottage',
     motel='row wide cottage hall', bank='row shop tall hall', strip='row shop wide hall',
-    office='row wide tall hall', deco='row wide tall hall', vysotka='row wide tall hall', bubble='row wide tall hall', slab='row wide tall hall', tropic='row wide tall hall', theatre='row tall hall', moderno='row shop wide tall cottage hall',
+    office='row wide tall hall', deco='row wide tall hall shop', vysotka='row wide tall hall', bubble='row wide tall hall shop', slab='row wide tall hall shop', tropic='row wide tall hall shop', theatre='row tall hall', moderno='row shop wide tall cottage hall',
     zakkyo='row shop tall cottage hut', stalinka='row wide tall hall', panelka='row wide tall hall',
     tehran='row shop wide tall hall', delhi='row shop tall cottage hut', veranda='row shop wide tall cottage',
     bokaap='row shop cottage hut')

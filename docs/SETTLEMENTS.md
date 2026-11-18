@@ -84,8 +84,13 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
   back houses that fronts it (`alleys` on the fabric is the share of row
   streets that are alleys). A row is as deep as its ring's houses are drawn
   plus their back yards (`rowDepth` in `urban.ts`, `backs` on the fabric);
-  lanes join one row street to the next. A new street is laid only where it
-  meets another at both ends, or at one end as a close that serves a row.
+  in a city with a business district rows stand closer, at most five cells
+  behind a footprint, and a tall front rises over the street behind it. A
+  tower counts by its footprint alone.
+  Lanes join one row street to the next. A new street is laid only where it
+  meets another at both ends, or at one end as a close that serves a row;
+  ground against a shore or the town's edge takes a dead-end street from the
+  one street it has.
   The avenues stand far enough apart for a street and an alley between them.
 - **The square** of a row city is a block at the corner of the two main
   streets (`cornerSquare`), not a ring road; rows bring their own streets to
@@ -149,11 +154,24 @@ a statue) and keeps no kitchen plots, pens or threshing floors.
   built into the gaps. Frontage a block's rows left over is built in the
   place's street looks too, where it has them, and the centre's blocks are
   cut to the depth of downtown buildings where the city has a downtown.
+  Looks have narrow forms for that frontage: the six-storey tenement on a
+  25-foot lot and the loft building (`walkup` and `brick`, `cottage` and
+  `hut`), and slim towers seven cells wide (`deco`, `bubble`, `slab`,
+  `tropic`, `shop`).
+- **A site short of land.** Where under 45% of a city's claim can be built
+  on (an island, a point, a strip between rivers), the site is centred on
+  its buildable ground (`settlements.ts`) and built tight (`landShare` in
+  `urban.ts`): three-cell avenues without verges, no extra squares or
+  diagonals, a smaller square, a third of the parks, no railway across it.
+- `npx tsx scripts/town-sheet/density.ts "New York 1930" "Chicago 1950"`
+  counts a generated city's buildings, tall buildings, towers and strip
+  shops over the whole map. Run it before and after changing layout.
 - Where a city of 1900 to 1960 stands in the Iberian or Italian world, its
   pack carries the older house of the place (`casaLook`) beside the modern
   kit, and its housing and shop streets are built of that house; downtown,
   estates and works take the modern buildings. The United States roadside
-  kit is built only north of Mexico.
+  kit is built only north of Mexico, and there only in a town with no
+  downtown, or after 1945 in a city's outer ring.
 - A Southeast Asian town before its industry is built of shop-house rows
   (`straitsHouses`, the fronts of its date); once zoned, the same looks come
   by block from `street-looks.ts`, with the Shanghai lane house for the

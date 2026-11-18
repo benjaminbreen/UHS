@@ -965,7 +965,8 @@ class Walkup(Block):
     with stone lintels and a pressed-metal cornice, fire escapes down the
     front, a shop at the foot and a wooden tank on the roof; or brownstone
     with a high stoop."""
-    FLOORS = dict(row=4, tall=5, shop=3, cottage=3, hut=4, stall=1, hall=5, wide=4)
+    # cottage and hut are the tenement on a 25-foot lot, five and six storeys
+    FLOORS = dict(row=4, tall=5, shop=4, cottage=5, hut=6, stall=1, hall=5, wide=4)
     H0, H1, PARA, HEAD = 56, 44, 18, 40
 
     def plan(self):
@@ -1263,7 +1264,7 @@ ABOUT = {
 }
 FORMS = dict(cairo='row shop wide tall cottage hall', tonglau='row shop tall cottage hut', highstreet='row shop wide tall hall', precinct='row shop wide tall hall',
              storey='row shop wide tall hall', habana='row shop wide tall hall', mission='row shop wide tall cottage hall',
-             walkup='row shop tall hall', gas='row wide hall', drivein='row shop cottage', market='row wide hall')
+             walkup='row shop tall hall cottage hut', gas='row wide hall', drivein='row shop cottage', market='row wide hall')
 fmod.LOOKS.update(NEW)
 fmod.ABOUT.update(ABOUT)
 fmod.FORMS.update(FORMS)

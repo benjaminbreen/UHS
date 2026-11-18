@@ -1428,6 +1428,15 @@ export function composeUrban(
       // is a close, not a road to nowhere: allowed where the other end joins.
       if (!west.ok && east.ok && q.w <= 48) west = { x: undefined, ok: true };
       else if (!east.ok && west.ok && q.w <= 48) east = { x: undefined, ok: true };
+      // Ground against a shore or the town's edge has no street to end on at
+      // one side, and often no room for a lane: its streets stop at the last
+      // house, so long as they start from a street on the other side.
+      const met = (at: (y: number) => number | undefined) => fresh.length > 0 && fresh.every((y) => at(y) !== undefined);
+      const tight = (west.x !== undefined || east.x !== undefined) && q.w - (west.x === undefined ? 0 : s2) - (east.x === undefined ? 0 : s2) < FRONT * 0.75;
+      if ((!west.ok || !east.ok || tight) && (met(westAt) || met(eastAt))) {
+        west = { x: undefined, ok: true };
+        east = { x: undefined, ok: true };
+      }
       // A lane round a block too short for a street front is a ring road.
       const ringed = (west.x !== undefined || east.x !== undefined) && q.w - (west.x === undefined ? 0 : s2) - (east.x === undefined ? 0 : s2) < FRONT * 0.75;
       if (!west.ok || !east.ok || ringed) {

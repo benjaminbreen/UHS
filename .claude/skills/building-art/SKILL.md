@@ -206,6 +206,10 @@ podium towers subclass it. Review with
   The shaft's width is fitted to whole panes. Glass varies by a pane or two
   per floor and carries two or three short `glints`; big diagonal bands
   read as stickers. Glass towers take no weather streaks.
+- **Narrow forms fill a dense city.** A look's `shop` (7 cells), `cottage`
+  (6) and `hut` (4) forms are what leftover frontage can take. Give a tall
+  look narrow forms with real height (`FLOORS`) rather than a one-storey
+  stub: the deco sliver tower, the six-storey tenement, the loft building.
 - **Light is registered as it is drawn.** `pane(..., lit_odds)` per storey so
   whole floors are lit or dark; `sconces` and crown slits glow; `beacon` for
   a mast light the game blinks; `tube` and `bulb_row` for neon and chasing

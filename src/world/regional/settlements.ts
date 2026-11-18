@@ -252,6 +252,17 @@ export function regionalSettlements(
         aspect: p.aspect,
       };
       site.accepts = accepts(site);
+      // A city at a point or on a strip of land has half its claim in the
+      // water. Its site is centred on the ground it can build on.
+      if (town && built >= 50) {
+        const held: { x: number; y: number }[] = [];
+        for (let y = q.y - built + 4; y < q.y + built; y += 8)
+          for (let x = q.x - built + 4; x < q.x + built; x += 8)
+            if (site.accepts(x, y)) held.push({ x, y });
+        const mid = { x: held.reduce((t, c) => t + c.x, 0) / (held.length || 1), y: held.reduce((t, c) => t + c.y, 0) / (held.length || 1) };
+        if (held.length && Math.hypot(mid.x - q.x, mid.y - q.y) > built * 0.15)
+          site.center = held.reduce((best, c) => Math.hypot(c.x - mid.x, c.y - mid.y) < Math.hypot(best.x - mid.x, best.y - mid.y) ? c : best);
+      }
       result.push(site);
     }
     result.sort(

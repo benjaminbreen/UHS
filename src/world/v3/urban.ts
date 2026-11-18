@@ -321,7 +321,27 @@ export function urbanNeighborhood(
   seed: string,
   api: UrbanSurface,
 ): UrbanLot[] {
-  const form = siteForm(site, pack);
+  const fabric = siteForm(site, pack);
+  // A site that is mostly water or someone else's ground is a strip or a
+  // point of land. It is built tight: plain streets for avenues, one square,
+  // no railway across it.
+  const landShare = (() => {
+    const r = site.profile.radius;
+    let dry = 0, all = 0;
+    for (let y = -r; y <= r; y += 6)
+      for (let x = -r; x <= r; x += 6, all++)
+        if (api.dry({ x: site.center.x + x, y: site.center.y + y, w: 1, h: 1 }, false)) dry++;
+    return dry / all;
+  })();
+  const form: typeof fabric = landShare > 0.45 ? fabric : {
+    ...fabric,
+    tiers: [Math.min(3, fabric.tiers[0]), fabric.tiers[1], fabric.tiers[2]],
+    verge: 0,
+    squares: 0,
+    diagonals: 0,
+    plazaScale: fabric.plazaScale * 0.6,
+    greenSpaces: (fabric.greenSpaces ?? 0) / 3,
+  };
   const plotted = plottedTown(pack);
   const compound = compoundCity(pack);
   // A plotted town also builds the plain cottages its villages do.
@@ -433,15 +453,20 @@ export function urbanNeighborhood(
   /** Cells from a frame's drawn top to the foot of its wall. */
   // A tower stands on its footprint and rises over the rows behind it; counting
   // its drawn height left every tower block as open ground.
-  const drawn = (f: string) => towerStyleFor(f) ? buildingModel(f).footprint[1]
-    : Math.max(buildingModel(f).footprint[1], Math.ceil(buildingModel(f).anchor[1] / 16));
+  // In a city with a business district rows stand close: a tall front rises
+  // over the street behind it, as it does in any street of tall buildings.
+  const drawn = (f: string) => {
+    const [, deep] = buildingModel(f).footprint, tall = Math.ceil(buildingModel(f).anchor[1] / 16);
+    return towerStyleFor(f) ? deep : Math.max(deep, closeRows ? Math.min(tall, deep + 5) : tall);
+  };
   // A row's block is as deep as its houses stand drawn: what the centre, the
   // inner rings and the later ones are likely to build, before any block exists.
   /** Which ring of a street-wall city a block lies in, from its distance out
    * alone, so its depth can be chosen before its use is. */
   // A quarter of a great city standing apart from its middle: a suburb with
   // a few shops of its own, never a second downtown.
-  const outlying = site.id.includes("@") || !!pack.setting?.suburbOf;
+  // Site ids are URL-encoded, so a quarter's "@" arrives as "%40".
+  const outlying = decodeURIComponent(site.id).includes("@") || !!pack.setting?.suburbOf;
   /** How far out the centre and the older housing reach, as shares of the
    * way to the edge. The whole city is on the map, suburbs and all, so the
    * centre is drawn larger than life to keep a dense core; the housing built
@@ -457,6 +482,7 @@ export function urbanNeighborhood(
   const downtown = !!zoning && !outlying && site.profile.radius >= 50 &&
     year >= zoning.modernity.industrial + zoning.downtownAfter &&
     (pack.setting?.population ?? Infinity) >= (zoning.downtownFrom ?? 0);
+  const closeRows = downtown || (outlying && !!zoning && year >= zoning.modernity.industrial + zoning.downtownAfter);
   const rowDepth = zoning && form.streetWall ? (() => {
     const likely = (use: LandUse) => {
       const street = streetLooks(pack.setting!, use).blocks.flatMap(({ look }) => streetFrames(look as Parameters<typeof streetFrames>[0]));
@@ -486,7 +512,7 @@ export function urbanNeighborhood(
     site.aspect,
     pack.year,
     [...precincts.map((p) => ({ sizes: p.options.map((o) => o.size) })), ...(mosqueScales.length ? [{ sizes: mosqueScales.map(mosqueSize) }] : [])],
-    site.rail ?? (!!zoning && site.profile.radius >= 40),
+    site.rail ?? (!!zoning && site.profile.radius >= 40 && landShare > 0.45),
     lampFor(pack).street,
     api.river,
     rows,
