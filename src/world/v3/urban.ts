@@ -1,4 +1,5 @@
-import { civicProfile } from "../../content/settlements/civic";
+import { civicProfile, royalGround } from "../../content/settlements/civic";
+import type { StreetMaterial } from "../../content/settlements/streets";
 import { regionalLook } from "../../content/graphics/regional-looks";
 import { mediterraneanShrineFrame, watchtowerFrame, retainedTowerStyle } from "../../content/graphics/mediterranean-buildings";
 import { venueBuilding, venuesFor } from "../../content/venues";
@@ -39,9 +40,12 @@ import {
 import type { Terrain } from "../../core/types";
 import {
   composeUrban,
+  wardCircuit,
   nearestGate,
   urbanGates,
   type Block,
+  type PrecinctGround,
+  type PrecinctRequest,
   type Gate,
   type Wall,
   type Furniture,
@@ -91,7 +95,7 @@ export type UrbanLot = {
    * own: it is an ordinary house with a public door and a different name. */
   venue?: import("../../content/venues").Venue;
   /** A building standing on a precinct's edge: public, unhoused. */
-  piece?: { name: string; about: string };
+  piece?: { name: string; about: string; claim?: string };
   /** The paved lot a roadside business stands on. */
   site?: { kind: import("./sites").SiteKind; rect: Rect };
 };
@@ -102,7 +106,7 @@ export type UrbanSurface = {
   dry(rect: Rect, occupied?: boolean): boolean;
   paintCourt(rect: Rect, square?: string, civic?: Rect): void;
   /** Paved apron between a sanctuary and the square. */
-  paintForecourt(rect: Rect): void;
+  paintForecourt(rect: Rect, stone?: StreetMaterial): void;
   /** A further square at a crossing: paved like the main one, with a lesser
    * centrepiece and corners from the same spec. */
   paintSquare(rect: Rect, index: number): void;
@@ -156,7 +160,10 @@ export type UrbanSurface = {
   /** Where a bridge meets this bank; an offset square gathers at it. */
   bridge?: Point;
   /** A precinct's own ground: walkable, public, one surface. */
-  paintGround(rect: Rect, surface: Terrain): void;
+  elevation?(x: number, y: number): number;
+  courtWell(at: Point, id: string): void;
+  paintGround(ground: PrecinctGround, surface: Terrain, id: string, name: string, garden?: Rect, ward?: Rect): void;
+  wardDitch(grounds: Rect, ward: Rect, gate: Point, outward: Point, wet: boolean): void;
   /** A market pitch, trading like the square's counters. */
   stall(at: Point, index: number, trade: number): void;
   /** A marker set in a court's floor. */
@@ -273,8 +280,9 @@ export function siteForm(site: Site, pack: Pack): UrbanForm {
     !!zoningFor(pack.setting!).keepsCore &&
     (base.plan === "organic" || base.plan === "radial") &&
     (base.districts?.length ?? 1) > 1;
-  const regional = {
+  const regional: UrbanForm = {
     ...base,
+    wall: decodeURIComponent(site.id).includes("@") ? "none" : base.wall,
     motor,
     streetWall: industrialized(pack.setting!) && !plottedTown(pack),
     ...(oldCore ? { oldCore, ring: true } : {}),
@@ -498,6 +506,32 @@ export function urbanNeighborhood(
     return (near: number, far: number, low = false) =>
       Math.max(...[near, (near + far) / 2, far].map((reach) => depth[ringOf(reach)][low ? "low" : "main"]));
   })() : undefined;
+  const civic = civicProfile(pack.setting!);
+  const civicBase = modernCivicBuilding(pack.setting!, site.profile.radius >= 100) ?? pack.buildings
+    .map((base) => `${base}-urban-${civic.form}`)
+    .find((frame) => buildingModels[frame]);
+  const ranges = civicBase ? [civicBase] : civic.interior || civic.forecourt ? ["large","medium"].flatMap(size =>
+    pack.buildings.filter(f => buildingScale(f) === size && buildingModels[f]).slice(0,1)) : [];
+  const central = !decodeURIComponent(site.id).includes("@");
+  const seat = central && royalGround(pack.setting!, site.name ?? (site.home ? pack.setting!.location : ""),
+    site.profile.radius >= 58 ? rand("castle-seat") : 1);
+  const hall = central && civic.forecourt && ranges[0] ? (() => {
+    const { footprint, entrance } = buildingModel(ranges[0]);
+    return { footprint, entrance };
+  })() : undefined;
+  const requests: PrecinctRequest[] = [];
+  const seatIndex = requests.length;
+  if (seat) requests.push({ position: seat.position, near: seat.castle ? api.shore : undefined, divertLane: !!seat.castle,
+    entries: seat.position === "garden" ? ["east"] : ["south", "west", "east"],
+    sizes: seat.position === "garden" ? [[34, 24], [24, 16], [16, 12]] :
+      [[36, 27], [29, 22], [23, 26], [25, 19], [23, 17], [18, 21], [21, 16], [18, 18], [16, 20], [18, 15], [17, 14], [15, 12]] });
+  const hallIndex = requests.length;
+  if (hall) requests.push({ position: "square", entries: ["south"],
+    sizes: [7, 3].map(m => [hall.footprint[0] + m * 2, hall.footprint[1] + m + 2]) });
+  const venueIndex = requests.length;
+  for (const p of precincts) requests.push({ ...p.siting, sizes: p.options.map(o => o.size) });
+  const sanctuaryIndex = requests.length;
+  if (mosqueScales.length) requests.push({ position: "square", entries: ["south"], sizes: mosqueScales.map(mosqueSize) });
   const layout = composeUrban(
     site.id,
     site.center,
@@ -513,7 +547,7 @@ export function urbanNeighborhood(
     density(),
     site.aspect,
     pack.year,
-    [...precincts.map((p) => ({ sizes: p.options.map((o) => o.size) })), ...(mosqueScales.length ? [{ sizes: mosqueScales.map(mosqueSize) }] : [])],
+    requests,
     site.rail ?? (!!zoning && site.profile.radius >= 40 && landShare > 0.45),
     lampFor(pack).street,
     api.river,
@@ -522,6 +556,7 @@ export function urbanNeighborhood(
     // The station's hall and the forecourt its cabs turn in.
     rowDepth ? stationBuildings(pack.setting!, site.profile.radius, rand("station"))
       .filter((f) => buildingModels[f]).slice(0, 1).map((f) => buildingModel(f).footprint)[0] as [number, number] | undefined : undefined,
+    api.elevation,
   );
   const used = new Set<string>();
   const reserve = (r: Rect) => {
@@ -643,11 +678,22 @@ export function urbanNeighborhood(
 
   // The circuit stands before the streets, so a run that would cross it is
   // refused and only the gates let a road through.
-  if (layout.wall) {
-    const { material } = layout.wall;
-    const standing = layout.wall.cells.filter((p) =>
-      api.dry({ ...p, w: 1, h: 1 }, false),
-    );
+  function standCircuit(wall: Wall, cornerTower?: "a" | "b" | "c") {
+    const { material, ring, openings, bends } = wall;
+    const stretches = (accept: (p: Point) => boolean) => {
+      const runs: Point[][] = [];
+      const start = Math.max(0, ring.findIndex(p => !accept(p)));
+      let run: Point[] = [];
+      for (let i = 0; i < ring.length; i++) {
+        const p = ring[(start + i) % ring.length];
+        if (accept(p)) run.push(p);
+        else if (run.length) { runs.push(run); run = []; }
+      }
+      if (run.length) runs.push(run);
+      return runs;
+    };
+    const standing = stretches(p => !openings.has(cellKey(p.x, p.y)) && api.dry({ ...p, w: 1, h: 1 }, false))
+      .filter(run => run.length >= 4).flat();
     const built = new Set(standing.map((p) => cellKey(p.x, p.y)));
     // The circuit is a rasterised polygon, so it jogs constantly and no single
     // "run" frame can describe a cell. Each cell names the neighbours it
@@ -663,34 +709,54 @@ export function urbanNeighborhood(
     const corner = (k: string) => [3, 6, 9, 12].includes(maskOf.get(k) ?? 0);
     const cornerNeighbours = (p: Point) =>
       N4.map(([dx, dy]) => ({ x: p.x + dx, y: p.y + dy })).filter((q) => corner(cellKey(q.x, q.y)));
+    const winding = Math.sign(ring.reduce((area, p, i) => {
+      const q = ring[(i + 1) % ring.length];
+      return area + p.x * q.y - q.x * p.y;
+    }, 0));
+    const outside = new Map(ring.map((p, i) => {
+      const prev = ring[(i + ring.length - 1) % ring.length], next = ring[(i + 1) % ring.length];
+      const nx = (next.y - prev.y) * winding, ny = (prev.x - next.x) * winding;
+      return [cellKey(p.x, p.y), (nx < 0 ? 8 : nx > 0 ? 2 : 0) | (ny < 0 ? 1 : ny > 0 ? 4 : 0)];
+    }));
     const parts = standing.map((p) => {
       const k = cellKey(p.x, p.y), mask = maskOf.get(k)!;
       // A corner beside another corner is a step: on a diagonal, at its end,
       // or in a one-cell jog. Its tile carries the wall across at 45 degrees
       // edge to edge, which meets a straight run's tile flush.
       const step = corner(k) && cornerNeighbours(p).length > 0;
-      // Four variants keep the coursing from repeating cell to cell along a run.
-      return { x: p.x, y: p.y, frame: `wall-${material}-${mask}${step ? "d" : ""}-${(p.x + p.y) & 3}` };
+      // Both halves of a diagonal share a column of the same painted curtain.
+      let v = (step ? p.x : p.x + p.y) & 3;
+      if (material === "masonry" && mask === 10 && Math.abs(p.x + p.y * 3) % 19 > 3 && v === 0) v = 1;
+      const out = outside.get(k)!;
+      if (material !== "palisade" && (step || mask === 10 ? !!(out & 4) :
+          mask === 5 ? !!(out & 2) : corner(k) && !!(out & mask))) v += 4;
+      return { x: p.x, y: p.y, frame: `wall-${material}-${mask}${step ? "d" : ""}-${v}` };
     });
     const hidden = new Set<string>();
     const towers: { x: number; y: number; frame: string }[] = [];
-    // A gap across an east-west run gets a gatehouse spanning it and the wall
-    // cell either side; any other gets a tower on each flank.
+    // Palisades have open entries between bastions. Other circuits can span a straight gap.
     const nearGate = new Set<string>();
     // Gate cells the wall walk crosses on the gatehouse's span.
     const spans = new Set<string>();
-    for (const gap of layout.wall.gaps) {
+    const clearance = wall.precinct ? 1 : 3;
+    for (const gate of wall.gates) {
+      const gap = gate.opening;
       for (const p of gap)
-        for (let dy = -3; dy <= 3; dy++)
-          for (let dx = -3; dx <= 3; dx++) nearGate.add(cellKey(p.x + dx, p.y + dy));
-      const xs = gap.map((p) => p.x), y = gap[0].y;
-      const lo = Math.min(...xs), hi = Math.max(...xs), n = hi - lo + 1;
-      const flanks = [cellKey(lo - 1, y), cellKey(hi + 1, y)];
-      if (gap.every((p) => p.y === y) && n === gap.length && n >= 3 && n <= 11 &&
-          flanks.every((k) => built.has(k))) {
+        for (let dy = -clearance; dy <= clearance; dy++)
+          for (let dx = -clearance; dx <= clearance; dx++) nearGate.add(cellKey(p.x + dx, p.y + dy));
+      const [first, last] = gate.jambs;
+      const n = gap.length, side = gate.outward.x !== 0;
+      const flanks = gate.jambs.map(p => cellKey(p.x, p.y));
+      if (material !== "palisade" && n >= 3 && n <= 11 &&
+          last.x - first.x + last.y - first.y === n + 1 && flanks.every(k => built.has(k))) {
+        gate.covered = true;
         for (const k of flanks) hidden.add(k);
         for (const p of gap) spans.add(cellKey(p.x, p.y));
-        towers.push({ x: (lo + hi) / 2, y, frame: `gate-${material}-${n}` });
+        if (side) {
+          towers.push({ ...first, frame: `gate-${material}-pier-back` }, { ...last, frame: `gate-${material}-pier-front` });
+          for (const [i, p] of gap.entries())
+            towers.push({ ...p, frame: `gate-${material}-side-${n}-${i}` });
+        } else towers.push({ x: (first.x + last.x) / 2, y: first.y, frame: `gate-${material}-${n}` });
         continue;
       }
       const ends = new Set(gap.map((p) => cellKey(p.x, p.y)));
@@ -700,10 +766,7 @@ export function urbanNeighborhood(
           towers.push({ x: p.x, y: p.y, frame: `tower-${material}-a` });
         }
     }
-    // Towers stand at each square turn and free end, where real circuits put
-    // them, and at intervals along the runs between. They are spaced on the
-    // ground, so two ends facing each other across a river both get one.
-    const placed: Point[] = [];
+    const placed = standing.filter(p => hidden.has(cellKey(p.x, p.y)));
     const spaced = (p: Point, gap: number) =>
       placed.every((o) => Math.max(Math.abs(o.x - p.x), Math.abs(o.y - p.y)) >= gap);
     const raise = (p: Point, variant: string) => {
@@ -711,15 +774,25 @@ export function urbanNeighborhood(
       hidden.add(cellKey(p.x, p.y));
       towers.push({ x: p.x, y: p.y, frame: `tower-${material}-${variant}` });
     };
-    const free = (p: Point) => !hidden.has(cellKey(p.x, p.y)) && !nearGate.has(cellKey(p.x, p.y));
+    const free = (p: Point) => built.has(cellKey(p.x, p.y)) && !hidden.has(cellKey(p.x, p.y)) && !nearGate.has(cellKey(p.x, p.y));
     const alternate = (p: Point) => ((p.x * 7 + p.y * 13) & 4 ? "b" : "a");
     for (const p of standing)
-      if ([0, 1, 2, 4, 8].includes(maskOf.get(cellKey(p.x, p.y))!) && free(p) && spaced(p, 2))
+      if ([1, 2, 4, 8].includes(maskOf.get(cellKey(p.x, p.y))!) && free(p) && spaced(p, 6))
         raise(p, alternate(p));
-    for (const p of standing)
-      if (corner(cellKey(p.x, p.y)) && !cornerNeighbours(p).length && free(p) && spaced(p, 3))
-        raise(p, "c");
-    for (const p of standing) if (free(p) && spaced(p, 8)) raise(p, alternate(p));
+    for (const [i, p] of bends.entries()) {
+      const a = bends[(i + bends.length - 1) % bends.length], b = bends[(i + 1) % bends.length];
+      const ux = p.x - a.x, uy = p.y - a.y, vx = b.x - p.x, vy = b.y - p.y;
+      if (ux * vx + uy * vy < .82 * Math.hypot(ux, uy) * Math.hypot(vx, vy) && free(p) && spaced(p, wall.precinct ? 4 : 8))
+        raise(p, cornerTower ?? "c");
+    }
+    const pitch = material === "palisade" ? 15 : 21;
+    for (const run of stretches(free)) {
+      const bays = Math.round((run.length + 1) / pitch);
+      for (let i = 1; i < bays; i++) {
+        const p = run[Math.round(i * (run.length + 1) / bays) - 1];
+        if (spaced(p, 8)) raise(p, alternate(p));
+      }
+    }
     // Flights of stairs up the inside face, three cells long, nearest the
     // gates first, where people go up. Against an east-west run the flight
     // lies along the face; against a north-south one it climbs north beside
@@ -729,12 +802,14 @@ export function urbanNeighborhood(
     const flights: Point[] = [];
     const clear = (q: Point) => {
       const k = cellKey(q.x, q.y);
+      if (wall.precinct && (q.x <= wall.rect.x || q.x >= wall.rect.x + wall.rect.w - 1 ||
+          q.y <= wall.rect.y || q.y >= wall.rect.y + wall.rect.h - 1)) return false;
       return !built.has(k) && !used.has(k) && !nearGate.has(k) && layout.holds(q.x, q.y, 1) &&
         api.dry({ ...q, w: 1, h: 1 }, false);
     };
     const run = (q: Point, mask: number) =>
       maskOf.get(cellKey(q.x, q.y)) === mask && !hidden.has(cellKey(q.x, q.y));
-    const gateCells = layout.wall.gaps.flat();
+    const gateCells = wall.gates.flatMap(g => g.opening);
     const toGate = (p: Point) =>
       Math.min(Infinity, ...gateCells.map((g) => Math.abs(g.x - p.x) + Math.abs(g.y - p.y)));
     for (const p of [...standing].sort((a, b) => toGate(a) - toGate(b))) {
@@ -770,34 +845,37 @@ export function urbanNeighborhood(
     // The watch walks beats along the wall walk: unbroken stretches of it,
     // over the gatehouses and through the towers, out and back.
     const walkable = (q: Point) => built.has(cellKey(q.x, q.y)) || spans.has(cellKey(q.x, q.y));
-    const ring = layout.wall.ring;
-    const start = Math.max(0, ring.findIndex((q) => !walkable(q)));
-    const stretches: Point[][] = [[]];
-    for (let i = 0; i < ring.length; i++) {
-      const q = ring[(start + i) % ring.length];
-      if (walkable(q)) stretches[stretches.length - 1].push(q);
-      else if (stretches[stretches.length - 1].length) stretches.push([]);
-    }
     const beats: Point[][] = [];
     const watch = Math.min(4, Math.max(1, Math.round(standing.length / 70)));
-    for (const s of stretches.filter((s) => s.length >= 14).sort((a, b) => b.length - a.length))
+    for (const s of stretches(walkable).filter((s) => s.length >= 14).sort((a, b) => b.length - a.length))
       for (let i = 0; i + 14 <= s.length && beats.length < watch; i += 70)
         beats.push(s.slice(i, i + 32));
     if (parts.length) {
+      const gates = wall.gates.filter(g => g.jambs.every(p => built.has(cellKey(p.x, p.y))));
       api.buildWall(
-        layout.wall,
+        { ...wall, gates },
         parts.map((p) => hidden.has(cellKey(p.x, p.y)) ? { ...p, frame: "wall-none" } : p),
         // Southern towers last, so one standing in front of another covers it.
         [...towers.sort((a, b) => a.y - b.y), ...stairs],
         stairCells,
         beats,
       );
+      if (!wall.precinct) for (const g of gates) {
+        const a = g.opening[0], b = g.opening[g.opening.length - 1];
+        const dx = Math.abs(g.outward.x) * 2, dy = Math.abs(g.outward.y) * 2;
+        const threshold = { x: a.x - dx, y: a.y - dy, w: b.x - a.x + 2 * dx + 1, h: b.y - a.y + 2 * dy + 1 };
+        reserve(threshold);
+        const middle = g.opening[(g.opening.length - 1) >> 1];
+        api.lay({ x: middle.x - dx, y: middle.y - dy }, { x: middle.x + dx, y: middle.y + dy }, "gateway-" + middle.x + "-" + middle.y, layout.tiers[0]);
+      }
       // The ring is rasterised, so it does not sit exactly on the continuous
       // boundary. Holding its actual cells is what keeps a threshold or a work
       // pocket off the wall, where a margin against the boundary would not.
       for (const part of parts) used.add(cellKey(part.x, part.y));
     }
   }
+
+  if (layout.wall) standCircuit(layout.wall);
 
   // Streets first, widest first, so a junction takes the wider surface.
   const old = (s: { a: Point; b: Point; tier: number }) => {
@@ -901,21 +979,102 @@ export function urbanNeighborhood(
       }
     }
 
+  const lots: UrbanLot[] = [];
+  const estate = seat && layout.grounds[seatIndex];
+  if (estate && seat) {
+    const garden = seat.position === "garden" ? { x: estate.x, y: estate.y, w: Math.floor(estate.w / 2), h: estate.h } : undefined;
+    if (!seat.castle) api.paintGround(estate, "paving", seat.id, seat.name, garden);
+    else {
+      const skin = seat.castle, court = skin.approach === "forecourt";
+      const wall = wardCircuit(estate, skin.material, seat.id, rand("ward-return") < .65, skin.approach === "moat");
+      const ward = wall.rect, gate = wall.gates[0], entry = gate.opening[gate.opening.length >> 1];
+      api.paintGround({ ...estate, entry }, court ? "paving" : "dirt", seat.id, seat.name, undefined, ward);
+      if (!court) api.wardDitch(estate, ward, entry, gate.outward, skin.approach === "moat");
+      const size = ward.w < 18 ? "small" : "medium";
+      const look = size === "medium" && rand("hall-look") < .5 ? 1 : 0;
+      const frame = `hall-${skin.hall}-${size}-${look}`, model = buildingModel(frame);
+      const [w, h] = model.footprint;
+      const x = ward.x + 2 + Math.floor(rand("hall-bay") * (ward.w - w - 3));
+      const y = ward.y + (skin.hall === "hall-keep" && ward.h >= 17 ? 4 : ward.h <= 13 ? 1 : 2);
+      const rect = { x, y, w, h }, point = { x: x + model.entrance[0], y: y + model.entrance[1] };
+      claimLandmark({ rect, yard: rect, frame, point, nx: 0, ny: -1, workPoint: point,
+        piece: { name: model.label, about: model.description, claim: "civic-castle-hall" } });
+      reserve({ x: point.x - 1, y: point.y, w: 3, h: 2 });
+      standCircuit(wall, skin.tower);
+      const paving = skin.paving;
+      const lane = (a: Point, b: Point, wide = 3) => {
+        const across = wide >> 1;
+        api.paintForecourt({ x: Math.min(a.x, b.x) - across, y: Math.min(a.y, b.y) - across,
+          w: Math.abs(b.x - a.x) + wide, h: Math.abs(b.y - a.y) + wide }, paving);
+      };
+      const turn = { x: point.x, y: gate.outward.y ? Math.min(entry.y - 3, point.y + 2) : Math.max(point.y + 1, entry.y) };
+      const inner = { x: entry.x - gate.outward.x, y: entry.y - gate.outward.y * 2 };
+      api.paintForecourt(estate.approach, paving);
+      lane(estate.entry, inner);
+      lane(inner, { x: inner.x, y: turn.y });
+      lane({ x: inner.x, y: turn.y }, turn);
+      lane(turn, point);
+      api.paintForecourt({ x: x + 1, y: point.y, w: w - 2, h: 2 }, court ? "basalt" : "slab");
+      if (court) {
+        const top = point.y + 2, bottom = ward.y + ward.h - 5;
+        if (bottom >= top + 3) {
+          for (const x of [ward.x + 2, ward.x + ward.w - 3])
+            api.paintForecourt({ x, y: top, w: 1, h: bottom - top + 1 }, "basalt");
+          for (const y of [top, bottom])
+            api.paintForecourt({ x: ward.x + 2, y, w: ward.w - 4, h: 1 }, "basalt");
+          api.paintForecourt({ x: point.x - 1, y: top, w: 3, h: 1 }, paving);
+        }
+        api.paintForecourt({ x: point.x - 1, y: point.y, w: 3, h: 2 }, paving);
+        const apron = gate.outward.x ? { x: Math.min(entry.x, estate.entry.x), y: entry.y - 3,
+          w: Math.abs(estate.entry.x - entry.x) + 1, h: 7 } : { x: entry.x - 3, y: entry.y, w: 7, h: estate.entry.y - entry.y + 1 };
+        api.paintForecourt(apron, paving);
+      }
+      if (skin.service && ward.w >= 20) {
+        const shed = buildingModel(skin.service), [sw, sh] = shed.footprint;
+        const sx = [ward.x + 2, ward.x + ward.w - sw - 2].find(sx => sx + sw + 1 <= x || sx >= x + w + 1);
+        if (sx !== undefined) {
+          const sr = { x: sx, y: ward.y + 4, w: sw, h: sh };
+          const sp = { x: sx + shed.entrance[0], y: sr.y + shed.entrance[1] };
+          if (free({ ...sr, h: sh + 1 })) {
+            claimLandmark({ rect: sr, yard: sr, frame: skin.service, point: sp, nx: 0, ny: -1, workPoint: sp,
+              piece: { name: shed.label, about: shed.description, claim: "yard-byre" } });
+            const junction = { x: sp.x, y: Math.max(sp.y + 1, turn.y) };
+            lane(sp, junction, 1);
+            lane(junction, { x: point.x, y: junction.y }, 1);
+            if (junction.y > turn.y) lane({ x: point.x, y: junction.y }, turn, 1);
+          }
+        }
+      }
+      const wellY = ward.y + ward.h - 5;
+      const wellX = [ward.x + 3, ward.x + ward.w - 4]
+        .sort((a, b) => Math.abs(b - entry.x) - Math.abs(a - entry.x))
+        .find(wx => Math.abs(wx - point.x) > 2 && Math.abs(wx - entry.x) + Math.abs(wellY - entry.y) > 4 &&
+          free({ x: wx - 1, y: wellY - 1, w: 3, h: 3 }));
+      if (wellX !== undefined) {
+        api.paintForecourt({ x: wellX - 1, y: wellY - 1, w: 3, h: 3 }, court ? "basalt" : paving);
+        lane({ x: wellX, y: wellY + 1 }, { x: point.x, y: wellY + 1 }, 1);
+        lane({ x: point.x, y: wellY + 1 }, turn, 1);
+        api.courtWell({ x: wellX, y: wellY }, seat.id);
+      }
+    }
+  }
+  for (const ground of layout.grounds) {
+    if (!ground) continue;
+    for (const r of [ground, ground.approach]) { reserve(r); api.reserveGround(r); }
+    api.paintForecourt(ground.approach);
+  }
   if (api.bank) riverside();
 
-  const lots: UrbanLot[] = [];
   const watchtowers: UrbanLot[] = [];
   const precinctVenues = new Set<string>();
   for (const [n, precinct] of precincts.entries()) {
-    const ground = layout.grounds[n];
+    const ground = layout.grounds[venueIndex + n];
     if (!ground) continue;
     const option = precinct.options.find(
       (o) => o.size[0] === ground.w && o.size[1] === ground.h,
     )!;
     precinctVenues.add(precinct.venue.id);
-    api.paintGround(ground, precinct.surface);
-    reserve(ground);
-    api.reserveGround(ground);
+    api.paintGround(ground, precinct.surface, precinct.venue.id, precinct.label);
     const at = ([x, y]: readonly [number, number]) => ({
       x: ground.x + x,
       y: ground.y + y,
@@ -948,17 +1107,13 @@ export function urbanNeighborhood(
       y: ground.y + (ground.h >> 1),
     });
   }
-  const civic = civicProfile(pack.setting!);
   const plaza = { ...layout.plaza };
   // Landmarks stand back from the square's frame of streets, where there is one.
   const front = layout.plazaFront ?? plaza;
   let civicRect: Rect | undefined;
   // The civic range takes the plaza's head before the square is painted, so the
   // square keeps its full depth in front of the building rather than behind it.
-  const civicBase = modernCivicBuilding(pack.setting!, site.profile.radius >= 100) ?? pack.buildings
-    .map((base) => `${base}-urban-${civic.form}`)
-    .find((frame) => buildingModels[frame]);
-  if (civicBase) {
+  if (ranges.length) {
     // Sides in the order this fabric prefers, each tried at the middle of the
     // plaza edge and then to either side of it: an arterial meets the plaza at
     // its middle, so a range that insists on the centre never fits. The frame
@@ -977,10 +1132,9 @@ export function urbanNeighborhood(
             [0, -1],
             [0, 1],
           ];
-    const candidates = sides.flatMap(([nx, ny]) => {
+    const candidates = ranges.flatMap(base => sides.flatMap(([nx, ny]) => {
       const facing =
         nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
-      const base = civicBase;
       const frame = facing === "south" ? base : `${base}-${facing}`;
       if (!buildingModels[frame]) return [];
       const model = buildingModel(frame),
@@ -1008,14 +1162,16 @@ export function urbanNeighborhood(
           },
         };
       });
-    });
-    const door = (c: (typeof candidates)[number]) => ({
+    }));
+    const door = (c: { rect: Rect; model: { entrance: number[] } }) => ({
       x: c.rect.x + c.model.entrance[0],
       y: c.rect.y + c.model.entrance[1],
     });
-    const chosen = candidates.find(
-      (c) => fits(c.rect) && free({ ...door(c), w: 1, h: 1 }),
-    );
+    const court = hall && layout.grounds[hallIndex];
+    const chosen = court && hall ? { nx: 0, ny: -1, frame: ranges[0], model: hall,
+      rect: { x: court.x + ((court.w - hall.footprint[0]) >> 1), y: court.y + 1, w: hall.footprint[0], h: hall.footprint[1] } } :
+      candidates.find(c => fits(c.rect) && free({ ...door(c), w: 1, h: 1 }));
+    if (court) api.paintGround(court, "paving", civic.id, civic.label);
     if (chosen) {
       const point = door(chosen);
       claimLandmark({
@@ -1121,7 +1277,7 @@ export function urbanNeighborhood(
         return { nx, ny, frame, model, rect, forecourt, scale };
       });
     })));
-    const ground = mosqueScales.length ? layout.grounds[precincts.length] : undefined;
+    const ground = mosqueScales.length ? layout.grounds[sanctuaryIndex] : undefined;
     const groundScale = ground && mosqueScales.find((s) => mosqueSize(s)[0] === ground.w && mosqueSize(s)[1] === ground.h);
     const onGround = ground && groundScale && (() => {
       const frame = religious.recipe === "mediterranean-shrine" ? sanctuaryFrame(groundScale) : `religious-${religious.recipe}-${groundScale}-${look}`;

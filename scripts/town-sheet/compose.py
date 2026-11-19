@@ -92,6 +92,17 @@ def districts(name):
     for p in t['places']:
         x, y = (p['x'] - cx + R) * 3, (p['y'] - cy + R) * 3
         d.rectangle((x, y, x + p['w'] * 3 - 1, y + p['h'] * 3 - 1), fill=USES.get(p.get('use'), '#f4f4f4'), outline='#202020')
+    def pixel(p):
+        return (p['x'] - cx + R) * 3, (p['y'] - cy + R) * 3
+    for wall in t.get('curtains', []):
+        x, y = pixel(wall)
+        d.rectangle((x, y, x + 2, y + 2), fill='#47435a')
+    for q in t.get('precincts', []):
+        x, y = pixel(q)
+        d.rectangle((x, y, x + q['w'] * 3 - 1, y + q['h'] * 3 - 1), outline='#8b3b23', width=2)
+        entry, street = pixel(q['access']), pixel(q['precinct']['street'])
+        d.line((entry, street), fill='#ffd562', width=3)
+        d.text((x + 2, y + 2), q['precinct']['name'], fill='#42291c', stroke_width=1, stroke_fill='#f6e7c5')
     for i, (k, c) in enumerate(USES.items()):
         d.rectangle((6, 22 + i * 15, 18, 33 + i * 15), fill=c, outline='#202020'); d.text((24, 21 + i * 15), k or 'civic, works, other', fill='#101010')
     d.text((6, 4), t['label'], fill='#101010')

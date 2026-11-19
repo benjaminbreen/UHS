@@ -1,5 +1,5 @@
 import { random } from "../../core/random";
-import type { Point } from "../../core/types";
+import type { Point, TownGateway } from "../../core/types";
 import type {
   CircuitMaterial,
   DistrictSpec,
@@ -7,12 +7,15 @@ import type {
   UrbanForm,
   UrbanPlan,
 } from "../../content/settlements/urban-form/types";
+import type { PrecinctSiting } from "../../content/settlements/precincts";
 import { urbanFootprint } from "../../content/settlements/scale";
-import { line, spanOffsets } from "./roads";
+import { directLine, distanceToSegment, line, simplifyPath, spanOffsets } from "./roads";
 import { cellKey, type Rect } from "./types";
 import { connectStreetComponents, streetComponents } from "./street-network";
 
 export type Gate = { point: Point; nx: number; ny: number; axis: "x" | "y" };
+export type PrecinctRequest = PrecinctSiting & { sizes: readonly (readonly [number, number])[]; near?: Point; divertLane?: boolean };
+export type PrecinctGround = Rect & { entry: Point; street: Point; approach: Rect };
 export type Tier = 0 | 1 | 2;
 export type Segment = { a: Point; b: Point; tier: Tier };
 export type Block = Rect & {
@@ -37,16 +40,44 @@ export type Block = Rect & {
 /** The defensive circuit, as a ring of cells with the gate openings removed. */
 export type Wall = {
   material: CircuitMaterial;
+  precinct?: string;
   rect: Rect;
   /** Cells the circuit stands on, in perimeter order. */
   cells: Point[];
   /** Cells left open for a road, keyed as "x,y". */
   openings: Set<string>;
-  /** The ring cells each gate removed, in perimeter order. */
-  gaps: Point[][];
+  /** The road openings, ordered across the road from north or west. */
+  gates: TownGateway[];
   /** Every cell of the ring, gates included, in perimeter order. */
   ring: Point[];
+  bends: Point[];
 };
+export function wardCircuit(ground: PrecinctGround, material: CircuitMaterial, precinct: string, offset: boolean, moat: boolean): Wall {
+  const outward = { x: Math.sign(ground.street.x - ground.entry.x), y: Math.sign(ground.street.y - ground.entry.y) };
+  const margins = (space: number, minimum: number, dir: number) => {
+    const both = Math.max(0, Math.min(moat ? 3 : 1, (space - minimum) >> 1, dir ? space - minimum - 2 : space));
+    const front = Math.min(5, space - minimum - both);
+    return [dir < 0 ? front : both, dir > 0 ? front : both];
+  };
+  const [left, right] = margins(ground.w, 14, outward.x);
+  const [back, front] = margins(ground.h, ground.h >= 15 ? 13 : 11, outward.y);
+  const x = ground.x + left, y = ground.y + back, w = ground.w - left - right, h = ground.h - front - back;
+  const east = x + w - 1, south = y + h - 1;
+  const entry = { x: outward.x < 0 ? x : outward.x > 0 ? east : ground.entry.x,
+    y: outward.y > 0 ? south : ground.entry.y };
+  const bends: Point[] = [{ x, y }, ...(offset && w >= 21
+    ? [{ x: east - 3, y }, { x: east, y: y + 3 }]
+    : [{ x: east, y }]), { x: east, y: south }, { x, y: south }];
+  const ring = bends.flatMap((a, i) => line(a, bends[(i + 1) % bends.length]).slice(0, -1));
+  const across = (v: number) => ({ x: entry.x + Math.abs(outward.y) * v, y: entry.y + Math.abs(outward.x) * v });
+  const half = (outward.x ? h >= 16 : w >= 25) ? 2 : 1;
+  const opening = Array.from({ length: half * 2 + 1 }, (_, i) => across(i - half));
+  const openings = new Set(opening.map(p => cellKey(p.x, p.y)));
+  return { material, precinct, rect: { x, y, w, h }, ring, bends, openings,
+    cells: ring.filter(p => !openings.has(cellKey(p.x, p.y))),
+    gates: [{ opening, outward, jambs: [across(-half - 1), across(half + 1)], covered: false }] };
+}
+
 export type Furniture = { kind: StreetFurniture; x: number; y: number };
 export type Verge = Rect & { axis: "x" | "y"; side: -1 | 1 };
 /** A double-track line straight through the town and out past its edge:
@@ -77,7 +108,7 @@ export type UrbanLayout = {
   squares: Rect[];
   /** Ground cut out for each precinct requested, in order; undefined where
    * none of its sizes would fit. */
-  grounds: (Rect | undefined)[];
+  grounds: (PrecinctGround | undefined)[];
   /** Planted strips beside the arterials. */
   verges: Verge[];
   furniture: Furniture[];
@@ -112,6 +143,88 @@ const even = (n: number) => Math.round(n / 2) * 2;
  * rampart between one quarter of a city and the next. */
 export const hasCircuit = (form: UrbanForm, radius: number) =>
   form.wall !== "none" && radius >= 30;
+
+function wallOutline(center: Point, samples: Point[], gates: Gate[], frontage: number, half: number) {
+  const turn = Math.PI * 2;
+  const angle = (p: Point) => Math.atan2(p.y - center.y, p.x - center.x);
+  const sweep = (a: number, b: number) => (b - a + turn) % turn;
+  const fronts = gates.map(({ point, nx, ny }) => ({
+    point,
+    start: { x: point.x + ny * frontage, y: point.y - nx * frontage },
+    end: { x: point.x - ny * frontage, y: point.y + nx * frontage },
+    angle: angle(point),
+  })).sort((a, b) => a.angle - b.angle);
+  const bends = fronts.flatMap((front, i) => {
+    const next = fronts[(i + 1) % fronts.length], from = angle(front.end);
+    const span = sweep(from, angle(next.start));
+    const between = samples.map(p => ({ p, t: sweep(from, angle(p)) }))
+      .filter(({ t }) => t > .20 && t < span - .20).sort((a, b) => a.t - b.t);
+    return [front.point, ...simplifyPath([front.end, ...between.map(s => s.p), next.start],
+      Math.max(2, Math.min(4, half / 24)))];
+  });
+  const corners = bends.flatMap((a, i) => {
+    const b = bends[(i + 1) % bends.length], dx = b.x - a.x, dy = b.y - a.y;
+    const wide = Math.abs(dx) >= Math.abs(dy);
+    const major = Math.max(Math.abs(dx), Math.abs(dy)), minor = Math.min(Math.abs(dx), Math.abs(dy));
+    if (!minor || minor === major) return [a];
+    // Keep a shallow curtain within three cells of the surveyed line, using
+    // stretches the tile art can draw straight between its 45-degree turns.
+    const count = Math.ceil(minor * (major - minor) / (6 * major));
+    const parts: Point[] = [a];
+    const from = angle(a), span = sweep(from, angle(b));
+    for (let j = 0; j < count; j++) {
+      const x = a.x + Math.round(dx * j / count), y = a.y + Math.round(dy * j / count);
+      const w = a.x + Math.round(dx * (j + 1) / count) - x;
+      const h = a.y + Math.round(dy * (j + 1) / count) - y;
+      const lead = Math.floor(Math.abs(Math.abs(w) - Math.abs(h)) / 2);
+      const p = { x: x + (wide ? Math.sign(w) * lead : 0), y: y + (wide ? 0 : Math.sign(h) * lead) };
+      const diagonal = Math.min(Math.abs(w), Math.abs(h));
+      for (const q of [p, { x: p.x + diagonal * Math.sign(w), y: p.y + diagonal * Math.sign(h) }]) {
+        const prev = parts.at(-1)!;
+        if ((q.x === prev.x && q.y === prev.y) || (q.x === b.x && q.y === b.y)) continue;
+        const t = sweep(from, angle(q));
+        if (t <= sweep(from, angle(prev)) || t >= span) return [a];
+        parts.push(q);
+      }
+    }
+    return parts;
+  });
+  const faces = corners.map((a, i) => {
+    const b = corners[(i + 1) % corners.length];
+    const nx = b.y - a.y, ny = a.x - b.x;
+    return { a, b, angle: angle(a), nx, ny, offset: (a.x - center.x) * nx + (a.y - center.y) * ny };
+  }).sort((a, b) => a.angle - b.angle);
+  const strips = new Map<number, typeof faces>();
+  for (const f of faces) {
+    for (let row = Math.floor(Math.min(f.a.y, f.b.y) / 16); row <= Math.floor(Math.max(f.a.y, f.b.y) / 16); row++) {
+      let strip = strips.get(row);
+      if (!strip) strips.set(row, strip = []);
+      strip.push(f);
+    }
+  }
+  const faceAt = (theta: number) => {
+    let lo = 0, hi = faces.length;
+    while (lo < hi) {
+      const mid = (lo + hi) >>> 1;
+      if (faces[mid].angle <= theta) lo = mid + 1;
+      else hi = mid;
+    }
+    return faces[lo ? lo - 1 : faces.length - 1];
+  };
+  const holds = (x: number, y: number, margin: number) => {
+    const dx = x - center.x, dy = y - center.y, f = faceAt(Math.atan2(dy, dx));
+    if (dx * f.nx + dy * f.ny > f.offset) return false;
+    if (margin > 0) {
+      // At a sharp bend the nearest curtain can lie on the next bearing.
+      for (let row = Math.floor((y - margin) / 16); row <= Math.floor((y + margin) / 16); row++)
+        for (const { a, b } of strips.get(row) ?? [])
+          if (x + margin > Math.min(a.x, b.x) && x - margin < Math.max(a.x, b.x) &&
+              distanceToSegment({ x, y }, a, b) < margin) return false;
+    }
+    return true;
+  };
+  return { corners, bends, faceAt, holds };
+}
 
 /** Where through routes should meet the built edge. Pure in the site's own
  * identity so the regional road layer and the local planner agree without
@@ -206,7 +319,7 @@ export function composeUrban(
    * place has; the date says whether its streets were lit at all. */
   year?: number,
   /** Courts, arenas and markets, each as its sizes largest first. */
-  precincts?: { sizes: readonly (readonly [number, number])[] }[],
+  precincts?: PrecinctRequest[],
   /** An industrial-age town has a railway through it; a trunk line that
    * reaches the town says exactly where. */
   railway: boolean | Rail = false,
@@ -223,12 +336,14 @@ export function composeUrban(
   /** Footprint of the station a street-wall city keeps a block for against
    * its railway, the forecourt its cabs turn in included. */
   station?: readonly [number, number],
+  elevation?: (x: number, y: number) => number,
 ): UrbanLayout {
   const stationDepth = station ? station[1] + 9 : 0;
   const half = urbanFootprint(radius, form);
   const rand = (...keys: (string | number)[]) =>
     random(seed, siteId, "compose", ...keys);
-  const gates = urbanGates(siteId, center, radius, form);
+  const approaches = urbanGates(siteId, center, radius, form);
+  const walled = hasCircuit(form, radius);
 
   // Widths are whole cells. A fabric's avenue is for its large cities; a
   // small town of the same fabric gets a three-cell main street.
@@ -288,7 +403,7 @@ export function composeUrban(
   const turned = aspect
     ? aspect < 1
     : core.plan === "linear"
-      ? gates[0].axis === "y"
+      ? approaches[0].axis === "y"
       : rand("turn") < 0.5;
   const coreA = turned ? Math.round(coreHalf / stretch) : coreHalf,
     coreB = turned ? coreHalf : Math.round(coreHalf / stretch);
@@ -433,10 +548,26 @@ export function composeUrban(
           return wanted[j] - radii[j];
         })
         .reduce((a, b) => a + b) / 5;
-    return Math.max(radii[i], wanted[i] - trim);
+    return walled ? Math.min(radii[i] + 1, wanted[i] - trim) : Math.max(radii[i], wanted[i] - trim);
   });
-  // A wall has to reach its own gates, whatever the bearings either side say.
-  for (const gate of gates) {
+  const gates = walled ? approaches.map(gate => {
+    const { nx, ny } = gate;
+    const reach = (gate.point.x - center.x) * nx + (gate.point.y - center.y) * ny;
+    for (let inset = 0; reach - inset >= half * .42; inset++) {
+      const x = gate.point.x - inset * nx, y = gate.point.y - inset * ny;
+      if (!insideIdeal(x, y)) continue;
+      let dry = true;
+      for (let d = -loA - 2; usable && dry && d <= hiA + 2; d++)
+        dry = usable(x + ny * d, y + nx * d) && usable(x + ny * d - nx, y + nx * d - ny);
+      if (dry) return { ...gate, point: { x, y } };
+    }
+    return gate;
+  }) : approaches;
+  const outline = walled ? wallOutline(center, smoothed.map((r, i) => ({
+    x: center.x + Math.round(Math.cos(bearing(i)) * r),
+    y: center.y + Math.round(Math.sin(bearing(i)) * r),
+  })), gates, Math.max(hiA + 3, Math.round(half * (core.plan === "orthogonal" ? .32 : .16))), half) : undefined;
+  for (const gate of outline ? [] : gates) {
     const angle = Math.atan2(gate.point.y - center.y, gate.point.x - center.x);
     const reachTo = Math.hypot(
       gate.point.x - center.x,
@@ -450,6 +581,11 @@ export function composeUrban(
       );
   }
   const edge = (angle: number) => {
+    if (outline) {
+      const c = Math.cos(angle), s = Math.sin(angle);
+      const f = outline.faceAt(Math.atan2(s, c));
+      return f.offset / (f.nx * c + f.ny * s);
+    }
     const t = (angle / (Math.PI * 2)) * BEARINGS;
     const i = Math.floor(t),
       f = t - i;
@@ -458,11 +594,11 @@ export function composeUrban(
     return a + (b - a) * f;
   };
   const holds = (x: number, y: number, margin = 0) => {
+    if (outline) return outline.holds(x, y, margin);
     const dx = x - center.x,
       dy = y - center.y;
     return Math.hypot(dx, dy) <= edge(Math.atan2(dy, dx)) - margin;
   };
-  const walled = hasCircuit(form, radius);
   const wallMargin = walled ? hiA + 1 : 0;
   /** Pull `v` back along `axis` until it lies inside the built edge. */
   const inside = (v: number, axis: "x" | "y", fixed: number) => {
@@ -552,6 +688,9 @@ export function composeUrban(
   for (const [i, gate] of gates.entries()) {
     const along = gate.axis;
     const across = along === "x" ? "y" : "x";
+    const approach = approaches[i].point;
+    if (approach.x !== gate.point.x || approach.y !== gate.point.y)
+      streets.push({ a: approach, b: gate.point, tier: 0 });
     // An old town's streets come into its square at the corners, each along a
     // different side, as Sitte drew them turning like a pinwheel: the view
     // down a street closes on a building, and the middle of every side is
@@ -1109,54 +1248,7 @@ export function composeUrban(
         };
       })()
     : undefined;
-  // --- Precinct grounds -----------------------------------------------------
-  // A court, arena or market holds more ground than a block. It is cut out
-  // like a square, nearest the plaza first, trying each size largest first.
-  const grounds: (Rect | undefined)[] = [];
-  const clearOf = (r: Rect, q: Rect, m: number) =>
-    r.x + r.w + m <= q.x ||
-    q.x + q.w + m <= r.x ||
-    r.y + r.h + m <= q.y ||
-    q.y + q.h + m <= r.y;
-  // A city built in rows gives a court or a market one of its blocks, once
-  // the rows are cut.
-  const inBlocks = cornerSquare && !!form.streetWall && !!rowDepth;
-  for (const [n, request] of (precincts ?? []).entries()) {
-    let found: Rect | undefined;
-    for (const [w, h] of inBlocks ? [] : request.sizes) {
-      // From the boulevard age the square is fronted by buildings; what open
-      // market the halls left stands a few streets off.
-      for (let d = (year ?? 0) >= 1850 ? Math.round(half * 0.35) : 0; d < half && !found; d += 2)
-        for (let k = 0; k < 24 && !found; k++) {
-          const a = ((k + rand("ground", n) * 24) / 24) * Math.PI * 2;
-          const r = {
-            x: Math.round(focus.x + Math.cos(a) * d - w / 2),
-            y: Math.round(focus.y + Math.sin(a) * d - h / 2),
-            w,
-            h,
-          };
-          if (!clearOf(r, plaza, arterial + 2)) continue;
-          // The square no longer holds the centre, so a precinct could land on the crossing.
-          if (cornerSquare && streets.some((s) => s.tier === 0 &&
-            overlaps(s, { x: r.x - arterial, y: r.y - arterial, w: r.w + arterial * 2, h: r.h + arterial * 2 }))) continue;
-          if (squares.some((q) => !clearOf(r, q, 3))) continue;
-          if (rail && (rail.axis === "x" ? r.y + r.h + 2 > rail.level && r.y - 2 < rail.level + rail.span : r.x + r.w + 2 > rail.level && r.x - 2 < rail.level + rail.span)) continue;
-          if (grounds.some((q) => q && !clearOf(r, q, arterial + 4))) continue;
-          let ok = true;
-          for (let y = r.y - 2; y < r.y + r.h + 2 && ok; y++)
-            for (let x = r.x - 2; x < r.x + r.w + 2 && ok; x++)
-              ok = holds(x, y, wallMargin + 1) && (!usable || usable(x, y));
-          if (ok) found = r;
-        }
-      if (found) break;
-    }
-    grounds.push(found);
-    if (found) cutStreets(found);
-  }
-  if (grounds.some(Boolean)) {
-    lines.clear();
-    for (const s of streets) mark(s);
-  }
+  const grounds: (PrecinctGround | undefined)[] = [];
   const diagonals: Segment[] = [];
   // Not through a city of rows: its blocks are rectangles, and an avenue cut
   // across them ran into the square and left scraps on both sides.
@@ -1238,7 +1330,7 @@ export function composeUrban(
       for (const p of line(s.a, s.b)) clearAround(p.x, p.y, hiA + 2);
     clearRect(plaza, cornerSquare ? 1 : form.oldCore ? 2 : Math.max(loA, hiA) + 1);
     for (const r of squares) clearRect(r, Math.max(loA, hiA) + 1);
-    for (const r of grounds) if (r) clearRect(r, 1);
+    for (const r of grounds) if (r) { clearRect(r, 1); clearRect(r.approach, 0); }
     if (rail)
       clearRect(
         rail.axis === "x"
@@ -1533,24 +1625,7 @@ export function composeUrban(
       }
       for (const s of laid) push(s);
     }
-    if (!inBlocks) return;
-    const want = (year ?? 0) >= 1850 ? half * 0.35 : half * 0.2;
-    for (const [n, request] of (precincts ?? []).entries()) {
-      const off = (b: Block) => Math.abs(Math.hypot(b.x + b.w / 2 - focus.x, b.y + b.h / 2 - focus.y) - want);
-      for (const b of [...rowBlocks].sort((a, c) => off(a) - off(c))) {
-        const size = request.sizes.find(([w, h]) => w <= b.w && h <= b.h);
-        if (!size) continue;
-        // On the block's street front, its sides left to the houses if they hold one.
-        const ground = { x: b.x + ((b.w - size[0]) >> 1), y: b.y + b.h - size[1], w: size[0], h: size[1] };
-        grounds[n] = ground;
-        const sides = [
-          { ...b, w: ground.x - 1 - b.x },
-          { ...b, x: ground.x + ground.w + 1, w: b.x + b.w - ground.x - ground.w - 1 },
-        ].filter((r) => r.w >= 10);
-        rowBlocks.splice(rowBlocks.indexOf(b), 1, ...sides);
-        break;
-      }
-    }
+
   }
   // A block left far over its district's module gets a lane through it and the
   // ground is read again; a grown district in particular leaves such gaps.
@@ -1643,15 +1718,14 @@ export function composeUrban(
     lines.clear();
     for (const s of streets) mark(s);
   }
+  const free = (p: Point, reach: number) => {
+    if (!usable) return true;
+    for (let dy = -reach; dy <= reach; dy++)
+      for (let dx = -reach; dx <= reach; dx++) if (!usable(p.x + dx, p.y + dy)) return false;
+    return true;
+  };
   // A framed town's streets all reach each other without crossing a square.
   if (form.motor || framed) {
-    // Ground already taken (a works yard, water) breaks a street here, where
-    // the pieces can still be joined, not later when it is painted.
-    const free = (p: Point, reach: number) => {
-      for (let dy = -reach; dy <= reach; dy++)
-        for (let dx = -reach; dx <= reach; dx++) if (!usable!(p.x + dx, p.y + dy)) return false;
-      return true;
-    };
     if (motorCore && usable)
       for (const s of streets.splice(0)) {
         let from: number | undefined;
@@ -1684,7 +1758,7 @@ export function composeUrban(
       }
     connectStreetComponents(streets, (p) => {
       if (!holds(p.x, p.y, 2) || (motorCore && usable && !free(p, 3))) return false;
-      const spaces = [frameInterior ?? plaza, ...squares, ...grounds.filter((r): r is Rect => !!r)];
+      const spaces = [frameInterior ?? plaza, ...squares];
       if (spaces.some((r) => p.x >= r.x - 2 && p.x < r.x + r.w + 2 && p.y >= r.y - 2 && p.y < r.y + r.h + 2)) return false;
       return true;
     });
@@ -1717,6 +1791,121 @@ export function composeUrban(
     }
     lines.clear();
     for (const s of streets) mark(s);
+  }
+  for (const request of precincts ?? []) {
+    const space = (r: Rect, q: Rect, m = 0) => r.x >= q.x + q.w + m || q.x >= r.x + r.w + m ||
+      r.y >= q.y + q.h + m || q.y >= r.y + r.h + m;
+    let chosen: PrecinctGround | undefined;
+    for (const [w, h] of request.sizes) {
+      const candidates: { ground: PrecinctGround; street: Segment; score: number }[] = [];
+      for (const s of streets) {
+        const horizontal = axisOf(s) === "x";
+        const step = Math.max(4, Math.floor((horizontal ? w : h) / 3));
+        for (let v = lo(s) + 1; v < hi(s); v += step) for (const sign of [-1, 1]) {
+          const side = horizontal ? (sign > 0 ? "north" : "south") : (sign > 0 ? "west" : "east");
+          if (!request.entries.includes(side)) continue;
+          const street = point(s, v), dx = horizontal ? 0 : sign, dy = horizontal ? sign : 0;
+          const kerb = spanOffsets(span(s.tier))[sign > 0 ? 1 : 0] + 1;
+          const reach = kerb + Math.max(2, margin(s.tier));
+          const entry = { x: street.x + reach * dx, y: street.y + reach * dy };
+          const x = entry.x - (dx > 0 ? 0 : dx < 0 ? w - 1 : w >> 1);
+          const y = entry.y - (dy > 0 ? 0 : dy < 0 ? h - 1 : h >> 1);
+          const approach = { x: Math.min(entry.x, street.x + kerb * dx) - Math.abs(dy),
+            y: Math.min(entry.y, street.y + kerb * dy) - Math.abs(dx),
+            w: dx ? reach - kerb + 1 : 3, h: dy ? reach - kerb + 1 : 3 };
+          const ground = { x, y, w, h, entry, street, approach };
+          const mx = x + (w >> 1), my = y + (h >> 1);
+          if (!holds(mx, my, wallMargin + 1) || !space(ground, frameInterior ?? plaza, 2) ||
+              squares.some(q => !space(ground, q, 2)) ||
+              grounds.some(q => q && (!space(ground, q, 2) || !space(ground, q.approach, 1) ||
+                !space(approach, q, 1) || !space(approach, q.approach)))) continue;
+          if (rail && [ground, approach].some(r => rail.axis === "x"
+            ? r.y + r.h + 2 > rail.level && r.y - 2 < rail.level + rail.span
+            : r.x + r.w + 2 > rail.level && r.x - 2 < rail.level + rail.span)) continue;
+          const distance = Math.hypot(street.x - focus.x, street.y - focus.y);
+          const behind = Math.max(0, (focus.x - entry.x) * dx + (focus.y - entry.y) * dy);
+          const altitude = elevation?.(mx, my) ?? 0;
+          const slope = elevation ? Math.max(
+            Math.abs(elevation(x, y) - elevation(x + w - 1, y + h - 1)),
+            Math.abs(elevation(x + w - 1, y) - elevation(x, y + h - 1))) : 0;
+          const target = request.position === "outer" ? half * .58 :
+            request.position === "garden" ? half * .48 : 0;
+          const boundary = request.position === "wall" || request.position === "rise"
+            ? Math.abs(edge(Math.atan2(my - center.y, mx - center.x)) - Math.hypot(mx - center.x, my - center.y) - Math.min(w, h) / 2 - wallMargin - 2)
+            : Math.abs(distance - target);
+          const score = boundary + slope * .4 + s.tier * 4 +
+            (request.near ? Math.hypot(mx - request.near.x, my - request.near.y) * .38 : 0) +
+            (request.position === "square" ? behind : 0) - (request.position === "rise" ? altitude * .8 : 0);
+          candidates.push({ ground, street: s, score });
+        }
+      }
+      for (const { ground: r, street } of candidates.sort((a, b) => a.score - b.score)) {
+        // Keep road widths, including the shoulders of diagonal avenues.
+        let crossing: Segment | undefined;
+        const blocked = streets.some(s => {
+          const pad = Math.ceil((span(s.tier) - 1) / 2);
+          if (!overlaps(s, { x: r.x - pad, y: r.y - pad, w: w + 2 * pad, h: h + 2 * pad })) return false;
+          if (!request.divertLane || crossing || s === street || s.tier === 0) return true;
+          crossing = s;
+          return false;
+        });
+        if (blocked ||
+          diagonals.some(s => line(s.a, s.b).some(p => !space(r, { ...p, w: 1, h: 1 }, hiA))) ||
+          rowBlocks.some(b => b.open && (!space(r, b, 1) || !space(r.approach, b)))) continue;
+        let low = Infinity, high = -Infinity, ok = true;
+        for (const rect of [r, r.approach]) {
+          for (let y = rect.y; y < rect.y + rect.h && ok; y++) for (let x = rect.x; x < rect.x + rect.w; x++) {
+            const z = elevation?.(x, y) ?? 0;
+            low = Math.min(low, z); high = Math.max(high, z);
+            if (!holds(x, y, wallMargin + 1) || (usable && !usable(x, y)) || high - low > 14) { ok = false; break; }
+          }
+        }
+        if (usable && ok) {
+          const [lo, hi] = spanOffsets(span(street.tier));
+          for (let y = r.street.y - lo; y <= r.street.y + hi && ok; y++)
+            for (let x = r.street.x - lo; x <= r.street.x + hi; x++)
+              if (!usable(x, y)) { ok = false; break; }
+        }
+        if (!ok) continue;
+        const lane = crossing;
+        if (lane) {
+          const horizontal = axisOf(lane) === "x", pad = Math.ceil(span(lane.tier) / 2) + 1;
+          const u = (horizontal ? r.x : r.y) - pad, v = u + (horizontal ? w : h) - 1 + pad * 2;
+          const sides = [(horizontal ? r.y : r.x) - pad, (horizontal ? r.y + h : r.x + w) - 1 + pad]
+            .sort((a, b) => Math.abs(a - across(lane)) - Math.abs(b - across(lane)));
+          // Keep both ends of a through street connected around the new precinct.
+          if (lo(lane) >= u || hi(lane) <= v) continue;
+          const at = (a: number, b: number) => horizontal ? { x: a, y: b } : { x: b, y: a };
+          const route = sides.map(side => [point(lane, u), at(u, side), at(v, side), point(lane, v)])
+            .find(points => points.slice(1).every((q, i) => line(points[i], q).every(p => {
+              const shoulder = { x: p.x - pad + 1, y: p.y - pad + 1, w: pad * 2 - 1, h: pad * 2 - 1 };
+              return holds(p.x, p.y, wallMargin + pad) && free(p, pad) &&
+                space(shoulder, plaza, 1) && squares.every(s => space(shoulder, s, 1)) &&
+                rowBlocks.every(b => !b.open || space(shoulder, b, 1)) &&
+                grounds.every(g => !g || space(shoulder, g, 1) && space(shoulder, g.approach)) &&
+                (!rail || (rail.axis === "x" ? Math.abs(p.y - rail.level) : Math.abs(p.x - rail.level)) > rail.span + pad);
+            })));
+          if (!route) continue;
+          const points = [point(lane, lo(lane)), ...route, point(lane, hi(lane))];
+          streets.splice(streets.indexOf(lane), 1, ...points.slice(1).map((b, i) => ({ a: points[i], b, tier: lane.tier })));
+          lines.clear();
+          for (const s of streets) mark(s);
+        }
+        chosen = r;
+        break;
+      }
+      if (chosen) break;
+    }
+    grounds.push(chosen);
+    if (chosen) {
+      const r = chosen;
+      for (const b of [...rowBlocks]) {
+        if (space(r, b) && space(r.approach, b)) continue;
+        const left = Math.min(r.x, r.approach.x), right = Math.max(r.x + r.w, r.approach.x + r.approach.w);
+        const sides = [{ ...b, w: left - 1 - b.x }, { ...b, x: right + 1, w: b.x + b.w - right - 1 }];
+        rowBlocks.splice(rowBlocks.indexOf(b), 1, ...sides.filter(q => q.w >= 10));
+      }
+    }
   }
   readBlocks();
   for (const b of blocks) {
@@ -1995,7 +2184,7 @@ export function composeUrban(
    * joined with cardinal steps, so the ring is closed and cannot be walked
    * through diagonally. Each gate is opened wide enough for its arterial. */
   function circuit(): Wall | undefined {
-    if (!walled || form.wall === "none") return;
+    if (!outline || form.wall === "none") return;
     const openings = new Set<string>();
     const gateOf = new Map<string, number>();
     for (const [g, gate] of gates.entries())
@@ -2008,30 +2197,40 @@ export function composeUrban(
         gateOf.set(k, g);
       }
     const gaps: Point[][] = gates.map(() => []);
-    const at = (i: number) => {
-      const angle = bearing(i);
-      const r = smoothed[((i % BEARINGS) + BEARINGS) % BEARINGS];
-      return {
-        x: Math.round(center.x + Math.cos(angle) * r),
-        y: Math.round(center.y + Math.sin(angle) * r),
-      };
-    };
-    const seen = new Set<string>();
+    const { corners } = outline;
+    const visited = new Map<string, number>();
     const cells: Point[] = [];
     const ring: Point[] = [];
     let lo = { x: Infinity, y: Infinity },
       hi = { x: -Infinity, y: -Infinity };
-    for (let i = 0; i < BEARINGS; i++)
-      for (const q of line(at(i), at(i + 1))) {
+    for (const [i, a] of corners.entries())
+      for (const q of directLine(a, corners[(i + 1) % corners.length]).slice(0, -1)) {
         const key = cellKey(q.x, q.y);
-        if (seen.has(key)) continue;
-        seen.add(key);
+        let keep = visited.get(key) ?? ring.length;
+        // Clip tiny loops where the two rasterized sides of a sharp bend touch.
+        // The seam at index zero is midway across a straight gate frontage.
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const j = visited.get(cellKey(q.x + dx, q.y + dy));
+          if (j !== undefined && j > 0) keep = Math.min(keep, j + 1);
+        }
+        while (ring.length > keep) {
+          const p = ring.pop()!;
+          visited.delete(cellKey(p.x, p.y));
+        }
+        visited.set(key, ring.length);
         ring.push(q);
-        lo = { x: Math.min(lo.x, q.x), y: Math.min(lo.y, q.y) };
-        hi = { x: Math.max(hi.x, q.x), y: Math.max(hi.y, q.y) };
-        if (!openings.has(key)) cells.push(q);
-        else gaps[gateOf.get(key)!].push(q);
       }
+    // Start on standing wall so a gate that crosses the seam keeps both jambs in order.
+    const first = ring.findIndex(p => !openings.has(cellKey(p.x, p.y)));
+    if (first < 0) return;
+    ring.push(...ring.splice(0, first));
+    for (const q of ring) {
+      const key = cellKey(q.x, q.y);
+      lo = { x: Math.min(lo.x, q.x), y: Math.min(lo.y, q.y) };
+      hi = { x: Math.max(hi.x, q.x), y: Math.max(hi.y, q.y) };
+      if (!openings.has(key)) cells.push(q);
+      else gaps[gateOf.get(key)!].push(q);
+    }
     if (!cells.length) return;
     return {
       // Ming builders faced the old rammed-earth circuits in brick.
@@ -2039,8 +2238,17 @@ export function composeUrban(
       rect: { ...lo, w: hi.x - lo.x + 1, h: hi.y - lo.y + 1 },
       cells,
       openings,
-      gaps: gaps.filter((g) => g.length),
+      gates: gaps.flatMap((opening, i) => {
+        if (!opening.length) return [];
+        const { nx, ny } = gates[i];
+        opening.sort((a, b) => a.y - b.y || a.x - b.x);
+        const first = opening[0], last = opening[opening.length - 1];
+        const dx = Math.abs(ny), dy = Math.abs(nx);
+        return [{ opening, outward: { x: nx, y: ny }, covered: false,
+          jambs: [{ x: first.x - dx, y: first.y - dy }, { x: last.x + dx, y: last.y + dy }] }];
+      }),
       ring,
+      bends: outline.bends,
     };
   }
 }

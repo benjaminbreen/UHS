@@ -230,7 +230,7 @@ export function pavingStonePixel(
   const g = grades[grade];
   if (material === "asphalt") return asphaltPixel(wx, wy);
   if (material === "macadam") return macadamPixel(wx, wy);
-  if (material === "basalt") return basaltPixel(wx, wy, g.lift);
+  if (material === "basalt" && grade !== "court") return basaltPixel(wx, wy, g.lift);
   if (material === "plank") {
     const u = across ? wx : wy, v = across ? wy : wx;
     const board = Math.floor(u / 5), i = mod(u, 5);
@@ -290,7 +290,8 @@ export function pavingStonePixel(
   const offset = Math.floor(hash(row, 0, 702) * width);
   const col = Math.floor((wx + offset) / width), x = mod(wx + offset, width), y = mod(wy, g.h);
   const id = hash(col, row, 703);
-  const face = tint(limestone[Math.floor(id * limestone.length)], g.lift);
+  const palette = material === "basalt" ? basalt : limestone;
+  const face = tint(palette[Math.floor(id * palette.length)], g.lift - (material === "basalt" ? 22 : 0));
   const joint = tint(face, -20);
   if (x === 0 || y === 0) return joint;
   if (x === 1 && y === 1 && id > 0.75) return joint;

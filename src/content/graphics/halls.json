@@ -83,6 +83,99 @@
   }
  },
  "buildings": {
+  "hall-keep": {
+   "label": "Hall keep",
+   "family": "castle",
+   "form": "hall-keep",
+   "description": "The tower houses the hall above its storerooms. A forebuilding covers the stair up to the upper rooms.",
+   "footprint": [
+    9,
+    5
+   ],
+   "entrance": [
+    4,
+    5
+   ],
+   "wall": "theatre-stone",
+   "roofMaterial": "lead",
+   "wallHeight": 89,
+   "roofRise": 35,
+   "scales": {
+    "small": {
+     "footprint": [
+      7,
+      4
+     ]
+    },
+    "medium": {}
+   },
+   "looks": [
+    {},
+    {}
+   ]
+  },
+  "great-hall": {
+   "label": "Great hall",
+   "family": "castle",
+   "form": "great-hall",
+   "description": "High windows light the hall where the household eats and the lord hears visitors. The entrance is at the service end.",
+   "footprint": [
+    12,
+    5
+   ],
+   "entrance": [
+    6,
+    5
+   ],
+   "wall": "theatre-stone",
+   "roofMaterial": "grey-tile",
+   "wallHeight": 68,
+   "roofRise": 39,
+   "scales": {
+    "small": {
+     "footprint": [
+      10,
+      4
+     ]
+    },
+    "medium": {}
+   },
+   "looks": [
+    {},
+    {}
+   ]
+  },
+  "audience-hall": {
+   "label": "Citadel audience hall",
+   "family": "castle",
+   "form": "audience-hall",
+   "description": "A deep stone porch opens off the paved court. The ruler and officials receive petitioners in the hall beyond.",
+   "footprint": [
+    11,
+    5
+   ],
+   "entrance": [
+    5,
+    5
+   ],
+   "wall": "theatre-stucco",
+   "roofMaterial": "earth",
+   "wallHeight": 76,
+   "roofRise": 24,
+   "scales": {
+    "small": {
+     "footprint": [
+      9,
+      4
+     ]
+    },
+    "medium": {}
+   },
+   "looks": [
+    {},
+    {}
+   ]
+  },
   "hammam": {
    "label": "Hammam",
    "family": "bath",

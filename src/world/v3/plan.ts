@@ -86,7 +86,7 @@ import {
   type Quarter,
   type UrbanLot,
 } from "./urban";
-import type { Furniture } from "./blocks";
+import type { Furniture, PrecinctGround } from "./blocks";
 import { urbanBuildingLimit } from "../../content/settlements/scale";
 import {
   eraEnclosure,
@@ -1016,6 +1016,7 @@ export function planSettlement(
   // limit, three worksites left a farmstead of five with nobody living in it.
   const worksites = plan.places.length;
   let urbanLots: UrbanLot[] = [];
+  const precinctGrounds: PrecinctGround[] = [];
   const groundVenues: {
     venue: import("../../content/venues").Venue;
     pos: Point;
@@ -1404,17 +1405,17 @@ export function planSettlement(
     // Earth where feet wear it; ground nobody crosses grows over unless the
     // climate is too dry for it.
     const openGround: Terrain = pack.setting?.climate === "arid" ? "dirt" : "grass";
-    const paintForecourt = (rect: Rect) => {
-      gradeGround(rect);
-      const material = squareStone;
+    const paintForecourt = (rect: Rect, stone?: StreetMaterial) => {
+      if (!stone) gradeGround(rect);
+      const material = stone ?? squareStone;
       eachCell(rect, (x, y) => {
         const key = cellKey(x, y);
         if (!dry({ x, y, w: 1, h: 1 }, false)) return;
         plan.reserved.add(key);
         roads.add(key);
-        if (!setSurface(key, profile.paved ? "paving" : "dirt", 8)) return;
+        if (!setSurface(key, stone || profile.paved ? "paving" : "dirt", stone ? 11 : 8)) return;
         plan.pavement!.set(key, "court");
-        if (profile.paved && material) plan.streetSurfaces!.set(key, material);
+        if ((stone || profile.paved) && material) plan.streetSurfaces!.set(key, material);
       });
     };
     /** Lawns in the four quarters of a square, between walks that cross at
@@ -1838,6 +1839,7 @@ export function planSettlement(
       if (roads.has(k) && pavement !== "footway" && pavement !== "verge" && !squareEdge.has(k))
         return;
       if (piece.kind === "tree") {
+        if (plan.placement.clearance.has(k)) return;
         if (pavement !== "verge" && squareEdge.get(k) !== "verge") return;
         plan.solid.add(k);
         plan.reserved.add(k);
@@ -1875,6 +1877,7 @@ export function planSettlement(
     urbanLots = urbanNeighborhood(site, pack, seed, {
         lay,
         dry: urbanDry,
+        elevation: (x, y) => sample(x, y).elevation,
         shore: urbanShore(),
         bank: (x, y) => {
           const f = sample(x, y);
@@ -1995,29 +1998,56 @@ export function planSettlement(
           return true;
         },
         furnish,
-        paintGround: (rect, surface) => {
-          gradeGround(rect);
+        courtWell: (at, id) => {
+          plan.solid.add(cellKey(at.x, at.y));
+          plan.objects.push({ id: `${site.id}-${id}-well`, name: "Courtyard well", kind: "well",
+            pos: pos(at), sprite: nativeOrnament("well") || "well", inventory: {} });
+        },
+        paintGround: (ground, surface, id, name, garden, ward) => {
+          const { x, y, w, h } = ground;
+          const rect = { x, y, w, h };
+          precinctGrounds.push(ground);
           eachCell(rect, (x, y) => {
             const k = cellKey(x, y);
-            if (!dry({ x, y, w: 1, h: 1 }, false)) return;
             plan.reserved.add(k);
-            roads.add(k);
-            const paved = surface === "paving";
-            if (
-              !setSurface(k, paved && !profile.paved ? "dirt" : surface, 9)
-            )
+            if (ward && !inside(ward, x, y)) {
+              if (setSurface(k, openGround, 9)) plan.pavement!.set(k, openGround === "grass" ? "verge" : "yard");
               return;
+            }
+            if (garden && x >= garden.x && x < garden.x + garden.w && y >= garden.y && y < garden.y + garden.h) {
+              if (setSurface(k, "grass", 9)) plan.pavement!.set(k, "park");
+              return;
+            }
+            roads.add(k);
+            const paved = surface === "paving" && profile.paved;
+            if (!setSurface(k, surface === "paving" && !paved ? "dirt" : surface, 9)) return;
             plan.pavement!.set(k, "court");
-            if (paved && profile.paved && squareStone) plan.streetSurfaces!.set(k, squareStone);
+            if (paved && squareStone) plan.streetSurfaces!.set(k, squareStone);
           });
-          plan.plots.push({
-            ...rect,
-            id: `${site.id}-precinct-${plan.plots.length}`,
-            kind: "public",
-            access: {
-              x: rect.x + Math.floor(rect.w / 2),
-              y: rect.y + Math.floor(rect.h / 2),
-            },
+          plan.plots.push({ ...rect, id: `${site.id}-precinct-${id}-${x}-${y}`, kind: "public",
+            access: ground.entry, precinct: { id, name, street: ground.street, garden } });
+        },
+        wardDitch: (grounds, ward, gate, out, wet) => {
+          const frontage = out.x < 0 ? ward.x - grounds.x : out.x > 0 ? grounds.x + grounds.w - ward.x - ward.w :
+            grounds.y + grounds.h - ward.y - ward.h;
+          if (frontage < 2) return;
+          const near = frontage >= 3 ? 2 : 1, far = Math.min(4, frontage);
+          const cuts = plan.canals ??= new Map(), decks = plan.culverts ??= new Set();
+          eachCell(grounds, (x, y) => {
+            const along = (x - gate.x) * out.x + (y - gate.y) * out.y;
+            const across = Math.abs((y - gate.y) * out.x + (x - gate.x) * out.y);
+            const dx = Math.max(0, ward.x - x, x - ward.x - ward.w + 1);
+            const dy = Math.max(0, ward.y - y, y - ward.y - ward.h + 1);
+            const distance = dx && dy ? dx + dy - 1 : dx + dy;
+            if (!wet && along < -3 || distance > far) return;
+            const k = cellKey(x, y);
+            if (across < 2 && along >= 1 && along <= far) {
+              setSurface(k, "bridge", 13);
+              decks.add(k);
+            } else if (distance >= (!wet && (out.x ? dy : dx) > 0 ? 1 : near)) {
+              setSurface(k, wet ? "water" : "dirt", 12);
+              cuts.set(k, wet ? "moat" : "ditch");
+            }
           });
         },
         stall: (at, i, trade) => {
@@ -2126,36 +2156,35 @@ export function planSettlement(
             plan.reserved.add(cellKey(q.x, q.y));
             noRoad.add(cellKey(q.x, q.y));
           }
+          const circuit = wall.precinct ? `${site.id}-${wall.precinct}` : site.id;
           for (const [i, beat] of beats.entries())
-            plan.actors.push(watchman(seed, pack, `${site.id}-watch-${i}`, beat));
+            plan.actors.push(watchman(seed, pack, `${circuit}-watch-${i}`, beat));
           // Two guards at each gate, one either side of the road: outside it
           // where the ground is dry, inside where the gate opens on water.
           // A night pair relieves the day pair; whoever is off rests inside.
-          const mid = { x: wall.rect.x + wall.rect.w / 2, y: wall.rect.y + wall.rect.h / 2 };
-          const open = (q: Point) => !plan.solid.has(cellKey(q.x, q.y)) && dry({ ...q, w: 1, h: 1 }, false);
+          const { gates } = wall;
+          const open = (q: Point) => {
+            const k = cellKey(q.x, q.y);
+            return !plan.solid.has(k) && plan.surface.get(k) !== "water" && dry({ ...q, w: 1, h: 1 }, false);
+          };
           const rests: Point[] = [];
-          for (const [i, gap] of wall.gaps.slice(0, 4).entries()) {
-            if (!gap.length) continue;
-            const ends = [gap[0], gap[gap.length - 1]];
-            const across = ends[0].y === ends[1].y;
-            const out = across ? Math.sign(ends[0].y - mid.y) || 1 : Math.sign(ends[0].x - mid.x) || 1;
-            const lo = across ? Math.min(ends[0].x, ends[1].x) - 1 : Math.min(ends[0].y, ends[1].y) - 1;
-            const hi = across ? Math.max(ends[0].x, ends[1].x) + 1 : Math.max(ends[0].y, ends[1].y) + 1;
-            const face = across ? (out > 0 ? 2 : 0) : out > 0 ? 1 : 3;
-            for (const [j, v] of [lo, hi].entries()) {
-              const at = (o: number) => (across ? { x: v, y: ends[0].y + o } : { x: ends[0].x + o, y: v });
-              const post = [at(out), at(-out)].find(open);
+          for (const [i, gate] of gates.slice(0, 4).entries()) {
+            const { x: dx, y: dy } = gate.outward;
+            const face = dx ? (dx > 0 ? 1 : 3) : (dy > 0 ? 2 : 0);
+            for (const [j, jamb] of gate.jambs.entries()) {
+              const at = (d: number) => ({ x: jamb.x + dx * d, y: jamb.y + dy * d });
+              const post = [at(1), at(-1)].find(open);
               if (!post) continue;
-              const rest = [at(-out * 3), at(-out * 4), at(-out * 2)].find(open) ?? post;
+              const rest = [at(-3), at(-4), at(-2)].find(open) ?? post;
               rests.push(rest);
               for (const night of [false, true])
-                plan.actors.push(watchman(seed, pack, `${site.id}-gate-${i}-${j}${night ? "-n" : ""}`, [post, post],
-                  { at: post, rest: night ? rest : [{ ...rest, x: rest.x + (across ? 0 : 1), y: rest.y + (across ? 1 : 0) }].find(open) ?? rest, night, torch: night && j === 0, face },
-                  !night && j === 0 && rests.length === 1));
+                plan.actors.push(watchman(seed, pack, `${circuit}-gate-${i}-${j}${night ? "-n" : ""}`, [post, post],
+                  { at: post, rest: night ? rest : [{ ...rest, x: rest.x + Math.abs(dx), y: rest.y + Math.abs(dy) }].find(open) ?? rest, night, torch: night && j === 0, face },
+                  !wall.precinct && !night && j === 0 && rests.length === 1));
             }
           }
           // The night watch goes round from gate to gate inside the walls.
-          if (rests.length > 1)
+          if (!wall.precinct && rests.length > 1)
             for (let k = 0; k < 2; k++) {
               const round = [...rests.slice(k * 2), ...rests.slice(0, k * 2)].filter((_, n) => n % 2 === 0);
               const home = rests[(k * 2 + 1) % rests.length];
@@ -2164,23 +2193,10 @@ export function planSettlement(
             }
           plan.enclosures.push({
             ...wall.rect,
-            // A circuit has many ways in. The single gate this field records
-            // is the one a reader of the older fence contract would look for.
-            gate: [...wall.openings]
-              .map((k) => {
-                const [x, y] = k.split(",").map(Number);
-                return { x, y };
-              })
-              .sort((a, b) => a.y - b.y || a.x - b.x)[0] ?? { ...c },
+            precinct: wall.precinct,
+            gate: gates[0]?.opening[0] ?? { ...c },
             parts: [...parts, ...overlays],
-            // A gateway is a gap with wall at both ends; a break where the
-            // circuit simply stops (at water, at a cliff) has nothing to shut.
-            gates: wall.gaps.filter((gap) => {
-              const across = gap.every((q) => q.y === gap[0].y);
-              const [a, b] = across ? [Math.min(...gap.map((q) => q.x)), Math.max(...gap.map((q) => q.x))] : [Math.min(...gap.map((q) => q.y)), Math.max(...gap.map((q) => q.y))];
-              const at = (v: number) => cellKey(across ? v : gap[0].x, across ? gap[0].y : v);
-              return plan.solid.has(at(a - 1)) && plan.solid.has(at(b + 1));
-            }),
+            gates,
           });
         },
       });
@@ -2855,7 +2871,7 @@ export function planSettlement(
     ...groundVenues.map((v) => v.venue.id),
   ]);
   const central = frontage
-    .filter((lot) => !lot.religious && !lot.civic && !lot.venue)
+    .filter((lot) => !lot.religious && !lot.civic && !lot.venue && !lot.piece)
     .sort(
       (a, b) =>
         Math.hypot(a.point.x - site.cx, a.point.y - site.cy) -
@@ -3769,7 +3785,7 @@ export function planSettlement(
       continue;
     }
     if (lot.piece) {
-      const id = `${site.id}-piece-${i}`;
+      const id = lot.piece.claim ? `${site.id}-${lot.piece.claim}` : `${site.id}-piece-${i}`;
       eachCell(rect, (x, y) => {
         plan.solid.add(cellKey(x, y));
         plan.built!.add(cellKey(x, y));
@@ -3784,7 +3800,7 @@ export function planSettlement(
         sprite: frame,
         entrance: door,
         access: "public",
-        claim: "landscape",
+        claim: lot.piece.claim ?? "landscape",
         entranceLabel: "Enter",
       });
       plan.objects.push({
@@ -4647,9 +4663,8 @@ export function planSettlement(
     });
     if (farmland) {
       plan.fields = farmland.fields;
-      plan.canals = farmland.canals;
-      plan.canalsDry = farmland.canalsDry;
-      plan.culverts = farmland.culverts;
+      plan.canals ??= new Map();
+      plan.culverts ??= new Set();
       plan.parcels = farmland.parcels;
       plan.territory = farmland.territory;
       for (const [k, cell] of farmland.fields) {
@@ -4660,11 +4675,15 @@ export function planSettlement(
       // A canal is water a cell wide; a track crosses it on a culvert deck.
       // A dry one is walkable ground, so it keeps the field surface.
       for (const k of farmland.canals) {
+        if (plan.canals.has(k) || plan.culverts.has(k)) continue;
+        plan.canals.set(k, farmland.canalsDry ? "dry" : "wet");
         if (!farmland.canalsDry) setSurface(k, "water", 6);
         plan.reserved.add(k);
         noRoad.add(k);
       }
       for (const k of farmland.culverts) {
+        if (plan.canals.has(k)) continue;
+        plan.culverts.add(k);
         // Over whatever the lane laid: an outranked deck drew as a gap.
         plan.surface.set(k, "bridge");
         plan.reserved.add(k);
@@ -6186,7 +6205,8 @@ export function planSettlement(
       plan.fields.delete(k);
       const [x, y] = k.split(",").map(Number);
       const crosses = (dry(x - 1, y) && dry(x + 1, y)) || (dry(x, y - 1) && dry(x, y + 1));
-      if (crosses && plan.canals?.delete(k)) {
+      const cut = plan.canals?.get(k);
+      if (crosses && (cut === "dry" || cut === "wet") && plan.canals!.delete(k)) {
         plan.culverts?.add(k);
         // Whatever the road laid here, it crosses on a deck.
         plan.surface.set(k, "bridge");
@@ -6563,6 +6583,13 @@ export function planSettlement(
   if (palette) stepGround(plan, roads, seed, motorAge || pavesWalks ? infillStone(palette) : undefined, pavesWalks ? squareStone : undefined);
   if (palette && urban && !motorAge) resolveGround();
   levelAprons();
+  // The gate, the hall and the paving between them share one terrace.
+  for (const ground of precinctGrounds) {
+    const { x, y } = ground.street;
+    const level = plan.groundLevels?.get(cellKey(x, y)) ?? Math.round(sample(x, y).elevation / 14);
+    gradeGround(ground, level);
+    gradeGround(ground.approach, level);
+  }
   if (kerb) kerbFixtures(kerb);
   // A town laid out for cars was graded for them: streets and blocks one
   // step off the centre's level are brought to it, so no bank crosses a road.

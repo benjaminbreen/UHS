@@ -2042,7 +2042,7 @@ export class Engine {
   private gateToll(dx: number, dy: number) {
     const p = this.state.player;
     const gate = p.pos.space === "outside" && !this.onWall() ? this.walls().gates.get(`${p.pos.x},${p.pos.y}`) : undefined;
-    if (!gate || (gate.dx ? dx !== gate.dx : dy !== gate.dy)) return;
+    if (!gate?.toll || (gate.dx ? dx !== gate.dx : dy !== gate.dy)) return;
     const key = `${gate.id}:${Math.floor(this.state.clock / 86400)}`;
     if (this.tolled.has(key)) return;
     const guard = this.state.actors.find((a) => a.post && !a.post.round && !a.dead && a.pos.space === "outside" &&
@@ -2839,14 +2839,9 @@ export class Engine {
     cells: Set<string>;
     walk: Map<string, WallWalk>;
     stairs: Map<string, { step: number; onto?: Point }>;
-    gates: Map<string, { id: string; dx: number; dy: number }>;
+    gates: Map<string, { id: string; dx: number; dy: number; toll: boolean }>;
   };
   private wallIndexFor = -1;
-  /** The circuits' cells, read off the frames the town was drawn with:
-   * wall-{material}-{mask}{d}-{v} for the wall, wall-none under a tower or a
-   * gatehouse's flank, tower-*, gate-{material}-{n} centred on its gap, and
-   * stair-{material}-{art}-{step}{onto}. Districts push enclosures as they
-   * activate, so the index is rebuilt when their number changes. */
   private walls() {
     const all = this.world.enclosures ?? [];
     if (this.wallIndex && this.wallIndexFor === all.length) return this.wallIndex;
@@ -2854,18 +2849,8 @@ export class Engine {
     const walk = new Map<string, WallWalk>();
     const stairs = new Map<string, { step: number; onto?: Point }>();
     // The road through each town gate, and which way along it is into town.
-    const gates = new Map<string, { id: string; dx: number; dy: number }>();
+    const gates = new Map<string, { id: string; dx: number; dy: number; toll: boolean }>();
     const corners: Record<string, WallWalk["corner"]> = { "9": "nw", "3": "ne", "6": "se", "12": "sw" };
-    for (const e of all)
-      for (const [i, gap] of (e.gates ?? []).entries()) {
-        const across = gap.every((q) => q.y === gap[0].y);
-        for (const q of gap)
-          gates.set(`${q.x},${q.y}`, {
-            id: `${e.x},${e.y}:${i}`,
-            dx: across ? 0 : Math.sign(e.x + e.w / 2 - q.x) || 1,
-            dy: across ? Math.sign(e.y + e.h / 2 - q.y) || 1 : 0,
-          });
-      }
     for (const e of all)
       for (const { x, y, frame } of e.parts ?? []) {
         const k = `${x},${y}`;
@@ -2874,11 +2859,8 @@ export class Engine {
           cells.add(k);
           walk.set(k, m[2] ? { kind: "wall", corner: corners[m[1]] } : { kind: "wall" });
         } else if (frame.startsWith("tower-")) walk.set(k, { kind: "tower" });
-        else if ((m = frame.match(/^gate-[a-z]+-(\d+)$/))) {
-          // The span over the gap and the towers either side, at one height.
-          const lo = x - (Number(m[1]) - 1) / 2;
-          for (let i = -1; i <= Number(m[1]); i++) walk.set(`${lo + i},${y}`, { kind: "gate" });
-        } else if ((m = frame.match(/^stair-[a-z]+-[a-z]+-(\d)([new]?)$/))) {
+        else if (frame.startsWith("gate-")) continue;
+        else if ((m = frame.match(/^stair-[a-z]+-[a-z]+-(\d)([new]?)$/))) {
           const onto = m[2] && { x: x + (m[2] === "e" ? 1 : m[2] === "w" ? -1 : 0), y: y - (m[2] === "n" ? 1 : 0) };
           stairs.set(k, { step: Number(m[1]), ...(onto ? { onto } : {}) });
         } else {
@@ -2886,6 +2868,16 @@ export class Engine {
           cells.add(k);
           if (!walk.has(k)) walk.set(k, { kind: "wall" });
         }
+      }
+    for (const e of all)
+      for (const [i, gate] of (e.gates ?? []).entries()) {
+        const entry = { id: `${e.x},${e.y}:${i}`, toll: !e.precinct, dx: -gate.outward.x, dy: -gate.outward.y };
+        for (const q of gate.opening) {
+          gates.set(`${q.x},${q.y}`, entry);
+          if (gate.covered) walk.set(`${q.x},${q.y}`, { kind: "gate" });
+        }
+        if (gate.covered)
+          for (const q of gate.jambs) walk.set(`${q.x},${q.y}`, { kind: "gate" });
       }
     this.wallIndexFor = all.length;
     return (this.wallIndex = { cells, walk, stairs, gates });
@@ -2898,7 +2890,7 @@ export class Engine {
   }
   /** A town gate's road at night, for anyone below the wall walk. */
   gateShut(x: number, y: number) {
-    return townGateShut(this.state.clock) && this.walls().gates.has(`${x},${y}`) && !this.onWall();
+    return townGateShut(this.state.clock) && this.walls().gates.has(`${x},${y}`);
   }
   /** What the wall walk is at a cell, for someone up on it. */
   walkAt(x: number, y: number): WallWalk | undefined {
@@ -2970,22 +2962,14 @@ export class Engine {
     const home = this.state.player.householdId;
     return this.state.actors.some((o) =>
       o.pos.space === p.space && o.pos.x === p.x && o.pos.y === p.y &&
+      (p.space !== "outside" || this.walkAt(p.x, p.y)?.kind !== "gate" || !!o.watch === this.onWall()) &&
       !(home && o.householdId === home && o.id !== this.conversing));
   }
-  actorAt(p: Position, excludeId: string) {
-    if (this.actorsAt)
-      return (
-        this.actorsAt
-          .get(`${p.space}:${p.x},${p.y}`)
-          ?.some((o) => o.id !== excludeId) ?? false
-      );
-    return this.state.actors.some(
-      (o) =>
-        o.id !== excludeId &&
-        o.pos.space === p.space &&
-        o.pos.x === p.x &&
-        o.pos.y === p.y,
-    );
+  actorAt(p: Position, excludeId: string, aloft = false) {
+    const occupies = (o: Actor) => o.id !== excludeId &&
+      (p.space !== "outside" || !!o.watch === aloft || this.walkAt(p.x, p.y)?.kind !== "gate");
+    if (this.actorsAt) return this.actorsAt.get(`${p.space}:${p.x},${p.y}`)?.some(occupies) ?? false;
+    return this.state.actors.some(o => o.pos.space === p.space && o.pos.x === p.x && o.pos.y === p.y && occupies(o));
   }
   private reapForHousehold(x: number, y: number) {
     const t = this.trade(), step = t?.process.steps[t.stage];
@@ -3315,6 +3299,7 @@ export class Engine {
       d.made?.form === form && !d.made?.flop && ((p.inventory[d.id] ?? 0) > 0 || p.heldItem === d.id));
   }
   playerCanCross(from: Point, to: Point) {
+    if (this.onWall() && this.walkAt(from.x, from.y) && this.walkAt(to.x, to.y)) return true;
     const ship=this.state.player.boat && this.object(this.state.player.boat)?.vessel;
     if(ship){
       const heading=facingFromStep(to.x-from.x,to.y-from.y,0),large=ship.form==="dhow";
@@ -3339,6 +3324,7 @@ export class Engine {
     return this.world.canCross?.(from, to) ?? true;
   }
   playerBlocked(x: number, y: number, space = this.state.player.pos.space) {
+    if (space === "outside" && this.onWall() && this.walkAt(x, y)) return false;
     if (space !== "outside" && this.interiorOf(space)?.locks.has(`${x},${y}`) && !this.welcomeIn(space)) return true;
     return space === "outside" && afloatAt(this.world, this.floater(this.deep(x, y)), x, y)
       ? false : this.blocked(x, y, space);
@@ -4585,7 +4571,7 @@ export class Engine {
     const p = this.state.player, c = this.wallChallenge;
     if (c && c.id !== a.id) return false;
     const up = this.onWall() && !p.dead && !/watch|guard|soldier|sentry/i.test(p.role ?? "");
-    const off = (x: number, y: number) => !this.walkAt(x, y) || !!this.actorAt({ x, y, space: "outside" }, a.id);
+    const off = (x: number, y: number) => !this.walkAt(x, y) || this.actorAt({ x, y, space: "outside" }, a.id, true);
     const stepTo = (to: Point) => {
       const step = findPath(a.pos, to, off, 400)[0];
       if (!step) return false;
@@ -7465,9 +7451,11 @@ export class Engine {
     const occupied = this.actorsAt ? undefined : new Set<string>();
     if (occupied && actorId !== "player")
       for (const a of this.state.actors)
-        if (a.id !== actorId && a.pos.space === start.space)
+        if (a.id !== actorId && a.pos.space === start.space && !(a.watch && start.space === "outside" && this.walkAt(a.pos.x, a.pos.y)?.kind === "gate"))
           occupied.add(`${a.pos.x},${a.pos.y}`);
     const outdoors = actorId === "player" && start.space === "outside";
+    if (outdoors && this.onWall() && this.walkAt(target.x, target.y))
+      return route(start, target, to => this.walkAt(to.x, to.y) ? (cellOccupied(to) ? 40 : 1) : Infinity, { maxNodes });
     if (outdoors) this.doorOf("");
     return route(
       start,
@@ -8521,7 +8509,7 @@ export class Engine {
         return "Too deep to wade — find a shallower crossing or a bridge.";
       if (this.wallStep(c.dx, c.dy) === "drop")
         return "It is a long drop from the wall. Jump, or go down by the stairs.";
-      if (p.pos.space === "outside" && this.gateShut(p.pos.x + c.dx, p.pos.y + c.dy))
+      if (p.pos.space === "outside" && !this.onWall() && this.gateShut(p.pos.x + c.dx, p.pos.y + c.dy))
         return "The town gate is shut for the night. It opens at first light.";
       if (this.runningCollision(c) || this.sidestep(c)) return;
       if (!(c.dx && c.dy) && p.pos.space === "outside" && this.treeFind(p.pos.x + c.dx, p.pos.y + c.dy)) return;

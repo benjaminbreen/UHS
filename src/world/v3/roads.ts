@@ -22,6 +22,40 @@ export function line(a: Point, b: Point): Point[] {
   }
   return out;
 }
+export const distanceToSegment = (p: Point, a: Point, b: Point) => {
+  const dx = b.x - a.x,
+    dy = b.y - a.y,
+    t = Math.max(
+      0,
+      Math.min(
+        1,
+        ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy || 1),
+      ),
+    );
+  return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
+};
+export function simplifyPath(points: readonly Point[], tolerance: number): Point[] {
+  if (points.length < 3) return [...points];
+  const keep = new Set([0, points.length - 1]);
+  const work = [[0, points.length - 1]];
+  while (work.length) {
+    const [a, b] = work.pop()!;
+    let max = tolerance,
+      at = -1;
+    for (let i = a + 1; i < b; i++) {
+      const d = distanceToSegment(points[i], points[a], points[b]);
+      if (d > max) {
+        max = d;
+        at = i;
+      }
+    }
+    if (at >= 0) {
+      keep.add(at);
+      work.push([a, at], [at, b]);
+    }
+  }
+  return [...keep].sort((a, b) => a - b).map((i) => points[i]);
+}
 /** Cells either side of a centreline for a road `span` cells across. An even
  * span sits one cell further on the positive side. */
 export function spanOffsets(span: number): [number, number] {

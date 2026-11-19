@@ -1,4 +1,5 @@
 import { railOver } from "./trunk-rail";
+import { rockRamp } from "./edge-faces";
 import { rasterHabitatTile } from "./habitat-raster";
 import { quayPixel, shoreDistance, shorePixel, tidalFlat } from "./material-edges";
 import type { TopographyCell, TopographySample } from "../core/topography";
@@ -36,8 +37,7 @@ const cardinal = [
 ] as const;
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 
-/** A dug channel one cell wide, so the shoreline machinery does not apply.
- * Covers a dry one: the bed is empty but the cut and its berms are the same. */
+/** Excavated water and empty beds share the same banks. */
 export const isCanal = (c?: TopographyCell) =>
   !!c &&
   !c.bridge &&
@@ -64,7 +64,7 @@ function rasterCanalTile(
     parseInt(c.slice(3, 5), 16),
     parseInt(c.slice(5, 7), 16),
   ];
-  const mix = (a: number[], b: number[], t: number) =>
+  const mix = (a: readonly number[], b: readonly number[], t: number) =>
     a.map((v, k) => Math.round(v * (1 - t) + b[k] * t));
   const shade = (a: number[], v: number) => a.map((c) => Math.max(0, Math.min(255, c + v)));
   const open = (dx: number, dy: number) => {
@@ -124,9 +124,31 @@ function rasterCanalTile(
   const crosses = new Float32Array(256);
   const runs = new Int32Array(256);
   const water = new Uint8Array(256);
+  const wide = !!cell.waterVisual?.wideChannel;
+  const bankDepth = wide ? new Float32Array(256) : undefined;
+  const corners = wide ? [[-1, -1], [1, -1], [1, 1], [-1, 1]].filter(([dx, dy]) =>
+    (dx < 0 ? openW : openE) && (dy < 0 ? openN : openS) && !open(dx, dy)) : [];
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
-      const { cross, run } = nearest(px, py);
+      let cross: number, run: number;
+      if (wide) {
+        // Trace the banks of the whole excavation, including the inside of a bend.
+        const n = openN ? 32 : py, w = openW ? 32 : px;
+        const s = openS ? 32 : 15 - py, e = openE ? 32 : 15 - px;
+        let bank = Math.min(n, w, s, e);
+        let sign = bank === n || bank === w ? -1 : 1;
+        for (const [dx, dy] of corners) {
+          const d = Math.hypot(dx < 0 ? px + 1 : 16 - px, dy < 0 ? py + 1 : 16 - py);
+          if (d < bank) { bank = d; sign = dy; }
+        }
+        const xx = Math.min(w, e), yy = Math.min(n, s), radius = 12;
+        if (xx < radius && yy < radius)
+          bank = Math.min(bank, radius - Math.hypot(radius - xx, radius - yy));
+        bank -= valueNoise(gx + px, gy + py, 17, 927) * 2;
+        bankDepth![py * 16 + px] = bank;
+        cross = sign * Math.max(.01, 7.5 - bank);
+        run = Math.min(n, s) <= Math.min(w, e) ? gx + px : gy + py;
+      } else ({ cross, run } = nearest(px, py));
       crosses[py * 16 + px] = cross;
       runs[py * 16 + px] = run;
       water[py * 16 + px] = Math.abs(cross) <= 4.5 ? 1 : 0;
@@ -141,7 +163,7 @@ function rasterCanalTile(
   const silt = [118, 104, 66];
   const shallow = mix(rgb(palette.depths[1]), rgb(palette.depths[2]), 0.4);
   const streams: number[][] = [];
-  for (let dy = -3; dy <= 3; dy++)
+  if (!wide) for (let dy = -3; dy <= 3; dy++)
     for (let dx = -3; dx <= 3; dx++) {
       const n = sample(x + dx, y + dy);
       if (n?.surface === "water" && !isCanal(n) && !n.bridge) streams.push([dx * 16, dy * 16]);
@@ -161,6 +183,8 @@ function rasterCanalTile(
     bermFoot = rgb(palette.bank[0]),
     faceLit = mix(rgb(palette.bank[1]), rgb(palette.bank[2]), 0.35),
     faceDark = shade(rgb(palette.bank[0]), -18);
+  const stone = rockRamp(cell.rock ?? "shale");
+  const cutEarth = mix([136, 112, 84], stone[3], .35);
   // Spoil reaches exactly as far as a straight run's tile, so a straight canal
   // is unchanged and a diagonal's berm follows the cut instead of filling the
   // tile's corners. The last pixels of it dither into the ground, which is
@@ -198,7 +222,32 @@ function rasterCanalTile(
       );
       const along = runs[py * 16 + px];
       let tone: number[];
-      if (at(px, py) && dry) {
+      if (wide && dry) {
+        const wx = gx + px, wy = gy + py, bank = bankDepth![py * 16 + px];
+        const chip = cellHash(Math.floor(wx / 6), Math.floor(wy / 4), 915);
+        const seam = mod(along + Math.floor(bank / 3) * 5, 11);
+        const near = crosses[py * 16 + px] < 0;
+        const toe = (near ? 10 : 5) + Math.floor(valueNoise(wx, wy, 11, 941) * 4);
+        if (bank < 1) tone = mix(bermSide, cutEarth, .4);
+        else if (bank < toe) {
+          const ledge = Math.floor(bank + valueNoise(wx, wy, 7, 935) * 3) % 5;
+          tone = mix(cutEarth, stone[ledge === 1 && seam > 3 ? 4 : 2], .45);
+          tone = shade(tone, Math.round((near ? -22 : 6) - bank / toe * 15 + (seam < 2 ? -9 : 0)));
+        } else if (near && bank < toe + 3) tone = shade(cutEarth, -30);
+        else {
+          tone = shade(cutEarth, Math.floor(valueNoise(wx, wy, 14, 945) * 5) * 3 - 7);
+          if (chip > .83 && mod(wx + Math.floor(chip * 5), 6) < 3 && mod(wy, 4) === 1)
+            tone = mix(tone, stone[4], .4);
+        }
+      } else if (wide && at(px, py)) {
+        const wx = gx + px, wy = gy + py, strip = Math.floor(wy / 5);
+        const ripple = cellHash(Math.floor(wx / 17), strip, 903);
+        const tip = mod(wx, 17) - Math.floor(ripple * 12);
+        const bank = crosses[py * 16 + px];
+        tone = mix(still, shallow, bank < -2 ? .2 : bank > 2 ? .8 : .56);
+        if (ripple > .62 && mod(wy, 5) === Math.floor(ripple * 4) && tip >= 0 && tip < 4)
+          tone = mix(tone, glint, .45);
+      } else if (at(px, py) && dry) {
         // An empty bed: silt on the floor, cracked into plates, darker in the
         // lee of the near bank where the last water stood.
         const damp = at(px, py - 1) === 0 || at(px - 1, py) === 0;
@@ -223,7 +272,7 @@ function rasterCanalTile(
         const dash = mod(along + lane * 5 + phase, 14);
         // Ripples: a two-pixel-high crest with a one-pixel tail, in lanes.
         // On clouded water a ripple is a paler brown, not a glint of blue.
-        const crest = mix(glint, shade(silt, 40), cloud(px, py));
+        const crest = mix(glint, shade(silt, 40), far);
         if (!shadow2 && !shadow1 && c >= 5 && c <= 11) {
           if (dash < 3) tone = mix(tone, crest, dash === 1 ? 1 : 0.6);
           else if (dash === 3 && mod(c, 3) === 1) tone = mix(tone, crest, 0.35);

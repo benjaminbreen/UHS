@@ -19,6 +19,7 @@ export const americasCivic: CivicRule[] = [
   },
   {
     id: "aztec-tecpan",
+    forecourt: true,
     from: 1300,
     to: 1521,
     bounds: [-101, 17, -96, 21],

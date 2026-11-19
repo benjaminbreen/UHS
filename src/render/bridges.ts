@@ -69,7 +69,10 @@ export function drawBridges(
   for (const { minX, minY, maxX, maxY, elevation } of spans) {
     if (region && (minX < 0 || minY < 0 || minX >= width || minY >= height))
       continue;
-    const horizontal = maxX - minX >= maxY - minY;
+    const mx = (minX + maxX) >> 1, my = (minY + maxY) >> 1;
+    const cutEW = sample(minX - 1, my)?.waterVisual?.wideChannel || sample(maxX + 1, my)?.waterVisual?.wideChannel;
+    const cutNS = sample(mx, minY - 1)?.waterVisual?.wideChannel || sample(mx, maxY + 1)?.waterVisual?.wideChannel;
+    const horizontal = !!cutNS !== !!cutEW ? !!cutNS : maxX - minX >= maxY - minY;
     const left = minX * 16 - 3,
       top = minY * 16 - elevation * TERRAIN_RISE,
       w = (maxX - minX + 1) * 16 + 6,
@@ -154,6 +157,16 @@ export function drawBridges(
           .setCrop(0, offset, w, offset + 16 >= h ? 16 + skirt : 16)
           .setDepth((minY + offset / 16) * 16 + 2),
       );
+    if (cutEW || cutNS) {
+      const rails = horizontal
+        ? [top + 1, top + h - 1].map(y => ({ x: left + 4, y, w: w - 9, h: 3 }))
+        : [left + 3, left + w - 6].map(x => ({ x, y: top + 1, w: 3, h: h - 1 }));
+      for (const rail of rails) {
+        const g = own(resources, scene.add.graphics().setDepth(rail.y + rail.h + elevation * TERRAIN_RISE + 1));
+        g.fillStyle(0x694d35).fillRect(rail.x, rail.y - 9, rail.w, rail.h);
+        g.fillStyle(0xc49e6a).fillRect(rail.x, rail.y - 10, horizontal ? rail.w : 1, horizontal ? 1 : rail.h);
+      }
+    }
     // End posts have lit caps, shaded sides and feet below the deck.
     if (!track)
       for (const px of [left + 2, left + w - 7])

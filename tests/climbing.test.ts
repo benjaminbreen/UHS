@@ -248,7 +248,7 @@ it("takes toll at a town gate by day and shuts it at night", () => {
   engine.state.objects = [];
   engine.world.blocked = () => false;
   engine.world.places = [];
-  engine.world.enclosures = [{ x: -5, y: 0, w: 15, h: 12, gate: { x: 2, y: 0 }, parts: [], gates: [[{ x: 2, y: 0 }, { x: 3, y: 0 }]] }];
+  engine.world.enclosures = [{ x: -5, y: 0, w: 15, h: 12, gate: { x: 2, y: 0 }, parts: [], gates: [{ opening: [{ x: 2, y: 0 }, { x: 3, y: 0 }], outward: { x: 0, y: -1 }, jambs: [{ x: 1, y: 0 }, { x: 4, y: 0 }], covered: true }] }];
   const post = { x: 1, y: -1 };
   Object.assign(guard, { pos: { ...post, space: "outside" }, post: { at: post, rest: { x: 1, y: 3 }, face: 0 } });
   delete guard.watch;
@@ -267,6 +267,44 @@ it("takes toll at a town gate by day and shuts it at night", () => {
   engine.state.player.pos = { x: 2, y: -1, space: "outside" };
   engine.state.clock = day + 22 * 3600;
   expect(runtime.command({ type: "move", dx: 0, dy: 1 })?.reason).toMatch(/shut for the night/);
+  runtime.dispose();
+});
+
+it.each(["east", "south"])("carries the wall walk over the %s gate while the road passes underneath", side => {
+  const engine = createSession("roman", "two-gate-levels");
+  const at = (road: number, span: number) => side === "east" ? { x: road, y: span } : { x: span, y: road };
+  const outside = (road: number, span: number) => ({ ...at(road, span), space: "outside" });
+  const opening = [-1, 0, 1].map(v => at(0, v)), jambs: [typeof opening[0], typeof opening[0]] = [at(0, -2), at(0, 2)];
+  engine.world.enclosures = [{ x: -5, y: -5, w: 10, h: 10, gate: at(0, 0),
+    parts: jambs.map(p => ({ ...p, frame: "wall-none" })), gates: [{ opening, jambs, outward: at(1, 0), covered: true }] }];
+  engine.world.blocked = (x, y) => jambs.some(p => p.x === x && p.y === y);
+  engine.world.canCross = () => true;
+  engine.world.places = [];
+  engine.state.objects = [];
+  const watch = engine.state.actors.find(a => a.kind === "human")!;
+  engine.state.actors = [watch];
+  watch.pos = outside(0, 0);
+  watch.watch = { path: [at(0, 0), at(0, 0)], loop: false, speed: 1, waits: [1800, 1800], phase: 0 };
+  const runtime = new Runtime(engine, { cacheTerrain: false });
+  const day = Math.floor(engine.state.clock / 86400) * 86400;
+  engine.state.clock = day + 12 * 3600;
+  engine.state.player.pos = outside(1, 0);
+  expect(engine.findRoute(engine.state.player.pos, at(-1, 0)).path).toEqual([at(0, 0), at(-1, 0)]);
+  const inward = at(-1, 0);
+  runtime.move(inward.x, inward.y);
+  expect(engine.state.player.pos).toEqual(outside(0, 0));
+  expect(engine.onWall()).toBe(false);
+  engine.state.actors = [];
+  engine.state.player.pos = outside(0, -2);
+  engine.state.clock = day + 23 * 3600;
+  expect(engine.findRoute(engine.state.player.pos, at(0, 2)).path).toEqual([...opening, at(0, 2)]);
+  for (const v of [-1, 0, 1, 2]) {
+    const along = at(0, 1);
+    runtime.move(along.x, along.y);
+    expect(engine.state.player.pos).toEqual(outside(0, v));
+    expect(engine.onWall()).toBe(true);
+    expect(engine.blocked(0, 0, "outside")).toBe(true);
+  }
   runtime.dispose();
 });
 

@@ -363,6 +363,7 @@ export function rasterStreetTile(
   const meets = dais || kerb || lane || track || c.pavement === "platform" ? [] : sides.flatMap(([dx, dy]) => {
     const n = at(dx, dy);
     if (n?.feature !== "paving" || n.height !== c.height || n.track || n.pavement === "dais" || n.pavement === "platform") return [];
+    if (c.pavement === "court" && n.pavement === "court" && (material === "basalt" || n.streetMaterial === "basalt")) return [];
     if (kerbed(sample, x + dx, y + dy) || lip.some(([lx, ly]) => lx === dx && ly === dy)) return [];
     const m = (n.pavement === "footway" ? roadwayMaterial(sample, x + dx, y + dy) : undefined) ?? n.streetMaterial ?? "slab";
     const g = streetGrade(n,m), other = `${m}/${g}`;

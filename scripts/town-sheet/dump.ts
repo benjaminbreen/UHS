@@ -83,6 +83,11 @@ for (const { name, query, seed, radius, settlementLayout, centre } of panel as a
       cy,
       R,
       groundRoles,
+      ...(districts && {
+        precincts: [...plans].flatMap(p => p.plots).filter(q => q.precinct && near(q)),
+        curtains: [...plans].flatMap(p => p.enclosures).filter(e => e.gates?.length)
+          .flatMap(e => e.parts.filter((p: { frame: string; x: number; y: number }) => p.frame.startsWith("wall-") && near(p))),
+      }),
       // The main square first: `compose.py --square` crops to it.
       squares: [...plans].flatMap((p) => p.plots).filter((q: any) => /-square-\d+$/.test(q.id) && near(q))
         .map((q: any) => ({ x: q.x, y: q.y, w: q.w, h: q.h })),

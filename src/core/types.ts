@@ -5,6 +5,12 @@ import type { LandscapeStyle } from "../content/graphics/landscapes";
 import type { WorldSetting } from "../content/geography/types";
 export type PackId = string;
 export type Point = { x: number; y: number };
+export type TownGateway = {
+  opening: Point[];
+  outward: Point;
+  jambs: [Point, Point];
+  covered: boolean;
+};
 export type Position = Point & { space: string };
 /** Built-in ids are plain words; items invented during play are prefixed "x-". */
 export type ItemId = string;
@@ -1036,7 +1042,8 @@ export interface WorldModel {
     /** Explicit per-cell frames, for a circuit that is not a plain fence run. */
     parts?: { x: number; y: number; frame: string }[];
     /** A town wall's gateways, each the run of road cells through it. */
-    gates?: Point[][];
+    gates?: TownGateway[];
+    precinct?: string;
   }[];
   places: Place[];
   initialActors: Actor[];

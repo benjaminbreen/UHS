@@ -1,5 +1,16 @@
 import type { WorldSetting } from "../../geography/types";
+import type { PrecinctSiting } from "../precincts";
+import type { CircuitMaterial } from "../urban-form/types";
+
+export type RoyalGround = {
+  id: string; name: string; position: PrecinctSiting["position"];
+  castle?: { hall: "hall-keep" | "great-hall" | "audience-hall"; material: CircuitMaterial; tower: "a" | "b" | "c";
+    approach: "ditch" | "moat" | "forecourt"; paving: "cobble" | "slab"; service?: string };
+};
+
 export type CivicProfile = {
+  forecourt?: true;
+  interior?: "magistracy" | "bazaar" | "exchange";
   id: string;
   label: string;
   square: string;

@@ -215,7 +215,7 @@ describe("field raster", () => {
   });
 
   const canalWorld =
-    (cells: Record<string, "x" | "y">, dry = false): TopographySample =>
+    (cells: Record<string, "x" | "y">, dry = false, wide = false): TopographySample =>
     (x, y) => {
       const axis = cells[`${x},${y}`];
       const habitat = habitatAt("grassland", "summer", "review", x, y, land);
@@ -236,6 +236,7 @@ describe("field raster", () => {
         waterVisual: {
           distance: -1,
           kind: "canal",
+          wideChannel: wide || undefined,
           ecology: "grassland",
           shoreWidth: 1,
           flow: axis === "x" ? [1, 0] : [0, 1],
@@ -277,6 +278,21 @@ describe("field raster", () => {
       expect(tee.isWater(x, 15), `open ${x}`).toBe(true);
     for (const x of [0, 1, 14, 15])
       expect(tee.isWater(x, 15), `closed ${x}`).toBe(false);
+  });
+  it("draws banks on the outside of a broad moat and leaves shared tile edges open", () => {
+    const cells = Object.fromEntries([4, 5].flatMap(y => [2, 3, 4].map(x => [`${x},${y}`, "x" as const])));
+    const world = canalWorld(cells, false, true);
+    const tile = rasterWaterTile(world, 3, 4, 0, 0).pixels;
+    const below = rasterWaterTile(world, 3, 5, 0, 0).pixels;
+    const bed = rasterWaterTile(canalWorld(cells, true, true), 3, 4, 0, 0).pixels;
+    const blue = (p: Uint8ClampedArray, x: number, y: number) => {
+      const k = (y * 16 + x) * 4;
+      return p[k + 2] > p[k];
+    };
+    for (let x = 0; x < 16; x++) {
+      expect(blue(tile, x, 15) && blue(below, x, 0)).toBe(true);
+      expect(blue(tile, x, 0) || blue(bed, x, 15)).toBe(false);
+    }
   });
   it("rasterizes a canal identically from any chunk origin", () => {
     const cells = { "2,5": "x", "3,5": "x", "3,6": "y" } as const;

@@ -242,6 +242,15 @@ it("keeps courts and yards out of roadway detection and leaves planted gaps inta
   }
 });
 
+it("cuts a straight joint between the dark border and pale flags of a court", () => {
+  const court: TopographySample = (x) => ({ height: 0, surface: "gravel", feature: "paving",
+    pavement: "court", streetMaterial: x === 0 ? "basalt" : "slab" });
+  for (const x of [0, 1]) {
+    const plain: TopographySample = () => court(x, 0);
+    expect(rasterStreetTile(court, x, 0, 0, 0).pixels).toEqual(rasterStreetTile(plain, x, 0, 0, 0).pixels);
+  }
+});
+
 it("keeps all ground uses and materials seamless across negative chunk origins", () => {
   for (const material of ["slab", "basalt", "cobble", "sett", "brick", "plank", "macadam", "concrete", "asphalt"] as const)
     for (const pavement of [undefined, "footway", "court", "yard", "square"] as const) {

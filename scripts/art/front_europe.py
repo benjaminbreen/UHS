@@ -26,7 +26,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 
 from art import front_materials as fm  # noqa: E402
-from art.front_materials import C, RAMPS, ramp, h2, blob  # noqa: E402
+from art.front_materials import C, RAMPS, ramp, h2, blob, mix  # noqa: E402
 from art import front_openings as op  # noqa: E402
 from art.front_modern import Block, interior, cast_right  # noqa: E402
 
@@ -188,7 +188,7 @@ def mansard(c, L, R, top, foot, r, z):
     c.rect(L + ins - 1, top - 1, R - L - 2 * ins + 2, 1, z[4])
 
 
-def tiles_back(c, L, R, front, depth, r, ridge):
+def tiles_back(c, L, R, front, depth, r, ridge, cover=None):
     """A roof whose ridge runs back from the street, from above: the left
     slope lit, the right in shade, a ridge cap. `front(x)` is where the roof
     meets the gable in front."""
@@ -196,9 +196,22 @@ def tiles_back(c, L, R, front, depth, r, ridge):
         f = front(x)
         left = x < ridge
         for y in range(f - depth, f + 1):
-            u = (y - (f - depth)) % 4
             base = 2 if left else 4
-            col = r[base + 2] if u == 3 else r[base + 1] if abs(x - ridge) % 6 == 0 else r[base]
+            if cover == 'lead':
+                seam = abs(x - ridge) % 13
+                col = r[base + 1] if seam == 0 else r[base - 1] if seam == 1 else r[base]
+                if (f - y) % 25 == 24 and seam > 1:
+                    col = mix(col, r[base + 1], .45)
+            elif cover:
+                course, lip = divmod(abs(x - ridge), 7)
+                joint = (f - y + (course % 2) * 6) % 13
+                col = r[base]
+                if lip == 6: col = r[base + 1]
+                elif lip == 0: col = mix(col, r[base - 1], .6)
+                elif joint == 0: col = mix(col, r[base + 1], .65)
+            else:
+                u = (y - (f - depth)) % 4
+                col = r[base + 2] if u == 3 else r[base + 1] if abs(x - ridge) % 6 == 0 else r[base]
             c.p(x, y, col)
     for y in range(front(ridge) - depth - 1, front(ridge) + 1):
         c.p(ridge - 1, y, r[1])

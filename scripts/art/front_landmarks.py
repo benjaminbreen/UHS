@@ -1,4 +1,4 @@
-"""Five landmark buildings drawn front-on: the Romanesque church, the Spanish
+"""Landmark buildings drawn front-on: the Romanesque church, the Spanish
 American mission church, the Elizabethan playhouse, the Georgian and
 Victorian playhouse, and the picture house.
 
@@ -1211,11 +1211,153 @@ class PictureHouse:
         cast_down(c, L, R, y + 6, 6, 0.42)
 
 
+class CastleHall:
+    def __init__(self, kind, W, look=0, **_):
+        self.kind, self.W, self.look = kind, W, look
+        self.x0, self.base = 8, {'hall-keep': 177, 'great-hall': 153, 'audience-hall': 155}[kind]
+        self.c = C(W + 16, self.base + 4)
+        self.door_size = (22, 42)
+
+    def roof_gable(self, cx, eave, half, rise, depth, roof, stone, cover="slate"):
+        from art.front_europe import tiles_back
+        from art.front_parts import gable
+        c = self.c
+        def verge(x):
+            return eave - rise + round(abs(x - cx) * rise / half) - 2
+        tiles_back(c, cx - half - 2, cx + half + 3, verge, depth, roof, cx, cover)
+        gable(c, cx, eave, half * 2, rise, 'limestone', stone, depth=0)
+        for y in range(verge(cx) - depth + 4, verge(cx), 9):
+            c.rect(cx - 1, y, 4, 1, roof[4])
+        c.rect(cx - 2, eave - rise // 2, 4, max(4, rise // 4), stone[5])
+
+    def turret_head(self, x, y, stone):
+        from art.front_parts import parapet
+        c = self.c
+        c.rect(x - 1, y - 14, 17, 13, stone[3])
+        c.rect(x - 1, y - 15, 17, 2, stone[1])
+        c.rect(x + 1, y - 12, 13, 6, stone[5])
+        for tx in (x, x + 7, x + 13):
+            c.rect(tx, y - 18, 4, 4, stone[2])
+            c.rect(tx, y - 19, 4, 2, stone[0])
+        parapet(c, x, y, 15, stone)
+
+    def build(self):
+        from art.front_parts import parapet, buttress, pointed
+        from art.front_mudbrick import deck
+        c, x, w, base = self.c, self.x0, self.W, self.base
+        keep, court = self.kind == 'hall-keep', self.kind == 'audience-hall'
+        r = RAMPS['limestone' if court else 'grey-limestone']
+        dressed = RAMPS['sandstone' if court else 'limestone']
+        eave = base - (91 if keep else 65)
+        cx = x + w // 2
+        self.door_x = cx if court else x + (w - 40 if self.look else 40)
+        if keep:
+            fm.whitewash(c, x, eave, w, base - eave, RAMPS['whitewash'], r)
+        else:
+            wall(c, x, eave, w, base - eave, 'sandstone' if court else 'limestone', r)
+        plinth(c, x, base - 4, w, r)
+        if keep or court:
+            depth = min(57, w // 3 + 4)
+            palette = [dressed[i] for i in (7, 5, 4, 3, 2, 1)]
+            top = deck(c, x, x + w, eave, depth, palette, speck=.999)
+            for yy in range(top + 10, eave - 4, 9):
+                for xx in range(x + 7 + (yy - top) // 9 % 2 * 9, x + w - 7, 18):
+                    c.rect(xx, yy, min(11, x + w - 6 - xx), 1, mix(dressed[3], dressed[4], .46))
+                    c.rect(xx, yy - 4, 1, 4, mix(dressed[3], dressed[4], .38))
+        if keep:
+            string_course(c, x, eave + 43, w, dressed)
+            for tx in (x + 6, x + w - 21):
+                wall(c, tx, top - 10, 15, 17, 'limestone', dressed)
+                self.turret_head(tx, top - 10, dressed)
+            self.roof_gable(cx, eave - 9, (w - 55) // 2, 23, depth - 9, RAMPS['lead'], dressed, 'lead')
+            parapet(c, x + 3, eave, w - 6, dressed, 'plain')
+            for tx in (x, x + w - 15):
+                wall(c, tx, eave - 10, 15, base - eave + 10, 'limestone', dressed)
+                self.turret_head(tx, eave - 12, dressed)
+                string_course(c, tx, eave + 35, 15, dressed)
+                c.rect(tx + 6, eave + 12, 2, 10, r[6])
+                cast_right(c, tx + 15, eave + 2, base - 4, 3)
+            for wx in range(x + 31, x + w - 18, 33):
+                window(c, 'roundhead', wx, eave + 12, 10, 23, dressed, wx, glass='clear')
+            corbel_table(c, x + 17, x + w - 17, eave + 1, dressed)
+            for wx in (x + 27, x + w - 28):
+                c.rect(wx, base - 32, 3, 11, r[6])
+        elif court:
+            # A court roof holds a raised lantern over the reception bay.
+            pavilion = cx + (w // 5 if self.look else -w // 5)
+            footing = top + depth // 2
+            for sy in range(8):
+                shade_box(c, pavilion - 18 + sy, footing + sy, pavilion + 19 + sy, footing + sy + 1, .22)
+            wall(c, pavilion - 17, footing - 17, 34, 18, 'sandstone', dressed)
+            for sx in range(pavilion - 12, pavilion + 13, 6):
+                c.rect(sx, footing - 13, 3, 9, OAK[6])
+            roof_band(c, pavilion - 21, pavilion + 21, footing - 19, 12, 'lead', RAMPS['lead'], hip=.95)
+            for spout in (x + 8, x + w - 12):
+                c.rect(spout, eave + 1, 5, 5, dressed[4])
+                c.rect(spout - 1, eave - 2, 5, 4, dressed[1])
+                c.rect(spout, eave, 3, 2, dressed[6])
+            for wx in (x + 20, x + w - 20):
+                op.mashrabiya(c, wx - 8, eave + 19, 17, 25)
+                op.head_lintel(c, wx - 9, eave + 17, 19, 25)
+            pw = 50 if w > 150 else 44
+            top = eave - 12
+            deck(c, cx - pw // 2, cx + pw // 2, top, 16, palette)
+            wall(c, cx - pw // 2, top, pw, base - top, 'sandstone', dressed)
+            string_course(c, cx - pw // 2, top, pw, dressed)
+            spring = base - 43
+            for yy in range(top + 3, base):
+                for xx in range(cx - 22, cx + 23):
+                    if pointed(xx, yy, cx - 21, spring, 43):
+                        c.p(xx, yy, dressed[2] if (yy-top)//7 % 2 else r[5])
+                    if pointed(xx, yy, cx - 15, spring, 31):
+                        c.p(xx, yy, OAK[6] if xx < cx + 9 else OAK[5])
+        else:
+            roof = TONES['tile-red' if self.look else 'slate-welsh']
+            rise = 55 if self.look else 60
+            L, R = x - 4, x + w + 4
+            ridge_y = eave - rise
+            hip = round(rise * .38)
+            for i in range(hip):
+                back = ridge_y + round((hip - i) * .56)
+                front = eave - round(i * rise / hip)
+                for yy in range(back, front + 1):
+                    joint = (yy - back + (i // 5 % 2) * 4) % 9
+                    edge = i % 5 == 0 or joint == 0
+                    c.p(L + i, yy, roof[3 if edge else 2])
+                    c.p(R - 1 - i, yy, roof[5 if edge else 4])
+            roof_band(c, L, R, eave, rise, 'plain' if self.look else 'slate', roof, hip=.38)
+            near, far = (x + 18, x + w - 74) if self.look else (x + 75, x + w - 19)
+            for wx in range(near, far + 1, 33):
+                window(c, 'tracery', wx, eave + 11, 18, 30, dressed, wx, glass='clear')
+                buttress(c, wx + 13, eave + 10, base - 2, r, 6)
+            chimney = x + (24 if self.look else w - 27)
+            wall(c, chimney - 6, eave - rise - 13, 12, 27, 'limestone', r)
+            string_course(c, chimney - 7, eave - rise - 12, 14, dressed)
+            c.rect(chimney - 6, eave - rise - 16, 12, 3, dressed[2])
+            c.rect(chimney - 4, eave - rise - 15, 8, 1, r[6])
+        dx = self.door_x
+        if not court:
+            py = base - 48
+            half = 18 if keep else 27
+            wall(c, dx - half, py, half * 2, 48, 'limestone', dressed)
+            self.roof_gable(dx, py, half + 2, 19 if keep else 29, 17 if keep else 32,
+                            TONES['slate-blue'] if keep else roof, dressed)
+            cast_right(c, dx + half, py + 4, base - 2, 4)
+        op.door_studded(c, dx - 11, base - 42, 22, 42)
+        c.rect(dx - 14, base - 1, 28, 2, dressed[2])
+        outline(c, deep=True)
+        consolidate(c)
+        return c.im
+
+
 # ================================================================== the game hook
 
 def landmark_spec(name, r):
     """The frame's spec and footprint, or None. Churches widen by the civic
     scale as the other front-on churches do; theatres keep their footprint."""
+    if r.get('family') == 'castle':
+        fw, fh = r['footprint']
+        return dict(landmark=dict(kind=r['form'], W=fw * 16, look=int(name.split('-')[-1]))), (fw, fh)
     m = re.match(r'(religious|theatre)-(romanesque-church|mission-church|globe|playhouse|picture-house)-'
                  r'(small|medium|large)-(\d+)(?:-(north|east|west))?$', name)
     if not m:
@@ -1232,6 +1374,8 @@ def landmark_spec(name, r):
 def landmark(spec):
     s = dict(spec)
     kind = s.pop('kind')
+    if kind in ('hall-keep', 'great-hall', 'audience-hall'):
+        return CastleHall(kind, **s)
     if kind == 'globe':
         s.pop('look')
         return Globe(**s)

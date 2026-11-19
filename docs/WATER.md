@@ -34,7 +34,9 @@ file; nothing is saved.
 - **Tides.** `tideAt` runs a 12.42-hour cycle in three steps; the intertidal
   shelf scales with tidal range and is bare mud at low water.
 - **Works.** Polder ditches and dikes, chinampas in the Valley of Mexico,
-  qanat shaft lines.
+  qanat shaft lines. Castle grounds can carry a flooded moat or a dry
+  defensive ditch. Adjacent cut cells share one bed and banks. The approach
+  crosses on a timber deck.
 
 The engine calls `world.setSeason(season, tideAt(...))` on every advance; a
 change of season or tide step restyles the terrain stream.

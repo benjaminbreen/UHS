@@ -611,7 +611,10 @@ def adopt(recipes):
             r.setdefault('family', fam)
             r.setdefault('recipe', 'gothic' if name.startswith('religious-gothic') else r.get('recipe'))
         r['footprint'] = [fw, fh]
-        r['entrance'] = [fw // 2, fh]
+        door = fw // 2
+        if r.get('family') == 'castle' and r['form'] != 'audience-hall':
+            door = fw - 3 if spec['landmark']['look'] else 2
+        r['entrance'] = [door, fh]
         n += 1
     return n
 

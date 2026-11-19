@@ -55,8 +55,51 @@ arterials, a public square and recursively subdivided rectangular blocks; no
 graph search runs. `urban.ts` fits parcels; a refused parcel leaves open
 ground. Towns with a defensive circuit get walls, gatehouses and towers
 (`urban.ts`, art from `build_city_walls` in `scripts/art/urban.py`).
-`urbanGates` is keyed on site identity, so regional routes can aim at a gate
-without composing the town.
+The planner fixes a straight stretch across each gate road and joins those
+stretches around the buildable edge. The same outline bounds the town’s lots.
+Towers mark substantial turns and divide long runs into roughly equal bays.
+Water can interrupt a run. Only the central site of a multi-quarter city gets a circuit.
+The straight and diagonal runs share their materials and parapet. The material
+also picks the towers and gate, from a slate-roofed masonry turret to a tiled
+pavilion over grey brick or a lotus-bud tower over laterite. Mississippian mound
+towns have upright-log stockades with projecting square bastions flanking open
+entries. Cahokia’s early precinct is open before 1100, and Moundville’s before
+1200. The timber walk and stairs are reconstructions for play.
+`urbanGates` fixes each regional approach by site identity. Where its end lacks
+room for both jambs, the gate moves inward along the same road. Each built
+gateway records its street opening, outward direction, jambs and whether a
+walk crosses overhead. Covered gates span either street axis. The night
+leaves close the road below while the watch can still cross above.
+
+Precincts take a street frontage before the surrounding lots are filled.
+The amphitheatre seeks an outer street with access to its south passage,
+the ballcourt takes an end entrance and markets keep a clear approach to
+their aisles. A magistrate’s yamen and a Mexica tecpan can reserve a court
+in front of their existing hall. The settlement tries smaller footprints
+when streets, water, neighboring precincts or a change of more than one
+terrain tier rule out the larger site. Each accepted plot records its street
+and entrance. The district town sheet draws the approach in gold.
+
+A castle ward takes a street frontage with room on both sides of its gate.
+A secondary lane can bend around the estate. The battlements follow the
+outside face around each turn, with a lower kerb facing the yard. Gatehouses,
+towers and stairs share the town's wall walk. A paved cartway connects the
+gate to the hall steps. Where space permits, a branch serves a courtyard
+well or an enterable byre. Larger wards can have a chamfered corner.
+
+Parts of Britain and northern France can generate a hall-keep in 1100–1199
+or a great hall in 1200–1499. London favors the waterside edge of the town
+wall. Its early keep has a bridged ditch at the entrance. From 1280 the
+London ward cuts a wet moat along the available perimeter. Conwy seeks a
+rise near the water from 1287 and bridges a dry ditch. In the lower Nile
+(1250–1516) and Levant (1260–1516), a citadel can enclose a flat-roofed
+audience hall. A paved forecourt outside the gate leads to the stone court
+and its dark border inside. London, Conwy, Cairo, Aleppo and Damascus request
+their ward whenever the date fits. Other eligible large towns vary by seed.
+These are regional interpretations fitted to the game map. [Historic Royal Palaces on the Tower moat](https://www.hrp.org.uk/tower-of-london/history-and-stories/9-surprising-facts-about-the-tower-of-london-moat/) · [Cadw on Conwy Castle](https://cadwpublic-api.azurewebsites.net/reports/sam/FullReport?id=3411) · [The Citadel of Aleppo](https://www.archnet.org/publications/5216)
+
+Versailles (1701–1789) reserves an east-facing court with garden ground to
+the west. [Versailles gardens](https://en.chateauversailles.fr/discover/estate/gardens/parterres-and-paths)
 
 Parameters come from `src/content/settlements/urban-form/`, one file per
 region, chosen by cultural family, date and coordinates: block module, street

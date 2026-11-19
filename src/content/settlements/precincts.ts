@@ -9,6 +9,10 @@ import type { Venue } from "../venues/types";
 import { mesoamericanHouseProfile } from "../graphics/regional-houses";
 import { industrialized, motorized } from "./modernity";
 
+export type PrecinctSiting = {
+  position: "square" | "outer" | "wall" | "rise" | "garden";
+  entries: readonly ("north" | "south" | "east" | "west")[];
+};
 export type PrecinctScale = "small" | "medium" | "large";
 type Kind = keyof typeof data;
 
@@ -25,6 +29,7 @@ export type PrecinctPlan = {
   kind: Kind;
   label: string;
   venue: Venue;
+  siting: PrecinctSiting;
   surface: Terrain;
   /** Largest first; the layout takes the first that fits. */
   options: {
@@ -125,6 +130,9 @@ export function precinctPlans(
         kind,
         label: spec.label,
         venue,
+        siting: kind === "ballcourt" ? { position: "square", entries: ["east", "west"] } :
+          kind === "amphitheatre" ? { position: "outer", entries: ["south"] } :
+          { position: industrialized(s) ? "outer" : "square", entries: ["south", "east", "west"] },
         surface: spec.surface as Terrain,
         options: scales.map((scale) => {
           const shape = spec.scales[scale];

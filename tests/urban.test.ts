@@ -5,7 +5,7 @@ import { packForSetting } from "../src/content/geography/pack";
 import { settlementProfile } from "../src/content/settlements/profiles";
 import { planSettlement } from "../src/world/v3/plan";
 import { route } from "../src/core/routing";
-import { civicProfile } from "../src/content/settlements/civic";
+import { civicProfile, royalGround } from "../src/content/settlements/civic";
 import { plazaKitFor } from "../src/content/settlements/plaza";
 import { inside } from "../src/world/v3/types";
 import { roadCells } from "../src/world/v3/roads";
@@ -89,6 +89,118 @@ it.runIf(!!process.env.FULL)("preserves ground purpose across settlement forms w
     expect(seen.has(role), role).toBe(true);
 }, 60000);
 
+it.each([
+  ["London 1130", "hall-keep", "masonry", "ditch"],
+  ["London 1320", "great-hall", "masonry", "moat"],
+  ["Conwy 1310", "great-hall", "masonry", "ditch"],
+  ["Cairo 1370", "audience-hall", "limestone", "forecourt"],
+])("builds a castle with a reachable hall and wall walk in %s", (query, hall, material, approachKind) => {
+  const r = resolveSetting(query);
+  if ("error" in r) throw Error(r.error);
+  const s = integratedSetting(r.setting);
+  const slope = (x: number) => ({ ...flat(), elevation: (Math.floor(x / 12) & 1) * 14 });
+  const p = planSettlement({ id: "seat", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
+    profile: { ...settlementProfile(s), radius: 80 } }, packForSetting(s), "castle-ward", slope, []);
+  const ward = p.enclosures.find(e => e.precinct)!, gate = ward.gates![0];
+  const plot = p.plots.find(q => q.precinct?.id === ward.precinct)!;
+  const building = p.places.find(b => b.claim === "civic-castle-hall")!;
+  expect(building.sprite).toContain(`hall-${hall}-`);
+  expect(inside(ward, building.x, building.y)).toBe(true);
+  expect(inside(ward, building.x + building.w - 1, building.y + building.h - 1)).toBe(true);
+  expect(gate.covered).toBe(true);
+  expect(gate.opening).toContainEqual(plot.access);
+  expect(gate.jambs.every(q => p.solid.has(`${q.x},${q.y}`))).toBe(true);
+  expect(gate.opening.map(q => p.surface.get(`${q.x},${q.y}`))).toContain("paving");
+  const cuts = [...p.canals ?? []].filter(([, kind]) => kind === "ditch" || kind === "moat");
+  if (approachKind === "forecourt") expect(cuts).toHaveLength(0);
+  else {
+    expect(cuts.length).toBeGreaterThan(3);
+    for (const [key, kind] of cuts) {
+      const [x, y] = key.split(",").map(Number);
+      expect(inside(plot, x, y) && !inside(ward, x, y)).toBe(true);
+      expect(kind).toBe(approachKind);
+      expect(p.surface.get(key)).toBe(kind === "moat" ? "water" : "dirt");
+    }
+    const cross = `${plot.access.x + gate.outward.x},${plot.access.y + gate.outward.y}`;
+    expect(p.culverts?.has(cross)).toBe(true);
+    expect(p.surface.get(cross)).toBe("bridge");
+  }
+  expect(ward.parts!.filter(q => q.frame.startsWith(`tower-${material}-`)).length).toBeGreaterThanOrEqual(2);
+  expect(ward.parts!.some(q => q.frame.startsWith(`stair-${material}-`))).toBe(true);
+  for (const axis of ["x", "y"] as const) {
+    const mask = axis === "x" ? 5 : 10, span = axis === "x" ? ward.w : ward.h;
+    const straight = ward.parts!.filter(q => q.frame.startsWith(`wall-${material}-${mask}-`));
+    for (const end of [0, span - 1]) {
+      const side = straight.filter(q => q[axis] === ward[axis] + end);
+      expect(side.length).toBeGreaterThan(0);
+      expect(side.every(q => (Number(q.frame.split("-").at(-1)) >= 4) === (end > 0))).toBe(true);
+    }
+  }
+  expect(new Set(p.actors.map(a => a.id)).size).toBe(p.actors.length);
+  const road = plot.precinct!.street;
+  const levels = new Set<number | undefined>();
+  for (let y = ward.y; y < ward.y + ward.h; y++)
+    for (let x = ward.x; x < ward.x + ward.w; x++) levels.add(p.groundLevels?.get(`${x},${y}`));
+  expect([...levels]).toEqual([p.groundLevels?.get(`${road.x},${road.y}`) ?? slope(road.x).elevation / 14]);
+  const path = route(road, building.entrance, q => {
+    const approach = (gate.outward.y ? q.x === road.x : q.y === road.y) &&
+      Math.abs(q.x - plot.access.x) + Math.abs(q.y - plot.access.y) <=
+      Math.abs(road.x - plot.access.x) + Math.abs(road.y - plot.access.y);
+    const key = `${q.x},${q.y}`;
+    return (approach || inside(ward, q.x, q.y)) && !p.solid.has(key) && p.surface.get(key) !== "water" ? 1 : Infinity;
+  });
+  expect(path.status).toBe("found");
+  expect(path.path).toContainEqual(plot.access);
+});
+it("dates the castle forms and varies which other towns receive one", () => {
+  const at = (query: string, place: string, roll = 1) => {
+    const resolved = resolveSetting(query);
+    if ("error" in resolved) throw Error(resolved.error);
+    return royalGround(resolved.setting, place, roll)?.castle?.hall;
+  };
+  expect(at("Conwy 1260", "Conwy", 0)).toBeUndefined();
+  expect(at("London 1160", "London")).toBe("hall-keep");
+  expect(at("London 1280", "London")).toBe("great-hall");
+  expect(at("Rouen 1280", "Rouen", .1)).toBe("great-hall");
+  expect(at("Rouen 1280", "Rouen", .9)).toBeUndefined();
+  expect(at("Cairo 1200", "Cairo", 0)).toBeUndefined();
+  expect(at("Cairo 1517", "Cairo", 0)).toBeUndefined();
+  expect(at("Kyoto 1350", "Kyoto", 0)).toBeUndefined();
+});
+it("reserves an east-facing court and a western garden at Versailles", () => {
+  const r = resolveSetting("Gardener in Versailles 1750");
+  if ("error" in r) throw Error(r.error);
+  const s = integratedSetting(r.setting);
+  expect(s.location).toBe("Versailles");
+  expect(royalGround(s, "Paris")).toBeUndefined();
+  expect(royalGround({ ...s, year: 1500 }, s.location)).toBeUndefined();
+  const p = planSettlement({ id: "versailles", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
+    profile: { ...settlementProfile(s), radius: 80 } }, packForSetting(s), "court-foundations", flat, []);
+  const plot = p.plots.find(q => q.precinct?.id === "versailles")!, g = plot.precinct!.garden!;
+  expect(plot.access.x).toBe(plot.x + plot.w - 1);
+  expect(plot.precinct!.street.x).toBeGreaterThan(plot.access.x);
+  expect(g.x).toBe(plot.x);
+  expect(g.x + g.w).toBeLessThan(plot.access.x);
+  expect(p.pavement!.get(`${g.x + (g.w >> 1)},${g.y + (g.h >> 1)}`)).toBe("park");
+});
+
+it.each(["Potter in Tenochtitlan 1500", "Clerk in Beijing 1450"])("can walk from the street through the civic forecourt in %s", query => {
+  const r = resolveSetting(query);
+  if ("error" in r) throw Error(r.error);
+  const s = integratedSetting(r.setting);
+  const plan = planSettlement({ id: "court", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
+    profile: { ...settlementProfile(s), radius: 80 } }, packForSetting(s), "court-foundations", flat, []);
+  const court = plan.plots.find(p => p.precinct?.id === civicProfile(s).id)!;
+  const street = court.precinct!.street, hall = plan.places.find(b => b.id === "court-civic")!;
+  expect(street.y).toBeGreaterThan(court.access.y);
+  expect(hall.entrance.y).toBeLessThan(court.access.y);
+  const reachesDoor = route(street, hall.entrance, q => {
+    const approach = q.x === street.x && q.y <= street.y && q.y >= court.access.y;
+    return (approach || inside(court, q.x, q.y)) && !plan.solid.has(`${q.x},${q.y}`) ? 1 : Infinity;
+  });
+  expect(reachesDoor.status).toBe("found");
+});
+
 it("keeps market pitches in public courts, with clear aisles and bounded density", () => {
   for (const query of ["Rome 100", "Kyoto 1700", "Isfahan 1600"]) {
     const r = resolveSetting(query);
@@ -115,10 +227,15 @@ it("keeps market pitches in public courts, with clear aisles and bounded density
 }, 30000);
 
 it("grades modest urban foundations through one tier and keeps steeper terrain out", () => {
-  const sloped = (x: number) => ({ ...flat(), elevation: x >= 0 ? 14 : 0 });
-  const p = planSettlement({ id: "grade", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
-    profile: { ...settlementProfile(setting), radius: 74 } }, packForSetting(setting), "graded-foundations", sloped, []);
-  const crossed = p.places.filter((b) => b.x < 0 && b.x + b.w > 0);
+  const site = { id: "grade", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
+    profile: { ...settlementProfile(setting), radius: 74 } };
+  const plan = (ground: (x: number) => ReturnType<typeof flat>) =>
+    planSettlement(site, packForSetting(setting), "graded-foundations", ground, []);
+  const plot = plan(flat).places.find(b => b.w >= 4)!;
+  const edge = plot.x + (plot.w >> 1);
+  const slope = (height: number) => (x: number) => ({ ...flat(), elevation: x >= edge ? height : 0 });
+  const p = plan(slope(14));
+  const crossed = p.places.filter((b) => b.x < edge && b.x + b.w > edge);
   expect(crossed.length).toBeGreaterThan(0);
   for (const b of crossed) {
     const levels = new Set<number | undefined>();
@@ -128,10 +245,8 @@ it("grades modest urban foundations through one tier and keeps steeper terrain o
     expect(levels.has(undefined)).toBe(false);
     expect(levels.has(p.groundLevels?.get(`${b.entrance.x},${b.entrance.y}`)), b.sprite).toBe(true);
   }
-  const steep = planSettlement({ id: "grade", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
-    profile: { ...settlementProfile(setting), radius: 74 } }, packForSetting(setting), "graded-foundations",
-    (x) => ({ ...flat(), elevation: x >= 0 ? 28 : 0 }), []);
-  expect(steep.places.some((b) => b.x < 0 && b.x + b.w > 0)).toBe(false);
+  const steep = plan(slope(28));
+  expect(steep.places.some((b) => b.x < edge && b.x + b.w > edge)).toBe(false);
 });
 it("settles lowland terrace fragments while retaining hills and the low river margin", () => {
   const ground = (hill: number) => (x: number, y: number) => ({ ...flat(),

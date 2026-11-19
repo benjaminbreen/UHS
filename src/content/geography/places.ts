@@ -29,6 +29,8 @@ const p = (
   relief,
 });
 const anchors: AtlasPlace[] = [
+  p("conwy", "Conwy", -3.83, 53.28, "temperate", "river-ns", "european", 1300, "timber", ["conway castle"], "port", .35),
+  p("versailles", "Versailles", 2.124, 48.805, "temperate", "none", "european", 1701, "classical", ["chateau de versailles"], "city", .14),
   p(
     "city-florence",
     "Florence",
@@ -172,6 +174,7 @@ const anchors: AtlasPlace[] = [
     "port",
     0.08,
   ),
+  p("cairo", "Cairo", 31.26, 30.04, "arid", "river-ns", "north-african-west-asian", 1370, "courtyard", ["al-qahira"], "city", .2),
   p(
     "nile",
     "Nile valley",
@@ -182,7 +185,7 @@ const anchors: AtlasPlace[] = [
     "north-african-west-asian",
     -1299,
     "mudbrick",
-    ["egypt", "cairo", "memphis"],
+    ["egypt", "memphis"],
     "village",
     0.12,
   ),

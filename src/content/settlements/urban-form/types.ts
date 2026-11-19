@@ -157,6 +157,7 @@ export type UrbanForm = {
  * mudbrick, pointed on Islamic limestone, a plain parapet on Khmer laterite. */
 export type CircuitMaterial =
   | "earth"
+  | "palisade"
   | "masonry"
   | "mudbrick"
   | "brick"

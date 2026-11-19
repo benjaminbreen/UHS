@@ -1084,12 +1084,13 @@ export function createSettlementWorld(
   function canalAt(
     x: number,
     y: number,
-  ): { axis: "x" | "y"; dry: boolean } | undefined {
+  ): { axis: "x" | "y"; dry: boolean; wide: boolean } | undefined {
     for (const p of nearby(x, y)) {
-      if (!p.canals?.has(cellKey(x, y))) continue;
+      const cut = p.canals?.get(cellKey(x, y));
+      if (!cut) continue;
       const along =
-        p.canals.has(cellKey(x + 1, y)) || p.canals.has(cellKey(x - 1, y));
-      return { axis: along ? "x" : "y", dry: !!p.canalsDry };
+        p.canals!.has(cellKey(x + 1, y)) || p.canals!.has(cellKey(x - 1, y));
+      return { axis: along ? "x" : "y", dry: cut === "dry" || cut === "ditch", wide: cut === "ditch" || cut === "moat" };
     }
   }
   const forms = new WeakMap<SettlementPlan, UrbanForm>();
@@ -2017,7 +2018,7 @@ export function createSettlementWorld(
     // A deck's ends rest on the banks; only the span over water is timber.
     const pier = t === "bridge" && nearby(x,y).some(p=>p.launches?.some(({pier:r})=>
       r && x>=r.x && y>=r.y && x<r.x+r.w && y<r.y+r.h));
-    if (t === "bridge" && f.water >= 0 && !pier) t = "dirt";
+    if (t === "bridge" && f.water >= 0 && !pier && !nearby(x,y).some(p => p.culverts?.has(cellKey(x,y)))) t = "dirt";
     const height = tierAt(x, y, t);
     const cell = reliefCell(height, f.water, f.moisture);
     cell.habitat = { ...habitat(x, y), layeredForest: true };
@@ -2057,7 +2058,7 @@ export function createSettlementWorld(
           else if (rocky) scape = { kind: "outcrop", strength: rocky };
         }
       }
-      if (scape) cell.landscape = scape;
+      if (scape && t !== "paving" && t !== "bridge") cell.landscape = scape;
     }
     cell.waterVisual = {
       distance: f.water,
@@ -2157,15 +2158,26 @@ export function createSettlementWorld(
       if (canal.dry) cell.dryChannel = true;
       else {
         cell.surface = "water";
-        cell.waterDepth = "shallow";
+        cell.waterDepth = canal.wide ? "deep" : "shallow";
       }
       cell.waterVisual = {
         ...cell.waterVisual,
         distance: canal.dry ? 1 : -1,
         kind: "canal",
         shoreWidth: 1,
+        ...(canal.wide && { wideChannel: true }),
         flow: canal.axis === "x" ? [1, 0] : [0, 1],
       };
+      if (canal.wide) {
+        delete cell.live;
+        delete cell.feature;
+        delete cell.landscape;
+        if (canal.dry) {
+          cell.surface = "soil";
+          delete cell.waterDepth;
+        }
+        return cell;
+      }
     }
     if (t === "rock") cell.surface = "gravel";
     if (t === "paving") {

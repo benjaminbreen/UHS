@@ -64,6 +64,7 @@ export type Road = {
   condition?: number;
 };
 export type Plot = Rect & {
+  precinct?: { id: string; name: string; street: Point; garden?: Rect };
   id: string;
   kind: "household" | "field" | "pasture" | "public";
   owner?: string;
@@ -152,9 +153,8 @@ export type SettlementPlan = {
   /** Farmland round the town: crop per cell, the parcels, and the territory
    * with its lanes and the slots kept free for outlying sites. */
   fields?: Map<string, import("./farmland").FieldCell>;
-  canals?: Set<string>;
-  /** The canals stand empty this season: dug, banked, but unwatered. */
-  canalsDry?: boolean;
+  /** Excavated field channels and defensive ditches, with separate crossing decks. */
+  canals?: Map<string, "wet" | "dry" | "moat" | "ditch">;
   culverts?: Set<string>;
   parcels?: import("./farmland").Parcel[];
   territory?: import("./farmland").Territory;

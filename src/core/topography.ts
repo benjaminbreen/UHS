@@ -118,6 +118,7 @@ export type TopographyCell = {
   waterVisual?: {
     distance: number;
     kind: "river" | "sea" | "lake" | "canal";
+    wideChannel?: true;
     ecology: import("../content/ecology/profiles").Ecology;
     shoreWidth: number;
     flow: readonly [number, number];

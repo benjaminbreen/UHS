@@ -5380,19 +5380,40 @@ export class WorldScene extends Phaser.Scene {
           )
             continue;
           if (fence.parts) {
+            const contact = fence.gates?.length ? this.add.graphics().setDepth(this.printDepth() - .6) : undefined;
+            if (contact) this.layers.push(contact);
             for (const part of fence.parts) {
               if (Math.abs(part.x - p.x) > 100 || Math.abs(part.y - p.y) > 100)
                 continue;
-              this.sprite(
-                part.frame,
-                part.x * 16 + 8,
-                part.y * 16 + 16,
-                part.y * 16 + 10,
-              );
+              if (part.frame === "wall-none") continue;
+              const x = part.x * 16, y = part.y * 16;
+              if (contact) {
+                const foot = y + 16 - this.lift(x + 8, y + 16);
+                const wall = /^wall-\w+-(\d+)-/.exec(part.frame);
+                if (wall) {
+                  const mask = Number(wall[1]);
+                  contact.fillStyle(0x443d39, .21);
+                  if (!(mask & 4)) contact.fillRect(x + 3, foot - 1, 16, 5);
+                  if (!(mask & 2)) contact.fillRect(x + 16, foot - 14, 4, 15);
+                } else if (part.frame.startsWith("tower-") || part.frame.includes("-pier-")) {
+                  contact.fillStyle(0x39353a, .24).fillEllipse(x + 12, foot, 31, 9);
+                }
+              }
+              this.sprite(part.frame, x + 8, y + 16, y + 10);
             }
-            for (const gap of fence.gates ?? []) {
-              const g = this.add.graphics().setDepth(Math.max(...gap.map((q) => q.y)) * 16 + 11).setVisible(false);
-              drawGateLeaves(g, gap);
+            for (const gate of fence.gates ?? []) {
+              const gap = gate.opening;
+              const mid = gap[gap.length >> 1], lift = this.lift(mid.x * 16 + 8, mid.y * 16 + 16);
+              if (gate.covered) {
+                const shade = this.add.graphics().setDepth(this.printDepth() - .5).setY(-lift);
+                const side = gate.outward.x !== 0, x = gap[0].x * 16, y = gap[0].y * 16;
+                const w = side ? 40 : gap.length * 16, h = side ? gap.length * 16 : 21;
+                shade.fillStyle(0x443b45, .20).fillRect(x + (side ? -9 : 2), y + 4, w, h);
+                shade.fillStyle(0x443b45, .12).fillRect(x + (side ? -5 : 4), y + 6, w - 7, h - 4);
+                this.layers.push(shade);
+              }
+              const g = this.add.graphics().setY(-lift).setDepth(gap[gap.length - 1].y * 16 + 11).setVisible(false);
+              drawGateLeaves(g, gap, gate.outward.x !== 0);
               this.layers.push(g);
               this.gateDoors.push(g);
             }
@@ -9162,10 +9183,14 @@ function hashSeed(s: string) {
   return (h >>> 0) / 4294967296;
 }
 
-/** A pair of plank leaves barring a gateway in a north or south wall. Seen
- * edge on, an east or west gate's leaves are a sliver; they are not drawn. */
-function drawGateLeaves(g: Phaser.GameObjects.Graphics, gap: { x: number; y: number }[]) {
-  if (!gap.every((q) => q.y === gap[0].y)) return;
+function drawGateLeaves(g: Phaser.GameObjects.Graphics, gap: { x: number; y: number }[], side: boolean) {
+  if (side) {
+    const x = gap[0].x * 16 + 8, y = gap[0].y * 16, h = gap.length * 16;
+    g.fillStyle(0x473324).fillRect(x - 2, y - 26, 4, h + 26);
+    g.fillStyle(0x987957).fillRect(x - 2, y - 26, 1, h);
+    for (let i = 0; i <= h; i += 8) g.fillStyle(0x302c29).fillRect(x - 2, y - 26 + i, 4, 2);
+    return;
+  }
   const x0 = Math.min(...gap.map((q) => q.x)) * 16, x1 = (Math.max(...gap.map((q) => q.x)) + 1) * 16;
   const top = (gap[0].y + 1) * 16 - 36;
   g.fillStyle(0x5c3f27).fillRect(x0, top, x1 - x0, 36);

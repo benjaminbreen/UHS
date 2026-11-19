@@ -1,6 +1,8 @@
-import type { CivicRule } from "./types";
+import type { WorldSetting } from "../../geography/types";
+import type { CivicRule, RoyalGround } from "./types";
 const korean: Omit<CivicRule, "bounds"> = {
   id: "korean-dongheon",
+  interior: "magistracy",
   from: 1392,
   to: 1910,
   culture: "east-asian",
@@ -18,6 +20,7 @@ const korean: Omit<CivicRule, "bounds"> = {
 export const asiaCivic: CivicRule[] = [
   {
     id: "bazaar",
+    interior: "bazaar",
     from: 700,
     to: 1900,
     bounds: [-10, 12, 65, 42],
@@ -35,6 +38,8 @@ export const asiaCivic: CivicRule[] = [
   },
   {
     id: "chinese-yamen",
+    forecourt: true,
+    interior: "magistracy",
     from: -200,
     to: 1912,
     bounds: [97, 18, 126, 45],
@@ -54,6 +59,7 @@ export const asiaCivic: CivicRule[] = [
   ...([[124, 33, 129.4, 43.5], [129.4, 38, 131, 43.5]] as const).map((bounds): CivicRule => ({ ...korean, bounds })),
   {
     id: "japanese-machi-bugyo",
+    interior: "magistracy",
     from: 1603,
     to: 1868,
     bounds: [129.4, 30, 146, 46],
@@ -72,6 +78,7 @@ export const asiaCivic: CivicRule[] = [
   // Mughal India: north of the Tamil country and south of Nepal.
   ...([[66, 15, 80, 35], [80, 15, 92, 26.4]] as const).map((bounds): CivicRule => ({
     id: "mughal-kotwali",
+    interior: "magistracy",
     from: 1526,
     to: 1857,
     bounds,
@@ -88,3 +95,12 @@ export const asiaCivic: CivicRule[] = [
     },
   })),
 ];
+
+export function citadelGround(s: WorldSetting, place: string, roll: number): RoyalGround | undefined {
+  if (s.culture !== "north-african-west-asian" || s.year < 1250 || s.year >= 1517) return;
+  const lowerNile = s.lon >= 29 && s.lon <= 32.6 && s.lat >= 27.5 && s.lat <= 31.4;
+  const levant = s.year >= 1260 && s.lon >= 34.4 && s.lon <= 38.2 && s.lat >= 31.5 && s.lat <= 36.8;
+  if ((lowerNile || levant) && (/^(cairo|aleppo|damascus)$/i.test(place) || roll < .28))
+    return { id: "citadel-ward", name: "Citadel court", position: "rise",
+      castle: { hall: "audience-hall", material: "limestone", tower: "a", approach: "forecourt", paving: "slab" } };
+}

@@ -188,12 +188,14 @@ it("gives each fabric its own block size, hierarchy and share of blind alleys", 
     medina = at("north-african-west-asian", 44, 33, 900),
     grid = at("european", -75, 40, 1750);
   expect(median(ward)).toBeGreaterThan(median(medina));
-  const alleys = (form: UrbanForm) =>
-    compose(form).blocks.filter((b) => b.lane).length;
+  const alleyShare = (form: UrbanForm) => {
+    const blocks = ["seed", "delta", "ridge", "round"].flatMap(seed => compose(form, 96, seed).blocks);
+    return blocks.filter(b => b.lane).length / blocks.length;
+  };
   // Blind alleys are the medina's defining access pattern; on a survey grid they
   // are vanishingly rare rather than forbidden.
-  expect(alleys(medina)).toBeGreaterThan(5);
-  expect(alleys(grid)).toBeLessThan(3);
+  expect(alleyShare(medina)).toBeGreaterThan(.10);
+  expect(alleyShare(grid)).toBeLessThan(.04);
   expect(compose(ward).streets.some((s) => s.tier === 0)).toBe(true);
 });
 
@@ -210,6 +212,71 @@ it("keeps gates on the built edge and stable against the world seed", () => {
   expect(nearestGate(gates, center, { x: 400, y: 30 })!.nx).toBe(1);
   expect(nearestGate(gates, center, { x: -400, y: 30 })!.nx).toBe(-1);
   expect(nearestGate(gates, center, { x: 20, y: 400 })!.ny).toBe(1);
+});
+
+it("brings gate roads through a straight dry opening on a tight river bend", () => {
+  const form = at("east-asian", 116, 40, 1450);
+  const dry = (x: number, y: number) => x + y * .7 < 22.5 && (y < -10 || x > -22.5);
+  const layout = composeUrban("site-ridge", center, 30, form, "ridge", undefined, dry);
+  const { ring } = layout.wall!;
+  const gaps = layout.wall!.gates.map(g => g.opening);
+  const cells = new Set(ring.map(p => `${p.x},${p.y}`));
+  for (const [i, p] of ring.entries()) {
+    const next = ring[(i + 1) % ring.length];
+    expect(Math.abs(next.x - p.x) + Math.abs(next.y - p.y)).toBe(1);
+    expect(layout.holds(p.x, p.y, 2)).toBe(false);
+    expect([[0, 1], [0, -1], [1, 0], [-1, 0]].filter(([dx, dy]) => cells.has(`${p.x + dx},${p.y + dy}`))).toHaveLength(2);
+  }
+  for (const [i, { point, axis }] of layout.gates.entries()) {
+    expect(gaps[i]).toHaveLength(layout.tiers[0] + 2);
+    expect(gaps[i].every(p => p[axis] === point[axis] && dry(p.x, p.y))).toBe(true);
+    const first = gaps[i][0], last = gaps[i].at(-1)!;
+    expect(Math.abs(first.x - last.x) + Math.abs(first.y - last.y)).toBe(gaps[i].length - 1);
+  }
+  const original = urbanGates("site-ridge", center, 30, form)[0].point;
+  const gate = layout.gates[0].point;
+  expect(gate.x).toBeLessThan(original.x);
+  expect(layout.streets).toContainEqual({ a: gate, b: original, tier: 0 });
+});
+
+it("fits the court and its approach to the street, shrinks a cramped site and omits an inaccessible one", () => {
+  const form = at("european", -.1, 51.5, 1300);
+  const dry = (x: number, y: number) => x < 28 && !(x < -15 && y > 8);
+  const layout = composeUrban("court", center, 64, form, "court", undefined, dry, undefined, undefined, 1300, [
+    { position: "square", entries: ["south"], sizes: [[110, 100], [12, 9]] },
+    { position: "wall", entries: ["east"], sizes: [[12, 9]] },
+    { position: "garden", entries: ["east"], sizes: [[110, 100]] },
+  ]);
+  const [court, ward, missing] = layout.grounds;
+  expect(missing).toBeUndefined();
+  expect(court).toMatchObject({ w: 12, h: 9 });
+  expect(ward).toBeDefined();
+  expect(court!.entry.y).toBe(court!.y + court!.h - 1);
+  expect(ward!.entry.x).toBe(ward!.x + ward!.w - 1);
+  for (const g of [court!, ward!]) {
+    expect(layout.streets.some(s => g.street.x >= Math.min(s.a.x, s.b.x) && g.street.x <= Math.max(s.a.x, s.b.x) &&
+      g.street.y >= Math.min(s.a.y, s.b.y) && g.street.y <= Math.max(s.a.y, s.b.y))).toBe(true);
+    for (const r of [g, g.approach]) for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) {
+      expect(dry(x, y)).toBe(true);
+      expect(layout.blocks.some(b => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h)).toBe(false);
+    }
+  }
+});
+
+it("preserves the through lane and the main roads when a castle takes its frontage", () => {
+  const form = at("european", -.1, 51.5, 1130);
+  const build = (divertLane: boolean) => composeUrban("court", center, 80, form, "keep", undefined, () => true,
+    undefined, undefined, 1130, [{ position: "wall", entries: ["south", "east", "west"], divertLane,
+      sizes: [[36, 27], [29, 22], [23, 26], [23, 17], [18, 15], [15, 12]] }]);
+  const original = build(false).streets, { grounds, streets } = build(true);
+  const ground = grounds[0]!;
+  expect(streets.length).toBeGreaterThan(original.length);
+  expect(streets.filter(s => s.tier === 0)).toEqual(original.filter(s => s.tier === 0));
+  expect(new Set(streetComponents(streets)).size).toBe(new Set(streetComponents(original)).size);
+  for (const { a, b } of streets) expect(
+    Math.max(a.x, b.x) < ground.x || Math.min(a.x, b.x) >= ground.x + ground.w ||
+    Math.max(a.y, b.y) < ground.y || Math.min(a.y, b.y) >= ground.y + ground.h
+  ).toBe(true);
 });
 
 it("varies the interior with the world seed while the layout stays deterministic", () => {
@@ -400,6 +467,10 @@ it("walls the fabrics attested as walled, with a closed ring open only at gates"
   // A capital laid out without a circuit is not given one.
   expect(open.wall).toBe("none");
   expect(at("west-central-african", 8, 12, 1500).wall).toBe("earth");
+  expect(at("other-indigenous-american", -90.06, 38.66, 1050).wall).toBe("none");
+  expect(at("other-indigenous-american", -90.06, 38.66, 1250).wall).toBe("palisade");
+  expect(at("other-indigenous-american", -87.63, 33, 1150).wall).toBe("none");
+  expect(at("other-indigenous-american", -87.63, 33, 1250).wall).toBe("palisade");
   expect(at("mesoamerican", -99, 19, 1500).wall).toBe("none");
   expect(compose(open).wall).toBeUndefined();
 
@@ -412,9 +483,8 @@ it("walls the fabrics attested as walled, with a closed ring open only at gates"
     expect(ring.has(`${gate.point.x},${gate.point.y}`)).toBe(false);
     expect(wall.openings.has(`${gate.point.x},${gate.point.y}`)).toBe(true);
     // A gate stands on the circuit, not off it.
-    expect(
-      Math.round(Math.hypot(gate.point.x, gate.point.y)),
-    ).toBeGreaterThanOrEqual(layout.half - 1);
+    expect(Math.hypot(gate.point.x, gate.point.y)).toBeCloseTo(
+      layout.edge(Math.atan2(gate.point.y, gate.point.x)), 5);
   }
   // The circuit encloses: no cardinal step leaves the middle without passing an
   // opening. Walking straight out along each axis must meet wall or gate.

@@ -1,14 +1,15 @@
 import type { WorldSetting } from "../../geography/types";
 import type { CivicProfile } from "./types";
 import { italyCivic } from "./italy";
-import { europeCivic } from "./europe";
-import { asiaCivic } from "./asia";
+import { europeCivic, europeanGround } from "./europe";
+import { asiaCivic, citadelGround } from "./asia";
 import { americasCivic } from "./americas";
+export const civicRules = [...italyCivic, ...europeCivic, ...asiaCivic, ...americasCivic];
 /** Dated regional content names institutions; the planner only sees shared forms.
  * An unresearched setting gets an explicitly illustrative meeting hall, never
  * a Roman institution or a purportedly documented civic building by default. */
 export function civicProfile(s: WorldSetting): CivicProfile {
-  for (const p of [...italyCivic, ...europeCivic, ...asiaCivic, ...americasCivic]) {
+  for (const p of civicRules) {
     const [w, south, e, n] = p.bounds;
     if (
       s.culture === p.culture &&
@@ -34,4 +35,9 @@ export function civicProfile(s: WorldSetting): CivicProfile {
       note: "An illustrative shared hall using this setting's architectural materials. Institutional identity and exact form have not been researched for this location and date.",
     },
   };
+}
+
+
+export function royalGround(s: WorldSetting, place: string, roll = 1) {
+  return europeanGround(s, place, roll) ?? citadelGround(s, place, roll);
 }
