@@ -37,6 +37,7 @@ export const aerialStates = new Set<FaunaState>([
 /** One animal's cell and facing, numbered as for actors: 0 north, 1 east,
  * 2 south, 3 west. Side-view species only ever hold 1 or 3. */
 export type FaunaMember = {
+  purchase?: number;
   x: number;
   y: number;
   direction: 0 | 1 | 2 | 3;
@@ -82,6 +83,7 @@ export type FaunaAttack = {
 /** One simulation decision drives every member; members keep their own cells
  * so a person can corner one. */
 export type FaunaGroup = {
+  market?: string;
   id: string;
   speciesId: string;
   members: FaunaMember[];

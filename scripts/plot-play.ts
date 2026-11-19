@@ -34,7 +34,7 @@ const fresh = () => {
 };
 
 const probe = fresh();
-const first = startPlot(probe.state, setting, id);
+const first = startPlot(probe.state, setting, id, undefined, probe.world.activitySites);
 const p = probe.state.player;
 console.log(`${template.id} at ${where}: ${p.name}, ${p.origin?.livelihood}, ${p.age}`);
 if (!first) {
@@ -48,11 +48,12 @@ const choices = Math.max(1, ...[...template.opening, ...template.developments.fl
 const ways = ["wait", "go", "work", ...roles.flatMap((r) => [`talk:${r}`, `work,talk:${r}`])];
 
 const workAt = JSON.stringify(template.developments).match(/"type":"working","at":"(\w+)"/)?.[1];
+const atWorkplace = template.developments.some((d) => d.then.some((e) => e.type === "choose" && e.at === "workplace"));
 let serial = 0;
 for (const way of ways)
   for (let pick = 0; pick < (choices > 1 ? choices : 1); pick++) {
     const e = fresh();
-    const plot = startPlot(e.state, setting, id)!;
+    const plot = startPlot(e.state, setting, id, undefined, e.world.activitySites)!;
     const act = (command: PlayerCommand) => e.act({ actionId: `play-${serial++}`, expectedRevision: e.state.revision, command });
     const start = e.state.clock, seen = new Set<object>(), log: string[] = [];
     const talk = (role: string) => {
@@ -89,6 +90,7 @@ for (const way of ways)
       }
       // Three hours at the work from the first hour, at the step the plot waits for, then it is done.
       const working = way.split(",").includes("work");
+      if (working && atWorkplace && step === 6) e.state.player.pos = { ...e.state.player.work };
       (e as unknown as { working?: object }).working = working && step >= 6 && step < 24 ? { at: workAt } : undefined;
       if (working && step === 24) {
         plot.fired.push("worked");

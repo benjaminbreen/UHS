@@ -1,3 +1,4 @@
+import type { Passage } from "./scripture";
 import type { DateRange } from "../history/dates";
 import type {
   Door, Fire, FloorPattern, Kind, RoomParams, Shape, Trade, WallPattern, WindowStyle,
@@ -20,7 +21,7 @@ export type Look = {
 /** What a room is for. Entries, halls, kitchens and workrooms face the
  * street in a front row; sleeping rooms and stores lie behind them, and a
  * sleeping room is private. A lobby belongs to a building, not a household. */
-export type RoomRole = "entry" | "hall" | "kitchen" | "work" | "sleep" | "store" | "lobby" | "sanctum";
+export type RoomRole = "entry" | "hall" | "kitchen" | "work" | "sleep" | "store" | "lobby" | "sanctum" | "ward" | "classroom";
 export type RoomTemplate = {
   id: string;
   label: string;
@@ -42,6 +43,9 @@ export type RoomTemplate = {
   clutter?: string[];
   program?: RoomParams["program"];
 };
+export type WorshipSound = "unison" | "recitation" | "handbell" | "woodbeat" | "strings" | "wash" | "pages" | "cloth" | "cup" | "wood";
+export type WorshipAct = { label: string; room: RoomRole; sound?: WorshipSound; at?: Kind; row?: boolean; passage?: Passage };
+export type Observance = { tradition?: string; gathering: WorshipAct; visit: WorshipAct; service?: WorshipAct; diner?: WorshipAct; layLeader?: "adult" | "man"; weekday?: number; hours?: number[] };
 export type Basis = "documented" | "archaeological" | "reconstructed" | "modern";
 export type InteriorProfile = {
   id: string;
@@ -74,6 +78,9 @@ export type InteriorProfile = {
   program?: RoomParams["program"];
   /** Rooms of a larger building; a profile without them is a single room. */
   rooms?: RoomTemplate[];
+  institution?: "hospital" | "school" | "magistracy" | "bazaar" | "exchange" | "worship";
+  observance?: Observance;
+  institutionPlan?: "passage" | "court";
   /** The buildings this interior fills, as `venue.alehouse`, `religious.gothic-parish`,
    * `civic.english-market-hall` (see `buildingUse`); absent for a dwelling. */
   uses?: string[];

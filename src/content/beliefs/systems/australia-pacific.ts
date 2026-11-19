@@ -396,6 +396,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "samoan-polynesian",
+    worship: ["East Polynesian"],
     realm: "ocean",
     label: "Samoan and Polynesian practice",
     wiki: "https://en.wikipedia.org/wiki/Polynesian_narrative",
@@ -472,6 +473,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "hawaiian-precontact",
+    worship: ["Hawaiian"],
     realm: "ocean",
     label: "Hawaiian practice (precontact)",
     wiki: "https://en.wikipedia.org/wiki/Hawaiian_religion",
@@ -554,6 +556,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "maori-aotearoa-precontact",
+    worship: ["Māori"],
     realm: "ocean",
     label: "Māori practice in Aotearoa (precontact)",
     wiki: "https://en.wikipedia.org/wiki/Māori_traditional_religion",
@@ -1060,6 +1063,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
   },
   {
     id: "south-island-aotearoa",
+    worship: ["Māori"],
     realm: "ocean",
     label: "South Island Māori practice",
     wiki: "https://en.wikipedia.org/wiki/Māori_traditional_religion",

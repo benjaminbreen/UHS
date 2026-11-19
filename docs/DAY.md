@@ -1,5 +1,7 @@
 # A day: work, cards and Today
 
+Devotional errands can require a particular tradition or school. The day picker checks the resident’s affiliation and the available building. The gurdwara meal accepts participants from any tradition.
+
 How a played day works: the trade's three steps, the places they happen, the
 choice cards on the way, the Today list and the evening ledger. Health and
 death are in [LIVES.md](LIVES.md), the years after the day in
@@ -22,9 +24,15 @@ tells the day back and offers **Another day**, **Let the years pass** or
 Every card trades one scarce thing for another: hours, coin, the batch, the
 goodwill of a person. No choice is free and every effect shows on the ledger.
 
+Hospital staff collect fresh water and cloths in the preparation room, then take water round and change bedding beside the ward beds. A colleague can ask for cover when spoken to on the ward.
+
+When Today asks you to serve in the langar, attend the gurdwara reading or join Friday prayer, the errand completes when you take part inside the building.
+
 A cultivator can walk into a working parcel or follow **Go** from Today. At the field, **F** or **Choose** opens the usual numbered work card. The choices come from what is growing within reach. A weedy edge can be cleared, bare soil opened or puddled, prepared ground planted in its sowing season, growing rows earthed up or watered beside open water, and ripe crops harvested. Seed comes from the farm’s store. On another household’s parcel, that household receives the crop. A cultivator can keep tending a field after the day’s work, or stop there on the way to another chore.
 
 Each press of **F** or the touch action works one patch. The guide points to the next patch. The yellow **Work row** button walks and works the rest of the selected row. Movement or **Stop** gives control back and **Resume row** continues the same pass. Farm workers visit several spots on their own schedules, tending the same soil and leaving the player’s active patches free.
+
+At a working anchorage, Today guides a porter from the lighter landing to the store. In Amsterdam the porter shoulders a sack of Baltic grain and hooks it onto the warehouse hoist. At a cloth landing the porter takes a tied bale to the cloth counter. Town market counters also pay for one consignment tally per day. Delivery pays one coin and records the shift. Anyone can carry another load for the same fee. From 1611 the Amsterdam Beurs grain broker also offers a one-delivery carrying order worth an extra coin. A merchant can book the next sack there and receive its warehouse receipt when a porter delivers it.
 
 A gatherer can choose a reachable patch from Today or press **F** to open the same numbered card. Each option shows the plant, direction, distance and remaining handfuls. At the patch, **F** or the touch action picks one handful. The yellow **Gather** button walks there, fills the six-handful basket and carries it to the household store. A player can stop and resume the same basket. Where several people gather, the patch can run out before the basket is full.
 
@@ -84,23 +92,25 @@ At the `grounds` step a fisher plays the fishing game instead of holding to
 work (`src/ui/fishing/`, opened by the work card's **Fish** button or F). It
 ends in one `fish` command listing each fish landed: they go into the
 inventory as `fish-<kind>` items from `fishItems` in `fishing.ts`, and
-`state.fishLog` keeps each kind's count and heaviest. At landing,
-`settleCatch` takes the owed share out of the fish carried and the buyer pays
-their price for the rest. Agents and autopilot keep the timed step and the
-flat takings. Settings → Developer → **Fishing test** opens the game at a
+`state.fishLog` keeps each kind's count and heaviest. At an Edo fish counter the basket stays with the player to sell by species, keep or cure. Other landings use
+`settleCatch`, which takes the owed share out of the fish carried and the buyer pays
+their price for the rest. Trophy fish stay in the player’s basket. Agents and autopilot use the timed fishing step. On an Edo landing it yields ordinary local species. Settings → Developer → **Fishing test** opens the game at a
 preset place without recording anything.
 
 The species live in `src/content/economy/fish.json`, grouped by water
 (`fishOf` picks the group by climate and culture). A kind may bite only at
 night, at dusk, in some seasons or in rain (`biting`), may go into traps, and
 fights in one of four styles; a leaper must be given slack while it is in the
-air. Each kind's item icon is a voxel model built from the same file by
+air. Ordinary species have item icons built from the same file by
 `scripts/art/voxel_items.py` (`--bake fish-`). Besides the cast gear, the
 player can set traps, a weir (from the bank) and a set net, which fill on
 their own and are hauled with a click. A line or trap sometimes brings up a
 find (`fishingFinds`: shells, sticks, an old boot), which lands as an item but
 not in the log. A cat may come for the creel: feed it or it takes a fish. **B**
-opens the book of this water's kinds, caught or still unknown.
+opens the book of this water's kinds, caught or still unknown. Rare shoals are solitary.
+Four fictional legendary individuals have their own colours, fighting styles and clues.
+An eligible deep shoal has a one-in-a-hundred chance to be legendary. Their names
+and best weights appear in the book once caught. Passive gear rolls ordinary catches.
 
 A role the map lacks falls back to the trade's prop. A trade that keeps a
 shop (`shopKind`) makes the player's house a named shop on the street. A
@@ -210,6 +220,8 @@ cleanup when you are in this code.
 
 Everything the player reads, speech included, is plain modern English.
 Period terms are fine where a modern word would be wrong, with a gloss.
+
+At a modern freight berth a dockworker checks the vessel manifest, watches three loads reach the yard, and releases the consignment for road collection. Detroit handles steel coils. Container berths handle sealed boxes of bagged grain. The berth keeps handling freight between shifts.
 
 ## Checks
 

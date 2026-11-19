@@ -1350,11 +1350,170 @@ class CastleHall:
         return c.im
 
 
+class PalaceRange:
+    def __init__(self, kind, W, depth):
+        self.kind, self.W, self.depth = kind, W, depth
+        self.x0, self.base = 7, depth + 125
+        self.c = C(W + (45 if kind == "palace-residence" else 14), self.base + 3)
+        self.door_x, self.door_size = self.x0 + W // 2, (22, 42)
+        self.panes, self.seed = [], W + depth
+
+    def roof(self, x, rear, w, d, rise):
+        from art.front_europe import LEAD
+        c, slate = self.c, TONES['slate-blue']
+        hip = min(w // 3, max(10, d // 2))
+        inset = min(d // 2, max(8, w // 4))
+        for dx in range(w):
+            side = min(dx, w - 1 - dx) / hip
+            for dy in range(d + rise):
+                # In projection the far eave lies behind the ridge; the near hip
+                # meets the two side slopes on a line from corner to ridge end.
+                side_k = min(1, side)
+                front = (d + rise - 1 - dy) / (inset + rise)
+                rear_k = (dy + 1) / max(1, inset - rise)
+                slope = min(front, side_k, rear_k)
+                if dy < round((1 - side_k) * rise): continue
+                plane = 0 if front <= side_k and front <= rear_k else 1 if side < 1 else 2
+                across = dy if plane == 1 else dx
+                course = int(slope * (inset + rise)) if plane != 2 else dy
+                row, lip = divmod(course, 5)
+                seam = (across + row % 2 * 4) % 9
+                k = (2 if dx < w // 2 else 5) if plane == 1 else 3 if plane == 0 else 2
+                tint = slate[min(7, k + (1 if lip == 0 or seam == 0 else 0))]
+                if lip == 4: tint = mix(tint, slate[max(0, k - 1)], .45)
+                if abs(front - side) * hip < 1 and side < 1: tint = LEAD[2]
+                c.p(x + dx, rear + dy, tint)
+        ridge_y = rear + max(0, d - inset)
+        c.rect(x + hip, ridge_y, max(1, w - 2 * hip), 2, LEAD[1])
+        for px in (x + hip, x + w - 1 - hip):
+            finial(c, px, ridge_y, 'ball')
+
+    def build(self):
+        from art import front_europe as eu
+        from art.front_victorian import rustic, light, cornice, pediment, urn
+        from art.front_parts import clock
+        c, x, w, base = self.c, self.x0, self.W, self.base
+        main = self.kind == 'palace-residence'
+        country = self.kind == 'palace-pavilion' or main and w < 125
+        royal = main and not country
+        stone, brick = eu.BUFF, eu.BAKSTEEN[1]
+        eave = base - (79 if main else 53)
+        depth = self.depth - 6
+        rise = 23 if main else 18
+        top = eave - depth - rise
+        def dormer(cx, sill):
+            c.rect(cx - 6, sill - 12, 13, 12, stone[3])
+            light(self, cx, sill - 1, 7, 9, eu.WHITE)
+            pediment(c, cx, sill - 12, 16, stone, curved=royal)
+            c.rect(cx - 8, sill, 16, 2, stone[1])
+        for sx in (x + 14, x + w - 16):
+            eu.stack(self, sx, top + rise + 13, 13, 28, brick, 2, brick=True, smoke=False)
+        if main:
+            ridge = x + w // 2
+            front = lambda xx: eave - 55 + round(abs(xx - ridge) * 55 / (w // 2 + 2))
+            run = depth - 43
+            slate = TONES['slate-blue']
+            eu.tiles_back(c, x - 2, x + w + 2, front, run, slate, ridge, 'slate')
+            hip = C(w + 4, 56)
+            eu.slates(hip, 0, w + 4, 0, 56, slate)
+            for px in range(w + 4):
+                y0 = front(x - 2 + px)
+                for py in range(y0, eave + 1): c.p(x - 2 + px, py, hip.g(px, py - eave + 55))
+                c.p(x - 2 + px, y0, slate[2 if px < w // 2 else 4])
+            for py in range(front(ridge) - run + 8, front(ridge) - 5, 12):
+                c.rect(ridge - 1, py, 3, 1, eu.LEAD[1])
+            for py in (front(ridge) - run, front(ridge)): finial(c, ridge, py, 'ball')
+            for py in ([eave - depth + 45, eave - 86, eave - 41] if royal else [eave - 65]):
+                for sx in (x + 20, x + w - 21):
+                    dormer(sx, py)
+            if royal:
+                top = front(ridge) - run // 2
+                rustic(c, ridge - 12, top - 32, 25, 32, stone)
+                for sx in (ridge - 6, ridge + 5):
+                    light(self, sx, top - 9, 6, 16, eu.LEAD, 'round', stone)
+                cornice(c, ridge - 12, top - 33, 25, stone)
+                for i in range(19):
+                    half = round(2 + 14 * (i / 18) ** 1.65)
+                    c.rect(ridge - half, top - 52 + i, half * 2 + 1, 1, slate[2])
+                    c.rect(ridge, top - 52 + i, half + 1, 1, slate[4])
+                    c.p(ridge + half, top - 52 + i, slate[6])
+                finial(c, ridge, top - 52, 'ball')
+            for py in [eave - depth + 27, eave - 52] if royal else [eave - 35]:
+                for sx in (x + 9, x + w - 10):
+                    eu.stack(self, sx, py, 12, 21, brick, 2, brick=True, smoke=False)
+        else:
+            self.roof(x - 2, top, w + 4, depth, rise)
+        if country or royal:
+            eu.brickwork(c, x, eave, w, base - eave, brick, 4, self.seed)
+        else:
+            rustic(c, x, eave, w, base - eave, stone)
+        plinth(c, x, base - 4, w, stone)
+        if main: eu.band(c, x, base - 36, w, stone)
+        for sx in (x, x + w - 7):
+            for py in range(eave, base - 4, 8):
+                c.rect(sx, py, 7, 7, stone[2])
+                c.rect(sx, py, 7, 1, stone[0])
+        cx = self.door_x
+        bays = 3 if w <= 82 else 5 if w <= 155 else 7
+        for i in range(bays):
+            wx = cx + (i - bays // 2) * ((w - 9) // bays)
+            if i != bays // 2:
+                if main:
+                    light(self, wx, base - 42, 13, 23, eu.WHITE, 'round', stone)
+                    eu.band(c, wx - 9, base - 41, 18, stone)
+                if self.kind == 'palace-wing':
+                    eu.pane(c, wx - 7, base - 38, 15, 27, wx, curtain=True)
+                    eu.casement_bars(c, wx - 7, base - 38, 15, 27, stone)
+                    eu.band(c, wx - 9, base - 40, 19, stone)
+                else:
+                    light(self, wx, base - 9, 13, 23 if main else 31, eu.WHITE, 'round', stone)
+                eu.band(c, wx - 9, base - 8, 19, stone)
+            if i % 2 == 0 and (not main or i != bays // 2):
+                dormer(wx, eave - 4)
+        cornice(c, x, eave, w, stone)
+        half = 21 if main else 16
+        for sx in (cx - half, cx + half - 5):
+            lesene(c, sx, eave + 5, base - 4, stone, 5)
+        if main:
+            light(self, cx, base - 8, 19, 30, eu.WHITE, 'round', stone)
+            eu.railings(c, cx - 14, cx + 14, base - 6, 11)
+        else:
+            eu.panel_door(c, cx - 11, base - 43, 22, 40, OAK)
+        eu.band(c, cx - 14, base - 45, 29, stone)
+        if main: light(self, cx, base - 48, 17, 22, eu.WHITE, 'round', stone)
+        if self.kind != 'palace-wing':
+            pediment(c, cx, eave + 1, half * 2 + 5, stone, curved=False)
+        if main:
+            cx = self.door_x = x + w + 8
+            foot = self.door_ground = base - self.depth // 2
+            lintel = foot - 49
+            half = 22 if royal else 18
+            rustic(c, cx - half, lintel, 2 * half, 48, stone, 7, 16)
+            self.roof(cx - half - 1, lintel - 57, 2 * half + 2, 36, 21)
+            column(c, cx - half + 4, lintel + 4, foot - 4, stone, 6, 'ionic')
+            column(c, cx + half - 4, lintel + 4, foot - 4, stone, 6, 'ionic')
+            eu.panel_door(c, cx - 11, foot - 43, 22, 42, OAK)
+            cornice(c, cx - half, lintel, half * 2, stone)
+            pediment(c, cx, lintel, half * 2 + 4, stone, curved=royal)
+            if royal:
+                clock(c, cx, lintel - 8, 5, GOLD)
+                for sx in (cx - half, cx + half): urn(c, sx, lintel, stone)
+            eu.steps(c, cx, foot + 1, 24, 2, stone)
+        else:
+            eu.steps(c, cx, base + 1, 25, 2, stone)
+        outline(c, deep=True)
+        consolidate(c)
+        return c.im
+
+
 # ================================================================== the game hook
 
 def landmark_spec(name, r):
     """The frame's spec and footprint, or None. Churches widen by the civic
     scale as the other front-on churches do; theatres keep their footprint."""
+    if r.get('family') == 'palace':
+        fw, fh = r['footprint']
+        return dict(landmark=dict(kind=r['form'], W=fw * 16, depth=fh * 16)), (fw, fh)
     if r.get('family') == 'castle':
         fw, fh = r['footprint']
         return dict(landmark=dict(kind=r['form'], W=fw * 16, look=int(name.split('-')[-1]))), (fw, fh)
@@ -1374,6 +1533,8 @@ def landmark_spec(name, r):
 def landmark(spec):
     s = dict(spec)
     kind = s.pop('kind')
+    if kind.startswith('palace-'):
+        return PalaceRange(kind, **s)
     if kind in ('hall-keep', 'great-hall', 'audience-hall'):
         return CastleHall(kind, **s)
     if kind == 'globe':
@@ -1394,6 +1555,14 @@ def studies():
         for size in ('small', 'medium', 'large'):
             for look in range(1 if kind == 'globe' else 3):
                 out.append((f'{kind}-{size}-{look}', dict(kind=kind, size=size, look=look, W=W[size], seed=look)))
+    import json
+    recipes = json.loads((ROOT / 'src/content/graphics/halls.json').read_text())['buildings']
+    for name, recipe in recipes.items():
+        if recipe['family'] != 'palace':
+            continue
+        for size, scale in recipe['scales'].items():
+            fw, fh = scale.get('footprint', recipe['footprint'])
+            out.append((f'{name}-{size}', dict(kind=name, W=fw * 16, depth=fh * 16)))
     return out
 
 

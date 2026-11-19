@@ -456,6 +456,27 @@
 /* A conversation: the same board as a line spoken in the world, so
    answering one changes nothing but what is on it. No veil. */
 .plot-floor.dialogue-floor { z-index: 75; }
+.plot-floor.reading-toast {
+  position: absolute;
+  inset: auto 0 0;
+  padding: 0 16px calc(var(--bar-height, 0px) + 16px);
+  z-index: 6;
+}
+.plot-floor.reading-toast .plot-speech { width: min(530px, 100%); pointer-events: none; animation: plot-fade .2s steps(4) both; }
+.reading-line { display: flex; align-items: center; gap: 12px; padding: 9px 14px; }
+.reading-line .plot-portrait { width: 50px; height: 58px; }
+.reading-line strong { font: 600 16px var(--display); color: var(--plot-text); }
+.reading-line small { margin-left: 4px; font: 12px var(--prose); color: var(--soft); }
+.reading-toast .plot-speech .reading-line p { min-height: 0; margin: 4px 0 0; font: 17px / 1.35 var(--book); }
+@media (max-width: 640px), (pointer: coarse) and (max-width: 1024px) {
+  .plot-floor.reading-toast { bottom: calc(var(--bottom-bar-h, 58px) + 120px + env(safe-area-inset-bottom)); padding: 0 10px; }
+  .reading-line { gap: 8px; padding: 7px 10px; }
+  .reading-line .plot-portrait { width: 40px; height: 46px; }
+  .reading-toast .plot-speech .reading-line p { font-size: 15px; }
+}
+@media (pointer: coarse) and (orientation: landscape) and (max-height: 550px) {
+  .plot-floor.reading-toast { inset: auto 25% calc(var(--bottom-bar-h, 50px) + 12px); padding: 0; }
+}
 /* Picked up from a line already on screen: it is already there. */
 .dialogue-floor[data-picked-up] .plot-speech { animation: none; }
 .dialogue-speech .plot-speech-body { display: flex; flex-direction: column; }

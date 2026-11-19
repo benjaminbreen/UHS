@@ -19,7 +19,7 @@ deterministic pipeline in `src/content/characters/`. It makes no model calls.
 | `profiles/names.ts`, `name-kits.ts`, `profiles/*-names.ts` | Naming samples; `name-kits.ts` only assembles regional modules |
 | `profiles/communities.ts` | Community scenarios and appearance kits (`AppearanceKit`), including adornment pools |
 | `livelihoods.ts`, `livelihoods.generated.ts` | Livelihoods and their activity and supply kits |
-| `outlaws.ts`, `city-work.ts` | Authored livelihoods beside the ported tables: robbers; office staff and bar staff. `city-work.ts` also holds `jobGrades`, the ladder an office ran on (Junior Broker, Senior Partner, Section Chief), drawn by age in `graded` (`generate.ts`); the livelihood id stays the same, the label and rank change |
+| `outlaws.ts`, `city-work.ts` | Authored livelihoods beside the ported tables: robbers, office staff, bar staff, grain factors, livestock dealers, market weighmasters and auctioneers. `city-work.ts` also holds `jobGrades`, the ladder an office ran on (Junior Broker, Senior Partner, Section Chief), drawn by age in `graded` (`generate.ts`); the livelihood id stays the same, the label and rank change |
 | `resolve.ts` | Selection by year, geographic box, culture and community (`matchesCharacterScope`) |
 | `validate.ts` | Reference and evidence checks on load. Equal-specificity conflicts fail rather than depending on file order |
 | `generate.ts` | Independent seeded streams per world seed, actor and purpose, so changing a role never rerolls a face or a name |
@@ -31,6 +31,7 @@ deterministic pipeline in `src/content/characters/`. It makes no model calls.
   `src/world/v3/employment.ts` reconciles resident occupations with the work
   actually available, and gives each worker a real destination. No mine, mill
   or hospital is invented to employ someone.
+- **Religious work.** A local office such as imam, parish priest or granthi can take a post at a sanctuary in the generated town. An opening shift starts inside. A day of household visits starts out in the settlement. Independent practitioners need no building. Occupation weights are estimates for the place and period.
 - **Names.** Name kits declare their format (`personal`, `personal-family`,
   `personal-patronymic`, and others). A patronymic is never inherited as a
   family name, and custom names are never split. Children take components from
@@ -184,8 +185,7 @@ scope rules as name kits, with wide era floors so every date lands somewhere.
   the form given in `gloss`. No deity name is invented and presented as
   recovered. `unscopedBeliefs` supplies an unnamed practice at `fictional`
   status. Pre-1788 Australia stays descriptive by rule.
-- **A person's belief** is derived, not stored: `beliefOf` picks a patron, an
-  observance level and a practice.
+- **A person's belief.** Character generation records the belief profile on the person’s origin. A community can have a shared profile or weighted alternatives. Children can inherit a parent’s profile. The Beliefs tab, outlook, work and death scene read that identity through travel. Observance and personal devotion are drawn separately.
 - **Links and glyphs.** `wikiFor` links each system and power to Wikipedia.
   Glyphs are 11px text drawings in `src/render/glyphs/`, picked per power by
   `icons.ts`.
@@ -193,7 +193,7 @@ scope rules as name kits, with wide era floors so every date lands somewhere.
   of detail.
 
 **Checks:**
-- `npx tsx scripts/check-beliefs.ts [region]`: coverage against every place
+- `npx tsx scripts/check-beliefs.ts [region]`: regional coverage over eleven dates, sanctuary matches, and unserved affiliations in generated settlements
 - `npx tsx scripts/check-beliefs-wiki.ts --fix`: dead links
 - `tests/beliefs.test.ts`, `tests/belief-hierarchy.test.ts`
 

@@ -1,13 +1,13 @@
 export type Trade = "household" | "weaver" | "merchant" | "potter" | "scholar" | "hunter" | "host" | "shopkeep";
-export type Shape = "rect" | "L" | "round" | "oval" | "apse" | "courtyard";
+export type Shape = "rect" | "L" | "round" | "oval" | "apse" | "courtyard" | "terrace";
 export type WallPattern =
   | "plaster" | "brick" | "timber" | "panel" | "stripe" | "zellige" | "mud" | "stone"
-  | "bark" | "hide" | "felt" | "canvas" | "shoji" | "reed" | "deco" | "wallpaper" | "fresco" | "whakairo" | "spathe" | "band" | "ashlar" | "frieze";
+  | "bark" | "hide" | "felt" | "canvas" | "shoji" | "reed" | "deco" | "wallpaper" | "fresco" | "whakairo" | "spathe" | "band" | "ashlar" | "frieze" | "pointed" | "round-arched" | "horseshoe" | "tile-arch" | "bracketed" | "painted-brackets";
 export type FloorPattern =
   | "plank" | "tile" | "parquet" | "earth" | "mat" | "rushes" | "sand" | "flag" | "carpet" | "paper" | "terrazzo" | "linoleum" | "broadloom";
 /** "lift": an upper floor of a tower, reached by its lift; no door and no ladder. */
 export type Door = "door" | "flap" | "curtain" | "opening" | "none" | "lift";
-export type WindowStyle = "shutter" | "lattice" | "shoji" | "stained" | "none";
+export type WindowStyle = "shutter" | "glazed" | "lattice" | "shoji" | "stained" | "none";
 export type Fire = "hearth" | "firepit" | "irori" | "brazier" | "stove" | "none";
 /** 0 humble, 1 common, 2 elite: how finished the surfaces are. */
 export type Finish = 0 | 1 | 2;
@@ -57,7 +57,7 @@ export type RoomParams = {
   /** A public room's layout: `serve` sets a counter and seats about the
    * floor, `gather` rings the seats round the fire, `rows` faces them all to
    * an altar on the back wall. Absent in a dwelling. */
-  program?: "serve" | "gather" | "rows" | "shop" | "works" | "ward";
+  program?: "serve" | "gather" | "rows" | "shop" | "works" | "ward" | "passage";
   hour: number;
   wear: number;
   soot: number;
@@ -276,7 +276,7 @@ export function roomMask(p: Pick<RoomParams, "w" | "d" | "shape">) {
       }
       if (!inside) continue;
       const court = p.shape === "courtyard" && w >= 9 && d >= 8 && x >= 3 && x < w - 3 && y >= 3 && y < d - 2;
-      m[y * w + x] = court ? 2 : 1;
+      m[y * w + x] = court || p.shape === "terrace" ? 2 : 1;
     }
   return m;
 }
@@ -290,7 +290,7 @@ export function wallColor(p: RoomParams, P: Palette, u: number, v: number) {
   if (v < 5) return v === 4 ? Tr[5] : v === 3 ? Tr[4] : v === 0 ? Tr[1] : Tr[2];
   let c = wallPattern(p.wallPattern, p, P, u, v);
   if (p.finish >= 1 && p.dado && v < 17) c = v >= 15 ? Tr[v === 16 ? 5 : 3] : wallPattern(p.dado, p, P, u, v);
-  if (p.finish === 2 && v >= 40 && !["whakairo", "spathe", "ashlar", "frieze"].includes(p.wallPattern)) {
+  if (p.finish === 2 && v >= 40 && !["pointed","round-arched","tile-arch","horseshoe","bracketed","painted-brackets","whakairo", "spathe", "ashlar", "frieze"].includes(p.wallPattern)) {
     const band = v - 40;
     if (band === 0 || band === 7) c = Tr[4];
     else if (band === 1) c = Tr[1];
@@ -313,6 +313,38 @@ function wallPattern(pat: WallPattern, p: RoomParams, P: Palette, u: number, v: 
   // A soft limewash-like drift of tone, never square blotches.
   const wash = mix(W[3], blot > 0.5 ? W[4] : W[2], Math.min(1, Math.abs(blot - 0.5) * 1.6) * 0.4);
   switch (pat) {
+    case "pointed": case "round-arched": case "horseshoe": case "tile-arch": {
+      const x = ((u % 40) + 40) % 40, a = Math.abs(x - 19.5), y = v - 21;
+      const pointed = pat === "pointed" || pat === "tile-arch";
+      const arch = y > 0 ? (pointed ? Math.hypot(a + 7, y) - 23 : Math.hypot(a, y) - 16) :
+        a - (pat === "horseshoe" ? 14 + Math.max(0, 2 + y / 3) : 16);
+      const tile = pat === "tile-arch", striped = pat === "horseshoe";
+      if (v >= 44) return v === 44 ? Tr[1] : v === 45 ? W[5] : W[3];
+      if (v > 5 && arch > -1 && arch < 4) {
+        const joint = y > 0 ? Math.floor(Math.atan2(y, a + (pointed ? 7 : 0))*10) : Math.floor(v/5);
+        if (arch < 0) return W[1];
+        if (arch < 1) return x < 20 ? W[3] : W[5];
+        if (arch > 3) return W[5];
+        if (tile) return joint % 3 === 0 ? 0xbba35e : joint % 3 === 1 ? 0x267883 : 0x284c67;
+        return striped && (joint & 1) ? 0xaf7057 : W[x < 20 ? 4 : 3];
+      }
+      if (arch < -1 && v < 40) return mix(wash, W[1], arch > -3 || y < 1 && x < 8 ? .33 : .12);
+      if (tile && y > 0 && arch >= 4) {
+        const l = Math.abs((x % 10)-5)+Math.abs((v % 10)-5);
+        return l === 5 ? 0x709b9e : l < 3 ? 0x306e7a : 0x37556a;
+      }
+      return wash;
+    }
+    case "bracketed": case "painted-brackets": {
+      const a = Math.abs((u+16)%32-16), painted = pat === "painted-brackets";
+      if (v > 44) return v === 45 ? P.wood[1] : P.wood[3];
+      if (v >= 39) return v === 39 ? Tr[1] : v === 40 ? (painted ? 0xc49b5d : P.wood[4]) :
+        painted ? (a < 3 ? 0xb76d46 : 0x3d796b) : P.wood[3];
+      const tier = v > 34 ? 11 : v > 30 ? 8 : v > 26 ? 5 : 2;
+      if (a <= tier) return v === 35 || v === 31 || v === 27 ? (painted ? 0xb89a62 : P.wood[4]) :
+        painted && v > 26 ? (a < tier-2 ? 0x47796a : 0x31544d) : P.wood[a < tier-1 ? 3 : 1];
+      return wash;
+    }
     case "brick": {
       const row = v >> 2, bu = (u + (row & 1 ? 4 : 0)) & 7, bv = (v - 3) & 3;
       if (bv === 3 || bu === 0) return mix(Tr[4], W[3], 0.3);
@@ -334,6 +366,14 @@ function wallPattern(pat: WallPattern, p: RoomParams, P: Palette, u: number, v: 
       return u % 8 === 0 ? Tr[3] : ((u >> 3) & 1) === 1 ? A[3 + (n < 0.2 ? 1 : 0)] : W[4];
     }
     case "zellige": {
+      if (p.wallPattern === "horseshoe") {
+        const x = Math.abs((u & 15) - 8), y = Math.abs((v & 15) - 8);
+        const star = Math.min(Math.max(x,y), (x+y)*.7);
+        if (star < 2.3) return 0xc29d57;
+        if (star < 4) return 0x2d6374;
+        if (star < 5) return 0xe3d5b4;
+        return x+y > 12 ? 0x305447 : x+y > 10 ? 0x739580 : 0x454e66;
+      }
       const cu = u & 7, cv = v & 7;
       if (cu === 0 || cv === 0) return P.linen[4];
       const k = hash(u >> 3, v >> 3, p.seed + 2), dm = Math.abs(cu - 4) + Math.abs(cv - 4);
@@ -541,6 +581,14 @@ const shade = (c: number, k: number) => (k > 0 ? mix(c, 0xffffff, k) : scale(c, 
 export function carpetColor(u: number, v: number, w: number, h: number, seed: number, design?: string): number {
   const S = SCHEMES[seed % SCHEMES.length];
   const kind = design ?? S.designs[Math.floor(hash(seed, 7, 1) * S.designs.length)];
+  if (kind === "prayer") {
+    const dx = Math.abs(u - (w-1)/2), shoulder = 2 + Math.floor(dx*.75);
+    if (v === 0 || v === h-1) return S.border;
+    if (v === 1 || v === h-2) return u % 4 === 0 ? S.accent : S.guard;
+    if (v < shoulder || dx > w/2-2) return S.border;
+    if (v === shoulder) return mix(S.guard,S.field,.32);
+    return (v & 3) === 1 ? shade(S.field,.07) : S.field;
+  }
   if (v === 0 || v === h - 1) return u % 2 ? DYE.ivory : shade(DYE.ivory, -0.25);
   const e = Math.min(u, v - 1, w - 1 - u, h - 2 - v);
   const bw = Math.max(2, Math.min(7, Math.round(Math.min(w, h) * 0.12)));
@@ -563,13 +611,6 @@ export function carpetColor(u: number, v: number, w: number, h: number, seed: nu
   const field = band < 0.25 ? shade(S.field, 0.07) : band > 0.85 ? shade(S.field, -0.1) : S.field;
   const cx = (fw - 1) / 2, cy = (fh - 1) / 2, dx = Math.abs(fu - cx), dy = Math.abs(fv - cy);
   switch (kind) {
-    case "prayer": {
-      const r = fw / 2, archY = r + 1;
-      if (fv < archY && Math.hypot(fu - cx, fv - archY) > r - 0.5) return (fu + fv) % 3 ? S.border : S.accent;
-      if (fv < archY && Math.hypot(fu - cx, fv - archY) > r - 1.5) return S.guard;
-      if (dx < 1 && fv > archY - 2 && fv < archY + 3) return fv === archY + 2 ? S.accent : S.line;
-      return fv > fh - 3 ? S.medal : field;
-    }
     case "gul": {
       const cw = 14, ch = 10, gx = ((fu % cw) + cw) % cw - (cw - 1) / 2, gy = ((fv % ch) + ch) % ch - (ch - 1) / 2;
       const m = Math.max(Math.abs(gx) * 0.8 + Math.abs(gy) * 0.5, Math.abs(gx) * 0.55, Math.abs(gy) * 0.95);
@@ -619,7 +660,12 @@ export function carpetColor(u: number, v: number, w: number, h: number, seed: nu
 }
 
 /** Open-air floor is paved whatever the rooms around it are floored with. */
-export const courtParams = (p: RoomParams): RoomParams => ({ ...p, floorPattern: p.floorPattern === "tile" ? "tile" : "flag", wear: p.wear * 0.5 });
+export const courtParams = (p: RoomParams): RoomParams => p.shape === "terrace" ? p : ({ ...p, floorPattern: p.floorPattern === "tile" ? "tile" : "flag", wear: p.wear * 0.5 });
+
+/** Signed pixel distance from the outside edge of the processional path. */
+export function stupaPathEdge(p: RoomParams, u: number, v: number) {
+  return Math.hypot(u - p.w*8, (v - p.d*8)*1.15) - Math.min(p.w, p.d)*5;
+}
 
 export function floorColor(p: RoomParams, P: Palette, u: number, v: number) {
   // Floors stay quiet so the people on them read: every variation is within
@@ -724,6 +770,11 @@ export function floorColor(p: RoomParams, P: Palette, u: number, v: number) {
   }
   if (p.wear > 0) c = mix(c, F[1], vnoise(u, v, 40, p.seed + 11) * p.wear * 0.18);
   void n;
+  if (p.shape === "terrace" && ["stupa","dagoba","zedi"].includes(p.styles.altar ?? "")) {
+    const edge = stupaPathEdge(p,u,v);
+    if (Math.abs(edge)<2) return edge<0 ? F[1] : F[4];
+    if (edge<0 && edge>-19) c=mix(c,F[4],.24);
+  }
   return c;
 }
 
@@ -739,6 +790,7 @@ const RULES: Partial<Record<Kind, Rule>> = {
   potrack: { w: 2, d: 1, place: "wall" }, nestbox: { w: 2, d: 1, place: "wall" }, roost: { w: 2, d: 1, place: "wall" },
   stall: { w: 2, d: 1, place: "wall" }, manger: { w: 2, d: 1, place: "wall" },
   armchair: { w: 1, d: 1, place: "any" }, sofa: { w: 3, d: 1, place: "side" }, radio: { w: 1, d: 1, place: "wall" },
+  bench: { w: 2, d: 1, place: "wall" },
   range: { w: 2, d: 1, place: "wall" }, icebox: { w: 1, d: 1, place: "wall" }, counter: { w: 3, d: 1, place: "centre" },
   loom: { w: 3, d: 2, place: "wall" }, spinwheel: { w: 1, d: 1, place: "any" }, throw: { w: 1, d: 1, place: "any" },
   claybin: { w: 1, d: 1, place: "wall" }, desk: { w: 2, d: 1, place: "wall" }, table: { w: 2, d: 1, place: "centre" },
@@ -764,7 +816,7 @@ export function planRoom(p: RoomParams): Prop[] {
   });
   const used: boolean[] = top.map((t) => t < 0);
   // 0 free, 1 blocked, 2 kept clear for walking.
-  const occ = Array.from({ length: d }, (_, y) => Array.from({ length: w }, (_, x) => (inside(x, y) ? (mask[y * w + x] === 2 ? 2 : 0) : 1)));
+  const occ = Array.from({ length: d }, (_, y) => Array.from({ length: w }, (_, x) => (inside(x, y) ? (mask[y * w + x] === 2 && p.shape !== "terrace" ? 2 : 0) : 1)));
   const onWall = (pw: number, score: (x: number) => number) => {
     let best = -1, bs = -Infinity;
     for (let x = 0; x + pw <= w; x++) {
@@ -784,7 +836,7 @@ export function planRoom(p: RoomParams): Prop[] {
   if (p.entrance !== undefined) {
     doorX = p.entrance;
     for (const y of [d - 1, d - 2]) if (inside(doorX, y)) occ[y][doorX] = 2;
-  } else if (p.door !== "none" && p.door !== "lift") {
+  } else if (!p.ports && p.door !== "none" && p.door !== "lift") {
     doorX = onWall(1, (x) => edge(x) + (p.shape === "round" || p.shape === "oval" ? -Math.abs(x + 0.5 - w / 2) * 0.3 : 0));
     add("door", doorX, top[doorX], 1, 0, true, p.door === "opening");
     occ[top[doorX]][doorX] = 2;
@@ -833,6 +885,7 @@ export function planRoom(p: RoomParams): Prop[] {
   };
   const start = (() => {
     if (p.entrance !== undefined) return lowest(p.entrance) * w + p.entrance;
+    if (ports.length) return ports[0][1] * w + ports[0][0];
     if (doorX >= 0) return top[doorX] * w + doorX;
     for (let i = 0; i < w * d; i++) if (mask[i]) return i;
     return 0;
@@ -881,8 +934,11 @@ export function planRoom(p: RoomParams): Prop[] {
   };
   // An altar takes the head of the room before anything is hung or shelved there.
   let altar: Prop | undefined;
-  if ((p.program === "rows" || p.program === "gather" || p.program === "shop") && p.styles.altar) {
-    const aw = Math.min(/^(stage|screen)/.test(p.styles.altar) ? 9 : 3, w - 4);
+  if (p.shape === "terrace" && p.styles.altar) {
+    const centre = p.styles.altar === "ahu" ? 2 : d/2;
+    altar = place("altar", 5, 3, (x,y) => 12 - Math.abs(x + 2.5 - w/2) - Math.abs(y + 1.5 - centre));
+  } else if ((p.program === "rows" || p.program === "gather" || p.program === "shop") && p.styles.altar) {
+    const aw = Math.min(/^(stage|screen)/.test(p.styles.altar) ? 9 : p.styles.altar === "palki" ? 5 : 3, w - 4);
     altar = place("altar", aw, 1, (x, y) => (y === top[x] && top[x + aw - 1] === y ? 6 - Math.abs(x + aw / 2 - w / 2) : -9), false, true);
     if (altar) for (let i = altar.x; i < altar.x + aw; i++) used[i] = true;
   }
@@ -983,12 +1039,20 @@ export function planRoom(p: RoomParams): Prop[] {
     }
   }
 
+  if (p.shape === "courtyard" && p.styles.pole && p.program === "passage") {
+    for (const x of [2, w-3]) for (const y of [2,d-3])
+      place("pole", 1, 1, (cx,cy) => cx === x && cy === y ? 1 : -1, false, true);
+  }
   if (p.program === "ward") {
     const kind = p.sleep === "mat" ? "mat" : "bed";
     for (let y = 2; y < d - 2; y += 3)
       for (const x of [1, w - 3]) {
         const bed = place(kind, 2, 1, (cx, cy) => cx === x && cy === y ? 1 : -1, false, true);
-        if (bed) clear(bed.x, bed.y + 1);
+        if (bed) {
+          clear(bed.x, bed.y + 1);
+          if (p.styles.screen === "privacy" && bed.seed % 3 === 0)
+            place("screen", 2, 1, (cx,cy) => cx === x && cy === y-1 ? 1 : -1, false, true);
+        }
       }
   } else if (p.program === "works") {
     // Machines in rows across the floor, a gangway down the middle and at the
@@ -1033,7 +1097,7 @@ export function planRoom(p: RoomParams): Prop[] {
     // The altar at the head, the floor before it kept clear, an aisle from the door.
     const head = (altar?.y ?? 0) + 1;
     for (let y = head; y < head + 2; y++) for (let x = 1; x < w - 1; x++) clear(x, y);
-    const aisle = p.entrance ?? p.ports?.find(([, y]) => y > head)?.[0] ?? Math.floor(w / 2);
+    const aisle = altar ? altar.x + Math.floor(altar.w / 2) : p.entrance ?? Math.floor(w / 2);
     // A council sits round a long table before the dais; the public sits behind.
     let first = head + 2;
     if (has("table")) {
@@ -1066,7 +1130,7 @@ export function planRoom(p: RoomParams): Prop[] {
       }
   } else if (p.program === "gather") {
     // A bath gathers round its water or its hot stone; anywhere else round the fire.
-    const [pw, pd] = has("pool") ? [Math.max(2, Math.min(6, w - 6)), Math.max(2, Math.min(4, d - 5))] : has("lectern") ? [1, 1] : [Math.min(3, w - 6), Math.min(3, d - 5)];
+    const [pw, pd] = has("pool") ? [Math.max(2, Math.min(6, w - 6)), Math.max(2, Math.min(4, d - 5))] : has("lectern") ? [p.styles.lectern === "bimah" ? 3 : 1, 1] : [Math.min(3, w - 6), Math.min(3, d - 5)];
     const at = (x: number, y: number) => -Math.abs(x + pw / 2 - w / 2) - Math.abs(y + pd / 2 - d * 0.55);
     const centrepiece: Kind | undefined = has("pool") ? "pool" : has("slab") ? "slab" : has("lectern") ? "lectern" : undefined;
     const pool = centrepiece ? place(centrepiece, pw, pd, at) : undefined;
@@ -1081,7 +1145,15 @@ export function planRoom(p: RoomParams): Prop[] {
     const cells: [number, number][] = [];
     for (let y = 0; y < d; y++) for (let x = 0; x < w; x++) if (fits(x, y, 1, 1) && ring(x, y) > 0) cells.push([x, y]);
     cells.sort((a, b) => Math.atan2(a[1] + 0.5 - fy, a[0] + 0.5 - fx) - Math.atan2(b[1] + 0.5 - fy, b[0] + 0.5 - fx));
-    for (const [cx, cy] of cells) place(p.seating === "chair" ? "ledge" : "cushions", 1, 1, (x, y) => (x === cx && y === cy ? 1 : -1), false, true);
+    for (const [cx, cy] of cells) {
+      if (p.styles.ledge === "bench" && (cx === 0 || cx === w-1 || cy === 0 || cy === d-1)) {
+        const side = (cx === 0 || cx === w-1) && cy > 0 && cy < d-1;
+        const len = [3,2,1].find(n => fits(cx,cy,side ? 1 : n,side ? n : 1));
+        if (len) place("ledge",side ? 1 : len,side ? len : 1,(x,y) => x === cx && y === cy ? 1 : -1,false,true);
+        continue;
+      }
+      place(p.seating === "chair" ? "ledge" : "cushions", 1, 1, (x, y) => (x === cx && y === cy ? 1 : -1), false, true);
+    }
   } else if (p.kit) {
     for (const k of p.kit) {
       const rule = RULES[k] ?? { w: 1, d: 1, place: "any" };
@@ -1191,7 +1263,7 @@ export function planRoom(p: RoomParams): Prop[] {
     place("firewood", 1, 1, (x, y) => (y === h.y && (x === h.x - 1 || x === h.x + 2) ? 5 : y === h.y + 1 ? -Math.abs(x - h.x) : -9));
   }
   if (doorX >= 0 && p.door === "door" && !p.program) place("broom", 1, 1, (x, y) => (y === top[doorX] && Math.abs(x - doorX) === 1 ? 5 : -9));
-  if (p.shape === "courtyard") {
+  if (p.shape === "courtyard" && p.styles.fountain !== "none") {
     const court = { x: Math.floor(w / 2) - 1, y: Math.floor((3 + d - 2) / 2) - 1, w: 2, d: 2 };
     for (let j = 0; j < 2; j++) for (let i = 0; i < 2; i++) if (inside(court.x + i, court.y + j)) occ[court.y + j][court.x + i] = 0;
     add("fountain", court.x, court.y, 2, 2);

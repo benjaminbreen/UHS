@@ -230,6 +230,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
 
   {
     id: "islamic-trade-era",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Islamic trade and adaptation",
@@ -313,6 +314,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "yoruba-orisha",
+    worship: ["Yoruba, Edo and Fon"],
     realm: "yoruba",
     label: "Yoruba orisha practice",
     wiki: "https://en.wikipedia.org/wiki/Yoruba_religion",
@@ -487,6 +489,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "akan-suman",
+    worship: ["Akan"],
     realm: "akan",
     label: "Akan suman and abosom practice",
     wiki: "https://en.wikipedia.org/wiki/Akan_religion",
@@ -713,6 +716,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
 
   {
     id: "hausa-islamic",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Hausa Islam with older layered practice",
@@ -791,6 +795,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "fon-vodun",
+    worship: ["Yoruba, Edo and Fon"],
     realm: "african",
     label: "Fon and Dahomey vodun",
     wiki: "https://en.wikipedia.org/wiki/West_African_Vodun",

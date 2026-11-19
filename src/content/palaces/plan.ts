@@ -1,3 +1,4 @@
+import { setOutRows, type RoomRow } from "../../world/room-rows";
 import { rngOf } from "../../core/random";
 import type { Fair, FairArea, FairFind, FairPost } from "../fairs/types";
 import type { Box } from "../sewers/types";
@@ -11,26 +12,12 @@ import { aegeanPalace, BLACK_GROUND, BLUSH, chinesePalace, CINNABAR, CRIMSON, EG
 
 /** A room or court in a row of the plan: cells wide, and deep when shallower than its row; what a `FairArea` needs besides its rectangle. */
 type Room = Omit<FairArea, "at" | "kind" | "basis"> & { kind: "room" | "yard" | "garden"; wide: number; deep?: number; hold?: "s"; basis?: FairArea["basis"] };
-/** A room, rooms one behind another in the same width, or nothing for that width. */
-type Slot = Room | { stack: Room[]; wide: number } | { gap: number };
+type Slot = RoomRow<Room>["slots"][number];
 
-/** Rows of rooms into rectangles: the first row at the gate, each next row behind it, every row centred on the way in.
- * Rooms that touch get a door unless one of them says which rooms it `opens` to. A room shallower than its row
- * stands against the back of it, or the front if it holds south. */
-export function setOut(rows: { deep: number; slots: Slot[] }[]): FairArea[] {
-  const out: FairArea[] = [], width = (s: Slot) => ("gap" in s ? s.gap : s.wide);
-  const place = ({ wide, deep, hold, kind, ...rest }: Room, x: number, y: number) =>
-    out.push({ basis: "inferred", floor: "parquet", ...rest, kind: kind === "room" ? "gallery" : "court", rustic: kind === "yard" || undefined, at: [x, y, wide, deep!] });
-  let y = rows.reduce((n, r) => n + r.deep, 0);
-  for (const row of rows) {
-    y -= row.deep;
-    let x = 60 - Math.round(row.slots.reduce((n, s) => n + width(s), 0) / 2);
-    for (const s of row.slots) {
-      if ("stack" in s) { let sy = y; for (const r of s.stack) { place({ ...r, wide: s.wide, deep: r.deep ?? row.deep }, x, sy); sy += r.deep ?? row.deep; } }
-      else if (!("gap" in s)) { const deep = s.deep ?? row.deep; place({ ...s, deep }, x, s.hold === "s" ? y + row.deep - deep : y); }
-      x += width(s);
-    }
-  }
+export function setOut(rows: RoomRow<Room>[]): FairArea[] {
+  const out: FairArea[] = [];
+  setOutRows(rows, 60, ({ wide, deep, hold, kind, ...rest }, x, y, w, d) =>
+    out.push({ basis: "inferred", floor: "parquet", ...rest, kind: kind === "room" ? "gallery" : "court", rustic: kind === "yard" || undefined, at: [x, y, w, d] }));
   return out;
 }
 

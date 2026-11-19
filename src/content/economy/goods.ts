@@ -2,6 +2,7 @@ import type { Livelihood } from "../characters/context-types";
 
 /** `match` retains the old production inference for pinned generation inputs. */
 export type Good = { id: string; noun: string; need?: boolean; match: RegExp };
+export const loavesPerSack = 8;
 export const goods: Good[] = [
   { id: "bread", noun: "bread", need: true, match: /bak|bread|mill|oven/ },
   {

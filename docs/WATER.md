@@ -43,6 +43,7 @@ change of season or tide step restyles the terrain stream.
 
 ## Rendering
 
+- Mapped lakes and sea inlets carry their signed shoreline distance onto the dry bank. The sand, shallows and waterline follow the same polygon between cell centres.
 - **Quays.** Cells beside a city's bulkhead or pier carry
   `waterVisual.quay` (`"sett"` or `"plank"`). `quayPixel` in
   `material-edges.ts` draws individual coping stones, the wet foot of the masonry,

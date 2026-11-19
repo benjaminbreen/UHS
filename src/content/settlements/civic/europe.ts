@@ -4,9 +4,16 @@ import type { WorldSetting } from "../../geography/types";
 export function europeanGround(s: WorldSetting, place: string, roll: number): RoyalGround | undefined {
   if (s.culture !== "european") return;
   if (s.year >= 1701 && s.year <= 1789 && /^versailles$/i.test(place) && Math.abs(s.lon - 2.12) < .12 && Math.abs(s.lat - 48.8) < .1)
-    return { id: "versailles", name: "Palace grounds", position: "garden" };
+    return { id: "versailles", name: "Palace of Versailles", position: "garden", palace: "royal",
+      rooms: { residence: "guard-room", "north-wing": "state", "south-wing": "queens" } };
   const britain = s.lon >= -5.8 && s.lon <= 2 && s.lat >= 50 && s.lat < 55.8;
   const northernFrance = s.lon >= -1.9 && s.lon <= 4.7 && s.lat >= 47.4 && s.lat <= 50.3;
+  if (northernFrance && s.year >= 1673 && s.year <= 1789) {
+    if (/^sceaux$/i.test(place) && Math.abs(s.lon - 2.296) < .09 && Math.abs(s.lat - 48.774) < .09)
+      return { id: "sceaux", name: "Château de Sceaux", position: "garden", palace: "country" };
+    if (roll < .09 && !/^(paris|versailles)$/i.test(place))
+      return { id: "country-court", name: "Château grounds", position: "garden", palace: "country" };
+  }
   if ((!britain && !northernFrance) || s.year < 1100 || s.year >= 1500) return;
   const early = s.year < 1200;
   const castle: RoyalGround["castle"] = early
@@ -20,7 +27,15 @@ export function europeanGround(s: WorldSetting, place: string, roll: number): Ro
   if (roll < (early ? .22 : .32)) return { id: "castle-ward", name: "Castle ward", position: "rise", castle };
 }
 
+export const beurs: CivicRule = {
+  id:"amsterdam-beurs", label:"Amsterdam Beurs", interior:"exchange", form:"colonnade", square:"Exchange square",
+  from:1611,to:1800,bounds:[4.77,52.29,5.02,52.45],culture:"european",
+  about:"Meet brokers and private lenders at the numbered pillars. Trade warehouse lots, buy company stock or find freight work.",
+  evidence:{status:"inferred",sources:["https://www.amsterdam.nl/stadsarchief/canon/venster/11/"],
+    note:"The Rokin exchange had a colonnaded courtyard with numbered meeting places. The arcade offices and game-scale lots are reconstructed."},
+};
 export const europeCivic: CivicRule[] = [
+  beurs,
   {
     id: "english-market-hall",
     from: 1400,

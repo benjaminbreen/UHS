@@ -77,6 +77,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "andean-regional-states",
+    worship: ["Andean"],
     realm: "andean",
     label: "Andean regional states and traditions",
     wiki: "https://en.wikipedia.org/wiki/Andean_civilizations",
@@ -156,6 +157,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "chavin-horizon",
+    worship: ["Andean"],
     realm: "andean",
     label: "Chavin horizon practice",
     wiki: "https://en.wikipedia.org/wiki/Chav%C3%ADn_culture",
@@ -227,6 +229,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "moche-coast",
+    worship: ["Andean"],
     realm: "andean",
     label: "Moche coastal practice",
     wiki: "https://en.wikipedia.org/wiki/Moche_culture",
@@ -299,6 +302,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "nazca-coast",
+    worship: ["Andean"],
     realm: "andean",
     label: "Nazca coastal practice",
     wiki: "https://en.wikipedia.org/wiki/Nazca_culture",
@@ -376,6 +380,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "tiwanaku-altiplano",
+    worship: ["Andean"],
     realm: "andean",
     label: "Tiwanaku altiplano practice",
     wiki: "https://en.wikipedia.org/wiki/Tiwanaku",
@@ -460,6 +465,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "inca-state",
+    worship: ["Andean"],
     realm: "andean",
     priority: 1,
     label: "Inca state religion",
@@ -543,6 +549,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "inca-village",
+    worship: ["Andean"],
     realm: "andean",
     label: "Inca village practice",
     wiki: "https://en.wikipedia.org/wiki/Inca_religion",
@@ -632,6 +639,7 @@ export const andes: readonly BeliefSystem[] = [
   },
   {
     id: "colonial-syncretism",
+    worship: ["Latin Christian", "Catholic"],
     realm: "latin",
     features: ["sacred-texts"],
     label: "Early colonial syncretic practice",

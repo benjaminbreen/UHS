@@ -20,10 +20,9 @@ import { livelihoodById } from "../src/content/characters/livelihoods";
 import { commandSchema, snapshotSchema } from "../src/runtime/schema";
 import { debt } from "../src/content/plots/debt";
 import { fire } from "../src/content/plots/fire";
-import { PLOTS } from "../src/content/plots";
 import { telling } from "../src/core/word";
 import { goodName, sellerOf } from "../src/content/economy/products";
-import type { PlotContext, PlotTemplate } from "../src/content/plots/types";
+import type { PlotContext } from "../src/content/plots/types";
 import { settingFor } from "../src/content/geography/resolve";
 import { accosterAt, accosters, cutpurseAt } from "../src/content/accosters";
 import { ruled } from "../src/content/history/order";
@@ -31,15 +30,6 @@ import { places } from "../src/content/geography/places";
 import type { Engine } from "../src/core/engine";
 import type { Actor, Household, PlayerCommand, Position, SocialRelation } from "../src/core/types";
 let serial = 0;
-/** Plots are drawn by weight; a test about one plot gives the draw only that one. */
-function drawOnly<T>(plot: PlotTemplate, draw: () => T) {
-  const all = PLOTS.splice(0, PLOTS.length, plot);
-  try {
-    return draw();
-  } finally {
-    PLOTS.splice(0, 1, ...all);
-  }
-}
 const act = (e: Engine, command: PlayerCommand) =>
   e.act({
     actionId: `test-${serial++}`,
@@ -566,7 +556,7 @@ describe("shared deterministic foundation", () => {
     snapshot.households = c.households;
     snapshot.actors = c.actors;
     delete snapshot.plot;
-    const plot = drawOnly(debt, () => startPlot(snapshot, setting))!;
+    const plot = startPlot(snapshot, setting, debt.id)!;
     expect(plot.cast.creditor).toBe(brewer.id);
     plot.owed = 0;
     expect(endPlot(snapshot)?.id).toBe("paid");
@@ -984,6 +974,32 @@ describe("shared deterministic foundation", () => {
     expect(e.shopOf(a.id, true)!.held[id]).toBe(shop.held[id]! - 1);
     expect(e.shopOf(a.id, true)!.purse).toBe(shop.purse + price);
     expect(e.sellPrice(id)).toBeLessThanOrEqual(price);
+  });
+  it("pays less for a fish once the dock counter has a full tray of that kind", () => {
+    const e=createSession(), seller=e.state.actors[0], pos={...e.state.player.pos,x:e.state.player.pos.x+1};
+    const inv={"fish-bluefin-tuna":0,"fish-carp":2,coin:50};
+    e.state.objects.push({id:"fish-counter",name:"Fish counter",kind:"monument",prop:"fishCounter",sprite:"harbor-fish-counter-1",pos,inventory:inv});
+    e.state.clock=9*3600; seller.stockroom="fish-counter"; seller.pos=pos; seller.activity="Selling fish";
+    const scarce=e.sellPrice("fish-bluefin-tuna",seller.id), carp=e.sellPrice("fish-carp",seller.id);
+    inv["fish-bluefin-tuna"]=7;
+    expect(e.sellPrice("fish-bluefin-tuna",seller.id)).toBeLessThan(scarce);
+    expect(e.sellPrice("fish-carp",seller.id)).toBe(carp);
+  });
+  it("measures landed bales into finite shop stock and keeps the same till overnight", () => {
+    const e=createSession(), a=e.state.actors[0], p=e.state.player;
+    const pos={...p.pos,x:p.pos.x+1};
+    const counter: import("../src/core/types").WorldObject={id:"cloth-counter",name:"Cloth counter",kind:"monument",prop:"clothCounter",sprite:"harbor-cloth-counter-0",pos,inventory:{cloth:1,coin:9}};
+    e.state.clock=9*3600; a.stockroom=counter.id; a.pos={...pos}; a.work={...pos}; a.activity="Measuring cloth";
+    e.state.objects.push(counter); p.inventory.coin=50;
+    expect(e.shopOf(a.id)?.stock).toEqual({});
+    expect(act(e,{type:"interact",target:counter.id,action:"unload"}).status).toBe("completed");
+    const price=e.buyPrice("cloth-bolt",a.id);
+    expect(act(e,{type:"deal",target:a.id,give:{coin:price},take:{"cloth-bolt":1}}).status).toBe("completed");
+    expect(counter.inventory).toEqual({cloth:0,coin:9+price,"cloth-bolt":2});
+    e.state.clock=20*3600;
+    expect(e.shopOf(a.id,true)).toBeUndefined();
+    e.state.clock+=13*3600;
+    expect(e.shopOf(a.id)?.stock).toEqual({"cloth-bolt":2});
   });
   it("limits what the player can carry, and a hired beast carries more", () => {
     const e = createSession();

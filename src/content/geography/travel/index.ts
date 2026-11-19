@@ -1,4 +1,4 @@
-import { places } from "../places";
+import { placeById, places } from "../places";
 import { urbanized } from "../../settlements/urban-form";
 import type { TravelLocation } from "../../../world/travel/types";
 import { britainTravel } from "./britain";
@@ -33,7 +33,6 @@ export const travelLocations: TravelLocation[] = [
       note: "Geographic catalog anchor; historical settlement existence and scale are unresearched here. The catalog’s sample year is not a founding date.",
     })),
 ];
-const placeById = new Map(places.map((p) => [p.id, p]));
 const ranks = ["none", "village", "town", "city"] as const;
 export function settlementAt(p: TravelLocation, year: number) {
   if (p.kind === "landscape") return "none" as const;

@@ -1,6 +1,6 @@
 import type { WorldSetting } from "../geography/types";
 import type { SeasonId } from "../../core/season";
-import type { ItemDef, ItemId } from "../../core/types";
+import type { Inventory, ItemDef, ItemId, WorldObject } from "../../core/types";
 import fishData from "./fish.json" with { type: "json" };
 import { capabilitiesFor } from "../characters/resolve";
 import { random } from "../../core/random";
@@ -206,10 +206,10 @@ export function crewRole(p: FishingPractice, fate: CatchFate, slot: number, age:
  * 0 comes in like a weed, 1 runs the line. Kinds live in fish.json, which the
  * voxel icon baker reads too. */
 export type FishKind = {
-  name: string; kg: [number, number]; fight: number; rare?: boolean;
+  name: string; kg: [number, number]; fight: number; rarity?: "rare" | "legendary";
   back: number; belly: number; fin: number;
   shape: "slim" | "deep" | "long" | "flat" | "crab" | "claw" | "squid" | "frog";
-  mark?: "bars" | "spots" | "stripe";
+  mark?: "bars" | "spots" | "stripe" | "pearls";
   /** How it fights on a line: darts about, bores for the bottom, leaps, or just pulls. */
   style: "dart" | "sink" | "leap" | "steady";
   /** Taken in traps, pots and weirs rather than on a line. */
@@ -247,7 +247,7 @@ export function biting(f: FishKind, hour: number, season: SeasonId, rain: number
 }
 
 /** What comes out of the water here, by water, climate and broad region. */
-export function fishOf(s: Pick<WorldSetting, "climate" | "culture"> & { lon?: number }, water: FishingWater): FishKind[] {
+export function fishOf(s: Pick<WorldSetting, "climate" | "culture"> & Partial<Pick<WorldSetting,"lon"|"lat"|"year">>, water: FishingWater): FishKind[] {
   const c = s.climate, u = s.culture, hot = c === "tropical" || c === "monsoon";
   const americas = u === "mesoamerican" || u === "andean" || u === "other-indigenous-american";
   // West Africa and the Caribbean share the tropical Atlantic's fish, not the Indo-Pacific's.
@@ -255,6 +255,8 @@ export function fishOf(s: Pick<WorldSetting, "climate" | "culture"> & { lon?: nu
   if (water === "sea")
     return hot ? atlantic ? waters.seaAtlanticTropical : waters.seaTropical : u === "east-asian" ? waters.seaEastAsia
       : c === "mediterranean" || c === "arid" ? waters.seaWarm : waters.seaCold;
+  if(water==="lake" && s.lon!==undefined && s.lat!==undefined && s.lon>=31.5 && s.lon<=34.9 && s.lat>=-3 && s.lat<=.6)
+    return waters.riverAfrica.filter(f=>["Tilapia","African catfish","Elephantfish","Freshwater crab"].includes(f.name) || f.name==="Nile perch" && (s.year ?? 0)>=1960);
   if (c === "boreal" || c === "tundra") return waters.riverCold;
   if (u === "east-asian") return waters.riverEastAsia;
   if (americas) return hot ? waters.riverAmazon : u === "andean" ? waters.lakeAndes : u === "mesoamerican" ? waters.lakeMexico : waters.riverNorthAmerica;
@@ -267,18 +269,40 @@ export function fishOf(s: Pick<WorldSetting, "climate" | "culture"> & { lon?: nu
 }
 
 export const fishItemId = (f: Pick<FishKind, "name">) => `fish-${f.name.toLowerCase().normalize("NFD").replace(/[^a-z]+/g, "-").replace(/^-|-$/g, "")}`;
+export const trophyFish = new Map(Object.values(waters).flat().filter(f => f.rarity === "legendary").map(f => [fishItemId(f), f]));
 const fishWeight = ([lo, hi]: [number, number]) =>
   hi < 1 ? `${Math.round(lo * 1000)}-${Math.round(hi * 1000)} g` : `${lo < 1 ? lo.toFixed(1) : Math.round(lo)}-${Math.round(hi)} kg`;
 /** Fresh fish, one item to each kind, worth what a typical one weighs. */
 export const fishItems: Record<ItemId, ItemDef> = Object.fromEntries(
-  Object.values(waters).flat().map((f) => {
+  Object.values(waters).flat().flatMap((f) => {
     const kg = Math.sqrt(f.kg[0] * f.kg[1]), id = fishItemId(f);
-    return [id, {
+    const item: ItemDef = {
       id, name: f.name, sprite: "fish",
-      value: Math.max(1, Math.min(40, Math.round((1 + kg * 1.2) * (f.rare ? 2 : 1)))),
+      value: Math.max(1, Math.min(40, Math.round((1 + kg * 1.2) * (f.rarity ? 2 : 1)))),
       edible: Math.min(60, Math.round(8 + kg * 6)),
-      description: `${f.note} ${fishWeight(f.kg)}${f.rare ? ", and seldom landed" : ""}.`,
-    }];
+      description: `${f.note} ${fishWeight(f.kg)}${f.rarity === "legendary" ? ". A legendary catch" : f.rarity ? ", and seldom landed" : ""}.`,
+    };
+    const dried = `dried-${id}`;
+    return [[id, item], [dried, { ...item, id: dried, name: `Salt-dried ${f.name.toLowerCase()}`, value: item.value + 2, description: `Split, salted and dried under cover at the landing.` }]];
   }),
 );
 
+
+export function cureFish(rack: WorldObject, bag: Inventory, id: string, keeper: string, clock: number) {
+  const batch = rack.curing, count = Math.min(3, bag[id] ?? 0);
+  if (!batch || batch.fish || count < 1 || !id.startsWith("fish-") || !fishItems[id]) return 0;
+  const salt = rack.inventory.salt ? rack.inventory : bag;
+  if (!salt.salt) return 0;
+  salt.salt--; bag[id]! -= count;
+  Object.assign(batch, { fish: id, count, keeper, ready: clock + 6 * 3600 });
+  return count;
+}
+
+export function collectDried(rack: WorldObject, bag: Inventory, keeper: string, clock: number) {
+  const batch = rack.curing;
+  if (!batch?.fish || batch.keeper !== keeper || clock < batch.ready!) return;
+  const id = `dried-${batch.fish}`;
+  bag[id] = (bag[id] ?? 0) + batch.count!;
+  delete batch.fish; delete batch.count; delete batch.ready; delete batch.keeper;
+  return id;
+}

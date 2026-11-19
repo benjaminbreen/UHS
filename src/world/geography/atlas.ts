@@ -169,9 +169,13 @@ export function nearestRiver(x: number, y: number) {
   }
   return best;
 }
-export function nearestRiverPoint(
+export function nearestRiverPoint(x:number,y:number,name?:string) {
+  return nearestBankPoint(x,y,"river",name);
+}
+export function nearestBankPoint(
   x: number,
   y: number,
+  shore: "river" | "coast",
   name?: string,
 ): number[] | undefined {
   const { lon, lat } = fromAtlas(x, y);
@@ -183,7 +187,7 @@ export function nearestRiverPoint(
         .flatMap((r) =>
           r.points.slice(1).map((b, i) => ({ a: r.points[i], b })),
         )
-    : [...near(riverEdges, lon, lat)];
+    : near(shore === "coast" ? landEdges : riverEdges, lon, lat);
   for (const { a, b } of edges) {
     const dx = b[0] - a[0],
       dy = b[1] - a[1],

@@ -1576,6 +1576,87 @@
    "windowStyle": "sash",
    "stories": 2,
    "chimneys": 2
+  },
+  "palace-residence": {
+   "label": "Palace apartments",
+   "family": "palace",
+   "form": "palace-residence",
+   "description": "The state rooms and private apartments stand between the entrance court and the garden.",
+   "footprint": [
+    9,
+    13
+   ],
+   "entrance": [
+    4,
+    13
+   ],
+   "wall": "theatre-stone",
+   "roofMaterial": "grey-tile",
+   "wallHeight": 65,
+   "roofRise": 44,
+   "scales": {
+    "small": {
+     "footprint": [
+      7,
+      7
+     ]
+    },
+    "medium": {}
+   }
+  },
+  "palace-wing": {
+   "label": "Palace gallery",
+   "family": "palace",
+   "form": "palace-wing",
+   "description": "A long range of gallery windows overlooks the court. The household moves between apartments through this wing.",
+   "footprint": [
+    13,
+    3
+   ],
+   "entrance": [
+    6,
+    3
+   ],
+   "wall": "theatre-stone",
+   "roofMaterial": "grey-tile",
+   "wallHeight": 65,
+   "roofRise": 44,
+   "scales": {
+    "small": {
+     "footprint": [
+      9,
+      3
+     ]
+    },
+    "medium": {}
+   }
+  },
+  "palace-pavilion": {
+   "label": "Court pavilion",
+   "family": "palace",
+   "form": "palace-pavilion",
+   "description": "A detached pavilion houses the offices and attendants who receive callers at the court.",
+   "footprint": [
+    5,
+    4
+   ],
+   "entrance": [
+    2,
+    4
+   ],
+   "wall": "theatre-stone",
+   "roofMaterial": "grey-tile",
+   "wallHeight": 65,
+   "roofRise": 44,
+   "scales": {
+    "small": {
+     "footprint": [
+      5,
+      3
+     ]
+    },
+    "medium": {}
+   }
   }
  }
 }

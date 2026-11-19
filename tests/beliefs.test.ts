@@ -32,12 +32,17 @@ it("keeps every system well formed", () => {
       expect(Math.abs(w), system.id).toBeLessThanOrEqual(180);
       expect(Math.abs(n), system.id).toBeLessThanOrEqual(90);
     }
-    expect(system.powers.length, system.id).toBeGreaterThan(2);
+    if (system.worship?.length === 0 && system.offices?.length === 0) {
+      expect(system.powers).toEqual([]);
+      expect(system.practice).toEqual([]);
+    } else {
+      expect(system.powers.length, system.id).toBeGreaterThan(2);
+      expect(system.practice.length, system.id).toBeGreaterThan(0);
+    }
     expect(
       system.powers.filter((power) => power.rank === "paramount").length,
       system.id,
     ).toBeLessThanOrEqual(3);
-    expect(system.practice.length, system.id).toBeGreaterThan(0);
     expect(system.evidence.claim.length, system.id).toBeGreaterThan(20);
     expect(system.evidence.limitation.length, system.id).toBeGreaterThan(20);
     // A named source is required for anything claiming to be documented.

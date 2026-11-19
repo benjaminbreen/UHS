@@ -17,6 +17,41 @@ import type { CallIn } from "../core/types";
 import { Choices, Frame, plotColours, type StoryLook } from "./PlotCard";
 import { plotTemplate } from "../core/plot";
 import { regardCue, regardLabel, regardNotches, REGARD_NOTCHES } from "../core/regard";
+import { hash } from "../core/random";
+import type { Engine } from "../core/engine";
+
+export function ReadingToast({runtime, heard, look}: {runtime: Runtime; heard: ReturnType<Engine["overheardReading"]>; look: StoryLook}) {
+  const [cursor, setCursor] = useState<{key: string; index: number}>();
+  const state = runtime.engine.state;
+  const key = heard && JSON.stringify([state.manifest.seed, runtime.engine.world.pack.setting?.year, state.player.pos.space, Math.floor(state.clock / 3600), heard.passage.title]);
+  const lines = heard?.passage.lines;
+  const index = key && lines ? (cursor?.key === key ? cursor.index : hash(key) % lines.length) : 0;
+  const line = lines?.[index];
+  useEffect(() => {
+    if (!key || !line || !lines) return;
+    let timer: number;
+    const schedule = () => {
+      window.clearTimeout(timer);
+      if (!document.hidden) timer = window.setTimeout(() => setCursor({key, index:(index + 1) % lines.length}),
+        Math.min(20000, 10000 + line[1].length * 55));
+    };
+    schedule();
+    document.addEventListener("visibilitychange", schedule);
+    return () => { window.clearTimeout(timer); document.removeEventListener("visibilitychange", schedule); };
+  }, [key, lines, line, index]);
+  if (!heard || !line) return null;
+  const {reader, passage} = heard;
+  const speech = <div className="reading-line">
+    <div className="plot-portrait"><CharacterSprite appearance={runtime.appearanceFor(reader)} age={reader.age ?? 30} portrait speaking motion="npc" facing={npcFacing(reader.id)} /></div>
+    <div role="status" aria-live="polite" aria-atomic="true">
+      <strong>{reader.name}</strong> <small>{passage.title} {line[0]} · translated</small>
+      <p>{line[1]}</p>
+    </div>
+  </div>;
+  return <div className="plot-floor reading-toast" data-look={look} style={plotColours(runtime)}>
+    <div className="plot-speech">{look === "framed" ? <Frame>{speech}</Frame> : <div className="plot-frame">{speech}</div>}</div>
+  </div>;
+}
 
 function Action({ text }: { text: string }) {
   return <em className="dialogue-action">{/[.!?]$/.test(text) ? text : `${text}.`}</em>;

@@ -184,7 +184,7 @@ export class FishingSim {
     return { x0: 40, x1: W - 40, y0: Math.max(this.farY + 14, near - RANGE[this.gear] * 0.8), y1: near - 22 };
   }
   private spawnShoal(initial = false) {
-    const s = this.setup, r = this.rand;
+    const r = this.rand;
     const spear = this.gear === "spear";
     const { x0, x1, y0: yLo, y1: yHi } = this.band();
     const id = this.nextShoal++;
@@ -194,11 +194,13 @@ export class FishingSim {
     this.shoals.push(shoal);
     // A shoal is one kind of fish; a rare big one keeps to itself in deep water.
     const about = this.about(false);
-    const common = about.filter((k) => !k.rare).length ? about.filter((k) => !k.rare) : s.kinds.filter((k) => !k.rare && !k.trap);
-    const rare = about.filter((k) => k.rare);
+    const common = about.filter((k) => !k.rarity);
+    const rare = about.filter((k) => k.rarity === "rare"), legendary = about.filter((k) => k.rarity === "legendary");
     const deep = this.depthAt(y) > 0.55;
-    const lone = rare.length && deep && !spear && r() < 0.22;
-    const kind = lone ? rare[Math.floor(r() * rare.length)] : common[Math.floor(r() * common.length)] ?? s.kinds[0];
+    const roll = deep && !spear ? r() : 1;
+    const pool = legendary.length && roll < 0.01 ? legendary : rare.length && roll < 0.22 ? rare : common;
+    if (!pool.length) { this.shoals.pop(); return; }
+    const kind = pool[Math.floor(r() * pool.length)], lone = !!kind.rarity;
     const big = kind.kg[0] >= 3;
     const n = lone ? 1 : big ? 2 + Math.floor(r() * 3) : 4 + Math.floor(r() * 6);
     for (let i = 0; i < n; i++) {
@@ -763,12 +765,12 @@ export class FishingSim {
   }
   /** A trap's haul: mostly what lives in traps, else a small fish, now and then something else. */
   private trapped(g: SetGear) {
-    const r = this.rand(), traps = this.about(true), small = this.about(false).filter((k) => k.kg[0] < 1 && !k.rare);
+    const r = this.rand(), traps = this.about(true), small = this.about(false).filter((k) => k.kg[0] < 1 && !k.rarity);
     if (this.setup.finds.length && r < 0.08) {
       const f = this.setup.finds[this.pickFind()];
       return this.hold(g, SNAG, f.kg, f.id);
     }
-    const pool = traps.length && (r < 0.75 || !small.length) ? traps : small.length ? small : this.setup.kinds.filter((k) => !k.rare);
+    const pool = traps.length && (r < 0.75 || !small.length) ? traps : small.length ? small : this.setup.kinds.filter((k) => !k.rarity);
     const kind = pool[Math.floor(this.rand() * pool.length)];
     if (kind) this.hold(g, kind, +lerp(kind.kg[0], kind.kg[1], Math.pow(this.rand(), 2)).toFixed(2));
   }
@@ -812,7 +814,7 @@ export class FishingSim {
       }
       this.fish = this.fish.filter((f) => !f.gone);
       if (this.rand() < mins * (g.kind === "weir" ? 0.05 * this.setup.run : 0.02) * feeding) {
-        const pool = g.kind === "weir" && this.about(true).length && this.rand() < 0.4 ? this.about(true) : this.about(false).filter((k) => !k.rare);
+        const pool = g.kind === "weir" && this.about(true).length && this.rand() < 0.4 ? this.about(true) : this.about(false).filter((k) => !k.rarity);
         const kind = pool[Math.floor(this.rand() * pool.length)];
         if (kind) this.hold(g, kind, +lerp(kind.kg[0], kind.kg[1], Math.pow(this.rand(), 2)).toFixed(2));
       }

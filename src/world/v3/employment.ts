@@ -5,6 +5,9 @@ import {
 } from "../../content/characters/workplace";
 import { townWorkContext } from "../../content/characters/resolve";
 import { generateCharacter } from "../../content/characters/generate";
+import { beliefsForActor } from "../../content/beliefs";
+import { sanctuaryAt } from "../../content/settlements/religious";
+import { communityForWork, officeAtSanctuary } from "../../content/characters/officiant";
 import { livelihoodById } from "../../content/characters/livelihoods";
 import { officeFor } from "../../content/interiors/offices";
 import { worksitesFor } from "../../content/settlements/worksites";
@@ -98,6 +101,11 @@ export function workplacesIn(
       plan.outdoors.shore,
       24,
     );
+  const berth = plan.terminal ?? plan.harbor;
+  if (berth) {
+    const desk = plan.objects.find(o => o.id === berth.manifest);
+    if (desk) add(desk.id, "shore", desk.name, desk.pos, 6, ["dockworker"]);
+  }
   const station = plan.railway?.station;
   for(const m of plan.waterfront?.members ?? []) offers.push({id:m.boatId,kind:"fishery",label:"the household's fishing landing",
     pos:m.landing,capacity:2,roles:["fisher"],owner:m.owner});
@@ -139,6 +147,7 @@ export function localWorkContext(
   pack: Pack,
   id: string,
   community?: string,
+  seed?: string,
 ) {
   const available = availableWork(plan, id);
   const localRequirements = new Set<string>();
@@ -151,6 +160,7 @@ export function localWorkContext(
     const requirement = supplied[offer.kind];
     if (requirement) localRequirements.add(requirement);
   }
+  community ??= seed && communityForWork(pack.setting!,seed,id,id === "player" ? pack.role : undefined);
   const keeps = keepsShop(plan, id);
   const context = townWorkContext(pack.setting!, community, localRequirements);
   return {
@@ -176,12 +186,23 @@ export function assignLocalWork(
   actor: Actor,
   site: WorkSite,
 ) {
-  if (!pack.setting?.employmentRevision || actor.role === "Child") return;
-  const available = availableWork(plan, actor.id);
+  if (!pack.setting?.employmentRevision || actor.role === "Child" || actor.stockroom) return;
+  const offers = availableWork(plan, actor.id);
+  const available: typeof offers = (kind,role) => {
+    const open = offers(kind,role);
+    if (kind !== "worship") return open;
+    const system = beliefsForActor(pack.setting,actor);
+    return open.filter(o => {
+      const place = plan.places.find(p => p.id === o.id);
+      return officeAtSanctuary(pack.setting!,actor.role,system,sanctuaryAt(place),place?.worshipSchool);
+    });
+  };
   let kit = livelihoodById(
     actor.origin?.specialty ?? actor.origin?.livelihood ?? "",
   );
-  let kind = kit && institutionAt(kit,pack,plan,actor.id,available);
+  const employer = () => kit?.fromBeliefs && available("worship",kit.id).length
+    ? "worship" as const : kit && institutionAt(kit,pack,plan,actor.id,available);
+  let kind = employer();
   if (keepsShop(plan, actor.id)) kind = undefined;
   if (kind && !available(kind, kit!.id).length) {
     const replacement = generateCharacter(
@@ -194,8 +215,8 @@ export function assignLocalWork(
       undefined,
       actor.origin?.sex,
       undefined,
-      undefined,
-      localWorkContext(plan, pack, actor.id, actor.origin?.community),
+      {belief:actor.origin?.belief},
+      localWorkContext(plan, pack, actor.id, actor.origin?.community, seed),
     );
     const oldRole = actor.role;
     actor.role = replacement.role;
@@ -213,7 +234,7 @@ export function assignLocalWork(
         p.name = p.name.replace(`${oldRole}'s `, `${actor.role}'s `);
     }
     kit = livelihoodById(actor.origin?.livelihood ?? "");
-    kind = kit && institutionAt(kit,pack,plan,actor.id,available);
+    kind = employer();
   }
   site.role = actor.role;
   delete site.employment;
@@ -263,7 +284,7 @@ export function prepareLocalWork(
   for (const [id, site] of owners) {
     let actor = plan.actors.find((a) => a.id === id);
     if (!actor && id === "player") {
-      const context = pack.setting.worksiteRevision ? localWorkContext(plan,pack,id) : undefined;
+      const context = pack.setting.worksiteRevision ? localWorkContext(plan,pack,id,undefined,pack.setting.character?.appearanceSeed ?? seed) : undefined;
       const kit = livelihoodById(pack.role.toLowerCase().replace(/ /g,"-"));
       const unavailable = (pack.setting.worksiteRevision ?? 1) >= 2 && kit && institutionAt(kit,pack,plan,id) &&
         !context?.livelihoods.some(l=>l.id===kit.id);

@@ -1,3 +1,4 @@
+import { setOutRows } from "../../world/room-rows";
 import { resolveRoom, type RoomChoice } from "../../content/interiors/resolve";
 import type { InteriorProfile, RoomRole } from "../../content/interiors/types";
 import { planRoom, roomMask, type Prop, type RoomParams, type Shape } from "./room";
@@ -60,7 +61,14 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
     y: 0,
   }));
   const court = boxes[0].shape === "courtyard" && boxes[0].w >= 9 && boxes[0].d >= 8 ? boxes[0] : undefined;
-  const { doorways, entry } = court ? aroundCourt(boxes, court) : inRows(boxes);
+  const axial = profile.observance && boxes.length === 2 && boxes[1].role === "sanctum";
+  const { doorways, entry } = axial ? (() => {
+    const [front, rear] = boxes;
+    front.x = Math.max(0, (rear.w-front.w) >> 1);
+    rear.x = Math.max(0, (front.w-rear.w) >> 1);
+    front.y = rear.d + BEHIND;
+    return {entry:front,doorways:[through(front,rear)]};
+  })() : profile.institutionPlan ? institutionRanges(boxes, c.seed, profile.institutionPlan === "court") : court ? aroundCourt(boxes, court, !!profile.observance) : inRows(boxes);
   const w = Math.max(...boxes.map((b) => b.x + b.w)), d = Math.max(...boxes.map((b) => b.y + b.d));
   const entrance = entry.x + Math.floor(entry.w / 2);
   // Each room planned in its own coordinates, kept clear where a doorway meets it.
@@ -132,6 +140,25 @@ function below(b: Box, under: Box[]) {
   return under.reduce((best, f) => (span(f) > span(best) ? f : best), under[0]);
 }
 
+function institutionRanges(boxes: Box[], seed: number, court: boolean) {
+  const [entry, ...wings] = boxes;
+  if (seed % 2) wings.reverse();
+  for (const wing of wings) wing.d += (seed >>> (wing.i % 8)) % 3;
+  const front = court ? [wings.shift()!, entry, wings.pop()!] : [entry];
+  if (!court) entry.w = wings.reduce((n, b) => n + b.w + BESIDE, -BESIDE);
+  for (const b of front) b.d = entry.d;
+  const rows = [front, wings].map(row => ({
+    deep: Math.max(...row.map(b => b.d)) + BEHIND,
+    slots: row.map(b => ({ b, wide: b.w + BESIDE, deep: b.d + BEHIND, hold: "s" as const })),
+  }));
+  setOutRows(rows, 0, ({ b }, x, y) => { b.x = x; b.y = y; });
+  const left = Math.min(...boxes.map(b => b.x));
+  for (const b of boxes) b.x -= left;
+  const doorways = wings.map(b => through(below(b, front), b));
+  for (let i = 1; i < front.length; i++) doorways.push(beside(front[i-1], front[i]));
+  return { entry, doorways };
+}
+
 /** Public rooms in a row along the front, top-aligned so the back wall runs
  * level; sleeping rooms and stores behind, stores behind the kitchen. */
 function inRows(boxes: Box[]) {
@@ -161,10 +188,10 @@ function inRows(boxes: Box[]) {
  * its chowk, a dar on its wast: the court entered straight from the street,
  * a sleeping room to either side, and the rest across the back behind the
  * court's far wall, each opening onto the court or the room below it. */
-function aroundCourt(boxes: Box[], court: Box) {
+function aroundCourt(boxes: Box[], court: Box, sacred: boolean) {
   const others = boxes.filter((b) => b !== court);
   const west = others.find((b) => b.role === "sleep");
-  const east = others.find((b) => b !== west && (b.role === "sleep" || b.role === "kitchen" || b.role === "store"));
+  const east = others.find((b) => b !== west && (b.role === "sleep" || b.role === "kitchen" || b.role === "store" || sacred && b.role === "work"));
   const north = others.filter((b) => b !== west && b !== east);
   for (const side of [west, east]) if (side) side.d = Math.min(side.d, court.d);
   const top = north.length ? Math.max(...north.map((b) => b.d)) + BEHIND : 0;

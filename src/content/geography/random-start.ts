@@ -1,9 +1,12 @@
+import { atBerth, berthFor } from "./regions/ports";
 import { places } from "./places";
 import population from "./population.generated.json" with { type: "json" };
-import { settingFor, tillersHome } from "./resolve";
+import { settingFor, tillersHome, watersidePlace } from "./resolve";
 import { populateCharacter } from "./character";
 import { resolveCharacterContext } from "../characters/resolve";
+import { workplaceFor } from "../characters/workplace";
 import { characterSex } from "../characters/generate";
+import { asOfficiant } from "../characters/officiant";
 import { industrialized } from "../settlements/modernity";
 import { cavePeople } from "../caves/people";
 import { personFits, sewerPeople, startTimes } from "../sewers";
@@ -138,6 +141,34 @@ export function randomStartFromDraws(
   let base = settingFor(place, year);
   if (mode === "realistic" && townKinds.has(base.settlement) && !inTown(draws[3] ?? 0, place, year))
     base = { ...base, settlement: "village", population: undefined };
+  // New ports inside older HYDE catchments share their parent's draw.
+  const nearby = place.id==="city-amsterdam" && year>=1967 ? "rotterdam" :
+    place.id==="city-tijuana" && year>=1997 ? "ensenada" : undefined;
+  const urbanCatchment=townKinds.has(base.settlement);
+  let port=urbanCatchment ? berthFor(place.id,year) : undefined;
+  let portPlace=place;
+  if (urbanCatchment && nearby && !catchments[nearby] && random(seed,"neighbouring-port")<(nearby==="rotterdam" ? .24 : .14)) {
+    portPlace=places.find(p=>p.id===nearby)!;
+    port=berthFor(nearby,year);
+  }
+  const bankDistrict=()=>{
+    const bank=watersidePlace(place,year);
+    if (!bank) return base;
+    const shore=settingFor(bank,year);
+    if (bank.id===place.id) {
+      shore.settlement=base.settlement;
+      shore.population=base.population;
+    }
+    shore.settlementPattern="waterfront";
+    return shore;
+  };
+  const district=random(seed,"waterside-neighbourhood");
+  if (port && district<.08) {
+    base=settingFor(atBerth(portPlace,port),year);
+    base.settlementPattern="waterfront";
+  } else if (district<(urbanCatchment ? .12 : .24)) {
+    base=bankDistrict();
+  }
   // Sex first, then work open to it: drawing work first made men of everyone
   // who drew a ploughman or a soldier, and 55% of starts male.
   const sex = characterSex(seed, "player");
@@ -147,7 +178,7 @@ export function randomStartFromDraws(
   // 0.3% in all wherever any fits. Aboard ship: about 1.5% of all starts,
   // over a third of those on a coast some ship of the day sails.
   const here = { lon: base.lon, lat: base.lat, year };
-  const town = townKinds.has(base.settlement);
+  const town=townKinds.has(base.settlement);
   const hull = /^(coast|island|ocean)/.test(base.water ?? "") ? hullFor(here, seed) : undefined;
   const crew = hull ? shipCrew(hull, here).filter((p) => (sex === "female" ? p.women > 0 : p.women < 1)) : [];
   const under = [
@@ -165,10 +196,25 @@ export function randomStartFromDraws(
   }
   // The work available here, rather than a fixed five; a Kyoto start can be a
   // dyer and a Manchester one a match worker.
-  const work = resolveCharacterContext(base).livelihoods.filter((l) => !l.sex || l.sex === sex);
+  const workingBerth=port && base.placeId===port.siteId;
+  const work = resolveCharacterContext(base).livelihoods.flatMap(l => {
+    const kit = l.fromBeliefs ? asOfficiant(l,base,seed,"player") : l;
+    return kit ? [kit] : [];
+  }).filter(l=>{
+    if (l.sex && l.sex!==sex) return false;
+    if (!workingBerth) return true;
+    const workplace=l.workplace ?? workplaceFor(l.activity);
+    return l.id!=="fisher" && workplace!=="field" && workplace!=="pasture";
+  });
   let pick = unit(draws[1] ?? 0) * work.reduce((sum, l) => sum + (l.weight ?? 1), 0);
-  const role = (work.find((l) => (pick -= l.weight ?? 1) < 0) ?? work[work.length - 1]).label;
-  const setting = populateCharacter({ ...base, role, settlement: tillersHome(base, role) }, seed);
+  const chosen = work.find(l=>(pick-=l.weight ?? 1)<0) ?? work[work.length-1];
+  const role=chosen.label;
+  if (port && chosen.id==="dockworker" && base.placeId!==port.siteId)
+    base={...settingFor(atBerth(portPlace,port),year),settlementPattern:"waterfront"};
+  else if(base.settlementPattern!=="waterfront" && ["fisher","boatman","ferryman","boatwright","shipwright","dockworker"].includes(chosen.id))
+    base=bankDistrict();
+  const setting = populateCharacter({ ...base, role, settlement: tillersHome(base, role),
+    ...(chosen.fromBeliefs ? {brief:{...base.brief,work:chosen.id}} : {}) }, seed);
   return { seed, setting };
 }
 

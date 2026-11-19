@@ -25,7 +25,7 @@ export function mooredBoatFrame(frame:string,variation=0) {
 /** The rope belongs to the moored hull and leaves the scene when the boat puts out. */
 export function drawMooring(scene: Phaser.Scene, hull: Phaser.GameObjects.Image, x: number, y: number, frame: string, still: boolean) {
   if (hull.getData("mooring")) return;
-  const rope = scene.add.graphics().setDepth(hull.depth + 1);
+  const rope = scene.add.graphics().setDepth(Math.max(hull.depth, y + 14) + 1);
   hull.setData("mooring", rope);
   const horizontal = /-(east|west)$/.test(frame);
   x += /-(east|south)$/.test(frame) ? 8 : -8;

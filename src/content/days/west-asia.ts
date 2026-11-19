@@ -567,6 +567,7 @@ export const westAsiaOccasions: Occasion[] = [
   },
   {
     id: "day.islam.iftar",
+    worship: "Islam",
     label: "Iftar",
     scope: ISLAMIC,
     evidence: "documented",
@@ -582,6 +583,7 @@ export const westAsiaOccasions: Occasion[] = [
   },
   {
     id: "day.islam.grave",
+    worship: "Islam",
     label: "At a grave",
     scope: ISLAMIC,
     evidence: "documented",
@@ -597,6 +599,7 @@ export const westAsiaOccasions: Occasion[] = [
   },
   {
     id: "day.islam.kuttab",
+    worship: "Islam",
     label: "Walking a child to the kuttab",
     scope: ISLAMIC,
     evidence: "documented",
@@ -688,6 +691,7 @@ export const westAsiaOccasions: Occasion[] = [
   },
   {
     id: "day.islam.ziyara",
+    worship: "Islam",
     label: "Visiting a saint's tomb",
     scope: { ...ISLAMIC, years: [900, 1950] as Span },
     evidence: "documented",

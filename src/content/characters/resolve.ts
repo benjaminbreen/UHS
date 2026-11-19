@@ -28,6 +28,7 @@ import { commonLivelihoods } from "./livelihoods.generated";
 import { outlawLivelihoods } from "./outlaws";
 import { cityLivelihoods } from "./city-work";
 import { workplaceFor, type Workplace } from "./workplace";
+import { religiousProfile } from "../settlements/religious";
 import type { CharacterPhysique } from "../../core/character";
 import {
   capabilityOverrides,
@@ -318,13 +319,24 @@ function weighted(
       other: shares.other + food * (1 - scale),
     };
   }
-  const classOf = (l: Livelihood) =>
+  const tradingPort=s.settlement==="port";
+  const waterside=s.water!=="none" && (s.settlementPattern==="waterfront" || tradingPort);
+  if (waterside) {
+    const industrial=industrialized(s);
+    const fishing=Math.max(shares.fishing, industrial ? tradingPort ? .018 : .055 :
+      s.settlement==="village" || s.settlement==="camp" ? .28 : .09);
+    const scale=(1-fishing)/(1-shares.fishing || 1);
+    shares={fishing,farming:shares.farming*scale,herding:shares.herding*scale,foraging:shares.foraging*scale,other:shares.other*scale};
+  }
+  const classOf = (l: Livelihood) => l.id==="dockworker" ? "other" :
     SHARE_OF[l.workplace ?? workplaceFor(l.activity)] ?? "other";
   /* A village craft and a factory job are not equally likely in an
    * industrialising town: the older stratum thins as the newer one arrives,
    * and there are more old roles in the table than new ones, so without this
    * the nineteenth century still came out mostly medieval. */
+  const modern = s.year >= 1900 && industrialized(s);
   const era = (l: Livelihood) =>
+    modern && l.fromBeliefs ? .1 : modern && l.id === "sexton" ? .08 :
     l.tier === "village-craft" && tierApplies("industrial", s, capabilities)
       ? 0.25
       : l.tier === "prehistoric" && capabilities.has("settled_agriculture")
@@ -342,13 +354,17 @@ function weighted(
     const band = l.id === "hunter" && (s.settlement === "camp" || !capabilities.has("settled_agriculture")) ? 1.6 : 1;
     // In a war the town fills with troops: quartered, garrisoned or passing through.
     const war = (l.id === "soldier" || l.id === "marauder") && requirementMet("war", s) ? (l.id === "marauder" ? 4 : 3) : 1;
-    const boost = band * war * signatures.reduce((n, g) => n * (g.boost[l.id] ?? 1), 1);
+    const waterfrontWork=waterside && (l.id==="dockworker" || l.id==="boatman" || l.id==="boatwright" || l.id==="shipwright")
+      ? l.id==="dockworker" ? tradingPort ? 12 : 3 : 2 : 1;
+    const boost = band * war * waterfrontWork * signatures.reduce((n, g) => n * (g.boost[l.id] ?? 1), 1);
     // Share of the settlement for this class, split by weight within it.
     return { ...l, weight: (shares[c] * (l.weight ?? 1) * era(l) * boost * 100) / total };
   });
 }
 /** Everything about a livelihood that depends on where and when it is. */
 function inScope(l: Livelihood, s: WorldSetting, localRequirements?: ReadonlySet<string>) {
+  if (l.id === "sexton" && !/Christian|Catholic/i.test(religiousProfile(s)?.faith ?? "")) return false;
+  if (l.id==="dockworker" && s.settlement!=="port" && s.settlement!=="city") return false;
   if (l.institution && !localRequirements?.has(l.institution)) return false;
   if (l.years && !(s.year >= l.years[0] && s.year < l.years[1])) return false;
   if (l.cultures && !l.cultures.includes(s.culture)) return false;
@@ -500,7 +516,7 @@ export function resolveCharacterContext(
   const tiered = revised
     ? [...commonLivelihoods, ...outlawLivelihoods, ...cityLivelihoods].filter(
         (l) =>
-          (!l.tier || tierApplies(l.tier, s, capabilities)) &&
+          (!l.tier || tierApplies(l.tier, s, capabilities) || l.fromBeliefs && s.settlement !== "camp" && s.year >= 1900) &&
           supported(l) &&
           inScope(l, s, localRequirements) &&
           needsMet(l.needs ?? authoredNeeds.get(l.id)),

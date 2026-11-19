@@ -1,6 +1,8 @@
 import { it, expect } from "vitest";
 import { settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
+import { createRegionalContext } from "../src/world/regional/context";
+import { toAtlas } from "../src/world/geography/coordinates";
 import { regionalLandforms } from "../src/world/v3/landforms";
 import { createEnvironment } from "../src/world/v3/environment";
 import { createSettingSession } from "../src/runtime/session";
@@ -27,6 +29,20 @@ const setting = (
     household: "mixed",
   },
 });
+it("keeps the signed distance continuous across the dry side of the Mwanza landing", () => {
+  const s = settingFor(places.find(p => p.id === "city-mwanza")!, 1650);
+  const region = createRegionalContext(s), origin = toAtlas(s.lon, s.lat);
+  const mid = toAtlas((32.888 + 32.866) / 2, (-2.502 - 2.513) / 2);
+  const bank = Array.from({ length: 13 }, (_, i) =>
+    region.featureAt(mid.x - origin.x, mid.y - origin.y + i - 6, ["lake"]));
+  expect(bank.every(p => p?.feature.id === "mwanza-gulf-inlet")).toBe(true);
+  const distances = bank.map(p => p!.distance);
+  expect(distances[0]).toBeLessThan(-3);
+  expect(distances.at(-1)).toBeGreaterThan(3);
+  for (let i = 1; i < distances.length; i++)
+    expect(Math.abs(distances[i] - distances[i - 1])).toBeLessThanOrEqual(1.1);
+});
+
 it("river reaches join across positive and negative boundaries regardless of cache order", () => {
   const s = setting(),
     a = regionalLandforms(s, "reach-check"),

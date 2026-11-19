@@ -4,6 +4,8 @@ import type { CircuitMaterial } from "../urban-form/types";
 
 export type RoyalGround = {
   id: string; name: string; position: PrecinctSiting["position"];
+  palace?: "royal" | "country";
+  rooms?: Record<"residence" | "north-wing" | "south-wing", string>;
   castle?: { hall: "hall-keep" | "great-hall" | "audience-hall"; material: CircuitMaterial; tower: "a" | "b" | "c";
     approach: "ditch" | "moat" | "forecourt"; paving: "cobble" | "slab"; service?: string };
 };

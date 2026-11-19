@@ -1,6 +1,6 @@
-import { goods, standsIn } from "../content/economy/goods";
+import { goods, loavesPerSack, standsIn } from "../content/economy/goods";
 import { productById } from "../content/economy/products";
-import type { Economy, Household, ItemId } from "./types";
+import type { Economy, Household, Inventory, ItemId, WorldObject } from "./types";
 
 /**
  * Per good: units a working adult makes a day, and units each member uses a
@@ -64,6 +64,7 @@ export function runEconomy(
   imports = 0,
   /** How this hour's making goes against an ordinary hour's: a catch's season and luck. */
   yieldOf?: (h: Household, good: string, hour: number) => number,
+  counters: Pick<WorldObject,"id"|"inventory"|"prop"|"shopSupply"|"consignment"|"market">[] = [],
 ) {
   const start = Math.max(economy.hour, hour - CATCH_UP_HOURS);
   economy.hour = Math.max(economy.hour, hour);
@@ -73,7 +74,7 @@ export function runEconomy(
     const stock = economy.stock[from.id];
     const have = stock?.[good] ?? 0;
     if (stock) stock[good] = Math.max(0, have - n);
-    return have >= n;
+    return Math.max(0, n - have);
   };
   const byId = new Map(households.map((h) => [h.id, h]));
   const nearest = new Map<string, Household>();
@@ -101,11 +102,40 @@ export function runEconomy(
   const demands = new Map([...new Set(households.flatMap(needsOf))].filter((good) => good !== "fish").map((good) => [good,
     (rates[good]?.need ?? 0) * households.reduce((n, h) => n + (needsOf(h).includes(good) ? h.members.length : 0), 0) * imports]));
 
+  const grainStores = counters.filter(o=>o.prop==="grainHoist" || o.market?.kind==="corn" || o.market?.kind==="dojima");
+  const shelves = new Map<string, { stock: Inventory; item: string }[]>();
+  for (const o of counters) {
+    const good=o.prop==="clothCounter" ? "cloth" : o.shopSupply?.item;
+    if (!good) continue;
+    const rows=shelves.get(good) ?? [];
+    rows.push({stock:o.inventory,item:good==="cloth" ? "cloth-bolt" : good});
+    shelves.set(good,rows);
+  }
+  const stores = new Map(counters.map(o=>[o.id,o.inventory]));
   for (let t = start; t < hour; t++) {
+    const open=t%24>=6 && t%24<18;
+    for(const o of counters){
+      const cargo=o.consignment;
+      if(cargo && t%24===7 && Math.floor(t/24)%cargo.days===0)
+        o.inventory[cargo.item]=(o.inventory[cargo.item]??0)+cargo.units;
+    }
+    if(open) for(const o of counters){
+      const job=o.shopSupply;
+      if(!job)continue;
+      const source=stores.get(job.source);
+      const n=Math.min(source?.[job.input]??0,Math.floor((job.limit-(o.inventory[job.item]??0))/job.yield));
+      if(source && n>0){source[job.input]!-=n;o.inventory[job.item]=(o.inventory[job.item]??0)+n*job.yield;}
+    }
     if (imports) {
       const pool = (economy.stock[IMPORT] ??= {});
       for (const [need, day] of demands) {
-        pool[need] = Math.min(day, (pool[need] ?? 0) + day / 24);
+        const sellers=shelves.get(need);
+        if(sellers || need==="bread" && grainStores.length){
+          if(open) for(const {stock,item} of sellers??[]){
+            const n=Math.min(stock[item]??0, Math.max(0,Math.ceil(day/24-(pool[need]??0))));
+            if(n){stock[item]!-=n;pool[need]=(pool[need]??0)+n;}
+          }
+        } else pool[need] = Math.min(day, (pool[need] ?? 0) + day / 24);
       }
     }
     // Start the round somewhere new each hour, so what runs short falls on a
@@ -129,7 +159,18 @@ export function runEconomy(
         if (input && n > 0) {
           const stored = Math.min(stock[input] ?? 0, n);
           if (stored) stock[input] -= stored;
-          if (from) {
+          if(input==="grain" && grainStores.length && n>stored){
+            const pool=economy.stock[IMPORT]??={};
+            if(open) for(const o of grainStores){
+              const sacks=Math.min(o.inventory.grain??0, Math.max(0,Math.ceil((n-stored-(pool.grain??0))/loavesPerSack)));
+              if(sacks){o.inventory.grain!-=sacks;pool.grain=(pool.grain??0)+sacks*loavesPerSack;}
+            }
+            const imported=Math.min(n-stored,pool.grain??0);
+            pool.grain=(pool.grain??0)-imported;
+            const local=from ? Math.min(n-stored-imported,economy.stock[from.id]?.grain??0) : 0;
+            if(local && from)economy.stock[from.id].grain-=local;
+            n=stored+imported+local;
+          } else if (from) {
             const bought = Math.min(n - stored, economy.stock[from.id]?.[input] ?? 0);
             if (bought) economy.stock[from.id][input] -= bought;
             n = stored + bought;
@@ -144,16 +185,18 @@ export function runEconomy(
         );
         const good = buy?.good ?? need;
         const seller = h.makes?.includes(good) ? h : buy && byId.get(buy.from);
-        if (!seller) continue;
-        const want = ((rates[need]?.need ?? 0) * h.members.length) / 24;
-        if (take(seller, good, want)) continue;
+        if (!seller && !(imports && (shelves.has(need) || need==="bread" && grainStores.length))) continue;
+        let want = ((rates[need]?.need ?? 0) * h.members.length) / 24;
+        if (seller) want = take(seller, good, want);
+        if (!want) continue;
         // Short of bread, a household buys grain from its nearest farm.
         const plain = standsIn[good] && nearest.get(h.id + standsIn[good]);
         const substitute = standsIn[good];
-        if (substitute && (stock[substitute] ?? 0) >= want && take(h, substitute, want)) continue;
-        if (plain && take(plain, substitute, want)) continue;
+        if (substitute) want = take(h, substitute, want);
+        if (plain && want) want = take(plain, substitute, want);
+        if (!want) continue;
         // A fishing house's own catch is not something the grain ships bring.
-        if (!imports || need === "fish" || !take(market, need, want)) short.push(need);
+        if (!imports || need === "fish" || take(market, need, want) > 0) short.push(need);
       }
       if (short.length) economy.short[h.id] = short;
       else delete economy.short[h.id];

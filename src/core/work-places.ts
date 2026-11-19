@@ -33,8 +33,7 @@ type Ask = {
   outbuilding?: (kind: "byre" | "henhouse") => Position | undefined;
   /** Down the nearest mine: the pit bottom, or the day's stall at the face. */
   below: (role: "pit" | "face") => StepPlace | null;
-  /** A desk on the tower storey the player is employed on. */
-  desk?: () => StepPlace | undefined;
+  jobStation?: (role: "workplace" | "supplies") => StepPlace | undefined;
 };
 type SitePlan = { railway?: Railway; parcels?: Parcel[]; site?: { center: Point }; fauna?: FaunaGroup[];
   waterfront?:import("../world/v3/types").SettlementPlan["waterfront"] };
@@ -60,9 +59,12 @@ export function findPlace(role: PlaceRole, ask: Ask): StepPlace | null {
   const home = household.home, seed = s.manifest.seed;
   const harbor = world.harbor?.();
   const dockworker = isDockworker(s.player.role);
+  const terminal=dockworker && world.terminal?.();
+  if (terminal && (role==="shore" || role==="workplace")) return {pos:outside({x:terminal.x+(role==="shore" ? -4 : 14),y:terminal.y+7}),
+    label:role==="shore" ? "the berth manifest desk" : "row B receiving"};
   if (harbor && dockworker && role === "workplace") return {pos:outside(harbor.shed),label:"the pier freight warehouse"};
-  if (harbor && role === "shore" && (dockworker || /boatman|ferryman/i.test(s.player.role)))
-    return {pos:outside(dockworker ? harbor.crane : harbor.gate),label:"the working pier"};
+  if (harbor && role === "shore" && (dockworker || harbor.crossing && /boatman|ferryman/i.test(s.player.role)))
+    return {pos:outside(dockworker ? harbor.crane : harbor.crossing!.gate),label:"the working pier"};
   const fishing=waterfrontMember(world,household);
   if(fishing && role==="shore")return {pos:outside(fishing.landing),label:"your household's fishing landing"};
   if(fishing && role==="yard")return {pos:outside(fishing.sorting),label:"your catch-sorting table"};
@@ -85,9 +87,10 @@ export function findPlace(role: PlaceRole, ask: Ask): StepPlace | null {
     const host = h && s.actors.find((a) => h.members.includes(a.id) && !a.dead && (a.age ?? 0) >= 16);
     return h ? { pos: doorOf(h), label: host ? `${host.name.split(" ")[0]}'s house` : "a neighbour's house" } : null;
   };
-  if (role === "workplace") {
-    const desk = ask.desk?.();
-    if (desk) return desk;
+  if (role === "workplace" || role === "supplies") {
+    const station = ask.jobStation?.(role);
+    if (station) return station;
+    if (role === "supplies") return null;
     const pos = s.player.work;
     const place = pos.space !== "outside" ? world.place(pos.space) : world.places.find((p) => p.access === "public" && Math.hypot(p.entrance.x - pos.x, p.entrance.y - pos.y) < 2);
     return { pos: { ...pos }, label: place?.name ?? "your workplace" };
@@ -165,6 +168,14 @@ export function findPlace(role: PlaceRole, ask: Ask): StepPlace | null {
   if (role === "market") {
     // Where nobody bought and sold in a market, goods went from hand to hand.
     if (!ask.markets) return atClient();
+    if(/factor|broker|weighmaster|auctioneer|drover|dealer/i.test(s.player.role)){
+      const market=s.objects.filter(o=>o.market && !o.broken).sort((a,b)=>distance(a.pos,home)-distance(b.pos,home))[0];
+      const desk=market && s.actors.find(a=>a.id===market.id+"-market-desk-0");
+      if(market && desk)return {pos:{...desk.work},label:market.name};
+    }
+    const trader=s.actors.find(a=>a.stockroom && a.role.toLowerCase()===s.player.role.toLowerCase() &&
+      s.objects.some(o=>o.id===a.stockroom && o.quayStock));
+    if (trader) return {pos:{...trader.work},label:"the "+trader.role.toLowerCase()+"’s counter"};
     const stall = s.objects
       .filter((o) => o.pos.space === "outside" && propDefs[o.prop ?? ""]?.family === "market-counter")
       .sort((a, b) => distance(a.pos, home) - distance(b.pos, home))[0];

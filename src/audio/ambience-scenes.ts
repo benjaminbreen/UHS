@@ -5,6 +5,13 @@ import type { Scene } from "./ambience";
  * opening, in seconds. Review only: fetched into
  * artifacts/audio-ref/ by `npm run audio:ambience`, never shipped. */
 export const references = {
+  "sung-hymn": {title:"Johannes.Hymnus.ogg", url:"https://upload.wikimedia.org/wikipedia/commons/e/e9/Johannes.Hymnus.ogg", licence:"Public domain, Membeth"},
+  "woodblock": {title:"Blok music.ogg", url:"https://upload.wikimedia.org/wikipedia/commons/0/07/Blok_music.ogg", licence:"CC BY-SA 4.0, Krol111"},
+  pencil: {
+    title: "Pencil scratchings.ogg",
+    url: "https://upload.wikimedia.org/wikipedia/commons/9/9f/Pencil_scratchings.ogg",
+    licence: "Public domain, gypsygirl",
+  },
   "light-rainfall": {
     title: "Sound of light rainfall.ogg",
     url: "https://upload.wikimedia.org/wikipedia/commons/1/15/Sound_of_light_rainfall.ogg",
@@ -112,6 +119,22 @@ const make = (
 
 /** The scenes the studio plays and the render script records. */
 export const listeningScenes: ListeningScene[] = [
+  make("parish-nave", "Rouen · parish nave, 1350", "a short sung response in a stone nave, with breath between phrases", ["sung-hymn"],
+    {indoors:true, peopleNear:7, room:{area:168,finish:2,institution:"worship",floor:"flag",rite:"unison"}}, {condition:"clear",rain:0}),
+  make("prayer-hall", "Fez · prayer hall, 1400", "one unaccompanied reciting voice in the prayer hall", [],
+    {indoors:true, peopleNear:5, room:{area:130,finish:1,institution:"worship",floor:"mat",rite:"recitation"}}, {condition:"clear",rain:0}),
+  make("temple-block", "Kyoto · main hall, 1700", "a hollow wooden percussion beat, softly answered by the room", ["woodblock"],
+    {indoors:true, peopleNear:3, room:{area:120,finish:1,institution:"worship",floor:"plank",rite:"woodbeat"}}, {condition:"clear",rain:0}),
+  make("london-ward", "London · hospital ward, 2020", "linen shifting and the soft rattle of wheels on a ward floor", [],
+    { indoors: true, year: 2020, peopleNear: 2, room: { area: 130, finish: 1, institution: "hospital", role: "ward", floor: "linoleum", clinical: true } }, { condition: "clear", rain: 0 }),
+  make("edo-ward", "Edo · infirmary, 1800", "cloth and a cup being set down beside a sleeping mat", [],
+    { indoors: true, year: 1800, peopleNear: 2, room: { area: 130, finish: 1, institution: "hospital", role: "ward", floor: "mat" } }, { condition: "clear", rain: 0 }),
+  make("board-school", "London · classroom, 1900", "pencils working in short runs, paper turning and desks shifting on boards", ["pencil"],
+    { indoors: true, year: 1900, peopleNear: 8, room: { area: 100, finish: 1, institution: "school", role: "classroom", floor: "plank" } }, { condition: "clear", rain: 0 }),
+  make("yamen-office", "Beijing · clerks’ room, 1750", "brush strokes, an inkstone and rustling papers in a county office", [],
+    { indoors: true, year: 1750, culture: "east-asian", peopleNear: 3, room: { area: 64, finish: 1, institution: "magistracy", role: "work", floor: "plank" } }, { condition: "clear", rain: 0 }),
+  make("bazaar-pottery", "Damascus · pottery stall, 1500", "pottery knocking against wood, footsteps and voices in a covered market", [],
+    { indoors: true, year: 1500, peopleNear: 6, room: { area: 64, finish: 1, institution: "bazaar", role: "work", floor: "flag", stock: "pots" } }, { condition: "clear", rain: 0 }),
   make("drizzle-meadow", "Drizzle on a meadow", "light drizzle falling softly on grass", ["light-rainfall"], {}, { rain: 0.12 }),
   make("shower-woods", "Shower in broadleaf woods", "moderate rain falling on leaves in a forest", ["bourne-woods"], { ecology: "temperate-woodland" }, { rain: 0.45 }),
   make("boreal-rain", "Steady rain in pine forest", "steady rain in a pine forest", ["midwest-light"], { climate: "boreal", ecology: "boreal-woodland", season: "autumn" }, { rain: 0.35, tempC: 7 }),

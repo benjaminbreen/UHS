@@ -1,3 +1,4 @@
+import { parterrePixels } from "./fair/ground";
 import type { Rock } from "../content/geography/rock";
 import type { EarthFinish } from "../content/settlements/urban-form/types";
 import { frostCover, snowCover, snowOver } from "./snow-cover";
@@ -436,6 +437,7 @@ export function rasterHabitatTile(
     const ramps = cell.habitat ? habitatRamps(cell.habitat, art) : { soilPalette: soils.grassland, palette: art.palettes.grassland };
     plinthOver(tile.pixels, sample, x, y, ox, oy, ramps.soilPalette, ramps.palette);
   }
+  if (cell.parterre) parterrePixels(tile.pixels, cell.parterre.plan, cell.parterre.u, cell.parterre.v);
   if (cell.rail) railOver(tile.pixels, cell.rail, x, y, ox, oy, cell.crossing, cell.platform, false, cell.wharf);
   if (snowCover() || frostCover()) snowOver(tile.pixels, sample, x, y, ox, oy, cell);
   return tile;

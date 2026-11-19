@@ -1821,6 +1821,195 @@ def vault():
 
 vault()
 
+# Architectural fittings seen from the public floor.
+def sanctuary_fittings():
+    ink = {**GOLD, 'I':0x49352e, 'J':0x755443, 'X':0x372b38, 'V':0x563958,
+           'B':0x294861, 'b':0x416c7d, 'c':0x729699, 'P':0xf3deb0, 'p':0xc7ac84,
+           'S':['wall',4], 's':['wall',3], 't':['wall',2], 'T':['wall',5],
+           'R':['acc',3], 'r':['acc',2], 'D':['acc',1], 'A':['acc',4],
+           'W':['wood',4], 'w':['wood',3], 'n':['wood',2], 'N':['wood',1],
+           'o':0xe89042, 'F':0xffce68, 'f':0xa84424, 'Q':0xdfd6bf}
+    def band(c,x,y,w,rows):
+        for j,ch in enumerate(rows):
+            for i in range(w): c.set(x+i,y+j,ch)
+    def legs(c,x,y,h,stone):
+        light,mid,dark = 'Tst' if stone else 'Wwn'
+        for dx in [-x,x]:
+            k = int(c.c)+dx
+            band(c,k-3,y,7, light+mid+dark)
+            band(c,k-2,y+3,2,light*h)
+            band(c,k,y+3,2,mid*h)
+            band(c,k+2,y+3,1,dark*h)
+            band(c,k-3,y+h+3,7,light+mid+dark)
+    def textile(c,x,y,w,h):
+        for j in range(h):
+            for i in range(w):
+                fold=(i*7//w)%3
+                thread=j in (2,h-5) or j==h-2 and i%3!=2
+                c.set(x+i,y+j,'g' if thread else 'rRA'[fold] if j>2 else 'DrR'[fold])
+    def steps(c,y,w):
+        for j in range(3): band(c,(c.w-w)//2-j*2,y+j*3,w+j*4,'Tst')
+    def save(c,key): SPRITES[key]={'rows':c.rows(),'ink':ink}
+    for key in ('torah-ark','torah-niche','plain-mihrab','fire-sanctuary','fire-urn','jina','sanctuary-curtain','screen-templon'):
+        c=Canvas(76 if key=='screen-templon' else 48,58)
+        cx=int(c.c); broad=key=='screen-templon'; w=17 if not broad else 32
+        if key=='screen-templon':
+            for x in [-28,-11,11,28]:
+                band(c,cx+x-1,12,3,'T'+'s'*26+'t')
+                band(c,cx+x-3,11,7,'Tst')
+            band(c,4,6,68,'Tsgst')
+            for x in [5,50]:
+                for j in range(14):
+                    for i in range(20):
+                        c.set(x+i,34+j,'T' if i in (0,19) or j<2 else 's' if abs(i-10)+abs(j-7)>7 else 't')
+            band(c,26,41,23,'TPPPtt'); steps(c,49,63)
+        else:
+            stone=key in ('torah-niche','plain-mihrab','fire-sanctuary','fire-urn','jina')
+            for y in range(43):
+                for x in range(48):
+                    a=abs(x-c.c)
+                    if a>w: continue
+                    top=3+int((a/w)**2*13)
+                    if y<top: continue
+                    edge=y-top
+                    face='Tst' if stone else 'Ggn'
+                    ch=face[0] if edge==0 else face[1] if edge<3 else face[2] if edge<5 else 'X'
+                    if edge>5 and a<14 and y<37:
+                        ch='B' if key in ('jina','torah-niche','torah-ark') else 'J' if y>28 else 'I'
+                    c.set(x,y,ch)
+            legs(c,16,18,21,stone)
+            if key in ('torah-ark','torah-niche','sanctuary-curtain'):
+                textile(c,12,18,23,25)
+                band(c,10,16,27,'Ghg')
+                if key=='torah-ark':
+                    for dx in range(-6,7):
+                        c.set(cx+dx,8+abs(dx)//2,'G')
+                        c.set(cx+dx,27-abs(dx)//2,'g'); c.set(cx+dx,28+abs(dx)//2,'h')
+                    for i in (0,4,8): band(c,19+i,4-abs(4-i)//2,2,'Gh')
+            elif key=='plain-mihrab':
+                for y in range(17,43):
+                    for x in range(12,36):
+                        a=abs(x-23.5)
+                        if y<18+a*.9: continue
+                        c.set(x,y,'t' if x<16 or y<20+a*.9 else 's' if x<28 else 'S')
+            elif key in ('fire-sanctuary','fire-urn'):
+                for y,width,ch in [(43,22,'Tst'),(40,16,'gH' if key=='fire-urn' else 'Tst'),(32,9,'g'*8 if key=='fire-urn' else 's'*8),(29,18,'Ggh'),(27,21,'Gg')]:
+                    band(c,cx-width//2,y,width,ch)
+                for i in range(-7,8):
+                    h=int(4+5*(1+math.cos(i*1.6))/2+(7-abs(i))*.45)
+                    for j in range(h): c.set(cx+i,26-j,'F' if j<3 else 'o' if j<h-2 else 'f')
+                c.set(cx-2,20,'*'); c.set(cx+4,18,'%')
+                if key=='fire-urn':
+                    for x in (6,9,38,41): band(c,x,23,1,'n'*21)
+            elif key=='jina':
+                ring(c,cx,22,6,'g','t')
+                c.stamp(['..sTTs..','..TQQs..','...Ts...','..sTTs..','.sTQQTs.','sTQQQQTs','TssQQssT','.tSTTSt.','..sTTs..','.sQQQQs.','sTQQQQTs','ttssssst'],cx-4,19)
+                band(c,cx-10,31,21,'Tst'); band(c,cx-12,35,25,'Tst')
+            steps(c,47,34)
+        save(c,key)
+
+    c=Canvas(50,56)
+    steps(c,46,33)
+    for y in range(7,46):
+        left=7+(y<14)*(14-y)//3
+        for x in range(left,50-left):
+            jamb=min(x-left,49-left-x)
+            if y<13: ch='T' if y==7 else 's' if y==12 else 'b' if x%4<2 else 'c'
+            elif y<17: ch='gBsT'[y-13]
+            elif jamb<4: ch='Tsst'[jamb]
+            else: ch='N' if x in (24,25) or y in (19,40,44) else 'n' if x%7==0 else 'w'
+            c.set(x,y,ch)
+    for x in range(6,44):
+        d=abs(x-24)
+        c.set(x,7+d//8,'G'); c.set(x,8+d//8,'b' if x%3 else 'c')
+    ring(c,24,8,3,'g','o')
+    band(c,20,34,10,'gH')
+    band(c,5,44,40,'Tst')
+    save(c,'naos')
+
+    c=Canvas(72,59)
+    for x in range(4,68):
+        a=abs(x-35.5)
+        y=5+round(a*.22)
+        for j in range(y,17): c.set(x,j,'G' if j==y else 'A' if (x//7)%2==0 else 'R')
+    band(c,3,16,66,'Ghg')
+    for x in range(5,68):
+        depth=3+round(2*math.cos((x-5)*math.pi/5))
+        for j in range(depth): c.set(x,19+j,'g' if j==depth-1 else 'R')
+        if (x-5)%10==0: band(c,x,22,1,'ggGh')
+    for x in (8,62):
+        band(c,x-1,25,2,'G'+'g'*20+'HG')
+        band(c,x+1,24,1,'h'*23)
+    textile(c,14,39,44,12)
+    band(c,11,51,50,'Gwh')
+    band(c,14,54,3,'wwn'); band(c,55,54,3,'wwn')
+    for x in range(22,49):
+        a=abs(x-35)
+        top=31+int((13-a)*.18)
+        for j in range(6): c.set(x,top+j,'P' if j<3 else 'p' if j<5 else 'n')
+        if x%5==0: c.set(x,top+2,'p')
+    band(c,34,34,2,'gp')
+    c.stamp(['..G..','.GhG.','GGhGG','..g..'],33,0)
+    save(c,'palki')
+    c=Canvas(48,32)
+    band(c,2,10,44,'Tsss'); textile(c,7,14,34,7)
+    for x in (5,38): band(c,x,14,4,'S'*13+'t')
+    band(c,21,0,2,'g'*10); band(c,18,3,8,'G')
+    save(c,'communion-table')
+
+    c=Canvas(72,33)
+    for y in range(12,32):
+        top=y<18; x0=8-(y-12) if top else 3
+        for x in range(x0,72-x0):
+            joint=(x+(y//5%2)*6)%13
+            c.set(x,y,'s' if top else 't' if joint==0 or y%5==0 else 'J' if (x//13+y//5)%3 else 'w')
+    for x,h in ((22,12),(36,9),(51,14)):
+        for j in range(h): band(c,x,16-j,4 if j<h-2 else 3,'t')
+        band(c,x,17-h,2,'s'*h)
+    save(c,'ahu')
+    for key in ('stupa','dagoba','zedi'):
+        c=Canvas(80,73); cx=c.c
+        for y in range(19,65):
+            for x in range(80):
+                nx=(x-cx)/31; ny=(51-y)/29
+                if key=='zedi':
+                    radius=4+max(0,(y-18)/34)**1.7*26
+                    if abs(x-cx)>radius or y>55: continue
+                    ch='G' if x<cx-radius*.26 else 'g' if x<cx+radius*.25 else 'h'
+                    if y in (40,44,49,53): ch='g' if x<cx else 'H'
+                else:
+                    if y<51:
+                        if nx*nx+ny*ny>1: continue
+                        light=-.53*nx+.57*ny+.49*math.sqrt(max(0,1-nx*nx-ny*ny))
+                        ch=('t','s','S','T','P')[min(4,max(0,int((light+.36)*3.45)))]
+                    elif y<58 and abs(nx)<=1:
+                        ch='T' if y==51 else 's' if x<cx else 't'
+                    else: continue
+                c.set(x,y,ch)
+        for cy,rx,h in ((64,37,5),(59,34,5),(54,31,5)):
+            for x in range(c.w):
+                nx=(x-cx)/rx
+                if abs(nx)>1: continue
+                y=round(cy+4*math.sqrt(1-nx*nx))
+                for j in range(h):
+                    c.set(x,y+j,'T' if j==0 and nx<.25 else 's' if j<h-1 and nx<.2 else 't')
+        if key!='zedi':
+            for x in range(11,69):
+                nx=(x-cx)/31
+                cy=round(51+4*math.sqrt(1-nx*nx))
+                band(c,x,cy,1,'Tst')
+        band(c,36,18,8,'TsTt')
+        for j in range(14): c.set(39,5+j,'h'); c.set(40,5+j,'G')
+        for y,width in ((7,9),(11,13),(15,17)): band(c,40-width//2,y,width,'G' if key=='zedi' else 'Ts')
+        if key=='stupa':
+            for x in range(5,76):
+                y=round(57+3*math.sqrt(max(0,1-((x-cx)/37)**2)))
+                if x%8<2: band(c,x,y-4,1,'Tssssst')
+                c.set(x,y,'s'); c.set(x,y+2,'t')
+        save(c,key)
+
+sanctuary_fittings()
+
 import os
 with open(os.path.join(os.path.dirname(__file__), '../../src/render/interiors/altars.ts'), 'w') as out:
     out.write('// Generated by scripts/art/compose_altars.py; edit the art there and rerun it.\n')

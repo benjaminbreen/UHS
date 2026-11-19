@@ -476,7 +476,9 @@ it("puts generated personal accessories in real inventory and in the hand", () =
 it("applies regional wardrobes to ordinary generated residents as well as scenarios", () => {
   const people = Array.from({ length: 30 }, (_, i) => generateCharacter(settingFor(place("paris"), 1888), "ordinary-wardrobe", `resident-${i}`, 34));
   for (const person of people) {
-    expect(["shirt", "coat", "dress", "skirt", "gown"]).toContain(person.appearance.wearing.garment);
+    const garments=["shirt", "coat", "dress", "skirt", "gown"];
+    if(person.origin.livelihood==="religious-specialist")garments.push("robe");
+    expect(garments).toContain(person.appearance.wearing.garment);
     expect(person.appearance.wearing.cut).toBeDefined();
   }
   const gentleman = generateCharacter(settingFor(place("paris"), 1888), "ordinary-wardrobe", "gentleman", 34, "Gentleman", "Jacques Laurent", undefined, "male");

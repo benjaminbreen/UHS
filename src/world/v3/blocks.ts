@@ -1795,18 +1795,23 @@ export function composeUrban(
   for (const request of precincts ?? []) {
     const space = (r: Rect, q: Rect, m = 0) => r.x >= q.x + q.w + m || q.x >= r.x + r.w + m ||
       r.y >= q.y + q.h + m || q.y >= r.y + r.h + m;
+    const gardenEdge = request.position === "garden" && !walled;
     let chosen: PrecinctGround | undefined;
     for (const [w, h] of request.sizes) {
       const candidates: { ground: PrecinctGround; street: Segment; score: number }[] = [];
       for (const s of streets) {
         const horizontal = axisOf(s) === "x";
+        const frontages: { street: Point; dx: number; dy: number; kerb: number; terminal?: true }[] = [];
+        if (gardenEdge && horizontal && request.entries.includes("east"))
+          frontages.push({ street: point(s, lo(s)), dx: -1, dy: 0, kerb: 0, terminal: true });
         const step = Math.max(4, Math.floor((horizontal ? w : h) / 3));
         for (let v = lo(s) + 1; v < hi(s); v += step) for (const sign of [-1, 1]) {
           const side = horizontal ? (sign > 0 ? "north" : "south") : (sign > 0 ? "west" : "east");
-          if (!request.entries.includes(side)) continue;
-          const street = point(s, v), dx = horizontal ? 0 : sign, dy = horizontal ? sign : 0;
-          const kerb = spanOffsets(span(s.tier))[sign > 0 ? 1 : 0] + 1;
-          const reach = kerb + Math.max(2, margin(s.tier));
+          if (request.entries.includes(side)) frontages.push({ street: point(s, v), dx: horizontal ? 0 : sign,
+            dy: horizontal ? sign : 0, kerb: spanOffsets(span(s.tier))[sign > 0 ? 1 : 0] + 1 });
+        }
+        for (const { street, dx, dy, kerb, terminal } of frontages) {
+          const reach = terminal ? margin(s.tier) + 3 : kerb + Math.max(2, margin(s.tier));
           const entry = { x: street.x + reach * dx, y: street.y + reach * dy };
           const x = entry.x - (dx > 0 ? 0 : dx < 0 ? w - 1 : w >> 1);
           const y = entry.y - (dy > 0 ? 0 : dy < 0 ? h - 1 : h >> 1);
@@ -1815,7 +1820,7 @@ export function composeUrban(
             w: dx ? reach - kerb + 1 : 3, h: dy ? reach - kerb + 1 : 3 };
           const ground = { x, y, w, h, entry, street, approach };
           const mx = x + (w >> 1), my = y + (h >> 1);
-          if (!holds(mx, my, wallMargin + 1) || !space(ground, frameInterior ?? plaza, 2) ||
+          if ((!gardenEdge && !holds(mx, my, wallMargin + 1)) || !space(ground, frameInterior ?? plaza, 2) ||
               squares.some(q => !space(ground, q, 2)) ||
               grounds.some(q => q && (!space(ground, q, 2) || !space(ground, q.approach, 1) ||
                 !space(approach, q, 1) || !space(approach, q.approach)))) continue;
@@ -1836,7 +1841,7 @@ export function composeUrban(
           const score = boundary + slope * .4 + s.tier * 4 +
             (request.near ? Math.hypot(mx - request.near.x, my - request.near.y) * .38 : 0) +
             (request.position === "square" ? behind : 0) - (request.position === "rise" ? altitude * .8 : 0);
-          candidates.push({ ground, street: s, score });
+          candidates.push({ ground, street: s, score: terminal ? s.tier * 6 + Math.abs(street.y - focus.y) * .3 + slope * .4 : score });
         }
       }
       for (const { ground: r, street } of candidates.sort((a, b) => a.score - b.score)) {
@@ -1857,7 +1862,7 @@ export function composeUrban(
           for (let y = rect.y; y < rect.y + rect.h && ok; y++) for (let x = rect.x; x < rect.x + rect.w; x++) {
             const z = elevation?.(x, y) ?? 0;
             low = Math.min(low, z); high = Math.max(high, z);
-            if (!holds(x, y, wallMargin + 1) || (usable && !usable(x, y)) || high - low > 14) { ok = false; break; }
+            if ((!gardenEdge && !holds(x, y, wallMargin + 1)) || (usable && !usable(x, y)) || high - low > 14) { ok = false; break; }
           }
         }
         if (usable && ok) {

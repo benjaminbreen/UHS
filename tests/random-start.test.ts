@@ -1,4 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { random } from "../src/core/random";
+import { berthFor } from "../src/content/geography/regions/ports";
+import { watersidePlace } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
 import { characterSex } from "../src/content/characters/generate";
 import population from "../src/content/geography/population.generated.json" with { type: "json" };
@@ -15,6 +18,18 @@ describe("random starts", () => {
       const start = randomStartFromDraws(new Uint32Array([index, 0, 0]), "any");
       expect(start.setting.placeId).toBe(id);
     }
+  });
+
+  it("draws a civilian waterfront neighbourhood within a dated port catchment", () => {
+    const draws=new Uint32Array([places.findIndex(p=>p.id==="city-detroit"),0,0xffffffff,0]);
+    let seed=""; let i=0;
+    do {seed="river-"+i++;} while(random(seed,"waterside-neighbourhood")>=.08 || random(seed,"underground-start")<.5);
+    const {setting}=randomStartFromDraws(draws,"any",seed);
+    expect(setting).toMatchObject({placeId:"detroit-terminal",water:"river-ew",settlementPattern:"waterfront"});
+    expect(setting.role).not.toMatch(/dockworker|stevedore|longshoreman/i);
+    expect(berthFor("ensenada",1996)).toBeUndefined();
+    expect(berthFor("ensenada",1997)?.siteId).toBe("ensenada-terminal");
+    expect(watersidePlace(places.find(p=>p.id==="city-mwanza")!,1650)).toMatchObject({water:"lake",settlement:"village"});
   });
 
   it("samples 13,000 BCE through the present in proportion to global population", () => {
@@ -35,7 +50,7 @@ describe("random starts", () => {
           new Uint32Array([(i * 2654435761) >>> 0, 0, 0x9000_0000]),
           mode,
         );
-        const culture = byId.get(start.setting.placeId)!.culture;
+        const culture = byId.get(start.setting.placeId)?.culture ?? start.setting.culture;
         counts[culture] = (counts[culture] ?? 0) + 1;
       }
       return (key: string) => (counts[key] ?? 0) / 1500;

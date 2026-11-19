@@ -354,6 +354,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "early-buddhism",
+    worship: ["Theravada Buddhist", "Buddhist"],
     realm: "buddhist",
     features: ["sacred-texts"],
     label: "Early Buddhism",
@@ -440,6 +441,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "jainism",
+    worship: ["Jain"],
     realm: "jain",
     features: ["sacred-texts"],
     label: "Jain practice",
@@ -522,6 +524,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "gupta-puranic",
+    worship: ["Hindu and Buddhist", "Hindu"],
     realm: "hindu",
     features: ["sacred-texts"],
     label: "Gupta-era Puranic Hinduism",
@@ -623,6 +626,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "tamil-shaivism",
+    worship: ["Hindu and Buddhist", "Hindu"],
     realm: "hindu",
     features: ["sacred-texts"],
     label: "Tamil Shaivism",
@@ -699,6 +703,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "krishna-vaishnavism",
+    worship: ["Hindu and Buddhist", "Hindu"],
     realm: "hindu",
     features: ["sacred-texts"],
     label: "Medieval Krishna Vaishnavism",
@@ -772,6 +777,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "sikh-gurus",
+    worship: ["Sikh"],
     realm: "sikh",
     features: ["sacred-texts"],
     label: "Sikh Gurus",
@@ -847,6 +853,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "village-goddess-practice",
+    worship: ["Hindu and Buddhist", "Hindu"],
     realm: "hindu",
     label: "Village goddess and spirit practice",
     wiki: "https://en.wikipedia.org/wiki/Gramadevata",
@@ -937,6 +944,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "theravada-sri-lanka",
+    worship: ["Theravada Buddhist", "Buddhist"],
     realm: "buddhist",
     features: ["sacred-texts"],
     label: "Theravada Buddhism in Sri Lanka",
@@ -1112,6 +1120,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "delhi-sultanate",
+    worship: ["Islam"],
     realm: "islam",
     label: "Delhi Sultanate practice",
     wiki: "https://en.wikipedia.org/wiki/Delhi_Sultanate",
@@ -1148,6 +1157,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "mughal-delhi",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Mughal Delhi and Agra",
@@ -1233,6 +1243,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "indo-islamic-sufi",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Indo-Islamic Sufi practice",
@@ -1356,6 +1367,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "hindu-reform",
+    worship: ["Hindu"],
     realm: "hindu",
     features: ["sacred-texts"],
     label: "Colonial-era Hindu reform",
@@ -1518,6 +1530,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "deccan-regional",
+    worship: ["Hindu"],
     realm: "hindu",
     label: "Deccan regional practice",
     wiki: "https://en.wikipedia.org/wiki/Deccan_Plateau",
@@ -1667,6 +1680,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "bengal-specific",
+    worship: ["Hindu"],
     realm: "hindu",
     label: "Bengal regional practice",
     wiki: "https://en.wikipedia.org/wiki/Bengali_Hindus",

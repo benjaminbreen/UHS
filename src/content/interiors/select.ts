@@ -1,8 +1,13 @@
+import { civicRules } from "../settlements/civic";
+import { localWorship, worship } from "./worship";
 import { waterfrontProfiles } from "../settlements/waterfronts";
+import { shopFor, shopKind } from "./shops";
+import { regionalHall } from "./civic";
 import { worksiteInterior } from "./worksites";
 import { interiorProfile, type InteriorProfile } from "./index";
 
 export type InteriorSite = {
+  worshipSchool?: string;
   lon: number;
   lat: number;
   year: number;
@@ -94,6 +99,7 @@ const PUBLIC: Rule[] = [
   { lon: [-18, -1.5], lat: [20, 35.9], from: 680, pick: () => "hammam" },
   { lon: [-1.5, 12], lat: [20, 37.4], from: 680, pick: () => "hammam" },
   { lon: [12, 34], lat: [20, 33], from: 680, pick: () => "hammam" },
+  { lon: [-12, 19], lat: [36, 72], from: 1901, pick: () => "modern-parish" },
   // Churches by confession and age: the Orthodox east, Protestant north, Catholic south and New Spain, medieval everywhere before.
   { lon: [19.5, 30], lat: [34, 46], from: 500, to: 1453, pick: () => "orthodox-church" },
   { lon: [19, 30], lat: [34, 46], from: 500, pick: () => "orthodox-church" },
@@ -117,12 +123,13 @@ const PUBLIC: Rule[] = [
   { lon: [95, 120], lat: [-10, 25], from: 500, pick: () => "hindu-temple" },
   { lon: [-10, 50], lat: [28, 48], from: -600, to: 400, pick: () => "classical-temple" },
   { lon: [25, 60], lat: [28, 42], from: -3000, to: -500, pick: () => "mesopotamian-temple" },
-  { lon: [24, 36], lat: [15, 32], to: 350, pick: () => "mesopotamian-temple" },
+  { lon: [24, 36], lat: [15, 32], to: 350, pick: () => "nile-temple" },
   { lon: [-106, -84], lat: [12, 24], from: 250, to: 1550, pick: () => "maya-temple" },
   { lon: [-11, 32], lat: [36, 72], from: 1200, to: 1900, pick: () => "council-chamber" },
   { lon: [-10, 30], lat: [35, 48], from: -130, to: 400, pick: () => "roman-basilica" },
   { lon: [-11, 32], lat: [36, 72], from: 1400, to: 1850, pick: () => "grammar-school" },
-  { lon: [-180, 180], lat: [-60, 75], from: 1850, to: 1960, pick: () => "board-school" },
+  { lon: [-180, 180], lat: [-60, 75], from: 1850, to: 1959, pick: () => "board-school" },
+  { lon: [-180, 180], lat: [-90, 90], from: 1960, pick: () => "day-school" },
   { lon: [128, 146], lat: [30, 46], from: 1600, to: 1880, pick: () => "terakoya" },
   { lon: [-18, 75], lat: [5, 46], from: 1000, pick: () => "madrasa" },
   { lon: [-18, 25], lat: [5, 22], from: 1100, pick: () => "quranic-school" },
@@ -142,6 +149,8 @@ const PUBLIC: Rule[] = [
 /** A place's claim as the key its interior is chosen by: `venue-venue.x` is
  * `venue.x`, `religious-x` and `civic-x` are `religious.x` and `civic.x`. */
 export function buildingUse(claim: string) {
+  if(claim==="bakery" || claim==="grocer")return "shop."+claim;
+  if(claim==="grain-warehouse")return "waterfront.store";
   if (claim.startsWith("venue-")) return claim.slice(6);
   if (claim.startsWith("worksite-")) return claim.replace("-", ".");
   if (claim==="waterfront-gear")return "waterfront.gear";
@@ -156,7 +165,9 @@ const halls = new Map<string, InteriorProfile>();
  * plain dais. Illustrative, and its note says so. */
 function meetingHall(site: InteriorSite): InteriorProfile {
   const home = interiorProfileFor({ ...site, use: undefined });
-  const known = halls.get(home.id);
+  const civic = civicRules.find(c => c.interior && site.use === "civic." + c.id);
+  const key = civic ? home.id + "/" + civic.id : home.id;
+  const known = halls.get(key);
   if (known) return known;
   const floor = home.seating === "floor";
   const hall: InteriorProfile = {
@@ -179,16 +190,21 @@ function meetingHall(site: InteriorSite): InteriorProfile {
     basis: "reconstructed",
     note: `An illustrative hall, built as ${home.label.toLowerCase()}s are: the institution and its form have not been researched for this place and date.`,
   };
-  halls.set(home.id, hall);
-  return hall;
+  const profile = civic ? regionalHall(hall, civic) : hall;
+  halls.set(key, profile);
+  return profile;
 }
 
 /** The interior a public building has here and now, if one has been made. */
 export function publicInteriorFor(site: InteriorSite): InteriorProfile | undefined {
   if (!site.use) return;
-  if(site.use==="waterfront.gear") {
+  if(site.use.startsWith("shop.")){
+    const kind=shopKind(site.use.slice(5));
+    if(kind)return shopFor(interiorProfileFor({...site,use:undefined}),kind,site);
+  }
+  if(site.use==="waterfront.gear" || site.use==="waterfront.store") {
     const home=interiorProfileFor({...site,use:undefined}),gear=waterfrontProfiles.find(p=>p.gear===site.frame)?.gearInterior;
-    return {...home,door:gear?.door ?? home.door,windowStyle:gear?.windows ?? home.windowStyle,id:`fishing-gear-${home.id}`,label:"Fishing gear store",uses:[site.use],size:[10,9],rooms:undefined,
+    return {...home,door:gear?.door ?? home.door,windowStyle:gear?.windows ?? home.windowStyle,id:`${site.use==="waterfront.store" ? "grain-warehouse" : "fishing-gear"}-${home.id}`,label:site.use==="waterfront.store" ? "Grain warehouse" : "Fishing gear store",uses:[site.use],size:[10,9],rooms:undefined,
       program:undefined,sleep:"none",fire:"none",smokehole:false,pole:false,trades:["household"],kits:{household:[]},clutter:[],regulars:undefined,
       furnish:["shelf","basket","crate","table","lamp"],styles:{shelf:"open"},
       looks:home.looks.map(l=>({...l,...(gear ? {wall:gear.wall,floor:gear.floor,windows:gear.windows==="none" ? 0 : 2} : {}),furnish:[]})) as unknown as InteriorProfile["looks"]};
@@ -208,10 +224,16 @@ export function publicInteriorFor(site: InteriorSite): InteriorProfile | undefin
     if (r.from !== undefined && site.year < r.from) continue;
     if (r.to !== undefined && site.year > r.to) continue;
     const found = interiorProfile(r.pick(site));
-    if (found?.uses?.includes(site.use)) return found;
+    if (found?.uses?.includes(site.use)) return found.observance ? localWorship(found, site.use, site.year, site.worshipSchool) : found;
   }
-  // A synagogue, fire temple or shrine with no researched interior of its own.
-  if (/^(religious|civic)\./.test(site.use)) return meetingHall(site);
+  if (site.use.startsWith("religious.")) {
+    const claimed = worship.find(p => p.uses?.includes(site.use!));
+    if (claimed) return localWorship(claimed, site.use, site.year, site.worshipSchool);
+    const hall = meetingHall(site);
+    return {...hall, label:"Gathering place", institution:"worship", styles:{}, furnish:[], regulars:{hours:[7,16],fill:.1},
+      observance:{gathering:{label:"Gathering quietly",room:"entry"}, visit:{label:"Visiting the shrine",room:"entry"}}};
+  }
+  if (site.use.startsWith("civic.")) return meetingHall(site);
 }
 
 /** Whether whoever keeps a venue lives in it: yes over a taproom, no in a

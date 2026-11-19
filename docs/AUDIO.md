@@ -14,7 +14,7 @@ making or tuning a sound, load the `sound` skill.
 | `*-themes.ts` | Regional and time-of-day pieces (`european-`, `african-`, `andean-`, `ancient-`, `modern-`, `neolithic-`, `south-asian-`, `main-`, `noon-`, `afternoon-`, `overworld-`, `winter-train-theme.ts`) |
 | `cultural-themes.ts` | `culturalMusic` (what a place and year may play) and `MusicRotation` |
 | `situation-themes.ts` | Arrival, passing, timeslip, work, danger and combat cues; `threatMusic` decides danger or combat |
-| `interior-themes.ts` | `interiorMusic`: music by building use and faith |
+| `interior-themes.ts` | `interiorMusic` selects music by building use |
 | `synth.ts`, `synth-worker.ts` | Instruments, effects, offline WAV rendering |
 | `sfx.ts`, `handling.ts`, `time.ts`, `voices.ts`, `sfx-tuning.{ts,json}` | Effects: steps, strikes, tools, handling, eating, doors, fire, trains, beasts and voices |
 | `ambience.ts` | `ambienceFor` (the ambient mix), `Room` (indoor echo by room size and finish), `surfaceFor`, `townKindFor`, `bellFor` |
@@ -38,6 +38,7 @@ making or tuning a sound, load the `sound` skill.
   seconds without a threat.
 - Plot endings, time travel and death have their own cues.
 - Entering a building can switch to its interior music.
+- In a place of worship, hospital, school, magistrate’s office or covered bazaar, the automatic score fades so the room activity can be heard.
 
 **Adding music:** write a `LayeredTheme` in the regional `*-themes.ts` file
 and add it to that file's exported list, which `layered-themes.ts` gathers.
@@ -64,6 +65,10 @@ Outdoors is dry.
 water or sea, town murmur (louder on market day) and hearth. Indoors muffles the outdoor beds. Rain
 follows `Weather.rain` (0–1), which comes and goes in showers by climate.
 Thunder and frog calls are separate sounds.
+
+Institutional activity comes from the nearest awake person within earshot. A modern ward has linen, metal trays and occasional wheels. Earlier wards use cups and cloth. Classrooms and clerks’ rooms use the setting’s writing tools. A pottery stall has ceramic knocks and a draper’s stall has the rustle of cloth. Floor materials change the footfalls, and sounds soften across a doorway. An empty institution keeps its local outdoor ambience and room acoustics. The Audio studio’s **Weather & place** scenes include wards in Edo and London, a board school, a yamen office and a bazaar stall.
+
+A worshipper’s activity supplies the sound inside a sacred building. A reader recites alone, a congregation answers together, and a temple attendant can strike a wooden block. The voices are wordless synthesis. During a scripture reading the dialogue toast carries the words, and the room mix follows the reader. Ordinary noon and afternoon mosque prayers are quiet. Washing at a courtyard basin or serving a meal has its own sound. Rain is audible in an open court and muffled under a roof. The Audio studio has examples from a parish nave, a mosque prayer hall and a Buddhist temple.
 
 **Town street sounds** come over the murmur, chosen by period and size
 (`townKindFor`):

@@ -127,6 +127,7 @@ export const southAsiaReligious: ReligiousRule[] = [
   {
     id: "gurdwara",
     faith: "Sikh",
+    offices: ["Granthi"],
     recipe: "gurdwara",
     labels: { small: "Gurdwara", medium: "Gurdwara", large: "Great gurdwara" },
     from: 1600,

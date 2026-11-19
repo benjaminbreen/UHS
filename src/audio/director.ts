@@ -382,10 +382,10 @@ export class AudioDirector {
       this.sfx = this.ctx.createGain();
       this.sfx.gain.value = this.state.sfxVolume;
       this.sfx.connect(this.master);
-      this.ambience = new Ambience(this.ctx, this.sfx);
-      this.ambience.set(this.heard(this.scene));
       this.room = new Room(this.ctx, this.sfx);
       this.room.set(this.heard(this.scene));
+      this.ambience = new Ambience(this.ctx, this.sfx, true, this.room.input(0));
+      this.ambience.set(this.heard(this.scene));
       this.syncUnder();
     }
     if (this.ctx.state === "suspended") await this.ctx.resume();

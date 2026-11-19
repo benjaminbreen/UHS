@@ -2,7 +2,7 @@ import { occasions as allOccasions, festivals as allFestivals } from "../content
 import type { Festival, Occasion, PlaceWant, Trigger } from "../content/days/types";
 import type { WorldSetting } from "../content/geography/types";
 import { matchesCharacterScope } from "../content/characters/resolve";
-import { beliefOf, beliefsFor, type PersonalBelief } from "../content/beliefs";
+import { beliefOf, beliefsForActor, type PersonalBelief } from "../content/beliefs";
 import type { PersonalAim } from "../content/goals/types";
 import { sexOf } from "./brief";
 import { outlookOf } from "./outlook";
@@ -113,8 +113,7 @@ const CRAFTS: [RegExp, RegExp][] = [
 function factsOf(seed: string, setting: WorldSetting, p: Person): Facts {
   let f = facts.get(p.actor);
   if (f) return f;
-  const community = p.actor.origin?.community;
-  const belief = beliefOf(seed, p.actor, beliefsFor(setting, community));
+  const belief = beliefOf(seed, p.actor, beliefsForActor(setting,p.actor));
   const domain = CRAFTS.find(([work]) => work.test(p.work))?.[1];
   f = {
     stats: statsOf(seed, p.actor),
@@ -140,6 +139,7 @@ export type AgendaItem = {
   part: Occasion["part"];
   place: PlaceWant;
   activity: StationActivity;
+  participate?: Occasion["participate"];
   minutes: number;
   carry?: Occasion["carry"];
   evidence: Occasion["evidence"];
@@ -337,6 +337,8 @@ export function agendaOf(
   const community = person.actor.origin?.community ?? "*";
   const bound = allOccasions.flatMap((o) => {
     if (!matchesCharacterScope(o.scope, setting, community) || !can(o.place)) return [];
+    const tradition = o.worship ?? (typeof o.place === "object" && "worship" in o.place && o.participate?.action !== "meal" ? o.place.worship : undefined);
+    if (tradition && !f.belief.system.worship?.includes(tradition)) return [];
     const b = bind(o, seed, setting, person, f, cal);
     return b ? [{ o, ...b }] : [];
   });
@@ -370,6 +372,7 @@ export function agendaOf(
     part: o.part,
     place: o.place,
     activity: o.activity,
+    ...(o.participate && {participate:o.participate}),
     minutes: o.minutes,
     carry: o.carry,
     evidence: o.evidence,

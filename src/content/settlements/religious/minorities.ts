@@ -1,13 +1,8 @@
 import { over, type ReligiousRule } from "./types";
 
-/**
- * Faiths that were the town's own only in a few places: the Galilean
- * villages, the Jewish cities of the Ottoman world and of the Polish
- * borderlands, the Parsi towns of Gujarat. A rule names those places; a
- * community living as a minority elsewhere is not yet drawn.
- */
 const synagogue = {
   faith: "Jewish",
+  offices: ["Rabbi","Cantor"],
   labels: { small: "Synagogue", medium: "Synagogue", large: "Great synagogue" },
   side: "north",
   about:
@@ -19,6 +14,7 @@ export const minorityReligious: ReligiousRule[] = [
   {
     ...synagogue,
     id: "galilean-synagogue",
+    offices: ["Rabbi","Synagogue attendant"],
     recipe: "galilean-synagogue",
     culture: "north-african-west-asian",
     // Narrower than the Byzantine rule over the Levant, so it wins here.
@@ -84,3 +80,14 @@ export const minorityReligious: ReligiousRule[] = [
     },
   },
 ];
+
+
+const sephardiQuarter = {
+  ...minorityReligious.find(r => r.id === "sephardi-synagogue")!, congregationOnly: true, to: 1923,
+  evidence: {status: "inferred" as const, sources: ["https://izmir.ktb.gov.tr/EN-242297/synagogues.html"],
+    note: "Sephardi congregations in Ottoman cities had neighbourhood prayer and study rooms. The shared court is an illustrative footprint."},
+};
+minorityReligious.push(
+  ...over({...sephardiQuarter, from:1500}, [28.8,40.9,29.2,41.2], [26.4,41.5,26.7,41.8]),
+  {...sephardiQuarter, from:1600, bounds:[26.9,38.3,27.3,38.6]},
+);

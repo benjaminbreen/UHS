@@ -6,7 +6,7 @@ import { venueBuilding, venuesFor } from "../../content/venues";
 import type { CivicProfile } from "../../content/settlements/civic/types";
 import {
   religiousProfile,
-  religiousScale,
+  religiousScale, neighborhoodCongregations, sanctuarySchool,
 } from "../../content/settlements/religious";
 import type { ReligiousProfile } from "../../content/settlements/religious/types";
 import { urbanForm } from "../../content/settlements/urban-form";
@@ -90,12 +90,12 @@ export type UrbanLot = {
   /** The ground between a grand house and its street. */
   forecourt?: Rect;
   civic?: CivicProfile;
-  religious?: ReligiousProfile & { scale: "small" | "medium" | "large" };
+  religious?: ReligiousProfile & { scale: "small" | "medium" | "large"; secondary?: boolean; label?: string; school?: NonNullable<ReligiousProfile["schools"]>[number] };
   /** Somewhere people go after work. Stage one gives it no building of its
    * own: it is an ordinary house with a public door and a different name. */
   venue?: import("../../content/venues").Venue;
   /** A building standing on a precinct's edge: public, unhoused. */
-  piece?: { name: string; about: string; claim?: string };
+  piece?: { name: string; about: string; claim?: string; venueRoom?: import("../../core/types").Place["venueRoom"] };
   /** The paved lot a roadside business stands on. */
   site?: { kind: import("./sites").SiteKind; rect: Rect };
 };
@@ -162,7 +162,7 @@ export type UrbanSurface = {
   /** A precinct's own ground: walkable, public, one surface. */
   elevation?(x: number, y: number): number;
   courtWell(at: Point, id: string): void;
-  paintGround(ground: PrecinctGround, surface: Terrain, id: string, name: string, garden?: Rect, ward?: Rect): void;
+  paintGround(ground: PrecinctGround, surface: Terrain, id: string, name: string, garden?: import("./types").SettlementPlan["parterre"], ward?: Rect): void;
   wardDitch(grounds: Rect, ward: Rect, gate: Point, outward: Point, wet: boolean): void;
   /** A market pitch, trading like the square's counters. */
   stall(at: Point, index: number, trade: number): void;
@@ -282,7 +282,7 @@ export function siteForm(site: Site, pack: Pack): UrbanForm {
     (base.districts?.length ?? 1) > 1;
   const regional: UrbanForm = {
     ...base,
-    wall: decodeURIComponent(site.id).includes("@") ? "none" : base.wall,
+    wall: decodeURIComponent(site.id).includes("@") || royalGround(pack.setting!, site.name ?? (site.home ? pack.setting!.location : ""))?.palace ? "none" : base.wall,
     motor,
     streetWall: industrialized(pack.setting!) && !plottedTown(pack),
     ...(oldCore ? { oldCore, ring: true } : {}),
@@ -439,19 +439,30 @@ export function urbanNeighborhood(
     venuesFor(pack.setting, carries),
     site.profile.radius,
   );
-  // A mosque's court and hall are cut out of the fabric like a precinct's
-  // ground: in a town of lanes no side of the square has room for them.
   const sanctuary = religiousProfile(pack.setting!);
+  const school = sanctuary && sanctuarySchool(sanctuary, pack.year, seed, `${site.id}-religious`);
+  const congregations = (sanctuary ? neighborhoodCongregations(pack.setting!, sanctuary, school?.id, site.profile.radius, seed, site.id) : [])
+    .flatMap(({profile, school, label}) => {
+      const look = regionalLook(`religious-${profile.recipe}`, pack.setting) ?? Math.floor(rand("congregation-look", profile.id) * 3);
+      const frame = [profile.recipe, `religious-${profile.recipe}-small-${look}`, `religious-${profile.recipe}-small-0`].find(f => buildingModels[f]);
+      if (!frame) return [];
+      const model = buildingModel(frame), [w, h] = model.footprint;
+      const entries = (["south","north","east","west"] as const).filter(side => {
+        const facing = buildingModels[side === "south" ? frame : `${frame}-${side}`];
+        return facing?.footprint[0] === w && facing.footprint[1] === h;
+      });
+      return [{profile, school, label, frame, model, entries}];
+    });
   const order = ["large", "medium", "small"] as const;
   const sanctuaryFrame = (s: (typeof order)[number]) =>
     (sanctuary?.recipe === "mediterranean-shrine" && mediterraneanShrineFrame(pack.setting, s)) || `religious-${sanctuary!.recipe}-${s}-0`;
-  const mosqueScales = sanctuary && /-mosque$|^(chinese|japanese)-temple$|^mediterranean-shrine$/.test(sanctuary.recipe)
-    ? order.slice(order.indexOf(religiousScale(site.profile.radius))).filter((s) => buildingModels[sanctuaryFrame(s)])
+  const sanctuaryScales = sanctuary && (congregations.length || /-mosque$|^(chinese|japanese)-temple$|^mediterranean-shrine$/.test(sanctuary.recipe))
+    ? (sanctuary.drawnAt ? [sanctuary.drawnAt] : order.slice(order.indexOf(religiousScale(site.profile.radius)))).filter(s => buildingModels[sanctuaryFrame(s)])
     : [];
   // Where the culture walled its sanctuaries, the ground keeps room for the
   // precinct wall at the sides and back.
   const verge = ["east-asian", "south-asian", "southeast-asian", "north-african-west-asian"].includes(pack.setting?.culture ?? "") ? 3 : 0;
-  const mosqueSize = (s: (typeof order)[number]) => {
+  const sanctuarySize = (s: (typeof order)[number]) => {
     const [w, h] = buildingModel(sanctuaryFrame(s)).footprint;
     return [w + 2 * verge, h + 3 + verge] as [number, number];
   };
@@ -521,9 +532,9 @@ export function urbanNeighborhood(
   })() : undefined;
   const requests: PrecinctRequest[] = [];
   const seatIndex = requests.length;
-  if (seat) requests.push({ position: seat.position, near: seat.castle ? api.shore : undefined, divertLane: !!seat.castle,
+  if (seat) requests.push({ position: seat.position, near: seat.castle ? api.shore : undefined, divertLane: true,
     entries: seat.position === "garden" ? ["east"] : ["south", "west", "east"],
-    sizes: seat.position === "garden" ? [[34, 24], [24, 16], [16, 12]] :
+    sizes: seat.palace === "royal" ? [[46, 30], [42, 28], [38, 26], [34, 24]] : seat.palace ? [[32, 22], [28, 20], [28, 18]] :
       [[36, 27], [29, 22], [23, 26], [25, 19], [23, 17], [18, 21], [21, 16], [18, 18], [16, 20], [18, 15], [17, 14], [15, 12]] });
   const hallIndex = requests.length;
   if (hall) requests.push({ position: "square", entries: ["south"],
@@ -531,7 +542,12 @@ export function urbanNeighborhood(
   const venueIndex = requests.length;
   for (const p of precincts) requests.push({ ...p.siting, sizes: p.options.map(o => o.size) });
   const sanctuaryIndex = requests.length;
-  if (mosqueScales.length) requests.push({ position: "square", entries: ["south"], sizes: mosqueScales.map(mosqueSize) });
+  if (sanctuaryScales.length) requests.push({ position: "square", entries: ["south"], sizes: sanctuaryScales.map(sanctuarySize) });
+  const congregationIndex = requests.length;
+  for (const {entries, model} of congregations) {
+    const [w, h] = model.footprint;
+    requests.push({position:"outer", entries, sizes:[[w + 2, h + 2]]});
+  }
   const layout = composeUrban(
     site.id,
     site.center,
@@ -646,7 +662,7 @@ export function urbanNeighborhood(
     }
     if (ground.apron) api.paintForecourt(ground.apron);
     // A church in a plotted town stands in its own walled yard.
-    if (lot.religious && /Christian|Catholic/.test(lot.religious.faith) && plotted && api.churchyard) {
+    if (lot.religious && !lot.religious.secondary && /Christian|Catholic/.test(lot.religious.faith) && plotted && api.churchyard) {
       const r = lot.rect;
       // As much of a generous yard as the ground allows.
       const yard = [6, 4, 3]
@@ -982,9 +998,39 @@ export function urbanNeighborhood(
   const lots: UrbanLot[] = [];
   const estate = seat && layout.grounds[seatIndex];
   if (estate && seat) {
-    const garden = seat.position === "garden" ? { x: estate.x, y: estate.y, w: Math.floor(estate.w / 2), h: estate.h } : undefined;
-    if (!seat.castle) api.paintGround(estate, "paving", seat.id, seat.name, garden);
-    else {
+    if (seat.palace) {
+      const royal = seat.palace === "royal", cy = estate.entry.y;
+      const deep = rand("palace-court-depth"), wide = rand("palace-court-width");
+      const garden = { x: estate.x + 1, y: estate.y + 1, h: estate.h - 2, royal, seed: Math.floor(rand("parterre") * 997),
+        w: Math.floor(estate.w * (royal ? .38 : .32)) - (deep < .45 ? 0 : 1) };
+      api.paintGround(estate, "paving", seat.id, seat.name, garden);
+      const wingForm = royal ? "wing" : "pavilion";
+      const wingFrame = `hall-palace-${wingForm}-${(royal ? estate.w >= 40 : wide > .5) ? "medium" : "small"}-0`;
+      const wing = buildingModel(wingFrame);
+      const mainFrame = `hall-palace-residence-${royal ? "medium" : "small"}-0`, main = buildingModel(mainFrame);
+      const mx = garden.x + garden.w + 1, my = cy - (main.footprint[1] >> 1);
+      const wx = royal ? mx + main.footprint[0] : estate.x + estate.w - wing.footprint[0] - 4;
+      const wy = royal ? my - 2 : cy - 5 - Math.floor(wide * 2);
+      const stand = (frame: string, x: number, y: number, part: "residence" | "north-wing" | "south-wing", name: string) => {
+        const model = buildingModel(frame), [w, h] = model.footprint;
+        const rect = { x, y, w, h }, point = { x: x + model.entrance[0], y: y + model.entrance[1] };
+        claimLandmark({ rect, yard: rect, frame, point, nx: 0, ny: -1, workPoint: point,
+          piece: { name, about: model.description, claim: `civic-palace-${part}`,
+            venueRoom: seat.rooms && { venue: seat.id, room: seat.rooms[part] } } });
+        api.paintForecourt({ x: point.x - 1, y: point.y, w: 3, h: 1 }, "slab");
+      };
+      stand(mainFrame, mx, my, "residence", main.label);
+      stand(wingFrame, wx, wy, "north-wing", royal ? "North gallery" : "Steward’s pavilion");
+      stand(wingFrame, wx, 2 * cy - wy - wing.footprint[1] + 1, "south-wing", royal ? "South gallery" : "Carriage pavilion");
+      const courtX = mx + main.footprint[0], limit = estate.x + estate.w;
+      api.paintForecourt({ x: courtX, y: wy + wing.footprint[1], w: limit - courtX - 2, h: 2 * (cy - wy - wing.footprint[1]) + 1 }, royal ? "cobble" : "slab");
+      if (royal) {
+        const depth = Math.min(6, wx + wing.footprint[0] - courtX);
+        for (let y = cy - 3; y <= cy + 3; y++) for (let x = courtX; x < courtX + depth; x++)
+          api.paintForecourt({ x, y, w: 1, h: 1 }, (x - courtX + y - cy) % 2 ? "slab" : "basalt");
+      }
+      api.paintForecourt(estate.approach, "cobble");
+    } else if (seat.castle) {
       const skin = seat.castle, court = skin.approach === "forecourt";
       const wall = wardCircuit(estate, skin.material, seat.id, rand("ward-return") < .65, skin.approach === "moat");
       const ward = wall.rect, gate = wall.gates[0], entry = gate.opening[gate.opening.length >> 1];
@@ -1198,8 +1244,8 @@ export function urbanNeighborhood(
       Math.floor(rand("religious-look") * 3);
     // A mosque that found no ground of its own tries its own size first, then
     // smaller, and set back from the square; a church keeps the one it had.
-    const wide = mosqueScales.length > 0;
-    const scales = wide ? mosqueScales : [religious.drawnAt ?? religiousScale(site.profile.radius)];
+    const wide = sanctuaryScales.length > 0;
+    const scales = wide ? sanctuaryScales : [religious.drawnAt ?? religiousScale(site.profile.radius)];
     const civicSide: [number, number] | undefined =
       civicRect &&
       (civicRect.y + civicRect.h <= front.y
@@ -1277,10 +1323,11 @@ export function urbanNeighborhood(
         return { nx, ny, frame, model, rect, forecourt, scale };
       });
     })));
-    const ground = mosqueScales.length ? layout.grounds[sanctuaryIndex] : undefined;
-    const groundScale = ground && mosqueScales.find((s) => mosqueSize(s)[0] === ground.w && mosqueSize(s)[1] === ground.h);
+    const ground = sanctuaryScales.length ? layout.grounds[sanctuaryIndex] : undefined;
+    const groundScale = ground && sanctuaryScales.find((s) => sanctuarySize(s)[0] === ground.w && sanctuarySize(s)[1] === ground.h);
     const onGround = ground && groundScale && (() => {
-      const frame = religious.recipe === "mediterranean-shrine" ? sanctuaryFrame(groundScale) : `religious-${religious.recipe}-${groundScale}-${look}`;
+      const variant = `religious-${religious.recipe}-${groundScale}-${look}`;
+      const frame = religious.recipe !== "mediterranean-shrine" && buildingModels[variant] ? variant : sanctuaryFrame(groundScale);
       const model = buildingModel(frame),
         [w, h] = model.footprint;
       return { nx: 0, ny: -1, frame, model, rect: { x: ground.x + verge, y: ground.y + verge, w, h }, forecourt: { x: ground.x + verge, y: ground.y + verge + h, w, h: ground.h - h - verge }, scale: groundScale };
@@ -1304,11 +1351,24 @@ export function urbanNeighborhood(
           rect: chosen.rect,
           yard: chosen.rect,
           workPoint: point,
-          religious: { ...religious, scale: chosen.scale },
+          religious: { ...religious, school, scale: chosen.scale },
         },
         { forecourt: chosen.forecourt },
       );
     }
+  }
+  for (const [i, {profile, school, label, frame, model}] of congregations.entries()) {
+    const ground = layout.grounds[congregationIndex + i];
+    if (!ground) continue;
+    const [w, h] = model.footprint, rect = {x:ground.x + 1, y:ground.y + 1, w, h};
+    const nx = Math.sign(ground.entry.x - ground.street.x), ny = Math.sign(ground.entry.y - ground.street.y);
+    const facing = nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
+    const sprite = facing === "south" ? frame : `${frame}-${facing}`;
+    const [dx,dy] = buildingModel(sprite).entrance, door = {x:rect.x + dx, y:rect.y + dy};
+    const x = door.x - site.center.x, y = door.y - site.center.y;
+    const side = Math.abs(x) > Math.abs(y) ? (x < 0 ? "West" : "East") : (y < 0 ? "North" : "South");
+    claimLandmark({point:door, workPoint:door, nx, ny, frame:sprite, rect, yard:rect,
+      religious:{...profile, scale:"small", secondary:true, label:label && `${side} ${label.toLowerCase()}`, school}}, {apron:ground});
   }
   if (pack.setting && site.profile.radius >= 30) {
     const retained = !!retainedTowerStyle(pack.setting);

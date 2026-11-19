@@ -407,6 +407,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "ethiopian-orthodox-christian",
+    worship: ["Ethiopian Orthodox Christian"],
     realm: "orthodox",
     features: ["sacred-texts"],
     label: "Ethiopian Orthodox Christian practice",
@@ -480,6 +481,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
   },
   {
     id: "early-swahili-coast",
+    worship: ["Islam"],
     realm: "islam",
     label: "Early Swahili coast Islam with older layers",
     scope: { years: [800, 2025], bounds: [38.8, -14, 46, 4] },

@@ -686,6 +686,7 @@ export const europeDeepOccasions: Occasion[] = [
   },
   {
     id: "day.orthodox.fast",
+    worship: "Orthodox Christian",
     label: "The Wednesday and Friday fast",
     scope: ORTHODOX,
     evidence: "documented",
@@ -701,6 +702,7 @@ export const europeDeepOccasions: Occasion[] = [
   },
   {
     id: "day.orthodox.name-day",
+    worship: "Orthodox Christian",
     label: "A name day",
     scope: eu([1600, 1950], [19, 34, 30, 46]),
     evidence: "documented",
@@ -715,6 +717,7 @@ export const europeDeepOccasions: Occasion[] = [
   },
   {
     id: "day.orthodox.pascha-eggs",
+    worship: "Orthodox Christian",
     label: "Red eggs for Pascha",
     scope: ORTHODOX,
     evidence: "documented",

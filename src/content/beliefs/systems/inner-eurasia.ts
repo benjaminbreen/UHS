@@ -614,6 +614,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "sogdian-zoroastrianism",
+    worship: ["Zoroastrian"],
     realm: "zoroastrian",
     label: "Sogdian Zoroastrian and Manichaean practice",
     wiki: "https://en.wikipedia.org/wiki/Zoroastrianism",
@@ -835,6 +836,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "central-asian-islam",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Central Asian Islamic practice with Sufi and shrine elements",
@@ -993,6 +995,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "siberian-russian-hybrid",
+    worship: ["Orthodox Christian", "Orthodox and Armenian Christian"],
     realm: "orthodox",
     label: "Russian Orthodox Christianity in Siberia",
     wiki: "https://en.wikipedia.org/wiki/Russian_Orthodox_Church",
@@ -1170,6 +1173,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
   },
   {
     id: "mongolian-buddhism",
+    worship: ["Buddhist", "Buddhism"],
     realm: "buddhist",
     label: "Mongolian Buddhist practice",
     wiki: "https://en.wikipedia.org/wiki/Buddhism_in_Mongolia",

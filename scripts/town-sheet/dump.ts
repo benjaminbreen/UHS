@@ -1,6 +1,6 @@
 /** Dump generated settlements for scripts/town-sheet/compose.py. No browser.
  *
- *   npx tsx scripts/town-sheet/dump.ts [name ...]     # default: the whole panel
+ *   npx vite-node scripts/town-sheet/dump.ts -- [name ...]     # default: the whole panel
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { resolveSetting } from "../../src/content/geography/resolve";
@@ -12,7 +12,7 @@ import panel from "./panel.json" with { type: "json" };
 
 const want = process.argv.slice(2);
 mkdirSync("artifacts/towns", { recursive: true });
-for (const { name, query, seed, radius, settlementLayout, centre } of panel as any[]) {
+for (const { name, query, seed, radius, settlementLayout, centre, precinct } of panel as any[]) {
   if (want.length && !want.includes(name)) continue;
   const r = resolveSetting(query) as any;
   if (r.error) {
@@ -22,7 +22,8 @@ for (const { name, query, seed, radius, settlementLayout, centre } of panel as a
   const setting = settlementLayout
     ? { ...r.setting, settlementLayout }
     : r.setting;
-  const e = createSettingSession(setting, seed ?? "panel") as any;
+  const e = (precinct ? await (await import("../../src/runtime/map-travel")).prepareConnectedStart(setting, seed ?? "panel")
+    : createSettingSession(setting, seed ?? "panel")) as any;
   // "centre": "square" looks at the middle of the largest town near the
   // player, who mostly starts outside it.
   const from = e.state.player.pos;
@@ -34,6 +35,11 @@ for (const { name, query, seed, radius, settlementLayout, centre } of panel as a
         const site = e.world.planAt(Math.round(from.x) + dx, Math.round(from.y) + dy)?.site;
         if (site && site.profile.radius > best) [best, at] = [site.profile.radius, site.center];
       }
+  }
+  if (precinct) {
+    const plot = e.world.planAt(0, 0)?.plots.find((p: { precinct?: { id: string } }) => p.precinct?.id === precinct);
+    if (!plot) throw Error(`Missing ${precinct} in ${name}`);
+    at = { x: plot.x + (plot.w >> 1), y: plot.y + (plot.h >> 1) };
   }
   // TOWN_DISTRICTS: the whole map as a land-use plan, without the ground raster.
   const districts = !!process.env.TOWN_DISTRICTS;

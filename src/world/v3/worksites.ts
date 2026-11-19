@@ -6,9 +6,9 @@ import { buildingModel, buildingArtCells } from "../../content/graphics/models";
 import { worksitesFor } from "../../content/settlements/worksites";
 import type { Rect, SettlementPlan } from "./types";
 import type { Sample } from "./roads";
-import { anchorageAt, planAnchorage } from "./harbor";
+import { installAnchorage, planAnchorage } from "./harbor";
 import { launchAt, shoreDirections, type Launch } from "./shoreline";
-import { fishingWaterfront } from "../../content/settlements/waterfronts";
+import { fishingWaterfront, sailingPort } from "../../content/settlements/waterfronts";
 import { industrialized, motorized } from "../../content/settlements/modernity";
 import { infillStone, streetPalette } from "../../content/settlements/streets/palettes";
 
@@ -139,28 +139,14 @@ export function planWorksites(
           sprite:`${profile.launch.frame}-${direction.id}`,pos:{...boat!,space:"outside"},inventory:{},owner:buildings[0].owner});
         if(profile.launch.fleet==="lateen" && (sample(launch.water.x,launch.water.y).kind==="sea" ||
             s.settlement==="port" && (s.water.startsWith("coast") || s.water==="island"))) {
-          const store={x:buildings[1].entrance.x+2,y:buildings[1].entrance.y+1};
-          const a=planAnchorage(plan,launch,store,sample,s.playableMap ? s.playableMap.size/2 : Infinity);
-          if(a) {
-            plan.anchorage=a;
-            const fleet=anchorageAt(a,0);
-            const canvas=Math.floor(3*(random(seed,id,"sailcloth-lot")<.65 ?
-              random(s.culture,Math.floor(s.year/100),"sailcloth") : random(seed,id,"sailcloth")));
-            for(const form of ["dhow","lighter"] as const){
-              const point=fleet[form],finish=Math.floor(random(seed,id,form,"finish")*3);
-              plan.objects.push({id:plan.site.id+"-"+form,name:form==="dhow" ? "Lateen trading dhow" : "Harbour lighter",
-                kind:"monument",pos:{x:Math.round(point.x),y:Math.round(point.y),space:"outside"},
-                sprite:`harbor-${form}-${finish}-${point.heading}`,inventory:{},
-                vessel:{form,finish,...(form==="dhow" && {canvas}),heading:point.heading,site:plan.site.id,skipper:plan.site.id+"-"+form+"-pilot"},
-                description:form==="dhow" ? "A trading vessel with a lateen yard and a deep cargo hold." : "An open boat for carrying bales between ship and shore."});
-            }
-            const storeId=id+"-bale-store";
-            plan.objects.push({id:storeId,name:"Shaded cloth store",kind:"monument",sprite:"harbor-bale-mat-0",
-              pos:{...store,space:"outside"},inventory:{},description:"The porter stacks cloth here under cover."},
-              {id:id+"-lighter-landing",name:"Lighter landing",kind:"monument",sprite:"harbor-bale-mat-0",
-              pos:{...a.landing,space:"outside"},inventory:{},lighterage:{store:storeId,porter:plan.site.id+"-lighter-porter",site:plan.site.id,lift:-1},
-              description:"The lighter brings bales ashore. Carry one to the shaded store to earn a porter's fee."});
-          }
+          const door=buildings[1].entrance;
+          const store=[4,-4,3,-3].map(dx=>({x:door.x+dx,y:door.y+3})).find(p=>
+            sample(p.x+2,p.y+1).water>1 && !plan.solid.has(key(p.x+2,p.y+1)) &&
+            [-1,0,1].every(dx=>[0,-1].every(dy=>!plan.solid.has(key(p.x+dx,p.y+dy)) &&
+              !plan.traffic.has(key(p.x+dx,p.y+dy)) && sample(p.x+dx,p.y+dy).water>1)));
+
+          const a=store && planAnchorage(plan,launch,store,sample,s.playableMap ? s.playableMap.size/2 : Infinity,"cloth",!!sailingPort(plan.site.namedId ?? (plan.site.home ? s.placeId : undefined),s.year));
+          if(a) installAnchorage(plan,a,direction.id,id,s,seed,sample,paint);
         }
         plan.plots.push({...lane,id:`${id}-launch`,kind:"public",owner:buildings[0].owner,access:origin});
       }

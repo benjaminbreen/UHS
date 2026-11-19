@@ -44,7 +44,8 @@ export type PlaceWant =
   /** Somebody else's door, a real walk away. */
   | "door"
   | { kin: SocialRelation["kind"] }
-  | { venue: string };
+  | { venue: string }
+  | { worship: string };
 
 /**
  * Something a person might do on a particular day that is not their work
@@ -61,7 +62,9 @@ export type Occasion = QualifiedContent & {
   fallback?: boolean;
   part: "morning" | "midday" | "evening";
   place: PlaceWant;
+  worship?: string;
   activity: StationActivity;
+  participate?: { action: "listen" | "meal" | "row"; claim?: string };
   minutes: number;
   carry?: "basket" | "vessel" | "bundle";
   text: string;

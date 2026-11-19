@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import { createSettingSession, type Runtime } from "../src/runtime/session";
-import { plotLine, startPlot, type PlotState } from "../src/core/plot";
+import { endPlot, plotKnown, plotLine, startPlot, stepPlot, type PlotState } from "../src/core/plot";
 import { STANCE_VOICE, stanceOf } from "../src/content/plots/stance";
 import { PLOTS } from "../src/content/plots";
 import { accused } from "../src/content/plots/accused";
@@ -9,6 +9,9 @@ import { debt } from "../src/content/plots/debt";
 import { feast } from "../src/content/plots/feast";
 import { maneater } from "../src/content/plots/maneater";
 import { raid } from "../src/content/plots/raid";
+import { shift } from "../src/content/plots/shift";
+import { slack } from "../src/content/plots/slack";
+import { ruler } from "../src/content/plots/ruler";
 import { token } from "../src/content/plots/token";
 import type { PlotTemplate } from "../src/content/plots/types";
 import { settingFor } from "../src/content/geography/resolve";
@@ -17,7 +20,7 @@ import { Engine } from "../src/core/engine";
 import { doorApproach } from "../src/core/doors";
 import { markOf } from "../src/core/kin";
 import { items } from "../src/content/packs";
-import type { PlayerCommand, Stats } from "../src/core/types";
+import type { PlayerCommand, Position, Stats } from "../src/core/types";
 import { taskView, tasksOf } from "../src/ui/task-view";
 import { smallSession } from "./fixtures";
 
@@ -57,6 +60,135 @@ describe("plot templates", () => {
     }
   });
 
+  it("leaves most lives quiet and keeps the same draw on return", () => {
+    const s = smallSession(setting).state;
+    const draws = drawOnly(feast, () => Array.from({ length: 160 }, (_, i) => {
+      s.manifest.seed = String(i);
+      delete s.plot;
+      const picked = startPlot(s, setting)?.id;
+      delete s.plot;
+      expect(startPlot(s, setting)?.id).toBe(picked);
+      return picked;
+    }));
+    expect(draws.filter(Boolean).length).toBeGreaterThan(5);
+    expect(draws.filter(Boolean).length).toBeLessThan(30);
+  });
+
+  it("ties royal mourning to a recorded death in its region and season", () => {
+    const s = smallSession(setting).state;
+    const news = (lon: number, lat: number, year: number, season: typeof setting.season) => {
+      delete s.plot;
+      return startPlot(s, { ...setting, lon, lat, year, season }, ruler.id)?.title;
+    };
+    expect(news(4.0, 51.95, 2020, "spring")).toBeUndefined();
+    expect(news(12.5, 41.9, 14, "summer")).toBe("Augustus Is Dead");
+    expect(news(12.5, 41.9, 15, "summer")).toBeUndefined();
+    expect(news(12.5, 41.9, 14, "winter")).toBeUndefined();
+    expect(news(116.4, 39.9, 1722, "winter")).toBe("The Kangxi Emperor Has Died");
+    expect(news(-0.1, 51.5, 1100, "summer")).toBe("William Rufus Is Dead");
+    expect(news(-6.3, 53.3, 1100, "summer")).toBeUndefined();
+  });
+
+  it("only offers cover in conversation at a shared workplace and spends the time once", () => {
+    const e = smallSession(setting);
+    const s = e.state, friend = s.actors[0];
+    const work = { ...s.player.pos, x: s.player.pos.x + 20 };
+    s.player.origin!.livelihood = "dockworker";
+    s.player.work = work;
+    friend.origin!.livelihood = "dockworker";
+    friend.work = { ...work, x: work.x + 1 };
+    expect(startPlot(s, setting, shift.id)).toBeUndefined();
+    friend.work = work;
+    const sites = (id: string) => ({ home: work, social: work, water: work, work, label: "", offset: 0,
+      employment: { id, kind: "shore" as const, label: "Quay" } });
+    expect(startPlot(s, setting, shift.id, undefined, sites)).toBeUndefined();
+    const p = startPlot(s, setting, shift.id)!;
+    const talk = () => {
+      friend.pos = { ...s.player.pos };
+      act(e, { type: "interact", action: "talk", target: friend.id });
+    };
+    talk();
+    expect(plotKnown(p)).toBe(false);
+    s.player.pos = { ...work };
+    e.advance(120);
+    expect(plotKnown(p)).toBe(false);
+    talk();
+    const card = e.cards.find((c) => c.speaker === friend.id && c.choose)!;
+    expect(card.text).toContain("count the next load");
+    expect(card.choose?.choices[0].minutes).toBe(30);
+    e.cards.length = 0;
+    e.advance(1860, friend.id);
+    expect(e.cards.some((c) => c.choose?.card === card.choose!.card)).toBe(false);
+    talk();
+    expect(e.cards.find((c) => c.choose?.card === card.choose!.card)).toBeDefined();
+    const clock = s.clock, trust = friend.trust;
+    friend.pos = { ...work };
+    const answer = { type: "choose", card: card.choose!.card, choice: 0 } as const;
+    expect(act(e, answer).status).toBe("completed");
+    expect(p.ended).toBe("covered");
+    expect(s.clock - clock).toBeGreaterThanOrEqual(1800);
+    expect(s.clock - clock).toBeLessThan(1860);
+    expect(friend.trust).toBeGreaterThan(trust);
+    expect(act(e, answer).status).toBe("rejected");
+  });
+
+  it("keeps a hospital shift inside the ward and sends the supply run to its own room", () => {
+    const modern = {...setting, year: 2020};
+    const e = smallSession(modern), s = e.state, friend = s.actors[0];
+    const hospital = {...e.world.places[0], id:"hospital", name:"Hospital", claim:"worksite-modern-ward", access:"public" as const, institution:"hospital" as const};
+    e.world.places.push(hospital);
+    const work = {...hospital.entrance, space:"outside" as const};
+    e.world.activitySites = () => ({home:work,social:work,water:work,work,label:"Tending the sick",offset:0,
+      employment:{id:hospital.id,kind:"hospital",label:hospital.name}});
+    s.player.origin!.livelihood = "nurse";
+    friend.origin!.livelihood = "hospital-attendant";
+    s.player.work = work;
+    const plot = startPlot(s, modern, shift.id, undefined, e.world.activitySites)!;
+    const [utility,ward] = e.workPlan()!.places;
+    expect(utility).toMatchObject({label:"Clean utility room",pos:{space:hospital.id}});
+    expect(ward).toMatchObject({label:"Ward 1",pos:{space:hospital.id}});
+    const talk = (pos: Position) => {
+      s.player.pos = {...pos};
+      friend.pos = {...pos,x:pos.x+1};
+      act(e,{type:"interact",action:"talk",target:friend.id});
+    };
+    talk(work);
+    expect(plotKnown(plot)).toBe(false);
+    talk(utility!.pos);
+    expect(plotKnown(plot)).toBe(false);
+    talk(ward!.pos);
+    const card = e.cards.find(c=>c.speaker===friend.id && c.choose);
+    expect(card?.text).toContain("take water round");
+    expect(act(e,{type:"choose",card:card!.choose!.card,choice:0}).status).toBe("completed");
+    expect(plot.ended).toBe("covered");
+    s.player.pos = {...utility!.pos};
+    expect(act(e,e.workHere()!.command).status).toBe("completed");
+    expect(e.workPlan()!.done).toBe(1);
+    s.player.pos = {...ward!.pos};
+    expect(e.workHere()?.label).toBe("Take water round the ward");
+  });
+
+  it("notices a lull once during work and lets it expire unseen otherwise", () => {
+    const s = smallSession(setting).state;
+    s.player.origin!.livelihood = "tailor";
+    const home = s.households!.find((h) => h.members.includes(s.player.id))!;
+    home.makes = ["cloth"];
+    home.producers = { cloth: s.player.id };
+    const p = startPlot(s, setting, slack.id)!;
+    expect(plotKnown(p)).toBe(false);
+    expect(stepPlot(s)).toEqual([]);
+    s.clock = p.deadline;
+    expect(stepPlot(s, { at: () => true, working: "" })).toEqual([]);
+    expect(endPlot(s)?.quiet).toBe(true);
+    expect(plotKnown(p)).toBe(false);
+    const open = startPlot(s, setting, slack.id)!;
+    const work = { at: () => true, working: "" };
+    expect(stepPlot(s, work)).toEqual([{ type: "note", line: "intro" }]);
+    expect(plotKnown(open)).toBe(false);
+    expect(plotLine(open, "intro")).toContain("price of your cloth");
+    expect(stepPlot(s, work)).toEqual([]);
+  });
+
   it("say a spoken line the speaker's way, where the wording that gives the line has one", () => {
     const stats = { openness: 50, conscientiousness: 50, extraversion: 50, agreeableness: 50, neuroticism: 50, strength: 50, wit: 50 } as Stats;
     expect(stanceOf(stats, 0)).toBeUndefined();
@@ -84,7 +216,7 @@ function tokenScene() {
   const e = smallSession(setting, "token-fixture");
   const s = e.state;
   delete s.plot;
-  const plot = drawOnly(token, () => startPlot(s, { ...setting, year: -4321 }, token.id))!;
+  const plot = startPlot(s, { ...setting, year: -4321 }, token.id)!;
   const household = s.households!.find((h) => h.id === s.player.householdId)!;
   const house = e.world.place(household.residence!);
   const doorstep = house ? { ...doorApproach(house), space: "outside" } : household.home;
@@ -260,7 +392,7 @@ describe("plots played out in London, 1750", () => {
     expect(next.ended).toBe("paid");
 
     delete e.state.plot;
-    const charge = drawOnly(accused, () => startPlot(e.state, setting))!;
+    const charge = startPlot(e.state, setting, accused.id)!;
     const witness = e.state.actors.find((a) => a.id === charge.cast.witness)!;
     witness.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
     act(e, { type: "interact", target: witness.id, action: "talk" });
@@ -277,7 +409,7 @@ describe("plots played out in London, 1750", () => {
     };
     delete e.state.plot;
     e.state.households!.find((h) => h.members.includes(e.state.player.id))!.fortune = 0.5;
-    const party = drawOnly(feast, () => startPlot(e.state, setting))!;
+    const party = startPlot(e.state, setting, feast.id)!;
     e.advance(60);
     const host = e.state.actors.find((a) => a.id === party.cast.host)!;
     host.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
@@ -296,7 +428,7 @@ describe("plots played out in London, 1750", () => {
     expect(e.state.objects.some((o) => o.id.startsWith("gathering-"))).toBe(false);
 
     delete e.state.plot;
-    const charge = drawOnly(accused, () => startPlot(e.state, setting))!;
+    const charge = startPlot(e.state, setting, accused.id)!;
     e.state.clock = charge.deadline;
     e.advance(180);
     expect(charge.ended).toBeUndefined();
@@ -317,7 +449,7 @@ describe("plots played out in London, 1750", () => {
     };
     PLOTS.push(choice);
     try {
-      const plot = drawOnly(choice, () => startPlot(e.state, setting))!;
+      const plot = startPlot(e.state, setting, choice.id)!;
       e.advance(60);
       // The first decision waits a little while into the day.
       expect(e.cards.some((c) => c.choose?.card === "plot:test-choice")).toBe(false);
@@ -347,7 +479,7 @@ describe("plots played out in London, 1750", () => {
     (e as unknown as { atPlotScene: (p: PlotState, at: string) => boolean }).atPlotScene = (_, at) => at !== "shore" || atShore;
     PLOTS.push(shore);
     try {
-      drawOnly(shore, () => startPlot(e.state, setting));
+      startPlot(e.state, setting, shore.id);
       e.advance(3 * 3600);
       expect(e.cards.some((c) => c.choose?.card === "plot:test-shore:ask")).toBe(false);
       atShore = true;
@@ -361,7 +493,7 @@ describe("plots played out in London, 1750", () => {
     const news = { ...shore, id: "test-news", opening: [{ type: "choose", line: "ask", brought: true, choices: [{ id: "stay" }] }] } as PlotTemplate;
     PLOTS.push(news);
     try {
-      const plot = drawOnly(news, () => startPlot(e2.state, setting))!;
+      const plot = startPlot(e2.state, setting, news.id)!;
       e2.advance(120);
       const by = e2.state.actors.find((a) => a.id === plot.asking?.by);
       expect(by?.householdId).toBe(e2.state.player.householdId);
@@ -384,7 +516,7 @@ describe("plots played out in London, 1750", () => {
     };
     PLOTS.push(choice);
     try {
-      drawOnly(choice, () => startPlot(e.state, setting));
+      startPlot(e.state, setting, choice.id);
       e.advance(4 * 3600);
       expect(e.cards.some((c) => c.choose?.card === "plot:test-below")).toBe(false);
       below = false;
@@ -395,6 +527,7 @@ describe("plots played out in London, 1750", () => {
     }
     const state = structuredClone(e.state);
     delete state.plot;
+    state.manifest.seed = "plot-2";
     const party = { ...choice, opening: [{ type: "gather", at: "edge", when: "evening", label: "gather" }] } as PlotTemplate;
     expect(drawOnly(party, () => startPlot(state, { ...setting, below: "cave" }))).toBeUndefined();
     expect(drawOnly(party, () => startPlot(state, setting))?.id).toBe("test-below");
@@ -403,7 +536,7 @@ describe("plots played out in London, 1750", () => {
     const e = session();
     e.state.player.origin = { ...e.state.player.origin!, livelihood: "carpenter" };
     delete e.state.plot;
-    const order = drawOnly(commission, () => startPlot(e.state, setting))!;
+    const order = startPlot(e.state, setting, commission.id)!;
     const patron = e.state.actors.find((a) => a.id === order.cast.patron)!;
     patron.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
     act(e, { type: "interact", target: patron.id, action: "talk" });
@@ -417,7 +550,7 @@ describe("plots played out in London, 1750", () => {
     delete e.state.plot;
     const tsavo = { ...setting, lon: 38.5, lat: -3, year: 1898, culture: "east-southern-african" as const, settlement: "village" as const };
     expect(maneater.weight({ seed: "b", setting: tsavo, clock: 0, player: e.state.player, actors: e.state.actors, households: [] })).toBeGreaterThan(0);
-    const plot = drawOnly(maneater, () => startPlot(e.state, tsavo))!;
+    const plot = startPlot(e.state, tsavo, maneater.id)!;
     expect(plot.words.species).toBe("lion");
     e.advance(60);
     const beast = e.state.fauna?.find((g) => g.id === plot.refs?.beast);
@@ -431,7 +564,7 @@ describe("plots played out in London, 1750", () => {
     e.state.player.origin = { ...e.state.player.origin!, livelihood: "shepherd" };
     delete e.state.plot;
     const gevaudan = { ...setting, lon: 3.5, lat: 44.7, year: 1765, culture: "european" as const, settlement: "village" as const };
-    const plot = drawOnly(raid, () => startPlot(e.state, gevaudan))!;
+    const plot = startPlot(e.state, gevaudan, raid.id)!;
     expect(plot.words.kind).toBe("wolf");
     e.advance(plot.deadline - 11 * 3600 - e.state.clock + 60);
     expect(e.state.fauna?.find((g) => g.id === plot.refs?.beast)?.stockRaid?.at).toBeTruthy();

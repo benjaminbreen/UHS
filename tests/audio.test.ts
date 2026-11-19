@@ -393,6 +393,20 @@ describe("original soundtrack scores", () => {
 });
 
 describe("town ambience", () => {
+  it("hears the occupied institution, its tools and the surface underfoot", () => {
+    const scene = (id: string) => listeningScenes.find(s => s.id === id)!.scene;
+    const hear = (id: string) => ambienceFor(scene(id)).activity!;
+    expect(hear("london-ward").cues).toContain("wheels");
+    expect(hear("edo-ward")).toMatchObject({ground:"fiber", cues:expect.arrayContaining(["cup"])});
+    expect(hear("edo-ward").cues).not.toContain("wheels");
+    expect(hear("yamen-office").tool).toBe("brush");
+    expect(hear("board-school").tool).toBe("pencil");
+    expect(hear("bazaar-pottery").cues).toContain("cup");
+    const ward = scene("london-ward");
+    expect(ambienceFor({...ward, indoors:false}).activity).toBeUndefined();
+    expect(ambienceFor({...ward, peopleNear:0}).activity).toBeUndefined();
+    expect(ambienceFor({...ward, room:{...ward.room!, distance:9}}).activity!.level).toBeLessThan(hear("london-ward").level);
+  });
   it("hears each period's street and hours", () => {
     expect(townKindFor(-4000, 90)).toBe("village");
     expect(townKindFor(100, 40)).toBe("village");
@@ -410,6 +424,13 @@ describe("town ambience", () => {
     expect(bellFor("Theravada Buddhist", 1800, 100.5, 13.7)).toBe("temple");
     expect(bellFor("Buddhism", 1750, 139.7, 35.7)).toBe("toki");
   });
+  it("keeps sacred sound tied to the people and shelter actually present", () => {
+    const scene = listeningScenes.find(s=>s.id==="prayer-hall")!.scene;
+    expect(ambienceFor(scene).activity?.cues).toEqual(["footsteps","recitation"]);
+    expect(ambienceFor({...scene,peopleNear:0}).activity).toBeUndefined();
+    expect(ambienceFor({...scene,room:{...scene.room!,openAir:true}})).toMatchObject({inside:0,room:0});
+  });
+
   it("hears a drizzle, a downpour and what the rain falls on", () => {
     const mix = (id: string) => ambienceFor(listeningScenes.find((s) => s.id === id)!.scene);
     const drizzle = mix("drizzle-meadow"),

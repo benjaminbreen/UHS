@@ -88,6 +88,11 @@ export type BeliefSystem = {
   contextual?: true;
   /** Who officiates, if anyone does. */
   specialist?: string;
+  /** Traditions in whose services this person can take an active part. */
+  worship?: readonly string[];
+  offices?: readonly string[];
+  /** Percent of residents in this scope; the remainder use the regional profile. */
+  share?: number;
   afterlife?: string;
   /** Where the dead go, for the death scene: see `afterlife.ts`. */
   realm: Realm;

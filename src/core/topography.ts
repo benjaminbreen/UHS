@@ -26,6 +26,7 @@ export type PathStroke = {
   paved?: "yellow" | "white" | "none" | "gravel";
 };
 export type TopographyCell = {
+  parterre?: { plan: import("../world/fair").Parterre; u: number; v: number };
   pathArt?: PathStroke[];
   height: HeightTier;
   biome?:
@@ -147,7 +148,7 @@ export type TopographyCell = {
    * Presentation only. */
   edge?: import("../content/settlements/terraces").EdgeStyle;
   bridge?: boolean;
-  pier?: boolean;
+  pier?: boolean | LandingSteps;
   solid?: boolean;
   /** Knee-high: a jump passes over it, but nobody lands on it. A pot in a
    * doorway should cost a hop, not a detour. */
@@ -449,3 +450,5 @@ export function reliefCell(
       : {}),
   };
 }
+
+export type LandingSteps = { variant:number; material:"brick"|"limestone"; facing:"north"|"south"|"east"|"west" };

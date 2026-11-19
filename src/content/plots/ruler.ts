@@ -1,8 +1,10 @@
-import { ruled } from "../history/order";
-import { BRITAIN, CHINA, ITALY, notable, partnerWords, pickOf, pronounWords, temper } from "./common";
+import { notable, partnerWords, pickOf, pronounWords, seasonOf, temper, within } from "./common";
 import type { PlotTemplate } from "./types";
 
-/** Word comes that the ruler is dead. Nothing has changed here yet, and everyone wonders what will. */
+const kangxi = { years: [1722, 1723], bounds: [110, 28, 122, 41] } as const;
+const augustus = { years: [14, 15], bounds: [10, 39, 16, 44] } as const;
+const william = { years: [1100, 1101], bounds: [-3, 50.4, 1.8, 53.5] } as const;
+
 export const ruler: PlotTemplate = {
   id: "ruler",
   shape: "news",
@@ -10,7 +12,11 @@ export const ruler: PlotTemplate = {
     emblem: "crier",
     palette: { ink: "#0e0e12", fill: "#3a3a4a", edge: "#7a6a5a", light: "#ececf0", accent: "#b8a8d8" },
   },
-  weight: (c) => (ruled(c.setting) && notable(c) ? 0.3 * temper(c, "extraversion") : 0),
+  weight: (c) => {
+    const season = seasonOf(c);
+    const mourning = (season === "winter" && within(c, kangxi)) || (season === "summer" && within(c, augustus, william));
+    return mourning && notable(c) ? 0.3 * temper(c, "extraversion") : 0;
+  },
   cast: (c) => {
     const patron = notable(c);
     return patron && { patron };
@@ -43,8 +49,8 @@ export const ruler: PlotTemplate = {
   wording: [
     {
       // Qing subjects were not to shave their heads or hold weddings and music in the mourning for an emperor; officials were punished for it as late as 1748.
-      scope: { years: [1644, 1912], bounds: CHINA },
-      title: "The Emperor Has Died",
+      scope: kangxi,
+      title: "The Kangxi Emperor Has Died",
       lines: {
         intro: "A runner came through at dawn: the emperor has died. Officials have taken the red tassels off their hats, and notices are going up.",
         threat: "There are rules for the mourning: no weddings, no music, and no shaving your head for a hundred days. People have been punished for less.",
@@ -65,8 +71,8 @@ export const ruler: PlotTemplate = {
     },
     {
       // When an emperor died the courts and shops shut for a public mourning, the iustitium, and each new emperor had the provinces swear an oath to him.
-      scope: { years: [14, 476], bounds: ITALY },
-      title: "The Emperor Is Dead",
+      scope: augustus,
+      title: "Augustus Is Dead",
       lines: {
         intro: "Word came this morning that the emperor is dead. Nobody is sure yet who will follow him, or whether the soldiers will agree.",
         threat: "The magistrates will declare a public mourning: courts closed, shops shut, no feasting. And a new emperor means new oaths, and sometimes a war over who it should be.",
@@ -87,9 +93,10 @@ export const ruler: PlotTemplate = {
     },
     {
       // The king's peace died with the king: until his successor was proclaimed, men said, there was no law. Edward I's reign was first dated from the proclamation, in 1272.
-      scope: { years: [1066, 1273], bounds: BRITAIN },
-      title: "The King Is Dead",
+      scope: william,
+      title: "William Rufus Is Dead",
       lines: {
+        aim: "Decide what to do about the wedding.",
         intro: "Word came this morning that the king is dead. The new one has not been crowned.",
         threat: "The king's peace died with him. Until the new king is proclaimed, people say, there is no law, and some people will take advantage of it.",
         partner: "Your {partnerKin} {partner} wants the door barred tonight.",
@@ -105,27 +112,6 @@ export const ruler: PlotTemplate = {
         hushed: "The guests come and go on the high road without trouble. Your {cousin} is married.",
         reported: "On the way home two of the guests are robbed on the high road. There is no king's peace to complain under, and {patron} says {he} told you so.",
         passed: "The day ends with nothing worse than talk. The new king will be crowned soon enough.",
-      },
-    },
-    {
-      title: "The Ruler Is Dead",
-      lines: {
-        aim: "Decide what to do about the wedding.",
-        intro: "Word came this morning that the ruler is dead. Nobody here ever saw the ruler's face, but everybody is talking.",
-        threat: "There will be days of mourning, and people will be watching who keeps them.",
-        partner: "Your {partnerKin} {partner} says to keep your head down until it's clear who's in charge.",
-        "kin-partner": "Keep your head down until we know who's in charge.",
-        "cast-patron": "Hears the news before anyone else around here.",
-        news: "Your {cousin}'s wedding is set for tomorrow, the guests asked and the food bought. {patron} says the mourning will be announced this afternoon, and nobody should be seen celebrating after that.",
-        "mourn:label": "Put the wedding off",
-        "forward:label": "Hold it today, before the mourning is announced",
-        "forward:then": "You send word round to every guest. It is a scramble, but they come.",
-        "quiet:label": "Hold it tomorrow, quietly, no music",
-        mourned: "You put the wedding off. Nobody can say your family did not show respect.",
-        rushed: "The mourning is announced while the guests are still eating. Your {cousin} is married, just before it.",
-        hushed: "No music, no dancing, the guests in by the back door. Everyone knows, but nobody reports it.",
-        reported: "Somebody tells {patron}, who has to do something about it. The family pays a fine, and people talk.",
-        passed: "The day ends with everyone talking, and nothing different yet.",
       },
     },
   ],

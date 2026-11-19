@@ -1,17 +1,33 @@
-import { dueOf, neighbours, partnerWords, pickOf, pronounWords, temper, trade } from "./common";
-import type { Condition, PlotContext, PlotTemplate } from "./types";
+import { livelihoodById } from "../characters/livelihoods";
+import { herdWords, keptSpecies } from "../fauna/herding";
+import { distance } from "../../core/types";
+import { dueOf, pickOf, temper } from "./common";
+import type { PlotContext, PlotTemplate } from "./types";
 
-const WAGED = /factory-hand|garment-worker|mill-worker|machine-operator|power-loom|match-worker|dock|kitchen-porter|waiter|nurse|care-worker|hospital|shop-assistant|cleaner|charwoman|laundry-worker|refuse-collector|tobacco-worker|miner|construction-labourer|navvy|railway-labourer|bus-driver|postman/;
-
-const absentOf = (c: PlotContext) => {
-  const pool = neighbours(c).filter((a) => (a.age ?? 30) <= 60);
-  return pool.length ? pickOf(c, pool, "shift-absent") : undefined;
+const requests: Record<string, string> = {
+  "Working the wharf": "Could you count the next load for me?",
+  "Tending the sick": "Could you take water round while I'm out?",
+  "Keeping the record": "Could you take the names while I'm gone?",
+  "Tending animals": "Could you watch the {herd} until I get back?",
+  "Minding the stall": "Could you mind the stall for half an hour?",
+  Cooking: "Could you keep an eye on the pot for me?",
 };
 
-const fired = (id: string): Condition => ({ type: "fired", id });
-const brought: Condition = { type: "brought", role: "friend" };
+function coworker(c: PlotContext) {
+  const activity = livelihoodById(c.player.origin?.livelihood ?? "")?.activity;
+  if (!activity || !requests[activity]) return;
+  const employer = c.activitySites?.(c.player.id)?.employment;
+  if (activity === "Tending the sick" && employer?.kind !== "hospital") return;
+  const job = employer?.id;
+  const peers = c.actors.filter((a) => {
+    if (a.kind !== "human" || a.dead || a.id === c.player.id || (a.age ?? 30) < 18 ||
+      livelihoodById(a.origin?.livelihood ?? "")?.activity !== activity) return false;
+    const site = c.activitySites?.(a.id)?.employment?.id;
+    return job || site ? job === site : distance(a.work, c.player.work) === 0;
+  });
+  return pickOf(c, peers, "shift-coworker");
+}
 
-/** Someone on your shift hasn't come in, and you are doing two people's work. */
 export const shift: PlotTemplate = {
   id: "shift",
   shape: "work",
@@ -19,75 +35,44 @@ export const shift: PlotTemplate = {
     emblem: "line",
     palette: { ink: "#101214", fill: "#262c32", edge: "#5a6672", light: "#e6eaee", accent: "#e0a848" },
   },
-  weight: (c) => (trade(c, WAGED) && absentOf(c) ? 0.6 * temper(c, "agreeableness") : 0),
+  weight: (c) => coworker(c) ? 0.6 * temper(c, "agreeableness") : 0,
   cast: (c) => {
-    const friend = absentOf(c);
+    const friend = coworker(c);
     return friend && { friend };
   },
   begin: (c, cast) => {
     const friend = cast.friend!;
-    const { deadline, due } = dueOf(c.clock);
-    const p = partnerWords(c);
-    return {
-      deadline,
-      words: {
-        friend: friend.name,
-        due,
-        boss: (c.setting?.year ?? 2000) < 1920 ? "the foreman" : "the supervisor",
-        Boss: (c.setting?.year ?? 2000) < 1920 ? "The foreman" : "The supervisor",
-        why: pickOf(c, ["has a fever and can barely stand", "was up all night with a sick child", "hurt a hand yesterday and couldn't hold anything this morning"], "shift-why"),
-        ...pronounWords(friend),
-        ...p.words,
-      },
-      refs: { friend: friend.id, ...p.refs },
-    };
+    const child = c.actors.find((a) => !a.dead && a.age !== undefined && a.age >= 4 && a.age < 14 &&
+      friend.relations?.some((r) => r.kind === "child" && r.other === a.id));
+    const reason = child ? `I promised to walk ${child.origin?.namePersonal || child.name} home.` : "I haven't had a chance to eat.";
+    const activity = livelihoodById(friend.origin!.livelihood)!.activity;
+    const herd = activity === "Tending animals" && c.setting
+      ? c.fauna?.find((g) => g.owner === friend.id || g.owner === c.player.id)?.speciesId ?? keptSpecies(c.setting, c.seed, c.player.role)
+      : undefined;
+    const request = requests[activity].replace("{herd}", herdWords(herd).herd);
+    return { deadline: dueOf(c.clock).deadline, words: { friend: friend.name, reason, request }, refs: { friend: friend.id } };
   },
+  journal: { opens: "offered:ask", missed: "passed", notes: [{ after: "asked", label: "At work", line: "intro", roles: ["friend"] }] },
   opening: [],
   developments: [
-    {
-      id: "double",
-      when: { type: "all", of: [{ type: "since", hours: 1 }, { type: "working" }] },
-      then: [{ type: "choose", line: "double", choices: [{ id: "cover", check: { stat: "endurance", odds: 0.5 } }, { id: "own" }, { id: "ask", check: { stat: "extraversion", skill: "speech", odds: 0.35 } }] }],
-    },
-    {
-      id: "after",
-      when: { type: "all", of: [fired("worked"), { type: "not", of: brought }] },
-      then: [{ type: "card", line: "after", focus: "friend" }],
-    },
+    { id: "asked", when: { type: "all", of: [{ type: "speaking", role: "friend" }, { type: "at", scene: "workplace" }, { type: "not", of: { type: "due" } }] },
+      then: [{ type: "choose", line: "ask", from: "friend", at: "workplace", choices: [{ id: "cover", minutes: 30 }, { id: "stay" }] }] },
+    { id: "helped", when: { type: "fired", id: "cover" }, then: [{ type: "regard", role: "friend", delta: 2 }] },
   ],
   endings: [
-    { id: "excused", when: { type: "all", of: [fired("ask"), { type: "not", of: fired("ask:failed") }, brought] } },
-    { id: "covered", when: { type: "all", of: [fired("cover"), { type: "not", of: fired("cover:failed") }, brought] } },
-    { id: "docked", when: { type: "all", of: [fired("double"), brought] } },
-    { id: "gone", when: { type: "gone", role: "friend" } },
-    { id: "tired", when: { type: "due" } },
+    { id: "covered", when: { type: "fired", id: "cover" }, quiet: true },
+    { id: "declined", when: { type: "fired", id: "stay" }, quiet: true },
+    { id: "passed", when: { type: "due" }, quiet: true },
   ],
-  wording: [
-    {
-      title: "Short-Handed",
-      lines: {
-        aim: "Get through the shift without {friend}, and look in on {him} after.",
-        intro: "{friend} hasn't come in today, and {boss} has told you to do {his} work as well as yours. Nobody knows why {he} is off.",
-        threat: "If the work isn't done, someone's pay will be docked. If {he}'s off too long, {he} may not have a job to come back to.",
-        partner: "Your {partnerKin} {partner} thinks {he} looked ill yesterday.",
-        "kin-partner": "Go and see {friend} on your way home. {He}'d do the same for you.",
-        "cast-friend": "Didn't come in to work today.",
-        double: "{friend}'s work is piling up next to yours. If it's still there at the end of the shift, {boss} will dock {him} a day's pay, or find someone to take {his} place.",
-        "cover:label": "Do both, and say nothing",
-        "cover:then": "You work through the break and don't stop to eat. By the end you can hardly lift your arms, but it's all done.",
-        "cover:failed": "You work through the break, but there's too much. At the end of the shift there's still a pile, and {boss} sees it.",
-        "own:label": "Do your own work and leave {his}",
-        "own:then": "You do your own work and leave {friend}'s where it is. {Boss} sees the pile at the end of the shift and writes something down.",
-        "ask:label": "Ask {boss} to let it go",
-        "ask:then": "{Boss} looks at you for a long time, then shrugs and says just this once.",
-        "ask:failed": "{Boss} tells you to mind your own work, and writes {friend}'s name down.",
-        after: "The shift is over. {friend} lives nearby. You could look in on the way home.",
-        excused: "{friend} {why}. When you tell {him} {boss} let it go, {he} can't believe it.",
-        covered: "{friend} {why}. {He} is very glad to hear that {his} work got done and {boss} noticed nothing.",
-        docked: "{friend} {why}. {He} has lost a day's pay, and {he} knew {he} would. {He} is glad you came anyway.",
-        gone: "{friend} won't be coming back to work.",
-        tired: "You went straight home and slept. You'll hear about {friend} tomorrow.",
-      },
-    },
-  ],
+  wording: [{ title: "Half an Hour", lines: {
+    aim: "Decide whether you can cover for {friend}.",
+    intro: "{friend} asked you to take over for half an hour.",
+    threat: "You've got your own work to finish.",
+    ask: "{request} {reason}",
+    "cover:label": "Take over for half an hour",
+    "stay:label": "Say you have to get on",
+    covered: "You covered for {friend} for half an hour.",
+    declined: "{friend} stays at work.",
+    passed: "The working day is over.",
+  } }],
 };

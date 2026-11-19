@@ -500,8 +500,8 @@ export class TerrainStream {
       (!this.loaded &&
         this.entryKey !== undefined && this.chunks.has(this.entryKey) &&
         visible.every(([id, r]) => this.chunks.has(id) || (!this.nearEntry(r) && this.previews.has(id))));
-    canvas.dataset.terrainPlayable = String(playable);
-    canvas.dataset.terrainReady = String(ready);
+    canvas.dataset.terrainPlayable = String(this.hidden || playable);
+    canvas.dataset.terrainReady = String(this.hidden || ready);
     canvas.dataset.terrainPending = String(
       [...this.wanted.keys()].filter((id) => !this.chunks.has(id)).length,
     );
@@ -674,6 +674,7 @@ export class TerrainStream {
   setHidden(hidden: boolean) {
     if (this.hidden === hidden) return;
     this.hidden = hidden;
+    this.metrics();
     for (const chunk of this.chunks.values()) {
       for (const object of chunk.objects)
         (object as Partial<Phaser.GameObjects.Image>).setVisible?.(!hidden);

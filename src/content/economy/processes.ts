@@ -124,7 +124,7 @@ const indoors = new Set([
 /** Where a recipe's step is done, found on the map rather than at a prop. */
 /** `home` is inside the house at its work spot, `yard` the store out front, `door` the street door.
  * `byre` and `henhouse` are inside the household's own, or its yard where it has none. */
-export type PlaceRole = "workplace" | "station" | "line" | "home" | "yard" | "door" | "field" | "pasture" | "water" | "sick" | "market" | "client" | "wild" | "shore" | "well" | "gear" | "grounds" | "pit" | "face" | "byre" | "henhouse";
+export type PlaceRole = "supplies" | "workplace" | "station" | "line" | "home" | "yard" | "door" | "field" | "pasture" | "water" | "sick" | "market" | "client" | "wild" | "shore" | "well" | "gear" | "grounds" | "pit" | "face" | "byre" | "henhouse";
 /** One stage of a day: a short name for the strip, the thing to do, and
  * whether it happens at a client's house instead of at home. A recipe's step
  * also names its place, the task screen's scene for it and its card. */
@@ -229,8 +229,17 @@ export function processFor(kit: Livelihood, revision = 0, season: SeasonId = "sp
   if (!entry) return undefined;
   const [family, ...stations] = entry;
   if (["basket-maker", "basket-weaver"].includes(kit.id)) stations.splice(0, stations.length, "open-basket");
-  const recipe = recipeFor(kit);
-  const day = recipe && dayOf(recipe, season, today);
+  const recipe = recipeFor(kit, today?.employer);
+  const dockPorter = kit.id === "porter" && today?.lighterage;
+  const grain = dockPorter==="grain";
+  const day = today?.terminal && kit.id==="dockworker" ? {title:today.steel ? "Working the steel wharf" : "Working the container berth",steps:[
+    {name:"manifest",task:"Check the inbound vessel manifest",at:"shore",scene:"talk",hours:.025},
+    {name:"transfer",task:"Supervise the discharge to row B",at:"shore",scene:"haul",hours:.5},
+    {name:"release",task:today.steel ? "Check the coil numbers and release the load" : "Check the seals and release the load for collection",at:"workplace",scene:"craft",hours:.25},
+  ] satisfies Step[]} : dockPorter ? { title: grain ? "Landing Baltic grain" : "Landing the cloth consignment", steps: [
+    {name:"lift-load",task:grain ? "Shoulder a grain sack at the lighter landing" : "Collect a cloth bale from the lighter landing",at:"shore",scene:"haul",hours:0},
+    {name:"stack-load",task:grain ? "Take the sack to the warehouse hoist" : "Deliver the bale to the cloth counter",at:"workplace",scene:"haul",hours:0},
+  ] satisfies Step[] } : recipe && dayOf(recipe, season, today);
   // A step with no card of its own draws the general deck for its family at
   // the second and third steps.
   const workplace = workplaceFor(kit.activity);
@@ -243,13 +252,14 @@ export function processFor(kit: Livelihood, revision = 0, season: SeasonId = "sp
   const steps = (hunting ?? day?.steps ?? (callOuts.find(([re]) => re.test(kit.id))?.[1] ?? familySteps[family]))
     .map((st, i) => ({
       ...st,
+      ...(st.name === "receive" && today?.employer === "worship" && today.service ? {task:today.service} : {}),
       ...(st.client && !st.at ? { at: "client" as const } : {}),
       ...(st.at === "wild" && workplace === "water" ? { at: "shore" as const } : {}),
       // Stone and ore are dug where the pick and the boulder are; water is
       // drawn at the well.
       ...(st.at === "wild" && workplace === "extraction" ? { at: undefined } : {}),
       ...(st.name === "load" && kit.activity === "Carrying water" ? { at: undefined, task: "Fill the vessels at the well" } : {}),
-      ...(i && (hunting || !st.card && !gathersPlants(kit)) ? { card: hunting ? `hunt-${i + 1}` : `${family}-${i + 1}` } : {}),
+      ...(i && !dockPorter && !today?.terminal && !(today?.employer === "hospital" && kit.activity === "Tending the sick") && (hunting || !st.card && !gathersPlants(kit)) ? { card: hunting ? `hunt-${i + 1}` : `${family}-${i + 1}` } : {}),
     }));
   return {
     family, ...processFamilies[family], title: day?.title, skill: hunting ? "hunting" : recipe?.skill, wiki: recipe?.wiki, paid: recipe?.paid, boss: recipe?.boss, rises: recipe?.rises ?? 6, bench: recipe?.bench,

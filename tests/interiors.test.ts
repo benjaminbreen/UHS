@@ -1,24 +1,141 @@
 import { describe, expect, it } from "vitest";
 import { interiorProfiles, resolveRoom } from "../src/content/interiors";
 import { interiorProfileFor } from "../src/content/interiors/select";
-import { buildInterior, ROOM_ORIGIN } from "../src/world/interior";
+import { worshipAct, worshipHours } from "../src/content/interiors/worship";
+import { aarti, passageOn } from "../src/content/interiors/scripture";
+import { buildInterior, ROOM_ORIGIN, roomAt } from "../src/world/interior";
 import { resolveSetting } from "../src/content/geography/resolve";
 import { planRoom, roomMask, type Shape } from "../src/render/interiors/room";
 import { LETTERS, SPRITES } from "../src/render/interiors/sprites";
 import { ALTARS } from "../src/render/interiors/altars";
 import { planBuilding } from "../src/render/interiors/building";
+import type { SettlementWorld } from "../src/world/v3/generate";
+import { placeFor } from "../src/world/v3/routines";
+import { doorApproach } from "../src/core/doors";
 import type { Place } from "../src/core/types";
 import { towerStyles } from "../src/content/towers";
 import { towerPlan } from "../src/world/tower";
 import { resolveCharacterContext } from "../src/content/characters/resolve";
 import { createSettingSession } from "../src/runtime/session";
-import { religiousProfile } from "../src/content/settlements/religious";
+import { beliefsForActor } from "../src/content/beliefs";
+import { officeAtSanctuary } from "../src/content/characters/officiant";
+import { sanctuaryAt, religiousProfile } from "../src/content/settlements/religious";
 import type { WorldSetting } from "../src/content/geography/types";
 import { panelSetting } from "../scripts/review/panel";
 
 const shapes: Shape[] = ["rect", "L", "round", "oval", "apse", "courtyard"];
 
 describe("interior profiles", () => {
+  it.runIf(!!process.env.FULL).each([
+    ["A rabbi in Thessaloniki, 1700","Jewish","Genesis"],
+    ["A priest in London, 2020","Anglican","Matthew"],
+    ["A Nichiren monk in Kyoto, 1350","lotus","Lotus Sutra"],
+    ["A hunter in Sydney, 1750","",""],
+  ])("ties residents, work and worship together in %s", (prompt,tradition,reading) => {
+    const seed = "faith-audit", start = resolveSetting(prompt,seed);
+    if ("error" in start) throw Error(start.error);
+    const e = createSettingSession(start.setting,seed), player = e.state.player;
+    const s = e.world.pack.setting!, people = [player,...e.state.actors.filter(a => a.kind === "human")];
+    const sites = e.world.places.filter(p => sanctuaryAt(p));
+    const jobs = people.filter(a => e.world.activitySites?.(a.id)?.employment?.kind === "worship");
+    if (!tradition) {
+      expect(sites).toHaveLength(0);
+      expect(jobs).toHaveLength(0);
+      expect(beliefsForActor(s,player).practice.length).toBeGreaterThan(0);
+      return;
+    }
+    expect(sites.length).toBeGreaterThan(1);
+    expect(new Set(sites.map(p => p.id)).size).toBe(sites.length);
+    for (const p of sites) {
+      const room = e.interiorOf(p.id)!, door = e.doorOf(p.id)!;
+      expect(door.placeId).toBe(p.id);
+      const step = doorApproach(p);
+      expect(e.blocked(step.x,step.y,"outside"), p.name).toBe(false);
+      expect(room.observance?.tradition).toBe(p.worshipSchool ?? sanctuaryAt(p)?.faith);
+    }
+    const place = sites.find(p => (p.worshipSchool ?? sanctuaryAt(p)?.faith) === tradition)!;
+    expect(place).toBeDefined();
+    expect(e.interiorOf(place.id)?.observance?.service?.passage?.title).toBe(reading);
+    expect(jobs).toContain(player);
+    for (const a of jobs) {
+      const site = e.world.place(e.world.activitySites!(a.id)!.employment!.id);
+      expect(officeAtSanctuary(s,a.role,beliefsForActor(s,a),sanctuaryAt(site),site?.worshipSchool),a.role).toBe(true);
+    }
+    const plan = (e.world as SettlementWorld).planAt(place.x,place.y)!;
+    for (const a of people.slice(0,30)) {
+      const worship = beliefsForActor(s,a).worship;
+      const target = placeFor(plan,seed,a.id,a.home,a.work,s.year,"sanctuary",undefined,false,a);
+      const own = sites.find(p => worship?.includes(p.worshipSchool ?? sanctuaryAt(p)!.faith));
+      expect(target?.pos).toEqual(own?.entrance);
+    }
+    const residents = people.map(a => beliefsForActor(s,a));
+    expect(residents.some(b => b.worship?.includes(tradition))).toBe(true);
+    expect(residents.some(b => !b.worship?.includes(tradition))).toBe(true);
+    if (tradition === "lotus") {
+      const other = sites.find(p => p.worshipSchool === "pure-land")!;
+      expect(e.interiorOf(other.id)?.observance?.service?.passage?.title).toBe("Nembutsu");
+      const monk = jobs.find(a => a.role === "Pure Land monk");
+      expect(monk && e.world.activitySites!(monk.id)?.employment?.id).toBe(other.id);
+      for (let day = 0; day < 21; day++) {
+        const agenda = e.world.agenda!(player,day*86400);
+        expect(agenda?.items.some(o => o.id === "day.japan.nembutsu")).toBe(false);
+      }
+    }
+    if (tradition === "Anglican") expect(residents.some(b => b.label === "No religious affiliation")).toBe(true);
+  });
+
+  it.runIf(!!process.env.FULL)("starts a granthi on duty inside and lets the player listen and serve in the proper rooms", () => {
+    const seed = "service-2", start = resolveSetting("A granthi in Amritsar, 1750",seed);
+    if ("error" in start) throw Error(start.error);
+    const e = createSettingSession(start.setting,seed), p = e.state.player;
+    const job = e.world.activitySites?.("player")?.employment;
+    expect(job?.kind).toBe("worship");
+    expect(p.pos.space).toBe(job!.id);
+    const layout = e.interiorOf(job!.id)!;
+    const action = (label:string) => {
+      const labels = new Set<string>();
+      for (const cell of layout.walk) {
+        const [x,y] = cell.split(",").map(Number);
+        if (e.blocked(x,y,job!.id) || e.actorAt({x,y,space:job!.id},"player")) continue;
+        p.pos = {x,y,space:job!.id};
+        const a = e.worshipAction();
+        if (a) labels.add(a.label);
+        if (a?.label === label) return a;
+      }
+      throw Error(`No ${label}; available: ${[...labels]}; held: ${p.heldItem ?? p.held}; seats: ${layout.seats.length}`);
+    };
+    e.advance(30);
+    const listen = action("Sit and listen");
+    expect(roomAt(layout,p.pos.x,p.pos.y)?.role).toBe("sanctum");
+    const heard = e.overheardReading();
+    expect(heard?.passage.title).toMatch(/^Barah Maha/);
+    expect(e.withinEarshot(heard!.reader,8)).toBe(true);
+    const singers = e.state.actors.filter(a => a.pos.space === job!.id && worshipAct(layout.observance,a.activity,e.state.clock)?.passage)
+      .map(actor => ({actor, activity:actor.activity}));
+    const affiliations = singers.map(({actor}) => actor.origin!.belief);
+    for (const {actor} of singers) actor.origin!.belief = "london-unaffiliated";
+    expect(e.overheardReading()).toBeUndefined();
+    singers.forEach(({actor},i) => { actor.origin!.belief = affiliations[i]; });
+    for (const {actor} of singers) actor.activity = layout.observance!.visit.label;
+    expect(e.overheardReading()).toBeUndefined();
+    for (const {actor, activity} of singers) actor.activity = activity;
+    e.execute(listen.command);
+    expect(p.activity).toBe("Sitting and listening");
+    e.execute(e.worshipAction()!.command);
+    if (p.heldItem) e.execute({type:"stow"});
+    const serve = action("Help serve the meal");
+    expect(roomAt(layout,p.pos.x,p.pos.y)?.role).toBe("kitchen");
+    expect(e.overheardReading()).toBeUndefined();
+    serve.person!.hunger = 16;
+    const at = e.state.clock, hunger = serve.person!.hunger;
+    e.execute(serve.command);
+    expect(e.state.clock - at).toBe(300);
+    expect(serve.person!.hunger).toBeLessThan(hunger);
+    expect(serve.person!.sharedMealHour).toBe(Math.floor(at/3600));
+    p.pos = {...layout.entry,space:job!.id};
+    expect(e.validate(serve.command)).toBeTruthy();
+    expect(e.validate({type:"interact",action:"participate",target:job!.id+"/row"})).toBeTruthy();
+  });
   it("plan every profile at every status, shape and size without overlaps or props outside the walls", () => {
     for (const pr of interiorProfiles)
       for (const room of (pr.rooms ?? [pr]).map((_, i) => i))
@@ -304,18 +421,45 @@ describe("interior profiles", () => {
     expect(religiousProfile({ culture: "other-indigenous-american", lon: -87.6, lat: 33.0, year: 1300 } as WorldSetting)?.drawnAt).toBe("small");
   });
 
-  it("gives a sanctuary with no interior of its own a hall, never a house", () => {
-    for (const [use, lon, lat, year] of [
-      ["religious.sephardi-synagogue", 22.9, 40.6, 1600],
-      ["religious.gurdwara", 74.87, 31.64, 1700],
-      ["religious.iranian-fire-temple", 54.4, 31.9, 600],
-      ["religious.orisha-shrine", 5.62, 6.34, 1600],
-      ["religious.heiau", -157.86, 21.31, 1700],
-    ] as const)
-      expect(interiorProfileFor({ use, lon, lat, year }).program, use).toBe("rows");
-    expect(interiorProfileFor({ use: "religious.central-asian-mosque", lon: 75.99, lat: 39.47, year: 1500 }).id).toBe("mosque");
-    expect(interiorProfileFor({ use: "religious.burmese-pagoda", lon: 96.2, lat: 16.8, year: 1100 }).id).toBe("wat");
-    expect(interiorProfileFor({ use: "religious.byzantine-church", lon: 20.47, lat: 44.82, year: 1700 }).id).toBe("orthodox-church");
+  it("takes the sanctuary from its own claim and dates its fittings", () => {
+    const site = (use:string, lon:number, lat:number, year:number) => interiorProfileFor({use:"religious."+use,lon,lat,year});
+    const synagogue = site("sephardi-synagogue",22.9,40.6,1600);
+    expect(synagogue.observance?.service?.passage?.title).toBe("Genesis");
+    expect(synagogue.observance?.gathering.passage).toBeUndefined();
+    const mosque = site("maghrebi-mosque",-5,34,1400).observance!;
+    const prayer = (day:number, hour:number) => worshipAct(mosque,mosque.service!.label,(day * 24 + hour) * 3600);
+    expect(prayer(2,12)?.passage?.title).toBe("Qur’an");
+    expect(prayer(1,12)?.passage).toBeUndefined();
+    expect(prayer(2,15)?.sound).toBeUndefined();
+    expect(prayer(1,18)?.sound).toBe("recitation");
+    expect(passageOn(aarti,{day:0,from:79}).title).toBe("Barah Maha · Chet");
+    expect(passageOn(aarti,{day:9,from:108}).title).toBe("Barah Maha · Vaisakh");
+    expect(passageOn(aarti,{day:10,from:111})).toBe(aarti);
+    expect(synagogue.observance?.weekday).toBe(3);
+    expect(religiousProfile({culture:"european",placeId:"city-thessaloniki",year:1700,lon:22.97,lat:40.78,playableMap:{id:"tile:122,-218"}} as WorldSetting)?.id).toBe("sephardi-synagogue");
+    const reading = (day:number, hour:number) => worshipHours(synagogue.observance!, day, hour, synagogue.regulars!.hours);
+    expect(reading(3,7).fill).toBeGreaterThan(reading(2,7).fill);
+    expect(reading(3,7).fill).toBeGreaterThan(reading(3,17).fill);
+    expect(reading(3,22)).toEqual({peak:false,fill:0});
+    expect(site("japanese-temple",135.77,35.0,1200).observance?.service?.sound).toBe("recitation");
+    expect(site("japanese-temple",135.77,35.0,1700).observance?.service?.sound).toBe("woodbeat");
+    expect(synagogue.rooms?.find(r=>r.role==="sanctum")?.furnish).toContain("lectern");
+    expect(site("gurdwara",74.87,31.64,1700).rooms?.find(r=>r.role==="kitchen")?.fire).toBe("firepit");
+    expect(site("pharaonic-temple",32.65,25.7,-1300).styles).toMatchObject({altar:"naos",pole:"papyrus"});
+    expect(site("pharaonic-temple",32.65,25.7,-2300).styles?.pole).toBe("timber");
+    expect(site("iranian-fire-temple",54.4,31.9,600).rooms?.find(r=>r.role==="sanctum")?.styles?.altar).toBe("fire-sanctuary");
+    expect(site("parsi-fire-temple",72.85,20.5,1800).rooms?.find(r=>r.role==="sanctum")?.styles?.altar).toBe("fire-urn");
+    expect(site("byzantine-church",20.47,44.82,900).styles?.altar).toBe("screen-templon");
+    expect(site("byzantine-church",20.47,44.82,1700).styles?.altar).toBe("screen-iconostasis");
+    expect(site("central-asian-mosque",75.99,39.47,1500).id).toBe("mosque");
+    expect(site("gothic-parish",-.1,51.5,2020).id).toBe("modern-parish");
+    const use="religious.burmese-pagoda", where={use,lon:96.2,lat:16.8,year:1100};
+    const court=buildInterior({id:"pagoda",claim:use.replace(".","-"),access:"public"} as Place,where,{});
+    expect(court.params.shape).toBe("terrace");
+    const mound=court.props.find(q=>q.kind==="altar")!;
+    expect(court.floor.has(`${ROOM_ORIGIN+mound.x},${ROOM_ORIGIN+mound.y}`)).toBe(false);
+    for(const [x,y] of [[mound.x-1,mound.y],[mound.x+mound.w,mound.y],[mound.x,mound.y-1],[mound.x,mound.y+mound.d]])
+      expect(court.walk.has(`${ROOM_ORIGIN+x},${ROOM_ORIGIN+y}`)).toBe(true);
   });
 
   it("faces every place of worship to its altar down an aisle no column stands in", () => {
@@ -515,6 +659,26 @@ describe("interior profiles", () => {
   });
 });
 
+it("opens the civic buildings on the square into a working compound or covered shops", () => {
+  for (const [use, lon, lat] of [["civic.bazaar",36,33],["civic.chinese-yamen",116,40],["civic.japanese-machi-bugyo",140,36],
+    ["civic.korean-dongheon",127,37],["civic.mughal-kotwali",77,29]] as const) {
+    const site = {use,lon,lat,year:1750,settlement:"city"};
+    for (const seed of ["west","east"]) {
+      const layout = buildInterior({id:"hall",claim:use.replace(".","-"),access:"public"} as Place, site, {seed});
+      expect(layout.rooms).toHaveLength(4);
+      for (const room of layout.rooms)
+        expect([...layout.walk].some(k => { const [x,y] = k.split(",").map(Number); return roomAt(layout,x,y) === room; }),room.label).toBe(true);
+      if (use === "civic.bazaar") {
+        expect(layout.plan.rooms.filter(r=>r.program === "shop").map(r=>r.styles.stock)).toEqual(["cloth","pots"]);
+        expect(new Set(layout.work.filter(s=>s.kind === "shopcounter").map(s=>s.propId)).size).toBe(2);
+      } else {
+        expect(layout.plan.rooms[0].shape).toBe("courtyard");
+        expect(layout.work.some(s=>s.kind === "desk" && roomAt(layout,s.x,s.y)?.role === "work")).toBe(true);
+      }
+    }
+  }
+});
+
 it("lays out hospital wards with repeated beds, a clear aisle and regional bedding", () => {
   const cases = [
     { lon:-.1,lat:51.5,year:1350,use:"worksite.european-infirmary",kind:"bed" },
@@ -527,19 +691,26 @@ it("lays out hospital wards with repeated beds, a clear aisle and regional beddi
   ];
   for (const site of cases) {
     const pr = interiorProfileFor({...site,settlement:"city"});
-    const rooms = pr.rooms ?? [{size:pr.size}];
-    let beds = 0;
-    for(const [room,definition] of rooms.entries()) {
-      const [w,d]=definition.size;
-      const p=resolveRoom(pr,{seed:11,room,status:1,colorway:0,hour:10,w,d,shape:"rect"});
-      const props=planRoom(p), bedding=props.filter(q=>q.kind===site.kind);
-      beds+=bedding.length;
-      if(p.program==="ward") for(const bed of bedding) expect(bed.x < p.w/2-2 || bed.x > p.w/2,site.use).toBe(true);
-      expect(props.some(q=>q.kind==="loom"||q.kind==="altar"),site.use).toBe(false);
+    for (const seed of ["west","east","third"]) {
+      const layout = buildInterior({id:"ward",claim:site.use.replace(".","-"),access:"public"} as Place, site, {seed});
+      expect(layout.rooms.length,site.use).toBeGreaterThanOrEqual(3);
+      expect(layout.beds.length,site.use).toBeGreaterThanOrEqual(4);
+      expect(layout.beds.every(b => b.kind === site.kind)).toBe(true);
+      expect(layout.locks.size).toBe(0);
+      expect(layout.work.some(s => s.kind === "basin"),site.use).toBe(true);
+      for (const [i, room] of layout.rooms.entries()) {
+        const inside = (x:number,y:number) => x>room.x && x<=room.x+room.w && y>room.y && y<=room.y+room.d;
+        expect([...layout.walk].some(key => {const [x,y]=key.split(",").map(Number);return inside(x,y);}),site.use+" "+room.label).toBe(true);
+        if (room.role === "ward") {
+          const beds = layout.beds.filter(b => inside(b.x,b.y));
+          expect(beds.length,room.label).toBeGreaterThan(0);
+          if (layout.plan.rooms[i].program === "ward") for (const bed of beds)
+            expect(Math.abs(bed.x-room.x-room.w/2)>1).toBe(true);
+        }
+      }
+      expect(layout.rooms.some((_,i) => layout.plan.rooms[i].shape==="courtyard")).toBe(pr.institutionPlan==="court");
+      if(site.use==="worksite.sri-lankan-infirmary") expect(layout.rooms.filter(r=>r.role==="ward")).toHaveLength(4);
     }
-    expect(beds,site.use).toBeGreaterThanOrEqual(4);
-    if(site.use==="worksite.sri-lankan-infirmary") expect(pr.rooms?.filter(r=>r.role==="sleep")).toHaveLength(4);
-    else expect(pr.program).toBe("ward");
   }
 });
 

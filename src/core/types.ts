@@ -105,7 +105,7 @@ export type Economy = {
   /** The player's place in today's work: stages done, on which day; how it
    * is going, what the wage has gained or lost, the lines kept from its
    * cards, and the card still waiting for an answer. */
-  work?: { day: number; stage: number; cart?: string; delivered?: boolean; quality?: number; pay?: number; lines?: string[]; card?: string; done?: boolean; drawn?: number; catch?: number; harvest?: number; since?: number; tubs?: number };
+  work?: { day: number; stage: number; cart?: string; delivered?: boolean; quality?: number; pay?: number; lines?: string[]; card?: string; done?: boolean; drawn?: number; catch?: number; landed?: Inventory; harvest?: number; since?: number; tubs?: number };
   /** The day the household plot was last seen to. */
   side?: number;
   /** The seasons the household's field was last sown and weeded, which the harvest pays back. */
@@ -192,6 +192,7 @@ export type CharacterOrigin = {
   revision: 1;
   profile: string;
   community: string;
+  belief?: string;
   nameKit?: string;
   nameTradition?: string;
   nameRegion?: string;
@@ -215,6 +216,7 @@ export type Fire = {
   until: number;
 };
 export type Actor = {
+  exchanges?: Record<string,import("./exchange").ExchangeBook>;
   /** Clock when the torch in hand burns out. */
   torchOut?: number;
   afloat?: "raft" | "boat" | "swimming";
@@ -279,6 +281,7 @@ export type Actor = {
   fatigue: number;
   hunger: number;
   hungerDebt?: number;
+  sharedMealHour?: number;
   /** The day the player last got through some tobacco or betel. */
   smoked?: number;
   encounterAfter?: number;
@@ -291,6 +294,7 @@ export type Actor = {
   owes?: boolean;
   /** What they have to sell today, once the player has bought or sold. */
   shop?: import("./shop").Shop;
+  stockroom?: string;
   /** Stories about the player this person would pass on; hops 0 is what they saw. */
   word?: Word[];
   /** Serving a sentence (stocks, labour, a cell) until then. */
@@ -313,7 +317,7 @@ export type Actor = {
   /** An inventory item taken in hand. A carried world object wins over this,
    * and the engine never lets both be set. */
   heldItem?: ItemId;
-  deliveryBale?: string;
+  deliveryLoad?: string;
   /** Met below the street: who they are generated from, where they keep to,
    * when they next act, and whether they have spoken to the player. */
   underground?: { person: string; home: Point; next: number; goal?: Point; met?: boolean };
@@ -361,6 +365,8 @@ export type Actor = {
  * the cell, which is where someone walking it stands. */
 export type WallWalk = { kind: "wall" | "tower" | "gate"; corner?: "nw" | "ne" | "se" | "sw" };
 export type Place = {
+  venueRoom?: { venue: string; room: string };
+  worshipSchool?: string;
   institution?: import("../content/characters/workplace").Institution;
   workCapacity?: number;
   workRoles?: readonly string[];
@@ -393,10 +399,18 @@ export type Place = {
 };
 export type WorldObject = {
   motor?: { facing: number; long: boolean; taken?: boolean; lastCall?: number; handled?: number; intakeDay?: number; delay?: number; yielding?: boolean };
+  terminalVehicle?: "feeder" | "carrier";
   passage?: { destination: Point; back: boolean };
-  freight?: { store: string; call: number };
-  vessel?: { form: "dhow" | "lighter"; site: string; skipper: string; finish: number; canvas?: number; heading: number; manual?: boolean; underway?: boolean; lastMove?: number; loadCall?: number };
-  lighterage?: { store: string; porter: string; site: string; lift: number };
+  freight?: { store: string; call: number; local?: boolean; good?:"steel-coil"; boxes?: { picked: number; landed: number; hook: number; delivered: number; inbound: number } };
+  vessel?: { form: "merchant" | "lighter"; site: string; skipper: string; finish: number; canvas?: number; heading: number; manual?: boolean; underway?: boolean; lastMove?: number; loadCall?: number };
+  curing?: { counter: string; fish?: ItemId; count?: number; ready?: number; keeper?: string; intakeDay?: number };
+  quayGoods?: string[];
+  shopSupply?: { source: string; input: ItemId; item: ItemId; yield: number; limit: number };
+  market?: { kind: import("../content/economy/exchanges").MarketKind; store?: string };
+  consignment?: { item: ItemId; days: number; units: number };
+  quayStock?: { item:ItemId; source:string; received:number; collected:number; carrying?:number };
+  hoistedAt?: number;
+  lighterage?: { cargo: "grain" | "cloth"; store: string; porter: string; site: string; lift: number };
   resource?: Resource;
   prop?: string;
   carriedBy?: "player";
@@ -552,6 +566,7 @@ export type GameEvent = {
   pos?: Position;
 };
 export type PlayerCommand =
+  | import("./exchange").MarketOrder
   | {
       type: "move";
       dx: number;
@@ -629,6 +644,7 @@ export type PlayerCommand =
         | "guide-plough"
         | "yoke"
         | "use-prop"
+        | "participate"
         | "capture"
         | "herd"
         | "knock"
@@ -643,7 +659,7 @@ export type PlayerCommand =
         | "strike"
         | "climb"
         | "descend"
-        | "passage" | "unload"
+        | "passage" | "unload" | "salt-fish" | "gather-fish"
         | "launch"
         | "chop"
         | "dig"
@@ -659,6 +675,7 @@ export type PlayerCommand =
         | "douse"
         | "snare"
         | "look";
+      item?: ItemId;
       /** A descent taken over an edge rather than back the way you came. */
       dx?: number;
       dy?: number;
@@ -821,6 +838,7 @@ export type Snapshot = {
   encounter?: { card: string; at: Position; clock: number };
   /** What the player has done today that goals can't read off state. */
   goalFlags?: {
+    participated?: string[];
     traded: boolean;
     talked: boolean;
     visited: string[];
@@ -950,6 +968,7 @@ export type Observation = {
 };
 export interface WorldModel {
   anchorage?: (site?: string) => import("../world/v3/harbor").Anchorage | undefined;
+  terminal?: () => import("../world/v3/harbor").ContainerTerminal | undefined;
   harbor?: () => import("../world/v3/harbor").Harbor | undefined;
   temporal?: { origin: import("../content/geography/types").WorldSetting; year: number };
   geography?: import("./geography").WorldGeography;

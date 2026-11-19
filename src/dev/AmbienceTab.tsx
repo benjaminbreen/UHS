@@ -4,7 +4,7 @@ import type { AudioDirector } from "../audio/director";
 import { ambienceFor, type AmbienceMix } from "../audio/ambience";
 import { listeningScenes, references } from "../audio/ambience-scenes";
 
-const verdicts = ["Sounds right", "Better than before", "Worse than before", "Not like rain"];
+const verdicts = ["Sounds right", "Better than before", "Worse than before", "Doesn’t sound like this place"];
 
 /** Plays the world's ambience for a chosen scene, next to the field recording
  * it should resemble, and records what the listener thinks for Claude to read
@@ -123,6 +123,7 @@ export function AmbienceTab({ director }: { director: AudioDirector }) {
 }
 
 const silentBeds: Partial<AmbienceMix> = {
+  activity: undefined,
   rain: 0,
   thunder: 0,
   frogs: 0,

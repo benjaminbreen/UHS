@@ -593,7 +593,7 @@ export function liveOn(engine: Engine, life: Life, year: number): Engine {
     if (!s.plot || s.plot.ended) {
       const aim = s.lifeAim;
       s.plot = undefined;
-      const plot = startPlot(s, setting, undefined, year);
+      const plot = startPlot(s, setting, undefined, year, world.activitySites);
       if (plot) plot.aim = aim;
     }
     ensureLifeAim(s, setting);

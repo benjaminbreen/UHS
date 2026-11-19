@@ -1,3 +1,4 @@
+import { marketKinds } from "../content/economy/exchanges";
 import { fieldJobs } from "../core/work-places";
 import { crops } from "../content/agriculture/crops";
 import type { CropId } from "../content/agriculture/types";
@@ -382,6 +383,16 @@ const event = z.object({
   ]).optional(),
 });
 const actor = z.object({
+  stockroom: z.string().optional(),
+  deliveryLoad: z.string().optional(),
+  staff: z.string().optional(),
+  exchanges: z.record(z.string(), z.object({
+    lastTally:z.number().int().optional(),nextLot:z.number().int().nonnegative().optional(),
+    holdings: z.record(z.string(), z.object({quantity:z.number().int().nonnegative(),cost:z.number().nonnegative()})),
+    shares:z.number().int().nonnegative(), cash:z.number().int().nonnegative(), realized:z.number(),
+    loan:z.object({desk:z.number().int().min(3).max(4),day:z.number().int()}).optional(),
+    porter:z.boolean().optional(),freight:z.number().positive().optional(),warehouse:z.string().optional(),
+  })).optional(),
   stats: stats.optional(),
   health: z.number().min(0).max(100).optional(),
   dead: z.string().optional(),
@@ -412,6 +423,7 @@ const actor = z.object({
       revision: z.literal(1),
       profile: z.string(),
       community: z.string(),
+      belief: z.string().optional(),
       nameKit: z.string().optional(),
       nameTradition: z.string().optional(),
       nameRegion: z.string().optional(),
@@ -455,6 +467,7 @@ const actor = z.object({
   inventory,
   activity: z.string(),
   hungerDebt: z.number().nonnegative().optional(),
+  sharedMealHour: z.number().int().nonnegative().optional(),
   smoked: z.number().optional(),
   encounterAfter: z.number().optional(),
   fatigue: z.number().min(0).max(100),
@@ -497,6 +510,12 @@ const actor = z.object({
   post: z.object({ at: point, rest: point, night: z.boolean().optional(), torch: z.boolean().optional(), face: z.number().optional(), round: z.array(point).max(40).optional(), leg: z.number().optional(), called: z.number().optional(), arrive: z.number().optional(), doing: z.string().max(80).optional(), with: z.string().max(200).optional(), beside: z.number().optional() }).optional(),
 });
 const object = z.object({
+  vessel: z.object({form:z.enum(["merchant","lighter"]), site:z.string(), skipper:z.string(), finish:z.number(), canvas:z.number().optional(), heading:z.number().int().min(0).max(7), manual:z.boolean().optional(), underway:z.boolean().optional(), lastMove:z.number().optional(), loadCall:z.number().int().optional()}).optional(),
+  lighterage: z.object({cargo:z.enum(["grain","cloth"]),store:z.string(),porter:z.string(),site:z.string(),lift:z.number().int()}).optional(),
+  shopSupply: z.object({source:z.string(),input:item,item,yield:z.number().int().positive(),limit:z.number().int().positive()}).optional(),
+  market:z.object({kind:z.enum(marketKinds),store:z.string().optional()}).optional(),
+  consignment: z.object({item,days:z.number().int().positive(),units:z.number().int().positive()}).optional(),
+  hoistedAt: z.number().optional(),
   motor: z.object({ facing:z.number().int().min(0).max(7), long:z.boolean(), taken:z.boolean().optional(), lastCall:z.number().int().optional(), handled:z.number().int().optional(), intakeDay:z.number().int().optional(), delay:z.number().optional(), yielding:z.boolean().optional() }).optional(),
   passage: z.object({ destination: point, back:z.boolean() }).optional(),
   freight: z.object({store:z.string(),call:z.number().int()}).optional(),
@@ -548,6 +567,8 @@ const object = z.object({
   size: z.tuple([z.number(), z.number()]).optional(),
 });
 export const playerCommandSchema = z.discriminatedUnion("type", [
+  z.object({type:z.literal("exchange"),action:z.enum(["buy","sell","redeem","borrow","repay","call","hire","freight","deliver","tally"]),
+    desk:z.number().int().min(0).max(4),quantity:z.number().int().min(1).max(99),call:z.number().int().nonnegative()}).strict(),
   z
     .object({
       type: z.literal("move"),
@@ -661,6 +682,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
         "guide-plough",
         "yoke",
         "use-prop",
+        "participate",
         "capture",
         "herd",
         "follow",
@@ -779,6 +801,7 @@ const faunaGroup = z
         z.object({
           x: z.number().int(),
           y: z.number().int(),
+          purchase:z.number().nonnegative().optional(),
           direction: z.union([
             z.literal(0),
             z.literal(1),
@@ -833,8 +856,10 @@ const faunaGroup = z
     owner: z.string().optional(),
     hitch: z.string().optional(),
     draft: z.boolean().optional(),
+    market: z.string().optional(),
     gateId: z.string().optional(),
     pasture: pos.optional(),
+    route: z.array(point).optional(),
     fold: z.boolean().optional(),
   })
   .strict();
@@ -874,7 +899,7 @@ export const snapshotSchema = z.object({
       z.object({ type: z.literal("work") }).strict(),
       z.object({ type: z.literal("visit"), place: z.string().max(120) }).strict(),
       z.object({ type: z.literal("talk") }).strict(),
-      z.object({ type: z.literal("reach"), x: z.number(), y: z.number() }).strict(),
+      z.object({ type: z.literal("reach"), x: z.number(), y: z.number(), participation:z.string().optional() }).strict(),
       z.object({ type: z.literal("talk-to"), actor: z.string().max(120) }).strict(),
       z.object({ type: z.literal("eat"), below: z.number() }).strict(),
       z.object({ type: z.literal("rest"), below: z.number() }).strict(),
@@ -896,6 +921,7 @@ export const snapshotSchema = z.object({
   }).strict().optional(),
   goalDay: z.number().int().nonnegative().optional(),
   goalFlags: z.object({
+    participated: z.array(z.string()).optional(),
     traded: z.boolean(),
     talked: z.boolean(),
     visited: z.array(z.string().max(240)).max(1000),
@@ -1167,6 +1193,10 @@ export const snapshotSchema = z.object({
       owed: z.number().optional(),
       total: z.number().optional(),
       seized: z.number().optional(),
+      gathering: z.object({
+        at:pos, place:z.string().optional(), start:z.number(), until:z.number(), label:z.string(), met:z.boolean().optional(),
+        scene:z.enum(["feast","wedding","funeral","hearing","match","market","memorial","graves","smoke"]).optional(), props:z.array(z.string()).optional(),
+      }).optional(),
       fired: z.array(z.string().max(40)).max(40),
       introduced: z.array(z.string().max(40)).optional(),
       firedAt: z.record(z.string().max(40), z.number()).optional(),
@@ -1176,6 +1206,7 @@ export const snapshotSchema = z.object({
         by: z.string().max(100).optional(),
         choices: z.array(z.object({
           id: z.string().max(40),
+          minutes: z.number().int().positive().optional(),
           check: z.object({
             stat: z.union([
               z.enum(["strength", "agility", "endurance", "wit", "openness", "conscientiousness", "extraversion", "agreeableness", "neuroticism"]),
@@ -1187,7 +1218,8 @@ export const snapshotSchema = z.object({
         }).strict()).max(20),
         at: z.number(),
         due: z.number().optional(),
-        scene: z.enum(["doorstep", ...plotRoles]).optional(),
+        scene: z.enum(["doorstep", "field", "shore", "workplace", ...plotRoles]).optional(),
+        shown: z.boolean().optional(),
       }).strict().optional(),
       ended: z.string().max(40).optional(),
       aim: lifeAim.optional(),

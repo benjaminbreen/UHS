@@ -1,3 +1,5 @@
+import { boundaryStyles } from "../../content/settlements/boundaries";
+import { drawEw, drawNs } from "../boundary-forms";
 import { h2, Raster } from "../ship/raster";
 import { palaceBays, type FairLevel } from "../../world/fair";
 import type { FairSprite } from "./things";
@@ -1091,6 +1093,30 @@ export function paintPalaceDecor(kind: string, v: number, style?: PalaceStyle): 
   // What a palace's servants and guards use is plain wood, whatever the room's furniture is.
   if ((style?.order ?? "classical") === "classical" && ["trestle", "armsrack", "dresser", "barrel"].includes(kind)) FRAME = WALNUT;
   const n = Math.floor(v * 997), glow: { x: number; y: number }[] = [];
+  if (kind === "grille-ew" || kind === "grille-ns") {
+    const s = sprite(16, 50, 0, 47), iron = boundaryStyles.railing!;
+    const put = (x: number, y: number, rgb: number[]) => s.r.set(x, y,
+      "#" + rgb.map(c => Math.round(c).toString(16).padStart(2, "0")).join(""));
+    if (kind === "grille-ew") {
+      drawEw(iron, 0, 16, 39, false, false, put);
+      for (let x = 2; x < 16; x += 4) {
+        s.r.fill(x, 17, 1, 18, "#393a3e");
+        s.r.fill(x - 1, 18, 3, 2, GILT[2]); s.r.set(x, 16, GILT[0]);
+      }
+    } else drawNs(iron, 8, 32, 48, false, false, put);
+    return s;
+  }
+  if (kind === "gate-pier") {
+    const s = sprite(28, 53, 6, 51), { r } = s;
+    r.shadow(16, 49, 11, 3);
+    for (const [y, w, h] of [[43, 20, 6], [23, 15, 20], [18, 20, 5], [14, 17, 4]]) {
+      const l = 14 - (w >> 1);
+      r.fill(l, y, w, h, CREAM[2]); r.fill(l, y, w, 2, CREAM[0]);
+      r.fill(l + w - 4, y + 2, 4, h - 2, CREAM[4]); r.fill(l, y + h - 1, w, 1, CREAM[3]);
+    }
+    stamp(r, ["...01...", "..0122..", ".012233.", ".122333.", "..2333..", "...22...", "..0122.."], 10, 7, GILT);
+    return s;
+  }
   if (kind === "candlestick" || kind === "vase" || kind === "clock") {
     // What stands on a table, as a thing by itself.
     const s = sprite(16, 26, 0, 24), { r } = s;

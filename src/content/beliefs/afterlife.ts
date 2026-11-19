@@ -687,10 +687,11 @@ const realms: Record<Realm, { hope: string; judge: Judge }> = {
 };
 
 /** The painting of the end a tradition hoped for. */
-export const hopeFor = (system: BeliefSystem) => `afterlife/${realms[system.realm].hope}.png`;
+export const hopeFor = (system: BeliefSystem) => system.powers.length ? `afterlife/${realms[system.realm].hope}.png` : "stars/field-b.png";
 
 /** Where this person's own tradition held that they went. */
 export function passage(life: Life, system: BeliefSystem): Passage {
+  if (!system.powers.length) return {plate:"stars/field-b.png",title:"Remembered",lines:[life.mourners ? `${kin(life.mourners)} left to remember you.` : "Your life comes to an end."]};
   // Doubt is common enough from the eighteenth century to stand for itself.
   if (life.observance === "indifferent" && life.year >= 1750)
     return {

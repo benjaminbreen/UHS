@@ -1,10 +1,12 @@
 import type { Livelihood } from "../characters/context-types";
 import type { SeasonId } from "../../core/season";
 import type { SkillId } from "../../core/skills";
+import type { Institution } from "../characters/workplace";
 import type { Step } from "./processes";
 
 /** Where a day or a piece belongs; unset, it belongs everywhere. */
 type When = {
+  faith?: RegExp;
   seasons?: readonly SeasonId[];
   /** Astronomical years, start inclusive. */
   years?: readonly [number, number];
@@ -13,8 +15,12 @@ type When = {
 };
 /** Several `When`s: the day fits any of them. */
 type Day = { title: string; steps: Step[]; when?: When | readonly When[] };
+const householdVisits: Day = {title:"Household visits",steps:[
+  {name:"visit",task:"Call on a household",at:"client",client:true,scene:"talk",hours:2},
+  {name:"receive",task:"Make time for people seeking advice",at:"home",scene:"talk",hours:2},
+]};
 /** The day being worked and where: `pick` chooses among the days that fit. */
-export type Today = { pick: number; year: number; lon: number; lat: number };
+export type Today = { pick: number; year: number; lon: number; lat: number; employer?: Institution; faith?: string; service?: string; lighterage?: "grain" | "cloth"; terminal?: boolean; steel?:boolean };
 /** Work with a day of its own: steps in the trade's words, each somewhere,
  * and for the land a different day in each season. */
 export type Recipe = {
@@ -1334,7 +1340,7 @@ const recipes: Recipe[] = [
       },
       {
         title: "Services and visits",
-        when: { years: [400, 1900], bounds: EUROPE },
+        when: { years: [400, 1900], bounds: EUROPE, faith:/Christian|Catholic/i },
         steps: [
           { name: "service", task: "Say the morning service", at: "workplace", scene: "rest", hours: 2 },
           { name: "visit", task: "Visit the sick and the dying", at: "sick", scene: "talk", card: "heal-visit", hours: 3 },
@@ -1343,7 +1349,7 @@ const recipes: Recipe[] = [
       },
       {
         title: "Leading the prayers",
-        when: { years: [650, 1900], bounds: ISLAMIC },
+        when: { years: [650, 1900], bounds: ISLAMIC, faith:/^Islam$/ },
         steps: [
           { name: "prayer", task: "Lead the dawn prayer", at: "workplace", scene: "rest", hours: 1 },
           { name: "teach", task: "Teach the children to recite", at: "workplace", scene: "talk", hours: 4 },
@@ -1544,6 +1550,7 @@ const recipes: Recipe[] = [
 ];
 // Without a place, only what belongs everywhere fits.
 const fits = (w: When | readonly When[] | undefined, season: SeasonId, at?: Today): boolean => !w || ("length" in w ? w.some((x) => fits(x, season, at)) : (
+  (!w.faith || at?.faith === undefined || w.faith.test(at.faith)) &&
   (!w.seasons || w.seasons.includes(season)) &&
   (!w.years || (!!at && at.year >= w.years[0] && at.year < w.years[1])) &&
   (!w.bounds || (!!at && at.lon >= w.bounds[0] && at.lat >= w.bounds[1] && at.lon <= w.bounds[2] && at.lat <= w.bounds[3]))));
@@ -1551,7 +1558,7 @@ const fits = (w: When | readonly When[] | undefined, season: SeasonId, at?: Toda
 export function dayOf(recipe: Recipe, season: SeasonId, at?: Today): Day | undefined {
   if (!Array.isArray(recipe.day)) return "title" in recipe.day ? recipe.day : recipe.day[season];
   const days = recipe.day.filter((d) => fits(d.when, season, at));
-  return days[Math.floor((at?.pick ?? 0) * days.length)] ?? recipe.day[0];
+  return days[Math.floor((at?.pick ?? 0) * days.length)] ?? (recipe.activities?.includes("At the rite") ? householdVisits : recipe.day[0]);
 }
 
 export function pieceOf(recipe: Recipe | undefined, season: SeasonId, at: Today | undefined, pick: number) {
@@ -1559,6 +1566,30 @@ export function pieceOf(recipe: Recipe | undefined, season: SeasonId, at: Today 
   return names.length ? names[Math.floor(pick * names.length)] : undefined;
 }
 
-export const recipeFor = (kit: Livelihood) =>
+const wardShift: Recipe = {
+  rises: 7, paid: "wage", skill: "speech", wiki: ["Nursing"],
+  day: { title: "A shift on the ward", steps: [
+    { name: "supplies", task: "Collect clean cloths and fresh water", at: "supplies", scene: "haul", hours: 0.5 },
+    { name: "rounds", task: "Take water round the ward", at: "workplace", scene: "talk", hours: 2 },
+    { name: "beds", task: "Change the bedding and help patients settle", at: "workplace", scene: "tend", hours: 3 },
+  ] },
+};
+
+const sanctuaryWork: Recipe = {
+  skill:"speech", rises:6, wiki:["Place of worship"], day:[
+    {title:"Receiving visitors", steps:[
+      {name:"prepare",task:"Get the space ready before people arrive",at:"workplace",scene:"tend",hours:1},
+      {name:"receive",task:"Receive the people who come this morning",at:"workplace",scene:"talk",hours:3},
+      {name:"visit",task:"Call on a household",at:"client",client:true,scene:"talk",hours:2},
+    ]},
+    {title:"Household visits", when:{faith:/Christian|Catholic|Anglican|Jewish|Buddh/i}, steps:[
+      {name:"visit",task:"Call on a household before the morning gathering",at:"client",client:true,scene:"talk",hours:1},
+      {name:"return",task:"Return to meet the morning visitors",at:"workplace",scene:"talk",hours:3},
+    ]},
+  ],
+};
+export const recipeFor = (kit: Livelihood, employer?: Institution) =>
+  employer === "worship" && kit.fromBeliefs ? sanctuaryWork :
+  employer === "hospital" && kit.activity === "Tending the sick" ? wardShift :
   recipes.find((r) => r.ids?.includes(kit.id)) ??
   recipes.find((r) => r.activities?.includes(kit.activity) || r.label?.test(kit.label));

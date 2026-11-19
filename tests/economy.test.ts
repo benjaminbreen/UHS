@@ -737,3 +737,146 @@ it("reads what a place has from its ground, with documented specialties first", 
   expect(resourceName("grain", { ...ground, lon: 135.7, lat: 35, climate: "monsoon" })).toBe("rice");
   expect(goodsOf(commonLivelihoods.find((l) => l.id === "salt-worker"), 1)).toEqual(["salt"]);
 });
+
+it("draws port cloth from measured bolts and retains the unused part for households", () => {
+  const household: Household = { id:"buyers", members:["buyer"], home:{x:0,y:0,space:"outside"}, storeId:"store", needs:["cloth"] };
+  const economy: Economy = {hour:8,stock:{},short:{}};
+  const counter = {"cloth-bolt":1};
+  const tick = (hour:number)=>runEconomy([household],economy,hour,()=>0,0.8,undefined,[{id:"counter",prop:"clothCounter",inventory:counter}]);
+  tick(9);
+  expect(counter["cloth-bolt"]).toBe(0);
+  expect(economy.stock.import.cloth).toBeCloseTo(1-0.02/24);
+  tick(10);
+  expect(economy.stock.import.cloth).toBeCloseTo(1-2*0.02/24);
+  household.makes=["cloth"];
+  economy.stock.buyers.cloth=0.01/24;
+  tick(11);
+  expect(economy.stock.import.cloth).toBeCloseTo(1-2.5*0.02/24,8);
+  economy.stock.import.cloth=0;
+  tick(12);
+  expect(economy.short.buyers).toContain("cloth");
+});
+
+it("feeds the quay neighbourhood from landed sacks and replenishes the grocer on separate spice sailings", () => {
+  const h: Household={id:"street",members:Array.from({length:24},(_,i)=>"resident"+i),home:{x:0,y:0,space:"outside"},storeId:"kitchen",needs:["bread"]};
+  const economy: Economy={hour:8,stock:{},short:{}};
+  const stock={grain:0,pepper:1}, bread={bread:0}, spice={pepper:0};
+  const counters=[
+    {id:"loft",prop:"grainHoist",inventory:stock,consignment:{item:"pepper",days:4,units:8}},
+    {id:"oven",inventory:bread,shopSupply:{source:"loft",input:"grain",item:"bread",yield:8,limit:16}},
+    {id:"grocer",inventory:spice,shopSupply:{source:"loft",input:"pepper",item:"pepper",yield:1,limit:6}},
+  ];
+  const tick=(hour:number)=>runEconomy([h],economy,hour,()=>0,1,undefined,counters);
+  tick(9);
+  expect(economy.short.street).toContain("bread");
+  expect([spice.pepper,stock.pepper]).toEqual([1,0]);
+  stock.grain++;spice.pepper--;
+  tick(10);
+  expect([stock.grain,bread.bread,spice.pepper]).toEqual([0,7,0]);
+  expect(economy.short.street).toBeUndefined();
+  tick(18);
+  expect(bread.bread).toBe(0);
+  expect(economy.short.street).toContain("bread");
+  tick(4*24+7);
+  expect(stock.pepper+spice.pepper).toBe(0);
+  tick(4*24+8);
+  expect([spice.pepper,stock.pepper]).toEqual([6,2]);
+});
+
+it("reserves actual warehouse lots, enforces dated quotes and charges the agreed lending fee", async()=>{
+  const {blankBook,fillOrder,orderProblem,loanDue,marketCall,landedOrder}=await import("../src/core/exchange");
+  type Order=import("../src/core/exchange").MarketOrder;
+  const f={kind:"beurs" as const,marketId:"beurs",animals:[],book:blankBook(),seed:"beurs",clock:10*3600,stock:{grain:2,pepper:0},purse:{coin:0},desks:[true,true,true,true,true],carryRoom:1};
+  const c=(action:Order["action"],desk:number,quantity=1):Order=>({type:"exchange",action,desk,quantity,call:Math.floor(f.clock/300)});
+  const trade=(action:Order["action"],desk:number,quantity=1)=>{const order=c(action,desk,quantity);expect(orderProblem(f,order)).toBeUndefined();fillOrder(f,order);};
+  expect(orderProblem(f,c("buy",0))).toMatch(/coin/);
+  trade("borrow",4);
+  expect(orderProblem(f,c("borrow",3))).toMatch(/current bill/);
+  expect(orderProblem(f,c("buy",1))).toMatch(/few lots/);
+  const {markets}=await import("../src/content/economy/exchanges");
+  const quote=marketCall(f.seed,120,markets.beurs.listings[0]),old=c("buy",0);
+  trade("buy",0,2);
+  expect(f.stock.grain).toBe(0);
+  expect(f.purse.coin).toBe(40-2*quote.ask);
+  expect(orderProblem(f,c("redeem",0,2))).toMatch(/pack/);
+  trade("sell",0);
+  expect(f.book.realized).toBe(quote.bid-quote.ask);
+  trade("redeem",0);
+  expect(f.purse).toMatchObject({grain:1});
+  expect(f.stock.grain).toBe(1);
+  expect(orderProblem(f,c("sell",0))).toMatch(/hold/);
+  f.clock+=300;
+  expect(orderProblem(f,old)).toMatch(/new price/);
+  trade("hire",0);trade("freight",0);
+  f.book.warehouse="loft";
+  const player={inventory:f.purse,exchanges:{beurs:f.book}};
+  const store={id:"loft",inventory:f.stock}, balance=f.purse.coin;
+  store.inventory.grain!++;
+  landedOrder(player,store,true);
+  expect(f.stock.grain).toBe(1);expect(f.book.holdings.grain?.quantity).toBe(1);expect(f.purse.coin).toBe(balance+1);
+  landedOrder(player,store,true);
+  expect(f.purse.coin).toBe(balance+1);expect(f.stock.grain).toBe(1);
+  f.clock+=86400;
+  expect(loanDue(f.book.loan!,f.clock)).toBe(52);
+  expect(orderProblem(f,c("repay",4))).toMatch(/more coin/);
+  f.purse.coin=52;trade("repay",4);
+  expect(f.purse.coin).toBe(0);expect(f.book.loan).toBeUndefined();
+});
+
+it("trades the animals at the square, splits a drover’s flock and buys produce from the player",async()=>{
+  const {blankBook,fillOrder,orderProblem,offeredLots,holdingAt}=await import("../src/core/exchange");
+  const {markets}=await import("../src/content/economy/exchanges");
+  type Order=import("../src/core/exchange").MarketOrder;
+  const stand={x:2,y:2,space:"outside" as const};
+  const animals:import("../src/core/fauna").FaunaGroup[]=[{id:"flock",speciesId:"sheep",owner:"player",
+    members:[{...stand,direction:1},{x:3,y:3,direction:2}],pos:stand,home:stand,homeRadius:2,state:"idle",since:0,stride:0,nextDecisionAt:0}];
+  const f={kind:"corn" as const,marketId:"square",stand,animals,clock:9*3600,book:blankBook(),seed:"lynn",carryRoom:8,
+    stock:{grain:0},purse:{coin:30,grain:2},desks:[true,true,true]};
+  const order=(action:Order["action"],desk=0,quantity=1):Order=>({type:"exchange",action,desk,quantity,call:108});
+  const trade=(c:Order)=>{expect(orderProblem(f,c)).toBeUndefined();fillOrder(f,c);};
+  const sheep=markets.corn.listings[1];
+  expect(orderProblem(f,order("borrow",3))).toBeTruthy();
+  expect(orderProblem(f,order("freight"))).toBeTruthy();
+  trade(order("deliver",0,2));expect([f.purse.grain,f.stock.grain]).toEqual([0,2]);
+  trade(order("tally"));expect(orderProblem(f,order("tally",1))).toMatch(/complete/);
+  trade(order("sell",1));expect(animals[0].members).toHaveLength(1);
+  expect(offeredLots(f,sheep)).toBe(1);
+  animals[1].members.push({x:3,y:2,direction:1});
+  trade(order("buy",1));expect(holdingAt(f,sheep)?.quantity).toBe(2);
+  expect(offeredLots(f,sheep)).toBe(1);
+  expect(orderProblem(f,order("redeem",1))).toMatch(/animals/);
+  animals.find(g=>g.members[0]?.purchase!==undefined)!.members[0].x+=20;
+  expect(holdingAt(f,sheep)?.quantity).toBe(1);
+  expect(orderProblem(f,order("sell",1,2))).toMatch(/back/);
+  trade(order("sell",1));
+  expect(animals[0]).toMatchObject({id:"flock",market:"square",owner:"square"});
+  expect(animals.every(g=>g.members.length)).toBe(true);
+});
+
+it("places spot rice, corn and maritime markets in their historical settings",async()=>{
+  const {squareMarket}=await import("../src/content/economy/exchanges");
+  const {sailingPort}=await import("../src/content/settlements/waterfronts");
+  for(const [q,kind] of [["A corn factor in King's Lynn 1750","corn"],["A cattle dealer in York 1870","corn"],["Osaka 1740","dojima"],
+    ["Osaka 1700",undefined],["Surat 1650","cloth"],["Rome 200",undefined]] as const){
+    const r=resolveSetting(q,"market-day");if("error" in r)throw Error(r.error);
+    expect(squareMarket(r.setting,r.setting.placeId),q).toBe(kind);
+  }
+  expect(sailingPort("city-riga",1700)).toEqual({hull:"fluyt",cargo:"cloth"});
+  expect(sailingPort("city-surat",1650)).toEqual({hull:"dhow",cargo:"cloth"});
+  expect(sailingPort("rotterdam",1950)).toBeUndefined();
+});
+
+it.runIf(!!process.env.FULL)("starts a corn factor at the inland market with grain they can sell",async()=>{
+  const {prepareConnectedStart}=await import("../src/runtime/map-travel");
+  const seed="market-day",r=resolveSetting("A corn factor in Stamford 1780",seed);
+  if("error" in r)throw Error(r.error);
+  const e=await prepareConnectedStart(r.setting,seed),p=e.state.player,f=e.exchangeFloor()!;
+  expect([p.role,f.kind]).toEqual(["Corn factor","corn"]);
+  expect(f.people.map(a=>a?.role)).toEqual(["Grain factor","Sheep dealer","Cattle dealer"]);
+  expect(f.animals.filter(g=>g.market===f.place.id).map(g=>g.speciesId).sort()).toEqual(["cattle","cattle","sheep","sheep"]);
+  const grain=p.inventory.grain!, stock=f.stock!.grain!,cash=p.inventory.coin!;
+  const c={type:"exchange" as const,action:"deliver" as const,desk:0,quantity:1,call:Math.floor(e.state.clock/300)};
+  expect(e.validate(c)).toBeUndefined();e.execute(c);
+  expect([p.inventory.grain,f.stock!.grain]).toEqual([grain-1,stock+1]);
+  expect(p.inventory.coin).toBeGreaterThan(cash);
+});

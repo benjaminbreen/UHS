@@ -1,5 +1,11 @@
 import type { Weather } from "../core/weather";
-import { noise, playSound, railway, ring, tone, type Sound } from "./sfx";
+import type { InteriorProfile, RoomRole, WorshipSound } from "../content/interiors/types";
+import type { FloorPattern } from "../render/interiors/room";
+import { handle, pageTurn, writing, writingTool, type Writing } from "./handling";
+import { footstep, noise, playSound, railway, ring, tone, type Sound } from "./sfx";
+
+type RoomCue = WorshipSound | "footsteps" | "cloth" | "cup" | "tray" | "wheels" | "writing" | "pages" | "wood" | "voices" | "inkstone";
+type RoomActivity = { cues: RoomCue[]; tool: Writing; ground: "fiber" | "stone" | "timber" | "soil"; level: number };
 
 /** What a settlement's street sounds like, by period and size. */
 export type TownKind = "village" | "town" | "industrial" | "modern";
@@ -33,6 +39,7 @@ export interface AmbienceMix {
   room: number;
   /** How hard the room's surfaces are, 0 (hide, thatch) to 1 (plaster, tile). */
   hard: number;
+  activity?: RoomActivity;
   townKind: TownKind;
   bell?: Bell;
   /** 0 to 1: how well the bells carry this far from the town. */
@@ -85,12 +92,14 @@ export interface Scene {
   hour: number;
   day?: number;
   year?: number;
+  culture?: string;
   lon?: number;
   lat?: number;
   /** The local faith, from the settlement's religious building. */
   faith?: string;
   /** The room underfoot: floor cells, and its finish 0 to 2. */
-  room?: { area: number; finish: number };
+  room?: { area: number; finish: number; institution?: InteriorProfile["institution"]; role?: RoomRole; floor?: FloorPattern;
+    stock?: string; clinical?: boolean; distance?: number; rite?: WorshipSound; openAir?: boolean };
 }
 
 export function townKindFor(year: number | undefined, size: number): TownKind {
@@ -153,8 +162,42 @@ export function surfaceFor(scene: Scene): Surface {
 const ramp = (x: number, from: number, to: number) =>
   Math.max(0, Math.min(1, (x - from) / (to - from)));
 
+function roomActivity({ indoors, room, year, culture, peopleNear }: Scene): RoomActivity | undefined {
+  if (!indoors || !room?.institution || !peopleNear) return;
+  const {role, floor, institution} = room;
+  const ground = floor === "earth" || floor === "sand" ? "soil" : floor === "plank" || floor === "parquet" ? "timber" :
+    floor && ["mat","rushes","carpet","broadloom","paper"].includes(floor) ? "fiber" : "stone";
+  const cues: RoomCue[] = ["footsteps"];
+  let tool = writingTool(year, culture);
+  switch (institution) {
+    case "worship":
+      if (room.rite) cues.push(room.rite);
+      break;
+    case "hospital":
+      cues.push("cloth");
+      if (role !== "store") cues.push(room.clinical ? "tray" : "cup");
+      if (room.clinical && (role === "ward" || role === "entry")) cues.push("wheels");
+      break;
+    case "school":
+      if (role === "classroom" || role === "work") {
+        if (tool === "tap") tool = "pencil";
+        cues.push("writing","pages", ground === "fiber" ? "cloth" : "wood");
+      } else cues.push("voices");
+      break;
+    case "magistracy":
+      if (role === "work" || role === "store") cues.push("writing","pages", tool === "brush" ? "inkstone" : "wood");
+      else cues.push("voices","pages");
+      break;
+    case "bazaar":
+      cues.push(room.stock === "cloth" ? "cloth" : room.stock === "pots" ? "cup" : "wood", "voices");
+      break;
+  }
+  return { cues, tool, ground, level: (.55 + .45 * Math.min(1, peopleNear / 5)) * near(room.distance ?? 0, 1, 15) };
+}
+
 export function ambienceFor(scene: Scene): AmbienceMix {
-  const { weather, indoors, hour, season, climate } = scene;
+  const { weather, hour, season, climate } = scene;
+  const indoors = scene.indoors && !scene.room?.openAir;
   // Older callers built weather before rain had a strength; treat theirs as steady rain.
   const rain = weather.condition === "rain" ? (weather.rain || 0.5) : 0;
   const wet = Math.min(1, rain * 2);
@@ -184,7 +227,7 @@ export function ambienceFor(scene: Scene): AmbienceMix {
   const swell = scene.water?.kind === "sea" ? 1 : 0;
   const town =
     Math.min(1, (near(scene.townDistance, 6, 40) * (0.4 + scene.townSize / 12) +
-      Math.min(0.5, scene.peopleNear * 0.12)) * (scene.market ? 1.4 : 1)) *
+      (indoors ? 0 : Math.min(0.5, scene.peopleNear * 0.12))) * (scene.market ? 1.4 : 1)) *
     // People go quiet at night and under heavy rain.
     (scene.night ? 0.25 : 1) *
     (1 - 0.6 * ramp(rain, 0.2, 0.9)) *
@@ -204,8 +247,9 @@ export function ambienceFor(scene: Scene): AmbienceMix {
     town,
     fire,
     inside: indoors ? 1 : 0,
-    room: scene.room ? Math.min(1, Math.max(0.1, (scene.room.area - 8) / 120)) : 0,
+    room: indoors && scene.room ? Math.min(1, Math.max(0.1, (scene.room.area - 8) / 120)) : 0,
     hard: scene.room ? scene.room.finish / 2 : 0,
+    activity: roomActivity(scene),
     townKind: townKindFor(scene.year, scene.townSize),
     bell: bellFor(scene.faith, scene.year, scene.lon, scene.lat),
     bells: near(scene.townDistance, 15, 90) * (1 - 0.6 * hush),
@@ -249,11 +293,19 @@ export class Ambience {
   private cursor = 0;
   private level: AmbienceMix = { ...silence };
   private lastHour?: number;
+  private workSounds: GainNode;
+  private nextActivity = 0;
+  private lastCue?: RoomCue;
+  private heardCues = new Set<RoomCue>();
   constructor(
     private ctx: BaseAudioContext,
     out: AudioNode,
     private live = true,
+    roomOut: AudioNode = out,
   ) {
+    this.workSounds = ctx.createGain();
+    this.workSounds.gain.value = 0;
+    this.workSounds.connect(roomOut);
     // Everything outdoors passes through one filter, so a roof muffles the lot.
     this.outside = ctx.createBiquadFilter();
     this.outside.type = "lowpass";
@@ -348,6 +400,7 @@ export class Ambience {
   /** `instant` skips the glide, for an offline render that starts mid-storm. */
   set(mix: AmbienceMix, instant = false) {
     const before = this.lastHour;
+    if (mix.activity && !this.level.activity) this.nextActivity = this.ctx.currentTime + rand(.6, 1.6);
     this.level = mix;
     this.lastHour = mix.hour;
     const struck = Math.floor(mix.hour);
@@ -372,6 +425,7 @@ export class Ambience {
     fade(this.beds.water, mix.water, 2);
     fade(this.beds.town, mix.town, 3);
     fade(this.beds.fire, mix.fire, 1.2);
+    glide(this.workSounds.gain, (mix.activity?.level ?? 0) * 1.65, .22);
     glide(this.waterTone.frequency, mix.swell ? 700 : 3200, 2);
     // A roof cuts the top off the outside world and drops its level.
     glide(this.outside.frequency, mix.inside ? 620 : 20000, 0.6);
@@ -386,6 +440,19 @@ export class Ambience {
   /** Sparse one-off voices: thunder, birdsong, frogs, crickets and
    * popping embers. */
   private tick(at: number) {
+    const work = this.level.activity;
+    if (work && at >= this.nextActivity) {
+      let choices = work.cues.filter(c => !this.heardCues.has(c));
+      if (!choices.length) {
+        this.heardCues.clear();
+        choices = work.cues.length > 1 ? work.cues.filter(c => c !== this.lastCue) : work.cues;
+      }
+      const cue = choices[Math.floor(Math.random() * choices.length)];
+      this.lastCue = cue;
+      this.heardCues.add(cue);
+      this.oneShot(roomSound(cue, work), this.workSounds, at);
+      this.nextActivity = at + rand(2.3, 5.5) / Math.max(.45, work.level);
+    }
     const { thunder, frogs, birds, insects, fire } = this.level;
     if (thunder > 0.02 && Math.random() < 0.004 * thunder) this.thunder(at, thunder);
     if (frogs > 0.02 && Math.random() < 0.08 * frogs) this.frog(at, frogs);
@@ -534,6 +601,7 @@ export class Ambience {
         /* Already stopped. */
       }
     this.outside.disconnect();
+    this.workSounds.disconnect();
     this.beds.fire.node.disconnect();
   }
 }
@@ -551,7 +619,9 @@ export async function renderAmbience(mix: AmbienceMix, seconds: number, sampleRa
   const level = ctx.createGain();
   level.gain.value = 0.6 * 0.72;
   level.connect(limiter);
-  const ambience = new Ambience(ctx, level, false);
+  const room = new Room(ctx, level);
+  room.set(mix);
+  const ambience = new Ambience(ctx, level, false, room.input(0));
   ambience.set(mix, true);
   ambience.advance(seconds);
   return ctx.startRendering();
@@ -560,6 +630,43 @@ export async function renderAmbience(mix: AmbienceMix, seconds: number, sampleRa
 type Maker = (g: number) => Sound;
 const rep = (n: number, gap: number, make: (at: number, i: number) => Sound): Sound =>
   Array.from({ length: n }, (_, i) => make(i * gap * rand(0.85, 1.15), i)).flat();
+function roomSound(cue: RoomCue, {ground, tool}: RoomActivity): Sound {
+  switch (cue) {
+    case "recitation":
+    case "unison": {
+      const f = rand(135,195), sung = cue === "unison";
+      const steps = sung ? [1,1.125,1.06,1] : [1,1.07,1.04,.96];
+      return rep(4,sung ? .46 : .29,(at,i) => {
+        const hz = f * steps[i], dur = (sung ? .44 : .26) * (i === 3 ? 1.5 : 1);
+        return [tone(at,dur,.022,hz,{wave:"triangle",attack:.065,to:hz*.99}),
+          tone(at,dur,.009,hz*(i === 1 ? 4 : 3),{attack:.085}),
+          tone(at+.013,dur,.004,hz*(i%2 ? 7 : 6),{attack:.07}),
+          noise(at,.065,.007,1100,{to:700,attack:.028}),
+          ...(sung ? [tone(at+.025,dur,.012,hz*1.009,{wave:"triangle",attack:.12})] : [])];
+      });
+    }
+    case "handbell": return ring(0,rand(790,860),1.1,.025);
+    case "woodbeat": return rep(3,.57,at=>[tone(at,.095,.05,rand(570,595),{to:440}),noise(at,.035,.031,1650,{to:630})]);
+    case "strings": return rep(3,.46,(at,i)=>[1,2,3,4].map((n)=>tone(at,.73/n,.031/n,[184,207,164][i]*n,{attack:.006})));
+    case "wash": return rep(6,.074,(at)=>[noise(at,rand(.12,.22),.039,rand(1050,2700),{to:700,attack:.045})]);
+    case "writing": return writing(tool);
+    case "pages": return pageTurn();
+    case "voices": {
+      const pitch = rand(115,185);
+      return rep(Math.round(rand(3,5)), .18, (at,i) => {
+        const f = pitch * rand(.92,1.12), dur = rand(.09,.18);
+        return [tone(at,dur,.022,f,{to:f*.95, wave:"triangle", attack:.04}),
+          tone(at,dur,.009,f * (i % 2 ? 3 : 4),{attack:.035}),
+          noise(at,dur,.017,rand(650,1450),{to:550, attack:.035})];
+      });
+    }
+    case "wheels": return [noise(0, 1.35, .035, 490, {to:260, filter:"lowpass", attack:.28}),
+      ...rep(4,.24, at => [tone(at + .18, .035, .014, rand(190,280), {to:140})])];
+    case "footsteps": return rep(3, rand(.35,.5), at => (footstep(ground) ?? []).map(l => ({...l, at:l.at+at})));
+    case "cloth": return rep(2,.28, at => [noise(at,rand(.22,.46),.04,rand(1900,2800),{to:950,attack:.09})]);
+    default: return handle(({cup:"pottery",tray:"metal",wood:"wood",inkstone:"stone"} as const)[cue]).map(l => ({...l,gain:l.gain*.42}));
+  }
+}
 const dog: Maker = (g) =>
   rep(Math.round(rand(1, 3)), 0.32, (at) => [
     tone(at, 0.12, 0.03 * g, rand(420, 560), { to: 300, wave: "sawtooth", attack: 0.01 }),
@@ -662,7 +769,7 @@ export class Room {
   private tone: BiquadFilterNode;
   private shape = "";
   constructor(
-    private ctx: AudioContext,
+    private ctx: BaseAudioContext,
     out: AudioNode,
   ) {
     this.dry = ctx.createGain();

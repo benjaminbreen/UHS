@@ -1,16 +1,21 @@
+import { sailingPort } from "../settlements/waterfronts";
+import { nearestBankPoint, toAtlas, fromAtlas } from "../../world/geography/atlas";
 import { applySituation, normalize, situationFromPrompt } from "./situation";
 import { courtStart, fairFromPrompt, postFor, residentFromPrompt, requestedRoom, venueFor } from "../fairs";
 import { formatHistoricalYear } from "../../core/calendar";
 import { eraAt, glacialTundraLatitude } from "../history/dates";
 import { random } from "../../core/random";
 import { populateCharacter } from "./character";
+import { berthFor, atBerth } from "./regions/ports";
 import { places } from "./places";
 import { urbanized } from "../settlements/urban-form";
 import { industrialized } from "../settlements/modernity";
 import { farms } from "./onsets";
 import { integratedSetting } from "./defaults";
-import { matchesCharacterScope, resolveCharacterContext } from "../characters/resolve";
+import { matchesCharacterScope, populationFor, resolveCharacterContext } from "../characters/resolve";
 import { localLabels } from "../characters/livelihood-labels.generated";
+import { beliefOptions } from "../beliefs";
+import { officiantsFor } from "../characters/officiant";
 import { placeAtYear } from "./eras";
 import { workplaceFor } from "../characters/workplace";
 import { settingSchema, type AtlasPlace, type WorldSetting } from "./types";
@@ -101,6 +106,25 @@ export function tillersHome(s: WorldSetting, role: string): WorldSetting["settle
   const work = resolveCharacterContext(s).livelihoods.find((l) => l.label === role);
   const tills = work && (work.workplace ?? workplaceFor(work.activity)) === "field";
   return tills && s.settlement !== "camp" && s.settlement !== "village" ? "farm" : s.settlement;
+}
+
+/** The gazetteer point is often the town centre. A waterfront household can live
+ * a short walk away on the same catchment's mapped bank. */
+export function watersidePlace(p: AtlasPlace, year: number): AtlasPlace | undefined {
+  if (p.id==="city-mwanza" && year>=1000) return {...p,id:"mwanza-landing",name:"Mwanza Gulf fishing landing",lon:32.892,lat:-2.514,water:"lake",settlement:"village",population:undefined};
+  if (p.id==="city-gdansk" && sailingPort(p.id,year)) return {...p,lon:18.657,lat:54.354,water:"river-ns"};
+  if (p.id==="city-detroit") return {...p,lon:-83.051,lat:42.326,water:"river-ew"};
+  if (p.water!=="none") return p;
+  const coast=p.coast?.distance ?? Infinity, river=p.river?.distance ?? Infinity;
+  if (Math.min(coast,river)>240) return;
+  const sea=coast<=river, at=toAtlas(p.lon,p.lat);
+  const bank=nearestBankPoint(at.x,at.y,sea ? "coast" : "river");
+  if (!bank) return;
+  const dx=at.x-bank[0],dy=at.y-bank[1],d=Math.hypot(dx,dy);
+  if(d>250)return;
+  const along=Math.min(1,22/(d || 1));
+  return {...p,...fromAtlas(bank[0]+dx*along,bank[1]+dy*along),
+    water:sea ? Math.abs(dx)>Math.abs(dy) ? dx>0 ? "coast-w":"coast-e" : dy>0 ? "coast-n":"coast-s" : "river-ew"};
 }
 
 export function settingFor(input: AtlasPlace, year = input.year): WorldSetting {
@@ -295,17 +319,25 @@ export function resolveSetting(
     }
     if (resident && first !== undefined && last !== undefined && (year < first || year > last || place.id !== resident.venue.place))
       return { error: `${figure} is playable in ${places.find((p) => p.id === resident.venue.place)?.name}, ${formatHistoricalYear(first)}–${formatHistoricalYear(last)}.` };
-    const s = settingFor(place, year);
+    const port=/\b(dockworker|longshoreman|stevedore|docklands|docks|port|wharf|terminal|eemhaven|maasvlakte)\b/.test(q) && berthFor(place.id,year);
+    const wantsBank=/\b(fisher|fisherman|fisherwoman|fishing|boatwright|boatman|stevedore|longshoreman|dockworker|waterfront|docks)\b/.test(q);
+    const sailingQuay=sailingPort(place.id,year) && /\b(porter|sailor|lighterman|quay|wharf|docklands|port|harbou?r|beurs|exchange|broker|moneylender|merchant|trader|baker|grocer)\b/.test(q);
+    const bank=!port && (wantsBank || sailingQuay) && watersidePlace(place,year);
+    const s = settingFor(port ? atBerth(place,port) : bank || place, year);
+    if (port || bank) s.settlementPattern="waterfront";
     const roles: [RegExp, string][] = [
       [/\bhunter\b/, "Hunter"],
       [/\blegionary\b|\bsoldier\b/, "Legionary"],
       [/\bfarmer\b|\bpeasant\b/, "Farmer"],
       [/\bshaman\b/, "Shaman"],
-      [/\bfisher\b|\bfisherman\b/, "Fisher"],
+      [/\bfisher(?:man|woman)?\b/, "Fisher"],
+      [/\bbroker\b/, "Broker"],
+      [/\bmoneylender\b/, "Moneylender"],
       [/\bmerchant\b|\btrader\b/, "Merchant"],
       [/\bshepherd\b/, "Shepherd"],
       [/\bweaver\b/, "Weaver"],
       [/\bsailor\b/, "Sailor"],
+      [/\b(?:stevedore|longshoreman|dockworker)\b/, s.year>=1850 ? "Dockworker" : "Porter"],
     ];
     // A generated palace exists only for some years: asked for outside them, the start is an ordinary one.
     const venue = resident?.venue ?? (below === "fair" ? venueFor(q, s.year, seed, s.lon, s.lat) : undefined), inside = below === "fair" && !venue ? undefined : below;
@@ -317,13 +349,18 @@ export function resolveSetting(
           (!label.ecologies || !!s.environment?.ecology && label.ecologies.includes(s.environment.ecology)))
         .map((label) => label.label),
     ]).sort((a, b) => b.length - a.length).find((label) => has(q, label));
+    const offices = context.livelihoods.some(l => l.fromBeliefs) ? (populationFor(s)?.groups.map(g => g.community) ?? [context.community]).flatMap(c => beliefOptions(s,c).flatMap(b => officiantsFor(s,b.system))).filter(o => o.tier !== "household") : [];
+    const genericOffice = ["priest","monk","nun"].find(term => has(q,term));
+    const variants = genericOffice ? [...new Set(offices.filter(o => o.label.toLowerCase().split(" ").includes(genericOffice)).map(o => o.label))].sort() : [];
+    const office = offices.find(o => has(q,o.label))?.label ??
+      variants[Math.floor(random(seed,"office",s.placeId,genericOffice ?? "") * variants.length)];
     const coal = /\bcoal\b|\bcollier|\bpit\b/.test(q);
     // In a palace, the post the prompt names: a guard, a scribe, the ruler.
     const room = venue && requestedRoom(venue, q);
     const post = venue ? postFor(venue, title?.toLowerCase() ?? q) : undefined;
     const underRole = !inside ? undefined : below === "mine" ? (coal ? "Coal miner" : "Miner") : below === "sewer" ? (/\btosher/.test(q) ? "Tosher" : "Sewer flusher") : below === "cave" ? (s.year < -8000 ? "Hunter" : "Hermit")
       : below === "ship" ? vesselOf(q)?.[4] ?? (/\bstokers?\b/.test(q) ? "Stoker" : /\b(?:passengers?|emigrants?|steerage|pilgrims?)\b/.test(q) ? "Passenger" : "Sailor") : below === "fair" ? post?.role ?? venue?.role ?? "Visitor" : below === "tomb" ? "Tomb robber" : undefined;
-    s.role = title ?? post?.role ?? namedRole ?? roles.find(([pattern]) => pattern.test(q))?.[1] ?? underRole ?? "Traveler";
+    s.role = title ?? post?.role ?? namedRole ?? office ?? roles.find(([pattern]) => pattern.test(q))?.[1] ?? underRole ?? "Traveler";
     if (inside) {
       s.below = below;
       if (venue) s.venue = venue.id;
@@ -341,6 +378,9 @@ export function resolveSetting(
     }
     if (has(q, "free black")) s.community = "Free Black household";
     s.characterName = figure ?? s.role;
+    if (place.id==="ur" && year>=-1799 && year<=-1699 && /\bea[- ]nasir\b/.test(q)) {
+      s.characterName="Ea-nasir"; s.role="Copper merchant"; s.brief={...s.brief,sex:"male"};
+    }
     if (/\bfarm(?:er|stead)?\b/.test(q)) s.settlement = "farm";
     else s.settlement = tillersHome(s, s.role);
     if (/\bcamp\b|\blegionary\b|\bshaman\b/.test(q)) s.settlement = "camp";
@@ -380,6 +420,7 @@ export function resolveSetting(
       rest = rest.replace(new RegExp(pattern.source, "g"), " ");
     if (namedRole)
       rest = rest.split(` ${normalize(namedRole).replace(/-/g, " ")} `).join(" ");
+    if (office) rest = rest.split(` ${has(q,office) ? normalize(office) : genericOffice} `).join(" ");
     rest = rest
       .replace(
         /\b(?:a|an|the|in|at|of|from|during|as|and|or|guy|man|woman|person|spring|summer|autumn|winter|camp|life)\b/g,

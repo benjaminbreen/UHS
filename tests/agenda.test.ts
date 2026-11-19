@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import { agendaOf, asDoing, calendarOf, festivalOf, marketDay, type Person } from "../src/core/agenda";
 import { occasions, festivals } from "../src/content/days";
+import { goalDone } from "../src/core/goals";
 import type { Actor } from "../src/core/types";
 
 const DAY = 86400;
@@ -27,6 +28,16 @@ const person = (a: Actor, extra: Partial<Person> = {}): Person => ({
   ...extra,
 });
 
+it("keeps the kitchen errand open at the door and during the hymn", () => {
+  const check = {type:"reach" as const,x:3,y:4,participation:"gurdwara/meal"};
+  const goal = {id:"day.sikh.langar",text:"Help serve the meal",check};
+  const p = actor("player",{pos:{x:3,y:4,space:"outside"}});
+  const flags = {traded:false,talked:false,visited:["gurdwara"],participated:["gurdwara/listen"]};
+  expect(goalDone(goal,p,flags)).toBe(false);
+  flags.participated.push("gurdwara/meal");
+  expect(goalDone(goal,p,flags)).toBe(true);
+});
+
 it("is the same for a person and day, and differs across days", () => {
   const p = person(actor("a"));
   const days = Array.from({ length: 30 }, (_, d) =>
@@ -34,6 +45,17 @@ it("is the same for a person and day, and differs across days", () => {
   );
   expect(agendaOf("seed", rome, at(3), p)).toEqual(agendaOf("seed", rome, at(3), p));
   expect(new Set(days).size).toBeGreaterThan(3);
+});
+
+it("assigns the Friday fast by household practice in a mixed city", () => {
+  const town = setting(1700,22.94,40.64,"european");
+  for (const community of ["ottoman-christian","ottoman-jewish","ottoman-muslim"]) {
+    const days = Array.from({length:32}, (_,i) => {
+      const a = actor("resident-"+i, {origin:{belief:community,community} as Actor["origin"]});
+      return agendaOf("mixed-parish",town,at(2),person(a));
+    }).flat();
+    expect(days.some(d => d.id === "day.orthodox.fast")).toBe(community === "ottoman-christian");
+  }
 });
 
 it("binds every word it names, or leaves the occasion out", () => {

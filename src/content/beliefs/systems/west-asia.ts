@@ -1,8 +1,27 @@
 import type { BeliefSystem } from "../types";
-import { secondTempleJewishCore, sunniIslamicCore } from "../kits/abrahamic";
+import { secondTempleJewishCore, rabbinicJewishCore, sunniIslamicCore } from "../kits/abrahamic";
+import { orthodoxTrinity } from "../kits/christian";
 import { applyBeliefKits } from "../kits/apply";
 
 const westAsiaBase: readonly BeliefSystem[] = [
+  {
+    id: "ottoman-jewish", label: "Ottoman Jewish practice", realm: "jewish", scope: {years:[1450,1923],communities:["ottoman-jewish"]},
+    worship: ["Jewish"], features:["sacred-texts"], offices: ["Rabbi", "Cantor"],
+    powers: rabbinicJewishCore, practice: ["The household welcomes Shabbat on Friday evening.", "The congregation hears the Torah read aloud."],
+    evidence: {status:"inferred", claim:"Religious households and congregations in Ottoman towns maintained distinct practices.", limitation:"This shared profile leaves local rites and differences between congregations unresolved.", sources:["https://www.kis.gr/en/communities/thessaloniki/history"]},
+  },
+  {
+    id: "ottoman-muslim", label: "Ottoman Muslim practice", realm: "islam", scope: {years:[1450,1923],communities:["ottoman-muslim"]},
+    worship: ["Islam"], features:["sacred-texts"], offices: ["Imam", "Muezzin"],
+    powers: sunniIslamicCore, practice: ["A place is made for prayer during the working day.", "Food is shared after sunset in Ramadan."],
+    evidence: {status:"inferred", claim:"Religious households and congregations in Ottoman towns maintained distinct practices.", limitation:"This shared profile leaves local rites and differences between congregations unresolved.", sources:["https://doi.org/10.1017/CHOL9780521291637"]},
+  },
+  {
+    id: "ottoman-christian", label: "Ottoman Christian practice", realm: "orthodox", scope: {years:[1450,1923],communities:["ottoman-christian"]},
+    worship: ["Orthodox Christian", "Orthodox and Armenian Christian"], features:["sacred-texts"], offices: ["Parish priest", "Deacon", "Monk"],
+    powers: orthodoxTrinity, practice: ["The family lights a lamp before an icon.", "People gather for the liturgy on Sunday."],
+    evidence: {status:"inferred", claim:"Religious households and congregations in Ottoman towns maintained distinct practices.", limitation:"This shared profile leaves local rites and differences between congregations unresolved.", sources:["https://doi.org/10.1017/CHOL9780521291637"]},
+  },
   {
     id: "natufian",
     realm: "earth",
@@ -258,6 +277,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "sumerian-city-states",
+    worship: ["Mesopotamian"],
     realm: "dust",
     label: "Sumerian city-state religion",
     wiki: "https://en.wikipedia.org/wiki/Sumerian_religion",
@@ -342,6 +362,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "old-babylonian",
+    worship: ["Mesopotamian"],
     realm: "dust",
     label: "Old Babylonian practice",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Mesopotamian_religion",
@@ -427,6 +448,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "neo-assyrian",
+    worship: ["Mesopotamian"],
     realm: "dust",
     label: "Neo-Assyrian state religion",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Mesopotamian_religion",
@@ -687,6 +709,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "second-temple-judaism",
+    worship: ["Jewish"],
     realm: "jewish",
     features: ["sacred-texts"],
     label: "Second Temple Jewish practice",
@@ -800,6 +823,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "achaemenid-zoroastrian",
+    worship: ["Zoroastrian"],
     realm: "zoroastrian",
     label: "Achaemenid Zoroastrian Iran",
     wiki: "https://en.wikipedia.org/wiki/Zoroastrianism_in_Iran",
@@ -906,6 +930,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "hellenistic-syria",
+    worship: ["Syrian"],
     realm: "greek",
     label: "Hellenistic Syrian syncretism",
     wiki: "https://en.wikipedia.org/wiki/Hellenistic_religion",
@@ -984,6 +1009,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "sasanian-zoroastrian",
+    worship: ["Zoroastrian"],
     realm: "zoroastrian",
     label: "Sasanian Zoroastrian Iran",
     wiki: "https://en.wikipedia.org/wiki/Zoroastrianism_in_Iran",
@@ -1180,6 +1206,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "early-islamic",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Early Islamic practice",
@@ -1287,6 +1314,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "medieval-sunni-islam",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Medieval Sunni Islamic practice",
@@ -1395,6 +1423,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "coptic-orthodox",
+    worship: ["Coptic Christian"],
     realm: "orthodox",
     features: ["sacred-texts"],
     label: "Coptic Orthodox Christianity",
@@ -1494,6 +1523,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "ottoman-sufi",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Ottoman Sufi-inflected Islam",
@@ -1588,6 +1618,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "post-1069-egypt",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Post-Fatimid Egyptian Islamic practice",
@@ -1673,6 +1704,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "nubian-nile-islam",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Nubian Nile and Islamic practice",
@@ -1765,6 +1797,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "maghreb-berber-islam",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Maghrebi Berber Islamic practice",
@@ -1851,6 +1884,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "arabian-peninsula-broader",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Islamic practice across the Arabian Peninsula",
@@ -1958,6 +1992,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "persian-sufi-islam",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Persian Sufi Islamic practice",
@@ -2048,6 +2083,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "anatolian-ottoman-islam",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Anatolian Ottoman Islamic practice",
@@ -2134,6 +2170,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "caucasus-caspian-islam",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Caucasus and Caspian Islamic and traditional practice",
@@ -2218,6 +2255,7 @@ const westAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "modern-west-asia-islam",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Modern Islamic practice in West Asia and North Africa",

@@ -64,6 +64,7 @@ import { forgetFaunaBlock, spawnFauna } from "./fauna";
 import { faunaAt, faunaProfile } from "../../content/fauna";
 import type { FaunaGroup } from "../../core/fauna";
 import {
+  directions,
   reliefCell,
   terrainStep,
   type HeightTier,
@@ -162,6 +163,7 @@ export function createSettlementWorld(
     plans = new Map<string, SettlementPlan>(prepared?.plans),
     links = new Map<string, Road[]>(prepared?.links),
     active = new Set<string>(prepared?.active);
+  let terminalSite=prepared?.plans.find(([,p])=>p.terminal)?.[0];
   const half = pack.setting?.playableMap
     ? pack.setting.playableMap.size / 2
     : undefined;
@@ -243,7 +245,7 @@ export function createSettlementWorld(
   const yardLeads=new Set<string>();
   const connectYard=(plan: SettlementPlan) => {
     const h=plan.harbor;
-    if (!h || !trunk || yardLeads.has(plan.site.id)) return;
+    if (!h?.rails || !trunk || yardLeads.has(plan.site.id)) return;
     yardLeads.add(plan.site.id);
     const dir=-h.sign, start={x:h.rails.x+dir*3,y:h.rails.y+2};
     let nearest: {p:Point; ux:number; uy:number} | undefined, best=Infinity;
@@ -610,7 +612,7 @@ export function createSettlementWorld(
     };
     const can = (want: Parameters<typeof placeFor>[6]) =>
       typeof want === "object" && "kin" in want ||
-      !!placeFor(plan, seed, actor.id, site.home, site.work, pack.year, want);
+      !!placeFor(plan, seed, actor.id, site.home, site.work, pack.year, want, undefined, false, actor);
     const items = agendaOf(seed, pack.setting, clock, person, can).map((item) => ({
       ...item,
       subjectAt: subjectAt(item.subject),
@@ -669,8 +671,10 @@ export function createSettlementWorld(
         const t=Math.max(0,Math.min(1,((x+.5-ax)*dx+(y+.5-ay)*dy)/(dx*dx+dy*dy || 1)));
         return Math.hypot(x+.5-ax-t*dx,y+.5-ay-t*dy)<2.6;
       }) ?? false,
+      land.terminal?.siteId===s.namedId ? land.terminal : undefined,
     );
     connectYard(plan);
+    if(plan.terminal)terminalSite=s.id;
     plans.set(s.id, plan);
     // Cells near this plan were decorated while it was still being drawn.
     decorations.clear();
@@ -2016,8 +2020,11 @@ export function createSettlementWorld(
     const f = land.sample(x, y);
     let t = terrain(x, y);
     // A deck's ends rest on the banks; only the span over water is timber.
-    const pier = t === "bridge" && nearby(x,y).some(p=>p.launches?.some(({pier:r})=>
-      r && x>=r.x && y>=r.y && x<r.x+r.w && y<r.y+r.h));
+    let pier:TopographyCell["pier"];
+    if (t==="bridge") for (const p of nearby(x,y)) {
+      const deck=p.launches?.find(({pier:r})=>r && x>=r.x && y>=r.y && x<r.x+r.w && y<r.y+r.h)?.pier;
+      if(deck){pier=deck.steps ?? true;break;}
+    }
     if (t === "bridge" && f.water >= 0 && !pier && !nearby(x,y).some(p => p.culverts?.has(cellKey(x,y)))) t = "dirt";
     const height = tierAt(x, y, t);
     const cell = reliefCell(height, f.water, f.moisture);
@@ -2075,8 +2082,20 @@ export function createSettlementWorld(
       if (waters.icebergs && f.kind === "sea" && f.water < 0) v.icebergs = true;
       if (f.reef) v.reef = f.reef;
       // Ice, tint, tide and flood are resolved from the live season in `topography`.
-      if (waterTurns || f.seasonal || f.shelf !== undefined)
-        cell.live = { ...(f.seasonal && { water: f.seasonal }), ...(f.shelf !== undefined && { shelf: f.shelf }) };
+      let seasonal = f.seasonal;
+      if (seasonal && f.kind === "river" && f.water >= 0) {
+        for (const plan of nearby(x, y)) {
+          const apron = plan.tradingApron;
+          if (!apron) continue;
+          const dx = Math.max(apron.x - x, x - (apron.x + apron.w - 1), 0);
+          const dy = Math.max(apron.y - y, y - (apron.y + apron.h - 1), 0);
+          if (dx >= 10 || dy >= 10) continue;
+          const margin = Math.min(1, Math.max(0, (10 - Math.hypot(dx, dy)) / 7));
+          seasonal = seasonal.map(d => d + Math.max(0, f.water - d) * margin);
+        }
+      }
+      if (waterTurns || seasonal || f.shelf !== undefined)
+        cell.live = { ...(seasonal && { water: seasonal }), ...(f.shelf !== undefined && { shelf: f.shelf }) };
       else if (f.kind !== "sea" && waters.tint) v.tint = waters.tint;
     }
     cell.biome = cell.habitat.site
@@ -2210,6 +2229,9 @@ export function createSettlementWorld(
           delete cell.streetMaterial;
         } else cell.streetMaterial = material;
       }
+      const garden = p.parterre;
+      if (garden && x >= garden.x && y >= garden.y && x < garden.x + garden.w && y < garden.y + garden.h)
+        cell.parterre = { plan: garden, u: x - garden.x, v: y - garden.y };
       const pavement = p.pavement?.get(key);
       if (pavement) cell.pavement = pavement;
       // An earth street is drawn as the ground it reserves, like its footways.
@@ -2322,7 +2344,11 @@ export function createSettlementWorld(
       const tended = tendedAt(x, y);
       if (tended) cell.tended = tended;
     }
-    const port=startingSite && plans.get(startingSite.id)?.harbor;
+    const port=startingSite && plans.get(startingSite.id)?.harbor, apron=terminalSite ? plans.get(terminalSite)?.terminal?.yard : undefined;
+    if(apron && x>=apron.x && x<apron.x+apron.w && y>=apron.y && y<apron.y+apron.h){
+      cell.surface="gravel";cell.feature="paving";cell.streetMaterial="concrete";cell.wharf=true;cell.pavement="yard";
+      delete cell.streetGeometry;delete cell.pathArt;delete cell.lane;delete cell.tended;delete cell.field;delete cell.groundWear;
+    }
     if(port && y>=port.yard[0].y && y<=port.yard[port.yard.length-1].y){
       if(f.water>=0 && port.yard.some(row=>row.y===y && x>=row.x && x<row.x+row.w)){
         cell.surface="gravel";cell.feature="paving";cell.streetMaterial="sett";
@@ -2637,7 +2663,9 @@ export function createSettlementWorld(
       const roadRamp = () => [-2, -1, 0, 1, 2].some((dy) => [-2, -1, 0, 1, 2].some((dx) =>
         nearby(x + dx, y + dy).some((p) => slopesFor(p).has(cellKey(x + dx, y + dy)))));
       // A natural slope can cross the underlying contour at a building's door.
-      if (slope && !nearby(x, y).some((p) => p.built?.has(key)) && !roadRamp()) {
+      const uphill = slope && directions[slope];
+      if (slope && uphill && tierAt(x + uphill.x, y + uphill.y) === c.height + 1 &&
+          !nearby(x, y).some((p) => p.built?.has(key)) && !roadRamp()) {
         c.ramp = slope;
         c.rampStyle = rampStyleFor(c, "natural", x, y);
       }
@@ -2704,7 +2732,8 @@ export function createSettlementWorld(
       const h = plan.work.get(r)?.home;
       return h ? Math.hypot(h.x - anchor.x, h.y - anchor.y) : Infinity;
     };
-    ranked = [...plan.stations.keys()].sort(
+    const shopkeepers=new Set(plan.actors.filter(a=>a.stockroom).map(a=>a.id));
+    ranked = [...plan.stations.keys()].filter(id=>!shopkeepers.has(id)).sort(
       (a, b) => from(a) - from(b) || a.localeCompare(b),
     );
     routineRank.set(plan.site.id, ranked);
@@ -2729,6 +2758,58 @@ export function createSettlementWorld(
             startingSite?.id,
           )
         : planForEntity(id);
+    if(plan && id.includes("-market-desk-")){
+      const site=plan.work.get(id);
+      if(site){const schedule:Itinerary={period:1440,start:0,segments:[{from:0,to:1440,pos:site.work,activity:"work",label:site.label}]};
+        routines.set(id,schedule);return schedule;}
+    }
+    if(plan && id.endsWith("-counter-seller")){
+      const sites=plan.work.get(id), shop=plan.places.find(p=>id===p.id+"-counter-seller");
+      if(sites && shop) {const schedule:Itinerary={period:1440,start:0,segments:[
+        {from:0,to:360,pos:shop.entrance,placeId:shop.id,activity:"rest",label:"Resting indoors"},
+        {from:360,to:1080,pos:sites.work,activity:"work",label:sites.label},
+        {from:1080,to:1440,pos:shop.entrance,placeId:shop.id,activity:"rest",label:"Resting indoors"},
+      ]};routines.set(id,schedule);return schedule;}
+    }
+    if (plan && (id.endsWith("-fishmonger") || id.endsWith("-quay-merchant") || id.includes("-river-market-") && id.endsWith("-merchant"))) {
+      const fish = id.endsWith("-fishmonger");
+      const resident=plan.actors.find(a=>a.id===id);
+      const landing=fish && plan.waterfront?.members.find(m=>m.catchId+"-counter"===resident?.stockroom);
+      const store=landing ? plan.places.find(p=>p.id===landing.homeId) : plan.places.find(p=>p.id+"-store-stock"===resident?.stockroom);
+      const sites=plan.work.get(id), stand=sites?.work;
+      if ((store || resident?.stockroom && id.includes("-river-market-")) && stand && sites) {
+        const door=resident?.householdId || !store ? sites.home : store.entrance;
+        const walk=route(door,stand,p=>plan.solid.has(cellKey(p.x,p.y)) || land.sample(p.x,p.y).water<1
+          ? Infinity : plan.traffic.has(cellKey(p.x,p.y)) ? 1 : 1.4,{maxNodes:4500});
+        if (walk.status==="found") {
+          const rest={pos:door,activity:"rest" as const,label:"Resting for the night",placeId:resident?.householdId ? undefined : store?.id};
+          const counter=resident?.stockroom && plan.objects.find(o=>o.id===resident.stockroom);
+          const label=counter ? counter.name : "the counter";
+          const minutes=Math.min(90, Math.max(2,walk.path.length*0.5));
+          const it:Itinerary={start:0,period:1440,segments:[
+            {from:0,to:360-minutes,...rest},
+            {from:360-minutes,to:360,pos:door,path:walk.path,activity:"work",label:"Opening "+label},
+            {from:360,to:1080,pos:stand,activity:"work",label:fish ? "Selling the morning catch" : id.includes("-river-market-") ? "Trading at the river landing" : plan.anchorage?.cargo==="grain" ? "Selling grain at the warehouse" : "Measuring cloth for customers"},
+            {from:1080,to:1080+minutes,pos:stand,path:[door,...walk.path].slice(0,-1).reverse(),activity:"work",label:"Closing "+label},
+            {from:1080+minutes,to:1440,...rest},
+          ]};
+          if (counter && counter.quayStock) {
+            const source=plan.objects.find(o=>o.id===counter.quayStock!.source);
+            const pickup=source && {x:source.pos.x,y:source.pos.y+1};
+            const walk=pickup && route(stand,pickup,p=>plan.solid.has(cellKey(p.x,p.y)) || land.sample(p.x,p.y).water<0 ? Infinity : 1,{maxNodes:500});
+            if (walk?.status==="found" && pickup) {
+              const retail=it.segments[2],reverse=[stand,...walk.path].slice(0,-1).reverse();
+              it.segments.splice(2,1,{...retail,to:420},
+                {from:420,to:430,pos:stand,path:walk.path,activity:"work",label:"Meeting the boat at the quay"},
+                {from:430,to:435,pos:pickup,activity:"work",label:"Counting the morning delivery"},
+                {from:435,to:445,pos:pickup,path:reverse,carry:counter.quayStock.item,activity:"haul",label:"Carrying the delivery to the stall"},
+                {...retail,from:445});
+            }
+          }
+          routines.set(id,it);return it;
+        }
+      }
+    }
     if (plan?.anchorage && id.endsWith("-lighter-porter")) {
       const itinerary=porterRoutine(plan.anchorage);
       routines.set(id,itinerary);return itinerary;
@@ -2772,6 +2853,7 @@ export function createSettlementWorld(
           day.items,
           day.festival,
           carryKit(pack),
+          self,
         ));
       once = [...stations.filter((s) => s.part), ...once];
       stations = stations.filter((s) => !s.part);
@@ -3158,6 +3240,7 @@ export function createSettlementWorld(
     spawn: { x: 0, y: 0, space: "outside" },
     trunk: trunk && { ...trunk, crossings: [...crossings] },
     anchorage: (site) => plans.get(site ?? startingSite?.id ?? "")?.anchorage,
+    terminal: () => terminalSite ? plans.get(terminalSite)?.terminal : undefined,
     harbor: () => startingSite ? plans.get(startingSite.id)?.harbor : undefined,
     planOf: (siteId: string) => plans.get(siteId),
     planAt: (x, y) => {
@@ -3283,7 +3366,7 @@ export function createSettlementWorld(
       const day = plan && dayOf(actor, plan, clock);
       if (!plan || !day) return undefined;
       const where = (want: Parameters<typeof placeFor>[6], subject?: { home?: Point; name: string }, shared = false) =>
-        placeFor(plan, seed, actor.id, day.site.home, day.site.work, pack.year, want, subject, shared)?.pos;
+        placeFor(plan, seed, actor.id, day.site.home, day.site.work, pack.year, want, subject, shared, actor)?.pos;
       return {
         festival: day.festival && { ...day.festival, pos: where(day.festival.place, undefined, true) },
         items: day.items.map((item) => ({ ...item, pos: where(item.place, item.subjectAt) })),
@@ -3512,8 +3595,27 @@ export function createSettlementWorld(
       );
     world.spawn = { ...spot, space: "outside" };
   }
+  const terminal=initial?.terminal;
+  const watersideArrival=pack.setting?.settlementPattern==="waterfront" && !door && !pack.setting?.below;
+  const quayStart=(watersideArrival || isDockworker(pack.setting?.role ?? "")) && !pack.setting?.situation;
+  const landing=initial?.anchorage?.landing ?? initial?.waterfront?.members[0]?.sorting;
+  if((watersideArrival || initial?.anchorage && pack.role.toLowerCase()==="porter" && !pack.setting?.below) && !pack.setting?.situation && landing && !world.blocked(landing.x,landing.y,"outside"))
+    world.spawn={...landing,space:"outside"};
+  if (terminal && quayStart && !world.blocked(terminal.x+3,terminal.y+7,"outside"))
+    world.spawn={x:terminal.x+3,y:terminal.y+7,space:"outside"};
+  const market=initial?.plots.find(p=>p.id.endsWith("-river-market"));
+  if (market && /merchant|trader|beer seller/i.test(pack.role) && !pack.setting?.below && !pack.setting?.situation &&
+      !world.blocked(market.access.x,market.access.y,"outside")) world.spawn={...market.access,space:"outside"};
+  const square=initial?.objects.find(o=>o.market);
+  if(square && /factor|broker|auctioneer|weighmaster|drover|dealer|merchant|trader/i.test(pack.role) && !pack.setting?.below && !pack.setting?.situation){
+    const at=[{x:0,y:2},{x:1,y:2},{x:0,y:1},{x:-1,y:1}].map(d=>({x:square.pos.x+d.x,y:square.pos.y+d.y})).find(p=>!world.blocked(p.x,p.y,"outside"));
+    if(at)world.spawn={...at,space:"outside"};
+  }
+  const exchange=initial?.places.find(p=>p.claim==="civic-amsterdam-beurs");
+  if(exchange && /broker|moneylender|merchant|trader/i.test(pack.role) && !pack.setting?.below && !pack.setting?.situation &&
+      !world.blocked(exchange.entrance.x,exchange.entrance.y,"outside")) world.spawn={...exchange.entrance,space:"outside"};
   const port = initial?.harbor;
-  if (port && !pack.setting?.situation && isDockworker(pack.setting?.role ?? "")) {
+  if (port && quayStart) {
     const apron={x:port.crane.x-port.sign*17,y:port.crane.y+1};
     if (!world.blocked(apron.x,apron.y,"outside")) world.spawn={...apron,space:"outside"};
   }

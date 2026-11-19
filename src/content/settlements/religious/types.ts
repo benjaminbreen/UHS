@@ -8,7 +8,11 @@ export type ReligiousProfile = {
   id: string;
   /** Faith or tradition the building serves, for names and notes. */
   faith: string;
-  /** Key of `src/content/graphics/religious.json` buildings. */
+  schools?: readonly {id:string; from:number; to:number; label:string}[];
+  offices?: readonly string[];
+  /** A second local parish or mosque in a densely settled district. */
+  neighborhoodHouse?: string;
+  /** A religious building recipe or the frame of an adapted street building. */
   recipe: string;
   /** Label per compiled scale; the medium label is the default. */
   labels: { small: string; medium: string; large: string };
@@ -31,6 +35,7 @@ export type ReligiousProfile = {
 };
 
 export type ReligiousRule = ReligiousProfile & {
+  congregationOnly?: boolean;
   from: number;
   to: number;
   /** West, south, east, north degrees. */

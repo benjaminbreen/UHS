@@ -41,6 +41,29 @@ export type FairLevel = Area & {
   plots: Rect[];
 };
 
+export type Parterre = { w: number; h: number; royal: boolean; seed: number };
+
+export function plantParterre({ w, h, royal, seed }: Parterre): Pick<FairLevel, "w" | "h" | "cells" | "gardens"> {
+  const cells = new Uint8Array(w * h).fill(GRAVEL), gardens: FairLevel["gardens"] = [];
+  const mid = h >> 1;
+  for (const [top, end] of [[0, mid - 1], [mid, h - 1]]) {
+    const cx = (w - 1) / 2, cy = (top + end) / 2;
+    const axes = (v: number) => Number.isInteger(v) ? [v] : [Math.floor(v), Math.ceil(v)];
+    const style = royal ? "embroidery" : seed % 2 ? "oval" : "bed";
+    gardens.push({ x0: 0, x1: w - 1, y0: top, y1: end, style, gx: axes(cx), gy: axes(cy) });
+    for (let y = top + 1; y < end; y++) for (let x = 1; x < w - 1; x++) {
+      const dx = Math.floor(Math.abs(x - cx)), dy = Math.floor(Math.abs(y - cy));
+      let c = !royal && style === "bed" && (dx === 0 || dy === 0) ? GRAVEL : LAWN;
+      if (royal && (dx === 0 || dy === 0)) c = GRAVEL;
+      if (royal && dx <= 1 && dy <= 1) c = WATER;
+      else if (royal ? dx >= 2 && dy >= 1 && x > 1 && x < w - 2 && y > top + 1 && y < end - 1 :
+        x >= 2 && x < w - 2 && (style === "oval" ? dy <= (end - top >= 9 ? 2 : 1) : dx > 0 && dy !== 0 && dy <= 3)) c = BED;
+      cells[y * w + x] = c;
+    }
+  }
+  return { w, h, cells, gardens };
+}
+
 export type Rect = { x0: number; y0: number; x1: number; y1: number };
 export const fairSpace = (fair: string, area: string) => `fair:${fair}:${area}`;
 export function parseFairSpace(space: string) {

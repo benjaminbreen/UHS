@@ -17,8 +17,18 @@ const soviet = (label: string, weight = 1): NonNullable<Livelihood["labels"]>[nu
 export const isDockworker = (role: string) => /^(dockworker|longshoreman|stevedore)$/i.test(role);
 
 export const cityLivelihoods: readonly Livelihood[] = [
+  {id:"grain-factor",label:"Grain factor",activity:"Exchanging goods",tier:"town",years:[1500,1950],needs:["cultivation"],
+    workplace:"market",rank:"middling",weight:.4,inventory:{grain:2,coin:12},labels:[
+      {scope:{bounds:BRITAIN,years:[1600,1950]},label:"Corn factor"},{scope:{bounds:JAPAN,years:[1650,1900]},label:"Rice broker"}]},
+  {id:"livestock-dealer",label:"Livestock dealer",activity:"Exchanging goods",tier:"town",years:[1450,10001],
+    bounds:[-11,37,32,61],requires:["cattle"],workplace:"market",rank:"middling",weight:.4,inventory:{coin:30},
+    labels:[{scope:{bounds:BRITAIN,years:[1450,10001]},label:"Cattle dealer"}]},
+  {id:"weighmaster",label:"Market weighmaster",activity:"Keeping the record",tier:"town",years:[1450,1950],
+    needs:["settled"],workplace:"market",rank:"middling",weight:.25,inventory:{scales:1,ledger:1,coin:3}},
+  {id:"market-auctioneer",label:"Auctioneer",activity:"Exchanging goods",tier:"town",years:[1700,10001],bounds:[-11,37,32,61],
+    workplace:"market",rank:"middling",weight:.25,inventory:{ledger:1,coin:6}},
   {
-    id: "dockworker", label: "Dockworker", activity: "Carrying supplies", tier: "industrial",
+    id: "dockworker", label: "Dockworker", activity: "Working the wharf", tier: "industrial",
     years: [1850, 10001], needs: ["water"], weight: 0.5,
     rank: "labouring", inventory: {water: 1, coin: 1},
     labels: [{scope:{years:[1850,10001],bounds:NORTH_AMERICA},label:"Longshoreman"},{scope:{years:[1850,10001],bounds:BRITAIN},label:"Stevedore"}],

@@ -30,7 +30,17 @@ const p = (
 });
 const anchors: AtlasPlace[] = [
   p("conwy", "Conwy", -3.83, 53.28, "temperate", "river-ns", "european", 1300, "timber", ["conway castle"], "port", .35),
+  p("sceaux", "Sceaux", 2.296, 48.774, "temperate", "none", "european", 1673, "classical", [], "city", .035),
   p("versailles", "Versailles", 2.124, 48.805, "temperate", "none", "european", 1701, "classical", ["chateau de versailles"], "city", .14),
+  {...p("stamford-lincs","Stamford",-0.482,52.652,"temperate","river-ew","european",1780,"timber",
+    ["stamford lincolnshire","stamford lincs"],"city",.12),population:20000},
+  {...p("kings-lynn","King’s Lynn",0.395,52.754,"temperate","river-ns","european",1820,"timber",
+    ["kings lynn","king's lynn","king’s lynn"],"port",.05),population:45000},
+  p("ur","Ur",46.104,30.962,"arid","river-ns","north-african-west-asian",-1749,"mudbrick",
+    ["tell el-muqayyar","ea-nasir","ea nasir","sumeria"],"port",.06),
+  {...p("ensenada","Ensenada",-116.617,31.857,"mediterranean","coast-w","mesoamerican",2020,"board",["puerto de ensenada"],"port",.1),population:330000},
+  {...p("rotterdam","Rotterdam",4.477,51.922,"temperate","river-ew","european",1975,"board",
+    ["port of rotterdam","eemhaven","maasvlakte"],"port",.06),population:580000},
   p(
     "city-florence",
     "Florence",
@@ -220,7 +230,7 @@ const anchors: AtlasPlace[] = [
     "north-african-west-asian",
     -1999,
     "mudbrick",
-    ["babylon", "sumer", "ur", "iraq", "baghdad"],
+    ["babylon", "sumer", "iraq", "baghdad"],
     "city",
     0.08,
   ),
@@ -769,8 +779,11 @@ const anchors: AtlasPlace[] = [
 const aliases = new Set(
   anchors.flatMap((p) => [p.name, ...p.aliases].map((s) => s.toLowerCase())),
 );
+const localNames:Record<string,string[]>={"city-mwanza":["lake victoria","mwanza gulf"],"city-tokyo":["edo"]};
 export const places: AtlasPlace[] = [
   ...anchors,
-  ...(legacy as AtlasPlace[]).filter((p) => !aliases.has(p.name.toLowerCase())),
+  ...(legacy as AtlasPlace[]).filter(p=>!aliases.has(p.name.toLowerCase())).map(p=>
+    localNames[p.id] ? {...p,aliases:[...p.aliases,...localNames[p.id]]} : p),
 ];
 export const featuredPlaces = anchors;
+export const placeById = new Map(places.map(p => [p.id, p]));

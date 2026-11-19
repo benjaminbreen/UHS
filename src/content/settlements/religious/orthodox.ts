@@ -20,6 +20,8 @@ const byzantine: Omit<ReligiousRule, "bounds" | "from" | "to"> = {
 };
 
 export const orthodoxReligious: ReligiousRule[] = [
+  ...over({ ...byzantine, congregationOnly: true, from: 1453, to: 1923 },
+    [26.3,40.8,29.3,41.8], [26.9,38.3,27.3,38.6]),
   ...over({ ...byzantine, culture: "european", from: 392, to: 10001 }, [19.5, 34, 30, 42]),
   // Bulgaria took baptism in 864 and Serbia within the decade.
   ...over({ ...byzantine, culture: "european", from: 864, to: 10001 }, [19, 40, 29.5, 46]),

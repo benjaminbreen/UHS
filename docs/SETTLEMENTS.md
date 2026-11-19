@@ -98,8 +98,16 @@ and its dark border inside. London, Conwy, Cairo, Aleppo and Damascus request
 their ward whenever the date fits. Other eligible large towns vary by seed.
 These are regional interpretations fitted to the game map. [Historic Royal Palaces on the Tower moat](https://www.hrp.org.uk/tower-of-london/history-and-stories/9-surprising-facts-about-the-tower-of-london-moat/) · [Cadw on Conwy Castle](https://cadwpublic-api.azurewebsites.net/reports/sam/FullReport?id=3411) · [The Citadel of Aleppo](https://www.archnet.org/publications/5216)
 
-Versailles (1701–1789) reserves an east-facing court with garden ground to
-the west. [Versailles gardens](https://en.chateauversailles.fr/discover/estate/gardens/parterres-and-paths)
+At Versailles (1701–1789), two gallery wings join the state apartments around
+an east-facing forecourt. Its marble threshold leads to a projecting entrance;
+a terrace wraps around to paired pools and box parterres on the western axis.
+The three public doors lead into the Guard Room and the north and south state apartments.
+At Sceaux (1673–1789), detached service pavilions frame a shorter court and the
+garden has flower beds. Other northern French towns can draw the country-house
+form in this period. Both plans fit the available dry frontage; the seed varies
+the forecourt depth, pavilion spacing and planting. These are game-scale
+interpretations. [Versailles gardens](https://en.chateauversailles.fr/gardens-and-groves)
+and [the historic park of Sceaux](https://domaine-de-sceaux.hauts-de-seine.fr/le-domaine/le-parc-de-sceaux/le-parc-historique).
 
 Parameters come from `src/content/settlements/urban-form/`, one file per
 region, chosen by cultural family, date and coordinates: block module, street
@@ -224,8 +232,8 @@ counter on the left.
 - Manhattan is drawn a quarter wider than the atlas has it (`manhattan-land`
   in `regions/north-america.ts`), most of it taken from the Hudson, so its
   avenues fit. The local lower-Hudson water polygon from 1850 gives the working waterfront a navigable channel on its west side. The region map still shows the atlas's island.
-- **Edo fishing landings.** A graded earth approach with timber edging leads to a short plank stage. The household’s wasen rides alongside on a slack line. Open bays in the gear store hold rope and sculls. Net rails and sorting trays stand on worn earth, with carrying baskets and a hooped tub where the yard has room. Fishers board from the end of the stage.
-- **Docklands.** An industrial city or port of 100,000 or more (`docklands`
+- **Edo fishing landings.** A graded earth approach with timber edging leads to a short plank stage. The household’s wasen rides alongside on a slack line. Open bays in the gear store hold rope and sculls. Net rails and sorting trays stand on worn earth, with carrying baskets and a hooped tub where the yard has room. Fishers board from the end of the stage. Where the yard has room, a fishmonger trades named fish and salt at an indigo-curtained counter from 06:00 to 18:00. A full tray lowers the price for that species. At the open-sided reed shed, one measure of salt cures up to three fish of one species in six game hours. The fish remain on the rack until collected. Shore workers draw their own lots from household fish stocks and take the cured fish to the counter.
+- **Docklands.** An industrial city of 100,000 or a waterside port of 20,000 or more (`docklands`
   in `content/settlements/waterfronts.ts`) has a built shore instead of a
   beach or fishing landing. `bulkhead` in `v3/shoreline.ts` reads the natural
   shore off a 12-cell lattice, which straightens it into runs at the coast's
@@ -236,12 +244,13 @@ counter on the left.
   bank and a stream too narrow to berth in keep their natural banks. Behind
   the wall is a 3.75-cell apron of granite setts, level with the ground back
   to the first terrace; nothing is built within four cells of the water, as
-  on any shore. In North American, British and western European steam ports
+  on any shore. In ports after the regional onset of industrialisation
   from 1885 through 1955, two suitable neighbouring east- or west-facing piers
   can take a working ferry house and sawtooth freight shed. Cast-iron railings
   line the front and back of the ferry court. Face the swing gate and press F
   to open or close it. At the booth, F buys a printed ferry ticket for one unit
-  of local currency. A flat-roofed dispatch store fits where the yard has room. The crossing requires
+  of local currency. The conductor takes one ticket on the outward crossing.
+  The return is free. A flat-roofed dispatch store fits where the yard has room. The crossing requires
   a reachable far bank and the coaster needs room to clear the pier and turn upriver.
   A double-ended ferry calls every ten minutes, with four minutes alongside.
   Travellers board at either landing. Longshore workers carry freight between
@@ -269,6 +278,21 @@ counter on the left.
   channels take runoff through iron grates toward the quay. Where a nearby main line leaves room,
   a curved lead joins the yard.
   A dockworker starts on the freight apron.
+- A single industrial pier can serve freight from 1885 onward. The coaster needs clear water alongside and room to turn inside the local map. A transit shed, weighing scales and mooring piles serve the berth. The crane unloads six grain cases an hour. The grain factor sells from the warehouse consignment. Where a delivery route fits, half the incoming grain goes to road collection. A suitable pair of steam-era piers can also serve the municipal ferry and rail siding.
+- Southern Mesopotamian river settlements from 3000 to 1200 BCE can have a reed-shaded copper weighing bench and a beer seller by a moored boat. The beer stand occupies a curved reed shelter. Brick steps descend to timber fenders, where a boat ties broadside if the riverbed permits. On the Nile from 2055 to 1070 BCE, limestone steps serve paired grain bins and a shaded linen bench. Workshop frontage, awnings, quay setback and stair runs vary by seed. The copper balance tips on its cords and the linen seller’s hem lifts in the breeze. The stocks on the bench thin as the shop sells out. Where the aisle leaves room, the player can sit on a rush mat beside the beer jug or the linen seller’s spindle. The raised apron keeps seasonal floodwater out of the working space between the counters and the landing. Each merchant trades from their own counter during the day and collects stock from the landing on a morning round. At Ur the channel, pier and stalls are reconstructions. The copper trade is attested in [Nanni’s complaint](https://www.britishmuseum.org/collection/object/W_1953-0411-71), and the [Ur III ration accounts](https://www.metmuseum.org/art/collection/search/327069) record beer.
+- A population-weighted random start can draw a waterfront neighbourhood within its original catchment. Towns try a nearby bank on 12% of draws and rural settlements on 24%. At dated freight ports the first 8% of town draws select the working terminal. Fishers, boatbuilders and dockworkers also seek a suitable bank when their profession is drawn elsewhere in the catchment. These are modelling estimates. Local water, settlement form, available work and buildable shore determine the result. Fishers share these places with households in other trades. Their boats, gear, fish species and houses follow local profiles, including freshwater landings such as Mwanza Gulf. A shore merchant can trade at a sorting table where the landing has space. Lake Victoria yields native tilapia and catfish before introduced Nile perch enter its catch in the twentieth century. [Lake Victoria fisheries survey](https://www.fao.org/4/t0336e/T0336E02.htm)
+- Dated terminal districts in `content/geography/regions/ports.ts` cover Ensenada, Detroit, Elizabeth, Mumbai, Singapore, Durban, Mombasa, Hamburg, Busan, Santos and Rotterdam. Detroit uses a river berth with steel coils on timber chocks, a crewed crane and road collection.
+- Rotterdam has a reconstructed section of Eemhaven from 1967 and Maasvlakte II
+  from 2015. Each has a straight quay and turning basin. An eight-heading
+  feeder brings three containers of bagged grain per hourly call. The crane
+  transfers each load through its spreader to a tractor and chassis at
+  Eemhaven or an electric guided vehicle at Maasvlakte II. Row B receives
+  the boxes. A road delivery round, where a route fits, draws its stock from
+  the yard. The manifest desk reports receipts. Dockworkers muster there
+  and check the load at row B. The two layouts represent working districts
+  at game scale. [ECT](https://www.ect.nl/en/about-us/60-years-milestones)
+  and [APM Terminals](https://www.apmterminals.com/en/maasvlakte/about/our-terminal)
+  document the terminal opening dates and equipment.
 - `npx tsx scripts/town-sheet/density.ts "New York 1930" "Chicago 1950"`
   counts a generated city's buildings, tall buildings, towers and strip
   shops over the whole map. Run it before and after changing layout.
@@ -338,6 +362,26 @@ counter on the left.
   `parkingShare` sets how full the stalls are. A parked car is an inspectable,
   solid `monument`.
 
+### Hospitals, schools and civic buildings
+
+Hospital interiors share the palace row planner. The regional worksite determines whether the entrance leads into an infirmary hall, a corridor serving wards, or a courtyard with rooms on several sides. Edo wards have sleeping mats, Sri Lankan monastic hospitals have individual patient rooms, and modern wards have wheeled beds and a clean utility room. Board schools and modern day schools use the corridor plan for classrooms and a teachers’ room. The rooms share one walkable floor behind the building’s street door.
+
+China’s yamen, Korea’s dongheon, Japan’s town magistracy and the Mughal kotwali open onto a public court with a hearing hall or watch office, a clerks’ room and records. A covered bazaar has a shared lane, raised counters for cloth and pottery, and a goods store. These use the town square’s dated civic building. Where the regional building set has no separate hall facade, a local compound houses it. Visitors come during opening hours.
+
+### Sacred buildings
+
+The building’s regional and dated worship profile determines where its street door leads. A Gothic parish opens through a porch into a nave. A Maghrebi mosque has a washing court and rows facing a prayer niche. In a Sephardi synagogue the court leads to a prayer hall and a room for study. A Punjabi gurdwara has a canopied scripture and a kitchen for the shared meal. At a Buddhist stupa the player walks around the solid relic mound under the open sky.
+
+Cities and ports can reserve street plots for one or two more congregations. The planner considers the local population shares, the worship buildings and schools attested for that place and year, and the size of the built district. Each congregation needs a plot with a street approach. A smaller community in modern London can use an adapted hall. Two temples in medieval Japan can belong to different schools. A large district can also support another parish church or neighbourhood mosque serving the same tradition. Residents choose the nearer suitable door for personal worship.
+
+A sanctuary hires from compatible religious offices. Residents with a matching tradition can take part in its rites, and other visitors can stay quietly or share an open meal. In medieval Japan a temple’s school determines which monks can work there and whether the congregation chants the nembutsu or hears the Lotus Sutra.
+
+Local residents gather at the times set for each building. A reader can stand at the reading desk, neighbours wash before prayer, and volunteers serve food in the community kitchen. There are fewer people between gatherings, and a building can be empty. Friday prayers, Sabbath readings and Sunday worship use the game’s weekday clock. Service hours are approximate.
+
+Walk within earshot of a reader or singer in the same room to see their words in a dialogue toast. Short English translations follow the passage in order, with a scripture reference beside the speaker’s name. The next line comes after 10–20 seconds of real time. On Sangrand the gurdwara’s singers take their words from the stanza of Guru Nanak’s *Barah Maha* for the local solar month.
+
+Use **E** beside a free seat to sit and listen to a nearby reading or hymn. In a standing nave you can listen from the aisle. An open place on a prayer rug lets you join an assembled mosque row. Walk away or use **E** again to leave. In a gurdwara kitchen, free your hands to serve. Passing out bowls takes five minutes and gives a diner a helping.
+
 ### A building drawn as a shop is a shop
 
 `shopArt(frame)` (`src/content/graphics/models.ts`) says what a frame's art
@@ -398,7 +442,55 @@ its own module.
   `regional-roads`, `street-rendering`, `city-panel`.
 
 
-### Dhow anchorages
+### Sail and lighterage
+
+In Amsterdam from 1600 through 1799, a grain porter starts on the quay. A
+three-masted fluyt lies within sight of the landing with its sails furled. An
+open lighter rows alongside, takes three sacks at a time from the day’s
+shipment and lands them on timber skids. The first sack is already ashore
+when play begins. A paved route leads to a gabled warehouse where the porter can hook a sack onto the
+hoist for one coin. The warehouse factor sells from the loft. The quayside
+bakery draws a sack from that same stock to bake eight loaves. Shoppers and
+local households use the bakery counter. When the grain and bread run out,
+households without another supplier go short. The grocer sells pepper by the
+measure from separate East Indies consignments, replenished every fourth
+morning. Both shop counters open from 06:00 to 18:00.
+
+From 1611 the Amsterdam Beurs has a public merchants’ court, freight arcade,
+share desk and lenders’ arcade. Press **G** or **T** inside, or tap **Trade** on a phone.
+Three brokers quote Baltic grain, black pepper and portions of Dutch East
+India Company stock. Buying goods reserves them in the warehouse. Sell a
+receipt back or collect its goods. Two private lenders offer different
+principals and daily fees. At the freight desk, hire on to carry a sack or
+book the next delivery. Five-minute price calls and small lots are gameplay
+conventions. The numbered meeting places and mix of commodities, shares and
+credit draw on the [Amsterdam City Archives’ account of the Beurs](https://www.amsterdam.nl/stadsarchief/canon/venster/11/).
+
+The same lighter service lands grain at Rotterdam and Hamburg and incoming cloth
+at Gdańsk and Riga from 1600 through 1799. A western Indian Ocean merchant
+landing uses a lateen dhow and carries cloth in bales. At an existing dhow yard
+the yard’s store receives the bales. Opening a bale adds three saleable bolts.
+
+#### Market squares
+
+In European towns and ports from 1650 through 1913, a public market quotes
+grain by the sack and sheep and cattle by the head. A corn factor can sell
+grain from their pack. Buying an animal changes ownership of the animal in
+the square. A drover can sell individual animals from a flock brought within
+reach. Inland markets receive weekly grain consignments. At a grain quay, the
+board lists sacks from the warehouse hoist. Local grain processors and traders
+draw on the same sacks. Prices, lot sizes,
+working fees and the shared square layout are game-scale reconstructions.
+King’s Lynn and inland Stamford are playable market towns. [West Norfolk market history](https://www.west-norfolk.gov.uk/info/20186/markets/407/history_of_markets)
+
+In Osaka from 1730 through 1868, the Dōjima street market trades spot rice
+bills redeemable for stored rice. In Surat, Muscat, Mombasa and Zanzibar from
+1600 through 1849, merchants quote cotton cloth and pepper. Where the lighter
+lands cloth, the brokers and shore merchant draw on the same stock. Near a
+market counter, press **G** or tap **Trade** to see prices, trade or earn a fee
+for weighing a consignment or counting livestock. [Japan Exchange Group on Dōjima](https://www.jpx.co.jp/dojima/en/index.html)
+
+#### Dhow yards
 
 A coastal dhow yard with enough clear water can support a trading dhow offshore
 and an open lighter beside the launching way. The planner checks the sailing
@@ -407,8 +499,17 @@ named pilot, an inventory and eight headings. Hull finish and sheer vary by
 seed. Sailcloth and its ties vary independently, with a locally common cloth
 for each cultural family and century. Rigging, people and cloth bales are separate layers.
 
-The lighter loads cloth alongside the trader and discharges it at the landing.
-A porter carries a bale to the store. The player can carry one for a fee, take
+The lighter discharges onto timber skids. A footpath leads to a measuring counter
+under a canvas awning beside the boatyard store. A porter carries the tied bales
+inland. The cloth merchant opens a bale into three saleable bolts when the
+counter runs out. Anyone at the counter can open another. The tied bundles
+and open fabric on display follow its stock. Inspect the counter or merchant
+from 06:00 to 18:00 to trade. Retail sales draw from the till and shelves.
+The town's hourly cloth imports draw from those same bolts during trading hours.
+
+A porter's Today card guides them to the lighter landing and then the counter.
+An empty landing lets them wait for the next crewed delivery. Anyone can carry
+a bale for a fee, take
 the lighter out, transfer to the dhow alongside, or land the cargo themselves.
 Inspect the vessel to see the available actions. Near the landing, stepping
 ashore leaves the boat at its mooring.

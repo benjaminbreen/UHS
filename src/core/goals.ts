@@ -57,6 +57,7 @@ export function goalDone(
     traded: boolean;
     talked: boolean;
     visited: string[];
+    participated?: string[];
     worked?: boolean;
     talkedTo?: string[];
   },
@@ -74,6 +75,7 @@ export function goalDone(
     case "talk-to":
       return !!flags.talkedTo?.includes(c.actor);
     case "reach":
+      if (c.participation) return !!flags.participated?.includes(c.participation);
       return (
         player.pos.space === "outside" &&
         Math.hypot(player.pos.x - c.x, player.pos.y - c.y) <= 3

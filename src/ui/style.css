@@ -10427,6 +10427,7 @@ button:disabled {
   background: linear-gradient(90deg, color-mix(in srgb, var(--bg) 78%, transparent), color-mix(in srgb, var(--bg) 55%, transparent) 52%, color-mix(in srgb, var(--bg) 35%, transparent) 80%);
   text-shadow: 0 1px 2px #0008;
 }
+.app:has(.desktop-topbar) .location-weather[data-institution] { grid-template-columns: 1fr; gap: 4px; }
 .location-weather .place-heading { min-width: 0; }
 .location-weather h2 { font-size: clamp(20px, 1.5vw, 24px); line-height: 1.2; overflow-wrap: anywhere; text-wrap: balance; }
 .location-weather .place-direction { display: block; margin-top: 3px; color: var(--cream); font-size: 13px; }

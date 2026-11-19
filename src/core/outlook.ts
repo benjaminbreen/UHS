@@ -1,4 +1,4 @@
-import { beliefOf, beliefsFor } from "../content/beliefs";
+import { beliefOf, beliefsForActor } from "../content/beliefs";
 import { random } from "./random";
 import { statsOf } from "./stats";
 import { standingOf } from "./standing";
@@ -94,7 +94,7 @@ export function outlookOf(
   const rank = standingOf(seed, actor)?.rank;
   const community = actor.origin?.community;
   const belief = setting.beliefRevision
-    ? beliefsFor(setting, community)
+    ? beliefsForActor(setting,actor)
     : undefined;
   const observance = belief
     ? beliefOf(seed, actor, belief).observance
@@ -102,6 +102,7 @@ export function outlookOf(
   const eligible = stances.filter(
     (s) =>
       matchesCharacterScope(s.scope, setting, community ?? "*") &&
+      (belief?.powers.length !== 0 || !s.tags.includes("devout")) &&
       (!belief ||
         (s.requiresBelief ?? []).every((r) => belief.features?.includes(r))) &&
       (!s.ranks || (rank !== undefined && s.ranks.includes(rank))) &&

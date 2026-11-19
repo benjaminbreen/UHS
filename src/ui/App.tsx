@@ -79,9 +79,10 @@ import { ambienceFor } from "../audio/ambience";
 import { courtMusic, interiorMusic } from "../audio/interior-themes";
 import { fairById } from "../content/fairs";
 import { buildingUse } from "../content/interiors/select";
-import { religiousProfile } from "../content/settlements/religious";
+import { religiousProfile, sanctuaryAt } from "../content/settlements/religious";
 import { marketDay } from "../core/agenda";
-import { ROOM_ORIGIN } from "../world/interior";
+import { worshipAct } from "../content/interiors/worship";
+import { ROOM_ORIGIN, roomAt } from "../world/interior";
 import { pageTurn } from "../audio/handling";
 const AudioLab = lazy(() =>
   import("../dev/AudioLab").then((m) => ({ default: m.AudioLab })),
@@ -121,9 +122,10 @@ const fitOutlook = (words: string[]) => fit(words, 2, 25, " · ");
 const RESIZE_SETTLE_MS = 250;
 import { narratorProvider, PROVIDER_KEY } from "../narrator/turn";
 import { NarratorPanel, turnTime } from "./NarratorPanel";
+import { ExchangeModal } from "./ExchangeModal";
 import { ShopModal } from "./ShopModal";
 import { TowerSection } from "./TowerSection";
-import { DialogueModal } from "./DialogueModal";
+import { DialogueModal, ReadingToast } from "./DialogueModal";
 import { WorkCard } from "./WorkCard";
 import { Toasts } from "./Toasts";
 import { EveningLedger } from "./EveningLedger";
@@ -283,12 +285,14 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     | "character"
     | "evening"
     | "years"
+    | "exchange"
     | "shop"
     | "lift"
     | null
   >(null);
   const [shopWith, setShopWith] = useState<{ id: string; item?: string }>();
   const [yearsToEnd, setYearsToEnd] = useState(false);
+  const atExchange=runtime.engine.exchangePlace();
   const trader = runtime.nearestTrader();
   const modalPanel = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
@@ -869,6 +873,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       if (e.key.toLowerCase() === "q" && !e.repeat) talkToNearest();
       if (e.key.toLowerCase() === "r" && !e.repeat) inspectNearest();
       if (e.key.toLowerCase() === "t" && !e.repeat) {
+        if(runtime.engine.exchangeFloor()){setModal("exchange");return;}
         const near = runtime.nearestTrader();
         if (near) {
           setShopWith({ id: near.id });
@@ -946,7 +951,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     });
   };
   const sitDownRef = useRef(sitDown);
-  sitDownRef.current = sitDown;
+  sitDownRef.current = atExchange ? ()=>setModal("exchange") : sitDown;
   // Walking into a gaming house sits you down; a tavern's game waits to be asked for.
   useEffect(() => {
     if (tableHere?.kind === "gaming-house") sitDown();
@@ -968,27 +973,42 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   // over seconds, so a finer reading would only cost work.
   const tileX = Math.floor(p.pos.x),
     tileY = Math.floor(p.pos.y);
+  const reading = useMemo(() => runtime.engine.overheardReading(), [runtime, obs]);
   const ambience = useMemo(() => {
     const world = runtime.engine.world;
-    const cell = world.topography?.(tileX, tileY);
+    const layout = p.pos.space === "outside" ? undefined : runtime.engine.interiorOf(p.pos.space);
+    const outdoors = (layout && world.place(p.pos.space)?.entrance) ?? p.pos;
+    const cell = world.topography?.(Math.floor(outdoors.x), Math.floor(outdoors.y));
     const near = (a: { x: number; y: number }) =>
       Math.hypot(a.x - p.pos.x, a.y - p.pos.y);
     const town = world.settlements.reduce<{ d: number; size: number }>(
-      (best, s) => (near(s) < best.d ? { d: near(s), size: s.size } : best),
+      (best, s) => {
+        const d = Math.hypot(s.x - outdoors.x, s.y - outdoors.y);
+        return d < best.d ? { d, size: s.size } : best;
+      },
       { d: Infinity, size: 0 },
     );
-    const layout = p.pos.space === "outside" ? undefined : runtime.engine.interiorOf(p.pos.space);
-    const room = layout?.rooms.find(
-      (r) => tileX - ROOM_ORIGIN >= r.x && tileX - ROOM_ORIGIN < r.x + r.w &&
-        tileY - ROOM_ORIGIN >= r.y && tileY - ROOM_ORIGIN < r.y + r.d,
-    ) ?? layout?.params;
+    const here = roomAt(layout, tileX, tileY);
+    const room = layout && here ? layout.plan.rooms[layout.rooms.indexOf(here)] : layout?.params;
+    const people = obs.actors.filter(a => a.kind === "human" && a.pos.space === p.pos.space && near(a.pos) <= 12);
+    const worker = reading?.reader ?? (layout?.institution && people.filter(a => !/sleep|resting in a ward bed/i.test(a.activity ?? ""))
+      .sort((a,b) => near(a.pos) - near(b.pos) + (worshipAct(layout.observance,b.activity,obs.clock)?.sound ? 5 : 0) - (worshipAct(layout.observance,a.activity,obs.clock)?.sound ? 5 : 0))[0]);
+    const source = worker ? roomAt(layout, worker.pos.x, worker.pos.y) : undefined;
+    const station = layout && source ? layout.plan.rooms[layout.rooms.indexOf(source)] : undefined;
     return ambienceFor({
       weather,
       indoors: p.pos.space !== "outside",
       // A cave is the biggest, hardest room there is.
-      room: room && layout ? { area: room.w * room.d, finish: layout.params.finish } : p.pos.space.startsWith("cave:") ? { area: 220, finish: 2 } : undefined,
+      room: room ? { area: room.w * room.d, finish: room.finish, institution: station && layout?.institution,
+        role: layout?.institution === "school" && station?.program === "rows" ? "classroom" : source?.role,
+        rite: worshipAct(layout?.observance, worker?.activity, obs.clock)?.sound,
+        openAir: layout?.plan.mask[(tileY - ROOM_ORIGIN) * layout.plan.w + tileX - ROOM_ORIGIN] === 2,
+        floor: station?.floorPattern, stock: station?.styles.stock, clinical: station?.styles.bed === "clinical",
+        distance: worker ? near(worker.pos) + (source === here ? 0 : 3) : undefined,
+      } : p.pos.space.startsWith("cave:") ? { area: 220, finish: 2 } : undefined,
       year: setting?.year,
-      faith: setting ? religiousProfile(setting)?.faith : undefined,
+      culture: setting?.culture,
+      faith: p.pos.space !== "outside" ? sanctuaryAt(world.place(p.pos.space))?.faith ?? layout?.observance?.tradition : setting ? religiousProfile(setting)?.faith : undefined,
       lon: setting?.lon,
       lat: setting?.lat,
       fireDistance: Math.min(
@@ -1008,10 +1028,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
         : undefined,
       townDistance: town.d,
       townSize: town.size,
-      peopleNear: obs.actors.filter(
-        (a) =>
-          a.kind === "human" && a.pos.space === p.pos.space && near(a.pos) <= 12,
-      ).length,
+      peopleNear: people.length,
       night: lighting === "night",
       season: season.id,
       climate: setting?.climate ?? "temperate",
@@ -1026,6 +1043,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     tileX,
     tileY,
     p.pos.space,
+    reading?.reader,
     obs.objects,
     obs.actors,
     weather.condition,
@@ -1045,10 +1063,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     if (p.pos.space.startsWith("sewer:")) return audio?.setInterior("sewer");
     if (p.pos.space.startsWith("mine:")) return audio?.setInterior("mine");
     if (p.pos.space.startsWith("fair:")) return audio?.setInterior(courtMusic(fairById(p.pos.space.split(":")[1])?.palace));
+    if (runtime.engine.interiorOf(p.pos.space)?.institution) return audio?.setInterior(null);
     const place = runtime.engine.world.place(p.pos.space);
-    const faith = setting ? religiousProfile(setting)?.faith : undefined;
     audio?.setInterior(
-      place ? interiorMusic(buildingUse(place.claim) && `${buildingUse(place.claim)} ${place.name.toLowerCase()}`, faith, place.access === "household") ?? null : "home",
+      place ? interiorMusic(buildingUse(place.claim) && `${buildingUse(place.claim)} ${place.name.toLowerCase()}`, place.access === "household") ?? null : "home",
     );
   }, [audio, runtime, p.pos.space, setting]);
   // Set during render, not in an effect: the inventory's first paint already needs it.
@@ -1130,6 +1148,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
         ? runtime.appearanceFor(p).physique?.sex
         : sexFromName(p.name);
   const focusActor = obs.actors.find((a) => a.id === selection?.id);
+  const seller = selection && (runtime.engine.state.actors.find(a => a.stockroom === selection.id)?.id ?? selection.id);
+  const selectedShop = seller && runtime.engine.shopOf(seller);
   const nearby =
     sideTab !== "around"
       ? []
@@ -1192,15 +1212,18 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     />
   );
   const countryPlace = pack.name.match(/^Country (north|northeast|east|southeast|south|southwest|west|northwest) of (.+)$/);
+  const interior = p.pos.space === "outside" ? undefined : runtime.engine.interiorOf(p.pos.space);
+  const institutionRoom = interior?.institution
+    ? roomAt(interior, p.pos.x, p.pos.y)?.label : undefined;
   const placeTitle = countryPlace ? `${countryPlace[2]} countryside` : pack.name;
   const placeDirection = countryPlace && `${countryPlace[1][0].toUpperCase()}${countryPlace[1].slice(1)} of ${countryPlace[2].startsWith("Lake ") ? "the lake" : countryPlace[2]}`;
   const locationWeather = (
     <>
       <div className="place-heading">
-        <h2 title={pack.name}>{phone ? regionLabel : placeTitle}</h2>
+        <h2 title={pack.name}>{institutionRoom ?? (phone ? regionLabel : placeTitle)}</h2>
         {!phone && placeDirection && <span className="place-direction">{placeDirection}</span>}
         <p title={`${pack.date} · Day ${day} · ${timeLabel(obs.clock)}`}>
-          {!phone && <span className="place-region">{regionLabel}</span>}
+          {!phone && <span className="place-region">{institutionRoom ? runtime.engine.world.place(p.pos.space)?.name : regionLabel}</span>}
           <em
             className={`season season-${season.id}`}
             style={{ ["--season" as string]: season.color }}
@@ -1377,6 +1400,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             aria-label="Playable historical world. WASD or arrows to walk, Shift to run, Space to jump. Hold Space to charge a longer jump; jumping while running clears an extra tile (two to four). F does the action shown on screen — talk, pick up, swing, throw or climb. E does the second action shown, such as putting down what you hold. Up a tree or on a wall, Space with a direction jumps down that side."
             tabIndex={0}
           />
+          <ReadingToast runtime={runtime} look={storyLook} heard={!active || covered || touchBlocked || p.dead || gaming || runtime.passing || runtime.held ? undefined : reading} />
           {card && !covered && (
             <PlotCard
               runtime={runtime}
@@ -1527,6 +1551,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             onWork={() => runtime.toggleWork()}
             tend={tend?.label}
             onTend={() => runtime.tend()}
+            onExchange={atExchange ? ()=>setModal("exchange") : undefined}
           />
           <div className="world-status">
             <div className="hud-top">
@@ -1600,7 +1625,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             <Compass size={13} />
             {p.pos.space === "outside"
               ? `${p.pos.x * 2} m E · ${-p.pos.y * 2} m N`
-              : "Household interior"}
+              : roomAt(runtime.engine.interiorOf(p.pos.space), p.pos.x, p.pos.y)?.label ?? runtime.engine.world.place(p.pos.space)?.name ?? "Interior"}
           </div>
           {view.replay && (
             <div className="replay-bar">
@@ -1707,6 +1732,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     }}
                   />
                 )}
+                {atExchange && <KeyPrompt code="KeyG" letter="G" label={atExchange.kind==="beurs" ? "Trade on the Beurs" : "Trade at market"} kind="trade" onClick={()=>setModal("exchange")}/>}
                 {tableHere && (
                   <KeyPrompt key="table" code="KeyG" letter="G" label={`Sit down to ${tableHere.game.title.toLowerCase()}`} kind="trade" onClick={sitDown} />
                 )}
@@ -1964,7 +1990,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               clock={obs.clock}
             />}
           </section>
-          {!phone && <section className="location-weather">{locationWeather}</section>}
+          {!phone && <section className="location-weather" data-institution={institutionRoom ? true : undefined}>{locationWeather}</section>}
           <section className="region-section frame">
             <div className="section-heading">
               <h2>Map</h2>
@@ -2099,12 +2125,12 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       .join(", ") || "Empty"}
                   </p>
                 )}
-                {runtime.engine.shopOf(selection.id) && runtime.engine.tradeLine(selection.id) && (
-                  <p className="trade-line">{runtime.engine.tradeLine(selection.id)}</p>
+                {selectedShop && runtime.engine.tradeLine(selectedShop.actor.id) && (
+                  <p className="trade-line">{runtime.engine.tradeLine(selectedShop.actor.id)}</p>
                 )}
                 <div className="context-actions">
-                  {runtime.engine.shopOf(selection.id) && (
-                    <button className="action" onClick={() => { setShopWith({ id: selection.id }); setModal("shop"); }}>
+                  {selectedShop && (
+                    <button className="action" onClick={() => { setShopWith({ id: selectedShop.actor.id }); setModal("shop"); }}>
                       <ShoppingBag size={16} />
                       <span>Trade</span>
                       <ArrowRight size={13} />
@@ -2487,6 +2513,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                   <DialogueTester onClose={() => setModal(null)} />
                 </Suspense>
               )}
+            {modal === "exchange" && <ExchangeModal runtime={runtime}/>}
             {modal === "shop" && shopWith && (
               <ShopModal runtime={runtime} actorId={shopWith.id} initialItem={shopWith.item} onClose={() => setModal(null)} />
             )}

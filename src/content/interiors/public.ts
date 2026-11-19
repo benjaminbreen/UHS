@@ -543,7 +543,8 @@ export const gatherings: InteriorProfile[] = [
     ],
   },
   {
-    id: "kiva",
+    id: "kiva", institution:"worship",
+    observance:{tradition:"Pueblo",gathering:{label:"Gathered on the wall bench",room:"entry"},visit:{label:"Sitting by the hearth",room:"entry"}},
     uses: ["venue.kiva"],
     program: "gather",
     regulars: { hours: [19, 23], fill: 0.5 },

@@ -1,5 +1,19 @@
 [
   {
+    "name": "versailles-1750",
+    "query": "A gardener in Versailles 1750",
+    "seed": "parterres",
+    "precinct": "versailles",
+    "radius": 27
+  },
+  {
+    "name": "sceaux-1725",
+    "query": "A gardener in Sceaux 1725",
+    "seed": "parterres",
+    "precinct": "sceaux",
+    "radius": 21
+  },
+  {
     "name": "mosul-183",
     "query": "Mosul 183 CE",
     "seed": "mosul-shadows-review",

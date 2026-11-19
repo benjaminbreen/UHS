@@ -1,4 +1,4 @@
-import type { Actor, Economy, Household, Stats, WalkOff } from "../../core/types";
+import type { Actor, Economy, Household, Snapshot, Stats, WalkOff, WorldModel } from "../../core/types";
 import type { SkillId } from "../../core/skills";
 import type { WorldSetting } from "../geography/types";
 import type { CharacterScope } from "../characters/context-types";
@@ -11,7 +11,7 @@ export const plotRoles = ["creditor", "landlord", "official", "accuser", "witnes
 export type PlotRole = typeof plotRoles[number];
 
 /** A cast member to stand by, the household door, or a place on the map: the shore or the field. */
-export type PlotScene = "doorstep" | PlotRole | "shore" | "field";
+export type PlotScene = "doorstep" | PlotRole | "shore" | "field" | "workplace";
 
 /** What kind of day the plot makes. The draw balances shapes, so the many
  * plots where someone comes to demand something do not crowd out the rest. */
@@ -27,6 +27,8 @@ export type PlotContext = {
   households: Household[];
   household?: Household;
   economy?: Economy;
+  fauna?: Snapshot["fauna"];
+  activitySites?: WorldModel["activitySites"];
 };
 
 /** Plain data, so a scenario written from sources can produce the same thing. */
@@ -60,7 +62,7 @@ export type Condition =
 /** One answer on a choice card. Its button reads line `<id>:label`; choosing
  * fires `id`, shows line `<id>:then` if there is one, and a failed check also
  * fires and shows `<id>:failed`. A check's stat may be a word, "{stat}". */
-export type PlotChoice = { id: string; check?: { stat: keyof Stats | `{${string}}`; skill?: SkillId; odds: number } };
+export type PlotChoice = { id: string; minutes?: number; check?: { stat: keyof Stats | `{${string}}`; skill?: SkillId; odds: number } };
 
 export type Effect =
   | { type: "approach"; role: PlotRole; line: string }
@@ -124,6 +126,6 @@ export type PlotTemplate = {
   journal?: { opens: string; missed: string; notes: { after: string; line: string; label: string; roles?: PlotRole[] }[] };
   /** First match ends the plot; its line is the closing text. */
   endings: { id: string; when: Condition; quiet?: boolean }[];
-  /** First scope match wins; the last entry has none. */
+  /** First scope match wins; the last entry supplies shared lines. */
   wording: PlotWording[];
 };

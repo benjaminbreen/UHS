@@ -614,7 +614,7 @@ def adopt(recipes):
         door = fw // 2
         if r.get('family') == 'castle' and r['form'] != 'audience-hall':
             door = fw - 3 if spec['landmark']['look'] else 2
-        r['entrance'] = [door, fh]
+        r['entrance'] = [fw, fh // 2] if r.get('form') == 'palace-residence' else [door, fh]
         n += 1
     return n
 
@@ -657,7 +657,7 @@ class FrontCivicPainter:
         self.image = im
         self.night = lit(im)
         self.w, self.h = im.size
-        self.door_ground = b.base + 1
+        self.door_ground = getattr(b, 'door_ground', b.base + 1)
         self.bottom = b.base + 1
 
     def render(self):

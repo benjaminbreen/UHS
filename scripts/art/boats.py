@@ -556,29 +556,66 @@ def review(out):
 def harbor_art(review_path=None, review_dhow=False):
     from art.atlas import pack_atlas
     from art.front_worksites import harbor_crane
-    from art.steamships import steamship, trading_dhow, cloth_bale
+    from art.steamships import steamship, merchant_boat, cloth_bale
     items={}
     for form in ('harbor-ferry','coastal-freighter'):
         for heading in range(8):items[f'{form}-{heading}']=steamship(heading,form)
+    from art.props_b.terminal import terminal_art
+    terminal_art(items)
+    for heading in range(8):
+        for n in range(4):items[f'harbor-feeder-{heading}-{n}']=steamship(heading,'feeder',n)
     items['harbor-cloth-bale']=cloth_bale()
-    mat=Image.new('RGBA',(49,32))
-    weave=ImageDraw.Draw(mat)
-    weave.polygon([(2,19),(32,16),(47,24),(16,29),(2,23)],fill='#816447',outline='#624d3c')
-    for x in range(5,33,4):
-        weave.line((x,20-(x-5)//9,x+12,27-(x-5)//9),fill='#c79e69')
+    from art.props_b.household import sack
+    grain=sack();grain.info['anchor']=[8,18]
+    items['harbor-grain-sack']=grain
+    for frame in range(8):
+        im=Image.new('RGBA',(44,202));d=ImageDraw.Draw(im)
+        d.polygon([(1,188),(27,184),(42,188),(18,193),(1,191)],fill='#8e6a48',outline='#5f4939')
+        for x in (5,10,16):d.line((x,189,x+22,185),fill='#c79b67')
+        d.line((20,5,23,3,28,4,28,9),fill='#5c4839',width=3)
+        d.ellipse((23,4,30,14),fill='#a17747',outline='#594834')
+        d.line((25,7,25,11),fill='#d7b17b')
+        bottom=178-frame*24
+        d.line((29,13,32,185),fill='#80674d')
+        d.line((25,13,25,bottom),fill='#a78658')
+        d.arc((23,bottom-2,30,bottom+4),0,180,fill='#514841',width=2)
+        if frame:im.alpha_composite(grain,(19,bottom+1))
+        im.info['anchor']=[34,190]
+        items['harbor-grain-hoist'+('-'+str(frame) if frame else '')]=im
+    from art.props_b.market import cloth_counter, landing_skids, fish_stall, river_counter, river_lot, river_mat
+    moving={}
+    for cargo in ('copper','beer','grain','linen'):
+        for variant in range(3):
+            for state in range(3):
+                key=f'harbor-river-{cargo}-{variant}-{state}'
+                items[key]=river_counter(cargo,state,variant)
+                if cargo in ('copper','linen'):
+                    poses={m:river_counter(cargo,state,variant,m) for m in (-1,1,2)}
+                    for n,m in enumerate([1,2,1,0,-1,-1,0],1):
+                        moving[f'{key}-m{n}']=poses.get(m,items[key])
+    for cargo in ('beer','linen'):
+        for v in range(3):items[f'harbor-quay-mat-{cargo}-{v}']=river_mat(cargo=='linen',v)
+    for cargo in ('copper','grain'):
+        for direction in ('north','east','south','west'):
+            for stock in range(4):
+                items[f'harbor-quay-lot-{cargo}-{direction}-{stock}']=river_lot(cargo,direction,stock)
+    for state in range(7):
+        items[f'harbor-fish-shed-{state}']=fish_stall(True,state)
+        if state<2:items[f'harbor-fish-counter-{state}']=fish_stall(False,state)
     for n in range(4):
-        stack=mat.copy()
-        for x,y in [(20,6),(7,11),(10,0)][:n]:stack.alpha_composite(items['harbor-cloth-bale'],(x,y))
-        stack.info['anchor']=[24,25]
-        items[f'harbor-bale-mat-{n}']=stack
+        items[f'harbor-cloth-counter-{n}']=cloth_counter(items['harbor-cloth-bale'], n & 2, n & 1)
+        for direction in ('north','south','east','west'):
+            items[f'harbor-landing-{direction}-{n}']=landing_skids(items['harbor-cloth-bale'],direction,n)
+            items[f'harbor-grain-landing-{direction}-{n}']=landing_skids(grain,direction,n)
     for heading in range(8):
         for finish in range(3):
-            for form in ('dhow','lighter'):
-                items[f'harbor-{form}-{finish}-{heading}']=trading_dhow(heading,form=='lighter',finish=finish)
+            for form in ('dhow','lighter','fluyt'):
+                items[f'harbor-{form}-{finish}-{heading}']=merchant_boat(heading,form,finish=finish)
+        items[f'harbor-fluyt-rig-{heading}']=merchant_boat(heading,'fluyt',rig=True)
         for furled in (False,True):
             form='rig-furled' if furled else 'rig'
             for canvas in range(3):
-                items[f'harbor-{form}-{canvas}-{heading}']=trading_dhow(heading,furled=furled,finish=canvas,rig=True)
+                items[f'harbor-{form}-{canvas}-{heading}']=merchant_boat(heading,'dhow',furled=furled,finish=canvas,rig=True)
     if review_path:
         labels=('N','NE','E','SE','S','SW','W','NW')
         views=[]
@@ -789,10 +826,11 @@ def harbor_art(review_path=None, review_dhow=False):
     from art.stamp import write_stamp
     phases=json.loads((ROOT/'src/content/graphics/lighting.json').read_text())
     for key,im in list(items.items()):
-        if key.startswith(('harbor-lorry','harbor-ticket-office','harbor-fence','harbor-gate')):
+        if key.startswith(('harbor-stack','harbor-coil-yard','harbor-flood','harbor-reefer','harbor-lorry','harbor-ticket-office','harbor-fence','harbor-gate','harbor-river-')):
             im.info['shadowAnchor']=im.info['anchor']
             im.info['upright']=False
             items.update(sprite_cast(key,im,None,phases))
+    items.update(moving)
     pack_atlas(items,ROOT/'public/packs','harbor',2048)
     write_stamp(ROOT)
 

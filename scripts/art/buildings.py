@@ -411,7 +411,7 @@ def build_buildings(root, sprites):
     for name,r in list(recipes.items()):
         # Tents and shelters draw their door on the front whatever the facing,
         # and camps pitch them all opening south, so turned copies would lie.
-        if r['roof']=='shelter' or r.get('precinctPiece') or r.get('forager') or r.get('steppe'): continue
+        if r['roof']=='shelter' or r.get('family') == 'palace' or r.get('precinctPiece') or r.get('forager') or r.get('steppe'): continue
         fw,fh=r['footprint']
         for facing,entrance in [('north',[fw//2,-1]),('east',[fw,fh//2]),('west',[-1,fh//2])]:
             recipes[name+'-'+facing]={**r,'facing':facing,'entrance':entrance,'label':r['label']+' · '+facing,

@@ -30,7 +30,7 @@ export type GoalCheck =
   | { type: "visit"; place: string }
   | { type: "talk" }
   /** Player comes within a few steps of this cell. */
-  | { type: "reach"; x: number; y: number }
+  | { type: "reach"; x: number; y: number; participation?: string }
   | { type: "talk-to"; actor: string }
   | { type: "eat"; below: number }
   | { type: "rest"; below: number };

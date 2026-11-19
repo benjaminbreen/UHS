@@ -1,17 +1,44 @@
-import type { InteriorProfile } from "./types";
+import { formatHistoricalYear as formatYear } from "../../core/calendar";
+import type { InteriorProfile, Observance, RoomTemplate, WorshipAct } from "./types";
+import { aarti, ashemVohu, lesson, lotus, nembutsu, opening, psalm, refuges, torah, type Passage } from "./scripture";
 
-/**
- * Places of worship: `program: "rows"` faces the room to its altar, whose
- * `styles.altar` names the tradition (pixel.ts `altar`); `seating` gives pews
- * (`chair`), and `prayer` or `cushions` in the furnishings gives rugs or
- * cushions in rows. With none of these the congregation stands, as it did in
- * a medieval nave. Custodians lodge nearby and the congregation comes in as
- * `regulars` at service.
- */
+const act = (label: string, room: WorshipAct["room"], sound?: WorshipAct["sound"], at?: WorshipAct["at"], passage?: Passage): WorshipAct => ({label, room, sound, at, passage});
+const church: Observance = {
+  weekday: 4, gathering: act("Singing the responses", "sanctum", "unison"),
+  visit: act("Praying quietly", "sanctum"), service: act("Reading the lesson", "sanctum", "recitation", "altar", lesson),
+};
+const mosque: Observance = {
+  weekday: 2, hours:[5,12,15,18,20], layLeader:"man", gathering: {...act("Standing in the prayer row", "sanctum"),row:true},
+  visit: act("Washing before prayer", "entry", "wash", "basin"), service: act("Reciting the prayer", "sanctum", "recitation", "altar", opening),
+};
+const buddhist: Observance = {
+  tradition:"Buddhism",
+  hours:[6,17],
+  gathering: act("Reciting a verse together", "sanctum", "unison", undefined, lotus), visit: act("Bowing before the image", "sanctum"),
+  service: act("Keeping time for the recitation", "sanctum", "woodbeat", "altar"),
+};
+const shrine: Observance = {
+  tradition:"Hindu",
+  gathering: act("Waiting for a view of the image", "entry"), visit: act("Bringing flowers to the shrine", "entry", "cloth"),
+  service: act("Ringing the bell for the offering", "sanctum", "handbell", "altar"),
+};
+const offering: Observance = {
+  gathering: act("Waiting with an offering", "entry"), visit: act("Standing at the threshold", "entry"),
+  service: act("Setting out an offering", "sanctum", "cup", "altar"),
+};
+const reading: Observance = {
+  weekday: 3, hours:[7,17], layLeader:"man", gathering: act("Following the reading", "sanctum"),
+  visit: act("Studying together", "work", "recitation"), service: act("Reading aloud", "sanctum", "recitation", "lectern", torah),
+};
+const court: RoomTemplate = {id:"court", label:"Entrance court", role:"entry", size:[11,8], shapes:["courtyard"],
+  program:"passage", furnish:[], pole:false, styles:{fountain:"none"}, clutter:[]};
+const porch: RoomTemplate = {id:"porch", label:"Entrance porch", role:"entry", size:[7,4], program:"passage",
+  windowStyle:"none", furnish:[], clutter:[], pole:false};
 export const worship: InteriorProfile[] = [
   {
-    id: "romanesque-church",
+    id: "romanesque-church", institution: "worship", observance: church,
     uses: ["religious.romanesque-parish", "venue.churchyard"],
+    rooms: [porch, {id:"hall", label:"Nave", role:"sanctum", shapes:["apse"], size:[11,12], program:"rows",looks:[{wall:"round-arched"},{wall:"round-arched"},{wall:"round-arched"}]}],
     program: "rows",
     regulars: { hours: [8, 11], fill: 0.6 },
     styles: { altar: "romanesque", pole: "stone" },
@@ -43,8 +70,9 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "orthodox-church",
+    id: "orthodox-church", institution: "worship", observance: church,
     uses: ["religious.romanesque-parish", "religious.gothic-parish", "venue.churchyard", "religious.byzantine-church", "religious.rus-church", "religious.muscovite-church", "religious.muscovite-church-south", "religious.muscovite-church-volga", "religious.caucasian-church", "religious.orthodox-monastery", "religious.ethiopian-church", "religious.coptic-church", "religious.nubian-church"],
+    rooms: [porch, {id:"hall", label:"Nave", role:"sanctum", shapes:["rect"], size:[13,12], program:"rows"}],
     program: "rows",
     regulars: { hours: [8, 11], fill: 0.7 },
     styles: { altar: "screen-iconostasis", pole: "stone" },
@@ -76,8 +104,9 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "gothic-church",
+    id: "gothic-church", institution: "worship", observance: church,
     uses: ["religious.gothic-parish", "religious.romanesque-parish", "venue.churchyard"],
+    rooms: [porch, {id:"hall", label:"Nave", role:"sanctum", shapes:["apse"], size:[12,14], program:"rows",looks:[{wall:"pointed"},{wall:"pointed"},{wall:"pointed"}]}],
     program: "rows",
     regulars: { hours: [8, 11], fill: 0.6 },
     styles: { altar: "gothic", pole: "stone" },
@@ -109,8 +138,9 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "reformed-church",
+    id: "reformed-church", institution: "worship", observance: {...church, gathering: act("Singing a psalm", "sanctum", "unison", undefined, psalm), service: act("Preaching from the pulpit", "sanctum", "recitation", "pulpit")},
     uses: ["religious.gothic-parish", "venue.churchyard"],
+    rooms: [porch, {id:"hall", label:"Nave", role:"sanctum", shapes:["apse"], size:[11,13], program:"rows",looks:[{wall:"pointed"},{wall:"pointed"},{wall:"pointed"}]}],
     program: "rows",
     regulars: { hours: [9, 12], fill: 0.6 },
     styles: { altar: "reformed", pew: "box", pole: "stone" },
@@ -142,8 +172,9 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "baroque-church",
+    id: "baroque-church", institution: "worship", observance: church,
     uses: ["religious.gothic-parish", "religious.spanish-american-church", "venue.churchyard"],
+    rooms: [porch, {id:"hall", label:"Nave", role:"sanctum", shapes:["apse"], size:[12,13], program:"rows"}],
     program: "rows",
     regulars: { hours: [7, 11], fill: 0.6 },
     styles: { altar: "baroque", pole: "stone" },
@@ -175,11 +206,11 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "mosque",
-    uses: ["venue.mosque-court", "religious.ottoman-mosque", "religious.arab-mosque", "religious.maghrebi-mosque", "religious.persian-mosque", "religious.ottoman-mosque-istanbul", "religious.ottoman-mosque-edirne", "religious.ottoman-mosque-sarajevo", "religious.ottoman-mosque-skopje", "religious.central-asian-mosque", "religious.indo-islamic-mosque", "religious.sahel-mosque", "religious.sahel-mosque-south", "religious.swahili-mosque"],
+    id: "mosque", institution: "worship", observance: mosque,
+    uses: ["venue.mosque-court", "religious.ottoman-mosque", "religious.london-mosque", "religious.arab-mosque", "religious.maghrebi-mosque", "religious.persian-mosque", "religious.ottoman-mosque-istanbul", "religious.ottoman-mosque-edirne", "religious.ottoman-mosque-sarajevo", "religious.ottoman-mosque-skopje", "religious.central-asian-mosque", "religious.indo-islamic-mosque", "religious.sahel-mosque", "religious.sahel-mosque-south", "religious.swahili-mosque"],
     regulars: { hours: [12, 14], fill: 0.7 },
     rooms: [
-      { id: "sahn", label: "Sahn", role: "entry", size: [11, 9], shapes: ["courtyard"], fire: "none", pole: false, furnish: ["plant", "plant"], clutter: ["shoes", "shoes", "shoes"], looks: [{ floor: "flag" }, { floor: "flag" }, { floor: "tile" }] },
+      { id: "sahn", label: "Ablution court", role: "entry", size: [11, 9], shapes: ["courtyard"], fire: "none", pole: false, program: "passage", furnish: ["basin"], clutter: ["shoes", "shoes", "shoes"], looks: [{ floor: "flag" }, { floor: "flag" }, { floor: "tile" }] },
       { id: "haram", label: "Prayer hall", role: "sanctum", program: "rows", size: [13, 10], fire: "none", furnish: ["prayer", "pulpit", "lamp"], clutter: ["book"], looks: [{ floor: "mat" }, { floor: "flag" }, { floor: "carpet" }] },
     ],
     styles: { altar: "mihrab", pulpit: "minbar", pole: "stone" },
@@ -188,7 +219,7 @@ export const worship: InteriorProfile[] = [
     period: "650 – present",
     when: { start: { year: 650 }, end: { year: 2100 } },
     basis: "documented",
-    note: "The courtyard mosque as at Damascus, Kairouan and Córdoba: an open court with its fountain for ablution, then the pillared prayer hall carpeted in ranks facing the mihrab in the qibla wall, the minbar beside it. Ottoman domed halls are drawn the same way here.",
+    note: "An open court leads to rows facing the prayer niche. The pulpit stands beside it. The Ottoman hall is broader, the Maghrebi hall has glazed tilework, and the earthen and coral-stone mosques have plain niches and woven mats.",
     shapes: ["rect"],
     size: [11, 9],
     door: "door",
@@ -211,8 +242,9 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "chinese-temple",
+    id: "chinese-temple", institution: "worship", observance: buddhist,
     uses: ["venue.temple-court-east", "religious.chinese-temple", "religious.korean-temple"],
+    rooms: [court, {id:"hall", label:"Main image hall", role:"sanctum", shapes:["rect"], size:[13,10], program:"rows",looks:[{wall:"painted-brackets"},{wall:"painted-brackets"},{wall:"painted-brackets"}]}],
     program: "rows",
     regulars: { hours: [7, 17], fill: 0.3 },
     styles: { altar: "buddha", pole: "red" },
@@ -244,8 +276,9 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "japanese-temple",
+    id: "japanese-temple", institution: "worship", observance: buddhist,
     uses: ["venue.temple-court-east", "religious.japanese-temple"],
+    rooms: [court, {id:"hall", label:"Main hall", role:"sanctum", shapes:["rect"], size:[13,10], program:"rows",looks:[{wall:"bracketed"},{wall:"bracketed"},{wall:"bracketed"}]}],
     program: "rows",
     regulars: { hours: [6, 17], fill: 0.3 },
     styles: { altar: "buddha-jp", pole: "timber" },
@@ -277,8 +310,8 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "hindu-temple",
-    uses: ["venue.temple-court-south", "religious.nagara-temple", "religious.dravida-temple", "religious.jain-temple", "religious.newar-temple", "religious.khmer-temple", "religious.cham-tower", "religious.javanese-candi", "religious.balinese-pura"],
+    id: "hindu-temple", institution: "worship", observance: shrine,
+    uses: ["venue.temple-court-south", "religious.london-mandir", "religious.nagara-temple", "religious.dravida-temple", "religious.newar-temple", "religious.khmer-temple", "religious.cham-tower", "religious.javanese-candi", "religious.balinese-pura"],
     regulars: { hours: [6, 12], fill: 0.4 },
     rooms: [
       { id: "mandapa", label: "Mandapa", role: "entry", program: "rows", size: [11, 10], fire: "none", furnish: ["lamp", "lamp"], clutter: ["flowers", "flowers", "shoes"] },
@@ -313,8 +346,8 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "wat",
-    uses: ["venue.wat", "religious.wat", "religious.burmese-pagoda", "religious.early-stupa", "religious.pala-vihara", "religious.lanka-dagoba", "religious.early-sea-stupa"],
+    id: "wat", institution: "worship", observance: {...buddhist, gathering: {...buddhist.gathering, passage:refuges}, service: act("Leading the recitation", "sanctum", "recitation", "altar", refuges)},
+    uses: ["venue.wat", "religious.wat", "religious.pala-vihara"],
     program: "rows",
     regulars: { hours: [6, 12], fill: 0.4 },
     styles: { altar: "buddha", pole: "red" },
@@ -346,8 +379,9 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "classical-temple",
-    uses: ["venue.temple-precinct"],
+    id: "classical-temple", institution: "worship", observance: offering,
+    uses: ["venue.temple-precinct", "religious.roman-temple", "religious.greek-temple", "religious.greek-temple-ionia", "religious.roman-temple-africa", "religious.hellenistic-egypt-shrine", "religious.hellenistic-levant-shrine"],
+    rooms: [court, {id:"hall", label:"Cella", role:"sanctum", shapes:["rect"], size:[9,8], program:"rows"}],
     program: "rows",
     regulars: { hours: [8, 12], fill: 0.15 },
     styles: { altar: "classical", pole: "stone" },
@@ -379,8 +413,8 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "mesopotamian-temple",
-    uses: ["religious.mesopotamian-temple", "religious.hittite-temple", "religious.pharaonic-temple", "religious.kushite-temple"],
+    id: "mesopotamian-temple", institution: "worship", observance: offering,
+    uses: ["religious.mesopotamian-temple", "religious.hittite-temple"],
     program: "rows",
     regulars: { hours: [7, 11], fill: 0.15 },
     styles: { altar: "mesopotamian" },
@@ -411,7 +445,7 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "maya-temple",
+    id: "maya-temple", institution: "worship", observance: offering,
     uses: ["religious.maya-temple-pyramid", "religious.mesoamerican-temple-pyramid"],
     program: "rows",
     regulars: { hours: [6, 9], fill: 0.1 },
@@ -443,7 +477,7 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "chavin-gallery",
+    id: "chavin-gallery", institution: "worship", observance: offering,
     uses: ["religious.andean-platform-temple"],
     program: "rows",
     regulars: { hours: [5, 8], fill: 0.1 },
@@ -475,7 +509,7 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "moche-huaca",
+    id: "moche-huaca", institution: "worship", observance: offering,
     uses: ["religious.andean-platform-temple"],
     program: "rows",
     regulars: { hours: [6, 10], fill: 0.15 },
@@ -507,7 +541,7 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "inca-temple",
+    id: "inca-temple", institution: "worship", observance: offering,
     uses: ["religious.andean-platform-temple"],
     program: "rows",
     regulars: { hours: [6, 10], fill: 0.2 },
@@ -539,7 +573,7 @@ export const worship: InteriorProfile[] = [
     ],
   },
   {
-    id: "mound-temple",
+    id: "mound-temple", institution: "worship", observance: offering,
     uses: ["religious.mississippian-platform-mound", "religious.cahokia-great-mound"],
     program: "gather",
     regulars: { hours: [5, 9], fill: 0.2 },
@@ -571,3 +605,158 @@ export const worship: InteriorProfile[] = [
     ],
   },
 ];
+
+const prayerHouse = worship.find(p => p.id === "reformed-church")!;
+for (const [id, label, region, start, end] of [
+  ["london-synagogue","Neighbourhood synagogue","London",2016,2026],
+  ["galilean-synagogue","Galilean synagogue","Galilee",250,550],
+  ["sephardi-synagogue","Sephardi synagogue","Ottoman Mediterranean",1500,1923],
+  ["ashkenazi-synagogue","Ashkenazi synagogue","Polish-Lithuanian borderlands",1700,1940],
+] as const) {
+  const ancient = id === "galilean-synagogue";
+  worship.push({...prayerHouse, id, label, region, uses:["religious."+id], period:`${start} – ${end}`,
+    when:{start:{year:start},end:{year:end-1}}, basis:ancient ? "archaeological" : "documented",
+    note:ancient ? "A Galilean assembly hall with stone benches around its walls and a place for the scrolls." :
+      "A reader’s platform stands apart from the ark. Benches face inward, and a side room serves for study.",
+    shapes:["rect"], observance:reading, regulars:{hours:[7,11],fill:.5}, windowStyle:ancient ? "none" : "lattice",
+    styles:{altar:ancient ? "torah-niche" : "torah-ark", lectern:ancient ? "reader" : "bimah", ledge:ancient ? "marble" : "bench"}, pole:false,
+    rooms:[id === "sephardi-synagogue" ? court : porch,
+      {id:"prayer",label:"Prayer hall",role:"sanctum",size:[13,10],shapes:["rect"],program:"gather",furnish:["lectern"]},
+      {id:"study",label:"Study room",role:"work",size:[7,5],program:"passage",furnish:["bench","lowtable",...(ancient ? [] : ["shelf" as const])]}],
+    colorways:ancient ? [{name:"Galilean limestone",wall:"#d8ccb1",trim:"#897962",floor:"#bdad91",wood:"#775c43",accent:"#935744"},{name:"Galilean basalt",wall:"#978f81",trim:"#605a52",floor:"#8e897c",wood:"#795d46",accent:"#845143"}] :
+      [{name:"Madder and indigo",wall:"#e4cfa6",trim:"#75503b",floor:"#bb9c79",wood:"#77452e",accent:"#972e46"},
+       {name:"Blue velvet",wall:"#dbcfad",trim:"#6d5440",floor:"#b39c7b",wood:"#714631",accent:"#344d78"}],
+    looks:prayerHouse.looks.map(l=>({...l,wall:ancient ? "ashlar" : "plaster",dado:undefined,floor:"flag"})) as InteriorProfile["looks"],
+  });
+}
+
+const mandapa = worship.find(p => p.id === "hindu-temple")!;
+worship.push({...worship.find(p=>p.id==="mesopotamian-temple")!, id:"nile-temple", label:"Nile temple",region:"Egypt and Kush",
+  uses:["religious.pharaonic-temple","religious.kushite-temple"],period:"third millennium BCE – fourth century CE",when:{start:{year:-3000},end:{year:350}},
+  note:"The outer court receives offerings. Beyond it a columned hall ends at the closed shrine of the cult image. The painted capitals and cornice draw on surviving Nile temples.",
+  styles:{altar:"naos",pole:"papyrus"},regulars:{hours:[5,8],fill:.2},observance:{
+    gathering:act("Waiting in the outer court","entry"),visit:act("Bringing bread to the temple","entry","cloth"),
+    service:act("Laying out linen for the morning offering","sanctum","cloth","altar")},
+  rooms:[{...court,label:"Offering court"}, {id:"hall",label:"Columned hall",role:"sanctum",size:[13,10],program:"rows",pole:true,furnish:[],clutter:[]}],
+  looks:[0,1,2].map(i=>({wall:"ashlar",floor:"flag",wear:.23-.06*i,soot:.12})) as InteriorProfile["looks"],
+  colorways:[{name:"Painted limestone",wall:"#dfcba5",trim:"#a99066",floor:"#c5b08d",wood:"#795338",accent:"#477c79"},
+    {name:"Red sandstone",wall:"#c9a27b",trim:"#856444",floor:"#b39470",wood:"#714c33",accent:"#a4583c"}],
+});
+worship.push({...mandapa, id:"jain-temple",label:"Jain temple",uses:["religious.jain-temple"],region:"Western India",
+  note:"A pillared hall faces a seated Jina in an inner shrine. The pale stone and carved niches draw on temples of western India.",
+  rooms:[mandapa.rooms![0],{...mandapa.rooms![1],label:"Shrine of the Jina",styles:{altar:"jina"}}],
+  colorways:[{name:"Carved marble",wall:"#e2d7be",trim:"#908171",floor:"#cfc5ae",wood:"#815f45",accent:"#b98648"},{name:"Warm limestone",wall:"#dcc399",trim:"#967855",floor:"#b89f7b",wood:"#77604a",accent:"#a85636"}],
+  observance:{gathering:act("Standing before the Jina","entry"),visit:act("Bringing flowers","entry","cloth")},
+}, {...mandapa, id:"gurdwara",label:"Gurdwara",uses:["religious.gurdwara","religious.london-gurdwara"],region:"Punjab",period:"1600 – present",
+  when:{start:{year:1600},end:{year:2100}},note:"The scripture rests beneath a canopy in the assembly hall. The congregation sits on the floor. Volunteers prepare and share a meal in the adjoining langar.",
+  regulars:{hours:[6,12],fill:.45},observance:{layLeader:"adult",gathering:act("Singing a hymn together","sanctum","unison",undefined,aarti),visit:act("Serving the shared meal","kitchen","cup"),diner:act("Eating in the langar","kitchen"),service:act("Leading the hymn","sanctum","strings","altar",aarti)},
+  rooms:[porch,{id:"darbar",label:"Assembly hall",role:"sanctum",size:[13,11],program:"rows",furnish:["cushions"],styles:{altar:"palki",cushions:"durrie"},looks:[{wall:"round-arched"},{wall:"round-arched"},{wall:"round-arched"}]},
+    {id:"langar",label:"Langar · community kitchen",role:"kitchen",size:[8,7],program:"passage",fire:"firepit",seating:"floor",pole:false,furnish:["jars","potrack","sacks"],styles:{firepit:"cooking-pot"}}],
+}, {...mandapa,id:"fire-temple",label:"Fire temple",uses:["religious.iranian-fire-temple","religious.sogdian-fire-temple","religious.parsi-fire-temple"],
+  period:"Sasanian Iran and later Parsi communities",region:"Iran, Sogdiana and Gujarat",when:{start:{year:200},end:{year:2100}},
+  note:"A prayer hall faces the enclosed fire sanctuary. The older Iranian fire stands on a stepped stone support. In the Parsi temple the priest tends a metal fire vessel.",
+  regulars:{hours:[6,19],fill:.12},observance:{gathering:act("Praying before the fire","sanctum","recitation",undefined,ashemVohu),visit:act("Praying quietly","sanctum"),service:act("Preparing wood for the fire","store","wood")},
+  rooms:[porch,{id:"prayer",label:"Prayer hall",role:"sanctum",size:[10,9],program:"rows",furnish:[],windowStyle:"none",styles:{altar:"fire-sanctuary"}},
+    {id:"fuel",label:"Fuel store",role:"store",size:[5,5],program:"passage",furnish:["crate"],clutter:[]}],
+});
+
+const wat = worship.find(p => p.id === "wat")!;
+worship.push({...wat,id:"stupa-court",label:"Processional terrace",region:"South and Southeast Asia",period:"third century BCE – present",
+  when:{start:{year:-250},end:{year:2100}},uses:["religious.early-stupa","religious.early-sea-stupa","religious.lanka-dagoba","religious.burmese-pagoda"],
+  note:"Devotees approach the relic mound along an open terrace and keep it on their right. The relic chamber is sealed.",
+  colorways:[{name:"Weathered sandstone",wall:"#a18d73",trim:"#755f49",floor:"#928370",wood:"#725a44",accent:"#a85b40"},{name:"Grey paving",wall:"#b0a899",trim:"#645d55",floor:"#857f75",wood:"#705c49",accent:"#92583e"}],
+  looks:wat.looks.map(l=>({...l,floor:"flag",dado:undefined})) as InteriorProfile["looks"],
+  program:"passage",size:[13,12],windowStyle:"none",shapes:["terrace"],pole:false,furnish:[],clutter:[],styles:{altar:"stupa"},
+  observance:{gathering:act("Pausing on the path around the relic mound","entry"),visit:act("Laying flowers beside the path","entry","cloth")},
+});
+
+worship.push({...prayerHouse,id:"modern-parish",label:"Parish church",region:"Western Europe",period:"twentieth century – present",
+  when:{start:{year:1900},end:{year:10001}},uses:["religious.gothic-parish","religious.anglican-parish","venue.churchyard"],
+  note:"A parish using an older nave, with a reading desk and open benches. The furnishings are a reconstruction of an ordinary modern parish.",
+  basis:"reconstructed",windowStyle:"stained",styles:{altar:"communion-table",pole:"stone"},
+  rooms:[porch,{id:"nave",label:"Nave",role:"sanctum",size:[12,12],shapes:["apse"],program:"rows",furnish:["font","lectern"]}],
+  observance:{...church,gathering:act("Singing from the hymn book","sanctum","unison"),service:act("Reading the lesson","sanctum","recitation","lectern",lesson)},
+});
+
+const terrace = worship.find(p=>p.id==="stupa-court")!;
+for (const [id,label,region,from,to] of [
+  ["heiau","Heiau terrace","Hawaiian Islands",1000,1820],["marae","Marae court","Eastern Polynesia",1000,1830],
+  ["sacred-grove","Grove clearing","West and Central Africa",-500,1900],
+  ["orisha-shrine","Shrine courtyard","Gulf of Guinea",1000,1900],["asante-shrine","Shrine house","Asante",1600,1900],
+] as const) {
+  const house = id.endsWith("shrine"), grove = id === "sacred-grove";
+  worship.push({...terrace,id,label,region,uses:["religious."+id],period:`${formatYear(from)} – ${to}`,
+    when:{start:{year:from},end:{year:to-1}},basis:"reconstructed",regulars:{hours:[7,12],fill:.09},
+    note:house ? "Visitors approach an open-sided shrine from the court. Local shrine houses supply its earthen walls, vessels and timber supports." :
+      grove ? "An open clearing at the edge of the sacred grove. Visitors leave offerings at its threshold." : "An open court of dark stones leads up to a raised place for offerings. The sacred platform and its approaches remain open to the sky.",
+    observance:{gathering:act("Waiting at the edge of the court","entry"),visit:act("Bringing an offering","entry","cloth")},
+    styles:house ? {pole:"timber",fountain:"none"} : grove ? {} : {altar:"ahu"},
+    rooms:house ? [{...court,label:"Shrine courtyard"}, {id:"shrine",label:"Offering room",role:"sanctum",size:[8,6],program:"passage",furnish:["jars","lowtable"],windowStyle:"none"}] : undefined,
+    looks:terrace.looks.map(l=>({...l,wall:house ? "mud" : "ashlar",floor:house || grove ? "earth" : "flag",dado:house ? "band" : undefined})) as InteriorProfile["looks"],
+    furnish:grove ? ["jars","plant","plant"] : [],colorways:[
+      {name:"Earth and dark stone",wall:"#c2a47d",trim:"#605340",floor:"#887866",wood:"#7a4a33",accent:"#8e4229"},
+      {name:"Clay and lime",wall:"#d9c9a2",trim:"#705744",floor:"#8e8573",wood:"#744f37",accent:"#ad5134"}],
+  });
+}
+
+export function localWorship(profile: InteriorProfile, use: string, year: number, school?: string): InteriorProfile {
+  if (use === "venue.churchyard" && profile.observance) {
+    const tradition = profile.id === "orthodox-church" ? "Orthodox Christian" : profile.id === "reformed-church" ? "Protestant" :
+      profile.id === "modern-parish" ? "Christian" : "Latin Christian";
+    return {...profile,observance:{...profile.observance,tradition}};
+  }
+  if (profile.id === "nile-temple" && year < -1550)
+    return {...profile,styles:{altar:"naos",pole:"timber"},rooms:profile.rooms!.map(r=>r.role==="sanctum" ? {...r,label:"Offering hall",size:[8,6]} : r)};
+  if (use.startsWith("religious.london-")) {
+    return {...profile, pole:false, windowStyle:"glazed",
+      looks:profile.looks.map(l => ({...l,wall:"plaster",dado:undefined})) as InteriorProfile["looks"],
+      rooms:profile.rooms?.map(r => {
+        if (r.id === "sahn") return {...porch, label:"Entrance and washing area", furnish:["basin"], clutter:["shoes"]};
+        if (r.role === "kitchen") return {...r, fire:"stove", styles:undefined};
+        return {...r, looks:undefined, ...(r.id === "haram" ? {looks:[{floor:"carpet"},{floor:"carpet"},{floor:"carpet"}]} : {})};
+      })};
+  }
+  if (profile.id === "mosque") {
+    const earth = use.includes("sahel"), coral = use.includes("swahili");
+    const ornament = earth ? "earth" : coral ? "coral" : use.includes("maghrebi") ? "horseshoe" :
+      /persian|central-asian/.test(use) ? "tile-arch" : "arcade";
+    return {...profile,styles:{...profile.styles, pole:earth ? "earth" : "stone", prayer:earth || coral ? "reed" : "wool", altar:earth || coral ? "plain-mihrab" : "mihrab"},
+      looks:profile.looks.map(l=>({...l, wall:earth ? "mud" : coral ? "plaster" : ornament === "horseshoe" || ornament === "tile-arch" ? ornament : "round-arched", dado:ornament === "horseshoe" ? l.dado : undefined})) as InteriorProfile["looks"],
+      rooms:profile.rooms!.map(r=>r.role === "sanctum" ? {...r,size:use.includes("ottoman") ? [15,10] : [12,12],
+        ...(earth || coral ? {looks:[{floor:"mat"},{floor:"mat"},{floor:"mat"}]} : {})} : {...r,styles:{fountain:earth || coral ? "none" : "basin"}})};
+  }
+  if (profile.id === "orthodox-church" && (year < 1000 || /ethiopian|coptic|nubian/.test(use)))
+    return {...profile,styles:{...profile.styles,altar:use.includes("ethiopian") ? "sanctuary-curtain" : "screen-templon"}};
+  if (profile.id === "japanese-temple" && school === "pure-land")
+    return {...profile,observance:{...buddhist,gathering:act("Reciting the nembutsu","sanctum","unison",undefined,nembutsu),
+      service:act("Leading the nembutsu","sanctum","recitation","altar",nembutsu)}};
+  if (profile.id === "japanese-temple" && school === "lotus")
+    return {...profile,observance:{...buddhist,service:act("Leading the recitation","sanctum","recitation","altar",lotus)}};
+  if (profile.id === "japanese-temple")
+    return {...profile,observance:{...buddhist,gathering:act("Listening to the recitation","sanctum"),
+      service:year < 1600 ? act("Leading the recitation","sanctum","recitation","altar") : buddhist.service}};
+  if (profile.id === "chinese-temple" && use.includes("korean"))
+    return {...profile,styles:{...profile.styles,pole:year >= 900 ? "dancheong" : "timber"},rooms:profile.rooms!.map(r=>r.role === "sanctum" && year < 900 ? {...r,looks:[{wall:"bracketed"},{wall:"bracketed"},{wall:"bracketed"}]} : r)};
+  if (profile.id === "fire-temple" && use.includes("parsi"))
+    return {...profile,rooms:profile.rooms!.map(r=>r.role === "sanctum" ? {...r,styles:{altar:"fire-urn"}} : r)};
+  if (profile.id === "stupa-court" && /dagoba|pagoda/.test(use))
+    return {...profile,styles:{altar:use.includes("dagoba") ? "dagoba" : "zedi"}};
+  return profile;
+}
+
+
+export function worshipAct(rite: Observance | undefined, label: string | undefined, clock: number) {
+  const activity = rite && [rite.visit, rite.gathering, rite.service, rite.diner].find(a => a && a.label === label);
+  if (activity && rite?.gathering.row && activity === rite.service) {
+    const hour = Math.floor(clock / 3600) % 24, day = Math.floor(clock / 86400) % 7;
+    // Afternoon and ordinary noon prayers are recited quietly.
+    if (hour === 15 || (hour === 12 && day !== rite.weekday)) return {...activity, sound:undefined, passage:undefined};
+  }
+  return activity;
+}
+
+export function worshipHours(rite: Observance, day: number, hour: number, hours: [number,number]) {
+  const peak = rite.hours ? rite.hours.includes(hour) : hour >= hours[0] && hour < hours[1];
+  const weekly = rite.weekday === undefined || (day % 7 === rite.weekday && (!rite.hours || hour === hours[0]));
+  return {peak, fill:peak ? (weekly ? 1 : .24) : hour >= 6 && hour < 19 ? .10 : 0};
+}

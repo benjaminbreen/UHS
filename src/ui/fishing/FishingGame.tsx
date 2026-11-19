@@ -46,7 +46,7 @@ export function fishingStart(runtime: Runtime, preset?: FishingPreset, method?: 
   const setup: Setup = {
     seed: `${e.state.manifest.seed}:fishing:${Math.floor(clock / 60)}:${preset?.id ?? ""}`,
     method: m, water, hull, afloat,
-    kinds: fishOf({ climate: climate as never, culture: culture as never, lon: preset ? undefined : s?.lon }, water),
+    kinds: fishOf({ climate: climate as never, culture: culture as never, ...(preset ? {} : {lon:s?.lon,lat:s?.lat,year:s?.year}) }, water),
     hour, run: seasonRun({ climate: climate as never }, season),
     rain: live ? weather.rain : 0, wind: live ? weather.wind.strength : 0.2,
     snow: live && weather.condition === "snow", mist: live && weather.condition === "mist",
@@ -82,10 +82,10 @@ const clockText = (hour: number) => {
   return `${((h + 11) % 12) + 1}:${String(m).padStart(2, "0")} ${h < 12 ? "am" : "pm"}`;
 };
 const spriteUrl = new Map<string, string>();
-function fishUrl(c: Catch) {
-  const key = `${c.kind.name}:${fishLength(c.kg)}`;
+function fishUrl(kind: FishKind, length: number) {
+  const key = `${kind.name}:${length}`;
   let url = spriteUrl.get(key);
-  if (!url) spriteUrl.set(key, (url = fishSprite(c.kind, fishLength(c.kg)).toDataURL()));
+  if (!url) spriteUrl.set(key, (url = fishSprite(kind, length).toDataURL()));
   return url;
 }
 const iconUrls = new Map<string, string>();
@@ -100,7 +100,7 @@ function iconUrl(id: string) {
 function Pic({ c }: { c: Catch }) {
   const url = iconUrl(c.find ?? fishItemId(c.kind));
   if (url) return <img className="fg-icon" src={url} alt="" />;
-  return c.find ? null : <img src={fishUrl(c)} alt="" style={{ width: fishSprite(c.kind, fishLength(c.kg)).width * 3 }} />;
+  return c.find ? null : <img src={fishUrl(c.kind,fishLength(c.kg))} alt="" style={{ width: fishSprite(c.kind, fishLength(c.kg)).width * 3 }} />;
 }
 const Stars = ({ n }: { n?: number }) => (n ? <i className="fg-stars">{"★".repeat(n)}</i> : null);
 
@@ -119,7 +119,7 @@ const whenText = (k: FishKind) =>
     k.when?.seasons ? `in ${k.when.seasons.join(" and ")}` : "",
     k.when?.rain ? "when it rains" : "",
     k.trap ? "goes into traps" : "",
-    k.rare ? "seldom seen" : "",
+    k.rarity === "legendary" ? "legendary · watch the deeper water" : k.rarity ? "seldom seen" : "",
   ].filter(Boolean).join(", ") || "about most days";
 const kgText = (kg: number) => (kg < 1 ? `${Math.round(kg * 1000)} g` : `${kg.toFixed(kg < 10 ? 1 : 0)} kg`);
 
@@ -307,7 +307,7 @@ export function FishingGame({ start, practice, onLeave }: { start: FishingStart;
         </ol>
         {fresh && !done && (
           <div className="fg-fresh" key={fresh.at}>
-            <small>New for your book</small>
+            <small>{fresh.c.kind.rarity === "legendary" ? "Legendary catch · new for your book" : "New for your book"}</small>
             <Pic c={fresh.c} />
             <b>{fresh.c.kind.name}</b>
             <p>{fresh.c.kind.note}</p>
@@ -332,13 +332,13 @@ export function FishingGame({ start, practice, onLeave }: { start: FishingStart;
               {kinds.map((k) => {
                 const log = start.log[fishItemId(k)], here = sim.caught.filter((c) => c.kind === k);
                 const n = (log?.n ?? 0) + here.length, best = Math.max(log?.best ?? 0, ...here.map((c) => c.kg));
-                const url = iconUrl(fishItemId(k));
+                const url = k.rarity === "legendary" ? fishUrl(k,22) : iconUrl(fishItemId(k));
                 return (
                   <li key={k.name} data-seen={n > 0 || undefined}>
                     {url ? <img className="fg-icon" src={url} alt="" /> : <span />}
                     <span>
                       <b>{n ? k.name : "???"}</b>
-                      <small>{n ? k.note : whenText(k)}</small>
+                      <small>{n ? [k.rarity ?? "common", k.note].join(" · ") : whenText(k)}</small>
                     </span>
                     <span>{n ? `×${n} · best ${kgText(best)}` : ""}</span>
                   </li>

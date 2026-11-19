@@ -11,6 +11,25 @@ const latin = [
 const inLatin = (rule: Omit<ReligiousRule, "bounds">): ReligiousRule[] => latin.map((bounds) => ({ ...rule, bounds }));
 
 export const europeReligious: ReligiousRule[] = [
+  ...([
+    ["london-mosque", "Islam", "Mosque", "euro-london-0-urban-hall", "People leave their shoes at the door. The prayer rows face the niche in the far wall."],
+    ["london-synagogue", "Jewish", "Synagogue", "euro-london-1-urban-row", "The congregation gathers around the reading desk. The Torah scrolls are kept in the ark."],
+    ["london-mandir", "Hindu", "Mandir", "euro-london-2-urban-wide", "Families bring flowers to the shrine. There is room to sit together for the singing."],
+    ["london-gurdwara", "Sikh", "Gurdwara", "euro-london-0-urban-wide", "The Guru Granth Sahib rests under a canopy. Volunteers cook and serve a meal in the next room."],
+  ] as const).map(([id, faith, label, recipe, about]): ReligiousRule => ({
+    id, faith, recipe,
+    labels: {small:label, medium:label, large:label}, about, congregationOnly:true,
+    from:2016, to:2026, bounds:[-.52,51.28,.34,51.70], side:"north", forecourt:1,
+    evidence:{status:"inferred",sources:["https://historicengland.org.uk/images-books/publications/changing-london-6/changinglondon-6/"],
+      note:"An adapted street building represents a neighbourhood congregation in the period covered by the London population profile."},
+  })),
+  {
+    id:"anglican-parish", faith:"Anglican", offices:["Priest"], recipe:"gothic",
+    labels:{small:"Chapel",medium:"Parish church",large:"Parish church"},
+    from:1900, to:2100, bounds:[-1.5,50.8,1.45,52.1], side:"north", forecourt:2,
+    about:"The parish gathers here for Sunday worship, weddings and funerals.",
+    evidence:{status:"inferred",sources:["https://www.churchofengland.org/"],note:"An Anglican parish in southeast England. The Gothic building represents one congregation."},
+  },
   {
     id: "roman-temple",
     faith: "Roman",
@@ -51,6 +70,7 @@ export const europeReligious: ReligiousRule[] = [
   },
   ...inLatin({
     id: "romanesque-parish",
+    neighborhoodHouse: "Parish church",
     faith: "Latin Christian",
     recipe: "parish-church",
     labels: {
@@ -73,6 +93,7 @@ export const europeReligious: ReligiousRule[] = [
   }),
   ...inLatin({
     id: "gothic-parish",
+    neighborhoodHouse: "Parish church",
     faith: "Latin Christian",
     recipe: "gothic",
     labels: {

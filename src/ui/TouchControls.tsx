@@ -4,6 +4,7 @@ import {
   ArrowUpFromLine,
   ChevronsUp,
   DoorOpen,
+  Coins,
   Eye,
   Gift,
   GlassWater,
@@ -72,6 +73,7 @@ export function TouchControls({
   onWork,
   tend,
   onTend,
+  onExchange,
 }: {
   scene: () => TouchTarget | undefined;
   enabled: boolean;
@@ -86,6 +88,7 @@ export function TouchControls({
   /** What the baby needs, when the hands can give it. */
   tend?: string;
   onTend: () => void;
+  onExchange?: () => void;
 }) {
   const [knob, setKnob] = useState<{ x: number; y: number; run: boolean }>();
   const [running, setRunning] = useState(false);
@@ -237,6 +240,9 @@ export function TouchControls({
             <Target size={18} />
           </button>
         )}
+        {onExchange && <button className="touch-small touch-exchange" aria-label="Trade at market" onClick={()=>{buzz();onExchange();}}>
+          <Coins size={17}/><small>Trade</small>
+        </button>}
         {tend && (
           <button key={tend} className="touch-small touch-tend" aria-label={tend} onClick={() => { buzz(); onTend(); }}>
             <Baby size={18} />

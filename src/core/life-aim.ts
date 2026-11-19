@@ -1,7 +1,7 @@
 import { LIFE_AIM_TEMPLATES, type LifeAimContext } from "../content/goals/life-aims";
 import { LOCAL_LIFE_AIMS } from "../content/goals/life-aim-practices";
 import { absentChildOf } from "../content/bonds";
-import { beliefOf, beliefsFor } from "../content/beliefs";
+import { beliefOf, beliefsForActor } from "../content/beliefs";
 import { livelihoodById } from "../content/characters/livelihoods";
 import { workplaceFor } from "../content/characters/workplace";
 import { statsOf } from "./stats";
@@ -88,7 +88,7 @@ export function lifeAimOptions(
     stats: statsOf(seed, player),
     standing: standingOf(seed, player),
     outlook,
-    belief: setting ? beliefOf(seed, player, beliefsFor(setting, player.origin?.community)) : undefined,
+    belief: setting ? beliefOf(seed, player, beliefsForActor(setting,player)) : undefined,
     capabilities: setting ? capabilitiesFor(setting) : new Set(),
     work,
     trade,

@@ -1,4 +1,83 @@
-import type { InteriorProfile } from "./types";
+import type { CivicRule } from "../settlements/civic/types";
+import { formatHistoricalYear } from "../../core/calendar";
+import type { InteriorProfile, RoomTemplate } from "./types";
+
+export function regionalHall(base: InteriorProfile, site: CivicRule): InteriorProfile {
+  const exchange=site.interior==="exchange";
+  const bazaar = site.interior === "bazaar", watch = site.id === "mughal-kotwali";
+  const stall = (stock: string, label: string): RoomTemplate => ({
+    id: stock, label, role: "work", size: [8,7], program: "shop", trades: ["shopkeep"],
+    furnish: ["lamp"], styles: { stock, shopcounter: "platform" },
+  });
+  return {
+    ...base, id: site.id + "-" + base.id, label: site.label, uses: ["civic." + site.id],
+    period: `${formatHistoricalYear(site.from)} – ${formatHistoricalYear(site.to - 1)}`, when: { start: {year: site.from}, end: {year: site.to - 1} },
+    note: site.evidence.note, institution: site.interior, institutionPlan: bazaar ? "passage" : "court",
+    regulars: {hours: exchange ? [11,12] : bazaar ? [8,17] : [8,14], fill: bazaar ? .30 : .16},
+    styles: bazaar ? {shelf:"open"} : {desk: site.culture === "east-asian" ? "brush" : "reed", frame:"scroll", shelf:"open"},
+    clutter: [], kits: {household: []}, shapes: ["rect"], door: "door",
+    windowStyle: site.id === "japanese-machi-bugyo" ? "shoji" : "lattice",
+    looks: base.looks.map<InteriorProfile["looks"][number]>(l => ({...l, furnish: [], floor: bazaar ? "flag" : site.id === "japanese-machi-bugyo" ? "mat" : site.id === "korean-dongheon" ? "plank" : l.floor})) as InteriorProfile["looks"],
+    rooms: exchange ? [
+      {id:"court",label:"Merchants’ court",role:"entry",size:[16,11],shapes:["courtyard"],program:"passage",furnish:["bench","lantern"],
+        styles:{pole:"stone",fountain:"none"},looks:[{floor:"flag"},{floor:"flag"},{floor:"flag"}]},
+      {id:"freight",label:"Freight arcade · pillars 1–2",role:"work",size:[9,7],program:"shop",trades:["shopkeep"],styles:{stock:"grain"},furnish:["sacks","crate"]},
+      {id:"shares",label:"Share brokers · pillar 3",role:"hall",size:[10,7],program:"passage",furnish:["desk","bench","shelf"],clutter:["paper"]},
+      {id:"credit",label:"Lenders’ arcade · pillars 4–5",role:"work",size:[9,7],trades:["scholar"],furnish:["desk","chest","lamp"],clutter:["paper"]},
+    ] : bazaar ? [
+      {id:"lane", label:"Covered market lane", role:"entry", size:[16,5], program:"passage", furnish:["bench","lantern"]},
+      stall("cloth", "Cloth merchant’s stall"), stall("pots", "Pottery stall"),
+      {id:"store", label:"Goods store", role:"store", size:[7,6], program:"passage", furnish:["sacks","crate","jars"]},
+    ] : [
+      {id:"court", label:"Public forecourt", role:"entry", size:[12,10], shapes:["courtyard"], program:"passage", furnish:["bench"],
+        styles:{pole:site.id === "chinese-yamen" ? "red" : watch ? "stone" : "timber", fountain:"none"},
+        looks:[{floor:"earth"},{floor:"earth"},{floor:"flag"}]},
+      {id:"clerks", label:"Clerks’ room", role:"work", size:[8,7], trades:["scholar"], furnish:["shelf","chest"], clutter:["paper"]},
+      {id:"hearing", label:watch ? "Watch office" : "Hearing hall", role:"hall", size:[12,9], program:"passage", furnish:["desk","bench","frame"]},
+      {id:"records", label:watch ? "Watch records" : "Record store", role:"store", size:[7,7], program:"passage", furnish:["shelf","chest","desk"]},
+    ],
+  };
+}
+
+const boardSchool: InteriorProfile = {
+  id: "board-school",
+  institution: "school",
+  uses: ["venue.school"],
+  institutionPlan: "passage",
+  rooms: [
+    { id: "passage", label: "School corridor", role: "entry", size: [12,5], program: "passage", fire: "none", furnish: ["pegs","bench"] },
+    { id: "class-a", label: "Classroom 1", role: "classroom", size: [10,10], program: "rows" },
+    { id: "staff", label: "Teachers’ room", role: "work", size: [6,6], program: "passage", fire: "none", furnish: ["desk","shelf"] },
+    { id: "class-b", label: "Classroom 2", role: "classroom", size: [10,10], program: "rows" },
+  ],
+  regulars: { hours: [8, 15], fill: 0.6 },
+  styles: { altar: "school-board", pew: "desk" },
+  label: "Schoolroom",
+  region: "Industrial world",
+  period: "1850 – 1959",
+  when: { start: { year: 1850 }, end: { year: 1959 } },
+  basis: "documented",
+  note: "The schoolroom of mass elementary education, from the English board schools to the Prussian Volksschule and the American graded school: rows of fixed desks, a blackboard, a wall map pulled down, the teacher's desk with a handbell and a globe.",
+  shapes: ["rect"],
+  size: [11, 12],
+  door: "door",
+  windowStyle: "shutter",
+  fire: "stove",
+  smokehole: false,
+  seating: "chair",
+  sleep: "none",
+  trades: ["household"],
+  furnish: ["clock", "frame", "shelf"],
+  looks: [
+    { wall: "plaster", floor: "plank", wear: 0.4, soot: 0.2 },
+    { wall: "plaster", dado: "panel", floor: "plank", wear: 0.25, soot: 0.1 },
+    { wall: "plaster", dado: "panel", floor: "parquet", wear: 0.1, soot: 0.05 },
+  ],
+  colorways: [
+    { name: "Institution green", wall: "#c8d4b8", trim: "#3a4a3a", floor: "#8a7050", wood: "#6a4a30", accent: "#2a4a6a" },
+    { name: "Cream and brown", wall: "#e4dcc4", trim: "#4a3626", floor: "#8a6a48", wood: "#5a3e28", accent: "#6a2a2a" },
+  ],
+};
 
 /**
  * Halls of government and teaching, laid out in rows (`program: "rows"`)
@@ -74,6 +153,7 @@ export const civic: InteriorProfile[] = [
   },
   {
     id: "grammar-school",
+    institution: "school",
     uses: ["venue.school"],
     program: "rows",
     regulars: { hours: [7, 12], fill: 0.5 },
@@ -104,40 +184,15 @@ export const civic: InteriorProfile[] = [
       { name: "Old brick", wall: "#b0745a", trim: "#3a2a20", floor: "#7a5a3e", wood: "#5a3e28", accent: "#5a2a2a" },
     ],
   },
-  {
-    id: "board-school",
-    uses: ["venue.school"],
-    program: "rows",
-    regulars: { hours: [8, 15], fill: 0.6 },
-    styles: { altar: "school-board", pew: "desk" },
-    label: "Schoolroom",
-    region: "Industrial world",
-    period: "1850 – 1960",
-    when: { start: { year: 1850 }, end: { year: 1960 } },
-    basis: "documented",
-    note: "The schoolroom of mass elementary education, from the English board schools to the Prussian Volksschule and the American graded school: rows of fixed desks, a blackboard, a wall map pulled down, the teacher's desk with a handbell and a globe.",
-    shapes: ["rect"],
-    size: [11, 12],
-    door: "door",
-    windowStyle: "shutter",
-    fire: "stove",
-    smokehole: false,
-    seating: "chair",
-    sleep: "none",
-    trades: ["household"],
-    furnish: ["clock", "frame", "shelf"],
-    looks: [
-      { wall: "plaster", floor: "plank", wear: 0.4, soot: 0.2 },
-      { wall: "plaster", dado: "panel", floor: "plank", wear: 0.25, soot: 0.1 },
-      { wall: "plaster", dado: "panel", floor: "parquet", wear: 0.1, soot: 0.05 },
-    ],
-    colorways: [
-      { name: "Institution green", wall: "#c8d4b8", trim: "#3a4a3a", floor: "#8a7050", wood: "#6a4a30", accent: "#2a4a6a" },
-      { name: "Cream and brown", wall: "#e4dcc4", trim: "#4a3626", floor: "#8a6a48", wood: "#5a3e28", accent: "#6a2a2a" },
-    ],
-  },
+  boardSchool,
+  { ...boardSchool, id: "day-school", label: "Day school", region: "Modern towns and cities", period: "Since 1960",
+    when: { start: { year: 1960 } }, basis: "reconstructed", fire: "none", windowStyle: "glazed",
+    looks: [0,1,2].map(() => ({ wall:"plaster", floor:"linoleum", wear:.2, soot:0 })) as InteriorProfile["looks"],
+    styles: { altar: "school-board", pew: "classroom" },
+    note: "An inferred day school with adjoining classrooms, desks facing a teaching board, and a shared teachers’ room." },
   {
     id: "terakoya",
+    institution: "school",
     uses: ["venue.terakoya"],
     program: "rows",
     regulars: { hours: [8, 14], fill: 0.5 },
@@ -169,7 +224,8 @@ export const civic: InteriorProfile[] = [
     ],
   },
   {
-    id: "madrasa",
+    id: "madrasa", institution:"worship",
+    observance:{tradition:"Islam",gathering:{label:"Listening in the study circle",room:"entry"},visit:{label:"Reading a passage aloud",room:"entry",sound:"recitation",at:"lectern"}},
     uses: ["venue.madrasa", "venue.sufi-lodge"],
     program: "gather",
     regulars: { hours: [7, 13], fill: 0.5 },
@@ -238,7 +294,8 @@ export const civic: InteriorProfile[] = [
  * schools and halls that do the same work elsewhere. */
 export const assemblies: InteriorProfile[] = [
   {
-    id: "wharenui",
+    id: "wharenui", institution:"worship",
+    observance:{gathering:{label:"Listening to the speaker",room:"entry"},visit:{label:"Greeting the visitors",room:"entry",sound:"recitation"}},
     uses: ["venue.meeting-house", "religious.wharenui"],
     program: "gather",
     regulars: { hours: [18, 24], fill: 0.6 },

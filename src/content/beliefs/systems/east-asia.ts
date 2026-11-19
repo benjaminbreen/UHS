@@ -463,6 +463,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "six-dynasties-buddhism",
+    worship: ["Buddhist", "Buddhism"],
     realm: "buddhist",
     features: ["sacred-texts"],
     label: "Six Dynasties Buddhist practice",
@@ -529,6 +530,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "tang-syncretism",
+    worship: ["Buddhist", "Buddhism"],
     realm: "chinese",
     features: ["sacred-texts"],
     label: "Tang dynasty syncretism",
@@ -607,6 +609,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "song-ming-pantheon",
+    worship: ["Buddhism"],
     realm: "chinese",
     features: ["sacred-texts"],
     label: "Song and Ming household pantheon",
@@ -698,6 +701,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "late-imperial-village",
+    worship: ["Buddhism"],
     realm: "chinese",
     label: "Late imperial rural practice",
     wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
@@ -759,6 +763,12 @@ const eastAsiaBase: readonly BeliefSystem[] = [
       limitation:
         "Ethnographic accounts were written by outsiders and are coloured by their assumptions; village practice was diverse and changed over the twentieth century.",
     },
+  },
+  {
+    id: "medieval-japan-lotus", label: "Nichiren Buddhist practice", realm: "buddhist", scope: {years:[1253,1600],bounds:[129.4,30,146,46]},
+    worship: ["Buddhism", "lotus"], features:["sacred-texts"], offices: ["Nichiren monk"], share: 30,
+    powers: [{name:"Shakyamuni Buddha",domain:"the Buddha of the Lotus Sutra",rank:"paramount"}, {name:"The Lotus Sutra",domain:"teaching and devotion",rank:"major"}, {name:"Nichiren",domain:"teacher of the daimoku",rank:"major"}], practice: ["People chant the title of the Lotus Sutra together."],
+    evidence: {status:"inferred", claim:"Nichiren taught devotion to the Lotus Sutra in thirteenth-century Japan.", limitation:"The share varies the simulated population and does not estimate a historical census.", sources:["https://www.nichiren.or.jp/english/teachings/"]},
   },
   {
     id: "jomon-japan",
@@ -864,6 +874,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "koryo-buddhism",
+    worship: ["Buddhist", "Buddhism"],
     realm: "buddhist",
     features: ["sacred-texts"],
     label: "Koryo kingdom Buddhism",
@@ -934,6 +945,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "kofun-nara-japan",
+    worship: ["Buddhist", "Buddhism"],
     realm: "japanese",
     label: "Kofun to Nara Japanese practice",
     wiki: "https://en.wikipedia.org/wiki/Kofun_period",
@@ -973,6 +985,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "heian-shinto-buddhism",
+    worship: ["Buddhist", "Buddhism"],
     realm: "japanese",
     features: ["sacred-texts"],
     label: "Heian period Shinto-Buddhist synthesis",
@@ -1051,6 +1064,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "medieval-japan-pure-land",
+    worship: ["Buddhism", "pure-land"],
     realm: "pure-land",
     features: ["sacred-texts"],
     label: "Medieval Japan Pure Land Buddhism",
@@ -1123,6 +1137,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "tokugawa-household-buddhism",
+    worship: ["Buddhist", "Buddhism"],
     realm: "pure-land",
     features: ["sacred-texts"],
     label: "Tokugawa household Buddhism",
@@ -1395,6 +1410,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "tibetan-buddhism",
+    worship: ["Buddhist", "Buddhism"],
     realm: "buddhist",
     label: "Tibetan Buddhist practice",
     wiki: "https://en.wikipedia.org/wiki/Tibetan_Buddhism",

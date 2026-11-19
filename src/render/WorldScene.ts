@@ -1055,9 +1055,10 @@ export class WorldScene extends Phaser.Scene {
     this.fireFrames = animatedFrames(
       this.textures.get("props").getFrameNames(),
     );
-    this.motionFrames = motionFrames(
-      this.textures.get("props").getFrameNames(),
-    );
+    this.motionFrames = motionFrames([
+      ...this.textures.get("props").getFrameNames(),
+      ...Object.keys(this.cache.json.get("harbor-index")?.frames ?? {}),
+    ]);
     // Watched rather than queried: the input gate runs on every frame.
     const watchModals = new MutationObserver(() => {
       this.modalOpen = !!document.querySelector('[data-modal="true"], [data-world-input-blocked="true"]');
@@ -2911,7 +2912,7 @@ export class WorldScene extends Phaser.Scene {
     const clock = this.runtime.displayClock(), light = lightingPreset(this.shadowPhase);
     const harbor = p.space === "outside" ? w.harbor?.() : undefined;
     this.harbor.update(harbor,w.pack.setting,clock,this.tint,this.cameras.main.worldView,e.state.objects,
-      light.cast,this.options.shadows === false ? 0 : light.opacity*this.sunStrength(),plan?.anchorage ?? (p.space==="outside" ? w.anchorage?.() : undefined),e.state.player.boat);
+      light.cast,this.options.shadows === false ? 0 : light.opacity*this.sunStrength(),plan?.anchorage ?? (p.space==="outside" ? w.anchorage?.() : undefined),e.state.player.boat,p.space==="outside" ? w.terminal?.() : undefined);
     this.trains.update(
       lines,
       w.pack.setting,
@@ -4727,7 +4728,7 @@ export class WorldScene extends Phaser.Scene {
         for (const e of rt.journey?.entrances ?? [])
           if (e.point) {
             g.fillStyle(e.mode === "land" ? 0xf0ca82 : 0x64c3d4);
-            const port=w.harbor?.();
+            const port=w.harbor?.()?.crossing;
             if(port && Math.abs(e.point.x-port.gate.x)<14 && Math.abs(e.point.y-port.gate.y)<6){
               const x=e.point.x*16+8,y=e.point.y*16+8;
               g.fillStyle(0x675b49).fillRect(x-1,y-13,3,15);
@@ -5669,7 +5670,7 @@ export class WorldScene extends Phaser.Scene {
       if (im.tintTopLeft !== tint) im.setTint(tint);
       const depth = pos.y * 16 + (actor ? 14 : 10);
       if (im.depth !== depth) im.setDepth(depth);
-      if (this.motionFrames.has(drawn)) {
+      if (texture !== "__DEFAULT" && this.motionFrames.has(drawn)) {
         const motion = this.motions.get(id);
         if (!motion || motion.base !== drawn)
           this.motions.set(id, {
@@ -5865,7 +5866,7 @@ export class WorldScene extends Phaser.Scene {
       )
         continue;
       if (o.seasons && !o.seasons.includes(this.season)) continue;
-      if (o.away || o.vessel) continue;
+      if (o.away || o.vessel || o.terminalVehicle) continue;
       if (o.kind === "crop") {
         // Visual clumps share one authoritative harvest target, including depletion.
         for (const row of [-2, 0, 2]) {
@@ -5904,7 +5905,13 @@ export class WorldScene extends Phaser.Scene {
                   ? this.layerOf(o.sprite, o.lean < 0 ? "lean-left" : "lean-right") ?? o.sprite
                   : o.sprite === "crate"
                     ? crateFrame(random(e.state.manifest.seed, "crate-art", o.id))
-                    : o.sprite==="harbor-bale-mat-0" ? "harbor-bale-mat-"+Math.min(3,o.inventory.cloth??0)
+                    : o.curing ? "harbor-fish-shed-"+(!o.curing.fish ? 0 : o.curing.count!+(e.state.clock>=o.curing.ready! ? 3 : 0))
+                    : o.quayGoods ? o.sprite.slice(0,-1)+o.quayGoods.reduce((mask,id,i)=>mask|Number((o.inventory[id]??0)>0)<<i,0)
+                    : o.quayStock ? o.sprite.slice(0,-1)+Math.min(2,Math.ceil((o.inventory[o.quayStock.item]??0)/3))
+                    : o.prop==="fishCounter" && o.sprite.startsWith("harbor-fish-") ? "harbor-fish-counter-"+Number(Object.entries(o.inventory).some(([id,n])=>id.startsWith("fish-") && n!>0))
+                    : o.prop==="grainHoist" && o.hoistedAt!==undefined && e.state.clock-o.hoistedAt<42 ? "harbor-grain-hoist-"+(1+Math.min(6,Math.floor(Math.max(0,e.state.clock-o.hoistedAt)/6)))
+                    : o.prop==="clothCounter" ? "harbor-cloth-counter-"+(Number((o.inventory.cloth??0)>0)*2 + Number((o.inventory["cloth-bolt"]??0)>0))
+                    : o.lighterage ? o.sprite.slice(0,-1)+Math.min(3,o.inventory[o.lighterage.cargo]??0)
                     : mooredBoatFrame(o.sprite,random(e.state.manifest.seed,"boat-finish",o.owner??o.id)),
         o.prop === "outcrop" && o.size
           ? { ...o.pos, x: o.pos.x + (o.size[0] - 1) / 2, y: o.pos.y + o.size[1] - 1 }
@@ -6016,7 +6023,7 @@ export class WorldScene extends Phaser.Scene {
     // real object in the hand wins.
     const fieldLoad = e.fieldLoad(e.state.workday?.field?.job);
     for (const a of [e.state.player, ...e.state.actors]) {
-      const held = (a.deliveryBale ? carryKit(e.world.pack).bundle : a.heldItem) ?? (a.id === "player" && (a.basket || e.state.workday?.patch && e.state.economy?.work?.stage === 1) ? e.gatheringBasket() : a.id === "player" ? fieldLoad : undefined);
+      const held = (a.deliveryLoad ? (e.world.anchorage?.()?.cargo==="grain" ? "prop:sack@hand" : carryKit(e.world.pack).bundle) : a.heldItem) ?? (a.id === "player" && (a.basket || e.state.workday?.patch && e.state.economy?.work?.stage === 1) ? e.gatheringBasket() : a.id === "player" ? fieldLoad : undefined);
       if (!held) continue;
       const load = parseLoad(held);
       const sprite = load && portableProps.find(p => p.id === load.prop)?.sprite.replace(/-0$/, `-${load.variant}`);
@@ -7851,7 +7858,7 @@ export class WorldScene extends Phaser.Scene {
         const condition = loadWeight + (tired ? 3 : 0);
         const work = id !== "player" && at && !moving && !this.options.freeze
           ? this.workMotion(id, at, time, human.origin?.livelihood, human.heldItem) : undefined;
-        const use = id !== "player" && !moving && wetPos && wetPos.space !== "outside" ? this.runtime.engine.indoorUse?.(id, wetPos) : undefined;
+        const use = (id !== "player" || human.activity === "Sitting and listening") && !moving && wetPos && wetPos.space !== "outside" ? this.runtime.engine.indoorUse?.(id, wetPos) : undefined;
         const pair = !moving && !active && !winding && !landed && !stunt && !seat && !use ? this.together(id, at, time) : undefined;
         const romp = pair && "romp" in pair ? (pair.romp as { x: number; y: number }) : undefined;
         this.standApart(id, im, romp ? undefined : pair?.im, moving);

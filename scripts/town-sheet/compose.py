@@ -115,7 +115,7 @@ def main(argv):
     if '--districts' in argv:
         import os, subprocess
         argv = [v for v in argv if v not in ('--districts', '--dump')]
-        subprocess.run(['npx', 'tsx', 'scripts/town-sheet/dump.ts', *argv], cwd=ROOT, check=True, env={**os.environ, 'TOWN_DISTRICTS': '1'})
+        subprocess.run(['npx', 'vite-node', 'scripts/town-sheet/dump.ts', '--', *argv], cwd=ROOT, check=True, env={**os.environ, 'TOWN_DISTRICTS': '1'})
         done = [districts(n) for n in argv]
         if len(done) > 1:
             panel = Image.new('RGB', (sum(i.width for i in done), done[0].height)); x = 0
@@ -130,7 +130,7 @@ def main(argv):
     argv = [v for v in argv if v != '--dump']
     if dump:
         import subprocess
-        subprocess.run(['npx', 'tsx', 'scripts/town-sheet/dump.ts', *argv], cwd=ROOT, check=True)
+        subprocess.run(['npx', 'vite-node', 'scripts/town-sheet/dump.ts', '--', *argv], cwd=ROOT, check=True)
     names = argv or [p['name'] for p in json.loads((Path(__file__).parent / 'panel.json').read_text())]
     sheets = atlases()
     models = json.loads((ROOT / 'public/packs/models.json').read_text())

@@ -54,8 +54,7 @@ import { livelihoodById } from "../content/characters/livelihoods";
 import {
   practiceText,
   beliefOf,
-  beliefsFor,
-  unscopedBeliefs,
+  beliefsForActor,
   wikiFor,
 } from "../content/beliefs";
 import { glyphForPower } from "../content/beliefs/icons";
@@ -616,9 +615,7 @@ export function CharacterPanel({
   const belief = beliefOf(
     seed,
     actor,
-    pack.setting
-      ? beliefsFor(pack.setting, actor.origin?.community)
-      : unscopedBeliefs,
+    beliefsForActor(pack.setting,actor),
   );
   const hierarchy = beliefHierarchy(belief);
   const firstName = actor.name.split(" ")[0];
@@ -626,7 +623,7 @@ export function CharacterPanel({
     belief.system.powers.find((power) => power.name === selectedPowerName) ??
     belief.patron ??
     hierarchy.nodes[0]?.power ??
-    belief.system.powers[0]!;
+    belief.system.powers[0];
   const outlook = pack.setting
     ? outlookOf(seed, actor, pack.setting)
     : { stances: [] as Stance[], tags: new Set<StanceTag>() };
@@ -1331,7 +1328,7 @@ export function CharacterPanel({
             <div className="belief-intro">
               <div>
                 <p className="belief-person">
-                  {firstName} {OBSERVANCE[belief.observance]}.
+                  {selectedPower ? firstName+" "+OBSERVANCE[belief.observance]+"." : firstName}
                   {belief.patron && ` ${firstName}'s own devotion is to ${belief.patron.name}.`}
                 </p>
                 <h1>{belief.system.label}</h1>
@@ -1345,7 +1342,7 @@ export function CharacterPanel({
                 </dl>
               </div>
             </div>
-            <div className="power-map">
+            {selectedPower && <><div className="power-map">
               <svg
                 viewBox="0 0 1000 300"
                 preserveAspectRatio="none"
@@ -1467,6 +1464,7 @@ export function CharacterPanel({
                 )}
               </div>
             </div>
+            </>}
           </div>
         </div>
       )}

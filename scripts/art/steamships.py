@@ -11,7 +11,7 @@ RED=('#e4a474','#b86e4e','#8c4d3b','#5c3935')
 SLATE=('#a8b2a6','#829693','#657b7c','#485e65')
 
 
-def steamship(heading,form):
+def steamship(heading,form,boxes=0):
     ferry=form=='harbor-ferry'
     im=Image.new('RGBA',(370,336))
     d=ImageDraw.Draw(im)
@@ -132,7 +132,7 @@ def steamship(heading,form):
     def hullpt(p,t,scale):
         x,y=p;return (x*(.97+.03*t),y*scale,(H+(3 if ferry else 10)*(abs(x/L)**3))*t)
     faces=sorted(zip(hull,hull[1:]+hull[:1]),key=lambda pair:sum(x*fy+y*ry for x,y in pair))
-    paint=GREEN if ferry else STEEL
+    paint=GREEN if ferry else ('#9caeaa','#64878c','#3e626e','#354e5b') if form=='feeder' else STEEL
     for u,v in faces:
         light=((u[0]+v[0])*fx/(2*L)+(u[1]+v[1])*rx/(2*B))
         k=1 if light<-.55 else 2 if light<.66 else 3
@@ -209,6 +209,43 @@ def steamship(heading,form):
             px,py=pt(0,near*33,H*.55)
             im.paste('#d9cba1',(px-23,py-3,px+27,py+6),mask)
         flag(108,0,H+44)
+    elif form=='feeder':
+        from art.props_b.terminal import box
+        lid(chamfer(0,0,113,25,7),H+3,'#747c76','#525e5f')
+        for u in range(-65,102,6):line([(u,-18,H+4),(u,18,H+4)],'#899690')
+        fittings=[]
+        def bridge():
+            z=cabin(-94,0,H+4,20,18,17,4,STEEL)
+            z=cabin(-94,0,z,23,20,14,6,STEEL)
+            cub(-95,0,z,16,12,3,CREAM)
+            for x in (-105,-103):line([(x,0,z+3),(x,0,z+16)],STEEL[3])
+            line([(-113,0,z+14),(-95,0,z+14)],CREAM[1],2)
+            drum(-114,0,H+4,5,32,RED,True)
+            buoy((-92,19,H+12),3)
+        fittings.append((depth(-94,0),bridge))
+        for i in range(3):
+            x=-44+58*i
+            def hatch(x=x,i=i):
+                cub(x,0,H+3,28,16,2,STEEL)
+                if i>=3-boxes:
+                    cargo=box(heading,[0,1,4][i])
+                    px,py=pt(x,0,H+6)
+                    im.alpha_composite(cargo,(px-43,py-49))
+            fittings.append((depth(x,0),hatch))
+        for _,paint_obj in sorted(fittings,key=lambda v:v[0]):paint_obj()
+        for x in [-130,124]:
+            tackle(x,0)
+            for side in [-1,1]:rail((x-6,side*13),(x+6,side*9),H+7,CREAM,5)
+        for side in [-1,1]:
+            rail((-79,side*18),(-63,side*18),H+6,CREAM,5)
+            gig(-66,side*16,H+7,.52)
+            if depth(0,side)>.75 and heading in (2,6):
+                px,py=pt(83,side*26,H*.58)
+                from art.props_b.terminal import lettering
+                lettering(d,(px-13,py-4),'07',CREAM[1],7)
+                for v in range(3):line([(116,side*21,H*.33+3*v),(119,side*20,H*.33+3*v)],CREAM[1])
+
+        flag(128,0,H+28)
     else:
         for x,l,b in [(-104,25,18),(-33,34,22),(34,22,18),(95,26,18)]:shadow(x,0,H+2,l,b)
         coils(126,5,H+6);coils(-124,-4,H+4)
@@ -290,15 +327,17 @@ def steamship(heading,form):
     return im
 
 
-def trading_dhow(heading, tender=False, furled=False, finish=0, rig=False):
+def merchant_boat(heading, form, furled=False, finish=0, rig=False):
     """Paint curved strakes, sheer and sails on the final pixel grid."""
-    im=Image.new('RGBA',(266,252))
+    tender,fluyt=form=='lighter',form=='fluyt'
+    im=Image.new('RGBA',(266,284))
     d=ImageDraw.Draw(im)
     theta=heading*math.pi/4
     fx,fy=math.sin(theta),-math.cos(theta)
     scale=.55 if tender else 1.
+    pivot=198 if fluyt else 170
     def p(x,y,z):
-        return (round(133+scale*(fx*x-fy*y)),round(170+scale*(.68*(fy*x+fx*y)-z)))
+        return (round(133+scale*(fx*x-fy*y)),round(pivot+scale*(.68*(fy*x+fx*y)-z)))
     def edge(points,ink,w=1):d.line(points,fill=ink,width=w)
     def fill(points,ink):d.polygon(points,fill=ink)
     def mix(a,b,t):
@@ -306,7 +345,7 @@ def trading_dhow(heading, tender=False, furled=False, finish=0, rig=False):
     def trim():
         b=im.getbbox()
         out=im.crop(b)
-        out.info['anchor']=[133-b[0],170-b[1]]
+        out.info['anchor']=[133-b[0],pivot-b[1]]
         return out
     dark,shadow,plank,honey,rim,stripe=[
         ('#342b30','#633b33','#975d3c','#bf804b','#f1bb76','#a45838'),
@@ -319,13 +358,18 @@ def trading_dhow(heading, tender=False, furled=False, finish=0, rig=False):
     if tender:
         stations=[(-89,5,31),(-81,16,26),(-62,23,21),(-37,26,18),
                   (0,27,17),(38,24,18),(63,17,22),(82,8,28),(90,0,33)]
+    if fluyt:
+        dark,shadow,plank,honey,rim,stripe='#383439','#594037','#8d593b','#be8753','#e5bc80',['#58736a','#846245','#33564f'][finish]
+        stations=[(-92,5,52),(-86,13,46),(-72,23,35),(-50,29,28),(-20,31,24),
+                  (18,31,24),(46,29,26),(69,23,30),(83,14,32),(91,5,34),(94,0,35)]
     if finish:
         stations=[(x*(1.045 if finish==1 else .96),b*(.91 if finish==1 else 1.04),
             z+(max(0,-x-55)*(.14 if finish==1 else -.10))) for x,b,z in stations]
     def rail(s,side,h):
         x,b,z=s
         belly=(1-min(1,abs(x)/99)**3)
-        return p(x*(.83+.17*h),b*side*(.62+.38*h),h*z-(1-h)*(15 if tender else 10)*belly)
+        width=(.72+.35*math.sin(h*math.pi)-.10*h) if fluyt else (.62+.38*h)
+        return p(x*(.83+.17*h),b*side*width,h*z-(1-h)*(15 if tender else 10)*belly)
     sides=[(s,-1) for s in stations]+[(s,1) for s in reversed(stations)]
     def ring(h):return [rail(s,side,h) for s,side in sides]
     if not rig:
@@ -338,7 +382,7 @@ def trading_dhow(heading, tender=False, furled=False, finish=0, rig=False):
                 fill([lower[i],lower[j],upper[j],upper[i]],col)
                 edge([lower[i],lower[j]],shadow if lo>.2 else dark)
         deck=ring(1);fill(deck,shadow)
-        inner=[p(x*.975,b*.90*side,z-3.3) for (x,b,z),side in sides]
+        inner=[p(x*.975,b*(.56 if fluyt else .90)*side,z-3.3) for (x,b,z),side in sides]
         fill(inner,'#94663f')
         def breadth(u):
             for (x,b,z),(k,w,h) in zip(stations,stations[1:]):
@@ -347,7 +391,7 @@ def trading_dhow(heading, tender=False, furled=False, finish=0, rig=False):
                     return b+(w-b)*t,z+(h-z)*t
             return 0,32
         for v in range(-20,22,5):
-            pts=[p(u,v,breadth(u)[1]-3) for u in range(-84,87,3) if abs(v)<breadth(u)[0]*.84]
+            pts=[p(u,v,breadth(u)[1]-3) for u in range(-84,87,3) if abs(v)<breadth(u)[0]*(.54 if fluyt else .84)]
             if len(pts)>1:edge(pts,'#b88a58' if v%2 else '#74503c')
         # Ribs, thwarts, and an open hatch leave the middle free for the actual load.
         for u in ((-56,23,58) if tender else (-68,50)):
@@ -396,12 +440,58 @@ def trading_dhow(heading, tender=False, furled=False, finish=0, rig=False):
             for v in (-18,18):
                 edge([p(4,v*.86,17),p(9,v,19)],'#70523f',3)
                 edge([p(4,v*.86,18),p(9,v,20)],'#d8a16a')
+        if fluyt:
+            for side in (-1,1):
+                pts=[rail(n,side,.73) for n in stations]
+                edge(pts,'#51392e',4);edge(pts,'#c18c50',2)
+                edge([rail(n,side,.89) for n in stations],stripe,3)
+            stern=[p(-92,v,z) for v,z in [(-8,34),(-8,49),(-5,54),(5,54),(8,49),(8,34)]]
+            if fy<=0:
+                fill(stern,'#6a5842');edge(stern+[stern[0]],rim)
+                for v in (-5,0,5):
+                    edge([p(-93,v,43),p(-93,v,48)],'#adbdab',2)
+            edge([p(68,0,29),p(114,0,55)],dark,5)
+            edge([p(68,0,30),p(114,0,56)],honey,3)
         # Rope coil and tiller stay with the hull even when it is unoccupied.
         x,y=p(-51,9,22)
         for r in (5,3):
             d.ellipse((x-r,y-r//2,x+r,y+r//2),outline='#664932')
             d.arc((x-r,y-r//2-1,x+r,y+r//2-1),145,345,fill='#dfb779')
         edge([p(-88,1,29),p(-62,7,30)],dark,3);edge([p(-88,1,30),p(-62,7,31)],honey)
+        return trim()
+
+    if fluyt:
+        masts=[(51,122),(-6,154),(-62,100)]
+        for u,height in sorted(masts,key=lambda m:fy*m[0]):
+            head=p(u-3,0,height)
+            for side in (-1,1):
+                ends=[p(u+v,side*15,31) for v in (-17,-10,-3,4)]
+                for end in ends:edge([head,end],'#645646')
+                for k in range(2,13):
+                    edge([mix(head,ends[0],k/14),mix(head,ends[-1],k/14)],'#887657')
+            edge([p(u,0,26),head],dark,4);edge([p(u-1,0,27),head],honey,2)
+            edge([head,p(114 if u>0 else u+54,0,53)],'#695546')
+            for k,(z,span) in enumerate([(height*.64,33),(height*.84,23)]):
+                if u==-62:
+                    if k:continue
+                    x1,x2,z1,z2=-23,27,z+30,z-17
+                else:
+                    brace=span*.70*(1 if fx*fy<0 else -1)
+                    x1,x2,z1,z2=-brace,brace,z,z
+                left=p(u+x1,-span*.83,z1);right=p(u+x2,span*.83,z2)
+                edge([left,right],'#624a38',3)
+                for j in range(6):
+                    a=mix(left,right,j/6);b=mix(left,right,(j+1)/6);mid=mix(a,b,.53)
+                    bottom=(mid[0],mid[1]+(4 if k else 6))
+                    fill([a,b,(b[0],b[1]+2),bottom,(a[0],a[1]+2)],'#bfaa87')
+                    edge([a,(mid[0],bottom[1]-2),b],'#efddb1',3)
+                    d.point(a,fill='#755b45')
+                for tip,v in [(left,-13),(right,13)]:edge([tip,p(u-20,v,32)],'#85715b')
+            top=p(u-2,0,height*.72)
+            d.ellipse((top[0]-5,top[1]-2,top[0]+5,top[1]+2),fill='#805a3f',outline=dark)
+        x,y=p(-65,0,102)
+        for k,col in enumerate(('#b96142','#e9d9b3','#536f87')):
+            fill([(x,y+3*k),(x-9,y+1+3*k),(x-16,y+3*k),(x-16,y+3+3*k),(x-9,y+4+3*k),(x,y+3+3*k)],col)
         return trim()
 
     foot=p(10,0,18);head=p(4,0,112)

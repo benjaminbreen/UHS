@@ -61,7 +61,16 @@ export function waterfrontFor(s:WorldSetting) {
 /** An industrial metropolis has docks on its shore: a bulkhead and made
  * ground, not a beach or a fishing landing. */
 export const docklands=(s:WorldSetting)=>
-  industrialized(s) && (s.settlement==="port" || s.settlement==="city") && (s.population??0)>=100000;
+  industrialized(s) && (s.settlement==="port" || s.settlement==="city") && (s.population??0)>=(s.settlement==="port" && s.water!=="none" ? 20000 : 100000);
+
+export function sailingPort(place: string | undefined, year: number) {
+  if (year >= 1600 && year < 1800) {
+    if (["city-amsterdam","rotterdam","city-hamburg"].includes(place ?? "")) return {hull:"fluyt",cargo:"grain"} as const;
+    if (["city-gdansk","city-riga"].includes(place ?? "")) return {hull:"fluyt",cargo:"cloth"} as const;
+  }
+  if (year >= 1600 && year < 1850 && ["city-surat","city-muscat","city-mombasa","city-zanzibar"].includes(place ?? ""))
+    return {hull:"dhow",cargo:"cloth"} as const;
+}
 
 const shelters:Record<WorldSetting["architecture"],[string,string]>={
   mudbrick:["worksite-earth-fishing-house","worksite-reed-gear-shelter"],courtyard:["worksite-earth-fishing-house","worksite-reed-gear-shelter"],
@@ -76,15 +85,30 @@ export function fishingWaterfront(s:WorldSetting):WaterfrontProfile|undefined {
   if(authored || (s.worksiteRevision??1)<7 || s.settlement==="camp" || s.settlement==="farm" || !waterOf(s) || !Object.keys(hullWeights(s)).length)return authored;
   // A people that builds its own village form keeps it: a ring or a row of
   // its own houses, not stand-in shore houses outside it.
-  if(docklands(s))return;
+  if(docklands(s) && s.settlementPattern!=="waterfront")return;
   const way=lifeway(s);
-  if(way && lifewayHouses(way,s).length)return;
+  const local=way && lifewayHouses(way,s);
+  if(local?.length && s.settlementPattern!=="waterfront")return;
   const [stand,gear]=shelters[s.architecture];
   // Where the region has its own house, the fishers live in one.
-  const home=vernacularHouses(s)[0] ?? stand;
+  const home=local?.[0] ?? vernacularHouses(s)[0] ?? stand;
   const dry=s.climate==="arid" || s.climate==="tropical" || s.climate==="monsoon";
   return {id:"fishing-landing",years:[s.year,s.year+1],bounds:[s.lon,s.lat,s.lon,s.lat],home,gear,
     boat:"worksite-plank-skiff",nets:"worksite-net-rail",sorting:dry ? "worksite-fish-mat" : "worksite-fish-trays",
     households:s.settlement==="village" ? [2,4] : [2,3],revision:7,sources:[],
     note:"Built from the general fishing rules: craft from the climate and tools of the place and date, method by household. Buildings are stand-ins."};
+}
+
+type RiverStall = {art:string; item:string; name:string; role:string; description:string};
+const riverMarkets: {material:"brick"|"limestone"; years:[number,number]; bounds:[number,number,number,number]; stalls:RiverStall[]}[] = [
+  {material:"brick",years:[-3000,-1200],bounds:[43,29,48.5,34.5],stalls:[
+    {art:"copper",item:"copper-ingot",name:"Copper weighing bench",role:"Copper merchant",description:"The merchant balances copper against stone weights and marks each delivery on wet clay."},
+    {art:"beer",item:"barley-beer",name:"Beer jars under a reed awning",role:"Beer seller",description:"A brewer has brought jars from town. Small cups stand in the shade for the boat crews."}]},
+  {material:"limestone",years:[-2055,-1070],bounds:[30,24,33,31.5],stalls:[
+    {art:"grain",item:"grain",name:"Grain measuring stand",role:"Grain merchant",description:"Open baskets stand beside the grain measure. Each load is measured before it leaves the landing."},
+    {art:"linen",item:"cloth-bolt",name:"Linen measuring bench",role:"Linen merchant",description:"Lengths of pale linen lie folded beneath the striped awning, bound for households along the river."}]},
+];
+export function riverMarket(s:WorldSetting) {
+  if (s.settlement==="camp" || s.settlement==="farm") return;
+  return riverMarkets.find(({years,bounds:[w,b,e,n]})=>s.year>=years[0] && s.year<years[1] && s.lon>=w && s.lon<=e && s.lat>=b && s.lat<=n);
 }

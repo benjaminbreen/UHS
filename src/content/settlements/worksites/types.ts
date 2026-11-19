@@ -24,7 +24,7 @@ export type WorksiteProfile = {
   ore?: string;
   /** Taken on while the worksite stands; where it does not, they work on their own. */
   hires?: readonly string[];
-  ward?: { cells?: number; bedding: "bed" | "mat"; wall: import("../../../render/interiors/room").WallPattern; floor: import("../../../render/interiors/room").FloorPattern };
+  ward?: { plan: "hall" | "court" | "passage"; cells?: number; bedding: "bed" | "mat"; wall: import("../../../render/interiors/room").WallPattern; floor: import("../../../render/interiors/room").FloorPattern };
   basis: "documented" | "reconstructed";
   sources: readonly string[];
   note: string;

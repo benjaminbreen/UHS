@@ -446,6 +446,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "ancestral-puebloan",
+    worship: ["Pueblo"],
     realm: "pueblo",
     label: "Ancestral Puebloan practice",
     wiki: "https://en.wikipedia.org/wiki/Ancestral_Puebloans",
@@ -821,6 +822,7 @@ export const indigenousAmericas: readonly BeliefSystem[] = [
 
   {
     id: "mississippian-southeast",
+    worship: ["Mississippian"],
     realm: "path",
     label: "Mississippian practice",
     wiki: "https://en.wikipedia.org/wiki/Southeastern_Ceremonial_Complex",

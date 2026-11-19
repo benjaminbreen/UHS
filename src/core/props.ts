@@ -1,3 +1,4 @@
+import { fishItems } from "../content/economy/fishing";
 import { propDefs } from "../content/props/catalog";
 import {
   distance,
@@ -36,6 +37,24 @@ export function propAffordances(
       enabled: close && condition,
       reason: close && !condition ? reason : !close ? "Walk closer" : undefined,
     });
+  if (o.curing) {
+    const batch = o.curing;
+    if (batch.fish) {
+      if (batch.keeper === "player") add("gather-fish", `Collect ${batch.count} salt-dried ${fishItems[batch.fish].name.toLowerCase()}`, s.clock >= batch.ready!, "Still drying");
+    } else {
+      for (const [id,n] of Object.entries(s.player.inventory)) {
+        if (!n || !id.startsWith("fish-") || !fishItems[id]) continue;
+        const salt = (o.inventory.salt ?? 0) + (s.player.inventory.salt ?? 0);
+        actions.push({label:`Salt and hang ${Math.min(3,n)} ${fishItems[id].name.toLowerCase()}`,command:{type:"interact",target:o.id,action:"salt-fish",item:id},
+          enabled:close && salt>0,reason:!close ? "Walk closer" : !salt ? "Bring one measure of salt" : undefined});
+      }
+    }
+  }
+  if (s.player.deliveryLoad === o.id) add("unload", o.prop==="grainHoist" ? "Hoist the sack and collect your fee" : "Stack the bale and collect your fee");
+  else if (o.prop === "clothCounter") {
+    if (!s.player.deliveryLoad && !o.broken)
+      add("unload", "Open a bale and measure out three bolts", (o.inventory.cloth ?? 0) > 0, "Waiting for a tied bale");
+  }
   if (o.carriedBy) add("drop", "Put down", true);
   else if (d.portable && !o.broken)
     // Full hands swap rather than refuse: a dead end is worse than a juggle.

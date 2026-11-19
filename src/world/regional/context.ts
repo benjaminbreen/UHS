@@ -203,6 +203,7 @@ export function createRegionalContext(start: WorldSetting) {
           flow: readonly [number, number];
         }
       | undefined;
+    let nearestShore: typeof selected;
     let coastDistance = Infinity;
     for (const { feature: f } of featuresNear(x, y)) {
       if (kinds && !kinds.includes(f.kind)) continue;
@@ -225,13 +226,24 @@ export function createRegionalContext(start: WorldSetting) {
         distance -= f.width ?? 5;
         if (distance > 24) continue;
       } else {
-        if (!inPolygon(ll.lon, ll.lat, f.geometry)) continue;
+        if (!inPolygon(ll.lon, ll.lat, f.geometry)) {
+          // The dry bank needs the same distance field as the first submerged pixel.
+          if (
+            (f.kind === "lake" || f.kind === "sea") &&
+            distance <= 24 &&
+            distance < (nearestShore?.distance ?? Infinity)
+          )
+            nearestShore = { feature: f, distance, flow };
+          continue;
+        }
         distance = -distance;
       }
       selected = { feature: f, distance, flow };
     }
     if (selected?.feature.kind === "sea")
       selected.distance = -Math.min(Math.abs(selected.distance), coastDistance);
+    if (nearestShore && nearestShore.distance < (selected?.distance ?? Infinity))
+      return nearestShore;
     return selected;
   }
   const packCache = new Map<string, Pack>();

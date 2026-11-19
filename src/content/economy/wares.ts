@@ -9,6 +9,10 @@ const ALL = [-10000, 10001] as const;
 const MEDITERRANEAN: CharacterScope["bounds"] = [-10, 28, 45, 47];
 
 export const wares: Ware[] = [
+  { id:"copper-ingot", name:"Copper ingot", sprite:"ore", value:9, good:"ironwork", scope:{years:[-3000,-1200],bounds:[43,29,48.5,34.5]},
+    description:"A cast cake of copper. The broken edge shows the colour of the metal under its dark skin." },
+  { id:"barley-beer", name:"Jar of barley beer", sprite:"water", value:2, edible:3, good:"drink", scope:{years:[-3000,-1200],bounds:[43,29,48.5,34.5]},
+    description:"Cloudy barley beer in a small earthenware jar." },
   // Swords were a smith's dearest work until firearms pushed them aside.
   { id: "sword", name: "Sword", sprite: "tool", value: 40, hand: { strike: true, edge: true }, good: "ironwork", scope: { years: [-1600, 1700] },
     description: "A long blade with a crossguard, for war and for show; a year's wages for most who saw one." },

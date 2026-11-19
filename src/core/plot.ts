@@ -132,8 +132,6 @@ export function syncPlotAim(snapshot: Snapshot, plot: PlotState) {
 const RECENT = "uhs.recent-plots";
 /** How much a plot from one, two, three or four lives ago is held back. */
 const REPEAT = [0.15, 0.35, 0.6, 0.8];
-/** Lives with no plot, as a share of those with one: about one in five goes without. */
-const QUIET = 0.25;
 /** Debts, levies and accusations were the weight of most lives; one shape among eleven undersells them. */
 const CLAIM = 2;
 /** The day's own work is where most of a life went; a plot about it should come up for about one life in three that has one. */
@@ -161,7 +159,7 @@ function remember(id: string) {
 /** The game's choice for this life, or undefined when no plot fits. `only`
  * starts that plot later in a life, once the last one has ended. */
 /** `chapter` draws afresh for a later part of the same life: the years after a jump. */
-export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: string, chapter?: number): PlotState | undefined {
+export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: string, chapter?: number, activitySites?: PlotContext["activitySites"]): PlotState | undefined {
   if (snapshot.plot && !(only && snapshot.plot.ended)) {
     const plot = snapshot.plot;
     if (!plot.ended && !plotKnown(plot) && snapshot.lifeAim?.id === `plot:${plot.id}`) snapshot.lifeAim = plot.aim;
@@ -169,6 +167,8 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: str
     return plot;
   }
   const seed = snapshot.manifest.seed;
+  const keys = chapter === undefined ? [] : [chapter];
+  if (!only && random(seed, "plot-chance", snapshot.player.id, ...keys) >= 0.1) return;
   const households = snapshot.households ?? [];
   const context: PlotContext = {
     seed,
@@ -179,6 +179,8 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: str
     households,
     household: households.find((h) => h.members.includes(snapshot.player.id)),
     economy: snapshot.economy,
+    fauna: snapshot.fauna,
+    activitySites,
   };
   const recent = recentPlots();
   const recentShapes = recent.map((id) => PLOTS.find((t) => t.id === id)?.shape);
@@ -196,8 +198,7 @@ export function startPlot(snapshot: Snapshot, setting?: WorldSetting, only?: str
       * (shape === "claim" ? CLAIM : shape === "work" ? WORK : 1),
   }));
   const total = shapes.reduce((n, c) => n + c.w, 0);
-  const keys = chapter === undefined ? [] : [chapter];
-  let draw = random(seed, "plot", snapshot.player.id, ...keys) * total * (only ? 1 : 1 + QUIET);
+  let draw = random(seed, "plot", snapshot.player.id, ...keys) * total;
   const shape = shapes.find((c) => (draw -= c.w) < 0)?.shape;
   if (!shape && !only) return;
   const within = weighed.filter((c) => c.t.shape === (shape ?? shapes.at(-1)?.shape));

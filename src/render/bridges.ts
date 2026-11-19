@@ -1,7 +1,7 @@
 import { own, renderResources, type RenderResources } from "./resources";
 import type { TerrainRegion } from "./terrain-region";
 import type Phaser from "phaser";
-import type { TopographySample } from "../core/topography";
+import type { LandingSteps, TopographySample } from "../core/topography";
 import { TERRAIN_RISE } from "./terrain-projection";
 export type BridgeSpan = {
   minX: number;
@@ -94,19 +94,21 @@ export function drawBridges(
     };
     // Water remains visible below the suspended span and its front bearer.
     const track = sample(minX, minY)?.track;
-    if (pier) {
+    if (pier===true) {
       for (let px = left + 2; px < left + w - 3; px += 24) {
         rect(px, top + h + 4, 6, 9, 0x4e4035);
         rect(px + 1, top + h + 5, 3, 6, 0x906b48);
         rect(px + 1, top + h + 11, 4, 2, 0x5e5745);
       }
-    } else {
+    } else if (!pier) {
       const shadow = own(resources, scene.add.graphics().setDepth(-2000));
       shadow.fillStyle(0x153d50, 0.55);
       shadow.fillRect(left + 3, top + h + 5, w - 2, 10);
       if (track && track.axis === "y") shadow.fillRect(left + w, top + 4, 5, h);
     }
-    if (track) railDeck(rect, left, top, w, h, track.axis === "x", track.at);
+    if (typeof pier==="object") {
+      riverSteps(rect,left,top,w,h,pier);
+    } else if (track) railDeck(rect, left, top, w, h, track.axis === "x", track.at);
     else {
       rect(left, top, w, h + 5, 0x533b2c);
       rect(left + 1, top + 1, w - 2, h - 1, 0x8c653f);
@@ -168,7 +170,7 @@ export function drawBridges(
       }
     }
     // End posts have lit caps, shaded sides and feet below the deck.
-    if (!track)
+    if (!track && typeof pier!=="object")
       for (const px of [left + 2, left + w - 7])
         for (const py of [top + 1, top + h - 1]) {
           const post = own(
@@ -201,6 +203,99 @@ export function drawBridges(
         }
   }
   return footprints;
+}
+
+function riverSteps(
+  rect:(x:number,y:number,w:number,h:number,color:number,alpha?:number)=>void,
+  left:number,top:number,w:number,h:number,{material,facing,variant}:LandingSteps,
+) {
+  const brick=material==="brick", across=facing==="west" || facing==="east";
+  const length=across?w:h, breadth=across?h:w;
+  const stone=brick
+    ? [0xefc28d,0xd4a577,0xc08e65,0xad7d58,0x91674e,0x745342,0x58463e]
+    : [0xf0e3bf,0xdaccaa,0xc3b595,0xa99c80,0x8c806b,0x716957,0x57574e];
+  const wood=[0xd8b884,0xb18b60,0x936d4b,0x77573f,0x574239,0x47443b];
+  // u runs from the bank to the boat. Height always projects up the screen.
+  const point=(u:number,v:number)=>{
+    if(facing==="west")return [w-1-u,h-1-v];
+    if(facing==="north")return [v,h-1-u];
+    return facing==="south"?[w-1-v,u]:[u,v];
+  };
+  const slabs:{x:number;y:number;w:number;d:number;z:number;timber:boolean;index:number}[]=[];
+  function block(u:number,v:number,du:number,dv:number,z:number,timber:boolean,index:number) {
+    if(du<=0 || dv<=0)return;
+    const [x,y]=point(u,v),[b,c]=point(u+du-1,v+dv-1);
+    slabs.push({x:Math.min(x,b),y:Math.min(y,c),w:Math.abs(x-b)+1,d:Math.abs(y-c)+1,z,timber,index});
+  }
+  const head=Math.floor(length*.25),toe=length-16, courses=4+variant;
+  block(0,1,head,breadth-2,10,false,1);
+  for(let i=0;i<courses;i++){
+    const start=head+Math.floor((toe-head)*i/courses),end=head+Math.floor((toe-head)*(i+1)/courses);
+    const inset=3+Math.floor(i/2),z=9-Math.round(i*7/(courses-1));
+    block(start,inset,end-start,breadth-2*inset,z,false,i+2);
+    // The cheek stones stop above the wettest tread.
+    if(i<courses-1)for(const v of [1,breadth-inset])
+      block(start,v,end-start,inset-1,z+3,false,i+8);
+  }
+  for(let i=0;i<4;i++)block(toe+4*i,3,4,breadth-6,2,true,i);
+  const put=(x:number,y:number,dx:number,dy:number,c:number,a=1)=>rect(left+x,top+y,dx,dy,c,a);
+  for(const b of slabs.sort((a,b)=>(a.y+a.d)-(b.y+b.d) || a.y-b.y || a.z-b.z)){
+    const {x,y,w:bw,d,z,timber,index}=b;
+    const base=y+8, surface=base-z, front=surface+d-1;
+    const p=timber?wood:stone, value=timber?2:index===1?2:2+(index%4===0?1:0);
+    put(x,front+1,bw,z+2,p[timber?4:5]);
+    put(x,front+1,bw-1,Math.max(1,z-1),p[timber?3:4]);
+    if(z>5 && bw>8){
+      put(x,front+Math.ceil(z*.55),bw,1,p[5]);
+      for(let i=6+index%5;i<bw;i+=brick?11:17)put(x+i,front+2,1,Math.max(1,(z>>1)-1),p[5]);
+    }
+    put(x,surface,bw,d,p[value]);
+    if(bw>6 && d>3){
+      put(x+1,surface,bw-2,1,p[value-1]);
+      put(x+bw-1,surface,1,d,p[value+1]);
+      for(let cut=7+(index*11)%9;cut<bw-2;cut+=brick?13:22){
+        put(x+cut,surface+1,1,Math.min(d-1,3+index%5),p[value+1]);
+        if(d>7)put(x+cut-2,surface+Math.floor(d/2),2,1,p[value+1]);
+      }
+    } else if(d>6){
+      for(let cut=6+index%5;cut<d-2;cut+=timber?17:brick?12:19)put(x,surface+cut,Math.max(1,bw-1),1,p[value+1]);
+      put(x,surface,1,d-1,p[value-1]);
+    }
+    put(x+1,front,Math.max(1,bw-2),1,p[timber?1:Math.max(1,value-1)]);
+    if(bw>13)put(x+4+index%4,front,3+index%5,1,p[value]);
+    if(timber)put(x+Math.floor(bw/2),surface+Math.floor(d/2),1,1,wood[4]);
+  }
+  function rail(u0:number,u1:number,v:number) {
+    const [ax,ay]=point(u0,v),[bx,by]=point(u1,v);
+    const za=18, zb=13;
+    const count=Math.max(1,Math.abs(bx-ax),Math.abs((by-zb)-(ay-za)));
+    for(let i=0;i<=count;i++){
+      const t=i/count, x=Math.round(ax+(bx-ax)*t),y=Math.round(ay+(by-ay)*t);
+      put(x+2,y+2,2,2,wood[4],.26);
+      const top=y-Math.round(za+(zb-za)*t)+8;
+      put(x,top,2,2,wood[2]);put(x,top-1,1,1,wood[0]);
+    }
+    for(const [x,y,z] of [[ax,ay,za],[bx,by,zb]]){
+      put(x-1,y+6-z,4,z-4,wood[4]);put(x-1,y+6-z,2,z-6,wood[2]);
+      put(x-2,y+6-z,5,2,wood[1]);put(x-1,y+10-z,4,1,wood[0]);
+    }
+  }
+  rail(4,toe-4,3);
+  if(variant===2)rail(4,head+5,breadth-4);
+  const [coilX,coilY]=point(Math.floor(head/2),breadth-12);
+  const cord=["   ++==   "," +=.  .== ","+= .++= .=.","+ .+  =. =.","+ .=+++. =."," =.  ..== .","  =====. +.","         ++"];
+  for(const [j,row] of cord.entries())for(let i=0;i<row.length;i++){
+    const tone=row[i]==="+"?0:row[i]==="="?2:row[i]==="."?4:-1;
+    if(tone>=0)put(coilX+i-5,coilY+j-6,1,1,wood[tone]);
+  }
+  // Rope turns and end-grain on the two fenders mark the outer landing.
+  for(const v of [5,breadth-6]){
+    const [x,y]=point(length-3,v), foot=y+10;
+    put(x-2,foot-14,5,17,wood[4]);put(x-1,foot-13,3,14,wood[2]);
+    put(x-2,foot-12,1,9,wood[1]);put(x-2,foot-1,5,3,wood[5]);
+    put(x-2,foot-15,4,2,wood[1]);put(x-1,foot-15,2,1,wood[0]);
+    for(const k of [8,10]){put(x-3,foot-k,6,1,wood[0]);put(x-2,foot-k+1,5,1,wood[3]);}
+  }
 }
 
 /** A plate-girder rail deck: sleepers on steel over the water, two tracks at

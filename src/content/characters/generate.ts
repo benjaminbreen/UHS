@@ -19,7 +19,7 @@ import {
   type CharacterContext,
 } from "./resolve";
 import { jobGrades } from "./city-work";
-import { asOfficiant } from "./officiant";
+import { asOfficiant, communityForWork, officiantsFor, personalSystem } from "./officiant";
 import { callingItems, livelihoodById } from "./livelihoods";
 import {
   generateAdornment,
@@ -33,6 +33,7 @@ import type { CharacterPhysique } from "../../core/character";
 
 export type Sex = CharacterPhysique["sex"];
 export type FamilyNaming = {
+  belief?: string;
   community?: string;
   personal?: string;
   parentPersonal?: string;
@@ -219,10 +220,11 @@ export function characterLivelihood(
   seed: string,
   id: string,
   requested?: string,
-  context = resolveCharacterContext(s),
+  context = resolveCharacterContext(s,communityForWork(s,seed,id,requested)),
   sex: Sex = "unspecified",
   standing: "free" | "unfree" = "free",
   age?: number,
+  system = personalSystem(s,seed,id,context.community,requested),
 ) {
   const alias: Record<string, string> = {
     forager: "gatherer",
@@ -240,7 +242,7 @@ export function characterLivelihood(
   // craftsperson; now that the tables name a weaver, asking for one and being
   // handed a craftsperson is a downgrade, not a substitution.
   const key = requested?.toLowerCase();
-  const localRole = (l: Livelihood) => asOfficiant(l, s, seed, id);
+  const localRole = (l: Livelihood) => asOfficiant(l, s, seed, id, system);
   const apprentice = context.livelihoods.find((l) => l.id === "apprentice");
   const tradeFor = (label: string) => context.livelihoods.find((l) =>
     l.id !== "apprentice" && l.label.toLowerCase() === label.toLowerCase() &&
@@ -259,7 +261,19 @@ export function characterLivelihood(
   // and eminent work is found here though no settlement table carries it.
   const briefed = id === "player" && s.brief?.work;
   const asked = briefed ? context.livelihoods.find((l) => l.id === briefed) ?? livelihoodById(briefed) : undefined;
+  const religious = key && (asked ? asked.fromBeliefs : !context.livelihoods.some(l => !l.fromBeliefs && l.label.toLowerCase() === key)) && context.livelihoods.find(l => l.fromBeliefs);
+  if (religious && allowedBy(standing,religious)) {
+    const office = officiantsFor(s,system).find(o => o.tier !== "household" && o.label.toLowerCase() === key);
+    if (office) return {...religious,label:office.label};
+  }
   if (asked) return resolveApprentice(localRole(asked) ?? asked);
+  if (key && !context.livelihoods.some(l=>l.id===key || l.label.toLowerCase()===key)) {
+    for (const l of context.livelihoods) {
+      const title = l.labels?.find(t => t.label.toLowerCase()===key &&
+        matchesCharacterScope(t.scope,s) && (!t.ecologies || !!s.environment?.ecology && t.ecologies.includes(s.environment.ecology)));
+      if(title && allowedBy(standing,l))return {...l,label:title.label};
+    }
+  }
   if (key?.startsWith("apprentice ") && apprentice && allowedBy(standing, apprentice)) {
     const trade = tradeFor(requested!.slice("Apprentice ".length));
     if (trade)
@@ -308,7 +322,7 @@ export function characterLivelihood(
   // office at all, rather than a generic priest.
   const withBeliefs = (byStanding.length ? byStanding : open).flatMap(
     (l) => {
-      const resolved = asOfficiant(l, s, seed, id);
+      const resolved = asOfficiant(l, s, seed, id, system);
       return resolved ? [resolved] : [];
     },
   );
@@ -339,7 +353,7 @@ export function eligibleInventory(
 ): Inventory {
   return Object.fromEntries(
     Object.entries(inventory).filter(([key]) =>
-      context.profile.allowedItems.includes(key as keyof Inventory) || callingItems.includes(key),
+      context.profile.allowedItems.includes(key as keyof Inventory) || callingItems.includes(key) || key==="coin" && context.capabilities.has("coinage"),
     ),
   );
 }
@@ -467,8 +481,9 @@ export function generateCharacter(
   if (id === "player" && s.brief?.sex) sex = s.brief.sex;
   // Where a plural population is authored, each person draws their own
   // community, so the appearance palette and the naming kit stay in step.
-  const community = localContext?.community ?? familyNaming?.community ?? characterCommunity(s, seed, id);
-  const context = localContext ?? resolveCharacterContext(s, community);
+  const community = familyNaming?.community ?? (id === "player" ? communityForWork(s,seed,id,requestedRole) : localContext?.community ?? characterCommunity(s,seed,id));
+  const context = localContext?.community === community ? localContext : resolveCharacterContext(s,community);
+  const system = personalSystem(s,seed,id,community,requestedRole,familyNaming?.belief);
   const standing = characterStanding(s, seed, id, community);
   const naming = characterNameParts(
     s,
@@ -489,6 +504,7 @@ export function generateCharacter(
     sex,
     standing,
     age,
+    system,
   );
   // Asking for work done by one sex asks for someone of it.
   if (requestedRole && drawn.sex && drawn.sex !== sex && !(id === "player" && s.brief?.sex))
@@ -502,7 +518,7 @@ export function generateCharacter(
     context.livelihoods.some(
       (l) =>
         l.label.toLowerCase() === requestedRole.toLowerCase() ||
-        asOfficiant(l, s, seed, id)?.label.toLowerCase() ===
+        asOfficiant(l, s, seed, id, system)?.label.toLowerCase() ===
           requestedRole.toLowerCase(),
     ) ||
     [
@@ -583,6 +599,7 @@ export function generateCharacter(
       revision: 1 as const,
       profile: context.profile.id,
       community: context.community,
+      belief: system.id,
       nameKit: context.names?.id,
       nameTradition: "tradition" in naming ? naming.tradition : undefined,
       nameRegion: "region" in naming ? naming.region : undefined,

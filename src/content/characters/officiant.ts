@@ -1,9 +1,11 @@
-import { beliefsFor } from "../beliefs/index";
+import { beliefOptions, beliefsFor } from "../beliefs/index";
+import { religiousProfile } from "../settlements/religious";
 import { officiantsBySystem } from "../beliefs/officiants.generated";
-import type { Officiant } from "../beliefs/types";
+import type { ReligiousProfile } from "../settlements/religious/types";
+import type { BeliefSystem, Officiant } from "../beliefs/types";
 import type { WorldSetting } from "../geography/types";
 import { random } from "../../core/random";
-import { matchesCharacterScope } from "./resolve";
+import { characterCommunity, matchesCharacterScope, populationFor } from "./resolve";
 import { localLabels } from "./livelihood-labels.generated";
 import { citySignatures } from "./signatures";
 import { requirementMet } from "./requirements";
@@ -22,8 +24,51 @@ import type { Livelihood } from "./context-types";
  */
 
 /** Who officiates here, if anyone does. */
-export function officiantsFor(s: WorldSetting): readonly Officiant[] {
-  return officiantsBySystem[beliefsFor(s).id] ?? [];
+export function officiantsFor(s: WorldSetting, system = beliefsFor(s), site = religiousProfile(s)): readonly Officiant[] {
+  const temple = (label:string): Officiant => ({label,tier:"temple",weight:2});
+  if (system.offices) return system.offices.map(temple);
+  const offices = (officiantsBySystem[system.id] ?? []).filter(o => !/^(teacher|doctor)$/i.test(o.label));
+  const faith = site?.faith;
+  if (!faith || !system.worship?.includes(faith)) return offices;
+  if (site?.offices) return site.offices.map(temple);
+  if (faith === "Islam" && !offices.some(o => /\bimam\b/i.test(o.label)))
+    return [...offices.filter(o => /imam|faqih|marabout|qadi|qazi|muezzin|mullah|mufti|pir|ulema|household/i.test(o.label)),temple("Imam")];
+  if (faith?.includes("Buddh") && !offices.some(o => /monk|bhikkhu/i.test(o.label)))
+    return [...offices,temple("Monk")];
+  return offices;
+}
+
+export function officeAtSanctuary(s: WorldSetting, label: string, system: BeliefSystem, site: ReligiousProfile | undefined, school?: string) {
+  if (!site || !system.worship?.includes(school ?? site.faith)) return false;
+  if (/missionary|itinerant|marabout|diviner|household|shaman/i.test(label)) return false;
+  if (/Christian|Catholic|Anglican/i.test(site.faith) && !site.id.includes("monastery") && /monk|nun|abbot/i.test(label)) return false;
+  if ((site.faith === "Buddhism" || site.faith === "Buddhist" || site.faith === "Theravada Buddhist") &&
+    !/monk|nun|abbot|lama|bhikkh|bhikshu|monastic|novice/i.test(label)) return false;
+  if (site.offices && !site.offices.includes(label)) return false;
+  return officiantsFor(s,system,site).some(o => (o.tier === "temple" || o.tier === "paramount" || /\bimam\b/i.test(o.label)) &&
+    (label === o.label || label.startsWith(o.label + " of ")));
+}
+
+function offersOffice(s:WorldSetting, system:BeliefSystem, requested:string) {
+  return officiantsFor(s,system).some(o => o.tier !== "household" && o.label.toLowerCase() === requested.toLowerCase());
+}
+
+export function communityForWork(s:WorldSetting, seed:string, id:string, requested?:string) {
+  const drawn = characterCommunity(s,seed,id);
+  if (!requested || id !== "player" || s.characterCommunity) return drawn;
+  const groups = populationFor(s)?.groups;
+  const offers = (community:string) => beliefOptions(s,community).some(o => offersOffice(s,o.system,requested));
+  return groups && !offers(drawn) ? groups.find(g => offers(g.community))?.community ?? drawn : drawn;
+}
+
+export function personalSystem(s:WorldSetting, seed:string, id:string, community:string, requested?:string, inherited?:string) {
+  const options = beliefOptions(s,community);
+  const offices = requested && options.filter(o => offersOffice(s,o.system,requested));
+  const pool = offices && offices.length ? offices : options;
+  const family = inherited && pool.find(o => o.system.id === inherited);
+  if (family) return family.system;
+  let roll = random(seed,"affiliation",id) * pool.reduce((n,o) => n+o.share,0);
+  return (pool.find(o => (roll -= o.share) < 0) ?? pool[pool.length-1]).system;
 }
 
 /*
@@ -54,9 +99,9 @@ export function officiantFor(
   s: WorldSetting,
   seed: string,
   id: string,
+  system = beliefsFor(s),
 ): { label: string; tier: Officiant["tier"] } | undefined {
-  const system = beliefsFor(s);
-  const all = officiantsBySystem[system.id];
+  const all = officiantsFor(s,system);
   if (!all?.length) return undefined;
   const size = SIZE[s.settlement ?? "village"] ?? 1;
   // The household tier is what every household head does at their own hearth,
@@ -123,11 +168,12 @@ export function asOfficiant(
   s: WorldSetting,
   seed: string,
   id: string,
+  system = beliefsFor(s),
 ): Livelihood | undefined {
   if (!l.fromBeliefs) {
     const local = localLabel(l, s, seed, id);
     return local === l.label ? l : { ...l, label: local };
   }
-  const office = officiantFor(s, seed, id);
+  const office = officiantFor(s, seed, id, system);
   return office ? { ...l, label: office.label } : undefined;
 }

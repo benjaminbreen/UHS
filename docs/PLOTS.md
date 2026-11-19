@@ -18,13 +18,12 @@ who call on the player. Entry files: `src/content/plots/`, `src/core/plot.ts`,
   - `opening` effects, `developments` (`when` a `Condition`, `then` effects);
   - an optional `journal`;
   - `endings`;
-  - `wording`, where the first scope match wins and the last entry has no
-    scope.
+  - `wording`, where the first scope match wins. The last entry supplies shared lines.
 - **Conditions and effects** are small closed unions of plain data, not
   callbacks. Add one only when a plot needs it.
-- **Runner.** `startPlot` draws a shape first, then a plot within it. About one
-  life in five has none (`QUIET`). It binds the cast from people who already
-  exist (the creditor from `owes`, a rival by trade), with `PlotRole` in
+- **Runner.** About one life in ten draws an opening plot. Later chapters get
+  a fresh roll. `startPlot` draws a shape, then a plot that fits. Its cast
+  comes from existing people (the creditor from `owes`, a rival by trade), with `PlotRole` in
   `types.ts`. `stepPlot` evaluates conditions every game minute, so clocks
   measured in hours bite. `endPlot` closes it. Plot state is plain data in
   `engine.state.plot` and crosses map travel. A life that starts underground
@@ -38,11 +37,14 @@ who call on the player. Entry files: `src/content/plots/`, `src/core/plot.ts`,
   are dropped then.
 - **Emblems.** Banners are drawn in `src/ui/plot-emblems.ts` and
   `src/ui/emblems/scenes/`, at the opening, at each card and at each ending.
-- **Clocks.** Many players see only a few game hours, so a plot opens within
-  minutes and develops within hours. The longest deadline is about 30 days,
-  with a development in the first hour.
+- **Clocks.** Some plots open within minutes. A seller notices a lull while
+  working. A coworker can ask for half an hour of cover when spoken to at
+  the shared workplace. Either encounter can pass undiscovered.
 - **Wording.** One template per plot, with era and culture handled in
-  scoped `wording` entries, never a copy per culture. Plain modern English.
+  scoped `wording` entries. Royal mourning requires a matching region, year
+  and season for the death of [Augustus](https://sourcebooks.web.fordham.edu/ancient/suet-augustus-rolfe.asp),
+  [William Rufus](https://www.royal.uk/william-rufus) or the
+  [Kangxi emperor](https://www.dpm.org.cn/Uploads/pdf/4651/T00057_00.pdf).
 
 ## Kin
 

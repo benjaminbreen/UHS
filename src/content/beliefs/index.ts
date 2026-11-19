@@ -96,11 +96,37 @@ const specificity = (b: BeliefSystem) => {
 };
 
 /** The most specific system that covers this place, date and culture. */
+const regional = beliefSystems.filter(b => b.share === undefined);
+const alternatives = beliefSystems.filter(b => b.share !== undefined);
+const byId = new Map([...beliefSystems, unscopedBeliefs].map(b => [b.id,b]));
+
 export function beliefsFor(
   setting: WorldSetting,
   community?: string,
 ): BeliefSystem {
-  return selectBeliefs(beliefSystems, setting, community);
+  return selectBeliefs(regional, setting, community);
+}
+
+const residentOptions = new WeakMap<WorldSetting,Map<string,{system:BeliefSystem;share:number}[]>>();
+export function beliefOptions(s: WorldSetting, community?: string) {
+  const key = [s.placeId,s.year,s.lon,s.lat,s.culture,s.beliefRevision,community].join("|");
+  const cached = residentOptions.get(s);
+  const previous = cached?.get(key);
+  if (previous) return previous;
+  const options = alternatives.filter(b => matchesCharacterScope(b.scope,s,community))
+    .map(system => ({system, share:system.share!}));
+  const remaining = 100 - options.reduce((n,o) => n + o.share,0);
+  if (remaining > .0001) options.push({system:beliefsFor(s,community),share:remaining});
+  if (cached) cached.set(key,options);
+  else residentOptions.set(s,new Map([[key,options]]));
+  return options;
+}
+
+export function beliefsForActor(setting: WorldSetting | undefined, actor: Pick<Actor,"origin"|"identity">) {
+  const home = actor.identity?.setting ?? setting, community = actor.origin?.community;
+  const system = byId.get(actor.origin?.belief ?? "");
+  if (system) return home ? contextualBeliefs(system,home,community) : system;
+  return home ? beliefsFor(home,community) : unscopedBeliefs;
 }
 
 export function selectBeliefs(
@@ -118,7 +144,8 @@ export function selectBeliefs(
   // A preference, not a gate: some places carry a culture tag from a
   // neighbouring region, and geography is still the better answer than nothing.
   const own = here.filter((b) => b.scope.cultures?.includes(setting.culture));
-  const pool = own.length ? own : here;
+  const members = here.filter(b => b.scope.communities?.includes(community ?? ""));
+  const pool = members.length ? members : own.length ? own : here;
   if (!pool.length) return unscopedBeliefs;
   if (!setting.beliefRevision)
     return pool.sort((a, b) => specificity(a) - specificity(b))[0];
@@ -199,10 +226,9 @@ export function beliefOf(
 ): PersonalBelief {
   if (actor.identity) {
     seed = actor.identity.seed;
-    system = actor.identity.setting
-      ? beliefsFor(actor.identity.setting, actor.origin?.community)
-      : unscopedBeliefs;
+    system = beliefsForActor(actor.identity.setting,actor);
   }
+  if (actor.origin?.belief && actor.origin.belief !== system.id) system = byId.get(actor.origin.belief) ?? system;
   const patrons = (system.patronOptions ?? []).flatMap((name) => {
     const power = system.powers.find((candidate) => candidate.name === name);
     return power ? [power] : [];
@@ -216,7 +242,7 @@ export function beliefOf(
     patron,
     paramount: system.powers.find((p) => p.rank === "paramount"),
     observance:
-      score >= 75
+      !system.powers.length ? "indifferent" : score >= 75
         ? "devout"
         : score >= 35
           ? "regular"

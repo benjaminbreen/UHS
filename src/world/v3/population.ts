@@ -94,15 +94,15 @@ export function populateHouseholds(
     if (adult && pack.setting?.characterRevision)
       Object.assign(
         adult,
-        generateCharacter(pack.setting, seed, adult.id, age, adult.role, undefined, undefined, adult.origin?.sex, undefined, undefined,
-          pack.setting.employmentRevision ? localWorkContext(plan, pack, adult.id, adult.origin?.community) : undefined),
+        generateCharacter(pack.setting, seed, adult.id, age, adult.role, undefined, undefined, adult.origin?.sex, undefined, {belief:adult.origin?.belief},
+          pack.setting.employmentRevision ? localWorkContext(plan, pack, adult.id, adult.origin?.community, seed) : undefined),
       );
     if(adult && sites.employment?.kind==="fishery")assignLocalWork(plan,pack,seed,adult,sites);
     const ownerCharacter = owner === "player" && pack.setting?.characterRevision
       ? generateCharacter(pack.setting,
           pack.setting.lifeStoryRevision ? pack.setting.character?.appearanceSeed ?? seed : seed,
           owner, age, sites.role ?? pack.role, pack.characterName,undefined,undefined,undefined,undefined,
-          pack.setting.employmentRevision ? localWorkContext(plan,pack,owner) : undefined)
+          pack.setting.employmentRevision ? localWorkContext(plan,pack,owner,undefined,pack.setting.character?.appearanceSeed ?? seed) : undefined)
       : undefined;
     if (owner === "player" && pack.setting?.friendshipRevision)
       playerFriend = { a: { id: owner, age, householdId: id, origin: ownerCharacter?.origin, relations: [] }, home: household.home };
@@ -267,11 +267,12 @@ export function populateHouseholds(
             lineal ? lineage?.nameTradition : undefined,
             revised ? {
               community: lineal ? lineage?.community : undefined,
+              belief: child ? lineage?.belief : undefined,
               parentPersonal: kin ? lineage?.namePersonal : undefined,
               personal: m.fromHead === "parent" && m.sex === "male" ? parent?.nameParentPersonal : undefined,
               avoid: taken,
             } : undefined,
-            pack.setting!.employmentRevision ? localWorkContext(plan, pack, memberId, lineal ? lineage?.community : undefined) : undefined,
+            pack.setting!.employmentRevision ? localWorkContext(plan, pack, memberId, lineal ? lineage?.community : undefined, seed) : undefined,
           );
         let drawn = draw(0);
         for (let salt = 1; !revised && salt < 12; salt++) {
@@ -395,6 +396,29 @@ export function populateHouseholds(
     for (const p of pending) if (p.household === h) p.site = { ...p.site, home: { x: host.home.x, y: host.home.y } };
   }
 
+  if (plan.site.home && plan.anchorage && pack.role.toLowerCase()==="porter" && setting.environment?.start==="resident" &&
+      !world.households!.some(h=>h.members.includes("player"))) {
+    const landing=plan.anchorage.landing;
+    const lodging=made.filter(h=>h.residence).sort((a,b)=>
+      Math.hypot(a.home.x-landing.x,a.home.y-landing.y)-Math.hypot(b.home.x-landing.x,b.home.y-landing.y))[0];
+    if(lodging){
+      lodging.members.push("player");
+      plan.work.set("player",{home:lodging.home,work:landing,water:lodging.home,social:landing,offset:0,
+        role:pack.role,label:"Taking cargo from the lighter"});
+    }
+  }
+  for (const merchant of plan.actors.filter(a => a.stockroom && !a.householdId)) {
+    const family = made.find(h=>h.storeId+"-counter"===merchant.stockroom);
+    const host = family ?? made.filter(h => h.residence && !h.members.includes("player")).sort((a,b) =>
+      Math.hypot(a.home.x-merchant.work.x,a.home.y-merchant.work.y) -
+      Math.hypot(b.home.x-merchant.work.x,b.home.y-merchant.work.y))[0];
+    if (host) {
+      merchant.householdId=host.id;
+      host.members.push(merchant.id);
+      merchant.home={...host.home};
+      plan.work.get(merchant.id)!.home=host.home;
+    }
+  }
   // Every household buys what it needs and does not make, from the nearest
   // household that makes it, a shopfront before a back door.
   const byId = new Map(made.map((h) => [h.id, h]));
@@ -488,6 +512,8 @@ export function populateHouseholds(
     const ashore = !kit || /house|near water|gathering/i.test(kit.activity);
     const shore = landing && (child ? (a.age ?? 0) >= 6 : ashore && (plan.work.get(id)?.employment?.kind ?? "shore") === "shore")
       ? fishingRole(plan, pack, seed, id, Math.max(1, i), a) : undefined;
+    if (shore && landing?.process && plan.objects.find(o=>o.id===landing.process!.id)?.curing)
+      memberSite.rackId=landing.process.id;
     plan.stations.set(
       id,
       withLoads(

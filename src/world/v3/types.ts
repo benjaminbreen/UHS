@@ -88,8 +88,10 @@ export type WorkSite = {
   offset: number;
 };
 export type SettlementPlan = {
+  terminal?: import("./harbor").ContainerTerminal;
   anchorage?: import("./harbor").Anchorage;
   harbor?: import("./harbor").Harbor;
+  tradingApron?: Rect;
   waterfront?: {
     id:string; profile:string; repairYardId?:string; landingId:string;
     preserve?:import("../../content/economy/fishing").Preserve;
@@ -114,6 +116,7 @@ export type SettlementPlan = {
     string,
     import("../../content/settlements/streets/palettes").StreetSurface
   >;
+  parterre?: Rect & import("../fair").Parterre;
   pavement?: Map<string, Pavement>;
   /** Open ground whose finish the plan chose, over the town form's default. */
   earth?: Map<string, import("../../content/settlements/urban-form/types").EarthFinish>;

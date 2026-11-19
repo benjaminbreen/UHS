@@ -42,6 +42,7 @@ export const eastAsiaReligious: ReligiousRule[] = [
   ...over(
     {
       id: "japanese-temple",
+      schools: [{id:"pure-land",from:1200,to:1600,label:"Pure Land temple"}, {id:"lotus",from:1253,to:1600,label:"Nichiren temple"}],
       faith: "Buddhism",
       recipe: "japanese-temple",
       labels: { small: "Temple", medium: "Temple", large: "Great temple" },

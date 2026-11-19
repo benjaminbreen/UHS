@@ -2,7 +2,7 @@ import { asDoing, festivalOf, type AgendaItem } from "../core/agenda";
 import { dayPlan, itineraryAt, type StationActivity } from "../core/itinerary";
 import { levelOf, SKILLS, type SkillId } from "../core/skills";
 import { TILE_METRES, type Actor, type Point } from "../core/types";
-import { beliefsFor, unscopedBeliefs } from "../content/beliefs";
+import { beliefsForActor } from "../content/beliefs";
 import { cultures } from "../content/history/types";
 import { eraAt } from "../content/history/dates";
 import { skillContext } from "../content/skill-context";
@@ -94,7 +94,7 @@ function vignetteFor(activity: StationActivity, place?: PlaceWant | Festival["pl
     case "haul-catch": return "hang";
     case "rest": return "rest";
     case "visit":
-      if (place === "sanctuary") return "offer";
+      if (place === "sanctuary" || (typeof place === "object" && "worship" in place)) return "offer";
       if (place === "market") return "market";
       if (place === "edge" || place === "wild") return "walk";
       if (place === "gathering" || (typeof place === "object" && "venue" in place)) return "gathering";
@@ -460,7 +460,7 @@ function baseView(runtime: Runtime, source: TaskSource): TaskView | undefined {
           : "Nothing that hunts has been seen near the house lately.",
       });
     }
-    const belief = setting ? beliefsFor(setting, actor.origin?.community) : unscopedBeliefs;
+    const belief = beliefsForActor(setting,actor);
     const dead = aim.id === "remember-dead" || aim.id === "widowed-household";
     return {
       key: "aim",

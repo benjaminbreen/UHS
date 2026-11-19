@@ -1,5 +1,7 @@
+import { markets } from "../content/economy/exchanges";
+import { blankBook, callSeconds, exchangeDesks, fillOrder, landedOrder, orderProblem } from "./exchange";
 import { gathersPlants } from "../content/characters/livelihoods";
-import { FERRY_PERIOD, anchorageAt, serviceAnchorage, transferCloth, serviceFreight } from "../world/v3/harbor";
+import { FERRY_PERIOD, anchorageAt, openClothBale, serviceAnchorage, transferCargo, releasePortStock, serviceFreight } from "../world/v3/harbor";
 import { updateRelationships } from "./bonds";
 import { dangerAt, npcDanger } from "./danger";
 import { afloatAt, hullOverlap, navigableHull } from "./watercraft";
@@ -108,11 +110,11 @@ import { accosterAt, accosters, cutpurseAt } from "../content/accosters";
 import { bossTitle, cardText, oddsOf, pickCard } from "./cards";
 import { giftOf, type Form } from "./making";
 import { cellJobs, fieldJobs, fieldMinutes, fieldParcels, fieldWords, onParcel, type FieldJob, findPlace, waterfrontMember, type StepPlace } from "./work-places";
-import { catchFate, catchOf, fishingPractice, fishingWords, isFishingFind, preserveWords, waterOf, type Preserve } from "../content/economy/fishing";
+import { biting, collectDried, cureFish, trophyFish, fishItemId, fishOf, catchFate, catchOf, fishingPractice, fishingWords, isFishingFind, preserveWords, waterOf, type Preserve } from "../content/economy/fishing";
 import { dangerOf, gameOf, GIVE_UP_HOURS, huntFate, huntWeapon, huntWords, keepsTraps } from "../content/economy/hunting";
 import { itineraryAt, type Itinerary, DAY_MINUTES } from "./itinerary";
 import { goalDone, heldCount, pickGoals } from "./goals";
-import { commissionFor } from "./agenda";
+import { calendarOf, commissionFor } from "./agenda";
 import { advanceLifeAim, ensureLifeAim } from "./life-aim";
 import { stanceOf } from "../content/plots/stance";
 import { endPlot, plotKnown, plotLine, plotTemplate, startPlot, stepPlot, syncPlotAim, type PlotCard, type PlotState } from "./plot";
@@ -132,7 +134,13 @@ import { livelihoodOf } from "../world/v3/routines";
 import { floorName, floorSpace, parseFloor, towerPlan, type Tower } from "../world/tower";
 import { towerStyleFor } from "../content/towers";
 import type { Staff } from "../content/towers/tenants";
-import { buildInterior, ROOM_ORIGIN, spotsAt, type InteriorLayout, type Spot, type SpotRole } from "../world/interior";
+import { wardDuties } from "../content/settlements/worksites/hospitals";
+import { worshipAct, worshipHours } from "../content/interiors/worship";
+import { passageOn } from "../content/interiors/scripture";
+import { beliefsForActor } from "../content/beliefs";
+import { localCongregation, sanctuaryAt } from "../content/settlements/religious";
+import { stupaPathEdge } from "../render/interiors/room";
+import { buildInterior, ROOM_ORIGIN, roomAt, spotsAt, type InteriorLayout, type Spot, type SpotRole } from "../world/interior";
 import { buildingUse } from "../content/interiors/select";
 import { deliveryAt, truckBody, truckOffset, besideTeam, vehicleAt, vehicleSchedule, type Vehicle } from "../world/v3/conveyances";
 import type { DailyGoal, GoalContext } from "../content/goals/types";
@@ -724,6 +732,7 @@ export class Engine {
       (h, good, at) => good === "grain" ? this.harvestYield(h, at) : good === "fish"
         ? this.catchYield(h, at) * Math.min(1, (this.practices.get(h.id)?.crew ?? 1) / Math.max(1, h.members.filter((m) => adults.has(m)).length))
         : h.makes?.includes("hide") ? this.gameYield(h, at) : 1,
+      s.objects.filter(o=>!o.broken && (o.prop==="clothCounter" || o.prop==="grainHoist" || o.shopSupply || o.consignment)),
     );
     if (Math.floor(hour / 24) === yesterday) return;
     this.collectClaim();
@@ -875,11 +884,14 @@ export class Engine {
     const w = s.economy?.work, now = Math.floor(s.clock / 86400);
     // A day's work begun and not finished carries on through the night, until
     // the next morning; its steps, places and wage stay that day's.
-    const morning = Math.min(6, (kit && recipeFor(kit)?.rises) ?? 6);
+    const employment = this.world.activitySites?.("player")?.employment, employer = employment?.kind;
+    const recipe = kit && recipeFor(kit, employer);
+    const morning = Math.min(6, recipe?.rises ?? 6);
     const day = w && w.day === now - 1 && !w.done && (w.stage > 0 || w.card) && s.clock < now * 86400 + morning * 3600 ? w.day : now;
     const season = (setting ? seasonAt(setting.season, day * 86400 + 43200) : "spring") as SeasonId;
-    const recipe = kit && recipeFor(kit);
-    const today = setting && { pick: random(s.manifest.seed, "workday", day), year: setting.year, lon: setting.lon, lat: setting.lat };
+    const today = setting && { employer, faith:kit?.activity === "At the rite" ? (employment?.kind === "worship" ? sanctuaryAt(this.world.place(employment.id))?.faith : beliefsForActor(setting,s.player).worship?.[0]) ?? "" : undefined,
+      service:employment?.kind === "worship" ? this.interiorOf(employment.id)?.observance?.service?.label : undefined,
+      pick: random(s.manifest.seed, "workday", day), year: setting.year, lon: setting.lon, lat: setting.lat, terminal: kit?.id==="dockworker" && !!this.world.terminal?.(), steel:kit?.id==="dockworker" && this.world.terminal?.()?.steel, lighterage: kit?.id === "porter" ? this.world.anchorage?.()?.cargo : undefined };
     // A farm's day goes by its own crop's calendar, not by the name of the season.
     const process = kit && processFor(kit, setting?.economyRevision,
       household && recipe && !Array.isArray(recipe.day) && !("title" in recipe.day) && recipe.skill === "farming" ? this.cropSeason(household, season) : season, today);
@@ -1328,7 +1340,7 @@ export class Engine {
       client: () => this.client(t),
       markets: this.markets(),
       below: (role) => minePlace(this.complex, t.household.home, role, t.day),
-      desk: () => this.desk(),
+      jobStation: role => this.jobStation(role),
       outbuilding: (kind) => this.outbuildingSpot(t.household, kind),
       inside: () => {
         const space = t.household.residence;
@@ -1347,10 +1359,14 @@ export class Engine {
     const at = room?.work[0] ?? room?.entry;
     return place && at ? { x: at.x, y: at.y, space: place.id } : undefined;
   }
-  /** A dairy or poultry trade may begin its first morning already at work
-   * among the animals. Returns true when it moved the player. */
+  /** Some trades begin the first morning inside their workplace. */
   startAtWork() {
     const p = this.state.player, t = this.trade();
+    if (t?.process.steps.some(st => st.at === "supplies") ||
+      t?.process.steps[0]?.at === "workplace" && this.world.activitySites?.("player")?.employment?.kind === "worship") {
+      const station = this.jobStation("workplace");
+      if (station) { p.pos = station.pos; p.activity = "Indoors"; return true; }
+    }
     // The dairy trades work in the byre; a smallholder sees to the hens first.
     const kind = !t ? undefined : t.process.steps.some((s) => s.at === "byre") ? "byre" : t.kit.activity === "Working the smallholding" ? "henhouse" : undefined;
     if (!t || !kind || random(this.state.manifest.seed, "start-at-work") > 0.5) return false;
@@ -1415,6 +1431,11 @@ export class Engine {
   /** Where a step is done: its place, or for work at a tool the trade has no
    * tool for here, the house or yard. Null means at the trade's own prop. */
   private stepWhere(step: Step, t: NonNullable<ReturnType<Engine["trade"]>>) {
+    if (step.name==="lift-load" || step.name==="stack-load") {
+      const dock=this.world.anchorage?.();
+      if (dock) return {pos:{...(step.name==="lift-load" ? dock.landing : dock.porterPath.at(-2) ?? dock.store),space:"outside"},
+        label:step.name==="lift-load" ? "the lighter landing" : dock.cargo==="grain" ? "the grain warehouse hoist" : "the cloth landing counter"};
+    }
     const job = this.teamJob(step, t);
     if (job) return { pos: job.pos, label: job.label };
     return this.stepPlace(step, t) ??
@@ -1437,6 +1458,14 @@ export class Engine {
     if (tunnelRun(this.state)?.peril || tunnelRun(this.state)?.trapped) return;
     const t = this.trade(), ps = this.placeStep(t);
     const p = this.state.player.pos;
+    if (ps && (ps.step.name==="lift-load" || ps.step.name==="stack-load")) {
+      const dock=this.world.anchorage?.();
+      const at=dock && (ps.step.name==="lift-load" ? dock.landing : dock.store);
+      if (!at || p.space!=="outside" || Math.hypot(p.x-at.x,p.y-at.y)>2.5 || this.waitingCard()) return;
+      const wait=ps.step.name==="lift-load" && !this.state.objects.some(o=>o.lighterage?.site===dock!.site && o.inventory[dock!.cargo]);
+      return {label:wait ? "Wait for the lighter" : ps.step.task, command:{type:"interact" as const,
+        target:Engine.tileTarget(ps.at.pos.x,ps.at.pos.y),action:"work" as const}};
+    }
     const gather = this.gathering(t);
     if (gather) {
       if (!gather.here || this.waitingCard()) return;
@@ -1903,6 +1932,26 @@ export class Engine {
       tomorrow: { condition: w.condition, label: w.label, tempC: w.tempC },
     };
   }
+  private handleConsignment(o: WorldObject) {
+    const p=this.state.player;
+    if (o.lighterage && !p.deliveryLoad && (o.inventory[o.lighterage.cargo]??0)>0) {
+      o.inventory[o.lighterage.cargo]!--;
+      p.deliveryLoad=o.lighterage.store;
+      this.event(o.lighterage.cargo==="grain" ? "You shoulder a grain sack. Take it to the warehouse hoist." : "You shoulder a cloth bale. Carry it to the cloth counter beside the shore store.");
+      return "lift-load";
+    }
+    if (p.deliveryLoad===o.id) {
+      delete p.deliveryLoad;
+      const good=o.prop==="grainHoist" ? "grain" : "cloth";
+      o.inventory[good]=(o.inventory[good]??0)+1;
+      if (good==="grain") o.hoistedAt=this.state.clock;
+      p.inventory.coin=(p.inventory.coin??0)+1;
+      this.event(good==="grain" ? "You hook the sack onto the rope. The crew hauls it into the loft and pays your carrying fee." : "You stack the bale under cover and collect your carrying fee.");
+      if(good==="grain"){const receipt=landedOrder(p,o,true);if(receipt)this.event(receipt);}
+      return "stack-load";
+    }
+  }
+
   private *doWork(hunted = false, performed = false, hand?: FieldJob | "finished") {
     const t = this.trade();
     if (!t || t.stage >= t.process.stages.length) return;
@@ -1910,6 +1959,42 @@ export class Engine {
     const { process } = t;
     const step = process.steps[t.stage], job = this.teamJob(step, t);
     let cart: string | undefined;
+    if (!performed && (step.name==="lift-load" || step.name==="stack-load")) {
+      const dock=this.world.anchorage?.(), pile=dock && s.objects.find(o=>o.lighterage?.site===dock.site);
+      const target=step.name==="lift-load" ? pile : pile?.lighterage && this.object(pile.lighterage.store);
+      if (target && distance(s.player.pos,target.pos)<=2.5) {
+        if (step.name==="lift-load" && !s.player.deliveryLoad && dock && !(target.inventory[dock.cargo]??0)) {
+          const ships=[this.object(dock.site+"-merchant"),this.object(dock.site+"-lighter")];
+          if (ships.every(o=>o?.vessel && !o.vessel.manual)) {
+            this.event("You wait on the skids for the lighter to come ashore.");
+            yield* this.advanceSteps((1680-(s.clock%3600)+3600)%3600+2);
+          }
+        }
+        if (!this.handleConsignment(target)) {
+          this.event("There is no consignment to move here yet.");
+          return;
+        }
+        performed=true;
+      } else return;
+    }
+    const terminal=t.kit.id==="dockworker" && this.world.terminal?.();
+    if(terminal && step.name==="transfer"){
+      const phase=s.clock%3600;
+      if(phase>=676)this.event("You wait for the inbound feeder.");
+      yield* this.advanceSteps((676-phase+3600)%3600);
+      const boxes=this.object(terminal.manifest)?.freight?.boxes;
+      if(boxes?.delivered!==3)return;
+      this.event(terminal.steel ? "The last coil settles onto its chocks. All three coil numbers match the manifest." : "The last box clears the exchange rack. All three seals match the manifest.");
+      performed=true;
+    }
+    if(terminal && step.name==="release"){
+      const store=this.object(terminal.store), road=this.object(terminal.store.replace(/-store$/,"-delivery-dispatch"));
+      const good=terminal.steel ? "steel-coil" : "grain";
+      if(store && road && store.inventory[good]){
+        const units=releasePortStock(store,road,good);
+        this.event(`You release ${units} ${terminal.steel ? "steel coils" : "measures of bagged grain"} for road collection.`);
+      }
+    }
     if (!performed && this.gathering(t)) return;
     if (job && !performed) {
       const { v, a } = job, p = s.player;
@@ -1996,7 +2081,17 @@ export class Engine {
     s.economy.work = { ...was, day: t.day, stage: t.stage + 1, ...(cart ? { cart } : {}), ...(caught ? { catch: caught.factor } : {}),
       ...(reaped !== undefined ? { harvest: (was?.harvest ?? 0) + reaped } : {}),
       ...(process.steps[t.stage + 1]?.scene === "hunt" ? { since: s.clock } : {}) };
-    if (caught) this.event(caught.line);
+    if (caught) {
+      this.event(caught.line);
+      if (this.object(t.household.storeId+"-counter")?.prop==="fishCounter") {
+        const fish=this.ordinaryFish(practice!.water,t.household.id,s.clock);
+        if (fish) {
+          const count=Math.max(1,Math.round(caught.factor*3));
+          s.player.inventory[fish]=(s.player.inventory[fish]??0)+count;
+          s.economy.work.landed={[fish]:count};
+        }
+      }
+    }
     if (process.steps[t.stage].at === "face") this.fillTubs(t, s.economy.work);
     if (gate) gate.open = grazing(t.stage + 1);
     if (herd) herd.fold = gate!.open && process.steps[t.stage + 1]?.at !== "pasture";
@@ -2166,12 +2261,14 @@ export class Engine {
     if (work) work.done = true;
     const skill = process.skill ?? workSkill[process.family];
     const craft = skill === "crafting" ? 1 + this.skillLevel("crafting") * PER_LEVEL.craftingYield : 1;
-    const made: Record<string, number> = gathersPlants(kit) ? {} : kit.activity === "Looking for game" ? this.settleHunt(t) : process.paid === "wage" ? this.takings(3, (amount) => this.mineWords(t).mine ? `At the office window the pay clerk counts out ${amount} for your ${work?.tubs ?? "day's"} ${work?.tubs ? `${this.mineWords(t).tub}s` : "work"}.` : `The ${process.boss ?? bossTitle(this.world.pack.setting)} pays you ${amount}.`)
+    const physicalCatch = work?.catch !== undefined && this.object(household.storeId+"-counter")?.prop==="fishCounter";
+    const made: Record<string, number> = physicalCatch ? {} : process.steps.at(-1)?.name==="stack-load" ? {coin:1} : gathersPlants(kit) ? {} : kit.activity === "Looking for game" ? this.settleHunt(t) : process.paid === "wage" ? this.takings(3, (amount) => this.mineWords(t).mine ? `At the office window the pay clerk counts out ${amount} for your ${work?.tubs ?? "day's"} ${work?.tubs ? `${this.mineWords(t).tub}s` : "work"}.` : `The ${process.boss ?? bossTitle(this.world.pack.setting)} pays you ${amount}.`)
       : process.paid === "fee" ? this.pay(t, this.patientHousehold(t))
       : process.steps.some((st) => st.client) ? this.pay(t)
       : this.farming(t) ? this.settleHarvest(t)
       : dayOfWork(s.economy, household, craft * (1 + 0.25 * (work?.quality ?? 0)) * (work?.catch ?? 1) * (1 - this.catchOwed()));
-    if (work?.catch !== undefined) Object.assign(made, this.settleCatch(t));
+    if (physicalCatch) this.event("You bring your basket to the sorting trays. Keep the fish, sell them at the counter, or take them to the curing shed.");
+    else if (work?.catch !== undefined) Object.assign(made, this.settleCatch(t));
     if (process.paid === "takings") {
       const coin = this.takings(2, (amount) => `You took ${amount} over the day.`);
       for (const [g, n] of Object.entries(dayOfWork(s.economy, household, craft * (1 + 0.25 * (work?.quality ?? 0))))) made[g] = n;
@@ -2179,13 +2276,14 @@ export class Engine {
     }
     // Work that makes nothing the town trades in, a forager's or a fisher's,
     // comes home in the hand instead.
-    if (kit.activity !== "Looking for game" && !gathersPlants(kit) && !this.farming(t) && !Object.keys(made).length)
+    if (!physicalCatch && !work?.landed && kit.activity !== "Looking for game" && !gathersPlants(kit) && !this.farming(t) && !Object.keys(made).length)
       for (const [item, n] of Object.entries(kit.inventory ?? {}))
         if (n && item !== "tool" && item !== "water" && this.item(item)) {
           s.player.inventory[item] = (s.player.inventory[item] ?? 0) + n;
           made[item] = n;
         }
     const today = this.today().made;
+    if (physicalCatch) for (const [id,n] of Object.entries(work?.landed??{})) today[id]=(today[id]??0)+(n??0);
     for (const [g, n] of Object.entries(made)) today[g] = (today[g] ?? 0) + n;
     this.grantXp(skill, 20);
     if (s.goalFlags) s.goalFlags.worked = true;
@@ -2269,10 +2367,13 @@ export class Engine {
   private landFish(c: Extract<PlayerCommand, { type: "fish" }>) {
     const t = this.trade()!, s = this.state, inv = s.player.inventory, log = (s.fishLog ??= {});
     const fish = c.caught.filter((f) => f.id.startsWith("fish-"));
+    const landed: Inventory = {};
     const kg = fish.reduce((n, f) => n + f.kg, 0), count = fish.length, firsts: string[] = [];
     for (const f of c.caught) {
       inv[f.id] = (inv[f.id] ?? 0) + 1;
       if (!f.id.startsWith("fish-")) continue;
+      landed[f.id]=(landed[f.id]??0)+1;
+      if (trophyFish.has(f.id)) this.event(`Legendary catch! ${this.item(f.id)!.name}, ${f.kg.toFixed(1)} kg.`);
       if (!log[f.id]) firsts.push(this.item(f.id)!.name.toLowerCase());
       const was = log[f.id];
       log[f.id] = { n: (was?.n ?? 0) + 1, best: Math.max(was?.best ?? 0, f.kg) };
@@ -2282,7 +2383,7 @@ export class Engine {
     const was = s.economy.work?.day === t.day ? s.economy.work : undefined;
     // An ordinary day's catch for one boat, about four kilograms an hour on the water.
     const factor = Math.max(0.25, Math.min(2.5, kg / Math.max(6, (c.minutes / 60) * 4)));
-    s.economy.work = { ...was, day: t.day, stage: t.stage + 1, catch: factor };
+    s.economy.work = { ...was, day: t.day, stage: t.stage + 1, catch: factor, landed };
     const time = c.minutes < 50 ? `${Math.round(c.minutes / 5) * 5 || 5} minutes` : c.minutes < 90 ? "an hour" : `${Math.round(c.minutes / 60)} hours`;
     this.event(!count ? `You fish for ${time} and land nothing.`
       : `You fish for ${time} and land ${count === 1 ? "one fish" : `${count} fish`}, ${kg < 1 ? "under a kilogram" : `${Math.round(kg)} kilograms`} in all.`);
@@ -2371,16 +2472,27 @@ export class Engine {
       const templates = isolated ? GOAL_TEMPLATES.filter(t => t.id === "eat" || t.id === "sleep") : GOAL_TEMPLATES;
       const picked = pickGoals(s.manifest.seed, today, context, templates);
       const day = isolated ? undefined : this.world.agenda?.(p, s.clock);
-      const own: DailyGoal[] = (day?.items ?? []).map((item) => ({
-        id: item.id,
-        slot: "own",
-        text: item.text,
-        check: item.subject
-          ? { type: "talk-to", actor: item.subject }
-          : item.pos
-            ? { type: "reach", x: item.pos.x, y: item.pos.y }
-            : { type: "talk" },
-      }));
+      const own: DailyGoal[] = (day?.items ?? []).flatMap((item): DailyGoal[] => {
+        let participation: string | undefined;
+        if (item.participate) {
+          const place = this.world.places.find(b => b.entrance.x === item.pos?.x && b.entrance.y === item.pos?.y && b.claim.startsWith("religious-"));
+          const {action,claim} = item.participate;
+          if (!place || claim && place.claim !== claim) return [];
+          const rite = this.interiorOf(place.id)?.observance;
+          if (!rite || action === "row" && !rite.gathering.row || action === "meal" && !rite.diner) return [];
+          participation = `${place.id}/${action}`;
+        }
+        return [{
+          id: item.id,
+          slot: "own",
+          text: item.text,
+          check: item.subject
+            ? { type: "talk-to", actor: item.subject }
+            : item.pos
+              ? { type: "reach", x: item.pos.x, y: item.pos.y, ...(participation && {participation}) }
+              : { type: "talk" },
+        }];
+      });
       const feast = day?.festival;
       if (feast)
         own.unshift({
@@ -3205,7 +3317,7 @@ export class Engine {
   }
   private serviceDelivery(o: WorldObject, v: Vehicle, driver: Actor, clock: number, elapsed: number) {
     const m = o.motor!,
-      job = v.delivery!;
+      job = v.delivery!, good=job.good ?? "grain";
     if (m.taken) return;
     if (driver.dead) {
       m.taken = true;
@@ -3236,7 +3348,7 @@ export class Engine {
       driver.direction = this.directionTo(driver.pos, pos);
       this.moveActor(driver, pos);
     }
-    driver.heldItem = at.working && Math.floor(clock / 4) % 2 === 0 ? "prop:sack@hand" : undefined;
+    driver.heldItem = !job.good && at.working && Math.floor(clock / 4) % 2 === 0 ? "prop:sack@hand" : undefined;
     driver.offRoutine = true;
     driver.activity = at.cab
       ? v.doing
@@ -3253,7 +3365,7 @@ export class Engine {
     const day = Math.floor(clock / 86400);
     if (at.depot && m.intakeDay !== day) {
       if (m.intakeDay !== undefined && !this.object(o.id.replace(/-delivery$/, "-manifest"))) {
-        other.inventory.grain = Math.max(other.inventory.grain ?? 0, 18);
+        other.inventory[good] = Math.max(other.inventory[good] ?? 0, 18);
         other.depleted = false;
       }
       m.intakeDay = day;
@@ -3266,13 +3378,13 @@ export class Engine {
     const due = Math.floor(at.handled * capacity);
     const [from, to] = at.depot ? [other, o] : [o, other];
     const count = Math.min(
-      from.inventory.grain ?? 0,
+      from.inventory[good] ?? 0,
       due - (m.handled ?? 0),
-      at.depot ? capacity - (o.inventory.grain ?? 0) : capacity,
+      at.depot ? capacity - (o.inventory[good] ?? 0) : capacity,
     );
     if (count > 0) {
-      from.inventory.grain! -= count;
-      to.inventory.grain = (to.inventory.grain ?? 0) + count;
+      from.inventory[good]! -= count;
+      to.inventory[good] = (to.inventory[good] ?? 0) + count;
       to.depleted = false;
     }
     m.handled = due;
@@ -3302,9 +3414,9 @@ export class Engine {
     if (this.onWall() && this.walkAt(from.x, from.y) && this.walkAt(to.x, to.y)) return true;
     const ship=this.state.player.boat && this.object(this.state.player.boat)?.vessel;
     if(ship){
-      const heading=facingFromStep(to.x-from.x,to.y-from.y,0),large=ship.form==="dhow";
+      const heading=facingFromStep(to.x-from.x,to.y-from.y,0),large=ship.form==="merchant";
       if(!navigableHull(to,heading,large,(x,y)=>!this.offMap(x,y) && this.wet(x,y)))return false;
-      const other=this.object(ship.site+(ship.form==="dhow" ? "-lighter" : "-dhow"));
+      const other=this.object(ship.site+(ship.form==="merchant" ? "-lighter" : "-merchant"));
       if(other?.vessel){
         const v=other.vessel;
         const overlap=hullOverlap(to,heading,large,other.pos,v.heading,!large);
@@ -3375,7 +3487,7 @@ export class Engine {
         frame: place.sprite,
         climate: s.climate,
       },
-      { fortune: household?.fortune, activity: head && livelihoodOf(this.world.pack, head)?.activity, hour: (this.state.clock / 3600) % 24, good: household?.makes?.[0], bench: propDefs[this.object(`${space}-work`)?.prop ?? ""]?.family, profile: floor?.profile, colorway: floor?.colorway, storey: floor && storey.n,
+      { seed: this.state.manifest.seed, fortune: household?.fortune, activity: head && livelihoodOf(this.world.pack, head)?.activity, hour: (this.state.clock / 3600) % 24, good: household?.makes?.[0], bench: propDefs[this.object(`${space}-work`)?.prop ?? ""]?.family, profile: floor?.profile, colorway: floor?.colorway, storey: floor && storey.n,
         lift: floor?.kind === "home" ? (this.towerOf(place.id)!.style.lift.name === "Stairs" ? "stair" : "lift") : undefined },
     );
     this.interiors.set(space, room);
@@ -3417,25 +3529,81 @@ export class Engine {
     }
     return t ?? undefined;
   }
-  /** The player's desk, where their employer is a firm on a tower storey. */
-  private desk(): StepPlace | undefined {
-    const job = this.world.activitySites?.("player")?.employment?.id, at = job && parseFloor(job);
+  private jobStation(role: "workplace" | "supplies"): StepPlace | undefined {
+    const employment = this.world.activitySites?.("player")?.employment;
+    if (!employment) return;
+    const job = employment.id, at = parseFloor(job);
+    if (employment.kind === "worship" && role === "workplace") {
+      const layout = this.interiorOf(job), rite = layout?.observance;
+      if (!layout || !rite) return;
+      const station = layout.work.find(s => roomAt(layout,s.x,s.y)?.role === (rite.service ?? rite.gathering).room &&
+        (!rite.service?.at || s.kind === rite.service.at) && !this.blocked(s.x,s.y,job) && !this.actorAt({...s,space:job},"player"));
+      const at = station ?? layout.entry;
+      return {pos:{x:at.x,y:at.y,space:job},label:roomAt(layout,at.x,at.y)?.label ?? employment.label};
+    }
+    if (employment.kind === "administration" && role === "workplace" && !at.n) {
+      const room = this.interiorOf(job);
+      if (room?.institution === "school" || room?.institution === "magistracy") {
+        const desk = room.work.find(s => s.kind === "desk" && roomAt(room,s.x,s.y)?.role === "work");
+        if (desk) return {pos:{x:desk.x,y:desk.y,space:job},label:roomAt(room,desk.x,desk.y)!.label};
+      }
+    }
+    if (employment.kind === "hospital" || employment.kind === "school") {
+      const room = this.interiorOf(job);
+      if (!room) return;
+      const kinds = role === "supplies" ? ["basin"] : employment.kind === "hospital" ? ["bed","mat"] : ["altar","desk","lectern"];
+      const spot = room.work.find(p => kinds.includes(p.kind));
+      const station = spot ?? (employment.kind === "school" ? room.work[0] ?? room.entry : undefined);
+      if (!station) return;
+      const wing = roomAt(room, station.x, station.y);
+      return { pos: { x:station.x, y:station.y, space:job }, label: wing?.label ?? employment.label };
+    }
+    if (role === "supplies") return;
     const floor = at && this.towerOf(at.place)?.floors[at.n], room = floor && this.interiorOf(job);
     const seat = room && (room.seats[room.seats.length - 1] ?? room.workCell);
     return seat ? { pos: { x: seat.x, y: seat.y, space: job }, label: at.n ? `${floor.name}, ${floorName(at.n)}` : floor.name } : undefined;
   }
+  private marketBoards?: { source: WorldObject[]; size: number; boards: WorldObject[] };
+  exchangePlace() {
+    const {player:p,objects}=this.state;
+    if(p.pos.space!=="outside"){
+      const place=this.world.place(p.pos.space);
+      if(place && this.interiorOf(place.id)?.institution==="exchange")return {place,kind:"beurs" as const};
+      return;
+    }
+    if(this.marketBoards?.source!==objects || this.marketBoards.size!==objects.length)
+      this.marketBoards={source:objects,size:objects.length,boards:objects.filter(o=>o.market)};
+    const board=this.marketBoards.boards.find(o=>!o.broken && distance(o.pos,p.pos)<=5);
+    if(board?.market)return {place:board,kind:board.market.kind,board};
+  }
+  exchangeFloor() {
+    const venue=this.exchangePlace();if(!venue)return;
+    const {place,kind,board}=venue,s=this.state,p=s.player;
+    const site=place.id.replace(/-(beurs|civic)$/,"");
+    const store=board ? board.market?.store ? this.object(board.market.store) : board :
+      this.object(s.objects.find(o=>o.lighterage?.site===site)?.lighterage?.store ?? "");
+    const book=p.exchanges?.[place.id]??blankBook();
+    const desks=kind==="beurs" ? exchangeDesks : markets[kind].listings;
+    const people=desks.map((_,i)=>{const id=board ? place.id+"-market-desk-"+i : `staff-${place.id}-desk${i}`;
+      const a=s.actors.find(a=>a.id===id);
+      return a && !a.dead && (board ? distance(a.pos,board.pos)<=7 : a.pos.space===place.id) ? a : undefined;});
+    if(kind==="corn" && !s.fauna)this.syncFauna();
+    const animals=kind==="corn" ? s.fauna??[] : [];
+    const currency=this.world.pack.setting && moneyFor(this.world.pack.setting);
+    return {place,kind,marketId:place.id,stand:board?.pos,animals,currency,book,stock:store && !store.broken ? store.inventory : undefined,warehouse:store?.id,
+      seed:s.manifest.seed+place.id,clock:s.clock,purse:p.inventory,carryRoom:this.capacity()-this.load(),people,desks:people.map(Boolean)};
+  }
   private staffed?: string;
-  /** The people on the tower storey the player stands on: its firm's staff,
-   * the same people at the same desks every day, some still there after
-   * hours, then the night staff; and on a lived-in floor, those at home or
-   * staying there. */
-  private towerStaff() {
+  private indoorStaff() {
     const s = this.state, space = s.player.pos.space, hour = Math.floor(s.clock / 3600);
     if (this.staffed === `${space}:${hour}`) return;
     this.staffed = `${space}:${hour}`;
     const at = parseFloor(space), floor = space === "outside" ? undefined : this.towerOf(at.place)?.floors[at.n];
-    const room = floor && this.interiorOf(space), setting = this.world.pack.setting;
-    const want = new Map<string, { work: string; doing: string }>();
+    const room = space==="outside" ? undefined : this.interiorOf(space), setting = this.world.pack.setting;
+    const exchange = room?.institution==="exchange";
+    const want = new Map<string, { work: string; doing: string; role?:string; desk?:number }>();
+    if(exchange && room)exchangeDesks.forEach((d,i)=>want.set(`staff-${space}-desk${i}`,{
+      work:d.trade,role:d.desk,doing:`${d.desk} at pillar ${i+1}`,desk:i}));
     if (floor && room && setting) {
       const [from, to] = floor.hours, h = hour % 24, name = floor.name.replace(/^The /, "the ");
       const open = (h: number) => (from <= to ? h >= from && h < to : h >= from || h < to);
@@ -3463,12 +3631,22 @@ export class Engine {
       const r = (k: string) => random(s.manifest.seed, "staff", id, k);
       const ages = livelihoodById(w.work)?.ages ?? [18, 66];
       const age = ages[0] + Math.floor(r("age") ** 1.3 * (Math.min(ages[1], 66) - ages[0]));
-      const a = person(s.manifest.seed, setting!, id, w.work, undefined, r("sex") < 0.5 ? "female" : "male", age, { x: 0, y: 0 }, Number.MAX_SAFE_INTEGER);
+      const a = person(s.manifest.seed, setting!, id, w.work, w.role, r("sex") < 0.5 ? "female" : "male", age, { x: 0, y: 0 }, Number.MAX_SAFE_INTEGER);
       delete a.wayfarer;
       a.staff = space;
       a.offRoutine = true;
       a.activity = w.doing;
       a.pos = this.indoorSpot(a, space, w.doing, index);
+      if(room && w.desk!==undefined){
+        const wing=room.rooms.find(b=>b.label.startsWith(w.desk!<2 ? "Freight" : w.desk===2 ? "Share" : "Lenders"));
+        if(wing){
+          const at={x:wing.x+ROOM_ORIGIN+Math.floor(wing.w*(w.desk%2 ? .7 : .3)),y:wing.y+ROOM_ORIGIN+Math.floor(wing.d/2)};
+          const spot=[...room.walk].map(k=>k.split(",").map(Number)).filter(([x,y])=>roomAt(room,x,y)===wing &&
+            !s.actors.some(o=>o.pos.space===space && o.pos.x===x && o.pos.y===y))
+            .sort(([x,y],[u,v])=>Math.hypot(x-at.x,y-at.y)-Math.hypot(u-at.x,v-at.y))[0];
+          if(spot)a.pos={x:spot[0],y:spot[1],space};
+        }
+      }
       a.home = { ...a.pos };
       a.work = { ...a.pos };
       this.folk.join(a);
@@ -3496,6 +3674,12 @@ export class Engine {
     this.event(`The lift takes you ${to > at.n ? "up" : "down"} to ${floorName(to)}: ${floor.name}.`);
   }
   private indoorUses = new Map<string, Spot & { role: SpotRole; space: string; cooking?: boolean }>();
+  private movedFurnishings(room: InteriorLayout, space: string) {
+    return new Set(room.furniture.filter(f => {
+      const o = this.object(`${space}-room-${f.propId}`);
+      return !o || o.broken || o.tipped || o.pos.x !== f.pos.x || o.pos.y !== f.pos.y;
+    }).map(f => f.propId));
+  }
   /** What someone indoors is at: the bed they lie in, the seat they sit on,
    * the work or fire they stand at. Undefined for anyone just standing about. */
   indoorUse(id: string, pos: Position): (Spot & { role: SpotRole; cooking?: boolean }) | undefined {
@@ -3517,32 +3701,40 @@ export class Engine {
     const trade = livelihoodOf(this.world.pack, a)?.activity.toLowerCase().split(/\s+/)[0];
     // In a taproom the household serves while it is up, and nobody else is put to bed.
     const serving = room.params.program === "serve" || room.params.program === "shop", resident = this.household(a.householdId)?.residence === space;
-    const sleeping = /sleep|night|\bbed/.test(l) || ((resident || !serving) && (hour < 5.5 || hour >= 22));
+    const rite = worshipAct(room.observance, label, this.state.clock);
+    const wing = rite && (room.rooms.find(b => b.role === rite.room) ?? room.rooms[0]);
+    const inWing = (p: Point) => !wing || roomAt(room, p.x, p.y) === wing;
+    const duty = wardDuties.find(d => d.label === label);
+    const duties = duty && (duty.supplies ? ["basin"] : ["bed","mat"]);
+    const teaching = room.rooms.some(b => b.role === "classroom") && this.world.activitySites?.(a.id)?.employment?.kind === "school";
+    const stall = room.institution === "bazaar" && (label === "Minding the stall" || label === "Looking over the wares");
+    const clerk = room.institution === "magistracy" && /record|writing/i.test(label);
+    const hearing = room.institution === "magistracy" && /holding (court|office)/i.test(label);
+    const stations = stall ? room.work.filter(s => s.kind === "shopcounter" && s.facing === (label === "Minding the stall" ? 2 : 0)) :
+      clerk || hearing ? room.work.filter(s => roomAt(room,s.x,s.y)?.role === (clerk ? "work" : "hall")) :
+      duties || teaching ? room.work.filter(s => (duties || ["altar"]).includes(s.kind)) : room.work;
+    const sleeping = /sleep|night|\bbed\b/.test(l) || ((resident || !serving) && (hour < 5.5 || hour >= 22));
     const cooking = !sleeping && /cook|eat|meal|supper|breakfast|dinner|hearth|fire|kitchen/.test(l);
-    const working = !sleeping && !cooking && ((serving && resident && (a.age ?? 30) >= 14) || (!!trade && l.includes(trade)) || /work|weav|spin|pott|writ|sew|mend|grind|count|trad|keep|craft|carv|brew|bak/.test(l));
-    const order = sleeping ? [room.beds] : working ? [room.work, room.fire, room.seats] : cooking ? [room.fire, room.seats]
+    const working = !sleeping && !cooking && (!!duties || teaching || stall || clerk || hearing || (serving && resident && (a.age ?? 30) >= 14) || (!!trade && l.includes(trade)) || /work|weav|spin|pott|writ|sew|mend|grind|count|trad|keep|craft|carv|brew|bak/.test(l));
+    const pupil = l === "at school" && room.rooms.some(b => b.role === "classroom");
+    const servingMeal = !!room.observance?.diner && rite === room.observance.visit;
+    const order = rite ? [servingMeal ? room.fire.filter(inWing) : rite.at ? room.work.filter(s => s.kind === rite.at && inWing(s)) : room.seats.filter(s => inWing(s))] : pupil ? [room.seats.filter(s => s.kind === "pew"), room.seats] : sleeping ? [room.beds] : working ? [stations, room.fire, room.seats] : cooking ? [room.fire, room.seats]
       : serving && !resident ? [room.seats.filter((s) => s.on), room.seats, room.fire] : [room.seats, room.fire, room.work];
     const taken = new Set(
       [this.state.player, ...this.state.actors]
         .filter((o) => o !== a && o.pos.space === space)
         .map((o) => `${o.pos.x},${o.pos.y}`),
     );
-    const moved = new Set(
-      room.furniture
-        .filter((f) => {
-          const o = this.object(`${space}-room-${f.propId}`);
-          return !o || o.broken || o.tipped || o.pos.x !== f.pos.x || o.pos.y !== f.pos.y;
-        })
-        .map((f) => f.propId),
-    );
+    const moved = this.movedFurnishings(room,space);
     for (const [n, list] of order.entries()) {
       const free = list.filter((p) => !taken.has(`${p.x},${p.y}`) && !moved.has(p.propId) && (p.on || !this.blocked(p.x, p.y, space)));
       if (!free.length) continue;
       // The front of the work goes to whoever works it; seats and beds are shared out.
-      const spot = n === 0 && working ? free[0] : free[index % free.length];
+      const row = rite?.row && free.filter(s => s.kind === "prayer").sort((a,b) => a.y-b.y || a.x-b.x)[0];
+      const spot = row || (rite || duties || teaching || stall ? free[Math.floor(random(this.state.manifest.seed, "shift-station", a.id, label) * free.length)] : n === 0 && working ? free[0] : free[index % free.length]);
       a.direction = spot.facing;
       delete a.facing;
-      this.indoorUses.set(a.id, { ...spot, role: list === room.beds ? "bed" : list === room.work ? "work" : list === room.fire ? "fire" : "seat", space, cooking });
+      this.indoorUses.set(a.id, { ...spot, on: rite && spot.kind === "prayer" ? undefined : spot.on, role: list === room.beds ? "bed" : rite?.at || list === stations ? "work" : servingMeal || list === room.fire ? "fire" : "seat", space, cooking });
       return { x: spot.x, y: spot.y, space };
     }
     const exit = `${room.exit.x},${room.exit.y}`;
@@ -3550,20 +3742,36 @@ export class Engine {
     const warm = room.fire[0] ?? room.entry;
     const floor = [...room.walk]
       .map((k) => k.split(",").map(Number))
-      .filter(([x, y]) => !taken.has(`${x},${y}`) && `${x},${y}` !== exit && !this.blocked(x, y, space) && !(x === room.entry.x && y === room.entry.y))
+      .filter(([x, y]) => !taken.has(`${x},${y}`) && `${x},${y}` !== exit && !this.blocked(x, y, space) && !(x === room.entry.x && y === room.entry.y) && inWing({x,y}))
       .sort(([ax, ay], [bx, by]) => (sleeping ? Math.hypot(ax - warm.x, ay - warm.y) - Math.hypot(bx - warm.x, by - warm.y) : 0));
     // A standing congregation fills the nave below the chancel, front rows first, facing the altar.
-    const altar = room.params.program === "rows" ? room.props.find((q) => q.kind === "altar") : undefined;
-    if (altar && !sleeping) {
+    const altar = wing ? room.props.find(q => room.rooms[q.room ?? 0] === wing && q.kind === "altar") :
+      room.params.program === "rows" ? room.props.find(q => q.kind === "altar") : undefined;
+    if (altar && room.params.shape === "terrace" && room.params.styles.altar !== "ahu") {
+      const path = floor.filter(([x,y]) => {
+        const edge = stupaPathEdge(room.params, (x-ROOM_ORIGIN)*16+8, (y-ROOM_ORIGIN)*16+8);
+        return edge >= -19 && edge <= 0;
+      });
+      if (path.length) {
+        const [x,y] = path[index % path.length];
+        const dx = x-ROOM_ORIGIN+.5-room.params.w/2, dy = y-ROOM_ORIGIN+.5-room.params.d/2;
+        a.direction = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 2 : 0) : dy > 0 ? 3 : 1;
+        return {x,y,space};
+      }
+    }
+    if (altar && !sleeping && room.params.shape !== "terrace") {
       const head = altar.y + ROOM_ORIGIN + 3, mid = altar.x + ROOM_ORIGIN + altar.w / 2;
       const nave = floor.filter(([, y]) => y >= head).sort(([ax, ay], [bx, by]) => ay - by || Math.abs(ax + 0.5 - mid) - Math.abs(bx + 0.5 - mid));
       if (nave.length) {
         a.direction = 0;
-        return { x: nave[0][0], y: nave[0][1], space };
+        const at = rite ? Math.floor(random(this.state.manifest.seed, "nave", space, a.id) * Math.ceil(nave.length * .72)) : 0;
+        return { x: nave[at][0], y: nave[at][1], space };
       }
     }
-    const [x, y] = floor[sleeping ? index % Math.min(3, floor.length || 1) : 0] ?? exit.split(",").map(Number);
+    if (rite) a.direction = 0;
+    const [x, y] = floor[rite && floor.length ? (index * 13 + 7) % floor.length : sleeping ? index % Math.min(3, floor.length || 1) : 0] ?? exit.split(",").map(Number);
     if (sleeping) this.indoorUses.set(a.id, { x, y, facing: 2, kind: "mat", propId: -1, on: "bed", role: "bed", space });
+    else if (rite && rite === room.observance?.diner) this.indoorUses.set(a.id, {x,y,facing:2,kind:"mat",propId:-1,on:"floor",role:"seat",space});
     return { x, y, space };
   }
   /** Walls, water and built-in pieces: what stands there whatever anyone moves. */
@@ -6869,6 +7077,104 @@ export class Engine {
     const name = plantName(sprite);
     return capital ? `The ${name}` : `the ${name}`;
   }
+  private worshipRoom() {
+    const pos = this.state.player.pos;
+    const layout = pos.space !== "outside" && this.interiorOf(pos.space);
+    if (!layout || !layout.observance) return;
+    const wing = roomAt(layout,pos.x,pos.y);
+    if (!wing) return;
+    const present = this.state.actors.filter(a => a.kind === "human" && !a.dead && !a.terror && a.pos.space === pos.space && roomAt(layout,a.pos.x,a.pos.y) === wing);
+    return {layout, rite:layout.observance, wing, present};
+  }
+  overheardReading() {
+    const room = this.worshipRoom();
+    if (!room) return;
+    const {rite, wing, present} = room;
+    for (const part of [rite.service, rite.gathering, rite.visit]) {
+      if (!part?.passage || part.room !== wing.role) continue;
+      const passage = worshipAct(rite, part.label, this.state.clock)?.passage;
+      if (!passage) continue;
+      const reader = present.find(a => a.activity === part.label && this.withinEarshot(a,8) &&
+        !!rite.tradition && beliefsForActor(this.world.pack.setting,a).worship?.includes(rite.tradition));
+      if (reader) {
+        const setting = this.world.pack.setting;
+        return {reader, passage:setting ? passageOn(passage,calendarOf(setting,this.state.clock)) : passage};
+      }
+    }
+  }
+  worshipAction() {
+    const p = this.state.player, {space} = p.pos;
+    const room = this.worshipRoom();
+    if (!room || p.perch || heldObject(this.state)) return;
+    const {layout, rite, wing, present} = room;
+    const action = (kind: "leave" | "meal" | "row" | "listen", label: string, spot?: Spot, person?: Actor) => ({
+      kind, label, spot, person, command:{type:"interact",action:"participate",target:`${space}/${kind}`} as const,
+    });
+    if (p.activity === "Sitting and listening" || p.activity === "Standing and listening" || p.activity === "Standing in the prayer row")
+      return action("leave", p.activity === "Sitting and listening" ? "Stand up" : p.activity === "Standing in the prayer row" ? "Step out of the row" : "Stop listening");
+    if (rite.diner?.room === wing.role && !p.heldItem) {
+      const diner = present.filter(a => a.activity === rite.diner!.label && a.sharedMealHour !== Math.floor(this.state.clock/3600))
+        .sort((a,b) => distance(a.pos,p.pos) - distance(b.pos,p.pos))[0];
+      const server = present.find(a => a.activity === rite.visit.label && distance(a.pos,p.pos) <= 2);
+      if (diner && (distance(diner.pos,p.pos) <= 2 || server)) return action("meal","Help serve the meal",undefined,diner);
+    }
+    const praying = rite.gathering.row && present.some(a => a.activity === rite.gathering.label);
+    const voice = present.find(a => {
+      const sound = worshipAct(rite,a.activity,this.state.clock)?.sound;
+      return sound && ["recitation","unison","strings","woodbeat"].includes(sound) && this.withinEarshot(a,8);
+    });
+    if (!praying && !voice) return;
+    const moved = this.movedFurnishings(layout,space);
+    const seats = layout.seats.filter(s => s.on && Math.hypot(s.x-p.pos.x,s.y-p.pos.y) <= 1 &&
+      roomAt(layout,s.x,s.y) === wing && !this.actorAt({...p.pos,x:s.x,y:s.y},"player") && !moved.has(s.propId))
+      .sort((a,b) => Math.hypot(a.x-p.pos.x,a.y-p.pos.y)-Math.hypot(b.x-p.pos.x,b.y-p.pos.y));
+    const row = seats.find(s => s.kind === "prayer");
+    if (row && praying)
+      return action("row","Join the prayer row",row);
+    if (voice) {
+      let seat = seats.find(s => s.kind !== "prayer");
+      if (!seat && layout.seats.some(s => s.kind === "cushions" && roomAt(layout,s.x,s.y) === wing) && layout.walk.has(`${p.pos.x},${p.pos.y}`))
+        seat = {x:p.pos.x,y:p.pos.y,facing:0,kind:"mat",propId:-1,on:"floor"};
+      return action("listen",seat ? "Sit and listen" : "Stand and listen",seat,voice);
+    }
+  }
+  private participate(target: string) {
+    const a = this.worshipAction();
+    if (!a || target !== a.command.target) return;
+    const p = this.state.player;
+    if (a.kind === "leave") {
+      const space = p.pos.space;
+      if (this.blocked(p.pos.x,p.pos.y,space)) {
+        const clear = [[0,1],[0,-1],[1,0],[-1,0]].map(([dx,dy]) => ({x:p.pos.x+dx,y:p.pos.y+dy,space}))
+          .find(q => !this.blocked(q.x,q.y,space) && !this.actorAt(q,"player"));
+        if (clear) p.pos = clear;
+      }
+      p.activity = "Indoors";
+      this.indoorUses.delete("player");
+      return void this.event("You step away.");
+    }
+    this.dailyGoals();
+    const joined = this.state.goalFlags!.participated ??= [];
+    if (!joined.includes(target)) joined.push(target);
+    if (a.kind === "meal" && a.person) {
+      a.person.sharedMealHour = Math.floor(this.state.clock/3600);
+      a.person.hunger = Math.max(0,a.person.hunger - 18);
+      this.advance(5 * 60);
+      return void this.event(`You spend five minutes passing out bowls. ${a.person.name} takes a helping.`);
+    }
+    if (a.spot) {
+      p.pos = {...p.pos,x:a.spot.x,y:a.spot.y};
+      p.direction = a.spot.facing;
+      if (a.kind === "listen") this.indoorUses.set("player",{...a.spot,role:"seat",space:p.pos.space});
+    } else if (a.person) {
+      const dx = a.person.pos.x-p.pos.x, dy = a.person.pos.y-p.pos.y;
+      p.direction = Math.abs(dx)>Math.abs(dy) ? dx>0 ? 1 : 3 : dy>0 ? 2 : 0;
+    }
+    delete p.facing;
+    const row = a.kind === "row";
+    p.activity = row ? "Standing in the prayer row" : a.spot ? "Sitting and listening" : "Standing and listening";
+    this.event(row ? "You take an open place in the row and face the prayer niche." : a.spot ? "You take a seat and listen." : "You stand quietly and listen.");
+  }
   /** The nearest prop within reach that can be used, and how. */
   usable() {
     const p = this.state.player;
@@ -7057,6 +7363,7 @@ export class Engine {
         };
       }
     }
+    if (p.pos.space !== "outside") return;
     const place = (this.world.places ?? []).find((q) => near(q.entrance) && !towerStyleFor(q.sprite));
     if (place)
       return {
@@ -7065,7 +7372,7 @@ export class Engine {
         rise: 22,
         at: { ...place.entrance },
       };
-    if (p.pos.space === "outside" && this.world.topography) {
+    if (this.world.topography) {
       const here = this.world.topography(p.pos.x, p.pos.y);
       for (const [dx, dy] of [
         [1, 0],
@@ -7318,6 +7625,7 @@ export class Engine {
       const room = this.interiorOf(place.id);
       p.pos = room ? { ...room.entry, space: place.id } : { x: 6, y: 8, space: place.id };
       p.activity = "Indoors";
+      if(room?.institution==="exchange")this.indoorStaff();
       this.state.goalFlags?.visited.push(
         `${place.name} ${place.sprite}`.toLowerCase(),
       );
@@ -7880,6 +8188,11 @@ export class Engine {
     if (reachable?.id === id) interact("climb", `Climb ${reachable.label}`);
     const use = this.usable();
     if (use?.id === id) interact("use-prop", use.label);
+    if (actor && actor.pos.space === this.state.player.pos.space && actor.pos.space !== "outside" &&
+      worshipAct(this.interiorOf(actor.pos.space)?.observance,actor.activity,this.state.clock)) {
+      const join = this.worshipAction();
+      if (join && (!join.person || join.person === actor)) add(join.label,join.command,true);
+    }
     if (this.state.player.perch?.on === id)
       interact("descend", "Climb down", true);
     if (actor) {
@@ -8032,6 +8345,10 @@ export class Engine {
               ? "It is open."
               : "Look inside to see what it holds."
             : "",
+          object.curing ? (object.curing.fish ? `${object.curing.count} ${this.item(object.curing.fish)!.name.toLowerCase()} on the rack. ${this.state.clock>=object.curing.ready! ? "Ready to take down." : `Ready in ${Math.ceil((object.curing.ready!-this.state.clock)/60)} minutes.`}` : `Empty rack. Salt left in the tub: ${object.inventory.salt??0}.`) : "",
+          object.prop==="grainHoist" ? `The warehouse holds ${object.inventory.grain??0} sacks of grain and ${object.inventory.pepper??0} measures of pepper.` : "",
+          object.shopSupply ? `${object.inventory[object.shopSupply.item]??0} ${object.shopSupply.item==="bread" ? "loaves" : "measures of pepper"} on the counter. The shop opens from six in the morning to six in the evening.` : "",
+          object.prop==="clothCounter" ? `Tied bales: ${object.inventory.cloth??0}. Bolts on sale: ${object.inventory["cloth-bolt"]??0}. Open from six in the morning to six in the evening.` : "",
           object.carriedBy ? "You are holding it." : "",
           this.belongsTo(object.owner),
         ]
@@ -8099,24 +8416,29 @@ export class Engine {
       // answers is the knock's business, not the prompt's.
       else interact("knock", "Knock and wait");
     }
-    if(object.passage)interact("passage","Take the cross-river ferry",close && !this.state.player.afloat,"Walk to the boarding gate");
+    if (object.passage) {
+      const fare = object.passage.back || (this.state.player.inventory["ferry-ticket"] ?? 0) > 0;
+      interact("passage", object.passage.back ? "Take the free return ferry" : "Board with a ferry ticket",
+        close && !this.state.player.afloat && fare, !fare ? "Buy a ticket at the booth" : "Walk to the boarding gate");
+    }
     if(object.vessel) {
       const p=this.state.player, dock=this.world.anchorage?.(object.vessel.site);
       if(p.boat===object.id && dock){
         const nearShore=Math.hypot(object.pos.x-dock.shore.x,object.pos.y-dock.shore.y)<=3;
         if(nearShore) interact("launch","Tie up and step ashore",true);
         if(object.vessel.form==="lighter"){
-          const trader=this.object(object.vessel.site+"-dhow");
-          if(nearShore && object.inventory.cloth)interact("unload","Land the cloth bales",true);
-          else if(trader && distance(object.pos,trader.pos)<=6 && (trader.inventory.cloth??0)>0 && (object.inventory.cloth??0)<3)
-            interact("unload","Load cloth from the dhow",true);
+          const trader=this.object(object.vessel.site+"-merchant");
+          const good=dock.cargo;
+          if(nearShore && object.inventory[good])interact("unload",good==="grain" ? "Land the grain sacks" : "Land the cloth bales",true);
+          else if(trader && distance(object.pos,trader.pos)<=6 && (trader.inventory[good]??0)>0 && (object.inventory[good]??0)<3)
+            interact("unload",`Load ${good} from the ${trader.sprite.startsWith("harbor-fluyt-") ? "fluyt" : "dhow"}`,true);
         }
       } else if(this.atBoat(object)) interact("launch","Take the tiller of the "+object.name.toLowerCase(),true);
     }
-    if(object.lighterage) interact("unload","Take a bale to the shore store",close && !this.state.player.deliveryBale && (object.inventory.cloth??0)>0,
-      this.state.player.deliveryBale ? "Deliver the bale you are carrying" : "Wait for the lighter to land its cargo");
-    if(this.state.player.deliveryBale===object.id) interact("unload","Stack the bale and collect your fee",close);
-    if(object.freight)interact("unload","Work the cargo sling",close && (object.inventory.grain??0)>0,"Waiting for the next consignment");
+    if(object.lighterage) interact("unload",object.lighterage.cargo==="grain" ? "Carry a sack to the grain warehouse" : "Take a bale to the shore store",close && !this.state.player.deliveryLoad && (object.inventory[object.lighterage.cargo]??0)>0,
+      this.state.player.deliveryLoad ? "Deliver the load you are carrying" : "Wait for the lighter to land its cargo");
+    if(object.freight?.boxes)interact("unload","Read the vessel manifest",close,"Walk to the manifest desk");
+    else if(object.freight)interact("unload","Work the cargo sling",close && (object.inventory.grain??0)>0,"Waiting for the next consignment");
     const boat = this.ownBoat(object);
     if (boat) {
       const p = this.state.player;
@@ -8170,7 +8492,7 @@ export class Engine {
         : object.vessel
           ? `${object.description} ${object.inventory.cloth ? `${object.inventory.cloth} cloth bale${object.inventory.cloth===1 ? "" : "s"} aboard.` : "The hold is empty."}`
           : object.motor
-          ? [object.description, object.inventory.grain ? `The truck carries ${object.inventory.grain} ${object.inventory.grain===1 ? "sack" : "sacks"} of grain.` : "The freight body is empty."].join(" ")
+          ? [object.description, object.inventory["steel-coil"] ? `The truck carries ${object.inventory["steel-coil"]} steel coil${object.inventory["steel-coil"]===1 ? "" : "s"}.` : object.inventory.grain ? `The truck carries ${object.inventory.grain} ${object.inventory.grain===1 ? "sack" : "sacks"} of grain.` : "The freight body is empty."].join(" ")
           : object.description
           ? object.description
           : object.kind === "tree"
@@ -8338,6 +8660,10 @@ export class Engine {
     }
     if (p.drivingCart && (c.type === "move" || c.type === "interact" && c.action === "enter"))
       return "Halt the cart and hand back the reins to step down.";
+    if(c.type==="exchange"){
+      const f=this.exchangeFloor();
+      return f ? orderProblem(f,c) : "Walk to the market counter or enter the exchange first.";
+    }
     if (c.type === "gamble") {
       const kind = p.pos.space === "outside" ? undefined : venueOfClaim(this.world.place(p.pos.space)?.claim ?? "")?.kind;
       if (!tableGames.some((g) => g.id === c.game && g.kinds.includes(kind!))) return "There is no game here.";
@@ -8427,6 +8753,8 @@ export class Engine {
       return this.burnProblem(c.target);
     if (c.type === "interact" && c.action === "use-prop")
       return this.usable()?.id === c.target ? undefined : "There is nothing here to use.";
+    if (c.type === "interact" && c.action === "participate")
+      return this.worshipAction()?.command.target === c.target ? undefined : "That activity is no longer within reach.";
     if (c.type === "interact" && c.action === "gather") {
       const at = this.tileAt(c.target);
       if (!at || !this.gatherable(at.x, at.y)) return "There is nothing here to gather.";
@@ -8614,7 +8942,10 @@ export class Engine {
     }
     // A boat is boarded from the water's edge, not from beside its hull.
     const launch = c.type === "interact" && c.action === "launch" ? this.object(c.target) : undefined;
-    if (launch ? !this.atBoat(launch) : distance(p.pos, target.pos) > 2.5) return "Move closer first.";
+    const merchant = c.type==="deal" && this.state.actors.find(a=>a.id===c.target);
+    const counter = merchant && merchant.stockroom && this.object(merchant.stockroom);
+    const atCounter = counter && distance(p.pos,counter.pos)<=2.5;
+    if (launch ? !this.atBoat(launch) : !atCounter && distance(p.pos, target.pos) > 2.5) return "Move closer first.";
     if (c.type === "give") {
       const a = this.state.actors.find((a) => a.id === c.target);
       if (!a || a.dead || a.kind !== "human") return "There is nobody there to take it.";
@@ -8626,7 +8957,7 @@ export class Engine {
       if (!shop) return "You cannot trade with this target.";
       const a = shop.actor;
       if (a.trust < 0) return "They will not trade while the loss remains unresolved.";
-      if (a.pos.space !== p.pos.space || distance(a.pos, p.pos) > 3) return "Walk closer to trade.";
+      if (!atCounter && distance(a.pos, p.pos) > 3) return "Walk closer to trade.";
       const lines = [...Object.entries(c.give), ...Object.entries(c.take)];
       if (!lines.some(([, n]) => (n ?? 0) > 0) || lines.some(([id, n]) => !Number.isSafeInteger(n) || (n ?? 0) < 0 || !this.item(id)))
         return "Invalid quantities or items.";
@@ -8677,7 +9008,7 @@ export class Engine {
       return;
     }
     const offered = target.affordances.find(
-      (a) => a.command.type === "interact" && a.command.action === c.action,
+      (a) => a.command.type === "interact" && a.command.action === c.action && (c.action !== "salt-fish" || a.command.item === c.item),
     );
     if (!offered?.enabled)
       return offered?.reason ?? "That action is not available.";
@@ -8738,8 +9069,7 @@ export class Engine {
         Math.abs(g.pos.y - p.y) <= FAUNA_KEEP
       )
         return true;
-      // The player's hens keep their eggs and their shut door while the player is away.
-      if (g.hitch || g.draft || g.train || (g.house && g.owner === "player")) return true;
+      if (g.market || g.hitch || g.draft || g.train || g.owner === "player") return true;
       const plotted = (g.maneater ?? g.stockRaid)?.plot;
       if (plotted) return plotted === this.state.plot?.id && !this.state.plot.ended;
       if (!g.gateId) stale.add(faunaBlockOf(g.home.x, g.home.y));
@@ -9631,6 +9961,20 @@ export class Engine {
       return;
     }
     if (c.type === "care") { this.giveCare(c.target, c.treatment); return; }
+    if(c.type==="exchange"){
+      const f=this.exchangeFloor();
+      if(!f || orderProblem(f,c))return;
+      if(c.action==="call"){
+        this.advance(callSeconds-this.state.clock%callSeconds);
+        this.event(fillOrder(f,c));
+      } else {
+        (p.exchanges??={})[f.place.id]=f.book;
+        if(f.kind==="beurs")f.book.warehouse=f.warehouse;
+        this.event(fillOrder(f,c));
+        this.advance(12);
+      }
+      return;
+    }
     if (c.type === "gamble") { this.gamble(c); return; }
     if (c.type === "fish") { this.landFish(c); return; }
     this.lastImpact = undefined;
@@ -10137,7 +10481,7 @@ export class Engine {
         p.pos={...p.pos,x:p.pos.x+c.dx,y:p.pos.y+c.dy};
         ship.pos={...p.pos};ship.vessel.heading=facingFromStep(c.dx,c.dy,p.direction);
         p.facing=ship.vessel.heading;p.direction=Math.floor((p.facing+1)/2)%4;
-        ship.vessel.underway=true;ship.vessel.lastMove=this.state.clock;p.activity=ship.vessel.form==="dhow" ? "Sailing" : "Rowing";
+        ship.vessel.underway=true;ship.vessel.lastMove=this.state.clock;p.activity=ship.vessel.form==="merchant" ? "Sailing" : "Rowing";
         this.populateNearby();this.advance(4);return;
       }
 
@@ -10652,7 +10996,10 @@ export class Engine {
         if (id === "coin") purse -= n;
         else stock[id] = (stock[id] ?? 0) - n;
       }
-      a.shop = { day: shop.day, stock, purse, opening: shop.opening };
+      if (a.stockroom) {
+        const store = this.object(a.stockroom)!;
+        store.inventory = { ...stock, ...(store.prop==="clothCounter" ? {cloth:store.inventory.cloth??0} : {}), coin: purse };
+      } else a.shop = { day: shop.day, stock, purse, opening: shop.opening };
       this.faceEachOther(a);
       this.cue(a.id, c.give.coin ? "take-coin" : "take", p.pos);
       if (this.state.goalFlags) this.state.goalFlags.traded = true;
@@ -10881,6 +11228,14 @@ export class Engine {
         shipAct(this.ships, c.target);
         break;
       case "enter":
+        if (b?.venueRoom) {
+          const venue = fairById(b.venueRoom.venue);
+          if (venue) {
+            this.advance(10);
+            fairEnter(this.complex, venue, true, b.venueRoom.room);
+            break;
+          }
+        }
         if (b && mineEnter(this.complex, b)) break;
         if (b) {
           const errand = this.state.asks?.find((x) => x.kind === "go-to" && x.place === b.id);
@@ -10889,7 +11244,8 @@ export class Engine {
           this.advance(10);
           const room = this.interiorOf(b.id);
           p.pos = room ? { ...room.entry, space: b.id } : { x: 6, y: 8, space: b.id };
-          p.activity = "Visiting a household";
+          p.activity = room?.institution==="exchange" ? "Visiting the exchange" : "Visiting a household";
+          if(room?.institution==="exchange")this.indoorStaff();
           const mine = this.state.households?.some((h) => h.residence === b.id && h.members.includes(p.id));
           this.event(
             `You ${this.world.pack.entryLabel.toLowerCase()} ${mine ? "your home" : b.name.toLowerCase()}.`,
@@ -10975,6 +11331,9 @@ export class Engine {
       case "use-prop":
         this.useProp();
         break;
+      case "participate":
+        this.participate(c.target);
+        break;
       case "climb": {
         const target = this.climbable();
         if (target) this.perch(target);
@@ -11020,25 +11379,46 @@ export class Engine {
         break;
       case "passage":
         if(o?.passage){
+          if (!o.passage.back) {
+            if (!(p.inventory["ferry-ticket"] ?? 0)) break;
+            p.inventory["ferry-ticket"]!--;
+            this.event("The conductor punches your ticket and waves you aboard.");
+          }
           const phase=(this.state.clock+(o.passage.back?600:0))%FERRY_PERIOD;
           const journey=(phase<240?600-phase:FERRY_PERIOD+600-phase);
           yield* this.advanceSteps(Math.ceil(journey));
           if(!p.dead){p.pos={...o.passage.destination,space:"outside"};this.event("You step off the cross-river ferry.");}
         }
         break;
+      case "salt-fish":
+        if (o && c.item && cureFish(o,p.inventory,c.item,"player",this.state.clock))
+          this.event(`You salt the ${this.item(c.item)!.name.toLowerCase()} and hang them under the reed roof.`);
+        break;
+      case "gather-fish": {
+        const id=o && collectDried(o,p.inventory,"player",this.state.clock);
+        if(id)this.event(`You wrap the ${this.item(id)!.name.toLowerCase()} and put them in your basket.`);
+        break;
+      }
       case "unload":
         if(o?.vessel?.form==="lighter" && p.boat===o.id){
-          const dock=this.world.anchorage?.(o.vessel.site),trader=this.object(o.vessel.site+"-dhow");
+          const dock=this.world.anchorage?.(o.vessel.site),trader=this.object(o.vessel.site+"-merchant");
           const landing=this.state.objects.find(x=>x.lighterage?.site===o.vessel!.site);
-          const landed=dock && landing && Math.hypot(o.pos.x-dock.shore.x,o.pos.y-dock.shore.y)<=3 && o.inventory.cloth;
-          const n=landed ? transferCloth(o,landing!,3) : trader && distance(o.pos,trader.pos)<=6 ? transferCloth(trader,o,3-(o.inventory.cloth??0)) : 0;
-          if(n)this.event(landed ? "You set the bales down at the landing." : "You stow the cloth under the thwarts.");
-        } else if(o?.lighterage && !p.deliveryBale && (o.inventory.cloth??0)>0){
-          o.inventory.cloth!--;p.deliveryBale=o.lighterage.store;
-          this.event("You shoulder a bale of cloth. Take it to the shaded store beside the boatyard.");
-        } else if(o && p.deliveryBale===o.id){
-          delete p.deliveryBale;o.inventory.cloth=(o.inventory.cloth??0)+1;p.inventory.coin=(p.inventory.coin??0)+1;
-          this.event("You stack the cloth under cover. The storekeeper pays you one coin.");
+          if(!dock || !landing) break;
+          const good=dock.cargo;
+          const landed= Math.hypot(o.pos.x-dock.shore.x,o.pos.y-dock.shore.y)<=3 && o.inventory[good];
+          const n=landed ? transferCargo(o,landing,good,3) : trader && distance(o.pos,trader.pos)<=6 ? transferCargo(trader,o,good,3-(o.inventory[good]??0)) : 0;
+          if(n)this.event(landed ? "You set the load down at the landing." : "You stow the load in the lighter.");
+        } else if(o && (o.lighterage || p.deliveryLoad===o.id)){
+          const task=this.handleConsignment(o);
+          const t=task && this.trade();
+          if(t && t.process.steps[t.stage]?.name===task) yield* this.doWork(false,true);
+        } else if(o?.prop==="clothCounter" && openClothBale(o)){
+          this.event("You untie the bale and lay three bolts of cloth across the counter.");
+        } else if(o?.freight?.boxes){
+          const count=o.freight.boxes.delivered;
+          this.event(o.freight.good ? `Berth manifest · ${count} of 3 steel coils received at row B.` : `Berth manifest · ${count} of 3 containers received at row B. Each holds three measures of bagged grain.`);
+          const shift=this.trade();
+          if(shift?.process.steps[shift.stage]?.name==="manifest")yield* this.doWork(false,true);
         } else if(o?.freight && (o.inventory.grain??0)>0){
           const store=this.object(o.freight.store);
           if(store){o.inventory.grain!--;store.inventory.grain=(store.inventory.grain??0)+1;
@@ -11661,7 +12041,7 @@ export class Engine {
     // A new life gets its own trouble once the old one is over.
     if (s.plot?.ended) {
       s.plot = undefined;
-      startPlot(s, this.world.pack.setting, undefined, (year ?? 0) + 1);
+      startPlot(s, this.world.pack.setting, undefined, (year ?? 0) + 1, this.world.activitySites);
     }
     ensureLifeAim(s, this.world.pack.setting);
     s.introduced = false;
@@ -11731,6 +12111,23 @@ export class Engine {
     return !!actor && !actor.dead && distance(this.state.player.pos, actor.pos) <= 2.5 && this.visible(actor.pos);
   }
   private atPlotScene(plot: PlotState, scene: PlotScene) {
+    if (scene === "workplace") {
+      const { pos, work } = this.state.player;
+      const employer = this.world.activitySites?.("player")?.employment;
+      if (employer?.kind === "hospital") {
+        if (pos.space !== employer.id) return false;
+        if (plot.id !== "shift" || livelihoodOf(this.world.pack, this.state.player)?.activity !== "Tending the sick") return true;
+        const room = this.interiorOf(pos.space), ward = roomAt(room, pos.x, pos.y);
+        const peer = this.state.actors.find(a => a.id === plot.cast.friend)?.pos;
+        return ward?.role === "ward" && peer?.space === pos.space && roomAt(room, peer.x, peer.y) === ward;
+      }
+      if (employer?.kind === "school") return pos.space === employer.id;
+      if (distance(pos, work) <= 6) return true;
+      if (pos.space === "outside") return false;
+      if (employer) return employer.id === pos.space;
+      const place = this.world.place(pos.space);
+      return !!place && distance({ ...place.entrance, space: "outside" }, work) <= 2;
+    }
     if (scene === "shore" || scene === "field") {
       const t = this.trade(), place = t && this.findPlace(scene, t), p = this.state.player.pos;
       return !place || (p.space === "outside" && distance(p, place.pos) <= 10);
@@ -11781,10 +12178,10 @@ export class Engine {
       syncPlotAim(s, plot);
     }
     this.bring({
-      kind: speaker ? "speech" : "turn", title: plot.title, text: plotLine(plot, a.line, s), moment: a.line, focus: a.focus, speaker,
+      kind: speaker ? "speech" : "turn", title: plot.title, text: plotLine(plot, a.line, s), moment: speaker && scene === "workplace" ? undefined : a.line, focus: a.focus, speaker,
       ...(scene ? { scene: { plot: plot.id, began: plot.began, at: scene } } : {}),
       choose: { card, choices: a.choices.map((c, index) => ({
-        index, label: plotLine(plot, `${c.id}:label`, s),
+        index, label: plotLine(plot, `${c.id}:label`, s), minutes: c.minutes,
         odds: c.check && this.plotOdds(plot, c.check, stats),
       })) },
     });
@@ -11806,6 +12203,7 @@ export class Engine {
     this.lastChoice = line ? { card: id, line, won: c.check ? won : undefined, changes: [] } : undefined;
     if (line) this.event(line);
     this.runPlot();
+    if (c.minutes) this.advance(c.minutes * 60);
   }
   private runPlot(speaker?: string) {
     const s = this.state, plot = s.plot!, g = plot.gathering;
@@ -11820,7 +12218,8 @@ export class Engine {
       else this.askPlot(plot);
     }
     // A decision put away unanswered comes back after half an hour; one waiting on a place comes when you get there.
-    else if (ask && ask.due === undefined && (s.clock >= ask.at + 1800 || (ask.scene && !ask.shown && this.atPlotScene(plot, ask.scene)))) this.askPlot(plot);
+    else if (ask && ask.due === undefined && !(ask.scene === "workplace" && ask.shown) &&
+      (s.clock >= ask.at + 1800 || (ask.scene && !ask.shown && this.atPlotScene(plot, ask.scene)))) this.askPlot(plot);
     // People set out a little early, so the place is full when it starts.
     if (g && s.clock >= g.start - 1200 && s.clock < g.until) {
       if (!g.met) this.convene(plot, g);
@@ -12121,6 +12520,13 @@ export class Engine {
     if (!a || (!anyone && !granary && !this.sellsNow(a))) return undefined;
     const day = Math.floor(this.state.clock / (DAY_MINUTES * 60));
     const coined = this.coined();
+    if (a.stockroom) {
+      const store = this.object(a.stockroom);
+      if (!store || !this.sellsNow(a)) return undefined;
+      const { coin: purse = 0, ...stock } = store.inventory;
+      if (store.prop==="clothCounter") delete stock.cloth;
+      return { actor: a, coined, day, purse, stock, held: stock, opening: stock };
+    }
     const shop = a.shop?.day === day ? a.shop
       : stockFor(this.world.pack, this.state.manifest.seed, a, day, coined, (i) => this.item(i), [...this.imported().keys()].filter((i) => this.carried(i)));
     if (granary && a.shop?.day !== day) shop.stock = { ...shop.stock, grain: granary };
@@ -12174,7 +12580,12 @@ export class Engine {
   /** Open for trade now: at the stall, or by day in a workshop at home,
    * which is where most crafts sold from. Never asleep or ill in bed. */
   private sellsNow(a: Actor) {
+    if(a.staff && this.interiorOf(a.staff)?.institution==="exchange")return false;
     if (a.dead || !sellsTrade(this.world.pack, a) || /sleep|^resting/i.test(a.activity)) return false;
+    if (a.stockroom) {
+      const store = this.object(a.stockroom), hour = this.state.clock / 3600 % 24;
+      return !!store && !store.broken && hour >= 6 && hour < 18 && distance(a.pos, store.pos) <= 2.5;
+    }
     const day = this.world.itinerary?.(a.id);
     if (day && itineraryAt(day, this.state.clock).activity === "rest" && a.activity !== "At home") return false;
     if (keepsShop(this.world.pack, a)) return a.activity !== "At home";
@@ -12217,6 +12628,7 @@ export class Engine {
   }
   /** A seller's wares in a line: "Sells salt, wool and cloth · buys rice". */
   tradeLine(id: string) {
+    if (this.state.actors.find(a=>a.id===id)?.stockroom) return this.describeTrade(id);
     const key = `${id}:${Math.floor(this.state.clock / (DAY_MINUTES * 60))}`;
     if (!this.tradeLines.has(key)) this.tradeLines.set(key, this.describeTrade(id));
     return this.tradeLines.get(key);
@@ -12392,6 +12804,8 @@ export class Engine {
   /** Half as much again for the last of a seller's morning stock. */
   private scarcity(id: ItemId, seller: string) {
     const shop = this.shopOf(seller, true), was = shop?.opening[id] ?? 0;
+    if (id.startsWith("fish-") && shop?.actor.stockroom && this.object(shop.actor.stockroom)?.prop==="fishCounter")
+      return Math.max(.7, 1.4 - Math.min(7,shop.stock[id]??0)*.1);
     return was < 2 ? 1 : 1 + 0.5 * Math.max(0, 1 - (shop!.stock[id] ?? 0) / was);
   }
   /** Grain dearest in the season before the harvest, cheapest once it is in. */
@@ -13182,6 +13596,12 @@ export class Engine {
     }
     return false;
   }
+  private ordinaryFish(water: "sea" | "river" | "lake", id: string, clock: number) {
+    const setting=this.world.pack.setting!;
+    const kinds=fishOf(setting,water).filter(k=>!k.rarity && !k.trap && biting(k,clock/3600,(seasonAt(setting.season,clock)??"spring") as SeasonId,0));
+    const fish=kinds[Math.floor(random(this.state.manifest.seed,id,Math.floor(clock/86400),"landed-fish")*kinds.length)];
+    return fish && fishItemId(fish);
+  }
   /** Places an actor from their precomputed day. Sleeping moves them inside
    * the house, so nobody stands at the door overnight. */
   private followRoutine(a: Actor, routine: Itinerary, clock: number, tick = true) {
@@ -13202,7 +13622,30 @@ export class Engine {
     // rack at both ends of the day, so the change happens where you can see it.
     if (sites?.rackId) {
       const rack = this.object(sites.rackId);
-      if (rack) rack.open = at.activity !== "rest";
+      if (rack?.curing && household && tick && !at.moving) {
+        const bag=a.inventory ??= {}, day=Math.floor(clock/86400);
+        if (at.target?.family==="fish-sorting" && rack.curing.intakeDay!==day) {
+          const stock=this.state.economy?.stock[household.id], count=Math.min(5,Math.floor(stock?.fish??0));
+          const water=waterfrontMember(this.world,household)?.practice?.water;
+          const id=water && this.ordinaryFish(water,a.id,clock);
+          if (stock && id && count>0) {
+            stock.fish-=count;
+            bag[id]=(bag[id]??0)+count;
+            rack.curing.intakeDay=day;
+          }
+        } else if(at.activity==="haul-catch" && Math.hypot(at.x-rack.pos.x,at.y-rack.pos.y)<=3) {
+          collectDried(rack,bag,household.id,clock);
+          const fish=Object.keys(bag).find(id=>id.startsWith("fish-") && (bag[id]??0)>1);
+          if(fish)cureFish(rack,bag,fish,household.id,clock);
+        } else if(at.target?.family==="fish-counter" && at.target.id===rack.curing.counter) {
+          const stall=this.object(at.target.id);
+          if(stall) for(const [id,n] of Object.entries(bag)) {
+            if(!n || !(id.startsWith("fish-") || id.startsWith("dried-fish-")))continue;
+            stall.inventory[id]=(stall.inventory[id]??0)+n;
+            delete bag[id];
+          }
+        }
+      } else if(rack && !rack.curing) rack.open = at.activity !== "rest";
     }
     // A tower storey is a space of its own under the building's id.
     const indoorPlace = at.placeId && this.world.place(parseFloor(at.placeId).place);
@@ -13217,6 +13660,17 @@ export class Engine {
       if (store && distance(store.pos, { x:at.x, y:at.y, space:"outside" }) <= 2.2) {
         this.moveActor(a, { x:Math.round(at.x), y:Math.round(at.y), space:"outside" });
         emptyBasket(a, store);
+      }
+    }
+    if (room && !at.moving && sites?.employment?.kind === "worship" && sites.employment.id === room) {
+      const layout = this.interiorOf(room), rite = layout?.observance;
+      if (rite && layout.regulars) {
+        const now = worshipHours(rite, Math.floor(clock / 86400), Math.floor(clock / 3600) % 24, layout.regulars.hours);
+        const doing = (now.peak && rite.service || rite.visit).label;
+        if (a.pos.space !== room || a.activity !== doing) this.moveActor(a, this.indoorSpot(a, room, doing));
+        a.activity = doing;
+        a.offRoutine = true;
+        return;
       }
     }
     if (at.activity === "rest" && room) {
@@ -13291,7 +13745,7 @@ export class Engine {
   private atBoat(o: WorldObject) {
     if(o.vessel) {
       const p=this.state.player,a=this.world.anchorage?.(o.vessel.site);
-      if(!a || p.pos.space!=="outside" || p.drivingCart || p.mount || p.perch || p.held || p.deliveryBale) return false;
+      if(!a || p.pos.space!=="outside" || p.drivingCart || p.mount || p.perch || p.held || p.deliveryLoad) return false;
       if(p.boat===o.id) return true;
       if(o.vessel.underway && !o.vessel.manual) return false;
       const from=this.object(p.boat);
@@ -13397,20 +13851,26 @@ export class Engine {
     if (!setting) return {};
     const fate = catchFate(setting), preserve = waterfrontMember(this.world, t.household) && this.preserve(t.household);
     // A catch the player fished by hand is the fish they carry home.
-    const inv = this.state.player.inventory, fresh = Object.keys(inv).filter((id) => id.startsWith("fish-") && (inv[id] ?? 0) > 0);
+    const inv = this.state.player.inventory, landed = this.state.economy?.work?.landed;
+    let sale = 0, count = 0;
+    for (const [id, n] of Object.entries(landed ?? {})) {
+      const have = Math.min(inv[id] ?? 0, n ?? 0);
+      if (!have) continue;
+      if (trophyFish.has(id)) { this.event("You set your trophy catch aside to keep."); continue; }
+      sale += (have - Math.round(have * (fate.owed?.share ?? 0))) * this.sellPrice(id);
+      count += have; inv[id]! -= have;
+      if (!inv[id]) delete inv[id];
+    }
+    if (landed && !count) return {};
     if (fate.owed) this.event(`${fate.owed.share >= 0.25 ? "A quarter" : "A tenth"} of the catch goes to ${fate.owed.to}.`);
-    for (const id of fresh) inv[id]! -= Math.round(inv[id]! * (fate.owed?.share ?? 0));
     if ((preserve === "salt" || preserve === "ferment") && !this.saltFor(t.household))
       this.event("There is no salt in the house, so the rest has to be eaten or sold fresh today.");
     else if (preserve && preserve !== "fresh") this.event(`The rest is put by: ${preserveWords[preserve].doing.toLowerCase()}.`);
-    if (fate.sold && fresh.length && this.coined()) {
-      const n = fresh.reduce((sum, id) => sum + (inv[id] ?? 0) * this.sellPrice(id), 0);
-      for (const id of fresh) delete inv[id];
-      inv.coin = (inv.coin ?? 0) + n;
-      this.event(`${fate.buyer.replace(/^./, (c) => c.toUpperCase())} buys the rest of the catch for ${amountIn(setting, n, true)}.`);
-      return n ? { coin: n } : {};
+    if (fate.sold && landed && this.coined()) {
+      inv.coin = (inv.coin ?? 0) + sale;
+      this.event(`${fate.buyer.replace(/^./, (c) => c.toUpperCase())} buys the rest of the catch for ${amountIn(setting, sale, true)}.`);
+      return sale ? { coin: sale } : {};
     }
-    for (const id of fresh) delete inv[id];
     if (fate.sold) {
       const coin = this.takings(2, (amount) => `${fate.buyer.replace(/^./, (c) => c.toUpperCase())} pays you ${amount} for the fish.`);
       if (!coin.coin) this.event("You trade the fish at the market for what the house needs.");
@@ -13717,6 +14177,24 @@ export class Engine {
       }
     }
   }
+  private restInWard(a: Actor) {
+    if (a.pos.space !== "outside" && this.world.place(a.pos.space)?.institution === "hospital" && this.indoorUses.get(a.id)?.role === "bed") return true;
+    const range = (p: Place) => Math.hypot(p.entrance.x - a.home.x, p.entrance.y - a.home.y);
+    const wards = this.world.places.filter(p => p.institution === "hospital" && range(p) <= 60 && !this.burningPlace(p.id))
+      .sort((p,q) => range(p) - range(q));
+    for (const ward of wards) {
+      const room = this.interiorOf(ward.id);
+      const free = room?.beds.some(b => {
+        const pos = {x:b.x,y:b.y,space:ward.id};
+        return !this.actorAt(pos,a.id) && !this.playerOn(pos);
+      });
+      if (!free) continue;
+      this.moveActor(a, this.indoorSpot(a, ward.id, "Resting in a ward bed"));
+      a.offRoutine = true;
+      return true;
+    }
+    return false;
+  }
   /** Keeps a dormant resident indoors at their household, or at their door
    * when the house has no interior. */
   private park(a: Actor) {
@@ -13758,17 +14236,61 @@ export class Engine {
     const floor = this.towerOf(place.id)?.floors[storey.n];
     if (floor && !floor.customers) return;
     const [from, to] = room.regulars.hours;
-    if (from <= to ? hour < from || hour >= to : hour < from && hour >= to) return;
     const day = Math.floor(this.state.clock / 86400);
+    const rite = room.observance, service = rite && worshipHours(rite, day, hour, [from,to]);
+    if (service ? !service.fill : from <= to ? hour < from || hour >= to : hour < from && hour >= to) return;
+    const classrooms = room.rooms.some(b => b.role === "classroom");
+    const seated = new Map<string, { space: string; label: string; index: number }>();
+    const staff = rite?.service ? "worship" : classrooms ? "school" : place.institution === "hospital" ? "hospital" : room.institution === "magistracy" ? "administration" : undefined;
+    if (staff) {
+      for (const a of this.state.actors) {
+        if (a.dead || a.terror || this.laidUp(a.id) || a.work.x !== place.entrance.x || a.work.y !== place.entrance.y) continue;
+        const job = this.world.activitySites?.(a.id)?.employment;
+        if (job?.id !== space || job.kind !== staff) continue;
+        const i = seated.size, label = rite ? (service?.peak && i === 0 && rite.service || rite.visit).label : staff === "school" ? "Teaching a class" : staff === "hospital" ? wardDuties[(i + hour) % wardDuties.length].label :
+          /magistrate|governor|judge/i.test(a.role) ? "Holding court" : "Writing in the register";
+        seated.set(a.id, {space,label,index:i});
+      }
+    }
+    this.regulars.seated = seated;
+    if (!room.regulars.fill) return seated;
     const near = this.state.actors
-      .filter((a) => a.kind === "human" && (a.age ?? 30) >= 16 && !a.terror && this.world.dormant?.(a.id) &&
+      .filter((a) => a.kind === "human" && (classrooms ? (a.age ?? 30) >= 6 && (a.age ?? 30) < 16 : (a.age ?? 30) >= 16) && !a.terror && !a.dead &&
+        (rite ? !(a.staff || a.task || a.underground || a.post || a.watch || a.mount || a.tends || a.errand || this.laidUp(a.id)) : this.world.dormant?.(a.id)) &&
         this.household(a.householdId)?.residence !== space && Math.hypot(a.home.x - place.entrance.x, a.home.y - place.entrance.y) <= 60)
       .sort((a, b) => random(this.state.manifest.seed, "regular", a.id, day) - random(this.state.manifest.seed, "regular", b.id, day));
-    const label = `At ${(floor?.name ?? place.name).replace(/^The /, "the ")}`;
+    const label = classrooms ? "At school" : `At ${(floor?.name ?? place.name).replace(/^The /, "the ")}`;
     // Where people stand, as in a medieval nave or a playhouse pit, the floor sets the count.
     const places = Math.max(room.seats.length, Math.floor(room.walk.size / 6));
-    this.regulars.seated = new Map(near.slice(0, Math.round(places * room.regulars.fill)).map((a, index) => [a.id, { space, label, index }]));
-    return this.regulars.seated;
+    const capacity = classrooms ? room.seats.filter(s => s.kind === "pew").length : places;
+    const tradition = rite?.tradition;
+    const attends = (a:Actor) => !!tradition && !!beliefsForActor(this.world.pack.setting,a).worship?.includes(tradition);
+    const count = Math.round(capacity * room.regulars.fill * (service?.fill ?? 1));
+    let visitors = near.slice(0, count);
+    if (tradition && service?.peak) {
+      const peers = sanctuaryAt(place) ? this.world.places.filter(p => (p.worshipSchool ?? sanctuaryAt(p)?.faith) === tradition) : [];
+      const members = [], guests = [];
+      for (const a of near) {
+        if (attends(a)) {
+          if (peers.length < 2 || localCongregation(peers,a.home,[tradition])?.id === space) members.push(a);
+        } else if (rite?.diner || !guests.length) guests.push(a);
+      }
+      visitors = [...members, ...guests].slice(0, count);
+    }
+    const leader = !seated.size && service?.peak && rite?.layLeader && visitors.find(a =>
+      attends(a) && (rite.layLeader === "adult" || (a.origin?.sex ?? a.appearance?.physique?.sex) === "male"));
+    visitors.forEach((a,index) => {
+      if (seated.has(a.id)) return;
+      let doing = rite ? (a === leader && rite.service ? rite.service : service?.peak && index % 4 !== 3 ? rite.gathering : rite.visit).label : label;
+      if (rite?.diner && doing === rite.visit.label && (service?.peak ? index % 8 === 3 : index % 3 !== 0)) doing = rite.diner.label;
+      if (rite && !attends(a) && doing !== rite.diner?.label) doing = "Visiting quietly";
+      if (room.institution === "bazaar")
+        doing = /merchant|trader|seller|shopkeeper|potter|draper/i.test(a.role) ? "Minding the stall" : "Looking over the wares";
+      if (room.institution === "magistracy")
+        doing = /clerk|scribe|registrar/i.test(a.role) ? "Writing in the register" : "Waiting to be heard";
+      seated.set(a.id, {space,label:doing,index});
+    });
+    return seated;
   }
   /** Seconds from now until the next morning, for a night's sleep. */
   /** The hour the player's day starts: their trade's, or six. */
@@ -13919,10 +14441,11 @@ export class Engine {
     this.barriersAt = new Map();
     this.objectsById = new Map();
     this.resourceObjects = [];
-    const slings:WorldObject[]=[], lighterLandings:WorldObject[]=[];
+    const slings:WorldObject[]=[], lighterLandings:WorldObject[]=[], quayCounters:WorldObject[]=[];
     for (const o of this.state.objects) {
       if(o.freight)slings.push(o);
       if(o.lighterage)lighterLandings.push(o);
+      if(o.quayStock)quayCounters.push(o);
       if (!this.objectsById.has(o.id)) this.objectsById.set(o.id, o);
       if (o.resource) this.resourceObjects.push(o);
       if (o.kind !== "gate" && o.kind !== "door" && !o.prop) continue;
@@ -13962,17 +14485,21 @@ export class Engine {
       const v=this.world.vehicle?.(o.id), driver=v && this.actorsById!.get(v.crew[0]);
       return v?.delivery && driver && !o.motor!.taken ? [{o,v,driver}] : [];
     });
+    const quayTraders=quayCounters.flatMap(counter=>{
+      const job=counter.quayStock!, source=this.objectsById!.get(job.source), seller=counter.owner && this.actorsById!.get(counter.owner);
+      return source && seller ? [{counter,job,source,seller}] : [];
+    });
     const drivers=new Set(deliveries.map(d=>d.driver.id));
     const anchorages=lighterLandings.flatMap(pile=>{
       const job=pile.lighterage!,a=this.world.anchorage?.(job.site),store=this.objectsById!.get(job.store);
-      const dhow=this.objectsById!.get(job.site+"-dhow"),lighter=this.objectsById!.get(job.site+"-lighter");
-      if(!a || !store || !dhow?.vessel || !lighter?.vessel)return [];
-      const crew=[dhow,lighter].map(o=>{
+      const merchant=this.objectsById!.get(job.site+"-merchant"),lighter=this.objectsById!.get(job.site+"-lighter");
+      if(!a || !store || !merchant?.vessel || !lighter?.vessel)return [];
+      const crew=[merchant,lighter].map(o=>{
         const pilot=this.actorsById!.get(o.vessel!.skipper);
         if(pilot)drivers.add(pilot.id);
         return {o,pilot};
       });
-      return [{pile,a,store,dhow,lighter,crew,porter:this.actorsById!.get(job.porter)}];
+      return [{pile,a,store,merchant,lighter,crew,porter:this.actorsById!.get(job.porter),seller:this.actorsById!.get(a.site+"-quay-merchant")}];
     });
     const end = this.state.clock + seconds;
     const player = this.state.player;
@@ -13986,7 +14513,7 @@ export class Engine {
       const next = Math.min(end, (Math.floor(this.state.clock / 6) + 1) * 6),
         elapsed = next - this.state.clock;
       this.state.clock = next;
-      for(const {pile,a,store,dhow,lighter,crew,porter} of anchorages){
+      for(const {pile,a,store,merchant,lighter,crew,porter,seller} of anchorages){
         const sailing=anchorageAt(a,next);
         for(const {o,pilot} of crew){
           const v=o.vessel!,pose=sailing[v.form],atHelm=player.boat===o.id;
@@ -14001,11 +14528,37 @@ export class Engine {
             pilot.offRoutine=true;this.syncActor(pilot);
           }
         }
-        serviceAnchorage(pile,store,dhow,lighter,next,porter);
+        const landed=store.inventory.grain;
+        serviceAnchorage(pile,store,merchant,lighter,next,porter);
+        if((store.inventory.grain??0)>(landed??0)){const receipt=landedOrder(player,store,false);if(receipt)this.event(receipt);}
+        if (a.cargo==="cloth" && !store.broken && (store.inventory.cloth??0)>0 && !(store.inventory["cloth-bolt"]??0) && seller && !seller.dead &&
+            next/3600%24>=6 && next/3600%24<18 && distance(seller.pos,store.pos)<=2.5)
+          openClothBale(store);
+      }
+      for(const {counter,job,source,seller} of quayTraders){
+        const day=Math.floor(next/86400),minute=next%86400/60;
+        if (minute<420 || seller.dead || counter.broken) continue;
+        if (job.received<day) {
+          const waiting=source.inventory[job.item]??0;
+          if(waiting<12)source.inventory[job.item]=Math.min(12,waiting+4);
+          job.received=day;
+        }
+        if (minute<445 && job.collected<day && !job.carrying && distance(seller.pos,source.pos)<=2.5) {
+          const count=Math.min(4,source.inventory[job.item]??0,Math.max(0,10-(counter.inventory[job.item]??0)));
+          if(count>0){job.carrying=count;source.inventory[job.item]!-=count;seller.inventory[job.item]=(seller.inventory[job.item]??0)+count;}
+          job.collected=day;
+        }
+        if (job.carrying && distance(seller.pos,counter.pos)<=2.5) {
+          const delivered=Math.min(job.carrying,seller.inventory[job.item]??0);
+          counter.inventory[job.item]=(counter.inventory[job.item]??0)+delivered;
+          seller.inventory[job.item]=(seller.inventory[job.item]??0)-delivered;
+          delete job.carrying;
+        }
       }
       for(const sling of slings){
         const store=this.objectsById.get(sling.freight!.store),wagon=this.objectsById.get(sling.freight!.store.replace(/-store$/,"-wagon"));
-        if(store && wagon)serviceFreight(sling,store,wagon,next,this.objectsById.get(store.id.replace(/-store$/,"-delivery-dispatch")));
+        if(store && wagon)serviceFreight(sling,store,wagon,next,this.objectsById.get(store.id.replace(/-store$/,"-delivery-dispatch")),
+          sling.freight!.boxes ? this.objectsById.get(store.id.replace(/-store$/,"-feeder")) : undefined);
       }
       for(const {o,v,driver} of deliveries)this.serviceDelivery(o,v,driver,next,elapsed);
       if (player.drivingCart) {
@@ -14017,7 +14570,7 @@ export class Engine {
         } else delete player.drivingCart;
       }
       complexTime(this.complex, elapsed);
-      this.towerStaff();
+      this.indoorStaff();
       if (this.state.voyage) shipTime(this.ships);
       diseaseTime(this.state, elapsed, next - elapsed);
       if (this.state.baby) this.babyStep(this.state.baby, elapsed, seconds > 240);
@@ -14109,7 +14662,7 @@ export class Engine {
           ) > (this.state.manifest.simulation === 2 ? 220 : 80)
         )
           continue;
-        const gap = next - (a.lastUpdated ?? next - 6);
+        const gap = Math.max(0, next - (a.lastUpdated ?? next - 6));
         a.lastUpdated = next;
         a.hunger = Math.min(100, a.hunger + gap / 1800);
         // Catch up returning distant residents before either endpoint becomes visible.
@@ -14218,14 +14771,14 @@ export class Engine {
         }
         const laid = a.kind === "human" && a.id !== player.id ? this.laidUp(a.id) : undefined;
         if (laid) {
-          this.park(a);
+          if ((a.activity !== laid || next % 3600 === 0) && !this.restInWard(a)) this.park(a);
           a.activity = laid;
           continue;
         }
         if (a.kind === "human") {
           // Past the routine budget a resident is furniture: home, fed, and
           // never routed. The budget rotates them back in over the days.
-          if (this.world.dormant?.(a.id)) {
+          if (this.world.dormant?.(a.id) || (player.pos.space !== "outside" && this.interiorOf(player.pos.space)?.observance && this.regularsAt()?.has(a.id))) {
             this.park(a);
             continue;
           }
@@ -14406,6 +14959,11 @@ export class Engine {
         continue;
       const routine = this.world.itinerary?.(a.id);
       if (routine) this.followRoutine(a, routine, this.state.clock, false);
+    }
+    if (player.activity === "Standing in the prayer row" && !actors.some(a =>
+      !a.dead && a.pos.space === player.pos.space && a.activity === player.activity)) {
+      player.activity = "Indoors";
+      this.event("The others step away and the prayer row breaks up.");
     }
     updateRelationships(this.state);
     this.tickObstacles = undefined;

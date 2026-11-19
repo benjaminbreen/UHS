@@ -1,18 +1,7 @@
 import type { Road } from "./types";
 import type { Point } from "../../core/types";
 import type { PathStroke } from "../../core/topography";
-const distance = (p: Point, a: Point, b: Point) => {
-  const dx = b.x - a.x,
-    dy = b.y - a.y,
-    t = Math.max(
-      0,
-      Math.min(
-        1,
-        ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy || 1),
-      ),
-    );
-  return Math.hypot(p.x - a.x - t * dx, p.y - a.y - t * dy);
-};
+import { simplifyPath } from "./roads";
 /** Simplify four-connected route steps for art only, with less than one cell of
  * deviation. The generated route, reservations and movement rules stay intact. */
 export function pathArt(
@@ -27,29 +16,8 @@ export function pathArt(
   const index = new Map<string, PathStroke[]>();
   for (const road of roads) {
     if (road.kind === "bridge" || road.points.length < 2) continue;
-    const points = road.points,
-      keep = new Set([0, points.length - 1]);
-    const work = [[0, points.length - 1]];
-    while (work.length) {
-      const [a, b] = work.pop()!;
-      let max = 1.1,
-        at = -1;
-      for (let i = a + 1; i < b; i++) {
-        const d = distance(points[i], points[a], points[b]);
-        if (d > max) {
-          max = d;
-          at = i;
-        }
-      }
-      if (at >= 0) {
-        keep.add(at);
-        work.push([a, at], [at, b]);
-      }
-    }
-    // Round the corners: two rounds of corner cutting on the simplified
-    // line, endpoints fixed. The route cells underneath are untouched, so a
-    // bend strays at most about a cell from the walked line.
-    let selected = [...keep].sort((a, b) => a - b).map((i) => points[i]);
+    let selected = simplifyPath(road.points, 1.1);
+    // Round the corners after simplification, leaving the endpoints fixed.
     for (let round = 0; round < 2 && selected.length > 2; round++) {
       const out: Point[] = [selected[0]];
       for (let i = 0; i < selected.length - 1; i++) {

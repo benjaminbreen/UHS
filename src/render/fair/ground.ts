@@ -1,4 +1,4 @@
-import { BED, BOX, BRIDGE, BUILDING, DECK, FENCE, FLOOR, GRAVEL, HEDGE, LAWN, PAVING, WALL, WATER, fairIndoor, type FairLevel } from "../../world/fair";
+import { BED, BOX, BRIDGE, BUILDING, DECK, FENCE, FLOOR, GRAVEL, HEDGE, LAWN, PAVING, WALL, WATER, fairIndoor, plantParterre, type Parterre, type FairLevel } from "../../world/fair";
 import { h2, Raster } from "../ship/raster";
 import { boundaryStyles } from "../../content/settlements/boundaries";
 import { drawEw, drawNs, drawPost } from "../boundary-forms";
@@ -262,8 +262,26 @@ const sdEllipse = (px: number, py: number, cx: number, cy: number, a: number, b:
 /** A railed garden drawn at the pixel over its cells: an oval walk, beds with
  * rounded ends edged in clipped box, a round basin in its coping. The cells
  * still decide where one can walk; this only rounds what they square off. */
-function garden(R: Raster, L: FairLevel, g: FairLevel["gardens"][number], seed: number) {
-  const OX = PAD.x * 16, OY = PAD.top * 16, { w } = L;
+const parterres = new Map<string, Raster>();
+
+export function parterrePixels(pixels: Uint8ClampedArray, plan: Parterre, u: number, v: number) {
+  const key = [plan.w, plan.h, +plan.royal, plan.seed].join("/");
+  let image = parterres.get(key);
+  if (!image) {
+    const level = plantParterre(plan);
+    image = new Raster(plan.w * 16, plan.h * 16);
+    for (const g of level.gardens) garden(image, level, g, plan.seed, 0, 0);
+    if (parterres.size >= 8) parterres.delete(parterres.keys().next().value!);
+    parterres.set(key, image);
+  }
+  for (let j = 0; j < 16; j++) {
+    const start = ((v * 16 + j) * image.w + u * 16) * 4;
+    pixels.set(image.data.subarray(start, start + 64), j * 64);
+  }
+}
+
+function garden(R: Raster, L: Pick<FairLevel, "w" | "h" | "cells">, g: FairLevel["gardens"][number], seed: number, OX = PAD.x * 16, OY = PAD.top * 16) {
+  const { w } = L;
   const X0 = OX + g.x0 * 16, Y0 = OY + g.y0 * 16, X1 = OX + (g.x1 + 1) * 16, Y1 = OY + (g.y1 + 1) * 16;
   const cell = (px: number, py: number) => {
     const x = Math.floor((px - OX) / 16), y = Math.floor((py - OY) / 16);
@@ -296,7 +314,7 @@ function garden(R: Raster, L: FairLevel, g: FairLevel["gardens"][number], seed: 
   const bedD = (px: number, py: number) => {
     let d = 1e9;
     for (const r of beds) {
-      const rad = g.style === "parterre" ? 10 : Math.min(r.w, r.h) / 2 - 2;
+      const rad = g.style === "parterre" || g.style === "embroidery" ? 10 : Math.min(r.w, r.h) / 2 - 2;
       let e = sdBox(px, py, { x: r.x + 2, y: r.y + 2, w: r.w - 4, h: r.h - 4 }, rad);
       if (basin) e = Math.max(e, brad + 14 - Math.hypot(px - bcx, py - bcy));
       d = Math.min(d, e);
@@ -333,7 +351,7 @@ function garden(R: Raster, L: FairLevel, g: FairLevel["gardens"][number], seed: 
         let col = up ? (bd > -1.5 ? BOXC[0] : BOXC[1]) : down ? BOXC[2] : left ? BOXC[1] : right ? BOXC[3] : BOXC[2];
         if (!up && !down && h2(px >> 1, py >> 1, seed + 21) > 0.8) col = BOXC[1];
         R.set(px, py, col);
-      } else R.set(px, py, (px + py * 2) % 7 === 0 ? SOIL[0] : SOIL[1]);
+      } else R.set(px, py, g.style === "embroidery" ? GRASS[3] : (px + py * 2) % 7 === 0 ? SOIL[0] : SOIL[1]);
       continue;
     }
     // The hedge's face, and its shadow on the ground in front.
@@ -351,6 +369,29 @@ function garden(R: Raster, L: FairLevel, g: FairLevel["gardens"][number], seed: 
   // Roses massed in the beds, one colour to a bed with a stray of another.
   const main = Math.floor(h2(g.x0, g.y0, seed) * ROSES.length);
   for (const r of beds) {
+    if (g.style === "embroidery") {
+      const cx = r.x + r.w / 2, cy = r.y + r.h / 2, a = r.w / 2 - 9, b = r.h / 2 - 8;
+      const sign = cx < bcx ? 1 : -1, turn = cy < bcy ? 1 : -1;
+      const dot = (x: number, y: number, rad: number, col: string) => {
+        for (let j = -rad; j <= rad; j++) for (let i = -rad; i <= rad; i++)
+          if (i * i + j * j <= rad * rad && bedD(x + i, y + j) < -4) R.set(x + i, y + j, col);
+      };
+      for (const side of [-1, 1]) {
+        for (let i = 0; i <= 260; i++) {
+          const t = i / 260, theta = -2.1 + t * 7.4, rad = 1 - t * .91;
+          const x = Math.round(cx + sign * a * (-.12 + Math.cos(theta) * rad * .86 + .40 * t));
+          const y = Math.round(cy + turn * side * b * (.38 + Math.sin(theta) * rad * .50));
+          dot(x, y, 3, BOXC[4]); dot(x, y - 1, 2, BOXC[0]);
+        }
+        for (let i = 0; i < 10; i++) {
+          const t = i / 9, x = Math.round(cx + sign * a * (-.82 + 1.47 * t));
+          const y = Math.round(cy + side * b * (.88 - .19 * Math.sin(t * Math.PI)));
+          const f = ROSES[(seed + (i >> 2)) % ROSES.length];
+          dot(x, y, 2, f[2]); R.set(x, y - 1, f[0]);
+        }
+      }
+      continue;
+    }
     const pal0 = (main + Math.floor(h2(r.x, r.y, 3) * 2)) % ROSES.length;
     for (let by = r.y + 6; by < r.y + r.h - 4; by += 6) for (let bx = r.x + 6 + ((by >> 1) % 2) * 3; bx < r.x + r.w - 4; bx += 7) {
       const x = bx + Math.round((h2(bx, by, seed + 3) - 0.5) * 3), y = by + Math.round((h2(by, bx, seed + 6) - 0.5) * 3);

@@ -17,7 +17,8 @@ import { livelihoodById } from "../src/content/characters/livelihoods";
 import { institutionFor } from "../src/content/characters/workplace";
 import { isVisitor } from "../src/world/v3/rail-travellers";
 import { waterfrontFor } from "../src/content/settlements/waterfronts";
-import { catchFate, catchOf, crewRole, fishingPractice, hullWeights, methodWeights, preserveOf } from "../src/content/economy/fishing";
+import { FishingSim } from "../src/ui/fishing/sim";
+import { fishOf, catchFate, catchOf, crewRole, fishingPractice, hullWeights, methodWeights, preserveOf } from "../src/content/economy/fishing";
 import { CARDS } from "../src/content/cards";
 import { personalItem } from "../src/core/livelihood";
 import { findPlace } from "../src/core/work-places";
@@ -532,6 +533,28 @@ it.each(["London 1650","Tokyo 1800","Nile valley 2000 BCE"])("creates reachable 
         (e as any).followRoutine(worker,itinerary,(itinerary.start+(leg!.from+leg!.to)/2)*60);
         expect(worker.heldItem).toMatch(/^prop:basket@/);
         expect(worker.pos.space).toBe("outside");
+        if (profile.id==="edo-inshore-fishing" && member.process) {
+          const rack=e.state.objects.find(o=>o.id===member.process!.id)!;
+          const counter=e.state.objects.find(o=>o.id===rack.curing!.counter)!;
+          const economy=e.state.economy??={hour:5,stock:{},short:{}};
+          const stock=economy.stock[household.id]??={};stock.fish=5;
+          const visit=(family:string)=>{
+            const stop=itinerary.segments.find(g=>!g.path && g.target?.family===family)!;
+            expect(stop,family).toBeDefined();
+            (e as any).followRoutine(worker,itinerary,(itinerary.start+(stop.from+stop.to)/2)*60);
+          };
+          visit("fish-sorting");visit("fish-sorting");
+          expect(stock.fish).toBe(0);
+          const id=Object.keys(worker.inventory!).find(id=>id.startsWith("fish-") && worker.inventory![id]===5)!;
+          expect(id).toBeDefined();
+          const before=counter.inventory[id]??0;
+          visit("drying-rack");
+          expect(rack.curing).toMatchObject({fish:id,count:3,keeper:household.id});
+          expect(worker.inventory![id]).toBe(2);
+          visit("fish-counter");visit("fish-counter");
+          expect(counter.inventory[id]).toBe(before+2);
+          expect(worker.inventory![id]).toBeUndefined();
+        }
       }
       const ask={state:e.state,world:e.world,household,day:1,client:()=>undefined,markets:true,inside:()=>undefined,below:()=>null};
       expect(findPlace("shore",ask)?.pos).toEqual({...member.landing,space:"outside"});
@@ -656,8 +679,9 @@ it("takes the household boat out to fish, for NPCs and the player, where no regi
   } finally {a.runtime.dispose();}
 },120000);
 
-it("lands a hand-fished catch as fish the player carries, logs each kind, and sells the rest at landing",async()=>{
-  const a=await startAgent({setting:"Fisher in Lagos 1700",seed:"fishing-explore"},new RunRecord({mode:"run"}));
+it.each(["Lagos 1700","Tokyo 1800"])("keeps track of the catch from boat to buyer in %s",async(place)=>{
+  const edo=place==="Tokyo 1800";
+  const a=await startAgent({setting:`Fisher in ${place}`,seed:edo ? "fishing-waterfront-review" : "fishing-explore"},new RunRecord({mode:"run"}));
   try {
     const e=a.engine;
     let today=e.workPlan()!;
@@ -674,20 +698,59 @@ it("lands a hand-fished catch as fish the player carries, logs each kind, and se
     if(card)await a.call("act",{command:{type:"choose",card,choice:1}});
     expect(e.fishingHere()).toBeDefined();
     expect(e.validate({type:"fish",caught:[{id:"stone",kg:1}],minutes:60})).toBe("That is not a fish.");
-    const caught=[{id:"fish-sardine",kg:.1},{id:"fish-sardine",kg:.12},{id:"shell",kg:.1},{id:"fish-grey-mullet",kg:2.4}];
+    const fish=edo ? "fish-crucian-carp" : "fish-sardine", big=edo ? "fish-reed-ghost" : "fish-grey-mullet";
+    if(!edo)e.state.player.inventory["fish-perch"]=1;
+    const caught=[{id:fish,kg:.1},{id:fish,kg:.12},{id:"shell",kg:.1},{id:big,kg:edo ? 9 : 2.4}];
     expect(await a.call("act",{command:{type:"fish",caught,minutes:90}})).toMatch(/land 3 fish/);
-    expect(e.state.player.inventory["fish-sardine"]).toBe(2);
+    expect(e.state.player.inventory[fish]).toBe(2);
     expect(e.state.player.inventory.shell).toBeGreaterThan(0);
     expect(e.state.fishLog!.shell).toBeUndefined();
-    expect(e.state.fishLog!["fish-grey-mullet"]).toEqual({n:1,best:2.4});
-    expect(e.state.events.some(v=>/Your first ever sardine and grey mullet/.test(v.text))).toBe(true);
+    expect(e.state.fishLog![big]).toEqual({n:1,best:edo ? 9 : 2.4});
+    if(!edo)expect(e.state.events.some(v=>/Your first ever sardine and grey mullet/.test(v.text))).toBe(true);
     today=e.workPlan()!;
     await a.call("goto",{x:today.door!.x,y:today.door!.y});
     const landing=(e as any).waitingCard();
     if(landing)await a.call("act",{command:{type:"choose",card:landing,choice:0}});
     const coin=e.state.player.inventory.coin??0;
-    expect(await a.call("act",{command:e.workHere()!.command})).toMatch(/buys the rest of the catch/);
-    expect(Object.keys(e.state.player.inventory).some(id=>id.startsWith("fish-"))).toBe(false);
+    const result=await a.call("act",{command:e.workHere()!.command});
+    if(edo) {
+      expect(result).toMatch(/sorting trays/);
+      const rack=e.state.objects.find(o=>o.owner==="player" && o.curing)!;
+      const stand=e.state.objects.find(o=>o.id===rack.curing!.counter)!;
+      const seller=e.state.actors.find(v=>v.stockroom===stand.id)!;
+      const p=e.state.player;
+      expect(p.inventory[big]).toBe(1);
+      expect(p.inventory[fish]).toBe(2);
+      expect(await a.call("goto",{target:rack.id})).toMatch(/^ARRIVED/);
+      const salt=rack.inventory.salt!;
+      const hang={type:"interact",target:rack.id,action:"salt-fish",item:fish} as const;
+      expect(e.validate(hang)).toBeUndefined(); e.execute(hang);
+      expect(rack.inventory.salt).toBe(salt-1);
+      expect(rack.curing).toMatchObject({fish,count:2,keeper:"player"});
+      expect(p.inventory[fish]).toBe(0);
+      const collect={type:"interact",target:rack.id,action:"gather-fish"} as const;
+      expect(e.validate(collect)).toMatch(/drying/);
+      expect(await a.call("goto",{target:stand.id})).toMatch(/^ARRIVED/);
+      const shop=e.shopOf(seller.id)!;
+      expect(shop).toBeDefined();
+      const local=Object.keys(shop.stock).find(id=>id.startsWith("fish-"))!, price=e.buyPrice(local,seller.id), before=stand.inventory[local]!;
+      p.inventory.coin=price;
+      const buy={type:"deal",target:seller.id,give:{coin:price},take:{[local]:1}} as const;
+      expect(e.validate(buy)).toBeUndefined(); e.execute(buy);
+      expect(stand.inventory[local]).toBe(before-1);
+      expect(p.inventory.coin).toBe(0);
+      expect(await a.call("goto",{target:rack.id})).toMatch(/^ARRIVED/);
+      e.advance(Math.max(0,rack.curing!.ready!-e.state.clock));
+      expect(e.validate(collect)).toBeUndefined(); e.execute(collect);
+      expect(p.inventory["dried-"+fish]).toBe(2);
+      expect(p.inventory[big]).toBe(1);
+      expect(e.validate(collect)).toBeTruthy();
+      return;
+    }
+    expect(result).toMatch(/buys the rest of the catch/);
+    expect(e.state.player.inventory["fish-perch"]).toBe(1);
+    expect(e.state.player.inventory[fish]).toBeUndefined();
+    expect(e.state.player.inventory[big]).toBeUndefined();
     expect(e.state.player.inventory.coin??0).toBeGreaterThan(coin);
   } finally {a.runtime.dispose();}
 },120000);
@@ -803,3 +866,62 @@ it("shows a visiting gatherer on their outing in the furnished settlement", () =
   expect(world.routinePending!(id)).toBe(false);
   expect(world.dormant!(id)).toBe(false);
 });
+
+it("keeps introduced Nile perch out of historical Lake Victoria catches",()=>{
+  const lake={lat:-2.5,lon:32.9,climate:"tropical",culture:"east-southern-african"} as const;
+  const names=(year:number)=>fishOf({...lake,year},"lake").map(f=>f.name);
+  expect(names(1650)).toContain("Tilapia");
+  expect(names(1650)).not.toContain("Nile perch");
+  expect(names(2020)).toContain("Nile perch");
+});
+
+it("only spawns the reed ghost alone in deep water at a rainy dawn or dusk",()=>{
+  const kinds=fishOf({climate:"temperate",culture:"east-asian"},"river");
+  const setup={method:"net",water:"river",afloat:true,kinds,hour:6,run:1,season:"spring",rain:1,wind:0,snow:false,mist:false,finds:[],sets:{net:true,weir:false,pot:0}} as const;
+  let seen=0;
+  for(let i=0;i<400;i++) {
+    const seed=String(i);
+    const sim=new FishingSim({...setup,seed,finds:[]});
+    for(const fish of sim.fish.filter(f=>f.kind.rarity==="legendary")) {
+      expect(fish.kind.name).toBe("Reed ghost");
+      expect(sim.fish.filter(f=>f.shoal===fish.shoal)).toHaveLength(1);
+      expect(sim.depthAt(sim.shoals.find(s=>s.id===fish.shoal)!.y)).toBeGreaterThan(.55);
+      seen++;
+    }
+    for(const conditions of [{hour:12},{rain:0}])
+      expect(new FishingSim({...setup,...conditions,seed,finds:[]}).fish.some(f=>f.kind.rarity==="legendary")).toBe(false);
+  }
+  expect(seen).toBeGreaterThan(0);expect(seen).toBeLessThan(30);
+});
+
+it.runIf(!!process.env.FULL).each([
+  ["Ea-nasir in Sumeria 1750 BCE","copper-ingot","barley-beer"],
+  ["Merchant in Memphis 1800 BCE","grain","cloth-bolt"],
+])("brings river cargo to the merchant and barters it in %s",async(prompt,good,other)=>{
+  const {prepareConnectedStart}=await import("../src/runtime/map-travel");
+  const seed="river-quay", resolved=resolveSetting(prompt,seed);
+  if ("error" in resolved) throw Error(resolved.error);
+  const e=await prepareConnectedStart(resolved.setting,seed);
+  const counters=e.state.objects.filter(o=>o.quayStock);
+  expect(counters.map(o=>o.quayStock!.item)).toEqual([good,other]);
+  const counter=counters[0], seller=e.state.actors.find(a=>a.stockroom===counter.id)!;
+  const source=e.state.objects.find(o=>o.id===counter.quayStock!.source)!;
+  for(const stall of counters) {
+    const x=Math.round((stall.pos.x+source.pos.x)/2), y=Math.round((stall.pos.y+source.pos.y)/2);
+    expect(e.world.topography!(x,y).waterVisual!.distance).toBeGreaterThanOrEqual(0);
+  }
+  const before=counter.inventory[good]!, incoming=source.inventory[good]!;
+  e.state.clock=7*3600-1; e.advance(48*60);
+  const added=counter.inventory[good]!-before;
+  expect(added).toBeGreaterThan(0);
+  expect(source.inventory[good]).toBe(incoming-added);
+  e.state.player.pos={...seller.pos};
+  e.state.player.inventory.wool=12;
+  const purchased=e.state.player.inventory[good]??0;
+  const trade={type:"deal",target:seller.id,give:{wool:12},take:{[good]:1}} as const;
+  expect(e.validate(trade)).toBeUndefined();e.execute(trade);
+  expect(e.state.player.inventory[good]).toBe(purchased+1);
+  expect(counter.inventory[good]).toBe(before+added-1);
+  e.state.clock=19*3600;
+  expect(e.shopOf(seller.id)).toBeUndefined();
+},120000);

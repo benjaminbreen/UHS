@@ -29,7 +29,7 @@ export type Vehicle = {
   waits: [number, number];
   phase: number;
   crew: string[];
-  delivery?: { store: string; customer: string; place: string; walks: [Point[], Point[]]; tails: [number, number] };
+  delivery?: { good?:"steel-coil"; store: string; customer: string; place: string; walks: [Point[], Point[]]; tails: [number, number] };
   team?: string;
   rowLength?: number;
   seedCrop?: CropId;
@@ -243,7 +243,7 @@ function planDelivery(plan: SettlementPlan, seed: string, pack: Pack, sample: Sa
     driver.role = driver.origin?.livelihood === "lorry-driver" ? (driver.origin.roleLabel ?? driver.role) : driver.role;
     const store = v.id + "-dispatch",
       customer = v.id + "-receiving";
-    v.delivery = { store, customer, place: place.id, walks: walks as [Point[], Point[]], tails: tails as [number, number] };
+    v.delivery = { ...(plan.terminal?.steel && {good:"steel-coil"}), store, customer, place: place.id, walks: walks as [Point[], Point[]], tails: tails as [number, number] };
     v.crew.push(driver.id);
     driver.pos = { ...walks[0][tails[0]], space: "outside" };
     plan.actors.push(driver);
@@ -251,7 +251,7 @@ function planDelivery(plan: SettlementPlan, seed: string, pack: Pack, sample: Sa
     const footway = new Set(walks.flat().map((p) => cellKey(p.x, p.y)));
     const roadway = new Set(road.map((p) => cellKey(p.x, p.y)));
     for (const [id, name, stop, grain] of [
-      [store, "Road freight awaiting collection", walks[0][tails[0]], 18],
+      [store, "Road freight awaiting collection", walks[0][tails[0]], plan.terminal || plan.harbor ? 0 : 18],
       [customer, "Delivered freight", door, 0],
     ] as const) {
       const neighbours = [1, 2, 3].flatMap((n) =>
@@ -272,7 +272,7 @@ function planDelivery(plan: SettlementPlan, seed: string, pack: Pack, sample: Sa
         pos: { ...pos, space: "outside" },
         kind: "container",
         sprite: "harbor-case",
-        inventory: { grain },
+        inventory: { [v.delivery.good ?? "grain"]:grain },
       });
     }
     motor.facing = vehicleAt(v, 9 * 3600).facing;

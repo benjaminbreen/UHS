@@ -20,6 +20,7 @@ const CHOLA = { years: [850, 1280] as Years, bounds: [77, 9, 81, 13.5] as Bounds
 const KERALA = { years: [800, 1950] as Years, bounds: [74.5, 8, 76.9, 12.8] as Bounds, cultures };
 const BENGAL = { years: [1200, 1950] as Years, bounds: [85.5, 20.5, 93, 27] as Bounds, cultures };
 const PUNJAB = { years: [1540, 1950] as Years, bounds: [72, 29, 78, 33] as Bounds, cultures };
+export const sangrand = { type: "cycle", every: 9, on: 0 } as const;
 const MUGHAL = { years: [1560, 1760] as Years, bounds: [73, 25, 81, 32] as Bounds, cultures };
 const MUSLIM = { years: [1200, 1950] as Years, bounds: SUBCONTINENT, cultures };
 const BIDAR = { years: [1420, 1950] as Years, bounds: [76.5, 17.3, 78, 18.5] as Bounds, cultures };
@@ -592,28 +593,30 @@ export const southAsiaOccasions: Occasion[] = [
   },
   {
     id: "day.sikh.langar",
-    label: "Rolling rotis for the langar",
+    label: "Serving the langar",
+    participate: {action:"meal",claim:"religious-gurdwara"},
     scope: PUNJAB,
     evidence: "documented",
     when: [{ type: "adult" }, { type: "observance", levels: ["devout", "regular"] }, { type: "chance", p: 0.3 }],
     weight: 5,
     part: "midday",
-    place: "sanctuary",
+    place: {worship:"Sikh"},
     activity: "cook",
     minutes: 60,
-    text: "Roll rotis for the langar, where everyone sits in one line.",
+    text: "Help serve the shared meal in the gurdwara kitchen.",
     sources: ["https://en.wikipedia.org/wiki/Langar_(Sikhism)"],
     serves: ["shared-future"],
   },
   {
     id: "day.sikh.sangrand",
     label: "Sangrand at the gurdwara",
+    participate: {action:"listen",claim:"religious-gurdwara"},
     scope: PUNJAB,
     evidence: "documented",
-    when: [{ type: "cycle", every: 9, on: 0 }, { type: "observance", levels: ["devout", "regular", "occasional"] }],
+    when: [sangrand, { type: "observance", levels: ["devout", "regular", "occasional"] }],
     weight: 7,
     part: "morning",
-    place: "sanctuary",
+    place: {worship:"Sikh"},
     activity: "visit",
     minutes: 40,
     text: "Go to the gurdwara to hear the new month's Barah Maha verse: it is sangrand.",

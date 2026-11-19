@@ -439,10 +439,10 @@ export const eastAsiaOccasions: Occasion[] = [
     when: [{ type: "observance", levels: ["devout", "regular"] }, { type: "chance", p: 0.4 }],
     weight: 5,
     part: "evening",
-    place: "sanctuary",
+    place: {worship:"pure-land"},
     activity: "visit",
     minutes: 30,
-    text: "Chant Namu Amida Butsu with the others at the chapel.",
+    text: "Chant Namu Amida Butsu with the others at the temple.",
     sources: ["https://en.wikipedia.org/wiki/Nianfo", "https://en.wikipedia.org/wiki/J%C5%8Ddo-sh%C5%AB"],
   },
   {

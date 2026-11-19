@@ -99,6 +99,7 @@ export const nearEastReligious: ReligiousRule[] = [
   },
   {
     id: "ottoman-mosque",
+    neighborhoodHouse: "Mosque",
     faith: "Islam",
     recipe: "ottoman-mosque",
     labels: { small: "Mosque", medium: "Friday mosque", large: "Great mosque" },
@@ -118,6 +119,7 @@ export const nearEastReligious: ReligiousRule[] = [
   },
   {
     id: "arab-mosque",
+    neighborhoodHouse: "Mosque",
     faith: "Islam",
     recipe: "arab-mosque",
     labels: { small: "Mosque", medium: "Friday mosque", large: "Great mosque" },
@@ -195,6 +197,8 @@ const rumelia: [string, number, number, readonly [number, number, number, number
 ];
 
 nearEastReligious.push(
+  { ...nearEastReligious.find(r => r.id === "ottoman-mosque")!, congregationOnly: true,
+    culture: "european", bounds: [19,35,29.5,45], from: 1450, to: 1912 },
   ...rumelia.map(([place, from, to, bounds]): ReligiousRule => ({
     ...nearEastReligious.find((r) => r.id === "ottoman-mosque")!,
     id: `ottoman-mosque-${place}`,

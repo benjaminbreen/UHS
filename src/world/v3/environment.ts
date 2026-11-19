@@ -23,6 +23,7 @@ import type { RegionalContext } from "../regional/context";
 import type { LandSample } from "../geography/landscape";
 import { urbanRadius } from "../../content/settlements/scale";
 import { docklands } from "../../content/settlements/waterfronts";
+import { freightBerths } from "../../content/geography/regions/ports";
 import { bulkhead } from "./shoreline";
 import { QUAY_APRON } from "../../core/water-field";
 const seasons = ["spring", "summer", "autumn", "winter"] as const;
@@ -39,6 +40,11 @@ export function createEnvironment(
   const island = Math.max(44, home?.population ? urbanRadius(home.population, s.year) + 10 : 0);
   const byS = seasons.map((season) => waterscape({ ...s, season }));
   const origin = toAtlas(s.lon, s.lat);
+  const district=freightBerths.find(t=>s.year>=t.from && s.year<(t.until ?? Infinity) &&
+    Math.abs(t.lon-s.lon)*2048 < (s.playableMap?.size ?? 2)/2 && Math.abs(t.lat-s.lat)*2048 < (s.playableMap?.size ?? 2)/2);
+  const quay= district && toAtlas(district.lon,district.lat);
+  const terminal=district && quay && {siteId:district.siteId,x:quay.x-origin.x,y:quay.y-origin.y,automated:!!district.automated,steel:district.steel,name:district.name};
+  const onQuay=(x:number,y:number)=>terminal && Math.abs(x-terminal.x)<=62 && y>=terminal.y-40 && y<terminal.y+25;
   const plan = regionalLandforms(
     s,
     seed,
@@ -498,12 +504,20 @@ export function createEnvironment(
       water = Math.max(water, 36 - Math.hypot(x, y));
       reef = r < R ? "lagoon" : "outer";
     } else if (ws.reef === "fringing" && kind === "sea") reef = "outer";
+    if (terminal) {
+      const u=x-terminal.x,v=y-terminal.y;
+      const blend=Math.max(0,Math.min(1,(82-Math.abs(u))/16,(v+58)/14,(39-v)/12));
+      if (blend) {
+        water+=(Math.min(32,Math.max(-32,v+.5))-water)*blend;
+        kind=terminal.steel ? "river" : "sea"; shoreWidth=1.2; reef=undefined;
+      }
+    }
     return { water, floodplain, shoreWidth, waterFlow, kind, reef };
   };
   const connectedBoundary = boundaryWater(s, seed, nativeWater, field);
   const mainWater = (x: number, y: number) => {
     const native = nativeWater(x, y);
-    return { ...native, ...connectedBoundary(x, y, native) };
+    return onQuay(x,y) ? native : { ...native, ...connectedBoundary(x, y, native) };
   };
   // A qanat's line of shaft mounds, one every seven cells, from the hills to the town.
   const qanatAngle = random(seed, "qanat-angle") * Math.PI * 2;
@@ -520,7 +534,7 @@ export function createEnvironment(
   };
   const dockHome = regional && docklands(s) ? regional.placeAt(0, 0) : undefined;
   // A metropolis fills its own map; elsewhere it is built out to its radius.
-  const docks = dockHome && bulkhead((x, y) => nativeWater(x, y).water,
+  const docks = terminal ? undefined : dockHome && bulkhead((x, y) => nativeWater(x, y).water,
     s.playableMap ? { x: 0, y: 0 } : regional!.local(dockHome), s.playableMap ? s.playableMap.size / 2 : dockHome.radius);
   const calculate = (x: number, y: number): LandSample => {
     const situation = s.situation;
@@ -539,7 +553,8 @@ export function createEnvironment(
     const fx = regional ? x + origin.x : x,
       fy = regional ? y + origin.y : y;
     let { water, floodplain, shoreWidth, waterFlow, kind, reef } = nativeWater(x, y);
-    const madeShore = docks?.(x, y, water);
+    const engineered=onQuay(x,y);
+    const madeShore = engineered ? {water,laid:"sett" as const} : docks?.(x, y, water);
     if (madeShore) {
       water = madeShore.water;
       // 1.2 is the narrowest shore the renderers do not take for a creek's.
@@ -712,7 +727,9 @@ export function createEnvironment(
         landscape = { kind: "trail", strength: 1 - d.distance / 0.9 };
       }
     }
-    if (s.playableMap) {
+    if (engineered && madeShore) {
+      water=madeShore.water;kind="sea";shoreWidth=1.2;fall=false;landscape=undefined;reaches=undefined;
+    } else if (s.playableMap) {
       const joined = connectedBoundary(x, y, { water, kind, waterFlow, floodplain, shoreWidth });
       ({ water, kind, waterFlow, floodplain, shoreWidth } = joined);
     }
@@ -855,7 +872,7 @@ export function createEnvironment(
             }),
           }
         : {}),
-      elevation: level * 14,
+      elevation: engineered ? 0 : level * 14,
       // The land's stature, not its step count: scree, snow and alpine plants read it.
       summit: Math.max(ceiling, 1 + relief * 8) * 14,
       ...(habitat.colorway === "ice" || altitude + level * metresPerTier(relief) > snowlineAt(s.lat, "summer") + 150
@@ -887,7 +904,7 @@ export function createEnvironment(
     }
     return value;
   };
-  return { origin: toAtlas(s.lon, s.lat), piers: docks ? docks.piers : undefined, sample, mainWater, tributariesAt: (x: number, y: number) => streamsNear(x, y).filter((s) => s.kind === "creek").map((s) => s.stream) };
+  return { origin, terminal, piers: docks ? docks.piers : undefined, sample, mainWater, tributariesAt: (x: number, y: number) => streamsNear(x, y).filter((s) => s.kind === "creek").map((s) => s.stream) };
 }
 /** Local habitats vary inside the selected climatic envelope. */
 export function localEcology(

@@ -558,15 +558,15 @@ describe("a palace planned as rooms and courts", () => {
   });
 
   it("builds Buckingham Palace and the White House from the same kit, each room in its own style", () => {
-    for (const [prompt, space, year] of [["A visitor at Buckingham Palace", "fair:buckingham:forecourt", 1856], ["A clerk at the White House", "fair:white-house:office", 1818]] as const) {
+    const palace = (prompt: string, year: number) => {
       const r = resolveSetting(prompt);
       if (!("setting" in r)) throw new Error(r.error);
       expect(r.setting).toMatchObject({ below: "fair", year });
-      expect(createSettingSession(r.setting, "palace").state.player.pos.space).toBe(space);
-    }
-    const r = resolveSetting("A clerk at the White House");
-    if (!("setting" in r)) throw new Error(r.error);
-    const e = createSettingSession(r.setting, "palace");
+      return createSettingSession(r.setting, "palace");
+    };
+    expect(palace("A visitor at Buckingham Palace", 1856).state.player.pos.space).toBe("fair:buckingham:forecourt");
+    const e = palace("A clerk at the White House", 1818);
+    expect(e.state.player.pos.space).toBe("fair:white-house:office");
     const room = (id: string) => e.areaOf(`fair:white-house:${id}`) as FairLevel;
     const blue = room("blue-room"), dining = room("state-dining"), library = room("library");
     expect(blue.palace).toMatchObject({ pier: "fluted", room: "drawing" });

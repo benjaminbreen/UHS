@@ -39,6 +39,12 @@ export const sunniIslamicCore: readonly Power[] = [
   },
 ];
 
+export const rabbinicJewishCore: readonly Power[] = [
+  { name:"God", domain:"the one God and the covenant", rank:"paramount" },
+  { name:"The Torah", domain:"teaching and law", rank:"major" },
+  { name:"Moses", domain:"the giving of the Torah", rank:"major" },
+];
+
 export const secondTempleJewishCore: readonly Power[] = [
   {
     name: "YHWH",

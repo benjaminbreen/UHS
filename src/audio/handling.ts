@@ -1,6 +1,6 @@
 import type { ItemDef } from "../core/types";
 import type { PropDef } from "../content/props/catalog";
-import { events, type Layer, type Sound } from "./sfx";
+import { events, noise, tone, type Sound } from "./sfx";
 
 /** Small confirmations: what a thing sounds like in the hand, in the mouth,
  * changing hands, or being written down. Quiet, and never twice the same. */
@@ -18,32 +18,8 @@ export type Bite = "crunch" | "chew" | "leafy";
 export type Money = "metal" | "shell" | "paper";
 export type Writing = "charcoal" | "clay" | "brush" | "pen" | "pencil" | "tap";
 
-// sfx.ts keeps its layer builders private; these mirror them.
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 const vary = (x: number, spread = 0.07) => x * rand(1 - spread, 1 + spread);
-const noise = (
-  at: number,
-  dur: number,
-  gain: number,
-  freq: number,
-  rest: Partial<Layer> = {},
-): Layer => ({
-  kind: "noise",
-  at,
-  dur,
-  gain,
-  freq: vary(freq),
-  filter: "bandpass",
-  q: 1,
-  ...rest,
-});
-const tone = (
-  at: number,
-  dur: number,
-  gain: number,
-  freq: number,
-  rest: Partial<Layer> = {},
-): Layer => ({ kind: "tone", at, dur, gain, freq, wave: "sine", ...rest });
 const later = (sound: Sound, by: number, gain = 1): Sound =>
   sound.map((l) => ({ ...l, at: l.at + by, gain: l.gain * gain }));
 

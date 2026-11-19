@@ -6,7 +6,7 @@ import { describeStats, statsOf } from "../core/stats";
 import { describeStanding, standingOf } from "../core/standing";
 import { outlookSentence, outlookOf } from "../core/outlook";
 import { householdLine } from "../core/persona";
-import { beliefOf, beliefsFor } from "../content/beliefs";
+import { beliefOf, beliefsForActor } from "../content/beliefs";
 import type { WorldSetting } from "../content/geography/types";
 import { skySeed, weatherAt } from "../core/weather";
 import { seasonAt } from "../core/livelihood";
@@ -70,7 +70,8 @@ function employmentLine(engine: Engine, actor: Actor): string {
   return employment ? `Workplace: ${employment.label}.` : "";
 }
 function religiousPractice(seed: string, actor: Actor, setting: WorldSetting): string {
-  const belief = beliefOf(seed, actor, beliefsFor(setting, actor.origin?.community));
+  const belief = beliefOf(seed, actor, beliefsForActor(setting,actor));
+  if (!belief.system.powers.length) return belief.system.label+".";
   return `Religious practice: ${belief.system.label}; ${belief.observance} observance${belief.patron ? `; addresses ${belief.patron.name}` : ""}${belief.keeps ? `; ${belief.keeps}` : ""}`;
 }
 /** The world and the character as facts, with no instructions attached: the

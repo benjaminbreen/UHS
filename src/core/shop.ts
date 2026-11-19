@@ -41,6 +41,7 @@ export type Shop = { day: number; stock: Inventory; purse: number; opening?: Inv
 /** Whether this person's trade is one that sells, wherever they are now. */
 export function sellsTrade(pack: Pack, actor: Actor) {
   if (actor.kind !== "human" || actor.dead || (actor.age ?? 30) < 14) return false;
+  if (actor.stockroom) return true;
   if (isWayfarer(actor.id)) return isStallholder(actor.id) || TRADER.test(actor.role);
   const kit = livelihoodOf(pack, actor);
   // Farmers and herders sell at market, not from the field; a porter dressed as a tailor is still a porter.

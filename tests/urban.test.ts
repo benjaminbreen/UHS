@@ -5,6 +5,7 @@ import { packForSetting } from "../src/content/geography/pack";
 import { settlementProfile } from "../src/content/settlements/profiles";
 import { planSettlement } from "../src/world/v3/plan";
 import { route } from "../src/core/routing";
+import { GRAVEL, WATER, plantParterre } from "../src/world/fair";
 import { civicProfile, royalGround } from "../src/content/settlements/civic";
 import { plazaKitFor } from "../src/content/settlements/plaza";
 import { inside } from "../src/world/v3/types";
@@ -167,21 +168,46 @@ it("dates the castle forms and varies which other towns receive one", () => {
   expect(at("Cairo 1517", "Cairo", 0)).toBeUndefined();
   expect(at("Kyoto 1350", "Kyoto", 0)).toBeUndefined();
 });
-it("reserves an east-facing court and a western garden at Versailles", () => {
-  const r = resolveSetting("Gardener in Versailles 1750");
+it("keeps the garden walks and plantings mirrored on even and odd bay widths", () => {
+  for (const w of [9, 16]) for (const royal of [false, true]) {
+    const h = 22, bed = (seed: number) => plantParterre({ w, h, royal, seed }).cells, cells = bed(12);
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      expect(cells[y * w + x]).toBe(cells[y * w + w - 1 - x]);
+      expect(cells[y * w + x]).toBe(cells[(h - 1 - y) * w + x]);
+      if (y === (h >> 1)) expect(cells[y * w + x]).toBe(GRAVEL);
+    }
+    expect(cells.includes(WATER)).toBe(royal);
+    if (!royal) expect(bed(13)).not.toEqual(cells);
+  }
+});
+
+it.each([["Versailles", 1750, true], ["Sceaux", 1725, false]] as const)("connects the galleries and formal garden to the court at %s", (name, year, royal) => {
+  const r = resolveSetting(`Gardener in ${name} ${year}`);
   if ("error" in r) throw Error(r.error);
   const s = integratedSetting(r.setting);
-  expect(s.location).toBe("Versailles");
+  expect(s.location).toBe(name);
   expect(royalGround(s, "Paris")).toBeUndefined();
-  expect(royalGround({ ...s, year: 1500 }, s.location)).toBeUndefined();
-  const p = planSettlement({ id: "versailles", cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
+  expect(royalGround({ ...s, year: 1500 }, name)).toBeUndefined();
+  const p = planSettlement({ id: name, cx: 0, cy: 0, home: true, center: { x: 0, y: 0 },
     profile: { ...settlementProfile(s), radius: 80 } }, packForSetting(s), "court-foundations", flat, []);
-  const plot = p.plots.find(q => q.precinct?.id === "versailles")!, g = plot.precinct!.garden!;
+  const plot = p.plots.find(q => q.precinct?.id === name.toLowerCase())!, garden = p.parterre!;
+  const buildings = p.places.filter(b => b.claim.startsWith("civic-palace"));
+  expect(buildings).toHaveLength(3);
+  const house = buildings.find(b => b.claim.endsWith("residence"))!;
+  const wing = buildings.find(b => b.claim.endsWith("north-wing"))!;
+  expect(house.venueRoom).toEqual(royal ? { venue: "versailles", room: "guard-room" } : undefined);
+  expect(garden.royal).toBe(royal);
+  expect(wing.x === house.x + house.w).toBe(royal);
   expect(plot.access.x).toBe(plot.x + plot.w - 1);
-  expect(plot.precinct!.street.x).toBeGreaterThan(plot.access.x);
-  expect(g.x).toBe(plot.x);
-  expect(g.x + g.w).toBeLessThan(plot.access.x);
-  expect(p.pavement!.get(`${g.x + (g.w >> 1)},${g.y + (g.h >> 1)}`)).toBe("park");
+  const street = plot.precinct!.street;
+  expect(street.x).toBeGreaterThan(plot.access.x);
+  expect(house.entrance).toEqual(expect.objectContaining({ x: house.x + house.w, y: plot.access.y }));
+  for (const to of [...buildings.map(b => b.entrance), { x: garden.x + (garden.w >> 1), y: plot.access.y }]) {
+    expect(route(street, to, q => {
+      const approach = q.y === street.y && q.x <= street.x && q.x >= plot.access.x;
+      return (approach || inside(plot, q.x, q.y)) && !p.solid.has(`${q.x},${q.y}`) ? 1 : Infinity;
+    }).status).toBe("found");
+  }
 });
 
 it.each(["Potter in Tenochtitlan 1500", "Clerk in Beijing 1450"])("can walk from the street through the civic forecourt in %s", query => {
@@ -530,6 +556,17 @@ it("selects civic institutions by local date, with an explicitly unresearched fa
     civicProfile({ ...setting, culture: "east-asian", lon: 120, lat: 32 })
       .label,
   ).toBe("Magistrate's yamen");
+});
+
+it("houses the covered bazaar in a local range when the town has no arcade frame", () => {
+  const r = resolveSetting("Damascus 1500");
+  if ("error" in r) throw Error(r.error);
+  const s = integratedSetting(r.setting), pack = packForSetting(s);
+  const plan = planSettlement({id:"city",cx:0,cy:0,home:true,center:{x:0,y:0},profile:{...settlementProfile(s),radius:74}}, pack,"bazaar",flat,[]);
+  const bazaar = plan.places.find(p => p.claim === "civic-bazaar");
+  expect(bazaar?.access).toBe("public");
+  expect(pack.buildings).toContain(bazaar!.sprite.replace(/-(north|east|west)$/, ""));
+  expect(plan.solid.has(`${bazaar!.entrance.x},${bazaar!.entrance.y}`)).toBe(false);
 });
 
 it("assigns coherent, deterministic materials to civic squares and street lanes", () => {

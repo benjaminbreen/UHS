@@ -154,6 +154,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-early-hindu-buddhism",
+    worship: ["Hindu and Buddhist", "Hindu"],
     realm: "hindu",
     features: ["sacred-texts"],
     label: "Early Hindu-Buddhist kingdoms and villages",
@@ -227,6 +228,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-funan-hindu-buddhism",
+    worship: ["Hindu and Buddhist", "Hindu"],
     realm: "hindu",
     features: ["sacred-texts"],
     label: "Funan and early Champa Hindu-Buddhist courts",
@@ -307,6 +309,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-angkorian-devaraja",
+    worship: ["Hindu and Buddhist", "Hindu"],
     realm: "hindu",
     label: "Khmer Angkorian devaraja cult",
     scope: { years: [790, 1431], bounds: [102, 10, 106, 15] },
@@ -388,6 +391,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-theravada-burma",
+    worship: ["Theravada Buddhist", "Buddhist"],
     realm: "buddhist",
     features: ["sacred-texts"],
     label: "Theravada Burma with nat worship",
@@ -471,6 +475,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-theravada-siam",
+    worship: ["Theravada Buddhist", "Buddhist"],
     realm: "buddhist",
     features: ["sacred-texts"],
     label: "Theravada Siam and Lao practice",
@@ -643,6 +648,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-islamic-java-malay",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Islamic Java and Malay sultanates",
@@ -731,6 +737,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "champa-hindu-buddhist",
+    worship: ["Hindu and Buddhist", "Hindu"],
     realm: "hindu",
     label: "Cham Hindu and Buddhist practice",
     wiki: "https://en.wikipedia.org/wiki/Champa",
@@ -1028,6 +1035,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
   },
   {
     id: "se-asia-sulawesi-moluccas-islam",
+    worship: ["Islam"],
     realm: "islam",
     features: ["sacred-texts"],
     label: "Islamic sultanates in Sulawesi and the Moluccas",

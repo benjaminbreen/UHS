@@ -1,3 +1,4 @@
+import { sanctuaryAt } from "../content/settlements/religious";
 import { buildingUse, interiorProfileFor, type InteriorSite } from "../content/interiors/select";
 import { shopFor, shopKind } from "../content/interiors/shops";
 import { factoryFor } from "../content/interiors/factories";
@@ -21,6 +22,8 @@ export type InteriorLayout = {
   params: RoomParams;
   plan: RoomPlan;
   rooms: PlacedRoom[];
+  institution?: InteriorProfile["institution"];
+  observance?: InteriorProfile["observance"];
   /** Doorways into private rooms, as "x,y" game cells: shut to a stranger. */
   locks: Set<string>;
   props: Prop[];
@@ -62,7 +65,7 @@ const FURNITURE: Partial<Record<Kind, string>> = {
   potrack: "room-potrack", firewood: "room-firewood", quern: "room-quern", jars: "room-jars", claybin: "room-claybin",
   plant: "room-plant", lamp: "room-lamp", basket: "room-basket", sacks: "room-sacks", pack: "room-pack",
   coolamon: "coolamon",
-  bench: "room-bench",
+  bench: "room-bench", screen: "palace-screen",
   nestbox: "room-nestbox", roost: "room-roost", stall: "room-stall", manger: "room-manger",
 };
 const SEATS: Kind[] = ["stool", "cushions", "armchair", "sofa", "divan", "bench", "settle", "ledge", "slab", "pew", "prayer"];
@@ -113,9 +116,9 @@ function wheelThrown({ lon, lat, year }: InteriorSite) {
 /** Builds the room a household lives in: its profile from place and date, its
  * finish from the household's fortune, its furniture from the trade. Rooms
  * are larger than the building outside; that is deliberate. */
-export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: number; activity?: string; hour?: number; good?: string; bench?: string; profile?: InteriorProfile; colorway?: number; storey?: number; lift?: "lift" | "stair" }): InteriorLayout {
+export function buildInterior(place: Place, site: InteriorSite, o: { seed?: string; fortune?: number; activity?: string; hour?: number; good?: string; bench?: string; profile?: InteriorProfile; colorway?: number; storey?: number; lift?: "lift" | "stair" }): InteriorLayout {
   const seed = seedOf(place.id);
-  const found = interiorProfileFor(site);
+  const found = interiorProfileFor({...site, worshipSchool:place.worshipSchool});
   // Çatalhöyük's plan behind a street door, where the house outside has one.
   const home = found.door === "none" && !site.roofHatch && site.frame ? { ...found, door: "door" as const } : found;
   // An industrial lot is its works; a house open to the street is its keeper's shop, if their trade keeps one.
@@ -129,7 +132,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   const k = [0.85, 1, 1.2][status];
   const shapes = profile.shapes;
   const building = planBuilding(profile, {
-    seed,
+    seed: (profile.institutionPlan || profile.observance) && o.seed ? seedOf(o.seed + "/" + place.id) : seed,
     status,
     colorway: o.colorway ?? -1,
     w: Math.max(6, Math.round(tw * k)),
@@ -196,10 +199,15 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   const beside = (p: Point) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => open({ x: p.x + dx, y: p.y + dy }));
   const cells = (q: Prop) => Array.from({ length: q.w }, (_, i) => at(q.x + i, q.y)).filter(beside);
   // A bed sleeps two, as beds did; a mat or a box bed one.
-  const beds = sleepers.flatMap((q) => cells(q).slice(0, q.kind === "bed" ? 2 : 1).map((p): Spot => ({ ...p, facing: 2, kind: q.kind, propId: q.id, on: "bed" })));
+  const beds = sleepers.flatMap((q) => cells(q).slice(0, q.kind === "bed" && building.rooms[q.room ?? 0].role !== "ward" ? 2 : 1).map((p): Spot => ({ ...p, facing: 2, kind: q.kind, propId: q.id, on: "bed" })));
   const trade = params.trade;
   // The keeper works from behind the bar, facing the room.
-  const work = of(WORK[trade]).flatMap((q) => (q.kind === "bar" || q.kind === "shopcounter" ? stands(q).sort((a, b) => +(b.facing === 2) - +(a.facing === 2)) : stands(q)));
+  const stations = profile.observance ? of(["altar", "pulpit", "lectern", "basin", "range", "hearth"]) : profile.institutionPlan ? props.filter(q => {
+    const role = building.rooms[q.room ?? 0].role;
+    return role === "ward" ? ["bed","mat"].includes(q.kind) : role === "work" ? ["basin","desk","shopcounter"].includes(q.kind) :
+      role === "hall" ? q.kind === "desk" : role === "classroom" && q.kind === "altar";
+  }) : of(WORK[trade]);
+  const work = stations.flatMap((q) => (q.kind === "bar" || q.kind === "shopcounter" ? stands(q).sort((a, b) => +(b.facing === 2) - +(a.facing === 2)) : stands(q)));
   const fixtures = of(["fixture", "anvil", "throw"]).flatMap(stands);
   const fire = of(FIRES).flatMap(stands);
   // A stool is turned to the table or the fire it stands at; anything with a back faces the room.
@@ -210,7 +218,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   };
   const seats = [
     ...of(SEATS).flatMap((q) =>
-      cells(q).map((p): Spot => ({ ...p, facing: q.kind === "stool" || q.kind === "cushions" || q.kind === "bench" || q.kind === "ledge" ? toward(p) : q.kind === "pew" || q.kind === "prayer" ? 0 : 2, kind: q.kind, propId: q.id, on: q.kind === "cushions" || q.kind === "prayer" || (q.kind === "pew" && params.styles.pew === "lowdesk") ? "floor" : "seat" })),
+      cells(q).map((p): Spot => ({ ...p, facing: profile.observance && (q.kind === "cushions" || q.kind === "prayer") ? 0 : q.kind === "stool" || q.kind === "cushions" || q.kind === "bench" || q.kind === "ledge" ? toward(p) : q.kind === "pew" || q.kind === "prayer" ? 0 : 2, kind: q.kind, propId: q.id, on: q.kind === "cushions" || q.kind === "prayer" || (q.kind === "pew" && params.styles.pew === "lowdesk") ? "floor" : "seat" })),
     ),
     ...of(["table", "lowtable", "machine"]).flatMap(stands),
   ];
@@ -253,6 +261,8 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
   return {
     params,
     regulars: profile.regulars,
+    institution: profile.institution,
+    observance: profile.observance && {...profile.observance,tradition: place.worshipSchool ?? sanctuaryAt(place)?.faith ?? profile.observance.tradition},
     plan,
     rooms: building.rooms,
     locks,
@@ -271,6 +281,11 @@ export function buildInterior(place: Place, site: InteriorSite, o: { fortune?: n
     workCell: cellOf(work) ?? cell(fire[0]) ?? cell(seats[0]) ?? entry,
     benchCell: cellOf(fixtures),
   };
+}
+
+export function roomAt(layout: InteriorLayout | undefined, x: number, y: number) {
+  return layout?.rooms.find(b => x >= b.x + ROOM_ORIGIN && x < b.x + b.w + ROOM_ORIGIN &&
+    y >= b.y + ROOM_ORIGIN && y < b.y + b.d + ROOM_ORIGIN);
 }
 
 /** What the room offers at a cell, most particular first. */

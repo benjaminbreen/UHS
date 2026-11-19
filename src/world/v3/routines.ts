@@ -5,7 +5,10 @@ import { waterfrontProfiles } from "../../content/settlements/waterfronts";
 import { catchFate, crewRole, fishingWords, preserveWords, type CrewRole } from "../../content/economy/fishing";
 import { huntFate } from "../../content/economy/hunting";
 import { sexOf } from "../../core/brief";
+import { beliefsForActor } from "../../content/beliefs";
+import { localCongregation } from "../../content/settlements/religious";
 import { livelihoodById } from "../../content/characters/livelihoods";
+import { wardDuties } from "../../content/settlements/worksites/hospitals";
 import { prepareLocalWork } from "./employment";
 import { carryKit, withLoads } from "../../content/economy/carrying";
 import { goodsOf } from "../../content/economy/goods";
@@ -23,6 +26,7 @@ import { outlookOf } from "../../core/outlook";
 import { standingOf } from "../../core/standing";
 import { venuesFor, type Venue } from "../../content/venues";
 import { groundFor, type Ground } from "../../content/plots/scenes";
+import { civicProfile } from "../../content/settlements/civic";
 import { landmarkTree } from "../../content/settlements/landmark-trees";
 import { propSprite } from "../../content/props/place";
 import { keeperLivesIn, publicInteriorFor } from "../../content/interiors/select";
@@ -328,9 +332,7 @@ function farDoor(plan: SettlementPlan, seed: string, id: string, home: Point) {
     plan.gatherings?.[0]
   );
 }
-/** The building an indoor activity belongs in. Rites go to the sanctuary
- * where the town has one and to the hall otherwise; records and watches to
- * the hall; machine work to a workshop. */
+/** The building an indoor activity belongs in. */
 function doorFor(
   plan: SettlementPlan,
   seed: string,
@@ -344,7 +346,6 @@ function doorFor(
       Math.hypot(b.entrance.x - home.x, b.entrance.y - home.y),
   )[0];
   const hall = nearest(plan.places.filter((p) => p.claim.startsWith("civic-")));
-  const sanctuary = nearest(plan.places.filter((p) => p.claim.startsWith("religious-")));
   const assigned = plan.places.find((p) => p.access === "public" &&
     p.entrance.x === work.x && p.entrance.y === work.y);
   const shops = plan.places
@@ -361,7 +362,7 @@ function doorFor(
     shops.length
       ? shops[Math.floor(random(seed, "routine", id, "shop") * shops.length)].entrance
       : undefined;
-  if (/rite/i.test(activity)) return (sanctuary ?? hall)?.entrance;
+  if (/rite/i.test(activity)) return plan.work.get(id)?.employment?.kind === "worship" ? work : home;
   if (/record|watch|sick/i.test(activity)) return hall?.entrance;
   if (/machine|line|building|roof/i.test(activity))
     return assigned?.entrance ?? pickShop() ?? hall?.entrance;
@@ -862,7 +863,7 @@ export function bindWorkStations(
       if (stand) return { ...s, pos:stand, label:"Unloading the gathering basket", toward:"the household store",
         target:{ id:depot.id,x:depot.pos.x,y:depot.pos.y,family:"food-store" } };
     }
-    if (s.activity === "tend" && s.target?.family === "crop") return s;
+    if (s.target?.family==="fish-sorting" || s.target?.family==="fish-counter" || s.activity === "tend" && s.target?.family === "crop") return s;
     if (!(["work", "tend", "cook", "haul-catch", "draw-water"] as string[]).includes(s.activity)) return s;
     const label = s.label.toLowerCase();
     const washing = /wash|launder|scrub.*cloth/.test(label);
@@ -904,6 +905,8 @@ type Member = NonNullable<SettlementPlan["waterfront"]>["members"][number];
 /** Putting the catch by: on the rack, in the salt, in the jar. */
 function keepingStation(plan: SettlementPlan, seed: string, id: string, member: Member): Station[] {
   const preserve = plan.waterfront?.preserve, words = preserve && preserveWords[preserve];
+  if (member.process && plan.objects.find(o=>o.id===member.process!.id)?.curing)
+    return [{pos:{x:member.process.pos.x,y:member.process.pos.y+1},activity:"haul-catch",label:"Salting and hanging the catch",minutes:20,toward:"the curing shed",target:{...member.process.pos,family:"drying-rack"}}];
   return member.process && words
     ? [{ pos: nearby(plan, seed, `${id}-keeping`, member.process.pos), activity: "haul-catch", label: words.doing, minutes: 20, toward: words.name.toLowerCase() }]
     : [];
@@ -919,11 +922,14 @@ export function shoreRoutine(plan: SettlementPlan, seed: string, pack: Pack, id:
   const basket = carryKit(pack).basket, h = member.handling;
   const fate = pack.setting && catchFate(pack.setting), gear = member.practice && fishingWords[member.practice.method].gear;
   const home = plan.work.get(id)?.home ?? member.landing;
-  const sort: Station = { pos: nearby(plan, seed, `${id}-sort`, member.sorting), activity: "work", label: "Gutting and sorting the catch", minutes: 40, toward: "the catch" };
+  const counter = plan.objects.find(o=>o.id===member.catchId+"-counter");
+  const sell: Station | undefined = counter && {pos:h!.sale, activity:"visit", label:"Taking fish to the seller", minutes:15, carry:basket, target:{...counter.pos,id:counter.id,family:"fish-counter"}};
+  const sort: Station = { pos: counter ? member.sorting : nearby(plan, seed, `${id}-sort`, member.sorting),
+    ...(counter && { target:{...member.sorting,id:member.catchId,family:"fish-sorting"} }), activity: "work", label: "Gutting and sorting the catch", minutes: 40, toward: "the catch" };
   const mend: Station = { pos: nearby(plan, seed, `${id}-mend`, member.nets), activity: "work", label: `Mending ${gear ?? "the nets"}`, minutes: 40, toward: "the nets" };
   const keep = keepingStation(plan, seed, id, member);
   if (role === "child") {
-    const rack = keep[0] && plan.objects.find((o) => o.id === member.process?.id)?.prop === "dryingRack";
+    const rack = keep[0] && propDefs[plan.objects.find(o=>o.id===member.process?.id)?.prop ?? ""]?.family==="drying-rack";
     return [
       { pos: nearby(plan, seed, `${id}-bait`, member.landing), activity: "haul", label: "Carrying bait and baskets at the landing", minutes: 15, carry: basket, toward: "the landing" },
       rack ? { ...keep[0], activity: "tend", label: "Keeping the birds off the drying fish" } : { ...sort, label: "Helping sort the catch" },
@@ -941,10 +947,10 @@ export function shoreRoutine(plan: SettlementPlan, seed: string, pack: Pack, id:
       mend,
     ] : role === "sell" && fate?.sold ? [
       sort,
-      market
+      sell ?? (market
         ? { pos: { x: market.x + Math.floor(market.w / 2), y: market.y + market.h - 1 }, activity: "visit", label: "Selling fish at the market", minutes: 60, carry: basket, toward: "the market" }
-        : { pos: h?.sale ?? member.sorting, activity: "visit", label: "Selling fish at the landing", minutes: 60, carry: basket, toward: "the landing" },
-    ] : [sort, ...keep, mend];
+        : { pos: h?.sale ?? member.sorting, activity: "visit", label: "Selling fish at the landing", minutes: 60, carry: basket, toward: "the landing" }),
+    ] : [sort, ...keep, ...(sell ? [sell] : []), mend];
   return [...day, socialStop(plan, seed, id, home, actor, pack.setting), { ...night(home), share: 0.5 }];
 }
 /** A hunter's day: out to the far country, back with the kill, and the meat
@@ -998,6 +1004,7 @@ export function routineFor(
       const catchName=practice?.catch.toLowerCase() ?? "catch-sorting table";
       const words=member.practice && fishingWords[member.practice.method];
       const fate=pack.setting && catchFate(pack.setting);
+      const counter=plan.objects.find(o=>o.id===member.catchId+"-counter");
       const keeping=(m:typeof member)=>keepingStation(plan,seed,id,m);
       // The household head takes the boat out; the rest work the shore, and
       // for a seine they are the shore end of it.
@@ -1015,10 +1022,10 @@ export function routineFor(
         {pos:member.landing,activity:practice?.landingActivity ?? (member.practice?.method==="seine" ? "haul" : "work"),
           label:practice?.receive ?? (ground ? "Bringing the catch ashore" : member.practice?.method==="seine" ? "Hauling the seine ropes from the bank" : "Receiving the fresh catch"),minutes:ground ? 30 : 90,toward:"the fishing landing"},
         {pos:member.sorting,activity:"haul",label:practice ? `Carrying baskets of fish to the ${catchName}` : "Carrying baskets of fish to the sorting table",minutes:12,carry:basket,toward:`the ${catchName}`},
-        {pos:member.sorting,activity:"work",label:practice?.sort ?? "Sorting the fresh catch",minutes:40,toward:`the ${catchName}`},
+        {pos:member.sorting,activity:"work",...(counter && {target:{...member.sorting,id:member.catchId,family:"fish-sorting"}}),label:practice?.sort ?? "Sorting the fresh catch",minutes:40,toward:`the ${catchName}`},
         ...(fate?.owed ? [{pos:member.sorting,activity:"work" as const,label:`Counting out the share owed to ${fate.owed.to}`,minutes:15,toward:`the ${catchName}`}] : []),
         ...keeping(member),
-        {pos:h.sale,activity:"visit",label:practice?.share ?? (!fate?.sold ? "Sharing out the catch with family" : plan.waterfront?.preserve==="fresh" ? "Selling fresh fish at the landing" : "Selling fish at the landing"),minutes:40,carry:basket,toward:practice ? `the ${catchName}` : "the fish-selling table"},
+        {pos:h.sale,activity:"visit",...(counter && {target:{...counter.pos,id:counter.id,family:"fish-counter"}}),label:practice?.share ?? (!fate?.sold ? "Sharing out the catch with family" : plan.waterfront?.preserve==="fresh" ? "Selling fresh fish at the landing" : "Selling fish at the landing"),minutes:40,carry:basket,toward:practice ? `the ${catchName}` : "the fish-selling table"},
         inside(plan,h.gear,"Putting away fishing gear",20,member.gearId),
         socialStop(plan,seed,id,home,actor,pack.setting),{...night(home),share:.65},
       ];
@@ -1030,6 +1037,11 @@ export function routineFor(
       {pos:member.nets,activity:"work",label:"Cleaning and stowing fishing gear",minutes:35},
       socialStop(plan,seed,id,home,actor,pack.setting),night(home),
     ];
+  }
+  if (site.employment?.kind === "hospital" && label === "Tending the sick") {
+    const ward = site.employment.id;
+    return [...wardDuties.map(duty => inside(plan, site.work, duty.label, duty.minutes, ward)),
+      socialStop(plan, seed, id, home, actor, pack.setting), ...fireside(plan, seed, id, home, pack.year), night(home)];
   }
   if (site.employment && !["field", "pasture", "shore"].includes(site.employment.kind)) {
     return [inside(plan, site.work, label, 300, site.employment.id),
@@ -1069,7 +1081,7 @@ export function routineFor(
     site,
     label,
     outdoors,
-    pack.year,
+    pack,
     field,
     pasture,
     !!kit && processFor(kit, pack.setting?.economyRevision)?.indoors,
@@ -1094,11 +1106,12 @@ function workdayFor(
   site: WorkSite,
   label: string,
   outdoors: Outdoors,
-  year: number,
+  pack: Pack,
   field?: Plot,
   pasture?: { x: number; y: number; w: number; h: number },
   indoorTrade = false,
 ): Station[] {
+  const { year } = pack;
   const depot = store(plan, id);
   // From the factory age on, most trades happen under somebody else's roof:
   // walk there, vanish inside, walk home. Before that the yard is the shop.
@@ -1203,8 +1216,10 @@ function workdayFor(
         : [];
     }
     case "civic": {
-      const roof = doorFor(plan, seed, id, label, home, site.work);
-      if (indoorWork && roof)
+      const civic = pack.setting && /record|holding (court|office)/i.test(label) ? civicProfile(pack.setting) : undefined;
+      const office = civic?.interior === "magistracy" ? plan.places.find(p => p.claim === "civic-" + civic.id) : undefined;
+      const roof = office?.entrance ?? doorFor(plan, seed, id, label, home, site.work);
+      if ((office || indoorWork) && roof)
         return [
           inside(plan, roof, label, 300),
           socialStop(plan, seed, id, home),
@@ -1519,6 +1534,7 @@ export function placeFor(
   want: PlaceWant,
   subject?: { home?: Point; name: string },
   shared = false,
+  actor?: Actor,
 ): { pos: Point; toward: string } | undefined {
   const venue = (kinds: string[]) =>
     plan.venues?.find((v) => kinds.includes(v.venue.kind));
@@ -1527,6 +1543,10 @@ export function placeFor(
       ? list[shared ? 0 : Math.floor(random(seed, "occasion", id, key) * list.length)]
       : undefined;
   if (typeof want === "object") {
+    if ("worship" in want) {
+      const site = localCongregation(plan.places, home, [want.worship]);
+      return site && {pos:site.entrance,toward:site.name};
+    }
     if ("venue" in want) {
       const v = venue([want.venue]);
       return v && { pos: v.pos, toward: the(v.venue.label) };
@@ -1548,7 +1568,13 @@ export function placeFor(
       return w && { pos: w, toward: "the well" };
     }
     case "sanctuary": {
-      const built = plan.places.find((p) => p.claim.startsWith("religious-"));
+      const sites = plan.places.filter(p => p.claim.startsWith("religious-"));
+      if (actor && !shared && sites.length > 1) {
+        const worship = beliefsForActor(plan.site.pack?.setting, actor).worship;
+        const own = localCongregation(sites, home, worship);
+        return own && {pos:own.entrance, toward:own.name};
+      }
+      const built = sites[0];
       if (built) return { pos: built.entrance, toward: built.name };
       const v = venue(["shrine", "temple-yard"]);
       return v && { pos: v.pos, toward: the(v.venue.label) };
@@ -1600,11 +1626,12 @@ export function dayStations(
   items: (AgendaItem & { subjectAt?: { home?: Point; name: string } })[],
   festival: Festival | undefined,
   carry: ReturnType<typeof carryKit>,
+  actor?: Actor,
 ) {
   const once: Station[] = [];
   let stations = base;
   const where = (want: PlaceWant, subject?: { home?: Point; name: string }, shared = false) =>
-    placeFor(plan, seed, id, site.home, site.work, year, want, subject, shared);
+    placeFor(plan, seed, id, site.home, site.work, year, want, subject, shared, actor);
   if (festival) {
     const at = where(festival.place, undefined, true);
     if (at) {

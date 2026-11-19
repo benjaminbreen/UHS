@@ -6,7 +6,7 @@ import { CharacterSprite } from "./CharacterSprite";
 import { inWords } from "../core/concerns";
 import { typicalDeathAge } from "../core/time/mortality";
 import { ItemIcon } from "./components";
-import { beliefOf, beliefsFor, unscopedBeliefs } from "../content/beliefs";
+import { beliefOf, beliefsForActor } from "../content/beliefs";
 import { passage } from "../content/beliefs/afterlife";
 import { deeds } from "../core/word";
 import { gameAudio } from "../audio/director";
@@ -67,7 +67,7 @@ export function DeathCard({ runtime, onClose }: { runtime: Runtime; onClose: () 
     typical ? `Most people here who reached twenty lived to about ${typical}. You lived to ${p.age}.` : "",
   ].filter(Boolean);
   const appearance = runtime.appearanceFor(p);
-  const system = setting ? beliefsFor(setting, p.origin?.community) : unscopedBeliefs;
+  const system = beliefsForActor(setting,p);
   const [after] = useState(() =>
     passage(
       {

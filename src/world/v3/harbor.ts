@@ -1,3 +1,4 @@
+import { isDockworker } from "../../content/characters/city-work";
 import { generateCharacter } from "../../content/characters/generate";
 import { proceduralName } from "../../content/geography/character";
 import type { Actor } from "../../core/types";
@@ -7,21 +8,23 @@ import { random } from "../../core/random";
 import { paintedDoor } from "../../core/doors";
 import { buildingModel } from "../../content/graphics/models";
 import { lampFor } from "../../content/settlements/ornaments";
-import { modernity } from "../../content/settlements/modernity";
+import { industrialized, modernity } from "../../content/settlements/modernity";
 import { cellKey, type SettlementPlan, type Rect, type Road } from "./types";
 import { navigableHull } from "../../core/watercraft";
 import { route } from "../../core/routing";
 import type { Launch, QuayPier } from "./shoreline";
 import type { Sample } from "./roads";
 
+export type TerminalDistrict = Point & {name:string; automated:boolean; steel?:boolean};
+export type ContainerTerminal = TerminalDistrict & {yard:Rect; manifest:string; store:string};
 export type WharfDrain = { inlet: Point; outlet: Point };
 export type WharfPlatform = Rect & { gateX: number; rise: number; finish: "slab" | "brick" | "concrete"; approach?: Rect };
+export type FerryCrossing = {
+  sign: number; ferry: Point; far: Point; gate: Point; farGate: Point;
+};
 export type Harbor = {
   sign: number;
-  ferry: Point;
-  far: Point;
-  gate: Point;
-  farGate: Point;
+  crossing?: FerryCrossing;
   yard: Rect[];
   platforms: WharfPlatform[];
   cartways: Road[];
@@ -33,7 +36,7 @@ export type Harbor = {
   lane: Point;
   roadstead: Point;
   shed: Point;
-  rails: Point;
+  rails?: Point;
 };
 const shift = (p: Point, x: number, y: number): Point => ({
   x: p.x + x,
@@ -45,7 +48,7 @@ const between = (a: Point, b: Point, t: number) => ({
 });
 const smooth = (t: number) => t * t * (3 - 2 * t);
 export const FERRY_PERIOD = 1200;
-export function ferryAt(h: Harbor, clock: number) {
+export function ferryAt(h: FerryCrossing, clock: number) {
   const phase = ((clock % FERRY_PERIOD) + FERRY_PERIOD) % FERRY_PERIOD,
     back = phase >= 600,
     t = phase % 600;
@@ -88,6 +91,24 @@ export function freightAt(h: Harbor, clock: number) {
   };
 }
 
+/** Crane and carrier share a clock. Each numbered slot corresponds to one lift. */
+export function containerMove(clock:number) {
+  const phase=((clock%3600)+3600)%3600, index=Math.min(2,Math.floor(phase/240));
+  const t=Math.min(240,phase-index*240), ease=(a:number,b:number)=>smooth(Math.max(0,Math.min(1,(t-a)/(b-a))));
+  const picked=index+Number(t>=32),onChassis=index+Number(t>=98),delivered=index+Number(t>=196);
+  const travel=ease(54,82)-ease(112,144);
+  const lift=1-ease(8,32)+ease(32,53)-ease(82,98)+ease(99,112);
+  const carrier=ease(100,164)-ease(201,238);
+  const voyage=Math.max(0,Math.min(1,(phase-840)/2640));
+  const angle=2*Math.PI*smooth(voyage);
+  const ship={x:32*Math.sin(angle),y:-13*(1-Math.cos(angle)),
+    heading:(8+Math.round(Math.atan2(32*Math.cos(angle),13*Math.sin(angle))*4/Math.PI))%8};
+  const slot=-44+58*index, nextSlot=index===2 ? -44 : slot+58;
+  const gx=slot+(nextSlot-slot)*Math.max(0,Math.min(1,(t-211)/29));
+  const rackX=235, carrierX=gx+103+(rackX-gx-103)*carrier;
+  return {phase,index,t,picked,onChassis,delivered,travel,lift,gx,rackX,carrierX,ship};
+}
+
 const LIFT_PERIOD = 120, RELEASE = 88;
 export const WHARF_STOPS = [24,18,14];
 export function freightLift(clock: number) {
@@ -109,6 +130,7 @@ export function planHarbor(
   pave: (r: Rect) => void,
   railbed: (x: number, y: number) => boolean,
   seed: string,
+  district?: TerminalDistrict,
 ) {
   const s = pack.setting;
   if (!s || s.year<1885) return;
@@ -127,7 +149,7 @@ export function planHarbor(
           cells.push(k);
       }
       if (cells.length!==(2*half+1)*2) continue;
-      if (!plan.harbor) {
+      if (!plan.harbor && !plan.terminal) {
         const bay={x:at.x-half-1,y:at.y-3,w:half*2+3,h:6};
         plan.plots.push({...bay,kind:"public",id:plan.site.id+"-waterfront-loading-bay",access:shift(at,0,1)});
         const bays=(plan.loadingBays ??= new Map()), levels=(plan.groundLevels ??= new Map());
@@ -148,53 +170,147 @@ export function planHarbor(
       return;
     }
   };
+  const building = (
+    center: Point,
+    name: string,
+    frame: string,
+  ): Place => {
+    const m = buildingModel(frame),
+      [w, h] = m.footprint;
+    const x = center.x - (w >> 1),
+      y = center.y - h + 1;
+    const p: Place = {
+      id: plan.site.id + "-port-" + frame,
+      name,
+      sprite: frame,
+      x,
+      y,
+      w,
+      h,
+      entrance: { x: x + m.entrance[0], y: y + h },
+      access: "public",
+      owner: plan.site.id + "-community",
+      claim: frame,
+      entranceLabel: "Enter",
+      description: frame.endsWith("shed")
+        ? "Freight comes off the pier under a tally clerk’s eye. Loaded wagons stand at the warehouse doors."
+        : frame.endsWith("wharf-store") ? "A tally window looks over the loading doors. Sorted cases await collection by road."
+        : "The ticket windows face the river slip. Passengers gather here for the crossing.",
+    };
+    p.door = paintedDoor(p);
+    if (p.door) p.entrance = shift(p.door, 0, 1);
+    return p;
+  };
+  const install = (p:Place) => {
+    plan.places.push(p);
+    for (let y = p.y; y < p.y + p.h; y++)
+      for (let x = p.x; x < p.x + p.w; x++) {
+        const k = cellKey(x, y);
+        plan.built?.add(k);
+        plan.solid.add(k);
+      }
+    plan.solid.delete(cellKey(p.entrance.x, p.entrance.y));
+    plan.plots.push({
+      ...p,
+      id: p.id + "-yard",
+      kind: "public",
+      access: p.entrance,
+    });
+  };
+  if (district) {
+    const {x,y,automated,steel}=district, prefix=plan.site.id+"-port-";
+    const yard={x:x-22,y,w:45,h:21};
+    const object=(key:string,name:string,dx:number,dy:number,sprite:string):WorldObject=>{
+      const o:WorldObject={id:prefix+key,kind:"monument",name,pos:{x:x+dx,y:y+dy,space:"outside"},sprite,inventory:{}};
+      plan.objects.push(o);return o;
+    };
+    const store=object("store",steel ? "Steel coil receiving rack" : "Row B · bonded grain consignment",14,5,"harbor-yard-sign");
+    const sling=object("manifest",district.name+" · vessel manifest",-4,6,"harbor-yard-desk");
+    sling.freight={store:store.id,call:-1,...(steel && {good:"steel-coil" as const}),boxes:{picked:0,landed:0,hook:0,delivered:0,inbound:-1}};
+    const feeder=object("feeder",steel ? "Great Lakes freight ship" : "Coastal container feeder",0,-3,steel ? "harbor-feeder-2-0" : "harbor-feeder-2-3");
+    feeder.terminalVehicle="feeder";feeder.inventory[steel ? "steel-coil" : "grain"]=steel ? 3 : 9;
+    object("wagon",automated ? "Electric lift AGV" : "Terminal tractor and skeletal trailer",4,3,
+      "harbor-chassis-"+(automated ? "auto" : "manual")).terminalVehicle="carrier";
+    plan.terminal={...district,yard,manifest:sling.id,store:store.id};
+    plan.plots.push({...yard,kind:"public",id:prefix+"terminal",access:shift(district,4,7)});
+    pave(yard);
+    for(let j=y;j<y+yard.h;j++) for(let i=yard.x;i<yard.x+yard.w;i++){
+      const key=cellKey(i,j);
+      plan.streetSurfaces?.set(key,"concrete");
+      (plan.groundLevels ??= new Map()).set(key,0);
+    }
+    for(let j=0;j<2;j++) for(let i=0;i<5;i++){
+      if (!j && i===0)continue;
+      const px=-16+i*7,py=12+j*7;
+      const colour= Math.floor(random(seed,"box",i,j)*5);
+      const count=automated ? 3+(i+j)%2 : 1+(i+2*j)%3;
+      object("stack-"+i+"-"+j,"Stack "+String.fromCharCode(65+j)+(i+1),px,py,steel ? "harbor-coil-yard" : "harbor-stack-"+colour+"-"+count);
+      for(let v=py-1;v<=py;v++)for(let u=px-2;u<=px+2;u++)plan.solid.add(cellKey(x+u,y+v));
+    }
+    object("light-west","Quay floodlights",-21,3,"harbor-flood-"+(automated?"auto":"manual"));
+    object("light-east","Yard floodlights",21,10,"harbor-flood-"+(automated?"auto":"manual"));
+    if(automated) {
+      object("reefer","Refrigerated container power points",8,12,"harbor-reefer-pedestal");
+      for(let i=-9;i<=9;i++){
+        const gate=i===0;
+        const o=object("lane-fence-"+i,gate ? "Pedestrian gate" : "Transfer lane fence",i,8,
+          gate ? "harbor-gate" : "harbor-fence-"+(Math.abs(i)%4===1 ? "post" : "panel"));
+        if(gate)o.kind="gate";else plan.solid.add(cellKey(o.pos.x,o.pos.y));
+      }
+    }
+    for(let i=-20;i<=20;i+=5)object("bollard-"+i,"Quay bollard",i,0,"harbor-bollard");
+    const depot=building(shift(district,-17,8),"Freight dispatch warehouse","worksite-wharf-store");
+    const fits=(p:Place)=>{
+      for(let j=p.y;j<=p.y+p.h;j++)for(let i=p.x;i<p.x+p.w;i++)
+        if(sample(i,j).water<=0 || railbed(i,j) || plan.solid.has(cellKey(i,j)))return false;
+      return true;
+    };
+    if (fits(depot)) install(depot);
+    if (isDockworker(pack.role)) {
+      const room=[-30,32,-38,40].map(dx=>building(shift(district,dx,20),"Dockworker’s flat","mod-slab-0-urban-row")).find(fits);
+      if(room){
+        room.owner="player";room.access="household";room.claim="residence";
+        room.description="A rented flat on the road to the freight yard.";
+        install(room);
+        const home=room.entrance,work=shift(district,-4,7);
+        const chest=object("house-store","Household store",home.x-x+2,home.y-y+1,"chest");
+        chest.kind="container";chest.owner="player";
+        plan.work.set("player",{home,work,water:home,social:home,role:pack.role,label:"Checking the vessel manifest",offset:0});
+      }
+    }
+    parkLorry([shift(district,18,15),shift(district,10,16),shift(district,0,16)]);
+    return;
+  }
   const distanceToTown=(p:QuayPier)=>Math.hypot(p.root.x-plan.site.center.x,p.root.y-plan.site.center.y);
   const byTown=[...piers].sort((a,b)=>distanceToTown(a)-distanceToTown(b));
   const parkAtQuay=()=>parkLorry(byTown.flatMap(p=>[4,6,9].map(d=>shift(p.root,-p.outward.x*d,-p.outward.y*d+3))));
-  if (s.year>1955 || !["north-america","britain","western-europe"].includes(modernity(s).id)) {
-    parkAtQuay();
-    return;
-  }
+  if (!industrialized(s)) { parkAtQuay(); return; }
   const candidates = byTown.filter(p=>p.w>=24);
-  for (const ferry of candidates) {
-    const sign = ferry.outward.x;
-    const freight = piers.find(
-      (p) =>
-        p.w >= 24 &&
-        p.outward.x === sign &&
-        p.root.y === ferry.root.y - 28 &&
-        Math.abs(p.root.x - ferry.root.x) < 22,
-    );
-    if (!freight) continue;
-    const water = (p: Point) =>
-      sample(Math.round(p.x), Math.round(p.y)).water < 0;
-    const ferryPos = shift(ferry.root, sign * 13, 5),
-      gate = shift(ferry.root, sign * 12, 2);
-    let across = 32;
-    while (across < 148 && water(shift(ferry.root, sign * across, 5))) across++;
-    if (across < 53 || across === 148) continue;
-    const far = shift(ferry.root, sign * (across - 11), 5),
-      farGate = shift(ferry.root, sign * (across + 1), 5);
-    if (
-      s.playableMap &&
-      Math.max(Math.abs(farGate.x), Math.abs(farGate.y)) >=
-        s.playableMap.size / 2 - 2
-    )
-      continue;
-    const cargo = shift(freight.root, sign * 13, 5),
-      lane = shift(cargo, sign * 24, 0);
-    let roadstead = lane;
-    const clear = (p: Point, rx: number, ry: number) =>
-      [-rx, 0, rx].every((x) =>
-        [-ry, 0, ry].every((y) => water(shift(p, x, y))),
-      );
-    if (
-      !Array.from(
-        { length: Math.ceil(Math.abs(far.x - ferryPos.x)) + 1 },
-        (_, i) => shift(ferryPos, sign * i, 0),
-      ).every((p) => clear(p, 9, 2))
-    )
-      continue;
+  const water = (p: Point) => sample(Math.round(p.x), Math.round(p.y)).water < 0;
+  const limit=(s.playableMap?.size ?? Infinity)/2;
+  const clear = (p: Point, rx: number, ry: number) =>
+    Math.abs(p.x)+rx<limit && Math.abs(p.y)+ry<limit && [-rx,0,rx].every(x=>[-ry,0,ry].every(y=>water(shift(p,x,y))));
+  const pairs: { freight: QuayPier; ferry?: QuayPier }[] = [];
+  if (s.year<=1955) for (const ferry of candidates) {
+    const freight=candidates.find(p=>p.outward.x===ferry.outward.x && p.root.y===ferry.root.y-28 && Math.abs(p.root.x-ferry.root.x)<22);
+    if (freight) pairs.push({freight,ferry});
+  }
+  for (const freight of candidates) pairs.push({freight});
+  for (const {freight,ferry} of pairs) {
+    const sign=freight.outward.x;
+    let crossing: FerryCrossing | undefined;
+    if (ferry) {
+      const slip=shift(ferry.root,sign*13,5);
+      let across=32;
+      while (across<148 && water(shift(ferry.root,sign*across,5))) across++;
+      if (across<53 || across===148) continue;
+      const far=shift(ferry.root,sign*(across-11),5), farGate=shift(ferry.root,sign*(across+1),5);
+      if (s.playableMap && Math.max(Math.abs(farGate.x),Math.abs(farGate.y))>=s.playableMap.size/2-2) continue;
+      if (!Array.from({length:Math.abs(far.x-slip.x)+1},(_,i)=>shift(slip,sign*i,0)).every(p=>clear(p,9,2))) continue;
+      crossing={sign,ferry:slip,gate:shift(ferry.root,sign*12,2),far,farGate};
+    }
+    const cargo=shift(freight.root,sign*13,5),lane=shift(cargo,sign*24,0);
+    let roadstead=lane;
     if (
       !Array.from({ length: 13 }, (_, i) => between(cargo, lane, i / 12)).every(
         (p) => clear(p, 9, 2),
@@ -209,60 +325,23 @@ export function planHarbor(
     if (lane.y - roadstead.y < 12) continue;
     const at = (pier: QuayPier, inland: number, dy: number) =>
       shift(pier.root, -sign * inland, dy);
-    const building = (
-      pier: QuayPier,
-      name: string,
-      frame: string,
-      inland: number,
-      dy: number,
-    ): Place => {
-      const m = buildingModel(frame),
-        [w, h] = m.footprint,
-        center = at(pier, inland, dy);
-      const x = center.x - (w >> 1),
-        y = center.y - h + 1;
-      const p: Place = {
-        id: plan.site.id + "-port-" + frame,
-        name,
-        sprite: frame,
-        x,
-        y,
-        w,
-        h,
-        entrance: { x: x + m.entrance[0], y: y + h },
-        access: "public",
-        owner: plan.site.id + "-community",
-        claim: frame,
-        entranceLabel: "Enter",
-        description: frame.endsWith("shed")
-          ? "Freight comes off the pier under a tally clerk’s eye. Loaded wagons stand at the warehouse doors."
-          : frame.endsWith("wharf-store") ? "A tally window looks over the loading doors. Sorted cases await collection by road."
-          : "The ticket windows face the river slip. Passengers gather here for the crossing.",
-      };
-      p.door = paintedDoor(p);
-      if (p.door) p.entrance = shift(p.door, 0, 1);
-      return p;
-    };
-    const terminal = building(
-      ferry,
+    const terminal = ferry && building(
+      at(ferry,10,1),
       "Municipal ferry house",
       "worksite-ferry-terminal",
-      10,
-      1,
     );
     const buildable = (p: Place) => {
       for (let y=p.y;y<=p.y+p.h;y++)
         for (let x=p.x;x<p.x+p.w;x++)
-          if (sample(x,y).water<0 || railbed(x,y)) return false;
+          if (Math.abs(x)>=limit || Math.abs(y)>=limit || sample(x,y).water<0 || railbed(x,y) || !ferry && plan.solid.has(cellKey(x,y))) return false;
       return true;
     };
     const lots=[1,-4,-8,5].flatMap(dy=>[15,10,21,26,32].map(inland=>({dy,inland})));
     lots.sort((a,b)=>Math.abs(a.inland-15)+Math.abs(a.dy-1)-Math.abs(b.inland-15)-Math.abs(b.dy-1));
-    const warehouse=lots.map(({dy,inland})=>building(freight,"Pier freight warehouse","worksite-transit-shed",inland,dy)).find(buildable);
-    if (!warehouse || !buildable(terminal)) continue;
+    const warehouse=lots.map(({dy,inland})=>building(at(freight,inland,dy),"Pier freight warehouse","worksite-transit-shed")).find(buildable);
+    if (!warehouse || terminal && !buildable(terminal)) continue;
     const crane = at(freight, -13, 0),
       rails = {x: at(freight,15,0).x, y: Math.max(warehouse.y+warehouse.h+3,freight.root.y-1)};
-    const court: WharfPlatform={x:terminal.x-2,y:terminal.y-1,w:terminal.w+4,h:terminal.h+5,gateX:terminal.entrance.x,rise:5,finish:"slab"};
     const harbor: Harbor = {
       sign,
       yard: [],
@@ -271,24 +350,21 @@ export function planHarbor(
       cartways: [],
       drains: [],
       manifest: plan.site.id + "-port-manifest",
-      ferry: ferryPos,
-      far,
-      gate,
-      farGate,
+      crossing,
       crane,
       cargo,
       lane,
       roadstead,
       shed: warehouse.entrance,
-      rails,
+      rails: ferry ? rails : undefined,
     };
     plan.harbor = harbor;
     const levels=(plan.groundLevels ??= new Map()), quayLevel=Math.round(sample(freight.root.x,freight.root.y).elevation/14);
-    for (let y = Math.min(freight.root.y-10,warehouse.y-6); y <= ferry.root.y + 7; y++) {
+    for (let y = Math.min(freight.root.y-10,warehouse.y-6); y <= (ferry ?? freight).root.y + 7; y++) {
       const t = (y - freight.root.y) / 28;
-      const bank = Math.round(between(freight.root, ferry.root, t).x);
-      const inland = sign < 0 ? Math.max(warehouse.x+warehouse.w+2,terminal.x+terminal.w+3)
-        : Math.min(warehouse.x-3,terminal.x-3);
+      const bank = Math.round(between(freight.root, (ferry ?? freight).root, t).x);
+      const inland = sign < 0 ? Math.max(warehouse.x+warehouse.w+2,terminal ? terminal.x+terminal.w+3 : warehouse.x+warehouse.w+2)
+        : Math.min(warehouse.x-3,(terminal ?? warehouse).x-3);
       const left = Math.min(bank+sign*4,inland), right = Math.max(bank+sign*4,inland);
       const width = right-left+1;
       let start: number | undefined;
@@ -309,12 +385,66 @@ export function planHarbor(
         }
       }
     }
+    const object = (
+      key: string,
+      name: string,
+      p: Point,
+      sprite: string,
+      kind: WorldObject["kind"] = "monument",
+    ) => {
+      const o: WorldObject = {
+        id: plan.site.id + "-port-" + key,
+        name,
+        sprite,
+        pos: { ...p, space: "outside" },
+        inventory: {},
+        kind,
+      };
+      plan.objects.push(o);
+      return o;
+    };
+    const sling = object(
+      "manifest",
+      "Inbound cargo sling",
+      at(freight, -8, 1),
+      "study-propb-crate-stack-0",
+      "container",
+    );
+    sling.freight = { store: plan.site.id + "-port-store", call: -1 };
+    sling.inventory.grain = 6;
+    object(
+      "store",
+      "Pier warehouse stock",
+      shift(warehouse.entrance, 4, 0),
+      "study-propb-crate-stack-1",
+      "container",
+    );
+    if (!ferry || !terminal || !crossing) {
+      warehouse.description="The crane lands cases on the pier. A tally clerk weighs the grain before it goes to local buyers.";
+      install(warehouse);
+      sling.freight.local = true;
+      const buyer=object("wagon","Grain factor’s stock",shift(warehouse.entrance,-2,1),"study-propb-grain-sacks-0","container");
+      buyer.inventory.coin=30;
+      const hand=shift(warehouse.entrance,0,2);
+      harbor.cartways.push({id:plan.site.id+"-freight-way",kind:"lane",cost:0,width:2,
+        points:[at(freight,1,1),{x:at(freight,1,1).x,y:hand.y},hand]});
+      for (const u of [4,13,20]) for (const y of [-2,3])
+        object("pile-"+u+"-"+y,"Fender pile",at(freight,-u,y),"harbor-pile");
+      const mooring=at(freight,-18,8);
+      if (water(mooring)) {
+        harbor.dolphins.push(mooring);
+        object("dolphin","Bound mooring piles",mooring,"harbor-dolphin");
+      }
+      object("scales","Receiving scales",shift(warehouse.entrance,3,1),"harbor-platform-scale");
+      parkLorry([shift(hand,5,1),shift(hand,-5,2),shift(hand,4,5)]);
+      return;
+    }
+    const {gate,farGate}=crossing;
+    const court: WharfPlatform={x:terminal.x-2,y:terminal.y-1,w:terminal.w+4,h:terminal.h+5,gateX:terminal.entrance.x,rise:5,finish:"slab"};
     const storehouse = building(
-      freight,
+      at(freight,15,19),
       "Wharf dispatch office",
       "worksite-wharf-store",
-      15,
-      19,
     );
     const offices = [terminal, warehouse];
     if (
@@ -362,22 +492,7 @@ export function planHarbor(
     ];
     if (dispatch===storehouse) ways.push([shift(door,0,1),sill,shift(sill,-sign*3,3),roadEnd]);
     harbor.cartways=ways.map((points,i)=>({id:plan.site.id+"-cartway-"+i,kind:"lane",cost:0,width:i===0 ? 2 : 1,points}));
-    for (const p of offices) {
-      plan.places.push(p);
-      for (let y = p.y; y < p.y + p.h; y++)
-        for (let x = p.x; x < p.x + p.w; x++) {
-          const k = cellKey(x, y);
-          plan.built?.add(k);
-          plan.solid.add(k);
-        }
-      plan.solid.delete(cellKey(p.entrance.x, p.entrance.y));
-      plan.plots.push({
-        ...p,
-        id: p.id + "-yard",
-        kind: "public",
-        access: p.entrance,
-      });
-    }
+    offices.forEach(install);
     const tracks = (plan.tracks ??= new Map());
     for (let y = 0; y < 4; y++)
       for (let x = -9; x <= 10; x++) {
@@ -385,24 +500,6 @@ export function planHarbor(
         tracks.set(k, { axis: "x", at: y });
         plan.pavement?.set(k, "rail");
       }
-    const object = (
-      key: string,
-      name: string,
-      p: Point,
-      sprite: string,
-      kind: WorldObject["kind"] = "monument",
-    ) => {
-      const o: WorldObject = {
-        id: plan.site.id + "-port-" + key,
-        name,
-        sprite,
-        pos: { ...p, space: "outside" },
-        inventory: {},
-        kind,
-      };
-      plan.objects.push(o);
-      return o;
-    };
     object(
       "ticket",
       "Board the cross-river ferry",
@@ -411,22 +508,6 @@ export function planHarbor(
     ).passage = { destination: farGate, back: false };
     object("return", "Return ferry landing", farGate, "harbor-cleat").passage =
       { destination: gate, back: true };
-    const sling = object(
-      "manifest",
-      "Inbound cargo sling",
-      at(freight, -8, 1),
-      "study-propb-crate-stack-0",
-      "container",
-    );
-    sling.freight = { store: plan.site.id + "-port-store", call: -1 };
-    sling.inventory.grain = 6;
-    object(
-      "store",
-      "Pier warehouse stock",
-      shift(warehouse.entrance, 4, 0),
-      "study-propb-crate-stack-1",
-      "container",
-    );
     object(
       "wagon",
       "Freight wagon consignment",
@@ -520,19 +601,53 @@ export function planHarbor(
   parkAtQuay();
 }
 
-/** One lighter-load of sacked grain per hourly call. A player working the sling can finish a lift early. */
+export function releasePortStock(store: WorldObject, roadStock: WorldObject, good="grain") {
+  const units = store.inventory[good] ?? 0;
+  if (units > 0) {
+    roadStock.inventory[good] = (roadStock.inventory[good] ?? 0) + units;
+    roadStock.depleted = false;
+    store.inventory[good] = 0;
+  }
+  return units;
+}
+
 export function serviceFreight(
   sling: WorldObject,
   store: WorldObject,
   wagon: WorldObject,
   clock: number,
   roadStock?: WorldObject,
+  feeder?: WorldObject,
 ) {
   const manifest = sling.freight!;
   const call = Math.floor(clock / 3600),
     phase = clock - call * 3600;
+  if (manifest.boxes) {
+    if(!feeder)return;
+    const boxes=manifest.boxes, move=containerMove(clock), good=manifest.good ?? "grain", units=manifest.good ? 1 : 3;
+    const x=sling.pos.x+4,y=sling.pos.y-6;
+    feeder.pos.x=x+Math.round(move.ship.x);feeder.pos.y=y+Math.round(move.ship.y-55/16);
+    wagon.pos.x=x+Math.round(move.carrierX/16);wagon.pos.y=y+3;
+    if (manifest.call!==call) {
+      manifest.call=call;boxes.picked=0;boxes.landed=0;boxes.hook=0;boxes.delivered=0;
+      if(boxes.inbound!==call){boxes.inbound=call;feeder.inventory[good]=3*units;}
+    }
+    const lifted=Math.min(feeder.inventory[good]??0,units*Math.max(0,move.picked-boxes.picked));
+    feeder.inventory[good]=(feeder.inventory[good]??0)-lifted;
+    boxes.hook+=lifted;boxes.picked=move.picked;
+    const landed=Math.min(boxes.hook,units*Math.max(0,move.onChassis-boxes.landed));
+    wagon.inventory[good]=(wagon.inventory[good]??0)+landed;
+    boxes.hook-=landed;boxes.landed=move.onChassis;
+    const received=Math.max(0,move.delivered-boxes.delivered);
+    const unloaded=Math.min(wagon.inventory[good],received*units);
+    wagon.inventory[good]-=unloaded;store.inventory[good]=(store.inventory[good]??0)+unloaded;
+    boxes.delivered+=received;
+    if(phase>=2160 && boxes.inbound===call){boxes.inbound=call+1;feeder.inventory[good]=3*units;}
+    if (phase>=1320 && roadStock) releasePortStock(store,roadStock,good);
+    return;
+  }
   if (manifest.call !== call) {
-    if (manifest.call >= 0) {
+    if (manifest.call >= 0 && !manifest.local) {
       store.inventory.grain = 0;
       wagon.inventory.grain = 0;
     }
@@ -544,6 +659,16 @@ export function serviceFreight(
   const moved = Math.max(0, left - waiting);
   sling.inventory.grain = left - moved;
   store.inventory.grain = (store.inventory.grain ?? 0) + moved;
+  if (manifest.local) {
+    if (phase>=1320) {
+      const stock=store.inventory.grain ?? 0;
+      const road=roadStock ? Math.floor(stock/2) : 0;
+      if (roadStock && road) { roadStock.inventory.grain=(roadStock.inventory.grain??0)+road; roadStock.depleted=false; }
+      wagon.inventory.grain=(wagon.inventory.grain??0)+stock-road;
+      store.inventory.grain=0;
+    }
+    return;
+  }
   if (phase >= 1320) {
     wagon.inventory.grain =
       (wagon.inventory.grain ?? 0) + (store.inventory.grain ?? 0);
@@ -562,8 +687,10 @@ export function serviceFreight(
 export function harborStaff(plan: SettlementPlan, pack: Pack, seed: string) {
   const h = plan.harbor,
     s = pack.setting;
-  if ((!h && !plan.anchorage) || !s) return;
-  for (const [i, role] of (h ? [
+  const terminal=plan.terminal;
+  if ((!h && !terminal && !plan.anchorage) || !s) return;
+  const shops=plan.objects.filter(o=>o.shopSupply);
+  for (const [i, role] of (h && !h.crossing ? ["Longshoreman","Freight tally clerk","Grain factor"] : h ? [
     "Longshoreman",
     "Freight tally clerk",
     "Railway porter",
@@ -571,9 +698,10 @@ export function harborStaff(plan: SettlementPlan, pack: Pack, seed: string) {
     "Seamstress",
     "Bookkeeper",
     "Messenger",
-  ] : ["Porter","Sailor","Boatman"]).entries()) {
-    const id = plan.site.id + (h ? "-wharfhand-" + i : ["-lighter-porter","-dhow-pilot","-lighter-pilot"][i]),
-      home = !h ? plan.anchorage!.landing : i < 3 ? h.shed : shift(h.gate, -h.sign * (8 + i), i % 2);
+  ] : terminal ? [terminal.automated ? "Remote crane operator" : "Crane operator","Freight tally clerk"] : ["Porter","Sailor","Boatman",plan.anchorage?.cargo==="grain" ? "Grain factor" : "Cloth merchant",...shops.map(o=>o.shopSupply!.item==="bread" ? "Baker" : "Grocer")]).entries()) {
+    const shop=shops[i-4];
+    const id = shop ? shop.id+"-seller" : plan.site.id + (terminal ? "-terminal-hand-"+i : h ? "-wharfhand-" + i : ["-lighter-porter","-merchant-pilot","-lighter-pilot","-quay-merchant"][i]),
+      home = shop ? shift(shop.pos,1,0) : terminal ? shift(terminal,i ? 14 : -4,7) : !h ? (i===3 ? shift(plan.anchorage!.store,2,1) : plan.anchorage!.landing) : !h.crossing && i===2 ? shift(h.shed,-2,2) : i < 3 ? h.shed : shift(h.crossing!.gate, -h.sign * (8 + i), i % 2);
     const pos = { ...home, space: "outside" as const };
     const a: Actor = {
       id,
@@ -593,7 +721,16 @@ export function harborStaff(plan: SettlementPlan, pack: Pack, seed: string) {
       direction: 2,
     };
     Object.assign(a, generateCharacter(s, seed, id, 24 + i * 4, role));
-    if(!h && i){
+    if(shop){
+      a.stockroom=shop.id;a.activity=role==="Baker" ? "Selling bread at the bakery" : "Measuring pepper at the counter";
+    } else if(h && !h.crossing && i===2){
+      a.stockroom=plan.site.id+"-port-wagon";a.activity="Buying grain at the warehouse";
+    } else if(terminal){
+      a.activity=i ? "Checking the seals at row B" : "Supervising the quay crane";
+    } else if(!h && i===3){
+      a.stockroom=plan.objects.find(o=>o.lighterage?.site===plan.site.id)!.lighterage!.store;
+      a.activity=plan.anchorage?.cargo==="grain" ? "Weighing the Baltic grain" : "Measuring cloth at the counter";
+    } else if(!h && i){
       const ship=plan.objects.find(o=>o.vessel?.skipper===id)!;
       a.boat=ship.id;a.afloat="boat";a.pos={...ship.pos};a.activity="At the tiller";
     }
@@ -633,7 +770,9 @@ export function harborRoutine(h: Harbor, i: number): Itinerary {
     });
     last = to;
   };
-  if (i < 3) {
+  if (!h.crossing && i===2) {
+    leg(period,shift(h.shed,-2,2),"Buying grain at the warehouse");
+  } else if (i < 3) {
     const hook = shift(h.crane, -h.sign * (1 + i), 1),
       at = shift(h.shed, 2 + i, 1);
     const turn = shift(h.crane, -h.sign * 17, 1),
@@ -654,30 +793,31 @@ export function harborRoutine(h: Harbor, i: number): Itinerary {
         : "Stacking cases at the freight doors",
     );
     leg(12, at, "Returning to the crane", [doorAisle, turn, hook]);
-  } else {
+  } else if (h.crossing) {
+    const crossing=h.crossing;
     const side = (i < 5 ? -0.58 : 0.58),
       offset = (i % 2 ? -1 : 1) * (7.8 + (i < 5 ? 0.45 : 0)),
-      deck = shift(h.ferry, -h.sign * offset, side),
-      away = shift(h.far, h.sign * 8.25, side);
-    const stand = shift(h.gate, -h.sign * (2 + (i % 3)), Math.sign(side));
-    leg(1, deck, "Walking down the gangway", [shift(deck,0,1.2-side),shift(h.ferry,-h.sign*8,1.2),h.gate,stand]);
+      deck = shift(crossing.ferry, -h.sign * offset, side),
+      away = shift(crossing.far, h.sign * 8.25, side);
+    const stand = shift(crossing.gate, -h.sign * (2 + (i % 3)), Math.sign(side));
+    leg(1, deck, "Walking down the gangway", [shift(deck,0,1.2-side),shift(crossing.ferry,-h.sign*8,1.2),crossing.gate,stand]);
     leg(1.5, stand, "Waiting for the cross-river ferry");
-    leg(3, stand, "Boarding the ferry", [h.gate, shift(h.ferry,-h.sign*8,1.2),shift(deck,0,1.2-side),deck]);
+    leg(3, stand, "Boarding the ferry", [crossing.gate, shift(crossing.ferry,-h.sign*8,1.2),shift(deck,0,1.2-side),deck]);
     leg(4, deck, "On the forward deck");
     const cross = (from: Point, to: Point, back: boolean) => {
       const path = Array.from({ length: 24 }, (_, j) => {
-        const f = ferryAt(h, (back ? 840 : 240) + (j + 1) * 15);
-        return shift(f, from.x - (back ? h.far : h.ferry).x, side);
+        const f = ferryAt(crossing, (back ? 840 : 240) + (j + 1) * 15);
+        return shift(f, from.x - (back ? crossing.far : crossing.ferry).x, side);
       });
       path[23] = to;
       return path;
     };
-    const landed = shift(h.far, -h.sign * offset, side),
+    const landed = shift(crossing.far, -h.sign * offset, side),
       returnDeck = deck;
     leg(10, deck, "Crossing the river", cross(deck, landed, false));
-    leg(11, landed, "Leaving the ferry", [away, h.farGate]);
-    leg(12, h.farGate, "At the far landing");
-    leg(14, h.farGate, "Boarding the return ferry", [away, landed]);
+    leg(11, landed, "Leaving the ferry", [away, crossing.farGate]);
+    leg(12, crossing.farGate, "At the far landing");
+    leg(14, crossing.farGate, "Boarding the return ferry", [away, landed]);
     leg(
       20,
       landed,
@@ -689,7 +829,7 @@ export function harborRoutine(h: Harbor, i: number): Itinerary {
 }
 
 export type Anchorage = {
-  site: string;
+  site: string; cargo: "grain" | "cloth";
   anchor: Point; outward: Point; shore: Point; landing: Point; store: Point;
   radius: number; reach: number; porterPath: Point[];
 };
@@ -708,18 +848,20 @@ export function anchorageAt(a: Anchorage, clock: number) {
   const sailing=(t+3600-2160)%3600;
   const p=unit(sailing/2160), angle=2*Math.PI*smooth(p);
   const dy=a.reach*Math.cos(angle),dx=a.radius*Math.sin(angle)+dy*.48,n=a.outward;
-  const dhow={...approachPoint(a,angle),heading:bearing8(headingOf(n.x*dx-n.y*dy,n.y*dx+n.x*dy)),
+  const quaySide=(a.anchor.x-a.shore.x)*(a.anchor.y-a.shore.y)>=0 ? 1 : 3;
+  const merchant=!a.radius ? {...a.anchor,heading:quaySide+(n.x<0 || n.y<0 ? 4 : 0),moving:false} : {...approachPoint(a,angle),heading:bearing8(headingOf(n.x*dx-n.y*dy,n.y*dx+n.x*dy)),
     moving:p>0 && p<1};
   const alongside=lighterBerth(a);
   const outward=headingOf(alongside.x-a.shore.x,alongside.y-a.shore.y);
   const travel=smooth(unit((t-720)/360))-smooth(unit((t-1320)/360));
   const turn=smooth(unit((t-1080)/240))-smooth(unit((t-1680)/240));
-  const lighter={...between(a.shore,alongside,travel),heading:bearing8(outward+4*turn),
+  const berthTurn=!a.radius ? 2*(1-smooth(unit((t-720)/60))+smooth(unit((t-1620)/60))) : 0;
+  const lighter={...between(a.shore,alongside,travel),heading:bearing8(outward+4*turn+berthTurn),
     moving:t>720 && t<1080 || t>1320 && t<1680};
-  return {dhow,lighter};
+  return {merchant,lighter};
 }
 
-export function planAnchorage(plan: SettlementPlan, launch: Launch, store: Point, sample: Sample, limit: number) {
+export function planAnchorage(plan: SettlementPlan, launch: Launch, store: Point, sample: Sample, limit: number, cargo: Anchorage["cargo"], moored = cargo === "grain") {
   const n=launch.direction;
   const at=(d:number,k:number)=>shift(launch.water,n.x*d-n.y*k,n.y*d+n.x*k);
   const wet=(p:Point,clear:number)=>Math.abs(p.x)<limit-clear && Math.abs(p.y)<limit-clear &&
@@ -731,15 +873,18 @@ export function planAnchorage(plan: SettlementPlan, launch: Launch, store: Point
     for(let d=-10;d<=18;d++) {
       const p=at(d,side);
       if(sample(p.x,p.y).water>=1) bank=p;
-      if(bank && wet(p,1.5) && [0,2,4,6].every(f=>navigableHull(p,f,false,shallows))) {shore=p;break;}
+      if(bank && wet(p,moored ? 3 : 1.5) && [0,2,4,6].every(f=>navigableHull(p,f,false,shallows))) {shore=p;break;}
     }
     if(!bank || !shore || plan.solid.has(cellKey(bank.x,bank.y))) continue;
-    for(const [offshore,radius,span] of [[15,9.9,18],[12,6,11],[10,3,14],[21,8,16]]) for(const sign of [1,-1]) {
+    for(const [offshore,radius,span] of (moored ? [[7,0,0],[9,0,0],[6,0,0]] : [[15,9.9,18],[12,6,11],[10,3,14],[21,8,16]])) for(const sign of [1,-1]) {
       const reach=span*sign;
-      const a:Anchorage={site:plan.site.id,anchor:at(offshore,side+sign*3),outward:{x:n.x,y:n.y},shore,landing:bank,store,
+      const a:Anchorage={site:plan.site.id,cargo,anchor:at(offshore,side+sign*(moored ? 6 : 3)),outward:{x:n.x,y:n.y},shore,landing:bank,store,
         radius,reach,porterPath:[]};
       let clear=true;
-      for(let i=0;i<=64 && clear;i++){
+      if(moored){
+        const ship=anchorageAt(a,0).merchant;
+        clear=navigableHull(ship,ship.heading,true,water) && Math.abs(ship.x-bank.x)<=11 && ship.y-bank.y>=-5 && ship.y-bank.y<=10;
+      } else for(let i=0;i<=64 && clear;i++){
         const angle=i*Math.PI/32,p=approachPoint(a,angle),next=approachPoint(a,angle+.001);
         clear=navigableHull(p,bearing8(headingOf(next.x-p.x,next.y-p.y)),true,water);
       }
@@ -751,16 +896,51 @@ export function planAnchorage(plan: SettlementPlan, launch: Launch, store: Point
         plan.traffic.has(cellKey(p.x,p.y)) ? 1 : 1.4,{maxNodes:4500});
       if(walk.status!=="found") continue;
       a.porterPath=[bank,...walk.path];
-      for(const p of a.porterPath) plan.traffic.add(cellKey(p.x,p.y));
       return a;
     }
   }
 }
 
+const shipload=(cargo:Anchorage["cargo"])=>cargo==="grain" ? 72 : 3;
+
+export function installAnchorage(plan:SettlementPlan,a:Anchorage,facing:string,id:string,s:NonNullable<Pack["setting"]>,seed:string,sample:Sample,
+  paint:(r:Rect,t:"dirt"|"paving",reserve?:boolean)=>void, form: "fluyt"|"dhow" = "dhow", spice = false) {
+  plan.anchorage=a;
+  const grain=a.cargo==="grain";
+  for(const p of a.porterPath) {
+    plan.traffic.add(cellKey(p.x,p.y));
+    if((grain || sample(p.x,p.y).water>3) && !plan.surface.has(cellKey(p.x,p.y)))paint({...p,w:1,h:1},grain ? "paving" : "dirt",false);
+  }
+  const fleet=anchorageAt(a,0);
+  const canvas=Math.floor(3*(random(seed,id,"sailcloth-lot")<.65 ?
+    random(s.culture,Math.floor(s.year/100),"sailcloth") : random(seed,id,"sailcloth")));
+  for(const kind of ["merchant","lighter"] as const) {
+    const ship=kind==="merchant", type=ship ? form : kind, point=fleet[kind];
+    const finish=Math.floor(random(seed,id,type,"finish")*3);
+    plan.objects.push({id:a.site+"-"+kind,name:ship ? form==="fluyt" ? grain ? "Baltic grain fluyt" : "Cloth-laden fluyt" : "Lateen trading dhow" : "Harbour lighter",
+      kind:"monument",pos:{x:Math.round(point.x),y:Math.round(point.y),space:"outside"},sprite:`harbor-${type}-${finish}-${point.heading}`,
+      inventory:ship ? {[a.cargo]:shipload(a.cargo)} : {},vessel:{form:kind,finish,canvas,heading:point.heading,site:a.site,skipper:a.site+"-"+kind+"-pilot"},
+      description:ship ? form==="fluyt" ? "Three masts carry furled canvas while the lighter comes alongside." :
+        "A trading vessel with a lateen yard and a deep cargo hold." : "An open boat ferrying cargo between ship and quay."});
+  }
+  const store=id+"-store-stock";
+  plan.objects.push({id:store,name:grain ? "Grain warehouse hoist" : "Cloth landing counter",kind:"monument",
+    prop:grain ? "grainHoist" : "clothCounter",sprite:grain ? "harbor-grain-hoist" : "harbor-cloth-counter-0",
+    pos:{...a.store,space:"outside"},inventory:grain ? {coin:18,grain:4,...(spice && {pepper:4})} : {coin:18},
+    ...(spice && {consignment:{item:"pepper",days:4,units:8}}),
+    description:grain ? "The porter hooks each sack onto the rope. The warehouse crew hauls it up to the loft." :
+      "Porters leave tied bales beside the timber store. The merchant opens them here and measures out cloth for sale."},
+    {id:id+"-lighter-landing",name:grain ? "Grain lighter landing" : "Lighter landing",kind:"monument",
+      sprite:`harbor-${grain ? "grain-" : ""}landing-${facing}-0`,pos:{...a.landing,space:"outside"},
+      inventory:!a.radius ? {[a.cargo]:1} : {},lighterage:{cargo:a.cargo,store,porter:a.site+"-lighter-porter",site:a.site,lift:-1},
+      description:grain ? "Grain sacks from the lighter wait on the timber skids. Carry a sack to the warehouse hoist for a fee." :
+        "The lighter brings bales ashore. Carry one to the shaded store to earn a porter's fee."});
+}
+
 export function porterRoutine(a: Anchorage): Itinerary {
   return {period:60,start:0,segments:[
     {from:0,to:28,pos:a.landing,activity:"work",label:"Waiting for the lighter"},
-    {from:28,to:30,pos:a.landing,activity:"work",label:"Sorting the landed bales"},
+    {from:28,to:30,pos:a.landing,activity:"work",label:a.cargo==="grain" ? "Sorting the grain sacks" : "Sorting the landed bales"},
     {from:30,to:36,pos:a.landing,path:a.porterPath.slice(1),activity:"haul",label:"Going to the shore store"},
     {from:36,to:45,pos:a.store,activity:"work",label:"Stacking the consignment"},
     {from:45,to:51,pos:a.store,path:a.porterPath.slice(0,-1).reverse(),activity:"haul",label:"Walking back to the landing"},
@@ -768,30 +948,39 @@ export function porterRoutine(a: Anchorage): Itinerary {
   ]};
 }
 
-export function transferCloth(from:WorldObject,to:WorldObject,limit:number) {
-  const n=Math.min(from.inventory.cloth??0,Math.max(0,limit));
-  from.inventory.cloth=(from.inventory.cloth??0)-n;
-  to.inventory.cloth=(to.inventory.cloth??0)+n;
+export function transferCargo(from:WorldObject,to:WorldObject,good:Anchorage["cargo"],limit:number) {
+  const n=Math.min(from.inventory[good]??0,Math.max(0,limit));
+  from.inventory[good]=(from.inventory[good]??0)-n;
+  to.inventory[good]=(to.inventory[good]??0)+n;
   return n;
 }
 
-export function serviceAnchorage(pile: WorldObject, store: WorldObject, dhow: WorldObject, lighter: WorldObject, clock: number, porter: Pick<Actor,"pos"|"dead"|"deliveryBale"> | undefined) {
-  const job=pile.lighterage!,call=Math.floor(clock/3600),phase=clock-call*3600;
-  const deep=dhow.vessel!,skiff=lighter.vessel!;
-  if(deep.loadCall!==call && !deep.manual && (phase<720 || phase>=3240)){
-    deep.loadCall=call;dhow.inventory.cloth=3;
+export function openClothBale(store: WorldObject) {
+  if ((store.inventory.cloth ?? 0) < 1) return false;
+  store.inventory.cloth!--;
+  store.inventory["cloth-bolt"] = (store.inventory["cloth-bolt"] ?? 0) + 3;
+  return true;
+}
+
+export function serviceAnchorage(pile: WorldObject, store: WorldObject, merchant: WorldObject, lighter: WorldObject, clock: number, porter: Pick<Actor,"pos"|"dead"|"deliveryLoad"> | undefined) {
+  const job=pile.lighterage!,good=job.cargo,call=Math.floor(clock/3600),phase=clock-call*3600;
+  const deep=merchant.vessel!,skiff=lighter.vessel!;
+  const supply=good==="grain" ? Math.floor(clock/86400) : call;
+  if(deep.loadCall!==supply && !deep.manual && (phase<720 || phase>=3240)){
+    deep.loadCall=supply;merchant.inventory[good]=shipload(good);
   }
   if(!skiff.manual && !deep.manual && phase>=1290 && phase<1326 && skiff.loadCall!==call &&
-      Math.hypot(dhow.pos.x-lighter.pos.x,dhow.pos.y-lighter.pos.y)<=6){
-    transferCloth(dhow,lighter,3-(lighter.inventory.cloth??0));skiff.loadCall=call;
+      Math.hypot(merchant.pos.x-lighter.pos.x,merchant.pos.y-lighter.pos.y)<=6){
+    transferCargo(merchant,lighter,good,3-(lighter.inventory[good]??0));skiff.loadCall=call;
   }
-  if(!skiff.manual && phase>=1680 && phase<2160) transferCloth(lighter,pile,3);
+  if(!skiff.manual && phase>=1680 && phase<2160) transferCargo(lighter,pile,good,3);
   if(!porter || porter.dead || porter.pos.space!=="outside")return;
-  if(phase>=1800 && phase<2160 && job.lift<call && !porter.deliveryBale && (pile.inventory.cloth??0)>0 &&
+  if(phase>=1800 && phase<2160 && job.lift<call && !porter.deliveryLoad && (pile.inventory[good]??0)>0 &&
       Math.hypot(porter.pos.x-pile.pos.x,porter.pos.y-pile.pos.y)<=2.5){
-    job.lift=call;porter.deliveryBale=store.id;pile.inventory.cloth!--;
+    job.lift=call;porter.deliveryLoad=store.id;pile.inventory[good]!--;
   }
-  if(porter.deliveryBale===store.id && Math.hypot(porter.pos.x-store.pos.x,porter.pos.y-store.pos.y)<=2.5){
-    delete porter.deliveryBale;store.inventory.cloth=(store.inventory.cloth??0)+1;
+  if(porter.deliveryLoad===store.id && Math.hypot(porter.pos.x-store.pos.x,porter.pos.y-store.pos.y)<=2.5){
+    delete porter.deliveryLoad;store.inventory[good]=(store.inventory[good]??0)+1;
+    if(good==="grain")store.hoistedAt=clock;
   }
 }

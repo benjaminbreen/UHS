@@ -225,6 +225,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "maya-preclassic",
+    worship: ["Maya"],
     realm: "maya",
     label: "Preclassic Maya cosmology",
     wiki: "https://en.wikipedia.org/wiki/Maya_civilization",
@@ -307,6 +308,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "maya-classic",
+    worship: ["Maya"],
     realm: "maya",
     label: "Classic Maya kingdoms",
     wiki: "https://en.wikipedia.org/wiki/Maya_civilization",
@@ -467,6 +469,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "teotihuacan-classical",
+    worship: ["Mesoamerican"],
     realm: "mexica",
     label: "Teotihuacan ritual practice",
     wiki: "https://en.wikipedia.org/wiki/Teotihuacan",
@@ -540,6 +543,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "zapotec-montealbán",
+    worship: ["Mesoamerican"],
     realm: "mountain",
     label: "Zapotec Monte Albán practice",
     wiki: "https://en.wikipedia.org/wiki/Zapotec_civilization",
@@ -692,6 +696,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "toltec-central-mexico",
+    worship: ["Mesoamerican"],
     realm: "mexica",
     label: "Toltec-era Central Mexican practice",
     wiki: "https://en.wikipedia.org/wiki/Toltec",
@@ -729,6 +734,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "mexica-aztec",
+    worship: ["Mesoamerican"],
     realm: "mexica",
     label: "Mexica (Aztec) practice",
     wiki: "https://en.wikipedia.org/wiki/Aztec_religion",
@@ -820,6 +826,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "maya-postclassic",
+    worship: ["Maya"],
     realm: "maya",
     label: "Postclassic Maya kingdoms",
     wiki: "https://en.wikipedia.org/wiki/Maya_civilization",
@@ -928,6 +935,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
   },
   {
     id: "colonial-mesoamerica-syncretic",
+    worship: ["Latin Christian", "Catholic"],
     realm: "latin",
     features: ["sacred-texts"],
     label: "Colonial Mesoamerica syncretism",

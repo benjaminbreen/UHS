@@ -7,7 +7,7 @@ export const shoreDirections = [
   {id:"north",x:0,y:-1}, {id:"west",x:-1,y:0},
 ] as const;
 export type ShoreDirection = (typeof shoreDirections)[number];
-export type Launch = { origin: Point; direction: ShoreDirection; water: Point; lane: Rect; dry: Point[]; workingLength:number; pier?: Rect & {level:number} };
+export type Launch = { origin: Point; direction: ShoreDirection; water: Point; lane: Rect; dry: Point[]; workingLength:number; pier?: Rect & {level:number; steps?:import("../../core/topography").LandingSteps} };
 
 /** A launch needs a continuous approach and open water beyond it, not just a nearby wet cell. */
 export function launchAt(

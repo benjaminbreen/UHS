@@ -393,12 +393,10 @@ export function courtMusic(style: PalaceStyle | undefined): InteriorMusic | unde
 }
 
 /** Which piece a building's use calls for; undefined means the room is left quiet. */
-export function interiorMusic(use: string | undefined, faith: string | undefined, home: boolean): InteriorMusic | undefined {
+export function interiorMusic(use: string | undefined, home: boolean): InteriorMusic | undefined {
   if (!use) return home ? "home" : "workshop";
-  // Mosques are left without music.
-  if (/mosque|masjid/.test(use)) return undefined;
+  if (use.startsWith("religious.") || /mosque|masjid/.test(use)) return undefined;
   if (/church|chapel|parish|gothic|romanesque|cathedral|abbey|monaster/.test(use)) return "chant";
-  if (use.startsWith("religious")) return /Christian|Catholic/.test(faith ?? "") ? "chant" : "temple";
   if (/temple|wat|shrine|kiva|lodge|bath|hammam|sento|temazcal/.test(use)) return "temple";
   if (/tavern|alehouse|izakaya|kahve|coffee|gaming|pulqu|chich|tea|chaikhana|inn/.test(use)) return "tavern";
   return "hall";

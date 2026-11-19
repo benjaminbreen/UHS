@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 
 ATLASES = ['public/packs/harbor.png', 'public/props/trains.png', 'public/packs/boats.png', 'public/packs/worksites.png', 'public/packs/atlas.png', 'public/packs/buildings.png',
-           'public/packs/regional-buildings.png', 'public/packs/precincts.png',
+           'public/packs/regional-buildings.png', 'public/packs/precincts.png', 'public/packs/civic.png',
            'public/packs/modern-buildings.png', 'public/packs/street-buildings.png',
            'public/packs/street-shadows.png', 'public/packs/civic-shadows.png', 'public/packs/worksite-shadows.png', 'public/packs/sacred-buildings.png', 'public/packs/street-weather.png',
            'public/packs/terrain.png', 'public/packs/lighting-shadows.png', 'public/packs/building-shadows.png',

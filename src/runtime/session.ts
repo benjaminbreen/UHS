@@ -271,7 +271,7 @@ export function createSession(
   nameBriefedPeople(engine.state, pack.setting?.brief);
   // A staged opening is the day's story: no drawn plot, and nobody down with a fever beside it.
   const moment = pack.setting?.brief?.moment;
-  const plot = moment ? undefined : startPlot(engine.state, pack.setting);
+  const plot = moment || (snapshot && !snapshot.plot) ? undefined : startPlot(engine.state, pack.setting, undefined, undefined, world.activitySites);
   engine.state.ailments ??= moment ? [] : seedAilments(engine.state, pack.setting, new Set(Object.values(engine.state.plot?.cast ?? {})));
   engine.state.bonds ??= bondsFor(engine.state, pack.setting);
   if (plot && !plot.ended && !plot.aim?.revision) {
@@ -866,6 +866,7 @@ export class Runtime {
         pay: "pay",
         work: workPose ?? "work",
         "use-prop": usePose ?? "give",
+        participate: command.type === "interact" && command.target.endsWith("/meal") ? "give" : undefined,
         cook: "work-stir",
         // A knife in hand makes it close, careful work.
         harvest: this.engine.state.player.heldItem === "tool" ? "carve" : "work-tend",
@@ -1940,7 +1941,7 @@ export class Runtime {
     const train = this.boardable();
     const facing = this.engine.facingCell();
     const fixture = !fighting && !descend && !p.afloat && this.engine.state.objects.find(o =>
-      o.pos.space===p.pos.space && o.pos.x===facing.x && o.pos.y===facing.y && (o.kind==="gate" || o.prop==="ferryTicketBooth" || o.lighterage || o.id===p.deliveryBale));
+      o.pos.space===p.pos.space && o.pos.x===facing.x && o.pos.y===facing.y && (o.kind==="gate" || o.prop==="ferryTicketBooth" || o.freight?.boxes || o.lighterage || o.prop==="clothCounter" || o.id===p.deliveryLoad));
     const burn = {
       type: "interact" as const,
       target: Engine.tileTarget(facing.x, facing.y),
@@ -1975,7 +1976,7 @@ export class Runtime {
       primary = { kind: "shoot", label: this.engine.ammo() ? "Whirl sling" : "No stones" };
     else if (fixture && fixture.kind==="gate")
       primary = { kind:"door", label:fixture.open ? "Close gate" : "Open gate", command:{type:"interact",target:fixture.id,action:fixture.open ? "close" : "open"} };
-    else if (fixture && (fixture.lighterage || p.deliveryBale===fixture.id)) {
+    else if (fixture && (fixture.freight?.boxes || fixture.lighterage || fixture.prop==="clothCounter" || p.deliveryLoad===fixture.id)) {
       const job=this.engine.inspect(fixture.id)?.affordances.find(a=>a.command.type==="interact" && a.command.action==="unload");
       if(job?.enabled && job.command.type==="interact") primary={kind:"use",label:job.label,command:job.command};
     }
@@ -1984,7 +1985,7 @@ export class Runtime {
       const price=setting ? amountIn(setting,act.price!,true) : "one coin";
       primary={kind:"use",label:act.verb+" · "+price,command:{type:"interact",target:fixture.id,action:"attend"}};
     }
-    else if (tiller && tiller.command.type==="interact")primary={kind:"use",label:tiller.label,command:tiller.command};
+    else if (tiller && tiller.command.type==="interact" && !(here && !p.afloat && p.origin?.livelihood==="porter"))primary={kind:"use",label:tiller.label,command:tiller.command};
     else if (train) primary = { kind: "board", label: `Board the ${train.label} train` };
     // At the day's place F does the day's work; whoever is there is still on Enter.
     else if (here?.command.action === "fieldwork" || here?.command.action === "gather-work") primary = {kind:"use", label:here.label, command:here.command};
@@ -2065,12 +2066,14 @@ export class Runtime {
     const below = this.engine.complexVerb();
     const ship = below ? undefined : this.engine.shipVerb();
     const lift = this.engine.towerLift();
+    const worship = !fighting && !descend && !held && this.engine.worshipAction();
     if (fighting) alternate = { kind: "guard", label: "Guard" };
     else if (lift) alternate = { kind: "lift", label: "Take the lift" };
     else if (below)
       alternate = { kind: "climb", label: below.label, command: { type: "interact", target: below.target, action: "complex" } };
     else if (ship)
       alternate = { kind: "climb", label: ship.label, command: { type: "interact", target: ship.target, action: "ship" } };
+    else if (worship) alternate = {kind:"use",label:worship.label,command:worship.command};
     else if (light)
       alternate = { kind: "look", label: "Light the stick in the fire", command: light };
     else if (fill) alternate = { kind: "look", label: "Fill the pail", command: fill };
@@ -2114,6 +2117,7 @@ export class Runtime {
         label: `Talk to ${other.name}`,
         actor: other.id,
       };
+    if (worship && worship.kind === "leave" && !item && primary?.kind === "strike" && !primary.command) primary = undefined;
     return { primary, alternate };
   }
   /** Runs a slot and hands the verb back. Talk is returned unrun: the

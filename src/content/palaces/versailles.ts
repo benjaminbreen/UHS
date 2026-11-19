@@ -55,7 +55,7 @@ export const versailles: Fair = {
   id: "versailles",
   name: "the palace of Versailles",
   city: "Versailles",
-  where: [2.0, 48.7, 2.5, 49.0],
+  where: [2.09, 48.78, 2.16, 48.83],
   years: [1701, 1789],
   entry: "forecourt",
   areas,
@@ -74,7 +74,7 @@ export const versailles: Fair = {
   ticket: 0,
   coin: ["livre", "livres"],
   prompt: /\bversailles\b|\bsun king\b/,
-  place: "paris",
+  place: "versailles",
   staff: { arms: "vrs-guard", kitchen: "vrs-cook", office: "vrs-secretary", chapel: "vrs-abbe", "": "vrs-footman" },
   words: {
     short: "",

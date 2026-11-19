@@ -1,5 +1,6 @@
 import type { CharacterAppearance } from "../../core/character";
-import type { FishKind } from "../../content/economy/fishing";
+import { drawGarmentIcon } from "../../render/garment-icons";
+import { fishItemId, type FishKind } from "../../content/economy/fishing";
 import type { CharacterPose } from "../../render/characters/poses";
 import { drawCharacterG as drawCharacter } from "../../render/characters/doll/draw";
 import { waterRamps } from "../../render/living-water/surface";
@@ -75,6 +76,18 @@ export function fishSprite(k: FishKind, len: number) {
   const key = `${k.name}:${len}`;
   const hit = fishCache.get(key);
   if (hit) return hit;
+  if (k.rarity === "legendary") {
+    const original = document.createElement("canvas");
+    original.width = original.height = 24;
+    drawGarmentIcon(original.getContext("2d")!, fishItemId(k), 0, 0);
+    const c = document.createElement("canvas");
+    c.width = len; c.height = Math.round(len * 18 / 24);
+    const g = c.getContext("2d")!;
+    g.imageSmoothingEnabled = false;
+    g.drawImage(original, 0, 2, 24, 18, 0, 0, c.width, c.height);
+    fishCache.set(key,c);
+    return c;
+  }
   if (k.shape === "crab" || k.shape === "claw" || k.shape === "squid" || k.shape === "frog") {
     const c = critter(k, len);
     fishCache.set(key, c);
@@ -413,6 +426,11 @@ export class FishingArt {
         const wag = u > 0.6 ? Math.sin(f.phase) * (u - 0.6) * 4 : 0;
         const cx = f.x - ux * (i - len * 0.4) - uy * wag, cy = f.y - uy * (i - len * 0.4) * 0.6 + ux * wag * 0.6;
         g.fillRect(Math.round(cx - uy * half * 0.3), Math.round(cy - half * 0.5), 1, Math.max(1, Math.round(half)));
+      }
+      if (f.kind.rarity === "legendary" && Math.sin(sim.t * 1.7 + f.phase) > .92) {
+        g.fillStyle = css(f.kind.belly, .65 * fade);
+        g.fillRect(Math.round(f.x), Math.round(f.y - 1), 2, 1);
+        g.fillRect(Math.round(f.x + ux * 4), Math.round(f.y - uy * 2), 1, 1);
       }
     }
   }

@@ -62,7 +62,7 @@ export function WorkCard({ runtime, onDetails, carded, onFieldAction }: { runtim
   const target = garden ? garden.pos : station && station.pos.space !== "outside" ? station.pos : plan.door;
   const place = garden ? "your garden" : plan.where;
   const task = gather ? gather.title : field ? field.words?.title ?? (here ? "Choose fieldwork" : "Work your field") : finished ? "Done for today" : garden ? garden.task : plan.steps[now].task;
-  const hours = gather || field || finished || garden || plan.steps[now].scene === "hunt" ? undefined : plan.hours[now];
+  const hours = gather || field || finished || garden || plan.steps[now].scene === "hunt" ? undefined : plan.hours[now] || undefined;
   const late = hours !== undefined && plan.deadline !== undefined && engine.state.clock < plan.deadline &&
     engine.state.clock + hours * 3600 > plan.deadline;
   const coarse = matchMedia("(pointer: coarse)").matches;

@@ -1,0 +1,43 @@
+.modal.modal-exchange{width:min(720px,96vw);max-height:90dvh;padding:0;background:#efe5cc;color:#342e26;border:3px solid #715637;overflow:auto}
+.modal-exchange .close-modal{color:#f3e8cc;z-index:2}
+.exchange-desk{font-family:inherit;line-height:1.4}
+.exchange-desk h2,.exchange-desk h3,.exchange-desk p{margin:0;color:inherit}
+.exchange-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:19px 55px 17px 23px;background:#253e36;color:#fff3d4;border-bottom:3px double #be9d63}
+.exchange-head h2{font-size:1.6rem}.exchange-head p,.exchange-byline small,.exchange-detail,.exchange-reason{font-size:.78rem}
+.exchange-purse,.exchange-desk footer button,.exchange-submit,.exchange-byline,.exchange-step{display:inline-flex;align-items:center;gap:7px}
+.exchange-purse{color:#f3d581;white-space:nowrap}
+.exchange-desk nav,.exchange-sides{display:flex;gap:4px}
+.exchange-desk nav{padding:8px 18px 0;border-bottom:1px solid #b3a183}
+.exchange-desk button,.exchange-desk input{color:inherit;font:inherit}
+.exchange-desk button{background:#e8dcc0;border:1px solid #b5a284;padding:6px 11px;border-radius:3px;cursor:pointer}
+.exchange-desk button:disabled{opacity:.55;cursor:default}.exchange-desk button:focus-visible{outline:3px solid #527766;outline-offset:1px}
+.exchange-desk nav button{background:transparent;border:0;border-radius:0;border-bottom:3px solid transparent;padding:7px 12px}
+.exchange-desk nav button[aria-pressed=true]{border-color:#406956;color:#234a37}
+.exchange-market{display:grid;grid-template-columns:minmax(165px,.8fr) minmax(0,1.4fr)}
+.exchange-board{padding:18px 12px;background:#e6dbc0;border-right:1px solid #b9aa89}
+.exchange-board h3,.exchange-services h3,.exchange-ticket h3{font-size:1.12rem}
+.exchange-board h3{margin:0 7px 10px}
+.exchange-desk .exchange-quote{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;background:none;border:1px solid transparent;border-bottom-color:#c5b597;border-radius:0;padding:10px 6px}
+.exchange-desk .exchange-quote[aria-pressed=true]{background:#f9f0da;border-color:#ad9975;box-shadow:inset 3px 0 #446953}
+.exchange-quote small,.exchange-byline small,.exchange-order b{display:block}.exchange-quote small,.exchange-byline small{color:#685c48;font-size:.73rem}
+.exchange-quote strong{text-align:right}.exchange-quote [data-rise=true]{color:#315f45}.exchange-quote [data-rise=false]{color:#914535}
+.exchange-board dl{display:grid;grid-template-columns:1fr auto;gap:5px;margin:20px 6px 0;font-size:.78rem}.exchange-board dd{margin:0}
+.exchange-ticket,.exchange-services{padding:16px 20px}.exchange-byline{min-height:35px;font-size:.85rem;margin-bottom:6px}.exchange-byline canvas{height:36px!important;width:auto!important;image-rendering:pixelated}
+.exchange-axis{display:flex;justify-content:space-between;margin-top:6px;font-size:.7rem;color:#685c48}.exchange-reason button{margin-left:6px}.exchange-chart{height:64px}.exchange-chart svg{width:100%;height:100%}
+.exchange-news{margin:3px 0 13px;color:#61533e;font-size:.8rem}
+.exchange-sides button{flex:1;padding:6px 3px;font-size:.8rem}.exchange-sides button[aria-pressed=true],.exchange-desk .exchange-submit{background:#315747;color:#fff7de;border-color:#254836}
+.exchange-order{display:flex;justify-content:space-between;align-items:flex-end;margin:12px 0 7px;font-size:.82rem}.exchange-order>span{text-align:right}.exchange-step{display:flex;gap:0}.exchange-step button{padding:5px;display:grid;place-items:center}
+.exchange-step input{width:3em;text-align:center;background:#fff8e5;border:1px solid #ad9975;appearance:textfield}.exchange-step input::-webkit-inner-spin-button{appearance:none}
+.exchange-desk .exchange-submit{margin-top:10px;justify-content:center;width:100%}.exchange-reason{display:block;margin-top:5px}
+.exchange-services{display:grid;grid-template-columns:1fr 1fr;gap:15px}.exchange-services article{display:flex;flex-direction:column;align-items:flex-start;gap:10px}.exchange-services article+article{border-left:1px solid #bcad91;padding-left:16px}.exchange-services article p{flex:1;font-size:.9rem}
+.exchange-desk footer{border-top:1px solid #bdad8d;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 17px;font-size:.8rem}.exchange-desk footer button{flex-shrink:0}
+@media(max-width:560px){.exchange-market{grid-template-columns:1fr}.exchange-board{padding:8px;border-right:0;border-bottom:1px solid #b9aa89;display:grid;grid-template-columns:repeat(3,1fr);gap:3px}.exchange-board h3{display:none}.exchange-desk .exchange-quote{font-size:.75rem;display:block;padding:5px}.exchange-quote strong{display:block;text-align:left}.exchange-quote strong small{display:inline;margin-left:4px}.exchange-board dl{grid-column:1/-1;display:flex;gap:6px;margin:5px;font-size:.7rem}.exchange-services,.exchange-ticket{padding:12px}.exchange-head{padding-left:13px}.exchange-desk footer{flex-wrap:wrap}.exchange-services{grid-template-columns:1fr}.exchange-services article+article{border-left:0;border-top:1px solid #bcad91;padding:10px 0 0}}
+@media(max-width:560px){
+  .exchange-head h2{font-size:1.2rem}
+  .exchange-chart{height:46px}
+  .exchange-desk footer{display:grid;grid-template-columns:minmax(0,1fr) auto;padding:7px 10px}
+  .exchange-desk footer button{padding:6px}
+  .exchange-step button{min-height:30px;min-width:30px}
+}
+
+.touch-exchange{align-content:center}.touch-exchange small{font-size:9px;line-height:1.1}

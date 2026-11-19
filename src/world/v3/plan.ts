@@ -1,3 +1,6 @@
+import { plantParterre, GRAVEL, BED, WATER } from "../fair";
+import { markets, squareMarket } from "../../content/economy/exchanges";
+import { person } from "./wayfarers";
 import { harborStaff, planHarbor } from "./harbor";
 import { planWorksites } from "./worksites";
 import { towerStyleFor } from "../../content/towers";
@@ -12,7 +15,7 @@ import { composeStreetGeometry } from "./street-geometry";
 import { planCamp } from "./camps";
 import { railStaff, railVisitors } from "./rail-travellers";
 import { planConveyances, planSoldiers, watchman } from "./conveyances";
-import { religiousProfile, religiousScale } from "../../content/settlements/religious";
+import { religiousProfile, religiousScale, sanctuarySchool } from "../../content/settlements/religious";
 import {
   generateCharacter,
   characterLivelihood,
@@ -64,7 +67,7 @@ import { urbanForm } from "../../content/settlements/urban-form";
 import { waysideFor } from "../../content/settlements/wayside";
 import { yardKit, type YardCompanion, type YardProp } from "../../content/settlements/yards";
 import { choose, treeMix } from "../../content/ecology/vegetation";
-import { propDefs, propVisualCells } from "../../content/props/catalog";
+import { propDefs, propVisualCells, spriteVisualCells } from "../../content/props/catalog";
 import { propKit, techFor } from "../../content/props/selection";
 import { processFor } from "../../content/economy/processes";
 import { shopKind } from "../../content/interiors/shops";
@@ -112,7 +115,7 @@ import {
   streetFurnitureFor,
 } from "../../content/settlements/ornaments";
 import { plazaKitFor, squareKind, type PlazaPiece } from "../../content/settlements/plaza";
-import type { Actor, Pack, Place, Point, Position, Terrain } from "../../core/types";
+import type { Actor, Pack, Place, Point, Position, Terrain, WorldObject } from "../../core/types";
 import { proceduralName } from "../../content/geography/character";
 import { random } from "../../core/random";
 import { noise } from "../geography/noise";
@@ -197,6 +200,7 @@ export function planSettlement(
   terraces?: Map<string, number>,
   piers: readonly import("./shoreline").QuayPier[] = [],
   railbed: (x: number, y: number) => boolean = () => false,
+  terminal?: import("./harbor").TerminalDistrict,
 ): SettlementPlan {
   const c = site.center,
     profile = site.profile,
@@ -997,7 +1001,7 @@ export function planSettlement(
     sprite: "fire",
     inventory: {},
   });
-  if (piers.length) planHarbor(plan,pack,piers,sample,r=>paint(r,"paving",true,13,"apron"),railbed,seed);
+  if (piers.length || terminal) planHarbor(plan,pack,piers,sample,r=>paint(r,"paving",true,13,"apron"),railbed,seed,terminal);
   planWorksites(plan, pack, seed, sample, dry, paint, (rect) => gradeGround(rect, undefined, true), connect, (rect) =>
     eachCell(rect, (x, y) => noRoad.add(cellKey(x, y))));
   planWaterfront(plan, pack, seed, sample, dry, paint, (rect)=>gradeGround(rect,undefined,true),connect,(rect)=>
@@ -2007,6 +2011,34 @@ export function planSettlement(
           const { x, y, w, h } = ground;
           const rect = { x, y, w, h };
           precinctGrounds.push(ground);
+          const planting = garden && plantParterre(garden);
+          if (garden) {
+            plan.parterre = garden;
+            const gateX = x + w - 1, cy = ground.entry.y, screen = gateX - 2;
+            const parts: { x: number; y: number; frame: string }[] = [];
+            const put = (kind: string, px: number, py: number) => {
+              parts.push({ frame: `made:palace:${id}:forecourt:${kind}:0`, x: px, y: py });
+              plan.solid.add(cellKey(px, py));
+            };
+            for (let py = y + 1; py < y + h - 1; py++) {
+              if (Math.abs(py - cy) < 3) continue;
+              put(py === y + 1 || py === y + h - 2 ? "gate-pier" : "grille-ns", screen, py);
+              if (Math.abs(py - cy) === 3) {
+                put("grille-ew", screen + 1, py);
+                put("gate-pier", gateX, py);
+              }
+            }
+            plan.enclosures.push({ ...rect, gate: ground.entry, parts });
+            const ornament = (kind: "orange" | "bust", px: number, py: number) => {
+              const prop = `palace-${kind}`;
+              plan.objects.push({ id: `${site.id}-${kind}-${px}-${py}`, name: propDefs[prop].name, kind: "monument", prop,
+                pos: pos({ x: px, y: py }), inventory: {}, sprite: `made:palace:${id}:forecourt:${kind}:${garden.seed}` });
+            };
+            for (const py of [y + 2, y + h - 3])
+              for (let px = garden.x + garden.w + 2; px < screen - 1; px += garden.royal ? 5 : 6)
+                ornament("orange", px, py);
+            for (const py of [cy - 2, cy + 2]) ornament("bust", garden.x + garden.w, py);
+          }
           eachCell(rect, (x, y) => {
             const k = cellKey(x, y);
             plan.reserved.add(k);
@@ -2014,8 +2046,19 @@ export function planSettlement(
               if (setSurface(k, openGround, 9)) plan.pavement!.set(k, openGround === "grass" ? "verge" : "yard");
               return;
             }
-            if (garden && x >= garden.x && x < garden.x + garden.w && y >= garden.y && y < garden.y + garden.h) {
-              if (setSurface(k, "grass", 9)) plan.pavement!.set(k, "park");
+            if (garden && planting && inside(garden, x, y)) {
+              const plant = planting.cells[(y - garden.y) * garden.w + x - garden.x];
+              if (setSurface(k, plant === GRAVEL ? "dirt" : "grass", 11)) plan.pavement!.set(k, plant === GRAVEL ? "court" : "park");
+              if (plant === WATER || plant === BED) plan.solid.add(k);
+              return;
+            }
+            if (garden) {
+              const edge = Math.min(y - rect.y, rect.y + rect.h - 1 - y);
+              const lawn = edge >= 1 && edge <= (garden.royal ? 4 : 2) && x > garden.x + garden.w && x < rect.x + rect.w - 3;
+              if (setSurface(k, lawn ? "grass" : "dirt", 10)) {
+                plan.pavement!.set(k, lawn ? "park" : "court");
+                if (!lawn) (plan.earth ??= new Map()).set(k, "gravel");
+              }
               return;
             }
             roads.add(k);
@@ -2856,7 +2899,7 @@ export function planSettlement(
       const rect = { x: door.x - model.entrance[0], y: door.y - model.entrance[1], w, h };
       const yard = { x: rect.x - 1, y: rect.y - 1, w: w + 2, h: h + 2 };
       if (!dry(yard, true, rect)) continue;
-      Object.assign(lot, { religious: { ...sacred, scale }, frame, rect, yard, point: door });
+      Object.assign(lot, { religious: { ...sacred, scale, school: sanctuarySchool(sacred, pack.year, seed, `${site.id}-religious`) }, frame, rect, yard, point: door });
       // Second in the queue, so the houses cannot use up the settlement's
       // count before it is built; the first lot is the player's own house.
       frontage.splice(frontage.indexOf(lot), 1);
@@ -3598,7 +3641,7 @@ export function planSettlement(
   // herder: drawn freely, a caravanserai's keeper was too rare to turn up.
   const unstaffed = plan.places.slice(0, worksites).flatMap((p) =>
     p.workRoles?.find((r) => characterContext?.livelihoods.some((l) => l.id === r)) ?? []);
-  const portYards=plan.harbor?.yard ?? plan.plots.filter(p=>p.id.endsWith("-waterfront-loading-bay"));
+  const portYards=plan.terminal ? [plan.terminal.yard] : plan.harbor?.yard ?? plan.plots.filter(p=>p.id.endsWith("-waterfront-loading-bay"));
   for (let j = 0; j < frontage.length && plan.places.length - worksites < limit; j++) {
     const lot = frontage[j];
     const { point: frontagePoint, nx, ny } = lot,
@@ -3722,7 +3765,8 @@ export function planSettlement(
       gradeGround({ x: door.x, y: door.y, w: 1, h: 1 }, level);
     }
     if (lot.religious) {
-      const id = `${site.id}-religious`;
+      const { school, secondary } = lot.religious;
+      const id = secondary ? `${site.id}-religious-${school?.id ?? lot.religious.id}` : `${site.id}-religious`;
       eachCell(rect, (x, y) => {
         plan.solid.add(cellKey(x, y));
         plan.built!.add(cellKey(x, y));
@@ -3750,7 +3794,8 @@ export function planSettlement(
       );
       plan.places.push({
         id,
-        name: lot.religious.labels[lot.religious.scale],
+        worshipSchool: school?.id,
+        name: school?.label ?? lot.religious.label ?? lot.religious.labels[lot.religious.scale],
         owner: `${site.id}-community`,
         description: lot.religious.about,
         ...rect,
@@ -3770,7 +3815,7 @@ export function planSettlement(
         });
       plan.objects.push({
         id: `${id}-exit`,
-        name: "Return to the square",
+        name: secondary ? "Return to the street" : "Return to the square",
         kind: "exit",
         pos: { x: 6, y: 9, space: id },
         sprite: "door-open",
@@ -3801,6 +3846,7 @@ export function planSettlement(
         entrance: door,
         access: "public",
         claim: lot.piece.claim ?? "landscape",
+        ...(lot.piece.venueRoom && { venueRoom: lot.piece.venueRoom }),
         entranceLabel: "Enter",
       });
       plan.objects.push({
@@ -3814,6 +3860,7 @@ export function planSettlement(
       continue;
     }
     if (lot.civic) {
+      if(plan.places.some(p=>p.claim==="civic-"+lot.civic!.id))continue;
       const id = `${site.id}-civic`;
       eachCell(rect, (x, y) => {
         plan.solid.add(cellKey(x, y));
@@ -6605,6 +6652,77 @@ export function planSettlement(
   }
   footTraffic(plan.roads);
   const tRoutines = now();
+  const setting=pack.setting, marketKind=setting && squareMarket(setting,site.namedId ?? (site.home ? setting.placeId : undefined));
+  if(setting && marketKind && (site.home || site.namedId || profile.plaza==="market")){
+    const market=markets[marketKind], id=site.id+"-market-square";
+    const anchor=marketKind==="cloth" && plan.anchorage ? plan.anchorage.store : c;
+    const points:Point[]=[];
+    for(let radius=0;radius<=18;radius++)for(let y=-radius;y<=radius;y++)for(let x=-radius;x<=radius;x++){
+      if(Math.max(Math.abs(x),Math.abs(y))===radius)points.push({x:anchor.x+x,y:anchor.y+y});
+    }
+    const publicCell=(p:Point)=>["square","court"].includes(plan.pavement?.get(cellKey(p.x,p.y)) ?? "");
+    const occupied=new Set<string>();
+    for(const o of plan.objects){
+      if(o.pos.space!=="outside" || Math.hypot(o.pos.x-anchor.x,o.pos.y-anchor.y)>35)continue;
+      for(const p of o.prop ? propVisualCells(o.prop,o.pos,o.sprite) : spriteVisualCells(o.sprite,o.pos))
+        occupied.add(cellKey(p.x,p.y));
+    }
+    const free=(p:Point)=>{const k=cellKey(p.x,p.y);return !plan.solid.has(k) && !occupied.has(k) &&
+      !plan.placement.clearance.has(k) && sample(p.x,p.y).water>3;};
+    const stalls=plan.objects.filter(o=>o.prop==="marketCounter" && !o.shopSupply && !o.quayStock);
+    const near=(p:Point,q:Point)=>Math.hypot(p.x-q.x,p.y-q.y);
+    const frontage=(p:Point)=>publicCell(p) || stalls.some(o=>near(p,o.pos)<9);
+    const roomy=(p:Point)=>{
+      for(let dy=-1;dy<=4;dy++)for(let dx=-4;dx<=4;dx++)if(!free({x:p.x+dx,y:p.y+dy}))return false;
+      return true;
+    };
+    const boardAt=points.find(p=>roomy(p) && frontage(p)) ?? points.find(roomy) ??
+      points.find(p=>free(p) && free({x:p.x,y:p.y+1}));
+    if(boardAt){
+      const counter:WorldObject={id,kind:"monument",prop:"marketCounter",sprite:stallFor(pack,1,marketKind==="cloth" ? 5 : 0).sprite,
+        pos:pos(boardAt),name:market.name,inventory:{}};
+      plan.objects.push(counter);plan.solid.add(cellKey(boardAt.x,boardAt.y));
+      const court={x:boardAt.x-4,y:boardAt.y-1,w:9,h:6};
+      if(dry(court,false,court,true)){
+        gradeGround(court,undefined,true);
+        eachCell(court,(x,y)=>{const k=cellKey(x,y);if(!plan.solid.has(k) && !plan.surface.has(k))paint({x,y,w:1,h:1},profile.paved ? "paving" : "dirt",false);});
+      }
+      const dock=plan.objects.find(o=>o.lighterage?.site===site.id)?.lighterage;
+      const store=dock && ((marketKind==="cloth" && dock.cargo==="cloth") || (marketKind==="corn" && dock.cargo==="grain")) ?
+        plan.objects.find(o=>o.id===dock.store) : undefined;
+
+      counter.market={kind:marketKind,store:store?.id};
+      counter.name=market.name;counter.kind="monument";delete counter.sells;
+      counter.description=marketKind==="corn" ? "Growers sell grain by the sack. Drovers bring sheep and cattle here to meet the dealers." :
+        marketKind==="dojima" ? "Brokers buy and sell bills that can be exchanged for rice from the warehouses." : "Merchants price bolts of cloth and measures of pepper at this counter.";
+      const stock=store ?? counter;
+      for(const l of market.listings)if(!l.animal && stock.inventory[l.id]===undefined)
+        stock.inventory[l.id]=l.id==="pepper" ? 4 : l.id==="cloth-bolt" ? 5 : 16;
+      const arriving=marketKind==="cloth" ? "pepper" : "grain";
+      if(!store || marketKind==="cloth")stock.consignment={item:arriving,days:marketKind==="corn" ? 7 : 4,units:8};
+      const stands:Point[]=[];
+      for(let r=1;r<=5;r++)for(let dy=r;dy>=-r;dy--)for(let dx=-r;dx<=r;dx++){
+        const at={x:boardAt.x+dx,y:boardAt.y+dy};
+        if(Math.max(Math.abs(dx),Math.abs(dy))===r && free(at))stands.push(at);
+      }
+      for(const [i,l] of market.listings.entries()){
+        const want={x:boardAt.x+[-3,0,3][i],y:boardAt.y+1};
+        stands.sort((a,b)=>near(a,want)-near(b,want));const at=stands.shift();if(!at)break;
+        const desk=counter.id+"-market-desk-"+i;
+        const actor=person(seed,setting,desk,l.trade,l.desk,random(seed,desk,"sex")<.28 ? "female" : "male",31+i*6,at,0);
+        delete actor.wayfarer;
+        actor.activity=l.animal ? "Taking bids on livestock" : "Calling prices at the market";
+        plan.actors.push(actor);
+        plan.work.set(desk,{home:at,work:at,water:at,social:at,label:actor.activity,offset:0});
+      }
+      if(marketKind==="corn") for(const [i,speciesId] of ["sheep","sheep","cattle","cattle"].entries()){
+        const want={x:boardAt.x+[-4,-2,2,4][i],y:boardAt.y+4};
+        stands.sort((a,b)=>near(a,want)-near(b,want));const at=stands.shift();if(!at)break;
+        (plan.fauna??=[]).push({id:counter.id+"-stock-"+i,market:counter.id,owner:counter.id,speciesId,members:[{...at,direction:([2,1,0,3] as const)[i]}],
+          pos:pos(at),home:pos(at),homeRadius:1,state:"idle",nextDecisionAt:0,since:0,stride:0});
+      }
+    }
+  }
   planRoutines(plan, seed, pack, sample);
   harborStaff(plan,pack,seed);
   railVisitors(plan, seed, pack);

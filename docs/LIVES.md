@@ -23,7 +23,7 @@ Conditions colour text; they do not yet change play.
 
 Acute illness lives in `state.ailments` (`src/content/health/ailments.ts`):
 fevers, flux, coughs, childbed, smallpox, measles, plague in plague years,
-broken bones. The sick stay home. A death removes the person and writes
+broken bones. Residents too ill to work rest in an available ward bed if a hospital is within 60 tiles of home. Otherwise they rest at home. A death removes the person and writes
 `died` into the household's history.
 
 New worlds pin `manifest.disease = 1` (`src/runtime/schema.ts`), which turns

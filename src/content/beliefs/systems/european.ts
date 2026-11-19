@@ -1,4 +1,7 @@
 import type { BeliefSystem } from "../types";
+import { puranicHinduCore } from "../kits/hindu";
+import { theravadaTripleGem } from "../kits/buddhist";
+import { rabbinicJewishCore, sunniIslamicCore } from "../kits/abrahamic";
 import { applyBeliefKits } from "../kits/apply";
 import {
   classicalGreekCore,
@@ -15,7 +18,57 @@ import {
   russianOrthodoxPatronOptions,
 } from "../kits/christian";
 
+const london: Pick<BeliefSystem,"scope"|"evidence"> = {
+  scope: { years:[2016,2026], bounds:[-.52,51.28,.34,51.70] },
+  evidence: {
+    status:"inferred",
+    claim:"The 2021 census gives the shares of London residents reporting each affiliation.",
+    limitation:"The shares approximate nearby years. Other religions and unanswered responses have no individual profile here.",
+    sources:["https://www.ons.gov.uk/peoplepopulationandcommunity/culturalidentity/religion/bulletins/religionenglandandwales/census2021"],
+  },
+};
+
 const europeanBase: readonly BeliefSystem[] = [
+  {
+    id: "london-hindu", label: "Hindu practice", realm: "hindu", ...london,
+    worship: ["Hindu"], offices: ["Pujari"], share: 5.1,
+    powers: puranicHinduCore, practice: ["The household sets out a lamp for worship."],
+  },
+  {
+    id: "london-sikh", label: "Sikh practice", realm: "sikh", ...london,
+    features:["sacred-texts"], worship: ["Sikh"], offices: ["Granthi"], share: 1.6,
+    powers: [{name:"Waheguru",domain:"the one God",rank:"paramount"},{name:"The Guru Granth Sahib",domain:"the living Guru",rank:"major"},{name:"Guru Nanak",domain:"the first Guru",rank:"major"}], practice: ["People serve a meal together at the gurdwara."],
+  },
+  {
+    id: "london-buddhist", label: "Buddhist practice", realm: "buddhist", ...london,
+    worship: ["Buddhist", "Buddhism"], offices: ["Monk"], share: 0.9,
+    powers: theravadaTripleGem, practice: ["People take refuge in the Buddha, the teaching and the community."],
+  },
+  {
+    id: "london-unspecified", label: "Religious affiliation unspecified", realm: "earth", ...london,
+    worship: [], offices: [],
+    powers: [], practice: [],
+  },
+  {
+    id: "london-unaffiliated", label: "No religious affiliation", realm: "earth", ...london,
+    worship: [], offices: [], share: 27.1,
+    powers: [], practice: [],
+  },
+  {
+    id: "london-christian", label: "Christian practice", realm: "protestant", ...london,
+    features:["sacred-texts"], worship: ["Christian", "Anglican", "Catholic"], offices: ["Priest", "Minister"], share: 40.7,
+    powers: orthodoxTrinity, practice: ["The congregation prays together on Sunday."],
+  },
+  {
+    id: "london-muslim", label: "Muslim practice", realm: "islam", ...london,
+    features:["sacred-texts"], worship: ["Islam"], offices: ["Imam"], share: 15,
+    powers: sunniIslamicCore, practice: ["Prayers mark the hours of the day."],
+  },
+  {
+    id: "london-jewish", label: "Jewish practice", realm: "jewish", ...london,
+    features:["sacred-texts"], worship: ["Jewish"], offices: ["Rabbi", "Cantor"], share: 1.7,
+    powers: rabbinicJewishCore, practice: ["The household welcomes Shabbat on Friday evening."],
+  },
   {
     id: "europe-foragers",
     realm: "earth",
@@ -296,6 +349,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "classical-greek",
+    worship: ["Greek"],
     realm: "greek",
     label: "Classical Greek practice",
     wiki: "https://en.wikipedia.org/wiki/Ancient_Greek_religion",
@@ -406,6 +460,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "republican-roman",
+    worship: ["Roman"],
     realm: "greek",
     label: "Republican Roman practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_ancient_Rome",
@@ -505,6 +560,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "imperial-roman",
+    worship: ["Roman"],
     realm: "greek",
     label: "Imperial Roman practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_ancient_Rome",
@@ -1018,6 +1074,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "frankish-christian-early",
+    worship: ["Latin Christian", "Catholic"],
     realm: "latin",
     features: ["sacred-texts"],
     label: "Early medieval Frankish Christian practice",
@@ -1100,6 +1157,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "catholic-high-medieval",
+    worship: ["Latin Christian", "Catholic"],
     realm: "latin",
     features: ["sacred-texts"],
     label: "High medieval Catholic practice",
@@ -1199,6 +1257,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "reformation-protestant",
+    worship: ["Protestant"],
     realm: "protestant",
     features: ["sacred-texts"],
     label: "Reformation Protestant practice",
@@ -1277,6 +1336,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "orthodox-russia",
+    worship: ["Orthodox Christian", "Orthodox and Armenian Christian"],
     realm: "orthodox",
     features: ["sacred-texts"],
     label: "Russian Orthodox Christianity",
@@ -1308,6 +1368,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "catholic-early-modern",
+    worship: ["Latin Christian", "Catholic"],
     realm: "latin",
     features: ["sacred-texts"],
     label: "Early modern Catholic practice",
@@ -1478,6 +1539,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "european-industrial",
+    offices: [],
     realm: "protestant",
     label: "Industrial-era European practice",
     wiki: "https://en.wikipedia.org/wiki/Secularization",
@@ -1623,6 +1685,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "byzantine-orthodox",
+    worship: ["Orthodox Christian", "Orthodox and Armenian Christian"],
     realm: "orthodox",
     features: ["sacred-texts"],
     label: "Byzantine Orthodox practice",
@@ -1712,6 +1775,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "post-roman-christian-mediterranean",
+    worship: ["Latin Christian", "Catholic"],
     realm: "latin",
     features: ["sacred-texts"],
     label: "Post-Roman Christian practice",
@@ -1801,6 +1865,7 @@ const europeanBase: readonly BeliefSystem[] = [
   },
   {
     id: "latin-christendom-late-medieval",
+    worship: ["Latin Christian", "Catholic"],
     realm: "latin",
     features: ["sacred-texts"],
     label: "Late medieval Latin Christian practice",
