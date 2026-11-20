@@ -63,6 +63,14 @@ export const ISLAMIC = [-17, 12, 70, 44] as const;
 export const JAPAN = [129, 30, 146, 46] as const;
 export const KOREA = [124, 33, 131, 43] as const;
 export const VIETNAM = [102, 8, 110, 23.5] as const;
+/** The lower 48 without the Canadian and Mexican cities its box takes in. */
+export const US: Pick<CharacterScope, "bounds" | "except"> = {
+  bounds: [-125, 24.5, -66.9, 49],
+  except: [
+    [-80, 43.4, -78.8, 44.2], [-74.3, 45.2, -73.2, 45.9], [-76.3, 45, -75.3, 45.6], [-71.7, 46.5, -70.9, 47.1], [-90, 46.6, -79, 49],
+    [-118, 24, -111.1, 32.68], [-111.1, 24, -106.6, 31.3], [-106.6, 24, -100.6, 29.3], [-100.6, 24, -97.3, 27.2], [-79.5, 24, -74, 27],
+  ],
+};
 
 /** Whether the plot's place and period falls in one of these. */
 export const within = (c: PlotContext, ...scopes: CharacterScope[]) =>

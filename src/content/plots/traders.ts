@@ -21,7 +21,8 @@ export const traders: PlotTemplate = {
   },
   weight: (c) => {
     if (!notable(c)) return 0;
-    const pinned = within(c, TIMBUKTU) || (coastal(c) && within(c, GAYA, TANEGASHIMA)) ? 0.9 : reached(c) ? 0.3 : 0;
+    // After railways and steamers, goods from far off were in the shops, not a crowd at the landing.
+    const pinned = within(c, TIMBUKTU) || (coastal(c) && within(c, GAYA, TANEGASHIMA)) ? 0.9 : reached(c) && c.setting!.year < 1850 ? 0.3 : 0;
     return pinned * temper(c, "openness");
   },
   cast: (c) => {

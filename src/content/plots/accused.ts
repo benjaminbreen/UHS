@@ -32,7 +32,8 @@ export const accused: PlotTemplate = {
         accuserRole: accuser.role.toLowerCase(),
         witness: witness.name,
         witnessRole: witness.role.toLowerCase(),
-        thing: pickOf(c, ["a pot of honey", "a good knife", "a hen", "a length of cloth", "a bundle of tools"], "accused-thing"),
+        thing: pickOf(c, (c.setting?.year ?? 0) >= 1945 ? ["a bicycle", "a radio", "a toolbox", "a wallet", "a gold chain"]
+          : ["a pot of honey", "a good knife", "a hen", "a length of cloth", "a bundle of tools"], "accused-thing"),
         amount: amountOf(c, owed),
         due,
         ...pronounWords(accuser),
@@ -127,6 +128,20 @@ export const accused: PlotTemplate = {
         denounced: "{accuser} has gone to bring the matter before the court. You'll need neighbours to swear for you.",
         dropped: "With {accuser} gone, the story stops.",
         "oath:label": "Swear to your innocence at the church door",
+      },
+    },
+    {
+      scope: { years: [1945, 2100] },
+      title: "Accused of Theft",
+      lines: {
+        threat: "If nobody speaks for you, {he} will go to the police.",
+        hearing: "At the police station",
+        "aim-hearing": "Answer {accuser}'s complaint at the police station {meet}. Get {witness} to speak for you first.",
+        heard: "{accuser} tells the officer at the desk what happened. Then {witness} says you're honest and were somewhere else, and the officer sends everyone home.",
+        judged: "{accuser} makes the complaint, and nobody speaks for you. The police say that if you pay {accuser} {amount}, they won't take it further.",
+        absent: "You didn't go to the station, so the police came to you. To keep it out of court, {amount} goes to {accuser}, and people say you stayed away because you're guilty.",
+        "pay:label": "Pay {amount} to end it",
+        found: "You find {thing} in {accuser}'s own garage, behind some boxes. The neighbours see it, and {accuser} doesn't say another word about it.",
       },
     },
     {

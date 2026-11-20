@@ -4,6 +4,8 @@ import type { PlotTemplate } from "./types";
 /** Years Halley's comet came round, from the Shiji's record of 240 BCE on. */
 const HALLEY = [B(240), B(164), B(87), B(12), 66, 141, 218, 295, 374, 451, 530, 607, 684, 760, 837, 912, 989,
   1066, 1145, 1222, 1301, 1378, 1456, 1531, 1607, 1682, 1759, 1835, 1910, 1986];
+/** Hale-Bopp, seen with the naked eye for eighteen months and brightest in spring 1997. */
+const HALE_BOPP = 1997;
 
 /** A comet hangs in the sky before dawn, and everyone has an opinion about it. */
 export const comet: PlotTemplate = {
@@ -13,7 +15,9 @@ export const comet: PlotTemplate = {
     emblem: "comet",
     palette: { ink: "#0a0c16", fill: "#1c2240", edge: "#4a3a30", light: "#e8ecf6", accent: "#e8d080" },
   },
-  weight: (c) => (c.setting && elderOf(c) ? (HALLEY.includes(c.setting.year) ? 0.9 : 0.12) * temper(c, "openness") : 0),
+  // After 1900 a comet nobody announced is not news; only the famous returns are.
+  weight: (c) => (c.setting && elderOf(c)
+    ? (HALLEY.includes(c.setting.year) || c.setting.year === HALE_BOPP ? 0.9 : c.setting.year < 1900 ? 0.12 : 0) * temper(c, "openness") : 0),
   cast: (c) => {
     const elder = elderOf(c);
     return elder && { elder };
@@ -109,6 +113,48 @@ export const comet: PlotTemplate = {
         shamed: "A policeman asks what is in your pills. Sugar, you admit, and he tells you to clear off.",
         ignored: "You get your work done. That night the Earth passes through the tail and nothing happens at all.",
         passed: "The night of the tail comes and goes, and nobody is poisoned. The pill sellers have moved on.",
+      },
+    },
+    {
+      // Halley's 1986 return was the faintest on record for northern viewers; the next is in 2061.
+      scope: { years: [1986, 1987] },
+      title: "Halley's Comet",
+      lines: {
+        aim: "Decide whether to go and see Halley's comet.",
+        intro: "Halley's comet is back for the first time since 1910, and it's on the news every night. From the city it's a faint smudge in the {side} before dawn, if you can see it at all.",
+        threat: "Everyone says this is the only chance you'll get. It won't be back until 2061.",
+        partner: "Your {partnerKin} {partner} wants to take the children out of town to see it.",
+        "cast-elder": "Remembers {his} parents talking about the last time, in 1910.",
+        sky: "{elder} has binoculars and a star chart cut out of the newspaper, and is trying to find the comet over the rooftops. Someone at work says a hotel out of town is selling comet weekends.",
+        "offer:label": "Drive out of town to see it properly",
+        offered: "You drive out past the last streetlights with a thermos and the family, and stand in a cold field. It's a small fuzzy smear with a short tail. The children are disappointed. You aren't.",
+        "ignore:label": "Skip it and get some sleep",
+        ignored: "You get your sleep. Everyone at work says it was a disappointment anyway.",
+        "charms:label": "Sell comet T-shirts and key rings",
+        sold: "You buy a box of comet T-shirts and key rings wholesale and sell them on the street. They go faster than anyone can find the comet.",
+        shamed: "Nobody wants a souvenir of something they couldn't see. You're left with most of a box of T-shirts.",
+        passed: "By May the comet has faded. The next time it comes round is 2061.",
+      },
+    },
+    {
+      // In November 1996 a talk-radio guest claimed an object was trailing Hale-Bopp; 39 members of Heaven's Gate died believing it in March 1997.
+      scope: { years: [1997, 1998] },
+      title: "Comet Hale-Bopp",
+      lines: {
+        aim: "Decide whether to go and see the comet.",
+        intro: "Comet Hale-Bopp is bright enough to see from the city, a fuzzy white star with a tail in the {side} after dark. People stop in the street to point at it.",
+        threat: "Not everyone thinks it's just a comet. A man on late-night radio says something is following it.",
+        partner: "Your {partnerKin} {partner} wants to take the children somewhere high to see it.",
+        "cast-elder": "Has been out every clear night with a camera and a tripod.",
+        sky: "{elder} has set up a tripod on the pavement and is letting the neighbours' children look. Someone on the radio says there is an object following the comet, and some people believe it.",
+        "offer:label": "Take the family somewhere dark to see it",
+        offered: "You drive up into the hills after dark. Away from the city lights it's enormous, with two tails, one white and one faintly blue. Nobody says much on the way home.",
+        "ignore:label": "Look from the doorstep and go back in",
+        ignored: "You look at it from the doorstep for a minute. It will be there for weeks.",
+        "charms:label": "Borrow a telescope and charge for a look",
+        sold: "You borrow a telescope and charge a little for a look. By nine o'clock there's a line down the street.",
+        shamed: "{elder} is letting people look through {his} telescope for nothing, so nobody will pay to look through yours.",
+        passed: "The comet hangs there for weeks. Then the news is about thirty-nine people in California who killed themselves because they believed a spacecraft was travelling behind it.",
       },
     },
     {

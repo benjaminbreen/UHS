@@ -1,8 +1,11 @@
-import { elderOf, EUROPE, ISLAMIC, notable, partnerWords, pronounWords, temper } from "./common";
+import { elderOf, EUROPE, ISLAMIC, notable, partnerWords, pronounWords, temper, within } from "./common";
 import type { PlotTemplate } from "./types";
 
 const LONDON = [-0.6, 51.3, 0.4, 51.7] as const;
 const MEXICO = [-100, 17, -97, 21] as const;
+const FLU = { years: [1918, 1920] } as const;
+const SARS = { years: [2003, 2004], bounds: [112, 21.5, 115, 23.5] } as const;
+const COVID = { years: [2020, 2022] } as const;
 
 /** Word comes that a sickness is in the next town, and it is coming this way along the road. */
 export const sickness: PlotTemplate = {
@@ -12,7 +15,9 @@ export const sickness: PlotTemplate = {
     emblem: "crier",
     palette: { ink: "#10120e", fill: "#3a4232", edge: "#6a6248", light: "#eaeee2", accent: "#a8b878" },
   },
-  weight: (c) => (c.setting?.settlement !== "camp" && notable(c) && elderOf(c, notable(c)) ? 0.3 * temper(c, "neuroticism") : 0),
+  // A modern city hears of an epidemic from the news, not from travellers; only the real ones come.
+  weight: (c) => (c.setting?.settlement !== "camp" && ((c.setting?.year ?? 0) < 1900 || within(c, FLU, SARS, COVID)) &&
+    notable(c) && elderOf(c, notable(c)) ? (within(c, FLU, COVID) ? 0.9 : 0.3) * temper(c, "neuroticism") : 0),
   cast: (c) => {
     const patron = notable(c);
     const elder = elderOf(c, patron);
@@ -115,6 +120,89 @@ export const sickness: PlotTemplate = {
         "help:label": "Go with {elder} to wash the dead",
         helped: "You and {elder} wash and shroud the dead all day, and pray over them. People bless you for it. You come home, and wait to see if you have it.",
         left: "You load the donkey and leave for kin in the country. The imam says nothing, but you know what the Prophet said about leaving.",
+      },
+    },
+    {
+      // In autumn 1918 cities shut schools, theatres and churches, and San Francisco made gauze masks compulsory in public.
+      scope: FLU,
+      title: "The Influenza",
+      lines: {
+        aim: "Decide what your household does about the influenza.",
+        intro: "The influenza is in the city. It kills young, healthy people in a few days, and the hospitals are full. The papers say the schools, theatres and churches may be shut.",
+        threat: "Nobody knows how to stop it. Some cities are ordering everyone to wear a gauze mask in the street.",
+        partner: "Your {partnerKin} {partner} wants the children kept home from school.",
+        "kin-partner": "Don't go to the pictures, and don't go to church. Keep away from crowds.",
+        "cast-patron": "Has the ear of the people deciding whether to close things.",
+        "cast-elder": "Has nursed people through fevers before, and isn't afraid of this one.",
+        news: "{patron} is pushing to have the dance halls and churches closed. {elder} is going house to house in the next street, where whole families are down with it and nobody is cooking. Some people are leaving for the country.",
+        "shut:label": "Back {patron}: close the crowded places",
+        "shut:then": "You go to the meeting with {patron}. By evening there are notices on the doors of the cinema and the church.",
+        "help:label": "Go with {elder} to cook and nurse",
+        "help:then": "You tie a gauze mask over your face and follow {elder} with a pot of soup.",
+        "leave:label": "Take the household to kin in the country",
+        gate: "A neighbour's two small children are at your door. Their mother is sick, their father died yesterday, and there is nobody else to take them.",
+        "turn:label": "Say you can't take them",
+        "shelter:label": "Take the children in",
+        turned: "You tell them you can't risk it. In the end a church takes the children in.",
+        sheltered: "The children sleep in your kitchen for three weeks. Their mother lives.",
+        helped: "You and {elder} cook, wash and fetch water for houses where nobody can get out of bed. Some of them will live because of it. You go home and wait to see if you have it.",
+        left: "You take the train to kin in the country. The influenza gets there a week later.",
+        passed: "The day ends with the undertakers running out of coffins, and nothing yet decided.",
+      },
+    },
+    {
+      // At Amoy Gardens in March 2003 SARS went through a single block of flats, which the government sealed and emptied.
+      scope: SARS,
+      title: "SARS",
+      lines: {
+        aim: "Decide what your household does about SARS.",
+        intro: "The new pneumonia, SARS, is spreading in the city. Doctors and nurses are catching it from their patients, and everyone is wearing a surgical mask.",
+        threat: "At Amoy Gardens it went through a whole block of flats, and the government sealed the building and moved everyone out.",
+        partner: "Your {partnerKin} {partner} wants everything wiped down with bleach.",
+        "kin-partner": "Take the stairs. Don't touch the lift buttons.",
+        "cast-patron": "Chairs the owners' committee for the building.",
+        "cast-elder": "Lives alone on the floor above, and is afraid to go out.",
+        news: "{patron} wants a temperature check at the building's door and visitors kept out. {elder}, on the floor above, hasn't been to the market in days. Some families have gone to stay with relatives abroad.",
+        "shut:label": "Back {patron}: check everyone at the door",
+        "shut:then": "You sit at the door with {patron} and a thermometer, and take the temperature of everyone who comes in.",
+        "help:label": "Do the shopping for {elder}",
+        "help:then": "You take {elder}'s list down to the wet market.",
+        "leave:label": "Go and stay with relatives abroad",
+        gate: "A woman from the next block is at the door with her son. There is a case in her building, and she wants to stay with her sister on your floor.",
+        "turn:label": "Turn them away",
+        "shelter:label": "Let them in",
+        turned: "{patron} turns them away at the door. Nobody in your building gets sick.",
+        sheltered: "You let them in. For ten days everyone on the floor takes their temperature twice a day. Nobody has it.",
+        helped: "You leave {elder}'s shopping outside the door and talk through it for a while. The streets are emptier than you have ever seen them.",
+        left: "You fly out to relatives abroad. At the airport everyone is masked, and a nurse takes your temperature at the gate.",
+        passed: "The day ends with the evening news counting new cases. The masks stay on.",
+      },
+    },
+    {
+      scope: COVID,
+      title: "The Lockdown",
+      lines: {
+        aim: "Decide what your household does about the virus.",
+        intro: "The news says the virus is in the city now. The schools are shut, the shelves are emptying, and people are wearing masks on the bus.",
+        threat: "Nobody knows yet how bad it will get. Old people are dying of it, and the hospitals are filling up.",
+        partner: "Your {partnerKin} {partner} wants to stock up and stay in.",
+        "kin-partner": "Don't let anyone in. Not even family.",
+        "cast-patron": "Has a say in how the building handles it.",
+        "cast-elder": "Lives alone, and is old enough that the virus could kill {elder}.",
+        news: "{patron} wants a notice on the street door: no visitors, and anyone back from abroad stays in for two weeks. {elder}, who lives alone, hasn't been out for food in days. Some families are leaving for relatives outside the city.",
+        "shut:label": "Back {patron}: no visitors",
+        "shut:then": "You help {patron} put up the notice and tape lines on the floor by the door, two metres apart.",
+        "help:label": "Do {elder}'s shopping",
+        "help:then": "You take {elder}'s list and join the line outside the supermarket.",
+        "leave:label": "Go to family outside the city",
+        gate: "Your cousin has lost a job and a room in the same week, and asks to stay with you until it's over.",
+        "turn:label": "Say you can't risk it",
+        "shelter:label": "Let your cousin stay",
+        turned: "You tell your cousin you can't risk it. They find a sofa somewhere else. Nobody in your home gets sick.",
+        sheltered: "Your cousin sleeps on your sofa for two months. Two of you get a fever in April, and get over it.",
+        helped: "You leave {elder}'s shopping outside the door and talk through it for a while. {elder} says it's the first conversation in a week.",
+        left: "You pack the car and drive out to family outside the city, before the roadblocks go up.",
+        passed: "The day ends with the streets empty and the sirens going. At eight, some people clap from their windows for the hospital workers.",
       },
     },
     {

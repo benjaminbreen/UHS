@@ -1,6 +1,5 @@
-import { EMBLEM_H, EMBLEM_W, bayer, ease, fadeEdges, hash, mix, pen, person, rgb, type Pal, type RGB } from "../kit";
+import { EMBLEM_H, EMBLEM_W, bayer, blend, ease, fadeEdges, hash, mix, pen, person, rgb, type Pal } from "../kit";
 
-const blend = (a: RGB, b: RGB, t: number): RGB => a.map((v, i) => v + (b[i] - v) * t) as RGB;
 
 /** The boundary: two fields at dawn, the stone, and where it used to stand. */
 export default function stone(ctx: CanvasRenderingContext2D, pal: Pal, t: number, ending?: string) {

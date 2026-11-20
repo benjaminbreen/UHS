@@ -1,6 +1,6 @@
 import { sexOf } from "../../core/brief";
 import { random } from "../../core/random";
-import { B, CHINA, ITALY, neighbours, partnerWords, pronounWords } from "./common";
+import { B, CHINA, ITALY, JAPAN, KOREA, neighbours, partnerWords, pronounWords } from "./common";
 import type { PlotContext, PlotTemplate } from "./types";
 
 const wed = (a: { relations?: { kind: string }[] }) => !!a.relations?.some((r) => r.kind === "partner");
@@ -16,6 +16,39 @@ const motherOf = (c: PlotContext) => {
 const midwifeOf = (c: PlotContext) => {
   const women = neighbours(c).filter((a) => sexOf(a) === "female" && (a.age ?? 30) >= 40);
   return women.find((a) => /midwife|healer|herbal|nurse/i.test(a.role)) ?? women[0];
+};
+
+// Where and when most births had moved into hospital.
+const HOSPITAL_BIRTHS = [
+  { years: [1955, 2100], bounds: [-170, 14, -50, 72] },
+  { years: [1965, 2100], bounds: [-11, 35, 40, 72] },
+  { years: [1965, 2100], bounds: JAPAN },
+  { years: [1990, 2100], bounds: KOREA },
+  { years: [1975, 2100], bounds: [-76, -56, -48, -20] },
+] as const;
+const hospital = {
+  aim: "Get {kin} to the hospital.",
+  intro: "{kin}'s waters broke before dawn and the pains are getting stronger. It's time to get her to the hospital.",
+  threat: "A first labour can take a day or more, but if anything goes wrong she needs to be where the doctors are.",
+  partner: "Your {partnerKin} {partner} has the bag packed by the door and says to stop standing there.",
+  "kin-partner": "Has someone called the hospital? It won't be long now.",
+  "cast-helper": "Used to be a nurse, and has come over to help.",
+  "cast-neighbour": "Lives next door and has a car.",
+  send: "{kin}'s pains are coming faster. {helper}, who used to be a nurse, has come to the door. You could call an ambulance and wait, or get {neighbour} from next door to drive you in now.",
+  "midwife:label": "Call an ambulance and keep {helper} with her",
+  "midwife:then": "{helper} sits with {kin}, timing the pains, until the ambulance comes. The crew carry her down on a stretcher and you ride in the back.",
+  "near:label": "Get {neighbour} to drive you in",
+  "near:then": "{neighbour} has the car at the door in minutes. You hold {kin}'s hand in the back seat while {neighbour} runs two red lights.",
+  long: "Hours go by on the maternity ward and the baby hasn't come. {kin} is worn out, and the doctor says the baby is lying the wrong way.",
+  "turn:label": "Let the doctor try to turn the baby",
+  "turn:then": "The doctor presses and turns from outside, slowly, between the pains, while you hold {kin}'s hand.",
+  "turn:failed": "The doctor tries, but the baby won't turn. They take {kin} into surgery.",
+  "knots:label": "Ask them to give it more time",
+  "knots:then": "The doctor agrees to wait. The nurses walk {kin} up and down the corridor between the pains.",
+  born: "At last the baby cries. It is a {baby}, and {kin} is tired but well. The nurse lets you hold the baby while {kin} sleeps.",
+  hard: "The baby is delivered by caesarean, a {baby}, small but breathing. {kin} will be in hospital for a week and sore for longer, but they are both alive.",
+  late: "Hours later the baby comes by itself, a {baby}, red and furious. Everyone, the night shift included, is too tired to celebrate.",
+  alone: "The baby came in the hospital car park before anyone could get {kin} inside. A porter and a nurse ran out with blankets. Mother and child are fine, but it was close.",
 };
 
 /** A married woman nearer to hand than the midwife, who has had children herself. */
@@ -78,6 +111,7 @@ export const labour: PlotTemplate = {
     { id: "alone", when: { type: "due" } },
   ],
   wording: [
+    ...HOSPITAL_BIRTHS.map((scope) => ({ scope, title: "The Baby Is Coming", lines: hospital })),
     {
       // The obstetrix brought a birthing chair; Juno Lucina was called on to bring the child into the light.
       scope: { years: [B(300), 500], bounds: ITALY },

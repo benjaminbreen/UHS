@@ -163,6 +163,26 @@ export const token: PlotTemplate = {
       },
     },
     {
+      scope: { years: [1900, 2100] },
+      title: "Something on the Doorstep",
+      lines: {
+        intro: "There's a cake tin on your doorstep, tied with a ribbon. Inside is a homemade cake, still a little warm. There's no card.",
+        threat: "It's probably a kindness. But you'd like to know who has been at your door, and why.",
+        "cast-suspect": "Has been baking in the evenings.",
+        ochre: "{suspectWho}, has flour on {his} sleeves.",
+        report: "{witnessWho}, says they saw {neighbourWho}, at your door first thing.",
+        "stakeout:label": "Put something in the tin, leave it out and watch",
+        watching: "You've left the tin out with something of yours in it, and are keeping watch.",
+        wrong: "{neighbourWho}, says they were only fetching the post, and saw nobody at your door.",
+        blush: "{suspectWho}, admits to leaving the cake. It turns out {reason}.",
+        dawn: "{suspectWho}, comes back for the tin and finds your gift in it. {He} admits to leaving the cake. It turns out {reason}.",
+        found: "You thank {suspectWho}, for the cake.",
+        cool: "You give {suspectWho}, the tin back, and say you can't accept it.",
+        gone: "There is no one left to ask about the cake.",
+        unsolved: "You never find out who left the cake. The tin stays in your kitchen.",
+      },
+    },
+    {
       title: "Something at the Door",
       lines: {
         aim: "Find out who left something at your door, {due}.",

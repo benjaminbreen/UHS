@@ -61,6 +61,16 @@ import { wandering } from "./wandering";
 import { well } from "./well";
 import { whale } from "./whale";
 import { wreck } from "./wreck";
+import { plant } from "./plant";
+import { strike } from "./strike";
+import { foreclosure } from "./foreclosure";
+import { draft } from "./draft";
+import { banks } from "./banks";
+import { taken } from "./taken";
+import { overdose } from "./overdose";
+import { abroad } from "./abroad";
+import { blackout } from "./blackout";
+import { broadcast } from "./broadcast";
 import type { PlotRole, PlotTemplate } from "./types";
 
 export const PLOTS: PlotTemplate[] = [debt, rent, levy, accused, rival, robbery, feast, gift, marriage, sorcery, ground, stray, complaint,
@@ -68,7 +78,8 @@ export const PLOTS: PlotTemplate[] = [debt, rent, levy, accused, rival, robbery,
   run, apprentice, breakdown, rain, birthing, batch, slack, herds, glut, shift, ledger,
   labour, fever, firstday, wandering, quarrel, drawn, longing, jesa, qingming, toga, naming,
   comet, quake, flood, locusts, whale, wreck, hoard, ruler, sickness, traders,
-  boundary, store, smuggler, rack, token, well, contest, loose, follower, matchmaker, maneater, raid];
+  boundary, store, smuggler, rack, token, well, contest, loose, follower, matchmaker, maneater, raid,
+  plant, strike, foreclosure, draft, banks, taken, overdose, abroad, blackout, broadcast];
 
 export const ROLE_NAMES: Record<PlotRole, string> = {
   creditor: "Creditor", landlord: "Landlord", official: "Official", accuser: "Accuser",

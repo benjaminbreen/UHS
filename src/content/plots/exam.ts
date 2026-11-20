@@ -1,16 +1,42 @@
 import { random } from "../../core/random";
 import { sexOf } from "../../core/brief";
-import { amountOf, CHINA, dueOf, KOREA, notable, partnerWords, pronounWords, VIETNAM, within } from "./common";
+import { amountOf, CHINA, dueOf, JAPAN, KOREA, notable, partnerWords, pronounWords, VIETNAM, within } from "./common";
 import type { PlotContext, PlotTemplate } from "./types";
 
 const EXAMS = [{ years: [960, 1905], bounds: CHINA }, { years: [1392, 1894], bounds: KOREA }, { years: [1075, 1919], bounds: VIETNAM }] as const;
+const INDIA = [68, 6, 97, 36] as const;
+const JUKEN = { years: [1960, 2100], bounds: JAPAN } as const;
+const SUNEUNG = { years: [2000, 2100], bounds: KOREA } as const;
+const REOPENED = { years: [1977, 1979], bounds: CHINA } as const;
+const GAOKAO = { years: [1990, 2100], bounds: CHINA } as const;
+const JEE = { years: [1990, 2100], bounds: INDIA } as const;
+const ENTRANCE = [JUKEN, SUNEUNG, REOPENED, GAOKAO, JEE];
 
+// The 1977 exam took the sent-down generation, up to thirty.
 const candidateOf = (c: PlotContext) => c.actors.find((a) =>
-  a.kind === "human" && !a.dead && a.id !== c.player.id && a.householdId === c.player.householdId &&
-  sexOf(a) === "male" && (a.age ?? 30) >= 14 && (a.age ?? 30) <= 40);
+  a.kind === "human" && !a.dead && a.id !== c.player.id && a.householdId === c.player.householdId && (within(c, ...ENTRANCE)
+    ? (a.age ?? 30) >= 16 && (a.age ?? 30) <= (within(c, REOPENED) ? 30 : 19)
+    : sexOf(a) === "male" && (a.age ?? 30) >= 14 && (a.age ?? 30) <= 40));
 
 /** Degree holders, who alone could vouch, were men. */
-const patronOf = (c: PlotContext) => notable(c, (a) => sexOf(a) === "male");
+const patronOf = (c: PlotContext) => within(c, ...ENTRANCE) ? notable(c) : notable(c, (a) => sexOf(a) === "male");
+
+/** The lines every modern entrance exam shares: a place with a tutor, not a guarantee. */
+const cram = {
+  aim: "Pay {patron} for a place in the classes, or offer {him} something else, {due}.",
+  "kin-partner": "Has {patron} said yes? {candidate} hasn't slept.",
+  "cast-patron": "Runs evening classes for the exam, and has one place left.",
+  terms: "I have one place left in my last course before the exam. It's {amount}, {due}.",
+  vouched: "{candidate} gets the last place in {patron}'s course, and goes every evening until the exam.",
+  favoured: "{patron} accepts your offer and takes {candidate} on without mentioning the fee again.",
+  gone: "With {patron} gone, {candidate} will have to study alone.",
+  missed: "No place came through, so {candidate} studies alone at the kitchen table.",
+  "plead:label": "Ask {him} to take {candidate} as a favour",
+  "plead:then": "You tell {patron} how hard {candidate} has worked, and how little the household has. {He} looks at {candidate}'s marks for a long time, then says {he} will take {candidate} for nothing.",
+  "plead:failed": "{patron} says everyone has worked hard, and everyone pays.",
+  pleaded: "{patron} takes {candidate} on as a favour. One day {he} will ask a favour back.",
+  refused: "{patron} won't take {candidate} now, at any price. {candidate} will have to study alone.",
+};
 
 /** A young man of the household is to sit the civil examinations, and needs
  * someone of standing to vouch for him first. */
@@ -22,7 +48,7 @@ export const exam: PlotTemplate = {
     palette: { ink: "#10141a", fill: "#1c2430", edge: "#3a5a7a", light: "#e6ecf2", accent: "#c0462e" },
   },
   payee: "patron",
-  weight: (c) => (within(c, ...EXAMS) && candidateOf(c) && patronOf(c) ? 0.8 : 0),
+  weight: (c) => ((within(c, ...EXAMS) || within(c, ...ENTRANCE)) && candidateOf(c) && patronOf(c) ? 0.8 : 0),
   cast: (c) => {
     const patron = patronOf(c);
     return patron && candidateOf(c) && { patron };
@@ -65,6 +91,77 @@ export const exam: PlotTemplate = {
     { id: "missed", when: { type: "due" } },
   ],
   wording: [
+    {
+      // Ronin, "masterless samurai", is the word for a student who failed and studies a year to try again.
+      scope: JUKEN,
+      title: "The Entrance Exams",
+      lines: {
+        ...cram,
+        intro: "{candidate}'s university entrance exams are a few weeks away. Everyone in {candidate}'s class goes to a juku, a cram school, in the evenings, and {patron} runs the best one around here.",
+        threat: "Fail, and {candidate} spends a year as a ronin, studying alone to try again.",
+        partner: "Your {partnerKin} {partner} has bought a charm for passing exams at the shrine.",
+        nerves: "{candidate} is at the kitchen table at two in the morning with a headband on, and hardly eats.",
+      },
+    },
+    {
+      // On the day of the college entrance exam, flights are held during the English listening test and police drive late students in.
+      scope: SUNEUNG,
+      title: "The College Entrance Exam",
+      lines: {
+        ...cram,
+        intro: "{candidate} sits the suneung, the college entrance exam, in November. Everyone else's children have been at a hagwon, a private cram school, every night for years, and {patron} runs the one with the best results.",
+        threat: "One day decides which university, and people say which university decides the rest of your life.",
+        partner: "Your {partnerKin} {partner} has been praying at the temple every morning, a hundred days of prayers for the exam.",
+        nerves: "{candidate} gets home from the study room after midnight. On exam day the planes will be held on the ground during the listening test.",
+      },
+    },
+    {
+      // In winter 1977 5.7 million people sat the first university exam in eleven years; about 270,000 got places, and old textbooks sold out.
+      scope: REOPENED,
+      title: "The Exam Is Back",
+      lines: {
+        ...cram,
+        aim: "Pay {patron} for the loan of the textbooks, or offer {him} something else, {due}.",
+        intro: "The universities are taking students by examination again, for the first time in eleven years. {candidate} has a few weeks to relearn everything from school, and there are no textbooks left in the shops.",
+        threat: "Millions are sitting it. Fewer than one in twenty will get a place.",
+        partner: "Your {partnerKin} {partner} has been asking everyone you know for old school notes.",
+        "kin-partner": "Will {patron} lend us the books? {candidate} has nothing to study from.",
+        "cast-patron": "Kept a set of the old maths, physics and chemistry textbooks hidden through the Cultural Revolution.",
+        terms: "I can lend {candidate} my textbooks until the exam. Everyone wants them. It's {amount}, {due}.",
+        nerves: "{candidate} is copying out formulas from borrowed notes by lamplight, and hardly eats.",
+        vouched: "{candidate} studies from {patron}'s textbooks every night until the exam, and gives them back with every page worn soft.",
+        favoured: "{patron} accepts your offer and lends {candidate} the books without mentioning the fee again.",
+        gone: "With {patron} gone, {candidate} will have to study from whatever notes can be borrowed.",
+        missed: "No books came, so {candidate} studies from memory and borrowed notes.",
+        "plead:then": "You tell {patron} how hard {candidate} has worked, and how much the exam means after all these years. {He} goes to the back room and comes out with the books.",
+        pleaded: "{patron} lends the books as a favour. One day {he} will ask a favour back.",
+        refused: "{patron} won't lend the books now, at any price. {candidate} will have to study from borrowed notes.",
+      },
+    },
+    {
+      // Cities stop building work near exam halls in gaokao week, and some neighbourhoods ban car horns.
+      scope: GAOKAO,
+      title: "The Gaokao",
+      lines: {
+        ...cram,
+        intro: "The gaokao, the national university entrance exam, is in June. {candidate} has been studying for it for three years, and {patron} gives private lessons to the best students.",
+        threat: "One score decides which university will take {candidate}, or whether any will.",
+        partner: "Your {partnerKin} {partner} has been cooking {candidate}'s favourite food every night for a month.",
+        nerves: "{candidate} studies until midnight and gets up at six. The whole street has promised to keep the noise down in exam week.",
+      },
+    },
+    {
+      // Engineering hopefuls go to coaching classes for the IIT entrance exam, most famously in Kota, Rajasthan.
+      scope: JEE,
+      title: "The Entrance Exam",
+      lines: {
+        ...cram,
+        intro: "{candidate} wants to sit the IIT entrance exam for engineering. Everyone who gets in has been to coaching classes, and {patron} runs the best ones around here.",
+        threat: "Hundreds of thousands sit it for a few thousand places.",
+        partner: "Your {partnerKin} {partner} has already told the relatives that {candidate} will be an engineer.",
+        nerves: "{candidate} is doing practice papers at the kitchen table until two in the morning.",
+      },
+    },
     {
       // Qing candidates for the county examination needed a stipendiary licentiate to guarantee their family and conduct.
       scope: { years: [960, 1905], bounds: CHINA },

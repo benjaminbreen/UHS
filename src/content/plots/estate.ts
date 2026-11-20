@@ -53,7 +53,11 @@ export const estate: PlotTemplate = {
         amount: amountOf(c, owed),
         due,
         dead: deceasedOf(c),
-        thing: fillIn(pickOf(c, [
+        thing: fillIn(pickOf(c, (c.setting?.year ?? 0) >= 1945 ? [
+          "a loan that was never repaid",
+          "money for a car that was never paid off",
+          "a share of the house that was promised to {him}",
+        ] : [
           "a loan that was never repaid",
           "the price of seed that was never paid for",
           "a share that was promised to {him} before witnesses",
@@ -187,6 +191,23 @@ export const estate: PlotTemplate = {
         paid: "You pay {claimant}, and nobody speaks against you at the court. You are admitted to the holding.",
         court: "{claimant} has gone to {authority}. Your admission will have to wait.",
         dropped: "With {claimant} gone, nobody objects, and you are admitted.",
+      },
+    },
+    {
+      scope: { years: [1945, 2100] },
+      title: "The Estate",
+      lines: {
+        threat: "If you don't settle it, {he} will get a lawyer, and the estate will be tied up for months.",
+        claim: "I'm sorry about your {dead}. But the estate owes me {amount}, and I want it {due}, or I'll have to get a lawyer.",
+        "claim.bully": "Your {dead} owed me {amount}, and now you owe it. Pay me {due}, or I get a lawyer.",
+        "claim.stickler": "I'm sorry about your {dead}. The estate owes me {amount}, and I can show it on paper. It's due {due}, or I go to a lawyer.",
+        court: "{claimant} has gone to a lawyer. You'll have to answer the claim at a hearing.",
+        "search:label": "Go through your {dead}'s papers for proof",
+        "search:then": "You go through the shoeboxes of papers your {dead} kept: bank statements, old letters, receipts.",
+        "search:failed": "There's nothing in the papers about {claimant} at all.",
+        proved: "At the bottom of a shoebox is a receipt showing it was settled years ago. You show it to {claimant} in front of the family, and {he} lets it drop.",
+        hearing: "At the hearing",
+        "aim-hearing": "Answer {claimant}'s claim at the hearing {meet}. Get {witness} to speak for you first.",
       },
     },
     {

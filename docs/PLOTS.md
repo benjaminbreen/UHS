@@ -45,6 +45,22 @@ who call on the player. Entry files: `src/content/plots/`, `src/core/plot.ts`,
   and season for the death of [Augustus](https://sourcebooks.web.fordham.edu/ancient/suet-augustus-rolfe.asp),
   [William Rufus](https://www.royal.uk/william-rufus) or the
   [Kangxi emperor](https://www.dpm.org.cn/Uploads/pdf/4651/T00057_00.pdf).
+  Scope years are end-exclusive: the year 1986 alone is `[1986, 1987]`.
+- **Modern years.** A plot whose story only makes sense before modern times
+  has weight 0 after it, rather than generic wording: strangers come to trade
+  only before 1850, an unannounced comet only before 1900 (Halley in 1910 and
+  1986 and Hale-Bopp in 1997 still come), and after 1900 sickness comes only
+  as the 1918 flu, SARS in Hong Kong in 2003 or COVID. Debt, theft, fire,
+  estate, token, labour and exam have modern wordings (a shop tab, the police
+  station, the insurance claim, hospital births where they were the norm,
+  cram schools). Plots built for modern slices: `plant` and `strike`
+  (industrial work), `foreclosure`, `draft`, `banks` (frozen savings and
+  hyperinflation), `taken` (night arrests under dictatorships), `overdose`,
+  `abroad` (labour migration and its agents), `blackout` and `broadcast`
+  (coronation, moon landing, World Cup finals, the Wall). Each is weight 0
+  outside the places and years it names. Short events (a blackout, a
+  broadcast, a strike, a sudden bank freeze, the Malvinas call-up) also need
+  the season they fell in.
 
 ## Kin
 
