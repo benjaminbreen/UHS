@@ -353,55 +353,6 @@ def lever_press(variant='b'):
         so.lathe(c,86,by+6,[(0,4),(2,6),(6,6),(8,4),(9,4.8)],CLAY,hollow=(3.3,4))
     return finish(c,(55,by+2))
 
-def tannur(variant='b'):
-    c=C(54,54);cx,by=26,40
-    if variant=='b':
-        so.lathe(c,cx,by,[(0,7),(3,9),(10,8.5),(17,7),(18,7.5)],MUD,
-                 hollow=(4.7,4),inside=RAMPS['brick-dark'])
-        arch(c,cx,by-1,2,4,CLAY,True)
-        line(c,[(31,27),(32,30),(31,32)],MUD[5])
-        line(c,[(20,34),(22,35)],MUD[3])
-    else:
-        slab(c,10,by,32,12,18,MUD)
-        so.lathe(c,cx,by-16,[(0,8),(2,8.5),(3,8)],CLAY,
-                 hollow=(5.5,0),inside=RAMPS['brick-dark'])
-        arch(c,cx,by-1,3,6,RAMPS['brick-dark'],True)
-        line(c,[(14,35),(17,35)],MUD[5])
-        line(c,[(37,29),(38,32)],MUD[4])
-    return finish(c,(cx,by))
-
-
-def kettle(c,cx,by,metal=BLACK_IRON):
-    # A household kettle: ~28 cm body diameter, ~35 cm including the handle.
-    so.lathe(c,cx,by,[(0,1.8),(1,2.8),(2.5,3.2),(4,2.7),(5,1.8)],metal)
-    so.lathe(c,cx,by,[(5,2.3),(5.7,1.5),(6,1)],metal)
-    c.p(cx,by-6,WOOD[4])
-    line(c,[(cx-3,by-3),(cx-3,by-7),(cx-1,by-8),(cx+2,by-8),(cx+3,by-6),(cx+3,by-3)],metal[4])
-    line(c,[(cx+3,by-2),(cx+5,by-3),(cx+6,by-5)],metal[4],2)
-    c.p(cx+5,by-4,metal[2]);c.p(cx+6,by-5,metal[6])
-
-
-def stove(variant='b'):
-    c=C(58,60);cx,by=28,47
-    if variant=='b':
-        slab(c,13,by,30,18,12,RAMPS['roman-brick'],True)
-        slab(c,12,by-18,32,2,14,BLACK_IRON)
-        ellipse(c,(33,by-24,40,by-21),BLACK_IRON[6])
-        line(c,[(35,by-23),(38,by-23)],BLACK_IRON[3])
-        arch(c,cx,by-2,4,9,RAMPS['brick-dark'],True)
-        kettle(c,22,by-23)
-        c.rect(37,by-9,1,3,BLACK_IRON[6])
-        c.rect(40,by-9,1,3,BLACK_IRON[6])
-    else:
-        so.lathe(c,cx,by,[(0,4),(2,5.8),(7,6),(9,5.5),(10,6)],MUD,hollow=(3.5,7))
-        # Three small clay supports leave ventilation beneath the kettle.
-        for x,y in [(cx-4,by-11),(cx+4,by-11),(cx,by-8)]:
-            c.p(x,y,CLAY[2]);c.p(x,y+1,CLAY[4])
-        arch(c,cx,by-1,2,4,CLAY,True)
-        kettle(c,cx,by-11,ramp(78,.09,lift=-.08))
-    return finish(c,(cx,by))
-
-
 def brazier(variant='b'):
     c=C(56,54);cx,by=27,43
     bronze=ramp(70,.075,lift=-.13)
@@ -563,12 +514,10 @@ def workbench(variant='b'):
     return finish(c,(cx,by))
 
 SECOND_STUDIES = [
-    ('tannur','01  Clay tannur','Thick-walled clay tannur','Banked clay oven'),
-    ('stove','02  Stove and kettle','Brick cooking stove / iron kettle','Clay stove / brass kettle'),
-    ('brazier','03  Standing brazier','Bronze bowl / tripod stand','Vented iron pan / riveted stand'),
-    ('chicken_coop','04  Chicken coop','Raised timber henhouse','Woven hen shelter / thatch'),
-    ('stock_pen','05  Small stock pen','Post-and-rail pen / braced gate','Wattle hurdles / woven gate'),
-    ('workbench','06  Workbench','Joiner\'s bench / wooden vise','Low planing bench / stops'),
+    ('brazier','01  Standing brazier','Bronze bowl / tripod stand','Vented iron pan / riveted stand'),
+    ('chicken_coop','02  Chicken coop','Raised timber henhouse','Woven hen shelter / thatch'),
+    ('stock_pen','03  Small stock pen','Post-and-rail pen / braced gate','Wattle hurdles / woven gate'),
+    ('workbench','04  Workbench','Joiner\'s bench / wooden vise','Low planing bench / stops'),
 ]
 
 STUDIES = [
@@ -614,12 +563,12 @@ def second_equipment_sprites():
     for kind,*_ in SECOND_STUDIES:
         for v,form in enumerate(['b','c']):
             base=f'study-prop-equipment-{kind}-{form}'
-            for f in range(4 if kind in ('tannur','stove','brazier') else 1):
+            for f in range(4 if kind=='brazier' else 1):
                 sprites[base+(f'-f{f}' if f else '')]=live_equipment(kind,v,f)
         legacy=kind.replace('_','-')
         for v in range(3):
-            for f in range(4 if kind in ('tannur','stove','brazier') else 1):
-                frame=f'study-prop{"" if kind in ("tannur","stove","brazier") else "b"}-{legacy}-{v}'+(f'-f{f}' if f else '')
+            for f in range(4 if kind=='brazier' else 1):
+                frame=f'study-prop{"" if kind=="brazier" else "b"}-{legacy}-{v}'+(f'-f{f}' if f else '')
                 if kind=='workbench':
                     from .workshop import workbench as plain_bench
                     sprites[frame]=plain_bench(v)

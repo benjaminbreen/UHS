@@ -22,18 +22,16 @@ Each family scored 0-2 on seven things, and these are the lowest totals:
 - **States**: whatever the player can do to it (open, dent, knock over) is
   drawn.
 
-## 1. Off-style renders (18)
+## 1. Off-style renders (14)
 
-Drawn by the SDF/voxel container study (`container_studies.py`) or the
-equipment studies. Soft voxel shading, one bleached palette, mostly 1.5-2x
-too big, boxes without tops. Retire `container_studies.py` when the last goes.
+Drawn by the SDF/voxel container study (`container_studies.py`). Soft voxel
+shading, one bleached palette, mostly 1.5-2x too big, boxes without tops.
+Retire `container_studies.py` when the last goes.
 
 - Containers (`nature-container-*`): andeansack, bale, barkbox, coolamon,
   demijohn, grainbin, grainhamper, milkbag, milkcontainer, pacificbasket,
   parfleche, ricebale, taru, waterskin. The bale, barkbox, parfleche and
   grainhamper want a `lid`/`open` state.
-- Equipment: tannur (A), equipment tannur b and c, equipment stove c. Pink
-  blobs; the mouth needs to be seen from above.
 
 ## 2. Front-only boxes (15)
 
@@ -77,4 +75,8 @@ Flat ellipses or rectangles with no edge depth or texture logic.
   stoneware-crock. Half the size the SDF study drew them; lids come off
   (water jar, onggi, crock); the rest go over, laid down with `lay_down`,
   the water jar spilling and the pointed jars leaving their ring stand
+- tannur and stove in `fire.py`: freestanding and banked tannurs, a brick
+  stove with an iron plate, a clay charcoal stove, one hand-drawn kettle;
+  four flame frames and a cold `-out` frame each. Replaced the equipment
+  study's voxel tannur and stove and the old A painters
 - Still procedural: the dustbin's fallen state, from `fallen.py`

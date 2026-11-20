@@ -25,10 +25,10 @@ const fixed = { solid: true, variants: 1 } as const;
 const fire = { ...fixed, fire: true };
 const art = (kind: string, form: string) => `study-prop-equipment-${kind}-${form}`;
 export const equipmentProps: Record<string, PropDef> = {
-  tannur: { ...fire, name: "Clay tannur", family: "tannur", sprite: art("tannur","b"), visualClearance: [1,1,2,0] },
-  bankedTannur: { ...fire, name: "Banked clay oven", family: "tannur", sprite: art("tannur","c"), visualClearance: [1,1,2,0] },
-  teaStove: { ...fire, name: "Brick stove and iron kettle", family: "stove", sprite: art("stove","b"), visualClearance: [1,1,2,0] },
-  charcoalStove: { ...fire, name: "Clay charcoal stove and brass kettle", family: "stove", sprite: art("stove","c"), visualClearance: [1,1,1,0] },
+  tannur: { ...fire, name: "Clay tannur", family: "tannur", sprite: "study-prop-tannur-0", visualClearance: [1,1,2,0] },
+  bankedTannur: { ...fire, name: "Banked clay oven", family: "tannur", sprite: "study-prop-tannur-1", visualClearance: [1,1,2,0] },
+  teaStove: { ...fire, name: "Brick stove and iron kettle", family: "stove", sprite: "study-prop-stove-0", visualClearance: [1,1,2,0] },
+  charcoalStove: { ...fire, name: "Clay charcoal stove and brass kettle", family: "stove", sprite: "study-prop-stove-1", visualClearance: [1,1,1,0] },
   brazier: { ...fire, name: "Bronze bowl brazier", family: "brazier", sprite: art("brazier","b"), breakable: "metal", visualClearance: [1,1,1,0] },
   ironPanBrazier: { ...fire, name: "Vented iron pan brazier", family: "brazier", sprite: art("brazier","c"), breakable: "metal", visualClearance: [1,1,1,0] },
   chickenCoop: { ...fixed, name: "Raised timber henhouse", family: "chicken-coop", sprite: art("chicken_coop","b"), container: true, breakable: "wood", visualClearance: [2,2,2,1] },
@@ -40,7 +40,7 @@ export const equipmentProps: Record<string, PropDef> = {
 };
 
 export const equipmentAbout: Record<string,string> = {
-  tannur: "A thick-walled clay oven. Flatbread bakes against the hot inner wall; air enters through the small opening at its foot.",
+  tannur: "A thick-walled clay oven. Flatbread bakes against the hot inner wall; air enters through the small opening at its foot. Between meals it is left to go cold.",
   bankedTannur: "A clay-lined bread oven set into an earthen bench, with a low opening for feeding the fire.",
   teaStove: "An iron kettle stands on the cooking plate of a brick stove. The fire is fed through the opening below.",
   charcoalStove: "A small clay charcoal stove supports a brass kettle above its air vents.",

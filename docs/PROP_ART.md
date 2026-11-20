@@ -7,10 +7,12 @@ are placed, is [PROPS.md](PROPS.md). Buildings are the `building-art` skill.
 
 - **`scripts/art/props_b/`** draws almost every family (`DRAW_B`). New prop art
   goes here. `npm run art:props` (`scripts/build_props.py`) builds the atlas.
-- **`scripts/art/props/`** is the older 48x48 study set. It still draws 17
-  families, all chests, mortars, fires, hearths, ovens, stoves, lamps and
-  lanterns, through the `draw_prop` fallback in `build_props.py`. Porting
-  them to `props_b` and deleting the fallback is welcome; `props/states.py`
+- **`scripts/art/props/`** is the older 48x48 study set. It still draws seven
+  families (the bound chest, mortar, brazier, fire basket, oil drum, oil lamp
+  and lantern) through the `draw_prop` fallback in `build_props.py`. The
+  redrawn fires, ovens and stoves in `props_b/fire.py` use the same path for
+  their `-f` flame frames and the `-out` cold frame (`COLD`). Porting the
+  seven to `props_b` and deleting the fallback is welcome; `props/states.py`
   is still imported for runtime state sprites.
 - **`scripts/art/front_props.py`** draws props baked into front-on buildings
   (wells, fountains, pots, trees). It belongs to the building painters.

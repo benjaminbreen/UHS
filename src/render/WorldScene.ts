@@ -3586,8 +3586,16 @@ export class WorldScene extends Phaser.Scene {
     const key = `${frame}-${layer}`;
     return this.textures.get("props").has(key) ? key : undefined;
   }
-  /** How a prop has been used, where that is drawn: lid off, dented. */
+  /** How a prop has been used, where that is drawn: lid off, dented, a fire out. */
   private propState(o: WorldObject) {
+    // An oven or stove goes cold between meals, on the hearths' own schedule,
+    // but not while someone is baking at it or for two hours after you fire it.
+    if (!this.options.freeze && this.fireFrames.has(o.sprite) && !this.hearthLit(o.id) &&
+        !(o.fired !== undefined && this.runtime.engine.state.clock - o.fired < 7200) &&
+        ![...this.ambient.values()].some((at) => at.target?.id === o.id && Math.hypot(at.x - o.pos.x, at.y - o.pos.y) < 3.5)) {
+      const out = `${o.sprite}-out`;
+      if (this.textures.get("props").has(out)) return out;
+    }
     if (o.broken || !(o.damage || o.open)) return undefined;
     return (o.damage && o.open ? this.layerOf(o.sprite, "dented-open") : undefined) ??
       (o.open ? this.layerOf(o.sprite, "open") : undefined) ??

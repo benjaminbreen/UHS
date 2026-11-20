@@ -9,6 +9,7 @@ from art.props_b import DRAW_B, LAYERED, STATES, ANIMATED, TOPPLING
 from art.props_b.fallen import leaning
 from art.prop_audit import audit
 from art.props_b.equipment_studies import second_equipment_sprites
+from art.props_b.fire import COLD
 
 ROOT=Path(__file__).resolve().parent.parent
 OUT=ROOT/'public/props'; OUT.mkdir(parents=True,exist_ok=True)
@@ -82,6 +83,8 @@ for family in catalog['families']:
             budget=family.get('size')
             if budget and (image.width>budget[0] or image.height>budget[1]):
                 over.append(f"{family['id']}-{variant}: {image.width}x{image.height} over {budget[0]}x{budget[1]}")
+        if family['id'] in COLD:
+            sprites[f'{key}-out']=trim(draw_prop(family['id'],variant,'out'))
     if family['id'] in DRAW_B:
         for variant in range(len(family['variants'])):
             drawn=DRAW_B[family['id']](variant)

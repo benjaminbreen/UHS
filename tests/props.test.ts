@@ -342,6 +342,20 @@ describe("interactive props", () => {
       for (let v = 0; v < (def.variants ?? 3); v++)
         expect(frames[`study-propb-${def.family}-${v}-open`], `${def.family}-${v}-open`).toBeTruthy();
   });
+  it("keeps an oven's fire in after you cook at it, and draws it cold", () => {
+    const e = createSession("roman", "oven-fixture");
+    const pos = e.state.player.pos;
+    const oven: WorldObject = { id: "test-oven", prop: "tannur", name: "Clay tannur", kind: "container",
+      sprite: "study-prop-tannur-0", pos: { ...pos, x: pos.x + 1 }, inventory: {} };
+    e.state.objects.push(oven);
+    e.state.player.inventory.meat = 1;
+    const before = e.state.clock;
+    expect(interaction(e, oven, "cook").status).toBe("completed");
+    expect(oven.fired).toBe(before);
+    const frames = propAtlas.frames as Record<string, unknown>;
+    for (const family of ["tannur", "stove"])
+      for (let v = 0; v < 3; v++) expect(frames[`study-prop-${family}-${v}-out`], `${family}-${v}-out`).toBeTruthy();
+  });
   it("scopes new wayside details by region and date", () => {
     const sweden = { culture: "european", year: 1050, lon: 17, lat: 59, settlement: "village" } as const;
     expect(europeanDetails(sweden).some(d => d.prop === "runeMarker")).toBe(true);

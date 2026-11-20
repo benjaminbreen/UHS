@@ -68,19 +68,6 @@ def longfire(v,frame):
  flame(a,14,37,10,3,frame,1);flame(a,24,38,14,4,frame);flame(a,34,37,10,3,frame,2)
  return a.finish()
 
-def tannur(v,frame):
- a=Art('clay',v)
- a.ell((7,35,41,46),'#6b5640');a.ell((9,36,39,44),'#8a7152')
- a.rect((14,26,34,40),0);a.rect((15,26,33,39),2);a.rect((15,27,20,38),1);a.line((32,28,32,38),3)
- a.ell((13,22,35,31),0);a.ell((14,23,34,30),3);a.ell((16,24,32,29),'#1f1713')
- for x in [18,27]:a.line((x,26,x-1,32),'#3a2a22')
- a.line((14,35,20,37,28,37,34,35),1)
- a.line((5,42,10,39),'#8a5a35',2);a.line((6,43,11,41),'#5b3a26')
- embers(a,[(20,27),(26,28),(23,26)],frame)
- flame(a,24,28,12,4,frame)
- a.line((16,25,32,25),3);a.rect((25,24,29,24),4)
- return a.finish()
-
 def brazier(v,frame):
  a=Art('metal',v)
  a.ell((15,38,33,46),'#3d3a33')
@@ -101,22 +88,6 @@ def oven(v,frame):
  a.line((17,31,19,27,27,26,32,30),4);a.specks([(27,20),(32,25),(12,35)],1)
  sx=[0,1,1,0][frame]
  a.rect((23+sx,10,24+sx,11),SMOKE);a.rect((25+sx,7,25+sx,8),SMOKE)
- return a.finish()
-
-def stove(v,frame):
- a=Art('clay',[2,0,1][v%3])
- a.rect((9,29,39,43),0);a.rect((10,30,38,42),2)
- for y in [33,37,41]:a.line((10,y,38,y),1)
- for y0,xs in [(30,[16,24,32]),(34,[12,20,28,36]),(38,[16,24,32])]:
-  for x in xs:a.line((x,y0,x,y0+2),1)
- a.rect((8,27,40,29),3);a.line((9,27,39,27),4)
- a.rect((19,35,29,42),'#1f1713');a.rect((20,40,28,41),EMBER[1])
- embers(a,[(21,40),(25,41)],frame);flame(a,24,40,5+(frame%2),2,frame)
- m=palette('iron');a.ell((16,20,32,30),m[0]);a.ell((17,21,31,28),m[2]);a.ell((18,17,30,23),m[0]);a.ell((19,18,29,22),m[3])
- a.rect((23,15,25,17),m[1]);a.d.arc((17,12,31,24),200,340,fill=m[1],width=2)
- a.line((31,23,36,20),m[1],2);a.line((32,22,36,19),m[3])
- f=frame%4
- for (x,y) in [(21,12),(20,9),(22,6)][:2+f%2]:a.rect((x+[0,1,0,-1][f],y,x+[0,1,0,-1][f],y),'#cfc9bd')
  return a.finish()
 
 def firebasket(v,frame):
@@ -144,7 +115,7 @@ def drum(v,frame):
  a.line((15,17,33,17),3)
  return a.finish()
 
-FIRES={'three-stone-hearth':threestone,'hearth':firepit,'long-fire':longfire,'tannur':tannur,'brazier':brazier,'oven':oven,'stove':stove,'fire-basket':firebasket,'oil-drum':drum}
+FIRES={'three-stone-hearth':threestone,'hearth':firepit,'long-fire':longfire,'brazier':brazier,'oven':oven,'fire-basket':firebasket,'oil-drum':drum}
 
 # The open fires are redrawn at their own sizes with eight flame frames.
 from art.props_b.fire import FIRES_B

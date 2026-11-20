@@ -7223,7 +7223,9 @@ export class Engine {
     const u = this.usable();
     if (!u) return;
     const p = this.state.player;
-    if (u.use === "attend") return void this.propAct(this.state.objects.find((o) => o.id === u.id)!);
+    const used = this.state.objects.find((o) => o.id === u.id)!;
+    if (u.use === "attend") return void this.propAct(used);
+    if (propDefs[used.prop ?? ""]?.fire) used.fired = this.state.clock;
     this.advance(u.minutes * 60);
     const name = this.state.objects.find((o) => o.id === u.id)?.name.toLowerCase() ?? "it";
     switch (u.use) {
@@ -11043,6 +11045,7 @@ export class Engine {
       return;
     }
     if (c.type !== "interact") return;
+    if (o && ["work", "cook"].includes(c.action) && propDefs[o.prop ?? ""]?.fire) o.fired = this.state.clock;
     if (c.action === "strike" && a?.kind === "human" && this.state.manifest.survival) {
       const held = heldObject(this.state);
       const weapon = weaponOf(held?.prop, p.heldItem ? this.item(p.heldItem)?.hand : undefined);

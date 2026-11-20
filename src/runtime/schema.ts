@@ -560,6 +560,7 @@ const object = z.object({
   item: item.optional(),
   owner: z.string().optional(),
   open: z.boolean().optional(),
+  fired: z.number().optional(),
   depleted: z.boolean().optional(),
   claim: z.string().optional(),
   seasons: z.array(z.string()).optional(),

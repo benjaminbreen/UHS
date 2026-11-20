@@ -5,7 +5,7 @@ the eight-frame cycle, so the loop closes without a jump. Smoke and night
 light are the renderer's; nothing here is part-transparent.
 """
 from math import cos, pi, sin
-from .core import Canvas, RAMPS, blob, jitter, soft_outline, grass
+from .core import Canvas, RAMPS, blob, jitter, soft_outline, grass, draw_grid, ramp_keys
 from .workshop import WOOD7
 
 FRAMES = 8
@@ -344,3 +344,170 @@ FIRES_B = {
  'earth-oven': earth_oven,
  'three-stone-hearth': three_stone,
 }
+
+
+# Ovens and stoves, drawn by hand. Digits are the clay, brick or mud, a-e the
+# fire inside: EMBER when lit, ASH in the cold frame the renderer shows when
+# the household is not cooking. A-G is the iron plate.
+TANNUR = [
+ "......456666554......",
+ "....4566666666554....",
+ "...456cddeeeddc543...",
+ "..456bcdddddddcb542..",
+ "..556abbcccccbba432..",
+ "..45566aabbbaa65432..",
+ "..45566666655543321..",
+ "..34455555444332211..",
+ "..45555554443332211..",
+ "..45556554443332212..",
+ ".3455565544433322121.",
+ ".3344444433332221110.",
+ ".3455555444333222121.",
+ ".3445554443332221111.",
+ ".3445544322233322110.",
+ ".34455443bcb33322110.",
+ ".3344443adeda3222110.",
+ "..3333332aaa2221100..",
+ "...123333322221101...",
+ ".....11111111111.....",
+]
+
+BANKED_TANNUR = [
+ "..456666666666666555554..",
+ ".45666666666666655555543.",
+ "4566666456666654555555543",
+ "45666645cddeeeddc54555543",
+ "4566655bcdddddddcb4555543",
+ "455555 5abbcccccbba4555543".replace(' ', ''),
+ "455555456aabbbaa654555543",
+ "4555554566666665543555543",
+ "4555555544444444455555543",
+ "4555555555555555555544432",
+ "3444444444444433333333221",
+ "3454444444443333333333221",
+ "34444444422aaa22332333221",
+ "3444444442aaaaa2333233221",
+ "3444454442bcdcb2333333221",
+ "3444444442cdedc2333333221",
+ "2333333332bcdcb2222222111",
+ "1233333332abbba2222221110",
+]
+
+BRICK_STOVE = [
+ "CDEEEEEEEEEEEEEEEEDCB",
+ "DFFFFFFFFFFFFFCCCCEDC",
+ "DFFFFFFFFFFFFCDEEDCDC",
+ "DEFFFFFFFFFFFCDDDDCDC",
+ "DEEEEEEEEEEEEECCCCEDC",
+ "DEEEEEEEEEEEEEEEEEDDC",
+ "CDDDDDDDDDDDDDDDDDDCB",
+ "444454444443333433221",
+ "444454444443333433221",
+ "666666666665555555443",
+ "444444445443333334221",
+ "44444442aaa2333334221",
+ "6666662aaaaa255555443",
+ "4444442bcdcb233343221",
+ "4544442cdedc233343221",
+ "6666662bcdcb255555443",
+ "4444542bcdcb233433221",
+ "3333332abbba222222111",
+ "122222222222222221110",
+]
+
+CHARCOAL_STOVE = [
+ "....4566654....",
+ "..45cddeedc54..",
+ ".45bcddeddcb54.",
+ "456abcccccba543",
+ "455666666655432",
+ "345555544443321",
+ "345555544433221",
+ "3455542aaa23221",
+ "345552bcdcb2221",
+ "345552cdedc2221",
+ "234442bcdcb2211",
+ ".23442abbba211.",
+ "..12222222221..",
+]
+
+KETTLE = [
+ ".....45......",
+ "...356653....",
+ "..23444432...",
+ ".3566666543..",
+ "45666665443.5",
+ "456666554434.",
+ "455665544333.",
+ ".3445544332..",
+ "..23333221...",
+ "...111111....",
+]
+
+KETTLE_HANDLE = [
+ "...22222.....",
+ "..2.....2....",
+ "..2.....2....",
+]
+
+OVEN_LOOKS = {
+ 'tannur': [('buffclay7', TANNUR), ('sandstone', BANKED_TANNUR), ('redearth7', TANNUR)],
+ 'stove': [('tile', BRICK_STOVE, 'iron7', 'iron7'), ('terracotta7', CHARCOAL_STOVE, None, 'brasspot7'),
+           ('granite', BRICK_STOVE, 'iron7', 'blackiron7')],
+}
+
+
+def _glow(rows, at):
+ return [(at[0] + x, at[1] + y) for y, r in enumerate(rows) for x, ch in enumerate(r) if ch in 'de']
+
+
+def tannur(v=0, frame=0):
+ """A clay oven, freestanding or banked into a mud platform. Flatbread is
+ slapped on the inner wall; the small hole at the foot draws the air."""
+ ramp, rows = OVEN_LOOKS['tannur'][v]
+ body = RAMPS[ramp]
+ lit = frame != 'out'
+ c = Canvas(len(rows[0]), len(rows) + 8)
+ draw_grid(rows, ramp_keys(body, EMBER if lit else ASH), c, (0, 8))
+ soft_outline(c, body[0], body[2])
+ if lit:
+  cx = len(rows[0]) / 2
+  embers(c, _glow(rows[4:], (0, 12)), frame * 2)
+  flame(c, cx, 12 + (0 if rows is TANNUR else 1), 3.2, 8, frame * 2, tongues=2)
+ return _stand(c, len(rows[0]) // 2, len(rows) + 8, 8)
+
+
+def stove(v=0, frame=0):
+ """A brick stove with an iron plate and a hob, or a clay charcoal stove
+ holding the kettle on its rim. The fire is fed through the arch in front."""
+ ramp, rows, plate, metal = OVEN_LOOKS['stove'][v]
+ body = RAMPS[ramp]
+ lit = frame != 'out'
+ top = 9
+ c = Canvas(len(rows[0]), len(rows) + top)
+ draw_grid(rows, ramp_keys(body, EMBER if lit else ASH, RAMPS[plate] if plate else None), c, (0, top))
+ soft_outline(c, body[0], body[2])
+ metal = RAMPS[metal]
+ kettle = Canvas(13, 13)
+ draw_grid(KETTLE, ramp_keys(metal), kettle, (0, 3))
+ soft_outline(kettle, metal[0], metal[2])
+ draw_grid(KETTLE_HANDLE, ramp_keys(metal), kettle)
+ # It stands on the plate or the rim: its foot three rows into the top.
+ at = (1, top + 3 - 12)
+ for (x, y), col in kettle.px.items(): c.set(at[0] + x, at[1] + y, col)
+ if lit: embers(c, _glow(rows, (0, top)), frame * 2)
+ return _stand(c, len(rows[0]) // 2, len(rows) + top, at[1])
+
+
+def _stand(c, cx, foot, top):
+ im = c.image()
+ im.info['own'] = True
+ im.info['anchor'] = [cx + c.PAD, foot + c.PAD]
+ im.info['shadowMinY'] = top + c.PAD
+ return im
+
+
+FIRES_B['tannur'] = tannur
+FIRES_B['stove'] = stove
+# Fires that draw a cold frame, `-out`, for when the household is not cooking.
+COLD = {'tannur', 'stove'}

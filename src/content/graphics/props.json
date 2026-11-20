@@ -779,17 +779,17 @@
     },
     {
       "id": "tannur",
-      "name": "Sunken clay oven",
+      "name": "Clay tannur",
       "group": "Household",
       "size": [
-        25,
-        23
+        27,
+        28
       ],
-      "description": "A clay cylinder set in a packed-earth collar, flame rising from its open top.",
+      "description": "A thick clay oven, freestanding or banked into a mud platform. Bread bakes on the hot inner wall; it goes cold with ash in the mouth between meals.",
       "variants": [
-        "Terracotta",
-        "Buff clay",
-        "Red earth"
+        "Freestanding buff clay",
+        "Banked in a mud platform",
+        "Freestanding red clay"
       ],
       "frames": 4
     },
@@ -810,17 +810,17 @@
     },
     {
       "id": "stove",
-      "name": "Brick stove and kettle",
+      "name": "Stove and kettle",
       "group": "Household",
       "size": [
-        27,
-        27
+        23,
+        29
       ],
-      "description": "A brick block with a firebox in front and an iron kettle steaming on top.",
+      "description": "A brick stove with an iron plate, or a clay charcoal stove, the kettle on top and the fire fed through the arch in front.",
       "variants": [
-        "Red brick",
-        "Grey brick",
-        "Ochre brick"
+        "Red brick, iron kettle",
+        "Clay charcoal stove, brass kettle",
+        "Grey brick, iron kettle"
       ],
       "frames": 4
     },

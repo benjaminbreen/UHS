@@ -354,6 +354,12 @@ An act may also cost coin (`price`), hand you things (`gives`), restore health (
 
 Every exhibit of a fair or a palace is a prop of this kind (`content/props/exhibits.ts`, one definition per find, key `exhibit-<find>`): look closely, listen, buy a plate, sign the book, take a horn of mead. The area still plans where each stands and keeps its cells closed; the object in the world is what is drawn and used. Only machines at work stay with the fair's own view, which plays their frames.
 
+A tannur or a stove goes cold between meals: the renderer draws its `-out`
+frame, ash in the mouth and no light, whenever `hearthLit` says that
+household's fire is not in, the same schedule that sends smoke up the
+chimneys. It stays lit while a neighbour works at it, and for two hours after
+you cook, bake or tend at it (`fired` on the object).
+
 A prop that carries a flame gives light through the map's lamp code (`lampLight` in `render/fire.ts`): palace candlesticks, candle stands and lamp stands are lit by day at half strength and fully after dark, flicker, and are lit again where they are put down. A lamp being carried gives no light.
 
 ## One system for every interior

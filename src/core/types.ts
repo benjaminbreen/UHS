@@ -454,6 +454,8 @@ export type WorldObject = {
   projectile?: { dx: number; dy: number; lodgedIn?: { group: string; n: number } };
   owner?: string;
   open?: boolean;
+  /** When the player last made up this oven or stove's fire. */
+  fired?: number;
   depleted?: boolean;
   claim?: string;
   /** Seasons when this object stands on the map. */
