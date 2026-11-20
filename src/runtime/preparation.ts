@@ -14,6 +14,16 @@ import { smallMemoryDevice, tellMemory } from "./device";
  * enough that a slow device preparing a large settlement is not cut off. */
 const PREPARE_TIMEOUT_MS = 90_000;
 
+/** A world worker with no job yet, its script possibly still downloading
+ * (4.3MB compressed). A start cancelled before its worker loaded leaves it
+ * here, so the next start does not fetch the script again from the beginning. */
+let spare: Worker | undefined;
+const worldWorker = () => {
+  const worker = spare ?? tellMemory(new Worker(new URL("../world/worker.ts", import.meta.url), { type: "module" }));
+  spare = undefined;
+  return worker;
+};
+
 export type StartingCharacter = ReturnType<typeof generateCharacter> & { age: number };
 export type CharacterPrepared = (setting: WorldSetting, character: StartingCharacter) => void;
 
@@ -43,11 +53,10 @@ export async function prepareSettingSession(
     return createSession("atlas", seed, { setting: resolved });
   }
   signal?.throwIfAborted();
-  const worker = tellMemory(new Worker(new URL("../world/worker.ts", import.meta.url), {
-    type: "module",
-  }));
+  const worker = worldWorker();
   const retire = smallMemoryDevice();
-  let owned = true;
+  let owned = true,
+    loaded = false;
   try {
     const { prepared, playableMap } = await new Promise<WorldPreparationResult>(
       (resolve, reject) => {
@@ -69,7 +78,16 @@ export async function prepareSettingSession(
           signal?.removeEventListener("abort", abort);
         };
         signal?.addEventListener("abort", abort, { once: true });
-        worker.onmessage = ({ data }: MessageEvent<WorldPreparationResult | { error: string }>) => {
+        worker.onmessage = ({ data }: MessageEvent<WorldPreparationResult | { error: string } | { hello: true }>) => {
+          if ("hello" in data) {
+            if (loaded) return;
+            loaded = true;
+            // The scene's art waits for the worker's script rather than
+            // sharing the connection with it.
+            void import("../render/scene-assets").then((m) => m.warmSceneAssets());
+            worker.postMessage({ prepare: { setting: resolved, seed, cachePrepared, retire, waterways } } satisfies WorldPreparationRequest);
+            return;
+          }
           cleanup();
           if ("error" in data) reject(Error(data.error));
           else resolve(data);
@@ -78,7 +96,7 @@ export async function prepareSettingSession(
           cleanup();
           reject(Error(e.message));
         };
-        worker.postMessage({ prepare: { setting: resolved, seed, cachePrepared, retire, waterways } } satisfies WorldPreparationRequest);
+        worker.postMessage({ hello: true } satisfies WorldPreparationRequest);
       },
     );
     signal?.throwIfAborted();
@@ -98,6 +116,9 @@ export async function prepareSettingSession(
     }
     return engine;
   } finally {
-    if (owned) worker.terminate();
+    if (owned && !loaded && signal?.aborted && !spare) {
+      worker.onmessage = worker.onerror = null;
+      spare = worker;
+    } else if (owned) worker.terminate();
   }
 }

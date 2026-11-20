@@ -16,7 +16,7 @@ import type { PreparedSettlement } from "./v3/prepared";
 import { shrinkCaches } from "../core/cache";
 export type WorldPreparationRequest = {
   prepare: { setting: WorldSetting; seed: string; cachePrepared: boolean; retire: boolean; waterways?: TravelWaterwayInputs };
-};
+} | { hello: true };
 export type WorldPreparationResult = { prepared: PreparedSettlement; playableMap?: WorldSetting["playableMap"] };
 export type ChunkRequest = {
   setting?: WorldSetting;
@@ -37,6 +37,7 @@ self.onmessage = (
   >,
 ) => {
   if ("shrinkCaches" in event.data) return shrinkCaches();
+  if ("hello" in event.data) return self.postMessage({ hello: true });
   if ("prepare" in event.data) {
     void prepare(event.data.prepare);
     return;
@@ -69,7 +70,7 @@ self.onmessage = (
 
 /** The cache is read and written here, not on the main thread: either way the
  * whole settlement is structured-cloned, and that took 800ms of the start. */
-async function prepare({ setting, seed, cachePrepared, retire, waterways }: WorldPreparationRequest["prepare"]) {
+async function prepare({ setting, seed, cachePrepared, retire, waterways }: Extract<WorldPreparationRequest, { prepare: unknown }>["prepare"]) {
   try {
     const recipe = cachePrepared && waterways ? preparedKey(setting, seed, waterways) : undefined;
     const hit = recipe ? await loadPrepared(recipe, true).catch(() => undefined) : undefined;

@@ -254,7 +254,6 @@ export function WorldSetup({
       // The world takes seconds in the worker; the scene's code and art can be
       // on the way in the meantime.
       void import("../runtime/bootstrap");
-      void import("../render/scene-assets").then((m) => m.warmSceneAssets());
       const { prepareConnectedStart } = await import("../runtime/map-travel");
       const engine = await prepareConnectedStart(
         parsed,

@@ -28,15 +28,16 @@ it.each([true, false])("hands off a prepared world with phone memory policy %s",
   });
   vi.stubGlobal("Worker", class {
     terminate = terminate;
-    onmessage?: (event: { data: { prepared: typeof prepared } }) => void;
+    onmessage?: (event: { data: { prepared: typeof prepared } | { hello: true } }) => void;
     postMessage(request: typeof requests[number]) {
       requests.push(request);
-      queueMicrotask(() => this.onmessage?.({ data: { prepared } }));
+      queueMicrotask(() => this.onmessage?.({ data: "hello" in request ? request : { prepared } }));
     }
   });
   try {
     await expect(prepareSettingSession(setting, "handoff", undefined, false)).resolves.toBe(engine);
-    expect(requests[0].prepare).toMatchObject({ retire: phone, setting: { placeId: setting.placeId } });
+    expect(requests.map((r) => Object.keys(r)[0])).toEqual(["hello", "prepare"]);
+    expect("prepare" in requests[1] && requests[1].prepare).toMatchObject({ retire: phone, setting: { placeId: setting.placeId } });
     expect(create).toHaveBeenCalledWith("atlas", "handoff", expect.objectContaining({ prepared }));
     expect(order).toEqual(phone ? ["terminate", "session"] : ["session"]);
     const retained = takeTerrainWorker(engine.world);
@@ -49,18 +50,31 @@ it.each([true, false])("hands off a prepared world with phone memory policy %s",
   }
 }, 60000);
 
-it("cancels preparation with one worker termination and no lingering timeout", async () => {
-  const controller = new AbortController();
+it("keeps a worker cancelled while loading for the next start, and terminates one cancelled at work", async () => {
+  let controller = new AbortController();
   const terminate = vi.fn();
+  let created = 0,
+    loaded = false;
   vi.useFakeTimers();
   vi.stubGlobal("Worker", class {
     terminate = terminate;
-    postMessage() { controller.abort(); }
+    onmessage?: (event: { data: { hello: true } }) => void;
+    constructor() { created++; }
+    postMessage(request: WorldPreparationRequest) {
+      if ("prepare" in request || !loaded) controller.abort();
+      else queueMicrotask(() => this.onmessage?.({ data: { hello: true } }));
+    }
   });
   try {
     const setting = settingFor(places.find((p) => p.id === "konya")!, -6499);
     await expect(prepareSettingSession(setting, "cancel", controller.signal, false))
       .rejects.toMatchObject({ name: "AbortError" });
+    expect(terminate).not.toHaveBeenCalled();
+    controller = new AbortController();
+    loaded = true;
+    await expect(prepareSettingSession(setting, "cancel", controller.signal, false))
+      .rejects.toMatchObject({ name: "AbortError" });
+    expect(created).toBe(1);
     expect(terminate).toHaveBeenCalledTimes(1);
     expect(vi.getTimerCount()).toBe(0);
   } finally {

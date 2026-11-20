@@ -12,6 +12,10 @@ tests.
     back. That geometry is a cache, not a save format. Bump `PREPARED_VERSION`
     when its shape or content changes.
   - `src/runtime/prepared-store.ts` caches it.
+  - The worker answers a `hello` once its 4.3 MB script has loaded. Only then
+    does it get its job and the scene art start downloading, so the two do
+    not share the connection. A start cancelled before that keeps the
+    loading worker for the next one.
   - On desktop, `src/runtime/terrain-worker-owner.ts` hands the warmed worker to
     the terrain stream. On phones it terminates, and terrain gets a fresh one.
 - **Job assignment** counts occupied workplace slots once per resident selection,

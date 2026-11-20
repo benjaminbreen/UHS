@@ -48,30 +48,6 @@ it("does not start a tile worker until terrain is requested", () => {
   runtime.dispose();
 });
 
-it("terminates world preparation when the loading view is cancelled", async () => {
-  const terminate = vi.fn();
-  vi.stubGlobal(
-    "Worker",
-    vi.fn(function () {
-      return {
-        terminate,
-        postMessage: vi.fn(),
-        onmessage: null,
-        onerror: null,
-      };
-    }),
-  );
-  const controller = new AbortController();
-  const pending = prepareSettingSession(
-    settingFor(places.find((p) => p.id === "alexandria")!, -225),
-    "cancel-world",
-    controller.signal,
-  );
-  controller.abort();
-  await expect(pending).rejects.toMatchObject({ name: "AbortError" });
-  expect(terminate).toHaveBeenCalled();
-});
-
 it.runIf(!!process.env.FULL)("prepares the same character shown in the completed world", async () => {
   vi.stubGlobal("Worker", undefined);
   const onCharacter = vi.fn();
