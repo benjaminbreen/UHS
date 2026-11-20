@@ -22,17 +22,16 @@ Each family scored 0-2 on seven things, and these are the lowest totals:
 - **States**: whatever the player can do to it (open, dent, knock over) is
   drawn.
 
-## 1. Off-style renders (27)
+## 1. Off-style renders (18)
 
 Drawn by the SDF/voxel container study (`container_studies.py`) or the
 equipment studies. Soft voxel shading, one bleached palette, mostly 1.5-2x
 too big, boxes without tops. Retire `container_studies.py` when the last goes.
 
-- Containers (`nature-container-*`): andeansack, bale, barkbox, canaanjar,
-  coolamon, demijohn, egyptjar, grainbin, grainhamper, majiayao, matka,
-  milkbag, milkcontainer, olla, onggi, pacificbasket, parfleche, ricebale,
-  stoneware, taru, tradejar, urpu, waterskin. The bale, barkbox, parfleche
-  and grainhamper want a `lid`/`open` state; the jars want `fallen`.
+- Containers (`nature-container-*`): andeansack, bale, barkbox, coolamon,
+  demijohn, grainbin, grainhamper, milkbag, milkcontainer, pacificbasket,
+  parfleche, ricebale, taru, waterskin. The bale, barkbox, parfleche and
+  grainhamper want a `lid`/`open` state.
 - Equipment: tannur (A), equipment tannur b and c, equipment stove c. Pink
   blobs; the mouth needs to be seen from above.
 
@@ -73,4 +72,9 @@ Flat ellipses or rectangles with no edge depth or texture logic.
   catalogue prop (`streetBin`). `litter-bin` was its twin and is gone, with
   the litter baskets it put in squares and parks before 1850
 - plastic-bin (the plastic bucket): hand grid, on its side when knocked over
+- the regional jars in `vessels.py`: water-jar (matka), olla, onggi,
+  egyptian-jar, canaanite-jar, majiayao-jar, trade-jar, urpu,
+  stoneware-crock. Half the size the SDF study drew them; lids come off
+  (water jar, onggi, crock); the rest go over, laid down with `lay_down`,
+  the water jar spilling and the pointed jars leaving their ring stand
 - Still procedural: the dustbin's fallen state, from `fallen.py`

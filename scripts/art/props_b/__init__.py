@@ -35,6 +35,7 @@ from .feasting import FEASTING
 from .vessels import (pot, storage_jar, water_jug, amphora, glazed_jar,
                       metal_vessel, pithos, flask, bowl, bucket,
                       open_basket, lidded_basket)
+from . import vessels as _jars
 
 DRAW_B = {
  **STORES,
@@ -78,6 +79,15 @@ DRAW_B = {
  'pithos': pithos,
  'flask': flask,
  'bowl': bowl,
+ 'water-jar': _jars.water_jar,
+ 'olla': _jars.olla,
+ 'onggi': _jars.onggi,
+ 'egyptian-jar': _jars.egyptian_jar,
+ 'canaanite-jar': _jars.canaanite_jar,
+ 'majiayao-jar': _jars.majiayao_jar,
+ 'trade-jar': _jars.trade_jar,
+ 'urpu': _jars.urpu,
+ 'stoneware-crock': _jars.stoneware_crock,
  'dustbin': dustbin,
  'kerosene-tin': kerosene_tin,
  'wheelie-bin': wheelie_bin,
@@ -191,6 +201,14 @@ STATES = {
  'stool': {'fallen': _fallen.stool},
  'open-basket': {'fallen': _fallen.open_basket},
  'lidded-basket': {'fallen': _fallen.lidded_basket},
+ 'water-jar': {'open': _jars.water_jar_open, 'fallen': _jars.water_jar_fallen},
+ 'onggi': {'open': _jars.onggi_open},
+ 'stoneware-crock': {'open': _jars.stoneware_crock_open},
+ 'olla': {'fallen': _jars.olla_fallen},
+ 'egyptian-jar': {'fallen': _jars.egyptian_jar_fallen},
+ 'canaanite-jar': {'fallen': _jars.canaanite_jar_fallen},
+ 'majiayao-jar': {'fallen': _jars.majiayao_jar_fallen},
+ 'urpu': {'fallen': _jars.urpu_fallen},
 }
 
 TOPPLING = {'standing-stone', 'roman-milestone', 'rune-marker', 'stone-lantern', 'stool', 'dustbin', 'steel-drum', 'wheelie-bin'}

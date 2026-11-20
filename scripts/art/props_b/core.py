@@ -173,6 +173,17 @@ def draw_grid(rows, keys, c=None, at=(0, 0)):
  return c
 
 
+def lay_down(rows, keep=.75):
+ """A hand grid knocked over, mouth to the left. Transposing keeps the light:
+ the lit left becomes the lit top. The far half is seen at K, so rows go
+ from there."""
+ t = [r for r in (''.join(row[x] if x < len(row) else '.' for row in rows)
+                  for x in range(max(map(len, rows)))) if r.strip('.')]
+ mid, drop = len(t) // 2, round(len(t) * (1 - keep))
+ gone = {round(i * mid / max(drop, 1)) + 1 for i in range(drop)}
+ return [r for i, r in enumerate(t) if i not in gone]
+
+
 def ramp_keys(m, a=None, b=None, **extra):
  """Grid keys from ramps, so one drawing serves every variant: digits 0-6 are
  steps of `m`, a-g of `a`, A-G of `b`."""

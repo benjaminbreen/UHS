@@ -138,6 +138,141 @@
       ]
     },
     {
+      "id": "water-jar",
+      "name": "Covered water jar",
+      "group": "Storage & carrying",
+      "size": [
+        20,
+        21
+      ],
+      "description": "A round earthen matka with a short neck and a saucer or cloth over the mouth; the clay sweats and keeps the water cool.",
+      "variants": [
+        "Red clay, clay lid",
+        "Terracotta, brass plate",
+        "Buff clay, cloth cover"
+      ]
+    },
+    {
+      "id": "olla",
+      "name": "Earthen storage olla",
+      "group": "Storage & carrying",
+      "size": [
+        20,
+        19
+      ],
+      "description": "A burnished Mexican olla with a flared rim and two small lugs, smoke-marked from the firing.",
+      "variants": [
+        "Red clay",
+        "Terracotta",
+        "Smoked grey"
+      ]
+    },
+    {
+      "id": "onggi",
+      "name": "Onggi storage jar",
+      "group": "Storage & carrying",
+      "size": [
+        20,
+        23
+      ],
+      "description": "A Korean storage jar for sauces and kimchi: dark glaze, broad shoulders, a finger-drawn spray, the lid an upturned bowl.",
+      "variants": [
+        "Brown glaze",
+        "Dark walnut glaze",
+        "Brown glaze, clay lid"
+      ]
+    },
+    {
+      "id": "egyptian-jar",
+      "name": "Sealed Egyptian storage jar",
+      "group": "Storage & carrying",
+      "size": [
+        14,
+        24
+      ],
+      "description": "A tall ovoid jar of Nile silt or marl clay, its mouth sealed with a cone of mud.",
+      "variants": [
+        "Marl clay",
+        "Red Nile silt",
+        "Terracotta"
+      ]
+    },
+    {
+      "id": "canaanite-jar",
+      "name": "Canaanite transport jar",
+      "group": "Storage & carrying",
+      "size": [
+        20,
+        23
+      ],
+      "description": "A Bronze Age shipping jar for wine and oil: sharp shoulder, two handles, a pointed foot that needs its ring.",
+      "variants": [
+        "Buff clay",
+        "Terracotta",
+        "Red clay"
+      ]
+    },
+    {
+      "id": "majiayao-jar",
+      "name": "Painted storage jar",
+      "group": "Storage & carrying",
+      "size": [
+        22,
+        19
+      ],
+      "description": "A Neolithic Majiayao jar from the upper Yellow River, painted in black bands and waves above the belly.",
+      "variants": [
+        "Orange clay",
+        "Buff clay",
+        "Red clay"
+      ]
+    },
+    {
+      "id": "trade-jar",
+      "name": "Lugged storage jar",
+      "group": "Storage & carrying",
+      "size": [
+        20,
+        21
+      ],
+      "description": "A glazed stoneware jar with four lugs for tying down, shipped across the Indian Ocean and the South China Sea.",
+      "variants": [
+        "Brown glaze",
+        "Green glaze",
+        "Cream glaze"
+      ]
+    },
+    {
+      "id": "urpu",
+      "name": "Urpu storage vessel",
+      "group": "Storage & carrying",
+      "size": [
+        20,
+        24
+      ],
+      "description": "An Inca aryballos for chicha: flared neck, strap handles, a painted diamond panel, the pointed base set in a ring.",
+      "variants": [
+        "Orange slip",
+        "Red slip",
+        "Buff slip"
+      ]
+    },
+    {
+      "id": "stoneware-crock",
+      "name": "Lidded stoneware crock",
+      "group": "Storage & carrying",
+      "size": [
+        18,
+        23
+      ],
+      "description": "A salt-glazed crock for butter, pickles and salt meat, with a cobalt band under the lip.",
+      "variants": [
+        "Grey salt glaze",
+        "Cream glaze",
+        "Brown slip"
+      ]
+    },
+    {
       "id": "cooking-pot",
       "name": "Cooking pot",
       "group": "Household",

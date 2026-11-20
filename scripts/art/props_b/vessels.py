@@ -1,12 +1,13 @@
 """Vessels, all turned on the same wheel.
 
-Every ceramic body is a profile of half-widths through `revolve`, so a pot, a
-jar and an amphora catch the light the same way. What tells them apart is the
-profile and the fittings: rim, neck, handles, foot.
+The generic ceramic bodies are a profile of half-widths through `revolve`, so a
+pot, a jar and an amphora catch the light the same way. What tells them apart is
+the profile and the fittings: rim, neck, handles, foot. The regional storage
+jars at the end are hand grids in the same view.
 """
 from math import sqrt
 from .core import (Canvas, RAMPS, belly, revolve,
-                   soft_outline)
+                   soft_outline, draw_grid, ramp_keys, lay_down)
 
 CLAY = ['terracotta7', 'buffclay7', 'redearth7']
 GLAZE = ['greenglaze7', 'blueglaze7', 'creamglaze7']
@@ -340,213 +341,371 @@ def lidded_basket(v=0):
  return _big_basket(v, lid=True) if v < 3 else basket(v - 3, lid=True)
 
 
-CONTAINER_STUDIES = [
- ('waterskin', 'Sewn waterskin', 'West Asia / caravan and household use', 'Tied leather neck, seams and shoulder sling'),
- ('bale', 'Bound merchant bale', 'Overland and maritime trading settings', 'Folded cloth casing, crossed hemp bindings'),
- ('matka', 'Water jar on a woven ring', 'South Asia / regional earthenware tradition', 'Unglazed rounded body and cloth mouth cover'),
- ('milkbag', 'Leather fermentation bag', 'Inner Eurasia / pastoral household', 'Broad hide body, wooden mouth and suspension loops'),
- ('onggi', 'Lidded onggi jar', 'Korea / food storage and fermentation', 'Brown glaze, broad shoulders and separate lid'),
- ('taru', 'Wooden taru', 'Japan / storage and transport', 'Straight staves, bamboo hoops and fitted lid'),
- ('ricebale', 'Straw rice bale', 'Japan / agricultural storage and transport', 'End-on straw coils and lengthwise rope bindings'),
- ('tradejar', 'Lugged trade jar', 'Southeast Asia / late medieval onward', 'Heavy glazed stoneware, shoulder lugs and stopper'),
- ('milkcontainer', 'Leather-capped milk container', 'East African pastoral traditions / Somali study', 'Tall woven body, leather cover and carrying strap'),
- ('urpu', 'Inca urpu', 'Andes / c.1400–1535 CE', 'Flared neck, side handles, pointed base in support'),
- ('barkbox', 'Lidded birchbark box', 'North American woodlands / regional tradition', 'Folded bark, root stitching and bentwood rim'),
- ('coolamon', 'Carved wooden coolamon', 'Australia / Western Desert study', 'Shallow hollowed timber, tool marks and worn lip'),
+# Regional storage jars, drawn by hand. Digits are the body's ramp, a-g a lid
+# or a second clay, A-G paint, seal or stand. A lid or stand is its own grid
+# so the open and fallen states can leave it on the ground.
+
+WATER_JAR = [
+ "......4566654......",
+ ".....532222234.....",
+ ".....521000113.....",
+ ".....456665443.....",
+ "......2333221......",
+ "....45666665432....",
+ "..345666655443321..",
+ ".32566665544332202.",
+ ".34336665544331112.",
+ ".34453355444112212.",
+ ".23445532221322112.",
+ "..234444443322111..",
+ "...2333433322211...",
+ "....22333322211....",
+ ".....122222111.....",
+ "......1111110......",
 ]
 
+OLLA = [
+ ".....456666654.....",
+ "....53222222234....",
+ "....52100000113....",
+ "....45666655443....",
+ "......2333221......",
+ "..554566666543233..",
+ "..235666665544311..",
+ ".34566665544332212.",
+ ".34556665522332212.",
+ ".34455655242132112.",
+ ".23445554421122112.",
+ "..234444443322111..",
+ "...2333433322211...",
+ "....22333322211....",
+ ".....122222111.....",
+ "......1111110......",
+]
 
-def container_study(kind):
- from PIL import Image, ImageDraw
- import numpy as np
- im = Image.new('RGBA', (60, 58)); d = ImageDraw.Draw(im)
- hide = ['#3e2c2b', '#684234', '#95613f', '#bb8755', '#d7ab74', '#ebca92']
- cloth = ['#3e3b3c', '#686052', '#93866c', '#b9ac8d', '#d5c8a7', '#eee0bd']
- rope = ['#554333', '#96764a', '#c3a46b', '#e1c78b']
- wood = ['#40312d', '#72503a', '#a37548', '#c49a64', '#ddba83', '#efd3a1']
- clay = ['#4f3331', '#854b36', '#b5754b', '#cf9566', '#e0b382', '#efcea1']
- glaze = ['#352e30', '#50382e', '#764b32', '#95653e', '#b18a5b', '#d0b482']
- bark = ['#484038', '#797064', '#b0a18a', '#d3c5a8', '#e8dbbc', '#f4e7cb']
- def line(points, p): d.line(points, fill=p, width=1)
- def profile(cx, rows, p):
-  ys = np.arange(rows[0][0], rows[-1][0]+1)
-  widths = np.interp(ys, [a for a,b in rows], [b for a,b in rows])
-  for y, rr in zip(ys, widths):
-   r = round(rr)
-   for x in range(cx-r, cx+r+1):
-    u = (x-cx)/max(r,1)
-    value = 0 if abs(x-cx)==r else 1 if u>.72 else 2 if u>.28 else 3 if u>-.7 else 4
-    if y >= rows[-1][0]-1 and abs(u)<.8: value = max(1,value-1)
-    d.point((x,int(y)), fill=p[value])
-  r0=round(widths[0]);r1=round(widths[-1])
-  line([(cx-r0,int(ys[0])),(cx+r0,int(ys[0]))],p[0])
-  line([(cx-r1,int(ys[-1])),(cx+r1,int(ys[-1]))],p[0])
- def rim(box,p,opening=False):
-  d.ellipse(box, fill=p[3],outline=p[0])
-  a,b,c,e=box
-  d.arc((a+1,b+1,c-1,e-1),185,290,fill=p[5])
-  if opening: d.ellipse((a+2,b+1,c-2,e-2),fill=p[0])
- def cord(points):
-  d.line(points,fill=rope[0],width=3)
-  line(points,rope[2])
- def stitches(points,p=rope[3]):
-  for x,y in points: line([(x,y),(x+1,y-1)],p)
- if kind=='waterskin':
-  line([(19,32),(17,23),(18,16),(22,11),(29,10),(35,13),(38,20),(37,32)],hide[0])
-  line([(20,31),(18,23),(19,16),(23,12),(29,11),(34,14),(37,20),(36,31)],hide[2])
-  shape=[(24,17),(30,18),(34,25),(39,32),(40,40),(37,47),(30,50),(20,49),(15,45),(15,37),(19,29),(22,24)]
-  d.polygon(shape,fill=hide[2],outline=hide[0])
-  d.polygon([(24,22),(26,25),(24,31),(21,36),(20,44),(23,47),(19,46),(17,42),(18,36)],fill=hide[3])
-  d.polygon([(31,25),(37,32),(38,40),(35,46),(29,48),(31,42),(32,34)],fill=hide[1])
-  line([(18,37),(18,43),(22,47),(29,48),(36,45),(38,40)],hide[0])
-  stitches([(19,39),(20,43),(24,46),(28,47),(32,46),(35,44)],hide[4])
-  d.polygon([(24,16),(30,17),(29,23),(23,22)],fill=hide[3],outline=hide[0])
-  cord([(23,21),(30,22)]);line([(27,22),(30,25),(28,28)],rope[1])
-  d.rectangle((25,14,29,17),fill=wood[2],outline=wood[0]);line([(26,14),(28,14)],wood[4])
-  line([(21,31),(23,29)],hide[4]);line([(25,39),(27,41),(27,43)],hide[1])
- elif kind=='bale':
-  shape=[(9,26),(13,21),(43,21),(49,26),(50,42),(46,48),(13,48),(8,43)]
-  d.polygon(shape,fill=cloth[2],outline=cloth[0])
-  d.polygon([(13,22),(43,22),(47,26),(13,29),(10,27)],fill=cloth[4])
-  d.polygon([(10,29),(16,31),(43,29),(48,27),(48,40),(45,44),(14,44),(10,40)],fill=cloth[3])
-  d.polygon([(43,30),(48,27),(49,41),(45,47),(39,47),(43,42)],fill=cloth[1])
-  line([(10,28),(16,32),(23,34)],cloth[1]);line([(12,42),(18,40),(24,41)],cloth[2])
-  line([(38,31),(34,35),(36,39)],cloth[2]);line([(15,46),(34,46)],cloth[1])
-  for x in [20,37]:
-   cord([(x-2,22),(x,28),(x,45),(x-1,48)])
-   line([(x-2,23),(x-1,27)],rope[3])
-  cord([(9,36),(19,37),(38,37),(49,35)])
-  d.rectangle((19,35,22,38),fill=rope[0]);line([(20,35),(22,37),(20,38)],rope[3])
-  line([(22,38),(26,41),(27,40),(24,38)],rope[1])
-  line([(29,25),(34,24)],cloth[5]);line([(14,33),(15,35)],cloth[4])
- elif kind=='matka':
-  rim((17,44,43,51),[rope[0],rope[1],rope[1],rope[2],rope[2],rope[3]])
-  d.arc((18,45,42,50),5,175,fill=rope[1])
-  profile(30,[(23,7),(26,11),(31,14),(37,15),(42,12),(46,7)],clay)
-  line([(19,32),(18,35),(18,38)],clay[5])
-  line([(22,43),(27,45),(34,45)],clay[1])
-  d.ellipse((23,20,37,25),fill=clay[3],outline=clay[0])
-  d.polygon([(23,20),(27,18),(34,19),(38,21),(36,24),(34,27),(31,25),(26,26),(23,23)],fill=cloth[3],outline=cloth[1])
-  line([(25,20),(29,20),(31,21),(35,20)],cloth[5]);line([(25,22),(28,23),(27,25)],cloth[2])
-  line([(34,22),(33,25)],cloth[1]);line([(25,24),(35,24)],rope[1])
- elif kind=='milkbag':
-  for x in [19,37]:
-   d.ellipse((x-3,18,x+3,26),fill=hide[2],outline=hide[0]);d.ellipse((x-1,20,x+1,23),fill=(0,0,0,0))
-  shape=[(25,20),(32,20),(34,26),(40,28),(43,33),(43,46),(40,51),(19,51),(15,47),(15,33),(19,28),(24,26)]
-  d.polygon(shape,fill=hide[1],outline=hide[0])
-  d.polygon([(24,27),(28,24),(31,27),(36,31),(37,44),(35,48),(22,48),(18,44),(18,34)],fill=hide[2])
-  d.polygon([(23,30),(25,29),(23,36),(23,44),(26,47),(20,45),(19,34)],fill=hide[3])
-  line([(17,34),(17,43),(20,48),(26,49),(36,49),(40,46),(41,34)],hide[0])
-  stitches([(18,36),(18,40),(20,45),(24,48),(29,49),(34,48),(39,44)],hide[4])
-  line([(36,31),(38,35),(38,44)],hide[3])
-  d.rectangle((25,15,32,24),fill=wood[2],outline=wood[0]);line([(26,16),(26,22)],wood[4])
-  rim((24,13,33,17),wood);cord([(23,23),(33,23)])
-  line([(27,31),(26,36),(28,40)],hide[1]);line([(32,40),(31,45)],hide[3])
- elif kind=='onggi':
-  profile(30,[(20,9),(24,13),(29,16),(37,16),(44,13),(49,9)],glaze)
-  d.arc((15,23,45,34),5,175,fill=glaze[1])
-  d.arc((15,32,45,43),5,175,fill=glaze[1])
-  line([(19,28),(18,31),(18,35)],glaze[5]);line([(20,37),(20,40)],glaze[4])
-  line([(24,44),(30,45),(36,44)],glaze[2])
-  rim((17,16,43,24),glaze)
-  d.polygon([(16,19),(20,15),(25,13),(35,13),(40,15),(44,19),(43,22),(18,22)],fill=glaze[2],outline=glaze[0])
-  d.ellipse((18,15,42,21),fill=glaze[3]);line([(21,16),(26,15),(34,15)],glaze[5])
-  line([(18,21),(24,23),(37,23),(43,21)],glaze[1])
-  d.ellipse((27,11,33,15),fill=glaze[2],outline=glaze[0]);line([(28,12),(31,12)],glaze[4])
- elif kind=='taru':
-  profile(30,[(24,15),(28,15),(44,14),(49,12)],wood)
-  for x in [19,24,29,34,39,43]:
-   line([(x,27),(x if x<40 else x-1,46)],wood[1]);line([(x+1,29),(x+1,44)],wood[3 if x<32 else 2])
-  for y in [28,42,46]:
-   d.arc((15,y-4,45,y+3),0,180,fill=rope[0]);d.arc((15,y-5,45,y+2),0,180,fill=rope[2])
-   d.arc((16,y-5,44,y),20,165,fill=rope[3])
-  rim((14,18,46,29),wood)
-  d.ellipse((17,20,43,26),fill=wood[3],outline=wood[1])
-  for yy in [22,24]:line([(19,yy),(41,yy)],wood[2])
-  line([(20,21),(37,21)],wood[5]);line([(21,25),(39,25)],wood[4])
-  d.polygon([(22,20),(24,19),(38,24),(36,26)],fill=wood[2],outline=wood[1]);line([(24,20),(36,24)],wood[4])
-  line([(19,34),(20,37)],wood[4]);line([(36,33),(37,35),(37,38)],wood[1])
- elif kind=='ricebale':
-  p=['#51402d','#897045','#b19856','#ceb46d','#e1cc8b','#efdfa8']
-  shape=[(14,26),(41,26),(47,29),(50,35),(49,43),(45,48),(15,49),(9,45),(7,38),(9,30)]
-  d.polygon(shape,fill=p[2],outline=p[0])
-  d.polygon([(13,27),(41,27),(46,30),(17,33),(10,31)],fill=p[4])
-  d.polygon([(15,43),(48,41),(45,47),(16,48)],fill=p[1])
-  for yy in [30,34,38,42,46]:
-   for xx in range(16,45,7):line([(xx,yy),(xx+4,yy-1)],p[3 if yy<42 else 2])
-  d.ellipse((6,27,24,49),fill=p[3],outline=p[0])
-  d.ellipse((9,30,21,46),outline=p[1]);d.ellipse((11,33,19,43),outline=p[2]);d.ellipse((13,35,17,41),outline=p[1])
-  line([(10,33),(13,31),(18,31)],p[5]);line([(10,42),(12,45),(17,46)],p[2])
-  for xx in [27,41]:cord([(xx,27),(xx+3,32),(xx+3,42),(xx+1,48)])
-  cord([(7,38),(23,38),(49,36)])
-  line([(13,29),(14,34)],rope[1]);line([(16,41),(17,46)],rope[1])
- elif kind=='tradejar':
-  p=['#34372f','#4f4c32','#777040','#99904e','#b7ad65','#d7c88a']
-  for xx in [15,39]:
-   d.ellipse((xx-2,21,xx+5,30),fill=p[2],outline=p[0]);d.ellipse((xx,23,xx+3,27),fill=(0,0,0,0))
-  profile(30,[(14,6),(19,8),(23,13),(29,16),(37,15),(45,11),(50,8)],p)
-  d.arc((16,20,44,29),5,175,fill=p[1]);d.arc((15,26,45,34),5,175,fill=p[2])
-  line([(19,28),(18,32),(18,36)],p[5]);line([(20,38),(21,40)],p[4])
-  line([(25,46),(34,46)],p[1])
-  for xx,yy in [(22,23),(37,23)]:
-   d.ellipse((xx-2,yy-2,xx+2,yy+4),fill=p[2],outline=p[0]);line([(xx,yy),(xx,yy+2)],p[0]);d.point((xx-1,yy-1),fill=p[4])
-  rim((23,10,37,16),p)
-  d.polygon([(25,9),(27,7),(33,7),(35,9),(34,12),(26,12)],fill=wood[2],outline=wood[0])
-  line([(27,8),(32,8)],wood[4]);line([(27,10),(33,10)],wood[1])
- elif kind=='milkcontainer':
-  p=['#45352b','#715238','#9f7845','#c09c60','#dbbd82','#eed6a1']
-  cord([(25,17),(37,24),(40,38),(36,49)])
-  profile(29,[(19,5),(24,6),(28,9),(34,10),(41,9),(48,7),(51,4)],p)
-  for yy in range(28,48,3):
-   rr=9 if yy<43 else 7
-   d.arc((29-rr,yy-3,29+rr,yy+2),5,175,fill=p[1])
-   for xx in range(29-rr+2,29+rr-1,4):line([(xx,yy),(xx+1,yy-1)],p[4 if xx<29 else 2])
-  line([(23,31),(22,35),(23,41)],p[4])
-  d.polygon([(22,18),(24,15),(27,13),(32,14),(36,18),(35,25),(32,28),(25,27),(22,23)],fill=hide[1],outline=hide[0])
-  d.polygon([(24,18),(27,16),(31,16),(32,23),(29,25),(24,23)],fill=hide[2])
-  line([(24,18),(26,16),(30,16)],hide[4]);cord([(23,24),(34,24)])
-  d.rectangle((27,12,31,15),fill=hide[2],outline=hide[0])
-  line([(33,26),(35,34),(34,44),(32,49)],hide[0]);line([(34,27),(36,34),(35,43)],hide[2])
- elif kind=='urpu':
-  for xx in [17,38]:
-   d.ellipse((xx-2,29,xx+4,39),fill=clay[2],outline=clay[0]);d.ellipse((xx,31,xx+2,36),fill=(0,0,0,0))
-  profile(30,[(12,4),(19,3),(23,5),(27,10),(32,13),(38,12),(44,7),(50,1)],clay)
-  d.polygon([(24,27),(28,24),(33,25),(36,28),(36,41),(32,46),(28,47),(24,42)],fill='#dec89b')
-  for yy in [28,37,42]:line([(25,yy),(35,yy)],clay[1])
-  for yy in [31,39]:
-   line([(25,yy+1),(27,yy-1),(29,yy+1),(31,yy-1),(33,yy+1),(35,yy-1)],clay[0])
-  line([(29,28),(29,36)],clay[1]);line([(31,28),(31,36)],clay[1])
-  rim((23,8,37,14),clay,True);line([(26,15),(27,21)],clay[4])
-  d.polygon([(28,23),(30,21),(32,23),(31,25),(29,25)],fill=clay[2],outline=clay[0]);d.point((29,22),fill=clay[4])
-  rim((23,47,37,53),[rope[0],rope[1],rope[1],rope[2],rope[2],rope[3]])
-  line([(25,48),(30,49),(35,48)],rope[3]);line([(25,51),(33,52)],rope[1])
- elif kind=='barkbox':
-  profile(30,[(31,17),(44,16),(49,12)],bark)
-  line([(15,34),(17,46),(23,48)],bark[1]);line([(16,35),(18,44)],bark[4])
-  for xx,yy,length in [(20,36,4),(31,34,3),(26,41,5),(38,38,3),(33,46,4),(19,43,2)]:
-   line([(xx,yy),(xx+length,yy)],bark[1 if xx>30 else 2])
-  for yy in range(34,47,3):
-   line([(16,yy),(19,yy+1)],rope[0]);d.point((17,yy),fill=rope[2])
-  rim((11,24,49,35),wood)
-  d.ellipse((13,25,47,32),fill=bark[3],outline=bark[1])
-  line([(17,27),(23,26),(36,26),(42,28)],bark[5])
-  line([(23,29),(27,29)],bark[1]);line([(34,27),(39,28)],bark[2])
-  d.arc((24,20,36,30),180,360,fill=wood[0]);d.arc((25,21,35,30),180,360,fill=wood[3])
-  for xx,yy in [(15,28),(18,30),(23,32),(29,33),(35,32),(41,31),(46,28)]:line([(xx,yy),(xx,yy+1)],rope[0])
- elif kind=='coolamon':
-  shape=[(7,38),(10,34),(18,31),(30,30),(42,32),(50,36),(52,40),(49,45),(41,49),(27,51),(16,48),(9,44)]
-  d.polygon(shape,fill=wood[2],outline=wood[0])
-  d.polygon([(9,38),(17,34),(30,32),(41,34),(49,38),(49,42),(41,46),(28,48),(17,45),(11,42)],fill=wood[4])
-  d.polygon([(12,38),(20,35),(31,34),(42,36),(47,39),(43,43),(30,46),(20,43)],fill=wood[1],outline=wood[2])
-  d.polygon([(16,39),(23,37),(33,36),(41,38),(44,40),(39,42),(29,44),(21,42)],fill=wood[2])
-  line([(14,37),(20,35),(29,34),(37,35)],wood[5])
-  line([(12,44),(19,47),(28,49),(40,47),(48,43)],wood[1])
-  line([(16,44),(23,46),(30,47),(39,45)],wood[3])
-  for xx,yy in [(20,39),(25,38),(30,39),(35,40),(27,42),(39,39)]:line([(xx,yy),(xx+2,yy-1)],wood[3])
-  line([(10,39),(12,41)],wood[5]);line([(45,37),(48,39)],wood[3])
- else:
-  raise ValueError(kind)
- bbox=im.getbbox()
- im=im.crop((bbox[0]-2,bbox[1]-2,bbox[2]+2,bbox[3]+2))
- im.info['anchor']=[im.width/2,im.height-2]
+ONGGI = [
+ ".....456666544.....",
+ "....53333333334....",
+ "....52222222213....",
+ "....51000000013....",
+ "....45666655443....",
+ "...3456666554432...",
+ "..345666665544322..",
+ ".34566666554433221.",
+ ".45666665544332212.",
+ ".45666655445335212.",
+ ".44656655443522212.",
+ ".34555554453522112.",
+ "..445555455325111..",
+ "..344554443322110..",
+ "...3444443322110...",
+ "...2344443322110...",
+ "....23444332210....",
+ ".....123332211.....",
+ "......1111110......",
+]
+
+EGYPT_JAR = [
+ "......D......",
+ ".....CED.....",
+ "....CDEDC....",
+ "...BCDEDCB...",
+ "...ABCCCBA...",
+ "...4566543...",
+ "....23321....",
+ "..456665432..",
+ ".34566655432.",
+ ".45666554322.",
+ ".45566554322.",
+ ".45565544322.",
+ ".44555443321.",
+ ".34555443321.",
+ ".34454433221.",
+ "..344443321..",
+ "..334443221..",
+ "...3444321...",
+ "...2343210...",
+ "....23321....",
+ ".....121.....",
+]
+
+CANAAN_JAR = [
+ "......45654......",
+ "......52113......",
+ "......45543......",
+ ".......243.......",
+ ".......353.......",
+ ".....4566654.....",
+ "...34566666543...",
+ "..3456666655443..",
+ "44344555443322111",
+ "41.45555443321.01",
+ "31.45554433212.01",
+ ".2..455443212..1.",
+ "....445443211....",
+ ".....4544321.....",
+ ".....3443321.....",
+ "......44321......",
+ "......34320......",
+ ".......431.......",
+ ".......321.......",
+ "........1........",
+]
+
+MAJIAYAO_JAR = [
+ ".......45654.......",
+ ".......52113.......",
+ ".......45543.......",
+ "........343........",
+ ".....B5666654A.....",
+ "...345BBBBBBB432...",
+ "..345666666554332..",
+ ".34566666655443321.",
+ ".B55666665544332AA.",
+ ".4B5BB66BB44AA2212.",
+ "4ABB55BB44BA32AAAA.",
+ "3.34BBBBBBAAAAA11.1",
+ "...3344443322110...",
+ "....23344332210....",
+ ".....122222111.....",
+ "......1111110......",
+]
+
+TRADE_JAR = [
+ ".......45654.......",
+ ".......52113.......",
+ ".......45543.......",
+ "......2344321......",
+ ".55.45666665432.32.",
+ ".33456666665444321.",
+ ".34566366655143321.",
+ ".45666666554433212.",
+ ".45666665544332212.",
+ ".45566655443322212.",
+ ".44556655443322112.",
+ "..445555443322111..",
+ "..344554433221110..",
+ "...3445443322110...",
+ "...3344433221110...",
+ "....c2dd3cc1baa....",
+ ".....bcccbbbaa.....",
+ "......aaaaaaa......",
+]
+
+URPU = [
+ ".....4566654.....",
+ ".....5221113.....",
+ ".....4566543.....",
+ "......45542......",
+ ".......453.......",
+ ".......453.......",
+ "......45543......",
+ "....456665432....",
+ "..3456663655432..",
+ ".3456AAAAAAA4321.",
+ ".4556fAeeAed3212.",
+ ".4555AeAAeAd3212.",
+ "44455fAeeAed2112.",
+ "3.445AAAAAAA211.1",
+ "..3445544332110..",
+ "...34454433210...",
+ "....344443210....",
+ ".....3443210.....",
+ "......34320......",
+ ".......231.......",
+ "........1........",
+]
+
+CROCK = [
+ "....566666554....",
+ "...53222222224...",
+ "..5322222222224..",
+ "..5211111111113..",
+ ".451000000000141.",
+ ".455661000144321.",
+ ".455666655444321.",
+ ".234444443322110.",
+ ".455555544332211.",
+ ".456655544332212.",
+ ".DEE655544332BBB.",
+ ".455EEEDDCCBB212.",
+ ".445555DDC322112.",
+ ".3455544C3221112.",
+ ".344444433221110.",
+ "..2333333222110..",
+ "...12222211100...",
+ ".....1111110.....",
+]
+
+WATER_JAR_LID = [
+ ".......cefec.......",
+ ".....cdeffeedcb....",
+ "....cdeeeedddcba...",
+ "....bcccccccbbaa...",
+ ".....abbbbbbaa.....",
+]
+
+ONGGI_LID = [
+ ".......deffd.......",
+ ".....cdeffeeddc....",
+ "...bcdeeeeeddccba..",
+ "...abbcccccbbbaaa..",
+ "....aaabbbbaaaaa...",
+]
+
+CROCK_LID = [
+ ".......dfe.......",
+ ".......cdc.......",
+ "....cdeeeeddc....",
+ "..cdeeeffeeddcb..",
+ ".cdeeefffeeeddcb.",
+ ".cdeeeeeeeedddcb.",
+ ".bcddeeeedddccba.",
+ ".abbbccccccbbbaa.",
+ "...aabbbbbbbaa...",
+]
+
+RING_STAND = [
+ ".....BCCCCCB.....",
+ "...BCDDDDDDDCB...",
+ "...ABCCCCCCCBA...",
+ ".....AAAAAAA.....",
+]
+WATER_POOL = [
+ "....EFFFE.....",
+ "..EFGGFFEED...",
+ ".DEFFGFFEEDD..",
+ "DEEFFFEEEDDD..",
+ ".DDEEEEDDDD...",
+ "...DDDDDD.....",
+]
+
+RAMPS['brownglaze7'] = ['#160e0a', '#24160f', '#352015', '#4a2c1c', '#623c25', '#7f5233', '#a06d47']
+
+
+def _jar(body, keys, top=0, left=0, after=(), pool=None):
+ """Stamp a jar grid, rim it, and pin the anchor under the jar's own foot
+ so a lid or stand set beside it does not move it on the ground."""
+ parts = [(body, (left, top)), *after]
+ w = max(at[0] + len(g[0]) for g, at in parts)
+ h = max(at[1] + len(g) for g, at in parts)
+ c = Canvas(w, h)
+ for g, at in parts: draw_grid(g, keys, c, at)
+ soft_outline(c, keys['0'], keys['2'])
+ im = c.image()
+ if pool:
+  under = draw_grid(pool[0], keys, Canvas(w, h), pool[1]).image()
+  under.alpha_composite(im); im = under
+ im.info['anchor'] = [left + len(body[0]) // 2 + 1, top + len(body) + 1]
  return im
+
+
+def _keys(v, body, second=None, third=None):
+ pick = lambda r: RAMPS[r[v % len(r)] if isinstance(r, list) else r] if r else None
+ return ramp_keys(pick(body), pick(second), pick(third))
+
+
+def water_jar(v=0, lid=True):
+ """A matka: round, short-necked, an incised ring on the shoulder, a saucer
+ or a cloth over the mouth."""
+ k = _keys(v, ['redearth7', 'terracotta7', 'buffclay7'], ['redearth7', 'brass7', 'linen7'], 'water')
+ if lid: return _jar(WATER_JAR, k, top=2, after=[(WATER_JAR_LID, (0, 0))])
+ return _jar(WATER_JAR, k, after=[(WATER_JAR_LID, (10, 12))])
+
+
+def water_jar_open(v=0): return water_jar(v, lid=False)
+
+
+def water_jar_fallen(v=0):
+ k = _keys(v, ['redearth7', 'terracotta7', 'buffclay7'], ['redearth7', 'brass7', 'linen7'], 'water')
+ return _jar(lay_down(WATER_JAR), k, left=5, after=[(WATER_JAR_LID, (16, 9))], pool=(WATER_POOL, (0, 8)))
+
+
+OLLA_RAMPS = ['redearth7', 'terracotta7', 'granite']
+
+
+def olla(v=0):
+ """Burnished earthenware with a flared rim, two lugs and a fire cloud."""
+ return _jar(OLLA, _keys(v, OLLA_RAMPS))
+
+
+def olla_fallen(v=0): return _jar(lay_down(OLLA), _keys(v, OLLA_RAMPS))
+
+
+ONGGI_RAMPS = (['brownglaze7', 'walnut7', 'brownglaze7'], ['brownglaze7', 'walnut7', 'terracotta7'])
+
+
+def onggi(v=0, lid=True):
+ """Dark-glazed and broad-shouldered, a finger-drawn spray through the glaze,
+ the lid an upturned bowl."""
+ k = _keys(v, *ONGGI_RAMPS)
+ if lid: return _jar(ONGGI, k, top=1, after=[(ONGGI_LID, (0, 0))])
+ return _jar(ONGGI, k, after=[(ONGGI_LID, (11, 15))])
+
+
+def onggi_open(v=0): return onggi(v, lid=False)
+
+
+EGYPT_RAMPS = (['buffclay7', 'redearth7', 'terracotta7'], None, 'sandstone')
+
+
+def egyptian_jar(v=0):
+ """Tall and ovoid, the mouth sealed with a cone of mud."""
+ return _jar(EGYPT_JAR, _keys(v, *EGYPT_RAMPS))
+
+
+def egyptian_jar_fallen(v=0): return _jar(lay_down(EGYPT_JAR), _keys(v, *EGYPT_RAMPS))
+
+
+CANAAN_RAMPS = (['buffclay7', 'terracotta7', 'redearth7'], None, 'oak7')
+
+
+def canaanite_jar(v=0):
+ """Carinated shoulder, two loop handles, a pointed foot that needs its ring."""
+ return _jar(CANAAN_JAR, _keys(v, *CANAAN_RAMPS), after=[(RING_STAND, (0, 16))])
+
+
+def canaanite_jar_fallen(v=0):
+ return _jar(lay_down(CANAAN_JAR), _keys(v, *CANAAN_RAMPS), after=[(RING_STAND, (12, 10))])
+
+
+MAJIAYAO_RAMPS = (['terracotta7', 'buffclay7', 'redearth7'], None, 'walnut7')
+
+
+def majiayao_jar(v=0):
+ """A low-bellied jar with lugs, painted in bands and waves on the upper half."""
+ return _jar(MAJIAYAO_JAR, _keys(v, *MAJIAYAO_RAMPS))
+
+
+def majiayao_jar_fallen(v=0): return _jar(lay_down(MAJIAYAO_JAR), _keys(v, *MAJIAYAO_RAMPS))
+
+
+def trade_jar(v=0):
+ """Glazed stoneware with four shoulder lugs; the glaze stops short of the foot."""
+ return _jar(TRADE_JAR, _keys(v, ['brownglaze7', 'greenglaze7', 'creamglaze7'], 'buffclay7'))
+
+
+URPU_RAMPS = (['terracotta7', 'redearth7', 'buffclay7'], 'linen7', 'walnut7')
+
+
+def urpu(v=0):
+ """An aryballos: flared neck, a nub on the shoulder, strap handles low down,
+ a painted diamond panel, the pointed foot in a ring."""
+ return _jar(URPU, _keys(v, *URPU_RAMPS), after=[(RING_STAND, (0, 17))])
+
+
+def urpu_fallen(v=0):
+ return _jar(lay_down(URPU), _keys(v, *URPU_RAMPS), after=[(RING_STAND, (13, 10))])
+
+
+CROCK_RAMPS = (['pewter7', 'creamglaze7', 'copper7'], ['pewter7', 'creamglaze7', 'copper7'], 'blueglaze7')
+
+
+def stoneware_crock(v=0, lid=True):
+ """Salt-glazed stoneware: straight walls, a rolled lip, a cobalt band."""
+ k = _keys(v, *CROCK_RAMPS)
+ if lid: return _jar(CROCK, k, top=2, after=[(CROCK_LID, (0, 0))])
+ return _jar(CROCK, k, after=[(CROCK_LID, (10, 12))])
+
+
+def stoneware_crock_open(v=0): return stoneware_crock(v, lid=False)

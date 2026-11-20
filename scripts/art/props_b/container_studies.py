@@ -4,23 +4,28 @@ import numpy as np
 from PIL import Image
 from art.voxel import Grid, render, SUN
 
+CONTAINER_STUDIES = [
+    ('waterskin', 'Sewn waterskin', 'West Asia / caravan and household use', 'Tied leather neck, seams and shoulder sling'),
+    ('bale', 'Bound merchant bale', 'Overland and maritime trading settings', 'Folded cloth casing, crossed hemp bindings'),
+    ('milkbag', 'Leather fermentation bag', 'Inner Eurasia / pastoral household', 'Broad hide body, wooden mouth and suspension loops'),
+    ('taru', 'Wooden taru', 'Japan / storage and transport', 'Straight staves, bamboo hoops and fitted lid'),
+    ('ricebale', 'Straw rice bale', 'Japan / agricultural storage and transport', 'End-on straw coils and lengthwise rope bindings'),
+    ('milkcontainer', 'Leather-capped milk container', 'East African pastoral traditions / Somali study', 'Tall woven body, leather cover and carrying strap'),
+    ('barkbox', 'Lidded birchbark box', 'North American woodlands / regional tradition', 'Folded bark, root stitching and bentwood rim'),
+    ('coolamon', 'Carved wooden coolamon', 'Australia / Western Desert study', 'Shallow hollowed timber, tool marks and worn lip'),
+]
+
 SECOND_CONTAINER_STUDIES = [
-    ('egyptjar','Sealed Egyptian storage jar','Pharaonic Egypt / household and stores','Tapering body, pale slip and substantial mud seal'),
-    ('canaanjar','Canaanite transport jar','Bronze Age eastern Mediterranean','Broad shoulders, paired handles and sealed mouth'),
-    ('majiayao','Painted Chinese storage jar','Majiayao tradition / late Neolithic','Rounded shoulders, low handles; interpreted painted bands'),
     ('grainhamper','Lidded coiled storage basket','West Africa / regional basketry study','Heavy coiled walls, fitted lid and reinforced foot'),
-    ('olla','Central Mexican storage olla','Mesoamerica / household earthenware','Broad mouth, rounded belly and small lifting handles'),
     ('andeansack','Andean woven storage sack','Andes / household and transport','Soft woven body, folded mouth and carrying ties'),
     ('parfleche','Folded rawhide parfleche','Historic Plains / geometric study','Overlapping flaps, fastening cords and painted panels'),
     ('pacificbasket','Plaited leaf carrying basket','Pacific islands / everyday basketry study','Folded corners, broad plaits and integrated handles'),
     ('grainbin','Raised woven grain bin','South / Southeast Asian agricultural settings','Reinforced woven body, timber feet and removable lid'),
-    ('stoneware','Lidded stoneware crock','Europe / early modern–industrial study','Thick rolled lip, lifting ears and restrained cobalt bands'),
     ('demijohn','Wicker-protected demijohn','Trade and households / eighteenth–twentieth century','Exposed green glass, fitted wicker jacket and cork'),
 ]
 
 
 def historical_containers():
-    from .vessels import CONTAINER_STUDIES
     sprites={f'nature-container-{kind}': container_study(kind) for kind,*_ in CONTAINER_STUDIES+SECOND_CONTAINER_STUDIES}
     for im in sprites.values():im.info['shadowAnchor']=im.info['anchor']
     return sprites
@@ -120,14 +125,6 @@ def container_model(kind):
         tube([(-19,0,11),(-18,-10.7,11),(18,-10.7,11),(19,0,11),(18,10.7,11),(-18,10.7,11),(-19,0,11)],.8,rope)
         ball((-10,-11,11),(1.3,1,1.2),rope)
         tube([(-10,-11,11),(-6,-11,8),(-4,-10.8,9),(-6,-10.6,11)],.5,rope)
-    elif kind=='matka':
-        ring(2,7.8,7.8,1.3,rope)
-        lathe([(3,5),(5,8),(9,11),(14,12.6),(19,12),(23,9),(26,5),(28,4.5)],clay,texture=ceramic,smooth=True)
-        lathe([(27.5,4.5),(28.5,5.4),(29.5,5)],clay)
-        ball((0,0,29.5),(5.6,5.6,1.5),cloth,
-             lambda x,y,z:np.where(np.sin(np.arctan2(y,x)*5)>.6,-.55,0))
-        tube([(3,-3,29),(4,-4,26),(3,-5,24)],.9,cloth)
-        ring(28.4,5,5,.4,rope)
     elif kind=='milkbag':
         box((0,0,13),(12,5.5,12),3.8,hide,
             lambda x,y,z:np.where((np.abs(x)>8)&(z<18),-.45,np.where((np.abs(x)<6)&(z>5)&(z<10),.18,0)))
@@ -139,14 +136,6 @@ def container_model(kind):
         for x in [-9,9]:
             for z in [5,8,11,14,17]:tube([(x-.8,-5.6,z),(x+.8,-5.7,z+.4)],.35,cloth)
         ring(27,3,2.4,.6,rope)
-    elif kind=='onggi':
-        lathe([(1,7),(2,9),(7,12),(15,14.2),(22,13.7),(28,11),(30,8.8)],glaze,
-              texture=lambda x,y,z:np.where((z%8<.45)&(z>5),-.35,0),smooth=True)
-        lathe([(29,9),(31,10),(32,9.6)],glaze)
-        lathe([(32,13),(33,13.5),(35,11),(36,8),(36.7,3)],glaze)
-        lathe([(36,2.4),(38,2.2),(39,1)],glaze)
-        # Slightly raised turning ridges remain elliptical all the way around.
-        ring(10,13.1,13.1,.28,glaze);ring(22,13.5,13.5,.28,glaze)
     elif kind=='taru':
         lathe([(1,12),(3,13),(24,13),(25,12.6)],wood,
               texture=lambda x,y,z:np.where(((np.arctan2(y,x)+math.pi)*16/math.tau)%1<.14,-1.5,woodgrain(x,y,z)*.5))
@@ -172,15 +161,6 @@ def container_model(kind):
         tube([(-10.6,-12.7,11),(0,-13.1,11),(10.6,-12.7,11)],.7,cloth)
         tube([(0,-12.7,.8),(0,-13.1,11),(0,-12.7,21.2)],.7,cloth)
         ball((0,-13.4,11),(1,1,1),rope)
-    elif kind=='tradejar':
-        lathe([(1,6),(3,8),(10,12),(20,14),(29,12),(35,7),(38,4.5),(40,5)],olive,texture=ceramic,smooth=True)
-        ring(39.5,5.2,5.2,.6,olive)
-        lathe([(39.5,3.9),(42,3.6)],wood,
-              texture=lambda x,y,z:np.where(x%3<.5,-.8,0))
-        for a in [math.pi/4,math.pi*.75,math.pi*1.25,math.pi*1.75]:
-            pts=[(r*math.cos(a),r*math.sin(a),z) for r,z in [(10.8,31),(13.3,32),(14,29),(12.5,27)]]
-            tube(pts,1.1,olive)
-        ring(28.5,12.6,12.6,.3,olive)
     elif kind=='milkcontainer':
         lathe([(1,3),(3,5.5),(9,7.4),(19,7.2),(26,5.4),(30,4)],rope,sy=.85,texture=weave,smooth=True)
         lathe([(28,4.5),(29,6),(33,5.7),(36,3.7),(37,2.5)],hide,sy=.85)
@@ -188,21 +168,6 @@ def container_model(kind):
         ring(29,5.8,5,.55,hide)
         tube([(4,0,34),(9,0,32),(11,-1,23),(11,-2,9),(6,-2,3)],.8,hide)
         tube([(-3,-4.5,27),(-5,-5.6,20),(-5,-5.6,9),(-3,-4.7,4)],.55,hide)
-    elif kind=='urpu':
-        def deco(x,y,z):
-            a=np.arctan2(y,x)
-            panel=(y<0)&(np.abs(x)<6.5)&(z>9)&(z<28)
-            bands=(np.abs(z-12)<.6)|(np.abs(z-25)<.6)
-            zig=(np.abs((z-16)-np.abs((x+5)%5-2.5))<.55)&(z<20)
-            bars=(np.abs(x)<.7)&(z>20)
-            return np.where(panel & (bands|zig|bars),-2,np.where(panel,.6,0))
-        lathe([(1,.6),(5,4),(11,8),(18,11),(24,10),(28,7),(32,3),(40,2.5),(43,5.8)],clay,texture=deco,smooth=True)
-        ring(42.7,5.8,5.8,.5,clay)
-        lathe([(41.8,3.7),(43.3,3.7)],paint,hollow=(3.3,40))
-        for sign in [-1,1]:
-            tube([(sign*9,0,23),(sign*13,0,22),(sign*13,0,17),(sign*9,0,15)],.9,clay)
-        ball((0,-5.5,30),(1.4,1.4,1.5),clay)
-        ring(3,4.3,4.3,.9,rope)
     elif kind=='barkbox':
         lathe([(1,12),(3,14),(17,15)],bark,sy=.65,
               texture=lambda x,y,z:np.where(((z+np.floor(x/4)*3)%7<.8)&(np.sin(x*.6)>.1),-1.5,0))
@@ -221,25 +186,6 @@ def container_model(kind):
             return np.maximum(np.maximum(outer,-inner),z-5.5)
         add(bowl,wood,lambda x,y,z:np.where(z<4.5,-1.4,0)+np.where(((x+y*.35)%5<.55)&(z<4),-.8,0))
         ring(5.5,20.6,11.8,.65,wood)
-    elif kind=='egyptjar':
-        ring(1.5,3.6,3.6,1.2,rope)
-        lathe([(1,1.5),(5,4),(12,7),(23,8.8),(30,7.3),(34,4),(37,3.2)],buff,smooth=True,texture=ceramic)
-        lathe([(36,3.5),(38,4),(39,3.5)],clay)
-        lathe([(38,4.3),(41,4.7),(43,3.8),(44,2.8)],hide,sy=.9,smooth=True)
-        tube([(-2,-3.7,42),(-1,-4,40),(1,-4,39)],.35,buff)
-    elif kind=='canaanjar':
-        ring(1.5,3.8,3.8,1.2,rope)
-        lathe([(1,1.8),(5,4.5),(14,8),(24,11.5),(28,12),(32,8.5),(34,4),(37,3.8)],buff,smooth=True,texture=ceramic)
-        for s in [-1,1]:
-            tube([(s*8.5,0,31),(s*13,0,32),(s*14,0,28),(s*12,0,24)],1.1,buff)
-        lathe([(36,4),(38,4.5),(39,4.2)],clay)
-        lathe([(38,3.4),(40,3.5),(41,2.5)],hide,smooth=True)
-    elif kind=='majiayao':
-        lathe([(1,5),(3,7.5),(10,12),(18,14.3),(25,12.7),(29,8),(31,5),(34,4.5)],buff,
-              hollow=(3.3,27),smooth=True)
-        ring(33.7,4.7,4.7,.7,clay)
-        for s in [-1,1]:
-            tube([(s*10,0,9),(s*14,0,10),(s*14.5,0,13),(s*12.5,0,15)],1,buff)
     elif kind=='grainhamper':
         prof=[(2,8),(4,11),(12,13),(23,14),(29,13.5)]
         lathe(prof,rope,smooth=True,texture=weave)
@@ -250,12 +196,6 @@ def container_model(kind):
         lathe([(29.5,14.5),(30.5,15),(32,13),(35,8),(36,3)],rope,
               texture=lambda x,y,z:np.where(np.hypot(x,y)%2.3<.5,-.8,0))
         tube([(-2,0,35.5),(-2,0,38),(2,0,38),(2,0,35.5)],.65,rope)
-    elif kind=='olla':
-        lathe([(1,5),(3,8),(9,12),(17,13.6),(23,11.5),(26,8.2),(29,8.5)],clay,
-              hollow=(7,20),texture=ceramic,smooth=True)
-        ring(28.5,8.7,8.7,.9,clay)
-        for s in [-1,1]:
-            tube([(s*10,0,23),(s*13.5,0,26),(s*15,0,23),(s*12.5,0,20)],.9,clay)
     elif kind=='andeansack':
         def sack(x,y,z):
             rx=np.interp(z,[1,4,12,18,25],[6,12,15,14.5,12])
@@ -303,13 +243,6 @@ def container_model(kind):
         lathe([(32,15),(33,16),(36,13),(41,5),(42.5,1)],rope,
               texture=lambda x,y,z:np.where((np.arctan2(y,x)*18/math.pi)%1<.2,-.8,0))
         ring(33,16,16,.7,rope)
-    elif kind=='stoneware':
-        lathe([(1,7),(3,9),(16,10.5),(22,9),(23,9.5)],stoneware,smooth=True)
-        ring(23,10,10,.9,stoneware)
-        lathe([(24,10.3),(25,11),(27,8),(28,3)],stoneware)
-        lathe([(27.5,2),(30,2),(31,1)],stoneware)
-        for s in [-1,1]:
-            tube([(s*9.5,0,19),(s*13,0,20),(s*13,0,17),(s*10,0,16)],.9,stoneware)
     elif kind=='demijohn':
         lathe([(1,5),(3,9),(10,12),(17,11),(22,7),(26,2.5),(32,2)],glass,smooth=True)
         lathe([(1,6),(4,10),(10,12.6),(16,12),(19,10)],rope,smooth=True,texture=weave)
@@ -333,20 +266,7 @@ def container_study(kind,voxel=False):
             best=np.minimum(best,v);ids=np.where(sel,i,ids)
         return (best,ids) if materials else best
     def painted_material(x,y,z,mat):
-        if kind=='urpu':
-            panel=(mat==5)&(y<-2)&(np.abs(x)<5.8)&(z>10)&(z<27)
-            border=(np.abs(z-12)<.6)|(np.abs(z-25)<.6)
-            triangles=(np.abs(z-17-np.abs((x+5)%5-2.5))<.7)
-            bars=(np.abs(np.abs(x)-1.7)<.5)&(z>20)
-            mat=np.where(panel,2,mat)
-            mat=np.where(panel&(border|triangles|bars),9,mat)
-        elif kind=='majiayao':
-            band=(mat==10)&(z>17)&(z<29)
-            u=(np.arctan2(y,x)+math.pi)*4/math.pi
-            wave=np.abs(z-(23+2.4*np.sin(u*math.pi)))<.85
-            rims=(np.abs(z-18.5)<.6)|(np.abs(z-28)<.6)
-            mat=np.where(band&(wave|rims),6,mat)
-        elif kind=='grainhamper':
+        if kind=='grainhamper':
             mat=np.where((mat==3)&(((z>23)&(z<24))|((z>26)&(z<27))),1,mat)
         elif kind=='andeansack':
             woven=(mat==2)&(z>4)&(z<24)
@@ -358,8 +278,6 @@ def container_study(kind,voxel=False):
             triangle=(np.abs(z-13)<(np.abs(x)-4)*.65)
             mat=np.where(panel&triangle,np.where(z>13,13,9),mat)
             mat=np.where(panel&edge,6,mat)
-        elif kind=='stoneware':
-            mat=np.where((mat==14)&(((z>7)&(z<8.2))|((z>20)&(z<21))),13,mat)
         return mat
     W,H,cx,base=72,72,36,58
     if voxel:
@@ -414,23 +332,15 @@ def container_study(kind,voxel=False):
             sel=ii==i;value=v[sel].copy()
             if tex:value+=tex(x[sel],y[sel],z[sel])
             if mat==6:value-=.65
-            if kind in ['onggi','tradejar'] and mat in [6,7]:
-                sheen=(n[sel,0]<-.3)&(n[sel,0]>-.6)&(n[sel,2]>.0)&~shadow[sel]
-                value+=sheen*.6
             if kind=='demijohn' and mat==11:
                 value-=1.5
                 value+=((n[sel,0]<-.25)&(n[sel,0]>-.7)&~shadow[sel])*.9
-            if kind=='olla' and mat==5:
-                value-=((np.hypot(x[sel],y[sel])<7.4)&(z[sel]>19.5))*2.5
-            if kind=='majiayao' and mat==10:
-                value-=((np.hypot(x[sel],y[sel])<3.6)&(z[sel]>26.5))*2.5
             if kind=='pacificbasket' and mat==3:
                 value-=((y[sel]>0)&(z[sel]<24))*1.8
             painted=painted_material(x[sel],y[sel],z[sel],np.full(sel.sum(),mat))
             for chosen in np.unique(painted):
                 sub=painted==chosen
                 level=value.copy()
-                if kind=='majiayao' and chosen==6:level-=2
                 if kind=='parfleche' and chosen in [6,9,13]:level-=1.2
                 pixels=np.array(palettes[chosen])[np.clip(np.rint(level),1,7).astype(int)]
                 target=np.flatnonzero(sel)[sub]
@@ -471,18 +381,6 @@ def container_study(kind,voxel=False):
                 y=-.65*math.sqrt(14**2-x*x)-.3
                 stroke([(x,y,z),(x+length,y,z)],8,2)
                 stroke([(x,y,z+.7),(x+length-1,y,z+.7)],8,5)
-        elif kind=='onggi':
-            stroke([(-6,-10.4,26),(-7,-11,24),(-7,-11.4,22)],6,6)
-            stroke([(-8,-11.2,19),(-8,-11.2,17)],6,5)
-        elif kind=='urpu':
-            for z in [12,24]:
-                rad=np.interp(z,[11,18,24],[8,11,10])
-                stroke([(x,-math.sqrt(rad*rad-x*x)-.3,z) for x in np.linspace(-5,5,12)],9,2)
-            for x in [-2,2]:
-                stroke([(x,-math.sqrt(10*10-x*x)-.3,z) for z in [21,22,23]],9,2)
-        elif kind=='egyptjar':
-            stroke([(-2,-3.8,42),(-1,-4,40),(1,-4,39)],1,2)
-            stroke([(-4,-6,29),(-5,-6.5,27)],10,6)
         elif kind=='andeansack':
             for s in [-1,1]:
                 for z in [6,10,14,18,22]:
@@ -492,9 +390,6 @@ def container_study(kind,voxel=False):
             stroke([(0,-6.7,8),(0,-6.7,19)],1,2)
             for z in [8,19]:
                 stroke([(-2,-6.5,z),(0,-6.8,z+1),(2,-6.5,z)],3,6)
-        elif kind=='stoneware':
-            stroke([(-6,-8,20),(-7,-8.3,17),(-7,-8.3,15)],14,6)
-            stroke([(-7,-8,12),(-7,-8,10)],14,5)
         elif kind=='demijohn':
             stroke([(-1,-2.1,31),(-1,-2.2,27),(-3,-4,24),(-5,-5.5,23)],11,7)
             stroke([(-7,-7,21),(-8,-7,20)],11,6)

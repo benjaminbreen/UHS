@@ -173,7 +173,8 @@ The worst props are listed, worst first, in
 formula drew them: voxel and SDF smear, one bleached palette, no top, a size
 taken from a bounding box. The redraw puts each pixel down on purpose, while
 keeping the houses' view. The dustbin and the kerosene tin in
-`props_b/industrial.py` are the worked examples.
+`props_b/industrial.py`, and the regional jars at the end of
+`props_b/vessels.py`, are the worked examples.
 
 1. **Size it.** Real height against the 40px figure (about 23px a metre),
    then enlarge for presence: about 1.6x for something waist-high, more for
@@ -194,7 +195,9 @@ keeping the houses' view. The dustbin and the kerosene tin in
 5. **Draw what interacting does.** Give each state its own sprite: `open`
    (lid off, the lid set down beside it), `dented` (bite the silhouette with
    `x` in an overlay grid so it reads at 1x), `fallen`. Overlays are grids
-   stamped at a fixed offset with `draw_grid(rows, keys, c, at)`. Register
+   stamped at a fixed offset with `draw_grid(rows, keys, c, at)`. A round
+   thing knocked over is `lay_down(rows)`: the grid transposed, which keeps
+   the light upper left and turns the mouth to face you. Register
    them in `STATES`; the engine flags behind them are in
    [PROPS.md](PROPS.md#knocked-over-opened-dented).
 6. **Compare.** `review <family> --states` puts the shipped sprite, the new
