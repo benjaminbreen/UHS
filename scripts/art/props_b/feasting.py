@@ -278,45 +278,69 @@ def wrestling_ring(v=0):
  sunk in a raised clay floor. 2: an akhara's dug pit of red earth. 3: a rope
  on stakes round trodden grass, for oil wrestling and anywhere else.
  """
+ from math import cos, sin, pi
  W, H = 86, 50
  c = Canvas(W, H)
- cx, cy, rx, ry = W / 2, 24, 40, 21
+ cx, cy, rx, ry = W / 2, 23, 40, 20
  sand, clay, red, straw = RAMPS['sandstone'], RAMPS['buffclay7'], RAMPS['redearth7'], RAMPS['straw']
  if v == 1:
-  # The clay floor, its top seen from above and its front face standing square on.
-  for y in range(2, 43): c.hline(2, W - 3, y, clay[6] if y < 4 else clay[5])
-  for y in range(43, 49): c.hline(2, W - 3, y, clay[3] if y < 46 else clay[2])
-  for y in range(2, 43):
+  top, face = 3, 40                                  # the clay floor: top from above, front square on
+  c.rect(2, top, W - 3, face, clay[5]); c.hline(2, W - 3, top, clay[6])
+  c.rect(2, face + 1, W - 3, face + 6, clay[3]); c.hline(2, W - 3, face + 1, clay[4]); c.hline(2, W - 3, face + 6, clay[2])
+  for x in range(3, W - 3, 9): c.vline(x + jitter(x) % 3, face + 2, face + 5, clay[2])
+  for y in range(top, face + 1):
    for x in range(2, W - 2):
-    r = _ring(cx, 22, 30, 15, x, y)
-    if 0.78 < r <= 1.14:
-     seam = int((x - cx) * 0.6) % 6 == 0
-     c.set(x, y, straw[3] if seam or r > 1.04 else straw[6] if y < 20 else straw[5])
-    elif r <= 0.78: c.set(x, y, clay[6])
-  for x in (cx - 5, cx + 4): c.vline(x, 20, 23, '#f4f2ea')     # the two start lines
-  c.rim(clay)
+    r = _ring(cx, 22, 31, 15.5, x, y)
+    if r <= 0.8: c.set(x, y, '#e6dcc0' if r < 0.74 else '#d4c8a4')
+    elif r <= 1.08:
+     a = (pi + __import__('math').atan2((y + .5 - 22) / 15.5, (x + .5 - cx) / 31)) / (2 * pi)
+     gap = int(a * 20) != int((a + .012) * 20)
+     c.set(x, y, straw[2] if gap else straw[6] if r < 0.88 else straw[5] if r < 0.98 else straw[3])
+  for x in (cx - 5, cx + 4): c.vline(x, 20, 23, '#fbf8ee')
+  soft_outline(c, clay[1], clay[3])
   return c.image()
  if v == 3:
-  w, rope = RAMPS['ash7'], RAMPS['rope']
-  from math import cos, sin, pi
-  stakes = [(round(cx + rx * cos(a)), round(cy + ry * sin(a))) for a in [i * 2 * pi / 10 for i in range(10)]]
-  for i, (x, y) in enumerate(stakes):
-   nx, ny = stakes[(i + 1) % 10]
-   c.line((x, y - 7), (nx, ny - 7), rope[1]); c.line((x, y - 6), (nx, ny - 6), rope[3])
+  turf, wood, rope = RAMPS['buffclay7'], RAMPS['ash7'], RAMPS['rope']
+  for y in range(H):
+   for x in range(W):
+    r = _ring(cx, cy + 4, rx - 4, ry - 3, x, y)
+    if r <= 1: c.set(x, y, turf[5] if r < 0.55 else turf[4] if r < 0.85 or jitter(x, y) % 3 else turf[3])
+  stakes = sorted([(round(cx + rx * cos(a)), round(cy + 3 + ry * sin(a))) for a in [i * 2 * pi / 12 for i in range(12)]],
+                  key=lambda p: p[1])
+  ring = [(round(cx + rx * cos(a)), round(cy + 3 + ry * sin(a))) for a in [i * 2 * pi / 12 for i in range(12)]]
+  def post(x, y):
+   c.rect(x, y - 9, x + 1, y, wood[4]); c.vline(x, y - 9, y, wood[5]); c.set(x + 1, y - 9, wood[6]); c.set(x, y - 9, wood[6])
+   c.set(x, y + 1, wood[1]); c.set(x + 1, y + 1, wood[1])
   for x, y in stakes:
-   c.rect(x, y - 9, x + 1, y, w[5]); c.vline(x + 2, y - 9, y, w[2]); c.set(x, y - 10, w[6])
+   if y < cy + 3: post(x, y)
+  for i, (x, y) in enumerate(ring):                  # the rope sags between stakes
+   nx, ny = ring[(i + 1) % 12]
+   n = max(abs(nx - x), abs(ny - y), 1)
+   for k in range(n + 1):
+    t = k / n
+    px, py = round(x + (nx - x) * t), round(y - 8 + (ny - y) * t + 2 * sin(pi * t))
+    c.set(px, py, rope[3] if py < cy else rope[2]); c.set(px, py + 1, rope[0])
+  for x, y in stakes:
+   if y >= cy + 3: post(x, y)
   return c.image()
  base = sand if v == 0 else red
  for y in range(H):
   for x in range(W):
    r = _ring(cx, cy, rx, ry, x, y)
-   if r > 1.0: continue
-   if r > 0.86: c.set(x, y, base[3] if y > cy else base[5])      # the raised lip
-   elif v == 2 and _ring(cx, cy + 4, rx * 0.92, ry * 0.9, x, y) > 1: c.set(x, y, base[3])   # the dug pit's far wall in shadow
-   else: c.set(x, y, base[5] if v == 2 else base[6])
- for x0, y0 in ((cx - 20, cy - 6), (cx + 13, cy + 5)):   # scuffs where feet have dug in
-  c.hline(x0, x0 + 4, y0, base[4]); c.hline(x0 + 1, x0 + 3, y0 + 1, base[4])
- c.rim(base)
+   below = _ring(cx, cy - 3, rx, ry, x, y) <= 1 and y > cy
+   if r > 1 and not below: continue
+   if r > 1: c.set(x, y, base[3] if _ring(cx, cy - 1.5, rx, ry, x, y) <= 1 else base[2])   # the lip's front face
+   elif r > 0.84: c.set(x, y, base[6] if y < cy + 4 else base[4] if r > 0.93 else base[5])   # the heaped lip
+   elif v == 2 and _ring(cx, cy + 5, rx * 0.84, ry * 0.8, x, y) > 1: c.set(x, y, base[3] if y < cy - 8 else base[4])   # the pit's far wall
+   else: c.set(x, y, base[5] if v == 0 else base[4])
+ for k, rr in enumerate((0.28, 0.5, 0.7)):           # rake lines, or the turned earth of the pit
+  for i in range(int(260 * rr)):
+   a = i / (260 * rr) * 2 * pi
+   x, y = cx + cos(a) * rx * rr, cy + (3 if v == 2 else 0) + sin(a) * ry * rr * (0.8 if v == 2 else 1)
+   if (i + 5 * k) % 14 < 10: c.set(int(x), int(y), base[4] if v == 0 else base[3])
+ for x0, y0 in ((cx - 18, cy - 4), (cx + 12, cy + 6)):   # scuffs where feet have dug in
+  c.hline(x0, x0 + 3, y0, base[3]); c.hline(x0 + 1, x0 + 2, y0 + 1, base[4])
+ soft_outline(c, base[1], base[3])
  return c.image()
 
 

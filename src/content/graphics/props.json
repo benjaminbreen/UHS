@@ -3689,22 +3689,6 @@
       "variants": ["Iron urn", "Versailles box", "Concrete trough", "Stone urn", "Orange tree", "Oleander", "Pedestal vase", "Pine in glazed jar", "Hydrangea tub", "Dragon jar"]
     },
     {
-      "id": "tree-grate",
-      "name": "Tree grate",
-      "group": "Street furniture",
-      "size": [30, 11],
-      "description": "A cast-iron grate of concentric rings round a street tree.",
-      "variants": ["Iron"]
-    },
-    {
-      "id": "gully-grate",
-      "name": "Gully grate",
-      "group": "Street furniture",
-      "size": [18, 7],
-      "description": "A kerbside drain grate in a granite surround.",
-      "variants": ["Iron"]
-    },
-    {
       "id": "news-kiosk",
       "name": "Newspaper kiosk",
       "group": "Street furniture",
@@ -3795,7 +3779,7 @@
     {"id": "bike-rack", "name": "Bicycle rack", "group": "Street furniture", "size": [48, 20], "description": "A row of steel hoops for locking bicycles to.", "variants": ["Empty", "With bicycles"]},
     {"id": "utility-cabinet", "name": "Utility cabinet", "group": "Street furniture", "size": [18, 21], "description": "The boxes the power and telephone companies leave on the street.", "variants": ["Pad transformer", "Telephone cabinet", "Distribution box"]},
     {"id": "wheelie-bin", "name": "Wheeled bin", "group": "Street furniture", "size": [19, 32], "description": "A household's wheeled rubbish bin.", "variants": ["Green", "Black", "Blue", "Brown"]},
-    {"id": "kerb-rubbish", "name": "Rubbish for collection", "group": "Street furniture", "size": [20, 13], "description": "What is put out at the kerb on collection day.", "variants": ["Black sacks", "Netted bags", "Tied cartons"]},
+    {"id": "kerb-rubbish", "name": "Rubbish for collection", "group": "Street furniture", "size": [23, 15], "description": "What is put out at the kerb on collection day.", "variants": ["Black sacks", "Netted bags", "Tied cartons"]},
     {"id": "pavement-board", "name": "Pavement board", "group": "Street furniture", "size": [12, 18], "description": "A shop's folding board stood out on the pavement.", "variants": ["Chalkboard", "White", "Yellow"]},
     {"id": "driveway-hoop", "name": "Basketball hoop", "group": "Street furniture", "size": [17, 48], "description": "A basketball hoop on a pole beside the drive.", "variants": ["Hoop"]},
     {"id": "pump-island", "name": "Pump island", "group": "Street furniture", "size": [66, 58], "description": "Petrol pumps on their island, bare or under the station's canopy.", "variants": ["Globe pumps", "Red canopy", "Blue canopy", "Green canopy"]},

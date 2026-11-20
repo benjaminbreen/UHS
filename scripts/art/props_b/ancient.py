@@ -90,19 +90,23 @@ def seat_stone(v=0):
 
 
 def seat_mat(v=0):
- """A pandanus mat laid on the ground, seen from above."""
- c = Canvas(24, 12)
- ramps = [['#6a5a36', '#8c7a4c', '#ad9a66', '#c9b884'],
-          ['#5e4a2a', '#826a3e', '#a58b56', '#c2ab76'],
-          ['#6a5a36', '#8c7a4c', '#ad9a66', '#c9b884']]
- r = ramps[v]
- for y in range(2, 11):
-  for x in range(1, 23):
-   k = (x + y) % 4 == 0 or (x - y) % 4 == 0
-   c.set(x, y, r[3] if k else r[2] if (x + y) % 2 else r[1])
- if v == 2:                                           # a dyed band
-  for x in range(1, 23): c.set(x, 5, '#7b3a26'); c.set(x, 7, '#7b3a26')
- c.hline(1, 22, 10, r[0]); c.vline(22, 2, 10, r[0])
+ """A pandanus mat laid on the ground, seen from above: plaited on the
+ diagonal, its edge bound and turned under, a dyed band on the third."""
+ c = Canvas(26, 11)
+ r = [['#5a4a2a', '#7a6a40', '#9c8a58', '#bba970', '#d4c48c'],
+      ['#4e3c22', '#6e5634', '#8e744a', '#ab9062', '#c4ab7c'],
+      ['#5a4a2a', '#7a6a40', '#9c8a58', '#bba970', '#d4c48c']][v]
+ for y in range(1, 10):
+  for x in range(1, 25):
+   strand = ((x + y) // 2) % 2 ^ ((x - y) // 4) % 2
+   c.set(x, y, r[3] if strand else r[2])
+   if strand and (x + y) % 2 == 0: c.set(x, y, r[4])
+ if v == 2:
+  for y in (4, 6):
+   for x in range(1, 25): c.set(x, y, '#8a3a24' if (x + y) % 2 else '#a85030')
+ c.hline(1, 24, 1, r[4]); c.vline(1, 1, 9, r[4])                    # the bound edge
+ c.hline(1, 24, 9, r[1]); c.vline(24, 1, 9, r[1])
+ soft_outline(c, r[0], r[2])
  return c.image()
 
 

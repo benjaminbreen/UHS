@@ -6,7 +6,7 @@ not the same rack.
 """
 from random import Random
 
-from .core import Canvas, revolve, belly
+from .core import Canvas, RAMPS, revolve, belly, soft_outline
 from .solid import disc
 
 W = ['#5a3420', '#7d4a28', '#a26a38', '#c68e50', '#e6b872']       # warm timber
@@ -698,29 +698,52 @@ def trip_hammer(v=0):
  return c.image()
 
 
+KNAP_HIDE = [(6, 8, 25, 27), (5, 9, 24, 28), (6, 28), (4, 30), (3, 31), (2, 31), (0, 32), (0, 33), (0, 32),
+             (2, 31), (3, 31), (4, 30), (6, 28), (5, 9, 24, 28), (6, 8, 25, 27)]
+SCRAPED = ['#2f261c', '#5e5040', '#83745c', '#a09078', '#b8a98e', '#cabda2', '#dcd0b6']
+KNAP_CORE = [
+ "..dc...",
+ ".dcbc..",
+ "dccbbc.",
+ "cdcbbba",
+ "ccbcbba",
+ ".cbbba.",
+ "..aaa..",
+]
+
+
 def knapping_floor(v=0):
- """0 flint, 1 obsidian, 2 chert, on a hide; the scatter is seeded."""
- R = rnd(v, 19)
+ """0 flint, 1 obsidian, 2 chert, knapped on a scraped hide: the core, a
+ hammerstone, an antler billet, and flakes on the hide and off it."""
  t = [['#343a48', '#56607a', '#8a94a8', '#c4cad4'], ['#141420', '#2a2a3c', '#5a5a78', '#d8dcf0'], ['#6a3e2e', '#9a6044', '#c48a64', '#e6c09c']][v % 3]
+ h = SCRAPED
  c = Canvas(38, 22)
- for y in range(5, 21):
-  a = 3 if y in (5, 20) else 1 if y in (6, 19) else 0
-  for x in range(1 + a, 37 - a): c.set(x, y, HIDE[3] if y < 8 else HIDE[2] if y < 18 else HIDE[1])
- for x in range(3, 35, 3): c.set(x + R.randint(0, 1), R.randint(9, 17), HIDE[1])
- cx = R.randint(10, 16)
- for y, (a, b) in {4: (2, 5), 5: (1, 7), 6: (0, 8), 7: (0, 8), 8: (0, 9), 9: (0, 9), 10: (1, 9), 11: (2, 8), 12: (3, 6)}.items():
-  for x in range(cx + a, cx + b + 1): c.set(x, y, t[2] if x - cx < 4 and y < 8 else t[1] if x - cx < 6 else t[0])
- c.hline(cx + 2, cx + 4, 4, t[3]); c.line((cx + 4, 5), (cx + 3, 11), t[0]); c.line((cx + 6, 6), (cx + 7, 10), t[1]); c.set(cx + 2, 6, t[3])
- hx = cx + R.choice([-8, 13, 15])
- disc(c, hx, 11, 3, 2.4, STONE[2]); disc(c, hx - .6, 10.4, 1.6, 1.2, STONE[3]); c.hline(hx - 2, hx + 1, 13, STONE[0])
- ink(c)
- for _ in range(R.randint(7, 12)):
-  x, y = R.randint(4, 33), R.randint(12, 18)
-  c.set(x, y, t[2]); c.set(x + 1, y, t[1]); c.set(x, y - 1, t[3]) if R.random() < .4 else None
- bx = R.randint(22, 28)
- for i in range(6): c.set(bx + i, 16 - i // 2, t[3] if i < 4 else t[2]); c.set(bx + i, 17 - i // 2, t[0])
- if R.random() < .6:
-  ax = R.randint(5, 10); c.line((ax, 18), (ax + 6, 15), BONE[2]); c.line((ax, 19), (ax + 6, 16), BONE[0]); c.set(ax + 3, 15, BONE[2])
+ top = 4
+ for y, spans in enumerate(KNAP_HIDE):
+  for a0, a1 in zip(spans[::2], spans[1::2]):
+   for x in range(a0 + 1, a1 + 2):
+    edge = y in (0, 1, 13, 14) or x in (a0 + 1, a1 + 1)
+    tone = 6 if 2 <= y <= 3 else 4 if y >= 12 else 5
+    if edge: tone = 5 if y < 7 else 3
+    if not edge and (x * 7 + y * 3) % 23 == 0: tone = 4
+    c.set(x, top + y, h[tone])
+ for x, y in ((7, 0), (26, 0), (7, 14), (26, 14), (1, 7), (34, 7)): c.set(x + 1, top + y, h[2])   # the pegs
+ keys = {'a': t[0], 'b': t[1], 'c': t[2], 'd': t[3]}
+ cx = (11, 14, 9)[v]
+ for y, row in enumerate(KNAP_CORE):
+  for x, ch in enumerate(row):
+   if ch != '.': c.set(cx + x, y + 2, keys[ch])
+ hx = (24, 7, 23)[v]
+ for y, row in enumerate([".3443.", "345554", "344443", ".2332."]):
+  for x, ch in enumerate(row):
+   if ch != '.': c.set(hx + x, top + 4 + y, RAMPS['granite'][int(ch)])
+ bx = (4, 21, 15)[v]
+ for i in range(7): c.set(bx + i, top + 10 - (i + 1) // 3, BONE[2] if i < 5 else BONE[3]); c.set(bx + i, top + 11 - (i + 1) // 3, BONE[0])
+ c.set(bx + 6, top + 7, BONE[2])
+ flakes = [(20, 8), (17, 10), (27, 9), (8, 9), (14, 12), (30, 7), (22, 12), (35, 15), (2, 17), (11, 18)]
+ for i, (x, y) in enumerate(flakes[v:v + 8]):
+  c.set(x, top + y - 4, t[3] if i % 2 else t[2]); c.set(x + 1, top + y - 4, t[1])
+ soft_outline(c, h[1], h[3])
  return c.image()
 
 

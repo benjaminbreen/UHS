@@ -6,7 +6,7 @@ things as much as by its buildings.
 Sizes follow PROP_ART.md: a metre is about 17 px, and small things are drawn
 a little over life so they carry their own detail.
 """
-from .core import Canvas, RAMPS, soft_outline
+from .core import Canvas, RAMPS, soft_outline, draw_grid, ramp_keys
 
 RED = ['#2a0a0a', '#4a1010', '#7a1a17', '#a82620', '#c93a2e', '#e25a48', '#f08a76']
 BLUE = RAMPS['paintblue7']
@@ -446,34 +446,42 @@ def utility_cabinet(v=0, doors=False):
 def utility_cabinet_open(v=0): return utility_cabinet(v, doors=True)
 
 
+SACK = ['#0c0d10', '#16181d', '#22252c', '#2e323b', '#3e434e', '#59606e', '#8a93a4']
+BIN_BAG = [
+ "...4.5....",
+ "....45....",
+ "...4554...",
+ "..456654..",
+ ".45666543.",
+ "4566655432",
+ "4565554432",
+ "4555544321",
+ ".44443321.",
+]
+
+
 def rubbish(v=0):
- """Rubbish at the kerb on collection day: v0 black sacks, v1 the pale bags
- of a Japanese street under their crow net, v2 flattened cartons tied in a
- bundle."""
- c = Canvas(18, 11)
+ """Rubbish at the kerb on collection day: v0 black sacks tied at the neck,
+ v1 the pale bags of a Japanese street under their crow net, v2 flattened
+ cartons tied in a bundle."""
  if v == 2:
+  c = Canvas(18, 11)
   for i, y in enumerate((8, 6, 4)):
    c.rect(2 + i, y, 15 - i, y + 1, BROWN[5 - i]); c.hline(2 + i, 15 - i, y, BROWN[6])
   c.vline(6, 3, 9, WHITE[5]); c.vline(11, 3, 9, WHITE[5])
   c.hline(2, 15, 10, BROWN[1])
   soft_outline(c, BROWN[0], BROWN[2])
   return c.image()
- m = IRON if v == 0 else WHITE
- for cx, cy, r in ((4, 7, 3), (9, 6, 4), (14, 7, 3)):
-  for y in range(cy - r, cy + r + 1):
-   for x in range(cx - r, cx + r + 1):
-    d = (x - cx) ** 2 + (y - cy) ** 2
-    if d <= r * r + 1 and y <= 10:
-     c.set(x, y, m[5] if x - cx + y - cy < -r else m[4] if x - cx + y - cy < 0 else m[3] if d < r * r - 1 else m[2])
-  c.set(cx, cy - r - 1, m[4]); c.set(cx + 1, cy - r - 1, m[2])              # the knot
+ m = SACK if v == 0 else WHITE
+ c = Canvas(22, 14)
+ for at in ((6, 1), (0, 4), (11, 5)):
+  draw_grid(BIN_BAG, ramp_keys(m), c, at)
  if v == 1:
-  for y in range(1, 10):
-   for x in range(0, 18):
-    if (x + y) % 4 == 0 and c.get(x, y): c.set(x, y, BLUE[5])               # the net
- c.hline(2, 16, 10, m[1])
+  for (x, y) in list(c.px):
+   if (x + y) % 5 == 0 or (x - y) % 5 == 0: c.set(x, y, BLUE[4] if y < 8 else BLUE[3])
+ c.hline(1, 20, 13, m[1])
  soft_outline(c, m[0], m[2])
  return c.image()
-
 
 def pavement_board(v=0):
  """A shop's board stood on the pavement: v0 a chalked blackboard, v1 white

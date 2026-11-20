@@ -190,6 +190,8 @@ export const about: Record<string, string> = {
   dustbin: "A metal bin for the household's rubbish.",
   wheelieBin: "A plastic bin on two wheels that the household puts out for the council's collection.",
   streetBin: "A public bin for litter, emptied by the council.",
+  pavementBoard: "A folding board a shop stands on the pavement to say what it sells.",
+  iceChest: "A freezer chest kept outside a shop, full of bagged ice or cold drinks.",
   drum: "A steel drum for storing oil, water or fuel.",
   barrow: "A wheelbarrow for carrying earth, dung or goods.",
   washingLine: "A line where the household's washing is hung out to dry.",

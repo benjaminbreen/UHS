@@ -3,7 +3,7 @@ Frame order is the variant index src/content/props/lots.ts names; keep the
 two lists in step. Graves, crosses, carts and troughs are not here: the lots
 use the grave-mound, sacred-marker, farm-cart and trough sprites."""
 from math import atan2, cos, hypot, pi, sin
-from .core import Canvas, RAMPS, blob, jitter, revolve, belly
+from .core import Canvas, RAMPS, blob, jitter, revolve, belly, soft_outline
 from .solid import K, disc, lathe, block, log_x
 
 BARK = ['#1f1814', '#33261d', '#4a3727', '#634a33', '#7d5f41', '#987752']
@@ -523,23 +523,35 @@ def dung_cakes():
 
 
 def threshing_floor():
- c = Canvas(56, 28)
- cx, cy = 28, 14
- disc(c, cx, cy, 27, 13, RAMPS['sandstone'][3])
- disc(c, cx, cy, 25, 11.5, LOESS[3])
- disc(c, cx - 1, cy - 1, 21, 9, LOESS[4])
- for k in range(70):
-  j = jitter(k, 9)
-  a = k * 2.4; rr = 6 + j % 16
-  x, y = cx + cos(a) * rr, cy + sin(a) * rr * .45
-  c.line((x, y), (x + 2 - j % 5, y + (j % 3) - 1), STRAW[3 + j % 3])
- for k in range(0, 60):
-  a = k * 2 * pi / 60
-  x, y = cx + cos(a) * 26, cy + sin(a) * 12.4
-  g = RAMPS['sandstone']
-  c.set(int(x), int(y), g[6 if sin(a) < -.3 else 4 if sin(a) < .3 else 3])
-  if sin(a) > .2: c.set(int(x), int(y) + 1, g[2])
- disc(c, cx + 2, cy + 1, 6, 3, EAR[1]); disc(c, cx + 1, cy, 4.5, 2, EAR[2]); c.hline(cx - 1, cx + 2, cy - 1, EAR[3])
+ """A round floor of beaten earth kerbed with stones, sheaves spread to be
+ trodden out round the post the oxen are tethered to, the grain swept into
+ a heap beside it."""
+ c = Canvas(58, 30)
+ cx, cy, rx, ry = 29, 14, 25, 11.5
+ g = RAMPS['sandstone']
+ for y in range(30):
+  for x in range(58):
+   u, v = (x + .5 - cx) / rx, (y + .5 - cy) / ry
+   d = u * u + v * v
+   if d <= 1: c.set(x, y, LOESS[4] if d < .5 else LOESS[3] if v > .3 and d > .8 else LOESS[4])
+ for k, rr in enumerate((.45, .62, .78, .9)):              # straw trodden round in rings
+  for i in range(int(200 * rr)):
+   a = i / (200 * rr) * 2 * pi + k
+   if (i + 7 * k) % 11 < 7:
+    x, y = cx + cos(a) * rx * rr, cy + sin(a) * ry * rr
+    c.set(int(x), int(y), STRAW[5] if sin(a) < 0 else STRAW[4]); c.set(int(x) + 1, int(y), STRAW[3])
+ stones = sorted(((cx + cos(a) * (rx + .5), cy + sin(a) * (ry + .6)) for a in (i * 2 * pi / 26 for i in range(26))), key=lambda p: p[1])
+ for x, y in stones:
+  x, y = int(x), int(y)
+  front = y > cy
+  c.hline(x - 1, x + 1, y, g[6] if not front else g[5]); c.hline(x - 1, x + 1, y + 1, g[4])
+  if front: c.hline(x - 1, x + 1, y + 2, g[2])
+  c.set(x + 1, y + 1, g[3])
+ c.rect(cx, cy - 8, cx + 1, cy, RAMPS['ash7'][4]); c.vline(cx + 1, cy - 8, cy, RAMPS['ash7'][2])   # the tethering post
+ c.hline(cx, cx + 1, cy - 9, RAMPS['ash7'][6])
+ for y, (a0, a1) in enumerate(((-2, 2), (-4, 4), (-5, 5), (-5, 5))):              # the grain heap
+  for x in range(a0, a1 + 1): c.set(cx + 6 + x, cy - 1 + y, EAR[0] if y == 3 else EAR[3] if y == 0 or x < -2 else EAR[2] if x < 3 else EAR[1])
+ soft_outline(c, LOESS[0], LOESS[2])
  return c.image()
 
 

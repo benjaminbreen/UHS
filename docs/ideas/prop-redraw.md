@@ -22,15 +22,7 @@ Each family scored 0-2 on seven things, and these are the lowest totals:
 - **States**: whatever the player can do to it (open, dent, knock over) is
   drawn.
 
-## 1. Ground slabs that read as stickers (13)
-
-Flat ellipses or rectangles with no edge depth or texture logic.
-
-- wrestling-ring, threshing-floor, knapping-floor, seat-mat, mud-bricks,
-  grave-mound, kerb-rubbish
-- gully-grate, tree-grate, trolley-bay, newspapers, floor-carpet
-
-## 2. Thin or unreadable silhouettes (20)
+## 1. Thin or unreadable silhouettes (20)
 
 - bicycle, bike-rack, cafe-terrace, works-fence, travois, hurdle, fish-weir
 - stick (A), censer, catch, bedroll, sack, seat-stone, burial-stone, jizo
@@ -78,4 +70,12 @@ Flat ellipses or rectangles with no edge depth or texture logic.
   (news-box, kerb-mailbox, menu-board, parking-meter, bus-stop,
   vending-machine, post-box, stencil-crate) read fine square on, as street
   furniture does
+- the ground slabs: wrestling-ring (raked arcs and a heaped lip on the sand
+  ring, the akhara pit's far wall, the sumo bales in segments, stakes and a
+  sagging rope round trodden earth), threshing-floor (a stone kerb, straw
+  trodden round in rings, the tethering post and grain heap), knapping-floor
+  (on a pegged hide instead of a lozenge), seat-mat (plaited, edge bound),
+  kerb-rubbish (tied sacks). tree-grate and gully-grate were never placed and
+  are gone; mud-bricks, grave-mound, trolley-bay, newspapers and floor-carpet
+  were fine
 - Still procedural: the dustbin's fallen state, from `fallen.py`

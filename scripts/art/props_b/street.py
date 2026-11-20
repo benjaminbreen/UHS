@@ -3,7 +3,7 @@ standard and scale: the adult is 37px, a bench seat is knee high at 11px."""
 import math
 
 from art.city_kit import (C, outline, sphere, mix, morris_column, market_stall,
-                          IRON, GREEN, OAK, LIME, LEAF, BARK, TERRA, RED, GOLD, CREAM, NAVY, PAVE)
+                          IRON, GREEN, OAK, LIME, LEAF, BARK, TERRA, RED, GOLD, CREAM, NAVY)
 from art.oblique_style import drift
 
 CONCRETE = ['#2e2c38', '#4e4b56', '#6f6b72', '#8e8a8c', '#aba6a2', '#c8c2ba']
@@ -152,34 +152,6 @@ def planter(v=0):
     for i, cx in enumerate((8, 16, 25, 33)):
         sphere(c, cx, top - 4 - (i % 2), 5 + (i % 2), LEAF[:6], lo=0, hi=5, flat=0.6)
     return outline(c.im)
-
-
-def tree_grate(v=0):
-    """A cast-iron tree grate on the ground, rings of slots round the trunk."""
-    c = C(30, 11)
-    c.rect(0, 0, 29, 10, IRON[1])
-    c.hl(0, 29, 0, IRON[3])
-    c.vl(0, 0, 10, IRON[2])
-    for k, (rx, ry) in enumerate(((13, 4.4), (10, 3.4), (7, 2.4))):
-        c.ellipse(15, 5.5, rx, ry, IRON[0] if k % 2 == 0 else IRON[2])
-        c.ellipse(15, 5.5, rx - 1.5, ry - 0.8, IRON[1] if k % 2 == 0 else IRON[0])
-    for x in range(3, 28, 3):
-        c.vl(x, 1, 9, IRON[1])
-    c.ellipse(15, 5.5, 4.5, 1.8, '#3a2c22')
-    c.hl(12, 18, 4, '#5a4432')
-    return c.im
-
-
-def gully(v=0):
-    """A kerbside gully grate: iron bars in a granite surround."""
-    c = C(18, 7)
-    c.rect(0, 0, 17, 6, PAVE[4])
-    c.hl(0, 17, 0, PAVE[5])
-    c.rect(2, 1, 15, 5, IRON[0])
-    for x in range(3, 15, 2):
-        c.vl(x, 1, 5, IRON[2])
-    c.hl(2, 15, 1, IRON[3])
-    return c.im
 
 
 def news_kiosk(v=0):
@@ -338,8 +310,6 @@ def city_lamp(v=0):
 STREET = {
     'street-bench': bench,
     'street-bollard': bollard,
-    'tree-grate': tree_grate,
-    'gully-grate': gully,
     'news-kiosk': news_kiosk,
     'morris-column': column,
     'street-barrow': barrow,
