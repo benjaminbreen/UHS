@@ -27,7 +27,7 @@ import {
 import { trimCache } from "../../core/cache";
 import type { Decoration } from "../../core/types";
 import { preparedSite, type PreparedSettlement } from "./prepared";
-import { withProps } from "../../content/props/place";
+import { propState, withProps } from "../../content/props/place";
 import { pathArt } from "./path-art";
 import { trunkRoads } from "./trunk";
 import { urbanSite } from "./urban";
@@ -119,9 +119,6 @@ const roadless = (p: Pack) =>
   p.setting!.settlement === "camp" ||
   ["encampment", "band"].includes(settlementProfile(p.setting!).pattern);
 
-/** What the browser worker hands the main thread. Its routines are searched
- * after the props are placed, as createSession's withProps would, so arrival
- * does not spend a second and a half searching them again on the main thread. */
 /** The cells of one parcel are equal records. Shared, they stay shared through
  * the structured clone to each thread, where they were most of a plan's
  * weight. Receivers only read them. */
@@ -132,18 +129,21 @@ function sharedCells<V>(cells: Map<string, V>) {
     return [k, seen.get(id) ?? (seen.set(id, v), v)] as const;
   }));
 }
+/** What the browser worker hands the main thread: the props already placed and
+ * the routines searched around them, so arrival neither places them again
+ * (0.8s in Surat) nor spends a second and a half on path searches. */
 export function prepareSettlement(pack: Pack, seed: string, cached?: PreparedSettlement) {
   // Not warmed here: withProps clears and searches every routine again.
   const world = createSettlementWorld(pack, seed, cached, false);
   const prepared = cached ?? world.prepare();
-  if (prepared.propsRouted) return { world, prepared };
-  const routed = (
-    withProps(createSettlementWorld(pack, seed, structuredClone(prepared)), seed) as SettlementWorld
+  if (prepared.props) return { world, prepared };
+  const props = propState();
+  const placed = (
+    withProps(createSettlementWorld(pack, seed, structuredClone(prepared)), seed, props) as SettlementWorld
   ).prepare();
-  return {
-    world,
-    prepared: { ...prepared, routines: routed.routines, dormant: routed.dormant, propsRouted: true },
-  };
+  // Placing props and searching routes fills the relief cache fourfold; the
+  // receiver recomputes those cells cheaply, but cloning them is not cheap.
+  return { world, prepared: { ...placed, relief: prepared.relief, props } };
 }
 export function createSettlementWorld(
   pack: Pack,
@@ -152,7 +152,7 @@ export function createSettlementWorld(
   warm = true,
 ): SettlementWorld {
   // Routines already searched around the props: withProps need not search again.
-  let routedAroundProps = !!prepared?.propsRouted;
+  let routedAroundProps = !!prepared?.props;
   const regional = pack.setting?.geographyRevision && !pack.setting.situation
     ? createRegionalContext(pack.setting)
     : undefined;

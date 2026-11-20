@@ -2,6 +2,7 @@ import { expect, it, vi } from "vitest";
 import { prepareSettingSession } from "../src/runtime/preparation";
 import { createSession } from "../src/runtime/session";
 import { prepareSettlement } from "../src/world/v3/generate";
+import { propState } from "../src/content/props/place";
 import { integratedSetting } from "../src/content/geography/defaults";
 import { packForSetting } from "../src/content/geography/pack";
 import { places } from "../src/content/geography/places";
@@ -73,7 +74,7 @@ it("indexes an existing prepared map by its inputs so the next load skips river 
   const playableMap = { id: "tile:175,-201", size: 384 as const, exits: [{ id: "edge", to: "tile:175,-202", bearing: "N", mode: "land" }] };
   const resolved = { ...playableMap, exits: [{ ...playableMap.exits[0], waterways: [{ at: 0.5, width: 0.02, flow: 1 }] }] };
   const seed = "cache-test";
-  const prepared = { propsRouted: true } as WorldPreparationResult["prepared"];
+  const prepared = { props: propState() } as WorldPreparationResult["prepared"];
   const key = store.preparedKey({ ...setting, playableMap: resolved }, seed);
   let row: Parameters<typeof store.savePrepared>[0] = { key, prepared };
   const sample = vi.spyOn(travelWaterways, "withTravelWaterways").mockReturnValue(resolved);
@@ -144,6 +145,9 @@ it.each(["konya", "alexandria"])(
       expect(engine.act(request)).toEqual(reference.act(request));
     }
     expect(engine.state).toEqual(reference.state);
+    for (const world of [engine.world, reference.world]) world.activate?.(150, -150);
+    expect(engine.world.initialObjects).toEqual(reference.world.initialObjects);
+    expect(engine.world.fauna?.(150, -150)).toEqual(reference.world.fauna?.(150, -150));
   },
   60000,
 );

@@ -181,7 +181,7 @@ export function createSession(
     ? createSettlementWorld(pack, seed, prepared)
     : createWorld(pack, seed);
   const version = snapshot?.manifest.content ?? content;
-  if (version === 2) world = withProps(world, seed);
+  if (version === 2) world = withProps(world, seed, prepared?.props);
   if (snapshot)
     world.restoreDistricts?.(
       [...snapshot.actors, ...snapshot.objects].map((e) => e.id),

@@ -65,9 +65,6 @@ function variantOf(variants: number, roll: number) {
   return 1 + Math.floor(((roll - plain) / (1 - plain)) * (variants - 1));
 }
 
-/** Versioned content overlay: neither old terrain nor district RNG is changed.
- * Existing storage locations become real props; extra work objects hug buildings.
- * This runs for initial districts and each newly activated district. */
 /** The first colourway of a prop's sprite, for a prop made outside placement. */
 export function propSprite(key: string) {
   const def = propDefs[key];
@@ -76,14 +73,26 @@ export function propSprite(key: string) {
     (def.sprite ?? `study-prop${redrawn.has(def.family) ? "b" : ""}-${def.family}-${equipmentVariant(undefined,key,0)}`)
   );
 }
-export function withProps(world: WorldModel, seed: string): WorldModel {
+/** What placement has already done, so a world whose objects arrived from the
+ * preparation worker can carry on placing without placing them again. */
+export type PropState = {
+  done: Set<string>;
+  places: Set<string>;
+  reserved: Set<string>;
+  privies: Position[];
+  scavengers: FaunaGroup[];
+  scales: Position[];
+};
+export const propState = (): PropState => ({
+  done: new Set(), places: new Set(), reserved: new Set(), privies: [], scavengers: [], scales: [],
+});
+/** Versioned content overlay: neither old terrain nor district RNG is changed.
+ * Existing storage locations become real props; extra work objects hug buildings.
+ * This runs for initial districts and each newly activated district. */
+export function withProps(world: WorldModel, seed: string, state = propState()): WorldModel {
   if (world.pack.setting?.situation) return world;
   const kit = propKit(world.pack),
-    done = new Set<string>(),
-    places = new Set<string>(),
-    privies: Position[] = [],
-    scavengers: FaunaGroup[] = [],
-    scales: Position[] = [];
+    { done, places, reserved, privies, scavengers, scales } = state;
   const tech = techFor(world.pack);
   const sign = signFor(world.pack);
   const loom = [...kit.contexts.work, ...kit.contexts.yard].find((k) => /loom/.test(propDefs[k]?.family ?? ""));
@@ -227,7 +236,6 @@ export function withProps(world: WorldModel, seed: string): WorldModel {
     }
     return false;
   };
-  const reserved = new Set<string>();
   const publicGround = (p: Position, prop?: string) => p.space === "outside" && urbanPack &&
     (prop ? propVisualCells(prop, p) : [p]).some((q) => {
       const c = world.topography?.(q.x, q.y);

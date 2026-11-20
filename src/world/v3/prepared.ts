@@ -11,15 +11,16 @@ export const preparedSite = ({
  * synchronous generation; functions are reconstructed by the receiving world. */
 /** Bump when generation output changes shape or content, so a cached
  * prepared settlement from an older build is not reused. */
-export const PREPARED_VERSION = 113;
+export const PREPARED_VERSION = 114;
 export type PreparedSettlement = {
   entrances?: import("../travel/entrances").MapEntrance[];
   /** The starting town's daily routines, built where the plan was, and the
    * residents the routine budget left at home. */
   routines?: [string, import("../../core/itinerary").Itinerary | undefined][];
   dormant?: string[];
-  /** The routines above were searched with the props in place. */
-  propsRouted?: boolean;
+  /** Props are placed in `initial` and the routines above were searched
+   * around them; this is what placement has done so far. */
+  props?: import("../../content/props/place").PropState;
   sites: [string, PreparedSite | null][];
   regionalSites?: [string, PreparedSite[]][];
   plans: [string, Omit<SettlementPlan, "site"> & { site: PreparedSite }][];
