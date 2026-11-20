@@ -13,6 +13,19 @@ export default defineConfig({
   plugins: [
     react(),
     {
+      // A worker Vite bundles on its own shares no chunks with the page, and
+      // the world worker repeated 2.75 MB (compressed) of atlas, climate and
+      // building-model data the page had already fetched.
+      name: "world-worker-chunk",
+      apply: "build",
+      enforce: "pre",
+      transform(code, id) {
+        if (!id.endsWith(path.join("src", "runtime", "world-worker.ts"))) return;
+        const ref = this.emitFile({ type: "chunk", id: path.resolve("src/world/worker.ts"), name: "world-worker" });
+        return code.replace('new URL("../world/worker.ts", import.meta.url)', `new URL(import.meta.ROLLUP_FILE_URL_${ref})`);
+      },
+    },
+    {
       // h3-js reserves 32MB up front; its static data needs 5MB and the heap grows on demand.
       name: "h3-small-heap",
       transform(code, id) {

@@ -1,6 +1,7 @@
 import { frostCover, snowCover } from "./snow-cover";
 import { usesLivingWater } from "./living-water/game";
-import { smallMemoryDevice, tellMemory, workerBudget } from "../runtime/device";
+import { smallMemoryDevice, workerBudget } from "../runtime/device";
+import { worldWorker } from "../runtime/world-worker";
 import { peekTerrainWorker, takeSpareTerrainWorkers, takeTerrainWorker } from "../runtime/terrain-worker-owner";
 import { seasonAt } from "../core/livelihood";
 import { tideAt } from "../content/geography/waterscapes";
@@ -125,7 +126,7 @@ export class TerrainStream {
       reserved: true,
       worker:
         retained ??
-        tellMemory(new Worker(new URL("../world/worker.ts", import.meta.url), { type: "module" })),
+        worldWorker(),
     };
     this.listen(first);
     if (!retained) {
@@ -204,7 +205,7 @@ export class TerrainStream {
     // Preparing the same world for every raster worker repeated a large
     // structured clone during initial loading.
     this.prepared ??= prepare.call(this.world);
-    const worker = tellMemory(new Worker(new URL("../world/worker.ts", import.meta.url), { type: "module" }));
+    const worker = worldWorker();
     worker.postMessage({
       pack: this.world.pack,
       temporal: this.world.temporal,

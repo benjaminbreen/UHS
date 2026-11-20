@@ -7,19 +7,20 @@ import { withTravelWaterways, type TravelWaterwayInputs } from "../world/travel/
 import type { WorldPreparationRequest, WorldPreparationResult } from "../world/worker";
 import { retainTerrainWorker } from "./terrain-worker-owner";
 import { markEvent } from "./vitals";
-import { smallMemoryDevice, tellMemory } from "./device";
+import { smallMemoryDevice } from "./device";
+import { worldWorker } from "./world-worker";
 
 /** A phone killed for memory takes its worker with it without firing onerror,
  * which used to leave the splash waiting for a message that never came. Long
  * enough that a slow device preparing a large settlement is not cut off. */
 const PREPARE_TIMEOUT_MS = 90_000;
 
-/** A world worker with no job yet, its script possibly still downloading
- * (4.3MB compressed). A start cancelled before its worker loaded leaves it
- * here, so the next start does not fetch the script again from the beginning. */
+/** A world worker with no job yet, its modules possibly still downloading.
+ * A start cancelled before its worker loaded leaves it here, so the next
+ * start does not fetch them again from the beginning. */
 let spare: Worker | undefined;
-const worldWorker = () => {
-  const worker = spare ?? tellMemory(new Worker(new URL("../world/worker.ts", import.meta.url), { type: "module" }));
+const takeWorker = () => {
+  const worker = spare ?? worldWorker();
   spare = undefined;
   return worker;
 };
@@ -53,7 +54,7 @@ export async function prepareSettingSession(
     return createSession("atlas", seed, { setting: resolved });
   }
   signal?.throwIfAborted();
-  const worker = worldWorker();
+  const worker = takeWorker();
   const retire = smallMemoryDevice();
   let owned = true,
     loaded = false;

@@ -2,7 +2,8 @@ import type { WorldModel } from "../core/types";
 import type { PreparedSettlement } from "../world/v3/prepared";
 import type { TerrainRequest } from "../render/terrain-worker";
 import { TERRAIN_CHUNK_PAD as PAD, TERRAIN_CHUNK_SIZE as SIZE } from "../render/terrain-region";
-import { tellMemory, workerBudget } from "./device";
+import { workerBudget } from "./device";
+import { worldWorker } from "./world-worker";
 const workers = new WeakMap<WorldModel, Worker>();
 const spares = new WeakMap<WorldModel, Worker[]>();
 export function retainTerrainWorker(world: WorldModel, worker: Worker) {
@@ -39,7 +40,7 @@ export function warmTerrainPool(world: WorldModel, seed: string) {
   const prepared = count > 0 ? (world as WorldModel & { prepare?(): PreparedSettlement }).prepare?.() : undefined;
   const started: Worker[] = [];
   for (let i = 0; prepared && i < count; i++) {
-    const worker = tellMemory(new Worker(new URL("../world/worker.ts", import.meta.url), { type: "module" }));
+    const worker = worldWorker();
     worker.postMessage({ pack: world.pack, temporal: world.temporal, seed, prepared } satisfies TerrainRequest);
     worker.postMessage(ground);
     started.push(worker);

@@ -12,7 +12,10 @@ tests.
     back. That geometry is a cache, not a save format. Bump `PREPARED_VERSION`
     when its shape or content changes.
   - `src/runtime/prepared-store.ts` caches it.
-  - The worker answers a `hello` once its 4.3 MB script has loaded. Only then
+  - In a build, the worker is a chunk of the app (`src/runtime/world-worker.ts`
+    and its plugin in `vite.config.ts`), so it shares the page's geography and
+    model chunks instead of downloading its own copy.
+  - The worker answers a `hello` once its modules have loaded. Only then
     does it get its job and the scene art start downloading, so the two do
     not share the connection. A start cancelled before that keeps the
     loading worker for the next one.

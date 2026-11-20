@@ -1,4 +1,5 @@
 import { CHUNK_SIZE, type Terrain } from "../core/types";
+import { worldWorker } from "./world-worker";
 import type { WorldSetting } from "../content/geography/types";
 import { stateHash } from "../core/random";
 import type { ChunkRequest } from "../world/worker";
@@ -12,9 +13,7 @@ export class ChunkCache {
   constructor(private enabled = true) {}
   private ensureWorker() {
     if (!this.worker && this.enabled && typeof Worker !== "undefined") {
-      this.worker = new Worker(new URL("../world/worker.ts", import.meta.url), {
-        type: "module",
-      });
+      this.worker = worldWorker();
       this.worker.onmessage = (
         event: MessageEvent<{ id: string; tiles?: Terrain[] }>,
       ) => {
