@@ -22,7 +22,7 @@ export const SITES: Record<SiteKind, { side: number; depth: number; surface: "co
   garage: { side: 2, depth: 4, surface: "concrete" },
 };
 
-type Piece = { sprite: string; name: string; x: number; y: number };
+type Piece = { sprite: string; name: string; x: number; y: number; prop?: string };
 const at = (family: string, v: number) => `study-propb-${family}-${v}`;
 
 /** What stands on a lot: marked bays nose-in to the building, the cars in
@@ -48,7 +48,7 @@ export function siteLayout(kind: SiteKind, site: Rect, house: Rect, door: Point,
     props.push({ sprite: at("price-sign", livery), name: "Station sign", x: left, y: bottom });
     if (roll("pump-car") < 0.6) cars.push({ x: cx - 1, y: top + 7, heading: "e" });
     props.push({ sprite: at("tyre-stack", 1), name: "Stacked tyres", x: house.x + house.w, y: top - 1 });
-    if (clearOfDoor(house.x)) props.push({ sprite: at("ice-chest", 0), name: "Ice chest", x: house.x, y: top });
+    if (clearOfDoor(house.x)) props.push({ sprite: at("ice-chest", 0), name: "Ice chest", x: house.x, y: top, prop: "iceChest" });
   } else if (kind === "garage") {
     props.push({ sprite: at("tyre-stack", 0), name: "Stacked tyres", x: house.x + house.w, y: top });
     props.push({ sprite: at("steel-drum", Math.floor(roll("drum") * 3)), name: "Oil drum", x: house.x - 1, y: top });
@@ -60,7 +60,7 @@ export function siteLayout(kind: SiteKind, site: Rect, house: Rect, door: Point,
     if (kind === "market") {
       props.push({ sprite: at("trolley-bay", roll("trolleys") < 0.6 ? 0 : 1), name: "Trolley bay", x: right - 1, y: bottom });
       if (clearOfDoor(house.x + 1)) props.push({ sprite: at("produce-stand", Math.floor(roll("produce") * 2)), name: "Produce stand", x: house.x + 1, y: top });
-      if (clearOfDoor(house.x + house.w - 2)) props.push({ sprite: at("ice-chest", 1), name: "Drinks cooler", x: house.x + house.w - 2, y: top });
+      if (clearOfDoor(house.x + house.w - 2)) props.push({ sprite: at("ice-chest", 1), name: "Drinks cooler", x: house.x + house.w - 2, y: top, prop: "iceChest" });
     }
     if (kind === "drive-in") props.push({ sprite: at("menu-board", Math.floor(roll("menu") * 2)), name: "Menu board", x: right, y: top + 1 });
   }

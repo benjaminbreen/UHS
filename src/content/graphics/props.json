@@ -1352,8 +1352,8 @@
       "name": "Cardboard carton",
       "group": "Storage & carrying",
       "size": [
-        13,
-        13
+        15,
+        15
       ],
       "description": "A folded box has readable top flaps, dark crease lines and an optional plain packing mark or tape strip.",
       "variants": [
@@ -1615,8 +1615,8 @@
       "name": "Milk churn",
       "group": "Work & agriculture",
       "size": [
-        14,
-        20
+        17,
+        24
       ],
       "description": "A conical churn with a clamped lid and carrying handles.",
       "variants": [
@@ -3764,7 +3764,7 @@
     {"id": "monument", "name": "Square monument", "group": "Street furniture", "size": [104, 150], "description": "A square's centrepiece by era and region: bronzes, fountains, columns, crosses, steles. Generic documented types, not replicas.", "variants": ["Bronze horseman, granite plinth", "Bronze horseman, marble plinth", "Bronze orator, granite plinth", "Cloaked bronze, sandstone plinth", "Marble statue, limestone plinth", "Statue fountain, round basin", "Statue fountain, octagonal basin", "Tiered fountain", "Heroic figure with banner, granite pylon", "Soldier memorial", "Cenotaph with wreath", "Abstract corten sculpture", "Abstract steel forms", "Roman honorific column", "Roman togate statue", "Roman gilt horseman", "Market cross", "Lantern-headed market cross", "Sadirvan fountain", "Stone lantern", "Stele on a tortoise", "Chhatri", "Lion pillar", "Maya stela and altar", "Granite obelisk", "Obelisk on a pedestal", "Heroic worker, bronze"]},
     {"id": "stencil-crate", "name": "Stencilled shipping case", "group": "Storage & carrying", "size": [21, 18], "description": "A pine packing case with corner battens and a merchant's mark stencilled on the front: the steamship and railway age, 1850-1970.", "variants": ["Pine, black stencil", "Oak, white stencil", "Tea chest, tin edges"]},
     {"id": "pallets", "name": "Stacked pallets", "group": "Storage & carrying", "size": [30, 28], "description": "Sawn-timber pallets with fork gaps between the blocks, stacked or loaded with cement sacks: the loading yard after 1950.", "variants": ["Three new", "Four weathered", "Two with a load"]},
-    {"id": "jerrycans", "name": "Jerrycans", "group": "Storage & carrying", "size": [22, 18], "description": "Two pressed-steel twenty-litre cans with the embossed X and three handles: fuel and water from 1940.", "variants": ["Olive drab", "Red fuel", "Desert sand"]},
+    {"id": "jerrycans", "name": "Jerrycans", "group": "Storage & carrying", "size": [22, 19], "description": "Two pressed-steel twenty-litre cans with the embossed X and three handles: fuel and water from 1940.", "variants": ["Olive drab", "Red fuel", "Desert sand"]},
     {"id": "coal-sacks", "name": "Coal sacks", "group": "Storage & carrying", "size": [30, 24], "description": "The coalman's hundredweight sacks stood open at a door, coal heaped at the rolled hem: 1830-1960.", "variants": ["Three sacks", "Two sacks", "Three with a spill"]},
     {"id": "newspapers", "name": "Newspaper bundles", "group": "Household", "size": [18, 15], "description": "String-tied bundles of the day's papers dropped at a kiosk or door, the top page showing its columns: from 1850.", "variants": ["White newsprint", "Two bundles", "Pink or buff sheet"]},
     {"id": "bicycle", "name": "Bicycle", "group": "Household", "size": [38, 23], "description": "A diamond-frame roadster on its stand, wire wheels, saddle and chain: from 1890.", "variants": ["Black", "Green", "Red"]},

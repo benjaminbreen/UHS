@@ -5,7 +5,8 @@ higher than a person's waist on the map, not at the eleven pixels a metre and
 a half would really be. Legibility and presence beat the tape measure.
 """
 from math import cos, hypot, pi, sin
-from .core import Canvas, RAMPS, belly, jitter, revolve, soft_outline, grass
+from .core import Canvas, RAMPS, jitter, soft_outline, grass, ramp_keys, lay_down
+from .carrying import _draw
 from .workshop import WOOD7, streak
 
 
@@ -58,27 +59,73 @@ def water_butt(v=0):
  return c.image()
 
 
-def milk_churn(v=0):
- """A 17-gallon conical churn, 0.75 m: clamped lid, a bead, two handles, a
- dairy number stencilled. Drawn to the figure; it had been twice life size."""
- c = Canvas(12, 18)
- m = RAMPS[['galvanised7', 'pewter7', 'brasspot7'][v]]
- cx = 5.5
- revolve(c, cx, belly(6, 16, [3.2, 4.8, 5.6, 5.8, 5.4]), m, gloss=2, foot=1)
- _hoop(c, 0, 11, 11, m, thick=1)
- for y in range(2, 6):                            # the neck
-  for x in range(3, 9):
-   u = (x + .5 - cx) / 3
-   c.set(x, y, m[6] if u < -0.3 else m[4] if u < 0.5 else m[2])
- for x in range(2, 10):                           # the lid
-  c.set(x, 1, m[6] if x < 5 else m[4] if x < 8 else m[2])
- c.set(5, 0, m[5]); c.set(6, 0, m[3])
- for hx, tone in ((0, m[5]), (11, m[2])):         # the carrying handles
-  c.vline(hx, 6, 8, tone)
- for x, y in [(4, 13), (5, 13), (4, 14)]:         # a stencilled number
-  c.set(x, y, m[1])
- soft_outline(c, m[0], m[2])
- return c.image()
+CHURN = [
+ "......56.......",
+ "....4566654....",
+ "...456666654...",
+ "...455555443...",
+ "...234444321...",
+ "....4565432....",
+ "....4565432....",
+ "...456654321...",
+ "..45665544321..",
+ "c4566555443321C",
+ "c5666666654432C",
+ "c3444444333221C",
+ ".4566555443321.",
+ ".4566555443321.",
+ ".4516115443321.",
+ ".4516515443321.",
+ ".4516515443321.",
+ ".4566555443321.",
+ ".5666666654432.",
+ ".3444444333221.",
+ "..23333332211..",
+ "....1111111....",
+]
+CHURN_MOUTH = [
+ "...........",
+ "....456654.",
+ "...6wwwwv4.",
+ "...45vvv432",
+ "...234444321",
+]
+CHURN_LID = [
+ "..4566654..",
+ ".456666654.",
+ "45556665543",
+ ".23444443..",
+]
+SPILL = [
+ "......wwwv....",
+ "..wwwwwwwwvv..",
+ ".wwwwwwwwwwvvv",
+ "..vvwwwwvvv...",
+ ".....vvv......",
+]
+
+
+def _churn_keys(v):
+ m = RAMPS[['churn7', 'pewter7', 'brasspot7'][v]]
+ return m, ramp_keys(m, c=m[5], C=m[2], w='#ece8dc', v='#c9c3b0')
+
+
+def milk_churn(v=0, lid=True):
+ """A 17-gallon conical churn, 0.75 m: a mushroom lid with its knob, the
+ neck flaring to a bead, side handles, a dairy number stencilled."""
+ m, k = _churn_keys(v)
+ if lid: return _draw(CHURN, k, m)
+ body = ['.' * 15] * 3 + CHURN[3:]
+ return _draw(body, k, m, after=[(CHURN_MOUTH, (2, 1)), (CHURN_LID, (15, 18))], anchor_w=15)
+
+
+def milk_churn_open(v=0): return milk_churn(v, lid=False)
+
+
+def milk_churn_fallen(v=0):
+ m, k = _churn_keys(v)
+ lying = lay_down(['.' * 15] * 3 + CHURN[3:])
+ return _draw(lying, k, m, left=6, top=2, after=[(SPILL, (0, len(lying) - 1)), (CHURN_LID, (6 + len(lying[0]), len(lying) - 1))])
 
 
 def _bees(c, frame, spots):

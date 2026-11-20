@@ -405,7 +405,7 @@ def bike_rack(v=0):
  return c.image()
 
 
-def utility_cabinet(v=0):
+def utility_cabinet(v=0, doors=False):
  """v0 the green pad-mounted transformer of an American suburb, v1 a grey
  telephone cabinet, v2 the pale distribution box of a European pavement."""
  c = Canvas(16, 19)
@@ -428,8 +428,22 @@ def utility_cabinet(v=0):
   c.rect(5, 4, 6, 5, YELLOW[4]); c.set(9, 9, IRON[1])
   m = WHITE
  _foot(c, 1, 14, 18, IRON)
+ if doors:
+  x0, y0, x1, y1 = ((2, 5, 13, 15), (3, 3, 12, 16), (5, 3, 10, 16))[v]
+  c.PAD = 4
+  c.rect(x0, y0, x1, y1, IRON[0]); c.hline(x0, x1, y0, IRON[2]); c.vline(x0, y0, y1, IRON[1])
+  wire = (RED[5], YELLOW[5], BLUE[5], GREEN[6], WHITE[5])
+  for y in range(y0 + 2, y1 - 1, 3):
+   c.hline(x0 + 1, x1 - 1, y, WHITE[3] if v else STEEL[4]); c.hline(x0 + 1, x1 - 1, y + 1, IRON[2])
+   for x in range(x0 + 1, x1, 2): c.set(x, y + 1, wire[(x * 3 + y) % 5])
+  for i in range(4):                                                         # the doors swung out toward us
+   c.vline(x0 - 2 - i, y0 + i // 2, y1 + i // 2, m[4] if i < 3 else m[6])
+   c.vline(x1 + 2 + i, y0 + i // 2, y1 + i // 2, m[2] if i < 3 else m[4])
  soft_outline(c, m[0], m[2])
  return c.image()
+
+
+def utility_cabinet_open(v=0): return utility_cabinet(v, doors=True)
 
 
 def rubbish(v=0):
@@ -475,6 +489,20 @@ def pavement_board(v=0):
  if v == 0: c.set(6, 8, YELLOW[6]); c.set(3, 10, RED[5])
  c.set(1, 13, BROWN[3]); c.set(1, 14, BROWN[2]); c.set(8, 13, BROWN[2]); c.set(8, 14, BROWN[1])
  c.set(3, 13, BROWN[1]); c.set(6, 13, BROWN[1])                             # the back legs
+ soft_outline(c, BROWN[0], BROWN[2])
+ return c.image()
+
+
+def pavement_board_fallen(v=0):
+ """Blown flat on its back: the face foreshortened to half, the back leaf
+ folded under and showing at the top edge."""
+ face, ink = ((IRON, WHITE[6]), (WHITE, RED[4]), (YELLOW, IRON[1]))[v]
+ c = Canvas(12, 9)
+ c.hline(2, 9, 0, BROWN[3]); c.hline(1, 10, 1, BROWN[5])
+ c.rect(1, 2, 10, 7, face[3 if v == 0 else 5]); c.vline(1, 2, 7, BROWN[5]); c.vline(10, 2, 7, BROWN[2])
+ c.hline(1, 10, 8, BROWN[2])
+ for y, xs in ((3, (3, 4, 6, 7)), (4, (3, 5, 6, 8)), (6, (4, 5, 7))):
+  for x in xs: c.set(x, y, ink)
  soft_outline(c, BROWN[0], BROWN[2])
  return c.image()
 

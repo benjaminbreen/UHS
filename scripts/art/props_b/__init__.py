@@ -16,6 +16,7 @@ from .traffic import TRAFFIC
 from .stalls import STALLS
 from .pitches import PITCHES
 from .farm import FARM
+from . import farm as _farm, roadside as _roadside, stores as _stores, kerbside as _kerb
 from .privy import PRIVY
 from .midden import MIDDEN, household_dented, communal_dented
 from .granary import GRANARY
@@ -239,9 +240,15 @@ STATES = {
  'midden': {'dented': communal_dented},
  'grain-hamper-large': {'open': _soft.big_grain_hamper_open},
  'taru-large': {'open': _soft.big_taru_open},
+ 'milk-churn': {'open': _farm.milk_churn_open, 'fallen': _farm.milk_churn_fallen},
+ 'ice-chest': {'open': _roadside.ice_chest_open},
+ 'plain-box': {'open': _stores.plain_box_open},
+ 'cardboard-box': {'open': _stores.cardboard_box_open, 'dented': _stores.cardboard_box_dented},
+ 'utility-cabinet': {'open': _kerb.utility_cabinet_open},
+ 'pavement-board': {'fallen': _kerb.pavement_board_fallen},
 }
 
-TOPPLING = {'standing-stone', 'roman-milestone', 'rune-marker', 'stone-lantern', 'stool', 'dustbin', 'steel-drum', 'wheelie-bin'}
+TOPPLING = {'standing-stone', 'roman-milestone', 'rune-marker', 'stone-lantern', 'stool', 'dustbin', 'steel-drum', 'wheelie-bin', 'pavement-board'}
 
 
 def draw_prop_b(key, variant, layer=None):

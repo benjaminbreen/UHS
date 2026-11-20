@@ -22,18 +22,7 @@ Each family scored 0-2 on seven things, and these are the lowest totals:
 - **States**: whatever the player can do to it (open, dent, knock over) is
   drawn.
 
-## 1. Front-only boxes (15)
-
-No top plane, flat fill, and nothing to do with them. Most are bins and
-boxes the player will want to open, kick or dent.
-
-- jerrycans, ice-chest (`open`), plain-box (`open`), cardboard-box (`open`,
-  `dented` as crushed), stencil-crate, utility-cabinet (`open`)
-- milk-churn (dark and muddy; `open`)
-- news-box, kerb-mailbox, pavement-board (`fallen`), menu-board,
-  parking-meter, bus-stop, vending-machine, post-box
-
-## 2. Ground slabs that read as stickers (13)
+## 1. Ground slabs that read as stickers (13)
 
 Flat ellipses or rectangles with no edge depth or texture logic.
 
@@ -41,7 +30,7 @@ Flat ellipses or rectangles with no edge depth or texture logic.
   grave-mound, kerb-rubbish
 - gully-grate, tree-grate, trolley-bay, newspapers, floor-carpet
 
-## 3. Thin or unreadable silhouettes (20)
+## 2. Thin or unreadable silhouettes (20)
 
 - bicycle, bike-rack, cafe-terrace, works-fence, travois, hurdle, fish-weir
 - stick (A), censer, catch, bedroll, sack, seat-stone, burial-stone, jizo
@@ -81,4 +70,12 @@ Flat ellipses or rectangles with no edge depth or texture logic.
   patch and named things on them by `middenContents`; the communal one is half
   its old width. Walking into a household or communal midden leaves a print
   (`-dented`). The shell midden moved here from `lifeways.py`
+- the front-only boxes: milk-churn (a hand grid in steel, pewter and brass;
+  lid off with the milk showing, over on its side spilling) and jerrycans
+  (a top face, three handles, the spout) redrawn; ice-chest given a lid seen
+  from above, which lifts; open states for plain-box and utility-cabinet,
+  open and crushed for cardboard-box, fallen for pavement-board. The rest
+  (news-box, kerb-mailbox, menu-board, parking-meter, bus-stop,
+  vending-machine, post-box, stencil-crate) read fine square on, as street
+  furniture does
 - Still procedural: the dustbin's fallen state, from `fallen.py`

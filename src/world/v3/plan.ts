@@ -1146,7 +1146,7 @@ export function planSettlement(
         const rect = { x: at.x - (width >> 1), y: at.y, w: width, h: 1 };
         if (!dry(rect, false)) return;
         eachCell(rect, (x, y) => { plan.solid.add(cellKey(x, y)); plan.reserved.add(cellKey(x, y)); });
-        const prop = binProp(sprite);
+        const prop = kerbProp(sprite);
         plan.objects.push({ id: `${site.id}-square-${tag}`, name, sprite, prop,
           kind: prop ? "container" : "monument", pos: pos(at), inventory: {}, claim: "landscape" });
       };
@@ -1678,7 +1678,7 @@ export function planSettlement(
         }
         const bin = { x: cx + 2, y: rect.y + rect.h - 2 };
         if (furniture) {
-          const prop = binProp(furniture.bin);
+          const prop = kerbProp(furniture.bin);
           plan.objects.push({ id: `${site.id}-park-${index}-bin`, name: "Litter bin", kind: prop ? "container" : "monument", prop,
             sprite: furniture.bin, pos: pos(bin), inventory: {} });
           plan.solid.add(cellKey(bin.x, bin.y));
@@ -4270,7 +4270,7 @@ export function planSettlement(
         plan.loadingBays ??= new Map();
         for (const bay of plot.bays) eachCell(bay, (x, y) => plan.loadingBays!.set(cellKey(x, y), bay));
         for (const [n, p] of plot.props.entries())
-          plan.objects.push({ id: `${id}-site-${n}`, name: p.name, kind: "monument", sprite: p.sprite, pos: pos(p), inventory: {}, claim: "landscape" });
+          plan.objects.push({ id: `${id}-site-${n}`, name: p.name, kind: "monument", sprite: p.sprite, prop: p.prop, pos: pos(p), inventory: {}, claim: "landscape" });
         const pool = pack.setting ? vehiclePool(pack.setting) : [];
         for (const [n, c] of plot.cars.entries()) {
           const car = pool.length ? parkedCar(pool, rand("site-car", i, n), rand("site-paint", i, n)) : undefined;
@@ -4511,7 +4511,7 @@ export function planSettlement(
         // A house on a lawn keeps its things in the bin by the back door.
         ...(() => {
           const bin = motorAge && urban && lot.use === "suburb" && kerb?.bin?.[Math.floor(rand("bin", i) * kerb.bin.length)];
-          return bin ? { sprite: bin, prop: binProp(bin) } : { sprite: "basket" };
+          return bin ? { sprite: bin, prop: kerbProp(bin) } : { sprite: "basket" };
         })(),
         inventory: pack.setting?.characterRevision
           ? eligibleInventory(
@@ -6392,8 +6392,8 @@ export function planSettlement(
       for (let dy = -clear; dy <= clear; dy++)
         for (let dx = -clear; dx <= clear; dx++) if (taken.has(cellKey(x + dx, y + dy))) return false;
       taken.add(k);
-      const prop = binProp(sprite);
-      plan.objects.push({ id: `${site.id}-kerb-${x}-${y}`, name, kind: prop ? "container" : "monument", prop, sprite, pos: pos({ x, y }), inventory: {}, claim: "landscape" });
+      const prop = kerbProp(sprite);
+      plan.objects.push({ id: `${site.id}-kerb-${x}-${y}`, name, kind: prop && propDefs[prop].container ? "container" : "monument", prop, sprite, pos: pos({ x, y }), inventory: {}, claim: "landscape" });
       return true;
     };
     for (const j of plan.junctions ?? []) {
@@ -7088,7 +7088,7 @@ const KERB_NAMES: [RegExp, string][] = [
   [/utility-cabinet/, "Utility cabinet"], [/kerb-rubbish/, "Rubbish for collection"], [/street-bin/, "Litter bin"],
 ];
 const kerbName = (sprite: string) => KERB_NAMES.find(([re]) => re.test(sprite))?.[1] ?? "Street furniture";
-/** A bin set down as street furniture is still a bin: it can be looked into
- * and knocked over. */
-const BIN_PROPS: [RegExp, string][] = [[/street-bin/, "streetBin"], [/wheelie-bin/, "wheelieBin"], [/dustbin/, "dustbin"]];
-const binProp = (sprite: string) => BIN_PROPS.find(([re]) => re.test(sprite))?.[1];
+/** Street furniture that is still a thing to use: a bin can be looked into
+ * and knocked over, a pavement board shouldered down. */
+const KERB_PROPS: [RegExp, string][] = [[/street-bin/, "streetBin"], [/wheelie-bin/, "wheelieBin"], [/dustbin/, "dustbin"], [/pavement-board/, "pavementBoard"]];
+const kerbProp = (sprite: string) => KERB_PROPS.find(([re]) => re.test(sprite))?.[1];

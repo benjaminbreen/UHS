@@ -5,8 +5,8 @@ form with one upper-left light and no noise; boxes show their top straight
 back with at most two pixels of drift, as the buildings do.
 """
 from math import cos, sin, pi, sqrt
-from .core import Canvas, RAMPS, belly, revolve, revolve_x, soft_outline
-from .solid import K, disc, lathe, block, log_x
+from .core import Canvas, RAMPS, belly, revolve, revolve_x, soft_outline, draw_grid, ramp_keys
+from .solid import K, disc, lathe, log_x
 
 COALSACK = ['#16130f', '#231d17', '#342a20', '#463829', '#5a4834', '#6f5b42', '#877255']
 OLIVE = ['#171a10', '#252b18', '#353d22', '#4a542e', '#606c3b', '#7b874d', '#9aa466']
@@ -118,20 +118,33 @@ def pallets(v=0):
  return c.image()
 
 
+JERRYCAN = [
+ ".......65.",
+ ".66.66.54.",
+ ".4.34.34..",
+ "4566666654",
+ "5666666653",
+ "3444444432",
+ "4644444462",
+ "4564444632",
+ "4546446432",
+ "4544664432",
+ "4544664432",
+ "4546446432",
+ "4564444632",
+ "4644444462",
+ "3333333321",
+ "2222222211",
+]
+
+
 def jerrycans(v=0):
  """Two twenty-litre cans, pressed steel with the embossed X and three
  handles along the top: a Second World War shape that never went away."""
- c = Canvas(20, 16)
  p = [OLIVE, RED, SAND][v]
- for n, x0 in enumerate((1, 10)):
-  q = p if n == 0 else p[1:] + p[-1:]
-  fy, ty = block(c, x0, 15, 8, 10, 5, q[1:])
-  for i in range(6):
-   for x, lit in ((x0 + 1 + i, 5), (x0 + 6 - i, 2)):
-    c.set(x, fy + 2 + i + (i > 2), q[lit])
-  for hx in (x0 + 1, x0 + 3, x0 + 5):
-   c.hline(hx, hx + 1, ty - 1, q[5]); c.set(hx + 1, ty, q[2])
-  c.set(x0 + 7, ty - 1, q[3]); c.set(x0 + 7, ty - 2, q[5])
+ c = Canvas(22, 19)
+ draw_grid(JERRYCAN, ramp_keys(p[1:] + p[-1:]), c, (11, 1))
+ draw_grid(JERRYCAN, ramp_keys(p), c, (1, 2))
  soft_outline(c, p[0], p[3])
  return c.image()
 

@@ -262,7 +262,9 @@ door**, which set `open`; its `-open` sprite shows the inside.
 
 Bins set down as street furniture (the kerb's, the square's, the park's, a
 suburban house's) are catalogue props too, so they can be looked into and
-knocked over: `binProp` in `src/world/v3/plan.ts`.
+knocked over, and a shop's pavement board can be shouldered down:
+`kerbProp` in `src/world/v3/plan.ts`. The ice chest outside a petrol station
+or market (`sites.ts`) is the `iceChest` prop, its lid lifted to look in.
 
 A blow to a prop that both `topples` and is `breakable` dents it as it goes
 over; once it is down, further blows break it. **Strike it** dents without

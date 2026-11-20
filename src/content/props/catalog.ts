@@ -962,6 +962,8 @@ export const propDefs: Record<string, PropDef> = {
     name: "Milk churn",
     family: "milk-churn",
     container: true,
+    lid: true,
+    tips: true,
     portable: true,
     where: "worksite",
   },
@@ -1179,6 +1181,12 @@ export const propDefs: Record<string, PropDef> = {
     family: "street-bin",
     container: true,
   },
+  pavementBoard: {
+    topples: true,
+    solid: true,
+    name: "Pavement board",
+    family: "pavement-board",
+  },
   drum: {
     topples: true,
     shove: { as: "free", mass: 1.5 },
@@ -1294,7 +1302,16 @@ export const propDefs: Record<string, PropDef> = {
     family: "cardboard-box",
     portable: true,
     container: true,
+    lid: true,
     breakable: "paper",
+  },
+  iceChest: {
+    solid: true,
+    name: "Ice chest",
+    family: "ice-chest",
+    container: true,
+    lid: true,
+    variants: 2,
   },
   /** Carried out to the rows and home again, never left lying in a yard. */
   hoe: {

@@ -122,25 +122,43 @@ def barrel(v=0):
  return c.image()
 
 
-def plain_box(v=0):
+def plain_box(v=0, lid=True):
  """A low board box with a lift-off lid: the lid seen from above and
- overhanging by a pixel, broad boards and dovetails at the corners."""
- c = Canvas(19, 17)
+ overhanging by a pixel, broad boards and dovetails at the corners. Open,
+ the lid leans on the back and the box shows its straw."""
+ o = 7 if not lid else 0
+ c = Canvas(19, 17 + o)
  c.PAD = 2
  w = BOX_WOOD[v]
- c.rect(0, 0, 18, 6, w[4])
- c.hline(0, 18, 0, w[3]); c.hline(0, 18, 5, w[4] if v == 1 else w[4])
- for y in (2, 4): streak(c, 1, 17, y, w, 3)
- c.hline(0, 18, 6, w[3]); c.hline(0, 18, 7, w[1])
- for y in range(8, 16):
-  c.hline(1, 17, y, w[2] if y < 12 else w[1] if y == 15 else w[2])
- c.hline(1, 17, 11, w[1]); c.hline(1, 17, 8, w[3])
- streak(c, 2, 15, 9, w, 2); streak(c, 2, 15, 13, w, 2)
+ if lid:
+  c.rect(0, 0, 18, 6, w[4])
+  c.hline(0, 18, 0, w[3]); c.hline(0, 18, 5, w[4])
+  for y in (2, 4): streak(c, 1, 17, y, w, 3)
+  c.hline(0, 18, 6, w[3])
+ else:
+  c.rect(0, 0, 18, 7, w[3])                                                   # the lid against the back
+  for y in (2, 5): streak(c, 1, 17, y, w, 2)
+  c.hline(0, 18, 0, w[4]); c.hline(0, 18, 7, w[2])
+  c.rect(1, o, 17, o + 6, w[1]); c.hline(1, 17, o, w[0])
+  c.vline(1, o, o + 6, w[2]); c.hline(1, 17, o + 6, w[3])
+  straw = ('#e9d58c', '#c8ae5e', '#9c8240')
+  for x in range(3, 16):
+   for y in range(o + 3, o + 6):
+    if (x * 5 + y * 3) % 7 < 4: c.set(x, y, straw[(x + y) % 3])
+  c.hline(0, 18, o + 6, w[4])
+ c.hline(0, 18, o + 7, w[1])
+ for y in range(o + 8, o + 16):
+  c.hline(1, 17, y, w[1] if y == o + 15 else w[2])
+ c.hline(1, 17, o + 11, w[1]); c.hline(1, 17, o + 8, w[3])
+ streak(c, 2, 15, o + 9, w, 2); streak(c, 2, 15, o + 13, w, 2)
  for x in (1, 17):
-  for y in range(8, 16, 2): c.set(x, y, w[3] if x == 1 else w[1])
- c.hline(1, 17, 16, w[0])
+  for y in range(o + 8, o + 16, 2): c.set(x, y, w[3] if x == 1 else w[1])
+ c.hline(1, 17, o + 16, w[0])
  soft_outline(c, w[0], w[3])
  return c.image()
+
+
+def plain_box_open(v=0): return plain_box(v, lid=False)
 
 
 KRAFT = [['#4a3420', '#6e4f2e', '#93703f', '#b38f55', '#cfae74', '#e3caa0'],
@@ -148,27 +166,48 @@ KRAFT = [['#4a3420', '#6e4f2e', '#93703f', '#b38f55', '#cfae74', '#e3caa0'],
          ['#1e2c38', '#2f4558', '#43617a', '#5d7f97', '#7f9fb3', '#a9c2cf']]
 
 
-def cardboard_box(v=0):
+def cardboard_box(v=0, state=None):
  """A folded carton: flaps meeting at a taped seam on top, a crease where
- the top turns down, a stencilled mark on the face."""
- c = Canvas(13, 13)
- c.PAD = 2
+ the top turns down, a stencilled mark on the face. Opened, the flaps stand
+ out from the mouth; crushed, the top caves in and the face buckles."""
  k = KRAFT[v]
  tape = ['#8f8468', '#c9bd98', '#e6dcbc']
- c.rect(0, 0, 12, 3, k[4])
- c.hline(0, 5, 0, k[5]); c.hline(7, 12, 0, k[4])
- c.vline(6, 0, 3, k[2])
- c.set(5, 1, k[5]); c.set(1, 2, k[5])
- c.hline(0, 12, 4, k[1])
- c.rect(0, 5, 12, 12, k[3])
- c.rect(9, 5, 12, 12, k[2])
- c.vline(0, 5, 12, k[4])
- c.rect(5, 0, 7, 3, tape[2]); c.vline(7, 0, 3, tape[1])
- c.rect(5, 5, 7, 7, tape[1]); c.vline(7, 5, 7, tape[0])
- c.rect(2, 9, 4, 10, k[1]); c.set(3, 9, k[2])
- c.hline(0, 12, 12, k[1])
+ X, Y = (2, 3) if state == 'open' else (0, 0)
+ c = Canvas(13 + 2 * X, 13 + Y)
+ c.PAD = 2
+ if state == 'open':
+  c.rect(X + 1, 0, X + 11, 2, k[4]); c.hline(X + 1, X + 11, 0, k[5])                 # the back flap
+  for i in range(4):                                                                 # the side flaps
+   c.hline(i, X + 1, Y + i, k[5] if i < 2 else k[4]); c.hline(X + 11, c.w - 1 - i, Y + i, k[2])
+  c.rect(X, Y, X + 12, Y + 3, k[1]); c.hline(X, X + 12, Y, k[0])
+  c.rect(X + 2, Y + 1, X + 9, Y + 3, k[2]); c.set(X + 4, Y + 2, k[3]); c.set(X + 7, Y + 3, k[3])
+  c.hline(X, X + 12, Y + 3, k[4])
+ elif state == 'dented':
+  c.rect(0, 1, 12, 3, k[4]); c.hline(0, 3, 0, k[5]); c.hline(9, 12, 0, k[4])
+  c.rect(3, 1, 9, 3, k[2]); c.rect(4, 2, 8, 3, k[1]); c.hline(4, 8, 1, k[3])
+  c.set(5, 1, tape[1]); c.set(6, 2, tape[0]); c.set(7, 1, tape[2])
+ else:
+  c.rect(0, 0, 12, 3, k[4])
+  c.hline(0, 5, 0, k[5]); c.hline(7, 12, 0, k[4])
+  c.vline(6, 0, 3, k[2])
+  c.set(5, 1, k[5]); c.set(1, 2, k[5])
+  c.rect(5, 0, 7, 3, tape[2]); c.vline(7, 0, 3, tape[1])
+ c.hline(X, X + 12, Y + 4, k[1])
+ c.rect(X, Y + 5, X + 12, Y + 12, k[3])
+ c.rect(X + 9, Y + 5, X + 12, Y + 12, k[2])
+ c.vline(X, Y + 5, Y + 12, k[4])
+ c.rect(X + 5, Y + 5, X + 7, Y + 7, tape[1]); c.vline(X + 7, Y + 5, Y + 7, tape[0])
+ if state == 'dented':
+  for x, y in ((3, 6), (4, 7), (5, 8), (6, 8), (7, 9), (8, 9)): c.set(x, y, k[2]); c.set(x, y + 1, k[4])
+  c.set(12, 6, k[1]); c.set(11, 7, k[1])
+ c.rect(X + 2, Y + 9, X + 4, Y + 10, k[1]); c.set(X + 3, Y + 9, k[2])
+ c.hline(X, X + 12, Y + 12, k[1])
  soft_outline(c, k[0], k[3])
  return c.image()
+
+
+def cardboard_box_open(v=0): return cardboard_box(v, 'open')
+def cardboard_box_dented(v=0): return cardboard_box(v, 'dented')
 
 
 def _sack(c, cx, base, rx, tall, p, lean=0):

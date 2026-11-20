@@ -188,21 +188,41 @@ def tyre_stack(v=0):
  return c.image()
 
 
-def ice_chest(v=0):
- """The freezer outside a store's door: v0 bagged ice, v1 a soft-drink
- cooler."""
- c = Canvas(24, 18)
- _box(c, 1, 2, 22, 15, WHITE)
- c.hline(1, 22, 1, WHITE[6])
+def ice_chest(v=0, lid=True):
+ """A chest freezer outside a store's door, its top seen from above: v0
+ bagged ice under a white lid, v1 a soft-drink cooler under sliding glass."""
+ o = 7 if v == 0 and not lid else 0
+ c = Canvas(24, 18 + o)
  m = BLUE if v == 0 else RED
- c.rect(3, 4, 20, 8, m[3]); c.hline(3, 20, 4, m[5])
- for x in ((7, 8, 11, 12, 15, 16) if v == 0 else range(6, 19, 2)): c.set(x, 6, WHITE[6])
- if v == 0:
-  for x in (5, 18): c.set(x, 5, WHITE[6]); c.set(x, 7, WHITE[5])                         # frost
- c.vline(12, 9, 14, WHITE[2]); c.set(10, 11, STEEL[2]); c.set(14, 11, STEEL[2])          # the doors
- c.hline(2, 21, 16, IRON[1]); c.hline(1, 22, 17, IRON[0])
+ c.rect(1, o + 1, 22, o + 6, WHITE[5])
+ c.hline(1, 22, o + 1, WHITE[4]); c.vline(1, o + 1, o + 6, WHITE[6]); c.vline(22, o + 1, o + 6, WHITE[3])
+ if v == 0 and lid:
+  c.rect(2, o + 2, 21, o + 5, WHITE[5]); c.hline(2, 21, o + 2, WHITE[6]); c.hline(2, 21, o + 5, WHITE[4])
+  c.hline(10, 13, o + 6, STEEL[2])
+ elif v == 0:
+  c.rect(1, 0, 22, o, WHITE[4]); c.rect(3, 1, 20, o - 1, WHITE[3])           # the lid up on its hinge
+  c.vline(1, 0, o, WHITE[6]); c.hline(1, 22, 0, WHITE[5]); c.hline(10, 13, 1, STEEL[2])
+  c.rect(2, o + 1, 21, o + 6, GLASS[1]); c.hline(2, 21, o + 1, WHITE[2])
+  for x, y in ((3, 3), (7, 2), (11, 3), (15, 2), (19, 3), (5, 5), (9, 5), (13, 5), (17, 5)):
+   c.rect(x, o + y, x + 2, o + y + 1, WHITE[5]); c.set(x, o + y, WHITE[6]); c.set(x + 2, o + y + 1, BLUE[5])
+   c.set(x + 1, o + y - 1, BLUE[4])
+ else:
+  shut = range(2, 12) if lid else range(12, 22)
+  c.rect(2, 2, 21, 5, GLASS[2])
+  for x in range(2, 22, 2):
+   for y, cap in ((2, RED[5]), (4, YELLOW[5])):
+    c.set(x + (y == 4), y + 1, cap if x not in shut else GLASS[4])
+  for x in shut: c.set(x, 2, GLASS[6]); c.set(x, 5, GLASS[3])
+  c.vline(11 if lid else 12, 2, 5, WHITE[3])
+ _box(c, 1, o + 7, 22, o + 15, WHITE)
+ c.rect(3, o + 9, 20, o + 12, m[3]); c.hline(3, 20, o + 9, m[5])
+ for x in ((7, 8, 11, 12, 15, 16) if v == 0 else range(6, 19, 2)): c.set(x, o + 11, WHITE[6])
+ c.hline(2, 21, o + 16, IRON[1]); c.hline(1, 22, o + 17, IRON[0])
  soft_outline(c, WHITE[0], WHITE[2])
  return c.image()
+
+
+def ice_chest_open(v=0): return ice_chest(v, lid=False)
 
 
 def produce_stand(v=0):
