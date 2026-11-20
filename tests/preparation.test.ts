@@ -11,7 +11,9 @@ import * as device from "../src/runtime/device";
 import * as session from "../src/runtime/session";
 import * as store from "../src/runtime/prepared-store";
 import * as travelWaterways from "../src/world/travel/waterways";
-import { takeTerrainWorker } from "../src/runtime/terrain-worker-owner";
+import { releaseTerrainWorker, retainTerrainWorker, takeSpareTerrainWorkers, takeTerrainWorker, warmTerrainPool } from "../src/runtime/terrain-worker-owner";
+import type { TerrainRequest } from "../src/render/terrain-worker";
+import type { WorldModel } from "../src/core/types";
 import type { WorldPreparationRequest, WorldPreparationResult } from "../src/world/worker";
 
 it.each([true, false])("hands off a prepared world with phone memory policy %s", async (phone) => {
@@ -49,6 +51,33 @@ it.each([true, false])("hands off a prepared world with phone memory policy %s",
     vi.restoreAllMocks();
   }
 }, 60000);
+
+it("starts the terrain pool warm beside the retained worker and ends it with the world", () => {
+  const posted = new Map<object, TerrainRequest[]>();
+  const terminate = vi.fn();
+  vi.spyOn(device, "workerBudget").mockReturnValue(3);
+  vi.stubGlobal("Worker", class {
+    terminate = terminate;
+    postMessage(request: TerrainRequest) { posted.set(this, [...posted.get(this) ?? [], request]); }
+  });
+  try {
+    const world = { pack: {}, spawn: { x: 20, y: -5 }, topography: () => undefined, prepare: () => ({}) } as unknown as WorldModel;
+    const retained = new Worker("retained");
+    retainTerrainWorker(world, retained);
+    warmTerrainPool(world, "pool");
+    const ground = { ground: { x: -8, y: -40, size: 64 } };
+    expect(posted.get(retained)).toEqual([ground]);
+    const spares = [...posted.keys()].filter((w) => w !== retained);
+    expect(spares.map((w) => posted.get(w)!.map((r) => Object.keys(r)[0]))).toEqual([["pack", "ground"], ["pack", "ground"]]);
+    expect(posted.get(spares[0])![1]).toEqual(ground);
+    releaseTerrainWorker(world);
+    expect(terminate).toHaveBeenCalledTimes(3);
+    expect(takeSpareTerrainWorkers(world)).toEqual([]);
+  } finally {
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  }
+});
 
 it("keeps a worker cancelled while loading for the next start, and terminates one cancelled at work", async () => {
   let controller = new AbortController();

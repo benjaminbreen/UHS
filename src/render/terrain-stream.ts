@@ -1,7 +1,7 @@
 import { frostCover, snowCover } from "./snow-cover";
 import { usesLivingWater } from "./living-water/game";
 import { smallMemoryDevice, tellMemory, workerBudget } from "../runtime/device";
-import { peekTerrainWorker, takeTerrainWorker } from "../runtime/terrain-worker-owner";
+import { peekTerrainWorker, takeSpareTerrainWorkers, takeTerrainWorker } from "../runtime/terrain-worker-owner";
 import { seasonAt } from "../core/livelihood";
 import { tideAt } from "../content/geography/waterscapes";
 import { ensureWaterAtlas } from "./water-motifs";
@@ -153,6 +153,7 @@ export class TerrainStream {
     };
     first.worker.postMessage(this.styling);
     this.pool.push(first);
+    for (const worker of takeSpareTerrainWorkers(world)) this.adopt(worker);
     live.add(this);
   }
   prefetchLanding(world: WorldModel, point: Point, clock: number) {
@@ -203,19 +204,22 @@ export class TerrainStream {
     // Preparing the same world for every raster worker repeated a large
     // structured clone during initial loading.
     this.prepared ??= prepare.call(this.world);
-    const r: Rasterizer = {
-      worker: tellMemory(new Worker(new URL("../world/worker.ts", import.meta.url), { type: "module" })),
-    };
-    this.listen(r);
-    r.worker.postMessage({
+    const worker = tellMemory(new Worker(new URL("../world/worker.ts", import.meta.url), { type: "module" }));
+    worker.postMessage({
       pack: this.world.pack,
       temporal: this.world.temporal,
       seed: this.seed,
       prepared: this.prepared,
     } satisfies TerrainRequest);
-    r.worker.postMessage(this.styling);
-    this.pool.push(r);
+    this.adopt(worker);
     if (this.pool.length === WORKER_LIMIT) this.prepared = undefined;
+  }
+  /** A worker that already holds this world. */
+  private adopt(worker: Worker) {
+    const r: Rasterizer = { worker };
+    this.listen(r);
+    worker.postMessage(this.styling);
+    this.pool.push(r);
   }
   /** Every chunk the camera can see is built. */
   private visibleReady() {

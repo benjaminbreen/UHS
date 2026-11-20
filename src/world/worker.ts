@@ -47,7 +47,8 @@ self.onmessage = (
     "region" in event.data ||
     "style" in event.data ||
     "previews" in event.data ||
-    "warm" in event.data
+    "warm" in event.data ||
+    "ground" in event.data
   ) {
     handleTerrainRequest(event.data);
     return;

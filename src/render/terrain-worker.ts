@@ -44,7 +44,11 @@ export type TerrainRequest =
     }
   | { id: string; region: TerrainRegion }
   | { previews: { id: string; region: TerrainRegion }[] }
-  | { warm: TerrainRegion };
+  | { warm: TerrainRegion }
+  /** Work out the ground of a square ahead of any request: the topography
+   * and decoration a chunk samples, which cost a cold worker most of its
+   * first chunk and do not depend on the style. */
+  | { ground: { x: number; y: number; size: number } };
 /** Sent ahead of the full response for the same id. */
 export type TerrainPreviewResponse = { id: string; preview: TerrainPreview };
 export type TerrainResponse = {
@@ -101,6 +105,15 @@ export function handleTerrainRequest(data: TerrainRequest) {
       if (data.temporal) world = temporalWorld(world, data.seed, data.temporal.origin, data.temporal.year).world;
       return;
     }
+    if ("ground" in data) {
+      const { x, y, size } = data.ground;
+      for (let dy = 0; dy < size; dy++)
+        for (let dx = 0; dx < size; dx++) {
+          world.topography?.(x + dx, y + dy);
+          world.decoration(x + dx, y + dy);
+        }
+      return;
+    }
     if ("warm" in data) {
       clearWarmTerrain();
       const { x, y } = data.warm;
@@ -144,7 +157,7 @@ export function handleTerrainRequest(data: TerrainRequest) {
       ],
     });
   } catch (error) {
-    if ("warm" in data) return;
+    if ("warm" in data || "ground" in data) return;
     self.postMessage({
       id: "id" in data ? data.id : "init",
       error: String(error),

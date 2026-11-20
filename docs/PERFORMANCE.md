@@ -18,6 +18,10 @@ tests.
     loading worker for the next one.
   - On desktop, `src/runtime/terrain-worker-owner.ts` hands the warmed worker to
     the terrain stream. On phones it terminates, and terrain gets a fresh one.
+  - For a first start, `warmTerrainPool` starts the rest of the terrain pool
+    as soon as the world exists, and every terrain worker works out the ground
+    around the door while the scene boots. The scene adopts those workers
+    instead of growing cold ones.
 - **Job assignment** counts occupied workplace slots once per resident selection,
   then reuses the vacancies across eligible trades. Counts are refreshed for the
   next resident so workplace capacity and household-only jobs stay accurate.

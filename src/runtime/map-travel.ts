@@ -18,7 +18,7 @@ import { toAtlas } from "../world/geography/atlas";
 import type { Coordinate } from "../world/travel/types";
 import type { Actor, PlayerCommand, Point, Snapshot } from "../core/types";
 import type { Runtime } from "./session";
-import { releaseTerrainWorker } from "./terrain-worker-owner";
+import { releaseTerrainWorker, warmTerrainPool } from "./terrain-worker-owner";
 import {
   mapForCoordinate,
   loadTileNames,
@@ -734,7 +734,9 @@ export async function prepareConnectedStart(
 ) {
   if (setting.situation) {
     const { prepareSettingSession } = await import("./preparation");
-    return prepareSettingSession(setting, seed, signal, true, onCharacter);
+    const engine = await prepareSettingSession(setting, seed, signal, true, onCharacter);
+    warmTerrainPool(engine.world, seed);
+    return engine;
   }
   const id = mapForCoordinate({ lon: setting.lon, lat: setting.lat });
   const [{ prepareSettingSession }] = await Promise.all([import("./preparation"), loadTileNames([id])]);
@@ -757,5 +759,7 @@ export async function prepareConnectedStart(
         : map.name,
     playableMap: travel.playableMap,
   };
-  return prepareSettingSession(bounded, seed, signal, true, onCharacter, waterways);
+  const engine = await prepareSettingSession(bounded, seed, signal, true, onCharacter, waterways);
+  warmTerrainPool(engine.world, seed);
+  return engine;
 }
