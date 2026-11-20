@@ -190,6 +190,12 @@ town's centre is small and a city's is not. Over half the buildings in a city
 are left with nothing outside at all: every house with its own bin and line is
 what made a street read as a back yard.
 
+Regional storage (`regionalContainer` in `content/props/containers.ts`)
+swaps a planned sack, jar, crate or basket for the local vessel of its date
+and place. Where the plan is bulk storage (a grain-sack pile, a crate stack,
+a vat, a barrel) the grain bin, hamper, taru, Andean sack and cloth bale come
+as their large fixed versions; elsewhere they are the small portable ones.
+
 ### Market stalls
 
 `stallFor(pack, index)` picks one of five builds, and neighbouring pitches on

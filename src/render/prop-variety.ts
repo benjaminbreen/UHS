@@ -10,7 +10,6 @@ export function reviewedPropFrame(sprite: string, roll: number): string {
 }
 
 function mirrorable(sprite: string) {
-  if (sprite.startsWith("nature-container-")) return false;
   return (
     sprite === "rock" ||
     sprite.startsWith("rock-") ||

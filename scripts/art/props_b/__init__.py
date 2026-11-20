@@ -36,6 +36,7 @@ from .vessels import (pot, storage_jar, water_jug, amphora, glazed_jar,
                       metal_vessel, pithos, flask, bowl, bucket,
                       open_basket, lidded_basket)
 from . import vessels as _jars
+from . import carrying as _soft
 
 DRAW_B = {
  **STORES,
@@ -88,6 +89,24 @@ DRAW_B = {
  'trade-jar': _jars.trade_jar,
  'urpu': _jars.urpu,
  'stoneware-crock': _jars.stoneware_crock,
+ 'waterskin': _soft.waterskin,
+ 'merchant-bale': _soft.merchant_bale,
+ 'milk-bag': _soft.milk_bag,
+ 'taru': _soft.taru,
+ 'rice-bale': _soft.rice_bale,
+ 'milk-vessel': _soft.milk_vessel,
+ 'bark-box': _soft.bark_box,
+ 'coolamon': _soft.coolamon,
+ 'grain-hamper': _soft.grain_hamper,
+ 'andean-sack': _soft.andean_sack,
+ 'parfleche': _soft.parfleche,
+ 'pacific-basket': _soft.pacific_basket,
+ 'woven-grain-bin': _soft.grain_bin,
+ 'woven-grain-bin-large': _soft.big_grain_bin,
+ 'grain-hamper-large': _soft.big_grain_hamper,
+ 'taru-large': _soft.big_taru,
+ 'andean-sack-large': _soft.big_andean_sack,
+ 'merchant-bale-large': _soft.big_bale,
  'dustbin': dustbin,
  'kerosene-tin': kerosene_tin,
  'wheelie-bin': wheelie_bin,
@@ -209,6 +228,15 @@ STATES = {
  'canaanite-jar': {'fallen': _jars.canaanite_jar_fallen},
  'majiayao-jar': {'fallen': _jars.majiayao_jar_fallen},
  'urpu': {'fallen': _jars.urpu_fallen},
+ 'merchant-bale': {'open': _soft.merchant_bale_open},
+ 'taru': {'open': _soft.taru_open},
+ 'milk-vessel': {'open': _soft.milk_vessel_open, 'fallen': _soft.milk_vessel_fallen},
+ 'bark-box': {'open': _soft.bark_box_open},
+ 'grain-hamper': {'open': _soft.grain_hamper_open},
+ 'woven-grain-bin': {'open': _soft.grain_bin_open},
+ 'woven-grain-bin-large': {'open': _soft.big_grain_bin_open},
+ 'grain-hamper-large': {'open': _soft.big_grain_hamper_open},
+ 'taru-large': {'open': _soft.big_taru_open},
 }
 
 TOPPLING = {'standing-stone', 'roman-milestone', 'rune-marker', 'stone-lantern', 'stool', 'dustbin', 'steel-drum', 'wheelie-bin'}

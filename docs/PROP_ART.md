@@ -175,8 +175,9 @@ The worst props are listed, worst first, in
 formula drew them: voxel and SDF smear, one bleached palette, no top, a size
 taken from a bounding box. The redraw puts each pixel down on purpose, while
 keeping the houses' view. The dustbin and the kerosene tin in
-`props_b/industrial.py`, and the regional jars at the end of
-`props_b/vessels.py`, are the worked examples.
+`props_b/industrial.py`, the regional jars at the end of
+`props_b/vessels.py`, and the baskets and bags in `props_b/carrying.py` are
+the worked examples.
 
 1. **Size it.** Real height against the 40px figure (about 23px a metre),
    then enlarge for presence: about 1.6x for something waist-high, more for
@@ -186,7 +187,8 @@ keeping the houses' view. The dustbin and the kerosene tin in
    their width, and every ring, rib and foot follows the same arc.
    `python3 -m scripts.art.props_b.review --grid <family> [variant] [ramps…]`
    prints the shipped sprite as a grid to trace over; for a new shape, draw
-   the arc first.
+   the arc first. A redraw from a blank grid drifts toward a side view: start
+   from the shipped sprite whenever there is one.
 3. **Finish in a grid.** `draw_grid(rows, ramp_keys(main, second, third))`:
    digits are steps of the main ramp, `a-g` and `A-G` of the other two, so one
    drawing gives every variant and they differ in value as well as hue. Light
@@ -195,7 +197,8 @@ keeping the houses' view. The dustbin and the kerosene tin in
 4. **Edge it like the houses.** `soft_outline(c, ramp[0], ramp[2])` last,
    never black. Thin parts with their own gaps go on after it.
 5. **Draw what interacting does.** Give each state its own sprite: `open`
-   (lid off, the lid set down beside it), `dented` (bite the silhouette with
+   (lid off, the lid set down beside it and seen from above like the rest:
+   an ellipse, never a profile), `dented` (bite the silhouette with
    `x` in an overlay grid so it reads at 1x), `fallen`. Overlays are grids
    stamped at a fixed offset with `draw_grid(rows, keys, c, at)`. A round
    thing knocked over is `lay_down(rows)`: the grid transposed, which keeps

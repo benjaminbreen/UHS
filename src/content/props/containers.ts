@@ -4,29 +4,34 @@ import type { PropDef } from "./catalog";
 const vessel = { solid: true, container: true, variants: 1, rarity: 0.65 } as const;
 const portable = { ...vessel, portable: true };
 export const containerProps: Record<string, PropDef> = {
-  waterskin: { ...portable, name: "Sewn waterskin", family: "waterskin", sprite: "nature-container-waterskin", breakable: "fiber", contents: { water: 2 }, shove: { as: "free", mass: 0.4 } },
-  merchantBale: { ...portable, where: "trade", name: "Bound cloth bale", family: "merchant-bale", sprite: "nature-container-bale", breakable: "fiber", shove: { as: "free", mass: 1.2 }, visualClearance: [1,1,0,0] },
+  waterskin: { ...portable, name: "Sewn waterskin", family: "waterskin", variants: 2, breakable: "fiber", contents: { water: 2 }, shove: { as: "free", mass: 0.4 } },
+  merchantBale: { ...portable, where: "trade", name: "Bound cloth bale", family: "merchant-bale", variants: 2, breakable: "fiber", shove: { as: "free", mass: 1.2 }, visualClearance: [1,1,0,0] },
   waterJar: { ...portable, name: "Covered water jar", family: "water-jar", lid: true, tips: true, variants: 3, breakable: "clay", contents: { water: 3 }, shove: { as: "free", mass: 0.8, rolls: true } },
-  milkBag: { ...portable, name: "Leather milk bag", family: "milk-bag", sprite: "nature-container-milkbag", breakable: "fiber", shove: { as: "free", mass: 0.6 }, visualClearance: [1,1,0,0] },
+  milkBag: { ...portable, name: "Leather milk bag", family: "milk-bag", variants: 2, breakable: "fiber", shove: { as: "free", mass: 0.6 }, visualClearance: [1,1,0,0] },
   onggiJar: { ...vessel, name: "Onggi storage jar", family: "onggi", lid: true, variants: 3, breakable: "glaze", shove: { as: "free", mass: 1.6 }, visualClearance: [1,1,0,0] },
-  taru: { ...portable, name: "Wooden storage tub", family: "taru", sprite: "nature-container-taru", breakable: "wood", shove: { as: "free", mass: 1 }, visualClearance: [1,1,0,0] },
-  riceBale: { ...portable, name: "Straw rice bale", family: "rice-bale", sprite: "nature-container-ricebale", breakable: "fiber", contents: { grain: 4 }, shove: { as: "free", mass: 1.1 } },
+  taru: { ...portable, name: "Wooden storage tub", family: "taru", lid: true, variants: 2, breakable: "wood", shove: { as: "free", mass: 1 }, visualClearance: [1,1,0,0] },
+  riceBale: { ...portable, name: "Straw rice bale", family: "rice-bale", variants: 2, breakable: "fiber", contents: { grain: 4 }, shove: { as: "free", mass: 1.1 } },
   tradeJar: { ...vessel, name: "Lugged storage jar", family: "trade-jar", variants: 3, breakable: "glaze", shove: { as: "free", mass: 1.6 }, visualClearance: [1,1,0,0] },
-  milkVessel: { ...portable, name: "Covered woven milk vessel", family: "milk-vessel", sprite: "nature-container-milkcontainer", breakable: "fiber", shove: { as: "free", mass: 0.5 } },
+  milkVessel: { ...portable, name: "Covered woven milk vessel", family: "milk-vessel", lid: true, tips: true, variants: 2, breakable: "fiber", shove: { as: "free", mass: 0.5 } },
   urpu: { ...portable, name: "Urpu storage vessel", family: "urpu", tips: true, variants: 3, breakable: "clay", shove: { as: "free", mass: 1.3 }, visualClearance: [1,1,0,0] },
-  barkBox: { ...portable, name: "Birchbark storage box", family: "bark-box", sprite: "nature-container-barkbox", breakable: "fiber", shove: { as: "free", mass: 0.4 }, visualClearance: [1,1,0,0] },
-  coolamon: { ...portable, name: "Carved wooden carrying dish", family: "coolamon", sprite: "nature-container-coolamon", breakable: "wood", shove: { as: "free", mass: 0.5 }, visualClearance: [1,1,0,0] },
+  barkBox: { ...portable, name: "Birchbark storage box", family: "bark-box", lid: true, variants: 2, breakable: "fiber", shove: { as: "free", mass: 0.4 }, visualClearance: [1,1,0,0] },
+  coolamon: { ...portable, name: "Carved wooden carrying dish", family: "coolamon", variants: 2, breakable: "wood", shove: { as: "free", mass: 0.5 }, visualClearance: [1,1,0,0] },
   egyptJar: { ...portable, name: "Sealed Egyptian storage jar", family: "egyptian-jar", tips: true, variants: 3, breakable: "clay", shove: { as: "free", mass: 1.1 } },
   canaanJar: { ...portable, where: "trade", name: "Canaanite transport jar", family: "canaanite-jar", tips: true, variants: 3, breakable: "clay", shove: { as: "free", mass: 1.2 }, visualClearance: [1,1,0,0] },
   paintedChineseJar: { ...portable, name: "Painted storage jar", family: "majiayao-jar", tips: true, variants: 3, breakable: "clay", shove: { as: "free", mass: 1.1 }, visualClearance: [1,1,0,0] },
-  grainHamper: { ...portable, name: "Lidded grain basket", family: "grain-hamper", sprite: "nature-container-grainhamper", breakable: "fiber", contents: { grain: 4 }, shove: { as: "free", mass: 1.3 }, visualClearance: [1,1,0,0] },
+  grainHamper: { ...portable, name: "Lidded grain basket", family: "grain-hamper", lid: true, variants: 2, breakable: "fiber", contents: { grain: 4 }, shove: { as: "free", mass: 1.3 }, visualClearance: [1,1,0,0] },
   olla: { ...portable, name: "Earthen storage olla", family: "olla", tips: true, variants: 3, breakable: "clay", shove: { as: "free", mass: 0.9 }, visualClearance: [1,1,0,0] },
-  andeanSack: { ...portable, name: "Woven Andean storage sack", family: "andean-sack", sprite: "nature-container-andeansack", breakable: "fiber", shove: { as: "free", mass: 0.7 }, visualClearance: [1,1,0,0] },
-  parfleche: { ...portable, name: "Rawhide parfleche case", family: "parfleche", sprite: "nature-container-parfleche", breakable: "fiber", shove: { as: "free", mass: 0.5 }, visualClearance: [1,1,0,0] },
-  pacificBasket: { ...portable, name: "Plaited leaf carrying basket", family: "pacific-basket", sprite: "nature-container-pacificbasket", breakable: "fiber", shove: { as: "free", mass: 0.5 }, visualClearance: [1,1,0,0] },
-  grainBin: { ...vessel, name: "Raised woven grain bin", family: "woven-grain-bin", sprite: "nature-container-grainbin", breakable: "fiber", contents: { grain: 8 }, shove: { as: "free", mass: 2.5 }, visualClearance: [1,1,1,0] },
+  andeanSack: { ...portable, name: "Woven Andean storage sack", family: "andean-sack", variants: 2, breakable: "fiber", shove: { as: "free", mass: 0.7 }, visualClearance: [1,1,0,0] },
+  parfleche: { ...portable, name: "Rawhide parfleche case", family: "parfleche", variants: 2, breakable: "fiber", shove: { as: "free", mass: 0.5 }, visualClearance: [1,1,0,0] },
+  pacificBasket: { ...portable, name: "Plaited leaf carrying basket", family: "pacific-basket", variants: 2, breakable: "fiber", shove: { as: "free", mass: 0.5 }, visualClearance: [1,1,0,0] },
+  grainBin: { ...vessel, name: "Raised woven grain bin", family: "woven-grain-bin", lid: true, variants: 2, breakable: "fiber", contents: { grain: 8 }, shove: { as: "free", mass: 2.5 }, visualClearance: [1,1,1,0] },
   stonewareCrock: { ...portable, name: "Lidded stoneware crock", family: "stoneware-crock", lid: true, variants: 3, breakable: "glaze", shove: { as: "free", mass: 0.9 }, visualClearance: [1,1,0,0] },
   keroseneTin: { ...portable, name: "Reused kerosene tin", family: "kerosene-tin", breakable: "metal", shove: { as: "free", mass: 0.7 }, visualClearance: [1,1,0,0] },
+  largeGrainBin: { ...vessel, name: "Large raised grain bin", family: "woven-grain-bin-large", lid: true, variants: 2, breakable: "fiber", contents: { grain: 16 }, shove: { as: "free", mass: 5 }, visualClearance: [1,1,1,0] },
+  largeHamper: { ...vessel, name: "Large coiled grain store", family: "grain-hamper-large", lid: true, variants: 2, breakable: "fiber", contents: { grain: 10 }, shove: { as: "free", mass: 3 }, visualClearance: [1,1,1,0] },
+  largeTaru: { ...vessel, name: "Large storage tub", family: "taru-large", lid: true, variants: 2, breakable: "wood", shove: { as: "free", mass: 4 }, visualClearance: [1,1,1,0] },
+  largeAndeanSack: { ...vessel, name: "Full Andean storage sack", family: "andean-sack-large", variants: 2, breakable: "fiber", contents: { grain: 6 }, shove: { as: "free", mass: 2 }, visualClearance: [1,1,0,0] },
+  largeBale: { ...vessel, where: "trade", name: "Large cloth bale", family: "merchant-bale-large", variants: 2, breakable: "fiber", shove: { as: "free", mass: 3 }, visualClearance: [1,1,0,0] },
 };
 
 export const containerAbout: Record<string, string> = {
@@ -53,6 +58,11 @@ export const containerAbout: Record<string, string> = {
   grainBin: "A woven grain bin reinforced with wooden ribs, raised on short feet and closed with a removable lid.",
   stonewareCrock: "A thick-walled stoneware crock with a lid, lifting ears and blue bands, for keeping food and household supplies.",
   keroseneTin: "A sheet-metal fuel tin reused as a household container. Its folded seams, wire handle and faded label are still visible.",
+  largeGrainBin: "A tall wicker bin for a household's year of paddy, ribbed with wood and raised on legs, its domed lid lifting off.",
+  largeHamper: "A big coiled-grass store with a domed lid, holding a season's millet.",
+  largeTaru: "A large cedar tub bound with hoops, for soy, sake or pickles.",
+  largeAndeanSack: "A striped costal packed full and tied at the corners, as stacked in storerooms.",
+  largeBale: "A wholesale bale of cloth sewn into a cover and roped both ways, too heavy for one person.",
 };
 
 type ContainerSite = Pick<WorldSetting, "year" | "culture" | "lon" | "lat" | "settlement">;
@@ -104,6 +114,9 @@ export function regionalContainers(s: ContainerSite | undefined): string[] {
   return result;
 }
 
+/** A bulk store planned where a sack pile, crate stack, vat or barrel stands. */
+const large: Record<string, string> = { grainBin: "largeGrainBin", grainHamper: "largeHamper", taru: "largeTaru", andeanSack: "largeAndeanSack", merchantBale: "largeBale" };
+
 /** Match the function of an existing store, without changing its goods or ownership. */
 export function regionalContainer(s: ContainerSite | undefined, key: string, roll: number): string | undefined {
   const candidates = regionalContainers(s).filter((id) => {
@@ -114,5 +127,6 @@ export function regionalContainer(s: ContainerSite | undefined, key: string, rol
     if (["basket","liddedBasket","room-basket","coolamon","room-pack"].includes(key)) return ["barkBox","coolamon","milkVessel","milkBag","grainHamper","pacificBasket","grainBin","andeanSack","parfleche"].includes(id) || key === "room-pack" && id === "waterskin";
     return false;
   });
-  return candidates.length && roll < .72 ? candidates[Math.min(candidates.length-1, Math.floor(roll/.72*candidates.length))] : undefined;
+  const id = candidates.length && roll < .72 ? candidates[Math.min(candidates.length-1, Math.floor(roll/.72*candidates.length))] : undefined;
+  return id && ["grainSacks","crateStack","vat","barrel"].includes(key) ? large[id] ?? id : id;
 }

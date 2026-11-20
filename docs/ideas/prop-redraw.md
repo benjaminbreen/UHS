@@ -22,18 +22,7 @@ Each family scored 0-2 on seven things, and these are the lowest totals:
 - **States**: whatever the player can do to it (open, dent, knock over) is
   drawn.
 
-## 1. Off-style renders (14)
-
-Drawn by the SDF/voxel container study (`container_studies.py`). Soft voxel
-shading, one bleached palette, mostly 1.5-2x too big, boxes without tops.
-Retire `container_studies.py` when the last goes.
-
-- Containers (`nature-container-*`): andeansack, bale, barkbox, coolamon,
-  demijohn, grainbin, grainhamper, milkbag, milkcontainer, pacificbasket,
-  parfleche, ricebale, taru, waterskin. The bale, barkbox, parfleche and
-  grainhamper want a `lid`/`open` state.
-
-## 2. Front-only boxes (15)
+## 1. Front-only boxes (15)
 
 No top plane, flat fill, and nothing to do with them. Most are bins and
 boxes the player will want to open, kick or dent.
@@ -44,7 +33,7 @@ boxes the player will want to open, kick or dent.
 - news-box, kerb-mailbox, pavement-board (`fallen`), menu-board,
   parking-meter, bus-stop, vending-machine, post-box
 
-## 3. Ground slabs that read as stickers (13)
+## 2. Ground slabs that read as stickers (13)
 
 Flat ellipses or rectangles with no edge depth or texture logic.
 
@@ -52,7 +41,7 @@ Flat ellipses or rectangles with no edge depth or texture logic.
   grave-mound, shell-midden, kerb-rubbish
 - gully-grate, tree-grate, trolley-bay, newspapers, floor-carpet
 
-## 4. Thin or unreadable silhouettes (20)
+## 3. Thin or unreadable silhouettes (20)
 
 - bicycle, bike-rack, cafe-terrace, works-fence, travois, hurdle, fish-weir
 - stick (A), censer, catch, bedroll, sack, seat-stone, burial-stone, jizo
@@ -79,4 +68,12 @@ Flat ellipses or rectangles with no edge depth or texture logic.
   stove with an iron plate, a clay charcoal stove, one hand-drawn kettle;
   four flame frames and a cold `-out` frame each. Replaced the equipment
   study's voxel tannur and stove and the old A painters
+- the soft containers in `carrying.py`: waterskin, merchant-bale, milk-bag,
+  taru, rice-bale, milk-vessel, bark-box, coolamon, grain-hamper,
+  andean-sack, parfleche, pacific-basket, woven-grain-bin. The taru, bark
+  box, hamper, grain bin and milk vessel lift their lids; the bale unties to
+  show its bolts. The SDF studies' bin, hamper, taru, sack and bale were
+  traced at 0.8x onto the ramps as large fixed stores (`*-large`), which keep
+  their view from above. `container_studies.py` is gone, and with it the
+  unplaced demijohn
 - Still procedural: the dustbin's fallen state, from `fallen.py`

@@ -315,7 +315,7 @@ export function withProps(world: WorldModel, seed: string, state = propState()):
           const local = (entrance && world.geography?.packAt(entrance.x,entrance.y)?.setting) ?? world.pack.setting;
           const key = regionalContainer(local,o.prop,random(seed,"regional-container",o.id));
           if (key && (o.pos.space !== "outside" || usable(o.pos,o.id,key) && belongs(key,o.pos,false))) {
-            o.prop=key; o.sprite=propDefs[key].sprite!; o.name=propDefs[key].name;
+            stamp(o,key);
           }
         }
       } else if (o.kind === "container")

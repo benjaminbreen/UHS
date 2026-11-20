@@ -273,6 +273,258 @@
       ]
     },
     {
+      "id": "waterskin",
+      "name": "Sewn waterskin",
+      "group": "Storage & carrying",
+      "size": [
+        25,
+        16
+      ],
+      "description": "A goatskin sewn up whole, lying on its side, the neck tied with a cord.",
+      "variants": [
+        "Dark goat",
+        "Red hide"
+      ]
+    },
+    {
+      "id": "merchant-bale",
+      "name": "Bound cloth bale",
+      "group": "Storage & carrying",
+      "size": [
+        26,
+        21
+      ],
+      "description": "Bolts of cloth wrapped in sacking and roped crosswise for the road; untied, the dyed bolts show.",
+      "variants": [
+        "Sacking",
+        "Linen wrap"
+      ]
+    },
+    {
+      "id": "milk-bag",
+      "name": "Leather milk bag",
+      "group": "Storage & carrying",
+      "size": [
+        21,
+        22
+      ],
+      "description": "A hide bag hung or set down for churning, a stick through its mouth.",
+      "variants": [
+        "Brown hide",
+        "Dark hide"
+      ]
+    },
+    {
+      "id": "taru",
+      "name": "Wooden storage tub",
+      "group": "Storage & carrying",
+      "size": [
+        21,
+        23
+      ],
+      "description": "A cedar tub of staves bound with split bamboo hoops, with a loose lid.",
+      "variants": [
+        "Pale cedar",
+        "Oak"
+      ]
+    },
+    {
+      "id": "rice-bale",
+      "name": "Straw rice bale",
+      "group": "Storage & carrying",
+      "size": [
+        25,
+        14
+      ],
+      "description": "A tawara: rice packed in woven straw, capped at both ends and tied with three bands.",
+      "variants": [
+        "New straw",
+        "Weathered straw"
+      ]
+    },
+    {
+      "id": "milk-vessel",
+      "name": "Covered woven milk vessel",
+      "group": "Storage & carrying",
+      "size": [
+        15,
+        25
+      ],
+      "description": "A tightly woven milk vessel, waisted, with a band of cowries and a leather cap.",
+      "variants": [
+        "Dark fibre",
+        "Pale hide"
+      ]
+    },
+    {
+      "id": "bark-box",
+      "name": "Birchbark storage box",
+      "group": "Storage & carrying",
+      "size": [
+        19,
+        17
+      ],
+      "description": "Birchbark folded and stitched with spruce root, with a bentwood lid; berries inside.",
+      "variants": [
+        "Blueberries",
+        "Cranberries"
+      ]
+    },
+    {
+      "id": "coolamon",
+      "name": "Carved wooden carrying dish",
+      "group": "Storage & carrying",
+      "size": [
+        27,
+        13
+      ],
+      "description": "A shallow dish hollowed from a burl, for carrying seed, water or a baby.",
+      "variants": [
+        "Pale wood",
+        "Red wood"
+      ]
+    },
+    {
+      "id": "grain-hamper",
+      "name": "Lidded grain basket",
+      "group": "Storage & carrying",
+      "size": [
+        21,
+        25
+      ],
+      "description": "A coiled grass basket with dyed bands and a peaked lid; millet inside.",
+      "variants": [
+        "Red bands",
+        "Blue bands"
+      ]
+    },
+    {
+      "id": "andean-sack",
+      "name": "Woven Andean storage sack",
+      "group": "Storage & carrying",
+      "size": [
+        19,
+        20
+      ],
+      "description": "A warp-striped costal of camelid wool, its mouth folded over and tied.",
+      "variants": [
+        "Undyed with red",
+        "Brown with red"
+      ]
+    },
+    {
+      "id": "parfleche",
+      "name": "Rawhide parfleche case",
+      "group": "Storage & carrying",
+      "size": [
+        26,
+        17
+      ],
+      "description": "A folded rawhide case lying flat, its flaps painted in bold geometric panels and tied shut.",
+      "variants": [
+        "Blue and red",
+        "Red and green"
+      ]
+    },
+    {
+      "id": "pacific-basket",
+      "name": "Plaited leaf carrying basket",
+      "group": "Storage & carrying",
+      "size": [
+        21,
+        20
+      ],
+      "description": "A basket plaited from a split coconut frond, the midrib folded into handles.",
+      "variants": [
+        "Fresh green",
+        "Dried"
+      ]
+    },
+    {
+      "id": "woven-grain-bin",
+      "name": "Raised woven grain bin",
+      "group": "Storage & carrying",
+      "size": [
+        25,
+        27
+      ],
+      "description": "A wicker grain bin stiffened with wooden ribs, up on feet against damp and rats, with a conical lid.",
+      "variants": [
+        "Oak ribs",
+        "Dark ribs"
+      ]
+    },
+    {
+      "id": "woven-grain-bin-large",
+      "name": "Large raised grain bin",
+      "group": "Storage & carrying",
+      "size": [
+        31,
+        41
+      ],
+      "description": "A tall wicker bin for a household's year of paddy, ribbed with wood and raised on legs.",
+      "variants": [
+        "Warm wicker",
+        "Weathered wicker"
+      ]
+    },
+    {
+      "id": "grain-hamper-large",
+      "name": "Large coiled grain store",
+      "group": "Storage & carrying",
+      "size": [
+        28,
+        37
+      ],
+      "description": "A big coiled-grass store with a domed lid, holding a season's millet.",
+      "variants": [
+        "Red coil",
+        "Blue coil"
+      ]
+    },
+    {
+      "id": "taru-large",
+      "name": "Large storage tub",
+      "group": "Storage & carrying",
+      "size": [
+        26,
+        33
+      ],
+      "description": "A large cedar tub bound with hoops, for soy, sake or pickles.",
+      "variants": [
+        "Cedar",
+        "Oak"
+      ]
+    },
+    {
+      "id": "andean-sack-large",
+      "name": "Full Andean storage sack",
+      "group": "Storage & carrying",
+      "size": [
+        28,
+        31
+      ],
+      "description": "A striped costal packed full and tied at the corners.",
+      "variants": [
+        "Red stripes",
+        "Blue stripes"
+      ]
+    },
+    {
+      "id": "merchant-bale-large",
+      "name": "Large cloth bale",
+      "group": "Storage & carrying",
+      "size": [
+        35,
+        28
+      ],
+      "description": "A wholesale bale of cloth sewn into a cover and roped both ways.",
+      "variants": [
+        "Cream cover",
+        "Linen cover"
+      ]
+    },
+    {
       "id": "cooking-pot",
       "name": "Cooking pot",
       "group": "Household",

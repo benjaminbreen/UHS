@@ -3510,7 +3510,7 @@ export class Engine {
           kind: def.container ? "container" : "monument",
           prop: key,
           pos: { ...f.pos, space },
-          sprite: def.sprite ?? "",
+          sprite: propSprite(key) ?? "",
           inventory: {},
           owner: place.owner,
           ...(f.size[0] * f.size[1] > 1 ? { size: f.size } : {}),

@@ -24,55 +24,10 @@ from art.worked_ground import worked_ground
 from art.rocks import rocks
 from art.boulders import boulders
 from art.props_b.wells import historical_wells
-from art.props_b.container_studies import historical_containers
 from art.atlas import pack_atlas
 from art.shadows import build_shadows
 from art.stamp import write_stamp
 root=Path(__file__).resolve().parent.parent
-if '--container-history-sheet' in sys.argv:
-    from PIL import ImageFont
-    from art.props_b.container_studies import CONTAINER_STUDIES
-    from art.props_b.container_studies import container_study, SECOND_CONTAINER_STUDIES
-    from art.reference import current_adult_d
-    review=root/'artifacts/scenery-review';review.mkdir(parents=True,exist_ok=True)
-    font='/System/Library/Fonts/Supplemental/Arial.ttf'
-    title=ImageFont.truetype(font,30);label=ImageFont.truetype(font,22)
-    small=ImageFont.truetype(font,16);tiny=ImageFont.truetype(font,14)
-    adult,_=current_adult_d()
-    second='--batch2' in sys.argv
-    studies=SECOND_CONTAINER_STUDIES if second else CONTAINER_STUDIES
-    for style in (['b'] if second else ['b','c']):
-        sheet=Image.new('RGB',(1440,1650),'#202839');d=ImageDraw.Draw(sheet)
-        name='Batch 2 / B pixel art' if second else 'B / rebuilt pixel-art surfaces' if style=='b' else 'C / voxel-built objects'
-        d.text((24,18),f'Storage & carrying traditions — {name}',font=title,fill='#f4e8ca')
-        d.text((24,60),('Twelve new objects' if second else 'Same twelve objects')+' / shared 4x scale / native-size insets / square-on projection / one-pixel contours',font=small,fill='#cbd2c6')
-        d.text((24,86),'Review only. Figures show the current adult; regional traditions need narrower date and locality profiles before placement.',font=small,fill='#cbd2c6')
-        for i,(kind,name,context,detail) in enumerate(studies):
-            im=container_study(kind,voxel=style=='c')
-            assert set(im.getchannel('A').getdata()) <= {0,255}
-            assert im.getbbox()[0]>0 and im.getbbox()[1]>0
-            im.save(review/(f'container-batch2-{style}-v2-{i+1:02d}-{kind}.png' if second else f'container-{style}-v2-{i+1:02d}-{kind}.png'))
-            x=12+i%3*476;y=124+i//3*375
-            d.rounded_rectangle((x,y,x+463,y+362),radius=6,fill='#333d46')
-            d.text((x+14,y+12),f'{i+1:02d}  {name}',font=label,fill='#f4e8ca')
-            d.text((x+14,y+43),context,font=small,fill='#cbd2c6')
-            d.rectangle((x+10,y+73,x+453,y+323),fill='#859074')
-            base=y+280
-            enlarged=im.resize((im.width*4,im.height*4),Image.Resampling.NEAREST)
-            ax,ay=im.info['anchor']
-            sprite_x=x+156-round(ax*4);sprite_y=base-round(ay*4)
-            assert sprite_y>=y+73 and sprite_y+enlarged.height<=y+323,(kind,im.size,im.info)
-            sheet.paste(enlarged,(sprite_x,sprite_y),enlarged)
-            person=adult.resize((adult.width*4,adult.height*4),Image.Resampling.NEAREST)
-            sheet.paste(person,(x+290,base-person.height),person)
-            sheet.paste(im,(x+416-round(ax),base-round(ay)),im)
-            d.text((x+399,y+80),'1x',font=tiny,fill='#edf0d8')
-            d.text((x+14,y+337),detail,font=tiny,fill='#dce0cc')
-            print(f'{style.upper()} {i+1:02d} {kind}: {im.width}x{im.height}',flush=True)
-        d.text((24,1629),'One native pixel is four display pixels. Shared depth projection and upper-left lighting; enlargements use nearest-neighbour only.',font=tiny,fill='#cbd2c6')
-        out=review/(f'historical-containers-batch2-{style}-v2.png' if second else f'historical-containers-{style}-v2.png');sheet.save(out)
-        print(f'Wrote {out}',flush=True)
-    raise SystemExit(0)
 if '--well-history' in sys.argv:
     import textwrap
     from PIL import ImageFont
@@ -352,7 +307,7 @@ def pack_shadows(frames):
     pack_atlas({k:v for k,v in frames.items() if k.split(':')[0] not in first},root/'public/nature','shadows-2',4096)
 
 
-if any(arg in sys.argv for arg in ['--deciduous','--village-trees','--tropical-trees','--shrubs','--small-plants','--rocks-crates','--rock-sizes','--containers','--historical-wells','--historical-containers','--mangroves']):
+if any(arg in sys.argv for arg in ['--deciduous','--village-trees','--tropical-trees','--shrubs','--small-plants','--rocks-crates','--rock-sizes','--containers','--historical-wells','--mangroves']):
     import json
     from tempfile import TemporaryDirectory
     from art.voxel_trees import deciduous_tree
@@ -373,9 +328,6 @@ if any(arg in sys.argv for arg in ['--deciduous','--village-trees','--tropical-t
     sprites,shadows=unpack('atlas'),unpack('shadows')
     if (out/'shadows-2.json').exists():shadows.update(unpack('shadows-2'))
     changed={}
-    if '--historical-containers' in sys.argv:
-        changed.update(historical_containers())
-        for name,im in changed.items():im.save(out/f'{name}.png')
     if '--historical-wells' in sys.argv:
         changed.update(historical_wells())
         for name,im in changed.items():
@@ -515,7 +467,7 @@ if '--tree-abc' in sys.argv:
         print(f'wrote {review/species}-abc.png', flush=True)
     raise SystemExit(0)
 out=root/'public/nature';out.mkdir(exist_ok=True)
-sprites={**trees(), **understory(), **voxel_trees(), **small_shrubs(), **shrubs(), **habitat_plants(), **regional_trees(), **village_trees(), **tropical_trees(), **succulent_trees(), **succulent_shrubs(), **fungi(), **dung(), **remains(), **worked_ground(), **rocks(), **boulders(), **historical_wells(), **historical_containers(), **forest_trees(), **world_trees(), **world_plants()}
+sprites={**trees(), **understory(), **voxel_trees(), **small_shrubs(), **shrubs(), **habitat_plants(), **regional_trees(), **village_trees(), **tropical_trees(), **succulent_trees(), **succulent_shrubs(), **fungi(), **dung(), **remains(), **worked_ground(), **rocks(), **boulders(), **historical_wells(), **forest_trees(), **world_trees(), **world_plants()}
 for name,im in sprites.items():
     assert set(im.getchannel('A').getdata()) <= {0,255},name
     assert len(im.getcolors(im.width*im.height)) <= 24,name

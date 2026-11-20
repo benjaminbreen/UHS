@@ -11,7 +11,6 @@ import propShadows from "../src/render/generated/prop-shadows.json";
 import lighting from "../src/content/graphics/lighting.json";
 import { containerProps, regionalContainers, regionalContainer } from "../src/content/props/containers";
 import { propSprite } from "../src/content/props/place";
-import { propVariety } from "../src/render/prop-variety";
 import type { WorldSetting } from "../src/content/geography/types";
 import { eras } from "../src/content/history/dates";
 import { describe, it, expect } from "vitest";
@@ -178,13 +177,7 @@ describe("interactive props", () => {
       const setting = { culture,year,lat,lon,settlement:"village",climate:"temperate",placeId:"container-test" } as WorldSetting;
       const kit=propKit({...packs.roman,year,setting});
       for (const context of ["household","yard"] as const) expect(kit.contexts[context],key).toContain(key);
-      const sprite=propSprite(key)!;
-      // Redrawn by hand in the prop painters; the rest are still nature-atlas studies.
-      if (containerProps[key].sprite) {
-        expect(sprite).toBe(containerProps[key].sprite);
-        expect(natureAtlas.frames).toHaveProperty(sprite);
-        expect(propVariety("test",sprite,1,2)).toEqual({flip:false,tint:0xffffff});
-      } else expect(propAtlas.frames).toHaveProperty(sprite);
+      expect(propAtlas.frames).toHaveProperty(propSprite(key)!);
       const furniture = ["room-jars","room-sacks","room-basket","room-pack","room-crate"];
       const indoorChoices = furniture.flatMap(f => Array.from({length:100},(_,i) => regionalContainer(setting,f,i/100)));
       expect(indoorChoices,key).toContain(key);
@@ -238,9 +231,10 @@ describe("interactive props", () => {
     const indoor={...outside,id:"indoor-rice",pos:{...outside.pos,space:"home"},inventory:{grain:9}};
     const world={generatorVersion:3,pack:{...packs.roman,year:1700,setting},settlements:[],places:[],initialActors:[],initialObjects:[outside,indoor],spawn:{x:0,y:0,space:"outside"},terrain:()=>"grass",decoration:()=>undefined,blocked:()=>false,place:()=>({entrance:{x:15,y:15}})} as unknown as WorldModel;
     // Find an ordinary placement seed that exercises both eligible replacements.
-    for (let i=0;i<20 && [outside,indoor].some(o => !o.sprite.startsWith("nature-container-"));i++) withProps(world,`storage-${i}`);
-    expect(outside.sprite).toMatch(/^nature-container-(ricebale|bale|taru)$/);
-    expect(indoor.sprite).toMatch(/^nature-container-(ricebale|bale|taru)$/);
+    const regional=/^study-propb-(rice-bale|merchant-bale-large|taru-large)-\d$/;
+    for (let i=0;i<20 && [outside,indoor].some(o => !regional.test(o.sprite));i++) withProps(world,`storage-${i}`);
+    expect(outside.sprite).toMatch(regional);
+    expect(indoor.sprite).toMatch(regional);
     expect(outside.inventory).toEqual({grain:17});
     expect(indoor.inventory).toEqual({grain:9});
     expect(outside.owner).toBe("owner");
@@ -252,12 +246,12 @@ describe("interactive props", () => {
     const e=createSettingSession(resolved.setting,"storage-interiors");
     const homes=e.state.households!.map(h=>h.residence).filter((s): s is string => !!s);
     for (const home of homes.slice(0,12)) e.interiorOf(home);
-    const native=e.state.objects.filter(o=>o.id.includes("-room-") && o.sprite.startsWith("nature-container-"));
+    const native=e.state.objects.filter(o=>o.id.includes("-room-") && o.prop! in containerProps);
     expect(native.length).toBeGreaterThan(0);
     for (const o of native) {
       expect(o.pos.space).not.toBe("outside");
-      expect(o.sprite).toBe(propDefs[o.prop!].sprite);
-      expect(natureAtlas.frames).toHaveProperty(o.sprite);
+      expect(o.sprite).toBe(propSprite(o.prop!));
+      expect(propAtlas.frames).toHaveProperty(o.sprite);
     }
     const restored=restoreSession(e.snapshot());
     expect(restored.state.objects.filter(o=>native.some(n=>n.id===o.id))).toEqual(native);
