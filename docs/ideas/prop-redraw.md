@@ -38,7 +38,7 @@ boxes the player will want to open, kick or dent.
 Flat ellipses or rectangles with no edge depth or texture logic.
 
 - wrestling-ring, threshing-floor, knapping-floor, seat-mat, mud-bricks,
-  grave-mound, shell-midden, kerb-rubbish
+  grave-mound, kerb-rubbish
 - gully-grate, tree-grate, trolley-bay, newspapers, floor-carpet
 
 ## 3. Thin or unreadable silhouettes (20)
@@ -76,4 +76,9 @@ Flat ellipses or rectangles with no edge depth or texture logic.
   traced at 0.8x onto the ramps as large fixed stores (`*-large`), which keep
   their view from above. `container_studies.py` is gone, and with it the
   unplaced demijohn
+- middens in `midden.py`: household, communal and shell middens are one
+  mound grid per size seen from above, built from basket-loads, with an ash
+  patch and named things on them by `middenContents`; the communal one is half
+  its old width. Walking into a household or communal midden leaves a print
+  (`-dented`). The shell midden moved here from `lifeways.py`
 - Still procedural: the dustbin's fallen state, from `fallen.py`

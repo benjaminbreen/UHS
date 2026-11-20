@@ -1,259 +1,214 @@
 """Middens: the heap every settlement had until someone came to take it away.
 
-One drawer at two sizes, a household tip and the village's own mound, with the
-contents chosen by how the place lived rather than who lived there. At this
-size a heap reads from its silhouette and three or four things you can name;
-everything else is dark earth.
+Seen from above like everything else: one mound grid per size, built up from
+basket-loads and lit from the upper left, an ash patch where the hearth was
+last emptied, and a few things you can name lying on it. What lies there is
+chosen by how the place lived (`middenContents`), not who lived there.
 """
-from math import sqrt
-from .core import Canvas, RAMPS, jitter, soft_outline, grass
+from .core import Canvas, draw_grid, ramp_keys, soft_outline, jitter
 
-# Midden soil is dark: decades of ash, dung and rot. Archaeologists call it
-# dark earth for a reason.
-DARK = ['#1c140e', '#2a1f16', '#3a2b1e', '#4c3927', '#5f4830', '#74593b', '#8b6d49']
-ASH = RAMPS['limestone']
-BONE = ['#6e6552', '#a39a82', '#d2c9ae', '#ece5cc']
-SHELL = ['#7e756a', '#b3a998', '#e0d8ca', '#f6f1e6']
-SHERD = RAMPS['terracotta7']
-STONE = ['#3a3430', '#5c524a', '#7f7166', '#9e8f80']
-STRAW = RAMPS['straw']
-DUNG = ['#1e1a10', '#2f2a18', '#443c22', '#5a4f2e']
-TILE = RAMPS['redearth7']
-GLASS = ['#1d3326', '#2f5a3c', '#4f8a5c', '#a8d4ac']
-CINDER = ['#15151a', '#26262c', '#3a3a42', '#56545c']
+# Midden soil is dark: decades of ash, dung and rot ("dark earth").
+DARK = ['#21170f', '#33251a', '#463424', '#5a4430', '#6e553b', '#846848', '#9a7d58']
+ASH = ['#4a4844', '#66625c', '#827d75', '#9e988e', '#b9b3a8', '#d2ccc0', '#e6e1d6']
+# Shell heaps are grey with ash under the fresh white, so the shells show.
+SHELLY = ['#2c2924', '#433f38', '#5c5750', '#76706a', '#8f8980', '#a8a298', '#bfb9ae']
 FLY = '#16120c'
 
-# The variants, in the order props.json names them.
-CONTENTS = [
- ['bone', 'stone', 'bone', 'flake', 'stone', 'antler'],     # foragers
- ['shells', 'bone', 'stone', 'shells'],                     # a shore camp
- ['sherd', 'straw', 'bone', 'sherd', 'pot'],                # farmers
- ['dung', 'horn', 'bone', 'dung', 'straw'],                 # herders
- ['tile', 'oyster', 'sherd', 'bone', 'amphora'],            # a town
- ['glass', 'cinder', 'pipe', 'sherd', 'bone', 'cinder'],    # after 1600
+HOUSEHOLD = [
+ "...........544443333.................",
+ ".........5444433333343211............",
+ "........54443333322222111............",
+ ".......544433332222222111133.........",
+ "......554433332222211114444333.......",
+ "....55444333222211111143333222223....",
+ "...5444433322221111113333222211112...",
+ "..54443333222211111333332222111111...",
+ ".5443333332222223333333333211113332..",
+ "544433234444333333333333333223333222.",
+ "5433322444333333333333333322233322221",
+ "4333234443333333333333332222222221111",
+ "3322344433333333333333222222222211111",
+ "3323443333333333333322222222221111111",
+ "3323433333333333332222222222111111111",
+ "..24333333333332222222222111111111111",
+ "...43333333322222222221111111111111..",
+ ".....333322222222221111111111111.....",
+ "......333333222121111111111111.......",
+ "........33332222211111111111.........",
+ "..............222...111..............",
+]
+COMMUNAL = [
+ "..................................5443........................",
+ "......................54444444...443222.......................",
+ "....................54444443333344322111......................",
+ "..................55444443333333332211111.....................",
+ ".................5544443333333322221111111....................",
+ "...............5544444333333322222211111444433................",
+ "...............554444333333222222222114443333333..............",
+ "..............55444433333322222222111444333333222.............",
+ ".............5544443333332222222111114433333222222............",
+ "............554444333333222222211111143333222222211...........",
+ "........544443343333322222211111111133332222111111111.543222..",
+ ".......544433333333322222211111111111332222111111111444322111.",
+ "......54443333223332222221111111111113222211111111443333311111",
+ ".....544433332223322222211111111111134432211111114433333321111",
+ ".....544333322222222222111111111133333333221111113333332222111",
+ "...44443333222212222211111111133333333332221111133333222222111",
+ ".5444333332221114333322223333333333333333333333233322222211111",
+ ".4433332222211244444443333333333333333333333333333222221111111",
+ "5433322222211344444443333333333333333333333333222222211111111.",
+ "4333222112234444444333333333333333333333333322222221111111111.",
+ "3322211112444444443333333333333333333333332222222221111111111.",
+ "3322111114444444333333333333333333333333222222222221111111111.",
+ "333221111344444333333333333333333333332222222222221111111111..",
+ "..32211114344333333333333333333333322222222222221111111111....",
+ ".........4333333333333333333333322222222222222111111111.......",
+ "..........333333333333333333322222222222222111111111..........",
+ "............33333333333333222222222222222111111111............",
+ "..............33333222222222222222221111111111111.............",
+ "...............33333332222212221111111111111111...............",
+ "...................3333322222221112111111111..................",
+ "......................332222222111211111......................",
+]
+SHELL_HEAP = [
+ ".......444433344..........",
+ ".....544433332244443......",
+ "....544333322225433333....",
+ ".555443322221233322111132.",
+ ".5444332222233333211111121",
+ "54444333333333333333211222",
+ "54444443333333333322222221",
+ "44444433333333332222222211",
+ "44444333333333222222222111",
+ "43433333333322222222211111",
+ "44333333332222222211111111",
+ ".433322222222222111111111.",
+ "..3333322212111111111111..",
+ "....333332221111111111....",
+ "......33322211111111......",
 ]
 
 
-def _bone(c, x, y, k):
- n = 5 + k % 3
- for i in range(n):
-  c.set(x + i, y + (i * (k % 2)) // 4, BONE[2 if i % 3 else 1]); c.set(x + i, y + 1 + (i * (k % 2)) // 4, BONE[0])
- for dx, dy in ((-1, -1), (-1, 1), (n, -1), (n, 1)):           # the knuckle ends
-  c.set(x + dx, y + dy + (0 if dx < 0 else (n * (k % 2)) // 4), BONE[3 if dy < 0 else 1])
+BONE = dict(w='#efe8d0', v='#cbc1a3', u='#8e856c')
+CLAY = dict(r='#d0844f', s='#a65d36', t='#723b22', k='#2a1a12')
+SHELL = dict(w='#f4efe4', v='#cfc6b4', u='#8a8272', m='#3c4a5c', n='#22293a')
+CHAFF = dict(y='#e2cf86', z='#b39b52', q='#7c6a34')
+MUCK = dict(m='#a8996a', n='#7e7048', o='#4e4430')
+STONE = dict(p='#a29484', q='#7c6e60', o='#4e443c', r='#9a5c44')
+GLASS = dict(g='#a8d4ac', h='#4f8a5c', i='#2a4f36')
+CINDER = dict(c='#6a6870', d='#3e3c44', o='#1e1d22')
+
+# Each thing at about the size it is beside the figure, drawn to read at 1x.
+ITEMS = {
+ 'bone': (["wv...wv", ".wwvvu.", "vu...vu"], BONE),
+ 'antler': (["w..w...", "vw.vw.w", ".vvvvvu"], BONE),
+ 'horn': (["v.....", "wv....", ".wvvvu"], BONE),
+ 'stone': ([".pq.", "pqrq", "qqoo"], STONE),
+ 'flake': ([".p", "pq"], STONE),
+ 'sherd': (["..rrs", ".rsst", "rstt."], CLAY),
+ 'pot': ([".rrss..", "rsssst.", "rskkkt.", ".sttt.."], CLAY),
+ 'tile': (["rrrrs.", "rssst.", ".tttt."], CLAY),
+ 'amphora': (["rrs..", ".rsst", "..stt", "...t."], CLAY),
+ 'shells': ([".wv.w", "wvuvu", ".u.wv"], SHELL),
+ 'oyster': (["vww..", "uvwwv", ".uuvu"], SHELL),
+ 'mussel': (["mn.m", "nnmn", ".n.n"], SHELL),
+ 'straw': (["y.z.y.", ".yzy.z", "zyzzyq"], CHAFF),
+ 'dung': ([".mmn.", "mnnno", ".nno."], MUCK),
+ 'glass': ([".g.", ".h.", "ghh", "ghi", "hii"], GLASS),
+ 'cinder': (["cd.", "cdd", ".do"], CINDER),
+ 'pipe': (["w.....", "wwvvvv"], BONE),
+}
+
+# The variants, in the order props.json names them.
+CONTENTS = [
+ ['bone', 'stone', 'antler', 'flake', 'bone', 'stone'],      # foragers
+ ['shells', 'oyster', 'mussel', 'shells', 'bone', 'oyster'], # a shore camp
+ ['sherd', 'straw', 'bone', 'pot', 'sherd', 'straw'],        # farmers
+ ['dung', 'horn', 'straw', 'dung', 'bone', 'dung'],          # herders
+ ['tile', 'oyster', 'sherd', 'amphora', 'bone', 'tile'],     # a town
+ ['glass', 'cinder', 'pipe', 'sherd', 'bone', 'cinder'],     # after 1600
+]
+
+# Where someone went down in it: a sprawled hollow, its far wall catching the
+# light, drawn over whatever was lying there.
+PRINT = [
+ "....111....",
+ "...10015...",
+ "....1155...",
+ "21..101..12",
+ ".2110001125",
+ "...10001.5.",
+ "...100015..",
+ "..1005.105.",
+ ".1005...105",
+ ".2155...255",
+]
+
+ASH_PATCH = ["..cdd...", ".cdeedc.", "bcddcccb", ".bcb.bb."]
+ASH_SMALL = [".cdc.", "bcddb", ".bb.."]
+
+# Where things lie on each heap: on the lit crest and down the front, never
+# on the outline. The first spot takes the ash.
+SPOTS = {
+ 'household': [(7, 6), (15, 3), (22, 9), (9, 13), (17, 15), (27, 12), (4, 17)],
+ 'communal': [(20, 6), (27, 3), (36, 12), (14, 15), (24, 20), (40, 21), (48, 16), (8, 21), (31, 26), (52, 23), (33, 8), (18, 24), (44, 26)],
+ 'shell': [(6, 4), (10, 3), (16, 7), (5, 9), (19, 10), (12, 11), (23, 6)],
+}
+PRINTS = {'household': (12, 6), 'communal': (24, 12)}
 
 
-def _antler(c, x, y, k):
- for i in range(8):
-  c.set(x + i, y - i // 3, BONE[2]); c.set(x + i, y - i // 3 + 1, BONE[0])
- for i in range(3):
-  c.set(x + 3, y - 2 - i, BONE[3 if i == 2 else 2]); c.set(x + 6, y - 3 - i, BONE[2])
-
-
-def _stone(c, x, y, k):
- # Fire-cracked: angular, and reddened on one face by the hearth.
- for dy, row in enumerate(((1, 3), (0, 4), (0, 4))):
-  for dx in range(*row):
-   c.set(x + dx, y + dy, STONE[3 if dy == 0 else 2 if dx < 2 else 1])
- c.set(x + 3, y + 1, '#8a5a44'); c.set(x + 2, y + 2, STONE[0])
-
-
-def _flake(c, x, y, k):
- c.set(x, y, '#2a2c30'); c.set(x + 1, y, '#6a7078'); c.set(x + 1, y - 1, '#b8c0c8')
-
-
-def _shells(c, x, y, k):
- for i in range(6):
-  n = jitter(x, y, i)
-  sx, sy = x + n % 9 - 3, y + (n // 9) % 4 - 1
-  c.set(sx, sy, SHELL[3 if n % 3 else 2]); c.set(sx + 1, sy, SHELL[1]); c.set(sx, sy + 1, SHELL[0])
-
-
-def _sherd(c, x, y, k):
- # A curved body sherd, rim up, lit on the outside of the curve.
- for i in range(6):
-  dy = 1 if i in (0, 5) else 0
-  c.set(x + i, y + dy, SHERD[5 if i < 3 else 4]); c.set(x + i, y + dy + 1, SHERD[3]); c.set(x + i, y + dy + 2, SHERD[1])
-
-
-def _pot(c, x, y, k):
- # Half a pot, sunk on its side with the dark inside showing.
- for dy, half in enumerate((3, 4, 4, 3)):
-  for dx in range(-half, half + 1):
-   inside = abs(dx) < half - 1 and dy < 3
-   c.set(x + dx, y + dy, DARK[0] if inside else SHERD[5 if dx < 0 else 3])
- c.hline(x - 3, x + 3, y - 1, SHERD[6])
-
-
-def _straw(c, x, y, k):
- for i in range(5):
-  n = jitter(x, i, k)
-  sx, sy = x + n % 8, y + (n // 8) % 3
-  c.set(sx, sy, STRAW[5]); c.set(sx + 1, sy + (n % 2), STRAW[4])
-
-
-def _dung(c, x, y, k):
- for dx, dy in ((0, 0), (1, 0), (2, 0), (1, -1), (4, 1), (5, 1), (5, 0)):
-  c.set(x + dx, y + dy, DUNG[3 if dy < 0 or dx == 5 else 2])
- c.hline(x, x + 5, y + 2, DUNG[0])
-
-
-def _horn(c, x, y, k):
- for i in range(7):
-  yy = y - (i * i) // 12
-  c.set(x + i, yy, BONE[2 if i < 5 else 3]); c.set(x + i, yy + 1, BONE[1] if i < 4 else BONE[0])
-
-
-def _tile(c, x, y, k):
- # A broken roof tile lying flat: a lit top face and a thick edge.
- for dx in range(8):
-  if dx == 7 and k % 2: continue
-  c.set(x + dx, y, TILE[5]); c.set(x + dx, y + 1, TILE[4]); c.set(x + dx, y + 2, TILE[2])
- c.set(x + 2, y, TILE[6]); c.set(x + 3, y, TILE[6])
-
-
-def _oyster(c, x, y, k):
- for i in range(3):
-  sx = x + i * 3
-  c.set(sx, y, '#c8c4b8'); c.set(sx + 1, y, '#9a978c'); c.set(sx, y + 1, '#6c6a62')
-
-
-def _amphora(c, x, y, k):
- # A neck and handle, the piece of a jar that survives being thrown out.
- for i in range(6):
-  c.set(x, y - i, SHERD[5]); c.set(x + 1, y - i, SHERD[3]); c.set(x + 2, y - i, SHERD[2])
- c.hline(x - 1, x + 3, y - 6, SHERD[6])
- for i in range(4): c.set(x + 3 + (i > 0) + (i > 2), y - 5 + i, SHERD[4])
-
-
-def _glass(c, x, y, k):
- # A bottle on its side, neck downhill.
- for dx in range(6):
-  c.set(x + dx, y, GLASS[2]); c.set(x + dx, y + 1, GLASS[1]); c.set(x + dx, y + 2, GLASS[0])
- c.set(x + 6, y + 1, GLASS[1]); c.set(x + 7, y + 1, GLASS[2])
- c.set(x + 1, y, GLASS[3]); c.set(x + 2, y, GLASS[3])
-
-
-def _cinder(c, x, y, k):
- for dx, dy in ((0, 0), (1, 0), (1, -1), (2, 0), (3, 1), (4, 1), (2, 1)):
-  c.set(x + dx, y + dy, CINDER[3 if dy < 0 else 2 if dx % 2 else 1])
-
-
-def _pipe(c, x, y, k):
- # A clay pipe stem: the commonest thing on any site after 1600.
- for i in range(7): c.set(x + i, y + i // 4, '#e8e2d4')
- c.set(x - 1, y - 1, '#e8e2d4'); c.set(x - 1, y, '#b8b0a0')
-
-
-ITEM = {'bone': _bone, 'antler': _antler, 'stone': _stone, 'flake': _flake,
-        'shells': _shells, 'sherd': _sherd, 'pot': _pot, 'straw': _straw,
-        'dung': _dung, 'horn': _horn, 'tile': _tile, 'oyster': _oyster,
-        'amphora': _amphora, 'glass': _glass, 'cinder': _cinder, 'pipe': _pipe}
-
-
-def _hash(x, y):
- h = (x * 374761393 + y * 668265263) & 0xffffffff
- h = ((h ^ (h >> 13)) * 1274126177) & 0xffffffff
- return (h ^ (h >> 16)) & 1023
-
-
-def _heap(v, frame, w, h, lumps, tipped):
+def _heap(rows, spots, things, v, frame, ramp=DARK, flies=2, print_at=None):
+ sky = 7 if flies else 1
+ w, h = len(rows[0]) + 2, len(rows) + sky + 1
  c = Canvas(w, h)
- base = h - 5
- # A tipped heap is basket-loads, not a dome: small lumps along the crest.
- lumps = list(lumps)
- for (cx, cy, rx, ry) in list(lumps):
-  for k in range(int(rx) // 5):
-   n = jitter(cx, k, v)
-   a = -0.9 + 1.8 * k / max(int(rx) // 5 - 1, 1)
-   lumps.append((cx + a * rx * 0.8, cy - ry * sqrt(max(0, 1 - (a * .8) ** 2)) + 3, 4 + n % 4, 3 + n % 3))
- mask = {}
- for y in range(h):
-  for x in range(w):
-   best = None
-   for (cx, cy, rx, ry) in lumps:
-    u, d = (x + .5 - cx) / rx, (y + .5 - cy) / ry
-    r2 = u * u + d * d
-    if r2 <= 1 and (best is None or r2 < best[0]): best = (r2, u, d, rx)
-   if best is None or y > base: continue
-   r2, u, d, rx = best
-   lam = -0.55 * u - 0.6 * d + 0.7 * sqrt(1 - r2)
-   mask[(x, y)] = max(0, min(6, round(1 + lam * 4.2)))
- top = {}
- for (x, y) in mask:
-  if y < top.get(x, h): top[x] = y
- for (x, y), i in mask.items():
-  n = jitter(x, y, v)
-  c.set(x, y, DARK[max(0, min(6, i + (n % 7 == 0) - (n % 5 == 0)))])
- # Clods of ash and burnt earth through the body, so it is not one brown.
- for k in range(w // 6):
-  n = jitter(k, v, 7)
-  x, y = sorted(top)[n * 5 % len(top)], 0
-  y = top[x] + 3 + (jitter(x, k) % max(2, base - top[x] - 4))
-  tone = ASH[3 + n % 2] if n % 3 else '#6a3e2a'
-  for dx, dy in ((0, 0), (1, 0), (0, 1), (-1, 1)):
-   if (x + dx, y + dy) in mask and mask[(x + dx, y + dy)] > 1: c.set(x + dx, y + dy, tone)
- # Ash lenses, broken where later loads cut them: they are what makes a heap
- # read as tipped rubbish rather than a mound of soil.
- xs = sorted(top)
- for (a, b, depth) in ((len(xs) // 8, len(xs) // 2, 5), (len(xs) * 5 // 8, len(xs) * 7 // 8, 7)):
-  x0, x1 = xs[a], xs[b]
-  for x in range(x0, x1 + 1):
-   if jitter(x // 3, v, depth) % 5 == 0: continue
-   d = depth + abs(x - (x0 + x1) // 2) // 4
-   for k in range(2 + (w > 80)):
-    y = top[x] + d + k
-    if (x, y) in mask and mask[(x, y)] > 1: c.set(x, y, ASH[5 - k] if mask[(x, y)] > 3 else ASH[3 - k // 2])
- # The fresh tip: a wet tongue down one flank from the crest, darker than the
- # heap around it but still lit like it.
- fx, fy = tipped
- for (x, y) in mask:
-  t = (y - top.get(fx, fy)) / max(base - top.get(fx, fy), 1)
-  half = (w / 22) * (0.6 + t)
-  off = x - fx + t * w / 14
-  if abs(off) <= half and (abs(off) < half - 1 or jitter(x, y) % 2):
-   c.set(x, y, DARK[max(0, mask[(x, y)] - 2)])
- if v == 1:                                                 # a shell heap is mostly shell
-  for (x, y), i in mask.items():
-   n = _hash(x, y)
-   clump = _hash(x // 4, y // 3) % 3
-   if y < base - 1 and n % (2 + clump) == 0: c.set(x, y, SHELL[max(0, min(3, i // 2 + (n >> 4) % 2))])
- # The things you can name, set into the surface; more of them spill round
- # the foot, which is where things roll to.
- items = CONTENTS[v] * (2 if w > 80 else 1)
- for k, name in enumerate(items):
-  x = xs[4 + (k * len(xs) * 5 // 7 // len(items) + jitter(k, v) % 5) % (len(xs) - 14)]
-  foot = k % 3 == 2
-  y = base - 3 if foot else top[x] + 3 + (jitter(x, k) % max(3, (base - top[x]) // 2))
-  ITEM[name](c, x, min(y, base - 3), k)
- for x in range(xs[0] - 2, xs[-1] + 3):
-  if jitter(x, base) % 4 == 0: c.set(x, base + 1, DARK[2])
- soft_outline(c, DARK[0], DARK[4])
- # A fly or two over the wet corner, not a swarm on rails: each frame puts
- # them somewhere new, which is what flies look like at a glance.
- for i in range(2 + (w > 80)):
+ at = lambda x, y: (x + 1, y + sky)
+ draw_grid(rows, ramp_keys(ramp, ASH), c, at(0, 0))
+ draw_grid(ASH_PATCH if len(rows[0]) > 30 else ASH_SMALL, ramp_keys(ramp, ASH), c, at(*spots[0]))
+ for (x, y), name in zip(spots[1:], things):
+  grid, keys = ITEMS[name]
+  draw_grid(grid, keys, c, at(x, y))
+ if print_at: draw_grid(PRINT, ramp_keys(ramp), c, at(*print_at))
+ soft_outline(c, ramp[0], ramp[3])
+ # A fly or two over the heap, each frame somewhere new: what flies look
+ # like at a glance.
+ for i in range(flies):
   n = jitter(frame, i, v)
   if (n + frame) % 4 == 0: continue
-  c.set(fx - 5 + n % 11, fy - h // 4 - (n // 11) % 6, FLY)
- grass(c, [(1, h - 2, 3), (w - 4, h - 2, 2)])
- return c
+  c.set(w // 3 + n % (w // 3), 1 + (n // 7) % 6, FLY)
+ im = c.image()
+ im.info['anchor'] = [w // 2, h - 2]
+ return im
 
 
-def household(v=0, frame=0):
+def household(v=0, frame=0, dented=False):
  """The yard's own tip, a couple of metres across."""
- c = _heap(v, frame, 64, 40, [(38, 36, 24, 20), (18, 37, 15, 13), (51, 37, 12, 12)], (22, 30))
- return c.image()
+ ramp = SHELLY if v == 1 else DARK
+ return _heap(HOUSEHOLD, SPOTS['household'], CONTENTS[v], v, frame, ramp,
+              print_at=dented and PRINTS['household'])
 
 
-def communal(v=0, frame=0):
- """The village midden: years of it, taller than a person at the crown and
- spreading down its own slope. Sited at the edge, downwind if anyone chose."""
- c = _heap(v, frame, 124, 64,
-           [(66, 60, 44, 38), (34, 60, 28, 24), (96, 60, 26, 26), (80, 58, 30, 32), (16, 60, 14, 10)],
-           (36, 46))
- return c.image()
+def communal(v=0, frame=0, dented=False):
+ """The village midden: years of it, spreading down its own slope."""
+ ramp = SHELLY if v == 1 else DARK
+ return _heap(COMMUNAL, SPOTS['communal'], CONTENTS[v] * 2, v, frame, ramp, flies=3,
+              print_at=dented and PRINTS['communal'])
+
+
+def household_dented(v=0): return household(v, dented=True)
+def communal_dented(v=0): return communal(v, dented=True)
+
+
+def shell_midden(v=0):
+ """A camp's mound of shell, white where the last meals went on, dark with
+ the ash of the fires they were cooked on."""
+ things = [['oyster', 'shells', 'oyster', 'mussel', 'oyster', 'shells'],
+           ['mussel', 'shells', 'mussel', 'oyster', 'mussel', 'shells'],
+           ['shells', 'shells', 'oyster', 'shells', 'mussel', 'shells']][v]
+ return _heap(SHELL_HEAP, SPOTS['shell'], things, v, 0, SHELLY, flies=0)
 
 
 MIDDEN = {
  'privy-midden': household,
  'midden': communal,
+ 'shell-midden': shell_midden,
 }

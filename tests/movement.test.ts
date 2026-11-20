@@ -151,6 +151,20 @@ it("hurts a runner on impact once, without hurting walking bumps or repeated wal
   }
 });
 
+it("puts a walker down in a midden, leaves a print and costs a little health", () => {
+  const e = hazardField("midden-fall");
+  e.state.objects = [{ id: "heap", name: "Midden", kind: "container", prop: "privyMidden", sprite: "study-propb-privy-midden-2",
+    inventory: {}, pos: { x: 1, y: 0, space: "outside" } }];
+  const result = e.act({ actionId: "midden", expectedRevision: e.state.revision, command: { type: "move", dx: 1, dy: 0 } });
+  expect(result.status).toBe("completed");
+  expect(e.lastImpact).toBe("muck");
+  expect(e.state.player.pos.x).toBe(0);
+  expect(e.state.player.health).toBe(98);
+  expect(e.state.objects[0].damage).toBe(1);
+  e.execute({ type: "move", dx: 1, dy: 0, run: true });
+  expect(e.state.player.health).toBe(93);
+});
+
 it("does not damage glancing diagonal movement or a runner who has stopped", () => {
   const e = hazardField("glancing-impact");
   e.world.blocked = (x, y) => x === 3 && y === 3;

@@ -257,6 +257,9 @@ when leaning, and otherwise the most specific of `dented-open`, `open` and
 `dented` that is drawn, from `open` and `damage`. A prop without a state
 sprite keeps its plain one, so states can be drawn one family at a time.
 
+A prop with `door: true` (the privies) offers **Open the door** and **Shut the
+door**, which set `open`; its `-open` sprite shows the inside.
+
 Bins set down as street furniture (the kerb's, the square's, the park's, a
 suburban house's) are catalogue props too, so they can be looked into and
 knocked over: `binProp` in `src/world/v3/plan.ts`.
@@ -282,6 +285,13 @@ enough) lays it down; **Set it upright** also straightens a leaning object.
 Both pushes keep the player outside its cell. Trees, wells and built-in
 structures stay fixed. Lean frames are baked at native pixel resolution with
 their ground pivot and shadow; fallen forms have their own drawings.
+
+`muck: true` (the household and communal middens) is soft enough to fall
+into. Walking into one, at a walk or a run, puts you down in it instead of
+blocking: you stay where you were, lose 2 health (5 at a run), and the heap
+takes `damage`, which shows its `-dented` frame, a print of you in it. The
+scene plays a stumble, a splat and a spatter of muck. It comes before a running
+collision or a sidestep, and like them needs the world's `hazards`.
 
 The detail overlay also adds Roman milestones, late Viking-age Swedish
 memorial stones and Edo-period stone lanterns, each with dated regional

@@ -1675,8 +1675,8 @@
       "name": "Midden",
       "group": "Household",
       "size": [
-        66,
-        42
+        41,
+        31
       ],
       "description": "The household's tip at the bottom of the yard: ash, bone, broken pots and dung, with what is on it set by how the place lives.",
       "variants": [
@@ -1693,8 +1693,8 @@
       "name": "Communal midden",
       "group": "Household",
       "size": [
-        126,
-        66
+        66,
+        41
       ],
       "description": "The settlement's heap at its edge, years of it: dark earth with lenses of hearth ash, and the bone, shell, sherd or glass of how the place lives.",
       "variants": [
@@ -2290,14 +2290,14 @@
       "name": "Shell midden",
       "group": "Work & agriculture",
       "size": [
-        48,
-        20
+        30,
+        19
       ],
-      "description": "A low mound of shells from generations of meals, dark with ash, by a coastal camp.",
+      "description": "A low mound of shells from generations of meals, grey with ash, by a coastal camp.",
       "variants": [
         "Oyster",
-        "Broad",
-        "Small"
+        "Mussel",
+        "Cockle"
       ]
     },
     {

@@ -23,6 +23,9 @@ export type PropDef = {
   container?: boolean;
   /** Drawn with a lid: looking inside lifts it off, and it can go back on. */
   lid?: boolean;
+  /** Soft enough to fall into: walking into it puts you down in it, leaves
+   * your print (its `-dented` frame) and costs a little health. */
+  muck?: boolean;
   /** What it leaves on the ground when it breaks. */
   breakable?:
     | "clay"
@@ -593,6 +596,7 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Midden",
     family: "privy-midden",
+    muck: true,
     where: "privy",
     variants: 6,
   },
@@ -600,6 +604,7 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Midden",
     family: "midden",
+    muck: true,
     variants: 6,
     span: [1, 0],
     visualClearance: [2, 2, 1, 0],

@@ -17,7 +17,7 @@ from .stalls import STALLS
 from .pitches import PITCHES
 from .farm import FARM
 from .privy import PRIVY
-from .midden import MIDDEN
+from .midden import MIDDEN, household_dented, communal_dented
 from .granary import GRANARY
 from .asia import ASIA
 from .signs import SIGNS
@@ -235,6 +235,8 @@ STATES = {
  'grain-hamper': {'open': _soft.grain_hamper_open},
  'woven-grain-bin': {'open': _soft.grain_bin_open},
  'woven-grain-bin-large': {'open': _soft.big_grain_bin_open},
+ 'privy-midden': {'dented': household_dented},
+ 'midden': {'dented': communal_dented},
  'grain-hamper-large': {'open': _soft.big_grain_hamper_open},
  'taru-large': {'open': _soft.big_taru_open},
 }

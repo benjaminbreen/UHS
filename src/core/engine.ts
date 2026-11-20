@@ -4631,7 +4631,7 @@ export class Engine {
     );
   }
   private lastStep = { clock: -99, run: false, dx: 0, dy: 0, steps: 0 };
-  lastImpact?: "collision";
+  lastImpact?: "collision" | "muck";
   /** At a run, a lone tree, rock or post ahead is dodged a pace to one side
    * rather than slammed into, if the way beyond it is open on that side. */
   private sidestep(c: Extract<PlayerCommand, { type: "move" }>) {
@@ -4670,6 +4670,13 @@ export class Engine {
     if (push && !("refused" in push)) return false;
     // Let diagonal input slide along an open side without taking an impact.
     return !(c.dx && c.dy) || this.playerBlocked(x, p.pos.y) && this.playerBlocked(p.pos.x, y);
+  }
+  /** A midden in the way: soft enough that walking into it puts you in it. */
+  private muckAhead(c: Extract<PlayerCommand, { type: "move" }>) {
+    const p = this.state.player;
+    if (!this.state.manifest.hazards || c.jump || c.traverse || p.perch || p.afloat || p.mount || (c.dx && c.dy)) return undefined;
+    const o = this.solidPropAt(p.pos.x + c.dx, p.pos.y + c.dy, p.pos.space);
+    return o && propDefs[o.prop ?? ""]?.muck ? o : undefined;
   }
   private scar(injury: string) {
     const p = this.state.player;
@@ -8843,7 +8850,7 @@ export class Engine {
         return "It is a long drop from the wall. Jump, or go down by the stairs.";
       if (p.pos.space === "outside" && !this.onWall() && this.gateShut(p.pos.x + c.dx, p.pos.y + c.dy))
         return "The town gate is shut for the night. It opens at first light.";
-      if (this.runningCollision(c) || this.sidestep(c)) return;
+      if (this.muckAhead(c) || this.runningCollision(c) || this.sidestep(c)) return;
       if (!(c.dx && c.dy) && p.pos.space === "outside" && this.treeFind(p.pos.x + c.dx, p.pos.y + c.dy)) return;
       const push = this.shovePlan(c.dx, c.dy);
       const toppling = this.toppleTarget(c.dx, c.dy, c.run);
@@ -10520,6 +10527,21 @@ export class Engine {
         p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
         p.facing = facingFromStep(c.dx, c.dy, p.direction);
         this.advance(2);
+        return;
+      }
+      const muck = this.muckAhead(c);
+      if (muck) {
+        this.lastImpact = "muck";
+        delete this.lastLeap;
+        delete this.lastJostle;
+        this.lastStep.steps = 0;
+        muck.damage = 1;
+        p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+        p.facing = facingFromStep(c.dx, c.dy, p.direction);
+        const damage = c.run ? 5 : 2;
+        this.hurt(damage, "a fall into a midden");
+        this.event(`You trip into the ${muck.name.toLowerCase()} and go down in the muck, leaving a print of yourself. You lose ${damage} health.`);
+        this.advance(c.run ? 4 : 3);
         return;
       }
       const dodge = this.sidestep(c);

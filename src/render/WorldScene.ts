@@ -2270,6 +2270,16 @@ export class WorldScene extends Phaser.Scene {
         this.tweens.add({ targets: mote, x: `+=${Math.random() < 0.5 ? -4 : 4}`, duration: 90, yoyo: true, repeat: 4 });
     }
   }
+  /** Walked into a midden: down in it, a splat, and muck thrown up. */
+  private fellInMuck(dx: number, dy: number, time: number) {
+    this.runSteps = 0;
+    this.lastRunDir = undefined;
+    this.nextInput = time + 700;
+    this.play({ pose: "stumble", ms: 85, first: 0, last: 3 }, 600);
+    const im = this.entities.get("player");
+    if (im) this.feel.puff(im.x + dx * 8, im.y + dy * 4, [0x33251a, 0x5a4430, 0x846848], 8, 1);
+    void gameAudio()?.sound([...landing("marsh", 1.3), ...(footstep("soil", true, "splat") ?? [])], "step");
+  }
   /** Feet gone on ice: a skid, a stagger to keep upright, and at a run the
    * slide carries on a cell before it stops. */
   private slip(dx: number, dy: number, time: number) {
@@ -7672,7 +7682,11 @@ export class WorldScene extends Phaser.Scene {
               this.runtime.engine.state.objects.some(o => o.id === shoulderTarget && (o.lean || o.tipped));
             const collided = moved?.status === "completed" && this.runtime.engine.lastImpact === "collision";
             const p0 = this.runtime.engine.state.player.pos;
-            if (moved?.status === "rejected" || shouldered || collided) {
+            if (moved?.status === "completed" && this.runtime.engine.lastImpact === "muck") {
+              this.blockedFacing = undefined;
+              this.pushingAt = undefined;
+              this.fellInMuck(dx, dy, time);
+            } else if (moved?.status === "rejected" || shouldered || collided) {
               if (
                 this.pushingAt === undefined &&
                 this.toolEffects?.brush({ x: p0.x + dx, y: p0.y + dy }, dx, dy, this.shiftHeld ? 1.6 : 1)
