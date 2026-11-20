@@ -54,7 +54,8 @@ meanings named in `props.json`; add more names there to bake more of them.
 
 ## Scale
 
-The ruler is the adult figure, 37px tall (`front_style.FIGURE`), not the 16px
+The ruler is the adult figure, 40px tall (the median of the current doll, captured
+in `scripts/art/reference/current-adult.png`), not the 16px
 terrain cell. Work out the object's real size in metres first, then convert
 against the figure. A hand pump and a well kerb must not come out the same
 width, however good the shading.
@@ -164,6 +165,42 @@ prop scale. Walls take their normal from the plan's outline, tops from the
 height field. Add a car by adding a `MODELS` entry and render it with the
 others before building; the sheet is `public/props/vehicles`, built by
 `npm run art:props`.
+
+## Redrawing by hand
+
+The worst props are listed, worst first, in
+[ideas/prop-redraw.md](ideas/prop-redraw.md). Their common fault is that a
+formula drew them: voxel and SDF smear, one bleached palette, no top, a size
+taken from a bounding box. The redraw puts each pixel down on purpose, while
+keeping the houses' view. The dustbin and the kerosene tin in
+`props_b/industrial.py` are the worked examples.
+
+1. **Size it.** Real height against the 40px figure (about 23px a metre),
+   then enlarge for presence: about 1.6x for something waist-high, more for
+   small things so they can carry detail. A 70cm bin is 26px; a 35cm tin is
+   19px.
+2. **Start from the view, not a blank grid.** Tops are ellipses at K = ½ of
+   their width, and every ring, rib and foot follows the same arc.
+   `python3 -m scripts.art.props_b.review --grid <family> [variant] [ramps…]`
+   prints the shipped sprite as a grid to trace over; for a new shape, draw
+   the arc first.
+3. **Finish in a grid.** `draw_grid(rows, ramp_keys(main, second, third))`:
+   digits are steps of the main ramp, `a-g` and `A-G` of the other two, so one
+   drawing gives every variant and they differ in value as well as hue. Light
+   from the upper left, a lit rim along top-left edges, a dark roll under and
+   to the right, a few deliberate glints. No dither across a surface.
+4. **Edge it like the houses.** `soft_outline(c, ramp[0], ramp[2])` last,
+   never black. Thin parts with their own gaps go on after it.
+5. **Draw what interacting does.** Give each state its own sprite: `open`
+   (lid off, the lid set down beside it), `dented` (bite the silhouette with
+   `x` in an overlay grid so it reads at 1x), `fallen`. Overlays are grids
+   stamped at a fixed offset with `draw_grid(rows, keys, c, at)`. Register
+   them in `STATES`; the engine flags behind them are in
+   [PROPS.md](PROPS.md#knocked-over-opened-dented).
+6. **Compare.** `review <family> --states` puts the shipped sprite, the new
+   one and every state beside the figure. Then `npm run art:props`.
+7. **Retire what it replaces** in the same change: the old draw function, its
+   study entry, a catalogue `sprite` override, the line in the queue.
 
 ## Working method
 

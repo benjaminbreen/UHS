@@ -26,7 +26,7 @@ export const containerProps: Record<string, PropDef> = {
   pacificBasket: { ...portable, name: "Plaited leaf carrying basket", family: "pacific-basket", sprite: "nature-container-pacificbasket", breakable: "fiber", shove: { as: "free", mass: 0.5 }, visualClearance: [1,1,0,0] },
   grainBin: { ...vessel, name: "Raised woven grain bin", family: "woven-grain-bin", sprite: "nature-container-grainbin", breakable: "fiber", contents: { grain: 8 }, shove: { as: "free", mass: 2.5 }, visualClearance: [1,1,1,0] },
   stonewareCrock: { ...portable, name: "Lidded stoneware crock", family: "stoneware-crock", sprite: "nature-container-stoneware", breakable: "glaze", shove: { as: "free", mass: 0.9 }, visualClearance: [1,1,0,0] },
-  keroseneTin: { ...portable, name: "Reused kerosene tin", family: "kerosene-tin", sprite: "nature-container-kerosenetin", breakable: "metal", shove: { as: "free", mass: 0.7 }, visualClearance: [1,1,0,0] },
+  keroseneTin: { ...portable, name: "Reused kerosene tin", family: "kerosene-tin", breakable: "metal", shove: { as: "free", mass: 0.7 }, visualClearance: [1,1,0,0] },
 };
 
 export const containerAbout: Record<string, string> = {

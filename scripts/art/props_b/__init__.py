@@ -7,8 +7,8 @@ from .wells import low_well, framed_well, pump
 from .harvest import sheaf, spade
 from .town import town_well, grinder, sickle, axe, pick
 from .workshop import chest, bench, park_bench, anvil, loom, painted_chest, workbench
-from .household import sack, cooking_pot, stool, bedroll, plastic_bin, gourd
-from .industrial import dustbin, litter_bin, municipal_planter, works_fence, steel_drum, wheelbarrow
+from .household import sack, cooking_pot, stool, bedroll, plastic_bin, plastic_bin_fallen, gourd
+from .industrial import dustbin, dustbin_open, dustbin_dented, dustbin_dented_open, kerosene_tin, kerosene_tin_dented, wheelie_bin, wheelie_bin_open, wheelie_bin_fallen, street_bin, municipal_planter, works_fence, steel_drum, wheelbarrow
 from . import fallen as _fallen
 from .lamps import LAMPS
 from .city import city_plane, city_willow, meiji_pole, rickshaw
@@ -79,7 +79,9 @@ DRAW_B = {
  'flask': flask,
  'bowl': bowl,
  'dustbin': dustbin,
- 'litter-bin': litter_bin,
+ 'kerosene-tin': kerosene_tin,
+ 'wheelie-bin': wheelie_bin,
+ 'street-bin': street_bin,
  'municipal-planter': municipal_planter,
  'works-fence': works_fence,
  'steel-drum': steel_drum,
@@ -170,22 +172,28 @@ ANIMATED = {
  **PLAZA_ANIMATED,
 }
 
-# Knocked-over states, drawn as their own sprite rather than a rotation.
-FALLEN = {
- 'standing-stone': _fallen.marker,
- 'roman-milestone': _fallen.milestone,
- 'rune-marker': _fallen.rune_marker,
- 'stone-lantern': _fallen.stone_lantern,
- 'dustbin': _fallen.dustbin,
- 'steel-drum': _fallen.steel_drum,
- 'bucket': _fallen.bucket,
- 'cooking-pot': _fallen.cooking_pot,
- 'stool': _fallen.stool,
- 'open-basket': _fallen.open_basket,
- 'lidded-basket': _fallen.lidded_basket,
+# A prop's states, each drawn rather than derived: `fallen` when knocked over,
+# `open` with the lid off, `dented` once struck, joined (`dented-open`) where
+# both show. The renderer uses the most specific one drawn.
+STATES = {
+ 'standing-stone': {'fallen': _fallen.marker},
+ 'roman-milestone': {'fallen': _fallen.milestone},
+ 'rune-marker': {'fallen': _fallen.rune_marker},
+ 'stone-lantern': {'fallen': _fallen.stone_lantern},
+ 'dustbin': {'fallen': _fallen.dustbin, 'open': dustbin_open, 'dented': dustbin_dented,
+             'dented-open': dustbin_dented_open},
+ 'steel-drum': {'fallen': _fallen.steel_drum},
+ 'kerosene-tin': {'dented': kerosene_tin_dented},
+ 'wheelie-bin': {'open': wheelie_bin_open, 'fallen': wheelie_bin_fallen},
+ 'plastic-bin': {'fallen': plastic_bin_fallen},
+ 'bucket': {'fallen': _fallen.bucket},
+ 'cooking-pot': {'fallen': _fallen.cooking_pot},
+ 'stool': {'fallen': _fallen.stool},
+ 'open-basket': {'fallen': _fallen.open_basket},
+ 'lidded-basket': {'fallen': _fallen.lidded_basket},
 }
 
-TOPPLING = {'standing-stone', 'roman-milestone', 'rune-marker', 'stone-lantern', 'stool', 'dustbin', 'steel-drum'}
+TOPPLING = {'standing-stone', 'roman-milestone', 'rune-marker', 'stone-lantern', 'stool', 'dustbin', 'steel-drum', 'wheelie-bin'}
 
 
 def draw_prop_b(key, variant, layer=None):

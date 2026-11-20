@@ -5,7 +5,7 @@ import json, re, textwrap, sys, tempfile
 from art.atlas import pack_atlas
 from art.shadows import build_shadows
 from art.props import draw_prop
-from art.props_b import DRAW_B, LAYERED, FALLEN, ANIMATED, TOPPLING
+from art.props_b import DRAW_B, LAYERED, STATES, ANIMATED, TOPPLING
 from art.props_b.fallen import leaning
 from art.prop_audit import audit
 from art.props_b.equipment_studies import second_equipment_sprites
@@ -98,9 +98,8 @@ for family in catalog['families']:
             for motion in range(1,ANIMATED.get(family['id'],1)):
                 sprites[f"study-propb-{family['id']}-{variant}-m{motion}"]=trim(
                     DRAW_B[family['id']](variant,motion))
-            if family['id'] in FALLEN:
-                sprites[f"study-propb-{family['id']}-{variant}-fallen"]=trim(
-                    FALLEN[family['id']](variant))
+            for state,draw in STATES.get(family['id'],{}).items():
+                sprites[f"study-propb-{family['id']}-{variant}-{state}"]=trim(draw(variant))
 from art.props.states import runtime_sprites
 sprites.update({k:trim(v) for k,v in runtime_sprites().items() if 'broken' not in k})
 from art.props_b.remains import REMAINS

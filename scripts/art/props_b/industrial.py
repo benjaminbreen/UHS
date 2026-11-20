@@ -1,31 +1,9 @@
 """What a yard or a street carries from the factory age on."""
-from .core import (Canvas, RAMPS, belly, jitter, revolve, soft_outline, grass)
+from .core import (Canvas, RAMPS, belly, jitter, revolve, soft_outline, grass, draw_grid, ramp_keys)
 from .solid import K, disc, lathe
 from .workshop import streak
 
 WOOD7 = ['oak7', 'walnut7', 'ash7']
-
-
-def litter_bin(v=0):
- """An open municipal basket, with a rolled rim and slats on an iron stand."""
- c = Canvas(15, 24)
- palettes = [ ['#1e302e', '#304742', '#456058', '#658071', '#98aa8d'],
-              ['#263138', '#3b4d58', '#536a73', '#789099', '#a6b7b7'],
-              ['#392b29', '#58403a', '#79574b', '#a07960', '#bba68a'] ]
- p = palettes[v]
- for y in range(3, 9):
-  for x in range(2, 13):
-   if ((x - 7) / 5.5) ** 2 + ((y - 5.5) / 3) ** 2 <= 1:
-    c.set(x, y, p[0] if 3 < x < 11 and 4 <= y <= 6 else p[2])
- for x in range(3, 13, 2):
-  c.rect(x, 7, x, 19, p[3] if x < 7 else p[1])
-  c.set(x, 8, p[4] if x < 7 else p[2])
- for y in (9, 17, 20):
-  c.hline(3, 11, y, p[2]); c.hline(3, 6, y, p[3])
- c.rect(6, 20, 8, 23, p[1])
- c.hline(4, 10, 23, p[2])
- c.hline(3, 11, 3, p[3]); c.hline(4, 8, 3, p[4])
- return c.image()
 
 
 def municipal_planter(v=0):
@@ -68,25 +46,139 @@ def works_fence(v=0):
  return c.image()
 
 
-def dustbin(v=0):
- """A galvanised bin: ribbed body, rimmed domed lid with its knob, riveted
- handles, one dent."""
- m = RAMPS[['galvanised7', 'blackiron7', 'rustred7'][v]]
- c = Canvas(20, 30)
- cx, by = 10, 28
- def body(z, a, i):
-  if int(z) in (4, 10, 15): return i + 1
-  if int(z) in (5, 11): return i - 1
-  return i - (int((a + 3.2) * 4) % 2 == 0 and abs(a) < 1.4)
- lathe(c, cx, by, [(0, 7.0), (17, 8.0)], m, body, flat=False)
- lid = [(0, 8.6), (1, 8.6), (2.5, 7), (3.5, 4.5), (4, 2), (4.5, 1.2), (5.5, 1.2)]
- lathe(c, cx, by + (8.6 - 7.0) * K, lid, m, z0=17)
- for hx, lit in ((cx - 9, 5), (cx + 8, 2)):
-  for k in range(3): c.set(hx, by - 13 - 3.5 - k, m[lit]); c.set(hx + 1, by - 13 - 3.5 - k, m[lit - 1])
- for x, y in ((14, 18), (15, 18), (14, 19)):
-  if c.get(x, y): c.set(x, y, m[2])
+DUSTBIN_RAMPS = ['galvanised7', 'blackiron7', 'rustred7']
+
+# The lid is its own grid so it can come off. Its ellipse is the body's at K.
+DUSTBIN_LID = [
+ "....56666666555....",
+ "..564562333254334..",
+ ".54456566665443334.",
+ "5444455200023323333",
+ "5444444433332223333",
+ "5444444442222233332",
+ "4544444444333333321",
+ ".46444444433333331.",
+ "..5664444433333320.",
+ "...45555544444220..",
+ ".....444443333.....",
+]
+
+DUSTBIN_BODY = [
+ *["." * 19] * 8,
+ ".1...............0.",
+ ".32.............02.",
+ ".3434.........0012.",
+ ".44563222111102213.",
+ "5255654443333222212",
+ "4336654443333233021",
+ ".34456555444431112.",
+ ".34564333222212212.",
+ ".34565444333322212.",
+ ".44565444333322213.",
+ ".25565444333322221.",
+ ".33665444333323302.",
+ ".34456555444431112.",
+ ".34564333222212212.",
+ ".24565444333322211.",
+ "..356544433332220..",
+ "...4554443333211...",
+ ".....433322221.....",
+]
+
+# Seen into with the lid off: the far wall lit on the right, rubbish below.
+DUSTBIN_MOUTH = [
+ ".....666665555.....",
+ "...6611234455455...",
+ "..611111234443444..",
+ ".61111111122333334.",
+ ".111FFE11cd1122333.",
+ ".51FED11cdd1112222.",
+ "..51111bc11111112..",
+ "...56111111111333..",
+ ".....655544433.....",
+]
+
+# A blow's worth: lit lip, dark inner slope, the silhouette bitten in.
+DUSTBIN_DENT = [
+ "..66665..",
+ "x6211125.",
+ "x2111345.",
+ "x3113562.",
+ ".4235562.",
+ "..42222..",
+]
+
+
+def _dustbin(v, lid=True, dent=False):
+ m = RAMPS[DUSTBIN_RAMPS[v]]
+ keys = ramp_keys(m, RAMPS['oak7'], RAMPS['linen7'])
+ c = Canvas(31 if not lid else 19, 26)
+ draw_grid(DUSTBIN_BODY, keys, c)
+ draw_grid(DUSTBIN_LID if lid else DUSTBIN_MOUTH, keys, c, (0, 0 if lid else 3))
+ if dent: draw_grid(DUSTBIN_DENT, keys, c, (1, 13))
+ if not lid: draw_grid(DUSTBIN_LID, keys, c, (12, 15))
  soft_outline(c, m[0], m[2])
+ im = c.image()
+ im.info['anchor'] = [10, 27]
+ return im
+
+
+def dustbin(v=0):
+ """A galvanised bin: ribbed body, domed lid with a strap handle, a handle
+ each side."""
+ return _dustbin(v)
+
+
+def dustbin_open(v=0): return _dustbin(v, lid=False)
+def dustbin_dented(v=0): return _dustbin(v, dent=True)
+def dustbin_dented_open(v=0): return _dustbin(v, lid=False, dent=True)
+
+
+# A four-gallon tin with its top cut out and a stick nailed across for a
+# handle: how most of them were reused. About 35cm high, drawn above life.
+KEROSENE_TIN = [
+ "5666666666665",
+ "5333333333332",
+ "5100000000012",
+ "nwwwwwwwwwwwn",
+ "uvvvvvvvvvvvu",
+ "5100000000012",
+ "6666666666664",
+ "5444444444432",
+ "5455555555532",
+ "545ddddddd232",
+ "545dgggggd232",
+ "545dgDDDgd232",
+ "545dgggggd232",
+ "545ddddddd232",
+ "545efefefe232",
+ "5432222222232",
+ "5444444444432",
+ "5444444444432",
+ "3222222222221",
+]
+KEROSENE_DENT = [
+ "x25",
+ "x13",
+ "x24",
+]
+KEROSENE_LOOKS = [('pewter7', 'paintblue7', 'rustred7'),
+                  ('pewter7', 'brasspot7', 'rustred7'),
+                  ('rustred7', 'galvanised7', 'rustred7')]
+
+
+def kerosene_tin(v=0, dent=False):
+ """Tinplate, a faded printed panel, the cut rim folded over."""
+ body, label, mark = (RAMPS[r] for r in KEROSENE_LOOKS[v])
+ oak = RAMPS['oak7']
+ keys = ramp_keys(body, label, mark, w=oak[5], v=oak[3], u=oak[1], n=RAMPS['iron7'][2])
+ c = draw_grid(KEROSENE_TIN, keys)
+ if dent: draw_grid(KEROSENE_DENT, keys, c, (0, 13))
+ soft_outline(c, body[0], body[2])
  return c.image()
+
+
+def kerosene_tin_dented(v=0): return kerosene_tin(v, dent=True)
 
 
 def steel_drum(v=0):
@@ -165,3 +257,185 @@ def wheelbarrow(v=0):
  soft_outline(c, m[0] if steel else w[0], w[2])
  return c.image()
 
+
+
+# A wheeled bin square on, its lid seen from above: about 1.05m, so a head
+# taller than the galvanised bin. Wheels at the back show at the foot.
+WHEELIE = [
+ "..2455555555542..",
+ ".122222222222221.",
+ "45666666666665543",
+ "45555555555554432",
+ "45533333333333432",
+ "45544444444444432",
+ "45566666666666432",
+ "45555555555544432",
+ "56666666666666654",
+ "44444444444433321",
+ "12222222222222221",
+ ".432222222222210.",
+ ".543333333333321.",
+ ".541111111111121.",
+ ".545555555555521.",
+ ".543333333333321.",
+ ".543333www333321.",
+ ".543333w3w333321.",
+ ".543333333333321.",
+ ".543333333333321.",
+ ".543333333333321.",
+ ".543333333333321.",
+ "..5433333333321..",
+ "..5433333333321..",
+ "..5433333333321..",
+ ".b5433333333321a.",
+ "bc5433333333321ba",
+ "be5433333333321ca",
+ "bc4322222222210ba",
+ ".a1111111111111a.",
+]
+
+# Lid thrown back over the handle; the sacks inside.
+WHEELIE_MOUTH = [
+ ".244444444444442.",
+ ".122222222222221.",
+ "x566666666666654x",
+ "x533333333333323x",
+ "x522222222222213x",
+ "x51aabbb1wwk1113x",
+ "x51abccba1wwkk13x",
+ "x51aabba11kkk113x",
+ "x666666666666654x",
+ "x444444444444432x",
+ "x543333333333321x",
+ ".543333333333321.",
+]
+WHEELIE_RAMPS = ['bingreen7', 'blackiron7', 'paintblue7', 'binbrown7']
+
+
+def _wheelie(v, lid=True, fallen=False):
+ m = RAMPS[WHEELIE_RAMPS[v]]
+ sack = RAMPS['blackiron7'] if v != 1 else RAMPS['castiron7']
+ keys = ramp_keys(m, sack, RAMPS['oak7'], w=RAMPS['linen7'][6], k=RAMPS['linen7'][4])
+ if fallen: c = draw_grid(WHEELIE_FALLEN, keys)
+ else: c = draw_grid(WHEELIE, keys)
+ if not lid and not fallen: draw_grid(WHEELIE_MOUTH, keys, c)
+ soft_outline(c, m[0], m[2])
+ return c.image()
+
+
+# On its side, top to the right: the side panel is the top now, a wheel
+# turned up at the foot, the lid flopped open and the sacks out of it.
+WHEELIE_FALLEN = [
+ ".bbb.......................32........",
+ "bcecb666666666666666666655521........",
+ "1bcb5555555555555555444444421........",
+ "15566666666666666666666664421........",
+ "15544444444444444444444444421........",
+ "16666666666666666666666666621........",
+ "14444444444444444444444444421........",
+ "15566666666666666666666664421........",
+ "15544444444444444444444444421........",
+ "155555555555555555554444444..........",
+ "155555555556666666666665426..........",
+ "166666666664444444444445426..........",
+ "144444444443333333315335426..........",
+ "133333333333333333315335426..........",
+ "133333333333333333315335425..........",
+ "133333333333333ww3315335425..........",
+ "133333333333333w33315335425..........",
+ "133333333333333ww3315335425.45555555.",
+ "133333333333333333315335425433233233.",
+ "133333333333333333315335425333233233.",
+ "bb3333333333333333315335425222222222.",
+ "ceb33333333333333331533bcb5.11111111.",
+ "bcb2222222222222222222bdccb.wwk.CD.b.",
+ "aa111111111111111111111abbakwwk.BCbca",
+ ".aa.........................kk.......",
+]
+
+
+def wheelie_bin(v=0):
+ """The household's wheeled bin at the kerb: green, black, blue or brown as
+ the council sorts its rubbish, with the house number painted on."""
+ return _wheelie(v)
+
+
+def wheelie_bin_open(v=0): return _wheelie(v, lid=False)
+def wheelie_bin_fallen(v=0): return _wheelie(v, fallen=True)
+
+
+# Three forms the street's bin has taken, one grid each.
+STREET_BIN = [
+ # A cast-iron basket on a post, painted green: the city from the 1880s.
+ ["....5666666....",
+  "..56111111165..",
+  ".5611fe1C1164..",
+  "561ffe1CC1e1164",
+  ".561eff1C11164.",
+  "..56666666654..",
+  "....5666654....",
+  ".4151514131312.",
+  ".4151514131312.",
+  "..45151413132..",
+  "..56665544332..",
+  "..45151413132..",
+  "...415141312...",
+  "....4444332....",
+  ".....33221.....",
+  "......42.......",
+  "......42.......",
+  "......42.......",
+  "......42.......",
+  "....45444322...",
+  ".....211110....",
+ ],
+ # The Soviet concrete urn on its foot.
+ ["....6666666....",
+  "..66333333363..",
+  ".6611fe1C11163.",
+  "661ef1CC1111133",
+  ".6111111111113.",
+  "..55555544433..",
+  "....6666654....",
+  ".4566655443321.",
+  "..45665544332..",
+  "...456544332...",
+  "....4554322....",
+  ".....43221.....",
+  ".....45421.....",
+  "....5655432....",
+  "....4544321....",
+  ".....33221.....",
+ ],
+ # A steel bin under a hood with its mouth in front: the street since 1960.
+ ["......666......",
+  "...665555566...",
+  "..65555554442..",
+  ".6555000004442.",
+  ".65501ffe10332.",
+  ".65501eee10332.",
+  ".6556666666332.",
+  ".1644433333320.",
+  ".3222222222212.",
+  ".3445654332212.",
+  ".3445654332212.",
+  ".3445654332212.",
+  ".3445654332212.",
+  ".4445654332213.",
+  ".2545654332221.",
+  ".3356665443302.",
+  ".3434543221112.",
+  "..44565433221..",
+  "...456543322...",
+ ],
+]
+STREET_BIN_RAMPS = ['bingreen7', 'limestone', 'galvanised7']
+
+
+def street_bin(v=0):
+ """The square's litter bin in the form of its day: iron basket, concrete
+ urn or hooded steel."""
+ m = RAMPS[STREET_BIN_RAMPS[v]]
+ c = draw_grid(STREET_BIN[v], ramp_keys(m, RAMPS['linen7'], RAMPS['oak7']))
+ soft_outline(c, m[0], m[2])
+ return c.image()

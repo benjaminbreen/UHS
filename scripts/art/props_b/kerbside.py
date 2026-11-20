@@ -432,25 +432,6 @@ def utility_cabinet(v=0):
  return c.image()
 
 
-def wheelie_bin(v=0):
- """The household's wheeled bin, put out at the kerb: green, black, blue or
- brown as the council sorts its rubbish."""
- m = (GREEN, IRON, BLUE, BROWN)[v]
- c = Canvas(11, 18)
- for y in range(4, 16):
-  inset = 1 if y > 10 else 0
-  for x in range(1 + inset, 10 - inset):
-   t = (x - 1) / 8
-   c.set(x, y, m[5] if t < 0.2 else m[4] if t < 0.5 else m[3] if t < 0.8 else m[1])
- c.hline(0, 10, 3, m[5]); c.hline(0, 10, 2, m[6]); c.hline(1, 9, 1, m[4])     # the lid
- c.hline(1, 9, 4, m[1])
- c.set(0, 1, m[3]); c.set(10, 1, m[2])                                     # the handle
- c.hline(3, 7, 8, m[2])
- c.set(2, 16, IRON[1]); c.set(3, 16, IRON[3]); c.set(8, 16, IRON[1]); c.set(2, 17, IRON[0]); c.set(8, 17, IRON[0])
- soft_outline(c, m[0], m[2])
- return c.image()
-
-
 def rubbish(v=0):
  """Rubbish at the kerb on collection day: v0 black sacks, v1 the pale bags
  of a Japanese street under their crow net, v2 flattened cartons tied in a
@@ -527,7 +508,6 @@ KERBSIDE = {
  'bicycle': bicycle,
  'bike-rack': bike_rack,
  'utility-cabinet': utility_cabinet,
- 'wheelie-bin': wheelie_bin,
  'kerb-rubbish': rubbish,
  'pavement-board': pavement_board,
  'driveway-hoop': driveway_hoop,

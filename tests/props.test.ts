@@ -32,6 +32,7 @@ import { buildingArtCells } from "../src/content/graphics/models";
 import { wallSignDefs } from "../src/content/props/signage";
 import { packs } from "../src/content/packs";
 import { withProps } from "../src/content/props/place";
+import { propAffordances } from "../src/core/props";
 import type { PlayerCommand, WorldModel, WorldObject } from "../src/core/types";
 import type { Engine } from "../src/core/engine";
 let serial = 0;
@@ -178,9 +179,12 @@ describe("interactive props", () => {
       const kit=propKit({...packs.roman,year,setting});
       for (const context of ["household","yard"] as const) expect(kit.contexts[context],key).toContain(key);
       const sprite=propSprite(key)!;
-      expect(sprite).toBe(containerProps[key].sprite);
-      expect(natureAtlas.frames).toHaveProperty(sprite);
-      expect(propVariety("test",sprite,1,2)).toEqual({flip:false,tint:0xffffff});
+      // Redrawn by hand in the prop painters; the rest are still nature-atlas studies.
+      if (containerProps[key].sprite) {
+        expect(sprite).toBe(containerProps[key].sprite);
+        expect(natureAtlas.frames).toHaveProperty(sprite);
+        expect(propVariety("test",sprite,1,2)).toEqual({flip:false,tint:0xffffff});
+      } else expect(propAtlas.frames).toHaveProperty(sprite);
       const furniture = ["room-jars","room-sacks","room-basket","room-pack","room-crate"];
       const indoorChoices = furniture.flatMap(f => Array.from({length:100},(_,i) => regionalContainer(setting,f,i/100)));
       expect(indoorChoices,key).toContain(key);
@@ -316,6 +320,27 @@ describe("interactive props", () => {
       for (let v = 0; v < (def.variants ?? 3); v++)
         for (const state of ["lean-left", "lean-right", "fallen"])
           expect(frames[`study-propb-${def.family}-${v}-${state}`], `${def.family}-${v}-${state}`).toBeTruthy();
+  });
+  it("takes a bin's lid off and puts it back, and dents it under a blow", () => {
+    const e = createSession("roman", "bin-fixture");
+    const pos = e.state.player.pos;
+    const bin: WorldObject = { id: "test-bin", prop: "dustbin", name: "Galvanised bin", kind: "container",
+      sprite: "study-propb-dustbin-0", pos: { ...pos, x: pos.x + 1 }, inventory: { grain: 1 } };
+    e.state.objects.push(bin);
+    const labels = () => propAffordances(e.state, bin, true).map(a => a.label);
+    expect(labels()).toContain("Lift the lid");
+    expect(interaction(e, bin, "look").status).toBe("completed");
+    expect(bin.open).toBe(true);
+    expect(labels()).toContain("Put the lid back on");
+    expect(interaction(e, bin, "close").status).toBe("completed");
+    expect(bin.open).toBe(false);
+    expect(interaction(e, bin, "strike").status).toBe("completed");
+    expect(bin.damage).toBe(1);
+    expect(bin.broken).toBeFalsy();
+    const frames = propAtlas.frames as Record<string, unknown>;
+    for (const def of Object.values(propDefs).filter(d => d.lid))
+      for (let v = 0; v < (def.variants ?? 3); v++)
+        expect(frames[`study-propb-${def.family}-${v}-open`], `${def.family}-${v}-open`).toBeTruthy();
   });
   it("scopes new wayside details by region and date", () => {
     const sweden = { culture: "european", year: 1050, lon: 17, lat: 59, settlement: "village" } as const;

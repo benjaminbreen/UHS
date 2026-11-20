@@ -666,6 +666,7 @@ export type PlayerCommand =
         | "reap"
         | "mine"
         | "right"
+        | "close"
         | "topple"
         | "heave"
         | "rob"

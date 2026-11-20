@@ -4162,6 +4162,8 @@ export class Engine {
     const def = propDefs[prop.prop!];
     if (!def) return undefined;
     if (def.topples && !prop.tipped && !prop.broken) {
+      // A bin dents as it goes over; the next blows break it where it lies.
+      if (def.breakable) prop.damage = (prop.damage ?? 0) + blows;
       const [dx, dy] = push ?? [[0, -1], [1, 0], [0, 1], [-1, 0]][this.state.player.direction];
       return this.tiltProp(prop, dx, dy);
     }
@@ -10903,7 +10905,7 @@ export class Engine {
       const prop = this.state.objects.find((o) => o.id === c.target && o.prop);
       if (
         prop &&
-        ["pickup", "drop", "strike", "look", "right", "topple"].includes(
+        ["pickup", "drop", "strike", "look", "close", "right", "topple"].includes(
           c.action,
         )
       ) {
@@ -10940,6 +10942,9 @@ export class Engine {
               ? `Inside ${prop.name.toLowerCase()}: ${contents.join(", ")}.`
               : `${prop.name} is empty.`,
           );
+        } else if (c.action === "close") {
+          prop.open = false;
+          this.event(`You put the lid back on ${prop.name.toLowerCase()}.`);
         } else if (c.action === "right") {
           prop.tipped = false;
           delete prop.lean;

@@ -21,6 +21,8 @@ export type PropDef = {
   /** Occupies its ground tile while intact and on the ground. */
   solid?: boolean;
   container?: boolean;
+  /** Drawn with a lid: looking inside lifts it off, and it can go back on. */
+  lid?: boolean;
   /** What it leaves on the ground when it breaks. */
   breakable?:
     | "clay"
@@ -1151,7 +1153,26 @@ export const propDefs: Record<string, PropDef> = {
     name: "Galvanised bin",
     family: "dustbin",
     container: true,
+    lid: true,
+    breakable: "metal",
     tips: true,
+  },
+  wheelieBin: {
+    topples: true,
+    shove: { as: "free", mass: 0.6 },
+    solid: true,
+    name: "Wheeled bin",
+    family: "wheelie-bin",
+    container: true,
+    lid: true,
+    tips: true,
+    variants: 4,
+  },
+  streetBin: {
+    solid: true,
+    name: "Litter bin",
+    family: "street-bin",
+    container: true,
   },
   drum: {
     topples: true,
@@ -1259,6 +1280,7 @@ export const propDefs: Record<string, PropDef> = {
     portable: true,
     container: true,
     breakable: "plastic",
+    tips: true,
   },
   carton: {
     shove: { as: "free", mass: 0.3 },

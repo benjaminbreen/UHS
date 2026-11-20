@@ -5,7 +5,7 @@ import { dirname, resolve } from "node:path";
 const out = resolve("scripts/art/reference/current-adult.png");
 const browser = await chromium.launch({ channel: "chrome" });
 const page = await browser.newPage();
-await page.goto("http://127.0.0.1:5173/character-lab");
+await page.goto(`${process.env.UHS_URL ?? "http://127.0.0.1:5173"}/character-lab`);
 const result = await page.evaluate(async () => {
   const { drawCharacterG } = await import(
     "/src/render/characters/doll/draw.ts" as string

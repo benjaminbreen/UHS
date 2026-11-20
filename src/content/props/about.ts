@@ -188,6 +188,8 @@ export const about: Record<string, string> = {
   woodpile: "Firewood stacked to dry, for cooking and heating.",
   grinder: "A grinding stone for turning grain into flour by hand.",
   dustbin: "A metal bin for the household's rubbish.",
+  wheelieBin: "A plastic bin on two wheels that the household puts out for the council's collection.",
+  streetBin: "A public bin for litter, emptied by the council.",
   drum: "A steel drum for storing oil, water or fuel.",
   barrow: "A wheelbarrow for carrying earth, dung or goods.",
   washingLine: "A line where the household's washing is hung out to dry.",

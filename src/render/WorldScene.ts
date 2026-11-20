@@ -3581,10 +3581,17 @@ export class WorldScene extends Phaser.Scene {
   /** A prop whose hangings are a separate frame: the entity draws the rigid
    * part and the hangings ride over it. The whole sprite stays in the atlas
    * for the lab, the UI and the shadow mask. */
-  private layerOf(frame: string, layer: "frame" | "hang" | "fallen" | "lean-left" | "lean-right") {
+  private layerOf(frame: string, layer: string) {
     if (!frame.startsWith("study-propb-")) return undefined;
     const key = `${frame}-${layer}`;
     return this.textures.get("props").has(key) ? key : undefined;
+  }
+  /** How a prop has been used, where that is drawn: lid off, dented. */
+  private propState(o: WorldObject) {
+    if (o.broken || !(o.damage || o.open)) return undefined;
+    return (o.damage && o.open ? this.layerOf(o.sprite, "dented-open") : undefined) ??
+      (o.open ? this.layerOf(o.sprite, "open") : undefined) ??
+      (o.damage ? this.layerOf(o.sprite, "dented") : undefined);
   }
   private textureFrame(frame: string): string | number {
     if (frame.startsWith("study-sheet-tree-")) return frame.slice(17);
@@ -5903,6 +5910,8 @@ export class WorldScene extends Phaser.Scene {
                 ? this.layerOf(o.sprite, "fallen") ?? o.sprite
                 : o.lean
                   ? this.layerOf(o.sprite, o.lean < 0 ? "lean-left" : "lean-right") ?? o.sprite
+                  : this.propState(o)
+                    ? this.propState(o)!
                   : o.sprite === "crate"
                     ? crateFrame(random(e.state.manifest.seed, "crate-art", o.id))
                     : o.curing ? "harbor-fish-shed-"+(!o.curing.fish ? 0 : o.curing.count!+(e.state.clock>=o.curing.ready! ? 3 : 0))

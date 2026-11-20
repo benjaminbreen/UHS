@@ -1,17 +1,16 @@
 {
-  "renderer": "b",
   "appearance": "originalAppearance",
   "facing": 4,
   "pose": "idle",
   "frame": 0,
   "sourceBounds": [
-    32,
-    43,
-    47,
-    80
+    31,
+    39,
+    49,
+    79
   ],
   "occupied": [
-    15,
-    37
+    18,
+    40
   ]
 }

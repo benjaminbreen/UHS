@@ -16,7 +16,6 @@ SECOND_CONTAINER_STUDIES = [
     ('grainbin','Raised woven grain bin','South / Southeast Asian agricultural settings','Reinforced woven body, timber feet and removable lid'),
     ('stoneware','Lidded stoneware crock','Europe / early modern–industrial study','Thick rolled lip, lifting ears and restrained cobalt bands'),
     ('demijohn','Wicker-protected demijohn','Trade and households / eighteenth–twentieth century','Exposed green glass, fitted wicker jacket and cork'),
-    ('kerosenetin','Reused kerosene tin','Worldwide trade / late nineteenth–twentieth century','Folded metal seams, wire handle and worn printed panel'),
 ]
 
 
@@ -319,14 +318,6 @@ def container_model(kind):
             tube([(s*10,0,9),(s*15,0,12),(s*15,0,18),(s*10,0,19)],.9,rope)
         ring(31.5,2.1,2.1,.55,glass)
         lathe([(32,1.5),(34,1.7),(35,1.3)],wood)
-    elif kind=='kerosenetin':
-        box((0,0,14),(14,7.5,13),.8,steel)
-        for x in [-13.5,13.5]:
-            for y in [-7.1,7.1]:tube([(x,y,2),(x,y,26)],.4,steel)
-        for z in [1.5,26.5]:
-            tube([(-13,-7.4,z),(13,-7.4,z),(14,-6,z),(14,6,z),(13,7.4,z),(-13,7.4,z),(-14,6,z),(-14,-6,z),(-13,-7.4,z)],.5,steel)
-        lathe([(26.5,2.2),(29,2.2),(30,2.8)],steel,cx=7,cy=0)
-        tube([(-8,0,27),(-8,0,31),(-5,0,33),(2,0,33),(4,0,31),(4,0,27)],.65,steel)
     else:
         raise ValueError(kind)
     return parts,palettes
@@ -369,14 +360,6 @@ def container_study(kind,voxel=False):
             mat=np.where(panel&edge,6,mat)
         elif kind=='stoneware':
             mat=np.where((mat==14)&(((z>7)&(z<8.2))|((z>20)&(z<21))),13,mat)
-        elif kind=='kerosenetin':
-            front=(mat==12)&(y<-7)&(np.abs(x)<10)&(z>7)&(z<22)
-            mat=np.where(front,2,mat)
-            ink=front&(np.abs(x)<8)&(z>9)&(z<20)
-            mat=np.where(ink,13,mat)
-            mat=np.where(ink&((np.abs(z-17)<.6)|((z>11)&(z<13)&(np.abs(x)<5))),2,mat)
-            rust=(y<-6.5)&(((z<4)&(x>5))|((x<-12)&(z>17)&(z<22)))
-            mat=np.where(rust,9,mat)
         return mat
     W,H,cx,base=72,72,36,58
     if voxel:
@@ -449,7 +432,6 @@ def container_study(kind,voxel=False):
                 level=value.copy()
                 if kind=='majiayao' and chosen==6:level-=2
                 if kind=='parfleche' and chosen in [6,9,13]:level-=1.2
-                if kind=='kerosenetin' and chosen==13:level-=1.5
                 pixels=np.array(palettes[chosen])[np.clip(np.rint(level),1,7).astype(int)]
                 target=np.flatnonzero(sel)[sub]
                 colors[target,:3]=pixels[sub]
@@ -516,12 +498,6 @@ def container_study(kind,voxel=False):
         elif kind=='demijohn':
             stroke([(-1,-2.1,31),(-1,-2.2,27),(-3,-4,24),(-5,-5.5,23)],11,7)
             stroke([(-7,-7,21),(-8,-7,20)],11,6)
-        elif kind=='kerosenetin':
-            stroke([(-13,-7.5,3),(-13,-7.5,25)],12,5)
-            stroke([(12,-7.5,3),(12,-7.5,25)],12,2)
-            stroke([(-12,-7.5,25),(12,-7.5,25)],12,6)
-            stroke([(-8,-7.6,17),(-6,-7.6,16)],2,5)
-            stroke([(5,-7.6,9),(7,-7.6,11)],12,4)
     # A single outside pixel contour; its colour follows the adjacent material.
     a=np.array(im);solid=a[:,:,3]>0;out=a.copy()
     for dy,dx in [(1,0),(0,1),(0,-1),(-1,0)]:

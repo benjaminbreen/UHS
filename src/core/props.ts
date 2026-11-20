@@ -60,7 +60,8 @@ export function propAffordances(
     // Full hands swap rather than refuse: a dead end is worse than a juggle.
     add("pickup", s.player.held ? "Swap for this" : "Pick up");
   if (d.container) {
-    add("look", o.broken ? "Look through spilled contents" : "Look inside");
+    add("look", o.broken ? "Look through spilled contents" : d.lid && !o.open && !o.tipped ? "Lift the lid" : "Look inside");
+    if (d.lid && o.open && !o.broken && !o.tipped && !o.carriedBy) add("close", "Put the lid back on");
     if (o.open && Object.values(o.inventory).some((n) => n! > 0))
       add(
         "take",

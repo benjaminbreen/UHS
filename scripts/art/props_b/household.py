@@ -1,6 +1,6 @@
 """Household things drawn soft: tinted rims, seven tones, no black keyline."""
 from math import hypot
-from .core import Canvas, RAMPS, blob, jitter, dither, soft_outline, shade_rows
+from .core import draw_grid, ramp_keys, Canvas, RAMPS, blob, jitter, dither, soft_outline, shade_rows
 
 WOOD7 = ['oak7', 'walnut7', 'ash7']
 
@@ -132,27 +132,68 @@ BIN = [['#1d2a22', '#2e4436', '#45624d', '#5f8166', '#7d9e82', '#a2bea5', '#c9dc
        ['#2e1612', '#4b221b', '#6c3427', '#8e4836', '#ad6249', '#c88468', '#dfac93']]
 
 
+# Seen into from above: the far wall lit, the floor in shadow. The handle
+# goes on after the rim so its gaps stay open.
+BUCKET = [
+ "...6666664...",
+ ".66322222344.",
+ "6632111112344",
+ "6611111111144",
+ ".66111111144.",
+ ".55666666654.",
+ ".23333333221.",
+ ".34554433221.",
+ ".34554433211.",
+ ".34554432211.",
+ ".34554432211.",
+ ".24554432210.",
+ "..344332211..",
+ "....43321....",
+]
+BUCKET_HANDLE = [
+ "....44443....",
+ "..4.......3..",
+ ".4.........3.",
+]
+
+
+BUCKET_FALLEN = [
+ "..666...........",
+ ".66116666666665.",
+ "6611165555555544",
+ "6111154444444443",
+ "6111154444444443",
+ "6111143333333332",
+ "4122243333333332",
+ "4122432222222221",
+ ".42432222222221.",
+ "..444...........",
+]
+BUCKET_HANDLE_FALLEN = [
+ "..4.......3.....",
+ "...4444443......",
+]
+
+
 def plastic_bin(v=0):
  """A moulded bucket: a thick rolled lip, a straight taper, flat clean
- colour with one hard highlight, a wire handle up over the mouth."""
- c = Canvas(9, 11)
- c.PAD = 2
+ colour with one hard highlight, its handle up over the mouth."""
  p = BIN[v]
- for y in range(3, 11):
-  half = 4.2 - (y - 3) * 0.12
-  for x in range(9):
-   u = (x + .5 - 4.5) / half
-   if abs(u) > 1: continue
-   tone = 5 if -0.7 < u < -0.4 else 4 if u < 0.2 else 3 if u < 0.75 else 2
-   c.set(x, y, p[tone])
- c.hline(1, 7, 10, p[1])
- for x in range(9):
-  c.set(x, 2, p[6] if x < 4 else p[5]); c.set(x, 3, p[3])
- c.hline(1, 7, 1, p[2])
- for x, y in ((1, 1), (1, 0), (2, 0), (6, 0), (7, 0), (7, 1), (3, 0), (4, 0), (5, 0)):
-  c.set(x, y, RAMPS['iron7'][4])
- c.hline(2, 6, 7, p[3])
+ keys = ramp_keys(p)
+ c = Canvas(13, 17)
+ draw_grid(BUCKET, keys, c, (0, 3))
  soft_outline(c, p[0], p[3])
+ draw_grid(BUCKET_HANDLE, keys, c)
+ return c.image()
+
+
+def plastic_bin_fallen(v=0):
+ """On its side, mouth to you, the handle dropped in front."""
+ p = BIN[v]
+ keys = ramp_keys(p)
+ c = draw_grid(BUCKET_FALLEN, keys)
+ soft_outline(c, p[0], p[3])
+ draw_grid(BUCKET_HANDLE_FALLEN, keys, c, (0, 10))
  return c.image()
 
 

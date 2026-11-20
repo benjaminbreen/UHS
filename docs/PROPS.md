@@ -15,7 +15,7 @@ Hovering a target shows its name and an available action. When a click or tap fi
 - **Look inside** reveals persistent quantities. **Take contents** transfers all available goods, with ownership consequences where applicable. Picking up does not transfer the contents separately.
 - **Wait** remains a toolbar button and text command. Key repeats, forms, and modal panels suppress gameplay actions.
 
-There is one held object slot. Picking up equips that object; a stick has the strike capability, while a held container can be inspected and put down. Multiple equipment slots, item nesting, arbitrary per-stack transfers, locks, and animated open lids are not implemented.
+There is one held object slot. Picking up equips that object; a stick has the strike capability, while a held container can be inspected and put down. Multiple equipment slots, item nesting, arbitrary per-stack transfers and locks are not implemented. A container with `lid: true` shows its lid off once looked into (**Lift the lid**) and can have it put back (**Put the lid back on**); lids are not animated.
 
 Breaking preserves the original object ID, replaces the sprite with material-specific remains, and exposes the same contents in place. Taking those contents empties the remains; retrying a command never duplicates goods. Empty vessels remain visible. Damage, ownership, open/broken state and carrying survive save/reload. Nearby witnesses react to taking or damaging household property.
 
@@ -242,10 +242,25 @@ metal folds rather than shatters, plastic whitens where it splits, card just
 crushes. Resistance follows: wood and metal take three blows, wicker and
 plastic two, everything else one.
 
-### Knocked over
+### Knocked over, opened, dented
 
-Anything with `tips: true` in the catalog carries a second sprite, built from
-`scripts/art/props_b/fallen.py` under the `-fallen` suffix. It is drawn as the
+A prop's states are sprites listed in `STATES` in
+`scripts/art/props_b/__init__.py` and built as `-fallen`, `-open`, `-dented`
+and `-dented-open`. The renderer shows `fallen` when `tipped`, the lean frames
+when leaning, and otherwise the most specific of `dented-open`, `open` and
+`dented` that is drawn, from `open` and `damage`. A prop without a state
+sprite keeps its plain one, so states can be drawn one family at a time.
+
+Bins set down as street furniture (the kerb's, the square's, the park's, a
+suburban house's) are catalogue props too, so they can be looked into and
+knocked over: `binProp` in `src/world/v3/plan.ts`.
+
+A blow to a prop that both `topples` and is `breakable` dents it as it goes
+over; once it is down, further blows break it. **Strike it** dents without
+knocking it over.
+
+Anything with `tips: true` in the catalog carries a fallen sprite, mostly from
+`scripts/art/props_b/fallen.py`. It is drawn as the
 same body of revolution lying down, not as the standing sprite rotated: the
 light stays upper-left, so a fallen bin is lit along its top and dark
 underneath, and its mouth becomes a disc you look into from the side.

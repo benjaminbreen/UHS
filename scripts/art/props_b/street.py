@@ -86,55 +86,6 @@ def bench(v=0):
     return outline(c.im)
 
 
-def bin_(v=0):
-    """0 cast-iron basket on a post, 1 Soviet concrete urn, 2 modern steel bin
-    with a hood."""
-    if v == 0:
-        c = C(14, 20)
-        b = 19
-        c.rect(6, b - 7, 7, b, IRON[1])
-        c.vl(6, b - 7, b, IRON[3])
-        c.hl(4, 9, b, IRON[1])
-        for y in range(b - 18, b - 6):
-            t = (y - (b - 18)) / 12
-            half = round(6 - t * 2)
-            for x in range(7 - half, 7 + half):
-                bar = (x - (7 - half)) % 2 == 0
-                c.px(x, y, (GREEN[4] if x < 5 else GREEN[3] if x < 9 else GREEN[2]) if bar else GREEN[0])
-        c.hl(1, 12, b - 18, GREEN[5])
-        c.hl(1, 12, b - 17, GREEN[2])
-        c.hl(3, 10, b - 11, GREEN[3])
-        c.hl(4, 9, b - 7, GREEN[2])
-        return outline(c.im)
-    if v == 1:
-        c = C(14, 18)
-        b = 17
-        prof = [2, 3, 3, 4, 4, 4, 3, 3, 2, 2, 1, 1]
-        for y in range(b - 15, b + 1):
-            t = (y - (b - 15)) / 15
-            half = round(6 - 2.5 * math.sin(t * math.pi * 0.9))
-            if y > b - 3:
-                half = 4
-            for x in range(7 - half, 7 + half):
-                k = prof[min(11, int((x - (7 - half)) / (2 * half) * 12))]
-                c.px(x, y, CONCRETE[k])
-        c.ellipse(7, b - 15, 5.5, 1.6, CONCRETE[1])
-        c.hl(3, 10, b - 16, CONCRETE[5])
-        c.hl(3, 10, b - 3, CONCRETE[2])
-        return outline(c.im)
-    c = C(14, 22)
-    b = 21
-    for x in range(1, 13):
-        k = 4 if x < 4 else 3 if x < 8 else 2 if x < 11 else 1
-        c.vl(x, b - 17, b - 1, STEEL[k])
-    for y in range(b - 14, b - 2, 2):
-        c.hl(2, 11, y, STEEL[1])
-    c.rect(0, b - 20, 13, b - 17, GREEN[3])
-    c.hl(0, 13, b - 20, GREEN[5])
-    c.rect(4, b - 18, 9, b - 17, IRON[0])
-    c.hl(1, 12, b, STEEL[1])
-    return outline(c.im)
-
 
 def bollard(v=0):
     """0 cast-iron cannon bollard, 1 concrete post with a chamfered cap."""
@@ -386,7 +337,6 @@ def city_lamp(v=0):
 
 STREET = {
     'street-bench': bench,
-    'street-bin': bin_,
     'street-bollard': bollard,
     'tree-grate': tree_grate,
     'gully-grate': gully,

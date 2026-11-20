@@ -1,8 +1,8 @@
 """Pixel vocabulary for the B studies.
 
 Every prop declares its own canvas, because a 48x48 box for everything is what
-made a scythe and a well the same size. The ruler is the character: ~17px per
-metre (a standing body is 29px for 1.7m), in both axes.
+made a scythe and a well the same size. The ruler is the character: ~23px per
+metre (the adult is 40px for 1.7m), in both axes.
 """
 from math import atan2, hypot, pi
 from PIL import Image, ImageDraw
@@ -49,6 +49,9 @@ RAMPS = {
  'ash7': ['#2a2018','#443426','#5f4b31','#7a643e','#95804f','#b09b64','#cab77e'],
  'iron7': ['#14181c','#242a30','#363e46','#4c545d','#666f78','#848d95','#a6adb3'],
  'brass7': ['#241a10','#3d2c17','#5a4320','#7a5d2a','#9a7b38','#b99a4c','#d4b968'],
+ # Moulded and painted bins: one clean colour, one hard highlight.
+ 'bingreen7': ['#0e1a14','#15271e','#1f3a2b','#2b4f3a','#3b664b','#52805f','#6f9b78'],
+ 'binbrown7': ['#1c140e','#2c2016','#3d2c1e','#503b28','#664c34','#7d5f42','#957454'],
 }
 RAMPS['wood'] = ['#2b231d','#4a3524','#6a4b30','#8a6440','#a87e52','#c69c6c']
 STONE = ['granite', 'sandstone', 'limestone']
@@ -158,13 +161,25 @@ def jitter(*seed):
 def dither(x, y): return (x + y) % 2 == 0
 
 
-def draw_grid(rows, keys):
- """Hand-authored pixels. At this size a formula draws a blob; a grid does not."""
- c = Canvas(max(len(r) for r in rows), len(rows))
+def draw_grid(rows, keys, c=None, at=(0, 0)):
+ """Hand-authored pixels. At this size a formula draws a blob; a grid does not.
+ With `c`, stamps the rows onto that canvas at `at`: a lid, a dent, a spill.
+ 'x' erases, so a state can bite into the silhouette."""
+ c = c or Canvas(max(len(r) for r in rows), len(rows))
  for y, row in enumerate(rows):
   for x, ch in enumerate(row):
-   if ch != '.': c.set(x, y, keys[ch])
+   if ch == 'x': c.px.pop((at[0] + x, at[1] + y), None)
+   elif ch != '.': c.set(at[0] + x, at[1] + y, keys[ch])
  return c
+
+
+def ramp_keys(m, a=None, b=None, **extra):
+ """Grid keys from ramps, so one drawing serves every variant: digits 0-6 are
+ steps of `m`, a-g of `a`, A-G of `b`."""
+ keys = {str(i): t for i, t in enumerate(m)}
+ for ramp, letters in ((a, 'abcdefg'), (b, 'ABCDEFG')):
+  if ramp: keys.update(zip(letters, ramp))
+ return {**keys, **extra}
 
 
 def soft_outline(c, low, high):

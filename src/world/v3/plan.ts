@@ -1146,8 +1146,9 @@ export function planSettlement(
         const rect = { x: at.x - (width >> 1), y: at.y, w: width, h: 1 };
         if (!dry(rect, false)) return;
         eachCell(rect, (x, y) => { plan.solid.add(cellKey(x, y)); plan.reserved.add(cellKey(x, y)); });
-        plan.objects.push({ id: `${site.id}-square-${tag}`, name, sprite,
-          kind: "monument", pos: pos(at), inventory: {}, claim: "landscape" });
+        const prop = binProp(sprite);
+        plan.objects.push({ id: `${site.id}-square-${tag}`, name, sprite, prop,
+          kind: prop ? "container" : "monument", pos: pos(at), inventory: {}, claim: "landscape" });
       };
       const focus = focusFor(pack, rand("monument"), true, townRank);
       const ornament = fabric.square.focus ? ornaments[fabric.square.focus] : undefined;
@@ -1180,7 +1181,7 @@ export function planSettlement(
         }
         const lamp = lampFor(pack);
         place(`lamp-${i}`, lamp.label, lamp.sprite, { x: x + 1, y: court.y + (court.h >> 1) });
-        place(`bin-${i}`, "Litter basket", furniture?.bin ?? "study-propb-litter-bin-0", { x: x + 3, y: court.y + court.h - 3 });
+        if (furniture) place(`bin-${i}`, "Litter bin", furniture.bin, { x: x + 3, y: court.y + court.h - 3 });
       }
       const source = plan.objects.find((o) => o.id === `${site.id}-water`)!;
       const piped = (pack.setting?.year ?? 0) >= 1900;
@@ -1676,9 +1677,12 @@ export function planSettlement(
           for (let dx = -1; dx <= 1; dx++) plan.solid.add(cellKey(x + dx, at.y));
         }
         const bin = { x: cx + 2, y: rect.y + rect.h - 2 };
-        plan.objects.push({ id: `${site.id}-park-${index}-bin`, name: "Litter basket", kind: "monument",
-          sprite: furniture?.bin ?? "study-propb-litter-bin-0", pos: pos(bin), inventory: {} });
-        plan.solid.add(cellKey(bin.x, bin.y));
+        if (furniture) {
+          const prop = binProp(furniture.bin);
+          plan.objects.push({ id: `${site.id}-park-${index}-bin`, name: "Litter bin", kind: prop ? "container" : "monument", prop,
+            sprite: furniture.bin, pos: pos(bin), inventory: {} });
+          plan.solid.add(cellKey(bin.x, bin.y));
+        }
         return;
       }
       const at = { x: rect.x + (rect.w >> 1), y: rect.y + (rect.h >> 1) },
@@ -4505,7 +4509,10 @@ export function planSettlement(
         kind: "container",
         pos: pos(side),
         // A house on a lawn keeps its things in the bin by the back door.
-        sprite: (motorAge && urban && lot.use === "suburb" && kerb?.bin?.[Math.floor(rand("bin", i) * kerb.bin.length)]) || "basket",
+        ...(() => {
+          const bin = motorAge && urban && lot.use === "suburb" && kerb?.bin?.[Math.floor(rand("bin", i) * kerb.bin.length)];
+          return bin ? { sprite: bin, prop: binProp(bin) } : { sprite: "basket" };
+        })(),
         inventory: pack.setting?.characterRevision
           ? eligibleInventory(
               { grain: 4, wood: 2 },
@@ -6385,7 +6392,8 @@ export function planSettlement(
       for (let dy = -clear; dy <= clear; dy++)
         for (let dx = -clear; dx <= clear; dx++) if (taken.has(cellKey(x + dx, y + dy))) return false;
       taken.add(k);
-      plan.objects.push({ id: `${site.id}-kerb-${x}-${y}`, name, kind: "monument", sprite, pos: pos({ x, y }), inventory: {}, claim: "landscape" });
+      const prop = binProp(sprite);
+      plan.objects.push({ id: `${site.id}-kerb-${x}-${y}`, name, kind: prop ? "container" : "monument", prop, sprite, pos: pos({ x, y }), inventory: {}, claim: "landscape" });
       return true;
     };
     for (const j of plan.junctions ?? []) {
@@ -7080,3 +7088,7 @@ const KERB_NAMES: [RegExp, string][] = [
   [/utility-cabinet/, "Utility cabinet"], [/kerb-rubbish/, "Rubbish for collection"], [/street-bin/, "Litter bin"],
 ];
 const kerbName = (sprite: string) => KERB_NAMES.find(([re]) => re.test(sprite))?.[1] ?? "Street furniture";
+/** A bin set down as street furniture is still a bin: it can be looked into
+ * and knocked over. */
+const BIN_PROPS: [RegExp, string][] = [[/street-bin/, "streetBin"], [/wheelie-bin/, "wheelieBin"], [/dustbin/, "dustbin"]];
+const binProp = (sprite: string) => BIN_PROPS.find(([re]) => re.test(sprite))?.[1];

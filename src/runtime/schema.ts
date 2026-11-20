@@ -694,6 +694,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
         "drop",
         "strike",
         "look",
+        "close",
         "climb",
         "descend",
         "passage", "unload",

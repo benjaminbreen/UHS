@@ -2,6 +2,8 @@
 
     python3 -m scripts.art.props_b.review well trough        # named families
     python3 -m scripts.art.props_b.review                    # all of them
+    python3 -m scripts.art.props_b.review dustbin --states   # shipped, drawn, every state
+    python3 -m scripts.art.props_b.review --grid dustbin 0   # the shipped sprite as a grid
 
 Writes artifacts/prop-b-review.png. Look at this, not at the source, before
 calling a prop finished: scale against the figure is most of the judgement.
@@ -12,7 +14,7 @@ from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'scripts'))
-from art.props_b import DRAW_B, FALLEN, TOPPLING                   # noqa: E402
+from art.props_b import DRAW_B, STATES, TOPPLING                   # noqa: E402
 from art.props_b.fallen import leaning                            # noqa: E402
 from art.reference import current_adult                           # noqa: E402
 
@@ -23,15 +25,49 @@ def person():
     return current_adult()
 
 
+def atlas():
+    import json
+    frames = json.loads((ROOT / 'public/props/atlas.json').read_text())['frames']
+    return frames, Image.open(ROOT / 'public/props/atlas.png').convert('RGBA')
+
+
+def shipped(key, _cache=[]):
+    """The sprite as the game draws it now, pivot included: the before."""
+    if not _cache: _cache.append(atlas())
+    frames, im = _cache[0]
+    if key not in frames: return None
+    f = frames[key]; r = f['frame']
+    out = im.crop((r['x'], r['y'], r['x'] + r['w'], r['y'] + r['h']))
+    p = f.get('pivot', {'x': .5, 'y': 1})
+    out.info['anchor'] = [round(p['x'] * out.width), round(p['y'] * out.height)]
+    return out
+
+
+def grid(im, ramps):
+    """A sprite as rows for `draw_grid`: digits for the first ramp, a-g and
+    A-G for the next two, '?' for anything in none. Start a hand redraw here,
+    not from a blank canvas, and keep the perspective it already has."""
+    from art.props_b.core import RAMPS
+    lut = {}
+    for ramp, letters in zip(ramps, ('0123456', 'abcdefg', 'ABCDEFG')):
+        for ch, h in zip(letters, RAMPS[ramp]):
+            lut.setdefault(tuple(int(h[i:i + 2], 16) for i in (1, 3, 5)), ch)
+    px = im.load()
+    return [''.join('.' if not px[x, y][3] else lut.get(px[x, y][:3], '?')
+                    for x in range(im.width)) for y in range(im.height)]
+
+
 def sheet(keys=None, variants=1, out=None, states=False):
     keys = keys or sorted(DRAW_B)
     figure = person()
     cells = [(k, v, DRAW_B[k](v)) for k in keys for v in range(variants)]
     if states:
         cells = [(k + suffix, v, draw(v)) for k in keys for v in range(variants)
-                 for suffix, draw in [('', DRAW_B[k]),
+                 for suffix, draw in [('-shipped', lambda v, k=k: shipped(f'study-propb-{k}-{v}')),
+                    ('', DRAW_B[k]),
                     *([('-lean', lambda v, k=k: leaning(DRAW_B[k](v), 1))] if k in TOPPLING else []),
-                    *([('-fallen', FALLEN[k])] if k in FALLEN else [])]]
+                    *[('-' + state, d) for state, d in STATES.get(k, {}).items()]]]
+        cells = [c for c in cells if c[2]]
     cropped = []
     for k, v, sprite in cells:
         box = sprite.getbbox()
@@ -109,5 +145,9 @@ if __name__ == '__main__':
                     if col:
                         im.save(dest/f'{prefix}-{key}-{"bc"[col-1]}.png')
             path=dest/f'{prefix}-abc-{start//3+1}.png';out.save(path);print(path)
+    elif sys.argv[1:2] == ['--grid']:
+        key, v = sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 0
+        ramps = sys.argv[4:] or ['galvanised7']
+        print('\n'.join(f' "{row}",' for row in grid(shipped(f'study-propb-{key}-{v}') or DRAW_B[key](v), ramps)))
     else:
         print(sheet([s for s in sys.argv[1:] if s != '--states'] or None, states='--states' in sys.argv))
