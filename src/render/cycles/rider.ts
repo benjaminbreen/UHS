@@ -8,13 +8,13 @@ type Image = Phaser.GameObjects.Image;
 
 // The wheels stand two pixels up from the bottom edge of the cell.
 const ORIGIN_Y = (CYCLE_GROUND + 3) / CYCLE_H;
-// North, east, south, west: seen from behind, side on, head on, side on mirrored.
-const VIEWS = ["back", "side", "front", "side"] as const;
+// Round from north by eighths; the three westward headings are the eastward ones mirrored.
+const VIEWS = ["back", "quarter-back", "side", "quarter", "front", "quarter", "side", "quarter-back"] as const;
 export const WHEELIE_MS = 720;
 
 export interface CycleDraw {
-  /** 0 north, 1 east, 2 south, 3 west. */
-  dir4: number;
+  /** Eighths round from north: 2 east, 4 south. */
+  dir8: number;
   time: number;
   delta: number;
   moving: boolean;
@@ -27,7 +27,7 @@ export interface CycleDraw {
   lit: boolean;
   tint: number;
   /** The rider's doll texture for a pose, frame and heading. */
-  riderTexture: (pose: CyclePose, frame: number, dir4: number) => string | undefined;
+  riderTexture: (pose: CyclePose, frame: number, dir8: number) => string | undefined;
 }
 
 /** Draws cycles: the ones standing about, and the ones being ridden, as a
@@ -131,14 +131,14 @@ export class CycleRider {
     } else [pedal, spin] = o.moving ? [o.time / 80, o.time / 30] : [2, 0];
     const crank = spec.motor ? 0 : Math.floor(pedal) % 8;
 
-    let dir4 = o.dir4, angle = o.player ? this.lean : 0, squash = 1, centre = false;
-    const side = dir4 === 1 || dir4 === 3;
-    const nose = dir4 === 3 ? 1 : -1;
+    let dir8 = o.dir8 & 7, angle = o.player ? this.lean : 0, squash = 1, centre = false;
+    const side = dir8 % 4 !== 0;
+    const nose = dir8 > 4 ? 1 : -1;
     if (o.player && this.trick && o.air >= 0) {
       const { t, from } = this.trick;
       const q = Math.min(1, Math.max(0, (o.air - from) / Math.max(0.08, 0.84 - from)));
       this.trick.done = q;
-      if (t.move === "spin") dir4 = (o.dir4 + Math.floor(q * 4)) % 4;
+      if (t.move === "spin") dir8 = (dir8 + Math.floor(q * 8)) % 8;
       else if (t.move === "whip") angle += (side ? nose * 34 : 40) * Math.sin(Math.PI * q);
       else {
         centre = true;
@@ -153,21 +153,24 @@ export class CycleRider {
     } else if (o.player && this.trick && o.air < 0) this.trick = undefined;
     const wheelie = o.player && o.time < this.wheelieUntil ? Math.sin(Math.PI * (1 - (this.wheelieUntil - o.time) / WHEELIE_MS)) : 0;
 
-    const flip = dir4 === 3, view = VIEWS[dir4], s = flip ? -1 : 1;
+    const flip = dir8 > 4, view = VIEWS[dir8], s = flip ? -1 : 1;
+    const along = view !== "front" && view !== "back", turn = view === "quarter" ? 1 : view === "quarter-back" ? -1 : 0;
     const fast = o.moving && speed > 12.5;
     const f = this.sprites.frame(look, view, { crank, spin: fast ? 0 : Math.floor(spin) & 14, blur: fast, lit: o.lit });
     let pose = f.pose;
     if ((o.standing || o.air >= 0 || wheelie > 0.2) && (pose === "cycle" || pose === "cycle-tuck")) pose = "cycle-stand";
     const sat = CYCLE_SEATS[f.pose], now = CYCLE_SEATS[pose];
-    const rx = view === "side" ? f.rider[0] + sat.ahead - now.ahead : 0, ry = f.rider[1] + sat.pedalUp - now.pedalUp;
+    // A pose that sits further back moves along the machine, which on a diagonal is across and up or down.
+    const shift = along ? sat.ahead - now.ahead : 0;
+    const rx = along ? f.rider[0] + (turn ? (shift * 2) / 3 : shift) : 0, ry = f.rider[1] + sat.pedalUp - now.pedalUp - (turn * shift) / 3;
     const frame = pose === "moto" ? 0 : pose === "cycle-scoot" && !o.moving ? 0 : crank;
-    const texture = o.riderTexture(pose, frame, dir4);
+    const texture = o.riderTexture(pose, frame, dir8);
 
     const gx = im.x, gy = im.y - 2;
-    const endLift = view === "side" ? 0 : wheelie * 4;
-    if (view === "side") angle += nose * 36 * wheelie * (dir4 === o.dir4 ? 1 : 0);
+    const endLift = along ? 0 : wheelie * 4;
+    if (along) angle += nose * (turn ? 28 : 36) * wheelie * (dir8 === (o.dir8 & 7) ? 1 : 0);
     // Flips turn about the middle of rider and machine; a wheelie about the back tyre.
-    const px = centre ? gx : wheelie && view === "side" ? gx + s * f.contact[0] : gx;
+    const px = centre ? gx : wheelie && along ? gx + s * f.contact[0] : gx;
     const py = centre ? gy - 17 : gy;
     const rad = (angle * Math.PI) / 180, cos = Math.cos(rad), sin = Math.sin(rad);
     const place = (img: Image, ax: number, ay: number) => {

@@ -11,7 +11,7 @@ already asks "is the player mounted" holds.
 | What | File |
 |---|---|
 | Kinds, period and region weights, looks, handling model, tricks | `src/core/cycles.ts` |
-| Pixel painter: side, head-on and from behind, parked and fallen | `src/render/cycles/paint.ts` |
+| Pixel painter: eight headings, parked and fallen | `src/render/cycles/paint.ts` |
 | Scene textures, and drawing the ridden and parked machines | `src/render/cycles/sprites.ts`, `rider.ts` |
 | Rider poses (`cycle`, `cycle-tuck`, `cycle-high`, `cycle-ape`, `cycle-scoot`, `cycle-stand`, `moto`) | `src/render/characters/doll/draw.ts` |
 | Mount, park, spill, bell, pump, buy | `src/core/engine.ts` (`mount-cycle`, `cycle-spill`, `ring-bell`, `cycle-service`, `buy-cycle`) |
@@ -36,6 +36,14 @@ from `CYCLE_SEATS`, which the doll's poses read too: change a seat there and
 both move together. A machine is two layers, one behind the rider and one in
 front, so the front wheel and bars cover the legs head-on and the back wheel
 covers them from behind.
+
+A machine has eight headings, like the doll that rides it. Side, head-on and
+from behind are drawn; the four diagonals are the side drawing turned an
+eighth in `Layer.put` (three columns become two and step one row, a clean
+two-to-one line), with the tread's width and the handlebar drawn across
+afterwards. A new kind drawn side-on gets its diagonals for nothing. The
+scene passes the eased eight-way facing, so a turn swings through the
+headings between, and a 360 in the air goes round all eight.
 
 Review sheet: `npm run capture:characters -- cyclists`.
 

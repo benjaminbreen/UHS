@@ -2266,7 +2266,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       const { places } = await import("/src/content/geography/places.ts" as string);
       const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
       const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
-      const cellW = 72, cellH = 72, cols = 7, per = 6, z = 3;
+      const cellW = 60, cellH = 76, cols = 10, per = 6, z = 3;
       const doll = document.createElement("canvas"), bike = document.createElement("canvas");
       doll.width = doll.height = 80; bike.width = CYCLE_W; bike.height = CYCLE_H;
       const dc = doll.getContext("2d")!, bc = bike.getContext("2d")!;
@@ -2289,14 +2289,15 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
             ctx.save(); ctx.translate(x, y); if (flip) ctx.scale(-1, 1);
             ctx.drawImage(bike, -CYCLE_W / 2, -CYCLE_GROUND); ctx.restore();
           };
-          // direction 1 east, 2 south, 0 north, 3 west
-          [[1, 0], [1, 3], [2, 1], [0, 1], [3, 5], [1, -1], [1, -2]].forEach(([dir, frame], col) => {
-            const x = col * cellW + cellW / 2, y = row * cellH + cellH - 5;
-            const view = dir === 2 ? "front" : dir === 0 ? "back" : "side", flip = dir === 3;
-            const art = paintCycle(look, frame === -2 ? "side" : view, { crank: Math.max(0, frame), spin: Math.max(0, frame) * 5, parked: frame === -1, fallen: frame === -2 });
+          // Eight headings round from east, then parked and fallen.
+          const VIEWS = ["back", "quarter-back", "side", "quarter", "front", "quarter", "side", "quarter-back"];
+          [[2, 0], [3, 1], [4, 2], [5, 3], [6, 4], [7, 5], [0, 6], [1, 7], [2, -1], [2, -2]].forEach(([face, frame], col) => {
+            const x = col * cellW + cellW / 2, y = row * cellH + cellH - 9;
+            const flip = face > 4;
+            const art = paintCycle(look, frame < 0 ? "side" : VIEWS[face], { crank: Math.max(0, frame), spin: Math.max(0, frame) * 5, parked: frame === -1, fallen: frame === -2 });
             put(art.under, x, y, flip);
             if (frame >= 0) {
-              drawCharacterG(dc, c.appearance, dir, art.pose, frame, undefined, [0, 2, 4, 6][dir], "neutral");
+              drawCharacterG(dc, c.appearance, face >> 1, art.pose, frame, undefined, face, "neutral");
               ctx.drawImage(doll, Math.round(x + (flip ? -1 : 1) * art.rider[0] - 40), y - art.rider[1] - 77);
             }
             put(art.over, x, y, flip);

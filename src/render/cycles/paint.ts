@@ -3,14 +3,15 @@ import { CYCLE_SEATS, CYCLE_SPECS, cyclePose, type CycleKind, type CycleLook, ty
 /** Every cycle frame is this size, wheels standing on row `CYCLE_GROUND`
  * about the column `CYCLE_W / 2`. */
 export const CYCLE_W = 80;
-export const CYCLE_H = 66;
+export const CYCLE_H = 70;
 export const CYCLE_GROUND = 60;
 /** The machines are drawn to a chibi rider: geometry is authored small and laid
  * out this much larger, a motorcycle more so. Set for the machine being painted. */
 let K = 1.3;
 const OX = CYCLE_W / 2;
 
-export type CycleView = "side" | "front" | "back";
+/** `quarter` heads toward the viewer on the diagonal, `quarter-back` away. */
+export type CycleView = "side" | "quarter" | "quarter-back" | "front" | "back";
 export interface CycleState {
   /** Eighths of a crank turn. */
   crank?: number;
@@ -63,8 +64,18 @@ class Layer {
   flat = false;
   /** Authored units to pixels. */
   k = K;
+  /** Turned an eighth: 1 with the nose toward the viewer, -1 away. */
+  quarter = 0;
+  /** Whole pixels sideways after the turn. */
+  nudge = 0;
   put(x: number, y: number, c: C) {
     if (this.flat) [x, y] = [x + y * 0.35, y * 0.42];
+    if (this.quarter) {
+      // Three columns become two and step one row: the two-to-one line of a diagonal.
+      const q = Math.floor(x / 3);
+      x = q * 2 + Math.min(1, x - q * 3) + this.nudge;
+      y -= this.quarter * q;
+    }
     const px = OX + Math.round(x), py = CYCLE_GROUND - Math.round(y);
     if (px < 0 || py < 0 || px >= CYCLE_W || py >= CYCLE_H) return;
     const i = (py * CYCLE_W + px) * 4, d = this.data;
@@ -191,6 +202,13 @@ function seat(kind: CycleKind) {
 function wheel(l: Layer, x: number, radius: number, tw: number, look: CycleLook, spokes: number, st: CycleState, o: { wood?: boolean; mag?: C; knobs?: boolean; disc?: C } = {}) {
   const cx = Math.round(x * K), r = Math.round(radius * K), cy = r;
   const tyre = o.wood ? IRON : TYRES[look.tyre], hi = lite(tyre, 0.22);
+  if (l.quarter) {
+    // The tread's width, showing past the far edge.
+    l.nudge = 1;
+    l.ring(cx, cy, r, dark(tyre, 0.8));
+    if (tw >= 2) l.ring(cx, cy, r - 1, dark(tyre, 0.8));
+    l.nudge = 0;
+  }
   if (tw >= 2) {
     for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
       const d = Math.hypot(dx, dy);
@@ -756,6 +774,24 @@ function endOn(under: Layer, over: Layer, look: CycleLook, st: CycleState, back:
   load(over, top);
 }
 
+/** The handlebar seen across a machine turned an eighth: the near grip a pixel lower than the far one. */
+function crossBars(l: Layer, look: CycleLook, turn: number) {
+  const kind = look.kind, spec = CYCLE_SPECS[kind], s = seat(kind);
+  if (kind === "draisine") return;
+  const gx = Math.round(s.grip[0] * K) - (spec.motor ? 3 : 0), gy = Math.round(s.grip[1] * K);
+  const x = Math.round((gx * 2) / 3), y = gy - turn * Math.floor(gx / 3), w = Math.round((GEO[kind].bar + 1) * 0.7);
+  const steel = kind === "boneshaker" ? WOOD : spec.motor || kind === "chopper" || kind === "bmx" ? CHROME : STEEL;
+  const grip = kind === "racer" && look.tyre === "gum" ? hex("#efece2") : kind === "boneshaker" ? WOOD_D : RUBBER;
+  l.k = 1;
+  // The near end is the left one heading toward the viewer, the right one heading away.
+  const at = (dx: number) => [x + dx, y + Math.round((dx * turn) / w)] as const;
+  for (let dx = -w; dx <= w; dx++) l.put(...at(dx), Math.abs(dx) >= w - 1 ? grip : steel);
+  if (kind === "racer") for (const dx of [-w, w]) { l.put(at(dx)[0], at(dx)[1] - 1, grip); l.put(at(dx)[0], at(dx)[1] - 2, grip); }
+  if (kind === "chopper" || kind === "bmx") for (const dx of [-w + 2, w - 2]) for (let up = 1; up <= 3; up++) l.put(at(dx)[0] + (dx < 0 ? 1 : -1) * Math.min(up, 2), at(dx)[1] - up, steel);
+  if (look.streamers) for (const dx of [-w, w]) { l.put(at(dx)[0] + Math.sign(dx), at(dx)[1] - 1, hex("#e8438f")); l.put(at(dx)[0] + Math.sign(dx), at(dx)[1] - 2, hex("#f2d03a")); }
+  l.k = K;
+}
+
 export function paintCycle(look: CycleLook, view: CycleView, st: CycleState = {}): CycleArt {
   K = CYCLE_SPECS[look.kind].motor ? 1.45 : 1.3;
   const under = new Layer(), over = new Layer(), g = GEO[look.kind], s = seat(look.kind);
@@ -767,13 +803,20 @@ export function paintCycle(look: CycleLook, view: CycleView, st: CycleState = {}
     under.k = K;
   }
   under.flat = over.flat = !!st.fallen;
-  if (view === "side" || st.fallen) (CYCLE_SPECS[look.kind].motor ? motorcycle : bicycle)(under, look, st);
-  else endOn(under, over, look, st, view === "back");
+  const turn = st.fallen || view === "side" ? 0 : view === "quarter" ? 1 : view === "quarter-back" ? -1 : undefined;
+  if (turn === undefined) endOn(under, over, look, st, view === "back");
+  else {
+    under.quarter = turn;
+    (CYCLE_SPECS[look.kind].motor ? motorcycle : bicycle)(under, look, st);
+    under.quarter = 0;
+    if (turn) crossBars(turn > 0 ? over : under, look, turn);
+  }
+  const across = (x: number) => (turn ? Math.round((x * 2) / 3) : x);
   return {
     under: under.data,
     over: over.data,
-    rider: view === "side" ? s.rider : [0, s.rider[1]],
+    rider: turn === undefined ? [0, s.rider[1]] : [across(s.rider[0]), s.rider[1] - Math.round(((turn ?? 0) * s.rider[0]) / 3)],
     pose: cyclePose(look.kind),
-    contact: [Math.round(g.xr * K), Math.round(g.xf * K)],
+    contact: [across(Math.round(g.xr * K)), across(Math.round(g.xf * K))],
   };
 }

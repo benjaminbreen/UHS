@@ -3063,8 +3063,8 @@ export class WorldScene extends Phaser.Scene {
     const p = this.runtime.engine.state.player, look = p.riding?.cycle?.look;
     if (!look || !this.characters) return;
     for (const pose of new Set([this.cycle.sprites.frame(look, "side").pose, "cycle-stand"] as const))
-      for (let dir = 0; dir < 4; dir++)
-        for (let f = 0; f < (pose === "moto" ? 1 : 8); f++) this.characters.frame({ ...p, id: "player", direction: dir, facing: dir * 2 } as never, pose, f);
+      for (let face = 0; face < 8; face++)
+        for (let f = 0; f < (pose === "moto" ? 1 : 8); f++) this.characters.frame({ ...p, id: "player", direction: face >> 1, facing: face } as never, pose, f);
   }
   /** A key in the air asks for a trick. True while airborne, so the key does nothing else. */
   private cycleTrickKey(key: string) {
@@ -9022,7 +9022,7 @@ export class WorldScene extends Phaser.Scene {
             if (air < 0) this.cycleSounds(im, look, moving, time, water > 0.02);
           }
           this.cycle.draw(id, im, riderImg, look, {
-            dir4: human.direction,
+            dir8: turn.facing,
             time,
             delta: this.game.loop.delta,
             moving,
@@ -9031,8 +9031,8 @@ export class WorldScene extends Phaser.Scene {
             standing: id === "player" && moving && (this.shiftHeld || performance.now() < this.runtime.rideSpurUntil),
             lit: this.nightLevel > 0.4,
             tint: this.tint,
-            riderTexture: (pose, frame, dir4) =>
-              dolls.frame({ ...human, direction: dir4, facing: dir4 * 2 }, pose, frame, prop, 0, condition, this.feeling(id, human)),
+            riderTexture: (pose, frame, dir8) =>
+              dolls.frame({ ...human, direction: dir8 >> 1, facing: dir8 }, pose, frame, prop, 0, condition, this.feeling(id, human)),
           });
         } else if (ridingMount && mountSpecNow) {
           this.cycle.hide(id);

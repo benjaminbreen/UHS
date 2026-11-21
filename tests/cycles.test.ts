@@ -75,12 +75,14 @@ describe("cycles: painting", () => {
   it("draws every kind in every view with its wheels on the ground row", () => {
     for (const kind of CYCLE_KINDS) {
       const look = cycleLookOf(kind, CYCLE_SPECS[kind].from + 5, "western-europe", kind);
-      for (const view of ["side", "front", "back"] as const) {
+      for (const view of ["side", "quarter", "quarter-back", "front", "back"] as const) {
         const art = paintCycle(look, view, { crank: 3, spin: 6 });
         expect(art.under.length).toBe(CYCLE_W * CYCLE_H * 4);
         const row = (data: Uint8ClampedArray, y: number) => Array.from({ length: CYCLE_W }, (_, x) => data[(y * CYCLE_W + x) * 4 + 3]).some(Boolean);
         expect(row(art.under, CYCLE_GROUND) || row(art.over, CYCLE_GROUND), `${kind} ${view} stands on the ground`).toBe(true);
-        expect(row(art.under, CYCLE_GROUND + 2) || row(art.over, CYCLE_GROUND + 2), `${kind} ${view} below the ground`).toBe(false);
+        // On a diagonal the nearer wheel stands lower than the anchor.
+        const floor = view.startsWith("quarter") ? CYCLE_H - 1 : CYCLE_GROUND + 2;
+        expect(row(art.under, floor) || row(art.over, floor), `${kind} ${view} below the ground`).toBe(false);
         expect(row(art.under, 0) || row(art.over, 0), `${kind} ${view} cut off at the top`).toBe(false);
       }
     }
