@@ -44,6 +44,7 @@ const FAMILY: Record<string, string> = {
   "house-aegean-expanded": "A flat-roofed house of rubble stone, partly plastered.",
   "roman-domus": "A Roman house built round an open courtyard, with the rooms for guests, work and sleep opening off it.",
   "roman-insula": "A block of shops and workshops on the street, with rented rooms on the floors above.",
+  "westasian-house": "A modest single-storey village house of mudbrick or stone, with timber roof beams and a flat roof terrace.",
   "westasian-courtyard": "A house turned inward round a courtyard, with blank walls to the street and a roof terrace to sleep on in the heat.",
   "eastasian-courtyard": "A walled compound of halls and rooms round an open courtyard.",
   "eastasian-row": "A long building on the street with a shop at the front, and workrooms, stores and living rooms behind and above.",

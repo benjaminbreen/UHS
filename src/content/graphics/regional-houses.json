@@ -751,6 +751,16 @@
         "large": {"footprint": [12, 8], "entrance": 5, "stories": 3, "variants": 2, "seedOffset": 11300, "roofPlan": "ridge", "roofAccess": "internal-stairs", "attachments": ["urban-shop"], "arcade": true, "functions": ["market-insula", "mixed-use-insula"]}
       }
     },
+    "westasian-house": {
+      "source": "house-aegean-0",
+      "label": "Village mudbrick and stone house",
+      "profiles": ["maghrebi", "nile", "levantine", "iranian", "arabian"],
+      "function": "rural-household",
+      "description": "A compact single-storey dwelling of mudbrick, limewashed earth or rubble stone under a flat beam-and-mud roof or small village dome. Illustrative.",
+      "sizes": {
+        "small": {"footprint": [4, 3], "entrance": 2, "stories": 1, "variants": 3, "wealthTiers": [0, 0, 1], "seedOffset": 11550, "roofPlan": "terrace", "roofAccess": "ladder", "functions": ["farmhouse", "rural-cottage", "village-house"]}
+      }
+    },
     "westasian-courtyard": {
       "source": "house-aegean-1",
       "label": "Courtyard terrace house",

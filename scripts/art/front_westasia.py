@@ -361,13 +361,150 @@ def small(region, spec=None, info=None):
         return pz.vaulted(s, info) if s.get('vaults') else pz.house(s, info)
 
 
+def rural(region, spec=None, info=None):
+    """A compact single-storey rural village house (4x3, ~96px) of the Levant,
+    Arabia, the Nile, the Maghrib or Iran: mudbrick or rubble walls, projecting
+    palm/cedar roof beams, a plain plank door with timber lintel, a small barred
+    window and a clay water jar — no courtyard, mashrabiya or urban portal."""
+    from art.front_kit import finish, consolidate
+    from art.front_materials import C
+    s = dict(spec or {})
+    W = s.get('W', 96)
+    v = s.get('v', 0)
+    # Regional rural wall & roof materials (humbler/earthier than urban courtyards).
+    if region == 'iranian':
+        wall_r, top_r, wall_fn = pz.WALL, pz.TOP, None
+    elif region == 'levantine':
+        wall_r, top_r = LIME, LIME_TOP
+        wall_fn = (lambda c, x, y, w, h: fm.rubble(c, x, y, w, h, LIME)) if v == 0 else ashlar
+    elif region == 'arabian':
+        wall_r, top_r, wall_fn = NAJD, NAJD_TOP, None
+    elif region == 'nile':
+        nile_earth = ramp(58, 0.065, lift=-0.03)
+        wall_r = nile_earth if v != 2 else NILE
+        top_r = ramp(60, 0.055, lift=0.02) if v != 2 else NILE_TOP
+        wall_fn = None
+    else:  # maghrebi
+        atlas_earth = ramp(54, 0.075, lift=-0.02)
+        wall_r = atlas_earth if v == 0 else WHITE
+        top_r = ramp(58, 0.06, lift=0.04) if v == 0 else WHITE_TOP
+        wall_fn = None if v == 0 else whitewash_plain
+
+    wall_h = 48
+    depth = 26
+    pad = 12
+    dome_h = 18 if ((region == 'levantine' and v == 1) or (region == 'iranian' and v == 1)) else 0
+    H = wall_h + depth + dome_h + 18
+    c = C(W + pad * 2, H)
+    L, R = pad, pad + W
+    base = H - 4
+    E = base - wall_h
+    B = E - depth
+
+    with pz.materials(WALL=wall_r, TOP=top_r, DOME=top_r, WALL_FN=wall_fn):
+        pz.roof_slab(c, L, R, B, E)
+        pz.street_wall(c, L, R, E, base)
+        # Beaten-earth / stone footing along the wall foot.
+        for yy in range(base - 6, base):
+            for xx in range(L, R):
+                q = 4 if yy == base - 6 else (6 if fm.h2(xx, yy, 701) < 0.16 else 5)
+                c.p(xx, yy, wall_r[q])
+        # Projecting palm/poplar roof beam ends (vigas) under the parapet.
+        beam = RAMPS['oak']
+        for bx in range(L + 8, R - 6, 12):
+            c.rect(bx, E + 2, 3, 3, beam[5])
+            c.p(bx, E + 2, beam[2])
+            c.rect(bx + 1, E + 5, 3, 1, wall_r[6])
+        # Regional rural roof/wall character.
+        cx = (L + R) // 2 + (-10, 0, 10)[v % 3]
+        if region == 'arabian':
+            for vx in range(L + 8, R - 8, 9):
+                if abs(vx - cx) < 13:
+                    continue
+                for k in range(4):
+                    for i in range(-k, k + 1):
+                        c.p(vx + i, E + 8 + k, (44, 30, 34, 255))
+        if dome_h:
+            pz.dome(c, (L + R) // 2 + (10 if region == 'iranian' else 0), B + 15, 13)
+        elif v == 2:
+            # A storage jar seated inside the flat roof deck.
+            pr.pot(c, L + 20, B + 23, 'pithos', wall_r, scale=0.52)
+        elif region == 'nile' and v == 0:
+            # Bundled reeds/straw stacked on the flat roof.
+            reed = RAMPS['thatch']
+            c.rect(R - 30, B + 8, 22, 8, reed[3])
+            c.rect(R - 30, B + 8, 22, 2, reed[1])
+            c.rect(R - 30, B + 15, 22, 1, reed[5])
+            for xx in range(R - 28, R - 9, 4):
+                c.rect(xx, B + 8, 1, 7, reed[4])
+
+        # Plain plank door with heavy timber lintel (taller than 37px adult).
+        dw, dh = 18, 38
+        op.door_plank(c, cx - dw // 2, base - dh, dw, dh)
+        c.rect(cx - dw // 2 - 3, base - dh - 4, dw + 6, 4, beam[4])
+        c.rect(cx - dw // 2 - 3, base - dh - 4, dw + 6, 1, beam[2])
+        c.rect(cx - dw // 2 - 3, base - dh - 1, dw + 6, 1, beam[6])
+        op.reveal(c, cx - dw // 2, base - dh, dw, dh, 2)
+
+        # Small timber-framed barred window on the wide side of the door.
+        wx = R - 20 if cx <= (L + R) // 2 else L + 20
+        wy = E + 15
+        if abs(wx - cx) >= 20:
+            op.frame_timber(c, wx - 6, wy, 12, 11, None)
+            op.grille(c, wx - 5, wy + 1, 10, 9)
+            op.reveal(c, wx - 6, wy, 12, 11, 2)
+
+        # Terracotta water jar (zeer / amphora) beside the threshold.
+        px = L + 12 if cx >= (L + R) // 2 else R - 12
+        if abs(px - cx) >= dw // 2 + 6:
+            pr.pot(c, px, base - 1, 'jug', RAMPS['tegula'], scale=0.92)
+
+    if info is not None:
+        info.update(x0=L, W=W, base=base, door_x=cx, door_h=dh)
+    finish(c)
+    consolidate(c, rare=4)
+    return c.im
+
+
 SHEET = [(f'{r} courtyard', (lambda r: lambda: courtyard(r))(r)) for r in REGIONS] + \
         [(f'{r} small', (lambda r: lambda: small(r))(r)) for r in REGIONS]
 
 
 if __name__ == '__main__':
-    from PIL import Image
+    from PIL import Image, ImageDraw
     from art.reference import current_adult
+    a = current_adult()
+    mode = sys.argv[2] if len(sys.argv) > 2 else ''
+    if mode == 'ab':
+        labeled = []
+        for reg in ('levantine', 'nile', 'arabian', 'maghrebi', 'iranian'):
+            before = pz.house(dict(W=140, dome=True), {}) if reg == 'iranian' else small(reg)
+            rurals = [rural(reg, dict(W=96, v=v)) for v in range(3)]
+            labeled.append((f'{reg}  |  A: existing smallest courtyard house   ->   B: new westasian-house (3 rural 4x3)',
+                            [before, None, *rurals]))
+        W = max(sum((i.width + 10 if i else 22) for i in imgs) for _, imgs in labeled) + a.width + 20
+        H = sum(max(i.height for i in imgs if i) + 26 for _, imgs in labeled) + 8
+        bg = Image.new('RGBA', (W, H), (214, 206, 186, 255))
+        draw = ImageDraw.Draw(bg)
+        y = 6
+        for title, imgs in labeled:
+            draw.text((8, y), title, fill=(44, 32, 42, 255))
+            y += 16
+            h = max(i.height for i in imgs if i)
+            x = 8
+            for im in imgs:
+                if im is None:
+                    draw.line([(x + 8, y + 4), (x + 8, y + h - 4)], fill=(120, 96, 86, 255), width=2)
+                    x += 22
+                    continue
+                bg.alpha_composite(im, (x, y + h - im.height))
+                x += im.width + 10
+            bg.alpha_composite(a, (x, y + h - 4 - a.height))
+            y += h + 10
+        out = sys.argv[1] if len(sys.argv) > 1 else 'artifacts/westasian-house-ab.png'
+        bg.convert('RGB').save(out)
+        print(f'wrote {out}')
+        sys.exit(0)
     rows = [[fn() for name, fn in SHEET if 'courtyard' in name], [fn() for name, fn in SHEET if 'small' in name]]
     a = current_adult()
     W = max(sum(i.width + 8 for i in r) for r in rows) + a.width + 10

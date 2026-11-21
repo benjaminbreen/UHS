@@ -41,7 +41,11 @@ export function romanRegionalHouses(setting: WorldSetting) {
 }
 
 export function westAsianRegionalHouses(setting: WorldSetting) {
-  return frames("westasian-courtyard", westAsianHouseProfile(setting));
+  const profile = westAsianHouseProfile(setting);
+  return [
+    ...frames("westasian-house", profile),
+    ...frames("westasian-courtyard", profile),
+  ];
 }
 
 export function eastAsianHouseProfile(setting: WorldSetting): Profile {

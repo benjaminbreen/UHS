@@ -25,6 +25,7 @@ type RegionalModel = {
 
 const URBAN_REGIONAL = new Set([
   "southasian-courtyard",
+  "westasian-courtyard",
   "eastasian-courtyard",
   "eastasian-row",
   "roman-insula",

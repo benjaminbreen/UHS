@@ -221,6 +221,41 @@ it("japanese regional houses pair rural minka with farmers and machiya with urba
   expect(ruralPick).toMatch(/^eastasian-house-japanese-(tiny|small|medium)-/);
 });
 
+it("west asian regional houses pair rural cottages with farmers and courtyards with elite lots", async () => {
+  const { westAsianRegionalHouses } = await import(
+    "../src/content/graphics/regional-houses"
+  );
+  const { buildingModels } = await import("../src/content/graphics/models");
+  const setting = {
+    lon: 31.2,
+    lat: 30.0,
+    year: 1400,
+    placeId: "nile",
+    culture: "north-african-west-asian" as const,
+    settlement: "village" as const,
+  } as Parameters<typeof westAsianRegionalHouses>[0];
+  const pool = westAsianRegionalHouses(setting);
+  expect(pool.some((f) => f.startsWith("westasian-house-nile-small-"))).toBe(true);
+  expect(pool.some((f) => f.startsWith("westasian-courtyard-nile-large-"))).toBe(true);
+  for (const frame of pool) expect(buildingModels[frame]).toBeTruthy();
+
+  const ruralPick = chooseBuildingFrame(
+    pool,
+    { settlement: "village", density: 0.2, wealth: 25, rural: true },
+    0.5,
+    0.3,
+  );
+  expect(ruralPick).toMatch(/^westasian-house-nile-small-/);
+
+  const elitePick = chooseBuildingFrame(
+    pool,
+    { settlement: "city", density: 0.9, wealth: 92, quarter: "elite", rural: false },
+    0.95,
+    0.2,
+  );
+  expect(elitePick).toMatch(/^westasian-courtyard-nile-(medium|large)-/);
+});
+
 it("a church or hall takes its region's look, and that look is drawn", async () => {
   const { regionalLook } = await import("../src/content/graphics/regional-looks");
   const looks = (await import("../src/content/graphics/regional-looks.json")).default.looks as Record<string, (string | null)[]>;

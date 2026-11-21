@@ -176,6 +176,9 @@ def spec_for(name, r):
     got = front_southasia.spec_for(base, nw)
     if got:
         return got, (nw, fh)
+    m = re.match(r'westasian-house-(levantine|arabian|nile|maghrebi|iranian)-small-(\d+)$', base)
+    if m:
+        return ('wa-rural', dict(region=m.group(1), W=nw * 16, v=int(m.group(2)))), (nw, fh)
     m = re.match(r'westasian-courtyard-iranian-(small|medium|large)-(\d+)$', base)
     if m:
         return persian_spec(m.group(1), int(m.group(2)), nw, seed), (nw, fh)
@@ -327,6 +330,7 @@ BUILDERS = {
     'mosque': lambda s, i: persia.mosque(s, i),
     'wa-court': lambda s, i: wa.courtyard(s['region'], {k: v for k, v in s.items() if k != 'region'}, i),
     'wa-small': lambda s, i: wa.small(s['region'], {k: v for k, v in s.items() if k != 'region'}, i),
+    'wa-rural': lambda s, i: wa.rural(s['region'], {k: v for k, v in s.items() if k != 'region'}, i),
     'madrasa': lambda s, i: persia.madrasa(s, i),
     'hammam': lambda s, i: persia.hammam(s, i),
     'islamic-madrasa': islam.BUILDERS['islamic-madrasa'],
