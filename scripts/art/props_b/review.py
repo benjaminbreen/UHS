@@ -3,19 +3,22 @@
     python3 -m scripts.art.props_b.review well trough        # named families
     python3 -m scripts.art.props_b.review                    # all of them
     python3 -m scripts.art.props_b.review dustbin --states   # shipped, drawn, every state
+    python3 -m scripts.art.props_b.review --ab waymark quern # shipped (A) vs live DRAW_B (B) on meadow/earth stage
     python3 -m scripts.art.props_b.review --grid dustbin 0   # the shipped sprite as a grid
 
 Writes artifacts/prop-b-review.png. Look at this, not at the source, before
 calling a prop finished: scale against the figure is most of the judgement.
 """
+import json
 import sys
 from pathlib import Path
 from PIL import Image, ImageDraw
 
 ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / 'scripts'))
-from art.props_b import DRAW_B, STATES, TOPPLING                   # noqa: E402
+from art.props_b import ANIMATED, DRAW_B, STATES, TOPPLING         # noqa: E402
 from art.props_b.fallen import leaning                            # noqa: E402
+from art.prop_audit import audit as audit_sprite                  # noqa: E402
 from art.reference import current_adult                           # noqa: E402
 
 SCALE, PAD = 4, 12
@@ -99,6 +102,144 @@ def sheet(keys=None, variants=1, out=None, states=False):
     return out
 
 
+def _trim_anchor(im):
+    box = im.getbbox()
+    if not box:
+        return im
+    cut = im.crop(box)
+    ax, ay = im.info.get('anchor', [im.width // 2, im.height])
+    cut.info['anchor'] = [ax - box[0], ay - box[1]]
+    return cut
+
+
+def ab_sheet(keys, out=None):
+    """Side-by-side shipped (A) vs live DRAW_B (B) contact sheet on a meadow/earth
+    stage beside the 40px adult, plus 3x animation strips and prop_audit checks."""
+    spec = {f['id']: f for f in json.loads((ROOT / 'src/content/graphics/props.json').read_text())['families']}
+    fig = _trim_anchor(person())
+    rows_data = []
+    anim_strips = []
+    faults = []
+
+    for k in keys:
+        if k not in DRAW_B:
+            continue
+        fam = spec.get(k, {'id': k, 'name': k, 'variants': ['v0']})
+        n_vars = len(fam.get('variants', ['v0']))
+        a_items = []
+        b_items = []
+        for v in range(n_vars):
+            sh = shipped(f'study-propb-{k}-{v}') or shipped(f'study-prop-{k}-{v}')
+            if sh:
+                a_items.append((f'A: v{v}', _trim_anchor(sh)))
+            drawn_raw = DRAW_B[k](v)
+            errs = audit_sprite(f'{k}-{v}', drawn_raw, fam.get('size', [drawn_raw.width, drawn_raw.height]))
+            if errs:
+                faults.append(f'{k}-{v}: {", ".join(errs)}')
+            drawn = _trim_anchor(drawn_raw)
+            b_items.append((f'B: v{v}', drawn))
+        rows_data.append((f'{k} ({fam.get("name", k)})', a_items, b_items))
+        if k in ANIMATED:
+            n_f = ANIMATED[k]
+            frames = []
+            for f_idx in range(n_f):
+                try:
+                    im_f = DRAW_B[k](0, f_idx)
+                except TypeError:
+                    im_f = DRAW_B[k](0)
+                frames.append((f'f{f_idx}', _trim_anchor(im_f)))
+            anim_strips.append((f'{k} ({n_f}f)', frames))
+
+    W = 1480
+    ROW_H = 260
+    ANIM_H = 210 if anim_strips else 0
+    H = 60 + len(rows_data) * ROW_H + ANIM_H + 16
+    im = Image.new('RGBA', (W, H), '#181c22')
+    d = ImageDraw.Draw(im)
+    d.text((20, 18), 'PROP A/B REVIEW SHEET — Shipped Atlas (A) vs Live DRAW_B (B) | 4x scale beside 40px adult', fill='#f2e8cf')
+
+    def paste_stage(stage, sp, cx_p, ground_y):
+        ax, ay = sp.info.get('anchor', [sp.width // 2, sp.height])
+        stage.alpha_composite(sp, (round(cx_p - ax), round(ground_y - ay)))
+
+    y_cur = 54
+    for title, a_list, b_list in rows_data:
+        d.rectangle([16, y_cur, W - 16, y_cur + ROW_H - 12], fill='#212730', outline='#36404e')
+        d.text((28, y_cur + 8), title, fill='#e8c878')
+        sw, sh = (W - 56) // SCALE, 44
+        ground_y = 35
+        stage = Image.new('RGBA', (sw, sh), '#4f783b')
+        sd = ImageDraw.Draw(stage)
+        sd.rectangle([0, ground_y - 3, sw, sh], fill='#8b6e4b')
+        sd.line([(0, ground_y - 3), (sw, ground_y - 3)], fill='#658e49')
+        paste_stage(stage, fig, 22, ground_y)
+        split_x = 128
+        sd.line([(split_x, 2), (split_x, sh - 2)], fill='#d6cfb8')
+
+        if a_list:
+            step_a = (split_x - 42) / max(1, len(a_list))
+            for i, (_, sp) in enumerate(a_list):
+                paste_stage(stage, sp, round(44 + step_a * (i + 0.5)), ground_y)
+        if b_list:
+            step_b = (sw - split_x - 16) / max(1, len(b_list))
+            for i, (_, sp) in enumerate(b_list):
+                paste_stage(stage, sp, round(split_x + 12 + step_b * (i + 0.5)), ground_y)
+
+        sx0, sy0 = 28, y_cur + 32
+        im.alpha_composite(stage.resize((sw * SCALE, sh * SCALE), Image.NEAREST), (sx0, sy0))
+        ly = sy0 + sh * SCALE + 6
+        d.text((sx0 + 10 * SCALE, ly), f'adult ({fig.width}x{fig.height})', fill='#a8b4c4')
+        if a_list:
+            step_a = (split_x - 42) / max(1, len(a_list))
+            for i, (lbl, sp) in enumerate(a_list):
+                cx_p = round(44 + step_a * (i + 0.5))
+                d.text((sx0 + cx_p * SCALE - 28, ly), f'{lbl} ({sp.width}x{sp.height})', fill='#d48a7a')
+        if b_list:
+            step_b = (sw - split_x - 16) / max(1, len(b_list))
+            for i, (lbl, sp) in enumerate(b_list):
+                cx_p = round(split_x + 12 + step_b * (i + 0.5))
+                d.text((sx0 + cx_p * SCALE - 28, ly), f'{lbl} ({sp.width}x{sp.height})', fill='#8fe0a4')
+        y_cur += ROW_H
+
+    if anim_strips:
+        d.rectangle([16, y_cur, W - 16, y_cur + ANIM_H - 12], fill='#212730', outline='#36404e')
+        d.text((28, y_cur + 8), 'ANIMATION FRAMES (3x)', fill='#e8c878')
+        ascale = 3
+        sw = (W - 56) // ascale
+        sh = 42
+        ground_y = 34
+        stage = Image.new('RGBA', (sw, sh), '#4f783b')
+        sd = ImageDraw.Draw(stage)
+        sd.rectangle([0, ground_y - 3, sw, sh], fill='#8b6e4b')
+        sd.line([(0, ground_y - 3), (sw, ground_y - 3)], fill='#658e49')
+        total_f = sum(len(fs) for _, fs in anim_strips)
+        step_f = (sw - 20) / max(1, total_f)
+        sx0, sy0 = 28, y_cur + 32
+        ly = sy0 + sh * ascale + 6
+        idx_f = 0
+        for s_lbl, frames in anim_strips:
+            for f_lbl, sp in frames:
+                cx_p = round(12 + step_f * (idx_f + 0.5))
+                paste_stage(stage, sp, cx_p, ground_y)
+                idx_f += 1
+        im.alpha_composite(stage.resize((sw * ascale, sh * ascale), Image.NEAREST), (sx0, sy0))
+        idx_f = 0
+        for s_lbl, frames in anim_strips:
+            for f_lbl, _ in frames:
+                cx_p = round(12 + step_f * (idx_f + 0.5))
+                d.text((sx0 + cx_p * ascale - 14, ly), f'{s_lbl.split()[0]}:{f_lbl}', fill='#c8d8b0')
+                idx_f += 1
+
+    out = Path(out) if out else ROOT / 'artifacts/prop-ab-review.png'
+    out.parent.mkdir(parents=True, exist_ok=True)
+    im.save(out)
+    if faults:
+        print('AUDIT WARNINGS:\n  ' + '\n  '.join(faults))
+    else:
+        print('AUDIT: 0 warnings across all inspected families.')
+    return out
+
+
 if __name__ == '__main__':
     if '--equipment-abc' in sys.argv:
         import json
@@ -149,5 +290,9 @@ if __name__ == '__main__':
         key, v = sys.argv[2], int(sys.argv[3]) if len(sys.argv) > 3 else 0
         ramps = sys.argv[4:] or ['galvanised7']
         print('\n'.join(f' "{row}",' for row in grid(shipped(f'study-propb-{key}-{v}') or DRAW_B[key](v), ramps)))
+    elif '--ab' in sys.argv:
+        args = [s for s in sys.argv[1:] if s != '--ab' and not s.startswith('--out=')]
+        out_arg = next((s.split('=', 1)[1] for s in sys.argv[1:] if s.startswith('--out=')), None)
+        print(ab_sheet(args or sorted(DRAW_B)[:6], out=out_arg))
     else:
         print(sheet([s for s in sys.argv[1:] if s != '--states'] or None, states='--states' in sys.argv))

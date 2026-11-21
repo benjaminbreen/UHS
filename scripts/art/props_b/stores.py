@@ -248,23 +248,106 @@ def grain_sacks(v=0):
 
 
 def flower_tub(v=0):
- """Half a cask planted up."""
- c = Canvas(16, 16)
- w = WOOD[v]
- _cask(c, 8, 8, 15, [7.2, 7.0, 6.2], w, (10,), staves=3)
- for cx, cy, r in ((4.5, 6, 3.6), (11.5, 6.2, 3.6), (8, 4, 4.2)):
-  for y in range(int(cy - r), int(cy + r) + 1):
-   for x in range(int(cx - r), int(cx + r) + 1):
-    u, t = (x + .5 - cx) / r, (y + .5 - cy) / r
-    if u * u + t * t > 1: continue
-    lit = -u * 0.6 - t * 0.8
-    tone = 4 if lit > 0.75 else 3 if lit > 0.3 else 2 if lit > -0.25 else 1
-    if (x * 5 + y * 3) % 7 == 0: tone = max(0, tone - 1)
-    c.set(x, y, LEAF[tone])
- for i, (x, y) in enumerate(((3, 4), (6, 1), (10, 2), (13, 5), (5, 6), (11, 7), (8, 4), (1, 7), (8, 8))):
-  tone = BLOOMS[(i + v) % len(BLOOMS)]
-  c.set(x, y, tone); c.set(x + 1, y, tone); c.set(x, y - 1, tone if i % 2 else LEAF[4])
- c.outline(INK)
+ """Regional doorstep planters: v0 oak half-barrel, v1 Mediterranean terracotta urn,
+ v2 East Asian celadon pot with azalea, v3 South Asian tulsi pedestal."""
+ c = Canvas(24, 26)
+ foliage = ['#263c1e', '#385a29', '#4f7c37', '#6ca047', '#8dc05e']
+ if v == 0:
+  wood, iron = RAMPS['oak7'], RAMPS['castiron7']
+  for y in range(11, 22):
+   hw = 7.4 - (y - 11) * 0.14
+   for x in range(3, 21):
+    dx = abs(x - 11.5)
+    if dx > hw or (y == 21 and dx > 4.6) or (y == 20 and dx > 6.0):
+     continue
+    t = (x - (11.5 - hw)) / max(1, 2 * hw)
+    si = 5 if t < 0.22 else (4 if t < 0.45 else (3 if t < 0.68 else (2 if t < 0.86 else 1)))
+    if (x - 11) % 3 == 0 and y not in (13, 18):
+     si = max(1, si - 1)
+    c.set(x, y, iron[min(5, si)] if y in (13, 18) else wood[si])
+  for y in range(10, 13):
+   for x in range(5, 19):
+    if ((x - 11.5) / 6.5) ** 2 + ((y - 11.0) / 1.7) ** 2 <= 1.0:
+     c.set(x, y, '#4a3322' if y == 10 else '#694a31')
+  for x in range(5, 19):
+   c.set(x, 12, wood[5] if x < 11 else wood[3])
+  for y in range(3, 13):
+   for x in range(3, 21):
+    if ((x - 11.5) / 7.5) ** 2 + ((y - 8.2) / 4.2) ** 2 <= 1.0:
+     lv = 4 if (y < 6 and x < 12) else (3 if y < 8 else (2 if x < 15 else 1))
+     if (x * 7 + y * 11) % 5 == 0:
+      lv = min(4, lv + 1)
+     c.set(x, y, foliage[lv])
+  for bx, by, b1, b2 in [(7, 6, '#e26258', '#ffb3a4'), (11, 4, '#f0c850', '#fff4b8'), (15, 7, '#e26258', '#ffb3a4'), (9, 8, '#a678d8', '#dcc4fa'), (14, 5, '#f0c850', '#fff4b8'), (12, 9, '#e26258', '#ffb3a4')]:
+   c.set(bx, by, b2); c.set(bx + 1, by, b1); c.set(bx, by + 1, b1)
+  soft_outline(c, wood[0], '#364d24')
+ elif v == 1:
+  clay = RAMPS['terracotta7']
+  profile = {10: 7.2, 11: 7.4, 12: 6.4, 13: 6.2, 14: 6.0, 15: 5.8, 16: 5.5, 17: 5.1, 18: 4.7, 19: 4.3, 20: 4.0, 21: 4.4, 22: 4.1}
+  for y, hw in profile.items():
+   for x in range(3, 21):
+    dx = abs(x - 11.5)
+    if dx > hw or (y == 22 and dx > 3.2):
+     continue
+    t = (x - (11.5 - hw)) / max(1, 2 * hw)
+    si = 5 if t < 0.25 else (4 if t < 0.5 else (3 if t < 0.72 else (2 if t < 0.88 else 1)))
+    if y in (10, 11): si = min(6, si + 1)
+    elif y == 12: si = max(1, si - 1)
+    c.set(x, y, clay[si])
+  sage = ['#2a3d27', '#3f5b3a', '#587a4e', '#769c68', '#98bc86']
+  for y in range(4, 11):
+   for x in range(5, 19):
+    if ((x - 11.5) / 6.2) ** 2 + ((y - 7.8) / 3.4) ** 2 <= 1.0:
+     lv = 4 if (y < 6 and x < 12) else (3 if y < 8 else (2 if x < 14 else 1))
+     c.set(x, y, sage[lv])
+  for bx, by in [(8, 6), (11, 4), (14, 6), (10, 8), (13, 8)]:
+   c.set(bx, by, '#f07c66'); c.set(bx + 1, by, '#cc4336'); c.set(bx, by + 1, '#9c2b24')
+  soft_outline(c, clay[0], '#3c5034')
+ elif v == 2:
+  glaze = RAMPS['greenglaze7']
+  profile = {12: 7.0, 13: 7.3, 14: 7.2, 15: 6.8, 16: 6.3, 17: 5.7, 18: 5.0, 19: 4.3, 20: 4.2}
+  for y, hw in profile.items():
+   for x in range(3, 21):
+    dx = abs(x - 11.5)
+    if dx > hw or (y == 20 and dx > 3.5):
+     continue
+    t = (x - (11.5 - hw)) / max(1, 2 * hw)
+    si = 6 if (0.14 < t < 0.28 and y in (13, 14, 15)) else (5 if t < 0.3 else (4 if t < 0.55 else (3 if t < 0.78 else (2 if t < 0.9 else 1))))
+    if y == 12: si = min(6, si + 1)
+    c.set(x, y, glaze[si])
+  c.set(11, 11, '#5c422c'); c.set(12, 11, '#3f2c1d'); c.set(11, 10, '#5c422c')
+  leaf = ['#1f3624', '#2e5234', '#447249', '#609462', '#82b67e']
+  for cx, cy, rx, ry in [(9, 7, 4.2, 2.8), (14, 7.5, 3.8, 2.6), (11.5, 5.2, 3.6, 2.4)]:
+   for y in range(2, 12):
+    for x in range(4, 20):
+     if ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1.0:
+      lv = 4 if (y < cy - 0.8 and x < cx + 1) else (3 if y < cy + 0.5 else (2 if x < cx + 2 else 1))
+      c.set(x, y, leaf[lv])
+  for bx, by in [(7, 6), (11, 4), (15, 7), (10, 8), (13, 5)]:
+   c.set(bx, by, '#fad2dc'); c.set(bx + 1, by, '#e08aa4'); c.set(bx, by + 1, '#c46684')
+  soft_outline(c, glaze[0], '#2d4c38')
+ else:
+  lime, terra = RAMPS['limestone'], RAMPS['terracotta7']
+  for y in range(11, 22):
+   hw = 5 if y in (11, 12, 20, 21) else 4
+   for x in range(12 - hw, 12 + hw):
+    if y == 11: col = terra[5] if x < 12 else terra[3]
+    elif y == 12: col = terra[4] if x < 12 else terra[2]
+    elif y >= 20: col = lime[4] if x < 12 else lime[2]
+    else: col = lime[5] if x < 11 else (lime[4] if x < 13 else lime[3])
+    c.set(x, y, col)
+  for y in range(15, 18):
+   for x in range(10, 14):
+    c.set(x, y, terra[1] if y == 15 else terra[2])
+  c.set(11, 17, '#f0b446')
+  for y in range(4, 11):
+   for x in range(6, 18):
+    if ((x - 11.5) / 5.4) ** 2 + ((y - 7.8) / 3.4) ** 2 <= 1.0:
+     lv = 4 if (y < 6 and x < 12) else (3 if y < 8 else (2 if x < 14 else 1))
+     c.set(x, y, foliage[lv])
+  for sx, sy in [(9, 3), (11, 2), (14, 3)]:
+   c.set(sx, sy, '#c28cb8'); c.set(sx, sy + 1, '#8d5b86')
+  soft_outline(c, terra[0], '#4a5c32')
  return c.image()
 
 

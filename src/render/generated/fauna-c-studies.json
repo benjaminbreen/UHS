@@ -252,9 +252,13 @@
     },
     "directions": [
       "south",
+      "southeast",
       "east",
+      "northeast",
       "north",
-      "west"
+      "northwest",
+      "west",
+      "southwest"
     ],
     "size": [
       64,

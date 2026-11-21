@@ -41,7 +41,7 @@ for sheet_dir, frames, kinds in ((out, sprites, [s for s in STATES if s not in W
         species: {
             "palette": list(PALETTES[species].values()),
             "states": STATES[species],
-            "directions": list(fauna_d.facings(species) if species in fauna_d.STATES else facings_c(species) if species in STATES_C else DIRECTIONS),
+            "directions": list(horse.DIRECTIONS if species in horse.STATES else fauna_d.facings(species) if species in fauna_d.STATES else facings_c(species) if species in STATES_C else DIRECTIONS),
             "size": NATIVE_SIZES[species],
             "standing": STANDING_SIZES[species],
             **({"looks": looks[species]} if species in looks else {}),

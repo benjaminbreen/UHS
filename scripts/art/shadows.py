@@ -11,7 +11,7 @@ BUILDING_CAST_CAP=0.55
 # Shadow leans cool, as palette.json's shadow hue does; flat grey reads as a hole.
 SHADE=(32,34,84)
 CONTACT=(30,28,62)
-PROPS=['oak','olive','hackberry','acacia','cypress','bush','flowers','flax','rock','rock-1','rock-2','reeds','wheat','basket','amphora','jug','well','fire','hall','sheep0','sheep1','goat0','goat1','chicken0','chicken1','lizard0','lizard1','bed','oven','crate','fence','gate','gate-open','crop-leafy','fountain','statue','stele','market-cross','kiosk','altar-platform','monument-cross','monument-statue','monument-obelisk','monument-fountain','planter','post','lamp-post','lamp-post-lit']
+PROPS=['oak','olive','hackberry','acacia','cypress','bush','flowers','flax','rock','rock-1','rock-2','reeds','wheat','basket','amphora','jug','well','fire','hall','sheep0','sheep1','goat0','goat1','chicken0','chicken1','lizard0','lizard1','bed','oven','crate','fence','gate','gate-open','gate-picket','gate-picket-open','gate-bamboo','gate-bamboo-open','gate-wattle','gate-wattle-open','crop-leafy','fountain','statue','stele','market-cross','kiosk','altar-platform','monument-cross','monument-statue','monument-obelisk','monument-fountain','planter','post','lamp-post','lamp-post-lit']
 _JOB=None
 
 

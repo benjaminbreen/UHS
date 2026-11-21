@@ -4,6 +4,7 @@ The cabins are one hand drawing: a shed seen gable on, its roof from above at
 the houses' depth, the gable-shingle gold master at the width of one door. A
 build is a wall swatch, a roof and what stands beside it.
 """
+import math
 from .building import _flies, _ground
 from .core import Canvas, RAMPS, blob, draw_grid, jitter, ramp_keys, soft_outline, grass
 
@@ -491,49 +492,90 @@ TUB = [
 
 
 def reed_screen(v=0, frame=0):
- """No building at all: a screen in a horseshoe round a pit."""
- c = Canvas(58, 58)
- p = RAMPS[['wicker7', 'straw', 'linen7'][v]]
- w = RAMPS['walnut7']
- for py in range(18, 52):                          # the pit's own screen wall
-  for x in list(range(6, 24)) + list(range(36, 53)):
-   u = (x - 6) / 46
-   tone = 5 if u < 0.25 else 4 if u < 0.65 else 3
+ """No building at all: a curved horseshoe reed, thatch or cloth screen round a pit."""
+ c = Canvas(54, 44)
+ post = RAMPS['walnut7']
+ v = v % 3
+ if v == 0:
+  mat = ['#3e371a', '#665c2b', '#8d813f', '#b2a559', '#cfc378', '#e5dc9a']
+ elif v == 1:
+  mat = ['#4a381d', '#745a2f', '#9c7c42', '#bfa05c', '#dac07c', '#ece0a8']
+ else:
+  mat = ['#6e6456', '#968a78', '#bdb29e', '#dcd3c0', '#efe8d8', '#faf6ec']
+ cx, base_y, rx, ry = 26.5, 31.0, 21.0, 9.0
+ wall_h = 22
+ for y in range(25, 39):
+  for x in range(14, 39):
+   if ((x - cx) / 13.5) ** 2 + ((y - 31.5) / 6.5) ** 2 <= 1.0:
+    c.set(x, y, '#2b2118' if y < 31 else ('#3d2f22' if y < 35 else '#524130'))
+ for x in range(6, 48):
+  nx = (x - cx) / rx
+  if abs(nx) > 0.99:
+   continue
+  ey = math.sqrt(max(0.0, 1.0 - nx * nx)) * ry
+  yb = int(round(base_y - ey))
+  yt = yb - wall_h
+  tuft = ((x * 7) % 3) - 1 if v != 2 else 0
+  for y in range(yt + tuft, yb + 1):
+   if y < 2:
+    continue
+   if y >= yb - 6 and abs(x - cx) < 10:
+    c.set(x, y, mat[1] if y < yb - 2 else '#261e16')
+    continue
    if v == 2:
-    if (x + py // 3) % 7 == 0: tone -= 2           # cloth, hanging in folds
-    elif (x + py // 3) % 7 == 1: tone += 1
+    fold = math.sin(x * 0.48) * 0.5 + 0.5
+    idx = (3 if fold > 0.5 else 2) - (1 if nx > 0.35 else 0)
+    if y == yt:
+     idx = min(5, idx + 1)
+    c.set(x, y, mat[max(1, idx)])
    else:
-    if x % 3 == 0: tone -= 2                       # reed, stem by stem
-    elif x % 3 == 1: tone += 1
-   if py % 7 == 0: tone -= 1
-   c.set(x, py, p[max(min(tone, 6), 1)])
- for y in range(18, 36):                           # the far side, seen over the gap
-  for x in range(24, 36):
-   tone = 3 if x % 3 else 1                        # darker: it is in shade
-   if y % 7 == 0: tone -= 1
-   c.set(x, y, p[max(tone, 1)])
- c.hline(24, 35, 18, p[4]); c.hline(24, 35, 35, p[0])
- for y in range(18, 52):                           # the cut ends at the opening
-  c.set(23, y, p[1]); c.set(36, y, p[2])
- c.hline(6, 23, 18, p[6]); c.hline(36, 52, 18, p[6])
- c.hline(6, 23, 51, p[1]); c.hline(36, 52, 51, p[1])
- for y in (24, 34, 44):                            # binding round the screen
-  for x in list(range(6, 24)) + list(range(36, 53)):
-   c.set(x, y, p[2] if x % 2 else p[5])
- for px in (5, 22, 37, 52):                        # the poles it is lashed to
-  for y in range(14, 54):
-   c.set(px, y, w[5]); c.set(px + 1, y, w[3]); c.set(px + 2, y, w[1])
-  c.set(px, 13, w[4]); c.set(px + 1, 12, w[2])
-  for y in (24, 34, 44):
-   c.hline(px, px + 2, y, RAMPS['rope'][2])
- for y in range(36, 52):                           # the pit, seen through the gap
-  for x in range(25, 35):
-   t = (y - 36) / 16
-   c.set(x, y, '#3a2f22' if t < 0.3 else '#2a2118' if t < 0.7 else '#1d1711')
- _ground(c, 29, 51, 26)
- _flies(c, frame, [(29, 44, 22, 8, 1.0), (29, 38, 15, 12, -1.0)])
- soft_outline(c, p[0], p[2])
- grass(c, [(1, 56, 3), (54, 56, 2)])
+    if y in (yt + 4, yt + 12, yb - 3):
+     c.set(x, y, post[3] if nx < 0.2 else post[1])
+    else:
+     bundle = ((x * 5 + (y // 6) * 3) % 4)
+     idx = (3 if bundle in (0, 1) else 2) - (1 if nx > 0.35 else 0)
+     if y <= yt + 1:
+      idx = min(5, idx + 1)
+     c.set(x, y, mat[max(1, idx)])
+ for x in range(5, 49):
+  if 20 <= x <= 33:
+   continue
+  nx = (x - cx) / rx
+  if abs(nx) > 1.0:
+   continue
+  ey = math.sqrt(max(0.0, 1.0 - nx * nx)) * ry
+  yb = int(round(base_y + ey * 0.85))
+  yt = yb - wall_h
+  tuft = ((x * 11) % 3) - 1 if v != 2 else 0
+  for y in range(yt + tuft, yb + 1):
+   if v == 2:
+    fold = math.sin(x * 0.55 + y * 0.12)
+    idx = (5 if (fold > 0.35 and nx < 0.15) else (4 if fold > -0.1 else 3)) - (1 if nx > 0.45 else 0)
+    if y == yb:
+     idx = max(1, idx - 1)
+    c.set(x, y, mat[max(1, min(5, idx))])
+   else:
+    if y in (yt + 4, yt + 12, yb - 3):
+     tie = (x % 5) == 0
+     c.set(x, y, post[1] if tie else (post[4] if nx < 0.2 else post[2]))
+    else:
+     stalk = (x % 3) == 0
+     bundle = ((x * 7 + (y // 7) * 5) % 4)
+     lit = 1 if nx < -0.15 else (0 if nx < 0.4 else -1)
+     idx = (4 if (not stalk and bundle < 2) else (3 if not stalk else 2)) + lit
+     if y <= yt + 1:
+      idx = min(5, idx + 1)
+     if y >= yb - 1:
+      idx = max(1, idx - 1)
+     c.set(x, y, mat[max(1, min(5, idx))])
+ for sx, yb in [(6, 33), (19, 38), (34, 38), (46, 33), (12, 24), (40, 24)]:
+  sy0 = yb - wall_h - 2
+  for y in range(max(2, sy0), yb + 1):
+   c.set(sx, y, post[4]); c.set(sx + 1, y, post[1])
+  c.set(sx, max(2, sy0 - 1), post[5])
+ soft_outline(c, post[0], post[2])
+ # Orbits stay inside the horseshoe screen so trimmed bounds match across frames.
+ _flies(c, frame, [(26, 29, 10, 4, 1.0), (26, 25, 8, 4, -1.0)])
  return c.image()
 
 

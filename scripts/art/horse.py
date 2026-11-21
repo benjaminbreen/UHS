@@ -18,7 +18,7 @@ from art.quality.hue import tint_outline
 W, H = 64, 56
 GROUND = 52
 
-DIRECTIONS = ("south", "east", "north", "west")
+DIRECTIONS = ("south", "southeast", "east", "northeast", "north", "northwest", "west", "southwest")
 STATES = {"horse": {"idle": 8, "graze": 8, "wander": 8, "trot": 8, "flee": 8, "rest": 8, "rear": 8}}
 HEADROOM = {"horse": 6}
 NATIVE_SIZES = {"horse": (W, H)}
@@ -612,39 +612,45 @@ def _draw_leg_side(
         c.set(x, y, "g" if near and y < fy and x >= fx else "k")
 
 
-def _draw_side(build: dict, pal: dict, state: str, frame: int) -> Image.Image:
+def _draw_side(build: dict, pal: dict, state: str, frame: int, quarter: str = "side") -> Image.Image:
     c = HorseCanvas(pal)
     pose = _gait_pose(state, frame, build)
     mark = pal["_mark"]
 
     resting = bool(pose.get("rest"))
-    cx = 30.5
+    se = quarter == "se"
+    ne = quarter == "ne"
+    cx = 31.0 if se else (30.0 if ne else 30.5)
     withers_y = (GROUND - build["barrel_r"] * 1.35 - 5.2 if resting else GROUND - build["withers"]) + pose["bob"]
-    half_len = build["body_len"] * 0.5
-    pitch = pose["pitch"]
+    half_len = build["body_len"] * (0.39 if (se or ne) else 0.5)
+    pitch = pose["pitch"] + (0.06 if se else (-0.06 if ne else 0.0))
 
     def _rot_body(dx: float, dy: float) -> tuple[float, float]:
         ca, sa = math.cos(pitch), math.sin(pitch)
         return cx + dx * ca - dy * sa, withers_y + 5.2 + dx * sa + dy * ca
 
-    p_croup = _rot_body(-half_len + 2.2, -0.6)
+    p_croup = _rot_body(-half_len + 2.2, -0.6 + (-2.2 if se else (1.8 if ne else 0.0)))
     p_mid = _rot_body(-0.5, 0.9)
-    p_chest = _rot_body(half_len - 2.0, 0.3)
-    p_withers = _rot_body(half_len - 4.8, -3.4)
+    p_chest = _rot_body(half_len - 2.0, 0.3 + (1.6 if se else (-2.0 if ne else 0.0)))
+    p_withers = _rot_body(half_len - 4.8, -3.4 + (0.6 if se else (-1.8 if ne else 0.0)))
 
-    hip_h_far = _rot_body(-half_len + 3.4, 3.6)
-    hip_h_near = _rot_body(-half_len + 1.8, 4.0)
-    hip_f_far = _rot_body(half_len - 1.4, 4.0)
-    hip_f_near = _rot_body(half_len - 3.0, 4.4)
+    hip_h_far = _rot_body(-half_len + (2.0 if se else (4.2 if ne else 3.4)), 3.6 + (-2.0 if se else (0.8 if ne else 0.0)))
+    hip_h_near = _rot_body(-half_len + (1.4 if se else (1.0 if ne else 1.8)), 4.0 + (-1.2 if se else (1.8 if ne else 0.0)))
+    hip_f_far = _rot_body(half_len + (0.8 if se else (-0.4 if ne else -1.4)), 4.0 + (0.6 if se else (-2.2 if ne else 0.0)))
+    hip_f_near = _rot_body(half_len - (2.4 if se else (2.6 if ne else 3.0)), 4.4 + (1.6 if se else (-1.4 if ne else 0.0)))
 
-    def _foot(hip, key):
+    g_hind = GROUND - (2.2 if se else (-0.4 if ne else 0.0))
+    g_front = GROUND + (0.4 if se else (-2.2 if ne else 0.0))
+
+    def _foot(hip, key, ground_y):
         dx, lift, fold = pose["legs"][key]
-        return (hip[0] + dx, min(GROUND, GROUND - lift)), fold
+        dx_s = dx * (0.82 if (se or ne) else 1.0)
+        return (hip[0] + dx_s, min(GROUND, ground_y - lift)), fold
 
-    f_rh, fl_rh = _foot(hip_h_far, "RH")
-    f_rf, fl_rf = _foot(hip_f_far, "RF")
-    f_lh, fl_lh = _foot(hip_h_near, "LH")
-    f_lf, fl_lf = _foot(hip_f_near, "LF")
+    f_rh, fl_rh = _foot(hip_h_far, "RH", g_hind - (0.8 if se else 0.0))
+    f_rf, fl_rf = _foot(hip_f_far, "RF", g_front - (0.8 if ne else 0.0))
+    f_lh, fl_lh = _foot(hip_h_near, "LH", g_hind)
+    f_lf, fl_lf = _foot(hip_f_near, "LF", g_front)
 
     has_socks = mark in ("blaze_socks", "star_socks", "piebald")
 
@@ -653,28 +659,35 @@ def _draw_side(build: dict, pal: dict, state: str, frame: int) -> Image.Image:
         _draw_leg_side(c, hip_h_far, f_rh, fl_rh, hind=True, near=False, build=build, white_sock=has_socks)
         _draw_leg_side(c, hip_f_far, f_rf, fl_rf, hind=False, near=False, build=build, white_sock=False)
 
-    # 2. Long graceful flowing tail
-    tail_root = _rot_body(-half_len - 1.5, -1.8)
+    # 2. Long graceful flowing tail (drawn behind torso for east/se, over croup for ne)
+    tail_root = _rot_body(-half_len - (1.0 if ne else 1.5), -1.8 + (-2.0 if se else (1.6 if ne else 0.0)))
     tl = pose["tail_lift"]
     sw = pose["tail_swish"]
     tail_len = 17.0 if build["tail_style"] != "docked_full" else 13.0
     t_pts = [
         tail_root,
-        (tail_root[0] - 2.6 - tl * 0.55, tail_root[1] + 2.2 - tl * 0.35),
-        (tail_root[0] - 4.6 - tl * 1.15 + sw * 0.4, tail_root[1] + tail_len * 0.55 - tl * 0.65),
-        (tail_root[0] - 3.2 - tl * 1.75 + sw, tail_root[1] + tail_len - tl * 0.90),
+        (tail_root[0] - (1.8 if ne else 2.6) - tl * 0.55, tail_root[1] + 2.2 - tl * 0.35),
+        (tail_root[0] - (3.0 if ne else 4.6) - tl * 1.15 + sw * 0.4, tail_root[1] + tail_len * 0.55 - tl * 0.65),
+        (tail_root[0] - (2.2 if ne else 3.2) - tl * 1.75 + sw, tail_root[1] + tail_len - tl * 0.90),
     ]
     t_rad = [1.5, 2.4, 2.2, 0.9] if build["tail_style"] != "streaming" else [1.3, 2.0, 1.9, 0.7]
     tail_mask = _tube(t_pts, t_rad)
     t_lit = _shade_3d(tail_mask)
-    for (x, y), val in t_lit.items():
-        strand = ((x + y) % 3 == 0)
-        c.set(x, y, "w" if val > 0.70 and strand else ("v" if val > 0.34 else "t"))
+
+    def _paint_tail():
+        for (x, y), val in t_lit.items():
+            strand = ((x + y) % 3 == 0)
+            c.set(x, y, "w" if val > 0.70 and strand else ("v" if val > 0.34 else "t"))
+
+    if not ne:
+        _paint_tail()
 
     # 3. Torso: sculpted croup, deep ribcage, saddle hollow, smooth chest
-    croup_m = _disk(p_croup[0], p_croup[1], build["croup_r"], build["croup_r"] * 0.88)
-    barrel_m = _disk(p_mid[0], p_mid[1], half_len * 0.76, build["barrel_r"] * 0.85)
-    chest_m = _disk(p_chest[0], p_chest[1], build["chest_r"] * 0.92, build["chest_r"] * 0.92)
+    croup_s = 0.92 if se else (1.06 if ne else 1.0)
+    chest_s = 1.08 if se else (0.92 if ne else 1.0)
+    croup_m = _disk(p_croup[0], p_croup[1], build["croup_r"] * croup_s, build["croup_r"] * 0.88 * croup_s)
+    barrel_m = _disk(p_mid[0], p_mid[1], half_len * 0.80, build["barrel_r"] * 0.86)
+    chest_m = _disk(p_chest[0], p_chest[1], build["chest_r"] * 0.92 * chest_s, build["chest_r"] * 0.92 * chest_s)
     withers_m = _disk(p_withers[0], p_withers[1] + 1.4, 3.8, 3.0)
     torso = croup_m | barrel_m | chest_m | withers_m
 
@@ -734,8 +747,8 @@ def _draw_side(build: dict, pal: dict, state: str, frame: int) -> Image.Image:
 
     # Noble angled equine head (~50-60 deg downward!)
     hs = build["head_scale"]
-    h_ang = build["head_angle"] + pose["head_rot"]
-    hx_dir, hy_dir = math.cos(h_ang), math.sin(h_ang)
+    h_ang = build["head_angle"] + pose["head_rot"] + (0.18 if se else (-0.12 if ne else 0.0))
+    hx_dir, hy_dir = math.cos(h_ang) * (0.82 if se else (0.78 if ne else 1.0)), math.sin(h_ang)
     jx_dir, jy_dir = -hy_dir, hx_dir  # toward jowl/cheek
 
     jowl = (poll_x + hx_dir * 2.4 + jx_dir * 1.8 * hs, poll_y + hy_dir * 2.4 + jy_dir * 1.8 * hs)
@@ -859,6 +872,9 @@ def _draw_side(build: dict, pal: dict, state: str, frame: int) -> Image.Image:
     else:
         _draw_leg_side(c, hip_h_near, f_lh, fl_lh, hind=True, near=True, build=build, white_sock=has_socks)
         _draw_leg_side(c, hip_f_near, f_lf, fl_lf, hind=False, near=True, build=build, white_sock=has_socks)
+
+    if ne:
+        _paint_tail()
 
     return c.render()
 
@@ -1005,9 +1021,17 @@ def draw_horse(build_id: str, coat_id: str, direction: str, state: str, frame: i
     tc = build["tack_colors"]
     base_pal["c"], base_pal["x"], base_pal["z"] = tc
     if direction == "east":
-        return _draw_side(build, base_pal, state, frame)
+        return _draw_side(build, base_pal, state, frame, "side")
     if direction == "west":
-        return _draw_side(build, base_pal, state, frame).transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+        return _draw_side(build, base_pal, state, frame, "side").transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+    if direction == "southeast":
+        return _draw_side(build, base_pal, state, frame, "se")
+    if direction == "southwest":
+        return _draw_side(build, base_pal, state, frame, "se").transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+    if direction == "northeast":
+        return _draw_side(build, base_pal, state, frame, "ne")
+    if direction == "northwest":
+        return _draw_side(build, base_pal, state, frame, "ne").transpose(Image.Transpose.FLIP_LEFT_RIGHT)
     if direction == "south":
         return _draw_front_or_back(build, base_pal, state, frame, front=True)
     return _draw_front_or_back(build, base_pal, state, frame, front=False)

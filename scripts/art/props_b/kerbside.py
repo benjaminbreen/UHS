@@ -361,47 +361,80 @@ def vending_machine(v=0):
  return c.image()
 
 
-def _bike(c, ox, oy, frame, basket=False):
- """A roadster seen side on, wheels four pixels in radius."""
- tyre, rim = IRON[1], STEEL[4]
- for cx in (ox + 4, ox + 16):
-  for dx, dy in ((-1, -4), (0, -4), (1, -4), (-3, -3), (-2, -3), (2, -3), (3, -3), (-4, -1), (-4, 0), (-4, 1),
-                 (4, -1), (4, 0), (4, 1), (-3, 2), (-3, 3), (3, 2), (3, 3), (-2, 3), (2, 3), (-1, 4), (0, 4), (1, 4),
-                 (-3, -2), (3, -2), (-4, -2), (4, -2), (-4, 2), (4, 2)):
-   c.set(cx + dx, oy + dy, tyre)
-  c.set(cx, oy, rim); c.set(cx - 2, oy, rim); c.set(cx + 2, oy, rim); c.set(cx, oy - 2, rim); c.set(cx, oy + 2, rim)
- c.line((ox + 4, oy), (ox + 8, oy - 6), frame[4])                      # seat stay and tube
- c.line((ox + 8, oy - 6), (ox + 14, oy - 6), frame[5])                 # top tube
- c.line((ox + 8, oy - 6), (ox + 10, oy), frame[3])                     # seat tube
- c.line((ox + 10, oy), (ox + 14, oy - 6), frame[3])                    # down tube
- c.line((ox + 4, oy), (ox + 10, oy), frame[2])                         # chain stay
- c.line((ox + 14, oy - 6), (ox + 16, oy), frame[4])                    # fork
- c.line((ox + 14, oy - 6), (ox + 14, oy - 8), STEEL[5])
- c.hline(ox + 13, ox + 16, oy - 9, IRON[2])                            # bars
- c.hline(ox + 6, ox + 9, oy - 8, BROWN[2]); c.set(ox + 8, oy - 7, STEEL[4])   # saddle
- c.set(ox + 10, oy + 1, IRON[2]); c.set(ox + 11, oy + 2, IRON[2])      # pedal
- if basket:
-  c.rect(ox + 16, oy - 9, ox + 20, oy - 6, STEEL[3])
-  for x in range(ox + 16, ox + 21, 2): c.vline(x, oy - 9, oy - 6, STEEL[5])
-
-
-def bicycle(v=0):
- """v0 the black roadster of China, India and the Netherlands, v1 red, v2
- blue, v3 the Japanese shopping bicycle with its front basket."""
- c = Canvas(23, 16)
- _bike(c, 1, 11, (IRON, RED, BLUE, WHITE)[v], basket=v == 3)
- return c.image()
+EARTH = ['#2a1c12', '#3f2b1b', '#5a3f27', '#775535', '#946e47', '#ad885c', '#c4a377']
+PLY = ['#3a2a18', '#5a4226', '#7c5d36', '#a07c4a', '#bf9a62', '#d6b67e', '#e8cf9e']
 
 
 def bike_rack(v=0):
- """v0 a row of steel hoops, v1 the same with two bicycles locked to it."""
+ """v0 a row of steel hoops, v1 the older comb of slots that took a front
+ wheel. Empty: the bicycles locked to one are the world's own."""
  c = Canvas(46, 18)
- for x in (8, 22, 36):
-  c.vline(x, 8, 16, STEEL[5]); c.vline(x + 4, 8, 16, STEEL[2]); c.hline(x + 1, x + 3, 7, STEEL[5])
- if v:
-  _bike(c, 1, 12, BLUE)
-  _bike(c, 23, 12, RED, basket=True)
- c.hline(6, 42, 17, STEEL[1])
+ if v == 0:
+  for x in (8, 22, 36):
+   c.vline(x, 8, 16, STEEL[5]); c.vline(x + 4, 8, 16, STEEL[2]); c.hline(x + 1, x + 3, 7, STEEL[5])
+  c.hline(6, 42, 17, STEEL[1])
+ else:
+  c.hline(4, 42, 9, STEEL[5]); c.hline(4, 42, 10, STEEL[2])
+  for x in range(6, 42, 4): c.vline(x, 11, 15, STEEL[4 if (x // 4) % 2 else 3])
+  c.hline(4, 42, 16, STEEL[3]); c.hline(4, 42, 17, STEEL[1])
+  c.vline(4, 9, 17, STEEL[5]); c.vline(42, 9, 17, STEEL[2])
+ return c.image()
+
+
+def bike_pump(v=0):
+ """Where a tyre is put right. v0 a public repair post: an arm to hang the
+ bicycle from, tools on wires, a floor pump beside it. v1 the roadside
+ mender's kit: a crate, a spare tyre, an oil can and a brass pump."""
+ c = Canvas(24, 27)
+ if v == 0:
+  _cyl(c, 4, 8, 6, 24, BLUE)
+  c.rect(4, 3, 14, 5, BLUE[4]); c.hline(4, 14, 3, BLUE[6]); c.hline(4, 14, 5, BLUE[1])
+  c.rect(13, 1, 16, 2, IRON[2]); c.hline(13, 16, 1, IRON[4])
+  for x, y1, col in ((10, 10, STEEL[5]), (12, 13, RED[4]), (14, 9, YELLOW[4])):
+   c.vline(x, 6, y1, STEEL[2]); c.set(x, y1 + 1, col); c.set(x, y1 + 2, col)
+  c.hline(3, 9, 25, IRON[1])
+  c.hline(16, 22, 12, IRON[2]); c.hline(16, 22, 11, IRON[4])
+  c.vline(19, 13, 15, STEEL[5])
+  _cyl(c, 18, 20, 16, 23, RED)
+  c.hline(16, 22, 24, IRON[2]); c.hline(17, 21, 25, IRON[0])
+  c.set(21, 19, STEEL[6]); c.set(22, 20, IRON[2]); c.set(22, 21, IRON[2]); c.set(21, 22, IRON[2])
+ else:
+  # The tyre first, so the crate stands in front of it.
+  for y in range(8, 25):
+   for x in range(9, 24):
+    d = ((x - 16) ** 2 + (y - 16) ** 2) ** 0.5
+    if 5.4 < d <= 7.4: c.set(x, y, IRON[3] if x + y < 30 else IRON[1])
+    elif 4.6 < d <= 5.4: c.set(x, y, STEEL[3])
+  _box(c, 1, 15, 12, 24, BROWN)
+  c.hline(2, 11, 19, BROWN[2]); c.vline(6, 16, 23, BROWN[2])
+  c.rect(3, 11, 6, 14, STEEL[4]); c.vline(3, 11, 14, STEEL[6]); c.line((6, 11), (9, 8), STEEL[5]); c.set(4, 10, STEEL[3])
+  c.vline(20, 9, 24, YELLOW[4]); c.vline(21, 9, 24, YELLOW[2]); c.hline(18, 23, 8, BROWN[3]); c.hline(18, 23, 7, BROWN[5])
+  c.hline(19, 22, 25, IRON[1])
+  c.hline(1, 12, 25, BROWN[0])
+ return c.image()
+
+
+def bike_ramp(v=0):
+ """Something to leave the ground from, ridden up either side. v0 a mound of
+ packed dirt worn pale along its crown, v1 a plywood box with a ramp at each end."""
+ c = Canvas(36, 16)
+ m = EARTH if v == 0 else PLY
+ for y in range(4, 15):
+  t = (y - 4) / 10
+  x0 = round(12 - 11 * (t ** 0.7 if v == 0 else t)); x1 = 35 - x0
+  for x in range(x0, x1 + 1):
+   c.set(x, y, m[5] if x - x0 < 2 else m[2] if x1 - x < 2 else m[4] if y < 8 else m[3])
+ c.hline(12, 23, 4, m[6]); c.hline(11, 24, 5, m[5])
+ if v == 0:
+  for x in range(7, 29, 3): c.set(x, 9 if 12 < x < 23 else 11, m[2])
+  for x, y in ((9, 12), (17, 7), (25, 11), (21, 13), (14, 10)): c.set(x, y, m[6])
+  for x in (2, 4, 31, 33): c.set(x, 14, GREEN[5]); c.set(x, 13, GREEN[4])
+ else:
+  for x in (7, 12, 23, 28): c.vline(x, 6 if 11 < x < 24 else 9, 14, m[2])
+  c.hline(12, 23, 7, m[2])
+  c.rect(13, 9, 22, 13, m[1]); c.line((13, 13), (22, 9), m[3]); c.line((13, 9), (22, 13), m[3])
+ c.hline(1, 34, 15, m[1])
+ soft_outline(c, m[0], m[2])
  return c.image()
 
 
@@ -541,8 +574,9 @@ KERBSIDE = {
  'street-sign': street_sign,
  'news-box': news_box,
  'vending-machine': vending_machine,
- 'bicycle': bicycle,
  'bike-rack': bike_rack,
+ 'bike-pump': bike_pump,
+ 'bike-ramp': bike_ramp,
  'utility-cabinet': utility_cabinet,
  'kerb-rubbish': rubbish,
  'pavement-board': pavement_board,

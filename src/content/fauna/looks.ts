@@ -104,10 +104,17 @@ export function faunaLook(
   return {
     form: form.id,
     coat,
-    art:
-      spec.art ??
-      (form.id === spec.forms[0].id ? species : `${species}.${form.id}`),
+    art: faunaArtStem(species, form.id),
   };
+}
+
+/** Art stem for a species and form; the default (first) form uses the plain species name. */
+export function faunaArtStem(species: string, form?: string): string {
+  const spec = looks[species];
+  if (!spec) return form && form !== species ? `${species}.${form}` : species;
+  if (spec.art) return spec.art;
+  if (!form || form === species || form === spec.forms[0]?.id) return species;
+  return `${species}.${form}`;
 }
 
 /** The colour swap for a coat: drawn colour to coat colour, as 0xRRGGBB. */

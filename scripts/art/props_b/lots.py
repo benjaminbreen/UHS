@@ -2,7 +2,7 @@
 Frame order is the variant index src/content/props/lots.ts names; keep the
 two lists in step. Graves, crosses, carts and troughs are not here: the lots
 use the grave-mound, sacred-marker, farm-cart and trough sprites."""
-from math import atan2, cos, hypot, pi, sin
+from math import atan2, cos, hypot, pi, sin, sqrt
 from .core import Canvas, RAMPS, blob, jitter, revolve, belly, soft_outline
 from .solid import K, disc, lathe, block, log_x
 
@@ -10,6 +10,9 @@ BARK = ['#1f1814', '#33261d', '#4a3727', '#634a33', '#7d5f41', '#987752']
 HEART = ['#3d2b1a', '#6a4c2e', '#95703f', '#b8925a', '#d4b077', '#ead09a']
 STRAW = ['#4a3a1a', '#6f5a2a', '#93793a', '#b39a4f', '#ccb66c', '#e2d190']
 OLD_STRAW = ['#3a301e', '#55482c', '#76663e', '#958452', '#ae9e68', '#c6b885']
+STRAW7 = ['#362812', '#523d1b', '#735726', '#967434', '#ba9447', '#dbb660', '#f2d680']
+OLD_STRAW7 = ['#2f2618', '#473b25', '#635334', '#826e46', '#a18b5b', '#bfa975', '#d9c594']
+CUT_COL = ['#9e7340', '#cfa468', '#f2cf94']
 DUNG = ['#251c15', '#3a2c20', '#52402e', '#6b553c', '#86704f', '#a28b66']
 MUD = ['#3a2a1e', '#5a412c', '#7a5a3c', '#98764f', '#b39266', '#cbad82']
 LOESS = ['#4a3b25', '#6e5835', '#927748', '#b0955d', '#c9b078', '#dfca98']
@@ -140,50 +143,156 @@ def cordwood(rows):
 
 
 def straw_cone():
- c = Canvas(30, 40)
- comb = lambda z, a, i: i - (int(a * 9) % 3 == 0) - (abs(z - 13) < .8 or abs(z - 21) < .8)
- m = lathe(c, 15, 37, [(0, 12), (3, 13), (12, 11.5), (22, 7), (28, 3), (31, 1)], STRAW, comb)
+ c = Canvas(36, 42)
+ cx, by = 18.0, 39
+ oak, walnut, steel = RAMPS['oak7'], RAMPS['walnut7'], RAMPS['iron7']
+ for y in range(2, 9):
+  c.set(17, y, walnut[5]); c.set(18, y, walnut[3]); c.set(19, y, walnut[1])
+ c.set(17, 1, CUT_COL[2]); c.set(18, 1, CUT_COL[1])
+
+ prof = [(0, 13.5), (3, 15.0), (10, 14.5), (18, 11.5), (25, 7.0), (29, 3.0), (31, 1.2)]
+ def hay_tex(z, a, i):
+  course = int(z) % 6
+  clump = int((a + pi) * 9 + int(z // 6) * 2) % 4
+  if course == 0 and z > 3:
+   return max(1, i - 1)
+  if course == 1 and z > 3 and a < 0.4:
+   return min(6, i + 1)
+  if clump == 0:
+   return max(1, i - 1)
+  return i
+
+ m = lathe(c, cx, by, prof, STRAW7, hay_tex, flat=False)
  for (x, y), (z, a) in m.items():
-  if abs(z - 13) < .6 or abs(z - 21) < .6: c.set(x, y, ROPE[2] if a < 0 else ROPE[1])
- post(c, 14, 1, 7)
- c.rim(STRAW)
- tufts(c, [(3, 38, 2), (25, 38, 2)])
+  if abs(z - 14.0) < 0.7 or abs(z - 22.0) < 0.7:
+   c.set(x, y, ROPE[3] if a < -0.1 else (ROPE[2] if a < 0.5 else ROPE[1]))
+
+ for x in range(4, 33):
+  u = (x + 0.5 - cx) / 14.2
+  if abs(u) > 1.0:
+   continue
+  yb = round(by - 13.5 * K + 13.5 * K * sqrt(max(0.0, 1.0 - u * u)))
+  if (x * 7) % 3 == 0:
+   c.set(x, yb + 1, STRAW7[4] if u < 0 else STRAW7[2])
+
+ for i in range(24):
+  rx = round(27 + i * 0.32)
+  ry = 14 + i
+  c.set(rx, ry, oak[5]); c.set(rx + 1, ry, oak[2])
+ for tx, ty in ((25, 13), (27, 12), (29, 13)):
+  c.set(tx, ty, steel[5]); c.set(tx, ty + 1, steel[3])
+
+ soft_outline(c, STRAW7[0], STRAW7[3])
  return c.image()
 
 
 def rick():
- c = Canvas(48, 44)
- L, Rt, by = 3, 44, 38
- body = 13
- eave = by - body
+ c = Canvas(50, 44)
+ L, Rt, by = 5, 44, 41
+ oak, granite = RAMPS['oak7'], RAMPS['granite']
+ for sx in (11, 26, 40):
+  for y in range(by - 6, by - 2):
+   c.set(sx - 1, y, granite[2]); c.set(sx, y, granite[1]); c.set(sx + 1, y, granite[0])
+  for x in range(sx - 2, sx + 3):
+   c.set(x, by - 7, granite[3] if x <= sx else granite[1])
+
+ for sx in (9, 24, 39):
+  for y in range(by - 4, by + 1):
+   hw = 1 if y < by - 1 else 2
+   for x in range(sx - hw, sx + hw + 1):
+    c.set(x, y, granite[5] if x < sx else (granite[3] if x == sx else granite[1]))
+  for dy, hw in ((-7, 3), (-6, 4), (-5, 4)):
+   y = by + dy
+   for x in range(sx - hw, sx + hw + 1):
+    if dy == -7: col = granite[6] if x <= sx else granite[4]
+    elif dy == -6: col = granite[5] if x < sx else (granite[4] if x <= sx + 1 else granite[2])
+    else: col = granite[2] if x < sx else granite[1]
+    c.set(x, y, col)
+
+ frame_y = by - 9
  for x in range(L, Rt + 1):
-  u = (x - L) / (Rt - L) * 2 - 1
-  for y in range(eave + 1, by - 2):
-   i = 4 if u < -.8 else 3 if u < .7 else 2
-   if (x * 7 + jitter(x) * 3) % 4 == 0 and (y + jitter(x)) % 7 < 5: i -= 1
-   c.set(x, y, STRAW[max(0, i)])
- ridge = eave - 13
- for y in range(ridge - 5, eave + 1):
-  near = y >= ridge
-  t = (y - ridge) / (eave - ridge) if near else (ridge - y) / 5
-  inset = round((1 - t) * 6) if near else round(6 + (1 - t) * 3)
-  for x in range(L - 1 + inset, Rt + 2 - inset):
-   i = (4 if near else 2) - (near and y > eave - 3)
-   if (x * 7 + jitter(x) * 3) % 4 == 0 and (y + jitter(x)) % 6 < 4: i -= 1
-   if x == L - 1 + inset: i += 1
-   if x == Rt + 1 - inset: i -= 2
-   c.set(x, y, OLD_STRAW[max(0, min(5, i))])
- for x in range(L + 6, Rt - 5):
-  c.set(x, ridge - 1, OLD_STRAW[5] if x % 3 else OLD_STRAW[3]); c.set(x, ridge, OLD_STRAW[2])
- for x in range(L - 1, Rt + 2):
-  c.set(x, eave + 1, OLD_STRAW[1]); c.set(x, eave + 2, STRAW[1] if x % 3 else OLD_STRAW[2])
- for x in (L + 4, (L + Rt) // 2, Rt - 4):
-  block(c, x - 1, by + 2, 3, 3, 3, RAMPS['granite'][1:])
- for x in (L + 8, L + 18, Rt - 16, Rt - 6):
-  c.line((x, ridge + 1), (x, eave + 3), ROPE[1])
-  disc(c, x + .5, eave + 5, 1.6, 1.6, RAMPS['granite'][4]); c.set(x, eave + 4, RAMPS['granite'][6])
- c.rim(OLD_STRAW)
- tufts(c, [(1, 43, 2), (24, 43, 1), (45, 43, 2)])
+  c.set(x, frame_y, oak[5] if x < 30 else oak[4])
+  c.set(x, frame_y + 1, oak[3] if x < 30 else oak[2])
+  c.set(x, frame_y + 2, oak[1])
+ for jx in (9, 17, 24, 32, 39):
+  c.rect(jx - 1, frame_y, jx + 1, frame_y + 1, CUT_COL[1])
+  c.set(jx - 1, frame_y, CUT_COL[2])
+
+ eave_y = frame_y - 11
+ for y in range(eave_y + 2, frame_y):
+  t = (y - (eave_y + 2)) / max(1, frame_y - eave_y - 3)
+  flare = round((1.0 - t) * 1.2)
+  xl, xr = L - flare, Rt + flare
+  course = (y - eave_y) // 3
+  for x in range(xl, xr + 1):
+   u = (x - xl) / max(1, xr - xl)
+   if y == eave_y + 2:
+    tone = 1
+   elif y == eave_y + 3:
+    tone = 3 if u < 0.65 else 2
+   else:
+    tone = 5 if u < 0.35 else (4 if u < 0.78 else 3)
+    clump = (x + course * 3) // 4
+    if (y - eave_y) % 3 == 0 and (clump % 2 == 0):
+     tone = max(2, tone - 1)
+    elif (clump * 7 + course) % 5 == 0 and u < 0.6:
+     tone = min(6, tone + 1)
+   c.set(x, y, STRAW7[tone])
+
+ for px, tone_hi, tone_lo in ((L, oak[5], oak[3]), (Rt - 1, oak[3], oak[1])):
+  for y in range(eave_y + 2, frame_y):
+   c.set(px, y, tone_hi); c.set(px + 1, y, tone_lo)
+
+ ridge_y = eave_y - 14
+ tiers = 3
+ th = 14 / tiers
+ for y in range(ridge_y, eave_y + 2):
+  t = (y - ridge_y) / 15.0
+  inset = round((1.0 - t) * 7)
+  xl, xr = L - 3 + inset, Rt + 3 - inset
+  for x in range(xl, xr + 1):
+   u = (x - xl) / max(1, xr - xl)
+   wave = round(0.6 * sin(x * 0.32))
+   y_eff = (y - ridge_y) + wave
+   tier = max(0, min(tiers - 1, int(y_eff // th)))
+   ty = y_eff - tier * th
+   if y == eave_y + 1:
+    tone = 2
+   elif tier > 0 and ty < 1.0:
+    tone = 2
+   elif tier > 0 and ty < 2.1:
+    tone = 6 if u < 0.65 else 5
+   else:
+    tone = 5 if (u < 0.32 and ty < th * 0.6) else (4 if u < 0.78 else 3)
+    if ((x + tier * 2) // 2) % 3 == 0:
+     tone = max(2, tone - 1)
+   if x < xl + 2:
+    tone = min(6, tone + 1)
+   elif x > xr - 3:
+    tone = max(1, tone - 1)
+   c.set(x, y, OLD_STRAW7[tone])
+
+ for x in range(L - 3, Rt + 4):
+  c.set(x, eave_y, OLD_STRAW7[5] if x < 34 else OLD_STRAW7[4])
+  c.set(x, eave_y + 1, OLD_STRAW7[3] if (x % 3 != 0) else OLD_STRAW7[2])
+
+ r_xl, r_xr = L + 4, Rt - 4
+ for x in range(r_xl, r_xr + 1):
+  c.set(x, ridge_y - 2, OLD_STRAW7[6] if x < 32 else OLD_STRAW7[5])
+  c.set(x, ridge_y - 1, OLD_STRAW7[5] if x < 32 else OLD_STRAW7[4])
+  c.set(x, ridge_y, OLD_STRAW7[2])
+  if (x - r_xl) % 6 in (2, 3):
+   c.set(x, ridge_y - 2, oak[5]); c.set(x, ridge_y, oak[2])
+ for fx in (r_xl, r_xr):
+  c.set(fx, ridge_y - 3, OLD_STRAW7[6]); c.set(fx, ridge_y - 4, OLD_STRAW7[4])
+
+ for rx in (12, 20, 29, 37):
+  for y in range(ridge_y, eave_y + 2):
+   c.set(rx, y, ROPE[2] if y % 2 == 0 else ROPE[1])
+  c.rect(rx - 1, eave_y + 2, rx, eave_y + 3, granite[4])
+  c.set(rx - 1, eave_y + 2, granite[6]); c.set(rx, eave_y + 3, granite[1])
+
+ soft_outline(c, OLD_STRAW7[0], OLD_STRAW7[3])
  return c.image()
 
 
@@ -275,22 +384,42 @@ def bitaura():
 
 
 def stooks():
- c = Canvas(48, 30)
- for n, (cx, by) in enumerate(((9, 22), (37, 21), (23, 28))):
-  for side in (-1, 1):
-   for k in range(7):
-    xb = cx + side * (1 + k); xt = cx + side * (k // 3)
-    tone = 3 + (side < 0) - (k > 4) + (jitter(k, n) % 3 == 0)
-    c.line((xt, by - 13), (xb, by - (k == 6)), STRAW[min(5, tone)])
-  for k in range(-3, 4):
-   c.set(cx + k, by - abs(k) // 3, STRAW[1])
-  for k in range(-4, 5):
-   y = by - 19 + abs(k) // 2 + jitter(k, n) % 2
-   c.vline(cx + k, y, by - 13, EAR[1 + (k < 1) + (jitter(k, n) % 3 == 0)])
-   c.set(cx + k, y, EAR[3 - (k > 1)])
-  c.hline(cx - 3, cx + 3, by - 10, ROPE[3]); c.hline(cx - 3, cx + 3, by - 9, ROPE[1])
- c.rim(STRAW)
- tufts(c, [(2, 29, 2), (16, 29, 1), (44, 29, 2)])
+ c = Canvas(48, 34)
+ ear7 = ['#523a10', '#785618', '#9e7524', '#c49634', '#e3b84c', '#f5d66e', '#fff0a6']
+ centers = [(12.5, 25), (35.5, 24), (24.0, 31)]
+ for idx, (cx, by) in enumerate(centers):
+  prof = [(0, 8.2), (3, 7.4), (9, 5.2), (13, 3.6), (15, 4.4), (18, 4.8), (20, 2.5)]
+  def stook_tex(z, a, i):
+   stalk = int((a + pi) * 7 + idx * 3) % 3
+   if z < 12.5:
+    return min(6, i + 1) if stalk == 0 else (max(1, i - 1) if stalk == 2 else i)
+   return i
+  lathe(c, cx, by, prof, STRAW7, stook_tex, flat=False)
+
+  wy = round(by - 13 - 3.6 * K)
+  for dx in range(-4, 5):
+   drop = 1 if abs(dx) <= 2 else 0
+   c.set(int(cx) + dx, wy + drop, ROPE[3] if dx < 0 else ROPE[1])
+   c.set(int(cx) + dx, wy + drop + 1, ROPE[1] if dx < 0 else ROPE[0])
+
+  head_y = wy - 5
+  for dx, dy in ((-4, 2), (-2, 0), (0, -1), (2, 0), (4, 2), (-2, 3), (1, 3)):
+   hx, hy = int(cx) + dx, head_y + dy
+   c.set(hx, hy, ear7[6 if dx <= 0 else 4])
+   c.set(hx + 1, hy, ear7[4 if dx <= 0 else 2])
+   c.set(hx, hy + 1, ear7[5 if dx <= 0 else 3])
+   c.set(hx + 1, hy + 1, ear7[2 if dx <= 0 else 1])
+
+  for dx in range(-8, 9):
+   u = dx / 8.2
+   if abs(u) <= 1.0:
+    yb = round(by - 8.2 * K + 8.2 * K * sqrt(max(0.0, 1.0 - u * u)))
+    if (dx + idx) % 2 == 0:
+     c.set(int(cx) + dx, yb + 1, STRAW7[4 if dx < 0 else 2])
+    else:
+     c.set(int(cx) + dx, yb, STRAW7[1])
+
+ soft_outline(c, STRAW7[0], STRAW7[3])
  return c.image()
 
 
@@ -943,8 +1072,122 @@ def date_palm():
 YARD = [mud_trough, roller, water_jar, pergola, banana, tulsi, cuezcomatl, date_palm]
 
 
+def _draw_log_stack(c, rows, birch, oak, walnut, shadow_top=False):
+ min_x = min(lx for _, logs in rows for lx, _ in logs)
+ max_x = max(lx + lw for _, logs in rows for lx, lw in logs)
+ min_y = min(ry for ry, _ in rows)
+ max_y = max(ry for ry, _ in rows) + 5
+ for y in range(min_y + 1, max_y):
+  for x in range(min_x + 1, max_x - 1):
+   c.set(x, y, walnut[1])
+ for r_idx, (ry, logs) in enumerate(rows):
+  for l_idx, (lx, lw) in enumerate(logs):
+   heart = birch if (r_idx + l_idx) % 3 != 0 else oak
+   for dy in range(5):
+    for dx in range(lw):
+     if (dx == 0 or dx == lw - 1) and (dy == 0 or dy == 4):
+      continue
+     if shadow_top and r_idx == 0 and dy <= 1:
+      col = walnut[1] if dy == 0 else walnut[2]
+     elif dy == 0:
+      col = walnut[4] if dx < lw - 1 else walnut[2]
+     elif dy == 4:
+      col = walnut[1]
+     elif dx == 0:
+      col = walnut[3]
+     elif dx == lw - 1:
+      col = walnut[2]
+     elif shadow_top and r_idx == 0 and dy == 2:
+      col = oak[3]
+     else:
+      col = heart[5] if (dy == 1 and dx <= lw // 2) else (heart[4] if dy <= 2 else heart[3])
+      if dy == 2 and dx == lw // 2:
+       col = oak[2]
+     c.set(lx + dx, ry + dy, col)
+
+
+def woodpile_cordwood():
+ oak, walnut, birch = RAMPS['oak7'], RAMPS['walnut7'], RAMPS['birch7']
+ c = Canvas(48, 30)
+ for sx in (3, 43):
+  for y in range(8, 27):
+   c.set(sx, y, walnut[4]); c.set(sx + 1, y, walnut[2])
+  c.set(sx, 7, walnut[5]); c.set(sx + 1, 7, walnut[3])
+ for y in range(7, 12):
+  for x in range(6, 42):
+   if (y == 7 and (x < 9 or x > 38 or x in (20, 21))) or (y == 8 and (x < 7 or x > 40)):
+    continue
+   tone = walnut[5] if y == 7 else (walnut[4] if y == 8 else (walnut[3] if y == 9 else (walnut[2] if y == 10 else walnut[1])))
+   if (x + y * 3) % 8 == 0: tone = walnut[2]
+   c.set(x, y, tone)
+ rows = [
+  (12, [(6, 6), (12, 5), (17, 7), (24, 6), (30, 5), (35, 7)]),
+  (17, [(5, 7), (12, 6), (18, 5), (23, 7), (30, 6), (36, 6)]),
+  (22, [(6, 6), (12, 7), (19, 6), (25, 5), (30, 7), (37, 5)]),
+ ]
+ _draw_log_stack(c, rows, birch, oak, walnut)
+ for cx, cy in [(10, 27), (16, 28), (28, 28), (34, 27)]:
+  c.set(cx, cy, birch[5]); c.set(cx + 1, cy, oak[3])
+ soft_outline(c, walnut[0], oak[2])
+ return c.image()
+
+
+def woodpile_rack():
+ oak, walnut, birch, cedar = RAMPS['oak7'], RAMPS['walnut7'], RAMPS['birch7'], RAMPS['cedar7']
+ c = Canvas(50, 36)
+ for sx in (4, 43):
+  for y in range(11, 33):
+   c.set(sx, y, walnut[4]); c.set(sx + 1, y, walnut[2])
+ rows = [
+  (16, [(7, 6), (13, 6), (19, 5), (24, 7), (31, 6), (37, 5)]),
+  (21, [(6, 6), (12, 7), (19, 6), (25, 6), (31, 5), (36, 6)]),
+  (26, [(7, 7), (14, 5), (19, 7), (26, 6), (32, 6), (38, 4)]),
+ ]
+ _draw_log_stack(c, rows, birch, oak, walnut, shadow_top=True)
+ for y in range(4, 15):
+  for x in range(2, 48):
+   course = (y - 4) // 3
+   seam = (x + (course % 2) * 3) % 6 == 0
+   if y == 4: col = cedar[6] if x < 25 else cedar[4]
+   elif y == 14: col = cedar[1]
+   elif y == 13: col = cedar[4] if not seam else cedar[2]
+   else:
+    base = (4 if y < 9 else 3) - (1 if x > 34 else 0)
+    col = cedar[max(1, base - 1)] if seam else cedar[base]
+   c.set(x, y, col)
+ soft_outline(c, walnut[0], cedar[2])
+ return c.image()
+
+
+def woodpile_faggots():
+ oak, walnut, birch, rope = RAMPS['oak7'], RAMPS['walnut7'], RAMPS['birch7'], RAMPS['rope']
+ c = Canvas(48, 30)
+ for bx, by, bw, bh in [(14, 19, 17, 5), (31, 19, 17, 5), (22, 12, 18, 5)]:
+  hw = bw // 2
+  for dy in range(-bh, bh + 1):
+   for dx in range(-hw, hw + 1):
+    if (abs(dy) == bh and abs(dx) < 3) or (abs(dy) >= bh - 1 and abs(dx) > hw - 1):
+     continue
+    px, py = bx + dx, by + dy
+    stripe = (py * 3 + (px // 3)) % 3
+    if abs(dx) >= hw - 1:
+     col = birch[5] if (dy < 0 and py % 2 == 0) else (oak[4] if dy <= 1 else walnut[2])
+    elif dy <= -2:
+     col = oak[5] if stripe == 0 else oak[4]
+    elif dy <= 1:
+     col = oak[4] if stripe == 0 else (walnut[4] if stripe == 1 else walnut[3])
+    else:
+     col = walnut[2] if stripe == 0 else walnut[1]
+    c.set(px, py, col)
+  for cx_off in (-1, 1):
+   for dy in range(-bh + 1, bh):
+    c.set(bx + cx_off, by + dy, rope[3] if dy < 0 else (rope[2] if dy < 2 else rope[0]))
+ soft_outline(c, walnut[0], oak[2])
+ return c.image()
+
+
 FAMILIES = {
- 'woodpile': [lambda: cordwood(3), lambda: cordwood(5), faggots],
+ 'woodpile': [woodpile_cordwood, woodpile_rack, woodpile_faggots],
  'hay-rick': [straw_cone, rick, stooks],
  'dung-stack': [bitaura, dung_cakes],
  'mud-bricks': [mud_bricks, lambda: mud_bricks(LOESS)],

@@ -1,6 +1,6 @@
 """Wells and water gear. Sized off the character: ~17 source pixels to a metre."""
-from math import atan2, hypot, pi
-from .core import Canvas, RAMPS, STONE, WOOD, jitter, dither, grass
+from math import asin, atan2, hypot, pi, sin, sqrt
+from .core import Canvas, RAMPS, STONE, WOOD, jitter, dither, grass, soft_outline
 from .workshop import WOOD7, streak
 
 HISTORICAL_WELLS = [
@@ -279,16 +279,151 @@ def kerb(c, cx, cy, rx, ry, rxi, ryi, wall, ramp, courses=3, across=6, blocks=11
    c.set(x, y, col)
 
 
-def low_well(v=0):
- """About 2.4 m across the kerb and waist high."""
- c = Canvas(42, 34)
- cx, cy = 20.5, 9.5
- kerb(c, cx, cy, 20, 7.5, 15.5, 5.6, 15, STONE[v])
- shaft(c, cx, cy, 15.5, 5.6, STONE[v])
- c.rim(RAMPS[STONE[v]])
- g = RAMPS['grass']
- for x, y in [(6, 16), (7, 16), (33, 22), (34, 22), (12, 27), (28, 13)]:
-  if c.get(x, y): c.set(x, y, g[1])
+def low_well(v=0, frame=0):
+ """About 2.4 m across the kerb and waist high; v0 fieldstone, v1 Med sandstone, v2 Kyoto tsukubai."""
+ c = Canvas(46, 36)
+ f = frame % 4
+ moss = ['#2b4222', '#3e5f2e', '#58823c', '#74a44e']
+ v = v % 3
+ if v in (0, 1):
+  stone = (
+   ['#383630', '#59564d', '#7b776b', '#9e9a8c', '#c0bcb0', '#dedad0']
+   if v == 0
+   else ['#452e1d', '#6d4c31', '#936c48', '#b68c62', '#d3ad80', '#e9cca0']
+  )
+  cx, top_y, bot_y = 22.5, 11.5, 25.5
+  rx, ry = 17.5, 8.2
+  irx, iry = 12.6, 5.4
+  for y in range(2, 35):
+   for x in range(4, 42):
+    nx = (x - cx) / rx
+    if abs(nx) > 1.0:
+     continue
+    ey = sqrt(max(0.0, 1.0 - nx * nx)) * ry
+    y_top = top_y - ey
+    y_bot = bot_y + ey * 0.85
+    if y < y_top or y > y_bot:
+     continue
+    u = (x - cx) / irx
+    t = (y - top_y) / iry
+    if u * u + t * t <= 1.0:
+     if t < 0.05:
+      course = int((y - (top_y - iry)) // 3)
+      seam = ((x + (course % 2) * 3) % 6) == 0
+      depth_s = 1 if (t < -0.45 and u < 0.25 and not seam) else 0
+      c.set(x, y, stone[2] if (depth_s and u < -0.2) else (stone[1] if not seam else stone[0]))
+     else:
+      dist_e = abs(u) * 0.55 + max(0.0, 0.35 - t) * 0.7
+      col = '#172b38' if dist_e > 0.72 else ('#254659' if dist_e > 0.42 else ('#37667d' if t < 0.52 else '#2b5266'))
+      c.set(x, y, col)
+     continue
+    if ((x - cx) / rx) ** 2 + ((y - top_y) / ry) ** 2 <= 1.0:
+     ang = atan2((y - top_y) * 2.0, x - cx)
+     block_id = int(((ang + pi) / (pi / 6.0)))
+     frac = ((ang + pi) / (pi / 6.0)) % 1.0
+     joint = frac < 0.11 or frac > 0.91
+     lit = -nx * 0.65 - ((y - top_y) / ry) * 0.48
+     var = 1 if (block_id % 3 == 0) else 0
+     if joint:
+      col = stone[1] if lit < 0.1 else stone[2]
+     elif lit > 0.32:
+      col = stone[5]
+     elif lit > -0.1:
+      col = stone[4 + (var if lit > 0.1 else 0)]
+     elif lit > -0.45:
+      col = stone[3]
+     else:
+      col = stone[2]
+     if t > 0.85 and abs(u) < 1.08 and not joint:
+      col = stone[5] if nx < 0.2 else stone[4]
+     c.set(x, y, col)
+    else:
+     rel_y = y - (top_y + ey * 0.98)
+     if v == 1 and rel_y < 2.2:
+      c.set(x, y, stone[1] if rel_y >= 1.0 else (stone[4] if nx < 0.2 else stone[2]))
+      continue
+     course = max(0, int(rel_y // 4))
+     mortar_h = (int(rel_y) % 4) == 0 and rel_y >= 1
+     arc_x = int(asin(max(-0.99, min(0.99, nx))) * 14.0)
+     block = (arc_x + (course % 2) * 4) // 7
+     seam = ((arc_x + (course % 2) * 4) % 7) == 0
+     shade_idx = 4 if nx < -0.35 else (3 if nx < 0.18 else (2 if nx < 0.62 else 1))
+     if (block * 7 + course * 3) % 5 == 0 and not seam:
+      shade_idx = min(4, shade_idx + 1)
+     if mortar_h or seam:
+      shade_idx = max(0, shade_idx - 1)
+     if y > y_bot - 1.8:
+      shade_idx = max(0, shade_idx - 1)
+     c.set(x, y, stone[max(1, min(5, shade_idx))])
+  if v == 0:
+   for mx, my, mi in [
+    (8, 26, 2), (9, 27, 3), (10, 27, 2), (10, 28, 1),
+    (34, 24, 2), (35, 25, 1), (11, 16, 2), (12, 16, 3),
+   ]:
+    c.set(mx, my, moss[mi])
+  else:
+   for mx, my, mi in [(9, 28, 2), (10, 29, 3), (11, 29, 1)]:
+    c.set(mx, my, moss[mi])
+  glints = [
+   [(18, 13, '#7ab4c4'), (19, 13, '#b4e4ee'), (25, 15, '#5a90a2')],
+   [(19, 13, '#7ab4c4'), (20, 14, '#b4e4ee'), (24, 15, '#7ab4c4'), (26, 14, '#5a90a2')],
+   [(21, 14, '#b4e4ee'), (22, 14, '#7ab4c4'), (17, 15, '#5a90a2')],
+   [(18, 14, '#7ab4c4'), (24, 13, '#b4e4ee'), (25, 13, '#7ab4c4')],
+  ][f]
+  for gx, gy, gc in glints:
+   c.set(gx, gy, gc)
+  soft_outline(c, stone[0], stone[2])
+  return c.image()
+ # v2: Kyoto mossy river-stone tsukubai basin with bamboo spout & ladle
+ stone = ['#343632', '#52554e', '#73776e', '#979c92', '#b9beb4', '#d6dad0']
+ bam = RAMPS['bamboo7']
+ cx, cy = 22.5, 20.0
+ for y in range(12, 32):
+  for x in range(7, 38):
+   nx = (x - cx) / 14.5
+   ny = (y - cy) / 9.8
+   wobble = 0.06 * sin(x * 0.7 + y * 0.5)
+   if nx * nx + ny * ny + wobble > 1.0:
+    continue
+   if ((x - cx) / 9.5) ** 2 + ((y - 17.0) / 4.4) ** 2 <= 1.0:
+    continue
+   lit = -nx * 0.6 - ny * 0.55
+   idx = 5 if lit > 0.42 else (4 if lit > 0.08 else (3 if lit > -0.22 else (2 if lit > -0.52 else 1)))
+   c.set(x, y, stone[idx])
+ for y in range(13, 22):
+  for x in range(12, 33):
+   u = (x - cx) / 9.5
+   t = (y - 17.0) / 4.4
+   if u * u + t * t <= 1.0:
+    c.set(x, y, '#24434e' if t < -0.35 else ('#3f6f7d' if u < 0.2 else '#2f5764'))
+ for mx, my, mi in [
+  (11, 21, 2), (12, 22, 3), (13, 22, 2), (12, 23, 1),
+  (31, 20, 2), (32, 21, 3), (33, 22, 1), (10, 18, 2), (11, 17, 3),
+ ]:
+  c.set(mx, my, moss[mi])
+ for y in range(4, 24):
+  c.set(9, y, bam[4] if y % 5 != 0 else bam[1])
+  c.set(10, y, bam[3] if y % 5 != 0 else bam[1])
+  c.set(11, y, bam[1])
+ for x in range(10, 18):
+  c.set(x, 8, bam[5] if x % 4 != 0 else bam[2])
+  c.set(x, 9, bam[3] if x % 4 != 0 else bam[1])
+  c.set(x, 10, bam[1])
+ for k in range(10):
+  c.set(24 + k, 15 - (k // 3), bam[5] if k < 6 else bam[3])
+  c.set(24 + k, 16 - (k // 3), bam[2])
+ for dy in range(3):
+  for dx in range(4):
+   c.set(22 + dx, 15 + dy, bam[4] if dy == 0 else (bam[3] if dy == 1 else bam[1]))
+ if f == 0:
+  c.set(17, 11, '#a8dce6'); c.set(17, 12, '#d8f4f8')
+ elif f == 1:
+  c.set(17, 13, '#a8dce6'); c.set(17, 14, '#d8f4f8')
+ elif f == 2:
+  c.set(17, 16, '#e6f9fc'); c.set(16, 17, '#a8dce6'); c.set(18, 17, '#a8dce6')
+ else:
+  c.set(15, 17, '#7ab4c4'); c.set(19, 17, '#7ab4c4'); c.set(17, 18, '#a8dce6')
+ soft_outline(c, stone[0], stone[2])
  return c.image()
 
 
@@ -363,24 +498,102 @@ def framed_well(v=0):
  return c.image()
 
 
-def pump(v=0):
- """A hand pump is a post: one hand's width, chest high."""
- c = Canvas(14, 27)
- m = RAMPS[['iron', 'copper', 'iron'][v]]
- s = RAMPS['granite']
- for y in range(22, 27):                         # stone pad
-  half = 5 - abs(y - 25) // 2
-  c.hline(6 - half, 6 + half, y, s[3] if y < 25 else s[2])
- c.hline(2, 10, 22, s[4]); c.set(3, 24, s[4]); c.set(9, 25, s[1])
- c.rect(4, 6, 8, 23, m[3])                        # column
- c.vline(4, 6, 23, m[1]); c.vline(8, 6, 23, m[1]); c.vline(5, 7, 22, m[4])
- for y in (10, 17):
-  c.rect(3, y, 9, y + 1, m[2]); c.hline(3, 9, y, m[4])
- c.rect(3, 3, 9, 7, m[2]); c.rect(4, 4, 8, 6, m[3]); c.hline(4, 8, 3, m[4])
- c.rect(9, 8, 11, 10, m[3]); c.hline(9, 11, 8, m[4])   # spout
- c.rect(11, 10, 12, 12, m[3]); c.vline(12, 10, 12, m[1]); c.hline(10, 12, 12, m[2])
- for i, (x, y) in enumerate([(7, 2), (5, 1), (3, 0)]):  # lever
-  c.rect(x, y, x + 1, y + 1, m[3] if i else m[2]); c.set(x, y, m[4])
- c.set(2, 1, m[2])
- c.rim(m)
+def pump(v=0, frame=0):
+ """A cast-iron village hand pump on a damp stone basin with animated dripping water."""
+ c = Canvas(26, 36)
+ stone = RAMPS['limestone']
+ if v == 0:
+  body = RAMPS['castiron7']
+  trim_r = RAMPS['brass7']
+  out_lo, out_hi = body[0], body[2]
+ elif v == 1:
+  body = RAMPS['bingreen7']
+  trim_r = RAMPS['brass7']
+  out_lo, out_hi = '#1a2b1e', body[2]
+ else:
+  body = RAMPS['copper7']
+  trim_r = RAMPS['castiron7']
+  out_lo, out_hi = '#3b2116', body[2]
+
+ # Damp carved stone catch-basin at the foot (elliptical top, curved foot).
+ for y in range(28, 34):
+  for x in range(3, 21):
+   dx = (x - 11.5) / 8.8
+   dy = (y - 30.2) / 3.2
+   if dx * dx + dy * dy <= 1.0:
+    if y >= 32:
+     c.set(x, y, stone[1] if x > 12 else stone[2])
+    elif y == 31:
+     c.set(x, y, stone[2] if x > 13 else stone[3])
+    else:
+     c.set(x, y, stone[4] if x < 11 else stone[3])
+ # Recessed water pool inside the stone trough.
+ for y in range(29, 32):
+  for x in range(11, 19):
+   dx = (x - 14.8) / 3.8
+   dy = (y - 30.2) / 1.4
+   if dx * dx + dy * dy <= 1.0:
+    c.set(x, y, '#3f6a7a' if y == 29 else ('#6fa0ad' if x < 15 else '#528291'))
+ c.set(13, 30, '#a8ced6')
+
+ # Base plinth flange and fluted upright column.
+ for x in range(5, 14):
+  c.set(x, 29, body[1] if x > 10 else body[3])
+  c.set(x, 28, body[2] if x > 10 else body[4])
+ for y in range(14, 28):
+  for x in range(7, 12):
+   tone = body[5] if x == 7 else (body[4] if x == 8 else (body[3] if x == 9 else (body[2] if x == 10 else body[1])))
+   if y in (19, 24):
+    tone = body[5] if x <= 8 else (body[3] if x == 9 else body[1])
+   c.set(x, y, tone)
+ # Upper cylinder chamber, domed cap and finial.
+ for y in range(8, 15):
+  for x in range(6, 13):
+   if y == 8 and (x == 6 or x == 12):
+    continue
+   tone = body[5] if x == 6 else (body[6] if x == 7 else (body[4] if x == 8 else (body[3] if x <= 10 else (body[2] if x == 11 else body[1]))))
+   c.set(x, y, tone)
+ for x in range(7, 12):
+  c.set(x, 7, body[5] if x <= 8 else (body[3] if x == 9 else body[2]))
+ for x in range(8, 11):
+  c.set(x, 6, body[6] if x == 8 else (body[4] if x == 9 else body[2]))
+ c.set(9, 5, trim_r[5]); c.set(9, 4, trim_r[6])
+
+ # Projecting spout with brass nozzle tip.
+ for x in range(12, 17):
+  c.set(x, 15, body[5] if x < 15 else body[4])
+  c.set(x, 16, body[3] if x < 16 else trim_r[4])
+  c.set(x, 17, body[1] if x < 15 else trim_r[2])
+ c.set(16, 18, trim_r[3]); c.set(17, 16, trim_r[5]); c.set(17, 17, trim_r[3])
+
+ soft_outline(c, out_lo, out_hi)
+
+ # Curved arched pump handle with bulbous counterweight on the left.
+ c.set(5, 10, trim_r[5]); c.set(5, 11, trim_r[2])
+ for ax, ay in [(4, 10), (3, 11), (2, 12), (2, 13), (2, 14), (2, 15), (2, 16), (3, 17), (3, 18)]:
+  c.set(ax - 1, ay, out_lo)
+  c.set(ax, ay, body[5] if ay < 14 else body[4])
+  c.set(ax + 1, ay, body[1])
+ for dx, dy, col in [
+  (0, 0, body[5]), (1, 0, body[3]), (-1, 1, body[4]), (0, 1, body[5]), (1, 1, body[2]), (2, 1, out_lo),
+  (-1, 2, out_lo), (0, 2, body[3]), (1, 2, body[1]), (0, 3, out_lo), (1, 3, out_lo),
+ ]:
+  c.set(3 + dx, 19 + dy, col)
+
+ # 6-frame animated drip & stone-trough ripple (stays inside trimmed bounds so pivot never shifts).
+ f = frame % 6
+ if f == 0:
+  c.set(16, 19, '#89bcc7')
+ elif f == 1:
+  c.set(16, 19, '#a8ced6'); c.set(16, 20, '#d8f0f4')
+ elif f == 2:
+  c.set(16, 22, '#89bcc7'); c.set(16, 23, '#d8f0f4')
+ elif f == 3:
+  c.set(16, 25, '#89bcc7'); c.set(16, 26, '#d8f0f4')
+ elif f == 4:
+  c.set(15, 29, '#c6e4ea'); c.set(16, 28, '#e6f7fa'); c.set(17, 29, '#c6e4ea')
+  c.set(14, 30, '#a8ced6'); c.set(16, 30, '#d8f0f4'); c.set(18, 30, '#a8ced6')
+ else:
+  c.set(13, 30, '#a8ced6'); c.set(18, 30, '#a8ced6')
+  c.set(15, 31, '#89bcc7'); c.set(16, 31, '#a8ced6')
  return c.image()

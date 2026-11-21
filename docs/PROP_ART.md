@@ -18,8 +18,10 @@ are placed, is [PROPS.md](PROPS.md). Buildings are the `building-art` skill.
   (wells, fountains, pots, trees). It belongs to the building painters.
 
 `props_b/solid.py` holds the shapes that put a prop in the houses' view: a
-solid of revolution (`lathe`), a box (`block`) and a lying log (`log_x`), each
-showing its top at half its depth. Use them for anything that has a top.
+solid of revolution (`lathe`), a coopered stave tub or barrel (`stave_body`),
+a box (`block`), a four-legged 3/4 bench or stand (`bench_34`), and a lying log
+(`log_x`), each showing its top at half its depth ($K = 0.5$). Use them for
+anything that has a top or a coopered/legged base.
 
 The square's furniture is `props_b/plaza.py` (the shared kit and the helpers
 that show a top: `disc`, `drum`, `box`, `parasol`) and one `plaza_*.py` per
@@ -221,22 +223,22 @@ one roof grid per covering, and what differs between builds as overlays.
 Draw, render, look. Do not write more than one prop between renders.
 
 ```bash
+.venv/bin/python scripts/art/props_b/review.py --ab well trough       # shipped (A) vs live DRAW_B (B) + audit
 cd scripts && ../.venv/bin/python -m art.props_b.review well trough   # contact sheet with a figure
 npm run art:props                                                     # atlas + audit
 ```
 
-`review` runs from `scripts/` as the `art` package; from the repo root it
-fails on `No module named 'art'`.
-
-`review.py` puts every prop beside the standing character, because scale
-against the figure is most of the judgement and the source tells you nothing
-about it.
+`review.py --ab <family...>` compares the shipped sprite from `public/props/atlas.png`
+("A") against the live `DRAW_B` painter ("B") on a 4× meadow/earth stage beside
+the 40px adult figure, appends 3× animation strips for animated props, and runs
+`prop_audit.py` on every variant.
 
 `scripts/art/prop_audit.py` runs inside the build and catches what a rule can
 see: a canvas edge cutting through the drawing, a sprite over its budget,
 part-transparent alpha the shadow builder cannot use, shading too flat to read,
-and a sprite that is mostly outline. It does not tell you whether the thing
-looks like a well.
+a sprite that is mostly outline, and wide props whose bottom row is a flat
+horizontal bar (`>= 72%` of width) instead of a $K = 0.5$ elliptical arc or
+stepped 3/4 legs. It does not tell you whether the thing looks like a well.
 
 ## The art audit
 

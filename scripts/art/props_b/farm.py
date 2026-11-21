@@ -128,88 +128,6 @@ def milk_churn_fallen(v=0):
  return _draw(lying, k, m, left=6, top=2, after=[(SPILL, (0, len(lying) - 1)), (CHURN_LID, (6 + len(lying[0]), len(lying) - 1))])
 
 
-def _bees(c, frame, spots):
- """Bees on their rounds. Two pixels each — a dark body and a lit back — and
- a third for the blur of the wings on the frames where they are moving fast."""
- from math import cos, sin, pi
- for i, (cx, cy, rx, ry, turn) in enumerate(spots):
-  a = (frame / 4 + i / len(spots)) * 2 * pi * turn
-  x = round(cx + cos(a) * rx)
-  y = round(cy + sin(a) * ry)
-  c.set(x, y, '#2a1f08')
-  c.set(x + 1, y, '#d8ae4e')
-  if frame % 2:
-   c.set(x, y - 1, '#e8dcc0')
-  else:
-   c.set(x + 1, y - 1, '#e8dcc0')
-
-
-def beehive(v=0, frame=0):
- """A coiled straw skep with its flight board, or a stacked box hive."""
- c = Canvas(48, 48)
- straw = RAMPS['straw']
- w = RAMPS[WOOD7[v]]
- stone = RAMPS['granite']
- if v == 2:
-  for x in range(10, 38):                          # the stand it sits on
-   c.set(x, 36, w[3]); c.set(x, 37, w[1])
-  for lx in (12, 34): c.set(lx, 38, w[2]); c.set(lx, 39, w[0])
-  for k, top in enumerate((10, 20, 28)):          # three boxes, stacked
-   half = 13 - k
-   for y in range(top, top + (10 if k < 2 else 8)):
-    for x in range(24 - half, 24 + half + 1):
-     u = (x - 24) / half
-     c.set(x, y, w[5] if u < -0.4 else w[4] if u < 0.45 else w[2])
-    if (y - top) % 3 == 0: streak(c, 24 - half, 24 + half, y, w, 4)
-   c.hline(24 - half - 1, 24 + half + 1, top, w[6])
-   c.hline(24 - half, 24 + half, top + (9 if k < 2 else 7), w[1])
-  for x in range(9, 40): c.set(x, 8, w[6])        # the lid
-  for x in range(10, 39): c.set(x, 9, w[3])
-  c.hline(19, 29, 7, w[5])
-  c.hline(20, 28, 35, w[0])                       # the entrance slot
- else:
-  from math import sin, pi
-  for y in range(9, 41):                          # a skep: a dome of coils
-   t = (y - 9) / 31
-   half = round(2 + 14 * sin(min(t * 1.08, 1.0) * pi / 2) ** 0.85)
-   band = (y - 9) % 4
-   for x in range(24 - half, 24 + half + 1):
-    u = (x - 24) / max(half, 1)
-    # Each coil is lit along its own top edge and shaded under it, so the
-    # bands read as rope laid on rope rather than as hatching.
-    tone = 5 if u < -0.45 else 4 if u < 0.35 else 3
-    if band == 0: tone += 1
-    if band == 3: tone -= 2
-    if jitter(x, y // 4) % 9 == 0: tone -= 1
-    c.set(x, y, straw[max(min(tone, 6), 1)])
-   c.set(24 - half, y, straw[2]); c.set(24 + half, y, straw[1])
-   if band == 3:                                  # the binding through the coil
-    for x in range(24 - half + 2, 24 + half - 1, 5):
-     c.set(x, y, straw[5] if x < 24 else straw[2])
-  from math import sqrt
-  base_half = round(2 + 14 * sin(min((40 - 9) / 31 * 1.08, 1.0) * pi / 2) ** 0.85)
-  for x in range(24 - base_half, 24 + base_half + 1):   # a base on the ground
-   u = (x - 24) / max(base_half, 1)
-   for k in range(1, round(3 * sqrt(max(0.0, 1 - u * u))) + 1):
-    c.set(x, 40 + k, straw[2] if k < 3 and abs(u) < 0.7 else straw[1])
-  c.set(16, 4, straw[5]); c.set(24, 4, straw[4]); c.set(24, 3, straw[3])
-  for x in range(21, 28): c.set(x, 37, '#20180d'); c.set(x, 38, '#2c2213')
-  for x in range(18, 31):                         # the flight board, in front
-   c.set(x, 42, w[4] if x < 24 else w[3]); c.set(x, 43, w[1])
- # Four bees working: two on wide rounds, two shuttling at the flight hole.
- # Wide rounds that carry them clear of the straw, and two shuttling at the
- # flight hole. Bees drawn over the hive read as specks in the weave.
- _bees(c, frame, [
-  (24, 20, 22, 17, 1.0),
-  (24, 22, 19, 13, -1.0),
-  (24, 30, 15, 7, 1.0),
-  (24, 26, 11, 10, -1.0),
- ])
- soft_outline(c, straw[0] if v != 2 else w[0], straw[2] if v != 2 else w[2])
- grass(c, [(6, 47, 3), (38, 47, 2)])
- return c.image()
-
-
 def plough(v=0):
  """Beam, coulter, share and mouldboard, with the handles rising behind."""
  c = Canvas(64, 42)
@@ -305,33 +223,47 @@ def spear(v=0):
 
 
 def shovel(v=0):
- """A navvy's shovel: a long haft and a blade that takes two cuts at once."""
- c = Canvas(18, 46)
- w = RAMPS[WOOD7[v]]
- m = RAMPS['blackiron7'] if v != 2 else RAMPS['rustred7']
- _shaft(c, 7, 4, 30, w, lean=1)
- if v != 1:                                        # a D grip at the top
-  c.hline(4, 11, 0, w[5]); c.hline(5, 10, 1, w[3])
-  c.set(4, 1, w[2]); c.set(11, 1, w[2])
-  c.vline(4, 1, 3, w[4]); c.vline(11, 1, 3, w[2])
-  c.hline(5, 10, 3, w[2])
- else:
-  c.hline(4, 12, 1, w[5]); c.hline(4, 12, 2, w[3])   # or a straight T
-  c.set(4, 3, w[2]); c.set(12, 3, w[2])
- for y in range(29, 34):                           # the socket and its straps
-  for x in range(6, 12):
-   c.set(x, y, m[4] if x < 9 else m[2])
-  c.set(6, y, m[5]); c.set(11, y, m[1])
- c.hline(6, 11, 29, m[6])
- blade = {34: (3, 14), 35: (2, 15), 36: (1, 16), 37: (1, 16), 38: (1, 16),
-          39: (2, 15), 40: (3, 14), 41: (5, 12)}
- for y, (a, b) in blade.items():                   # the blade, broad and dished
+ """A navvy's shovel: a long ash haft with a D or T grip and a dished steel blade."""
+ c = Canvas(18, 44)
+ w = RAMPS[WOOD7[v % 3]]
+ m = RAMPS['iron7'] if v % 3 == 0 else (RAMPS['blackiron7'] if v % 3 == 1 else RAMPS['rustred7'])
+ _shaft(c, 8, 5, 29, w, lean=0, thick=2)
+ if v % 3 != 1:                                    # sculpted D grip
+  c.hline(6, 11, 1, w[6]); c.hline(6, 11, 2, w[4])
+  c.vline(6, 2, 4, w[5]); c.vline(11, 2, 4, w[2])
+  c.hline(6, 11, 4, w[3]); c.hline(7, 10, 5, w[2])
+ else:                                             # T crutch grip
+  c.hline(5, 12, 1, w[6]); c.hline(5, 12, 2, w[4]); c.hline(6, 11, 3, w[2])
+
+ for y in range(28, 32):                           # forged socket collar & rivet
+  c.set(7, y, m[5]); c.set(8, y, m[4]); c.set(9, y, m[3]); c.set(10, y, m[1])
+ c.set(8, 29, m[6])
+
+ blade = {
+  32: (5, 12),
+  33: (4, 13),
+  34: (4, 13),
+  35: (4, 13),
+  36: (4, 13),
+  37: (4, 13),
+  38: (5, 12),
+  39: (5, 12),
+  40: (6, 11),
+  41: (7, 10),
+ }
+ for y, (a, b) in blade.items():
   for x in range(a, b + 1):
-   u = (x - a) / max(b - a, 1)
-   c.set(x, y, m[5] if u < 0.25 else m[4] if u < 0.62 else m[2])
-  c.set(a, y, m[3]); c.set(b, y, m[1])
- for y in range(34, 40): c.set(8, y, m[6])         # the rib down the middle
- c.hline(5, 12, 42, m[6]); c.hline(6, 11, 43, m[3])   # the worn edge
+   u = (x - a) / max(1, b - a)
+   tone = 5 if u < 0.28 else (4 if u < 0.65 else 2)
+   if y == 32:
+    tone = min(6, tone + 1)
+   c.set(x, y, m[tone])
+  c.set(a, y, m[5]); c.set(b, y, m[1])
+ for y in range(32, 38):                           # central forged spine rib
+  c.set(8, y, m[6]); c.set(9, y, m[3])
+ for x in range(6, 12):                            # polished cutting lip
+  yb = 40 if x in (6, 11) else 41
+  c.set(x, yb, m[6] if x < 10 else m[5])
  soft_outline(c, m[0], w[2])
  return c.image()
 
@@ -452,7 +384,6 @@ FARM = {
  'spear': spear,
  'shovel': shovel,
  'scythe': scythe,
- 'beehive': beehive,
  'milk-churn': milk_churn,
  'farm-cart': farm_cart,
 }

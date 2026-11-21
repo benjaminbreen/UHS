@@ -101,6 +101,9 @@ EMBLEMS = [
     ('Pipe', 'ivory', [".........i..", "..........i.", ".........i..", "..........i.", "........oooo",
                        "........ohbo", "........oabo", "oooooooooabo", "ohhaaaaaabco", "ooooooooocco",
                        "........ooo."]),
+    # The cycle dealer's wheel.
+    ('Wheel', 'steel', ["...xxxx...", ".xx.xx.xx.", "x...xx...x", "x...xx...x", "xxxxxxxxxx",
+                        "xxxxxxxxxx", "x...xx...x", "x...xx...x", ".xx.xx.xx.", "...xxxx..."]),
 ]
 EMBLEM_RAMP = {
     'pewter': ramp(240, 0.02, lift=-0.04), 'steel': ramp(245, 0.025, lift=-0.08),

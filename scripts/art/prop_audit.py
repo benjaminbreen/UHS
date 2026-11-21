@@ -56,4 +56,10 @@ def audit(key, image, budget=None):
     # the outline pass runs after one-pixel details like warp threads.
     if len(opaque) > 300 and sum(1 for p in opaque if p[:3] == darkest) > len(opaque) * 0.45:
         problems.append(f'{key}: over a third of the sprite is its darkest tone; outline before adding thin details')
+    # A wide prop (>18px) whose bottom row is a flat horizontal bar of >=65% its
+    # width usually forgot the K=0.5 3/4 elliptical base drop or leg grounding.
+    if aw >= 18 and ah >= 14:
+        bot_row = [x for x in range(x0, x1) if px[x, y1 - 1][3]]
+        if len(bot_row) >= aw * 0.72:
+            problems.append(f'{key}: bottom row spans {len(bot_row)}/{aw}px flat across; use an elliptical base (K=0.5) or stepped 3/4 legs')
     return problems

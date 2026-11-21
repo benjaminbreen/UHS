@@ -22,22 +22,37 @@ Each family scored 0-2 on seven things, and these are the lowest totals:
 - **States**: whatever the player can do to it (open, dent, knock over) is
   drawn.
 
-## 1. Thin or unreadable silhouettes (20)
+## 1. Thin or unreadable silhouettes (12)
 
-- bicycle, bike-rack, cafe-terrace, works-fence, travois, hurdle, fish-weir
-- stick (A), censer, catch, bedroll, sack, seat-stone, burial-stone, jizo
-- grinder, quern, metate, mortar (A)
-- shovel: the head is as big as the figure's torso and reads as a vase
-
-## 2. Small buildings
-
-Draw these in the houses' view, after the privies (see PROP_ART.md).
-
-- chicken-coop, dovecote (`wayside.py`): front-only, black keyline
-- privy-bench (`fronts.py`): a flat slab; privy-screen (`privy.py`): formula
-  reed
+- bicycle, bike-rack, cafe-terrace, works-fence, hurdle
+- stick (A), censer, bedroll, sack, seat-stone, burial-stone, mortar (A)
 
 ## Done
+
+- Group 3 & 4 yard, agricultural and wayside props (`yard.py`, `wayside.py`, `lots.py`, `yardwork.py`, `town.py`, `farm.py`, `lifeways.py`, `settlement_details.py`, `fronts.py`):
+  `wash-tub` (coopered 3/4 stave tub via `stave_body`, lug handles, zinc washboard, 6 wash palettes, 4-frame suds/bubbles),
+  `drying-rack` (3/4 A-frame legs, 4 wood ramps, separated split fish, cured meat/sausage, herb/chili/maize bundles with 6-frame breeze sway),
+  `beehive` (3/4 `bench_34` stand, downward-arcing straw skep coils, conical straw hackle cloak, painted finger-jointed box hives, 4-frame bees orbiting outside silhouette),
+  `hay-rick` (bound straw cone + fork, timber-cribbed staddle rick on 2×3 mushroom staddle stones, 3/4 wheat stooks),
+  `chopping-block` (flared root-buttress stump, concentric growth rings, radial crack, forged bearded axe or split upright billet),
+  `pounding-mortar` (carved waisted mortar with golden grain/rice/millet hollow and 1 or 2 pestles),
+  `quern` (granite, sandstone, and basalt rotary querns with flour apron and grinding-seam trickle),
+  `metate` (3-legged tilted basalt/andesite slab, cylindrical overhanging mano, nixtamal maize & masa, terracotta cazuela bowl),
+  `waymark` (chamfered oak fingerpost, 3-step wayside cross, Roman/chiseled milestone, cairn with red pennant, South Asian brick-and-plaster Kos minar, East Asian/Mesoamerican carved road stela),
+  `wayside-shrine` (gabled Bildstock post shrine, plastered aedicula with burning oil lamp, kasuga stone tōrō lantern, ovoo/apacheta cairn with 5-color prayer flags, South Asian whitewashed domed chabutra with sindoor stone & diya, Japanese tiled wooden hokora with shide zigzags),
+  `standing-stone` (spiral menhir, steppe deer stone, cup-marked slab, polychrome carved ancestor/totem post, 3/4 Inuksuk stone figure),
+  `jizo` (lotus-pedestal Jizō Bosatsu with shakujō staff, red votive bib & cap, cedar shelter),
+  `saint-niche`, `water-station` (shaded *piau*/*sabil* terracotta drinking jars with brass ladle), `street-fountain` (Roman *lacus* basin with bronze lion spout),
+  `catch` (string of 3 plump fish on rush cord), `grinder` (3/4 saddle quern with meal apron),
+  `shovel` (forged dished blade + D/T grips), `fish-weir` (3/4 V-wing wattle leader and circular brushwood pound),
+  and `travois` (thick lodgepoles, rawhide web platform, rolled buffalo hide, and 3/4 painted Plains parfleche trunk with 4-frame swaying fringe)
+
+- yard small buildings & regional yard props (`wayside.py`, `fronts.py`, `privy.py`, `wells.py`, `yard.py`):
+  `dovecote` (4-frame animated dove), `chicken-coop` (4-frame pecking hen),
+  `privy-bench` (weathered carved granite/sandstone/limestone latrine with animated gutter),
+  `privy-screen` (curved horseshoe reed/thatch/cloth screen), `well` (full 360° fieldstone kerb,
+  Mediterranean sandstone cistern, Kyoto mossy tsukubai with 4-frame water glint/drip),
+  `bench` (oak, carved limestone, bamboo), and `washing-line` (regional washes with 6-frame cloth breeze flutter)
 
 - dustbin: hand grid with lid off, dented and dented-open states
 - kerosene-tin: hand grid, open top with a stick handle, dented; replaced

@@ -144,6 +144,8 @@ the next scale.
   lamp in west Asia from 700, a horn lantern in Europe from 1100 and a gas
   bracket from 1820. Most cultures return nothing, because most doors had
   nothing on them.
+- **Wayside crossroads and approaches**, chosen in `waysideFor(setting)` (`src/content/settlements/wayside.ts`):
+  Up to two major rural junctions receive a `waymark` (`0` fingerpost, `1` wayside cross, `2` milestone, `3` pennant cairn, `4` South Asian brick-and-plaster *kos minar*, `5` East Asian or Mesoamerican road stela, or a `standing-stone` before 800 BCE), and the main settlement approach receives a `wayside-shrine` (`0` post shrine, `1` plastered niche, `2` stone lantern, `3` flagged cairn, `4` South Asian *chabutra* platform with sindoor stone and diya, `5` Japanese *hokora*) or regional `altShrine` (`jizo` in Japan from 1200, `saint-niche` in Catholic/Mediterranean Europe). In non-urban settlements, `plan.ts` grounds the marker on a worn earth or gravel pocket (`pocketFinish`), pairs it with a culturally matched `companion` (`bench` oak/stone/bamboo, `water-station` shaded *piau* or *sabil* drinking jars, `street-fountain` Roman *lacus*, or `seat-stone` sitting stone) two cells aside when clear, and plants a regional wayside shade tree behind the pocket.
 
 Both frontage props are `solid: false` — a board hangs over the street and a
 lantern above the step, so neither needs its cell kept clear. They are placed

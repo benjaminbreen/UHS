@@ -1,7 +1,7 @@
 """Shapes in the houses' projection: walls square on, anything level seen
 from above at K of its depth. Props built from these show their tops the way
 the buildings show their roofs."""
-from math import atan2, hypot
+from math import asin, atan2, hypot, pi, sqrt
 
 K = .5
 _L = (-.55, .45, .7)
@@ -57,6 +57,70 @@ def lathe(c, cx, by, prof, r, tex=None, z0=0, flat=True):
      out[(x, y)] = (z, a)
   z += .5
  return out
+
+
+def stave_body(c, cx, top_y, bot_y, rx_top, rx_bot, wood, hoops=(), hoop_ramp=None, staves=8):
+ """A coopered wooden tub or cask body in K=0.5 3/4 view: elliptical bottom
+ drop, stave seams crowding toward the sides by asin(u), and curved hoops."""
+ span = max(1, bot_y - top_y)
+ ry_top, ry_bot = rx_top * .44, rx_bot * .43
+ max_rx = max(rx_top, rx_bot)
+ for x in range(int(cx - max_rx) - 1, int(cx + max_rx) + 2):
+  for y in range(top_y, int(bot_y + ry_bot) + 2):
+   t = max(0.0, min(1.0, (y - top_y) / span))
+   rx = rx_top + (rx_bot - rx_top) * t
+   ry = ry_top + (ry_bot - ry_top) * t
+   u = (x + .5 - cx) / rx
+   if abs(u) > 1.0: continue
+   y_front_top = top_y + ry_top * sqrt(max(0.0, 1.0 - u * u))
+   y_front_bot = bot_y + ry * sqrt(max(0.0, 1.0 - u * u))
+   if y < round(y_front_top) - 1 or y > round(y_front_bot): continue
+   idx = 3 if u < -.78 else 5 if u < -.52 else 6 if u < -.22 else 4 if u < .14 else 3 if u < .52 else 2 if u < .84 else 3
+   stave_pos = (asin(max(-1.0, min(1.0, u))) / pi + .5) * staves
+   stave_idx = int(stave_pos)
+   if stave_pos - stave_idx < .11 * (1.0 + .6 * abs(u)):
+    idx = max(1, idx - 1)
+   elif stave_idx % 3 == 1 and idx in (3, 4, 5) and (y + stave_idx * 3) % 7 < 4:
+    idx = max(2, idx - 1)
+   if y >= round(y_front_bot): idx = max(1, idx - 1)
+   elif y == round(y_front_top): idx = min(6, idx + 1)
+   c.set(x, y, wood[idx])
+ if not hoop_ramp: return
+ for yh in hoops:
+  th = max(0.0, min(1.0, (yh - top_y) / span))
+  rx = rx_top + (rx_bot - rx_top) * th + .35
+  ry = ry_top + (ry_bot - ry_top) * th
+  for x in range(int(cx - rx), int(cx + rx) + 1):
+   u = (x + .5 - cx) / rx
+   if abs(u) > 1.0: continue
+   yc = round(yh + ry * sqrt(max(0.0, 1.0 - u * u)))
+   hi = hoop_ramp[6] if -.62 < u < -.20 else (hoop_ramp[5] if u < .18 else (hoop_ramp[3] if u < .65 else hoop_ramp[2]))
+   lo = hoop_ramp[2] if u < .15 else hoop_ramp[1]
+   c.set(x, yc - 1, hi); c.set(x, yc, lo)
+   if abs(u + .38) < .06 or abs(u - .42) < .06:
+    c.set(x, yc - 1, hoop_ramp[6] if u < 0 else hoop_ramp[4])
+
+
+def bench_34(c, cx, top_y, w_half, depth_h, wood):
+ """A 4-legged 3/4 timber stand or bench: rear legs stepped up and darker,
+ front legs grounded lower and brighter, and a plank top seen at K=0.5."""
+ for lx in (int(cx - w_half + 2), int(cx + w_half - 3)):
+  for y in range(top_y + depth_h + 1, top_y + depth_h + 5):
+   c.set(lx, y, wood[2]); c.set(lx + 1, y, wood[1])
+ for lx in (int(cx - w_half + 1), int(cx + w_half - 2)):
+  for y in range(top_y + depth_h + 2, top_y + depth_h + 8):
+   c.set(lx, y, wood[5]); c.set(lx + 1, y, wood[3]); c.set(lx + 2, y, wood[1])
+ for dy in range(depth_h):
+  y = top_y + dy
+  inset = (depth_h - 1 - dy) // 2
+  for x in range(int(cx - w_half + inset), int(cx + w_half - inset) + 1):
+   idx = 6 if dy == 0 else (5 if x < cx + 2 else 4)
+   if (x - int(cx)) % 5 == 0 and 0 < dy < depth_h - 1: idx -= 1
+   c.set(x, y, wood[idx])
+ fy = top_y + depth_h
+ for x in range(int(cx - w_half), int(cx + w_half) + 1):
+  c.set(x, fy, wood[5] if x < cx else wood[4])
+  c.set(x, fy + 1, wood[2] if x < cx else wood[1])
 
 
 def block(c, x, by, w, h, d, r, top=None, front=None):

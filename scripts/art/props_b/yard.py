@@ -4,10 +4,11 @@ A variant's first few numbers keep the family's named meanings in props.json;
 every number also seeds the small differences, so two racks on one map are
 not the same rack.
 """
+import math
 from random import Random
 
 from .core import Canvas, RAMPS, revolve, belly, soft_outline
-from .solid import disc
+from .solid import K, disc, lathe, stave_body
 
 W = ['#5a3420', '#7d4a28', '#a26a38', '#c68e50', '#e6b872']       # warm timber
 WD = ['#3e2a22', '#5a3c2c', '#7a543a', '#9c7450', '#ba9468']      # weathered
@@ -120,36 +121,131 @@ def forked_post(c, x, y0, y1, t=W):
  c.set(x + 1, (y0 + y1) // 2, t[1]); c.set(x + 1, (y0 + y1) // 2 + 1, t[1])
 
 
+def _hang_fish(c, x, y, h, pal):
+ """Split or whole fish hung by the tail: forked tail fin above the twine tie,
+ plump curved body, dorsal highlight, split ribs, tapering snout below."""
+ hi, mid, sh, dk = pal
+ c.set(x - 1, y, hi); c.set(x + 1, y, mid)
+ c.set(x - 2, y - 1, hi); c.set(x - 1, y - 1, mid); c.set(x + 1, y - 1, sh); c.set(x + 2, y - 1, dk)
+ c.set(x, y + 1, ROPE[2])
+ for i in range(h):
+  yy = y + 2 + i
+  t = i / max(1, h - 1)
+  half = 1 if (t < .15 or t > .82) else (3 if .35 <= t <= .62 else 2)
+  for dx in range(-half, half + 1):
+   if dx == -half: col = hi
+   elif dx < 0: col = hi if t < .6 else mid
+   elif dx == 0: col = '#f4d6b8' if (i % 2 == 0 and .25 < t < .72) else mid
+   elif dx < half: col = sh
+   else: col = dk
+   c.set(x + dx, yy, col)
+  if i == h - 2: c.set(x - 1, yy, '#1c1618')
+
+
+def _hang_meat(c, x, y, h, pal):
+ """Smoked haunch or tied sausage link with twine pinch and fat marbling."""
+ hi, mid, sh, dk = pal
+ c.set(x, y, ROPE[2]); c.set(x, y + 1, ROPE[1])
+ for i in range(h):
+  yy = y + 2 + i
+  t = i / max(1, h - 1)
+  pinch = i == h // 2
+  half = 1 if (pinch or t < .12 or t > .88) else 2
+  for dx in range(-half, half + 1):
+   if pinch: col = ROPE[2] if dx <= 0 else ROPE[0]
+   elif dx == -half: col = hi
+   elif dx == 0: col = '#f0cbb0' if i in (3, h - 3) else mid
+   elif dx < half: col = sh
+   else: col = dk
+   c.set(x + dx, yy, col)
+
+
+def _hang_bundle(c, x, y, h, pal):
+ """Tied bundle of herbs, chilies or maize cobs hanging stems-up."""
+ hi, mid, sh, dk = pal
+ c.set(x, y, '#7d914e'); c.set(x + 1, y, '#3d4a26')
+ c.set(x - 1, y + 1, ROPE[2]); c.set(x, y + 1, ROPE[1]); c.set(x + 1, y + 1, ROPE[0])
+ for i in range(h):
+  yy = y + 2 + i
+  t = i / max(1, h - 1)
+  half = 1 if t < .2 else (3 if .35 <= t <= .75 else 2)
+  for dx in range(-half, half + 1):
+   if t > .82 and dx in (-2, 0, 2): continue
+   col = (hi if (dx + i) % 2 == 0 else mid) if dx < 0 else (mid if i % 2 == 0 else sh) if dx == 0 else (sh if dx < half else dk)
+   c.set(x + dx, yy, col)
+
+
 def drying_rack(v=0, layer='all'):
- """0 mixed catch, 1 split fish, 2 strips of meat, then seeded mixes."""
+ """0 mixed catch, 1 split fish, 2 strips of meat, 3 full rack / herbs & catch;
+ timber and hanging palettes vary deterministically with v."""
  R = rnd(v, 1)
- c = Canvas(48, 38)
+ c = Canvas(50, 36)
+ w_front = RAMPS[['oak7', 'ash7', 'walnut7', 'cedar7'][v % 4]]
+ w_back = RAMPS[['walnut7', 'oak7', 'darkwood', 'walnut7'][v % 4]]
  py = 9
- knots = R.sample(range(13, 44, 3), 4)
- xs = [15, 20, 25, 30, 35] if R.random() < .5 else [16, 22, 28, 33]
- if v != 0: xs = [x for x in xs if R.random() < .85]
- hangs = [(x, R.randint(8, 12), R.random() < .45) for x in xs]
+ silver = ('#eef4f6', '#b8c8d4', '#7e92a4', '#465668')
+ herring = ('#dde8ec', '#9eb4c4', '#647b8f', '#364758')
+ salmon = ('#f5b895', '#d9845d', '#a85538', '#6b3122')
+ mackerel = ('#e8d4a2', '#b89458', '#826032', '#4d361a')
+ meat_red = ('#e07b68', '#b84b3e', '#852c26', '#4f1816')
+ meat_dark = ('#c46854', '#943c2e', '#66221c', '#3b1210')
+ chili = ('#f26d52', '#c93b2b', '#8f2018', '#54100c')
+ herb = ('#9cc45a', '#6c9638', '#476922', '#294012')
+ maize = ('#f7d868', '#d6a836', '#9e721e', '#614310')
+
+ xs = (14, 21, 28, 35)
+ items = []
+ for idx, hx in enumerate(xs):
+  hh = R.randint(11, 14)
+  if v % 4 == 0:
+   pal = R.choice([silver, herring, salmon, mackerel])
+   items.append((hx, hh, 'fish', pal))
+  elif v % 4 == 1:
+   pal = salmon if idx % 2 == 0 else R.choice([salmon, mackerel, silver])
+   items.append((hx, hh, 'fish', pal))
+  elif v % 4 == 2:
+   pal = meat_red if idx % 2 == 0 else meat_dark
+   items.append((hx, hh, 'meat', pal))
+  else:
+   kind, pal = [('herb', herb), ('herb', chili), ('herb', maize), ('fish', salmon)][idx % 4]
+   items.append((hx, hh, kind, pal))
+
  if layer != 'hang':
-  for ex in (9, 38):
-   limb(c, (ex - 2, 5), (ex + 4, 32), [WD[3], WD[2], WD[1]])
-   limb(c, (ex + 1, 5), (ex - 6, 37), [W[3], W[2], W[1]])
-  timber(c, 1, py, 46, py + 2, across=True)
-  for x in (0, 47): c.vline(x, py, py + 2, CUT[1])
-  for x in knots: c.hline(x, x + 1, py + 1, W[1])
-  for ex in (9, 38): lash(c, ex - 3, ex + 3, py - 2, py + 3)
-  ink(c)
+  for ex, s in ((11, 1), (38, -1)):
+   for i in range(25):
+    y = 6 + i
+    x = round(ex + s * (i * 4.5 / 24))
+    c.set(x - 1, y, w_back[4]); c.set(x, y, w_back[3]); c.set(x + 1, y, w_back[1])
+   for dx in range(5):
+    cx_b, cy_b = ex - s * 2 + s * dx, 22 - dx // 2
+    c.set(cx_b, cy_b, w_back[4]); c.set(cx_b, cy_b + 1, w_back[2])
+  for ex, s in ((10, -1), (39, 1)):
+   for i in range(29):
+    y = 5 + i
+    x = round(ex + s * (i * 4.5 / 28))
+    c.set(x - 1, y, w_front[5]); c.set(x, y, w_front[4]); c.set(x + 1, y, w_front[2])
+   c.set(ex - 1, 4, CUT[2]); c.set(ex, 4, CUT[1])
+  for x in range(2, 48):
+   grain = (x * 5 + v * 3) % 11 == 0
+   c.set(x, py - 1, w_front[6] if not grain else w_front[5])
+   c.set(x, py, w_front[4] if not grain else w_front[3])
+   c.set(x, py + 1, w_front[2]); c.set(x, py + 2, w_front[1])
+  for y in range(py - 1, py + 2):
+   c.set(1, y, CUT[2] if y == py - 1 else CUT[1]); c.set(48, y, w_front[1])
+  for jx in (10, 39):
+   for dy in range(-1, 3):
+    for dx in range(-2, 3):
+     if abs(dx) + abs(dy) <= 3:
+      c.set(jx + dx, py + dy, ROPE[2] if (dx + dy) % 2 == 0 else ROPE[0])
+  soft_outline(c, w_back[0], w_front[2])
   # The knot stays on the pole; only what hangs below it swings.
-  for x, _, _ in hangs: c.set(x, py + 3, ROPE[1])
+  for hx, _, _, _ in items:
+   c.set(hx, py + 2, ROPE[2]); c.set(hx, py + 3, ROPE[1])
  if layer != 'frame':
-  silver = ['#dfe6e6', '#aebbc2', '#7f8e9c']
-  amber = ['#f0bc84', '#d0905a', '#a0643c']
-  meat = ['#c8685a', '#a04438', '#742c2a']
-  for x, n, split in hangs:
-   c.set(x, py + 4, ROPE[1])
-   if v % 3 == 2:
-    c.rect(x - 1, py + 5, x + 1, py + 5 + n, meat[1]); c.vline(x - 1, py + 5, py + 4 + n, meat[0])
-    c.vline(x + 1, py + 6, py + 5 + n, meat[2]); c.set(x, py + 5 + n + 1, meat[2])
-   else: fish(c, x, py + 5, n, amber if v % 3 == 1 or (v % 3 == 0 and split) else silver)
+  for hx, hh, kind, pal in items:
+   if kind == 'fish': _hang_fish(c, hx, py + 4, hh, pal)
+   elif kind == 'meat': _hang_meat(c, hx, py + 4, hh, pal)
+   else: _hang_bundle(c, hx, py + 4, hh, pal)
  return c.image()
 
 
@@ -194,79 +290,176 @@ def trough(v=0):
  return c.image()
 
 
+def _split_billet(c, x, y, bark, heart):
+ for dy in range(4):
+  for dx in range(8):
+   if (dx == 0 and dy == 0) or (dx == 7 and dy == 3): continue
+   c.set(x + dx, y + dy, (heart[2] if dy == 0 else heart[1]) if (dy <= 1 and dx < 6) else (bark[3] if dy == 2 else bark[1]))
+ for dy in range(1, 4):
+  for dx in range(5, 8):
+   if dx == 7 and dy == 3: continue
+   c.set(x + dx, y + dy, heart[2] if (dx == 5 and dy == 1) else (heart[1] if dy < 3 else heart[0]))
+
+
 def chopping_block(v=0):
- R = rnd(v, 3)
- c = Canvas(34, 30)
- cx, axe = 13, v % 3 != 2
- lean = R.randint(0, 3)
- for y in range(13, 29):
-  half = 9 + (1 if y > 25 else 0)
-  if y == 28: half = 8
-  for x in range(cx - half, cx + half + 1):
-   u = (x - cx) / half
-   col = BARK[3] if u < -.45 else BARK[2] if u < .35 else BARK[1]
-   if (x + lean + (y // 5)) % 4 == 0 and y > 15: col = BARK[1] if u < .35 else BARK[0]
+ """0 axe in oak block, 1 axe and billets (birch/ash), 2 billet stood ready."""
+ c = Canvas(36, 35)
+ cx, top_y, bot_y = 14.5, 13, 26
+ rx, ry = 10.5, 4.8
+ bark = RAMPS[['walnut7', 'birch7', 'oak7', 'walnut7'][v % 4]]
+ heart = ['#b89868', '#d8bc8c', '#f2dcb4'] if v % 4 == 1 else ['#9e7340', '#cfa468', '#f2cf94']
+ steel = RAMPS['iron7']
+ oak = RAMPS['oak7']
+
+ for x in range(int(cx - rx - 2), int(cx + rx + 3)):
+  for y in range(top_y, bot_y + 6):
+   t = max(0.0, min(1.0, (y - top_y) / (bot_y - top_y)))
+   flare = 1.6 * ((t - .65) / .35) ** 2 if t > .65 else 0.0
+   cur_rx, cur_ry = rx + flare, ry + flare * .45
+   u = (x + .5 - cx) / cur_rx
+   if abs(u) > 1.0: continue
+   lobe = .7 * math.cos(u * math.pi * 2.5) if t > .75 else 0.0
+   y_bot = bot_y + cur_ry * math.sqrt(max(0.0, 1.0 - u * u)) + lobe
+   if y > round(y_bot): continue
+   idx = 3 if u < -.75 else 5 if u < -.35 else 4 if u < .15 else 3 if u < .58 else 2
+   if v % 4 == 1:
+    if (y * 3 + x // 3) % 5 == 0 and abs(u) < .8: idx = max(1, idx - 2)
+   else:
+    theta = math.asin(max(-1.0, min(1.0, u)))
+    furrow = int((theta / math.pi + .5) * 14 + (y // 4)) % 3
+    if furrow == 0: idx = max(1, idx - 1)
+    elif furrow == 1 and u < .1 and y % 3 != 0: idx = min(6, idx + 1)
+   if y >= round(y_bot): idx = max(1, idx - 1)
+   c.set(x, y, bark[idx])
+
+ for y in range(int(top_y - ry) - 1, int(top_y + ry) + 2):
+  for x in range(int(cx - rx) - 1, int(cx + rx) + 2):
+   u, v_el = (x + .5 - cx) / rx, (y + .5 - top_y) / ry
+   r2 = u * u + v_el * v_el
+   if r2 > 1.0: continue
+   r = math.sqrt(r2)
+   if r > .86: col = bark[5] if (u + v_el < 0) else bark[3]
+   elif r < .14: col = heart[0]
+   elif .42 < r < .52 or .70 < r < .78: col = heart[1] if (u + v_el < .2) else heart[0]
+   else: col = heart[2] if (u + v_el < .15) else heart[1]
    c.set(x, y, col)
- disc(c, cx + .5, 13, 9.6, 4.6, CUT[1])
- disc(c, cx + .5, 13, 6.5, 3, CUT[0]); disc(c, cx + .5, 13, 5.5, 2.3, CUT[1])
- disc(c, cx + .5, 13, 2.6, 1.2, CUT[0]); c.set(cx, 13, CUT[2])
- c.hline(cx - 6, cx + 2, 9, CUT[2])
- c.hline(cx + 3, cx + 8, 14, CUT[0])
- if axe:
-  limb(c, (16, 8), (27, 0), [W[4], W[2]])
-  c.set(27, 0, W[1]); c.set(28, 0, W[3])
-  for y, (a, b) in {5: (11, 16), 6: (10, 17), 7: (10, 17), 8: (9, 16), 9: (9, 15), 10: (9, 13), 11: (9, 11)}.items():
-   for x in range(a, b + 1): c.set(x, y, IRON[1] if x > a + 2 else IRON[2])
-  c.hline(11, 16, 5, IRON[3]); c.vline(9, 8, 11, IRON[3]); c.set(10, 6, IRON[3])
- else:                                                            # a billet stood ready to split
-  c.rect(10, 4, 16, 12, CUT[1]); c.vline(10, 4, 12, CUT[2]); c.vline(16, 4, 12, BARK[2]); c.vline(15, 5, 12, BARK[3])
-  c.hline(10, 16, 4, CUT[2]); c.set(12, 7, CUT[0]); c.set(13, 10, CUT[0])
- spots = [(24, 20), (27, 23), (23, 25)]
- for bx, by in spots[:R.randint(1, 3)]:
-  c.rect(bx, by, bx + 6, by + 4, CUT[1]); c.hline(bx, bx + 6, by, CUT[2])
-  c.hline(bx, bx + 6, by + 4, BARK[1]); c.vline(bx + 6, by, by + 4, BARK[2]); c.set(bx + 2, by + 2, CUT[0]); c.set(bx + 4, by + 2, CUT[0])
- ink(c)
- for _ in range(R.randint(2, 4)):
-  x = R.choice([R.randint(0, 2), R.randint(22, 24)]); c.set(x, 29, CUT[2]); c.set(x + 1, 29, CUT[1])
+ c.set(int(cx) + 4, top_y + 3, bark[1]); c.set(int(cx) + 4, top_y + 2, heart[0])
+ c.hline(int(cx) - 3, int(cx) + 1, top_y, heart[0])
+
+ if v % 3 != 2:
+  for y, (a, b) in {6: (12, 16), 7: (11, 17), 8: (10, 17), 9: (10, 16), 10: (10, 15), 11: (10, 14), 12: (11, 13)}.items():
+   for x in range(a, b + 1):
+    col = steel[6] if (y == 6 or x == a) else (steel[5] if x <= a + 2 else (steel[2] if (x >= b - 1 or y >= 11) else steel[4]))
+    c.set(x, y, col)
+  for i in range(13):
+   hx, hy = 16 + i, 7 - (i * 6) // 12
+   c.set(hx, hy, oak[6]); c.set(hx, hy + 1, oak[4]); c.set(hx + 1, hy + 1, oak[2])
+  c.set(28, 1, oak[6]); c.set(29, 1, oak[5]); c.set(29, 2, oak[3]); c.set(28, 2, oak[2])
+ else:
+  bx, by0, by1 = 11, 3, 13
+  for y in range(by0, by1 + 1):
+   for x in range(bx, bx + 7):
+    col = (heart[2] if x < bx + 5 else heart[1]) if y <= by0 + 1 else ((heart[2] if x == bx else heart[1]) if x < bx + 4 else (bark[4] if x == bx + 4 else (bark[3] if x == bx + 5 else bark[1])))
+    c.set(x, y, col)
+  c.vline(bx + 3, by0 + 1, by0 + 5, bark[1])
+
+ _split_billet(c, 24, 21, bark, heart)
+ _split_billet(c, 22 if v % 3 == 1 else 26, 25, bark, heart)
+ soft_outline(c, bark[0], bark[3])
+ for wx, wy in ((3, 28), (7, 30), (21, 29)):
+  c.set(wx, wy, heart[2]); c.set(wx + 1, wy, heart[1])
  return c.image()
 
 
-def washing_line(v=0, layer='all'):
- """0 linen, 1 mixed, 2 bright; every variant hangs its own wash."""
- R = rnd(v, 5)
- pool = [[CREAM, CREAM, ['#a89878', '#c8ba98', '#e2d8bc'], UMBER],
-         [CREAM, INDIGO, OCHRE, UMBER, RED, SLATE],
-         [RED, INDIGO, OCHRE, GREEN, ROSE, TEAL, CREAM]][v % 3]
- c = Canvas(60, 42)
- frame = c
- if layer == 'frame': c = Canvas(60, 42)                         # the wash is drawn and thrown away
- if layer != 'hang':
-  for x in (3, 54): forked_post(frame, x, 8, 41)
- sag = lambda x: 9 + round(4 * (1 - ((x - 29.5) / 25.5) ** 2))
- pegs, x, last = [], R.randint(8, 12), None
- while x < 46:
-  kind = R.choice(['tunic', 'sheet', 'sheet', 'strip', 'strip', 'small', 'legs'])
-  t = R.choice([q for q in pool if q is not last] or pool); last = t
-  w = {'tunic': 13, 'sheet': R.randint(8, 11), 'strip': R.randint(4, 6), 'small': 7, 'legs': 9}[kind]
-  if x + w > 52: break
-  y = sag(x + w // 2)
-  if kind == 'tunic':
-   h = R.randint(12, 16)
-   cloth(c, x + 2, y, 9, h, t); c.rect(x, y, x + 12, y + 3, t[1]); c.hline(x, x + 12, y + 3, t[0])
-   c.vline(x, y, y + 3, t[2]); c.hline(x + 5, x + 7, y, t[0]); c.set(x + 6, y + 1, t[0])
-  elif kind == 'legs':
-   h = R.randint(12, 15)
-   cloth(c, x, y, 9, 5, t); cloth(c, x, y + 4, 4, h - 4, t); cloth(c, x + 5, y + 4, 4, h - 4, t)
-  else:
-   h = {'sheet': R.randint(13, 18), 'strip': R.randint(8, 13), 'small': R.randint(6, 8)}[kind]
-   cloth(c, x, y, w, h, t, hem=R.choice([q for q in pool if q is not t] or [None]) if kind == 'sheet' and R.random() < .5 else None)
-  pegs += [x + 1, x + w - 2]
-  x += w + R.choice([1, 1, 2, 2, 6])
- c = c if layer != 'frame' else frame
- ink(c)
- if layer != 'hang':
-  for x in range(5, 56): c.set(x, sag(x) - 1, ROPE[1])
-  for x in pegs: c.set(x, sag(x) - 1, W[0]); c.set(x, sag(x), W[0])
+def washing_line(v=0, frame=0):
+ """0/3 Europe linen, 1/4 South Asian dyed/sari, 2/5 East Asian indigo & ecru; 6-frame breeze flutter."""
+ c = Canvas(58, 40)
+ region = v % 3
+ second = (v // 3) % 2
+ post = RAMPS['walnut7'] if region != 2 else RAMPS['bamboo7']
+ post_out = post[0]
+ rope = RAMPS['rope']
+ phase = (frame % 6) / 6.0 * 2.0 * math.pi
+ for sx in (4, 51):
+  for y in range(7, 37):
+   node = (region == 2) and (y % 6 == 0)
+   c.set(sx, y, post[1] if node else post[4])
+   c.set(sx + 1, y, post[1] if node else post[3])
+   c.set(sx + 2, y, post[1])
+  c.set(sx - 1, 5, post[4]); c.set(sx, 6, post[3])
+  c.set(sx + 3, 5, post[2]); c.set(sx + 2, 6, post[1])
+  c.set(sx - 1, 35, post[3]); c.set(sx + 3, 35, post[1])
+ def line_y(x):
+  t = (x - 28.5) / 22.5
+  return int(round(10.8 + (1.0 - t * t) * 3.2))
+ if region == 0 and not second:
+  garments = [
+   (10, 9, 14, ['#9c9282', '#c8beac', '#e6dfd0', '#f7f3e8'], 'shirt'),
+   (22, 8, 15, ['#263952', '#3a5678', '#5678a0', '#7ba0c8'], 'apron'),
+   (32, 6, 9,  ['#6e2c22', '#a24536', '#cb624d', '#e48972'], 'cloth'),
+   (40, 8, 13, ['#9c9282', '#c8beac', '#e6dfd0', '#f7f3e8'], 'sheet'),
+  ]
+ elif region == 0:
+  garments = [
+   (10, 8, 13, ['#8f8678', '#b8ae9c', '#dbd2c2', '#f0eadc'], 'sheet'),
+   (21, 9, 14, ['#3a4c32', '#567048', '#789668', '#9cb88a'], 'shirt'),
+   (32, 6, 10, ['#845c22', '#b88438', '#daa656', '#f0c67a'], 'cloth'),
+   (40, 8, 14, ['#40546c', '#5c7898', '#7fa0c2', '#a4c2de'], 'apron'),
+  ]
+ elif region == 1 and not second:
+  garments = [
+   (9,  11, 17, ['#7d4c14', '#b8761e', '#e2a232', '#f6ca5c'], 'sari'),
+   (22, 11, 16, ['#681c22', '#9e2c36', '#cc4652', '#e8727c'], 'sari'),
+   (35, 11, 16, ['#1d2a4c', '#2d4276', '#4462a0', '#6888c4'], 'sari'),
+  ]
+ elif region == 1:
+  garments = [
+   (9,  11, 16, ['#781e42', '#ae3264', '#d85488', '#ee82ac'], 'sari'),
+   (22, 11, 17, ['#8a4a16', '#c26c24', '#e4923c', '#f6b864'], 'sari'),
+   (35, 11, 16, ['#164a4c', '#247274', '#389a9c', '#62c0c2'], 'sari'),
+  ]
+ elif not second:
+  garments = [
+   (9,  12, 16, ['#1a2844', '#283f6a', '#3d5e94', '#5d82bc'], 'kimono'),
+   (24, 9,  14, ['#948c7a', '#beb5a2', '#ded7c6', '#f2ede0'], 'sheet'),
+   (36, 10, 15, ['#6b361e', '#9c522c', '#c47042', '#de9464'], 'sheet'),
+  ]
+ else:
+  garments = [
+   (9,  10, 15, ['#2a3c54', '#405a7c', '#5c7ca4', '#7e9ec6'], 'sheet'),
+   (22, 12, 16, ['#948c7a', '#beb5a2', '#ded7c6', '#f2ede0'], 'kimono'),
+   (37, 9,  14, ['#3a4e36', '#587452', '#789870', '#9cba94'], 'sheet'),
+  ]
+ for g_idx, (gx, gw, gh, pal, shape) in enumerate(garments):
+  top = line_y(gx + gw // 2)
+  g_phase = phase - g_idx * 0.85
+  gust = math.sin(g_phase)
+  for dy in range(gh):
+   frac_y = dy / max(1.0, gh - 1.0)
+   drift_x = int(round(gust * (frac_y ** 1.4) * 1.5))
+   for dx in range(gw):
+    hem_wave = int(round(math.sin((dx / max(1, gw)) * math.pi + g_phase) * 1.1))
+    if dy >= gh - 1 + (hem_wave if dy > gh - 3 else 0):
+     continue
+    if shape == 'shirt' and dy > 6 and (dx < 2 or dx >= gw - 2):
+     continue
+    if shape == 'kimono' and dy > 10 and (dx < 2 or dx >= gw - 2):
+     continue
+    fold_v = math.sin(dx * 1.15 - g_phase * 0.9 + dy * 0.15)
+    idx = 3 if (fold_v > 0.45 and dy < gh - 4) else (2 if fold_v > -0.25 else 1)
+    if dy >= gh - 3:
+     idx = max(0, idx - 1)
+    px = gx + dx + drift_x
+    if shape == 'sari' and dy >= gh - 4:
+     c.set(px, top + dy, '#e8b848' if ((dx + (frame // 2)) % 2 == 0) else '#b87c24')
+    else:
+     c.set(px, top + dy, pal[idx])
+  for px in (gx + 1, gx + gw - 2):
+   c.set(px, top - 1, '#c8a064'); c.set(px, top, '#7a542e')
+ soft_outline(c, post_out, post[2])
+ for x in range(6, 52):
+  ly = line_y(x)
+  c.set(x, ly, rope[3] if (x % 3 != 0) else rope[1])
  return c.image()
 
 
@@ -313,36 +506,136 @@ def hide_frame(v=0):
 
 def wash_tub(v=0, m=0):
  """0 oak, 1 pale pine; the wash over the rim and the board are seeded."""
- from math import sqrt
  R = rnd(v, 7)
- t = [WD[1], WD[2], WD[3], WD[4], '#d8b888'] if v % 2 else W
- c = Canvas(34, 30)
- cx, board = 15, R.random() < .7
+ c = Canvas(38, 34)
+ cx, top_y, bot_y = 18.5, 13, 25
+ rx_top, rx_bot = 14.2, 12.2
+ ry_top = rx_top * K
+ wood = RAMPS['oak7'] if v % 2 == 0 else (RAMPS['ash7'] if v % 4 == 1 else RAMPS['walnut7'])
+ hoop = RAMPS['blackiron7'] if v % 2 == 0 else (RAMPS['copper7'] if v % 4 == 1 else RAMPS['bamboo7'])
+ steel = RAMPS['iron7']
+ water = ['#16324a', '#214b6e', '#2f6994', '#468cb8', '#6cb2d6', '#a4dbf0', '#eafaff']
+ cloths = [
+  ['#7a2220', '#a8342e', '#d45244', '#ee7c6b'],
+  ['#1d3158', '#2e4c82', '#4970ab', '#739ad1'],
+  ['#8f6218', '#bf8826', '#e3ad42', '#f7cc6e'],
+  ['#2d5428', '#497d3c', '#71a858', '#9cd17e'],
+  ['#783852', '#a85876', '#d1829c', '#eeaec2'],
+  ['#7a6e58', '#a89a80', '#d4c8ae', '#f2ead6'],
+ ]
+ cloth_pal = cloths[v] if v < 3 else R.choice(cloths)
+ board = (v < 3) or (R.random() < 0.8)
+
+ for y in range(int(top_y - ry_top) - 1, int(top_y + ry_top) + 2):
+  for x in range(int(cx - rx_top) - 1, int(cx + rx_top) + 2):
+   u = (x + 0.5 - cx) / rx_top
+   v_el = (y + 0.5 - top_y) / ry_top
+   if u * u + v_el * v_el > 1.0:
+    continue
+   ui = (x + 0.5 - cx) / (rx_top - 2.0)
+   vi = (y + 0.5 - (top_y + 0.4)) / (ry_top - 1.3)
+   if ui * ui + vi * vi > 1.0:
+    lit = -u * 0.65 - v_el * 0.45
+    tone = 6 if lit > 0.25 else (5 if lit > -0.2 else 4)
+    ang = math.atan2(v_el, u)
+    if abs(((ang / math.pi * 8) % 1.0) - 0.5) < 0.09:
+     tone = max(2, tone - 2)
+    c.set(x, y, wood[tone])
+   else:
+    c.set(x, y, wood[2 if u < -0.2 else (3 if u < 0.45 else 4)])
+
+ w_cy = top_y + 1.4
+ w_rx, w_ry = rx_top - 2.2, ry_top - 1.5
+ for y in range(int(w_cy - w_ry) - 1, int(w_cy + w_ry) + 2):
+  for x in range(int(cx - w_rx) - 1, int(cx + w_rx) + 2):
+   u = (x + 0.5 - cx) / w_rx
+   v_el = (y + 0.5 - w_cy) / w_ry
+   if u * u + v_el * v_el <= 1.0:
+    if v_el < -0.45: col = water[1]
+    elif v_el < -0.1: col = water[2] if u > 0.2 else water[3]
+    else: col = water[4] if u < 0.25 else water[3]
+    c.set(x, y, col)
+
  if board:
-  timber(c, 21, 1, 28, 14); c.hline(21, 28, 1, W[4])
-  for y in range(4, 13): c.hline(23, 26, y, '#c8d2d8' if y % 2 else '#8794a2')
- for x in range(cx - 12, cx + 13):
-  u = (x + .5 - cx) / 12.5
-  drop = round(4 * sqrt(max(0, 1 - u * u)))
-  for y in range(13, 22 + drop + 1):
-   col = t[3] if u < -.4 else t[2] if u < .4 else t[1]
-   if (x - cx) % 4 == 0: col = t[1] if u < .4 else t[0]
-   if y in (15 + drop // 2, 20 + drop): col = IRON[3] if u < -.4 else IRON[2] if u < .4 else IRON[1]
+  wb_x0, wb_y0 = 20, 2
+  oak = RAMPS['oak7']
+  for dy in range(14):
+   wy = wb_y0 + dy
+   lx = wb_x0 - (dy // 3)
+   rx = lx + 9
+   for x in range(lx, rx + 1):
+    if wy > top_y + 2 and ((x + 0.5 - cx) / w_rx) ** 2 + ((wy + 0.5 - w_cy) / w_ry) ** 2 > 0.92:
+     continue
+    if x in (lx, lx + 1):
+     c.set(x, wy, oak[6] if x == lx else oak[4])
+    elif x in (rx - 1, rx):
+     c.set(x, wy, oak[3] if x == rx - 1 else oak[1])
+    elif dy < 2:
+     c.set(x, wy, oak[6] if dy == 0 else oak[4])
+    elif dy == 2:
+     c.set(x, wy, oak[2])
+    else:
+     if (dy - 3) % 2 == 0:
+      c.set(x, wy, steel[6] if x < lx + 6 else steel[4])
+     else:
+      c.set(x, wy, steel[2] if x < lx + 6 else steel[1])
+  c.set(22, 11, water[5]); c.set(23, 12, water[6]); c.set(21, 13, water[6])
+
+ stave_body(c, cx, top_y, bot_y, rx_top, rx_bot, wood, hoops=(16, 22), hoop_ramp=hoop, staves=8)
+
+ for x in range(int(cx - rx_top), int(cx + rx_top) + 1):
+  u = (x + 0.5 - cx) / rx_top
+  if abs(u) > 1.0:
+   continue
+  yf = round(top_y + ry_top * math.sqrt(max(0.0, 1.0 - u * u)))
+  c.set(x, yf - 1, wood[6] if u < 0.25 else wood[4])
+  c.set(x, yf, wood[4] if u < 0.0 else (wood[3] if u < 0.5 else wood[2]))
+
+ for side, hx in ((-1, int(cx - rx_top) - 1), (1, int(cx + rx_top))):
+  hy = top_y - 2
+  w_hi = wood[5] if side < 0 else wood[3]
+  w_lo = wood[3] if side < 0 else wood[1]
+  for dy in range(5):
+   c.set(hx, hy + dy, w_hi); c.set(hx + side, hy + dy, w_lo)
+  c.set(hx, hy + 2, wood[1])
+
+ gx0 = 8 if (v < 2 or R.random() < 0.65) else 19
+ for dx in range(8):
+  x = gx0 + dx
+  u = (x + 0.5 - cx) / rx_top
+  yf = round(top_y + ry_top * math.sqrt(max(0.0, 1.0 - u * u)))
+  hang = 6 if 2 <= dx <= 5 else (5 if 1 <= dx <= 6 else 3)
+  fold_wave = 1 if dx in (2, 5) else 0
+  for dy in range(-2, hang + fold_wave):
+   y = yf + dy
+   if dy < 0: col = cloth_pal[2] if dx < 5 else cloth_pal[1]
+   elif dy == 0: col = cloth_pal[3] if dx < 6 else cloth_pal[2]
+   elif dy == hang + fold_wave - 1: col = cloth_pal[0]
+   else: col = cloth_pal[3] if dx in (1, 2, 4) else (cloth_pal[2] if dx < 6 else cloth_pal[1])
    c.set(x, y, col)
- disc(c, cx + .5, 13, 12.6, 5, CUT[1])
- disc(c, cx + .5, 13, 11, 3.8, t[0])
- disc(c, cx + .5, 14, 10.6, 3.2, WATER[2])
- c.hline(cx - 7, cx + 5, 11, t[1])
- for _ in range(6):
-  x, y = R.randint(7, 19) + (m + _) % 2, R.randint(13, 15)
-  c.set(x, y, '#f4fbff'); c.set(x + 1, y, '#f4fbff'); c.set(x + R.randint(0, 1), y - 1 if y > 13 else y + 1, '#f4fbff')
- for _ in range(3): c.set(R.randint(8, 21), R.randint(13, 15), WATER[3])
- if board: timber(c, 22, 11, 27, 14); c.rect(23, 12, 26, 14, W[2])
- wash = R.choice([RED, INDIGO, CREAM, OCHRE, GREEN, ROSE])
- if R.random() < .5: cloth(c, 2, 11, 6, R.randint(7, 10), wash); c.hline(3, 8, 10, wash[2]); c.hline(4, 8, 11, wash[2])
- else: cloth(c, 10, 15, 7, R.randint(6, 9), wash); c.hline(10, 16, 14, wash[2])
- ink(c)
- for i, (x, y) in enumerate(((11, 8), (14, 6), (17, 9))[:R.randint(1, 3)]): c.set(x, y - (m + i) % 4 * 2, WATER[4])
+
+ f = m % 4
+ suds_clusters = [
+  [(11, 13), (12, 13), (13, 13), (12, 12), (15, 14), (16, 14), (17, 14), (16, 13), (20, 14), (21, 14)],
+  [(12, 13), (13, 13), (14, 13), (13, 12), (16, 14), (17, 14), (18, 14), (17, 13), (19, 15), (20, 15)],
+  [(11, 14), (12, 14), (13, 13), (15, 13), (16, 13), (17, 14), (18, 14), (21, 14), (22, 14), (20, 13)],
+  [(10, 13), (11, 13), (12, 14), (14, 14), (15, 14), (16, 13), (19, 14), (20, 14), (21, 13), (15, 15)],
+ ][f]
+ for sx, sy in suds_clusters:
+  c.set(sx, sy, water[6])
+  if c.get(sx, sy + 1) in (water[2], water[3], water[4]):
+   c.set(sx, sy + 1, water[5])
+
+ soft_outline(c, wood[0], wood[2])
+
+ bubbles = [
+  [(13, 9, water[6]), (17, 7, water[5])],
+  [(13, 8, water[6]), (18, 6, water[5]), (15, 10, water[6])],
+  [(14, 7, water[5]), (15, 9, water[6])],
+  [(15, 8, water[6]), (12, 10, water[5])],
+ ][f]
+ for bx, by_b, bcol in bubbles:
+  c.set(bx, by_b, bcol)
  return c.image()
 
 
@@ -748,59 +1041,195 @@ def knapping_floor(v=0):
 
 
 def metate(v=0):
- """0 basalt, 1 brown andesite; the meal, mano and bowl are seeded."""
+ """0 basalt, 1 brown andesite, 2 basalt with maize, 3 brown andesite with maize."""
  R = rnd(v, 20)
- t = ['#4e3a30', '#7a5c48', '#a08264', '#c0a688'] if v % 2 else ['#34343e', '#52525e', '#787886', '#a2a2ae']
- c = Canvas(32, 22)
- for x in (4, 22): c.rect(x, 14, x + 2, 20, t[1]); c.vline(x, 14, 20, t[2]); c.vline(x + 2, 15, 20, t[0])
- c.rect(13, 12, 15, 16, t[0])
- for y in range(5, 15):
-  for x in range(1 + (y > 12), 28 - (y > 12)):
-   top = y < 11
-   c.set(x, y, (t[3] if y == 5 else t[2]) if top else t[1] if y < 13 else t[0])
- disc(c, 14, 8, 10, 2.2, t[1])
- meal = R.choice([['#f0e2b0', '#d0b878'], ['#e8c860', '#b89030'], ['#c86a48', '#964030']])
- mx = R.randint(8, 17)
- disc(c, mx, 8, R.randint(3, 5), 1.6, meal[0]); c.hline(mx - 2, mx + 1, 9, meal[1])
- px = R.randint(4, 14)
- c.rect(px, 4, px + 9, 6, t[2]); c.hline(px, px + 9, 4, t[3]); c.hline(px, px + 9, 7, t[0]); c.vline(px + 9, 4, 6, t[1])
- if R.random() < .7:
-  disc(c, 26.5, 18, 4.4, 2.6, CLAY[2]); disc(c, 26.5, 17.4, 4.4, 2, CLAY[3]); disc(c, 26.5, 17.4, 3, 1.2, meal[0]); c.hline(24, 28, 20, CLAY[1])
- ink(c)
- for _ in range(R.randint(2, 5)): c.set(R.randint(3, 24), R.randint(9, 10), meal[0])
+ c = Canvas(36, 24)
+ basalt = ['#18171c', '#28262e', '#3c3944', '#524e5c', '#6b6676', '#878292', '#a6a0b0']
+ andesite = ['#241c18', '#3a2d26', '#544138', '#70584c', '#8e7162', '#ad8e7d', '#cbb09e']
+ stone = basalt if v % 2 == 0 else andesite
+ terra = RAMPS['terracotta7']
+ maize = ['#b88620', '#e0b23c', '#fae078']
+ masa = [
+  ['#b8a678', '#d9c89e', '#f2e6c2', '#fcf6e3'],
+  ['#a88430', '#ccaa48', '#e8cc6c', '#fae698'],
+  ['#964030', '#bc5a42', '#dc7e60', '#f0a688'],
+ ][0 if v < 4 else R.randint(0, 2)]
+
+ for y in range(11, 16):
+  c.set(5, y, stone[2]); c.set(6, y, stone[1])
+ for y in range(13, 20):
+  c.set(8, y, stone[4]); c.set(9, y, stone[3]); c.set(10, y, stone[1])
+ for y in range(15, 21):
+  c.set(22, y, stone[4]); c.set(23, y, stone[2]); c.set(24, y, stone[1])
+
+ for dx in range(22):
+  slope = (dx * 4) // 21
+  bx = 4 + dx
+  by_back = 4 + slope
+  for d in range(7):
+   x = bx + (d // 2)
+   y = by_back + d
+   if d == 0: tone = 6 if dx < 14 else 5
+   elif d == 1: tone = 3
+   elif d == 6: tone = 5 if dx < 16 else 4
+   else:
+    tone = 4 if (dx < 12 and d >= 3) else 3
+    if (x * 5 + y * 3) % 7 == 0: tone = max(2, tone - 1)
+   c.set(x, y, stone[tone])
+  fx, fy = bx + 3, by_back + 7
+  for th in range(3):
+   c.set(fx, fy + th, stone[2] if th < 2 else stone[1])
+
+ for d in range(7):
+  x = 4 + (d // 2)
+  y = 4 + d
+  c.set(x - 1, y + 1, stone[5]); c.set(x - 1, y + 2, stone[3])
+
+ kernels = [(9, 8), (11, 8), (10, 9), (12, 9), (8, 9)]
+ if v >= 2:
+  kernels += [(7, 8), (9, 7), (10, 8), (11, 9), (13, 9)]
+ for mx, my in kernels:
+  c.set(mx, my, maize[2] if (mx + my) % 2 == 0 else maize[1])
+
+ for mx in range(14, 24):
+  my = 7 + ((mx - 4) * 4) // 21
+  for dy in range(2, 5):
+   if (mx - 14 + dy) < 11:
+    c.set(mx + dy // 2, my + dy, masa[3] if dy == 3 else masa[2])
+
+ mano_x = 12 if v < 4 else R.randint(10, 15)
+ mano_y_back = 3 + ((mano_x - 4) * 4) // 21
+ for d in range(-1, 9):
+  mx = mano_x + (d // 2)
+  my = mano_y_back + d
+  end_shade = 1 if (d in (-1, 8)) else 0
+  c.set(mx - 1, my, stone[6 - end_shade])
+  c.set(mx, my, stone[5 - end_shade])
+  c.set(mx + 1, my, stone[3 - end_shade])
+  c.set(mx + 2, my, stone[1])
+
+ bx_c, by_c = 28.5, 20
+ lathe(c, bx_c, by_c, [(0, 3.2), (1.5, 4.6), (3.5, 5.2)], terra)
+ disc(c, bx_c, by_c - 3.5 - 3.2 * K, 5.0, 2.2, terra[5])
+ fill_pal = maize if (v >= 2 and v % 2 == 0) else masa
+ disc(c, bx_c, by_c - 3.5 - 3.2 * K + 0.2, 3.8, 1.5, fill_pal[1 if fill_pal is maize else 2])
+ c.hline(int(bx_c) - 2, int(bx_c) + 1, int(by_c - 3.5 - 3.2 * K), fill_pal[2 if fill_pal is maize else 3])
+
+ soft_outline(c, stone[0], stone[3])
  return c.image()
 
 
 def catch(v=0):
- """0 silver, 1 bronze-backed, 2 dark: a few fish on a cord, as carried."""
+ """0 silver, 1 bronze-backed, 2 dark: a string of three fish on a woven rush cord."""
  R = rnd(v, 21)
- t = [['#dfe6e6', '#aebbc2', '#7f8e9c'], ['#e8d0a0', '#b88a4a', '#7a5a34'], ['#9aa4b4', '#5e687e', '#3a4054']][v % 3]
- c = Canvas(18, 20)
- c.set(9, 0, ROPE[1]); c.set(8, 1, ROPE[1]); c.set(10, 1, ROPE[1]); c.hline(4, 14, 2, ROPE[1]); c.set(9, 2, ROPE[2])
- for x in sorted(R.sample([4, 9, 14], R.randint(2, 3))): fish(c, x, 3 + R.randint(0, 2), R.randint(7, 10), t)
+ c = Canvas(24, 22)
+ rope = RAMPS['rope']
+ pals = [
+  ('#eef4f6', '#b8c8d4', '#7e92a4', '#465668'),
+  ('#f7d89c', '#cf9c52', '#96652c', '#573716'),
+  ('#c2d2e0', '#7e92a8', '#4c5c72', '#283242'),
+  ('#f5b895', '#d9845d', '#a85538', '#6b3122'),
+ ]
+ pal0 = pals[v % 3] if v < 3 else R.choice(pals)
+ pal1 = pals[(v + 1) % 4] if v >= 3 else pal0
+
+ c.set(11, 1, rope[3]); c.set(12, 1, rope[2])
+ c.set(10, 2, rope[3]); c.set(13, 2, rope[1])
+ for x in range(5, 19):
+  y_arc = 3 + (1 if 8 <= x <= 15 else 0)
+  c.set(x, y_arc, rope[3] if x < 13 else rope[2])
+  c.set(x, y_arc + 1, rope[1])
+
+ specs = [(6, 4, 11, pal0), (12, 5, 12, pal1), (17, 4, 10, pal0)]
+ for fx, fy, fh, pal in specs:
+  hi, mid, sh, dk = pal
+  c.set(fx - 1, fy, hi); c.set(fx + 1, fy, sh)
+  c.set(fx, fy + 1, rope[2])
+  for i in range(fh):
+   yy = fy + 2 + i
+   t = i / max(1, fh - 1)
+   half = 1 if (t < 0.16 or t > 0.82) else 2
+   for dx in range(-half, half + 1):
+    if dx == -half: col = hi
+    elif dx == 0: col = hi if t < 0.45 else mid
+    elif dx < half: col = sh
+    else: col = dk
+    c.set(fx + dx, yy, col)
+   if i == 3:
+    c.set(fx + half, yy, mid)
+   if i == fh - 2:
+    c.set(fx - 1, yy, '#18141c'); c.set(fx, yy, hi)
+ soft_outline(c, '#222834', rope[1])
  return c.image()
 
 
 def pounding_mortar(v=0):
  """0 oak, 1 walnut with two pestles, 2 pale; grain and lean are seeded."""
  R = rnd(v, 22)
- t = [W, [WD[0], WD[1], WD[2], WD[3], WD[4]], ['#6a5434', '#927848', '#b89c66', '#d8be8a', '#f0dcae']][v % 3]
- c = Canvas(26, 42)
- revolve(c, 12.5, belly(22, 39, [8, 7, 5, 5.5, 7.5, 8]), t, foot=2)
- disc(c, 12.5, 22, 8.4, 3.2, t[4]); disc(c, 12.5, 22.2, 6.4, 2.2, t[0])
- disc(c, 12.5, 23, 5, 1.4, STRAW[2]); c.set(11, 23, STRAW[3]); c.set(14, 22, STRAW[3])
- for i in range(R.randint(1, 3)): c.hline(7, 18, 27 + i * 4, t[1]) if False else None
- c.hline(8, 16, 30, t[1]); c.hline(8, 16, 31, t[4])
- ink(c)
- for k in range(2 if v % 3 == 1 else 1):
-  lean = R.choice([-4, -2, 3, 5]) if k == 0 else -R.choice([3, 5]) if lean > 0 else R.choice([3, 5])
-  x0, x1 = 12 + k, 12 + k + lean
-  limb(c, (x0, 22), (x1, 2), [t[3], t[2], t[1]])
-  c.rect(x1 - 1, 0, x1 + 3, 4, t[2]); c.vline(x1 - 1, 0, 4, t[4]); c.vline(x1 + 3, 0, 4, t[0]); c.hline(x1 - 1, x1 + 3, 0, t[4])
-  for (x, y) in ((x1 - 2, 1), (x1 - 2, 2), (x1 - 2, 3), (x1 + 4, 1), (x1 + 4, 2), (x1 + 4, 3), (x1, -1), (x1 + 1, -1), (x1 + 2, -1)):
-   c.set(x, y, '#3a2420')
- for _ in range(R.randint(2, 6)):
-  x = R.choice([R.randint(0, 3), R.randint(21, 24)]); c.set(x, 40, STRAW[3]); c.set(x + 1, 41, STRAW[2])
+ c = Canvas(28, 44)
+ cx, by = 13.5, 41
+ wood = [RAMPS['oak7'], RAMPS['walnut7'], RAMPS['ash7']][v % 3]
+ grains = [
+  ['#8a6620', '#b88c30', '#e0b84c', '#fae078'],
+  ['#a89878', '#cfc0a2', '#ebe0c8', '#fcf6e8'],
+  ['#825a32', '#ab7c4b', '#d1a26e', '#ecc495'],
+ ]
+ grain = grains[0] if v < 3 else R.choice(grains)
+
+ prof = [
+  (0, 7.8), (2, 8.2), (4, 6.8), (7, 5.2), (10, 5.0),
+  (13, 6.6), (17, 8.6), (20, 8.8),
+ ]
+ def mortar_tex(z, a, i):
+  if abs(z - 15.0) < 0.6 or abs(z - 2.5) < 0.6:
+   return max(1, i - 1)
+  if abs(z - 14.0) < 0.6 and a < 0.3:
+   return min(6, i + 1)
+  if int((a + math.pi) * 7) % 4 == 0 and 4 < z < 14:
+   return max(1, i - 1)
+  return i
+
+ lathe(c, cx, by, prof, wood, mortar_tex, flat=True)
+
+ ty = by - 20 - 7.8 * K + 0.5
+ rx, ry = 8.6, 3.6
+ for y in range(int(ty - ry) - 1, int(ty + ry) + 2):
+  for x in range(int(cx - rx) - 1, int(cx + rx) + 2):
+   u = (x + 0.5 - cx) / rx
+   v_el = (y + 0.5 - ty) / ry
+   if u * u + v_el * v_el > 1.0:
+    continue
+   ui = (x + 0.5 - cx) / (rx - 1.8)
+   vi = (y + 0.5 - (ty + 0.2)) / (ry - 0.9)
+   if ui * ui + vi * vi > 1.0:
+    c.set(x, y, wood[6] if (u + v_el < -0.1) else (wood[5] if u < 0.35 else wood[3]))
+   else:
+    if vi < -0.25:
+     c.set(x, y, wood[1] if ui < 0.1 else wood[2])
+    else:
+     g_idx = 3 if (ui < 0.1 and vi < 0.3) else (2 if ui < 0.45 else 1)
+     c.set(x, y, grain[g_idx])
+
+ pestles = [(-3, -1)] if v % 3 == 0 else ([(-4, -1), (4, 1)] if v % 3 == 1 else [(3, 1)])
+ for lean_x, side in pestles:
+  x0 = round(cx + side * 1.2)
+  y0 = round(ty + 0.5)
+  x1 = x0 + lean_x
+  y1 = 3
+  steps = y0 - y1
+  for s in range(steps + 1):
+   t = s / max(1, steps)
+   px = round(x0 + (x1 - x0) * t)
+   py = y0 - s
+   thick = 3 if t > 0.72 else 2
+   for dx in range(thick):
+    tone = 6 if dx == 0 else (4 if dx == 1 and thick == 3 else 2)
+    c.set(px + dx - 1, py, wood[tone])
+  c.set(x1 - 1, y1 - 1, wood[6]); c.set(x1, y1 - 1, wood[5])
+
+ soft_outline(c, wood[0], wood[3])
+ for gx, gy in ((4, 41), (5, 42), (21, 41), (22, 40)):
+  c.set(gx, gy, grain[3]); c.set(gx + 1, gy, grain[1])
  return c.image()
 
 

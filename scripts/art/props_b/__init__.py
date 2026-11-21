@@ -172,12 +172,16 @@ DRAW_B.update(YARD)
 # UI and the shadow mask.
 LAYERED = {
  'drying-rack': ('frame', 'hang'),
- 'washing-line': ('frame', 'hang'),
  'door-lantern': ('frame', 'hang'),
 }
 
 # Props that move on their own: the base sprite plus `-m1..` motion frames.
 ANIMATED = {
+ 'pump': 6,
+ 'well': 4,
+ 'dovecote': 4,
+ 'chicken-coop': 4,
+ 'washing-line': 6,
  'pole-sign': 4,
  'censer': 4,
  'beehive': 4,

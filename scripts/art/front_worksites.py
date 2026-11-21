@@ -2237,7 +2237,10 @@ def bake_worksites(root):
     frames = {}
     models_path = root / 'public/packs/models.json'
     models = json.loads(models_path.read_text())
+    # Only worksite-* frames live in this pack; build_art.py packs the rest (yard stables) with the buildings.
     for name, r in recipes.items():
+        if not name.startswith('worksite-'):
+            continue
         artist = FrontWorksitePainter(r)
         im = artist.render()
         frames[name] = im

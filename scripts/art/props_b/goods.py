@@ -15,9 +15,6 @@ SAND = ['#2e2618', '#4a3e27', '#6a5a39', '#8b784c', '#a99461', '#c4b07c', '#ddcc
 PAPER = ['#3a3a3c', '#5b5a58', '#7f7c76', '#a29e95', '#c1bdb1', '#dad5c7', '#efeadc']
 PINE = ['#2f2418', '#4b3a24', '#6c5634', '#8d7348', '#ab905e', '#c6ad7a', '#ddc89c']
 BIRCH = ['#2a2624', '#4a4541', '#77716a', '#a39d93', '#c7c2b6', '#e0dccf', '#f1eee4']
-FRAMES = [['#101114', '#1b1d22', '#2a2d34', '#3d414a', '#575c66', '#7a808a', '#a4a9b0'],
-          ['#0d1d15', '#153223', '#1f4a33', '#2b6445', '#3f805a', '#5f9e75', '#8cc19b'],
-          RED]
 
 
 def _ink(p, dark=False):
@@ -57,13 +54,6 @@ def _ball(c, cx, cy, rx, ry, p, lo=1, hi=5, flat_bottom=None):
    nz = sqrt(1 - r2)
    lam = max(0.0, -0.55 * u - 0.62 * v + 0.56 * nz)
    c.set(x, y, p[lo + min(hi - lo, int(lam * (hi - lo + 0.9)))])
-
-
-def _circle(c, cx, cy, r, col, lit=None):
- for a in range(0, 360, 4):
-  t = a * pi / 180
-  x, y = round(cx + cos(t) * r), round(cy + sin(t) * r)
-  c.set(x, y, lit if lit and 150 < a < 290 else col)
 
 
 def stencil_crate(v=0):
@@ -188,35 +178,6 @@ def newspapers(v=0):
  c.hline(x0 + 2, x0 + 7, yb - 5, '#2a2a2c')        # the masthead
  c.vline(x0 + w // 2 + 1, yb - 5, yb - 4, '#7a5a34')
  soft_outline(c, p[1], p[3])
- return c.image()
-
-
-def bicycle(v=0):
- """A roadster on its stand: 1.8 m long, 70 cm wheels."""
- c = Canvas(36, 21)
- f = FRAMES[v]
- tyre, rim = '#16171b', '#b9c1c2'
- r, gy = 7, 13
- for cx in (7, 28):
-  _circle(c, cx, gy, r, tyre)
-  _circle(c, cx, gy, r - 1, rim if cx == 7 else '#8d969a', lit='#dfe5e4')
-  for a in range(0, 180, 45):                     # spokes, thin enough to see through
-   t = a * pi / 180
-   c.line((cx - cos(t) * 5, gy - sin(t) * 5), (cx + cos(t) * 5, gy + sin(t) * 5), '#7d878a')
-  c.set(cx, gy, f[5])
- bb, seat, head = (16, 14), (13, 5), (25, 5)
- for a, b in ((bb, seat), (bb, head), (seat, head), (bb, (7, gy)), (seat, (7, gy)), (head, (28, gy))):
-  c.line(a, b, f[3])
- for a, b in ((seat, head),):                     # the top tube catches the light
-  c.line((a[0], a[1] - 1), (b[0], b[1] - 1), f[5])
- c.hline(10, 15, 3, '#2a1f18'); c.hline(11, 14, 2, '#5b4332')   # saddle
- c.vline(13, 3, 4, f[2])
- c.vline(26, 1, 5, f[2]); c.hline(23, 28, 1, '#8d969a'); c.set(23, 1, '#16171b')   # bars
- _circle(c, bb[0], bb[1], 2, '#6d7274')
- c.line((bb[0], bb[1] - 2), (7, gy - 1), '#3c4145')  # chain
- for x in range(3, 11): c.set(x, gy - r - 1, f[4])  # mudguard
- c.line((16, 15), (19, 20), '#525759')             # the stand
- soft_outline(c, '#101114', f[4])
  return c.image()
 
 
@@ -346,7 +307,6 @@ GOODS = {
  'jerrycans': jerrycans,
  'coal-sacks': coal_sacks,
  'newspapers': newspapers,
- 'bicycle': bicycle,
  'handcart': handcart,
  'amphora-stack': amphora_stack,
  'hurdle': hurdle,

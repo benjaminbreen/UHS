@@ -566,6 +566,7 @@ def second_equipment_sprites():
             for f in range(4 if kind=='brazier' else 1):
                 sprites[base+(f'-f{f}' if f else '')]=live_equipment(kind,v,f)
         legacy=kind.replace('_','-')
+        if kind=='chicken_coop': continue
         for v in range(3):
             for f in range(4 if kind=='brazier' else 1):
                 frame=f'study-prop{"" if kind=="brazier" else "b"}-{legacy}-{v}'+(f'-f{f}' if f else '')

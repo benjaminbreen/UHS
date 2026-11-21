@@ -1,8 +1,9 @@
 """Regional yard work: the grinding slabs and querns that stand in for the
 generic grinding stone, and the everyday kit that says which part of the
 world a yard is in. ~17 source pixels to a metre, like the rest."""
-from .core import Canvas, RAMPS
-from .solid import K, disc
+from math import pi, sqrt
+from .core import Canvas, RAMPS, soft_outline
+from .solid import K, disc, lathe
 
 BASALT = [
  ['#1d1a19', '#2f2a27', '#46403a', '#5f5850', '#7d7468', '#a09584'],
@@ -44,43 +45,151 @@ def pole(c, a, b, r):
 def quern(v=0, m=0):
  """A rotary quern: the runner stone on its bedstone, a wooden handle peg
  and the ring of flour it has thrown out."""
- c = Canvas(18, 15)
- s = RAMPS[('granite', 'sandstone')[v % 2]]
- ell(c, (0, 9, 17, 14), FLOUR)
- cyl(c, 9, 10, 7, 2, 2, s)
- for x in (4, 7, 11, 14): c.set(x, 13, s[1])
- cyl(c, 9, 6, 6, 2, 3, s)
- ell(c, (7, 5, 11, 7), s[1]); c.set(9, 6, FLOUR)
- w = RAMPS['wood']
- c.vline(13, 1, 7, w[4]); c.vline(14, 1, 7, w[2]); c.set(13, 1, w[5])
- c.rim(s)
+ c = Canvas(26, 22)
+ cx, by = 12.5, 19
+ basalt7 = ['#18171c', '#28262e', '#3c3944', '#524e5c', '#6b6676', '#878292', '#a6a0b0']
+ stone = [RAMPS['granite'], RAMPS['sandstone'], basalt7][v % 3]
+ oak = RAMPS['oak7']
+ flour = ['#b8a882', '#d9ccb0', '#efe6ce', '#fbf7ec']
+
+ for y in range(13, 21):
+  for x in range(1, 25):
+   u = (x + 0.5 - (cx - 0.5)) / 11.2
+   v_el = (y + 0.5 - 16.8) / 3.8
+   d2 = u * u + v_el * v_el
+   if d2 <= 1.0:
+    col = flour[3] if (d2 < 0.65 and u < 0.2) else (flour[2] if d2 < 0.85 else flour[1])
+    c.set(x, y, col)
+
+ def bed_tex(z, a, i):
+  if int((a + pi) * 10 + z * 2) % 5 == 0:
+   return max(1, i - 1)
+  return i
+ lathe(c, cx, by, [(0, 9.2), (3.5, 9.0)], stone, bed_tex)
+
+ seam_y = by - 3.5
+ for x in range(int(cx - 8.8), int(cx + 8.8) + 1):
+  u = (x + 0.5 - cx) / 8.8
+  if abs(u) <= 1.0:
+   ys = round(seam_y - 8.8 * K + 8.8 * K * sqrt(max(0.0, 1.0 - u * u)))
+   c.set(x, ys, stone[0])
+   if -0.65 < u < -0.15:
+    c.set(x, ys, flour[3])
+    c.set(x, ys + 1, flour[2])
+
+ def run_tex(z, a, i):
+  if int((a + pi) * 9 + z * 3) % 6 == 0:
+   return max(1, i - 1)
+  return i
+ lathe(c, cx, by, [(4.0, 8.2), (7.5, 8.0), (8.5, 6.8)], stone, run_tex)
+
+ top_cy = by - 8.2 - 8.0 * K + 0.5
+ disc(c, cx, top_cy, 3.8, 1.8, stone[5])
+ disc(c, cx, top_cy, 2.5, 1.2, stone[1])
+ c.set(int(cx) - 1, int(top_cy), '#e8c252'); c.set(int(cx), int(top_cy), '#c49630')
+
+ for dx, dy in ((-5, 0), (5, 0), (-3, 2), (3, 2), (-4, -1), (4, -1)):
+  c.set(int(cx) + dx, int(top_cy) + dy, stone[3] if dx < 0 else stone[2])
+
+ hx, hy = int(cx) + 5, int(top_cy)
+ c.set(hx - 1, hy + 1, stone[1])
+ for dy in range(8):
+  y = hy - dy
+  c.set(hx, y, oak[6] if dy == 7 else oak[5])
+  c.set(hx + 1, y, oak[4] if dy == 7 else oak[3])
+  c.set(hx + 2, y, oak[1])
+
+ soft_outline(c, stone[0], stone[3])
  return c.image()
 
 
 def travois(v=0, m=0):
- """A travois at rest: two lodgepoles crossed and tied at the front, a hide
- web between them and a painted parfleche lashed on. Its fringe stirs."""
+ """A travois at rest: two lodgepoles crossed and tied at the front, a rawhide
+ web platform between them with a plump painted parfleche bundle and rolled
+ buffalo hide lashed on. Its fringe stirs."""
  c = Canvas(80, 28)
- p = RAMPS['palewood']
+ p = RAMPS['ash7']
+ oak = RAMPS['oak7']
  h = HIDE
- pole(c, (2, 6), (78, 15), p)
- c.poly([(44, 10), (62, 12), (62, 21), (44, 16)], h[1])
- for x in range(46, 62, 4): c.line((x, 11), (x, 16 + (x - 44) // 4), h[3])
- for y in (12, 15): c.line((44, y), (62, y + 3), h[3])
- c.poly([(47, 4), (60, 5), (61, 7), (48, 6)], h[4])
- c.rect(48, 7, 61, 13, h[3]); c.hline(48, 61, 7, h[1])
- for k, col in enumerate((RED, BLUE, RED)):
-  x = 50 + k * 4; c.poly([(x, 12), (x + 1, 9), (x + 2, 12)], col)
- c.hline(49, 60, 8, BLK); c.set(52, 10, YEL); c.set(56, 10, YEL)
- c.vline(54, 4, 13, h[0])
+ rope = RAMPS['rope']
+
+ def thick_pole(a, b, ramp):
+  (x0, y0), (x1, y1) = a, b
+  steps = max(abs(x1 - x0), abs(y1 - y0)) or 1
+  for i in range(steps + 1):
+   x = round(x0 + (x1 - x0) * i / steps)
+   y = round(y0 + (y1 - y0) * i / steps)
+   c.set(x, y, ramp[6] if i % 7 != 0 else ramp[5])
+   c.set(x, y + 1, ramp[4])
+   c.set(x, y + 2, ramp[2])
+
+ # Back lodgepole
+ thick_pole((3, 6), (76, 15), oak)
+
+ # Oval rawhide netting frame between the poles
+ for k in range(5):
+  t = k / 4.0
+  x0 = round(38 + t * 24)
+  y_top = round(10 + t * 3)
+  y_bot = round(15 + t * 7)
+  c.line((x0, y_top), (x0 - 2, y_bot), h[3] if k % 2 == 0 else h[2])
+ for y_off in (0, 2, 4):
+  c.line((37, 11 + y_off), (63, 14 + y_off + y_off // 2), h[3 if y_off == 0 else 2])
+ for x in range(36, 65):
+  t = (x - 36) / 28.0
+  yt = round(10 + t * 3)
+  yb = round(15 + t * 7)
+  c.set(x, yt, oak[5]); c.set(x, yt + 1, oak[2])
+  c.set(x, yb, oak[4]); c.set(x, yb + 1, oak[1])
+
+ # Plump rolled hide bedroll lashed behind the parfleche
+ for dx in range(11):
+  bx = 39 + dx
+  by = 7 + dx // 4
+  for dy in range(6):
+   tone = 4 if dy <= 1 else (3 if dy <= 3 else 1)
+   c.set(bx, by + dy, h[tone])
+  if dx in (3, 8):
+   for dy in range(6):
+    c.set(bx, by + dy, RED if dy < 4 else BLK)
+
+ # Painted parfleche rawhide trunk in 3/4 view (top face + front panel)
+ px0, py0, pw, ph = 48, 4, 15, 10
+ for dy in range(3):
+  for dx in range(pw):
+   c.set(px0 + dx - (2 - dy), py0 + dy, h[4] if dy == 0 else h[3])
+ for dy in range(3, ph):
+  for dx in range(pw):
+   x, y = px0 + dx, py0 + dy
+   col = h[3] if dx < pw - 3 else h[2]
+   if dy == 3: col = h[1]
+   elif dy == ph - 1: col = h[0]
+   c.set(x, y, col)
+
+ # Geometric Plains parfleche rawhide painting (diamonds & border stripes)
+ c.hline(px0 + 1, px0 + pw - 2, py0 + 4, BLUE)
+ c.hline(px0 + 1, px0 + pw - 2, py0 + ph - 2, RED)
+ for k, col in enumerate((RED, YEL, BLUE, RED)):
+  gx = px0 + 2 + k * 3
+  c.set(gx + 1, py0 + 6, col)
+  c.set(gx, py0 + 7, col); c.set(gx + 1, py0 + 7, YEL if col != YEL else RED); c.set(gx + 2, py0 + 7, col)
+  c.set(gx + 1, py0 + 8, col)
+ c.vline(px0 + pw // 2, py0 + 1, py0 + ph - 1, rope[1])
+
+ # Animated rawhide fringe hanging from the parfleche side
  sway = (0, 1, 0, -1)[m % 4]
- for k, x in enumerate((58, 60, 62)):
-  c.vline(x, 14, 16, h[2]); c.set(x + sway * (k % 2 or 1), 17, h[2])
- pole(c, (2, 2), (78, 26), p)
- c.line((21, 6), (23, 10), h[0]); c.line((22, 6), (24, 10), h[3])
- for x, y in [(74, 27), (77, 27), (75, 16), (78, 17)]:
-  c.set(x, y, '#8a6a44')
- c.rim(p)
+ for k, fx in enumerate(range(px0 + 2, px0 + pw - 1, 2)):
+  for fy in range(py0 + ph, py0 + ph + 3):
+   c.set(fx, fy, h[3 if k % 2 == 0 else 2])
+  c.set(fx + sway * (1 if k % 2 == 0 else -1), py0 + ph + 3, h[2])
+
+ # Front lodgepole & rawhide lashing at the apex hitch
+ thick_pole((3, 3), (76, 24), p)
+ for dx in range(4):
+  for dy in range(5):
+   c.set(16 + dx, 5 + dy, rope[3] if (dx + dy) % 2 == 0 else rope[1])
+
+ soft_outline(c, oak[0], p[3])
  return c.image()
 
 

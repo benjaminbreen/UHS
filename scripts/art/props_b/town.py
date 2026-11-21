@@ -37,23 +37,47 @@ def town_well(v=0):
 
 
 def grinder(v=0):
- """A saddle quern: a flat slab with the handstone resting on it."""
- p = RAMPS[['granite', 'sandstone', 'limestone'][v]]
- keys = {'o': p[0], 'E': p[1], 'e': p[2], 'd': p[3], 't': p[4], 'T': p[5],
-         'f': RAMPS['straw'][5], 'g': RAMPS['grass'][1], 'G': RAMPS['grass'][2]}
- c = draw_grid([
-  '............ooo...',
-  '..........ooTTTo..',
-  '..........oTTTto..',
-  '...ooooooooteeoo..',
-  '..oTTTTTTTTTTTeo..',
-  '.oTTtdddddtTTTTTo.',
-  '.oTtdffdddttttTto.',
-  '.oteddddddteeeeto.',
-  '.oeEeeeeeeeeeeEeo.',
-  '..oEEEEEEEEEEEoo..',
-  'g..ooooooooooo..G.',
- ], keys)
+ """A saddle quern: a sculpted 3/4 hollowed stone slab with a cylindrical
+ rubbing stone and freshly ground meal spilling into the basin."""
+ from .core import soft_outline
+ from .solid import K, disc, lathe
+ c = Canvas(26, 18)
+ stone = RAMPS[['granite', 'sandstone', 'limestone'][v % 3]]
+ meal = ['#b89850', '#dfc074', '#f2dc9c', '#fcf2cf'] if v % 2 == 0 else ['#a87a38', '#cfa052', '#ecc478', '#fae2a8']
+
+ disc(c, 13.5, 13.2, 11.2, 4.2, meal[1])
+ disc(c, 13.0, 13.0, 9.8, 3.5, meal[2])
+
+ for y in range(6, 15):
+  for x in range(3, 23):
+   u = (x - 12.5) / 10.0
+   v_el = (y - 9.5) / 4.2
+   if u * u + v_el * v_el > 1.08:
+    continue
+   if y >= 12:
+    tone = 2 if u < 0.2 else 1
+   elif abs(u) > 0.78 or v_el < -0.65:
+    tone = 6 if (u + v_el < -0.15) else (5 if u < 0.35 else 3)
+   else:
+    basin = u * 0.3 + v_el * 0.4
+    tone = 3 if basin < -0.05 else (4 if basin < 0.25 else 5)
+    if (x * 5 + y * 3) % 6 == 0:
+     tone = max(2, tone - 1)
+   c.set(x, y, stone[tone])
+
+ for mx, my in ((11, 9), (12, 9), (13, 9), (14, 9), (12, 10), (13, 10), (14, 10), (15, 10), (13, 11), (14, 11)):
+  c.set(mx, my, meal[3] if (mx + my) % 2 == 0 else meal[2])
+
+ for d in range(8):
+  rx = 8 + (d // 2)
+  ry = 4 + d
+  end = 1 if d in (0, 7) else 0
+  c.set(rx - 1, ry, stone[6 - end])
+  c.set(rx, ry, stone[5 - end])
+  c.set(rx + 1, ry, stone[4 - end])
+  c.set(rx + 2, ry, stone[2])
+
+ soft_outline(c, stone[0], stone[3])
  return c.image()
 
 
