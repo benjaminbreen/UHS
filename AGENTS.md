@@ -54,6 +54,7 @@ Open another doc only when the task is about its subject:
 | Props: drawing / gameplay and placement | `docs/PROP_ART.md` / `docs/PROPS.md` |
 | Art labs, ownership, lighting | `docs/GRAPHICS.md` |
 | Region map and travel between maps | `docs/TRAVEL.md` |
+| Bicycles and motorcycles: kinds, handling, tricks, racks, shops | `docs/CYCLES.md` |
 | Time travel, the years, mortality | `docs/TIME.md` |
 | The day's cards, work, Today, the ledger | `docs/DAY.md` |
 | Health, conditions, bonds, death | `docs/LIVES.md` |

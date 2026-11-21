@@ -1,3 +1,4 @@
+import { CYCLE_SEATS, type CyclePose } from "../../../core/cycles";
 import type { CharacterAppearance } from "../../../core/character";
 import type { RestingExpression } from "../../../core/persona";
 import { frameCount, type CharacterPose } from "../poses";
@@ -809,6 +810,23 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     hands[0] = [2.6, handY, reach];
     hands[1] = [-2.6, handY, reach];
     blink = !gallop && frame === 3;
+  } else if (pose in CYCLE_SEATS) {
+    // Astride a cycle: the hip at the saddle, the feet going round with the cranks, the hands on the grips.
+    const c = CYCLE_SEATS[pose as CyclePose];
+    seated = pose !== "cycle-stand";
+    lean = { cycle: 1.4, "cycle-tuck": 4, "cycle-high": 0.8, "cycle-ape": -0.4, "cycle-scoot": 1.6, "cycle-stand": 3.2, moto: 1.8 }[pose as CyclePose];
+    if (pose === "cycle-scoot") step(4.2, 1.6, 0, false);
+    rise = c.hip - d.hip;
+    tilt = sway = 0;
+    const turn = (frame / 8) * Math.PI * 2;
+    if (pose !== "cycle-scoot")
+      for (const [i, side] of [[0, 1], [1, -1]] as const) {
+        const a = side > 0 ? turn : turn + Math.PI;
+        feet[i] = { at: [side * (hipX + 0.8), c.pedalUp + 2 + Math.cos(a) * c.crank, c.ahead + Math.sin(a) * c.crank], knee: 3 };
+      }
+    for (const [i, side] of [[0, 1], [1, -1]] as const) hands[i] = [side * (pose === "cycle-tuck" ? 2 : 3), c.hand - rise, c.reach - lean * 0.6];
+    if (pose === "cycle-stand") rise += frame % 4 === 0 ? 1 : 0;
+    moving = true;
   } else if (pose === "drive-cart" || pose === "guide-plough") {
     seated = pose === "drive-cart";
     if (seated) {

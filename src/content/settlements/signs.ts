@@ -255,6 +255,7 @@ const WORDS: Record<string, Partial<Record<SignLanguage, string[]>>> = {
     sw: ["FUNDI"],
     ru: ["АТЕЛЬЕ"],
   },
+  bicycles: { en: ["CYCLES", "BICYCLES"], fr: ["CYCLES", "VELOS"], nl: ["FIETSEN"], es: ["BICICLETAS"], pt: ["BICICLETAS"], id: ["SEPEDA"], tr: ["BISIKLET"], sw: ["BAISKELI"], ru: ["ВЕЛОСИПЕДЫ"], de: ["FAHRRAD"], it: ["CICLI", "BICICLETTE"], pl: ["ROWERY"], sv: ["CYKLAR"], da: ["CYKLER"] },
   shoes: { en: ["SHOES"], fr: ["CHAUSSURES"], nl: ["SCHOENEN"], es: ["ZAPATOS"], pt: ["SAPATOS"], tr: ["AYAKKABI"], ru: ["ОБУВЬ"] },
   jeweler: { en: ["JEWELRY", "WATCHES"], fr: ["BIJOUX"], nl: ["JUWELIER"], es: ["JOYERIA"], pt: ["JOIAS"], tr: ["KUYUMCU"], ru: ["ЧАСЫ"] },
   radio: { en: ["RADIO", "TV"], fr: ["RADIO"], nl: ["RADIO"], es: ["RADIO"], pt: ["RADIO"], tr: ["RADYO"], sw: ["REDIO"], ru: ["РАДИО"] },
@@ -329,7 +330,7 @@ for (const [language, trades] of Object.entries(MORE))
 
 /** The first year a trade, or a word for it, belongs on a street. */
 const TRADE_FROM: Record<string, number> = {
-  "auto workshop": 1900, "gas station": 1905, "donut shop": 1920, radio: 1922, motel: 1925, laundromat: 1934, juice: 1950,
+  bicycles: 1868, "auto workshop": 1900, "gas station": 1905, "donut shop": 1920, radio: 1922, motel: 1925, laundromat: 1934, juice: 1950,
 };
 const WORD_FROM: Record<string, number> = { TV: 1950, MART: 1930, "АЗС": 1930, "АВТОСЕРВИС": 1960, BAR: 1920 };
 

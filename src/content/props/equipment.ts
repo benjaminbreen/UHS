@@ -2,12 +2,15 @@ import type { WorldSetting } from "../geography/types";
 import type { PropDef } from "./catalog";
 
 export function equipmentVariant(s: WorldSetting | undefined, key: string, variant: number) {
-  if (!["spring", "bakeOven", "kiln", "bloomery", "leverPress", "trough"].includes(key)) return variant;
+  if (!["spring", "bakeOven", "kiln", "bloomery", "leverPress", "trough", "well", "bench", "washingLine"].includes(key)) return variant;
   if (key === "spring") return 1;
   if (!s) return 0;
-  const { year, culture, settlement } = s;
+  const { year, culture, settlement, climate, lat } = s;
   const european = culture === "european";
   const westAsian = culture === "north-african-west-asian";
+  const eastern = culture === "east-asian" || culture === "southeast-asian";
+  const warmStone = westAsian || culture === "south-asian" || culture === "mesoamerican" || culture === "andean"
+    || (european && (climate === "mediterranean" || climate === "arid" || lat < 44));
   if (key === "bakeOven")
     return variant === 1 && ((european && year >= -499) || year >= 1850) ? 1 : 0;
   if (key === "kiln")
@@ -18,6 +21,16 @@ export function equipmentVariant(s: WorldSetting | undefined, key: string, varia
     return variant === 1 && ((european && year >= 1500) || year >= 1850) ? 1 : 0;
   if (key === "trough")
     return variant === 1 && (european || westAsian || settlement === "city" || year >= 1850) ? 1 : 0;
+  if (key === "well")
+    return eastern ? 2 : warmStone ? 1 : 0;
+  if (key === "bench")
+    return eastern ? 2 : warmStone ? 1 : 0;
+  if (key === "washingLine") {
+    const second = variant >= 3 ? 3 : 0;
+    const dyed = culture === "south-asian" || westAsian || culture === "mesoamerican" || culture === "andean"
+      || culture === "west-central-african" || culture === "east-southern-african";
+    return (eastern ? 2 : dyed ? 1 : 0) + second;
+  }
   return variant;
 }
 

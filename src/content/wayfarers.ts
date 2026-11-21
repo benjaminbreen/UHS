@@ -27,6 +27,8 @@ export type Wayfarer = {
   speed?: number;
   /** The pack animals they drive: a fauna species, and how many. */
   animal?: { species: string; count: readonly [number, number] };
+  /** They come by on a bicycle or a motorcycle of the place and year. */
+  ride?: "pedal" | "motor";
   /** Who meets them: farmers and herders unless it says otherwise. */
   lifeway?: "foraging" | "any";
   weight: number;
@@ -872,6 +874,53 @@ export const wayfarers: readonly Wayfarer[] = [
     women: 0,
     weight: 3,
     note: "Itinerant workers carried their bedding rolled in a swag between sheep stations, given rations by custom; documented.",
+  },
+  {
+    id: "wheelman",
+    scope: { years: [1869, 1895], bounds: [-125, 30, 30, 60] },
+    label: "Wheelman",
+    dress: "traveler",
+    going: "Riding to {to}",
+    doing: "Out touring on a high wheel",
+    halt: "talk",
+    party: PAIR,
+    women: 0.05,
+    speed: 2.2,
+    ride: "pedal",
+    lifeway: "any",
+    weight: 1,
+    note: "Velocipede and high-wheel clubs toured the country roads of Europe and North America from the late 1860s; documented.",
+  },
+  {
+    id: "cyclist",
+    scope: { years: [1890, 10001] },
+    label: "Cyclist",
+    dress: "traveler",
+    going: "Cycling to {to}",
+    doing: "Passing through on a bicycle",
+    halt: "rest",
+    party: ALONE,
+    women: 0.4,
+    speed: 2.4,
+    ride: "pedal",
+    lifeway: "any",
+    weight: 5,
+    note: "From the 1890s the safety bicycle was how working people got between villages and towns across Europe, Asia, Africa and the Americas; documented.",
+  },
+  {
+    id: "motorcyclist",
+    scope: { years: [1905, 10001] },
+    label: "Motorcyclist",
+    dress: "traveler",
+    going: "Riding to {to}",
+    doing: "Passing through on a motorcycle",
+    party: ALONE,
+    women: 0.25,
+    speed: 4,
+    ride: "motor",
+    lifeway: "any",
+    weight: 2,
+    note: "Motorcycles, and from the 1950s mopeds and scooters, were the first motor transport most households could afford; documented.",
   },
 ];
 

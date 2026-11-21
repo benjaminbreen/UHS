@@ -1,5 +1,6 @@
 import type { FaunaMember } from "./fauna";
 import type { ItemId } from "./types";
+import { CYCLE_SPECS, isCycleKind, type CycleKind, type CycleLook } from "./cycles";
 
 export type MountVoice =
   | "horse"
@@ -9,7 +10,9 @@ export type MountVoice =
   | "deer"
   | "llama"
   | "elephant"
-  | "ostrich";
+  | "ostrich"
+  | "bike"
+  | "motor";
 
 export type MountGait = 0 | 1 | 2 | 3 | 4;
 
@@ -23,9 +26,7 @@ export interface MountSpec {
   maxStamina: number;
   /** Stamina regenerated per second while halted/walking. */
   regenPerSec: number;
-  /** Whether the species uses the 8-direction voxel horse rig. */
-  voxelHorse?: boolean;
-  /** Saddle offset [dx, dy] in pixels relative to the mount sprite's foot anchor (non-voxel mounts). */
+  /** Saddle offset [dx, dy] in pixels relative to the mount sprite's foot anchor. */
   saddle: readonly [number, number];
   /** Extra horizontal saddle offset when facing east (+x) / west (-x). */
   sideShift?: number;
@@ -46,6 +47,8 @@ export interface MountSpec {
   voice: MountVoice;
   /** Display noun when no custom name is set. */
   noun: string;
+  /** A machine, not an animal. */
+  cycle?: CycleKind;
 }
 
 export interface PlayerMount {
@@ -69,7 +72,15 @@ export interface PlayerMount {
   bucking?: { holds: number; needed: number; until: number; tries: number };
   /** Recent over-spur warning count (resets when stamina recovers). */
   strained?: number;
+  /** A bicycle or motorcycle. Its object stays in the world's list, marked carried, under `id`. */
+  cycle?: { look: CycleLook; id: string; tuned?: boolean };
 }
+
+export const cycleSpecies = (kind: CycleKind) => `cycle:${kind}`;
+export const cycleKindOf = (speciesId: string | undefined): CycleKind | undefined => {
+  const kind = speciesId?.startsWith("cycle:") ? speciesId.slice(6) : undefined;
+  return isCycleKind(kind) ? kind : undefined;
+};
 
 export const MOUNT_SPECS: Readonly<Record<string, MountSpec>> = {
   horse: {
@@ -150,19 +161,6 @@ export const MOUNT_SPECS: Readonly<Record<string, MountSpec>> = {
     breakBeats: 3,
     voice: "bovine",
     noun: "water buffalo",
-  },
-  cattle: {
-    speciesId: "cattle",
-    stepMs: [162, 124, 92, 74],
-    jumpReach: 1,
-    maxStamina: 135,
-    regenPerSec: 15,
-    saddle: [0, 13],
-    sideShift: -2,
-    heavy: true,
-    breakBeats: 3,
-    voice: "bovine",
-    noun: "ox",
   },
   yak: {
     speciesId: "yak",
@@ -291,6 +289,22 @@ const HORSE_FORM_OVERRIDES: Readonly<Record<string, Partial<MountSpec>>> = {
 
 export function mountSpec(speciesId: string | undefined, form?: string): MountSpec | undefined {
   if (!speciesId) return undefined;
+  const cycle = cycleKindOf(speciesId);
+  if (cycle) {
+    const c = CYCLE_SPECS[cycle], ms = (v: number) => Math.round(1000 / v);
+    return {
+      speciesId,
+      stepMs: [ms(c.cruise * 0.6), ms(c.cruise), ms((c.cruise + c.sprint) / 2), ms(c.sprint)],
+      jumpReach: Math.max(1, c.hop) as 1 | 2 | 3,
+      maxStamina: 100,
+      regenPerSec: c.motor ? 30 : 14,
+      saddle: [0, 0],
+      breakBeats: 0,
+      voice: c.motor ? "motor" : "bike",
+      noun: c.noun,
+      cycle,
+    };
+  }
   const base = MOUNT_SPECS[speciesId];
   if (!base) return undefined;
   if (speciesId === "horse" && form && HORSE_FORM_OVERRIDES[form]) {
@@ -311,33 +325,6 @@ export function mountLabel(mount: Pick<PlayerMount, "speciesId" | "form" | "coat
     return `${mount.coat.replace(/[_-]/g, " ")} ${noun}`;
   }
   return noun;
-}
-
-/** Subtle multiplicative tints so the voxel horse reflects the mounted horse's coat. */
-export const VOXEL_HORSE_COAT_TINT: Readonly<Record<string, number>> = {
-  bay: 0xffffff,
-  chestnut: 0xffd2b0,
-  sorrel: 0xffc8a2,
-  black: 0x7c7a82,
-  grey: 0xcfd4dc,
-  gray: 0xcfd4dc,
-  dapple: 0xd4d8e0,
-  white: 0xf4f2ec,
-  dun: 0xf2dfc0,
-  buckskin: 0xf4dca8,
-  palomino: 0xffe2a8,
-  roan: 0xe2c4c0,
-  pinto: 0xede6dc,
-  cream: 0xf8ecd0,
-};
-
-export function voxelHorseTint(coat: string | undefined): number {
-  if (!coat) return 0xffffff;
-  const key = coat.toLowerCase().replace(/[_-]/g, "");
-  for (const [k, v] of Object.entries(VOXEL_HORSE_COAT_TINT)) {
-    if (key.includes(k)) return v;
-  }
-  return 0xffffff;
 }
 
 /** Items a mount will happily eat from your hand for stamina & bond. */

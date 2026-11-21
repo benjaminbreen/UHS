@@ -129,6 +129,13 @@ export const poses = [
   "guide-plough",
   "ride",
   "ride-gallop",
+  "cycle",
+  "cycle-tuck",
+  "cycle-high",
+  "cycle-ape",
+  "cycle-scoot",
+  "cycle-stand",
+  "moto",
 ] as const;
 export type CharacterPose = (typeof poses)[number];
 export const fieldPose = {
@@ -251,7 +258,7 @@ export function workPoseFor(activity: string, label: string, family = "", trade 
 export const poseFrames = 4;
 /** The walk and the run have eight: four beats for each foot. */
 export const frameCount = (pose: CharacterPose) =>
-  pose === "walk" || pose === "run" || pose === "guide-plough" ? 8 : poseFrames;
+  pose === "walk" || pose === "run" || pose === "guide-plough" || pose.startsWith("cycle") ? 8 : poseFrames;
 export function poseTiming(pose: CharacterPose) {
   if (pose === "wade") return 210;
   if (pose === "swim") return 190;

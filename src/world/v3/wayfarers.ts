@@ -6,6 +6,8 @@ import { proceduralName } from "../../content/geography/character";
 import { wayfarersAt, type Wayfarer } from "../../content/wayfarers";
 import { DAY_MINUTES, PACE, shopOpen, siestaOf, type Itinerary, type StationActivity } from "../../core/itinerary";
 import { random } from "../../core/random";
+import { cycleLookFor } from "../../core/cycles";
+import { modernity } from "../../content/settlements/modernity";
 import { route } from "../../core/routing";
 import type { Actor, Pack, Point, WorldModel, WorldObject } from "../../core/types";
 import type { MapEntrance } from "../travel/entrances";
@@ -498,6 +500,7 @@ function roadParty(
   return party.map((m, i) => {
     const { itinerary, done } = walk(2 * i);
     const actor = person(seed, setting, `${id}-${i}`, kind.dress, kind.label, m.sex, m.age, path[0], (done + 10) * 60);
+    if (kind.ride) actor.cycle = cycleLookFor(setting.year, modernity(setting).id, `${seed}:${id}-${i}`, modernity(setting).motor, kind.ride);
     if (i || !animals.length) return { actor, itinerary };
     actor.wayfarer!.train = { species: beast!.species, count: animals.length };
     return { actor, itinerary, animals };

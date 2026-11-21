@@ -471,7 +471,6 @@ export function propKit(pack: Pack): PropKit {
   if (year >= 1850 && year < 1970) contexts.yard.push("stencilCrate");
   if (urban && year >= 1830 && year < 1960 && (culture === "european" || year >= 1880)) contexts.yard.push("coalSacks");
   if (urban && year >= 1850) contexts.yard.push("newspapers");
-  if (year >= 1890) contexts.yard.push("bicycle");
   if (year >= 1940) contexts.yard.push("jerrycans");
   if (year >= 1950) contexts.work.push("pallets");
   if (year >= 1950) {

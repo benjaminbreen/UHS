@@ -284,13 +284,13 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Waymark",
     family: "waymark",
-    variants: 4,
+    variants: 6,
   },
   waysideShrine: {
     solid: true,
     name: "Wayside shrine",
     family: "wayside-shrine",
-    variants: 4,
+    variants: 6,
   },
   hayRick: {
     solid: true,
@@ -326,6 +326,7 @@ export const propDefs: Record<string, PropDef> = {
     solid: true,
     name: "Planted tub",
     family: "flower-tub",
+    variants: 4,
   },
   chest: {
     shove: { as: "free", mass: 1.4 },
@@ -1243,12 +1244,20 @@ export const propDefs: Record<string, PropDef> = {
     family: "newspapers",
     breakable: "paper",
   },
-  bicycle: {
-    shove: { as: "free", mass: 0.6 },
-    rarity: 0.7,
+  bikeRack: {
+    solid: false,
+    name: "Bicycle rack",
+    family: "bike-rack",
+  },
+  bikePump: {
     solid: true,
-    name: "Bicycle",
-    family: "bicycle",
+    name: "Bicycle pump",
+    family: "bike-pump",
+  },
+  bikeRamp: {
+    solid: false,
+    name: "Jump",
+    family: "bike-ramp",
   },
   jerrycans: {
     shove: { as: "free", mass: 0.7 },

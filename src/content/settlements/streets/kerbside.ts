@@ -71,14 +71,9 @@ export function kerbsideFor(s: WorldSetting): Kerbside {
   if (id === "north-america" && between(y, 1955, 2015)) for (const v of [0, 1, 2, 3]) add(at("news-box", v), 1.5);
   if ((id === "japan" && y >= 1965) || ((id === "east-asia" || id === "southeast-asia") && y >= 1995))
     for (const v of [0, 1, 2, 3]) add(at("vending-machine", v), id === "japan" ? 3 : 1);
-  if (id === "japan" && y >= 1960) add(at("bicycle", 3), 4);
-  if ((id === "east-asia" && y >= 1950) || id === "south-asia" || id === "southeast-asia" || cycling) {
-    add(at("bicycle", 0), cycling || id === "east-asia" ? 5 : 3);
-    add(at("bicycle", 1), 1);
-    add(at("bicycle", 2), 1);
-  } else if (y >= 1900) add(at("bicycle", (y + 1) % 3), 0.6);
-  if ((cycling && y >= 1960) || (continental && y >= 1975) || (id === "japan" && y >= 1980) || (id === "north-america" && y >= 1990))
-    add(at("bike-rack", 1), cycling ? 3 : 1);
+  // The bicycles themselves are parked by the town plan; the street only gives them somewhere to stand.
+  if ((cycling && y >= 1930) || ((id === "east-asia" || id === "japan") && y >= 1960) || (continental && y >= 1975) || (id === "north-america" && y >= 1990))
+    add(at("bike-rack", y >= 1990 ? 0 : 1), cycling || id === "east-asia" || id === "japan" ? 4 : 1.5);
   if (y >= 1950) add(at("utility-cabinet", id === "north-america" || id === "latin-america" ? 1 : continental || id === "britain" ? 2 : 1), 1.5);
   if (id === "north-america" && y >= 1970) add(at("kerb-rubbish", 0), 1);
   else if (id === "japan" && y >= 1970) add(at("kerb-rubbish", 1), 2);

@@ -2255,6 +2255,61 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       console.log(`wrote ${out(`village-${light}`)}`);
     }
   },
+  /** Every kind of cycle with a rider aboard: pedalling east, from the front, from behind, west, and parked. */
+  async cyclists(page) {
+    await characterLab(page, { paused: true });
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheets = await page.evaluate(async () => {
+      const { drawCharacterG } = await import("/src/render/characters/doll/draw.ts" as string);
+      const { paintCycle, CYCLE_W, CYCLE_H, CYCLE_GROUND } = await import("/src/render/cycles/paint.ts" as string);
+      const { CYCLE_KINDS, CYCLE_SPECS, cycleLookOf } = await import("/src/core/cycles.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const cellW = 72, cellH = 72, cols = 7, per = 6, z = 3;
+      const doll = document.createElement("canvas"), bike = document.createElement("canvas");
+      doll.width = doll.height = 80; bike.width = CYCLE_W; bike.height = CYCLE_H;
+      const dc = doll.getContext("2d")!, bc = bike.getContext("2d")!;
+      const towns = ["london", "paris", "beijing", "kyoto"];
+      const out: string[] = [];
+      for (let from = 0; from < CYCLE_KINDS.length; from += per) {
+        const kinds = CYCLE_KINDS.slice(from, from + per);
+        const sheet = document.createElement("canvas");
+        sheet.width = cols * cellW * z; sheet.height = kinds.length * cellH * z;
+        const ctx = sheet.getContext("2d")!;
+        ctx.imageSmoothingEnabled = false; ctx.fillStyle = "#7a945c"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+        ctx.scale(z, z);
+        kinds.forEach((kind: string, row: number) => {
+          const spec = CYCLE_SPECS[kind], year = Math.min(spec.to ?? 2005, Math.max(spec.from + 8, 1995 > (spec.to ?? 9999) ? spec.from + 8 : spec.from + 12));
+          const place = places.find((p: any) => p.id === towns[(from + row) % towns.length]);
+          const c = generateCharacter(settingFor(place, year), "cyclists", `cyclist-${kind}`, 20 + ((from + row) * 7) % 40, undefined, undefined, undefined, (from + row) % 2 ? "female" : "male");
+          const look = cycleLookOf(kind, year, "western-europe", `sheet-${kind}`);
+          const put = (data: Uint8ClampedArray, x: number, y: number, flip: boolean) => {
+            bc.putImageData(new ImageData(new Uint8ClampedArray(data), CYCLE_W, CYCLE_H), 0, 0);
+            ctx.save(); ctx.translate(x, y); if (flip) ctx.scale(-1, 1);
+            ctx.drawImage(bike, -CYCLE_W / 2, -CYCLE_GROUND); ctx.restore();
+          };
+          // direction 1 east, 2 south, 0 north, 3 west
+          [[1, 0], [1, 3], [2, 1], [0, 1], [3, 5], [1, -1], [1, -2]].forEach(([dir, frame], col) => {
+            const x = col * cellW + cellW / 2, y = row * cellH + cellH - 5;
+            const view = dir === 2 ? "front" : dir === 0 ? "back" : "side", flip = dir === 3;
+            const art = paintCycle(look, frame === -2 ? "side" : view, { crank: Math.max(0, frame), spin: Math.max(0, frame) * 5, parked: frame === -1, fallen: frame === -2 });
+            put(art.under, x, y, flip);
+            if (frame >= 0) {
+              drawCharacterG(dc, c.appearance, dir, art.pose, frame, undefined, [0, 2, 4, 6][dir], "neutral");
+              ctx.drawImage(doll, Math.round(x + (flip ? -1 : 1) * art.rider[0] - 40), y - art.rider[1] - 77);
+            }
+            put(art.over, x, y, flip);
+          });
+          ctx.fillStyle = "#1e2b1c"; ctx.font = "7px monospace";
+          ctx.fillText(`${kind} ${year}`, 3, row * cellH + 8);
+        });
+        out.push(sheet.toDataURL());
+      }
+      return out;
+    });
+    for (const [i, sheet] of sheets.entries()) await writeDataUrl(sheet, out(`cyclists-${i}`));
+  },
 };
 
 const asked = process.argv.slice(2);

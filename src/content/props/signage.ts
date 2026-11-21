@@ -28,6 +28,7 @@ export const signLabels = [
   "Ox",
   "Saw",
   "Pipe",
+  "Wheel",
 ] as const;
 export const signStyles = [
   "oak",
@@ -124,6 +125,8 @@ export function emblemFor(
   ...names: (string | undefined)[]
 ) {
   if (venueKind) return venueGlyphs[venueKind];
+  // A cycle shop is known by what it sells, whatever its keeper's trade is called.
+  if (names.some((name) => name && /\b(bicycle|cycle)\b/i.test(name))) return 25;
   for (const name of names) {
     if (!name) continue;
     const words = name.toLowerCase().replace(/[^a-z]+/g, " ");
