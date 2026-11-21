@@ -387,6 +387,8 @@ import {
 import { bloomsAt } from "../content/ecology/blooms";
 import { isGrassTuft } from "../content/ecology/vegetation";
 import { tideAt } from "../content/geography/waterscapes";
+
+const HEN_RAIDERS = ["red-fox", "grey-fox", "golden-jackal", "coyote"];
 const copy = <T>(x: T): T => structuredClone(x);
 /** Building claims (`civic-…`, `venue-venue.…`) that serve as each kind of room in a staged opening. */
 const MOMENT_ROOMS: Partial<Record<(typeof momentRooms)[number], RegExp>> = {
@@ -10075,6 +10077,24 @@ export class Engine {
   /** The cells each animal stood on, tick by tick, for the renderer to walk it
    * through: a block of standing still runs many ticks in one frame. Not saved. */
   readonly faunaTrails = new Map<string, { clock: number; x: number; y: number }[]>();
+  /** A pop-hole left open while the hens roost is an open door to the local fox. */
+  private nightRaid(near: FaunaGroup[], clock: number) {
+    const hour = (clock / 3600) % 24, setting = this.world.pack.setting;
+    if (hour >= 5 || !setting) return;
+    const night = Math.floor(clock / 86400);
+    for (const g of near) {
+      if (g.owner !== "player" || !g.house || g.shut || g.burrowed === undefined || g.members.length < 2) continue;
+      const id = `remains-${g.id}-raid-${night}`;
+      if (this.state.objects.some((o) => o.id === id) || random(this.state.manifest.seed, "night-raid", g.id, night) >= 0.25) continue;
+      const raider = faunaAt(setting).find((f) => HEN_RAIDERS.includes(f.id));
+      if (!raider) continue;
+      g.members.pop();
+      const at = this.world.place(g.house)?.entrance ?? g.home, kind = remainsOf(g.speciesId);
+      if (at && kind) this.state.objects.push(remainsObject(kind, g.speciesId, raider.id, { x: at.x, y: at.y, space: "outside" }, clock, id));
+      const name = raider.id.includes("fox") ? "fox" : raider.id.includes("jackal") ? "jackal" : "coyote";
+      this.event(`A ${name} got into the henhouse in the night. One hen is gone, and there are feathers by the door. Shut the pop-hole at dusk.`, "world");
+    }
+  }
   private stepFauna(clock: number) {
     if (this.state.player.inventory.hound) this.keepHound();
     const groups = this.state.fauna;
@@ -10131,6 +10151,7 @@ export class Engine {
           }
         }
     if (near.some((g) => !g.members.length)) this.state.fauna = this.state.fauna?.filter((g) => g.members.length);
+    this.nightRaid(near, clock);
     advanceFauna(
       near.filter(g => !g.hitch),
       {

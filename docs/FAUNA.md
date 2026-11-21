@@ -28,16 +28,20 @@ how they behave, and which art sets draw them. Entry files:
   attacks on people. `stepAllowed` and `wallowable` are its movement rules.
   Kills leave remains (`src/core/remains.ts`) that age and are pruned.
 - **Henhouses.** Where a yard kit (`src/content/settlements/yards.ts`) gives
-  a household a henhouse and the yard has room, `plan.ts` builds a small
-  walk-in building (`yard-henhouse-*`, claim `yard-henhouse`) and links the
+  a household a henhouse, `plan.ts` builds a small walk-in building
+  (`yard-henhouse-*`, claim `yard-henhouse`) behind the house, or with the
+  byres beside it when the back yard is too shallow, and links the
   household's flock to it by `house`. The flock routes around obstacles to
   reach the henhouse at dusk and is out of sight and out of a predator's reach
   until morning (the sim reuses
   `burrowed`), lays into `eggs` each day, and stays in while `shut`. Inside,
   the nest boxes give up the eggs and the perch shuts or opens the pop-hole.
   A raider from the raid plot is turned away by a shut henhouse and takes a
-  bird from the player's open one. Where the yard has no room the coop is
-  still a prop and the hens roost beside it.
+  bird from the player's open one. Without any plot, a night with the
+  player's pop-hole open has a one-in-four chance of losing a hen to the
+  local fox, jackal or coyote (`nightRaid` in the engine), with feathers
+  left at the door. Where there is no room at all the coop is a prop and
+  the hens roost beside it.
 - **Byres.** The same for cattle (`yard-byre-*`, claim `yard-byre`): a cow
   or two of the local milking species, out by day and in from dusk until
   eight, giving `milk` morning and evening and more on a manger filled the

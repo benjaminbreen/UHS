@@ -3239,7 +3239,8 @@ export function planSettlement(
   };
   const propCells = new Set<string>();
   /** Byres wanted: the yard's back corner first, else the nearest clear ground. */
-  const byres: { item: YardProp; id: string; owner: string; rect: Rect; door: Point; role?: string }[] = [];
+  const byres: { item: YardProp; id: string; owner: string; rect: Rect; door: Point; i: number; role?: string }[] = [];
+  const tofts = new Map<string, Rect>();
   const buildingClearance = new Set<string>();
   const reserveBuilding = (sprite: string, rect: Rect, entrance: Point, work?: Point) => {
     if (!placed) return;
@@ -3350,7 +3351,7 @@ export function planSettlement(
         // A town with sewers has no privies.
         !(motorAge && urban && /privy/.test(p.family)),
     );
-    for (const p of items) if ((p.building?.kind === "byre" || p.building?.kind === "stable") && owner) byres.push({ item: p, id, owner, rect, door, role });
+    for (const p of items) if (p.building && owner) byres.push({ item: p, id, owner, rect, door, i, role });
     const privy = privies[Math.floor(rand("privy-kind", i) * privies.length)];
     if (privy && !(motorAge && urban) && rand("privy-here", i) < 0.55)
       items.push({ prop: privy, family: propDefs[privy].family, name: propDefs[privy].name, where: "back", chance: 1 });
@@ -3490,7 +3491,6 @@ export function planSettlement(
         const inPlot = (x: number, y: number) =>
           x >= plot.x && x < plot.x + plot.w && y >= plot.y && y < plot.y + plot.h;
         let fits = true;
-        const hh = owner === "player";
         for (let y = toft.y; y < toft.y + toft.h && fits; y++)
           for (let x = toft.x; x < toft.x + toft.w && fits; x++) {
             if (inHouse(x, y)) continue;
@@ -3523,8 +3523,8 @@ export function planSettlement(
               break;
             }
           }
-        if (hh) ((globalThis as any).__tf ??= []).push(`${id} back ${back} side ${side} fits ${fits} ${(globalThis as any).__why} rect ${rect.x},${rect.y},${rect.w},${rect.h} top ${top}`);
         if (!fits) continue;
+        tofts.set(id, toft);
         eachCell(toft, (x, y) => {
           if (!inHouse(x, y)) plan.reserved.add(cellKey(x, y));
         });
@@ -3772,7 +3772,8 @@ export function planSettlement(
                 serviceTargets.push(plan.places[plan.places.length - 1].entrance);
                 return;
               }
-              if (item.building?.kind === "byre" || item.building?.kind === "stable") return;
+              // An animal house that will not fit behind gets a second look with the byres.
+              if (item.building) return;
               // A privy goes at the bottom of the back yard or not at all.
               const spots = item.where === "back" && (behind.length || propDefs[item.prop]?.where === "privy") ? behind : free;
               const hit = spots.find((at) => (item.where !== "apron" || at.y >= rect.y + rect.h) && yardProp(item, at, id, i, 40 + n));
@@ -6572,7 +6573,8 @@ export function planSettlement(
   // stands behind or beside the house on the same level, never blocking the front facade.
   for (const want of byres) {
     if (plan.places.some((p) => p.id === `${want.id}-${want.item.building!.kind}`)) continue;
-    const { rect, door } = want, near: Point[] = [];
+    const { rect, door } = want, near: Point[] = [], toft = tofts.get(want.id);
+    const ownYard = (x: number, y: number) => !!toft && x >= toft.x && x < toft.x + toft.w && y >= toft.y && y < toft.y + toft.h;
     const houseTier = tier(rect.x + (rect.w >> 1), rect.y + rect.h - 1);
     for (let y = rect.y - 16; y <= rect.y + rect.h + 1; y++)
       for (let x = rect.x - 14; x <= rect.x + rect.w + 13; x++) {
@@ -6580,7 +6582,7 @@ export function planSettlement(
         if (y >= rect.y + rect.h - 1 && x >= rect.x - 3 && x <= rect.x + rect.w + 2) continue;
         const k = cellKey(x, y);
         if (
-          !plan.reserved.has(k) &&
+          (!plan.reserved.has(k) || ownYard(x, y)) &&
           !plan.traffic.has(k) &&
           tier(x, y) === houseTier &&
           sample(x, y).water >= 4
@@ -6595,7 +6597,10 @@ export function planSettlement(
       return d + zone;
     };
     near.sort((a, b) => score(a) - score(b));
-    if (outbuilding(want.item.building!, near, want.id, want.owner, want.item.name, want.role) && centers.has(cellKey(door.x, door.y))) {
+    const built = outbuilding(want.item.building!, near, want.id, want.owner, want.item.name, want.role);
+    // No room for a henhouse: the hens make do with a coop in the yard.
+    if (!built && want.item.building!.kind === "henhouse") near.find((at) => yardProp(want.item, at, want.id, want.i, 60));
+    if (built && centers.has(cellKey(door.x, door.y))) {
       const placedByre = plan.places[plan.places.length - 1];
       const target = placedByre.entrance;
       let cxp = door.x, cyp = door.y;

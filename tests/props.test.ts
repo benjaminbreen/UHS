@@ -668,8 +668,7 @@ it("keeps broad yard props clear of houses and one another", () => {
   }
 });
 
-// Skipped: no yard-henhouse is placed in Normandy 1300 since e969fc5f; see follow-up.
-it.skip("houses a household's hens in a henhouse: in at dusk, eggs by morning", () => {
+it("houses a household's hens in a henhouse: in at dusk, eggs by morning", () => {
   const resolved = resolveSetting("A farmer in Normandy, 1300") as any;
   expect(resolved.error).toBeUndefined();
   // A seed whose yards have room for one: a cramped back yard keeps a coop instead.
@@ -708,6 +707,24 @@ it.skip("houses a household's hens in a henhouse: in at dusk, eggs by morning", 
   e.act({ actionId: "eggs", expectedRevision: e.state.revision, command: { type: "interact", target: box.id, action: "use-prop" } });
   expect(e.state.player.inventory.eggs).toBe(laid);
   expect(flock.eggs).toBe(0);
+  // The player's own: left open at night, sooner or later the fox gets one; shut, never.
+  const own = e.state.fauna!.find((g) => g.house && g.owner === "player")!;
+  const coop = e.world.place(own.house!)!;
+  e.state.player.pos = { x: coop.entrance.x, y: coop.entrance.y + 3, space: "outside" };
+  const nights = (shut: boolean, most: number) => {
+    const start = own.members.length;
+    for (let n = 0; n < most && own.members.length === start; n++) {
+      e.advance(((45 - hour()) % 24) * 3600);
+      own.shut = shut;
+      e.advance(11.5 * 3600);
+      own.shut = false;
+    }
+    return start - own.members.length;
+  };
+  expect(nights(true, 1)).toBe(0);
+  expect(nights(false, 10)).toBe(1);
+  expect(e.state.events.some((v) => /fox got into the henhouse/.test(v.text))).toBe(true);
+  expect(e.state.objects.some((o) => o.id.startsWith(`remains-${own.id}-raid-`))).toBe(true);
 });
 
 it.runIf(!!process.env.FULL)("gives a dairymaid a byre: cows in at night, milked there, and her day's work inside it", () => {
