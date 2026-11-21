@@ -184,6 +184,12 @@ def spec_for(name, r):
     if m:
         size, v = m.group(1) or 'small', int(m.group(2))
         return ('wa-aegean', dict(W=nw * 16, size=size, v=v)), (nw, fh)
+    m = re.match(r'europe-service-gold-small-(\d+)$', base)
+    if m:
+        return ('eu-service', dict(v=int(m.group(1)), W=nw * 16)), (nw, fh)
+    m = re.match(r'neolithic-service-gold-small-(\d+)$', base)
+    if m:
+        return ('hut-neolithic-service', dict(W=nw * 16, v=int(m.group(1)))), (nw, fh)
     m = re.match(r'hall-thermae-(small|medium|large)-\d+$', base)
     if m:
         return ('thermae', dict(W=nw * 16)), (nw, fh)
@@ -355,6 +361,7 @@ BUILDERS = {
     'wa-small': lambda s, i: wa.small(s['region'], {k: v for k, v in s.items() if k != 'region'}, i),
     'wa-rural': lambda s, i: wa.rural(s['region'], {k: v for k, v in s.items() if k != 'region'}, i),
     'wa-aegean': lambda s, i: wa.aegean(s, i),
+    'eu-service': lambda s, i: __import__('art.front_worksites', fromlist=['europe_service']).europe_service(s['v'], s['W'], i),
     'madrasa': lambda s, i: persia.madrasa(s, i),
     'hammam': lambda s, i: persia.hammam(s, i),
     'islamic-madrasa': islam.BUILDERS['islamic-madrasa'],

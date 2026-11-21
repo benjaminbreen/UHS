@@ -1506,6 +1506,295 @@ class PalaceRange:
         return c.im
 
 
+class CourtOpera:
+    """Baroque / Neoclassical court opera house in true Stardew floating-above
+    projection: walls square on, projecting central gable roof running back into
+    a visible lead-and-slate mansard roof deck seen from above, and an elliptical
+    limestone clerestory drum + ribbed copper Baroque dome standing squarely ON
+    that roof deck (with a cast shadow on the deck)."""
+
+    def __init__(self, W=196, size='medium', look=0, seed=0):
+        self.W, self.size, self.look, self.seed = W, size, look, seed
+        self.x0 = 16
+        self.door_x = self.x0 + W // 2
+        self.door_size = (24, 44)
+        self.base = 0
+        self.c = None
+
+    def build(self):
+        from art import front_europe as eu
+        W, x0 = self.W, self.x0
+        small = self.size == 'small'
+        large = self.size == 'large'
+        ground_h = 46
+        piano_h = 48 if small else 54
+        roof_d = 40 if small else (56 if large else 48)
+        roof_rise = 18 if small else (24 if large else 22)
+        dome_extra = 8 if small else (44 if large else 32)
+        H = ground_h + piano_h + roof_d + roof_rise + dome_extra + 14
+        c = C(W + x0 * 2, H)
+        self.c = c
+        base = H - 6
+        self.base = base
+        L, R = x0, x0 + W
+        cx = L + W // 2
+        mid = base - ground_h
+        eave = mid - piano_h
+        rear = eave - roof_d - roof_rise
+
+        cream = ramp(76, 0.048, lift=0.05)
+        rust = ramp(72, 0.045, lift=-0.03)
+        slate = TONES['slate-blue']
+        copper = ramp(164, 0.085, lift=-0.09)
+        crimson = ramp(16, 0.14, lift=-0.12)
+        mahog = ramp(22, 0.11, lift=-0.18)
+        glass = ramp(228, 0.09, lift=-0.20)
+        warm_glass = ramp(52, 0.12, lift=-0.02)
+
+        # 1. TRUE 4-SIDED HIPPED MANSARD SLATE ROOF (PalaceRange projection)
+        # Front slope, sunlit left hip, shaded right hip, and receding upper roof
+        # meeting along crisp lead hip ridges.
+        rx, rw = L - 4, W + 8
+        hip = min(rw // 3, max(16, roof_d // 2))
+        inset = min(roof_d // 2, max(14, rw // 4))
+        for dx in range(rw):
+            side = min(dx, rw - 1 - dx) / hip
+            for dy in range(roof_d + roof_rise):
+                side_k = min(1.0, side)
+                front = (roof_d + roof_rise - 1 - dy) / (inset + roof_rise)
+                rear_k = (dy + 1) / max(1, inset - roof_rise // 2)
+                slope = min(front, side_k, rear_k)
+                if dy < round((1 - side_k) * roof_rise):
+                    continue
+                plane = 0 if front <= side_k and front <= rear_k else 1 if side < 1 else 2
+                across = dy if plane == 1 else dx
+                course = int(slope * (inset + roof_rise)) if plane != 2 else dy
+                row, lip = divmod(course, 5)
+                seam = (across + row % 2 * 4) % 9
+                k = (2 if dx < rw // 2 else 5) if plane == 1 else (3 if plane == 0 else 2)
+                tint = slate[min(7, k + (1 if lip == 0 or seam == 0 else 0))]
+                if lip == 4:
+                    tint = mix(tint, slate[max(0, k - 1)], 0.45)
+                if abs(front - side) * hip < 1.1 and side < 1:
+                    tint = eu.LEAD[2]
+                c.p(rx + dx, rear + dy, tint)
+        ridge_y = rear + max(0, roof_d - inset)
+        # Gilded cresting rail + ball finials along the upper hip ridge.
+        c.rect(rx + hip, ridge_y - 1, max(1, rw - 2 * hip), 2, GOLD[2])
+        c.rect(rx + hip, ridge_y - 1, max(1, rw - 2 * hip), 1, GOLD[0])
+        for px in (rx + hip, rx + rw - 1 - hip):
+            finial(c, px, ridge_y - 1, GOLD)
+
+        # 2. PROJECTING CENTRAL GABLE ROOF (tiles_back, matching CastleHall / Stardew)
+        n_bays = 3 if small else (5 if not large else 7)
+        span = (W - 18) / n_bays
+        pw = min(W - 26, round(span * (3 if not small else 2)) + 8)
+        ph = 20 if not small else 16
+        py0 = eave - 4
+        def verge(xx):
+            return py0 - ph + round(abs(xx - cx) * ph / (pw / 2)) - 1
+        g_depth = max(12, verge(cx) - ridge_y)
+        eu.tiles_back(c, cx - pw // 2 - 2, cx + pw // 2 + 3, verge, g_depth, slate, cx, 'slate')
+        # Crisp gilded ridge line meeting the main hip ridge in a clean T-junction.
+        c.rect(cx - 1, ridge_y - 1, 3, verge(cx) - ridge_y + 2, GOLD[2])
+        c.rect(cx - 1, ridge_y - 1, 1, verge(cx) - ridge_y + 2, GOLD[0])
+
+        # 3. AUDITORIUM DOME STANDING ON THE UPPER ROOF RIDGE (medium & large)
+        if not small:
+            dr_rx = 32 if large else 23
+            dr_ry = round(dr_rx * 0.34)
+            drum_by = ridge_y + 6
+            drum_h = 13 if large else 10
+            # Soft elliptical cast shadow on the hipped roof slopes around the drum's foot.
+            for yy in range(drum_by - dr_ry, drum_by + dr_ry + 4):
+                for xx in range(cx - dr_rx - 2, cx + dr_rx + 7):
+                    u = (xx - (cx + 3)) / (dr_rx + 3)
+                    v = (yy - (drum_by + 2)) / (dr_ry + 2)
+                    if u * u + v * v <= 1 and c.g(xx, yy)[3] > 0:
+                        c.p(xx, yy, mix(c.g(xx, yy), DARK, 0.38))
+            # Elliptical dressed-limestone drum seated on the roof.
+            drum_top = drum_by - drum_h
+            for yy in range(drum_top, drum_by + dr_ry + 1):
+                for xx in range(cx - dr_rx, cx + dr_rx + 1):
+                    nx = (xx - cx) / max(1, dr_rx)
+                    if abs(nx) > 1:
+                        continue
+                    eb = drum_by + round(dr_ry * math.sqrt(max(0.0, 1 - nx * nx)))
+                    et = drum_top + round(dr_ry * math.sqrt(max(0.0, 1 - nx * nx)))
+                    if yy > eb:
+                        continue
+                    q = 1 if nx < -0.45 else (2 if nx < 0.1 else (3 if nx < 0.55 else 4))
+                    if yy >= eb - 1:
+                        q = 5
+                    elif abs(yy - et) <= 1:
+                        q = 0 if nx < 0.2 else 2
+                    c.p(xx, yy, cream[q])
+            # Arched clerestory windows wrapping around the curved front of the drum.
+            n_cl = 5 if large else 3
+            for i in range(n_cl):
+                ang = -0.68 + i * (1.36 / max(1, n_cl - 1))
+                wx = cx + round(dr_rx * math.sin(ang))
+                wy = drum_top + round(dr_ry * math.cos(ang)) + 3
+                c.rect(wx - 2, wy, 5, 6, glass[5])
+                c.rect(wx - 1, wy + 1, 3, 4, warm_glass[2])
+                c.rect(wx - 2, wy - 1, 5, 1, cream[0])
+            # Ribbed patinated-copper Baroque dome + columned limestone & gilded cupola.
+            dome(c, cx, drum_top + 2, dr_rx - 1, copper, kind='hemi', courses=5, ribs=10, lantern=None)
+            apex = drum_top + 2 - round((dr_rx - 1) * 0.92)
+            cw = 12 if large else 10
+            ch = 8 if large else 6
+            c.rect(cx - cw // 2 - 1, apex - 1, cw + 2, 2, cream[1])
+            c.rect(cx - cw // 2, apex - ch, cw, ch, cream[3])
+            c.rect(cx - cw // 2, apex - ch, 2, ch, cream[0])
+            for lx in range(cx - cw // 2 + 2, cx + cw // 2 - 1, 3):
+                c.rect(lx, apex - ch + 2, 2, ch - 3, glass[5])
+                c.p(lx, apex - ch + 3, warm_glass[2])
+            c.rect(cx - cw // 2 - 1, apex - ch - 2, cw + 2, 2, GOLD[1])
+            c.rect(cx - cw // 2 + 1, apex - ch - 4, cw - 2, 2, GOLD[0])
+            c.rect(cx - 2, apex - ch - 6, 4, 2, GOLD[1])
+            c.rect(cx, apex - ch - 12, 1, 7, GOLD[0])
+            c.rect(cx - 1, apex - ch - 10, 3, 1, GOLD[1])
+        else:
+            # Small opera: neat dressed-stone chimneys rising from the rear hip corners.
+            for chx in (L + 14, R - 22):
+                cy_top = rear - 2
+                c.rect(chx, cy_top, 8, 11, cream[3])
+                c.rect(chx, cy_top, 2, 11, cream[1])
+                c.rect(chx + 7, cy_top, 1, 11, cream[5])
+                c.rect(chx - 1, cy_top - 2, 10, 2, cream[0])
+                c.rect(chx + 1, cy_top - 4, 2, 2, rust[4])
+                c.rect(chx + 5, cy_top - 4, 2, 2, rust[4])
+
+        # 5. STONE-FRAMED ARCHED DORMERS ON THE FRONT MANSARD SLOPE
+        if not small:
+            dorm_xs = (L + 24, R - 24) if not large else (L + 22, L + 48, R - 48, R - 22)
+            for dx in dorm_xs:
+                dy = eave - 15
+                c.rect(dx - 6, dy, 12, 12, cream[2]); c.rect(dx - 6, dy, 2, 12, cream[0])
+                c.rect(dx - 7, dy - 2, 14, 2, cream[0]); c.rect(dx - 5, dy - 4, 10, 2, cream[1])
+                c.rect(dx - 4, dy + 2, 8, 8, glass[4])
+                c.rect(dx - 3, dy + 3, 3, 3, glass[1])
+                c.rect(dx - 3, dy + 6, 6, 3, warm_glass[2])
+                c.rect(dx, dy + 2, 1, 8, cream[2]); c.rect(dx - 4, dy + 5, 8, 1, cream[2])
+
+        # 6. FRONT LIMESTONE FACADE (rusticated ground + dressed ashlar piano nobile)
+        fm.ashlar(c, L, mid, W, ground_h, rust, 7, 16)
+        fm.ashlar(c, L, eave, W, piano_h, cream, 8, 18)
+        for yy in range(mid + 6, base - 4, 6):
+            c.rect(L + 2, yy, W - 4, 1, rust[5])
+        c.rect(L - 5, eave - 4, W + 10, 4, cream[1]); c.rect(L - 5, eave, W + 10, 2, cream[5])
+        for dx in range(L - 2, R + 2, 5):
+            c.rect(dx, eave + 2, 2, 2, cream[4])
+        c.rect(L - 3, mid - 2, W + 6, 4, cream[1]); c.rect(L - 3, mid + 2, W + 6, 2, cream[5])
+        c.rect(L - 2, base - 5, W + 4, 5, rust[4]); c.rect(L - 2, base - 5, W + 4, 1, rust[1])
+
+        # Ground-floor rusticated entrance arcade.
+        for i in range(n_bays):
+            bx = round(L + 9 + (i + 0.5) * span)
+            center = (i == n_bays // 2)
+            aw = min(24 if center else 20, round(span) - 10)
+            ah = 36 if center else 31
+            spring = base - ah + aw // 2
+            for yy in range(base - ah - 2, base - 2):
+                for xx in range(bx - aw // 2 - 2, bx + aw // 2 + 2):
+                    if yy >= spring or rounded(xx, yy, bx - aw // 2 - 2, spring, aw + 4):
+                        c.p(xx, yy, cream[1 if xx < bx else 4])
+            for yy in range(base - ah, base - 2):
+                for xx in range(bx - aw // 2, bx + aw // 2):
+                    if yy >= spring or rounded(xx, yy, bx - aw // 2, spring, aw):
+                        c.p(xx, yy, DARK)
+            c.rect(bx - 2, base - ah - 3, 4, 4, cream[0])
+            for yy in range(base - ah + 2, spring + 1):
+                for xx in range(bx - aw // 2 + 2, bx + aw // 2 - 2):
+                    if rounded(xx, yy, bx - aw // 2 + 2, spring + 1, aw - 4):
+                        c.p(xx, yy, warm_glass[1 if (yy > spring - 4) else 2])
+            c.rect(bx, base - ah + 2, 1, spring - (base - ah + 2), cream[2])
+            c.rect(bx - aw // 2 + 2, spring, aw - 4, 1, cream[1])
+            if center:
+                c.rect(bx - aw // 2 + 2, spring + 1, aw - 4, base - spring - 3, mahog[3])
+                for px in (bx - aw // 2 + 4, bx + 2):
+                    c.rect(px, spring + 4, aw // 2 - 5, 10, mahog[4])
+                    c.rect(px, spring + 4, aw // 2 - 5, 1, mahog[2])
+                c.rect(bx - 1, spring + 1, 2, base - spring - 3, mahog[6])
+                c.p(bx - 3, base - 14, GOLD[0]); c.p(bx + 2, base - 14, GOLD[0])
+            else:
+                c.rect(bx - aw // 2 + 2, spring + 1, aw - 4, base - spring - 3, mahog[5])
+                for side in (-1, 1):
+                    px = bx + (1 if side > 0 else -(aw // 2 - 3))
+                    pw_p = aw // 2 - 4
+                    c.rect(px, spring + 3, pw_p, 11, glass[4])
+                    c.rect(px + 1, spring + 4, max(1, pw_p - 2), 4, glass[2])
+                    c.rect(px + 1, spring + 9, max(1, pw_p - 2), 4, warm_glass[3])
+
+        # Piano nobile: balustraded stone balcony + arched multi-pane French windows + pilasters.
+        bal_y = mid - 9
+        c.rect(L + 4, bal_y, W - 8, 2, cream[0])
+        for bx in range(L + 8, R - 6, 4):
+            c.rect(bx, bal_y + 2, 2, 5, cream[2]); c.p(bx + 1, bal_y + 4, cream[4])
+
+        for i in range(n_bays):
+            bx = round(L + 9 + (i + 0.5) * span)
+            ww, wh = min(16, round(span) - 14), piano_h - 20
+            wy = eave + 10
+            w_spring = wy + ww // 2
+            c.rect(bx - ww // 2 - 3, wy - 4, ww + 6, 2, cream[0])
+            c.rect(bx - ww // 2 - 1, wy - 6, ww + 2, 2, cream[1])
+            c.rect(bx - ww // 2 - 2, wy - 2, ww + 4, wh + 3, cream[4])
+            c.rect(bx - ww // 2 - 2, wy - 2, 1, wh + 3, cream[0])
+            for yy in range(wy, wy + wh):
+                t = (yy - wy) / max(1, wh - 1)
+                for xx in range(bx - ww // 2, bx + ww // 2):
+                    if yy < w_spring and not rounded(xx, yy, bx - ww // 2, w_spring, ww):
+                        c.p(xx, yy, cream[3])
+                        continue
+                    dx_edge = min(xx - (bx - ww // 2), (bx + ww // 2 - 1) - xx)
+                    curtain_w = max(0, 4 - (yy - wy) // 5)
+                    if yy >= wy + 2 and dx_edge < curtain_w:
+                        c.p(xx, yy, crimson[2 if xx < bx else 3])
+                    elif t < 0.45:
+                        glint = ((xx - (bx - ww // 2)) + (yy - wy)) in (5, 6, 11)
+                        c.p(xx, yy, glass[1] if glint else glass[4 if t < 0.2 else 3])
+                    else:
+                        dist_c = abs(xx - bx) / max(1, ww / 2)
+                        c.p(xx, yy, warm_glass[1] if (dist_c < 0.45 and t < 0.78) else warm_glass[3])
+            c.rect(bx, wy + 1, 1, wh - 1, cream[2])
+            for my in (wy + wh // 3, wy + (2 * wh) // 3):
+                c.rect(bx - ww // 2 + 1, my, ww - 2, 1, cream[2])
+            c.rect(bx - ww // 2, wy, ww, 1, DARK)
+
+        for i in range(n_bays + 1):
+            px = round(L + 9 + i * span)
+            c.rect(px - 3, eave + 5, 6, piano_h - 7, cream[2])
+            c.rect(px - 3, eave + 5, 2, piano_h - 7, cream[0])
+            c.rect(px + 2, eave + 5, 1, piano_h - 7, cream[5])
+            c.rect(px - 4, eave + 4, 8, 4, GOLD[1]); c.rect(px - 4, eave + 4, 8, 1, GOLD[0])
+            c.rect(px - 4, mid - 4, 8, 2, cream[3])
+
+        # Front classical triangular pediment face (capping the projecting central gable!).
+        for dy in range(ph):
+            hw = max(2, round((ph - dy) * (pw / 2) / ph))
+            c.rect(cx - hw, py0 - dy, hw * 2, 1, cream[4] if dy > 2 and dy < ph - 3 else cream[1])
+            c.rect(cx - hw, py0 - dy, 3, 1, cream[0])
+            c.rect(cx + hw - 3, py0 - dy, 3, 1, cream[5])
+        c.rect(cx - pw // 2 - 3, py0 - 1, pw + 6, 3, cream[0])
+        ly_y = py0 - ph // 2 + 1
+        c.rect(cx - 5, ly_y - 3, 10, 6, GOLD[2])
+        c.rect(cx - 4, ly_y - 4, 2, 6, GOLD[0]); c.rect(cx + 2, ly_y - 4, 2, 6, GOLD[0])
+        c.rect(cx - 3, ly_y + 1, 6, 2, GOLD[1])
+        for gx in (-12, -9, 9, 12):
+            c.rect(cx + gx - 1, ly_y, 3, 2, GOLD[1])
+        for ux in (cx - pw // 2, cx + pw // 2):
+            c.rect(ux - 3, py0 - 7, 6, 5, cream[2]); c.rect(ux - 2, py0 - 9, 4, 2, cream[0])
+            c.rect(ux - 2, py0 - 2, 4, 2, cream[4])
+
+        # Grand stone steps with crimson carpet.
+        c.rect(cx - 24, base - 3, 48, 3, cream[1]); c.rect(cx - 26, base, 52, 3, cream[3])
+        c.rect(cx - 8, base - 3, 16, 6, crimson[2]); c.rect(cx - 7, base - 3, 14, 1, GOLD[1])
+        outline(c, deep=True)
+        consolidate(c)
+        return c.im
+
+
 # ================================================================== the game hook
 
 def landmark_spec(name, r):
@@ -1517,7 +1806,7 @@ def landmark_spec(name, r):
     if r.get('family') == 'castle':
         fw, fh = r['footprint']
         return dict(landmark=dict(kind=r['form'], W=fw * 16, look=int(name.split('-')[-1]))), (fw, fh)
-    m = re.match(r'(religious|theatre)-(romanesque-church|mission-church|globe|playhouse|picture-house)-'
+    m = re.match(r'(religious|theatre)-(romanesque-church|mission-church|globe|playhouse|picture-house|court-opera)-'
                  r'(small|medium|large)-(\d+)(?:-(north|east|west))?$', name)
     if not m:
         return None
@@ -1541,7 +1830,7 @@ def landmark(spec):
         s.pop('look')
         return Globe(**s)
     return {'romanesque-church': Romanesque, 'mission-church': Mission, 'playhouse': Playhouse,
-            'picture-house': PictureHouse}[kind](**s)
+            'picture-house': PictureHouse, 'court-opera': CourtOpera}[kind](**s)
 
 
 def studies():

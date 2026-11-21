@@ -37,6 +37,19 @@ area.
    - Roofs earn their read through craft, not area: two lit planes, tiles in
      courses along the slope with a lit edge on each, bright verge and ridge
      caps, and a dark eave shadow on the wall below.
+   - Grand hipped roofs (`PalaceRange`, `CastleHall`, `CourtOpera`): draw all
+     four sloped planes (front slope, sunlit left hip, shaded right hip,
+     receding rear slope meeting along crisp lead hip seams), not a narrow
+     front mansard with a flat vertical-striped deck box behind it (which reads
+     as a vertical office wall). Projecting central gables use
+     `front_europe.tiles_back` to meet the main ridge cleanly in a T-junction.
+   - Domes on roofs (`CourtOpera`): never let a dome loom behind a flat
+     street-level ridge. Seat it on an elliptical drum with a cast shadow
+     resting squarely on the upper roof ridge/deck. For classical or Baroque
+     domes, pass `lantern=None` to `front_solid.dome` and draw a columned
+     cupola and slender spirelet instead of the stubby default cap.
+   - Thatch (`front_huts._paint_thatch_span`): render in organic wavy bundled
+     courses with feathery eaves, never rigid horizontal stripes.
    - Hipped roofs round a court are mitred frames, with each plane's tiles
      running down its own slope.
    - Courtyards, atria and flat roofs are drawn from above. On flat-roofed
@@ -67,9 +80,11 @@ area.
 8. **Palette discipline.** Colours used by only a pixel or two are noise. The
    painters end with `consolidate()`.
 9. **Craft over fuss.** Do not fake life with anecdotal props: no cats in
-   windows and no pot plants on every sill. Improve bevels, recesses, shadows
-   and proportions instead. Charm comes from small hand-drawn sprites
-   (emblems, chimney pots) and from weathering.
+   windows and no pot plants or small jars/pots baked onto every sill or yard
+   (interactive clutter objects are placed on top of buildings in-game).
+   Improve bevels, recesses, shadows and proportions instead. Charm comes from
+   small hand-drawn architectural details (emblems, chimney pots, carved
+   portals) and from weathering.
 10. **Round things stand on ellipses and project from above** (`front_solid`).
     Props and shop interiors are shared parts, not painted per building.
 11. **Modular but not absolutist.** Use the library where it serves and draw a
@@ -390,21 +405,18 @@ delete the painter once nothing reaches it.
 | Painter (file) | Still draws | Natural front-on home |
 |---|---|---|
 | `ObliqueModern` (`oblique_modern.py`, via `city_kit`/`modern_grammar`) | Industrial and modern `modern-*` blocks, sheds, towers | `front_modern`, `front_kit` |
-| `ObliqueBuilding` (`oblique.py`) | the European and Neolithic service gold masters, `theatre-court-opera` | `front_family`, `front_huts`, `front_landmarks` |
 | `ObliqueMeso`, `ObliqueMesoLandmark` (`oblique_meso*.py`) | Mesoamerican civic buildings, ballcourt, Maya temple | `front_meso`, `front_sacred_americas` |
 | `PrecinctPiece` (`precincts.py`) | Sacred precinct pieces | `front_sacred*` |
 | `UrbanBuilding`, `Building` (`urban.py`, `buildings.py`) | `house-mud/roman/thatch`, `study-*`, shelters, city walls and gates | `front_family`, `front_huts` |
 | `HallBuilding` (`halls.py`) | Carved-gable hall, hammam, sweat lodge, open shelter | `front_huts`, `front_civic`, `front_persian` |
 | `PeriodBuilding`, `ModernBuilding` (`period.py`, `modern.py`) | Older modern and period blocks | `front_modern`, `front_europe` |
-| `TheatreBuilding` (`theatres.py`) | The opera house | `front_landmarks` |
 | `Roadside` (`city_roadside.py`) | Roadside candidates | `front_worksites` |
 | `VoxelTemple` (`sacred.py`) | The Hittite temple, kept on purpose | none |
 
-The gold masters in `buildings.json` `goldMasters` (nine families) are mixed:
-the cottages and early houses are front-on, while the longhouse and service
-masters are still oblique.
+All nine gold-master families in `buildings.json` `goldMasters` are now front-on.
 
 **Clean-up candidates (no recipes reach them):**
+- `ObliqueBuilding` (`oblique.py`) and `TheatreBuilding` (`theatres.py`)
 - `ObliqueChurch` (its `build_banner` is still called)
 - `ObliqueRound`, `ObliqueMudbrick`, `ObliqueSinitic`, `ObliqueSteppe`,
   `ObliqueForager`, `ObliqueLodge`, `ObliquePlayhouse`

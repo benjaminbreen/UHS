@@ -1442,6 +1442,228 @@ def norse_longhouse(s):
     return c, dict(x0=L, W=W, base=base, door_x=cx, door_h=dh)
 
 
+def _paint_thatch_span(c, top, E, span_fn, thatch, seed=0):
+    """Organic bundled straw thatch: irregular wavy overlapping tiers, soft
+    3-4px vertical reed locks, warm sunlit upper slope, shadow tucked only
+    under the undulating tier fringes, and a feathery overhanging eave."""
+    rise = max(1, E - top)
+    tiers = 3 if rise < 36 else 4
+    th = rise / tiers
+    moss = (106, 122, 66, 255)
+    for yy in range(top, E + 3):
+        t = (yy - top) / max(1, rise + 2)
+        xl, xr = span_fn(yy, t)
+        for xx in range(xl, xr + 1):
+            # Organic wavy offset per straw bundle so tier seams never draw a straight ruler line.
+            bundle = xx // 3
+            wave = round(1.6 * math.sin(xx * 0.22 + seed * 1.7) + (((bundle * 73 + seed * 19) * 2654435761) & 3) * 0.5)
+            y_eff = (yy - top) + wave
+            tier = max(0, min(tiers - 1, int(y_eff // th)))
+            ty = y_eff - tier * th
+            bx = (xx + tier) % 3
+            h = ((bundle * 53 + tier * 37 + seed * 11) * 2654435761) & 255
+            # Soft shadow tucked right below the wavy overlapping edge of the tier above.
+            if tier > 0 and ty < 1.2:
+                q = 5
+            elif tier > 0 and ty < 2.2 and (h & 1):
+                q = 4
+            elif tier < tiers - 1 and ty > th - 1.4:
+                q = 4 if bx != 0 else 3
+            else:
+                # Warm upper slope -> richer shaded eave; gentle vertical straw lock rounding.
+                base_q = 1 if (t < 0.28 and ty < th * 0.55) else (2 if t < 0.68 else 3)
+                q = base_q + (1 if bx == 2 else 0) + (1 if h > 205 else (-1 if h < 35 and t < 0.5 else 0))
+            if yy >= E + 1:
+                q = 6
+            elif xx == xl:
+                q = 5
+            elif xx == xl + 1:
+                q = 1
+            elif xx == xr:
+                q = 6
+            col = moss if (h == 17 and 0.15 < t < 0.75 and xx > xl + 2 and xx < xr - 2) else thatch[max(0, min(6, q))]
+            c.p(xx, yy, col)
+    # Feathery uneven straw fringe overhanging the eave.
+    xl0, xr0 = span_fn(E + 2, 1.0)
+    for xx in range(xl0, xr0 + 1):
+        h = ((xx * 37 + seed * 13) * 2654435761) & 255
+        sag = 1 + (1 if h % 3 == 0 else 0) + (1 if h % 11 == 0 else 0)
+        c.rect(xx, E + 3, 1, sag, thatch[3 if (xx & 1) else 4])
+        c.p(xx, E + 3 + sag - 1, thatch[6])
+
+
+def neolithic_service(s):
+    """Neolithic village service buildings with three distinct silhouettes:
+    0: raised beehive-thatch woven-wattle granary on mushroom staddle stones;
+    1: open forked-post work shelter with glowing stone-ringed ember hearth;
+    2: ochre-and-chalk painted communal hall with crossed antler/horn finials
+       and a carved timber entrance porch."""
+    from art import front_materials as fm
+    from art import front_openings as op
+    W = s.get('W', 100)
+    v = s.get('v', 0)
+    pad = 14
+    wood = fm.RAMPS['oak']
+    thatch = fm.ramp(64, 0.12, lift=-0.01)
+    daub = fm.ramp(56, 0.085, lift=-0.01)
+    ochre = fm.ramp(28, 0.145, lift=-0.06)
+    chalk = fm.ramp(84, 0.02, lift=0.08)
+    stone = fm.RAMPS['granite']
+    ember = fm.ramp(40, 0.16, lift=0.06)
+
+    if v == 0:
+        # Raised staddle-post granary with woven hazel-wattle walls & rounded beehive thatch dome!
+        stilt_h, wall_h, rise = 16, 28, 38
+        H = stilt_h + wall_h + rise + 18
+        c = C(W + pad * 2, H)
+        L, R = pad + 4, pad + W - 4
+        gw = R - L
+        base = H - 4
+        floor_y = base - stilt_h
+        E = floor_y - wall_h
+        top = E - rise
+        cx = (L + R) // 2
+        # Soft ground shadow + 4 timber staddle posts + sculpted mushroom capstones.
+        c.rect(L + 4, floor_y, gw - 8, 5, (38, 30, 34, 255))
+        for k in range(4):
+            px = round(L + 6 + k * (gw - 18) / 3)
+            c.rect(px, floor_y + 4, 5, stilt_h - 4, wood[5]); c.rect(px, floor_y + 4, 2, stilt_h - 4, wood[3])
+            # Rounded mushroom rodent-guard stone cap.
+            c.rect(px - 2, floor_y + 1, 9, 3, stone[3]); c.rect(px - 1, floor_y, 7, 1, stone[0])
+        c.rect(L - 1, floor_y - 3, gw + 2, 4, wood[4]); c.rect(L - 1, floor_y - 3, gw + 2, 1, wood[2])
+        # Woven horizontal hazel-wattle basketry wall!
+        for yy in range(E, floor_y - 3):
+            row = (yy - E) // 3
+            for xx in range(L + 1, R - 1):
+                weave = ((xx // 5 + row) % 2)
+                q = (2 if (yy - E) % 3 == 0 else (4 if (yy - E) % 3 == 2 else 3)) + (1 if weave else 0)
+                c.p(xx, yy, daub[max(0, min(6, q))])
+        for px in (L + 1, L + gw // 3, L + 2 * gw // 3, R - 4):
+            c.rect(px, E, 3, wall_h - 3, wood[5]); c.rect(px, E, 1, wall_h - 3, wood[3])
+        # Small woven hatch door + lashed pole ladder.
+        op.door_plank(c, cx - 8, floor_y - 23, 16, 20)
+        c.rect(cx - 10, floor_y - 25, 20, 2, wood[2])
+        for side in (-5, 4):
+            c.rect(cx + side, floor_y - 2, 2, stilt_h + 2, wood[4]); c.p(cx + side, floor_y - 2, wood[2])
+        for ry in range(floor_y + 1, base - 1, 4):
+            c.rect(cx - 4, ry, 8, 2, wood[2]); c.rect(cx - 4, ry + 1, 8, 1, wood[5])
+        # Rounded beehive/haystack thatch roof with organic wavy straw courses & top-knot!
+        rx_l, rx_r = L - 9, R + 9
+        rw = (rx_r - rx_l) / 2
+        _paint_thatch_span(
+            c, top, E,
+            lambda yy, t: (
+                cx - max(4, round(rw * math.sqrt(max(0.05, 1 - (1 - t) ** 2 * 0.88)))),
+                cx + max(4, round(rw * math.sqrt(max(0.05, 1 - (1 - t) ** 2 * 0.88)))),
+            ),
+            thatch, seed=0,
+        )
+        # Bound straw top-knot & crossed willow pins at the crown.
+        c.rect(cx - 5, top - 4, 10, 5, thatch[2]); c.rect(cx - 4, top - 5, 8, 2, thatch[0])
+        c.rect(cx - 5, top - 1, 10, 2, wood[5])
+        return c, dict(x0=L, W=gw, base=base, door_x=cx, door_h=36)
+
+    if v == 1:
+        # Open forked-post work shelter with glowing stone-ringed ember hearth & work log!
+        wall_h, rise = 42, 32
+        H = wall_h + rise + 20
+        c = C(W + pad * 2, H)
+        L, R = pad, pad + W
+        base = H - 4
+        E = base - wall_h
+        top = E - rise
+        cx = (L + R) // 2
+        # Shaded back wattle windbreak + beaten-earth floor.
+        c.rect(L + 4, E, W - 8, wall_h - 3, (56, 44, 46, 255))
+        for yy in range(E + 6, base - 5, 4):
+            c.rect(L + 6, yy, W - 12, 1, wood[6])
+        c.rect(L, base - 4, W, 4, daub[5]); c.rect(L, base - 4, W, 1, daub[3])
+        # Glowing stone-ringed ember hearth on the left + hewn work-log bench on the right!
+        hx, hy = L + 24, base - 7
+        for dx in range(-9, 10):
+            for dy in range(-3, 4):
+                if dx * dx / 81 + dy * dy / 9 <= 1:
+                    c.p(hx + dx, hy + dy, ember[0 if (dx * dx + dy * dy < 8) else (1 if dx * dx + dy * dy < 24 else 3)])
+        for sx in (-10, -5, 0, 5, 9):
+            c.rect(hx + sx - 2, hy + 2, 4, 3, stone[3]); c.p(hx + sx - 1, hy + 2, stone[1])
+        # Hewn timber work log + antler/flint tools resting on it.
+        c.rect(cx + 4, base - 14, W // 2 - 14, 5, wood[3]); c.rect(cx + 4, base - 14, W // 2 - 14, 1, wood[1])
+        for lx in (cx + 7, R - 16):
+            c.rect(lx, base - 9, 4, 5, wood[5])
+        # 4 rustic forked Y-posts with rawhide lashings!
+        for px in (L + 4, L + W // 3, L + 2 * W // 3, R - 8):
+            c.rect(px, E + 3, 4, wall_h - 6, wood[4]); c.rect(px, E + 3, 1, wall_h - 6, wood[2])
+            c.rect(px - 1, E + 1, 2, 4, wood[4]); c.rect(px + 3, E + 1, 2, 4, wood[5])  # Y-fork
+            c.rect(px - 1, E + 4, 6, 2, thatch[2])  # rawhide lashing
+        # Bundled willow/reed poles tucked under the rafters.
+        c.rect(L + 8, E + 2, W - 16, 3, thatch[3]); c.rect(L + 8, E + 2, W - 16, 1, thatch[1])
+        # Sloped organic shaggy thatch roof.
+        rx_l, rx_r = L - 8, R + 8
+        taper = 8
+        _paint_thatch_span(
+            c, top, E,
+            lambda yy, t: (rx_l + round((1 - t) * taper), rx_r - round((1 - t) * taper) - 1),
+            thatch, seed=1,
+        )
+        rl, rr = rx_l + taper, rx_r - taper
+        c.rect(rl - 1, top - 3, rr - rl + 2, 4, wood[3]); c.rect(rl - 1, top - 3, rr - rl + 2, 1, wood[1])
+        for xx in range(rl + 4, rr - 3, 9):
+            c.rect(xx, top - 4, 2, 5, wood[6])
+        return c, dict(x0=L, W=W, base=base, door_x=cx, door_h=38)
+
+    # v == 2: Communal meeting house with ochre-and-chalk mural, warm hearth glow inside
+    # the carved timber porch, and crossed antler/horn ridge finials!
+    wall_h, rise = 46, 40
+    H = wall_h + rise + 28
+    c = C(W + pad * 2, H)
+    L, R = pad, pad + W
+    base = H - 4
+    E = base - wall_h
+    top = E - rise
+    cx = (L + R) // 2
+    fm.kahgel(c, L, E, W, wall_h, daub)
+    # Rich red-ochre & chalk geometric Neolithic mural band + lower dado!
+    c.rect(L + 2, E + 6, W - 4, 9, ochre[3])
+    c.rect(L + 2, E + 6, W - 4, 1, ochre[1]); c.rect(L + 2, E + 14, W - 4, 1, ochre[5])
+    for xx in range(L + 5, R - 5, 8):
+        # Chalk chevron/diamond motif along the mural frieze.
+        c.p(xx, E + 10, chalk[0]); c.p(xx + 1, E + 9, chalk[0]); c.p(xx + 2, E + 8, chalk[0])
+        c.p(xx + 3, E + 9, chalk[0]); c.p(xx + 4, E + 10, chalk[0])
+        c.p(xx + 2, E + 12, chalk[1])
+    c.rect(L, base - 7, W, 7, stone[4]); c.rect(L, base - 7, W, 1, stone[2])
+    # Warm hearth-fire glow inside the open doorway + painted ancestral porch posts!
+    c.rect(cx - 10, base - 38, 20, 38, (46, 30, 30, 255))
+    c.rect(cx - 6, base - 20, 12, 16, ember[2]); c.rect(cx - 4, base - 16, 8, 10, ember[0])
+    for px in (cx - 14, cx + 10):
+        c.rect(px, base - 40, 4, 40, wood[4]); c.rect(px, base - 40, 1, 40, wood[2])
+        for yy in range(base - 34, base - 8, 6):
+            c.rect(px + 1, yy, 2, 2, chalk[1]); c.rect(px + 1, yy + 3, 2, 2, ochre[2])
+    c.rect(cx - 16, base - 42, 32, 4, wood[3]); c.rect(cx - 16, base - 42, 32, 1, wood[1])
+    # Steep organic wavy-course thatch roof with crossed horn/antler ridge finials!
+    rx_l, rx_r = L - 9, R + 9
+    taper = max(12, round(rise * 0.36))
+    _paint_thatch_span(
+        c, top, E,
+        lambda yy, t: (rx_l + round((1 - t) * taper), rx_r - round((1 - t) * taper) - 1),
+        thatch, seed=2,
+    )
+    # Projecting thatched porch hood over the painted doorway!
+    ptop = E - 12
+    for dy in range(14):
+        sp = max(3, round((dy + 3) * 20 / 14))
+        c.rect(cx - sp, ptop + dy, sp * 2, 1, thatch[2 if dy < 5 else 3])
+        c.p(cx - sp, ptop + dy, thatch[1]); c.p(cx + sp - 1, ptop + dy, thatch[6])
+    # Ridge beam + central smoke louver + crossed antler/timber horn finials!
+    rl, rr = rx_l + taper, rx_r - taper
+    c.rect(rl - 2, top - 4, rr - rl + 4, 5, wood[4]); c.rect(rl - 2, top - 4, rr - rl + 4, 1, wood[1])
+    c.rect(cx - 10, top - 8, 20, 5, wood[4]); c.rect(cx - 11, top - 9, 22, 2, wood[2])
+    for side, gx in ((-1, rl - 1), (1, rr)):
+        for k in range(8):
+            c.rect(gx + side * k, top - 5 - k, 2, 2, chalk[1] if k > 4 else wood[2])
+            c.rect(gx - side * (k // 2), top - 5 - k, 2, 2, wood[4])
+    return c, dict(x0=L, W=W, base=base, door_x=cx, door_h=38)
+
+
 BUILDERS = {
     'ger': built(ger, dict(W=70, felt='felt-white', accent='blue', bands=True, ropes=2, door='painted',
                            door_paint='door-red', urkh=True)),
@@ -1450,6 +1672,7 @@ BUILDERS = {
     'winter': built(winter, dict(W=80, roof='sod')),
     'longhouse': built(longhouse, dict(W=200)),
     'norse-longhouse': built(norse_longhouse, dict(W=132)),
+    'neolithic-service': built(neolithic_service, dict(W=100)),
     'enkang': built(enkang, dict(W=70)),
     'plank-house': built(plank_house, dict(W=120)),
     'maloca': built(maloca, dict(W=150)),

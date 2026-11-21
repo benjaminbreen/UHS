@@ -404,6 +404,8 @@ def kiln_workshop(style,info):
 
 def vat(c,cx,by,R=18,kind='dye'):
     from art import front_solid as so
+    from art.front_fishing import _ground_shadow_ellipse
+    _ground_shadow_ellipse(c,cx,by+1,R+2,max(3.5,R*0.28),72)
     r=RAMPS['oak']
     water=ramp(245,.065,lift=-.18) if kind=='dye' else ramp(175,.025,lift=-.17)
     def staves(x,y,z,q):
@@ -414,7 +416,11 @@ def vat(c,cx,by,R=18,kind='dye'):
 
 def cloth_rack(c,x,by,w=86,kind='cloth'):
     from art.front_house import brace
-    for px in (x,x+w-5): bevel(c,px,by-55,5,55,OAK,4)
+    from art.front_fishing import _ground_shadow_ellipse
+    _ground_shadow_ellipse(c,x+w//2,by+1,w//2+2,4.2,54)
+    for px in (x,x+w-5):
+        _ground_shadow_ellipse(c,px+2,by+1,5,2.2,82)
+        bevel(c,px,by-55,5,55,OAK,4)
     bevel(c,x-3,by-57,w+6,5,OAK,4)
     brace(c,x+4,by-36,x+19,by-53,OAK,3)
     brace(c,x+w-22,by-53,x+w-7,by-36,OAK,3)
@@ -424,8 +430,9 @@ def cloth_rack(c,x,by,w=86,kind='cloth'):
         xx=x+17+k*32
         if kind=='cloth':
             for i in range(25):
-                col=r[1 if i%10<3 else 4 if i%10>7 else 2]
-                c.rect(xx+i,by-53,1,32+(i//8)%2,col)
+                pleat=math.sin(i*0.65+k*1.3)
+                col=r[1 if pleat>.45 else 4 if pleat<-.45 else 2]
+                c.rect(xx+i,by-53,1,32+round(pleat*1.2),col)
             c.rect(xx,by-54,25,2,r[0])
             c.rect(xx,by-22,25,2,r[4])
         else:
@@ -680,42 +687,6 @@ def fishing_building(style,info):
         bevel(b.c,wx-14,b.base-12,28,4,OAK,4)
     info.update(x0=b.x0,W=b.W,base=b.base,door_x=b.door_x,door_h=b.door_h)
     return im
-
-
-def fishing_equipment(style,info):
-    from art import front_solid as so
-    from art.front_house import brace
-    c=C(128,92);by=80;cx=64
-    if style=='net-frame':
-        for x in (14,108):bevel(c,x,by-55,5,55,OAK,4)
-        bevel(c,10,by-58,108,5,OAK,4)
-        brace(c,19,by-35,34,by-53,OAK,3)
-        brace(c,92,by-53,108,by-35,OAK,3)
-        d=ImageDraw.Draw(c.im);rope=ramp(80,.035,lift=-.22)
-        def net(u,v):return (24+u*78,by-52+5*math.sin(u*math.pi)+v*30)
-        for slope in (-1,1):
-            for k in range(-4,15):
-                points=[]
-                for i in range(101):
-                    u=i/100;v=(k/10+slope*u)*2
-                    if 0<=v<=1:points.append(tuple(round(q) for q in net(u,v)))
-                if len(points)>1:d.line(points,fill=rope[3 if slope==1 else 4],width=1)
-        d.line([tuple(round(q) for q in net(i/20,0)) for i in range(21)],fill=OAK[2],width=2)
-        d.line([tuple(round(q) for q in net(i/20,1)) for i in range(21)],fill=rope[4],width=2)
-        for u in (.05,.25,.45,.65,.85):
-            x,y=net(u,0);so.lathe(c,round(x),round(y)+3,[(0,2),(3,3),(5,2)],RAMPS['pine'])
-    else:
-        for x in (32,88):so.box(c,x,by,5,17,10,OAK)
-        so.box(c,27,by-17,72,3,22,RAMPS['pine'])
-        for x in (28,96):so.box(c,x,by-19,3,2,22,OAK)
-        d=ImageDraw.Draw(c.im);fish=RAMPS['zinc']
-        for x,y in ((39,by-26),(55,by-23),(70,by-27),(79,by-23)):
-            d.polygon([(x,y),(x+5,y-2),(x+12,y),(x+15,y-2),(x+14,y+3),(x+11,y+1),(x+4,y+2)],fill=fish[3],outline=fish[5])
-            d.line((x+3,y-1,x+10,y),fill=fish[1],width=1)
-    consolidate(c,rare=6)
-    c.im.info['anchor']=[cx,by]
-    info.update(x0=0,W=128,base=by,door_x=cx,door_h=44,doorless=True)
-    return c.im
 
 
 def shore_building(style,info):
@@ -1459,48 +1430,216 @@ def byre(style, info):
     return c.im
 
 
-def shore_equipment(style,info):
-    from art import front_solid as so
-    c=C(128,92);cx=64;by=80;d=ImageDraw.Draw(c.im)
-    reed=RAMPS['thatch'] if 'thatch' in RAMPS else RAMPS['pine']
-    cord=RAMPS['cedar'];fish=RAMPS['zinc']
-    if style in ('net-rail','seine-pegs'):
-        low=style=='seine-pegs';height=28 if low else 48
-        for x in (16,108):bevel(c,x,by-height,4,height,OAK,4)
-        d.line((18,by-height+3,65,by-height+9,110,by-height+3),fill=cord[3],width=2)
-        def net(u,v):return (20+u*87,by-height+4+6*math.sin(u*math.pi)+v*(18 if low else 27))
-        for sign in (-1,1):
-            for k in range(-14,28):
-                points=[]
-                for i in range(91):
-                    u=i/90;v=k/9+sign*u*2
-                    if 0<=v<=1:points.append(tuple(round(a) for a in net(u,v)))
-                if len(points)>1:d.line(points,fill=cord[3 if sign==1 else 4],width=1)
-        for u in (.02,.22,.42,.62,.82,.98):
-            x,y=net(u,0);so.lathe(c,round(x),round(y)+3,[(0,2),(3,3),(5,2)],reed if low else RAMPS['pine'])
-        for x in (35,83):
-            for r in (10,7,4):d.ellipse((x-r,by-5-r//2,x+r,by-5+r//2),outline=cord[3],width=1)
+def europe_service(v, W=104, info=None):
+    """European neighbourhood service buildings (storehouse with projecting hoist
+    lucarne, half-timbered craft workshop with pent awning & chimney pots,
+    arched timber market pavilion, and stone-and-timber guild hall with stained
+    glass & bell spirelet) drawn with Stardew / Haunted Chocolatier craft."""
+    from art import front_materials as m
+    W = max(92, W)
+    L = 12
+    wall_h = 54 if v == 3 else 48
+    d = 36 if v == 3 else 32
+    crown_h = 26 if v == 3 else (14 if v == 1 else 8)
+    B = wall_h + d + crown_h + 12
+    c = C(W + L * 2, B + 8)
+    stone = RAMPS['granite']
+    lime = RAMPS['limestone']
+    slate = RAMPS['slate']
+    warm_glow = ramp(76, 0.14, lift=0.06)
+    glass_blue = ramp(222, 0.12, lift=-0.04)
+    cloth_red = ramp(20, 0.14, lift=-0.08)
+    cx = L + W // 2
+
+    if v == 0:
+        # Timber storehouse: stone footing, diagonal X-braced timber walls,
+        # double iron-bound warehouse doors, and a projecting gabled hoist lucarne!
+        m.boards(c, L, B - wall_h, W, wall_h, WOOD_WARM, board=6)
+        _outbuilding_plinth(c, L, B, W, 'timber', WOOD_WARM)
+        # Corner posts + upper wall plate + diagonal timber corner braces.
+        for px in (L, L + W - 4):
+            c.rect(px, B - wall_h, 4, wall_h, OAK[5]); c.rect(px, B - wall_h, 1, wall_h, OAK[2])
+        c.rect(L, B - wall_h, W, 3, OAK[5]); c.rect(L, B - wall_h, W, 1, OAK[2])
+        for k in range(10):
+            c.rect(L + 4 + k, B - wall_h + 12 - k, 2, 2, OAK[4])
+            c.rect(L + W - 6 - k, B - wall_h + 12 - k, 2, 2, OAK[4])
+        _outbuilding_roof(c, L - 7, B - wall_h - d, W + 14, d, 'timber', SHINGLE_RICH)
+        cast(c, L, B - wall_h, W, 6, k0=0.55)
+        # Projecting gabled hoist lucarne (dormer) emerging from the roof with pulley!
+        lw, lh = 26, 22
+        lx0, ly0 = cx - lw // 2, B - wall_h - lh + 2
+        c.rect(lx0, ly0, lw, lh, WOOD_WARM[3])
+        c.rect(lx0, ly0, 2, lh, OAK[4]); c.rect(lx0 + lw - 2, ly0, 2, lh, OAK[5])
+        # Dark arched loft hatch inside lucarne.
+        c.rect(cx - 7, ly0 + 5, 14, 15, OAK[7])
+        c.rect(cx - 6, ly0 + 6, 12, 13, (42, 30, 34, 255))
+        # Gabled lucarne roof + projecting oak hoist beam + iron pulley & rope!
+        for dy in range(12):
+            sp = max(2, round((dy + 2) * (lw // 2 + 4) / 12))
+            c.rect(cx - sp, ly0 - 11 + dy, sp * 2, 1, SHINGLE_RICH[2 if dy < 5 else 3])
+            c.p(cx - sp, ly0 - 11 + dy, SHINGLE_RICH[1]); c.p(cx + sp - 1, ly0 - 11 + dy, SHINGLE_RICH[6])
+        c.rect(cx - 2, ly0 - 4, 4, 8, OAK[4]); c.rect(cx - 2, ly0 - 4, 4, 1, OAK[1])
+        c.rect(cx - 1, ly0 + 4, 2, 4, IRON[3]); c.p(cx, ly0 + 5, IRON[1])
+        c.rect(cx, ly0 + 8, 1, 10, THATCH_WARM[2])  # hanging hoist rope
+        # Wide double iron-bound warehouse doors on a worn stone step.
+        dw, dh = 30, 38
+        bevel(c, cx - dw // 2 - 3, B - dh - 3, dw + 6, dh + 3, OAK, 3)
+        for xx in range(cx - dw // 2, cx + dw // 2, 4):
+            c.rect(xx, B - dh, 4, dh - 1, OAK[3]); c.rect(xx, B - dh, 1, dh - 1, OAK[2])
+        c.rect(cx - 1, B - dh, 2, dh - 1, OAK[6])
+        for yy in (B - 30, B - 10):
+            c.rect(cx - dw // 2, yy, 8, 2, IRON[4]); c.p(cx - dw // 2 + 1, yy, IRON[1])
+            c.rect(cx + dw // 2 - 8, yy, 8, 2, IRON[4]); c.p(cx + dw // 2 - 2, yy, IRON[1])
+        c.rect(cx - dw // 2 - 4, B - 2, dw + 8, 3, stone[2]); c.rect(cx - dw // 2 - 4, B, dw + 8, 1, stone[5])
+        # Flanking louvered vents.
+        for vx in (L + 8, L + W - 20):
+            _louver_window(c, vx, B - 30, 12, 11, OAK)
+        door_x, door_h = cx, dh
+
+    elif v == 1:
+        # Half-timbered craft workshop: warm cream plaster + brick plinth + diagonal
+        # oak framing, tiled pent-roof awning over a warm-lit open workbench bay,
+        # and a corbelled brick chimney with twin clay chimney pots!
+        m.render(c, L, B - wall_h, W, wall_h, RAMPS['render'])
+        _outbuilding_plinth(c, L, B, W, 'brick', RAMPS['brick'])
+        # Rich half-timbering: vertical posts, mid-rail, diagonal corner braces.
+        for px in (L, L + 34, L + W - 4):
+            c.rect(px, B - wall_h, 4, wall_h, OAK[5]); c.rect(px, B - wall_h, 1, wall_h, OAK[2])
+        c.rect(L, B - wall_h + 1, W, 3, OAK[5]); c.rect(L, B - 22, 34, 2, OAK[4])
+        for k in range(8):
+            c.rect(L + 4 + k, B - wall_h + 10 - k, 2, 2, OAK[4])
+            c.rect(L + W - 6 - k, B - wall_h + 10 - k, 2, 2, OAK[4])
+        _outbuilding_roof(c, L - 7, B - wall_h - d, W + 14, d, 'brick', CLAY_RICH)
+        # Corbelled brick chimney stack + twin terracotta chimney pots!
+        chx, chy = L + W - 20, B - wall_h - d - 12
+        c.rect(chx, chy, 12, 18, RAMPS['brick'][3]); c.rect(chx, chy, 2, 18, RAMPS['brick'][1])
+        c.rect(chx + 10, chy, 2, 18, RAMPS['brick'][5])
+        c.rect(chx - 1, chy - 2, 14, 3, RAMPS['brick-dark'][3]); c.rect(chx - 1, chy - 2, 14, 1, RAMPS['brick'][1])
+        for potx in (chx + 2, chx + 7):
+            c.rect(potx, chy - 6, 3, 4, CLAY_RICH[3]); c.rect(potx, chy - 6, 1, 4, CLAY_RICH[1])
+            c.rect(potx - 1, chy - 7, 5, 1, CLAY_RICH[2])
+        cast(c, L, B - wall_h, W, 6, k0=0.55)
+        # Painted green Dutch workshop door on the left bay.
+        dx, dh = L + 18, 38
+        bevel(c, dx - 11, B - dh - 3, 22, dh + 3, OAK, 3)
+        for xx in range(dx - 9, dx + 9, 4):
+            c.rect(xx, B - dh, 4, dh - 1, DOOR_GREEN[3]); c.rect(xx, B - dh, 1, dh - 1, DOOR_GREEN[1])
+        c.rect(dx - 9, B - 20, 18, 2, DOOR_GREEN[5])
+        for yy in (B - 30, B - 10):
+            c.rect(dx - 9, yy, 6, 2, IRON[4]); c.p(dx - 8, yy, IRON[1])
+        # Open craft work-bay with warm hearth/lamp glow, workbench & hanging tools + pent awning!
+        wx, wy, ww, wh = L + 40, B - 33, W - 48, 22
+        c.rect(wx - 2, wy - 2, ww + 4, wh + 4, OAK[5])
+        c.rect(wx, wy, ww, wh, (48, 34, 38, 255))
+        # Warm glowing lamp/forge bounce inside workshop + timber workbench + hanging tools.
+        c.rect(wx + 4, wy + 3, ww - 8, 9, (92, 62, 48, 255))
+        c.rect(wx + ww // 2 - 4, wy + 4, 8, 5, warm_glow[1])
+        for tx in range(wx + 5, wx + ww - 5, 7):
+            c.rect(tx, wy + 3, 2, 7, IRON[2])  # hanging tools on rack
+        c.rect(wx + 2, wy + wh - 6, ww - 4, 4, WOOD_WARM[2]); c.rect(wx + 2, wy + wh - 6, ww - 4, 1, WOOD_WARM[0])
+        c.rect(wx - 3, wy + wh + 1, ww + 6, 3, OAK[2])
+        # Small striped cloth / tiled pent awning over the workshop counter!
+        for dy in range(6):
+            for xx in range(wx - 3, wx + ww + 3):
+                stripe = ((xx - wx) // 4) % 2 == 0
+                col = cloth_red[2 if dy < 3 else 4] if stripe else RAMPS['render'][1 if dy < 3 else 3]
+                c.p(xx, wy - 7 + dy, col)
+        c.rect(wx - 3, wy - 1, ww + 6, 1, OAK[6])
+        door_x, door_h = dx, dh
+
+    elif v == 2:
+        # Medieval Butter Cross / Open Timber Market Hall: stepped stone plinth,
+        # curved oak timber arches between stout chamfered posts, warm sunlit
+        # ceiling rafters, trestle market tables, and slate roof with carved finial!
+        # Stepped stone market plinth (2 clean steps).
+        c.rect(L - 2, B - 3, W + 4, 3, stone[4]); c.rect(L - 2, B - 3, W + 4, 1, stone[1])
+        c.rect(L + 1, B - 6, W - 2, 3, stone[3]); c.rect(L + 1, B - 6, W - 2, 1, stone[0])
+        # Deep shaded interior + warm wooden ceiling rafters visible overhead.
+        c.rect(L + 4, B - wall_h, W - 8, wall_h - 6, (54, 42, 48, 255))
+        for rx in range(L + 8, L + W - 8, 8):
+            c.rect(rx, B - wall_h + 2, 2, 7, OAK[4])
+        # Warm oak market trestle stalls (two clean bays).
+        for sx in (L + 12, cx + 4):
+            sw = W // 2 - 16
+            c.rect(sx, B - 17, sw, 3, WOOD_WARM[2]); c.rect(sx, B - 17, sw, 1, WOOD_WARM[0])
+            c.rect(sx + 1, B - 14, sw - 2, 2, OAK[5])
+            c.rect(sx + 2, B - 12, 3, 6, OAK[4]); c.rect(sx + sw - 5, B - 12, 3, 6, OAK[4])
+        # 4 chamfered oak posts on stone bases + curved timber arch spandrels!
+        posts = (L + 4, L + W // 3, L + 2 * W // 3, L + W - 8)
+        for idx, px in enumerate(posts):
+            c.rect(px - 1, B - 10, 6, 4, stone[2])
+            c.rect(px, B - wall_h, 4, wall_h - 10, OAK[4]); c.rect(px, B - wall_h, 1, wall_h - 10, OAK[1])
+            if idx < len(posts) - 1:
+                nx = posts[idx + 1]
+                span = nx - (px + 4)
+                # Curved timber arch between posts!
+                for dx in range(span):
+                    u = abs((dx - span / 2) / max(1, span / 2))
+                    ah = round(9 * u * u) + 2
+                    c.rect(px + 4 + dx, B - wall_h, 1, ah, OAK[4])
+                    c.p(px + 4 + dx, B - wall_h + ah, OAK[2])
+        _outbuilding_roof(c, L - 7, B - wall_h - d, W + 14, d, 'stone', slate)
+        # Carved wooden ridge finials at both ends of the market hall roof.
+        taper = max(5, round(d * 0.22))
+        for fx in (L - 7 + taper + 1, L + W + 7 - taper - 2):
+            c.rect(fx, B - wall_h - d - 8, 2, 5, OAK[3]); c.p(fx, B - wall_h - d - 9, THATCH_WARM[1])
+        cast(c, L, B - wall_h, W, 6, k0=0.55)
+        door_x, door_h = cx, 38
+
     else:
-        mat=style=='fish-mat'
-        if mat:
-            so.box(c,20,by-1,88,2,35,reed)
-            for x in range(22,106,4):d.line((x,by-17,x,by-3),fill=reed[4],width=1)
-            for y in range(by-17,by-2,4):d.line((22,y,106,y),fill=reed[1],width=1)
-        else:
-            for x in (29,93):so.box(c,x,by,4,14,8,OAK)
-            so.box(c,23,by-14,82,3,26,OAK)
-            for x in (25,65):
-                so.recess(c,x,by-16,36,19,3,OAK,RAMPS['pine'])
-        fy=by-11 if mat else by-24
-        for x,y in ((31,fy),(49,fy+3),(69,fy-1),(87,fy+3)):
-            d.polygon([(x,y),(x+5,y-3),(x+13,y),(x+16,y-2),(x+16,y+3),(x+12,y+1),(x+4,y+2)],fill=fish[3],outline=fish[5])
-            d.line((x+4,y-2,x+10,y-1),fill=fish[1])
-        if mat:
-            so.lathe(c,17,by,[(0,7),(8,10),(12,10),(13,8)],reed)
-            d.ellipse((8,by-15,26,by-9),fill=cord[5],outline=reed[2])
-    consolidate(c,rare=6)
-    c.im.info['anchor']=[cx,by]
-    info.update(x0=0,W=128,base=by,door_x=cx,door_h=44,doorless=True)
+        # Stone Guild / Parish Hall: dressed limestone ashlar, corner buttresses,
+        # deeply recessed pointed Gothic portal with carved timber hood, stained-glass
+        # lancet windows, slate roof, and a charming timber bell-spirelet with weathervane!
+        m.ashlar(c, L, B - wall_h, W, wall_h, lime, 8, 16)
+        _outbuilding_plinth(c, L, B, W, 'med', lime)
+        # Stepped corner stone buttresses.
+        for bx in (L - 2, L + W - 4):
+            c.rect(bx, B - wall_h + 10, 6, wall_h - 10, lime[3])
+            c.rect(bx, B - wall_h + 10, 2, wall_h - 10, lime[1])
+            c.rect(bx, B - wall_h + 8, 6, 3, lime[0])
+            c.rect(bx - 1 if bx < cx else bx, B - 16, 7, 16, lime[3])
+            c.rect(bx - 1 if bx < cx else bx, B - 16, 7, 2, lime[0])
+        _outbuilding_roof(c, L - 7, B - wall_h - d, W + 14, d, 'stone', slate)
+        cast(c, L, B - wall_h, W, 6, k0=0.55)
+        # Charming timber bell-turret + steep pointed spirelet + gilt weathervane!
+        by = B - wall_h - d - 3
+        c.rect(cx - 9, by - 13, 18, 13, OAK[4]); c.rect(cx - 9, by - 13, 2, 13, OAK[2])
+        c.rect(cx - 6, by - 10, 12, 8, (36, 26, 34, 255))
+        # Bronze bell hanging inside the belfry.
+        c.rect(cx - 3, by - 8, 6, 4, THATCH_WARM[2]); c.rect(cx - 2, by - 9, 4, 2, THATCH_WARM[0])
+        # Pointed slate spirelet.
+        for dy in range(13):
+            sp = max(1, round((13 - dy) * 11 / 13))
+            c.rect(cx - sp, by - 13 - dy, sp * 2, 1, slate[2 if dy > 6 else 3])
+            c.p(cx - sp, by - 13 - dy, slate[1])
+        # Gilt finial & weathervane.
+        c.rect(cx, by - 29, 1, 5, THATCH_WARM[0]); c.rect(cx - 2, by - 28, 5, 1, THATCH_WARM[1])
+        # Pointed arched oak guild portal with carved stone hood & worn steps.
+        dh = 40
+        for dy in range(dh):
+            hw = 10 if dy > 9 else max(3, round(3 + dy * 7 / 9))
+            c.rect(cx - hw - 2, B - dh + dy, (hw + 2) * 2, 1, lime[4])
+            c.p(cx - hw - 2, B - dh + dy, lime[0])
+            c.rect(cx - hw, B - dh + dy, hw * 2, 1, OAK[3 if (dy % 2 == 0) else 4])
+        for xx in range(cx - 8, cx + 9, 4):
+            c.rect(xx, B - dh + 10, 1, dh - 12, OAK[2])
+        c.rect(cx - 12, B - 2, 24, 3, stone[2])
+        # Flanking pointed stained-glass lancet windows (warm amber & sapphire leaded glass!).
+        for wx in (L + 18, L + W - 18):
+            wy, wh = B - 38, 24
+            for dy in range(wh):
+                hw = 6 if dy > 6 else max(2, round(2 + dy * 4 / 6))
+                c.rect(wx - hw - 1, wy + dy, (hw + 1) * 2, 1, lime[4])
+                col = (warm_glow[1] if (dy % 5 == 2) else glass_blue[2 if dy < 10 else 3])
+                c.rect(wx - hw, wy + dy, hw * 2, 1, col)
+            c.rect(wx, wy + 4, 1, wh - 5, lime[2]); c.rect(wx - 6, wy + 12, 12, 1, lime[2])
+            c.rect(wx - 8, wy + wh, 16, 2, lime[1])
+        door_x, door_h = cx, dh
+
+    finish(c)
+    if info is not None:
+        info.update(x0=L, W=W, base=B, door_x=door_x, door_h=door_h)
+    consolidate(c, rare=6)
     return c.im
 
 
@@ -1650,12 +1789,14 @@ def draw(style, info):
     if style == 'transit-shed':return transit_shed(info)
     if style == 'ferry-terminal':return ferry_house(info)
     if style in ('plank-fishing-house','plank-fishing-store','earth-fishing-house','reed-gear-shelter'):return shore_building(style,info)
-    if style in ('net-rail','seine-pegs','fish-trays','fish-mat'):return shore_equipment(style,info)
+    from art.front_fishing import draw_fishing_worksite, parse_fishing_style
+    if parse_fishing_style(style):return draw_fishing_worksite(style,info)
+    from art.front_crafts import draw_craft_worksite, parse_craft_style
+    if parse_craft_style(style):return draw_craft_worksite(style,info)
     if style.startswith(('plank-skiff-','reed-skiff-')):return clinker_hull(style.rsplit('-',1)[1],info,True,'plank' if style.startswith('plank-') else 'reed')
     if style.startswith('henhouse-'):return henhouse(style,info)
     if style.startswith('byre-'):return byre(style,info)
     if style in ('fishing-cottage','fishing-gear'):return fishing_building(style,info)
-    if style in ('net-frame','fish-table'):return fishing_equipment(style,info)
     if style.startswith('fishing-boat-'):return clinker_hull(style.rsplit('-',1)[1],info,True)
     if style.startswith('launching-way-'):return launching_way(style.rsplit('-',1)[1],info)
     if style=='clinker-boatyard':return boatyard(info)
@@ -1723,10 +1864,22 @@ def draw(style, info):
 
 
 def worksite_recipes(root, source):
+    from art.front_fishing import FISHING_BASES, VARIANTS
+    from art.front_crafts import CRAFT_BASES, CRAFT_VARIANTS
     specs = json.loads((root/'src/content/graphics/worksites.json').read_text())
-    return {name:dict(label=s['label'],footprint=s['footprint'],entrance=[s['footprint'][0]//2,s['footprint'][1]],
-                     height=s.get('height',110),wall=s.get('wall','lime-plaster'),roof=s.get('roof','gable'),roofMaterial=s.get('roofMaterial','tile'),attachments=[],
-                     opening='door',description=s['description'],frontWorksite=s['style']) for name,s in specs.items()}
+    out = {}
+    for name, s in specs.items():
+        base_entry = dict(label=s['label'],footprint=s['footprint'],entrance=[s['footprint'][0]//2,s['footprint'][1]],
+                          height=s.get('height',110),wall=s.get('wall','lime-plaster'),roof=s.get('roof','gable'),roofMaterial=s.get('roofMaterial','tile'),attachments=[],
+                          opening='door',description=s['description'],frontWorksite=s['style'])
+        out[name] = base_entry
+        if s['style'] in FISHING_BASES:
+            for v in range(1, VARIANTS):
+                out[f'{name}-{v}'] = {**base_entry, 'frontWorksite': f"{s['style']}-{v}"}
+        elif s['style'] in CRAFT_BASES:
+            for v in range(1, CRAFT_VARIANTS):
+                out[f'{name}-{v}'] = {**base_entry, 'frontWorksite': f"{s['style']}-{v}"}
+    return out
 
 
 _PAINTED = {}
@@ -2072,7 +2225,70 @@ def transit_shed(info):
     return c.im
 
 
+def bake_worksites(root):
+    """Repack only the worksites atlas and update worksite entries in models.json."""
+    from art.atlas import pack_atlas
+    from art.page_sheets import page
+    from art.stamp import write_stamp
+    recipes = worksite_recipes(root, {})
+    frames = {}
+    models_path = root / 'public/packs/models.json'
+    models = json.loads(models_path.read_text())
+    for name, r in recipes.items():
+        artist = FrontWorksitePainter(r)
+        im = artist.render()
+        frames[name] = im
+        if artist.night is not None:
+            frames[f'{name}-glow'] = artist.night
+        w, h = im.size
+        bbox = im.getbbox() or (0, 0, w, h)
+        base_name = name.rsplit('-', 1)[0] if name.rsplit('-', 1)[-1].isdigit() and name.rsplit('-', 1)[0] in models else name
+        prev = models.get(name) or models.get(base_name) or {}
+        model = {
+            **prev,
+            'frame': name,
+            'label': r['label'],
+            'footprint': r['footprint'],
+            'entrance': r['entrance'],
+            'anchor': [artist.anchor_x, h - 3],
+            'bounds': [0, 0, w, h],
+            'height': r['height'],
+            'visible': list(bbox),
+            'occlusion': [4, 7, max(4, w - 7), max(7, h - 7)],
+            'shadow': {'kind': 'building', 'height': r['height'], 'contactWidth': max(16, w - 12)},
+            'wall': r['wall'],
+            'roof': r['roof'],
+            'roofMaterial': r['roofMaterial'],
+            'attachments': r['attachments'],
+            'opening': r['opening'],
+            'description': r['description'],
+        }
+        if artist.night is not None:
+            model['glow'] = f'{name}-glow'
+            model.pop('unglazed', None)
+        else:
+            model['unglazed'] = True
+            model.pop('glow', None)
+        if not artist.no_door:
+            dw, dh = artist.door_size
+            model['door'] = [artist.door_x - dw // 2, artist.door_ground - dh, dw, dh]
+        else:
+            model.pop('door', None)
+        models[name] = model
+    out = root / 'public/packs'
+    pack_atlas(frames, out, 'worksites', paged=True)
+    page('worksites')
+    (root / 'src/render/generated/worksites.json').write_bytes((out / 'worksites.json').read_bytes())
+    raw_models = json.dumps(models, separators=(',', ':'))
+    models_path.write_text(raw_models)
+    (root / 'src/content/graphics/models.generated.json').write_text(raw_models)
+    print(f'Baked {len(frames)} worksite frames; stamp {write_stamp(root)}')
+
+
 if __name__ == '__main__':
-    recipes = worksite_recipes(ROOT,{})
-    sheet([(r['label'],FrontWorksitePainter(r).render()) for r in recipes.values()],
-          sys.argv[1] if len(sys.argv)>1 else 'artifacts/worksites-art.png',columns=3)
+    if '--bake' in sys.argv:
+        bake_worksites(ROOT)
+    else:
+        recipes = worksite_recipes(ROOT,{})
+        sheet([(r['label'],FrontWorksitePainter(r).render()) for r in recipes.values()],
+              sys.argv[1] if len(sys.argv)>1 else 'artifacts/worksites-art.png',columns=3)
