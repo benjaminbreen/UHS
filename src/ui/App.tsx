@@ -1,4 +1,5 @@
 import { setArtEra } from "../render/garment-icons";
+import { GAIT_NAMES, mountLabel } from "../core/riding";
 import { amountIn } from "../content/economy/money";
 import { TimeModal } from "./time/TimeModal";
 import { Years } from "./time/Years";
@@ -202,6 +203,51 @@ const REST_OPTIONS: {
 ];
 
 const noAudio = () => () => {};
+function MountHud({ runtime }: { runtime: Runtime }) {
+  const [, bump] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => bump((n) => (n + 1) & 1023), 75);
+    return () => window.clearInterval(id);
+  }, []);
+  const mount = runtime.engine.state.player.riding;
+  if (!mount) return null;
+  const now = performance.now();
+  const pct = Math.max(0, Math.min(100, (mount.stamina / Math.max(1, mount.maxStamina)) * 100));
+  const sweet = runtime.inSpurSweetSpot(now);
+  const combo = runtime.rideCombo;
+  const gait = runtime.rideGait;
+  const label = mountLabel(mount);
+  const title = label.charAt(0).toUpperCase() + label.slice(1);
+  return (
+    <div
+      className={`mount-hud${sweet ? " sweet" : ""}${mount.bucking ? " bucking" : ""}${gait >= 4 ? " surging" : ""}`}
+      data-testid="mount-hud"
+    >
+      <span className="mount-hud-name">{title}</span>
+      {mount.bucking ? (
+        <span className="mount-hud-rodeo">
+          Hold on!{" "}
+          {Array.from({ length: mount.bucking.needed }, (_, i) => (
+            <i key={i} className={i < mount.bucking!.holds ? "lit" : ""} />
+          ))}
+        </span>
+      ) : (
+        <>
+          <span className={`mount-hud-gait gait-${gait}`}>{GAIT_NAMES[gait]}</span>
+          <span className="mount-hud-bar" title="Mount stamina">
+            <span className="mount-hud-fill" style={{ width: `${pct}%` }} />
+          </span>
+          {sweet && <span className="mount-hud-sweet">Spur now!</span>}
+          {!sweet && combo >= 2 && <span className="mount-hud-combo">×{combo} In stride</span>}
+          <span className="mount-hud-hint">
+            <kbd>Shift</kbd> Gallop · <kbd>Space</kbd> {gait >= 1 ? "Leap" : "Rear"}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
 export function App({ runtime, onReady, active = true }: { runtime: Runtime; writer: boolean; onReady?: () => void; active?: boolean }) {
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
@@ -1688,6 +1734,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             className={`bottom-bar${phone ? "" : " desktop-bottom-bar"}`}
             ref={measureBar}
           >
+            {p.riding && <MountHud runtime={runtime} />}
             {!phone && (
               <div className="prop-prompts" data-testid="prop-prompts">
                 {obs.manifest.content === 1 && (

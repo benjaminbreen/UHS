@@ -46,7 +46,7 @@ export const TECHNIQUES = {
   "calm-hand": { skill: "animals", tier: 2, name: "Calm Hand", does: "Animals notice you later while you walk", flavor: "Low voice, open palm, no sudden moves." },
   "steady-nerve": { skill: "animals", tier: 2, name: "Steady Nerve", does: "Charging animals hurt a quarter less", flavor: "Stand your ground and they swerve." },
   drover: { skill: "animals", tier: 4, name: "Drover", does: "A herd follows you", flavor: "A whistle and they move as one.", ready: false },
-  rider: { skill: "animals", tier: 4, name: "Rider", does: "Ride horses and camels", flavor: "Sit deep and let it carry you.", ready: false },
+  rider: { skill: "animals", tier: 4, name: "Rider", does: "Ride faster, leap higher, and break wild mounts", flavor: "Sit deep and let it carry you." },
   tamer: { skill: "animals", tier: 6, name: "Tamer", does: "A wild animal becomes a companion", flavor: "Patience, and a little food.", ready: false },
   "beast-speaker": { skill: "animals", tier: 6, name: "Beast Speaker", does: "Read and calm any animal", flavor: "Ears back means go no closer.", ready: false },
 

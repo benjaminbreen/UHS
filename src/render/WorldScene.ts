@@ -8,7 +8,7 @@ import { carryKit, parseLoad } from "../content/economy/carrying";
 import { propDefs } from "../content/props/catalog";
 import { portableProps } from "./characters/props";
 import { drawGarmentIcon } from "./garment-icons";
-import { Watercraft, drawMooring, mooredBoatFrame, boatPosture, boatCraft } from "./watercraft";
+import { Watercraft, drawBoatGrounding, drawMooring, mooredBoatFrame, boatPosture, boatCraft } from "./watercraft";
 import { FishingGear, type Gear } from "./fishing-gear";
 import { fishingWaterfront } from "../content/settlements/waterfronts";
 import { HarborLayer } from "./harbor";
@@ -38,7 +38,9 @@ import { isGrassTuft, natureTreeSprites } from "../content/ecology/vegetation";
 import { grassTuftFrame, TUFT_ATLAS } from "./ground-motifs";
 import { Mycelium } from "./mycelium";
 import { rockFrame } from "../content/ecology/rocks";
-import { propVariety, reviewedPropFrame } from "./prop-variety";
+import { propVariety, reviewedPropFrame, worksiteVariantFrame, groundedRockTexture, mangroveRootCollar } from "./prop-variety";
+import { beachTint } from "./habitat-raster";
+import { waterPalette } from "./water-style";
 import { keeperTrade, secondLanguage, signLanguage, signOptions, signPaints, streetTrade } from "../content/settlements/signs";
 import { drawShopSign, fitWord, SIGN_GLOW, type SignSlot } from "./shop-signs";
 /** Trades for a shopfront the kit did not name. */
@@ -111,7 +113,7 @@ import { WorldCharacters } from "./characters/world";
 import { entityInView, npcMotion } from "./entity-presentation";
 import { FaunaMotion } from "./fauna-motion";
 import { spriteShadow } from "./characters/shadow";
-import { fieldPose, frameCount, heldFrame, poseTiming, workPoseFor, type CharacterPose } from "./characters/poses";
+import { fieldPose, frameCount, heldFrame, poseTiming, workPoseFor, worksiteStationFamily, type CharacterPose } from "./characters/poses";
 import type { Actor, Stats } from "../core/types";
 import { statsOf } from "../core/stats";
 import { waterStyle } from "./water-style";
@@ -146,7 +148,14 @@ import {
   scramble,
   strike,
   takeoff,
+  hoofbeat,
+  mountVoice,
+  spurSnap,
+  mountSkid,
+  mountLeap,
+  mountLand,
 } from "../audio/sfx";
+import { mountSpec, type MountGait } from "../core/riding";
 import { beastVoiceOf, voiceOf } from "../audio/voices";
 import { DUNG_DRY_HOURS, DUNG_FRESH_HOURS } from "../content/fauna/dung";
 import type { HitClass } from "../core/reactions";
@@ -312,8 +321,10 @@ import {
   motionFrames,
   motionPeriod,
   animatedFrames,
+  ensureDoorGlow,
   ensureEmber,
   ensureFireLight,
+  ensureGroundSpill,
   ensureHalo,
   ensureLightCone,
   ensurePorchLamp,
@@ -332,8 +343,10 @@ import { FairView } from "./fair/view";
 import { palacePropPicture } from "./fair/palace";
 import { exhibitPicture } from "./fair/things";
 import { TombView } from "./tomb/view";
+import { PrisonView } from "./prison/view";
 import type { FairLevel } from "../world/fair";
 import type { TombLevel } from "../world/tomb";
+import type { PrisonLevel } from "../world/prison";
 import { ShipView } from "./ship/view";
 import { paintOpenLid } from "./sewer/art";
 import { laneLids } from "./carriageway";
@@ -410,19 +423,37 @@ const workAlternates: Partial<
   tug: ["stoop", "sway"],
 };
 const workTargets: Partial<Record<CharacterPose, readonly string[]>> = {
-  tug: ["well", "framed-well", "town-well", "trough", "seine-rope"],
-  "work-stir": ["cooking-pot", "hearth", "camp-hearth", "communal-hearth", "three-stone-hearth", "firepit", "stove", "barrel", "storage-jar", "dye-vats"],
-  "work-knead": ["oven", "earth-oven", "tannur", "bench", "mud-bricks", "earthen-pot"],
-  "work-pound": ["anvil", "knapping-floor", "pounding-mortar", "grinder", "metate", "quern", "grindstone", "woodpile", "chopping-block"],
+  tug: ["well", "framed-well", "town-well", "trough", "seine-rope", "worksite-ropewalk"],
+  push: ["worksite-press-yard"],
+  "work-stir": ["cooking-pot", "hearth", "camp-hearth", "communal-hearth", "three-stone-hearth", "firepit", "stove", "barrel", "storage-jar", "dye-vats", "worksite-dye-racks", "worksite-soap-yard", "worksite-press-yard"],
+  "work-knead": ["oven", "earth-oven", "tannur", "bench", "mud-bricks", "earthen-pot", "worksite-pottery-rack"],
+  "work-throw": ["worksite-pottery-rack", "earthen-pot", "bench"],
+  "work-pound": ["anvil", "knapping-floor", "pounding-mortar", "grinder", "metate", "quern", "grindstone", "woodpile", "chopping-block", "worksite-paper-yard"],
+  "work-hammer": ["anvil", "worksite-smith-bench"],
+  "work-chisel": ["worksite-mason-bench", "worksite-carpenter-bench", "worksite-foundry-yard", "bench"],
+  "work-saw": ["worksite-carpenter-bench", "worksite-charcoal-yard", "woodpile", "bench"],
+  "work-crank": ["worksite-silk-yard", "worksite-ropewalk", "grindstone", "well"],
+  "work-scrape": ["worksite-tanner-rack", "worksite-paper-yard", "worksite-carpenter-bench", "hide-frame"],
+  "work-pour": ["worksite-foundry-yard", "worksite-press-yard", "crop", "barrel", "storage-jar"],
   "work-quern": ["quern"],
   "work-grind": ["grinder", "metate"],
-  "work-weave": ["loom", "warp-loom", "backstrap-loom", "open-basket", "hide-frame", "bench"],
+  "work-weave": ["loom", "warp-loom", "backstrap-loom", "open-basket", "hide-frame", "bench", "worksite-loom-frame", "worksite-net-frame", "worksite-net-rail", "worksite-seine-pegs"],
   "work-scrub": ["wash-tub", "washing-line", "tanning-pits", "hide-frame"],
   "work-rinse": ["shallow-water"],
   "work-fish": ["shallow-water", "fish-weir"],
-  "work-hang": ["drying-rack"],
-  "work-tend": ["crop", "wild-food", "hoe", "rake", "sheaf", "stock-pen", "trough", "beehive", "log-hive", "pipe-hive", "chicken-coop"],
-  "work-sort": ["market-counter", "beam-scale", "crate-stack", "grain-sacks", "bench", "barrel", "storage-jar"],
+  "work-hang": ["drying-rack", "worksite-dye-racks", "worksite-paper-yard", "worksite-silk-yard"],
+  "work-tend": ["crop", "wild-food", "hoe", "rake", "sheaf", "stock-pen", "trough", "beehive", "log-hive", "pipe-hive", "chicken-coop", "worksite-silk-yard", "worksite-charcoal-yard"],
+  "work-sort": ["market-counter", "beam-scale", "crate-stack", "grain-sacks", "bench", "barrel", "storage-jar", "worksite-fish-table", "worksite-fish-trays", "worksite-fish-mat", "worksite-soap-yard", "worksite-pottery-rack"],
+};
+const STATION_ALTERNATE: Partial<Record<string, CharacterPose>> = {
+  "worksite-dye-racks": "work-hang",
+  "worksite-silk-yard": "work-tend",
+  "worksite-soap-yard": "work-sort",
+  "worksite-paper-yard": "work-hang",
+  "worksite-press-yard": "push",
+  "worksite-carpenter-bench": "work-scrape",
+  "worksite-foundry-yard": "work-chisel",
+  "worksite-pottery-rack": "work-sort",
 };
 type WindSprite = {
   image: Phaser.GameObjects.Image;
@@ -490,6 +521,7 @@ type FireEffect = {
 };
 const WINDOW_TONE: [number, number, number] = [255, 196, 128];
 const PORCH_TONE: [number, number, number] = [255, 220, 168];
+const HEARTH_TONE: [number, number, number] = [255, 178, 92];
 type StreetLight = {
   pool: Phaser.GameObjects.Image;
   flames: Phaser.GameObjects.Image[];
@@ -580,6 +612,7 @@ export class WorldScene extends Phaser.Scene {
       | "trust"
       | "pos"
       | "errand"
+      | "riding"
     >
   >();
   private canopies: {
@@ -815,7 +848,7 @@ export class WorldScene extends Phaser.Scene {
   private sewerView?: SewerView;
   private shipView?: ShipView;
   /** The view of a fair's or a tomb's area: the kinds walked from area to area. */
-  private areaView?: FairView | TombView;
+  private areaView?: FairView | TombView | PrisonView;
   /** A space that draws and lights itself: a generated room or a cave. */
   private selfLit(space: string) {
     const e = this.runtime.engine;
@@ -900,10 +933,13 @@ export class WorldScene extends Phaser.Scene {
     lit?: (hour: number) => boolean;
     /** Light thrown out onto the street: from ground-floor windows, a sign, a porch lamp. */
     pools?: Phaser.GameObjects.Image[];
-    /** Strength of the pane, the halo and the pools at full dark. */
+    /** Additive warm pools resting on the ground/doorstep, boosted when wet. */
+    ground?: Phaser.GameObjects.Image[];
+    /** Strength of the pane, the halo, wash pools and additive ground spill at full dark. */
     glass?: number;
     glow?: number;
     spill?: number;
+    groundSpill?: number;
   }[] = [];
   private washKey = "";
   private fires = new Map<string, FireEffect>();
@@ -1146,9 +1182,30 @@ export class WorldScene extends Phaser.Scene {
         if (!event.repeat) this.pendingDirection = this.direction();
       }
       this.shiftHeld = event.shiftKey;
+      if (
+        (event.code === "ShiftLeft" || event.code === "ShiftRight") &&
+        !event.repeat &&
+        this.runtime.engine.state.player.riding &&
+        (this.heldDirections.size > 0 || performance.now() < this.runtime.rideMovingUntil)
+      ) {
+        this.runtime.spurMount();
+      }
       if (event.code === "Space" && !(active instanceof HTMLButtonElement)) {
         event.preventDefault();
         if (event.repeat || this.spaceDown) return;
+        const mount = this.runtime.engine.state.player.riding;
+        if (mount) {
+          this.spaceDown = true;
+          if (mount.bucking) {
+            this.runtime.command({ type: "interact", action: "calm-mount", target: "mount" });
+          } else if (this.heldDirections.size === 0 && performance.now() >= this.runtime.rideMovingUntil) {
+            this.runtime.rearMount();
+          } else {
+            this.jumpRunning = this.runtime.rideGait >= 3 || this.shiftHeld;
+            this.queuedJump = "long";
+          }
+          return;
+        }
         if (this.wallKick()) return;
         this.spaceDown = true;
         this.jumpRunning =
@@ -2838,17 +2895,37 @@ export class WorldScene extends Phaser.Scene {
     this.mounted.set("player", { role: seated.pose, frame, facing: facingFromDirection(2), depth: on.depth + 0.5 });
     return true;
   }
-  /** The developer's horse: its gait from the player's pace, its heading
-   * from their facing, eight frames a stride. */
-  private horseFrame(moving: boolean, facing: number, time: number) {
-    const gait = moving ? (this.shiftHeld ? "gallop" : "trot") : "idle";
-    const period = gait === "gallop" ? 420 : gait === "trot" ? 520 : 2600;
+  private lastRideSerial = 0;
+  private rideTilt = 0;
+  private rideLift = 0;
+  private rideHoofFrame = -1;
+  private rideStridePhase = 0;
+  private rideLastDir?: [number, number];
+  private rideGallopSteps = 0;
+  private rideBowUntil = 0;
+  private rideRearUntil = 0;
+  /** The horse or mounted rider frame: gait from momentum (idle/walk/trot/gallop),
+   * heading from 8-way facing, eight frames a stride. */
+  private horseFrame(moving: boolean, facing: number, time: number, gaitLevel?: MountGait) {
+    const g = gaitLevel ?? (moving ? (this.shiftHeld ? 3 : 2) : 0);
+    const gait = g >= 3 ? "gallop" : g === 2 ? "trot" : g === 1 ? "walk" : "idle";
+    const period = g >= 4 ? 320 : g === 3 ? 410 : g === 2 ? 520 : g === 1 ? 680 : 2600;
     return `${gait}-${facing}-${Math.floor((time / period) * 8) % 8}`;
   }
   private riderImage?: Phaser.GameObjects.Image;
+  private mountedRiders = new Map<string, Phaser.GameObjects.Image>();
   /** The player in the saddle: the sheet's rider drawn in keyed greys,
-   * recoloured from their own skin, hair, clothes and hat. */
-  private ride(horse: Phaser.GameObjects.Image, appearance: CharacterAppearance | undefined, frame: string) {
+   * recoloured from their own skin, hair, clothes and hat. Works on both the
+   * voxel horse and any four-direction mount species via saddle offsets. */
+  private ride(
+    horse: Phaser.GameObjects.Image,
+    appearance: CharacterAppearance | undefined,
+    frame: string,
+    offsetX = 0,
+    offsetY = 0,
+    tilt = 0,
+    baseOriginY?: number,
+  ) {
     const w = appearance?.wearing;
     const hat = !!w?.headwear && w.headwear !== "none";
     const colours = [
@@ -2885,11 +2962,108 @@ export class WorldScene extends Phaser.Scene {
     this.riderImage ??= this.add.image(0, 0, key);
     this.riderImage
       .setTexture(key)
-      .setOrigin(horse.originX, horse.originY)
-      .setPosition(horse.x, horse.y)
+      .setOrigin(0.5, baseOriginY ?? horse.originY)
+      .setPosition(horse.x + offsetX, horse.y + offsetY)
+      .setScale(horse.scaleX, horse.scaleY)
+      .setAngle(tilt)
       .setDepth(horse.depth + 0.05)
       .setTint(this.tint)
       .setVisible(true);
+  }
+  /** Sparkle, dust, tilt, camera thump and sound reactions to every riding event. */
+  private syncRideEvents(im: Phaser.GameObjects.Image) {
+    const ev = this.runtime.engine.lastRideEvent;
+    if (!ev || ev.serial === this.lastRideSerial) return;
+    this.lastRideSerial = ev.serial;
+    const spec = mountSpec(ev.speciesId);
+    const heavy = !!spec?.heavy;
+    const audio = gameAudio();
+    const tiltTween = (peak: number, lift: number, dur: number) => {
+      const proxy = { t: 0, l: 0 };
+      this.tweens.add({
+        targets: proxy,
+        t: peak,
+        l: lift,
+        duration: dur * 0.42,
+        ease: "Quad.easeOut",
+        yoyo: true,
+        hold: dur * 0.16,
+        onUpdate: () => {
+          this.rideTilt = proxy.t;
+          this.rideLift = proxy.l;
+        },
+        onComplete: () => {
+          this.rideTilt = 0;
+          this.rideLift = 0;
+        },
+      });
+    };
+    const facing = this.runtime.engine.state.player.direction;
+    const sign = facing === 3 ? 1 : -1;
+    switch (ev.kind) {
+      case "mount":
+        this.rideBowUntil = this.time.now + 650;
+        this.feel.spring(im, 1.16, 0.86, 220);
+        this.kickDust(im.x, im.y, 5, 0.8);
+        audio?.sound(mountVoice(ev.voice, "mount"), "mount");
+        break;
+      case "dismount":
+        this.feel.spring(im, 1.12, 0.88, 180);
+        this.kickDust(im.x, im.y, 4, 0.7);
+        break;
+      case "spur":
+        this.feel.spring(im, 1.18, 0.86, 170);
+        this.kickDust(im.x, im.y, ev.perfect ? 9 : 5, ev.perfect ? 1.15 : 0.85);
+        if (ev.perfect) {
+          // Golden cadence sparkle burst off the hooves!
+          this.feel.puff(im.x, im.y - 6, [0xffe478, 0xffbe3d, 0xfff5c0], 7, 1.1);
+          this.cameras.main.shake(90, 0.0022);
+        }
+        audio?.sound(spurSnap(!!ev.perfect, ev.combo ?? 1), "spur");
+        if ((ev.combo ?? 1) >= 3) audio?.sound(mountVoice(ev.voice, "spur"), "mount");
+        break;
+      case "calm":
+      case "feed":
+        this.rideBowUntil = this.time.now + 750;
+        this.feel.spring(im, 1.08, 0.94, 180);
+        this.feel.puff(im.x, im.y - 18, ev.kind === "feed" ? [0x8ee672, 0xffe478, 0xfff4c2] : [0xff9eb8, 0xffd1dc, 0xfff0f5], ev.kind === "feed" ? 7 : 5, 0.8);
+        audio?.sound(mountVoice(ev.voice, "calm"), "mount");
+        break;
+      case "break":
+        this.feel.spring(im, 1.18, 0.84, 240);
+        this.feel.puff(im.x, im.y - 14, [0xffe478, 0xffbe3d, 0xffffff], 11, 1.2);
+        this.cameras.main.shake(120, 0.003);
+        audio?.sound(spurSnap(true, 5), "spur");
+        audio?.sound(mountVoice(ev.voice, "mount"), "mount");
+        break;
+      case "rear":
+        this.rideRearUntil = this.time.now + 760;
+        if (ev.speciesId !== "horse" && ev.speciesId !== "wild-horse") tiltTween(sign * 16, 7, 520);
+        this.feel.spring(im, 0.9, 1.16, 240);
+        this.kickDust(im.x, im.y, 8, 1.0);
+        this.cameras.main.shake(130, heavy ? 0.005 : 0.003);
+        audio?.sound(mountVoice(ev.voice, "rear"), "mount");
+        break;
+      case "stubborn":
+        tiltTween(sign * -10, 2, 340);
+        this.kickDust(im.x, im.y, 6, 0.9);
+        audio?.sound(mountVoice(ev.voice, "stubborn"), "mount");
+        break;
+      case "buck":
+        this.feel.spring(im, 1.24, 0.78, 280);
+        this.kickDust(im.x, im.y, 12, 1.25);
+        this.feel.puff(im.x, im.y - 10, [0xffe08a, 0xd8c8a8, 0xffffff], 8, 1.0);
+        this.cameras.main.shake(220, 0.006);
+        audio?.sound(mountVoice(ev.voice, "buck"), "mount");
+        audio?.sound(mountLand(true), "land");
+        break;
+      case "leap":
+        this.feel.spring(im, 0.92, 1.14, 180);
+        this.kickDust(im.x, im.y, ev.perfect ? 9 : 5, 1.0);
+        if (ev.perfect) this.feel.puff(im.x, im.y - 8, [0xffe478, 0xfff5c0], 5, 0.9);
+        audio?.sound(mountLeap(heavy), "leap");
+        break;
+    }
   }
   /** The railway of the town the player is in, and of any town beside it
    * whose line runs into view. */
@@ -4537,17 +4711,25 @@ export class WorldScene extends Phaser.Scene {
         : undefined,
       hashSeed(e.state.manifest.seed) + 0.5,
     );
+    const coastal = setting?.water?.startsWith("coast") ?? false;
+    const dawnMist = hour >= 4.5 && hour < 7.3;
     this.mist?.set(
       outdoors && this.weather && this.options.colorGrade !== false
         ? this.weather.condition === "mist"
           ? 0.28
           : this.weather.condition === "rain"
-            ? 0.16
+            ? coastal
+              ? 0.21
+              : 0.16
             : this.weather.condition === "snow"
               ? 0.3
             : this.weather.condition === "overcast"
-              ? 0.08
-              : 0
+              ? coastal && dawnMist
+                ? 0.13
+                : 0.08
+              : coastal && dawnMist
+                ? 0.09
+                : 0
         : 0,
     );
     // Broken cloud needs sun behind it to cast anything.
@@ -5082,6 +5264,44 @@ export class WorldScene extends Phaser.Scene {
                 y * 16 + 16 - tuftY,
                 y * 16 + 12 - tuftY,
               );
+              const cell = w.topography?.(x, y);
+              if (
+                spriteName === "rock" ||
+                frame.startsWith("nature-rock-") ||
+                frame.startsWith("nature-boulder-")
+              ) {
+                const coastal =
+                  !!cell &&
+                  (cell.surface === "sand" ||
+                    cell.surface === "gravel" ||
+                    cell.habitat?.site?.primary === "shore" ||
+                    (cell.waterVisual?.kind === "sea" &&
+                      cell.waterVisual.distance < (cell.waterVisual.shoreWidth ?? 3) + 1.5));
+                let sandRgb: number[] | undefined;
+                if (coastal && cell) {
+                  const hex = waterPalette(cell.habitat?.ecology ?? "grassland", "sea").bank[2];
+                  const base = [
+                    parseInt(hex.slice(1, 3), 16),
+                    parseInt(hex.slice(3, 5), 16),
+                    parseInt(hex.slice(5, 7), 16),
+                  ];
+                  const bt = beachTint(cell, base);
+                  sandRgb = bt ? base.map((v, k) => Math.min(255, Math.round(v * bt[k]))) : base;
+                }
+                const rockGround = groundedRockTexture(
+                  this,
+                  decoration.texture.key,
+                  frame,
+                  coastal,
+                  sandRgb,
+                  decoration.originX,
+                  decoration.originY,
+                );
+                if (rockGround)
+                  decoration
+                    .setTexture(rockGround.key)
+                    .setOrigin(rockGround.originX, rockGround.originY);
+              }
               if (
                 spriteName.startsWith("study-tree-") ||
                 spriteName.startsWith("study-sheet-tree-")
@@ -5104,6 +5324,34 @@ export class WorldScene extends Phaser.Scene {
               if (variety.flip) decoration.setFlipX(true);
               if (variety.tint !== 0xffffff)
                 tint = blendTint(tint, variety.tint);
+              if (
+                (originalName === "nature-mangrove" || frame.startsWith("nature-mangrove")) &&
+                cell &&
+                (cell.surface === "sand" ||
+                  cell.surface === "water" ||
+                  (cell.waterVisual &&
+                    cell.waterVisual.distance < (cell.waterVisual.shoreWidth ?? 3) + 1.5))
+              ) {
+                const wetWater =
+                  cell.surface === "water" || (cell.waterVisual?.distance ?? 9) < 1.35;
+                const collar = mangroveRootCollar(
+                  this,
+                  decoration.texture.key,
+                  frame,
+                  wetWater,
+                  decoration.originX,
+                  decoration.originY,
+                );
+                if (collar)
+                  this.layers.push(
+                    this.add
+                      .image(decoration.x, decoration.y, collar.key)
+                      .setOrigin(collar.originX, collar.originY)
+                      .setFlipX(decoration.flipX)
+                      .setTint(this.tint)
+                      .setDepth(decoration.depth - 0.5),
+                  );
+              }
               const worked = e.state.tiles?.[`${x},${y}`];
               if (worked?.tended && worked.furrow && /^vv-(furrow|puddled)-/.test(originalName)) {
                 const field = w.topography?.(x, y).field;
@@ -5357,23 +5605,34 @@ export class WorldScene extends Phaser.Scene {
             this.addDoor(b, placement, image.y);
             this.lightWindows(b, placement, image);
             this.lightPorch(b, placement, image);
+            this.lightDoorway(b, placement, image);
             const model = placement.model as { smoke?: [number, number, string][]; door?: number[] };
+            const frontCell = w.topography?.(b.x + Math.floor(b.w / 2), b.y + b.h);
+            const weeds = frontCell
+              ? frontCell.feature !== "paving" &&
+                !frontCell.bridge &&
+                frontCell.surface !== "water"
+              : !["city", "port"].includes(w.pack.setting?.settlement ?? "");
             const wear = buildingWear(this, image.texture.key, image.frame.name, {
               climate: w.pack.setting?.climate,
               neglect: 1 - (b.condition ?? 0.7),
               smoke: model.smoke ?? [],
               forge: /smith|forge/i.test(b.name) ? model.door : undefined,
-              weeds: !["city", "port"].includes(w.pack.setting?.settlement ?? ""),
+              weeds,
               door: model.door,
             });
-            if (wear)
+            if (wear) {
+              const wearH =
+                (this.textures.get(wear).getSourceImage() as HTMLCanvasElement)?.height ||
+                image.frame.cutHeight;
               this.layers.push(
                 this.add
                   .image(image.x, image.y, wear)
-                  .setOrigin(image.originX, image.originY)
+                  .setOrigin(image.originX, (image.originY * image.frame.cutHeight) / wearH)
                   .setTint(this.tint)
                   .setDepth(image.depth + 0.3),
               );
+            }
             const weathered = voxelWeather(this, image, placement.model as VoxelModel, this.snow,
               this.weather?.wetness ?? 0, (frame) => this.texture(frame));
             if (weathered) this.layers.push(weathered.setTint(this.tint));
@@ -5619,7 +5878,7 @@ export class WorldScene extends Phaser.Scene {
       if (o.pos.space !== "outside" || o.carriedBy) continue;
       const family = o.kind === "crop" ? "crop" : foodPatch(o,this.season) ? "wild-food"
         : o.kind === "well" ? propDefs[o.prop ?? ""]?.family ?? "well"
-        : propDefs[o.prop ?? ""]?.family;
+        : propDefs[o.prop ?? ""]?.family ?? worksiteStationFamily(o.sprite);
       if (!family) continue;
       this.workObjects.set(o.id, { id: o.id, x: o.pos.x, y: o.pos.y, family });
     }
@@ -5943,7 +6202,7 @@ export class WorldScene extends Phaser.Scene {
           : o.resource && o.depleted && o.sprite === "ecology-berry-bush"
             ? "ecology-berry-bush-picked"
             : o.kind === "gate"
-              ? (o.sprite === "harbor-gate" ? "harbor-gate" : "gate") + (o.open ? "-open" : "")
+              ? o.sprite.replace(/-open$/, "") + (o.open ? "-open" : "")
               : o.tipped
                 ? this.layerOf(o.sprite, "fallen") ?? o.sprite
                 : o.lean
@@ -5959,16 +6218,32 @@ export class WorldScene extends Phaser.Scene {
                     : o.prop==="grainHoist" && o.hoistedAt!==undefined && e.state.clock-o.hoistedAt<42 ? "harbor-grain-hoist-"+(1+Math.min(6,Math.floor(Math.max(0,e.state.clock-o.hoistedAt)/6)))
                     : o.prop==="clothCounter" ? "harbor-cloth-counter-"+(Number((o.inventory.cloth??0)>0)*2 + Number((o.inventory["cloth-bolt"]??0)>0))
                     : o.lighterage ? o.sprite.slice(0,-1)+Math.min(3,o.inventory[o.lighterage.cargo]??0)
-                    : mooredBoatFrame(o.sprite,random(e.state.manifest.seed,"boat-finish",o.owner??o.id)),
+                    : worksiteVariantFrame(
+                        mooredBoatFrame(o.sprite, random(e.state.manifest.seed, "boat-finish", o.owner ?? o.id)),
+                        random(e.state.manifest.seed, "worksite-art", o.id),
+                        (f) => this.sheetFrames?.has(f) || this.textures.get(this.texture(f)).has(f),
+                      ),
         o.prop === "outcrop" && o.size
           ? { ...o.pos, x: o.pos.x + (o.size[0] - 1) / 2, y: o.pos.y + o.size[1] - 1 }
           : o.pos,
       );
       if(o.motor)this.entities.get(o.id)?.setData("motor",o.motor);
+      if (boatCraft(o.sprite) || o.sprite.startsWith("boat-")) {
+        const hull = this.entities.get(o.id);
+        if (hull) {
+          const bCell = w.topography?.(Math.round(o.pos.x), Math.round(o.pos.y));
+          const inWater = bCell
+            ? bCell.surface === "water" || (bCell.waterVisual?.distance ?? 9) < 1.4
+            : w.terrain(Math.round(o.pos.x), Math.round(o.pos.y)) === "water";
+          drawBoatGrounding(this, hull, inWater);
+        }
+      }
       if (o.mooring) {
         const hull=this.entities.get(o.id)!;
         const x=o.mooring.x*16+8, y=o.mooring.y*16+8;
-        drawMooring(this,hull,x,y-this.lift(x,y)-5,o.sprite,!!this.options.freeze);
+        const mCell = w.topography?.(o.mooring.x, o.mooring.y);
+        const stake = mCell ? !mCell.bridge : w.terrain(o.mooring.x, o.mooring.y) !== "bridge";
+        drawMooring(this,hull,x,y-this.lift(x,y)-(stake ? 0 : 5),o.sprite,!!this.options.freeze,stake);
       }
       // A sign off the wall drops its shadow on the wall behind it.
       if (o.prop?.startsWith("wallsign-")) {
@@ -6261,6 +6536,8 @@ export class WorldScene extends Phaser.Scene {
         if (!dying) image.destroy();
         this.hangings.get(id)?.image.destroy();
         this.hangings.delete(id);
+        this.mountedRiders.get(id)?.destroy();
+        this.mountedRiders.delete(id);
         this.motions.delete(id);
         this.quenchFire(id);
         this.douseLamp(id);
@@ -6614,7 +6891,9 @@ export class WorldScene extends Phaser.Scene {
       v?.destroy();
       v = this.areaView = "fair" in level
         ? new FairView(this, level as FairLevel, (frame) => this.texture(frame), (image, id) => this.makeSelectable(image, id, false, true))
-        : new TombView(this, level as TombLevel);
+        : "prison" in level
+          ? new PrisonView(this, level as PrisonLevel)
+          : new TombView(this, level as TombLevel);
       if (import.meta.env.DEV) (window as unknown as { uhsTomb?: typeof TombView }).uhsTomb = TombView;
       this.applyGrade(0);
     }
@@ -6622,6 +6901,17 @@ export class WorldScene extends Phaser.Scene {
     const b = v.bounds, width = Math.max(b.w, camera.displayWidth), height = Math.max(b.h, camera.displayHeight);
     camera.setBounds(b.x + (b.w - width) / 2, b.y + (b.h - height) / 2, width, height);
     if (v instanceof FairView) return void v.update({ clock: this.runtime.displayClock(), time: this.time.now });
+    if (v instanceof PrisonView) {
+      const pr = e.state.complex?.kind === "prison" ? e.state.complex : undefined;
+      return void v.update({
+        done: pr ? e.state.complexes?.[`prison:${pr.site}`]?.done ?? [] : [],
+        pry: pr?.pry ?? 0,
+        grate: pr?.grate ?? 0,
+        hasKey: !!pr?.hasKey,
+        clock: this.runtime.displayClock(),
+        time: this.time.now,
+      });
+    }
     const run = e.state.complex?.kind === "tomb" ? e.state.complex : undefined, me = this.entities.get("player"), p = e.state.player;
     if (!run) return;
     v.update({
@@ -6677,10 +6967,13 @@ export class WorldScene extends Phaser.Scene {
     const night = graded ? Phaser.Math.Clamp((w.alpha - 0.14) / 0.28, 0, 1) : 0;
     // Low sun is lost behind cloud.
     const golden = graded ? w.golden * 0.14 * (1 - weather / 0.3) : 0;
-    const lamps = graded ? w.lamps : 0;
+    const rainLamp = weather > 0.14 ? Math.min(1, (weather - 0.14) * 2.2) : 0;
+    const lamps = graded ? Math.min(1, Math.max(w.lamps, rainLamp * 0.42)) : 0;
+    const wetness = this.weather?.wetness ?? 0;
+    const wetBoost = 1 + Math.min(0.32, wetness * 0.35);
     this.emberGlow = lamps;
     // Rooms go dark one at a time, so the hour is part of the key.
-    const key = `${w.color}:${w.alpha.toFixed(3)}:${golden.toFixed(3)}:${weather.toFixed(3)}:${haze}:${lamps.toFixed(2)}:${Math.floor(clock / 900)}:${this.snow}`;
+    const key = `${w.color}:${w.alpha.toFixed(3)}:${golden.toFixed(3)}:${weather.toFixed(3)}:${haze}:${lamps.toFixed(2)}:${Math.round(wetness * 10)}:${Math.floor(clock / 900)}:${this.snow}`;
     if (key === this.washKey) return;
     this.washKey = key;
     // Stacked multiply fills over white come to one colour: their product.
@@ -6692,13 +6985,14 @@ export class WorldScene extends Phaser.Scene {
     );
     // Night proper only: dusk keeps its colour.
     this.applyGrade(night, graded ? Math.min(1, weather / 0.3) : 0, graded ? gradeAt(clock) : undefined, 1 - haze);
-    this.mist?.tint(night);
+    this.mist?.tint(night, graded ? w.golden * (1 - weather / 0.3) : 0);
     const hour = (((clock / 3600) % 24) + 24) % 24;
     for (const l of this.lamps) {
       const on = lamps > 0 && (l.lit?.(hour) ?? true);
       l.pane.setAlpha(lamps * (l.glass ?? 1)).setVisible(on);
       l.halo?.setAlpha(lamps * (l.glow ?? 0.6)).setVisible(on);
       for (const pool of l.pools ?? []) pool.setAlpha(lamps * (l.spill ?? 0.45)).setVisible(on);
+      for (const g of l.ground ?? []) g.setAlpha(Math.min(1, lamps * (l.groundSpill ?? 0.45) * wetBoost)).setVisible(on);
     }
   }
   /** The wash over the camera's view with each fire and lamp's pool laid
@@ -6766,7 +7060,7 @@ export class WorldScene extends Phaser.Scene {
     // bed with the dark, and paraffin and gas kept it up later.
     const year = this.runtime.engine.world.pack.year;
     const [evening, bed, early, late] =
-      year < 1700 ? [0.35, 21, 0.15, 0.04] : year < 1860 ? [0.5, 22, 0.25, 0.08] : year < 1910 ? [0.7, 22.5, 0.35, 0.12] : [0.8, 23.5, 0.45, 0.15];
+      year < 1700 ? [0.45, 21, 0.45, 0.06] : year < 1860 ? [0.55, 22, 0.5, 0.08] : year < 1910 ? [0.7, 22.5, 0.45, 0.12] : [0.8, 23.5, 0.5, 0.15];
     const share = h >= 17 && h < bed ? evening : h >= 4.5 && h < 8 ? early : late;
     if (random(this.runtime.engine.state.manifest.seed, "lamp", place.id) >= share) return;
     // A painter that draws its own lit rooms ships them as a frame beside the
@@ -6795,9 +7089,21 @@ export class WorldScene extends Phaser.Scene {
         false,
       ),
     );
-    this.layers.push(pane, halo, ...pools);
+    const ground = soft.pools.map(({ x, w }) =>
+      this.add
+        .image(
+          Math.round(left + x),
+          Math.round(top + image.height + 5),
+          ensureGroundSpill(this, Math.min(34, Math.max(16, Math.round((w * 0.9) / 4) * 4)), WINDOW_TONE),
+          "0",
+        )
+        .setBlendMode(Phaser.BlendModes.ADD)
+        .setDepth(image.depth + 0.15)
+        .setVisible(false),
+    );
+    this.layers.push(pane, halo, ...pools, ...ground);
     // Glass found in the art keeps its mullions and reflections under the light.
-    this.lamps.push({ pane, halo, pools, glass: 0.6, glow: 0.55 });
+    this.lamps.push({ pane, halo, pools, ground, glass: 0.65, glow: 0.58, spill: 0.55, groundSpill: 0.46 });
     this.washKey = "";
   }
   /** A lamp on the wall beside the door, from the years every house had one
@@ -6840,6 +7146,55 @@ export class WorldScene extends Phaser.Scene {
       glow: 0.7,
       spill: 0.7,
       lit: (h) => (h >= 17.8 || h < 6.2) && (allNight || (h >= 12 ? h : h + 24) < off),
+    });
+    this.washKey = "";
+  }
+  /** Warm hearth or oil-lamp light spilling from an occupied building's doorway
+   * at dawn, evening, night, or gloomy rain — giving pre-modern and unglazed
+   * dwellings warm pools on their doorsteps against cool weather. */
+  private lightDoorway(
+    place: Place,
+    placement: ReturnType<typeof buildingPlacement>,
+    image: Phaser.GameObjects.Image,
+  ) {
+    const model = placement.model as { door?: number[]; doorLeaf?: boolean; smoke?: unknown[] };
+    const rect = model.door;
+    if (!rect || rect[2] < 4 || rect[3] < 6) return;
+    if (place.access !== "household" && !model.smoke?.length) return;
+    const share = place.access === "household" ? 0.8 : 0.6;
+    if (random(this.runtime.engine.state.manifest.seed, "door-hearth", place.id) >= share) return;
+    const left = image.x - image.displayOriginX,
+      top = image.y - image.displayOriginY;
+    const dx = Math.round(left + rect[0]),
+      dy = Math.round(top + rect[1]),
+      dw = Math.round(rect[2]),
+      dh = Math.round(rect[3]);
+    const open = model.doorLeaf === false || !!this.runtime.engine.doorOf(place.id)?.open;
+    const pane = this.add
+      .image(dx, dy, ensureDoorGlow(this, dw, dh, HEARTH_TONE))
+      .setOrigin(0, 0)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(image.depth + 0.45)
+      .setVisible(false);
+    const radius = Math.min(36, Math.max(20, Math.round((dw * 1.6) / 4) * 4));
+    const ground = this.add
+      .image(dx + dw / 2, dy + dh + 5, ensureGroundSpill(this, radius, HEARTH_TONE), "0")
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setDepth(image.depth + 0.15)
+      .setVisible(false);
+    const pool = this.make.image(
+      { x: Math.round(dx + dw / 2), y: Math.round(dy + dh + 4), key: ensureLightMask(this, radius + 6, HEARTH_TONE), frame: "0" },
+      false,
+    );
+    this.layers.push(pane, ground, pool);
+    this.lamps.push({
+      pane,
+      pools: [pool],
+      ground: [ground],
+      glass: open ? 0.85 : 0.52,
+      spill: open ? 0.6 : 0.38,
+      groundSpill: open ? 0.54 : 0.36,
+      lit: (h) => h >= 16.8 || h < 7.6 || (this.weather?.condition === "rain" && (this.weather?.wetness ?? 0) > 0.25),
     });
     this.washKey = "";
   }
@@ -7623,6 +7978,91 @@ export class WorldScene extends Phaser.Scene {
           this.motionDuration=this.nextInput-time;
           this.lastTick=time;
           this.runtime.move(dx,dy,false);
+        } else if ((dx || dy) && this.runtime.engine.state.player.riding) {
+          const mount = this.runtime.engine.state.player.riding;
+          const spec = mountSpec(mount.speciesId, mount.form)!;
+          const now = performance.now();
+          const prev = this.rideLastDir;
+          // Reversing direction at gallop or spur triggers a dramatic skid-stop!
+          if (
+            this.rideGallopSteps >= 2 &&
+            prev &&
+            dx === -prev[0] &&
+            dy === -prev[1]
+          ) {
+            this.rideGallopSteps = 0;
+            this.rideLastDir = undefined;
+            this.runtime.rideGait = 1;
+            this.runtime.rideCombo = 0;
+            this.nextInput = time + 210;
+            const im = this.entities.get("player");
+            if (im) {
+              this.kickDust(im.x - dx * 6, im.y, 10, 1.15);
+              this.feel.spring(im, 1.16, 0.86, 200);
+              const proxy = { t: 0 };
+              this.tweens.add({
+                targets: proxy,
+                t: (dx > 0 ? -1 : 1) * 14,
+                duration: 100,
+                yoyo: true,
+                onUpdate: () => { this.rideTilt = proxy.t; },
+                onComplete: () => { this.rideTilt = 0; },
+              });
+            }
+            gameAudio()?.sound(mountSkid(), "skid");
+          } else {
+            const surging = now < this.runtime.rideSpurUntil;
+            const gait: MountGait = surging
+              ? 4
+              : this.shiftHeld
+                ? 3
+                : this.rideGallopSteps >= 2
+                  ? 2
+                  : 1;
+            this.runtime.rideGait = gait;
+            this.runtime.rideMovingUntil = now + 380;
+            this.rideLastDir = [dx, dy];
+            this.rideGallopSteps = Math.min(8, this.rideGallopSteps + 1);
+            const riderBonus = this.runtime.engine.knows("rider") ? 0.88 : 1;
+            let ms = spec.stepMs[gait - 1] * Math.hypot(dx, dy) * riderBonus;
+            const p = this.runtime.engine.state.player.pos;
+            const sample = this.runtime.engine.world.topography;
+            if (sample && p.space === "outside") {
+              const depth = Math.max(
+                waterDepthAt(sample, p.x + 0.5, p.y + 0.5),
+                waterDepthAt(sample, p.x + dx + 0.5, p.y + dy + 0.5),
+              );
+              const ahead = sample(p.x + dx, p.y + dy);
+              if (depth > 0 && !spec.amphibious) ms *= 1 + depth * 1.4;
+              else if (
+                !spec.snowSure &&
+                this.snow > 0.5 &&
+                ahead &&
+                !ahead.pathArt?.length &&
+                ahead.feature !== "paving"
+              ) {
+                ms *= 1 + (this.snow - 0.5) * 0.7;
+              }
+            }
+            this.motionDuration = ms;
+            this.nextInput = time + ms;
+            this.lastTick = time;
+            const moved = this.runtime.move(dx, dy, false, gait >= 3);
+            if (moved?.status === "rejected") {
+              this.runtime.face(dx, dy);
+              this.rideGallopSteps = 0;
+              this.runtime.rideGait = 0;
+              this.runtime.rideCombo = 0;
+              if (gait >= 3) {
+                const im = this.entities.get("player");
+                if (im) this.kickDust(im.x + dx * 6, im.y, 7, 1.0);
+                this.cameras.main.shake(100, 0.003);
+                gameAudio()?.sound(mountSkid(), "skid");
+              }
+            } else if (spec.heavy && gait >= 3) {
+              this.cameras.main.shake(55, 0.0014);
+            }
+          }
         } else if (
           (dx || dy) &&
           this.shiftHeld &&
@@ -8103,9 +8543,12 @@ export class WorldScene extends Phaser.Scene {
           this.workBeat(id, pose, work.beat, work.site, im);
         if (id === "player" && active && pose.startsWith("work-") && pose !== "work-check" && index === 2 && action) {
           const target = action.target && this.runtime.engine.state.objects.find((o) => o.id === action.target);
-          const site = target && target.pos.space === "outside"
-            ? { id: target.id, x: target.pos.x, y: target.pos.y, family: target.kind === "crop" ? "crop" : propDefs[target.prop ?? ""]?.family ?? "" }
+          const nearStation = !target && wetPos?.space === "outside"
+            ? [...this.workObjects.values()].find((s) => s.family.startsWith("worksite-") && Math.hypot(s.x - wetPos.x, s.y - wetPos.y) < 3.5)
             : undefined;
+          const site = target && target.pos.space === "outside"
+            ? { id: target.id, x: target.pos.x, y: target.pos.y, family: target.kind === "crop" ? "crop" : propDefs[target.prop ?? ""]?.family ?? worksiteStationFamily(target.sprite) ?? "" }
+            : nearStation;
           this.workBeat(id, pose, String(action.serial), site, im);
         }
         const prop = seat ? undefined :
@@ -8207,22 +8650,169 @@ export class WorldScene extends Phaser.Scene {
         // A hit-stop holds the figures too, not only what is tweened.
         im.setVisible(!!texture);
         if (asleep) this.shadows.get(id)?.setVisible(false);
-        const horse = id === "player" && this.runtime.devHorse
-          ? this.horseFrame(moving, turn.facing, time)
-          : undefined;
-        if (horse) {
-          const base = `vhorse-ride-${horse}`;
+        const ridingMount = human.riding;
+        const mountSpecNow = ridingMount ? mountSpec(ridingMount.speciesId, ridingMount.form) : undefined;
+        if (id === "player") {
+          this.syncRideEvents(im);
+          if (!ridingMount) {
+            this.rideGallopSteps = 0;
+            this.rideTilt = 0;
+            this.rideLift = 0;
+            if (this.runtime.rideGait !== 0) {
+              this.runtime.rideGait = 0;
+              this.runtime.rideCombo = 0;
+            }
+          } else if (!moving && performance.now() >= this.runtime.rideMovingUntil) {
+            this.rideGallopSteps = 0;
+            if (this.runtime.rideGait !== 0) {
+              this.runtime.rideGait = 0;
+              if (performance.now() > this.runtime.rideSpurUntil + 250) this.runtime.rideCombo = 0;
+            }
+          }
+        }
+        const activeGait: MountGait = ridingMount
+          ? moving
+            ? Math.max(1, id === "player" ? this.runtime.rideGait : 2) as MountGait
+            : 0
+          : moving
+            ? (this.shiftHeld ? 3 : 2)
+            : 0;
+        const devHorseFrame =
+          id === "player" && !ridingMount && this.runtime.devHorse
+            ? this.horseFrame(moving, turn.facing, time)
+            : undefined;
+        if (devHorseFrame) {
+          const base = `vhorse-ride-${devHorseFrame}`;
           if (im.frame.name !== base) im.setTexture(this.texture(base), base);
-          // The sheet's hooves stand four pixels up from its foot.
-          im.setOrigin(0.5, (im.height - 4) / im.height).setVisible(true);
-          this.ride(im, human.appearance, horse);
+          im.setFlipX(false);
+          const originY = (im.height - 4) / im.height;
+          im.setOrigin(0.5, originY).setVisible(true);
+          this.ride(im, human.appearance, devHorseFrame, 0, 0, 0, originY);
+          this.mountedRiders.get(id)?.setVisible(false);
+        } else if (ridingMount && mountSpecNow) {
+          // Real directional pixel-art animal + real animated pixel-art character doll in the saddle!
+          if (id === "player") this.riderImage?.setVisible(false);
+          const dir4 = human.direction;
+          const facing4: FaunaFacing = (["north", "east", "south", "west"] as const)[dir4] ?? "south";
+          const isHorseRig = ridingMount.speciesId === "horse" || ridingMount.speciesId === "wild-horse";
+          const rearing = isHorseRig && ((id === "player" && time < this.rideRearUntil) || !!ridingMount.bucking);
+          const bowing = !moving && !rearing && isHorseRig && id === "player" && time < this.rideBowUntil;
+          const faunaState: FaunaState = rearing
+            ? "rear"
+            : bowing
+              ? "graze"
+              : activeGait >= 3
+                ? "flee"
+                : activeGait === 2 && isHorseRig
+                  ? "trot"
+                  : activeGait >= 1
+                    ? "wander"
+                    : "idle";
+          const artStem =
+            ridingMount.form && ridingMount.form !== ridingMount.speciesId
+              ? `${ridingMount.speciesId}.${ridingMount.form}`
+              : ridingMount.speciesId;
+          const artFull =
+            ridingMount.coat && ridingMount.coat !== "default" && ridingMount.coat !== "natural"
+              ? `${artStem}+${ridingMount.coat.replace(/-/g, "_")}`
+              : artStem;
+          const speedMul = activeGait >= 4 ? 1.55 : activeGait === 3 ? 1.2 : activeGait === 2 ? 1.05 : 0.85;
+          if (id === "player" && moving) this.rideStridePhase += (this.game.loop.delta / 110) * speedMul;
+          const customPhase = bowing
+            ? 1 // Smooth mid-height head-dip while mounting/patting/feeding
+            : rearing
+              ? ((time / 95) % 8)
+              : id === "player" && moving
+                ? this.rideStridePhase
+                : undefined;
+          const animalFrame = this.faunaFrame(
+            ridingMount.speciesId,
+            faunaState,
+            0,
+            facing4,
+            customPhase,
+            artFull,
+          );
+          const tex = this.texture(animalFrame);
+          if (tex !== "__DEFAULT") {
+            if (im.texture.key !== tex || im.frame.name !== animalFrame) {
+              im.setTexture(tex, animalFrame);
+            }
+          }
+          im.setOrigin(0.5, (im.frame.height - 3) / im.frame.height).setFlipX(false).setVisible(true);
+          const buckWobble = ridingMount.bucking ? Math.sin(time * 0.034) * 14 : 0;
+          const tilt = (id === "player" ? this.rideTilt : 0) + buckWobble;
+          const lift = (id === "player" ? this.rideLift : 0) + (ridingMount.bucking ? Math.abs(Math.sin(time * 0.034)) * 5 : 0);
+          im.setAngle(tilt);
+          if (lift) im.setY(im.y - lift);
+          const ridePose: CharacterPose = activeGait >= 3 ? "ride-gallop" : "ride";
+          const riderFrameIdx = moving
+            ? Math.floor(time / (activeGait >= 4 ? 75 : activeGait >= 3 ? 95 : 150)) % 4
+            : Math.floor(time / 1200) % 4;
+          const riderTex = this.characters.frame(
+            turn.facing === (human.facing ?? facingFromDirection(human.direction))
+              ? human
+              : { ...human, facing: turn.facing },
+            ridePose,
+            riderFrameIdx,
+            prop,
+            turnMotion || passBy * 3,
+            condition,
+            this.feeling(id, human),
+          );
+          let riderImg = this.mountedRiders.get(id);
+          if (riderTex) {
+            if (!riderImg) {
+              riderImg = this.add.image(0, 0, riderTex);
+              this.mountedRiders.set(id, riderImg);
+            }
+            const sideX = dir4 === 1 ? (mountSpecNow.sideShift ?? 0) : dir4 === 3 ? -(mountSpecNow.sideShift ?? 0) : 0;
+            const bob = moving ? Math.round(Math.sin(time * (activeGait >= 3 ? 0.024 : 0.015)) * (activeGait >= 3 ? 1.5 : 1)) : 0;
+            riderImg
+              .setTexture(riderTex)
+              .setOrigin(0.5, 1)
+              .setPosition(Math.round(im.x + mountSpecNow.saddle[0] + sideX), Math.round(im.y - mountSpecNow.saddle[1] + bob))
+              .setScale(im.scaleX, im.scaleY)
+              .setAngle(tilt)
+              .setDepth(im.depth + 0.05)
+              .setTint(this.tint)
+              .setVisible(true);
+          } else {
+            riderImg?.setVisible(false);
+          }
         } else {
           if (id === "player") this.riderImage?.setVisible(false);
+          this.mountedRiders.get(id)?.setVisible(false);
+          if (im.angle !== 0) im.setAngle(0);
+          if (im.flipX) im.setFlipX(false);
           if (texture && this.tweens.timeScale && im.texture.key !== texture) {
             im.setTexture(texture);
             im.setOrigin(0.5, 1);
           }
           if(id==="player" || this.crafts.has(id))this.craftOf(id).placeCrew(im);
+        }
+        // Mounted hoofbeats, hoofprints, dust plumes & water spray!
+        if (id === "player" && ridingMount && mountSpecNow && moving && !arcLift) {
+          const hoofIdx = Math.floor((time / (activeGait >= 4 ? 145 : activeGait === 3 ? 190 : activeGait === 2 ? 260 : 340))) % 4;
+          if (this.rideHoofFrame !== hoofIdx) {
+            this.rideHoofFrame = hoofIdx;
+            const cell = this.destinations.get(id);
+            const surface = cell
+              ? this.runtime.engine.hitClass(cell.x, cell.y, cell.space).hit
+              : "grass";
+            void gameAudio()?.sound(hoofbeat(water > 0.02 ? "water" : surface, activeGait, !!mountSpecNow.heavy), "step");
+            if (cell) {
+              this.feel.step(im, water > 0.02 ? "marsh" : surface);
+            }
+            if (water > 0.02 || puddle === "water") {
+              splashPuddle(this, im.x, im.y - 1, human.direction, activeGait >= 3, im.depth, time);
+            } else if (activeGait >= 3) {
+              this.kickDust(im.x, im.y, activeGait >= 4 ? 5 : 3, activeGait >= 4 ? 0.95 : 0.7);
+              if (activeGait >= 4) {
+                this.feel.puff(im.x, im.y - 4, [0xffe478, 0xfff5c0], 2, 0.7);
+              }
+            }
+          }
         }
         // Dust off a run's contact frames. Walking raises none, or a quiet
         // street would be permanently hazy; jumps are covered by `launch`.
@@ -8648,27 +9238,42 @@ export class WorldScene extends Phaser.Scene {
   }
   private workSite(at: Ambient, pose?: CharacterPose) {
     const assigned = at.target;
-    if (!assigned) return undefined;
-    const site = assigned.id ? this.workObjects.get(assigned.id) : assigned;
-    if (!site || pose && workTargets[pose] && !workTargets[pose]!.includes(site.family)) return undefined;
-    return Math.hypot(site.x - at.x, site.y - at.y) < 3.5 ? site : undefined;
+    if (assigned) {
+      const site = assigned.id ? this.workObjects.get(assigned.id) : assigned;
+      if (!site || pose && workTargets[pose] && !workTargets[pose]!.includes(site.family)) return undefined;
+      return Math.hypot(site.x - at.x, site.y - at.y) < 3.5 ? site : undefined;
+    }
+    if (at.activity !== "work") return undefined;
+    let best: { id: string; x: number; y: number; family: string } | undefined;
+    let bestDist = 3.5;
+    for (const site of this.workObjects.values()) {
+      if (!site.family.startsWith("worksite-")) continue;
+      if (pose && workTargets[pose] && !workTargets[pose]!.includes(site.family)) continue;
+      const d = Math.hypot(site.x - at.x, site.y - at.y);
+      if (d < bestDist) { bestDist = d; best = site; }
+    }
+    return best;
   }
   private workMotion(id: string, at: Ambient, time: number, trade?: string, held?: string) {
-    let pose = workPoseFor(at.activity, at.label, this.workSite(at)?.family, trade, held);
+    const rawSite = this.workSite(at);
+    let pose = workPoseFor(at.activity, at.label, rawSite?.family, trade, held);
     if (!pose) return undefined;
-    const site = this.workSite(at, pose);
+    const offset = this.poseOffset(id);
+    const cycle = 3500 + offset % 650;
+    const age = (time + offset) % cycle;
+    const round = Math.floor((time + offset) / cycle);
+    // Outdoor craft yards alternate naturally between two authentic gestures across rounds.
+    const altPose = rawSite ? STATION_ALTERNATE[rawSite.family] : undefined;
+    if (altPose && round % 3 === 1) pose = altPose;
+    const site = this.workSite(at, pose) ?? rawSite;
     const field = site?.family === "crop" && !site.id && this.runtime.engine.state.tiles?.[`${site.x},${site.y}`]?.tended;
     if (field && this.runtime.engine.state.clock - field.at < 30 * 60) pose = fieldPose[field.job];
     // A hoe in hand chops at the rows rather than miming.
     if (pose === "work-tend" && /weed|hoe|till|dig|plant/i.test(at.label) && this.heldSprites.get(id)?.includes("-hoe-"))
       pose = "pick-strike";
-    const offset = this.poseOffset(id);
-    const cycle = 3500 + offset % 650;
-    const age = (time + offset) % cycle;
-    const round = Math.floor((time + offset) / cycle);
     const stroke = poseTiming(pose) * 4;
-    // Music, prayer, writing and sweeping go on without the pauses of a craft.
-    if (/^(play-|pray|cense|call|work-(write|sweep|saw))/.test(pose)) {
+    // Music, prayer, writing, sweeping, cranking and sawing flow without craft pauses.
+    if (/^(play-|pray|cense|call|work-(write|sweep|saw|crank))/.test(pose)) {
       const loop = Math.floor((time + offset) / stroke);
       if (pose === "call" && loop % 3) return { pose: "idle" as CharacterPose, index: 0, site };
       return { pose, index: Math.floor(((time + offset) % stroke) / poseTiming(pose)), beat: `${pose}:${loop}`, site };
@@ -8696,14 +9301,60 @@ export class WorldScene extends Phaser.Scene {
         duration, ease: "Quad.easeOut", onComplete: () => dot.destroy() });
     };
     if (pose === "work-stir") {
-      mark(-3, 0, 2, 2, 0xe9e1bd, -2, -9, 550);
-      mark(2, -2, 1, 3, 0xd8d4b6, 2, -11, 690);
+      if (site?.family === "worksite-dye-racks") {
+        mark(-3, -1, 2, 2, 0x3b6ca8, -3, -6, 460);
+        mark(2, -2, 2, 2, 0xb8484c, 3, -5, 480);
+      } else if (site?.family === "worksite-soap-yard") {
+        mark(-3, -1, 2, 2, 0xf4f2e6, -2, -8, 520);
+        mark(2, -2, 2, 2, 0xced7b4, 2, -9, 600);
+      } else if (site?.family === "worksite-press-yard") {
+        mark(-2, -1, 2, 2, 0xe4b856, -2, -7, 500);
+        mark(2, -2, 1, 2, 0xf0e6c8, 2, -9, 600);
+      } else {
+        mark(-3, 0, 2, 2, 0xe9e1bd, -2, -9, 550);
+        mark(2, -2, 1, 3, 0xd8d4b6, 2, -11, 690);
+      }
     } else if (pose === "tug" && site) {
-      mark(-1, -3, 2, 2, 0xb5e2e8, -2, 5, 400);
-      mark(2, -2, 1, 2, 0xd6eff0, 2, 6, 480);
+      const dry = site.family === "worksite-ropewalk";
+      mark(-1, -3, 2, 2, dry ? 0xd8bf8a : 0xb5e2e8, -2, dry ? -2 : 5, 400);
+      mark(2, -2, 1, 2, dry ? 0xc2a26a : 0xd6eff0, 2, dry ? 3 : 6, 480);
     } else if (pose === "work-knead") {
       mark(-2, 0, 2, 2, 0xe3cfab, -5, -3);
       mark(2, 0, 2, 2, 0xe3cfab, 5, -2);
+    } else if (pose === "work-throw") {
+      mark(-2, 0, 2, 2, 0xc47b52, -4, -3, 340);
+      mark(2, -1, 1, 2, 0xa8613d, 4, -2, 360);
+    } else if (pose === "work-crank") {
+      const silk = site?.family === "worksite-silk-yard";
+      mark(-2, -2, 2, 1, silk ? 0xf7f2de : 0xd8bf8a, 4, -4, 340);
+      mark(2, -1, 1, 1, silk ? 0xeac968 : 0xc0a06a, -3, -3, 360);
+    } else if (pose === "work-scrape") {
+      const paper = site?.family === "worksite-paper-yard";
+      const wood = site?.family === "worksite-carpenter-bench";
+      const c1 = paper ? 0xf3eee0 : wood ? 0xe5ca92 : 0xd9c29e;
+      const c2 = paper ? 0xd0e2e4 : wood ? 0xd1ad70 : 0xb89468;
+      mark(-2, -2, 2, 1, c1, -3, 5, 360);
+      mark(2, -1, 1, 2, c2, 3, 6, 400);
+    } else if (pose === "work-chisel") {
+      const stone = site?.family === "worksite-mason-bench";
+      const bronze = site?.family === "worksite-foundry-yard";
+      const c1 = stone ? 0xe5dfd0 : bronze ? 0xdfb15a : 0xe3c48e;
+      const c2 = stone ? 0xbdb7a7 : bronze ? 0x7eb29d : 0xc9a368;
+      mark(-2, 0, 2, 1, c1, -5, -4, 300);
+      mark(2, -1, 1, 1, c2, 5, -5, 320);
+      mark(0, 1, 1, 1, c1, 2, 4, 280);
+    } else if (pose === "work-pour") {
+      if (site?.family === "worksite-foundry-yard") {
+        mark(-1, -1, 2, 2, 0xffd97d, -4, -6, 360);
+        mark(1, 0, 2, 1, 0xff8f3d, 4, -7, 420);
+        mark(0, -2, 1, 1, 0xfff3be, 1, -9, 320);
+      } else if (site?.family === "worksite-press-yard") {
+        mark(0, -4, 1, 2, 0xdca83e, 2, 5, 340);
+        mark(2, -3, 1, 2, 0xc38f2c, 3, 4, 340);
+      } else if (site?.family === "crop") {
+        mark(0, -5, 1, 2, 0xabced0, 2, 5);
+        mark(2, -4, 1, 2, 0x8baeb7, 3, 4);
+      }
     } else if (pose === "work-pound") {
       const metal = site?.family === "anvil";
       const color = metal ? 0xffd17a : 0xc9ad83;
@@ -8738,18 +9389,21 @@ export class WorldScene extends Phaser.Scene {
       mark(2, 0, 2, 1, 0xa0d6dc, 5, 1, 420);
       mark(0, -2, 1, 1, 0xe2eeee, 0, -5, 370);
     } else if (pose === "work-hang") {
-      mark(-2, -4, 3, 1, 0xc59d69, -1, 3, 350);
-      mark(2, -3, 2, 1, 0x8f7355, 2, 3, 420);
-    } else if (site?.family === "crop" && pose === "work-pour") {
-      mark(0, -5, 1, 2, 0xabced0, 2, 5);
-      mark(2, -4, 1, 2, 0x8baeb7, 3, 4);
+      const dye = site?.family === "worksite-dye-racks";
+      mark(-2, -4, 3, 1, dye ? 0x3b6ca8 : 0xc59d69, -1, 4, 380);
+      mark(2, -3, 2, 1, dye ? 0xb8484c : 0x8f7355, 2, 4, 420);
     } else if ((site?.family === "crop" || site?.family === "wild-food") && (pose === "till" || pose === "reap" || pose === "stoop" || pose === "pick-strike")) {
       const color = pose === "reap" ? 0xc3a057 : pose === "stoop" ? 0x91ac57 : 0x967346;
       mark(-1, 1, 2, 1, color, -4, -2);
       mark(1, 0, 1, 2, color, 4, -3);
     } else if (pose === "work-tend") {
-      mark(-2, 0, 2, 1, 0x816841, -4, 3);
-      mark(2, -1, 1, 2, 0x9fba69, 3, -5, 480);
+      if (site?.family === "worksite-charcoal-yard") {
+        mark(-1, -2, 2, 2, 0xadb4be, -2, -10, 680);
+        mark(1, 0, 1, 1, 0xff9d47, 2, -5, 360);
+      } else {
+        mark(-2, 0, 2, 1, 0x816841, -4, 3);
+        mark(2, -1, 1, 2, 0x9fba69, 3, -5, 480);
+      }
     } else if (pose === "work-sort") {
       mark(-1, -1, 2, 1, 0xd9bf87, 3, -3, 280);
       mark(1, 1, 1, 1, 0xbba175, -3, 2, 260);

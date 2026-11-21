@@ -188,6 +188,38 @@ const trades: Partial<Record<CharacterPose, readonly Key[]>> = {
     { one: [-2.8, -0.6, 4.4], off: [-4, -6, 4.4], nod: 1, lean: 0.4 },
     { one: [-2.6, -3.6, 3.8], off: [-4, -6, 4.2] },
   ],
+  // Standing hand-crank circle (silk-reeling swift, ropewalk wheel, windlass); off hand guides the thread.
+  "work-crank": [0, 1, 2, 3].map((i): Key => {
+    const [dy, dz] = [[2.6, 0], [0, 2.6], [-2.6, 0], [0, -2.6]][i];
+    return {
+      one: [-2.2, -3.6 + dy, 4.2 + dz],
+      off: [-3.6, -5.0, 3.6],
+      lean: 0.5 + dz * 0.14,
+      nod: 1,
+      tilt: dz * 0.18,
+    };
+  }),
+  // Two-handed vertical push-pull stroke (fleshing stretched hides, brushing paper boards, planing beams).
+  "work-scrape": [
+    { one: [-2.2, -2.0, 4.6], off: [-3.8, -2.0, 4.6], lean: 0.3, rise: 1 },
+    { one: [-2.2, -4.4, 5.1], off: [-3.8, -4.4, 5.1], lean: 1.0, nod: 1, smear: "hands" },
+    { one: [-2.2, -7.0, 4.5], off: [-3.8, -7.0, 4.5], lean: 1.5, rise: -1, knee: 1.4, nod: 1 },
+    { one: [-2.2, -4.2, 3.6], off: [-3.8, -4.2, 3.6], lean: 0.7, nod: 1 },
+  ],
+  // Off hand braces a steel chisel; near hand raises a wooden mallet to shoulder height and taps cleanly.
+  "work-chisel": [
+    { one: [0.1, 1.4, 1.4], off: [-3.2, -5.8, 4.4], lean: 0.1 },
+    { one: [0.4, 4.4, 0.9], off: [-3.2, -5.8, 4.4], lean: -0.2, shoulders: 1 },
+    { one: [-2.0, -4.8, 4.6], off: [-3.2, -6.0, 4.5], lean: 0.9, rise: -1, knee: 1, nod: 1, smear: "hands" },
+    { one: [-1.4, -3.2, 3.8], off: [-3.2, -5.8, 4.4], lean: 0.5, nod: 1 },
+  ],
+  // Low seated/stooped wheel-throwing: both cupped hands rise and narrow around wet clay.
+  "work-throw": [
+    { one: [-2.4, -7.0, 4.2], off: [-3.8, -7.0, 4.2], rise: -3, knee: 3.5, lean: 1.1, nod: 2 },
+    { one: [-2.6, -5.7, 4.4], off: [-3.6, -5.7, 4.4], rise: -3, knee: 3.5, lean: 1.0, nod: 2 },
+    { one: [-2.8, -4.4, 4.3], off: [-3.4, -4.4, 4.3], rise: -2, knee: 3.2, lean: 0.8, nod: 1, shoulders: 1 },
+    { one: [-2.5, -5.9, 4.2], off: [-3.7, -5.9, 4.2], rise: -3, knee: 3.5, lean: 1.1, nod: 2 },
+  ],
   // Kneeling at the hand mill, turning the handle round; the other hand feeds the grain.
   "work-quern": [0, 1, 2, 3].map((i): Key => {
     const [dx, dz] = circle(i, 1.4);
@@ -358,7 +390,7 @@ const social: Partial<Record<CharacterPose, readonly Key[]>> = {
   })),
 };
 /** Poses whose tool the painter draws itself, so a held icon is put away. */
-const tooled = new Set<CharacterPose>(["work-stir", "work-pound", "work-hammer", "work-saw", "work-sweep", "work-write", "work-pour", "play-strum", "play-drum", "play-flute", "pray", "cense"]);
+const tooled = new Set<CharacterPose>(["work-stir", "work-pound", "work-hammer", "work-saw", "work-sweep", "work-write", "work-pour", "work-crank", "work-scrape", "work-chisel", "work-throw", "play-strum", "play-drum", "play-flute", "pray", "cense"]);
 
 const actions: Partial<Record<CharacterPose, readonly Key[]>> = {
   ...trades,
@@ -573,7 +605,7 @@ const blowing: readonly Key[] = [
   { one: [-3.6, 2.6, 1.6], off: [-3.2, 2.2, 4.4], tool: [0, 0.12, 1], face: "o", lean: 0.4 },
 ];
 const thrusts = new Set<CharacterPose>(["thrust", "spear-thrust", "spear-throw", "knife-thrust", "pitchfork-jab"]);
-const crouches = new Set<CharacterPose>(["pickup", "drop", "stoop", "kneel", "work-fish", "work-rinse", "work-tend"]);
+const crouches = new Set<CharacterPose>(["pickup", "drop", "stoop", "kneel", "work-fish", "work-rinse", "work-tend", "work-throw"]);
 
 function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: number, sx: 1 | -1, prop?: CarriedArt, condition = 0): Rig {
   const hipX = d.child ? 2 : 2.5;
@@ -761,6 +793,22 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     const up = frame === 1 || frame === 2;
     hands[0] = [d.shoulderW + 2, sh - (up ? 2 : 4), 1.5];
     hands[1] = [-(d.shoulderW + 2), sh - (up ? 2 : 4), 1.5];
+  } else if (pose === "ride" || pose === "ride-gallop") {
+    seated = true;
+    const gallop = pose === "ride-gallop";
+    const bob = gallop ? [0, 2, 1, -1][frame & 3] : [0, 1, 0, 0][frame & 3];
+    rise = -Math.round(d.leg * (gallop ? 0.36 : 0.42)) + bob;
+    lean = gallop ? 3.8 + (frame % 2 ? 0.7 : 0) : 1.4 + (frame === 1 ? 0.4 : 0);
+    // Astride: knees slightly wide around the mount's barrel, feet down in stirrups.
+    const spread = hipX + 1.4;
+    feet[0] = { at: [spread, 1 + (gallop ? 1 : 0), gallop ? 2 : 1], knee: gallop ? 4.2 : 3.2 };
+    feet[1] = { at: [-spread, 1 + (gallop ? 1 : 0), gallop ? 2 : 1], knee: gallop ? 4.2 : 3.2 };
+    // Hands forward holding the reins, pumping subtly at gallop.
+    const reach = gallop ? 6.5 + (frame % 2 ? 0.8 : 0) : 5.2;
+    const handY = sh - (gallop ? 4.5 : 3.8) + bob * 0.5;
+    hands[0] = [2.6, handY, reach];
+    hands[1] = [-2.6, handY, reach];
+    blink = !gallop && frame === 3;
   } else if (pose === "drive-cart" || pose === "guide-plough") {
     seated = pose === "drive-cart";
     if (seated) {
@@ -1090,6 +1138,26 @@ function implement(s: Sheet, t: Turn, pose: CharacterPose, frame: number, [hn, h
     const cx = rnd(hf[0]), cy = Math.round(hf[1]);
     s.put(new Mask().rect(cx - 1, cy - 1, cx + 1, cy), WOOD, wood);
     if (frame === 2) for (let y = y0 + 1; y < cy - 1; y++) s.px(dir > 0 ? x0 + 5 : x0 - 1, y, LIQUID, 3);
+  } else if (pose === "work-crank") {
+    const end = beyond(en, hn, 3.5);
+    s.put(new Mask().line(hn[0], hn[1], end[0], end[1], 1), WOOD, wood);
+    s.px(rnd(end[0]), Math.round(end[1]), METAL, 2);
+  } else if (pose === "work-scrape") {
+    // Two-handed fleshing knife / paper brush / joiner's plane spanning between the hands.
+    s.put(new Mask().line(hn[0], hn[1], hf[0], hf[1], 2), WOOD, wood);
+    s.put(new Mask().line(hn[0], hn[1] + 1, hf[0], hf[1] + 1, 1), STEEL, { ring: "ink", shade: 0.2, light: 0.4 });
+  } else if (pose === "work-chisel") {
+    const end = beyond(en, hn, 3.5), dx = end[0] - hn[0], dy = end[1] - hn[1], n = Math.hypot(dx, dy) || 1;
+    s.put(new Mask().line(hn[0], hn[1], end[0], end[1], 1), WOOD, wood);
+    // Cylindrical wooden mallet head + steel chisel braced in the off hand.
+    s.put(new Mask().line(end[0] - (dy / n) * 2.2, end[1] + (dx / n) * 2.2, end[0] + (dy / n) * 2.2, end[1] - (dx / n) * 2.2, 2), WOOD, { ring: "ink", shade: 0.35, light: 0.3, top: true });
+    const tip = beyond(ef, hf, 4);
+    s.put(new Mask().line(hf[0], hf[1], tip[0], tip[1], 1), STEEL, { ring: "ink", shade: 0.1, light: 0.4 });
+  } else if (pose === "work-throw") {
+    // Wet clay vessel rising slightly between the cupped hands.
+    const cx = rnd((hn[0] + hf[0]) / 2), cy = Math.round((hn[1] + hf[1]) / 2);
+    const h = frame === 2 ? 4 : frame === 1 ? 3 : 2;
+    s.put(new Mask().rect(cx - 2, cy - h + 1, cx + 2, cy + 1), LEATHER, { ring: "ink", shade: 0.35, light: 0.3, top: true });
   } else if (pose === "play-strum") {
     // The strumming hand rests on the bowl's upper rim.
     const c = [hn[0] + Math.sign(hf[0] - hn[0]) * 0.5, hn[1] + 2.5] as const;
@@ -1495,7 +1563,7 @@ export function drawCharacterG(
     : undefined;
   const workBehind = work && Math.max(work[4][0][2], work[4][1][2]) < -1.2;
   // What is held up in the hand goes over the arms and face; what the hands work on, under them.
-  const workOver = work && !workBehind && /^(work-write|work-pour|work-hammer|work-saw|play-strum|play-flute|cense|pray)$/.test(pose);
+  const workOver = work && !workBehind && /^(work-write|work-pour|work-hammer|work-saw|work-crank|work-scrape|work-chisel|work-throw|play-strum|play-flute|cense|pray)$/.test(pose);
   if (work && workBehind) implement(...work);
   const shieldKind = a.wearing.shield && a.wearing.shield !== "none" && !d.child ? a.wearing.shield : undefined;
   const offArm = r.arms[1 - r.near];

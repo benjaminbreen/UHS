@@ -73,7 +73,7 @@ export class VehicleLayer {
       const gait = at.moving ? v.gait : "walk";
       const ox = v.model === "ox-plough";
       const pair = ox && v.seedCrop !== "rice";
-      const species = ox && !pair ? "water-buffalo" : ox ? "cattle" : v.model === "farm-cart-pony" ? "horse" : v.model === "buffalo-cart" ? "water-buffalo" : undefined;
+      const species = ox && !pair ? "water-buffalo" : ox ? "cattle" : v.model === "farm-cart-pony" ? "pony" : v.model === "buffalo-cart" ? "water-buffalo" : undefined;
       let parts = this.images.get(v.id);
       if (!parts) {
         const make = () => this.scene.add.image(0, 0, "__DEFAULT");
@@ -110,8 +110,12 @@ export class VehicleLayer {
         if (!animal.visible) return;
         const side = pair ? (i ? 10 : -10) : 0;
         const hoof = point(ox ? (i ? 13 : 10) : 12, side);
-        const scale = species === "horse" ? 0.85 : 1;
-        const frame = `faunac-${art}-${at.moving ? "wander" : "idle"}-${facing}-${(n + i * 3) % 8}`;
+        const scale = species === "pony" ? 0.92 : 1;
+        const dir4 = ["north", "east", "east", "east", "south", "west", "west", "west"][pose.facing];
+        const pref = `faunac-${art}-${at.moving ? "wander" : "idle"}-${facing}-${(n + i * 3) % 8}`;
+        const frame = this.scene.textures.get(this.texture(pref)).has(pref)
+          ? pref
+          : `faunac-${art}-${at.moving ? "wander" : "idle"}-${dir4}-${(n + i * 3) % 8}`;
         const key = this.texture(frame);
         if (animal.frame.name !== frame || animal.texture.key !== key) animal.setTexture(key, frame);
         animal.setOrigin(0.5, animal.frame.pivotY || 0.92).setScale(scale)
@@ -123,7 +127,7 @@ export class VehicleLayer {
           shade.lineBetween(hoof.x + 2, hoof.y + 2, hoof.x + spread + 3, hoof.y + 1);
         }
         const neck = point(18, side);
-        if (species === "horse") {
+        if (species === "pony" || species === "horse") {
           tack.setDepth(animal.depth + 0.02).lineStyle(2, 0x504237).lineBetween(neck.x - dy * 4, neck.y - 20, neck.x + dy * 4 - dx * 3, neck.y - 12);
         }
       });

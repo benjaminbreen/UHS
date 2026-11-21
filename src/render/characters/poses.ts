@@ -67,6 +67,10 @@ export const poses = [
   "work-sweep",
   "work-write",
   "work-pour",
+  "work-crank",
+  "work-scrape",
+  "work-chisel",
+  "work-throw",
   "play-strum",
   "play-drum",
   "play-flute",
@@ -123,26 +127,93 @@ export const poses = [
   "sit-seat",
   "drive-cart",
   "guide-plough",
+  "ride",
+  "ride-gallop",
 ] as const;
 export type CharacterPose = (typeof poses)[number];
 export const fieldPose = {
   weed: "stoop", prepare: "till", bank: "till", plant: "work-tend", harvest: "reap", water: "work-pour",
 } as const satisfies Record<import("../../core/work-places").FieldJob, CharacterPose>;
+const WORKSITE_STATION_FAMILIES = new Set([
+  "worksite-fish-mat",
+  "worksite-fish-trays",
+  "worksite-fish-table",
+  "worksite-seine-pegs",
+  "worksite-net-rail",
+  "worksite-net-frame",
+  "worksite-dye-racks",
+  "worksite-pottery-rack",
+  "worksite-tanner-rack",
+  "worksite-loom-frame",
+  "worksite-smith-bench",
+  "worksite-carpenter-bench",
+  "worksite-mason-bench",
+  "worksite-press-yard",
+  "worksite-paper-yard",
+  "worksite-ropewalk",
+  "worksite-foundry-yard",
+  "worksite-soap-yard",
+  "worksite-silk-yard",
+  "worksite-charcoal-yard",
+]);
+
+/** Normalizes a worksite equipment sprite (base or -1..-3 variant) to its station family. */
+export function worksiteStationFamily(sprite?: string): string | undefined {
+  if (!sprite) return undefined;
+  const base = sprite.replace(/-[1-3]$/, "");
+  return WORKSITE_STATION_FAMILIES.has(base) ? base : undefined;
+}
+
+const WORKSITE_POSE: Record<string, CharacterPose> = {
+  "worksite-dye-racks": "work-stir",
+  "worksite-pottery-rack": "work-throw",
+  "worksite-tanner-rack": "work-scrape",
+  "worksite-loom-frame": "work-weave",
+  "worksite-smith-bench": "work-hammer",
+  "worksite-carpenter-bench": "work-saw",
+  "worksite-mason-bench": "work-chisel",
+  "worksite-press-yard": "work-stir",
+  "worksite-paper-yard": "work-scrape",
+  "worksite-ropewalk": "work-crank",
+  "worksite-foundry-yard": "work-pour",
+  "worksite-soap-yard": "work-stir",
+  "worksite-silk-yard": "work-crank",
+  "worksite-charcoal-yard": "work-tend",
+  "worksite-net-frame": "work-weave",
+  "worksite-net-rail": "work-weave",
+  "worksite-seine-pegs": "work-weave",
+  "worksite-fish-table": "work-sort",
+  "worksite-fish-trays": "work-sort",
+  "worksite-fish-mat": "work-sort",
+};
+
 /** A small set of physical verbs shared by trades in every era. */
 export function workPoseFor(activity: string, label: string, family = "", trade = "", held = ""): CharacterPose | undefined {
   const task = label.toLowerCase();
   const play = ({ lute: "play-strum", drum: "play-drum", flute: "play-flute" } as const)[held];
   // A musician plays wherever the day stands them, not only at work.
   if (play && (trade === "musician" || trade === "storyteller") && /^(work|play|visit|warm)$/.test(activity)) return play;
+  if (activity === "work" && family && WORKSITE_POSE[family]) {
+    if (family === "worksite-charcoal-yard" && trade === "sawyer") return "work-saw";
+    if (family === "worksite-carpenter-bench" && /^(cooper|wheelwright)$/.test(trade)) return "work-chisel";
+    return WORKSITE_POSE[family];
+  }
   if (activity === "work" && trade) {
     if (trade === "storyteller") return "talk";
     if (trade === "religious-specialist") return held === "censer" ? "cense" : "pray";
     if (/^(scribe|clerk|bank-clerk|tax-collector|toll-keeper|schoolteacher|stationmaster|headman)$/.test(trade)) return "work-write";
-    if (/^(innkeeper|publican|waiter)$/.test(trade)) return "work-pour";
+    if (/^(innkeeper|publican|waiter|bronze-caster)$/.test(trade)) return "work-pour";
     if (/^(street-hawker|street-vendor|costermonger|hawker|pedlar|chapman)$/.test(trade)) return "call";
     if (/^(sweeper|chimney-sweep|sexton|charwoman|housemaid|scullion|servant|domestic-servant)$/.test(trade)) return "work-sweep";
     if (/^(washerwoman|laundress)$/.test(trade)) return "work-scrub";
-    if (/^(smith|blacksmith|armourer|ironworker|boilermaker|toolmaker|cooper|wheelwright|mason|stonemason|bricklayer)$/.test(trade) &&
+    if (trade === "tanner" && family !== "tanning-pits") return "work-scrape";
+    if (trade === "potter") return "work-throw";
+    if (/^(silk-farmer|rope-maker|cordage-maker)$/.test(trade)) return "work-crank";
+    if (trade === "soap-boiler") return "work-stir";
+    if (trade === "charcoal-burner") return "work-tend";
+    if (/^(cooper|wheelwright|mason|stonemason|bricklayer)$/.test(trade) &&
+      !/quern|metate|grinder/.test(family)) return "work-chisel";
+    if (/^(smith|blacksmith|armourer|ironworker|boilermaker|toolmaker)$/.test(trade) &&
       !/quern|metate|grinder/.test(family)) return "work-hammer";
     if (/^(sawyer|carpenter|cabinetmaker|boatwright|canoe-builder)$/.test(trade)) return "work-saw";
   }
@@ -154,7 +225,8 @@ export function workPoseFor(activity: string, label: string, family = "", trade 
       (activity === "tend" && (/crop|field|weed|row|plant|garden|farm|flock|herd|animal|water|hive/.test(task) ||
         /crop|stock-pen|trough|beehive|log-hive|pipe-hive/.test(family)))) return "work-tend";
   if (activity !== "work") return undefined;
-  if (family === "tanning-pits" || family === "hide-frame") return "work-scrub";
+  if (family === "tanning-pits") return "work-scrub";
+  if (family === "hide-frame") return "work-scrape";
   if (family === "quern") return "work-quern";
   if (family === "metate" || family === "grinder") return "work-grind";
   if (family === "fish-weir") return "work-fish";
@@ -241,7 +313,11 @@ export function poseTiming(pose: CharacterPose) {
   if (pose === "work-pound") return 155;
   if (pose === "work-check") return 230;
   if (pose === "work-hammer") return 140;
+  if (pose === "work-chisel") return 150;
   if (pose === "work-saw" || pose === "work-sweep") return 160;
+  if (pose === "work-crank") return 170;
+  if (pose === "work-scrape") return 175;
+  if (pose === "work-throw") return 190;
   if (pose === "work-write") return 210;
   if (pose === "work-pour") return 240;
   // Strum and drum on the beat of a walking tune; the flute's fingers are slower.

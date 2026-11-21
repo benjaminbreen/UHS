@@ -21,6 +21,13 @@ import {
 import { timed } from "../render/perf-switches";
 import { communityLabels } from "../content/ecology/communities";
 import { faunaProfile } from "../content/fauna";
+import {
+  mountLabel,
+  SPUR_SURGE_MS,
+  SPUR_SWEET_END_MS,
+  SPUR_SWEET_START_MS,
+  type MountGait,
+} from "../core/riding";
 import { populateCharacter } from "../content/geography/character";
 import { generateCharacter } from "../content/characters/generate";
 import { resolveCharacterContext } from "../content/characters/resolve";
@@ -51,7 +58,7 @@ import {
 import type { Actor, Intent, ItemId, Position } from "../core/types";
 import { guessMaking, type Making } from "../core/making";
 import { useOf } from "../content/props/uses";
-import { fieldPose, poseContactMs, poseTiming, workPoseFor, type CharacterPose } from "../render/characters/poses";
+import { fieldPose, poseContactMs, poseTiming, workPoseFor, worksiteStationFamily, type CharacterPose } from "../render/characters/poses";
 import { livelihoodOf } from "../world/v3/routines";
 import { workplaceFor } from "../content/characters/workplace";
 import { infantCarry } from "../content/characters/wardrobe/regions/work-dress";
@@ -424,6 +431,43 @@ export class Runtime {
       return false;
     }
   })();
+  /** Real-time arcade riding momentum & cadence state (not serialized). */
+  rideGait: MountGait = 0;
+  rideSpurAt = 0;
+  rideSpurUntil = 0;
+  rideCombo = 0;
+  rideMovingUntil = 0;
+  inSpurSweetSpot(now = performance.now()): boolean {
+    if (!this.rideSpurAt || !this.engine.state.player.riding) return false;
+    const elapsed = now - this.rideSpurAt;
+    const bonus = this.engine.knows("rider") ? 100 : 0;
+    return elapsed >= SPUR_SWEET_START_MS - bonus && elapsed <= SPUR_SWEET_END_MS + bonus;
+  }
+  spurMount() {
+    const p = this.engine.state.player;
+    if (!p.riding) return;
+    const now = performance.now();
+    const perfect = this.inSpurSweetSpot(now);
+    const combo = perfect ? Math.min(8, this.rideCombo + 1) : 1;
+    const res = this.command({
+      type: "interact",
+      action: "spur-mount",
+      target: perfect ? `perfect:${combo}` : "normal",
+    });
+    if (res?.status === "completed" && p.riding && !p.riding.bucking && !p.riding.stubbornUntil) {
+      this.rideSpurAt = now;
+      this.rideSpurUntil = now + SPUR_SURGE_MS + (perfect ? 220 : 0);
+      this.rideCombo = perfect ? combo : 1;
+      this.rideGait = 4;
+      this.rideMovingUntil = now + 900;
+      this.emit(false);
+    }
+    return res;
+  }
+  rearMount() {
+    if (!this.engine.state.player.riding) return;
+    return this.command({ type: "interact", action: "rear-mount", target: "mount" });
+  }
   selected?: string;
   notice = "";
   running = false;
@@ -842,8 +886,15 @@ export class Runtime {
     const action = command.type === "interact" ? command.action : command.type;
     const target = command.type === "interact" ? this.engine.state.objects.find((o) => o.id === command.target) : undefined;
     const usePose = action === "use-prop" ? useOf(propDefs[target?.prop ?? ""]?.family)?.pose : undefined;
+    const stationNear = action === "work" && this.engine.state.player.pos.space === "outside"
+      ? this.engine.state.objects.find((o) =>
+          o.pos.space === "outside" &&
+          worksiteStationFamily(o.sprite) &&
+          Math.hypot(o.pos.x - this.engine.state.player.pos.x, o.pos.y - this.engine.state.player.pos.y) < 3.5)
+      : undefined;
+    const workFamily = propDefs[target?.prop ?? ""]?.family ?? worksiteStationFamily(target?.sprite ?? stationNear?.sprite);
     const workPose = action === "work"
-      ? workPoseFor("work", livelihoodOf(this.engine.world.pack, this.engine.state.player)?.activity ?? "", propDefs[target?.prop ?? ""]?.family,
+      ? workPoseFor("work", livelihoodOf(this.engine.world.pack, this.engine.state.player)?.activity ?? "", workFamily,
         this.engine.state.player.origin?.livelihood, this.engine.state.player.heldItem)
       : undefined;
     const pose: CharacterPose | undefined = (
@@ -1872,6 +1923,55 @@ export class Runtime {
   verbs(): { primary?: Verb; alternate?: Verb } {
     const c = this.propControls();
     const p = this.engine.state.player;
+    if (p.riding) {
+      const mount = p.riding;
+      const now = performance.now();
+      const label = mountLabel(mount);
+      if (mount.bucking) {
+        return {
+          primary: {
+            kind: "use",
+            label: `Hold on! (${mount.bucking.holds}/${mount.bucking.needed})`,
+            command: { type: "interact", action: "calm-mount", target: "mount" },
+          },
+          alternate: {
+            kind: "use",
+            label: "Bail off",
+            command: { type: "interact", action: "dismount-animal", target: "mount" },
+          },
+        };
+      }
+      const moving = now < this.rideMovingUntil || this.rideGait >= 2;
+      const stubborn = !!(mount.stubbornUntil && this.engine.state.clock < mount.stubbornUntil);
+      const sweet = this.inSpurSweetSpot(now);
+      const treat = !moving && !stubborn ? this.engine.mountTreatAvailable() : undefined;
+      const primary: Verb =
+        moving || stubborn
+          ? {
+              kind: "use",
+              label: sweet ? "Spur! ★" : stubborn ? "Spur onward" : "Spur",
+              command: { type: "interact", action: "spur-mount", target: "mount" },
+            }
+          : treat
+            ? {
+                kind: "use",
+                label: `Feed ${(this.engine.item(treat)?.name ?? treat).toLowerCase()}`,
+                command: { type: "interact", action: "feed-mount", target: "mount" },
+              }
+            : {
+                kind: "use",
+                label: `Pat ${label}`,
+                command: { type: "interact", action: "calm-mount", target: "mount" },
+              };
+      return {
+        primary,
+        alternate: {
+          kind: "use",
+          label: "Dismount",
+          command: { type: "interact", action: "dismount-animal", target: "mount" },
+        },
+      };
+    }
     const truck = p.drivingVehicle
       ? this.engine.state.objects.find((o) => o.id === p.drivingVehicle)
       : this.engine.state.objects.find((o) => o.motor && this.engine.vehicleCab(o));
@@ -2118,6 +2218,17 @@ export class Runtime {
         label: `Talk to ${other.name}`,
         actor: other.id,
       };
+    const mountable = !fighting && !descend && !p.afloat ? this.engine.mountableNear() : undefined;
+    const mountVerb: Verb | undefined =
+      mountable && !mountable.blocked
+        ? {
+            kind: "use",
+            label: `Mount ${mountable.label}`,
+            command: { type: "interact", action: "mount-animal", target: mountable.target },
+          }
+        : undefined;
+    if (mountVerb && primary?.kind === "strike" && !primary.command) primary = mountVerb;
+    if (mountVerb && (!alternate || alternate.kind === "talk" || alternate.kind === "look")) alternate = mountVerb;
     if (worship && worship.kind === "leave" && !item && primary?.kind === "strike" && !primary.command) primary = undefined;
     return { primary, alternate };
   }
@@ -2138,6 +2249,10 @@ export class Runtime {
     if (verb.kind === "use" && !verb.command && this.engine.state.workday?.field) {
       this.setOff({kind:"workday",workPass:this.engine.state.workday.field.id,single:true});
       this.emit(false);
+      return verb;
+    }
+    if (verb.command?.type === "interact" && verb.command.action === "spur-mount") {
+      this.spurMount();
       return verb;
     }
     if (verb.kind === "talk" || verb.kind === "lift") return verb;
@@ -2371,7 +2486,8 @@ export class Runtime {
   }
   move(dx: number, dy: number, traverse = false, run = false) {
     this.stop(false);
-    if(this.engine.state.player.drivingVehicle)return this.command({type:"move",dx,dy});
+    if (this.engine.state.player.drivingVehicle) return this.command({ type: "move", dx, dy });
+    if (this.engine.state.player.riding) return this.command({ type: "move", dx, dy, run });
     // A pot stops you once, which is long enough to read what it is and to
     // pick it up if that is what you wanted. Walk into it again and you step
     // over it: a yard of vessels should cost a hop, not a detour. A crate is

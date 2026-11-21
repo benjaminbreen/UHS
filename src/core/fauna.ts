@@ -17,9 +17,12 @@ export const faunaStates = [
   "flight",
   "approach",
   "landing",
-  // Drawn, never decided: a swimmer on water paddles, or upends to feed.
+  // Drawn, never decided: a swimmer on water paddles, or upends to feed;
+  // mounts trot and rear on command.
   "swim",
   "dabble",
+  "trot",
+  "rear",
   // Drawn and decided: the threat before an attack (a bear up on its hind
   // legs, a cobra's hood, a rattle) and an ambusher showing only its eyes.
   "warn",

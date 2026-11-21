@@ -1307,3 +1307,165 @@ export function fishingSound(cue: FishingCue, big = false): Sound {
       return [tone(0, 0.12, 0.03, 900, { to: 1300, wave: "triangle" }), ...grains(0.1, 0.4, 6, (t) => noise(t, 0.03, 0.03, rand(600, 1100), { q: 2 }))];
   }
 }
+
+/** One hoof strike on a surface; heavy beasts thud lower and deeper. */
+export function hoofbeat(surface: HitClass, gait: number, heavy = false): Sound {
+  const g = (gait >= 3 ? 0.18 : gait === 2 ? 0.13 : 0.09) * (heavy ? 1.35 : 1);
+  const pitch = heavy ? 0.58 : 1;
+  if (surface === "water" || surface === "marsh") {
+    return [
+      tone(0, 0.055, g * 0.7, vary(150) * pitch, { to: 80 * pitch }),
+      noise(0, 0.09, g * 0.9, 1400, { to: 2600, q: 0.9 }),
+      bubble(0.02, 520, g * 0.4),
+    ];
+  }
+  if (surface === "snow") {
+    return [
+      noise(0, 0.06, g * 0.85, 1900, { to: 900, q: 1.4 }),
+      tone(0, 0.045, g * 0.45, vary(115) * pitch, { to: 72 * pitch }),
+    ];
+  }
+  if (surface === "stone" || surface === "rock") {
+    // Crisp hollow clop on stone paving.
+    return [
+      tone(0, 0.032, g * 0.95, vary(540) * pitch, { to: 310 * pitch, wave: "triangle" }),
+      tone(0.008, 0.024, g * 0.55, vary(980) * pitch, { to: 620 * pitch, wave: "triangle" }),
+      noise(0, 0.018, g * 0.65, 2900, { q: 3.2 }),
+    ];
+  }
+  if (surface === "timber") {
+    return [
+      tone(0, 0.055, g * 0.95, vary(280) * pitch, { to: 170 * pitch, wave: "triangle" }),
+      noise(0, 0.022, g * 0.5, 1800, { q: 2 }),
+    ];
+  }
+  // Dirt, grass, sand: soft resonant thud + grit.
+  return [
+    tone(0, 0.055, g * 0.9, vary(135) * pitch, { to: 68 * pitch }),
+    noise(0, 0.032, g * 0.55, surface === "sand" ? 2100 : 1200, { q: 1.3 }),
+  ];
+}
+
+/** Species-specific voice for mounting, rearing, spurring, calming, or bucking. */
+export function mountVoice(
+  voice: "horse" | "donkey" | "camel" | "bovine" | "deer" | "llama" | "elephant" | "ostrich",
+  mood: "mount" | "spur" | "calm" | "rear" | "buck" | "stubborn",
+): Sound {
+  if (mood === "calm") {
+    return [
+      noise(0, 0.14, 0.07, 720, { to: 420, q: 1.4, attack: 0.02 }),
+      tone(0.02, 0.14, 0.045, vary(180), { to: 135, wave: "triangle" }),
+    ];
+  }
+  switch (voice) {
+    case "horse": {
+      if (mood === "mount" || mood === "spur") {
+        // Quick eager snort.
+        return [
+          noise(0, 0.11, 0.11, 950, { to: 520, q: 1.8, attack: 0.01 }),
+          tone(0.01, 0.08, 0.05, vary(210), { to: 150, wave: "sawtooth" }),
+        ];
+      }
+      // Expressive whinny / neigh for rearing or bucking.
+      const f = vary(680, 0.08);
+      return [
+        tone(0, 0.18, 0.09, f * 0.72, { to: f * 1.35, wave: "sawtooth", attack: 0.02 }),
+        tone(0.14, 0.28, 0.08, f * 1.35, { to: f * 0.65, wave: "triangle" }),
+        ...grains(0.06, 0.28, 7, (t, i) => tone(t, 0.045, 0.035, f * (1.28 - i * 0.09), { wave: "triangle" })),
+        noise(0.02, 0.24, 0.05, 1600, { q: 2.5 }),
+      ];
+    }
+    case "donkey": {
+      // Unmistakable two-part hee-haw bray!
+      const f = vary(480, 0.07);
+      if (mood === "mount") {
+        return [
+          tone(0, 0.14, 0.07, f * 0.8, { to: f * 1.2, wave: "sawtooth", attack: 0.02 }),
+          noise(0, 0.12, 0.06, 1200, { q: 2 }),
+        ];
+      }
+      return [
+        tone(0, 0.18, 0.09, f * 0.75, { to: f * 1.45, wave: "sawtooth", attack: 0.02 }),
+        tone(0.2, 0.26, 0.1, f * 1.05, { to: f * 0.42, wave: "sawtooth", attack: 0.015 }),
+        noise(0.18, 0.24, 0.07, 980, { to: 520, q: 2.2 }),
+      ];
+    }
+    case "elephant": {
+      // Brassy rising trumpet!
+      const f = vary(340, 0.06);
+      return [
+        tone(0, 0.38, 0.13, f * 0.75, { to: f * 1.85, wave: "sawtooth", attack: 0.03 }),
+        tone(0.04, 0.36, 0.08, f * 1.5, { to: f * 2.5, wave: "triangle", attack: 0.04 }),
+        noise(0.02, 0.3, 0.06, 1500, { to: 2600, q: 2 }),
+      ];
+    }
+    case "bovine":
+    case "camel": {
+      const f = vary(voice === "camel" ? 135 : 115, 0.08);
+      return [
+        tone(0, 0.34, 0.11, f, { to: f * (mood === "rear" ? 1.25 : 0.78), wave: "sawtooth", attack: 0.04 }),
+        noise(0.02, 0.26, 0.06, 480, { to: 320, q: 1.8 }),
+      ];
+    }
+    case "llama": {
+      if (mood === "buck" || mood === "stubborn") {
+        // Indignant spit!
+        return [
+          noise(0, 0.14, 0.14, 3400, { to: 1400, q: 1.4, attack: 0.005 }),
+          tone(0, 0.09, 0.05, 420, { to: 220, wave: "sawtooth" }),
+        ];
+      }
+      return [tone(0, 0.22, 0.06, vary(290), { to: 340, wave: "triangle", attack: 0.03 })];
+    }
+    case "ostrich": {
+      return [
+        tone(0, 0.12, 0.09, vary(180), { to: 95, wave: "triangle" }),
+        tone(0.09, 0.16, 0.07, vary(540), { to: 320, wave: "sawtooth" }),
+      ];
+    }
+    case "deer":
+    default:
+      return [
+        noise(0, 0.12, 0.09, 1300, { to: 650, q: 2 }),
+        tone(0.02, 0.14, 0.06, vary(260), { to: 190, wave: "triangle" }),
+      ];
+  }
+}
+
+/** Crisp spur snap + ascending harmonic chime when hitting the rhythm sweet-spot. */
+export function spurSnap(perfect: boolean, combo: number): Sound {
+  const base: Sound = [
+    noise(0, 0.055, 0.11, 2400, { to: 900, q: 1.6 }),
+    tone(0, 0.07, 0.07, vary(190), { to: 310, wave: "triangle" }),
+  ];
+  if (!perfect) return base;
+  const scale = [523, 587, 659, 784, 880, 1047];
+  const note = scale[Math.min(scale.length - 1, Math.max(0, combo - 1))];
+  return [
+    ...base,
+    tone(0.02, 0.16, 0.055, note, { wave: "triangle" }),
+    tone(0.07, 0.22, 0.045, note * 1.25, { wave: "sine" }),
+  ];
+}
+
+export function mountSkid(): Sound {
+  return [
+    noise(0, 0.22, 0.14, 1500, { to: 620, q: 1.1, attack: 0.01 }),
+    ...grains(0.02, 0.18, 5, (t) => noise(t, 0.025, 0.06, rand(900, 1900), { q: 2 })),
+    tone(0, 0.12, 0.08, 120, { to: 65 }),
+  ];
+}
+
+export function mountLeap(heavy = false): Sound {
+  return [
+    noise(0, 0.14, 0.09, 900, { to: 2200, q: 1.1, attack: 0.02 }),
+    tone(0, 0.11, heavy ? 0.14 : 0.09, heavy ? 85 : 140, { to: heavy ? 130 : 240, wave: "triangle" }),
+  ];
+}
+
+export function mountLand(heavy = false): Sound {
+  return [
+    tone(0, 0.12, heavy ? 0.19 : 0.12, heavy ? 78 : 125, { to: 42 }),
+    noise(0, 0.09, heavy ? 0.14 : 0.09, 820, { to: 380, q: 1.2 }),
+  ];
+}

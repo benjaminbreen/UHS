@@ -69,7 +69,8 @@ The game loads these atlases (`src/render/scene-assets.ts`):
   `FaunaProfile.directions` marks these species; `faunaFrames(profile, state,
   facing)` picks frames.
 - **Draft teams.** The pony cart, hooded buffalo cart and the plough (paired oxen on dry land or one water buffalo in a paddy) draw their own kept animals from the directional fauna atlas, with their individual coats. Hitched members follow the implement and resume ordinary herd movement when unyoked. Cart beds, wheels and the plough beam use the conveyance atlas. The chariot still includes its horses in its baked frame.
-- **Voxel horse** (`public/fauna-v/`): the developer’s mount and the conveyance equipment,
+- **Riding.** Rideable species (`src/core/riding.ts`: horse, pony, wild horse, donkey, camel, water buffalo, cattle, yak, reindeer, llama, elephants, ostrich, zebra) can be mounted with `E`/`F`, steered through four gaits (walk, trot, gallop, and rhythmic cadence spurring), jumped over fences and streams (`Space` while moving), reared at a standstill (`Space`), patted/fed (`F`), and dismounted (`E`). Wild mounts require a short hold-on rodeo to break; mounted players and NPCs render the real directional pixel-art animal sprite paired with their animated pixel-art character doll (`ride` / `ride-gallop`). Full-sized `horse` uses `scripts/art/horse.py` (64×56 canvas, 4 builds — riding, collared workhorse, barded war horse, sleek race horse — 8 role-swappable coats, and 7 eight-frame states including `graze`, `trot`, `rest`, and `rear`, plus a gentle head-dip when mounted/patted/fed); the compact 40×35 sprite in `scripts/art/fauna_c.py` is recast as `pony`.
+- **Voxel horse** (`public/fauna-v/`): the ridden horse and rider layers, and the conveyance equipment,
   from `scripts/art/voxel_rig.py` and `vehicles.py`.
 
 Sizes are set against the 37 px adult. Coats are recoloured at runtime from

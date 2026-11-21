@@ -505,6 +505,7 @@ export class MapTravel {
       if (resident) trip!.worker = resident;
     }
     delete player.drivingVehicle;
+    if (player.riding) delete player.riding.groupId;
     player.pos = { ...point, space: "outside" };
     player.home = next.player.home;
     player.work = next.player.work;

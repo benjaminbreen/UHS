@@ -28,7 +28,7 @@ from art.fauna_b import (
 
 # o outline · d shadow · m base · l light · h highlight · b second colour · e eye · a accent
 PALETTES = {
-    "horse": {"o": "#2f1d14", "d": "#4a2e1f", "m": "#6b452c", "l": "#8d5c38", "h": "#ae7c51", "b": "#ece2d2", "e": "#150e09", "a": "#23202c"},
+    "pony": {"o": "#2f1d14", "d": "#4a2e1f", "m": "#6b452c", "l": "#8d5c38", "h": "#ae7c51", "b": "#ece2d2", "e": "#150e09", "a": "#23202c"},
     "foal": {"o": "#5c3f26", "d": "#836039", "m": "#a8834f", "l": "#c6a375", "h": "#e0c49b", "b": "#f2e9d8", "e": "#241810", "a": "#3b4257"},
     "rabbit": {"o": "#7d5a33", "d": "#a67c48", "m": "#c79d68", "l": "#e0bf92", "h": "#f4ddb6", "b": "#fbf3e2", "e": "#241810", "a": "#d79a97"},
     "hare": {"o": "#4a3220", "d": "#7a5532", "m": "#a07446", "l": "#c39a65", "h": "#dcbd8c", "b": "#f6efe2", "e": "#17100a", "a": "#c8908a"},
@@ -40,26 +40,20 @@ DIAGONALS = ("southeast", "northeast", "southwest", "northwest")
 
 
 def facings(species):
-    return DIRECTIONS + DIAGONALS if species in ("horse", "foal") else DIRECTIONS
+    return DIRECTIONS + DIAGONALS if species in ("pony", "foal") else DIRECTIONS
 STATES = {
-    "horse": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
+    "pony": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "foal": dict.fromkeys(["idle", "graze", "wander", "flee", "rest"], 8),
     "rabbit": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
     "rabbit-kit": dict.fromkeys(["idle", "forage", "wander", "flee"], 8),
     "hare": dict.fromkeys(["idle", "forage", "wander", "flee", "rest"], 8),
 }
-# True scale against the 29px human is ~17px per metre. Horse 2.4m long and
-# 1.55m at the withers lands on 40x36; the foal is 60% of it. Rabbits and
-# hares are enlarged for legibility, but need to read below the antelopes.
-# HEADROOM is empty rows added on top for the airborne frames -- a hopping
-# rabbit was losing its ear tips off the canvas. Drawing coordinates stay
-# measured from the standing pose; finish() shifts the whole sprite down.
-# FOOTROOM matches sets A and B, whose renderer reads the ground line as three
-# rows up from the bottom of the frame.
-HEADROOM = {"horse": 3, "foal": 3, "rabbit": 5, "rabbit-kit": 4, "hare": 7}
+# True scale against the 29px human is ~17px per metre; against the 37px adult
+# this compact 40x35 build reads as a pony (~12hh). Foal is 60% of it.
+HEADROOM = {"pony": 3, "foal": 3, "rabbit": 5, "rabbit-kit": 4, "hare": 7}
 FOOTROOM = 3
 STANDING_SIZES = {
-    "horse": (40, 35),
+    "pony": (40, 35),
     "foal": (24, 23),
     "rabbit": (13, 12),
     "rabbit-kit": (10, 10),
@@ -101,7 +95,7 @@ def _belly(px, mask, lo, hi, role="b"):
 # is deliberately stocky -- a short thick neck and a big head on a 40px canvas
 # read as a horse where a correctly-proportioned one reads as a deer.
 EQUINE = {
-    "horse": dict(
+    "pony": dict(
         ground=33, barrel=(7, 13, 27, 24), chest=(16, 12, 30, 24),
         hip_h=(11, 22), hip_f=(26, 22), thick=2, hoof="b", sock=True,
         neck_low=((18, 14), (29, 19)), throat=(3, 6), crest=(-2, 1), poll=(30, 4), head=7,
@@ -730,7 +724,7 @@ def fauna_c():
 # dun (Ludwig et al. 2009); chestnut spread with the first herds and grey much
 # later. Dun has dark points and no white, and is all a wild horse wears.
 HORSE_COATS = {
-    "bay": PALETTES["horse"],
+    "bay": PALETTES["pony"],
     "chestnut": {"o": "#3a1a0c", "d": "#6b2e12", "m": "#94441c", "l": "#b55d2a", "h": "#cf7a3f", "b": "#ece2d2", "e": "#150e09", "a": "#5a2610"},
     "black": {"o": "#0d0b0b", "d": "#1c1918", "m": "#2a2624", "l": "#3b3532", "h": "#4f4843", "b": "#e9e2d6", "e": "#050404", "a": "#121010"},
     "grey": {"o": "#3e3e40", "d": "#7d7c7b", "m": "#a6a4a0", "l": "#c4c2bd", "h": "#dcdad5", "b": "#f2f0ea", "e": "#151515", "a": "#6a6865"},
@@ -741,9 +735,9 @@ for _c in HORSE_COATS.values():
 
 
 def looks():
-    return {"horse": {
-        "roles": PALETTES["horse"],
-        "forms": [{"id": "horse", "weight": 1.0, "where": None,
+    return {"pony": {
+        "roles": PALETTES["pony"],
+        "forms": [{"id": "pony", "weight": 1.0, "where": None,
                    "coats": {"bay": 6, "chestnut": 3, "black": 2, "grey": 1.5, "dun": 0.7}}],
         "coats": HORSE_COATS,
         "coatFrom": {"chestnut": -3000, "grey": -500},

@@ -13,6 +13,8 @@ import { remainsOf } from "../src/content/fauna/remains";
 import { ageRemains, pruneRemains, remainsObject } from "../src/core/remains";
 import type { WorldModel } from "../src/core/types";
 import type { TopographyCell } from "../src/core/topography";
+import { createSession, Runtime } from "../src/runtime/session";
+import { TECHNIQUES } from "../src/core/techniques";
 
 const at = (id: string, year: number) =>
   settingFor(places.find((p) => p.id === id)!, year);
@@ -815,5 +817,107 @@ describe("fauna spawning", () => {
       expect(g.members.length).toBeGreaterThanOrEqual(p.groupSize[0]);
     }
     expect(spawnFauna(world, "seed", 100, 100)).toEqual([]);
+  });
+});
+
+
+describe("animal riding", () => {
+  function withBeast(speciesId: string, extra?: Partial<FaunaGroup>, memberExtra?: Partial<FaunaGroup["members"][0]>) {
+    const rt = new Runtime(createSession("roman", "ride-test"));
+    const e = rt.engine;
+    const p = e.state.player;
+    const x = p.pos.x + 1, y = p.pos.y;
+    const g: FaunaGroup = {
+      id: `test-${speciesId}`,
+      speciesId,
+      members: [{ x, y, direction: 1, n: 0, ...memberExtra }],
+      pos: { space: "outside", x, y },
+      home: { space: "outside", x, y },
+      homeRadius: 6,
+      state: "idle",
+      nextDecisionAt: e.state.clock + 60,
+      stride: 0,
+      since: e.state.clock,
+      serial: 1,
+      ...extra,
+    };
+    e.state.fauna = [g];
+    return { rt, e, p, g };
+  }
+
+  it("mounts and dismounts a domestic donkey cleanly, preserving it in the world", () => {
+    const { rt, e, p } = withBeast("donkey", { owner: "player" });
+    const near = e.mountableNear();
+    expect(near?.speciesId).toBe("donkey");
+    expect(near?.blocked).toBeUndefined();
+    const mRes = rt.command({ type: "interact", action: "mount-animal", target: near!.target });
+    expect(mRes?.status).toBe("completed");
+    expect(p.riding?.speciesId).toBe("donkey");
+    expect(e.state.fauna?.length ?? 0).toBe(0);
+    expect(e.lastRideEvent?.kind).toBe("mount");
+    // Move, pat, rear, and dismount.
+    const moved = rt.move(1, 0, false, true);
+    expect(moved?.status).toBe("completed");
+    const calm = rt.command({ type: "interact", action: "calm-mount", target: "mount" });
+    expect(calm?.status).toBe("completed");
+    expect(e.lastRideEvent?.kind).toBe("calm");
+    const rear = rt.rearMount();
+    expect(rear?.status).toBe("completed");
+    expect(e.lastRideEvent?.kind).toBe("rear");
+    const dis = rt.command({ type: "interact", action: "dismount-animal", target: "mount" });
+    expect(dis?.status).toBe("completed");
+    expect(p.riding).toBeUndefined();
+    expect(e.state.fauna?.some((g) => g.speciesId === "donkey" && g.members.length === 1)).toBe(true);
+  });
+
+  it("refuses young or hitched animals", () => {
+    const young = withBeast("horse", { owner: "player" }, { young: true });
+    expect(young.e.mountableNear()?.blocked).toMatch(/young/i);
+    expect(young.rt.command({ type: "interact", action: "mount-animal", target: "fauna:test-horse:0" })?.status).toBe("rejected");
+
+    const hitched = withBeast("cattle", { owner: "player", hitch: "plough-1" });
+    expect(hitched.e.mountableNear()?.blocked).toMatch(/harness/i);
+    expect(hitched.rt.command({ type: "interact", action: "mount-animal", target: "fauna:test-cattle:0" })?.status).toBe("rejected");
+  });
+
+  it("supports wild rodeo breaking, perfect cadence spurring, feeding treats, and over-spur bucking", () => {
+    const { rt, e, p } = withBeast("wild-horse");
+    const res = rt.command({ type: "interact", action: "mount-animal", target: "fauna:test-wild-horse:0" });
+    expect(res?.status).toBe("completed");
+    expect(p.riding?.bucking).toBeDefined();
+    // Moving while bucking is refused until broken.
+    expect(rt.move(1, 0)?.status).toBe("rejected");
+    const needed = p.riding!.bucking!.needed;
+    for (let i = 0; i < needed; i++) {
+      expect(rt.command({ type: "interact", action: "calm-mount", target: "mount" })?.status).toBe("completed");
+    }
+    expect(p.riding?.bucking).toBeUndefined();
+    expect(p.riding?.tamed).toBe(true);
+    expect(e.lastRideEvent?.kind).toBe("break");
+
+    // Perfect cadence spur spends reduced stamina and boosts bond.
+    const beforeBond = p.riding!.bond;
+    expect(rt.command({ type: "interact", action: "spur-mount", target: "perfect:3" })?.status).toBe("completed");
+    expect(p.riding!.bond).toBeGreaterThan(beforeBond);
+    expect(e.lastRideEvent).toMatchObject({ kind: "spur", perfect: true, combo: 3 });
+
+    // Feeding a treat refills stamina and boosts bond.
+    p.riding!.stamina = 10;
+    p.heldItem = "apple";
+    expect(rt.command({ type: "interact", action: "feed-mount", target: "mount" })?.status).toBe("completed");
+    expect(p.riding!.stamina).toBe(p.riding!.maxStamina);
+    expect(p.heldItem).toBeUndefined();
+
+    // Over-spurring past exhaustion warns once then bucks the rider off!
+    p.riding!.stamina = 0;
+    rt.command({ type: "interact", action: "spur-mount", target: "normal" });
+    expect(p.riding).toBeDefined();
+    rt.command({ type: "interact", action: "spur-mount", target: "normal" });
+    expect(p.riding).toBeUndefined();
+    expect(e.lastRideEvent?.kind).toBe("buck");
+  });
+
+  it("marks the rider technique as ready", () => {
+    expect("ready" in TECHNIQUES.rider).toBe(false);
   });
 });

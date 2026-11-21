@@ -84,7 +84,9 @@ import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
 import { caveAct, caveBeastAt, caveMouthsNear, caveLevelOf, caveStrike } from "./cave";
 import { fairEnter } from "./fair";
-import { tombEnter } from "./tomb";
+import { tombEnter, tombMouthsNear } from "./tomb";
+import { prisonEnter } from "./prison";
+import { prisonAt, prisonFromPrompt, prisonStyles } from "../content/prisons";
 import { fairAt, fairById } from "../content/fairs";
 import { tombAt } from "../content/tombs";
 import { complexAct, complexGround, complexInspect, complexMap, complexTime, complexVerb, isComplexId, walkedArea, type ComplexHost } from "./complex";
@@ -170,7 +172,17 @@ import {
   type FaunaTier,
   type Weapon,
 } from "./combat";
-import { faunaAt, faunaCombat, faunaProfile } from "../content/fauna";
+import { faunaAt, faunaCombat, faunaLook, faunaProfile } from "../content/fauna";
+import {
+  isMountTreat,
+  isRideableSpecies,
+  mountLabel,
+  mountSpec,
+  SPUR_COST,
+  SPUR_PERFECT_COST,
+  type MountVoice,
+  type PlayerMount,
+} from "./riding";
 import { pestArrival, pestNoun, pestOf, pestsFor, type CropPest } from "../content/agriculture/pests";
 import { livelihoodById } from "../content/characters/livelihoods";
 import { smokingFrom } from "../content/characters/smoking";
@@ -2808,6 +2820,8 @@ export class Engine {
     event: (text, kind, at) => this.event(text, kind, at),
     advance: (seconds) => this.advance(seconds),
     hurt: (damage, cause, injury) => this.hurt(damage, cause, injury),
+    cue: (who, kind, toward) => this.cue(who, kind, toward),
+    say: (who, text) => this.signal({ kind: "say", who, text }),
     itemName: (id) => this.item(id)?.name ?? id,
     unblock: (space, x, y) => void this.terrainCollision.delete(`${space}:${x},${y}`),
     rain: () => {
@@ -2895,18 +2909,29 @@ export class Engine {
     }
     p.activity = m.doing;
   }
-  startBelow(where: "cave" | "sewer" | "mine" | "ship" | "fair" | "tomb") {
+  startBelow(where: "cave" | "sewer" | "mine" | "ship" | "fair" | "tomb" | "prison") {
     const p = this.state.player.pos, d = (q: Point) => Math.hypot(q.x - p.x, q.y - p.y);
     if (where === "ship") return void shipStart(this.ships);
     // The life begins already down there: the climb takes none of the day.
     const host = { ...this.complex, advance() {} };
+    if (where === "prison") {
+      const s = this.world.pack.setting;
+      const style = (s && (prisonAt(s.lon, s.lat, s.year, s.culture) ?? prisonFromPrompt(s.role ?? ""))) ?? prisonStyles[0];
+      const debtor = /debtor/i.test(s?.role ?? "");
+      prisonEnter(host, style, debtor
+        ? { kind: "debt", daysLeft: 180, debtOwed: 18, charge: "unpaid debt" }
+        : { kind: "fixed", daysLeft: 90, charge: "held on magistrate's warrant" });
+      return;
+    }
     if (where === "fair") {
       const s = this.world.pack.setting, fair = s && ((s.venue ? fairById(s.venue) : undefined) ?? fairAt(s.lon, s.lat, s.year));
       if (fair) fairEnter(host, fair, true, s?.venueRoom);
       return;
     }
     if (where === "tomb") {
-      const s = this.world.pack.setting, style = s && tombAt(s.lon, s.lat, s.year);
+      const mouth = [...tombMouthsNear(this.world, p, 96)].sort((a, b) => d(a) - d(b))[0];
+      if (mouth) this.state.player.pos = { x: mouth.x, y: mouth.y, space: "outside" };
+      const s = this.world.pack.setting, style = mouth?.style ?? (s && tombAt(s.lon, s.lat, s.year));
       if (style) tombEnter(host, style);
       return;
     }
@@ -3559,6 +3584,13 @@ export class Engine {
       return { pos: { x:station.x, y:station.y, space:job }, label: wing?.label ?? employment.label };
     }
     if (role === "supplies") return;
+    const outdoorStation = this.state.objects.find((o) => o.id === `${job}-station` && o.pos.space === "outside");
+    if (outdoorStation && !this.blocked(outdoorStation.pos.x, outdoorStation.pos.y + 1, "outside")) {
+      return {
+        pos: { x: outdoorStation.pos.x, y: outdoorStation.pos.y + 1, space: "outside" },
+        label: outdoorStation.name.toLowerCase(),
+      };
+    }
     const floor = at && this.towerOf(at.place)?.floors[at.n], room = floor && this.interiorOf(job);
     const seat = room && (room.seats[room.seats.length - 1] ?? room.workCell);
     return seat ? { pos: { x: seat.x, y: seat.y, space: job }, label: at.n ? `${floor.name}, ${floorName(at.n)}` : floor.name } : undefined;
@@ -4632,6 +4664,262 @@ export class Engine {
   }
   private lastStep = { clock: -99, run: false, dx: 0, dy: 0, steps: 0 };
   lastImpact?: "collision" | "muck";
+  private rideEventSerial = 0;
+  lastRideEvent?: {
+    serial: number;
+    kind: "mount" | "dismount" | "spur" | "calm" | "rear" | "buck" | "break" | "stubborn" | "feed" | "leap" | "crash";
+    speciesId: string;
+    voice: MountVoice;
+    perfect?: boolean;
+    combo?: number;
+    from?: Point;
+    to?: Point;
+  };
+  private emitRideEvent(
+    kind: NonNullable<Engine["lastRideEvent"]>["kind"],
+    speciesId: string,
+    extra?: { perfect?: boolean; combo?: number; from?: Point; to?: Point },
+  ) {
+    const spec = mountSpec(speciesId);
+    this.lastRideEvent = {
+      serial: ++this.rideEventSerial,
+      kind,
+      speciesId,
+      voice: spec?.voice ?? "horse",
+      ...extra,
+    };
+  }
+  /** Closest rideable animal within reach (2.2 tiles), preferring what the player faces. */
+  mountableNear(): {
+    target: string;
+    groupId: string;
+    memberN: number;
+    speciesId: string;
+    label: string;
+    wild: boolean;
+    x: number;
+    y: number;
+    blocked?: string;
+  } | undefined {
+    const p = this.state.player;
+    if (p.pos.space !== "outside" || p.riding || p.drivingVehicle || p.afloat || p.perch || p.mount) return undefined;
+    const facing = this.facingCell();
+    let best: {
+      score: number;
+      entry: NonNullable<ReturnType<Engine["mountableNear"]>>;
+    } | undefined;
+    for (const g of this.state.fauna ?? []) {
+      if (!isRideableSpecies(g.speciesId) || aerialStates.has(g.state)) continue;
+      if (Math.abs(g.pos.x - p.pos.x) > 14 || Math.abs(g.pos.y - p.pos.y) > 14) continue;
+      ensureVitals(this.state.manifest.seed, g);
+      for (const m of g.members) {
+        const d = Math.hypot(m.x - p.pos.x, m.y - p.pos.y);
+        if (d > 2.25) continue;
+        const n = m.n ?? 0;
+        const look = faunaLook(g.speciesId, this.state.manifest.seed, g.id, String(n), this.world.pack.setting);
+        const label = mountLabel({ speciesId: g.speciesId, coat: look?.coat, name: m.name });
+        const blocked = m.young
+          ? "Too young to carry a rider."
+          : g.hitch
+            ? "It is still in harness."
+            : g.burrowed && g.burrowed > this.state.clock
+              ? "It is indoors."
+              : undefined;
+        const onFacing = m.x === facing.x && m.y === facing.y;
+        const score = (blocked ? 20 : 0) + (onFacing ? -2 : 0) + d;
+        if (!best || score < best.score) {
+          best = {
+            score,
+            entry: {
+              target: `fauna:${g.id}:${n}`,
+              groupId: g.id,
+              memberN: n,
+              speciesId: g.speciesId,
+              label,
+              wild: !g.owner && faunaProfile(g.speciesId)?.category === "wild",
+              x: m.x,
+              y: m.y,
+              blocked,
+            },
+          };
+        }
+      }
+    }
+    return best?.entry;
+  }
+  private resolveMountTarget(target: string) {
+    const parts = target.split(":");
+    if (parts[0] === "fauna" && parts.length >= 3) {
+      const n = Number(parts.at(-1));
+      const groupId = parts.slice(1, -1).join(":");
+      const g = this.state.fauna?.find((f) => f.id === groupId);
+      if (g) {
+        ensureVitals(this.state.manifest.seed, g);
+        const m = g.members.find((x) => (x.n ?? 0) === n);
+        if (m) return { g, m };
+      }
+    }
+    const near = this.mountableNear();
+    if (!near) return undefined;
+    const g = this.state.fauna?.find((f) => f.id === near.groupId);
+    if (!g) return undefined;
+    const m = g.members.find((x) => (x.n ?? 0) === near.memberN);
+    return m ? { g, m } : undefined;
+  }
+  /** Free adjacent cell to step down onto when dismounting an animal. */
+  dismountMountCell(): Point | undefined {
+    const p = this.state.player;
+    const dirs: Point[] = [
+      { x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 },
+      { x: 1, y: 1 }, { x: -1, y: 1 }, { x: 1, y: -1 }, { x: -1, y: -1 },
+    ];
+    for (const d of dirs) {
+      const x = p.pos.x + d.x, y = p.pos.y + d.y;
+      if (!this.offMap(x, y) && !this.blocked(x, y, "outside") && !this.faunaAt(x, y)) return { x, y };
+    }
+    return undefined;
+  }
+  /** Best treat available in hand or inventory to feed a mount. */
+  mountTreatAvailable(): ItemId | undefined {
+    const p = this.state.player;
+    if (isMountTreat(p.heldItem)) return p.heldItem;
+    for (const [id, count] of Object.entries(p.inventory)) {
+      if ((count ?? 0) > 0 && isMountTreat(id as ItemId)) return id as ItemId;
+    }
+    return undefined;
+  }
+  private restoreMount(mount: PlayerMount, at: Point, spooked = false) {
+    const p = this.state.player;
+    const dir = p.direction as 0 | 1 | 2 | 3;
+    const member: FaunaMember = {
+      x: at.x,
+      y: at.y,
+      direction: dir,
+      n: mount.memberN,
+      tier: mount.tier,
+      hp: mount.hp,
+      name: mount.name,
+    };
+    const existing = mount.groupId
+      ? this.state.fauna?.find((g) => g.id === mount.groupId)
+      : undefined;
+    if (existing) {
+      existing.members.push(member);
+      existing.pos = { space: "outside", x: at.x, y: at.y };
+      existing.state = spooked ? "flee" : "idle";
+      if (spooked) {
+        existing.panic = 0.85;
+        existing.fright = { ...p.pos };
+      } else if (mount.tamed) {
+        existing.owner = mount.owner ?? "player";
+        existing.home = { space: "outside", x: at.x, y: at.y };
+        existing.homeRadius = Math.max(existing.homeRadius, 5);
+        existing.nextDecisionAt = this.state.clock + 45;
+      }
+      return;
+    }
+    const id = mount.groupId ?? `mount-${mount.speciesId}-${this.state.revision}`;
+    const group: FaunaGroup = {
+      id,
+      speciesId: mount.speciesId,
+      members: [member],
+      pos: { space: "outside", x: at.x, y: at.y },
+      home: { space: "outside", x: at.x, y: at.y },
+      homeRadius: 6,
+      state: spooked ? "flee" : "idle",
+      nextDecisionAt: this.state.clock + (spooked ? 2 : 55),
+      stride: 0,
+      since: this.state.clock,
+      serial: mount.memberN + 1,
+      ...(spooked ? { panic: 0.85, fright: { ...p.pos } } : {}),
+      ...(mount.tamed ? { owner: mount.owner ?? "player" } : mount.owner ? { owner: mount.owner } : {}),
+    };
+    (this.state.fauna ??= []).push(group);
+  }
+  /** Eject the rider in a dramatic tumble and put the animal back on the ground. */
+  private buckOff(message: string, dx = 0, dy = 0) {
+    const p = this.state.player;
+    const mount = p.riding;
+    if (!mount) return;
+    const from = { x: p.pos.x, y: p.pos.y };
+    const [fx, fy] = dx || dy ? [dx, dy] : [[0, -1], [1, 0], [0, 1], [-1, 0]][p.direction]!;
+    let land: Point | undefined;
+    for (const dist of [2, 1]) {
+      const tx = p.pos.x + fx * dist, ty = p.pos.y + fy * dist;
+      if (!this.offMap(tx, ty) && !this.blocked(tx, ty, "outside") && !this.faunaAt(tx, ty)) {
+        land = { x: tx, y: ty };
+        break;
+      }
+    }
+    land ??= this.dismountMountCell() ?? from;
+    this.restoreMount(mount, from, true);
+    delete p.riding;
+    p.pos = { space: "outside", x: land.x, y: land.y };
+    if (this.state.manifest.survival || this.state.manifest.hazards) {
+      const dmg = Math.min(4, Math.max(0, (p.health ?? 100) - 5));
+      if (dmg > 0) this.hurt(dmg, "being thrown from a mount");
+    }
+    this.emitRideEvent("buck", mount.speciesId, { from, to: land });
+    this.event(message);
+  }
+  /** Galloping past poultry or small wildlife sends them scattering with a flurry. */
+  private scatterSmallFauna(at: Point) {
+    for (const g of this.state.fauna ?? []) {
+      if (Math.abs(g.pos.x - at.x) > 5 || Math.abs(g.pos.y - at.y) > 5) continue;
+      const prof = faunaProfile(g.speciesId);
+      if (!prof || prof.prey !== "small-animal") continue;
+      if (g.state === "flee" || aerialStates.has(g.state)) continue;
+      if (g.members.some((m) => Math.hypot(m.x - at.x, m.y - at.y) <= 3.2)) {
+        g.state = "flee";
+        g.panic = 0.8;
+        g.fright = { space: "outside", x: at.x, y: at.y };
+        g.nextDecisionAt = this.state.clock + 2;
+      }
+    }
+  }
+  /** Mounted leap: clears fences, hedges, low walls, ditches, streams, and boulders up to spec.jumpReach. */
+  private mountedLeap(from: Position, dx: number, dy: number, running: boolean): LeapResult | { kind: "blocked"; reason: string } {
+    const p = this.state.player;
+    const spec = mountSpec(p.riding?.speciesId, p.riding?.form);
+    if (!spec || from.space !== "outside") return { kind: "blocked", reason: "Cannot leap here." };
+    const maxReach = Math.min(3, spec.jumpReach + (this.knows("rider") && spec.jumpReach >= 2 ? 1 : 0));
+    const desired = running ? maxReach : Math.min(2, maxReach);
+    let bestDist = 0;
+    let clearedObstacle = false;
+    for (let dist = desired; dist >= 1; dist--) {
+      const lx = from.x + dx * dist, ly = from.y + dy * dist;
+      if (this.offMap(lx, ly) || this.blocked(lx, ly, "outside") || this.faunaAt(lx, ly)) continue;
+      // Ensure intermediate cells aren't tall buildings or impassable cliffs.
+      let blockedMid = false;
+      let sawObstacle = false;
+      for (let step = 1; step < dist; step++) {
+        const mx = from.x + dx * step, my = from.y + dy * step;
+        if (this.offMap(mx, my)) { blockedMid = true; break; }
+        const cell = this.world.topography?.(mx, my);
+        const startH = this.world.topography?.(from.x, from.y)?.height ?? 0;
+        if (cell && cell.height - startH > TERRAIN_STEP * 1.4) { blockedMid = true; break; }
+        const onBuilding = this.world.places.some(
+          (pl) => mx >= pl.x && mx < pl.x + pl.w && my >= pl.y && my < pl.y + pl.h,
+        );
+        if (onBuilding) { blockedMid = true; break; }
+        if (this.blocked(mx, my, "outside") || cell?.surface === "water" || this.faunaAt(mx, my)) {
+          sawObstacle = true;
+        }
+      }
+      if (!blockedMid) {
+        bestDist = dist;
+        clearedObstacle = sawObstacle;
+        break;
+      }
+    }
+    if (!bestDist) return { kind: "blocked", reason: "No clear landing ahead." };
+    return {
+      kind: clearedObstacle ? "leap" : "hop",
+      distance: bestDist as 1 | 2 | 3,
+      seconds: bestDist >= 3 ? 2 : 1,
+      reason: clearedObstacle ? "Clean leap!" : "You bound forward.",
+    };
+  }
   /** At a run, a lone tree, rock or post ahead is dodged a pace to one side
    * rather than slammed into, if the way beyond it is open on that side. */
   private sidestep(c: Extract<PlayerCommand, { type: "move" }>) {
@@ -8680,8 +8968,35 @@ export class Engine {
       if (c.type !== "pass" && c.type !== "wait" && c.type !== "choose") return "Step out of the cab first.";
     }
     if (c.type === "interact" && c.action === "drive-vehicle") {
+      if (p.riding) return "Dismount first.";
       const o = this.object(c.target);
       return o && this.vehicleCab(o) ? undefined : "Walk up to the cab while the driver is away.";
+    }
+    if (c.type === "interact" && c.action === "mount-animal") {
+      if (p.riding) return "You are already mounted.";
+      if (p.pos.space !== "outside") return "You cannot mount indoors.";
+      if (p.afloat || p.perch || p.mount || p.drivingVehicle || p.drivingCart) return "Get clear first.";
+      const found = this.resolveMountTarget(c.target);
+      if (!found) return "Move closer to an animal you can ride.";
+      if (!isRideableSpecies(found.g.speciesId)) return "That animal cannot carry a rider.";
+      if (found.m.young) return "Too young to carry a rider.";
+      if (found.g.hitch) return "It is still in harness.";
+      if (Math.hypot(found.m.x - p.pos.x, found.m.y - p.pos.y) > 2.5) return "Move closer to mount it.";
+      return undefined;
+    }
+    if (c.type === "interact" && c.action === "dismount-animal") {
+      if (!p.riding) return "You are not riding.";
+      return this.dismountMountCell() ? undefined : "There is no clear ground beside you to dismount.";
+    }
+    if (c.type === "interact" && (c.action === "spur-mount" || c.action === "calm-mount" || c.action === "rear-mount")) {
+      return p.riding ? undefined : "You are not riding.";
+    }
+    if (c.type === "interact" && c.action === "feed-mount") {
+      if (!p.riding) return "You are not riding.";
+      return this.mountTreatAvailable() ? undefined : "You have nothing suitable to feed it.";
+    }
+    if (p.riding && c.type === "interact" && (c.action === "enter" || c.action === "climb" || c.action === "launch")) {
+      return "Dismount first.";
     }
     if (p.drivingCart && (c.type === "move" || c.type === "interact" && c.action === "enter"))
       return "Halt the cart and hand back the reins to step down.";
@@ -8826,6 +9141,36 @@ export class Engine {
       if (c.jump && heldObject(this.state) && !this.armed())
         return "Put down the held object before jumping.";
       if (c.jump && c.traverse) return "Choose one movement style.";
+      if (p.riding && c.type === "move") {
+        const mount = p.riding;
+        if (mount.bucking) return "Hold on! Press F to steady your seat or E to bail off.";
+        if (mount.stubbornUntil && this.state.clock < mount.stubbornUntil) {
+          return `The ${mountLabel(mount)} plants its hooves and refuses to budge. Spur or pat it!`;
+        }
+        if (c.jump || c.traverse) {
+          const leap = this.mountedLeap(p.pos, c.dx, c.dy, !!c.run);
+          if (leap.kind === "blocked") return leap.reason;
+          const landing = { x: p.pos.x + c.dx * leap.distance, y: p.pos.y + c.dy * leap.distance };
+          const there = this.state.actors.find(
+            (a) => a.pos.space === p.pos.space && a.pos.x === landing.x && a.pos.y === landing.y,
+          );
+          return there ? `${there.name} is standing there.` : undefined;
+        }
+        const nx = p.pos.x + c.dx, ny = p.pos.y + c.dy;
+        if (this.offMap(nx, ny)) return "You cannot ride past the edge.";
+        const spec = mountSpec(mount.speciesId, mount.form);
+        const depth = this.world.topography ? waterDepthAt(this.world.topography, nx + 0.5, ny + 0.5) : 0;
+        if (depth > (spec?.amphibious ? 1.8 : 0.58)) return "The water is too deep for your mount.";
+        if (this.blocked(nx, ny, "outside")) {
+          // Heavy mounts (elephants, water buffalo) crash through low props.
+          const blocking = this.state.objects.filter(
+            (o) => o.pos.space === "outside" && o.pos.x === nx && o.pos.y === ny && !!o.prop && !!propDefs[o.prop]?.solid && !o.carriedBy && !o.broken,
+          );
+          if (spec?.heavy && blocking.length > 0 && blocking.every((o) => lowProp(o))) return undefined;
+          return "The way is blocked.";
+        }
+        return undefined;
+      }
       const vessel=c.type==="move" && p.boat ? this.object(p.boat)?.vessel : undefined;
       if(vessel && c.type==="move"){
         if(!this.playerCanCross(p.pos,{x:p.pos.x+c.dx,y:p.pos.y+c.dy})) return "The hull needs more clear water.";
@@ -9985,6 +10330,226 @@ export class Engine {
       this.advance(1);
       return;
     }
+    if (c.type === "interact" && c.action === "mount-animal") {
+      const found = this.resolveMountTarget(c.target);
+      if (!found) return;
+      const { g, m } = found;
+      const n = m.n ?? 0;
+      const look = faunaLook(g.speciesId, this.state.manifest.seed, g.id, String(n), this.world.pack.setting);
+      const spec = mountSpec(g.speciesId, look?.form);
+      if (!spec) return;
+      const wild = !g.owner && faunaProfile(g.speciesId)?.category === "wild";
+      const from = { x: p.pos.x, y: p.pos.y };
+      const to = { x: m.x, y: m.y };
+      // Remove this animal from its world group while ridden.
+      g.members = g.members.filter((x) => x !== m);
+      this.state.fauna = this.state.fauna?.filter((grp) => grp.members.length > 0);
+      const riderBonus = this.knows("rider") ? 1 : 0;
+      const breakBeats = Math.max(2, spec.breakBeats - riderBonus);
+      const mount: PlayerMount = {
+        speciesId: g.speciesId,
+        groupId: g.id,
+        memberN: n,
+        form: look?.form,
+        coat: look?.coat,
+        name: m.name,
+        owner: g.owner,
+        tier: m.tier,
+        hp: m.hp,
+        wild,
+        tamed: !wild,
+        stamina: spec.maxStamina,
+        maxStamina: spec.maxStamina,
+        bond: wild ? 10 : g.owner === "player" ? 65 : 35,
+        ...(wild
+          ? {
+              bucking: {
+                holds: 0,
+                needed: breakBeats,
+                until: this.state.clock + 12,
+                tries: 0,
+              },
+            }
+          : {}),
+      };
+      p.riding = mount;
+      p.pos = { space: "outside", x: to.x, y: to.y };
+      p.direction = m.direction;
+      p.facing = (m.direction * 2) as 0 | 2 | 4 | 6;
+      p.activity = `Riding ${mountLabel(mount)}`;
+      delete p.seated;
+      if (g.owner && g.owner !== "player") {
+        const ownerActor = this.state.actors.find((a) => a.id === g.owner);
+        if (ownerActor) {
+          this.offend({
+            owner: ownerActor.id,
+            at: { space: "outside", ...to },
+            lost: { what: `the ${mountLabel(mount)}`, pos: { space: "outside", ...to } },
+            cost: (theirs) => (theirs ? 5 : 2),
+            story: { act: "took", object: `the ${mountLabel(mount)}` },
+            memory: () => `Saw player ride off on ${g.id}`,
+            text: (w) => `${w.name} shouts after you for taking the ${mountLabel(mount)}.`,
+          });
+        }
+      }
+      this.emitRideEvent("mount", g.speciesId, { from, to });
+      this.event(
+        wild
+          ? `You vault onto the ${mountLabel(mount)}! It bucks wildly—press F in rhythm to hold on!`
+          : `You swing up onto the ${mountLabel(mount)}.`,
+      );
+      this.advance(1);
+      return;
+    }
+    if (c.type === "interact" && c.action === "dismount-animal") {
+      const mount = p.riding;
+      if (!mount) return;
+      const exit = this.dismountMountCell();
+      if (!exit) return;
+      const from = { x: p.pos.x, y: p.pos.y };
+      const bailed = !!mount.bucking;
+      this.restoreMount(mount, from, bailed);
+      delete p.riding;
+      p.pos = { space: "outside", x: exit.x, y: exit.y };
+      p.activity = "Exploring";
+      this.emitRideEvent("dismount", mount.speciesId, { from, to: exit });
+      this.event(
+        bailed
+          ? `You throw yourself clear of the bucking ${mountLabel(mount)}.`
+          : `You swing down from the ${mountLabel(mount)}.`,
+      );
+      this.advance(1);
+      return;
+    }
+    if (c.type === "interact" && c.action === "spur-mount") {
+      const mount = p.riding;
+      if (!mount) return;
+      const spec = mountSpec(mount.speciesId, mount.form);
+      if (!spec) return;
+      if (mount.bucking) {
+        // Pressing F during wild rodeo steadies your seat!
+        mount.bucking.holds += 1;
+        mount.bucking.until = this.state.clock + 10;
+        if (mount.bucking.holds >= mount.bucking.needed) {
+          delete mount.bucking;
+          mount.tamed = true;
+          mount.bond = Math.min(100, mount.bond + 35);
+          this.grantXp("animals", 24);
+          this.emitRideEvent("break", mount.speciesId);
+          this.event(`The ${mountLabel(mount)} settles under your knees—you have broken it to your hand!`);
+        } else {
+          this.emitRideEvent("calm", mount.speciesId);
+          this.event(`You grip tight as the ${mountLabel(mount)} bucks! (${mount.bucking.holds}/${mount.bucking.needed})`);
+        }
+        this.advance(1);
+        return;
+      }
+      const perfect = c.target.startsWith("perfect");
+      const combo = Number(c.target.split(":")[1] ?? 1) || 1;
+      const cost = Math.round((perfect ? SPUR_PERFECT_COST : SPUR_COST) * (this.knows("rider") ? 0.78 : 1));
+      if (mount.stubbornUntil && this.state.clock < mount.stubbornUntil) {
+        delete mount.stubbornUntil;
+        mount.stamina = Math.max(0, mount.stamina - 10);
+        this.emitRideEvent("spur", mount.speciesId, { perfect: true, combo: 1 });
+        this.event(`You click your tongue and nudge the ${mountLabel(mount)} forward.`);
+        this.advance(1);
+        return;
+      }
+      if (mount.stamina < cost) {
+        mount.strained = (mount.strained ?? 0) + 1;
+        if (mount.strained >= 2) {
+          if (spec.spits) {
+            mount.strained = 0;
+            mount.stubbornUntil = this.state.clock + 5;
+            this.emitRideEvent("stubborn", mount.speciesId);
+            this.event(`The ${mountLabel(mount)} whips its head round and spits indignantly, halting in its tracks!`);
+          } else {
+            this.buckOff(`Pushed past its wind, the ${mountLabel(mount)} pitches you clean out of the saddle!`);
+          }
+        } else {
+          this.emitRideEvent("stubborn", mount.speciesId);
+          this.event(`The ${mountLabel(mount)} is blowing hard—ease off or it will throw you!`);
+        }
+        this.advance(1);
+        return;
+      }
+      mount.stamina = Math.max(0, mount.stamina - cost);
+      mount.strained = 0;
+      if (perfect) {
+        mount.bond = Math.min(100, mount.bond + 3);
+        this.grantXp("animals", 3 + Math.min(4, combo));
+      }
+      this.emitRideEvent("spur", mount.speciesId, { perfect, combo });
+      if (perfect && combo >= 2) {
+        this.event(`In stride! ×${combo} cadence with your ${mountLabel(mount)}.`);
+      }
+      return;
+    }
+    if (c.type === "interact" && c.action === "calm-mount") {
+      const mount = p.riding;
+      if (!mount) return;
+      if (mount.bucking) {
+        mount.bucking.holds += 1;
+        mount.bucking.until = this.state.clock + 10;
+        if (mount.bucking.holds >= mount.bucking.needed) {
+          delete mount.bucking;
+          mount.tamed = true;
+          mount.bond = Math.min(100, mount.bond + 35);
+          this.grantXp("animals", 24);
+          this.emitRideEvent("break", mount.speciesId);
+          this.event(`You talk low and sit deep—the ${mountLabel(mount)} calms and accepts your hand!`);
+        } else {
+          this.emitRideEvent("calm", mount.speciesId);
+          this.event(`You hold your seat through the buck! (${mount.bucking.holds}/${mount.bucking.needed})`);
+        }
+        this.advance(1);
+        return;
+      }
+      delete mount.stubbornUntil;
+      mount.strained = 0;
+      mount.stamina = Math.min(mount.maxStamina, mount.stamina + 22);
+      mount.bond = Math.min(100, mount.bond + 5);
+      this.grantXp("animals", 2);
+      this.emitRideEvent("calm", mount.speciesId);
+      this.event(`You pat the ${mountLabel(mount)}'s neck. It blows softly and steadies.`);
+      this.advance(1);
+      return;
+    }
+    if (c.type === "interact" && c.action === "feed-mount") {
+      const mount = p.riding;
+      if (!mount) return;
+      const treat = this.mountTreatAvailable();
+      if (!treat) return;
+      if (p.heldItem === treat) delete p.heldItem;
+      else {
+        p.inventory[treat] = (p.inventory[treat] ?? 1) - 1;
+        if (!p.inventory[treat]) delete p.inventory[treat];
+      }
+      delete mount.stubbornUntil;
+      mount.strained = 0;
+      mount.stamina = mount.maxStamina;
+      mount.bond = Math.min(100, mount.bond + 14);
+      this.grantXp("animals", 5);
+      this.emitRideEvent("feed", mount.speciesId);
+      const treatName = (this.item(treat)?.name ?? treat).toLowerCase();
+      this.event(`You feed ${treatName} to your ${mountLabel(mount)}. It munches eagerly and perks up!`);
+      this.advance(2);
+      return;
+    }
+    if (c.type === "interact" && c.action === "rear-mount") {
+      const mount = p.riding;
+      if (!mount) return;
+      this.scatterSmallFauna(p.pos);
+      for (const a of this.state.actors) {
+        if (a.kind === "human" && !a.dead && a.pos.space === "outside" && Math.hypot(a.pos.x - p.pos.x, a.pos.y - p.pos.y) <= 4) {
+          this.cue(a.id, "alarm", p.pos);
+        }
+      }
+      this.emitRideEvent("rear", mount.speciesId);
+      this.event(`Your ${mountLabel(mount)} rears up with a dramatic flourish!`);
+      this.advance(1);
+      return;
+    }
     if (c.type === "care") { this.giveCare(c.target, c.treatment); return; }
     if(c.type==="exchange"){
       const f=this.exchangeFloor();
@@ -10501,6 +11066,90 @@ export class Engine {
       return;
     }
     if (c.type === "move") {
+      if (p.riding) {
+        const mount = p.riding;
+        const spec = mountSpec(mount.speciesId, mount.form)!;
+        const from = { ...p.pos };
+        p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+        p.facing = facingFromStep(c.dx, c.dy, p.direction);
+        if (c.jump || c.traverse) {
+          const leap = this.mountedLeap(p.pos, c.dx, c.dy, !!c.run);
+          if (leap.kind !== "blocked") {
+            this.lastLeap = leap;
+            this.lastJump = this.state.clock;
+            p.pos.x += c.dx * leap.distance;
+            p.pos.y += c.dy * leap.distance;
+            p.activity = `Riding ${mountLabel(mount)}`;
+            const clean = leap.kind === "leap";
+            if (clean) {
+              mount.stamina = Math.min(mount.maxStamina, mount.stamina + 8);
+              mount.bond = Math.min(100, mount.bond + 2);
+              this.grantXp("animals", 4);
+            } else {
+              mount.stamina = Math.max(0, mount.stamina - 4);
+            }
+            this.emitRideEvent("leap", mount.speciesId, { perfect: clean, from, to: { x: p.pos.x, y: p.pos.y } });
+            if (clean) this.event(`Clean leap over the obstacle on your ${mountLabel(mount)}!`);
+            this.populateNearby();
+            this.advance(leap.seconds);
+            const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
+            if (!this.state.visited.includes(key)) this.state.visited.push(key);
+            return;
+          }
+        }
+        delete this.lastLeap;
+        const nx = p.pos.x + c.dx, ny = p.pos.y + c.dy;
+        // Heavy mounts smash through low props in their path.
+        if (spec.heavy) {
+          for (const o of this.state.objects) {
+            if (o.pos.space === "outside" && o.pos.x === nx && o.pos.y === ny && o.prop && propDefs[o.prop]?.solid && !o.carriedBy && !o.broken && lowProp(o)) {
+              o.broken = true;
+              this.event(`Your ${mountLabel(mount)} crashes straight through ${o.name.toLowerCase()}!`);
+            }
+          }
+        }
+        // Step aside or jostle any human on the destination cell.
+        const occupant = this.state.actors.find(
+          (a) => a.pos.space === "outside" && a.pos.x === nx && a.pos.y === ny && !a.watch,
+        );
+        if (occupant) {
+          occupant.pos = { ...from };
+          if (c.run) {
+            this.cue(occupant.id, "alarm", p.pos);
+            this.event(`${occupant.name} jumps clear of your galloping ${mountLabel(mount)}!`);
+          }
+        }
+        p.pos = { space: "outside", x: nx, y: ny };
+        p.activity = `Riding ${mountLabel(mount)}`;
+        if (c.run) {
+          mount.stamina = Math.max(0, mount.stamina - (this.knows("rider") ? 1.2 : 1.8));
+          this.scatterSmallFauna(p.pos);
+          // Occasional lively reaction from nearby townsfolk when thundering past.
+          if (this.rng("ride-bystander") < 0.08) {
+            const near = this.state.actors.find(
+              (a) => a.kind === "human" && !a.dead && a.pos.space === "outside" && Math.hypot(a.pos.x - nx, a.pos.y - ny) <= 2.5,
+            );
+            if (near) this.cue(near.id, "alarm", p.pos);
+          }
+          // Stubborn donkeys occasionally plant their hooves at gallop!
+          if (spec.stubborn && mount.bond < 80 && this.rng("mount-stubborn") < spec.stubborn * 0.12) {
+            mount.stubbornUntil = this.state.clock + 4;
+            this.emitRideEvent("stubborn", mount.speciesId);
+            this.event(`The ${mountLabel(mount)} suddenly plants all four hooves and brays! Spur or pat it to get moving.`);
+          }
+        } else {
+          mount.stamina = Math.min(mount.maxStamina, mount.stamina + 2.5);
+        }
+        if (this.rng("ride-xp") < (c.run ? 0.14 : 0.04)) {
+          this.grantXp("animals", 1);
+          mount.bond = Math.min(100, mount.bond + 0.5);
+        }
+        this.populateNearby();
+        this.advance(c.run ? 1 : 2);
+        const key = `${Math.floor(p.pos.x / 64)},${Math.floor(p.pos.y / 64)}`;
+        if (!this.state.visited.includes(key)) this.state.visited.push(key);
+        return;
+      }
       const ship=p.boat ? this.object(p.boat) : undefined;
       if(ship?.vessel){
         p.pos={...p.pos,x:p.pos.x+c.dx,y:p.pos.y+c.dy};
@@ -11279,7 +11928,7 @@ export class Engine {
           const venue = fairById(b.venueRoom.venue);
           if (venue) {
             this.advance(10);
-            fairEnter(this.complex, venue, true, b.venueRoom.room);
+            fairEnter(this.complex, venue, !!venue.palace, b.venueRoom.room);
             break;
           }
         }
@@ -14480,6 +15129,17 @@ export class Engine {
   private failedWatchRoutes = new Set<string>();
   private *advanceSteps(seconds: number, heldActor?: string) {
     if (this.state.player.dead) return;
+    if (this.state.player.riding) {
+      const m = this.state.player.riding;
+      const spec = mountSpec(m.speciesId, m.form);
+      if (spec && this.motion !== "run") {
+        m.stamina = Math.min(m.maxStamina, m.stamina + Math.min(seconds, 6) * (spec.regenPerSec * 0.35));
+      }
+      if (m.stamina > m.maxStamina * 0.4) m.strained = 0;
+      if (m.bucking && this.state.clock + seconds >= m.bucking.until) {
+        this.buckOff(`The wild ${mountLabel(m)} bucks you high into the air and bolts!`);
+      }
+    }
     this.syncSeason();
     // Derived paths never survive a command boundary: saves and replays need no hidden routing state.
     this.routes.clear();

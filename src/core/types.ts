@@ -343,6 +343,7 @@ export type Actor = {
   freight?: { grain: number; day: number; to: string };
   guidingPlough?: string;
   drivingVehicle?: string;
+  riding?: import("./riding").PlayerMount;
   drivingCart?: { vehicle: string; haltedAt?: number };
   cartOffsets?: Record<string, number>;
   /** In a vehicle, in one of its crew places; the vehicle moves them. */
@@ -642,6 +643,12 @@ export type PlayerCommand =
         | "sow-strip"
         | "drive-vehicle"
         | "leave-vehicle"
+        | "mount-animal"
+        | "dismount-animal"
+        | "spur-mount"
+        | "calm-mount"
+        | "rear-mount"
+        | "feed-mount"
         | "take-reins"
         | "walk-on"
         | "halt-cart"

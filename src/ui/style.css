@@ -10817,3 +10817,113 @@ svg.lucide :is(circle, rect, ellipse, polygon) { fill: color-mix(in srgb, curren
 .skill-work { display: flex; justify-content: space-between; gap: 8px; margin: 0; padding: 4px 8px 4px 10px; font-size: 12px; color: var(--cream); }
 .skill-work b { color: var(--gold); font-weight: 400; letter-spacing: 2px; }
 .skill-work b i { font-style: normal; opacity: 0.25; }
+
+/* Compact riding HUD floating centered above the bottom prompt bar. */
+.mount-hud {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  white-space: nowrap;
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--line) 45%, transparent);
+  background: color-mix(in srgb, var(--bg-2) 92%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 22px -6px #000c;
+  font-size: 11px;
+  color: var(--ink);
+  pointer-events: none;
+  z-index: 8;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.mount-hud.sweet {
+  border-color: #f3c44f;
+  box-shadow: 0 0 14px -2px #f3c44f88, 0 6px 18px -6px #000b;
+}
+.mount-hud.surging {
+  border-color: #e6a83c;
+}
+.mount-hud.bucking {
+  border-color: #e56b55;
+  box-shadow: 0 0 14px -2px #e56b5577;
+}
+.mount-hud-name {
+  font-weight: 600;
+  color: var(--gold);
+}
+.mount-hud-gait {
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #ffffff12;
+  font-size: 10px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.mount-hud-gait.gait-3,
+.mount-hud-gait.gait-4 {
+  background: #f3c44f28;
+  color: #f8d878;
+}
+.mount-hud-bar {
+  position: relative;
+  width: 72px;
+  height: 6px;
+  border-radius: 999px;
+  background: #ffffff1a;
+  overflow: hidden;
+}
+.mount-hud-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #8ec96a, #e8c75a);
+  transition: width 80ms linear;
+}
+.mount-hud.sweet .mount-hud-fill {
+  background: linear-gradient(90deg, #ffd85c, #fff2a8);
+}
+.mount-hud-sweet {
+  font-weight: 700;
+  color: #ffe27a;
+  animation: mount-pulse 420ms ease-in-out infinite alternate;
+}
+.mount-hud-combo {
+  font-weight: 600;
+  color: #f8d468;
+}
+.mount-hud-hint {
+  color: var(--ink-dim);
+  font-size: 10px;
+}
+.mount-hud-hint kbd {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: #ffffff14;
+  font-size: 9px;
+}
+.mount-hud-rodeo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: #ffb29e;
+}
+.mount-hud-rodeo i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ffffff28;
+}
+.mount-hud-rodeo i.lit {
+  background: #ffd85c;
+  box-shadow: 0 0 6px #ffd85c;
+}
+@keyframes mount-pulse {
+  from { opacity: 0.72; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1.04); }
+}
