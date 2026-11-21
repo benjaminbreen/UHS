@@ -6,7 +6,7 @@ import type { Position } from "../core/types";
 
 /** Music for what is happening, not where: each tune is written once and
  * played on the instruments, scale and tuning of the place it is heard in. */
-export type Situation = "arrival" | "passing" | "timeslip" | "work" | "workdone" | "danger" | "combat";
+export type Situation = "arrival" | "passing" | "timeslip" | "work" | "workdone" | "danger" | "combat" | "rest";
 export type ThreatMusic = "danger" | "combat" | undefined;
 
 export function threatMusic(score: number, fauna: readonly FaunaGroup[], pos: Position, clock: number): ThreatMusic {
@@ -179,6 +179,39 @@ export const tunes: Tune[] = [
       { voice: "kick", stem: "percussion", velocity: 0.33, loop: "C2:.5 -:1 C2:.5 -:1 C2:.5 -:.5" },
       { voice: "snare", stem: "percussion", velocity: 0.2, loop: "-:1 C4:.5 -:1.5 C4:.5 -:.5" },
       { voice: "hat", stem: "percussion", velocity: 0.09, loop: eighths, pan: 0.2 },
+    ],
+  },
+  {
+    id: "good-night", situation: "rest", title: "Good night",
+    subtitle: "A short inn lullaby: cascading harp, starlight celesta, warm strings and a soft bell resolving through flat-six and flat-seven to home.",
+    mode: "major", tonic: 5, bpm: 96, meter: 4, bars: 4, everywhere: true, reverb: [0.35, 3.2],
+    fixed: [
+      {
+        voice: "harp", stem: "harmony", velocity: 0.16, pan: -0.2,
+        loop: bars(
+          "F3:.5 C4:.5 G4:.5 A4:.5 C5:.5 A4:.5 G4:.5 C4:.5",
+          "F3:.5 D4:.5 A4:.5 Bb4:.5 D5:.5 Bb4:.5 A4:.5 D4:.5",
+          "Db3:.5 Ab3:.5 C4:.5 F4:.5 Eb3:.5 Bb3:.5 C4:.5 G4:.5",
+          "F3:.5 C4:.5 G4:.5 A4:.5 C5:.5 G5:.5 A5:1",
+        ),
+      },
+      {
+        voice: "celesta", stem: "melody", velocity: 0.17, pan: 0.14,
+        loop: bars(
+          "C5:1.5 A4:.5 G4:1 C5:1",
+          "D5:1.5 C5:.5 A4:1 F4:1",
+          "Ab4:1 C5:1 Bb4:1 G4:1",
+          "A4:1.5 G4:.5 F4:2",
+        ),
+      },
+      {
+        voice: "strings", stem: "harmony", velocity: 0.055, fade: [0.7, 0.3],
+        loop: "F3+A3+C4:4 F3+Bb3+D4:4 F3+Ab3+C4:2 G3+Bb3+Eb4:2 F3+A3+C4+G4:4",
+      },
+      {
+        voice: "bell", stem: "harmony", velocity: 0.085, pan: 0.3,
+        loop: "-:12 F5:2 C6:2",
+      },
     ],
   },
   {

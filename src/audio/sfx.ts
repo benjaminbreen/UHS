@@ -653,67 +653,103 @@ export function footstep(
   return step || leaves.length ? [...(step ?? []), ...leaves] : undefined;
 }
 function footfall(ground: HitClass | "paddy" | "furrow" | "sodden", g: number): Sound | undefined {
+  // The weight of the foot, under whatever the surface adds.
+  const thump = (gain: number, hz: number) => tone(0, 0.06, gain * g, vary(hz, 0.1), { to: hz * 0.55, attack: 0.003 });
+  const grit = (at: number, span: number, count: number, gain: number, hz: number, q = 3) =>
+    grains(at, span, count, (t) => noise(t, rand(0.008, 0.02), gain * g * rand(0.5, 1), vary(hz, 0.35), { q }));
   switch (ground) {
     case "paddy":
       return [
-        noise(0, 0.12, 0.09 * g, vary(900, 0.2), { to: 420, q: 0.9, attack: 0.01 }),
-        noise(0.05, 0.14, 0.07 * g, 480, { filter: "lowpass", attack: 0.03 }),
-        bubble(rand(0.08, 0.14), rand(240, 380), 0.05 * g),
+        noise(0, 0.12, 0.12 * g, vary(900, 0.2), { to: 420, q: 0.9, attack: 0.01 }),
+        noise(0.05, 0.14, 0.09 * g, 480, { filter: "lowpass", attack: 0.03 }),
+        bubble(rand(0.08, 0.14), rand(240, 380), 0.07 * g),
       ];
+    // Mud: the foot sinks with a squelch and sometimes has to be pulled out.
     case "sodden":
       return [
-        noise(0, 0.1, 0.045 * g, 520, { filter: "lowpass", attack: 0.015 }),
-        noise(0.04, 0.06, 0.02 * g, 1400, { q: 1.2, attack: 0.02 }),
+        noise(0, 0.1, 0.09 * g, 520, { filter: "lowpass", attack: 0.015 }),
+        ...squash(0, 0.35 * g, 560),
+        ...(Math.random() < 0.35 ? suck(0.11, 0.3 * g) : []),
       ];
+    case "marsh":
+      return [
+        ...squash(0, 0.55 * g, 420),
+        bubble(rand(0.04, 0.09), rand(180, 280), 0.1 * g),
+        ...(Math.random() < 0.5 ? suck(0.12, 0.45 * g) : []),
+      ];
+    // Tilled soil: loose clods giving way.
     case "furrow":
       return [
-        noise(0, 0.07, 0.05 * g, 700, { filter: "lowpass", attack: 0.01 }),
-        ...grains(0.01, 0.06, 2, (t) => noise(t, 0.015, 0.025 * g, 2600, { q: 2 })),
+        thump(0.05, 100),
+        noise(0, 0.08, 0.09 * g, 600, { filter: "lowpass", attack: 0.01 }),
+        ...grit(0.01, 0.09, 4, 0.035, 2200, 2),
       ];
     case "water":
       return [
-        noise(0, 0.15, 0.13 * g, vary(1100, 0.2), {
+        noise(0, 0.15, 0.16 * g, vary(1100, 0.2), {
           to: 480,
           q: 0.9,
           attack: 0.008,
         }),
-        bubble(rand(0.03, 0.08), rand(480, 820), 0.06 * g),
-      ];
-    case "marsh":
-      return [
-        noise(0, 0.13, 0.15 * g, 560, { filter: "lowpass", attack: 0.012 }),
-        bubble(rand(0.04, 0.09), rand(180, 280), 0.1 * g),
+        bubble(rand(0.03, 0.08), rand(480, 820), 0.08 * g),
       ];
     case "grass":
-      return [noise(0, 0.08, 0.025 * g, vary(900, 0.15), { filter: "lowpass", attack: 0.012 })];
+      return [
+        thump(0.035, 95),
+        noise(0, 0.07, 0.045 * g, 500, { filter: "lowpass", attack: 0.012 }),
+        noise(0, 0.11, 0.05 * g, vary(3200, 0.2), { to: 5200, q: 0.6, attack: 0.03 }),
+      ];
     case "soil":
       return [
-        noise(0, 0.07, 0.04 * g, vary(700, 0.15), { filter: "lowpass", attack: 0.008 }),
-        noise(0.01, 0.04, 0.012 * g, vary(2400, 0.2), { q: 1.2, attack: 0.01 }),
+        thump(0.06, 120),
+        noise(0, 0.06, 0.08 * g, vary(650, 0.15), { filter: "lowpass", attack: 0.005 }),
+        ...grit(0.012, 0.07, 3, 0.03, 2600, 2),
       ];
+    // Paving and flagged floors: the heel's hard click, then the sole.
     case "stone":
+      return [
+        noise(0, 0.014, 0.14 * g, vary(3200, 0.15), { q: 2, attack: 0.001 }),
+        tone(0, 0.035, 0.08 * g, vary(950, 0.1), { to: 700, wave: "triangle", attack: 0.001 }),
+        thump(0.06, 150),
+        noise(0.045, 0.025, 0.06 * g, vary(2400, 0.2), { q: 1.5 }),
+      ];
+    // Bare rock and scree: a duller knock, and grit rolling under the sole.
     case "rock":
       return [
-        noise(0, 0.035, 0.05 * g, vary(1600, 0.15), { q: 1.4, attack: 0.002 }),
-        noise(0.015, 0.05, 0.018 * g, vary(3800, 0.2), { q: 1, attack: 0.01 }),
+        noise(0, 0.02, 0.12 * g, vary(2200, 0.2), { q: 1.8, attack: 0.001 }),
+        tone(0.02, 0.03, 0.035 * g, vary(1500, 0.3), { wave: "triangle" }),
+        thump(0.06, 130),
+        ...grit(0.01, 0.13, 5, 0.08, 3400, 4),
       ];
     case "timber":
       return [
-        noise(0, 0.05, 0.05 * g, vary(520, 0.12), { q: 1.6, attack: 0.003 }),
-        tone(0, 0.06, 0.03 * g, vary(180, 0.08), { to: 140, attack: 0.003 }),
+        tone(0, 0.09, 0.09 * g, vary(170, 0.1), { to: 125, attack: 0.002 }),
+        tone(0, 0.04, 0.035 * g, vary(420, 0.1)),
+        noise(0, 0.03, 0.07 * g, vary(900, 0.15), { q: 1.8, attack: 0.002 }),
+        // Now and then a board complains.
+        ...(Math.random() < 0.1
+          ? [tone(0.05, 0.14, 0.012 * g, rand(520, 760), { to: rand(600, 900), wave: "sawtooth", attack: 0.04 })]
+          : []),
       ];
     case "fiber":
-      return [noise(0, 0.07, 0.03 * g, vary(1800, 0.2), { q: 0.8, attack: 0.01 })];
+      return [
+        noise(0, 0.08, 0.09 * g, 420, { filter: "lowpass", attack: 0.01 }),
+        noise(0.01, 0.06, 0.04 * g, vary(2000, 0.2), { q: 0.8, attack: 0.015 }),
+      ];
+    // Sand has no click in it: the foot slides in and the grains settle after.
     case "sand":
       return [
-        noise(0, 0.09, 0.035 * g, vary(2600, 0.15), { q: 0.6, attack: 0.02 }),
+        thump(0.03, 80),
+        noise(0, 0.16, 0.075 * g, vary(2200, 0.15), { to: 1100, q: 0.5, attack: 0.035 }),
+        noise(0.02, 0.12, 0.03 * g, 5200, { to: 3000, q: 0.7, attack: 0.04 }),
+        ...grit(0.09, 0.08, 2, 0.015, 4200, 2),
       ];
     case "snow":
       return [
         ...grains(0, 0.06, 3, (t) =>
-          noise(t, 0.04, 0.095 * g, vary(1850, 0.15), { q: 1.7 }),
+          noise(t, 0.04, 0.12 * g, vary(1850, 0.15), { q: 1.7 }),
         ),
-        noise(0, 0.1, 0.09 * g, 400, { filter: "lowpass", attack: 0.01 }),
+        noise(0, 0.1, 0.11 * g, 400, { filter: "lowpass", attack: 0.01 }),
       ];
     default:
       return undefined;
@@ -1115,7 +1151,7 @@ export const catalog: { name: string; detail: string; make: () => Sound }[] = [
       make: () => scramble(ground, true),
     },
   ]),
-  ...(["water", "marsh", "sand", "snow"] as HitClass[]).map((ground) => ({
+  ...(["grass", "soil", "sand", "stone", "rock", "timber", "fiber", "marsh", "sodden", "furrow", "paddy", "water", "snow"] as const).map((ground) => ({
     name: `Step · ${ground}`,
     detail: "A footfall",
     make: () => footstep(ground)!,
@@ -1347,10 +1383,111 @@ export function hoofbeat(surface: HitClass, gait: number, heavy = false): Sound 
 }
 
 /** Species-specific voice for mounting, rearing, spurring, calming, or bucking. */
+/** A cycle's own noises for the riding moods: the bell or horn, the chain, the engine, the spill. */
+function cycleVoice(motor: boolean, mood: "mount" | "spur" | "calm" | "rear" | "buck" | "stubborn"): Sound {
+  if (mood === "calm") {
+    if (motor) {
+      const f = vary(415, 0.03);
+      return [0, 0.19].flatMap((t) => [
+        tone(t, 0.13, 0.07, f, { wave: "square", attack: 0.01 }),
+        tone(t, 0.13, 0.05, f * 1.26, { wave: "square", attack: 0.01 }),
+      ]);
+    }
+    // Two strikes of a thumb bell: a bright partial over the note, the second ringing on.
+    const f = vary(2140, 0.03);
+    return [0, 0.15].flatMap((t, i) => [
+      tone(t, i ? 0.6 : 0.2, 0.085, f, { wave: "sine" }),
+      tone(t, i ? 0.4 : 0.14, 0.04, f * 2.76, { wave: "sine" }),
+      noise(t, 0.012, 0.05, 5200, { q: 2 }),
+    ]);
+  }
+  if (mood === "buck") {
+    return [
+      tone(0, 0.14, 0.16, 110, { to: 48 }),
+      noise(0, 0.1, 0.12, 700, { to: 320, q: 1.1 }),
+      ...grains(0.03, 0.42, 9, (t, i) => noise(t, 0.03, 0.09 - i * 0.007, rand(2600, 5200), { q: 5 })),
+      ...grains(0.08, 0.5, 4, (t) => tone(t, 0.12, 0.035, rand(1500, 2600), { wave: "triangle" })),
+    ];
+  }
+  if (motor) {
+    if (mood === "mount")
+      return [
+        ...grains(0, 0.42, 7, (t, i) => tone(t, 0.07, 0.07 + i * 0.006, 62 + i * 6, { to: 44, wave: "sawtooth" })),
+        tone(0.44, 0.5, 0.09, 78, { to: 150, wave: "sawtooth", attack: 0.03 }),
+        noise(0.44, 0.45, 0.04, 420, { to: 900, q: 0.8 }),
+      ];
+    if (mood === "stubborn") return grains(0, 0.3, 4, (t) => tone(t, 0.05, 0.06, 70, { to: 40, wave: "sawtooth" }));
+    return [
+      tone(0, mood === "rear" ? 0.55 : 0.4, 0.1, 95, { to: mood === "rear" ? 260 : 210, wave: "sawtooth", attack: 0.02 }),
+      noise(0, 0.36, 0.045, 520, { to: 1400, q: 0.8 }),
+    ];
+  }
+  if (mood === "mount")
+    return [
+      noise(0, 0.03, 0.06, 3200, { q: 4 }),
+      ...grains(0.05, 0.22, 5, (t) => noise(t, 0.014, 0.035, rand(3400, 4600), { q: 6 })),
+      tone(0.02, 0.05, 0.03, 190, { to: 120, wave: "triangle" }),
+    ];
+  if (mood === "stubborn") return [noise(0, 0.28, 0.07, 520, { to: 300, q: 0.9, attack: 0.05 })];
+  if (mood === "rear")
+    return [noise(0, 0.12, 0.08, 1500, { to: 800, q: 2.5 }), tone(0, 0.09, 0.05, 160, { to: 260, wave: "triangle" })];
+  // A push on the pedals: the chain takes up and the tyres hiss.
+  return [
+    ...grains(0, 0.12, 4, (t) => noise(t, 0.012, 0.04, rand(3600, 4800), { q: 6 })),
+    noise(0.02, 0.2, 0.05, 900, { to: 2400, q: 1.2, attack: 0.03 }),
+  ];
+}
+
+/** One click of a coasting freewheel. */
+export function cycleTick(): Sound {
+  return [tone(0, 0.009, 0.028, vary(3300, 0.04), { wave: "square" }), noise(0, 0.008, 0.02, 5200, { q: 3 })];
+}
+
+/** The chain and tyres under steady pedalling, quieter on soft ground. */
+export function cycleRoll(surface: HitClass, speed: number): Sound {
+  const g = 0.018 + speed * 0.02;
+  const hard = surface === "stone" || surface === "rock" || surface === "timber";
+  return [
+    noise(0, 0.07, g, hard ? 2300 : 1100, { to: hard ? 1700 : 700, q: hard ? 1.6 : 0.9, attack: 0.015 }),
+    ...(hard ? [] : [noise(0.01, 0.04, g * 0.9, rand(500, 900), { q: 1.2 })]),
+  ];
+}
+
+/** One firing of an engine: `pitch` sets the machine (a moped high, a big twin low), `rev` 0 to 1 how hard it is running. */
+export function motorPutt(pitch: number, rev: number): Sound {
+  const f = (58 + rev * 105) * pitch;
+  return [
+    tone(0, 0.075 - rev * 0.03, 0.06 + rev * 0.025, vary(f, 0.03), { to: f * 0.62, wave: "sawtooth" }),
+    noise(0, 0.03, 0.022 + rev * 0.02, 260 * pitch, { to: 520 * pitch, q: 0.8 }),
+  ];
+}
+
+/** Locked wheels: a squeal on paving, a tearing scrape on dirt. */
+export function cycleSkid(surface: HitClass): Sound {
+  if (surface === "stone" || surface === "rock" || surface === "timber")
+    return [
+      noise(0, 0.3, 0.1, 1750, { to: 1250, q: 7, attack: 0.01 }),
+      noise(0, 0.26, 0.05, 2900, { to: 2100, q: 5 }),
+      tone(0, 0.1, 0.05, 130, { to: 70 }),
+    ];
+  return [
+    noise(0, 0.26, 0.13, 1300, { to: 520, q: 1, attack: 0.01 }),
+    ...grains(0.02, 0.22, 6, (t) => noise(t, 0.022, 0.06, rand(800, 1900), { q: 2 })),
+  ];
+}
+
+/** A trick landed: a rising run, a step higher for each one chained. */
+export function trickChime(chain: number): Sound {
+  const scale = [523, 659, 784, 1047, 1319, 1568];
+  const from = Math.min(3, Math.max(0, chain - 1));
+  return [0, 1, 2].map((i) => tone(i * 0.06, 0.2, 0.06, scale[from + i], { wave: "triangle" }));
+}
+
 export function mountVoice(
-  voice: "horse" | "donkey" | "camel" | "bovine" | "deer" | "llama" | "elephant" | "ostrich",
+  voice: "horse" | "donkey" | "camel" | "bovine" | "deer" | "llama" | "elephant" | "ostrich" | "bike" | "motor",
   mood: "mount" | "spur" | "calm" | "rear" | "buck" | "stubborn",
 ): Sound {
+  if (voice === "bike" || voice === "motor") return cycleVoice(voice === "motor", mood);
   if (mood === "calm") {
     return [
       noise(0, 0.14, 0.07, 720, { to: 420, q: 1.4, attack: 0.02 }),

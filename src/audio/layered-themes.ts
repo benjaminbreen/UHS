@@ -6,6 +6,7 @@ import { ancientThemes } from "./ancient-themes";
 import { africanThemes } from "./african-themes";
 import { modernThemes } from "./modern-themes";
 import { overworldTheme } from "./overworld-theme";
+import { dawnTheme } from "./dawn-theme";
 import { mainTheme } from "./main-theme";
 import { noonTheme } from "./noon-theme";
 import { afternoonTheme } from "./afternoon-theme";
@@ -3010,6 +3011,7 @@ export const layeredThemes: LayeredTheme[] = [
     ],
   },
   overworldTheme,
+  dawnTheme,
   mainTheme,
   noonTheme,
   afternoonTheme,

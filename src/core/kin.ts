@@ -46,6 +46,34 @@ export function markOf(s: Snapshot, id: string): "kin" | "plot" | undefined {
   if (kinOf(s).some((k) => k.actor.id === id)) return "kin";
 }
 
+/** True when a happy, un-upset young child (or awake calm baby) is nearby or was just spoken with. */
+export function happyYoungChildNear(s: Snapshot, maxDist = 8): boolean {
+  const p = s.player;
+  const near = (a: Actor) =>
+    a.pos.space === p.pos.space &&
+    Math.hypot(a.pos.x - p.pos.x, a.pos.y - p.pos.y) <= maxDist;
+  const b = s.baby;
+  if (b && b.mood === "watching" && b.calm >= 50) {
+    if (b.with === "player") return true;
+    const carer = s.actors.find((a) => a.id === b.with && !a.dead);
+    if (carer && near(carer)) return true;
+  }
+  return kinOf(s).some(({ actor: a, kind }) => {
+    if (kind !== "child" || (a.age ?? 0) >= 12) return false;
+    const upset =
+      a.hunger >= 60 ||
+      !!a.injury ||
+      (a.terror !== undefined && a.terror.until > s.clock) ||
+      (a.shuns !== undefined && a.shuns > s.clock) ||
+      a.trust < 0 ||
+      (s.kin?.waiting?.id === a.id && s.kin.waiting.need === "hungry") ||
+      /sleep|asleep/i.test(a.activity);
+    if (upset) return false;
+    const recentlySpoke = s.clock - (s.kin?.talked[a.id] ?? -Infinity) <= 1200;
+    return near(a) || recentlySpoke;
+  });
+}
+
 /** Needs that bring someone over however the day has gone. */
 export const URGENT: KinNeed[] = ["hungry", "plot", "store"];
 

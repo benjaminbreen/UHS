@@ -1,11 +1,14 @@
 import type { PalaceStyle } from "../content/palaces/styles";
 import type { LayeredTheme } from "./layered-themes";
+import { homePlayTheme, innTheme } from "./home-theme";
 
 export type InteriorMusic =
   | "chant"
   | "temple"
   | "tavern"
+  | "inn"
   | "home"
+  | "home-play"
   | "workshop"
   | "hall"
   | "cave"
@@ -325,6 +328,7 @@ export const interiorThemes: Record<InteriorMusic, LayeredTheme> = {
       { voice: "clap", stem: "percussion", loop: "-:3 C4:3", velocity: 0.05, enter: 28, exit: 40, pan: -0.5 },
     ],
   },
+  inn: innTheme,
   home: {
     ...everywhere,
     id: "inside-kettle-shutters",
@@ -343,6 +347,7 @@ export const interiorThemes: Record<InteriorMusic, LayeredTheme> = {
       { voice: "bass", stem: "bass", loop: "F2:3 Bb1:3 C2:3 F2:3", velocity: 0.08, enter: 8 },
     ],
   },
+  "home-play": homePlayTheme,
   workshop: {
     ...everywhere,
     id: "inside-measure-twice",
@@ -398,6 +403,7 @@ export function interiorMusic(use: string | undefined, home: boolean): InteriorM
   if (use.startsWith("religious.") || /mosque|masjid/.test(use)) return undefined;
   if (/church|chapel|parish|gothic|romanesque|cathedral|abbey|monaster/.test(use)) return "chant";
   if (/temple|wat|shrine|kiva|lodge|bath|hammam|sento|temazcal/.test(use)) return "temple";
-  if (/tavern|alehouse|izakaya|kahve|coffee|gaming|pulqu|chich|tea|chaikhana|inn/.test(use)) return "tavern";
+  if (/caravanserai|\bhan\b|sarai|ryokan|hatago|kezhan|mansio|caupona|tambo|dharamshala|fondaco|funduq|posada|hotel|motel|hostel|guesthouse|lodging|zongo|\binn\b/.test(use)) return "inn";
+  if (/tavern|alehouse|izakaya|kahve|coffee|gaming|pulqu|chich|tea|chaikhana/.test(use)) return "tavern";
   return "hall";
 }

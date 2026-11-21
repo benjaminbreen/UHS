@@ -79,6 +79,12 @@ and treat the user's ears as the final judge.
 Weather drives all of this through `Weather.rain` (0–1, per climate and hour,
 in `src/core/weather.ts`), which also sets the visible rain's density.
 
+8. **An animal is a pitch contour with soft edges, repeated.** A bare
+   oscillator blip is a synth squeak. `wildlife.ts` writes each note sample by
+   sample (contour, overtones, edges of 6 ms or more), and an individual
+   repeats its own song from one spot. A steady pure tone or wideband phase
+   noise both fail: insects want a band a few hundred hertz wide.
+
 ## Rejected by ear
 
 - **Drips and bubbling runoff** (2026-11-07). Loud tree drips and a "plink"

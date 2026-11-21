@@ -589,15 +589,25 @@ export class AudioDirector {
     this.clock = seconds;
     this.playful = playful;
   }
-  /** A piece that belongs to this hour and has not yet played today, else the rotation's next. */
+  /** Exhaust dated regional music first, then mix eligible hour-of-day pieces randomly with shared themes. */
   private nextTheme(previous?: string) {
+    if (this.rotation.hasLocal()) return this.rotation.next(previous);
     const hours = this.clock / 3600,
       hour = hours % 24;
-    const due = timed.find((t) => (!t.playful || this.playful) && hour >= t.hours![0] && hour < t.hours![1] && hours - (this.timedAt.get(t.id) ?? -Infinity) > 12);
-    if (!due) return this.rotation.next(previous);
-    this.timedAt.set(due.id, hours);
-    this.state = { ...this.state, arrangement: { ...this.state.arrangement, period: "day" } };
-    return due.id;
+    const due = timed.filter(
+      (t) =>
+        (!t.playful || this.playful) &&
+        hour >= t.hours![0] &&
+        hour < t.hours![1] &&
+        hours - (this.timedAt.get(t.id) ?? -Infinity) > 12,
+    );
+    if (due.length && Math.random() < due.length / (due.length + shared.length)) {
+      const chosen = pick(due);
+      this.timedAt.set(chosen.id, hours);
+      this.state = { ...this.state, arrangement: { ...this.state.arrangement, period: "day" } };
+      return chosen.id;
+    }
+    return this.rotation.next(previous);
   }
   /** Crossing a threshold swaps the score at once, as an RPG does at an inn door. */
   setInterior(music: InteriorMusic | null | undefined) {
@@ -878,13 +888,16 @@ export class AudioDirector {
       ...mix,
       inside: 1,
       birds: 0,
+      owls: 0,
       insects: 0,
+      trill: 0,
+      cicadas: 0,
       frogs: 0,
       wind: 0,
       water: 0,
       town: mix.town * 0.5 * shut,
       rain: mix.rain * 0.4 * shut,
-      room: 0.4 + 0.6 * Math.round(s.echo * 10) / 10,
+      room: 0.5 + 1.1 * Math.round(s.echo * 10) / 10,
       hard: 1,
       music: mix.music * (1 - 0.4 * Math.round(s.surge * 5) / 5),
     };

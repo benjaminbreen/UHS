@@ -1089,30 +1089,42 @@ export function culturalMusic(
   };
 }
 
-/** Alternate dated pieces and shared themes; exhaust each group before repeating. */
+/** Play dated regional pieces first, then fall back to a random mix of shared themes. */
 export class MusicRotation {
-  private localRemaining: { id: string }[] = [];
+  private localRemaining: { id: string }[];
   private sharedRemaining: { id: string }[] = [];
-  private localNext = true;
   constructor(
-    private local: readonly { id: string }[],
+    local: readonly { id: string }[],
     private shared: readonly { id: string }[],
-  ) {}
+  ) {
+    this.localRemaining = [...local];
+  }
+  hasLocal(): boolean {
+    return this.localRemaining.length > 0;
+  }
   next(previous?: string): string {
-    const local = this.local.length > 0 && this.localNext;
-    this.localNext = !local;
-    const pool = local ? this.local : this.shared;
-    const bag = local ? this.localRemaining : this.sharedRemaining;
-    if (!bag.length) bag.push(...pool);
-    const choices = bag.filter((t) => t.id !== previous);
+    const localChoices = this.localRemaining.filter((t) => t.id !== previous);
+    if (localChoices.length) {
+      const chosen = localChoices[Math.floor(Math.random() * localChoices.length)];
+      this.localRemaining.splice(
+        this.localRemaining.findIndex((t) => t.id === chosen.id),
+        1,
+      );
+      return chosen.id;
+    }
+    if (!this.sharedRemaining.length) this.sharedRemaining.push(...this.shared);
+    const choices = this.sharedRemaining.filter((t) => t.id !== previous);
     if (!choices.length) {
-      if (local) return this.next(previous);
-      bag.splice(0, bag.length, ...pool.filter((t) => t.id !== previous));
-      choices.push(...bag);
+      this.sharedRemaining.splice(
+        0,
+        this.sharedRemaining.length,
+        ...this.shared.filter((t) => t.id !== previous),
+      );
+      choices.push(...this.sharedRemaining);
     }
     const chosen = choices[Math.floor(Math.random() * choices.length)];
-    bag.splice(
-      bag.findIndex((t) => t.id === chosen.id),
+    this.sharedRemaining.splice(
+      this.sharedRemaining.findIndex((t) => t.id === chosen.id),
       1,
     );
     return chosen.id;

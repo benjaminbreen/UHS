@@ -11,7 +11,7 @@ making or tuning a sound, load the `sound` skill.
 | `director.ts` | Lifecycle, scheduling, transitions, gains, and choosing what plays from the world. `gameAudio()?.sound(sound, key, pan)` is how the world plays an effect |
 | `score.ts` | `compose()` turns a theme id into notes, across all three music formats (below) |
 | `layered-themes.ts` | The `LayeredTheme` format and the registry, `layeredThemes`. It is bulk content; read a range, not the whole file |
-| `*-themes.ts` | Regional and time-of-day pieces (`european-`, `african-`, `andean-`, `ancient-`, `modern-`, `neolithic-`, `south-asian-`, `main-`, `noon-`, `afternoon-`, `overworld-`, `winter-train-theme.ts`) |
+| `*-themes.ts` | Regional and time-of-day pieces (`european-`, `african-`, `andean-`, `ancient-`, `modern-`, `neolithic-`, `south-asian-`, `dawn-`, `main-`, `noon-`, `afternoon-`, `overworld-`, `winter-train-theme.ts`) |
 | `cultural-themes.ts` | `culturalMusic` (what a place and year may play) and `MusicRotation` |
 | `situation-themes.ts` | Arrival, passing, timeslip, work, danger and combat cues; `threatMusic` decides danger or combat |
 | `interior-themes.ts` | `interiorMusic` selects music by building use |
@@ -27,9 +27,9 @@ making or tuning a sound, load the `sound` skill.
   compatible musical texture, not the lifespan of a polity. Living traditions
   stay eligible to the present. Contemporary sounds never enter ancient
   settings.
-- Automatic play starts with a dated regional piece when there is one, then
-  alternates regional music with the shared and time-of-day themes. Each group
-  plays through before repeating.
+- Automatic play prioritizes dated regional pieces first, playing through all
+  of them before falling back to a random mix of the shared and hour-of-day
+  themes.
 - Crossing a map edge does not interrupt the song.
 
 **Situations.**
@@ -58,13 +58,24 @@ working on music.
 ## Sound effects and ambience
 
 Effects pass through `Room`. Indoors, it adds an echo sized by the room and
-coloured by the finish (thatch swallows a step, plaster hands it back).
-Outdoors is dry.
+coloured by the finish (thatch swallows a step, plaster hands it back); hard
+rooms and caves also return a few distinct early slaps. Outdoors is dry.
 
-`ambienceFor` builds beds from the scene: rain, wind, birds, crickets, frogs,
-water or sea, town murmur (louder on market day) and hearth. Indoors muffles the outdoor beds. Rain
-follows `Weather.rain` (0–1), which comes and goes in showers by climate.
-Thunder and frog calls are separate sounds.
+A footfall (`footstep` in `sfx.ts`) is the weight of the foot plus what the
+surface adds: a click on paving, grit on bare rock, a slide on sand, a squelch
+in marsh or rain-soaked ground, a hollow knock on boards. Indoors the room's
+floor pattern picks the surface; underground it is rock.
+
+`ambienceFor` builds beds from the scene: rain, wind, water or sea, town
+murmur (louder on market day), hearth and insects. Indoors muffles the outdoor
+beds. Rain follows `Weather.rain` (0–1), which comes and goes in showers by
+climate. Thunder is a separate sound.
+
+Animal voices are in `wildlife.ts`, written sample by sample. Birds, owls and
+frogs are individuals: each keeps its place and repeats its own song, and the
+cast (`birdCast`) follows climate, woodland, town and coast. A dawn chorus is
+more birds singing more often. Insects are loops: chirping crickets on a warm
+night, a tree-cricket trill on a hot one, cicadas in the heat of the day.
 
 Institutional activity comes from the nearest awake person within earshot. A modern ward has linen, metal trays and occasional wheels. Earlier wards use cups and cloth. Classrooms and clerks’ rooms use the setting’s writing tools. A pottery stall has ceramic knocks and a draper’s stall has the rustle of cloth. Floor materials change the footfalls, and sounds soften across a doorway. An empty institution keeps its local outdoor ambience and room acoustics. The Audio studio’s **Weather & place** scenes include wards in Edo and London, a board school, a yamen office and a bazaar stall.
 

@@ -3,6 +3,7 @@ import type { InteriorProfile, RoomRole, WorshipSound } from "../content/interio
 import type { FloorPattern } from "../render/interiors/room";
 import { handle, pageTurn, writing, writingTool, type Writing } from "./handling";
 import { footstep, noise, playSound, railway, ring, tone, type Sound } from "./sfx";
+import { cicadas, crickets, nightTrill, sung, voiceGain, voiceRest, type Voice } from "./wildlife";
 
 type RoomCue = WorshipSound | "footsteps" | "cloth" | "cup" | "tray" | "wheels" | "writing" | "pages" | "wood" | "voices" | "inkstone";
 type RoomActivity = { cues: RoomCue[]; tool: Writing; ground: "fiber" | "stone" | "timber" | "soil"; level: number };
@@ -27,7 +28,15 @@ export interface AmbienceMix {
   frogs: number;
   wind: number;
   birds: number;
+  /** Which birds sing here: woodland, town, coast and climate each bring their own. */
+  cast: Voice[];
+  owls: number;
+  /** Chirping field crickets on a warm night. */
   insects: number;
+  /** The unbroken tree-cricket trill of a hot night. */
+  trill: number;
+  /** Cicadas in the heat of the day. */
+  cicadas: number;
   water: number;
   /** Sea swell rather than running water: changes the water bed's colour. */
   swell: number;
@@ -57,7 +66,11 @@ export const silence: AmbienceMix = {
   frogs: 0,
   wind: 0,
   birds: 0,
+  cast: [],
+  owls: 0,
   insects: 0,
+  trill: 0,
+  cicadas: 0,
   water: 0,
   swell: 0,
   town: 0,
@@ -162,6 +175,22 @@ export function surfaceFor(scene: Scene): Surface {
 const ramp = (x: number, from: number, to: number) =>
   Math.max(0, Math.min(1, (x - from) / (to - from)));
 
+const woods = (scene: Scene) => !!scene.ecology?.endsWith("woodland");
+function birdCast(scene: Scene): Voice[] {
+  const { climate, ecology, season } = scene;
+  const cast: Voice[] =
+    climate === "tropical" || climate === "monsoon" ? ["whistler", "dove", "warbler", "trill"]
+    : climate === "arid" || ecology === "desert" || ecology === "dry-scrub" ? ["dove", "sparrow", "warbler"]
+    : climate === "tundra" || climate === "boreal" ? ["tit", "trill", "crow"]
+    : woods(scene) ? ["thrush", "warbler", "tit", "trill", "dove"]
+    : ["warbler", "trill", "sparrow", "crow"];
+  // The two-note cuckoo is an Old World bird, and only calls in the breeding season.
+  if (climate === "temperate" && (season === "spring" || season === "summer") && (scene.lon ?? 0) > -30) cast.push("cuckoo");
+  if (scene.townSize && scene.townDistance < 20) cast.push("sparrow", "dove");
+  if (scene.water?.kind === "sea" && scene.water.distance < 16) cast.push("gull", "gull");
+  return cast;
+}
+
 function roomActivity({ indoors, room, year, culture, peopleNear }: Scene): RoomActivity | undefined {
   if (!indoors || !room?.institution || !peopleNear) return;
   const {role, floor, institution} = room;
@@ -216,6 +245,10 @@ export function ambienceFor(scene: Scene): AmbienceMix {
   // Crickets need a warm night. Cold places never get them.
   const warm = weather.tempC > 12;
   const insects = scene.night && warm && !rain && !cold ? 0.85 : 0;
+  const hot = climate === "tropical" || climate === "monsoon" || (season === "summer" && !cold);
+  const trill = scene.night && hot ? ramp(weather.tempC, 17, 24) * (1 - 0.7 * wet) : 0;
+  const cicadas = !scene.night && hour > 9 && hour < 18.5 && hot ? ramp(weather.tempC, 23, 30) * (1 - wet) * 0.8 : 0;
+  const owls = scene.night && (woods(scene) || cold) ? 0.6 * (1 - wet) * (1 - 0.6 * wind) : 0;
   // Frogs want warmth and wet: the tropics after dark, or a temperate summer
   // night once it has rained.
   const froggy =
@@ -241,7 +274,11 @@ export function ambienceFor(scene: Scene): AmbienceMix {
     frogs,
     wind: Math.min(1, wind * (1 - 0.4 * hush) + rain * 0.25),
     birds,
+    cast: birdCast(scene),
+    owls,
     insects,
+    trill,
+    cicadas,
     water,
     swell,
     town,
@@ -272,6 +309,8 @@ function noiseBuffer(ctx: BaseAudioContext, seconds: number) {
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
 type Bed = { node: GainNode; start?: () => void };
+/** One animal within earshot: it stays where it is and repeats its own song. */
+type Caller = { group: "birds" | "owls" | "frogs"; voice: Voice; songs: AudioBuffer[]; pan: number; gain: number; tone: number; next: number };
 
 /** Continuous environmental beds. Levels glide slowly, so weather, a doorway or
  * a passing crowd never arrives as a click. Built on a plain BaseAudioContext so
@@ -282,9 +321,13 @@ export class Ambience {
     | "wind"
     | "water"
     | "town"
-    | "fire",
+    | "fire"
+    | "crickets"
+    | "trill"
+    | "cicadas",
     Bed
   >;
+  private callers: Caller[] = [];
   private chirps: GainNode;
   private outside: BiquadFilterNode;
   private waterTone: BiquadFilterNode;
@@ -364,10 +407,25 @@ export class Ambience {
     lfo(0.13, 0.05, townGain.gain);
     this.beds.town = this.bed(this.outside, () => noiseBuffer(ctx, 7.9), murmur, townGain);
 
-    // Birds and crickets are scheduled one call at a time, not looped.
+    // Calls are scheduled one at a time. Open air still carries a little of
+    // each back from the trees, which is what puts a bird at a distance.
     this.chirps = ctx.createGain();
     this.chirps.gain.value = 1;
     this.chirps.connect(this.outside);
+    const air = ctx.createConvolver();
+    air.buffer = impulse(ctx, 1.4, 3);
+    this.chirps.connect(loud(0.3)).connect(air).connect(this.outside);
+    const insects = (make: typeof crickets, seconds: number, gain: number) =>
+      this.bed(this.chirps, () => {
+        const [l, r] = make(ctx.sampleRate, seconds),
+          buffer = ctx.createBuffer(2, l.length, ctx.sampleRate);
+        buffer.getChannelData(0).set(l);
+        buffer.getChannelData(1).set(r);
+        return buffer;
+      }, loud(gain));
+    this.beds.crickets = insects(crickets, 11.3, 0.07);
+    this.beds.trill = insects(nightTrill, 9.1, 0.045);
+    this.beds.cicadas = insects(cicadas, 13.7, 0.08);
 
     // Fire stays dry and close: it is in the room with you, so no muffling.
     const emberGain = loud(0.13);
@@ -425,6 +483,9 @@ export class Ambience {
     fade(this.beds.water, mix.water, 2);
     fade(this.beds.town, mix.town, 3);
     fade(this.beds.fire, mix.fire, 1.2);
+    fade(this.beds.crickets, mix.insects, 4);
+    fade(this.beds.trill, mix.trill, 4);
+    fade(this.beds.cicadas, mix.cicadas, 4);
     glide(this.workSounds.gain, (mix.activity?.level ?? 0) * 1.65, .22);
     glide(this.waterTone.frequency, mix.swell ? 700 : 3200, 2);
     // A roof cuts the top off the outside world and drops its level.
@@ -453,12 +514,12 @@ export class Ambience {
       this.oneShot(roomSound(cue, work), this.workSounds, at);
       this.nextActivity = at + rand(2.3, 5.5) / Math.max(.45, work.level);
     }
-    const { thunder, frogs, birds, insects, fire } = this.level;
+    const { thunder, frogs, birds, owls, fire, cast, surface } = this.level;
     if (thunder > 0.02 && Math.random() < 0.004 * thunder) this.thunder(at, thunder);
-    if (frogs > 0.02 && Math.random() < 0.08 * frogs) this.frog(at, frogs);
-    if (birds > 0.02 && Math.random() < 0.09 * birds) this.birdcall(at, birds);
-    // Crickets pulse in bursts rather than at even spacing.
-    if (insects > 0.02 && Math.random() < 0.3 * insects) this.cricket(at, insects);
+    // A dawn chorus is more birds singing more often, not louder birds.
+    this.chorus("birds", birds > 0.02 ? 1 + Math.round(birds * 4.4) : 0, cast, at, 1 / (0.5 + 1.2 * birds));
+    this.chorus("owls", owls > 0.02 ? 1 : 0, ["owl"], at, 1);
+    this.chorus("frogs", frogs > 0.02 ? Math.ceil(frogs * 3) : 0, surface === "leaves" ? ["treefrog", "treefrog", "croaker"] : ["croaker"], at, 1 / (0.3 + frogs));
     if (fire > 0.05 && Math.random() < 0.12 * fire) this.pop(at, fire);
     const { town, townKind } = this.level;
     if (town > 0.05 && Math.random() < 0.035 * town)
@@ -540,46 +601,44 @@ export class Ambience {
     src.connect(tone).connect(g).connect(this.outside);
     src.start(at);
   }
-  /** Tropical tree frogs whistle "ko-kee"; temperate frogs croak in a rattle. */
-  private frog(at: number, level: number) {
-    if (this.level.surface === "leaves" && Math.random() < 0.7) {
-      const f = rand(1100, 1500);
-      this.blip(this.chirps, at, f, f * 1.05, 0.012 * level, 0.09, "sine");
-      this.blip(this.chirps, at + 0.13, f * 1.45, f * 1.75, 0.012 * level, 0.13, "sine");
-      return;
+  /** Keeps `want` callers of a group singing from the local cast, each at
+   * its own spot. `pace` stretches the rests between songs. */
+  private chorus(group: Caller["group"], want: number, cast: Voice[], at: number, pace: number) {
+    const ctx = this.ctx;
+    let here = this.callers.filter((c) => c.group === group);
+    const stay = here.filter((c) => cast.includes(c.voice)).slice(0, want);
+    if (stay.length < here.length) this.callers = this.callers.filter((c) => c.group !== group || stay.includes(c));
+    here = stay;
+    if (here.length < want && cast.length) {
+      const voice = cast[Math.floor(Math.random() * cast.length)],
+        far = Math.random();
+      const songs = [0, 1].map(() => {
+        const data = sung(voice, ctx.sampleRate),
+          buffer = ctx.createBuffer(1, data.length, ctx.sampleRate);
+        buffer.getChannelData(0).set(data);
+        return buffer;
+      });
+      this.callers.push({ group, voice, songs, pan: rand(-0.9, 0.9), gain: 0.05 * voiceGain(voice) * (0.25 + 0.75 * (1 - far) ** 2), tone: 12000 - 7000 * far, next: at + rand(0.3, 5) });
     }
-    const f = rand(180, 420);
-    for (let i = 0, n = Math.round(rand(4, 9)); i < n; i++)
-      this.blip(this.chirps, at + i * 0.028, f, f * 0.9, 0.014 * level, 0.022, "sawtooth");
-  }
-  /** Two or three notes of a call, each a short whistle with a little bend. */
-  private birdcall(at: number, level: number) {
-    const base = rand(1900, 3600),
-      notes = Math.round(rand(2, 4));
-    for (let i = 0; i < notes; i++)
-      this.blip(
-        this.chirps,
-        at + i * rand(0.07, 0.14),
-        base * rand(0.9, 1.15),
-        base * rand(1.1, 1.5),
-        0.02 * level,
-        rand(0.04, 0.08),
-        "triangle",
-      );
-  }
-  /** A cricket's chirp is a fast buzz, so this is a short run of tight pulses. */
-  private cricket(at: number, level: number) {
-    const pitch = rand(3800, 5200);
-    for (let i = 0; i < 4; i++)
-      this.blip(
-        this.chirps,
-        at + i * 0.045,
-        pitch,
-        pitch,
-        0.008 * level,
-        0.02,
-        "square",
-      );
+    for (const c of here) {
+      if (at < c.next) continue;
+      const src = ctx.createBufferSource();
+      src.buffer = c.songs[Math.floor(Math.random() * c.songs.length)];
+      src.playbackRate.value = rand(0.98, 1.02);
+      const tone = ctx.createBiquadFilter();
+      tone.type = "lowpass";
+      tone.frequency.value = c.tone;
+      const g = ctx.createGain();
+      g.gain.value = c.gain * rand(0.7, 1);
+      const pan = ctx.createStereoPanner();
+      pan.pan.value = c.pan;
+      src.connect(tone).connect(g).connect(pan).connect(this.chirps);
+      src.start(at);
+      if (this.live) src.onended = () => pan.disconnect();
+      c.next = at + src.buffer.duration + voiceRest(c.voice) * pace;
+      // Now and then one flies off and another takes its place.
+      if (Math.random() < 0.08) this.callers = this.callers.filter((x) => x !== c);
+    }
   }
   private pop(at: number, level: number) {
     this.blip(
@@ -794,21 +853,24 @@ export class Room {
     const shape = `${mix.room.toFixed(1)}:${mix.hard.toFixed(1)}`;
     if (mix.room && shape !== this.shape) {
       this.shape = shape;
-      this.verb.buffer = impulse(this.ctx, 0.25 + mix.room * 1.3, 2 + 3 * (1 - mix.hard));
+      this.verb.buffer = impulse(this.ctx, 0.25 + mix.room * 1.3, 2 + 3 * (1 - mix.hard), mix.hard * mix.room);
       this.tone.frequency.value = 2200 + 5000 * mix.hard;
     }
     // A hut of hides swallows a footstep; a plastered hall hands it back.
-    const wet = mix.room ? 0.18 + 0.3 * mix.hard : 0;
+    const wet = mix.room ? 0.18 + (0.3 + 0.4 * mix.room) * mix.hard : 0;
     this.send.gain.setTargetAtTime(wet, now, 0.3);
   }
 }
-function impulse(ctx: BaseAudioContext, seconds: number, decay: number) {
+/** `slap` adds the distinct early returns off hard walls, ahead of the wash:
+ * what makes a step in a stone hall or a cave answer back. */
+function impulse(ctx: BaseAudioContext, seconds: number, decay: number, slap = 0) {
   const length = Math.floor(ctx.sampleRate * seconds);
   const buffer = ctx.createBuffer(2, length, ctx.sampleRate);
   for (let c = 0; c < 2; c++) {
     const data = buffer.getChannelData(c);
     for (let i = 0; i < length; i++)
       data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, decay);
+    for (let k = 0; k < 4; k++) data[Math.floor(length * rand(0.04, 0.3))] += slap * rand(4, 9) * (k % 2 ? -1 : 1);
   }
   return buffer;
 }

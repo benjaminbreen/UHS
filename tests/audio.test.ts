@@ -30,6 +30,7 @@ import { listeningScenes } from "../src/audio/ambience-scenes";
 import { weatherAt } from "../src/core/weather";
 import { doorApproach } from "../src/core/doors";
 import { createSession, Runtime } from "../src/runtime/session";
+import { happyYoungChildNear } from "../src/core/kin";
 import * as handling from "../src/audio/handling";
 
 describe("original soundtrack scores", () => {
@@ -298,18 +299,14 @@ describe("original soundtrack scores", () => {
     const heardLocal: string[] = [],
       heardShared: string[] = [];
     let previous: string | undefined;
-    for (let i = 0; i < 2 * Math.max(local.length, shared.length); i++) {
+    for (let i = 0; i < local.length + shared.length; i++) {
       const id = rotation.next(previous);
       expect(id).not.toBe(previous);
-      (i % 2 === 0 ? heardLocal : heardShared).push(id);
+      (i < local.length ? heardLocal : heardShared).push(id);
       previous = id;
     }
-    expect(new Set(heardLocal.slice(0, local.length))).toEqual(
-      new Set(local.map((t) => t.id)),
-    );
-    expect(new Set(heardShared.slice(0, shared.length))).toEqual(
-      new Set(shared.map((t) => t.id)),
-    );
+    expect(new Set(heardLocal)).toEqual(new Set(local.map((t) => t.id)));
+    expect(new Set(heardShared)).toEqual(new Set(shared.map((t) => t.id)));
     const fallback = new MusicRotation([], shared);
     const heard = Array.from({ length: shared.length }, () => fallback.next());
     expect(new Set(heard)).toEqual(new Set(shared.map((t) => t.id)));
@@ -556,21 +553,22 @@ describe("soundtrack setting updates", () => {
     }
   });
 
-  it.each([6, 12, 18])("starts with regional music at hour %s before shared clock themes", (hour) => {
+  it.each([4, 5, 6, 12, 18])("plays all regional music at hour %s before falling back to shared and clock themes", (hour) => {
     vi.stubGlobal("window", { addEventListener() {}, removeEventListener() {} });
     vi.stubGlobal("document", { addEventListener() {}, removeEventListener() {} });
     const director = new AudioDirector();
     try {
+      const direct = culturalMusic("east-asian", 1500).direct.map((t) => t.id);
       director.setClock(hour * 3600, true);
       director.setSetting("east-asian", 1500);
-      expect(culturalMusic("east-asian", 1500).direct.map((t) => t.id))
-        .toContain(director.getSnapshot().arrangement.themeId);
+      expect(direct).toContain(director.getSnapshot().arrangement.themeId);
+      for (let i = 1; i < direct.length; i++) {
+        director.follow(true);
+        expect(direct).toContain(director.getSnapshot().arrangement.themeId);
+      }
       director.follow(true);
-      if (hour === 6)
-        expect(director.getSnapshot().arrangement.themeId).toBe("every-life-there-is");
-      else
-        expect([...themes, ...anywhereThemes].map((t) => t.id))
-          .toContain(director.getSnapshot().arrangement.themeId);
+      expect([...themes, ...anywhereThemes].map((t) => t.id))
+        .toContain(director.getSnapshot().arrangement.themeId);
     } finally {
       director.dispose();
       vi.unstubAllGlobals();
@@ -660,4 +658,21 @@ it("plays door and gear cues only for new, successful commands", () => {
     runtime.dispose();
     vi.unstubAllGlobals();
   }
+});
+
+it("triggers playful home music only when happy young children are near or recently spoken with", () => {
+  const kid = { id: "k1", kind: "human", age: 6, pos: { space: "h1", x: 5, y: 4 }, hunger: 20, trust: 2, activity: "Playing" };
+  const base = {
+    clock: 36000,
+    player: { id: "p", pos: { space: "h1", x: 4, y: 4 }, relations: [{ other: "k1", kind: "child" }] },
+    actors: [kid],
+    kin: { since: 0, said: {}, talked: {} },
+  };
+  expect(happyYoungChildNear(base as never)).toBe(true);
+  expect(happyYoungChildNear({ ...base, actors: [{ ...kid, hunger: 70 }] } as never)).toBe(false);
+  expect(happyYoungChildNear({ ...base, actors: [{ ...kid, trust: -1 }] } as never)).toBe(false);
+  expect(happyYoungChildNear({ ...base, actors: [{ ...kid, activity: "Asleep" }] } as never)).toBe(false);
+  const far = { ...base, actors: [{ ...kid, pos: { space: "outside", x: 50, y: 50 } }] };
+  expect(happyYoungChildNear(far as never)).toBe(false);
+  expect(happyYoungChildNear({ ...far, kin: { since: 0, said: {}, talked: { k1: 35500 } } } as never)).toBe(true);
 });
