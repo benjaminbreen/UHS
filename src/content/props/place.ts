@@ -242,8 +242,25 @@ export function withProps(world: WorldModel, seed: string, state = propState()):
       return !!c?.lane || (c?.feature === "paving" && !c.pavement) ||
         ["footway", "lane", "verge", "square", "dais", "court", "platform", "rail"].includes(c?.pavement ?? "");
     });
+  const onCliff = (p: Position, prop?: string) => {
+    if (p.space !== "outside" || !world.topography) return false;
+    return (prop ? propVisualCells(prop, p) : [p]).some((q) => {
+      const h = world.topography!(q.x, q.y)?.height;
+      if (h === undefined) return false;
+      return [
+        [-1, -1], [0, -1], [1, -1],
+        [-1, 0], [1, 0],
+        [-1, 1], [0, 1], [1, 1],
+        [0, -2],
+      ].some(([dx, dy]) => {
+        const nh = world.topography!(q.x + dx, q.y + dy)?.height;
+        return nh !== undefined && nh !== h;
+      });
+    });
+  };
   const usable = (p: Position, ignore?: string, prop?: string) =>
     !world.blocked(p.x, p.y, p.space) &&
+    !onCliff(p, prop) &&
     !publicGround(p, prop) &&
     !reserved.has(at(p)) &&
     !(p.space === "outside" && world.protectedCell?.(p.x, p.y)) &&
@@ -394,6 +411,7 @@ export function withProps(world: WorldModel, seed: string, state = propState()):
     // does not apply; only the seat's own cell has to be free.
     const seatFree = (p: Position, prop: string) =>
       !world.blocked(p.x, p.y, p.space) &&
+      !onCliff(p, prop) &&
       !(p.space === "outside" && world.protectedCell?.(p.x, p.y)) &&
       !occupied(p, undefined, prop) &&
       !actorsAt.has(at(p)) &&

@@ -167,7 +167,16 @@ const mix = (a: readonly number[], b: readonly number[], t: number) =>
  * ground stands a lip proud of whatever it meets. */
 function lipAt(sample: TopographySample, x: number, y: number, px: number, py: number, finish: EarthFinish): number {
   if (finish === "beaten" || finish === "sand") return 9;
-  const open = (dx: number, dy: number) => sample(x + dx, y + dy)?.earth !== finish;
+  const open = (dx: number, dy: number) => {
+    const n = sample(x + dx, y + dy);
+    return (
+      n?.earth !== finish &&
+      !n?.pathArt?.length &&
+      n?.surface !== "soil" &&
+      n?.pavement !== "apron" &&
+      n?.pavement !== "stepping"
+    );
+  };
   return Math.min(
     open(-1, 0) ? px : 9,
     open(1, 0) ? 15 - px : 9,
@@ -470,7 +479,8 @@ function bareHabitatTile(
       if (top[i + 3]) tile.pixels.set(top.subarray(i, i + 4), i);
     return tile;
   }
-  if (street && cell.pavement === "apron" && cell.habitat) return apronTile(sample, x, y, ox, oy, art, cell);
+  if (street && (cell.pavement === "apron" || cell.pavement === "stepping") && cell.habitat)
+    return apronTile(sample, x, y, ox, oy, art, cell);
   if (!street && (!cell.habitat || !wornEdge(cell)))
     return rasterGroundTile(sample, x, y, ox, oy, art, cell);
   if (!street && enclosed(sample, x, y)) {
@@ -550,8 +560,9 @@ function bareHabitatTile(
     }
   return tile;
 }
-/** Humble setts over trodden earth. Stones go missing toward open ground:
- * whole ones, each hole a step down with the stone above shading it. */
+/** Humble setts over native turf or yard earth, plus hand-laid garden stepping
+ * stones (tobiishi / cottage flagstones). Stones go missing cleanly by whole
+ * unit toward open ground, casting a soft contact shadow onto the surface below. */
 function apronTile(
   sample: TopographySample,
   x: number,
@@ -561,11 +572,97 @@ function apronTile(
   art: GrassArt,
   cell: TopographyCell,
 ): GroundTileData {
-  const under = { ...cell, feature: undefined, streetMaterial: undefined, pavement: "yard" as const, surface: "soil" as const };
+  // Preserve native turf on grass yards; inherit yard earth/gravel when present.
+  let earth = cell.earth;
+  if (!earth) {
+    for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) {
+      const n = sample(x + dx, y + dy);
+      if (n && n.feature !== "paving" && n.earth) {
+        earth = n.earth;
+        break;
+      }
+    }
+  }
+  const under: TopographyCell = earth
+    ? {
+        ...cell,
+        feature: undefined,
+        streetMaterial: undefined,
+        pathArt: cell.pavement === "stepping" ? undefined : cell.pathArt,
+        pavement: "yard" as const,
+        surface: "soil" as const,
+        earth,
+      }
+    : {
+        ...cell,
+        feature: undefined,
+        streetMaterial: undefined,
+        pathArt: cell.pavement === "stepping" ? undefined : cell.pathArt,
+        pavement: undefined,
+        surface: "grass" as const,
+      };
   const tile = rasterGroundTile(sample, x, y, ox, oy, art, under);
   const material = cell.streetMaterial ?? "cobble";
   const gx = (x + ox) * 16,
     gy = (y + oy) * 16;
+  const pixels = tile.pixels;
+
+  if (cell.pavement === "stepping") {
+    const has = (dx: number, dy: number) => sample(x + dx, y + dy)?.feature === "paving";
+    const horiz = (has(-1, 0) || has(1, 0)) && !(has(0, -1) || has(0, 1));
+    const h0 = hash(x + ox, y + oy, 741),
+      h1 = hash(x + ox, y + oy, 743),
+      h2 = hash(x + ox, y + oy, 747);
+    // Two hand-placed, gently staggered rounded stone pavers per tile.
+    const stones = horiz
+      ? [
+          { cx: 3.6 + h0 * 1.4, cy: 6.2 + (h1 - 0.5) * 3.2, rx: 3.3 + h2 * 0.7, ry: 4.1 + h0 * 0.8, seed: 751 },
+          { cx: 11.4 + h1 * 1.2, cy: 9.4 + (h2 - 0.5) * 3.2, rx: 3.4 + h0 * 0.7, ry: 3.9 + h1 * 0.8, seed: 757 },
+        ]
+      : [
+          { cx: 6.4 + (h0 - 0.5) * 3.4, cy: 3.8 + h1 * 1.1, rx: 4.3 + h2 * 0.8, ry: 3.1 + h0 * 0.6, seed: 751 },
+          { cx: 9.2 + (h1 - 0.5) * 3.4, cy: 11.6 + h2 * 1.1, rx: 4.1 + h0 * 0.8, ry: 3.2 + h1 * 0.6, seed: 757 },
+        ];
+    const inStone = (px: number, py: number, s: (typeof stones)[number]) => {
+      const dx = (px - s.cx) / s.rx,
+        dy = (py - s.cy) / s.ry;
+      const d = dx * dx + dy * dy;
+      if (d > 1.25) return -1;
+      const wobble = (hash(Math.round(px + s.cx), Math.round(py + s.cy), s.seed) - 0.5) * 0.22;
+      return d + wobble <= 1 ? d : -1;
+    };
+    const mask = new Int8Array(256).fill(-1);
+    for (let py = 0; py < 16; py++)
+      for (let px = 0; px < 16; px++)
+        for (let si = 0; si < stones.length; si++)
+          if (inStone(px, py, stones[si]) >= 0) mask[py * 16 + px] = si;
+    for (let py = 0; py < 16; py++)
+      for (let px = 0; px < 16; px++) {
+        const idx = py * 16 + px;
+        const i = idx * 4;
+        const si = mask[idx];
+        if (si < 0) {
+          // Soft contact shadow directly south/east of a stepping stone.
+          const above = py > 0 && mask[(py - 1) * 16 + px] >= 0;
+          const left = px > 0 && mask[py * 16 + px - 1] >= 0;
+          if (above || left)
+            for (let k = 0; k < 3; k++) pixels[i + k] = Math.round(pixels[i + k] * (above ? 0.74 : 0.84));
+          continue;
+        }
+        const base = pavingStonePixel(gx + px, gy + py, material, "yard");
+        const topEdge = py === 0 || mask[(py - 1) * 16 + px] !== si;
+        const leftEdge = px === 0 || mask[py * 16 + px - 1] !== si;
+        const botEdge = py === 15 || mask[(py + 1) * 16 + px] !== si;
+        const rightEdge = px === 15 || mask[py * 16 + px + 1] !== si;
+        const delta = botEdge || rightEdge ? -22 : topEdge || leftEdge ? 14 : 0;
+        pixels[i] = Math.max(0, Math.min(255, base[0] + delta));
+        pixels[i + 1] = Math.max(0, Math.min(255, base[1] + delta));
+        pixels[i + 2] = Math.max(0, Math.min(255, base[2] + delta));
+        pixels[i + 3] = 255;
+      }
+    return tile;
+  }
+
   // Missing stones per neighbour side that is not paved, read at the corners
   // and blended so the loss grades across the cell instead of by cell.
   const bare = (dx: number, dy: number) => (sample(x + dx, y + dy)?.feature === "paving" ? 0 : 1);
@@ -573,20 +670,26 @@ function apronTile(
   const gone = (wx: number, wy: number) => {
     const u = (wx - gx) / 15,
       v = (wy - gy) / 15;
-    const loss = 0.12 + 0.55 * Math.max(w * (1 - u), e * u, n * (1 - v), s * v) ** 2;
+    const loss = 0.1 + 0.58 * Math.max(w * (1 - u), e * u, n * (1 - v), s * v) ** 2;
     return stoneUnit(wx, wy, material) < loss;
   };
-  const pixels = tile.pixels;
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
       const i = (py * 16 + px) * 4,
         wx = gx + px,
         wy = gy + py;
       if (gone(wx, wy)) {
-        if (!gone(wx, wy - 1)) for (let k = 0; k < 3; k++) pixels[i + k] = Math.round(pixels[i + k] * 0.8);
+        if (!gone(wx, wy - 1)) for (let k = 0; k < 3; k++) pixels[i + k] = Math.round(pixels[i + k] * 0.76);
         continue;
       }
-      pixels.set(pavingStonePixel(wx, wy, material, "yard"), i);
+      const st = pavingStonePixel(wx, wy, material, "yard");
+      const topBare = gone(wx, wy - 1);
+      const botBare = gone(wx, wy + 1);
+      const delta = botBare ? -12 : topBare ? 8 : 0;
+      pixels[i] = Math.max(0, Math.min(255, st[0] + delta));
+      pixels[i + 1] = Math.max(0, Math.min(255, st[1] + delta));
+      pixels[i + 2] = Math.max(0, Math.min(255, st[2] + delta));
+      pixels[i + 3] = 255;
     }
   return tile;
 }

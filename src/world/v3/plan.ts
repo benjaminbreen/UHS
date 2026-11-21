@@ -3191,7 +3191,7 @@ export function planSettlement(
   const layToft = (
     rect: Rect,
     door: Point,
-    street: Point,
+    doorPts: readonly Point[],
     work: Point,
     id: string,
     i: number,
@@ -3202,6 +3202,11 @@ export function planSettlement(
     const atWork = (x: number, y: number) =>
       Math.abs(x - work.x) <= 1 && Math.abs(y - work.y) <= 1;
     const southDoor = door.y === rect.y + rect.h;
+    const walkSet = new Set(doorPts.map((p) => cellKey(p.x, p.y)));
+    const walkPts =
+      doorPts.length <= 9
+        ? doorPts.slice(0, Math.max(1, doorPts.length - 1))
+        : doorPts.slice(0, 4);
     // The platform goes down with the house, as deep in front as the street
     // allows; the yard is fitted round it afterwards.
     // Where no public building takes the tall platform, the first house
@@ -3296,6 +3301,7 @@ export function planSettlement(
         !plan.solid.has(k) &&
         !roads.has(k) &&
         !propCells.has(k) &&
+        !onStep(at.x, at.y) &&
         rand("clutter", i) < 0.6
       ) {
         propCells.add(k);
@@ -3374,12 +3380,7 @@ export function planSettlement(
           x < rect.x + rect.w &&
           y >= rect.y &&
           y < rect.y + rect.h;
-        // The doorstep path is laid after the houses, straight to the street.
-        const onWalk = (x: number, y: number) =>
-          x >= Math.min(door.x, street.x) &&
-          x <= Math.max(door.x, street.x) &&
-          y >= Math.min(door.y, street.y) &&
-          y <= Math.max(door.y, street.y);
+        const onWalk = (x: number, y: number) => walkSet.has(cellKey(x, y));
         const open = (x: number, y: number) =>
           roads.has(cellKey(x, y)) ||
           onWalk(x, y) ||
@@ -3520,7 +3521,17 @@ export function planSettlement(
             false,
             ownFlank,
           );
-          if (gate && ["fence", "wattle", "paling", "picket", "bamboo"].includes(bnd)) {
+          const gateSprite =
+            bnd === "picket"
+              ? "gate-picket-open"
+              : bnd === "bamboo"
+                ? "gate-bamboo-open"
+                : bnd === "wattle"
+                  ? "gate-wattle-open"
+                  : bnd === "fence" || bnd === "paling"
+                    ? "gate-open"
+                    : undefined;
+          if (gate && gateSprite) {
             const k = cellKey(gate.x, gate.y);
             if (!plan.solid.has(k) && (!roads.has(k) || !!walkGate))
               plan.objects.push({
@@ -3528,7 +3539,7 @@ export function planSettlement(
                 name: "Garden gate",
                 kind: "gate",
                 pos: pos(gate),
-                sprite: "gate-open",
+                sprite: gateSprite,
                 inventory: {},
                 open: true,
               });
@@ -3541,7 +3552,13 @@ export function planSettlement(
           const layWalkCell = (x: number, y: number, mat: WalkSurface, rank: number) => {
             const k = cellKey(x, y);
             if (inHouse(x, y) || plan.solid.has(k) || onStep(x, y) || sample(x, y).water < 4) return;
-            if (isPavedWalk(mat)) {
+            if (mat === "stepping") {
+              if (setSurface(k, "paving", rank)) {
+                plan.pavement!.set(k, "stepping");
+                plan.streetSurfaces!.set(k, "slab");
+                if (yards.ground) (plan.earth ??= new Map()).set(k, yards.ground);
+              }
+            } else if (isPavedWalk(mat)) {
               if (setSurface(k, "paving", rank)) {
                 plan.pavement!.set(k, "apron");
                 plan.streetSurfaces!.set(k, mat);
@@ -3565,7 +3582,7 @@ export function planSettlement(
           // and foundation flower/herb/shrub borders hugging the wall under the windows.
           const frontDoorX = southDoor ? door.x : rect.x + (rect.w >> 1);
           const apronDepth = !apron ? (yards.apron ?? 0) : 0;
-          if (apronDepth) {
+          if (apronDepth && walkMat !== "stepping") {
             const apronMat: WalkSurface = walkMat ?? yards.ground ?? "beaten";
             const ax0 = yards.border ? Math.max(rect.x, frontDoorX - 1) : rect.x;
             const ax1 = yards.border ? Math.min(rect.x + rect.w - 1, frontDoorX + 1) : rect.x + rect.w - 1;
@@ -3576,16 +3593,11 @@ export function planSettlement(
                 layWalkCell(x, y, apronMat, 4);
               }
           }
-          // Front walkway from a south doorway through the yard to the street (never out a side/back wall).
-          if (walkMat && southDoor && street.y >= door.y && Math.abs(street.x - door.x) + (street.y - door.y) <= 8) {
-            let x = door.x, y = door.y;
-            for (let step = 0; step < 12; step++) {
-              if (!inHouse(x, y) && !fenced(x, y)) layWalkCell(x, y, walkMat, 5);
-              if (x === street.x && y === street.y) break;
-              if (y < street.y) y++;
-              else if (x !== street.x) x += Math.sign(street.x - x);
-              if (roads.has(cellKey(x, y)) && (x !== door.x || y !== door.y)) break;
-            }
+          // Follow the actual door path to the street; rank 5 beats the door spur (4) without overwriting a main street (7+).
+          if (walkMat && southDoor) {
+            for (const p of walkPts)
+              if (!inHouse(p.x, p.y) && !fenced(p.x, p.y))
+                layWalkCell(p.x, p.y, walkMat, 5);
           } else if (style === "wrap" && southDoor)
             eachCell(toft, (x, y) => {
               if (onWalk(x, y) && !inHouse(x, y))
@@ -3755,7 +3767,13 @@ export function planSettlement(
               mine = (x >= base.x && x < base.x + base.w && y >= base.y && y < base.y + base.h) || (atFront && !roads.has(k));
             if (x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h || plan.solid.has(k) ||
               plan.reserved.has(k) && !mine || onStep(x, y) || sample(x, y).water < 4) return;
-            if (atFront && walkMat && pavedWalk) {
+            if (atFront && walkMat === "stepping") {
+              if (x === frontDoorX && setSurface(k, "paving", 4)) {
+                plan.pavement!.set(k, "stepping");
+                plan.streetSurfaces!.set(k, "slab");
+                if (yards.ground) (plan.earth ??= new Map()).set(k, yards.ground);
+              }
+            } else if (atFront && walkMat && pavedWalk) {
               if (setSurface(k, "paving", 4)) {
                 plan.pavement!.set(k, "apron");
                 plan.streetSurfaces!.set(k, walkMat as StreetMaterial);
@@ -3763,18 +3781,28 @@ export function planSettlement(
             } else if (yards.ground || atFront) {
               if (!setSurface(k, "dirt", 3) && plan.surface.get(k) !== "dirt") return;
               plan.pavement!.set(k, "yard");
-              const earth = yards.ground ?? (walkMat && !pavedWalk ? (walkMat as EarthFinish) : undefined);
+              const earth = yards.ground ?? (walkMat && !pavedWalk && walkMat !== "stepping" ? (walkMat as EarthFinish) : undefined);
               if (earth) (plan.earth ??= new Map()).set(k, earth);
             } else return;
             if (y >= rect.y + rect.h && !atWork(x, y) && Math.abs(x - door.x) > 1)
               front.push({ x, y });
           });
-          if (walkMat && southDoor && street.y >= door.y && Math.abs(street.x - door.x) + (street.y - door.y) <= 8) {
-            let x = door.x, y = door.y;
-            for (let step = 0; step < 12; step++) {
-              const k = cellKey(x, y);
-              if (!(x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h) && !plan.solid.has(k) && !onStep(x, y) && sample(x, y).water >= 4) {
-                if (pavedWalk) {
+          if (walkMat && southDoor) {
+            for (const p of walkPts) {
+              const k = cellKey(p.x, p.y);
+              if (
+                !(p.x >= rect.x && p.x < rect.x + rect.w && p.y >= rect.y && p.y < rect.y + rect.h) &&
+                !plan.solid.has(k) &&
+                !onStep(p.x, p.y) &&
+                sample(p.x, p.y).water >= 4
+              ) {
+                if (walkMat === "stepping") {
+                  if (setSurface(k, "paving", 5)) {
+                    plan.pavement!.set(k, "stepping");
+                    plan.streetSurfaces!.set(k, "slab");
+                    if (yards.ground) (plan.earth ??= new Map()).set(k, yards.ground);
+                  }
+                } else if (pavedWalk) {
                   if (setSurface(k, "paving", 5)) {
                     plan.pavement!.set(k, "apron");
                     plan.streetSurfaces!.set(k, walkMat as StreetMaterial);
@@ -3784,10 +3812,6 @@ export function planSettlement(
                   (plan.earth ??= new Map()).set(k, walkMat as EarthFinish);
                 }
               }
-              if (x === street.x && y === street.y) break;
-              if (y < street.y) y++;
-              else if (x !== street.x) x += Math.sign(street.x - x);
-              if (roads.has(cellKey(x, y)) && (x !== door.x || y !== door.y)) break;
             }
           }
           if (yards.border) {
@@ -4802,7 +4826,7 @@ export function planSettlement(
       propCells.add(cellKey(p.x, p.y)),
     );
     if (toft)
-      layToft(rect, door, point, workPoint, id, i, role, yard, owner);
+      layToft(rect, door, doorPath.points, workPoint, id, i, role, yard, owner);
     if (lot.garden) layGarden(lot.garden, rect, id, i, owner);
     // Nobody keeps a churn on the front walk of a house with a lawn.
     const side = motorAge && urban && lot.use === "suburb" && ny
@@ -6372,6 +6396,70 @@ export function planSettlement(
         sprite: fabric.motor ? (motorAge ? "study-propb-street-fountain-0" : "study-propb-pump-0") : nativeOrnament("well") || "well",
         inventory: {},
       });
+    }
+  }
+  // Ground wells, shared ovens, hearths and privies onto era/culture-matched aprons.
+  {
+    const stoneTradition =
+      urban ||
+      (!yards.ground &&
+        !!yards.walk?.some((m) => m === "stepping" || ["cobble", "slab", "brick", "sett", "basalt", "concrete"].includes(m))) ||
+      yards.ground === "lime" ||
+      yards.ground === "gravel" ||
+      (!!stone && stone !== "earth");
+    const infraStone: StreetMaterial =
+      stone === "cobble" || stone === "brick" || stone === "sett" || stone === "slab" || stone === "basalt"
+        ? stone
+        : yards.walk?.find((m): m is StreetMaterial => ["cobble", "slab", "brick", "sett"].includes(m)) ?? "cobble";
+    const infraEarth: EarthFinish = yards.ground ?? "beaten";
+    const paintPad = (x: number, y: number, allowBase: boolean, mode: "stone" | "earth" | "step") => {
+      const k = cellKey(x, y);
+      if ((!allowBase && plan.solid.has(k)) || onStep(x, y) || sample(x, y).water < 4 || cultivatedAt(plan, x, y)) return;
+      if (mode === "step") {
+        if (setSurface(k, "paving", 3)) {
+          plan.pavement!.set(k, "stepping");
+          plan.streetSurfaces!.set(k, "slab");
+          if (yards.ground) (plan.earth ??= new Map()).set(k, yards.ground);
+        }
+      } else if (mode === "stone") {
+        if (setSurface(k, "paving", 3)) {
+          plan.pavement!.set(k, "apron");
+          plan.streetSurfaces!.set(k, infraStone);
+        }
+      } else if (setSurface(k, "dirt", 3)) {
+        plan.pavement!.set(k, "yard");
+        (plan.earth ??= new Map()).set(k, infraEarth);
+      }
+    };
+    for (const o of plan.objects) {
+      if (o.pos.space !== "outside") continue;
+      const { x, y } = o.pos;
+      const def = o.prop ? propDefs[o.prop] : undefined;
+      const isWell = o.kind === "well";
+      const isOven = def?.family === "oven" || o.sprite.includes("oven");
+      const isFire = o.kind === "fire";
+      const isPrivy = def?.where === "privy" || /privy/i.test(o.prop ?? "");
+      if (isWell) {
+        const mode = stoneTradition && !o.sprite.includes("shadoof") ? "stone" : "earth";
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++) {
+            if (mode === "earth" && Math.abs(dx) + Math.abs(dy) > 1 && dy !== 1) continue;
+            paintPad(x + dx, y + dy, dx === 0 && dy === 0, mode);
+          }
+      } else if (isOven) {
+        const mode = stoneTradition ? "stone" : "earth";
+        for (let dy = 0; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++)
+            paintPad(x + dx, y + dy, dx === 0 && dy === 0, mode);
+      } else if (isFire) {
+        const mode = urban && stoneTradition ? "stone" : "earth";
+        for (let dy = -1; dy <= 1; dy++)
+          for (let dx = -1; dx <= 1; dx++)
+            if (Math.abs(dx) + Math.abs(dy) <= 1)
+              paintPad(x + dx, y + dy, dx === 0 && dy === 0, mode);
+      } else if (isPrivy) {
+        paintPad(x, y + 1, false, stoneTradition ? "step" : "earth");
+      }
     }
   }
   // Hens scratching about the yard, or a pig or two rooting by the door, for

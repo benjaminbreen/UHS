@@ -786,14 +786,32 @@ export function createSettlementWorld(
         let index = pathArtCache.get(p);
         if (!index) {
           const revised = !!pack.setting?.streetRevision;
+          const streetCells = new Set<string>();
+          for (const r of p.roads) {
+            if (r.width < 1) continue;
+            for (const pt of r.points)
+              for (let dy = -r.width; dy <= r.width; dy++)
+                for (let dx = -r.width; dx <= r.width; dx++)
+                  streetCells.add(cellKey(pt.x + dx, pt.y + dy));
+          }
+          // A stepping-stone front walk replaces the bare dirt stroke on its door spur.
+          const steppingWalk = (r: (typeof p.roads)[number]) =>
+            r.kind === "path" &&
+            r.points.length >= 2 &&
+            r.points.some((pt) => p.pavement?.get(cellKey(pt.x, pt.y)) === "stepping") &&
+            r.points.slice(0, -1).every((pt) => {
+              const k = cellKey(pt.x, pt.y);
+              return p.pavement?.get(k) === "stepping" || streetCells.has(k) || !!p.plinths?.has(k);
+            });
+          const drawnRoads = p.roads.filter((r) => !steppingWalk(r));
           index = pathArt(
             p.site.profile.paved && !revised && !blacktop
               ? []
               : blacktop
                 ? // Composed streets are drawn as paving; indexing them as
                   // strokes too cost seconds at startup and drew nothing.
-                  p.roads.filter((r) => !/-(street|avenue|row)-/.test(r.id))
-                : p.roads,
+                  drawnRoads.filter((r) => !/-(street|avenue|row)-/.test(r.id))
+                : drawnRoads,
             !!pack.setting?.roadRevision,
             revised && !wheeledTraffic(pack.setting!) ? false : undefined,
             // Motor traffic had cleared horses off most streets by about 1920.

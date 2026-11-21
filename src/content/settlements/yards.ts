@@ -5,7 +5,7 @@ import type { EarthFinish } from "./urban-form/types";
 import type { StreetMaterial } from "./streets";
 
 export type GardenBorder = "flowers" | "herbs" | "shrubs";
-export type WalkSurface = StreetMaterial | EarthFinish;
+export type WalkSurface = StreetMaterial | EarthFinish | "stepping";
 
 /** What a house platform is faced with. plaster: lime stucco over rubble.
  * dressed: squared kerb stones round rammed earth. drystone: stacked field
@@ -261,7 +261,7 @@ const washing: YardProp = {
 const cottage: YardKit = {
   id: "cottage",
   boundary: "era",
-  walk: ["cobble", "brick", "sett"],
+  walk: ["stepping", "cobble", "brick"],
   apron: 1,
   border: "flowers",
   front: [2, 3],
@@ -354,7 +354,7 @@ const kampong: YardKit = {
   id: "kampong",
   boundary: "era",
   ground: "swept",
-  walk: ["swept", "plank"],
+  walk: ["stepping", "plank", "swept"],
   apron: 1,
   border: "shrubs",
   front: [1, 3],
@@ -409,7 +409,7 @@ const eastAsian: YardKit = {
   ...plain,
   id: "east-asian",
   ground: "beaten",
-  walk: ["slab", "brick"],
+  walk: ["stepping", "slab", "brick"],
   apron: 1,
   border: "shrubs",
   plinth: { face: "dressed", apron: 1 },
@@ -431,7 +431,7 @@ const japanese: YardKit = {
   ...eastAsian,
   id: "japanese",
   ground: "gravel",
-  walk: ["slab", "gravel"],
+  walk: ["stepping", "slab"],
   border: "shrubs",
   plinth: undefined,
 };

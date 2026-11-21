@@ -4,6 +4,11 @@ import { cellHash as hash } from "../core/noise";
 
 export const paved = (n?: TopographyCell) =>
   n?.feature === "paving" || !!n?.bridge;
+/** Yard aprons and stepping stones blend directly into turf inside `apronTile`;
+ * they never claim the hard street-verge mask or scatter rubble into neighbours. */
+const softPaving = (n?: TopographyCell) =>
+  n?.pavement === "apron" || n?.pavement === "stepping";
+const streetPaved = (n?: TopographyCell) => paved(n) && !softPaving(n);
 /** A cell that reads as ground beside paving, so the edge wears rather than
  * stops. Water and a field with a standing boundary keep their own outlines. */
 export const wornEdge = (n?: TopographyCell) =>
@@ -65,8 +70,8 @@ export function enclosed(sample: TopographySample, x: number, y: number) {
   return (
     !sample(x, y)?.pavement &&
     wornEdge(sample(x, y)) &&
-    ((paved(sample(x - 1, y)) && paved(sample(x + 1, y))) ||
-      (paved(sample(x, y - 1)) && paved(sample(x, y + 1))))
+    ((streetPaved(sample(x - 1, y)) && streetPaved(sample(x + 1, y))) ||
+      (streetPaved(sample(x, y - 1)) && streetPaved(sample(x, y + 1))))
   );
 }
 
@@ -108,11 +113,11 @@ export function pavingMask(
   for (let j = -1; j <= 1; j++)
     for (let i = -1; i <= 1; i++) {
       const n = sample(x + i, y + j);
-      // Kerbed footways and platforms keep cut edges.
-      const s = !wornEdge(n) || enclosed(sample, x + i, y + j);
+      // Kerbed footways and platforms keep cut edges; soft aprons stay out of the street mask.
+      const s = (!wornEdge(n) && !softPaving(n)) || enclosed(sample, x + i, y + j);
       solid.push(s);
       if (!s) open = true;
-      if (paved(n) && n?.pavement !== "dais" && !kerbed(sample, x + i, y + j))
+      if (streetPaved(n) && n?.pavement !== "dais" && !kerbed(sample, x + i, y + j))
         any = true;
     }
   if (!open || !any) return undefined;

@@ -42,25 +42,101 @@ d.line((0,3,15,3),fill='#665640');d.line((0,12,15,12),fill='#665640');add('bridg
 from art.shrubs import ramp as tone_ramp
 from art.fungi import _log
 from art.succulents import _put
+def _draw_gate(im, style, opened):
+ # Exact 5-step ramps from src/content/settlements/boundaries.ts: outline, shadow, body, light, highlight.
+ ramps={
+  'timber':('#2a1d14','#57412c','#7a5d3f','#9c7c56','#b7976c'),
+  'picket':('#3a3a3c','#9a9a92','#c9c8bd','#e6e4d8','#f7f6ee'),
+  'bamboo':('#2f2a14','#6d6530','#978c45','#bdb15e','#d8cd80'),
+  'wattle':('#2e2215','#5a4428','#7e6238','#a2854f','#bca068'),
+ }
+ r=ramps[style]
+ iron='#363b44'; cord='#3d2f1e'
+ top=8 if style=='wattle' else (7 if style=='picket' else 6)
+ # Two flanking gate posts with lit left face, shaded right face, and dark rim.
+ for px in (1,12):
+  for y in range(top+1,22):
+   _put(im,px,y,r[0]); _put(im,px+1,y,r[3]); _put(im,px+2,y,r[2]); _put(im,px+3,y,r[0])
+  _put(im,px+1,top,r[4]); _put(im,px+2,top,r[3])
+  _put(im,px,top,r[0]); _put(im,px+3,top,r[0])
+  _put(im,px+1,top-1,r[0]); _put(im,px+2,top-1,r[0])
+  if style=='picket':
+   _put(im,px+1,top-1,r[4]); _put(im,px+2,top-1,r[3]); _put(im,px+1,top-2,r[0]); _put(im,px+2,top-2,r[0])
+  elif style=='bamboo':
+   for ny in (11,17):
+    _put(im,px+1,ny,r[1]); _put(im,px+2,ny,r[1])
+    _put(im,px+1,ny-1,r[4])
+ # Gate leaf: closed spans x=4..11; open swings inward-up from left post (x=4..8).
+ if not opened:
+  if style=='picket':
+   for ry in (11,18):
+    for x in range(4,12): _put(im,x,ry,r[3]); _put(im,x,ry+1,r[1])
+   for sx in (5,8,10):
+    _put(im,sx,9,r[0]); _put(im,sx,10,r[4])
+    for y in range(10,20): _put(im,sx,y,r[4] if y<14 else r[3]); _put(im,sx+1,y,r[2] if sx<10 else r[1])
+    _put(im,sx,20,r[0]); _put(im,sx+1,20,r[0])
+   _put(im,11,14,iron); _put(im,4,12,iron); _put(im,4,18,iron)
+  elif style=='bamboo':
+   for ry in (10,18):
+    for x in range(4,12): _put(im,x,ry,r[4]); _put(im,x,ry+1,r[1])
+   for sx in (5,7,9,11):
+    for y in range(9,20): _put(im,sx,y,r[3] if (sx+y)%3 else r[4]); _put(im,sx,14,r[1])
+   for cx in (5,10):
+    for ry in (10,18): _put(im,cx,ry,cord); _put(im,cx+1,ry+1,cord)
+  elif style=='wattle':
+   for y in range(11,20):
+    for x in range(4,12):
+     weave=(x+y)%4
+     _put(im,x,y,r[3] if weave==0 else r[2] if weave<3 else r[1])
+   for x in range(4,12): _put(im,x,10,r[0]); _put(im,x,20,r[0])
+   for sx in (6,9):
+    for y in range(10,20): _put(im,sx,y,r[1])
+  else:
+   for ry in (9,14,19):
+    for x in range(4,12): _put(im,x,ry,r[4]); _put(im,x,ry+1,r[1])
+   for k in range(8): _put(im,4+k,19-k*10//8,r[3]); _put(im,4+k,18-k*10//8,r[2])
+   _put(im,4,10,iron); _put(im,4,19,iron); _put(im,11,14,iron)
+ else:
+  # Open leaf swung inward-up from left hinge post (x=4..8, lifting 1px per column).
+  for dx in range(5):
+   x=4+dx; lift=dx
+   if style=='picket':
+    for ry in (11,18): _put(im,x,ry-lift,r[3]); _put(im,x,ry+1-lift,r[1])
+    if dx in (1,3):
+     _put(im,x,9-lift,r[0])
+     for y in range(10,20): _put(im,x,y-lift,r[4] if y<15 else r[3])
+     _put(im,x,20-lift,r[0])
+   elif style=='bamboo':
+    for ry in (10,18): _put(im,x,ry-lift,r[4]); _put(im,x,ry+1-lift,r[1])
+    if dx in (1,3):
+     for y in range(9,20): _put(im,x,y-lift,r[3] if y!=14 else r[1])
+     _put(im,x,10-lift,cord); _put(im,x,18-lift,cord)
+   elif style=='wattle':
+    _put(im,x,10-lift,r[0]); _put(im,x,20-lift,r[0])
+    for y in range(11,20): _put(im,x,y-lift,r[3] if (x+y)%3==0 else r[2] if (x+y)%3==1 else r[1])
+   else:
+    for ry in (9,14,19): _put(im,x,ry-lift,r[4]); _put(im,x,ry+1-lift,r[1])
+    if dx in (1,3):
+     for y in range(10,19): _put(im,x,y-lift,r[2])
+  # Free stile at outer end of open leaf
+  for y in range((10 if style=='wattle' else 9)-4, 20-4):
+   _put(im,8,y,r[1] if style!='picket' else r[3])
+  _put(im,8,(10 if style=='wattle' else 9)-5,r[0])
+  _put(im,4,10,iron if style!='bamboo' else cord)
+  _put(im,4,18,iron if style!='bamboo' else cord)
+ return im
 # The first recipes below drew these as flat boxes, and nothing later in the
 # build (art_world.paint_world) replaces them.
 def redrawn(name,im):
  if name=='log':_log(im,tone_ramp('#7a5a3c'),2,12,17,3.5,random.Random(name))
  else:
-  w=tone_ramp('#9a7a50')
-  for x in (2,13):
-   for y in range(5,22):_put(im,x,y,w[4]);_put(im,x+1,y,w[2])
-   _put(im,x,5,w[6]);_put(im,x+1,22,w[0])
-  if name=='gate':
-   for y in (8,13,18):
-    for x in range(4,13):_put(im,x,y,w[5]);_put(im,x,y+1,w[2])
-   for k in range(9):_put(im,4+k,18-k*10//9,w[3])
-  else:
-   for y in (8,13,18):
-    for x in range(4,7):_put(im,x,y-(x-4),w[5]);_put(im,x,y+1-(x-4),w[2])
-   for y in range(5,20):_put(im,7,y,w[3])
+  opened=name.endswith('-open')
+  base=name[:-5] if opened else name
+  style=base.split('-',1)[1] if '-' in base else 'timber'
+  _draw_gate(im,style,opened)
  return im
-for name in ['bush','reeds','rock','flowers','wheat','flax','log','basket','amphora','jug','well','fire','bench','gate','gate-open','fence','ladder','door','door-open','mat','bed','oven','crate','fish','tool','bread','grain','coin','obsidian','wool']:
+GATE_NAMES=['gate','gate-open','gate-picket','gate-picket-open','gate-bamboo','gate-bamboo-open','gate-wattle','gate-wattle-open']
+for name in ['bush','reeds','rock','flowers','wheat','flax','log','basket','amphora','jug','well','fire','bench','fence','ladder','door','door-open','mat','bed','oven','crate','fish','tool','bread','grain','coin','obsidian','wool',*GATE_NAMES]:
  w,h=(32,32) if name in ['well','oven'] else (16,24)
  im,d=new(w,h);d.ellipse((2,h-7,w-2,h-2),fill=(39,44,32,65))
  if name in ['amphora','jug']:
@@ -111,7 +187,7 @@ for name in ['bush','reeds','rock','flowers','wheat','flax','log','basket','amph
   d.polygon([(2,18),(6,8),(11,5),(13,17),(9,21)],fill='#3e4649');d.polygon([(6,10),(11,6),(8,17),(3,18)],fill='#71817b');d.line((11,7,10,15),fill='#9daa96')
  elif name=='wool':
   for x,y in [(5,14),(10,13),(9,18),(4,18)]:d.ellipse((x-3,y-3,x+3,y+3),fill='#dbd4b2');d.arc((4,12,11,19),30,300,fill='#aaa888')
- if name in ('log','gate','gate-open'):
+ if name in ('log',*GATE_NAMES):
   im,d=new(w,h);d.ellipse((2,h-7,w-2,h-2),fill=(39,44,32,65));redrawn(name,im)
  add(name,im)
 for name in ['sheep','goat','lizard','chicken']:

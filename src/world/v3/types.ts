@@ -18,6 +18,8 @@ export type Pavement =
   | "court"
   /** Humbler stone laid where a town's dressed paving gives out. */
   | "apron"
+  /** Hand-laid garden stepping stones / tobiishi set directly into turf or gravel. */
+  | "stepping"
   | "yard"
   | "garden"
   | "park"
