@@ -581,6 +581,34 @@ export function drawNs(
   }
 }
 
+function wallPier(s: BoundaryStyle, x: number, y: number, put: Put) {
+  const { r, cap } = palette(s);
+  const H = s.height + 2;
+  const yf = front(s, y);
+  const v = weather(s, x, y);
+  for (let row = 0; row < H; row++) {
+    const topCap = row >= H - 3;
+    const hw = row === H - 2 || row === H - 3 ? 3 : 2;
+    for (let dx = -hw; dx <= hw; dx++) {
+      const edge = dx === -hw || dx === hw;
+      let col: Rgb;
+      if (topCap) {
+        if (row === H - 1) col = edge ? cap[1] : cap[4];
+        else if (row === H - 2) col = edge ? cap[0] : dx < 0 ? cap[3] : cap[2];
+        else col = edge ? cap[0] : cap[1];
+      } else if (edge) {
+        col = r[0];
+      } else if (row === 0) {
+        col = r[1];
+      } else {
+        const brickJoint = s.bond === "brick" && (row % 3 === 0 || (dx + (row % 6 < 3 ? 1 : 0)) % 3 === 0);
+        col = brickJoint ? r[1] : dx < 0 ? r[3] : dx > 1 ? r[1] : r[2];
+      }
+      put(x + dx, yf - row, tone(col, v));
+    }
+  }
+}
+
 /** Whether a node of this form gets a post, and of what kind. */
 export function postAt(
   s: BoundaryStyle,
@@ -588,17 +616,19 @@ export function postAt(
   along: number,
 ): boolean {
   if (s.form === "rail") return role !== "mid" || mod(along, s.pitch ?? 1) === 0;
+  if (s.form === "wall") return role === "end";
   return !!s.corners && role !== "mid";
 }
 
 export function drawPost(s: BoundaryStyle, x: number, y: number, role: PostRole, put: Put) {
   if (s.form === "rail") railPost(s, x, y, role, put);
+  else if (s.form === "wall") wallPier(s, x, y, put);
   else stoutPost(s, x, y, put);
 }
 
 /** Half the width of a post, so a run's last post stands inside its cell. */
 export const postHalf = (s: BoundaryStyle) =>
-  s.form === "rail" ? (s.post ?? 4) >> 1 : 1;
+  s.form === "rail" ? (s.post ?? 4) >> 1 : s.form === "wall" ? 3 : 1;
 
 /** Solid bodies spread into the corner they turn; rails and stakes meet at
  * the post. */
@@ -650,9 +680,10 @@ export function castNs(s: BoundaryStyle, x: number, ya: number, yb: number, emit
 }
 
 export function castPost(s: BoundaryStyle, x: number, y: number, role: PostRole, emit: Emit) {
-  const w = s.form === "rail" ? s.post ?? 4 : 3;
-  const H = s.height + (role === "mid" ? 0 : 1);
-  for (let c = 0; c < w; c++) emit(x - (w >> 1) + c, y, 0, H);
+  const w = s.form === "rail" ? s.post ?? 4 : s.form === "wall" ? 7 : 3;
+  const H = s.height + (s.form === "wall" ? 2 : role === "mid" ? 0 : 1);
+  const gy = s.form === "wall" ? front(s, y) : y;
+  for (let c = 0; c < w; c++) emit(x - (w >> 1) + c, gy, 0, H);
 }
 
 /** Contact shadow at the foot, darkest right against the body. */
@@ -665,10 +696,11 @@ export function footShadow(
   dark: (wx: number, wy: number, v: number) => void,
 ) {
   if (kind === "post") {
-    const w = s.form === "rail" ? s.post ?? 4 : 3;
-    for (let k = 0; k < w; k++) dark(a - (w >> 1) + k, b + 1, 26);
-    dark(a - 1, b + 2, 10);
-    dark(a, b + 2, 10);
+    const w = s.form === "rail" ? s.post ?? 4 : s.form === "wall" ? 7 : 3;
+    const gy = s.form === "wall" ? front(s, b) : b;
+    for (let k = 0; k < w; k++) dark(a - (w >> 1) + k, gy + 1, 26);
+    dark(a - 1, gy + 2, 10);
+    dark(a, gy + 2, 10);
     return;
   }
   if (s.form === "rail") return;

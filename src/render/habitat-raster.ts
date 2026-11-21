@@ -52,6 +52,7 @@ import {
   tidalFlat,
 } from "./material-edges";
 import { waterDistance } from "../core/water-field";
+import { waterPalette } from "./water-style";
 import {
   paletteKey,
   type Ecology,
@@ -271,10 +272,14 @@ const beachSand: Record<Rock, number[]> = {
   laterite: [220, 164, 124],
   shale: [180, 168, 144],
 };
-export function beachTint(c: TopographyCell): number[] | undefined {
-  if ((c.surface !== "sand" && c.surface !== "gravel") || c.waterVisual?.kind !== "sea" || !c.rock || c.habitat?.ecology === "desert") return undefined;
+export function beachTint(
+  c: TopographyCell,
+  base: readonly number[] = [214, 198, 152],
+): number[] | undefined {
+  const sandy = c.surface === "sand" || c.surface === "gravel" || c.habitat?.site?.primary === "shore";
+  if (!sandy || c.waterVisual?.kind !== "sea" || !c.rock || c.habitat?.ecology === "desert") return undefined;
   const to = c.habitat?.ecology === "tropical-woodland" && c.rock !== "basalt" ? [242, 236, 216] : beachSand[c.rock];
-  return [to[0] / 214, to[1] / 198, to[2] / 152];
+  return [to[0] / base[0], to[1] / base[1], to[2] / base[2]];
 }
 
 /** Creek bed stones by region: slate in cool green country, ochre gravel in
@@ -437,6 +442,7 @@ export function rasterHabitatTile(
     const ramps = cell.habitat ? habitatRamps(cell.habitat, art) : { soilPalette: soils.grassland, palette: art.palettes.grassland };
     plinthOver(tile.pixels, sample, x, y, ox, oy, ramps.soilPalette, ramps.palette);
   }
+  if (cell.gardenBorder) borderOver(tile.pixels, sample, x, y, ox, oy, cell);
   if (cell.parterre) parterrePixels(tile.pixels, cell.parterre.plan, cell.parterre.u, cell.parterre.v);
   if (cell.rail) railOver(tile.pixels, cell.rail, x, y, ox, oy, cell.crossing, cell.platform, false, cell.wharf);
   if (snowCover() || frostCover()) snowOver(tile.pixels, sample, x, y, ox, oy, cell);
@@ -584,6 +590,117 @@ function apronTile(
     }
   return tile;
 }
+const BORDER_SOIL: readonly (readonly [number, number, number])[] = [
+  [82, 58, 42], [104, 76, 54], [122, 92, 66],
+];
+const BORDER_BLOOMS: readonly (readonly [readonly [number, number, number], readonly [number, number, number]])[] = [
+  [[252, 244, 214], [224, 206, 162]], // warm cream
+  [[248, 152, 168], [206, 92, 114]],  // cottage rose
+  [[250, 208, 86], [214, 148, 42]],   // marigold gold
+  [[166, 194, 246], [112, 140, 204]], // delphinium blue
+];
+const BORDER_AUTUMN: readonly (readonly [readonly [number, number, number], readonly [number, number, number]])[] = [
+  [[238, 184, 78], [186, 126, 44]],
+  [[218, 124, 76], [166, 78, 46]],
+  [[242, 222, 158], [192, 168, 106]],
+];
+
+/** Organic garden planting border: sunlit cottage flowers, culinary herbs, or
+ * sculpted rounded garden shrubs grounded directly in the yard surface. */
+function borderOver(
+  pixels: Uint8ClampedArray,
+  sample: TopographySample,
+  x: number,
+  y: number,
+  ox: number,
+  oy: number,
+  cell: TopographyCell,
+) {
+  const kind = cell.gardenBorder!;
+  const season = cell.habitat?.season ?? "spring";
+  const same = (dx: number, dy: number) => sample(x + dx, y + dy)?.gardenBorder === kind;
+  const x0 = same(-1, 0) ? 0 : 2;
+  const x1 = same(1, 0) ? 15 : 13;
+  const y0 = same(0, -1) ? 0 : 3;
+  const y1 = same(0, 1) ? 15 : 13;
+  const gx = (x + ox) * 16;
+  const gy = (y + oy) * 16;
+  const put = (px: number, py: number, c: readonly [number, number, number]) => {
+    if (px < 0 || px > 15 || py < 0 || py > 15) return;
+    const i = (py * 16 + px) * 4;
+    pixels[i] = c[0];
+    pixels[i + 1] = c[1];
+    pixels[i + 2] = c[2];
+    pixels[i + 3] = 255;
+  };
+  const shadePx = (px: number, py: number, f: number) => {
+    if (px < 0 || px > 15 || py < 0 || py > 15) return;
+    const i = (py * 16 + px) * 4;
+    pixels[i] = Math.round(pixels[i] * f);
+    pixels[i + 1] = Math.round(pixels[i + 1] * f);
+    pixels[i + 2] = Math.round(pixels[i + 2] * (f * 1.04));
+  };
+  // Soft organic soil strip for flower & herb beds (shrubs root directly in turf/gravel).
+  if (kind !== "shrubs") {
+    for (let py = y0; py <= y1; py++)
+      for (let px = x0; px <= x1; px++) {
+        const corner =
+          ((px === x0 && !same(-1, 0)) || (px === x1 && !same(1, 0))) &&
+          ((py === y0 && !same(0, -1)) || (py === y1 && !same(0, 1)));
+        if (corner) continue;
+        const rim = (py === y1 && !same(0, 1)) || (py === y0 && !same(0, -1));
+        const n = hash(gx + px, gy + py, 1411);
+        put(px, py, rim ? BORDER_SOIL[0] : BORDER_SOIL[n < 0.28 ? 0 : n > 0.72 ? 2 : 1]);
+        if (py === y1 && !same(0, 1)) shadePx(px, py + 1, 0.8);
+      }
+  }
+  const leaf: readonly (readonly [number, number, number])[] =
+    kind === "herbs"
+      ? season === "winter"
+        ? [[58, 70, 56], [84, 98, 78], [112, 126, 102], [136, 148, 122]]
+        : [[50, 78, 52], [78, 114, 76], [110, 148, 102], [142, 178, 130]]
+      : kind === "shrubs"
+        ? season === "winter"
+          ? [[32, 54, 38], [52, 82, 54], [76, 110, 72], [102, 136, 92]]
+          : [[28, 56, 34], [48, 88, 48], [76, 126, 62], [114, 164, 84]]
+        : season === "autumn"
+          ? [[58, 66, 36], [92, 100, 50], [128, 130, 68], [156, 152, 88]]
+          : season === "winter"
+            ? [[62, 56, 44], [86, 80, 64], [110, 102, 82], [130, 122, 100]]
+            : [[34, 66, 34], [58, 104, 48], [88, 142, 64], [124, 176, 86]];
+  const clumps = kind === "shrubs" ? 2 : 5;
+  const spans = kind === "shrubs" ? [4, 11] : [2, 5, 8, 11, 13];
+  for (let k = 0; k < clumps; k++) {
+    const baseCx = spans[k];
+    const cx = Math.max(x0 + 1, Math.min(x1 - 1, baseCx + Math.floor(hash(x * 7 + k, y * 11, 1423) * 3) - 1));
+    const cy = Math.max(y0 + 1, Math.min(y1 - 1, (y0 + y1) >> 1) + (k % 2 === 0 ? -1 : 1));
+    const rx = kind === "shrubs" ? 4 : 3;
+    const ry = kind === "shrubs" ? 3 : 2;
+    // Soft cast shadow on the south edge of each shrub/mound
+    for (let dx = -rx + 1; dx <= rx - 1; dx++) shadePx(cx + dx, cy + ry + 1, 0.72);
+    for (let dy = -ry; dy <= ry; dy++)
+      for (let dx = -rx; dx <= rx; dx++) {
+        const d = (dx * dx) / (rx * rx) + (dy * dy) / (ry * ry);
+        if (d > 1.05) continue;
+        const px = cx + dx, py = cy + dy;
+        const lit = dx + dy * 1.3;
+        const step = lit <= -2 ? 3 : lit <= 0 ? 2 : lit <= 2 ? 1 : 0;
+        put(px, py, leaf[step]);
+      }
+    if (kind === "flowers" && season !== "winter") {
+      const pal = season === "autumn" ? BORDER_AUTUMN : BORDER_BLOOMS;
+      const [hi, lo] = pal[Math.floor(hash(x + k * 3, y + k * 5, 1433) * pal.length)];
+      put(cx, cy - 1, hi);
+      put(cx + 1, cy - 1, hi);
+      put(cx - 1, cy, lo);
+      put(cx, cy, hi);
+      put(cx + 1, cy, lo);
+    } else if (kind === "herbs" && (season === "summer" || season === "spring") && hash(x + k, y, 1439) < 0.65) {
+      put(cx, cy - 1, [202, 188, 236]);
+      put(cx + 1, cy, [162, 146, 206]);
+    }
+  }
+}
 /** Grassy ecologies expose brown earth; dry and cold ones, and rocky sites, expose stone. */
 const mineralHabitat = (h: Habitat) =>
   h.site ? ["rocky", "barren", "shore"].includes(h.site.primary) : h.vegetation === "alpine" || ["desert", "tundra"].includes(h.ecology);
@@ -668,6 +785,7 @@ function rasterGroundTile(
     gy = (y + oy) * 16;
   const composition = groundStyle()?.composition;
   const upkeep = cell.pavement === "yard" ? 0.55
+    : cell.field?.yard ? 0.35
     : ["court", "square", "footway", "platform"].includes(cell.pavement ?? "") ? 0.25
     : cell.pavement === "vacant" ? 0.85 : 1 - (cell.tended ?? 0) * 0.8;
   // Detail fades under the stand, not in the open: a cleared village is turf.
@@ -994,7 +1112,10 @@ function rasterGroundTile(
     for (let k = 0; k < 3; k++) pixels[i + k] = c[k];
     pixels[i + 3] = 255;
   };
-  const beach = beachTint(cell);
+  // Community shore ground starts from the ecology's sea sand, not the neutral
+  // [214, 198, 152] ramp, so re-normalize beachTint against that base.
+  const shoreBeach = beachTint(cell, decode(waterPalette(h.ecology, "sea").bank[2]));
+  const beach = h.site ? shoreBeach : beachTint(cell);
   for (let py = 0; py < 16; py++)
     for (let px = 0; px < 16; px++) {
       const wx = gx + px,
@@ -1728,22 +1849,24 @@ function rasterGroundTile(
             )
               put(px, py, ((wy % 5) + 5) % 5 === 0 ? stoneLit : stoneDark);
           } else if (distance < width + jitter)
-            put(px, py, shorePixel(cell, distance, wx, wy));
+            put(px, py, shorePixel(cell, distance, wx, wy, shoreBeach));
           // The turf ends in a lip: a dark undercut against the sand, then a
-          // broken lit edge, with blade clumps standing along it.
-          else if (!frozen && distance < width + jitter + 0.1)
-            put(px, py, palette[5], -6);
-          else if (
-            !frozen &&
-            distance < width + jitter + 0.2 &&
-            hash(Math.floor(wx / 2), Math.floor(wy / 2), 336) > 0.45
-          )
-            put(px, py, palette[1]);
-          else if (
-            distance < width + jitter + 0.42 &&
-            hash(Math.floor(wx / 3), Math.floor(wy / 3), 335) > 0.7
-          )
-            put(px, py, palette[5], 12);
+          // broken lit edge, with blade clumps standing along it. Never draw
+          // a turf lip across sand or gravel.
+          else if (grassy && apron[at(px, py)] <= 2 && cell.surface !== "sand" && cell.surface !== "gravel") {
+            if (distance < width + jitter + 0.1)
+              put(px, py, palette[5], -6);
+            else if (
+              distance < width + jitter + 0.2 &&
+              hash(Math.floor(wx / 2), Math.floor(wy / 2), 336) > 0.45
+            )
+              put(px, py, palette[1]);
+            else if (
+              distance < width + jitter + 0.42 &&
+              hash(Math.floor(wx / 3), Math.floor(wy / 3), 335) > 0.7
+            )
+              put(px, py, palette[5], 12);
+          }
         } else if (path > 0.3) {
           // Trampled verge. Turf loses color as it approaches the road instead
           // of meeting the worn ground at full strength.

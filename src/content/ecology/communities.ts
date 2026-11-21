@@ -77,7 +77,7 @@ export function classifyCommunity(
     weights.water = 1;
     return finish();
   }
-  if (!freshwater && !mangrove && land.water < (land.shoreWidth ?? 3)) {
+  if (!freshwater && !mangrove && land.elevation <= 0 && land.water < (land.shoreWidth ?? 3)) {
     weights.shore = 1;
     return finish();
   }

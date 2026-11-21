@@ -15,7 +15,7 @@ The owner keeps this list.
 
 ## Half done
 
-- **Consolidation.** The table in [ARCHITECTURE.md](ARCHITECTURE.md#where-the-code-doubles-up) lists the systems that still exist twice. The world-generation retirement is on branch `claude/nifty-meninsky-07dc4e`, not yet merged.
+- **Consolidation.** The table in [ARCHITECTURE.md](ARCHITECTURE.md#where-the-code-doubles-up) lists the systems that still exist twice.
 - **Buildings.**
   - Some families are still drawn by the oblique and older painters, so a town can mix the two styles.
   - The building-art skill lists those families and the dead painters.

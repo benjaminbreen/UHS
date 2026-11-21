@@ -59,7 +59,7 @@ export function bankStyle(s: Settings) {
     material === "sand"
       ? red
         ? "#e2c999"
-        : "#d9cd9f"
+        : "#d6c698"
       : snow
         ? "#e4ece6"
         : material === "clay"
@@ -75,7 +75,7 @@ export function bankStyle(s: Settings) {
       : material === "sand"
         ? red
           ? "#b69a6c"
-          : "#b3ad89"
+          : "#b8a67c"
         : material === "clay"
           ? "#98633e"
           : tropical
@@ -85,7 +85,9 @@ export function bankStyle(s: Settings) {
       ? "#748f9d"
       : red || material === "clay"
         ? "#77503b"
-        : "#5c6555",
+        : material === "sand"
+          ? "#8b7b5a"
+          : "#5c6555",
     face: snow
       ? ["#d4e0df", "#a4b9bc", "#7a929d"]
       : red

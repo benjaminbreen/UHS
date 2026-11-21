@@ -157,3 +157,19 @@ it("paints earth courts as continuous areas without cart marks, preserving acces
   });
   expect(pathField(access, 0.05, 0.5, 0, 0).coverage).toBeGreaterThan(0.8);
 });
+
+it("does not square off coastal banks beside ramps and lets path strokes cross bank cells", () => {
+  const bankBesideRamp: TopographySample = (_x, y) =>
+    y === 1
+      ? { ...cell, surface: "soil", ramp: "s", rampStyle: "timber", feature: "bank" }
+      : { ...cell, surface: "soil", feature: "bank" };
+  expect(pathField(bankBesideRamp, 0.5, 0.5, 0, 0).coverage).toBe(0);
+
+  const pathOnBank: TopographySample = () => ({
+    ...cell,
+    surface: "gravel",
+    feature: "bank",
+    pathArt: [{ a: [-2, 0.5], b: [2, 0.5], radius: 0.9, ruts: false }],
+  });
+  expect(pathField(pathOnBank, 0.5, 0.5, 0, 0).coverage).toBeGreaterThan(0.6);
+});

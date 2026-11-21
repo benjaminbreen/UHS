@@ -252,8 +252,14 @@ def carve(c, x, y, s, col):
 
 class GableHouse:
     def __init__(self, W=152, wall=62, rise=None, depth=70, over=10, lean_to=True, seed=3,
-                 ground='render', paint='green', roof='shingle', sign=('painted', 3), lantern='iron', wear=0.5):
+                 ground='render', paint='green', roof='shingle', sign=('painted', 3), lantern='iron', wear=0.5,
+                 date='1642', timber=None, wall_render=None, brick_ramp=None, roof_tones=None,
+                 joinery='oak', door_kind='plank', window_frame='timber', boxes=True,
+                 roof_window=True, edge='outline'):
         self.ground, self.paint, self.roof, self.sign, self.lantern, self.wear = ground, paint, roof, sign, lantern, wear
+        self.date, self.timber, self.wall_render, self.brick_ramp = date, timber, wall_render, brick_ramp
+        self.roof_tones, self.joinery, self.door_kind = roof_tones, joinery, door_kind
+        self.window_frame, self.boxes, self.show_roof_window, self.edge = window_frame, boxes, roof_window, edge
         rise = rise or ROOFS[roof]['rise']
         self.W, self.wall, self.rise, self.depth, self.over = W, wall, rise, depth, over
         self.lean = lean_to
@@ -269,6 +275,8 @@ class GableHouse:
         apx = wx0 + W // 2
         rise, depth, over = self.rise, self.depth, self.over
         slope = rise / (W / 2)
+        tm = self.timber or OAK
+        modern = self.door_kind == 'transom'
 
         def rake(x):
             return round(eave + 6 - (W / 2 + over - abs(x - apx)) * slope)
@@ -279,9 +287,12 @@ class GableHouse:
         gf = [(x, y) for y in range(eave, base) for x in range(wx0, wx1)]
         gt = [(x, y) for y in range(eave - rise, eave) for x in range(wx0, wx1)
               if abs(x - apx + 0.5) <= (y - (eave - rise)) / slope]
-        render(c, wx0, eave - rise, W, rise + self.wall - 11)
+        render(c, wx0, eave - rise, W, rise + self.wall - 11, self.wall_render)
         if self.ground == 'brick':
-            brick(c, wx0, eave + 6, W, self.wall - 17)
+            if self.brick_ramp:
+                brick(c, wx0, eave + 4, W, self.wall - 15, self.brick_ramp, bond='flemish')
+            else:
+                brick(c, wx0, eave + 6, W, self.wall - 17)
         elif self.ground == 'whitewash':
             from art.front_materials import whitewash
             whitewash(c, wx0, eave + 6, W, self.wall - 17)
@@ -289,19 +300,23 @@ class GableHouse:
             if abs(x - apx + 0.5) > (y - (eave - rise)) / slope:
                 c.px[x, y] = (0, 0, 0, 0)
         solid = set()
-        bevel(c, wx0, eave + 4, 6, self.wall - 15, OAK, mask=solid)
-        bevel(c, wx1 - 6, eave + 4, 6, self.wall - 15, OAK, mask=solid)
-        bevel(c, apx - 3, eave - rise + 20, 6, rise - 20, OAK, mask=solid)
-        for px in (apx - 42, apx + 36):
+        if not modern:
+            bevel(c, wx0, eave + 4, 6, self.wall - 15, tm, mask=solid)
+            bevel(c, wx1 - 6, eave + 4, 6, self.wall - 15, tm, mask=solid)
+        bevel(c, apx - 3, eave - rise + 20, 6, rise - 20, tm, mask=solid)
+        for px in (apx - (40 if modern else 42), apx + (34 if modern else 36)):
             top = round(eave - (W / 2 - abs(px + 3 - apx)) * slope) + 6
-            bevel(c, px, top, 6, eave - top, OAK, mask=solid)
-        bevel(c, apx - 48, eave - 34, 96, 5, OAK, mask=solid)
-        brace(c, apx - 36, eave - 1, apx - 24, eave - 29, OAK, 5, solid)
-        brace(c, apx + 19, eave - 29, apx + 31, eave - 1, OAK, 5, solid)
-        recess(c, gf + gt, solid)
+            bevel(c, px, top, 5 if modern else 6, eave - top, tm, mask=solid)
+        bevel(c, apx - (46 if modern else 48), eave - 34, 92 if modern else 96, 5, tm, mask=solid)
+        brace(c, apx - (34 if modern else 36), eave - 1, apx - (23 if modern else 24), eave - 29, tm, 4 if modern else 5, solid)
+        brace(c, apx + (18 if modern else 19), eave - 29, apx + (29 if modern else 31), eave - 1, tm, 4 if modern else 5, solid)
+        recess(c, gt if modern else gf + gt, solid)
         for gx in (apx - 18, apx + 6):
-            op.frame_timber(c, gx, eave - 27, 12, 20, None)
-            op.casement(c, gx, eave - 27, 12, 20, 'oak')
+            if modern:
+                op.raised(c, gx - 2, eave - 29, 16, 24, op.CREAM_TRIM, 1)
+            else:
+                op.frame_timber(c, gx, eave - 27, 12, 20, None)
+            op.casement(c, gx, eave - 27, 12, 20, self.joinery)
             op.reveal(c, gx, eave - 27, 12, 20, 2)
         oy = eave - rise + 25
         for yy in (range(-5, 6) if rise >= 56 else ()):
@@ -310,61 +325,84 @@ class GableHouse:
                 if d <= 3:
                     c.p(apx + xx, oy + yy, op.GLASS[2] if xx + yy < -1 else op.GLASS[5])
                 elif d <= 5:
-                    c.p(apx + xx, oy + yy, OAK[2] if xx + yy < 0 else OAK[5])
-        # jetty beam with joist ends, shading the ground floor under it
-        bevel(c, wx0 - 3, eave - 1, W + 6, 7, OAK, 3)
-        for k in range(wx0 + 3, wx1 - 4, 9):
-            bevel(c, k, eave + 6, 5, 4, OAK, 3)
-        op.cast(c, wx0 + 6, eave + 6, W - 12, 6, 0.7)
-        rubble(c, wx0, base - 11, W, 11)
-        c.rect(wx0, base - 12, W, 1, RENDER[3])
+                    c.p(apx + xx, oy + yy, tm[2] if xx + yy < 0 else tm[5])
+        if modern:
+            bevel(c, wx0 - 2, eave - 1, W + 4, 6, tm, 3)
+            op.cast(c, wx0, eave + 5, W, 5, 0.68)
+            rubble(c, wx0, base - 11, W, 11)
+            c.rect(wx0 - 1, base - 12, W + 2, 1, RAMPS['limestone'][1])
+        else:
+            # jetty beam with joist ends, shading the ground floor under it
+            bevel(c, wx0 - 3, eave - 1, W + 6, 7, tm, 3)
+            for k in range(wx0 + 3, wx1 - 4, 9):
+                bevel(c, k, eave + 6, 5, 4, tm, 3)
+            op.cast(c, wx0 + 6, eave + 6, W - 12, 6, 0.7)
+            rubble(c, wx0, base - 11, W, 11)
+            c.rect(wx0, base - 12, W, 1, RENDER[3])
         # door under a carved lintel, windows with open shutters and boxes
-        dw, dh = 24, 46
+        dw, dh = (22, 44) if modern else (24, 46)
         dx = apx - dw // 2
-        op.door_plank(c, dx, base - dh, dw, dh)
-        carve(c, apx - 8, base - dh - 6, '1642', OAK[5])
+        if self.door_kind == 'transom':
+            op.door_transom(c, dx, base - dh, dw, dh, self.paint, arch=(self.window_frame == 'brick-arch'))
+        else:
+            op.door_plank(c, dx, base - dh, dw, dh)
+            if self.date:
+                carve(c, apx - 8, base - dh - 6, self.date, OAK[5])
         # Windows sit midway between the door's frame and the corner post;
         # a narrow front takes narrower windows and leaves, and a lantern
         # only where a gap is left for it.
-        ww, leaf = (20, 8) if W >= 140 else (16, 6)
+        ww, leaf = (18, 6) if modern else ((20, 8) if W >= 140 else (16, 6))
         ext = ww // 2 + 3 + leaf + 2
-        lo, hi = dw // 2 + 4 + ext, W // 2 - 6 - ext
+        lo, hi = dw // 2 + (5 if modern else 4) + ext, W // 2 - (5 if modern else 6) - ext
         off = (lo + hi) // 2
         for wcx in (apx - off, apx + off):
-            wx, y = wcx - ww // 2, eave + 18
-            op.frame_timber(c, wx, y, ww, 24, None)
-            op.casement(c, wx, y, ww, 24, 'oak')
+            wx, y = wcx - ww // 2, eave + (16 if modern else 18)
+            op.FRAMES[self.window_frame][0](c, wx, y, ww, 24, None)
+            (op.cross_casement if modern else op.casement)(c, wx, y, ww, 24, self.joinery)
             op.reveal(c, wx, y, ww, 24, 2)
-            op.open_shutters(c, wx - 3, y - 4, ww + 6, 32, self.paint, leaf)
-            op.flower_box(c, wx, y + 30, ww, seed=wx)
+            if modern:
+                op.open_shutters(c, wx - 2, y - 1, ww + 4, 26, self.paint, leaf)
+            else:
+                op.open_shutters(c, wx - 3, y - 4, ww + 6, 32, self.paint, leaf)
+            if self.boxes:
+                op.flower_box(c, wx, y + 30, ww, seed=wx)
         sills = [(wcx - ww // 2 - 6, eave + 18 + 24 + 6, ww + 12) for wcx in (apx - off, apx + off)]
         if self.lantern and off - ext - dw // 2 - 4 >= 10:
             fixture(c, apx + dw // 2 + 5, eave + 14, 1, 'lantern', self.lantern)
+        step_pad = 6 if modern else 8
         for k in range(3):
-            c.rect(dx - 8 - k, base + k, dw + 16 + 2 * k, 1, RAMPS['granite'][k + 1])
+            c.rect(dx - step_pad - k, base + k, dw + 2 * step_pad + 2 * k, 1, RAMPS['granite'][k + 1])
         # roof: two slopes, the verge along the rake, ridge, chimney
         m = ROOFS[self.roof]
         roof, shaded = set(), set()
-        roof_slope(c, apx, wx0 - over, rake, depth, 0, self.roof, roof, shaded)
-        roof_slope(c, apx, wx1 + over, rake, depth, 1, self.roof, roof, shaded)
-        if m['verge'] != 'thatch':
+        roof_slope(c, apx, wx0 - over, rake, depth, 0, self.roof, roof, shaded, tones=self.roof_tones)
+        roof_slope(c, apx, wx1 + over, rake, depth, 1, self.roof, roof, shaded, tones=self.roof_tones)
+        if m['verge'] != 'thatch' and self.show_roof_window:
             self.roof_window(apx, rake, 22, 30, 16, 18)
         self.verge(m['verge'], wx0 - over, wx1 + over, apx, rake)
-        cx, cw = wx1 - 44, 18
+        cx, cw = (wx1 - 42, 16) if modern else (wx1 - 44, 18)
         self.roof_span = (wx0 - over, wx1 + over)
         self.stacks = [(cx - 2, cw + 4)]
         self.door_h = dh
-        ctop = rake(wx1 - 35) - 26 - 44
-        self.chimney(cx, rake(wx1 - 35) - 26, cw, 44, rake)
+        ch = 40 if modern else 44
+        cy_base = rake(wx1 - (34 if modern else 35)) - (24 if modern else 26)
+        ctop = cy_base - ch
+        self.stack_boxes = [(cx - 2, ctop - 7, cw + 4)]
+        self.chimney(cx, cy_base, cw, ch, rake)
         self.ridge(apx, rake(apx) - depth - 1, rake(apx) + 1, m['ridge'])
         if self.sign:
             fixture(c, wx1 - 4, eave + 12, 1, 'sign', self.sign[0], self.sign[1])
-        walls = {(x, y) for y in range(eave, base - 11) for x in range(wx0, wx1)}
+        walls = {(x, y) for x, y in (gf + gt if modern else gf) if y < base - 11}
         stone = {(x, y) for y in range(base - 11, base) for x in range(wx0, wx1)}
         weather(c, dict(roof=roof, roof_shade=shaded, eave_y=lambda x: rake(x), walls=walls, stone=stone,
-                        sills=sills, chimneys=[(cx - 2, ctop - 7, cw + 4)]), self.wear, self.seed)
-        outline(c)
-        consolidate(c)
+                        sills=sills, chimneys=self.stack_boxes), self.wear, self.seed)
+        if self.edge == 'finish':
+            from art.front_kit import finish
+            finish(c)
+            consolidate(c, rare=4)
+        else:
+            outline(c)
+            consolidate(c)
         return c.im
 
     def lean_to(self, wx0, base):

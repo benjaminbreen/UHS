@@ -26,6 +26,8 @@ export type PropDef = {
   /** Soft enough to fall into: walking into it puts you down in it, leaves
    * your print (its `-dented` frame) and costs a little health. */
   muck?: boolean;
+  /** Has a door that opens and shuts; its `-open` sprite shows the inside. */
+  door?: boolean;
   /** What it leaves on the ground when it breaks. */
   breakable?:
     | "clay"
@@ -561,6 +563,7 @@ export const propDefs: Record<string, PropDef> = {
     name: "Privy",
     family: "privy-shed",
     where: "privy",
+    door: true,
   },
   privyScreen: {
     solid: true,
@@ -579,18 +582,21 @@ export const propDefs: Record<string, PropDef> = {
     name: "Stone privy",
     family: "privy-stone",
     where: "privy",
+    door: true,
   },
   privyNightSoil: {
     solid: true,
     name: "Privy",
     family: "privy-nightsoil",
     where: "privy",
+    door: true,
   },
   privyOuthouse: {
     solid: true,
     name: "Outhouse",
     family: "privy-outhouse",
     where: "privy",
+    door: true,
   },
   privyMidden: {
     solid: true,

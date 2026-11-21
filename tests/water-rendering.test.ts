@@ -368,6 +368,12 @@ it("freezes Lake Ladoga in winter and rings a Tuamotu atoll round its lagoon", (
   expect(count(atoll, (v) => v?.reef === "lagoon" && v.distance < 0)).toBeGreaterThan(50);
   expect(count(atoll, (v) => v?.reef === "outer" && v.distance < 0)).toBeGreaterThan(50);
   expect(count(atoll, (v) => !!v && v.distance > 0)).toBeGreaterThan(20);
+  // Ordinary mesotidal open coasts keep sandy beaches instead of mudflats;
+  // macrotidal bays and coastal wetlands carry the intertidal shelf.
+  const brazil = world(-35.73, -9.62, "autumn", "tropical-woodland", "coast-e");
+  expect(count(brazil, (v) => v?.shelf !== undefined)).toBe(0);
+  const fundy = world(-64.5, 45.3, "summer", "boreal-woodland", "coast-s");
+  expect(count(fundy, (v) => v?.shelf !== undefined)).toBeGreaterThan(50);
 });
 
 it.runIf(!!process.env.FULL)("freezes in winter and thaws in spring, floods the Nile in autumn and ebbs the tide by the clock", async () => {

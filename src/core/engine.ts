@@ -7226,6 +7226,11 @@ export class Engine {
     this.advance((act.minutes ?? 1) * 60);
     this.event(`${act.text ?? o.description ?? `${o.name}.`}${got.length ? ` You take ${got.join(", ")}.` : ""}`, act.told ?? "action");
   }
+  private standUp() {
+    const p = this.state.player, door = p.seated?.door && this.state.objects.find((o) => o.id === p.seated!.on);
+    if (door) door.open = false;
+    delete p.seated;
+  }
   private useProp() {
     const u = this.usable();
     if (!u) return;
@@ -7242,9 +7247,16 @@ export class Engine {
         this.event(`You draw water at the ${name} and fill your vessel.`);
         break;
       case "sit":
+      case "mat":
       case "warm":
         p.fatigue = Math.max(0, p.fatigue - 8);
-        this.event(u.use === "sit" ? `You sit a while on the ${name} and rest your legs.` : `You warm your hands at the ${name}.`);
+        p.seated = u.use === "warm" ? { pose: "sit" } : { on: used.id, pose: u.pose === "sit" ? "sit" : "sit-seat" };
+        this.event(u.use === "warm" ? `You sit down and warm your hands at the ${name}.` : `You sit down on the ${name}.`);
+        break;
+      case "relieve":
+        p.seated = { on: used.id, pose: "sit-seat", ...(propDefs[used.prop ?? ""]?.door && !used.open ? { door: true } : {}) };
+        if (p.seated.door) used.open = true;
+        this.event(`You use the ${name}.`);
         break;
       case "pray":
         this.event(`You stand before the ${name} and make your prayer.`);
@@ -8595,6 +8607,8 @@ export class Engine {
     } else {
       const before = this.state.clock,
         lastEvent = this.state.events.at(-1)?.id ?? 0;
+      // Time passing leaves you sitting; trying anything else gets you up.
+      if (this.state.player.seated && !/^(wait|pass)$/.test(request.command.type)) this.standUp();
       const reason = this.validate(request.command);
       // An offer actually made and turned down shows on whoever turned it down.
       if (reason && (request.command.type === "trade" || request.command.type === "deal"))
@@ -10929,7 +10943,7 @@ export class Engine {
       const prop = this.state.objects.find((o) => o.id === c.target && o.prop);
       if (
         prop &&
-        ["pickup", "drop", "strike", "look", "close", "right", "topple"].includes(
+        ["pickup", "drop", "strike", "look", "open", "close", "right", "topple"].includes(
           c.action,
         )
       ) {
@@ -10966,9 +10980,12 @@ export class Engine {
               ? `Inside ${prop.name.toLowerCase()}: ${contents.join(", ")}.`
               : `${prop.name} is empty.`,
           );
+        } else if (c.action === "open") {
+          prop.open = true;
+          this.event(`You open the door of the ${prop.name.toLowerCase()}.`);
         } else if (c.action === "close") {
           prop.open = false;
-          this.event(`You put the lid back on ${prop.name.toLowerCase()}.`);
+          this.event(def.door ? `You shut the door of the ${prop.name.toLowerCase()}.` : `You put the lid back on ${prop.name.toLowerCase()}.`);
         } else if (c.action === "right") {
           prop.tipped = false;
           delete prop.lean;

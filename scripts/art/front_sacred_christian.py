@@ -180,7 +180,7 @@ def cupola(c, cx, by, d, trim, seed=0):
     elif kind == 'tent':
         so.lathe(c, cx, by, [(dh, R + 2), (dh + 3, R + 1.5), (dh + R * 2.6, 1)], metal, ribs=8, courses=6)
     else:
-        so.dome(c, cx, by, R, metal, z0=dh + 1, kind=kind, courses=d.get('courses', 4 if kind == 'hemi' else 0),
+        so.dome(c, cx, by, R, metal, z0=dh + 1, kind=kind, courses=d.get('courses', 0),
                 ribs=d.get('ribs', 0))
     if d.get('stars'):
         for k in range(9):
@@ -601,11 +601,11 @@ def thatch_cone(c, cx, foot, R, H, r, seed=0):
         for xx in range(round(cx - hw), round(cx + hw) + 1):
             u = (xx - cx) / max(1.0, hw)
             q = 2 if u < -0.45 else 3 if u < 0.25 else 4 if u < 0.7 else 5
-            if (yy - apex) % 8 == 7:
+            # Courses are rings seen from above, so they bow down toward us.
+            sy = round(yy - apex - math.sqrt(max(0.0, 1 - min(1.0, u * u))) * hw * K)
+            if sy % 8 == 7 and t < 1:
                 q += 1
-            elif (yy - apex) % 8 == 0:
-                q -= 1
-            elif h2(xx // 2, (yy - apex) // 8, seed) < 0.18:
+            elif h2(xx // 2, sy // 8, seed) < 0.18:
                 q += 1
             c.p(xx, yy, r[max(0, min(7, q))])
     for xx in range(round(cx - R), round(cx + R) + 1):

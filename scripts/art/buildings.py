@@ -377,6 +377,8 @@ def build_buildings(root, sprites):
     build_station_animations(sprites)
     from art.front_modern import animations as modern_animations
     sprites.update(modern_animations())
+    from art.front_sacred import flag_frames
+    sprites.update(flag_frames())
     from art.precincts import PrecinctPiece, build_precinct_sprites, precinct_recipes
     build_precinct_sprites(sprites)
     from art.gold_masters import gold_master_recipes, prehistoric_expansion_recipes, service_kit_recipes
@@ -449,7 +451,7 @@ def build_buildings(root, sprites):
                  TheatreBuilding if r.get('theatre') else
                  HallBuilding if r.get('hall') else
                  UrbanBuilding if r.get('urban') else Building)
-        artist=painter(r,source['materials'][r['wall']])
+        artist=painter(r,source['materials'].get(r['wall'],source['materials']['grey-brick']))
         im=artist.render()
         out[name]=im
         # Lit rooms after dark, drawn by the painter; turned copies share it.

@@ -51,6 +51,8 @@ export type ContourLayer = {
   pixels: Uint8ClampedArray;
   /** Plain ground rather than a bank: no drop shadow copy. */
   flat?: boolean;
+  /** Cleared beneath living water; sits behind the water shader so its outer fade never exposes the canvas. */
+  underLiving?: boolean;
 };
 export type TerrainReceivers = {
   x: number;
@@ -465,15 +467,20 @@ function rasterWallContours(
       )
         ? 1
         : 0;
+  const R = TERRAIN_RISE;
   const rampNear = new Uint8Array(cstride * (height + cpad * 2));
   for (let y = -cpad; y < height + cpad; y++)
-    for (let x = -cpad; x < width + cpad; x++)
-      if (sample(region ? x : Math.max(0, Math.min(width - 1, x)), y)?.ramp)
+    for (let x = -cpad; x < width + cpad; x++) {
+      const r = sample(region ? x : Math.max(0, Math.min(width - 1, x)), y)?.ramp;
+      // A south-climbing ramp is hidden behind its south plateau when R >= 16,
+      // so let that plateau's north rim keep its natural curve.
+      if (r && !(r === "s" && R >= 16))
         for (let dy = -1; dy <= 1; dy++)
           for (let dx = -1; dx <= 1; dx++) {
             const i = (y + dy + cpad) * cstride + x + dx + cpad;
             if (i >= 0 && i < rampNear.length) rampNear[i] = 1;
           }
+    }
   const ownsAt = (x: number, y: number) =>
     owns[
       Math.max(0, Math.min(height + cpad * 2 - 1, y + cpad)) * cstride +
@@ -488,7 +495,6 @@ function rasterWallContours(
   let maxTier = 0;
   for (let i = 0; i < tiers.length; i++)
     if (tiers[i] > maxTier) maxTier = tiers[i];
-  const R = TERRAIN_RISE;
   const ox = (region?.x ?? 0) * 16,
     oy = (region?.y ?? 0) * 16;
   const ease = (t: number) => t * t * (3 - 2 * t);
@@ -508,12 +514,11 @@ function rasterWallContours(
       }
       // A ramp is a square cell joined flush to its neighbours; bending the
       // rim beside it opens gaps at the joint.
-      const warp = rampNear[
+      const nearRamp = rampNear[
         Math.max(0, Math.min(height + cpad * 2 - 1, cy + cpad)) * cstride +
           Math.max(0, Math.min(cstride - 1, cx + cpad))
-      ]
-        ? 0
-        : (contour.warp ?? 0);
+      ];
+      const warp = nearRamp ? 0 : (contour.warp ?? 0);
       const u =
           (px + (contourNoise(px + ox, py + oy, 23, 131) - 0.5) * 2 * warp - 8) /
           16,
@@ -531,7 +536,7 @@ function rasterWallContours(
       const h =
         (a + (b - a) * fx) * (1 - fy) +
         (c + (d - c) * fx) * fy +
-        (contourNoise(px + ox, py + oy, contour.scale) - 0.5) * contour.wobble;
+        (nearRamp ? 0 : (contourNoise(px + ox, py + oy, contour.scale) - 0.5) * contour.wobble);
       // The nearest corner's tier, not the nearest tier: a drop of several
       // tiers is one cliff on one curved line, where rounding would fan its
       // steps out into a stack of ledges a few pixels apart.
@@ -671,10 +676,11 @@ function rasterWallContours(
       (c) =>
         px >= c.x && px < c.x + c.width && sy >= c.y && sy < c.y + c.height,
     );
-  // Ground two tiers up lifts more than a cell: unhidden, the row behind a
-  // bluff's back rim showed as a band across the top of the bluff.
+  // Higher ground to the south lifts up over lower rows behind it: unhidden,
+  // a wall-owned lower row behind a bluff's back rim drew on top of an
+  // unowned plateau tile drawn on the base ground page below it.
   const hidden = (px: number, py: number, L: number) => {
-    for (let j = R + 1; j <= (maxTier - L) * R; j++)
+    for (let j = R; j <= (maxTier - L) * R; j++)
       if ((lvl(px, py + j) - L) * R >= j) return true;
     return false;
   };
@@ -1052,7 +1058,7 @@ function rasterWallContours(
             ? besideRamp(L, px + 1, py, lvl(px + 1, py))
             : L,
         north =
-          lvl(px, py - 1) < L && !rampInto(cx, row - 1, "s")
+          lvl(px, py - 1) < L && !(R < 16 && rampInto(cx, row - 1, "s"))
             ? lvl(px, py - 1)
             : L;
       const rim = west < L || east < L || north < L;
@@ -1485,6 +1491,17 @@ function rasterWallContours(
       // slope onto a beach ends in sand rather than a square of turf.
       const upper = donor(cx + sx, cy + sy0),
         lower = donor(cx - sx, cy - sy0);
+      if (dir === "s" && R >= 16) {
+        // Back-facing behind the south plateau; fill any pixel exposed north of
+        // a curved crest with the lower ground so no hole opens.
+        for (let py = cy * 16; py < cy * 16 + 16; py++)
+          for (let px = cx * 16; px < cx * 16 + 16; px++) {
+            if (hidden(px, py, t)) continue;
+            const g = surfaces.pixel(lower, px, py, t, lvl);
+            if (g) paintFlat(cy, t, px, py - t * R, [g[0], g[1], g[2]]);
+          }
+        continue;
+      }
       // A road cut carries the ground page's own path up the incline, so the
       // path does not change colour and width where it climbs.
       const bed =
@@ -1566,11 +1583,13 @@ function rasterWallContours(
       for (let px = cx * 16; px < cx * 16 + 16; px++) {
         const wx = px + ox;
         // Screen span of this column, then each screen row finds the world
-        // row whose lifted extent covers it.
+        // row whose lifted extent covers it. A south-climbing ramp cannot rise
+        // past the south plateau's own crest.
         const top = Math.round(cy * 16 - h(px, cy * 16) * R),
-          bottom = Math.round(
+          rawBottom = Math.round(
             cy * 16 + 15 - (dir === "n" ? t : h(px, cy * 16 + 15)) * R,
-          );
+          ),
+          bottom = dir === "s" ? Math.max((cy + 1) * 16 - (t + 1) * R, rawBottom) : rawBottom;
         const first = Math.min(top, bottom),
           last = Math.max(top, bottom);
         for (let sy = first; sy <= last; sy++) {
@@ -1638,6 +1657,8 @@ function rasterWallContours(
           // The plateau's turf hangs a pixel or two over the top of the cut.
           const lip =
             (style === "sand" || style === "timber") &&
+            dir !== "s" &&
+            upper.cell.surface === "grass" &&
             // Distance from the high end: rows for a north ramp, columns
             // for one that climbs east or west.
             (along
@@ -1847,7 +1868,7 @@ export function drawContourLayers(
   resources: RenderResources = renderResources(),
 ) {
   for (const layer of layers) {
-    const key = `${prefix}-${layer.row}-${layer.tier}${layer.flat ? "-f" : ""}`;
+    const key = `${prefix}-${layer.row}-${layer.tier}${layer.underLiving ? "-u" : layer.flat ? "-f" : ""}`;
     resources.textures.push(key);
     addPixelTexture(scene, key, layer.width, layer.height, layer.pixels);
     own(
@@ -1858,7 +1879,11 @@ export function drawContourLayers(
         // Ground strips sit below any figure whose feet can reach them: a
         // walker between rows r-1 and r has depth from (r-1)*16+10 upward.
         // Faces stay above the ground page but below figures on the plateau.
-        .setDepth(layer.row * 16 + (layer.flat ? -7 : 1.5) + layer.tier * 0.01),
+        .setDepth(
+          layer.underLiving
+            ? -9999.5
+            : layer.row * 16 + (layer.flat ? -7 : 1.5) + layer.tier * 0.01,
+        ),
     );
   }
 }

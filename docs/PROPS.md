@@ -260,6 +260,15 @@ sprite keeps its plain one, so states can be drawn one family at a time.
 A prop with `door: true` (the privies) offers **Open the door** and **Shut the
 door**, which set `open`; its `-open` sprite shows the inside.
 
+Sitting is a state. The `sit` use (benches, stools, seat logs, palace seats),
+`mat` (on the floor), `warm` (at a fire) and `relieve` (the privies) set
+`player.seated`, and the scene draws the figure in the doll's `sit-seat` or
+`sit` pose on the prop. Waiting keeps you seated; any other command gets you
+up first (`act`). Using a privy opens its door, seats you in the doorway
+clipped by the jambs, and shuts the door when you get up. **Go to the privy**
+in the Rest menu walks to the nearest one and uses it (`Runtime.toPrivy`, a
+`go` plan with `use`).
+
 Bins set down as street furniture (the kerb's, the square's, the park's, a
 suburban house's) are catalogue props too, so they can be looked into and
 knocked over, and a shop's pavement board can be shouldered down:
@@ -365,7 +374,7 @@ entrance-safe placement.
 A prop definition may carry three things beyond handling:
 
 - `act`: something to do at it, offered as its own button (`attend`): its words, what is told when it is done (the object's own description when none is given), how long it takes, and whether it fills your water or rests you. Signposts and wall signs have "Read it", which tells what the sign says. In palaces a desk and a writing table are read, a globe is turned, a marble basin is drunk from.
-- `seat`: how many it seats. The palace seats (stools, chairs, benches, sofas, couches, the high seat) are in the `sit` use, so the use key sits you on them as on a bench outdoors. Sitting is still a moment's rest and a pose, not a state; people in the room do not use these seats yet.
+- `seat`: how many it seats. The palace seats (stools, chairs, benches, sofas, couches, the high seat) are in the `sit` use, so the use key sits you on them as on a bench outdoors. People in the room do not use these seats yet.
 - `burns`: what it would burn as (cloth, wood, thatch, paper, oil, leaf). Nothing reads this yet: fire on the map lights buildings and plants, has no `space`, and is refused indoors. It is there for the work on torches.
 
 An act may also cost coin (`price`), hand you things (`gives`), restore health (`heal`), be done only once (`once`; the object's `open` records that it has been), and be told as a world event or a small action (`told`). The use key offers a prop's act like any other use, and the click menu lists it.

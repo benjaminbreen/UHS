@@ -1497,7 +1497,17 @@
     "wall": "weatherboard",
     "roof": "gable",
     "roofMaterial": "shingle",
-    "height": 70
+    "height": 74
+  },
+  "yard-henhouse-brick": {
+    "style": "henhouse-brick",
+    "label": "Brick henhouse",
+    "footprint": [3, 2],
+    "description": "Brick and clay-tile henhouse: a painted keeper's door, screened vent, pop-hole and ramp for the hens.",
+    "wall": "bengal-brick",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 74
   },
   "yard-henhouse-wattle": {
     "style": "henhouse-wattle",
@@ -1507,7 +1517,7 @@
     "wall": "lime-plaster",
     "roof": "gable",
     "roofMaterial": "thatch",
-    "height": 70
+    "height": 76
   },
   "yard-henhouse-adobe": {
     "style": "henhouse-adobe",
@@ -1517,17 +1527,47 @@
     "wall": "mud-plaster",
     "roof": "flat",
     "roofMaterial": "earth",
-    "height": 70
+    "height": 68
+  },
+  "yard-henhouse-bamboo": {
+    "style": "henhouse-bamboo",
+    "label": "Bamboo and thatch henhouse",
+    "footprint": [3, 2],
+    "description": "Woven-bamboo henhouse under curved palm thatch, on a mud plinth with a keeper's door and chicken ramp.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch",
+    "height": 76
+  },
+  "yard-henhouse-east": {
+    "style": "henhouse-east",
+    "label": "Tiled timber henhouse",
+    "footprint": [3, 2],
+    "description": "Cedar-boarded henhouse with a white-plaster frieze and curved grey tile roof, on stone footings.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 74
   },
   "yard-byre-timber": {
     "style": "byre-timber",
     "label": "Boarded byre",
     "footprint": [4, 2],
-    "description": "Boarded byre: a half-door on the stalls and a hay door over the manger. Which households build one is decided by the yard kit.",
+    "description": "Boarded byre on a stone footing under wood shingles: a half-door on the stalls and a hay loft over the manger.",
     "wall": "weatherboard",
     "roof": "gable",
-    "roofMaterial": "thatch",
-    "height": 80
+    "roofMaterial": "shingle",
+    "height": 84
+  },
+  "yard-byre-brick": {
+    "style": "byre-brick",
+    "label": "Brick cowshed",
+    "footprint": [4, 2],
+    "description": "Brick and clay-tile cowshed on a clinker plinth: a painted Dutch half-door on the stalls and a shuttered hay loft above.",
+    "wall": "bengal-brick",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 84
   },
   "yard-byre-wattle": {
     "style": "byre-wattle",
@@ -1537,17 +1577,27 @@
     "wall": "lime-plaster",
     "roof": "gable",
     "roofMaterial": "thatch",
-    "height": 80
+    "height": 86
   },
   "yard-byre-stone": {
     "style": "byre-stone",
     "label": "Stone byre",
     "footprint": [4, 2],
-    "description": "Stone byre: a half-door on the stalls and a hay door over the manger. Which households build one is decided by the yard kit.",
+    "description": "Fieldstone byre with quoined corners under slate: a half-door on the stalls and a hay loft over the manger.",
     "wall": "field-stone",
     "roof": "gable",
-    "roofMaterial": "thatch",
-    "height": 80
+    "roofMaterial": "slate",
+    "height": 84
+  },
+  "yard-byre-med": {
+    "style": "byre-med",
+    "label": "Plastered stone byre",
+    "footprint": [4, 2],
+    "description": "Ochre-plastered Mediterranean byre under curved terracotta tiles, with a stone-framed stall half-door and hay loft.",
+    "wall": "lime-plaster",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 84
   },
   "yard-byre-adobe": {
     "style": "byre-adobe",
@@ -1557,7 +1607,27 @@
     "wall": "mud-plaster",
     "roof": "flat",
     "roofMaterial": "earth",
-    "height": 80
+    "height": 76
+  },
+  "yard-byre-bamboo": {
+    "style": "byre-bamboo",
+    "label": "Bamboo and thatch cowshed",
+    "footprint": [4, 2],
+    "description": "Woven-bamboo and mud cowshed on a raised plinth under curved palm thatch, with a slatted bamboo stall gate.",
+    "wall": "mud-plaster",
+    "roof": "gable",
+    "roofMaterial": "thatch",
+    "height": 86
+  },
+  "yard-byre-east": {
+    "style": "byre-east",
+    "label": "Tiled timber byre",
+    "footprint": [4, 2],
+    "description": "Cedar-boarded byre with a white-plaster frieze and curved grey tile roof, on stone footings with a slatted stall door.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 84
   },
   "worksite-transit-shed": {
     "style": "transit-shed",

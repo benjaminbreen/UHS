@@ -6,7 +6,7 @@ import { cellHash, valueNoise } from "../../core/noise";
 import type { WaterObject } from "./scenery";
 import type { TopographySample } from "../../core/topography";
 import type { TerrainRegion } from "../terrain-region";
-import { shoreDistance, shoreOnTier } from "../material-edges";
+import { pathField, shoreDistance, shoreOnTier } from "../material-edges";
 import { ecologyOrder, livingBeachWidth, livingProfile, livingTints } from "./profile";
 import { specialWater } from "../water-raster";
 import { waterStyle } from "../water-style";
@@ -36,15 +36,22 @@ export function rasterLivingWater(
   let count = 0;
   const murkGrid = new Float32Array((width + 2) * (height + 2));
   const beachGrid = new Float32Array(murkGrid.length);
+  const wearGrid = new Float32Array(murkGrid.length);
   for (let ty = -1; ty <= height; ty++)
     for (let tx = -1; tx <= width; tx++) {
       const cell = sample(tx, ty), h = cell?.habitat;
       const i = (ty + 1) * (width + 2) + tx + 1;
       murkGrid[i] =
         h?.murk ?? (h?.colorway === "swamp" ? 1 : 0);
-      if (cell)
+      if (cell) {
         beachGrid[i] = livingBeachWidth(sample, tx, ty, region?.x ?? 0, region?.y ?? 0, polish) +
           (refined ? 0.5 * polish!.blend : 0);
+        const l = cell.landscape;
+        wearGrid[i] = Math.max(
+          cell.groundWear ?? 0,
+          l && (l.kind === "trample" || l.kind === "trail") ? l.strength * 0.9 : 0,
+        );
+      }
     }
   // Width and murk vary between tile centres so neither reveals the grid.
   const fieldAt = (grid: Float32Array, fx: number, fy: number) => {
@@ -70,16 +77,22 @@ export function rasterLivingWater(
         cell.trestle ||
         cell.ramp ||
         cell.waterVisual.kind === "canal" ||
-        (cell.feature === "paving" && !cell.waterVisual.quay) ||
-        (cell.surface === "soil" && !cell.pier)
+        (cell.feature === "paving" && !cell.waterVisual.quay)
       )
         continue;
       const visual = cell.waterVisual,
         profile = livingProfile(cell);
-      let beach = 0;
+      let beach = 0, nearWorn = false;
       for (let dy = -1; dy <= 1; dy++)
-        for (let dx = -1; dx <= 1; dx++)
-          beach = Math.max(beach, beachGrid[(ty + dy + 1) * (width + 2) + tx + dx + 1]);
+        for (let dx = -1; dx <= 1; dx++) {
+          const gi = (ty + dy + 1) * (width + 2) + tx + dx + 1;
+          beach = Math.max(beach, beachGrid[gi]);
+          if (wearGrid[gi] > 0.2) nearWorn = true;
+          else if (!nearWorn) {
+            const n = sample(tx + dx, ty + dy);
+            if (n && (n.surface === "soil" || n.pathArt?.length)) nearWorn = true;
+          }
+        }
       if (
         visual.distance >
           beach * 1.5 +
@@ -161,6 +174,16 @@ export function rasterLivingWater(
               (liftedReceiver === -1 && (cell.surface === "water" || cell.pier))
             : true;
           if (d > localBeach || !lowGround) continue;
+          // Let trodden yards, paths and worn ground keep their rounded edges
+          // instead of slicing them off along 16px cell borders.
+          if (d > 0 && !cell.pier && nearWorn) {
+            const fx = tx + (px + 0.5) / 16, fy = ty + (py + 0.5) / 16;
+            const worn = Math.max(
+              pathField(sample, fx, fy, region?.x ?? 0, region?.y ?? 0).coverage,
+              fieldAt(wearGrid, fx, fy),
+            );
+            if (worn > 0.44) continue;
+          }
           // Ice, mud, floes, bergs and reef crests are the raster's.
           // A tidal shore's beach is the ground's: the mud and sand above the
           // tide are drawn there, and a bank here would lie across them.

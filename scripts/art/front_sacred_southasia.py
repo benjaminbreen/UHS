@@ -10,6 +10,8 @@ from pathlib import Path
 import math
 import sys
 
+import numpy as np
+
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 
@@ -18,7 +20,9 @@ from art.front_materials import C, RAMPS, ramp, mix  # noqa: E402
 from art import front_solid as so  # noqa: E402
 from art import front_parts as fp  # noqa: E402
 from art import front_southasia as sa  # noqa: E402
-from art.front_sacred import complete, arch_door, steps, flag, ground_shadow, VOID, GOLD  # noqa: E402
+from art.front_sacred import (complete, arch_door, steps, flag, ground_shadow, VOID, GOLD,  # noqa: E402
+                              ink, bevel, masonry, ledge, post, storey_block, enclosure, front_wall,
+                              framed_door, flagstaff, pot_row)
 
 K = so.K
 BUFF, BUFF_TOP = sa.BUFF, sa.BUFF_TOP
@@ -40,27 +44,10 @@ NEWAR_TILE = ramp(30, 0.07, lift=-0.16)
 PAINT = [ramp(245, 0.1, lift=-0.06), ramp(150, 0.09, lift=-0.04), ramp(15, 0.11, lift=-0.02), ramp(82, 0.12)]
 PASTEL = ramp(85, 0.03, lift=0.04)
 COURT = ramp(62, 0.05, lift=0.02)
+MARIGOLD = ramp(38, 0.2, lift=0.02)
 
 
 # ------------------------------------------------------------------ parts
-
-def face(c, x, y, w, h, r, q=3):
-    """A flat face: lit on its left edge, shaded on its right."""
-    c.rect(x, y, w, h, r[q])
-    c.rect(x, y, 1, h, r[max(0, q - 1)])
-    c.rect(x + w - 1, y, 1, h, r[min(7, q + 1)])
-
-
-def slab(c, x, y, w, r, top=None, lip=3):
-    """A projecting cornice slab: its top seen from above, its lit lip, the
-    shadow it throws on the wall below."""
-    top = top or r
-    c.rect(x, y - 2, w, 2, top[1])
-    c.rect(x, y, w, lip, r[2])
-    c.rect(x, y, w, 1, r[0])
-    c.rect(x + w - 1, y, 1, lip, r[4])
-    fp.cast_down(c, x + 1, x + w - 1, y + lip, 2, 0.32)
-
 
 def moulded(r, bands=(0, 2, 3, 5)):
     """A painter for a plinth or platform face: horizontal mouldings."""
@@ -88,67 +75,6 @@ def paving(r):
                     c.p(xx, y + k, r[3])
         c.rect(x, y, w, 1, r[1])
     return paint
-
-
-def wall_with_rathas(c, x, y, w, h, r, n=3):
-    """A temple wall broken into offsets (rathas): the middle stands proud and
-    lit, the recesses in shade, a niche in the middle offset."""
-    face(c, x, y, w, h, r, 3)
-    seg = w / (2 * n - 1)
-    for k in range(2 * n - 1):
-        x0 = round(x + k * seg)
-        x1 = round(x + (k + 1) * seg)
-        proud = k % 2 == 0
-        c.rect(x0, y, x1 - x0, h, r[2 if proud else 4])
-        c.rect(x0, y, 1, h, r[1 if proud else 5])
-        c.rect(x1 - 1, y, 1, h, r[4 if proud else 5])
-    for k in range(0, h, 9):
-        c.rect(x, y + k, w, 1, r[1])
-        c.rect(x, y + k + 1, w, 1, r[4])
-    nw = max(6, round(seg) - 6)
-    c.rect(x + w // 2 - nw // 2, y + 10, nw, h - 20, r[5])
-    c.rect(x + w // 2 - nw // 2 + 2, y + 13, nw - 4, h - 26, r[6])
-    c.rect(x + w // 2 - 2, y + 15, 4, h - 30, r[3])
-
-
-def phamsana(c, cx, foot, w, tiers, r, top=None, th=8, kalasha=True):
-    """A stepped pyramidal roof: slabs each narrower than the one below,
-    a dark recess between, a bell and pot on top."""
-    top = top or r
-    y = foot
-    for k in range(tiers):
-        tw = round(w * (1 - 0.6 * k / max(1, tiers)))
-        x = cx - tw // 2
-        c.rect(x + 2, y - th, tw - 4, th - 4, r[5])
-        c.rect(x + 2, y - th, tw - 4, 1, r[6])
-        slab(c, x, y - 4, tw, r, top, 4)
-        y -= th
-    so.lathe(c, cx, y + 2, [(0, w * 0.12), (3, w * 0.16), (6, w * 0.14), (9, w * 0.06)], r, ribs=10)
-    tip = y - 7
-    if kalasha:
-        so.lathe(c, cx, tip, [(0, 2), (3, 3.5), (6, 2.5), (8, 1), (10, 0.6)], GOLD)
-    return tip - 9
-
-
-def pillared(c, x, base, w, h, r, pitch=13):
-    """An open porch: dark within, square pillars with brackets, a low
-    seat-back wall either side of the way in."""
-    c.rect(x, base - h, w, h, mix(VOID, r[6], 0.35))
-    c.rect(x, base - h, w, 4, mix(VOID, r[6], 0.15))
-    n = max(2, round(w / pitch))
-    for k in range(n + 1):
-        px = round(x + k * (w - 5) / n)
-        c.rect(px, base - h, 5, h, r[3])
-        c.rect(px, base - h, 1, h, r[1]); c.rect(px + 1, base - h, 1, h, r[2])
-        c.rect(px + 4, base - h, 1, h, r[5])
-        for yy in (base - h + 6, base - h + h // 2):
-            c.rect(px, yy, 5, 2, r[1])
-        c.rect(px - 2, base - h, 9, 2, r[2])
-    gap = 26
-    for sx, sw in ((x, w // 2 - gap // 2), (x + w // 2 + gap // 2, w // 2 - gap // 2)):
-        c.rect(sx, base - 12, sw, 12, r[3])
-        c.rect(sx, base - 12, sw, 2, r[1])
-        c.rect(sx, base - 5, sw, 1, r[4])
 
 
 def kalasha(c, cx, y, s=1.0):
@@ -242,204 +168,325 @@ def lion(c, cx, by, r, side):
 
 # ------------------------------------------------------------------ nagara
 
+PEACH = ramp(42, 0.07, lift=0.03)
+TEMPLE_BRICK = ramp(32, 0.09, lift=-0.05)
+
 NAGARA_LOOKS = {
-    'buff': (BUFF, BUFF_TOP),
-    'laterite': (LATERITE, LATERITE_TOP),
-    'brick': (BRICK, LIME),
+    'buff': dict(stone=BUFF, top=BUFF_TOP, hall=PEACH, flag='saffron'),
+    'laterite': dict(stone=LATERITE, top=LATERITE_TOP, hall=LATERITE, flag='red'),
+    'brick': dict(stone=TEMPLE_BRICK, top=LIME, hall=TEMPLE_BRICK, flag='yellow'),
+    'white': dict(stone=sa.CHUNA, top=sa.CHUNA_TOP, hall=PEACH, flag='red'),
+    'jain': dict(stone=MARBLE, top=MARBLE, hall=MARBLE, flag='jain'),
 }
 
 
+def jali_screen(c, x, y, w, h, r):
+    """A pierced stone screen in its frame: a diamond lattice over shadow."""
+    c.rect(x, y, w, h, r[2])
+    c.rect(x, y, w, 1, r[1]); c.rect(x, y, 1, h, r[1])
+    c.rect(x, y + h - 1, w, 1, r[4]); c.rect(x + w - 1, y, 1, h, r[4])
+    for yy in range(y + 2, y + h - 2):
+        for xx in range(x + 2, x + w - 2):
+            i, j = xx - x, yy - y
+            hole = (i + j) % 3 and (i - j) % 3
+            c.p(xx, yy, r[5] if hole else r[2])
+    c.rect(x + 2, y + 2, w - 4, 1, r[4])
+
+
+def toran(c, x0, x1, y):
+    """A string of marigolds swagged under a lintel."""
+    for xx in range(x0, x1):
+        u = (xx - x0) % 10
+        sag = round(2.2 * math.sin(math.pi * u / 10))
+        c.p(xx, y + sag, MARIGOLD[2] if xx % 2 else MARIGOLD[3])
+        if u == 0:
+            c.p(xx, y + 1, MARIGOLD[1]); c.p(xx, y + 2, MARIGOLD[3])
+
+
+def pillar(c, x, top, bottom, r):
+    """A round porch pillar: a lit shaft on a moulded base under a cushion
+    capital, banded at the middle."""
+    c.rect(x + 1, top, 5, bottom - top, r[2])
+    c.rect(x + 1, top, 1, bottom - top, r[1]); c.rect(x + 2, top, 1, bottom - top, r[0])
+    c.rect(x + 5, top, 1, bottom - top, r[4])
+    for y, w, q in ((top, 7, 1), (top + 1, 7, 2), (top + 2, 7, 3), (bottom - 3, 7, 1), (bottom - 2, 7, 2), (bottom - 1, 7, 3)):
+        c.rect(x, y, w, 1, r[q])
+    c.rect(x + 6, top, 1, 3, r[4]); c.rect(x + 6, bottom - 3, 1, 3, r[4])
+    mid = (top + bottom) // 2
+    c.rect(x + 1, mid, 5, 1, r[1]); c.rect(x + 1, mid + 1, 5, 1, r[3])
+
+
 def nagara(spec, info):
-    s = {**dict(size='medium', look='buff', jain=False), **spec}
-    r, top = NAGARA_LOOKS[s['look']] if not s['jain'] else (MARBLE, MARBLE)
+    """A Nagara temple drawn as solids in the house projection, so every top
+    shows and walls stay square on: the jagati platform with a moulded edge,
+    the hall (mandapa) with its pillared porch and stepped roof, and behind
+    it the curved spire (latina), with three more spires before it on a great
+    temple. The carving, pillars, jali, amalaka and finials are drawn by hand
+    on the solids, and the flag flies as an overlay."""
+    s = {**dict(size='medium', look='buff'), **spec}
     size = s['size']
-    W, ws, wall_h = {'small': (132, 66, 40), 'medium': (180, 78, 46), 'large': (236, 92, 52)}[size]
-    if s['jain']:
-        W += 40
-    sh = {'small': 92, 'medium': 116, 'large': 140}[size] + (14 if s['look'] == 'laterite' else 0)
-    jh = 15 if not s['jain'] else 21
+    lk = NAGARA_LOOKS['jain' if s.get('jain') else s['look']]
+    stone, top, hall = lk['stone'], lk['top'], lk['hall']
+    cluster = size == 'large' or s.get('jain')
+    W = {'small': 132, 'medium': 180, 'large': 236}[size] + (24 if s.get('jain') and size != 'large' else 0)
     jd = {'small': 110, 'medium': 136, 'large': 170}[size]
-    m = 18
-    tall = jh + 30 + wall_h + sh + 46
-    H = tall + 16
-    c = C(W + 2 * m, H)
-    L, cx = m, m + W // 2
-    base = H - 6
-    deck = base - jh
-    shrine = deck - 16
-    face_fn = moulded(r)
-    if s['look'] == 'brick':
-        def face_fn(c, x, y, w, h):
-            fm.brick(c, x, y, w, h, r)
-            for k in range(0, h, 8):
-                c.rect(x, y + k, w, 1, LIME[2])
-    so.box(c, L, base, W, jh, 36, face_fn, paving(top))
-    if s['jain']:
+    ph = {'small': 16, 'medium': 18, 'large': 20}[size]
+    a0 = {'small': 52, 'medium': 62, 'large': 66}[size]
+    peak = {'small': 240, 'medium': 268, 'large': 330}[size]
+    Dp = 2 * jd + 16
+    yc = Dp - 0.85 * a0 - 6
+    Hs = peak - ph - K * yc
+    mw = round({'small': 0.74, 'medium': 0.66, 'large': 0.62}[size] * W)
+    mh = {'small': 40, 'medium': 44, 'large': 48}[size]
+    ym0 = {'small': 24, 'medium': 28, 'large': 32}[size]
+    pw = round(mw * 0.6)
+    yb = ym0 + {'small': 44, 'medium': 52, 'large': 60}[size]
+    nt = {'small': 3, 'medium': 4, 'large': 4}[size]
+    sx_, sy_ = 9, 12
+    zt = ph + mh
+    spires = [sa.Latina(0, yc, ph, a0, Hs)]
+    if cluster:
         for side in (-1, 1):
-            dx = cx + side * (W // 2 - 26)
-            so.box(c, dx - 14, deck - 12, 28, 28, 24, r)
-            wall_with_rathas(c, dx - 14, deck - 40, 28, 28, r, 2)
-            sa.shikhara(c, dx, deck - 38, 28, 44, top)
-    so.box(c, cx - ws // 2, shrine, ws, wall_h, 44, r, top)
-    wall_with_rathas(c, cx - ws // 2, shrine - wall_h, ws, wall_h, r)
-    sfoot = shrine - wall_h + 3
-    sa.shikhara(c, cx, sfoot, ws + 2, sh, top)
-    tip = sfoot - sh - 12
-    if size == 'large' or s['jain']:
-        for side in (-1, 1):
-            sa.shikhara(c, cx + side * round(ws * 0.36), sfoot + 6, round(ws * 0.46), round(sh * 0.5), top)
-        sa.shikhara(c, cx, sfoot + 10, round(ws * 0.62), round(sh * 0.62), top)
-    if s['jain']:
-        jain_flag(c, cx + 1, tip, 30)
-    else:
-        flag(c, cx + 1, tip + 2, 16, SAFFRON, w=11, fh=7)
-    if size != 'small':
-        mw = round(ws * 0.86)
-        mfoot = deck - 9
-        so.box(c, cx - mw // 2, mfoot, mw, 40, 30, r, top)
-        face(c, cx - mw // 2, mfoot - 40, mw, 40, r, 3)
-        for jx in (cx - mw // 2 + 8, cx + mw // 2 - 22):
-            sa.jali(c, jx, mfoot - 30, 14, 16, r)
-        if s['jain']:
-            so.box(c, cx - mw // 2 - 2, mfoot - 40, mw + 4, 3, 30, r, top)
-            so.dome(c, cx, mfoot - 52, mw // 3, top, kind='hemi', courses=3, drum=4)
-            kalasha(c, cx, mfoot - 52 - 4 - mw // 3 - 1)
-            for side in (-1, 1):
-                sa.chhatri(c, cx + side * (mw // 2 - 4), mfoot - 44, 7, r, top, top)
-        else:
-            phamsana(c, cx, mfoot - 40, mw + 8, 5 if size == 'large' else 4, r, top, th=9)
-    pw = {'small': 48, 'medium': 56, 'large': 62}[size]
-    pfoot = deck - 2
-    so.box(c, cx - pw // 2, pfoot, pw, 42, 18, r, top)
-    pillared(c, cx - pw // 2, pfoot, pw, 42, r)
-    if s['jain']:
-        sa.surround(c, cx, pfoot - 20, 22, pfoot, r, band=2)
-    phamsana(c, cx, pfoot - 42, pw + 10, 3, r, top, th=8)
-    steps(c, cx, base, 34, 5, top)
-    ground_shadow(c, L, L + W, base + 1, 3)
-    label = 'Jain temple' if s['jain'] else 'Temple'
-    return complete(c, info, L, W, base, cx, 40, jd, label=label)
+            spires.append(sa.Latina(side * a0 * 1.02, yc - a0 * 0.75, ph, a0 * 0.43, Hs * 0.64, pitch=15, crown=0.4))
+        spires.append(sa.Latina(0, yc - a0 * 1.1, ph, a0 * 0.44, Hs * 0.7, pitch=15, crown=0.4))
+    npil = 4 if size == 'small' else 6
+    pil = [(-pw / 2 + 3 + i * (pw - 11) / (npil - 1)) for i in range(npil)]
+    sw, rc = 28, 6
+    brick_face = s['look'] == 'brick' or size == 'large'
 
+    def solid(X, Y, Z):
+        m = np.zeros(X.shape, int)
+        ax = np.abs(X)
+        # The platform's corners are rounded in plan; its coping overhangs
+        # a recessed face that stands on a plinth course.
+        inset = np.where((Z >= ph - 5) | (Z < 3), 0.0, 2.0)
+        hw_, y0 = W / 2 - inset, inset
+        cdx = np.maximum(ax - (hw_ - rc), 0)
+        cdy = np.maximum(np.maximum(y0 + rc - Y, Y - (Dp - rc)), 0)
+        plinth = (ax <= hw_) & (Y >= y0) & (Y <= Dp) & (Z >= 0) & (Z < ph) & (cdx ** 2 + cdy ** 2 <= rc ** 2)
+        stair = (ax < sw / 2) & (Y < 32) & (Z >= np.ceil(np.maximum(Y, 0.01) / 8) * (ph / 4))
+        m[plinth & ~stair] = 1
+        hallb = (ax <= mw / 2) & (Y >= ym0) & (Y <= yb) & (Z >= ph) & (Z < zt - 5)
+        porch = (ax < pw / 2) & (Y < ym0 + 14) & (Z >= ph + 4) & (Z < zt - 12)
+        ent = (ax < pw / 2 + 4) & (Y >= ym0 - 3) & (Y <= yb) & (Z >= zt - 12) & (Z < zt - 5)
+        cor = (ax < mw / 2 + 2) & (Y >= ym0 - 4) & (Y <= yb + 2) & (Z >= zt - 5) & (Z < zt)
+        roof = np.zeros(X.shape, bool)
+        for i in range(nt):
+            hx, fy, z0 = mw / 2 - 4 - i * sx_, ym0 + 4 + i * sy_, zt + i * 7
+            by_ = yb - i * sy_ * 0.6
+            roof |= (ax < hx) & (Y >= fy) & (Y <= by_) & (Z >= z0) & (Z < z0 + 4)
+            roof |= (ax < hx + 2) & (Y >= fy - 2) & (Y <= by_ + 2) & (Z >= z0 + 4) & (Z < z0 + 7)
+        m[(hallb & ~porch) | ent | cor | roof] = 3
+        for i, sp in enumerate(spires):
+            o = sp.occ(X, Y, Z) & (m == 0)
+            m[o] = 10 + i
+        sf = spires[-1]
+        fy = sf.yc - 0.85 * sf.a - 2 * sf.p
+        sk_w, sk_z0, sk_h = sf.a * 0.62, zt + 2, sf.h * 0.34
+        dz = Z - (sk_z0 + sk_h - sk_w / 2)
+        archd = np.where(dz > 0, np.hypot(X, dz), ax)
+        suk = (archd < sk_w / 2) & (Y >= fy - 6) & (Y < fy + 2) & (Z >= sk_z0) & (Z < sk_z0 + sk_h)
+        niche = (archd < sk_w / 2 - 4) & (Y < fy - 3) & (Z >= sk_z0 + 6)
+        figure = (ax < 2.5) & (Z >= sk_z0 + 6) & (Z < sk_z0 + 6 + sk_h * 0.36) & (Y >= fy - 3) & (Y < fy)
+        m[suk & ~niche] = 6
+        m[figure & suk] = 7
+        return m
 
-def jain_flag(c, x, top, h):
-    """The Jain temple's flag: red and white in long bands, on a gilt staff."""
-    for yy in range(top - h, top):
-        c.p(x, yy, GOLD[2]); c.p(x + 1, yy, GOLD[4])
-    for k in range(16):
-        dip = round(1.4 * math.sin(k / 16 * math.pi * 1.4))
-        hh = max(3, 10 - k // 3)
-        for j in range(hh):
-            col = (RED if (j * 3 // hh) % 2 == 0 else WHITE)[2 if k < 10 else 3]
-            c.p(x + 2 + k, top - h + 2 + j + dip, col)
+    def paint(m, face, x, y, z):
+        if m == 1:
+            if face == 0:
+                if y < 2 or abs(x) > W / 2 - 2:
+                    return 1, 0
+                u = (x + (9 if int(y // 22) % 2 else 0)) % 18
+                return 1, (2 if ((u < 0.6 and y % 22 > 3) or (y % 22 < 0.6 and u > 3)) else 1)
+            if z >= ph - 5:
+                return 0, 1 if z >= ph - 2 else 2
+            if z < 3:
+                return 0, 4
+            if brick_face:
+                return 3, (4 if (z % 4 < 1 or (x + (3 if int(z // 4) % 2 else 0)) % 7 < 1) else 3)
+            return 0, 3
+        if m == 3:
+            if face == 0:
+                return 2, 1
+            if abs(x) < pw / 2 and y > ym0 + 10 and ph + 4 <= z < zt - 12:
+                return 2, 7 if z > zt - 16 else 6
+            if z < ph + 4:
+                return 2, 2 if z > ph + 3 else 3
+            if z >= zt - 12:
+                return 2, 1 if z % 7 > 5.5 else 2
+            u = (x + (9 if int(z // 8) % 2 else 0)) % 18
+            return 2, 3 if (z % 8 < 0.8 or u < 0.8) else 2
+        if m == 6:
+            return 0, 1 if face == 0 else 2
+        if m == 7:
+            return 0, 1
+        return (1 if face == 0 else 0), spires[m - 10].paint(face, x, y, z)
+
+    mg = 16
+    H = int(peak + 70)
+    c = C(W + 2 * mg, H)
+    cx, base = mg + W // 2, H - 4
+    so.carve(c, cx, base, -W / 2 - 4, W / 2 + 4, -2, Dp + 60, peak + 10, solid, paint, [stone, top, hall, BRICK])
+
+    def at(x, y, z):
+        return round(cx + x), round(base - z - K * y)
+    _, wtop = at(0, ym0, zt - 16)
+    _, wbot = at(0, ym0, ph + 6)
+    jw = max(10, round((mw - pw) / 2) - 8)
+    for side in (-1, 1):
+        jx = round(cx + side * (pw / 2 + (mw - pw) / 4)) - jw // 2
+        jali_screen(c, jx, wtop, jw, min(16, wbot - wtop), hall)
+    _, ptop = at(0, ym0, zt - 12)
+    _, pbot = at(0, ym0, ph + 4)
+    for px in pil:
+        pillar(c, round(cx + px) - 1, ptop, pbot, hall)
+    toran(c, round(cx - pw / 2) + 1, round(cx + pw / 2) - 1, ptop + 1)
+    for sp in reversed(spires):
+        flown = sp.dress(c, cx, base, stone)
+    zr = zt + nt * 7
+    yr = (ym0 + 4 + (nt - 1) * sy_ + yb - (nt - 1) * sy_ * 0.6) / 2
+    dx, dy = at(0, yr, zr)
+    R = mw * 0.13
+    so.dome(c, dx, dy + 1, R, hall, kind='hemi', courses=0, ribs=8)
+    sa.gold_pot(c, dx, round(dy - R), 0.8)
+    ex, ey = at(0, ym0 - 3, zt)
+    sa.gold_pot(c, ex, ey, 0.75)
+    flag(c, flown[0], flown[1] + 1, 22, lk['flag'], info=info)
+    label = 'Jain temple' if s.get('jain') else 'Temple'
+    return complete(c, info, mg, W, base, cx, pbot - ptop, jd, label=label, door_base=pbot,
+                    door_width=round(pw) - 8, leaf=False)
 
 
 # ------------------------------------------------------------------ dravida
 
-def vimana(c, cx, foot, w, tiers, r, top, paint=None):
-    """The shrine tower: a pilastered storey, then tiers each set back,
-    every tier ringed with little pavilions, an octagonal domed cap."""
-    h0 = 40
-    so.box(c, cx - w // 2, foot, w, h0, w, r, top)
-    face(c, cx - w // 2, foot - h0, w, h0, r, 3)
-    for px in range(cx - w // 2 + 4, cx + w // 2 - 4, 10):
-        c.rect(px, foot - h0 + 4, 3, h0 - 8, r[2]); c.rect(px + 2, foot - h0 + 4, 1, h0 - 8, r[4])
-    c.rect(cx - 6, foot - h0 + 10, 12, 22, r[5]); c.rect(cx - 4, foot - h0 + 13, 8, 17, r[6])
-    y = foot - h0
-    for k in range(tiers):
-        tw = round(w * (1 - 0.52 * k / tiers))
-        x = cx - tw // 2
-        slab(c, x - 2, y - 3, tw + 4, r, top, 3)
-        th = 13
-        c.rect(x, y - 3 - th, tw, th, r[4])
-        c.rect(x, y - 3 - th, tw, 1, r[5])
-        n = max(2, tw // 12)
-        for j in range(n):
-            px = round(x + 2 + j * (tw - 10) / max(1, n - 1))
-            end = j in (0, n - 1)
-            pw = 8
-            col = paint[(j + k) % len(paint)] if paint else r
-            c.rect(px, y - 3 - th + 4, pw, th - 4, col[3])
-            c.rect(px, y - 3 - th + 4, 1, th - 4, col[2])
-            c.rect(px + 2, y - 3 - th + 7, pw - 4, th - 9, col[5])
-            if end:
-                so.ellipse(c, px + 4, y - 3 - th + 3, 4.5, 3, col[2])
-                c.rect(px + 1, y - 3 - th + 1, 6, 1, col[1])
-            else:
-                c.rect(px, y - 3 - th + 1, pw, 3, col[2])
-                c.rect(px, y - 3 - th + 1, pw, 1, col[1])
-        y -= th + 3
-    gw = max(10, round(w * 0.3))
-    c.rect(cx - gw // 2, y - 8, gw, 8, r[4])
-    c.rect(cx - gw // 2, y - 8, 1, 8, r[2])
-    R = max(8, round(w * 0.24))
-    so.dome(c, cx, y - 6, R, top, kind='hemi', courses=0, ribs=8)
-    kalasha(c, cx, y - 6 - R - 1, 1.3)
-    return y - 6 - R - 14
+def tier_face(c, x, foot, w, h, r, q):
+    """The storey behind a ledge: a recessed face, its ends turned (lit on
+    the left, shaded on the right), a dark window on the axis with its sill."""
+    fy = foot - h
+    c.rect(x, fy, w, h, r[q])
+    c.rect(x, fy, 2, h, r[q - 1]); c.rect(x + w - 2, fy, 2, h, r[q + 1])
+    c.rect(x + 2, foot - 1, w - 4, 1, r[q + 1])
+    cx = x + w // 2
+    c.rect(cx - 3, fy + 4, 6, h - 6, VOID)
+    c.rect(cx - 3, fy + 4, 6, 1, mix(VOID, r[5], 0.45))
+    c.rect(cx - 4, foot - 2, 8, 1, r[q - 1])
+    e = ink(r)
+    c.rect(x - 1, fy, 1, h, e); c.rect(x + w, fy, 1, h, e)
 
 
-def gopuram(c, cx, base, w, tiers, r, top, paint=None, stone=None, wash=False):
-    """The gate tower: a stone storey with the doorway, then brick tiers
-    tapering up, a barrel-vaulted crown with its row of pots."""
-    stone = stone or r
-    h0 = 54
-    so.box(c, cx - w // 2, base, w, h0, 28, stone, top)
-    face(c, cx - w // 2, base - h0, w, h0, stone, 3)
-    for px in range(cx - w // 2 + 3, cx + w // 2 - 3, 9):
-        if abs(px + 1 - cx) < 16:
-            continue
-        c.rect(px, base - h0 + 6, 3, h0 - 10, stone[2]); c.rect(px + 2, base - h0 + 6, 1, h0 - 10, stone[4])
-    for k in range(0, h0, 13):
-        c.rect(cx - w // 2, base - h0 + k, w, 1, stone[2])
-    dw, dh = 22, 46
-    c.rect(cx - dw // 2 - 3, base - dh - 4, dw + 6, dh + 4, stone[1])
-    c.rect(cx - dw // 2, base - dh, dw, dh, VOID)
-    c.rect(cx - dw // 2, base - dh, dw, 3, mix(VOID, stone[6], 0.4))
-    c.rect(cx - dw // 2 - 3, base - dh - 4, dw + 6, 1, stone[0])
-    y = base - h0
-    th = 15
-    body = r
-    for k in range(tiers):
-        tw = round(w * (1 - 0.42 * k / max(1, tiers)))
-        x = cx - tw // 2
-        band = paint[k % len(paint)] if paint else body
-        slab(c, x - 2, y - 3, tw + 4, band if paint else body, top, 3)
-        c.rect(x, y - 3 - th, tw, th, body[3])
-        c.rect(x, y - 3 - th, 1, th, body[2]); c.rect(x + tw - 1, y - 3 - th, 1, th, body[4])
-        n = max(3, tw // 10)
-        for j in range(n):
-            px = round(x + 3 + j * (tw - 9) / max(1, n - 1))
-            c.rect(px - 1, y - 3 - th + 2, 6, th - 3, body[5])
+def pair(c, x, foot, h, a, b):
+    """Two figures with a garland slung between them, standing on a deck."""
+    post(c, x, foot, h, a)
+    post(c, x + 9, foot, h, a)
+    y = foot - h + 3
+    c.rect(x + 4, y, 5, 1, b[1]); c.rect(x + 4, y + 1, 5, 1, b[2]); c.rect(x + 4, y + 2, 5, 1, b[4])
+    c.rect(x + 4, y - 1, 5, 1, b[5]); c.rect(x + 4, y + 3, 5, 1, b[5])
+
+
+def kuta(c, x, foot, r):
+    """A little domed pavilion on a deck: the plain tiers' ornament."""
+    post(c, x, foot, 7, r)
+    so.ellipse(c, x + 2, foot - 8, 3, 2, r[1])
+    c.p(x + 1, foot - 9, r[0])
+
+
+def tiers(c, cx, y, w0, w1, n, r, top, paint=None, fh=16, dh=11, inset=6):
+    """Storeys of a Dravida tower as Stardew would stack them: each a ledge
+    seen from above with the storey's recessed face standing at its back and
+    figures (or little pavilions) standing on the deck in front of it, the
+    next ledge's lip shading the face's top. `y` is the row under the first
+    ledge's lip. Returns (row under the next lip, width of the last ledge)."""
+    lw = w0
+    for k in range(n):
+        lw = round(w0 - (w0 - w1) * k / max(1, n - 1))
+        x = cx - lw // 2
+        ty = ledge(c, x, y, lw, dh, r, top)
+        if k:
+            fp.cast_down(c, fx, fx + fw, y + 1, 2, 0.32)
+        fw = lw - 2 * inset
+        fx = cx - fw // 2
+        tier_face(c, fx, ty + 3, fw, fh, r, 2 if paint else 3)
+        foot = y - 5
+        spots = [(cx - round(fw * 0.27) - 6, True), (cx + round(fw * 0.27) - 7, True),
+                 (fx + 2, False), (fx + fw - 6, False)]
+        for j, (px, double) in enumerate(spots):
             if paint:
-                col = paint[(j * 3 + k) % len(paint)]
-                c.rect(px, y - 3 - th + 4, 4, th - 7, col[2])
-                c.rect(px + 1, y - 3 - th + 3, 2, 2, col[1])
-                c.rect(px + 3, y - 3 - th + 4, 1, th - 7, col[4])
-            else:
-                c.rect(px + 1, y - 3 - th + 4, 2, th - 7, body[2])
-        if wash and k % 2:
-            c.rect(x, y - 4, tw, 1, OCHRE_RED[3])
-        y -= th + 3
-    tw = round(w * 0.58)
-    sh = 13
-    for k in range(sh):
-        t = k / sh
-        hw = tw / 2 + 3 - (1 - math.sqrt(max(0, 1 - (1 - t) ** 2))) * 0
-        inset = round(3 * (1 - math.sqrt(max(0, 1 - ((sh - k) / sh) ** 2))) * 2)
-        yy = y - k - 2
-        for xx in range(round(cx - hw) + inset, round(cx + hw) - inset):
-            u = (xx - cx) / hw
-            q = 2 if k > sh * 0.55 else 3
-            if u > 0.6:
-                q += 1
-            c.p(xx, yy, (paint[0] if paint else body)[q] if k > sh * 0.55 else body[q])
-    for side in (-1, 1):
-        ex = cx + side * (tw // 2 + 2)
-        c.rect(ex - 2, y - sh + 1, 4, sh, body[2 if side < 0 else 4])
-        c.rect(ex - 1 + side * 2, y - sh - 2, 2, 4, body[1])
-    n = 5 if w < 90 else 7
-    for j in range(n):
-        kalasha(c, round(cx - tw / 2 + 4 + j * (tw - 8) / (n - 1)), y - sh, 1.0)
-    return y - sh - 12
+                a, b = paint[(j + k) % len(paint)], paint[(j + k + 1) % len(paint)]
+                pair(c, px, foot, 9, a, b) if double else post(c, px, foot, 9, a)
+            elif not double or fw > 70:
+                kuta(c, px + (2 if double else 0), foot, r)
+        y = ty + 3 - fh + 4
+    fp.cast_down(c, fx, fx + fw, y + 1, 2, 0.32)
+    return y, lw
+
+
+def grooved(r):
+    """The granite ground storey: pilasters cut as grooves, a band at the foot."""
+    def paint(c, x, y, w, h):
+        bevel(c, x, y, w, h, r, 3)
+        for px in list(range(x + 6, x + w // 2 - 16, 9)) + list(range(x + w - 8, x + w // 2 + 16, -9)):
+            c.rect(px, y + 6, 1, h - 12, r[4]); c.rect(px + 1, y + 6, 1, h - 12, r[2])
+        c.rect(x, y + h - 6, w, 1, r[2]); c.rect(x, y + h - 5, w, 1, r[4])
+    return paint
+
+
+def gopuram(c, cx, base, w, n, r, top, stone, paint=None, pots=5):
+    """The gate tower: a granite storey round a framed doorway, then the
+    stucco storeys on their ledges, the crown with its horseshoe gable and
+    its row of pots on the last deck."""
+    h0 = 54
+    fy = base - h0
+    grooved(stone)(c, cx - w // 2, fy, w, h0)
+    e = ink(stone)
+    c.rect(cx - w // 2 - 1, fy, 1, h0, e); c.rect(cx + w // 2 - w % 2 + 1, fy, 1, h0, e)
+    framed_door(c, cx, base, 20, 40, stone)
+    y, lw = tiers(c, cx, fy + 3, w + 8, round(w * 0.62), n, r, top, paint)
+    cw = lw - 14
+    gr = paint[2] if paint else r
+    ty = ledge(c, cx - (cw + 8) // 2, y, cw + 8, 8, r, top)
+    if True:
+        fp.cast_down(c, cx - cw // 2, cx + cw // 2, y + 1, 2, 0.32)
+    tier_face(c, cx - cw // 2, ty + 3, cw, 16, r, 3)
+    gy = ty + 3 - 16
+    for yy in range(gy + 2, ty + 3):
+        for xx in range(cx - 7, cx + 7):
+            dx, dy = xx + 0.5 - cx, yy + 0.5 - (gy + 9)
+            if dy > 0 or dx * dx + dy * dy <= 49:
+                rim = (abs(dx) > 5.5) if dy > 0 else dx * dx + dy * dy > 30
+                c.p(xx, yy, gr[1] if rim and dx < 0 else gr[3] if rim else gr[2])
+    c.rect(cx - 3, gy + 9, 6, ty + 3 - gy - 9, gr[5])
+    cty = ledge(c, cx - (cw + 6) // 2, gy + 4, cw + 6, 9, r, top)
+    fp.cast_down(c, cx - cw // 2, cx + cw // 2, gy + 5, 2, 0.3)
+    pot_row(c, cx, gy - 2, cw - 6, pots)
+    return cty - 20
+
+
+def vimana(c, cx, foot, w, n, r, top, paint=None, dome=None):
+    """The shrine tower over the god: storeys on their ledges, a neck and the
+    ribbed dome with its pot."""
+    y, lw = tiers(c, cx, foot, w, round(w * 0.55), n, r, top, paint, fh=16, dh=10)
+    nw = round(lw * 0.5)
+    ty = ledge(c, cx - (nw + 8) // 2, y, nw + 8, 6, r, top)
+    tier_face(c, cx - nw // 2, ty + 3, nw, 8, r, 3)
+    R = round(lw * 0.38)
+    so.dome(c, cx, ty - 2, R, dome or top, kind='hemi', courses=0, ribs=10)
+    kalasha(c, cx, ty - 2 - R - 1, 1.4)
+    return ty - R - 18
+
+
+def cloister(r):
+    """The back wall's inner face: the pillared walk along it, a beam over
+    square piers, dark bays with light on their floor."""
+    def paint(c, x, y, w, h):
+        bevel(c, x, y, w, h, r, 3)
+        for px in range(x + 5, x + w - 8, 12):
+            c.rect(px, y + 4, 8, h - 6, VOID)
+            c.rect(px, y + 4, 8, 1, mix(VOID, r[5], 0.4))
+            c.p(px, y + 4, r[3]); c.p(px + 7, y + 4, r[3])
+            c.rect(px, y + h - 3, 8, 1, mix(VOID, r[4], 0.45))
+        c.rect(x, y + 3, w, 1, r[4])
+    return paint
 
 
 def dravida(spec, info):
@@ -447,59 +494,52 @@ def dravida(spec, info):
     size, look = s['size'], s['look']
     W = {'small': 168, 'medium': 220, 'large': 288}[size]
     m = 14
-    tiers_g = {'painted': {'small': 3, 'medium': 5, 'large': 7},
-               'granite': {'small': 2, 'medium': 2, 'large': 3},
-               'village': {'small': 2, 'medium': 3, 'large': 4}}[look][size]
-    tiers_v = {'painted': {'small': 2, 'medium': 3, 'large': 3},
-               'granite': {'small': 3, 'medium': 5, 'large': 7},
-               'village': {'small': 2, 'medium': 2, 'large': 3}}[look][size]
-    gw = {'small': 74, 'medium': 92, 'large': 116}[size] - (12 if look == 'granite' else 0)
-    vw = {'small': 64, 'medium': 80, 'large': 100}[size] + (14 if look == 'granite' else 0)
+    n_g = {'painted': {'small': 3, 'medium': 4, 'large': 6},
+           'granite': {'small': 2, 'medium': 2, 'large': 3},
+           'village': {'small': 2, 'medium': 3, 'large': 3}}[look][size]
+    n_v = {'granite': {'small': 3, 'medium': 4, 'large': 5},
+           'village': {'small': 3, 'medium': 3, 'large': 4}}.get(look, {}).get(size, 0)
+    gw = round(W * 0.46)
+    vw = round(W * {'painted': 0.4, 'granite': 0.6, 'village': 0.36}[look])
     if look == 'painted':
-        r, top, stone, paint = PASTEL, PASTEL, GRANITE, PAINT
+        r, top, stone, paint, vr, dome = PASTEL, PASTEL, GRANITE, PAINT, None, None
     elif look == 'granite':
-        r, top, stone, paint = GRANITE, GRANITE_TOP, GRANITE, None
+        r, top, stone, paint, vr, dome = GRANITE, GRANITE_TOP, GRANITE, None, BUFF, BUFF_TOP
     else:
-        r, top, stone, paint = WHITE, WHITE, WHITE, None
-    wall_h = 34
-    court = {'small': 80, 'medium': 100, 'large': 124}[size]
-    gH = 54 + tiers_g * 18 + 26
-    vH = 40 + tiers_v * 16 + vw * 0.24 + 30
-    H = max(gH, vH + wall_h + court * K) + 24
-    H = round(H)
-    c = C(W + 2 * m, H)
+        r, top, stone, paint, vr, dome = WHITE, WHITE, WHITE, None, WHITE, GRANITE_TOP
+    wall_r = WHITE if look == 'village' else GRANITE_TOP
+    wall_h, back_h = 30, 20
+    court = {'small': 84, 'medium': 104, 'large': 128}[size]
+    c = C(W + 2 * m, 720)
     L, R, cx = m, m + W, m + W // 2
-    base = H - 6
-    wtop = base - wall_h
-    back = wtop - round(court * K)
-    paving(COURT)(c, L, back, W, wtop - back)
-    c.rect(L, back - 8, W, 8, (WHITE if look == 'village' else stone)[3])
-    c.rect(L, back - 10, W, 2, (WHITE if look == 'village' else stone)[1])
-    vfoot = back + round(court * K * 0.55)
-    vr = {'painted': PASTEL, 'granite': GRANITE_TOP, 'village': WHITE}[look]
-    vimana(c, cx, vfoot, vw if look != 'painted' else round(vw * 0.8), tiers_v, vr, vr, paint=paint)
-    if look != 'painted':
-        for yy in range(vfoot - 70, vfoot + 4):
-            c.p(cx + vw // 2 + 10, yy, GOLD[2]); c.p(cx + vw // 2 + 11, yy, GOLD[4])
-        for yy in range(vfoot - 70, vfoot, 9):
-            c.rect(cx + vw // 2 + 9, yy, 4, 2, GOLD[1])
-    wall_r = WHITE if look == 'village' else stone
+    base = c.h - 6
 
-    def wall_face(c, x, y, w, h):
-        if look == 'village':
-            for xx in range(x, x + w):
-                c.rect(xx, y, 1, h, (OCHRE_RED if ((xx - x) // 7) % 2 else WHITE)[2 if (xx - x) % 7 else 3])
-            c.rect(x, y, w, 2, WHITE[1])
-        else:
-            fm.ashlar(c, x, y, w, h, wall_r, 8, 22)
-    so.box(c, L, base, W, wall_h, 8, wall_face, wall_r)
-    for side_x in (L, R - 6):
-        c.rect(side_x, back - 8, 6, wtop - back + 8, wall_r[2])
-        c.rect(side_x, back - 8, 1, wtop - back + 8, wall_r[1])
-    gopuram(c, cx, base, gw, tiers_g, r, top, paint=paint, stone=stone if look != 'village' else WHITE,
-            wash=look == 'village')
+    def stripes(c, x, y, w, h):
+        for xx in range(x, x + w):
+            c.rect(xx, y, 1, h, (OCHRE_RED if ((xx - x) // 8) % 2 else WHITE)[2 if (xx - x) % 8 else 3])
+        c.rect(x, y, w, 1, WHITE[1]); c.rect(x, y + h - 1, w, 1, WHITE[4])
+    g = enclosure(c, L, R, base, wall_h, court, back_h, wall_r, wall_r, masonry(COURT, 14, 7, 2),
+                  inner=cloister(wall_r))
+    vtop = g['top']
+    # Madurai's gate towers hide the shrine behind them; elsewhere it rises over the gate.
+    if n_v:
+        vfoot = g['back'] + round(court * 0.55)
+        vtop = vimana(c, cx, vfoot, vw, n_v, vr, vr, dome=dome)
+        for k in range(5):
+            for xx in range(cx - vw // 2 + 4, cx + vw // 2 + 10):
+                fp.shade(c, xx, vfoot + 1 + k, 0.28 * (1 - k / 5))
+    flagstaff(c, cx + gw // 2 + 30, g['fc'] - 8, 50, wall_r)
+    front_wall(c, L, R, base, wall_h, stripes if look == 'village' else masonry(wall_r, 16, 8, 2),
+               wall_r, wall_r)
+    gtop = gopuram(c, cx, base, gw, n_g, r, top, stone if look != 'village' else WHITE, paint,
+                   pots=5 if size != 'large' else 7)
     ground_shadow(c, L, R, base + 1, 3)
-    return complete(c, info, L, W, base, cx, 46, round(court + 28), label='Temple')
+    crop = max(0, min(gtop, vtop, g['top']) - 4)
+    c.im = c.im.crop((0, crop, c.w, c.h))
+    c.im.info['glass'] = c.glass
+    c.px = c.im.load()
+    c.h -= crop
+    return complete(c, info, L, W, base - crop, cx, 40, round(court + 28), label='Temple')
 
 
 # ------------------------------------------------------------------ stupa
@@ -772,7 +812,7 @@ def _scales(kind, looks, describe, labels=None, roof='gable', **extra):
 
 
 SPECS = {
-    'nagara-temple': _scales('nagara', ('buff', 'laterite', 'brick'),
+    'nagara-temple': _scales('nagara', ('buff', 'laterite', 'brick', 'white'),
                              'A temple on its platform: the pillared porch, the hall, and the curved tower over the god\'s shrine.',
                              {'small': 'Shrine', 'medium': 'Temple', 'large': 'Great temple'}),
     'dravida-temple': _scales('dravida', ('painted', 'granite', 'village'),

@@ -166,8 +166,9 @@ export function placeBrief(
     const seller = buy && headOf(buy.from, buy.seller);
     if (buy && seller) {
       const noun = goodName(buy.good, buy.product);
-      say(`${upper(their2)} ${noun} comes from `), say(seller.name, "name");
-      say(household!.credit || household!.owes === buy.from ? `, still owing for it. ` : ". ");
+      const plural = /[^suia]s$/.test(noun);
+      say(`${upper(their2)} ${noun} ${plural ? "come" : "comes"} from `), say(seller.name, "name");
+      say(household!.credit || household!.owes === buy.from ? `, still owing for ${plural ? "them" : "it"}. ` : ". ");
     }
   }
   if (place.access === "public" && place.trade !== undefined) {

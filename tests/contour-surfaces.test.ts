@@ -154,3 +154,104 @@ it("uses the nearest real height for intermediate tiers on a tall bank", () => {
   expect(surfaces.owner(14, 8, 1)?.cell.surface).toBe("sand");
   expect(surfaces.owner(17, 8, 6)?.cell.surface).toBe("grass");
 });
+
+it("borrows the donor habitat when a lower beach corner falls under a grassy cliff cell", () => {
+  setGroundStyle(defaultGroundStyle());
+  const scrub = {
+    ...grass,
+    surface: "dry" as const,
+    habitat: {
+      ...grass.habitat!,
+      site: {
+        primary: "scrub" as const,
+        weights: { scrub: 1 },
+        region: { ecology: "grassland" as const },
+        conditions: { moisture: 0.5, saturation: 0.1, slope: 0.2, canopy: 0.2, exposure: 0.2, freshwater: false, inundated: false },
+      },
+    },
+  };
+  const shore = {
+    ...sand,
+    habitat: {
+      ...sand.habitat!,
+      site: {
+        primary: "shore" as const,
+        weights: { shore: 1 },
+        region: { ecology: "grassland" as const },
+        conditions: { moisture: 0.5, saturation: 0.1, slope: 0, canopy: 0, exposure: 0.9, freshwater: false, inundated: false },
+      },
+    },
+  };
+  const sample: TopographySample = (x) => (x < 1 ? scrub : shore);
+  const surfaces = contourSurfaces(sample, [], 0, 0);
+  const donor = surfaces.owner(14, 8, 0)!;
+  expect(donor.cell.surface).toBe("sand");
+  const px = surfaces.pixel(donor, 14, 8, 0, () => 0)!;
+  // Sand stays warm/neutral rather than inheriting the upland cell's green turf.
+  expect(px[0]).toBeGreaterThanOrEqual(px[1] - 10);
+});
+
+it("hides tier-0 flat pixels occluded behind a 1-tier plateau to the south", () => {
+  setGroundStyle(defaultGroundStyle());
+  const sample: TopographySample = (_x, y) => (y >= 2 ? grass : sand);
+  const layers = rasterTerrainContours(sample, 4, 5, [], { x: 0, y: 0, prefix: "test" }, tiles(sample));
+  const row1Flat = layers.find((l) => l.flat && l.row === 1);
+  if (row1Flat) {
+    // Pixels near the bottom of row 1 (py = 24..31) lie 14px north of row 2's
+    // tier-1 plateau (py = 38..45) and must be hidden so they cannot leak over
+    // an unowned tier-1 ground tile below.
+    let visible = 0;
+    for (let sy = 24; sy < 32; sy++) {
+      const iy = sy - row1Flat.y;
+      if (iy < 0 || iy >= row1Flat.height) continue;
+      for (let sx = 16; sx < 48; sx++)
+        if (row1Flat.pixels[(iy * row1Flat.width + sx - row1Flat.x) * 4 + 3]) visible++;
+    }
+    expect(visible).toBe(0);
+  }
+});
+
+it("avoids green turf lips on non-grass south ramps and omits wobble cracks beside west ramps", () => {
+  setGroundStyle(defaultGroundStyle());
+  const soilLow = { ...sand, surface: "soil" as const, pavement: "square" as const };
+  const soilHigh = { ...grass, surface: "soil" as const, pavement: "square" as const };
+  // South-climbing timber ramp into raised earth should not paint a green turf lip on the ramp row.
+  const southRamp: TopographySample = (_x, y) =>
+    y === 2
+      ? { ...soilLow, ramp: "s", rampStyle: "timber" }
+      : y > 2
+        ? soilHigh
+        : soilLow;
+  const southLayers = rasterTerrainContours(southRamp, 4, 5, [], { x: 0, y: 0, prefix: "sr" }, tiles(southRamp));
+  let greenPx = 0;
+  for (const l of southLayers) {
+    if (l.row !== 2) continue;
+    for (let i = 0; i < l.pixels.length; i += 4)
+      if (l.pixels[i + 3] > 200 && l.pixels[i + 1] > l.pixels[i] + 15 && l.pixels[i + 1] > l.pixels[i + 2] + 15)
+        greenPx++;
+  }
+  expect(greenPx).toBe(0);
+
+  // A west-climbing ramp flush against a tier-1 plateau must not open a vertical face seam at the joint.
+  const westRamp: TopographySample = (x, y) =>
+    x === 2 && (y === 1 || y === 2)
+      ? { ...soilLow, ramp: "w", rampStyle: "cut" }
+      : x < 2
+        ? soilHigh
+        : soilLow;
+  const westLayers = rasterTerrainContours(westRamp, 4, 4, [], { x: 0, y: 0, prefix: "wr" }, tiles(westRamp));
+  // Column x = 31 (east edge of x=1 plateau, touching the west ramp at x=2) must
+  // not wobble into a south-facing cliff drop below row 1's lifted surface (sy >= 12).
+  let seamWallPx = 0;
+  for (const l of westLayers) {
+    if (l.flat || l.row !== 1) continue;
+    const ix = 31 - l.x;
+    if (ix < 0 || ix >= l.width) continue;
+    for (let y = 0; y < l.height; y++) {
+      const sy = l.y + y;
+      if (sy >= 12 && l.pixels[(y * l.width + ix) * 4 + 3] > 200)
+        seamWallPx++;
+    }
+  }
+  expect(seamWallPx).toBe(0);
+});

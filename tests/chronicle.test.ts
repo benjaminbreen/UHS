@@ -1,6 +1,7 @@
-import { it, expect } from "vitest";
+import { it, expect, vi } from "vitest";
 import { createSession } from "../src/runtime/session";
 import { startChronicle, type Rationale } from "../src/chronicle/chronicle";
+import { jev, type Evaluation } from "../src/chronicle/jev";
 import type { CommandRequest } from "../src/core/types";
 
 const play = () => {
@@ -79,4 +80,33 @@ it("treats the idle clock as elapsed time, not as decisions", () => {
   expect(md).toContain("Stood still for 1 minute.");
   expect(md).toContain("Walked 4 steps east");
   expect(md).not.toContain('{"type"');
+});
+
+const jevReply = (status = 200) =>
+  new Response(
+    JSON.stringify({
+      model: "jev-1.13.0",
+      answers: { errand: { type: "choice", choice: "roam", probabilities: {}, confidence: 0.9 } },
+      usage: { input_tokens: 400, output_tokens: 0 },
+    } as Evaluation),
+    { status },
+  );
+
+it("sends one typed Jev request and backs off on rate limits but not bad keys", async () => {
+  const send = vi.fn(async () => jevReply());
+  const result = await jev({ apiKey: "k", fetch: send as never })("state", {});
+  const [url, init] = send.mock.calls[0] as unknown as [string, RequestInit];
+  expect(url).toBe("https://api.typesafe.ai/v1/systemone");
+  expect((init.headers as Record<string, string>).Authorization).toBe("Bearer k");
+  expect(JSON.parse(init.body as string)).toMatchObject({ model: "jev-latest", state: "state" });
+  expect(result.usage.input_tokens).toBe(400);
+
+  let calls = 0;
+  const limited = vi.fn(async () => (++calls === 1 ? new Response("slow down", { status: 429 }) : jevReply()));
+  await expect(jev({ apiKey: "k", fetch: limited as never })("s", {})).resolves.toBeTruthy();
+  expect(calls).toBe(2);
+
+  const denied = vi.fn(async () => new Response("nope", { status: 401 }));
+  await expect(jev({ apiKey: "bad", fetch: denied as never })("s", {})).rejects.toThrow(/401/);
+  expect(denied).toHaveBeenCalledTimes(1);
 });

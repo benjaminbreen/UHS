@@ -17,7 +17,7 @@ from .stalls import STALLS
 from .pitches import PITCHES
 from .farm import FARM
 from . import farm as _farm, roadside as _roadside, stores as _stores, kerbside as _kerb
-from .privy import PRIVY
+from .privy import PRIVY, PRIVY_STATES
 from .midden import MIDDEN, household_dented, communal_dented
 from .granary import GRANARY
 from .asia import ASIA
@@ -246,6 +246,7 @@ STATES = {
  'cardboard-box': {'open': _stores.cardboard_box_open, 'dented': _stores.cardboard_box_dented},
  'utility-cabinet': {'open': _kerb.utility_cabinet_open},
  'pavement-board': {'fallen': _kerb.pavement_board_fallen},
+ **PRIVY_STATES,
 }
 
 TOPPLING = {'standing-stone', 'roman-milestone', 'rune-marker', 'stone-lantern', 'stool', 'dustbin', 'steel-drum', 'wheelie-bin', 'pavement-board'}

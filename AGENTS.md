@@ -49,6 +49,7 @@ Open another doc only when the task is about its subject:
 | Terrain, relief, ground art | `docs/TERRAIN.md` |
 | Water, ecology and vegetation, animals | `docs/WATER.md`, `docs/ECOLOGY.md`, `docs/FAUNA.md` |
 | Settlements, town layout, streets, signs | `docs/SETTLEMENTS.md` |
+| Complexes, palaces, fairs, tombs, towers | `docs/COMPLEXES.md` |
 | Buildings (drawing, painters, review) | `.claude/skills/building-art/SKILL.md` (the `building-art` skill in Claude Code; other agents read the file) |
 | Props: drawing / gameplay and placement | `docs/PROP_ART.md` / `docs/PROPS.md` |
 | Art labs, ownership, lighting | `docs/GRAPHICS.md` |
@@ -81,10 +82,12 @@ Open another doc only when the task is about its subject:
 - `npx vitest run tests/<name>.test.ts` — include the file's opt-in cases.
   A `-t` name filter also enables them in ordinary runs.
 - `npm run shot -- artifacts/x.png "A dyer in Kyoto, 1350"` — one
-  screenshot of the running game. Starts a private dev server by default.
-  Set `UHS_URL` or `PORT` to use a running server. More `out.png "prompt"`
-  pairs in one call share the server and browser. Each shot has a 120-second
-  deadline, configurable with `UHS_SHOT_TIMEOUT_MS`.
+  screenshot of the running game. Starts an offline private dev server by
+  default (`UHS_OFFLINE=1`). Set `UHS_URL` or `PORT` to use a running server.
+  More `out.png "prompt"` pairs share one server and browser. Pass `--play`
+  with `--setting`, `--seed`, and `--script` / `--cmd` / stdin to drive a live
+  browser session with `Agent` commands and `shot <out.png>` at any step.
+  Each shot has a 120-second deadline (`UHS_SHOT_TIMEOUT_MS`).
 - `npm run town:sheet` — a generated settlement without a browser. Use before
   and after changing layout, yards or building art.
 - `npm run capture:characters -- <preset>` and `npm run capture:terrain -- <review>`
@@ -141,13 +144,16 @@ Keep it out of searches (`grep -r --exclude-dir=.claude`).
 
 Do not grep or read these whole; they are generated or bulk content:
 `src/content/task-lore/`, `*.generated.ts`, `src/audio/layered-themes.ts`.
-`src/core/engine.ts` and `src/render/WorldScene.ts` are each over 250k: search
-for the symbol and read a range.
+`src/core/engine.ts` (~740k), `src/render/WorldScene.ts` (~400k), and
+`src/world/v3/plan.ts` (~320k): search for the symbol and read a range.
 
-Playtest game mechanics with `npm run agent:play -- --setting "Weaver in Oaxaca 1650" --seed playtest`.
-It runs offline and leaves a replayable record. Type `look` to start.
-Use `npm run --silent agent:serve` for MCP or `npm run agent:run` for a model-driven
-run. See `docs/AGENTS.md`.
+Playtest game mechanics with `npm run agent:play -- --setting "Weaver in Oaxaca 1650" --seed playtest`
+(add `--fast` for a single local map, `--record` to save a replayable folder).
+Type `look` or shorthands (`goto b1`, `enter b1`, `wait 600`, `talk p1 Hi`).
+Use `npm run --silent agent:serve` for MCP or `npm run shot -- --play` for a
+visual browser playtest with screenshots. All agent and capture harnesses run
+offline by default; **ask the user before passing `--paid`** (which enforces a
+default `$1.00` spend cap, configurable with `--max-usd`). See `docs/AGENTS.md`.
 
 ## Do not add scaffolding
 

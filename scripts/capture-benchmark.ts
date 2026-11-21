@@ -2,11 +2,10 @@
  * art change is judged across eras and ecologies rather than on one scene.
  * Usage: tsx scripts/capture-benchmark.ts [label] [name-filter]
  * Writes artifacts/benchmark/<label>/<name>.png and index.html. */
-import { chromium } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
+import { launchBrowser, startGameServer } from "./capture/lib";
 
 const [label = "current", only] = process.argv.slice(2);
-const base = process.env.UHS_CITY_URL ?? "http://127.0.0.1:5173";
 const out = `artifacts/benchmark/${label}`;
 
 type Shot = {
@@ -35,7 +34,8 @@ const shots: Shot[] = [
   { name: "mexico-1500", place: "mexico", year: 1500, ecology: "tropical-woodland", pattern: "waterfront", water: "lake" },
 ];
 
-const browser = await chromium.launch({ channel: "chrome", headless: true });
+const server = await startGameServer({ reuseDefault: true });
+const browser = await launchBrowser();
 await mkdir(out, { recursive: true });
 const done: string[] = [];
 try {
@@ -54,7 +54,7 @@ try {
       landform: "plain",
       start: "resident",
     });
-    await page.goto(`${base}/terrain-lab?${q}`);
+    await page.goto(`${server.url}/terrain-lab?${q}`);
     await page.waitForFunction(
       () => document.querySelector("canvas")?.dataset.terrainReady === "true",
       {},
@@ -124,7 +124,11 @@ try {
     await page.close();
   }
 } finally {
-  await browser.close();
+  try {
+    await browser.close();
+  } finally {
+    server.close();
+  }
 }
 await writeFile(
   `${out}/index.html`,

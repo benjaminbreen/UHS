@@ -1,35 +1,493 @@
-"""Privies: six builds sharing one vocabulary of roof, wall and door.
+"""Privies.
 
-Drawn the way the buildings are — a wall seen square on with a good deal of
-roof above it, lit from the upper left, with the eaves throwing a line of
-shadow down onto the wall. A region is a choice of materials, not a redraw.
+The cabins are one hand drawing: a shed seen gable on, its roof from above at
+the houses' depth, the gable-shingle gold master at the width of one door. A
+build is a wall swatch, a roof and what stands beside it.
 """
-from .building import DIRT, _door, _flies, _ground, _roof, _wall
-from .core import Canvas, RAMPS, blob, jitter, soft_outline, grass
+from .building import _flies, _ground
+from .core import Canvas, RAMPS, blob, draw_grid, jitter, ramp_keys, soft_outline, grass
 
-def plank_shed(v=0, frame=0):
- """A board shed over a pit: the default almost everywhere, almost always."""
- c = Canvas(52, 76)
- wall_kind = ['plank', 'wattle', 'sheet'][v]
- w = RAMPS[['oak7', 'ash7', 'galvanised7'][v]]
- roof_kind = ['shingle', 'thatch', 'sheet'][v]
- rp = RAMPS[['walnut7', 'straw', 'galvanised7'][v]]
- x0, x1 = 8, 43
- _roof(c, x0, x1, 4, 20, roof_kind, rp)
- _wall(c, x0, x1, 21, 68, wall_kind, w)
- _door(c, 17, 34, 30, 66, w, 'moon' if v == 0 else 'slot')
- for x in (x0, x1):                                # corner posts
-  for y in range(21, 69):
-   c.set(x, y, w[2] if x == x0 else w[1])
- _ground(c, 26, 68, 23)
- for x in range(1, 9):                             # the spoil heap behind
-  h = 4 - abs(x - 5) // 2
-  for k in range(h):
-   c.set(x, 66 - k, DIRT[3 if k else 2])
- _flies(c, frame, [(26, 58, 24, 10, 1.0), (26, 50, 18, 14, -1.0)])
- soft_outline(c, w[0], w[2])
- grass(c, [(2, 73, 3), (47, 73, 2)])
+IRON = RAMPS['blackiron7']
+HOLE = '#141210'
+
+# Digits light the wall in bands from the upper left; the swatch adds the
+# material on top. p-s are the wall's own corner posts and door frame, A-G the
+# door, h and i its iron.
+CABIN_AT = 18
+CABIN = [
+ "..................1..................",
+ "................11111................",
+ "...............1113111...............",
+ "..............113333311..............",
+ "............1113333333111............",
+ "...........111333333333111...........",
+ "..........11333333333333311..........",
+ "........111333333333333332111........",
+ ".....s.1114p333333333333322111.p.....",
+ ".....s11444rrrrrrrrrrrrrrr22211p.....",
+ ".....s14444qEEEEBEDDBECCBp22221p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qihFFFFFFFFFFFp22222p.....",
+ ".....s44444qDDDDDDDDDDDDDp22222p.....",
+ ".....s44444qBBBBBBBBBBBBBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBEChBp22222p.....",
+ ".....s44444qEEEEBEDDBECiBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s44444qihFFFFFFFFFFFp22222p.....",
+ ".....s44444qDDDDDDDDDDDDDp22222p.....",
+ ".....s44444qBBBBBBBBBBBBBp22222p.....",
+ ".....s44444qEEEEBEDDBECCBp22222p.....",
+ ".....s33333qEEEEBEDDBECCBp11111p.....",
+ ".....s33333qBBBBBBBBBBBBBp11111p.....",
+]
+
+ROOF_AT = 4
+ROOFS = {
+ 'tile': [
+ "..................c..................",
+ "................bfgeb................",
+ "...............gbfgebb...............",
+ "..............cebfgebbe..............",
+ "............ffccbcccbbdee............",
+ "...........feecfbfgebebddf...........",
+ "..........geccfebfgebdebbdb..........",
+ "........fcecgfecbfgebbdfbbbee........",
+ ".......feccceecfbcccbfbdbebdde.......",
+ "......feccfcccgebfgebdbbbdebbdf......",
+ "....cgecffecfcecbfgebbbeebdefbdbe....",
+ "...fcecgeecfecccbfgebebddebddbbbde...",
+ "...eccceccfeccfcbcdcbdebbdfbbbebbd...",
+ "...cffcccgecffeceebddbdefbdbebdeeb...",
+ "...feecfcecgeecebb.bbdbddbbbdebddf...",
+ "...eccfecccecceb.....bdbbbebbdebbd...",
+ "...cgfecffcceeb.......bddbdeebdfbb...",
+ "...ceecfeecebb.........bbdbddfbdbe...",
+ "...cccgecceb.............bdbbdbbbd...",
+ "...cfceceeb...............bddbbeeb...",
+ "...feccebb.................bbdbdde...",
+ "...ecceb.....................bdbbd...",
+ "...ceeb.......................bddb...",
+ "...ebb.........................bbd...",
+ "...b.............................b...",
+ ],
+ 'thatch': [
+ "..................c..................",
+ "................bfgeb................",
+ "...............fbfgebe...............",
+ "..............eebfgebde..............",
+ "............eeeebcccbdded............",
+ "...........feedebfgebddddd...........",
+ "..........feeefebfgebdddcdd..........",
+ "........efeeffeebfgebcddeddee........",
+ ".......eeeeeeeefbcccbedddeddde.......",
+ "......eeedeeeeeebfgebdedddedddd......",
+ "....ffeefeedeeeebfgebddedddddcddd....",
+ "...feeefeeefeeeebfgebdddddcdddddde...",
+ "...edefeeefeedfebcfcbddcddddddeddd...",
+ "...eeeeeefeeffedggdffdddeddeeddeed...",
+ "...eeedeeeeeeeegeebddfdddedddedddd...",
+ "...eeeeedeeeeegebb.bbdfdddedcddcdd...",
+ "...effeefeeeggeb.....bdffcdddddddd...",
+ "...feeefeedgeeb.......bddfddddddde...",
+ "...eeefeeegebb.........bbdfdddeddd...",
+ "...deeeeggeb.............bdffddeec...",
+ "...eeeegeeb...............bddfcddd...",
+ "...eedgebb.................bbdfddd...",
+ "...eggeb.....................bdffd...",
+ "...geeb.......................bddf...",
+ "...ebb.........................bbd...",
+ "...b.............................b...",
+ ],
+ 'sheet': [
+ "..................c..................",
+ "................bfgeb................",
+ "...............fbfgebe...............",
+ "..............eebfgebdd..............",
+ "............ddddbcccbcccc............",
+ "...........fffffbfgebeeeee...........",
+ "..........eeeeeebfgebdddddd..........",
+ "........ddddddddbfgebcccccccc........",
+ ".......fffffffffbcccbeeeeeeeee.......",
+ "......eeeeeeeeeebfgebdddddddddd......",
+ "....ddddddddddddbfgebcccccccccccc....",
+ "...fffffffffffffbfgebeeeeeeeeeeeee...",
+ "...eeeeeeeeeeeeebcdcbddddddddddddd...",
+ "...dddddddddddddeebddccccccccccccc...",
+ "...ffffffffffffebb.bbdeeeeeeeeeeee...",
+ "...eeeeeeeeeeeeb.....bdddddddddddd...",
+ "...dddddddddeeb.......bddccccccccc...",
+ "...ffffffffebb.........bbdeeeeeeee...",
+ "...eeeeeeeeb.............bdddddddd...",
+ "...dddddeeb...............bddccccc...",
+ "...ffffebb.................bbdeeee...",
+ "...eeeeb.....................bdddd...",
+ "...deeb.......................bddc...",
+ "...ebb.........................bbd...",
+ "...b.............................b...",
+ ],
+}
+
+# Steps off the lighting digit: '=' -2, '-' -1, '0', '+' +1.
+STEP = {'=': -2, '-': -1, '0': 0, '+': 1}
+SWATCH = {
+ 'plank': [
+  "=+000=+0000=+000=+0000",
+  "=+000=+0000=+000=+0000",
+  "=+000=+00-0=+000=+0000",
+  "=+0-0=+00-0=+000=+0000",
+  "=+0-0=+0000=+000=+00-0",
+  "=+000=+0000=+000=+00-0",
+  "=+000=+0000=+-00=+0000",
+  "=+000=+0000=+-00=+0000",
+  "=+000=+0000=+000=+0000",
+  "=+000=+0-00=+000=+0000",
+  "=+000=+0-00=+000=+0000",
+  "=+000=+0000=+000=+0000",
+ ],
+ 'brick': [
+  "+++++++-0000000-",
+  "0000000-0000000-",
+  "----------------",
+  "+++-+++++++-0000",
+  "000-0000000-0000",
+  "----------------",
+ ],
+ 'stone': [
+  "+++++++=+++++++++=",
+  "+000000=+00000000=",
+  "+000000=+00000000=",
+  "+00000-=+0000000-=",
+  "========+0000000-=",
+  "++++=+++=========-",
+  "+000=+00000=++++++",
+  "+000=+0000-=+00000",
+  "+00-=+0000-=+00000",
+  "=====------=+0000-",
+ ],
+ 'daub': [
+  "000000000000",
+  "000000000000",
+  "0000-0000000",
+  "000-00000000",
+  "000000000000",
+  "00000000+000",
+  "000000000000",
+  "000000000-00",
+  "0000000000-0",
+  "000000000000",
+ ],
+ 'sheet': ["+0-"],
+}
+
+CUTS = {
+ 'moon': ([".kk", "k..", "k..", "k..", ".kk"], (17, 32)),
+ 'slot': (["kkkkk", "FFFFF"], (16, 33)),
+ 'diamond': ([".k.", "kkk", ".k."], (17, 32)),
+}
+
+
+def _cabin(c, wall, wr, door, cut, inside=None):
+ keys = ramp_keys(wr, None, door, p=wr[1], q=wr[2], r=wr[2], s=wr[5],
+                  h=IRON[5], i=IRON[1], k=HOLE)
+ sw = SWATCH[wall]
+ for y, row in enumerate(CABIN, CABIN_AT):
+  for x, ch in enumerate(row):
+   if ch.isdigit():
+    s = sw[y % len(sw)]
+    c.set(x, y, wr[max(0, min(6, int(ch) + STEP[s[x % len(s)]]))])
+   elif ch != '.':
+    c.set(x, y, keys[ch])
+ if inside:
+  draw_grid(INSIDE[inside], INSIDE_KEYS, c, (12, 28))
+  draw_grid(OPEN_DOOR, keys, c, (3, 28))
+ else:
+  rows, at = CUTS[cut]
+  draw_grid(rows, keys, c, at)
+ return keys
+
+
+def _roofed(c, wr, roof, rr, frame):
+ """Outline the walls in their own hue, then lay the roof over with its own."""
+ soft_outline(c, wr[0], wr[2])
+ top = draw_grid(ROOFS[roof], ramp_keys(rr, rr), Canvas(c.w, c.h), (0, ROOF_AT))
+ soft_outline(top, rr[0], rr[2])
+ c.px.update(top.px)
+ _flies(c, frame, [(18, 40, 10, 5, 1.0), (18, 33, 7, 6, -1.0)])
  return c.image()
+
+
+def privy_shed(v=0, frame=0, inside=None):
+ """A board shed over a pit: the default almost everywhere, almost always."""
+ c = Canvas(37, 60)
+ wr = RAMPS[['oak7', 'buffclay7', 'galvanised7'][v]]
+ keys = _cabin(c, ['plank', 'daub', 'sheet'][v], wr,
+               RAMPS[['ash7', 'ash7', 'galvanised7'][v]], ['moon', 'slot', 'slot'][v], inside)
+ if v == 1:
+  draw_grid(WATTLE, keys, c, (6, 50))
+ return _roofed(c, wr, ['tile', 'thatch', 'sheet'][v], RAMPS[['walnut7', 'straw', 'galvanised7'][v]], frame)
+
+
+def privy_stone(v=0, frame=0, inside=None):
+ """A masonry privy with a chute at the side: the town house's own."""
+ c = Canvas(37, 60)
+ wr = RAMPS[['granite', 'sandstone', 'limestone'][v]]
+ keys = _cabin(c, 'stone', wr, RAMPS['oak7'], 'diamond', inside)
+ draw_grid(CHUTE, keys, c, (32, 47))
+ return _roofed(c, wr, 'tile', RAMPS['tile'], frame)
+
+
+def privy_outhouse(v=0, frame=0, inside=None):
+ """Brick and a slate roof, the soil pipe up the side: the plumbed century."""
+ c = Canvas(37, 60)
+ wr = RAMPS[['rustred7', 'buffclay7', 'galvanised7'][v]]
+ keys = _cabin(c, 'brick' if v < 2 else 'sheet', wr, RAMPS['oak7'] if v < 2 else wr, 'slot', inside and 'pan')
+ draw_grid(PIPE, ramp_keys(IRON, IRON), c, (32, 60 - len(PIPE)))
+ return _roofed(c, wr, 'tile' if v < 2 else 'sheet', RAMPS[['pewter7', 'tile', 'galvanised7'][v]], frame)
+
+
+def privy_nightsoil(v=0, frame=0, inside=None):
+ """A shed with a tub at the hatch: what comes out of it goes on the fields."""
+ c = Canvas(52, 60)
+ wr = RAMPS[['oak7', 'walnut7', 'galvanised7'][v]]
+ _cabin(c, 'plank' if v < 2 else 'sheet', wr, RAMPS[['ash7', 'oak7', 'galvanised7'][v]], 'slot', inside)
+ draw_grid(TUB, ramp_keys(RAMPS['oak7'], IRON, RAMPS['walnut7'], k=HOLE, u='#2e2516'), c, (36, 60 - len(TUB)))
+ return _roofed(c, wr, ['tile', 'tile', 'sheet'][v], RAMPS[['tile', 'walnut7', 'galvanised7'][v]], frame)
+
+
+# Seen through the open door: digits walnut, a-g oak, A-G iron, w-y paper and
+# glaze. A pit privy has a plank seat; the plumbed outhouse a pan under a high
+# cistern with its chain.
+INSIDE_KEYS = ramp_keys(RAMPS['walnut7'], RAMPS['oak7'], IRON, k=HOLE,
+                        w='#e8e4d6', v='#c9c4b3', y='#9d9888')
+INSIDE = {
+ 'bench': [
+  "kkkkkkkkkkkkk",
+  "k000000000000",
+  "0111011101110",
+  "0111011101110",
+  "0121012101210",
+  "0121012101210",
+  "0121012101E10",
+  "012101210wv10",
+  "012101210wv10",
+  "012101210vy10",
+  "0122012201220",
+  "0122012201220",
+  "0122012201220",
+  "0122012201220",
+  "0122012201220",
+  "0000000000000",
+  "ccccccccccccb",
+  "fgggbkkkbffee",
+  "fggkkkkkkbfee",
+  "fgggbkkkbffee",
+  "ggggggggggggf",
+  "bbbbbbbbbbbba",
+  "dddcdddcdddcb",
+  "dddcdddcdddcb",
+  "dddcdddcdddcb",
+  "dddcdddcdddcb",
+  "dddcdddcdddcb",
+  "dddcdddcdddcb",
+  "cccbcccbcccba",
+  "bbbbbbbbbbbba",
+  "aaaaaaaaaaaaa",
+ ],
+ 'pan': [
+  "kkkkkkkkkkkkk",
+  "k111111111111",
+  "1yyyyyyyyyyyy",
+  "yEEEEEEEyyyyy",
+  "yDDDDDDCyyyyy",
+  "yDDDDDDCyyyyy",
+  "yBBBBBBByyyyy",
+  "yyByCyBDyyyyy",
+  "yyyyCyyByyyyy",
+  "yyyyCyyDyyyyy",
+  "yyyyCyyByyyyy",
+  "yyyyCyyDyyyyy",
+  "yyyyCyyByyyyy",
+  "yyyyCyyDyyyyy",
+  "yyyyCyEDyyEyy",
+  "yyyyCyyyywvyy",
+  "yyyyCyyyywvyy",
+  "yyyyCyyyyvyyy",
+  "yyyyCyyyyyyyy",
+  "yyefggggfeyyy",
+  "yefkkkkkkfdyy",
+  "yefkkkkkkfdyy",
+  "yyeffffffdyyy",
+  "2222wvvvy2222",
+  "2222wvvvy2222",
+  "22222wvy22222",
+  "22222wvy22222",
+  "2222wvvvy2222",
+  "1111111111111",
+  "1111111111111",
+  "0000000000000",
+ ],
+}
+
+# The door swung open on its left hinges, turned toward you and foreshortened.
+OPEN_DOOR = [
+ "......FE",
+ "...FFFED",
+ "GFFFFFFE",
+ "EDDDDDhC",
+ "CBBBBBiA",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "FEECEDCB",
+ "GFFFFFFE",
+ "EDDDDDhC",
+ "CBBBBBiA",
+ "FEECEDCB",
+ "FEECEDCB",
+ "DCCBCBBA",
+]
+
+# Ash wattle where the daub has fallen away.
+WATTLE = [
+ ".DCDC.",
+ "CDCDCD",
+ "BCBCBC",
+ "CDCDCD",
+ ".BCB..",
+]
+
+# The chute from the seat to the pit, in the wall's own stone.
+CHUTE = [
+ "66651",
+ "54432",
+ "44321",
+ "22221",
+ "54432",
+ "44321",
+ "44321",
+ "22221",
+ "54432",
+ "4kkk1",
+ "4kkk1",
+ "3kkk2",
+ "22221",
+]
+
+# A cast-iron soil pipe standing off the corner on brackets, capped above the roof.
+PIPE = [
+ "..gfd",
+ "..fed",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "..fec",
+ "ddddc",
+ "..bec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "..fec",
+ "ddddc",
+ "..bec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "...ec",
+ "..fec",
+ "..ddc",
+]
+
+# The night-soil tub, its yoke leaning on it. Digits oak, a-g iron hoops,
+# A-G the walnut pole, u what is in it.
+TUB = [
+ "...........FD",
+ "..........FD.",
+ ".........FD..",
+ "........FD...",
+ ".......FD....",
+ "......FD.....",
+ "..3445FD43...",
+ ".35uuFDuuu4..",
+ "3uuuFDuuuuu3.",
+ "4uuFDuuuuuu3.",
+ "56FD66665543.",
+ "4FDdddddddcb.",
+ "FD444333221..",
+ "D5444333221..",
+ "45444333221..",
+ "4fffffeeddcb.",
+ "45444333221..",
+ "45444333221..",
+ "45444333221..",
+ "45444333221..",
+ "4fffffeeddcb.",
+ "35444333221..",
+ "23333222211..",
+]
 
 
 def reed_screen(v=0, frame=0):
@@ -77,142 +535,6 @@ def reed_screen(v=0, frame=0):
  soft_outline(c, p[0], p[2])
  grass(c, [(1, 56, 3), (54, 56, 2)])
  return c.image()
-
-
-def bench_latrine(v=0, frame=0):
- """A stone bench of keyhole seats over a running channel: the public one."""
- c = Canvas(72, 60)
- s = RAMPS[['granite', 'sandstone', 'limestone'][v]]
- _wall(c, 2, 69, 6, 30, 'stone', s)                # the wall behind the bench
- c.hline(2, 69, 6, s[6]); c.hline(2, 69, 7, s[4])
- for y in range(30, 40):                           # the bench slab
-  t = (y - 30) / 9
-  for x in range(4, 68):
-   u = (x - 4) / 63
-   tone = 6 if t < 0.25 else 5 if t < 0.6 else 4
-   if u > 0.75: tone -= 1
-   if jitter(x // 3, y) % 6 == 0: tone -= 1
-   c.set(x, y, s[max(tone, 1)])
- c.hline(4, 67, 30, s[6]); c.hline(4, 67, 39, s[2])
- for hx in (15, 36, 57):                           # the keyhole openings
-  for y in range(32, 38):
-   half = 4 if y < 36 else 3
-   for x in range(hx - half, hx + half + 1):
-    c.set(x, y, '#15110e' if y < 37 else '#221b15')
-  c.hline(hx - 4, hx + 4, 31, s[6])
-  c.set(hx - 5, 33, s[3]); c.set(hx + 5, 33, s[2])
- for y in range(40, 50):                           # the front of the bench
-  for x in range(4, 68):
-   u = (x - 4) / 63
-   tone = 4 if u < 0.3 else 3 if u < 0.75 else 2
-   if y % 5 == 0: tone -= 1
-   if jitter(x, y // 5) % 7 == 0: tone += 1
-   c.set(x, y, s[max(tone, 1)])
- c.hline(4, 67, 40, s[5])
- for x in range(6, 66):                            # the channel running under it
-  c.set(x, 50, s[1]); c.set(x, 51, '#141a19'); c.set(x, 52, '#0f1414')
- for i in range(3):                                # water going down it
-  x = 8 + ((frame * 6 + i * 19) % 54)
-  c.set(x, 51, RAMPS['water'][4]); c.set(x + 1, 51, RAMPS['water'][3])
- c.hline(4, 67, 53, s[2])
- _ground(c, 36, 54, 33, RAMPS['granite'])
- soft_outline(c, s[0], s[2])
- return c.image()
-
-
-def stone_privy(v=0, frame=0):
- """A masonry privy block with a chute at the side: the town house's own."""
- c = Canvas(56, 74)
- s = RAMPS[['granite', 'sandstone', 'limestone'][v]]
- rp = RAMPS[['tile', 'tile', 'walnut7'][v]]
- x0, x1 = 6, 43
- _roof(c, x0, x1, 2, 20, 'tile' if v != 2 else 'shingle', rp)
- _wall(c, x0, x1, 21, 66, 'stone', s)
- _door(c, 15, 32, 30, 64, RAMPS['walnut7'], 'slot')
- for y in range(26, 32):                           # a vent slit high up
-  c.hline(36, 38, y, '#161210')
- c.set(35, 26, s[5]); c.set(39, 26, s[3])
- for y in range(30, 62):                           # the chute down the side
-  for x in range(44, 51):
-   u = (x - 44) / 7
-   c.set(x, y, s[4] if u < 0.4 else s[2])
-  if y % 6 == 0: c.hline(44, 50, y, s[1])
- c.hline(44, 50, 29, s[6])
- for x in range(45, 50):                           # what runs out of it
-  c.set(x, 62, '#2e2a20'); c.set(x, 63, '#211e17')
- _ground(c, 26, 66, 26, RAMPS['granite'])
- _flies(c, frame, [(47, 58, 9, 6, 1.0), (26, 60, 22, 9, -1.0)])
- soft_outline(c, s[0], s[2])
- grass(c, [(1, 71, 3), (52, 71, 2)])
- return c.image()
-
-
-def night_soil(v=0, frame=0):
- """A shed with a hatch at the back: what comes out of it goes on the fields."""
- c = Canvas(60, 74)
- w = RAMPS[['walnut7', 'oak7', 'ash7'][v]]
- rp = RAMPS[['tile', 'walnut7', 'galvanised7'][v]]
- x0, x1 = 6, 41
- _roof(c, x0, x1, 2, 20, ['tile', 'shingle', 'sheet'][v], rp)
- _wall(c, x0, x1, 21, 66, 'plank', w)
- _door(c, 14, 31, 30, 64, w, 'slot')
- for y in range(34, 50):                           # the collection hatch
-  for x in range(42, 52):
-   u = (x - 42) / 10
-   tone = 4 if u < 0.4 else 3 if u < 0.8 else 2
-   if (x + y) % 5 == 0: tone -= 1
-   c.set(x, y, w[max(tone, 1)])
- c.hline(42, 51, 34, w[6]); c.hline(42, 51, 49, w[1])
- m = RAMPS['blackiron7']
- c.hline(42, 51, 38, m[3]); c.hline(42, 51, 46, m[3])
- c.set(50, 42, m[5]); c.set(50, 43, m[1])
- tub = RAMPS['oak7']                               # a pail and its yoke, waiting
- for y in range(54, 66):
-  for x in range(44, 56):
-   u = (x - 44) / 12
-   c.set(x, y, tub[5] if u < 0.25 else tub[4] if u < 0.7 else tub[2])
- c.hline(44, 55, 54, tub[6]); c.hline(44, 55, 65, tub[1])
- for y in (57, 62):
-  c.hline(44, 55, y, m[4]); c.hline(44, 55, y + 1, m[1])
- for x in range(46, 54): c.set(x, 52, tub[3]); c.set(x, 53, tub[1])
- c.set(45, 53, tub[2]); c.set(54, 53, tub[2])
- _ground(c, 24, 66, 24)
- _flies(c, frame, [(24, 58, 23, 9, 1.0), (48, 50, 10, 7, -1.0)])
- soft_outline(c, w[0], w[2])
- grass(c, [(1, 71, 3), (57, 71, 2)])
- return c.image()
-
-
-def brick_outhouse(v=0, frame=0):
- """Brick, a slate roof, a cistern and a soil pipe: the plumbed century."""
- c = Canvas(58, 78)
- bp = RAMPS[['rustred7', 'buffclay7', 'galvanised7'][v]]
- rp = RAMPS[['pewter7', 'pewter7', 'galvanised7'][v]]
- m = RAMPS['blackiron7']
- x0, x1 = 6, 43
- _roof(c, x0, x1, 8, 20, 'sheet' if v == 2 else 'tile', rp)
- _wall(c, x0, x1, 21, 70, 'brick' if v != 2 else 'sheet', bp)
- _door(c, 15, 33, 32, 68, RAMPS['oak7'] if v != 2 else bp, 'slot')
- for y in range(24, 36):                           # the cistern on brackets
-  for x in range(44, 56):
-   u = (x - 44) / 12
-   c.set(x, y, m[5] if u < 0.3 else m[4] if u < 0.7 else m[2])
- c.hline(44, 55, 24, m[6]); c.hline(44, 55, 35, m[0])
- for x in (45, 54): c.set(x, 36, m[2]); c.set(x, 37, m[1])
- for y in range(36, 68):                           # the soil pipe
-  c.set(48, y, m[5]); c.set(49, y, m[3]); c.set(50, y, m[1])
-  if y % 9 == 0:
-   c.hline(47, 51, y, m[4]); c.hline(47, 51, y + 1, m[1])
- c.set(47, 67, m[2]); c.set(51, 67, m[2])
- for y in range(26, 31):                           # a fanlight over the door
-  c.hline(20, 28, y, '#22282b' if y > 27 else '#39424a')
- c.hline(19, 29, 25, bp[5])
- _ground(c, 24, 70, 25, RAMPS['granite'])
- soft_outline(c, bp[0], bp[2])
- grass(c, [(1, 75, 3), (54, 75, 2)])
- return c.image()
-
-
 
 
 def _heap(c, shapes, ramp, base):
@@ -281,12 +603,15 @@ def dung_heap(v=0, frame=0):
  return c.image()
 
 
+PRIVY_STATES = {k: {'open': lambda v, f=f: f(v, inside='bench')}
+                for k, f in (('privy-shed', privy_shed), ('privy-stone', privy_stone),
+                             ('privy-outhouse', privy_outhouse), ('privy-nightsoil', privy_nightsoil))}
+
 PRIVY = {
- 'privy-shed': plank_shed,
+ 'privy-shed': privy_shed,
  'privy-screen': reed_screen,
- 'privy-bench': bench_latrine,
- 'privy-stone': stone_privy,
- 'privy-nightsoil': night_soil,
- 'privy-outhouse': brick_outhouse,
+ 'privy-stone': privy_stone,
+ 'privy-nightsoil': privy_nightsoil,
+ 'privy-outhouse': privy_outhouse,
  'privy-dung': dung_heap,
 }

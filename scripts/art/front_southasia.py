@@ -36,6 +36,8 @@ import re
 import sys
 import zlib
 
+import numpy as np
+
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 
@@ -484,27 +486,216 @@ def pavilion(c, g, rg, v):
     return (L + R) // 2
 
 
-def shikhara(c, cx, foot, w, h, r):
-    """A curved Nagara tower over the shrine: its courses stepping in as it
-    rises, lit on the left, an amalaka and a kalasha on top."""
-    for yy in range(foot - h, foot):
-        t = (foot - yy) / h
-        hw = w / 2 * (1 - 0.55 * t ** 1.8)
-        for xx in range(round(cx - hw), round(cx + hw)):
-            u = (xx - cx) / hw
-            q = 1 if u < -0.55 else 2 if u < 0.1 else 3 if u < 0.6 else 4
-            if (foot - yy) % 6 == 0:
-                q = min(7, q + 2)
-            elif (foot - yy) % 6 == 1:
-                q = max(0, q - 1)
-            if abs(u) < 0.18:
-                q = max(0, q - 1)
-            elif abs(abs(u) - 0.42) < 0.06:
-                q = min(7, q + 2)
-            c.p(xx, yy, r[q])
-    top = foot - h
-    so.lathe(c, cx, top + 2, [(0, w * 0.18), (2, w * 0.24), (5, w * 0.24), (7, w * 0.16)], r, ribs=12)
-    so.lathe(c, cx, top - 5, [(0, 2), (3, 4), (6, 3), (8, 1.5), (10, 1)], pz.BRASS)
+def niche(c, cx, bottom, w, h, r, q=2):
+    """A carved arch niche (gavaksha) in a face of tone q: the rim lit along
+    its curve, the hollow a step down with the rim's shadow inside its top."""
+    rx = w / 2
+    sy = bottom - h + rx
+    for yy in range(bottom - h, bottom):
+        for xx in range(round(cx - rx), round(cx + rx)):
+            dx, dy = xx + 0.5 - cx, yy + 0.5 - sy
+            d = math.hypot(dx, dy) if dy < 0 else abs(dx)
+            if d > rx:
+                continue
+            if d > rx - 1:
+                k = q - 2 if dy < 0 and dx < rx * 0.4 else q - 1 if dx < 0 else q + 1
+            elif d > rx - 2.2 and dy < rx * 0.2:
+                k = q + 3
+            else:
+                k = q + 2 if dy < 0 or yy < bottom - 2 else q + 1
+            c.p(xx, yy, r[max(0, min(7, k))])
+
+
+def amalaka(c, cx, foot, R, r):
+    """The ribbed stone cushion that crowns a spire, seen from above: a flat
+    disc on top, then the ribbed girth bulging out past it and rounding under
+    to the foot. Ribs are lit on their left and follow the bulge. `foot` is
+    the bottom row at the front. Returns the row the finial stands on."""
+    rx, ry = R * 0.7, R * 0.27
+    top = foot - R * 1.2
+    dc = top + ry
+    mid = dc + R * 0.45
+    rb, ryb = R * 0.8, R * 0.28
+    bc = foot - ryb
+    nr = max(10, round(R * 0.6))
+    cols = {}
+    for xx in range(round(cx - R), round(cx + R)):
+        x = xx + 0.5 - cx
+        ax = abs(x)
+        if ax >= R:
+            continue
+        if ax < rx:
+            e = math.sqrt(1 - (x / rx) ** 2)
+            t0, df = dc - ry * e, dc + ry * e
+        else:
+            t0 = df = mid - (mid - dc) * math.sqrt(max(0.0, 1 - ((ax - rx) / (R - rx)) ** 2))
+        if ax < rb:
+            b0 = bc + ryb * math.sqrt(1 - (x / rb) ** 2)
+        else:
+            b0 = mid + (bc - mid) * math.sqrt(max(0.0, 1 - ((ax - rb) / (R - rb)) ** 2))
+        cols[xx] = (x, t0, df, b0)
+    mask = {(xx, yy) for xx, (x, t0, df, b0) in cols.items() for yy in range(round(t0), round(b0))}
+    span = {}
+    for xx, yy in mask:
+        span[yy] = max(span.get(yy, 0.0), abs(xx + 0.5 - cx) + 0.5)
+    for xx, (x, t0, df, b0) in cols.items():
+        for yy in range(round(t0), round(b0)):
+            y = yy + 0.5
+            if y < df:
+                e = (x / rx) ** 2 + ((y - dc) / ry) ** 2
+                q = 1
+                if e > 0.62 and y > dc:
+                    q = 0
+                elif 0.3 < e < 0.48:
+                    q = 2 if y > dc else 0
+                elif e > 0.8:
+                    q = 2
+                c.p(xx, yy, r[q])
+                continue
+            wy = span[yy] + 0.5
+
+            def rib(px):
+                return math.floor((math.asin(max(-1.0, min(1.0, px / wy))) / math.pi + 0.5) * nr)
+            u = x / R
+            t = (y - df) / max(1.0, b0 - df)
+            q = 2 if u < -0.45 else 3 if u < 0.35 else 4
+            if y < mid:
+                q -= 1
+            elif t > 0.75:
+                q += 1
+            if rib(x) != rib(x + 1):
+                q += 2
+            elif rib(x) != rib(x - 1):
+                q -= 1
+            c.p(xx, yy, r[max(0, min(5, q))])
+    for xx, yy in mask:
+        if (xx, yy - 1) not in mask or (xx, yy + 1) not in mask or (xx + 1, yy) not in mask or (xx - 1, yy) not in mask:
+            c.p(xx, yy, r[4] if yy < dc else r[5])
+    return round(dc)
+
+
+def gold_pot(c, cx, y, s=1.0):
+    """The gilt finial: a round ball, lit at its upper left, with a bud on
+    it. `y` is the row it stands on. Returns the bud's top row."""
+    R = 2.6 * s + 0.6
+    cy = y - R
+    g = fp.GOLD
+    for yy in range(round(cy - R) - 1, round(cy + R) + 1):
+        for xx in range(round(cx - R) - 1, round(cx + R) + 1):
+            dx, dy = (xx + 0.5 - cx) / R, (yy + 0.5 - cy) / R
+            d = dx * dx + dy * dy
+            if d > 1:
+                continue
+            l = -0.6 * dx - 0.6 * dy + 0.5 * math.sqrt(1 - d)
+            q = 0 if l > 0.75 else 1 if l > 0.4 else 2 if l > 0.0 else 3 if l > -0.35 else 4
+            c.p(xx, yy, g[q])
+    top = round(cy - R)
+    c.p(cx, top - 1, g[1]); c.p(cx - 1, top, g[2]); c.p(cx, top - 2, g[2])
+    return top - 2
+
+
+class Latina:
+    """A Nagara spire as a solid for `so.carve`: storeys stepping in up a
+    bullet curve. The middle offset (bhadra) and the next (prati) rise as
+    smooth columns; the corners (karna) are blocks parted by recessed
+    joints, so every storey shows its top. Faces seen are kept by band so
+    the niches can be drawn on them by hand."""
+
+    def __init__(self, x, yc, z0, a, h, pitch=13, crown=0.5):
+        self.x, self.yc, self.z0, self.a, self.h = x, yc, z0, a, h
+        self.crown = crown
+        self.n = max(4, round(h / pitch))
+        self.pitch = h / self.n
+        self.p = max(2.0, a * 0.07)
+        self.faces = {}
+
+    def half(self, k):
+        return self.a * (1 - (1 - self.crown) * (k / self.n) ** 1.4)
+
+    def occ(self, X, Y, Z):
+        zz = Z - self.z0
+        k = np.floor(zz / self.pitch)
+        v = zz - k * self.pitch
+        a = self.half(np.clip(k, 0, self.n))
+        aa = np.where(v >= self.pitch - 2.5, a - 3.5, a)
+        x, y, p = np.abs(X - self.x), np.abs(Y - self.yc), self.p
+        body = (x < 0.3 * a) & (y < 0.85 * a + 2 * p)
+        body |= (x < 0.64 * a) & (y < 0.85 * a + p)
+        body |= (x < aa) & (y < 0.85 * aa)
+        body &= (zz >= 0) & (zz < self.h)
+        a1 = self.half(self.n) + 2
+        cap = (zz >= self.h) & (zz < self.h + 4) & (x < a1) & (y < 0.85 * a1)
+        return body | cap
+
+    def paint(self, face, x, y, z):
+        zz = z - self.z0
+        if zz >= self.h:
+            return (1 if x < self.x else 2) if face == 0 else 2
+        k = math.floor(zz / self.pitch)
+        v = zz - k * self.pitch
+        a = self.half(min(k, self.n))
+        u = x - self.x
+        band = 'b' if abs(u) < 0.3 * a else 'p' if abs(u) < 0.64 * a else 'k'
+        right = u > 0
+        if face == 0:
+            return 1 if u < 0.3 * a else 2
+        self.faces.setdefault(band, set()).add((round(x - 0.5), round(z + so.K * y + 0.5)))
+        if band == 'b':
+            return 0 if u < -0.3 * a + 1 else 1
+        q = 1 + 2 * right if band == 'k' else 1 + right
+        if band == 'p':
+            return q
+        if v >= self.pitch - 2.5:
+            return q + 2
+        if v >= self.pitch - 4.5:
+            return q - 1
+        if abs(u) > a - 1.5:
+            return 0 if not right else 4
+        return q
+
+    def dress(self, c, cx, base, stone):
+        """The carving the solid cannot carry, drawn by hand on the faces
+        `so.carve` showed: an arch niche up the bhadra on every storey, small
+        niches on the prati of a big spire, then the amalaka and its gilt pot.
+        Returns the pot's top as (x, y)."""
+        def at(x, y, z):
+            return round(cx + x), round(base - z - so.K * y)
+        bk = Clip(c, cx, base, self.faces.get('b', set()))
+        pk = Clip(c, cx, base, self.faces.get('p', set()))
+        for k in range(self.n):
+            a = self.half(k)
+            z0 = self.z0 + k * self.pitch
+            _, nb = at(self.x, self.yc - 0.85 * a - 2 * self.p, z0)
+            niche(bk, round(cx + self.x), nb - 1, round(0.6 * a * 0.78) | 1, round(self.pitch * 0.85), stone, 1)
+            if a < 30:
+                continue
+            _, npb = at(self.x, self.yc - 0.85 * a - self.p, z0)
+            for side in (-1, 1):
+                niche(pk, round(cx + self.x + side * 0.47 * a), npb - 4, 5, 7, stone, 1 if side < 0 else 2)
+        R = (self.half(self.n) + 2) * 0.92
+        fx, fy = at(self.x, self.yc - R * 0.35, self.h + self.z0 + 5)
+        seat = amalaka(c, fx, fy, R, stone)
+        return fx, gold_pot(c, fx, seat + 1, max(1.0, R / 16))
+
+    def carve(self, c, cx, base, stone, top):
+        """This spire alone, standing on `base`. Returns the pot's top."""
+        a = self.a + 4
+        so.carve(c, cx, base, self.x - a, self.x + a, self.yc - a, self.yc + a, self.z0 + self.h + 10,
+                 lambda X, Y, Z: self.occ(X, Y, Z).astype(int),
+                 lambda m, face, x, y, z: (1 if face == 0 else 0, self.paint(face, x, y, z)), [stone, top])
+        return self.dress(c, cx, base, stone)
+
+
+class Clip:
+    """A canvas that only takes pixels on the faces given, as (x, height
+    above the base) pairs: hand-drawn carving laid on a carved solid."""
+
+    def __init__(self, c, cx, base, keep):
+        self.c, self.cx, self.base, self.keep = c, cx, base, keep
+
+    def p(self, x, y, col):
+        if (x - self.cx, self.base - y) in self.keep:
+            self.c.p(x, y, col)
 
 
 def shrine(c, g, rg, tone):
@@ -519,7 +710,8 @@ def shrine(c, g, rg, tone):
         tip = g['E'] - 4 - 12 - R0 - 1
         so.lathe(c, cx, tip, [(0, 2), (3, 3), (6, 2), (9, 1)], pz.BRASS)
     else:
-        shikhara(c, cx, g['E'] + 4, g['W'] - 58, 72, rg['stone_top'])
+        a = (g['W'] - 48) / 2
+        Latina(0, 0.85 * a + 6, 0, a, 96).carve(c, cx, g['E'] + 4, s, rg['stone_top'])
     shape = rg['shape'] if rg['arched'] else cusped
     surround(c, cx, base - 28, 20, base - 8, s, shape=shape)
     recess(c, cx, base - 28, 20, base - 8, s, shape=shape)
@@ -537,7 +729,7 @@ def service(look, kind, spec=None, info=None):
     rg = resolve(look, s['tone'])
     W = s['W']
     if kind == 'shrine':
-        c, g = block(rg, W, 34, 16, head=78)
+        c, g = block(rg, W, 34, 16, head=132)
         dx = shrine(c, g, rg, s['tone'])
     elif kind == 'pavilion':
         c, g = block(rg, W, 52, 30)
@@ -591,9 +783,25 @@ def limed_laterite(c, x0, y0, w, h):
             c.p(xx, yy, LATERITE[3] if fm.h2(xx, yy, 612) > 0.08 else LATERITE[5])
 
 
+def mud_plinth(wall_r, plinth_r=MUD):
+    """Mud-plaster or limewashed rural wall over a darker beaten-earth or stone plinth."""
+    def paint(c, x0, y0, w, h):
+        fm.kahgel(c, x0, y0, w, h, wall_r) if wall_r is MUD else fm.render(c, x0, y0, w, h, wall_r)
+        ph = min(10, max(6, h // 5))
+        for yy in range(y0 + h - ph, y0 + h):
+            for xx in range(x0, x0 + w):
+                q = 3 if yy == y0 + h - ph else (5 if fm.h2(xx, yy, 619) < 0.14 else 4)
+                c.p(xx, yy, plinth_r[q])
+    return paint
+
+
 ev.WALL.update({'sa-mud': mud, 'sa-brick': lambda c, x, y, w, h: fm.brick(c, x, y, w, h, BENGAL_BRICK),
                 'sa-whitewash': lambda c, x, y, w, h: fm.render(c, x, y, w, h, WHITE),
-                'sa-laterite': laterite, 'sa-limed-laterite': limed_laterite})
+                'sa-laterite': laterite, 'sa-limed-laterite': limed_laterite,
+                'sa-chuna-plinth': mud_plinth(CHUNA, MUD),
+                'sa-ochre-plinth': mud_plinth(PILA, MUD),
+                'sa-deccan-plinth': mud_plinth(DECCAN, BASALT),
+                'sa-mud-plinth': mud_plinth(MUD, ramp(46, 0.06, lift=-0.12))})
 ev.TONES.update({'bengal-tile': ramp(34, 0.11, lift=-0.06), 'malabar-tile': ramp(38, 0.12, lift=-0.04),
                  'malabar-old': ramp(30, 0.07, lift=-0.14)})
 
@@ -796,8 +1004,162 @@ def open_openings(h):
     h.door_x, h.door_h = h.x0 + h.W // 2, 40
 
 
+def rural_openings(h):
+    """A rural plank door with a dark timber lintel; one small barred window on
+    small cottages, two on medium farmhouses, and a clay water pot at the edge."""
+    c, x0, W, top = h.c, h.x0, h.W, h.floors[0][0]
+    cx = x0 + W // 2
+    dw, dh = (18, 38) if W < 110 else (20, 40)
+    h.door_x, h.door_h = cx, dh
+    op.door_plank(c, cx - dw // 2, h.base - dh, dw, dh)
+    # Timber lintel over the rural door.
+    bevel(c, cx - dw // 2 - 3, h.base - dh - 4, dw + 6, 4, TEAK, 1)
+    op.reveal(c, cx - dw // 2, h.base - dh, dw, dh, 2)
+    wy = top + 14
+    if W >= 110:
+        for wx in (x0 + W // 5, x0 + W - W // 5):
+            if abs(wx - cx) < 22:
+                continue
+            op.frame_timber(c, wx - 7, wy, 14, 12, None)
+            op.lattice(c, wx - 7, wy, 14, 12)
+            op.reveal(c, wx - 7, wy, 14, 12, 2)
+            h.sills.append((wx - 10, wy + 14, 20))
+    elif h.s.get('seed', 0) % 2 == 0 and W >= 80:
+        wx = x0 + W - 20
+        if abs(wx - cx) >= 18:
+            op.frame_timber(c, wx - 5, wy + 2, 10, 10, None)
+            op.lattice(c, wx - 5, wy + 2, 10, 10)
+            op.reveal(c, wx - 5, wy + 2, 10, 10, 2)
+    # A clay water pot (matka) beside the threshold.
+    px = x0 + 12 if h.s.get('seed', 0) % 2 == 0 else x0 + W - 12
+    if abs(px - cx) >= dw // 2 + 6:
+        pr.pot(c, px, h.base - 1, 'jug', TERRACOTTA, scale=0.9)
+
+
 ev.WALL.update({'open-workshop': open_shed('open-workshop'), 'open-pavilion': open_shed('open-pavilion')})
-ev.OPENINGS['sa-open'] = open_openings
+ev.OPENINGS.update({'sa-open': open_openings, 'sa-rural': rural_openings})
+
+
+# Rural and modest South Asian dwellings by look: (walls, roofs, roof tones, flat_variants).
+RURAL = {
+    'north-indian': dict(walls=['sa-mud-plinth', 'sa-chuna-plinth', 'sa-mud-plinth'],
+                         roofs=['thatch', 'plain', 'thatch'],
+                         tones=['straw-old', 'bengal-tile', 'reed'], flat=(2,)),
+    'early-north-indian': dict(walls=['sa-mud-plinth', 'sa-brick', 'sa-chuna-plinth'],
+                               roofs=['thatch', 'thatch', 'plain'],
+                               tones=['straw-old', 'reed', 'bengal-tile'], flat=()),
+    'sultanate': dict(walls=['sa-chuna-plinth', 'sa-mud-plinth', 'sa-deccan-plinth'],
+                      roofs=['thatch', 'plain', 'thatch'],
+                      tones=['reed', 'tile-brown', 'straw-old'], flat=(2,)),
+    'rajput': dict(walls=['sa-ochre-plinth', 'sa-chuna-plinth', 'sa-mud-plinth'],
+                   roofs=['thatch', 'thatch', 'thatch'],
+                   tones=['straw-old', 'reed', 'straw-old'], flat=(0, 1)),
+    'deccan': dict(walls=['sa-deccan-plinth', 'sa-mud-plinth', 'sa-deccan-plinth'],
+                   roofs=['plain', 'thatch', 'plain'],
+                   tones=['tile-brown', 'straw-old', 'bengal-tile'], flat=(2,)),
+    'bengali': dict(walls=['sa-mud', 'sawali', 'sa-mud-plinth'],
+                    roofs=['thatch', 'thatch', 'plain'],
+                    tones=['straw-old', 'reed', 'bengal-tile'], flat=(), bend=5),
+    'malabar': dict(walls=['sa-laterite', 'sa-mud-plinth', 'sa-limed-laterite'],
+                    roofs=['thatch', 'plain', 'plain'],
+                    tones=['straw-old', 'malabar-tile', 'malabar-old'], flat=(), hip=True),
+}
+
+
+def flat_rural_house(look, W, medium, v, tone, info):
+    """A modest single-storey flat-roofed village house (kothi / dhaba) in
+    beaten earth or lime-washed mudbrick: low parapet, timber lintel door,
+    small barred windows, clay pots — no courtyard, jharokha or chhatri."""
+    rg = resolve(look if look in LOOKS else 'north-indian', tone)
+    wall_r = MUD if (v % 3 == 0 and look != 'rajput') else (PILA if look == 'rajput' and v == 0 else rg['wall'])
+    top_r = EARTH_TOP if wall_r is MUD else rg['top']
+    plinth_r = BASALT if look == 'deccan' else MUD
+    wall_fn_rural = (lambda c, x, y, w, h: fm.kahgel(c, x, y, w, h, wall_r)) if wall_r is MUD else (
+        lambda c, x, y, w, h: fm.render(c, x, y, w, h, wall_r))
+    rg_rural = dict(rg, wall=wall_r, top=top_r, stone=plinth_r)
+    wall_h = 54 if medium else 48
+    depth = 34 if medium else 26
+    c, g = block(rg_rural, W, wall_h, depth, head=14)
+    L, R, B, E, base = g['L'], g['R'], g['B'], g['E'], g['base']
+    # Beaten-earth or stone plinth along the wall foot.
+    ph = 8
+    for yy in range(base - ph, base):
+        for xx in range(L, R):
+            c.p(xx, yy, plinth_r[3 if yy == base - ph else (5 if fm.h2(xx, yy, 623) < 0.14 else 4)])
+    # Timber roof-beam ends (rafters) projecting just under the parapet.
+    for bx in range(L + 8, R - 6, 12):
+        c.rect(bx, E + 2, 3, 3, TEAK[4])
+        c.p(bx, E + 2, TEAK[2])
+    # Plank door with timber lintel.
+    cx = (L + R) // 2 + ((-8, 0, 8)[v % 3] if medium else 0)
+    dw, dh = (20, 40) if medium else (18, 38)
+    op.door_plank(c, cx - dw // 2, base - dh, dw, dh)
+    bevel(c, cx - dw // 2 - 3, base - dh - 4, dw + 6, 4, TEAK, 1)
+    op.reveal(c, cx - dw // 2, base - dh, dw, dh, 2)
+    # Small shuttered/barred windows (two on medium, one high vent or window on small).
+    if medium:
+        for wx in (L + 22, R - 22):
+            if abs(wx - cx) < 24:
+                continue
+            wy = E + 16
+            op.frame_timber(c, wx - 7, wy, 14, 13, None)
+            op.lattice(c, wx - 7, wy, 14, 13)
+            op.reveal(c, wx - 7, wy, 14, 13, 2)
+    else:
+        for vx in (L + 16, R - 16):
+            if abs(vx - cx) < 18:
+                continue
+            c.rect(vx - 3, E + 12, 6, 5, DARK)
+            c.rect(vx - 3, E + 11, 6, 1, TEAK[3])
+    # Clay water pot at the threshold and a storage jar on the flat roof.
+    px = L + 12 if cx >= (L + R) // 2 else R - 12
+    if abs(px - cx) >= dw // 2 + 6:
+        pr.pot(c, px, base - 1, 'jug', TERRACOTTA, scale=0.9)
+    if medium:
+        pr.pot(c, L + 22, B + 28, 'pithos', MUD, scale=0.6)
+    if info is not None:
+        info.update(x0=L, W=W, base=base, door_x=cx, door_h=dh)
+    finish(c)
+    consolidate(c, rare=4)
+    return c.im
+
+
+def rural_house(look, spec=None, info=None):
+    """A modest single-storey South Asian village cottage (small) or farmhouse
+    with veranda / flat mud terrace (medium)."""
+    s = dict(spec or {})
+    tone = s.pop('tone', 0)
+    v = s.pop('v', 0)
+    medium = s.pop('medium', False)
+    W = s.get('W', 144 if medium else 96)
+    r = RURAL[look]
+    if v in r['flat']:
+        return flat_rural_house(look, W, medium, v, tone, info)
+    roof = r['roofs'][v % len(r['roofs'])]
+    roof_tone = r['tones'][v % len(r['tones'])]
+    wall = r['walls'][(v + tone) % len(r['walls'])]
+    cfg = dict(
+        W=W,
+        storeys=[wall],
+        heights=[50 if medium else 46],
+        roof=roof,
+        tone=roof_tone,
+        hip=r.get('hip', False),
+        bend=r.get('bend', 0),
+        saddle=0,
+        gallery=medium,
+        mukhappu=False,
+        openings='sa-rural',
+        rise=36 if medium else 30,
+        seed=tone * 7 + v,
+        wear=0.35,
+    )
+    h = Chala(cfg)
+    h.post = TEAK if look in ('deccan', 'malabar') else BAMBOO_POST
+    im = h.build()
+    if info is not None:
+        info.update(x0=h.x0, W=h.W, base=h.base, door_x=h.door_x, door_h=h.door_h)
+    return im
 
 
 def gola(W, tone, info):
@@ -837,14 +1199,21 @@ def sreekovil(W, tone, info):
     consolidate(c, rare=4)
     return c.im
 
+HOUSE_RE = re.compile(r'southasian-house-(%s)-(small|medium)-(\d+)$'
+                      % '|'.join(sorted(RURAL, key=len, reverse=True)))
 MONSOON_RE = re.compile(r'southasian-(monsoon|service)-(bengali|malabar)-(small|medium|large)-(\d+)$')
 LOOK_RE = re.compile(r'southasian-(courtyard|service)-(%s)-(small|medium|large)-(\d+)$'
                      % '|'.join(sorted(LOOKS, key=len, reverse=True)))
 
 
 def spec_for(base, nw):
-    """The builder and spec for a southasian-{courtyard,service} frame in one
-    of the looks drawn here, or None."""
+    """The builder and spec for a southasian-{house,courtyard,monsoon,service}
+    frame in one of the looks drawn here, or None."""
+    m = HOUSE_RE.match(base)
+    if m:
+        look, size, v = m.group(1), m.group(2), int(m.group(3))
+        tone = v + zlib.crc32(base.encode()) % 5
+        return 'sa-house', dict(look=look, W=nw * 16, medium=size == 'medium', v=v, tone=tone)
     m = MONSOON_RE.match(base)
     if m:
         family, look, size, v = m.group(1), m.group(2), m.group(3), int(m.group(4))
@@ -867,6 +1236,7 @@ def spec_for(base, nw):
 
 
 BUILDERS = {
+    'sa-house': lambda s, i: rural_house(s['look'], {k: v for k, v in s.items() if k != 'look'}, i),
     'sa-monsoon': lambda s, i: monsoon_house(s['look'], {k: v for k, v in s.items() if k != 'look'}, i),
     'sa-monsoon-service': lambda s, i: monsoon_service(s['look'], s['kind'],
                                                        {k: v for k, v in s.items() if k not in ('look', 'kind')}, i),
@@ -877,20 +1247,55 @@ BUILDERS = {
 
 
 if __name__ == '__main__':
-    from PIL import Image
+    from PIL import Image, ImageDraw
     from art.reference import current_adult
     medium = dict(W=208, wing=41, street=100, front=18, court=70, far=20, face=52, portal=0.36)
+    mode = sys.argv[2] if len(sys.argv) > 2 else ''
+    a = current_adult()
+    if mode == 'ab':
+        # A/B sheet: each South Asian look shows A (existing smallest residential)
+        # beside B (new southasian-house small 4x3 and medium 6x4 variants).
+        labeled = []
+        for look in ('north-indian', 'rajput', 'deccan', 'sultanate', 'early-north-indian', 'bengali', 'malabar'):
+            before = (monsoon_house(look, dict(W=192, tone=0)) if look in MONSOON
+                      else haveli(look, dict(medium, v=0, tone=0)))
+            smalls = [rural_house(look, dict(W=96, medium=False, v=v, tone=v)) for v in range(3)]
+            meds = [rural_house(look, dict(W=144, medium=True, v=v, tone=v)) for v in range(3)]
+            labeled.append((f'{look}  |  A: existing residential   ->   B: new southasian-house (3 small + 3 medium)',
+                            [before, None, *smalls, *meds]))
+        W = max(sum((i.width + 8 if i else 22) for i in imgs) for _, imgs in labeled) + a.width + 16
+        H = sum(max(i.height for i in imgs if i) + 26 for _, imgs in labeled) + 8
+        bg = Image.new('RGBA', (W, H), (196, 184, 156, 255))
+        draw = ImageDraw.Draw(bg)
+        y = 6
+        for title, imgs in labeled:
+            draw.text((8, y), title, fill=(44, 32, 42, 255))
+            y += 16
+            h = max(i.height for i in imgs if i)
+            x = 8
+            for im in imgs:
+                if im is None:
+                    draw.line([(x + 8, y + 4), (x + 8, y + h - 4)], fill=(120, 96, 86, 255), width=2)
+                    x += 22
+                    continue
+                bg.alpha_composite(im, (x, y + h - im.height))
+                x += im.width + 8
+            bg.alpha_composite(a, (x, y + h - 4 - a.height))
+            y += h + 10
+        out = sys.argv[1] if len(sys.argv) > 1 else 'artifacts/southasian-house-ab.png'
+        bg.convert('RGB').save(out)
+        print(f'wrote {out}')
+        sys.exit(0)
     rows = []
     for look, lk in LOOKS.items():
         rows.append([haveli(look, dict(medium, v=t, tone=t)) for t in range(len(lk['washes']))])
         rows.append([haveli(look, dict(tone=1))] + [service(look, k, dict(v=v, tone=v)) for v, k in enumerate(SERVICES)])
-    if len(sys.argv) > 2 and sys.argv[2] == 'monsoon':
+    if mode == 'monsoon':
         rows = []
         for look in MONSOON:
             rows.append([monsoon_house(look, dict(W=192, tone=t)) for t in range(4)] +
                         [monsoon_house(look, dict(W=256, tone=t, large=True)) for t in range(2)])
             rows.append([monsoon_service(look, k, dict(tone=v)) for v, k in enumerate(SERVICES)])
-    a = current_adult()
     W = max(sum(i.width + 8 for i in r) for r in rows) + a.width + 10
     H = sum(max(i.height for i in r) + 8 for r in rows)
     bg = Image.new('RGBA', (W, H), (196, 184, 156, 255))

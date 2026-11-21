@@ -311,6 +311,9 @@ export type Actor = {
    * lift in world pixels. `drop` is the physical height in terrain tiers. */
   /** `roof`: up on a flat roof, where `at` walks across the footprint. */
   perch?: { on: string; label: string; rise: number; at?: Point; drop?: number; roof?: boolean; by?: "ladder" | "stairs" };
+  /** Sitting on `on` (or on the ground where they are) until the next command.
+   * `door`: the privy door they opened going in, shut again as they get up. */
+  seated?: { on?: string; pose: "sit" | "sit-seat"; door?: boolean };
   /** Bees from a robbed hive at `at`, after the player until the clock passes `until`. */
   bees?: { until: number; at: Point };
   held?: string;

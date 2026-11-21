@@ -268,7 +268,7 @@ def lead_dome(c, cx, by, R, z0=0, drum=0, windows=0, finial=True, ribs=0):
             c.rect(wx - 1, top, 2, drum - 5, GLOOM[6])
             c.p(wx - 2, top + drum - 5, STONE[0])
         so.lathe(c, cx, by, [(z0 + drum, R + 2), (z0 + drum + 2, R + 2)], STONE)
-    so.dome(c, cx, by, R, LEAD, z0=z0 + drum + (2 if drum else 0), kind='hemi', courses=max(3, R // 4), ribs=ribs)
+    so.dome(c, cx, by, R, LEAD, z0=z0 + drum + (2 if drum else 0), kind='hemi', courses=0, ribs=ribs or max(10, R // 2))
     if finial:
         alem(c, cx, by - z0 - drum - (2 if drum else 0) - R, crescent=R > 14)
 
@@ -702,7 +702,7 @@ def ottoman_mosque(spec=None, info=None):
     size = s['size']
     R = {'small': 30, 'medium': 40, 'large': 50}[size]
     mh = {'small': 118, 'medium': 146, 'large': 168}[size]
-    hall_h = {'small': 26, 'medium': 32, 'large': 38}[size]
+    hall_h = {'small': 40, 'medium': 52, 'large': 64}[size]
     at = {}
 
     def face(c, L, Rr, top_, h):
@@ -720,9 +720,12 @@ def ottoman_mosque(spec=None, info=None):
         hw = min(g['CR'] - g['CL'] + 24, 2 * R + 40)
         hx = cx - hw // 2
         hfy, hty = so.box(c, hx, g['court_top'], hw, hall_h, 30, lk['wall'], STONE_TOP)
-        for k in range(4):
-            wx = round(hx + (k + 0.5) * hw / 4)
-            arched_light(c, wx, hfy + 6, 7, hall_h - 12, STONE, 'pointed', 1)
+        rows = 2 if hall_h > 44 else 1
+        wh = (hall_h - 10) // rows - 6
+        for row in range(rows):
+            for k in range(5):
+                wx = round(hx + (k + 0.5) * hw / 5)
+                arched_light(c, wx, hfy + 6 + row * (wh + 6), 6, wh, STONE, 'pointed', 1)
         hb = (hfy + hty) // 2 + 2
         for side in (-1, 1):
             tx = hx + 6 if side < 0 else hx + hw - 6
@@ -731,7 +734,7 @@ def ottoman_mosque(spec=None, info=None):
         sr = round(R * 0.62)
         for side in (-1, 1):
             lead_dome(c, cx + side * round(R * 0.95), hb + 2, sr, z0=2, finial=False)
-        lead_dome(c, cx, hb - 2, R, z0=4, drum=10, windows=9)
+        lead_dome(c, cx, hb - 2, R, z0=4 + round(R * 0.3), drum=12, windows=9)
         lead_dome(c, cx, hfy - 3, round(R * 0.66), z0=0, finial=False)
         for side in (-1, 1):
             tx = hx + 6 if side < 0 else hx + hw - 6

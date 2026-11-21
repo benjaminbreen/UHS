@@ -392,10 +392,10 @@ export function withProps(world: WorldModel, seed: string, state = propState()):
     // Seats round a big fire: a log behind and one in front, a stump or a
     // stone at each side. Close to the ring, so the general one-step clearance
     // does not apply; only the seat's own cell has to be free.
-    const seatFree = (p: Position) =>
+    const seatFree = (p: Position, prop: string) =>
       !world.blocked(p.x, p.y, p.space) &&
       !(p.space === "outside" && world.protectedCell?.(p.x, p.y)) &&
-      !objectsAt.get(at(p))?.length &&
+      !occupied(p, undefined, prop) &&
       !actorsAt.has(at(p)) &&
       !doorsAt.has(at(p));
     for (const o of [...world.initialObjects]) {
@@ -417,7 +417,7 @@ export function withProps(world: WorldModel, seed: string, state = propState()):
             : "seatMat";
       spots.forEach(([dx, dy, variant], n) => {
         const spot = { ...o.pos, x: o.pos.x + dx, y: o.pos.y + dy };
-        if (!seatFree(spot) || random(seed, "seat", o.id, n) < 0.1) return;
+        if (!seatFree(spot, key) || random(seed, "seat", o.id, n) < 0.1) return;
         const seat: WorldObject = {
           id: `${o.id}-seat-${n}`,
           name: "",

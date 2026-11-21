@@ -239,7 +239,26 @@ def boards(c, x, y, w, h, paint='oak'):
         c.rect(x, ly, w, 1, p[4]); c.rect(x, ly - 1, w, 1, p[2])
 
 
-INFILLS = {'casement': casement, 'sash': sash, 'leaded': leaded,
+def cross_casement(c, x, y, w, h, paint='white'):
+    """Cross-mullion casement: two small upper lights over two taller lower lights."""
+    j = PAINT[paint]
+    glass(c, x, y, w, h)
+    m = x + w // 2
+    ty = y + max(5, round(h * 0.36))
+    c.rect(x, y, w, 1, j[1])
+    c.rect(x, y + h - 1, w, 1, j[3])
+    for yy in range(y, y + h):
+        c.p(x, yy, j[1])
+        c.p(x + w - 1, yy, j[3])
+    for yy in range(y + 1, y + h - 1):
+        c.p(m - 1, yy, j[0])
+        c.p(m, yy, j[3])
+    c.rect(x + 1, ty - 1, w - 2, 1, j[0])
+    c.rect(x + 1, ty, w - 2, 1, j[2])
+    cast(c, x + 1, ty + 1, w - 2, 1, 0.72)
+
+
+INFILLS = {'casement': casement, 'cross': cross_casement, 'sash': sash, 'leaded': leaded,
            'shutters': shutters, 'lattice': lattice, 'mashrabiya': mashrabiya,
            'grille': grille, 'boards': boards, 'open': lambda c, x, y, w, h, paint=None: open_light(c, x, y, w, h)}
 
@@ -381,10 +400,57 @@ def frame_asian(c, x, y, w, h, wall):
     cast(c, x - 4, y + h + 6, w + 8, 2)
 
 
+CREAM_TRIM = ramp(86, 0.02, lift=0.05)
+BUFF_BRICK = ramp(76, 0.075, lift=0.02)
+
+
+def frame_faschen(c, x, y, w, h, wall=None, r=CREAM_TRIM, pediment=False):
+    """Proud lime-plaster window surround (Faschen) with cap bar and sill."""
+    raised(c, x - 3, y - 3, w + 6, h + 6, r, 1)
+    if pediment:
+        c.rect(x - 5, y - 6, w + 10, 1, r[0])
+        c.rect(x - 5, y - 5, w + 10, 2, r[1])
+        c.rect(x - 4, y - 3, w + 8, 1, r[3])
+        cast(c, x - 3, y - 2, w + 6, 2, 0.74)
+    else:
+        c.rect(x - 4, y - 5, w + 8, 2, r[0])
+        c.rect(x - 4, y - 3, w + 8, 1, r[2])
+        cast(c, x - 3, y - 2, w + 6, 1, 0.78)
+    c.rect(x - 5, y + h + 2, w + 10, 1, r[0])
+    c.rect(x - 5, y + h + 3, w + 10, 2, r[2])
+    c.rect(x - 5, y + h + 5, w + 10, 1, r[4])
+    cast(c, x - 4, y + h + 6, w + 8, 2, 0.68)
+
+
+def frame_brick_arch(c, x, y, w, h, wall=None, r=BUFF_BRICK):
+    """Segmental soldier-course brick arch head with a limestone sill."""
+    sill_r = RAMPS['limestone']
+    c.rect(x - 1, y - 1, w + 2, h + 2, r[5])
+    arch_h = 5
+    for xx in range(x - 2, x + w + 2):
+        t = (xx - (x + w / 2)) / (w / 2 + 2)
+        lift = round((1 - t * t) * 2.4)
+        brick_idx = (xx - x) // 3
+        for dy in range(arch_h):
+            yy = y - arch_h + dy - lift
+            col = r[0] if dy == 0 else r[4] if dy == arch_h - 1 else r[1] if brick_idx % 2 == 0 else r[2]
+            if (xx - x) % 3 == 2 and dy > 0:
+                col = r[4]
+            c.p(xx, yy, col)
+    c.rect(x - 3, y + h + 1, w + 6, 1, sill_r[0])
+    c.rect(x - 3, y + h + 2, w + 6, 2, sill_r[2])
+    c.rect(x - 3, y + h + 4, w + 6, 1, sill_r[4])
+    cast(c, x - 2, y + h + 5, w + 4, 2, 0.66)
+
+
 FRAMES = {
     'stone': (frame_stone, lambda c, x, y, w, h: ashlar(c, x, y, w, h)),
     'timber': (frame_timber, lambda c, x, y, w, h: render(c, x, y, w, h)),
     'brick': (frame_brick, lambda c, x, y, w, h: brick(c, x, y, w, h)),
+    'brick-arch': (frame_brick_arch, lambda c, x, y, w, h: brick(c, x, y, w, h)),
+    'faschen': (frame_faschen, lambda c, x, y, w, h: render(c, x, y, w, h)),
+    'faschen-pediment': (lambda c, x, y, w, h, wall=None: frame_faschen(c, x, y, w, h, wall, pediment=True),
+                         lambda c, x, y, w, h: render(c, x, y, w, h)),
     'adobe': (frame_adobe, lambda c, x, y, w, h: adobe(c, x, y, w, h)),
     'asian': (frame_asian, lambda c, x, y, w, h: boards(c, x, y, w, h, RAMPS['cedar'])),
     'painted': (frame_painted, lambda c, x, y, w, h: boards(c, x, y, w, h)),
@@ -770,8 +836,44 @@ def shopfront_open(c, x, y, w, h, wood=None, stone=None):
             c.p(xx, y + h + 1, s[5])
 
 
-DOORS = {'plank': (door_plank, 'timber'), 'panel': (door_panel, 'brick'), 'carriage': (door_carriage, 'stone'),
-         'shop': (door_shop, 'stone'), 'sliding': (door_sliding, 'asian'), 'studded': (door_studded, 'stone')}
+def door_transom(c, x, y, w, h, paint='green', arch=False):
+    """Panelled wood door with a glazed transom light above."""
+    p = PAINT[paint]
+    tr = CREAM_TRIM
+    if arch:
+        frame_brick_arch(c, x, y, w, h - 2)
+        c.rect(x - 2, y, 2, h, BUFF_BRICK[2])
+        c.rect(x + w, y, 2, h, BUFF_BRICK[3])
+    else:
+        raised(c, x - 3, y - 3, w + 6, h + 3, tr, 1)
+    th = 9
+    glass(c, x, y, w, th)
+    c.rect(x, y, w, 1, tr[2])
+    for mx in (x + w // 3, x + 2 * w // 3):
+        c.rect(mx, y, 1, th, tr[1])
+    reveal(c, x, y, w, th, 2)
+    c.rect(x - 1, y + th, w + 2, 1, tr[0])
+    c.rect(x - 1, y + th + 1, w + 2, 2, tr[2])
+    cast(c, x, y + th + 3, w, 2, 0.65)
+    ly, lh = y + th + 3, h - th - 3
+    c.rect(x, ly, w, lh, p[3])
+    c.rect(x, ly, 1, lh, p[2])
+    c.rect(x + w - 1, ly, 1, lh, p[5])
+    pw, uh = w - 6, lh // 2 - 4
+    for py, ph in ((ly + 3, uh), (ly + 5 + uh, lh - uh - 8)):
+        if ph >= 5:
+            c.rect(x + 3, py, pw, ph, p[4])
+            c.rect(x + 4, py + 1, pw - 2, ph - 2, p[2])
+            c.rect(x + 4, py + ph - 2, pw - 2, 1, p[1])
+            c.rect(x + 3 + pw - 1, py + 1, 1, ph - 1, p[1])
+            c.rect(x + 3, py, pw, 1, p[5])
+            c.rect(x + 3, py, 1, ph, p[5])
+    c.rect(x + w - 5, ly + lh // 2, 2, 3, RAMPS['plaster-ochre'][1])
+
+
+DOORS = {'plank': (door_plank, 'timber'), 'panel': (door_panel, 'brick'), 'transom': (door_transom, 'faschen'),
+         'carriage': (door_carriage, 'stone'), 'shop': (door_shop, 'stone'), 'sliding': (door_sliding, 'asian'),
+         'studded': (door_studded, 'stone')}
 
 
 # ------------------------------------------------------------------ sheet

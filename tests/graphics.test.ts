@@ -159,6 +159,41 @@ it("weights gold-master scale by settlement density, means and quarter", () => {
   );
 });
 
+it("south asian houses pair rural cottages with farmers and havelis with elite lots", async () => {
+  const { southAsianRegionalHouses } = await import(
+    "../src/content/graphics/regional-houses"
+  );
+  const { buildingModels } = await import("../src/content/graphics/models");
+  const setting = {
+    lon: 85.4,
+    lat: 26.1,
+    year: 1891,
+    placeId: "muzaffarpur",
+    culture: "south-asian" as const,
+    settlement: "village" as const,
+  } as Parameters<typeof southAsianRegionalHouses>[0];
+  const pool = southAsianRegionalHouses(setting);
+  expect(pool.some((f) => f.startsWith("southasian-house-north-indian-small-"))).toBe(true);
+  expect(pool.some((f) => f.startsWith("southasian-courtyard-north-indian-large-"))).toBe(true);
+  for (const frame of pool) expect(buildingModels[frame]).toBeTruthy();
+
+  const ruralPick = chooseBuildingFrame(
+    pool,
+    { settlement: "village", density: 0.2, wealth: 28, rural: true },
+    0.5,
+    0.3,
+  );
+  expect(ruralPick).toMatch(/^southasian-house-north-indian-(small|medium)-/);
+
+  const elitePick = chooseBuildingFrame(
+    pool,
+    { settlement: "city", density: 0.9, wealth: 92, quarter: "elite", rural: false },
+    0.95,
+    0.2,
+  );
+  expect(elitePick).toMatch(/^southasian-courtyard-north-indian-(medium|large)-/);
+});
+
 it("a church or hall takes its region's look, and that look is drawn", async () => {
   const { regionalLook } = await import("../src/content/graphics/regional-looks");
   const looks = (await import("../src/content/graphics/regional-looks.json")).default.looks as Record<string, (string | null)[]>;

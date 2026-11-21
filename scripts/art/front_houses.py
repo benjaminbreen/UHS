@@ -17,7 +17,7 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
 
-from art.front_eave import EaveHouse  # noqa: E402
+from art.front_eave import EaveHouse, DARK_OAK, SILESIA_BRICK, SILESIA_CREAM, TONES  # noqa: E402
 from art.front_house import GableHouse  # noqa: E402
 from art.front_materials import lit  # noqa: E402
 
@@ -72,6 +72,31 @@ EUROPEAN = {
                    shutters='green', plinth=None, wear=0.4, seed=14)),
         ('1', dict(tone='pantile-pale', W=124, storeys=['whitewash', 'whitewash'], roof='pantile', hip=True, stacks='one',
                    windows=('adobe', 'casement'), shutters='blue', plinth=None, wear=0.5, seed=15)),
+    ]),
+    'house-rural-euro': ('Central European farmhouse', [
+        ('0', dict(W=144, bays=3, storeys=['silesia-cream'], heights=[62], rise=56, roof='plain', tone='silesia-tile',
+                   dormers=1, dormer='tile-eyebrow', stacks='one', windows=('faschen', 'cross'), shutters='green',
+                   boxes=True, door='transom', door_paint='green', door_hood=True, plinth='rubble', lean_to='brick',
+                   wear=0.35, seed=11, edge='finish')),
+        ('1', dict(W=144, bays=3, storeys=['silesia-brick', 'silesia-brick'], heights=[58, 26], rise=52, drempel=True,
+                   roof='plain', tone='silesia-old', dentil_eave=True, stacks='ends', windows=('brick-arch', 'cross'),
+                   door='transom', door_paint='oxblood', door_arch=True, string=True, plinth='ashlar', wear=0.32,
+                   seed=22, edge='finish')),
+        ('2', dict(W=144, bays=3, storeys=['silesia-ochre'], heights=[68], rise=58, roof='plain', tone='silesia-tile',
+                   half_hip=True, dormers=2, dormer='gable', dormer_white=True, stacks='one', pilasters=True,
+                   windows=('faschen', 'cross'), shutters='green', boxes=True, door='transom', door_paint='green',
+                   ganek=True, plinth='clinker', wear=0.30, seed=33, edge='finish')),
+        ('3', dict(form='gable', W=144, depth=66, over=9, ground='brick', paint='green', roof='plain', sign=None,
+                   lantern=None, lean_to=False, wear=0.35, seed=44, date=None, timber=DARK_OAK,
+                   wall_render=SILESIA_CREAM, brick_ramp=SILESIA_BRICK,
+                   roof_tones=[TONES['silesia-tile'], TONES['silesia-old'], TONES['silesia-warm']],
+                   joinery='white', door_kind='transom', window_frame='brick-arch', boxes=False,
+                   roof_window=False, edge='finish')),
+        ('4', dict(W=192, bays=4, storeys=['silesia-cream', 'silesia-cream'], heights=[56, 46], rise=56, roof='plain',
+                   tone='silesia-old', half_hip=True, dormers=2, dormer='gable', dormer_white=True, stacks='ends',
+                   pilasters=True, string=True, windows=('faschen-pediment', 'cross'), shutters='green',
+                   shutters_ground_only=True, door='transom', door_paint='oxblood', door_hood=True, plinth='clinker',
+                   wear=0.28, seed=55, edge='finish')),
     ]),
 }
 
@@ -301,7 +326,7 @@ class FrontHousePainter:
             self.anchor_x = b.x0 + b.W // 2
             self.door_x = b.x0 + b.W // 2
             base = b.base
-            self.door_size = (24, 46)
+            self.door_size = (22, b.door_h) if spec.get('door_kind') == 'transom' else (24, 46)
         else:
             b = EaveHouse(spec)
             im = b.build()
@@ -309,6 +334,8 @@ class FrontHousePainter:
             self.door_x = b.door_x
             base = b.base
             self.door_size = (22, b.door_h)
+        boxes = getattr(b, 'stack_boxes', None) or []
+        self.smoke = [[x + w // 2, top - 10, 'chimney'] for x, top, w in boxes[:1]] or None
         self.image = im
         self.night = lit(im)
         self.w, self.h = im.size

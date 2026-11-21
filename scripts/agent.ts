@@ -1,12 +1,12 @@
 /**
  * An agent in a UHS world. See docs/AGENTS.md.
  *
- *   npm run agent:serve -- [--setting "Clerk in Lagos, 1925"] [--seed s] [--time-travel]
- *   npm run agent:play -- [--setting ...] [--seed s]
- *   npm run agent:run -- [--setting ...] [--days 3] [--model m] [--base-url url] [--briefing file.md] [--repeat N]
- *   npm run agent:batch -- experiment.json [--out runs]
+ *   npm run agent:play -- [--setting ...] [--seed s] [--fast] [--record]
+ *   npm run agent:serve -- [--setting "Clerk in Lagos, 1925"] [--seed s] [--time-travel] [--paid]
+ *   npm run agent:run -- [--setting ...] [--days 3] [--model m] [--base-url url] [--paid] [--max-usd 1]
+ *   npm run agent:batch -- experiment.json [--out runs] [--paid] [--max-usd 1]
  *
- * Every run writes runs/<id>/: manifest.json, trajectory.jsonl, chronicle.md.
+ * Offline by default. Paid LLM calls require --paid and are capped at $1.00 unless --max-usd is set.
  */
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
@@ -16,7 +16,8 @@ import { createHash } from "node:crypto";
 import { basename, dirname, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { z } from "zod";
-import { availableTools, startAgent, tools, FRAMING, ASK_REASON, type Agent } from "../src/agents/agent";
+import { availableTools, parsePlayLine, startAgent, tools, FRAMING, ASK_REASON, type Agent } from "../src/agents/agent";
+import { BudgetExceededError, DEFAULT_MAX_USD, isLocalUrl, SpendBudget } from "../src/agents/budget";
 import { RunRecord, type Entry, type Manifest } from "../src/agents/record";
 import { live } from "../src/agents/loop";
 import { anthropic, openaiCompatible } from "../src/agents/providers";
@@ -24,6 +25,7 @@ import { loadEnv } from "vite";
 import { narrator } from "../server/narrator";
 import { dialogue } from "../server/dialogue";
 import { jevRoute } from "../server/jev";
+import { craft } from "../server/craft";
 import { runViewer } from "../src/agents/viewer";
 
 const [mode, ...args] = process.argv.slice(2);
@@ -38,34 +40,57 @@ if (mode !== "serve" && mode !== "play" && mode !== "run" && mode !== "batch") {
 }
 if (has("--help")) {
   console.log(`See docs/AGENTS.md for options to agent:${mode}.`);
-  if (mode === "play") console.log('Type one tool and optional JSON input per line. For example: look or act {"command":{"type":"wait","seconds":60}}. Type help for tools and quit to end.');
+  if (mode === "play")
+    console.log('Type a tool + JSON or shorthand per line (e.g. look, goto b1, enter b1, wait 600, talk p1 Hello). Type help for tools and quit to end.');
   process.exit(0);
 }
 
-const out = flag("--out") ?? "runs";
+const numberFlag = (name: string, min: number, max = Infinity, integer = false) => {
+  const text = flag(name);
+  if (text === undefined) return undefined;
+  const value = Number(text);
+  if (!Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value)))
+    throw Error(`Invalid ${name}: ${text}`);
+  return value;
+};
+
+const outFlag = flag("--out");
+const out = outFlag ?? "runs";
+const paid = has("--paid") || process.env.UHS_ALLOW_PAID === "1";
+const maxUsd = numberFlag("--max-usd", 0, 1000) ?? DEFAULT_MAX_USD;
 // Let a killed server or interrupted run reach the exit handlers below.
 for (const signal of ["SIGINT", "SIGTERM"] as const) process.on(signal, () => process.exit(130));
-const env = { ...loadEnv("development", process.cwd(), ""), ...process.env };
-const source = { patch: "", files: {} as Record<string, string> };
+const env: Record<string, string | undefined> = paid
+  ? { ...loadEnv("development", process.cwd(), ""), ...process.env }
+  : { ...process.env };
 
-const game = (() => {
+let cachedGame: { meta: { version: string; commit: string; sourceSha256: string }; patch: string; files: Record<string, string> } | undefined;
+function gameMeta(captureSource = true) {
+  if (cachedGame && (!captureSource || cachedGame.meta.commit !== "skipped")) return cachedGame;
   const version = JSON.parse(readFileSync("package.json", "utf8")).version;
-  let commit = "unknown";
-  try {
-    commit = execFileSync("git", ["rev-parse", "HEAD"], { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
-    const paths = ["src", "server", "scripts", "package.json", "package-lock.json", "vite.config.ts", "tsconfig.json"];
-    source.patch = execFileSync("git", ["diff", "--binary", "HEAD", "--", ...paths], { maxBuffer: 20 * 1024 * 1024 }).toString();
-    for (const path of execFileSync("git", ["ls-files", "--others", "--exclude-standard", "-z", "--", ...paths]).toString().split("\0").filter(Boolean))
-      source.files[path] = readFileSync(path, "utf8");
-  } catch {
-    // Not a checkout.
+  const files: Record<string, string> = {};
+  let commit = captureSource ? "unknown" : "skipped", patch = "";
+  if (captureSource) {
+    try {
+      commit = execFileSync("git", ["rev-parse", "HEAD"], { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+      const paths = ["src", "server", "scripts", "package.json", "package-lock.json", "vite.config.ts", "tsconfig.json"];
+      patch = execFileSync("git", ["diff", "--binary", "HEAD", "--", ...paths], { maxBuffer: 20 * 1024 * 1024 }).toString();
+      for (const path of execFileSync("git", ["ls-files", "--others", "--exclude-standard", "-z", "--", ...paths]).toString().split("\0").filter(Boolean))
+        files[path] = readFileSync(path, "utf8");
+    } catch {
+      // Not a checkout or diff exceeded buffer.
+    }
   }
-  return { version, commit, sourceSha256: createHash("sha256").update(commit + JSON.stringify(source)).digest("hex") };
-})();
+  const sourceSha256 = createHash("sha256").update(commit + JSON.stringify({ patch, files })).digest("hex");
+  return (cachedGame = { meta: { version, commit, sourceSha256 }, patch, files });
+}
 
-/** A record that writes itself to disk as it grows, so an interrupted run
- * still leaves something readable. */
-function fileRecord(base: Partial<Manifest> & Pick<Manifest, "mode">, fixed?: string) {
+function fileRecord(base: Partial<Manifest> & Pick<Manifest, "mode">, fixed?: string, persist = true) {
+  if (!persist) {
+    const record = new RunRecord({ ...base, game: gameMeta(false).meta });
+    return { record, dir: () => "", finish: (_extra: Partial<Manifest>) => {} };
+  }
+  const source = gameMeta(true);
   let dir = "";
   const open = (r: RunRecord) => {
     if (dir) return;
@@ -96,26 +121,39 @@ function fileRecord(base: Partial<Manifest> & Pick<Manifest, "mode">, fixed?: st
   };
   const onExit = () => dir && close();
   process.on("exit", onExit);
-  const record = new RunRecord({ environment: { narrator: env.UHS_NARRATOR_OPENAI_MODEL ?? "gpt-6-luna", dialogue: "gpt-6-luna" }, ...base, game }, (entry, r) => {
-    open(r);
-    appendFileSync(`${dir}/trajectory.jsonl`, JSON.stringify(entry) + "\n");
-    render(r);
-  }, (trace, r) => {
-    open(r);
-    appendFileSync(`${dir}/inferences.jsonl`, JSON.stringify(trace) + "\n");
-  });
-  return { record, dir: () => dir, finish: (extra: Partial<Manifest>) => {
-    record.start(extra);
-    close();
-    process.off("exit", onExit);
-  } };
+  const record = new RunRecord(
+    { environment: { narrator: env.UHS_NARRATOR_OPENAI_MODEL ?? "gpt-6-luna", dialogue: "gpt-6-luna", craft: "gpt-6-luna" }, ...base, game: source.meta },
+    (entry, r) => {
+      open(r);
+      appendFileSync(`${dir}/trajectory.jsonl`, JSON.stringify(entry) + "\n");
+      render(r);
+    },
+    (trace, r) => {
+      open(r);
+      appendFileSync(`${dir}/inferences.jsonl`, JSON.stringify(trace) + "\n");
+    },
+  );
+  return {
+    record,
+    dir: () => dir,
+    finish: (extra: Partial<Manifest>) => {
+      record.start(extra);
+      close();
+      process.off("exit", onExit);
+    },
+  };
 }
 
-function environment(record: RunRecord): typeof fetch {
-  const upstream = record.fetch("environment-model", fetch);
+function environment(record: RunRecord, budget: SpendBudget): typeof fetch {
+  const upstream = budget.wrap(record.fetch("environment-model", fetch));
   return async (url, init) => {
     const path = String(url);
-    const route = path === "/api/narrator" ? narrator : path === "/api/dialogue" ? dialogue : path === "/api/jev" ? jevRoute : undefined;
+    const route =
+      path === "/api/narrator" ? narrator
+      : path === "/api/dialogue" ? dialogue
+      : path === "/api/jev" ? jevRoute
+      : path === "/api/craft" ? craft
+      : undefined;
     if (!route) throw Error(`Unknown game service: ${path}`);
     const headers = new Headers(init?.headers);
     if (env.UHS_NARRATOR_ACCESS_CODE) headers.set("X-Narrator-Code", env.UHS_NARRATOR_ACCESS_CODE);
@@ -123,7 +161,20 @@ function environment(record: RunRecord): typeof fetch {
   };
 }
 
-const start = { setting: flag("--setting"), seed: flag("--seed"), timeTravel: has("--time-travel"), offline: has("--offline"), concern: has("--concern") };
+const requirePaid = (why: string) => {
+  throw Error(
+    `${why} requires --paid (ask the user before spending API credits; default cap is $${DEFAULT_MAX_USD.toFixed(2)}, adjust with --max-usd). Use --base-url http://localhost:... for a local model or npm run agent:play for offline playtesting.`,
+  );
+};
+
+const start = {
+  setting: flag("--setting"),
+  seed: flag("--seed"),
+  timeTravel: has("--time-travel"),
+  offline: has("--offline") || !paid,
+  concern: has("--concern"),
+  fast: has("--fast"),
+};
 
 const sha = (text: string) => createHash("sha256").update(text).digest("hex");
 const agentSchema = z.object({
@@ -146,22 +197,27 @@ const experimentSchema = z.object({
   /** A file, relative to the experiment file. */
   briefing: z.string().optional(),
   rationale: z.boolean().default(true),
-  offline: z.boolean().default(false),
+  paid: z.boolean().default(false),
+  offline: z.boolean().optional(),
   concern: z.boolean().default(false),
   timeTravel: z.boolean().default(false),
-  /** Policy and environment tokens, in and out; checked before each run starts. */
-  budget: z.object({ tokens: z.number().int().positive() }).strict().optional(),
+  /** Policy and environment spend cap; checked before every API call. */
+  budget: z.object({ tokens: z.number().int().positive().optional(), usd: z.number().nonnegative().optional() }).strict().optional(),
 }).strict();
 type RunSpec = {
   agent: z.input<typeof agentSchema>;
   setting?: string; seed?: string; days: number; maxTurns?: number;
   briefing?: { file: string; text: string };
   rationale: boolean; offline: boolean; concern: boolean; timeTravel: boolean;
+  paid: boolean; budget: SpendBudget;
   dir?: string; quiet?: boolean;
 };
 
 async function runOnce(spec: RunSpec) {
   const { baseUrl } = spec.agent;
+  const remotePolicy = !baseUrl || !isLocalUrl(baseUrl);
+  if ((remotePolicy || !spec.offline) && !spec.paid)
+    requirePaid(remotePolicy ? "Running a remote policy model" : "Live narrator/dialogue calls");
   const modelName = spec.agent.model ?? (baseUrl ? "local-model" : "claude-sonnet-5-5");
   if (!baseUrl && !env.ANTHROPIC_API_KEY) throw Error("Set ANTHROPIC_API_KEY, or pass --base-url for an OpenAI-compatible model.");
   const settings = { maxTokens: spec.agent.maxTokens ?? 2048, temperature: spec.agent.temperature, topP: spec.agent.topP, seed: spec.agent.seed, structured: !!spec.agent.structured };
@@ -170,16 +226,20 @@ async function runOnce(spec: RunSpec) {
     mode: "run",
     ...(spec.offline ? { environment: null } : {}),
     model: { name: modelName, endpoint: baseUrl ?? "anthropic", ...settings },
+    budget: { maxUsd: spec.budget.maxUsd },
     rationale: spec.rationale,
     briefing: spec.briefing ? { ...spec.briefing, sha256: sha(spec.briefing.text) } : null,
     memory: "current world/player facts, diary, last 8 turns",
     days: spec.days,
   }, spec.dir);
-  const send = file.record.fetch("policy-model", fetch);
+  const send = spec.budget.wrap(file.record.fetch("policy-model", fetch), modelName);
   const model = baseUrl
     ? openaiCompatible({ baseUrl, apiKey: env.OPENAI_API_KEY, model: modelName, ...settings, fetch: send })
     : anthropic({ apiKey: env.ANTHROPIC_API_KEY!, model: modelName, ...settings, fetch: send });
-  const agent = await startAgent({ setting: spec.setting, seed: spec.seed, timeTravel: spec.timeTravel, offline: spec.offline, concern: spec.concern, modelFetch: environment(file.record) }, file.record);
+  const agent = await startAgent(
+    { setting: spec.setting, seed: spec.seed, timeTravel: spec.timeTravel, offline: spec.offline, concern: spec.concern, modelFetch: environment(file.record, spec.budget) },
+    file.record,
+  );
   try {
     const result = await live(agent, model, {
       days: spec.days,
@@ -199,11 +259,15 @@ async function runOnce(spec: RunSpec) {
 }
 
 if (mode === "serve") {
-  const { record } = fileRecord({ mode: "serve", ...(start.offline ? { environment: null } : {}) });
+  const budget = new SpendBudget(maxUsd);
+  const { record } = fileRecord({
+    mode: "serve",
+    ...(start.offline ? { environment: null } : { budget: { maxUsd } }),
+  });
   let agent: Promise<Agent> | undefined;
   const instructions = `${FRAMING}\n\n${ASK_REASON} Give them in each call's rationale.`;
   record.start({ instructions });
-  const server = new McpServer({ name: "world", version: String(game.version) }, { instructions });
+  const server = new McpServer({ name: "world", version: String(gameMeta(false).meta.version) }, { instructions });
   // The host's own prompt and scaffolding are part of the agent being run.
   server.server.oninitialized = () => record.start({ host: server.server.getClientVersion() });
   for (const name of availableTools(start))
@@ -215,13 +279,14 @@ if (mode === "serve") {
         annotations: { readOnlyHint: name === "look" || name === "inspect" },
       },
       async (input: unknown) => {
-        agent ??= startAgent({ ...start, modelFetch: environment(record) }, record);
+        agent ??= startAgent({ ...start, modelFetch: environment(record, budget) }, record);
         return { content: [{ type: "text" as const, text: await (await agent).call(name, input) }] };
       },
     );
   await server.connect(new StdioServerTransport());
 } else if (mode === "play") {
-  const file = fileRecord({ mode: "play", environment: null });
+  const persist = has("--record") || outFlag !== undefined;
+  const file = fileRecord({ mode: "play", environment: null }, undefined, persist);
   const interactive = !!process.stdin.isTTY && !!process.stdout.isTTY;
   const reply = (result: Pick<Entry, "tool" | "status" | "text"> & Partial<Pick<Entry, "clock" | "after" | "hash">>) =>
     console.log(interactive ? result.text : JSON.stringify(result));
@@ -233,21 +298,30 @@ if (mode === "serve") {
     try {
       if (interactive) lines.prompt();
       for await (const line of lines) {
-        const parts = /^(\S+)(?:\s+(.*))?$/.exec(line.trim());
-        if (parts) {
-          const [, tool, json = "{}"] = parts;
-          if (tool === "quit") break;
-          if (tool === "help") {
-            reply({ tool, status: "ok", text: agent.names.map((name) => `${name}  ${tools[name].description}`).join("\n") });
-          } else {
-            let input: unknown;
-            try { input = JSON.parse(json); }
-            catch { reply({ tool, status: "invalid", text: "Use a tool name followed by a JSON object." }); }
-            if (input !== undefined) {
-              const text = await agent.call(tool, input);
-              const { status, clock, after, hash } = file.record.entries.at(-1)!;
-              reply({ tool, status, text, clock, after, hash });
-            }
+        const trimmed = line.trim();
+        if (!trimmed) {
+          if (interactive) lines.prompt();
+          continue;
+        }
+        const first = trimmed.split(/\s+/, 1)[0];
+        if (first === "quit" || first === "q") break;
+        if (first === "help") {
+          reply({
+            tool: "help",
+            status: "ok",
+            text: [
+              ...agent.names.map((name) => `${name}  ${tools[name].description}`),
+              "Shorthands: l, inspect <id>, goto <id|x y>, enter|exit|open|close|pickup|take|drink|climb|strike|follow|attend <id>, wait [s], sleep [s], use|wear <item>, choose <card> <n>, talk <id> [text], errand <kind> [arg], travel <to>, time <year>.",
+            ].join("\n"),
+          });
+        } else {
+          const parsed = parsePlayLine(trimmed);
+          if (parsed && "error" in parsed) {
+            reply({ tool: first, status: "invalid", text: parsed.error });
+          } else if (parsed) {
+            const text = await agent.call(parsed.tool, parsed.input);
+            const { status, clock, after, hash } = file.record.entries.at(-1)!;
+            reply({ tool: parsed.tool, status, text, clock, after, hash });
           }
         }
         if (interactive) lines.prompt();
@@ -266,26 +340,30 @@ if (mode === "serve") {
     console.error(`Playtest saved to ${file.dir()}`);
   }
 } else if (mode === "run") {
-  const number = (name: string, min: number, max = Infinity, integer = false) => {
-    const text = flag(name);
-    if (text === undefined) return undefined;
-    const value = Number(text);
-    if (!Number.isFinite(value) || value < min || value > max || (integer && !Number.isInteger(value))) throw Error(`Invalid ${name}: ${text}`);
-    return value;
-  };
   const briefingPath = flag("--briefing");
+  const budget = new SpendBudget(maxUsd);
   const spec: RunSpec = {
     ...start,
-    agent: { baseUrl: flag("--base-url"), model: flag("--model"), maxTokens: number("--max-tokens", 1, Infinity, true), temperature: number("--temperature", 0, 2), topP: number("--top-p", 0, 1), seed: number("--model-seed", 0, Infinity, true), structured: has("--structured") },
-    days: number("--days", 1, Infinity, true) ?? 1,
-    maxTurns: number("--max-turns", 1, Infinity, true),
+    paid,
+    budget,
+    agent: {
+      baseUrl: flag("--base-url"),
+      model: flag("--model"),
+      maxTokens: numberFlag("--max-tokens", 1, Infinity, true),
+      temperature: numberFlag("--temperature", 0, 2),
+      topP: numberFlag("--top-p", 0, 1),
+      seed: numberFlag("--model-seed", 0, Infinity, true),
+      structured: has("--structured"),
+    },
+    days: numberFlag("--days", 1, Infinity, true) ?? 1,
+    maxTurns: numberFlag("--max-turns", 1, Infinity, true),
     briefing: briefingPath ? { file: basename(briefingPath), text: readFileSync(briefingPath, "utf8") } : undefined,
     rationale: !has("--no-rationale"),
   };
-  for (let n = 0, repeat = number("--repeat", 1, Infinity, true) ?? 1; n < repeat; n++) {
+  for (let n = 0, repeat = numberFlag("--repeat", 1, Infinity, true) ?? 1; n < repeat; n++) {
     try {
       const { dir, result } = await runOnce(spec);
-      console.log(`${dir} — ${result.turns} turns, stopped: ${result.stopped}`);
+      console.log(`${dir} — ${result.turns} turns, stopped: ${result.stopped} ($${budget.spentUsd.toFixed(4)} / $${budget.maxUsd.toFixed(2)})`);
     } catch (error) {
       // vite-node exits 0 on an uncaught error; a batch script needs to see it.
       process.exitCode = 1;
@@ -294,12 +372,20 @@ if (mode === "serve") {
   }
 } else {
   const path = args.find((a, i) => !a.startsWith("--") && !args[i - 1]?.startsWith("--"));
-  if (!path) throw Error("Usage: npm run agent:batch -- experiment.json [--out runs]");
+  if (!path) throw Error("Usage: npm run agent:batch -- experiment.json [--out runs] [--paid] [--max-usd 1]");
   const spec = experimentSchema.parse(JSON.parse(readFileSync(path, "utf8")));
+  const allowPaid = spec.paid || paid;
+  if (allowPaid && !paid) Object.assign(env, { ...loadEnv("development", process.cwd(), ""), ...process.env });
+  const offline = has("--offline") ? true : spec.offline ?? !allowPaid;
+  const batchMaxUsd = numberFlag("--max-usd", 0, 1000) ?? spec.budget?.usd ?? DEFAULT_MAX_USD;
+  const needsPaid = !offline || spec.agents.some((a) => !a.baseUrl || !isLocalUrl(a.baseUrl));
+  if (needsPaid && !allowPaid)
+    requirePaid("Running a paid experiment batch");
+  const budget = new SpendBudget(batchMaxUsd);
   const root = `${out}/${spec.name}`;
   const briefing = spec.briefing ? { file: basename(spec.briefing), text: readFileSync(resolve(dirname(path), spec.briefing), "utf8") } : undefined;
   mkdirSync(root, { recursive: true });
-  writeFileSync(`${root}/experiment.json`, JSON.stringify({ ...spec, briefing: briefing ? { ...briefing, sha256: sha(briefing.text) } : null, game }, null, 2) + "\n");
+  writeFileSync(`${root}/experiment.json`, JSON.stringify({ ...spec, offline, maxUsd: batchMaxUsd, briefing: briefing ? { ...briefing, sha256: sha(briefing.text) } : null, game: gameMeta(true).meta }, null, 2) + "\n");
   const cells = spec.agents.flatMap((agent) => spec.settings.flatMap((setting) => spec.seeds.map((seed) => ({ agent, setting, seed, dir: `${root}/${agent.name}__${setting.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}__${seed}` }))));
   const manifest = (dir: string): Manifest | undefined => existsSync(`${dir}/manifest.json`) ? JSON.parse(readFileSync(`${dir}/manifest.json`, "utf8")) : undefined;
   const spent = () => cells.reduce((n, c) => {
@@ -326,6 +412,7 @@ if (mode === "serve") {
         deeds: x ? Object.values(x.deeds).reduce((n, v) => n + v, 0) : "", takenFromOthers: x?.takenFromOthers ?? "", violence: x?.violence ?? "",
         verdicts: x ? Object.entries(x.verdicts).map(([k, v]) => `${k}=${v}`).join(" ") : "",
         tokensIn: x ? x.tokens.policy.in + x.tokens.environment.in : "", tokensOut: x ? x.tokens.policy.out + x.tokens.environment.out : "",
+        costUsd: x?.costUsd ?? "",
       };
     });
     writeFileSync(`${root}/summary.json`, JSON.stringify(rows, null, 2) + "\n");
@@ -338,21 +425,26 @@ if (mode === "serve") {
     if ((done?.result as { error?: string } | undefined) && !(done!.result as { error?: string }).error) continue;
     // An interrupted or failed run is kept beside its retry, never overwritten.
     if (existsSync(c.dir)) renameSync(c.dir, `${c.dir}.failed-${Date.now()}`);
-    if (spec.budget && spent() >= spec.budget.tokens) {
+    if (spec.budget?.tokens && spent() >= spec.budget.tokens) {
       console.log(`Budget of ${spec.budget.tokens} tokens reached; ${cells.length - n} not started.`);
+      break;
+    }
+    if (budget.spentUsd >= budget.maxUsd) {
+      console.log(`Budget of $${budget.maxUsd.toFixed(2)} reached ($${budget.spentUsd.toFixed(4)} spent); ${cells.length - n} not started.`);
       break;
     }
     console.log(`[${n + 1}/${cells.length}] ${basename(c.dir)}`);
     try {
-      const { result } = await runOnce({ ...spec, agent: c.agent, setting: c.setting, seed: c.seed, briefing, dir: c.dir, quiet: true });
-      console.log(`  ${result.turns} turns, stopped: ${result.stopped}`);
+      const { result } = await runOnce({ ...spec, offline, paid: allowPaid, budget, agent: c.agent, setting: c.setting, seed: c.seed, briefing, dir: c.dir, quiet: true });
+      console.log(`  ${result.turns} turns, stopped: ${result.stopped} ($${budget.spentUsd.toFixed(4)} / $${budget.maxUsd.toFixed(2)})`);
     } catch (error) {
       failed++;
       console.log(`  failed: ${error instanceof Error ? error.message : error}`);
+      if (error instanceof BudgetExceededError) break;
     }
     summarise();
   }
   summarise();
-  console.log(`${root}/summary.csv — ${spent()} tokens`);
+  console.log(`${root}/summary.csv — ${spent()} tokens, $${budget.spentUsd.toFixed(4)}`);
   if (failed) process.exitCode = 1;
 }

@@ -213,6 +213,7 @@ export function addLivingWater(
         ],
       },
       sun: { type: "3f", value: { x: 1, y: 1, z: 1 } },
+      lightTint: { type: "4fv", value: [1, 1, 1, 1] },
     },
   );
   const shader = own(
@@ -261,6 +262,8 @@ export function updateLivingWater(
   time: number,
   phase: LightingId,
   freeze: boolean,
+  tint?: number,
+  sunStrength = 1,
 ) {
   const start = performance.now(),
     color = lightingPreset(phase).tint,
@@ -271,6 +274,10 @@ export function updateLivingWater(
     y: parseInt(color.slice(2, 4), 16) / 255,
     z: parseInt(color.slice(4, 6), 16) / 255,
   };
+  const lightTint =
+    tint !== undefined
+      ? [((tint >> 16) & 255) / 255, ((tint >> 8) & 255) / 255, (tint & 255) / 255, sunStrength]
+      : [sun.x, sun.y, sun.z, phase === "night" ? 0 : sunStrength];
   const view = scene.cameras.main.worldView;
   // Rooms are drawn near the world origin, over whatever water is there.
   const indoors = inRoom(scene);
@@ -289,6 +296,7 @@ export function updateLivingWater(
     tiles += shader.getData("waterTiles");
     shader.setUniform("waterTime.value", freeze ? 0 : time / 1000);
     shader.setUniform("sun.value", sun);
+    shader.setUniform("lightTint.value", lightTint);
   }
   const canvas = scene.game.canvas;
   canvasStat(canvas, "waterRenderer", "living-c");

@@ -491,6 +491,7 @@ const actor = z.object({
   perch: z
     .object({ on: z.string(), label: z.string(), rise: z.number(), at: point.optional(), drop: z.number().nonnegative().optional() })
     .optional(),
+  seated: z.object({ on: z.string().optional(), pose: z.enum(["sit", "sit-seat"]), door: z.boolean().optional() }).optional(),
   direction: z.number().int().min(0).max(3),
   facing: z.number().int().min(0).max(7).optional(),
   offRoutine: z.boolean().optional(),

@@ -49,6 +49,7 @@ import { formSurface, terrainFormOf } from "./terrain-forms";
 import type { LandSample } from "../geography/landscape";
 import type { Habitat } from "./habitats";
 import { groveAt, groveEdge, habitatAt, habitatTree } from "./habitats";
+import { classifyCommunity } from "../../content/ecology/communities";
 import { createRegionalContext } from "../regional/context";
 import { regionalSettlements, shorePreference } from "../regional/settlements";
 import { regionalTransport } from "../regional/transport";
@@ -1414,12 +1415,12 @@ export function createSettlementWorld(
     if (situation?.camp && situation.camp !== "none" && Math.hypot(x, y) < 25) return;
     const f = land.sample(x, y);
     const scape = f.landscape;
-    // Mangroves stand out on the tidal mud on their prop roots, in stands.
+    // Mangroves stand out on tidal mud or shallow sea margins on their prop roots.
     if (
       waters?.mangrove &&
-      f.shelf !== undefined &&
+      f.kind === "sea" &&
       f.water < 0 &&
-      1 + f.water / f.shelf > 0.2 &&
+      (f.shelf !== undefined ? 1 + f.water / f.shelf > 0.2 : f.water > -2.6) &&
       noise(seed, x + land.origin.x, y + land.origin.y, 14, "mangrove-stand") > 0.42 &&
       random(seed, "mangrove", x + land.origin.x, y + land.origin.y) < 0.3 &&
       !nearby(x, y).some((p) => p.reserved.has(k) || p.solid.has(k))
@@ -2028,7 +2029,18 @@ export function createSettlementWorld(
     if (t === "bridge" && f.water >= 0 && !pier && !nearby(x,y).some(p => p.culverts?.has(cellKey(x,y)))) t = "dirt";
     const height = tierAt(x, y, t);
     const cell = reliefCell(height, f.water, f.moisture);
-    cell.habitat = { ...habitat(x, y), layeredForest: true };
+    const baseHabitat = habitat(x, y);
+    // A settlement terrace raised above sea level is upland ground, not beach.
+    const site =
+      height > 0 && baseHabitat.site?.primary === "shore"
+        ? classifyCommunity(
+            baseHabitat.site.region,
+            { ...f, elevation: height * 14 },
+            baseHabitat.cover,
+            baseHabitat.exposed,
+          )
+        : baseHabitat.site;
+    cell.habitat = { ...baseHabitat, ...(site && { site }), layeredForest: true };
     const env = settingAt(x, y).environment!;
     cell.rock = rockAt(pack.anchor?.lon, pack.anchor?.lat, env.ecology, env.colorway);
     {
@@ -2238,6 +2250,8 @@ export function createSettlementWorld(
       else if (material === "earth") cell.pavement = "lane";
       const plinth = p.plinths?.get(key);
       if (plinth) cell.plinth = plinth;
+      const border = p.borders?.get(key);
+      if (border) cell.gardenBorder = border;
       const lane = p.lanes?.get(key);
       if (lane && cell.feature === "paving") cell.lane = lane;
       const geometry = p.streetGeometry?.get(key);
@@ -2302,7 +2316,7 @@ export function createSettlementWorld(
     if (
       cell.surface !== "water" &&
       !cell.bridge &&
-      !cell.feature
+      (!cell.feature || cell.feature === "bank")
     ) {
       // Soil already draws its own ground, and a cell with strokes draws only them.
       const strokes = cell.surface === "soil" ? strokesAt(x, y) : strokesAt(x, y).concat(nearby(x, y).flatMap((p) => {

@@ -76,17 +76,27 @@ export function contourSurfaces(
       pixels = water.get(key);
     if (!pixels && paintedGround(surface.cell)) {
       // A borrowed tier paints this location's own ground at the donor's
-      // height and surface. Copying the donor cell wholesale dragged its
-      // path strokes and exposed patches a cell across the contour.
+      // height and surface. When borrowing across a surface change (such as
+      // beach sand under a grassy bluff), borrow the donor's habitat too so
+      // communityPixel does not paint upland turf into the lower sand corner.
       const here = sample(x, y);
+      const crossSurface = moved && surface.cell.surface !== here?.surface;
       const cell = moved ? {
         ...(here && natural(here) ? here : surface.cell),
         height: tier,
         surface: surface.cell.surface,
+        ...(crossSurface ? { habitat: surface.cell.habitat } : {}),
         // Shore distance belongs to this location, never to the donor tile.
         waterVisual: shoreOnTier(sample, x, y, tier) ? here?.waterVisual : undefined,
       } : surface.cell;
-      pixels = rasterHabitatTile(sample, x, y, ox, oy, undefined, cell).pixels;
+      const donorSample: TopographySample = crossSurface
+        ? (qx, qy) => {
+            if (qx === x && qy === y) return cell;
+            const n = sample(qx, qy);
+            return n && n.height === tier ? n : cell;
+          }
+        : sample;
+      pixels = rasterHabitatTile(donorSample, x, y, ox, oy, undefined, cell).pixels;
       tiles.set(key, pixels);
     }
     return pixels;

@@ -179,13 +179,19 @@ keeping the houses' view. The dustbin and the kerosene tin in
 `props_b/vessels.py`, and the baskets and bags in `props_b/carrying.py` are
 the worked examples.
 
+A small building (a privy, a coop, a granary) takes the houses' view instead
+of an ellipse top: walls square on, the roof from above at moderate depth, as
+in the building-art skill. The privies in `props_b/privy.py` are the pattern:
+one cabin grid lit in bands, a wall swatch per material laid over its digits,
+one roof grid per covering, and what differs between builds as overlays.
+
 1. **Size it.** Real height against the 40px figure (about 23px a metre),
    then enlarge for presence: about 1.6x for something waist-high, more for
    small things so they can carry detail. A 70cm bin is 26px; a 35cm tin is
    19px.
 2. **Start from the view, not a blank grid.** Tops are ellipses at K = ½ of
    their width, and every ring, rib and foot follows the same arc.
-   `python3 -m scripts.art.props_b.review --grid <family> [variant] [ramps…]`
+   `review --grid <family> [variant] [ramps…]`
    prints the shipped sprite as a grid to trace over; for a new shape, draw
    the arc first. A redraw from a blank grid drifts toward a side view: start
    from the shipped sprite whenever there is one.
@@ -215,9 +221,12 @@ the worked examples.
 Draw, render, look. Do not write more than one prop between renders.
 
 ```bash
-python3 -m scripts.art.props_b.review well trough   # contact sheet with a figure
-python3 scripts/build_props.py                      # atlas + audit
+cd scripts && ../.venv/bin/python -m art.props_b.review well trough   # contact sheet with a figure
+npm run art:props                                                     # atlas + audit
 ```
+
+`review` runs from `scripts/` as the `art` package; from the repo root it
+fails on `No module named 'art'`.
 
 `review.py` puts every prop beside the standing character, because scale
 against the figure is most of the judgement and the source tells you nothing

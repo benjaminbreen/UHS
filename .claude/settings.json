@@ -7,7 +7,7 @@
       "Bash(npm run town:sheet:*)",
       "Bash(npm run capture:*)",
       "Bash(npm run test:browser:*)",
-      "Bash(npm run headless:*)",
+      "Bash(npm run agent:play:*)",
       "Bash(npx vitest run:*)",
       "Bash(npx tsc:*)",
       "Bash(python3 scripts/art/oblique_audit.py:*)",

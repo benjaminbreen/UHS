@@ -161,7 +161,7 @@ export function pathField(
   const areaField: PathField = { coverage: clamp01((area - 0.2) * 1.25), cross: 0.5,
     radius: 1.2, ruts: false, dung: false };
   if (area === 1) return areaField;
-  if (cell.pathArt?.length && !cell.feature && !cell.bridge) {
+  if (cell.pathArt?.length && (!cell.feature || cell.feature === "bank") && !cell.bridge) {
     let best: PathField = { coverage: 0, cross: 1.5, radius: 0 };
     const tuning = groundStyle()?.composition;
     const edgeBreakup = tuning?.pathEdgeBreakup ?? 1;
@@ -243,16 +243,13 @@ export function pathField(
     );
   };
   if (
-    cell.surface === "soil" &&
+    eligible(ix, iy) &&
     [
       [0, -1],
       [1, 0],
       [0, 1],
       [-1, 0],
-    ].some(([dx, dy]) => {
-      const n = sample(ix + dx, iy + dy);
-      return n?.bridge || n?.ramp;
-    })
+    ].some(([dx, dy]) => sample(ix + dx, iy + dy)?.bridge)
   )
     return { coverage: 1, cross: 0, radius: 1 };
   let cache = routeCaches.get(sample);
@@ -276,6 +273,28 @@ export function pathField(
           ])
             if (eligible(xx + dx, yy + dy))
               segments.push([xx + 0.5, yy + 0.5, xx + dx + 0.5, yy + dy + 0.5]);
+          // Connect a legacy soil road up to an adjacent road ramp without
+          // squaring off coastal banks or natural timber/slope ramps.
+          for (const [dx, dy] of [
+            [0, -1],
+            [1, 0],
+            [0, 1],
+            [-1, 0],
+          ]) {
+            const n = sample(xx + dx, yy + dy);
+            if (
+              n?.ramp &&
+              n.rampStyle !== "slope" &&
+              n.rampStyle !== "timber" &&
+              n.rampStyle !== "sand"
+            )
+              segments.push([
+                xx + 0.5,
+                yy + 0.5,
+                xx + 0.5 + dx * 0.5,
+                yy + 0.5 + dy * 0.5,
+              ]);
+          }
         }
     trimCache(cache, 1024);
     cache.set(key, segments);
@@ -323,11 +342,9 @@ const hexes = (...c: string[]) => c.map((h) => [parseInt(h.slice(1, 3), 16), par
 const MUD = hexes("#5f4636", "#6f5240", "#82624a", "#977556", "#b08c64");
 // Dry coasts have sand flats, not mud: the beach's own sand, wet.
 const SAND_FLAT = hexes("#8c7353", "#a08460", "#b4966d", "#c6a87b", "#dcc091");
-const MANGROVE_MUD = hexes("#43362b", "#514133", "#5f4d3b", "#6f5c46", "#857258");
+const MANGROVE_MUD = hexes("#4e4034", "#5c4b3c", "#6c5845", "#7c6750", "#917c62");
 // The sky lying on wet mud, and on standing water: film, pool, pool glint.
-const SHEEN = hexes("#7d7f92", "#7f8fb2", "#9fb6d6", "#e4eef6");
-// Creek water from its lit middle to its shaded edge.
-const CREEK = hexes("#a6e6e0", "#62c3c6", "#439aa6", "#2f7384");
+const SHEEN = hexes("#7d8392", "#7f8ea6", "#98acc2", "#ccd8e4");
 const MARSH = hexes("#5f7449", "#6f8452", "#80955f", "#4b5a38");
 const FLAT_TUFT = hexes("#c3b552", "#8f9440", "#5d6a34");
 const FLAT_STONE = hexes("#a59c8c", "#6f675c");
@@ -359,21 +376,27 @@ export function tidalFlat(cell: TopographyCell, d: number, wx: number, wy: numbe
   // A sheet of water still draining off the lowest mud.
   if (t < low + 0.035) return (dash(651, 5, 2) || 0) > 0.6 ? SHEEN[2] : SHEEN[1];
   // Creeks: the trunk is one winding contour, its feeders a finer one that
-  // joins from the landward side only, and both widen toward low water.
+  // joins from the landward side only; both widen seaward and taper out inland.
   const warp = (valueNoise(wx, wy, 23, 655) - 0.5) * 26;
   const trunk = valueNoise(wx + warp, wy - warp, 88, 633) - 0.5;
   const feeder = valueNoise(wx - warp, wy + warp, 41, 634) - 0.5;
-  const reach = 0.011 + (1 - t) * 0.024;
-  const a = trunk / reach,
-    b = trunk > 0 && t < 0.92 ? feeder / (reach * 0.8) : 9;
+  const taper = t > 0.84 ? Math.max(0, (1 - t) / 0.16) : 1;
+  const reach = (0.011 + (1 - t) * 0.024) * taper;
+  const a = reach > 0.001 ? trunk / reach : 9,
+    b = reach > 0.001 && trunk > 0 && t < 0.9 ? feeder / (reach * 0.8) : 9;
   const s = Math.abs(a) < Math.abs(b) ? a : b;
   const across = Math.abs(s);
   if (across < 1) {
-    if (across < 0.32) return (dash(657, 4, 2) || 0) > 0.45 ? CREEK[0] : CREEK[1];
+    const depths = waterStyle(cell).depths;
+    const creekTone = (idx: number) => {
+      const c = rgb(depths[idx]);
+      return c.map((ch, k) => Math.round(ch * 0.78 + mud[1][k] * 0.22));
+    };
+    if (across < 0.32) return creekTone((dash(657, 4, 2) || 0) > 0.45 ? 0 : 1);
     // Lit on the side the sun reaches, deep under the other bank.
-    return across < 0.72 ? CREEK[s < 0 ? 1 : 2] : CREEK[s < 0 || reach < 0.02 ? 2 : 3];
+    return creekTone(across < 0.72 ? (s < 0 ? 1 : 2) : s < 0 || reach < 0.02 ? 2 : 3);
   }
-  if (across < 1.55) return mud[0];
+  if (across < 1.35) return mud[0];
   // The flat's own small relief: hollows hold water, crests dry pale.
   const lift =
     valueNoise(wx + warp * 0.6, wy, 52, 643) * 0.5 +
@@ -464,6 +487,7 @@ export function shorePixel(
   distance: number,
   wx: number,
   wy: number,
+  beachTint?: readonly number[],
 ) {
   const p = waterStyle(cell);
   const creek = (cell.waterVisual?.shoreWidth ?? 3) < 1.2;
@@ -508,14 +532,16 @@ export function shorePixel(
     // Wet sand the last tide left, glinting in short runs, then a broken
     // line of wrack at its limit, then the dry beach.
     const wet = 0.9 + (valueNoise(wx, wy, 23, 331) - 0.5) * 0.8;
-    const dark = rgb(p.bank[1]), dry = rgb(p.bank[2]);
+    const tint = (c: number[]) =>
+      beachTint ? c.map((v, k) => Math.min(255, Math.round(v * beachTint[k]))) : c;
+    const dark = tint(rgb(p.bank[1])), dry = tint(rgb(p.bank[2]));
     if (distance < wet)
       return (wy & 1) === 0 && cellHash(Math.floor(wx / 5), wy, 333) > 0.86
         ? dark.map((v, k) => Math.round((v + dry[k]) / 2))
         : dark;
     if (distance < wet + 0.14 && cellHash(Math.floor(wx / 2), Math.floor(wy / 2), 335) > 0.6)
       return dark.map((v) => Math.round(v * 0.74));
-    return dry.map((v) => v + (cellHash(Math.floor(wx / 3), Math.floor(wy / 2), 327) > 0.84 ? 5 : 0));
+    return dry.map((v) => Math.min(255, v + (cellHash(Math.floor(wx / 3), Math.floor(wy / 2), 327) > 0.84 ? 5 : 0)));
   }
   return rgb(p.bank[1]).map(
     (v) =>

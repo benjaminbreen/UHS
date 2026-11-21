@@ -1,12 +1,12 @@
-import { chromium } from "@playwright/test";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { base, withPage } from "./capture/lib";
 
 const out = resolve("scripts/art/reference/current-adult.png");
-const browser = await chromium.launch({ channel: "chrome" });
-const page = await browser.newPage();
-await page.goto(`${process.env.UHS_URL ?? "http://127.0.0.1:5173"}/character-lab`);
-const result = await page.evaluate(async () => {
+let result!: { png: string; sourceBounds: number[]; occupied: number[] };
+await withPage({}, async (page) => {
+  await page.goto(`${base}/character-lab`);
+  result = await page.evaluate(async () => {
   const { drawCharacterG } = await import(
     "/src/render/characters/doll/draw.ts" as string
   );
@@ -58,8 +58,8 @@ const result = await page.evaluate(async () => {
     sourceBounds: [x0, y0, x1 + 1, y1 + 1],
     occupied: [crop.width, crop.height],
   };
+  });
 });
-await browser.close();
 await mkdir(dirname(out), { recursive: true });
 await writeFile(out, Buffer.from(result.png, "base64"));
 await writeFile(

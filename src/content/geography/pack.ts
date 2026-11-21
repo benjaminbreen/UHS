@@ -284,26 +284,22 @@ export function packForSetting(setting: WorldSetting): Pack {
   const westAsianRegional =
     setting.culture === "north-african-west-asian" &&
     setting.year >= -800 &&
-    setting.year < 1900 &&
     architecture !== "classical"
       ? westAsianRegionalHouses(setting)
       : [];
   const eastAsianRegional =
     setting.culture === "east-asian" &&
-    setting.year >= -800 &&
-    setting.year < 1900
+    setting.year >= -800
       ? eastAsianRegionalHouses(setting)
       : [];
   const southAsianRegional =
     setting.culture === "south-asian" &&
-    setting.year >= -600 &&
-    setting.year < 1900
+    setting.year >= -600
       ? southAsianRegionalHouses(setting)
       : [];
   const steppeRegional =
     setting.culture === "inner-eurasian" &&
-    setting.year >= -800 &&
-    setting.year < 1900
+    setting.year >= -800
       ? steppeRegionalHouses(setting)
       : [];
   const mesoamericanRegional =
@@ -349,14 +345,41 @@ export function packForSetting(setting: WorldSetting): Pack {
                     ? ["shelter-hide", "shelter-reed"]
                     : setting.culture === "european" &&
                         setting.climate === "mediterranean" &&
-                        setting.year >= 700 &&
-                        setting.year < 1800
+                        setting.year >= 700
                       ? [
                           "house-med-0",
                           "house-med-1",
                           "house-med-2",
                           "house-med-3",
                         ]
+                      : setting.culture === "european" &&
+                          setting.year >= 1800 &&
+                          setting.lon >= -11 &&
+                          setting.lon <= 2 &&
+                          setting.lat >= 50 &&
+                          setting.lat <= 59.5
+                        ? [
+                            "house-early-brick-0",
+                            "house-early-brick-1",
+                            "house-early-stone-0",
+                            "house-early-stucco-0",
+                            "house-rural-euro-1",
+                            "house-early-brick-gold-medium-0",
+                            "house-early-stucco-gold-medium-0",
+                          ]
+                        : setting.culture === "european" &&
+                            setting.year >= 1800 &&
+                            setting.lon >= -5 &&
+                            setting.lon <= 26.5 &&
+                            setting.lat >= 43 &&
+                            setting.lat <= 57
+                          ? [
+                              "house-rural-euro-0",
+                              "house-rural-euro-1",
+                              "house-rural-euro-2",
+                              "house-rural-euro-3",
+                              "house-rural-euro-4",
+                            ]
                       : architecture === "timber" &&
                           setting.culture === "european" &&
                           setting.year >= 1500 &&

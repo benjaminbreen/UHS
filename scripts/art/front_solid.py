@@ -237,6 +237,70 @@ def recess(c, x, by, w, d, depth, wall, floor, water=None):
     return top
 
 
+def carve(c, cx, by, x0, x1, y0, y1, ztop, solid, paint, ramps, step=0.25, thr=2.5):
+    """Any solid built of tiers, ledges and recesses, ray-cast in the house
+    projection so every top shows and every wall stays square on.
+    `solid(X, Y, Z)` takes numpy arrays of world points and returns material
+    ids (0 for air); `paint(m, face, x, y, z)` gives a ramp step for a hit,
+    face 0 a top, 1 a front. Cast shadow comes from the sun; inside the
+    silhouette a nearer edge leaves an ink line beside it, a ledge a shade
+    under its lip and a lit rim along its top. Returns `proj(x, y, z)`, the
+    screen point of a world point."""
+    import numpy as np
+    sx = np.arange(int(cx + x0) - 1, int(cx + x1) + 2)
+    sy = np.arange(int(by - ztop - K * y1) - 2, int(by - K * y0) + 2)
+    SX, SY = np.meshgrid(sx, sy)
+    X = SX + 0.5 - cx
+    H0 = by - (SY + 0.5)
+    M = np.zeros(X.shape, int)
+    Yh = np.full(X.shape, np.inf)
+    Zh = np.zeros(X.shape)
+    for y in np.arange(y0, y1, step):
+        Z = H0 - K * y
+        live = M == 0
+        m = solid(X, np.full(X.shape, y), Z)
+        new = live & (m > 0)
+        M[new], Yh[new], Zh[new] = m[new], y, Z[new]
+    hit = M > 0
+    F = np.where(hit & (solid(X, Yh, Zh + 0.6) > 0), 1, 0)
+    lx, ly, lz = LIGHT
+    px = X + np.where(F == 0, 0, 0)
+    py = Yh - np.where(F == 1, 0.6, 0)
+    pz = Zh + np.where(F == 0, 0.6, 0)
+    shade = np.zeros(X.shape, bool)
+    for t in range(1, 70):
+        probe = hit & ~shade
+        if not probe.any():
+            break
+        shade |= probe & (solid(px - lx * t, py - ly * t, pz + lz * t) > 0)
+    Q = np.zeros(X.shape, int)
+    R = np.zeros(X.shape, int)
+    for j, i in zip(*np.nonzero(hit)):
+        r, q = paint(M[j, i], F[j, i], X[j, i], Yh[j, i], Zh[j, i])
+        R[j, i], Q[j, i] = r, q + (2 if F[j, i] == 0 else 1) * shade[j, i]
+    out = Q.copy()
+    h, w = X.shape
+    for j, i in zip(*np.nonzero(hit)):
+        y = Yh[j, i]
+        if F[j, i] == 0 and j + 1 < h and hit[j + 1, i] and F[j + 1, i] == 1 and abs(Yh[j + 1, i] - y) < 1.5:
+            out[j, i] = Q[j, i] - 1
+        if j + 1 < h and hit[j + 1, i] and Yh[j + 1, i] < y - thr:
+            out[j, i] = Q[j, i] + 1
+        if j > 0 and hit[j - 1, i] and Yh[j - 1, i] < y - thr:
+            out[j, i] = Q[j, i] + 2
+        for di in (-1, 1):
+            n = i + di
+            if 0 <= n < w and hit[j, n] and Yh[j, n] < y - thr:
+                out[j, i] = -1 - R[j, n]
+    for j, i in zip(*np.nonzero(hit)):
+        q = out[j, i]
+        c.p(sx[i], sy[j], ramps[-1 - q][5] if q < 0 else ramps[R[j, i]][max(0, min(7, q))])
+
+    def proj(x, y, z):
+        return cx + x, by - z - K * y
+    return proj
+
+
 def ellipse(c, cx, cy, rx, ry, col):
     for yy in range(int(cy - ry) - 1, int(cy + ry) + 2):
         for xx in range(int(cx - rx) - 1, int(cx + rx) + 2):

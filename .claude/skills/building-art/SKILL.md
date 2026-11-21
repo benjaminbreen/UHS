@@ -153,6 +153,41 @@ use and place (Korean jar groups, South Asian water pots, prehistoric storage
 baskets) and sits at facade edges. Household shrines are not a universal
 prop. Do not back-project a later national style into prehistory.
 
+## Temples and precincts
+
+The precinct parts in `front_sacred.py` (`ledge`, `post`, `cornice`,
+`storey_block`, `enclosure`, `front_wall`, `framed_door`, `flagstaff`,
+`masonry`, `bevel`, `pot_row`) are the library for any large sacred building.
+The Dravida temple in `front_sacred_southasia.py` is the pattern.
+
+- **A precinct is nearly in plan.** The court is paving seen from above inside
+  a coped wall. The gate stands on the front wall and the shrine stands
+  inside the court. A court drawn as a wall face fuses the towers.
+- **A stepped tower is ledges, not stripes.** Each tier is a deck seen from
+  above with a lit lip and shade beneath it. The tier face stands at the
+  deck's back, and figures and pavilions stand on the deck with their own
+  tops and shadows. The next ledge's lip shades the face below it. Never draw
+  full-width course lines across a tower, spire or dome. Offset the courses,
+  rib the dome, or bow the courses along the ellipse.
+- **Stone shows its blocks quietly.** `masonry` is a running bond of bevelled
+  blocks with joints one step down. It must never read as a grid.
+- **Outlines are `ink(r)` = step 5 of the touching ramp.** Edges inside the
+  silhouette are value steps from `bevel`: lit top and left, darker bottom and
+  right. The door frame, wall ends and mouldings are bevelled, not outlined.
+- **Grand is earned by mass and depth, not by width.** Keep the footprint the
+  placement expects. Add height, tiers and a deep court instead.
+- **A tower that must recede is built as a solid.** The Nagara temple
+  (`nagara` in `front_sacred_southasia.py`) is the pattern. Its spire,
+  `Latina` in `front_southasia.py`, also stands over the street shrine:
+  `so.carve` draws the platform, hall and spire as solids in the house
+  projection, so every storey stands back on the deck below and the spire sits
+  behind the hall. Drawn flat, the storeys read as stripes on one plane.
+  Carving, pillars, jali, amalaka and finials are then drawn by hand on the
+  solid (`Latina.dress`). `Clip` keeps a hand-drawn niche to the faces the
+  solid shows.
+- **Flags fly.** `flag()` draws the staff and publishes the cloth as a
+  `flag-<cloth>` overlay. Its frames come from `flag_frames()`.
+
 ## Towers
 
 `Skyscraper` in `front_modern.py` is the pattern; the Moscow, Tokyo, slab and

@@ -1235,6 +1235,7 @@ export class Runtime {
       const result = this.command(step.command);
       // A shut door or a refused harvest ends the errand with the engine's reason.
       if (result?.status === "rejected") this.finish(result.reason ?? "You can go no further.");
+      else if (step.end) this.stop();
     } else if ("done" in step) {
       const plan = this.autopilot!.plan;
       this.finish(step.done);
@@ -2611,6 +2612,19 @@ export class Runtime {
         return;
       }
     }
+  }
+  /** Walks to the nearest privy and uses it. */
+  toPrivy() {
+    const p = this.engine.state.player.pos;
+    const privy = this.engine.state.objects
+      .filter((o) => (o.pos.space === "outside" || o.pos.space === p.space) && !o.broken &&
+        useOf(propDefs[o.prop ?? ""]?.family)?.use === "relieve")
+      .sort((a, b) => +(a.pos.space !== p.space) - +(b.pos.space !== p.space) || distance(a.pos, p) - distance(b.pos, p))[0];
+    if (!privy) {
+      this.notice = "There is no privy nearby.";
+      return void this.emit();
+    }
+    this.setOff({ kind: "go", to: privy.pos, label: `the ${privy.name.toLowerCase()}`, field: true, use: privy.id });
   }
   startFollow(id: string) {
     this.flushAmbient();

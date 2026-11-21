@@ -11,7 +11,7 @@ export const climbable = new Set([
   "amphora-stack", "barrel", "threshing-floor", "midden", "shell-midden",
 ]);
 
-export type Use = "attend" | "pound" | "grind" | "draw" | "stir" | "warm" | "sit" | "pray" | "tend" | "weave" | "scrub" | "craft" | "collect" | "roost" | "milk" | "fodder";
+export type Use = "attend" | "pound" | "grind" | "draw" | "stir" | "warm" | "sit" | "mat" | "relieve" | "pray" | "tend" | "weave" | "scrub" | "craft" | "collect" | "roost" | "milk" | "fodder";
 
 const USE: Record<Exclude<Use, "attend">, { verb: string; pose: CharacterPose; minutes: number; families: string[] }> = {
   craft: { verb: "Work at", pose: "work-tend", minutes: 20, families: ["workbench"] },
@@ -20,7 +20,9 @@ const USE: Record<Exclude<Use, "attend">, { verb: string; pose: CharacterPose; m
   draw: { verb: "Draw water at", pose: "tug", minutes: 5, families: ["well", "framed-well", "town-well", "pump", "shaduf", "water-butt", "zir"] },
   stir: { verb: "Tend", pose: "work-stir", minutes: 15, families: ["cooking-pot", "oven", "tannur", "earth-oven", "stove", "dye-vats", "kiln", "bloomery"] },
   warm: { verb: "Warm yourself at", pose: "sit", minutes: 20, families: ["hearth", "camp-hearth", "communal-hearth", "three-stone-hearth", "council-fire", "long-fire", "brazier", "fire-basket"] },
-  sit: { verb: "Sit on", pose: "sit", minutes: 20, families: ["bench", "stool", "seat-log", "seat-mat", "seat-stone", "charpoy", "privy-bench", ...palace((d) => !!d.seat)] },
+  sit: { verb: "Sit on", pose: "sit-seat", minutes: 20, families: ["bench", "park-bench", "street-bench", "stool", "seat-log", "seat-stone", "charpoy", ...palace((d) => !!d.seat && d.family !== "palace-zabuton")] },
+  mat: { verb: "Sit on", pose: "sit", minutes: 20, families: ["seat-mat", "palace-zabuton"] },
+  relieve: { verb: "Use", pose: "sit-seat", minutes: 5, families: ["privy-shed", "privy-stone", "privy-outhouse", "privy-nightsoil", "privy-bench"] },
   pray: { verb: "Pray at", pose: "pray", minutes: 10, families: ["wayside-shrine", "standing-stone", "skull-post"] },
   tend: { verb: "Tend", pose: "work-tend", minutes: 15, families: ["trough", "stock-pen", "chicken-coop", "dovecote", "beehive", "log-hive", "pipe-hive"] },
   weave: { verb: "Work at", pose: "work-weave", minutes: 20, families: ["loom", "warp-loom", "backstrap-loom", "hide-frame", "lever-press", "palace-loom"] },

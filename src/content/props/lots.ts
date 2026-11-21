@@ -103,6 +103,7 @@ export const lotProps: Record<string, PropDef> = Object.fromEntries(
       ...(fit === "solid" || fit === "wide" ? { solid: true } : {}),
       ...(fit === "wide" ? { span: [1, 0] as [number, number] } : {}),
       ...(fit === "flat" ? { underfoot: true } : {}),
+      ...(family.startsWith("privy-") ? { door: true } : {}),
     },
   ]),
 );

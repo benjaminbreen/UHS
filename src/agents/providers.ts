@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { BudgetExceededError } from "./budget";
 import { decisionSchema, type Complete, type Message } from "./loop";
 
 const decisionJson = z.toJSONSchema(decisionSchema);
@@ -14,6 +15,7 @@ async function patient(send: typeof fetch, url: string, init: RequestInit) {
     try {
       response = await send(url, init);
     } catch (error) {
+      if (error instanceof BudgetExceededError) throw error;
       if (++offline > 22) throw error;
       await new Promise((r) => setTimeout(r, Math.min(2000 * 2 ** offline, 30000)));
       attempt--;

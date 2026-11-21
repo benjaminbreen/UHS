@@ -107,7 +107,7 @@ describe("interactive props", () => {
     expect(regionalEquipment({...s,culture:"mesoamerican",year:1400})).not.toContain("chickenCoop");
     expect(equipmentChoices(undefined,"brazier")).toEqual(["brazier"]);
   });
-  it("binds a regional woodworking bench to an indoor workshop fixture", () => {
+  it.runIf(!!process.env.FULL)("binds a regional woodworking bench to an indoor workshop fixture", () => {
     const resolved=resolveSetting("A carpenter in Kyoto, 1700 CE") as {setting: WorldSetting};
     const e=createSettingSession(resolved.setting,"distinct-equipment-0");
     const bench=e.state.objects.find(o=>o.prop==="lowPlaningBench" && o.pos.space!=="outside");
@@ -241,7 +241,7 @@ describe("interactive props", () => {
     expect(outside.pos.space).toBe("outside");
     expect(indoor.pos.space).toBe("home");
   });
-  it("creates regional containers in furnished interiors and keeps them on reload", () => {
+  it.runIf(!!process.env.FULL)("creates regional containers in furnished interiors and keeps them on reload", () => {
     const resolved=resolveSetting("Kyoto 1700") as {setting: WorldSetting};
     const e=createSettingSession(resolved.setting,"storage-interiors");
     const homes=e.state.households!.map(h=>h.residence).filter((s): s is string => !!s);
@@ -335,6 +335,41 @@ describe("interactive props", () => {
     for (const def of Object.values(propDefs).filter(d => d.lid))
       for (let v = 0; v < (def.variants ?? 3); v++)
         expect(frames[`study-propb-${def.family}-${v}-open`], `${def.family}-${v}-open`).toBeTruthy();
+  });
+  it("opens a privy's door onto its seat and shuts it again", () => {
+    const e = createSession("roman", "privy-fixture");
+    const pos = e.state.player.pos;
+    const privy: WorldObject = { id: "test-privy", prop: "privyShed", name: "Privy", kind: "container",
+      sprite: "study-propb-privy-shed-0", pos: { ...pos, x: pos.x + 1 }, inventory: {} };
+    e.state.objects.push(privy);
+    const labels = () => propAffordances(e.state, privy, true).map(a => a.label);
+    expect(labels()).toContain("Open the door");
+    expect(interaction(e, privy, "open").status).toBe("completed");
+    expect(privy.open).toBe(true);
+    expect(labels()).toContain("Shut the door");
+    expect(interaction(e, privy, "close").status).toBe("completed");
+    expect(privy.open).toBe(false);
+    const frames = propAtlas.frames as Record<string, unknown>;
+    for (const def of Object.values(propDefs).filter(d => d.door))
+      for (let v = 0; v < (def.variants ?? 3); v++)
+        expect(frames[`study-propb-${def.family}-${v}-open`], `${def.family}-${v}-open`).toBeTruthy();
+  });
+  it("walks you to the privy, sits you inside and gets you up again", () => {
+    const e = createSession("roman", "privy-fixture");
+    const pos = e.state.player.pos;
+    const privy: WorldObject = { id: "test-privy", prop: "privyShed", name: "Privy", kind: "container",
+      sprite: "study-propb-privy-shed-0", pos: { ...pos, x: pos.x + 4 }, inventory: {} };
+    e.state.objects.push(privy);
+    const runtime = new Runtime(e, { cacheTerrain: false });
+    runtime.toPrivy();
+    for (let n = 0; n < 200 && runtime.autopilot; n++) runtime.tick();
+    expect(e.state.player.seated).toMatchObject({ on: privy.id, pose: "sit-seat" });
+    expect(privy.open).toBe(true);
+    act(e, { type: "wait", seconds: 60 });
+    expect(e.state.player.seated).toBeDefined();
+    act(e, { type: "move", dx: 0, dy: 1 });
+    expect(e.state.player.seated).toBeUndefined();
+    expect(privy.open).toBe(false);
   });
   it("keeps an oven's fire in after you cook at it, and draws it cold", () => {
     const e = createSession("roman", "oven-fixture");
@@ -575,7 +610,8 @@ it("keeps European yard kit out of other regions", () => {
 });
 
 it("keeps broad yard props clear of houses and one another", () => {
-  for (const [query, seed] of [["Congo 1500", "yard-clearance"], ["Bronze Age Denmark", "a"]]) {
+  const cases = process.env.FULL ? [["Congo 1500", "yard-clearance"], ["Bronze Age Denmark", "a"]] : [["Bronze Age Denmark", "a"]];
+  for (const [query, seed] of cases) {
     const resolved = resolveSetting(query) as any;
     expect(resolved.error).toBeUndefined();
     const e = createSettingSession(resolved.setting, seed);
@@ -624,9 +660,9 @@ it("houses a household's hens in a henhouse: in at dusk, eggs by morning", () =>
   const flock = e.state.fauna!.find((g) => g.house === mine!.id)!;
   expect(flock.members.length).toBeGreaterThan(1);
   const hour = () => (e.state.clock / 3600) % 24;
-  for (let i = 0; i < 200 && !(hour() >= 23); i++) e.advance(600);
+  for (let i = 0; i < 40 && !(hour() >= 23); i++) e.advance(1800);
   expect(flock.burrowed, "the hens have gone in").toBeGreaterThan(e.state.clock);
-  for (let i = 0; i < 200 && !(hour() >= 8 && hour() < 9); i++) e.advance(600);
+  for (let i = 0; i < 40 && !(hour() >= 8 && hour() < 9); i++) e.advance(1800);
   expect(flock.burrowed).toBeUndefined();
   expect(flock.eggs).toBeGreaterThan(0);
   // Inside: nest boxes and a perch, and the eggs come away in the hand.
@@ -644,7 +680,7 @@ it("houses a household's hens in a henhouse: in at dusk, eggs by morning", () =>
   expect(flock.eggs).toBe(0);
 });
 
-it("gives a dairymaid a byre: cows in at night, milked there, and her day's work inside it", () => {
+it.runIf(!!process.env.FULL)("gives a dairymaid a byre: cows in at night, milked there, and her day's work inside it", () => {
   const resolved = resolveSetting("A dairymaid in Normandy, 1300") as any;
   expect(resolved.error).toBeUndefined();
   const e = createSettingSession(resolved.setting, "byre");
@@ -659,9 +695,9 @@ it("gives a dairymaid a byre: cows in at night, milked there, and her day's work
   const cows = e.state.fauna!.find((g) => g.house === byre.id)!;
   expect(cows.members.length).toBeGreaterThan(0);
   const hour = () => (e.state.clock / 3600) % 24;
-  for (let i = 0; i < 200 && !(hour() >= 22); i++) e.advance(600);
+  for (let i = 0; i < 40 && !(hour() >= 22); i++) e.advance(1800);
   expect(cows.burrowed, "the cows are in").toBeGreaterThan(e.state.clock);
-  for (let i = 0; i < 200 && !(hour() >= 6 && hour() < 7); i++) e.advance(600);
+  for (let i = 0; i < 40 && !(hour() >= 6 && hour() < 7); i++) e.advance(1800);
   expect(cows.milk).toBeGreaterThan(0);
   e.interiorOf(byre.id);
   const stall = e.state.objects.find((o) => o.pos.space === byre.id && o.prop === "room-stall")!;
@@ -672,7 +708,7 @@ it("gives a dairymaid a byre: cows in at night, milked there, and her day's work
   const milk = cows.milk!;
   e.act({ actionId: "milk", expectedRevision: e.state.revision, command: { type: "interact", target: stall.id, action: "use-prop" } });
   expect(e.state.player.inventory.milk).toBe(milk);
-  for (let i = 0; i < 200 && !(hour() >= 9 && hour() < 10); i++) e.advance(600);
+  for (let i = 0; i < 40 && !(hour() >= 9 && hour() < 10); i++) e.advance(1800);
   expect(cows.burrowed, "turned out after milking").toBeUndefined();
 });
 

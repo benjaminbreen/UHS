@@ -170,4 +170,27 @@ describe("place brief", () => {
     expect(said).not.toContain("lives here");
     expect(said).toContain("A mudbrick block.");
   });
+
+  it("uses plural verb and pronoun for plural goods in purchase briefs", () => {
+    const potter = person({ id: "p-potter", name: "Nagy Tibor", role: "Potter" });
+    const said = briefText(
+      placeBrief(
+        house(),
+        1738,
+        holder,
+        [holder, wife],
+        {
+          id: "h1",
+          home: { x: 0, y: 0, space: "outside" },
+          residence: "h1",
+          members: ["p-holder", "p-wife"],
+          storeId: "s",
+          buys: [{ good: "pots", from: "hp" }],
+          owes: "hp",
+        },
+        (id) => (id === "hp" ? potter : undefined),
+      )!,
+    );
+    expect(said).toMatch(/pots come from Nagy Tibor, still owing for them/);
+  });
 });

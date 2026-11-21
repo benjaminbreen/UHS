@@ -2,6 +2,7 @@ import type { bodyState, healthResearch } from "../core/health";
 import type { dangerAt } from "../core/danger";
 import type { Position, Inventory } from "../core/types";
 import type { WorldSetting } from "../content/geography/types";
+import { costForUsage, parseUsage } from "./budget";
 
 export type Rationale = { intent?: string; reasoning?: string; expectation?: string };
 
@@ -123,6 +124,7 @@ export class RunRecord {
       violence: deeds.filter((d) => ["strike", "shoot", "throw"].includes(d.kind) && (d.targetKind === "person" || d.targetKind === "animal")).length,
       verdicts: calls.reduce<Record<string, number>>((n, e) => (e.verdict && (n[e.verdict] = (n[e.verdict] ?? 0) + 1), n), {}),
       tokens: { policy: this.tokens("policy-model"), environment: this.tokens("environment-model") },
+      costUsd: Math.round((this.cost("policy-model") + this.cost("environment-model")) * 10000) / 10000,
       problems: {
         providerErrors: this.traces.filter((t) => (t.kind === "policy-model" || t.kind === "environment-model") && (t.error || ((t.response as { status?: number })?.status ?? 0) >= 400)).length,
         unusableReplies: this.traces.filter((t) => t.kind === "invalid-decision").length,
@@ -149,6 +151,29 @@ export class RunRecord {
       sum.out += u.completion_tokens ?? u.output_tokens ?? u.candidatesTokenCount ?? 0;
     }
     return sum;
+  }
+
+  private cost(kind: string) {
+    let usd = 0;
+    for (const t of this.traces) {
+      if (t.kind !== kind) continue;
+      const req = t.request as { url?: string; body?: string } | undefined;
+      const res = t.response as { status?: number; body?: string } | undefined;
+      if (!res?.body || (res.status ?? 200) >= 400) continue;
+      try {
+        const body = JSON.parse(res.body) as { model?: string };
+        const usage = parseUsage(body);
+        if (!usage) continue;
+        let model = body.model ?? "";
+        if (!model && req?.body) {
+          try { model = (JSON.parse(req.body) as { model?: string }).model ?? ""; } catch { /* ignore */ }
+        }
+        usd += costForUsage(model, usage, req?.url ?? "");
+      } catch {
+        continue;
+      }
+    }
+    return usd;
   }
 
   /** A readable account: one line per thing done, looks left out. */

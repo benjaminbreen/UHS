@@ -65,7 +65,8 @@ import {
 } from "../../content/settlements/vehicles";
 import { urbanForm } from "../../content/settlements/urban-form";
 import { waysideFor } from "../../content/settlements/wayside";
-import { yardKit, type YardCompanion, type YardProp } from "../../content/settlements/yards";
+import { yardKit, type WalkSurface, type YardCompanion, type YardProp } from "../../content/settlements/yards";
+import type { EarthFinish } from "../../content/settlements/urban-form/types";
 import { choose, treeMix } from "../../content/ecology/vegetation";
 import { propDefs, propVisualCells, spriteVisualCells } from "../../content/props/catalog";
 import { propKit, techFor } from "../../content/props/selection";
@@ -127,7 +128,11 @@ import {
   buildingRoofCells,
   buildingArtCells,
 } from "../../content/graphics/models";
-import { chooseBuildingFrame } from "../../content/graphics/building-scale";
+import {
+  buildingScale,
+  buildingWealthTier,
+  chooseBuildingFrame,
+} from "../../content/graphics/building-scale";
 import {
   crossing,
   line,
@@ -863,10 +868,11 @@ export function planSettlement(
     if (!first && !label.startsWith("field-")) plan.diagnostics.routeFailures++;
     return first;
   };
+  const tier = (x: number, y: number) =>
+    plan.groundLevels?.get(cellKey(x, y)) ?? Math.round(sample(x, y).elevation / 14);
   /** A cell a bank's rim or face crosses; the face hangs more than a cell
    * south of its rim, so the cell two above counts too. */
   const onStep = (x: number, y: number) => {
-    const tier = (x: number, y: number) => plan.groundLevels?.get(cellKey(x, y)) ?? Math.round(sample(x, y).elevation / 14);
     const t = tier(x, y);
     return [[-1, -1], [0, -1], [1, -1], [-1, 0], [1, 0], [-1, 1], [0, 1], [1, 1], [0, -2]].some(([dx, dy]) => tier(x + dx, y + dy) !== t);
   };
@@ -2987,10 +2993,11 @@ export function planSettlement(
     // A town lot keeps its own ground, and its low wall may stand in a
     // building's clearance.
     townLot = false,
+    allowClear?: (x: number, y: number) => boolean,
   ) => {
     const drawn = boundary !== "none";
     eachCell(area, (x, y) => {
-      if (skip(x, y) || placed && !townLot && plan.placement.clearance.has(cellKey(x, y))) return;
+      if (skip(x, y) || placed && !townLot && !allowClear?.(x, y) && plan.placement.clearance.has(cellKey(x, y))) return;
       const k = cellKey(x, y);
       if (drawn && fenced(x, y)) {
         if (!plan.solid.has(k)) fenceCells.add(k);
@@ -3068,8 +3075,10 @@ export function planSettlement(
     };
     for (const at of free) {
       let fits = true;
+      const baseTier = tier(at.x, at.y);
       for (let y = at.y; y <= at.y + h && fits; y++)
-        for (let x = at.x; x < at.x + w && fits; x++) fits = clear(x, y);
+        for (let x = at.x; x < at.x + w && fits; x++)
+          fits = clear(x, y) && tier(x, y) === baseTier;
       if (!fits) continue;
       const p: Place = {
         id: `${id}-${kind}`, name,
@@ -3079,10 +3088,21 @@ export function planSettlement(
         x: at.x, y: at.y, w, h, sprite: frame, entrance: { x: at.x + (w >> 1), y: at.y + h },
         owner, access: "household", claim: `yard-${kind}`, entranceLabel: "Enter",
       };
-      const art = buildingArtCells(frame, p);
-      if (kind === "byre" && art.some(({ x, y }) => propCells.has(cellKey(x, y)) && !buildingClearance.has(cellKey(x, y)))) continue;
       const door = paintedDoor(p);
       if (door) (p.door = door), (p.entrance = { x: door.x, y: door.y + 1 });
+      if (onStep(p.entrance.x, p.entrance.y)) continue;
+      const art = buildingArtCells(frame, p);
+      if (art.some(({ x, y }) => plan.built?.has(cellKey(x, y)))) continue;
+      if (kind === "byre" && art.some(({ x, y }) => propCells.has(cellKey(x, y)) && !buildingClearance.has(cellKey(x, y)))) continue;
+      if (placed) {
+        const env = buildingPlacementEnvelope(frame, p, [p.entrance]);
+        if (
+          envelopeConflicts(plan.placement, env, true, true) ||
+          env.clearance.some((q) => cultivatedAt(plan, q.x, q.y))
+        )
+          continue;
+        reserveBuilding(frame, p, p.entrance);
+      }
       eachCell(p, (x, y) => {
         plan.solid.add(cellKey(x, y));
         plan.built?.add(cellKey(x, y));
@@ -3091,6 +3111,31 @@ export function planSettlement(
       });
       for (const q of art) propCells.add(cellKey(q.x, q.y));
       propCells.add(cellKey(p.entrance.x, p.entrance.y));
+      // Era/culture-matched working apron along the outbuilding's front threshold.
+      const pavedApron: StreetMaterial | undefined =
+        form === "brick"
+          ? "cobble"
+          : form === "east" || form === "med" || form === "stone"
+            ? "slab"
+            : undefined;
+      const earthApron: EarthFinish =
+        form === "bamboo" || form === "adobe" ? "daub" : "beaten";
+      const apronCells: Point[] = [];
+      for (let x = p.x; x < p.x + p.w; x++) apronCells.push({ x, y: p.y + p.h });
+      if (kind === "byre") apronCells.push({ x: p.entrance.x, y: p.entrance.y + 1 });
+      for (const q of apronCells) {
+        const k = cellKey(q.x, q.y);
+        if (plan.solid.has(k) || onStep(q.x, q.y) || sample(q.x, q.y).water < 4 || cultivatedAt(plan, q.x, q.y)) continue;
+        if (pavedApron) {
+          if (setSurface(k, "paving", 4)) {
+            plan.pavement!.set(k, "apron");
+            plan.streetSurfaces!.set(k, pavedApron);
+          }
+        } else if (setSurface(k, "dirt", 4)) {
+          plan.pavement!.set(k, "yard");
+          (plan.earth ??= new Map()).set(k, earthApron);
+        }
+      }
       plan.places.push(p);
       plan.objects.push({ id: `${p.id}-exit`, kind: "exit", name: "Back to the yard", sprite: "door-open", pos: { x: 6, y: 9, space: p.id }, inventory: {}, owner });
       return true;
@@ -3099,7 +3144,7 @@ export function planSettlement(
   };
   const propCells = new Set<string>();
   /** Byres wanted: the yard's back corner first, else the nearest clear ground. */
-  const byres: { item: YardProp; id: string; owner: string; rect: Rect }[] = [];
+  const byres: { item: YardProp; id: string; owner: string; rect: Rect; door: Point }[] = [];
   const buildingClearance = new Set<string>();
   const reserveBuilding = (sprite: string, rect: Rect, entrance: Point, work?: Point) => {
     if (!placed) return;
@@ -3163,7 +3208,19 @@ export function planSettlement(
     // that is not the player's does: the chief's, or the leading family's.
     // A shrine takes it only where one was actually given a lot.
     const high = !!yards.mound && !highHouse && owner !== "player" && !(yards.mound.sacred && frontage.some((l) => l.religious));
-    const stand = high ? { face: yards.mound!.face, apron: 2, rise: yards.mound!.rise } : yards.plinth;
+    const houseTier = tier(rect.x + (rect.w >> 1), rect.y + rect.h - 1);
+    const slopeStep =
+      !yards.plinth &&
+      !high &&
+      Array.from({ length: rect.w }, (_, n) => rect.x + n).some(
+        (x) => tier(x, rect.y + rect.h + 1) < houseTier,
+      );
+    const stand = high
+      ? { face: yards.mound!.face, apron: 2, rise: yards.mound!.rise }
+      : yards.plinth ??
+        (slopeStep
+          ? { face: ((pack.setting?.year ?? 0) >= 1800 ? "dressed" : "drystone") as "dressed" | "drystone", apron: 1 }
+          : undefined);
     const margin = high ? 2 : 1;
     let apron = 0;
     if (stand)
@@ -3177,7 +3234,9 @@ export function planSettlement(
       highHouse ||= high;
       eachCell(base, (x, y) => {
         const k = cellKey(x, y);
+        const insideHouse = x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h;
         if (plan.solid.has(k) && !(x >= rect.x && x < rect.x + rect.w)) return;
+        if (!insideHouse && tier(x, y) !== houseTier) return;
         (plan.plinths ??= new Map()).set(k, { face: stand!.face, ...(high && { rise: yards.mound!.rise }) });
         plan.reserved.add(k);
       });
@@ -3189,7 +3248,7 @@ export function planSettlement(
         // A town with sewers has no privies.
         !(motorAge && urban && /privy/.test(p.family)),
     );
-    for (const p of items) if (p.building?.kind === "byre" && owner) byres.push({ item: p, id, owner, rect });
+    for (const p of items) if (p.building?.kind === "byre" && owner) byres.push({ item: p, id, owner, rect, door });
     const privy = privies[Math.floor(rand("privy-kind", i) * privies.length)];
     if (privy && !(motorAge && urban) && rand("privy-here", i) < 0.55)
       items.push({ prop: privy, family: propDefs[privy].family, name: propDefs[privy].name, where: "back", chance: 1 });
@@ -3265,13 +3324,14 @@ export function planSettlement(
     // An animal house wants three rows behind the house and one to reach its door.
     const rear = Math.max(bmin + Math.floor(rand("toft-back", i) * (bmax - bmin + 1)), bmax && items.some((p) => p.building) ? 5 : 0);
     const first = rand("toft-side", i) < 0.5 ? -1 : 1;
-    const tries: [number, number, number, number, number][] = [];
+    const tries: [number, number, number, number, number, number][] = [];
     // Extra width for an animal house in the back corner, given up where it will not fit.
     const wing = items.some((p) => p.building?.kind === "byre") ? 3 : items.some((p) => p.building) ? 2 : 0;
     // A platform's own apron and stair need a row clear of the fence.
     const least = apron + 1;
     for (const wide of wing ? [wing, 0] : [0])
     for (const back of rear ? [rear, 0] : [0])
+      for (const pad of [2, 1])
       for (let front = Math.max(least, deepest); front >= least; front--)
         // A bed to one side, then the other, then behind the house where
         // neighbours stand too close for either.
@@ -3280,26 +3340,32 @@ export function planSettlement(
           for (const bed of [8, 7, 6, 5, 4].slice(
             Math.floor(rand("toft-bed", i) * 3),
           ))
-            tries.push([front, side, bed, back, wide]);
+            tries.push([front, side, bed, back, wide, pad]);
     yardPlans.push(() => {
       // A wall right round stands clear of the art's sides, which may be
       // wider than the footprint.
+      const sprite = placed ? plan.places.find((p) => p.id === id)?.sprite : undefined;
+      const art = sprite ? buildingArtCells(sprite, rect) : [];
+      const ownArt = new Set(art.map((p) => cellKey(p.x, p.y)));
       let el = 0, er = 0, top = rect.y;
-      while (el < 4 && plan.placement.clearance.has(cellKey(rect.x - 1 - el, rect.y + rect.h - 1))) el++;
-      while (er < 4 && plan.placement.clearance.has(cellKey(rect.x + rect.w + er, rect.y + rect.h - 1))) er++;
-      while (top > rect.y - 8 && plan.placement.clearance.has(cellKey(rect.x + (rect.w >> 1), top - 1))) top--;
+      for (const p of art) {
+        if (p.y < top) top = p.y;
+        if (p.x < rect.x) el = Math.max(el, rect.x - p.x);
+        if (p.x >= rect.x + rect.w) er = Math.max(er, p.x - (rect.x + rect.w - 1));
+      }
       const wl = style === "wrap" ? el : 0, wr = style === "wrap" ? er : 0;
       // Ground under the house's own roof and eaves is its own.
       const underRoof = (x: number, y: number) =>
-        y >= top && y < rect.y + rect.h && x >= rect.x - el && x < rect.x + rect.w + er;
-      for (const [front, side, bed, back, wide] of tries) {
+        ownArt.has(cellKey(x, y)) ||
+        (y >= top && y < rect.y + rect.h && x >= rect.x - el && x < rect.x + rect.w + er);
+      for (const [front, side, bed, back, wide, pad] of tries) {
         // A back yard starts where the roof as drawn ends.
         const depth = 3 + (bed >> 1);
         // An animal house stands in the back corner on the side without the
         // bed, which is widened to hold it.
         const hen = back ? wide : 0;
-        const xl = rect.x - wl - (side < 0 ? bed + least + 1 : 2 + (side > 0 ? hen : 0)),
-          xr = rect.x + rect.w + wr + (side > 0 ? bed + 2 : 2 + hen),
+        const xl = rect.x - wl - (side < 0 ? bed + least + 1 : pad + (side > 0 ? hen : 0)),
+          xr = rect.x + rect.w + wr + (side > 0 ? bed + pad : pad + hen),
           yt = Math.min(back ? top - back - 1 : rect.y + rect.h - 2, side ? Infinity : top - depth),
           yb = rect.y + rect.h + front;
         const toft = { x: xl, y: yt, w: xr - xl + 1, h: yb - yt + 1 };
@@ -3326,22 +3392,38 @@ export function planSettlement(
         const inPlot = (x: number, y: number) =>
           x >= plot.x && x < plot.x + plot.w && y >= plot.y && y < plot.y + plot.h;
         let fits = true;
-        eachCell(toft, (x, y) => {
-          // A path may cross the yard, never the bed.
-          if (inPlot(x, y) && roads.has(cellKey(x, y))) fits = false;
-          if (inHouse(x, y) || open(x, y)) return;
-          const k = cellKey(x, y);
-          // The lot's own yard was reserved when the house went up.
-          const own = underRoof(x, y) ||
-            x >= lot.x && x < lot.x + lot.w && y >= lot.y && y < lot.y + lot.h ||
-            x >= base.x && x < base.x + base.w && y >= base.y && y < base.y + base.h;
-          if (
-            sample(x, y).water < 4 ||
-            plan.solid.has(k) ||
-            (plan.reserved.has(k) && !own)
-          )
-            fits = false;
-        });
+        for (let y = toft.y; y < toft.y + toft.h && fits; y++)
+          for (let x = toft.x; x < toft.x + toft.w && fits; x++) {
+            if (inHouse(x, y)) continue;
+            const k = cellKey(x, y);
+            const frontBand = y >= rect.y - 1;
+            const splitsFrontWall =
+              style === "wrap" && y === yb && x > xl && x < xr && Math.abs(x - door.x) > 1;
+            const ownWork = x === work.x && y === work.y && !centers.has(k);
+            if (roads.has(k) && !ownWork && (inPlot(x, y) || (splitsFrontWall && !onWalk(x, y)))) {
+              fits = false;
+              break;
+            }
+            if (!open(x, y)) {
+              // The lot's own yard was reserved when the house went up.
+              const own = underRoof(x, y) ||
+                x >= lot.x && x < lot.x + lot.w && y >= lot.y && y < lot.y + lot.h ||
+                x >= base.x && x < base.x + base.w && y >= base.y && y < base.y + base.h;
+              if (plan.solid.has(k) || (plan.reserved.has(k) && !own)) {
+                fits = false;
+                break;
+              }
+            }
+            const f = sample(x, y);
+            if (!open(x, y) && f.water < 4) {
+              fits = false;
+              break;
+            }
+            if ((frontBand || inPlot(x, y)) && (plan.groundLevels?.get(k) ?? Math.round(f.elevation / 14)) !== houseTier) {
+              fits = false;
+              break;
+            }
+          }
         if (!fits) continue;
         eachCell(toft, (x, y) => {
           if (!inHouse(x, y)) plan.reserved.add(cellKey(x, y));
@@ -3365,22 +3447,35 @@ export function planSettlement(
             y >= area.y &&
             y < area.y + area.h;
           let crossed = false;
+          let walkGate: Point | undefined;
           eachCell(area, (x, y) => {
-            if (ring(x, y) && !inHouse(x, y) && open(x, y)) crossed = true;
+            if (ring(x, y) && !inHouse(x, y) && open(x, y)) {
+              crossed = true;
+              if (
+                onWalk(x, y) &&
+                (!walkGate ||
+                  (y === area.y + area.h - 1 && walkGate.y !== area.y + area.h - 1) ||
+                  Math.abs(x - door.x) < Math.abs(walkGate.x - door.x))
+              )
+                walkGate = { x, y };
+            }
           });
-          // No path crosses it: a gate in the front run, standing open.
+          // Gate where the front walk crosses the fence, or a front-run gate if none crosses.
           const gate =
-            style === "open" || crossed
+            style === "open"
               ? undefined
-              : {
-                  x:
-                    style === "wrap"
-                      ? side < 0
-                        ? rect.x + 1
-                        : rect.x + rect.w - 2
-                      : plot.x + (plot.w >> 1),
-                  y: area.y + area.h - 1,
-                };
+              : walkGate ??
+                (crossed
+                  ? undefined
+                  : {
+                      x:
+                        style === "wrap"
+                          ? side < 0
+                            ? rect.x + 1
+                            : rect.x + rect.w - 2
+                          : plot.x + (plot.w >> 1),
+                      y: area.y + area.h - 1,
+                    });
           const fenced = (x: number, y: number) =>
             style !== "open" &&
             inside(x, y) &&
@@ -3401,20 +3496,33 @@ export function planSettlement(
             !(rows.h >= 4 && (rows.h < 6 ? y === rows.y + (rows.h >> 1) : (y - rows.y) % 3 === 2)) &&
             !(rows.w >= 6 && x === rows.x + (rows.w >> 1)) &&
             !open(x, y) &&
+            !underRoof(x, y) &&
             !propCells.has(cellKey(x, y));
+          // Allow this house's own side/front flank clearance to hold its yard and
+          // side fences so fences tie flush into the house walls instead of clipping.
+          const ownFlank = (x: number, y: number) =>
+            y >= rect.y &&
+            y <= rect.y + rect.h + 1 &&
+            x >= rect.x - el - 1 &&
+            x <= rect.x + rect.w + er;
+          const yardSkip = (x: number, y: number) =>
+            inHouse(x, y) || (y < rect.y && underRoof(x, y));
+          const bnd = yardBoundary(i);
           encloseYard(
             style === "open" ? rows : area,
-            inHouse,
+            yardSkip,
             fenced,
             (x, y) => (planted(x, y) ? crop : undefined),
             100200 + i * 2,
             "x",
-            yardBoundary(i),
+            bnd,
             owner,
+            false,
+            ownFlank,
           );
-          if (gate) {
+          if (gate && ["fence", "wattle", "paling", "picket", "bamboo"].includes(bnd)) {
             const k = cellKey(gate.x, gate.y);
-            if (!plan.solid.has(k) && !roads.has(k))
+            if (!plan.solid.has(k) && (!roads.has(k) || !!walkGate))
               plan.objects.push({
                 id: `${id}-yard-gate`,
                 name: "Garden gate",
@@ -3425,7 +3533,25 @@ export function planSettlement(
                 open: true,
               });
           }
-          if (yards.ground || apron)
+          const isPavedWalk = (m?: WalkSurface): m is StreetMaterial =>
+            !!m && ["asphalt", "concrete", "basalt", "cobble", "slab", "brick", "sett", "plank", "macadam"].includes(m);
+          const walkMat = yards.walk?.length
+            ? yards.walk[Math.floor(rand("yard-walk", i) * yards.walk.length)]
+            : undefined;
+          const layWalkCell = (x: number, y: number, mat: WalkSurface, rank: number) => {
+            const k = cellKey(x, y);
+            if (inHouse(x, y) || plan.solid.has(k) || onStep(x, y) || sample(x, y).water < 4) return;
+            if (isPavedWalk(mat)) {
+              if (setSurface(k, "paving", rank)) {
+                plan.pavement!.set(k, "apron");
+                plan.streetSurfaces!.set(k, mat);
+              }
+            } else if (setSurface(k, "dirt", rank)) {
+              plan.pavement!.set(k, "yard");
+              (plan.earth ??= new Map()).set(k, mat as EarthFinish);
+            }
+          };
+          if (yards.ground)
             eachCell(toft, (x, y) => {
               // Kept ground is what the household's feet and broom reach.
               const dx = Math.max(base.x - x, 0, x - base.x - base.w + 1),
@@ -3433,14 +3559,63 @@ export function planSettlement(
               const k = cellKey(x, y);
               if (dx * dx + dy * dy > 12 || inHouse(x, y) || inPlot(x, y) || onStep(x, y) || !setSurface(k, "dirt", 3) && plan.surface.get(k) !== "dirt") return;
               plan.pavement!.set(k, "yard");
-              if (yards.ground) (plan.earth ??= new Map()).set(k, yards.ground);
+              (plan.earth ??= new Map()).set(k, yards.ground!);
             });
-          // The walk from the street is worn to earth inside the yard too.
-          if (style === "wrap")
+          // Threshold apron right under the visual front door (always on the south face),
+          // and foundation flower/herb/shrub borders hugging the wall under the windows.
+          const frontDoorX = southDoor ? door.x : rect.x + (rect.w >> 1);
+          const apronDepth = !apron ? (yards.apron ?? 0) : 0;
+          if (apronDepth) {
+            const apronMat: WalkSurface = walkMat ?? yards.ground ?? "beaten";
+            const ax0 = yards.border ? Math.max(rect.x, frontDoorX - 1) : rect.x;
+            const ax1 = yards.border ? Math.min(rect.x + rect.w - 1, frontDoorX + 1) : rect.x + rect.w - 1;
+            for (let dy = 0; dy < apronDepth; dy++)
+              for (let x = ax0; x <= ax1; x++) {
+                const y = rect.y + rect.h + dy;
+                if (inPlot(x, y) || fenced(x, y)) continue;
+                layWalkCell(x, y, apronMat, 4);
+              }
+          }
+          // Front walkway from a south doorway through the yard to the street (never out a side/back wall).
+          if (walkMat && southDoor && street.y >= door.y && Math.abs(street.x - door.x) + (street.y - door.y) <= 8) {
+            let x = door.x, y = door.y;
+            for (let step = 0; step < 12; step++) {
+              if (!inHouse(x, y) && !fenced(x, y)) layWalkCell(x, y, walkMat, 5);
+              if (x === street.x && y === street.y) break;
+              if (y < street.y) y++;
+              else if (x !== street.x) x += Math.sign(street.x - x);
+              if (roads.has(cellKey(x, y)) && (x !== door.x || y !== door.y)) break;
+            }
+          } else if (style === "wrap" && southDoor)
             eachCell(toft, (x, y) => {
               if (onWalk(x, y) && !inHouse(x, y))
                 setSurface(cellKey(x, y), "dirt", 4);
             });
+          // Low ornamental or herb borders hugging the front wall under the windows,
+          // keeping at least one clear row between the bed and any front wrap wall.
+          if (yards.border && style !== "open") {
+            const by = rect.y + rect.h + apron;
+            if (!(style === "wrap" && by >= area.y + area.h - 2)) {
+              for (let x = rect.x; x < rect.x + rect.w; x++) {
+                if (Math.abs(x - frontDoorX) <= 1) continue;
+                const k = cellKey(x, by);
+                if (
+                  inPlot(x, by) ||
+                  fenced(x, by) ||
+                  fenced(x, by + 1) ||
+                  onWalk(x, by) ||
+                  plan.solid.has(k) ||
+                  roads.has(k) ||
+                  (propCells.has(k) && !buildingClearance.has(k)) ||
+                  onStep(x, by) ||
+                  plan.plinths?.has(k) ||
+                  plan.surface.get(k) === "paving"
+                )
+                  continue;
+                (plan.borders ??= new Map()).set(k, yards.border);
+              }
+            }
+          }
           // What stands in the bed and the open yard.
           const bedItem = items.find((p) => p.where === "bed");
           if (bedItem)
@@ -3457,7 +3632,7 @@ export function planSettlement(
           eachCell(toft, (x, y) => {
             if (inHouse(x, y) || ring(x, y) || open(x, y) || inPlot(x, y)) return;
             // Props keep off the strip behind the roof; a henhouse may stand there.
-            if (y < top - 1) back.push({ x, y });
+            if (y < top) back.push({ x, y });
             if (propCells.has(cellKey(x, y))) return;
             if (y < top - 1) behind.push({ x, y });
             if (y < top - 1 || y > rect.y + rect.h) free.push({ x, y });
@@ -3467,15 +3642,79 @@ export function planSettlement(
           const near = (a: Point, b: Point) => Math.hypot(a.x - work.x, a.y - work.y) - Math.hypot(b.x - work.x, b.y - work.y);
           free.sort(near);
           behind.sort((a, b) => a.y - b.y || near(a, b));
+          const serviceTargets: Point[] = [];
           items
             .filter((p) => p.where === "yard" || p.where === "back" || p.where === "apron")
             .forEach((item, n) => {
-              if (item.building && owner && outbuilding(item.building, back.sort((a, b) => b.y - a.y || a.x - b.x), id, owner, item.name)) return;
+              if (item.building && owner && outbuilding(item.building, back.sort((a, b) => b.y - a.y || a.x - b.x), id, owner, item.name)) {
+                serviceTargets.push(plan.places[plan.places.length - 1].entrance);
+                return;
+              }
               if (item.building?.kind === "byre") return;
               // A privy goes at the bottom of the back yard or not at all.
               const spots = item.where === "back" && (behind.length || propDefs[item.prop]?.where === "privy") ? behind : free;
-              spots.some((at) => (item.where !== "apron" || at.y >= rect.y + rect.h) && yardProp(item, at, id, i, 40 + n));
+              const hit = spots.find((at) => (item.where !== "apron" || at.y >= rect.y + rect.h) && yardProp(item, at, id, i, 40 + n));
+              if (hit && /privy|oven/i.test(item.family)) serviceTargets.push(hit);
             });
+          // Organic desire-line footpath from back-yard outbuildings downstream to the house door centerline.
+          if (centers.has(cellKey(door.x, door.y)))
+          serviceTargets.forEach((target, idx) => {
+            const sx = target.x < door.x ? rect.x - 1 : rect.x + rect.w;
+            const sy = rect.y + rect.h;
+            const canStep = (x: number, y: number) => {
+              const k = cellKey(x, y);
+              return (
+                !inHouse(x, y) &&
+                !inPlot(x, y) &&
+                !fenced(x, y) &&
+                !plan.borders?.has(k) &&
+                tier(x, y) === houseTier &&
+                sample(x, y).water >= 4 &&
+                (!plan.solid.has(k) || (x === target.x && y === target.y))
+              );
+            };
+            // Step from door around the front/side corner to (sx, sy), then to target.
+            let cx = door.x, cy = door.y;
+            const points: Point[] = [{ x: cx, y: cy }];
+            const walkTo = (gx: number, gy: number, skirtHouse: boolean) => {
+              for (let step = 0; step < 36 && (cx !== gx || cy !== gy); step++) {
+                const dx = gx - cx, dy = gy - cy;
+                let nx = cx, ny = cy;
+                if (skirtHouse && dy < 0 && cy >= rect.y) ny--;
+                else if (Math.abs(dx) > Math.abs(dy)) nx += Math.sign(dx);
+                else if (dy !== 0) ny += Math.sign(dy);
+                else nx += Math.sign(dx);
+                if (!canStep(nx, ny)) {
+                  if (nx !== cx && dy !== 0 && canStep(cx, cy + Math.sign(dy))) {
+                    nx = cx;
+                    ny = cy + Math.sign(dy);
+                  } else if (ny !== cy && dx !== 0 && canStep(cx + Math.sign(dx), cy)) {
+                    nx = cx + Math.sign(dx);
+                    ny = cy;
+                  } else return false;
+                }
+                cx = nx;
+                cy = ny;
+                points.push({ x: cx, y: cy });
+              }
+              return Math.abs(cx - gx) + Math.abs(cy - gy) <= 1;
+            };
+            if (!walkTo(sx, sy, false) || !walkTo(target.x, target.y, true)) return;
+            if (points.length >= 2) {
+              // End on `door` so wear flows downstream into the road network.
+              points.reverse();
+              plan.roads.push({
+                id: `${id}-svc-${idx}`,
+                points,
+                width: 0,
+                kind: "path",
+                cost: points.length,
+                baselineYear: pack.setting?.year ?? 0,
+                state: "used",
+                condition: 1,
+              });
+            }
+          });
           if (yards.tree && rand("yard-tree", i) < yards.tree.chance) {
             const at = {
               x: side < 0 ? plot.x + 1 : plot.x + plot.w - 2,
@@ -3500,20 +3739,74 @@ export function planSettlement(
         return;
       }
       // No room for a yard: the ground at the walls is kept all the same.
-      if (yards.ground || apron)
+      if (yards.ground || apron || yards.walk || yards.apron || yards.border)
         toftQueue.push(() => {
           const front: Point[] = [];
+          const frontDoorX = southDoor ? door.x : rect.x + (rect.w >> 1);
+          const walkMat = yards.walk?.length
+            ? yards.walk[Math.floor(rand("yard-walk", i) * yards.walk.length)]
+            : undefined;
+          const pavedWalk =
+            !!walkMat &&
+            ["asphalt", "concrete", "basalt", "cobble", "slab", "brick", "sett", "plank", "macadam"].includes(walkMat);
           eachCell({ x: base.x - 2, y: base.y - 1, w: base.w + 4, h: base.h + 3 }, (x, y) => {
             const k = cellKey(x, y),
-              mine = x >= base.x && x < base.x + base.w && y >= base.y && y < base.y + base.h;
+              atFront = !apron && y >= rect.y + rect.h && y < rect.y + rect.h + (yards.apron ?? 0) && x >= rect.x && x < rect.x + rect.w && (!yards.border || Math.abs(x - frontDoorX) <= 1),
+              mine = (x >= base.x && x < base.x + base.w && y >= base.y && y < base.y + base.h) || (atFront && !roads.has(k));
             if (x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h || plan.solid.has(k) ||
-              plan.reserved.has(k) && !mine || onStep(x, y) || sample(x, y).water < 4 ||
-              !setSurface(k, "dirt", 3) && plan.surface.get(k) !== "dirt") return;
-            plan.pavement!.set(k, "yard");
-            if (yards.ground) (plan.earth ??= new Map()).set(k, yards.ground);
+              plan.reserved.has(k) && !mine || onStep(x, y) || sample(x, y).water < 4) return;
+            if (atFront && walkMat && pavedWalk) {
+              if (setSurface(k, "paving", 4)) {
+                plan.pavement!.set(k, "apron");
+                plan.streetSurfaces!.set(k, walkMat as StreetMaterial);
+              }
+            } else if (yards.ground || atFront) {
+              if (!setSurface(k, "dirt", 3) && plan.surface.get(k) !== "dirt") return;
+              plan.pavement!.set(k, "yard");
+              const earth = yards.ground ?? (walkMat && !pavedWalk ? (walkMat as EarthFinish) : undefined);
+              if (earth) (plan.earth ??= new Map()).set(k, earth);
+            } else return;
             if (y >= rect.y + rect.h && !atWork(x, y) && Math.abs(x - door.x) > 1)
               front.push({ x, y });
           });
+          if (walkMat && southDoor && street.y >= door.y && Math.abs(street.x - door.x) + (street.y - door.y) <= 8) {
+            let x = door.x, y = door.y;
+            for (let step = 0; step < 12; step++) {
+              const k = cellKey(x, y);
+              if (!(x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h) && !plan.solid.has(k) && !onStep(x, y) && sample(x, y).water >= 4) {
+                if (pavedWalk) {
+                  if (setSurface(k, "paving", 5)) {
+                    plan.pavement!.set(k, "apron");
+                    plan.streetSurfaces!.set(k, walkMat as StreetMaterial);
+                  }
+                } else if (setSurface(k, "dirt", 5)) {
+                  plan.pavement!.set(k, "yard");
+                  (plan.earth ??= new Map()).set(k, walkMat as EarthFinish);
+                }
+              }
+              if (x === street.x && y === street.y) break;
+              if (y < street.y) y++;
+              else if (x !== street.x) x += Math.sign(street.x - x);
+              if (roads.has(cellKey(x, y)) && (x !== door.x || y !== door.y)) break;
+            }
+          }
+          if (yards.border) {
+            const by = rect.y + rect.h + apron;
+            for (let x = rect.x; x < rect.x + rect.w; x++) {
+              if (Math.abs(x - frontDoorX) <= 1) continue;
+              const k = cellKey(x, by);
+              if (
+                plan.solid.has(k) ||
+                roads.has(k) ||
+                (propCells.has(k) && !buildingClearance.has(k)) ||
+                onStep(x, by) ||
+                plan.plinths?.has(k) ||
+                plan.surface.get(k) === "paving"
+              )
+                continue;
+              (plan.borders ??= new Map()).set(k, yards.border);
+            }
+          }
           items.filter((p) => p.where === "apron").forEach((item, n) =>
             front.some((at) => yardProp(item, at, id, i, 40 + n)));
         });
@@ -3646,28 +3939,52 @@ export function planSettlement(
   const unstaffed = plan.places.slice(0, worksites).flatMap((p) =>
     p.workRoles?.find((r) => characterContext?.livelihoods.some((l) => l.id === r)) ?? []);
   const portYards=plan.terminal ? [plan.terminal.yard] : plan.harbor?.yard ?? plan.plots.filter(p=>p.id.endsWith("-waterfront-loading-bay"));
+  const settlementKind =
+    profile.pattern === "farmstead"
+      ? "farm"
+      : profile.pattern === "band" || profile.pattern === "encampment"
+        ? "camp"
+        : pack.setting?.settlement;
   for (let j = 0; j < frontage.length && plan.places.length - worksites < limit; j++) {
     const lot = frontage[j];
     const { point: frontagePoint, nx, ny } = lot,
       i = plan.places.length - worksites;
+    const lotReach = Math.min(
+      1,
+      Math.hypot(frontagePoint.x - c.x, frontagePoint.y - c.y) /
+        Math.max(1, profile.radius),
+    );
+    const ruralLot =
+      settlementKind === "farm" ||
+      (!urban &&
+        !lot.quarter &&
+        ((profile.fields !== "none" && canFarm && i % 3 === 0) ||
+          (profile.livestock && canHerd && i % 3 === 1) ||
+          lotReach > 0.65));
+    const lotWealth =
+      lot.quarter === "elite"
+        ? 78 + rand("building-means", j) * 22
+        : lot.quarter === "market"
+          ? 48 + rand("building-means", j) * 32
+          : lot.quarter === "craft"
+            ? 35 + rand("building-means", j) * 32
+            : lot.quarter === "edge"
+              ? 10 + rand("building-means", j) * 30
+              : ruralLot
+                ? 14 + rand("building-means", j) * 40
+                : !urban && lotReach < 0.35
+                  ? 42 + rand("building-means", j) * 44
+                  : 20 + rand("building-means", j) * 48;
     const base = chooseBuildingFrame(
       pack.buildings,
       {
-        settlement: pack.setting?.settlement,
+        settlement: settlementKind,
         density: urban
           ? Math.max(0.25, 1 - j / Math.max(1, frontage.length))
-          : 0.3,
-        wealth:
-          lot.quarter === "elite"
-            ? 78 + rand("building-means", j) * 22
-            : lot.quarter === "market"
-              ? 45 + rand("building-means", j) * 35
-              : lot.quarter === "craft"
-                ? 35 + rand("building-means", j) * 35
-                : lot.quarter === "edge"
-                  ? 10 + rand("building-means", j) * 35
-                  : 20 + rand("building-means", j) * 55,
-        quarter: lot.quarter,
+          : Math.max(0.15, 0.45 - lotReach * 0.3),
+        wealth: lotWealth,
+        quarter: lot.quarter ?? (!urban && lotReach > 0.72 ? "edge" : undefined),
+        rural: ruralLot,
       },
       rand("building-scale", j),
       rand("building", j),
@@ -4022,6 +4339,29 @@ export function planSettlement(
           })()
         : (KEEPERS[art]?.find(has) ?? (has("shopkeeper") ? "shopkeeper" : "trader"))
       : undefined;
+    const placedScale = buildingScale(frame);
+    const placedTier = buildingWealthTier(frame);
+    const grandHouse =
+      lot.quarter === "elite" ||
+      placedScale === "large" ||
+      placedTier === 2;
+    const humbleHouse =
+      lot.quarter === "edge" ||
+      (placedScale === "small" && (placedTier ?? 0) === 0);
+    const ruralAllowed =
+      !grandHouse &&
+      lot.quarter !== "market" &&
+      lot.quarter !== "craft" &&
+      (!urban || lot.quarter === "edge" || lotReach > 0.55);
+    const takeUnstaffed = () => {
+      if (grandHouse) return undefined;
+      const deferLabour = (placedTier ?? 0) >= 1 && frontage.length - j > unstaffed.length + 2;
+      const idx = unstaffed.findIndex((roleId) => {
+        const rank = characterContext?.livelihoods.find((l) => l.id === roleId)?.rank;
+        return !(deferLabour && (rank === "labouring" || rank === "destitute"));
+      });
+      return idx >= 0 ? unstaffed.splice(idx, 1)[0] : undefined;
+    };
     const wanted =
       owner === "player"
         ? pack.role
@@ -4033,20 +4373,38 @@ export function planSettlement(
           ? "trader"
           : lot.quarter === "craft"
             ? "craftsperson"
-            : (profile.livestock && canHerd && i % 3 === 1) ||
-                (stockyard && i % 9 === 4)
+            : ruralAllowed &&
+                ((profile.livestock && canHerd && i % 3 === 1) ||
+                  (stockyard && i % 9 === 4))
               ? (workAt(
                   characterContext!,
                   "pasture",
                   characterSex(seed, owner),
                 )[0]?.id ?? "herder")
-              : profile.fields !== "none" && canFarm && i % 3 === 0
+              : ruralAllowed &&
+                  profile.fields !== "none" &&
+                  canFarm &&
+                  (i % 3 === 0 || (settlementKind === "farm" && i % 3 !== 1))
                 ? (workAt(
                     characterContext!,
                     "field",
                     characterSex(seed, owner),
                   )[0]?.id ?? "farmer")
-                : unstaffed.shift();
+                : takeUnstaffed();
+    const preferredRanks: readonly Rank[] | undefined =
+      owner === "player"
+        ? undefined
+        : grandHouse
+          ? ["elite", "gentry"]
+          : lot.quarter === "market"
+            ? ["middling", "gentry"]
+            : lot.quarter === "craft"
+              ? ["labouring", "middling"]
+              : humbleHouse || (!urban && lotReach > 0.72)
+                ? ["destitute", "labouring"]
+                : placedTier === 1 || (!urban && settlementKind !== "farm" && lotReach < 0.32)
+                  ? ["middling", "gentry"]
+                  : undefined;
     // The person's own community and standing, as generateCharacter will see
     // them, so the trade on the door is the trade they end up with.
     const community = pack.setting?.characterRevision ? characterCommunity(pack.setting, seed, owner) : undefined;
@@ -4061,6 +4419,8 @@ export function planSettlement(
           characterSex(seed, owner),
           characterStanding(pack.setting!, seed, owner, community),
           pack.setting!.character?.age ?? 34,
+          undefined,
+          preferredRanks,
         )
       : undefined;
     const role = livelihood
@@ -4106,12 +4466,25 @@ export function planSettlement(
     reserveBuilding(frame, rect, door, workPoint);
     if (owner === "player") playerTrade = role;
     const shop = owner === "player" ? playerShop : undefined;
-    // Someone whose work is in the fields or with the herd keeps no workshop at home.
-    const rural = livelihood
-      ? ["field", "pasture"].includes(livelihood.workplace ?? workplaceFor(livelihood.activity))
-      : role === "Farmer" || role === "Herder";
+    // Only bench crafts without their own worksite in town keep a workshop at home.
+    const workplace = livelihood
+      ? (livelihood.workplace ?? workplaceFor(livelihood.activity))
+      : undefined;
+    const worksiteRole =
+      !!livelihood &&
+      plan.places.slice(0, worksites).some((p) => p.workRoles?.includes(livelihood.id));
+    const homeWorkshop = livelihood
+      ? workplace === "workshop" &&
+        !worksiteRole &&
+        livelihood.id !== "apprentice" &&
+        livelihood.rank !== "elite" &&
+        livelihood.rank !== "gentry"
+      : role !== "Farmer" && role !== "Herder";
     const shopfront = owner === "player" ? !!shop :
-      !!keeper || lot.quarter === "market" || lot.quarter === "craft" || (i % 4 === 1 && !rural && lot.quarter !== "elite");
+      !!keeper ||
+      lot.quarter === "market" ||
+      (lot.quarter === "craft" && homeWorkshop) ||
+      (i % 4 === 1 && homeWorkshop && !grandHouse && placedTier !== 1);
     // In a camp a house is called what it is: a felt tent, a shelter, a
     // longhouse, whoever's trade is practised in it.
     const dwelling = model.label.split(" · ")[0];
@@ -5883,18 +6256,81 @@ export function planSettlement(
   }
   for (const fence of [...toftQueue, ...campFences, ...squareRails]) fence();
   // A stock-keeping household has a lot rather than a garden yard: its byre
-  // stands on the nearest clear ground beside the house.
+  // stands behind or beside the house on the same level, never blocking the front facade.
   for (const want of byres) {
     if (plan.places.some((p) => p.id === `${want.id}-byre`)) continue;
-    const { rect } = want, near: Point[] = [];
-    for (let y = rect.y - 9; y <= rect.y + rect.h + 4; y++)
-      for (let x = rect.x - 10; x <= rect.x + rect.w + 9; x++) {
+    const { rect, door } = want, near: Point[] = [];
+    const houseTier = tier(rect.x + (rect.w >> 1), rect.y + rect.h - 1);
+    for (let y = rect.y - 16; y <= rect.y + rect.h + 1; y++)
+      for (let x = rect.x - 14; x <= rect.x + rect.w + 13; x++) {
+        // Keep the front approach and south facade clear of cowsheds.
+        if (y >= rect.y + rect.h - 1 && x >= rect.x - 3 && x <= rect.x + rect.w + 2) continue;
         const k = cellKey(x, y);
-        if (!plan.reserved.has(k) && !plan.traffic.has(k) && sample(x, y).water >= 4) near.push({ x, y });
+        if (
+          !plan.reserved.has(k) &&
+          !plan.traffic.has(k) &&
+          tier(x, y) === houseTier &&
+          sample(x, y).water >= 4
+        )
+          near.push({ x, y });
       }
     const cx = rect.x + rect.w / 2, cy = rect.y + rect.h / 2;
-    near.sort((a, b) => Math.hypot(a.x - cx, a.y - cy) - Math.hypot(b.x - cx, b.y - cy));
-    outbuilding(want.item.building!, near, want.id, want.owner, want.item.name);
+    const score = (p: Point) => {
+      const d = Math.hypot(p.x - cx, p.y - cy);
+      // Prefer behind the house, then flanking the sides; avoid forward corners.
+      const zone = p.y + 2 <= rect.y ? -4 : p.y < rect.y + rect.h - 1 ? 0 : 8;
+      return d + zone;
+    };
+    near.sort((a, b) => score(a) - score(b));
+    if (outbuilding(want.item.building!, near, want.id, want.owner, want.item.name) && centers.has(cellKey(door.x, door.y))) {
+      const placedByre = plan.places[plan.places.length - 1];
+      const target = placedByre.entrance;
+      let cxp = door.x, cyp = door.y;
+      const pts: Point[] = [{ x: cxp, y: cyp }];
+      const canStep = (x: number, y: number) => {
+        const k = cellKey(x, y);
+        return (
+          !(x >= rect.x && x < rect.x + rect.w && y >= rect.y && y < rect.y + rect.h) &&
+          !(x >= placedByre.x && x < placedByre.x + placedByre.w && y >= placedByre.y && y < placedByre.y + placedByre.h) &&
+          !plan.solid.has(k) &&
+          !plan.borders?.has(k) &&
+          !cultivatedAt(plan, x, y) &&
+          tier(x, y) === houseTier &&
+          sample(x, y).water >= 4
+        );
+      };
+      for (let step = 0; step < 36 && (cxp !== target.x || cyp !== target.y); step++) {
+        const dx = target.x - cxp, dy = target.y - cyp;
+        let nx = cxp, ny = cyp;
+        if (Math.abs(dx) > Math.abs(dy)) nx += Math.sign(dx);
+        else ny += Math.sign(dy);
+        if (!canStep(nx, ny)) {
+          if (nx !== cxp && dy !== 0 && canStep(cxp, cyp + Math.sign(dy))) {
+            nx = cxp;
+            ny = cyp + Math.sign(dy);
+          } else if (ny !== cyp && dx !== 0 && canStep(cxp + Math.sign(dx), cyp)) {
+            nx = cxp + Math.sign(dx);
+            ny = cyp;
+          } else break;
+        }
+        cxp = nx;
+        cyp = ny;
+        pts.push({ x: cxp, y: cyp });
+      }
+      if (pts.length >= 2 && Math.abs(cxp - target.x) + Math.abs(cyp - target.y) <= 1) {
+        pts.reverse();
+        plan.roads.push({
+          id: `${want.id}-byre-path`,
+          points: pts,
+          width: 0,
+          kind: "path",
+          cost: pts.length,
+          baselineYear: pack.setting?.year ?? 0,
+          state: "used",
+          condition: 1,
+        });
+      }
+    }
   }
   dropStubFences([...penFields, ...toftFields], fenceCells, plan);
   if (penFields.length || toftFields.length) {

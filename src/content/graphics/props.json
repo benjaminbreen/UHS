@@ -1645,10 +1645,10 @@
       "name": "Privy shed",
       "group": "Household",
       "size": [
-        26,
-        44
+        34,
+        58
       ],
-      "description": "A board shed over a pit, leaning a little, with a cut in the door and the spoil heaped behind it.",
+      "description": "A board shed over a pit with a cut in the door: planks and shingles, daub and thatch, or corrugated sheet.",
       "variants": [
         "Boards and planks",
         "Wattle and thatch",
@@ -1741,8 +1741,8 @@
       "name": "Stone privy",
       "group": "Household",
       "size": [
-        26,
-        44
+        36,
+        58
       ],
       "description": "A masonry privy block with a tiled roof and a chute down its side: the town house's own.",
       "variants": [
@@ -1756,8 +1756,8 @@
       "name": "Night-soil privy",
       "group": "Household",
       "size": [
-        60,
-        71
+        48,
+        58
       ],
       "description": "A shed with a collection hatch at the back, a tub and a carrying yoke: what comes out goes on the fields.",
       "variants": [
@@ -1771,10 +1771,10 @@
       "name": "Brick outhouse",
       "group": "Household",
       "size": [
-        26,
-        44
+        36,
+        58
       ],
-      "description": "Brick, a slate roof, a cistern and a soil pipe.",
+      "description": "Brick, a slate or tiled roof, and a cast-iron soil pipe up the corner.",
       "variants": [
         "Red brick",
         "Buff brick",

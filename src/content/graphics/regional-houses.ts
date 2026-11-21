@@ -88,7 +88,11 @@ export function southAsianRegionalHouses(setting: WorldSetting) {
       : "southasian-courtyard",
     profile,
   );
-  return [...houses, ...frames("southasian-service", profile)];
+  return [
+    ...frames("southasian-house", profile),
+    ...houses,
+    ...frames("southasian-service", profile),
+  ];
 }
 
 /** Felt and cart tents on the open steppe by period; the forest-edge log

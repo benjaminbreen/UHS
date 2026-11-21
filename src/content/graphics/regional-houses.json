@@ -892,6 +892,17 @@
         "small": {"footprint": [5, 3], "entrance": 2, "stories": 1, "variants": 4, "wealthTiers": [0, 1, 1, 2], "seedOffset": 14550, "roofPlan": "ridge", "roofAccess": "none", "serviceStyles": ["storehouse", "workshop", "gatehouse", "neighborhood-hall"], "functions": ["storehouse", "craft-workshop", "compound-gate", "neighborhood-hall"]}
       }
     },
+    "southasian-house": {
+      "source": "house-aegean-0",
+      "label": "Village house and farmhouse",
+      "profiles": ["early-north-indian", "sultanate", "north-indian", "rajput", "deccan", "bengali", "malabar"],
+      "function": "rural-household",
+      "description": "A modest single-storey dwelling of mud plaster, brick or stone under thatch, country tile or a flat earth roof. Illustrative.",
+      "sizes": {
+        "small": {"footprint": [4, 3], "entrance": 2, "stories": 1, "variants": 3, "wealthTiers": [0, 0, 1], "seedOffset": 14600, "roofPlan": "hip", "roofAccess": "none", "functions": ["farmhouse", "rural-cottage", "labourer-cottage"]},
+        "medium": {"footprint": [6, 4], "entrance": 3, "stories": 1, "variants": 3, "wealthTiers": [0, 1, 1], "seedOffset": 14650, "roofPlan": "hip", "roofAccess": "none", "functions": ["farmhouse", "artisan-household", "village-house"]}
+      }
+    },
     "southasian-courtyard": {
       "source": "house-aegean-1",
       "label": "Haveli and courtyard house",

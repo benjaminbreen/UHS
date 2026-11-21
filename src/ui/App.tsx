@@ -1797,6 +1797,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                         </button>
                       );
                     })}
+                    {!p.dead && (
+                      <button role="menuitem" onClick={() => { setRestOpen(false); runtime.toPrivy(); }}>
+                        Go to the privy
+                      </button>
+                    )}
                     {!p.dead && runtime.engine.world.pack.setting && (
                       <button role="menuitem" onClick={() => { setRestOpen(false); setYearsToEnd(false); setModal("years"); }}>
                         Let the years pass

@@ -3,7 +3,7 @@ tops seen from above at moderate depth, no sheared side.
 
 Sized to the figure as the game draws it (about 40px from crown to heel), not
 to the metre: a crate comes to a person's knee, a bench seat to the back of
-the knee, a privy door is a little shorter than a house door.
+the knee.
 """
 import math
 import random
@@ -217,80 +217,6 @@ def _gable(c, x0, x1, eave, rise, kind, r):
                 t = 5 if k % 3 == 0 else 4 if (x + (k // 3) * 3) % 6 else 2
             c.set(x, y, r[t])
     c.hline(x0 - 2, x1 + 2, eave, r[1]); c.hline(x0 - 1, x1 + 1, eave + 1, '#1a1410')
-
-
-def _privy(c, x0, x1, g, wall, wr, roof, rr, cut, seed):
-    eave = g - 34
-    if wall == 'plank':
-        boards(c, x0, eave + 1, x1, g, wr, seed)
-    elif wall == 'wattle':
-        for y in range(eave + 1, g + 1):
-            for x in range(x0, x1 + 1):
-                c.set(x, y, wr[4] if (x + (y // 2) * 2) % 4 < 2 else wr[3])
-            if y % 6 == 0: c.hline(x0, x1, y, wr[2])
-    elif wall == 'sheet':
-        for x in range(x0, x1 + 1):
-            for y in range(eave + 1, g + 1):
-                c.set(x, y, wr[5] if (x - x0) % 4 == 0 else wr[4] if (x - x0) % 4 == 1 else wr[3])
-        c.hline(x0, x1, eave + 12, wr[2])
-    else:
-        for y in range(eave + 1, g + 1):
-            course = (y - eave) // 4
-            for x in range(x0, x1 + 1):
-                joint = (y - eave) % 4 == 0 or (x + course * (5 if wall == 'stone' else 3)) % (10 if wall == 'stone' else 6) == 0
-                c.set(x, y, wr[2] if joint else wr[4 + (x * 7 + course) % 3 % 2])
-    c.vline(x0, eave + 1, g, wr[5]); c.vline(x1, eave + 1, g, wr[2])
-    mid = (x0 + x1) // 2
-    _door(c, mid - 5, mid + 5, eave + 5, g - 1, WOODS[seed % 3] if wall != 'sheet' else wr, cut)
-    _gable(c, x0, x1, eave, 10, roof, rr)
-    c.hline(x0, x1, g, wr[1])
-
-
-def privy_shed(v=0, motion=0):
-    wr = [OAK, ASH, SHEET][v]
-    c = Canvas(34, 50)
-    _privy(c, 4, 29, 49, ['plank', 'wattle', 'sheet'][v], wr, ['shingle', 'thatch', 'sheet'][v],
-           [WALNUT, THATCH, SHEET][v], 'moon' if v == 0 else 'slot', v)
-    for x in range(0, 4):
-        c.set(x, 49 - (1 if x in (1, 2) else 0), SOIL[3]); c.set(x, 49, SOIL[2])
-    _flies(c, motion, [(17, 30, 9, 4, 1.0), (16, 22, 6, 5, -1.0)])
-    return finish(c, wr)
-
-
-def privy_stone(v=0, motion=0):
-    wr = STONES[v]
-    c = Canvas(34, 50)
-    _privy(c, 3, 30, 49, 'stone', wr, 'tile', TILE, 'slot', v)
-    # The chute down the side.
-    c.vline(31, 26, 49, wr[3]); c.vline(32, 26, 49, wr[1]); c.hline(30, 33, 49, wr[2])
-    _flies(c, motion, [(17, 30, 9, 4, 1.0)])
-    return finish(c, wr)
-
-
-def privy_outhouse(v=0, motion=0):
-    wr = [RAMPS['rustred7'], RAMPS['buffclay7'], SHEET][v]
-    c = Canvas(36, 52)
-    _privy(c, 3, 30, 51, 'brick' if v < 2 else 'sheet', wr, 'sheet' if v == 2 else 'slate', [TILE, TILE, SHEET][v] if v else RAMPS['granite'], 'slot', v)
-    # A cistern up on the wall and the soil pipe down it.
-    c.rect(24, 10, 32, 14, IRON[3]); c.hline(24, 32, 10, IRON[5]); c.hline(24, 32, 14, IRON[1])
-    c.vline(33, 14, 51, IRON[2]); c.vline(34, 14, 51, IRON[1])
-    _flies(c, motion, [(17, 32, 8, 4, 1.0)])
-    return finish(c, wr)
-
-
-def privy_nightsoil(v=0, motion=0):
-    wr = [OAK, WALNUT, SHEET][v]
-    c = Canvas(48, 50)
-    _privy(c, 3, 28, 49, 'plank' if v < 2 else 'sheet', wr, ['tile', 'shingle', 'sheet'][v], [TILE, WALNUT, SHEET][v], 'slot', v + 1)
-    # The tub at the hatch and its carrying yoke across it.
-    tub = OAK
-    c.rect(32, 40, 43, 49, tub[4]); c.hline(32, 43, 49, tub[1])
-    for x in range(33, 43, 3): c.vline(x, 41, 48, tub[3])
-    for y in (42, 47): c.hline(32, 43, y, IRON[3])
-    top(c, 32, 43, 40, ['#100c08', '#1a1410', '#2a2018', '#3a2c1e', '#4a3826', '#5a4630', '#6a553a'], 3)
-    c.line((29, 33), (46, 38), WALNUT[4]); c.line((29, 34), (46, 39), WALNUT[2])
-    _flies(c, motion, [(38, 34, 5, 3, 1.0), (16, 30, 8, 4, -1.0)])
-    return finish(c, wr)
 
 
 def privy_bench(v=0, motion=0):
@@ -605,8 +531,7 @@ def farm_cart(v=0):
 FRONTS = {
     'crate': crate, 'crate-stack': crate_stack, 'strapped-chest': strapped_chest,
     'bench': bench, 'park-bench': park_bench, 'municipal-planter': municipal_planter,
-    'privy-shed': privy_shed, 'privy-stone': privy_stone, 'privy-outhouse': privy_outhouse,
-    'privy-nightsoil': privy_nightsoil, 'privy-bench': privy_bench,
+    'privy-bench': privy_bench,
     'granary-staddle': granary_staddle, 'granary-stilt': granary_stilt,
     'stall-trestle': stall_trestle, 'stall-awning': stall_awning, 'stall-booth': stall_booth,
     'stall-cart': stall_cart, 'stall-modern': stall_modern,

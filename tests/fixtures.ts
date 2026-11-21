@@ -30,5 +30,6 @@ export function smallSession(setting: WorldSetting, seed = "fixture") {
   e.initialize(seed);
   Object.assign(e.state.player, generateCharacter(setting, seed, "player", 34, setting.role));
   e.state.player.health = 100;
+  if (setting.below) e.startBelow(setting.below);
   return e;
 }

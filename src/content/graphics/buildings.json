@@ -2103,6 +2103,138 @@
    "seed": 1745,
    "description": "A rendered house with sash windows, of the eighteenth century. Illustrative."
   },
+  "house-rural-euro-0": {
+   "canvas": [
+    144,
+    180
+   ],
+   "height": 62,
+   "roof": "gable",
+   "opening": "door",
+   "attachments": [],
+   "label": "Smallholder cottage",
+   "footprint": [
+    6,
+    3
+   ],
+   "entrance": [
+    3,
+    3
+   ],
+   "wall": "cream-stucco",
+   "roofMaterial": "terracotta",
+   "windowStyle": "casement",
+   "chimneys": 1,
+   "stories": 1,
+   "seed": 1911,
+   "description": "A rendered cottage under clay plain tiles with an eyebrow dormer and a brick lean-to shed."
+  },
+  "house-rural-euro-1": {
+   "canvas": [
+    144,
+    198
+   ],
+   "height": 84,
+   "roof": "gable",
+   "opening": "door",
+   "attachments": [],
+   "label": "Brick farmhouse",
+   "footprint": [
+    6,
+    3
+   ],
+   "entrance": [
+    3,
+    3
+   ],
+   "wall": "red-brick",
+   "roofMaterial": "terracotta",
+   "windowStyle": "casement",
+   "chimneys": 2,
+   "stories": 2,
+   "seed": 1922,
+   "description": "A Flemish-bond brick farmhouse with buff brick window arches, a dentil eaves frieze, and knee-wall attic lights."
+  },
+  "house-rural-euro-2": {
+   "canvas": [
+    144,
+    188
+   ],
+   "height": 68,
+   "roof": "gable",
+   "opening": "door",
+   "attachments": [],
+   "label": "Rendered farmhouse",
+   "footprint": [
+    6,
+    3
+   ],
+   "entrance": [
+    3,
+    3
+   ],
+   "wall": "cream-stucco",
+   "roofMaterial": "terracotta",
+   "windowStyle": "casement",
+   "chimneys": 1,
+   "stories": 1,
+   "seed": 1933,
+   "description": "An ochre-rendered farmhouse with a wooden entrance porch under a half-hipped clay tile roof."
+  },
+  "house-rural-euro-3": {
+   "canvas": [
+    144,
+    236
+   ],
+   "height": 90,
+   "roof": "gable",
+   "opening": "door",
+   "attachments": [
+    "timber-frame"
+   ],
+   "label": "Half-timbered farmhouse",
+   "footprint": [
+    6,
+    3
+   ],
+   "entrance": [
+    3,
+    3
+   ],
+   "wall": "half-timber",
+   "roofMaterial": "terracotta",
+   "windowStyle": "casement",
+   "chimneys": 1,
+   "stories": 2,
+   "seed": 1944,
+   "description": "A brick-built farmhouse with a dark oak half-timbered upper gable under weathered clay tiles."
+  },
+  "house-rural-euro-4": {
+   "canvas": [
+    192,
+    220
+   ],
+   "height": 102,
+   "roof": "gable",
+   "opening": "door",
+   "attachments": [],
+   "label": "Large farmstead",
+   "footprint": [
+    8,
+    4
+   ],
+   "entrance": [
+    4,
+    4
+   ],
+   "wall": "cream-stucco",
+   "roofMaterial": "terracotta",
+   "windowStyle": "casement",
+   "chimneys": 2,
+   "stories": 2,
+   "seed": 1955,
+   "description": "A two-storey rendered farmstead on a clinker brick plinth under a half-hipped clay tile roof."
+  },
   "house-roman-ob-0": {
    "canvas": [
     100,

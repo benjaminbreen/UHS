@@ -8,6 +8,7 @@ uniform sampler2D iChannel3;
 uniform vec2 worldOrigin;
 uniform float waterTime;
 uniform vec3 sun;
+uniform vec4 lightTint;
 uniform vec4 bankParams;
 uniform vec4 polishParams;
 uniform vec4 oceanParams;
@@ -46,11 +47,14 @@ void main(){
      float clump=noise(floor(p/2.)/5.)*.24+noise(p/23.)*.15;
      float edge=clamp((d-(1.-polishParams.x*.6)+clump-.15)/max(.1,polishParams.x*.6),0.,1.);
      edge=floor(edge*5.)/5.;
-     // Past the sand the ground raster's own turf shows, not a flat green:
-     // a damp margin, a dark undercut, then nothing.
-     if(edge>.7)discard;
-     if(edge>.5)bank=tone(13.,row)*.5;
-     else if(edge>.1)bank=mix(dry,wet,.55+edge*.5);
+     bool seaBank=kind>.5&&kind<1.5;
+     // Past a river's mud the turf shows an undercut; a sea beach fades cleanly
+     // into dry upper sand instead of drawing a dark green rim across it.
+     if(edge>(seaBank?.55:.7))discard;
+     if(!seaBank){
+       if(edge>.5)bank=tone(13.,row)*.5;
+       else if(edge>.1)bank=mix(dry,wet,.55+edge*.5);
+     }
      if(noise(floor(p/2.)/2.)>.78&&d>.24&&d<.72)bank=mix(bank,wet,.18);
    }
    if(kind>.5&&kind<1.5){
@@ -68,7 +72,7 @@ void main(){
    }
    vec4 bankArt=texture2D(iChannel2,(local+.5)/resolution);
    bank=mix(bank,bankArt.rgb,bankArt.a);
-   gl_FragColor=vec4(bank,1.);return;
+   gl_FragColor=vec4(bank*lightTint.rgb,1.);return;
  }
  float depth=(raw-128.)/16.;
  float angle=(inland?floor(blue/4.)/64.:m.b)*6.2831853;vec2 flow=vec2(cos(angle),sin(angle));
@@ -157,7 +161,7 @@ void main(){
  // Sparse, world-anchored reflective facets follow the same daylight phase as shadows.
  vec2 glitterCell=floor(p/vec2(13.,9.));vec2 g=mod(p,vec2(13.,9.));
  float pulse=sin(t*2.3+hash(glitterCell)*45.);
- if(solid<.5&&hash(glitterCell)>.8&&g.y<1.&&g.x<3.&&pulse>.93) color=mix(color,sun,(pulse-.93)/.07*.8);
+ if(solid<.5&&lightTint.a>.05&&hash(glitterCell)>.8&&g.y<1.&&g.x<3.&&pulse>.93) color=mix(color,sun,(pulse-.93)/.07*.8*lightTint.a);
  if(ocean){
    float offshore=smoothstep(5.,13.,depth)*oceanParams.x;
    vec2 drift=vec2(sin(t*.21+p.y/160.)*12.,cos(t*.17+p.x/190.)*10.);
@@ -167,5 +171,5 @@ void main(){
    color=mix(color,deep,offshore);
  }
  color=mix(color,art.rgb,art.a);
- gl_FragColor=vec4(color,1.);
+ gl_FragColor=vec4(color*lightTint.rgb,1.);
 }`;

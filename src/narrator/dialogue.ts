@@ -688,10 +688,10 @@ export function commitDialogue(runtime: Runtime, actorId: string, said: string, 
   return { before, after: trust(), received };
 }
 
-export async function explainDialogue(line: DialogueLine, signal?: AbortSignal) {
+export async function explainDialogue(line: DialogueLine, signal?: AbortSignal, send: typeof fetch = fetch) {
   if (!line.context) return { error: "This line has no context to explain." };
   try {
-    const response = await fetch("/api/dialogue", {
+    const response = await send("/api/dialogue", {
       method: "POST",
       signal,
       headers: { "Content-Type": "application/json" },

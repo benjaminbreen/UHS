@@ -225,6 +225,7 @@ export function characterLivelihood(
   standing: "free" | "unfree" = "free",
   age?: number,
   system = personalSystem(s,seed,id,context.community,requested),
+  preferredRanks?: readonly Rank[],
 ) {
   const alias: Record<string, string> = {
     forager: "gatherer",
@@ -326,7 +327,11 @@ export function characterLivelihood(
       return resolved ? [resolved] : [];
     },
   );
-  const pool = withBeliefs.length ? withBeliefs : context.livelihoods;
+  const basePool = withBeliefs.length ? withBeliefs : context.livelihoods;
+  const ranked = preferredRanks?.length
+    ? basePool.filter((l) => Boolean(l.rank && preferredRanks.includes(l.rank)))
+    : [];
+  const pool = ranked.length ? ranked : basePool;
   // Drawn by share, not evenly. Uniformly, twelve adults held ten different
   // trades: one of everything and two of nothing, and nobody growing food.
   const total = pool.reduce((n, l) => n + (l.weight ?? 1), 0);

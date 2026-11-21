@@ -392,6 +392,7 @@ const ambientPoses: Record<StationActivity, CharacterPose> = {
 };
 /** Rows of a character frame shown above the covers: the head and a little of the shoulders. */
 const HEAD_ROWS = 13;
+const PRIVY_DOOR = /^study-propb-privy-(shed|stone|outhouse|nightsoil)-\d+-open$/;
 /** The motion each piece of a room's work asks for. */
 const INDOOR_WORK: Partial<Record<Kind, CharacterPose>> = {
   loom: "work-weave", spinwheel: "work-weave", basket: "work-weave", bolts: "work-sort", vat: "work-stir",
@@ -2820,6 +2821,23 @@ export class WorldScene extends Phaser.Scene {
     this.mounted.set(player ? "player" : a.id, { role, frame: crewFrame(role, at.along, at.moving), facing: pose.facing, depth: beside ? y : place.depth });
     return { x: (x - 8) / 16, y: (y - 16) / 16, activity: "visit", label: v.doing, moving: walking, direction: Math.round(pose.facing / 2) % 4 };
   }
+  /** Sitting down: on a prop, drawn on it facing out, in front of it; with
+   * nothing under them, on the ground where they stand. */
+  private seatPlayer(im: Phaser.GameObjects.Image, time: number) {
+    const p = this.runtime.engine.state.player, seated = p.seated;
+    const on = seated?.on ? this.entities.get(seated.on) : undefined;
+    if (!seated || (seated.on && !on)) return false;
+    // Blink like anyone sitting still.
+    const frame = time % 4200 < 140 ? 3 : 0;
+    if (!on) {
+      this.mounted.set("player", { role: seated.pose, frame, facing: p.facing ?? facingFromDirection(p.direction), depth: im.y });
+      return true;
+    }
+    const privy = PRIVY_DOOR.test(on.frame.name);
+    im.setPosition(on.x, on.y + (privy ? -2 : 1));
+    this.mounted.set("player", { role: seated.pose, frame, facing: facingFromDirection(2), depth: on.depth + 0.5 });
+    return true;
+  }
   /** The developer's horse: its gait from the player's pace, its heading
    * from their facing, eight frames a stride. */
   private horseFrame(moving: boolean, facing: number, time: number) {
@@ -3110,7 +3128,7 @@ export class WorldScene extends Phaser.Scene {
               ? 700
               : kind === "flapboard"
                 ? 420
-                : kind === "pennant"
+                : kind === "pennant" || kind.startsWith("flag-")
                   ? 170
                   : kind === "acfan"
                     ? 70
@@ -5316,12 +5334,14 @@ export class WorldScene extends Phaser.Scene {
                 animation?: BuildingAnimationRecipe;
               }
             ).animation;
+            // Raised ground lifts the drawn building off its cells.
+            const drawn = { ...placement, y: image.y };
             if (animation)
-              this.addBuildingAnimation(b.id, placement, animation);
+              this.addBuildingAnimation(b.id, drawn, animation);
             const overlays = (
               placement.model as { overlays?: [string, number, number][] }
             ).overlays;
-            if (overlays) this.addBuildingOverlays(b.id, placement, overlays);
+            if (overlays) this.addBuildingOverlays(b.id, drawn, overlays);
             const clocks = (placement.model as { clocks?: [number, number, number][] }).clocks;
             for (const [x, y, r] of clocks ?? []) {
               const g = this.add.graphics().setDepth(placement.depth + 1);
@@ -7288,6 +7308,8 @@ export class WorldScene extends Phaser.Scene {
       !perf.livingWater ||
         this.options.waterAnimation === false ||
         (!!this.options.freeze && this.options.waterAnimation !== true),
+      this.tint,
+      this.light.id === "night" ? 0 : this.sunStrength(),
     );
     mark("water");
     this.terrainStream?.update();
@@ -7775,7 +7797,7 @@ export class WorldScene extends Phaser.Scene {
         if (at) {
           const x = at.x * 16 + 8, y = at.y * 16 + 16;
           im.setPosition(x, y - this.lift(x, y));
-        } else this.mounted.delete(id);
+        } else if (!this.seatPlayer(im, this.time.now)) this.mounted.delete(id);
       }
       const seat = this.mounted.get(id), under = im.getData("underfoot") as boolean | undefined;
       const rider=this.ambient.get(id);
@@ -8319,6 +8341,10 @@ export class WorldScene extends Phaser.Scene {
             .setPosition(pillow.x, pillow.y)
             .setDepth(pillow.depth);
         } else if (im.angle) im.setAngle(0).setOrigin(0.5, 1);
+        // In a privy, only what shows in the doorway: the jambs and lintel hide the rest.
+        const stall = id === "player" && seat && this.runtime.engine.state.player.seated?.on;
+        if (stall && PRIVY_DOOR.test(this.entities.get(stall)?.frame.name ?? "") && texture)
+          im.setCrop(im.width / 2 - 6, im.height - 30, 13, 30);
         if (!texture || swimming) this.shadows.get(id)?.setVisible(false);
         if (texture && !swimming && !deck && seat?.role !== "drive-cart" && seat?.role !== "sit-seat" && this.options.shadows !== false) {
           const shadowTexture = this.characters.shadow(

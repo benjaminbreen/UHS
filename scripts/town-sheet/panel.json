@@ -467,5 +467,10 @@
     "name": "buenos-aires-1910",
     "query": "Buenos Aires 1910",
     "centre": "square"
+  },
+  {
+    "name": "wroclaw-1932",
+    "query": "Market gardener in Wrocław, 1932",
+    "radius": 40
   }
 ]

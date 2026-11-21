@@ -1,13 +1,11 @@
-/** Shared plumbing for the review captures.
- *
- * Every capture used to carry its own copy of this: launch Chrome, open a
- * page, wait for the lab to settle, screenshot, close. The bespoke part of a
- * capture is the composition it draws, not the browser handling.
- */
+/** Shared plumbing for the review captures and game screenshots. */
 import { chromium, type Page } from "@playwright/test";
+import { spawn, type ChildProcess } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
+import { createServer } from "node:net";
+import { resolve } from "node:path";
 
-export const base =
+export let base =
   process.env.UHS_URL ?? `http://127.0.0.1:${process.env.PORT ?? 5173}`;
 
 /** Chrome by default; CHROME_PATH points at another build, as in playwright.config.ts. */
@@ -27,23 +25,87 @@ export function captureErrors(page: Page) {
   };
 }
 
+export async function isGameServer(at = base): Promise<boolean> {
+  const html = await fetch(at, { signal: AbortSignal.timeout(3000) })
+    .then((r) => (r.ok ? r.text() : ""))
+    .catch(() => "");
+  return html.includes("<title>Universal History Simulator</title>");
+}
+
 /** Other projects' dev servers also default to 5173; loading one looks like the game hanging. */
 export async function assertGameServer(at = base) {
-  const html = await fetch(at, { signal: AbortSignal.timeout(5000) })
-    .then((r) => r.text())
-    .catch(() => "");
-  if (!html.includes("<title>Universal History Simulator</title>"))
+  if (!(await isGameServer(at)))
     throw Error(
       `${at} is not this game's dev server. Start it (npm run dev) and pass its port as PORT=<port> or UHS_URL=<url>.`,
     );
 }
 
-/** Open a page, run the capture, and close the browser even if it throws. */
+const sparePort = () =>
+  new Promise<number>((done, fail) => {
+    const probe = createServer().once("error", fail).listen(0, "127.0.0.1", () => {
+      const { port } = probe.address() as { port: number };
+      probe.close(() => done(port));
+    });
+  });
+
+/** Ensures a Vite dev server is available and updates `base`. Reuses UHS_URL / PORT
+ * when given; otherwise spawns an isolated offline Vite server on a free port. */
+export async function startGameServer({
+  reuseDefault = false,
+  offline = process.env.UHS_ALLOW_PAID !== "1",
+  log = (line: string) => console.log(line),
+  viteStdio = "inherit",
+}: {
+  reuseDefault?: boolean;
+  offline?: boolean;
+  log?: (line: string) => void;
+  viteStdio?: "inherit" | "stderr";
+} = {}): Promise<{ url: string; close: () => void }> {
+  const explicit = !!(process.env.UHS_URL || process.env.PORT);
+  if (explicit || (reuseDefault && (await isGameServer(base)))) {
+    await assertGameServer(base);
+    log(`using dev server at ${base}`);
+    return { url: base, close: () => {} };
+  }
+  const port = await sparePort();
+  const site = `http://127.0.0.1:${port}`;
+  log(`starting dev server at ${site}${offline ? " (offline)" : ""}`);
+  // Own the Vite process directly so cleanup cannot leave an npx child running.
+  const server: ChildProcess = spawn(
+    process.execPath,
+    [resolve("node_modules/vite/bin/vite.js"), "--host", "127.0.0.1", "--port", String(port), "--strictPort"],
+    {
+      stdio: viteStdio === "stderr" ? ["ignore", "pipe", "inherit"] : "inherit",
+      env: { ...process.env, UHS_STILL: "1", ...(offline ? { UHS_OFFLINE: "1" } : {}) },
+    },
+  );
+  if (viteStdio === "stderr") server.stdout?.on("data", (chunk) => process.stderr.write(chunk));
+  let startupError: Error | undefined;
+  server.on("error", (error) => { startupError = error; });
+  const deadline = Date.now() + 60000;
+  while (!(await isGameServer(site))) {
+    if (startupError) {
+      server.kill();
+      throw startupError;
+    }
+    if (server.exitCode !== null || server.signalCode !== null)
+      throw Error(`Dev server exited before startup (${server.signalCode ?? server.exitCode}). See Vite output above.`);
+    if (Date.now() > deadline) {
+      server.kill();
+      throw Error(`Dev server never came up at ${site}. See Vite output above.`);
+    }
+    await new Promise((r) => setTimeout(r, 300));
+  }
+  base = site;
+  return { url: site, close: () => { server.kill(); } };
+}
+
+/** Open a page, run the capture, and close browser + owned server even if it throws. */
 export async function withPage(
   { width = 1440, height = 1100 }: { width?: number; height?: number },
   run: (page: Page) => Promise<void>,
 ) {
-  await assertGameServer();
+  const server = await startGameServer({ reuseDefault: true });
   const browser = await launchBrowser();
   try {
     const page = await browser.newPage({ viewport: { width, height } });
@@ -51,7 +113,11 @@ export async function withPage(
     await run(page);
     assertHealthy();
   } finally {
-    await browser.close();
+    try {
+      await browser.close();
+    } finally {
+      server.close();
+    }
   }
 }
 
@@ -92,13 +158,16 @@ export async function terrainLab(
 }
 
 /** Wait for the terrain lab's draw queue to drain. */
-export async function settled(page: Page) {
+export async function settled(page: Page, timeout = 90000) {
   await page.waitForFunction(
-    () =>
-      document.querySelector("canvas")?.getAttribute("data-terrain-pending") ===
-      "0",
+    () => {
+      const c = document.querySelector("canvas");
+      const ready = c?.getAttribute("data-terrain-ready") === "true";
+      const pending = c?.getAttribute("data-terrain-pending");
+      return ready && (!pending || pending === "0");
+    },
     {},
-    { timeout: 90000 },
+    { timeout },
   );
 }
 
@@ -144,7 +213,6 @@ export const card = (name: string, url: string, extra = "") =>
 /** Some sheets compose a canvas larger than the viewport and hand back a data
  * URL rather than being screenshotted, so the whole sheet survives. */
 export async function writeDataUrl(dataUrl: string, out: string) {
-  const { writeFile } = await import("node:fs/promises");
   await mkdir(out.replace(/\/[^/]+$/, ""), { recursive: true });
   await writeFile(out, Buffer.from(dataUrl.split(",")[1], "base64"));
   console.log(`wrote ${out}`);

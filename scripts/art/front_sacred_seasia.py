@@ -249,15 +249,20 @@ def zedi(c, cx, base, R, r, tip=GILT, corners=True):
     """The Burmese stupa: three square terraces, an octagonal plinth, the
     flared bell, mouldings, lotus petals, the banana bud and the hti."""
     y = base
+    th = max(9, round(R * 0.26))
     for k in range(3):
         w = round(R * 3.0) - k * round(R * 0.5)
-        fy, ty = so.box(c, cx - w // 2, y, w, 9, w * 0.5, r)
+        fy, ty = so.box(c, cx - w // 2, y, w, th, w * 0.5, r)
+        c.rect(cx - w // 2, fy + 2, w, 1, r[1])
         c.rect(cx - w // 2, fy + 3, w, 1, r[4])
+        c.rect(cx + w // 2 - 2, fy, 2, th, r[4])
+        if k:
+            fp.cast_down(c, cx - w // 2 - 1, cx + w // 2 + 3, y, 3, 0.3)
         if corners and k == 2:
             for sx in (cx - w // 2 + 5, cx + w // 2 - 5):
                 so.lathe(c, sx, fy, [(0, 4), (3, 4), (4, 3), (9, 2.5), (14, 0.5)], r)
                 c.p(sx, fy - 15, tip[1])
-        y = fy - 2
+        y = fy - round((fy - ty) * 0.4) if k < 2 else fy - 2
     prof = [(0, R * 1.05), (3, R * 1.05), (3, R * 0.95), (6, R * 0.95), (6, R * 0.88), (9, R * 0.88)]
     for i in range(13):
         t = i / 12
@@ -327,7 +332,7 @@ def pagoda(spec, info):
             chinthe(c, cx + side * 20 - 3, back, WHITE, fl)
         ground_shadow(c, cx - w0 // 2, cx + w0 // 2, back)
         return complete(c, info, cx - w0 // 2, w0, back + 1, cx, 0, s['depth'], doorless=True, roof='dome')
-    hw = 52
+    hw = max(52, round(R * 1.4))
     wood = ramp(30, 0.1, lift=-0.08)
     plinth(c, cx - hw // 2 - 6, base, hw + 12, 6, 20, WHITE)
     floor = base - 6
@@ -979,7 +984,7 @@ def _wat(scale, look):
 
 SPECS = {
     'wat': {sc: [_wat(sc, lk) for lk in ('siam', 'lanna', 'village')] for sc in ('small', 'medium', 'large')},
-    'burmese-pagoda': {sc: [('zedi', dict(look=lk, R={'small': 22, 'medium': 28, 'large': 32}[sc], hall=sc == 'large',
+    'burmese-pagoda': {sc: [('zedi', dict(look=lk, R={'small': 26, 'medium': 34, 'large': 46}[sc], hall=sc == 'large',
                                            depth={'small': 130, 'medium': 160, 'large': 200}[sc],
                                            label={'small': 'Pagoda', 'medium': 'Pagoda', 'large': 'Great pagoda'}[sc],
                                            description=D_ZEDI, roof='dome'))

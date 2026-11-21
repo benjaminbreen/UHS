@@ -139,8 +139,20 @@ describe("culture families by region and date", () => {
     ["city-reykjavik", 950, /^turf-house-norse-turf-/],
     ["city-reykjavik", 1750, /^turf-house-norse-turf-/],
     ["city-novgorod", 1000, /^orthodox-house-rus-/],
+    ["normandy", 1850, /^house-rural-euro-/],
   ])("builds %s in %i in its own houses", (id, year, house) => {
     expect(packForSetting(settingFor(byId(id), year)).buildings[0]).toMatch(house);
+  });
+  it.each([
+    ["city-wrocaw", 1932, /^house-rural-euro-/],
+    ["city-vienna", 1880, /^house-rural-euro-/],
+    ["york", 1890, /^house-early-brick-/],
+    ["rome", 1970, /^house-med-/],
+    ["beijing", 1930, /^eastasian-/],
+    ["delhi", 1930, /^southasian-/],
+  ])("builds rural %s in %i without study-* fallbacks", (id, year, house) => {
+    const s = { ...settingFor(byId(id), year), settlement: "farm" as const };
+    expect(packForSetting(s).buildings[0]).toMatch(house);
   });
   it.each([
     ["city-busan", 1750, "korean-dongheon"],

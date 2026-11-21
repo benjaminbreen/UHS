@@ -862,7 +862,16 @@ export function createEnvironment(
       ...(fall ? { fall: true } : {}),
       ...(waterGradient ? { waterGradient } : {}),
       ...(quay ? { quay } : {}),
-      ...(kind === "sea" && ws.tide >= 0.3 && !reef && !madeShore ? { shelf: 1 + ws.tide * 9 } : {}),
+      // Intertidal mudflats form on macrotidal bays, river deltas and coastal
+      // marshes/mangroves — ordinary mesotidal beaches expose wet sand instead.
+      ...(kind === "sea" &&
+        !reef &&
+        !madeShore &&
+        (ws.tide >= 0.8 ||
+          ws.delta ||
+          (ws.tide >= 0.3 && (habitat.ecology === "wetland" || habitat.colorway === "mangrove")))
+        ? { shelf: 1 + ws.tide * 9 }
+        : {}),
       ...(reef ? { reef } : {}),
       ...(reaches || wetPlaya !== undefined
         ? {

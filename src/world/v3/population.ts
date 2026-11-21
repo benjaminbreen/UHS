@@ -23,6 +23,10 @@ import { goods, goodsOf, standsIn } from "../../content/economy/goods";
 import { workplaceFor } from "../../content/characters/workplace";
 import { conditionOf, weatherStructure } from "../../core/time/structure";
 import { householdStory } from "./household-story";
+import {
+  buildingScale,
+  buildingWealthTier,
+} from "../../content/graphics/building-scale";
 import { MEANS } from "./plan";
 import { treePlacementEnvelope } from "./placement";
 import { keeperLivesIn, buildingUse } from "../../content/interiors/select";
@@ -110,7 +114,15 @@ export function populateHouseholds(
     const kit = livelihoodOf(pack, adult ?? (pack.setting?.lifeStoryRevision && parent
       ? { origin: parent } as Actor
       : undefined));
-    const means = MEANS[kit?.rank ?? "labouring"];
+    const baseMeans = MEANS[kit?.rank ?? "labouring"];
+    const houseTier = buildingWealthTier(place.sprite);
+    const houseScale = buildingScale(place.sprite);
+    const means =
+      houseTier === 2 || houseScale === "large"
+        ? Math.max(baseMeans, 0.74)
+        : houseTier === 0 && houseScale === "small"
+          ? Math.min(baseMeans, 0.52)
+          : baseMeans;
     const practice = pack.setting?.lifeStoryRevision
       ? marriagePracticeFor(pack.setting)
       : undefined;

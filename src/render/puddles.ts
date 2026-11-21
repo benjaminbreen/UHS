@@ -220,13 +220,14 @@ function rivuletsFrom(
         gy = (distance(px, py + 16) ?? here) - (distance(px, py - 16) ?? here);
       const down = Math.atan2(-gy, -gx);
       const turn = Math.atan2(Math.sin(down - angle), Math.cos(down - angle));
-      angle += turn * 0.25 + (hash(wx * 97 + step, wy * 89 + salt, 753) - 0.5) * 0.7;
+      angle += turn * 0.35 + (hash(wx * 97 + step, wy * 89 + salt, 753) - 0.5) * 0.45;
       const ax = Math.cos(angle),
         ay = Math.sin(angle);
+      const fade = here < 0.7 ? (0.7 - here) * 0.6 : 0;
       spots.push({
-        x: px, y: py + lift, ax, ay, rx: 2.4, ry: 1.1, traffic: 1,
-        // Branches are shallower than the stem and show only in heavier rain.
-        rank: 0.15 + depth * 0.25,
+        x: px, y: py + lift, ax, ay, rx: 1.9, ry: 0.85, traffic: 1,
+        // Branches are shallower than the stem and fade as they enter wet sand.
+        rank: 0.15 + depth * 0.25 + fade,
         seed: hash(step, salt, 755) * 10,
         rill: true,
       });
@@ -238,7 +239,13 @@ function rivuletsFrom(
         walk(px, py, angle + (hash(step, salt, 759) < 0.5 ? -0.6 : 0.6), depth + 1, salt * 7 + step);
     }
   };
-  walk(x * 16 + 4 + hash(wx, wy, 761) * 8, y * 16 + 6, Math.PI / 2, 0, 1);
+  const sx = x * 16 + 4 + hash(wx, wy, 761) * 8,
+    sy = y * 16 + 6;
+  const d0 = distance(sx, sy);
+  if (d0 === undefined || d0 < 0.2) return [];
+  const gx0 = (distance(sx + 16, sy) ?? d0) - (distance(sx - 16, sy) ?? d0),
+    gy0 = (distance(sx, sy + 16) ?? d0) - (distance(sx, sy - 16) ?? d0);
+  walk(sx, sy, gx0 || gy0 ? Math.atan2(-gy0, -gx0) : Math.PI / 2, 0, 1);
   return spots;
 }
 
@@ -338,12 +345,15 @@ function paint(b: Bucket, state: GroundState | undefined, sky: Sky) {
         const speck = hash(b.x + px, b.y + py, 713);
         const s = b.surface[i];
         if (d >= 3) {
-          // Running water reflects the sky paler than a still pool, with a lit
-          // edge, and a thin damp margin; out of the rain they are gone.
+          // Thin beach runoff: darkened wet sand with a faint sky glint along
+          // the deepest thread, rather than an opaque grey smear.
           const above = py > 0 && b.surface[i - b.w];
-          if (s === 1) put(i, Math.min(255, sr * 0.7 + 60), Math.min(255, sg * 0.75 + 72), Math.min(255, sb * 0.8 + 84), above ? 220 : 255);
-          else if (s === 2) put(i, 214, 224, 230, 230);
-          else if (state.puddles > 0.05 && d - 3 > water - 0.25) put(i, 40, 30, 18, 45);
+          if (s === 1) {
+            if (!above && d - 3 > water + 0.12 && speck > 0.35)
+              put(i, Math.min(255, sr * 0.85 + 14), Math.min(255, sg * 0.88 + 18), Math.min(255, sb * 0.92 + 24), 110);
+            else put(i, 46, 36, 24, d - 3 > water + 0.12 ? 95 : 68);
+          } else if (s === 2) put(i, 214, 224, 230, 165);
+          else if (state.puddles > 0.05 && d - 3 > water - 0.25) put(i, 44, 34, 22, 38);
           continue;
         }
         if (s) {

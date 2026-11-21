@@ -19,6 +19,9 @@ import { buildingArtCells, buildingModel, buildingModels, buildingRoofCells } fr
 import {
   buildingScale,
   buildingScaleWeight,
+  buildingWealthTier,
+  isServiceFrame,
+  targetWealthTier,
 } from "../../content/graphics/building-scale";
 import kit from "../../content/graphics/urban.json" with { type: "json" };
 import { settlementLayout } from "../../content/settlements/layout";
@@ -2267,12 +2270,21 @@ export function urbanNeighborhood(
     density: number,
     roll: number,
   ) {
-    const weight = buildingScaleWeight(buildingScale(frame), {
+    const wealth = wealthForQuarter(quarter);
+    let weight = buildingScaleWeight(buildingScale(frame), {
       settlement: pack.setting?.settlement,
       density,
-      wealth: wealthForQuarter(quarter),
+      wealth,
       quarter,
     });
+    const tier = buildingWealthTier(frame);
+    if (tier !== undefined) {
+      const diff = Math.abs(tier - targetWealthTier(wealth));
+      weight *= diff === 0 ? 1.85 : diff === 1 ? 0.65 : 0.2;
+    }
+    if (isServiceFrame(frame) && quarter !== "craft" && quarter !== "market") {
+      weight *= 0.15;
+    }
     return -Math.log(Math.max(1e-9, roll)) / Math.max(1e-9, weight);
   }
 

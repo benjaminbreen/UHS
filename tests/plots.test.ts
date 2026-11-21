@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
-import { createSettingSession, type Runtime } from "../src/runtime/session";
+import type { Runtime } from "../src/runtime/session";
 import { endPlot, plotKnown, plotLine, startPlot, stepPlot, type PlotState } from "../src/core/plot";
 import { STANCE_VOICE, stanceOf } from "../src/content/plots/stance";
 import { PLOTS } from "../src/content/plots";
@@ -19,19 +19,12 @@ import { places } from "../src/content/geography/places";
 import { Engine } from "../src/core/engine";
 import { doorApproach } from "../src/core/doors";
 import { markOf } from "../src/core/kin";
-import { items } from "../src/content/packs";
 import type { PlayerCommand, Position, Stats } from "../src/core/types";
 import { taskView, tasksOf } from "../src/ui/task-view";
 import { smallSession } from "./fixtures";
 
-// London 1750 takes half a minute to build, so the cases share one world and
-// each plays on its own copy of the state, apart from core.test.ts.
 const setting = settingFor(places.find((p) => p.id === "london")!, 1750);
-let london: Engine | undefined;
-const session = () => {
-  london ??= createSettingSession(setting, "b");
-  return new Engine(london.world, items, london.state);
-};
+const session = () => smallSession(setting, "b");
 let serial = 0;
 /** Plots are drawn by weight; a test about one plot gives the draw only that one. */
 function drawOnly<T>(plot: PlotTemplate, draw: () => T) {
@@ -410,8 +403,11 @@ describe("plots played out in London, 1750", () => {
     delete e.state.plot;
     e.state.households!.find((h) => h.members.includes(e.state.player.id))!.fortune = 0.5;
     const party = startPlot(e.state, setting, feast.id)!;
-    e.advance(60);
     const host = e.state.actors.find((a) => a.id === party.cast.host)!;
+    // Place the host's gathering on open ground so the scene's tables and benches fit.
+    delete e.state.households!.find((h) => h.id === host.householdId)!.residence;
+    host.home = { x: 0, y: 40, space: "outside" };
+    e.advance(60);
     host.pos = { ...e.state.player.pos, x: e.state.player.pos.x + 1 };
     e.state.player.inventory.coin = party.owed!;
     act(e, { type: "interact", target: host.id, action: "pay" });

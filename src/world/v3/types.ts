@@ -122,6 +122,8 @@ export type SettlementPlan = {
   earth?: Map<string, import("../../content/settlements/urban-form/types").EarthFinish>;
   /** Cells of a house platform; `steps` is the one its stair comes down from. */
   plinths?: Map<string, NonNullable<import("../../core/topography").TopographyCell["plinth"]>>;
+  /** Low ornamental or kitchen border beds bordering house yards. */
+  borders?: Map<string, import("../../content/settlements/yards").GardenBorder>;
   lanes?: Map<string, Lane>;
   junctions?: Junction[];
   streetGeometry?: Map<string, import("./street-geometry").StreetGeometry>;

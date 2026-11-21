@@ -9,12 +9,49 @@ export type BuildingScaleContext = {
   /** Household means on the shared 0-100 standing scale. */
   wealth?: number;
   quarter?: "market" | "craft" | "elite" | "residential" | "edge";
+  /** True for agricultural/pastoral households and farmstead lots. */
+  rural?: boolean;
+  /** Target architectural wealth tier (0 humble, 1 middling, 2 grand). */
+  wealthTier?: 0 | 1 | 2;
 };
 
+type RegionalModel = {
+  goldScale?: string;
+  regionalHouse?: string;
+  prehistoricExpansion?: string;
+  wealthTier?: number;
+  serviceStyle?: string;
+};
+
+const URBAN_REGIONAL = new Set([
+  "southasian-courtyard",
+  "eastasian-courtyard",
+  "eastasian-row",
+  "roman-insula",
+  "roman-domus",
+]);
+
 export function buildingScale(frame: string): BuildingScale {
-  const scale = (buildingModels[frame] as { goldScale?: string } | undefined)?.goldScale;
+  const scale = (buildingModels[frame] as RegionalModel | undefined)?.goldScale;
   // The East Asian house sets add tiny and grand frames at either end.
   return scale === "tiny" ? "small" : scale === "grand" ? "large" : ((scale as BuildingScale) ?? "small");
+}
+
+export function buildingWealthTier(frame: string): number | undefined {
+  return (buildingModels[frame] as RegionalModel | undefined)?.wealthTier;
+}
+
+export function isServiceFrame(frame: string): boolean {
+  return Boolean((buildingModels[frame] as RegionalModel | undefined)?.serviceStyle);
+}
+
+export function isUrbanRegionalFrame(frame: string): boolean {
+  const fam = (buildingModels[frame] as RegionalModel | undefined)?.regionalHouse;
+  return Boolean(fam && URBAN_REGIONAL.has(fam));
+}
+
+export function targetWealthTier(wealth = 48): 0 | 1 | 2 {
+  return wealth < 38 ? 0 : wealth < 72 ? 1 : 2;
 }
 
 /** A scale tier's share before normalisation. Wealth chooses the exceptional
@@ -73,14 +110,18 @@ export function chooseBuildingScale(
     context.settlement === "camp" &&
     frames.some(
       (frame) =>
-        (buildingModels[frame] as { prehistoricExpansion?: string } | undefined)
+        (buildingModels[frame] as RegionalModel | undefined)
           ?.prehistoricExpansion,
     );
   const regionalHouse = frames.some(
     (frame) =>
-      (buildingModels[frame] as { regionalHouse?: string } | undefined)
+      (buildingModels[frame] as RegionalModel | undefined)
         ?.regionalHouse,
   );
+  const urbanWealth =
+    regionalHouse &&
+    (context.settlement === "city" || context.settlement === "port") &&
+    (context.quarter === "elite" || (context.wealth ?? 48) >= 70);
   const available = (["small", "medium", "large"] as const).filter((scale) =>
     frames.some((frame) => buildingScale(frame) === scale),
   );
@@ -92,13 +133,19 @@ export function chooseBuildingScale(
         : scale === "medium"
           ? 4
           : 1
-      : regionalHouse
+      : context.rural
         ? scale === "small"
-          ? 0.45
+          ? 1.35
           : scale === "medium"
-            ? 1.45
-            : 2.5
-        : 1);
+            ? 0.85
+            : 0.12
+        : urbanWealth
+          ? scale === "small"
+            ? 0.7
+            : scale === "medium"
+              ? 1.25
+              : 1.6
+          : 1);
   const total = available.reduce(
     (sum, scale) => sum + weight(scale),
     0,
@@ -117,7 +164,22 @@ export function chooseBuildingFrame(
   scaleRoll: number,
   variantRoll: number,
 ) {
-  const scale = chooseBuildingScale(frames, context, scaleRoll);
-  const pool = frames.filter((frame) => buildingScale(frame) === scale);
+  const homes = frames.filter((frame) => !isServiceFrame(frame));
+  let candidates = homes.length ? homes : frames;
+  if (context.rural) {
+    const ruralHomes = candidates.filter((frame) => !isUrbanRegionalFrame(frame));
+    if (ruralHomes.length) candidates = ruralHomes;
+  }
+  const scale = chooseBuildingScale(candidates, context, scaleRoll);
+  const byScale = candidates.filter((frame) => buildingScale(frame) === scale);
+  const tier = context.wealthTier ?? targetWealthTier(context.wealth);
+  const exact = byScale.filter((frame) => buildingWealthTier(frame) === tier);
+  const near = exact.length
+    ? exact
+    : byScale.filter((frame) => {
+        const t = buildingWealthTier(frame);
+        return t !== undefined && Math.abs(t - tier) <= 1;
+      });
+  const pool = near.length ? near : byScale;
   return pool[Math.min(pool.length - 1, Math.floor(variantRoll * pool.length))];
 }

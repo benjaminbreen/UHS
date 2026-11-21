@@ -5,7 +5,8 @@ import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { Agent, startAgent, tools } from "../src/agents/agent";
+import { Agent, parsePlayLine, startAgent, tools } from "../src/agents/agent";
+import { BudgetExceededError, SpendBudget } from "../src/agents/budget";
 import { RunRecord, type Trace } from "../src/agents/record";
 import { live, extractJson, instructions, type Complete } from "../src/agents/loop";
 import { Runtime } from "../src/runtime/session";
@@ -108,7 +109,7 @@ it.runIf(!!process.env.FULL)("tells a dead player who can go on in their place, 
     expect(heir).toBeDefined();
     a.engine.state.player.dead = "a fever";
     const reply = await a.call("act", { command: { type: "wait", seconds: 60 } });
-    expect(reply).toContain(`${heir.id}: ${heir.name}`);
+    expect(reply).toMatch(new RegExp(`- p\\d+: ${heir.name}`));
     expect(await a.call("act", { command: { type: "become", heir: heir.id } })).toMatch(/^COMPLETED/);
     expect(a.engine.state.player.dead).toBeUndefined();
     expect(a.engine.state.player.name).toBe(heir.name);
@@ -422,5 +423,59 @@ it("holds a narrator errand behind its yes/no offer", async () => {
     expect(a.runtime.running).toBe(false);
     a.runtime.command({ type: "choose", card: "offer", choice: 0 });
     expect(a.runtime.running).toBe(true);
+  } finally { a.runtime.dispose(); }
+});
+
+it("enforces the USD spend cap before sending paid requests and skips retries on cap", async () => {
+  const budget = new SpendBudget(0.01);
+  let calls = 0;
+  const upstream: typeof fetch = async () => {
+    calls++;
+    return new Response(
+      JSON.stringify({
+        model: "claude-sonnet-5-5",
+        choices: [{ message: { content: "{}" } }],
+        usage: { prompt_tokens: 2000, completion_tokens: 500 },
+      }),
+    );
+  };
+  const model = openaiCompatible({
+    baseUrl: "https://api.openai.com/v1",
+    model: "claude-sonnet-5-5",
+    fetch: budget.wrap(upstream, "claude-sonnet-5-5"),
+  });
+  await model("Rules", [{ role: "user", content: "Turn 1" }]);
+  expect(calls).toBe(1);
+  expect(budget.spentUsd).toBeGreaterThan(0.01);
+  await expect(model("Rules", [{ role: "user", content: "Turn 2" }])).rejects.toThrow(BudgetExceededError);
+  expect(calls).toBe(1);
+
+  const localCalls = vi.fn(async () =>
+    new Response(JSON.stringify({ choices: [{ message: { content: "{}" } }], usage: { prompt_tokens: 500000, completion_tokens: 500000 } })),
+  );
+  const freeBudget = new SpendBudget(0);
+  const local = openaiCompatible({ baseUrl: "http://localhost:8000/v1", model: "qwen", fetch: freeBudget.wrap(localCalls) });
+  expect(await local("Rules", [{ role: "user", content: "Local turn" }])).toBe("{}");
+  expect(freeBudget.spentUsd).toBe(0);
+});
+
+it("parses playtest shorthands alongside JSON and trims repetitive scene lines", async () => {
+  expect(parsePlayLine("l")).toEqual({ tool: "look", input: {} });
+  expect(parsePlayLine("goto b1")).toEqual({ tool: "goto", input: { target: "b1" } });
+  expect(parsePlayLine("goto 12 -4")).toEqual({ tool: "goto", input: { x: 12, y: -4 } });
+  expect(parsePlayLine("enter b1")).toEqual({ tool: "act", input: { command: { type: "interact", target: "b1", action: "enter" } } });
+  expect(parsePlayLine("wait 300")).toEqual({ tool: "act", input: { command: { type: "wait", seconds: 300 } } });
+  expect(parsePlayLine("talk p1 Good morning")).toEqual({ tool: "talk", input: { target: "p1", text: "Good morning" } });
+  expect(parsePlayLine("choose offer 0")).toEqual({ tool: "act", input: { command: { type: "choose", card: "offer", choice: 0 } } });
+  expect(parsePlayLine('act {"command":{"type":"wait","seconds":60}}')).toEqual({ tool: "act", input: { command: { type: "wait", seconds: 60 } } });
+  expect(parsePlayLine("inspect {")).toEqual({ error: "Use a tool name followed by a JSON object." });
+
+  const a = localAgent("compact-scene", { offline: true });
+  try {
+    const seen = await a.call("look");
+    expect(seen).not.toContain("player-member-");
+    expect(seen).not.toContain("; Religious practice:");
+    expect(seen).not.toContain("There is no open wound.");
+    expect(seen).not.toContain("You are not ill.");
   } finally { a.runtime.dispose(); }
 });

@@ -48,6 +48,7 @@ const FAMILY: Record<string, string> = {
   "eastasian-courtyard": "A walled compound of halls and rooms round an open courtyard.",
   "eastasian-row": "A long building on the street with a shop at the front, and workrooms, stores and living rooms behind and above.",
   "eastasian-service": "A small building: a store, a workshop, a gatehouse or a little shrine.",
+  "southasian-house": "A modest single-storey house of earth, brick or stone, under thatch, country tiles or a flat roof.",
   "southasian-courtyard": "A town house built round a courtyard, with rooms and work space on every side and more rooms upstairs.",
   "southasian-monsoon": "A house built for heavy rain, with deep eaves and openings to let the air through.",
   "southasian-service": "A small building: a granary, a weaving or craft shed, a market pavilion or a shrine.",

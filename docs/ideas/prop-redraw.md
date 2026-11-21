@@ -29,6 +29,14 @@ Each family scored 0-2 on seven things, and these are the lowest totals:
 - grinder, quern, metate, mortar (A)
 - shovel: the head is as big as the figure's torso and reads as a vase
 
+## 2. Small buildings
+
+Draw these in the houses' view, after the privies (see PROP_ART.md).
+
+- chicken-coop, dovecote (`wayside.py`): front-only, black keyline
+- privy-bench (`fronts.py`): a flat slab; privy-screen (`privy.py`): formula
+  reed
+
 ## Done
 
 - dustbin: hand grid with lid off, dented and dented-open states
@@ -57,6 +65,12 @@ Each family scored 0-2 on seven things, and these are the lowest totals:
   traced at 0.8x onto the ramps as large fixed stores (`*-large`), which keep
   their view from above. `container_studies.py` is gone, and with it the
   unplaced demijohn
+- the privy cabins in `privy.py`: privy-shed, privy-stone, privy-outhouse,
+  privy-nightsoil. One gable-on cabin grid with wall swatches (plank, daub,
+  sheet, stone, brick) under tile, thatch or sheet roofs; the chute, soil
+  pipe and night-soil tub are overlays. `open` swings the door back on a
+  plank seat, or on a pan and high cistern in the outhouse. Their twins in `fronts.py` and
+  `wayside.py`, and the unreached first drafts in `privy.py`, are gone
 - middens in `midden.py`: household, communal and shell middens are one
   mound grid per size seen from above, built from basket-loads, with an ash
   patch and named things on them by `middenContents`; the communal one is half

@@ -16,6 +16,7 @@ import { planLot } from "../src/content/settlements/lots";
 import { propDefs } from "../src/content/props/catalog";
 import propFrames from "../src/render/generated/props.json" with { type: "json" };
 import { buildingModels, shopArt } from "../src/content/graphics/models";
+import { buildingScale, buildingWealthTier } from "../src/content/graphics/building-scale";
 import { livelihoodById } from "../src/content/characters/livelihoods";
 import { mediterraneanStyle, watchtowerFrame, mediterraneanShrineFrame, mediterraneanInsulaFrames, retainedTowerStyle } from "../src/content/graphics/mediterranean-buildings";
 const resolved = resolveSetting("Rome 100 BCE");
@@ -648,4 +649,30 @@ it("gives open lots a use from the place, inside the lot and drawn", () => {
     Array.from({ length: 60 }, (_, i) => planLot(s, 9, 7, `f${i}`)).filter((l) => l.use === "fuel").flatMap((l) => l.items.map((t) => t.prop));
   expect(fuel(places[1])).toContain("lotDungStack");
   expect(fuel(places[0])).not.toContain("lotDungStack");
+});
+
+it("keeps formal houses and external-worksite trades from being labelled home workshops", () => {
+  const katowice = resolveSetting("Katowice, 1738");
+  if ("error" in katowice) throw Error(katowice.error);
+  for (const s of [katowice.setting, { ...katowice.setting, settlement: "village" as const }]) {
+    const p = planSettlement(
+      { id: "k", cx: 0, cy: 0, center: { x: 0, y: 0 }, home: true, profile: settlementProfile(s) },
+      packForSetting(s),
+      `workshop-fit-${s.settlement}`,
+      flat,
+      [],
+    );
+    for (const place of p.places) {
+      if (place.name.endsWith("'s workshop")) {
+        expect(buildingScale(place.sprite), place.name).not.toBe("large");
+        expect(buildingWealthTier(place.sprite), place.name).not.toBe(2);
+        expect(buildingWealthTier(place.sprite), place.name).not.toBe(1);
+        expect(place.name).not.toMatch(/Brickmaker|Watchman|Apprentice/i);
+      }
+      if (buildingScale(place.sprite) === "large" || buildingWealthTier(place.sprite) === 2) {
+        const owner = p.actors.find((a) => a.id === place.owner);
+        expect(owner?.origin?.livelihood).not.toBe("brickmaker");
+      }
+    }
+  }
 });

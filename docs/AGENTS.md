@@ -13,12 +13,18 @@ is the contract; `src/agents/` implements it.
 - **Solo**, `npm run agent:serve`. An MCP server over stdio. The agent
   decides its own pace and keeps its own notes. The first tool call builds the world.
 - **Playtest**, `npm run agent:play`. Drive the same tools from a terminal or
-  a sequence of commands on stdin. Uses offline dialogue and records a replay.
+  a sequence of commands on stdin (JSON or plain shorthands). Runs offline with
+  no API keys; add `--fast` for a single local map and `--record` (or `--out`)
+  to save a replayable run folder.
+- **Visual playtest**, `npm run shot -- --play`. Attaches the same `Agent` to
+  the live browser game (offline by default) so a script or stdin stream can
+  run game commands and capture screenshots (`shot <out.png>`) in one session.
 - **Run**, `npm run agent:run`. The game drives a model itself
   (`src/agents/loop.ts`, `src/agents/providers.ts`). It works with models
   that cannot call tools: each turn the model replies with one JSON object
-  naming a tool.
-- **Record**, `src/agents/record.ts`. All three modes write the same folder;
+  naming a tool. Remote models and live environment calls require `--paid`
+  and stop immediately at `--max-usd` (default `$1.00`).
+- **Record**, `src/agents/record.ts`. Recorded runs write the same folder;
   `src/agents/viewer.ts` builds its `review.html`.
 
 The scripts run under `vite-node`, not `tsx`: map travel loads its data with
@@ -56,11 +62,14 @@ ordinary `act / choose` cards and interrupt errands until answered.
 
 Only actions spend game time; time spent thinking between calls does not.
 
-Narrator and NPC calls are independent of the acting model. The CLI loads the
-same `.env` files as the dev server and calls the same server handlers: Luna
-(`gpt-6-luna`) by default, using `OPENAI_API_KEY`. The narrator respects
-`UHS_NARRATOR_OPENAI_MODEL`. Their exact context builders, validation and
-engine effects are shared with human play. People may refuse or leave; walk
+Narrator, NPC dialogue and crafting calls are **off by default** in all agent
+and screenshot harnesses. Pass `--paid` (after asking permission) to load
+`.env` and enable live `/api/narrator`, `/api/dialogue`, `/api/craft` and
+`/api/jev` calls, all guarded by a shared USD spend cap (`--max-usd`, default
+`$1.00`) in `src/agents/budget.ts`. When `--paid` is set, CLI narrator and
+dialogue default to Luna (`gpt-6-luna`) using `OPENAI_API_KEY` (narrator
+respects `UHS_NARRATOR_OPENAI_MODEL`). Their exact context builders, validation
+and engine effects are shared with human play. People may refuse or leave; walk
 within reach before talking. A conversation retains its transcript across
 `talk`, `look` and `inspect`; another action closes it. `act` with `interact /
 talk` also opens a Luna conversation. The acting model cannot use `narrate`
@@ -79,39 +88,57 @@ Start a repeatable playtest in a terminal. Type `look` to see the scene,
 npm run agent:play -- --setting "Weaver in Oaxaca 1650" --seed playtest
 ```
 
-Commands take a tool name and an optional JSON object. For a scripted run,
-use `--silent` so stdout contains only one JSON reply per command. Replies
+Commands take either a tool name with a JSON object or a plain shorthand
+(`l`, `goto b1`, `goto 12 -4`, `enter b1`, `wait 600`, `sleep`, `use water`,
+`talk p1 Good morning`, `errand workday`, `choose <card> <n>`). For a scripted
+run, use `--silent` so stdout contains only one JSON reply per command. Replies
 include the status, scene text, and game clock before and after each tool call.
-The run folder is printed to stderr at the end. Open its `review.html` or
-pass the folder to `npm run replay -- <folder>`.
+Add `--fast` to build only the starting map without neighbouring travel squares,
+and `--record` (or `--out <dir>`) to write a replayable run folder. Open its
+`review.html` or pass the folder to `npm run replay -- <folder>`.
 
 ```bash
-printf '%s\n' 'look' 'act {"command":{"type":"wait","seconds":60}}' 'look' |
-  npm run --silent agent:play -- --setting "tiny desert island 10x5 in 1944" --seed playtest
+printf '%s\n' 'look' 'wait 60' 'look' |
+  npm run --silent agent:play -- --setting "tiny desert island 10x5 in 1944" --seed playtest --fast
 ```
 
-`agent:play` accepts `--setting`, `--seed`, `--concern`, `--time-travel`, and
-`--out`. It uses the engine's dialogue and needs no API keys.
+To drive the live browser renderer with the same commands and take screenshots
+along the way (offline by default):
 
 ```bash
-npm run --silent agent:serve -- --setting "Clerk in Lagos, 1925" --offline
+printf '%s\n' 'look' 'shot artifacts/start.png' 'goto b1' 'enter b1' 'shot artifacts/inside.png' |
+  npm run shot -- --play --setting "Weaver in Oaxaca 1650" --seed playtest
+```
+
+Extra browser commands in `--play`: `shot <out.png>`, `zoom <n>`, `at <x> <y> [space]`,
+`key <k>`, `click <label-or-selector>`, and `eval <js>`.
+
+`agent:play` accepts `--setting`, `--seed`, `--fast`, `--concern`, `--time-travel`,
+`--record`, and `--out`. It uses the engine's dialogue and needs no API keys.
+
+```bash
+npm run --silent agent:serve -- --setting "Clerk in Lagos, 1925"
 ```
 
 To give it to Claude Code: `claude mcp add uhs -- npm run --silent agent:serve`
 (run from the repo root and add `-- --setting "…"` to choose the place).
 
 ```bash
-ANTHROPIC_API_KEY=... npm run agent:run -- --setting "Weaver in Oaxaca 1650" --days 2
+ANTHROPIC_API_KEY=... npm run agent:run -- --setting "Weaver in Oaxaca 1650" --days 2 --paid --max-usd 1
 ```
 
-| Option | Both | Meaning |
+| Option | Modes | Meaning |
 |---|---|---|
-| `--setting "<who, where, when>"` | yes | Plain words, as on the start screen. Omitted: a random start, drawn as the start screen draws one |
-| `--seed` | yes | Fixes the world and the person |
-| `--time-travel` | yes | Adds the `time_travel` tool |
-| `--concern` | yes | Show the start's stated concern ("A weaver's day in Oaxaca"), which an agent reads as a goal. Hidden by default |
-| `--offline` | yes | No narrator or dialogue model: `talk` uses the engine's own spoken lines, `say` is withdrawn, and no game service is called. Cheap and repeatable |
-| `--out <dir>` | yes | Where run folders go; default `runs/` (ignored by git) |
+| `--setting "<who, where, when>"` | all | Plain words, as on the start screen. Omitted: a random start, drawn as the start screen draws one |
+| `--seed` | all | Fixes the world and the person |
+| `--fast` | play, serve | Single local map (`createSettingSession`) without neighbouring travel squares |
+| `--record` | play | Save a replayable run folder (also enabled whenever `--out` is passed) |
+| `--time-travel` | all | Adds the `time_travel` tool |
+| `--concern` | all | Show the start's stated concern ("A weaver's day in Oaxaca"), which an agent reads as a goal. Hidden by default |
+| `--paid` | serve, run, batch | Opt in to paid remote LLM / narrator / dialogue calls (offline by default). Ask the user first |
+| `--max-usd <n>` | serve, run, batch | Hard USD spend cap checked before every paid API call; default `1` (`$1.00`) |
+| `--offline` | serve, run, batch | Keep narrator/dialogue offline even when `--paid` is used for a remote policy model |
+| `--out <dir>` | all | Where run folders go; default `runs/` (ignored by git) |
 | `--model` | run | Default `claude-sonnet-5-5`, or the local model's name |
 | `--base-url` | run | Any OpenAI-compatible endpoint; key from `OPENAI_API_KEY` |
 | `--briefing <file>` | run | Text added to the instructions. None by default |
@@ -155,16 +182,19 @@ The same seed gives every agent the same world and person.
   "settings": ["Weaver in Oaxaca 1650", "Weaver in Manchester 1840"],
   "seeds": ["a", "b", "c"],
   "days": 3,
-  "budget": { "tokens": 20000000 }
+  "paid": true,
+  "budget": { "usd": 1, "tokens": 2000000 }
 }
 ```
 
 Also `maxTurns`, `briefing` (a file beside the experiment file), `rationale`,
-`offline`, `concern` and `timeTravel`, as for `agent:run`. Runs go one at a
-time. Running the command again skips finished runs; an interrupted or failed
-run is renamed `.failed-<time>` and run again. The budget counts policy and
-environment tokens and is checked before each run starts. `summary.csv` and
-`summary.json` hold one row per run with its metrics and flags: `not-run`,
+`paid`, `offline`, `concern` and `timeTravel`, as for `agent:run`. Runs go one
+at a time. Running the command again skips finished runs; an interrupted or
+failed run is renamed `.failed-<time>` and run again. The USD budget defaults
+to `$1.00` (overridable with `budget.usd` or `--max-usd`) and is enforced before
+every API request across the whole batch; `budget.tokens` is also checked
+before each run starts. `summary.csv` and `summary.json` hold one row per run
+with its metrics (including `costUsd`) and flags: `not-run`,
 `unfinished`, `error`, `unusable-replies` (invalid), and `provider-errors`,
 `stuck`, `died` (worth a look). MCP runs are started by hand; they write the
 same folders.

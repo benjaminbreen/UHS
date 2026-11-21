@@ -298,11 +298,16 @@ def swahili_mosque(spec=None, info=None):
             seated(c, cx, top - 10, 22, lambda: so.dome(c, cx, top - 10, 21, WHITE, z0=2, kind='hemi', courses=0,
                                                          ribs=16, drum=5))
     else:
-        # the roof's coral-slab bays between the mangrove beams, each a seam of lime
-        for yy in range(roof_back + 16, top - 6, 16):
-            for xx in range(L + 4, R - 3):
-                c.p(xx, yy, WHITE[0]); c.p(xx, yy + 1, WHITE[2])
-        merlons(c, L + 2, R - 2, roof_back + 3)
+        # the prayer hall stands a storey above the verandas round it
+        hd = round(D * 0.55)
+        hb = roof_back + round(hd * so.K) + 14
+        fy, ty = so.box(c, L + 18, hb, W - 36, 14, hd, coral_wall, lime_roof)
+        for i in range(1, 6):
+            wx = round(L + 18 + i * (W - 36) / 6)
+            c.rect(wx - 1, fy + 4, 3, 7, VOID); c.rect(wx - 1, fy + 3, 3, 1, WHITE[0])
+        fp.cast_down(c, L + 19, R - 15, hb, 4, 0.3)
+        merlons(c, L + 20, R - 20, ty + 3)
+        merlons(c, L + 20, R - 20, fy + 1)
         merlons(c, L + 2, R - 2, top + 1)
     for xx in range(L + 14, R - 10, 40):
         if abs(xx - cx) > 20:

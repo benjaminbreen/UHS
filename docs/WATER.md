@@ -31,8 +31,10 @@ file; nothing is saved.
 - **Ice.** Cold winters freeze lakes and rivers; subpolar coasts add shore-fast
   ice, polar ones floes; glacier coasts carry icebergs.
 - **Reefs.** Atolls and tropical reef coasts get lagoons, crests and coral heads.
-- **Tides.** `tideAt` runs a 12.42-hour cycle in three steps; the intertidal
-  shelf scales with tidal range and is bare mud at low water.
+- **Tides.** `tideAt` runs a 12.42-hour cycle in three steps; macrotidal
+  coasts, river deltas and coastal marshes/mangroves carry an intertidal
+  mudflat shelf that stands bare at low water, while ordinary mesotidal beaches
+  keep wet sand.
 - **Works.** Polder ditches and dikes, chinampas in the Valley of Mexico,
   qanat shaft lines. Castle grounds can carry a flooded moat or a dry
   defensive ditch. Adjacent cut cells share one bed and banks. The approach

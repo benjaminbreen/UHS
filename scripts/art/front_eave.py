@@ -29,6 +29,12 @@ from art.front_house import bevel, brace, recess, pot, carve  # noqa: E402
 from art import front_solid as so  # noqa: E402
 
 OAK = RAMPS['oak']
+DARK_OAK = ramp(46, 0.065, lift=-0.20)
+CLINKER = ramp(24, 0.08, lift=-0.16)
+SILESIA_BRICK = ramp(32, 0.105, lift=-0.06)
+SILESIA_CREAM = ramp(84, 0.036, lift=0.035)
+SILESIA_OCHRE = ramp(76, 0.075, lift=0.02)
+PORCH_GREEN = ramp(152, 0.085, lift=-0.15)
 
 # Roof coverings drawn in level courses, as the library swatches are.
 COVER = {
@@ -64,6 +70,9 @@ TONES = {
     'tegula-pale': ramp(52, 0.09, lift=0.02),                   # a lighter, yellower clay, Ostia and the provinces
     'palm': RAMPS['palm'],                                      # fresh palm leaf
     'attap': ramp(58, 0.05, lift=-0.08),                        # nipa palm weathered grey-brown, Southeast Asia
+    'silesia-tile': ramp(33, 0.115, lift=-0.05),                # Central European Biberschwanz red clay
+    'silesia-old': ramp(28, 0.085, lift=-0.11),                 # weathered brownish-red clay
+    'silesia-warm': ramp(46, 0.11, lift=-0.04),                 # sun-warmed clay accent
 }
 DEFAULT_TONE = {'thatch': 'straw', 'plain': 'tile-red', 'slate': 'slate-blue', 'pantile': 'pantile', 'shingle': 'shingle',
                 'imbrex': 'tegula', 'palm': 'palm'}
@@ -85,6 +94,9 @@ WALL = {
     'stucco': lambda c, x, y, w, h: fm.stucco(c, x, y, w, h),
     'stucco-ochre': lambda c, x, y, w, h: fm.stucco(c, x, y, w, h, RAMPS['plaster-ochre']),
     'kahgel': lambda c, x, y, w, h: fm.kahgel(c, x, y, w, h),
+    'silesia-brick': lambda c, x, y, w, h: fm.brick(c, x, y, w, h, SILESIA_BRICK, bond='flemish'),
+    'silesia-cream': lambda c, x, y, w, h: fm.render(c, x, y, w, h, SILESIA_CREAM),
+    'silesia-ochre': lambda c, x, y, w, h: fm.render(c, x, y, w, h, SILESIA_OCHRE),
 }
 
 
@@ -127,9 +139,9 @@ class EaveHouse:
         self.c = C(self.x0 + self.W + 40, self.base + 6)
         # Settled here, not while painting, so the bake can put the walkable
         # entrance under the door.
-        n = max(2, self.W // 44)
+        n = s.get('bays') or max(2, self.W // 44)
         self.cols = [self.x0 + round(self.W * (k + 0.5) / n) for k in range(n)]
-        self.door_col = n // 2 if n % 2 else n // 2 - (1 if s['seed'] % 2 else 0)
+        self.door_col = n // 2 if (n % 2 or s.get('bays')) else n // 2 - (1 if s['seed'] % 2 else 0)
         self.door_x = self.cols[self.door_col]
 
     # ---------------------------------------------------------------- walls
@@ -161,14 +173,30 @@ class EaveHouse:
                 for k in range(x0 - jet + 3, x1 + jet - 4, 9):
                     bevel(c, k, top + h + 1, 5, 4, OAK, 3)
                 op.cast(c, x0, top + h + 1, W, 5, 0.68)
+            if s.get('pilasters'):
+                for px in (x0, x1 - 7):
+                    op.raised(c, px, top, 7, h, op.CREAM_TRIM, 1)
             if s['quoins'] and mat not in ('rubble',):
                 self.quoins(x0 - jet, top, W + 2 * jet, h)
             if s['string'] and i > 0:
-                r = RAMPS['limestone']
+                r = op.BUFF_BRICK if mat == 'silesia-brick' else op.CREAM_TRIM if mat.startswith('silesia-') else RAMPS['limestone']
                 c.rect(x0 - 1, top + h - 3, W + 2, 1, r[0])
                 c.rect(x0 - 1, top + h - 2, W + 2, 2, r[2])
                 op.cast(c, x0, top + h, W, 2)
-        if s['plinth']:
+        if s.get('dentil_eave'):
+            r = op.BUFF_BRICK
+            ey = self.eave + 5
+            c.rect(x0, ey - 1, W, 1, r[0])
+            c.rect(x0, ey, W, 3, r[3])
+            for xx in range(x0 + 1, x1 - 2, 4):
+                c.rect(xx, ey, 2, 3, r[1])
+                c.p(xx + 2, ey + 1, r[5])
+            op.cast(c, x0, ey + 3, W, 2, 0.72)
+        if s['plinth'] == 'clinker':
+            fm.brick(c, x0, self.base - 11, W, 11, CLINKER, bond='flemish')
+            c.rect(x0 - 1, self.base - 12, W + 2, 1, RAMPS['limestone'][1])
+            c.rect(x0, self.base - 11, W, 1, CLINKER[5])
+        elif s['plinth']:
             WALL['rubble' if s['plinth'] == 'rubble' else 'ashlar'](c, x0, self.base - 10, W, 10)
             c.rect(x0, self.base - 11, W, 1, mix(c.g(x0 + 4, self.base - 12), (40, 30, 50, 255), 0.35))
 
@@ -217,10 +245,19 @@ class EaveHouse:
         self.sills = []
         skip = getattr(self, 'skip', None)
         for i, (top, h, jet) in enumerate(self.floors):
+            is_drempel = s.get('drempel') and i == len(self.floors) - 1 and h <= 30
             for k, cx in enumerate(cols):
                 if i == 0 and k == door_col:
                     continue
                 if skip and skip[0] <= cx <= skip[1]:
+                    continue
+                if is_drempel:
+                    ww, wh = 14, 11
+                    wy = top + (h - wh) // 2 + 4
+                    op.FRAMES[frame][0](c, cx - ww // 2, wy, ww, wh, None)
+                    op.casement(c, cx - ww // 2, wy, ww, wh, 'white')
+                    op.reveal(c, cx - ww // 2, wy, ww, wh, 2)
+                    self.sills.append((cx - ww // 2 - 4, wy + wh + 4, ww + 8))
                     continue
                 if frame == 'mullion':
                     lights = 3 if W / n >= 44 else 2
@@ -229,6 +266,21 @@ class EaveHouse:
                     wy = top + (14 if i == 0 else 10)
                     op.mullion_window(c, cx - ww // 2, wy, lights, lw, h - (wy - top) - 12, True)
                     self.sills.append((cx - ww // 2 - 5, wy + h - (wy - top) - 12 + 2, ww + 10))
+                    continue
+                if frame in ('faschen', 'faschen-pediment', 'brick-arch'):
+                    ww = 20 if i == 0 else 18
+                    wh = 26 if i == 0 else min(24, h - 18)
+                    wy = top + (h - wh) // 2 + (1 if (i == 0 and frame == 'brick-arch') else -1 if i == 0 else 0)
+                    fr_key = 'faschen-pediment' if (frame == 'faschen-pediment' and i > 0) else 'faschen' if frame == 'faschen-pediment' else frame
+                    op.FRAMES[fr_key][0](c, cx - ww // 2, wy, ww, wh, None)
+                    op.INFILLS[infill](c, cx - ww // 2, wy, ww, wh, s.get('joinery') or 'white')
+                    op.reveal(c, cx - ww // 2, wy, ww, wh, 2)
+                    if s['shutters'] and (not s.get('shutters_ground_only') or i == 0):
+                        sh_pad = 3 if fr_key.startswith('faschen') else 2
+                        op.open_shutters(c, cx - ww // 2 - sh_pad, wy - 1, ww + 2 * sh_pad, wh + 2, s['shutters'], 6)
+                    if s['boxes'] and i == 0:
+                        op.flower_box(c, cx - ww // 2, wy + wh + 6, ww, seed=cx + s['seed'])
+                    self.sills.append((cx - ww // 2 - 5, wy + wh + 5, ww + 10))
                     continue
                 ww = 18 if i else 20
                 wh = h - 26 if i else h - 30
@@ -251,12 +303,59 @@ class EaveHouse:
         if skip and skip[0] - 14 <= cx <= skip[1] + 14:
             return
         dx, dy = cx - dw // 2, self.base - dh
-        if s['door'] == 'panel':
+        if s['door'] == 'transom':
+            op.door_transom(c, dx, dy, dw, dh, s.get('door_paint', 'green'), arch=bool(s.get('door_arch')))
+        elif s['door'] == 'panel':
             op.door_panel(c, dx, dy, dw, dh, s.get('door_paint', 'blue'))
         else:
             op.door_plank(c, dx, dy, dw, dh)
+        if s.get('ganek'):
+            self.draw_ganek(cx, dh)
+        else:
+            if s.get('door_hood'):
+                hx0, hw, hy = dx - 7, dw + 14, dy - 8
+                for y_off in range(5):
+                    fm.plain_tiles(c, hx0, hy + y_off, hw, 1, self.tone)
+                c.rect(hx0, hy, hw, 1, self.tone[1])
+                c.rect(hx0, hy + 5, hw, 1, DARK_OAK[5])
+                for bx in (hx0 + 2, hx0 + hw - 4):
+                    c.rect(bx, hy + 6, 2, 4, DARK_OAK[3])
+                op.cast(c, hx0 + 1, hy + 6, hw - 2, 4, 0.62)
+            for k in range(3):
+                c.rect(dx - 6 - k, self.base + k, dw + 12 + 2 * k, 1, RAMPS['granite'][k + 1])
+
+    def draw_ganek(self, cx, dh):
+        """Projecting wooden entrance porch (ganek) with a tiled gable hood."""
+        c, trim = self.c, op.CREAM_TRIM
+        pw = 36
+        px0, px1 = cx - pw // 2, cx + pw // 2
+        eave_y = self.base - dh - 3
+        op.cast(c, px0 - 1, eave_y + 2, pw + 2, dh + 1, 0.80)
+        for sx in (px0, px1 - 5):
+            bevel(c, sx, eave_y + 2, 5, dh + 1, trim, 1)
+        for k in range(5):
+            c.p(px0 + 5 + k, eave_y + 7 - k, PORCH_GREEN[2])
+            c.p(px0 + 5 + k, eave_y + 8 - k, PORCH_GREEN[4])
+            c.p(px1 - 6 - k, eave_y + 7 - k, PORCH_GREEN[2])
+            c.p(px1 - 6 - k, eave_y + 8 - k, PORCH_GREEN[4])
+        bevel(c, px0 - 2, eave_y - 1, pw + 4, 3, PORCH_GREEN, 2)
+        op.cast(c, px0, eave_y + 2, pw, 3, 0.60)
+        rise = 13
+        for yy in range(eave_y - rise - 1, eave_y):
+            half = round((yy - (eave_y - rise - 1)) / max(1, rise) * (pw // 2 + 4))
+            if half >= 1:
+                fm.plain_tiles(c, cx - half, yy, 2 * half, 1, self.tone)
+        for yy in range(eave_y - rise + 4, eave_y - 1):
+            half = max(0, round((yy - (eave_y - rise + 4)) / max(1, rise - 4) * (pw // 2 - 2)))
+            if half > 0:
+                c.rect(cx - half, yy, 2 * half, 1, trim[1])
+        for i in range(-(pw // 2 + 4), pw // 2 + 5):
+            yy = eave_y - rise - 1 + round(abs(i) * (rise + 1) / (pw // 2 + 4))
+            for k, idx in enumerate((1, 2, 4)):
+                c.p(cx + i, yy + k, PORCH_GREEN[idx if i < 0 else min(7, idx + 1)])
+        op.cast(c, px0 - 2, eave_y + 2, pw + 4, 2, 0.72)
         for k in range(3):
-            c.rect(dx - 6 - k, self.base + k, dw + 12 + 2 * k, 1, RAMPS['granite'][k + 1])
+            c.rect(px0 - 2 - k, self.base + k, pw + 4 + 2 * k, 1, RAMPS['granite'][k + 1])
 
     def shop_counter(self, cx, y, w, h):
         c = self.c
@@ -310,6 +409,45 @@ class EaveHouse:
 
         def sag(x):
             return round(amp * math.sin(math.pi * (x - x0 + over) / span)) if old else 0
+
+        if s.get('half_hip'):
+            over = 6
+            hip_h = round(rise * 0.42)
+            k_hh = 0.65
+            for y in range(top - 1, eave + 3):
+                k = y - top
+                inset = round((hip_h - k) * k_hh) if k < hip_h else 0
+                L, R = x0 - over + inset, x1 + over - inset
+                if R <= L:
+                    continue
+                self.paint_row(paint, L, y, R - L, r)
+                for x in range(L, R):
+                    self.roof_px.add((x, y))
+                    t = (y - top) / rise
+                    col = c.g(x, y)
+                    if t < 0.28:
+                        c.p(x, y, mix(col, (40, 30, 70, 255), 0.14))
+                    elif t > 0.74:
+                        c.p(x, y, mix(col, (255, 244, 220, 255), 0.06))
+                if inset > 0:
+                    for x in range(L, min(R, L + inset // 2 + 2)):
+                        c.p(x, y, mix(c.g(x, y), (255, 244, 220, 255), 0.10))
+                    for x in range(max(L, R - inset // 2 - 2), R):
+                        c.p(x, y, mix(c.g(x, y), (40, 30, 70, 255), 0.24))
+            self.eave_edge(x0 - over, x1 + over, eave, s['roof'], r)
+            cap = self.cap_ramp(s['roof'])
+            for y in range(top, top + hip_h + 1):
+                d = round((hip_h - (y - top)) * k_hh)
+                c.p(x0 - over + d, y, cap[1]); c.p(x0 - over + d + 1, y, cap[3])
+                c.p(x1 + over - d - 2, y, cap[4]); c.p(x1 + over - d - 1, y, cap[5])
+            for y in range(top + hip_h, eave + 3):
+                for x, left in ((x0 - over, True), (x1 + over - 1, False)):
+                    for k, idx in enumerate((2, 3, 5)):
+                        c.p(x + (k if left else -k), y, DARK_OAK[idx if left else min(7, idx + 1)])
+            ins = round(hip_h * k_hh)
+            self.ridge(x0 - over + ins, x1 + over - ins, top, s['roof'], r)
+            self.top, self.over = top, over
+            return
 
         for y in range(top - 1, eave + 3):
             k = y - top
@@ -436,6 +574,8 @@ class EaveHouse:
         for cx in picks:
             if s['dormer'] == 'eyebrow':
                 self.eyebrow(cx)
+            elif s['dormer'] == 'tile-eyebrow':
+                self.tile_eyebrow(cx)
             else:
                 self.gable_dormer(cx)
 
@@ -444,15 +584,29 @@ class EaveHouse:
         little roof in the house's covering, bargeboards, a shadow under."""
         c, s = self.c, self.s
         w, fh = 22, 18
-        foot = self.eave - 4
+        foot = self.eave - (5 if s.get('dormer_white') else 4)
         y = foot - fh
-        paint, r = COVER[s['roof']]
-        WALL['render'](c, cx - w // 2, y, w, fh)
-        bevel(c, cx - w // 2, y, 4, fh, OAK, 3)
-        bevel(c, cx + w // 2 - 4, y, 4, fh, OAK, 3)
-        op.frame_timber(c, cx - 6, y + 4, 12, fh - 8, None)
-        op.INFILLS[s['windows'][1] if s['windows'][1] != 'sash' else 'casement'](c, cx - 6, y + 4, 12, fh - 8, 'oak')
-        op.reveal(c, cx - 6, y + 4, 12, fh - 8, 2)
+        paint, default_r = COVER[s['roof']]
+        if s.get('dormer_white'):
+            r = self.tone
+            fm.render(c, cx - w // 2, y, w, fh, SILESIA_CREAM)
+            bevel(c, cx - w // 2, y, 3, fh, DARK_OAK, 3)
+            bevel(c, cx + w // 2 - 3, y, 3, fh, DARK_OAK, 3)
+            wx, wy, ww, wh = cx - 6, y + 4, 12, fh - 7
+            c.rect(wx - 1, wy - 1, ww + 2, wh + 2, op.CREAM_TRIM[1])
+            op.casement(c, wx, wy, ww, wh, 'white')
+            op.reveal(c, wx, wy, ww, wh, 2)
+            c.rect(wx - 2, wy + wh, ww + 4, 2, op.CREAM_TRIM[1])
+            barge = DARK_OAK
+        else:
+            r = default_r
+            WALL['render'](c, cx - w // 2, y, w, fh)
+            bevel(c, cx - w // 2, y, 4, fh, OAK, 3)
+            bevel(c, cx + w // 2 - 4, y, 4, fh, OAK, 3)
+            op.frame_timber(c, cx - 6, y + 4, 12, fh - 8, None)
+            op.INFILLS[s['windows'][1] if s['windows'][1] != 'sash' else 'casement'](c, cx - 6, y + 4, 12, fh - 8, 'oak')
+            op.reveal(c, cx - 6, y + 4, 12, fh - 8, 2)
+            barge = OAK
         rise = 11
         for yy in range(y - rise - 2, y + 1):
             half = round((yy - (y - rise - 2)) * (w / 2 + 3) / (rise + 2))
@@ -460,9 +614,31 @@ class EaveHouse:
         for i in range(-w // 2 - 3, w // 2 + 4):
             yy = y - rise - 2 + round(abs(i) * (rise + 2) / (w / 2 + 3))
             for k, idx in enumerate((2, 3, 5)):
-                c.p(cx + i, yy + k, OAK[idx if i < 0 else min(7, idx + 1)])
+                c.p(cx + i, yy + k, barge[idx if i < 0 else min(7, idx + 1)])
         op.cast(c, cx - w // 2, y + 2, w, 2, 0.7)
         op.cast(c, cx - w // 2 - 2, foot + 1, w + 4, 2, 0.7)
+
+    def tile_eyebrow(self, cx):
+        """Fledermausgaube: clay-tile eyebrow dormer over a small glazed attic light."""
+        c, r = self.c, self.tone
+        w, foot = 34, self.eave - 8
+        for x in range(cx - w // 2, cx + w // 2 + 1):
+            t = (x - cx) / (w / 2)
+            lift = round((math.cos(t * math.pi / 2) ** 1.6) * 11)
+            for k, idx in enumerate((1, 2, 3, 4, 5)):
+                c.p(x, foot - 7 - lift + k, r[idx])
+        for x in range(cx - 10, cx + 11):
+            t = (x - cx) / 11
+            lift = round(math.sqrt(max(0, 1 - t * t)) * 6)
+            for yy in range(foot - 6 - lift, foot):
+                c.p(x, yy, r[6])
+        wx, wy, ww, wh = cx - 8, foot - 9, 16, 8
+        c.rect(wx - 1, wy - 1, ww + 2, wh + 2, op.CREAM_TRIM[2])
+        op.glass(c, wx, wy, ww, wh)
+        c.rect(wx + ww // 2, wy, 1, wh, op.CREAM_TRIM[1])
+        op.reveal(c, wx, wy, ww, wh, 1)
+        c.rect(wx - 2, wy + wh, ww + 4, 2, op.CREAM_TRIM[1])
+        op.cast(c, wx - 2, wy + wh + 2, ww + 4, 2, 0.65)
 
     def eyebrow(self, cx):
         """An eyebrow window in thatch: the straw lifts over a small window."""
@@ -482,6 +658,31 @@ class EaveHouse:
     def draw_stacks(self):
         c, s = self.c, self.s
         x0, x1 = self.x0, self.x0 + self.W
+        if s.get('half_hip'):
+            ins = round(round(self.rise * 0.42) * 0.65) + 4
+            sw, sh = 16, 26
+            foot = self.top + 16
+            xs = {'ends': [x0 + ins + 4, x1 - ins - 4 - sw], 'center': [x0 + self.W // 2 - sw // 2],
+                  'one': [x1 - ins - 8 - sw]}.get(s['stacks'], [])
+            self.stack_boxes = []
+            for x in xs:
+                top = foot - sh
+                fm.brick(c, x, top, sw, sh, SILESIA_BRICK)
+                c.rect(x, top, 2, sh, mix(c.g(x + 3, top + 2), (255, 240, 220, 255), 0.20))
+                c.rect(x - 2, top - 5, sw + 4, 5, SILESIA_BRICK[2])
+                c.rect(x - 2, top - 5, sw + 4, 1, SILESIA_BRICK[0])
+                c.rect(x - 2, top - 1, sw + 4, 1, SILESIA_BRICK[5])
+                c.rect(x + 2, top - 3, sw - 4, 2, SILESIA_BRICK[7])
+                pot(c, x + 2, top - 11)
+                pot(c, x + sw - 9, top - 11)
+                for yy in range(top, foot + 4):
+                    for xx in range(x + sw, x + sw + 5):
+                        if (xx, yy) in self.roof_px and xx - (x + sw) < 5 - max(0, yy - foot):
+                            c.p(xx, yy, mix(c.g(xx, yy), (40, 30, 70, 255), 0.32))
+                z = RAMPS['zinc']
+                c.rect(x - 1, foot - 1, sw + 2, 2, z[3]); c.rect(x - 1, foot - 1, sw + 2, 1, z[2])
+                self.stack_boxes.append((x - 2, top - 5, sw + 4))
+            return
         hip = round(self.rise * 0.55) if s['hip'] else 0
         sw, sh = 16, 30
         foot = self.top + 16
@@ -515,6 +716,21 @@ class EaveHouse:
         if not self.lean:
             return
         c = self.c
+        if self.s['lean_to'] == 'brick':
+            lx0, lw, lh = 8, self.lean + 8, 42
+            top = self.base - lh
+            fm.brick(c, lx0, top, lw, lh, SILESIA_BRICK, bond='flemish')
+            fm.rubble(c, lx0, self.base - 8, lw, 8, RAMPS['granite'])
+            wx, wy, ww, wh = lx0 + 13, top + 12, 14, 14
+            op.frame_faschen(c, wx, wy, ww, wh)
+            op.casement(c, wx, wy, ww, wh, 'white')
+            op.reveal(c, wx, wy, ww, wh, 2)
+            for y in range(top - 20, top + 2):
+                fm.plain_tiles(c, lx0 - 4, y, lw + 6, 1, self.tone)
+            for x in range(lx0 - 4, lx0 + lw + 2):
+                c.p(x, top + 2, DARK_OAK[4]); c.p(x, top + 3, DARK_OAK[6])
+            op.cast(c, lx0, top + 4, lw, 3)
+            return
         lx0, lw, lh = 6, self.lean + 8, 40
         top = self.base - lh
         WALL[self.s['storeys'][0]](c, lx0, top, lw, lh)

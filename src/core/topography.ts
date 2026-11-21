@@ -58,6 +58,8 @@ export type TopographyCell = {
   platform?: [number, number];
   /** A low house platform stands here. Presentation only, never movement. */
   plinth?: { face: import("../content/settlements/yards").PlinthFace; steps?: boolean; rise?: number };
+  /** Low ornamental or kitchen border bed in a yard. Presentation only. */
+  gardenBorder?: import("../content/settlements/yards").GardenBorder;
   habitat?: import("../world/v3/habitats").Habitat;
   /** What a tall natural face here is cut from. Presentation only. */
   rock?: import("../content/geography/rock").Rock;

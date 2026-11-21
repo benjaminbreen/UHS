@@ -4,7 +4,7 @@ import type { Engine } from "../core/engine";
 import type { CommandResult, Inspection } from "../core/types";
 import { TimeTravel } from "../core/time/travel";
 import { playerCommandSchema, commandSchema } from "../runtime/schema";
-import { Runtime } from "../runtime/session";
+import { createSettingSession, Runtime } from "../runtime/session";
 import { planOf } from "../runtime/autopilot";
 import { prepareConnectedStart } from "../runtime/map-travel";
 import { releaseTerrainWorker } from "../runtime/terrain-worker-owner";
@@ -100,6 +100,8 @@ export type StartOptions = {
   offline?: boolean;
   /** Show the start's stated concern, which reads to an agent as a goal. */
   concern?: boolean;
+  /** Single local map without neighbouring travel squares; faster for local playtesting. */
+  fast?: boolean;
   modelFetch?: typeof fetch;
 };
 
@@ -299,7 +301,7 @@ export class Agent {
     // Way-out ids hold commas, so they are swapped whole before the general pattern.
     for (const e of this.runtime.journey?.entrances ?? [])
       if (text.includes(e.id)) text = text.split(e.id).join(this.alias(e.id, "w", text));
-    return text.replace(/[\w:.-]*~[\w:.~-]*\w/g, (id) => {
+    return text.replace(/(?:[\w:.-]*~[\w:.~-]*\w|\bplayer-member-\d+\b)/g, (id) => {
       const s = this.engine.state;
       return this.alias(id, s.actors.some((a) => a.id === id) ? "p" : this.engine.world.places.some((p) => p.id === id) ? "b" : "t", text);
     });
@@ -372,8 +374,15 @@ export class Agent {
   /** The narrator's scene, less what it says to the narrator about itself. */
   private scene() {
     return trimScene(sceneDigest(this.engine, ""), true)
-      .replace(/Care actions \(act \{[^}]*\}\): /, "Care you could arrange: ")
-      .replace(/ Symptoms do not establish a diagnosis\. Narration cannot [^\n]*/, "");
+      .replace(/Care actions \(act \{[^}]*\}\): ([^\n]+)/, (_m, rest: string) => {
+        const cleaned = rest
+          .replace(/\.?\s*Symptoms do not establish a diagnosis\. Narration cannot [^\n]*/, "")
+          .split(" | ")
+          .filter((item) => !/You can't nurse yourself|There is no open wound\.|You are not ill\./.test(item));
+        return cleaned.length ? `Care you could arrange: ${cleaned.join(" | ")}` : "";
+      })
+      .replace(/; Religious practice: [^\n[]+?(?=(?:; (?:wary of you|friendly|symptoms:|danger:)| \[|$))/gm, "")
+      .replace(/\n{3,}/g, "\n\n");
   }
 
   /** The browser shows each card once and takes it off the queue; so does this. */
@@ -558,13 +567,15 @@ export async function startAgent(options: StartOptions, record: RunRecord) {
       : randomStart();
     ({ seed, setting } = start);
   }
-  const engine = await prepareConnectedStart(setting, seed);
+  const engine = options.fast
+    ? createSettingSession(setting, seed)
+    : await prepareConnectedStart(setting, seed);
   const runtime = new Runtime(engine, { cacheTerrain: false });
   runtime.modelFetch = options.offline
     ? async () => new Response(JSON.stringify({ error: "Offline." }), { status: 503 })
     : record.fetch("environment", options.modelFetch ?? runtime.modelFetch);
   // Map travel loads on demand; wait for it so the first look lists the ways out.
-  if (engine.state.manifest.setting?.playableMap)
+  if (!options.fast && engine.state.manifest.setting?.playableMap)
     for (let i = 0; i < 400 && !runtime.journey; i++) await new Promise((r) => setTimeout(r, 5));
   const s = engine.world.pack.setting!;
   record.start({
@@ -574,6 +585,76 @@ export async function startAgent(options: StartOptions, record: RunRecord) {
     timeTravel: !!options.timeTravel,
     offline: !!options.offline,
     concern: !!options.concern,
+    ...(options.fast ? { fast: true } : {}),
   });
   return new Agent(runtime, record, options);
+}
+
+const INTERACT_VERBS = new Set([
+  "enter", "exit", "open", "close", "pickup", "take", "drink", "climb",
+  "descend", "strike", "follow", "attend",
+]);
+const DIRECTIONS = new Set(["north", "south", "east", "west"]);
+
+export type ParsedPlayLine =
+  | { tool: string; input: unknown }
+  | { error: string };
+
+/** Parses either `<tool> {json}` or a plain shorthand line for playtesting. */
+export function parsePlayLine(line: string): ParsedPlayLine | undefined {
+  const parts = /^(\S+)(?:\s+(.*))?$/.exec(line.trim());
+  if (!parts) return undefined;
+  const [, rawTool, rest = ""] = parts;
+  const tool = rawTool === "l" ? "look" : rawTool;
+  if (!rest) {
+    if (tool === "wait") return { tool: "act", input: { command: { type: "wait", seconds: 600 } } };
+    if (tool === "sleep") return { tool: "act", input: { command: { type: "sleep", seconds: 28800 } } };
+    return { tool, input: {} };
+  }
+  if (rest.startsWith("{")) {
+    try {
+      return { tool, input: JSON.parse(rest) };
+    } catch {
+      return { error: "Use a tool name followed by a JSON object." };
+    }
+  }
+  if (tool === "inspect") return { tool, input: { target: rest } };
+  if (tool === "goto") {
+    const xy = /^(-?\d+)\s+(-?\d+)$/.exec(rest);
+    return xy ? { tool, input: { x: Number(xy[1]), y: Number(xy[2]) } } : { tool, input: { target: rest } };
+  }
+  if (tool === "talk") {
+    const [, target, text] = /^(\S+)(?:\s+(.*))?$/.exec(rest) ?? [];
+    return { tool, input: text ? { target, text } : { target } };
+  }
+  if (tool === "say") return { tool, input: { text: rest } };
+  if (tool === "travel") return { tool, input: { to: rest } };
+  if (tool === "time" || tool === "time_travel") {
+    const year = Number(rest);
+    return Number.isInteger(year) ? { tool: "time_travel", input: { year } } : { error: `Invalid year: ${rest}` };
+  }
+  if (tool === "errand") {
+    const [, kind, arg] = /^(\S+)(?:\s+(.*))?$/.exec(rest) ?? [];
+    if (kind === "forage") return { tool, input: arg ? { kind, item: arg } : { kind } };
+    if (kind === "go" && arg) return { tool, input: DIRECTIONS.has(arg) ? { kind, direction: arg } : { kind, target: arg } };
+    return { tool, input: arg ? { kind, target: arg } : { kind } };
+  }
+  if (tool === "wait" || tool === "sleep") {
+    const seconds = Number(rest);
+    return Number.isFinite(seconds) && seconds > 0
+      ? { tool: "act", input: { command: { type: tool, seconds } } }
+      : { error: `Invalid seconds: ${rest}` };
+  }
+  if (tool === "use" || tool === "wear") return { tool: "act", input: { command: { type: tool, item: rest } } };
+  if (tool === "become") return { tool: "act", input: { command: { type: "become", heir: rest } } };
+  if (tool === "choose") {
+    const [, card, choice] = /^(\S+)\s+(\d+)$/.exec(rest) ?? [];
+    return card ? { tool: "act", input: { command: { type: "choose", card, choice: Number(choice) } } } : { error: "Usage: choose <card> <choice>" };
+  }
+  if (tool === "care") {
+    const [, treatment, target = "player"] = /^(\S+)(?:\s+(\S+))?$/.exec(rest) ?? [];
+    return { tool: "act", input: { command: { type: "care", target, treatment } } };
+  }
+  if (INTERACT_VERBS.has(tool)) return { tool: "act", input: { command: { type: "interact", target: rest, action: tool } } };
+  return { error: "Use a tool name followed by a JSON object." };
 }

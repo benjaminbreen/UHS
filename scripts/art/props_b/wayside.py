@@ -261,52 +261,6 @@ def standing_stone(v=0):
  return c.image()
 
 
-def _privy(v, frame, build):
- """A one-seat privy at its real size: a metre wide, a little over two tall.
- `build` is boards, stone or brick; the variant changes roof and wood."""
- from .building import _flies
- c = Canvas(20, 38)
- w = WOOD[v % 3]
- if build == 'stone':
-  wall = STONE
- elif build == 'brick':
-  wall = ['#4a221a', '#7a3526', '#a44d35', '#c46d4d', '#dd977a']
- else:
-  wall = w
- x0, x1, top, base = 3, 16, 12, 35
- for y in range(top, base + 1):
-  for x in range(x0, x1 + 1):
-   u = (x - x0) / (x1 - x0)
-   tone = 3 if u < 0.25 else 2 if u < 0.7 else 1
-   if build == 'boards':
-    if (x - x0) % 3 == 2: tone = max(0, tone - 1)
-   elif (y - top) % (3 if build == 'brick' else 4) == 0 or (x + ((y - top) // (3 if build == 'brick' else 4)) * 3) % 6 == 0:
-    tone = max(0, tone - 1)
-   c.set(x, y, wall[tone])
- c.vline(x0, top, base, wall[4]); c.vline(x1, top, base, wall[0]); c.hline(x0, x1, base, wall[0])
- c.rect(6, 17, 13, base, w[1])                        # the door, boarded
- for x in (8, 11): c.vline(x, 18, base - 1, w[0])
- c.vline(6, 17, base, w[3]); c.hline(6, 13, 17, w[3])
- c.rect(9, 20, 10, 21, INK); c.set(9, 20, w[1])        # the moon cut in it
- c.set(12, 27, IRON[3]); c.hline(7, 8, 19, IRON[1]); c.hline(7, 8, 32, IRON[1])
- roof = STRAW if v == 1 else ['#33291f', '#54402c', '#77593a', '#9a7a52'] if build != 'brick' else ['#2a343a', '#44545c', '#62757d', '#8d9da1']
- # One pitch, falling to the back: the high edge is the one we see.
- for y in range(4, 13):
-  lo, hi = 1 - (y - 4) // 4, 18 + (y - 4) // 4
-  for x in range(max(0, lo), min(19, hi) + 1):
-   c.set(x, y, roof[3] if y < 6 else roof[2] if (x + y) % 4 else roof[1])
- c.hline(0, 19, 12, roof[0]); c.hline(1, 18, 4, roof[3])
- c.hline(x0, x1, 13, wall[0])                         # the eave's shade
- c.outline(INK)
- _flies(c, frame, [(10, 26, 9, 5, 1.0), (10, 20, 7, 6, -1.0)])
- return c.image()
-
-
-def privy_shed(v=0, frame=0): return _privy(v, frame, 'boards')
-def privy_stone(v=0, frame=0): return _privy(v, frame, 'stone')
-def privy_outhouse(v=0, frame=0): return _privy(v, frame, 'brick')
-
-
 def stone_lantern(v=0):
  from .core import RAMPS, revolve, belly, soft_outline
  c = Canvas(28, 36)
@@ -362,9 +316,6 @@ WAYSIDE = {
  'rune-marker': rune_marker,
  'roman-milestone': roman_milestone,
  'standing-stone': standing_stone,
- 'privy-shed': privy_shed,
- 'privy-stone': privy_stone,
- 'privy-outhouse': privy_outhouse,
  'beehive': beehive,
  'waymark': waymark,
  'wayside-shrine': wayside_shrine,

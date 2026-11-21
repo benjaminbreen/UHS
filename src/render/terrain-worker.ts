@@ -198,9 +198,10 @@ function rasterRegion(region: TerrainRegion): Omit<TerrainResponse, "id"> {
   const paintSample = (x: number, y: number) => {
     const c = sample(x, y);
     if (!livingEnabled || !c.waterVisual) return c;
-    // A creek keeps its own narrow shore: the living beach width is for
-    // rivers and coasts and would give it the river's sand ramp.
-    if (c.waterVisual.shoreWidth < 1.2 || c.waterVisual.quay) return c;
+    // Creeks, quays and tidal shelves keep their own shore width: living water
+    // skips dry pixels on a tidal shelf, so shrinking shoreWidth here left an
+    // unshaded strip across the upper beach.
+    if (c.waterVisual.shoreWidth < 1.2 || c.waterVisual.quay || c.waterVisual.shelf !== undefined) return c;
     const key = `${x},${y}`;
     let painted = paintCells.get(key);
     if (!painted) {
@@ -325,6 +326,11 @@ function rasterRegion(region: TerrainRegion): Omit<TerrainResponse, "id"> {
       )
     : undefined;
   if (living && receivers) {
+    // Pixels cleared for living water move to a backdrop just behind the water
+    // shader, so when the shader discards on its outer beach fade, wall-owned
+    // tiles (skipped by the base ground page) never expose the scene canvas.
+    let backdrop: Uint8ClampedArray | undefined;
+    let minX = living.width, maxX = -1, minY = living.height, maxY = -1;
     for (const layer of layers) {
       if (!layer.flat) continue;
       for (let y = 0; y < layer.height; y++)
@@ -343,9 +349,41 @@ function rasterRegion(region: TerrainRegion): Omit<TerrainResponse, "id"> {
           // show the living water beneath rather than the flat tile.
           const tier = receivers.tiers[i];
           if (tier === -2 || receivers.rows[i] !== layer.row) continue;
-          if (living.pixels[((sy + 96) * living.width + sx) * 4 + 3])
-            layer.pixels[(y * layer.width + x) * 4 + 3] = 0;
+          const li = ((sy + 96) * living.width + sx) * 4;
+          if (!living.pixels[li + 3]) continue;
+          const pi = (y * layer.width + x) * 4;
+          const alpha = layer.pixels[pi + 3];
+          if (alpha) {
+            backdrop ??= new Uint8ClampedArray(living.width * living.height * 4);
+            backdrop.set(layer.pixels.subarray(pi, pi + 4), li);
+            if (sx < minX) minX = sx;
+            if (sx > maxX) maxX = sx;
+            if (sy + 96 < minY) minY = sy + 96;
+            if (sy + 96 > maxY) maxY = sy + 96;
+            layer.pixels[pi + 3] = 0;
+          }
         }
+    }
+    if (backdrop && maxX >= minX && maxY >= minY) {
+      const cw = maxX - minX + 1,
+        ch = maxY - minY + 1,
+        cropped = new Uint8ClampedArray(cw * ch * 4);
+      for (let y = 0; y < ch; y++)
+        cropped.set(
+          backdrop.subarray(((minY + y) * living.width + minX) * 4, ((minY + y) * living.width + maxX + 1) * 4),
+          y * cw * 4,
+        );
+      layers.push({
+        row: 0,
+        tier: 0,
+        x: minX,
+        y: minY - 96,
+        width: cw,
+        height: ch,
+        pixels: cropped,
+        flat: true,
+        underLiving: true,
+      });
     }
   }
   const groundPage = batchGroundPage(

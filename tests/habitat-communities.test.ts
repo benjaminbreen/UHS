@@ -51,6 +51,14 @@ it("keeps water and shores distinct from saturated land", () => {
       0.1,
     ).primary,
   ).toBe("shore");
+  expect(
+    classifyCommunity(
+      region,
+      { ...land(0.2, 1), kind: "sea", shoreWidth: 3, elevation: 14 },
+      0.1,
+      0.1,
+    ).primary,
+  ).not.toBe("shore");
 });
 it("renders the same regional ground colors used by the minimap even with a legacy vegetation hint", () => {
   const f = {

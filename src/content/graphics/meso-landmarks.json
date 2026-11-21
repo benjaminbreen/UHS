@@ -9,8 +9,8 @@
       ],
       "scales": {
         "small": {"footprint": [6, 5], "tiers": 2, "tierHeight": 8, "top": [0.22, 0.45], "summit": "thatch-shrine", "stair": "single", "braziers": 1, "banners": 1, "corners": "sharp"},
-        "medium": {"footprint": [9, 8], "tiers": 4, "tierHeight": 11, "top": [0.2, 0.6], "summit": "shrine", "stair": "single", "braziers": 2, "banners": 2, "corners": "sharp", "serpents": true},
-        "large": {"footprint": [12, 10], "tiers": 5, "tierHeight": 12, "top": [0.12, 0.62], "summit": "twin", "stair": "double", "braziers": 4, "banners": 4, "corners": "sharp", "serpents": true}
+        "medium": {"footprint": [9, 8], "tiers": 4, "tierHeight": 15, "top": [0.2, 0.6], "summit": "shrine", "stair": "single", "braziers": 2, "banners": 2, "corners": "sharp", "serpents": true},
+        "large": {"footprint": [12, 10], "tiers": 5, "tierHeight": 17, "top": [0.12, 0.62], "summit": "twin", "stair": "double", "braziers": 4, "banners": 4, "corners": "sharp", "serpents": true}
       }
     },
     "maya": {

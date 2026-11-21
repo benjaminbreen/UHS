@@ -17,7 +17,7 @@ import { parseSewerSpace } from "../world/sewer";
  */
 export type Plan =
   | { kind: "forage"; item?: ItemId }
-  | { kind: "go"; to: Point & { space?: string }; label: string; field?: boolean }
+  | { kind: "go"; to: Point & { space?: string }; label: string; field?: boolean; use?: string }
   | { kind: "workday"; workPass?: string; single?: boolean }
   | { kind: "roam"; run: boolean }
   | { kind: "seek"; actor: string; label: string };
@@ -26,7 +26,7 @@ export type Plan =
  * still a tick so a pose can be seen, or stop with a line saying why. */
 export type Step =
   | { route: Point[] }
-  | { command: Parameters<import("./session").Runtime["command"]>[0] }
+  | { command: Parameters<import("./session").Runtime["command"]>[0]; end?: boolean }
   | { wait: true }
   | { done: string };
 
@@ -62,8 +62,12 @@ export class Autopilot {
     if (this.stuck > 4) return { done: "You cannot find a way on." };
     if (p.fatigue >= TIRED) return { done: "You are too tired to go on." };
     switch (this.plan.kind) {
-      case "go":
-        return this.go(this.plan.to, this.plan.label, this.plan.field);
+      case "go": {
+        const step = this.go(this.plan.to, this.plan.label, this.plan.field);
+        return this.plan.use && "done" in step && step.done.startsWith("You reach")
+          ? { command: { type: "interact", target: this.plan.use, action: "use-prop" }, end: true }
+          : step;
+      }
       case "forage":
         return this.forage(this.plan.item);
       case "workday":

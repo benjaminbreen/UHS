@@ -36,38 +36,44 @@ export default defineConfig({
     {
       name: "world-weaver-local-api",
       configureServer(server) {
-        const env = loadEnv(server.config.mode, process.cwd(), "");
-        for (const key of [
-          "GEMINI_API_KEY",
-          "UHS_WORLD_WEAVER_ENABLED",
-          "UHS_CLASSROOM_CODE",
-          "UHS_WORLD_WEAVER_ACCESS_CODE",
-          "UHS_WORLD_WEAVER_MODEL",
-          "OPENAI_API_KEY",
-          "OPENROUTER_API_KEY",
-          "UHS_HAIKU_MODEL",
-          "DATABASE_URL",
-          "UHS_EDU_CLASS_CODE",
-          "UHS_EDU_TEACHER_TOKEN",
-          "UHS_NARRATOR_ACCESS_CODE",
-          "UHS_NARRATOR_OPENAI_MODEL",
-          "UHS_NARRATOR_GEMINI_MODEL",
-          "TYPESAFE_API_KEY",
-        ])
-          if (env[key] && !process.env[key]) process.env[key] = env[key];
-        server.middlewares.use("/api/time-arrival", (req, res) => { void handleTimeArrival(req, res); });
-        server.middlewares.use("/api/task-lore", (req, res) => { void handleTaskLore(req, res); });
-        server.middlewares.use("/api/world-weaver", (req, res) => {
-          void handleWorldWeaver(req, res);
-        });
-        server.middlewares.use("/api/narrator", (req, res) => {
-          void handleNarrator(req, res);
-        });
-        server.middlewares.use("/api/dialogue", (req, res) => {
-          void handleDialogue(req, res);
-        });
-        server.middlewares.use("/api/jev", (req, res) => { void handleJev(req, res); });
-        server.middlewares.use("/api/craft", (req, res) => { void handleCraft(req, res); });
+        const offline = process.env.UHS_OFFLINE === "1";
+        if (!offline) {
+          const env = loadEnv(server.config.mode, process.cwd(), "");
+          for (const key of [
+            "GEMINI_API_KEY",
+            "UHS_WORLD_WEAVER_ENABLED",
+            "UHS_CLASSROOM_CODE",
+            "UHS_WORLD_WEAVER_ACCESS_CODE",
+            "UHS_WORLD_WEAVER_MODEL",
+            "OPENAI_API_KEY",
+            "OPENROUTER_API_KEY",
+            "UHS_HAIKU_MODEL",
+            "DATABASE_URL",
+            "UHS_EDU_CLASS_CODE",
+            "UHS_EDU_TEACHER_TOKEN",
+            "UHS_NARRATOR_ACCESS_CODE",
+            "UHS_NARRATOR_OPENAI_MODEL",
+            "UHS_NARRATOR_GEMINI_MODEL",
+            "TYPESAFE_API_KEY",
+          ])
+            if (env[key] && !process.env[key]) process.env[key] = env[key];
+        }
+        const gate = (fn: (req: any, res: any) => Promise<unknown>) => (req: any, res: any) => {
+          if (offline) {
+            res.statusCode = 503;
+            res.setHeader("content-type", "application/json");
+            res.end(JSON.stringify({ error: "Offline mode (UHS_OFFLINE=1)." }));
+            return;
+          }
+          void fn(req, res);
+        };
+        server.middlewares.use("/api/time-arrival", gate(handleTimeArrival));
+        server.middlewares.use("/api/task-lore", gate(handleTaskLore));
+        server.middlewares.use("/api/world-weaver", gate(handleWorldWeaver));
+        server.middlewares.use("/api/narrator", gate(handleNarrator));
+        server.middlewares.use("/api/dialogue", gate(handleDialogue));
+        server.middlewares.use("/api/jev", gate(handleJev));
+        server.middlewares.use("/api/craft", gate(handleCraft));
         server.middlewares.use("/api/edu", (req, res) => { void handleEdu(req, res); });
         // Dev only: the studio's ambience tab plays the reference recordings
         // that `npm run audio:ambience` fetched, and appends listening verdicts.

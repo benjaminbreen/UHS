@@ -10,7 +10,7 @@ sys.path.insert(0, str(ROOT / 'scripts'))
 from art.front_materials import C, RAMPS, ramp, lit
 from art.front_eave import EaveHouse
 from art.front_civic import CivicHall
-from art.front_kit import consolidate
+from art.front_kit import consolidate, finish, cast
 from art.front_house import bevel
 from art import front_persian as persia
 from art import front_sinitic as sino
@@ -18,6 +18,7 @@ from art.front_review import sheet
 
 OAK, STONE = RAMPS['oak'], RAMPS['granite']
 IRON = ramp(270, .025, lift=-.12)
+DOOR_GREEN = ramp(152, .085, lift=-.12)
 HULL = {'dhow': ramp(40, .08, lift=-.14), 'junk': ramp(32, .06, lift=-.1)}
 
 
@@ -798,97 +799,516 @@ def shore_building(style,info):
     return c.im
 
 
-def henhouse(style,info):
-    """A walk-in henhouse: a low door for the keeper, a pop-hole and ramp for
-    the hens. Timber and shingle, wattle and thatch, or adobe under a flat roof."""
+def _outbuilding_roof(c, x, y, w, d, kind, roof, ridge=None, curved=False):
+    """Pitched or curved front-on outbuilding roof with ridge cap, verge trim and under-eave shadow."""
     from art import front_materials as m
-    from art import front_solid as so
-    kind=style.rsplit('-',1)[1]
-    W=48;L=8;B=84;H=38
-    c=C(W+16,B+6)
-    wall,roof,post={'timber':(RAMPS['pine'],RAMPS['shingle'],OAK),
-        'wattle':(RAMPS['render'],RAMPS['thatch'],OAK),
-        'adobe':(RAMPS['adobe'],RAMPS['adobe'],RAMPS['pine'])}[kind]
-    {'timber':m.boards,'wattle':m.render,'adobe':m.adobe}[kind](c,L,B-H,W,H,wall)
-    c.rect(L,B-H,2,H,wall[1]);c.rect(L+W-2,B-H,2,H,wall[4])
-    c.rect(L,B-3,W,3,wall[4])
-    if kind=='wattle':
-        for x in range(L+26,L+W-4,12):c.rect(x,B-H,2,H,post[3]);c.rect(x,B-H,1,H,post[2])
-    if kind=='adobe':
-        so.box(c,L-2,B-H,W+4,5,34,roof)
-        c.rect(L,B-H-19,W,13,roof[2]);c.rect(L,B-H-19,W,2,roof[3])
-        for x in range(L+6,L+W-4,11):c.rect(x,B-H+2,3,3,post[5]);c.rect(x,B-H+2,3,1,post[3])
+    rcol = ridge or roof
+    # Paint roof surface on a temporary layer so curved eaves/ridge stay razor-clean.
+    layer = C(c.w, c.h)
+    if kind == 'brick':
+        m.plain_tiles(layer, x, y, w, d, roof)
+    elif kind == 'timber':
+        m.shingles(layer, x, y, w, d, roof, tw=10, th=7)
+    elif kind == 'stone':
+        m.slate(layer, x, y, w, d, roof)
+    elif kind == 'med':
+        m.pantiles(layer, x, y, w, d, roof, col=7, course=9)
+    elif kind == 'east':
+        m.kawara(layer, x, y, w, d, roof, col=7, course=8)
+    elif kind == 'bamboo':
+        m.palm(layer, x, y, w, d, roof, course=9)
     else:
-        d=24
-        {'timber':m.shingles,'wattle':m.thatch}[kind](c,L-5,B-H-d,W+10,d,roof)
-        c.rect(L-5,B-H-d,W+10,2,roof[1]);c.rect(L-5,B-H-2,W+10,2,roof[5])
-        c.rect(L-5,B-H-d-3,W+10,3,roof[2]);c.rect(L-5,B-H-d-3,W+10,1,roof[0])
-    c.rect(L,B-H,W,2,wall[6])
-    dx=L+13
-    c.rect(dx-10,B-34,20,34,post[6])
-    for x in range(dx-8,dx+8,4):c.rect(x,B-31,4,31,post[3]);c.rect(x,B-31,1,31,post[2])
-    for y in (B-25,B-8):c.rect(dx-8,y,16,2,post[5])
-    for x in (dx-11,dx+8):bevel(c,x,B-34,3,34,post,3)
-    bevel(c,dx-11,B-36,22,3,post,3)
-    c.rect(dx+4,B-17,2,3,IRON[3])
-    hx=L+36
-    c.rect(hx-6,B-15,12,12,post[7]);bevel(c,hx-7,B-17,14,2,post,3)
-    for x in (hx-8,hx+6):c.rect(x,B-15,2,12,post[4])
-    for k in range(5):
-        c.rect(hx-5-k,B-3+k,11,1,post[2 if k%2 else 4])
-    c.rect(L+30,B-31,12,6,post[7])
-    for x in range(L+32,L+42,3):c.rect(x,B-31,1,6,post[3])
-    c.rect(L+29,B-32,14,1,post[2]);c.rect(L+29,B-25,14,1,post[5])
-    info.update(x0=L,W=W,base=B,door_x=dx,door_h=34,door_width=18)
-    consolidate(c,rare=6)
+        m.thatch(layer, x, y, w, d, roof, course=8)
+
+    for yy in range(y, y + d):
+        t = (yy - y) / max(1, d - 1)
+        for xx in range(x, x + w):
+            u = abs((xx - (x + (w - 1) / 2)) / max(1, w / 2))
+            if curved:
+                # Subtle Bangla chala / East Asian curved eave dip at corners.
+                drop = round(2.4 * u * u) if kind == 'bamboo' else round(1.8 * (1 - u * u))
+                if kind == 'bamboo' and yy < y + drop:
+                    continue
+                if kind == 'east' and yy < y + round(1.5 * u * u):
+                    continue
+            px = layer.g(xx, yy)
+            if not px[3]:
+                continue
+            # Gentle slope shading: warm-lit upper left, deeper shadow at eave turn.
+            if yy >= y + d - 2:
+                px = roof[6] if (kind in ('wattle', 'bamboo') and (xx + yy) % 3 == 0) else roof[5]
+            elif xx == x:
+                px = roof[1]
+            elif xx == x + w - 1:
+                px = roof[5]
+            c.p(xx, yy, px)
+
+    # Scalloped straw overhang for thatch and palm.
+    if kind in ('wattle', 'bamboo'):
+        for xx in range(x, x + w):
+            sag = 1 if (xx // 3) % 2 == 0 else 0
+            if kind == 'bamboo':
+                u = abs((xx - (x + (w - 1) / 2)) / max(1, w / 2))
+                sag += round(2.0 * u * u)
+            if sag:
+                c.rect(xx, y + d, 1, sag, roof[5])
+                c.p(xx, y + d + sag - 1, roof[6])
+
+    # Ridge cap roll (or lime-plaster ridge for East Asian kawara).
+    ry = y - 2
+    if kind == 'east':
+        c.rect(x + 1, ry, w - 2, 3, rcol[2])
+        c.rect(x + 1, ry, w - 2, 1, rcol[0])
+        c.rect(x + 1, ry + 2, w - 2, 1, rcol[4])
+        # Turned-up corner tile finials + round white eave end-caps.
+        for ex in (x, x + w - 3):
+            c.rect(ex, ry - 1, 3, 2, rcol[1])
+            c.p(ex + 1, ry - 1, rcol[0])
+        for ex in range(x + 2, x + w - 2, 7):
+            c.rect(ex, y + d - 2, 3, 2, rcol[1])
+            c.p(ex + 1, y + d - 2, rcol[0])
+    elif kind == 'bamboo':
+        for xx in range(x + 2, x + w - 2):
+            u = abs((xx - (x + (w - 1) / 2)) / max(1, w / 2))
+            dy = round(2.0 * u * u)
+            c.rect(xx, ry + dy, 1, 3, roof[3])
+            c.p(xx, ry + dy, roof[1])
+            if xx % 6 == 0:
+                c.rect(xx, ry + dy, 2, 3, OAK[5])
+    else:
+        c.rect(x, ry, w, 3, rcol[2])
+        c.rect(x, ry, w, 1, rcol[0])
+        c.rect(x, ry + 2, w, 1, rcol[5])
+        if kind == 'wattle':
+            for xx in range(x + 5, x + w - 4, 8):
+                c.rect(xx, ry, 2, 4, OAK[5])
+                c.p(xx, ry, OAK[3])
+        elif kind in ('brick', 'med'):
+            for xx in range(x + 2, x + w - 2, 7):
+                c.p(xx, ry, rcol[1])
+                c.p(xx, ry + 1, rcol[4])
+
+
+def _flat_adobe_roof(c, L, y, W, roof, post):
+    """Sculpted flat mud-brick roof with recessed deck, battered parapet and cedar vigas."""
+    c.rect(L - 2, y - 15, W + 4, 15, roof[3])
+    # Recessed sky-facing mud deck.
+    c.rect(L + 1, y - 13, W - 2, 10, roof[2])
+    c.rect(L + 1, y - 13, W - 2, 2, roof[4])
+    c.rect(L + 1, y - 13, 2, 10, roof[4])
+    # Parapet coping rim.
+    c.rect(L - 2, y - 16, W + 4, 2, roof[1])
+    c.rect(L - 2, y - 16, W + 4, 1, roof[0])
+    c.rect(L - 2, y - 3, W + 4, 3, roof[2])
+    c.rect(L - 2, y - 1, W + 4, 1, roof[5])
+    # Projecting cedar viga roof beams with cast shadows beneath.
+    for vx in range(L + 5, L + W - 5, 10):
+        c.rect(vx, y + 1, 3, 3, post[5])
+        c.rect(vx, y + 1, 3, 1, post[2])
+        c.rect(vx + 1, y + 4, 3, 2, roof[6])
+
+
+def _outbuilding_plinth(c, L, B, W, kind, wall):
+    """Grounded wall-foot plinth or sill course matched to each architectural tradition."""
+    if kind == 'brick':
+        p = RAMPS['brick-dark']
+        c.rect(L, B - 6, W, 6, p[4])
+        c.rect(L, B - 6, W, 1, p[2])
+        for xx in range(L + 2, L + W - 2, 6):
+            c.rect(xx, B - 4, 4, 2, p[3])
+        c.rect(L, B - 2, W, 2, p[6])
+    elif kind == 'timber':
+        p = STONE
+        c.rect(L, B - 5, W, 5, p[4])
+        c.rect(L, B - 5, W, 1, p[2])
+        for xx in range(L + 1, L + W - 3, 7):
+            c.rect(xx, B - 4, 5, 3, p[3])
+            c.p(xx, B - 4, p[2])
+        c.rect(L, B - 1, W, 1, p[6])
+    elif kind == 'east':
+        p = STONE
+        c.rect(L, B - 4, W, 4, OAK[6])
+        for xx in (L, L + W // 2 - 3, L + W - 6):
+            c.rect(xx, B - 5, 6, 5, p[3])
+            c.rect(xx, B - 5, 6, 1, p[1])
+            c.rect(xx, B - 1, 6, 1, p[5])
+    elif kind == 'bamboo':
+        p = RAMPS['kahgel']
+        c.rect(L - 1, B - 6, W + 2, 6, p[4])
+        c.rect(L - 1, B - 6, W + 2, 1, p[2])
+        c.rect(L - 1, B - 2, W + 2, 2, p[5])
+    elif kind == 'wattle':
+        p = STONE
+        c.rect(L, B - 4, W, 4, p[4])
+        c.rect(L, B - 4, W, 1, p[2])
+        c.rect(L, B - 1, W, 1, p[6])
+    elif kind == 'med':
+        p = RAMPS['limestone']
+        c.rect(L, B - 5, W, 5, p[4])
+        for xx in range(L + 2, L + W - 4, 8):
+            c.rect(xx, B - 4, 5, 2, p[3])
+        c.rect(L, B - 2, W, 2, p[5])
+    else:
+        c.rect(L, B - 3, W, 3, wall[5])
+
+
+def henhouse(style, info):
+    """A walk-in henhouse: keeper's door, screened vent, pop-hole and cleated ramp.
+    Matched to regional/era traditions: timber, brick, wattle, adobe, bamboo, east."""
+    from art import front_materials as m
+    kind = style.rsplit('-', 1)[1]
+    W, L, B, H = 48, 8, 84, 38
+    c = C(W + 16, B + 8)
+    pal = {
+        'timber': (RAMPS['pine'], RAMPS['shingle'], OAK, OAK),
+        'brick':  (RAMPS['brick'], RAMPS['clay-tile'], OAK, DOOR_GREEN),
+        'wattle': (RAMPS['render'], RAMPS['thatch'], OAK, OAK),
+        'adobe':  (RAMPS['adobe'], RAMPS['adobe'], RAMPS['cedar'], RAMPS['cedar']),
+        'bamboo': (RAMPS['kahgel'], RAMPS['palm'], RAMPS['cedar'], RAMPS['pine']),
+        'east':   (RAMPS['cedar'], RAMPS['kawara'], OAK, RAMPS['cedar']),
+    }[kind]
+    wall, roof, post, door_r = pal
+
+    # Wall body
+    if kind == 'brick':
+        m.brick(c, L, B - H, W, H, wall)
+    elif kind == 'timber':
+        m.boards(c, L, B - H, W, H, wall, board=6)
+    elif kind == 'wattle':
+        m.render(c, L, B - H, W, H, wall)
+    elif kind == 'adobe':
+        m.adobe(c, L, B - H, W, H, wall)
+    elif kind == 'bamboo':
+        m.kahgel(c, L, B - H, W, H, wall)
+        # Woven bamboo-mat horizontal & vertical strips.
+        for yy in range(B - H + 4, B - 6, 4):
+            c.rect(L + 2, yy, W - 4, 1, RAMPS['pine'][4])
+        for xx in range(L + 4, L + W - 2, 6):
+            c.rect(xx, B - H + 2, 1, H - 8, RAMPS['pine'][5])
+    elif kind == 'east':
+        m.boards(c, L, B - H + 11, W, H - 11, wall, board=5)
+        m.whitewash(c, L, B - H, W, 11, RAMPS['whitewash'])
+        c.rect(L, B - H + 11, W, 2, OAK[5])
+
+    # Subtle sunlit left edge, shaded right edge.
+    c.rect(L, B - H, 2, H, wall[1] if kind != 'east' else OAK[4])
+    c.rect(L + W - 2, B - H, 2, H, wall[5])
+
+    # Structural corner posts / timber framing.
+    if kind in ('wattle', 'bamboo', 'east', 'timber'):
+        pc = RAMPS['pine'] if kind == 'bamboo' else post
+        for px in (L, L + W - 3):
+            c.rect(px, B - H, 3, H, pc[4])
+            c.rect(px, B - H, 1, H, pc[2])
+        if kind == 'wattle':
+            c.rect(L + 25, B - H, 3, H, pc[4])
+            c.rect(L + 25, B - H, 1, H, pc[2])
+            c.rect(L, B - H + 2, W, 2, pc[4])
+        elif kind == 'bamboo':
+            c.rect(L + 25, B - H, 2, H, pc[5])
+            c.rect(L + 25, B - H, 1, H, pc[3])
+
+    _outbuilding_plinth(c, L, B, W, kind, wall)
+
+    # Roof + soft cast shadow onto upper wall.
+    if kind == 'adobe':
+        _flat_adobe_roof(c, L, B - H, W, roof, post)
+        cast(c, L, B - H, W, 3, k0=0.72)
+    else:
+        d = 24
+        ov = 5
+        ridge = RAMPS['whitewash'] if kind == 'east' else roof
+        _outbuilding_roof(c, L - ov, B - H - d, W + ov * 2, d, kind, roof, ridge=ridge, curved=kind in ('bamboo', 'east'))
+        cast(c, L, B - H, W, 4, k0=0.68)
+
+    # Keeper's door (left bay)
+    dx = L + 14
+    dr = door_r
+    dw, dh = 18, 34
+    # Deep door recess + frame
+    if kind == 'brick':
+        # Segmented brick arch header over painted garden-shed door.
+        c.rect(dx - 11, B - dh - 4, 22, 4, RAMPS['brick-dark'][3])
+        c.rect(dx - 10, B - dh - 4, 20, 1, RAMPS['brick'][1])
+        bevel(c, dx - 11, B - dh, 3, dh, OAK, 3)
+        bevel(c, dx + 8, B - dh, 3, dh, OAK, 3)
+        c.rect(dx - 8, B - dh, 16, dh, dr[3])
+        for xx in range(dx - 8, dx + 8, 4):
+            c.rect(xx, B - dh + 1, 1, dh - 2, dr[2])
+            c.rect(xx + 3, B - dh + 1, 1, dh - 2, dr[4])
+        for yy in (B - 26, B - 8):
+            c.rect(dx - 8, yy, 16, 2, dr[4])
+            c.rect(dx - 8, yy, 16, 1, dr[1])
+        c.rect(dx - 9, B - 2, 18, 2, STONE[2])
+    else:
+        c.rect(dx - 9, B - dh, dw, dh, post[6])
+        for xx in range(dx - 8, dx + 8, 4):
+            c.rect(xx, B - dh + 2, 3, dh - 3, dr[3])
+            c.rect(xx, B - dh + 2, 1, dh - 3, dr[2])
+        for yy in (B - 25, B - 8):
+            c.rect(dx - 8, yy, 16, 2, dr[5])
+            c.rect(dx - 8, yy, 16, 1, dr[2])
+        for xx in (dx - 11, dx + 8):
+            bevel(c, xx, B - dh, 3, dh, post, 3)
+        bevel(c, dx - 11, B - dh - 3, 22, 3, post, 3)
+        c.rect(dx - 9, B - 1, 18, 1, STONE[3] if kind != 'adobe' else wall[5])
+    # Wrought-iron strap hinges & latch
+    for yy in (B - 26, B - 9):
+        c.rect(dx - 8, yy, 5, 2, IRON[4])
+        c.p(dx - 7, yy, IRON[1])
+    c.rect(dx + 4, B - 17, 2, 3, IRON[3])
+    c.p(dx + 4, B - 17, IRON[1])
+
+    # Screened / slatted vent window (upper right)
+    vx, vy = L + 30, B - 31
+    c.rect(vx - 1, vy - 1, 14, 9, post[5])
+    c.rect(vx, vy, 12, 7, post[7])
+    for xx in range(vx + 2, vx + 12, 3):
+        c.rect(xx, vy, 1, 7, post[3] if kind != 'brick' else RAMPS['whitewash'][2])
+    if kind == 'brick':
+        c.rect(vx, vy + 3, 12, 1, RAMPS['whitewash'][2])
+        c.rect(vx - 2, vy + 7, 16, 2, RAMPS['whitewash'][1])
+    else:
+        c.rect(vx - 1, vy - 1, 14, 1, post[2])
+        c.rect(vx - 1, vy + 7, 14, 1, post[4])
+
+    # Hen pop-hole + warm straw glint + cleated ramp (lower right)
+    hx = L + 36
+    c.rect(hx - 6, B - 15, 12, 13, post[7])
+    c.rect(hx - 4, B - 5, 8, 3, RAMPS['thatch'][3])
+    c.rect(hx - 3, B - 5, 5, 1, RAMPS['thatch'][1])
+    bevel(c, hx - 7, B - 17, 14, 2, post, 3)
+    for xx in (hx - 8, hx + 6):
+        c.rect(xx, B - 15, 2, 13, post[4])
+        c.rect(xx, B - 15, 1, 13, post[2])
+    # Cleated wooden ramp projecting forward-left
+    for k in range(6):
+        c.rect(hx - 5 - k, B - 3 + k, 11, 1, RAMPS['pine'][2 if k % 2 == 0 else 4])
+        c.p(hx - 5 - k, B - 3 + k, RAMPS['pine'][1])
+
+    finish(c)
+    info.update(x0=L, W=W, base=B, door_x=dx, door_h=34, door_width=18)
+    consolidate(c, rare=6)
     return c.im
 
 
-def byre(style,info):
-    """A cowshed: a wide half-door with its top leaf open on the dark stalls,
-    a hay door in the wall above the manger end, slit vents. Timber, wattle or
-    rubble under thatch; adobe under a flat roof."""
+def byre(style, info):
+    """A livestock byre/cowshed: wide Dutch half-door with open top leaf showing
+    the shaded stalls and straw, hay-loft hatch above, vents and regional roof.
+    Forms: timber, brick, wattle, stone, med, adobe, bamboo, east."""
     from art import front_materials as m
-    from art import front_solid as so
-    kind=style.rsplit('-',1)[1]
-    W=64;L=8;B=96;H=44
-    c=C(W+16,B+6)
-    wall,roof,post={'timber':(RAMPS['pine'],RAMPS['thatch'],OAK),
-        'wattle':(RAMPS['render'],RAMPS['thatch'],OAK),
-        'stone':(RAMPS['granite'],RAMPS['thatch'],OAK),
-        'adobe':(RAMPS['adobe'],RAMPS['adobe'],RAMPS['pine'])}[kind]
-    {'timber':m.boards,'wattle':m.render,'stone':m.rubble,'adobe':m.adobe}[kind](c,L,B-H,W,H,wall)
-    c.rect(L,B-H,2,H,wall[1]);c.rect(L+W-2,B-H,2,H,wall[4])
-    c.rect(L,B-3,W,3,wall[4])
-    if kind=='wattle':
-        for x in (L+4,L+44,L+60):c.rect(x,B-H,2,H,post[3]);c.rect(x,B-H,1,H,post[2])
-    if kind=='adobe':
-        so.box(c,L-2,B-H,W+4,5,36,roof)
-        c.rect(L,B-H-20,W,14,roof[2]);c.rect(L,B-H-20,W,2,roof[3])
-        for x in range(L+6,L+W-4,11):c.rect(x,B-H+2,3,3,post[5]);c.rect(x,B-H+2,3,1,post[3])
+    kind = style.rsplit('-', 1)[1]
+    W, L, B, H = 64, 8, 96, 44
+    c = C(W + 16, B + 8)
+    pal = {
+        'timber': (RAMPS['pine'], RAMPS['shingle'], OAK, OAK),
+        'brick':  (RAMPS['brick'], RAMPS['clay-tile'], OAK, DOOR_GREEN),
+        'wattle': (RAMPS['render'], RAMPS['thatch'], OAK, OAK),
+        'stone':  (RAMPS['granite'], RAMPS['slate'], OAK, OAK),
+        'med':    (RAMPS['plaster-ochre'], RAMPS['terracotta'], OAK, RAMPS['cedar']),
+        'adobe':  (RAMPS['adobe'], RAMPS['adobe'], RAMPS['cedar'], RAMPS['cedar']),
+        'bamboo': (RAMPS['kahgel'], RAMPS['palm'], RAMPS['cedar'], RAMPS['pine']),
+        'east':   (RAMPS['cedar'], RAMPS['kawara'], OAK, RAMPS['cedar']),
+    }[kind]
+    wall, roof, post, door_r = pal
+
+    # Wall masonry / cladding
+    if kind == 'brick':
+        m.brick(c, L, B - H, W, H, wall)
+        # Subtle corner brick pilasters
+        for px in (L, L + W - 4):
+            c.rect(px, B - H, 4, H, wall[3])
+            c.rect(px, B - H, 1, H, wall[1])
+            c.rect(px + 3, B - H, 1, H, wall[5])
+    elif kind == 'timber':
+        m.boards(c, L, B - H, W, H, wall, board=6)
+    elif kind == 'wattle':
+        m.render(c, L, B - H, W, H, wall)
+    elif kind == 'stone':
+        m.rubble(c, L, B - H, W, H, wall)
+        # Alternating limestone corner quoins
+        q = RAMPS['limestone']
+        for i, yy in enumerate(range(B - H + 2, B - 6, 7)):
+            qw = 6 if i % 2 == 0 else 4
+            c.rect(L, yy, qw, 6, q[2])
+            c.rect(L, yy, qw, 1, q[0])
+            c.rect(L + W - qw, yy, qw, 6, q[3])
+            c.rect(L + W - qw, yy, qw, 1, q[1])
+    elif kind == 'med':
+        m.render(c, L, B - H, W, H, wall)
+        # Subtle warm stone patch showing near the lower right corner
+        for sx, sy, sw, sh in ((L + 44, B - 11, 5, 3), (L + 50, B - 9, 4, 3), (L + 47, B - 7, 6, 2)):
+            c.rect(sx, sy, sw, sh, RAMPS['limestone'][3])
+            c.rect(sx, sy, sw, 1, RAMPS['limestone'][1])
+    elif kind == 'adobe':
+        m.adobe(c, L, B - H, W, H, wall)
+    elif kind == 'bamboo':
+        m.kahgel(c, L, B - H, W, H, wall)
+        for yy in range(B - H + 4, B - 7, 4):
+            c.rect(L + 2, yy, W - 4, 1, RAMPS['pine'][4])
+        for xx in range(L + 4, L + W - 2, 7):
+            c.rect(xx, B - H + 2, 1, H - 9, RAMPS['pine'][5])
+    elif kind == 'east':
+        m.boards(c, L, B - H + 12, W, H - 12, wall, board=5)
+        m.whitewash(c, L, B - H, W, 12, RAMPS['whitewash'])
+        c.rect(L, B - H + 12, W, 2, OAK[5])
+
+    # Lit left rim, shaded right rim
+    if kind not in ('brick', 'stone'):
+        c.rect(L, B - H, 2, H, wall[1] if kind != 'east' else OAK[4])
+        c.rect(L + W - 2, B - H, 2, H, wall[5])
+
+    # Exposed timber framing / corner posts
+    if kind in ('wattle', 'timber', 'bamboo', 'east'):
+        pc = RAMPS['pine'] if kind == 'bamboo' else post
+        for px in (L, L + W - 3):
+            c.rect(px, B - H, 3, H, pc[4])
+            c.rect(px, B - H, 1, H, pc[2])
+        if kind == 'wattle':
+            for px in (L + 38,):
+                c.rect(px, B - H, 3, H, pc[4])
+                c.rect(px, B - H, 1, H, pc[2])
+            c.rect(L, B - H + 2, W, 2, pc[4])
+            # Diagonal timber braces at upper corners
+            for k in range(6):
+                c.rect(L + 3 + k, B - H + 9 - k, 2, 2, pc[4])
+                c.rect(L + W - 5 - k, B - H + 9 - k, 2, 2, pc[4])
+        elif kind == 'bamboo':
+            c.rect(L + 39, B - H, 2, H, pc[5])
+            c.rect(L + 39, B - H, 1, H, pc[3])
+
+    _outbuilding_plinth(c, L, B, W, kind, wall)
+
+    # Roof + cast shadow
+    if kind == 'adobe':
+        _flat_adobe_roof(c, L, B - H, W, roof, post)
+        cast(c, L, B - H, W, 3, k0=0.72)
     else:
-        d=30
-        m.thatch(c,L-6,B-H-d,W+12,d,roof)
-        c.rect(L-6,B-H-d,W+12,2,roof[1]);c.rect(L-6,B-H-2,W+12,2,roof[5])
-        c.rect(L-6,B-H-d-3,W+12,3,roof[2]);c.rect(L-6,B-H-d-3,W+12,1,roof[0])
-    c.rect(L,B-H,W,2,wall[6])
-    dx=L+22
-    c.rect(dx-14,B-40,28,40,post[7])
-    # The lower leaf shut, the upper one swung in: the dark of the stalls shows.
-    for x in range(dx-12,dx+12,4):c.rect(x,B-19,4,19,post[3]);c.rect(x,B-19,1,19,post[2])
-    c.rect(dx-12,B-20,24,2,post[2]);c.rect(dx-12,B-6,24,2,post[5])
-    c.rect(dx-9,B-33,6,3,RAMPS['thatch'][1]);c.rect(dx-7,B-30,9,2,RAMPS['thatch'][2])
-    for x in (dx-15,dx+12):bevel(c,x,B-40,3,40,post,3)
-    bevel(c,dx-15,B-43,30,3,post,3)
-    c.rect(dx+8,B-14,2,3,IRON[3])
-    hx=L+51
-    c.rect(hx-7,B-36,14,12,post[7])
-    for y,q in ((B-30,1),(B-28,2),(B-26,3)):c.rect(hx-6,y,12,2,RAMPS['thatch'][q])
-    for x in (hx-9,hx+7):c.rect(x,B-37,2,14,post[4])
-    c.rect(hx-9,B-38,18,2,post[2]);c.rect(hx-9,B-24,18,2,post[5])
-    for x in (L+46,L+57):c.rect(x,B-16,2,7,post[7])
-    info.update(x0=L,W=W,base=B,door_x=dx,door_h=40,door_width=24)
-    consolidate(c,rare=6)
+        d = 28
+        ov = 6
+        ridge = RAMPS['whitewash'] if kind == 'east' else roof
+        _outbuilding_roof(c, L - ov, B - H - d, W + ov * 2, d, kind, roof, ridge=ridge, curved=kind in ('bamboo', 'east'))
+        cast(c, L, B - H, W, 4, k0=0.68)
+
+    # Wide Dutch half-door (left-center bay, dx = L + 22)
+    dx = L + 22
+    dh = 40
+    # Dark shaded stall interior: timber partition post, hay rack & warm golden straw
+    c.rect(dx - 13, B - dh, 26, dh, post[7])
+    c.rect(dx + 1, B - dh + 2, 2, 18, OAK[6])
+    c.rect(dx - 11, B - 28, 22, 2, OAK[5])
+    # Slatted wooden hay rack on left wall with textured golden straw tuft
+    for rx in range(dx - 10, dx - 1, 3):
+        c.rect(rx, B - 36, 1, 7, OAK[5])
+    c.rect(dx - 10, B - 34, 8, 3, RAMPS['thatch'][2])
+    c.rect(dx - 9, B - 35, 5, 2, RAMPS['thatch'][1])
+    c.rect(dx - 11, B - 31, 9, 2, RAMPS['thatch'][3])
+    c.p(dx - 5, B - 36, RAMPS['thatch'][1])
+    c.p(dx - 3, B - 33, RAMPS['thatch'][2])
+
+    # Lower half-door leaf (shut) with planks, battens, iron strap hinges
+    dr = door_r
+    if kind == 'bamboo':
+        # Slatted bamboo half-gate
+        c.rect(dx - 12, B - 20, 24, 2, dr[2])
+        c.rect(dx - 12, B - 7, 24, 2, dr[4])
+        for xx in range(dx - 11, dx + 12, 4):
+            c.rect(xx, B - 20, 2, 19, dr[3])
+            c.rect(xx, B - 20, 1, 19, dr[1])
+    elif kind == 'east':
+        # Horizontal-slat timber stall door
+        c.rect(dx - 12, B - 21, 24, 20, dr[4])
+        for yy in range(B - 19, B - 2, 3):
+            c.rect(dx - 11, yy, 22, 2, dr[3])
+            c.rect(dx - 11, yy, 22, 1, dr[2])
+        c.rect(dx - 12, B - 21, 2, 20, OAK[5])
+        c.rect(dx + 10, B - 21, 2, 20, OAK[5])
+    else:
+        for xx in range(dx - 12, dx + 12, 4):
+            c.rect(xx, B - 20, 4, 19, dr[3])
+            c.rect(xx, B - 20, 1, 19, dr[2] if kind != 'brick' else dr[1])
+            c.rect(xx + 3, B - 20, 1, 19, dr[4])
+        c.rect(dx - 12, B - 21, 24, 2, dr[1])
+        c.rect(dx - 12, B - 19, 24, 1, dr[5])
+        c.rect(dx - 12, B - 7, 24, 2, dr[4])
+        # Diagonal brace across lower leaf
+        for k in range(11):
+            c.p(dx - 10 + k * 2, B - 18 + k, dr[4])
+            c.p(dx - 9 + k * 2, B - 18 + k, dr[2])
+    # Door frame / arch header
+    if kind == 'brick':
+        c.rect(dx - 15, B - dh - 4, 30, 4, RAMPS['brick-dark'][3])
+        c.rect(dx - 14, B - dh - 4, 28, 1, RAMPS['brick'][1])
+        for xx in (dx - 15, dx + 12):
+            bevel(c, xx, B - dh, 3, dh, OAK, 3)
+        c.rect(dx - 13, B - 2, 26, 2, STONE[2])
+    elif kind == 'med':
+        c.rect(dx - 15, B - dh - 3, 30, 4, RAMPS['limestone'][2])
+        c.rect(dx - 14, B - dh - 3, 28, 1, RAMPS['limestone'][0])
+        for xx in (dx - 15, dx + 12):
+            bevel(c, xx, B - dh, 3, dh, RAMPS['limestone'], 3)
+    else:
+        for xx in (dx - 15, dx + 12):
+            bevel(c, xx, B - dh, 3, dh, post, 3)
+        bevel(c, dx - 15, B - dh - 3, 30, 3, post, 3)
+        c.rect(dx - 13, B - 2, 26, 2, STONE[3] if kind not in ('adobe', 'bamboo') else wall[5])
+
+    # Iron hinges + latch on lower leaf
+    if kind != 'bamboo':
+        for yy in (B - 18, B - 7):
+            c.rect(dx - 12, yy, 6, 2, IRON[4])
+            c.p(dx - 11, yy, IRON[1])
+        c.rect(dx + 8, B - 14, 2, 3, IRON[3])
+        c.p(dx + 8, B - 14, IRON[1])
+
+    # Hay-loft hatch (upper right, hx = L + 51)
+    hx = L + 51
+    c.rect(hx - 7, B - 37, 14, 13, post[7])
+    # Stacked golden hay inside loft
+    for yy, q in ((B - 31, 1), (B - 29, 2), (B - 27, 3), (B - 25, 4)):
+        c.rect(hx - 6, yy, 12, 2, RAMPS['thatch'][q])
+    if kind == 'brick':
+        c.rect(hx - 9, B - 40, 18, 3, RAMPS['brick-dark'][3])
+        c.rect(hx - 8, B - 40, 16, 1, RAMPS['brick'][1])
+        c.rect(hx - 9, B - 24, 18, 2, RAMPS['whitewash'][1])
+    else:
+        for xx in (hx - 9, hx + 7):
+            c.rect(xx, B - 38, 2, 15, post[4])
+            c.rect(xx, B - 38, 1, 15, post[2])
+        c.rect(hx - 9, B - 39, 18, 2, post[2])
+        c.rect(hx - 9, B - 24, 18, 2, post[5])
+    # Swung-open wooden shutter on the left side of the loft hatch (clear of corner trim)
+    if kind in ('timber', 'brick', 'med'):
+        c.rect(hx - 12, B - 37, 3, 13, dr[3])
+        c.rect(hx - 12, B - 37, 1, 13, dr[1])
+        c.rect(hx - 10, B - 37, 1, 13, dr[5])
+
+    # Lower right stall ventilation slits / lattice
+    if kind == 'east':
+        c.rect(L + 44, B - 18, 14, 8, OAK[7])
+        for xx in range(L + 46, L + 58, 3):
+            c.rect(xx, B - 18, 1, 8, OAK[3])
+        c.rect(L + 43, B - 19, 16, 1, OAK[2])
+        c.rect(L + 43, B - 10, 16, 1, OAK[5])
+    elif kind == 'brick':
+        # Recessed white-silled stable vent window
+        c.rect(L + 45, B - 18, 12, 7, OAK[7])
+        c.rect(L + 48, B - 18, 1, 7, RAMPS['whitewash'][2])
+        c.rect(L + 53, B - 18, 1, 7, RAMPS['whitewash'][2])
+        c.rect(L + 44, B - 11, 14, 2, RAMPS['whitewash'][1])
+    elif kind == 'adobe':
+        for vx in (L + 45, L + 51, L + 57):
+            c.rect(vx, B - 16, 2, 5, post[7])
+            c.p(vx, B - 17, post[7])
+    else:
+        for vx in (L + 46, L + 55):
+            c.rect(vx, B - 17, 3, 8, post[7])
+            c.rect(vx - 1, B - 18, 5, 1, post[3])
+            c.rect(vx - 1, B - 9, 5, 1, post[5])
+
+    finish(c)
+    info.update(x0=L, W=W, base=B, door_x=dx, door_h=40, door_width=24)
+    consolidate(c, rare=6)
     return c.im
 
 
