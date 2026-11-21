@@ -659,6 +659,8 @@ class FrontCivicPainter:
         self.w, self.h = im.size
         self.door_ground = getattr(b, 'door_ground', b.base + 1)
         self.bottom = b.base + 1
+        self.smoke = getattr(b, 'smoke', None) or None
+        self.overlays = getattr(b, 'overlays', None) or None
 
     def render(self):
         return self.image

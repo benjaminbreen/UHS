@@ -1513,8 +1513,9 @@ class CourtOpera:
     limestone clerestory drum + ribbed copper Baroque dome standing squarely ON
     that roof deck (with a cast shadow on the deck)."""
 
-    def __init__(self, W=196, size='medium', look=0, seed=0):
+    def __init__(self, W=196, size='medium', look=0, seed=0, variant='court'):
         self.W, self.size, self.look, self.seed = W, size, look, seed
+        self.variant = variant
         self.x0 = 16
         self.door_x = self.x0 + W // 2
         self.door_size = (24, 44)
@@ -1526,11 +1527,16 @@ class CourtOpera:
         W, x0 = self.W, self.x0
         small = self.size == 'small'
         large = self.size == 'large'
-        ground_h = 46
-        piano_h = 48 if small else 54
-        roof_d = 40 if small else (56 if large else 48)
-        roof_rise = 18 if small else (24 if large else 22)
-        dome_extra = 8 if small else (44 if large else 32)
+        narrow = W <= 104
+        # `court-opera` always uses look 1 (Baroque); `opera-house` uses 0..3
+        # (Palladian, Baroque, Rococo terracotta, Beaux-Arts).
+        lk = 1 if self.variant == 'court' else (self.look % 4)
+        has_dome = (not small) and (lk != 0 or large)
+        ground_h = 44 if narrow else 46
+        piano_h = 44 if narrow else (48 if small else 54)
+        roof_d = 34 if narrow else (40 if small else (58 if large else 48))
+        roof_rise = 16 if narrow else (18 if small else (24 if large else 22))
+        dome_extra = (48 if large else 36) if has_dome else 10
         H = ground_h + piano_h + roof_d + roof_rise + dome_extra + 14
         c = C(W + x0 * 2, H)
         self.c = c
@@ -1542,21 +1548,53 @@ class CourtOpera:
         eave = mid - piano_h
         rear = eave - roof_d - roof_rise
 
-        cream = ramp(76, 0.048, lift=0.05)
-        rust = ramp(72, 0.045, lift=-0.03)
-        slate = TONES['slate-blue']
-        copper = ramp(164, 0.085, lift=-0.09)
+        if lk == 0:
+            # Palladian: cool pearl-grey limestone & Welsh slate.
+            cream = ramp(74, 0.022, lift=0.04)
+            wall_r = cream
+            rust = ramp(70, 0.022, lift=-0.04)
+            slate = TONES['slate-blue']
+            cover = 'slate'
+            copper = ramp(164, 0.085, lift=-0.09)
+            drape = ramp(16, 0.14, lift=-0.12)
+        elif lk == 2:
+            # Rococo / Italian: warm apricot-ivory stucco, dressed cream trim & terracotta tile roof.
+            cream = ramp(74, 0.042, lift=0.07)
+            wall_r = ramp(56, 0.078, lift=0.06)
+            rust = ramp(62, 0.058, lift=-0.02)
+            slate = TONES['tile-red']
+            cover = 'tile'
+            copper = ramp(174, 0.075, lift=-0.08)
+            drape = ramp(236, 0.13, lift=-0.15)
+        elif lk == 3:
+            # Beaux-Arts / Palais Garnier: bright Parisian limestone & deep slate.
+            cream = ramp(78, 0.026, lift=0.08)
+            wall_r = cream
+            rust = ramp(74, 0.028, lift=-0.02)
+            slate = TONES['slate-welsh']
+            cover = 'slate'
+            copper = ramp(160, 0.095, lift=-0.08)
+            drape = ramp(14, 0.15, lift=-0.13)
+        else:
+            # Baroque court opera: warm honey-cream limestone & slate-blue roof.
+            cream = ramp(76, 0.048, lift=0.05)
+            wall_r = cream
+            rust = ramp(72, 0.045, lift=-0.03)
+            slate = TONES['slate-blue']
+            cover = 'slate'
+            copper = ramp(164, 0.085, lift=-0.09)
+            drape = ramp(16, 0.14, lift=-0.12)
         crimson = ramp(16, 0.14, lift=-0.12)
         mahog = ramp(22, 0.11, lift=-0.18)
         glass = ramp(228, 0.09, lift=-0.20)
         warm_glass = ramp(52, 0.12, lift=-0.02)
 
-        # 1. TRUE 4-SIDED HIPPED MANSARD SLATE ROOF (PalaceRange projection)
+        # 1. TRUE 4-SIDED HIPPED MANSARD ROOF (PalaceRange projection)
         # Front slope, sunlit left hip, shaded right hip, and receding upper roof
         # meeting along crisp lead hip ridges.
         rx, rw = L - 4, W + 8
-        hip = min(rw // 3, max(16, roof_d // 2))
-        inset = min(roof_d // 2, max(14, rw // 4))
+        hip = min(rw // 3, max(14, roof_d // 2))
+        inset = min(roof_d // 2, max(12, rw // 4))
         for dx in range(rw):
             side = min(dx, rw - 1 - dx) / hip
             for dy in range(roof_d + roof_rise):
@@ -1576,7 +1614,7 @@ class CourtOpera:
                 if lip == 4:
                     tint = mix(tint, slate[max(0, k - 1)], 0.45)
                 if abs(front - side) * hip < 1.1 and side < 1:
-                    tint = eu.LEAD[2]
+                    tint = cream[1] if lk == 2 else eu.LEAD[2]
                 c.p(rx + dx, rear + dy, tint)
         ridge_y = rear + max(0, roof_d - inset)
         # Gilded cresting rail + ball finials along the upper hip ridge.
@@ -1586,33 +1624,32 @@ class CourtOpera:
             finial(c, px, ridge_y - 1, GOLD)
 
         # 2. PROJECTING CENTRAL GABLE ROOF (tiles_back, matching CastleHall / Stardew)
+        pad_x = 5 if narrow else 9
         n_bays = 3 if small else (5 if not large else 7)
-        span = (W - 18) / n_bays
-        pw = min(W - 26, round(span * (3 if not small else 2)) + 8)
-        ph = 20 if not small else 16
+        span = (W - pad_x * 2) / n_bays
+        pw = min(W - (14 if narrow else 26), round(span * (3 if not small else 2)) + 8)
+        ph = 14 if narrow else (16 if small else 20)
         py0 = eave - 4
         def verge(xx):
             return py0 - ph + round(abs(xx - cx) * ph / (pw / 2)) - 1
-        g_depth = max(12, verge(cx) - ridge_y)
-        eu.tiles_back(c, cx - pw // 2 - 2, cx + pw // 2 + 3, verge, g_depth, slate, cx, 'slate')
+        g_depth = max(10, verge(cx) - ridge_y)
+        eu.tiles_back(c, cx - pw // 2 - 2, cx + pw // 2 + 3, verge, g_depth, slate, cx, cover)
         # Crisp gilded ridge line meeting the main hip ridge in a clean T-junction.
         c.rect(cx - 1, ridge_y - 1, 3, verge(cx) - ridge_y + 2, GOLD[2])
         c.rect(cx - 1, ridge_y - 1, 1, verge(cx) - ridge_y + 2, GOLD[0])
 
-        # 3. AUDITORIUM DOME STANDING ON THE UPPER ROOF RIDGE (medium & large)
-        if not small:
-            dr_rx = 32 if large else 23
+        # 3. AUDITORIUM DOME STANDING ON THE UPPER ROOF RIDGE (or rear chimneys)
+        if has_dome:
+            dr_rx = (34 if large else 23) + (3 if lk == 3 else 0)
             dr_ry = round(dr_rx * 0.34)
             drum_by = ridge_y + 6
             drum_h = 13 if large else 10
-            # Soft elliptical cast shadow on the hipped roof slopes around the drum's foot.
             for yy in range(drum_by - dr_ry, drum_by + dr_ry + 4):
                 for xx in range(cx - dr_rx - 2, cx + dr_rx + 7):
                     u = (xx - (cx + 3)) / (dr_rx + 3)
                     v = (yy - (drum_by + 2)) / (dr_ry + 2)
                     if u * u + v * v <= 1 and c.g(xx, yy)[3] > 0:
                         c.p(xx, yy, mix(c.g(xx, yy), DARK, 0.38))
-            # Elliptical dressed-limestone drum seated on the roof.
             drum_top = drum_by - drum_h
             for yy in range(drum_top, drum_by + dr_ry + 1):
                 for xx in range(cx - dr_rx, cx + dr_rx + 1):
@@ -1629,7 +1666,6 @@ class CourtOpera:
                     elif abs(yy - et) <= 1:
                         q = 0 if nx < 0.2 else 2
                     c.p(xx, yy, cream[q])
-            # Arched clerestory windows wrapping around the curved front of the drum.
             n_cl = 5 if large else 3
             for i in range(n_cl):
                 ang = -0.68 + i * (1.36 / max(1, n_cl - 1))
@@ -1638,7 +1674,6 @@ class CourtOpera:
                 c.rect(wx - 2, wy, 5, 6, glass[5])
                 c.rect(wx - 1, wy + 1, 3, 4, warm_glass[2])
                 c.rect(wx - 2, wy - 1, 5, 1, cream[0])
-            # Ribbed patinated-copper Baroque dome + columned limestone & gilded cupola.
             dome(c, cx, drum_top + 2, dr_rx - 1, copper, kind='hemi', courses=5, ribs=10, lantern=None)
             apex = drum_top + 2 - round((dr_rx - 1) * 0.92)
             cw = 12 if large else 10
@@ -1651,12 +1686,20 @@ class CourtOpera:
                 c.p(lx, apex - ch + 3, warm_glass[2])
             c.rect(cx - cw // 2 - 1, apex - ch - 2, cw + 2, 2, GOLD[1])
             c.rect(cx - cw // 2 + 1, apex - ch - 4, cw - 2, 2, GOLD[0])
-            c.rect(cx - 2, apex - ch - 6, 4, 2, GOLD[1])
-            c.rect(cx, apex - ch - 12, 1, 7, GOLD[0])
-            c.rect(cx - 1, apex - ch - 10, 3, 1, GOLD[1])
+            if lk == 3:
+                # Beaux-Arts gilded winged-Apollo / quadriga crown.
+                c.rect(cx - 5, apex - ch - 7, 10, 3, GOLD[1])
+                c.rect(cx - 4, apex - ch - 9, 2, 3, GOLD[0])
+                c.rect(cx + 2, apex - ch - 9, 2, 3, GOLD[0])
+                c.rect(cx - 1, apex - ch - 13, 2, 7, GOLD[0])
+            else:
+                c.rect(cx - 2, apex - ch - 6, 4, 2, GOLD[1])
+                c.rect(cx, apex - ch - 12, 1, 7, GOLD[0])
+                c.rect(cx - 1, apex - ch - 10, 3, 1, GOLD[1])
         else:
-            # Small opera: neat dressed-stone chimneys rising from the rear hip corners.
-            for chx in (L + 14, R - 22):
+            # Small opera & Palladian medium: dressed-stone chimneys at the rear hip corners.
+            ch_off = 10 if narrow else 14
+            for chx in (L + ch_off, R - ch_off - 8):
                 cy_top = rear - 2
                 c.rect(chx, cy_top, 8, 11, cream[3])
                 c.rect(chx, cy_top, 2, 11, cream[1])
@@ -1667,7 +1710,7 @@ class CourtOpera:
 
         # 5. STONE-FRAMED ARCHED DORMERS ON THE FRONT MANSARD SLOPE
         if not small:
-            dorm_xs = (L + 24, R - 24) if not large else (L + 22, L + 48, R - 48, R - 22)
+            dorm_xs = (L + 24, R - 24) if not large else (L + 22, L + 50, R - 50, R - 22)
             for dx in dorm_xs:
                 dy = eave - 15
                 c.rect(dx - 6, dy, 12, 12, cream[2]); c.rect(dx - 6, dy, 2, 12, cream[0])
@@ -1679,7 +1722,7 @@ class CourtOpera:
 
         # 6. FRONT LIMESTONE FACADE (rusticated ground + dressed ashlar piano nobile)
         fm.ashlar(c, L, mid, W, ground_h, rust, 7, 16)
-        fm.ashlar(c, L, eave, W, piano_h, cream, 8, 18)
+        fm.ashlar(c, L, eave, W, piano_h, wall_r, 8, 18)
         for yy in range(mid + 6, base - 4, 6):
             c.rect(L + 2, yy, W - 4, 1, rust[5])
         c.rect(L - 5, eave - 4, W + 10, 4, cream[1]); c.rect(L - 5, eave, W + 10, 2, cream[5])
@@ -1690,10 +1733,10 @@ class CourtOpera:
 
         # Ground-floor rusticated entrance arcade.
         for i in range(n_bays):
-            bx = round(L + 9 + (i + 0.5) * span)
+            bx = round(L + pad_x + (i + 0.5) * span)
             center = (i == n_bays // 2)
-            aw = min(24 if center else 20, round(span) - 10)
-            ah = 36 if center else 31
+            aw = min(24 if center else 20, max(12, round(span) - (6 if narrow else 10)))
+            ah = (33 if center else 28) if narrow else (36 if center else 31)
             spring = base - ah + aw // 2
             for yy in range(base - ah - 2, base - 2):
                 for xx in range(bx - aw // 2 - 2, bx + aw // 2 + 2):
@@ -1712,19 +1755,21 @@ class CourtOpera:
             c.rect(bx - aw // 2 + 2, spring, aw - 4, 1, cream[1])
             if center:
                 c.rect(bx - aw // 2 + 2, spring + 1, aw - 4, base - spring - 3, mahog[3])
-                for px in (bx - aw // 2 + 4, bx + 2):
-                    c.rect(px, spring + 4, aw // 2 - 5, 10, mahog[4])
-                    c.rect(px, spring + 4, aw // 2 - 5, 1, mahog[2])
+                if aw >= 16:
+                    for px in (bx - aw // 2 + 4, bx + 2):
+                        c.rect(px, spring + 4, max(2, aw // 2 - 5), 10, mahog[4])
+                        c.rect(px, spring + 4, max(2, aw // 2 - 5), 1, mahog[2])
                 c.rect(bx - 1, spring + 1, 2, base - spring - 3, mahog[6])
                 c.p(bx - 3, base - 14, GOLD[0]); c.p(bx + 2, base - 14, GOLD[0])
             else:
                 c.rect(bx - aw // 2 + 2, spring + 1, aw - 4, base - spring - 3, mahog[5])
-                for side in (-1, 1):
-                    px = bx + (1 if side > 0 else -(aw // 2 - 3))
-                    pw_p = aw // 2 - 4
-                    c.rect(px, spring + 3, pw_p, 11, glass[4])
-                    c.rect(px + 1, spring + 4, max(1, pw_p - 2), 4, glass[2])
-                    c.rect(px + 1, spring + 9, max(1, pw_p - 2), 4, warm_glass[3])
+                if aw >= 14:
+                    for side in (-1, 1):
+                        px = bx + (1 if side > 0 else -(aw // 2 - 3))
+                        pw_p = max(2, aw // 2 - 4)
+                        c.rect(px, spring + 3, pw_p, 11, glass[4])
+                        c.rect(px + 1, spring + 4, max(1, pw_p - 2), 4, glass[2])
+                        c.rect(px + 1, spring + 9, max(1, pw_p - 2), 4, warm_glass[3])
 
         # Piano nobile: balustraded stone balcony + arched multi-pane French windows + pilasters.
         bal_y = mid - 9
@@ -1733,8 +1778,8 @@ class CourtOpera:
             c.rect(bx, bal_y + 2, 2, 5, cream[2]); c.p(bx + 1, bal_y + 4, cream[4])
 
         for i in range(n_bays):
-            bx = round(L + 9 + (i + 0.5) * span)
-            ww, wh = min(16, round(span) - 14), piano_h - 20
+            bx = round(L + pad_x + (i + 0.5) * span)
+            ww, wh = min(16, max(10, round(span) - (10 if narrow else 14))), piano_h - 20
             wy = eave + 10
             w_spring = wy + ww // 2
             c.rect(bx - ww // 2 - 3, wy - 4, ww + 6, 2, cream[0])
@@ -1748,9 +1793,9 @@ class CourtOpera:
                         c.p(xx, yy, cream[3])
                         continue
                     dx_edge = min(xx - (bx - ww // 2), (bx + ww // 2 - 1) - xx)
-                    curtain_w = max(0, 4 - (yy - wy) // 5)
+                    curtain_w = max(0, (3 if narrow else 4) - (yy - wy) // 5)
                     if yy >= wy + 2 and dx_edge < curtain_w:
-                        c.p(xx, yy, crimson[2 if xx < bx else 3])
+                        c.p(xx, yy, drape[2 if xx < bx else 3])
                     elif t < 0.45:
                         glint = ((xx - (bx - ww // 2)) + (yy - wy)) in (5, 6, 11)
                         c.p(xx, yy, glass[1] if glint else glass[4 if t < 0.2 else 3])
@@ -1762,13 +1807,15 @@ class CourtOpera:
                 c.rect(bx - ww // 2 + 1, my, ww - 2, 1, cream[2])
             c.rect(bx - ww // 2, wy, ww, 1, DARK)
 
+        pil_w = 4 if narrow else 6
         for i in range(n_bays + 1):
-            px = round(L + 9 + i * span)
-            c.rect(px - 3, eave + 5, 6, piano_h - 7, cream[2])
-            c.rect(px - 3, eave + 5, 2, piano_h - 7, cream[0])
-            c.rect(px + 2, eave + 5, 1, piano_h - 7, cream[5])
-            c.rect(px - 4, eave + 4, 8, 4, GOLD[1]); c.rect(px - 4, eave + 4, 8, 1, GOLD[0])
-            c.rect(px - 4, mid - 4, 8, 2, cream[3])
+            px = round(L + pad_x + i * span)
+            c.rect(px - pil_w // 2, eave + 5, pil_w, piano_h - 7, cream[2])
+            c.rect(px - pil_w // 2, eave + 5, 2, piano_h - 7, cream[0])
+            c.rect(px + pil_w // 2 - 1, eave + 5, 1, piano_h - 7, cream[5])
+            c.rect(px - pil_w // 2 - 1, eave + 4, pil_w + 2, 4, GOLD[1])
+            c.rect(px - pil_w // 2 - 1, eave + 4, pil_w + 2, 1, GOLD[0])
+            c.rect(px - pil_w // 2 - 1, mid - 4, pil_w + 2, 2, cream[3])
 
         # Front classical triangular pediment face (capping the projecting central gable!).
         for dy in range(ph):
@@ -1781,14 +1828,20 @@ class CourtOpera:
         c.rect(cx - 5, ly_y - 3, 10, 6, GOLD[2])
         c.rect(cx - 4, ly_y - 4, 2, 6, GOLD[0]); c.rect(cx + 2, ly_y - 4, 2, 6, GOLD[0])
         c.rect(cx - 3, ly_y + 1, 6, 2, GOLD[1])
-        for gx in (-12, -9, 9, 12):
-            c.rect(cx + gx - 1, ly_y, 3, 2, GOLD[1])
-        for ux in (cx - pw // 2, cx + pw // 2):
+        if not narrow:
+            for gx in (-12, -9, 9, 12):
+                c.rect(cx + gx - 1, ly_y, 3, 2, GOLD[1])
+        # Classical stone urns flanking the pediment (plus outer cornice urns on Palladian & Beaux-Arts).
+        urn_xs = [cx - pw // 2, cx + pw // 2]
+        if not small and lk in (0, 3):
+            urn_xs.extend([L + 4, R - 4])
+        for ux in urn_xs:
             c.rect(ux - 3, py0 - 7, 6, 5, cream[2]); c.rect(ux - 2, py0 - 9, 4, 2, cream[0])
             c.rect(ux - 2, py0 - 2, 4, 2, cream[4])
 
         # Grand stone steps with crimson carpet.
-        c.rect(cx - 24, base - 3, 48, 3, cream[1]); c.rect(cx - 26, base, 52, 3, cream[3])
+        sw = 18 if narrow else 24
+        c.rect(cx - sw, base - 3, sw * 2, 3, cream[1]); c.rect(cx - sw - 2, base, sw * 2 + 4, 3, cream[3])
         c.rect(cx - 8, base - 3, 16, 6, crimson[2]); c.rect(cx - 7, base - 3, 14, 1, GOLD[1])
         outline(c, deep=True)
         consolidate(c)
@@ -1806,11 +1859,14 @@ def landmark_spec(name, r):
     if r.get('family') == 'castle':
         fw, fh = r['footprint']
         return dict(landmark=dict(kind=r['form'], W=fw * 16, look=int(name.split('-')[-1]))), (fw, fh)
-    m = re.match(r'(religious|theatre)-(romanesque-church|mission-church|globe|playhouse|picture-house|court-opera)-'
+    m = re.match(r'(religious|theatre|hall)-(romanesque-church|mission-church|globe|playhouse|picture-house|court-opera|opera-house|hammam|sweat-lodge|carved-gable|open-shelter)-'
                  r'(small|medium|large)-(\d+)(?:-(north|east|west))?$', name)
     if not m:
         return None
     _, kind, size, look = m.group(1), m.group(2), m.group(3), int(m.group(4))
+    # Iranian hammam (look 3) is painted by front_persian.
+    if kind == 'hammam' and look == 3:
+        return None
     fw, fh = r['footprint']
     if kind in ('romanesque-church', 'mission-church'):
         from art.front_civic import SCALE
@@ -1829,6 +1885,12 @@ def landmark(spec):
     if kind == 'globe':
         s.pop('look')
         return Globe(**s)
+    if kind == 'opera-house':
+        return CourtOpera(variant='opera', **s)
+    if kind in ('hammam', 'sweat-lodge', 'carved-gable', 'open-shelter'):
+        from art import front_halls as fh
+        return {'hammam': fh.HammamHall, 'sweat-lodge': fh.SweatLodgeHall,
+                'carved-gable': fh.CarvedGableHall, 'open-shelter': fh.OpenShelterHall}[kind](**s)
     return {'romanesque-church': Romanesque, 'mission-church': Mission, 'playhouse': Playhouse,
             'picture-house': PictureHouse, 'court-opera': CourtOpera}[kind](**s)
 

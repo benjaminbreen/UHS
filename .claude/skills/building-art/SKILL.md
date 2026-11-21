@@ -408,7 +408,6 @@ delete the painter once nothing reaches it.
 | `ObliqueMeso`, `ObliqueMesoLandmark` (`oblique_meso*.py`) | Mesoamerican civic buildings, ballcourt, Maya temple | `front_meso`, `front_sacred_americas` |
 | `PrecinctPiece` (`precincts.py`) | Sacred precinct pieces | `front_sacred*` |
 | `UrbanBuilding`, `Building` (`urban.py`, `buildings.py`) | `house-mud/roman/thatch`, `study-*`, shelters, city walls and gates | `front_family`, `front_huts` |
-| `HallBuilding` (`halls.py`) | Carved-gable hall, hammam, sweat lodge, open shelter | `front_huts`, `front_civic`, `front_persian` |
 | `PeriodBuilding`, `ModernBuilding` (`period.py`, `modern.py`) | Older modern and period blocks | `front_modern`, `front_europe` |
 | `Roadside` (`city_roadside.py`) | Roadside candidates | `front_worksites` |
 | `VoxelTemple` (`sacred.py`) | The Hittite temple, kept on purpose | none |
@@ -416,7 +415,7 @@ delete the painter once nothing reaches it.
 All nine gold-master families in `buildings.json` `goldMasters` are now front-on.
 
 **Clean-up candidates (no recipes reach them):**
-- `ObliqueBuilding` (`oblique.py`) and `TheatreBuilding` (`theatres.py`)
+- `ObliqueBuilding` (`oblique.py`), `TheatreBuilding` (`theatres.py`), `HallBuilding` (`halls.py`)
 - `ObliqueChurch` (its `build_banner` is still called)
 - `ObliqueRound`, `ObliqueMudbrick`, `ObliqueSinitic`, `ObliqueSteppe`,
   `ObliqueForager`, `ObliqueLodge`, `ObliquePlayhouse`

@@ -271,7 +271,11 @@ it("a church or hall takes its region's look, and that look is drawn", async () 
   expect(looks["hall-moot-hall"][regionalLook("hall-moot-hall", at(18.1, 59.3, 1600))!]).toBe("sweden");
   expect(regionalLook("religious-gothic", at(-71, 42.3, 1700))).toBeUndefined(); // Boston keeps its roll
   expect(looks["hall-hammam"][regionalLook("hall-hammam", at(54.4, 31.9, 1650))!]).toBe("iran"); // Yazd
-  expect(regionalLook("hall-hammam", at(28.97, 41.0, 1650))).toBeUndefined(); // Istanbul keeps its own
+  expect(looks["hall-hammam"][regionalLook("hall-hammam", at(28.97, 41.0, 1650))!]).toBe("anatolia"); // Istanbul
+  expect(looks["hall-hammam"][regionalLook("hall-hammam", at(-5.0, 34.0, 1650))!]).toBe("maghreb"); // Fez
+  expect(looks["hall-sweat-lodge"][regionalLook("hall-sweat-lodge", at(-99.1, 19.4, 1500))!]).toBe("mesoamerica"); // Tenochtitlan
+  expect(looks["hall-carved-gable"][regionalLook("hall-carved-gable", at(176.2, -38.1, 1800))!]).toBe("polynesia"); // Rotorua
+  expect(looks["hall-open-shelter"][regionalLook("hall-open-shelter", at(-3.0, 16.8, 1500))!]).toBe("sahel"); // Timbuktu
   for (const [family, list] of Object.entries(looks))
     list.forEach((region, i) => {
       if (region) expect(buildingModels[`${family}-medium-${i}`] ?? buildingModels[`${family}-small-${i}`], `${family} ${region}`).toBeTruthy();

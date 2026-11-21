@@ -33,7 +33,14 @@
     { "id": "yorubaland", "bounds": [2.6, 6.3, 5.8, 9.2] },
     { "id": "mamluk", "bounds": [24.0, 12.0, 56.0, 36.9] },
     { "id": "anatolia", "bounds": [26.0, 36.9, 44.8, 42.2] },
-    { "id": "anatolia", "bounds": [19.0, 39.0, 30.0, 45.5] }
+    { "id": "anatolia", "bounds": [19.0, 39.0, 30.0, 45.5] },
+    { "id": "sahel", "bounds": [-18.0, 8.0, 24.0, 20.0] },
+    { "id": "mesoamerica", "bounds": [-106.0, 14.0, -86.0, 23.0] },
+    { "id": "sw-americas", "bounds": [-118.0, 23.0, -100.0, 39.0] },
+    { "id": "pacific-nw", "bounds": [-138.0, 44.0, -118.0, 61.0] },
+    { "id": "melanesia", "bounds": [130.0, -23.0, 171.0, 2.0] },
+    { "id": "polynesia", "bounds": [165.0, -48.0, 180.0, -8.0] },
+    { "id": "polynesia", "bounds": [-180.0, -30.0, -108.0, 23.0] }
   ],
   "fallback": {
     "east-anglia": "england",
@@ -59,7 +66,10 @@
     "hall-stew": ["england", "finland", "germany"],
     "hall-bagnio": ["england"],
     "hall-union-hall": ["england"],
-    "hall-hammam": [null, null, null, "iran"],
+    "hall-hammam": ["mamluk", "maghreb", "anatolia", "iran"],
+    "hall-sweat-lodge": [null, "mesoamerica", "pacific-nw"],
+    "hall-carved-gable": ["polynesia", "melanesia", "pacific-nw"],
+    "hall-open-shelter": ["sahel", "sw-americas", "polynesia"],
     "hall-madrasa": ["anatolia", "mamluk", "maghreb", "iran"],
     "religious-caucasian-church": ["georgia", "armenia"],
     "religious-rus-church": ["vladimir", "novgorod"],
