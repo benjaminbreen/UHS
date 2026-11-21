@@ -161,6 +161,29 @@ def spec_for(name, r):
         wall = {'italian': 'stucco', 'north-african': 'stucco-ochre', 'eastern': 'sandstone'}[region]
         return ('domus', dict(W=nw * 16, storeys=[wall], tone='tegula-pale' if region == 'north-african' else 'tegula',
                               seed=seed, shops=SHOPS[v % len(SHOPS)] * 2)), (nw, fh)
+    m = re.match(r'roman-insula-roman-(italian|north-african|eastern)-(medium|large)-(\d+)$', base)
+    if m:
+        region, size, v = m.group(1), m.group(2), int(m.group(3))
+        wall = {'italian': 'stucco', 'north-african': 'stucco-ochre', 'eastern': 'sandstone'}[region]
+        heights = [72, 52] if size == 'medium' else [72, 52, 48]
+        return ('insula', dict(W=nw * 16, storeys=[wall], heights=heights,
+                               tone='tegula-pale' if region == 'north-african' else 'tegula',
+                               seed=seed, shops=SHOPS[v % len(SHOPS)] * 3)), (nw, fh)
+    m = re.match(r'house-longhouse(?:-gold-(medium|large))?-(\d+)$', base)
+    if m:
+        size, v = m.group(1) or 'small', int(m.group(2))
+        if size == 'small':
+            sp = dict(W=nw * 16, seed=v, roof='turf' if v == 1 else 'thatch')
+        elif size == 'medium':
+            sp = (dict(W=nw * 16, seed=2, roof='shingle', carved=True, shields=True)
+                  if v == 0 else dict(W=nw * 16, seed=3, roof='thatch', porch=True, dragon=True))
+        else:
+            sp = dict(W=nw * 16, seed=4, roof='shingle', grand=True, porch=True, carved=True, shields=True, dragon=True)
+        return ('hut-norse-longhouse', sp), (nw, fh)
+    m = re.match(r'house-aegean(?:-expanded-(medium|large))?-(\d+)$', base)
+    if m:
+        size, v = m.group(1) or 'small', int(m.group(2))
+        return ('wa-aegean', dict(W=nw * 16, size=size, v=v)), (nw, fh)
     m = re.match(r'hall-thermae-(small|medium|large)-\d+$', base)
     if m:
         return ('thermae', dict(W=nw * 16)), (nw, fh)
@@ -331,6 +354,7 @@ BUILDERS = {
     'wa-court': lambda s, i: wa.courtyard(s['region'], {k: v for k, v in s.items() if k != 'region'}, i),
     'wa-small': lambda s, i: wa.small(s['region'], {k: v for k, v in s.items() if k != 'region'}, i),
     'wa-rural': lambda s, i: wa.rural(s['region'], {k: v for k, v in s.items() if k != 'region'}, i),
+    'wa-aegean': lambda s, i: wa.aegean(s, i),
     'madrasa': lambda s, i: persia.madrasa(s, i),
     'hammam': lambda s, i: persia.hammam(s, i),
     'islamic-madrasa': islam.BUILDERS['islamic-madrasa'],

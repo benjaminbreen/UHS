@@ -1239,6 +1239,209 @@ def built(fn, defaults):
     return make
 
 
+def norse_longhouse(s):
+    """Iron Age & Viking Scandinavian timber longhouse with procedural variants:
+    reed thatch, weathered wood shingles, or living green turf roof; exterior
+    buttress posts, carved knotwork portal, dragon-head ridge finials, gabled
+    entrance porch, and painted round shields on grander halls."""
+    from art import front_materials as fm
+    from art import front_openings as op
+    W = s['W']
+    seed = s.get('seed', 0)
+    roof_kind = s.get('roof', 'shingle' if s.get('shingle') else 'thatch')  # 'thatch' | 'shingle' | 'turf'
+    grand = s.get('grand', False)
+    porch = s.get('porch', False)
+    carved = s.get('carved', grand)
+    shields = s.get('shields', grand)
+    dragon = s.get('dragon', grand or porch)
+
+    wall_h = 46 if grand else 42
+    rise = 46 if grand else 40
+    ov = 8
+    pad = 16
+    H = wall_h + rise + 28
+    c = C(W + pad * 2, H)
+    L, R = pad, pad + W
+    base = H - 4
+    E = base - wall_h
+    top = E - rise
+    wood = fm.RAMPS['oak']
+    tar = fm.ramp(38, 0.05, lift=-0.22)
+    plank = tar if grand else (fm.RAMPS['pine'] if seed % 2 == 0 else wood)
+    stone = fm.RAMPS['granite']
+    ochre = fm.ramp(62, 0.14, lift=0.02)
+    red = fm.ramp(22, 0.15, lift=-0.08)
+    blue = fm.ramp(230, 0.11, lift=-0.12)
+    if roof_kind == 'shingle':
+        roof_r = fm.ramp(28, 0.065, lift=-0.13)
+    elif roof_kind == 'turf':
+        roof_r = fm.ramp(118, 0.10, lift=-0.14)
+    else:
+        roof_r = fm.ramp(62, 0.11, lift=-0.03)
+
+    # Vertical oak/pine/tarred plank wall body.
+    fm.boards(c, L, E, W, wall_h, plank, board=6)
+    # Fieldstone plinth (or banked turf-and-stone footing on turf-roofed variant).
+    ph = 9 if roof_kind == 'turf' else 7
+    for yy in range(base - ph, base):
+        for xx in range(L, R):
+            h = fm.h2(xx // 5, yy // 3, 911 + seed)
+            r_foot = roof_r if (roof_kind == 'turf' and yy < base - 4) else stone
+            q = 2 if yy == base - ph else (5 if yy == base - 1 else (3 if h > 0.4 else 4))
+            c.p(xx, yy, r_foot[q])
+    # Exterior vertical buttress posts along the wall (signature Viking longhouse rhythm).
+    n_bays = max(4, W // 26)
+    post_r = tar if grand else wood
+    for k in range(n_bays + 1):
+        px = round(L + k * (W - 4) / n_bays)
+        c.rect(px, E, 4, wall_h, post_r[5])
+        c.rect(px, E, 1, wall_h, post_r[2])
+        c.rect(px + 3, E, 1, wall_h, post_r[6])
+    # Cast shadow under the overhanging eave.
+    for dy in range(6):
+        k = 0.55 + dy * 0.07
+        for xx in range(L, R):
+            px = c.g(xx, E + dy)
+            if px[3]:
+                c.p(xx, E + dy, (round(px[0] * k), round(px[1] * k), round(px[2] * k), 255))
+
+    # Recessed plank doorway with optional carved Urnes/Oseberg knotwork portal.
+    cx = (L + R) // 2 + (0 if (grand or porch) else (-12 if seed % 2 == 0 else 12))
+    dw, dh = (22, 40) if grand else (18, 38)
+    c.rect(cx - dw // 2 - 4, base - dh - 5, dw + 8, dh + 5, wood[5])
+    c.rect(cx - dw // 2 - 4, base - dh - 5, dw + 8, 2, wood[2])
+    c.rect(cx - dw // 2 - 4, base - dh - 5, 2, dh + 5, wood[3])
+    if carved:
+        # Carved mineral-painted knotwork chevrons on jambs & lintel.
+        for yy in range(base - dh, base - 4, 4):
+            c.p(cx - dw // 2 - 3, yy, ochre[1]); c.p(cx - dw // 2 - 2, yy + 1, red[2])
+            c.p(cx + dw // 2 + 2, yy, ochre[1]); c.p(cx + dw // 2 + 1, yy + 1, red[2])
+        for xx in range(cx - dw // 2 - 2, cx + dw // 2 + 2, 4):
+            c.p(xx, base - dh - 3, ochre[1]); c.p(xx + 2, base - dh - 2, red[2])
+    op.door_plank(c, cx - dw // 2, base - dh, dw, dh)
+    op.reveal(c, cx - dw // 2, base - dh, dw, dh, 2)
+
+    # Small timber-shuttered openings along the long wall.
+    for sx in (L + 22, R - 22, (L + cx) // 2 if W >= 160 else None, (cx + R) // 2 if W >= 160 else None):
+        if sx is None or abs(sx - cx) < 28:
+            continue
+        wy = E + 14
+        c.rect(sx - 6, wy - 1, 12, 10, wood[5])
+        c.rect(sx - 6, wy - 1, 12, 1, wood[2])
+        c.rect(sx - 5, wy, 10, 8, (40, 28, 34, 255))
+        c.rect(sx - 1, wy, 2, 8, wood[3])
+
+    # Painted round Viking shields hung under the eaves on grander halls.
+    if shields:
+        sh_xs = [cx - 34, cx + 34] if not grand else [cx - 40, cx + 40, L + 26, R - 26]
+        for idx, shx in enumerate(sh_xs):
+            if shx < L + 12 or shx > R - 12 or abs(shx - cx) < 24:
+                continue
+            shy = E + 12
+            pal_a = red if idx % 2 == 0 else blue
+            pal_b = ochre
+            for dy in range(-5, 6):
+                for dx in range(-5, 6):
+                    d2 = dx * dx + dy * dy
+                    if d2 > 26:
+                        continue
+                    if d2 <= 3:
+                        col = stone[1]  # iron boss
+                    elif d2 >= 20:
+                        col = wood[5]   # rawhide rim
+                    else:
+                        col = pal_a[2 if dx + dy < 0 else 3] if (dx * dy >= 0) else pal_b[1 if dx + dy < 0 else 2]
+                    c.p(shx + dx, shy + dy, col)
+
+    # Steep trapezoidal pitched roof (reed thatch, weathered wood shingles, or living turf).
+    rx_l, rx_r = L - ov, R + ov
+    taper = max(12, round(rise * 0.36))
+    for yy in range(top, E + 2):
+        t = (yy - top) / max(1, rise + 1)
+        ins = round((1 - t) * taper)
+        xl, xr = rx_l + ins, rx_r - ins - 1
+        for xx in range(xl, xr + 1):
+            if roof_kind == 'shingle':
+                row = (yy - top) // 6
+                ry = (yy - top) % 6
+                col = (xx + (row % 2) * 4) // 8
+                h = ((row * 31 + col * 17 + seed) * 2654435761) & 255
+                shift = -1 if h < 42 else (1 if h > 215 else 0)
+                q = (5 if ry == 5 else (2 if ry < 2 else 3)) + shift + (1 if t > 0.65 else 0)
+            elif roof_kind == 'turf':
+                # Lush living turf-sod roof with soft grassy clumps & tiny wildflowers.
+                clump = ((xx // 3) * 41 + (yy // 4) * 29 + seed) * 2654435761 & 255
+                q = (1 if t < 0.28 else (2 if t < 0.72 else 3)) + (1 if clump > 180 else (-1 if clump < 50 else 0))
+                if yy == E:
+                    q = 5
+            else:
+                tier = min(3, (yy - top) // max(8, rise // 4))
+                ty = (yy - top) - tier * max(8, rise // 4)
+                bundle = (xx + tier * 2) // 4
+                bx = (xx + tier * 2) % 4
+                h = ((bundle * 53 + tier * 37 + seed) * 2654435761) & 255
+                if tier > 0 and ty == 0:
+                    q = 5
+                elif tier > 0 and ty == 1 and (h % 3) == 0:
+                    q = 4
+                else:
+                    q = (1 if ty < 3 else 2) + (1 if bx == 3 else 0) + (1 if t > 0.7 else 0)
+            if yy >= E:
+                q = 6
+            elif xx == xl:
+                q = 5
+            elif xx == xl + 1:
+                q = 1
+            elif xx == xr:
+                q = 6
+            c.p(xx, yy, roof_r[max(0, min(6, q))])
+    # Shaggy thatch or overhanging grass tufts along the eave.
+    if roof_kind in ('thatch', 'turf'):
+        for xx in range(rx_l, rx_r):
+            sag = 1 + (1 if (((xx * 37 + seed) * 2654435761) & 255) % 3 == 0 else 0)
+            c.rect(xx, E + 2, 1, sag, roof_r[3 if roof_kind == 'turf' else 4])
+            c.p(xx, E + 2 + sag - 1, roof_r[6])
+
+    # Optional projecting gabled entrance porch hood over the door.
+    if porch:
+        pw = dw + 18
+        px0, px1 = cx - pw // 2, cx + pw // 2
+        ptop = E - 14
+        for dy in range(16):
+            span = max(2, round((dy + 2) * (pw / 2) / 16))
+            c.rect(cx - span, ptop + dy, span * 2, 1, roof_r[2 if dy < 6 else 3])
+            c.p(cx - span, ptop + dy, wood[2])
+            c.p(cx + span - 1, ptop + dy, wood[5])
+        c.rect(px0 - 1, E + 2, pw + 2, 2, wood[5])
+        c.p(cx, ptop - 2, wood[2]); c.p(cx, ptop - 1, wood[3])
+
+    # Bold timber ridge beam + central smoke louver + gable finials.
+    rl, rr = rx_l + taper, rx_r - taper
+    c.rect(rl - 2, top - 4, rr - rl + 4, 5, wood[4])
+    c.rect(rl - 2, top - 4, rr - rl + 4, 1, wood[1])
+    c.rect(rl - 2, top - 3, rr - rl + 4, 1, wood[2])
+    c.rect(rl - 2, top, rr - rl + 4, 1, wood[6])
+    # Smoke-vent louver box at the center of the ridge (double-wide on grand hall).
+    vx = (rl + rr) // 2
+    lw = 28 if grand else 18
+    c.rect(vx - lw // 2, top - 8, lw, 5, wood[4])
+    c.rect(vx - lw // 2 - 1, top - 9, lw + 2, 2, wood[2])
+    for lx in range(vx - lw // 2 + 2, vx + lw // 2 - 1, 4):
+        c.rect(lx, top - 6, 2, 3, (36, 26, 32, 255))
+    # Crossed bargeboard finials (or curved carved dragon-head finials on grand/porch halls).
+    for side, gx in ((-1, rl - 1), (1, rr)):
+        for k in range(7 if dragon else 5):
+            c.rect(gx + side * k, top - 5 - k, 2, 2, wood[2 if k < 4 else 3])
+            c.rect(gx - side * (k // 2), top - 5 - k, 2, 2, wood[4])
+        if dragon:
+            # Upturned carved dragon head + snout highlight.
+            hx, hy = gx + side * 7, top - 12
+            c.rect(hx - 1, hy - 1, 3, 3, wood[2])
+            c.p(hx + side * 2, hy, ochre[1])
+            c.p(hx, hy - 2, wood[1])
+    return c, dict(x0=L, W=W, base=base, door_x=cx, door_h=dh)
+
+
 BUILDERS = {
     'ger': built(ger, dict(W=70, felt='felt-white', accent='blue', bands=True, ropes=2, door='painted',
                            door_paint='door-red', urkh=True)),
@@ -1246,6 +1449,7 @@ BUILDERS = {
     'drum': built(drum_hut, dict(W=72, form='rondavel', wall='mud', thatch='straw')),
     'winter': built(winter, dict(W=80, roof='sod')),
     'longhouse': built(longhouse, dict(W=200)),
+    'norse-longhouse': built(norse_longhouse, dict(W=132)),
     'enkang': built(enkang, dict(W=70)),
     'plank-house': built(plank_house, dict(W=120)),
     'maloca': built(maloca, dict(W=150)),

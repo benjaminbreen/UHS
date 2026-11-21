@@ -466,6 +466,157 @@ def rural(region, spec=None, info=None):
     return c.im
 
 
+def aegean(spec=None, info=None):
+    """Bronze Age / Classical Aegean flat-roofed house with procedural regional
+    colourways (limestone rubble, Cycladic whitewash + cobalt blue, Akrotiri
+    saffron-ochre, terracotta-rose, and Minoan ashlar + red-column loggia).
+    No baked clutter pots so interactive objects sit cleanly on roofs/yards."""
+    from art.front_kit import finish, consolidate
+    from art.front_materials import C
+    s = dict(spec or {})
+    W = s.get('W', 80)
+    size = s.get('size', 'small')
+    v = s.get('v', 0)
+
+    terracotta = ramp(26, 0.135, lift=-0.06)
+    cobalt = ramp(224, 0.125, lift=-0.08)
+    saffron = ramp(66, 0.09, lift=0.04)
+    saffron_top = ramp(68, 0.075, lift=0.08)
+    rose_plaster = ramp(28, 0.065, lift=0.04)
+    rose_top = ramp(30, 0.055, lift=0.08)
+    honey_stone = ramp(74, 0.045, lift=0.0)
+
+    # Distinct historical colourways per variant.
+    if size == 'small' and v == 0:
+        wall_r, top_r, trim_r, shutter_r = honey_stone, LIME_TOP, terracotta, RAMPS['oak']
+        wall_fn = lambda cc, x, y, w, h: fm.rubble(cc, x, y, w, h, honey_stone)
+    elif size == 'small' and v == 1:
+        wall_r, top_r, trim_r, shutter_r = WHITE, WHITE_TOP, cobalt, cobalt
+        wall_fn = lambda cc, x, y, w, h: fm.render(cc, x, y, w, h, WHITE)
+    elif size == 'medium' and v == 0:
+        wall_r, top_r, trim_r, shutter_r = saffron, saffron_top, terracotta, RAMPS['oak']
+        wall_fn = lambda cc, x, y, w, h: fm.render(cc, x, y, w, h, saffron)
+    elif size == 'medium' and v == 1:
+        wall_r, top_r, trim_r, shutter_r = rose_plaster, rose_top, cobalt, cobalt
+        wall_fn = lambda cc, x, y, w, h: fm.render(cc, x, y, w, h, rose_plaster)
+    else:  # large: Minoan/Classical town house
+        wall_r, top_r, trim_r, shutter_r = LIME, LIME_TOP, terracotta, cobalt
+        wall_fn = lambda cc, x, y, w, h: fm.render(cc, x, y, w, h, LIME)
+
+    wall_h = 84 if size == 'large' else 48
+    depth = 26 if size == 'small' else 30
+    upper_h = 30 if size == 'medium' else 0
+    pad = 12
+    H = wall_h + depth + upper_h + 16
+    c = C(W + pad * 2, H)
+    L, R = pad, pad + W
+    base = H - 4
+    E = base - wall_h
+    B = E - depth
+
+    with pz.materials(WALL=wall_r, TOP=top_r, WALL_FN=wall_fn):
+        pz.roof_slab(c, L, R, B, E)
+        pz.street_wall(c, L, R, E, base)
+        # Exposed rubble / dressed ashlar limestone footing.
+        ph = 16 if size == 'large' else 8
+        if size == 'large':
+            fm.ashlar(c, L, base - ph, W, ph, honey_stone, 8, 18)
+        else:
+            fm.rubble(c, L, base - ph, W, ph, ramp(76, 0.03, lift=-0.06))
+        # Painted Minoan/Aegean timber stringcourse & frieze band.
+        if size == 'large':
+            mid_y = base - 44
+            c.rect(L, mid_y, W, 4, trim_r[3])
+            c.rect(L, mid_y, W, 1, trim_r[1])
+            for fx in range(L + 4, R - 4, 8):
+                c.rect(fx, mid_y + 1, 4, 2, cobalt[2])
+        # Projecting cedar vigas under the parapet.
+        for bx in range(L + 8, R - 6, 12):
+            c.rect(bx, E + 2, 3, 3, RAMPS['oak'][5])
+            c.p(bx, E + 2, RAMPS['oak'][2])
+
+        # Stepped upper roof chamber + reed pergola sun-shade on medium houses.
+        if upper_h:
+            uw = max(44, W // 2)
+            ux0 = L + 6 if v % 2 == 0 else R - uw - 6
+            ux1 = ux0 + uw
+            uE = B + 14
+            uB = uE - 18
+            pz.roof_slab(c, ux0, ux1, uB - upper_h, uE - upper_h)
+            pz.street_wall(c, ux0, ux1, uE - upper_h, uE)
+            uwx = (ux0 + ux1) // 2
+            op.frame_timber(c, uwx - 7, uE - upper_h + 8, 14, 13, None)
+            op.grille(c, uwx - 6, uE - upper_h + 9, 12, 11)
+            if v == 0:
+                # Wooden pergola / reed sun-shade over the open terrace half.
+                px0, px1 = ux1 + 2, R - 4
+                reed = RAMPS['thatch']
+                for px in (px0 + 2, px1 - 4):
+                    c.rect(px, B + 4, 3, 18, RAMPS['oak'][4])
+                c.rect(px0, B + 2, px1 - px0, 5, reed[2])
+                c.rect(px0, B + 2, px1 - px0, 1, reed[0])
+                for rx in range(px0 + 2, px1 - 1, 4):
+                    c.rect(rx, B + 3, 1, 4, reed[4])
+
+        # Door with regional colour trim (and optional built-in stone bench or external stair).
+        cx = (L + R) // 2 + ((-8, 8)[v % 2] if size == 'small' else 0)
+        dw, dh = (20, 40) if size != 'small' else (18, 38)
+        c.rect(cx - dw // 2 - 3, base - dh - 4, dw + 6, 4, trim_r[3])
+        c.rect(cx - dw // 2 - 3, base - dh - 4, dw + 6, 1, trim_r[1])
+        if size == 'small' and v == 1:
+            # Cycladic cobalt-blue painted plank door.
+            for xx in range(cx - dw // 2, cx + dw // 2, 4):
+                c.rect(xx, base - dh, 4, dh, cobalt[3])
+                c.rect(xx, base - dh, 1, dh, cobalt[2])
+                c.rect(xx + 3, base - dh, 1, dh, cobalt[5])
+        else:
+            op.door_plank(c, cx - dw // 2, base - dh, dw, dh)
+        op.reveal(c, cx - dw // 2, base - dh, dw, dh, 2)
+
+        # Ground-floor shuttered wooden windows.
+        win_xs = [R - 18 if cx <= (L + R) // 2 else L + 18] if size == 'small' else [L + 22, R - 22]
+        for wx in win_xs:
+            if abs(wx - cx) >= 20:
+                wy = base - 32
+                op.frame_timber(c, wx - 6, wy, 12, 12, None)
+                c.rect(wx - 5, wy + 1, 10, 10, shutter_r[4])
+                c.rect(wx - 1, wy + 1, 2, 10, shutter_r[6])
+                c.rect(wx - 5, wy + 1, 4, 10, shutter_r[3])
+                op.reveal(c, wx - 6, wy, 12, 12, 2)
+
+        # Built-in stone bench (pezouli) on small rubble variant.
+        if size == 'small' and v == 0:
+            bx = R - 24 if cx < (L + R) // 2 else L + 6
+            so.box(c, bx, base, 18, 7, 5, LIME, LIME_TOP)
+
+        # Upper-storey recessed Minoan red-column loggia on large Aegean house.
+        if size == 'large':
+            lx0, lx1 = L + 26, R - 26
+            ly0, ly1 = E + 10, base - 48
+            c.rect(lx0, ly0, lx1 - lx0, ly1 - ly0, (44, 34, 46, 255))
+            c.rect(lx0 - 2, ly0 - 2, lx1 - lx0 + 4, 3, trim_r[2])
+            c.rect(lx0 - 2, ly1, lx1 - lx0 + 4, 3, LIME[1])
+            # Tapered Minoan terracotta-red columns with dark pillow capitals.
+            for col_x in (lx0 + 14, (lx0 + lx1) // 2, lx1 - 14):
+                c.rect(col_x - 4, ly0, 8, 3, RAMPS['oak'][5])
+                c.rect(col_x - 3, ly0 + 3, 6, ly1 - ly0 - 5, terracotta[3])
+                c.rect(col_x - 3, ly0 + 3, 2, ly1 - ly0 - 5, terracotta[1])
+                c.rect(col_x - 4, ly1 - 2, 8, 2, LIME[3])
+            # Flanking shuttered windows on the upper floor.
+            for wx in (L + 14, R - 14):
+                wy = E + 12
+                op.frame_timber(c, wx - 6, wy, 12, 14, None)
+                c.rect(wx - 5, wy + 1, 10, 12, shutter_r[4])
+                c.rect(wx - 1, wy + 1, 2, 12, shutter_r[6])
+                c.rect(wx - 5, wy + 1, 4, 12, shutter_r[3])
+
+    if info is not None:
+        info.update(x0=L, W=W, base=base, door_x=cx, door_h=dh)
+    finish(c)
+    consolidate(c, rare=4)
+    return c.im
+
+
 SHEET = [(f'{r} courtyard', (lambda r: lambda: courtyard(r))(r)) for r in REGIONS] + \
         [(f'{r} small', (lambda r: lambda: small(r))(r)) for r in REGIONS]
 

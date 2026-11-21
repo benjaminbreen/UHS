@@ -390,7 +390,7 @@ delete the painter once nothing reaches it.
 | Painter (file) | Still draws | Natural front-on home |
 |---|---|---|
 | `ObliqueModern` (`oblique_modern.py`, via `city_kit`/`modern_grammar`) | Industrial and modern `modern-*` blocks, sheds, towers | `front_modern`, `front_kit` |
-| `ObliqueBuilding` (`oblique.py`) | `house-aegean*`, `house-longhouse*`, `roman-insula-*`, the European and Neolithic service gold masters, `theatre-court-opera` | `front_family`, `front_ancient`, `front_huts`, `front_landmarks` |
+| `ObliqueBuilding` (`oblique.py`) | the European and Neolithic service gold masters, `theatre-court-opera` | `front_family`, `front_huts`, `front_landmarks` |
 | `ObliqueMeso`, `ObliqueMesoLandmark` (`oblique_meso*.py`) | Mesoamerican civic buildings, ballcourt, Maya temple | `front_meso`, `front_sacred_americas` |
 | `PrecinctPiece` (`precincts.py`) | Sacred precinct pieces | `front_sacred*` |
 | `UrbanBuilding`, `Building` (`urban.py`, `buildings.py`) | `house-mud/roman/thatch`, `study-*`, shelters, city walls and gates | `front_family`, `front_huts` |
