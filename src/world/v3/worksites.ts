@@ -3,7 +3,7 @@ import { random } from "../../core/random";
 import type { Pack, Place, Point, Terrain } from "../../core/types";
 import { paintedDoor } from "../../core/doors";
 import { buildingModel, buildingArtCells } from "../../content/graphics/models";
-import { worksitesFor } from "../../content/settlements/worksites";
+import { worksitesFor, type WorksiteProfile } from "../../content/settlements/worksites";
 import type { Rect, SettlementPlan } from "./types";
 import type { Sample } from "./roads";
 import { installAnchorage, planAnchorage } from "./harbor";
@@ -11,6 +11,29 @@ import { launchAt, shoreDirections, type Launch } from "./shoreline";
 import { fishingWaterfront, sailingPort } from "../../content/settlements/waterfronts";
 import { industrialized, motorized } from "../../content/settlements/modernity";
 import { infillStone, streetPalette } from "../../content/settlements/streets/palettes";
+
+const CRAFT_STATION: Partial<Record<WorksiteProfile["kind"], { sprite: string; name: string; description: string }>> = {
+  dyehouse: { sprite: "worksite-dye-racks", name: "Dyeing racks and vats", description: "Freshly dyed cloth hung to dry above simmering dye vats and yarn baskets." },
+  fullery: { sprite: "worksite-dye-racks", name: "Cloth-drying frame", description: "Timber drying rails hung with fulled woollen cloth beside rinsing tubs." },
+  pottery: { sprite: "worksite-pottery-rack", name: "Pottery drying rack", description: "Shelved drying rack loaded with greenware and glazed vessels beside a potter's wheel." },
+  tannery: { sprite: "worksite-tanner-rack", name: "Hide-stretching frame", description: "Scraped hides laced taut in a timber frame beside a fleshing beam and bark-tanning tub." },
+  weaving: { sprite: "worksite-loom-frame", name: "Outdoor weaving loom", description: "Timber loom strung with bright patterned cloth in progress, flanked by yarn baskets." },
+  forge: { sprite: "worksite-smith-bench", name: "Anvil block and quench trough", description: "Iron-banded oak anvil stump, horned anvil, quench trough with smithing tongs, and fuel." },
+  boatyard: { sprite: "worksite-carpenter-bench", name: "Shipwright's bench", description: "Joiner's workbench strewn with wood shavings beside shaped timber and tools." },
+  carpentry: { sprite: "worksite-carpenter-bench", name: "Joiner's workbench", description: "Heavy mortised workbench scattered with shavings beside a wagon wheel, cask, or sawn timber." },
+  brickworks: { sprite: "worksite-mason-bench", name: "Brick and stone banker", description: "Dressed stone and brick-shaping bench with chisels, square, and stone chips." },
+  limeworks: { sprite: "worksite-mason-bench", name: "Stone-dressing banker", description: "Stone-dressing bench surrounded by broken limestone chips and mason's tools." },
+  stoneworks: { sprite: "worksite-mason-bench", name: "Stonemason's banker", description: "Dressed ashlar block on timber rollers with chisels, square, stone chips, and carved drums." },
+  oilpress: { sprite: "worksite-press-yard", name: "Pressing mats and jars", description: "Woven pressing mats stacked under a timber screw beside oil jars." },
+  sugarworks: { sprite: "worksite-press-yard", name: "Pressing yard and jars", description: "Pressing mats and curing jars arranged beside the boiling house." },
+  brewhouse: { sprite: "worksite-press-yard", name: "Mash trough and grain sacks", description: "Wooden mash trough with paddle beside tied sacks of malted grain and casks." },
+  papermill: { sprite: "worksite-paper-yard", name: "Papermaking boards and vat", description: "Drying boards plastered with damp handmade paper sheets beside a dipping vat or pulp trough." },
+  ropewalk: { sprite: "worksite-ropewalk", name: "Ropewalk wheel and hawsers", description: "Spoked twisting wheel stretching hemp strands across notched stakes beside coiled hawsers." },
+  foundry: { sprite: "worksite-foundry-yard", name: "Bronze foundry and moulds", description: "Cast bronze bells and vessels beside clay casting moulds, glowing crucibles, and ingots." },
+  soapworks: { sprite: "worksite-soap-yard", name: "Soap-curing towers and beds", description: "Cross-stacked towers of curing olive-oil soap beside a scored pouring bed or cauldron." },
+  sericulture: { sprite: "worksite-silk-yard", name: "Silkworm racks and reeling swift", description: "Bamboo cocoon trays, steaming cocoon basins, and spoked silk-reeling frames." },
+  charcoal: { sprite: "worksite-charcoal-yard", name: "Charcoal clamp and sawpit", description: "Turf-covered smoking charcoal kiln with sacks, or a raised oak log with a two-man pit saw." },
+};
 
 const key = (x: number, y: number) => `${x},${y}`;
 const cells = (r: Rect, f: (x: number, y: number) => void) => {
@@ -34,16 +57,19 @@ export function planWorksites(
   const priority=(p:ReturnType<typeof worksitesFor>[number])=>p.roles?.includes(role??"") || p.kind==="boatyard" && !!fishingWaterfront(s);
   const profiles = worksitesFor(s).sort((a,b) =>
     Number(!!a.revision)-Number(!!b.revision) ||
+    Number(!a.scope.bounds)-Number(!b.scope.bounds) ||
     (a.revision && b.revision ? Number(!a.essential)-Number(!b.essential) || Number(!priority(a))-Number(!priority(b)) ||
     random(seed,"worksite-order",a.id)-random(seed,"worksite-order",b.id) : 0));
   for (const profile of profiles) {
     if (profile.revision && !profile.essential && processingCount >= 2) continue;
-    if (placed.has(profile.kind)) continue;
+    const slot = profile.kind === "caravanserai" ? "inn" : profile.kind;
+    if (placed.has(slot)) continue;
+    const station = CRAFT_STATION[profile.kind];
     const main = buildingModel(profile.frame), store = buildingModel(profile.outbuilding.frame);
     const [mw, mh] = main.footprint, [sw, sh] = store.footprint;
     const pad = 2 + Math.ceil(Math.max(0, main.anchor[0]-mw*8, main.bounds[2]-main.anchor[0]-mw*8)/16);
     const top = 2 + Math.ceil(Math.max(0,main.bounds[3]-mh*16)/16);
-    const gap = 4 + Math.ceil(Math.max(0,store.bounds[3]-sh*16)/16);
+    const gap = (station && !profile.launch ? 6 : 4) + Math.ceil(Math.max(0,store.bounds[3]-sh*16)/16);
     const w = Math.max(mw, sw) + pad*2, h = top + mh + gap + sh + 3;
     const fringe = profile.siting !== "urban";
     const fit = (r: Rect, occupied = true, core = r) => dry(r,occupied,core,fringe);
@@ -62,7 +88,7 @@ export function planWorksites(
         const m = buildingModel(frame), [w,h] = m.footprint;
         const p: Place = { id: `${id}${suffix}`, name, sprite: frame, x,y,w,h,
           entrance: {x:x+m.entrance[0],y:y+m.entrance[1]}, owner: `${plan.site.id}-community`,
-          access: "public", claim: `worksite-${profile.id}${suffix}`, entranceLabel: "Enter",
+          access: "public", claim: frame.startsWith("yard-stable-") ? "yard-stable" : `worksite-${profile.id}${suffix}`, entranceLabel: "Enter",
           description: `${profile.note} Basis: ${profile.basis}.` };
         const door = paintedDoor(p);
         if (door) { p.door = door; p.entrance = {x:door.x,y:door.y+1}; }
@@ -93,7 +119,7 @@ export function planWorksites(
         if(hull) cells(hull,(x,y)=>plan.solid.delete(key(x,y)));
         return false;
       }
-      placed.add(profile.kind);
+      placed.add(slot);
       if (profile.revision && !profile.essential) processingCount++;
       // A modern hospital or works stands in kept grounds, not a bare yard.
       if(!launch) {paint(r,profile.siting==="urban" && motorized(s) ? "grass" : "dirt");grade(r);}
@@ -150,12 +176,46 @@ export function planWorksites(
         }
         plan.plots.push({...lane,id:`${id}-launch`,kind:"public",owner:buildings[0].owner,access:origin});
       }
+      let stationAt: Point | undefined;
+      if (station) {
+        const minX = r.x + 3;
+        const maxX = Math.max(minX, r.x + r.w - 4);
+        const rows = launch ? [r.y + top + mh + 2] : [r.y + top + mh + 4, r.y + top + mh + 3, r.y + top + mh + 5];
+        const mid = Math.round((minX + maxX) / 2);
+        const xs = Array.from({ length: maxX - minX + 1 }, (_, i) => minX + i)
+          .sort((a, b) => Math.abs(a - mid) - Math.abs(b - mid));
+        const clear = (x: number, y: number, strict: boolean) =>
+          [-3, -2, -1, 0, 1, 2, 3].every((dx) => {
+            const k = key(x + dx, y);
+            const kAbove = key(x + dx, y - 1);
+            return (!strict || (!plan.traffic.has(k) && !plan.traffic.has(kAbove))) &&
+              (Math.abs(dx) > 2 || !plan.solid.has(k));
+          });
+        outer: for (const strict of [true, false]) {
+          for (const sy of rows) {
+            const sx = xs.find((x) => clear(x, sy, strict));
+            if (sx !== undefined) { stationAt = { x: sx, y: sy }; break outer; }
+          }
+        }
+        if (stationAt) {
+          for (let dx = -2; dx <= 2; dx++) {
+            const k = key(stationAt.x + dx, stationAt.y);
+            if (!plan.traffic.has(k)) plan.solid.add(k);
+          }
+          plan.objects.push({
+            id: `${id}-station`, name: station.name, description: station.description,
+            kind: "monument", sprite: station.sprite, pos: { ...stationAt, space: "outside" },
+            inventory: {}, owner: buildings[0].owner,
+          });
+        }
+      }
       const supplies = profile.supplies ?? (profile.kind === "mill" ?
         [{prop:"grainSacks",label:"Stored grain"},{prop:"crate",label:"Mill supplies"}] :
         profile.kind === "mine" ? [{prop:"fieldStone",label:"Waste rock"},{prop:"pick",label:"Mining pick"},{prop:"bench",label:"Ore-sorting bench"}] :
         [{prop:"liddedBasket",label:"Linen store"}]);
       for (const [i,{prop,label}] of supplies.entries()) {
         const at = {x:r.x+Math.min(r.w-3,pad+2+i*4),y:r.y+top+mh+2};
+        if (stationAt && Math.abs(at.x - stationAt.x) <= 3 && Math.abs(at.y - stationAt.y) <= 2) continue;
         if (plan.solid.has(key(at.x,at.y)) || plan.traffic.has(key(at.x,at.y))) continue;
         plan.objects.push({id:`${id}-supplies-${i}`,name:label,prop,kind:"container",pos:{...at,space:"outside"},
           sprite:prop==="fieldStone" ? "rock" : propSprite(prop)!,inventory:prop==="grainSacks" ? {grain:12} : {},owner:buildings[0].owner});

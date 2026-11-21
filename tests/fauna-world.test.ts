@@ -976,4 +976,19 @@ describe("animal riding", () => {
     expect(interior?.label).toBe("Stable");
     expect(interior?.furnish).toContain("manger");
   });
+
+  it("includes regional horse relay stations and hostelries with dynamic yard-stable outbuildings", async () => {
+    const { innProfiles } = await import("../src/content/settlements/worksites/inns");
+    const { buildingModel } = await import("../src/content/graphics/models");
+    const ids = ["roman-mansio", "chinese-yizhan", "steppe-yam", "frontier-livery"];
+    for (const id of ids) {
+      const p = innProfiles.find((x) => x.id === id);
+      expect(p, id).toBeDefined();
+      expect(p!.outbuilding.frame).toMatch(/^yard-stable-/);
+      expect(buildingModel(p!.frame).footprint.length).toBe(2);
+      expect(buildingModel(p!.outbuilding.frame).footprint.length).toBe(2);
+      expect(buildingModel(`${p!.outbuilding.frame}-open`).footprint.length).toBe(2);
+      expect(buildingModel(`${p!.outbuilding.frame}-closed`).footprint.length).toBe(2);
+    }
+  });
 });

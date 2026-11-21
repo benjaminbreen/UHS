@@ -6745,23 +6745,26 @@ export function planSettlement(
       roost: pos({ x: byre.x + 1, y: byre.y + 1 }),
     } satisfies FaunaGroup);
   }
-  // A household with a stable keeps a horse or two in it: out by day, in at dusk.
+  // A household or hostelry with a stable keeps horses in it: out by day, in at dusk.
   const stableMount = penStock.find((k) => k.id === "horse") ?? penStock.find((k) => k.id === "pony") ?? (pack.setting ? faunaAt(pack.setting).find((k) => k.id === "horse" || k.id === "pony") : undefined);
   for (const stable of stableMount ? plan.places.filter((b) => b.claim === "yard-stable" && b.owner) : []) {
+    const isRelay = /mansio|yizhan|yam/.test(stable.id);
+    const isPublic = stable.access === "public";
+    const cap = isPublic ? 2 : 1 + (random(seed, stable.id, "second-horse") < 0.45 ? 1 : 0);
     const members: FaunaMember[] = [];
-    for (const [dx, dy] of [[0, 1], [1, 2], [-1, 2], [0, 3]]) {
+    for (const [dx, dy] of [[0, 1], [2, 1], [-2, 1], [1, 2], [-1, 2], [0, 3]]) {
       const x = stable.entrance.x + dx, y = stable.entrance.y + dy;
-      if (members.length < 1 + (random(seed, stable.id, "second-horse") < 0.45 ? 1 : 0) && !plan.solid.has(cellKey(x, y)) && !plan.traffic.has(cellKey(x, y)))
+      if (members.length < cap && !plan.solid.has(cellKey(x, y)) && !plan.traffic.has(cellKey(x, y)))
         members.push({ x, y, direction: dx < 0 ? 3 : 1 });
     }
     if (!members.length) continue;
     (plan.fauna ??= []).push({
-      id: `${site.id}-stable-${stable.owner}`,
+      id: `${site.id}-stable-${stable.id}`,
       speciesId: stableMount!.id,
       members,
       pos: pos(members[0]),
       home: pos(stable.entrance),
-      homeRadius: 5,
+      homeRadius: isPublic ? 6 : 5,
       state: "graze",
       nextDecisionAt: 0,
       stride: 0,
@@ -6769,6 +6772,7 @@ export function planSettlement(
       owner: stable.owner,
       house: stable.id,
       roost: pos({ x: stable.x + 1, y: stable.y + 1 }),
+      ...(isRelay && stableMount!.id === "horse" ? { form: "race" } : {}),
     } satisfies FaunaGroup);
   }
   // Most places have a dog or two about, whatever else they keep: lying by a
