@@ -18,7 +18,7 @@ const ACTS: Record<
     pose?: CharacterPose;
     ms: number;
     mark?: { glyph: keyof typeof GLYPHS; color: number };
-    move?: "hop" | "shake" | "dip" | "stomp" | "lean";
+    move?: "hop" | "shake" | "dip" | "stomp" | "lean" | "lunge";
     sound?: "alarm";
     /** What crosses from the other person's hands into these. */
     pass?: "coin" | "goods";
@@ -63,7 +63,11 @@ const ACTS: Record<
   take: { pose: "receive", ms: 1200, move: "lean", pass: "goods" },
   "take-coin": { pose: "receive", ms: 1200, move: "lean", pass: "coin" },
   pay: { pose: "pay", ms: 1100 },
-  halt: { pose: "halt-hand", ms: 1600 },
+  halt: { pose: "halt-hand", ms: 1600, mark: { glyph: "bang", color: 0xe0402e }, move: "hop" },
+  shove: { pose: "halt-hand", ms: 620, mark: { glyph: "bang", color: 0xe0402e }, move: "lunge", sound: "alarm" },
+  rattle: { pose: "swing", ms: 720, mark: { glyph: "clang", color: 0xe8c458 }, move: "shake" },
+  sneak: { pose: "idle", ms: 900, mark: { glyph: "sweat", color: 0x58a4e0 }, move: "dip" },
+  celebrate: { pose: "wave", ms: 1300, mark: { glyph: "star", color: 0xf4c842 }, move: "hop" },
   windup: { pose: "raise-hand", ms: 900, mark: { glyph: "bang", color: 0xe0402e }, move: "shake" },
   strike: { pose: "swing", ms: 480, move: "shake" },
   block: { pose: "halt-hand", ms: 700 },
@@ -83,7 +87,7 @@ const COOLDOWN_MS = 4000;
 /** Cues that play out before a reaction to them is shown. */
 const EXCHANGES = new Set<CueKind>(["greet", "take", "take-coin", "pay"]);
 /** A fight's beats come faster than the cooldown and must all show. */
-const BLOWS = new Set<CueKind>(["windup", "strike", "struck", "block"]);
+const BLOWS = new Set<CueKind>(["windup", "strike", "struck", "block", "shove", "halt", "rattle", "sneak", "celebrate"]);
 const SAY_MS = 1800;
 /** Thrown apart by a collision, and settled again. */
 const RECOIL_MS = 320;
@@ -232,6 +236,9 @@ export class CueEffects {
     if (act.pass && toward) this.pass(toward.x * 16 + 8, toward.y * 16 + 16, image, act.pass, 180);
     if (act.sound && !beast(image)) void gameAudio()?.event(act.sound);
     if (kind === "struck" || kind === "block") this.view.hit(who, kind === "block");
+    if (kind === "rattle") this.rattleSparks(image);
+    else if (kind === "sneak") this.sneakPuff(image);
+    else if (kind === "celebrate") this.celebrateBurst(image);
   }
 
   private stop(who: string) {
@@ -292,12 +299,16 @@ export class CueEffects {
       const early = Math.min(1, (time - p.from) / 220);
       // A step in to meet the other's hands, and back.
       const lean = act.move === "lean" && who !== "player" ? Math.sin(Math.PI * t) * 3 : 0;
+      const lunge =
+        act.move === "lunge" && who !== "player"
+          ? (t < 0.28 ? t / 0.28 : t < 0.5 ? 1 : Math.max(0, 1 - (t - 0.5) / 0.5)) * 6
+          : 0;
       const dx =
         (act.move === "shake" && t < 0.5) || (act.move === "stomp" && t < 0.7)
           ? Math.floor(time / 40) % 2
             ? 1
             : -1
-          : Math.round(lean * p.ux);
+          : Math.round((lean + lunge) * p.ux);
       // The camera rides the player's sprite, so the player's start shows in
       // the pose alone; a hop would bob the whole world.
       const dy =
@@ -309,7 +320,7 @@ export class CueEffects {
               ? Math.sin(Math.PI * early) * 2
               : act.move === "stomp" && t < 0.55
                 ? -Math.abs(Math.sin(t * Math.PI * 4 / 0.55)) * 4
-                : Math.round(lean * p.uy);
+                : Math.round((lean + lunge) * p.uy);
       // An animal is placed afresh every frame, so it takes no offset.
       if (!beast(image)) {
         image.setPosition(image.x - p.dx + dx, image.y - p.dy + dy);
@@ -378,6 +389,64 @@ export class CueEffects {
           onComplete: () => dust.destroy(),
         });
       }
+    }
+  }
+
+  /** Metallic clang sparks flying off iron bars, keys, or chiseled stone. */
+  private rattleSparks(image: Sprite) {
+    const colors = [0xfff6c0, 0xf0c850, 0xc8d8f0];
+    for (let i = 0; i < 6; i++) {
+      const ang = (i / 6) * Math.PI * 2 + 0.3;
+      const spark = this.scene.add
+        .rectangle(image.x, image.y - 16, 2, 2, colors[i % colors.length])
+        .setDepth(image.y + 4720);
+      this.scene.tweens.add({
+        targets: spark,
+        x: spark.x + Math.cos(ang) * (8 + (i % 3) * 3),
+        y: spark.y + Math.sin(ang) * (7 + (i % 2) * 3) - 3,
+        alpha: 0,
+        duration: 340 + i * 35,
+        ease: "Quad.easeOut",
+        onComplete: () => spark.destroy(),
+      });
+    }
+  }
+
+  /** Soft tiptoe dust puffs behind a sneaking character. */
+  private sneakPuff(image: Sprite) {
+    for (const side of [-4, 4]) {
+      const puff = this.scene.add
+        .rectangle(image.x + side, image.y - 2, 3, 2, 0xd8dce8)
+        .setDepth(image.y + 4680);
+      this.scene.tweens.add({
+        targets: puff,
+        x: puff.x + side * 1.4,
+        y: puff.y - 5,
+        alpha: 0,
+        duration: 380,
+        ease: "Sine.easeOut",
+        onComplete: () => puff.destroy(),
+      });
+    }
+  }
+
+  /** Classic FF6 golden victory sparkle fountain on breaking free. */
+  private celebrateBurst(image: Sprite) {
+    const colors = [0xfff4a8, 0xf4c842, 0xffe078, 0xffffff];
+    for (let i = 0; i < 10; i++) {
+      const ang = -Math.PI * 0.9 + (i / 9) * Math.PI * 0.8;
+      const star = this.scene.add
+        .rectangle(image.x, image.y - 20, i % 2 ? 3 : 2, i % 2 ? 3 : 2, colors[i % colors.length])
+        .setDepth(image.y + 4740);
+      this.scene.tweens.add({
+        targets: star,
+        x: star.x + Math.cos(ang) * (10 + (i % 3) * 5),
+        y: star.y + Math.sin(ang) * (12 + (i % 4) * 3) - 6,
+        alpha: 0,
+        duration: 520 + i * 40,
+        ease: "Cubic.easeOut",
+        onComplete: () => star.destroy(),
+      });
     }
   }
 

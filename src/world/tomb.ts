@@ -41,7 +41,7 @@ export type TombLevel = Area & {
 
 export const tombSpace = (site: string, area: number) => `tomb:${site}:${area}`;
 export function parseTombSpace(space: string) {
-  const m = /^tomb:(([a-z-]+)\.\d+):(\d+)$/.exec(space);
+  const m = /^tomb:(([a-z-]+)\.[-\d,]+):(\d+)$/.exec(space);
   return m ? { site: m[1], style: m[2], area: Number(m[3]) } : undefined;
 }
 

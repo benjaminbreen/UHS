@@ -289,6 +289,14 @@ export const cueKinds = [
   "pay",
   /** A guard's flat palm: stop there. */
   "halt",
+  /** A guard lunging forward to shove someone back from a doorway. */
+  "shove",
+  /** Clanking iron bars, keys, or scraping mortar during a jailbreak. */
+  "rattle",
+  /** Tip-toeing past a patrolling guard with a nervous sweat-drop. */
+  "sneak",
+  /** Classic RPG victory hop and golden burst on breaking free. */
+  "celebrate",
   /** A fist drawn back: the blow lands when the wind-up ends. */
   "windup",
   /** A blow thrown at somebody. */

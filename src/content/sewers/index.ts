@@ -6,6 +6,7 @@ import { minePeople } from "../mines/people";
 import { cavePeople } from "../caves/people";
 import { shipPeople } from "../ships/people";
 import { fairPeople } from "../fairs/people";
+import { prisonPeople } from "../prisons/people";
 import type { Box, SewerFind, SewerKind, SewerPerson, TunnelDepth, TunnelKind } from "./types";
 import type { CaveKind } from "../caves/types";
 import type { ShipKind } from "../ships/types";
@@ -18,7 +19,7 @@ export { sewerFinds, sewerPeople };
 const byId = new Map([...sewerFinds, ...mineFinds].map((f) => [f.id, f]));
 /** A find in any tunnels, sewer or mine. */
 export const sewerFind = (id: string) => byId.get(id);
-const people = new Map([...sewerPeople, ...minePeople, ...cavePeople, ...shipPeople, ...fairPeople].map((p) => [p.id, p]));
+const people = new Map([...sewerPeople, ...minePeople, ...cavePeople, ...shipPeople, ...fairPeople, ...prisonPeople].map((p) => [p.id, p]));
 /** Someone met in a complex or aboard: a sewer, a mine, a cave, a fair or a ship. */
 export const tunnelPerson = (id: string) => people.get(id);
 

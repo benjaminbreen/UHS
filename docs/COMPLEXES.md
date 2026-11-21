@@ -16,7 +16,7 @@ A new kind of large interior plugs in at those three places (`world/complex.ts`,
 
 ## Palaces and halls
 
-A palace is planned and walked as a `Fair` in data (the kind, space ids and types still say `fair`; renaming them is owed). Doors are not yet closed by rank, and no door leads from the open map into a palace yet.
+A palace is planned and walked as a `Fair` in data (the kind, space ids and types still say `fair`; renaming them is owed). Palaces, castle halls, and world's fair gates on the open map wire `venueRoom` onto their landmark doors so players can walk in from the street (charging the fair's turnstile ticket for world's fairs). Private chambers (`bedchamber`, `closet`, `bath`, `tablinum`) turn away unranked outsiders who walk in from the street unless they hold court/household rank or slip the guard a bribe (`fair-bribe`).
 
 ### Rendering and styles
 
@@ -51,7 +51,7 @@ A fair is a `Fair` in `src/content/fairs/` (`london-1884.ts`, `paris-1889.ts`, `
 
 ## Tombs
 
-`src/world/tomb.ts` (`tombPlan`) lays out areas from entrance stair to burial chamber with shafts, side rooms, walled-up doorways, and grave goods from a `TombStyle` in `src/content/tombs/` (currently New Kingdom Thebes). `src/core/tomb.ts` handles lamps, ropes, breaking blocked doorways, and finds; `src/render/tomb/` paints the rock and walls. Prompts naming a tomb start on its stair (`below: "tomb"`).
+`src/world/tomb.ts` (`tombPlan`) lays out areas from entrance stair to burial chamber with shafts, side rooms, walled-up doorways, and grave goods from a `TombStyle` in `src/content/tombs/` (currently New Kingdom Thebes). `src/core/tomb.ts` handles cliff entrances (`tombMouthAt` / `tomb-mouth:x,y`), lamps, ropes, breaking blocked doorways, and finds; `src/render/tomb/` paints the rock and walls. Prompts naming a tomb start on its stair (`below: "tomb"`).
 
 ## Towers (not a complex)
 

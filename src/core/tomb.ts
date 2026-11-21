@@ -1,10 +1,11 @@
 import { caveLight, caveLightFor } from "../content/caves";
-import { tombFind, tombStyle, type TombStyle } from "../content/tombs";
+import { tombAt, tombFind, tombStyle, type TombStyle } from "../content/tombs";
 import { exitAt } from "../world/complex";
 import { parseTombSpace, tombLevel, tombSolid, tombSpace, tombWalkable, type TombLevel } from "../world/tomb";
-import { areaTarget, arriveIn, burnLight, cachedArea, complexRecord, takeFind, type ComplexHost } from "./complex";
+import { caveMouthAt, caveMouthsNear } from "./cave";
+import { areaTarget, arriveIn, burnLight, cachedArea, complexRecord, nearest, takeFind, type ComplexHost } from "./complex";
 import { folkDeal, folkTime } from "./tunnel-folk";
-import type { Inspection, Inventory, Point } from "./types";
+import type { Inspection, Inventory, Point, WorldModel } from "./types";
 
 /** A trip into a tomb: which one, its first area, the cell outside to come back to, and the light carried. */
 export type TombRun = {
@@ -52,8 +53,27 @@ function arrive(h: ComplexHost, space: string, from?: string) {
   return { level, first };
 }
 
+/** A rock-cut tomb entrance on a cliff face, where and when tombs are built. */
+export function tombMouthAt(world: WorldModel, x: number, y: number) {
+  const s = world.geography?.packAt(x, y)?.setting ?? world.pack.setting;
+  const style = s && tombAt(s.lon, s.lat, s.year);
+  if (!style) return undefined;
+  const mouth = caveMouthAt(world, x, y);
+  if (!mouth) return undefined;
+  // Split cliff openings between natural caves and rock-cut tombs.
+  if ((((x * 73856093) ^ (y * 19349663)) & 1) !== 0) return undefined;
+  return { x, y, style };
+}
+
+export function* tombMouthsNear(world: WorldModel, at: Point, r: number) {
+  for (const m of caveMouthsNear(world, at, r)) {
+    const t = tombMouthAt(world, m.x, m.y);
+    if (t) yield t;
+  }
+}
+
 /** In by the stair, lamp lit. `n` picks which tomb of its kind in this world. */
-export function tombEnter(h: ComplexHost, style: TombStyle, n = 0) {
+export function tombEnter(h: ComplexHost, style: TombStyle, n: number | string = 0) {
   const p = h.state.player, site = `${style.id}.${n}`;
   const light = caveLightFor(h.world.pack.setting?.year ?? 0);
   h.state.complex = { kind: "tomb", site, name: style.name, entry: tombSpace(site, 0), out: { x: p.pos.x, y: p.pos.y }, light: light.id, left: light.burns };
@@ -76,6 +96,16 @@ const here = (h: ComplexHost) => (runOf(h) ? tombLevelOf(h, h.state.player.pos.s
 const styleOf = (level: TombLevel) => tombStyle(level.style)!;
 
 export function tombInspect(h: ComplexHost, id: string): Inspection | undefined {
+  const mouth = /^tomb-mouth:(-?\d+),(-?\d+)$/.exec(id);
+  if (mouth) {
+    const x = Number(mouth[1]), y = Number(mouth[2]), m = tombMouthAt(h.world, x, y);
+    if (!m) return undefined;
+    return {
+      id, name: "Rock-cut tomb", kind: "place", pos: { x, y, space: "outside" },
+      description: `A squared doorway cut into the cliff, with rock-cut steps dropping into ${m.style.name}.`,
+      affordances: [{ label: "Enter the tomb", enabled: true, command: { type: "interact", target: id, action: "complex" } }],
+    };
+  }
   const c = here(h), run = runOf(h);
   if (!c || !run) return undefined;
   const { level } = c;
@@ -98,15 +128,32 @@ export function tombInspect(h: ComplexHost, id: string): Inspection | undefined 
 }
 
 export function tombVerb(h: ComplexHost) {
+  const p = h.state.player;
+  if (p.pos.space === "outside") {
+    const near: [Point, string][] = [];
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const m = tombMouthAt(h.world, p.pos.x + dx, p.pos.y + dy);
+      if (m) near.push([m, `tomb-mouth:${m.x},${m.y}`]);
+    }
+    const id = nearest(p, near);
+    return id ? { label: "Enter the tomb", target: id } : undefined;
+  }
   const c = here(h);
   if (!c) return undefined;
   const done = new Set(record(h, c.level.site).done), style = styleOf(c.level);
-  const id = areaTarget(h.state.player, c.level, "tomb", (t) => done.has(t.id) && !tombFind(style, t.find)?.keeps);
+  const id = areaTarget(p, c.level, "tomb", (t) => done.has(t.id) && !tombFind(style, t.find)?.keeps);
   const offer = id ? tombInspect(h, id)?.affordances[0] : undefined;
   return offer?.enabled ? { label: offer.label, target: id! } : undefined;
 }
 
 export function tombAct(h: ComplexHost, id: string) {
+  const mouth = /^tomb-mouth:(-?\d+),(-?\d+)$/.exec(id);
+  if (mouth) {
+    const x = Number(mouth[1]), y = Number(mouth[2]), m = tombMouthAt(h.world, x, y);
+    if (!m) return;
+    tombEnter(h, m.style, `${x},${y}`);
+    return;
+  }
   const c = here(h), run = runOf(h);
   if (!c || !run) return;
   if (id.startsWith("folk-")) return void folkDeal(h.folk, id);

@@ -46,6 +46,7 @@ export function Years({ runtime, toEnd, onClose }: { runtime: Runtime; toEnd: bo
   const year = current?.year ?? life.from;
   const age = current?.age ?? p.age ?? 30;
   const dead = !!life.died && done;
+  const stillConfined = !!life.prison && (!life.prison.releaseYear || year < life.prison.releaseYear);
 
   useEffect(() => {
     runtime.flushAmbient();
@@ -128,7 +129,7 @@ export function Years({ runtime, toEnd, onClose }: { runtime: Runtime; toEnd: bo
         <img src={bannerFor(setting.culture, year, regionAt(setting.lon, setting.lat)?.id)} alt="" />
       </div>
       <div className="evening-card years-card">
-        <div className="evening-ribbon">{toEnd ? "To the end" : "The years pass"}</div>
+        <div className="evening-ribbon">{toEnd ? "To the end" : stillConfined ? `In ${life.prison!.name}` : "The years pass"}</div>
         <header className="years-head" data-dead={dead || undefined}>
           <span className="years-portrait">
             <CharacterSprite appearance={runtime.appearanceFor({ ...p, age })} age={age} portrait expression={dead ? "tired" : "neutral"} />
@@ -191,7 +192,15 @@ export function Years({ runtime, toEnd, onClose }: { runtime: Runtime; toEnd: bo
             </button>
           )}
           <button className="evening-sleep ready" onClick={primary} disabled={busy || (!dead && !current)}>
-            {busy ? "…" : dead ? "See how it ended" : `Live ${formatHistoricalYear(year)}`} <kbd>↵</kbd>
+            {busy
+              ? "…"
+              : dead
+                ? "See how it ended"
+                : stillConfined
+                  ? `Live ${formatHistoricalYear(year)} (confined)`
+                  : life.prison?.releaseYear === year
+                    ? `Step out in ${formatHistoricalYear(year)}`
+                    : `Live ${formatHistoricalYear(year)}`} <kbd>↵</kbd>
           </button>
         </footer>
       </div>

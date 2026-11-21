@@ -146,5 +146,20 @@ export function fairAt(lon: number, lat: number, year: number) {
   return fairs.find((f) => year >= f.years[0] && year <= f.years[1] && lon >= f.where[0] && lat >= f.where[1] && lon <= f.where[2] && lat <= f.where[3]);
 }
 
+/** A world's fair (not a palace) open at this place and year, if there is one. */
+export function worldsFairAt(lon: number, lat: number, year: number) {
+  return fairs.find((f) => !f.palace && year >= f.years[0] && year <= f.years[1] && contains(f.where, lon, lat));
+}
+
+/** A palace complex matching this place and year (named first, else a generated plan by region and seed). */
+export function palaceFor(lon: number, lat: number, year: number, seed: string) {
+  const named = fairs.find((f) => f.palace && !f.generated && year >= f.years[0] && year <= f.years[1] && contains(f.where, lon, lat));
+  if (named) return named;
+  const fit = fairs.filter(
+    (f) => f.palace && f.generated && year >= f.years[0] && year <= f.years[1] && (!f.within || contains(f.within, lon, lat)),
+  );
+  return fit.length ? fit[Math.floor(random(seed, "palace-door") * fit.length)] : undefined;
+}
+
 export const fairItemDefs: Record<string, ItemDef> = Object.fromEntries(Object.entries({ ...fairItems, ...londonItems, ...versaillesItems }).map(([id, [name, sprite, value, description]]) =>
   [id, { id, name, sprite, value, description, ...(id === "chocolate-square" ? { edible: 2 } : {}) }]));

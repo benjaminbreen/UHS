@@ -1,0 +1,71 @@
+import type { SewerPerson } from "../sewers/types";
+
+const always = { years: [-3000, 2100] } as const;
+
+export const prisonPeople: readonly SewerPerson[] = [
+  {
+    id: "prison-warder",
+    scope: always,
+    label: "Guard",
+    dress: "guard",
+    doing: "Patrolling the gallery",
+    manner: "explore",
+    party: [1, 0, 0],
+    women: 0,
+    ages: [26, 54],
+    lit: true,
+    weight: 1,
+    lines: [
+      "The guard raps the bars with his key ring. \"Keep your hands where I can see them.\"",
+      "\"Move along. Yard hour won't last all day.\"",
+      "The guard looks you up and down without a word.",
+    ],
+    note: "Paid keepers who lived off fees from the prisoners are documented for English gaols into the 1800s; the general type is inferred for other prisons.",
+    basis: "inferred",
+  },
+  {
+    id: "prison-inmate",
+    scope: always,
+    label: "Fellow prisoner",
+    dress: "laborer",
+    doing: "Passing the hours",
+    manner: "scavenge",
+    party: [1, 0, 0],
+    women: 0.35,
+    ages: [20, 58],
+    weight: 1,
+    lines: [
+      "\"First week's the worst. After that you stop counting the bells.\"",
+      "\"Mind the corner flagstones in the cell. The old mortar's soft as chalk if you've got iron.\"",
+      "\"The drain grate in the yard drops straight into the culvert. Don't let the guard catch you at it.\"",
+    ],
+    note: "Mixed wards of men and women, debtors and felons, are documented in pre-reform English gaols (John Howard, 1777).",
+    basis: "documented",
+  },
+  {
+    id: "prison-veteran",
+    scope: always,
+    label: "Old-timer",
+    dress: "clerk",
+    doing: "Trading news in the yard",
+    manner: "scavenge",
+    party: [1, 0, 0],
+    women: 0.25,
+    ages: [38, 68],
+    weight: 1,
+    lines: [
+      "\"Three ways out of here: pay off the debt, wait out the years, or pry the yard grate before the watch turns.\"",
+      "\"Don't get caught twice trying to run. First time they throw you in the hole; second time they beat you.\"",
+    ],
+    deal: {
+      verb: "Buy a smuggled file",
+      wants: "coin",
+      price: 3,
+      gives: { tool: 1 },
+      time: 120,
+      text: "The old-timer slips a narrow iron file into your palm without looking at you. \"Keep it out of sight when the guard walks by.\"",
+    },
+    note: "Long-term prisoners trading goods and favours inside is a general inference from gaol records.",
+    basis: "inferred",
+  },
+];

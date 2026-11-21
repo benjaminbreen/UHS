@@ -70,6 +70,13 @@ export type Life = {
   people: Record<string, Person>;
   died?: { year: number; age: number; cause: string };
   plot?: { year: number; ending: string };
+  prison?: {
+    style: string;
+    name: string;
+    charge: string;
+    kind: "fixed" | "debt" | "life" | "remand";
+    releaseYear?: number;
+  };
 };
 
 const TARGET: Record<Rank, number> = { destitute: 0.15, labouring: 0.35, middling: 0.55, gentry: 0.75, elite: 0.9 };
@@ -82,6 +89,15 @@ const spouseWord = (sex: Sex) => (sex === "female" ? "wife" : sex === "male" ? "
 const theirs = (sex: Sex) => (sex === "female" ? "her" : sex === "male" ? "his" : "their");
 const GOOD_END = /^(paid|repaid|cleared|settled|saved|recovered|mended|found|passed|kept|thanked|married|trusted|vouched|excused|upheld|helped|terms|truce|welcome|friends?|forgiven|grateful|glad|proud|honoured|rescued|spared|remitted|refunded|compensated|exempted|surety|respite|worked|returned|rebuilt|reaped|good|pleased|safe|yours|owned|eased|softened|thanks|kind|delivered|supplied|shared|bought|full)$/;
 const BAD_END = /^(seized|judged|lost|caught|shamed|condemned|fled|absent|missed|late|taken|hurt|raided|stripped|scorned|exposed|driven|blamed|faulted|broke|broken|short|empty|spoiled|cut|denied|refused|offended|rebuffed|let-down|dismissed|docked|halved|unsolved|owed|alone|ran|gone|swamped|soaked|sour|tired|weak|ignored|outdone|outsworn|outgave|kill)$/;
+
+const PRISON_YEAR_LINES = [
+  "Another year behind the bars. Seasons pass as shifting bands of light across the flags.",
+  "You scratched another tally into the mortar and learnt every turnkey's footstep by heart.",
+  "A winter cough went through the cells; you kept your blanket close and saw spring.",
+  "A bundle of clean linen and a short note reached you through the gatehouse.",
+  "The faces in the next cell changed twice over the year, while your own corner stayed the same.",
+  "Long wet months in the stone; you mended your coat by the high window and waited.",
+];
 
 const YEARS: Record<Ways["living"], { good: string[]; bad: string[]; robbed: string }> = {
   market: {
@@ -175,7 +191,27 @@ export function liveYears(engine: Engine): Life {
   const p = s.player, from = setting.year, born = from - (p.age ?? 30);
   const { h, people, rank } = cast(engine);
   const byId = new Map(s.actors.map((a) => [a.id, a]));
-  const life: Life = { from, born, years: [], people };
+  const prisonRun = s.complex?.kind === "prison" ? s.complex : undefined;
+  const life: Life = {
+    from,
+    born,
+    years: [],
+    people,
+    ...(prisonRun && !prisonRun.released
+      ? {
+          prison: {
+            style: prisonRun.style,
+            name: prisonRun.name,
+            charge: prisonRun.sentence.charge,
+            kind: prisonRun.sentence.kind,
+            releaseYear:
+              prisonRun.sentence.kind === "life"
+                ? undefined
+                : from + Math.max(1, Math.round(prisonRun.sentence.daysLeft / 365)),
+          },
+        }
+      : {}),
+  };
   const pSex = sexOf(p);
   const fabric = 0.004;
   let fortune = h?.fortune ?? TARGET[rank];
@@ -241,7 +277,30 @@ export function liveYears(engine: Engine): Life {
 
     fortune += (TARGET[rank] - fortune) * 0.1 + (r("drift") - 0.5) * 0.06;
     const one = (list: string[], key: string) => list[Math.floor(r(key) * list.length)];
-    if (r("good") < 0.07 + fortune * 0.04) {
+    const prison = life.prison;
+    let inPrison = !!prison && (!prison.releaseYear || year < prison.releaseYear);
+    if (inPrison && prison?.kind === "life" && year - from >= 5 && r("amnesty") < 0.04) {
+      prison.releaseYear = year;
+      inPrison = false;
+      lines.push({
+        kind: "news",
+        label: "Amnesty",
+        text: `A general pardon cleared the older warrants. The turnkey unbolted your gate at ${prison.name} and handed back your coat.`,
+      });
+    } else if (prison?.releaseYear === year) {
+      const span = year - from;
+      lines.push({
+        kind: "news",
+        label: "Released",
+        text: `Your sentence ended. The outer gate of ${prison.name} swung open, and you stepped back into ${setting.location} after ${span === 1 ? "a year" : `${inWords(span)} years`}.`,
+      });
+    }
+    if (inPrison) {
+      fortune -= 0.03;
+      if (year === from + 1 || r("prison-line") < 0.42) {
+        lines.push({ kind: "body", text: one(PRISON_YEAR_LINES, "prison-text") });
+      }
+    } else if (r("good") < 0.07 + fortune * 0.04) {
       lines.push({ kind: "good-year", text: one(living.good, "good-text") });
       event("good-year");
       fortune += 0.08;
@@ -413,12 +472,19 @@ export function liveYears(engine: Engine): Life {
       const who = deathPerson(age, pSex, role, year);
       const ill = conditions.some((c) => c.id === "consumption");
       const ailing = year === from + 1 ? (s.ailments ?? []).filter((a) => a.who === p.id && a.course === "die") : [];
-      const risk = Math.min(0.95, yearlyRisk(age, year, rank, epidemic(who, year) * want * (bad ? 1.2 : 1) * (ill ? 2.5 : 1), setting) + ailing.length * 0.15);
+      const risk = Math.min(0.95, yearlyRisk(age, year, rank, epidemic(who, year) * want * (bad ? 1.2 : 1) * (ill ? 2.5 : 1) * (inPrison ? 1.22 : 1), setting) + ailing.length * 0.15);
       if (age >= 105 || r("die", "player") < risk)
         life.died = {
           year, age,
           cause: causeOfDeath(who, year, r("cause", "player"), ill ? { text: "of consumption (tuberculosis)", weight: 3 } : undefined),
         };
+    }
+    if (inPrison) {
+      for (const l of lines) {
+        if ((l.kind === "born" || l.kind === "wed" || l.kind === "died" || l.kind === "left") && !l.note) {
+          l.note = "Word reached you by letter in prison.";
+        }
+      }
     }
     if (life.died?.year === year) {
       events.push({ year, kind: "died", name: p.name });
@@ -597,6 +663,19 @@ export function liveOn(engine: Engine, life: Life, year: number): Engine {
       if (plot) plot.aim = aim;
     }
     ensureLifeAim(s, setting);
+  }
+  if (s.complex?.kind === "prison" && life.prison) {
+    if (life.prison.releaseYear !== undefined && year >= life.prison.releaseYear) {
+      const out = { ...s.complex.out }, served = life.prison.releaseYear - life.from;
+      s.actors = s.actors.filter((a) => !a.underground);
+      p.pos = { ...out, space: "outside" };
+      p.direction = 2;
+      delete s.complex;
+      delete s.fugitive;
+      engine.event(`After ${served === 1 ? "a year" : `${inWords(served)} years`} in ${life.prison.name}, the outer gate closes behind you and you step back into ${setting.location}.`, "world");
+    } else if (s.complex.sentence.kind !== "life") {
+      s.complex.sentence.daysLeft = Math.max(1, s.complex.sentence.daysLeft - span * 365);
+    }
   }
   return new Engine(world, engine.items, s);
 }

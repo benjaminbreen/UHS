@@ -171,6 +171,25 @@ export function mineEnter(h: ComplexHost, b: Place) {
   return true;
 }
 
+/** Drop into the local underground sewer directly (e.g. from a prison yard drain grate). */
+export function sewerEnterFrom(h: ComplexHost, world: Point, message: string) {
+  const key = lidKey(world);
+  const site = siteOf(h, key, "sewer");
+  if (!site) return false;
+  const light = caveLightFor(Math.max(site.place.year, 1950));
+  const before = h.state.complex;
+  h.state.complex = { kind: "sewer", site: key, light: light.id, left: light.burns, surge: 0 };
+  const level = arrive(h, 1, "entry");
+  if (!level) {
+    if (before) h.state.complex = before;
+    else delete h.state.complex;
+    return false;
+  }
+  h.advance(30);
+  h.event(`${message} ${light.lit}`, "world");
+  return true;
+}
+
 const thingAt = (h: ComplexHost, id: string) => {
   const c = tunnelRun(h.state) && sewerLevelOf(h, h.state.player.pos.space);
   const thing = c?.level.things.find((t) => `sewer-thing:${t.id}` === id);

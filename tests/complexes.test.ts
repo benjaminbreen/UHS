@@ -558,4 +558,261 @@ describe("tombs", () => {
     expect(e.act({ actionId: "break", expectedRevision: e.state.revision, command: { type: "interact", target: `tomb-thing:${wall.id}`, action: "complex" } }).status).toBe("completed");
     expect(e.blocked(wall.x, wall.y, L.space)).toBe(false);
   });
+
+  it("enters world's fairs (with ticket), palaces (free), and cliff tombs from the open map", async () => {
+    const { tombMouthAt } = await import("../src/core/tomb");
+
+    // 1. World's fair gate charges admission; palace door opens freely.
+    const paris = resolveSetting("A baker in Paris, 1889");
+    if (!("setting" in paris)) throw new Error(paris.error);
+    const pe = smallSession(paris.setting, "fair-gate-fast");
+    const door = pe.world.places[0];
+    door.venueRoom = { venue: "paris-1889", room: "trocadero" };
+    pe.state.player.pos = { x: door.entrance.x, y: door.entrance.y, space: "outside" };
+    pe.state.player.inventory.coin = 0;
+    pe.act({ actionId: "short", expectedRevision: pe.state.revision, command: { type: "interact", target: door.id, action: "enter" } });
+    expect(pe.state.player.pos.space).toBe("outside");
+    pe.state.player.inventory.coin = 10;
+    pe.act({ actionId: "in", expectedRevision: pe.state.revision, command: { type: "interact", target: door.id, action: "enter" } });
+    expect(pe.state.player.pos.space).toBe("fair:paris-1889:trocadero");
+
+    const palace = resolveSetting("A smith in York, 1300");
+    if (!("setting" in palace)) throw new Error(palace.error);
+    const ye = smallSession(palace.setting, "palace-door-fast");
+    const hall = ye.world.places[0];
+    hall.venueRoom = { venue: "versailles", room: "forecourt" };
+    ye.state.player.pos = { x: hall.entrance.x, y: hall.entrance.y, space: "outside" };
+    ye.state.player.inventory.coin = 0;
+    ye.act({ actionId: "palace-in", expectedRevision: ye.state.revision, command: { type: "interact", target: hall.id, action: "enter" } });
+    expect(ye.state.player.pos.space).toBe("fair:versailles:forecourt");
+    // A smith off the street is stopped at the private bedchamber, can slip the guard coin to pass,
+    // while a courtier walks straight in.
+    const stepTo = (eng: typeof ye, to: string) => {
+      const p = eng.state.player;
+      const ex = (eng.areaOf(p.pos.space) as FairLevel).exits.find((q) => q.to.endsWith(`:${to}`))!;
+      p.pos.x = ex.x + (ex.w >> 1);
+      p.pos.y = ex.y + (ex.h >> 1);
+      eng.advance(1);
+    };
+    for (const room of ["royal-court", "guard-room", "antechamber"]) stepTo(ye, room);
+    expect(ye.state.player.pos.space).toBe("fair:versailles:antechamber");
+    stepTo(ye, "bedchamber");
+    expect(ye.state.player.pos.space).toBe("fair:versailles:antechamber");
+    expect(ye.state.events.at(-1)!.text).toMatch(/household|rank/i);
+    ye.state.player.inventory.coin = 5;
+    expect(ye.complexVerb()).toMatchObject({ target: "fair-bribe" });
+    ye.act({ actionId: "bribe", expectedRevision: ye.state.revision, command: { type: "interact", target: "fair-bribe", action: "complex" } });
+    expect(ye.state.player.inventory.coin).toBe(0);
+    stepTo(ye, "bedchamber");
+    expect(ye.state.player.pos.space).toBe("fair:versailles:bedchamber");
+
+    // A smith pushing repeatedly at a private chamber escalates through halt -> fury -> rough ejection.
+    const rough = smallSession(palace.setting, "palace-rough-fast");
+    const roughHall = rough.world.places[0];
+    roughHall.venueRoom = { venue: "versailles", room: "antechamber" };
+    rough.state.player.pos = { x: roughHall.entrance.x, y: roughHall.entrance.y, space: "outside" };
+    rough.state.player.inventory.coin = 5;
+    const hp0 = rough.state.player.health ?? 100;
+    rough.act({ actionId: "r-in", expectedRevision: rough.state.revision, command: { type: "interact", target: roughHall.id, action: "enter" } });
+    stepTo(rough, "bedchamber"); // 1st warning: halt
+    expect(rough.state.player.pos.space).toBe("fair:versailles:antechamber");
+    stepTo(rough, "bedchamber"); // 2nd warning: fury + doubled bribe (10)
+    expect(rough.state.player.pos.space).toBe("fair:versailles:antechamber");
+    expect(rough.inspect("fair-bribe")?.affordances[0]?.label).toContain("10");
+    expect(rough.signals.some((s) => s.kind === "cue" && s.cue === "fury")).toBe(true);
+    stepTo(rough, "bedchamber"); // 3rd try: shoved, bruised, fined, thrown into the local medieval keep!
+    expect(rough.state.player.pos.space).toBe("prison:medieval-keep.0:main");
+    expect(rough.state.complex?.kind).toBe("prison");
+    expect(rough.state.player.health).toBeLessThan(hp0);
+    expect(rough.state.player.inventory.coin).toBe(2);
+    expect(rough.signals.some((s) => s.kind === "cue" && s.cue === "shove")).toBe(true);
+
+    const noble = smallSession(palace.setting, "palace-noble-fast");
+    noble.state.player.role = "Courtier";
+    const nobleHall = noble.world.places[0];
+    nobleHall.venueRoom = { venue: "versailles", room: "antechamber" };
+    noble.state.player.pos = { x: nobleHall.entrance.x, y: nobleHall.entrance.y, space: "outside" };
+    noble.act({ actionId: "noble-in", expectedRevision: noble.state.revision, command: { type: "interact", target: nobleHall.id, action: "enter" } });
+    stepTo(noble, "bedchamber");
+    expect(noble.state.player.pos.space).toBe("fair:versailles:bedchamber");
+
+    // 2. Cliff opening in New Kingdom Thebes (Luxor) offers a rock-cut tomb entrance from outside.
+    const thebes = resolveSetting("A mason in Luxor, 1110 BCE");
+    if (!("setting" in thebes)) throw new Error(thebes.error);
+    const te = smallSession(thebes.setting, "thebes-tomb-fast");
+    // Find any cliff opening coordinate that caveAt accepts on limestone and verify tombMouthAt + entry.
+    const { caveAt } = await import("../src/render/edge-faces");
+    let spot: { x: number; y: number } | undefined;
+    for (let y = -40; y <= 40 && !spot; y++)
+      for (let x = -40; x <= 40 && !spot; x++)
+        if ((((x * 73856093) ^ (y * 19349663)) & 1) === 0 && caveAt("limestone", x * 16 + 8, y * 16 - 1)?.cx !== undefined && Math.floor(caveAt("limestone", x * 16 + 8, y * 16 - 1)!.cx / 16) === x)
+          spot = { x, y };
+    expect(spot).toBeDefined();
+    te.world.topography = (_x, y) => ({
+      height: y <= spot!.y - 1 ? 2 : 0,
+      surface: "grass",
+      rock: "limestone",
+    });
+    expect(tombMouthAt(te.world, spot!.x, spot!.y)?.style.id).toBe("theban");
+    te.state.player.pos = { x: spot!.x, y: spot!.y, space: "outside" };
+    const target = `tomb-mouth:${spot!.x},${spot!.y}`;
+    expect(te.inspect(target)?.affordances[0]?.label).toBe("Enter the tomb");
+    te.act({ actionId: "tomb-in", expectedRevision: te.state.revision, command: { type: "interact", target, action: "complex" } });
+    expect(te.state.player.pos.space).toBe(`tomb:theban.${spot!.x},${spot!.y}:0`);
+  });
+
+  it.runIf(!!process.env.FULL)("places a fair gate in Paris 1889 and a palace complex door on York 1300's castle", async () => {
+    const { createSettingSession } = await import("../src/runtime/session");
+    const paris = resolveSetting("A baker in Paris, 1889");
+    if (!("setting" in paris)) throw new Error(paris.error);
+    const pe = createSettingSession(paris.setting, "fair-gate-check");
+    expect(pe.world.places.some((p) => p.venueRoom?.venue === "paris-1889")).toBe(true);
+    const york = resolveSetting("A smith in York, 1300");
+    if (!("setting" in york)) throw new Error(york.error);
+    const ye = createSettingSession(york.setting, "castle-door-check");
+    expect(ye.world.places.some((p) => p.venueRoom)).toBe(true);
+  });
+});
+
+describe("prisons, gaols, and confinement", () => {
+  it("builds all four flagship prison styles on continuous plans with prompt spawns", async () => {
+    const { prisonStyles } = await import("../src/content/prisons");
+    const { prisonLevel, prisonWalkable } = await import("../src/world/prison");
+    for (const style of prisonStyles) {
+      const L = prisonLevel("seed", style, `${style.id}.0`);
+      expect(prisonWalkable(L.cells[L.entry.y * L.w + L.entry.x]), style.id).toBe(true);
+      expect(L.exits?.some((e) => e.to === "outside"), `${style.id} gate exit`).toBe(true);
+      expect(L.things.some((t) => t.id === "grate"), `${style.id} drain grate`).toBe(true);
+      expect(L.things.some((t) => t.id === "loose-stone"), `${style.id} wall crack`).toBe(true);
+    }
+    const r = resolveSetting("A debtor in London, 1750");
+    if (!("setting" in r)) throw new Error(r.error);
+    expect(r.setting.below).toBe("prison");
+    const e = smallSession(r.setting, "fleet-1750");
+    expect(e.state.player.pos.space).toBe("prison:debtors-gaol.0:main");
+    const area = e.areaOf(e.state.player.pos.space)!;
+    const spoon = area.things!.find((t) => t.id === "spoon")!;
+    const stone = area.things!.find((t) => t.id === "loose-stone")!;
+    // Hide spoon, pry loose stone 3 times, and break out to the street.
+    e.state.player.pos = { x: spoon.x, y: spoon.y, space: e.state.player.pos.space };
+    e.act({ actionId: "spoon", expectedRevision: e.state.revision, command: { type: "interact", target: "prison-thing:spoon", action: "complex" } });
+    expect(e.state.player.inventory.tool).toBeGreaterThanOrEqual(1);
+    e.state.player.pos = { x: stone.x, y: stone.y, space: e.state.player.pos.space };
+    for (let i = 0; i < 3; i++) {
+      e.act({ actionId: `pry-${i}`, expectedRevision: e.state.revision, command: { type: "interact", target: "prison-thing:loose-stone", action: "complex" } });
+    }
+    expect(e.state.player.pos.space).toBe("outside");
+    expect(e.state.complex).toBeUndefined();
+    expect(e.state.fugitive?.prison).toBeTruthy();
+  });
+
+  it("escalates escape-catch penalties from solitary to corporal punishment to execution", () => {
+    const r = resolveSetting("A convict in London, 1870");
+    if (!("setting" in r)) throw new Error(r.error);
+    const e = smallSession(r.setting, "penitentiary-catch");
+    expect(e.state.player.pos.space).toBe("prison:cellular-penitentiary.0:main");
+    const area = e.areaOf(e.state.player.pos.space)!;
+    const rack = area.things!.find((t) => t.id === "key-rack")!;
+    const tryStealKeys = (id: string) => {
+      const warder = e.state.actors.find((a) => a.pos.space === e.state.player.pos.space && /warder|turnkey/i.test(`${a.role} ${a.underground?.person ?? ""}`))!;
+      warder.pos = { x: rack.x, y: rack.y + 1, space: e.state.player.pos.space };
+      e.state.player.pos = { x: rack.x, y: rack.y + 1, space: e.state.player.pos.space };
+      e.act({ actionId: id, expectedRevision: e.state.revision, command: { type: "interact", target: "prison-thing:key-rack", action: "complex" } });
+    };
+    const hp0 = e.state.player.health ?? 100;
+    tryStealKeys("catch-1"); // 1st catch: solitary + +3 days
+    expect(e.state.player.pos.space).toBe("prison:cellular-penitentiary.0:main");
+    expect(e.state.player.health).toBe(hp0);
+    tryStealKeys("catch-2"); // 2nd catch: corporal punishment (-28 HP)
+    expect(e.state.player.pos.space).toBe("prison:cellular-penitentiary.0:main");
+    expect(e.state.player.health).toBeLessThan(hp0);
+    tryStealKeys("catch-3"); // 3rd catch: execution
+    expect(e.state.player.health).toBe(0);
+  });
+
+  it("links the drain grate into the local sewer, emits FF6 cues, and arrests hostile speech to authority", async () => {
+    const { evaluateHostileSpeech, isAuthorityRole } = await import("../src/core/prison");
+    expect(evaluateHostileSpeech("Good morning, officer")).toBe("none");
+    expect(evaluateHostileSpeech("You corrupt pig!")).toBe("insult");
+    expect(evaluateHostileSpeech("I will kill you and burn the palace!")).toBe("threat");
+    expect(isAuthorityRole({ role: "Palace Guard" })).toBe(true);
+    expect(isAuthorityRole({ role: "Baker" })).toBe(false);
+
+    // Arresting from outside puts the player into the local era/culture prison
+    const york = resolveSetting("A smith in York, 1300");
+    if (!("setting" in york)) throw new Error(york.error);
+    const ye = smallSession(york.setting, "speech-arrest");
+    expect(ye.arrest("insulting a magistrate", 7)).toBe(true);
+    expect(ye.state.player.pos.space).toBe("prison:medieval-keep.0:main");
+
+    // Stepping near a warder outside your cell triggers an FF6 halt cue
+    const warder = ye.state.actors.find((a) => a.pos.space === ye.state.player.pos.space && /warder|turnkey/i.test(`${a.role} ${a.underground?.person ?? ""}`))!;
+    ye.state.player.pos = { x: warder.pos.x + 2, y: warder.pos.y, space: ye.state.player.pos.space };
+    ye.advance(2);
+    expect(ye.signals.some((s) => s.kind === "cue" && s.cue === "halt")).toBe(true);
+
+    // Prying the drain grate twice in London 1750 drops directly into the underground sewer!
+    const lon = resolveSetting("A debtor in London, 1750");
+    if (!("setting" in lon)) throw new Error(lon.error);
+    const le = smallSession(lon.setting, "sewer-escape");
+    le.state.player.inventory.tool = 1;
+    // Move warders far away so we don't get caught while prying the grate
+    for (const a of le.state.actors) if (a.pos.space === le.state.player.pos.space) a.pos = { x: 1, y: 1, space: a.pos.space };
+    const grate = le.areaOf(le.state.player.pos.space)!.things!.find((t) => t.id === "grate")!;
+    le.state.player.pos = { x: grate.x, y: grate.y, space: le.state.player.pos.space };
+    le.act({ actionId: "grate-1", expectedRevision: le.state.revision, command: { type: "interact", target: "prison-thing:grate", action: "complex" } });
+    expect(le.signals.some((s) => s.kind === "cue" && s.cue === "rattle")).toBe(true);
+    le.act({ actionId: "grate-2", expectedRevision: le.state.revision, command: { type: "interact", target: "prison-thing:grate", action: "complex" } });
+    expect(le.state.complex?.kind).toBe("sewer");
+    expect(le.state.player.pos.space.startsWith("sewer:")).toBe(true);
+    expect(le.signals.some((s) => s.kind === "cue" && s.cue === "celebrate")).toBe(true);
+  });
+
+  it("serves short sentences and fast-forwards multi-year & life sentences through years.ts", async () => {
+    const { liveOn, liveYears } = await import("../src/core/time/years");
+
+    // 1. Short sentence: prison dailyGoals replace outdoor chores, sleep ticks daysLeft, serveSentence releases cleanly
+    const york = resolveSetting("A prisoner in a castle dungeon in York, 1300");
+    if (!("setting" in york)) throw new Error(york.error);
+    const shortE = smallSession(york.setting, "serve-short");
+    expect(shortE.state.complex?.kind).toBe("prison");
+    expect(shortE.state.events.some((ev) => /morning’s work begins/.test(ev.text))).toBe(false);
+    const goals = shortE.dailyGoals();
+    expect(goals.every((g) => g.id.startsWith("prison."))).toBe(true);
+    const d0 = shortE.state.complex?.kind === "prison" ? shortE.state.complex.sentence.daysLeft : 0;
+    shortE.sleep(8 * 3600);
+    expect(shortE.state.complex?.kind === "prison" ? shortE.state.complex.sentence.daysLeft : -1).toBe(d0 - 1);
+    expect(shortE.serveSentence()).toBe(true);
+    expect(shortE.state.complex).toBeUndefined();
+    expect(shortE.state.fugitive).toBeUndefined();
+    expect(shortE.state.player.pos.space).toBe("outside");
+
+    // 2. Multi-year convict (5-year sentence): stopping early stays confined; stopping at release frees you onto aged town
+    const conv = resolveSetting("A convict in London, 1870");
+    if (!("setting" in conv)) throw new Error(conv.error);
+    const convE = smallSession(conv.setting, "serve-years");
+    const age0 = convE.state.player.age ?? 30;
+    const life = liveYears(convE);
+    expect(life.prison?.releaseYear).toBe(1875);
+    const mid = liveOn(convE, life, 1872);
+    expect(mid.state.complex?.kind).toBe("prison");
+    expect(mid.state.player.age).toBe(age0 + 2);
+    if (mid.state.complex?.kind === "prison") expect(mid.state.complex.sentence.daysLeft).toBeLessThan(365 * 5);
+
+    const free = liveOn(convE, life, 1875);
+    expect(free.state.complex).toBeUndefined();
+    expect(free.state.player.pos.space).toBe("outside");
+    expect(free.state.player.age).toBe(age0 + 5);
+    expect(life.years.find((y) => y.year === 1875)?.lines.some((l) => l.label === "Released")).toBe(true);
+
+    // 3. Life sentence (political prisoner): stays confined across years
+    const pol = resolveSetting("A political prisoner in York, 1300");
+    if (!("setting" in pol)) throw new Error(pol.error);
+    const polE = smallSession(pol.setting, "serve-life");
+    const polLife = liveYears(polE);
+    expect(polLife.prison?.kind).toBe("life");
+    const polLater = liveOn(polE, polLife, 1303);
+    expect(polLater.state.complex?.kind).toBe("prison");
+    expect(polLater.state.player.age).toBe((polE.state.player.age ?? 30) + 3);
+  });
 });

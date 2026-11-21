@@ -7,11 +7,13 @@ import { fairAct, fairGround, fairInspect, fairLevelOf, fairTime, fairVerb, type
 import { caveAct, caveGround, caveInspect, caveLevelOf, caveTime, caveVerb, type CaveRun } from "./cave";
 import { sewerAct, sewerGround, sewerInspect, sewerLevelOf, sewerTime, sewerVerb, type SewerRun } from "./sewer";
 import { tombAct, tombGround, tombInspect, tombLevelOf, tombTime, tombVerb, type TombRun } from "./tomb";
+import { prisonAct, prisonGround, prisonInspect, prisonLevelOf, prisonTime, prisonVerb, type PrisonRun } from "./prison";
 import { folkArrive, type FolkHost } from "./tunnel-folk";
+import type { CueKind } from "./combat";
 import type { GameEvent, Snapshot as GameState, Position, Point, WorldModel } from "./types";
 
 /** The trip through a complex the player is on. */
-export type ComplexRun = CaveRun | SewerRun | FairRun | TombRun;
+export type ComplexRun = CaveRun | SewerRun | FairRun | TombRun | PrisonRun;
 /** What a complex remembers between visits: how far in, what was taken, what was killed, which areas were walked. */
 export type ComplexRecord = { deepest: number; done: string[]; slain: string[]; seen?: string[]; /** Areas whose props have been put in the world. */ stocked?: string[] };
 /** An area as the game holds it: the level, and the cells closed to feet right now. */
@@ -23,6 +25,8 @@ export type ComplexHost = {
   event(text: string, kind?: GameEvent["kind"], at?: Position): void;
   advance(seconds: number): void;
   hurt(damage: number, cause: string, injury?: string): void;
+  cue?(who: string, kind: CueKind, toward?: Point): void;
+  say?(who: string, text: string): void;
   itemName(id: string): string;
   /** Forget what was known about a cell's collision. */
   unblock(space: string, x: number, y: number): void;
@@ -156,6 +160,10 @@ type Kind = {
 };
 /** Every kind of complex. A new one is a row here, a generator in `world/`, and a view. */
 const KINDS: readonly Kind[] = [
+  {
+    spaces: ["tomb"], id: "tomb", runs: ["tomb"], outside: true, area: (h, s) => tombLevelOf(h, s), ground: (h, s, x, y) => tombGround(h, s, x, y), verb: (h) => tombVerb(h), inspect: (h, id) => tombInspect(h, id), act: (h, id) => tombAct(h, id), time: (h, t) => tombTime(h, t),
+    root: (run) => (run.kind === "tomb" ? { key: `tomb:${run.site}`, space: run.entry, title: run.name } : undefined),
+  },
   { spaces: ["cave"], id: "cave", runs: ["cave"], outside: true, area: (h, s) => caveLevelOf(h, s), ground: (h, s, x, y) => caveGround(h, s, x, y), verb: (h) => caveVerb(h), inspect: (h, id) => caveInspect(h, id), act: (h, id) => caveAct(h, id), time: (h, t) => caveTime(h, t) },
   { spaces: ["sewer", "mine"], id: "sewer", runs: ["sewer", "mine"], outside: true, area: (h, s) => sewerLevelOf(h, s), ground: (h, s, x, y) => sewerGround(h, s, x, y), verb: (h) => sewerVerb(h), inspect: (h, id) => sewerInspect(h, id), act: (h, id) => sewerAct(h, id), time: (h, t) => sewerTime(h, t) },
   {
@@ -163,8 +171,8 @@ const KINDS: readonly Kind[] = [
     root: (run) => (run.kind === "fair" ? { key: `fair:${run.fair}`, space: run.entry, title: run.name } : undefined),
   },
   {
-    spaces: ["tomb"], id: "tomb", runs: ["tomb"], area: (h, s) => tombLevelOf(h, s), ground: (h, s, x, y) => tombGround(h, s, x, y), verb: (h) => tombVerb(h), inspect: (h, id) => tombInspect(h, id), act: (h, id) => tombAct(h, id), time: (h, t) => tombTime(h, t),
-    root: (run) => (run.kind === "tomb" ? { key: `tomb:${run.site}`, space: run.entry, title: run.name } : undefined),
+    spaces: ["prison"], id: "prison", runs: ["prison"], area: (h, s) => prisonLevelOf(h, s), ground: (h, s, x, y) => prisonGround(h, s, x, y), verb: (h) => prisonVerb(h), inspect: (h, id) => prisonInspect(h, id), act: (h, id) => prisonAct(h, id), time: (h) => prisonTime(h),
+    root: (run) => (run.kind === "prison" ? { key: `prison:${run.site}`, space: run.entry, title: run.name } : undefined),
   },
 ];
 const ofSpace = (space: string) => KINDS.find((k) => k.spaces.some((s) => space.startsWith(`${s}:`)));
@@ -204,7 +212,7 @@ export function complexInspect(h: ComplexHost, id: string) {
 }
 
 export function complexAct(h: ComplexHost, id: string) {
-  (ofId(id) ?? ofRun(h) ?? KINDS[1]).act(h, id);
+  (ofId(id) ?? ofRun(h) ?? KINDS.find((k) => k.id === "sewer")!).act(h, id);
 }
 
 export function complexTime(h: ComplexHost, elapsed: number) {

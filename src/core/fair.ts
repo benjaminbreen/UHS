@@ -1,13 +1,88 @@
 import { propDefs } from "../content/props/catalog";
 import { fairById, fairFind, type Fair } from "../content/fairs";
-import { exitAt } from "../world/complex";
+import { prisonAt } from "../content/prisons";
+import { exitAt, N4, type AreaExit } from "../world/complex";
 import { fairLevel, fairSolid, fairSpace, fairWalkable, parseFairSpace, type FairLevel } from "../world/fair";
 import { areaTarget, arriveIn, cachedArea, complexRecord, takeFind, type ComplexHost } from "./complex";
+import { prisonEnter } from "./prison";
 import { folkDeal, folkTime } from "./tunnel-folk";
 import type { Inspection, Inventory, Point } from "./types";
 
 /** A day at a fair: which one, its first area, and the street cell the player came in from. */
-export type FairRun = { kind: "fair"; fair: string; name: string; entry: string; out: Point; took?: { at: Point; items: Inventory; clock: number } };
+export type FairRun = { kind: "fair"; fair: string; name: string; entry: string; out: Point; admitted?: boolean; warnings?: number; took?: { at: Point; items: Inventory; clock: number } };
+
+const PRIVATE_ROOMS = new Set(["bedchamber", "closet", "bath", "tablinum"]);
+const COURT_ROLES = /\b(?:ruler|king|queen|emperor|empress|prince|princess|duke|duchess|baron|baroness|count|countess|lord|lady|noble|courtier|aristocrat|minister|chancellor|vizier|satrap|wanax|pharaoh|shogun|mandarin|eunuch|senator|president|governor|ambassador|envoy|magistrate|judge|valet|chamberlain|steward|butler|secretary|scribe|guard|bodyguard|officer|captain|servant|maid|footman|retainer|attendant|priest|priestess|chaplain)\b/i;
+const GUARD_ACTOR = /guard|sentry|doorkeeper|usher|footman|steward|officer|soldier/i;
+const BRIBE = 5;
+const bribeCost = (run: FairRun) => ((run.warnings ?? 0) >= 2 ? BRIBE * 2 : BRIBE);
+
+function doorGuard(h: ComplexHost, space: string, at: Point) {
+  const inRoom = h.state.actors.filter((a) => a.pos.space === space && !a.dead);
+  const guards = inRoom.filter((a) => GUARD_ACTOR.test(`${a.role} ${a.underground?.person ?? ""}`));
+  const pool = guards.length ? guards : inRoom;
+  return pool.sort((a, b) => Math.hypot(a.pos.x - at.x, a.pos.y - at.y) - Math.hypot(b.pos.x - at.x, b.pos.y - at.y))[0];
+}
+
+function facePoint(from: Point, to: Point): 0 | 1 | 2 | 3 {
+  return Math.abs(to.x - from.x) > Math.abs(to.y - from.y) ? (to.x > from.x ? 1 : 3) : to.y > from.y ? 2 : 0;
+}
+
+/** On third palace intrusion: march into the local prison if one exists for this culture/era, else throw out the gate. */
+function ejectOrDetain(h: ComplexHost, run: FairRun, exit: AreaExit, guard?: (typeof h.state.actors)[number]) {
+  const p = h.state.player;
+  if (guard) {
+    guard.direction = facePoint(guard.pos, p.pos);
+    h.cue?.(guard.id, "shove", p.pos);
+    h.say?.(guard.id, "Seize them!");
+  }
+  h.cue?.("player", "struck", guard?.pos ?? { x: exit.x, y: exit.y });
+  h.hurt(8, "palace guard", "bruised shoulder");
+  const fine = Math.min(3, p.inventory.coin ?? 0);
+  if (fine > 0) p.inventory.coin = (p.inventory.coin ?? 0) - fine;
+  h.advance(900);
+  const s = h.world.pack.setting;
+  const jail = s && prisonAt(s.lon, s.lat, s.year, s.culture);
+  if (jail) {
+    for (const a of [...h.state.actors]) if (a.underground) h.folk.part(a.id);
+    prisonEnter(h, jail, { kind: "fixed", daysLeft: 14, charge: `trespassing near ${exit.name}` }, run.out);
+    return;
+  }
+  const coinName = fairById(run.fair)?.coin[fine === 1 ? 0 : 1] ?? "coins";
+  leave(
+    h,
+    fine > 0
+      ? `The guards seize you by the collar, relieve you of ${fine} ${coinName} for your trouble, and throw you back out the gate.`
+      : "The guards seize you by the collar, march you back through the court, and throw you out the gate.",
+  );
+  h.cue?.("player", "struck");
+}
+
+function palaceRoomRestricted(h: ComplexHost, run: FairRun, toSpace: string) {
+  if (run.admitted) return false;
+  const s = h.world.pack.setting;
+  if (s?.below === "fair" && s.venue === run.fair) return false;
+  const at = parseFairSpace(toSpace), fair = at && fairById(at.fair);
+  if (!at || !fair?.palace) return false;
+  const area = fair.areas.find((a) => a.id === at.area);
+  const room = area?.palace?.room ?? fair.palace.room;
+  if (!room || !PRIVATE_ROOMS.has(room)) return false;
+  const role = `${h.state.player.role} ${s?.role ?? ""} ${s?.brief?.work ?? ""}`;
+  return !COURT_ROLES.test(role);
+}
+
+function barredExitNear(h: ComplexHost, run: FairRun, level: FairLevel): AreaExit | undefined {
+  const { x, y } = h.state.player.pos;
+  return level.exits.find(
+    (e) =>
+      e.to !== "outside" &&
+      x >= e.x - 1 &&
+      x <= e.x + e.w &&
+      y >= e.y - 1 &&
+      y <= e.y + e.h &&
+      palaceRoomRestricted(h, run, e.to),
+  );
+}
 
 export const fairRun = (h: ComplexHost) => (h.state.complex?.kind === "fair" ? h.state.complex : undefined);
 
@@ -41,12 +116,13 @@ export function fairEnter(h: ComplexHost, fair: Fair, free = false, room = fair.
   h.event(`${free ? "" : `${fair.words.gate ?? "You push through the turnstile."} `}${fair.name[0].toUpperCase()}${fair.name.slice(1)}: ${level.name}, ${fair.words.enter}`, "world");
 }
 
-function leave(h: ComplexHost) {
+function leave(h: ComplexHost, message?: string) {
   const run = fairRun(h)!, p = h.state.player;
+  const isPalace = !!fairById(run.fair)?.palace;
   for (const a of [...h.state.actors]) if (a.underground) h.folk.part(a.id);
   p.pos = { ...run.out, space: "outside" };
   delete h.state.complex;
-  h.event("You go out through the gate into the street.");
+  h.event(message ?? (isPalace ? "You step back outside." : "You go out through the gate into the street."), message ? "world" : "action");
 }
 
 const thingOf = (level: FairLevel, id: string) => level.things.find((t) => `fair-thing:${t.id}` === id);
@@ -69,6 +145,18 @@ export function fairInspect(h: ComplexHost, id: string): Inspection | undefined 
     return { id, name: f.name, kind: "object", pos, description: f.look, source: f.source, affordances: [] };
   }
   const act = (label: string, enabled = true, reason?: string) => ({ label, enabled, reason, command: { type: "interact" as const, target: id, action: "complex" as const } });
+  const run = fairRun(h)!;
+  if (id === "fair-bribe") {
+    const barred = barredExitNear(h, run, level);
+    if (!barred) return undefined;
+    const cost = bribeCost(run);
+    const coinName = fairById(level.fair)?.coin[1] ?? "coins";
+    return {
+      id, name: "Palace guard", kind: "place", pos: { x: barred.x, y: barred.y, space: level.space },
+      description: `The doorway to ${barred.name} is kept for the household and those with rank.`,
+      affordances: [act(`Slip the guard ${cost} ${coinName}`, (p.inventory.coin ?? 0) >= cost, "Not enough money")],
+    };
+  }
   const lift = /^fair-lift:(\d+)$/.exec(id);
   if (lift) {
     const l = level.lifts[Number(lift[1])];
@@ -99,15 +187,41 @@ export function fairInspect(h: ComplexHost, id: string): Inspection | undefined 
 }
 
 export function fairVerb(h: ComplexHost) {
-  const c = fairRun(h) && fairLevelOf(h, h.state.player.pos.space);
-  const id = c && areaTarget(h.state.player, c.level, "fair", (t) => !!t.prop || fairFind(t.find)?.on === "table" || !!fairFind(t.find)?.catalog), offer = id ? fairInspect(h, id)?.affordances[0] : undefined;
-  return offer?.enabled && offer.command.type === "interact" ? { label: offer.label, target: offer.command.target } : undefined;
+  const run = fairRun(h), c = run && fairLevelOf(h, h.state.player.pos.space);
+  if (!run || !c) return undefined;
+  const id = areaTarget(h.state.player, c.level, "fair", (t) => !!t.prop || fairFind(t.find)?.on === "table" || !!fairFind(t.find)?.catalog);
+  const offer = id ? fairInspect(h, id)?.affordances[0] : undefined;
+  if (offer?.enabled && offer.command.type === "interact") return { label: offer.label, target: offer.command.target };
+  const bribe = barredExitNear(h, run, c.level) ? fairInspect(h, "fair-bribe")?.affordances[0] : undefined;
+  return bribe?.enabled && bribe.command.type === "interact" ? { label: bribe.label, target: bribe.command.target } : undefined;
 }
 
 export function fairAct(h: ComplexHost, id: string) {
   const run = fairRun(h), p = h.state.player, c = run && fairLevelOf(h, p.pos.space);
   if (!run || !c) return;
   if (id.startsWith("folk-")) return void folkDeal(h.folk, id);
+  if (id === "fair-bribe") {
+    const barred = barredExitNear(h, run, c.level);
+    if (!barred) return;
+    const cost = bribeCost(run);
+    const guard = doorGuard(h, c.level.space, p.pos);
+    if ((p.inventory.coin ?? 0) < cost) {
+      if (guard) h.cue?.(guard.id, "refuse", p.pos);
+      return void h.event("The guard shakes his head. \"Not enough.\"");
+    }
+    p.inventory.coin = (p.inventory.coin ?? 0) - cost;
+    run.admitted = true;
+    run.warnings = 0;
+    if (guard) {
+      guard.direction = facePoint(guard.pos, p.pos);
+      h.cue?.("player", "pay", guard.pos);
+      h.cue?.(guard.id, "take-coin", p.pos);
+      h.say?.(guard.id, "Keep out of sight.");
+    }
+    h.advance(15);
+    h.event("The guard pockets the coin and steps aside. \"Keep out of sight.\"", "social");
+    return;
+  }
   const { level } = c;
   const lift = /^fair-lift:(\d+)$/.exec(id);
   if (lift) {
@@ -153,6 +267,47 @@ export function fairTime(h: ComplexHost) {
   const exit = exitAt(c.level, p.pos.x, p.pos.y);
   if (exit?.to === "outside") return leave(h);
   if (exit) {
+    if (palaceRoomRestricted(h, run, exit.to)) {
+      const [dx, dy] = N4[exit.inward];
+      p.pos.x += dx;
+      p.pos.y += dy;
+      const guard = doorGuard(h, c.level.space, p.pos);
+      if (guard) {
+        guard.direction = facePoint(guard.pos, p.pos);
+        // Step the guard closer to the doorway so the FF6 confrontation plays right in front of the player.
+        const gx = guard.pos.x + Math.sign(p.pos.x - guard.pos.x);
+        const gy = guard.pos.y + Math.sign(p.pos.y - guard.pos.y);
+        if (Math.hypot(guard.pos.x - p.pos.x, guard.pos.y - p.pos.y) > 2 && !fairGround(h, c.level.space, gx, gy)) {
+          guard.pos = { x: gx, y: gy, space: c.level.space };
+        }
+      }
+      run.warnings = (run.warnings ?? 0) + 1;
+      if (run.warnings >= 3) return ejectOrDetain(h, run, exit, guard);
+      if (run.warnings === 2) {
+        if (guard) {
+          h.cue?.(guard.id, "fury", p.pos);
+          h.say?.(guard.id, "I said BACK OFF!");
+        }
+        h.cue?.("player", "alarm", guard?.pos ?? { x: exit.x, y: exit.y });
+        h.event(
+          `The guard stamps forward, red in the face. "I told you once! One more step toward ${exit.name} and we throw you out."`,
+          "social",
+        );
+        return;
+      }
+      if (guard) {
+        h.cue?.(guard.id, "halt", p.pos);
+        h.say?.(guard.id, "Hold it!");
+      }
+      h.cue?.("player", "alarm", guard?.pos ?? { x: exit.x, y: exit.y });
+      h.event(
+        guard
+          ? `The guard bars the doorway to ${exit.name}. "Private quarters — only the household and those with rank may pass."`
+          : `A steward stops you at the doorway to ${exit.name}. "Only the household and those with rank beyond this point."`,
+        "social",
+      );
+      return;
+    }
     const next = arrive(h, exit.to, c.level.space);
     if (next) h.event(next.name[0].toUpperCase() + next.name.slice(1) + ".", "action");
     return;
