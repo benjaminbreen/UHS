@@ -21,6 +21,7 @@ import { distance } from "../core/types";
 import { narratorProvider } from "./turn";
 import { plotLine, plotTemplate } from "../core/plot";
 import { STANCE_VOICE, stanceOf } from "../content/plots/stance";
+import { evaluateHostileSpeech, isAuthorityRole } from "../core/prison";
 import { voiceBrief } from "./voice";
 // Dialogue has no Gemini path; it follows the setting otherwise.
 const dialogueProvider = () => (narratorProvider() === "haiku" ? "haiku" : "openai");
@@ -558,6 +559,45 @@ export async function dialogueTurn(
 ): Promise<DialogueReply> {
   const actor = runtime.engine.state.actors.find((candidate) => candidate.id === actorId);
   if (!actor) return { text: "", error: "That person is no longer here." };
+  if (isAuthorityRole(actor) && runtime.engine.state.complex?.kind !== "prison") {
+    const fug = runtime.engine.state.fugitive;
+    if (fug) {
+      if (runtime.engine.arrest(`escaped from ${fug.prison}`, 21, actor)) {
+        delete runtime.engine.state.fugitive;
+        runtime.touch();
+        return {
+          text: `Wait a moment—you're the prisoner who broke out of ${fug.prison}! Seize them!`,
+          mood: "angry",
+          ended: true,
+        };
+      }
+    }
+  }
+  if (input.trim() && isAuthorityRole(actor) && runtime.engine.state.complex?.kind !== "prison") {
+    const hostility = evaluateHostileSpeech(input);
+    if (hostility !== "none") {
+      const warned = actor.memories.includes("Warned player for insolence");
+      if (hostility === "threat" || warned) {
+        const charge = hostility === "threat" ? `threatening ${actor.role || "the watch"}` : `insulting ${actor.role || "an officer"}`;
+        if (runtime.engine.arrest(charge, hostility === "threat" ? 14 : 5, actor)) {
+          runtime.touch();
+          return {
+            text: hostility === "threat" ? "Treason and threats! Seize them — throw them in the cells!" : "I warned you to hold your tongue! Guards — lock them up!",
+            mood: "angry",
+            ended: true,
+          };
+        }
+      } else {
+        actor.memories.push("Warned player for insolence");
+        runtime.engine.cue(actor.id, "fury", runtime.engine.state.player.pos);
+        runtime.touch();
+        return {
+          text: "Watch your tongue! One more word like that and you'll spend the week in the cells!",
+          mood: "angry",
+        };
+      }
+    }
+  }
   const transcript = history
     .slice(-24)
     .map((line) => `${line.speaker === "npc" ? actor.name : "Player"}: ${line.action ? `[${line.action}] ` : ""}${line.text}`);

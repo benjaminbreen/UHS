@@ -226,6 +226,8 @@ export function sceneDigest(engine: Engine, input: string, elsewhere = ""): stri
     herd ? `Your own animals: ${herdCount(herd.speciesId, herd.members.length)}, ${inside ? "outside" : compass(p.pos, herd.pos)}${herd.gateId ? ", kept in your pen" : ""}.` : "",
     elsewhere,
     people.length ? `People nearby:\n${people.join("\n")}` : "Nobody in sight.",
+    ...engine.gameCircles().filter((c) => Math.hypot(c.at.x - p.pos.x, c.at.y - p.pos.y) <= 16)
+      .map((c) => `A game of ${c.game.title.toLowerCase()} in the street at (${c.at.x},${c.at.y}): ${c.players.map((a) => a.name).join(", ")}.`),
     things.length ? `Things nearby:\n${things.join("\n")}` : "",
     places.length ? `Buildings nearby:\n${places.join("\n")}` : "",
     s.ledger?.length

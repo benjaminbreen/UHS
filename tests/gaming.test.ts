@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { augustus, throwBones, throwKind, winners } from "../src/core/games/knucklebones";
 import { HOME, urApply, urMoves, urPick, urStart, type UrState } from "../src/core/games/ur";
 import { random } from "../src/core/random";
-import { tableGameFor } from "../src/content/games";
+import { openGameFor, tableGameFor } from "../src/content/games";
+import { createSettingSession } from "../src/runtime/session";
 import { venuesFor } from "../src/content/venues";
 import { panelSetting } from "../scripts/review/panel";
 
@@ -63,5 +64,21 @@ describe("where the tables are", () => {
     expect(tableGameFor(panelSetting("rome", 100), "gaming-house")?.id).toBe("knucklebones-roman");
     expect(tableGameFor(panelSetting("mesopotamia", -500), "tavern")?.id).toBe("ur");
     expect(tableGameFor(panelSetting("london", 1700), "gaming-house")).toBeUndefined();
+  });
+});
+
+describe("street games", () => {
+  it("sits idle people down to the local game in the street, and lets the player in", () => {
+    expect(openGameFor(panelSetting("london", 1700))).toBeUndefined();
+    const e = createSettingSession(panelSetting("alexandria", -244), "games");
+    const noon = Math.floor(e.state.clock / 86400) * 86400 + 11 * 3600;
+    e.advance(noon - e.state.clock);
+    let circle;
+    for (let i = 0; i < 12 && !(circle = e.gameCircles().find((c) => c.players.every((a) => a.pos.x === a.errand!.to.x && a.pos.y === a.errand!.to.y))); i++) e.advance(600);
+    expect(circle?.game.id).toBe("knucklebones-greek");
+    expect(circle!.players).toHaveLength(3);
+    e.state.player.pos = { x: circle!.at.x, y: circle!.at.y + 2, space: "outside" };
+    expect(e.gameCircleHere()).toBeDefined();
+    expect(e.validate({ type: "gamble", game: "knucklebones-greek", net: 0, minutes: 10 })).toBeUndefined();
   });
 });

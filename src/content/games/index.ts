@@ -15,6 +15,8 @@ export type TableGame = {
   scope: CharacterScope;
   /** The venues it is played in here. */
   kinds: readonly VenueKind[];
+  /** Also played sitting on the ground in streets and squares, where passers-by can join. */
+  open?: boolean;
   /** Knucklebones only: how the pot is won, and what the best throw is called. */
   rule?: "most" | "augustus";
   best?: string;
@@ -45,6 +47,8 @@ export const tableGames: readonly TableGame[] = [
     // the gate bulls at Khorsabad, where the guards sat.
     scope: { years: [-2600, 100], bounds: [34, 28, 58, 38] },
     kinds: ["tavern", "gaming-house"],
+    // Boards scratched into pavements and gate stones, at Ur and at Khorsabad.
+    open: true,
     seats: 1,
     lines: [
       ["Throw", "Four three-sided dice, two tips of each marked. Count the marked tips that land up: 0 to 4."],
@@ -65,6 +69,7 @@ export const tableGames: readonly TableGame[] = [
     aka: "astragaloi",
     scope: { years: [-800, -30], bounds: [19, 22, 40, 45] },
     kinds: ["gaming-house", "tavern"],
+    open: true,
     rule: "most",
     best: "Aphrodite",
     cheat: true,
@@ -88,6 +93,7 @@ export const tableGames: readonly TableGame[] = [
     aka: "tali",
     scope: { years: [-300, 500], bounds: [-10, 24, 45, 56] },
     kinds: ["gaming-house", "tavern"],
+    open: true,
     rule: "augustus",
     best: "Venus",
     seats: 3,
@@ -107,4 +113,9 @@ export const tableGames: readonly TableGame[] = [
 export function tableGameFor(setting: WorldSetting | undefined, kind: VenueKind | undefined): TableGame | undefined {
   if (!setting || !kind) return;
   return tableGames.find((g) => g.kinds.includes(kind) && matchesCharacterScope(g.scope, setting));
+}
+
+/** What people sit down to in the street here, if anything. */
+export function openGameFor(setting: WorldSetting | undefined): TableGame | undefined {
+  return setting && tableGames.find((g) => g.open && matchesCharacterScope(g.scope, setting));
 }
