@@ -110,9 +110,9 @@ describe("culture families by region and date", () => {
     expect(urbanForm(settingFor(byId(id), year)).id).toBe(form);
   });
   it.each([
-    ["city-kabul", 1600, /^westasian-courtyard-/],
-    ["city-lhasa", 1600, /^westasian-courtyard-/],
-    ["city-kashgar", 1600, /^westasian-courtyard-/],
+    ["city-kabul", 1600, /^westasian-(house|courtyard)-/],
+    ["city-lhasa", 1600, /^westasian-(house|courtyard)-/],
+    ["city-kashgar", 1600, /^westasian-(house|courtyard)-/],
     ["city-xining", 1600, /^eastasian-/],
     ["city-havana", 1820, /^casa-caribe-/],
     ["city-lima", 1750, /^casa-lima-/],

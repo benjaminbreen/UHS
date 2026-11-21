@@ -1,4 +1,5 @@
 import { gathersPlants } from "../../content/characters/livelihoods";
+import { worksiteStationFamily } from "../../render/characters/poses";
 import { foodPatch, seasonAt } from "../../core/livelihood";
 import { crops as farmCrops } from "../../content/agriculture/crops";
 import { waterfrontProfiles } from "../../content/settlements/waterfronts";
@@ -880,15 +881,19 @@ export function bindWorkStations(
       if (s.activity === "draw-water" && o.kind !== "well") return undefined;
       const family = o.kind === "crop" ? "crop"
         : o.kind === "well" ? propDefs[o.prop ?? ""]?.family ?? "well"
-        : propDefs[o.prop ?? ""]?.family;
-      if (!family || !families.includes(family)) return undefined;
+        : propDefs[o.prop ?? ""]?.family ?? worksiteStationFamily(o.sprite);
+      const isWorksiteStation = !!family && family.startsWith("worksite-") && o.id.endsWith("-station");
+      if (!family || (!isWorksiteStation && !families.includes(family))) return undefined;
+      if (isWorksiteStation && s.activity !== "work") return undefined;
       if (o.owner && o.owner !== id && !o.owner.endsWith("-community") &&
           (!home || !plan.work.get(o.owner) ||
            cellKey(plan.work.get(o.owner)!.home.x, plan.work.get(o.owner)!.home.y) !== cellKey(home.x, home.y))) return undefined;
       const distance = Math.hypot(o.pos.x - s.pos.x, o.pos.y - s.pos.y);
-      if (distance > (o.owner === id ? 12 : 7)) return undefined;
-      const stand = beside(o, s.pos);
-      return stand && { o, family, stand, score: distance - (o.owner === id ? 2 : 0) };
+      if (distance > (isWorksiteStation ? 10 : o.owner === id ? 12 : 7)) return undefined;
+      const stand = isWorksiteStation
+        ? ([0, -1, 1, -2, 2].map((dx) => ({ x: o.pos.x + dx, y: o.pos.y + 1 })).find(free) ?? beside(o, s.pos))
+        : beside(o, s.pos);
+      return stand && { o, family, stand, score: distance - (isWorksiteStation ? 6 : o.owner === id ? 2 : 0) };
     }).filter((v): v is NonNullable<typeof v> => !!v)
       .sort((a, b) => a.score - b.score)[0];
     if (matched) return { ...s, pos: matched.stand,
@@ -924,9 +929,14 @@ export function shoreRoutine(plan: SettlementPlan, seed: string, pack: Pack, id:
   const home = plan.work.get(id)?.home ?? member.landing;
   const counter = plan.objects.find(o=>o.id===member.catchId+"-counter");
   const sell: Station | undefined = counter && {pos:h!.sale, activity:"visit", label:"Taking fish to the seller", minutes:15, carry:basket, target:{...counter.pos,id:counter.id,family:"fish-counter"}};
+  const catchObj = plan.objects.find(o=>o.id===member.catchId);
+  const netObj = plan.objects.find(o=>o.pos.space==="outside" && (worksiteStationFamily(o.sprite)?.startsWith("worksite-net") || worksiteStationFamily(o.sprite)==="worksite-seine-pegs") && Math.hypot(o.pos.x-member.nets.x,o.pos.y-member.nets.y)<4);
   const sort: Station = { pos: counter ? member.sorting : nearby(plan, seed, `${id}-sort`, member.sorting),
-    ...(counter && { target:{...member.sorting,id:member.catchId,family:"fish-sorting"} }), activity: "work", label: "Gutting and sorting the catch", minutes: 40, toward: "the catch" };
-  const mend: Station = { pos: nearby(plan, seed, `${id}-mend`, member.nets), activity: "work", label: `Mending ${gear ?? "the nets"}`, minutes: 40, toward: "the nets" };
+    ...(counter ? { target:{...member.sorting,id:member.catchId,family:"fish-sorting"} } : catchObj ? { target:{...catchObj.pos,id:catchObj.id,family:worksiteStationFamily(catchObj.sprite) ?? "fish-sorting"} } : {}),
+    activity: "work", label: "Gutting and sorting the catch", minutes: 40, toward: "the catch" };
+  const mend: Station = { pos: nearby(plan, seed, `${id}-mend`, member.nets),
+    ...(netObj ? { target:{...netObj.pos,id:netObj.id,family:worksiteStationFamily(netObj.sprite) ?? "worksite-net-frame"} } : {}),
+    activity: "work", label: `Mending ${gear ?? "the nets"}`, minutes: 40, toward: "the nets" };
   const keep = keepingStation(plan, seed, id, member);
   if (role === "child") {
     const rack = keep[0] && propDefs[plan.objects.find(o=>o.id===member.process?.id)?.prop ?? ""]?.family==="drying-rack";

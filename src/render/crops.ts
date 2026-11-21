@@ -130,31 +130,57 @@ function gardenRow(
   oy: number,
   top: number,
 ): CropSpot[] {
-  const drawn = drawnStage(f.stage);
+  let drawn = drawnStage(f.stage);
   if (!drawn) return [];
   const crop = (crops as Partial<typeof crops>)[f.crop];
   if (!crop || !planted(crop)) return [];
   const wx = x + ox,
     wy = y + oy;
-  // One to the cell, alternating side to side down the row: twice the spacing
-  // of a solid bed, and staggered so it reads as planting rather than a grid.
-  const along = f.axis === "x" ? wx : wy;
-  const at = 8 + (mod(along, 2) ? 3 : -3);
-  const px = f.axis === "x" ? at : 8,
-    py = f.axis === "x" ? 10 : at;
-  return [
-    {
-      x: x * 16 + px,
-      y: top + py,
-      wx: wx * 16 + px,
-      wy: wy * 16 + py,
-      cx: wx,
-      cy: wy,
-      crop: f.crop,
-      stage: drawn,
-      phase: hash(wx, wy, 655) * 6.28,
-    },
-  ];
+  // Kitchen greens and roots are succession-planted: overwintered greens grow
+  // alongside spring seedlings so beds look tended rather than uniformly bare.
+  if (drawn === "sprout" && (f.crop === "vegetables" || f.crop === "turnip") && hash(Math.floor(wx / 2), wy, 661) < 0.55)
+    drawn = "green";
+  const tall = crop.kind === "tree" || crop.kind === "vine" || crop.height === "tall";
+  if (tall) {
+    const jx = Math.floor(hash(wx, wy, 651) * 3) - 1;
+    const jy = Math.floor(hash(wx, wy, 653) * 3) - 1;
+    const px = 8 + jx, py = 10 + jy;
+    return [
+      {
+        x: x * 16 + px,
+        y: top + py,
+        wx: wx * 16 + px,
+        wy: wy * 16 + py,
+        cx: wx,
+        cy: wy,
+        crop: f.crop,
+        stage: drawn,
+        phase: hash(wx, wy, 655) * 6.28,
+      },
+    ];
+  }
+  // Two neat hand-planted kitchen-garden rows per cell, inset clear of bed edging.
+  const pts =
+    f.axis === "x"
+      ? [
+          [5 + Math.floor(hash(wx, wy, 651) * 2), 6 + Math.floor(hash(wx, wy, 653) * 2)],
+          [11 - Math.floor(hash(wx, wy, 657) * 2), 11 + Math.floor(hash(wx, wy, 659) * 2)],
+        ]
+      : [
+          [6 + Math.floor(hash(wx, wy, 651) * 2), 5 + Math.floor(hash(wx, wy, 653) * 2)],
+          [11 + Math.floor(hash(wx, wy, 657) * 2), 11 - Math.floor(hash(wx, wy, 659) * 2)],
+        ];
+  return pts.map(([px, py], idx) => ({
+    x: x * 16 + px,
+    y: top + py,
+    wx: wx * 16 + px,
+    wy: wy * 16 + py,
+    cx: wx,
+    cy: wy,
+    crop: f.crop,
+    stage: drawn,
+    phase: hash(wx, wy, 655 + idx * 4) * 6.28,
+  }));
 }
 const mod = (n: number, d: number) => ((n % d) + d) % d;
 

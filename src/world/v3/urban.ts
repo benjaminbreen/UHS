@@ -1,4 +1,5 @@
 import { civicProfile, royalGround } from "../../content/settlements/civic";
+import { palaceFor, worldsFairAt } from "../../content/fairs";
 import type { StreetMaterial } from "../../content/settlements/streets";
 import { regionalLook } from "../../content/graphics/regional-looks";
 import { mediterraneanShrineFrame, watchtowerFrame, retainedTowerStyle } from "../../content/graphics/mediterranean-buildings";
@@ -542,6 +543,15 @@ export function urbanNeighborhood(
   const hallIndex = requests.length;
   if (hall) requests.push({ position: "square", entries: ["south"],
     sizes: [7, 3].map(m => [hall.footprint[0] + m * 2, hall.footprint[1] + m + 2]) });
+  const worldsFair = central ? worldsFairAt(pack.setting!.lon, pack.setting!.lat, pack.setting!.year) : undefined;
+  const fairFrame = worldsFair
+    ? (buildingModels["hall-palace-pavilion-small-0"] ? "hall-palace-pavilion-small-0" : ranges[0])
+    : undefined;
+  const fairIndex = requests.length;
+  if (worldsFair && fairFrame) {
+    const [fw, fh] = buildingModel(fairFrame).footprint;
+    requests.push({ position: "outer", entries: ["south"], sizes: [[fw + 4, fh + 4]] });
+  }
   const venueIndex = requests.length;
   for (const p of precincts) requests.push({ ...p.siting, sizes: p.options.map(o => o.size) });
   const sanctuaryIndex = requests.length;
@@ -1014,12 +1024,13 @@ export function urbanNeighborhood(
       const mx = garden.x + garden.w + 1, my = cy - (main.footprint[1] >> 1);
       const wx = royal ? mx + main.footprint[0] : estate.x + estate.w - wing.footprint[0] - 4;
       const wy = royal ? my - 2 : cy - 5 - Math.floor(wide * 2);
+      const fallbackPalace = seat.rooms ? undefined : palaceFor(pack.setting!.lon, pack.setting!.lat, pack.setting!.year, seed);
       const stand = (frame: string, x: number, y: number, part: "residence" | "north-wing" | "south-wing", name: string) => {
         const model = buildingModel(frame), [w, h] = model.footprint;
         const rect = { x, y, w, h }, point = { x: x + model.entrance[0], y: y + model.entrance[1] };
         claimLandmark({ rect, yard: rect, frame, point, nx: 0, ny: -1, workPoint: point,
           piece: { name, about: model.description, claim: `civic-palace-${part}`,
-            venueRoom: seat.rooms && { venue: seat.id, room: seat.rooms[part] } } });
+            venueRoom: seat.rooms ? { venue: seat.id, room: seat.rooms[part] } : fallbackPalace && { venue: fallbackPalace.id, room: fallbackPalace.entry } } });
         api.paintForecourt({ x: point.x - 1, y: point.y, w: 3, h: 1 }, "slab");
       };
       stand(mainFrame, mx, my, "residence", main.label);
@@ -1046,8 +1057,10 @@ export function urbanNeighborhood(
       const x = ward.x + 2 + Math.floor(rand("hall-bay") * (ward.w - w - 3));
       const y = ward.y + (skin.hall === "hall-keep" && ward.h >= 17 ? 4 : ward.h <= 13 ? 1 : 2);
       const rect = { x, y, w, h }, point = { x: x + model.entrance[0], y: y + model.entrance[1] };
+      const castlePalace = palaceFor(pack.setting!.lon, pack.setting!.lat, pack.setting!.year, seed);
       claimLandmark({ rect, yard: rect, frame, point, nx: 0, ny: -1, workPoint: point,
-        piece: { name: model.label, about: model.description, claim: "civic-castle-hall" } });
+        piece: { name: model.label, about: model.description, claim: "civic-castle-hall",
+          ...(castlePalace && { venueRoom: { venue: castlePalace.id, room: castlePalace.entry } }) } });
       reserve({ x: point.x - 1, y: point.y, w: 3, h: 2 });
       standCircuit(wall, skin.tower);
       const paving = skin.paving;
@@ -1106,6 +1119,17 @@ export function urbanNeighborhood(
         api.courtWell({ x: wellX, y: wellY }, seat.id);
       }
     }
+  }
+  const fairGround = worldsFair && fairFrame ? layout.grounds[fairIndex] : undefined;
+  if (worldsFair && fairFrame && fairGround) {
+    const model = buildingModel(fairFrame), [fw, fh] = model.footprint;
+    const fx = fairGround.x + Math.floor((fairGround.w - fw) / 2), fy = fairGround.y + 1;
+    const rect = { x: fx, y: fy, w: fw, h: fh }, point = { x: fx + model.entrance[0], y: fy + model.entrance[1] };
+    api.paintGround(fairGround, "paving", worldsFair.id, worldsFair.name);
+    claimLandmark({ rect, yard: rect, frame: fairFrame, point, nx: 0, ny: -1, workPoint: point,
+      piece: { name: `${worldsFair.name} Gate`, about: `The public entrance to ${worldsFair.name}.`, claim: "fair-gate",
+        venueRoom: { venue: worldsFair.id, room: worldsFair.entry } } });
+    api.paintForecourt({ x: point.x - 1, y: point.y, w: 3, h: 2 }, "slab");
   }
   for (const ground of layout.grounds) {
     if (!ground) continue;

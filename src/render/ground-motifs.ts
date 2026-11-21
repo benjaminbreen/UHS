@@ -184,7 +184,7 @@ const tuftTones = {
 };
 export function grassTuftFrame(scene: Phaser.Scene, habitat: Habitat | undefined, dry: boolean, season: string, roll: number) {
   const kit = pickKit(groundKits, habitat?.ecology, habitat?.colorway, habitat?.vegetation);
-  const frame = kit && kitTuftFrame(scene, kit, habitat?.dry ? `${season}-dry` : season, roll);
+  const frame = kit && kitTuftFrame(scene, kit, dry || habitat?.dry ? `${season}-dry` : season, roll);
   if (frame) return frame;
   const style = dry || season === "autumn" || season === "winter" ? "dry"
     : habitat?.ecology === "boreal-woodland" ? "cool" : "green";

@@ -21,7 +21,13 @@ const GUTTER = 13;
  * straight edge, a white edge line, one centre line and a gravel shoulder.
  * Undefined past the shoulder, where the verge's own ground shows. */
 export function blacktopPixel(
-  f: { radius: number; side?: number; along?: number; paved?: "yellow" | "white" | "none" | "gravel" },
+  f: {
+    radius: number;
+    side?: number;
+    along?: number;
+    paved?: "yellow" | "white" | "none" | "gravel";
+    junction?: boolean;
+  },
   wx: number,
   wy: number,
   dust = 0,
@@ -42,6 +48,7 @@ export function blacktopPixel(
   // in dry country a shallow scrape the sand fills.
   if (d >= r + 6) return;
   if (d >= r + 2) {
+    if (f.junction) return;
     const depth = 1 - Math.abs(d - (r + 4)) / 2;
     if (dust >= 0.5)
       return depth > 0.6 ? tint(SAND, -12) : depth > 0.2 ? tint(SAND, -6) : undefined;
@@ -65,7 +72,7 @@ export function blacktopPixel(
   if (Math.abs(d - r * 0.45) <= 2) base = tint(base, 5);
   const flake = valueNoise(wx, wy, 2.5, 792);
   const paint = (c: RGB) => (flake > 0.74 ? mix(c, base, 0.72) : mix(c, base, Math.max(0, flake - 0.3) * 0.3));
-  if (d >= r - 6 && d < r - 4) return paint(WHITE);
+  if (!f.junction && d >= r - 6 && d < r - 4) return paint(WHITE);
   if (f.paved === "yellow" && d < 3 && d >= 1) return paint(YELLOW);
   if (f.paved === "white" && d < 1 && mod(along, 48) < 20) return paint(WHITE);
   return base;

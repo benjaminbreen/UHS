@@ -68,7 +68,7 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
     rear.x = Math.max(0, (front.w-rear.w) >> 1);
     front.y = rear.d + BEHIND;
     return {entry:front,doorways:[through(front,rear)]};
-  })() : profile.institutionPlan ? institutionRanges(boxes, c.seed, profile.institutionPlan === "court") : court ? aroundCourt(boxes, court, !!profile.observance) : inRows(boxes);
+  })() : profile.institutionPlan === "corridor" ? corridorPlan(boxes, c.seed) : profile.institutionPlan ? institutionRanges(boxes, c.seed, profile.institutionPlan === "court") : court ? aroundCourt(boxes, court, !!profile.observance) : inRows(boxes);
   const w = Math.max(...boxes.map((b) => b.x + b.w)), d = Math.max(...boxes.map((b) => b.y + b.d));
   const entrance = entry.x + Math.floor(entry.w / 2);
   // Each room planned in its own coordinates, kept clear where a doorway meets it.
@@ -156,6 +156,125 @@ function institutionRanges(boxes: Box[], seed: number, court: boolean) {
   for (const b of boxes) b.x -= left;
   const doorways = wings.map(b => through(below(b, front), b));
   for (let i = 1; i < front.length; i++) doorways.push(beside(front[i-1], front[i]));
+  return { entry, doorways };
+}
+
+/** Procedural grand inn / hotel floorplan: a lobby opening into a long hallway
+ * (double-loaded, L-shaped, or twin-gallery by seed) with individual private rooms off it. */
+function corridorPlan(boxes: Box[], seed: number) {
+  const [entry, hall, ...rest] = boxes;
+  // Seeded shuffle of private rooms so room types & sizes vary each building.
+  const rooms = [...rest];
+  let s = (seed * 2654435761) >>> 0;
+  const next = () => ((s = (Math.imul(s, 1664525) + 1013904223) >>> 0) / 4294967296);
+  for (let i = rooms.length - 1; i > 0; i--) {
+    const j = Math.floor(next() * (i + 1));
+    [rooms[i], rooms[j]] = [rooms[j], rooms[i]];
+  }
+  const variant = Math.abs(seed) % 3;
+  const doorways: Link[] = [];
+
+  if (variant === 1 && rooms.length >= 5) {
+    // L-shaped winged corridor: south lobby + lower hall running east, with a parlour/landing
+    // connecting cleanly up to a quiet upper suite wing (no walking through another bedroom).
+    const landingIdx = rooms.findIndex((b) => b.role === "hall");
+    const landing = landingIdx >= 0 ? rooms.splice(landingIdx, 1)[0] : rooms.pop()!;
+    const upper = rooms.slice(0, 2);
+    const midNorth = [...rooms.slice(2, 4), landing];
+    const southSide = rooms.slice(4);
+    const topD = Math.max(...upper.map((b) => b.d));
+    const midD = Math.max(...midNorth.map((b) => b.d));
+    const hallY = topD + BEHIND + midD + BEHIND;
+    const hallW = midNorth.reduce((n, b) => n + b.w + BESIDE, -BESIDE);
+    hall.x = 0; hall.y = hallY; hall.w = Math.max(hallW, entry.w + 6); hall.d = 4;
+    let mx = 0;
+    for (const b of midNorth) {
+      b.x = mx; b.y = hallY - BEHIND - b.d; mx += b.w + BESIDE;
+      doorways.push(through(hall, b));
+    }
+    // Upper wing sits above the landing: right suite opens through the landing, left suite opens beside it or through the landing.
+    landing.w = Math.max(landing.w, upper[0].w);
+    upper[1].x = landing.x;
+    upper[1].y = landing.y - BEHIND - upper[1].d;
+    upper[0].x = Math.max(0, upper[1].x - upper[0].w - BESIDE);
+    upper[0].y = landing.y - BEHIND - upper[0].d;
+    doorways.push(through(landing, upper[1]));
+    doorways.push(beside(upper[0], upper[1]));
+    const southRow = [entry, ...southSide];
+    const southY = hallY + hall.d + BEHIND;
+    let sx = 0;
+    for (const b of southRow) {
+      b.x = sx; b.y = southY; b.d = entry.d; sx += b.w + BESIDE;
+      doorways.push(through(b, hall));
+    }
+    hall.w = Math.max(hall.w, sx - BESIDE);
+    return { entry, doorways };
+  }
+
+  if (variant === 2 && rooms.length >= 5) {
+    // Vertical-spine T-plan corridor: Lobby south -> tall North-South central hallway with private rooms
+    // stacked along both West and East sides (opening via `beside`), plus an end suite at the north cap.
+    const cap = rooms[0];
+    const sideRooms = rooms.slice(1);
+    const west = sideRooms.filter((_, i) => i % 2 === 0);
+    const east = sideRooms.filter((_, i) => i % 2 === 1);
+    const stackH = (list: Box[]) => list.reduce((n, b) => n + b.d + BEHIND, -BEHIND);
+    const spineH = Math.max(stackH(west), stackH(east), 10);
+    const westW = west.length ? Math.max(...west.map((b) => b.w)) : 0;
+    const spineW = 4;
+    const hallX = westW ? westW + BESIDE : 0;
+    const hallY = cap.d + BEHIND;
+    hall.x = hallX; hall.y = hallY; hall.w = spineW; hall.d = spineH;
+    cap.x = hallX + Math.floor((spineW - cap.w) / 2);
+    if (cap.x < 0) cap.x = 0;
+    cap.y = 0;
+    doorways.push(through(hall, cap));
+    let wy = hallY;
+    for (const b of west) {
+      b.x = hallX - BESIDE - b.w; b.y = wy; wy += b.d + BEHIND;
+      doorways.push(beside(b, hall));
+    }
+    let ey = hallY;
+    for (const b of east) {
+      b.x = hallX + spineW + BESIDE; b.y = ey; ey += b.d + BEHIND;
+      doorways.push(beside(hall, b));
+    }
+    const totalW = Math.max(
+      hallX + spineW + (east.length ? BESIDE + Math.max(...east.map((b) => b.w)) : 0),
+      cap.x + cap.w,
+      entry.w,
+    );
+    entry.x = Math.max(0, Math.min(totalW - entry.w, hallX + Math.floor((spineW - entry.w) / 2)));
+    entry.y = hallY + spineH + BEHIND;
+    doorways.push(through(entry, hall));
+    return { entry, doorways };
+  }
+
+  // Variant 0 (default): Classic double-loaded hotel corridor — Lobby centered south, flanked by guest rooms,
+  // opening north into a long corridor with a full row of individual guest rooms along the north wall.
+  const northCount = Math.max(3, Math.ceil(rooms.length * 0.6));
+  const north = rooms.slice(0, northCount);
+  const south = rooms.slice(northCount);
+  const left = south.slice(0, Math.floor(south.length / 2));
+  const right = south.slice(left.length);
+  const front = [...left, entry, ...right];
+  const northW = north.reduce((n, b) => n + b.w + BESIDE, -BESIDE);
+  const frontW = front.reduce((n, b) => n + b.w + BESIDE, -BESIDE);
+  const totalW = Math.max(northW, frontW);
+  const northD = Math.max(...north.map((b) => b.d));
+  const hallY = northD + BEHIND;
+  hall.x = 0; hall.y = hallY; hall.w = totalW; hall.d = 4;
+  let nx = Math.floor((totalW - northW) / 2);
+  for (const b of north) {
+    b.x = nx; b.y = hallY - BEHIND - b.d; nx += b.w + BESIDE;
+    doorways.push(through(hall, b));
+  }
+  const southY = hallY + hall.d + BEHIND;
+  let fx = Math.floor((totalW - frontW) / 2);
+  for (const b of front) {
+    b.x = fx; b.y = southY; b.d = entry.d; fx += b.w + BESIDE;
+    doorways.push(through(b, hall));
+  }
   return { entry, doorways };
 }
 

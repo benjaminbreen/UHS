@@ -57,7 +57,7 @@ export type RoomParams = {
   /** A public room's layout: `serve` sets a counter and seats about the
    * floor, `gather` rings the seats round the fire, `rows` faces them all to
    * an altar on the back wall. Absent in a dwelling. */
-  program?: "serve" | "gather" | "rows" | "shop" | "works" | "ward" | "passage";
+  program?: "serve" | "gather" | "rows" | "shop" | "works" | "ward" | "inn" | "corridor" | "passage";
   hour: number;
   wear: number;
   soot: number;
@@ -1054,6 +1054,78 @@ export function planRoom(p: RoomParams): Prop[] {
             place("screen", 2, 1, (cx,cy) => cx === x && cy === y-1 ? 1 : -1, false, true);
         }
       }
+  } else if (p.program === "corridor") {
+    // Hotel / grand inn hallway: runner carpet down the spine and spaced warm sconces along the walls.
+    const lightKind: Kind = p.sleep === "mat" ? "lantern" : "lamp";
+    const addRunner = p.floorPattern !== "carpet" && p.floorPattern !== "mat" && p.floorPattern !== "broadloom";
+    if (w >= d) {
+      const ry = Math.floor(d / 2);
+      if (addRunner && w >= 6)
+        for (let x = 1; x + 3 <= w - 1; x += 4) add("rug", x, Math.max(0, ry - 1), 3, Math.min(2, d), false, false);
+      for (let x = 2; x < w - 1; x += 5)
+        place(lightKind, 1, 1, (cx, cy) => (cx === x && cy === top[x] ? 1 : -1), true, true);
+    } else {
+      const rx = Math.floor((w - 2) / 2);
+      if (addRunner && d >= 6)
+        for (let y = 1; y + 3 <= d - 1; y += 4) add("rug", Math.max(0, rx), y, Math.min(2, w), 3, false, false);
+      for (let y = 1; y < d - 1; y += 4)
+        place(lightKind, 1, 1, (cx, cy) => ((cx === 0 || cx === w - 1) && cy === y ? 1 : -1), true, true);
+    }
+  } else if (p.program === "inn") {
+    const kind = p.sleep === "mat" ? "mat" : "bed";
+    const mid = Math.floor(w / 2);
+    const addRugs = p.floorPattern !== "carpet" && p.floorPattern !== "mat" && p.floorPattern !== "broadloom";
+    const lightKind: Kind = p.sleep === "mat" ? "lantern" : "lamp";
+    if (w <= 7) {
+      // Individual private guest room: one cozy bed/mat on a rug in a seeded corner, bedside chest, and a seeded room accent.
+      const leftBed = (p.seed & 1) === 0;
+      const bx = leftBed ? 1 : Math.max(1, w - 3);
+      const by = 1;
+      if (addRugs) add("rug", Math.max(0, bx - 1), by, Math.min(3, w), Math.min(2, d - by), false, false);
+      const bed = place(kind, 2, 1, (cx, cy) => cx === bx && cy === by ? 1 : -1, false, true);
+      if (bed) clear(bed.x, bed.y + 1);
+      const oppX = leftBed ? w - 2 : 1;
+      const accent = (p.seed >>> 2) % 4;
+      if (accent === 0) {
+        const dk = place("desk", 2, 1, (cx, cy) => (cy === by && cx === (leftBed ? w - 3 : 1) ? 1 : -1), false, true);
+        if (dk) place("stool", 1, 1, (cx, cy) => (cx === dk.x && cy === dk.y + 1 ? 1 : -1), false, true);
+      } else if (accent === 1) {
+        place(p.seating === "floor" ? "lowtable" : "armchair", 1, 1, (cx, cy) => (cx === oppX && cy === by + 1 ? 1 : -1), false, true);
+      } else if (accent === 2) {
+        place("basin", 1, 1, (cx, cy) => (cx === oppX && cy === by ? 1 : -1), false, true);
+        place("plant", 1, 1, (cx, cy) => (cx === oppX && cy === d - 2 ? 1 : -1), false, true);
+      } else {
+        place("chest", 1, 1, (cx, cy) => (cx === oppX && cy === by ? 1 : -1), false, true);
+        place("shelf", 1, 1, (cx, cy) => (cx === oppX && cy === top[oppX] ? 1 : -1), false, true);
+      }
+      place(lightKind, 1, 1, (cx, cy) => (cx === (leftBed ? 1 : w - 2) && cy === top[cx] ? 1 : -1), true, true);
+      place(lightKind, 1, 1, (cx, cy) => (cx === oppX && cy === top[cx] ? 1 : -1), true, true);
+    } else {
+      // Shared sleeping chamber: patterned rugs under neat bays of beds/mats, bedside chests, warm lamps, and a clear central aisle.
+      for (let y = 2; y < d - 1; y += 3)
+        for (const x of [1, w - 3]) {
+          if (x + 2 > w - 1 || (x <= mid && x + 2 > mid && w >= 7)) continue;
+          if (addRugs) {
+            const rx = Math.max(0, x - 1), rw = Math.min(3, w - rx), rd = Math.min(2, d - y);
+            if (rw >= 2 && rd >= 2) add("rug", rx, y, rw, rd, false, false);
+          }
+          const bed = place(kind, 2, 1, (cx, cy) => cx === x && cy === y ? 1 : -1, false, true);
+          if (bed) {
+            clear(bed.x, bed.y + 1);
+            if (p.styles.screen === "privacy" && y > 2)
+              place("screen", 2, 1, (cx, cy) => cx === x && cy === y - 1 ? 1 : -1, false, true);
+            else if (y === 2) {
+              const sideX = x === 1 ? x + 2 : x - 1;
+              if (sideX > 0 && sideX < w - 1 && sideX !== mid)
+                place("chest", 1, 1, (cx, cy) => cx === sideX && cy === y ? 1 : -1, false, true);
+            }
+          }
+        }
+      place(p.sleep === "mat" ? "shelf" : "dresser", 2, 1, (cx, cy) => (cy === top[cx] && top[cx + 1] === cy ? 4 - Math.abs(cx + 1 - w / 2) : -1), false, true);
+      for (const lx of [1, mid, w - 2])
+        place(lightKind, 1, 1, (cx, cy) => (cx === lx && cy === top[lx] ? 1 : -1), true, true);
+      place(lightKind, 1, 1, (cx, cy) => (cx === mid && cy === Math.min(d - 2, 4) ? 1 : -1), true, true);
+    }
   } else if (p.program === "works") {
     // Machines in rows across the floor, a gangway down the middle and at the
     // walls, the furnace at the head of a foundry.
@@ -1213,7 +1285,7 @@ export function planRoom(p: RoomParams): Prop[] {
   }
 
   const sleepKind = p.sleep as Kind;
-  const bed = d >= 4 && p.sleep !== "none" && p.program !== "ward" ? place(sleepKind, 2, 1, (x, y) => walls(x, y, 2, 1) * 1.5 + y * 0.3 - near(x, y, 2, 1, fire) * 0.1) : undefined;
+  const bed = d >= 4 && p.sleep !== "none" && p.program !== "ward" && p.program !== "inn" ? place(sleepKind, 2, 1, (x, y) => walls(x, y, 2, 1) * 1.5 + y * 0.3 - near(x, y, 2, 1, fire) * 0.1) : undefined;
   // Room to climb in: the chest and lamp go beside the bed, not across it.
   if (bed) clear(bed.x, bed.y + 1);
   if (bed && p.finish >= 1 && has("chest")) place("chest", 1, 1, (x, y) => near(x, y, 1, 1, bed) * 0.8 + walls(x, y, 1, 1) * 0.3);

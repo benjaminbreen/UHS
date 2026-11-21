@@ -768,7 +768,7 @@ export class Runtime {
           at: performance.now(),
           arc: {
             height: command.jump
-              ? 14 + leap.distance * 7 + this.leapLift + (this.engine.state.player.riding?.cycle ? 4 : 0)
+              ? 14 + leap.distance * 7 + this.leapLift + (this.engine.state.player.riding?.cycle ? 4 : this.engine.state.player.riding ? 10 : 0)
               : leap.kind === "leap"
                 ? 15
                 : leap.kind === "drop"
@@ -2276,12 +2276,14 @@ export class Runtime {
       if (primary?.kind === "strike" && !primary.command) primary = ride;
       else if (!price && (!alternate || alternate.kind === "talk" || alternate.kind === "look")) alternate = ride;
     }
-    const mountInPrimary = !!mountVerb && primary?.kind === "strike" && !primary.command;
-    if (mountInPrimary) primary = mountVerb;
-    if (mountVerb && !mountInPrimary && (!alternate || alternate.kind === "talk" || alternate.kind === "look")) alternate = mountVerb;
+    if (mountVerb && (!alternate || alternate.kind === "talk" || alternate.kind === "look" || alternate.kind === "set-down" || alternate.kind === "pickup")) alternate = mountVerb;
     const stablekeeper = !mountVerb && !fighting && !descend && !p.afloat && p.pos.space === "outside" ? this.engine.nearbyStablekeeper() : undefined;
-    if (stablekeeper && primary?.kind === "strike" && !primary.command) {
-      primary = {
+    if (
+      stablekeeper &&
+      (!alternate || alternate.kind === "talk" || alternate.kind === "look" || alternate.kind === "set-down" || alternate.kind === "pickup") &&
+      !this.engine.validate({ type: "interact", action: "stable-service", target: "hire" })
+    ) {
+      alternate = {
         kind: "use",
         label: "Hire a mount",
         command: { type: "interact", action: "stable-service", target: "hire" },

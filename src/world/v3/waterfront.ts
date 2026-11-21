@@ -378,7 +378,7 @@ export function planWaterfront(
       }
       for(const [i,p] of [home,gear].entries()) {
         claim(yards[i]);grade(p);
-        paint({x:p.x-1,y:p.y+p.h,w:p.w+2,h:2},"dirt",true,3,profile.pier ? "yard" : undefined);
+        if(profile.pier) paint({x:p.x-1,y:p.y+p.h,w:p.w+2,h:2},"dirt",true,3,"yard");
         cells(p,(x,y)=>plan.built?.add(key(x,y)));
         for(const q of buildingArtCells(p.sprite,p))plan.placement.clearance.add(key(q.x,q.y));
         plan.places.push(p);
@@ -404,13 +404,21 @@ export function planWaterfront(
           launch.dry.push({x,y});
         }
         cells(launch.pier,(x,y)=>{plan.surface.set(key(x,y),"bridge");plan.reserved.add(key(x,y));});
-      } else for(const p of launch.dry)paint({...p,w:1,h:1},"dirt");
+      } else for(const p of launch.dry) {
+        // Only the central haul-way is bare earth; the outer clearance flanks stay local ground.
+        const across=Math.abs((p.x-launch.origin.x)*tx+(p.y-launch.origin.y)*ty);
+        if(across<=1)paint({...p,w:1,h:1},"dirt");
+      }
       for(const patch of [netSite.patch,sortSite.patch])claim(patch);
       const boatId=`${id}-${n}-boat`,netsId=`${id}-${n}-nets`,catchId=`${id}-${n}-catch`;
       const fishing={...fishingPractice(s,water,salt,1),...(hull ? {hull} : {}),...(profile.method ? {method:profile.method} : {})};
       const craft=general && hull ? hullNames[hull] : undefined;
+      const stake={x:bank.x-dx+tx*2,y:bank.y-dy+ty*2};
+      const mooringPoint=launch.pier
+        ? {x:launch.water.x-dx+tx,y:launch.water.y-dy+ty}
+        : sample(stake.x,stake.y).water>0 ? stake : undefined;
       plan.objects.push(
-        {id:boatId,name:craft?.name ?? practice?.boat ?? "Household fishing boat",kind:"monument",sprite:boatFrame,...(launch.pier && {mooring:{x:launch.water.x-dx+tx,y:launch.water.y-dy+ty}}),pos:{...boat,space:"outside"},inventory:{},owner,
+        {id:boatId,name:craft?.name ?? practice?.boat ?? "Household fishing boat",kind:"monument",sprite:boatFrame,...(mooringPoint && {mooring:mooringPoint}),pos:{...boat,space:"outside"},inventory:{},owner,
           description:craft?.description ?? practice?.boatDescription ?? "An open clinker-built rowing boat with thwarts and stored oars, moored at its household's landing."},
         {id:catchId,name:practice?.catch ?? (general ? "Catch-sorting place" : "Catch-sorting table"),kind:"container",sprite:profile.sorting,pos:{...sortingAt,space:"outside"},inventory:fishMarket ? {water:2} : {fish:4,water:2},owner},
         {id:netsId,name:practice?.nets ?? (general ? `${fishingWords[fishing.method].gear.replace(/^the /,"").replace(/^./,c=>c.toUpperCase())}, being mended` : "Lines and nets being repaired"),kind:"container",
@@ -515,7 +523,7 @@ export function planWaterfront(
               paint({x:patch.x+inset,y:patch.y+j,w:patch.w-2*inset,h:1},"dirt",true,4,"yard");
             }
           }
-        } else paint(sortSite.patch,"dirt");
+        }
         let lo=Infinity,hi=-Infinity;
         for(const p of launch.dry){const h=Math.round(sample(p.x,p.y).elevation/14);lo=Math.min(lo,h);hi=Math.max(hi,h);}
         handling={kind:launch.pier ? "earth-ramp" : hi>lo ? "timber-steps" : "beach",yard:sortSite.patch,sale,basketId:basket ? basketId : undefined,gear:gear.entrance};

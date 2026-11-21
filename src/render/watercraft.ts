@@ -1,4 +1,5 @@
 import type Phaser from "phaser";
+import { valueNoise } from "../core/noise";
 import boats from "../content/graphics/boats.generated.json" with { type: "json" };
 
 export type Boat = keyof typeof boats;
@@ -22,25 +23,135 @@ export function mooredBoatFrame(frame:string,variation=0) {
   return frame;
 }
 
+/** Contact shadow and broken waterline surf lap seated directly beneath a boat hull. */
+export function drawBoatGrounding(
+  scene: Phaser.Scene,
+  hull: Phaser.GameObjects.Image,
+  inWater: boolean,
+) {
+  const frameName = hull.frame?.name;
+  if (!frameName || frameName === "__BASE") return;
+  const key = `boat-ground:${frameName}:${inWater ? 1 : 0}`;
+  const f = scene.textures.getFrame(hull.texture.key, frameName);
+  if (!f || !f.cutWidth || !f.cutHeight) return;
+  const w = f.cutWidth, h = f.cutHeight, pad = 3;
+  if (!scene.textures.exists(key)) {
+    const read = document.createElement("canvas");
+    read.width = w;
+    read.height = h;
+    const rctx = read.getContext("2d", { willReadFrequently: true })!;
+    rctx.drawImage(f.source.image as CanvasImageSource, f.cutX, f.cutY, w, h, 0, 0, w, h);
+    const px = rctx.getImageData(0, 0, w, h).data;
+    const solid = (x: number, y: number) =>
+      x >= 0 && y >= 0 && x < w && y < h && px[(y * w + x) * 4 + 3] > 180;
+    let minY = h, maxY = -1;
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++)
+        if (solid(x, y)) {
+          if (y < minY) minY = y;
+          if (y > maxY) maxY = y;
+        }
+    const gw = w + pad * 2, gh = h + pad * 2;
+    const tex = scene.textures.createCanvas(key, gw, gh)!;
+    const ctx = tex.getContext();
+    const out = ctx.createImageData(gw, gh);
+    const put = (gx: number, gy: number, rgba: number[]) =>
+      out.data.set(rgba, (gy * gw + gx) * 4);
+    const near = (x: number, y: number, r: number) => {
+      for (let dy = -r; dy <= r; dy++)
+        for (let dx = -r; dx <= r; dx++)
+          if (dx * dx + dy * dy <= r * r && solid(x + dx, y + dy)) return true;
+      return false;
+    };
+    const lapStart = minY + (maxY - minY) * 0.22;
+    for (let gy = 0; gy < gh; gy++)
+      for (let gx = 0; gx < gw; gx++) {
+        const x = gx - pad, y = gy - pad;
+        if (solid(x, y)) continue;
+        // Contact shadow cast slightly down-right beneath the hull's keel and flanks.
+        const tight = solid(x, y - 1) || solid(x - 1, y - 1);
+        const soft =
+          solid(x, y - 2) ||
+          solid(x - 1, y - 2) ||
+          solid(x + 1, y - 1) ||
+          solid(x - 2, y - 1) ||
+          (y > lapStart && (solid(x + 1, y) || solid(x - 1, y)));
+        if (tight) {
+          put(gx, gy, inWater ? [14, 36, 48, 132] : [30, 24, 18, 120]);
+          continue;
+        }
+        if (soft) {
+          put(gx, gy, inWater ? [18, 44, 56, 68] : [38, 32, 24, 58]);
+          continue;
+        }
+        // Broken pale foam/lap collar just outside the hull's waterline shadow.
+        if (inWater && y >= lapStart && near(x, y, 2) && !near(x, y, 1)) {
+          const n = valueNoise(x, y, 4, 919);
+          if (n > 0.44)
+            put(gx, gy, n > 0.62 ? [240, 250, 248, 175] : [214, 236, 234, 118]);
+        }
+      }
+    ctx.putImageData(out, 0, 0);
+    tex.refresh();
+  }
+  const existing = hull.getData("grounding") as Phaser.GameObjects.Image | undefined;
+  const ox = (hull.originX * w + pad) / (w + pad * 2);
+  const oy = (hull.originY * h + pad) / (h + pad * 2);
+  if (existing && existing.scene) {
+    if (existing.texture.key !== key) existing.setTexture(key);
+    existing.setOrigin(ox, oy).setPosition(hull.x, hull.y).setDepth(hull.depth - 0.8);
+    return;
+  }
+  const ground = scene.add
+    .image(hull.x, hull.y, key)
+    .setOrigin(ox, oy)
+    .setDepth(hull.depth - 0.8);
+  hull.setData("grounding", ground);
+  hull.once("destroy", () => ground.destroy());
+}
+
 /** The rope belongs to the moored hull and leaves the scene when the boat puts out. */
-export function drawMooring(scene: Phaser.Scene, hull: Phaser.GameObjects.Image, x: number, y: number, frame: string, still: boolean) {
+export function drawMooring(
+  scene: Phaser.Scene,
+  hull: Phaser.GameObjects.Image,
+  x: number,
+  y: number,
+  frame: string,
+  still: boolean,
+  stake = false,
+) {
   if (hull.getData("mooring")) return;
   const rope = scene.add.graphics().setDepth(Math.max(hull.depth, y + 14) + 1);
   hull.setData("mooring", rope);
   const horizontal = /-(east|west)$/.test(frame);
-  x += /-(east|south)$/.test(frame) ? 8 : -8;
-  y += /-(south|west)$/.test(frame) ? 7 : -7;
+  if (!stake) {
+    x += /-(east|south)$/.test(frame) ? 8 : -8;
+    y += /-(south|west)$/.test(frame) ? 7 : -7;
+  }
   const restY = hull.y;
-  const endX = Math.round(hull.x + Math.sign(x - hull.x) * (horizontal ? 35 : 9));
+  const tieX = x;
+  const tieY = stake ? y - 3 : y;
+  const endX = Math.round(hull.x + Math.sign(x - hull.x) * (horizontal ? 35 : stake ? 6 : 9));
+  const sag = stake ? 7 : 20;
   const paint = () => {
     hull.y = restY + (still ? 0 : Math.round(Math.sin(scene.time.now / 900 + endX)));
-    const endY = Math.round(hull.y + (horizontal ? -6 : Math.sign(y - hull.y) * 24 - 6));
-    const length = Math.max(1, Math.abs(endX-x), Math.abs(endY-y));
+    const endY = Math.round(
+      hull.y + (horizontal ? -6 : Math.sign(y - hull.y) * (stake ? 28 : 24) - (stake ? 0 : 6)),
+    );
+    const length = Math.max(1, Math.abs(endX - tieX), Math.abs(endY - tieY));
     rope.clear();
-    for (let i=0;i<=length;i++) {
-      const t=i/length, px=Math.round(x+(endX-x)*t), py=Math.round(y+(endY-y)*t+20*t*(1-t));
-      rope.fillStyle(0x715235).fillRect(px,py+1,2,1);
-      rope.fillStyle(i%4===0 ? 0xb88c58 : 0xd6b77c).fillRect(px,py,2,1);
+    if (stake) {
+      rope.fillStyle(0x2a241d, 0.42).fillRect(x - 2, y + 2, 5, 2);
+      rope.fillStyle(0x4a3423, 1).fillRect(x - 1, y - 4, 3, 7);
+      rope.fillStyle(0x7c5b3b, 1).fillRect(x - 1, y - 4, 2, 6);
+      rope.fillStyle(0xa88459, 1).fillRect(x - 1, y - 4, 2, 1);
+    }
+    for (let i = 0; i <= length; i++) {
+      const t = i / length,
+        px = Math.round(tieX + (endX - tieX) * t),
+        py = Math.round(tieY + (endY - tieY) * t + sag * t * (1 - t));
+      rope.fillStyle(0x5d452e, stake ? 0.72 : 1).fillRect(px, py + 1, stake ? 1 : 2, 1);
+      rope.fillStyle(i % 4 === 0 ? 0xb48a58 : 0xcfb27c, 1).fillRect(px, py, stake ? 1 : 2, 1);
     }
   };
   paint();

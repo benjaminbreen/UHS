@@ -2,12 +2,12 @@ import type { StartMode } from "../content/geography/random-start";
 
 const KEY = "uhs-start-mode";
 
-/** Where a random start puts you. The year is population-weighted either way. */
+/** Where and when a random start puts you. */
 export const startModes: { value: StartMode; label: string; hint: string }[] = [
   {
     value: "any",
     label: "Random geography",
-    hint: "Any place on the map, all equally likely.",
+    hint: "Balanced across the world's regions, climates, and historical eras.",
   },
   {
     value: "realistic",

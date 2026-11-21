@@ -1,5 +1,6 @@
 import { setArtEra } from "../render/garment-icons";
 import { GAIT_NAMES, mountLabel } from "../core/riding";
+import { CYCLE_SPECS } from "../core/cycles";
 import { amountIn } from "../content/economy/money";
 import { TimeModal } from "./time/TimeModal";
 import { Years } from "./time/Years";
@@ -102,7 +103,7 @@ import { restoreSession, ZOOM_STEPS } from "../runtime/session";
 const formatZoom = (z: number) =>
   Number.isInteger(z) ? `${z}` : z.toFixed(2).replace(/0$/, "");
 import { download } from "../runtime/storage";
-import { distance, type PlayerCommand, type Position } from "../core/types";
+import { distance, type Actor, type PlayerCommand, type Position } from "../core/types";
 import { describeStats, statKeys, statsOf } from "../core/stats";
 import { isPlayful } from "../core/persona";
 import { describeStanding, standingOf } from "../core/standing";
@@ -135,7 +136,7 @@ import { markEvent, watchGame } from "../runtime/vitals";
 import { WorldScene } from "../render/WorldScene";
 import { PlotCard, STORY_LOOK_KEY, type StoryLook } from "./PlotCard";
 import { plotKnown, type PlotCard as PlotCardData } from "../core/plot";
-import { markOf } from "../core/kin";
+import { happyYoungChildNear, markOf } from "../core/kin";
 import { WorldSetup } from "./WorldSetup";
 import { MapModal } from "./MapModal";
 import { ItemIcon, Sprite, Minimap, timeLabel } from "./components";
@@ -144,7 +145,7 @@ import { ItemInspect, itemKind } from "./ItemInspect";
 import { MakePanel } from "./MakePanel";
 import { GamingTable, type Seat } from "./gaming/GamingTable";
 import { FISHING_PRESETS, FishingGame, fishingStart, type FishingStart } from "./fishing/FishingGame";
-import { tableGameFor } from "../content/games";
+import { tableGameFor, type TableGame } from "../content/games";
 import { venueOfClaim } from "../content/venues";
 import { setMadeItems } from "../render/voxel-items";
 const LiveGraphicsPanel = lazy(() => import("../dev/LiveGraphicsPanel").then((m) => ({ default: m.LiveGraphicsPanel })));
@@ -218,6 +219,28 @@ function MountHud({ runtime }: { runtime: Runtime }) {
   const gait = runtime.rideGait;
   const label = mountLabel(mount);
   const title = label.charAt(0).toUpperCase() + label.slice(1);
+  if (mount.cycle) {
+    const spec = CYCLE_SPECS[mount.cycle.look.kind];
+    const pace = spec.motor ? ["Idling", "Rolling", "Cruising", "Full throttle", "Flat out"] : ["Stopped", "Rolling", "Cruising", "Sprinting", "Flat out"];
+    return (
+      <div className={`mount-hud${sweet ? " sweet" : ""}${gait >= 4 ? " surging" : ""}`} data-testid="mount-hud">
+        <span className="mount-hud-name">{title}</span>
+        <span className={`mount-hud-gait gait-${gait}`}>{pace[gait]}</span>
+        {!spec.motor && (
+          <span className="mount-hud-bar" title="Your breath">
+            <span className="mount-hud-fill" style={{ width: `${pct}%` }} />
+          </span>
+        )}
+        {sweet && <span className="mount-hud-sweet">Push now!</span>}
+        {!sweet && combo >= 2 && <span className="mount-hud-combo">×{combo} Cadence</span>}
+        {runtime.rideStyle > 0 && <span className="mount-hud-combo">★ {runtime.rideStyle}</span>}
+        <span className="mount-hud-hint">
+          <kbd>Shift</kbd> {spec.motor ? "Throttle" : "Sprint"} · <kbd>Space</kbd> {gait >= 1 ? (spec.hop ? "Hop" : "No hop") : "Wheelie"}
+          {spec.tricks && gait >= 1 ? " · arrows in the air" : ""}
+        </span>
+      </div>
+    );
+  }
   return (
     <div
       className={`mount-hud${sweet ? " sweet" : ""}${mount.bucking ? " bucking" : ""}${gait >= 4 ? " surging" : ""}`}
@@ -315,7 +338,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const [card, setCard] = useState<PlotCardData>();
   const [inspecting, setInspecting] = useState<string>();
   const [making, setMaking] = useState<{ first?: string }>();
-  const [gaming, setGaming] = useState<{ place: string; seed: string; seats: Seat[] }>();
+  const [gaming, setGaming] = useState<{ place: string; where: string; game: TableGame; seed: string; seats: Seat[] }>();
   setMadeItems(runtime.engine.state.catalog);
   const [modal, setModal] = useState<
     | "time"
@@ -339,6 +362,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const [shopWith, setShopWith] = useState<{ id: string; item?: string }>();
   const [yearsToEnd, setYearsToEnd] = useState(false);
   const atExchange=runtime.engine.exchangePlace();
+  const innHere = !p.dead ? runtime.engine.innInfo(p.pos.space) : undefined;
   const trader = runtime.nearestTrader();
   const modalPanel = useRef<HTMLElement>(null);
   useLayoutEffect(() => {
@@ -928,6 +952,16 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       }
       if (e.code === "KeyB" && !e.repeat) runtime.tend();
       if (e.code === "KeyG" && !e.repeat) sitDownRef.current();
+      if (e.code === "KeyL" && !e.repeat) {
+        const info = runtime.engine.innInfo(runtime.engine.state.player.pos.space);
+        if (info?.checkedIn) runtime.command({ type: "sleep", seconds: runtime.engine.untilMorning() });
+        else if (info?.canAffordRoom) runtime.command({ type: "lodge", place: info.place.id, sleep: true });
+      }
+      if (e.code === "KeyK" && !e.repeat) {
+        const info = runtime.engine.innInfo(runtime.engine.state.player.pos.space);
+        if (info && !info.checkedIn && !info.terms.mealIncluded && info.canAffordMeal)
+          runtime.command({ type: "lodge", place: info.place.id, meal: true, sleep: true });
+      }
       if (e.key.toLowerCase() === "m") setModal("map");
       if (e.key.toLowerCase() === "n") setModal("notebook");
     };
@@ -980,8 +1014,21 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     const game = tableGameFor(setting, kind);
     return place && game && { place, kind, game };
   }, [runtime, p.pos.space, setting]);
+  const streetGame = useMemo(() => runtime.engine.gameCircleHere(), [runtime, obs]);
+  const seatOf = (a: Actor): Seat => ({ id: a.id, name: a.name.split(" ")[0], trade: a.role, age: a.age ?? 30, appearance: runtime.appearanceFor(a) });
   const sitDown = () => {
-    if (!tableHere) return;
+    if (!tableHere) {
+      const circle = runtime.engine.holdGameCircle();
+      if (!circle) return;
+      setGaming({
+        place: `street:${circle.at.x},${circle.at.y}`,
+        where: "In the street",
+        game: circle.game,
+        seed: `${runtime.engine.state.manifest.seed}:street:${circle.at.x},${circle.at.y}:${runtime.engine.state.clock}`,
+        seats: circle.players.slice(0, circle.game.seats).map(seatOf),
+      });
+      return;
+    }
     const { place, game } = tableHere;
     const inside = (a: { pos: { space: string } }) => (a.pos.space === place.id ? 0 : 1);
     const far = (a: { pos: { x: number; y: number } }) => Math.hypot(a.pos.x - place.entrance.x, a.pos.y - place.entrance.y);
@@ -992,8 +1039,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       .slice(0, game.seats);
     setGaming({
       place: place.id,
+      where: place.name,
+      game,
       seed: `${runtime.engine.state.manifest.seed}:${place.id}:${runtime.engine.state.clock}`,
-      seats: people.map((a) => ({ id: a.id, name: a.name.split(" ")[0], trade: a.role, age: a.age ?? 30, appearance: runtime.appearanceFor(a) })),
+      seats: people.map(seatOf),
     });
   };
   const sitDownRef = useRef(sitDown);
@@ -1103,18 +1152,21 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     hour,
   ]);
   useEffect(() => audio?.setScene(ambience), [audio, ambience]);
+  const homePlay = happyYoungChildNear(runtime.engine.state);
   useEffect(() => {
     if (p.pos.space === "outside") return audio?.setInterior(undefined);
-    if (p.pos.space.startsWith("cave:")) return audio?.setInterior("cave");
+    if (p.pos.space.startsWith("cave:") || p.pos.space.startsWith("tomb:")) return audio?.setInterior("cave");
+    if (p.pos.space.startsWith("prison:")) return audio?.setInterior(null);
     if (p.pos.space.startsWith("sewer:")) return audio?.setInterior("sewer");
     if (p.pos.space.startsWith("mine:")) return audio?.setInterior("mine");
     if (p.pos.space.startsWith("fair:")) return audio?.setInterior(courtMusic(fairById(p.pos.space.split(":")[1])?.palace));
     if (runtime.engine.interiorOf(p.pos.space)?.institution) return audio?.setInterior(null);
     const place = runtime.engine.world.place(p.pos.space);
-    audio?.setInterior(
-      place ? interiorMusic(buildingUse(place.claim) && `${buildingUse(place.claim)} ${place.name.toLowerCase()}`, place.access === "household") ?? null : "home",
-    );
-  }, [audio, runtime, p.pos.space, setting]);
+    const base = place
+      ? interiorMusic(buildingUse(place.claim) && `${buildingUse(place.claim)} ${place.name.toLowerCase()}`, place.access === "household") ?? null
+      : "home";
+    audio?.setInterior(base === "home" && homePlay ? "home-play" : base);
+  }, [audio, runtime, p.pos.space, setting, homePlay]);
   // Set during render, not in an effect: the inventory's first paint already needs it.
   setArtEra(setting?.year ?? 0, setting?.culture);
   useEffect(
@@ -1603,9 +1655,14 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             <div className="hud-top">
             <Toasts actionFor={event => {
               const hit = event.interaction;
-              if (covered || (hit?.kind !== "wares" && hit?.kind !== "warning")) return;
+              if (covered || (hit?.kind !== "wares" && hit?.kind !== "warning" && hit?.kind !== "game")) return;
               const engine = runtime.engine, actor = engine.state.actors.find(a => a.id === hit.actor);
               if (!actor) return;
+              if (hit.kind === "game") {
+                if (actor.errand?.label !== actor.activity || !actor.errand.face) return;
+                const at = actor.errand.face;
+                return Math.hypot(at.x - p.pos.x, at.y - p.pos.y) <= 2.5 ? { label: "Join", run: sitDown } : { label: "Locate", run: () => runtime.setGuide({ ...at, space: "outside", label: actor.activity }) };
+              }
               if (hit.kind === "warning") {
                 if (engine.canAnswerWarning(actor)) return { label: "Answer", run: () => openDialogue(actor.id) };
                 return;
@@ -1780,8 +1837,47 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                   />
                 )}
                 {atExchange && <KeyPrompt code="KeyG" letter="G" label={atExchange.kind==="beurs" ? "Trade on the Beurs" : "Trade at market"} kind="trade" onClick={()=>setModal("exchange")}/>}
-                {tableHere && (
-                  <KeyPrompt key="table" code="KeyG" letter="G" label={`Sit down to ${tableHere.game.title.toLowerCase()}`} kind="trade" onClick={sitDown} />
+                {(tableHere ?? streetGame) && (
+                  <KeyPrompt key="table" code="KeyG" letter="G" label={tableHere ? `Sit down to ${tableHere.game.title.toLowerCase()}` : "Join the game"} kind="trade" onClick={sitDown} />
+                )}
+                {innHere && !innHere.checkedIn && (
+                  innHere.canAffordRoom ? (
+                    <>
+                      <KeyPrompt
+                        key="inn-stay"
+                        code="KeyL"
+                        letter="L"
+                        label={`Stay · ${innHere.terms.roomLabel}`}
+                        kind="trade"
+                        onClick={() => runtime.command({ type: "lodge", place: p.pos.space, sleep: true })}
+                      />
+                      {!innHere.terms.mealIncluded && innHere.canAffordMeal && (
+                        <KeyPrompt
+                          key="inn-supper"
+                          code="KeyK"
+                          letter="K"
+                          label={`Supper · ${innHere.terms.mealLabel}`}
+                          kind="trade"
+                          onClick={() => runtime.command({ type: "lodge", place: p.pos.space, meal: true, sleep: true })}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <span className="prompt-note">Room is {innHere.terms.roomLabel}</span>
+                  )
+                )}
+                {innHere && innHere.checkedIn && (
+                  <>
+                    <span className="prompt-note">{innHere.room ?? "Lodged"} · paid until morning</span>
+                    <KeyPrompt
+                      key="inn-sleep"
+                      code="KeyL"
+                      letter="L"
+                      label="Sleep until morning"
+                      kind="trade"
+                      onClick={() => runtime.command({ type: "sleep", seconds: runtime.engine.untilMorning() })}
+                    />
+                  </>
                 )}
                 {tend ? (
                   <KeyPrompt key={tend.label} code="KeyB" letter="B" label={tend.label} kind={baby!.mood === "crying" ? "tend-urgent" : "tend"}
@@ -1828,6 +1924,19 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               <div className="rest-menu" ref={restMenu}>
                 {restOpen && (
                   <div className="rest-options" role="menu">
+                    {innHere && !innHere.checkedIn && (
+                      <button
+                        role="menuitem"
+                        disabled={!innHere.canAffordRoom}
+                        onClick={() => {
+                          setRestOpen(false);
+                          runtime.command({ type: "lodge", place: p.pos.space });
+                        }}
+                      >
+                        Take a room
+                        <small>{innHere.terms.roomLabel}</small>
+                      </button>
+                    )}
                     {REST_OPTIONS.map((option) => {
                       const seconds = option.seconds(runtime);
                       return (
@@ -2352,13 +2461,78 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     onOpen={(skill) => setSky({ skill })}
                   />
                 )}
-                {sideTab === "today" && (
+                {sideTab === "today" && (() => {
+                  const pr = runtime.engine.state.complex?.kind === "prison" ? runtime.engine.state.complex : undefined;
+                  const fug = !pr ? runtime.engine.state.fugitive : undefined;
+                  const titleCase = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
+                  return (
                   <div className="today">
+                    {pr && (() => {
+                      const short = pr.sentence.kind !== "life" && pr.sentence.daysLeft <= 365;
+                      const yrs = Math.round(pr.sentence.daysLeft / 365);
+                      const span = pr.sentence.kind === "life"
+                        ? "Indefinite confinement"
+                        : pr.sentence.daysLeft >= 365
+                          ? `${yrs} ${yrs === 1 ? "year" : "years"} remaining`
+                          : `${pr.sentence.daysLeft} ${pr.sentence.daysLeft === 1 ? "day" : "days"} remaining`;
+                      return (
+                        <div className="today-aim" style={{ cursor: "default" }}>
+                          <small>Confined · {titleCase(pr.name)}</small>
+                          <b>{pr.sentence.charge.charAt(0).toUpperCase() + pr.sentence.charge.slice(1)}</b>
+                          <span style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontSize: "12px", opacity: 0.9 }}>
+                            {span}
+                            {pr.caught > 0 ? ` · Caught ${pr.caught}/3` : ""}
+                            {pr.hasKey ? " · Holding stolen key" : ""}
+                          </span>
+                          <div style={{ display: "flex", gap: "6px", marginTop: "8px", flexWrap: "wrap" }}>
+                            {short ? (
+                              <button
+                                className="years-quiet-button"
+                                style={{ fontSize: "11px", padding: "4px 8px" }}
+                                onClick={() => {
+                                  if (runtime.engine.serveSentence()) runtime.touch();
+                                }}
+                              >
+                                Serve out ({pr.sentence.daysLeft}d)
+                              </button>
+                            ) : (
+                              <button
+                                className="years-quiet-button"
+                                style={{ fontSize: "11px", padding: "4px 8px" }}
+                                onClick={() => { setYearsToEnd(false); setModal("years"); }}
+                              >
+                                Serve time
+                              </button>
+                            )}
+                            <button
+                              className="years-quiet-button"
+                              style={{ fontSize: "11px", padding: "4px 8px" }}
+                              onClick={() => { setYearsToEnd(!short); setModal("years"); }}
+                            >
+                              {short ? "Let the years pass" : "To the end"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    {fug && (
+                      <div className="today-aim" style={{ cursor: "default", borderColor: "#c85a3a" }}>
+                        <small style={{ color: "#e88a68" }}>Fugitive · Wanted</small>
+                        <b>Escaped from {titleCase(fug.prison)}</b>
+                        <span style={{ fontFamily: "system-ui, -apple-system, sans-serif", fontSize: "12px", opacity: 0.85 }}>
+                          Keep clear of the watch and magistrates.
+                        </span>
+                      </div>
+                    )}
                     {aim && (
-                      <button className="today-aim" onClick={() => setTask({ kind: "aim" })}>
-                        <small>{aimLabel(aim)}</small>
+                      <button
+                        className="today-aim"
+                        style={pr ? { opacity: 0.58 } : undefined}
+                        onClick={() => setTask({ kind: "aim" })}
+                      >
+                        <small>{pr ? `${aimLabel(aim)} · waiting outside` : aimLabel(aim)}</small>
                         <b>{aim.text}</b>
-                        {aim.step && (
+                        {!pr && aim.step && (
                           <span>
                             {aim.step.text}
                             {aim.step.type === "work" ? (
@@ -2373,8 +2547,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     <ul className="today-goals">
                       {runtime.dayGoals().length > 0 ? (
                         [...runtime.dayGoals()].sort((a, b) => Number(b.id === aimGoal) - Number(a.id === aimGoal)).map((g, i) => {
-                          const [Icon, kind] = g.slot === "work" ? [workIcon(p.role), "Work"] : g.id.startsWith("fest.") ? [Drum, "Holiday"] : [Footprints, "Errand"];
-                          if (g.slot === "work" && workLive)
+                          const [Icon, kind] = g.slot === "work" ? [workIcon(p.role), pr ? "Routine" : "Work"] : g.id.startsWith("fest.") ? [Drum, "Holiday"] : [Footprints, pr ? "Confinement" : "Errand"];
+                          if (!pr && g.slot === "work" && workLive)
                             return <li key={g.id} className="today-work" onMouseEnter={() => previewGoal(g)} onMouseLeave={endPreview} onFocus={() => previewGoal(g)} onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setPreview(undefined); }} style={{ "--i": i } as React.CSSProperties}>{workCard}</li>;
                           return (
                             <li key={g.id} style={{ "--i": i } as React.CSSProperties}>
@@ -2396,7 +2570,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                           <button onClick={() => setModal("map")}>Explore the map<ArrowRight size={14} /></button>
                         </li>
                       )}
-                      {plot && !plot.ended && plotKnown(plot) && (
+                      {!pr && plot && !plot.ended && plotKnown(plot) && (
                         <li>
                           <button onClick={() => setTask({ kind: "plot" })}>
                             <span className="today-icon"><ScrollText size={15} /></span>
@@ -2407,7 +2581,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                           </button>
                         </li>
                       )}
-                      {(() => {
+                      {!pr && (() => {
                         const due = runtime.engine.claimDue();
                         return due && (
                           <li>
@@ -2421,7 +2595,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                           </li>
                         );
                       })()}
-                      {(runtime.engine.state.asks ?? []).map((ask) => {
+                      {!pr && (runtime.engine.state.asks ?? []).map((ask) => {
                         const by = runtime.engine.state.actors.find((a) => a.id === ask.by);
                         return (
                           <li key={ask.id}>
@@ -2450,7 +2624,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                         ))}
                     </ol>
                   </div>
-                )}
+                  );
+                })()}
               </>
             )}
           </section>
@@ -2501,18 +2676,18 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
         />
       )}
       {making && <MakePanel runtime={runtime} first={making.first} onClose={() => setMaking(undefined)} />}
-      {gaming && tableHere && tableHere.place.id === gaming.place && (
+      {gaming && (tableHere?.place.id === gaming.place || gaming.place.startsWith("street:")) && (
         <GamingTable
-          game={tableHere.game}
+          game={gaming.game}
           seed={gaming.seed}
-          place={`${tableHere.place.name} · ${countryPlace?.[2] ?? pack.name}, ${pack.date}`}
+          place={`${gaming.where} · ${countryPlace?.[2] ?? pack.name}, ${pack.date}`}
           seats={gaming.seats}
           purse={setting && capabilitiesFor(setting).has("coinage") ? (p.inventory.coin ?? 0) : undefined}
           money={(n) => (setting ? amountIn(setting, n, true) : `${n} coins`)}
           onLeave={(s) => {
             setGaming(undefined);
             if (s.net || s.outcome || s.minutes > 1)
-              runtime.command({ type: "gamble", game: tableHere.game.id, net: s.net, minutes: s.minutes, ...(s.outcome ? { outcome: s.outcome } : {}) });
+              runtime.command({ type: "gamble", game: gaming.game.id, net: s.net, minutes: s.minutes, ...(s.outcome ? { outcome: s.outcome } : {}) });
           }}
         />
       )}

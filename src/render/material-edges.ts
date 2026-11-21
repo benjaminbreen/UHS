@@ -95,11 +95,15 @@ export type PathField = {
   radius: number;
   ruts?: false;
   dung?: false;
+  /** Softly feathered yard/activity wear rather than a sunken road trench. */
+  soft?: true;
   paved?: "yellow" | "white" | "none" | "gravel";
   /** Signed distance from the centre line and distance along it, in native
    * pixels, for a paved road's paint. */
   side?: number;
   along?: number;
+  /** True where a side road or gravel lane joins a blacktop shoulder. */
+  junction?: true;
 };
 const clamp01 = (n: number) => Math.max(0, Math.min(1, n));
 /** A worn road is not a constant-width ribbon. One slow wave sampled on the
@@ -158,8 +162,22 @@ export function pathField(
     return c.earth ? 1 : c.pavement === "vacant" ? 0.55 + patch * 0.45
       : c.pavement === "yard" ? 0.65 + patch * 0.35 : 1;
   }, self ? 1 : 0);
-  const areaField: PathField = { coverage: clamp01((area - 0.2) * 1.25), cross: 0.5,
-    radius: 1.2, ruts: false, dung: false };
+  const softArea =
+    cell.pavement === "yard" ||
+    cell.pavement === "vacant" ||
+    [[0, -1], [-1, 0], [1, 0], [0, 1]].some(([dx, dy]) => {
+      const p = sample(ix + dx, iy + dy)?.pavement;
+      return p === "yard" || p === "vacant";
+    });
+  const yardWobble = softArea ? margin(x, y, ox, oy) * 1.4 : 0;
+  const areaField: PathField = {
+    coverage: clamp01((area - 0.2 + yardWobble) * 1.25),
+    cross: 0.5,
+    radius: 1.2,
+    ruts: false,
+    dung: false,
+    ...(softArea ? { soft: true as const } : {}),
+  };
   if (area === 1) return areaField;
   if (cell.pathArt?.length && (!cell.feature || cell.feature === "bank") && !cell.bridge) {
     let best: PathField = { coverage: 0, cross: 1.5, radius: 0 };
@@ -169,9 +187,11 @@ export function pathField(
     const pathWobble = tuning?.pathWobble ?? 1;
     const wobble = margin(x, y, ox, oy) * edgeBreakup;
     let top = -Infinity,
+      topRank = -1,
       ux = 0,
       uy = 0;
     const strokes: [number, number, number][] = [];
+    const joining: [number, number, number][] = [];
     for (const s of cell.pathArt) {
       const ax = ix + s.a[0],
         ay = iy + s.a[1],
@@ -196,13 +216,26 @@ export function pathField(
       );
       const raw =
         0.48 +
-        (0.6 * (radius - distance + (paved ? wobble * 0.3 : wobble))) /
+        (0.6 * (radius - distance + (paved ? 0 : wobble))) /
           Math.min(1.4, radius);
-      strokes.push([raw, dx / len, dy / len]);
-      if (raw > top) {
+      const svx = dx / len,
+        svy = dy / len;
+      strokes.push([raw, svx, svy]);
+      if (distance <= radius) joining.push([svx, svy, paved && paved !== "gravel" ? 2 : 1]);
+      // Asphalt outranks gravel and dirt inside its carriageway so side roads
+      // meet the edge cleanly instead of cutting triangular wedges into it.
+      const rank =
+        paved && paved !== "gravel" && distance <= radius + 0.05
+          ? 2
+          : paved === "gravel" && distance <= radius + 0.05
+            ? 1
+            : 0;
+      if (rank > topRank || (rank === topRank && raw > top)) {
+        topRank = rank;
         top = raw;
-        ux = dx / len;
-        uy = dy / len;
+        ux = svx;
+        uy = svy;
+        const sign = (x - ax) * dy - (y - ay) * dx < 0 ? -1 : 1;
         best = {
           coverage: clamp01(raw),
           cross: distance / (radius || 1),
@@ -211,21 +244,31 @@ export function pathField(
           ...(s.dung === false && { dung: s.dung }),
           ...(paved && {
             paved,
-            side: (((x - ax) * dy - (y - ay) * dx) / len) * 16,
-            along: (((x + ox) * dx + (y + oy) * dy) / len) * 16,
+            side: sign * distance * 16,
+            along:
+              s.offset !== undefined
+                ? (s.offset + t * len) * 16
+                : (((x + ox) * dx + (y + oy) * dy) / len) * 16,
           }),
         };
       }
     }
+    if (
+      best.paved &&
+      best.paved !== "gravel" &&
+      joining.some(([vx, vy]) => Math.abs(ux * vy - uy * vx) > 0.35)
+    )
+      best.junction = true;
     // Where roads meet at an angle, a smooth union fills the inside corner
     // with a curve. Pieces of one road meet nearly in line and are left as
     // they are, or every bend would bulge.
     let fillet = 0;
     for (const [raw, vx, vy] of strokes) {
-      const k = 0.45 * clamp01((Math.abs(ux * vy - uy * vx) - 0.4) / 0.4);
+      const k = 0.55 * clamp01((Math.abs(ux * vy - uy * vx) - 0.35) / 0.4);
       const h = k && Math.max(0, k - (top - raw)) / k;
-      fillet = Math.max(fillet, (h * h * k) / 4);
+      fillet = Math.max(fillet, (h * h * k) / 3.2);
     }
+    if (fillet > 0.015) best.junction = true;
     best.coverage = clamp01(top + fillet);
     return areaField.coverage > best.coverage ? areaField : best;
   }
@@ -328,6 +371,7 @@ export function pathField(
     coverage,
     cross: distance / (radius || 1),
     radius,
+    soft: true,
   };
 }
 export const pathCoverage = (
@@ -482,6 +526,27 @@ export function quayPixel(
   const grain=cellHash(Math.floor(along/17),row>5 ? 1 : 0,732);
   return QUAY_STONE.map(c=>c+(grain>.58 ? 5 : -3)-(row*2)+(block===1 ? 6 : 0));
 }
+/** Subtle wind-rippled sand relief and sparse shell/mineral flecks for dry
+ * upper sea beaches, matching the living-water beach shader's dry grain. */
+export function dryBeachGrain(base: readonly number[], wx: number, wy: number): number[] {
+  const patch = valueNoise(wx, wy, 34, 337);
+  let delta = 0;
+  if (patch > 0.35) {
+    const mask = Math.min(1, (patch - 0.35) / 0.4);
+    const wave = Math.sin(wy * 0.55 + wx * 0.14 + valueNoise(wx, wy, 18, 338) * 4.2);
+    delta = Math.round(wave * 4.5 * mask);
+  }
+  const fleck = cellHash(wx, wy, 327);
+  if (fleck > 0.986) delta += 11;
+  else if (fleck < 0.014) delta -= 10;
+  if (!delta) return [base[0], base[1], base[2]];
+  return [
+    Math.max(0, Math.min(255, base[0] + delta)),
+    Math.max(0, Math.min(255, base[1] + delta)),
+    Math.max(0, Math.min(255, base[2] + Math.round(delta * 0.9))),
+  ];
+}
+
 export function shorePixel(
   cell: TopographyCell,
   distance: number,
@@ -541,7 +606,7 @@ export function shorePixel(
         : dark;
     if (distance < wet + 0.14 && cellHash(Math.floor(wx / 2), Math.floor(wy / 2), 335) > 0.6)
       return dark.map((v) => Math.round(v * 0.74));
-    return dry.map((v) => Math.min(255, v + (cellHash(Math.floor(wx / 3), Math.floor(wy / 2), 327) > 0.84 ? 5 : 0)));
+    return dryBeachGrain(dry, wx, wy);
   }
   return rgb(p.bank[1]).map(
     (v) =>

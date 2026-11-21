@@ -16,9 +16,15 @@ export function pathArt(
   const index = new Map<string, PathStroke[]>();
   for (const road of roads) {
     if (road.kind === "bridge" || road.points.length < 2) continue;
-    let selected = simplifyPath(road.points, 1.1);
+    // A blacktop road is two car lanes wide whatever the track under it was.
+    const blacktop = paved && road.width >= 1;
+    // A farm road off it is graded gravel, a truck wide.
+    const gravel = blacktop && isGravel(road);
+    const highway = blacktop && !gravel;
+    let selected = simplifyPath(road.points, highway ? 2.0 : 1.1);
     // Round the corners after simplification, leaving the endpoints fixed.
-    for (let round = 0; round < 2 && selected.length > 2; round++) {
+    const rounds = highway ? 3 : 2;
+    for (let round = 0; round < rounds && selected.length > 2; round++) {
       const out: Point[] = [selected[0]];
       for (let i = 0; i < selected.length - 1; i++) {
         const a = selected[i],
@@ -30,13 +36,11 @@ export function pathArt(
       out.push(selected[selected.length - 1]);
       selected = out;
     }
-    // A blacktop road is two car lanes wide whatever the track under it was.
-    const blacktop = paved && road.width >= 1;
-    // A farm road off it is graded gravel, a truck wide.
-    const gravel = blacktop && isGravel(road);
+    let offset = 0;
     for (let i = 1; i < selected.length; i++) {
       const a = selected[i - 1],
         b = selected[i],
+        segLen = Math.hypot(b.x - a.x, b.y - a.y),
         stroke: PathStroke = {
           a: [a.x + 0.5, a.y + 0.5],
           b: [b.x + 0.5, b.y + 0.5],
@@ -52,8 +56,9 @@ export function pathArt(
               : (shared ? 0.6 : 0.8) * wear(road.loads?.[0]),
           ...(ruts === false && { ruts }),
           ...(dung === false && { dung }),
-          ...(blacktop && { paved: gravel ? ("gravel" as const) : paved }),
+          ...(blacktop && { paved: gravel ? ("gravel" as const) : paved, offset }),
         };
+      offset += segLen;
       const count = Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) * 2),
         seen = new Set<string>(),
         pad = blacktop ? 4 : road.width + 1;

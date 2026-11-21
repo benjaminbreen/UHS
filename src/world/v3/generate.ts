@@ -37,6 +37,7 @@ import {
 } from "../../content/settlements/streets/markings";
 import { industrialized, motorized } from "../../content/settlements/modernity";
 import { poleStyle } from "../../content/settlements/streets/control";
+import { highwayLampFor } from "../../content/settlements/ornaments";
 import { keptTrees } from "../../content/settlements/yards";
 import { streetMaterial } from "../../content/settlements/streets";
 import {
@@ -90,7 +91,7 @@ import { crops } from "../../content/agriculture/crops";
 import { settlementProfile } from "../../content/settlements/profiles";
 import { noise } from "../geography/noise";
 import { cellKey, type Road, type SettlementPlan, type Site } from "./types";
-import { crossing, planRoad, roadCells, spanOffsets } from "./roads";
+import { crossing, planRoad, roadCells, simplifyPath, spanOffsets } from "./roads";
 import { planSettlement, terraceBox, townTerraces } from "./plan";
 import { siteForm, siteGate } from "./urban";
 import { earthFinish } from "../../content/settlements/urban-form";
@@ -808,9 +809,14 @@ export function createSettlementWorld(
             p.site.profile.paved && !revised && !blacktop
               ? []
               : blacktop
-                ? // Composed streets are drawn as paving; indexing them as
-                  // strokes too cost seconds at startup and drew nothing.
-                  drawnRoads.filter((r) => !/-(street|avenue|row)-/.test(r.id))
+                ? // Composed streets are drawn as paving, and regional country
+                  // roads are drawn once by `regionalStrokes` — drawing them
+                  // again here simplified them differently and split the road.
+                  drawnRoads.filter(
+                    (r) =>
+                      !/-(street|avenue|row)-/.test(r.id) &&
+                      (!(transport || trunk) || r.id.startsWith(`${p.site.id}-`)),
+                  )
                 : drawnRoads,
             !!pack.setting?.roadRevision,
             revised && !wheeledTraffic(pack.setting!) ? false : undefined,
@@ -824,42 +830,223 @@ export function createSettlementWorld(
       })
       .concat(regionalStrokes(x, y));
   }
-  const poles = pack.setting ? poleStyle(pack.setting) : 0;
-  /** Poles stand just past the ditch of a country road, one every ten cells
-   * along it, counted in world coordinates so a bend does not bunch them. */
-  const POLE_SPACING = 10;
-  function poleAt(x: number, y: number) {
+  /** True when cell `(x, y)` lies on a paved/gravel road's drawn surface or shoulder. */
+  function onBlacktop(x: number, y: number, pad = 0.5) {
+    if (!blacktop) return false;
+    const px = x + 0.5,
+      py = y + 0.5;
     for (const s of strokesAt(x, y)) {
       if (!s.paved) continue;
-      const [ax, ay] = s.a,
-        [bx, by] = s.b,
-        len = Math.hypot(bx - ax, by - ay);
-      if (len < 2) continue;
-      const ux = (bx - ax) / len,
-        uy = (by - ay) / len,
-        cx = x + 0.5 - ax,
-        cy = y + 0.5 - ay;
-      const along = cx * ux + cy * uy,
-        side = cx * -uy + cy * ux;
-      if (along < 0 || along > len || Math.abs(side - (s.radius + 1.4)) > 0.75)
-        continue;
-      const world = (x + 0.5) * ux + (y + 0.5) * uy;
-      if (((world % POLE_SPACING) + POLE_SPACING) % POLE_SPACING >= 1.3) continue;
-      const variant =
-        poles === 0 && random(seed, "pole", x, y) < 0.2 ? 2 : poles;
-      return {
-        id: `pole-${x}-${y}`,
-        x,
-        y,
-        sprite: `study-propb-utility-pole-${variant}`,
-        solid: true,
-        wire: {
-          x: Math.floor(x + 0.5 + ux * POLE_SPACING),
-          y: Math.floor(y + 0.5 + uy * POLE_SPACING),
-        },
-      };
+      const dx = s.b[0] - s.a[0],
+        dy = s.b[1] - s.a[1];
+      const t = Math.max(
+        0,
+        Math.min(1, ((px - s.a[0]) * dx + (py - s.a[1]) * dy) / (dx * dx + dy * dy || 1)),
+      );
+      if (Math.hypot(px - (s.a[0] + t * dx), py - (s.a[1] + t * dy)) <= s.radius + pad)
+        return true;
     }
-    return undefined;
+    return false;
+  }
+  const poles = pack.setting ? poleStyle(pack.setting) : 0;
+  const roadLamp = highwayLampFor(pack);
+  /** Poles stand just past the ditch of a country road, one every ten cells
+   * along its polyline, linked directly to the next pole in the chain; highway
+   * street lamps stand on the opposite shoulder facing inward over the lanes. */
+  const POLE_SPACING = 10;
+  const LAMP_SPACING = 14;
+  type Pole = {
+    id: string;
+    x: number;
+    y: number;
+    sprite: string;
+    solid: true;
+    wire?: { x: number; y: number };
+    flipX?: boolean;
+  };
+  function buildPoles(
+    roads: readonly Road[],
+    area?: { x: number; y: number; w: number; h: number },
+  ) {
+    const out = new Map<string, Pole>();
+    if (!blacktop) return out;
+    const placed: { x: number; y: number }[] = [];
+    // Chains run past the area so a span crossing its edge still finds its far pole.
+    const inArea = (x: number, y: number, pad = 0) =>
+      !area || (x >= area.x - pad && x < area.x + area.w + pad && y >= area.y - pad && y < area.y + area.h + pad);
+    const freePole = (x: number, y: number, pad = 0.65) => {
+      const f = land.sample(x, y), k = cellKey(x, y);
+      if (f.quay || Math.min(f.water, ...(f.seasonal ?? [])) < 0 || onStep(x, y)) return false;
+      if (onBlacktop(x, y, pad)) return false;
+      if (nearby(x, y).some((p) => p.solid.has(k) || p.reserved.has(k) || p.built?.has(k))) return false;
+      if (placed.some((p) => Math.hypot(p.x - x, p.y - y) < 5)) return false;
+      return true;
+    };
+    for (const road of roads) {
+      if (
+        road.kind === "bridge" ||
+        road.kind === "rail" ||
+        road.width < 1 ||
+        road.points.length < 2 ||
+        (road.kind === "lane" && road.id.includes("-field")) ||
+        /-(street|avenue|row)-/.test(road.id)
+      )
+        continue;
+      const pts = simplifyPath(road.points, 2.0);
+      if (pts.length < 2) continue;
+      // Pick one canonical side of the road regardless of routing direction.
+      const first = pts[0],
+        last = pts[pts.length - 1];
+      const sideSign =
+        last.x < first.x || (last.x === first.x && last.y < first.y) ? -1 : 1;
+      const chain: Pole[] = [];
+      let dist = 0,
+        nextAt = POLE_SPACING * 0.5;
+      for (let i = 1; i < pts.length; i++) {
+        const a = pts[i - 1],
+          b = pts[i],
+          seg = Math.hypot(b.x - a.x, b.y - a.y);
+        if (seg < 0.01) continue;
+        const ux = (b.x - a.x) / seg,
+          uy = (b.y - a.y) / seg;
+        const nx = -uy * sideSign,
+          ny = ux * sideSign;
+        while (nextAt <= dist + seg) {
+          const t = (nextAt - dist) / seg;
+          const px = a.x + (b.x - a.x) * t + 0.5 + nx * 3.8,
+            py = a.y + (b.y - a.y) * t + 0.5 + ny * 3.8;
+          const bx = Math.floor(px),
+            by = Math.floor(py);
+          const nudges: [number, number][] = [
+            [0, 0],
+            [Math.round(nx), Math.round(ny)],
+            [Math.round(ux), Math.round(uy)],
+            [-Math.round(ux), -Math.round(uy)],
+          ];
+          for (const [dx, dy] of nudges) {
+            const x = bx + dx,
+              y = by + dy;
+            if (!inArea(x, y, POLE_SPACING * 2)) continue;
+            if (!freePole(x, y)) continue;
+            const variant =
+              poles === 0 && random(seed, "pole", x, y) < 0.2 ? 2 : poles;
+            const pole: Pole = {
+              id: `pole-${x}-${y}`,
+              x,
+              y,
+              sprite: `study-propb-utility-pole-${variant}`,
+              solid: true,
+            };
+            placed.push({ x, y });
+            chain.push(pole);
+            break;
+          }
+          nextAt += POLE_SPACING;
+        }
+        dist += seg;
+      }
+      for (let i = 0; i < chain.length - 1; i++) {
+        const cur = chain[i],
+          nxt = chain[i + 1];
+        if (Math.hypot(nxt.x - cur.x, nxt.y - cur.y) <= POLE_SPACING * 1.8)
+          cur.wire = { x: nxt.x, y: nxt.y };
+      }
+      for (const pole of chain) if (inArea(pole.x, pole.y)) out.set(cellKey(pole.x, pole.y), pole);
+      // Highway-style street lights along the opposite shoulder, arms turned
+      // inward over the asphalt so their cones pool onto the carriageway.
+      if (roadLamp) {
+        let ldist = 0,
+          nextLamp = LAMP_SPACING * 0.5;
+        for (let i = 1; i < pts.length; i++) {
+          const a = pts[i - 1],
+            b = pts[i],
+            seg = Math.hypot(b.x - a.x, b.y - a.y);
+          if (seg < 0.01) continue;
+          const ux = (b.x - a.x) / seg,
+            uy = (b.y - a.y) / seg;
+          const nx = uy * sideSign,
+            ny = -ux * sideSign;
+          while (nextLamp <= ldist + seg) {
+            const t = (nextLamp - ldist) / seg;
+            const px = a.x + (b.x - a.x) * t + 0.5 + nx * 3.25,
+              py = a.y + (b.y - a.y) * t + 0.5 + ny * 3.25;
+            const bx = Math.floor(px),
+              by = Math.floor(py);
+            const nudges: [number, number][] = [
+              [0, 0],
+              [Math.round(nx), Math.round(ny)],
+              [Math.round(ux), Math.round(uy)],
+              [-Math.round(ux), -Math.round(uy)],
+            ];
+            for (const [dx, dy] of nudges) {
+              const x = bx + dx,
+                y = by + dy;
+              if (
+                area &&
+                (x < area.x || x >= area.x + area.w || y < area.y || y >= area.y + area.h)
+              )
+                continue;
+              if (!freePole(x, y, 0.55)) continue;
+              const lamp: Pole = {
+                id: `road-lamp-${x}-${y}`,
+                x,
+                y,
+                sprite: roadLamp.sprite,
+                solid: true,
+                // Unflipped lamp arms reach right (+x): flip when standing on
+                // the east/right side of the road so the head overhangs asphalt.
+                flipX: nx > 0.2 || (Math.abs(nx) <= 0.2 && ny > 0),
+              };
+              placed.push({ x, y });
+              out.set(cellKey(x, y), lamp);
+              break;
+            }
+            nextLamp += LAMP_SPACING;
+          }
+          ldist += seg;
+        }
+      }
+    }
+    return out;
+  }
+  const settlementPoles = new WeakMap<SettlementPlan, Map<string, Pole>>();
+  const regionalPoleCache = new Map<string, Map<string, Pole>>();
+  function regionalPoles(x: number, y: number) {
+    if (!blacktop || !(transport || trunk)) return undefined;
+    const c = coord(x, y),
+      key = cellKey(c.x, c.y);
+    let index = regionalPoleCache.get(key);
+    if (!index) {
+      const box = {
+        x: c.x * DISTRICT_SIZE - land.origin.x,
+        y: c.y * DISTRICT_SIZE - land.origin.y,
+        w: DISTRICT_SIZE,
+        h: DISTRICT_SIZE,
+      };
+      const area = { x: box.x - 16, y: box.y - 16, w: box.w + 32, h: box.h + 32 };
+      index = buildPoles(countryRoads(area), box);
+      trimCache(regionalPoleCache, 32);
+      regionalPoleCache.set(key, index);
+    }
+    return index.get(cellKey(x, y));
+  }
+  function poleAt(x: number, y: number) {
+    if (!blacktop) return undefined;
+    const key = cellKey(x, y);
+    for (const p of nearby(x, y)) {
+      let index = settlementPoles.get(p);
+      if (!index) {
+        const local =
+          transport || trunk
+            ? p.roads.filter((r) => r.id.startsWith(`${p.site.id}-`))
+            : p.roads;
+        index = buildPoles(local);
+        settlementPoles.set(p, index);
+      }
+      const found = index.get(key);
+      if (found) return found;
+    }
+    return regionalPoles(x, y);
   }
   const roadCache = new Map<string, Map<string, Terrain>>(prepared?.roads);
   function regionalRoads(x: number, y: number) {
@@ -1239,6 +1426,7 @@ export function createSettlementWorld(
       for (const p of visible) {
         const k = cellKey(p.x, p.y);
         if (
+          onBlacktop(p.x, p.y, 0.3) ||
           regionalRoads(p.x, p.y).has(k) ||
           nearby(p.x, p.y).some((plan) => {
             const claims = plan.placement;
@@ -1361,6 +1549,7 @@ export function createSettlementWorld(
   }
   function sceneryAllowed(x: number, y: number, k: string, f: ReturnType<typeof land.sample>) {
     if (f.quay || f.landscape?.kind === "arroyo" && f.landscape.strength > 0.35) return false;
+    if (onBlacktop(x, y, 0.5)) return false;
     // Nothing stands where the flood or the winter playa comes.
     return !(Math.min(f.water, ...(f.seasonal ?? [])) < 0 || nearby(x, y).some(p =>
       p.reserved.has(k) || p.solid.has(k) ||
@@ -1444,11 +1633,56 @@ export function createSettlementWorld(
       !nearby(x, y).some((p) => p.reserved.has(k) || p.solid.has(k))
     )
       return { id: `mangrove-${x}-${y}`, x, y, sprite: "nature-mangrove", solid: true };
+    const pole = blacktop && poleAt(x, y);
+    if (pole) return pole;
+    // Coastal dune-grass / sea-oat tufts along the sand-to-turf rim, plus a
+    // light sprinkle of untrodden grass tufts on quiet village sward.
+    if (!f.snow && !f.quay && Math.min(f.water, ...(f.seasonal ?? [])) >= 0 && scape?.kind !== "trail") {
+      const h0 = habitat(x, y);
+      const t0 = terrain(x, y);
+      const shoreW = f.shoreWidth ?? 3;
+      const coastalRim =
+        f.kind === "sea" &&
+        f.water >= shoreW - 0.8 &&
+        f.water <= shoreW + 2.2 &&
+        ["grass", "dry", "sand"].includes(t0);
+      const blocked = onBlacktop(x, y, 0.5) || nearby(x, y).some(
+        (p) =>
+          p.solid.has(k) ||
+          p.traffic.has(k) ||
+          p.built?.has(k) ||
+          (p.surface.has(k) && p.surface.get(k) !== "grass") ||
+          p.fields?.has(k) ||
+          ((desirePaths.get(p) ?? desireLines(p)).get(k) ?? 0) > 0.15,
+      );
+      if (!blocked && h0 && h0.ecology !== "desert" && h0.ecology !== "tundra") {
+        const ax = x + land.origin.x,
+          ay = y + land.origin.y;
+        const tier = tierAt(x, y);
+        const onCliffFace = tierAt(x, y - 1) > tier || tierAt(x, y - 2) > tier;
+        if (coastalRim && !onCliffFace) {
+          const patch = noise(seed, ax, ay, 4, "dune-tuft-patch");
+          if (random(seed, "dune-tuft", ax, ay) < 0.1 + patch * 0.28) {
+            const dry = t0 === "sand" || f.water < shoreW + 0.55 || h0.dry;
+            return { id: `decor-${x}-${y}`, x, y, sprite: dry ? "dry-grass-tuft" : "grass-tuft", solid: false };
+          }
+        } else if (
+          ["grass", "dry"].includes(t0) &&
+          !onCliffFace &&
+          f.water > shoreW + 2.2 &&
+          tendedAt(x, y) > 0.15
+        ) {
+          const patch = noise(seed, ax, ay, 5, "yard-tuft-patch");
+          if (random(seed, "yard-tuft", ax, ay) < 0.045 + patch * 0.1) {
+            const dry = h0.dry || h0.ecology === "dry-scrub" || h0.vegetation === "steppe";
+            return { id: `decor-${x}-${y}`, x, y, sprite: dry ? "dry-grass-tuft" : "grass-tuft", solid: false };
+          }
+        }
+      }
+    }
     if (!sceneryAllowed(x, y, k, f)) return;
     // Reeds and shore scrub may stand at a stream's cut bank; nothing else on a face.
     if (f.water > 3 && onStep(x, y)) return;
-    const pole = blacktop && poleAt(x, y);
-    if (pole) return pole;
     const h = habitat(x, y);
     if (
       saltPan(
@@ -1844,6 +2078,27 @@ export function createSettlementWorld(
       const narrow = /cypress|poplar|palm|young|sapling/.test(o.sprite ?? "");
       if (!narrow) stamp({ x: Math.floor(o.pos.x), y: Math.floor(o.pos.y) }, /bamboo/.test(o.sprite ?? "") ? 1.4 : 1.8, 0.55);
     }
+    // Outdoor work stations (mats, drying racks, net frames, counters) wear
+    // a soft patch of trodden earth underneath and immediately around them.
+    for (const o of p.objects) {
+      if (o.pos.space !== "outside" || o.kind === "tree") continue;
+      const sprite = o.sprite ?? "";
+      const wide = /^worksite-(fish|net|seine|dye-racks|pottery-rack|tanner-rack|loom-frame|smith-bench|carpenter-bench|mason-bench|press-yard|paper-yard|ropewalk|foundry-yard|soap-yard|silk-yard|charcoal-yard)|^harbor-(fish|quay-mat)|drying-rack/.test(sprite);
+      if (!wide && /boat|skiff|canoe|ship|rock|stone|shrine|bench|lamp|post|sign/.test(sprite)) continue;
+      const work = wide || ["dryingRack", "fishCounter", "fishCuringShed", "loom", "kiln", "forge", "vat", "trough", "well"].includes(o.prop ?? "");
+      if (!work) continue;
+      const cx = Math.floor(o.pos.x), cy = Math.floor(o.pos.y);
+      const rx = wide ? 3.2 : 1.9, ry = wide ? 2 : 1.6;
+      for (let dy = -Math.ceil(ry); dy <= Math.ceil(ry); dy++)
+        for (let dx = -Math.ceil(rx); dx <= Math.ceil(rx); dx++) {
+          const to = { x: cx + dx, y: cy + dy }, k = cellKey(to.x, to.y);
+          if (planted(k) || land.sample(to.x, to.y).water < 0) continue;
+          const d = Math.hypot(dx / rx, dy / ry);
+          if (d >= 1) continue;
+          const value = Math.min(1, 0.98 * (1 - d * 0.65));
+          if (value > (wear.get(k) ?? 0)) wear.set(k, value);
+        }
+    }
     return wear;
   }
   const bridgeDecks = new WeakMap<SettlementPlan, Map<string, HeightTier>>();
@@ -1896,6 +2151,110 @@ export function createSettlementWorld(
     }
     return levels;
   }
+  const isBlacktopRoad = (r: Road) =>
+    !!blacktop && r.width >= 1 && !r.span && !/-(street|avenue|row)-/.test(r.id);
+  const roadGradeRadius = (r: Road) =>
+    isBlacktopRoad(r)
+      ? r.kind === "lane" && r.id.includes("-field")
+        ? 2
+        : 3
+      : Math.max(1, r.width);
+  function gradeRoadCorridor(
+    roads: readonly Road[],
+    tierOf: (x: number, y: number) => number | undefined,
+    levels: Map<string, number>,
+    nearest: Map<string, number>,
+    bounds?: { x: number; y: number; w: number; h: number },
+  ) {
+    for (const road of roads) {
+      if (road.kind === "bridge" || road.kind === "rail" || !road.points.length) continue;
+      const tiers = road.points.map((pt) => {
+        if (land.sample(pt.x, pt.y).water < 0) return undefined;
+        return tierOf(pt.x, pt.y);
+      });
+      // Flatten 1–3 cell tier blips along the centreline so grazing a contour
+      // does not create back-to-back steps.
+      for (let i = 1; i < tiers.length - 1; i++) {
+        const prev = tiers[i - 1],
+          cur = tiers[i];
+        if (prev === undefined || cur === undefined || cur === prev) continue;
+        for (let j = i + 1; j <= Math.min(tiers.length - 1, i + 3); j++) {
+          if (tiers[j] === prev) {
+            for (let k = i; k < j; k++) tiers[k] = prev;
+            i = j;
+            break;
+          }
+          if (tiers[j] !== cur) break;
+        }
+      }
+      const circular = isBlacktopRoad(road);
+      const radius = roadGradeRadius(road);
+      const [lo, hi] = road.span ? spanOffsets(road.span) : [radius, radius];
+      const maxD2 = radius * radius + 1;
+      for (let i = 0; i < road.points.length; i++) {
+        const tier = tiers[i];
+        if (tier === undefined) continue;
+        const pt = road.points[i];
+        for (let dy = -lo; dy <= hi; dy++)
+          for (let dx = -lo; dx <= hi; dx++) {
+            const d = dx * dx + dy * dy;
+            if (circular && d > maxD2) continue;
+            const gx = pt.x + dx,
+              gy = pt.y + dy;
+            if (
+              bounds &&
+              (gx < bounds.x || gx >= bounds.x + bounds.w || gy < bounds.y || gy >= bounds.y + bounds.h)
+            )
+              continue;
+            const key = cellKey(gx, gy);
+            if ((nearest.get(key) ?? Infinity) <= d) continue;
+            nearest.set(key, d);
+            levels.set(key, tier);
+          }
+      }
+    }
+  }
+  const regionalLevelCache = new Map<string, Map<string, number>>();
+  function regionalRoadLevels(x: number, y: number) {
+    if (!regional) return new Map<string, number>();
+    const c = coord(x, y),
+      key = cellKey(c.x, c.y),
+      old = regionalLevelCache.get(key);
+    if (old) return old;
+    const levels = new Map<string, number>();
+    const nearest = new Map<string, number>();
+    const box = {
+      x: c.x * DISTRICT_SIZE - land.origin.x,
+      y: c.y * DISTRICT_SIZE - land.origin.y,
+      w: DISTRICT_SIZE,
+      h: DISTRICT_SIZE,
+    };
+    const area = { x: box.x - 8, y: box.y - 8, w: box.w + 16, h: box.h + 16 };
+    const roads: Road[] = [];
+    if (transport || trunk) {
+      roads.push(...countryRoads(area));
+    } else {
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++)
+          for (const a of sitesIn(c.x + dx, c.y + dy))
+            for (const [ex, ey] of [[0, 0], [1, 0], [0, 1]])
+              for (const b of sitesIn(a.cx + ex, a.cy + ey)) {
+                if (a.id === b.id || (ex === 0 && ey === 0 && a.id > b.id)) continue;
+                if (roadless(a.pack ?? pack) || roadless(b.pack ?? pack)) continue;
+                roads.push(...link(a, b));
+              }
+    }
+    gradeRoadCorridor(
+      roads,
+      (px, py) => Math.round(land.sample(px, py).elevation / 14),
+      levels,
+      nearest,
+      box,
+    );
+    trimCache(regionalLevelCache, 32);
+    regionalLevelCache.set(key, levels);
+    return levels;
+  }
   const streetLevelCache = new WeakMap<SettlementPlan, Map<string, number>>();
   /** A street is level across its width: every cell of a cross-section takes
    * the centreline's tier, so a step meets a street square-on at a kerb and
@@ -1908,25 +2267,16 @@ export function createSettlementWorld(
     // Each cell takes its nearest centreline point's tier, so where the level
     // changes along a road the step crosses it square-on.
     const nearest = new Map<string, number>();
-    for (const road of p.roads) {
-      if (road.kind === "bridge") continue;
-      for (const pt of road.points) {
-        const f = land.sample(pt.x, pt.y);
-        // A track out in the fields cuts its own level through natural contours too.
-        if (f.water < 0 || (road.kind !== "path" && townAt(pt.x, pt.y)?.id !== p.site.id)) continue;
-        const tier = p.groundLevels?.get(cellKey(pt.x, pt.y)) ?? groundTier(pt.x, pt.y);
-        // A footpath's worn ground laps a cell either side of its line, and steps with it.
-        const [lo, hi] = road.span ? spanOffsets(road.span) : [Math.max(1, road.width), Math.max(1, road.width)];
-        for (let dy = -lo; dy <= hi; dy++)
-          for (let dx = -lo; dx <= hi; dx++) {
-            const key = cellKey(pt.x + dx, pt.y + dy);
-            const d = dx * dx + dy * dy;
-            if ((nearest.get(key) ?? Infinity) <= d) continue;
-            nearest.set(key, d);
-            levels.set(key, tier);
-          }
-      }
-    }
+    gradeRoadCorridor(
+      p.roads,
+      (px, py) => {
+        const owner = townAt(px, py);
+        if (owner && owner.id !== p.site.id) return undefined;
+        return p.groundLevels?.get(cellKey(px, py)) ?? groundTier(px, py);
+      },
+      levels,
+      nearest,
+    );
     // Footways beside the carriageway take its level.
     for (let pass = 0; pass < 2; pass++) {
       const next: [string, number][] = [];
@@ -2011,15 +2361,10 @@ export function createSettlementWorld(
         break;
       }
     }
-    // A country road steps square across its width: each cell takes the
-    // middle tier of the road cells round it, so the lanes climb together.
-    if (!graded && regional && f.water >= 0 && regionalRoads(x, y).has(cellKey(x, y))) {
-      const tiers: number[] = [];
-      for (let dy = -1; dy <= 1; dy++)
-        for (let dx = -1; dx <= 1; dx++)
-          if (regionalRoads(x + dx, y + dy).has(cellKey(x + dx, y + dy)))
-            tiers.push(Math.round(land.sample(x + dx, y + dy).elevation / 14));
-      height = tiers.sort((a, b) => a - b)[tiers.length >> 1] as HeightTier;
+    // A country road is level across its full visual width from its centreline.
+    if (!graded && regional && f.water >= 0) {
+      const level = regionalRoadLevels(x, y).get(cellKey(x, y));
+      if (level !== undefined) height = level as HeightTier;
     }
     let decked = false;
     for (const p of nearby(x, y)) {
@@ -2266,6 +2611,8 @@ export function createSettlementWorld(
       if (pavement) cell.pavement = pavement;
       // An earth street is drawn as the ground it reserves, like its footways.
       else if (material === "earth") cell.pavement = "lane";
+      if ((pavement === "apron" || pavement === "stepping") && p.earth?.has(key))
+        cell.earth = p.earth.get(key);
       const plinth = p.plinths?.get(key);
       if (plinth) cell.plinth = plinth;
       const border = p.borders?.get(key);
@@ -2435,8 +2782,8 @@ export function createSettlementWorld(
     };
     for (const r of plan.roads) {
       if (r.kind === "bridge") continue;
-      // Even a footpath's worn ground laps onto the cells either side of its line.
-      const half = Math.max(1, r.width, Math.floor(((r.span ?? 1) - 1) / 2));
+      // Match the road's full graded half-width so ramps span kerb to kerb.
+      const half = r.span ? Math.max(...spanOffsets(r.span)) : roadGradeRadius(r);
       for (let i = 1; i < r.points.length; i++) {
         let a = r.points[i - 1],
           b = r.points[i];
@@ -2634,14 +2981,14 @@ export function createSettlementWorld(
       reliefCache.set(key, c);
       return c;
     }
-    if (regional && regionalRoads(x, y).has(key)) {
+    if (regional && regionalRoadLevels(x, y).has(key)) {
       for (const [dx, dy, dir] of [
         [0, -1, "n"],
         [1, 0, "e"],
         [0, 1, "s"],
         [-1, 0, "w"],
       ] as const) {
-        if (!regionalRoads(x + dx, y + dy).has(cellKey(x + dx, y + dy)))
+        if (!regionalRoadLevels(x + dx, y + dy).has(cellKey(x + dx, y + dy)))
           continue;
         const hi = rawCell(x + dx, y + dy),
           lo = rawCell(x - dx, y - dy);
@@ -2670,7 +3017,13 @@ export function createSettlementWorld(
           ramp: slope,
           rampStyle: launch ? (launch.pier ? "landing" : "timber") : rampStyleFor(
             c,
-            plan.site.profile.paved ? "paved" : "town",
+            c.feature === "paving"
+              ? "paved"
+              : c.pathArt?.some((s) => s.paved)
+                ? "road"
+                : plan.site.profile.paved
+                  ? "paved"
+                  : "town",
             x,
             y,
           ),
@@ -3411,6 +3764,7 @@ export function createSettlementWorld(
       return planForEntity(id)?.slots.get(id);
     },
     protectedCell: (x, y) =>
+      onBlacktop(x, y, 0.5) ||
       (!!regional && regionalRoads(x, y).has(cellKey(x, y))) ||
       nearby(x, y).some(
         (p) =>

@@ -1,3 +1,4 @@
+import { CYCLE_KINDS } from "../core/cycles";
 import { marketKinds } from "../content/economy/exchanges";
 import { fieldJobs } from "../core/work-places";
 import { crops } from "../content/agriculture/crops";
@@ -251,6 +252,20 @@ const purchase = z.object({
   seller: z.string().max(100).optional(), product: z.string().max(100).optional(),
 });
 const pixelColor = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+const cycleLook = z.object({
+  kind: z.enum(CYCLE_KINDS),
+  paint: pixelColor,
+  accent: pixelColor,
+  tyre: z.enum(["black", "gum", "white", "cream"]),
+  saddle: pixelColor,
+  front: z.enum(["wicker", "wire", "crate", "lamp"]).optional(),
+  cargo: z.enum(["flowers", "bread", "greens", "parcel"]).optional(),
+  rear: z.enum(["rack", "box", "panniers"]).optional(),
+  fenders: z.boolean().optional(),
+  reflectors: z.boolean().optional(),
+  flag: z.boolean().optional(),
+  streamers: z.boolean().optional(),
+});
 export const characterAppearanceSchema = z.object({
   faceSeed: z.string().optional(),
   lineage: z.string().optional(),
@@ -500,6 +515,7 @@ const actor = z.object({
   goal: pos.optional(),
   tends: z.object({ herd: z.string(), seat: z.number() }).optional(),
   wayfarer: z.object({ until: z.number() }).optional(),
+  cycle: cycleLook.optional(),
   plough: z.object({ vehicle: z.string(), step: z.number().int().nonnegative(), at: z.number(), resting: z.boolean().optional(), sown: z.number().int().optional() }).optional(),
   freight: z.object({ grain: z.number().nonnegative(), day: z.number().int(), to: z.string() }).optional(),
   mount: z.object({ vehicle: z.string(), place: z.number().int().nonnegative() }).optional(),
@@ -523,6 +539,7 @@ const actor = z.object({
     stubbornUntil: z.number().optional(),
     bucking: z.object({ holds: z.number().int(), needed: z.number().int(), until: z.number(), tries: z.number().int() }).optional(),
     strained: z.number().int().optional(),
+    cycle: z.object({ look: cycleLook, id: z.string(), tuned: z.boolean().optional() }).optional(),
   }).optional(),
   drivingCart: z.object({ vehicle: z.string(), haltedAt: z.number().optional() }).optional(),
   cartOffsets: z.record(z.string(), z.number()).optional(),
@@ -538,6 +555,7 @@ const object = z.object({
   hoistedAt: z.number().optional(),
   motor: z.object({ facing:z.number().int().min(0).max(7), long:z.boolean(), taken:z.boolean().optional(), lastCall:z.number().int().optional(), handled:z.number().int().optional(), intakeDay:z.number().int().optional(), delay:z.number().optional(), yielding:z.boolean().optional() }).optional(),
   passage: z.object({ destination: point, back:z.boolean() }).optional(),
+  mooring: point.optional(),
   freight: z.object({store:z.string(),call:z.number().int()}).optional(),
   resource: z
     .object({
@@ -585,6 +603,9 @@ const object = z.object({
   claim: z.string().optional(),
   seasons: z.array(z.string()).optional(),
   tipped: z.boolean().optional(),
+  cycle: cycleLook.optional(),
+  price: z.number().int().nonnegative().optional(),
+  tuned: z.boolean().optional(),
   size: z.tuple([z.number(), z.number()]).optional(),
 });
 export const playerCommandSchema = z.discriminatedUnion("type", [
@@ -697,6 +718,12 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
         "drive-vehicle",
         "leave-vehicle",
         "mount-animal",
+        "mount-cycle",
+        "ring-bell",
+        "cycle-spill",
+        "cycle-trick",
+        "cycle-service",
+        "buy-cycle",
         "dismount-animal",
         "spur-mount",
         "calm-mount",
@@ -1000,6 +1027,10 @@ export const snapshotSchema = z.object({
       tomorrow: z
         .object({ condition: z.string(), label: z.string(), tempC: z.number() })
         .strict(),
+      inn: z
+        .object({ name: z.string(), room: z.string().optional(), healed: z.number(), fatigueCleared: z.number(), injuryEased: z.boolean().optional(), meal: z.string().optional() })
+        .strict()
+        .optional(),
     })
     .strict()
     .optional(),
@@ -1051,6 +1082,10 @@ export const snapshotSchema = z.object({
     .optional(),
   complex: z.any().optional(),
   complexes: z.record(z.string(), z.any()).optional(),
+  fugitive: z.object({ since: z.number(), prison: z.string(), charge: z.string() }).strict().optional(),
+  lodging: z
+    .record(z.string(), z.object({ until: z.number(), meal: z.boolean().optional(), nights: z.number().int(), room: z.string().optional() }).strict())
+    .optional(),
   voyage: z.any().optional(),
   lids: z.record(z.string(), z.number()).optional(),
   fauna: z.array(faunaGroup).max(5000).optional(),

@@ -167,8 +167,9 @@ export function planRoad(
   const result = route(
     start,
     end,
-    (to, from) => {
-      let slope = 0;
+    (to, from, prev) => {
+      let slope = 0,
+        crossSlope = 0;
       for (const p of line(from, to)) {
         if (solid.has(cellKey(p.x, p.y))) return Infinity;
         const f = sample(p.x, p.y);
@@ -183,6 +184,11 @@ export function planRoad(
             edge = sample(p.x + dx, p.y + dy);
           if (solid.has(k) || (edge.water < 0 && !bridges.has(k)))
             return Infinity;
+          if (width >= 1 && edge.water >= 0)
+            crossSlope = Math.max(
+              crossSlope,
+              Math.abs(edge.elevation - f.elevation),
+            );
         }
         slope = Math.max(
           slope,
@@ -190,26 +196,39 @@ export function planRoad(
         );
       }
       const onRoad = roads.has(cellKey(to.x, to.y));
-      // Discourage a new corridor beside an existing one; crossing or joining
-      // remains possible, and obstacles/water still use the checks above.
+      // Discourage a new corridor beside an existing one; wide roads keep an
+      // 8-cell buffer so nearby routes merge into a T-junction instead of
+      // running parallel a few cells apart.
+      const probe =
+        width >= 1
+          ? [
+              [-4, 0], [4, 0], [0, -4], [0, 4],
+              [-7, 0], [7, 0], [0, -7], [0, 7],
+              [-5, -5], [5, 5], [-5, 5], [5, -5],
+            ]
+          : [
+              [-3, 0], [3, 0], [0, -3], [0, 3],
+              [-2, -2], [2, 2], [-2, 2], [2, -2],
+            ];
       const nearRoad =
         !onRoad &&
-        Math.hypot(to.x - a.x, to.y - a.y) > 4 &&
-        Math.hypot(to.x - b.x, to.y - b.y) > 4 &&
-        [
-          [-3, 0],
-          [3, 0],
-          [0, -3],
-          [0, 3],
-          [-2, -2],
-          [2, 2],
-          [-2, 2],
-          [2, -2],
-        ].some(([dx, dy]) => roads.has(cellKey(to.x + dx, to.y + dy)));
+        Math.hypot(to.x - a.x, to.y - a.y) > (width >= 1 ? 7 : 4) &&
+        Math.hypot(to.x - b.x, to.y - b.y) > (width >= 1 ? 7 : 4) &&
+        probe.some(([dx, dy]) => roads.has(cellKey(to.x + dx, to.y + dy)));
+      let turn = 0;
+      if (prev && width >= 1) {
+        const ax = from.x - prev.x,
+          ay = from.y - prev.y,
+          bx = to.x - from.x,
+          by = to.y - from.y;
+        if (ax * by !== ay * bx) turn = ax * bx + ay * by <= 0 ? 12 : 4;
+      }
       const base =
         (onRoad ? 1 : 4) +
-        (nearRoad ? 4 : 0) +
-        slope * 1.3 +
+        (nearRoad ? (width >= 1 ? 14 : 4) : 0) +
+        turn +
+        (slope > 14 ? slope * 4 : slope * 1.3) +
+        crossSlope * 0.6 +
         (sample(to.x, to.y).water < 7 ? 2 : 0);
       let preference = 0;
       if (organicSeed && !roads.has(cellKey(to.x, to.y))) {
@@ -247,11 +266,55 @@ export function planRoad(
     },
   );
   if (result.status !== "found") return;
-  const points: Point[] = [];
+  let points: Point[] = [];
   let previous = a;
   for (const p of [start, ...result.path, b]) {
     points.push(...line(previous, p).slice(points.length ? 1 : 0));
     previous = p;
+  }
+  // Cut straight across short hairpin detours (e.g. wrapping around a 2–3 cell
+  // cliff finger) when a direct chord stays dry, clear and within one tier/step.
+  if (width >= 1 && points.length > 10) {
+    const chordClear = (chord: Point[]) => {
+      for (let k = 0; k < chord.length; k++) {
+        const p = chord[k];
+        if (k > 0) {
+          const prev = chord[k - 1];
+          if (Math.abs(sample(p.x, p.y).elevation - sample(prev.x, prev.y).elevation) > 14)
+            return false;
+        }
+        for (let dy = -width; dy <= width; dy++)
+          for (let dx = -width; dx <= width; dx++) {
+            const key = cellKey(p.x + dx, p.y + dy);
+            if (solid.has(key)) return false;
+            if (sample(p.x + dx, p.y + dy).water < 0 && !bridges.has(key))
+              return false;
+          }
+      }
+      return true;
+    };
+    const out: Point[] = [points[0]];
+    let i = 0;
+    while (i < points.length - 1) {
+      let jumped = false;
+      const maxJ = Math.min(points.length - 1, i + 24);
+      for (let j = maxJ; j >= i + 6; j--) {
+        const direct = Math.hypot(points[j].x - points[i].x, points[j].y - points[i].y);
+        if (direct + 2.5 >= j - i) continue;
+        const chord = directLine(points[i], points[j]);
+        if (chord.length < j - i && chordClear(chord)) {
+          out.push(...chord.slice(1));
+          i = j;
+          jumped = true;
+          break;
+        }
+      }
+      if (!jumped) {
+        i++;
+        out.push(points[i]);
+      }
+    }
+    points = out;
   }
   if (
     points.some(

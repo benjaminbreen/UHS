@@ -240,3 +240,181 @@ it("moves wall-owned flat pixels cleared for living water into an underLiving ba
   for (let i = 3; i < backdrop!.pixels.length; i += 4) if (backdrop!.pixels[i] > 0) opaque++;
   expect(opaque).toBeGreaterThan(0);
 });
+
+it("keeps non-pier beach launches narrow and stamps wear beneath shore work stations", async () => {
+  const { resolveSetting } = await import("../src/content/geography/resolve");
+  const { packForSetting } = await import("../src/content/geography/pack");
+  const { createSettlementWorld } = await import("../src/world/v3/generate");
+  const resolved = resolveSetting("A fisher in Lagos, 1600");
+  if (!("setting" in resolved)) throw new Error(resolved.error);
+  const setting = {
+    ...resolved.setting,
+    settlement: "village" as const,
+    environment: { ...resolved.setting.environment!, population: "sparse" as const },
+  };
+  const world = createSettlementWorld(packForSetting(setting), "coast-rev-2", undefined, false);
+  const plan = world.planAt(0, 0)!;
+  const member = plan.waterfront!.members[0];
+  // Outer flanks of a 7-wide beach launch clearance stay local ground, not orphan dirt slabs.
+  const dir = member.launch.direction;
+  const tx = -dir.y, ty = dir.x;
+  const outerFlank = member.launch.dry.filter((p) => {
+    const k = `${p.x},${p.y}`;
+    return (
+      Math.abs((p.x - member.launch.origin.x) * tx + (p.y - member.launch.origin.y) * ty) >= 2 &&
+      !plan.traffic.has(k) &&
+      !plan.pavement?.has(k)
+    );
+  });
+  expect(outerFlank.length).toBeGreaterThan(0);
+  expect(outerFlank.every((p) => plan.surface.get(`${p.x},${p.y}`) !== "dirt")).toBe(true);
+  // Outdoor sorting station stamps local groundWear beneath itself.
+  const sortObj = plan.objects.find((o) => o.id === member.catchId)!;
+  expect(world.topography!(sortObj.pos.x, sortObj.pos.y).groundWear ?? 0).toBeGreaterThan(0.5);
+  // Beached non-pier household boat gets a dry-shore mooring stake.
+  const boatObj = plan.objects.find((o) => o.id === member.boatId)!;
+  expect(boatObj.mooring).toBeDefined();
+  expect(world.topography!(boatObj.mooring!.x, boatObj.mooring!.y).surface).not.toBe("water");
+});
+
+it("adds bounded subtle wind-ripple and fleck grain across dry sea beach sand", async () => {
+  const { dryBeachGrain } = await import("../src/render/material-edges");
+  const base = [196, 188, 174];
+  let minR = 255, maxR = 0;
+  for (let y = 0; y < 48; y++)
+    for (let x = 0; x < 48; x++) {
+      const [r, g, b] = dryBeachGrain(base, x, y);
+      if (r < minR) minR = r;
+      if (r > maxR) maxR = r;
+      expect(Math.abs(r - base[0])).toBeLessThanOrEqual(16);
+      expect(Math.abs(g - base[1])).toBeLessThanOrEqual(16);
+      expect(Math.abs(b - base[2])).toBeLessThanOrEqual(16);
+    }
+  expect(maxR - minR).toBeGreaterThanOrEqual(6);
+});
+
+it("forms rain puddles along narrow village footpaths cut through grass", () => {
+  // A 1-cell-wide north-south dirt footpath flanked by grass on east and west.
+  const sample: TopographySample = (x) => ({
+    height: 0,
+    surface: x === 0 ? "soil" : "grass",
+    pathArt: x === 0 ? [{ a: [0.5, -0.5], b: [0.5, 1.5], radius: 0.75 }] : undefined,
+    groundWear: x === 0 ? 0.8 : 0,
+  });
+  let found = 0;
+  for (let y = 0; y < 80; y++) found += puddlesAt(sample, 0, y, 0, 0, y * 16).length;
+  expect(found).toBeGreaterThan(0);
+});
+
+it("blends sea-beach dirt patches into beach sand without dark turf trench borders", () => {
+  const sample: TopographySample = (x, y) => ({
+    height: 0,
+    surface: x === 0 && y === 0 ? "soil" : "sand",
+    pavement: x === 0 && y === 0 ? "yard" : undefined,
+    rock: "laterite",
+    habitat: {
+      ecology: "tropical-woodland",
+      colorway: "rainforest",
+      kind: "open",
+      wet: 0.3,
+      cover: 0,
+      exposed: 0.9,
+      season: "summer",
+      site: {
+        primary: "shore",
+        weights: { shore: 1 },
+        region: { ecology: "tropical-woodland", colorway: "rainforest" },
+        conditions: { moisture: 0.5, saturation: 0.1, slope: 0, canopy: 0, exposure: 0.9, freshwater: false, inundated: false },
+      },
+    },
+    waterVisual: {
+      distance: 2.5,
+      kind: "sea",
+      ecology: "tropical-woodland",
+      shoreWidth: 4,
+      flow: [0, 1],
+      frozenMargin: false,
+    },
+  });
+  const tile = rasterHabitatTile(sample, 0, 0, 0, 0);
+  let darkTrench = 0;
+  for (let i = 0; i < tile.pixels.length; i += 4) {
+    const r = tile.pixels[i], g = tile.pixels[i + 1], b = tile.pixels[i + 2];
+    if (r < 95 && g < 95 && b < 95) darkTrench++;
+  }
+  expect(darkTrench).toBe(0);
+});
+
+it("bakes and selects all 4 procedural variants for coastal fishing and craft worksites", async () => {
+  const { worksiteVariantFrame } = await import("../src/render/prop-variety");
+  const { default: worksites } = await import("../src/render/generated/worksites.json");
+  const frames = new Set(Object.keys((worksites as { frames: Record<string, unknown> }).frames));
+  for (const base of [
+    "worksite-fish-mat",
+    "worksite-fish-trays",
+    "worksite-fish-table",
+    "worksite-seine-pegs",
+    "worksite-net-rail",
+    "worksite-net-frame",
+    "worksite-dye-racks",
+    "worksite-pottery-rack",
+    "worksite-tanner-rack",
+    "worksite-loom-frame",
+    "worksite-smith-bench",
+    "worksite-carpenter-bench",
+    "worksite-mason-bench",
+    "worksite-press-yard",
+    "worksite-paper-yard",
+    "worksite-ropewalk",
+    "worksite-foundry-yard",
+    "worksite-soap-yard",
+    "worksite-silk-yard",
+    "worksite-charcoal-yard",
+  ]) {
+    expect(frames.has(base)).toBe(true);
+    for (let v = 1; v < 4; v++) expect(frames.has(`${base}-${v}`)).toBe(true);
+    expect(worksiteVariantFrame(base, 0.05, (f) => frames.has(f))).toBe(base);
+    expect(worksiteVariantFrame(base, 0.35, (f) => frames.has(f))).toBe(`${base}-1`);
+    expect(worksiteVariantFrame(base, 0.65, (f) => frames.has(f))).toBe(`${base}-2`);
+    expect(worksiteVariantFrame(base, 0.95, (f) => frames.has(f))).toBe(`${base}-3`);
+  }
+});
+
+it("places outdoor craft stations with trodden groundWear in non-fishing craft yards", async () => {
+  const { resolveSetting } = await import("../src/content/geography/resolve");
+  const { packForSetting } = await import("../src/content/geography/pack");
+  const { createSettlementWorld } = await import("../src/world/v3/generate");
+  const { worksitesFor } = await import("../src/content/settlements/worksites");
+  // Regional craft profile coverage check (fast unit check).
+  for (const [prompt, id] of [
+    ["A weaver in Oaxaca, 1650", "mesoamerican-weavers-yard"],
+    ["A weaver in Cusco, 1500", "andean-weavers-yard"],
+    ["A smith in Damascus, 1300", "west-asian-smithy"],
+    ["A carpenter in Florence, 1500", "european-carpentry-yard"],
+    ["A mason in Florence, 1500", "european-masons-yard"],
+    ["A brewer in London, 1650", "european-brewhouse"],
+    ["A scribe in Kyoto, 1650", "east-asian-papermill"],
+    ["A rope-maker in Venice, 1500", "european-ropewalk"],
+    ["A bronze-caster in Benin City, 1600", "west-african-bronze-foundry"],
+    ["A soap-boiler in Damascus, 1400", "levantine-soapworks"],
+    ["A silk-farmer in Kyoto, 1650", "east-asian-sericulture"],
+    ["A charcoal-burner in Florence, 1500", "european-charcoal-yard"],
+  ] as const) {
+    const r = resolveSetting(prompt);
+    if (!("setting" in r)) throw new Error(r.error);
+    expect(worksitesFor(r.setting).some((p) => p.id === id), `${prompt} -> ${id}`).toBe(true);
+  }
+  // Single sparse world build verifying craft station placement and trodden groundWear.
+  const resolved = resolveSetting("A weaver in Oaxaca, 1650");
+  if (!("setting" in resolved)) throw new Error(resolved.error);
+  const setting = {
+    ...resolved.setting,
+    settlement: "village" as const,
+    environment: { ...resolved.setting.environment!, population: "sparse" as const },
+  };
+  const world = createSettlementWorld(packForSetting(setting), "craft-stations-test", undefined, false);
+  const plan = world.planAt(0, 0)!;
+  const loom = plan.objects.find((o) => o.pos.space === "outside" && o.sprite === "worksite-loom-frame");
+  expect(loom).toBeDefined();
+  expect(world.topography!(Math.floor(loom!.pos.x), Math.floor(loom!.pos.y)).groundWear ?? 0).toBeGreaterThan(0.5);
+}, 25000);

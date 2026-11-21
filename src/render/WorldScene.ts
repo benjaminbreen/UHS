@@ -49,6 +49,7 @@ import type { WorldSetting } from "../content/geography/types";
 import { aerialStates, type FaunaGroup, type FaunaState } from "../core/fauna";
 import { MUD_DRIES, wallowable } from "../core/fauna-sim";
 import {
+  faunaArtStem,
   faunaCoats,
   faunaLook,
   faunaAt,
@@ -129,7 +130,7 @@ import { churchBanner } from "../content/settlements/religious/banners";
 import { terrainVariant, type RenderOptions } from "./appearance";
 import { phoneLayout, smallMemoryDevice } from "../runtime/device";
 import Phaser from "phaser";
-import { jumpMs, JUMP_CHARGE_MS, type Runtime } from "../runtime/session";
+import { CYCLE_AIR, jumpMs, JUMP_CHARGE_MS, type Runtime } from "../runtime/session";
 import type { Position, WorldModel, WorldObject } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { gameAudio } from "../audio/director";
@@ -154,8 +155,15 @@ import {
   mountSkid,
   mountLeap,
   mountLand,
+  cycleTick,
+  cycleRoll,
+  cycleSkid,
+  motorPutt,
+  trickChime,
 } from "../audio/sfx";
 import { mountSpec, type MountGait } from "../core/riding";
+import { CYCLE_SPECS, cycleStep, cycleTrick, type CycleLook } from "../core/cycles";
+import { CycleRider, WHEELIE_MS } from "./cycles/rider";
 import { beastVoiceOf, voiceOf } from "../audio/voices";
 import { DUNG_DRY_HOURS, DUNG_FRESH_HOURS } from "../content/fauna/dung";
 import type { HitClass } from "../core/reactions";
@@ -352,7 +360,7 @@ import { paintOpenLid } from "./sewer/art";
 import { laneLids } from "./carriageway";
 import { caveLight } from "../content/caves";
 import type { Kind, Prop } from "./interiors/room";
-import { ROOM_ORIGIN } from "../world/interior";
+import { ROOM_ORIGIN, roomAt } from "../world/interior";
 import { addCrops, cropsAt, setCropSelector, setCropCut, setCropsIndoors } from "./crops";
 import { fieldRidge } from "./field-raster";
 import { setFloraRegion } from "../content/ecology/blooms";
@@ -552,6 +560,7 @@ type TokenFace = "coin" | "cash" | "barter";
 const TOKEN_INK: Record<string, number> = {
   k: 0x3a2410, d: 0xa8761f, m: 0xd9a63e, g: 0xf2cf6b, l: 0xffe39a, w: 0xfffbe8,
   K: 0x4a3420, D: 0xa88a5c, M: 0xcdb487, G: 0xe8dcbc, L: 0xf6efda, a: 0x6b4a1e,
+  b: 0x2f4f9e, r: 0xb8382c,
 };
 const RIM = ["....kkkk....", "..kkllllkk..", ".kllwggggmk.", ".klwgggggmk."];
 const BASE = [".kgggggggmk.", ".kmggggmmdk.", "..kkddddkk..", "....kkkk...."];
@@ -570,6 +579,17 @@ const TOKENS: Record<TokenFace, string[]> = {
   ],
 };
 const tokenPixels = (face: TokenFace) => TOKENS[face];
+/** Over a street game: a bone-white die where the game is thrown, an Ur rosette where it is raced. */
+const GAME_TOKENS = {
+  knucklebones: [
+    ".kkkkkkkkkk.", "kwLLLLLLLLGk", "kLkkLLLLkkGk", "kLkkLLLLkkGk", "kLLLLLLLLLGk", "kLLLLkkLLLGk",
+    "kLLLLkkLLLGk", "kLLLLLLLLLGk", "kLkkLLLLkkGk", "kLkkLLLLkkGk", "kGGGGGGGGGMk", ".kkkkkkkkkk.",
+  ],
+  ur: [
+    "kkkkkkkkkkkk", "kLLLLbbLLLLk", "kLLLLbbLLLLk", "kLLrLLLLrLLk", "kLLLLrrLLLLk", "kbbLrrrrLbbk",
+    "kbbLrrrrLbbk", "kLLLLrrLLLLk", "kLLrLLLLrLLk", "kLLLLbbLLLLk", "kMMMMbbMMMMk", "kkkkkkkkkkkk",
+  ],
+};
 /** Draws a token centred on x, y; `sx` below 1 is the token turned toward
  * its edge, down to a thin bar. */
 function paintToken(g: Phaser.GameObjects.Graphics, rows: string[], x: number, y: number, sx: number) {
@@ -1180,6 +1200,7 @@ export class WorldScene extends Phaser.Scene {
         event.preventDefault();
         this.heldDirections.add(key);
         if (!event.repeat) this.pendingDirection = this.direction();
+        if (!event.repeat) this.cycleTrickKey(key);
       }
       this.shiftHeld = event.shiftKey;
       if (
@@ -1196,6 +1217,7 @@ export class WorldScene extends Phaser.Scene {
         const mount = this.runtime.engine.state.player.riding;
         if (mount) {
           this.spaceDown = true;
+          if (this.cycleTrickKey("space")) return;
           if (mount.bucking) {
             this.runtime.command({ type: "interact", action: "calm-mount", target: "mount" });
           } else if (this.heldDirections.size === 0 && performance.now() >= this.runtime.rideMovingUntil) {
@@ -1685,7 +1707,7 @@ export class WorldScene extends Phaser.Scene {
         const shape = p < 0.25 ? p / 0.25 : p > 0.8 ? -(p - 0.8) / 0.2 : 0;
         im.setScale(1 - 0.12 * shape, 1 + 0.16 * shape);
         // A long jump streaks.
-        if (isPlayer && arc.height >= 30 && this.time.now >= trailAt) {
+        if (isPlayer && arc.height >= 30 && this.time.now >= trailAt && !this.runtime.engine.state.player.riding?.cycle) {
           trailAt = this.time.now + 45;
           this.afterimage(im, 0.22);
         }
@@ -2119,6 +2141,40 @@ export class WorldScene extends Phaser.Scene {
       }
     }
   }
+  private gameMark?: Phaser.GameObjects.Graphics;
+  private boards?: Phaser.GameObjects.Graphics;
+  private games: ReturnType<WorldScene["runtime"]["engine"]["gameCircles"]> = [];
+  private gamesChecked = 0;
+  /** A token bobbing over each street game nearby, and the board or bones on the ground between the players. */
+  private drawGames(time: number) {
+    const engine = this.runtime.engine, p = engine.state.player.pos;
+    if (time - this.gamesChecked > 500) {
+      this.gamesChecked = time;
+      this.games = p.space === "outside" ? engine.gameCircles().filter((c) => Math.abs(c.at.x - p.x) + Math.abs(c.at.y - p.y) < 24) : [];
+    }
+    const mark = (this.gameMark ??= this.add.graphics()).clear().setDepth(1e7 - 1);
+    const boards = (this.boards ??= this.add.graphics()).clear();
+    for (const c of this.games) {
+      const seated = c.players.filter((a) => a.pos.x === a.errand?.to.x && a.pos.y === a.errand.to.y);
+      if (seated.length < 2) continue;
+      const x = c.at.x * 16 + 8, y = c.at.y * 16 + 12 - this.lift(c.at.x * 16 + 8, c.at.y * 16 + 16);
+      boards.setDepth(c.at.y * 16 + 4);
+      if (c.game.engine === "ur") {
+        // The twenty squares in their two blocks and bridge, a pixel a square.
+        boards.fillStyle(0x2a1d14, 1).fillRect(x - 9, y - 3, 18, 7);
+        for (let col = 0; col < 8; col++)
+          for (let row = 0; row < 3; row++)
+            if (row === 1 || col < 4 || col > 5) boards.fillStyle((col + row) % 3 ? 0xf2e6c8 : 0x3d5aa6, 1).fillRect(x - 8 + col * 2, y - 2 + row * 2, 1, 1);
+      } else {
+        boards.fillStyle(0x5a3a22, 0.45).fillEllipse(x, y, 16, 6);
+        for (const [dx, dy] of [[-4, -1], [-1, 1], [2, -1], [4, 1]]) boards.fillStyle(0xf6efda, 1).fillRect(x + dx, y + dy, 2, 1);
+      }
+      const bob = Math.abs(Math.sin(time / 420 + c.at.x)) * 2;
+      const head = seated.map((a) => this.entities.get(a.id)).filter((im) => im?.visible).map((im) => this.headTop(im!));
+      if (!head.length) continue;
+      paintToken(mark, GAME_TOKENS[c.game.engine], Math.round(x), Math.round(Math.min(...head) - 10 - bob), 1);
+    }
+  }
   /** Squat, tremble, sweat, heave: a rock going up over the head. */
   private heaveUp(heave: NonNullable<Runtime["heaveEffect"]>) {
     const now = this.time.now;
@@ -2252,9 +2308,25 @@ export class WorldScene extends Phaser.Scene {
   ) {
     if (water > 0.025) return footstep("water", running);
     const ground = this.underfoot(cell, puddle);
-    if (cell.space !== "outside" || ground === "snow")
-      return footstep(ground, running);
     const engine = this.runtime.engine;
+    if (cell.space !== "outside") {
+      const layout = engine.interiorOf(cell.space),
+        room = roomAt(layout, cell.x, cell.y),
+        floor = (room && layout!.plan.rooms[layout!.rooms.indexOf(room)])?.floorPattern ?? layout?.params.floorPattern;
+      if (floor)
+        return footstep(
+          floor === "earth" ? "soil"
+          : floor === "sand" ? "sand"
+          : floor === "flag" || floor === "tile" || floor === "terrazzo" ? "stone"
+          : floor === "plank" || floor === "parquet" ? "timber"
+          : "fiber",
+          running,
+        );
+      // Underground there is only rock to walk on.
+      return footstep(ground, running) ?? footstep("rock", running);
+    }
+    if (ground === "snow") return footstep(ground, running);
+    if (engine.world.terrain(cell.x, cell.y, cell.space) === "rock") return footstep("rock", running);
     const field = engine.world.topography?.(cell.x, cell.y)?.field;
     const { hit } = engine.hitClass(cell.x, cell.y, cell.space);
     // Grass tufts stay silent: they cover every meadow.
@@ -2619,6 +2691,11 @@ export class WorldScene extends Phaser.Scene {
         // Ordinary taps walk. Exhibit taps open the source card.
         if (phoneLayout() && !selectOnPhone) return;
         event.stopPropagation();
+        const clickedFauna = this.runtime.engine.state.fauna?.find((g) => g.id === id);
+        if (clickedFauna && (clickedFauna.speciesId === "horse" || clickedFauna.speciesId === "wild-horse" || clickedFauna.speciesId === "pony")) {
+          void gameAudio()?.sound(mountVoice("horse", "rear"), "mount");
+          this.feel.spring(image, 1.08, 0.94, 160);
+        }
         this.runtime.select(id);
       },
     );
@@ -2896,6 +2973,165 @@ export class WorldScene extends Phaser.Scene {
     return true;
   }
   private lastRideSerial = 0;
+  private cycle = new CycleRider(this);
+  private cycleAir = false;
+  private cycleSoundAt = 0;
+  /** Keys pressed for a trick are not steering until this time. */
+  private cycleGraceUntil = 0;
+  /** Progress through the jump an image is in, or -1 on the ground. */
+  private airProgress(im: Phaser.GameObjects.Image) {
+    const arc = im.getData("arc") as Phaser.Tweens.Tween | undefined;
+    return arc?.isActive() ? arc.progress : -1;
+  }
+  /** One cell of the player's cycle: the held way against its momentum. */
+  private cycleInput(dx: number, dy: number, time: number) {
+    const rt = this.runtime, e = rt.engine, p = e.state.player, c = this.cycle;
+    const spec = CYCLE_SPECS[p.riding!.cycle!.look.kind], now = performance.now();
+    if (time < this.cycleGraceUntil) dx = dy = 0;
+    if (!dx && !dy && c.speed <= 0) return;
+    const way = dx || dy ? ([dx, dy] as const) : c.dir;
+    if (!way) return;
+    const sample = e.world.topography, nx = p.pos.x + way[0], ny = p.pos.y + way[1];
+    const hit = e.groundClass(nx, ny, "outside");
+    let ground = hit === "stone" || hit === "timber" ? 1 : hit === "soil" ? (1 + spec.rough) / 2 : spec.rough;
+    if (p.riding!.cycle!.tuned) ground *= 1.08;
+    if (sample && waterDepthAt(sample, nx + 0.5, ny + 0.5) > 0.02) ground *= 0.6;
+    const fall = sample ? Math.max(-1, Math.min(1, ((sample(p.pos.x, p.pos.y)?.height ?? 0) - (sample(nx, ny)?.height ?? 0)))) : 0;
+    const was = c.speed;
+    const step = cycleStep(c, [dx, dy], spec, { sprint: this.shiftHeld, surge: now < rt.rideSpurUntil, ground, fall });
+    c.speed = step.speed;
+    c.dir = step.dir;
+    c.pedalling = step.pedalling;
+    const im = this.entities.get("player");
+    if (im && (step.beat === "skid" || step.beat === "drift")) this.cycleSkidFx(im, step.beat, way);
+    if (!step.move) {
+      rt.rideGait = 0;
+      if (step.beat === "skid") this.nextInput = time + 180;
+      return;
+    }
+    rt.rideGait = c.speed > spec.cruise * 1.08 ? (now < rt.rideSpurUntil ? 4 : 3) : c.speed > spec.cruise * 0.7 ? 2 : 1;
+    rt.rideMovingUntil = now + 380;
+    const [mx, my] = step.move;
+    // A ramp under the wheels at speed throws the machine whether asked or not.
+    if (c.speed >= 7 && e.cycleRampAt(p.pos.x, p.pos.y) && !e.validate({ type: "move", dx: mx, dy: my, jump: "long", run: true })) {
+      rt.face(mx, my);
+      this.jumpRunning = true;
+      this.queuedJump = "long";
+      return;
+    }
+    const ms = (1000 / c.speed) * Math.hypot(mx, my);
+    this.motionDuration = ms;
+    this.nextInput = time + ms;
+    this.lastTick = time;
+    const moved = rt.move(mx, my, false, c.speed > spec.cruise * 1.05);
+    if (moved?.status !== "rejected") return;
+    rt.face(mx, my);
+    c.halt();
+    rt.rideGait = 0;
+    rt.rideCombo = 0;
+    this.nextInput = time + 220;
+    if (was > spec.cruise * (spec.tall ? 0.75 : 1.12)) rt.command({ type: "interact", action: "cycle-spill", target: spec.tall ? "header" : "crash" });
+    else if (was > 6 && im) {
+      this.kickDust(im.x + mx * 6, im.y, 5, 0.9);
+      this.cameras.main.shake(80, 0.002);
+      void gameAudio()?.sound(mountLand(false), "land");
+    }
+  }
+  /** Locked or sliding tyres: the noise, the dust, the marks left on the ground and the lean. */
+  private cycleSkidFx(im: Phaser.GameObjects.Image, beat: "skid" | "drift", way: readonly [number, number]) {
+    const p = this.runtime.engine.state.player.pos;
+    void gameAudio()?.sound(cycleSkid(this.runtime.engine.groundClass(p.x, p.y, "outside")), "skid");
+    this.kickDust(im.x - way[0] * 6, im.y, beat === "skid" ? 8 : 5, 1.1);
+    for (let i = 0; i < 5; i++) {
+      const mark = this.add
+        .rectangle(im.x - way[0] * i * 4 + (way[0] ? 0 : i % 2 ? 2 : -2), im.y - 3 - way[1] * i * 4, way[0] ? 4 : 2, way[0] ? 1 : 4, 0x2a2630, 0.5)
+        .setDepth(im.depth - 14);
+      this.tweens.add({ targets: mark, alpha: 0, delay: 900, duration: 2200, onComplete: () => mark.destroy() });
+    }
+    const proxy = { t: 0 };
+    this.tweens.add({
+      targets: proxy,
+      t: (way[0] >= 0 ? -1 : 1) * (beat === "skid" ? 13 : 9),
+      duration: 110,
+      yoyo: true,
+      onUpdate: () => { this.cycle.lean = proxy.t; },
+      onComplete: () => { this.cycle.lean = 0; },
+    });
+  }
+  /** Asks for the rider's frames in every heading at once, so a spin in the air has them ready. */
+  private warmCyclePoses() {
+    const p = this.runtime.engine.state.player, look = p.riding?.cycle?.look;
+    if (!look || !this.characters) return;
+    for (const pose of new Set([this.cycle.sprites.frame(look, "side").pose, "cycle-stand"] as const))
+      for (let dir = 0; dir < 4; dir++)
+        for (let f = 0; f < (pose === "moto" ? 1 : 8); f++) this.characters.frame({ ...p, id: "player", direction: dir, facing: dir * 2 } as never, pose, f);
+  }
+  /** A key in the air asks for a trick. True while airborne, so the key does nothing else. */
+  private cycleTrickKey(key: string) {
+    const p = this.runtime.engine.state.player, im = this.entities.get("player"), look = p.riding?.cycle?.look;
+    const air = look && im ? this.airProgress(im) : -1;
+    if (!look || air < 0) return false;
+    const [dx, dy] = [[0, -1], [1, 0], [0, 1], [-1, 0]][p.direction]!;
+    const kx = key === "arrowright" || key === "d" ? 1 : key === "arrowleft" || key === "a" ? -1 : 0;
+    const ky = key === "arrowdown" || key === "s" ? 1 : key === "arrowup" || key === "w" ? -1 : 0;
+    const trick = cycleTrick(CYCLE_SPECS[look.kind], Math.sign(kx * dx + ky * dy) as -1 | 0 | 1, key === "space");
+    if (trick && this.cycle.tryTrick(trick, air)) {
+      this.cycleGraceUntil = this.time.now + 900;
+      void gameAudio()?.sound(mountLeap(false), "leap");
+    }
+    return true;
+  }
+  /** Wheels back on the ground: pay out the tricks, or throw the rider if one was unfinished. */
+  private cycleTouchdown(im: Phaser.GameObjects.Image, look: CycleLook) {
+    const c = this.cycle, now = this.time.now, { tricks, bail } = c.touchdown();
+    void gameAudio()?.sound(mountLand(false), "land");
+    this.kickDust(im.x, im.y, 6, 1);
+    if (bail) {
+      c.halt();
+      c.chain = 0;
+      this.runtime.command({ type: "interact", action: "cycle-spill", target: "trick" });
+      return;
+    }
+    if (!tricks.length) return;
+    c.chain = now < c.chainUntil ? c.chain + 1 : 1;
+    c.chainUntil = now + 9000;
+    const points = Math.round(tricks.reduce((n, t) => n + t.points, 0) * c.chain * (tricks.length > 1 ? 1.5 : 1));
+    c.style += points;
+    this.runtime.rideStyle = c.style;
+    c.speed = Math.min(CYCLE_SPECS[look.kind].sprint * 1.2, c.speed + 2.5);
+    this.feel.puff(im.x, im.y - 10, [0xffe478, 0xffbe3d, 0xfff5c0, 0x8ee6ff], 9, 1.2);
+    void gameAudio()?.sound(trickChime(c.chain), "spur");
+    const label = this.add
+      .text(im.x, im.y - 46, `${tricks.map((t) => t.name).join(" + ")}  +${points}${c.chain > 1 ? `  x${c.chain}` : ""}`, { fontFamily: "Silkscreen, monospace", fontSize: "8px", color: "#ffe478", stroke: "#1a1410", strokeThickness: 3 })
+      .setOrigin(0.5, 1)
+      .setDepth(1e7);
+    this.tweens.add({ targets: label, y: label.y - 18, alpha: 0, delay: 500, duration: 900, onComplete: () => label.destroy() });
+    this.runtime.command({ type: "interact", action: "cycle-trick", target: tricks.map((t) => t.name).join(" into a ") });
+  }
+  /** What a moving cycle sounds like and throws up: chain and tyres, a clicking freewheel, an engine. */
+  private cycleSounds(im: Phaser.GameObjects.Image, look: CycleLook, moving: boolean, time: number, wet: boolean) {
+    const c = this.cycle, spec = CYCLE_SPECS[look.kind], audio = gameAudio();
+    if (time < this.cycleSoundAt) return;
+    const p = this.runtime.engine.state.player;
+    const surface = wet ? "water" : this.runtime.engine.groundClass(p.pos.x, p.pos.y, "outside");
+    const hard = surface === "stone" || surface === "timber";
+    if (spec.motor) {
+      const rev = moving ? Math.min(1, c.speed / spec.sprint) : 0;
+      this.cycleSoundAt = time + 1000 / (9 + rev * 20);
+      const pitch = look.kind === "scooter" ? 1.7 : look.kind === "cub" ? 1.45 : look.kind === "dirtbike" ? 1.3 : look.kind === "sportbike" ? 1.15 : 0.82;
+      void audio?.sound(motorPutt(pitch, rev), "motor");
+      if (Math.random() < 0.12 + rev * 0.2) {
+        const [dx, dy] = [[0, -1], [1, 0], [0, 1], [-1, 0]][p.direction]!;
+        this.feel.puff(im.x - dx * 16, im.y - 5 - dy * 6, [0xb8b4b0, 0x8a8684, 0xd8d4d0], 1, 0.35);
+      }
+    } else if (moving) {
+      this.cycleSoundAt = time + (c.pedalling ? 250 - c.speed * 7 : Math.max(42, 170 - c.speed * 8));
+      void audio?.sound(c.pedalling ? cycleRoll(surface, c.speed / spec.sprint) : cycleTick(), c.pedalling ? "cycle-roll" : "cycle-tick");
+    }
+    if (!moving) return;
+    if (wet) splashPuddle(this, im.x, im.y - 1, p.direction, c.speed > spec.cruise, im.depth, time);
+    else if (!hard && c.speed > spec.cruise * 0.9 && Math.random() < 0.5) this.kickDust(im.x, im.y, 2, 0.6);
+  }
   private rideTilt = 0;
   private rideLift = 0;
   private rideHoofFrame = -1;
@@ -2943,7 +3179,7 @@ export class WorldScene extends Phaser.Scene {
           : target;
       const frame = next === "half" ? base : `${base}-${next}`;
       const tex = this.texture(frame);
-      if (tex !== "__DEFAULT" && (image.texture.key !== tex || image.frame.name !== frame)) {
+      if (tex !== "__DEFAULT" && this.textures.exists(tex) && this.textures.get(tex).has(frame) && (image.texture.key !== tex || image.frame.name !== frame)) {
         image.setTexture(tex, frame);
       }
       this.stableDoorState.set(place.id, { state: next, at: time });
@@ -3045,8 +3281,10 @@ export class WorldScene extends Phaser.Scene {
     };
     const facing = this.runtime.engine.state.player.direction;
     const sign = facing === 3 ? 1 : -1;
+    const machine = ev.voice === "bike" || ev.voice === "motor";
     switch (ev.kind) {
       case "mount":
+        if (machine) this.warmCyclePoses();
         this.rideBowUntil = this.time.now + 650;
         this.feel.spring(im, 1.16, 0.86, 220);
         this.kickDust(im.x, im.y, 5, 0.8);
@@ -3071,7 +3309,7 @@ export class WorldScene extends Phaser.Scene {
       case "feed":
         this.rideBowUntil = this.time.now + 750;
         this.feel.spring(im, 1.08, 0.94, 180);
-        this.feel.puff(im.x, im.y - 18, ev.kind === "feed" ? [0x8ee672, 0xffe478, 0xfff4c2] : [0xff9eb8, 0xffd1dc, 0xfff0f5], ev.kind === "feed" ? 7 : 5, 0.8);
+        this.feel.puff(im.x, im.y - (machine ? 26 : 18), ev.kind === "feed" || machine ? [0x8ee672, 0xffe478, 0xfff4c2] : [0xff9eb8, 0xffd1dc, 0xfff0f5], machine ? 3 : ev.kind === "feed" ? 7 : 5, 0.8);
         audio?.sound(mountVoice(ev.voice, "calm"), "mount");
         break;
       case "break":
@@ -3083,14 +3321,15 @@ export class WorldScene extends Phaser.Scene {
         break;
       case "rear":
         this.rideRearUntil = this.time.now + 760;
-        if (ev.speciesId !== "horse" && ev.speciesId !== "wild-horse") tiltTween(sign * 16, 7, 520);
+        if (machine) this.cycle.wheelieUntil = this.time.now + WHEELIE_MS;
+        else if (ev.speciesId !== "horse" && ev.speciesId !== "wild-horse") tiltTween(sign * 16, 7, 520);
         this.feel.spring(im, 0.9, 1.16, 240);
         this.kickDust(im.x, im.y, 8, 1.0);
         this.cameras.main.shake(130, heavy ? 0.005 : 0.003);
         audio?.sound(mountVoice(ev.voice, "rear"), "mount");
         break;
       case "stubborn":
-        tiltTween(sign * -10, 2, 340);
+        if (!machine) tiltTween(sign * -10, 2, 340);
         this.kickDust(im.x, im.y, 6, 0.9);
         audio?.sound(mountVoice(ev.voice, "stubborn"), "mount");
         break;
@@ -3107,6 +3346,7 @@ export class WorldScene extends Phaser.Scene {
         this.kickDust(im.x, im.y, ev.perfect ? 9 : 5, 1.0);
         if (ev.perfect) this.feel.puff(im.x, im.y - 8, [0xffe478, 0xfff5c0], 5, 0.9);
         audio?.sound(mountLeap(heavy), "leap");
+        if (!machine) this.time.delayedCall(260, () => { void gameAudio()?.sound(mountLand(heavy), "land"); });
         break;
     }
   }
@@ -3390,7 +3630,8 @@ export class WorldScene extends Phaser.Scene {
       // what the keeper's work is. A private house hangs none.
       if (i === 0 && !model.business && place.access !== "public") return;
       const art = shopArt(place.sprite);
-      const own = i === 0 ? model.business ?? (art && art !== "shop" ? art : keeperTrade(keeper)) : undefined;
+      // The town's cycle shop is an ordinary front; its name is what says what it sells.
+      const own = i === 0 ? (/\b(bicycle|cycle)\b/i.test(place.name) ? "bicycles" : model.business ?? (art && art !== "shop" ? art : keeperTrade(keeper))) : undefined;
       if (own?.startsWith("residential") || r("bare") < (i === 0 ? 0 : 0.12)) return;
       const year = this.runtime.engine.world.pack.year;
       const trade = hint || own || streetTrade(year, r("trade"));
@@ -3971,7 +4212,9 @@ export class WorldScene extends Phaser.Scene {
   private nightGrade?: NightGradePipeline;
   /** The hour's grade outdoors, blue moonlight after dark, grey under cloud.
    * Off indoors, where a room has its own light. */
+  private nightLevel = 0;
   private applyGrade(amount: number, dull = 0, grade?: ReturnType<typeof gradeAt>, floor = 1) {
+    this.nightLevel = amount;
     const renderer = this.game.renderer;
     if (!(renderer instanceof Phaser.Renderer.WebGL.WebGLRenderer)) return;
     const camera = this.cameras.main;
@@ -5451,7 +5694,7 @@ export class WorldScene extends Phaser.Scene {
                 d?.wire &&
                 [0, -1, 1]
                   .flatMap((j) => [0, -1, 1].map((i) => w.decoration(d.wire!.x + i, d.wire!.y + j)))
-                  .find((n) => n?.wire);
+                  .find((n) => n?.id.startsWith("pole-"));
               if (next) this.layers.push(this.wires(x, y, next));
               if (d?.id.startsWith("road-lamp-")) {
                 const decoLamp = lampLight(
@@ -6215,8 +6458,15 @@ export class WorldScene extends Phaser.Scene {
     const drawnByRoom = room
       ? new Set([...["exit", "bed", "chest", "work"].map((k) => `${p.space}-${k}`), ...room.furniture.map((f) => `${p.space}-room-${f.propId}`)])
       : undefined;
+    const cycleSeen = new Set<string>();
     for (const o of obs.objects) {
       if (o.carriedBy || o.id === flying) continue;
+      if (o.cycle) {
+        const cx = o.pos.x * 16 + 8, cy = o.pos.y * 16 + 16;
+        this.cycle.drawParked(o, cx, cy - this.lift(cx, cy), o.pos.y * 16 + 10, this.tint, (im) => this.makeSelectable(im, o.id));
+        cycleSeen.add(o.id);
+        continue;
+      }
       if (drawnByRoom?.has(o.id)) continue;
       // The building art already paints the door; the leaf overlay animates it.
       if (o.kind === "door") continue;
@@ -6582,8 +6832,10 @@ export class WorldScene extends Phaser.Scene {
     this.placeFauna(0);
     if (this.options.lab && !this.options.overview)
       c.startFollow(this.entities.get("player")!, this.liveGraphics.roundPixels, 0.4, 0.4);
+    this.cycle.sweepParked(cycleSeen);
     for (const [id, image] of this.entities)
       if (!keep.has(id)) {
+        this.cycle.drop(id);
         this.tweens.killTweensOf(image);
         const shade = this.shadows.get(id);
         if (shade) this.tweens.killTweensOf(shade);
@@ -7594,7 +7846,7 @@ export class WorldScene extends Phaser.Scene {
     if (!art) {
       const e = this.runtime.engine;
       const look = faunaLook(g.speciesId, e.state.manifest.seed, g.id, id, e.world.pack.setting, this.season);
-      const artStem = g.form && g.form !== g.speciesId ? `${g.speciesId}.${g.form}` : (look?.art ?? g.speciesId);
+      const artStem = g.form ? faunaArtStem(g.speciesId, g.form) : (look?.art ?? g.speciesId);
       const coat = g.coat ?? look?.coat;
       art = coat ? `${artStem}+${coat.replace(/-/g, "_")}` : artStem;
       this.faunaArt.set(id, art);
@@ -7944,6 +8196,7 @@ export class WorldScene extends Phaser.Scene {
     this.drawTarget(time);
     this.drawGuide(time);
     this.drawTraders(time);
+    this.drawGames(time);
     this.drawCastMarks(time);
     this.drawFightBars();
     this.combat().consume(this.runtime.swingEffect);
@@ -8023,7 +8276,7 @@ export class WorldScene extends Phaser.Scene {
         } else {
           this.motionDuration = jumpMs(
             this.runtime.jump(dx, dy, power, running),
-          );
+          ) * (this.runtime.engine.state.player.riding?.cycle ? CYCLE_AIR : 1);
           this.nextInput = time + this.motionDuration + this.afterHold();
         }
         this.lastTick = time;
@@ -8034,7 +8287,8 @@ export class WorldScene extends Phaser.Scene {
           : (this.pendingDirection ?? held);
         this.pendingDirection = undefined;
         const back = this.lastRunDir;
-        if ((dx || dy) && this.runtime.engine.state.player.drivingVehicle) {
+        if (this.runtime.engine.state.player.riding?.cycle) this.cycleInput(dx, dy, time);
+        else if ((dx || dy) && this.runtime.engine.state.player.drivingVehicle) {
           this.nextInput=time+95*Math.hypot(dx,dy);
           this.motionDuration=this.nextInput-time;
           this.lastTick=time;
@@ -8715,6 +8969,10 @@ export class WorldScene extends Phaser.Scene {
         const mountSpecNow = ridingMount ? mountSpec(ridingMount.speciesId, ridingMount.form) : undefined;
         if (id === "player") {
           this.syncRideEvents(im);
+          if (!ridingMount?.cycle && (this.cycle.speed || this.cycle.style)) {
+            this.cycle.halt();
+            this.cycle.style = this.cycle.chain = this.runtime.rideStyle = 0;
+          }
           if (!ridingMount) {
             this.rideGallopSteps = 0;
             this.rideTilt = 0;
@@ -8738,6 +8996,7 @@ export class WorldScene extends Phaser.Scene {
           : moving
             ? (this.shiftHeld ? 3 : 2)
             : 0;
+        const cycleLook = ridingMount?.cycle?.look ?? (id !== "player" && human.pos.space === "outside" ? (human as Actor).cycle : undefined);
         const devHorseFrame =
           id === "player" && !ridingMount && this.runtime.devHorse
             ? this.horseFrame(moving, turn.facing, time)
@@ -8750,11 +9009,41 @@ export class WorldScene extends Phaser.Scene {
           im.setOrigin(0.5, originY).setVisible(true);
           this.ride(im, human.appearance, devHorseFrame, 0, 0, 0, originY);
           this.mountedRiders.get(id)?.setVisible(false);
+        } else if (cycleLook) {
+          if (id === "player") this.riderImage?.setVisible(false);
+          const look = cycleLook;
+          let riderImg = this.mountedRiders.get(id);
+          if (!riderImg) this.mountedRiders.set(id, (riderImg = this.add.image(im.x, im.y, im.texture.key)));
+          const air = id === "player" ? this.airProgress(im) : -1;
+          const dolls = this.characters;
+          if (id === "player") {
+            if (this.cycleAir && air < 0) this.cycleTouchdown(im, look);
+            this.cycleAir = air >= 0;
+            if (air < 0) this.cycleSounds(im, look, moving, time, water > 0.02);
+          }
+          this.cycle.draw(id, im, riderImg, look, {
+            dir4: human.direction,
+            time,
+            delta: this.game.loop.delta,
+            moving,
+            player: id === "player",
+            air,
+            standing: id === "player" && moving && (this.shiftHeld || performance.now() < this.runtime.rideSpurUntil),
+            lit: this.nightLevel > 0.4,
+            tint: this.tint,
+            riderTexture: (pose, frame, dir4) =>
+              dolls.frame({ ...human, direction: dir4, facing: dir4 * 2 }, pose, frame, prop, 0, condition, this.feeling(id, human)),
+          });
         } else if (ridingMount && mountSpecNow) {
+          this.cycle.hide(id);
           // Real directional pixel-art animal + real animated pixel-art character doll in the saddle!
           if (id === "player") this.riderImage?.setVisible(false);
           const dir4 = human.direction;
-          const facing4: FaunaFacing = (["north", "east", "south", "west"] as const)[dir4] ?? "south";
+          const has8 = !!faunaProfile(ridingMount.speciesId)?.directions?.includes("southeast");
+          const facing8Idx = ((turn.facing % 8) + 8) % 8;
+          const facing4: FaunaFacing = has8
+            ? ((["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"] as const)[facing8Idx] ?? "south")
+            : ((["north", "east", "south", "west"] as const)[dir4] ?? "south");
           const isHorseRig = ridingMount.speciesId === "horse" || ridingMount.speciesId === "wild-horse";
           const rearing = isHorseRig && ((id === "player" && time < this.rideRearUntil) || !!ridingMount.bucking);
           const bowing = !moving && !rearing && isHorseRig && id === "player" && time < this.rideBowUntil;
@@ -8769,10 +9058,7 @@ export class WorldScene extends Phaser.Scene {
                   : activeGait >= 1
                     ? "wander"
                     : "idle";
-          const artStem =
-            ridingMount.form && ridingMount.form !== ridingMount.speciesId
-              ? `${ridingMount.speciesId}.${ridingMount.form}`
-              : ridingMount.speciesId;
+          const artStem = faunaArtStem(ridingMount.speciesId, ridingMount.form);
           const artFull =
             ridingMount.coat && ridingMount.coat !== "default" && ridingMount.coat !== "natural"
               ? `${artStem}+${ridingMount.coat.replace(/-/g, "_")}`
@@ -8786,7 +9072,7 @@ export class WorldScene extends Phaser.Scene {
               : id === "player" && moving
                 ? this.rideStridePhase
                 : undefined;
-          const animalFrame = this.faunaFrame(
+          let animalFrame = this.faunaFrame(
             ridingMount.speciesId,
             faunaState,
             0,
@@ -8794,8 +9080,13 @@ export class WorldScene extends Phaser.Scene {
             customPhase,
             artFull,
           );
-          const tex = this.texture(animalFrame);
-          if (tex !== "__DEFAULT") {
+          let tex = this.texture(animalFrame);
+          // If a coat swap returned the base atlas (or missed), fall back to the plain frame so Phaser never drops to frame 0.
+          if (tex !== "__DEFAULT" && (!this.textures.exists(tex) || !this.textures.get(tex).has(animalFrame))) {
+            animalFrame = this.faunaFrame(ridingMount.speciesId, faunaState, 0, facing4, customPhase, artStem);
+            tex = this.texture(animalFrame);
+          }
+          if (tex !== "__DEFAULT" && this.textures.exists(tex) && this.textures.get(tex).has(animalFrame)) {
             if (im.texture.key !== tex || im.frame.name !== animalFrame) {
               im.setTexture(tex, animalFrame);
             }
@@ -8827,7 +9118,10 @@ export class WorldScene extends Phaser.Scene {
               riderImg = this.add.image(0, 0, riderTex);
               this.mountedRiders.set(id, riderImg);
             }
-            const sideX = dir4 === 1 ? (mountSpecNow.sideShift ?? 0) : dir4 === 3 ? -(mountSpecNow.sideShift ?? 0) : 0;
+            const shift = mountSpecNow.sideShift ?? 0;
+            const sideX = has8
+              ? facing8Idx === 2 ? shift : facing8Idx === 6 ? -shift : facing8Idx === 1 || facing8Idx === 3 ? Math.round(shift * 0.7) : facing8Idx === 5 || facing8Idx === 7 ? Math.round(-shift * 0.7) : 0
+              : dir4 === 1 ? shift : dir4 === 3 ? -shift : 0;
             const bob = moving ? Math.round(Math.sin(time * (activeGait >= 3 ? 0.024 : 0.015)) * (activeGait >= 3 ? 1.5 : 1)) : 0;
             riderImg
               .setTexture(riderTex)
@@ -8844,6 +9138,7 @@ export class WorldScene extends Phaser.Scene {
         } else {
           if (id === "player") this.riderImage?.setVisible(false);
           this.mountedRiders.get(id)?.setVisible(false);
+          this.cycle.hide(id);
           if (im.angle !== 0) im.setAngle(0);
           if (im.flipX) im.setFlipX(false);
           if (texture && this.tweens.timeScale && im.texture.key !== texture) {
@@ -8853,7 +9148,7 @@ export class WorldScene extends Phaser.Scene {
           if(id==="player" || this.crafts.has(id))this.craftOf(id).placeCrew(im);
         }
         // Mounted hoofbeats, hoofprints, dust plumes & water spray!
-        if (id === "player" && ridingMount && mountSpecNow && moving && !arcLift) {
+        if (id === "player" && ridingMount && !ridingMount.cycle && mountSpecNow && moving && !arcLift) {
           const hoofIdx = Math.floor((time / (activeGait >= 4 ? 145 : activeGait === 3 ? 190 : activeGait === 2 ? 260 : 340))) % 4;
           if (this.rideHoofFrame !== hoofIdx) {
             this.rideHoofFrame = hoofIdx;
@@ -8877,7 +9172,7 @@ export class WorldScene extends Phaser.Scene {
         }
         // Dust off a run's contact frames. Walking raises none, or a quiet
         // street would be permanently hazy; jumps are covered by `launch`.
-        if (this.footfalls.get(id) !== index) {
+        if (!ridingMount && this.footfalls.get(id) !== index) {
           this.footfalls.set(id, index);
           const afoot =
             pose === "run" && index % 4 === 1 && water <= 0.025 && !arcLift;

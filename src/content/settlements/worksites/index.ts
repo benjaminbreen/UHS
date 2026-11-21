@@ -6,9 +6,10 @@ import { boatyardProfiles } from "./boatyards";
 import { craftProfiles } from "./crafts";
 import { estateProfiles } from "./estates";
 import { factoryProfiles } from "./factories";
+import { innProfiles } from "./inns";
 import { worksiteFits } from "./types";
 import type { WorldSetting } from "../../geography/types";
-export const worksiteProfiles = [...millProfiles, ...mineProfiles, ...hospitalProfiles, ...processingProfiles, ...boatyardProfiles,
+export const worksiteProfiles = [...millProfiles, ...mineProfiles, ...hospitalProfiles, ...innProfiles, ...processingProfiles, ...boatyardProfiles,
   ...craftProfiles, ...estateProfiles, ...factoryProfiles];
 export function worksitesFor(s: WorldSetting) {
   if (s.settlement === "camp") return [];

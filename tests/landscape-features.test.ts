@@ -107,6 +107,25 @@ describe("landscape features", () => {
     expect(dry).toBeGreaterThan(0);
     expect(wet).toBeGreaterThan(dry);
   });
+  it("fades playas smoothly at a settlement edge without a straight water cliff", async () => {
+    const { resolveSetting } = await import("../src/content/geography/resolve");
+    const { createRegionalContext } = await import("../src/world/regional/context");
+    const resolved = resolveSetting("A farmer in Peshawar, 1836");
+    if ("error" in resolved) throw Error(resolved.error);
+    const s: WorldSetting = { ...resolved.setting, lon: 71.53125, lat: 34.03125, season: "spring" };
+    const land = createEnvironment(s, "test", createRegionalContext(s));
+    let maxCrossingJump = 0;
+    for (let y = -180; y <= 180; y += 2) {
+      for (let x = -180; x <= 180; x++) {
+        const a = land.sample(x, y),
+          b = land.sample(x + 1, y);
+        const wa = a.seasonal ? a.seasonal[0] : a.water,
+          wb = b.seasonal ? b.seasonal[0] : b.water;
+        if ((wa < 0) !== (wb < 0)) maxCrossingJump = Math.max(maxCrossingJump, Math.abs(wa - wb));
+      }
+    }
+    expect(maxCrossingJump).toBeLessThan(8);
+  });
 });
 
 it("derives entrance wear without changing planted ground or the settlement layout", async () => {

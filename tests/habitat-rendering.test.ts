@@ -193,3 +193,46 @@ it("renders localized activity wear consistently across signed chunk origins", (
   expect(rasterHabitatTile(world, -16, 16, 0, 0).pixels)
     .not.toEqual(rasterHabitatTile(unworn, -16, 16, 0, 0).pixels);
 });
+
+it("blends trodden paths on a sea beach toward warm beach sand without dark trench borders", () => {
+  const shoreHabitat = {
+    ecology: "tropical-woodland" as const,
+    colorway: "rainforest" as const,
+    kind: "open" as const,
+    cover: 0,
+    wet: 0.2,
+    exposed: 0.9,
+    season: "summer",
+    site: {
+      primary: "shore" as const,
+      weights: { shore: 1 },
+      region: { ecology: "tropical-woodland" as const, colorway: "rainforest" as const },
+      conditions: { moisture: 0.4, saturation: 0.1, slope: 0, canopy: 0, exposure: 0.9, freshwater: false, inundated: false },
+    },
+  };
+  const seaCell = {
+    height: 0,
+    surface: "soil" as const,
+    rock: "laterite" as const,
+    habitat: shoreHabitat,
+    pathArt: [{ a: [-2, 0.5] as [number, number], b: [2, 0.5] as [number, number], radius: 0.8 }],
+    waterVisual: {
+      distance: 4,
+      kind: "sea" as const,
+      ecology: "tropical-woodland" as const,
+      shoreWidth: 7,
+      flow: [0, 1] as const,
+      frozenMargin: false,
+    },
+  };
+  const inlandCell = { ...seaCell, waterVisual: undefined };
+  const seaTile = rasterHabitatTile(() => seaCell, 0, 0, 0, 0).pixels;
+  const inlandTile = rasterHabitatTile(() => inlandCell, 0, 0, 0, 0).pixels;
+  const lum = (px: Uint8ClampedArray) => {
+    let s = 0;
+    for (let i = 0; i < px.length; i += 4) s += px[i] + px[i + 1] + px[i + 2];
+    return s / (px.length / 4);
+  };
+  // Sea-beach path blends toward pale coastal sand instead of staying dark inland soil.
+  expect(lum(seaTile)).toBeGreaterThan(lum(inlandTile) + 25);
+});

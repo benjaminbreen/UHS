@@ -1,27 +1,6 @@
 import type { WorksiteProfile } from "./types";
 
 const common = { revision: 2, basis: "reconstructed" } as const;
-const fodder = [{prop:"grainSacks",label:"Fodder and grain"},{prop:"crate",label:"Travellers' baggage"}];
-
-const keepers = ["innkeeper","porter","ostler","muleteer"];
-
-const caravanserais: WorksiteProfile[] = [
-  {...common,id:"persian-caravanserai",kind:"caravanserai",roles:["caravaneer"],hires:keepers,siting:"fringe",capacity:6,
-    label:"Caravanserai",scope:{years:[1000,1900],bounds:[44,25,63,40]},frame:"worksite-caravanserai-persian",
-    outbuilding:{frame:"worksite-masonry-store",label:"Stable and fodder store"},supplies:fodder,
-    sources:["https://whc.unesco.org/en/list/1668/"],
-    note:"Rooms in vaulted bays round a court with a well, entered through one tall portal that could be shut at night. Shah Abbas I built them a day's march apart; this one is not a surveyed building."},
-  {...common,id:"ottoman-han",kind:"caravanserai",roles:["caravaneer"],hires:keepers,siting:"fringe",capacity:6,
-    label:"Han (caravanserai)",scope:{years:[1200,1900],bounds:[24,29,44,42]},frame:"worksite-caravanserai-ottoman",
-    outbuilding:{frame:"worksite-masonry-store",label:"Stable and fodder store"},supplies:fodder,
-    sources:["https://en.wikipedia.org/wiki/Caravanserai"],
-    note:"A stone han on the road, rooms round a court, stabling and stores. Seljuk and Ottoman sultans and pious foundations endowed them so that lodging was often free for three days."},
-  {...common,id:"mughal-sarai",kind:"caravanserai",roles:["caravaneer"],hires:keepers,siting:"fringe",capacity:6,
-    label:"Sarai",scope:{years:[1530,1860],bounds:[68,20,90,34]},frame:"worksite-caravanserai-mughal",
-    outbuilding:{frame:"worksite-store-india",label:"Stable and fodder store"},supplies:fodder,
-    sources:["https://en.wikipedia.org/wiki/Grand_Trunk_Road"],
-    note:"A walled sarai of red sandstone with a gateway and a court, of the kind Sher Shah Suri and the Mughals built along the Grand Trunk Road."},
-];
 
 const plantations: WorksiteProfile[] = [
   {...common,id:"bengal-indigo-works",kind:"plantation",roles:["indigo-worker"],siting:"fringe",capacity:6,
@@ -41,4 +20,4 @@ const plantations: WorksiteProfile[] = [
     note:"A tall timber barn where leaf hangs on sticks to cure before it is packed into hogsheads. Chesapeake tobacco was grown by indentured servants and then, overwhelmingly, by enslaved people."},
 ];
 
-export const estateProfiles: readonly WorksiteProfile[] = [...caravanserais, ...plantations];
+export const estateProfiles: readonly WorksiteProfile[] = [...plantations];

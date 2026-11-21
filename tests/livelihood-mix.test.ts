@@ -1,7 +1,9 @@
 import { waterfrontFor } from "../src/content/settlements/waterfronts";
+import { innProfiles, innTerms } from "../src/content/settlements/worksites/inns";
+import { createSession, Runtime } from "../src/runtime/session";
 import { describe, it, expect } from "vitest";
 import { resolveSetting, settingFor as placeSetting } from "../src/content/geography/resolve";
-import { places } from "../src/content/geography/places";
+import { places, placeById } from "../src/content/geography/places";
 import { curatedStarts } from "../src/content/geography/curated-starts";
 import {
   resolveCharacterContext,
@@ -699,7 +701,7 @@ describe("the professions expansion", () => {
 });
 
 describe("the professions and worksites together", () => {
-  const placed = (id: string, year: number) => placeSetting(places.find((p) => p.id === id)!, year);
+  const placed = (id: string, year: number) => placeSetting(placeById.get(id)!, year);
   const kit = (id: string) => [...livelihoods, ...commonLivelihoods].find((l) => l.id === id)!;
   const names = (id: string, s: ReturnType<typeof placed>) =>
     new Set(Array.from({ length: 60 }, (_, i) => localLabel(kit(id), s, "x", `p${i}`)));
@@ -745,5 +747,62 @@ describe("the professions and worksites together", () => {
   it("reads label boxes across the 180th meridian", () => {
     expect(names("navigator", placed("polynesia", 1200))).toContain("Wayfinder");
     expect(names("weaver", placed("polynesia", 1200))).toContain("Mat Weaver");
+  });
+});
+
+describe("inns and overnight lodging", () => {
+  it("applies regional pricing, 3-night waqf endowments, and included meals", () => {
+    const han = innProfiles.find((p) => p.id === "ottoman-han")!;
+    expect(innTerms(han, 0, true).roomCost).toBe(0);
+    expect(innTerms(han, 2, true).endowedLeft).toBe(1);
+    expect(innTerms(han, 3, true).roomCost).toBe(1);
+
+    const hatago = innProfiles.find((p) => p.id === "edo-hatago")!;
+    expect(innTerms(hatago, 0, true).mealIncluded).toBe(true);
+    expect(innTerms(hatago, 0, true).mealCost).toBe(0);
+
+    const hotel = innProfiles.find((p) => p.id === "grand-hotel")!;
+    expect(innTerms(hotel, 0, true).roomCost).toBe(2);
+    expect(innTerms(hotel, 0, true).mealCost).toBe(1);
+  });
+
+  it("checks the player into an inn, serves supper, clears fatigue, heals and eases injuries overnight", () => {
+    const runtime = new Runtime(createSession("roman", "inn-lodging-test"));
+    const { engine } = runtime;
+    engine.world.pack.setting = placeSetting(placeById.get("london")!, 1650);
+    const innPlace = {
+      ...engine.world.places[0],
+      id: "test-inn",
+      name: "Coaching inn",
+      claim: "worksite-european-inn",
+      institution: "inn" as const,
+      access: "public" as const,
+    };
+    engine.world.places.push(innPlace);
+    const p = engine.state.player;
+    p.pos = { space: "test-inn", x: 3, y: 3 };
+    engine.state.clock = 21 * 3600;
+    p.inventory.coin = 0;
+    expect(runtime.command({ type: "lodge", place: "test-inn", sleep: true })?.status).toBe("rejected");
+
+    p.inventory.coin = 5;
+    p.hunger = 60;
+    p.fatigue = 85;
+    p.health = 70;
+    p.injury = { name: "Cut", until: engine.state.clock + 24 * 3600 };
+    const injuryBefore = p.injury.until;
+
+    expect(runtime.command({ type: "lodge", place: "test-inn", meal: true, sleep: true })?.status).toBe("completed");
+    expect(p.inventory.coin).toBe(3);
+    expect(p.hunger).toBeLessThan(40);
+    expect(p.fatigue).toBe(0);
+    expect(p.health).toBeGreaterThanOrEqual(84);
+    expect(p.injury.until).toBeLessThan(injuryBefore);
+    expect(engine.state.lodging?.["test-inn"]?.nights).toBe(1);
+    expect(engine.innInfo("test-inn")?.checkedIn).toBe(false);
+    expect(engine.state.evening?.inn?.name).toBe("Coaching inn");
+    expect(engine.state.evening?.inn?.healed).toBeGreaterThanOrEqual(14);
+    expect(engine.state.evening?.inn?.injuryEased).toBe(true);
+    runtime.dispose();
   });
 });

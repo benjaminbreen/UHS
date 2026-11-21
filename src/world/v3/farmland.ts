@@ -45,6 +45,8 @@ export type FieldCell = {
   /** A kitchen garden bed: planted close, cropped in succession, and drawn
    * right up to its fence. */
   garden?: boolean;
+  /** Edging style for a kitchen garden bed. */
+  bed?: import("../../content/settlements/yards").GardenBedStyle;
   /** Inside a house's or church's yard, not the town's farmland. */
   yard?: boolean;
   /** Whose ground this is, where anybody holds it: the parcel's tenant, or

@@ -30,6 +30,7 @@ export type RoomTemplate = {
   shapes?: Shape[];
   door?: Door;
   windowStyle?: WindowStyle;
+  windows?: number;
   fire?: Fire;
   smokehole?: boolean;
   seating?: RoomParams["seating"];
@@ -80,7 +81,7 @@ export type InteriorProfile = {
   rooms?: RoomTemplate[];
   institution?: "hospital" | "school" | "magistracy" | "bazaar" | "exchange" | "worship";
   observance?: Observance;
-  institutionPlan?: "passage" | "court";
+  institutionPlan?: "passage" | "court" | "corridor";
   /** The buildings this interior fills, as `venue.alehouse`, `religious.gothic-parish`,
    * `civic.english-market-hall` (see `buildingUse`); absent for a dwelling. */
   uses?: string[];

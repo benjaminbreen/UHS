@@ -536,6 +536,15 @@ export function createEnvironment(
   // A metropolis fills its own map; elsewhere it is built out to its radius.
   const docks = terminal ? undefined : dockHome && bulkhead((x, y) => nativeWater(x, y).water,
     s.playableMap ? { x: 0, y: 0 } : regional!.local(dockHome), s.playableMap ? s.playableMap.size / 2 : dockHome.radius);
+  const placePush = (x: number, y: number, scale = 1) => {
+    if (!regional) return Math.max(0, 16 * scale - Math.hypot(x, y));
+    let push = 0;
+    for (const p of regional.placesAt(x, y)) {
+      const c = regional.local(p);
+      push = Math.max(push, p.radius * scale - Math.hypot(x - c.x, y - c.y));
+    }
+    return push;
+  };
   const calculate = (x: number, y: number): LandSample => {
     const situation = s.situation;
     if (situation && (situation.landform !== "local" || Math.hypot(x, y) < (situation.camp === "expedition" ? 27 : 32))) {
@@ -577,12 +586,14 @@ export function createEnvironment(
     let waterGradientOverride: readonly [number, number] | undefined;
     // Distributaries: the contours of two smooth fields cross the delta plain
     // as a web of channels round low islands, the town on its own mound.
-    if (ws.delta && water > 1.5 && !town) {
+    if (ws.delta && water > 1.5) {
       const web =
         Math.min(
           Math.abs(noise(seed, fx, fy, 46, "delta-a") - 0.5) * 64,
           Math.abs(noise(seed, fx + 311, fy - 97, 70, "delta-b") - 0.5) * 98,
-        ) - (0.9 + noise(seed, fx, fy, 30, "delta-width") * 1.5);
+        ) -
+        (0.9 + noise(seed, fx, fy, 30, "delta-width") * 1.5) +
+        placePush(x, y, 0.5);
       if (web < water) {
         water = web;
         kind = "river";
@@ -591,8 +602,10 @@ export function createEnvironment(
     }
     if (ws.delta) floodplain = Math.max(floodplain, 40);
     // Each season's flood, laid over the dry ground at the end.
-    if (kind === "river" && water >= -1 && !town && byS.some((w) => w.flood > 0))
-      reaches = byS.map((w) => floodReach(w, floodplain, s.climate));
+    if (kind === "river" && water >= -1 && byS.some((w) => w.flood > 0)) {
+      const townFade = Math.max(0, Math.min(1, 1 - placePush(x, y, 0.5) / 12));
+      if (townFade > 0) reaches = byS.map((w) => floodReach(w, floodplain, s.climate) * townFade);
+    }
     if (ws.works === "polder" && !town && water > 2) {
       // Straight drainage ditches across the reclaimed land, a raised dike
       // along the open water.
@@ -740,9 +753,10 @@ export function createEnvironment(
       : undefined;
     const recipe = ecologyParts ? landscapeRecipe(ecologyParts) : undefined;
     const drainage = recipe ? drainageAt(field, x, y, water, recipe, Math.sign(s.lat) || 1) : undefined;
-    if (drainage && kind !== "sea" && water >= -1.2 && !regional?.placeAt(x, y)) {
+    if (drainage && kind !== "sea" && water >= -1.2) {
       const edgeFade = s.playableMap ? Math.max(0, Math.min(1, (s.playableMap.size / 2 - 1 - Math.max(Math.abs(x), Math.abs(y))) / 24)) : 1;
-      const spread = Math.max(0, drainage.saturation - 0.4) * 18 * edgeFade;
+      const placeFade = Math.max(0, Math.min(1, 1 - placePush(x, y, 1) / 16));
+      const spread = Math.max(0, drainage.saturation - 0.4) * 18 * edgeFade * placeFade;
       if (spread > 0) {
         water = Math.max(-1.2, water - spread);
         floodplain = Math.max(floodplain, spread + 5);
@@ -761,15 +775,19 @@ export function createEnvironment(
     }
     // A spring-fed oasis pool on low desert ground, and a playa that holds
     // shallow water only in the cool wet months and is a salt crust after.
-    if (habitat.ecology === "desert" && water > 8 && field(x, y) < 0.45 && !regional?.placeAt(x, y)) {
+    if (habitat.ecology === "desert" && water > 2 && field(x, y) < 0.6) {
       const ax = x + origin.x,
         ay = y + origin.y;
+      const push =
+        placePush(x, y, 1) +
+        Math.max(0, field(x, y) - 0.4) * 150 +
+        Math.max(0, 12 - water);
       const spring = noise(seed, ax, ay, 24, "oasis") * 0.8 + noise(seed, ax, ay, 5, "oasis-rim") * 0.2;
       const playa = ["atacama", "highland", "sahara", "kalahari", "reg"].includes(habitat.colorway ?? "")
         ? noise(seed, ax, ay, 38, "salt-pan")
         : 0;
-      const d = (0.86 - spring) * 60,
-        wet = Math.min(d, (0.77 - playa) * 50);
+      const d = (0.86 - spring) * 60 + push,
+        wet = Math.min(d, (0.77 - playa) * 50 + push);
       if (wet < 7 && wet < water) {
         if (d < 7 && d < water) water = d;
         if (wet < water) wetPlaya = wet;
@@ -815,7 +833,9 @@ export function createEnvironment(
     // Made ground is level from the wall back to the first terrace: a step
     // behind the apron would follow the cell grid along a diagonal quay.
     let level =
-      water < Math.max(floodplain, margin, madeShore ? terrace : 0) || (reaches && water < Math.max(...reaches))
+      water < Math.max(floodplain, margin, madeShore ? terrace : 0) ||
+      (reaches && water < Math.max(...reaches)) ||
+      (wetPlaya !== undefined && wetPlaya < Math.max(floodplain, margin))
         ? 0
         : water < terrace + (madeShore ? 10 : 0)
           ? Math.min(1, baseTier)

@@ -55,7 +55,7 @@ export function resolveRoom(base: InteriorProfile, c: RoomChoice): RoomParams {
     floorPattern: look.floor,
     dado: look.dado,
     door: pr.door,
-    windows: look.windows ?? (pr.windowStyle === "none" ? 0 : 1 + c.status),
+    windows: t?.windows ?? look.windows ?? (pr.windowStyle === "none" ? 0 : 1 + c.status),
     windowStyle: pr.windowStyle,
     fire: pr.fire,
     smokehole: pr.smokehole,

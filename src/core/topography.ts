@@ -24,6 +24,8 @@ export type PathStroke = {
   dung?: false;
   /** Blacktop, with the colour of its centre line; or graded gravel. */
   paved?: "yellow" | "white" | "none" | "gravel";
+  /** Cumulative arc length in cells from the road's start to `a`. */
+  offset?: number;
 };
 export type TopographyCell = {
   parterre?: { plan: import("../world/fair").Parterre; u: number; v: number };
@@ -98,6 +100,7 @@ export type TopographyCell = {
     /** Inside a household's or church's yard rather than the farmland. */
     yard?: boolean;
     garden?: boolean;
+    bed?: import("../content/settlements/yards").GardenBedStyle;
     /** Whose ground it is. Absent is common ground nobody minds you picking. */
     owner?: string;
     stage: import("../content/agriculture/types").CropStage;

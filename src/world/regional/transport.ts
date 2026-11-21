@@ -110,20 +110,26 @@ export function regionalTransport(
       ...line(a, corner),
       ...line(corner, b).slice(1),
     ];
+    const onBorder = (p: Point) =>
+      !!map &&
+      (p.x <= -half || p.x >= half - 1 || p.y <= -half || p.y >= half - 1);
     const straight =
-      existing.size || crossesWater
+      existing.size || crossesWater || onBorder(a) || onBorder(b)
         ? undefined
         : (cardinal
             ? [elbow({ x: b.x, y: a.y }), elbow({ x: a.x, y: b.y })]
             : [(shared ? directLine : line)(a, b)]
           ).find(clear);
-    // The search walks a four-cell grid and would step off a map's last
-    // row: an end on the border is searched from four cells inside it, and
-    // the road runs straight out from there.
+    // Pull border endpoints strictly perpendicular 6 cells inward while keeping
+    // the along-border coordinate exact, so roads meet the seam square-on and
+    // line up cell-for-cell with the adjacent map.
     const inside = (p: Point): Point => {
-      if (!map || (Math.abs(p.x) < half - 4 && Math.abs(p.y) < half - 4)) return p;
-      const pull = (v: number) => Math.max(-half + 4, Math.min(half - 4, Math.round(v / 4) * 4));
-      return { x: pull(p.x), y: pull(p.y) };
+      if (!map || !onBorder(p)) return p;
+      const inset = 6;
+      if (p.x <= -half) return { x: -half + inset, y: p.y };
+      if (p.x >= half - 1) return { x: half - 1 - inset, y: p.y };
+      if (p.y <= -half) return { x: p.x, y: -half + inset };
+      return { x: p.x, y: half - 1 - inset };
     };
     const search = (from: Point, to: Point) => {
       const f = inside(from), t = inside(to);
@@ -326,6 +332,7 @@ export function regionalTransport(
             (p) =>
               p.id !== s.id &&
               p.id !== b.id &&
+              !p.id.startsWith("border:") &&
               !roadless(p) &&
               Math.hypot(p.center.x - s.center.x, p.center.y - s.center.y) <
                 distance &&
@@ -360,11 +367,17 @@ export function regionalTransport(
         Math.hypot(u.center.x - v.center.x, u.center.y - v.center.y);
       return length(a[1]) - length(b[1]) || a[0].localeCompare(b[0]);
     });
+    const existingBorders = map ? mapBorderState() : undefined;
     const result = new Map<string, ReturnType<typeof build>>(),
-      roads = new Set<string>(),
-      bridges = new Set<string>(),
-      bridgeRoads = new Map<string, Road>();
+      roads = new Set<string>(existingBorders?.roads),
+      bridges = new Set<string>(existingBorders?.bridges),
+      bridgeRoads = new Map<string, Road>(existingBorders?.bridgeRoads);
     for (const [id, [a, b]] of ordered) {
+      const prebuilt = existingBorders?.routes.get(id);
+      if (prebuilt) {
+        result.set(id, prebuilt);
+        continue;
+      }
       const e = ends(a, b);
       const route = build(
         id,
@@ -391,8 +404,88 @@ export function regionalTransport(
     batches.set(key, result);
     return result;
   }
+  // Guarantee every dry border crossing connects into the map's road network
+  // (or straight through to another dry border on wilderness maps), so a road
+  // crossing a map edge always continues on the adjacent map.
+  let borderState:
+    | {
+        routes: Map<string, ReturnType<typeof build>>;
+        roads: Set<string>;
+        bridges: Set<string>;
+        bridgeRoads: Map<string, Road>;
+      }
+    | undefined;
+  function mapBorderState() {
+    if (borderState) return borderState;
+    const routes = new Map<string, ReturnType<typeof build>>(),
+      roads = new Set<string>(),
+      bridges = new Set<string>(),
+      bridgeRoads = new Map<string, Road>();
+    borderState = { routes, roads, bridges, bridgeRoads };
+    if (!map) return borderState;
+    const borderSites = crossings(0, 0);
+    if (!borderSites.length) return borderState;
+    const minC = Math.floor((-half + context.origin.x) / REGION_CELL) - 1,
+      maxC = Math.floor((half + context.origin.x) / REGION_CELL) + 1,
+      minR = Math.floor((-half + context.origin.y) / REGION_CELL) - 1,
+      maxR = Math.floor((half + context.origin.y) / REGION_CELL) + 1;
+    const internal: Site[] = [];
+    const seen = new Set<string>();
+    for (let cy = minR; cy <= maxR; cy++)
+      for (let cx = minC; cx <= maxC; cx++)
+        for (const s of sitesIn(cx, cy)) {
+          if (seen.has(s.id) || !within(s) || roadless(s)) continue;
+          seen.add(s.id);
+          internal.push(s);
+        }
+    const pairs: [Site, Site][] = [];
+    if (internal.length) {
+      for (const b of borderSites) {
+        const nearest = [...internal].sort(
+          (p, q) =>
+            Math.hypot(p.center.x - b.center.x, p.center.y - b.center.y) -
+              Math.hypot(q.center.x - b.center.x, q.center.y - b.center.y) ||
+            p.id.localeCompare(q.id),
+        )[0];
+        if (nearest) pairs.push([b, nearest]);
+      }
+    } else if (borderSites.length >= 2) {
+      // Wilderness map with no settlements: connect all dry borders through a
+      // spanning chain so entering roads continue cleanly to the other sides.
+      for (let i = 1; i < borderSites.length; i++)
+        pairs.push([borderSites[0], borderSites[i]]);
+    }
+    for (const [a, b] of pairs) {
+      const [first, second] = a.id < b.id ? [a, b] : [b, a];
+      const id = `${first.id}:${second.id}`;
+      const e = ends(first, second);
+      const route = build(
+        id,
+        first.id,
+        second.id,
+        e.from,
+        e.to,
+        roads,
+        bridges,
+        [...bridgeRoads.values()],
+        e.cardinal,
+      );
+      routes.set(id, route);
+      for (const road of route.roads) {
+        if (road.kind === "bridge") {
+          bridgeRoads.set(road.id, road);
+          roadCells(road, (x, y) => bridges.add(cellKey(x, y)));
+        }
+        for (const p of road.points) roads.add(cellKey(p.x, p.y));
+      }
+    }
+    return borderState;
+  }
   function inArea(area: GeographicArea) {
     const result = new Map<string, ReturnType<typeof build>>();
+    for (const [id, route] of mapBorderState().routes) {
+      if (intersects(area, bounds(route.record.points))) result.set(id, route);
+    }
     const minX = Math.floor((area.x + context.origin.x) / REGION_CELL) - 1;
     const minY = Math.floor((area.y + context.origin.y) / REGION_CELL) - 1;
     const maxX =

@@ -106,3 +106,38 @@ it("runs a playable map's roads to its border crossings, not to settlements beyo
   expect(ends).toContain("-96,-192");
   expect(ends.some((p) => p.endsWith(",191"))).toBe(false);
 });
+
+it("continues border roads seamlessly into an adjacent wilderness map square-on at the same cell", () => {
+  const seam = (side: string, roadAt = 0.25) => ({ side, start: 0, end: 1, road: true, roadAt });
+  const area = { x: -192, y: -192, w: 384, h: 384 };
+  const westCtx = {
+    ...context,
+    settingAt: () => ({
+      year: 2005,
+      roadRevision: 1,
+      playableMap: { size: 384, exits: [{ id: "w~e", seam: seam("E", 0.25) }] },
+    }),
+  } as unknown as RegionalContext;
+  const eastCtx = {
+    ...context,
+    settingAt: () => ({
+      year: 2005,
+      roadRevision: 1,
+      playableMap: {
+        size: 384,
+        exits: [
+          { id: "w~e", seam: seam("W", 0.25) },
+          { id: "e~far", seam: seam("E", 0.5) },
+        ],
+      },
+    }),
+  } as unknown as RegionalContext;
+  const town = [{ id: "town", cx: 0, cy: 0, center: { x: 0, y: 0 } }] as Site[];
+  const westRoads = regionalTransport(westCtx, (x, y) => (x === 0 && y === 0 ? town : []), sample).roadsIn(area);
+  // Adjacent east map has zero settlements (wilderness) — must still pick up the border road.
+  const eastRoads = regionalTransport(eastCtx, () => [], sample).roadsIn(area);
+  const westEdge = westRoads.flatMap((r) => r.points).filter((p) => p.x >= 186 && p.x <= 191 && p.y === -96);
+  const eastEdge = eastRoads.flatMap((r) => r.points).filter((p) => p.x >= -192 && p.x <= -187 && p.y === -96);
+  expect(westEdge.length).toBeGreaterThanOrEqual(6);
+  expect(eastEdge.length).toBeGreaterThanOrEqual(6);
+});

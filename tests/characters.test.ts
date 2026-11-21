@@ -18,7 +18,7 @@ import { portableProps } from "../src/render/characters/props";
 import atlas from "../public/props/atlas.json" with { type: "json" };
 import natureAtlas from "../public/nature/atlas.json" with { type: "json" };
 import { propDefs } from "../src/content/props/catalog";
-import { poses, workPoseFor } from "../src/render/characters/poses";
+import { poses, workPoseFor, worksiteStationFamily } from "../src/render/characters/poses";
 import { greetingFor } from "../src/content/characters/greetings";
 import { places } from "../src/content/geography/places";
 import { settingFor } from "../src/content/geography/resolve";
@@ -93,6 +93,42 @@ it("selects physical work by the task instead of treating every station alike", 
   expect(workPoseFor("work", "Working leather", "tanning-pits")).toBe("work-scrub");
   expect(workPoseFor("draw-water", "Drawing water", "well")).toBe("tug");
   expect(workPoseFor("work", "Standing watch", "barrel")).toBeUndefined();
+  // Craft station families and specialized craft trades resolve to accurate physical verbs.
+  expect(worksiteStationFamily("worksite-silk-yard-2")).toBe("worksite-silk-yard");
+  expect(worksiteStationFamily("worksite-foundry-yard")).toBe("worksite-foundry-yard");
+  expect(worksiteStationFamily("house-euro-0")).toBeUndefined();
+  expect(workPoseFor("work", "Working stone", "", "mason")).toBe("work-chisel");
+  expect(workPoseFor("work", "Coopering", "", "cooper")).toBe("work-chisel");
+  expect(workPoseFor("work", "Tanning hides", "", "tanner")).toBe("work-scrape");
+  expect(workPoseFor("work", "Turning pots", "", "potter")).toBe("work-throw");
+  expect(workPoseFor("work", "Reeling silk", "", "silk-farmer")).toBe("work-crank");
+  expect(workPoseFor("work", "Twisting rope", "", "rope-maker")).toBe("work-crank");
+  expect(workPoseFor("work", "Casting bronze", "", "bronze-caster")).toBe("work-pour");
+  expect(workPoseFor("work", "Boiling soap", "", "soap-boiler")).toBe("work-stir");
+  expect(workPoseFor("work", "Tending kiln", "", "charcoal-burner")).toBe("work-tend");
+  expect(workPoseFor("work", "Working", "worksite-charcoal-yard", "sawyer")).toBe("work-saw");
+  expect(workPoseFor("work", "Working", "worksite-paper-yard", "scribe")).toBe("work-scrape");
+  expect(workPoseFor("work", "Working", "worksite-net-frame")).toBe("work-weave");
+  expect(workPoseFor("work", "Working", "worksite-fish-table")).toBe("work-sort");
+});
+
+it("animates all four new craft poses across frames without blank renders", () => {
+  const a = generateAppearance("craft-poses", 2, 32, { sex: "female" });
+  for (const pose of ["work-crank", "work-scrape", "work-chisel", "work-throw"] as const) {
+    expect(poses).toContain(pose);
+    const frames = [0, 1, 2, 3].map((f) => {
+      const data = new Uint8ClampedArray(80 * 80 * 4);
+      const ctx = { clearRect: () => data.fill(0), getImageData: () => ({ data }), putImageData: () => {} } as unknown as CanvasRenderingContext2D;
+      drawCharacterG(ctx, a, 1, pose, f);
+      return data;
+    });
+    const opaque = frames[0].filter((_, i) => i % 4 === 3 && frames[0][i] > 0).length;
+    expect(opaque, `${pose} frame 0 should draw pixels`).toBeGreaterThan(80);
+    let diff = 0;
+    for (let i = 0; i < frames[0].length; i += 4)
+      if (frames[0][i] !== frames[2][i] || frames[0][i + 1] !== frames[2][i + 1] || frames[0][i + 3] !== frames[2][i + 3]) diff++;
+    expect(diff, `${pose} should visibly animate between frame 0 and frame 2`).toBeGreaterThan(10);
+  }
 });
 
 describe("character recipes", () => {

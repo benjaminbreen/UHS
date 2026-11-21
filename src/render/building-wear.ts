@@ -36,11 +36,11 @@ export function buildingWear(
   const growth = options.weeds ? Math.round((0.35 + options.neglect * 0.5) * 4) : 0;
   const key = `wear:${frame}:${moss}:${options.forge ? 1 : 0}:${growth}:${dry ? 1 : 0}`;
   if (scene.textures.exists(key)) return key;
-  if (!moss && !growth && !options.smoke.length && !options.forge) return undefined;
   const f = scene.textures.getFrame(texture, frame);
   if (!f) return undefined;
   const w = f.cutWidth,
-    h = f.cutHeight;
+    h = f.cutHeight,
+    padBottom = 2;
   const read = document.createElement("canvas");
   read.width = w;
   read.height = h;
@@ -49,23 +49,38 @@ export function buildingWear(
   const px = rctx.getImageData(0, 0, w, h).data;
   const solid = (x: number, y: number) =>
     x >= 0 && y >= 0 && x < w && y < h && px[(y * w + x) * 4 + 3] > 200;
-  const tex = scene.textures.createCanvas(key, w, h)!;
+  const tex = scene.textures.createCanvas(key, w, h + padBottom)!;
   const ctx = tex.getContext();
-  const out = ctx.createImageData(w, h);
-  const put = (x: number, y: number, rgba: number[]) => out.data.set(rgba, (y * w + x) * 4);
+  const out = ctx.createImageData(w, h + padBottom);
+  const put = (x: number, y: number, rgba: number[]) => {
+    if (x < 0 || y < 0 || x >= w || y >= h + padBottom) return;
+    out.data.set(rgba, (y * w + x) * 4);
+  };
   const seed = frame.length * 31 + frame.charCodeAt(0);
   let ground = 0;
   for (let i = 3; i < px.length; i += 4) if (px[i] > 200) ground = Math.max(ground, Math.floor(i / 4 / w));
+  const tops = new Int16Array(w).fill(-1);
+  const bottoms = new Int16Array(w).fill(-1);
+  let footLeft = w, footRight = -1;
   for (let x = 0; x < w; x++) {
-    let top = -1,
-      bottom = -1;
     for (let y = 0; y < h; y++)
       if (solid(x, y)) {
-        if (top < 0) top = y;
-        bottom = y;
+        if (tops[x] < 0) tops[x] = y;
+        bottoms[x] = y;
       }
+    if (bottoms[x] >= ground - 14) {
+      if (x < footLeft) footLeft = x;
+      if (x > footRight) footRight = x;
+    }
+  }
+  const [dx0, , dw] = options.door ?? [-99, 0, 0];
+  for (let x = 0; x < w; x++) {
+    const top = tops[x],
+      bottom = bottoms[x];
     if (top < 0) continue;
     const span = bottom - top;
+    const onGround = bottom >= ground - 14;
+    const clearDoor = x < dx0 - 1 || x > dx0 + dw;
     for (let y = top; y <= bottom; y++) {
       if (!solid(x, y)) continue;
       const speck = hash(x + seed, y, 811);
@@ -75,19 +90,31 @@ export function buildingWear(
         if (clump < moss * 0.05 && speck < 0.75)
           put(x, y, speck < 0.3 ? [128, 142, 70, 210] : [84, 102, 50, 200]);
       }
+      // Subtle ambient occlusion along the bottom wall sill where masonry/timber meets earth.
+      if (onGround && clearDoor && bottom - y <= 2) {
+        const dy = bottom - y;
+        if (dy === 0) put(x, y, [24, 20, 16, 92]);
+        else if (dy === 1) put(x, y, [28, 24, 18, speck < 0.7 ? 50 : 32]);
+        else if (speck < 0.45) put(x, y, [32, 28, 22, 24]);
+      }
       // Rain splashes back up the wall foot and keeps it green-dark.
       if (moss >= 2 && bottom - y < 3 && speck < 0.5 + moss * 0.08)
         put(x, y, [44, 58, 32, 70 + moss * 12]);
     }
-    // Grass and weeds in clumps along the wall foot, so the house sits in the
-    // ground rather than on it. Never across the doorway.
-    const [dx0, , dw] = options.door ?? [-99, 0, 0];
-    // Only where the column stands on the ground: an eave's underside is not.
-    if (growth && bottom >= ground - 14 && (x < dx0 - 1 || x > dx0 + dw)) {
+    // Soft two-pixel ground-contact shadow directly below the standing wall sill.
+    if (onGround && clearDoor) {
+      put(x, bottom + 1, [26, 22, 18, 80]);
+      if (hash(x + seed, 1, 823) < 0.78) put(x, bottom + 2, [26, 22, 18, 36]);
+    }
+    // Grass and weeds in clumps along the wall foot, thickest near the corners,
+    // so the house sits in the ground rather than on it. Never across the doorway.
+    if (growth && onGround && clearDoor) {
       const g = Math.floor((x + seed) / 5),
         within = (x + seed) % 5;
       const clump = hash(g, 0, 821);
-      if (clump < growth * 0.2 && within < 4) {
+      const nearCorner = x - footLeft < 9 || footRight - x < 9;
+      const chance = Math.min(0.76, 0.24 + growth * 0.16 + (nearCorner ? 0.16 : 0));
+      if (clump < chance && within < 4) {
         // Taller at the middle of the clump, ragged at its ends.
         const crown = within === 1 || within === 2 ? 2 : 0;
         const tall = 1 + crown + Math.floor(hash(x + seed, 2, 825) * (2 + growth * 0.4));
@@ -96,6 +123,8 @@ export function buildingWear(
           : [[38, 76, 34], [70, 124, 46], [138, 182, 74]];
         for (let k = 0; k < tall && bottom - k >= top; k++)
           put(x, bottom - k, [...ramp[k === 0 ? 0 : k === tall - 1 ? 2 : 1], 255]);
+        // Root pixel steps 1px into the ground so the horizontal sill breaks up.
+        if (within === 1 || within === 2) put(x, bottom + 1, [...ramp[0], 220]);
         // Now and then a flower on top of the tallest.
         if (!dry && tall >= 3 && hash(x + seed, 3, 827) < 0.12)
           put(x, bottom - tall, hash(x, 4, 829) < 0.5 ? [236, 230, 196, 255] : [232, 196, 72, 255]);

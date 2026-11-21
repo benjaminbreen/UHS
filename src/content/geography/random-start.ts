@@ -12,6 +12,7 @@ import { cavePeople } from "../caves/people";
 import { personFits, sewerPeople, startTimes } from "../sewers";
 import { hullFor, shipCrew } from "../ships";
 import { random } from "../../core/random";
+import { eras } from "../history/dates";
 
 const firstRandomYear = -12999; // 13,000 BCE in astronomical numbering
 const onePastPresent = 2027;
@@ -51,7 +52,20 @@ export function randomPopulationWeightedYear(draw: number) {
   return firstRandomYear + lo;
 }
 
-/** How a start picks its place. The year is population-weighted either way. */
+/** Draw a year evenly across the twelve historical eras for variety starts. */
+const eraSpans = eras.map((e) => [
+  Math.max(firstRandomYear, e.start?.year ?? firstRandomYear),
+  Math.min(onePastPresent, e.end?.year ?? onePastPresent),
+] as const);
+
+export function randomVarietyYear(draw: number) {
+  const scaled = unit(draw) * eraSpans.length;
+  const idx = Math.min(eraSpans.length - 1, Math.floor(scaled));
+  const [start, end] = eraSpans[idx];
+  return start + Math.min(end - start - 1, Math.floor((scaled - idx) * (end - start)));
+}
+
+/** How a start picks its place and year. */
 export type StartMode = "any" | "realistic";
 
 const catchmentYears = population.catchmentYears as number[];
@@ -119,8 +133,77 @@ function inTown(draw: number, place: (typeof places)[number], year: number) {
   const share = urban[code]?.[nearestIndex(urbanYears, year)];
   if (share === undefined) return true;
   const k = nearestIndex(catchmentYears, year);
-  const towns = countryCatchment[k].towns[code] / countryCatchment[k].all[code];
-  return unit(draw) < share / 100 / towns;
+  const all = countryCatchment[k].all[code];
+  const towns = all > 0 ? countryCatchment[k].towns[code] / all : 0;
+  return towns > 0 ? unit(draw) < share / 100 / towns : false;
+}
+
+/** When a country's modern urban share exceeds its town pins, promote rural draws to close the gap. */
+function promoteRuralToTown(draw: number, place: (typeof places)[number], year: number) {
+  if (year < 1850) return false;
+  const code = mapped[place.id];
+  const share = urban[code]?.[nearestIndex(urbanYears, year)];
+  if (share === undefined) return false;
+  const k = nearestIndex(catchmentYears, year);
+  const all = countryCatchment[k].all[code];
+  const towns = all > 0 ? countryCatchment[k].towns[code] / all : 0;
+  const excess = share / 100 - towns;
+  if (excess <= 0 || towns >= 1) return false;
+  return unit(draw) < excess / (1 - towns);
+}
+
+/* Equal weight per culture, sqrt-balanced across climates within each culture,
+ * and de-duplicated for colocated pins and dense modern states. */
+const varietyCumulative = (() => {
+  const countryCount: Record<string, number> = {};
+  for (const p of places) {
+    const code = mapped[p.id];
+    if (code) countryCount[code] = (countryCount[code] ?? 0) + 1;
+  }
+  const raw = new Float64Array(places.length);
+  for (let i = 0; i < places.length; i++) {
+    let near = 0;
+    const a = places[i];
+    for (let j = 0; j < places.length; j++)
+      if (Math.hypot(a.lon - places[j].lon, a.lat - places[j].lat) < 0.25) near++;
+    raw[i] = 1 / (near * Math.sqrt(countryCount[mapped[a.id]] ?? 1));
+  }
+  const byCulture = new Map<string, Map<string, number[]>>();
+  for (let i = 0; i < places.length; i++) {
+    const { culture, climate } = places[i];
+    let climates = byCulture.get(culture);
+    if (!climates) byCulture.set(culture, (climates = new Map()));
+    let list = climates.get(climate);
+    if (!list) climates.set(climate, (list = []));
+    list.push(i);
+  }
+  const weights = new Float64Array(places.length);
+  for (const climates of byCulture.values()) {
+    const buckets = [...climates.values()].map((ids) => {
+      const sum = ids.reduce((s, i) => s + raw[i], 0);
+      return { ids, sum, share: Math.sqrt(sum) };
+    });
+    const shareTotal = buckets.reduce((s, b) => s + b.share, 0);
+    for (const { ids, sum, share } of buckets) {
+      const bucketWeight = share / shareTotal;
+      for (const i of ids) weights[i] = (bucketWeight * raw[i]) / sum;
+    }
+  }
+  const cum = new Float64Array(places.length);
+  for (let i = 0; i < places.length; i++) cum[i] = (i ? cum[i - 1] : 0) + weights[i];
+  return cum;
+})();
+
+function varietyWeightedPlace(draw: number) {
+  const target = unit(draw) * varietyCumulative[varietyCumulative.length - 1];
+  let lo = 0,
+    hi = varietyCumulative.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (varietyCumulative[mid] <= target) lo = mid + 1;
+    else hi = mid;
+  }
+  return places[lo];
 }
 
 /**
@@ -133,14 +216,19 @@ export function randomStartFromDraws(
   mode: StartMode = "realistic",
   seed = `world-${crypto.randomUUID()}`,
 ) {
-  const year = randomPopulationWeightedYear(draws[2] ?? 0);
+  const year =
+    mode === "realistic"
+      ? randomPopulationWeightedYear(draws[2] ?? 0)
+      : randomVarietyYear(draws[2] ?? 0);
   const place =
     mode === "realistic"
       ? populationWeightedPlace(draws[0], year)
-      : places[draws[0] % places.length];
+      : varietyWeightedPlace(draws[0]);
   let base = settingFor(place, year);
-  if (mode === "realistic" && townKinds.has(base.settlement) && !inTown(draws[3] ?? 0, place, year))
+  if (townKinds.has(base.settlement) && !inTown(draws[3] ?? 0, place, year))
     base = { ...base, settlement: "village", population: undefined };
+  else if (base.settlement === "village" && promoteRuralToTown(draws[3] ?? 0, place, year))
+    base = { ...base, settlement: base.water.startsWith("coast") ? "port" : "city" };
   // New ports inside older HYDE catchments share their parent's draw.
   const nearby = place.id==="city-amsterdam" && year>=1967 ? "rotterdam" :
     place.id==="city-tijuana" && year>=1997 ? "ensenada" : undefined;

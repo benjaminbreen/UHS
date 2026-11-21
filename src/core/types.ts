@@ -137,6 +137,7 @@ export type Evening = {
   short: Record<string, number>;
   households: number;
   tomorrow: { condition: string; label: string; tempC: number };
+  inn?: { name: string; room?: string; healed: number; fatigueCleared: number; injuryEased?: boolean; meal?: string };
 };
 export type HouseholdEvent = {
   year: number;
@@ -339,6 +340,8 @@ export type Actor = {
   /** Passing through: off the map, and out of the snapshot, after `until`. */
   /** `train`: the pack animals the lead walker drives, as fauna. */
   wayfarer?: { until: number; train?: { species: string; count: number } };
+  /** The bicycle or motorcycle they ride when out of doors. */
+  cycle?: import("./cycles").CycleLook;
   plough?: { vehicle: string; step: number; at: number; resting?: boolean; sown?: number };
   freight?: { grain: number; day: number; to: string };
   guidingPlough?: string;
@@ -476,6 +479,12 @@ export type WorldObject = {
   by?: string;
   /** Knocked over: draws its fallen sprite and spills what it held. */
   tipped?: boolean;
+  /** A bicycle or motorcycle that can be ridden; the scene draws it from this. */
+  cycle?: import("./cycles").CycleLook;
+  /** Asking price in coin while it stands for sale. */
+  price?: number;
+  /** A cycle with hard tyres and an oiled chain: a little faster until it is next spilled. */
+  tuned?: boolean;
   lean?: -1 | 1;
   /** Cells it stands on, across and down from `pos`, when more than one. */
   size?: [number, number];
@@ -566,7 +575,8 @@ export type GameEvent = {
   interaction?:
     | { actor: string; kind: "gift"; item: ItemId; accepted: boolean }
     | { actor: string; kind: "warning" | "welcome"; place: string }
-    | { actor: string; kind: "wares"; item: ItemId; price?: number };
+    | { actor: string; kind: "wares"; item: ItemId; price?: number }
+    | { actor: string; kind: "game" };
   id: number;
   time: number;
   text: string;
@@ -646,6 +656,12 @@ export type PlayerCommand =
         | "drive-vehicle"
         | "leave-vehicle"
         | "mount-animal"
+        | "mount-cycle"
+        | "ring-bell"
+        | "cycle-spill"
+        | "cycle-trick"
+        | "cycle-service"
+        | "buy-cycle"
         | "dismount-animal"
         | "spur-mount"
         | "calm-mount"
@@ -775,6 +791,8 @@ export type Snapshot = {
   /** Animal groups: wild ones spawned as districts open, kept ones from pens. */
   /** The trip through a cave, sewer or mine in progress, and what each one remembers, by kind and site. */
   complex?: import("./complex").ComplexRun;
+  /** Set when the player breaks out of confinement illegally; cleared on legal release. */
+  fugitive?: { since: number; prison: string; charge: string };
   complexes?: Record<string, import("./complex").ComplexRecord>;
   /** A life begun at sea, until the player goes ashore. */
   voyage?: import("./ship").Voyage;

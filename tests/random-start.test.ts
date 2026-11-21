@@ -2,26 +2,50 @@ import { describe, expect, it } from "vitest";
 import { random } from "../src/core/random";
 import { berthFor } from "../src/content/geography/regions/ports";
 import { watersidePlace } from "../src/content/geography/resolve";
-import { places } from "../src/content/geography/places";
+import { places, placeById } from "../src/content/geography/places";
+import { settingFor } from "../src/content/geography/resolve";
 import { characterSex } from "../src/content/characters/generate";
 import population from "../src/content/geography/population.generated.json" with { type: "json" };
 import {
   randomPopulationWeightedYear,
   randomStartFromDraws,
+  randomVarietyYear,
 } from "../src/content/geography/random-start";
 
+const indexById = new Map(places.map((p, i) => [p.id, i]));
+function findVarietyDraw(id: string) {
+  const target = indexById.get(id)!;
+  let lo = 0,
+    hi = 0xffff_ffff;
+  // Pick a seed that never diverts to a waterfront/underground variant during search.
+  let drySeed = "dry-0";
+  for (let i = 0; random(drySeed, "waterside-neighbourhood") < 0.24 || random(drySeed, "underground-start") < 0.5; i++)
+    drySeed = `dry-${i}`;
+  while (lo <= hi) {
+    const mid = Math.floor((lo + hi) / 2);
+    const got = indexById.get(
+      randomStartFromDraws(new Uint32Array([mid, 0, 0xffffffff, 0]), "any", drySeed).setting.placeId,
+    )!;
+    if (got === target) return mid >>> 0;
+    if (got < target) lo = mid + 1;
+    else hi = mid - 1;
+  }
+  return -1;
+}
+
 describe("random starts", () => {
-  it("can draw every atlas location, not only the curated examples", () => {
-    for (const id of ["area-oahu-basin", "area-iceland", "city-philadelphia"]) {
-      const index = places.findIndex((place) => place.id === id);
-      expect(index, id).toBeGreaterThanOrEqual(0);
-      const start = randomStartFromDraws(new Uint32Array([index, 0, 0]), "any");
-      expect(start.setting.placeId).toBe(id);
+  it("maps every atlas location into the population table and can draw across the whole atlas", () => {
+    const mapped = population.places as Record<string, string>;
+    expect(places.filter((p) => !mapped[p.id])).toEqual([]);
+    for (const id of ["area-oahu-basin", "area-iceland", "city-philadelphia", "cairo", "potosi", "ur"]) {
+      expect(findVarietyDraw(id), id).toBeGreaterThanOrEqual(0);
     }
   });
 
   it("draws a civilian waterfront neighbourhood within a dated port catchment", () => {
-    const draws=new Uint32Array([places.findIndex(p=>p.id==="city-detroit"),0,0xffffffff,0]);
+    const draw = findVarietyDraw("city-detroit");
+    expect(draw).toBeGreaterThanOrEqual(0);
+    const draws = new Uint32Array([draw, 0, 0xffffffff, 0]);
     let seed=""; let i=0;
     do {seed="river-"+i++;} while(random(seed,"waterside-neighbourhood")>=.08 || random(seed,"underground-start")<.5);
     const {setting}=randomStartFromDraws(draws,"any",seed);
@@ -32,12 +56,58 @@ describe("random starts", () => {
     expect(watersidePlace(places.find(p=>p.id==="city-mwanza")!,1650)).toMatchObject({water:"lake",settlement:"village"});
   });
 
-  it("samples 13,000 BCE through the present in proportion to global population", () => {
+  it("samples 13,000 BCE through the present in proportion to global population, and evenly by era in variety mode", () => {
     expect(randomPopulationWeightedYear(0)).toBe(-12999);
     expect(randomPopulationWeightedYear(0xffff_ffff)).toBe(2026);
 
     // At the median person-year, the world is already well into the Common Era.
     expect(randomPopulationWeightedYear(0x8000_0000)).toBeGreaterThan(1000);
+
+    expect(randomVarietyYear(0)).toBe(-12999);
+    expect(randomVarietyYear(0xffff_ffff)).toBe(2026);
+    // Variety mode puts half its draws in the first six eras (through 1500 CE)
+    // and only one twelfth in 1990–2026.
+    expect(randomVarietyYear(0x7fff_ffff)).toBeLessThan(1500);
+    expect(randomVarietyYear(0xe000_0000)).toBeLessThan(1990);
+  });
+
+  it("uses pre-colonial names for colonial and modern planned cities and drops exact coordinate duplicates", async () => {
+    expect(settingFor(placeById.get("city-leon")!, -3000).location).toBe("Bajío plains");
+    expect(settingFor(placeById.get("city-leon")!, 1700).location).toBe("León");
+    expect(settingFor(placeById.get("city-mexico-city")!, -500).location).toBe("Valley of Mexico");
+    expect(settingFor(placeById.get("city-mexico-city")!, 1450).location).toBe("Tenochtitlan");
+    expect(settingFor(placeById.get("city-lima")!, 1200).location).toBe("Rímac valley");
+    expect(settingFor(placeById.get("city-nairobi")!, 1200).location).toBe("Athi plains");
+    expect(settingFor(placeById.get("city-islamabad")!, 1800).location).toBe("Potohar plateau");
+    expect(settingFor(placeById.get("city-singapore")!, 1500).location).toBe("Temasek");
+    expect(settingFor(placeById.get("city-cape-town")!, 1200).location).toBe("Table Bay");
+    expect(settingFor(placeById.get("city-wellington")!, 1200).location).toBe("Te Whanganui-a-Tara");
+    // Exact-coordinate area-* duplicates are merged into their city-* entry while keeping ID lookup working.
+    expect(placeById.get("area-taipei-basin")?.id).toBe("city-taipei");
+    const coords = new Set(places.map((p) => `${p.lon.toFixed(4)},${p.lat.toFixed(4)}`));
+    expect(coords.size).toBe(places.length);
+    // No two equal-priority community profiles may overlap in both space and time.
+    const { communityProfiles } = await import("../src/content/characters/profiles/communities");
+    for (let i = 0; i < communityProfiles.length; i++) {
+      for (let j = i + 1; j < communityProfiles.length; j++) {
+        const a = communityProfiles[i],
+          b = communityProfiles[j];
+        if ((a.priority ?? 0) !== (b.priority ?? 0)) continue;
+        const ay = a.scope.years ?? [-Infinity, Infinity],
+          by = b.scope.years ?? [-Infinity, Infinity];
+        if (ay[1] < by[0] || by[1] < ay[0]) continue;
+        const ab = a.scope.bounds,
+          bb = b.scope.bounds;
+        if (!ab || !bb || ab[2] < bb[0] || bb[2] < ab[0] || ab[3] < bb[1] || bb[3] < ab[1]) continue;
+        const am = a.scope.communities,
+          bm = b.scope.communities;
+        if (Boolean(am) !== Boolean(bm) || (am && bm && !am.some((c) => bm.includes(c)))) continue;
+        const ac = a.scope.cultures,
+          bc = b.scope.cultures;
+        if (ac && bc && !ac.some((c) => bc.includes(c))) continue;
+        throw Error(`Overlapping equal-priority community profiles: ${a.id} and ${b.id}`);
+      }
+    }
   });
 
   it("puts a realistic start where the people were, not where the map is dense", () => {
@@ -57,12 +127,10 @@ describe("random starts", () => {
     };
     const even = share("any"),
       weighted = share("realistic");
-    // The gazetteer holds more North American entries than South Asian ones,
-    // which is a cartographic fact about the source rather than a demographic
-    // one. Weighting by population turns that around.
-    expect(even("other-indigenous-american")).toBeGreaterThan(
-      even("south-asian"),
-    );
+    // Geographic variety mode balances cultures evenly across the twelve regions,
+    // while realistic mode puts weight where the population actually lived.
+    expect(even("mesoamerican")).toBeGreaterThan(0.05);
+    expect(even("other-indigenous-american")).toBeLessThan(0.12);
     expect(weighted("south-asian")).toBeGreaterThan(
       weighted("other-indigenous-american") * 3,
     );

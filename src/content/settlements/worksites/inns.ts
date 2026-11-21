@@ -250,7 +250,7 @@ export const innProfiles: readonly WorksiteProfile[] = [
     siting: "fringe",
     capacity: 5,
     label: "Zongo (travellers' compound)",
-    scope: { years: [1000, 1900], cultures: ["west-central-african", "east-african"] },
+    scope: { years: [1000, 1900], cultures: ["west-central-african", "east-southern-african"] },
     frame: "worksite-store-sahel",
     outbuilding: { frame: "worksite-store-westafrica", label: "Trade goods store" },
     supplies: fodder,

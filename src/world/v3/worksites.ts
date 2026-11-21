@@ -58,6 +58,7 @@ export function planWorksites(
   const profiles = worksitesFor(s).sort((a,b) =>
     Number(!!a.revision)-Number(!!b.revision) ||
     Number(!a.scope.bounds)-Number(!b.scope.bounds) ||
+    Number(!a.urban)-Number(!b.urban) ||
     (a.revision && b.revision ? Number(!a.essential)-Number(!b.essential) || Number(!priority(a))-Number(!priority(b)) ||
     random(seed,"worksite-order",a.id)-random(seed,"worksite-order",b.id) : 0));
   for (const profile of profiles) {
@@ -80,8 +81,9 @@ export function planWorksites(
     // A town's square, hall and sanctuary are planned after the yards, so a
     // yard keeps clear of the civic core or it takes the temple's ground. An
     // industrial city's grid is laid around its yards, but not round its
-    // square: those blocks are its street fronts.
-    const core = radius >= 40 ? Math.round(radius*(industrialized(s) ? .3 : .45))+Math.ceil(Math.hypot(w,h)/2) : 0;
+    // square: those blocks are its street fronts. A hotel is no works yard and
+    // keeps the wider berth, or it takes the town hall's place on the square.
+    const core = radius >= 40 ? Math.round(radius*(industrialized(s) && !profile.inn ? .3 : .45))+Math.ceil(Math.hypot(w,h)/2) : 0;
     const install = (r: Rect, launch?: Launch) => {
       const id = `${plan.site.id}-worksite-${profile.id}`;
       const place = (suffix: string, frame: string, name: string, x: number, y: number): Place => {

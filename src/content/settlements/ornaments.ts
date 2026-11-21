@@ -60,6 +60,21 @@ export function lampFor(pack: Pack): { sprite: string; label: string; street: bo
   return lamp("torch-post", "Torch post", false);
 }
 
+/** Highway-style street light for modern outer blacktop roads, keyed to era
+ * and cultural family. Undefined before electric highway lighting (~1930). */
+export function highwayLampFor(pack: Pack): { sprite: string; label: string } | undefined {
+  const year = pack.year;
+  if (year < 1930) return undefined;
+  const culture = pack.setting?.culture;
+  const western = culture === "european" || culture === "north-african-west-asian";
+  const eastern = culture === "east-asian" || culture === "southeast-asian";
+  const variant = western ? 0 : eastern ? 1 : 2;
+  const ledCut = culture === "east-asian" ? 2008 : 2012;
+  if (year >= ledCut) return { sprite: "study-propb-city-lamp-2", label: "Highway lamp" };
+  if (year >= 1955) return { sprite: `study-propb-sodium-lamp-${variant}`, label: "Highway lamp" };
+  return { sprite: `study-propb-electric-lamp-${variant}`, label: "Highway lamp" };
+}
+
 /** A municipal street's furniture, from the mid-nineteenth-century city on.
  * Undefined before that, which keeps each fabric's own pieces. The concrete
  * trestle bench and urn are the Soviet bloc's, placed by a rough map box. */
@@ -286,7 +301,7 @@ export function ornamentArt(
     case "post":
       return lampFor(pack);
     case "bench":
-      return kit?.bench ?? b("bench", eastern ? 1 : culture === "european" ? 0 : 2, "Bench");
+      return kit?.bench ?? b("bench", eastern ? 2 : culture === "european" && pack.setting?.climate !== "mediterranean" ? 0 : 1, "Bench");
     case "planter":
       if (kit?.planter) return kit.planter;
       if (culture === "european") return year >= 1500 ? b("street-planter", 3, "Stone urn") : b("pithos", 0, "Planted jar");

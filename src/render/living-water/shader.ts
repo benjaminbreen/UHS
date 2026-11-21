@@ -58,6 +58,7 @@ void main(){
      if(noise(floor(p/2.)/2.)>.78&&d>.24&&d<.72)bank=mix(bank,wet,.18);
    }
    if(kind>.5&&kind<1.5){
+     bool frozen=row<160.&&mod(row,80.)>=40.;
      // Each wave runs up the sand as a thin sheet with a lace edge, and the
      // last one's high-water mark stays as a faint line where it drained.
      float t=waterTime*.5;
@@ -69,6 +70,30 @@ void main(){
      }
      float back=.16+noise(p/60.)*.04;
      if(abs(d-back)<.008&&lace>.45)bank=mix(bank,vec3(.92,.94,.86),.35);
+     // Subtle wind ripples and sparse shell/mineral flecks across dry beach sand.
+     if(!frozen&&d>back+.015){
+       float patchMask=smoothstep(.35,.75,noise(p/34.));
+       float ripple=sin(p.y*.55+p.x*.14+noise(p/18.)*4.2);
+       bank*=1.+ripple*.028*patchMask;
+       float fleck=hash(floor(p));
+       if(fleck>.986)bank=mix(bank,vec3(.95,.93,.87),.32);
+       else if(fleck<.014)bank*=.93;
+     }
+     // Broken high-tide wrack line just landward of the drain mark: dark
+     // kelp/seaweed drifts and occasional bleached shell specks.
+     if(!frozen){
+       float wrack=back+.055+(noise(p/29.)-.5)*.045;
+       float distW=abs(d-wrack);
+       float cluster=noise(p/19.);
+       float wisp=noise(floor(p)/vec2(3.5,2.2));
+       if(distW<.026&&cluster>.44&&wisp>.54){
+         float core=1.-smoothstep(.004,.026,distW);
+         vec3 kelp=mix(bank*.62,vec3(.30,.28,.21),.45);
+         bank=mix(bank,kelp,core*(wisp>.68?.76:.46));
+       }else if(distW<.036&&cluster>.40&&hash(floor(p)+vec2(7.3,13.1))>.968){
+         bank=mix(bank,vec3(.94,.91,.83),.48);
+       }
+     }
    }
    vec4 bankArt=texture2D(iChannel2,(local+.5)/resolution);
    bank=mix(bank,bankArt.rgb,bankArt.a);

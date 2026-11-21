@@ -208,7 +208,8 @@ const VESSELS: readonly (readonly [RegExp, string, string, number, string, strin
 ];
 const vesselOf = (q: string) => VESSELS.find(([words]) => words.test(q));
 
-export function belowFromPrompt(q: string): "cave" | "sewer" | "mine" | "ship" | "fair" | "tomb" | undefined {
+export function belowFromPrompt(q: string): "cave" | "sewer" | "mine" | "ship" | "fair" | "tomb" | "prison" | undefined {
+  if (/\b(?:prisoners?|convicts?|inmates?|debtors?|gaols?|jails?|prisons?|dungeons?|oubliettes?|bastille|newgate|fleet prison|marshalsea|alcatraz|pentonville|yamen jail|cellblock)\b/.test(q)) return "prison";
   if (fairFromPrompt(q)) return "fair";
   if (/\btombs?\b|\btomb[- ]?robbers?\b|\bburial chambers?\b|\bvalley of the kings\b/.test(q)) return "tomb";
   if (SHIP_WORDS.test(q) || vesselOf(q)) return "ship";
@@ -217,7 +218,7 @@ export function belowFromPrompt(q: string): "cave" | "sewer" | "mine" | "ship" |
   if (/\bcave(?:s|m[ae]n|wom[ae]n|dwellers?)?\b|\bcave (?:m[ae]n|wom[ae]n|dwellers?|people)\b|\bcaverns?\b|\bgrottos?\b/.test(q)) return "cave";
 }
 /** Where an underground start goes when the prompt names no place or date. */
-const BELOW_PLACES = { cave: ["magdalenian"], sewer: ["london", 1880], mine: ["city-cardiff", 1880], ship: ["london", 1790], fair: ["paris", 1889], tomb: ["city-luxor", -1110] } as const;
+const BELOW_PLACES = { cave: ["magdalenian"], sewer: ["london", 1880], mine: ["city-cardiff", 1880], ship: ["london", 1790], fair: ["paris", 1889], tomb: ["city-luxor", -1110], prison: ["london", 1750] } as const;
 /** The home waters of the ship a prompt names. */
 const shipPlace = (q: string): readonly [string, number] =>
   vesselOf(q) ? [vesselOf(q)![2], vesselOf(q)![3]] : /\bjunks?\b/.test(q) ? ["city-guangzhou", 1760] : /\b(?:dhows?|nakhoda)\b/.test(q) ? ["city-muscat", 1850] : /\bgalleons?\b/.test(q) ? ["city-lisbon", 1600]
@@ -279,7 +280,8 @@ export function resolveSetting(
       choices[Math.floor(random(seed, "starting-region", q) * choices.length)];
   const located = !!zone || (matches[0]?.score ?? 0) > 0.1 || has(locationWords, "roman");
   const requestedFair = resident?.venue ?? fairFromPrompt(q, located ? place : undefined);
-  const below = requestedFair ? "fair" : belowFromPrompt(q);
+  const explicitBelow = belowFromPrompt(q);
+  const below = explicitBelow === "prison" ? "prison" : requestedFair ? "fair" : explicitBelow;
   const undated = requestedYear === -1000001;
   if (below && (!located || (requestedFair?.named?.test(q) && (matches[0]?.score ?? 0) <= 0.1))) {
     const fair = requestedFair;
@@ -287,7 +289,7 @@ export function resolveSetting(
     const found = places.find((p) => p.id === id);
     if (found) place = year && undated ? { ...found, year } : found;
   } else if (place && below === "fair" && undated) place = { ...place, year: requestedFair?.years[0] ?? 1889 };
-  else if (place && below && below !== "cave" && below !== "ship" && below !== "tomb" && undated) place = { ...place, year: Math.max(place.year, 1880) };
+  else if (place && below && below !== "cave" && below !== "ship" && below !== "tomb" && below !== "prison" && undated) place = { ...place, year: Math.max(place.year, 1880) };
   else if (place && undated && vesselOf(q)) place = { ...place, year: vesselOf(q)![3] };
   if (!place) {
     const period = periods.find(([words]) => words.some((w) => has(q, w)));
@@ -359,7 +361,7 @@ export function resolveSetting(
     const room = venue && requestedRoom(venue, q);
     const post = venue ? postFor(venue, title?.toLowerCase() ?? q) : undefined;
     const underRole = !inside ? undefined : below === "mine" ? (coal ? "Coal miner" : "Miner") : below === "sewer" ? (/\btosher/.test(q) ? "Tosher" : "Sewer flusher") : below === "cave" ? (s.year < -8000 ? "Hunter" : "Hermit")
-      : below === "ship" ? vesselOf(q)?.[4] ?? (/\bstokers?\b/.test(q) ? "Stoker" : /\b(?:passengers?|emigrants?|steerage|pilgrims?)\b/.test(q) ? "Passenger" : "Sailor") : below === "fair" ? post?.role ?? venue?.role ?? "Visitor" : below === "tomb" ? "Tomb robber" : undefined;
+      : below === "ship" ? vesselOf(q)?.[4] ?? (/\bstokers?\b/.test(q) ? "Stoker" : /\b(?:passengers?|emigrants?|steerage|pilgrims?)\b/.test(q) ? "Passenger" : "Sailor") : below === "fair" ? post?.role ?? venue?.role ?? "Visitor" : below === "tomb" ? "Tomb robber" : below === "prison" ? (/\b(?:political|lifer|for life|forgotten)\b/.test(q) ? "Political prisoner" : /\bdebtor\b/.test(q) ? "Debtor" : /\bconvict\b/.test(q) ? "Convict" : "Prisoner") : undefined;
     s.role = title ?? post?.role ?? namedRole ?? office ?? roles.find(([pattern]) => pattern.test(q))?.[1] ?? underRole ?? "Traveler";
     if (inside) {
       s.below = below;

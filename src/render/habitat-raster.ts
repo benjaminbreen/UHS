@@ -48,6 +48,7 @@ import {
   shoreDistance,
   shoreOnTier,
   shoreWidth,
+  dryBeachGrain,
   shorePixel,
   tidalFlat,
 } from "./material-edges";
@@ -824,7 +825,33 @@ function rasterGroundTile(
 ): GroundTileData {
   // Yard grass is the same turf as outside the fence; only beds are tilled.
   if (cell.field && !(cell.field.yard && cell.field.crop === "pasture")) {
-    const tile = rasterFieldTile(sample, x, y, ox, oy, art, cell);
+    let underPixels: Uint8ClampedArray | undefined;
+    if (
+      cell.field.garden &&
+      !cell.field.ditch &&
+      [[0, -1], [0, 1], [-1, 0], [1, 0]].some(([dx, dy]) => !sample(x + dx, y + dy)?.field?.garden)
+    ) {
+      let earth = cell.earth;
+      if (!earth) {
+        for (const [dx, dy] of [[0, -1], [-1, 0], [1, 0], [0, 1]]) {
+          const n = sample(x + dx, y + dy);
+          if (n && !n.field?.garden && n.earth) {
+            earth = n.earth;
+            break;
+          }
+        }
+      }
+      const underCell: TopographyCell = {
+        ...cell,
+        field: undefined,
+        feature: undefined,
+        pavement: earth ? "yard" : undefined,
+        surface: earth ? "soil" : "grass",
+        earth,
+      };
+      underPixels = rasterGroundTile(sample, x, y, ox, oy, art, underCell).pixels;
+    }
+    const tile = rasterFieldTile(sample, x, y, ox, oy, art, cell, underPixels);
     const margin = openFieldMargin(sample, x, y, cell);
     if (margin) {
       const h = margin.outside.habitat!;
@@ -1170,6 +1197,7 @@ function rasterGroundTile(
   const trodden = new Uint8Array(18 * 18);
   // Worn ground from the path pass, apron included, which the turf rims.
   const tread = new Uint8Array(18 * 18);
+  const softTread = new Uint8Array(18 * 18);
   const at = (px: number, py: number) => (py + 1) * 18 + px + 1;
   const treadWide = new Uint8Array((16 + BANK_REACH * 2) ** 2);
   const wideAt = (px: number, py: number) => (py + BANK_REACH) * (16 + BANK_REACH * 2) + px + BANK_REACH;
@@ -1243,6 +1271,8 @@ function rasterGroundTile(
                   : palette[b];
       let rgb = h.site && !tilled ? communityPixel(px,py).rgb : tone(band);
       if (beach) rgb = rgb.map((v, k) => Math.min(255, Math.round(v * beach[k])));
+      if (h.site?.primary === "shore" && !tilled && cell.surface !== "soil" && cell.surface !== "snow")
+        rgb = dryBeachGrain(rgb, wx, wy);
       // Interlocking clusters only within four native pixels of a real seam.
       // The interiors of transition tiles remain solid habitat colors.
       const other = [
@@ -1738,6 +1768,14 @@ function rasterGroundTile(
     cell.waterVisual.distance < cell.waterVisual.shoreWidth + 1.5 &&
     (!groundStyle() || shoreOnTier(sample, x, y, cell.height));
   const planted = ["garden", "park", "verge"].includes(cell.pavement ?? "");
+  const sandyBeach =
+    cell.waterVisual?.kind === "sea" &&
+    (h.site?.primary === "shore" || cell.surface === "sand" || cell.surface === "gravel");
+  const beachSand = sandyBeach
+    ? (shoreBeach
+        ? decode(waterPalette(h.ecology, "sea").bank[2]).map((v, k) => Math.min(255, Math.round(v * shoreBeach[k])))
+        : [214, 198, 152])
+    : undefined;
   // A planted cell still reads its neighbours' worn ground into the apron.
   if (!frozen && paintedGround(cell) && (hasPath || hasWear || nearShore)) {
     const soil = soilPalette;
@@ -1795,28 +1833,43 @@ function rasterGroundTile(
         // Dust and thinned turf beside the road: warm soil stippled into the
         // grass, thickest at the edge and gone within a few pixels. Patchy
         // along the road so it never reads as a second outline.
-        if (field && grassy && !kit && inside && worn > 0.2 && worn <= 0.48) {
-          const w = (worn - 0.2) / 0.28,
-            patch = 0.45 + noise(wx, wy, 17, 479) * 0.9;
-          if (hash(wx, wy, 481) < w * w * 0.7 * patch) {
+        const softEdge = wear >= trod || !!field?.soft || sandyBeach;
+        const vergeTop = grassy && !sandyBeach ? (kit ? (0.48 + shoulder) / 2 : 0.48) : 0.48;
+        if (field && grassy && !sandyBeach && inside && worn > 0.22 && worn <= vergeTop) {
+          const w = (worn - 0.22) / Math.max(0.1, vergeTop - 0.22),
+            patch = 0.45 + noise(wx, wy, 17, 479) * 0.9,
+            chance = !kit ? 0.7 : softEdge ? 0.58 : 0.28;
+          if (hash(wx, wy, 481) < w * w * chance * patch) {
             const i = (py * 16 + px) * 4,
-              k0 = 0.22 + w * 0.3;
+              k0 = 0.22 + w * 0.34;
             for (let k = 0; k < 3; k++)
               pixels[i + k] = Math.round(
                 pixels[i + k] * (1 - k0) + soil[1][k] * k0,
               );
           }
         }
+        if (field && sandyBeach && inside && worn > 0.26 && worn <= 0.48) {
+          const w = (worn - 0.26) / 0.22,
+            patch = 0.5 + noise(wx, wy, 17, 479) * 0.8;
+          if (hash(wx, wy, 481) < w * w * 0.45 * patch) {
+            const i = (py * 16 + px) * 4,
+              k0 = 0.25 + w * 0.25;
+            for (let k = 0; k < 3; k++)
+              pixels[i + k] = Math.round(pixels[i + k] * (1 - k0) + soil[2][k] * k0);
+          }
+        }
         // Turf and worn ground meet at one solid edge, halfway up the shoulder,
         // which the turf rims below; a dithered shoulder frayed into specks.
-        if (field && grassy && worn > 0.48 && worn < (0.48 + shoulder) / 2) continue;
+        if (field && grassy && !sandyBeach && worn > 0.48 && worn < (0.48 + shoulder) / 2) continue;
         if (field && worn > 0.48) {
           tread[at(px, py)] = 1;
+          if (softEdge) softTread[at(px, py)] = 1;
           if (!inside) continue;
           // One broken native pixel of contact shadow. A continuous dark rim,
           // however wide, is what made the corridor read as an outlined shape.
           const contact =
             !grassy &&
+            !sandyBeach &&
             worn < 0.515 &&
             noise(wx, wy, 6, 441) > 0.5;
           const wide = field.radius > 0.62;
@@ -1828,6 +1881,10 @@ function rasterGroundTile(
                 ? 3
                 : 2;
           let tone = soil[wide ? band : Math.max(1, band)];
+          if (beachSand) {
+            const blend = worn < 0.58 ? 0.68 : 0.52;
+            tone = tone.map((v, k) => Math.round(v * (1 - blend) + beachSand[k] * blend));
+          }
           // Wide trodden ground in a meadow gets pebbles and speckle like any
           // bare earth; a footpath keeps its finer grit.
           const pebbled = grassy && wide;
@@ -1854,7 +1911,7 @@ function rasterGroundTile(
                   : 0);
           // Bare ground is close in value to its own soil ramp; packing it
           // one step darker is what lets the tread read without grain.
-          if (!grassy) shade -= 9;
+          if (!grassy) shade -= sandyBeach ? 3 : 9;
           const yard = keptYard(sample, xx, yy, wx, wy);
           const finish = contact ? undefined : yard === false ? undefined : yard ?? cell.earth;
           if (finish) [tone, shade] = finishPixel(finish, wx, wy, soil, field.cross, yard ? 9 : lipAt(sample, x, y, px, py, finish));
@@ -1899,16 +1956,18 @@ function rasterGroundTile(
               }
             }
           }
-          // Grit collects off the treadway, not on it.
-          if (worked && field.cross > 0.46) {
-            const bx = Math.floor(wx / 7),
-              by = Math.floor(wy / 6);
-            if (hash(bx, by, 447) > 0.82) {
-              const sx = bx * 7 + 1 + Math.floor(hash(bx, by, 449) * 4),
-                sy = by * 6 + 1 + Math.floor(hash(bx, by, 451) * 3);
+          // Grit collects off the treadway, not on it; at a rural crossroads
+          // junction, embedded wheel-worn stones pack into the turning apron.
+          if (worked && (field.cross > 0.46 || field.junction)) {
+            const bx = Math.floor(wx / 6),
+              by = Math.floor(wy / 5);
+            const thresh = field.junction ? 0.66 : 0.82;
+            if (hash(bx, by, 447) > thresh) {
+              const sx = bx * 6 + 1 + Math.floor(hash(bx, by, 449) * 3),
+                sy = by * 5 + 1 + Math.floor(hash(bx, by, 451) * 2);
               if (wx >= sx && wx <= sx + 1 && wy >= sy && wy <= sy + 1) {
-                tone = soil[4];
-                shade = wy === sy ? 11 : -14;
+                tone = field.junction && wx === sx && wy === sy ? mix(soil[4], [196, 190, 174], 0.35) : soil[4];
+                shade = wy === sy ? 12 : -15;
               }
             }
           }
@@ -1986,7 +2045,7 @@ function rasterGroundTile(
   // of one or two pixels leaning out over the earth. Light grass blends into
   // the surrounding turf instead of receiving an island outline. Worn
   // ground gets the same edge, and sits in the turf's shadow on its north side.
-  if (grassy) {
+  if (grassy && !sandyBeach) {
     // Planted ground is cut against paving, not worn into it: rim that edge too.
     const cut = new Uint8Array(18 * 18);
     if (planted)
@@ -2011,7 +2070,13 @@ function rasterGroundTile(
         if (!here) {
           if (band > 2) continue;
           const rim = dirs.some(([dx, dy]) => bare(at(px + dx, py + dy)));
-          if (rim) put(px, py, dark);
+          if (rim) {
+            const hardRim = dirs.some(([dx, dy]) => {
+              const q = at(px + dx, py + dy);
+              return bare(q) && !softTread[q];
+            });
+            if (hardRim || hash(wx, wy, 487) < 0.38) put(px, py, dark);
+          }
           continue;
         }
         // One-pixel teeth on straight runs only: the single direction with
@@ -2054,23 +2119,32 @@ function rasterGroundTile(
           return !bare(at(qx, qy)) && apron[at(qx, qy)] <= 2;
         };
         if (kit && tread[at(px, py)]) {
-          const deep = 3 + Math.floor(hash(Math.floor(wx / 3), Math.floor(wy / 16), 1471) * 3);
+          if (softTread[at(px, py)]) {
+            // Activity wear and prop footprints feather softly instead of carving a sunken trench.
+            if (turfAt(0, -1)) {
+              const i = (py * 16 + px) * 4;
+              for (let k = 0; k < 3; k++) pixels[i + k] = Math.round(pixels[i + k] * 0.9);
+            }
+            continue;
+          }
+          const deep = 2 + Math.floor(hash(Math.floor(wx / 3), Math.floor(wy / 16), 1471) * 2);
           const side = 1 + Math.floor(hash(Math.floor(wx / 8), Math.floor(wy / 3), 1473) * 2);
-          if ([1, 2, 3, 4].some((k) => k <= deep && turfAt(0, -k)) || [1, 2].some((k) => k <= side && turfAt(-k, 0))) {
+          if ([1, 2, 3].some((k) => k <= deep && turfAt(0, -k)) || [1, 2].some((k) => k <= side && turfAt(-k, 0))) {
             const i = (py * 16 + px) * 4;
-            const lip = turfAt(0, -1) || turfAt(-1, 0) ? 0.76 : 0.86;
-            for (let k = 0; k < 3; k++) pixels[i + k] = Math.round((pixels[i + k] * 0.15 + soilPalette[0][k] * 0.85) * lip);
+            const lip = turfAt(0, -1) || turfAt(-1, 0) ? 0.82 : 0.9;
+            for (let k = 0; k < 3; k++) pixels[i + k] = Math.round((pixels[i + k] * 0.28 + soilPalette[0][k] * 0.72) * lip);
             continue;
           }
           // The far banks are out of sight, so the tread runs up to the grass.
           if ([1, 2, 3].some((k) => turfAt(0, k) || turfAt(k, 0))) {
             const i = (py * 16 + px) * 4;
-            for (let k = 0; k < 3; k++) pixels[i + k] = Math.round(pixels[i + k] * 0.3 + soilPalette[2][k] * 0.7);
+            for (let k = 0; k < 3; k++) pixels[i + k] = Math.round(pixels[i + k] * 0.35 + soilPalette[2][k] * 0.65);
           }
         }
         if (tread[at(px, py)] && [1, 2].some((k) => !bare(at(px, py - k)) && apron[at(px, py - k)] <= 2)) {
           const i = (py * 16 + px) * 4;
-          for (let k = 0; k < 3; k++) pixels[i + k] = Math.round(pixels[i + k] * 0.84);
+          const factor = softTread[at(px, py)] ? 0.92 : 0.86;
+          for (let k = 0; k < 3; k++) pixels[i + k] = Math.round(pixels[i + k] * factor);
         }
         // A second pixel of depth now and then, straight behind a tooth.
         for (const [dx, dy] of dirs) {
@@ -2236,6 +2310,18 @@ function rasterGroundTile(
               tones[ink],
             );
         }
+      if (
+        !dryGrass &&
+        (h.season === "spring" || h.season === "summer") &&
+        hash(gx + px, gy + py, 433) < 0.34
+      ) {
+        const [hi, lo] =
+          BORDER_BLOOMS[
+            Math.floor(hash(gx + px, gy + py, 435) * BORDER_BLOOMS.length)
+          ];
+        put(px, py - 3, [...hi]);
+        put(px + (flip ? -1 : 1), py - 2, [...lo]);
+      }
       placed++;
     }
   }

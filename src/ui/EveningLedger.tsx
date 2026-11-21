@@ -79,7 +79,21 @@ export function EveningLedger({
   const s = engine.state;
   const setting = engine.world.pack.setting;
   const rows: { label: string; body: (on: boolean) => ReactNode }[] = [];
-  const { work } = evening;
+  const { work, inn } = evening;
+
+  if (inn) {
+    const notes = [
+      inn.room,
+      inn.fatigueCleared > 0 ? "Fully rested" : "Peaceful sleep",
+      inn.healed > 0 ? `+${inn.healed} health` : undefined,
+      inn.injuryEased ? "Injury eased" : undefined,
+      inn.meal ? `Supper: ${inn.meal}` : undefined,
+    ].filter(Boolean);
+    rows.push({
+      label: inn.name,
+      body: () => <span className="ledger-detail">{notes.join(" · ")}</span>,
+    });
+  }
 
   if (evening.chain?.length)
     rows.push({
@@ -235,8 +249,20 @@ export function EveningLedger({
     ),
   });
 
+  const [resting, setResting] = useState(!!inn && !calm());
+  useEffect(() => {
+    if (!inn) return;
+    void gameAudio()?.cue("good-night--anywhere");
+  }, [inn]);
+  useEffect(() => {
+    if (!resting) return;
+    const t = setTimeout(() => setResting(false), 4400);
+    return () => clearTimeout(t);
+  }, [resting]);
+
   const [shown, setShown] = useState(calm() ? rows.length : 0);
   useEffect(() => {
+    if (resting) return;
     if (shown >= rows.length) {
       gameAudio()?.event("warm");
       return;
@@ -246,20 +272,24 @@ export function EveningLedger({
       setShown((n) => n + 1);
     }, shown ? ROW_MS : 700);
     return () => clearTimeout(t);
-  }, [shown, rows.length]);
+  }, [resting, shown, rows.length]);
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
       if (!["Enter", " ", "Escape"].includes(e.key)) return;
       e.preventDefault();
       e.stopPropagation();
+      if (resting) {
+        setResting(false);
+        return;
+      }
       // A first press finishes the tally; a second starts the day.
       if (shown < rows.length) setShown(rows.length);
       else onClose();
     };
     window.addEventListener("keydown", key, true);
     return () => window.removeEventListener("keydown", key, true);
-  }, [shown, rows.length, onClose]);
+  }, [resting, shown, rows.length, onClose]);
 
   const dayOfSeason = (evening.day % 28) + 1;
   const year = setting?.year ?? engine.world.pack.year;
@@ -282,7 +312,36 @@ export function EveningLedger({
         />
       </div>
       <div className="evening-hearth" aria-hidden="true" />
-      <div className="evening-card">
+      {resting && inn ? (
+        <div
+          className="inn-slumber"
+          onClick={() => setResting(false)}
+          role="button"
+          tabIndex={0}
+          aria-label="Resting for the night"
+        >
+          <div className="inn-slumber-scene">
+            <div className="inn-zzz" aria-hidden="true">
+              <span>z</span>
+              <span>z</span>
+              <span>Z</span>
+            </div>
+            <div className="inn-bed">
+              <div className="inn-bed-pillow" />
+              <div className="inn-bed-sleeper">
+                <CharacterSprite appearance={runtime.appearanceFor(s.player)} age={s.player.age} scale={2} />
+              </div>
+              <div className="inn-bed-quilt" />
+            </div>
+          </div>
+          <p className="inn-slumber-caption">
+            {inn.room ? `${inn.room} · ` : ""}
+            {inn.name}
+          </p>
+          <span className="inn-slumber-skip">Continue <kbd>↵</kbd></span>
+        </div>
+      ) : (
+      <div className={inn ? "evening-card from-slumber" : "evening-card"}>
         <div className="evening-ribbon">
           Day {dayOfSeason} of {upper(evening.season ?? "the year")}
           {Number.isInteger(year) ? ` · ${formatHistoricalYear(year)}` : ""}
@@ -311,6 +370,7 @@ export function EveningLedger({
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 }

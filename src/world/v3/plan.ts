@@ -1026,7 +1026,13 @@ export function planSettlement(
           }
         }
   }
-  const waterStand = { x: water.x - 1, y: water.y + 1 };
+  const standCandidate = [
+    { x: water.x, y: water.y + 1 },
+    { x: water.x - 1, y: water.y },
+    { x: water.x + 1, y: water.y },
+    { x: water.x, y: water.y - 1 },
+  ].find((p) => sample(p.x, p.y).water >= 0 && !plan.solid.has(cellKey(p.x, p.y)));
+  const waterStand = standCandidate ?? { x: water.x - 1, y: water.y + 1 };
   const modernPiped = motorAge && !camp;
   plan.objects.push({
     id: `${site.id}-water`,
@@ -3484,6 +3490,7 @@ export function planSettlement(
         const inPlot = (x: number, y: number) =>
           x >= plot.x && x < plot.x + plot.w && y >= plot.y && y < plot.y + plot.h;
         let fits = true;
+        const hh = owner === "player";
         for (let y = toft.y; y < toft.y + toft.h && fits; y++)
           for (let x = toft.x; x < toft.x + toft.w && fits; x++) {
             if (inHouse(x, y)) continue;
@@ -3516,6 +3523,7 @@ export function planSettlement(
               break;
             }
           }
+        if (hh) ((globalThis as any).__tf ??= []).push(`${id} back ${back} side ${side} fits ${fits} ${(globalThis as any).__why} rect ${rect.x},${rect.y},${rect.w},${rect.h} top ${top}`);
         if (!fits) continue;
         eachCell(toft, (x, y) => {
           if (!inHouse(x, y)) plan.reserved.add(cellKey(x, y));
@@ -5866,7 +5874,8 @@ export function planSettlement(
   }
   if (farmed) layFarmland();
   // Wayside furniture, once every road is down: a waymark where three ways
-  // meet, farthest out first, and a shrine beside the road into the place.
+  // meet, farthest out first, and a shrine beside the road into the place,
+  // grounded on a worn/cobbled pocket with a regional companion or shade tree.
   {
     const wayside = waysideFor(pack.setting);
     const arms = (x: number, y: number) =>
@@ -5876,6 +5885,17 @@ export function planSettlement(
         [0, 1],
         [0, -1],
       ].filter(([dx, dy]) => centers.has(cellKey(x + dx, y + dy))).length;
+    const pocketClear = (at: Point) => {
+      const k = cellKey(at.x, at.y);
+      return (
+        !roads.has(k) &&
+        !plan.solid.has(k) &&
+        !plan.reserved.has(k) &&
+        !propCells.has(k) &&
+        !onStep(at.x, at.y) &&
+        dry({ ...at, w: 1, h: 1 }, false)
+      );
+    };
     const beside = (x: number, y: number): Point | undefined =>
       [
         [1, -1],
@@ -5884,15 +5904,18 @@ export function planSettlement(
         [-1, 1],
       ]
         .map(([dx, dy]) => ({ x: x + dx, y: y + dy }))
-        .find((at) => {
-          const k = cellKey(at.x, at.y);
-          return (
-            !roads.has(k) &&
-            !plan.solid.has(k) &&
-            !plan.reserved.has(k) &&
-            dry({ ...at, w: 1, h: 1 }, false)
-          );
-        });
+        .find(pocketClear);
+    const paintPocket = (at: Point, finish?: EarthFinish) => {
+      for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1]]) {
+        const k = cellKey(at.x + dx, at.y + dy);
+        if (plan.solid.has(k) || plan.built?.has(k) || plan.fields?.has(k) || !dry({ x: at.x + dx, y: at.y + dy, w: 1, h: 1 }, false))
+          continue;
+        if (dx === 0 && dy === 0 || (roads.has(k) && !urban)) {
+          plan.surface.set(k, "dirt");
+          if (finish) (plan.earth ??= new Map()).set(k, finish);
+        }
+      }
+    };
     const stand = (
       at: Point,
       family: string,
@@ -5900,9 +5923,13 @@ export function planSettlement(
       name: string,
       variant: number,
       n: number,
+      withCompanion = true,
     ) => {
-      plan.solid.add(cellKey(at.x, at.y));
-      plan.reserved.add(cellKey(at.x, at.y));
+      const k = cellKey(at.x, at.y);
+      plan.solid.add(k);
+      plan.reserved.add(k);
+      propCells.add(k);
+      paintPocket(at, wayside.pocketFinish);
       plan.objects.push({
         id: `${site.id}-${family}-${n}`,
         name,
@@ -5912,6 +5939,53 @@ export function planSettlement(
         inventory: {},
         pos: pos(at),
       });
+      if (!withCompanion || urban) return;
+      const comp = wayside.companion;
+      const sideSpot = [
+        { x: at.x + 2, y: at.y },
+        { x: at.x - 2, y: at.y },
+        { x: at.x, y: at.y + 2 },
+        { x: at.x, y: at.y - 2 },
+      ].find(
+        (p) =>
+          pocketClear(p) &&
+          pocketClear({ x: (at.x + p.x) >> 1, y: (at.y + p.y) >> 1 }) &&
+          tier(p.x, p.y) === tier(at.x, at.y),
+      );
+      if (comp && sideSpot && rand("wayside-comp", at.x, at.y) < 0.75) {
+        const ck = cellKey(sideSpot.x, sideSpot.y);
+        plan.solid.add(ck);
+        plan.reserved.add(ck);
+        propCells.add(ck);
+        paintPocket(sideSpot, wayside.pocketFinish);
+        plan.objects.push({
+          id: `${site.id}-${comp.family}-wayside-${n}`,
+          name: comp.name,
+          kind: "container",
+          prop: comp.prop,
+          sprite: `study-propb-${comp.family}-${comp.variant}`,
+          inventory: {},
+          pos: pos(sideSpot),
+        });
+      }
+      const treeSpot = [
+        { x: at.x + 1, y: at.y - 1 },
+        { x: at.x - 1, y: at.y - 1 },
+      ].find((p) => pocketClear(p) && tier(p.x, p.y) === tier(at.x, at.y));
+      if (treeSpot && pack.trees.length && rand("wayside-tree", at.x, at.y) < 0.55) {
+        const tk = cellKey(treeSpot.x, treeSpot.y);
+        plan.solid.add(tk);
+        plan.reserved.add(tk);
+        propCells.add(tk);
+        plan.objects.push({
+          id: `${site.id}-wayside-tree-${n}`,
+          name: "Wayside tree",
+          kind: "tree",
+          sprite: yardTree(900 + n, at.x + at.y),
+          inventory: { wood: 2 },
+          pos: pos(treeSpot),
+        });
+      }
     };
     const junctions = [...centers]
       .map((k) => {
@@ -5932,7 +6006,7 @@ export function planSettlement(
       const at = beside(j.x, j.y);
       if (!at) continue;
       if (wayside.waymark !== undefined)
-        stand(at, "waymark", "waymark", "Waymark", wayside.waymark, marked++);
+        stand(at, "waymark", "waymark", "Waymark", wayside.waymark, marked++, true);
       else
         stand(
           at,
@@ -5941,20 +6015,21 @@ export function planSettlement(
           "Standing stone",
           wayside.stone!,
           marked++,
+          true,
         );
       placed.push(j);
     }
     if (
-      wayside.shrine !== undefined &&
+      (wayside.shrine !== undefined || wayside.altShrine !== undefined) &&
       !urban &&
-      rand("wayside-shrine") < 0.65
+      rand("wayside-shrine") < 0.78
     ) {
       const road = [...centers]
         .map((k) => {
           const [x, y] = k.split(",").map(Number);
           return { x, y, d: Math.hypot(x - c.x, y - c.y) };
         })
-        .filter((j) => j.d > r * 0.45 && j.d < r * 0.8 && arms(j.x, j.y) === 2)
+        .filter((j) => j.d > r * 0.45 && j.d < r * 0.85 && arms(j.x, j.y) === 2)
         .sort(
           (a, b) => rand("shrine-at", a.x, a.y) - rand("shrine-at", b.x, b.y),
         );
@@ -5962,14 +6037,28 @@ export function planSettlement(
         if (placed.some((p) => Math.hypot(p.x - j.x, p.y - j.y) < 10)) continue;
         const at = beside(j.x, j.y);
         if (!at) continue;
-        stand(
-          at,
-          "wayside-shrine",
-          "waysideShrine",
-          "Wayside shrine",
-          wayside.shrine,
-          0,
-        );
+        const useAlt = wayside.altShrine && (wayside.shrine === undefined || rand("wayside-alt-shrine", j.x, j.y) < 0.5);
+        if (useAlt && wayside.altShrine) {
+          stand(
+            at,
+            wayside.altShrine.family,
+            wayside.altShrine.prop,
+            wayside.altShrine.name,
+            wayside.altShrine.variant,
+            0,
+            true,
+          );
+        } else if (wayside.shrine !== undefined) {
+          stand(
+            at,
+            "wayside-shrine",
+            "waysideShrine",
+            "Wayside shrine",
+            wayside.shrine,
+            0,
+            true,
+          );
+        }
         break;
       }
     }
@@ -7252,7 +7341,10 @@ export function planSettlement(
       // Where everyone rides there is a second machine at many doors.
       if ((everyday || lowCountries) && rand("cycle-door-2", p.x, p.y) < 0.5) park(e.x + 3, e.y) || park(e.x - 3, e.y);
     }
-    const shops = plan.places.filter((p) => p.access === "public" && !p.institution && free(p.entrance.x - 1, p.entrance.y) && free(p.entrance.x + 2, p.entrance.y) && free(p.entrance.x + 4, p.entrance.y));
+    // A shop and nothing grander; a general dealer's before a jeweller's or a baker's.
+    const fronts = plan.places.filter((p) => p.access === "public" && !p.institution && /\bshop$/i.test(p.name) && free(p.entrance.x - 1, p.entrance.y) && free(p.entrance.x + 2, p.entrance.y) && free(p.entrance.x + 4, p.entrance.y));
+    const general = fronts.filter((p) => /^(trader|shopkeeper|dealer|merchant|storekeeper|ironmonger)/i.test(p.name));
+    const shops = general.length ? general : fronts;
     if (s.year >= 1890 && plan.places.length >= 10 && shops.length) {
       const shop = shops.reduce((a, b) => (rand("cycle-shop", a.x, a.y) < rand("cycle-shop", b.x, b.y) ? a : b));
       const e = shop.entrance;

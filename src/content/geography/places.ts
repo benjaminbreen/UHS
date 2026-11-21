@@ -776,14 +776,75 @@ const anchors: AtlasPlace[] = [
     0.35,
   ),
 ];
-const aliases = new Set(
-  anchors.flatMap((p) => [p.name, ...p.aliases].map((s) => s.toLowerCase())),
-);
-const localNames:Record<string,string[]>={"city-mwanza":["lake victoria","mwanza gulf"],"city-tokyo":["edo"]};
-export const places: AtlasPlace[] = [
-  ...anchors,
-  ...(legacy as AtlasPlace[]).filter(p=>!aliases.has(p.name.toLowerCase())).map(p=>
-    localNames[p.id] ? {...p,aliases:[...p.aliases,...localNames[p.id]]} : p),
+// Fill countries and plains where sparse pins gave one place an oversized Voronoi catchment.
+const regionalFill: AtlasPlace[] = [
+  p("city-brno", "Brno", 16.61, 49.2, "temperate", "river-ns", "european", 1400, "timber", ["brunn", "moravia"], "city", 0.25),
+  p("city-olomouc", "Olomouc", 17.25, 49.59, "temperate", "river-ns", "european", 1400, "timber", ["olmutz"], "city", 0.2),
+  p("city-plzen", "Plzeň", 13.38, 49.75, "temperate", "river-ew", "european", 1400, "timber", ["pilsen", "plzen"], "city", 0.25),
+  p("city-antwerp", "Antwerp", 4.4, 51.22, "temperate", "river-ew", "european", 1500, "timber", ["antwerpen", "anvers"], "port", 0.05),
+  p("city-ghent", "Ghent", 3.72, 51.05, "temperate", "river-ew", "european", 1400, "timber", ["gent", "flanders"], "city", 0.05),
+  p("city-liege", "Liège", 5.57, 50.63, "temperate", "river-ew", "european", 1400, "timber", ["liege", "luik"], "city", 0.2),
+  p("city-debrecen", "Debrecen", 21.63, 47.53, "temperate", "none", "european", 1600, "timber", ["great hungarian plain"], "city", 0.08),
+  p("city-szeged", "Szeged", 20.15, 46.25, "temperate", "river-ns", "european", 1500, "timber", ["tisza"], "city", 0.05),
+  p("city-pecs", "Pécs", 18.23, 46.07, "temperate", "none", "european", 1400, "timber", ["pecs", "sopianae"], "city", 0.25),
+  p("city-plovdiv", "Plovdiv", 24.75, 42.15, "temperate", "river-ew", "european", 1400, "timber", ["philippopolis", "thrace"], "city", 0.2),
+  p("city-varna", "Varna", 27.91, 43.21, "temperate", "coast-e", "european", 1400, "timber", ["odessos"], "port", 0.15),
+  p("city-kosice", "Košice", 21.26, 48.72, "temperate", "river-ns", "european", 1400, "timber", ["kosice", "kassa"], "city", 0.3),
+  p("city-banska-bystrica", "Banská Bystrica", 19.15, 48.74, "temperate", "river-ns", "european", 1500, "timber", ["banska bystrica"], "village", 0.5),
+  p("city-cluj-napoca", "Cluj-Napoca", 23.59, 46.77, "temperate", "river-ew", "european", 1500, "timber", ["cluj", "kolozsvar", "transylvania"], "city", 0.35),
+  p("city-timisoara", "Timișoara", 21.23, 45.75, "temperate", "river-ew", "european", 1500, "timber", ["timisoara", "banat"], "city", 0.08),
+  p("city-graz", "Graz", 15.44, 47.07, "temperate", "river-ns", "european", 1400, "timber", ["styria"], "city", 0.4),
+  p("city-innsbruck", "Innsbruck", 11.39, 47.27, "temperate", "river-ew", "european", 1400, "timber", ["tyrol", "tirol"], "city", 0.75),
+  p("city-porto", "Porto", -8.61, 41.15, "mediterranean", "coast-w", "european", 1400, "classical", ["oporto", "douro"], "port", 0.25),
+  p("city-trabzon", "Trabzon", 39.72, 41.0, "temperate", "coast-n", "north-african-west-asian", 1400, "courtyard", ["trebizond", "pontus"], "port", 0.55),
+  p("city-erzurum", "Erzurum", 41.28, 39.9, "arid", "none", "north-african-west-asian", 1400, "courtyard", ["theodosiopolis", "eastern anatolia"], "city", 0.7),
+  p("city-diyarbakir", "Diyarbakır", 40.24, 37.91, "arid", "river-ns", "north-african-west-asian", 1400, "courtyard", ["diyarbakir", "amida"], "city", 0.35),
+  p("city-kayseri", "Kayseri", 35.49, 38.73, "arid", "none", "north-african-west-asian", 1400, "courtyard", ["caesarea", "cappadocia"], "city", 0.5),
+  p("city-darbhanga", "Darbhanga", 85.9, 26.15, "monsoon", "river-ns", "south-asian", 1400, "courtyard", ["mithila", "tirhut"], "city", 0.05),
+  p("city-malda", "Malda", 88.14, 25.01, "monsoon", "river-ns", "south-asian", 1400, "courtyard", ["gaur", "pandua", "maldah"], "city", 0.05),
+  p("city-jalpaiguri", "Jalpaiguri", 88.72, 26.52, "monsoon", "river-ns", "south-asian", 1400, "courtyard", ["duars", "teesta"], "village", 0.15),
+  p("city-san-jose-cr", "San José", -84.08, 9.93, "tropical", "none", "mesoamerican", 1800, "courtyard", ["san jose costa rica", "costa rica"], "city", 0.35),
+  p("city-noumea", "Nouméa", 166.45, -22.27, "tropical", "coast-w", "australian-pacific", 1860, "board", ["noumea"], "port", 0.25),
 ];
+const aliases = new Set(
+  [...anchors, ...regionalFill].flatMap((p) => [p.name, ...p.aliases].map((s) => s.toLowerCase())),
+);
+const localNames: Record<string, string[]> = {
+  "city-mwanza": ["lake victoria", "mwanza gulf"],
+  "city-tokyo": ["edo"],
+};
+const filteredLegacy = (legacy as AtlasPlace[])
+  .filter((p) => !aliases.has(p.name.toLowerCase()))
+  .map((p) => (localNames[p.id] ? { ...p, aliases: [...p.aliases, ...localNames[p.id]] } : p));
+// Merge exact-coordinate area-* duplicates into their colocated city-* (or base area-*) entry.
+const coordKey = (p: AtlasPlace) => `${p.lon.toFixed(4)},${p.lat.toFixed(4)}`;
+const canonicalByCoord = new Map<string, AtlasPlace>();
+for (const p of filteredLegacy) {
+  const k = coordKey(p),
+    prev = canonicalByCoord.get(k);
+  if (!prev || (prev.id.startsWith("area-") && (!p.id.startsWith("area-") || p.id.length < prev.id.length)))
+    canonicalByCoord.set(k, p);
+}
+const mergedAliases = new Map<string, string[]>();
+const droppedById = new Map<string, string>();
+for (const p of filteredLegacy) {
+  const canon = canonicalByCoord.get(coordKey(p))!;
+  if (canon.id === p.id) continue;
+  droppedById.set(p.id, canon.id);
+  const extra = mergedAliases.get(canon.id) ?? [];
+  extra.push(p.name, ...p.aliases);
+  mergedAliases.set(canon.id, extra);
+}
+const dedupedLegacy = filteredLegacy
+  .filter((p) => !droppedById.has(p.id))
+  .map((p) => {
+    const extra = mergedAliases.get(p.id);
+    return extra ? { ...p, aliases: [...new Set([...p.aliases, ...extra])] } : p;
+  });
+export const places: AtlasPlace[] = [...anchors, ...regionalFill, ...dedupedLegacy];
 export const featuredPlaces = anchors;
-export const placeById = new Map(places.map(p => [p.id, p]));
+export const placeById = new Map<string, AtlasPlace>(places.map((p) => [p.id, p]));
+for (const [oldId, canonId] of droppedById) {
+  const target = placeById.get(canonId);
+  if (target) placeById.set(oldId, target);
+}

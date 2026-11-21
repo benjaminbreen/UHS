@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
-import { faunaAt, faunaCoats, faunaProfile } from "../src/content/fauna";
+import { faunaArtStem, faunaAt, faunaCoats, faunaProfile } from "../src/content/fauna";
+import { isRideableSpecies } from "../src/core/riding";
 import {
   advanceFauna,
   stepAllowed,
@@ -875,9 +876,33 @@ describe("animal riding", () => {
     expect(young.e.mountableNear()?.blocked).toMatch(/young/i);
     expect(young.rt.command({ type: "interact", action: "mount-animal", target: "fauna:test-horse:0" })?.status).toBe("rejected");
 
-    const hitched = withBeast("cattle", { owner: "player", hitch: "plough-1" });
+    const hitched = withBeast("water-buffalo", { owner: "player", hitch: "plough-1" });
     expect(hitched.e.mountableNear()?.blocked).toMatch(/harness/i);
-    expect(hitched.rt.command({ type: "interact", action: "mount-animal", target: "fauna:test-cattle:0" })?.status).toBe("rejected");
+    expect(hitched.rt.command({ type: "interact", action: "mount-animal", target: "fauna:test-water-buffalo:0" })?.status).toBe("rejected");
+  });
+
+  it("keeps cattle unrideable, keeps F as swing near mounts, and resolves default-form art stems", () => {
+    expect(isRideableSpecies("cattle")).toBe(false);
+    const ox = withBeast("cattle", { owner: "player" });
+    expect(ox.e.mountableNear()).toBeUndefined();
+    expect(ox.rt.command({ type: "interact", action: "mount-animal", target: "fauna:test-cattle:0" })?.status).toBe("rejected");
+
+    const { rt } = withBeast("donkey", { owner: "player" });
+    const verbs = rt.verbs();
+    expect(verbs.primary?.kind).toBe("strike");
+    expect(verbs.alternate?.command?.action).toBe("mount-animal");
+
+    expect(faunaArtStem("camel", "dromedary")).toBe("camel");
+    expect(faunaArtStem("camel", "bactrian")).toBe("camel.bactrian");
+    expect(faunaArtStem("water-buffalo", "buffalo")).toBe("water-buffalo");
+    expect(faunaArtStem("reindeer", "bull")).toBe("reindeer");
+    expect(faunaArtStem("reindeer", "cow")).toBe("reindeer.cow");
+    expect(faunaArtStem("cattle", "taurine")).toBe("cattle");
+    expect(faunaArtStem("cattle", "zebu")).toBe("cattle.zebu");
+    expect(faunaArtStem("horse", "war")).toBe("horse.war");
+    expect(faunaProfile("horse")?.directions).toEqual(
+      expect.arrayContaining(["north", "northeast", "east", "southeast", "south", "southwest", "west", "northwest"]),
+    );
   });
 
   it("supports wild rodeo breaking, perfect cadence spurring, feeding treats, and over-spur bucking", () => {
@@ -937,19 +962,53 @@ describe("animal riding", () => {
       name: "Marcus",
       kind: "human",
       role: "Ostler",
+      home: { space: "outside", x: 0, y: 0 },
+      work: { space: "outside", x: 0, y: 0 },
       activity: "Tending horses",
       sprite: "npc",
       pos: { space: "outside", x: p.pos.x - 1, y: p.pos.y },
       direction: 1,
+      fatigue: 0,
+      hunger: 0,
       trust: 10,
+      memories: [],
       inventory: {},
     });
+
+    // Near an ostler, F stays strike and E offers Hire a mount.
+    const ostlerVerbs = rt.verbs();
+    expect(ostlerVerbs.primary?.kind).toBe("strike");
+    expect(ostlerVerbs.alternate?.command?.action).toBe("stable-service");
 
     // Hire a war horse from the ostler.
     expect(rt.command({ type: "interact", action: "stable-service", target: "war" })?.status).toBe("completed");
     expect(p.riding?.speciesId).toBe("horse");
     expect(p.riding?.form).toBe("war");
     expect(p.riding?.maxStamina).toBe(130);
+
+    // Pre-horse settings reject hiring a horse from an ostler/innkeeper.
+    const mexico = places.find((pl) => pl.lon < -90 && pl.lat > 15 && pl.lat < 22)!;
+    const preHorse = new Runtime(createSession("roman", "pre-horse"));
+    preHorse.engine.world.pack.setting = at(mexico.id, 1400);
+    const pp = preHorse.engine.state.player;
+    preHorse.engine.state.actors.push({
+      id: "inn-1",
+      name: "Tlacaelel",
+      kind: "human",
+      role: "Innkeeper",
+      home: { space: "outside", x: 0, y: 0 },
+      work: { space: "outside", x: 0, y: 0 },
+      activity: "Keeping the house",
+      sprite: "npc",
+      pos: { space: "outside", x: pp.pos.x + 1, y: pp.pos.y },
+      direction: 2,
+      fatigue: 0,
+      hunger: 0,
+      trust: 10,
+      memories: [],
+      inventory: {},
+    });
+    expect(preHorse.command({ type: "interact", action: "stable-service", target: "hire" })?.status).toBe("rejected");
 
     // Water at the trough without spending any inventory item.
     p.riding!.stamina = 15;

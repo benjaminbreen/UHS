@@ -109,7 +109,12 @@ const HEADS: Record<string, [number, number][]> = {
  * then gas. `roll` (0 to 1, per lamp) puts arc lights on some electric posts
  * and sets when a cobra head went over to LED.
  * The toran (door marker 6) is a garland. */
-export function lampLight(frame: string, year = 1900, roll = 0.5): Lamp | undefined {
+export function lampLight(
+  frame: string,
+  year = 1900,
+  roll = 0.5,
+  culture?: string,
+): Lamp | undefined {
   if (frame.startsWith("made:palace:")) {
     // Candles and lamps among the furniture burn wherever they are put down.
     const heads = palacePropLights(frame);
@@ -119,6 +124,14 @@ export function lampLight(frame: string, year = 1900, roll = 0.5): Lamp | undefi
   if (!m || (m[1] === "door-lantern" && m[2] === "6")) return undefined;
   const kind = m[1];
   const gas = year >= 1895 ? "mantle" : year >= 1810 ? "gas" : "oil";
+  const ledStart =
+    culture === "east-asian"
+      ? 2006 + roll * 12
+      : culture === "european"
+        ? 2010 + roll * 14
+        : culture === "southeast-asian" || culture === "south-asian"
+          ? 2013 + roll * 12
+          : 2008 + roll * 16;
   const [tech, radius]: [LampTech, number] =
     kind === "door-lantern"
       ? [Number(m[2]) < 3 ? "oil" : year >= 1890 ? "bulb" : "gas", 24]
@@ -129,8 +142,8 @@ export function lampLight(frame: string, year = 1900, roll = 0.5): Lamp | undefi
           : kind === "gas-lamp" || (kind === "city-lamp" && m[2] === "0")
             ? [gas, gas === "oil" ? 30 : 36]
             : kind === "sodium-lamp"
-              ? // Cities swapped heads for LEDs street by street from about 2008 to 2024.
-                [year < 1972 ? "mercury" : year < 2008 + roll * 16 ? "sodium" : "led", 46]
+              ? // Cities swapped heads for LEDs street by street from the late 2000s into the 2020s.
+                [year < 1972 ? "mercury" : year < ledStart ? "sodium" : "led", 46]
               : kind === "city-lamp"
                 ? ["led", 48]
                 : year < 1910 && roll < 0.3
@@ -143,7 +156,18 @@ export function lampLight(frame: string, year = 1900, roll = 0.5): Lamp | undefi
         ? HEADS[Number(m[2]) < 3 ? "door-lantern-0" : "door-lantern-3"]
         : HEADS[kind];
   const cone = kind === "electric-lamp" || kind === "sodium-lamp" || (kind === "city-lamp" && m[2] === "2");
-  return { tech, radius, heads, cone, ...LAMPS[tech] };
+  const base = LAMPS[tech];
+  // Regional highway/street colour temperature: Europe favours deeper amber
+  // sodium and warmer 3000K LEDs; East Asia leans cooler white.
+  const tone: [number, number, number] =
+    tech === "sodium" && culture === "european"
+      ? [255, 182, 96]
+      : tech === "led" && culture === "european"
+        ? [255, 236, 206]
+        : tech === "led" && culture === "east-asian"
+          ? [230, 244, 255]
+          : base.tone;
+  return { tech, radius, heads, cone, ...base, tone };
 }
 /** Whether a lamp is burning at this hour, 0 to 1. Gas and oil were lit by
  * hand, so each lamp comes on as its lighter reaches it on his round after
@@ -237,6 +261,55 @@ export function ensureHalo(scene: Phaser.Scene, radius: number, tone: [number, n
     },
     1,
   );
+}
+/** Flat elliptical warm light spilled onto the ground outside a doorway or
+ * ground-floor window, added gently so wet earth and grass catch the amber. */
+export function ensureGroundSpill(scene: Phaser.Scene, radius: number, tone: [number, number, number]) {
+  return ensureGlow(
+    scene,
+    `ground-spill-${radius}-${tone.join("-")}`,
+    radius,
+    (d) => {
+      const k = (1 - d) ** 1.9;
+      return [
+        Math.round(tone[0] + (255 - tone[0]) * k * 0.25),
+        Math.round(tone[1] + (235 - tone[1]) * k * 0.2),
+        Math.round(tone[2] + (180 - tone[2]) * k * 0.15),
+        k * 0.44,
+      ];
+    },
+    0.52,
+  );
+}
+/** Soft warm firelight/oil-lamp interior glow framed inside a doorway opening:
+ * deeper amber under the lintel, brighter toward the hearth-lit threshold. */
+export function ensureDoorGlow(scene: Phaser.Scene, w: number, h: number, tone: [number, number, number]) {
+  const key = `door-glow-${w}x${h}-${tone.join("-")}`;
+  if (scene.textures.exists(key)) return key;
+  const canvas = scene.textures.createCanvas(key, w, h)!;
+  const img = canvas.context.createImageData(w, h);
+  for (let y = 0; y < h; y++) {
+    const v = h > 1 ? y / (h - 1) : 1;
+    // Dim under the lintel, warmest across the lower two-thirds of the opening.
+    const lift = 0.3 + 0.7 * Math.sin(Math.min(1, v * 1.15) * (Math.PI / 2));
+    for (let x = 0; x < w; x++) {
+      const edge = w > 2 && (x === 0 || x === w - 1) ? 0.55 : 1;
+      const topFade = y === 0 ? 0.35 : 1;
+      const a = lift * edge * topFade * 0.88;
+      img.data.set(
+        [
+          Math.round(tone[0] * (0.88 + 0.12 * v)),
+          Math.round(tone[1] * (0.68 + 0.32 * v)),
+          Math.round(tone[2] * (0.46 + 0.54 * v)),
+          Math.round(a * 255),
+        ],
+        (y * w + x) * 4,
+      );
+    }
+  }
+  canvas.context.putImageData(img, 0, 0);
+  canvas.refresh();
+  return key;
 }
 /** The light under a shade, from the bulb down to the ground: narrow and
  * bright at the top, spreading and thinning as it falls, soft at its edges.

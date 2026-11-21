@@ -381,16 +381,119 @@ export function populationAt(
   return n < 400 ? undefined : n;
 }
 
+// Colonial-founded cities in Mesoamerica and the Andes: keep their culture,
+// but use the pre-colonial or ecoregion name before their founding year.
+const preColonialNames: Record<string, readonly [number, string, number?, string?]> = {
+  "city-mexico-city": [1521, "Tenochtitlan", 1325, "Valley of Mexico"],
+  "city-guadalajara": [1542, "Bajío dry forests"],
+  "city-puebla": [1531, "Puebla valley"],
+  "city-leon": [1576, "Bajío plains"],
+  "city-san-salvador": [1525, "Cuscatlán"],
+  "city-guatemala-city": [1776, "Guatemalan highlands"],
+  "city-san-luis-potosi": [1592, "Altiplano Potosino"],
+  "city-merida": [1542, "T'hó"],
+  "city-veracruz": [1519, "Veracruz coast"],
+  "city-cancun": [1970, "Yucatán coast"],
+  "city-belmopan": [1970, "Belize River valley"],
+  "city-tuxtla-gutierrez": [1560, "Chiapas highlands"],
+  "city-campeche": [1540, "Can Pech"],
+  "city-lima": [1535, "Rímac valley"],
+  "city-bogota": [1538, "Bacatá"],
+  "city-santiago": [1541, "Mapocho valley"],
+  "city-medellin": [1616, "Aburrá valley"],
+  "city-guayaquil": [1538, "Guayas delta"],
+  "city-cali": [1536, "Cauca valley"],
+  "city-la-paz": [1548, "Chuquiago"],
+  "city-mendoza": [1561, "Cuyo foothills"],
+  "city-valparaiso": [1536, "Central Chilean coast"],
+  "city-arequipa": [1540, "Chili valley"],
+  "city-trujillo": [1534, "Moche valley"],
+  "city-salta": [1582, "Lerma valley"],
+  "city-san-cristobal": [1561, "Táchira highlands"],
+  "city-manizales": [1849, "Cauca highlands"],
+  "city-chimbote": [1835, "Santa valley"],
+  "city-antofagasta": [1868, "Atacama coast"],
+  "city-cuenca": [1557, "Tomebamba", 1470, "Azuay highlands"],
+  "city-sucre": [1538, "Chuquisaca"],
+  "city-la-serena": [1544, "Elqui valley"],
+  // Colonial and modern planned cities in Africa, Asia, and Oceania.
+  "city-cape-town": [1652, "Table Bay"],
+  "city-nairobi": [1899, "Athi plains"],
+  "city-harare": [1890, "Mashonaland"],
+  "city-lusaka": [1905, "Kafue plateau"],
+  "city-lilongwe": [1902, "Central Malawi plateau"],
+  "city-gaborone": [1887, "Notwane valley"],
+  "city-windhoek": [1890, "Khomas highlands"],
+  "city-walvis-bay": [1840, "Namib coast"],
+  "city-brazzaville": [1880, "Malebo Pool"],
+  "city-kinshasa": [1881, "Malebo Pool"],
+  "city-libreville": [1849, "Gabon estuary"],
+  "city-port-gentil": [1885, "Ogooué delta"],
+  "city-port-harcourt": [1912, "Niger Delta"],
+  "city-freetown": [1787, "Sierra Leone peninsula"],
+  "city-monrovia": [1822, "Cape Mesurado"],
+  "city-banjul": [1816, "Gambia mouth"],
+  "city-dakar": [1857, "Cap-Vert peninsula"],
+  "city-abidjan": [1903, "Ébrié lagoon"],
+  "city-conakry": [1887, "Kaloum peninsula"],
+  "city-luanda": [1576, "Kwanza coast"],
+  "city-maputo": [1781, "Delagoa Bay"],
+  "city-beira": [1887, "Pungwe estuary"],
+  "city-port-louis": [1735, "Mauritius coast"],
+  "city-port-sudan": [1905, "Red Sea coast"],
+  "city-djibouti": [1888, "Gulf of Tadjoura"],
+  "city-juba": [1922, "Bahr al-Jabal"],
+  "city-kigali": [1907, "Central Rwanda hills"],
+  "city-bujumbura": [1897, "Tanganyika shore"],
+  "city-maseru": [1869, "Caledon valley"],
+  "city-mbabane": [1902, "Highveld"],
+  "city-islamabad": [1960, "Potohar plateau"],
+  "city-chandigarh": [1953, "Shivalik foothills"],
+  "city-new-delhi": [1911, "Delhi"],
+  "city-kolkata": [1690, "Hooghly delta"],
+  "city-chennai": [1639, "Coromandel coast"],
+  "city-mumbai": [1534, "Konkan coast"],
+  "city-karachi": [1729, "Indus mouth"],
+  "city-singapore": [1819, "Temasek", 1299, "Malacca Strait"],
+  "city-kuala-lumpur": [1857, "Klang valley"],
+  "city-george-town": [1786, "Penang Island"],
+  "city-ho-chi-minh-city": [1976, "Saigon", 1698, "Mekong delta"],
+  "city-naypyidaw": [2005, "Sittaung valley"],
+  "city-hong-kong": [1841, "Pearl River mouth"],
+  "city-shenzhen": [1979, "Pearl River mouth"],
+  "city-harbin": [1898, "Songhua plain"],
+  "city-dalian": [1898, "Liaodong peninsula"],
+  "city-sapporo": [1869, "Ishikari plain"],
+  "city-yokohama": [1859, "Edo Bay"],
+  "city-almaty": [1854, "Zhetysu foothills"],
+  "city-bishkek": [1825, "Chüy valley"],
+  "city-ashgabat": [1881, "Kopet Dag foothills"],
+  "city-dushanbe": [1924, "Hisor valley"],
+  "city-wellington": [1840, "Te Whanganui-a-Tara"],
+  "city-port-lincoln": [1839, "Eyre Peninsula"],
+  "city-port-moresby": [1873, "Papuan coast"],
+  "city-port-vila": [1882, "Efate coast"],
+};
+
 /** The gazetteer row as it stood at this date. */
 export function placeAtYear(place: AtlasPlace, year: number): AtlasPlace {
   const era = settlerEraFor(place, year);
   const population = populationAt(place, year);
   const settled = era && year >= era.from;
+  const colonial = preColonialNames[place.id];
+  const preColonial =
+    colonial && year < colonial[0]
+      ? colonial[2] !== undefined && year < colonial[2]
+        ? colonial[3]!
+        : colonial[1]
+      : undefined;
   // Before the settlers came, Minot's ground was not yet Minot.
   // Curated names (no modern population) already name the ground at any date.
-  const before = era && !settled && place.population
-    ? northAmericanLandscape(place)?.name ?? ecoregionAt(place.lon, place.lat)?.name
-    : undefined;
+  const before =
+    preColonial ??
+    (era && !settled && place.population
+      ? northAmericanLandscape(place)?.name ?? ecoregionAt(place.lon, place.lat)?.name
+      : undefined);
   return {
     ...place,
     ...(before ? { name: before } : {}),

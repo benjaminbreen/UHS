@@ -64,7 +64,7 @@ export function bloomsAt(
   for (let dy = -1; dy <= 1; dy++)
     for (let dx = -1; dx <= 1; dx++) {
       const n = sample(x + dx, y + dy);
-      if (!n || n.surface === "soil" || n.feature || n.height !== c.height)
+      if (!n || n.feature || n.height !== c.height)
         return [];
     }
   const wx = x + ox,
@@ -79,8 +79,8 @@ export function bloomsAt(
   const thick = h.lushness === undefined ? drift && colony > 0.68
     : colony > 0.72 && h.lushness > 0.22;
   const edge = h.grove === undefined ? 1 : 0.15 + groveEdge(h.grove) * 0.85;
-  const local = h.lushness === undefined ? (thick ? 0.22 : 0.005)
-    : thick ? 0.24 * h.lushness : 0.001 + 0.003 * h.lushness;
+  const local = h.lushness === undefined ? (thick ? 0.22 : 0.008)
+    : thick ? 0.24 * h.lushness : 0.001 + 0.012 * h.lushness;
   const chance = local * season * dense * growth * growth * edge;
   if (hash(wx, wy, 603) > chance) return [];
   const count = 1 + Math.floor(hash(wx, wy, 605) * (thick ? 3 : 1.6));

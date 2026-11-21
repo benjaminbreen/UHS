@@ -1065,7 +1065,7 @@ export const communityProfiles: CommunityProfile[] = [
     label: "Ottoman Bulgarian Christians, 1450–1923",
     scope: {
       years: [1450, 1923],
-      bounds: [22.3, 41.2, 28.7, 44.15],
+      bounds: [22.61, 41.2, 28.7, 44.15],
       communities: ["ottoman-christian"],
     },
     priority: 93,
@@ -1083,7 +1083,7 @@ export const communityProfiles: CommunityProfile[] = [
     label: "Ottoman Serbian Christians, 1450–1923",
     scope: {
       years: [1450, 1923],
-      bounds: [19, 42.2, 23, 45.3],
+      bounds: [19, 42.2, 22.6, 45.3],
       communities: ["ottoman-christian"],
     },
     priority: 93,
@@ -1101,7 +1101,7 @@ export const communityProfiles: CommunityProfile[] = [
     label: "Ottoman Greek Christians, 1450–1923",
     scope: {
       years: [1450, 1923],
-      bounds: [19, 35, 26.35, 42.2],
+      bounds: [19, 35, 26.35, 41.19],
       communities: ["ottoman-christian"],
     },
     priority: 93,

@@ -95,19 +95,21 @@ export function puddlesAt(
     ];
   }
   if (!c || !earth(c, c.height)) return [];
+  const road = (c.pathArt ?? []).reduce<PathStroke | undefined>(
+    (best, s) => (s.radius > (best?.radius ?? 0) ? s : best),
+    undefined,
+  );
+  const wear = c.groundWear ?? 0;
   const around = [
     [0, -1],
     [1, 0],
     [0, 1],
     [-1, 0],
   ].filter(([dx, dy]) => earth(sample(x + dx, y + dy), c.height)).length;
-  if (around < 3) return [];
-  const road = (c.pathArt ?? []).reduce<PathStroke | undefined>(
-    (best, s) => (s.radius > (best?.radius ?? 0) ? s : best),
-    undefined,
-  );
+  // Narrow village paths cut through grass with only 1-2 soil neighbours; broad bare yards still need 3.
+  if (around < (road ? 1 : 3)) return [];
   const scape = c.landscape?.kind === "trample" ? c.landscape.strength : 0;
-  const traffic = Math.min(1, Math.max(0.3, (road?.radius ?? 0) / 1.6, scape));
+  const traffic = Math.min(1, Math.max(0.3, (road?.radius ?? 0) / 1.6, scape, wear * 0.75));
   const wx = x + ox,
     wy = y + oy;
   const rank = hash(wx, wy, 707),
@@ -159,15 +161,17 @@ export function puddlesAt(
     }
   }
 
-  // Pools stand on roads and trodden ground, not across every bare yard.
-  if (!road && !scape) return [];
-  if (hash(wx, wy, 701) > 0.008 + traffic * 0.022) return [];
+  // Pools stand on roads, trodden paths, and heavily worn work/doorstep yards.
+  const wornYard = !road && !scape && wear >= 0.65;
+  if (!road && !scape && !wornYard) return [];
+  const chance = road ? 0.035 + traffic * 0.055 : wornYard ? 0.045 : 0.008 + traffic * 0.022;
+  if (hash(wx, wy, 701) > chance) return [];
   const px = 3 + Math.floor(hash(wx, wy, 703) * 10),
     py = 4 + Math.floor(hash(wx, wy, 705) * 9);
   // Water stands in the worn treadway, never in the turf beside it.
-  if (pathField(sample, x + px / 16, y + py / 16, ox, oy).coverage < 0.75)
+  if (!wornYard && pathField(sample, x + px / 16, y + py / 16, ox, oy).coverage < 0.72)
     return [];
-  const r = 5 + hash(wx, wy, 723) * 4 + traffic * 4;
+  const r = wornYard ? 4 + hash(wx, wy, 723) * 2.5 : 4.5 + hash(wx, wy, 723) * 3.5 + traffic * 3.5;
   const tilt = (hash(wx, wy, 725) - 0.5) * 0.6;
   return [
     {
@@ -370,23 +374,40 @@ function paint(b: Bucket, state: GroundState | undefined, sky: Sky) {
           const wr = sr * 0.78 + 26, wg = sg * 0.8 + 30, wb = sb * 0.8 + 36;
           // The near bank shades the water; the far lip catches the sky.
           if (!above) put(i, wr * 0.6, wg * 0.62, wb * 0.68, 235);
-          else if (!below) put(i, Math.min(255, sr * 1.15 + 20), Math.min(255, sg * 1.15 + 22), Math.min(255, sb * 1.12 + 24), 255);
+          else if (!below)
+            put(
+              i,
+              Math.min(255, sr * (sky.rain ? 1.28 : 1.15) + (sky.rain ? 30 : 20)),
+              Math.min(255, sg * (sky.rain ? 1.3 : 1.15) + (sky.rain ? 34 : 22)),
+              Math.min(255, sb * (sky.rain ? 1.34 : 1.12) + (sky.rain ? 40 : 24)),
+              255,
+            );
           else {
             // Sky caught in short level streaks, not single pixels.
-            const streak = [0, 1, 2].some((k) => px >= k && hash(b.x + px - k, b.y + py, 713) > 0.986) &&
+            const streak = [0, 1, 2].some((k) => px >= k && hash(b.x + px - k, b.y + py, 713) > (sky.rain ? 0.98 : 0.986)) &&
               !!b.surface[i - 3] && !!b.surface[i + 3];
             const deep = d > water + 0.3 ? 0.86 : 1;
-            if (streak) put(i, Math.min(255, sr * 1.2 + 26), Math.min(255, sg * 1.2 + 28), Math.min(255, sb * 1.15 + 30), 255);
+            if (streak)
+              put(
+                i,
+                Math.min(255, sr * 1.26 + 32),
+                Math.min(255, sg * 1.28 + 34),
+                Math.min(255, sb * 1.26 + 38),
+                255,
+              );
             else put(i, wr * deep, wg * deep, wb * deep, 225);
           }
         } else if (state.puddles > 0.05 && !state.frozen && d < 2 && d > water - 0.1) {
-          // A rim of soaked soil round the water.
-          put(i, 30, 21, 12, 90);
+          // A rim of soaked soil round the water, catching tiny sky glints in rain.
+          if (sky.rain && speck > 0.945)
+            put(i, Math.min(255, sr * 0.95 + 24), Math.min(255, sg * 0.98 + 26), Math.min(255, sb + 32), 118);
+          else put(i, 30, 21, 12, 90);
         } else if (d >= 2 || (state.mud > 0.05 && d > mud - (speck - 0.5) * 0.08)) {
           // Darkens whatever soil it lies on, so laterite and loess keep their
           // own colour when wet.
           if (state.frozen) put(i, 214, 222, 228, speck > 0.7 ? 170 : 90);
-          else if (speck > 0.965) put(i, sr * 0.9, sg * 0.9, sb * 0.9, 110);
+          else if (speck > (sky.rain ? 0.948 : 0.965))
+            put(i, Math.min(255, sr * 0.95 + 18), Math.min(255, sg * 0.96 + 20), Math.min(255, sb * 0.98 + 26), 115);
           else put(i, 30, 21, 12, d >= 2 ? 120 : d > mud + 0.15 ? 150 : 105);
         }
       }

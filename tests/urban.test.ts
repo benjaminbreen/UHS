@@ -196,7 +196,9 @@ it.each([["Versailles", 1750, true], ["Sceaux", 1725, false]] as const)("connect
   expect(buildings).toHaveLength(3);
   const house = buildings.find(b => b.claim.endsWith("residence"))!;
   const wing = buildings.find(b => b.claim.endsWith("north-wing"))!;
-  expect(house.venueRoom).toEqual(royal ? { venue: "versailles", room: "guard-room" } : undefined);
+  // A seat with no rooms of its own opens onto a generic palace of its date.
+  if (royal) expect(house.venueRoom).toEqual({ venue: "versailles", room: "guard-room" });
+  else expect(house.venueRoom?.venue).toMatch(/^palace-/);
   expect(garden.royal).toBe(royal);
   expect(wing.x === house.x + house.w).toBe(royal);
   expect(plot.access.x).toBe(plot.x + plot.w - 1);
@@ -423,17 +425,19 @@ it.runIf(!!process.env.FULL)("zones an industrial-age city into a downtown, fact
     return at.reduce((d, q) => d + Math.hypot(q.x, q.y), 0) / at.length;
   };
   expect(distance("downtown")).toBeLessThan(distance("suburb"));
-  // The modern gold masters: sheds by the works, blocks on the shopping
-  // streets, curtain-wall towers downtown once the date allows them.
+  // Sheds by the works; the street family on the shopping streets and
+  // downtown, with the American strip kit among the shops; office blocks
+  // downtown once the date allows them.
   const built = (use: string, name: string) =>
     richmond.places.some((q) => q.landUse === use && q.sprite.startsWith(name));
   expect(richmond.places.some((q) => q.landUse === "industrial" && /^modern-(works|sawtooth-shed)/.test(q.sprite))).toBe(true);
-  expect(built("commercial", "modern-brickshop")).toBe(true);
-  expect(built("downtown", "modern-curtain-tower")).toBe(true);
-  expect(
-    plan("Richmond 1935").places.some((q) => q.sprite.startsWith("modern-curtain-tower")),
-  ).toBe(false);
-  expect(uses(plan("Moscow 1975")).has("estate")).toBe(true);
+  expect(built("commercial", "mod-")).toBe(true);
+  expect(built("commercial", "candidate-modern-")).toBe(true);
+  expect(built("downtown", "mod-")).toBe(true);
+  expect(streetMix({ lon: -77.44, lat: 37.54, year: 2014 }, "downtown").office).toBeDefined();
+  expect(streetMix({ lon: -77.44, lat: 37.54, year: 1935 }, "downtown").office).toBeUndefined();
+  // Its last ring was laid after the Khrushchev programme began.
+  expect(uses(plan("Moscow 1990")).has("estate")).toBe(true);
   // Before the industrial onset there is no zoning at all.
   expect(uses(plan("Richmond 1790")).size).toBe(0);
   // Open-air market pitches give way to shops once cars come.

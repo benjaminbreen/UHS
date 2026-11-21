@@ -195,6 +195,42 @@ await withPage({}, async (page) => {
           return interiorProfileFor({lon:(b[0]+b[2])/2,lat:(b[1]+b[3])/2,year:p.scope.years[0],settlement:"city",use:`worksite.${p.id}`});
         })});
       }
+      if (ids.includes("inns")) {
+        const { innProfiles } = await import("/src/content/settlements/worksites/inns.ts" as string);
+        const { interiorProfileFor } = await import("/src/content/interiors/select.ts" as string);
+        const where: Record<string, [number, number, number]> = {
+          "grand-coaching-inn": [-0.1, 51.5, 1750], "european-inn": [-0.1, 51.5, 1450],
+          "grand-ryokan": [135.8, 35, 1780], "edo-hatago": [135.8, 35, 1750],
+          "persian-caravanserai": [51.7, 32.6, 1620], "roman-caupona": [12.5, 41.9, 100],
+          "colonial-posada": [-99.1, 19.4, 1700], "sinitic-kezhan": [116.4, 39.9, 1600],
+          "dharamshala": [77.2, 28.6, 1600], "inca-tambo": [-71.9, -13.5, 1480], "zongo-guesthouse": [-4.0, 13.9, 1500],
+          "ottoman-han": [29.0, 41.0, 1600], "mughal-sarai": [78.0, 27.2, 1620], "maghreb-funduq": [-5.0, 34.0, 1500],
+          "grand-hotel": [-0.1, 51.5, 1895], "modern-hotel": [-74.0, 40.7, 1975],
+        };
+        groups.push({ name: "inns", profiles: innProfiles.map((p: any) => {
+          const [lon, lat, year] = where[p.id] ?? [0, 50, p.scope.years[0]];
+          return interiorProfileFor({ lon, lat, year, settlement: "city", use: `worksite.${p.id}` });
+        }) });
+      }
+      if (ids.includes("grand-inns")) {
+        const { interiorProfileFor } = await import("/src/content/interiors/select.ts" as string);
+        const picks: [string, number, number, number][] = [
+          ["grand-coaching-inn", -0.1, 51.5, 1750],
+          ["grand-ryokan", 135.8, 35, 1780],
+          ["grand-hotel", -0.1, 51.5, 1895],
+          ["modern-hotel", -74.0, 40.7, 1975],
+        ];
+        groups.push({
+          name: "grand-inns",
+          profiles: picks.flatMap(([id, lon, lat, year]) =>
+            [0, 1, 2].map((variant) => ({
+              ...interiorProfileFor({ lon, lat, year, settlement: "city", use: `worksite.${id}` }),
+              _seed: variant,
+              label: `${id} · ${["double corridor", "L-wing", "vertical spine"][variant]}`,
+            })),
+          ),
+        });
+      }
       if (ids.includes("henhouse")) {
         const { interiorProfileFor } = await import("/src/content/interiors/select.ts" as string);
         groups.push({name:"henhouse",profiles:[[0.2,49,1300],[139,35,1700],[-99,19,1450]].map(([lon,lat,year])=>
@@ -217,7 +253,7 @@ await withPage({}, async (page) => {
       const { T, FLOOR_X, FLOOR_Y } = await import("/src/render/interiors/pixel.ts" as string);
       const render = (pr: any, status: number, firstRoom = false) => {
         const size = pr.rooms?.[0].size ?? pr.size;
-        const b = planBuilding(pr, { seed: 7, status, colorway: 0, w: size[0], d: size[1], hour: hour as number });
+        const b = planBuilding(pr, { seed: pr._seed ?? 7, status, colorway: 0, w: size[0], d: size[1], hour: hour as number });
         const cv = document.createElement("canvas");
         const room = new PixelRoom(cv);
         room.set({ ...b.plan.rooms[0], w: b.plan.w, d: b.plan.d, entrance: b.plan.entrance[0], hour }, b.props, b.plan);

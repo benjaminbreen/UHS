@@ -61,12 +61,12 @@ const tan = [190, 168, 116];
 const PLANT_PITCH = 10;
 
 export function fieldRidge(f: NonNullable<TopographyCell["field"]>) {
-  const pitch = 10 + Math.floor(hash(f.parcel, 0, 871) * 4);
+  const pitch = f.garden ? 7 : 10 + Math.floor(hash(f.parcel, 0, 871) * 4);
   const scale = Math.hypot(1, f.rowSlope ?? 0);
   return (wx: number, wy: number) => {
     const along = f.axis === "x" ? wx : wy;
     const across = acrossFieldRow(f, wx, wy) / scale;
-    const drift = Math.floor(noise(along, across, 96, 813) * 3) - 1;
+    const drift = f.garden ? 0 : Math.floor(noise(along, across, 96, 813) * 3) - 1;
     const shifted = across + drift, p = mod(shifted, pitch);
     return { along, row: Math.floor(shifted / pitch), crest: (p - (pitch >> 1)) * scale, phase: (p + 0.5) / pitch };
   };
@@ -114,6 +114,7 @@ export function rasterFieldTile(
   art: GrassArt = defaultGrassArt,
   // The edge pass hands in a borrowed copy; re-sampling found no field there.
   cell: TopographyCell = sample(x, y)!,
+  underPixels?: Uint8ClampedArray,
 ): GroundTileData {
   const f = cell.field!;
   const h = cell.habitat;
@@ -345,12 +346,156 @@ export function rasterFieldTile(
         if (frozen) rgb = mix(rgb, [206, 212, 204], 0.5);
         put(px, py, rgb);
       }
+  if (f.garden && !f.ditch && kind !== "pasture")
+    paintGardenBed(sample, x, y, gx, gy, f.bed ?? "earth", soil, palette[0], frozen, pixels, underPixels, put);
   if (!frozen)
     paintFences(sample, x, y, ox, oy, put, (px, py, v) => {
       const i = (py * 16 + px) * 4;
       for (let k = 0; k < 3; k++) pixels[i + k] = Math.max(0, pixels[i + k] - v);
     });
   return { x, y, pixels };
+}
+
+const BED_RAMPS = {
+  timber: ["#3f2b1c", "#66462b", "#8c633e", "#b28558", "#caa072"].map(decode),
+  brick: ["#4a2820", "#7e3e2c", "#a8553c", "#c67254", "#baa992"].map(decode),
+  stone: ["#4f4b44", "#7e796e", "#a59f92", "#c4beb0", "#dad4c6"].map(decode),
+  bamboo: ["#322c16", "#645b2c", "#8c8140", "#b2a65a", "#cec278"].map(decode),
+};
+
+/** Continuous 4-neighbour raised edging around a kitchen garden bed. */
+function paintGardenBed(
+  sample: TopographySample,
+  x: number,
+  y: number,
+  gx: number,
+  gy: number,
+  style: NonNullable<NonNullable<TopographyCell["field"]>["bed"]>,
+  soil: Rgb[],
+  fallbackGround: Rgb,
+  frozen: boolean,
+  pixels: Uint8ClampedArray,
+  underPixels: Uint8ClampedArray | undefined,
+  put: (px: number, py: number, rgb: Rgb) => void,
+) {
+  const same = (dx: number, dy: number) => !!sample(x + dx, y + dy)?.field?.garden;
+  const n = !same(0, -1), s = !same(0, 1), w = !same(-1, 0), e = !same(1, 0);
+  if (!n && !s && !w && !e) return;
+  const groundAt = (px: number, py: number): Rgb => {
+    if (!underPixels) return fallbackGround;
+    const i = (py * 16 + px) * 4;
+    return [underPixels[i], underPixels[i + 1], underPixels[i + 2]];
+  };
+  const soilAtPx = (px: number, py: number): Rgb => {
+    const i = (py * 16 + px) * 4;
+    return [pixels[i], pixels[i + 1], pixels[i + 2]];
+  };
+  const paint = (px: number, py: number, rgb: Rgb) =>
+    put(px, py, frozen ? mix(rgb, [206, 212, 204], 0.5) : rgb);
+
+  if (style === "earth") {
+    for (let py = 0; py < 16; py++)
+      for (let px = 0; px < 16; px++) {
+        const dx = Math.min(w ? px + 0.5 : 99, e ? 15.5 - px : 99);
+        const dy = Math.min(n ? py + 0.5 : 99, s ? 15.5 - py : 99);
+        const corner = Math.hypot(Math.max(0, 4.2 - dx), Math.max(0, 4.2 - dy));
+        const d = 4.2 - corner + (noise(gx + px, gy + py, 10, 937) - 0.5) * 1.1;
+        if (d < 1.2) {
+          put(px, py, groundAt(px, py));
+        } else if (d < 2.2) {
+          const litSide = (n && py < 4) || (w && px < 4);
+          paint(px, py, litSide ? mix(groundAt(px, py), soil[2], 0.65) : mix(groundAt(px, py), soil[0], 0.72));
+        } else if (d < 3.4) {
+          const litSide = (n && py < 5) || (w && px < 5);
+          paint(px, py, litSide ? soil[3] : soil[1]);
+        }
+      }
+    return;
+  }
+
+  const r = BED_RAMPS[style];
+  const minX = w ? 1 : 0, maxX = e ? 14 : 15;
+  const minY = n ? 1 : 0, maxY = s ? 14 : 15;
+  for (let py = 0; py < 16; py++)
+    for (let px = 0; px < 16; px++) {
+      const wx = gx + px, wy = gy + py;
+      const outN = n && py < minY, outS = s && py > maxY, outW = w && px < minX, outE = e && px > maxX;
+      if (outN || outS || outW || outE) {
+        const g = groundAt(px, py);
+        if (outS && px >= minX && px <= maxX) put(px, py, mix(g, [24, 20, 16], 0.34));
+        else if (outE && py >= minY && py <= maxY + 1) put(px, py, mix(g, [24, 20, 16], 0.18));
+        else put(px, py, g);
+        continue;
+      }
+      // Round outer corners softly on stone/bamboo beds.
+      const outerCorner =
+        (n && w && px === 1 && py === 1) ||
+        (n && e && px === 14 && py === 1) ||
+        (s && w && px === 1 && py === 14) ||
+        (s && e && px === 14 && py === 14);
+      if (outerCorner && (style === "stone" || style === "bamboo")) {
+        put(px, py, s ? mix(groundAt(px, py), [24, 20, 16], 0.25) : groundAt(px, py));
+        continue;
+      }
+      const onN = n && py <= 2;
+      const onS = s && py >= 12;
+      const onW = w && px <= 2;
+      const onE = e && px >= 13;
+      if (!onN && !onS && !onW && !onE) {
+        // Subtle 1px inner soil shadow directly under north/west raised boards.
+        if ((n && py === 3) || (w && px === 3))
+          put(px, py, shade(soilAtPx(px, py), -16));
+        continue;
+      }
+      const isCornerPost =
+        (n && w && px <= 2 && py <= 2) ||
+        (n && e && px >= 13 && py <= 2) ||
+        (s && w && px <= 2 && py >= 12) ||
+        (s && e && px >= 13 && py >= 12);
+      if (style === "timber") {
+        if (isCornerPost) {
+          const cap = (px === 1 || px === 13) && (py === 1 || py === 12);
+          paint(px, py, py === 14 || px === 14 ? r[0] : cap ? r[4] : r[1]);
+        } else if (onS) {
+          const seam = mod(wx, 11) === 0;
+          paint(px, py, py === 14 ? r[0] : py === 12 ? (seam ? r[2] : r[4]) : seam ? r[1] : r[2]);
+        } else if (onN) {
+          const grain = hash(wx, wy, 941) > 0.65;
+          paint(px, py, py === 1 ? (grain ? r[4] : r[3]) : r[1]);
+        } else if (onW) {
+          paint(px, py, px === 1 ? r[3] : r[1]);
+        } else {
+          paint(px, py, px === 14 ? r[0] : r[3]);
+        }
+      } else if (style === "brick") {
+        const along = onN || onS ? wx : wy;
+        const mortar = mod(along, 4) === 0;
+        const v = hash(Math.floor(wx / 4), Math.floor(wy / 4), 947) > 0.5;
+        if (onS) paint(px, py, py === 14 ? r[0] : py === 12 ? (mortar ? r[4] : r[3]) : mortar ? r[1] : v ? r[2] : r[1]);
+        else if (onN) paint(px, py, py === 1 ? (mortar ? r[4] : r[3]) : mortar ? r[0] : r[2]);
+        else if (onW) paint(px, py, px === 1 ? (mortar ? r[4] : r[3]) : r[1]);
+        else paint(px, py, px === 14 ? r[0] : mortar ? r[4] : r[2]);
+      } else if (style === "stone") {
+        const along = onN || onS ? wx : wy;
+        const cell = Math.floor(along / 4);
+        const gap = mod(along, 4) === 0 && hash(cell, wy, 953) > 0.2;
+        const tone = hash(cell, Math.floor((onN || onS ? wy : wx) / 3), 957);
+        const body = tone > 0.65 ? r[4] : tone > 0.3 ? r[3] : r[2];
+        if (onS) paint(px, py, py === 14 ? r[0] : gap ? r[1] : py === 12 ? body : r[2]);
+        else if (onN) paint(px, py, gap ? r[1] : py === 1 ? body : r[2]);
+        else if (onW) paint(px, py, gap ? r[1] : px === 1 ? body : r[2]);
+        else paint(px, py, px === 14 ? r[0] : gap ? r[1] : body);
+      } else {
+        // Woven split-bamboo edging with internode joints and dark corner ties.
+        const along = onN || onS ? wx : wy;
+        const node = mod(along, 5) === 0;
+        if (isCornerPost) paint(px, py, py === 14 || px === 14 ? r[0] : r[1]);
+        else if (onS) paint(px, py, py === 14 ? r[0] : node ? r[1] : py === 12 ? r[4] : r[2]);
+        else if (onN) paint(px, py, node ? r[1] : py === 1 ? r[4] : r[2]);
+        else if (onW) paint(px, py, node ? r[1] : px === 1 ? r[3] : r[2]);
+        else paint(px, py, px === 14 ? r[0] : node ? r[1] : r[3]);
+      }
+    }
 }
 
 /** A field cell whose enclosure stands up out of the ground, so neighbouring

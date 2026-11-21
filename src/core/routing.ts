@@ -11,7 +11,7 @@ type Entry = { p: Point; g: number; f: number; order: number };
 export function route(
   start: Point,
   goal: Point,
-  cost: (to: Point, from: Point) => number,
+  cost: (to: Point, from: Point, prev?: Point) => number,
   options: {
     maxNodes?: number;
     /** Generation can search for any cell in a network; use zero heuristic. */
@@ -105,7 +105,7 @@ export function route(
         b = options.bounds;
       if (b && (p.x < b.x || p.y < b.y || p.x > b.x + b.w || p.y > b.y + b.h))
         continue;
-      const edge = cost(p, current.p);
+      const edge = cost(p, current.p, parents.get(k));
       if (!Number.isFinite(edge)) continue;
       if (edge < 1) throw Error("Routing costs must be at least one.");
       const g = current.g + edge,

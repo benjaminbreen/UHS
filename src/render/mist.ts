@@ -47,6 +47,7 @@ export class Mist {
   private sheets: Phaser.GameObjects.TileSprite[] = [];
   private intensity = 0;
   private night = 0;
+  private golden = 0;
 
   constructor(private scene: Phaser.Scene) {}
 
@@ -77,15 +78,20 @@ export class Mist {
       sheet.setSize(w, h);
       sheet.setPosition(-w / 2.4, -h / 2.4);
     });
-    this.tint(this.night);
+    this.tint(this.night, this.golden);
   }
 
-  /** Pale by day; by night a dim blue that glows a little over the dark. */
-  tint(night: number) {
+  /** Pale by day; warm rose-blushed at dawn and dusk; dim blue by night. */
+  tint(night: number, golden = 0) {
     this.night = night;
+    this.golden = golden;
     const day = [233, 240, 247],
+      warm = [246, 222, 204],
       dark = [150, 165, 196];
-    const [r, g, b] = day.map((c, k) => Math.round(c + (dark[k] - c) * night));
+    const [r, g, b] = day.map((c, k) => {
+      const lit = c + (warm[k] - c) * Math.min(1, golden * 0.75);
+      return Math.round(lit + (dark[k] - lit) * night);
+    });
     this.sheets.forEach((sheet, i) =>
       sheet.setTint((r << 16) | (g << 8) | b).setAlpha(this.intensity * (i ? 0.55 : 1) * (1 - 0.15 * night)),
     );

@@ -86,7 +86,7 @@ import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ec
 import { caveAct, caveBeastAt, caveMouthsNear, caveLevelOf, caveStrike } from "./cave";
 import { fairEnter } from "./fair";
 import { tombEnter, tombMouthsNear } from "./tomb";
-import { prisonEnter } from "./prison";
+import { prisonDailyGoals, prisonEnter, prisonNight, prisonServe } from "./prison";
 import { prisonAt, prisonFromPrompt, prisonStyles } from "../content/prisons";
 import { fairAt, fairById } from "../content/fairs";
 import { tombAt } from "../content/tombs";
@@ -191,7 +191,7 @@ import { smokingFrom } from "../content/characters/smoking";
 import { capabilitiesFor, matchesCharacterScope } from "../content/characters/resolve";
 import { amountIn, moneyFor } from "../content/economy/money";
 import { CYCLE_SPECS, cycleLabel } from "./cycles";
-import { tableGames } from "../content/games";
+import { openGameFor, tableGames } from "../content/games";
 import { venueOfClaim } from "../content/venues";
 import { beastOf } from "../content/economy/carrying";
 import { climbable, useOf } from "../content/props/uses";
@@ -681,14 +681,16 @@ export class Engine {
         ),
       });
     }
-    this.event(
-      this.state.player.afloat
-        ? `Open water stretches to the horizon. You are ${this.state.player.afloat === "swimming" ? "swimming" : `afloat in a ${this.state.player.afloat}`}. Use the movement keys or click the water to move.`
-        : this.world.pack.setting?.situation?.landform === "islet"
-          ? "You stand on a small island surrounded by ocean."
-          : "You arrive as the morning’s work begins. Walk, meet someone, or find your own way.",
-      "system",
-    );
+    if (this.world.pack.setting?.below !== "prison") {
+      this.event(
+        this.state.player.afloat
+          ? `Open water stretches to the horizon. You are ${this.state.player.afloat === "swimming" ? "swimming" : `afloat in a ${this.state.player.afloat}`}. Use the movement keys or click the water to move.`
+          : this.world.pack.setting?.situation?.landform === "islet"
+            ? "You stand on a small island surrounded by ocean."
+            : "You arrive as the morning’s work begins. Walk, meet someone, or find your own way.",
+        "system",
+      );
+    }
   }
   private money?: ItemDef;
   item(id: ItemId): ItemDef | undefined {
@@ -1908,7 +1910,7 @@ export class Engine {
     return s.today;
   }
   /** The day's account, for the card shown on waking. */
-  private evening(day: NonNullable<Snapshot["today"]> | undefined) {
+  private evening(day: NonNullable<Snapshot["today"]> | undefined, inn?: import("./types").Evening["inn"]) {
     const s = this.state;
     const t = this.trade();
     const closed = day?.day ?? Math.floor(s.clock / 86400) - 1;
@@ -1945,6 +1947,7 @@ export class Engine {
       short,
       households: s.households?.length ?? 0,
       tomorrow: { condition: w.condition, label: w.label, tempC: w.tempC },
+      ...(inn ? { inn } : {}),
     };
   }
   private handleConsignment(o: WorldObject) {
@@ -2461,6 +2464,7 @@ export class Engine {
     const s = this.state,
       p = s.player,
       pack = this.world.pack;
+    if (s.complex?.kind === "prison") return prisonDailyGoals(this.complex);
     const today = Math.floor(s.clock / (DAY_MINUTES * 60));
     if (s.goalDay !== today) {
       const kit = livelihoodOf(pack, p);
@@ -2917,15 +2921,27 @@ export class Engine {
     if (this.state.complex?.kind === "prison") return false;
     const s = this.world.pack.setting;
     const style = (s && prisonAt(s.lon, s.lat, s.year, s.culture)) ?? prisonStyles[0];
-    if (!style) return false;
-    const out = this.state.complex && "out" in this.state.complex ? { ...this.state.complex.out } : { x: this.state.player.pos.x, y: this.state.player.pos.y };
+    const p = this.state.player;
+    if (!style || p.afloat || p.drivingVehicle) return false;
+    const indoors = p.pos.space !== "outside" ? this.world.place(p.pos.space) : undefined;
+    const out = this.state.complex && "out" in this.state.complex ? { ...this.state.complex.out } : indoors ? doorApproach(indoors) : { x: p.pos.x, y: p.pos.y };
     if (by) {
-      this.cue(by.id, "shove", this.state.player.pos);
-      this.say(by.id, "Seize them! Throw them in the cells!");
+      this.cue(by.id, "shove", p.pos);
+      this.signal({ kind: "say", who: by.id, text: "Grab them! Lock them up!" });
     }
+    if (p.riding) {
+      if (p.riding.cycle) this.parkCycle(p.riding, out);
+      else this.restoreMount(p.riding, out);
+      delete p.riding;
+    }
+    delete p.perch;
     for (const a of [...this.state.actors]) if (a.underground) this.complex.folk.part(a.id);
     prisonEnter(this.complex, style, { kind: "fixed", daysLeft: days, charge }, out);
     return true;
+  }
+  /** Serve out a short prison sentence (<= 365 days) and step back outside. */
+  serveSentence(): boolean {
+    return prisonServe(this.complex);
   }
   startBelow(where: "cave" | "sewer" | "mine" | "ship" | "fair" | "tomb" | "prison") {
     const p = this.state.player.pos, d = (q: Point) => Math.hypot(q.x - p.x, q.y - p.y);
@@ -2934,11 +2950,16 @@ export class Engine {
     const host = { ...this.complex, advance() {} };
     if (where === "prison") {
       const s = this.world.pack.setting;
-      const style = (s && (prisonAt(s.lon, s.lat, s.year, s.culture) ?? prisonFromPrompt(s.role ?? ""))) ?? prisonStyles[0];
-      const debtor = /debtor/i.test(s?.role ?? "");
-      prisonEnter(host, style, debtor
-        ? { kind: "debt", daysLeft: 180, debtOwed: 18, charge: "unpaid debt" }
-        : { kind: "fixed", daysLeft: 90, charge: "held on magistrate's warrant" });
+      const role = s?.role ?? "";
+      const style = (s && (prisonAt(s.lon, s.lat, s.year, s.culture) ?? prisonFromPrompt(role))) ?? prisonStyles[0];
+      const sentence = /\b(life|lifer|political|forgotten|decades)\b/i.test(role)
+        ? { kind: "life" as const, daysLeft: 9999, charge: "held at the crown's pleasure" }
+        : /\bdebtor\b/i.test(role)
+          ? { kind: "debt" as const, daysLeft: 730, debtOwed: 18, charge: "unpaid debt" }
+          : /\b(convict|felon)\b/i.test(role)
+            ? { kind: "fixed" as const, daysLeft: 365 * 5, charge: "sentenced to five years' hard labour" }
+            : { kind: "fixed" as const, daysLeft: 90, charge: "held on magistrate's warrant" };
+      prisonEnter(host, style, sentence);
       return;
     }
     if (where === "fair") {
@@ -4878,29 +4899,27 @@ export class Engine {
     const existing = mount.groupId
       ? this.state.fauna?.find((g) => g.id === mount.groupId)
       : undefined;
-    if (existing) {
-      existing.members.push(member);
-      existing.pos = { space: "outside", x: at.x, y: at.y };
-      existing.state = spooked ? "flee" : "idle";
-      if (tetheredTo) {
-        existing.tethered = tetheredTo;
-        existing.home = { space: "outside", x: at.x, y: at.y };
-        existing.homeRadius = 1;
-      } else {
-        delete existing.tethered;
-      }
+    const rejoin =
+      existing && !tetheredTo && Math.hypot(existing.pos.x - at.x, existing.pos.y - at.y) <= 8
+        ? existing
+        : undefined;
+    if (rejoin) {
+      rejoin.members.push(member);
+      rejoin.pos = { space: "outside", x: at.x, y: at.y };
+      rejoin.state = spooked ? "flee" : "idle";
+      delete rejoin.tethered;
       if (spooked) {
-        existing.panic = 0.85;
-        existing.fright = { ...p.pos };
+        rejoin.panic = 0.85;
+        rejoin.fright = { ...p.pos };
       } else if (mount.tamed) {
-        existing.owner = mount.owner ?? "player";
-        existing.home = { space: "outside", x: at.x, y: at.y };
-        existing.homeRadius = tetheredTo ? 1 : Math.max(existing.homeRadius, 5);
-        existing.nextDecisionAt = this.state.clock + 45;
+        rejoin.owner = mount.owner ?? "player";
+        rejoin.home = { space: "outside", x: at.x, y: at.y };
+        rejoin.homeRadius = Math.max(rejoin.homeRadius, 5);
+        rejoin.nextDecisionAt = this.state.clock + 45;
       }
       return;
     }
-    const id = mount.groupId ?? `mount-${mount.speciesId}-${this.state.revision}`;
+    const id = existing || !mount.groupId ? `mount-${mount.speciesId}-${this.state.revision}` : mount.groupId;
     const group: FaunaGroup = {
       id,
       speciesId: mount.speciesId,
@@ -5495,6 +5514,93 @@ export class Engine {
       this.routes.delete(a.id);
     }
   }
+  /** Through the day a few idle people near the player sit down in the street
+   * or at the dice pitch to the local game, two or three to a board. */
+  private sitDownToPlay(clock: number) {
+    const s = this.state, p = s.player.pos, game = openGameFor(this.world.pack.setting);
+    const hour = Math.floor(clock / 3600) % 24;
+    if (!game || p.space !== "outside" || hour < 9 || hour >= 21) return;
+    const setting = this.world.pack.setting;
+    const sky = weatherAt(skySeed(s.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", clock).condition;
+    if (sky === "rain" || sky === "snow") return;
+    const plan = (this.world as Partial<import("../world/v3/generate").SettlementWorld>).planAt?.(p.x, p.y);
+    if (!plan) return;
+    const pitch = new Set((plan.venues ?? []).filter((v) => v.venue.open && v.venue.kind === "gaming-house").map((v) => `${v.pos.x},${v.pos.y}`));
+    const spots = [...(plan.venues ?? []).filter((v) => pitch.has(`${v.pos.x},${v.pos.y}`)).map((v) => v.pos), ...(plan.gatherings ?? [])]
+      .map((q) => ({ x: q.x, y: q.y, space: "outside" }))
+      .filter((q, i, all) => distance(q, p) < 36 && all.findIndex((o) => o.x === q.x && o.y === q.y) === i);
+    const circles = this.gameCircles();
+    const size = Math.min(game.seats + 1, 3);
+    // Across the board from each other, and a third behind it facing the street, so the board shows.
+    const ring = [[-1, 0], [1, 0], [0, -1]].slice(0, size);
+    for (const spot of spots) {
+      if (circles.length >= 3) return;
+      if (circles.some((c) => distance(c.at, spot) < 6)) continue;
+      const chance = pitch.has(`${spot.x},${spot.y}`) ? (hour >= 17 ? 0.9 : 0.5) : 0.35;
+      if (random(s.manifest.seed, "street-game", spot.x, spot.y, Math.floor(clock / 3600)) >= chance) continue;
+      const free = (x: number, y: number) => !this.blocked(x, y, "outside") && !this.actorAt({ x, y, space: "outside" }, "") && !(p.x === x && p.y === y);
+      const at = [[0, 0], [0, 2], [2, 0], [-2, 0], [0, -2], [2, 2], [-2, 2]]
+        .map(([dx, dy]) => ({ x: spot.x + dx, y: spot.y + dy, space: "outside" }))
+        .find((c) => free(c.x, c.y) && ring.every(([dx, dy]) => free(c.x + dx, c.y + dy)));
+      if (!at) continue;
+      const players = s.actors
+        .filter((a) => a.kind === "human" && !a.dead && a.pos.space === "outside" && (a.age ?? 30) >= 16 && a.id !== this.conversing &&
+          !(a.offRoutine || a.errand || a.tends || a.guard || a.mount || a.staff || a.task || a.post || a.watch || a.follows || a.perch || a.seated || a.figure) &&
+          !keepsShop(this.world.pack, a) && distance(a.pos, at) < 22)
+        .sort((a, b) => distance(a.pos, at) - distance(b.pos, at))
+        .slice(0, size);
+      if (players.length < size) continue;
+      const until = clock + (40 + Math.floor(random(s.manifest.seed, "street-game-length", at.x, at.y, clock) * 50)) * 60;
+      const label = `Playing ${game.title.toLowerCase()}`;
+      players.forEach((a, i) => {
+        a.errand = { to: { x: at.x + ring[i][0], y: at.y + ring[i][1], space: "outside" }, label, until, pose: "sit", face: { ...at } };
+        a.activity = label;
+        a.offRoutine = true;
+        this.routes.delete(a.id);
+      });
+      circles.push({ game, at, players });
+    }
+  }
+  /** The street games going on outside: where the board is and who is round it. */
+  gameCircles() {
+    const game = openGameFor(this.world.pack.setting);
+    if (!game) return [];
+    const label = `Playing ${game.title.toLowerCase()}`;
+    const circles: { game: typeof game; at: Position; players: Actor[] }[] = [];
+    for (const a of this.state.actors) {
+      const e = a.errand;
+      if (a.dead || e?.label !== label || !e.face || a.pos.space !== "outside") continue;
+      const c = circles.find((c) => c.at.x === e.face!.x && c.at.y === e.face!.y);
+      if (c) c.players.push(a);
+      else circles.push({ game, at: { x: e.face.x, y: e.face.y, space: "outside" }, players: [a] });
+    }
+    return circles;
+  }
+  /** The street game the player is close enough to sit in on. */
+  gameCircleHere() {
+    const p = this.state.player.pos;
+    if (p.space !== "outside") return;
+    return this.gameCircles().find((c) => distance(c.at, p) <= 2.5 && c.players.every((a) => a.pos.x === a.errand!.to.x && a.pos.y === a.errand!.to.y));
+  }
+  /** Keeps the street game going while the player sits in on it. */
+  holdGameCircle() {
+    const c = this.gameCircleHere();
+    for (const a of c?.players ?? []) a.errand!.until = Math.max(a.errand!.until, this.state.clock + 2 * 3600);
+    return c;
+  }
+  /** Tells the player once when they come within sight of a game. */
+  private noticeGames() {
+    const p = this.state.player.pos;
+    for (const c of this.gameCircles()) {
+      const key = `${c.at.x},${c.at.y},${c.players[0].errand!.until}`;
+      if (this.noticedGames.has(key) || distance(c.at, p) > 9 || c.players.some((a) => distance(a.pos, c.at) > 1.5)) continue;
+      this.noticedGames.add(key);
+      const names = c.players.map((a) => a.name.split(" ")[0]);
+      const who = names.length > 2 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names.join(" and ");
+      this.event(`${who} are playing ${c.game.title.toLowerCase()} in the street.`, "social", c.at, { actor: c.players[0].id, kind: "game" });
+    }
+  }
+  private noticedGames = new Set<string>();
   /** A dog sounds off at a stranger who comes near, and at anyone in a fight. */
   private bark(groups: FaunaGroup[], clock: number) {
     const p = this.state.player;
@@ -9103,19 +9209,27 @@ export class Engine {
       return this.dismountMountCell() ? undefined : "There is no clear ground beside you to dismount.";
     }
     if (c.type === "interact" && (c.action === "spur-mount" || c.action === "calm-mount" || c.action === "rear-mount")) {
+      if (c.action === "calm-mount" && p.riding?.cycle) return "You are not riding an animal.";
       if (c.action === "spur-mount" && p.riding?.cycle && !CYCLE_SPECS[p.riding.cycle.look.kind].motor && p.riding.stamina < SPUR_PERFECT_COST)
         return "Your legs have nothing left. Ease off for a moment.";
       return p.riding ? undefined : "You are not riding.";
     }
     if (c.type === "interact" && c.action === "feed-mount") {
-      if (!p.riding) return "You are not riding.";
+      if (!p.riding || p.riding.cycle) return "You are not riding an animal.";
       return this.nearbyHorseFixture("trough") || this.nearbyHorseFixture("manger") || this.mountTreatAvailable()
         ? undefined
         : "You have nothing suitable to feed it.";
     }
     if (c.type === "interact" && c.action === "stable-service") {
       if (!this.nearbyStablekeeper()) return "There is no ostler or stablekeeper here.";
-      if (!p.riding && p.pos.space !== "outside") return "Step outside to take a mount.";
+      if (p.riding?.cycle) return "They tend horses, not machines.";
+      if (!p.riding) {
+        if (p.pos.space !== "outside") return "Step outside to take a mount.";
+        const setting = this.world.pack.setting;
+        if (setting && !faunaAt(setting).some((f) => f.id === "horse" || f.id === "pony")) {
+          return "There are no riding horses to hire here.";
+        }
+      }
       return undefined;
     }
     if (p.riding && c.type === "interact" && (c.action === "enter" || c.action === "climb" || c.action === "launch")) {
@@ -9129,7 +9243,7 @@ export class Engine {
     }
     if (c.type === "gamble") {
       const kind = p.pos.space === "outside" ? undefined : venueOfClaim(this.world.place(p.pos.space)?.claim ?? "")?.kind;
-      if (!tableGames.some((g) => g.id === c.game && g.kinds.includes(kind!))) return "There is no game here.";
+      if (!tableGames.some((g) => g.id === c.game && g.kinds.includes(kind!)) && this.gameCircleHere()?.game.id !== c.game) return "There is no game here.";
       return -c.net > (p.inventory.coin ?? 0) ? "You can't lose more than you have." : undefined;
     }
     if (c.type === "fish")
@@ -15386,7 +15500,7 @@ export class Engine {
     const info = this.innInfo(placeId);
     const p = this.state.player;
     if (!info || p.dead) return;
-    const { place, profile, keeper, terms } = info;
+    const { profile, keeper, terms } = info;
     const servesMeal = meal || terms.mealIncluded;
     const cost = terms.roomCost + (meal ? terms.mealCost : 0);
     if (cost > 0) {
@@ -15472,6 +15586,9 @@ export class Engine {
     if (p.dead) return;
     const started = this.state.clock;
     const { bed, own, lodged, innLabel, innRoom, indoors, covered } = this.shelter();
+    const innBefore = lodged ? this.innInfo(p.pos.space) : undefined;
+    const fatigueBefore = p.fatigue;
+    const healthBefore = p.health ?? 100;
     const setting = this.world.pack.setting;
     const seed = this.state.manifest.seed;
     const before = p.activity;
@@ -15501,13 +15618,17 @@ export class Engine {
 
     const startHour = Math.floor(started / 3600) % 24;
     const overnight = hours >= 5 && (startHour >= 18 || startHour < 4);
-    this.event(
-      lodged && hours >= 5
-        ? `You wake rested in ${innRoom ?? "your room"} at the ${innLabel?.toLowerCase() ?? "inn"}, warm from a full night's sleep.`
-        : hours >= 5
-          ? `You sleep ${own ? "in your own bed" : bed ? "on a bed not your own" : indoors ? "under a roof" : "on the ground"}.`
-          : `You lie down and rest ${Math.round(hours)} hour${hours >= 2 ? "s" : ""}.`,
-    );
+    if (this.state.complex?.kind === "prison" && hours >= 5) {
+      prisonNight(this.complex);
+    } else {
+      this.event(
+        lodged && hours >= 5
+          ? `You wake rested in ${innRoom ?? "your room"} at the ${innLabel?.toLowerCase() ?? "inn"}, warm from a full night's sleep.`
+          : hours >= 5
+            ? `You sleep ${own ? "in your own bed" : bed ? "on a bed not your own" : indoors ? "under a roof" : "on the ground"}.`
+            : `You lie down and rest ${Math.round(hours)} hour${hours >= 2 ? "s" : ""}.`,
+      );
+    }
 
     const b = this.state.baby;
     if (b?.with === "player" && hours >= 5) {
@@ -15519,13 +15640,17 @@ export class Engine {
     }
     // A proper night is the one thing that mends you; an inn's warm hearth and linen mend you faster.
     const canMend = !this.state.manifest.survival || p.hunger < 75;
+    let injuryEased = false;
     if (covered && hours >= 5 && canMend) {
       this.heal(lodged ? 14 : own ? 6 : 4);
       if (lodged) {
+        const stay = this.state.lodging?.[p.pos.space];
+        if (stay) stay.until = this.state.clock;
         this.cue("player", "warm", p.pos);
         if (p.injury) {
           p.injury.until = Math.max(this.state.clock, p.injury.until - 6 * 3600);
           p.injury.cleanUntil = Math.max(p.injury.cleanUntil ?? 0, this.state.clock + 86400);
+          injuryEased = true;
           this.event("Clean linen, warmth and a full night's rest ease your injury.");
         }
       }
@@ -15565,7 +15690,19 @@ export class Engine {
     }
     // Any long sleep that wakes into a morning closes the day, whenever it began.
     const woke = Math.floor(this.state.clock / 3600) % 24;
-    if (hours >= 5 && woke >= 2 && woke < 12) this.evening(day);
+    if ((hours >= 5 || lodged) && woke >= 2 && woke < 12) {
+      const innSummary = lodged && innLabel
+        ? {
+            name: innLabel,
+            room: innRoom,
+            healed: Math.max(0, Math.round((p.health ?? 100) - healthBefore)),
+            fatigueCleared: Math.max(0, Math.round(fatigueBefore - p.fatigue)),
+            injuryEased,
+            meal: this.state.lodging?.[p.pos.space]?.meal ? innBefore?.terms.mealName : undefined,
+          }
+        : undefined;
+      this.evening(day, innSummary);
+    }
   }
 
   advance(seconds: number, heldActor?: string) {
@@ -15771,6 +15908,8 @@ export class Engine {
       this.watch();
       this.passersBy();
       if (next % 600 === 0) this.runIndoors(next);
+      if (next % 600 === 0) this.sitDownToPlay(next);
+      if (next % 30 === 0) this.noticeGames();
       this.confront(next);
       this.beeStep(next);
       if ((next % 300 === 0 && this.roadEncounter()) || this.state.encounter) break;

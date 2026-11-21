@@ -1,6 +1,7 @@
 import type { Actor, Pack, Point } from "../../core/types";
 import {
   institutionFor,
+  processingInstitution,
   type Institution,
 } from "../../content/characters/workplace";
 import { townWorkContext } from "../../content/characters/resolve";
@@ -26,10 +27,11 @@ export type WorkplaceOffer = {
 
 function institutionAt(l: Parameters<typeof institutionFor>[0], pack: Pack, plan:SettlementPlan, id:string, available = availableWork(plan, id)) {
   if(l.id==="fisher" && plan.waterfront?.members.some(m=>id===m.owner || id.startsWith(`${m.owner}-member-`)))return "fishery" as const;
-  const processing = (pack.setting?.worksiteRevision ?? 1) >= 2 && worksitesFor(pack.setting!)
-    .some(p=>p.revision && p.roles?.includes(l.id));
-  return institutionFor(l,processing) ??
-    plan.employment?.find(o=>o.roles?.includes(l.id) && available(o.kind,l.id).length)?.kind;
+  const open = plan.employment?.find(o=>o.roles?.includes(l.id) && available(o.kind,l.id).length)?.kind;
+  const expected = processingInstitution[l.id];
+  const processing = (pack.setting?.worksiteRevision ?? 1) >= 2 && !!expected && worksitesFor(pack.setting!)
+    .some(p=>p.revision && p.kind === expected && p.roles?.includes(l.id));
+  return open ?? institutionFor(l,processing);
 }
 
 /** Only placed workplaces count; a venue that failed to fit supplies no jobs. */
