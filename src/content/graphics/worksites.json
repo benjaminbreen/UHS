@@ -1629,6 +1629,156 @@
     "roofMaterial": "tile",
     "height": 84
   },
+  "yard-stable-timber": {
+    "style": "stable-timber",
+    "label": "Timber barn stable",
+    "footprint": [7, 3],
+    "description": "Timber-framed barn stable under wood shingles with a projecting hayloft hood, hoist beam, and twin Dutch half-door stalls.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "shingle",
+    "height": 96
+  },
+  "yard-stable-timber-closed": {
+    "style": "stable-timber-closed",
+    "label": "Timber barn stable",
+    "footprint": [7, 3],
+    "description": "Timber-framed barn stable with stall doors latched for the night.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "shingle",
+    "height": 96
+  },
+  "yard-stable-timber-open": {
+    "style": "stable-timber-open",
+    "label": "Timber barn stable",
+    "footprint": [7, 3],
+    "description": "Timber-framed barn stable with stall doors swung wide open.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "shingle",
+    "height": 96
+  },
+  "yard-stable-masonry": {
+    "style": "stable-masonry",
+    "label": "Masonry livery stable",
+    "footprint": [8, 3],
+    "description": "Brick and limestone livery stable under slate with a keystoned arched carriage portal and flanking Dutch stall doors.",
+    "wall": "bengal-brick",
+    "roof": "gable",
+    "roofMaterial": "slate",
+    "height": 96
+  },
+  "yard-stable-masonry-closed": {
+    "style": "stable-masonry-closed",
+    "label": "Masonry livery stable",
+    "footprint": [8, 3],
+    "description": "Brick and limestone livery stable with doors shut.",
+    "wall": "bengal-brick",
+    "roof": "gable",
+    "roofMaterial": "slate",
+    "height": 96
+  },
+  "yard-stable-masonry-open": {
+    "style": "stable-masonry-open",
+    "label": "Masonry livery stable",
+    "footprint": [8, 3],
+    "description": "Brick and limestone livery stable with doors swung wide open.",
+    "wall": "bengal-brick",
+    "roof": "gable",
+    "roofMaterial": "slate",
+    "height": 96
+  },
+  "yard-stable-arcade": {
+    "style": "stable-arcade",
+    "label": "Courtyard arcade stable",
+    "footprint": [8, 3],
+    "description": "Ochre-plastered arcade stable under terracotta pantiles with projecting vigas and three deep arched stall bays.",
+    "wall": "lime-plaster",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 92
+  },
+  "yard-stable-arcade-closed": {
+    "style": "stable-arcade-closed",
+    "label": "Courtyard arcade stable",
+    "footprint": [8, 3],
+    "description": "Courtyard arcade stable with recessed stall doors shut.",
+    "wall": "lime-plaster",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 92
+  },
+  "yard-stable-arcade-open": {
+    "style": "stable-arcade-open",
+    "label": "Courtyard arcade stable",
+    "footprint": [8, 3],
+    "description": "Courtyard arcade stable with recessed stall doors swung wide open.",
+    "wall": "lime-plaster",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 92
+  },
+  "yard-stable-east": {
+    "style": "stable-east",
+    "label": "Post-station stable",
+    "footprint": [8, 3],
+    "description": "Cedar-boarded post-station stable with a whitewashed frieze, curved grey tile roof, and rail-hung sliding stall doors.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 96
+  },
+  "yard-stable-east-closed": {
+    "style": "stable-east-closed",
+    "label": "Post-station stable",
+    "footprint": [8, 3],
+    "description": "Post-station stable with sliding stall doors shut.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 96
+  },
+  "yard-stable-east-open": {
+    "style": "stable-east-open",
+    "label": "Post-station stable",
+    "footprint": [8, 3],
+    "description": "Post-station stable with sliding stall doors slid wide open.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 96
+  },
+  "yard-stable-shed": {
+    "style": "stable-shed",
+    "label": "Open-front paddock stable",
+    "footprint": [7, 3],
+    "description": "Heavy-post timber and thatch horse shelter with recessed hayracks, plank stall walls, and a hinged paddock gate.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "thatch",
+    "height": 88
+  },
+  "yard-stable-shed-closed": {
+    "style": "stable-shed-closed",
+    "label": "Open-front paddock stable",
+    "footprint": [7, 3],
+    "description": "Open-front paddock stable with paddock gate latched.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "thatch",
+    "height": 88
+  },
+  "yard-stable-shed-open": {
+    "style": "stable-shed-open",
+    "label": "Open-front paddock stable",
+    "footprint": [7, 3],
+    "description": "Open-front paddock stable with paddock gate swung wide open.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "thatch",
+    "height": 88
+  },
   "worksite-transit-shed": {
     "style": "transit-shed",
     "label": "Pier freight warehouse",
@@ -1664,5 +1814,187 @@
     "wall": "grey-brick",
     "roof": "flat",
     "roofMaterial": "tar"
+  },
+  "worksite-dye-racks": {
+    "style": "dye-racks",
+    "label": "Dyeing racks and vats",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Timber drying rails hung with freshly dyed cloth over pigment vats and yarn baskets.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 48
+  },
+  "worksite-pottery-rack": {
+    "style": "pottery-rack",
+    "label": "Pottery drying rack and wheel",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Shelved rack of drying greenware and glazed vessels beside a potter's kick-wheel or clay bench.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 42
+  },
+  "worksite-tanner-rack": {
+    "style": "tanner-rack",
+    "label": "Hide-stretching frame and tub",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Laced hide stretched taut in a timber frame beside a fleshing beam and bark-tanning tub.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 48
+  },
+  "worksite-loom-frame": {
+    "style": "loom-frame",
+    "label": "Outdoor weaving loom",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Timber loom strung with patterned cloth in progress, flanked by baskets of dyed yarn.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 48
+  },
+  "worksite-smith-bench": {
+    "style": "smith-bench",
+    "label": "Anvil block and quench trough",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Iron-banded oak anvil stump, horned anvil, quench trough with smithing tongs, and charcoal or tool rack.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 38
+  },
+  "worksite-carpenter-bench": {
+    "style": "carpenter-bench",
+    "label": "Joiner's workbench and timber",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Heavy mortised workbench scattered with wood shavings beside a spoked wheel, cooper's cask, or stacked lumber.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 38
+  },
+  "worksite-mason-bench": {
+    "style": "mason-bench",
+    "label": "Stonemason's banker and stone",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Dressed ashlar block on timber rollers with chisels, square, stone chips, and carved drums.",
+    "wall": "field-stone",
+    "roof": "flat",
+    "roofMaterial": "stone",
+    "height": 38
+  },
+  "worksite-press-yard": {
+    "style": "press-yard",
+    "label": "Pressing frails and vats",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Woven oil-pressing mats under a timber screw with storage amphorae, or a mash trough with tied grain sacks.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 42
+  },
+  "worksite-paper-yard": {
+    "style": "paper-yard",
+    "label": "Papermaking boards and vat",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Drying boards plastered with damp handmade paper sheets beside a pulp vat, beating trough, or wooden screw press.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 44
+  },
+  "worksite-ropewalk": {
+    "style": "ropewalk",
+    "label": "Ropewalk wheel and hawsers",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Spoked twisting wheel stretching hemp strands across notched stakes, coiled hawsers, and tarred naval cordage.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 42
+  },
+  "worksite-foundry-yard": {
+    "style": "foundry-yard",
+    "label": "Bronze foundry and moulds",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Cast bronze bells, vessels, or ordnance beside clay casting moulds, glowing crucibles, and stacked copper ingots.",
+    "wall": "field-stone",
+    "roof": "flat",
+    "roofMaterial": "stone",
+    "height": 44
+  },
+  "worksite-soap-yard": {
+    "style": "soap-yard",
+    "label": "Soap-curing towers and beds",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Hollow cross-stacked towers of curing olive-oil soap beside a scored pouring bed, cutting bench, or boiling cauldron.",
+    "wall": "field-stone",
+    "roof": "flat",
+    "roofMaterial": "stone",
+    "height": 44
+  },
+  "worksite-silk-yard": {
+    "style": "silk-yard",
+    "label": "Silkworm racks and reeling swift",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Bamboo cocoon-rearing trays, steaming cocoon basins feeding spoked silk-reeling wheels, and drying raw-silk skeins.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 46
+  },
+  "worksite-charcoal-yard": {
+    "style": "charcoal-yard",
+    "label": "Charcoal clamp and sawpit",
+    "footprint": [
+      6,
+      3
+    ],
+    "description": "Turf-covered smoking charcoal kiln with rakes and sacks, or a raised oak log on trestles with a two-man pit saw.",
+    "wall": "weatherboard",
+    "roof": "flat",
+    "roofMaterial": "wood",
+    "height": 44
   }
 }

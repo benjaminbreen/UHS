@@ -5,6 +5,7 @@ import type { EarthFinish } from "./urban-form/types";
 import type { StreetMaterial } from "./streets";
 
 export type GardenBorder = "flowers" | "herbs" | "shrubs";
+export type GardenBedStyle = "timber" | "brick" | "stone" | "bamboo" | "earth";
 export type WalkSurface = StreetMaterial | EarthFinish | "stepping";
 
 /** What a house platform is faced with. plaster: lime stucco over rubble.
@@ -31,11 +32,14 @@ export type YardProp = {
   family: string;
   /** Sprite variants, for a family with no entry in the prop catalogue. */
   variants?: number;
+  /** Pin a specific regional/era variant index instead of rolling across all variants. */
+  variant?: number;
   /** An animal house: where the yard has room, a small building of this
    * kind and make stands in the back corner. A henhouse falls back to the
    * coop prop; a byre to nothing. */
   building?:
     | { kind: "byre"; form: OutbuildingForm }
+    | { kind: "stable"; form: OutbuildingForm }
     | { kind: "henhouse"; form: HenhouseForm };
   name: string;
   /** An apron uses the kept ground at the front even when a full yard cannot fit. */
@@ -81,6 +85,8 @@ export type YardKit = {
   apron?: number;
   /** Low ornamental or kitchen planting flanking the front walk/wall. */
   border?: GardenBorder;
+  /** Edging style for kitchen garden beds. */
+  bed?: GardenBedStyle;
   /** The low platform the house stands on; `apron` is the rows of it kept
    * clear in front of the door. */
   plinth?: { face: PlinthFace; apron: number };
@@ -117,6 +123,14 @@ const byre = (form: OutbuildingForm, chance = 0.2): YardProp => ({
   chance,
   building: { kind: "byre", form },
 });
+const stable = (form: OutbuildingForm, chance = 0.16): YardProp => ({
+  prop: "stable",
+  family: "stable",
+  name: "Stable",
+  where: "back",
+  chance,
+  building: { kind: "stable", form },
+});
 const toft: YardKit = {
   id: "toft",
   boundary: "era",
@@ -125,11 +139,12 @@ const toft: YardKit = {
   walk: ["beaten", "cobble"],
   apron: 1,
   border: "herbs",
+  bed: "timber",
   front: [2, 4],
   back: [2, 4],
   styles: { wrap: 0.55, side: 0.3, open: 0.15 },
-  beds: ["vegetables", "vegetables", "beans", "flax"],
-  tree: { sprites: ["nature-oak"], chance: 0.5 },
+  beds: ["vegetables", "turnip", "beans", "flax"],
+  tree: { sprites: ["nature-cherry", "nature-oak", "nature-chestnut", "nature-beech"], chance: 0.72 },
   props: [
     byre("wattle"),
     ...stores,
@@ -164,6 +179,7 @@ const toft: YardKit = {
     {
       prop: "flowerTub",
       family: "flower-tub",
+      variant: 0,
       name: "Planted tub",
       where: "door",
       chance: 0.45,
@@ -230,11 +246,16 @@ const court: YardKit = {
   walk: ["slab", "cobble"],
   apron: 2,
   border: "herbs",
+  bed: "stone",
   front: [1, 2],
   styles: { wrap: 0.25, side: 0.6, open: 0.15 },
-  beds: ["vine", "vegetables", "beans"],
-  tree: { sprites: ["nature-olive"], chance: 0.6 },
-  props: [...stores, byre("med")],
+  beds: ["vine", "vegetables", "lentils", "beans"],
+  tree: { sprites: ["nature-olive", "nature-olive", "nature-fig", "nature-cypress"], chance: 0.8 },
+  props: [
+    ...stores,
+    byre("med"),
+    { prop: "flowerTub", family: "flower-tub", variant: 1, name: "Terracotta planter", where: "door", chance: 0.55 },
+  ],
 };
 
 const coop: YardProp = {
@@ -264,11 +285,12 @@ const cottage: YardKit = {
   walk: ["stepping", "cobble", "brick"],
   apron: 1,
   border: "flowers",
+  bed: "timber",
   front: [2, 3],
   back: [3, 4],
   styles: { wrap: 0.7, side: 0.2, open: 0.1 },
-  beds: ["vegetables", "potato", "beans", "vegetables"],
-  tree: { sprites: ["nature-broadleaf-young"], chance: 0.55 },
+  beds: ["vegetables", "potato", "beans", "turnip"],
+  tree: { sprites: ["nature-cherry", "nature-broadleaf-young", "nature-chestnut", "nature-maple"], chance: 0.78 },
   props: [
     byre("timber"),
     ...stores,
@@ -277,6 +299,7 @@ const cottage: YardKit = {
     {
       prop: "flowerTub",
       family: "flower-tub",
+      variant: 0,
       name: "Planted tub",
       where: "door",
       chance: 0.6,
@@ -310,6 +333,7 @@ const solar: YardKit = {
   walk: ["slab", "swept"],
   apron: 1,
   border: "flowers",
+  bed: "earth",
   plinth: { face: "plaster", apron: 2 },
   mound: { face: "plaster", rise: 13 },
   group: 0.6,
@@ -317,7 +341,7 @@ const solar: YardKit = {
   back: [2, 3],
   styles: { wrap: 0.45, side: 0.35, open: 0.2 },
   beds: ["maize", "beans", "squash", "maize"],
-  tree: { sprites: ["nature-tropical-broadleaf"], chance: 0.6 },
+  tree: { sprites: ["nature-tropical-broadleaf", "nature-ceiba", "nature-ahuehuete"], chance: 0.75 },
   props: [
     ...stores,
     { ...coop, name: "Turkey pen", chance: 0.5, building: { kind: "henhouse", form: "adobe" } },
@@ -329,7 +353,15 @@ const solar: YardKit = {
 
 /** After the conquest the congregated towns built at ground level; the lot,
  * its crops and its swept yard carried on. */
-const colonialSolar: YardKit = { ...solar, id: "colonial-solar", plinth: undefined, mound: undefined, group: undefined, front: [1, 2] };
+const colonialSolar: YardKit = {
+  ...solar,
+  id: "colonial-solar",
+  plinth: undefined,
+  mound: undefined,
+  group: undefined,
+  front: [1, 2],
+  tree: { sprites: ["nature-banana", "nature-fig", "nature-tropical-broadleaf"], chance: 0.78 },
+};
 
 /** The Andes: a stone-walled patio and a plot of tubers and grain beside it;
  * few trees at that height. */
@@ -339,12 +371,13 @@ const andean: YardKit = {
   ground: "beaten",
   walk: ["cobble", "slab"],
   apron: 1,
+  bed: "stone",
   front: [1, 2],
   back: [1, 2],
   // The kancha: houses inside one fieldstone wall.
   styles: { wrap: 0.8, side: 0.15, open: 0.05 },
   beds: ["potato", "quinoa", "potato", "maize"],
-  tree: { chance: 0.15 },
+  tree: { sprites: ["nature-polylepis"], chance: 0.35 },
   props: [...stores, byre("stone", 0.18)],
 };
 
@@ -357,11 +390,12 @@ const kampong: YardKit = {
   walk: ["stepping", "plank", "swept"],
   apron: 1,
   border: "shrubs",
+  bed: "bamboo",
   front: [1, 3],
   back: [2, 3],
   styles: { wrap: 0.35, side: 0.45, open: 0.2 },
   beds: ["taro", "vegetables", "yam"],
-  tree: { sprites: ["nature-feather-palm", "nature-tropical-broadleaf"], chance: 0.75 },
+  tree: { sprites: ["nature-banana", "nature-coconut-palm", "nature-mango", "nature-feather-palm"], chance: 0.85 },
   props: [
     ...stores,
     { ...coop, chance: 0.4, building: { kind: "henhouse", form: "bamboo" } },
@@ -376,10 +410,11 @@ const plain: YardKit = {
   walk: ["gravel", "slab"],
   apron: 1,
   border: "shrubs",
+  bed: "timber",
   front: [2, 3],
   styles: { wrap: 0.35, side: 0.35, open: 0.3 },
   beds: ["vegetables"],
-  tree: { chance: 0.45 },
+  tree: { chance: 0.65 },
   props: [...stores],
 };
 
@@ -389,6 +424,7 @@ const zhouFarm: YardKit = {
   ground: "swept",
   walk: ["swept"],
   apron: 1,
+  bed: "earth",
   front: [2, 4],
   styles: { wrap: 0.15, side: 0.4, open: 0.45 },
   beds: ["millet", "millet", "beans"],
@@ -412,15 +448,18 @@ const eastAsian: YardKit = {
   walk: ["stepping", "slab", "brick"],
   apron: 1,
   border: "shrubs",
+  bed: "brick",
   plinth: { face: "dressed", apron: 1 },
   mound: { face: "dressed", rise: 9, sacred: true },
   back: [2, 3],
   styles: { wrap: 0.6, side: 0.25, open: 0.15 },
-  tree: { sprites: ["nature-bamboo-clump", "nature-bamboo-clump", "nature-maple"], chance: 0.5 },
+  beds: ["vegetables", "turnip", "beans", "mulberry"],
+  tree: { sprites: ["nature-bamboo-clump", "nature-ginkgo", "nature-maple", "nature-cherry"], chance: 0.78 },
   props: [
     ...stores,
     { ...coop, chance: 0.35, building: { kind: "henhouse", form: "east" } },
     byre("east", 0.18),
+    { prop: "flowerTub", family: "flower-tub", variant: 2, name: "Potted azalea", where: "door", chance: 0.45 },
   ],
 };
 
@@ -433,6 +472,9 @@ const japanese: YardKit = {
   ground: "gravel",
   walk: ["stepping", "slab"],
   border: "shrubs",
+  bed: "bamboo",
+  beds: ["vegetables", "turnip", "beans", "tea"],
+  tree: { sprites: ["nature-cherry", "nature-japanese-maple", "nature-bamboo-clump", "nature-ginkgo"], chance: 0.85 },
   plinth: undefined,
 };
 
@@ -446,6 +488,7 @@ const paepae: YardKit = {
   walk: ["sand"],
   apron: 1,
   border: undefined,
+  bed: "earth",
   plinth: { face: "drystone", apron: 1 },
   mound: { face: "drystone", rise: 10, sacred: true },
   group: 0.4,
@@ -466,6 +509,7 @@ const woodland: YardKit = {
   ...plain,
   id: "woodland",
   ground: "swept",
+  bed: "earth",
   mound: { face: "earth", rise: 13, sacred: true },
   back: [2, 3],
   styles: { wrap: 0.05, side: 0.35, open: 0.6 },
@@ -473,7 +517,7 @@ const woodland: YardKit = {
   props: [
     ...stores,
     { prop: "poundingMortar", family: "pounding-mortar", name: "Corn mortar", where: "door", chance: 0.6 },
-    { prop: "granaryStilt", family: "granary-stilt", name: "Corn crib", where: "back", chance: 0.5 },
+    { prop: "granaryStilt", family: "granary-stilt", variant: 2, name: "Corn crib", where: "back", chance: 0.5 },
   ],
 };
 const americasNorthwest = (s: WorldSetting) => s.lon < -115 && s.lat > 40;
@@ -487,6 +531,7 @@ const pueblo: YardKit = {
   walk: ["beaten"],
   apron: 1,
   border: undefined,
+  bed: "earth",
   styles: { wrap: 0, side: 0.3, open: 0.7 },
   beds: ["maize", "beans", "squash"],
   tree: { chance: 0.1 },
@@ -507,9 +552,11 @@ const westAsian: YardKit = {
   walk: ["slab", "daub"],
   apron: 1,
   border: undefined,
+  bed: "earth",
   front: [2, 3],
   styles: { wrap: 0.7, side: 0.25, open: 0.05 },
-  tree: { sprites: ["nature-date-palm"], chance: 0.5 },
+  beds: ["vegetables", "lentils", "vine"],
+  tree: { sprites: ["nature-date-palm", "nature-date-palm", "nature-fig", "nature-olive"], chance: 0.78 },
   props: [
     ...stores,
     { ...coop, chance: 0.3, building: { kind: "henhouse", form: "adobe" } },
@@ -523,10 +570,11 @@ const croft: YardKit = {
   id: "croft",
   boundary: "era",
   ground: "beaten",
+  bed: "earth",
   front: [1, 2],
   styles: { wrap: 0.15, side: 0.4, open: 0.45 },
   beds: ["wheat", "barley", "beans", "flax"],
-  tree: { chance: 0.5 },
+  tree: { chance: 0.6 },
   props: [
     byre("stone"),
     ...stores,
@@ -579,9 +627,11 @@ const compound: YardKit = {
   ground: "swept",
   walk: ["swept"],
   apron: 1,
+  bed: "earth",
   front: [2, 3],
   styles: { wrap: 0.1, side: 0.3, open: 0.6 },
   beds: ["sorghum", "millet", "beans", "yam"],
+  tree: { sprites: ["nature-shea", "nature-acacia", "nature-baobab"], chance: 0.7 },
   props: [
     ...stores,
     {
@@ -644,11 +694,13 @@ const angan: YardKit = {
   walk: ["daub", "brick"],
   apron: 1,
   border: "flowers",
+  bed: "bamboo",
   // The otla: a mud platform along the front, sat on and slept on.
   plinth: { face: "mud", apron: 1 },
   front: [2, 3],
   styles: { wrap: 0.55, side: 0.3, open: 0.15 },
-  beds: ["vegetables", "beans"],
+  beds: ["vegetables", "lentils", "beans"],
+  tree: { sprites: ["nature-mango", "nature-banana", "nature-neem", "nature-banyan"], chance: 0.82 },
   props: [
     byre("adobe"),
     ...stores,
@@ -665,6 +717,14 @@ const angan: YardKit = {
       name: "Mortar and pestle",
       where: "door",
       chance: 0.4,
+    },
+    {
+      prop: "flowerTub",
+      family: "flower-tub",
+      variant: 3,
+      name: "Tulsi planter",
+      where: "door",
+      chance: 0.65,
     },
   ],
 };
@@ -739,18 +799,35 @@ const withOutbuildings = (
   kit: YardKit,
   byreForm: OutbuildingForm,
   henForm?: HenhouseForm,
-): YardKit => ({
-  ...kit,
-  props: kit.props.map((p) =>
+): YardKit => {
+  const mapped = kit.props.map((p) =>
     p.building?.kind === "byre"
-      ? { ...p, building: { kind: "byre", form: byreForm } }
-      : henForm && p.building?.kind === "henhouse"
-        ? { ...p, building: { kind: "henhouse", form: henForm } }
-        : p,
-  ),
-});
+      ? { ...p, building: { kind: "byre" as const, form: byreForm } }
+      : p.building?.kind === "stable"
+        ? { ...p, building: { kind: "stable" as const, form: byreForm } }
+        : henForm && p.building?.kind === "henhouse"
+          ? { ...p, building: { kind: "henhouse" as const, form: henForm } }
+          : p,
+  );
+  const hasByre = mapped.some((p) => p.building?.kind === "byre");
+  const hasStable = mapped.some((p) => p.building?.kind === "stable");
+  return {
+    ...kit,
+    props: hasByre && !hasStable ? [...mapped, stable(byreForm)] : mapped,
+  };
+};
+
+const ensureStable = (kit: YardKit): YardKit => {
+  const b = kit.props.find((p) => p.building?.kind === "byre");
+  if (!b || kit.props.some((p) => p.building?.kind === "stable")) return kit;
+  return { ...kit, props: [...kit.props, stable(b.building!.form as OutbuildingForm)] };
+};
 
 export function yardKit(setting: WorldSetting | undefined): YardKit {
+  return ensureStable(rawYardKit(setting));
+}
+
+function rawYardKit(setting: WorldSetting | undefined): YardKit {
   if (!setting) return plain;
   // Island households farmed; their lifeway is a hamlet, not a band's camp.
   if (setting.culture === "australian-pacific" && setting.year < 1900 && Math.abs(setting.lat) < 25 && (setting.lon > 150 || setting.lon < -130))
@@ -785,10 +862,18 @@ export function yardKit(setting: WorldSetting | undefined): YardKit {
   )
     return forest && keptTrees(setting).length ? { ...compound, id: "forest-compound", tree: { sprites: keptTrees(setting), chance: 0.75 } } : compound;
   if (culture === "south-asian" && year >= 1000) {
-    const base = climate === "arid" ? angan : withOutbuildings(angan, "bamboo", "bamboo");
-    return forest ? { ...base, tree: { sprites: keptTrees(setting), chance: 0.7 } } : base;
+    const base =
+      climate === "arid"
+        ? { ...angan, bed: "earth" as const, tree: { sprites: ["nature-neem", "nature-date-palm", "nature-acacia"], chance: 0.68 } }
+        : withOutbuildings(angan, "bamboo", "bamboo");
+    return forest ? { ...base, tree: { sprites: keptTrees(setting), chance: 0.85 } } : base;
   }
-  if (culture === "east-asian") return setting.lon > 129.5 && setting.lat > 30 && setting.lat < 46 ? japanese : eastAsian;
+  if (culture === "east-asian") {
+    if (setting.lon > 129.5 && setting.lat > 30 && setting.lat < 46) return japanese;
+    return climate === "monsoon" || climate === "tropical"
+      ? { ...eastAsian, bed: "bamboo" }
+      : eastAsian;
+  }
   if (culture === "other-indigenous-american" && year < 1650 && !americasNorthwest(setting))
     return setting.lon < -103 && setting.lat < 38 ? pueblo : woodland;
   return plain;

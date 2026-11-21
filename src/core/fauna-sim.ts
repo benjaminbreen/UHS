@@ -1484,13 +1484,17 @@ export function advanceFauna(
   for (const g of [...groups].sort((a, b) => (a.id < b.id ? -1 : 1))) {
     const p = faunaProfile(g.speciesId);
     if (!p || !g.members.length) continue;
+    if (g.tethered) {
+      g.state = clock % 60 < 24 && p.art.graze ? "graze" : "idle";
+      continue;
+    }
     if (g.house) {
       const day = Math.floor(clock / 86400);
       if (world.hour >= 5.5 && world.hour < 18.5 && g.laid !== day) {
         g.laid = day;
         if (p.social === "flock") g.eggs = Math.min(g.members.length * 2, (g.eggs ?? 0) + Math.ceil(g.members.length * 0.6));
-        // A cow gives more on a full manger.
-        else g.milk = Math.min(g.members.length * 4, (g.milk ?? 0) + g.members.length * (g.fed === day - 1 ? 2 : 1));
+        // A cow gives more on a full manger; stabled equines do not yield milk.
+        else if (!["horse", "pony", "donkey"].includes(g.speciesId)) g.milk = Math.min(g.members.length * 4, (g.milk ?? 0) + g.members.length * (g.fed === day - 1 ? 2 : 1));
       }
       if (g.burrowed !== undefined) {
         if (indoors(p, g, world.hour) || g.shut) continue;

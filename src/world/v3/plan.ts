@@ -132,6 +132,7 @@ import {
   buildingScale,
   buildingWealthTier,
   chooseBuildingFrame,
+  isServiceFrame,
 } from "../../content/graphics/building-scale";
 import {
   crossing,
@@ -353,7 +354,8 @@ export function planSettlement(
   const centers = new Set<string>();
   const roads = plan.traffic,
     bridges = new Set<string>(),
-    noRoad = new Set<string>();
+    noRoad = new Set<string>(),
+    blacktopReserve = new Set<string>();
   // A view, not a copy: with the fields in, noRoad holds tens of thousands
   // of cells and a copy per doorstep search cost seconds.
   const blockedForRoads = {
@@ -487,20 +489,38 @@ export function planSettlement(
     const culvert = motorAge && road.kind === "bridge" && (road.span ?? 0) >= 4;
     plan.roads.push(road);
     for (const p of road.points) centers.add(cellKey(p.x, p.y));
+    // Reserve the full drawn corridor of a motor-age blacktop/gravel road so
+    // fences, yards, fields and props stay outside the shoulders and ditches.
+    if (motorAge && !composed && road.width >= 1 && road.kind !== "bridge") {
+      const r = road.kind === "lane" && road.id.includes("-field") ? 2 : 3;
+      const maxD2 = r * r + 1;
+      for (const p of road.points)
+        for (let dy = -r; dy <= r; dy++)
+          for (let dx = -r; dx <= r; dx++) {
+            if (dx * dx + dy * dy > maxD2) continue;
+            const gx = p.x + dx,
+              gy = p.y + dy,
+              k = cellKey(gx, gy);
+            if (plan.solid.has(k) || sample(gx, gy).water < 0) continue;
+            plan.reserved.add(k);
+            blacktopReserve.add(k);
+            plan.placement.clearance.add(k);
+          }
+    }
     roadCells(road, (x, y) => {
       const k = cellKey(x, y),
         f = sample(x, y);
       if (f.water < 0 && !bridges.has(k)) return;
       roads.add(k);
       plan.reserved.add(k);
-      // Past the built edge a motor-age road out of town is the country
-      // road's blacktop, drawn from its route, not a paved street.
+      // Non-composed motor-age roads are drawn as blacktop strokes from their
+      // routes, not stamped with paving stones over the middle of the asphalt.
       if (
+        f.water >= 0 &&
         motorAge &&
-        urban &&
         !composed &&
         road.width >= 1 &&
-        Math.hypot(x - c.x, y - c.y) > profile.radius - 4
+        road.kind !== "bridge"
       )
         return;
       // Composed lanes are paved in a paved town; access paths and doorsteps
@@ -968,8 +988,8 @@ export function planSettlement(
     (x, y) => {
       if (sample(x, y).water >= 0 && (!site.accepts || site.accepts(x, y))) {
         // A camp's middle is trodden grass round the fire, not a square; so is
-        // an unpaved village's common, whose wear the generator draws soft.
-        if (!camp && (urban || profile.paved))
+        // an unpaved village's common, and a motor-age village's blacktop junction.
+        if (!camp && (urban || (profile.paved && !motorAge)))
           setSurface(cellKey(x, y), profile.paved ? "paving" : "dirt", 9);
         plan.reserved.add(cellKey(x, y));
         roads.add(cellKey(x, y));
@@ -984,8 +1004,29 @@ export function planSettlement(
     access: { ...c },
   });
   const socialCenter = { ...c };
-  const water = { x: c.x + 4, y: c.y - 3 },
-    waterStand = { x: c.x + 3, y: c.y - 2 };
+  const waterFree = (wx: number, wy: number) =>
+    sample(wx, wy).water >= 0 &&
+    !plan.solid.has(cellKey(wx, wy)) &&
+    !blacktopReserve.has(cellKey(wx, wy)) &&
+    !roads.has(cellKey(wx, wy)) &&
+    [[-1, 0], [1, 0], [0, -1], [0, 1]].every(
+      ([dx, dy]) => !blacktopReserve.has(cellKey(wx + dx, wy + dy)),
+    );
+  const water = { x: c.x + 4, y: c.y - 3 };
+  if (!waterFree(water.x, water.y)) {
+    outer: for (let dist = 4; dist <= 12; dist++)
+      for (let dy = -dist; dy <= dist; dy++)
+        for (let dx = -dist; dx <= dist; dx++) {
+          if (Math.abs(dx) !== dist && Math.abs(dy) !== dist) continue;
+          if (waterFree(c.x + dx, c.y + dy)) {
+            water.x = c.x + dx;
+            water.y = c.y + dy;
+            break outer;
+          }
+        }
+  }
+  const waterStand = { x: water.x - 1, y: water.y + 1 };
+  const modernPiped = motorAge && !camp;
   plan.objects.push({
     id: `${site.id}-water`,
     name:
@@ -993,10 +1034,14 @@ export function planSettlement(
         ? "Watering place"
         : camp && camp.mode !== "mixed-farming"
           ? "Waterhole"
-          : "Shared water source",
+          : modernPiped
+            ? "Drinking fountain"
+            : "Shared water source",
     kind: "well",
     pos: pos(water),
-    sprite: nativeOrnament("well") || "well",
+    sprite: modernPiped
+      ? "study-propb-street-fountain-0"
+      : nativeOrnament("well") || "well",
     inventory: {},
   });
   plan.objects.push({
@@ -2954,8 +2999,8 @@ export function planSettlement(
   const tBuildings = now();
   const yards = yardKit(pack.setting);
   const yardChoices = yardBoundaries(pack.setting);
-  const yardTree = (i: number) => {
-    const roll = rand("yard-tree-kind", i),
+  const yardTree = (i: number, n = 0) => {
+    const roll = n ? rand("yard-tree-kind", i, n) : rand("yard-tree-kind", i),
       own = yards.tree?.sprites;
     if (own?.length) return own[Math.floor(roll * own.length)];
     const mix = pack.setting ? treeMix(pack.setting).filter(([t]) => pack.trees.includes(t)) : [];
@@ -2997,8 +3042,8 @@ export function planSettlement(
   ) => {
     const drawn = boundary !== "none";
     eachCell(area, (x, y) => {
-      if (skip(x, y) || placed && !townLot && !allowClear?.(x, y) && plan.placement.clearance.has(cellKey(x, y))) return;
       const k = cellKey(x, y);
+      if (skip(x, y) || blacktopReserve.has(k) || placed && !townLot && !allowClear?.(x, y) && plan.placement.clearance.has(k)) return;
       if (drawn && fenced(x, y)) {
         if (!plan.solid.has(k)) fenceCells.add(k);
         plan.solid.add(k);
@@ -3023,6 +3068,7 @@ export function planSettlement(
           boundary,
           wet: false,
           garden: !!crop,
+          ...(crop && yards.bed && { bed: yards.bed }),
           yard: true,
           owner,
         },
@@ -3048,12 +3094,16 @@ export function planSettlement(
     )
       return false;
     cells.forEach((k) => propCells.add(k));
+    const variant =
+      "variant" in item && item.variant !== undefined
+        ? item.variant
+        : Math.floor(rand("yard-art", i, n) * (propDefs[item.prop]?.variants ?? ("variants" in item ? item.variants : undefined) ?? 3));
     plan.objects.push({
       id: `${id}-yard-${item.family}-${n}`,
       name: item.name,
       kind: "container",
       prop: item.prop,
-      sprite: propDefs[item.prop]?.sprite ?? `study-propb-${item.family}-${Math.floor(rand("yard-art", i, n) * (propDefs[item.prop]?.variants ?? ("variants" in item ? item.variants : undefined) ?? 3))}`,
+      sprite: propDefs[item.prop]?.sprite ?? `study-propb-${item.family}-${variant}`,
       inventory: item.contents ?? {},
       pos: pos(at),
     });
@@ -3065,8 +3115,18 @@ export function planSettlement(
   };
   /** A walk-in henhouse or byre on free cells behind the house, its door to
    * the south. False where the yard has no room. */
+  const stableArchetype = (form: string) =>
+    form === "brick" || form === "stone"
+      ? "masonry"
+      : form === "med" || form === "adobe"
+        ? "arcade"
+        : form === "east"
+          ? "east"
+          : form === "wattle" || form === "bamboo"
+            ? "shed"
+            : "timber";
   const outbuilding = ({ kind, form }: NonNullable<YardProp["building"]>, free: Point[], id: string, owner: string, name: string) => {
-    const frame = `yard-${kind}-${form}`;
+    const frame = kind === "stable" ? `yard-stable-${stableArchetype(form)}` : `yard-${kind}-${form}`;
     const [w, h] = buildingModel(frame).footprint;
     const open = new Set(free.map((p) => cellKey(p.x, p.y)));
     const clear = (x: number, y: number) => {
@@ -3082,9 +3142,11 @@ export function planSettlement(
       if (!fits) continue;
       const p: Place = {
         id: `${id}-${kind}`, name,
-        description: kind === "byre"
-          ? "A shed where the cattle stand at night, with a manger for their hay. They are milked here in the morning."
-          : "A small house for the hens, with nest boxes and a perch. They are shut in here at night.",
+        description: kind === "stable"
+          ? "A stable with stalls, a hay manger, and tack. The household's horses stand here at night."
+          : kind === "byre"
+            ? "A shed where the cattle stand at night, with a manger for their hay. They are milked here in the morning."
+            : "A small house for the hens, with nest boxes and a perch. They are shut in here at night.",
         x: at.x, y: at.y, w, h, sprite: frame, entrance: { x: at.x + (w >> 1), y: at.y + h },
         owner, access: "household", claim: `yard-${kind}`, entranceLabel: "Enter",
       };
@@ -3093,7 +3155,7 @@ export function planSettlement(
       if (onStep(p.entrance.x, p.entrance.y)) continue;
       const art = buildingArtCells(frame, p);
       if (art.some(({ x, y }) => plan.built?.has(cellKey(x, y)))) continue;
-      if (kind === "byre" && art.some(({ x, y }) => propCells.has(cellKey(x, y)) && !buildingClearance.has(cellKey(x, y)))) continue;
+      if ((kind === "byre" || kind === "stable") && art.some(({ x, y }) => propCells.has(cellKey(x, y)) && !buildingClearance.has(cellKey(x, y)))) continue;
       if (placed) {
         const env = buildingPlacementEnvelope(frame, p, [p.entrance]);
         if (
@@ -3122,7 +3184,7 @@ export function planSettlement(
         form === "bamboo" || form === "adobe" ? "daub" : "beaten";
       const apronCells: Point[] = [];
       for (let x = p.x; x < p.x + p.w; x++) apronCells.push({ x, y: p.y + p.h });
-      if (kind === "byre") apronCells.push({ x: p.entrance.x, y: p.entrance.y + 1 });
+      if (kind === "byre" || kind === "stable") apronCells.push({ x: p.entrance.x, y: p.entrance.y + 1 });
       for (const q of apronCells) {
         const k = cellKey(q.x, q.y);
         if (plan.solid.has(k) || onStep(q.x, q.y) || sample(q.x, q.y).water < 4 || cultivatedAt(plan, q.x, q.y)) continue;
@@ -3138,6 +3200,27 @@ export function planSettlement(
       }
       plan.places.push(p);
       plan.objects.push({ id: `${p.id}-exit`, kind: "exit", name: "Back to the yard", sprite: "door-open", pos: { x: 6, y: 9, space: p.id }, inventory: {}, owner });
+      if (kind === "stable") {
+        // Place a hitching post beside the stable apron when a clear yard cell is open.
+        for (const [dx, dy] of [[2, 0], [-2, 0], [2, 1], [-2, 1]]) {
+          const hx = p.entrance.x + dx, hy = p.entrance.y + dy;
+          const hk = cellKey(hx, hy);
+          if (!plan.solid.has(hk) && !roads.has(hk) && !propCells.has(hk) && sample(hx, hy).water >= 4) {
+            propCells.add(hk);
+            plan.objects.push({
+              id: `${p.id}-hitching-post`,
+              name: "Hitching post",
+              kind: "container",
+              prop: "lotHitchingPost",
+              sprite: propDefs.lotHitchingPost?.sprite ?? "study-propb-hitching-post-0",
+              inventory: {},
+              pos: pos({ x: hx, y: hy }),
+              owner,
+            });
+            break;
+          }
+        }
+      }
       return true;
     }
     return false;
@@ -3246,14 +3329,16 @@ export function planSettlement(
         plan.reserved.add(k);
       });
     }
+    const hasEquines = pack.setting ? faunaAt(pack.setting).some((f) => f.id === "horse" || f.id === "pony") : false;
     const items = yards.props.filter(
       (p, n) =>
+        !(p.building?.kind === "stable" && !hasEquines) &&
         // The player's household keeps hens wherever its neighbours might.
-        (!p.role || p.role.test(role)) && (rand("yard-prop", i, n) < p.chance || (!!p.building && (owner === "player" || (p.building.kind === "byre" ? /dairy|milk/i : /cottager|crofter/i).test(role)))) &&
+        (!p.role || p.role.test(role)) && (rand("yard-prop", i, n) < p.chance || (!!p.building && (owner === "player" || (p.building.kind === "byre" ? /dairy|milk/i : p.building.kind === "stable" ? /courier|ostler|carter|groom|farrier|knight|cavalry|muleteer/i : /cottager|crofter/i).test(role)))) &&
         // A town with sewers has no privies.
         !(motorAge && urban && /privy/.test(p.family)),
     );
-    for (const p of items) if (p.building?.kind === "byre" && owner) byres.push({ item: p, id, owner, rect, door });
+    for (const p of items) if ((p.building?.kind === "byre" || p.building?.kind === "stable") && owner) byres.push({ item: p, id, owner, rect, door });
     const privy = privies[Math.floor(rand("privy-kind", i) * privies.length)];
     if (privy && !(motorAge && urban) && rand("privy-here", i) < 0.55)
       items.push({ prop: privy, family: propDefs[privy].family, name: propDefs[privy].name, where: "back", chance: 1 });
@@ -3332,7 +3417,7 @@ export function planSettlement(
     const first = rand("toft-side", i) < 0.5 ? -1 : 1;
     const tries: [number, number, number, number, number, number][] = [];
     // Extra width for an animal house in the back corner, given up where it will not fit.
-    const wing = items.some((p) => p.building?.kind === "byre") ? 3 : items.some((p) => p.building) ? 2 : 0;
+    const wing = items.some((p) => p.building?.kind === "byre" || p.building?.kind === "stable") ? 3 : items.some((p) => p.building) ? 2 : 0;
     // A platform's own apron and stair need a row clear of the fence.
     const least = apron + 1;
     for (const wide of wing ? [wing, 0] : [0])
@@ -3434,6 +3519,10 @@ export function planSettlement(
         plan.slots.get(id)!.furnished = true;
         const crop =
           yards.beds[Math.floor(rand("yard-crop", i) * yards.beds.length)];
+        const altBeds = yards.beds.filter((b) => b !== crop);
+        const crop2 = altBeds.length
+          ? altBeds[Math.floor(rand("yard-crop-2", i) * altBeds.length)]
+          : crop;
         // Fenced once every lane is laid, so the fence breaks for each of them.
         toftQueue.push(() => {
           const area = style === "wrap" ? toft : plot;
@@ -3513,7 +3602,14 @@ export function planSettlement(
             style === "open" ? rows : area,
             yardSkip,
             fenced,
-            (x, y) => (planted(x, y) ? crop : undefined),
+            (x, y) => {
+              if (!planted(x, y)) return undefined;
+              const second =
+                rows.w >= 6
+                  ? x > rows.x + (rows.w >> 1)
+                  : rows.h >= 4 && y > rows.y + (rows.h >> 1);
+              return second ? crop2 : crop;
+            },
             100200 + i * 2,
             "x",
             bnd,
@@ -3662,7 +3758,7 @@ export function planSettlement(
                 serviceTargets.push(plan.places[plan.places.length - 1].entrance);
                 return;
               }
-              if (item.building?.kind === "byre") return;
+              if (item.building?.kind === "byre" || item.building?.kind === "stable") return;
               // A privy goes at the bottom of the back yard or not at all.
               const spots = item.where === "back" && (behind.length || propDefs[item.prop]?.where === "privy") ? behind : free;
               const hit = spots.find((at) => (item.where !== "apron" || at.y >= rect.y + rect.h) && yardProp(item, at, id, i, 40 + n));
@@ -3728,21 +3824,60 @@ export function planSettlement(
             }
           });
           if (yards.tree && rand("yard-tree", i) < yards.tree.chance) {
-            const at = {
-              x: side < 0 ? plot.x + 1 : plot.x + plot.w - 2,
-              y: plot.y + plot.h - 2,
-            };
-            const k = cellKey(at.x, at.y);
-            if (!plan.solid.has(k) && !roads.has(k) && !propCells.has(k)) {
+            const placedTrees: Point[] = [];
+            const candidates: Point[] = [
+              // Prefer back-yard and far-side corners so trees frame the house without blocking the front facade.
+              { x: toft.x + 1, y: top - 1 },
+              { x: toft.x + toft.w - 2, y: top - 1 },
+              { x: side < 0 ? plot.x + 1 : plot.x + plot.w - 2, y: plot.y + plot.h - 2 },
+              { x: side < 0 ? plot.x + 1 : plot.x + plot.w - 2, y: plot.y + 1 },
+              ...behind,
+              { x: toft.x + 1, y: toft.y + toft.h - 2 },
+              { x: toft.x + toft.w - 2, y: toft.y + toft.h - 2 },
+              ...free.slice().reverse(),
+              // Outer flank corners frame compact yards whose interiors hold outbuildings.
+              { x: rect.x - el - 2, y: top },
+              { x: rect.x + rect.w + er + 1, y: top },
+              { x: toft.x - 1, y: toft.y + toft.h - 2 },
+              { x: toft.x + toft.w, y: toft.y + toft.h - 2 },
+            ];
+            const treeCount = toft.w >= 11 && rand("yard-tree-2", i) < 0.42 ? 2 : 1;
+            for (let t = 0; t < treeCount; t++) {
+              const sprite = yardTree(i, t);
+              const at = candidates.find((p) => {
+                const k = cellKey(p.x, p.y);
+                if (
+                  plan.solid.has(k) ||
+                  roads.has(k) ||
+                  propCells.has(k) ||
+                  plan.borders?.has(k) ||
+                  onStep(p.x, p.y) ||
+                  inHouse(p.x, p.y) ||
+                  planted(p.x, p.y) ||
+                  fenced(p.x, p.y) ||
+                  onWalk(p.x, p.y) ||
+                  sample(p.x, p.y).water < 4 ||
+                  tier(p.x, p.y) !== houseTier ||
+                  Math.abs(p.x - door.x) + Math.abs(p.y - door.y) <= 2 ||
+                  (p.y >= rect.y + rect.h && p.x >= rect.x - 1 && p.x <= rect.x + rect.w) ||
+                  placedTrees.some((q) => Math.hypot(p.x - q.x, p.y - q.y) < 4)
+                )
+                  return false;
+                return !treePlacementEnvelope(sprite, p).clearance.some(
+                  (c) => plan.built?.has(cellKey(c.x, c.y)) || ownArt.has(cellKey(c.x, c.y)),
+                );
+              });
+              if (!at) break;
+              const k = cellKey(at.x, at.y);
               plan.solid.add(k);
               propCells.add(k);
+              placedTrees.push(at);
               plan.objects.push({
-                id: `${id}-yard-tree`,
+                id: t ? `${id}-yard-tree-${t}` : `${id}-yard-tree`,
                 name: "Garden tree",
                 kind: "tree",
                 pos: pos(at),
-                sprite:
-                  yardTree(i),
+                sprite,
                 inventory: {},
               });
             }
@@ -3833,6 +3968,44 @@ export function planSettlement(
           }
           items.filter((p) => p.where === "apron").forEach((item, n) =>
             front.some((at) => yardProp(item, at, id, i, 40 + n)));
+          if (yards.tree && rand("yard-tree", i) < yards.tree.chance * 0.85) {
+            const sprite = yardTree(i);
+            const flanks: Point[] = [
+              { x: rect.x - el - 2, y: top },
+              { x: rect.x + rect.w + er + 1, y: top },
+              { x: rect.x - 1, y: top - 2 },
+              { x: rect.x + rect.w, y: top - 2 },
+            ];
+            const at = flanks.find((p) => {
+              const k = cellKey(p.x, p.y);
+              return (
+                !plan.solid.has(k) &&
+                !roads.has(k) &&
+                !propCells.has(k) &&
+                !plan.borders?.has(k) &&
+                !onStep(p.x, p.y) &&
+                sample(p.x, p.y).water >= 4 &&
+                tier(p.x, p.y) === houseTier &&
+                Math.abs(p.x - door.x) + Math.abs(p.y - door.y) > 2 &&
+                !treePlacementEnvelope(sprite, p).clearance.some(
+                  (c) => plan.built?.has(cellKey(c.x, c.y)) || ownArt.has(cellKey(c.x, c.y)),
+                )
+              );
+            });
+            if (at) {
+              const k = cellKey(at.x, at.y);
+              plan.solid.add(k);
+              propCells.add(k);
+              plan.objects.push({
+                id: `${id}-yard-tree`,
+                name: "Garden tree",
+                kind: "tree",
+                pos: pos(at),
+                sprite,
+                inventory: {},
+              });
+            }
+          }
         });
     });
   };
@@ -3852,6 +4025,10 @@ export function planSettlement(
     });
     const crop =
       yards.beds[Math.floor(rand("yard-crop", i) * yards.beds.length)];
+    const altBeds = yards.beds.filter((b) => b !== crop);
+    const crop2 = altBeds.length
+      ? altBeds[Math.floor(rand("yard-crop-2", i) * altBeds.length)]
+      : crop;
     toftQueue.push(() => {
       const south = house.y + house.h === g.y,
         north = g.y + g.h === house.y,
@@ -3905,15 +4082,18 @@ export function planSettlement(
         fenced,
         (x, y) => {
           const along = rows ? x - g.x : y - g.y,
-            span = rows ? g.w : g.h;
+            span = rows ? g.w : g.h,
+            mid = Math.min(span - 1, 8) >> 1;
           return bed &&
             away(x, y) >= from &&
             away(x, y) < depth - (rear ? 1 : 0) &&
             along >= 1 &&
             along < Math.min(span - 1, 8) &&
             // A path down the middle of a wide bed.
-            !(span >= 8 && along === Math.min(span - 1, 8) >> 1)
-            ? crop
+            !(span >= 8 && along === mid)
+            ? span >= 8 && along > mid
+              ? crop2
+              : crop
             : undefined;
         },
         100400 + i * 2,
@@ -3922,23 +4102,34 @@ export function planSettlement(
         owner,
       );
       if (yards.tree && rand("garden-tree", i) < yards.tree.chance) {
-        const at = rows
-          ? { x: g.x + g.w - 2, y: south ? g.y + depth - 2 : g.y + 1 }
-          : { x: east ? g.x + depth - 2 : g.x + 1, y: g.y + g.h - 2 };
-        const k = cellKey(at.x, at.y);
-        if (
-          !plan.solid.has(k) &&
-          !roads.has(k) &&
-          dry({ ...at, w: 1, h: 1 }, false)
-        ) {
-          plan.solid.add(k);
+        const sprite = yardTree(i);
+        const corners: Point[] = rows
+          ? [
+              { x: g.x + g.w - 2, y: south ? g.y + depth - 2 : g.y + 1 },
+              { x: g.x + 1, y: south ? g.y + depth - 2 : g.y + 1 },
+            ]
+          : [
+              { x: east ? g.x + depth - 2 : g.x + 1, y: g.y + g.h - 2 },
+              { x: east ? g.x + depth - 2 : g.x + 1, y: g.y + 1 },
+            ];
+        const at = corners.find((p) => {
+          const k = cellKey(p.x, p.y);
+          return (
+            !plan.solid.has(k) &&
+            !roads.has(k) &&
+            !onStep(p.x, p.y) &&
+            dry({ ...p, w: 1, h: 1 }, false) &&
+            !treePlacementEnvelope(sprite, p).clearance.some((c) => plan.built?.has(cellKey(c.x, c.y)))
+          );
+        });
+        if (at) {
+          plan.solid.add(cellKey(at.x, at.y));
           plan.objects.push({
             id: `${id}-garden-tree`,
             name: "Garden tree",
             kind: "tree",
             pos: pos(at),
-            sprite:
-              yardTree(i),
+            sprite,
             inventory: {},
           });
         }
@@ -4504,11 +4695,14 @@ export function planSettlement(
         livelihood.rank !== "elite" &&
         livelihood.rank !== "gentry"
       : role !== "Farmer" && role !== "Herder";
-    const shopfront = owner === "player" ? !!shop :
-      !!keeper ||
-      lot.quarter === "market" ||
-      (lot.quarter === "craft" && homeWorkshop) ||
-      (i % 4 === 1 && homeWorkshop && !grandHouse && placedTier !== 1);
+    const shopfront = isServiceFrame(frame)
+      ? false
+      : owner === "player"
+        ? !!shop
+        : !!keeper ||
+          lot.quarter === "market" ||
+          (lot.quarter === "craft" && homeWorkshop) ||
+          (i % 4 === 1 && homeWorkshop && !grandHouse && placedTier !== 1);
     // In a camp a house is called what it is: a felt tent, a shelter, a
     // longhouse, whoever's trade is practised in it.
     const dwelling = model.label.split(" · ")[0];
@@ -6282,7 +6476,7 @@ export function planSettlement(
   // A stock-keeping household has a lot rather than a garden yard: its byre
   // stands behind or beside the house on the same level, never blocking the front facade.
   for (const want of byres) {
-    if (plan.places.some((p) => p.id === `${want.id}-byre`)) continue;
+    if (plan.places.some((p) => p.id === `${want.id}-${want.item.building!.kind}`)) continue;
     const { rect, door } = want, near: Point[] = [];
     const houseTier = tier(rect.x + (rect.w >> 1), rect.y + rect.h - 1);
     for (let y = rect.y - 16; y <= rect.y + rect.h + 1; y++)
@@ -6414,7 +6608,7 @@ export function planSettlement(
     const infraEarth: EarthFinish = yards.ground ?? "beaten";
     const paintPad = (x: number, y: number, allowBase: boolean, mode: "stone" | "earth" | "step") => {
       const k = cellKey(x, y);
-      if ((!allowBase && plan.solid.has(k)) || onStep(x, y) || sample(x, y).water < 4 || cultivatedAt(plan, x, y)) return;
+      if ((!allowBase && plan.solid.has(k)) || blacktopReserve.has(k) || roads.has(k) || onStep(x, y) || sample(x, y).water < 4 || cultivatedAt(plan, x, y)) return;
       if (mode === "step") {
         if (setSurface(k, "paving", 3)) {
           plan.pavement!.set(k, "stepping");
@@ -6549,6 +6743,32 @@ export function planSettlement(
       owner: byre.owner,
       house: byre.id,
       roost: pos({ x: byre.x + 1, y: byre.y + 1 }),
+    } satisfies FaunaGroup);
+  }
+  // A household with a stable keeps a horse or two in it: out by day, in at dusk.
+  const stableMount = penStock.find((k) => k.id === "horse") ?? penStock.find((k) => k.id === "pony") ?? (pack.setting ? faunaAt(pack.setting).find((k) => k.id === "horse" || k.id === "pony") : undefined);
+  for (const stable of stableMount ? plan.places.filter((b) => b.claim === "yard-stable" && b.owner) : []) {
+    const members: FaunaMember[] = [];
+    for (const [dx, dy] of [[0, 1], [1, 2], [-1, 2], [0, 3]]) {
+      const x = stable.entrance.x + dx, y = stable.entrance.y + dy;
+      if (members.length < 1 + (random(seed, stable.id, "second-horse") < 0.45 ? 1 : 0) && !plan.solid.has(cellKey(x, y)) && !plan.traffic.has(cellKey(x, y)))
+        members.push({ x, y, direction: dx < 0 ? 3 : 1 });
+    }
+    if (!members.length) continue;
+    (plan.fauna ??= []).push({
+      id: `${site.id}-stable-${stable.owner}`,
+      speciesId: stableMount!.id,
+      members,
+      pos: pos(members[0]),
+      home: pos(stable.entrance),
+      homeRadius: 5,
+      state: "graze",
+      nextDecisionAt: 0,
+      stride: 0,
+      since: 0,
+      owner: stable.owner,
+      house: stable.id,
+      roost: pos({ x: stable.x + 1, y: stable.y + 1 }),
     } satisfies FaunaGroup);
   }
   // Most places have a dog or two about, whatever else they keep: lying by a

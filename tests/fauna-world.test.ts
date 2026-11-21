@@ -920,4 +920,60 @@ describe("animal riding", () => {
   it("marks the rider technique as ready", () => {
     expect("ready" in TECHNIQUES.rider).toBe(false);
   });
+
+  it("hitches at a hitching post, waters at a trough, and hires/grooms via an ostler", async () => {
+    const { buildingUse, publicInteriorFor } = await import("../src/content/interiors/select");
+    const rt = new Runtime(createSession("roman", "horse-infra"));
+    const e = rt.engine;
+    const p = e.state.player;
+
+    // Place a hitching post, watering trough, and ostler right next to the player.
+    e.state.objects.push(
+      { id: "test-post", name: "Hitching post", kind: "container", prop: "lotHitchingPost", sprite: "study-propb-hitching-post-0", inventory: {}, pos: { space: "outside", x: p.pos.x + 1, y: p.pos.y } },
+      { id: "test-trough", name: "Trough", kind: "container", prop: "lotStoneTrough", sprite: "study-propb-trough-0", inventory: {}, pos: { space: "outside", x: p.pos.x, y: p.pos.y + 1 } },
+    );
+    e.state.actors.push({
+      id: "ostler-1",
+      name: "Marcus",
+      kind: "human",
+      role: "Ostler",
+      activity: "Tending horses",
+      sprite: "npc",
+      pos: { space: "outside", x: p.pos.x - 1, y: p.pos.y },
+      direction: 1,
+      trust: 10,
+      inventory: {},
+    });
+
+    // Hire a war horse from the ostler.
+    expect(rt.command({ type: "interact", action: "stable-service", target: "war" })?.status).toBe("completed");
+    expect(p.riding?.speciesId).toBe("horse");
+    expect(p.riding?.form).toBe("war");
+    expect(p.riding?.maxStamina).toBe(130);
+
+    // Water at the trough without spending any inventory item.
+    p.riding!.stamina = 15;
+    expect(rt.command({ type: "interact", action: "feed-mount", target: "test-trough" })?.status).toBe("completed");
+    expect(p.riding!.stamina).toBe(130);
+
+    // Groom via the ostler.
+    p.riding!.stamina = 40;
+    const bondBefore = p.riding!.bond;
+    expect(rt.command({ type: "interact", action: "stable-service", target: "groom" })?.status).toBe("completed");
+    expect(p.riding!.stamina).toBe(130);
+    expect(p.riding!.bond).toBeGreaterThan(bondBefore);
+
+    // Dismounting next to the hitching post tethers the mount there; remounting unties it.
+    expect(rt.command({ type: "interact", action: "dismount-animal", target: "mount" })?.status).toBe("completed");
+    expect(p.riding).toBeUndefined();
+    const tethered = e.state.fauna?.find((g) => g.tethered === "test-post");
+    expect(tethered).toBeDefined();
+    expect(tethered?.homeRadius).toBe(1);
+
+    // Verify yard-stable interior wiring.
+    expect(buildingUse("yard-stable")).toBe("yard.stable");
+    const interior = publicInteriorFor({ use: "yard.stable", year: 1400, lat: 48, lon: 2, settlement: "town" });
+    expect(interior?.label).toBe("Stable");
+    expect(interior?.furnish).toContain("manger");
+  });
 });

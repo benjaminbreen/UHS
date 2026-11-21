@@ -153,6 +153,11 @@ export type FaunaGroup = {
   /** Kept animals: who tends them, which gate they pass, where they graze. */
   draft?: boolean;
   hitch?: string;
+  /** Tied to a hitching post by a rider; stays calm there until untied. */
+  tethered?: string;
+  /** Pinned build/coat (e.g. a hired or dismounted mount). */
+  form?: string;
+  coat?: string;
   owner?: string;
   /** A hunting dog: it keeps to its owner and runs down game near them. */
   hound?: boolean;

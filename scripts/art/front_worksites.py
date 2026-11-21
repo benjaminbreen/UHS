@@ -1796,6 +1796,9 @@ def draw(style, info):
     if style.startswith(('plank-skiff-','reed-skiff-')):return clinker_hull(style.rsplit('-',1)[1],info,True,'plank' if style.startswith('plank-') else 'reed')
     if style.startswith('henhouse-'):return henhouse(style,info)
     if style.startswith('byre-'):return byre(style,info)
+    if style.startswith('stable-'):
+        from art.front_stables import draw_stable
+        return draw_stable(style, info)
     if style in ('fishing-cottage','fishing-gear'):return fishing_building(style,info)
     if style.startswith('fishing-boat-'):return clinker_hull(style.rsplit('-',1)[1],info,True)
     if style.startswith('launching-way-'):return launching_way(style.rsplit('-',1)[1],info)

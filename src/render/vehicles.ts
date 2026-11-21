@@ -127,7 +127,7 @@ export class VehicleLayer {
           shade.lineBetween(hoof.x + 2, hoof.y + 2, hoof.x + spread + 3, hoof.y + 1);
         }
         const neck = point(18, side);
-        if (species === "pony" || species === "horse") {
+        if (species === "pony") {
           tack.setDepth(animal.depth + 0.02).lineStyle(2, 0x504237).lineBetween(neck.x - dy * 4, neck.y - 20, neck.x + dy * 4 - dx * 3, neck.y - 12);
         }
       });

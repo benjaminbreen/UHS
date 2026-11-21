@@ -702,6 +702,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
         "calm-mount",
         "rear-mount",
         "feed-mount",
+        "stable-service",
         "take-reins",
         "walk-on",
         "halt-cart",
@@ -778,6 +779,14 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
         .int()
         .min(600)
         .max(24 * 3600),
+    })
+    .strict(),
+  z
+    .object({
+      type: z.literal("lodge"),
+      place: z.string().min(1).max(120),
+      meal: z.boolean().optional(),
+      sleep: z.boolean().optional(),
     })
     .strict(),
 ]);
@@ -883,6 +892,9 @@ const faunaGroup = z
     ring: z.number().optional(),
     owner: z.string().optional(),
     hitch: z.string().optional(),
+    tethered: z.string().optional(),
+    form: z.string().optional(),
+    coat: z.string().optional(),
     draft: z.boolean().optional(),
     market: z.string().optional(),
     gateId: z.string().optional(),

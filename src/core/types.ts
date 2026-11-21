@@ -486,6 +486,8 @@ export type Decoration = Point & {
   solid: boolean;
   /** A pole's wires run on to the pole at this cell. */
   wire?: Point;
+  /** Explicit horizontal flip (e.g. highway lamps facing inward over the road). */
+  flipX?: boolean;
 };
 export type Terrain =
   | "grass"
@@ -649,6 +651,7 @@ export type PlayerCommand =
         | "calm-mount"
         | "rear-mount"
         | "feed-mount"
+        | "stable-service"
         | "take-reins"
         | "walk-on"
         | "halt-cart"
@@ -720,6 +723,7 @@ export type PlayerCommand =
   /** Sleep or long rest. Time passes in one step, the night can leave a mark,
    * and shelter decides how much good it does. */
   | { type: "sleep"; seconds: number }
+  | { type: "lodge"; place: string; meal?: boolean; sleep?: boolean }
   /** An answer to the work card on screen. */
   | { type: "choose"; card: string; choice: number }
   | { type: "become"; heir: string }
@@ -818,6 +822,8 @@ export type Snapshot = {
   lifeAim?: import("../content/goals/types").PersonalAim;
   plot?: import("./plot").PlotState;
   kin?: import("./kin").KinState;
+  /** Inns where the player has taken a bed: until when, whether supper was served, nights stayed, and assigned room. */
+  lodging?: Record<string, { until: number; meal?: boolean; nights: number; room?: string }>;
   /** The opening card has been shown for this life. */
   introduced?: boolean;
   /** Illnesses and hurts under way, anyone's. */

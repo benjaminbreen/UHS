@@ -156,6 +156,7 @@ export function buildingUse(claim: string) {
   if (claim==="waterfront-gear")return "waterfront.gear";
   if (claim==="yard-henhouse")return "yard.henhouse";
   if (claim==="yard-byre")return "yard.byre";
+  if (claim==="yard-stable")return "yard.stable";
   if (/^(religious|civic)-/.test(claim)) return claim.replace("-", ".");
 }
 
@@ -209,12 +210,12 @@ export function publicInteriorFor(site: InteriorSite): InteriorProfile | undefin
       furnish:["shelf","basket","crate","table","lamp"],styles:{shelf:"open"},
       looks:home.looks.map(l=>({...l,...(gear ? {wall:gear.wall,floor:gear.floor,windows:gear.windows==="none" ? 0 : 2} : {}),furnish:[]})) as unknown as InteriorProfile["looks"]};
   }
-  if (site.use === "yard.henhouse" || site.use === "yard.byre") {
-    const home = interiorProfileFor({ ...site, use: undefined }), byre = site.use === "yard.byre";
-    return { ...home, id: `${byre ? "byre" : "henhouse"}-${home.id}`, label: byre ? "Byre" : "Henhouse", uses: [site.use], size: byre ? [8, 6] : [6, 5], rooms: undefined,
+  if (site.use === "yard.henhouse" || site.use === "yard.byre" || site.use === "yard.stable") {
+    const home = interiorProfileFor({ ...site, use: undefined }), byre = site.use === "yard.byre", stable = site.use === "yard.stable";
+    return { ...home, id: `${stable ? "stable" : byre ? "byre" : "henhouse"}-${home.id}`, label: stable ? "Stable" : byre ? "Byre" : "Henhouse", uses: [site.use], size: stable ? [9, 6] : byre ? [8, 6] : [6, 5], rooms: undefined,
       program: undefined, sleep: "none", fire: "none", smokehole: false, pole: false, trades: ["household"], kits: { household: [] }, clutter: [], regulars: undefined,
       seating: "floor",
-      furnish: byre ? ["stall", "manger", "lantern", "stall", "sacks"] : ["nestbox", "roost", "lantern", "basket", "sacks"],
+      furnish: stable ? ["stall", "manger", "lantern", "stall", "sacks", "shelf"] : byre ? ["stall", "manger", "lantern", "stall", "sacks"] : ["nestbox", "roost", "lantern", "basket", "sacks"],
       looks: home.looks.map((l) => ({ ...l, windows: 2, furnish: [] })) as unknown as InteriorProfile["looks"] };
   }
   if (site.use.startsWith("worksite.")) return worksiteInterior(site.use, interiorProfileFor({ ...site, use: undefined }));

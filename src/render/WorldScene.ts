@@ -2904,6 +2904,51 @@ export class WorldScene extends Phaser.Scene {
   private rideGallopSteps = 0;
   private rideBowUntil = 0;
   private rideRearUntil = 0;
+  private stableDoorState = new Map<string, { state: "closed" | "half" | "open"; at: number }>();
+  private nextStableDoorCheck = 0;
+  /** Dynamically animates yard-stable doors between closed (night), half-open (day),
+   * and wide-open when the player or a horse approaches the entrance. */
+  private syncStableDoors(time: number) {
+    if (time < this.nextStableDoorCheck) return;
+    this.nextStableDoorCheck = time + 140;
+    const e = this.runtime.engine;
+    const p = e.state.player;
+    if (p.pos.space !== "outside") return;
+    const hour = ((e.state.clock % 86400) / 3600 + 24) % 24;
+    const night = hour >= 19 || hour < 7;
+    const fauna = e.state.fauna ?? [];
+    for (const place of e.world.places) {
+      if (!place.sprite.startsWith("yard-stable-")) continue;
+      const image = this.buildings.get(place.id);
+      if (!image || !image.active) continue;
+      const base = place.sprite.replace(/-(closed|open)$/, "");
+      const ex = place.entrance.x, ey = place.entrance.y;
+      let near = Math.hypot(p.pos.x - ex, p.pos.y - ey) <= 3.2;
+      if (!near) {
+        for (const g of fauna) {
+          if (g.burrowed !== undefined || !["horse", "pony", "donkey"].includes(g.speciesId)) continue;
+          if (g.members.some((m) => Math.hypot(m.x - ex, m.y - ey) <= 2.8)) {
+            near = true;
+            break;
+          }
+        }
+      }
+      const target: "closed" | "half" | "open" = near ? "open" : night ? "closed" : "half";
+      const cur = this.stableDoorState.get(place.id) ?? { state: "half" as const, at: 0 };
+      if (cur.state === target || time - cur.at < 120) continue;
+      // Step through "half" so closed <-> open visibly animates!
+      const next: "closed" | "half" | "open" =
+        (cur.state === "closed" && target === "open") || (cur.state === "open" && target === "closed")
+          ? "half"
+          : target;
+      const frame = next === "half" ? base : `${base}-${next}`;
+      const tex = this.texture(frame);
+      if (tex !== "__DEFAULT" && (image.texture.key !== tex || image.frame.name !== frame)) {
+        image.setTexture(tex, frame);
+      }
+      this.stableDoorState.set(place.id, { state: next, at: time });
+    }
+  }
   /** The horse or mounted rider frame: gait from momentum (idle/walk/trot/gallop),
    * heading from 8-way facing, eight frames a stride. */
   private horseFrame(moving: boolean, facing: number, time: number, gaitLevel?: MountGait) {
@@ -4895,6 +4940,8 @@ export class WorldScene extends Phaser.Scene {
         this.structureDecay?.release();
       }
       this.layers = [];
+      for (const id of [...this.streetLights.keys()])
+        if (id.startsWith("road-lamp-")) this.douseLamp(id);
       this.leafPiles = [];
       this.broadleaves = [];
       this.courtyardLighting.begin();
@@ -5321,7 +5368,8 @@ export class WorldScene extends Phaser.Scene {
                 if (turn) tint = blendTint(tint, turn);
               }
               const variety = propVariety(e.state.manifest.seed, frame, x, y);
-              if (variety.flip) decoration.setFlipX(true);
+              if (d?.flipX !== undefined) decoration.setFlipX(d.flipX);
+              else if (variety.flip) decoration.setFlipX(true);
               if (variety.tint !== 0xffffff)
                 tint = blendTint(tint, variety.tint);
               if (
@@ -5405,6 +5453,16 @@ export class WorldScene extends Phaser.Scene {
                   .flatMap((j) => [0, -1, 1].map((i) => w.decoration(d.wire!.x + i, d.wire!.y + j)))
                   .find((n) => n?.wire);
               if (next) this.layers.push(this.wires(x, y, next));
+              if (d?.id.startsWith("road-lamp-")) {
+                const decoLamp = lampLight(
+                  spriteName,
+                  w.pack.year,
+                  random(e.state.manifest.seed, "lamp-kind", d.id),
+                  w.pack.setting?.culture,
+                );
+                if (decoLamp)
+                  this.lightLamp(d.id, decoration, decoLamp, decoration.x, decoration.y);
+              }
               if (d) {
                 const key = `${x},${y}`;
                 this.plantImages.set(key, [
@@ -5966,7 +6024,7 @@ export class WorldScene extends Phaser.Scene {
       const fire = frame === "fire" || this.fireFrames.has(frame);
       if (this.fireFrames.has(frame)) this.lightFire(id, im, frame, tx, ty);
       else if (this.fires.has(id)) this.quenchFire(id);
-      const lamp = fire ? undefined : lampLight(frame, w.pack.year, random(e.state.manifest.seed, "lamp-kind", id));
+      const lamp = fire ? undefined : lampLight(frame, w.pack.year, random(e.state.manifest.seed, "lamp-kind", id), w.pack.setting?.culture);
       if (lamp) this.lightLamp(id, im, lamp, tx, ty);
       else if (this.streetLights.has(id)) this.douseLamp(id);
       // A fire keeps its own colour at night.
@@ -7536,7 +7594,9 @@ export class WorldScene extends Phaser.Scene {
     if (!art) {
       const e = this.runtime.engine;
       const look = faunaLook(g.speciesId, e.state.manifest.seed, g.id, id, e.world.pack.setting, this.season);
-      art = look ? `${look.art}+${look.coat.replace(/-/g, "_")}` : g.speciesId;
+      const artStem = g.form && g.form !== g.speciesId ? `${g.speciesId}.${g.form}` : (look?.art ?? g.speciesId);
+      const coat = g.coat ?? look?.coat;
+      art = coat ? `${artStem}+${coat.replace(/-/g, "_")}` : artStem;
       this.faunaArt.set(id, art);
     }
     return art;
@@ -7614,6 +7674,7 @@ export class WorldScene extends Phaser.Scene {
   }
   update(time: number, delta = 16) {
     open();
+    this.syncStableDoors(time);
     this.drift?.update(time, !!this.options.freeze);
     this.mist?.update(time, !!this.options.freeze);
     this.clouds?.update(time, !!this.options.freeze);

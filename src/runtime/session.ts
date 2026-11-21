@@ -1944,7 +1944,11 @@ export class Runtime {
       const moving = now < this.rideMovingUntil || this.rideGait >= 2;
       const stubborn = !!(mount.stubbornUntil && this.engine.state.clock < mount.stubbornUntil);
       const sweet = this.inSpurSweetSpot(now);
-      const treat = !moving && !stubborn ? this.engine.mountTreatAvailable() : undefined;
+      const trough = !moving && !stubborn ? this.engine.nearbyHorseFixture("trough") : undefined;
+      const manger = !moving && !stubborn && !trough ? this.engine.nearbyHorseFixture("manger") : undefined;
+      const keeper = !moving && !stubborn && !trough && !manger ? this.engine.nearbyStablekeeper() : undefined;
+      const treat = !moving && !stubborn && !trough && !manger && !keeper ? this.engine.mountTreatAvailable() : undefined;
+      const post = this.engine.nearbyHorseFixture("hitching-post");
       const primary: Verb =
         moving || stubborn
           ? {
@@ -1952,22 +1956,40 @@ export class Runtime {
               label: sweet ? "Spur! ★" : stubborn ? "Spur onward" : "Spur",
               command: { type: "interact", action: "spur-mount", target: "mount" },
             }
-          : treat
+          : trough
             ? {
                 kind: "use",
-                label: `Feed ${(this.engine.item(treat)?.name ?? treat).toLowerCase()}`,
-                command: { type: "interact", action: "feed-mount", target: "mount" },
+                label: `Water ${label}`,
+                command: { type: "interact", action: "feed-mount", target: trough.id },
               }
-            : {
-                kind: "use",
-                label: `Pat ${label}`,
-                command: { type: "interact", action: "calm-mount", target: "mount" },
-              };
+            : manger
+              ? {
+                  kind: "use",
+                  label: `Feed at manger`,
+                  command: { type: "interact", action: "feed-mount", target: manger.id },
+                }
+              : keeper
+                ? {
+                    kind: "use",
+                    label: `Groom ${label}`,
+                    command: { type: "interact", action: "stable-service", target: "groom" },
+                  }
+                : treat
+                  ? {
+                      kind: "use",
+                      label: `Feed ${(this.engine.item(treat)?.name ?? treat).toLowerCase()}`,
+                      command: { type: "interact", action: "feed-mount", target: "mount" },
+                    }
+                  : {
+                      kind: "use",
+                      label: `Pat ${label}`,
+                      command: { type: "interact", action: "calm-mount", target: "mount" },
+                    };
       return {
         primary,
         alternate: {
           kind: "use",
-          label: "Dismount",
+          label: post ? "Hitch & Dismount" : "Dismount",
           command: { type: "interact", action: "dismount-animal", target: "mount" },
         },
       };
@@ -2227,8 +2249,17 @@ export class Runtime {
             command: { type: "interact", action: "mount-animal", target: mountable.target },
           }
         : undefined;
-    if (mountVerb && primary?.kind === "strike" && !primary.command) primary = mountVerb;
-    if (mountVerb && (!alternate || alternate.kind === "talk" || alternate.kind === "look")) alternate = mountVerb;
+    const mountInPrimary = !!mountVerb && primary?.kind === "strike" && !primary.command;
+    if (mountInPrimary) primary = mountVerb;
+    if (mountVerb && !mountInPrimary && (!alternate || alternate.kind === "talk" || alternate.kind === "look")) alternate = mountVerb;
+    const stablekeeper = !mountVerb && !fighting && !descend && !p.afloat && p.pos.space === "outside" ? this.engine.nearbyStablekeeper() : undefined;
+    if (stablekeeper && primary?.kind === "strike" && !primary.command) {
+      primary = {
+        kind: "use",
+        label: "Hire a mount",
+        command: { type: "interact", action: "stable-service", target: "hire" },
+      };
+    }
     if (worship && worship.kind === "leave" && !item && primary?.kind === "strike" && !primary.command) primary = undefined;
     return { primary, alternate };
   }

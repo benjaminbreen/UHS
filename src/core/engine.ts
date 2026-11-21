@@ -1,4 +1,5 @@
 import { markets } from "../content/economy/exchanges";
+import { innProfileFor, innTerms } from "../content/settlements/worksites/inns";
 import { blankBook, callSeconds, exchangeDesks, fillOrder, landedOrder, orderProblem } from "./exchange";
 import { gathersPlants } from "../content/characters/livelihoods";
 import { FERRY_PERIOD, anchorageAt, openClothBale, serviceAnchorage, transferCargo, releasePortStock, serviceFreight } from "../world/v3/harbor";
@@ -2909,6 +2910,21 @@ export class Engine {
     }
     p.activity = m.doing;
   }
+  /** Haul the player into the local prison on a magistrate's charge (e.g. hostile speech to a guard or noble). */
+  arrest(charge: string, days = 7, by?: Actor): boolean {
+    if (this.state.complex?.kind === "prison") return false;
+    const s = this.world.pack.setting;
+    const style = (s && prisonAt(s.lon, s.lat, s.year, s.culture)) ?? prisonStyles[0];
+    if (!style) return false;
+    const out = this.state.complex && "out" in this.state.complex ? { ...this.state.complex.out } : { x: this.state.player.pos.x, y: this.state.player.pos.y };
+    if (by) {
+      this.cue(by.id, "shove", this.state.player.pos);
+      this.say(by.id, "Seize them! Throw them in the cells!");
+    }
+    for (const a of [...this.state.actors]) if (a.underground) this.complex.folk.part(a.id);
+    prisonEnter(this.complex, style, { kind: "fixed", daysLeft: days, charge }, out);
+    return true;
+  }
   startBelow(where: "cave" | "sewer" | "mine" | "ship" | "fair" | "tomb" | "prison") {
     const p = this.state.player.pos, d = (q: Point) => Math.hypot(q.x - p.x, q.y - p.y);
     if (where === "ship") return void shipStart(this.ships);
@@ -4717,7 +4733,7 @@ export class Engine {
         if (d > 2.25) continue;
         const n = m.n ?? 0;
         const look = faunaLook(g.speciesId, this.state.manifest.seed, g.id, String(n), this.world.pack.setting);
-        const label = mountLabel({ speciesId: g.speciesId, coat: look?.coat, name: m.name });
+        const label = mountLabel({ speciesId: g.speciesId, form: g.form ?? look?.form, coat: g.coat ?? look?.coat, name: m.name });
         const blocked = m.young
           ? "Too young to carry a rider."
           : g.hitch
@@ -4788,7 +4804,31 @@ export class Engine {
     }
     return undefined;
   }
-  private restoreMount(mount: PlayerMount, at: Point, spooked = false) {
+  /** Nearest hitching post, watering trough, or manger within 2 tiles of the player. */
+  nearbyHorseFixture(family: "hitching-post" | "trough" | "manger") {
+    const p = this.state.player;
+    let best: { obj: WorldObject; dist: number } | undefined;
+    for (const obj of this.state.objects) {
+      if (obj.pos.space !== p.pos.space) continue;
+      if (propDefs[obj.prop ?? ""]?.family !== family) continue;
+      const dist = Math.max(Math.abs(obj.pos.x - p.pos.x), Math.abs(obj.pos.y - p.pos.y));
+      if (dist <= 2 && (!best || dist < best.dist)) best = { obj, dist };
+    }
+    return best?.obj;
+  }
+  /** Nearest ostler, innkeeper, farrier, groom, or caravaneer within 3 tiles. */
+  nearbyStablekeeper() {
+    const p = this.state.player;
+    let best: { actor: Actor; dist: number } | undefined;
+    for (const a of this.state.actors) {
+      if (a.kind !== "human" || a.dead || a.pos.space !== p.pos.space) continue;
+      if (!/ostler|innkeeper|farrier|groom|caravaneer|muleteer|stable|horse/i.test(`${a.role} ${a.activity ?? ""}`)) continue;
+      const dist = Math.hypot(a.pos.x - p.pos.x, a.pos.y - p.pos.y);
+      if (dist <= 3.2 && (!best || dist < best.dist)) best = { actor: a, dist };
+    }
+    return best?.actor;
+  }
+  private restoreMount(mount: PlayerMount, at: Point, spooked = false, tetheredTo?: string) {
     const p = this.state.player;
     const dir = p.direction as 0 | 1 | 2 | 3;
     const member: FaunaMember = {
@@ -4807,13 +4847,20 @@ export class Engine {
       existing.members.push(member);
       existing.pos = { space: "outside", x: at.x, y: at.y };
       existing.state = spooked ? "flee" : "idle";
+      if (tetheredTo) {
+        existing.tethered = tetheredTo;
+        existing.home = { space: "outside", x: at.x, y: at.y };
+        existing.homeRadius = 1;
+      } else {
+        delete existing.tethered;
+      }
       if (spooked) {
         existing.panic = 0.85;
         existing.fright = { ...p.pos };
       } else if (mount.tamed) {
         existing.owner = mount.owner ?? "player";
         existing.home = { space: "outside", x: at.x, y: at.y };
-        existing.homeRadius = Math.max(existing.homeRadius, 5);
+        existing.homeRadius = tetheredTo ? 1 : Math.max(existing.homeRadius, 5);
         existing.nextDecisionAt = this.state.clock + 45;
       }
       return;
@@ -4825,12 +4872,15 @@ export class Engine {
       members: [member],
       pos: { space: "outside", x: at.x, y: at.y },
       home: { space: "outside", x: at.x, y: at.y },
-      homeRadius: 6,
+      homeRadius: tetheredTo ? 1 : 6,
       state: spooked ? "flee" : "idle",
       nextDecisionAt: this.state.clock + (spooked ? 2 : 55),
       stride: 0,
       since: this.state.clock,
       serial: mount.memberN + 1,
+      ...(tetheredTo ? { tethered: tetheredTo } : {}),
+      ...(mount.form ? { form: mount.form } : {}),
+      ...(mount.coat ? { coat: mount.coat } : {}),
       ...(spooked ? { panic: 0.85, fright: { ...p.pos } } : {}),
       ...(mount.tamed ? { owner: mount.owner ?? "player" } : mount.owner ? { owner: mount.owner } : {}),
     };
@@ -7553,11 +7603,19 @@ export class Engine {
       case "fodder": {
         const herd = this.state.fauna?.find((g) => g.house === p.pos.space);
         const day = Math.floor(this.state.clock / 86400);
-        if (!herd?.members.length) this.event("No cattle are kept here.");
+        const equine = !!herd && ["horse", "pony", "donkey"].includes(herd.speciesId);
+        if (!herd?.members.length) this.event(this.world.place(p.pos.space)?.claim === "yard-stable" ? "No horses are stabled here." : "No cattle are kept here.");
         else if (u.use === "fodder") {
-          this.event(herd.fed === day ? "The manger is already full." : "You fork hay into the manger. The cows will milk better for it tomorrow.");
+          this.event(
+            herd.fed === day
+              ? "The manger is already full."
+              : equine
+                ? "You fork fresh hay and oats into the stable manger. The horses will be strong for the road."
+                : "You fork hay into the manger. The cows will milk better for it tomorrow.",
+          );
           herd.fed = day;
-        } else if (herd.burrowed === undefined) this.event("The cows are out at grass. They are milked here in the evening and first thing in the morning.");
+        } else if (equine) this.event("The horses are stabled here—brush them down or fill their manger.");
+        else if (herd.burrowed === undefined) this.event("The cows are out at grass. They are milked here in the evening and first thing in the morning.");
         else {
           const n = herd.milk ?? 0;
           herd.milk = 0;
@@ -8993,7 +9051,14 @@ export class Engine {
     }
     if (c.type === "interact" && c.action === "feed-mount") {
       if (!p.riding) return "You are not riding.";
-      return this.mountTreatAvailable() ? undefined : "You have nothing suitable to feed it.";
+      return this.nearbyHorseFixture("trough") || this.nearbyHorseFixture("manger") || this.mountTreatAvailable()
+        ? undefined
+        : "You have nothing suitable to feed it.";
+    }
+    if (c.type === "interact" && c.action === "stable-service") {
+      if (!this.nearbyStablekeeper()) return "There is no ostler or stablekeeper here.";
+      if (!p.riding && p.pos.space !== "outside") return "Step outside to take a mount.";
+      return undefined;
     }
     if (p.riding && c.type === "interact" && (c.action === "enter" || c.action === "climb" || c.action === "launch")) {
       return "Dismount first.";
@@ -9249,6 +9314,15 @@ export class Engine {
         c.seconds <= 24 * 3600
         ? undefined
         : "Sleep between 10 minutes and a full day.";
+    if (c.type === "lodge") {
+      const info = this.innInfo(c.place);
+      if (!info || p.pos.space !== c.place) return "You need to be inside the inn to take a room.";
+      if (this.burningPlace(c.place)) return "The building is on fire.";
+      const cost = info.terms.roomCost + (c.meal ? info.terms.mealCost : 0);
+      if (cost > 0 && (p.inventory.coin ?? 0) < cost)
+        return `You need ${cost} coin${cost === 1 ? "" : "s"}.`;
+      return undefined;
+    }
     if (c.type === "attend") {
       const g = this.state.plot && !this.state.plot.ended ? this.state.plot.gathering : undefined;
       if (!g || this.state.clock >= g.until) return "There is nothing to go to.";
@@ -10336,7 +10410,9 @@ export class Engine {
       const { g, m } = found;
       const n = m.n ?? 0;
       const look = faunaLook(g.speciesId, this.state.manifest.seed, g.id, String(n), this.world.pack.setting);
-      const spec = mountSpec(g.speciesId, look?.form);
+      const mountForm = g.form ?? look?.form;
+      const mountCoat = g.coat ?? look?.coat;
+      const spec = mountSpec(g.speciesId, mountForm);
       if (!spec) return;
       const wild = !g.owner && faunaProfile(g.speciesId)?.category === "wild";
       const from = { x: p.pos.x, y: p.pos.y };
@@ -10350,8 +10426,8 @@ export class Engine {
         speciesId: g.speciesId,
         groupId: g.id,
         memberN: n,
-        form: look?.form,
-        coat: look?.coat,
+        form: mountForm,
+        coat: mountCoat,
         name: m.name,
         owner: g.owner,
         tier: m.tier,
@@ -10392,11 +10468,15 @@ export class Engine {
           });
         }
       }
+      const wasTethered = !!g.tethered;
+      delete g.tethered;
       this.emitRideEvent("mount", g.speciesId, { from, to });
       this.event(
         wild
           ? `You vault onto the ${mountLabel(mount)}! It bucks wildly—press F in rhythm to hold on!`
-          : `You swing up onto the ${mountLabel(mount)}.`,
+          : wasTethered
+            ? `You untie the ${mountLabel(mount)} from the post and swing into the saddle.`
+            : `You swing up onto the ${mountLabel(mount)}.`,
       );
       this.advance(1);
       return;
@@ -10408,7 +10488,8 @@ export class Engine {
       if (!exit) return;
       const from = { x: p.pos.x, y: p.pos.y };
       const bailed = !!mount.bucking;
-      this.restoreMount(mount, from, bailed);
+      const post = bailed ? undefined : this.nearbyHorseFixture("hitching-post");
+      this.restoreMount(mount, from, bailed, post?.id);
       delete p.riding;
       p.pos = { space: "outside", x: exit.x, y: exit.y };
       p.activity = "Exploring";
@@ -10416,7 +10497,9 @@ export class Engine {
       this.event(
         bailed
           ? `You throw yourself clear of the bucking ${mountLabel(mount)}.`
-          : `You swing down from the ${mountLabel(mount)}.`,
+          : post
+            ? `You swing down and tie the ${mountLabel(mount)} to the hitching post.`
+            : `You swing down from the ${mountLabel(mount)}.`,
       );
       this.advance(1);
       return;
@@ -10518,6 +10601,23 @@ export class Engine {
     if (c.type === "interact" && c.action === "feed-mount") {
       const mount = p.riding;
       if (!mount) return;
+      const trough = this.nearbyHorseFixture("trough");
+      const manger = trough ? undefined : this.nearbyHorseFixture("manger");
+      if (trough || manger) {
+        delete mount.stubbornUntil;
+        mount.strained = 0;
+        mount.stamina = mount.maxStamina;
+        mount.bond = Math.min(100, mount.bond + 10);
+        this.grantXp("animals", 4);
+        this.emitRideEvent("feed", mount.speciesId);
+        this.event(
+          trough
+            ? `Your ${mountLabel(mount)} lowers its head and drinks deeply from the trough.`
+            : `Your ${mountLabel(mount)} munches fresh hay from the manger.`,
+        );
+        this.advance(2);
+        return;
+      }
       const treat = this.mountTreatAvailable();
       if (!treat) return;
       if (p.heldItem === treat) delete p.heldItem;
@@ -10533,6 +10633,56 @@ export class Engine {
       this.emitRideEvent("feed", mount.speciesId);
       const treatName = (this.item(treat)?.name ?? treat).toLowerCase();
       this.event(`You feed ${treatName} to your ${mountLabel(mount)}. It munches eagerly and perks up!`);
+      this.advance(2);
+      return;
+    }
+    if (c.type === "interact" && c.action === "stable-service") {
+      const keeper = this.nearbyStablekeeper();
+      if (!keeper) return;
+      if (p.riding) {
+        const mount = p.riding;
+        delete mount.stubbornUntil;
+        mount.strained = 0;
+        mount.stamina = mount.maxStamina;
+        mount.bond = Math.min(100, mount.bond + 15);
+        this.grantXp("animals", 4);
+        this.emitRideEvent("feed", mount.speciesId);
+        this.event(`${keeper.name} rubs down your ${mountLabel(mount)}, checks its hooves, and waters it.`);
+        this.advance(3);
+        return;
+      }
+      // Hire / take a fresh mount suited to the player's role or requested build
+      const req = c.target;
+      const role = p.role.toLowerCase();
+      const speciesId = req === "pony" ? "pony" : "horse";
+      const form =
+        req === "work" || req === "war" || req === "race" || req === "horse"
+          ? req
+          : /courier|messenger|post|rider/.test(role)
+            ? "race"
+            : /soldier|guard|knight|cavalry|captain|samurai/.test(role)
+              ? "war"
+              : /carter|farmer|miller|smith|mason|wagon|teamster/.test(role)
+                ? "work"
+                : "horse";
+      const spec = mountSpec(speciesId, form)!;
+      const look = faunaLook(speciesId, this.state.manifest.seed, `hire-${keeper.id}`, String(this.state.clock), this.world.pack.setting);
+      const mount: PlayerMount = {
+        speciesId,
+        memberN: this.state.revision,
+        form: speciesId === "horse" ? form : "pony",
+        coat: look?.coat ?? "bay",
+        owner: "player",
+        tamed: true,
+        stamina: spec.maxStamina,
+        maxStamina: spec.maxStamina,
+        bond: 60,
+      };
+      p.riding = mount;
+      p.activity = `Riding ${mountLabel(mount)}`;
+      delete p.seated;
+      this.emitRideEvent("mount", speciesId, { from: { x: p.pos.x, y: p.pos.y }, to: { x: p.pos.x, y: p.pos.y } });
+      this.event(`${keeper.name} leads out a fresh ${mountLabel(mount)} and holds the stirrup as you mount.`);
       this.advance(2);
       return;
     }
@@ -11419,6 +11569,10 @@ export class Engine {
       this.sleep(c.seconds);
       return;
     }
+    if (c.type === "lodge") {
+      this.lodge(c.place, !!c.meal, !!c.sleep);
+      return;
+    }
     if (c.type === "attend") {
       this.attend();
       return;
@@ -11756,7 +11910,14 @@ export class Engine {
             this.cue(a.id, "warm", p.pos);
             this.event(`${a.name} makes a face at ${b.name}, who stares back.`);
           }
+          const prevKinTalk = this.state.kin?.talked[a.id] ?? -Infinity;
           if (this.state.kin) this.state.kin.talked[a.id] = this.state.clock;
+          if (
+            this.state.clock - prevKinTalk >= 3 * 3600 &&
+            !(a.shuns && a.shuns > this.state.clock) &&
+            p.relations?.some((r) => r.other === a.id && r.kind === "child")
+          )
+            this.regard(a, 1);
           const errand = this.state.asks?.find((x) => x.kind === "talk-to" && x.to === a.id);
           const sender = errand && this.state.actors.find((x) => x.id === errand.by);
           if (errand && sender) {
@@ -14999,7 +15160,86 @@ export class Engine {
     return Math.max(600, (target > now ? target : target + 86400) - now);
   }
 
-  /** Where the player would lie down: their own bed, any bed in reach, or the
+  /** Lodging details if the player is inside an inn or caravanserai. */
+  innInfo(placeId = this.state.player.pos.space) {
+    if (!placeId || placeId === "outside") return undefined;
+    const place = this.world.place(placeId);
+    const profile = place && innProfileFor(place.claim);
+    if (!place || !profile?.inn) return undefined;
+    const stay = this.state.lodging?.[placeId];
+    const checkedIn = !!stay && stay.until > this.state.clock;
+    const nights = stay?.nights ?? 0;
+    const terms = innTerms(profile, nights, this.coined());
+    const keeper = this.state.actors.find(
+      (a) =>
+        a.kind === "human" &&
+        !a.dead &&
+        a.pos.space === placeId &&
+        /innkeeper|publican|porter|host/i.test(a.role),
+    );
+    const coins = this.state.player.inventory.coin ?? 0;
+    return {
+      place,
+      profile,
+      keeper,
+      terms,
+      checkedIn,
+      room: stay?.room,
+      canAffordRoom: coins >= terms.roomCost,
+      canAffordMeal: coins >= terms.roomCost + terms.mealCost,
+    };
+  }
+
+  /** Check into an inn for the night, optionally taking supper and sleeping until morning. */
+  lodge(placeId: string, meal = false, sleepNow = false) {
+    const info = this.innInfo(placeId);
+    const p = this.state.player;
+    if (!info || p.dead) return;
+    const { place, profile, keeper, terms } = info;
+    const servesMeal = meal || terms.mealIncluded;
+    const cost = terms.roomCost + (meal ? terms.mealCost : 0);
+    if (cost > 0) {
+      p.inventory.coin = Math.max(0, (p.inventory.coin ?? 0) - cost);
+      this.cue(keeper?.id ?? "player", "take-coin", keeper?.pos ?? p.pos);
+    }
+    const prev = this.state.lodging?.[placeId];
+    const nights = (prev?.nights ?? 0) + 1;
+    const layout = this.interiorOf(placeId);
+    const sleepRooms = layout?.rooms.filter((r) => r.role === "sleep") ?? [];
+    const chosenRoom = sleepRooms.length
+      ? sleepRooms[Math.floor(random(this.state.manifest.seed, "inn-room", placeId, nights) * sleepRooms.length)].label
+      : terms.grand
+        ? `Room ${((nights - 1) % 6) + 1}`
+        : "Guest chamber";
+    (this.state.lodging ??= {})[placeId] = {
+      until: this.state.clock + this.untilMorning() + 3600,
+      meal: servesMeal,
+      nights,
+      room: chosenRoom,
+    };
+    const hostLine =
+      terms.endowedLeft > 0
+        ? `The foundation covers three nights for travellers — ${chosenRoom} is yours.`
+        : terms.gift
+          ? `The host welcomes you into the compound and shows you to ${chosenRoom}.`
+          : profile.inn?.modern
+            ? `The clerk enters your name in the register and hands you the key to ${chosenRoom}.`
+            : terms.mealIncluded
+              ? `The innkeeper prepares ${chosenRoom} and sets out ${terms.mealName}.`
+              : `The innkeeper takes your ${cost ? `${cost} coin${cost === 1 ? "" : "s"}` : "word"} and points you to ${chosenRoom}.`;
+    this.event(hostLine);
+    if (servesMeal) {
+      p.hunger = Math.max(0, p.hunger - 45);
+      this.cue("player", "warm", p.pos);
+      if (!terms.mealIncluded) this.event(`You sit down to ${terms.mealName}.`);
+    } else {
+      this.cue(keeper?.id ?? "player", "warm", keeper?.pos ?? p.pos);
+    }
+    if (keeper) this.regard(keeper, 1);
+    if (sleepNow) this.sleep(this.untilMorning());
+  }
+
+  /** Where the player would lie down: their own bed, an inn bed they checked into, any bed in reach, or the
    * ground. */
   shelter() {
     const p = this.state.player;
@@ -15017,9 +15257,14 @@ export class Engine {
       (!bed.owner ||
         bed.owner === "player" ||
         (!!household && household.residence === p.pos.space));
+    const inn = this.innInfo(p.pos.space);
+    const lodged = !!inn?.checkedIn;
     return {
       bed,
       own,
+      lodged,
+      innLabel: lodged ? inn.place.name : undefined,
+      innRoom: lodged ? inn.room : undefined,
       indoors: p.pos.space !== "outside",
       /** Under a roof of some kind, whether or not it is yours. */
       covered: p.pos.space !== "outside" || !!bed,
@@ -15035,7 +15280,7 @@ export class Engine {
     const p = this.state.player;
     if (p.dead) return;
     const started = this.state.clock;
-    const { bed, own, indoors, covered } = this.shelter();
+    const { bed, own, lodged, innLabel, innRoom, indoors, covered } = this.shelter();
     const setting = this.world.pack.setting;
     const seed = this.state.manifest.seed;
     const before = p.activity;
@@ -15046,8 +15291,8 @@ export class Engine {
     p.activity = before === "Sleeping" ? "Exploring" : before;
 
     const hours = seconds / 3600;
-    // A bed of your own is worth roughly twice the bare ground.
-    const quality = own ? 1 : bed ? 0.85 : indoors ? 0.7 : 0.45;
+    // A proper inn bed clears fatigue completely; your own bed is worth roughly twice the bare ground.
+    const quality = lodged ? 1.2 : own ? 1 : bed ? 0.85 : indoors ? 0.7 : 0.45;
     p.fatigue = Math.max(0, p.fatigue - hours * 14 * quality);
 
     // The same fallbacks the scene shows, so a night in the visible rain is a
@@ -15066,9 +15311,11 @@ export class Engine {
     const startHour = Math.floor(started / 3600) % 24;
     const overnight = hours >= 5 && (startHour >= 18 || startHour < 4);
     this.event(
-      hours >= 5
-        ? `You sleep ${own ? "in your own bed" : bed ? "on a bed not your own" : indoors ? "under a roof" : "on the ground"}.`
-        : `You lie down and rest ${Math.round(hours)} hour${hours >= 2 ? "s" : ""}.`,
+      lodged && hours >= 5
+        ? `You wake rested in ${innRoom ?? "your room"} at the ${innLabel?.toLowerCase() ?? "inn"}, warm from a full night's sleep.`
+        : hours >= 5
+          ? `You sleep ${own ? "in your own bed" : bed ? "on a bed not your own" : indoors ? "under a roof" : "on the ground"}.`
+          : `You lie down and rest ${Math.round(hours)} hour${hours >= 2 ? "s" : ""}.`,
     );
 
     const b = this.state.baby;
@@ -15079,12 +15326,19 @@ export class Engine {
       Object.assign(b, { milk: 25, tired: 5, calm: 90, wet: 0, mood: "watching", still: 0, lull: 0 });
       delete b.need;
     }
-    // A proper night is the one thing that mends you; nothing else restores
-    // health but food.
+    // A proper night is the one thing that mends you; an inn's warm hearth and linen mend you faster.
     const canMend = !this.state.manifest.survival || p.hunger < 75;
-    if (covered && hours >= 5 && canMend)
-      this.heal(own ? 6 : 4);
-    else if (covered && hours >= 5 && !canMend) this.event("You rest, but need a meal before your body can mend.");
+    if (covered && hours >= 5 && canMend) {
+      this.heal(lodged ? 14 : own ? 6 : 4);
+      if (lodged) {
+        this.cue("player", "warm", p.pos);
+        if (p.injury) {
+          p.injury.until = Math.max(this.state.clock, p.injury.until - 6 * 3600);
+          p.injury.cleanUntil = Math.max(p.injury.cleanUntil ?? 0, this.state.clock + 86400);
+          this.event("Clean linen, warmth and a full night's rest ease your injury.");
+        }
+      }
+    } else if (covered && hours >= 5 && !canMend) this.event("You rest, but need a meal before your body can mend.");
 
     if (rough && (cold || wet)) {
       const harm = Math.round(4 + (cold ? 4 : 0) + (wet ? 3 : 0));
