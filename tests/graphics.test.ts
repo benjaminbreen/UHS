@@ -194,6 +194,33 @@ it("south asian houses pair rural cottages with farmers and havelis with elite l
   expect(elitePick).toMatch(/^southasian-courtyard-north-indian-(medium|large)-/);
 });
 
+it("japanese regional houses pair rural minka with farmers and machiya with urban lots", async () => {
+  const { eastAsianRegionalHouses } = await import(
+    "../src/content/graphics/regional-houses"
+  );
+  const { buildingModels } = await import("../src/content/graphics/models");
+  const setting = {
+    lon: 135.75,
+    lat: 35.0,
+    year: 1650,
+    placeId: "kyoto",
+    culture: "east-asian" as const,
+    settlement: "village" as const,
+  } as Parameters<typeof eastAsianRegionalHouses>[0];
+  const pool = eastAsianRegionalHouses(setting);
+  expect(pool.some((f) => f.startsWith("eastasian-house-japanese-small-"))).toBe(true);
+  expect(pool.some((f) => f.startsWith("eastasian-row-japanese-medium-"))).toBe(true);
+  for (const frame of pool) expect(buildingModels[frame]).toBeTruthy();
+
+  const ruralPick = chooseBuildingFrame(
+    pool,
+    { settlement: "village", density: 0.2, wealth: 28, rural: true },
+    0.5,
+    0.3,
+  );
+  expect(ruralPick).toMatch(/^eastasian-house-japanese-(tiny|small|medium)-/);
+});
+
 it("a church or hall takes its region's look, and that look is drawn", async () => {
   const { regionalLook } = await import("../src/content/graphics/regional-looks");
   const looks = (await import("../src/content/graphics/regional-looks.json")).default.looks as Record<string, (string | null)[]>;

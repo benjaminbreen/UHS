@@ -2106,6 +2106,29 @@ def house_spec(p, size, v, w, W, fn):
     base = dict(W=W, tone=st['tone'], posts=st['posts'], lattice=lat, curve=st['curve'], ridge=st['ridge'],
                 seed=v * 7 + W, wear=0.55 - 0.15 * w)
     poor = w == 0
+    if p == 'japanese':
+        if size == 'tiny':
+            return dict(base, form='hip', front='wall', wall='daub' if v == 0 else 'earth',
+                        roof='rice' if v == 1 else 'thatch', ridge='plain', curve=0,
+                        door='plain', plinth=4, wall_h=48, rise=34)
+        if size == 'small':
+            if v == 0:
+                return dict(base, form='hip', front='wall', wall='earth', roof='thatch',
+                            ridge='plain', curve=0, door='plain', plinth=4, wall_h=50, rise=38)
+            if v == 1:
+                return dict(base, form='xieshan', front='timber', sill='white', roof='thatch',
+                            ridge='plain', curve=0, lattice='grid', door='leaves', plinth=6, wall_h=52, rise=42)
+            return dict(base, form='gable', front='timber', sill='board', roof='shingle',
+                        ridge='plain', curve=0, lattice='bars', door='leaves', plinth=6, wall_h=52)
+        if size == 'medium':
+            if v < 2:
+                return dict(base, form='xieshan' if v == 0 else 'hip', front='timber',
+                            sill='white' if v == 0 else 'board', roof='thatch', ridge='plain',
+                            curve=0, lattice='grid', door='leaves', plinth=8, wall_h=54, rise=46)
+            return dict(base, form='xieshan', front='timber', sill='white', roof='tile',
+                        ridge='oni', curve=0, lattice='grid', door='leaves', plinth=10, wall_h=56)
+        return dict(base, form='xieshan', front='timber', sill='white', roof='tile',
+                    ridge='oni', curve=0, lattice='grid', door='leaves', plinth=14, wall_h=60)
     if p == 'korean':
         if poor or size == 'tiny':
             return dict(base, form='gable', front='wall', wall='earth', roof='rice', ridge='plain', curve=0,

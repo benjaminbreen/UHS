@@ -56,6 +56,7 @@ export function eastAsianRegionalHouses(setting: WorldSetting) {
   const profile = eastAsianHouseProfile(setting);
   if (profile === "japanese")
     return [
+      ...frames("eastasian-house", profile),
       ...frames("eastasian-row", profile),
       ...frames("eastasian-service", profile),
     ];

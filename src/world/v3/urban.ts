@@ -2204,7 +2204,9 @@ export function urbanNeighborhood(
       if (pool.length) return pool;
     }
     const chosen = frames.filter((f) => want.some((w) => f.endsWith(`-${w}`)));
-    const pool = chosen.length ? chosen : frames;
+    const raw = chosen.length ? chosen : frames;
+    const homes = raw.filter((f) => !isServiceFrame(f));
+    const pool = homes.length ? homes : raw;
     return modern ? preferStyle(pool, quarter) : pool;
   }
 

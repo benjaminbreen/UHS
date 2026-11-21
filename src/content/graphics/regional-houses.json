@@ -425,7 +425,21 @@
       "parapetStyle": "none",
       "accent": "#304c60",
       "motifStyle": "noren",
-      "roofFeatures": ["ridge-finials", "plain", "roof-jars"]
+      "roofFeatures": ["ridge-finials", "plain", "roof-jars"],
+      "sino": {
+        "curve": 0,
+        "terrace": "stone",
+        "roofByTier": [["thatch"], ["thatch", "tile"], ["tile"]],
+        "roofForms": {"hut": ["hip"], "house": ["hip", "xieshan", "gable"], "hall": ["xieshan", "hip"], "compound": ["xieshan"], "terrace-hall": ["xieshan"]},
+        "walls": [["daub", "plaster"], ["plaster", "board"], ["plaster"]],
+        "posts": [["timber"], ["timber"], ["timber"]],
+        "lattice": ["grid", "bars"],
+        "ridgeEnds": ["plain", "plain", "upturn"],
+        "beamPaint": ["bare", "bare", "bare"],
+        "tiles": ["tile-dark"],
+        "washes": ["plaster"],
+        "extras": ["jar", "woodpile", "drying"]
+      }
     },
     "korean": {
       "label": "Korean hanok",
@@ -763,7 +777,7 @@
     "eastasian-house": {
       "source": "study-courtyard",
       "label": "Timber-frame house and hall",
-      "profiles": ["early-chinese", "north-chinese", "south-chinese", "korean"],
+      "profiles": ["early-chinese", "north-chinese", "south-chinese", "korean", "japanese"],
       "function": "farm-household",
       "description": "A post-and-beam house of one to five bays under a thatched or tiled roof, from a one-room hut to a great hall on a raised terrace. Wall fabric, lacquer, lattice, tile and roof form are profile-driven; illustrative.",
       "sizes": {
