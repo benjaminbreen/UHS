@@ -28,6 +28,7 @@ import {
   SPUR_SWEET_START_MS,
   type MountGait,
 } from "../core/riding";
+import { CYCLE_SPECS } from "../core/cycles";
 import { populateCharacter } from "../content/geography/character";
 import { generateCharacter } from "../content/characters/generate";
 import { resolveCharacterContext } from "../content/characters/resolve";
@@ -344,6 +345,8 @@ export const JUMP_CHARGE_MS = 240;
 /** Airtime scales with the tiles cleared: 260, 300, 340, 380. */
 // Long enough in the air to strike from it, as in Zelda.
 export const jumpMs = (distance: number) => 300 + 50 * distance;
+/** A cycle hangs in the air longer than a jumper on foot: time enough for a trick. */
+export const CYCLE_AIR = 1.5;
 // Whole steps only: at 1.5x some art pixels draw 1 screen pixel wide and others 2.
 export const ZOOM_STEPS = [1, 2, 3, 4, 6];
 type VisibleActor = Pick<Actor, "id" | "sprite" | "appearance" | "age" | "worn"> &
@@ -437,6 +440,8 @@ export class Runtime {
   rideSpurUntil = 0;
   rideCombo = 0;
   rideMovingUntil = 0;
+  /** Points from tricks landed on a cycle since it was mounted. */
+  rideStyle = 0;
   inSpurSweetSpot(now = performance.now()): boolean {
     if (!this.rideSpurAt || !this.engine.state.player.riding) return false;
     const elapsed = now - this.rideSpurAt;
@@ -763,7 +768,7 @@ export class Runtime {
           at: performance.now(),
           arc: {
             height: command.jump
-              ? 14 + leap.distance * 7 + this.leapLift
+              ? 14 + leap.distance * 7 + this.leapLift + (this.engine.state.player.riding?.cycle ? 4 : 0)
               : leap.kind === "leap"
                 ? 15
                 : leap.kind === "drop"
@@ -772,7 +777,7 @@ export class Runtime {
                     ? 6
                     : 11,
             duration: command.jump
-              ? jumpMs(leap.distance)
+              ? jumpMs(leap.distance) * (this.engine.state.player.riding?.cycle ? CYCLE_AIR : 1)
               : command.run
                 ? 210
                 : leap.distance === 2
@@ -1923,6 +1928,20 @@ export class Runtime {
   verbs(): { primary?: Verb; alternate?: Verb } {
     const c = this.propControls();
     const p = this.engine.state.player;
+    if (p.riding?.cycle) {
+      const motor = CYCLE_SPECS[p.riding.cycle.look.kind].motor;
+      const pump = this.rideGait === 0 && !p.riding.cycle.tuned ? this.engine.nearbyHorseFixture("bike-pump") : undefined;
+      return {
+        primary: pump
+          ? { kind: "use", label: motor ? "Oil and tighten it" : "Pump the tyres", command: { type: "interact", action: "cycle-service", target: pump.id } }
+          : { kind: "use", label: motor ? "Sound the horn" : "Ring the bell", command: { type: "interact", action: "ring-bell", target: "mount" } },
+        alternate: {
+          kind: "use",
+          label: this.engine.nearbyHorseFixture("bike-rack") ? "Lock up & get off" : "Get off",
+          command: { type: "interact", action: "dismount-animal", target: "mount" },
+        },
+      };
+    }
     if (p.riding) {
       const mount = p.riding;
       const now = performance.now();
@@ -1971,7 +1990,7 @@ export class Runtime {
               : keeper
                 ? {
                     kind: "use",
-                    label: `Groom ${label}`,
+                    label: /farrier|shoe/i.test(keeper.role) ? `Shoe ${label}` : `Groom ${label}`,
                     command: { type: "interact", action: "stable-service", target: "groom" },
                   }
                 : treat
@@ -2249,6 +2268,14 @@ export class Runtime {
             command: { type: "interact", action: "mount-animal", target: mountable.target },
           }
         : undefined;
+    const cycle = !mountVerb && !fighting && !descend && !p.afloat ? this.engine.cycleNear() : undefined;
+    if (cycle) {
+      const price = cycle.price && cycle.theirs && this.engine.world.pack.setting ? amountIn(this.engine.world.pack.setting, cycle.price, true) : cycle.price ? `${cycle.price} coin` : undefined;
+      const ride: Verb = { kind: "use", label: cycle.down ? `Pick up ${cycle.label}` : `Ride ${cycle.label}`, command: { type: "interact", action: "mount-cycle", target: cycle.target } };
+      if (price) alternate = { kind: "use", label: `Buy ${cycle.label} (${price})`, command: { type: "interact", action: "buy-cycle", target: cycle.target } };
+      if (primary?.kind === "strike" && !primary.command) primary = ride;
+      else if (!price && (!alternate || alternate.kind === "talk" || alternate.kind === "look")) alternate = ride;
+    }
     const mountInPrimary = !!mountVerb && primary?.kind === "strike" && !primary.command;
     if (mountInPrimary) primary = mountVerb;
     if (mountVerb && !mountInPrimary && (!alternate || alternate.kind === "talk" || alternate.kind === "look")) alternate = mountVerb;

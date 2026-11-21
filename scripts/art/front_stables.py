@@ -575,6 +575,293 @@ def draw_open_shed(state: str = "closed") -> Image.Image:
     return c.im
 
 
+# High-tier accents: brass/gold trim, copper patina, glazed cobalt/turquoise tile
+GOLD_R = ramp(50, 0.14, lift=0.04)
+COPPER_R = ramp(164, 0.08, lift=-0.04)
+TILE_BLUE = ramp(212, 0.14, lift=-0.06)
+TILE_TURQ = ramp(184, 0.13, lift=-0.02)
+CRIMSON_R = ramp(12, 0.14, lift=-0.10)
+
+
+def _lantern(c: C, x: int, y: int):
+    """Wall-mounted brass carriage lantern with warm glass glow."""
+    c.rect(x - 1, y, 5, 1, IRON[3])
+    c.rect(x, y + 1, 3, 5, GOLD_R[2])
+    c.rect(x + 1, y + 2, 1, 3, (250, 232, 168, 255))
+    c.rect(x, y + 6, 3, 1, IRON[4])
+
+
+def _mounting_block(c: C, x: int, y: int, stone_r):
+    """Carved two-step stone mounting block (shangmashi / manor mounting step)."""
+    raised(c, x, y - 5, 6, 5, stone_r, body=2)
+    raised(c, x + 5, y - 9, 6, 9, stone_r, body=2)
+    cast(c, x, y, 11, 2, k0=0.45)
+
+
+def _cupola(c: C, cx: int, base_y: int, w: int, h: int, stone_r, dome_r, clock: bool = True):
+    """Roof lantern/clock cupola with spire and wrought-iron weathervane."""
+    # Pedestal & louvered/clock drum
+    raised(c, cx - w // 2 - 2, base_y - 4, w + 4, 4, stone_r, body=2)
+    raised(c, cx - w // 2, base_y - h, w, h - 4, stone_r, body=1)
+    if clock and w >= 12:
+        # Crisp clockface dial
+        cr = 4
+        cy = base_y - h // 2 - 2
+        for yy in range(cy - cr, cy + cr + 1):
+            for xx in range(cx - cr, cx + cr + 1):
+                if (xx - cx) ** 2 + (yy - cy) ** 2 <= cr * cr:
+                    c.p(xx, yy, (246, 240, 224, 255))
+                elif (xx - cx) ** 2 + (yy - cy) ** 2 <= (cr + 1) ** 2:
+                    c.p(xx, yy, GOLD_R[4])
+        c.rect(cx, cy - 3, 1, 4, IRON[7])
+        c.rect(cx, cy, 3, 1, IRON[7])
+    else:
+        for lx in range(cx - w // 2 + 2, cx + w // 2 - 2, 3):
+            c.rect(lx, base_y - h + 3, 2, h - 9, INT_DEEP)
+    # Domed copper/slate cap + gilded finial & weathervane
+    dome_h = max(7, w // 2)
+    for dy in range(dome_h):
+        u = dy / max(1, dome_h - 1)
+        hw = max(1, round((w // 2 + 2) * (1.0 - (1.0 - u) ** 2) ** 0.5))
+        col = dome_r[1 if dy < dome_h // 3 else (2 if dy < (dome_h * 2) // 3 else 4)]
+        c.rect(cx - hw, base_y - h - dome_h + dy, hw * 2, 1, col)
+        c.p(cx - hw, base_y - h - dome_h + dy, dome_r[0])
+        c.p(cx + hw - 1, base_y - h - dome_h + dy, dome_r[6])
+    # Spire & weathervane arrow
+    sy = base_y - h - dome_h
+    c.rect(cx, sy - 7, 1, 7, GOLD_R[2])
+    c.rect(cx - 1, sy - 2, 3, 2, GOLD_R[1])
+    c.rect(cx - 5, sy - 5, 11, 1, IRON[4])
+    c.p(cx + 5, sy - 6, IRON[2])
+    c.p(cx + 5, sy - 4, IRON[4])
+
+
+def draw_gentry_mews(state: str = "closed") -> Image.Image:
+    """Tier A1: Upper-class / gentry coach-house & stable — dressed limestone &
+    brick pilasters, slate roof with copper clock cupola, central arched coach
+    portal, flanking Dutch stalls, brass lanterns & stone mounting block."""
+    W, L, B, H = 132, 12, 144, 62
+    c = C(W + 24, B + 8)
+    brick_r = RAMPS["brick"]
+    stone = RAMPS["limestone"]
+    roof = RAMPS["slate"]
+    cx = L + W // 2
+
+    m.brick(c, L, B - H, W, H, brick_r)
+    m.rubble(c, L, B - 8, W, 8, RAMPS["granite"])
+    # Dressed limestone corner pilasters & horizontal belt course
+    for px in (L, L + 38, L + W - 44, L + W - 6):
+        raised(c, px, B - H + 4, 6, H - 12, stone, body=2)
+    raised(c, L - 2, B - H, W + 4, 5, stone, body=1)
+    raised(c, L, B - 47, W, 3, stone, body=2)
+    cast(c, L, B - 2, W, 2, k0=0.28)
+
+    roof_y = B - H
+    _outbuilding_roof(c, L - 5, roof_y - 38, W + 10, 38, 'stone', roof)
+    cast(c, L, roof_y + 5, W, 4, k0=0.40)
+    _cupola(c, cx, roof_y - 34, 14, 16, stone, COPPER_R, clock=True)
+
+    # Central keystoned carriage archway (for coach + pair)
+    _arched_portal(c, cx - 19, B - 46, 38, 46, stone, OAK, state, keystone=True)
+    # Flanking brass carriage lanterns
+    _lantern(c, cx - 26, B - 38)
+    _lantern(c, cx + 24, B - 38)
+
+    # Flanking Dutch horse-stall doors
+    _dutch_door(c, L + 11, B - 41, 20, 39, stone, DOOR_GREEN, state, swing_right=False)
+    _dutch_door(c, L + W - 31, B - 41, 20, 39, stone, DOOR_GREEN, state, swing_right=True)
+
+    # Upper arched clerestory fanlights above stalls
+    for vx in (L + 14, L + W - 28):
+        raised(c, vx - 1, B - 57, 16, 8, stone, body=2)
+        c.rect(vx, B - 56, 14, 6, INT_DEEP)
+        for bx in (vx + 3, vx + 7, vx + 11):
+            c.rect(bx, B - 56, 1, 6, GOLD_R[3])
+
+    # Carved limestone mounting block beside the left carriage pier
+    _mounting_block(c, L + 34, B, stone)
+
+    finish(c)
+    consolidate(c, rare=4)
+    return c.im
+
+
+def draw_gentry_east(state: str = "closed") -> Image.Image:
+    """Tier A2: East Asian mansion / fu courtyard stable — ornate dark kawara
+    roof with chiwen ridge terminals, painted dougong brackets, crimson lacquered
+    columns, sliding lattice stall doors, and carved shangmashi mounting stone."""
+    W, L, B, H = 134, 12, 144, 60
+    c = C(W + 24, B + 8)
+    cedar = RAMPS["cedar"]
+    white = RAMPS["whitewash"]
+    roof = RAMPS["kawara"]
+    stone = RAMPS["limestone"]
+
+    m.rubble(c, L, B - 8, W, 8, RAMPS["granite"])
+    m.boards(c, L, B - H + 18, W, H - 26, cedar, board=5)
+    m.whitewash(c, L, B - H, W, 18, white)
+    # Lacquered crimson fascia beam + gold trim line
+    raised(c, L, B - H + 16, W, 4, CRIMSON_R, body=3)
+    c.rect(L + 2, B - H + 17, W - 4, 1, GOLD_R[2])
+
+    # Four lacquered crimson structural columns
+    cols = (L, L + 44, L + 88, L + W - 5)
+    for px in cols:
+        raised(c, px, B - H, 5, H - 7, CRIMSON_R, body=3)
+        raised(c, px - 1, B - 9, 7, 3, stone, body=2)  # carved stone column plinths!
+
+    roof_y = B - H
+    _outbuilding_roof(c, L - 7, roof_y - 42, W + 14, 42, 'east', roof)
+    cast(c, L, roof_y, W, 6, k0=0.46)
+    # Ornate painted dougong bracket clusters under the deep eave
+    for bx in cols:
+        c.rect(bx - 2, roof_y, 9, 3, CRIMSON_R[2])
+        c.rect(bx - 1, roof_y + 3, 7, 2, GOLD_R[3])
+        c.rect(bx, roof_y + 5, 5, 2, OAK[5])
+    # Sculpted ridge finials (chiwen) & central ridge ornament
+    raised(c, L - 4, roof_y - 46, 7, 9, roof, body=1)
+    raised(c, L + W - 3, roof_y - 46, 7, 9, roof, body=2)
+    raised(c, L + W // 2 - 4, roof_y - 45, 8, 5, GOLD_R, body=2)
+
+    # Three carved upper lattice clerestory transoms in the white frieze
+    for tx in (L + 10, L + 54, L + 98):
+        raised(c, tx - 1, B - H + 4, 28, 9, CRIMSON_R, body=4)
+        c.rect(tx, B - H + 5, 26, 7, INT_DEEP)
+        for sx in range(tx + 3, tx + 25, 4):
+            c.rect(sx, B - H + 5, 1, 7, GOLD_R[3])
+
+    # Two wide lacquered sliding horse-stall doors + right carriage/tack bay
+    _sliding_door(c, L + 8, B - 40, 22, 38, CRIMSON_R, cedar, state)
+    _sliding_door(c, L + 52, B - 40, 22, 38, CRIMSON_R, cedar, state)
+    _sliding_door(c, L + 95, B - 40, 20, 38, CRIMSON_R, cedar, state)
+
+    # Carved stone mounting block (shangmashi) by the left column
+    _mounting_block(c, L + 34, B, stone)
+
+    finish(c)
+    consolidate(c, rare=4)
+    return c.im
+
+
+def draw_palace_mews(state: str = "closed") -> Image.Image:
+    """Tier B1: Royal / Imperial Palace Mews (Grande Ecurie / Royal Mews) —
+    cut limestone ashlar, central pedimented triumphal carriage arch, gilded
+    clock cupola, flanking arched stall portals, balustrade & brass lanterns."""
+    W, L, B, H = 160, 12, 152, 66
+    c = C(W + 24, B + 8)
+    stone = RAMPS["limestone"]
+    granite = RAMPS["granite"]
+    roof = RAMPS["slate"]
+    cx = L + W // 2
+
+    # Cut limestone ashlar facade + rusticated granite base plinth
+    m.render(c, L, B - H, W, H, stone)
+    for yy in range(B - H + 8, B - 8, 8):
+        c.rect(L + 2, yy, W - 4, 1, stone[4])
+    m.rubble(c, L, B - 9, W, 9, granite)
+    # Classical cornice + balustraded parapet
+    raised(c, L - 3, B - H, W + 6, 5, stone, body=1)
+    for bx in range(L + 4, L + W - 4, 6):
+        c.rect(bx, B - H - 6, 3, 6, stone[2])
+        c.p(bx, B - H - 6, stone[0])
+    raised(c, L - 2, B - H - 8, W + 4, 3, stone, body=1)
+
+    roof_y = B - H - 8
+    _outbuilding_roof(c, L - 4, roof_y - 34, W + 8, 34, 'stone', roof)
+    cast(c, L, B - H + 5, W, 4, k0=0.38)
+    _cupola(c, cx, roof_y - 30, 16, 18, stone, COPPER_R, clock=True)
+
+    # Central classical pedimented pavilion framing the grand carriage arch
+    pw = 54
+    raised(c, cx - pw // 2, B - H + 4, 5, H - 12, stone, body=1)
+    raised(c, cx + pw // 2 - 5, B - H + 4, 5, H - 12, stone, body=2)
+    # Triangular classical pediment over central bay + gilded royal crest medallion
+    for dy in range(13):
+        sp = max(3, round((dy + 2) * (pw // 2 + 4) / 13))
+        c.rect(cx - sp, B - H - 10 + dy, sp * 2, 1, stone[2 if dy > 2 else 1])
+        c.p(cx - sp, B - H - 10 + dy, stone[0])
+        c.p(cx + sp - 1, B - H - 10 + dy, stone[5])
+    # Royal golden crest medallion in pediment tympanum
+    c.rect(cx - 4, B - H - 3, 8, 5, GOLD_R[2])
+    c.rect(cx - 3, B - H - 2, 6, 3, CRIMSON_R[2])
+    c.rect(cx - 1, B - H - 2, 2, 3, GOLD_R[1])
+
+    # Grand central triumphal carriage arch + flanking royal horse-stall arches!
+    _arched_portal(c, cx - 19, B - 50, 38, 50, stone, OAK, state, keystone=True)
+    _arched_portal(c, L + 12, B - 44, 28, 44, stone, DOOR_GREEN, state, keystone=True)
+    _arched_portal(c, L + W - 40, B - 44, 28, 44, stone, DOOR_GREEN, state, keystone=True)
+
+    # Brass palace carriage lanterns flanking the central triumphal arch
+    _lantern(c, cx - 25, B - 40)
+    _lantern(c, cx + 23, B - 40)
+    _mounting_block(c, L + 45, B, stone)
+
+    finish(c)
+    consolidate(c, rare=4)
+    return c.im
+
+
+def draw_palace_arcade(state: str = "closed") -> Image.Image:
+    """Tier B2: Imperial Islamic / Silk Road Palace Stables (Ottoman Has Ahir /
+    Mughal Astabal) — warm cut sandstone, glazed turquoise-and-cobalt tile
+    spandrels, crenellated parapet, central ribbed dome, and triple arched bays."""
+    W, L, B, H = 160, 12, 152, 64
+    c = C(W + 24, B + 8)
+    sand = RAMPS["plaster-ochre"]
+    stone = RAMPS["limestone"]
+    cedar = RAMPS["cedar"]
+    cx = L + W // 2
+
+    m.render(c, L, B - H, W, H, sand)
+    m.rubble(c, L, B - 8, W, 8, stone)
+    # Glazed cobalt & turquoise frieze band below the parapet!
+    c.rect(L + 2, B - H + 5, W - 4, 8, TILE_BLUE[3])
+    c.rect(L + 2, B - H + 5, W - 4, 1, GOLD_R[2])
+    c.rect(L + 2, B - H + 12, W - 4, 1, GOLD_R[2])
+    for tx in range(L + 6, L + W - 6, 8):
+        c.rect(tx, B - H + 7, 4, 4, TILE_TURQ[2])
+        c.p(tx + 1, B - H + 8, GOLD_R[1])
+
+    # Crenellated stepped parapet along the roofline
+    raised(c, L - 2, B - H, W + 4, 4, stone, body=1)
+    for mx in range(L, L + W - 4, 10):
+        raised(c, mx, B - H - 6, 6, 6, stone, body=2)
+    # Central ribbed turquoise palace dome rising above the pishtaq portal!
+    dome_y = B - H - 6
+    raised(c, cx - 28, dome_y - 8, 56, 12, stone, body=1)
+    c.rect(cx - 24, dome_y - 5, 48, 6, TILE_BLUE[2])
+    for tx in range(cx - 20, cx + 20, 8):
+        c.rect(tx, dome_y - 4, 4, 4, TILE_TURQ[1])
+    for dy in range(22):
+        u = dy / 21.0
+        hw = max(2, round(21 * (1.0 - (1.0 - u) ** 2.2) ** 0.5))
+        col = TILE_TURQ[1 if dy < 7 else (2 if dy < 15 else 4)]
+        c.rect(cx - hw, dome_y - 30 + dy, hw * 2, 1, col)
+        c.p(cx - hw, dome_y - 30 + dy, TILE_TURQ[0])
+        c.p(cx + hw - 1, dome_y - 30 + dy, TILE_BLUE[5])
+        if dy > 4 and hw > 6:
+            c.p(cx - hw // 2, dome_y - 30 + dy, TILE_TURQ[0])
+            c.p(cx + hw // 2, dome_y - 30 + dy, TILE_BLUE[4])
+    # Golden crescent finial atop dome
+    c.rect(cx, dome_y - 37, 1, 7, GOLD_R[1])
+    c.rect(cx - 2, dome_y - 35, 5, 2, GOLD_R[2])
+
+    # Three monumental arched royal stable portals with turquoise spandrel tiles
+    for bx, bw, bh in ((L + 12, 32, 44), (cx - 20, 40, 48), (L + W - 44, 32, 44)):
+        # Glazed tile spandrel corners
+        c.rect(bx - 2, B - bh - 3, bw + 4, 10, TILE_BLUE[3])
+        c.rect(bx, B - bh - 1, 4, 4, TILE_TURQ[1])
+        c.rect(bx + bw - 4, B - bh - 1, 4, 4, TILE_TURQ[1])
+        _arched_portal(c, bx, B - bh, bw, bh, stone, cedar, state, keystone=True)
+
+    _lantern(c, cx - 25, B - 38)
+    _lantern(c, cx + 23, B - 38)
+
+    finish(c)
+    consolidate(c, rare=4)
+    return c.im
+
+
 ARCHETYPES = [
     ("1. Timber Barn Stable", "N. Europe / Colonial (Dutch half-doors + hayloft)", draw_timber_barn),
     ("2. Masonry Mews / Mansio", "Roman / Coaching Inn / Brick Livery (keystoned arch)", draw_masonry_mews),
@@ -583,12 +870,23 @@ ARCHETYPES = [
     ("5. Open-Front Paddock Shed", "Steppe Yam / Rural / Frontier (mortised gate)", draw_open_shed),
 ]
 
+GRAND_ARCHETYPES = [
+    ("A1. Gentry Coach-House & Mews", "European / Colonial manor (cupola, lanterns, mounting block)", draw_gentry_mews),
+    ("A2. East Asian Mansion Stable", "Noble fu courtyard (dougong brackets, sliding stalls, shangmashi)", draw_gentry_east),
+    ("B1. Royal Palace Mews", "Grande Ecurie / Royal Mews (pediment, clock cupola, triple arch)", draw_palace_mews),
+    ("B2. Imperial Palace Stables", "Ottoman Has Ahir / Mughal Astabal (ribbed dome, tile spandrels)", draw_palace_arcade),
+]
+
 _DISPATCH = {
     "timber": (draw_timber_barn, dict(x0=12, W=118, base=120, door_x=33, door_h=42, door_width=22)),
     "masonry": (draw_masonry_mews, dict(x0=12, W=124, base=120, door_x=74, door_h=46, door_width=34)),
     "arcade": (draw_arcade_khan, dict(x0=12, W=124, base=120, door_x=74, door_h=42, door_width=28)),
     "east": (draw_east_yizhan, dict(x0=12, W=126, base=120, door_x=74, door_h=38, door_width=22)),
     "shed": (draw_open_shed, dict(x0=12, W=114, base=120, door_x=69, door_h=44, door_width=33)),
+    "gentry-mews": (draw_gentry_mews, dict(x0=12, W=132, base=144, door_x=78, door_h=46, door_width=38)),
+    "gentry-east": (draw_gentry_east, dict(x0=12, W=134, base=144, door_x=79, door_h=38, door_width=22)),
+    "palace-mews": (draw_palace_mews, dict(x0=12, W=160, base=152, door_x=92, door_h=50, door_width=38)),
+    "palace-arcade": (draw_palace_arcade, dict(x0=12, W=160, base=152, door_x=92, door_h=48, door_width=40)),
 }
 
 
@@ -702,6 +1000,80 @@ def build_contact_sheet(out_path: Path):
     print(f"Saved {out_path}")
 
 
+def build_grand_contact_sheet(out_path: Path):
+    from art.horse import draw_horse, _draw_human_scale_ref
+
+    human = _draw_human_scale_ref()
+    war_horse = draw_horse("war", "dapple-grey", "east", "idle", 0)
+
+    z = 2
+    cw, ch = 192 * z, 166 * z
+    pad = 16
+    label_w = 148
+    sh_w = label_w + len(GRAND_ARCHETYPES) * (cw + pad) + pad
+    sh_h = 84 + len(DOOR_STATES) * (ch + pad) + 178
+
+    bg = (30, 34, 40, 255)
+    card = (44, 50, 58, 255)
+    ground = (84, 96, 72, 255)
+    accent = (240, 198, 102, 255)
+    sub = (176, 184, 196, 255)
+
+    sheet = Image.new("RGBA", (sh_w, sh_h), bg)
+    d = ImageDraw.Draw(sheet)
+    d.text((20, 14), "UPPER-CLASS GENTRY & ROYAL PALACE STABLES (Tier A & Tier B x 3 Dynamic Door States, 2x zoom + 1x play-scale strip)", fill=accent)
+
+    for ci, (title, subtitle, _) in enumerate(GRAND_ARCHETYPES):
+        cx = label_w + ci * (cw + pad)
+        d.text((cx + 4, 42), title, fill=accent)
+        d.text((cx + 4, 58), subtitle, fill=sub)
+
+    row_labels = [
+        ("CLOSED", "Shut / night"),
+        ("HALF-OPEN", "Daytime / active"),
+        ("WIDE-OPEN", "Carriage & horse entry"),
+    ]
+    for ri, state in enumerate(DOOR_STATES):
+        ry = 82 + ri * (ch + pad)
+        d.rounded_rectangle((12, ry, sh_w - 12, ry + ch), radius=8, fill=card)
+        d.text((22, ry + 24), row_labels[ri][0], fill=accent)
+        d.text((22, ry + 44), row_labels[ri][1], fill=sub)
+
+        for ci, (_, _, fn) in enumerate(GRAND_ARCHETYPES):
+            cx = label_w + ci * (cw + pad)
+            im = fn(state)
+            imz = im.resize((im.width * z, im.height * z), Image.Resampling.NEAREST)
+            gy = ry + ch - 14
+            d.line((cx + 4, gy, cx + cw - 4, gy), fill=ground, width=2)
+            ox = cx + (cw - imz.width) // 2
+            oy = gy - imz.height + 6 * z
+            sheet.paste(imz, (ox, oy), imz)
+            if ri == 0 and ci == 0:
+                hz = human.resize((human.width * z, human.height * z), Image.Resampling.NEAREST)
+                whz = war_horse.resize((war_horse.width * z, war_horse.height * z), Image.Resampling.NEAREST)
+                sheet.paste(hz, (cx + 8, gy - 52 * z), hz)
+                sheet.paste(whz, (cx + cw - whz.width - 4, gy - 52 * z), whz)
+
+    sy = 82 + len(DOOR_STATES) * (ch + pad) + 10
+    d.rounded_rectangle((12, sy, sh_w - 12, sy + 162), radius=8, fill=(64, 78, 56, 255))
+    d.text((22, sy + 10), "1x NATIVE PLAY SCALE LINEUP (37px Human + Dapple Grey War Horse + Gentry & Royal Palace Stables)", fill=accent)
+    gy1 = sy + 150
+    lx = 32
+    sheet.paste(human, (lx, gy1 - 52), human)
+    lx += 34
+    sheet.paste(war_horse, (lx, gy1 - 52), war_horse)
+    lx += 82
+    for _, _, fn in GRAND_ARCHETYPES:
+        im = fn("half")
+        sheet.paste(im, (lx, gy1 - im.height + 6), im)
+        lx += im.width + 26
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(out_path)
+    print(f"Saved {out_path}")
+
+
 if __name__ == "__main__":
     root = Path(__file__).resolve().parents[2]
     build_contact_sheet(root / "artifacts/stable-archetypes-sheet.png")
+    build_grand_contact_sheet(root / "artifacts/grand-stables-sheet.png")

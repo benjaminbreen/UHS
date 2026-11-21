@@ -10,6 +10,7 @@ import { regionalLook } from "../../content/graphics/regional-looks";
 import { mediterraneanShrineFrame, mediterraneanProp } from "../../content/graphics/mediterranean-buildings";
 import { resolveJunctions } from "./junctions";
 import { kerbsideFor } from "../../content/settlements/streets/kerbside";
+import { CYCLE_SPECS, cycleKindsFor, cycleLabel, cycleLookFor } from "../../core/cycles";
 import { SITES, siteLayout } from "./sites";
 import { composeStreetGeometry } from "./street-geometry";
 import { planCamp } from "./camps";
@@ -3115,8 +3116,12 @@ export function planSettlement(
   };
   /** A walk-in henhouse or byre on free cells behind the house, its door to
    * the south. False where the yard has no room. */
-  const stableArchetype = (form: string) =>
-    form === "brick" || form === "stone"
+  const ELITE_STABLE_ROLE = /noble|lord|lady|knight|magistrate|mandarin|merchant|gentry|patrician|senator|squire|baron|count|emir|pasha|zamindar|daimyo|samurai|courtier|official|prince|governor/i;
+  const stableArchetype = (form: string, ownerRole?: string) => {
+    if (ownerRole && ELITE_STABLE_ROLE.test(ownerRole)) {
+      return form === "east" ? "gentry-east" : "gentry-mews";
+    }
+    return form === "brick" || form === "stone"
       ? "masonry"
       : form === "med" || form === "adobe"
         ? "arcade"
@@ -3125,8 +3130,9 @@ export function planSettlement(
           : form === "wattle" || form === "bamboo"
             ? "shed"
             : "timber";
-  const outbuilding = ({ kind, form }: NonNullable<YardProp["building"]>, free: Point[], id: string, owner: string, name: string) => {
-    const frame = kind === "stable" ? `yard-stable-${stableArchetype(form)}` : `yard-${kind}-${form}`;
+  };
+  const outbuilding = ({ kind, form }: NonNullable<YardProp["building"]>, free: Point[], id: string, owner: string, name: string, ownerRole?: string) => {
+    const frame = kind === "stable" ? `yard-stable-${stableArchetype(form, ownerRole)}` : `yard-${kind}-${form}`;
     const [w, h] = buildingModel(frame).footprint;
     const open = new Set(free.map((p) => cellKey(p.x, p.y)));
     const clear = (x: number, y: number) => {
@@ -3227,7 +3233,7 @@ export function planSettlement(
   };
   const propCells = new Set<string>();
   /** Byres wanted: the yard's back corner first, else the nearest clear ground. */
-  const byres: { item: YardProp; id: string; owner: string; rect: Rect; door: Point }[] = [];
+  const byres: { item: YardProp; id: string; owner: string; rect: Rect; door: Point; role?: string }[] = [];
   const buildingClearance = new Set<string>();
   const reserveBuilding = (sprite: string, rect: Rect, entrance: Point, work?: Point) => {
     if (!placed) return;
@@ -3338,7 +3344,7 @@ export function planSettlement(
         // A town with sewers has no privies.
         !(motorAge && urban && /privy/.test(p.family)),
     );
-    for (const p of items) if ((p.building?.kind === "byre" || p.building?.kind === "stable") && owner) byres.push({ item: p, id, owner, rect, door });
+    for (const p of items) if ((p.building?.kind === "byre" || p.building?.kind === "stable") && owner) byres.push({ item: p, id, owner, rect, door, role });
     const privy = privies[Math.floor(rand("privy-kind", i) * privies.length)];
     if (privy && !(motorAge && urban) && rand("privy-here", i) < 0.55)
       items.push({ prop: privy, family: propDefs[privy].family, name: propDefs[privy].name, where: "back", chance: 1 });
@@ -3754,7 +3760,7 @@ export function planSettlement(
           items
             .filter((p) => p.where === "yard" || p.where === "back" || p.where === "apron")
             .forEach((item, n) => {
-              if (item.building && owner && outbuilding(item.building, back.sort((a, b) => b.y - a.y || a.x - b.x), id, owner, item.name)) {
+              if (item.building && owner && outbuilding(item.building, back.sort((a, b) => b.y - a.y || a.x - b.x), id, owner, item.name, role)) {
                 serviceTargets.push(plan.places[plan.places.length - 1].entrance);
                 return;
               }
@@ -6500,7 +6506,7 @@ export function planSettlement(
       return d + zone;
     };
     near.sort((a, b) => score(a) - score(b));
-    if (outbuilding(want.item.building!, near, want.id, want.owner, want.item.name) && centers.has(cellKey(door.x, door.y))) {
+    if (outbuilding(want.item.building!, near, want.id, want.owner, want.item.name, want.role) && centers.has(cellKey(door.x, door.y))) {
       const placedByre = plan.places[plan.places.length - 1];
       const target = placedByre.entrance;
       let cxp = door.x, cyp = door.y;
@@ -6749,8 +6755,10 @@ export function planSettlement(
   const stableMount = penStock.find((k) => k.id === "horse") ?? penStock.find((k) => k.id === "pony") ?? (pack.setting ? faunaAt(pack.setting).find((k) => k.id === "horse" || k.id === "pony") : undefined);
   for (const stable of stableMount ? plan.places.filter((b) => b.claim === "yard-stable" && b.owner) : []) {
     const isRelay = /mansio|yizhan|yam/.test(stable.id);
+    const isRoyal = /palace/.test(stable.sprite);
+    const isGentry = /gentry/.test(stable.sprite);
     const isPublic = stable.access === "public";
-    const cap = isPublic ? 2 : 1 + (random(seed, stable.id, "second-horse") < 0.45 ? 1 : 0);
+    const cap = isRoyal ? 3 : isPublic || isGentry ? 2 : 1 + (random(seed, stable.id, "second-horse") < 0.45 ? 1 : 0);
     const members: FaunaMember[] = [];
     for (const [dx, dy] of [[0, 1], [2, 1], [-2, 1], [1, 2], [-1, 2], [0, 3]]) {
       const x = stable.entrance.x + dx, y = stable.entrance.y + dy;
@@ -6758,6 +6766,16 @@ export function planSettlement(
         members.push({ x, y, direction: dx < 0 ? 3 : 1 });
     }
     if (!members.length) continue;
+    const pinnedForm =
+      stableMount!.id !== "horse"
+        ? undefined
+        : isRoyal
+          ? (random(seed, stable.id, "royal-build") < 0.6 ? "war" : "race")
+          : isRelay
+            ? "race"
+            : isGentry
+              ? (random(seed, stable.id, "gentry-build") < 0.45 ? "race" : "horse")
+              : undefined;
     (plan.fauna ??= []).push({
       id: `${site.id}-stable-${stable.id}`,
       speciesId: stableMount!.id,
@@ -6772,7 +6790,7 @@ export function planSettlement(
       owner: stable.owner,
       house: stable.id,
       roost: pos({ x: stable.x + 1, y: stable.y + 1 }),
-      ...(isRelay && stableMount!.id === "horse" ? { form: "race" } : {}),
+      ...(pinnedForm ? { form: pinnedForm } : {}),
     } satisfies FaunaGroup);
   }
   // Most places have a dog or two about, whatever else they keep: lying by a
@@ -7195,6 +7213,75 @@ export function planSettlement(
           sprite: kit.board[Math.floor(rand("kerb-board-kind", p.x, p.y) * kit.board.length)], pos: pos({ x: e.x + 1, y: e.y }), inventory: {}, claim: "landscape" });
       }
   }
+  /** Bicycles and motorcycles where their riders left them: by a door, at a
+   * rack, and for sale outside the one shop that deals in them, which keeps a
+   * pump by its door. Once there were machines built for it, somewhere to jump. */
+  function parkCycles() {
+    const s = pack.setting;
+    if (!s) return;
+    const region = modernity(s).id, motor = modernity(s).motor;
+    if (!cycleKindsFor(s.year, region, motor).length) return;
+    const taken = new Set(plan.objects.filter((o) => o.pos.space === "outside").map((o) => cellKey(o.pos.x, o.pos.y)));
+    const free = (x: number, y: number) => {
+      const k = cellKey(x, y);
+      return !plan.solid.has(k) && !taken.has(k) && !plan.lanes?.has(k) && plan.surface.get(k) !== "water" && dry({ x, y, w: 1, h: 1 }, false);
+    };
+    const park = (x: number, y: number, extra: Partial<WorldObject> = {}, want?: "pedal" | "motor") => {
+      const look = cycleLookFor(s.year, region, `${seed}:${site.id}:${x},${y}`, motor, want);
+      if (!look || !free(x, y)) return false;
+      taken.add(cellKey(x, y));
+      const noun = cycleLabel(look);
+      plan.objects.push({ id: `${site.id}-cycle-${x}-${y}`, name: noun[0].toUpperCase() + noun.slice(1), kind: "monument", sprite: "cycle", cycle: look, pos: pos({ x, y }), inventory: {}, claim: "landscape", ...extra });
+      return true;
+    };
+    const stand = (sprite: string, prop: string, name: string, x: number, y: number) => {
+      taken.add(cellKey(x, y));
+      plan.objects.push({ id: `${site.id}-${prop}-${x}-${y}`, name, kind: "monument", prop, sprite, pos: pos({ x, y }), inventory: {}, claim: "landscape" });
+    };
+    const lowCountries = region === "western-europe" && s.lon >= 3 && s.lon <= 13 && s.lat >= 50.5 && s.lat <= 58;
+    const everyday = ["east-asia", "south-asia", "southeast-asia", "japan"].includes(region) && s.year >= 1930;
+    const keen = s.year < 1890 ? 0.06 : lowCountries ? 0.45 : everyday ? 0.4 : s.year < 1920 ? 0.12 : 0.2;
+    for (const o of [...plan.objects]) {
+      if (!/bike-rack/.test(o.sprite)) continue;
+      for (const dx of [-1, 0, 1]) if (rand("cycle-rack", o.pos.x + dx, o.pos.y) < 0.65) park(o.pos.x + dx, o.pos.y, {}, "pedal");
+    }
+    for (const p of plan.places) {
+      if (rand("cycle-door", p.x, p.y) > keen) continue;
+      const e = p.entrance;
+      park(e.x - 1, e.y) || park(e.x + 2, e.y) || park(e.x - 2, e.y);
+      // Where everyone rides there is a second machine at many doors.
+      if ((everyday || lowCountries) && rand("cycle-door-2", p.x, p.y) < 0.5) park(e.x + 3, e.y) || park(e.x - 3, e.y);
+    }
+    const shops = plan.places.filter((p) => p.access === "public" && !p.institution && free(p.entrance.x - 1, p.entrance.y) && free(p.entrance.x + 2, p.entrance.y) && free(p.entrance.x + 4, p.entrance.y));
+    if (s.year >= 1890 && plan.places.length >= 10 && shops.length) {
+      const shop = shops.reduce((a, b) => (rand("cycle-shop", a.x, a.y) < rand("cycle-shop", b.x, b.y) ? a : b));
+      const e = shop.entrance;
+      shop.name = s.year >= motor + 15 && rand("cycle-shop-kind", shop.x) < 0.3 ? "Cycle and motor works" : "Bicycle shop";
+      shop.description = "Bicycles sold and mended. A pump stands by the door for anyone's tyres.";
+      stand(`study-propb-bike-pump-${s.year >= 1990 ? 0 : 1}`, "bikePump", "Bicycle pump", e.x - 1, e.y);
+      for (const dx of [2, 4, 6]) {
+        const look = cycleLookFor(s.year, region, `${seed}:${site.id}:${e.x + dx},${e.y}`, motor);
+        park(e.x + dx, e.y, { owner: shop.owner, price: look && CYCLE_SPECS[look.kind].motor ? 90 : 18 });
+      }
+    }
+    if (s.year < 1972) return;
+    // A line of jumps on open ground: up one, three cells of air, down, and on to the next.
+    const open = (x: number, y: number) => free(x, y) && !roads.has(cellKey(x, y)) && !plan.pavement?.has(cellKey(x, y)) && !plan.places.some((p) => x >= p.x - 1 && x <= p.x + p.w && y >= p.y - 1 && y <= p.y + p.h + 1);
+    let lines = 0;
+    for (const p of [...plan.places].sort((a, b) => rand("cycle-jumps", a.x, a.y) - rand("cycle-jumps", b.x, b.y))) {
+      for (const [ox, oy] of [[-14, 2], [p.w + 3, 2], [0, p.h + 5], [0, -6]]) {
+        const x0 = p.x + ox, y0 = p.y + oy;
+        let clear = true;
+        for (let x = x0; x <= x0 + 11 && clear; x++) for (const dy of [-1, 0, 1]) if (!open(x, y0 + dy)) { clear = false; break; }
+        if (!clear) continue;
+        const paved = plan.surface.get(cellKey(x0, y0)) === "paving";
+        for (const dx of [2, 7]) stand(`study-propb-bike-ramp-${paved ? 1 : 0}`, "bikeRamp", "Jump", x0 + dx, y0);
+        lines++;
+        break;
+      }
+      if (lines >= (plan.places.length > 40 ? 2 : 1)) break;
+    }
+  }
   /** Paved infill laid across a terrace step was drawn as a staircase through
    * the stones. Grade each piece to the street it opens off, so the bank
    * falls at its edge instead. */
@@ -7394,6 +7481,7 @@ export function planSettlement(
     gradeGround(ground.approach, level);
   }
   if (kerb) kerbFixtures(kerb);
+  parkCycles();
   // A town laid out for cars was graded for them: streets and blocks one
   // step off the centre's level are brought to it, so no bank crosses a road.
   if (motorAge && urban) {
@@ -7832,11 +7920,11 @@ function tidyGround(plan: SettlementPlan, routes: Set<string>, motorAge: boolean
 }
 
 const KERB_NAMES: [RegExp, string][] = [
-  [/news-box/, "Newspaper box"], [/vending/, "Vending machine"], [/bicycle/, "Bicycle"], [/bike-rack/, "Bicycle rack"],
+  [/news-box/, "Newspaper box"], [/vending/, "Vending machine"], [/bike-rack/, "Bicycle rack"],
   [/utility-cabinet/, "Utility cabinet"], [/kerb-rubbish/, "Rubbish for collection"], [/street-bin/, "Litter bin"],
 ];
 const kerbName = (sprite: string) => KERB_NAMES.find(([re]) => re.test(sprite))?.[1] ?? "Street furniture";
 /** Street furniture that is still a thing to use: a bin can be looked into
  * and knocked over, a pavement board shouldered down. */
-const KERB_PROPS: [RegExp, string][] = [[/street-bin/, "streetBin"], [/wheelie-bin/, "wheelieBin"], [/dustbin/, "dustbin"], [/pavement-board/, "pavementBoard"]];
+const KERB_PROPS: [RegExp, string][] = [[/bike-rack/, "bikeRack"], [/street-bin/, "streetBin"], [/wheelie-bin/, "wheelieBin"], [/dustbin/, "dustbin"], [/pavement-board/, "pavementBoard"]];
 const kerbProp = (sprite: string) => KERB_PROPS.find(([re]) => re.test(sprite))?.[1];

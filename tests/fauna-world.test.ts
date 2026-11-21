@@ -980,7 +980,7 @@ describe("animal riding", () => {
   it("includes regional horse relay stations and hostelries with dynamic yard-stable outbuildings", async () => {
     const { innProfiles } = await import("../src/content/settlements/worksites/inns");
     const { buildingModel } = await import("../src/content/graphics/models");
-    const ids = ["roman-mansio", "chinese-yizhan", "steppe-yam", "frontier-livery"];
+    const ids = ["roman-mansio", "chinese-yizhan", "steppe-yam", "frontier-livery", "royal-mews", "imperial-stables"];
     for (const id of ids) {
       const p = innProfiles.find((x) => x.id === id);
       expect(p, id).toBeDefined();
@@ -989,6 +989,11 @@ describe("animal riding", () => {
       expect(buildingModel(p!.outbuilding.frame).footprint.length).toBe(2);
       expect(buildingModel(`${p!.outbuilding.frame}-open`).footprint.length).toBe(2);
       expect(buildingModel(`${p!.outbuilding.frame}-closed`).footprint.length).toBe(2);
+    }
+    for (const grandFrame of ["yard-stable-gentry-mews", "yard-stable-gentry-east", "yard-stable-palace-mews", "yard-stable-palace-arcade"]) {
+      expect(buildingModel(grandFrame).footprint.length).toBe(2);
+      expect(buildingModel(`${grandFrame}-open`).footprint.length).toBe(2);
+      expect(buildingModel(`${grandFrame}-closed`).footprint.length).toBe(2);
     }
   });
 });

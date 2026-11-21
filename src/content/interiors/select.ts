@@ -212,10 +212,11 @@ export function publicInteriorFor(site: InteriorSite): InteriorProfile | undefin
   }
   if (site.use === "yard.henhouse" || site.use === "yard.byre" || site.use === "yard.stable") {
     const home = interiorProfileFor({ ...site, use: undefined }), byre = site.use === "yard.byre", stable = site.use === "yard.stable";
-    return { ...home, id: `${stable ? "stable" : byre ? "byre" : "henhouse"}-${home.id}`, label: stable ? "Stable" : byre ? "Byre" : "Henhouse", uses: [site.use], size: stable ? [9, 6] : byre ? [8, 6] : [6, 5], rooms: undefined,
+    const grand = stable && !!site.frame && /gentry|palace/.test(site.frame);
+    return { ...home, id: `${grand ? "grand-stable" : stable ? "stable" : byre ? "byre" : "henhouse"}-${home.id}`, label: grand ? "Grand Stable" : stable ? "Stable" : byre ? "Byre" : "Henhouse", uses: [site.use], size: grand ? [11, 7] : stable ? [9, 6] : byre ? [8, 6] : [6, 5], rooms: undefined,
       program: undefined, sleep: "none", fire: "none", smokehole: false, pole: false, trades: ["household"], kits: { household: [] }, clutter: [], regulars: undefined,
       seating: "floor",
-      furnish: stable ? ["stall", "manger", "lantern", "stall", "sacks", "shelf"] : byre ? ["stall", "manger", "lantern", "stall", "sacks"] : ["nestbox", "roost", "lantern", "basket", "sacks"],
+      furnish: grand ? ["stall", "manger", "lantern", "stall", "manger", "stall", "sacks", "shelf", "lantern"] : stable ? ["stall", "manger", "lantern", "stall", "sacks", "shelf"] : byre ? ["stall", "manger", "lantern", "stall", "sacks"] : ["nestbox", "roost", "lantern", "basket", "sacks"],
       looks: home.looks.map((l) => ({ ...l, windows: 2, furnish: [] })) as unknown as InteriorProfile["looks"] };
   }
   if (site.use.startsWith("worksite.")) return worksiteInterior(site.use, interiorProfileFor({ ...site, use: undefined }));

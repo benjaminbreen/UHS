@@ -175,6 +175,7 @@ import {
 } from "./combat";
 import { faunaAt, faunaCombat, faunaLook, faunaProfile } from "../content/fauna";
 import {
+  cycleSpecies,
   isMountTreat,
   isRideableSpecies,
   mountLabel,
@@ -189,6 +190,7 @@ import { livelihoodById } from "../content/characters/livelihoods";
 import { smokingFrom } from "../content/characters/smoking";
 import { capabilitiesFor, matchesCharacterScope } from "../content/characters/resolve";
 import { amountIn, moneyFor } from "../content/economy/money";
+import { CYCLE_SPECS, cycleLabel } from "./cycles";
 import { tableGames } from "../content/games";
 import { venueOfClaim } from "../content/venues";
 import { beastOf } from "../content/economy/carrying";
@@ -4763,6 +4765,39 @@ export class Engine {
     }
     return best?.entry;
   }
+  /** A bicycle or motorcycle within arm's reach, preferring the one the player faces. */
+  cycleNear(): { target: string; label: string; x: number; y: number; price?: number; theirs?: string; down: boolean } | undefined {
+    const p = this.state.player;
+    if (p.pos.space !== "outside" || p.riding || p.drivingVehicle || p.afloat || p.perch || p.mount) return undefined;
+    const facing = this.facingCell();
+    let best: { score: number; o: WorldObject } | undefined;
+    for (const o of this.state.objects) {
+      if (!o.cycle || o.carriedBy || o.pos.space !== "outside" || o.submerged) continue;
+      const d = Math.max(Math.abs(o.pos.x - p.pos.x), Math.abs(o.pos.y - p.pos.y));
+      if (d > 1) continue;
+      const score = d + (o.pos.x === facing.x && o.pos.y === facing.y ? -2 : 0);
+      if (!best || score < best.score) best = { score, o };
+    }
+    const o = best?.o;
+    return o && { target: o.id, label: cycleLabel(o.cycle!), x: o.pos.x, y: o.pos.y, price: o.price, theirs: o.owner && o.owner !== "player" ? o.owner : undefined, down: !!o.tipped };
+  }
+  /** Stands the ridden cycle back on the map at `at`, or lays it down there. */
+  private parkCycle(mount: PlayerMount, at: Point, down = false) {
+    const { look, id, tuned } = mount.cycle!;
+    let o = this.state.objects.find((x) => x.id === id);
+    // Ridden in from another map: it has no object here yet.
+    if (!o) this.state.objects.push((o = { id, name: cycleLabel(look), kind: "monument", sprite: "cycle", cycle: look, pos: { ...this.state.player.pos }, inventory: {}, claim: "landscape", owner: mount.owner }));
+    delete o.carriedBy;
+    o.pos = { space: "outside", x: at.x, y: at.y };
+    if (down) o.tipped = true;
+    else delete o.tipped;
+    if (tuned) o.tuned = true;
+    else delete o.tuned;
+  }
+  /** A ramp or mound under the wheels throws a cycle further than its rider could hop it. */
+  cycleRampAt(x: number, y: number) {
+    return this.state.objects.some((o) => o.pos.space === "outside" && o.pos.x === x && o.pos.y === y && propDefs[o.prop ?? ""]?.family === "bike-ramp");
+  }
   private resolveMountTarget(target: string) {
     const parts = target.split(":");
     if (parts[0] === "fauna" && parts.length >= 3) {
@@ -4805,7 +4840,7 @@ export class Engine {
     return undefined;
   }
   /** Nearest hitching post, watering trough, or manger within 2 tiles of the player. */
-  nearbyHorseFixture(family: "hitching-post" | "trough" | "manger") {
+  nearbyHorseFixture(family: "hitching-post" | "trough" | "manger" | "bike-rack" | "bike-pump") {
     const p = this.state.player;
     let best: { obj: WorldObject; dist: number } | undefined;
     for (const obj of this.state.objects) {
@@ -4816,13 +4851,13 @@ export class Engine {
     }
     return best?.obj;
   }
-  /** Nearest ostler, innkeeper, farrier, groom, or caravaneer within 3 tiles. */
+  /** Nearest ostler, farrier, groom, horse-dealer, coachman, master-of-horse, or innkeeper within 3 tiles. */
   nearbyStablekeeper() {
     const p = this.state.player;
     let best: { actor: Actor; dist: number } | undefined;
     for (const a of this.state.actors) {
       if (a.kind !== "human" || a.dead || a.pos.space !== p.pos.space) continue;
-      if (!/ostler|innkeeper|farrier|groom|caravaneer|muleteer|stable|horse/i.test(`${a.role} ${a.activity ?? ""}`)) continue;
+      if (!/ostler|innkeeper|farrier|groom|caravaneer|muleteer|stable|horse|coachman|equerry|mir-akhor|saddler|domador/i.test(`${a.role} ${a.activity ?? ""}`)) continue;
       const dist = Math.hypot(a.pos.x - p.pos.x, a.pos.y - p.pos.y);
       if (dist <= 3.2 && (!best || dist < best.dist)) best = { actor: a, dist };
     }
@@ -4932,8 +4967,9 @@ export class Engine {
     const p = this.state.player;
     const spec = mountSpec(p.riding?.speciesId, p.riding?.form);
     if (!spec || from.space !== "outside") return { kind: "blocked", reason: "Cannot leap here." };
-    const maxReach = Math.min(3, spec.jumpReach + (this.knows("rider") && spec.jumpReach >= 2 ? 1 : 0));
-    const desired = running ? maxReach : Math.min(2, maxReach);
+    const ramp = !!spec.cycle && this.cycleRampAt(from.x, from.y);
+    const maxReach = ramp ? 3 : Math.min(3, spec.jumpReach + (this.knows("rider") && spec.jumpReach >= 2 ? 1 : 0));
+    const desired = running || ramp ? maxReach : Math.min(2, maxReach);
     let bestDist = 0;
     let clearedObstacle = false;
     for (let dist = desired; dist >= 1; dist--) {
@@ -9030,6 +9066,26 @@ export class Engine {
       const o = this.object(c.target);
       return o && this.vehicleCab(o) ? undefined : "Walk up to the cab while the driver is away.";
     }
+    if (c.type === "interact" && (c.action === "mount-cycle" || c.action === "buy-cycle")) {
+      if (p.riding) return "You are already riding.";
+      const o = this.state.objects.find((x) => x.id === c.target && x.cycle && !x.carriedBy);
+      if (!o || o.pos.space !== p.pos.space || p.pos.space !== "outside") return "There is nothing to ride here.";
+      if (Math.max(Math.abs(o.pos.x - p.pos.x), Math.abs(o.pos.y - p.pos.y)) > 1) return "Move closer.";
+      if (p.afloat || p.perch || p.mount || p.drivingVehicle || p.drivingCart) return "Get clear first.";
+      if (heldObject(this.state)) return "Put down what you are carrying first.";
+      if (c.action === "buy-cycle") {
+        if (!o.price || o.owner === "player") return "It is not for sale.";
+        if ((p.inventory.coin ?? 0) < o.price) return "You don't have the coin.";
+      }
+      return undefined;
+    }
+    if (c.type === "interact" && (c.action === "ring-bell" || c.action === "cycle-spill" || c.action === "cycle-trick")) {
+      return p.riding?.cycle ? undefined : "You are not riding.";
+    }
+    if (c.type === "interact" && c.action === "cycle-service") {
+      if (!p.riding?.cycle) return "Bring a cycle.";
+      return this.nearbyHorseFixture("bike-pump") ? undefined : "There is no pump here.";
+    }
     if (c.type === "interact" && c.action === "mount-animal") {
       if (p.riding) return "You are already mounted.";
       if (p.pos.space !== "outside") return "You cannot mount indoors.";
@@ -9047,6 +9103,8 @@ export class Engine {
       return this.dismountMountCell() ? undefined : "There is no clear ground beside you to dismount.";
     }
     if (c.type === "interact" && (c.action === "spur-mount" || c.action === "calm-mount" || c.action === "rear-mount")) {
+      if (c.action === "spur-mount" && p.riding?.cycle && !CYCLE_SPECS[p.riding.cycle.look.kind].motor && p.riding.stamina < SPUR_PERFECT_COST)
+        return "Your legs have nothing left. Ease off for a moment.";
       return p.riding ? undefined : "You are not riding.";
     }
     if (c.type === "interact" && c.action === "feed-mount") {
@@ -9212,6 +9270,8 @@ export class Engine {
         if (mount.stubbornUntil && this.state.clock < mount.stubbornUntil) {
           return `The ${mountLabel(mount)} plants its hooves and refuses to budge. Spur or pat it!`;
         }
+        if ((c.jump || c.traverse) && mount.cycle && !CYCLE_SPECS[mount.cycle.look.kind].hop && !this.cycleRampAt(p.pos.x, p.pos.y))
+          return `A ${cycleLabel(mount.cycle.look)} will not leave the ground.`;
         if (c.jump || c.traverse) {
           const leap = this.mountedLeap(p.pos, c.dx, c.dy, !!c.run);
           if (leap.kind === "blocked") return leap.reason;
@@ -9225,6 +9285,7 @@ export class Engine {
         if (this.offMap(nx, ny)) return "You cannot ride past the edge.";
         const spec = mountSpec(mount.speciesId, mount.form);
         const depth = this.world.topography ? waterDepthAt(this.world.topography, nx + 0.5, ny + 0.5) : 0;
+        if (mount.cycle && depth > 0.3) return "The water is too deep to ride through.";
         if (depth > (spec?.amphibious ? 1.8 : 0.58)) return "The water is too deep for your mount.";
         if (this.blocked(nx, ny, "outside")) {
           // Heavy mounts (elephants, water buffalo) crash through low props.
@@ -10404,6 +10465,107 @@ export class Engine {
       this.advance(1);
       return;
     }
+    if (c.type === "interact" && (c.action === "mount-cycle" || c.action === "buy-cycle")) {
+      const o = this.state.objects.find((x) => x.id === c.target && x.cycle);
+      if (!o?.cycle) return;
+      const label = cycleLabel(o.cycle);
+      if (c.action === "buy-cycle") {
+        const price = o.price ?? 0, seller = this.state.actors.find((a) => a.id === o.owner);
+        p.inventory.coin = (p.inventory.coin ?? 0) - price;
+        if (seller) seller.inventory.coin = (seller.inventory.coin ?? 0) + price;
+        o.owner = "player";
+        delete o.price;
+        this.event(`You buy the ${label}${seller ? ` from ${seller.name}` : ""}. It is yours now.`);
+        this.advance(2);
+        return;
+      }
+      const from = { x: p.pos.x, y: p.pos.y }, to = { x: o.pos.x, y: o.pos.y };
+      const down = !!o.tipped;
+      delete o.tipped;
+      // Kept in the list, as a carried thing is, so the world does not stand a fresh one in its place.
+      o.carriedBy = "player";
+      const mount: PlayerMount = { speciesId: cycleSpecies(o.cycle.kind), memberN: 0, tamed: true, stamina: 100, maxStamina: 100, bond: 50, owner: o.owner, cycle: { look: o.cycle, id: o.id, ...(o.tuned ? { tuned: true } : {}) } };
+      p.riding = mount;
+      p.pos = { space: "outside", x: to.x, y: to.y };
+      p.activity = `Riding a ${label}`;
+      delete p.seated;
+      const owner = o.owner && o.owner !== "player" ? this.state.actors.find((a) => a.id === o.owner) : undefined;
+      if (owner)
+        this.offend({
+          owner: owner.id,
+          at: { space: "outside", ...to },
+          lost: { what: `the ${label}`, pos: { space: "outside", ...to } },
+          cost: (theirs) => (theirs ? 5 : 2),
+          story: { act: "took", object: `the ${label}` },
+          memory: () => `Saw player ride off on ${o.id}`,
+          text: (w) => `${w.name} shouts after you for taking the ${label}.`,
+        });
+      this.emitRideEvent("mount", mount.speciesId, { from, to });
+      const motor = CYCLE_SPECS[o.cycle.kind].motor;
+      this.event(down ? `You pick the ${label} up and get on.` : motor ? `You swing a leg over the ${label} and kick it into life.` : `You get on the ${label}.`);
+      this.advance(1);
+      return;
+    }
+    if (c.type === "interact" && c.action === "ring-bell") {
+      const mount = p.riding;
+      if (!mount?.cycle) return;
+      this.emitRideEvent("calm", mount.speciesId);
+      this.scatterSmallFauna(p.pos);
+      return;
+    }
+    if (c.type === "interact" && c.action === "cycle-trick") {
+      const mount = p.riding;
+      if (!mount?.cycle) return;
+      mount.stamina = mount.maxStamina;
+      this.grantXp("wayfaring", 1);
+      this.event(`You land ${/^[aeiou]/i.test(c.target) ? "an" : "a"} ${c.target}.`);
+      return;
+    }
+    if (c.type === "interact" && c.action === "cycle-spill") {
+      const mount = p.riding;
+      if (!mount?.cycle) return;
+      const from = { x: p.pos.x, y: p.pos.y }, label = cycleLabel(mount.cycle.look);
+      const [fx, fy] = [[0, -1], [1, 0], [0, 1], [-1, 0]][p.direction]!;
+      const ahead = { x: from.x + fx, y: from.y + fy };
+      // Over the bars if there is ground ahead to land on, otherwise off to the side.
+      const land = c.target === "header" && !this.offMap(ahead.x, ahead.y) && !this.blocked(ahead.x, ahead.y, "outside") && !this.faunaAt(ahead.x, ahead.y)
+        ? ahead
+        : this.dismountMountCell() ?? from;
+      // A spill knocks it out of true until it is seen to again.
+      delete mount.cycle.tuned;
+      this.parkCycle(mount, from, true);
+      delete p.riding;
+      p.pos = { space: "outside", x: land.x, y: land.y };
+      p.activity = "Exploring";
+      if (this.state.manifest.survival || this.state.manifest.hazards) {
+        const dmg = Math.min(c.target === "header" ? 4 : 2, Math.max(0, (p.health ?? 100) - 5));
+        if (dmg > 0) this.hurt(dmg, "coming off a cycle");
+      }
+      this.emitRideEvent("buck", mount.speciesId, { from, to: land });
+      this.event(
+        c.target === "header"
+          ? `The ${label} stops dead and you go over the handlebars.`
+          : c.target === "trick"
+            ? `You come down sideways and the ${label} goes out from under you.`
+            : `You hit it too fast and come off the ${label}.`,
+      );
+      this.advance(1);
+      return;
+    }
+    if (c.type === "interact" && c.action === "cycle-service") {
+      const mount = p.riding;
+      if (!mount?.cycle) return;
+      mount.stamina = mount.maxStamina;
+      mount.cycle.tuned = true;
+      this.emitRideEvent("feed", mount.speciesId);
+      this.event(
+        CYCLE_SPECS[mount.cycle.look.kind].motor
+          ? "You check the plugs, top up the oil and tighten the chain. It pulls harder."
+          : "You pump the tyres hard and oil the chain. It runs sweeter.",
+      );
+      this.advance(4);
+      return;
+    }
     if (c.type === "interact" && c.action === "mount-animal") {
       const found = this.resolveMountTarget(c.target);
       if (!found) return;
@@ -10487,6 +10649,17 @@ export class Engine {
       const exit = this.dismountMountCell();
       if (!exit) return;
       const from = { x: p.pos.x, y: p.pos.y };
+      if (mount.cycle) {
+        const rack = this.nearbyHorseFixture("bike-rack"), label = cycleLabel(mount.cycle.look);
+        this.parkCycle(mount, from);
+        delete p.riding;
+        p.pos = { space: "outside", x: exit.x, y: exit.y };
+        p.activity = "Exploring";
+        this.emitRideEvent("dismount", mount.speciesId, { from, to: exit });
+        this.event(rack ? `You get off and lock the ${label} to the rack.` : `You get off and stand the ${label} up.`);
+        this.advance(1);
+        return;
+      }
       const bailed = !!mount.bucking;
       const post = bailed ? undefined : this.nearbyHorseFixture("hitching-post");
       this.restoreMount(mount, from, bailed, post?.id);
@@ -10509,6 +10682,19 @@ export class Engine {
       if (!mount) return;
       const spec = mountSpec(mount.speciesId, mount.form);
       if (!spec) return;
+      if (mount.cycle) {
+        // A burst of effort: free on a motor, paid for in breath on the pedals.
+        const perfect = c.target.startsWith("perfect"), combo = Number(c.target.split(":")[1]) || 1;
+        const cost = CYCLE_SPECS[mount.cycle.look.kind].motor ? 0 : perfect ? SPUR_PERFECT_COST : SPUR_COST;
+        if (mount.stamina < cost) {
+          this.emitRideEvent("stubborn", mount.speciesId);
+          this.event("Your legs have nothing left. Ease off for a moment.");
+          return;
+        }
+        mount.stamina -= cost;
+        this.emitRideEvent("spur", mount.speciesId, { perfect, combo });
+        return;
+      }
       if (mount.bucking) {
         // Pressing F during wild rodeo steadies your seat!
         mount.bucking.holds += 1;
@@ -10645,9 +10831,14 @@ export class Engine {
         mount.strained = 0;
         mount.stamina = mount.maxStamina;
         mount.bond = Math.min(100, mount.bond + 15);
-        this.grantXp("animals", 4);
+        this.grantXp("animals", 5);
         this.emitRideEvent("feed", mount.speciesId);
-        this.event(`${keeper.name} rubs down your ${mountLabel(mount)}, checks its hooves, and waters it.`);
+        const isFarrier = /farrier|shoe/i.test(keeper.role);
+        this.event(
+          isFarrier
+            ? `${keeper.name} trims your ${mountLabel(mount)}'s hooves and sets fresh iron shoes.`
+            : `${keeper.name} rubs down your ${mountLabel(mount)}, checks its hooves, and waters it.`,
+        );
         this.advance(3);
         return;
       }
@@ -10696,7 +10887,7 @@ export class Engine {
         }
       }
       this.emitRideEvent("rear", mount.speciesId);
-      this.event(`Your ${mountLabel(mount)} rears up with a dramatic flourish!`);
+      if (!mount.cycle) this.event(`Your ${mountLabel(mount)} rears up with a dramatic flourish!`);
       this.advance(1);
       return;
     }

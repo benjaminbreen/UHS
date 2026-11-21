@@ -1779,6 +1779,126 @@
     "roofMaterial": "thatch",
     "height": 88
   },
+  "yard-stable-gentry-mews": {
+    "style": "stable-gentry-mews",
+    "label": "Gentry coach-house and stables",
+    "footprint": [8, 3],
+    "description": "Brick and limestone coach-house stable under slate with a copper clock cupola, brass lanterns, stone mounting block, and arched carriage portal.",
+    "wall": "bengal-brick",
+    "roof": "gable",
+    "roofMaterial": "slate",
+    "height": 116
+  },
+  "yard-stable-gentry-mews-closed": {
+    "style": "stable-gentry-mews-closed",
+    "label": "Gentry coach-house and stables",
+    "footprint": [8, 3],
+    "description": "Gentry coach-house stable with doors shut for the night.",
+    "wall": "bengal-brick",
+    "roof": "gable",
+    "roofMaterial": "slate",
+    "height": 116
+  },
+  "yard-stable-gentry-mews-open": {
+    "style": "stable-gentry-mews-open",
+    "label": "Gentry coach-house and stables",
+    "footprint": [8, 3],
+    "description": "Gentry coach-house stable with carriage and stall doors swung wide open.",
+    "wall": "bengal-brick",
+    "roof": "gable",
+    "roofMaterial": "slate",
+    "height": 116
+  },
+  "yard-stable-gentry-east": {
+    "style": "stable-gentry-east",
+    "label": "Mansion courtyard stables",
+    "footprint": [8, 3],
+    "description": "Noble East Asian courtyard stable with curved grey tile roof, painted brackets, lacquered columns, sliding lattice stalls, and a carved mounting stone.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 114
+  },
+  "yard-stable-gentry-east-closed": {
+    "style": "stable-gentry-east-closed",
+    "label": "Mansion courtyard stables",
+    "footprint": [8, 3],
+    "description": "Mansion courtyard stables with sliding stall doors shut.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 114
+  },
+  "yard-stable-gentry-east-open": {
+    "style": "stable-gentry-east-open",
+    "label": "Mansion courtyard stables",
+    "footprint": [8, 3],
+    "description": "Mansion courtyard stables with sliding stall doors slid wide open.",
+    "wall": "weatherboard",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 114
+  },
+  "yard-stable-palace-mews": {
+    "style": "stable-palace-mews",
+    "label": "Royal mews",
+    "footprint": [10, 3],
+    "description": "Monumental cut-limestone royal palace mews with a pedimented carriage arch, gilded clock cupola, balustrade, and flanking stall portals.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "slate",
+    "height": 124
+  },
+  "yard-stable-palace-mews-closed": {
+    "style": "stable-palace-mews-closed",
+    "label": "Royal mews",
+    "footprint": [10, 3],
+    "description": "Royal palace mews with doors shut.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "slate",
+    "height": 124
+  },
+  "yard-stable-palace-mews-open": {
+    "style": "stable-palace-mews-open",
+    "label": "Royal mews",
+    "footprint": [10, 3],
+    "description": "Royal palace mews with arched doors swung wide open.",
+    "wall": "field-stone",
+    "roof": "gable",
+    "roofMaterial": "slate",
+    "height": 124
+  },
+  "yard-stable-palace-arcade": {
+    "style": "stable-palace-arcade",
+    "label": "Imperial palace stables",
+    "footprint": [10, 3],
+    "description": "Sandstone and glazed-tile imperial stables with a ribbed turquoise dome, crenellated parapet, and triple arched horse portals.",
+    "wall": "lime-plaster",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 124
+  },
+  "yard-stable-palace-arcade-closed": {
+    "style": "stable-palace-arcade-closed",
+    "label": "Imperial palace stables",
+    "footprint": [10, 3],
+    "description": "Imperial palace stables with arched cedar doors shut.",
+    "wall": "lime-plaster",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 124
+  },
+  "yard-stable-palace-arcade-open": {
+    "style": "stable-palace-arcade-open",
+    "label": "Imperial palace stables",
+    "footprint": [10, 3],
+    "description": "Imperial palace stables with arched cedar doors swung wide open.",
+    "wall": "lime-plaster",
+    "roof": "gable",
+    "roofMaterial": "tile",
+    "height": 124
+  },
   "worksite-transit-shed": {
     "style": "transit-shed",
     "label": "Pier freight warehouse",
