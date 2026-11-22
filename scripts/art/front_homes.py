@@ -16,6 +16,12 @@ ranch, 1945-1975: one storey under a low hip, a picture window, a garage or
 carport.
 rendered, 1950-2000: two storeys in painted render, a balcony over the door,
 shutter boxes, a garage in the ground floor.
+cun-brick, cun-tile: the Chinese village house (`Cun`), 1970 on: red brick
+between concrete ring beams under grey tile; then, from the reform years,
+two or three storeys of concrete faced in white tile, tinted glass, a red
+steel door between couplets, a flat roof with a stair house and a solar
+heater. Their forms carry sizes (`fmod.SCALES`) so the village picker treats
+the tall house as the rich one.
 
 All built on the street looks' base, so they share its lamplight, wear and
 outline.
@@ -1122,6 +1128,470 @@ class Rendered(Home):
         self.foot(SLAB)
 
 
+# ------------------------------------------------------------------ rural China
+
+TILE_WHITE = ramp(92, 0.01, lift=0.07)      # glazed facing tile
+TILE_CREAM = ramp(80, 0.035, lift=0.05)
+TILE_PINK = ramp(22, 0.035, lift=0.05)
+CLAD_GREY = ramp(240, 0.012, lift=-0.05)    # stone-look tile on the ground floor
+CLAD_PINK = ramp(30, 0.035, lift=-0.06)
+MAROON_BAND = ramp(18, 0.075, lift=-0.12)
+BLUE_BAND = ramp(236, 0.08, lift=-0.07)
+GLAZE = {'blue': ramp(238, 0.1, lift=-0.08), 'green': ramp(152, 0.085, lift=-0.1)}
+TINT = {'blue': ramp(208, 0.08, lift=-0.02), 'green': ramp(168, 0.07, lift=-0.04), 'clear': ramp(225, 0.035, lift=-0.04)}
+DOOR_RED = ramp(26, 0.15, lift=-0.1)
+COUPLET = ramp(28, 0.16, lift=-0.06)
+KILN = ramp(36, 0.1, lift=-0.08)            # the orange-red brick of the brickworks
+FRAME_GREEN = ramp(165, 0.06, lift=-0.08)
+FRAME_BLUE = ramp(236, 0.06, lift=-0.06)
+TUBE = ramp(255, 0.03, lift=-0.22)          # evacuated glass tubes of a solar heater
+RUST = fmod.RUST
+ALU, STEEL, CEMENT, GOLD = fmod.ALU, fmod.STEEL, fmod.CONCRETE, fmod.GOLD
+
+
+def facing(c, x, y, w, h, r, seed=0):
+    """Small glazed tiles in stack bond: one value, joints a step down and
+    broken, a tile catching the sky here and there."""
+    for yy in range(y, y + h):
+        for xx in range(x, x + w):
+            ty, tx = (yy - y) // 4, (xx - x) // 7
+            joint = (yy - y) % 4 == 3 or (xx - x) % 7 == 6
+            q = 2 if joint and h2(xx // 3, yy, seed) < 0.4 else 1
+            if not joint and h2(tx, ty, seed + 9) < 0.05:
+                q = 0
+            c.p(xx, yy, r[q])
+
+
+def cladding(c, x, y, w, h, r, seed=0):
+    """Stone-look tiles 16 by 8 on a ground floor, each its own tone."""
+    for yy in range(y, y + h):
+        for xx in range(x, x + w):
+            ty, tx = (yy - y) // 8, (xx - x + ((yy - y) // 8 % 2) * 8) // 16
+            ly, lx = (yy - y) % 8, (xx - x + ((yy - y) // 8 % 2) * 8) % 16
+            q = 1 + (h2(tx, ty, seed) < 0.3)
+            if ly == 7 or lx == 15:
+                q = 3
+            elif ly == 0:
+                q = max(0, q - 1)
+            c.p(xx, yy, r[q])
+
+
+def vases(c, x, foot, w, r, posts=()):
+    """A balustrade of turned concrete vases, rail on top, plinth below."""
+    prof = (2, 2, 4, 4, 4, 2, 2, 4)
+    for bx in range(x + 2, x + w - 4, 5):
+        for i, pw in enumerate(prof):
+            yy = foot - 10 + i
+            ox = bx + (4 - pw) // 2
+            c.rect(ox, yy, pw, 1, r[1])
+            c.p(ox, yy, r[0])
+            c.p(ox + pw - 1, yy, r[3])
+        op.cast(c, bx + 4, foot - 9, 1, 7, 0.8)
+    c.rect(x - 1, foot - 13, w + 2, 1, r[0])
+    c.rect(x - 1, foot - 12, w + 2, 1, r[1])
+    c.rect(x - 1, foot - 11, w + 2, 1, r[3])
+    c.rect(x, foot - 2, w, 1, r[1])
+    c.rect(x, foot - 1, w, 1, r[3])
+    for px in posts:
+        c.rect(px, foot - 14, 5, 14, r[1])
+        c.rect(px, foot - 15, 5, 1, r[0])
+        c.p(px, foot - 14, r[0])
+        c.rect(px + 4, foot - 14, 1, 14, r[3])
+
+
+def glass(c, x, y, w, h, g):
+    """Tinted float glass: the sky in the top third, the room's dark below,
+    one diagonal glint."""
+    for yy in range(y, y + h):
+        c.rect(x, yy, w, 1, g[5] if yy - y < 2 else g[2] if yy - y < h // 3 else g[3])
+    for i in range(min(w, h) // 3):
+        c.p(x + 2 + i, y + h - 4 - i, g[0])
+        c.p(x + 3 + i, y + h - 4 - i, g[1])
+
+
+def alu(b, cx, sill_y, w, h, tint, frame=ALU, grille=None, sill_r=CEMENT, on=None):
+    """A sliding window in aluminium: two sashes, the meeting stile, the
+    concrete sill; a welded grille over it on the ground floor."""
+    c = b.c
+    x, y = cx - w // 2, sill_y - h
+    c.rect(x - 1, y - 1, w + 2, h + 2, frame[4])
+    half = w // 2
+    glass(c, x + 1, y + 1, half - 1, h - 2, tint)
+    glass(c, x + half + 1, y + 1, w - half - 2, h - 2, tint)
+    c.rect(x, y, w, 1, frame[1])
+    c.rect(x, y, 1, h, frame[1])
+    c.rect(x + w - 1, y, 1, h, frame[3])
+    c.rect(x, y + h - 1, w, 1, frame[2])
+    c.rect(x + half - 1, y, 1, h, frame[1])
+    c.rect(x + half, y, 1, h, frame[3])
+    c.rect(x - 2, sill_y, w + 4, 1, sill_r[0])
+    c.rect(x - 2, sill_y + 1, w + 4, 1, sill_r[2])
+    op.cast(c, x - 1, sill_y + 2, w + 2, 2, 0.7)
+    if grille:
+        for xx in range(x + 2, x + w - 1, 4):
+            c.rect(xx, y - 1, 1, h + 1, grille[2])
+            c.p(xx, y - 1, grille[1])
+        for yy in (y + 2, y + h - 3):
+            c.rect(x - 1, yy, w + 2, 1, grille[1])
+            c.rect(x - 1, yy + 1, w + 2, 1, grille[4])
+    b.panes.append((x + 1, y + 1, w - 2, h - 2, 'warm', h2(cx, sill_y, b.seed + 5) < 0.5 if on is None else on))
+
+
+def steel_casement(b, cx, sill_y, w, h, tint, frame):
+    """A painted steel window of the commune years: three lights across,
+    a transom, a concrete lintel and sill."""
+    c = b.c
+    x, y = cx - w // 2, sill_y - h
+    c.rect(x - 1, y - 1, w + 2, h + 2, frame[4])
+    glass(c, x, y, w, h, tint)
+    for k in range(4):
+        xx = x + round((w - 1) * k / 3)
+        c.rect(xx, y, 1, h, frame[1] if k < 3 else frame[3])
+    c.rect(x, y, w, 1, frame[1])
+    c.rect(x, y + h // 3, w, 1, frame[2])
+    c.rect(x, y + h - 1, w, 1, frame[2])
+    c.rect(x - 3, y - 5, w + 6, 1, CEMENT[0])
+    c.rect(x - 3, y - 4, w + 6, 3, CEMENT[2])
+    c.rect(x - 3, y - 1, w + 6, 1, CEMENT[4])
+    c.rect(x - 2, sill_y, w + 4, 1, CEMENT[0])
+    c.rect(x - 2, sill_y + 1, w + 4, 2, CEMENT[2])
+    op.cast(c, x - 1, sill_y + 3, w + 2, 2, 0.7)
+    b.panes.append((x + 1, y + 1, w - 2, h - 2, 'warm', h2(cx, sill_y, b.seed + 5) < 0.5))
+
+
+def glazed_pent(c, L, R, eave, d, r):
+    """A skirt of glazed tile: round covers running down to us over dark pans,
+    each course lapping the one below, drip ends along the eave, the corners
+    turned up a pixel."""
+    for y in range(eave - d, eave):
+        ly = (y - eave + d) % 4
+        for x in range(L, R):
+            lx = (x - L) % 5
+            q = (2, 3, 4, 6, 6)[lx] + (1 if ly == 3 and lx < 3 else 0) - (1 if ly == 0 and lx < 3 else 0)
+            c.p(x, y, r[max(1, min(7, q))])
+    c.rect(L, eave - d - 2, R - L, 1, r[1])
+    c.rect(L, eave - d - 1, R - L, 1, r[4])
+    for x in range(L, R):
+        on = (x - L) % 5 < 3
+        c.p(x, eave, r[2] if on else r[6])
+        c.p(x, eave + 1, r[4] if on else r[7])
+    for k in range(2):
+        c.p(L - 1 - k, eave - 1 - k, r[2])
+        c.p(R + k, eave - 1 - k, r[4])
+
+
+def solar(b, x, foot, w):
+    """A solar water heater on the roof: a row of glass tubes leaning down
+    toward us from the tank, on a steel stand."""
+    c = b.c
+    ty = foot - 24
+    for xx in (x + 1, x + w - 2):
+        c.rect(xx, ty + 5, 1, 19, STEEL[3])
+    for i in range(16):
+        yy = ty + 6 + i
+        for xx in range(x + 1, x + w - 1):
+            lx = (xx - x) % 3
+            c.p(xx, yy, TUBE[1] if lx == 0 else TUBE[3] if lx == 1 else STEEL[5])
+    c.rect(x, ty + 22, w, 2, STEEL[2])
+    c.rect(x, ty + 22, w, 1, STEEL[1])
+    for i, q in enumerate((1, 0, 1, 2, 3, 5)):
+        c.rect(x - 1, ty + i, w + 2, 1, STEEL[q])
+    c.rect(x - 1, ty + 1, 1, 4, STEEL[4])
+    c.rect(x + w, ty + 1, 1, 4, STEEL[5])
+    cast_right(c, x + w + 1, ty + 3, 20, 3, 0.66)
+
+
+class Cun(Home):
+    """A village house of the reform years: two or three storeys of concrete
+    frame faced in white tile, tinted glass in aluminium, a red steel door
+    between couplets, a flat roof with a vase balustrade, a stair house and
+    a solar heater on it. Or, a generation earlier, red brick between
+    concrete ring beams under a grey tile roof."""
+
+    def __init__(self, s, form='tall', cells=10, seed=0):
+        self.site(s, form, cells, seed)
+        brick = s['kind'] == 'brick'
+        self.brick = brick
+        n = s.get('floors') or dict(cottage=1 if brick else 2, shop=2, tall=2 if brick else 3).get(self.form, 2)
+        self.hs = [50] + [44] * (n - 1)
+        self.floors = n
+        L, R = self.L, self.R
+        k = 2 if R - L < 110 else 3 if R - L < 190 else 4
+        self.edges = [L + round((R - L) * i / k) for i in range(k + 1)]
+        self.d = k // 2 if k % 2 else seed % 2
+        self.garage = (0 if seed % 2 else k - 1) if not brick and k >= 3 and seed % 3 != 1 else None
+        a, b = self.edges[self.d], self.edges[self.d + 1]
+        self.door_x, self.door_size = (a + b) // 2, (28, 46)
+        self.depth = s.get('rise', 30) if brick else (22 if self.form == 'cottage' else 28)
+        eave = (16 if brick else 34) + self.depth
+        self.stand(eave, eave + sum(self.hs))
+
+    def storey(self, i):
+        bottom = self.base - sum(self.hs[:i])
+        return bottom - self.hs[i], bottom
+
+    def paint(self):
+        self.walls()
+        for i in range(self.floors):
+            self.openings(i)
+        self.entrance()
+        if self.brick:
+            self.pitched()
+        else:
+            self.deck_roof()
+        self.foot(CEMENT)
+
+    # ---------------------------------------------- walls
+
+    def walls(self):
+        c, s, L, R = self.c, self.s, self.L, self.R
+        t0, b0 = self.storey(0)
+        if self.brick:
+            fm.brick(c, L, self.eave, R - L, self.base - self.eave, KILN, mortar=fm.RAMPS['mortar'])
+            c.rect(L, b0 - 12, R - L, 12, CEMENT[2])
+            c.rect(L, b0 - 12, R - L, 1, CEMENT[0])
+            c.rect(L, b0 - 11, R - L, 1, CEMENT[1])
+            for i in range(1, self.floors):
+                self.beam(self.storey(i)[1])
+            self.beam(self.eave + 3)
+            return
+        facing(c, L, self.eave, R - L, t0 - self.eave + 1, s['wall'], self.seed)
+        cladding(c, L, t0, R - L, b0 - t0, s['ground'], self.seed)
+        for x, lit in ((L, True), (R - 6, False)):
+            c.rect(x, self.eave, 6, self.base - self.eave, s['wall'][1])
+            c.rect(x, self.eave, 1, self.base - self.eave, s['wall'][0 if lit else 2])
+            c.rect(x + 5, self.eave, 1, self.base - self.eave, s['wall'][3])
+        cast_right(c, L + 6, self.eave + 4, self.base - self.eave - 4, 2, 0.8)
+        for i in range(1, self.floors):
+            self.band(self.storey(i)[1], s['band'])
+
+    def band(self, y, r, over=2):
+        c, L, R = self.c, self.L, self.R
+        for k, q in enumerate((0, 1, 2, 3)):
+            c.rect(L - over, y - 2 + k, R - L + 2 * over, 1, r[q])
+        op.cast(c, L, y + 2, R - L, 2, 0.7)
+
+    def beam(self, y):
+        c, L, R = self.c, self.L, self.R
+        for k, q in enumerate((1, 2, 2, 4)):
+            c.rect(L, y - 2 + k, R - L, 1, CEMENT[q])
+
+    # ---------------------------------------------- openings
+
+    def openings(self, i):
+        c, s = self.c, self.s
+        top, bottom = self.storey(i)
+        balcony = i == 1 and s.get('balcony', True) and (not self.brick or self.seed % 2 == 0)
+        for k in range(len(self.edges) - 1):
+            a, b = self.edges[k], self.edges[k + 1]
+            cx, bw = (a + b) // 2, b - a
+            if i == 0 and k == self.d:
+                continue
+            if i == 0 and k == self.garage:
+                self.shutter(a + 6, top + 8, bw - 12, bottom - top - 8)
+                continue
+            if balcony and k == self.d:
+                self.balcony(a, b, top, bottom)
+                continue
+            if self.brick:
+                steel_casement(self, cx, bottom - 12, min(bw - 16, 28), 24, TINT['clear'], s['frame'])
+            else:
+                grille = STEEL if i == 0 or s.get('grilles') else None
+                alu(self, cx, bottom - 13, min(bw - 14, 34), 24 if i else 22, s['tint'], grille=grille,
+                    sill_r=s['wall'])
+
+    def balcony(self, a, b, top, bottom):
+        """The middle bay of the first floor opens on a balcony: glazed doors
+        behind, the slab seen from above, its balustrade on the front edge."""
+        c, s = self.c, self.s
+        cx, bw = (a + b) // 2, b - a
+        dw = min(bw - 12, 30)
+        if self.brick:
+            steel_casement(self, cx, bottom - 3, dw, 33, TINT['clear'], s['frame'])
+        else:
+            alu(self, cx, bottom - 3, dw, 33, s['tint'], sill_r=s['wall'])
+        x0, x1 = a - 4, b + 4
+        y = bottom
+        slab_r = CEMENT if self.brick else s['band']
+        c.rect(x0, y - 4, x1 - x0, 3, CEMENT[1])
+        c.rect(x0, y - 4, x1 - x0, 1, CEMENT[0])
+        for k, q in enumerate((1, 2, 3)):
+            c.rect(x0, y - 1 + k, x1 - x0, 1, slab_r[q])
+        op.cast(c, x0 + 1, y + 2, x1 - x0 - 2, 4, 0.62)
+        if self.brick:
+            r = s['frame']
+            c.rect(x0, y - 16, x1 - x0, 1, r[1])
+            c.rect(x0, y - 15, x1 - x0, 1, r[3])
+            for xx in range(x0, x1, 3):
+                c.rect(xx, y - 14, 1, 10, r[2])
+            c.rect(x0, y - 9, x1 - x0, 1, r[2])
+        else:
+            vases(c, x0, y - 3, x1 - x0, TILE_WHITE, posts=(x0, x1 - 5))
+
+    def shutter(self, x, y, w, h):
+        """A roll-down steel shutter: the garage, or the shop the family runs."""
+        c = self.c
+        c.rect(x - 2, y - 2, w + 4, h + 2, CEMENT[3])
+        c.rect(x - 1, y, w + 2, 5, STEEL[2])
+        c.rect(x - 1, y, w + 2, 1, STEEL[0])
+        c.rect(x - 1, y + 4, w + 2, 1, STEEL[4])
+        for yy in range(y + 5, y + h):
+            c.rect(x, yy, w, 1, STEEL[(1, 2, 2, 3)[(yy - y) % 4]])
+        c.rect(x + w // 2 - 3, y + h - 4, 6, 1, STEEL[5])
+        op.cast(c, x, y + 5, w, 2, 0.8)
+
+    # ---------------------------------------------- the door
+
+    def entrance(self):
+        c, s = self.c, self.s
+        dx, base = self.door_x, self.base
+        steel = s.get('door') == 'steel'
+        p = STEEL if steel else DOOR_RED
+        w, h = 28, 44
+        x, y = dx - w // 2, base - 3 - h
+        frame = CEMENT if self.brick else s['wall']
+        c.rect(x - 4, y - 4, w + 8, h + 4, frame[1])
+        c.rect(x - 4, y - 4, w + 8, 1, frame[0])
+        c.rect(x + w + 3, y - 4, 1, h + 4, frame[3])
+        c.rect(x - 1, y - 1, w + 2, h + 1, p[5])
+        for leaf in (x, x + w // 2):
+            lw = w // 2
+            c.rect(leaf, y, lw, h, p[2])
+            for py, ph in ((y + 3, 16), (y + 23, 18)):
+                c.rect(leaf + 2, py, lw - 4, ph, p[3])
+                c.rect(leaf + 2, py, lw - 4, 1, p[4])
+                c.rect(leaf + 2, py, 1, ph, p[4])
+                c.rect(leaf + 3, py + ph - 1, lw - 5, 1, p[1])
+                c.rect(leaf + lw - 3, py + 1, 1, ph - 1, p[1])
+            if steel:
+                c.rect(leaf + 1, y, 1, h, p[0])
+        c.rect(dx, y, 1, h, p[5])
+        for kx in (dx - 3, dx + 2):
+            c.p(kx, y + 21, GOLD[1])
+            c.p(kx, y + 22, GOLD[3])
+        op.cast(c, x, y, w, 3, 0.7)
+        # couplets on the door's frame, the banner over it
+        for cx in (x - 4, x + w):
+            c.rect(cx, y + 2, 4, 32, COUPLET[2])
+            c.rect(cx, y + 2, 1, 32, COUPLET[1])
+            for yy in range(y + 5, y + 32, 5):
+                c.rect(cx + 1, yy, 2, 2, COUPLET[5] if not self.brick else GOLD[2])
+        c.rect(x + 3, y - 4, w - 6, 4, COUPLET[2])
+        c.rect(x + 3, y - 4, w - 6, 1, COUPLET[1])
+        # a hood over the door: glazed tile on the tiled house, a slab on the brick one
+        if self.brick:
+            c.rect(x - 8, y - 9, w + 16, 3, CEMENT[1])
+            c.rect(x - 8, y - 9, w + 16, 1, CEMENT[0])
+            c.rect(x - 8, y - 6, w + 16, 2, CEMENT[3])
+            op.cast(c, x - 7, y - 4, w + 14, 3, 0.66)
+        elif self.floors == 1 or not s.get('balcony', True):
+            glazed_pent(c, x - 9, x + w + 9, y - 6, 8, s['glaze'])
+            op.cast(c, x - 8, y - 4, w + 16, 3, 0.62)
+        eu.steps(c, dx, base, w + 14, 2, CEMENT)
+        self.panes.append((dx - 1, y + 20, 2, 2, 'warm', False))
+
+    # ---------------------------------------------- roofs
+
+    def deck_roof(self):
+        """The flat roof from above: the cement deck inside its parapets, the
+        stair house under its little glazed roof, the heater, the balustrade
+        along the front."""
+        c, s, L, R = self.c, self.s, self.L, self.R
+        eave, d = self.eave, self.depth
+        y0 = eave - d
+        c.rect(L, y0, R - L, d, CEMENT[2])
+        c.rect(L + 3, y0 + 6, R - L - 6, 2, CEMENT[3])
+        c.rect(L, y0, R - L, 3, s['wall'][1])
+        c.rect(L, y0, R - L, 1, s['wall'][0])
+        c.rect(L + 3, y0 + 3, R - L - 6, 3, s['wall'][2])
+        c.rect(L, y0, 3, d, s['wall'][1])
+        c.rect(L, y0, 1, d, s['wall'][0])
+        c.rect(R - 3, y0, 3, d, s['wall'][2])
+        c.rect(R - 1, y0, 1, d, s['wall'][3])
+        cast_right(c, L + 3, y0 + 6, d - 6, 2, 0.72)
+        rebar = s.get('rebar') or self.seed % 4 == 3
+        free = R - L - 12
+        left = self.seed % 2 == 0
+        if free >= 60 and not rebar:
+            bw = 26
+            bx = L + 8 if left else R - 8 - bw
+            self.stair_house(bx, y0 + d - 6, bw, s['glaze'])
+            sw = min(34, free - bw - 14)
+            if sw >= 22:
+                self.panes += []
+                solar(self, R - 10 - sw if left else L + 10, y0 + d - 4, sw)
+        elif free >= 40 and not rebar:
+            solar(self, (L + R) // 2 - 15, y0 + d - 4, 30)
+        if rebar:
+            cols = [L + 3, R - 3] + ([(L + R) // 2] if R - L > 120 else [])
+            for cx in cols:
+                c.rect(cx - 3, y0 + d - 8, 7, 6, CEMENT[2])
+                c.rect(cx - 3, y0 + d - 8, 7, 1, CEMENT[0])
+                c.rect(cx + 3, y0 + d - 8, 1, 6, CEMENT[4])
+                for k, rx in enumerate((cx - 2, cx, cx + 2)):
+                    top = y0 + d - 18 - (k % 2) * 2
+                    c.rect(rx, top, 1, y0 + d - 8 - top, RUST[3])
+                    c.p(rx, top, RUST[1])
+                    c.p(rx + (1 if k == 2 else -1), top, RUST[2])
+        posts = [L - 2, R - 3] + [x - 2 for x in self.edges[1:-1]]
+        self.band(eave + 2, s['band'], 3)
+        if s.get('skirt'):
+            glazed_pent(c, L - 4, R + 4, eave - 1, 9, s['glaze'])
+        else:
+            vases(c, L - 2, eave - 1, R - L + 4, TILE_WHITE, posts=posts)
+
+    def stair_house(self, x, foot, w, glaze):
+        """The stair comes up through the roof in a small house of its own,
+        a door onto the deck, a hipped cap of glazed tile."""
+        c, s = self.c, self.s
+        h = 18
+        facing(c, x, foot - h, w, h, s['wall'], self.seed + 3)
+        c.rect(x + w - 1, foot - h, 1, h, s['wall'][3])
+        c.rect(x + 8, foot - 14, 10, 14, STEEL[3])
+        c.rect(x + 8, foot - 14, 10, 1, STEEL[1])
+        c.rect(x + 9, foot - 13, 1, 13, STEEL[2])
+        op.cast(c, x, foot - h, w, 3, 0.68)
+        top = foot - h - 9
+        from art import front_sinitic as fs
+        for y in range(top, foot - h):
+            k = foot - h - 1 - y
+            for xx in range(x - 3 + k, x + w + 3 - k):
+                c.p(xx, y, fs.tile(xx - x, y - top, glaze))
+            c.p(x - 3 + k, y, glaze[1])
+            c.p(x + w + 2 - k, y, glaze[5])
+        c.rect(x + 6, top - 1, w - 12, 1, glaze[1])
+        c.rect(x - 3, foot - h, w + 6, 1, glaze[4])
+        cast_right(c, x + w + 3, foot - h + 2, h - 2, 3, 0.66)
+
+    def pitched(self):
+        """Grey tile in rows down the slope toward us, a drip course at the
+        eave, a ridge of tiles on edge with its ends turned up, the kitchen
+        flue through the roof."""
+        from art import front_sinitic as fs
+        c, s, L, R = self.c, self.s, self.L - 7, self.R + 7
+        eave, d = self.eave, self.depth
+        r = fs.TILES[s.get('tone', 'tile')]
+        y0 = eave - d
+        for y in range(y0, eave):
+            shift = 1 if y - y0 < d // 3 else 0
+            for x in range(L, R):
+                c.p(x, y, fs.tile(x - L, y - y0, r, -shift))
+        for x in range(L, R):
+            on = (x - L) % fs.PITCH < len(fs.COVER)
+            c.p(x, eave, r[1] if on else r[5])
+            c.p(x, eave + 1, r[3] if on else r[6])
+        c.rect(L, y0, 1, d, r[1])
+        c.rect(R - 1, y0, 1, d, r[6])
+        for k, q in enumerate((0, 1, 2, 3, 5)):
+            c.rect(L + 1, y0 - 4 + k, R - L - 2, 1, r[q])
+        for x, dx in ((L + 1, -1), (R - 2, 1)):
+            for k in range(3):
+                c.p(x + dx * (k // 2), y0 - 5 - k, r[1 if dx < 0 else 3])
+        op.cast(c, self.L, eave + 2, self.R - self.L, 4, 0.6)
+        fx = self.edges[0] + 14 if self.seed % 2 else self.edges[-1] - 22
+        stack(self, fx + 4, y0 + d // 2 + 6, 9, 16, KILN, 1, brick=True)
+
+
 # ------------------------------------------------------------------ the looks
 
 DOORS = ['green', 'black', 'blue', 'oxblood', 'brown']
@@ -1195,6 +1665,18 @@ NEW = {
         dict(wall=ROSE, roof=BROWNTILE, trim=WHITE, frame=WHITE, box=PALEGREY, rail=WHITE, garage=BROWN,
              door='oxblood', hip=True),
     ]),
+    'cun-tile': (Cun, 'Tiled village house, China', [
+        dict(kind='tile', door='red', wall=TILE_WHITE, ground=CLAD_GREY, band=MAROON_BAND, tint=TINT['blue'], glaze=GLAZE['blue']),
+        dict(kind='tile', wall=TILE_CREAM, ground=CLAD_PINK, band=BLUE_BAND, tint=TINT['green'], glaze=GLAZE['green'],
+             door='steel'),
+        dict(kind='tile', door='red', wall=TILE_WHITE, ground=CLAD_PINK, band=BLUE_BAND, tint=TINT['blue'], glaze=GLAZE['blue'],
+             skirt=True, grilles=True),
+    ]),
+    'cun-brick': (Cun, 'Brick village house, China', [
+        dict(kind='brick', door='red', frame=FRAME_GREEN, tone='tile'),
+        dict(kind='brick', frame=FRAME_BLUE, tone='dark', door='steel'),
+        dict(kind='brick', door='red', frame=FRAME_GREEN, tone='han', rise=26),
+    ]),
 }
 ABOUT = {
     'villa': ('bengal-brick', 'A brick villa in its own garden: a wing brought forward under a gable, a bay '
@@ -1211,8 +1693,14 @@ ABOUT = {
                               'picture window, the car under the same roof.'),
     'rendered': ('white-plaster', 'A rendered house of 1950 to 2000: two storeys under a low tiled roof, a balcony '
                                  'over the door, shutter boxes, a garage in the ground floor.'),
+    'cun-tile': ('white-plaster', 'A village house of the 1990s and 2000s: a concrete frame faced in white tile, '
+                                  'tinted glass, a red steel door between couplets, a flat roof with a balustrade.'),
+    'cun-brick': ('bengal-brick', 'A village house of red brick between concrete ring beams, painted steel windows, '
+                                  'under a grey tile roof.'),
 }
 FORMS = {k: 'cottage shop tall' for k in NEW}
+fmod.SCALES.update({'cun-tile': dict(cottage=('small', 0), shop=('small', 1), tall=('medium', 2)),
+                    'cun-brick': dict(cottage=('small', 0), shop=('small', 1), tall=('medium', 1))})
 fmod.LOOKS.update(NEW)
 fmod.ABOUT.update(ABOUT)
 fmod.FORMS.update(FORMS)

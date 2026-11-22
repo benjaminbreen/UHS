@@ -285,7 +285,7 @@ podium towers subclass it. Review with
 | `front_roman.py`, `front_classical.py`, `front_classical_props.py` | Roman houses, insulae, shops, domus, temples, thermae; watchtowers, shrines, street fittings |
 | `front_persian.py`, `front_westasia.py` | `compound`, the courtyard form; Iranian, Levantine, Arabian, Nile and Maghrebi houses |
 | `front_ancient.py` | Wires the Roman and Iranian frames to those builders |
-| `front_sinitic.py` | Chinese, Korean and Japanese houses, halls, compounds, shops, temples, theatres |
+| `front_sinitic.py` | Chinese (Yunnan adobe among them), Korean and Japanese houses, halls, compounds, shops, temples, theatres |
 | `front_southasia.py`, `front_seasia.py` | Havelis, Bengal and Malabar houses; Southeast Asian houses on posts |
 | `front_africa.py`, `front_andes.py`, `front_pacific.py`, `front_orthodox.py` | West and Central African houses and the kay; Inca houses; the fare; Byzantine and Rus town houses |
 | `front_huts.py`, `front_tents.py`, `front_mudbrick.py`, `front_meso.py` | Huts, lodges, round and long houses; black tents; early mud-brick in five regions; Maya and Nahua houses |
@@ -297,7 +297,7 @@ podium towers subclass it. Review with
 | `front_modern.py`, `front_modern_world.py`, `front_europe.py` | The 1900–1990 street; European city houses of 1700–1850 |
 | `front_victorian.py` | The city centre of 1850–1914 in the British and American manner: `chambers`, `emporium` and `pub`. `light` draws a sash under a flat, round or pointed head in its ring of stone; `rustic`, `cornice`, `pediment`, `ledge` and `urn` are its other parts |
 | `front_straits.py` | Rows of the South China Sea, 1820–1965: `shophouse`, `shophouse-late`, `shophouse-deco` over a covered walk, each unit in its own wash, and the Shanghai `lilong`. `shutter_window`, `fan` and `roof_tiles` are its parts |
-| `front_homes.py` | Houses in gardens, 1850 on: villas in brick, stucco and weatherboard, the suburban house, bungalow, ranch house and rendered house. `Home` is the base for a detached house; `gable`, `hip`, `bay_window`, `veranda`, `pier_post`, `casement` and `garage_door` are its parts |
+| `front_homes.py` | Houses in gardens, 1850 on: villas in brick, stucco and weatherboard, the suburban house, bungalow, ranch house and rendered house; the Chinese village house in brick and in white tile (`Cun`). `Home` is the base for a detached house; `gable`, `hip`, `bay_window`, `veranda`, `pier_post`, `casement` and `garage_door` are its parts |
 | `front_audit.py`, `front_review.py` | Checks, as advice; review sheets beside the pinned gold masters |
 
 All of these are in `scripts/art/`. Each module's `__main__` draws its own

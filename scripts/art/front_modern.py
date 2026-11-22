@@ -5303,9 +5303,13 @@ FORMS = dict(
 FORMS.update({'brick-mx': FORMS['brick'], 'brick-cn': FORMS['brick'], 'strip-mx': FORMS['strip'],
               'strip-asia': FORMS['strip']})
 
+SCALES = {}
+
+
 def register():
     front_family.register('mod', {k: dict(label=L[1], about=ABOUT[k][1], wall=ABOUT[k][0], roof='flat',
-                                          variants=len(L[2]), forms=set(FORMS[k].split()))
+                                          variants=len(L[2]), forms=set(FORMS[k].split()),
+                                          **({'scales': SCALES[k]} if k in SCALES else {}))
                                   for k, L in LOOKS.items()}, house)
 
 

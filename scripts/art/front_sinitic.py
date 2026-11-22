@@ -11,6 +11,8 @@ drip tiles along the eave. What makes a region is the spec, from STYLES:
 
   south-chinese  lime-washed walls, black tile, horse-head end walls stepped
                  above the roof, a stone door frame under a little tiled hood
+  yunnan         red adobe in sun-dried blocks, two storeys under a tiled pent
+                 roof where means allow; the plateau from the Ming conquest
   north-chinese  grey brick, red posts, grey tile, plain gables, painted beams
   early-chinese  rammed earth in its courses, black lacquer, a straight hipped
                  roof of big tiles with round cloud-pattern end caps
@@ -46,6 +48,7 @@ WHITE = ramp(95, 0.011, lift=0.08)                          # lime wash
 GREY_BRICK = ramp(248, 0.012, warm=8, cool=4, lift=-0.06)  # qingzhuan, blue-grey brick
 MORTAR = ramp(85, 0.012, lift=0.02)
 EARTH = ramp(66, 0.06, lift=-0.02)                          # rammed loess
+ADOBE = ramp(44, 0.075, lift=-0.08)                         # Yunnan red earth, sun-dried
 STONE = ramp(236, 0.013, warm=8, cool=10, lift=-0.04)       # granite steps and plinths
 DARK_STONE = ramp(240, 0.01, cool=4, lift=-0.16)                    # the south's door frames
 TIMBER = ramp(50, 0.07, lift=-0.08)                         # bare pine, Korea and the poor
@@ -260,6 +263,18 @@ class Hall:
                     if h2(xx // 9, lay, 641) < 0.18 and (yy - y) % 7 not in (0, 1):
                         q = 3
                     c.p(xx, yy, EARTH[q])
+        elif kind == 'adobe':
+            # Yunnan's red earth in sun-dried blocks, mud joints a step down and broken.
+            for yy in range(y, y + h):
+                row, ly = (yy - y) // 6, (yy - y) % 6
+                for xx in range(x, x + w):
+                    lx = (xx - x + (row % 2) * 6) % 12
+                    q = 2 + (h2((xx - x + (row % 2) * 6) // 12, row, 643) < 0.22)
+                    if (ly == 5 or lx == 11) and h2(xx // 2, yy, 644) < 0.75:
+                        q = 4
+                    elif ly == 0:
+                        q -= 1
+                    c.p(xx, yy, ADOBE[q])
         elif kind == 'plaster-grey':
             fm.render(c, x, y, w, h, ramp(90, 0.016, lift=-0.02))
         elif kind == 'red':
@@ -798,7 +813,7 @@ class Hall:
         for side in (0, 1):
             x0 = self.x0 if side == 0 else self.x0 + self.W - wt
             for k in range(n):
-                y1 = round(bottom - k * step)
+                y1 = self.foot if k == 0 else round(bottom - k * step)
                 y0 = round(bottom - (k + 1) * step)
                 for y in range(y0 + cop, y1):
                     for x in range(x0, x0 + wt):
@@ -819,8 +834,12 @@ class Hall:
                 pal = {'a': r[1], 'b': r[2], 'c': r[4]}
                 glyph(c, x0 - 6, y0 - 2, head, pal)
                 glyph(c, x0 + wt + 2, y0 - 2, head, {'a': r[2], 'b': r[3], 'c': r[5]}, flip=True)
+            if s['wall'] == 'white':
+                fm.brick(c, x0, self.foot - 10, wt, 10, GREY_BRICK, mortar=MORTAR)
+                for xx in range(x0, x0 + wt):
+                    c.p(xx, self.foot - 11, STONE[2])
             if side == 0:
-                fp.cast_right(c, x0 + wt + 2, top + 6, eave, 3, 0.3)
+                fp.cast_right(c, x0 + wt + 2, top + 6, self.foot, 3, 0.3)
 
     # -------------------------------------------------------- build
 
@@ -828,6 +847,7 @@ class Hall:
         s, c = self.s, self.c
         self.terrace()
         foot = self.base - s['plinth']
+        self.foot = foot
         h0 = s['wall_h']
         top0 = foot - h0
         self.door_h = 44
@@ -2088,6 +2108,8 @@ BUILD = {'courtyard': lambda s, i=None: courtyard(s, i), 'gable': lambda s, i=No
 STYLES = {
     'south-chinese': dict(tone='dark', posts='dark', lattices=('ice', 'fret', 'grid'), curve=2, ridge='upturn',
                           hall_ridge='swallow', wall='white', gable='horse', floor='stone', tree=None),
+    'yunnan': dict(tone='dark', posts='dark', lattices=('grid', 'bars', 'lozenge'), curve=1, ridge='upturn',
+                   hall_ridge='swallow', wall='adobe', gable='earth', floor='stone', tree=None),
     'north-chinese': dict(tone='tile', posts='red', lattices=('lozenge', 'fret', 'grid'), curve=1, ridge='upturn',
                           hall_ridge='chiwen', wall='brick', gable='brick', floor='brick', tree='pomegranate'),
     'early-chinese': dict(tone='han', posts='black', lattices=('bars', 'bars', 'lozenge'), curve=0, ridge='plain',
@@ -2145,6 +2167,14 @@ def house_spec(p, size, v, w, W, fn):
                         ridge='plain', door='leaves', plinth=4)
         return dict(base, form='hip', front='timber', sill='brick', door='leaves', plinth=8 if size == 'medium' else 14,
                     beam='red' if w > 1 else 'bare', wall='earth', lanterns=False)
+    if p == 'yunnan':
+        # The earth house of the Kunming basin: red adobe, two storeys under a
+        # tiled pent roof when means allow, the yikeyin courtyard at the top.
+        two = size in ('medium', 'grand') or (size == 'small' and v > 0)
+        return dict(base, form='gable', front='wall', wall='adobe', door='plain' if poor else 'leaves',
+                    roof='thatch' if size == 'tiny' and poor else 'tile', storeys=2 if two else 1,
+                    rise=30 if two else None, pent=two, bays=3 if W > 120 else 1, couplets=not poor,
+                    plinth=10 if size == 'grand' else 6, beam='red' if size == 'grand' else 'bare')
     north = p == 'north-chinese'
     if size == 'tiny' or (size == 'small' and poor):
         return dict(base, form='gable', front='wall', wall=st['wall'], roof='thatch' if poor and v % 2 == 0 else 'tile',

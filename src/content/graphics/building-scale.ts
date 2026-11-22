@@ -13,6 +13,7 @@ export type BuildingScaleContext = {
   rural?: boolean;
   /** Target architectural wealth tier (0 humble, 1 middling, 2 grand). */
   wealthTier?: 0 | 1 | 2;
+  year?: number;
 };
 
 type RegionalModel = {
@@ -165,7 +166,12 @@ export function chooseBuildingFrame(
   scaleRoll: number,
   variantRoll: number,
 ) {
-  const homes = frames.filter((frame) => !isServiceFrame(frame));
+  // A one-room hut (kitchen, store or widow's house) is a family's home only
+  // on the poorest lots before modern building; elsewhere it read as a shed.
+  const hut = (frame: string) =>
+    (buildingModels[frame] as RegionalModel | undefined)?.goldScale === "tiny" &&
+    ((context.year ?? 0) >= 1900 || (context.wealth ?? 48) >= 25);
+  const homes = frames.filter((frame) => !isServiceFrame(frame) && !hut(frame));
   let candidates = homes.length ? homes : frames;
   if (context.rural) {
     const ruralHomes = candidates.filter((frame) => !isUrbanRegionalFrame(frame));

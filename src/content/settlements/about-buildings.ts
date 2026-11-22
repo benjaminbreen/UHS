@@ -78,6 +78,8 @@ const FAMILY: Record<string, string> = {
   "theatre-globe": "A playhouse, open to the sky in the middle, where crowds come to watch plays.",
   "theatre-court-opera": "A court theatre, where opera and plays are staged.",
   "study-": "A house.",
+  "mod-cun-tile": "A tiled concrete village house, with tinted windows, a red or steel door between couplets and a flat roof to dry grain on.",
+  "mod-cun-brick": "A red-brick village house, its floors marked by concrete ring beams, under a grey tile roof.",
 };
 const families = Object.keys(FAMILY).sort((a, b) => b.length - a.length);
 const META =
@@ -85,11 +87,12 @@ const META =
 
 export function aboutBuilding(frame: string, wall: string, description: string) {
   const form = /-urban-([a-z]+)/.exec(frame)?.[1];
-  if (form && FORM[form]) {
+  const family = families.find((f) => frame.startsWith(f));
+  // A modern family that names itself says more than its street form.
+  if (form && FORM[form] && !family?.startsWith("mod-")) {
     const m = WALL.find(([r]) => r.test(wall))?.[1] ?? "";
     return FORM[form].replace("{m} ", m ? `${m} ` : "");
   }
-  const family = families.find((f) => frame.startsWith(f));
   if (family) return FAMILY[family];
   const plain = description
     .replace(/ candidate\b/g, "")

@@ -10,7 +10,9 @@ A module registers a prefix, its looks and one builder:
 
     front_family.register('casa', {'oaxaca': dict(label=, about=, wall=, roof=, variants=3)}, house)
 
-A look may add `forms=` to bake only the street forms it is built in.
+A look may add `forms=` to bake only the street forms it is built in, and
+`scales={form: (goldScale, wealthTier)}` so the household picker
+(`chooseBuildingFrame`) sizes its forms by means as it does regional houses.
 
 `house(look, variant, form, cells, seed)` returns an unpainted object whose
 geometry is already settled (x0, W, base, floors, door_x, door_size), with
@@ -112,6 +114,10 @@ def adopt(recipes):
         cells = cells_for(fw)
         seed = zlib.crc32(re.sub(r'-(north|east|west)$', '', name).encode()) % 997
         h = FAMILIES[prefix]['build'](look, variant, form, cells, seed)
+        # A look that sizes its forms for the village picker: (scale, wealth tier).
+        scale = FAMILIES[prefix]['looks'][look].get('scales', {}).get(form)
+        if scale:
+            r.update(goldScale=scale[0], wealthTier=scale[1])
         r.update(frontFamily=[prefix, look, variant, form, cells, seed], front=True, footprint=[cells, fh],
                  entrance=[door_cell(h, cells), fh], stories=h.floors, height=h.floors * 31 + 24)
         n += 1

@@ -4215,6 +4215,7 @@ export function planSettlement(
         wealth: lotWealth,
         quarter: lot.quarter ?? (!urban && lotReach > 0.72 ? "edge" : undefined),
         rural: ruralLot,
+        year: pack.setting?.year,
       },
       rand("building-scale", j),
       rand("building", j),
@@ -4231,7 +4232,7 @@ export function planSettlement(
     // Old assets are only used south-facing until their oriented recipes are available.
     if (preferred === base && facing !== "south") continue;
     const alternatives = placed && organic && !urban && !camp && !lot.rect && buildingModel(preferred).opening !== "roof-hatch";
-    const toft = organic && !urban && !lot.rect && (pack.setting?.year ?? 0) < 1950, yardLot = placed && toft;
+    const toft = organic && !urban && !lot.rect && ((pack.setting?.year ?? 0) < 1950 || ruralLot), yardLot = placed && toft;
     // One building line to a street, with the odd house set a step back.
     const setback = (lot.deep ?? 0) + (alternatives
       ? 3 + Math.floor(rand("lane-setback", lot.road ?? "local") * 2) + (rand("setback", j) < 0.3 ? 1 : 0)

@@ -149,6 +149,7 @@ describe("culture families by region and date", () => {
     ["york", 1890, /^house-early-brick-/],
     ["rome", 1970, /^house-med-/],
     ["beijing", 1930, /^eastasian-/],
+    ["beijing", 1985, /^mod-cun-brick-/],
     ["delhi", 1930, /^southasian-/],
   ])("builds rural %s in %i without study-* fallbacks", (id, year, house) => {
     const s = { ...settingFor(byId(id), year), settlement: "farm" as const };

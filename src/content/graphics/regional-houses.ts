@@ -53,11 +53,41 @@ export function eastAsianHouseProfile(setting: WorldSetting): Profile {
   if (lon >= 130 && lat >= 30 && lat <= 46) return "japanese";
   if (lon >= 124 && lon < 131 && lat >= 33 && lat <= 40) return "korean";
   if (setting.year < 220) return "early-chinese";
+  // The adobe house of the Yunnan-Guizhou plateau, from the Ming conquest of 1382.
+  if (setting.year >= 1382 && lon >= 97 && lon < 106 && lat >= 21 && lat < 29.5) return "yunnan";
   return lat < 31 ? "south-chinese" : "north-chinese";
+}
+
+/** The village house of the People's Republic: red brick from the 1970s,
+ * white tile over a concrete frame from the reform years. A frame listed
+ * twice is picked twice as often. */
+function chineseModernHouses(year: number) {
+  const look = (name: string, weight: number) =>
+    Array.from({ length: weight }, () =>
+      [0, 1, 2].flatMap((v) => ["cottage", "shop", "tall"].map((f) => `mod-${name}-${v}-urban-${f}`)),
+    ).flat();
+  const brick = year < 1990 ? 3 : year < 2000 ? 2 : year < 2015 ? 1 : 0;
+  const tile = year < 1988 ? 0 : year < 1995 ? 1 : year < 2005 ? 2 : 3;
+  return [...look("cun-brick", brick), ...look("cun-tile", tile)];
 }
 
 export function eastAsianRegionalHouses(setting: WorldSetting) {
   const profile = eastAsianHouseProfile(setting);
+  if (setting.year >= 1970 && profile !== "japanese" && profile !== "korean") {
+    const earth = profile === "yunnan" && setting.year < 2015 ? frames("eastasian-house", profile) : [];
+    return [
+      ...chineseModernHouses(setting.year),
+      ...(setting.year < 2000 ? [...earth, ...earth] : earth),
+      ...frames("eastasian-service", profile === "yunnan" ? "south-chinese" : profile),
+    ];
+  }
+  if (profile === "yunnan")
+    return [
+      ...frames("eastasian-house", profile),
+      ...frames("eastasian-courtyard", "south-chinese"),
+      ...frames("eastasian-row", "south-chinese"),
+      ...frames("eastasian-service", "south-chinese"),
+    ];
   if (profile === "japanese")
     return [
       ...frames("eastasian-house", profile),

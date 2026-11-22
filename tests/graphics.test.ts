@@ -15,6 +15,7 @@ import modernBuildings from "../src/render/generated/modern-buildings.json" with
 import streetBuildings from "../src/render/generated/street-buildings.json" with { type: "json" };
 import minimapTones from "../src/render/generated/minimap-tones.json" with { type: "json" };
 import {
+  buildingScale,
   buildingScaleWeight,
   chooseBuildingFrame,
 } from "../src/content/graphics/building-scale";
@@ -192,6 +193,31 @@ it("south asian houses pair rural cottages with farmers and havelis with elite l
     0.2,
   );
   expect(elitePick).toMatch(/^southasian-courtyard-north-indian-(medium|large)-/);
+});
+
+it("one-room huts are homes only on the poorest pre-modern lots", async () => {
+  const { eastAsianRegionalHouses } = await import("../src/content/graphics/regional-houses");
+  const pool = eastAsianRegionalHouses({ lon: 102.7, lat: 25, year: 2002, settlement: "village" } as Parameters<typeof eastAsianRegionalHouses>[0]);
+  const pick = (year: number, wealth: number, variant: number) =>
+    chooseBuildingFrame(pool, { settlement: "village", density: 0.2, wealth, rural: true, year }, 0.1, variant);
+  for (let v = 0; v < 1; v += 0.05) expect(pick(2002, 15, v)).not.toContain("-tiny-");
+  expect([0, 0.3, 0.6, 0.9].some((v) => pick(600, 15, v).includes("-tiny-"))).toBe(true);
+});
+
+it("chinese villages build brick, then white tile, and Yunnan keeps its adobe", async () => {
+  const { eastAsianRegionalHouses } = await import("../src/content/graphics/regional-houses");
+  const { buildingModels } = await import("../src/content/graphics/models");
+  const at = (lon: number, lat: number, year: number) =>
+    eastAsianRegionalHouses({ lon, lat, year, settlement: "village" } as Parameters<typeof eastAsianRegionalHouses>[0]);
+  const has = (pool: string[], prefix: string) => pool.some((f) => f.startsWith(prefix));
+  const kunming1985 = at(102.7, 25, 1985), kunming2005 = at(102.7, 25, 2005), jinan2005 = at(117, 36.7, 2005);
+  expect(has(kunming1985, "mod-cun-brick-") && !has(kunming1985, "mod-cun-tile-")).toBe(true);
+  expect(has(kunming2005, "mod-cun-tile-") && has(kunming2005, "eastasian-house-yunnan-")).toBe(true);
+  expect(has(jinan2005, "eastasian-house-yunnan-")).toBe(false);
+  expect(has(at(102.7, 25, 1700), "mod-")).toBe(false);
+  expect(has(at(102.7, 25, 1700), "eastasian-house-yunnan-")).toBe(true);
+  for (const f of new Set(kunming2005)) expect(buildingModels[f], f).toBeTruthy();
+  expect(buildingScale("mod-cun-tile-0-urban-tall")).toBe("medium");
 });
 
 it("japanese regional houses pair rural minka with farmers and machiya with urban lots", async () => {

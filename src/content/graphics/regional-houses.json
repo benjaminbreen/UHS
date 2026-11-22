@@ -413,6 +413,33 @@
         "extras": ["stepped-gable", "blind", "couplets", "lanterns", "vat", "jar", "tree"]
       }
     },
+    "yunnan": {
+      "label": "Yunnan",
+      "detailSet": "south-chinese",
+      "wall": "mud-brick",
+      "roofMaterial": "giwa",
+      "roofStyle": "chinese",
+      "windowStyle": "wood-lattice",
+      "surfaceTreatments": ["earth", "limewash", "dark-sill"],
+      "parapetStyle": "stone-coping",
+      "accent": "#704235",
+      "motifStyle": "moon-gate-band",
+      "roofFeatures": ["ridge-finials", "roof-jars", "plain"],
+      "sino": {
+        "curve": 2,
+        "terrace": "stone",
+        "roofByTier": [["thatch", "tile"], ["tile"], ["tile"]],
+        "roofForms": {"hut": ["gable"], "house": ["gable"], "hall": ["gable", "xieshan"], "compound": ["gable"], "terrace-hall": ["xieshan"]},
+        "walls": [["plaster", "rammed-earth"], ["plaster"], ["plaster", "brick-dado"]],
+        "posts": [["dark-timber"], ["dark-timber", "lacquer-black"], ["lacquer-red", "dark-timber"]],
+        "lattice": ["ice", "fret", "grid"],
+        "ridgeEnds": ["upturn", "scroll", "scroll"],
+        "beamPaint": ["bare", "bare", "caihua"],
+        "tiles": ["tile-dark"],
+        "washes": ["plaster"],
+        "extras": ["stepped-gable", "blind", "couplets", "lanterns", "vat", "jar", "tree"]
+      }
+    },
     "japanese": {
       "label": "Japanese machiya",
       "detailSet": "japanese",
@@ -787,7 +814,7 @@
     "eastasian-house": {
       "source": "study-courtyard",
       "label": "Timber-frame house and hall",
-      "profiles": ["early-chinese", "north-chinese", "south-chinese", "korean", "japanese"],
+      "profiles": ["early-chinese", "north-chinese", "south-chinese", "yunnan", "korean", "japanese"],
       "function": "farm-household",
       "description": "A post-and-beam house of one to five bays under a thatched or tiled roof, from a one-room hut to a great hall on a raised terrace. Wall fabric, lacquer, lattice, tile and roof form are profile-driven; illustrative.",
       "sizes": {
