@@ -4,7 +4,7 @@ Sprites may span cells; collision footprints belong to world data, not opaque pi
 """
 from PIL import Image, ImageDraw, ImageFont
 from pathlib import Path
-import json, random, math, re
+import json, random, math, re, sys
 ROOT=Path(__file__).resolve().parent.parent
 OUT=ROOT/'public/packs'; OUT.mkdir(exist_ok=True,parents=True)
 S={}
@@ -236,22 +236,23 @@ d.arc((7,5,40,40),185,355,fill='#c1beaa',width=3)
 for x,y in [(11,12),(16,8),(22,6),(29,7),(35,10)]:d.line((x,y,x+1,y+3),fill='#818575')
 d.rectangle((0,0,47,3),fill='#d5cdb1');d.line((0,4,47,4),fill='#616b60')
 add('bridge-arch',im)
+from art.atlas import pack_atlas, timed, report_times, save_png, write_text
 from art_world import paint_world
-paint_world(S)
+with timed('world'):paint_world(S)
 from art.buildings import build_buildings
 from art.shadows import build_shadows
-buildings = build_buildings(ROOT, S)
-build_shadows(ROOT, S, buildings)
+with timed('buildings (incl. paint)'):buildings = build_buildings(ROOT, S, sys.argv[sys.argv.index('--only')+1].split(',') if '--only' in sys.argv else ())
+with timed('lighting masks'):build_shadows(ROOT, S, buildings)
 from art.fields import build_fields
-S.update(build_fields())
-from art.atlas import pack_atlas
+with timed('fields'):S.update(build_fields())
 # Voxel buildings cast their own shadows, from their geometry, on a page of their own.
 from art.voxel_kit import SHADOWS
 # Temples and mosques are drawn from the civic page and are the largest casts
 # of all; their shadows take a page that only the towns that have them load.
 civic_shadows={k:SHADOWS.pop(k) for k in list(SHADOWS) if re.match(r'[a-z-]+:religious-[a-z]+-(temple|mosque)-',k)}
-pack_atlas(SHADOWS, OUT, 'street-shadows', 2048)
-pack_atlas(civic_shadows, OUT, 'civic-shadows', 2048)
+with timed('pack'):
+    pack_atlas(SHADOWS, OUT, 'street-shadows', 2048)
+    pack_atlas(civic_shadows, OUT, 'civic-shadows', 2048)
 # Buildings pack separately. They are the largest sprites in the game and the
 # one family still growing; sharing a page with everything else is what put
 # the main atlas against its 4096px ceiling. The renderer already routes by
@@ -298,19 +299,21 @@ weather_frames={k:S.pop(k) for k in list(S) if _voxel(k) and k.endswith(('-snow'
 street_frames={k:S.pop(k) for k in list(S) if _voxel(k)}
 worksite_frames=_with_glow({k:S.pop(k) for k in list(buildings) if k in S and k.startswith('worksite-')})
 building_frames=_with_glow({k:S.pop(k) for k in list(buildings) if k in S})
-atlas=pack_atlas(S,OUT,'atlas')
-buildings_atlas=pack_atlas(building_frames,OUT,'buildings',paged=True)
-pack_atlas(worksite_frames,OUT,'worksites',paged=True)
+with timed('pack'):
+    atlas=pack_atlas(S,OUT,'atlas')
+    buildings_atlas=pack_atlas(building_frames,OUT,'buildings',paged=True)
+    pack_atlas(worksite_frames,OUT,'worksites',paged=True)
 from art.boats import build as build_boats
-build_boats()
-regional_atlas=pack_atlas(regional_frames,OUT,'regional-buildings',paged=True)
-camp_atlas=pack_atlas(camp_frames,OUT,'camp-buildings',paged=True)
-modern_atlas=pack_atlas(modern_frames,OUT,'modern-buildings',paged=True)
-street_atlas=pack_atlas(street_frames,OUT,'street-buildings',paged=True)
-pack_atlas(weather_frames,OUT,'street-weather',paged=True)
-civic_atlas=pack_atlas(civic_frames,OUT,'civic',paged=True)
-sacred_atlas=pack_atlas(sacred_frames,OUT,'sacred-buildings',paged=True)
-precinct_atlas=pack_atlas(precinct_frames,OUT,'precincts',paged=True)
+with timed('boats'):build_boats()
+with timed('pack'):
+    regional_atlas=pack_atlas(regional_frames,OUT,'regional-buildings',paged=True)
+    camp_atlas=pack_atlas(camp_frames,OUT,'camp-buildings',paged=True)
+    modern_atlas=pack_atlas(modern_frames,OUT,'modern-buildings',paged=True)
+    street_atlas=pack_atlas(street_frames,OUT,'street-buildings',paged=True)
+    pack_atlas(weather_frames,OUT,'street-weather',paged=True)
+    civic_atlas=pack_atlas(civic_frames,OUT,'civic',paged=True)
+    sacred_atlas=pack_atlas(sacred_frames,OUT,'sacred-buildings',paged=True)
+    precinct_atlas=pack_atlas(precinct_frames,OUT,'precincts',paged=True)
 print(f'Buildings atlas {buildings_atlas.size} ({len(building_frames)} frames); '
       f'regional atlas {regional_atlas.size} ({len(regional_frames)} frames); '
       f'camp atlas {camp_atlas.size} ({len(camp_frames)} frames); '
@@ -326,16 +329,19 @@ for n,x,y in [('house-roman-0',20,55),('house-roman-2',285,55),('house-mud-0',56
  im=ALL[n].resize((ALL[n].width*3,ALL[n].height*3),Image.Resampling.NEAREST);proof.paste(im,(x,y),im);d.text((x,y+im.height+6),{'human-0-0-2-0':'traveler','human-1-3-2-0':'farmer'}.get(n,n),fill='#b9b5aa')
 (ROOT/'artifacts').mkdir(exist_ok=True);proof.save(ROOT/'artifacts/art-proof.png')
 from art.page_sheets import SHEETS, page, write_tones
-for n in SHEETS:page(n)
-write_tones()
+with timed('pages'):
+    for n in SHEETS:page(n)
+with timed('tones'):write_tones()
 from art.stamp import write_stamp
 print(f'Art stamp {write_stamp(ROOT)}')
 print(f'Built {len(S)} original frames; atlas {atlas.size}.')
-names=[n for n,im in S.items() if im.size==(16,16) and not n.startswith(('edge-','bank-','ripple-','quay-','shadow-'))]
-tiles=Image.new('RGBA',(16*len(names),16))
-for i,n in enumerate(names):tiles.paste(S[n],(16*i,0))
-tiles.save(OUT/'terrain.png');(OUT/'terrain.json').write_text(json.dumps({n:i for i,n in enumerate(names)}))
+with timed('terrain'):
+ names=[n for n,im in S.items() if im.size==(16,16) and not n.startswith(('edge-','bank-','ripple-','quay-','shadow-'))]
+ tiles=Image.new('RGBA',(16*len(names),16))
+ for i,n in enumerate(names):tiles.paste(S[n],(16*i,0))
+ save_png(tiles,OUT/'terrain.png');write_text(OUT/'terrain.json',json.dumps({n:i for i,n in enumerate(names)}))
 
 # Vite imports source manifests; Phaser fetches public copies. Both are generated here.
 generated=ROOT/'src/render/generated';generated.mkdir(exist_ok=True,parents=True)
-for name in ['atlas.json','worksites.json','buildings.json','regional-buildings.json','camp-buildings.json','modern-buildings.json','street-buildings.json','street-weather.json','civic.json','sacred-buildings.json','precincts.json','terrain.json']:(generated/name).write_bytes((OUT/name).read_bytes())
+for name in ['atlas.json','worksites.json','buildings.json','regional-buildings.json','camp-buildings.json','modern-buildings.json','street-buildings.json','street-weather.json','civic.json','sacred-buildings.json','precincts.json','terrain.json']:write_text(generated/name,(OUT/name).read_text())
+report_times()

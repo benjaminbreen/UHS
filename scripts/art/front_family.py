@@ -143,6 +143,10 @@ class FrontFamilyPainter:
                                  shop_signs=getattr(h, 'shop_signs', None))
         self.__dict__.update(_PAINTED[key])
 
+    @staticmethod
+    def painted_by(r):
+        return load()[r['frontFamily'][0]]['build']
+
     def render(self):
         return self.image
 

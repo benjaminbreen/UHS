@@ -425,18 +425,23 @@ def footprint(info):
 
 
 def game_recipes(recipes):
+    from art.buildings import remember
     template = recipes['religious-mesopotamian-temple-small-0']
     for name, recipe, scale, look, kind, spec, builders in entries():
-        im, info = paint(kind, spec, builders)
-        fw, fh = footprint(info)
-        door = min(fw - 1, max(0, (info['door_x'] - info['x0']) // 16))
+        group = group_of(builders)
+
+        def measure():
+            im, info = paint(kind, spec, builders)
+            return footprint(info), info['door_x'] - info['x0'], im.height
+        (fw, fh), door_x, height = remember(['sacred', kind, spec, group], module(group).__name__, measure)
+        door = min(fw - 1, max(0, door_x // 16))
         recipes[name] = {
             **{k: v for k, v in template.items() if k not in ('shadowFrame', 'sacredVoxel', 'style', 'roofVoid')},
             'label': spec.get('label', recipe.replace('-', ' ').capitalize()),
             'description': spec.get('description', ''),
             'family': recipe, 'recipe': recipe, 'religious': True, 'front': True,
-            'frontAncient': ('sacred', dict(kind=kind, spec=spec, group=group_of(builders))),
-            'footprint': [fw, fh], 'entrance': [door, fh], 'height': im.height,
+            'frontAncient': ('sacred', dict(kind=kind, spec=spec, group=group)),
+            'footprint': [fw, fh], 'entrance': [door, fh], 'height': height,
             'roof': spec.get('roof', 'gable')}
     for m in modules():
         for name, (kind, spec) in getattr(m, 'HALLS', {}).items():

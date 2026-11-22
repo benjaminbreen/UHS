@@ -8,6 +8,7 @@ so a rebuild busts the cache and an unchanged rebuild does not.
 import hashlib
 import json
 from pathlib import Path
+from art.atlas import write_text
 
 ATLASES = ['public/packs/harbor.png', 'public/props/trains.png', 'public/packs/boats.png', 'public/packs/worksites.png', 'public/packs/atlas.png', 'public/packs/buildings.png',
            'public/packs/regional-buildings.png', 'public/packs/precincts.png', 'public/packs/civic.png',
@@ -28,5 +29,5 @@ def write_stamp(root):
         if path.exists():
             digest.update(path.read_bytes())
     out = root / 'src/render/generated/art-version.json'
-    out.write_text(json.dumps({'stamp': digest.hexdigest()[:10]}))
+    write_text(out, json.dumps({'stamp': digest.hexdigest()[:10]}))
     return digest.hexdigest()[:10]

@@ -416,5 +416,9 @@ class FrontAncientPainter:
         self.bottom = info['base'] + 1
         _PAINTED[key] = dict(self.__dict__)
 
+    @staticmethod
+    def painted_by(r):
+        return BUILDERS[r['frontAncient'][0]]
+
     def render(self):
         return self.image

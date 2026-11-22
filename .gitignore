@@ -9,7 +9,8 @@ mystic_woods_free_2/
 Desert Tileset 32x32/
 SWAMP TILESET 32x32.png
 
-.venv/
+.venv
+.cache/
 scripts/source-cache/
 *.tsbuildinfo
 

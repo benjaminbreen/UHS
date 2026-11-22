@@ -47,6 +47,12 @@ Outdoor play uses a mild tilt-shift by default. A broad band around the player s
 
 `npm run art` rebuilds the building atlases into `public/packs/`. Generated
 atlases and models are committed, so playing and building need no Python.
+Each building frame is cached in `.cache/bake/paint/`, keyed on its recipe and
+the source its painter imports (a dispatching painter such as `front_family`
+names the module that draws each recipe with `painted_by`), so a rebuild
+repaints only what changed; `npm run art -- --only meso-,mod-` repaints the
+frames with those prefixes anyway. Pages keep each unchanged frame where it
+was, and no PNG or JSON is rewritten when its contents are the same.
 
 The 16px terrain cell is the sampling unit. Collision comes from footprints,
 never from opaque pixels.

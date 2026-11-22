@@ -3,10 +3,18 @@ Recipes own materials/forms; neither this compiler nor the runtime knows an era.
 """
 import os
 import re
+import ast
 import json
+import pickle
 import random
+import hashlib
+import builtins
+import contextlib
+from pathlib import Path
+import PIL
 from PIL import Image, ImageDraw
 from art.roof_light import course_tone
+from art.atlas import timed, write_text, freeze, thaw
 
 # Tone by position rather than by coin toss, so a roof carries the light.
 # Off only for the before/after in scripts/art/relight_proof.py.
@@ -337,13 +345,125 @@ def door_rect(artist):
 
 
 _PAINT=None
+# Per-frame paint cache. A frame's entry is keyed on its recipe and records
+# the source files its painting used, with their digests; it is reused while
+# those files are unchanged.
+_KEYS,_BASE={},{}
+_FORCE=()
+CACHE=Path(__file__).resolve().parents[2]/'.cache/bake/paint'
+ART=Path(__file__).resolve().parent
+# Data a module names for itself; this bake's own outputs are not its inputs.
+DATA=re.compile(r"['\"]((?:src|scripts|public)/[^'\"{}*]+\.\w+)['\"]")
+
+
+def _source(mod):
+    path=ART/(mod[4:]+'.py') if mod.startswith('art.') else ART.parent/(mod+'.py')
+    return path if path.exists() else None
+
+
+_EDGES,_CLOSURES,_HASHES={},{},{}
+
+
+def _module_imports(path):
+    """Modules a file imports when it loads, and the data files it names.
+    Imports inside functions are caught as they run, by _paint_group."""
+    mods=set()
+    for stmt in ast.parse(path.read_text()).body:
+        if isinstance(stmt,(ast.FunctionDef,ast.AsyncFunctionDef,ast.ClassDef)):continue
+        for node in ast.walk(stmt):
+            if isinstance(node,ast.Import):mods|={a.name for a in node.names}
+            elif isinstance(node,ast.ImportFrom) and node.module:
+                mods.add(node.module)
+                if node.module=='art':mods|={'art.'+a.name for a in node.names}
+            elif (isinstance(node,ast.Call) and getattr(node.func,'id',None)=='__import__'
+                  and node.args and isinstance(node.args[0],ast.Constant)):mods.add(node.args[0].value)
+    root=ART.parents[1]
+    data={root/rel for rel in DATA.findall(path.read_text())
+          if not rel.startswith(('public/packs/','src/render/generated/')) and '.generated.' not in rel}
+    return mods,{d for d in data if d.is_file()}
+
+
+def _closure(mod):
+    if mod in _CLOSURES:return _CLOSURES[mod]
+    seen,todo,files=set(),[mod],set()
+    while todo:
+        m=todo.pop()
+        if m in seen or not (path:=_source(m)):continue
+        seen.add(m)
+        if path not in _EDGES:_EDGES[path]=_module_imports(path)
+        mods,data=_EDGES[path]
+        files|={path,*data};todo+=mods
+    _CLOSURES[mod]=frozenset(files)
+    return _CLOSURES[mod]
+
+
+def _hash(path):
+    if path not in _HASHES:_HASHES[path]=hashlib.md5(path.read_bytes()).hexdigest() if path.exists() else ''
+    return _HASHES[path]
+
+
+def painted_from(r, painter):
+    """The files a painter is known to use before it runs. A dispatching
+    painter may name, per recipe, the function that draws it, so editing one
+    family's module repaints that family alone."""
+    hook=getattr(painter,'painted_by',None)
+    if hook:return _closure(hook(r).__module__)|{_source(painter.__module__)}
+    return _closure(painter.__module__)
+
+
+def _cached(name):
+    path=CACHE/f'{_KEYS[name]}.pkl'
+    if name.startswith(_FORCE) or not path.exists():return None
+    try:
+        deps,out,shadows,model=pickle.loads(path.read_bytes())
+        if any(_hash(Path(f))!=h for f,h in deps.items()):return None
+        return {k:thaw(v) for k,v in out.items()},{k:thaw(v) for k,v in shadows.items()},model
+    except Exception:return None
+
+
+@contextlib.contextmanager
+def _watch():
+    ran=set()
+    real=builtins.__import__
+    def spy(name,globals=None,locals=None,fromlist=(),level=0):
+        ran.add(name);ran.update(f'{name}.{f}' for f in fromlist or ())
+        return real(name,globals,locals,fromlist,level)
+    builtins.__import__=spy
+    try:yield ran
+    finally:builtins.__import__=real
+
+
+def remember(parts, mod, fn):
+    """fn(), kept across bakes until a file mod or fn imports changes."""
+    path=CACHE.parent/'facts'/(hashlib.md5(json.dumps(parts,sort_keys=True,default=repr).encode()).hexdigest()+'.pkl')
+    try:
+        deps,out=pickle.loads(path.read_bytes())
+        if all(_hash(Path(f))==h for f,h in deps.items()):return out
+    except Exception:pass
+    with _watch() as ran:out=fn()
+    deps={str(f):_hash(f) for f in _closure(mod).union(*(_closure(m) for m in ran))}
+    path.parent.mkdir(parents=True,exist_ok=True)
+    tmp=path.with_suffix(f'.{os.getpid()}.tmp');tmp.write_bytes(pickle.dumps((deps,out)));os.replace(tmp,path)
+    return out
 
 
 def _paint_group(names):
-    return [(n,_PAINT(n)) for n in names]
+    got={n:_cached(n) for n in names}
+    todo=[n for n in names if got[n] is None]
+    if todo:
+        with _watch() as ran:painted={n:_PAINT(n) for n in todo}
+        files=set().union(*(_BASE[n] for n in todo),*(_closure(m) for m in ran))
+        deps={str(f):_hash(f) for f in files}
+        for n,(out,shadows,model) in painted.items():
+            path=CACHE/f'{_KEYS[n]}.pkl';tmp=path.with_suffix(f'.{os.getpid()}.tmp')
+            tmp.write_bytes(pickle.dumps((deps,{k:freeze(v) for k,v in out.items()},
+                                          {k:freeze(v) for k,v in shadows.items()},model)))
+            os.replace(tmp,path)
+        got.update(painted)
+    return [(n,got[n],n not in todo) for n in names]
 
 
-def build_buildings(root, sprites):
+def build_buildings(root, sprites, only=()):
     source=json.loads((root/'src/content/graphics/buildings.json').read_text())
     phases=json.loads((root/'src/content/graphics/lighting.json').read_text())
     source['materials'].update(json.loads((root/'src/content/graphics/urban.json').read_text()).get('materials',{}))
@@ -419,12 +539,8 @@ def build_buildings(root, sprites):
             recipes[name+'-'+facing]={**r,'facing':facing,'entrance':entrance,'label':r['label']+' · '+facing,
                                       # Same silhouette whichever way it faces, so one set of cast masks.
                                       **({'shadowFrame':r.get('shadowFrame',name)} if r.get('oblique') or r.get('obliqueModern') or r.get('sacredVoxel') else {})}
-    def paint(name):
-        """One frame: its sprites in the order the atlas takes them, the
-        casts a voxel painter makes, and its model."""
-        r=recipes[name]
-        out,shadows={},{}
-        painter=(FrontWorksitePainter if r.get('frontWorksite') else
+    def painter_for(r):
+        return (FrontWorksitePainter if r.get('frontWorksite') else
                  FrontFamilyPainter if r.get('frontFamily') else
                  FrontAncientPainter if r.get('frontAncient') else
                  FrontHousePainter if r.get('frontHouse') else
@@ -451,7 +567,14 @@ def build_buildings(root, sprites):
                  TheatreBuilding if r.get('theatre') else
                  HallBuilding if r.get('hall') else
                  UrbanBuilding if r.get('urban') else Building)
-        artist=painter(r,source['materials'].get(r['wall'],source['materials']['grey-brick']))
+    def material(r):
+        return source['materials'].get(r['wall'],source['materials']['grey-brick'])
+    def paint(name):
+        """One frame: its sprites in the order the atlas takes them, the
+        casts a voxel painter makes, and its model."""
+        r=recipes[name]
+        out,shadows={},{}
+        artist=painter_for(r)(r,material(r))
         im=artist.render()
         out[name]=im
         # Lit rooms after dark, drawn by the painter; turned copies share it.
@@ -551,17 +674,26 @@ def build_buildings(root, sprites):
         return out,shadows,model
     # Every frame paints alone, so the cores share them: a building and its
     # turned copies go to one worker, which paints a shared spec only once.
-    global _PAINT
+    global _PAINT,_FORCE
     _PAINT=paint
+    _FORCE=tuple(only)
+    salt=[_hash(Path(__file__).resolve()),_hash(root/'src/content/graphics/lighting.json'),PIL.__version__]
+    for name,r in recipes.items():
+        _KEYS[name]=hashlib.md5(json.dumps([salt,name,r,material(r)],sort_keys=True,default=repr).encode()).hexdigest()
+        _BASE[name]=painted_from(r,painter_for(r))
+    CACHE.mkdir(parents=True,exist_ok=True)
     groups={}
     for name in recipes:groups.setdefault(re.sub(r'-(north|east|west)$','',name),[]).append(name)
     jobs=int(os.environ.get('UHS_BAKE_JOBS') or os.cpu_count() or 1)
-    if jobs>1:
+    with timed('paint'):
+     if jobs>1:
         import multiprocessing as mp
         with mp.get_context('fork').Pool(jobs) as pool:
-            done=dict(kv for part in pool.imap_unordered(_paint_group,list(groups.values()),chunksize=4) for kv in part)
-    else:
-        done=dict(kv for g in groups.values() for kv in _paint_group(g))
+            done=[got for part in pool.imap_unordered(_paint_group,list(groups.values()),chunksize=4) for got in part]
+     else:
+        done=[got for g in groups.values() for got in _paint_group(g)]
+    print(f'Painted {sum(not hit for *_,hit in done)} of {len(done)} building frames; the rest from {CACHE.relative_to(root)}.')
+    done={n:got for n,got,hit in done}
     from art.voxel_kit import SHADOWS
     for name in recipes:
         out,shadows,model=done[name]
@@ -570,6 +702,6 @@ def build_buildings(root, sprites):
         models[name]=model
     # Not buildings.json: that name belongs to the packed atlas, which is
     # written later in the build and would silently clobber this.
-    (root/'public/packs/models.json').write_text(json.dumps(models))
-    (root/'src/content/graphics/models.generated.json').write_text(json.dumps(models))
+    write_text(root/'public/packs/models.json',json.dumps(models))
+    write_text(root/'src/content/graphics/models.generated.json',json.dumps(models))
     return models

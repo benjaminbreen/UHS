@@ -2,10 +2,11 @@
 This is a 2.5D silhouette approximation: source height maps to authored world height.
 Building ground depth keeps a projected house from collapsing to a narrow stripe.
 """
-import json, math, os
+import hashlib, json, math, os, pickle
+from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
-from art.atlas import pack_atlas
+from art.atlas import pack_atlas, freeze, thaw
 
 BUILDING_CAST_CAP=0.55
 # Shadow leans cool, as palette.json's shadow hue does; flat grey reads as a hole.
@@ -138,16 +139,38 @@ def build_shadows(root, sprites, buildings, output=None, atlas_name='lighting-sh
         groups.setdefault(key,[]).append(name)
     aliases=list(groups.values())
     picked=[names[0] for names in aliases]
+    # A mask depends on the silhouette, the model's casting fields, the
+    # phases and this file, so unchanged sprites take last bake's masks.
+    cache=root/'.cache/bake/masks';cache.mkdir(parents=True,exist_ok=True)
+    salt=Path(__file__).read_bytes()+json.dumps(phases,sort_keys=True).encode()
+    def key(name):
+        source=sprites[name];model=buildings.get(name)
+        info={k:source.info.get(k) for k in ('shadowMinY','upright','shadowAnchor')}
+        fields=[model['shadow']['height'],model['footprint'],model['anchor'],model.get('shadowFrame')] if model else None
+        h=hashlib.md5(salt);h.update(json.dumps([name=='fire',source.size,info,fields],default=repr).encode())
+        h.update(source.getchannel('A').point(lambda a:255 if a>200 else 0).tobytes())
+        return cache/f'{h.hexdigest()}.pkl'
+    paths=[key(name) for name in picked]
+    cast=[None]*len(picked)
+    for i,path in enumerate(paths):
+        if path.exists():
+            try:cast[i]=[(k,thaw(v)) for k,v in pickle.loads(path.read_bytes())]
+            except Exception:pass
+    todo=[i for i,c in enumerate(cast) if c is None]
     # Each sprite's masks are independent, so the cores share them.
     global _JOB
     _JOB=(sprites,buildings,phases)
     jobs=int(os.environ.get('UHS_BAKE_JOBS') or os.cpu_count() or 1)
-    if jobs>1:
+    if jobs>1 and len(todo)>1:
         import multiprocessing as mp
         with mp.get_context('fork').Pool(jobs) as pool:
-            cast=pool.map(_cast,picked,chunksize=8)
+            fresh=pool.map(_cast,[picked[i] for i in todo],chunksize=8)
     else:
-        cast=[_cast(name) for name in picked]
+        fresh=[_cast(picked[i]) for i in todo]
+    for i,part in zip(todo,fresh):
+        cast[i]=part
+        paths[i].write_bytes(pickle.dumps([(k,freeze(im)) for k,im in part]))
+    print(f'Cast {len(todo)} of {len(picked)} silhouettes; the rest from {cache.relative_to(root)}.')
     result={f"{key.split(':',1)[0]}:{name}":im
             for names,part in zip(aliases,cast) for key,im in part for name in names}
     # Worksite casts are many and large; they page in with the towns that have them.
