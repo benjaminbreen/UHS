@@ -29,11 +29,11 @@ export function tellMemory(worker: Worker) {
 
 /**
  * Terrain workers to run at once. Each one holds its own copy of the world and
- * its own copy of the module graph, so this is the largest memory dial there
- * is.
+ * its own copy of the module graph, so phones raster terrain time-sliced on the
+ * main thread rather than duplicating the world in a worker.
  */
 export function workerBudget() {
-  if (smallMemoryDevice()) return 1;
+  if (smallMemoryDevice()) return 0;
   // Three, not six: load time measured the same with 2, 3 and 6, because each
   // worker first parses ~9MB of geography and rebuilds the world.
   return Math.min(3, Math.max(1, (navigator.hardwareConcurrency ?? 4) - 1));

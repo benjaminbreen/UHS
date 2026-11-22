@@ -21,6 +21,7 @@ const moisture = [
 ];
 // Looked up in the run-length form: expanding it would hold 9 MB of cells
 // for the life of the page.
+const { width, height, cellsPerDegree } = grid;
 const count = grid.runs.length / 2;
 const starts = new Int32Array(count);
 const values = new Uint8Array(count);
@@ -29,12 +30,13 @@ for (let i = 0, at = 0; i < count; i++) {
   values[i] = grid.runs[i * 2 + 1];
   at += grid.runs[i * 2];
 }
+grid.runs.length = 0;
 
 function climateCell(lon: number, lat: number) {
   if (!Number.isFinite(lon) || !Number.isFinite(lat)) return 0;
-  const x = Math.max(0, Math.min(grid.width - 1, Math.floor((lon + 180) * grid.cellsPerDegree)));
-  const y = Math.max(0, Math.min(grid.height - 1, Math.floor((90 - lat) * grid.cellsPerDegree)));
-  const cell = y * grid.width + x;
+  const x = Math.max(0, Math.min(width - 1, Math.floor((lon + 180) * cellsPerDegree)));
+  const y = Math.max(0, Math.min(height - 1, Math.floor((90 - lat) * cellsPerDegree)));
+  const cell = y * width + x;
   let lo = 0,
     hi = count - 1;
   while (lo < hi) {

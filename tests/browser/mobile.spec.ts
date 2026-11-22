@@ -6,7 +6,7 @@ test.use({
   isMobile: true,
 });
 
-test("a custom phone start releases the unused prewarmed world", async ({ page }) => {
+test("a custom phone start runs one retiring world worker and no terrain worker", async ({ page }) => {
   await page.addInitScript(() => {
     const w = window as any, Native = window.Worker;
     w.worldWorkers = [];
@@ -27,15 +27,17 @@ test("a custom phone start releases the unused prewarmed world", async ({ page }
     };
   });
   await page.goto("/");
-  await expect.poll(() => page.evaluate(() => (window as any).worldWorkers.length), { timeout: 60000 }).toBeGreaterThan(0);
+  await expect(page.getByRole("button", { name: "Choose starting details" })).toBeVisible();
+  expect(await page.evaluate(() => (window as any).worldWorkers.length)).toBe(0);
   await page.getByRole("button", { name: "Choose starting details" }).click();
   const setup = page.getByRole("dialog", { name: "Create a world" });
   await setup.getByLabel("Describe your starting situation").fill("A Roman baker in Rome, 100 CE");
   await setup.getByRole("button", { name: "Begin", exact: true }).click();
   await page.getByRole("button", { name: /Enter life/ }).click({ timeout: 120000 });
   await expect(page.locator(".game-container canvas")).toHaveAttribute("data-terrain-ready", "true", { timeout: 60000 });
-  expect(await page.evaluate(() => (window as any).worldWorkers.length)).toBeGreaterThanOrEqual(3);
+  expect(await page.evaluate(() => (window as any).worldWorkers.length)).toBe(1);
   expect(await page.evaluate(() => (window as any).maxWorldWorkers)).toBe(1);
+  expect(await page.evaluate(() => (window as any).worldWorkers.filter((r: { alive: boolean }) => r.alive).length)).toBe(0);
   const clears = await page.evaluate(() => {
     const scene = (window as any).uhsGame.scene.getScene("world");
     const s = scene.runtime.engine.state, plot = s.plot;
@@ -199,7 +201,7 @@ test("pinch zooms the world and a tap still walks", async ({ page, browserName }
           ),
       };
     }),
-  ).toEqual({ terrainWorkers: 1, characterWorkers: 1, shadows: false, tiltShiftMatchesRenderer: true });
+  ).toEqual({ terrainWorkers: 0, characterWorkers: 1, shadows: false, tiltShiftMatchesRenderer: true });
   // Without this the browser pinch-zooms the page over the game instead.
   await expect(canvas).toHaveCSS("touch-action", "none");
   expect(

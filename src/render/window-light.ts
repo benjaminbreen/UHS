@@ -1,4 +1,6 @@
 import type Phaser from "phaser";
+import { smallMemoryDevice } from "../runtime/device";
+import { addPixelTexture, releaseCanvas } from "./resources";
 
 /** A lamp-lit copy of a building's window panes, found in its own art: the
  * painters leave glass dark blue or teal in a lighter frame. Undefined when
@@ -32,6 +34,7 @@ export function windowGlow(
     h,
   );
   const px = rctx.getImageData(0, 0, w, h).data;
+  releaseCanvas(read);
   const lum = (i: number) => (px[i * 4] + px[i * 4 + 1] + px[i * 4 + 2]) / 3;
   const glass = new Uint8Array(w * h);
   for (let y = 0; y < h; y++)
@@ -94,17 +97,14 @@ export function windowGlow(
     misses.add(key);
     return undefined;
   }
-  const tex = scene.textures.createCanvas(key, w, h)!;
-  const ctx = tex.getContext();
-  const image = ctx.createImageData(w, h);
+  const pixels = new Uint8Array(w * h * 4);
   for (let i = 0; i < out.length; i++) {
     if (!out[i]) continue;
     // Brighter at the sill, where the lamp sits below the sash.
     const low = out[i + w] ? 0 : 1;
-    image.data.set(low ? [255, 214, 130, 255] : [255, 176, 84, 235], i * 4);
+    pixels.set(low ? [255, 214, 130, 255] : [255, 176, 84, 235], i * 4);
   }
-  ctx.putImageData(image, 0, 0);
-  tex.refresh();
+  addPixelTexture(scene, key, w, h, pixels);
   return key;
 }
 const misses = new Set<string>();
@@ -144,48 +144,59 @@ const halos = new Map<string, { key: string; pane: string; pad: number; pools: {
 export function windowHalo(scene: Phaser.Scene, texture: string, frame?: string) {
   const id = `${texture}:${frame ?? ""}`;
   const known = halos.get(id);
-  if (known) return known;
+  if (known && scene.textures.exists(known.key) && scene.textures.exists(known.pane))
+    return known;
   const f = scene.textures.getFrame(texture, frame);
   const w = f.realWidth,
     h = f.realHeight,
     W = w + PAD * 2,
     H = h + PAD * 2;
-  const read = document.createElement("canvas");
-  read.width = W;
-  read.height = H;
-  const rctx = read.getContext("2d", { willReadFrequently: true })!;
-  // A trimmed frame's pixels start at its trim offset within the full size.
-  rctx.drawImage(f.source.image as CanvasImageSource, f.cutX, f.cutY, f.cutWidth, f.cutHeight, f.x + PAD, f.y + PAD, f.cutWidth, f.cutHeight);
-  const src = rctx.getImageData(0, 0, W, H).data;
   const lit = new Float32Array(W * H);
-  for (let i = 0; i < lit.length; i++) lit[i] = src[i * 4 + 3] > 40 ? 1 : 0;
-  const a = blur(lit, W, H, 3);
-  const key = `window-halo:${id}`;
-  const tex = scene.textures.createCanvas(key, W, H)!;
-  const image = tex.getContext().createImageData(W, H);
-  for (let i = 0; i < a.length; i++) {
-    // Less over the glass itself, which the pane already lights.
-    const v = Math.min(1, a[i] * 1.6) * (lit[i] ? 0.35 : 1);
-    if (v > 0.02) image.data.set([255, 186, 108, Math.round(v * 200)], i * 4);
+  if (f.source.image instanceof Uint8Array) {
+    const raw = f.source.image;
+    const sw = f.source.width;
+    for (let y = 0; y < f.cutHeight; y++)
+      for (let x = 0; x < f.cutWidth; x++)
+        if (raw[((f.cutY + y) * sw + f.cutX + x) * 4 + 3] > 40)
+          lit[(f.y + PAD + y) * W + f.x + PAD + x] = 1;
+  } else {
+    const read = document.createElement("canvas");
+    read.width = W;
+    read.height = H;
+    const rctx = read.getContext("2d", { willReadFrequently: true })!;
+    // A trimmed frame's pixels start at its trim offset within the full size.
+    rctx.drawImage(f.source.image as CanvasImageSource, f.cutX, f.cutY, f.cutWidth, f.cutHeight, f.x + PAD, f.y + PAD, f.cutWidth, f.cutHeight);
+    const src = rctx.getImageData(0, 0, W, H).data;
+    releaseCanvas(read);
+    for (let i = 0; i < lit.length; i++) lit[i] = src[i * 4 + 3] > 40 ? 1 : 0;
   }
-  tex.getContext().putImageData(image, 0, 0);
-  tex.refresh();
+  const key = `window-halo:${id}`;
   const pane = `window-pane:${id}`;
-  const glass = scene.textures.createCanvas(pane, W, H)!;
-  const room = glass.getContext().createImageData(W, H);
-  for (let x = 0; x < W; x++)
-    for (let y = 0; y < H; y++) {
-      if (!lit[y * W + x]) continue;
-      let end = y;
-      while (end + 1 < H && lit[(end + 1) * W + x]) end++;
-      for (let v = y; v <= end; v++) {
-        const t = end > y ? (v - y) / (end - y) : 1;
-        room.data.set([226 + 29 * t, 138 + 84 * t, 58 + 88 * t, 235].map(Math.round), (v * W + x) * 4);
-      }
-      y = end;
+  if (!scene.textures.exists(key)) {
+    const a = blur(lit, W, H, 3);
+    const pixels = new Uint8Array(W * H * 4);
+    for (let i = 0; i < a.length; i++) {
+      // Less over the glass itself, which the pane already lights.
+      const v = Math.min(1, a[i] * 1.6) * (lit[i] ? 0.35 : 1);
+      if (v > 0.02) pixels.set([255, 186, 108, Math.round(v * 200)], i * 4);
     }
-  glass.getContext().putImageData(room, 0, 0);
-  glass.refresh();
+    addPixelTexture(scene, key, W, H, pixels);
+  }
+  if (!scene.textures.exists(pane)) {
+    const room = new Uint8Array(W * H * 4);
+    for (let x = 0; x < W; x++)
+      for (let y = 0; y < H; y++) {
+        if (!lit[y * W + x]) continue;
+        let end = y;
+        while (end + 1 < H && lit[(end + 1) * W + x]) end++;
+        for (let v = y; v <= end; v++) {
+          const t = end > y ? (v - y) / (end - y) : 1;
+          room.set([226 + 29 * t, 138 + 84 * t, 58 + 88 * t, 235].map(Math.round), (v * W + x) * 4);
+        }
+        y = end;
+      }
+    addPixelTexture(scene, pane, W, H, room);
+  }
   // Glass in the bottom storey: a shop window or a ground-floor room.
   const columns = new Uint8Array(w);
   for (let y = Math.max(0, h - 40); y < h; y++)
@@ -199,6 +210,7 @@ export function windowHalo(scene: Phaser.Scene, texture: string, frame?: string)
     x = end;
   }
   const made = { key, pane, pad: PAD, pools };
+  if (smallMemoryDevice() && halos.size >= 24) halos.delete(halos.keys().next().value!);
   halos.set(id, made);
   return made;
 }

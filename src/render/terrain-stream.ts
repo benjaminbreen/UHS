@@ -1,4 +1,4 @@
-import { frostCover, snowCover } from "./snow-cover";
+import { frostCover, setFrost, setSnowCover, snowCover } from "./snow-cover";
 import { usesLivingWater } from "./living-water/game";
 import { smallMemoryDevice, workerBudget } from "../runtime/device";
 import { worldWorker } from "../runtime/world-worker";
@@ -11,6 +11,7 @@ import type { Point, WorldModel } from "../core/types";
 import { topographySteps } from "./topography";
 import {
   addPixelTexture,
+  releaseTexture,
   renderResources,
   type RenderResources,
 } from "./resources";
@@ -20,8 +21,12 @@ import {
   TERRAIN_CHUNK_PAD as PAD,
   type TerrainRegion,
 } from "./terrain-region";
-import type { TerrainRequest, TerrainResponse } from "./terrain-worker";
-import type { TerrainPreview } from "./terrain-preview";
+import {
+  rasterRegionSteps,
+  type TerrainRequest,
+  type TerrainResponse,
+} from "./terrain-worker";
+import { previewChunk, type TerrainPreview } from "./terrain-preview";
 import { groundStyle, setGroundStyle, type GroundStyle } from "./ground-style";
 import { rasterBankShadows } from "./bank-shadows";
 import { TERRAIN_RISE } from "./terrain-projection";
@@ -99,6 +104,13 @@ export class TerrainStream {
   private maxInstall = 0;
   /** The chunk currently being composed, if any. */
   private job?: Install;
+  /** Inline chunk rasterizer used on small-memory devices (no terrain worker). */
+  private rasterJob?: {
+    id: string;
+    key: string;
+    steps: Generator<void, Omit<TerrainResponse, "id">>;
+  };
+  private shadows: boolean;
   private maxGroundInstall = 0;
   private batchedTiles = 0;
   private prepared?: PreparedSettlement;
@@ -117,11 +129,34 @@ export class TerrainStream {
     field?: { season: string; tide: number },
   ) {
     ensureWaterAtlas(scene);
+    const options = (
+      scene as Phaser.Scene & {
+        options?: import("./appearance").RenderOptions;
+      }
+    ).options;
+    this.shadows = options?.shadows !== false;
     const retained = takeTerrainWorker(world);
     if (entry) this.entryKey = `${Math.floor(entry.x / SIZE)},${Math.floor(entry.y / SIZE)}`;
     const warmed = warmedLandings.get(world);
     this.prewarmed = !!retained && warmed !== undefined && warmed === this.entryKey;
     warmedLandings.delete(world);
+    // A retained worker may still hold the previous scene's style.
+    this.styling = {
+      style: groundStyle() ?? null,
+      living: usesLivingWater(scene),
+      polish: options?.shorePolish,
+      snow: snowCover(),
+      frost: frostCover(),
+      ...field,
+    };
+    if (WORKER_LIMIT === 0 && !retained) {
+      for (const worker of takeSpareTerrainWorkers(world)) worker.terminate();
+      setSnowCover(this.styling.snow ?? 0);
+      setFrost(this.styling.frost ?? 0);
+      if (this.styling.season) this.world.setSeason?.(this.styling.season, this.styling.tide);
+      live.add(this);
+      return;
+    }
     const first: Rasterizer = {
       reserved: true,
       worker:
@@ -139,19 +174,6 @@ export class TerrainStream {
       } satisfies TerrainRequest);
       if (WORKER_LIMIT === 1) this.prepared = undefined;
     }
-    // A retained worker may still hold the previous scene's style.
-    this.styling = {
-      style: groundStyle() ?? null,
-      living: usesLivingWater(scene),
-      polish: (
-        scene as Phaser.Scene & {
-          options: import("./appearance").RenderOptions;
-        }
-      ).options.shorePolish,
-      snow: snowCover(),
-      frost: frostCover(),
-      ...field,
-    };
     first.worker.postMessage(this.styling);
     this.pool.push(first);
     for (const worker of takeSpareTerrainWorkers(world)) this.adopt(worker);
@@ -304,8 +326,8 @@ export class TerrainStream {
           prefix: `stream-${id}`,
         });
       }
-    // Kept for the walk back. Each chunk holds its cells and textures, so a
-    // phone keeps half a chunk past what it wants (1.5), not a chunk and a half.
+    // Kept for the walk back. Each chunk holds its textures, so a phone keeps
+    // half a chunk past what it wants (2), not a chunk and a half (3).
     const keep = SIZE * (smallMemoryDevice() ? 2 : 3);
     for (const [id, chunk] of this.chunks) {
       const r = chunk.region;
@@ -321,10 +343,14 @@ export class TerrainStream {
     for (const key of [...this.previews.keys()])
       if (!this.wanted.has(key)) this.dropPreview(key);
     if (this.job && !this.wanted.has(this.job.key)) this.abort();
+    if (this.rasterJob && !this.wanted.has(this.rasterJob.key)) this.rasterJob = undefined;
     this.queue = [...this.wanted]
       .filter(
         ([id]) =>
-          !this.chunks.has(id) && !this.inFlight(id) && this.job?.key !== id,
+          !this.chunks.has(id) &&
+          !this.inFlight(id) &&
+          this.job?.key !== id &&
+          this.rasterJob?.key !== id,
       )
       .sort(([, a], [, b]) => this.priority(a) - this.priority(b));
     this.sweep();
@@ -343,6 +369,15 @@ export class TerrainStream {
       for (const r of this.pool) r.reserved = false;
       return;
     }
+    if (!this.pool.length) {
+      if (!this.world.topography) return;
+      for (const { id, region } of pending)
+        this.showPreview(
+          id,
+          previewChunk((x, y) => this.world.topography!(x + region.x, y + region.y)),
+        );
+      return;
+    }
     const free =
       this.pool.find((r) => r.reserved) ??
       this.pool.find((r) => !r.busy && !r.sweeping) ??
@@ -353,7 +388,7 @@ export class TerrainStream {
   }
   update() {
     if (this.hidden) return;
-    if (!this.job && !this.completed.length && !this.queue.length) return;
+    if (!this.job && !this.rasterJob && !this.completed.length && !this.queue.length) return;
     // A chunk costs several frames' budget to compose, so it is spent in
     // slices: the generator stops between ground rows and the walk keeps its
     // frame. Draining whole chunks was the hitch on walking into new ground.
@@ -364,12 +399,45 @@ export class TerrainStream {
     if (perf.terrainInstallBudget <= 0) return;
     const start = performance.now();
     while (performance.now() - start < budget) {
-      if (!this.job && !this.begin()) break;
-      this.slice();
+      if (this.job || this.begin()) {
+        this.slice();
+        continue;
+      }
+      if (!this.pool.length) {
+        if (!this.world.topography) {
+          this.rasterJob = undefined;
+          break;
+        }
+        if (!this.rasterJob && !this.beginRaster()) break;
+        const step = this.rasterJob!.steps.next();
+        if (step.done) {
+          this.completed.push({ id: this.rasterJob!.id, ...step.value });
+          this.rasterJob = undefined;
+        }
+        continue;
+      }
+      break;
     }
     this.maxInstall = Math.max(this.maxInstall, performance.now() - start);
     this.dispatch();
     if (this.dirty) this.metrics();
+  }
+  private beginRaster() {
+    if (!this.world.topography) return false;
+    while (this.queue.length) {
+      const [id, region] = this.queue.shift()!;
+      if (this.chunks.has(id) || this.job?.key === id) continue;
+      this.rasterJob = {
+        id: `${this.generation}:${id}`,
+        key: id,
+        steps: rasterRegionSteps(this.world, region, {
+          livingEnabled: !!this.styling.living,
+          polish: this.styling.polish,
+        }),
+      };
+      return true;
+    }
+    return false;
   }
   /** Takes the next finished raster and opens an install for it. */
   private begin() {
@@ -432,9 +500,9 @@ export class TerrainStream {
         region: job.region,
         objects,
         textures,
-        rims: job.done.rims,
-        receivers: job.done.receivers,
-        cells: job.done.cells,
+        rims: this.shadows ? job.done.rims : new Int16Array(0),
+        receivers: this.shadows ? job.done.receivers : undefined,
+        cells: this.shadows ? job.done.cells : [],
         shade: [],
       };
       this.shadeChunk(chunk, job.key);
@@ -472,7 +540,7 @@ export class TerrainStream {
     if (!this.job) return;
     const { objects, textures } = this.job.resources;
     for (const object of objects) object.destroy();
-    for (const key of textures) this.scene.textures.remove(key);
+    for (const key of textures) releaseTexture(this.scene, key);
     this.job = undefined;
   }
   private priority(r: TerrainRegion) {
@@ -558,21 +626,21 @@ export class TerrainStream {
     if (!image) return;
     const texture = image.texture.key;
     image.destroy();
-    this.scene.textures.remove(texture);
+    releaseTexture(this.scene, texture);
     this.previews.delete(key);
   }
   private release(chunk: Chunk) {
     timed("chunk release", () => {
       this.unshade(chunk);
       for (const object of chunk.objects) object.destroy();
-      for (const key of chunk.textures) this.scene.textures.remove(key);
+      for (const key of chunk.textures) releaseTexture(this.scene, key);
     });
   }
   private unshade(chunk: Chunk) {
     for (const image of chunk.shade) {
       const key = image.texture.key;
       image.destroy();
-      this.scene.textures.remove(key);
+      releaseTexture(this.scene, key);
     }
     chunk.shade = [];
   }
@@ -580,7 +648,7 @@ export class TerrainStream {
    * small shadow textures are rebuilt; ground and contour pages are kept. */
   private shadeChunk(chunk: Chunk, id: string) {
     this.unshade(chunk);
-    if (!perf.bankShadows) return;
+    if (!perf.bankShadows || !this.shadows) return;
     const layers = rasterBankShadows(
       chunk.rims,
       chunk.cells,
@@ -643,6 +711,7 @@ export class TerrainStream {
     const first = this.styling.season === undefined;
     this.styling = { ...this.styling, season, tide };
     if (!first) return this.restyle(this.styling.style);
+    if (!this.pool.length) this.world.setSeason?.(season, tide);
     for (const r of this.pool) r.worker.postMessage(this.styling);
   }
   /** Drop every rasterised chunk and ask for them again under a new style.
@@ -650,6 +719,12 @@ export class TerrainStream {
   restyle(style: GroundStyle | null) {
     this.generation++;
     this.styling = { ...this.styling, style };
+    if (!this.pool.length) {
+      setGroundStyle(style ?? undefined);
+      setSnowCover(this.styling.snow ?? 0);
+      setFrost(this.styling.frost ?? 0);
+      if (this.styling.season) this.world.setSeason?.(this.styling.season, this.styling.tide);
+    }
     for (const r of this.pool) {
       r.worker.postMessage(this.styling);
       // The old-style raster still in flight is dropped on arrival, so the
@@ -657,6 +732,7 @@ export class TerrainStream {
       r.busy = undefined;
     }
     this.abort();
+    this.rasterJob = undefined;
     for (const chunk of this.chunks.values()) this.release(chunk);
     this.chunks.clear();
     for (const key of [...this.previews.keys()]) this.dropPreview(key);
@@ -698,6 +774,7 @@ export class TerrainStream {
   dispose() {
     live.delete(this);
     this.abort();
+    this.rasterJob = undefined;
     for (const r of this.pool) r.worker.terminate();
     this.pool = [];
     this.prepared = undefined;

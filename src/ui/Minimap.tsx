@@ -6,13 +6,14 @@ import { paletteKey } from "../content/ecology/profiles";
 import { natureTreeSprites } from "../content/ecology/vegetation";
 import { useEffect, useRef, useState } from "react";
 import { timed } from "../render/perf-switches";
+import { releaseCanvas } from "../render/resources";
 import { faunaProfile } from "../content/fauna";
 import minimapTones from "../render/generated/minimap-tones.json" with { type: "json" };
 import { surfaceAt } from "../render/materials";
 import { cloudWash, washAt } from "../render/lighting";
 import { skySeed, weatherAt } from "../core/weather";
 import {
-  atlasRivers,
+  forEachAtlasRiver,
   atlasSample,
   broadEnvironment,
   fromAtlas,
@@ -474,11 +475,11 @@ function* paintBackgroundSteps(
     c.strokeStyle = "#6fa6b8";
     c.lineJoin = c.lineCap = "round";
     c.lineWidth = 2;
-    for (const river of atlasRivers) {
+    forEachAtlasRiver((coords, start, end) => {
       c.beginPath();
       let last: [number, number, boolean] | undefined;
-      for (const [lon, lat] of river.points) {
-        const t = toAtlas(lon, lat);
+      for (let v = start; v < end; v++) {
+        const t = toAtlas(coords[v * 2], coords[v * 2 + 1]);
         const wx = t.x - anchor.x,
           wy = t.y - anchor.y;
         const inside = wx >= left && wx <= right && wy >= top && wy <= bottom;
@@ -492,7 +493,7 @@ function* paintBackgroundSteps(
         last = [x, y, inside];
       }
       c.stroke();
-    }
+    });
   }
   yield;
   if (large && !placesFrom) drawTerrainGlyphs(c, kind, cols, at, anchor);
@@ -684,7 +685,9 @@ export function Minimap({
         while (!step.done && performance.now() - start < MAP_BUDGET_MS)
           step = building.steps.next();
         if (!step.done) return;
+        const previous = backing.current?.canvas;
         backing.current = building;
+        if (previous && previous !== building.canvas) releaseCanvas(previous);
         job.current = undefined;
         const canvas = ref.current;
         if (canvas)
@@ -694,7 +697,11 @@ export function Minimap({
         redraw.current();
       });
     });
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      if (job.current) { releaseCanvas(job.current.canvas); job.current = undefined; }
+      if (backing.current) { releaseCanvas(backing.current.canvas); backing.current = undefined; }
+    };
   }, []);
   useEffect(() => {
     const canvas = ref.current!;
@@ -735,6 +742,7 @@ export function Minimap({
         return background;
       };
       if (stale || shifted) {
+        if (job.current) releaseCanvas(job.current.canvas);
         const background = surface();
         job.current = {
           world,

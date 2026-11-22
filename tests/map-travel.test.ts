@@ -1,7 +1,8 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { Engine } from "../src/core/engine";
 import { createSession, Runtime } from "../src/runtime/session";
 import { MapTravel, journeyPlan } from "../src/runtime/map-travel";
+import * as device from "../src/runtime/device";
 import { settingFor } from "../src/content/geography/resolve";
 import { places } from "../src/content/geography/places";
 import type { MapExit } from "../src/world/travel/network";
@@ -349,4 +350,34 @@ it("follows one resident across the paired entrance, picking on the far map and 
   expect(patch.inventory.fruit).toBe(0);
   expect(runtime.engine.state.actors.find(a=>a.id===worker.id)?.basket).toBeUndefined();
   runtime.dispose();
+});
+
+it("does not prefetch neighbouring maps in the background on phones, but still crosses on demand", async () => {
+  const spy = vi.spyOn(device, "smallMemoryDevice").mockReturnValue(true);
+  const { make, exits, runtime } = fixture();
+  const home = runtime.engine, away = make(b);
+  try {
+    home.state.clock = 8 * 3600;
+    home.state.player.pos = { x: -180, y: 0, space: "outside" };
+    const worker = home.state.actors.find((x) => x.kind === "human")!;
+    worker.householdId = "food-family";
+    worker.origin = { revision: 1, profile: "test", community: "local", livelihood: "gatherer", notes: [] };
+    home.world.pack.setting!.characterRevision = 1;
+    let prepares = 0;
+    const travel = new MapTravel(runtime, a, 1300, async () => {
+      prepares++;
+      return away;
+    }, exits, () => []);
+    travel.observe();
+    await Promise.resolve();
+    expect(prepares).toBe(0);
+    expect(travel.status().prepared).toBeUndefined();
+    expect(travel.status().preparing).toBeUndefined();
+    await travel.cross(travel.entrances[0]);
+    expect(prepares).toBe(1);
+    expect(travel.id).toBe(b);
+  } finally {
+    spy.mockRestore();
+    runtime.dispose();
+  }
 });

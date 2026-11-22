@@ -2,6 +2,7 @@ import type Phaser from "phaser";
 import { cellHash } from "../core/noise";
 import { random } from "../core/random";
 import { natureTreeSprites } from "../content/ecology/vegetation";
+import { addPixelTexture, releaseCanvas } from "./resources";
 
 const WORKSITE_VARIANTS = new Set([
   "worksite-fish-mat",
@@ -111,6 +112,7 @@ export function groundedRockTexture(
   const rctx = read.getContext("2d", { willReadFrequently: true })!;
   rctx.drawImage(f.source.image as CanvasImageSource, f.cutX, f.cutY, w, h, 0, 0, w, h);
   const px = rctx.getImageData(0, 0, w, h).data;
+  releaseCanvas(read);
   const solid = (x: number, y: number) =>
     x >= 0 && y >= 0 && x < w && y < h && px[(y * w + x) * 4 + 3] > 180;
   let sr = 0, sg = 0, sb = 0, n = 0;
@@ -125,12 +127,10 @@ export function groundedRockTexture(
     Math.max(34, Math.min(64, Math.round(avg[k] * 0.32 + (coastal ? sand[k] * 0.12 : 8)))),
   );
   const gw = w + padX * 2, gh = h + padB;
-  const tex = scene.textures.createCanvas(key, gw, gh)!;
-  const ctx = tex.getContext();
-  const out = ctx.createImageData(gw, gh);
+  const out = new Uint8Array(gw * gh * 4);
   const put = (gx: number, gy: number, rgba: number[]) => {
     if (gx < 0 || gy < 0 || gx >= gw || gy >= gh) return;
-    out.data.set(rgba, (gy * gw + gx) * 4);
+    out.set(rgba, (gy * gw + gx) * 4);
   };
   const bottoms = new Int16Array(w).fill(-1);
   let left = w, right = -1, maxY = -1;
@@ -179,8 +179,7 @@ export function groundedRockTexture(
     put(left + padX - 1, bottoms[left] + 1, coastal ? [44, 39, 33, 52] : [30, 32, 26, 42]);
   if (right >= 0 && bottoms[right] >= maxY - 2)
     put(right + padX + 1, bottoms[right] + 1, coastal ? [44, 39, 33, 52] : [30, 32, 26, 42]);
-  ctx.putImageData(out, 0, 0);
-  tex.refresh();
+  addPixelTexture(scene, key, gw, gh, out);
   return { key, originX, originY };
 }
 
@@ -206,6 +205,7 @@ export function mangroveRootCollar(
   const rctx = read.getContext("2d", { willReadFrequently: true })!;
   rctx.drawImage(f.source.image as CanvasImageSource, f.cutX, f.cutY, w, h, 0, 0, w, h);
   const px = rctx.getImageData(0, 0, w, h).data;
+  releaseCanvas(read);
   const solid = (x: number, y: number) =>
     x >= 0 && y >= 0 && x < w && y < h && px[(y * w + x) * 4 + 3] > 180;
   let maxY = -1;
@@ -220,13 +220,11 @@ export function mangroveRootCollar(
   }
   if (maxY < 0) return undefined;
   const gw = w + padX * 2, gh = h + padB;
-  const tex = scene.textures.createCanvas(key, gw, gh)!;
-  const ctx = tex.getContext();
-  const out = ctx.createImageData(gw, gh);
+  const out = new Uint8Array(gw * gh * 4);
   const blend = (gx: number, gy: number, rgba: number[]) => {
     if (gx < 0 || gy < 0 || gx >= gw || gy >= gh) return;
     const i = (gy * gw + gx) * 4;
-    if (rgba[3] > out.data[i + 3]) out.data.set(rgba, i);
+    if (rgba[3] > out[i + 3]) out.set(rgba, i);
   };
   for (let x = 0; x < w; x++) {
     const b = bottoms[x];
@@ -246,7 +244,6 @@ export function mangroveRootCollar(
     if (wetWater && cellHash(x, b, 877) > 0.55)
       blend(x + padX, b + 2, [218, 236, 232, 108]);
   }
-  ctx.putImageData(out, 0, 0);
-  tex.refresh();
+  addPixelTexture(scene, key, gw, gh, out);
   return { key, originX, originY };
 }

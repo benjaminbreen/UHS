@@ -24,6 +24,7 @@ import type { CharacterPose } from "./poses";
 import { frameCount } from "./poses";
 import { smallMemoryDevice } from "../../runtime/device";
 import { timed } from "../perf-switches";
+import { addPixelTexture, releaseCanvas, releaseTexture } from "../resources";
 import type { CharacterFrameRequest, CharacterFrameResponse } from "./worker";
 
 /** Scene-owned frames, retained for backtracking and bounded by texture count. */
@@ -34,7 +35,7 @@ export class WorldCharacters {
     {
       key: string;
       used: number;
-      canvas: HTMLCanvasElement;
+      canvas?: HTMLCanvasElement;
       shadows: Map<LightingId, string>;
     }
   >();
@@ -52,8 +53,9 @@ export class WorldCharacters {
   private propPixels = new WeakMap<CarriedArt, Uint8ClampedArray>();
   private pool: { worker: Worker; busy?: string }[] = [];
   private workersStarted = false;
-  private limit = smallMemoryDevice() ? 128 : 384;
+  private limit = smallMemoryDevice() ? 80 : 384;
   private serial = 0;
+  private scratch?: { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D };
   /** Interned appearance descriptions: the per-frame cache key must stay short. */
   private appearanceTokens = new Map<string, number>();
   private appearances = new Map<
@@ -79,7 +81,10 @@ export class WorldCharacters {
   light: LightingId = "midday";
   private disposed = false;
   private lastPrune = 0;
+  private shadows: boolean;
   constructor(private scene: Phaser.Scene, private seed = "") {
+    this.shadows =
+      (scene as Phaser.Scene & { options?: { shadows?: boolean } }).options?.shadows !== false;
     watchCount("actorFrames", () => this.cache.size);
     watchCount("actorFrameQueue", () => this.pending.size);
     void loadCarriedArt()
@@ -151,12 +156,16 @@ export class WorldCharacters {
           slot.busy = undefined;
           if (pending && !this.cache.has(signature) && this.scene.time.now - pending.used < 2000) {
             timed("character install", () => {
-              const canvas = document.createElement("canvas");
-              canvas.width = canvas.height = 80;
-              canvas.getContext("2d", { willReadFrequently: true })!.putImageData(
-                new ImageData(new Uint8ClampedArray(pixels), 80, 80), 0, 0,
-              );
-              this.install(signature, canvas);
+              if (!this.shadows) {
+                this.installPixels(signature, new Uint8ClampedArray(pixels));
+              } else {
+                const canvas = document.createElement("canvas");
+                canvas.width = canvas.height = 80;
+                canvas.getContext("2d", { willReadFrequently: true })!.putImageData(
+                  new ImageData(new Uint8ClampedArray(pixels), 80, 80), 0, 0,
+                );
+                this.install(signature, canvas);
+              }
               const token = signature.split(":")[0];
               for (const [id, wanted] of this.wanted)
                 if (wanted.startsWith(`${token}:`) && !this.lastFrames.get(id)?.startsWith(`${token}:`))
@@ -219,6 +228,17 @@ export class WorldCharacters {
     const key = `character-${this.scene.sys.settings.key}-${++this.serial}`;
     this.scene.textures.addCanvas(key, canvas)?.setFilter(Phaser.Textures.FilterMode.NEAREST);
     const entry = { key, used: this.scene.time.now, canvas, shadows: new Map<LightingId, string>() };
+    this.cache.set(signature, entry);
+    this.frameSignatures.set(key, signature);
+    if (this.cache.size > this.limit) this.prune();
+    return entry;
+  }
+  /** Upload pixels straight to WebGL with no HTMLCanvasElement or Phaser CanvasTexture copy. */
+  private installPixels(signature: string, pixels: Uint8ClampedArray) {
+    const key = `character-${this.scene.sys.settings.key}-${++this.serial}`;
+    addPixelTexture(this.scene, key, 80, 80, pixels);
+    this.scene.textures.get(key)?.setFilter(Phaser.Textures.FilterMode.NEAREST);
+    const entry = { key, used: this.scene.time.now, shadows: new Map<LightingId, string>() };
     this.cache.set(signature, entry);
     this.frameSignatures.set(key, signature);
     if (this.cache.size > this.limit) this.prune();
@@ -302,7 +322,8 @@ export class WorldCharacters {
         if (actor.id === "player" && !turn) {
           this.playerFrames.delete(key);
           this.playerFrames.add(key);
-          if (this.playerFrames.size > 48) this.playerFrames.delete(this.playerFrames.values().next().value!);
+          const cap = smallMemoryDevice() ? 32 : 48;
+          if (this.playerFrames.size > cap) this.playerFrames.delete(this.playerFrames.values().next().value!);
         }
         if (this.cache.has(key)) continue;
         if (actor.id === "player" && !ahead) continue;
@@ -329,11 +350,25 @@ export class WorldCharacters {
     // An uncached player pose must show immediately while its next frames warm.
     let entry = this.cache.get(signature);
     if (!entry) {
-      const c = document.createElement("canvas");
-      c.width = 80;
-      c.height = 80;
-      // Shadows and Phaser's CanvasTexture read these pixels immediately.
-      // Keep the tiny source on the CPU to avoid synchronous GPU readbacks.
+      let c: HTMLCanvasElement;
+      let ctx: CanvasRenderingContext2D;
+      if (!this.shadows) {
+        if (!this.scratch) {
+          const canvas = document.createElement("canvas");
+          canvas.width = canvas.height = 80;
+          this.scratch = { canvas, ctx: canvas.getContext("2d", { willReadFrequently: true })! };
+        }
+        c = this.scratch.canvas;
+        ctx = this.scratch.ctx;
+        ctx.clearRect(0, 0, 80, 80);
+      } else {
+        c = document.createElement("canvas");
+        c.width = 80;
+        c.height = 80;
+        // Shadows and Phaser's CanvasTexture read these pixels immediately.
+        // Keep the tiny source on the CPU to avoid synchronous GPU readbacks.
+        ctx = c.getContext("2d", { willReadFrequently: true })!;
+      }
       const preset = lightingPreset(this.light);
       setSpriteLight({
         ...spriteLightFor(preset.cast, this.light === "night"),
@@ -341,7 +376,7 @@ export class WorldCharacters {
         cool: preset.ambientAlpha ? `#${preset.ambient}` : "#241c38",
       });
       drawCharacterG(
-        c.getContext("2d", { willReadFrequently: true })!,
+        ctx,
         a,
         actor.direction,
         pose,
@@ -354,7 +389,9 @@ export class WorldCharacters {
         resolved.sidelong,
       );
       setSpriteLight(undefined);
-      entry = this.install(signature, c);
+      entry = !this.shadows
+        ? this.installPixels(signature, ctx.getImageData(0, 0, 80, 80).data)
+        : this.install(signature, c);
     }
     this.lastFrames.set(actor.id, signature);
     entry.used = this.scene.time.now;
@@ -363,14 +400,14 @@ export class WorldCharacters {
   shadow(key: string, phase: LightingId) {
     const entry = this.cache.get(this.frameSignatures.get(key)!)!;
     let texture = entry.shadows.get(phase);
-    if (!texture) {
+    if (!texture && entry.canvas) {
       texture = `${key}-shadow-${phase}`;
       this.scene.textures
         .addCanvas(texture, characterShadow(entry.canvas, phase, 78))
         ?.setFilter(Phaser.Textures.FilterMode.NEAREST);
       entry.shadows.set(phase, texture);
     }
-    return texture;
+    return texture!;
   }
   prune() {
     if (this.cache.size <= this.limit && this.scene.time.now - this.lastPrune < 1000) return;
@@ -386,9 +423,9 @@ export class WorldCharacters {
     for (const [signature, entry] of entries)
       if (!pinned.has(signature) &&
         (this.scene.time.now - entry.used > 60000 || this.cache.size > this.limit)) {
-        this.scene.textures.remove(entry.key);
+        releaseTexture(this.scene, entry.key);
         for (const key of entry.shadows.values())
-          this.scene.textures.remove(key);
+          releaseTexture(this.scene, key);
         this.cache.delete(signature);
         this.frameSignatures.delete(entry.key);
       }
@@ -396,9 +433,11 @@ export class WorldCharacters {
   destroy() {
     this.disposed = true;
     this.stopWorkers();
+    releaseCanvas(this.scratch?.canvas);
+    this.scratch = undefined;
     for (const entry of this.cache.values()) {
-      this.scene.textures.remove(entry.key);
-      for (const key of entry.shadows.values()) this.scene.textures.remove(key);
+      releaseTexture(this.scene, entry.key);
+      for (const key of entry.shadows.values()) releaseTexture(this.scene, key);
     }
     this.cache.clear();
     this.frameSignatures.clear();

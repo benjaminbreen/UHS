@@ -4,6 +4,7 @@ import { mix } from "../characters/pixels";
 import { clothColours } from "../characters/cloth";
 import type { Expression as Face } from "./constructed";
 import { MAT, Raster, tones, type Mat, type Pt, type Tones } from "./raster";
+import { smallMemoryDevice } from "../../runtime/device";
 
 export const SCULPTED_WIDTH = 64;
 export const SCULPTED_HEIGHT = 80;
@@ -1110,10 +1111,11 @@ export function paintSculpted(appearance: CharacterAppearance, age = 30, options
   const pose = headPose(options.turn, options.pitch);
   const key = JSON.stringify([appearance, age, pose.turn, pose.pitch]);
   let base = bases.get(key);
+  const limit = smallMemoryDevice() ? 16 : 96;
   if (!base) {
     base = trace(appearance, age, pose);
     bases.set(key, base);
-    if (bases.size > 96) bases.delete(bases.keys().next().value!);
+    if (bases.size > limit) bases.delete(bases.keys().next().value!);
   } else {
     bases.delete(key);
     bases.set(key, base);
@@ -1138,20 +1140,34 @@ export function paintSculpted(appearance: CharacterAppearance, age = 30, options
 }
 
 let tracer: Worker | undefined;
+let tracerIdle: ReturnType<typeof setTimeout> | undefined;
 const tracing = new Map<string, [CharacterAppearance, number, HeadPose]>();
+function scheduleTracerIdle() {
+  clearTimeout(tracerIdle);
+  if (tracing.size || !tracer || !smallMemoryDevice()) return;
+  tracerIdle = setTimeout(() => {
+    if (tracing.size || !tracer) return;
+    tracer.terminate();
+    tracer = undefined;
+  }, 5000);
+}
 /** Trace the turn's in-between angles off the main thread: each is a few hundred
  * ms of sphere marching, which stalled the game even from an idle callback. */
 export function warmSculpted(appearance: CharacterAppearance, age = 30, rest = 1, turns = true) {
+  clearTimeout(tracerIdle);
   if (!tracer) {
     tracer = new Worker(new URL("./sculpted-worker.ts", import.meta.url), { type: "module" });
     tracer.onmessage = ({ data: { key, color, mat, layer, depth } }) => {
       const job = tracing.get(key);
       tracing.delete(key);
+      scheduleTracerIdle();
       if (!job || bases.has(key)) return;
       bases.set(key, { m: model(job[0], job[1]), f: frame(job[2]), color, mat, layer, depth });
-      if (bases.size > 96) bases.delete(bases.keys().next().value!);
+      const limit = smallMemoryDevice() ? 16 : 96;
+      if (bases.size > limit) bases.delete(bases.keys().next().value!);
     };
     tracer.onerror = () => {
+      clearTimeout(tracerIdle);
       tracer?.terminate();
       tracer = undefined;
       tracing.clear();
@@ -1164,6 +1180,7 @@ export function warmSculpted(appearance: CharacterAppearance, age = 30, rest = 1
     tracing.set(key, [appearance, age, pose]);
     tracer.postMessage({ key, appearance, age, pose });
   }
+  scheduleTracerIdle();
 }
 
 export function trace(appearance: CharacterAppearance, age: number, pose: HeadPose): Base {

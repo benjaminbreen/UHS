@@ -1,6 +1,8 @@
 import type Phaser from "phaser";
 import type { CycleLook, CyclePose } from "../../core/cycles";
 import { CYCLE_H, CYCLE_W, paintCycle, type CycleState, type CycleView } from "./paint";
+import { smallMemoryDevice } from "../../runtime/device";
+import { releaseTexture } from "../resources";
 
 export interface CycleFrame {
   /** Texture drawn behind the rider. */
@@ -41,6 +43,13 @@ export class CycleSprites {
       contact: art.contact,
     };
     this.frames.set(key, frame);
+    if (smallMemoryDevice() && this.frames.size > 32) {
+      const oldest = this.frames.keys().next().value!;
+      const drop = this.frames.get(oldest)!;
+      this.frames.delete(oldest);
+      releaseTexture(this.scene, drop.under);
+      if (drop.over) releaseTexture(this.scene, drop.over);
+    }
     return frame;
   }
 }

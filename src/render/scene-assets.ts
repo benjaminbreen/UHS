@@ -88,6 +88,8 @@ export const lazySheets = [
   "horse-voxel",
   // Carts, wagons and chariots: where the period and place drove them.
   "conveyances",
+  // Four-direction domestic and village fauna (60 MB unpaged): paged into 1024px sheets.
+  "faunac",
   // The megafauna: most worlds are too late or too far south for them.
   "faunam",
   "faunar",
@@ -104,8 +106,8 @@ export const lazySheets = [
   "faunaw",
 ] as const;
 
-/** Building sheets the game reads as 1024px pages (scripts/art/page_sheets.py),
- * so a town decodes the few pages its houses sit on, not whole 4096px sheets. */
+/** Sheets the game reads as 1024px pages (scripts/art/page_sheets.py),
+ * so a town decodes the few pages its sprites sit on, not whole 4096px sheets. */
 export const pagedSheets = [
   "worksites",
   "buildings",
@@ -121,6 +123,18 @@ export const pagedSheets = [
   "building-shadows",
   "modern-shadows",
   "landmark-shadows",
+  "harbor",
+  "faunac",
+  "faunag",
+  "faunae",
+  "faunaw",
+  "faunax",
+  "faunam",
+  "faunaf",
+  "faunar",
+  "faunau",
+  "conveyances",
+  "horse-voxel",
 ] as const;
 const paged = (key: string) => (pagedSheets as readonly string[]).includes(key);
 export const pageImage = (key: string, page: number) =>

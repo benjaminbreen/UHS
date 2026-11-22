@@ -9,16 +9,19 @@ export type Ecoregion = {
   realm: string;
   biome: number;
 };
-const grid = new Uint16Array(ecoregions.width * ecoregions.height);
+const { width, height } = ecoregions;
+const grid = new Uint16Array(width * height);
 for (const [start, end, id] of ecoregions.runs) grid.fill(id, start, end);
 const byId = new Map(ecoregions.regions.map((r) => [r.id, r as Ecoregion]));
+ecoregions.runs.length = 0;
+ecoregions.regions.length = 0;
 const cellOf = (lon: number, lat: number) => [
-  Math.max(0, Math.min(ecoregions.width - 1, Math.floor((lon + 180) * 4))),
-  Math.max(0, Math.min(ecoregions.height - 1, Math.floor((90 - lat) * 4))),
+  Math.max(0, Math.min(width - 1, Math.floor((lon + 180) * 4))),
+  Math.max(0, Math.min(height - 1, Math.floor((90 - lat) * 4))),
 ];
 export function ecoregionAt(lon: number, lat: number): Ecoregion | undefined {
   const [x, y] = cellOf(lon, lat);
-  return byId.get(grid[y * ecoregions.width + x]);
+  return byId.get(grid[y * width + x]);
 }
 /** Id 0 is both "no region" and the sea, so a coastal cell can miss its
  * land. Widen to the nearest filled cell within half a degree. */
@@ -30,9 +33,9 @@ export function ecoregionNear(lon: number, lat: number): Ecoregion | undefined {
         if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
         const xx = x + dx,
           yy = y + dy;
-        if (xx < 0 || yy < 0 || xx >= ecoregions.width || yy >= ecoregions.height)
+        if (xx < 0 || yy < 0 || xx >= width || yy >= height)
           continue;
-        const id = grid[yy * ecoregions.width + xx];
+        const id = grid[yy * width + xx];
         if (id) return byId.get(id);
       }
   return undefined;

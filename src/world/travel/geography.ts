@@ -3,20 +3,18 @@ import { northAmericanLandscape } from "../../content/geography/travel/north-ame
 import { waterRegion } from "../../content/geography/travel/oceans";
 import { resolveGeographicName } from "./naming";
 import { cellToLatLng, gridDisk, latLngToCell } from "h3-js";
-import index from "../../content/geography/atlas-index.generated.json" with { type: "json" };
+import { atlasMask, atlasMaskHeight, atlasMaskWidth } from "../geography/atlas";
 import type { Coordinate, TravelCell, TravelMode } from "./types";
 export const TRAVEL_RESOLUTION = 4;
-const mask = new Uint8Array(index.width * index.height);
-for (const [a, b] of index.runs) mask.fill(1, a, b);
 export const wrapLon = (lon: number) =>
   ((((lon + 180) % 360) + 360) % 360) - 180;
 export function isWater(p: Coordinate) {
-  const col = Math.min(index.width - 1, Math.floor((wrapLon(p.lon) + 180) * 4));
+  const col = Math.min(atlasMaskWidth - 1, Math.floor((wrapLon(p.lon) + 180) * 4));
   const row = Math.max(
     0,
-    Math.min(index.height - 1, Math.floor((90 - p.lat) * 4)),
+    Math.min(atlasMaskHeight - 1, Math.floor((90 - p.lat) * 4)),
   );
-  return mask[row * index.width + col] !== 1;
+  return atlasMask[row * atlasMaskWidth + col] !== 1;
 }
 export function kilometers(a: Coordinate, b: Coordinate) {
   const r = Math.PI / 180,

@@ -1,6 +1,8 @@
 import type Phaser from "phaser";
 import { cellHash as hash, valueNoise as noise } from "../core/noise";
 import { snowShades, white } from "./snow-cover";
+import { smallMemoryDevice } from "../runtime/device";
+import { releaseCanvas } from "./resources";
 
 // How readily moss takes on roofs and damp creeps up walls, by climate.
 const damp: Record<string, number> = {
@@ -31,6 +33,7 @@ export function buildingWear(
     door?: number[];
   },
 ) {
+  if (smallMemoryDevice()) return undefined;
   const moss = Math.round((damp[options.climate ?? ""] ?? 0.5) * options.neglect * 4);
   const dry = options.climate === "arid" || options.climate === "mediterranean";
   const growth = options.weeds ? Math.round((0.35 + options.neglect * 0.5) * 4) : 0;
@@ -47,6 +50,7 @@ export function buildingWear(
   const rctx = read.getContext("2d", { willReadFrequently: true })!;
   rctx.drawImage(f.source.image as CanvasImageSource, f.cutX, f.cutY, w, h, 0, 0, w, h);
   const px = rctx.getImageData(0, 0, w, h).data;
+  releaseCanvas(read);
   const solid = (x: number, y: number) =>
     x >= 0 && y >= 0 && x < w && y < h && px[(y * w + x) * 4 + 3] > 200;
   const tex = scene.textures.createCanvas(key, w, h + padBottom)!;
@@ -164,6 +168,7 @@ export function buildingSnowBank(
   frame: string,
   door?: number[],
 ) {
+  if (smallMemoryDevice()) return undefined;
   const key = `snow-bank:${frame}`;
   if (scene.textures.exists(key)) return key;
   const f = scene.textures.getFrame(texture, frame);
@@ -176,6 +181,7 @@ export function buildingSnowBank(
   const rctx = read.getContext("2d", { willReadFrequently: true })!;
   rctx.drawImage(f.source.image as CanvasImageSource, f.cutX, f.cutY, w, h, 0, 0, w, h);
   const px = rctx.getImageData(0, 0, w, h).data;
+  releaseCanvas(read);
   const tex = scene.textures.createCanvas(key, w, h)!;
   const ctx = tex.getContext();
   const out = ctx.createImageData(w, h);

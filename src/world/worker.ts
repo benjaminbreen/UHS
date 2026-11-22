@@ -81,8 +81,8 @@ async function prepare({ setting, seed, cachePrepared, retire, waterways }: Extr
     if (playableMap) setting.playableMap = playableMap;
     const cacheKey = hit?.key ?? (cachePrepared ? preparedKey(setting, seed) : undefined);
     const cached = hit ?? (cacheKey ? await loadPrepared(cacheKey).catch(() => undefined) : undefined);
-    const { world: settlement, prepared } = prepareSettlement(packForSetting(setting), seed, cached?.prepared);
-    useTerrainWorld(settlement);
+    const { world: settlement, prepared } = prepareSettlement(packForSetting(setting), seed, cached?.prepared, retire);
+    if (!retire) useTerrainWorld(settlement);
     const entry = cacheKey && (!cached || (recipe && cached.recipe !== recipe))
       ? { key: cacheKey, prepared, recipe, playableMap }
       : undefined;

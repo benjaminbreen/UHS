@@ -1,7 +1,7 @@
 import type { LivingMask } from "./living-water/mask";
 import type { GroundPage } from "./ground-pages";
 import { usesLivingWater, addLivingWater } from "./living-water/game";
-import { own, renderResources, type RenderResources } from "./resources";
+import { addPixelTexture, own, releaseCanvas, renderResources, type RenderResources } from "./resources";
 import { paintedGround } from "./material-edges";
 import { rasterHabitatTile, type GroundTileData } from "./habitat-raster";
 import { isCanal, rasterWaterTile, type WaterTileData } from "./water-raster";
@@ -196,7 +196,22 @@ export function* topographySteps(
     yield;
   }
   const bounded = sample;
-  if (groundPage) {
+  const fullGroundPage =
+    !!region &&
+    !waterTiles?.length &&
+    !!groundPage &&
+    groundPage.x === 0 &&
+    groundPage.y === 0 &&
+    groundPage.width === pageSize &&
+    groundPage.height === pageSize &&
+    groundPage.tiles.every(Boolean);
+  if (fullGroundPage && groundPage) {
+    const key = `${region.prefix}-ground-0-0`;
+    addPixelTexture(scene, key, pageSize, pageSize, groundPage.pixels);
+    resources.textures.push(key);
+    own(resources, scene.add.image(0, 0, key).setOrigin(0).setDepth(-10000));
+    yield;
+  } else if (groundPage) {
     const source = document.createElement("canvas");
     source.width = groundPage.width;
     source.height = groundPage.height;
@@ -221,6 +236,7 @@ export function* topographySteps(
             groundPage.x - cx * pageSize,
             groundPage.y - cy * pageSize,
           );
+    releaseCanvas(source);
     yield;
   }
   if (!region)
@@ -384,6 +400,14 @@ export function* topographySteps(
     yield;
   }
   for (const page of pages.values()) page.refresh();
+  for (const c of tinted.values()) releaseCanvas(c);
+  for (const c of shoreTiles.values()) releaseCanvas(c);
+  releaseCanvas(groundScratch?.canvas);
+  releaseCanvas(waterScratch);
+  tinted.clear();
+  shoreTiles.clear();
+  groundScratch = undefined;
+  waterScratch = undefined;
   yield;
   if (usesLivingWater(scene))
     addLivingWater(scene, sample, width, height, region, resources, livingMask);

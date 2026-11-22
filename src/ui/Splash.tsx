@@ -1,3 +1,4 @@
+import { interfaceSound } from "../audio/director";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
@@ -22,6 +23,7 @@ import { BannerSmoke } from "./BannerSmoke";
 import { SplashStars } from "./SplashStars";
 import { Arrival } from "./Arrival";
 import { releaseTerrainWorker } from "../runtime/terrain-worker-owner";
+import { smallMemoryDevice } from "../runtime/device";
 import type { CharacterPrepared, StartingCharacter } from "../runtime/preparation";
 import { setVitalsEnabled, vitalsEnabled } from "../runtime/vitals";
 import "./splash.css";
@@ -143,11 +145,32 @@ export function Splash({
     ready.abort.abort();
     void ready.engine.then((engine) => releaseTerrainWorker(engine.world)).catch(() => {});
   };
+  const previewCall = useRef(0);
   const prewarm = (next: { seed: string; setting: WorldSetting }) => {
     if (controller.current) return;
     cancelWarm();
+    // On a phone, preparing a random start speculatively on the splash loads a
+    // full world and worker that get thrown away the moment the user picks a
+    // setting — build only the character preview until Begin.
+    if (smallMemoryDevice()) {
+      const call = ++previewCall.current;
+      void Promise.all([
+        import("../content/geography/character"),
+        import("../content/geography/defaults"),
+        import("../content/characters/generate"),
+      ]).then(([{ populateCharacter }, { integratedSetting }, { generateCharacter }]) => {
+        if (call !== previewCall.current || controller.current) return;
+        const resolved = populateCharacter(integratedSetting(next.setting), next.seed);
+        const age = resolved.character!.age!;
+        setPerson({
+          ...generateCharacter(resolved, resolved.character!.appearanceSeed ?? next.seed, "player", age, resolved.role, resolved.characterName),
+          age,
+        });
+      });
+      return;
+    }
     const abort = new AbortController();
-    const prepared: WarmStart = { ...next, abort, engine: import("../runtime/map-travel").then((m) =>
+    const prepared: WarmStart = { ...next, abort, engine: import("../runtime/preparation").then((m) =>
       m.prepareConnectedStart(next.setting, next.seed, abort.signal, (setting, character) => {
         prepared.preview = { setting, character };
         if (warm.current === prepared) setPerson(character);
@@ -195,9 +218,9 @@ export function Splash({
     const abort = new AbortController();
     controller.current = abort;
     setBusy("Preparing your world…");
-    void import("../runtime/bootstrap");
+    if (!smallMemoryDevice()) void import("../runtime/bootstrap");
     try {
-      const { prepareConnectedStart } = await import("../runtime/map-travel");
+      const { prepareConnectedStart } = await import("../runtime/preparation");
       let worldSeed = seed;
       let setting;
       if (selection) {
@@ -263,7 +286,9 @@ export function Splash({
     }
   };
   return (
-    <main className={arrival ? "splash is-departing" : "splash"}>
+    <main className={arrival ? "splash is-departing" : "splash"}
+      onClickCapture={(e) => { if ((e.target as Element).closest("button")) interfaceSound("tap"); }}
+      onChangeCapture={(e) => { if ((e.target as Element).matches("select, input[type=range], input[type=number]")) interfaceSound("tock"); }}>
       {arrival && <Arrival setting={arrival.setting} character={arrival.character} engine={arrival.engine} ready={ready} onEnter={() => { if (arrival.engine) void onStart(arrival.engine); }} onCancel={() => { arrival.cancel?.(); controller.current?.abort(); if (arrival.engine) releaseTerrainWorker(arrival.engine.world); onCancel?.(); controller.current = null; setArrival(undefined); setBusy(""); }} />}
       <div className="splash-frame">
         <SplashStars />

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { atlasLand, atlasRivers } from "../world/geography/atlas";
+import { forEachAtlasLand, forEachAtlasRiver } from "../world/geography/atlas";
 import glacialAtlas from "../assets/arrival-atlas-glacial.webp";
 import modernAtlas from "../assets/arrival-atlas-modern.webp";
 import "./arrival.css";
@@ -51,19 +51,25 @@ export function ArrivalMap({ lon, lat, year, place, pick, onPick }: {
     c.fillStyle = "#52644e";
     c.strokeStyle = "#1c3c4c";
     c.lineWidth = 1 / zoom;
-    for (const ring of atlasLand) {
+    forEachAtlasLand((coords, start, end) => {
       c.beginPath();
-      ring.forEach((point, i) => { const [x, y] = project(point); if (i) c.lineTo(x, y); else c.moveTo(x, y); });
+      for (let v = start; v < end; v++) {
+        const [x, y] = project([coords[v * 2], coords[v * 2 + 1]]);
+        if (v > start) c.lineTo(x, y); else c.moveTo(x, y);
+      }
       if (!background) c.fill();
       c.stroke();
-    }
+    });
     c.strokeStyle = "#6fa6b8";
     c.lineWidth = Math.max(0.35, 1.1 / zoom);
-    for (const river of atlasRivers) {
+    forEachAtlasRiver((coords, start, end) => {
       c.beginPath();
-      river.points.forEach((point, i) => { const [x, y] = project(point); if (i) c.lineTo(x, y); else c.moveTo(x, y); });
+      for (let v = start; v < end; v++) {
+        const [x, y] = project([coords[v * 2], coords[v * 2 + 1]]);
+        if (v > start) c.lineTo(x, y); else c.moveTo(x, y);
+      }
       c.stroke();
-    }
+    });
     c.restore();
     const vignette = c.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, W * 0.62);
     vignette.addColorStop(0, "#0000");

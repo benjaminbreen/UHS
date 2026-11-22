@@ -80,10 +80,11 @@ it("ships every building's daylight and contact masks without eagerly loading th
   expect(missing).toEqual([]);
 });
 
-it("pages every building sheet frame onto a phone-sized page", async () => {
-  const { pagedSheets } = await import("../src/render/scene-assets");
+it("pages every paged sheet frame onto a phone-sized page", async () => {
+  const { pagedSheets, sceneAssets } = await import("../src/render/scene-assets");
+  const sources = new Map(sceneAssets().atlases.map((a) => [a.key, a.image.replace(/\.png\?.*$/, ".json")]));
   for (const sheet of pagedSheets) {
-    const full = JSON.parse(readFileSync(`public/packs/${sheet}.json`, "utf8")).frames;
+    const full = JSON.parse(readFileSync(`public${sources.get(sheet)}`, "utf8")).frames;
     const pages: object[] = JSON.parse(readFileSync(`public/packs/pages/${sheet}.json`, "utf8"));
     expect(pages.flatMap(Object.keys).sort()).toEqual(Object.keys(full).sort());
     pages.forEach((_, i) => {

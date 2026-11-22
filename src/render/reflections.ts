@@ -2,6 +2,7 @@ import { waterborneFrames } from "../content/graphics/models";
 import type Phaser from "phaser";
 import { TERRAIN_CHUNK_SIZE } from "./terrain-region";
 import { openWaterMask } from "./living-water/game";
+import { trimCache } from "../core/cache";
 
 /** Water lies under the ground layers and the ground is opaque on land, so a
  * double drawn between them shows only where there is water. Each streamed
@@ -31,7 +32,10 @@ export class Reflections {
       for (let cx = x0; cx <= x1; cx++) {
         const k = cx * 100003 + cy;
         let w = this.wetCells.get(k);
-        if (w === undefined) this.wetCells.set(k, (w = this.water(cx, cy)));
+        if (w === undefined) {
+          trimCache(this.wetCells, 4096);
+          this.wetCells.set(k, (w = this.water(cx, cy)));
+        }
         if (w) return true;
       }
     return false;

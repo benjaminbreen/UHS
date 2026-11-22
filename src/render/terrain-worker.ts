@@ -166,11 +166,24 @@ export function handleTerrainRequest(data: TerrainRequest) {
 }
 
 function rasterRegion(region: TerrainRegion): Omit<TerrainResponse, "id"> {
+  const steps = rasterRegionSteps(world, region, { livingEnabled, polish });
+  for (;;) {
+    const next = steps.next();
+    if (next.done) return next.value;
+  }
+}
+
+export function* rasterRegionSteps(
+  target: WorldModel,
+  region: TerrainRegion,
+  options: { livingEnabled: boolean; polish?: ShorePolish },
+): Generator<void, Omit<TerrainResponse, "id">> {
   const sample = (x: number, y: number) =>
-    world.topography!(x + region.x, y + region.y);
+    target.topography!(x + region.x, y + region.y);
   const cells: TopographyCell[] = [];
   for (let y = -PAD; y < SIZE + PAD; y++)
     for (let x = -PAD; x < SIZE + PAD; x++) cells.push(sample(x, y));
+  yield;
   const bridges = bridgeSpans(sample, SIZE, SIZE, true);
   const covers = bridges.map((b) => ({
     x: b.minX * 16 - 3,
@@ -197,7 +210,7 @@ function rasterRegion(region: TerrainRegion): Omit<TerrainResponse, "id"> {
   const paintCells = new Map<string, TopographyCell>();
   const paintSample = (x: number, y: number) => {
     const c = sample(x, y);
-    if (!livingEnabled || !c.waterVisual) return c;
+    if (!options.livingEnabled || !c.waterVisual) return c;
     // Creeks, quays and tidal shelves keep their own shore width: living water
     // skips dry pixels on a tidal shelf, so shrinking shoreWidth here left an
     // unshaded strip across the upper beach.
@@ -217,28 +230,28 @@ function rasterRegion(region: TerrainRegion): Omit<TerrainResponse, "id"> {
                   c.waterVisual.distance,
                   x + region.x,
                   y + region.y,
-                  polish,
+                  options.polish,
                 )
               : c.waterVisual.distance,
           // Turf runs under the water layer's ragged outer beach, which
           // cuts away to show it.
           shoreWidth:
-            (polish?.enabled ? 0.56 : 1) *
+            (options.polish?.enabled ? 0.56 : 1) *
             (c.waterVisual.kind === "sea"
               ? coastBeachWidth(
-                  livingBeachWidth(sample, x, y, region.x, region.y, polish),
+                  livingBeachWidth(sample, x, y, region.x, region.y, options.polish),
                   x + region.x,
                   y + region.y,
-                  polish,
+                  options.polish,
                 )
-              : livingBeachWidth(sample, x, y, region.x, region.y, polish)),
+              : livingBeachWidth(sample, x, y, region.x, region.y, options.polish)),
         },
       };
       paintCells.set(key, painted);
     }
     return painted;
   };
-  for (let y = 0; y < SIZE; y++)
+  for (let y = 0; y < SIZE; y++) {
     for (let x = 0; x < SIZE; x++) {
       const cell = cachedSample(x, y);
       if (paintedGround(cell))
@@ -285,6 +298,8 @@ function rasterRegion(region: TerrainRegion): Omit<TerrainResponse, "id"> {
         waterTiles.push(tile);
       }
     }
+    if ((y & 3) === 3) yield;
+  }
   const rimList: number[] = [];
   const receiverData: Partial<TerrainReceivers> = {};
   const layers = rasterTerrainContours(
@@ -298,29 +313,30 @@ function rasterRegion(region: TerrainRegion): Omit<TerrainResponse, "id"> {
     receiverData,
     waterTiles,
   );
+  yield;
   const rims = Int16Array.from(rimList);
   const receivers = receiverData.tiers
     ? (receiverData as TerrainReceivers)
     : undefined;
   const rockPositions: { x: number; y: number }[] = [];
-  if (polish?.enabled)
+  if (options.polish?.enabled)
     for (let y = -3; y < SIZE + 3; y++)
       for (let x = -3; x < SIZE + 3; x++) {
         const c = cachedSample(x, y);
         if (
           c?.waterVisual &&
           c.waterVisual.distance < 2 &&
-          world.decoration(x + region.x, y + region.y)?.sprite === "rock"
+          target.decoration(x + region.x, y + region.y)?.sprite === "rock"
         )
           rockPositions.push({ x, y });
       }
-  const living = livingEnabled
+  const living = options.livingEnabled
     ? rasterLivingWater(
         cachedSample,
         SIZE,
         SIZE,
         region,
-        polish,
+        options.polish,
         rockPositions,
         receivers,
       )

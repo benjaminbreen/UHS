@@ -398,25 +398,26 @@ export function urbanNeighborhood(
     pack.setting?.culture === "european" &&
     modernity(pack.setting!).id === "north-america";
   const candidateBases: CandidateRecipe[] = americanStrip
-    ? Object.entries(buildingModels)
-        .filter(([frame, model]) => {
-          const meta = model as { candidate?: boolean; from?: number };
+    ? Object.keys(buildingModels)
+        .filter((frame) => {
+          if (!frame.startsWith("candidate-") || /(?:-north|-east|-west)$/.test(frame)) return false;
+          const meta = buildingModels[frame] as { candidate?: boolean; from?: number };
           // A motel needs a car and a highway, a laundromat needs a coin
           // machine. Without this the same kit builds 1905 and 1955.
           return (
             meta.candidate === true &&
-            !/(?:-north|-east|-west)$/.test(frame) &&
             (pack.setting?.year ?? 0) >= (meta.from ?? 0)
           );
         })
-        .map(([base, model]) => {
+        .map((base) => {
+          const model = buildingModel(base);
           const meta = model as {
             candidateType?: string;
             candidateGroup?: string;
           };
           return {
             base,
-            model: buildingModel(base),
+            model,
             kind: meta.candidateType ?? "mixed-use",
             group: meta.candidateGroup ?? "infill",
           };

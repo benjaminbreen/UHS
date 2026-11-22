@@ -9,7 +9,7 @@ await withPage({}, async (page) => {
   await page.evaluate("window.__name = (fn) => fn");
   const backgrounds = await page.evaluate(async (base) => {
     const load = (path: string) => import(`${base}/src/${path}.ts`);
-    const { atlasLand, atlasRivers }: typeof import("../src/world/geography/atlas") = await load("world/geography/atlas");
+    const { forEachAtlasLand, forEachAtlasRiver }: typeof import("../src/world/geography/atlas") = await load("world/geography/atlas");
     const { koppenAt }: typeof import("../src/content/geography/climate-map") = await load("content/geography/climate-map");
     const { mountainBelts }: typeof import("../src/content/geography/landforms") = await load("content/geography/landforms");
     const { noise, segmentDistance }: typeof import("../src/world/geography/noise") = await load("world/geography/noise");
@@ -47,22 +47,28 @@ await withPage({}, async (page) => {
       const c = canvas.getContext("2d")!;
       c.scale(RES / 2, RES / 2);
       c.fillStyle = "#fff";
-      for (const ring of atlasLand) {
+      forEachAtlasLand((coords, start, end) => {
         c.beginPath();
-        ring.forEach((point, i) => { const [x, y] = project(point); if (i) c.lineTo(x, y); else c.moveTo(x, y); });
+        for (let v = start; v < end; v++) {
+          const [x, y] = project([coords[v * 2], coords[v * 2 + 1]]);
+          if (v > start) c.lineTo(x, y); else c.moveTo(x, y);
+        }
         c.fill();
-      }
+      });
       const image = c.getImageData(0, 0, TW, TH), px = image.data;
       const land = new Float32Array(TW * TH);
       for (let i = 0; i < land.length; i++) land[i] = px[i * 4 + 3] > 127 ? 1 : 0;
       c.clearRect(0, 0, TW, TH);
       c.strokeStyle = "#fff";
       c.lineWidth = 1.5;
-      for (const river of atlasRivers) {
+      forEachAtlasRiver((coords, start, end) => {
         c.beginPath();
-        river.points.forEach((point, i) => { const [x, y] = project(point); if (i) c.lineTo(x, y); else c.moveTo(x, y); });
+        for (let v = start; v < end; v++) {
+          const [x, y] = project([coords[v * 2], coords[v * 2 + 1]]);
+          if (v > start) c.lineTo(x, y); else c.moveTo(x, y);
+        }
         c.stroke();
-      }
+      });
       const wet = c.getImageData(0, 0, TW, TH).data, banks = new Float32Array(TW * TH);
       for (let i = 0; i < banks.length; i++) banks[i] = wet[i * 4 + 3] / 255;
       const riparian = boxBlur(boxBlur(banks, TW, TH, 3), TW, TH, 3);

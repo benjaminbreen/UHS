@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { CultureId } from "../content/history/types";
 import type { Point } from "../core/types";
-import { atlasRivers, atlasSample, broadEnvironment, fromAtlas, toAtlas } from "../world/geography/atlas";
+import { forEachAtlasRiver, atlasSample, broadEnvironment, fromAtlas, toAtlas } from "../world/geography/atlas";
 import { noise } from "../world/geography/noise";
 
 /** The region map redrawn after a cartographic tradition of its time and
@@ -262,12 +262,12 @@ function paint(canvas: HTMLCanvasElement, style: PeriodStyle, o: Point, center: 
   // Rivers.
   c.strokeStyle = look.river;
   c.lineWidth = look.riverWidth;
-  for (const river of atlasRivers) {
+  forEachAtlasRiver((coords, start, end) => {
     // Curves through the midpoints, since the atlas course is a chain of chords.
     c.beginPath();
     let last: Point | undefined;
-    for (const [lon, lat] of river.points) {
-      const a = toAtlas(lon, lat), p = toCanvas(a.x, a.y);
+    for (let v = start; v < end; v++) {
+      const a = toAtlas(coords[v * 2], coords[v * 2 + 1]), p = toCanvas(a.x, a.y);
       const inside = p.x > -200 && p.x < CW + 200 && p.y > -200 && p.y < CH + 200;
       if (!inside) last = undefined;
       else if (!last) c.moveTo(p.x, p.y);
@@ -275,7 +275,7 @@ function paint(canvas: HTMLCanvasElement, style: PeriodStyle, o: Point, center: 
       if (inside) last = p;
     }
     c.stroke();
-  }
+  });
   // Mountains and woods on a jittered grid, drawn back to front.
   const marks: { y: number; draw: () => void }[] = [];
   const step = style === "portolan" || style === "peutinger" ? 40 : 30;

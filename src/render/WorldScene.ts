@@ -33,6 +33,7 @@ import {
 import { WadingEffects } from "./characters/wading";
 import { shorePolishDefaults } from "./living-water/polish";
 import { updateLivingWater } from "./living-water/game";
+import { addPixelTexture, releaseCanvas, releaseTexture } from "./resources";
 import { perf, open, mark, span, timed } from "./perf-switches";
 import { isGrassTuft, natureTreeSprites } from "../content/ecology/vegetation";
 import { grassTuftFrame, TUFT_ATLAS } from "./ground-motifs";
@@ -1109,12 +1110,17 @@ export class WorldScene extends Phaser.Scene {
     });
     this.events.once("shutdown", () => this.characters?.destroy());
     this.events.once("destroy", () => this.characters?.destroy());
+    this.events.once("shutdown", () => this.releaseDynamicTextures());
     this.fireFrames = animatedFrames(
       this.textures.get("props").getFrameNames(),
     );
+    const harborIndex = this.cache.json.get("harbor-index");
+    const harborFrames = Array.isArray(harborIndex)
+      ? harborIndex.flatMap((page: Record<string, unknown>) => Object.keys(page))
+      : Object.keys(harborIndex?.frames ?? {});
     this.motionFrames = motionFrames([
       ...this.textures.get("props").getFrameNames(),
-      ...Object.keys(this.cache.json.get("harbor-index")?.frames ?? {}),
+      ...harborFrames,
     ]);
     // Watched rather than queried: the input gate runs on every frame.
     const watchModals = new MutationObserver(() => {
@@ -3224,10 +3230,13 @@ export class WorldScene extends Phaser.Scene {
     const key = `rider:${colours.join("")}:${source}`;
     if (!this.textures.exists(key)) {
       const src = this.textures.getFrame(sheet, source);
-      const canvas = this.textures.createCanvas(key, src.cutWidth, src.cutHeight)!;
-      const ctx = canvas.getContext();
+      const scratch = document.createElement("canvas");
+      scratch.width = src.cutWidth;
+      scratch.height = src.cutHeight;
+      const ctx = scratch.getContext("2d", { willReadFrequently: true })!;
       ctx.drawImage(src.source.image as CanvasImageSource, src.cutX, src.cutY, src.cutWidth, src.cutHeight, 0, 0, src.cutWidth, src.cutHeight);
       const data = ctx.getImageData(0, 0, src.cutWidth, src.cutHeight);
+      releaseCanvas(scratch);
       const ramps = colours.map(riderRamp);
       for (let i = 0; i < data.data.length; i += 4) {
         if (!data.data[i + 3]) continue;
@@ -3237,8 +3246,8 @@ export class WorldScene extends Phaser.Scene {
         data.data[i + 1] = cg;
         data.data[i + 2] = cb;
       }
-      ctx.putImageData(data, 0, 0);
-      canvas.refresh();
+      addPixelTexture(this, key, src.cutWidth, src.cutHeight, data.data);
+      this.dynamicTextures.add(key);
     }
     this.riderImage ??= this.add.image(0, 0, key);
     this.riderImage
@@ -3423,12 +3432,15 @@ export class WorldScene extends Phaser.Scene {
       const x = pose.x * 16 + 8,
         y = pose.y * 16 + 16 - this.lift(x, pose.y * 16 + 16);
       const frame = v.model.replace(/-\d$/, "-" + pose.facing);
-      if (image.frame.name !== frame) image.setTexture("harbor", frame).setOriginFromFrame();
+      const tex = this.texture(frame);
+      if (image.frame.name !== frame && tex !== "__DEFAULT")
+        image.setTexture(tex, frame).setOriginFromFrame();
       image.setPosition(x, y).setDepth(pose.y * 16 + 10);
       const shadow = this.shadows.get(v.id);
       const key = shadowFrame(this.shadowPhase, frame);
-      if (shadow && shadow.frame.name !== key && this.textures.get("harbor").has(key))
-        shadow.setTexture("harbor", key).setOriginFromFrame();
+      const stex = this.texture(key);
+      if (shadow && shadow.frame.name !== key && stex !== "__DEFAULT" && this.textures.get(stex).has(key))
+        shadow.setTexture(stex, key).setOriginFromFrame();
       shadow?.setPosition(x, y);
     }
     const teams = new Map<string, FaunaGroup>();
@@ -3910,6 +3922,46 @@ export class WorldScene extends Phaser.Scene {
   private sheetImages = new Map<string, [string, object]>();
   private sheetLoading = new Set<string>();
   private sheetRetried = new Set<string>();
+  private sheetUsed = new Map<string, number>();
+  private lastSheetPrune = 0;
+  private dynamicTextures = new Set<string>();
+  private releaseDynamicTextures() {
+    for (const k of this.dynamicTextures) releaseTexture(this, k);
+    this.dynamicTextures.clear();
+    if (smallMemoryDevice()) {
+      for (const key of this.sheetImages.keys()) releaseTexture(this, key);
+      this.sheetLoading.clear();
+      this.sheetUsed.clear();
+    }
+  }
+  /** On phones, evict old lazy atlas pages once loaded pages pass the budget
+   * so long walks and map travel cannot climb texture memory indefinitely. */
+  private pruneLazySheets(now: number) {
+    if (!smallMemoryDevice() || now - this.lastSheetPrune < 10000) return;
+    this.lastSheetPrune = now;
+    const loaded: string[] = [];
+    for (const key of this.sheetImages.keys())
+      if (this.textures.exists(key)) loaded.push(key);
+    if (loaded.length <= 16) return;
+    const inUse = new Set<string>();
+    const markObj = (o: Phaser.GameObjects.GameObject) => {
+      const tex = (o as Partial<Phaser.GameObjects.Image>).texture?.key;
+      if (tex) inUse.add(tex);
+      if (o instanceof Phaser.GameObjects.Container)
+        for (const child of o.list) markObj(child);
+    };
+    for (const o of this.children.list) markObj(o);
+    loaded.sort((a, b) => (this.sheetUsed.get(a) ?? 0) - (this.sheetUsed.get(b) ?? 0));
+    let remaining = loaded.length;
+    for (const key of loaded) {
+      if (remaining <= 16) break;
+      if (inUse.has(key) || now - (this.sheetUsed.get(key) ?? 0) < 20000) continue;
+      releaseTexture(this, key);
+      this.sheetLoading.delete(key);
+      this.sheetUsed.delete(key);
+      remaining--;
+    }
+  }
   /** Fetches a building sheet the preload did not, then redraws the scenery
    * that stood in for it. */
   private loadSheet(key: string) {
@@ -3945,15 +3997,38 @@ export class WorldScene extends Phaser.Scene {
     const key = `${set}+${art}+${slug}`;
     if (this.textures.exists(key)) return key;
     const swap = faunaCoats(art.split(".")[0], slug.replace(/_/g, "-"));
-    const atlas = this.textures.get(set);
     const stem = `${set}-${art}-`;
-    const frames = atlas
-      .getFrameNames()
-      .filter((name) => name.startsWith(stem))
-      .map((name) => atlas.get(name));
-    if (!swap || !frames.length) return set;
-    const w = frames[0].cutWidth + 2,
-      h = frames[0].cutHeight + 2;
+    const isPaged = (pagedSheets as readonly string[]).includes(set);
+    let frames: Phaser.Textures.Frame[] = [];
+    if (isPaged && this.sheetFrames) {
+      const pages = new Set<string>();
+      for (const [name, pageKey] of this.sheetFrames)
+        if (name.startsWith(stem)) pages.add(pageKey);
+      let missing = false;
+      for (const pageKey of pages) {
+        this.sheetUsed.set(pageKey, this.time.now);
+        if (!this.textures.exists(pageKey)) {
+          this.loadSheet(pageKey);
+          missing = true;
+        }
+      }
+      if (missing) return "__DEFAULT";
+      for (const pageKey of pages) {
+        const atlas = this.textures.get(pageKey);
+        for (const name of atlas.getFrameNames())
+          if (name.startsWith(stem)) frames.push(atlas.get(name));
+      }
+    } else {
+      if (!this.textures.exists(set)) return "__DEFAULT";
+      const atlas = this.textures.get(set);
+      frames = atlas
+        .getFrameNames()
+        .filter((name) => name.startsWith(stem))
+        .map((name) => atlas.get(name));
+    }
+    if (!swap || !frames.length) return isPaged ? "__DEFAULT" : set;
+    const w = Math.max(...frames.map((f) => f.cutWidth)) + 2,
+      h = Math.max(...frames.map((f) => f.cutHeight)) + 2;
     const canvas = document.createElement("canvas");
     canvas.width = w * 8;
     canvas.height = h * Math.ceil(frames.length / 8);
@@ -3971,7 +4046,9 @@ export class WorldScene extends Phaser.Scene {
         f.cutHeight,
       ),
     );
-    const image = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const cw = canvas.width, ch = canvas.height;
+    const image = ctx.getImageData(0, 0, cw, ch);
+    releaseCanvas(canvas);
     const d = image.data;
     for (let i = 0; i < d.length; i += 4) {
       if (!d[i + 3]) continue;
@@ -3981,8 +4058,8 @@ export class WorldScene extends Phaser.Scene {
       d[i + 1] = (to >> 8) & 255;
       d[i + 2] = to & 255;
     }
-    ctx.putImageData(image, 0, 0);
-    const texture = this.textures.addCanvas(key, canvas)!;
+    const texture = addPixelTexture(this, key, cw, ch, d)!;
+    this.dynamicTextures.add(key);
     texture.setFilter(Phaser.Textures.FilterMode.NEAREST);
     frames.forEach((f, i) =>
       texture.add(
@@ -4022,7 +4099,8 @@ export class WorldScene extends Phaser.Scene {
       this.sheetFrames = new Map();
       const { atlases } = sceneAssets();
       for (const sheet of lazySheets) {
-        const json = this.cache.json.get(`${sheet}-index`);
+        const indexKey = `${sheet}-index`;
+        const json = this.cache.json.get(indexKey);
         if (!json) continue;
         const pages: Record<string, unknown>[] =
           (pagedSheets as readonly string[]).includes(sheet) ? json : [json.frames];
@@ -4034,10 +4112,13 @@ export class WorldScene extends Phaser.Scene {
           this.sheetImages.set(key, [image, frames]);
           for (const f in frames) if (!this.sheetFrames!.has(f)) this.sheetFrames!.set(f, key);
         });
+        // Indexed into sheetFrames/sheetImages; drop the raw JSON cache copy.
+        this.cache.json.remove(indexKey);
       }
     }
     const lazy = this.sheetFrames.get(frame);
     if (lazy) {
+      this.sheetUsed.set(lazy, this.time.now);
       if (this.textures.exists(lazy)) return lazy;
       this.loadSheet(lazy);
       // Transparent until the sheet lands and the scenery redraws.
@@ -4050,13 +4131,12 @@ export class WorldScene extends Phaser.Scene {
     if (frame.startsWith("nature-")) return "nature";
     if (frame.startsWith("faunab-"))
       return frame.includes("+") ? this.coatTexture(frame) : "faunab";
-    if (frame.startsWith("faunac-"))
-      return frame.includes("+") ? this.coatTexture(frame) : "faunac";
-    // A lazy megafauna sheet; its plain frames were found above.
-    if (/^fauna[mrfguwoke]-/.test(frame)) {
+    // Lazy fauna sets; plain frames were found in sheetFrames above, while
+    // coated frames (+slug) build from the species' pages.
+    if (/^fauna[cmrfguwokehx]-/.test(frame)) {
+      if (frame.includes("+")) return this.coatTexture(frame);
       const set = frame.slice(0, 6);
-      if (this.textures.exists(set))
-        return frame.includes("+") ? this.coatTexture(frame) : set;
+      if (this.textures.exists(set)) return set;
       this.loadSheet(set);
       return "__DEFAULT";
     }
@@ -4752,6 +4832,7 @@ export class WorldScene extends Phaser.Scene {
   }
   /** Trees, houses and people mirrored in the water beside them. */
   private reflect(time: number) {
+    if (smallMemoryDevice()) return;
     const e = this.runtime.engine,
       w = e.world;
     const outdoors = e.state.player.pos.space === "outside" && !!w.topography && !this.options.lab;
@@ -6912,7 +6993,7 @@ export class WorldScene extends Phaser.Scene {
       // Sized before Phaser takes them as textures, which keep the size they start with.
       for (const c of Object.values(pixel.layers)) (c.canvas.width = pixel.W), (c.canvas.height = pixel.H);
       const key = `interior-room-${space}`;
-      for (const k of [key, `${key}-cut`, `${key}-light`, `${key}-add`, `${key}-glow`]) if (this.textures.exists(k)) this.textures.remove(k);
+      for (const k of [key, `${key}-cut`, `${key}-light`, `${key}-add`, `${key}-glow`]) releaseTexture(this, k);
       const texture = this.textures.addCanvas(key, canvas)!;
       const sheet = this.textures.addCanvas(`${key}-cut`, cut)!;
       const image = this.add
@@ -7258,7 +7339,7 @@ export class WorldScene extends Phaser.Scene {
     if (!v) return;
     v.image.destroy();
     for (const im of [...v.cutouts.values(), ...v.light]) im.destroy();
-    for (const k of [v.key, v.sheet.key, ...["light", "add", "glow"].map((k) => `${v.key}-${k}`)]) if (this.textures.exists(k)) this.textures.remove(k);
+    for (const k of [v.key, v.sheet.key, ...["light", "add", "glow"].map((k) => `${v.key}-${k}`)]) releaseTexture(this, k);
     this.roomView = undefined;
     this.washKey = "";
   }
@@ -7324,11 +7405,13 @@ export class WorldScene extends Phaser.Scene {
     }
     const v = this.cameras.main.worldView,
       pad = 48;
-    // Even, as a dynamic texture rounds itself up. Rebuilt rather than
-    // resized: resize left the framebuffer at its first size.
-    const w = Math.ceil(v.width / 2) * 2 + pad * 2,
-      h = Math.ceil(v.height / 2) * 2 + pad * 2;
-    if (this.night!.width !== w || this.night!.height !== h) {
+    // Quantize to 64px steps and only grow (or shrink when > 256px oversize)
+    // so smooth zooming does not reallocate WebGL FBOs every frame.
+    const w = Math.ceil((v.width + pad * 2) / 64) * 64,
+      h = Math.ceil((v.height + pad * 2) / 64) * 64;
+    const nw = this.night!.width,
+      nh = this.night!.height;
+    if (nw < w || nh < h || nw - w > 256 || nh - h > 256) {
       this.night!.destroy();
       this.night = this.washTexture(w, h);
     }
@@ -7898,12 +7981,14 @@ export class WorldScene extends Phaser.Scene {
         this.shadowPhase,
         alt <= 1,
       );
+      releaseCanvas(canvas);
       const texture = `fauna-shadow-${key}`;
       // The texture manager outlives the scene; this map does not.
-      if (this.textures.exists(texture)) this.textures.remove(texture);
+      releaseTexture(this, texture);
       this.textures
         .addCanvas(texture, made.canvas)
         ?.setFilter(Phaser.Textures.FilterMode.NEAREST);
+      this.dynamicTextures.add(texture);
       cast = { key: texture, origin: made.origin };
       this.faunaShadows.set(key, cast);
     }
@@ -7926,6 +8011,7 @@ export class WorldScene extends Phaser.Scene {
   }
   update(time: number, delta = 16) {
     open();
+    this.pruneLazySheets(time);
     this.syncStableDoors(time);
     this.drift?.update(time, !!this.options.freeze);
     this.mist?.update(time, !!this.options.freeze);

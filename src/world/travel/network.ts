@@ -5,7 +5,7 @@ import {
   locationName,
 } from "../../content/geography/travel";
 import { atlasSample, broadEnvironment, toAtlas, fromAtlas, nearestRiver } from "../geography/atlas";
-import { REGION_CELL } from "../regional/context";
+import { REGION_CELL } from "../regional/geometry";
 import { waterRegion } from "../../content/geography/travel/oceans";
 import { northAmericanLandscape } from "../../content/geography/travel/north-american-landscapes";
 import { kilometers, bearingTo, wrapLon } from "./geography";

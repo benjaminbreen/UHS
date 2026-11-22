@@ -9,6 +9,8 @@ import type Phaser from "phaser";
 import { GLYPHS, signable } from "./sign-texture";
 import { ARABIC_SIZES, CJK_SIZES, DEVA_SIZES, SCRIPT_BITMAPS } from "./sign-glyphs.generated";
 import type { SignLanguage } from "../content/settlements/signs";
+import { smallMemoryDevice } from "../runtime/device";
+import { addPixelTexture, releaseCanvas } from "./resources";
 import { blur } from "./window-light";
 
 /** `band` letters a board the art painted itself, in the model's `signPaint`. */
@@ -155,9 +157,14 @@ export function drawShopSign(
   const lights = kind === "box" || kind === "neon";
   const draw = (k: string, lit: boolean) => {
     if (scene.textures.exists(k)) return;
-    const canvas = scene.textures.createCanvas(k, w, h);
-    if (!canvas) return;
-    const ctx = canvas.getContext();
+    const scratch = smallMemoryDevice() ? document.createElement("canvas") : undefined;
+    if (scratch) {
+      scratch.width = w;
+      scratch.height = h;
+    }
+    const canvas = scratch ? undefined : scene.textures.createCanvas(k, w, h);
+    const ctx = scratch ? scratch.getContext("2d", { willReadFrequently: true }) : canvas?.getContext();
+    if (!ctx) return;
     ctx.clearRect(0, 0, w, h);
     const fill = (x: number, y: number, ww: number, hh: number, c: string) => {
       ctx.fillStyle = c;
@@ -203,7 +210,10 @@ export function drawShopSign(
       }
     for (let y = 0; y < text.h; y++)
       for (let x = 0; x < text.w; x++) if (text.bits[y * text.w + x]) fill(tx + x, ty + y, 1, 1, ink);
-    canvas.refresh();
+    if (scratch) {
+      addPixelTexture(scene, k, w, h, ctx.getImageData(0, 0, w, h).data);
+      releaseCanvas(scratch);
+    } else canvas!.refresh();
   };
   draw(key, false);
   if (!scene.textures.exists(key)) return undefined;
@@ -227,15 +237,13 @@ export function drawShopSign(
       for (let y = 2; y < h - 2; y++)
         for (let x = 2; x < w - 2; x++) mask[(y + SIGN_GLOW) * W + x + SIGN_GLOW] = 0.6;
     const soft = blur(mask, W, H, kind === "neon" ? 2 : 3);
-    const canvas = scene.textures.createCanvas(glow, W, H)!;
-    const img = canvas.getContext().createImageData(W, H);
+    const img = new Uint8Array(W * H * 4);
     for (let i = 0; i < soft.length; i++) {
       // Mostly round the sign, little over it, so the words stay legible.
       const v = Math.min(1, soft[i] * (kind === "neon" ? 3.2 : 1.4)) * (mask[i] ? (kind === "neon" ? 0.45 : 0.1) : 1);
-      if (v > 0.02) img.data.set([...tone, Math.round(v * 230)], i * 4);
+      if (v > 0.02) img.set([...tone, Math.round(v * 230)], i * 4);
     }
-    canvas.getContext().putImageData(img, 0, 0);
-    canvas.refresh();
+    addPixelTexture(scene, glow, W, H, img);
   }
   return { key, lit: `${key}:lit`, glow, tone };
 }

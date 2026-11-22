@@ -1,4 +1,5 @@
 import type Phaser from "phaser";
+import { releaseCanvas, releaseTexture } from "./resources";
 import type { Place } from "../core/types";
 import { conditionOf } from "../core/time/structure";
 import { random, stateHash } from "../core/random";
@@ -51,7 +52,7 @@ export class StructureDecay {
   }
 
   release() {
-    for (const key of this.owned) this.scene.textures.remove(key);
+    for (const key of this.owned) releaseTexture(this.scene, key);
     this.owned.clear();
     this.queue = [];
   }
@@ -72,6 +73,7 @@ export class StructureDecay {
     ctx.drawImage(frame.source.image as CanvasImageSource, frame.cutX, frame.cutY, w, h, 0, 0, w, h);
     const seed = Math.floor(random(place.id, "wear") * 1e6);
     const d = decay(ctx.getImageData(0, 0, w, h).data, w, h, place.structure!, seed);
+    releaseCanvas(canvas);
     const out = this.scene.textures.createCanvas(key, d.w, d.h)!;
     out.context.putImageData(new ImageData(d.data, d.w, d.h), 0, 0);
     out.refresh();

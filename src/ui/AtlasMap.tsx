@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { atlasLand, atlasRivers } from "../world/geography/atlas";
+import { forEachAtlasLand, forEachAtlasRiver } from "../world/geography/atlas";
 import { featuredPlaces, places } from "../content/geography/places";
 export function AtlasMap({
   lon,
@@ -23,27 +23,27 @@ export function AtlasMap({
     c.fillStyle = "#7e8859";
     c.strokeStyle = "#a1ab75";
     c.lineWidth = 0.6;
-    for (const ring of atlasLand) {
+    forEachAtlasLand((coords, start, end) => {
       c.beginPath();
-      ring.forEach((p, i) => {
-        const [x, y] = point(p);
-        if (i) c.lineTo(x, y);
+      for (let v = start; v < end; v++) {
+        const [x, y] = point([coords[v * 2], coords[v * 2 + 1]]);
+        if (v > start) c.lineTo(x, y);
         else c.moveTo(x, y);
-      });
+      }
       c.fill();
       c.stroke();
-    }
+    });
     c.strokeStyle = "#427d8e";
     c.lineWidth = 0.6;
-    for (const r of atlasRivers) {
+    forEachAtlasRiver((coords, start, end) => {
       c.beginPath();
-      r.points.forEach((p, i) => {
-        const [x, y] = point(p);
-        if (i) c.lineTo(x, y);
+      for (let v = start; v < end; v++) {
+        const [x, y] = point([coords[v * 2], coords[v * 2 + 1]]);
+        if (v > start) c.lineTo(x, y);
         else c.moveTo(x, y);
-      });
+      }
       c.stroke();
-    }
+    });
     c.fillStyle = "#d9c895";
     for (const p of featuredPlaces) {
       const [x, y] = point([p.lon, p.lat]);

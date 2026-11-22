@@ -13,7 +13,22 @@ ROOT = Path(__file__).resolve().parents[2]
 PACKS = ROOT / 'public/packs'
 SHEETS = ['worksites', 'buildings', 'regional-buildings', 'camp-buildings', 'modern-buildings',
           'street-buildings', 'street-weather', 'civic', 'sacred-buildings', 'precincts', 'worksite-shadows',
-          'building-shadows', 'modern-shadows', 'landmark-shadows']
+          'building-shadows', 'modern-shadows', 'landmark-shadows', 'harbor',
+          'faunac', 'faunag', 'faunae', 'faunaw', 'faunax', 'faunam', 'faunaf', 'faunar', 'faunau',
+          'conveyances', 'horse-voxel']
+PATHS = {
+    'faunac': ROOT / 'public/fauna-c/atlas',
+    'faunag': ROOT / 'public/fauna-g/atlas',
+    'faunae': ROOT / 'public/fauna-e/atlas',
+    'faunaw': ROOT / 'public/fauna-w/atlas',
+    'faunax': ROOT / 'public/fauna-x/atlas',
+    'faunam': ROOT / 'public/fauna-m/atlas',
+    'faunaf': ROOT / 'public/fauna-f/atlas',
+    'faunar': ROOT / 'public/fauna-r/atlas',
+    'faunau': ROOT / 'public/fauna-u/atlas',
+    'conveyances': ROOT / 'public/fauna-v/vehicles',
+    'horse-voxel': ROOT / 'public/fauna-v/horse',
+}
 SIZE = 1024
 
 
@@ -42,8 +57,9 @@ def write_tones():
 
 
 def page(name):
-    sheet = Image.open(PACKS / f'{name}.png')
-    frames = json.loads((PACKS / f'{name}.json').read_text())['frames']
+    base = PATHS.get(name, PACKS / name)
+    sheet = Image.open(f'{base}.png')
+    frames = json.loads(Path(f'{base}.json').read_text())['frames']
     rects = {}
     for key in sorted(frames):
         r = frames[key]['frame']
@@ -76,4 +92,5 @@ def page(name):
 if __name__ == '__main__':
     if sys.argv[1:] != ['--tones']:
         for name in sys.argv[1:] or SHEETS: print(name, page(name), 'pages')
-    write_tones()
+    if not sys.argv[1:] or sys.argv[1:] == ['--tones']:
+        write_tones()

@@ -3,6 +3,8 @@ import type { PathStroke, TopographyCell, TopographySample } from "../core/topog
 import type { GroundState, Weather } from "../core/weather";
 import { cellHash as hash } from "../core/noise";
 import { pathField } from "./material-edges";
+import { smallMemoryDevice } from "../runtime/device";
+import { releaseTexture } from "./resources";
 
 const BUCKET = 256;
 let serial = 0;
@@ -285,9 +287,11 @@ type Bucket = {
   surface: Uint8Array;
   /** Some water pixels, for rain to land on. */
   wet: number[];
-  /** Water pixels only, to clip reflections to. */
-  mask: Phaser.Textures.CanvasTexture;
-  mirror: Phaser.GameObjects.Container;
+  /** Water pixels only, to clip reflections to. Omitted on small-memory devices. */
+  mask?: Phaser.Textures.CanvasTexture;
+  maskImage?: Phaser.GameObjects.Image;
+  bitmapMask?: Phaser.Display.Masks.BitmapMask;
+  mirror?: Phaser.GameObjects.Container;
 };
 type Ring = { x: number; y: number; at: number; r: number; bucket?: Bucket };
 type Drop = { x: number; y: number; vx: number; vy: number; z: number; vz: number; at: number };
@@ -414,6 +418,7 @@ function paint(b: Bucket, state: GroundState | undefined, sky: Sky) {
   }
   ctx.putImageData(image, 0, 0);
   b.texture.refresh();
+  if (!b.mask) return;
   const mctx = b.mask.getContext();
   const mask = mctx.createImageData(b.w, b.h);
   for (let i = 0; i < b.surface.length; i++) if (b.surface[i] === 1) mask.data[i * 4 + 3] = 255;
@@ -424,6 +429,7 @@ function paint(b: Bucket, state: GroundState | undefined, sky: Sky) {
 /** A figure's upside-down double in the puddle it stands at, darkened to the
  * sky it lies under. Call each frame for everyone outdoors. */
 export function reflectIn(scene: Phaser.Scene, id: string, body: Phaser.GameObjects.Image) {
+  if (smallMemoryDevice()) return;
   const m = managers.get(scene);
   if (!m?.state?.puddles || m.state.frozen || !body.visible) return;
   const feet = body.y + (1 - body.originY) * body.height;
@@ -444,7 +450,7 @@ export function reflectIn(scene: Phaser.Scene, id: string, body: Phaser.GameObje
       }
   }
   let r = m.reflections.get(id);
-  if (!bucket) {
+  if (!bucket?.mirror) {
     if (r) r.image.setVisible(false);
     return;
   }
@@ -677,12 +683,20 @@ export function addPuddles(scene: Phaser.Scene, spots: PuddleSpot[]) {
     const texture = scene.textures.createCanvas(key, w, h)!;
     const image = scene.add.image(x, y, key).setOrigin(0);
     container.add(image);
-    const mask = scene.textures.createCanvas(`${key}-mask`, w, h)!;
-    const mirror = scene.add.container(0, 0).setVisible(false);
-    // The mask stands where the bucket does, off the display list.
-    mirror.setMask(scene.make.image({ x, y, key: `${key}-mask`, origin: 0 }, false).createBitmapMask());
-    container.add(mirror);
-    const b: Bucket = { image, texture, x, y, w, h, depth, surface: new Uint8Array(w * h), wet: [], mask, mirror };
+    let mask: Phaser.Textures.CanvasTexture | undefined;
+    let maskImage: Phaser.GameObjects.Image | undefined;
+    let bitmapMask: Phaser.Display.Masks.BitmapMask | undefined;
+    let mirror: Phaser.GameObjects.Container | undefined;
+    if (!smallMemoryDevice()) {
+      mask = scene.textures.createCanvas(`${key}-mask`, w, h)!;
+      mirror = scene.add.container(0, 0).setVisible(false);
+      // The mask stands where the bucket does, off the display list.
+      maskImage = scene.make.image({ x, y, key: `${key}-mask`, origin: 0 }, false);
+      bitmapMask = maskImage.createBitmapMask();
+      mirror.setMask(bitmapMask);
+      container.add(mirror);
+    }
+    const b: Bucket = { image, texture, x, y, w, h, depth, surface: new Uint8Array(w * h), wet: [], mask, maskImage, bitmapMask, mirror };
     paint(b, m.state, m.sky);
     buckets.push(b);
     m.buckets.add(b);
@@ -690,10 +704,16 @@ export function addPuddles(scene: Phaser.Scene, spots: PuddleSpot[]) {
   container.once("destroy", () => {
     for (const b of buckets) {
       m.buckets.delete(b);
-      for (const r of m.reflections.values())
-        if (r.image.parentContainer === b.mirror) r.image.destroy();
-      if (scene.textures.exists(b.texture.key)) scene.textures.remove(b.texture.key);
-      if (scene.textures.exists(b.mask.key)) scene.textures.remove(b.mask.key);
+      if (b.mirror)
+        for (const [id, r] of m.reflections)
+          if (r.image.parentContainer === b.mirror) {
+            r.image.destroy();
+            m.reflections.delete(id);
+          }
+      b.bitmapMask?.destroy();
+      b.maskImage?.destroy();
+      releaseTexture(scene, b.texture.key);
+      if (b.mask) releaseTexture(scene, b.mask.key);
     }
     m.rings = m.rings.filter((r) => !r.bucket || m.buckets.has(r.bucket));
   });

@@ -134,9 +134,18 @@ function sharedCells<V>(cells: Map<string, V>) {
 /** What the browser worker hands the main thread: the props already placed and
  * the routines searched around them, so arrival neither places them again
  * (0.8s in Surat) nor spends a second and a half on path searches. */
-export function prepareSettlement(pack: Pack, seed: string, cached?: PreparedSettlement) {
+export function prepareSettlement(pack: Pack, seed: string, cached?: PreparedSettlement, retire = false) {
   // Not warmed here: withProps clears and searches every routine again.
   const world = createSettlementWorld(pack, seed, cached, false);
+  if (cached?.props) return { world, prepared: cached };
+  if (retire) {
+    // Phones terminate this worker on receipt; mutate in place instead of
+    // cloning a second SettlementWorld inside the same worker heap.
+    const relief = cached?.relief ?? world.prepare().relief;
+    const props = propState();
+    const placed = (withProps(world, seed, props) as SettlementWorld).prepare();
+    return { world, prepared: { ...placed, relief, props } };
+  }
   const prepared = cached ?? world.prepare();
   if (prepared.props) return { world, prepared };
   const props = propState();

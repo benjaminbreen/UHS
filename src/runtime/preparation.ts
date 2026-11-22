@@ -1,14 +1,23 @@
 import { populateCharacter } from "../content/geography/character";
 import { generateCharacter } from "../content/characters/generate";
-import { createSession } from "./session";
 import { integratedSetting } from "../content/geography/defaults";
 import { settingSchema, type WorldSetting } from "../content/geography/types";
-import { withTravelWaterways, type TravelWaterwayInputs } from "../world/travel/waterways";
+import type { TravelWaterwayInputs } from "../world/travel/waterways";
 import type { WorldPreparationRequest, WorldPreparationResult } from "../world/worker";
-import { retainTerrainWorker } from "./terrain-worker-owner";
+import { retainTerrainWorker, warmTerrainPool } from "./terrain-worker-owner";
 import { markEvent } from "./vitals";
 import { smallMemoryDevice } from "./device";
 import { worldWorker } from "./world-worker";
+import {
+  mapForCoordinate,
+  loadTileNames,
+  tileCentre,
+  permanentMap,
+  permanentExits,
+  type PermanentMap,
+  type MapExit,
+} from "../world/travel/network";
+import { settingForTravelStop } from "../world/travel/environment";
 
 /** A phone killed for memory takes its worker with it without firing onerror,
  * which used to leave the splash waiting for a message that never came. Long
@@ -50,7 +59,11 @@ export async function prepareSettingSession(
     age: resolved.character!.age!,
   });
   if (typeof Worker === "undefined") {
-    if (waterways) resolved.playableMap = withTravelWaterways(resolved.playableMap!, waterways);
+    if (waterways) {
+      const { withTravelWaterways } = await import("../world/travel/waterways");
+      resolved.playableMap = withTravelWaterways(resolved.playableMap!, waterways);
+    }
+    const { createSession } = await import("./session");
     return createSession("atlas", seed, { setting: resolved });
   }
   signal?.throwIfAborted();
@@ -106,6 +119,9 @@ export async function prepareSettingSession(
       owned = false;
     }
     if (playableMap) resolved.playableMap = playableMap;
+    // Loaded after a retiring worker ends so phones never hold two copies of
+    // the world generator and its tables at the same time.
+    const { createSession } = await import("./session");
     const engine = createSession(
       "atlas",
       seed,
@@ -122,4 +138,84 @@ export async function prepareSettingSession(
       spare = worker;
     } else if (owned) worker.terminate();
   }
+}
+
+export function travelSettings(
+  map: PermanentMap,
+  exits: MapExit[],
+  year: number,
+) {
+  const setting = settingForTravelStop(map, year);
+  const waterways: TravelWaterwayInputs = { source: { ...setting }, neighbors: [] };
+  setting.playableMap = {
+    id: map.networkId,
+    name: map.name,
+    size: 384,
+    exits: exits.map(({ id, to, bearing, mode, seam }) => {
+      const destination = permanentMap(to, year);
+      const next = settingForTravelStop(destination, year);
+      const peer = permanentExits(to, year).find((e) => e.id === id)?.seam;
+      waterways.neighbors.push(next);
+      return {
+        id, to, bearing, mode, seam,
+        name: destination.name, settlement: destination.settlement,
+        peer: peer ? { side: peer.side, start: peer.start, end: peer.end } : undefined,
+        neighbor: {
+          lon: next.lon, lat: next.lat, relief: next.relief,
+          climate: next.climate, water: next.water,
+          ecology: next.environment!.ecology,
+          colorway: next.environment!.colorway,
+          landform: next.environment!.landform,
+          size: 384,
+          geographyMode: next.geographyMode ?? "earth",
+        },
+      };
+    }),
+  };
+  setting.environment = {
+    ...setting.environment!,
+    population: map.settlement === "city" || map.settlement === "town" || map.settlement === "village"
+      ? "settled"
+      : (map.countryside ?? "none"),
+    start: "wanderer",
+  };
+  return { setting, waterways };
+}
+
+/** Fresh playable start for browser and agents, with map bounds and exits. */
+export async function prepareConnectedStart(
+  setting: WorldSetting,
+  seed: string,
+  signal?: AbortSignal,
+  onCharacter?: CharacterPrepared,
+) {
+  if (setting.situation) {
+    const engine = await prepareSettingSession(setting, seed, signal, true, onCharacter);
+    warmTerrainPool(engine.world, seed);
+    return engine;
+  }
+  const id = mapForCoordinate({ lon: setting.lon, lat: setting.lat });
+  await loadTileNames([id]);
+  signal?.throwIfAborted();
+  const map = permanentMap(id, setting.year);
+  const exits = permanentExits(id, setting.year);
+  const { setting: travel, waterways } = travelSettings(map, exits, setting.year);
+  const bounded = {
+    ...setting,
+    // The world is generated about the square's centre so that its borders
+    // are the same lines of Earth its neighbours see.
+    ...tileCentre(id),
+    // A wilderness start is otherwise labelled "Countryside" while the map it
+    // sits on has a real geographic name. A chosen place keeps its own name,
+    // even where its square is named for a feature beside the town.
+    location:
+      map.locationId ||
+      (setting.location !== "Countryside" && !setting.placeId?.startsWith("area-"))
+        ? setting.location
+        : map.name,
+    playableMap: travel.playableMap,
+  };
+  const engine = await prepareSettingSession(bounded, seed, signal, true, onCharacter, waterways);
+  warmTerrainPool(engine.world, seed);
+  return engine;
 }

@@ -23,9 +23,9 @@ import { containsDate } from "../../content/history/dates";
 import { environmentFor } from "../../content/geography/defaults";
 import { packForSetting } from "../../content/geography/pack";
 import { broadEnvironment, toAtlas, fromAtlas } from "../geography/atlas";
-import { inBounds, inPolygon, nearestSegment } from "./geometry";
+import { inBounds, inPolygon, nearestSegment, REGION_CELL } from "./geometry";
 
-export const REGION_CELL = 384;
+export { REGION_CELL };
 /** Cells the neighbour's ecology takes to fade out at a seam's two ends. */
 export const SEAM_FADE = 56;
 export function createRegionalContext(start: WorldSetting) {

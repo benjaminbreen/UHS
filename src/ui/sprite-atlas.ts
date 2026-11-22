@@ -44,7 +44,7 @@ const listeners = new Set<() => void>();
 export function loadSheets() {
   pending ??= Promise.all(
     (Object.keys(sheets) as SheetName[]).map(async (name) => {
-      const key = sheets[name].slice("/packs/".length);
+      const key = name === "faunaC" ? "faunac" : sheets[name].slice("/packs/".length);
       const paged = (pagedSheets as readonly string[]).includes(key);
       const url = paged ? `/packs/pages/${key}.json${stamp}` : `${sheets[name]}.json${stamp}`;
       const res = await fetch(url);

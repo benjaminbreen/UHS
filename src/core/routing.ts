@@ -8,6 +8,24 @@ export type RouteResult = {
 type Entry = { p: Point; g: number; f: number; order: number };
 /** Weighted A* with stable heap ordering. Costs must be >= 1; Infinity forbids an edge.
  * V1/v2 retain their original pathfinder for replay compatibility. */
+const DIRS_4: readonly (readonly [number, number])[] = [
+  [0, -1],
+  [1, 0],
+  [0, 1],
+  [-1, 0],
+];
+const DIRS_8: readonly (readonly [number, number])[] = [
+  ...DIRS_4,
+  [1, 1],
+  [1, -1],
+  [-1, 1],
+  [-1, -1],
+];
+const cellKey = (x: number, y: number): number | string =>
+  x >= -32768 && x < 32768 && y >= -32768 && y < 32768
+    ? (x + 32768) * 65536 + (y + 32768)
+    : `${x},${y}`;
+
 export function route(
   start: Point,
   goal: Point,
@@ -27,10 +45,10 @@ export function route(
 ): RouteResult {
   const step = options.step ?? 1,
     max = options.maxNodes ?? 18000;
-  const key = (p: Point) => `${p.x},${p.y}`;
+  const dirs = options.diagonal ? DIRS_8 : DIRS_4;
   const heap: Entry[] = [],
-    scores = new Map<string, number>(),
-    parents = new Map<string, Point>();
+    scores = new Map<number | string, number>(),
+    parents = new Map<number | string, Point>();
   let serial = 0,
     visited = 0;
   const less = (a: Entry, b: Entry) =>
@@ -62,11 +80,13 @@ export function route(
     }
     return root;
   };
-  scores.set(key(start), 0);
+  scores.set(cellKey(start.x, start.y), 0);
   push({ p: start, g: 0, f: 0, order: serial++ });
+  const b = options.bounds;
+  const hScale = (options.isGoal ? 0 : (options.minCost ?? 1)) * (options.heuristicWeight ?? 1) / step;
   while (heap.length && visited < max) {
     const current = pop(),
-      k = key(current.p);
+      k = cellKey(current.p.x, current.p.y);
     if (current.g !== scores.get(k)) continue;
     visited++;
     if (
@@ -78,7 +98,7 @@ export function route(
       let p = current.p;
       while (p.x !== start.x || p.y !== start.y) {
         path.push(p);
-        p = parents.get(key(p))!;
+        p = parents.get(cellKey(p.x, p.y))!;
       }
       return {
         status: "found",
@@ -87,29 +107,18 @@ export function route(
         cost: current.g,
       };
     }
-    for (const [dx, dy] of [
-      [0, -step],
-      [step, 0],
-      [0, step],
-      [-step, 0],
-      ...(options.diagonal
-        ? [
-            [step, step],
-            [step, -step],
-            [-step, step],
-            [-step, -step],
-          ]
-        : []),
-    ]) {
-      const p = { x: current.p.x + dx, y: current.p.y + dy },
-        b = options.bounds;
-      if (b && (p.x < b.x || p.y < b.y || p.x > b.x + b.w || p.y > b.y + b.h))
+    const prev = parents.get(k);
+    for (let di = 0; di < dirs.length; di++) {
+      const nx = current.p.x + dirs[di][0] * step;
+      const ny = current.p.y + dirs[di][1] * step;
+      if (b && (nx < b.x || ny < b.y || nx > b.x + b.w || ny > b.y + b.h))
         continue;
-      const edge = cost(p, current.p, parents.get(k));
+      const p = { x: nx, y: ny };
+      const edge = cost(p, current.p, prev);
       if (!Number.isFinite(edge)) continue;
       if (edge < 1) throw Error("Routing costs must be at least one.");
       const g = current.g + edge,
-        nk = key(p);
+        nk = cellKey(nx, ny);
       if (g >= (scores.get(nk) ?? Infinity)) continue;
       scores.set(nk, g);
       parents.set(nk, current.p);
@@ -118,12 +127,10 @@ export function route(
         g,
         f:
           g +
-          ((options.diagonal
-            ? Math.hypot(goal.x - p.x, goal.y - p.y)
-            : Math.abs(goal.x - p.x) + Math.abs(goal.y - p.y)) /
-            step) *
-            (options.isGoal ? 0 : (options.minCost ?? 1)) *
-            (options.heuristicWeight ?? 1),
+          (options.diagonal
+            ? Math.hypot(goal.x - nx, goal.y - ny)
+            : Math.abs(goal.x - nx) + Math.abs(goal.y - ny)) *
+            hScale,
         order: serial++,
       });
     }

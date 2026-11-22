@@ -37,7 +37,12 @@ class FakeWorker {
 const scene = {
   time: { now: 0 },
   sys: { settings: { key: "test" } },
-  textures: { addCanvas: vi.fn(() => ({ setFilter: vi.fn() })), remove: vi.fn() },
+  textures: {
+    addCanvas: vi.fn(() => ({ setFilter: vi.fn() })),
+    addUint8Array: vi.fn(() => ({ setFilter: vi.fn() })),
+    get: vi.fn(() => ({ setFilter: vi.fn() })),
+    remove: vi.fn(),
+  },
 };
 const actor = { id: "walker", sprite: "human-0-0", direction: 2, appearance: originalAppearance };
 let characters: WorldCharacters;
@@ -51,7 +56,17 @@ beforeEach(() => {
   vi.stubGlobal("OffscreenCanvas", class {});
   vi.stubGlobal("navigator", { hardwareConcurrency: 8 });
   vi.stubGlobal("ImageData", class { constructor(public data: Uint8ClampedArray) {} });
-  vi.stubGlobal("document", { createElement: () => ({ width: 0, height: 0, getContext: () => ({ putImageData: vi.fn() }) }) });
+  vi.stubGlobal("document", {
+    createElement: () => ({
+      width: 0,
+      height: 0,
+      getContext: () => ({
+        putImageData: vi.fn(),
+        clearRect: vi.fn(),
+        getImageData: () => ({ data: new Uint8ClampedArray(80 * 80 * 4) }),
+      }),
+    }),
+  });
   characters = new WorldCharacters(scene as unknown as Phaser.Scene);
 });
 afterEach(() => { characters.destroy(); vi.unstubAllGlobals(); });

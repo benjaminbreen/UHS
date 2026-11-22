@@ -3,7 +3,9 @@ import { gatheringJourney, type Way } from "../world/v3/wayfarers";
 import { livelihoodOf } from "../world/v3/routines";
 import { BASKET_SIZE, emptyBasket, pickHandful, refreshResource, seasonAt } from "../core/livelihood";
 import { itineraryAt } from "../core/itinerary";
-import { withTravelWaterways, type TravelWaterwayInputs } from "../world/travel/waterways";
+import { withTravelWaterways } from "../world/travel/waterways";
+import { prepareConnectedStart, travelSettings } from "./preparation";
+export { prepareConnectedStart };
 import { Engine } from "../core/engine";
 import { seedAilments } from "../core/health";
 import { skySeed } from "../core/weather";
@@ -18,7 +20,8 @@ import { toAtlas } from "../world/geography/atlas";
 import type { Coordinate } from "../world/travel/types";
 import type { Actor, PlayerCommand, Point, Snapshot } from "../core/types";
 import type { Runtime } from "./session";
-import { releaseTerrainWorker, warmTerrainPool } from "./terrain-worker-owner";
+import { smallMemoryDevice } from "./device";
+import { releaseTerrainWorker } from "./terrain-worker-owner";
 import {
   mapForCoordinate,
   loadTileNames,
@@ -29,51 +32,9 @@ import {
   type PermanentMap,
   type MapExit,
 } from "../world/travel/network";
-import { settingForTravelStop } from "../world/travel/environment";
 import type { SettlementWorld } from "../world/v3/generate";
 import { DAY, railSpeed, timetable } from "../world/v3/railway";
 import type { MapEntrance } from "../world/travel/entrances";
-function travelSettings(
-  map: PermanentMap,
-  exits: MapExit[],
-  year: number,
-) {
-  const setting = settingForTravelStop(map, year);
-  const waterways: TravelWaterwayInputs = { source: { ...setting }, neighbors: [] };
-  setting.playableMap = {
-    id: map.networkId,
-    name: map.name,
-    size: 384,
-    exits: exits.map(({ id, to, bearing, mode, seam }) => {
-      const destination = permanentMap(to, year);
-      const next = settingForTravelStop(destination, year);
-      const peer = permanentExits(to, year).find((e) => e.id === id)?.seam;
-      waterways.neighbors.push(next);
-      return {
-        id, to, bearing, mode, seam,
-        name: destination.name, settlement: destination.settlement,
-        peer: peer ? { side: peer.side, start: peer.start, end: peer.end } : undefined,
-        neighbor: {
-          lon: next.lon, lat: next.lat, relief: next.relief,
-          climate: next.climate, water: next.water,
-          ecology: next.environment!.ecology,
-          colorway: next.environment!.colorway,
-          landform: next.environment!.landform,
-          size: 384,
-          geographyMode: next.geographyMode ?? "earth",
-        },
-      };
-    }),
-  };
-  setting.environment = {
-    ...setting.environment!,
-    population: map.settlement === "city" || map.settlement === "town" || map.settlement === "village"
-      ? "settled"
-      : (map.countryside ?? "none"),
-    start: "wanderer",
-  };
-  return { setting, waterways };
-}
 export function travelSetting(map: PermanentMap, exits: MapExit[], year: number) {
   const { setting, waterways } = travelSettings(map, exits, year);
   setting.playableMap = withTravelWaterways(setting.playableMap!, waterways);
@@ -273,6 +234,9 @@ export class MapTravel {
       Math.hypot(p.x - this.arrival.x, p.y - this.arrival.y) > 4
     )
       this.arrival = undefined;
+    // Phones cannot hold a second SettlementWorld or spawn another world-worker
+    // while playing; neighboring maps load on demand when the player crosses.
+    if (smallMemoryDevice()) return;
     const half = manifest.setting!.playableMap!.size / 2;
     const distance = borderDistances(p, half);
     const routeEnd = this.runtime.route.at(-1);
@@ -497,6 +461,9 @@ export class MapTravel {
       if (player.held === oldId) player.held = object.id;
     }
     this.visited.set(this.id, source);
+    if (smallMemoryDevice())
+      while (this.visited.size > 4)
+        this.visited.delete(this.visited.keys().next().value!);
     const trip = this.foodTrip;
     const side = trip && (trip.home.id === this.id ? trip.home : trip.away.id === this.id ? trip.away : undefined);
     if (side) {
@@ -724,43 +691,4 @@ export function journeyPlan(from: Coordinate, to: Coordinate) {
     sea,
     days: Math.max(1, Math.round(land / LAND_KM_PER_DAY + sea / SEA_KM_PER_DAY)),
   };
-}
-
-/** Fresh playable start for browser and agents, with map bounds and exits. */
-export async function prepareConnectedStart(
-  setting: import("../content/geography/types").WorldSetting,
-  seed: string,
-  signal?: AbortSignal,
-  onCharacter?: import("./preparation").CharacterPrepared,
-) {
-  if (setting.situation) {
-    const { prepareSettingSession } = await import("./preparation");
-    const engine = await prepareSettingSession(setting, seed, signal, true, onCharacter);
-    warmTerrainPool(engine.world, seed);
-    return engine;
-  }
-  const id = mapForCoordinate({ lon: setting.lon, lat: setting.lat });
-  const [{ prepareSettingSession }] = await Promise.all([import("./preparation"), loadTileNames([id])]);
-  signal?.throwIfAborted();
-  const map = permanentMap(id, setting.year);
-  const exits = permanentExits(id, setting.year);
-  const { setting: travel, waterways } = travelSettings(map, exits, setting.year);
-  const bounded = {
-    ...setting,
-    // The world is generated about the square's centre so that its borders
-    // are the same lines of Earth its neighbours see.
-    ...tileCentre(id),
-    // A wilderness start is otherwise labelled "Countryside" while the map it
-    // sits on has a real geographic name. A chosen place keeps its own name,
-    // even where its square is named for a feature beside the town.
-    location:
-      map.locationId ||
-      (setting.location !== "Countryside" && !setting.placeId?.startsWith("area-"))
-        ? setting.location
-        : map.name,
-    playableMap: travel.playableMap,
-  };
-  const engine = await prepareSettingSession(bounded, seed, signal, true, onCharacter, waterways);
-  warmTerrainPool(engine.world, seed);
-  return engine;
 }

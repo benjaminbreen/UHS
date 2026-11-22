@@ -8336,7 +8336,10 @@ export class Engine {
       },
     );
   }
-  private routes = new Map<string, { target: string; path: Point[] }>();
+  private routes = new Map<
+    string,
+    { target: string; tx: number; ty: number; from: string; path: Point[]; retryAt?: number; gateShut?: boolean }
+  >();
   visible(pos: Position) {
     return this.visibleFrom(this.state.player.pos, pos);
   }
@@ -10472,7 +10475,11 @@ export class Engine {
     a.offRoutine = true;
     a.activity = `Chasing the ${pestNoun(raid.speciesId)} off the ${crop}`;
     if (clock % 6 === 0)
-      for (let i = 0; i < 2 && distance(a.pos, raid.pos) > 1.5; i++) this.stepToward(a, raid.pos);
+      for (let i = 0; i < 2 && distance(a.pos, raid.pos) > 1.5; i++) {
+        const bx = a.pos.x, by = a.pos.y;
+        this.stepToward(a, raid.pos);
+        if (a.pos.x === bx && a.pos.y === by) break;
+      }
     if (clock % 18 === 0 && distance(a.pos, raid.pos) < 6) this.cue(a.id, "point", raid.pos);
     return true;
   }
@@ -14670,23 +14677,39 @@ export class Engine {
       }
       if (watchPost && a.pos.x === target.x && a.pos.y === target.y) return;
       const key = `${target.space}:${target.x},${target.y}`;
-      const failed = watchPost && `${a.id}:${a.pos.x},${a.pos.y}:${key}:${townGateShut(this.state.clock)}`;
+      const fromKey = `${a.pos.x},${a.pos.y}`;
+      const shut = townGateShut(this.state.clock);
+      const failed = watchPost && `${a.id}:${fromKey}:${key}:${shut}`;
       if (failed && this.failedWatchRoutes.has(failed)) return;
       let cached = this.routes.get(a.id);
       if (
+        cached?.retryAt !== undefined &&
+        this.state.clock < cached.retryAt &&
+        cached.gateShut === shut &&
+        cached.from === fromKey &&
+        (cached.target === key || Math.hypot(target.x - cached.tx, target.y - cached.ty) <= 4)
+      )
+        return;
+      if (
         !cached ||
         cached.target !== key ||
-        (!cached.path.length && !a.householdId) ||
+        !cached.path.length ||
         (cached.path[0] &&
           this.blocked(cached.path[0].x, cached.path[0].y, a.pos.space) &&
           !this.barrierAt(cached.path[0], a.pos.space))
       ) {
+        const path = this.findRoute(a.pos, target, a.id, 5000).path;
         cached = {
           target: key,
-          path: this.findRoute(a.pos, target, a.id, 5000).path,
+          tx: target.x,
+          ty: target.y,
+          from: fromKey,
+          path,
+          gateShut: shut,
+          retryAt: path.length ? undefined : a.householdId || watchPost ? Infinity : this.state.clock + 180,
         };
         this.routes.set(a.id, cached);
-        if (failed && !cached.path.length) this.failedWatchRoutes.add(failed);
+        if (failed && !path.length) this.failedWatchRoutes.add(failed);
       }
       const step = cached.path[0];
       if (!step) return;
@@ -14696,17 +14719,26 @@ export class Engine {
         return;
       }
       if (this.blocked(step.x, step.y, a.pos.space)) {
-        this.routes.delete(a.id);
+        cached.path = [];
+        cached.from = fromKey;
+        cached.gateShut = shut;
+        cached.retryAt = this.state.clock + 18;
         return;
       }
       if (this.playerOn({ ...step, space: a.pos.space })) {
         this.collide(a, "actor");
         if (a.kind === "human") this.blockedByPlayer(a, step);
-        this.routes.delete(a.id);
+        cached.path = [];
+        cached.from = fromKey;
+        cached.gateShut = shut;
+        cached.retryAt = this.state.clock + 18;
         return;
       }
       if (this.actorAt({ ...step, space: a.pos.space }, a.id)) {
-        this.routes.delete(a.id);
+        cached.path = [];
+        cached.from = fromKey;
+        cached.gateShut = shut;
+        cached.retryAt = this.state.clock + 18;
         return;
       }
       cached.path.shift();
@@ -16070,8 +16102,11 @@ export class Engine {
             a.activity = a.errand.label;
             a.offRoutine = true;
             // A brisk walk, not the one step an idle resident takes per tick.
-            for (let i = 0; i < 3 && distance(a.pos, a.errand.to) >= 1.5; i++)
+            for (let i = 0; i < 3 && distance(a.pos, a.errand.to) >= 1.5; i++) {
+              const bx = a.pos.x, by = a.pos.y;
               this.stepToward(a, a.errand.to);
+              if (a.pos.x === bx && a.pos.y === by) break;
+            }
             const { to, pose, face } = a.errand;
             // A seat is often a solid bench or stool, which walking stops short of.
             if (pose && distance(a.pos, to) < 1.5 && (a.pos.x !== to.x || a.pos.y !== to.y) && !this.actorAt(to, a.id) && !this.playerOn(to))

@@ -1,23 +1,106 @@
 import boats from "./boats.generated.json" with { type: "json" };
 import worksites from "./worksites.json" with { type: "json" };
-import models from "./models.generated.json" with { type: "json" };
+import type modelsJson from "./models.generated.json";
+import rawModels from "./models.generated.json?raw";
 /** Compiled from content recipes by npm run art; shared by generator, game and lab. */
-export type BuildingModel = (typeof models)[keyof typeof models];
-export const buildingModels: Record<string, BuildingModel> = models;
+export type BuildingModel = (typeof modelsJson)[keyof typeof modelsJson];
 // The modern street kit (172 models) is compiled with `bounds` and the
 // anchor's height in some other frame than the sprite's, which drew each one
 // ten cells west of its lot. Its occlusion is right: the sprite is that wide
 // and four pixels taller, standing on the row below it. Fix in scripts/art.
 /** Rows of empty sprite above what one of those models draws. */
 const clearTop = new Map<unknown, number>();
-for (const model of Object.values(buildingModels) as { anchor: number[]; bounds: number[]; occlusion?: number[]; height?: number }[]) {
+type ModelShape = { anchor: number[]; bounds: number[]; occlusion?: number[]; height?: number; visible?: number[] };
+function normalizeModel(model: ModelShape) {
   const o = model.occlusion;
-  if (!o || model.bounds[3] >= o[3]) continue;
-  model.bounds = [0, 0, o[2], o[3] + 4];
-  delete (model as { visible?: number[] }).visible;
-  model.anchor = [model.anchor[0], o[3] + 1];
-  if (model.height) clearTop.set(model, Math.max(0, o[3] - model.height - 8));
+  if (o && model.bounds[3] < o[3]) {
+    model.bounds = [0, 0, o[2], o[3] + 4];
+    delete model.visible;
+    model.anchor = [model.anchor[0], o[3] + 1];
+    if (model.height) clearTop.set(model, Math.max(0, o[3] - model.height - 8));
+  }
+  return model;
 }
+function lazyModels(source: string): Record<string, BuildingModel> {
+  // Parsing all ~13.6k building models up front costs ~60 MB in V8 (~220 MB in
+  // WebKit JSC) on each thread while a session uses only a couple hundred.
+  const keys: string[] = [];
+  const slots = new Map<string, number>();
+  const starts: number[] = [];
+  const ends: number[] = [];
+  const len = source.length;
+  let i = 0;
+  while (i < len && source.charCodeAt(i) !== 123) i++;
+  i++;
+  while (i < len) {
+    while (i < len) {
+      const c = source.charCodeAt(i);
+      if (c === 34 || c === 125) break;
+      i++;
+    }
+    if (i >= len || source.charCodeAt(i) === 125) break;
+    const keyStart = ++i;
+    while (i < len && source.charCodeAt(i) !== 34) {
+      if (source.charCodeAt(i) === 92) i++;
+      i++;
+    }
+    const key = source.slice(keyStart, i);
+    i++;
+    while (i < len && source.charCodeAt(i) !== 58) i++;
+    i++;
+    while (i < len && source.charCodeAt(i) <= 32) i++;
+    const valStart = i;
+    let depth = 0, inStr = false;
+    while (i < len) {
+      const c = source.charCodeAt(i);
+      if (inStr) {
+        if (c === 92) i++;
+        else if (c === 34) inStr = false;
+      } else if (c === 34) {
+        inStr = true;
+      } else if (c === 123 || c === 91) {
+        depth++;
+      } else if (c === 125 || c === 93) {
+        depth--;
+        if (depth === 0) { i++; break; }
+      }
+      i++;
+    }
+    slots.set(key, keys.length);
+    keys.push(key);
+    starts.push(valStart);
+    ends.push(i);
+  }
+  const sArr = Int32Array.from(starts), eArr = Int32Array.from(ends);
+  const parsed = new Map<string, ModelShape>();
+  const load = (key: string) => {
+    let model = parsed.get(key);
+    if (model) return model;
+    const slot = slots.get(key);
+    if (slot === undefined) return undefined;
+    model = normalizeModel(JSON.parse(source.slice(sArr[slot], eArr[slot])) as ModelShape);
+    parsed.set(key, model);
+    return model;
+  };
+  return new Proxy({} as Record<string, BuildingModel>, {
+    get(_, prop) { return typeof prop === "string" ? load(prop) : undefined; },
+    has(_, prop) { return typeof prop === "string" && slots.has(prop); },
+    ownKeys() { return keys; },
+    getOwnPropertyDescriptor(_, prop) {
+      return typeof prop === "string" && slots.has(prop)
+        ? { enumerable: true, configurable: true }
+        : undefined;
+    },
+  });
+}
+export const buildingModels: Record<string, BuildingModel> =
+  typeof rawModels === "string"
+    ? lazyModels(rawModels)
+    : (() => {
+        const models = rawModels as unknown as Record<string, ModelShape>;
+        for (const model of Object.values(models)) normalizeModel(model);
+        return models as unknown as Record<string, BuildingModel>;
+      })();
 export const waterborneFrames = new Set(Object.entries(worksites)
   .filter(([,s])=>"waterborne" in s && s.waterborne)
   .flatMap(([name])=>[name,...["north","east","west"].map(f=>`${name}-${f}`)])

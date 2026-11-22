@@ -20,6 +20,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { Engine } from "../core/engine";
 import type { CharacterPrepared } from "../runtime/preparation";
+import { smallMemoryDevice } from "../runtime/device";
 
 import { places, featuredPlaces } from "../content/geography/places";
 import { resolveSetting, settingFor } from "../content/geography/resolve";
@@ -251,10 +252,10 @@ export function WorldSetup({
         worldSeed,
       );
       onPreparing?.(parsed, () => { controller.current?.abort(); setBusy(false); });
-      // The world takes seconds in the worker; the scene's code and art can be
-      // on the way in the meantime.
-      void import("../runtime/bootstrap");
-      const { prepareConnectedStart } = await import("../runtime/map-travel");
+      // The world takes seconds in the worker; on desktop the scene's code can
+      // load in parallel, while phones wait until the preparation worker ends.
+      if (!smallMemoryDevice()) void import("../runtime/bootstrap");
+      const { prepareConnectedStart } = await import("../runtime/preparation");
       const engine = await prepareConnectedStart(
         parsed,
         worldSeed,

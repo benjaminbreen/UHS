@@ -4,6 +4,7 @@ import type { FloorPattern } from "../render/interiors/room";
 import { handle, pageTurn, writing, writingTool, type Writing } from "./handling";
 import { footstep, noise, playSound, railway, ring, tone, type Sound } from "./sfx";
 import { cicadas, crickets, nightTrill, sung, voiceGain, voiceRest, type Voice } from "./wildlife";
+import { smallMemoryDevice } from "../runtime/device";
 
 type RoomCue = WorshipSound | "footsteps" | "cloth" | "cup" | "tray" | "wheels" | "writing" | "pages" | "wood" | "voices" | "inkstone";
 type RoomActivity = { cues: RoomCue[]; tool: Writing; ground: "fiber" | "stone" | "timber" | "soil"; level: number };
@@ -375,12 +376,13 @@ export class Ambience {
       g.gain.value = value;
       return g;
     };
+    const short = this.live && smallMemoryDevice();
     const rain = loud(0);
     rain.connect(this.outside);
     this.beds.rain = {
       node: rain,
       start: () => {
-        const source = this.loop(noiseBuffer(ctx, 4.3));
+        const source = this.loop(noiseBuffer(ctx, short ? 2.3 : 4.3));
         source.connect(filter("lowpass", 900, 1)).connect(loud(0.22)).connect(rain);
         source.connect(filter("bandpass", 5200, 0.6)).connect(loud(0.07)).connect(rain);
       },
@@ -391,30 +393,32 @@ export class Ambience {
     lfo(0.09, 220, band.frequency);
     const windGain = loud(0.12);
     lfo(0.053, 0.06, windGain.gain);
-    this.beds.wind = this.bed(this.outside, () => noiseBuffer(ctx, 5.7), band, windGain);
+    this.beds.wind = this.bed(this.outside, () => noiseBuffer(ctx, short ? 2.9 : 5.7), band, windGain);
 
     // Water: the same noise reads as a stream when bright, as surf when the
     // filter closes and a slow swell breathes over it.
     this.waterTone = filter("lowpass", 3200);
     const waterGain = loud(0.16);
     lfo(0.11, 0.07, waterGain.gain);
-    this.beds.water = this.bed(this.outside, () => noiseBuffer(ctx, 6.7), this.waterTone, waterGain);
+    this.beds.water = this.bed(this.outside, () => noiseBuffer(ctx, short ? 3.1 : 6.7), this.waterTone, waterGain);
 
     // Town: a formless murmur of voices and work, too far off to make out.
     const murmur = filter("bandpass", 520, 2.2);
     lfo(0.19, 120, murmur.frequency);
     const townGain = loud(0.085);
     lfo(0.13, 0.05, townGain.gain);
-    this.beds.town = this.bed(this.outside, () => noiseBuffer(ctx, 7.9), murmur, townGain);
+    this.beds.town = this.bed(this.outside, () => noiseBuffer(ctx, short ? 3.7 : 7.9), murmur, townGain);
 
     // Calls are scheduled one at a time. Open air still carries a little of
     // each back from the trees, which is what puts a bird at a distance.
     this.chirps = ctx.createGain();
     this.chirps.gain.value = 1;
     this.chirps.connect(this.outside);
-    const air = ctx.createConvolver();
-    air.buffer = impulse(ctx, 1.4, 3);
-    this.chirps.connect(loud(0.3)).connect(air).connect(this.outside);
+    if (!short) {
+      const air = ctx.createConvolver();
+      air.buffer = impulse(ctx, 1.4, 3);
+      this.chirps.connect(loud(0.3)).connect(air).connect(this.outside);
+    }
     const insects = (make: typeof crickets, seconds: number, gain: number) =>
       this.bed(this.chirps, () => {
         const [l, r] = make(ctx.sampleRate, seconds),
@@ -423,14 +427,14 @@ export class Ambience {
         buffer.getChannelData(1).set(r);
         return buffer;
       }, loud(gain));
-    this.beds.crickets = insects(crickets, 11.3, 0.07);
-    this.beds.trill = insects(nightTrill, 9.1, 0.045);
-    this.beds.cicadas = insects(cicadas, 13.7, 0.08);
+    this.beds.crickets = insects(crickets, short ? 5.3 : 11.3, 0.07);
+    this.beds.trill = insects(nightTrill, short ? 4.3 : 9.1, 0.045);
+    this.beds.cicadas = insects(cicadas, short ? 6.1 : 13.7, 0.08);
 
     // Fire stays dry and close: it is in the room with you, so no muffling.
     const emberGain = loud(0.13);
     lfo(0.23, 0.05, emberGain.gain);
-    this.beds.fire = this.bed(out, () => noiseBuffer(ctx, 3.1), filter("lowpass", 1100), emberGain);
+    this.beds.fire = this.bed(out, () => noiseBuffer(ctx, short ? 1.9 : 3.1), filter("lowpass", 1100), emberGain);
 
     if (live)
       this.ticker = setInterval(
@@ -566,6 +570,13 @@ export class Ambience {
     osc.connect(g).connect(pan).connect(into);
     osc.start(at);
     osc.stop(at + dur + 0.02);
+    if (this.live)
+      osc.onended = () => {
+        osc.disconnect();
+        g.disconnect();
+        pan.disconnect();
+      };
+  }
   }
   /** A roll of thunder: a crack if it is close, then a long low tumble. */
   private thunder(at: number, level: number) {
@@ -600,6 +611,12 @@ export class Ambience {
     g.gain.value = (close ? 0.9 : 0.6) * (0.6 + 0.4 * level);
     src.connect(tone).connect(g).connect(this.outside);
     src.start(at);
+    if (this.live)
+      src.onended = () => {
+        src.disconnect();
+        tone.disconnect();
+        g.disconnect();
+      };
   }
   /** Keeps `want` callers of a group singing from the local cast, each at
    * its own spot. `pace` stretches the rests between songs. */
@@ -634,7 +651,13 @@ export class Ambience {
       pan.pan.value = c.pan;
       src.connect(tone).connect(g).connect(pan).connect(this.chirps);
       src.start(at);
-      if (this.live) src.onended = () => pan.disconnect();
+      if (this.live)
+        src.onended = () => {
+          src.disconnect();
+          tone.disconnect();
+          g.disconnect();
+          pan.disconnect();
+        };
       c.next = at + src.buffer.duration + voiceRest(c.voice) * pace;
       // Now and then one flies off and another takes its place.
       if (Math.random() < 0.08) this.callers = this.callers.filter((x) => x !== c);

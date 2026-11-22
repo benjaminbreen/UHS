@@ -1,5 +1,6 @@
 import type { Coordinate, Bounds } from "../../content/geography/regions/types";
 import type { Point } from "../../core/types";
+export const REGION_CELL = 384;
 export const inBounds = (lon: number, lat: number, b: Bounds) =>
   lon >= b[0] && lon <= b[2] && lat >= b[1] && lat <= b[3];
 export function inPolygon(x: number, y: number, points: readonly Coordinate[]) {

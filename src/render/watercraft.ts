@@ -1,4 +1,5 @@
 import type Phaser from "phaser";
+import { releaseCanvas } from "./resources";
 import { valueNoise } from "../core/noise";
 import boats from "../content/graphics/boats.generated.json" with { type: "json" };
 
@@ -42,6 +43,7 @@ export function drawBoatGrounding(
     const rctx = read.getContext("2d", { willReadFrequently: true })!;
     rctx.drawImage(f.source.image as CanvasImageSource, f.cutX, f.cutY, w, h, 0, 0, w, h);
     const px = rctx.getImageData(0, 0, w, h).data;
+    releaseCanvas(read);
     const solid = (x: number, y: number) =>
       x >= 0 && y >= 0 && x < w && y < h && px[(y * w + x) * 4 + 3] > 180;
     let minY = h, maxY = -1;

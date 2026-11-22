@@ -4,7 +4,8 @@ import { rasterLivingWater, type LivingMask } from "./mask";
 import Phaser from "phaser";
 import type { TopographySample } from "../../core/topography";
 import type { RenderResources } from "../resources";
-import { own } from "../resources";
+import { addPixelTexture, own, releaseCanvas } from "../resources";
+import { smallMemoryDevice } from "../../runtime/device";
 import type { TerrainRegion } from "../terrain-region";
 import { waterRamps } from "./surface";
 import { bankStyle } from "./banks";
@@ -126,21 +127,14 @@ export function addLivingWater(
   const W = mask.width,
     H = mask.height,
     shift = 96;
-  const canvas = document.createElement("canvas");
-  canvas.width = W;
-  canvas.height = H;
-  const ctx = canvas.getContext("2d")!,
-    pixels = ctx.createImageData(W, H);
-  pixels.data.set(mask.pixels);
-  ctx.putImageData(pixels, 0, 0);
   colors(scene);
   const key = `living-water-mask-${sequence++}`;
-  scene.textures.addCanvas(key, canvas);
+  addPixelTexture(scene, key, W, H, mask.pixels);
   resources.textures.push(key);
   const art = document.createElement("canvas");
   art.width = W;
   art.height = H;
-  const artCtx = art.getContext("2d")!;
+  const artCtx = art.getContext("2d", { willReadFrequently: true })!;
   drawScenery(
     artCtx,
     mask.items,
@@ -149,17 +143,11 @@ export function addLivingWater(
     new Float32Array(384 * 256),
   );
   const artKey = `${key}-art`;
-  scene.textures.addCanvas(artKey, art);
+  addPixelTexture(scene, artKey, W, H, artCtx.getImageData(0, 0, W, H).data);
+  releaseCanvas(art);
   resources.textures.push(artKey);
-  const bends = document.createElement("canvas");
-  bends.width = W;
-  bends.height = H;
-  const bc = bends.getContext("2d")!,
-    bd = bc.createImageData(W, H);
-  bd.data.set(mask.bends);
-  bc.putImageData(bd, 0, 0);
   const bendKey = `${key}-bends`;
-  scene.textures.addCanvas(bendKey, bends);
+  addPixelTexture(scene, bendKey, W, H, mask.bends);
   resources.textures.push(bendKey);
   let tint: number[] | undefined;
   let frogs = 1;
@@ -240,19 +228,16 @@ export function addLivingWater(
   }
   shader.setData("shoreObjects", mask.items);
   // Open water only, not the bank the shader also paints: what a reflection
-  // may show on.
-  const open = document.createElement("canvas");
-  open.width = W;
-  open.height = H;
-  const oc = open.getContext("2d")!,
-    od = oc.createImageData(W, H);
-  for (let i = 0; i < W * H; i++)
-    if (mask.pixels[i * 4 + 1] > 0 && mask.pixels[i * 4] >= 128) od.data[i * 4 + 3] = 255;
-  oc.putImageData(od, 0, 0);
-  const openKey = `${key}-open`;
-  scene.textures.addCanvas(openKey, open);
-  resources.textures.push(openKey);
-  shader.setData("openWater", openKey);
+  // may show on. Skipped on small-memory devices where reflections are off.
+  if (!smallMemoryDevice()) {
+    const od = new Uint8ClampedArray(W * H * 4);
+    for (let i = 0; i < W * H; i++)
+      if (mask.pixels[i * 4 + 1] > 0 && mask.pixels[i * 4] >= 128) od[i * 4 + 3] = 255;
+    const openKey = `${key}-open`;
+    addPixelTexture(scene, openKey, W, H, od);
+    resources.textures.push(openKey);
+    shader.setData("openWater", openKey);
+  }
   shader.setData("waterTiles", Math.ceil(mask.count / 256));
   set.add(shader);
   shader.once("destroy", () => set!.delete(shader));
@@ -317,7 +302,9 @@ export function openWaterMask(scene: Phaser.Scene, x: number, y: number) {
     if (x < left || y < top || x >= left + shader.width || y >= top + shader.height) continue;
     let mask = shader.getData("openMask") as Phaser.Display.Masks.BitmapMask | undefined;
     if (!mask) {
-      const image = scene.make.image({ x: shader.x, y: shader.y, key: shader.getData("openWater") }, false);
+      const openWater = shader.getData("openWater") as string | undefined;
+      if (!openWater) return undefined;
+      const image = scene.make.image({ x: shader.x, y: shader.y, key: openWater }, false);
       mask = image.createBitmapMask();
       shader.setData("openMask", mask);
       shader.once("destroy", () => {
