@@ -223,3 +223,38 @@ export const FORD_CARD: ChoiceCard = {
     },
   ],
 };
+
+export const ICE_CARD: ChoiceCard = {
+  id: "through-ice",
+  slot: "through-ice",
+  evidence: "inferred",
+  text: "The ice breaks and you drop into the water to your chest. The cold knocks the breath out of you, and the edge crumbles each time you lean on it.",
+  choices: [
+    {
+      label: "Kick your legs up and roll out flat",
+      note: "agility helps · each failure costs you badly",
+      check: { stat: "agility", skill: "wayfaring", odds: 0.5 },
+      then: [{ type: "hurt", n: 6, cause: "drowning under the ice" }, { type: "fatigue", n: 15 }, { type: "risk", ailment: "cough", odds: 0.3 }],
+      line: "You kicked until you lay level in the water, slid out on your stomach and rolled clear of the hole. You are soaked and shaking.",
+      otherwise: [{ type: "hurt", n: 24, cause: "drowning under the ice" }, { type: "fatigue", n: 12 }],
+      otherwiseLine: "The edge broke off under your arms and you went back in.",
+    },
+    {
+      label: "Smash a way through to thicker ice",
+      note: "strength helps · slow, and the cold is taking your strength",
+      check: { stat: "strength", odds: 0.45 },
+      then: [{ type: "hurt", n: 10, cause: "drowning under the ice" }, { type: "fatigue", n: 25 }, { type: "risk", ailment: "cough", odds: 0.4 }],
+      line: "You broke the rotten ice with your elbows until the edge held, and hauled yourself out onto it. You are soaked and shaking.",
+      otherwise: [{ type: "hurt", n: 20, cause: "drowning under the ice" }, { type: "fatigue", n: 18 }],
+      otherwiseLine: "You broke a few feet of ice and had to stop. Your hands will not close properly.",
+    },
+    {
+      label: "Shout for help",
+      check: { stat: "extraversion", odds: 0.04 },
+      then: [{ type: "hurt", n: 8, cause: "drowning under the ice" }, { type: "fatigue", n: 10 }, { type: "risk", ailment: "cough", odds: 0.3 }],
+      line: "Someone heard you, lay flat on the ice and reached you a pole. They dragged you out and away from the hole.",
+      otherwise: [{ type: "hurt", n: 16, cause: "drowning under the ice" }, { type: "fatigue", n: 8 }],
+      otherwiseLine: "You shouted until your voice cracked. Nobody came.",
+    },
+  ],
+};

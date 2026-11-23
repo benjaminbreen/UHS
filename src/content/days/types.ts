@@ -40,6 +40,8 @@ export type PlaceWant =
   | "gathering"
   | "wild"
   | "edge"
+  /** Frozen water near the settlement that bears; nowhere in a mild winter. */
+  | "ice"
   | "work"
   /** Somebody else's door, a real walk away. */
   | "door"

@@ -302,6 +302,11 @@ it("reads deltas, floods, ice, reefs, tides and water works from the place and s
   expect(at(110.3, 25.1, 1600, "summer", "monsoon").tint).toBe("clear");
   expect(at(31.5, 60.8, 1600, "winter", "boreal").ice).toBe("fast");
   expect(at(31.5, 60.8, 1600, "summer", "boreal").ice).toBeUndefined();
+  // A mild winter skins the ponds; the Little Ice Age hardens it; the tropics never freeze.
+  expect(at(2.35, 48.85, 1900, "winter", "temperate")).toMatchObject({ ice: "lakes", frost: 0.36 });
+  expect(at(-0.1, 51.5, 1684, "winter", "temperate").frost).toBe(0.5);
+  expect(at(31.5, 60.8, 1600, "winter", "boreal").frost).toBe(0.85);
+  expect(at(100, 14, 1600, "winter", "tropical").ice).toBeUndefined();
   expect(at(-51, 69.2, 1600, "summer", "tundra").icebergs).toBe(true);
   expect(at(-147.7, -15, 1700, "summer", "tropical").reef).toBe("atoll");
   const sundarbans = at(89.2, 21.9, 1700, "winter", "monsoon");
@@ -388,7 +393,10 @@ it.runIf(!!process.env.FULL)("freezes in winter and thaws in spring, floods the 
   const novgorod = world(31.3, 58.5, "winter", "boreal-woodland", "boreal", "lake");
   const lake = cells().filter(({ x, y }) => novgorod.topography!(x, y).waterVisual?.ice === "solid");
   expect(lake.length).toBeGreaterThan(20);
-  expect(lake.every(({ x, y }) => waterDepthAt(novgorod.topography!, x + 0.5, y + 0.5) === 0)).toBe(true);
+  // A hard winter bears almost everywhere; the cells it does not are the shore's own shallows.
+  const depths = lake.map(({ x, y }) => waterDepthAt(novgorod.topography!, x + 0.5, y + 0.5));
+  expect(depths.filter((d) => d === 0).length).toBeGreaterThan(lake.length * 0.8);
+  expect(depths.every((d) => d <= MAX_WADING_DEPTH)).toBe(true);
   novgorod.setSeason!("spring");
   expect(lake.some(({ x, y }) => novgorod.topography!(x, y).waterVisual?.ice)).toBe(false);
   expect(lake.some(({ x, y }) => waterDepthAt(novgorod.topography!, x + 0.5, y + 0.5) > MAX_WADING_DEPTH)).toBe(true);
@@ -414,3 +422,18 @@ it.runIf(!!process.env.FULL)("freezes in winter and thaws in spring, floods the 
   fundy.setSeason!("summer", 0);
   expect(walkable()).toBe(shelf.length);
 });
+
+it("makes mid-river ice thin in a mild winter and sound in a hard one", async () => {
+  const { iceStrength, ICE_THIN, ICE_OPEN } = await import("../src/core/ice");
+  const river = (frost: number) => ({ distance: -4, kind: "river" as const, ecology: "grassland" as const, shoreWidth: 3, flow: [0, 1] as const, frozenMargin: false, ice: "solid" as const, frost });
+  const share = (frost: number, d: number, under: number) => {
+    let n = 0;
+    for (let i = 0; i < 400; i++) if (iceStrength(river(frost), d, (i % 20) * 37, Math.floor(i / 20) * 41) < under) n++;
+    return n / 400;
+  };
+  expect(share(0.5, -4, ICE_THIN)).toBeGreaterThan(0.8);
+  expect(share(0.5, -4, ICE_OPEN)).toBeGreaterThan(0.05);
+  expect(share(0.5, -0.5, ICE_THIN)).toBe(0);
+  expect(share(1, -4, ICE_THIN)).toBe(0);
+});
+

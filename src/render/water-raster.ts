@@ -3,9 +3,10 @@ import { rockRamp } from "./edge-faces";
 import { rasterHabitatTile } from "./habitat-raster";
 import { quayPixel, shoreDistance, shorePixel, tidalFlat } from "./material-edges";
 import type { TopographyCell, TopographySample } from "../core/topography";
-import { bareShelf, quayWater } from "../core/water-field";
+import { bareShelf, iceDistance, quayWater } from "../core/water-field";
 import { TERRAIN_RISE } from "./terrain-projection";
 import { cellHash, valueNoise } from "../core/noise";
+import { iceSheet, sheeted, SNOW_BANK } from "./ice-sheet";
 import {
   waterBand,
   waterDistance,
@@ -354,18 +355,7 @@ export function specialWater(cell: TopographyCell, palette: WaterPalette, d: num
           return k === tall || k === tall - 1 ? BERG[4] : wx < cx - r * 0.2 ? BERG[2] : BERG[3];
     }
   }
-  if (v.ice === "solid" && !(v.kind === "sea" && d < -7 + (valueNoise(wx, wy, 14, 615) - 0.5) * 1.4)) {
-    const drift = valueNoise(wx, wy, 22, 601) + (valueNoise(wx, wy, 7, 602) - 0.5) * 0.12;
-    let rgb = drift > 0.6 ? ICE[0] : drift > 0.56 ? ICE[1] : d > -0.5 ? ICE[3] : ICE[2];
-    if (drift <= 0.56 && d < -2 && valueNoise(wx, wy, 31, 603) < 0.3) rgb = ICE[3];
-    if (
-      drift <= 0.58 &&
-      Math.abs(valueNoise(wx, wy, 44, 605) - 0.5) < 0.006
-    )
-      rgb = ICE[4];
-    if (v.kind === "sea" && d < -6.4) rgb = cellHash(Math.floor(wx / 2), Math.floor(wy / 2), 609) > 0.5 ? ICE[0] : ICE[3];
-    return rgb;
-  }
+  if (sheeted(v)) return iceSheet(v, d, wx, wy);
   if (v.ice) {
     const floe = (px: number, py: number) => valueNoise(px, py, 40, 611) + (valueNoise(px, py, 11, 613) - 0.5) * 0.16 > 0.5;
     if (!floe(wx, wy)) return;
@@ -483,6 +473,17 @@ export function rasterWaterTile(
         cellHash(Math.floor(wx / 8), Math.floor(wy / 8), 18) > 0.56
       )
         index = edges.some((e) => e.rocky) ? 13 : 10;
+      // The sheet is cut from the same shoreline the living water uses.
+      if (sheeted(cell.waterVisual) && !cell.bridge) {
+        const iced = iceDistance(sample, x + (px + 0.5) / 16, y + (py + 0.5) / 16, ox, oy);
+        // Landward of the wandering shoreline a water cell is snowed-over bank,
+        // not the summer shallows.
+        const sheet = iced < 0 ? specialWater(cell, palette, iced, wx, wy, index) : cell.surface === "water" ? SNOW_BANK : undefined;
+        if (sheet) {
+          pixels.set([...sheet, 255], (py * 16 + px) * 4);
+          continue;
+        }
+      }
       if (cell.habitat && !cell.bridge) {
         const d =
           distance < -1.2
@@ -505,7 +506,7 @@ export function rasterWaterTile(
           continue;
         }
       }
-      const special = cell.bridge ? undefined : specialWater(cell, palette, distance, wx, wy, index);
+      const special = cell.bridge || sheeted(cell.waterVisual) ? undefined : specialWater(cell, palette, distance, wx, wy, index);
       pixels.set(special ? [...special, 255] : colors[index], (py * 16 + px) * 4);
     }
   // Submerged stones are deliberately sparse, tinted by the water column.

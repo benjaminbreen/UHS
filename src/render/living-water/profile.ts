@@ -43,7 +43,7 @@ export function livingProfile(cell: TopographyCell): Settings {
             ? "green"
             : "murky";
   const swamp = cell.habitat?.colorway === "swamp";
-  const frozen = !!cell.waterVisual?.frozenMargin;
+  const frozen = !!cell.waterVisual?.frozenMargin || cell.waterVisual?.frost !== undefined;
   const red = ecology === "desert" && cell.habitat?.colorway === "red-earth";
   return {
     ...defaults,

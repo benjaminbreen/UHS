@@ -1081,7 +1081,42 @@ export function cockCrow(near = 1): Sound {
     tone(0.46, 0.6, g * 0.35, f * 3.2, { to: f * 2.1, wave: "triangle", attack: 0.03 }),
   ];
 }
+/** Ice underfoot and giving way. `creak` is the falling "pew" a sheet makes
+ * when it takes a load: a crack, then pitch sliding down as it runs away. */
+export const ice = {
+  step: (running = false): Sound => [
+    noise(0, 0.035, running ? 0.09 : 0.06, 3400, { filter: "highpass", q: 0.7 }),
+    tone(0, 0.05, 0.025, vary(1500, 0.15), { to: 900 }),
+    tone(0.005, 0.07, running ? 0.07 : 0.045, 150, { to: 80 }),
+  ],
+  slide: (): Sound => [
+    noise(0, 0.34, 0.07, 2900, { to: 1900, q: 4, attack: 0.02 }),
+    noise(0, 0.3, 0.035, 5200, { to: 3600, q: 3, attack: 0.03 }),
+  ],
+  skate: (): Sound => [
+    noise(0, 0.26, 0.03, 5600, { to: 3900, q: 2.5, attack: 0.06 }),
+    noise(0.01, 0.2, 0.012, 2400, { to: 1700, q: 5, attack: 0.05 }),
+  ],
+  creak: (): Sound => [
+    noise(0, 0.03, 0.16, 2600, { q: 0.8 }),
+    tone(0.01, 0.42, 0.11, vary(1050, 0.12), { to: 170 }),
+    tone(0.07, 0.5, 0.06, vary(1500, 0.12), { to: 240 }),
+    noise(0.16, 0.02, 0.07, 3400, { q: 1 }),
+    tone(0.02, 0.6, 0.07, 62, { to: 44 }),
+  ],
+  plunge: (): Sound => [
+    noise(0, 0.04, 0.22, 2200, { q: 0.7 }),
+    noise(0.05, 0.03, 0.15, 3100, { q: 0.9 }),
+    ...ring(0.03, 2100, 0.25, 0.05),
+    ...grains(0.06, 0.3, 7, (t) => noise(t, 0.02, 0.07, rand(2400, 5200), { q: 3 })),
+    noise(0.1, 0.55, 0.2, 620, { to: 260, filter: "lowpass", attack: 0.03 }),
+    tone(0.1, 0.3, 0.16, 120, { to: 48 }),
+    ...grains(0.3, 0.5, 6, (t) => tone(t, 0.05, 0.03, rand(500, 1100), { to: rand(900, 1600) })),
+  ],
+};
+
 export const catalog: { name: string; detail: string; make: () => Sound }[] = [
+  ...(["step", "slide", "skate", "creak", "plunge"] as const).map((k) => ({ name: `Ice: ${k}`, detail: "Frozen water underfoot", make: () => ice[k]() })),
   ...(["coo", "laugh", "fuss", "cry", "sigh"] as const).map((k) => ({ name: `Baby: ${k}`, detail: "The carried baby", make: baby[k] })),
   ...(
     [

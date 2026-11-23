@@ -1,4 +1,6 @@
 import { parterrePixels } from "./fair/ground";
+import { iceSheet, sheeted } from "./ice-sheet";
+import { iceDistance } from "../core/water-field";
 import type { Rock } from "../content/geography/rock";
 import type { EarthFinish } from "../content/settlements/urban-form/types";
 import { frostCover, snowCover, snowOver } from "./snow-cover";
@@ -2041,6 +2043,15 @@ function rasterGroundTile(
         }
       }
   }
+  // A frozen shoreline wanders across cell borders: the bank cell paints the
+  // ice that reaches into it, from the same distance the water cells use.
+  if (sheeted(cell.waterVisual) && cell.surface !== "water")
+    for (let py = 0; py < 16; py++)
+      for (let px = 0; px < 16; px++) {
+        const iced = iceDistance(sample, x + (px + 0.5) / 16, y + (py + 0.5) / 16, ox, oy);
+        const sheet = iced < 0 ? iceSheet(cell.waterVisual!, iced, gx + px, gy + py) : undefined;
+        if (sheet) put(px, py, sheet);
+      }
   // Grass ends in a dark serrated border: an outline on the turf side, blades
   // of one or two pixels leaning out over the earth. Light grass blends into
   // the surrounding turf instead of receiving an island outline. Worn

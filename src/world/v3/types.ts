@@ -156,7 +156,7 @@ export type SettlementPlan = {
     placeId?: string;
   }[];
   /** Country round the settlement, kept for routines built after planning. */
-  outdoors?: { wild: Point[]; shore?: Point; quarry?: Point; roadOut?: Point };
+  outdoors?: { wild: Point[]; shore?: Point; ice?: Point[]; quarry?: Point; roadOut?: Point };
   /** Farmland round the town: crop per cell, the parcels, and the territory
    * with its lanes and the slots kept free for outlying sites. */
   fields?: Map<string, import("./farmland").FieldCell>;

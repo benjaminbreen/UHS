@@ -34,6 +34,7 @@ import { keeperLivesIn, publicInteriorFor } from "../../content/interiors/select
 import type { Rank } from "../../content/characters/context-types";
 import type { StanceTag } from "../../content/outlook/types";
 import type { WorldSetting } from "../../content/geography/types";
+import { waterscape } from "../../content/geography/waterscapes";
 import { cellKey, type Plot, type SettlementPlan, type WorkSite } from "./types";
 import { propDefs, propVisualCells } from "../../content/props/catalog";
 import { processFor } from "../../content/economy/processes";
@@ -636,6 +637,14 @@ function outdoorSites(plan: SettlementPlan, seed: string, sample: Sample) {
       ])
         if (!shore && dry(x + dx, y + dy)) shore = { x: x + dx, y: y + dy };
     }
+  // Water a little way off that shore, where a winter's ice is soundest.
+  const ice: Point[] = [];
+  if (shore)
+    for (let dy = -8; dy <= 8 && ice.length < 8; dy++)
+      for (let dx = -8; dx <= 8 && ice.length < 8; dx++) {
+        const p = { x: shore.x + dx, y: shore.y + dy }, w = sample(p.x, p.y).water;
+        if (w <= -0.8 && w >= -4.5 && !plan.solid.has(cellKey(p.x, p.y)) && ice.every((q) => Math.hypot(q.x - p.x, q.y - p.y) >= 2.5)) ice.push(p);
+      }
   const quarry = outward("quarry", 1.2, 1.8);
   // The far end of the longest road: where a carter's load is going.
   let roadOut: Point | undefined,
@@ -648,7 +657,7 @@ function outdoorSites(plan: SettlementPlan, seed: string, sample: Sample) {
         roadOut = p;
       }
     }
-  return { wild, shore, quarry, roadOut };
+  return { wild, shore, ...(ice.length ? { ice } : {}), quarry, roadOut };
 }
 type Outdoors = NonNullable<SettlementPlan["outdoors"]>;
 /** Three spots in the same stretch of country, walked in a stable order: the
@@ -1606,6 +1615,11 @@ export function placeFor(
       const w = pick(plan.outdoors?.wild, "wild");
       return w && { pos: w, toward: "the edge of the settlement" };
     }
+    case "ice": {
+      const setting = plan.site.pack?.setting;
+      const at = setting && (waterscape({ ...setting, season: "winter" }).frost ?? 0) >= 0.5 ? pick(plan.outdoors?.ice, "ice") : undefined;
+      return at && { pos: at, toward: "the ice" };
+    }
     case "edge": {
       const e = plan.outdoors?.roadOut ?? plan.outdoors?.wild[0];
       return e && { pos: e, toward: "the road out of town" };
@@ -1672,7 +1686,7 @@ export function dayStations(
     const at = where(item.place, item.subjectAt);
     if (!at) continue;
     once.push({
-      pos: nearby(plan, seed, `${id}-${item.id}`, at.pos),
+      pos: item.place === "ice" ? at.pos : nearby(plan, seed, `${id}-${item.id}`, at.pos),
       activity: item.activity,
       label: asDoing(item.text, id === "player"),
       toward: at.toward,

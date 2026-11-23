@@ -110,6 +110,9 @@ printf '%s\n' 'look' 'shot artifacts/start.png' 'goto b1' 'enter b1' 'shot artif
   npm run shot -- --play --setting "Weaver in Oaxaca 1650" --seed playtest
 ```
 
+Visual play adds `shot <out.png>`, `zoom <n>`, `at <x> <y>` (teleport),
+`key <Key>` and `js <expression over r>`, where `r` is the live runtime.
+
 Extra browser commands in `--play`: `shot <out.png>`, `zoom <n>`, `at <x> <y> [space]`,
 `key <k>`, `click <label-or-selector>`, and `eval <js>`.
 

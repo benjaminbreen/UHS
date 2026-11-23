@@ -11,6 +11,9 @@ export type Waterscape = {
   tint?: "silt" | "loess" | "clear";
   /** Lakes and rivers bear ice; "fast" adds shore ice on the sea, "pack" floes beyond it. */
   ice?: "lakes" | "fast" | "pack";
+  /** How hard the freeze is, 0 to 1: under about 0.5 still water skins over
+   * and rivers keep an open channel; from 0.75 nearly all of it bears. */
+  frost?: number;
   icebergs?: boolean;
   reef?: "fringing" | "atoll";
   /** Tidal range, 0 microtidal to 1 macrotidal. */
@@ -141,9 +144,13 @@ export function waterscape(s: Pick<WorldSetting, "lon" | "lat" | "year" | "seaso
     (climate === "tundra" && Math.abs(lat) > 40) || climate === "boreal" || Math.abs(lat) >= 54 - littleIceAge ||
     // Continental winters: the steppe, Siberia, Manchuria, the Great Lakes and prairie.
     (Math.abs(lat) >= 42 && ((lon > 25 && lon < 135) || (lon > -105 && lon < -70)));
-  if (season === "winter" && cold)
-    out.ice = Math.abs(lat) >= 72 || (climate === "tundra" && Math.abs(lat) >= 64) ? "pack" : Math.abs(lat) >= 58 && !gulfStream(lon, lat) ? "fast" : "lakes";
-  else if (season !== "summer" && Math.abs(lat) >= 76) out.ice = "pack";
+  // Milder winters still skin the ponds: the temperate belt, and well south of it inland.
+  const continental = (lon > 25 && lon < 135) || (lon > -105 && lon < -70);
+  const chill = climate !== "tropical" && climate !== "mediterranean" && (Math.abs(lat) >= 45 || (continental && Math.abs(lat) >= 37));
+  if (season === "winter" && (cold || chill)) {
+    out.ice = !cold ? "lakes" : Math.abs(lat) >= 72 || (climate === "tundra" && Math.abs(lat) >= 64) ? "pack" : Math.abs(lat) >= 58 && !gulfStream(lon, lat) ? "fast" : "lakes";
+    out.frost = Math.min(1, (out.ice === "pack" ? 1 : out.ice === "fast" ? 0.85 : !cold ? 0.36 : climate === "boreal" || climate === "tundra" ? 0.75 : 0.6) + (littleIceAge && !cold ? 0.14 : 0));
+  } else if (season !== "summer" && Math.abs(lat) >= 76) (out.ice = "pack"), (out.frost = 1);
   out.icebergs = Math.abs(lat) >= 55 && icebergCoasts.some((b) => inBox(b, lon, lat));
   if (atolls.some((b) => inBox(b, lon, lat))) out.reef = "atoll";
   else if (Math.abs(lat) < 28 && reefCoasts.some((b) => inBox(b, lon, lat)) && !out.delta) out.reef = "fringing";

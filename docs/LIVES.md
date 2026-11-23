@@ -50,6 +50,7 @@ down and costs up to half of strength, agility and endurance
 
 **Hazards.** Drowning, falls and rock falls are choices on hazard cards
 (`src/content/cards/hazards.ts`, filtered by trade), not silent rolls.
+Falls on ice and going through it are in [WATER.md](WATER.md), "Ice underfoot".
 
 ## Body and danger
 

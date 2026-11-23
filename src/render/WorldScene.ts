@@ -159,6 +159,7 @@ import {
   cycleTick,
   cycleRoll,
   cycleSkid,
+  ice as iceSound,
   motorPutt,
   trickChime,
 } from "../audio/sfx";
@@ -293,6 +294,8 @@ import { SmallCreatures } from "./small-creatures";
 import { Monkeys } from "./monkeys";
 import { itemColors } from "./item-art";
 import { Flies, type FlySource } from "./flies";
+import { IceEffects } from "./ice-effects";
+import { ICE_THIN } from "../core/ice";
 import { freshDung } from "../core/dung";
 import { freshCarcass } from "../core/remains";
 import { RemainsLife, type RemainsSource } from "./remains-life";
@@ -411,6 +414,7 @@ const ambientPoses: Record<StationActivity, CharacterPose> = {
   "haul-catch": "carry",
   fish: "work",
   hunt: "stoop",
+  skate: "idle",
 };
 /** Rows of a character frame shown above the covers: the head and a little of the shoulders. */
 const HEAD_ROWS = 13;
@@ -1019,6 +1023,7 @@ export class WorldScene extends Phaser.Scene {
   private accent?: AmbientLife;
   private weather?: Weather;
   private flies?: Flies;
+  private ice?: IceEffects;
   private remainsLife?: RemainsLife;
   /** Lying snow, in the raster's steps. */
   private snow = 0;
@@ -1179,6 +1184,7 @@ export class WorldScene extends Phaser.Scene {
       },
     });
     this.flies = new Flies(this);
+    this.ice = new IceEffects(this);
     this.remainsLife = new RemainsLife(this);
     this.input.keyboard!.removeCapture([
       "UP",
@@ -2313,6 +2319,7 @@ export class WorldScene extends Phaser.Scene {
     running: boolean,
   ) {
     if (water > 0.025) return footstep("water", running);
+    if (this.runtime.engine.iceUnder(cell.x, cell.y, cell.space) !== undefined) return iceSound.step(running);
     const ground = this.underfoot(cell, puddle);
     const engine = this.runtime.engine;
     if (cell.space !== "outside") {
@@ -2415,6 +2422,41 @@ export class WorldScene extends Phaser.Scene {
     const im = this.entities.get("player");
     if (im) this.feel.puff(im.x + dx * 8, im.y + dy * 4, [0x33251a, 0x5a4430, 0x846848], 8, 1);
     void gameAudio()?.sound([...landing("marsh", 1.3), ...(footstep("soil", true, "splat") ?? [])], "step");
+  }
+  /** What the engine said the last step did on frozen water. */
+  private onIce(impact: "slide" | "slip" | "creak" | "plunge", time: number) {
+    const im = this.entities.get("player"), audio = gameAudio();
+    this.runSteps = 0;
+    this.lastRunDir = undefined;
+    if (impact === "creak") {
+      void audio?.sound(iceSound.creak(), "step");
+      this.nextInput = time + this.motionDuration + 260;
+      return;
+    }
+    if (impact === "plunge") {
+      void audio?.sound(iceSound.plunge(), "step");
+      this.cameras.main.shake(140, 0.004);
+      if (im) this.feel.puff(im.x, im.y - 2, [0xffffff, 0xc4f1f9, 0x58a3df], 14, 1.5);
+      return;
+    }
+    const fell = impact === "slip";
+    this.nextInput = time + this.motionDuration + (fell ? 760 : 200);
+    this.time.delayedCall(this.motionDuration * 0.6, () => {
+      const last = this.runtime.engine.state.player.pos;
+      void audio?.sound(fell ? [...iceSound.slide(), ...landing("stone", 1.7).map((l) => ({ ...l, at: l.at + 0.16 }))] : iceSound.slide(), "step");
+      this.play(
+        fell
+          ? { pose: "skid", ms: 35, first: 0, last: 3, then: { pose: "stumble", ms: 85, first: 0, last: 3, for: 560 } }
+          : { pose: "skid", ms: 45, first: 0, last: 3 },
+        fell ? 300 : 180,
+      );
+      if (im) {
+        this.feel.puff(im.x, im.y, [0xffffff, 0xe4f5f8, 0xc4f1f9], fell ? 9 : 5, 0.9);
+        const way = [[0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1]][this.runtime.engine.state.player.facing ?? 4];
+        for (const side of [-3, 3]) this.ice?.scratch(last.x * 16 + 8 + side, last.y * 16 + 13, way[0], way[1], time);
+        if (fell) this.cameras.main.shake(90, 0.0025);
+      }
+    });
   }
   /** Feet gone on ice: a skid, a stagger to keep upright, and at a run the
    * slide carries on a cell before it stops. */
@@ -8036,6 +8078,10 @@ export class WorldScene extends Phaser.Scene {
       !!this.options.freeze,
     );
     updatePuddles(this, time);
+    {
+      const engine = this.runtime.engine, outside = engine.state.player.pos.space === "outside";
+      this.ice?.update(time, outside ? engine.iceBreaks.values() : [], (x, y) => outside && engine.iceUnder(x, y) !== undefined, !!this.options.freeze);
+    }
     // The old view holds while it fades out; the room is built after.
     if (!this.fadingOut) this.syncRoom(delta);
     if (!this.fadingOut) this.syncCave(delta);
@@ -8571,7 +8617,9 @@ export class WorldScene extends Phaser.Scene {
               this.nextInput += this.afterHold();
               const at = this.runtime.engine.state.player.pos;
               this.toolEffects?.brush(at, dx, dy, this.shiftHeld ? 0.8 : 0.45);
-              if (
+              const impact = this.runtime.engine.lastImpact;
+              if (impact === "slide" || impact === "slip" || impact === "creak" || impact === "plunge") this.onIce(impact, time);
+              else if (
                 at.space === "outside" &&
                 puddleUnder(this, at.x * 16 + 8, at.y * 16 + 12, 4) === "ice" &&
                 Math.random() < (this.shiftHeld ? 0.65 : 0.25)
@@ -9908,6 +9956,7 @@ export class WorldScene extends Phaser.Scene {
     const engine = this.runtime.engine, talking = engine.conversing;
     const me = this.entities.get(id);
     if (!me) return undefined;
+    if (at && !at.moving && at.activity === "skate" && id !== "player") return this.skating(id, at, me, time);
     let other: string | undefined, kind: "chat" | "sale" = "chat", sells = false;
     if (talking && (id === talking || id === "player")) other = id === "player" ? talking : "player";
     else if (at && !at.moving && (at.activity === "visit" || at.activity === "play" || keeps(at)) && id !== "player") {
@@ -9985,6 +10034,37 @@ export class WorldScene extends Phaser.Scene {
     return partner;
   }
   private partners = new Map<string, { partner?: string; until: number }>();
+  /** Someone out on the ice: long figures of eight round their spot, as wide
+   * as sound ice allows, with a push every stride and now and then a wobble.
+   * On the bank, or where it is too thin, they stand and watch. */
+  private skating(id: string, at: Ambient, me: Phaser.GameObjects.Image, time: number) {
+    const engine = this.runtime.engine, offset = this.poseOffset(id);
+    let room = this.rinks.get(id);
+    if (!room || room.x !== at.x || room.y !== at.y) {
+      const sound = (dx: number, dy: number) => (engine.iceUnder(Math.round(at.x + dx), Math.round(at.y + dy)) ?? 0) >= ICE_THIN + 0.04;
+      const fits = (r: number) => [0, 1, 2, 3, 4, 5, 6, 7].every((k) => sound((Math.cos(k * Math.PI / 4) * r * 34) / 16, (Math.sin(k * Math.PI / 4) * r * 18) / 16));
+      room = { x: at.x, y: at.y, r: !sound(0, 0) ? 0 : fits(1) ? 1 : fits(0.6) ? 0.6 : 0.3 };
+      this.rinks.set(id, room);
+    }
+    if (!room.r) return undefined;
+    const lap = 5200 + (offset % 1700), turn = Math.floor((time + offset * 7) / 11000);
+    const wobble = random(engine.state.manifest.seed, "skate-wobble", id, turn) < 0.1 && (time + offset * 7) % 11000 < 620;
+    const t = ((wobble ? time - ((time + offset * 7) % 11000) : time) / lap) * Math.PI * 2 + offset;
+    const way = offset % 2 ? 1 : -1;
+    const romp = { x: Math.round(Math.sin(t) * 34 * room.r), y: Math.round(Math.sin(2 * t) * 9 * room.r * way + Math.cos(t) * 6 * room.r) };
+    const vx = Math.cos(t) * 34, vy = Math.cos(2 * t) * 18 * way - Math.sin(t) * 6;
+    const stride = Math.floor(time / 640 + offset);
+    if (!wobble && this.skateBeat.get(id) !== stride && this.cameras.main.worldView.contains(me.x, me.y)) {
+      this.skateBeat.set(id, stride);
+      this.ice?.scratch(me.x, me.y - 1, Math.sign(Math.round(vx / 20)), Math.sign(Math.round(vy / 12)), time);
+      const p = engine.state.player.pos;
+      if (Math.hypot(at.x - p.x, at.y - p.y) < 7 && stride % 2 === 0) void gameAudio()?.sound(iceSound.skate(), "step");
+    }
+    const pose: CharacterPose = wobble ? "stumble" : "walk";
+    return { pose, index: wobble ? Math.min(3, Math.floor(((time + offset * 7) % 11000) / 155)) : Math.floor(time / 320 + offset) % 4, facing: facingFromStep(Math.abs(vx) > Math.abs(vy) * 0.6 ? vx : 0, Math.abs(vy) > Math.abs(vx) * 0.35 ? vy : 0, 2), im: me, romp };
+  }
+  private rinks = new Map<string, { x: number; y: number; r: number }>();
+  private skateBeat = new Map<string, number>();
   /** Two children at play: tag round and round the spot between them, one a
    * little behind the other, or a clapping game with a jump on the last beat. */
   private playGame(id: string, other: string, me: Phaser.GameObjects.Image, im: Phaser.GameObjects.Image, first: boolean, time: number) {

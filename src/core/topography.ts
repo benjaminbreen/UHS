@@ -136,6 +136,8 @@ export type TopographyCell = {
     gradient?: readonly [number, number];
     /** Walkable ice; "floes" is broken pack drifting on open water. */
     ice?: "solid" | "floes";
+    /** The waterscape's frost; `iceStrength` in `core/ice.ts` reads it. */
+    frost?: number;
     icebergs?: boolean;
     tint?: "silt" | "loess" | "clear";
     /** Width in tiles of the intertidal shelf, on every cell of a tidal sea:

@@ -2949,7 +2949,12 @@ export function createSettlementWorld(
       }
     }
     if (c.live && c.live.stamp !== waterStamp) liveWater(c, c.live, c.waterVisual!, liveWaters!);
+    else if (!c.live && c.waterVisual && c.waterVisual.distance >= 0) c.waterVisual.frost = bankFrost(c.waterVisual);
     return c;
+  }
+  /** A bank beside frozen water carries its frost, so the shore is drawn frozen too. */
+  function bankFrost(v: NonNullable<TopographyCell["waterVisual"]>) {
+    return liveWaters?.ice && (v.kind !== "sea" || liveWaters.ice !== "lakes") ? liveWaters.frost : undefined;
   }
   function liveWater(c: TopographyCell, l: NonNullable<TopographyCell["live"]>, v: NonNullable<TopographyCell["waterVisual"]>, ws: Waterscape) {
     l.stamp = waterStamp;
@@ -2966,10 +2971,11 @@ export function createSettlementWorld(
     if (tint) v.tint = tint;
     else delete v.tint;
     // Shore ice reaches about seven cells out; pack floes drift beyond it.
-    // Inside the raster's ragged -7 edge, so no walkable cell is drawn as open water.
-    const ice = d < 0 && ws.ice && (v.kind !== "sea" || (ws.ice !== "lakes" && d > -6.3) ? "solid" : ws.ice === "pack" ? "floes" : undefined);
-    if (ice) v.ice = ice;
-    else delete v.ice;
+    // Flagged past the raster's ragged -7 edge so that edge is drawn whole;
+    // `iceAt` stops bearing short of it.
+    const ice = d < 0 && ws.ice && (v.kind !== "sea" || (ws.ice !== "lakes" && d > -10.5) ? "solid" : ws.ice === "pack" ? "floes" : undefined);
+    if (ice) Object.assign(v, { ice, frost: ws.frost });
+    else (delete v.ice, (v.frost = d >= 0 ? bankFrost(v) : undefined));
     if (l.shelf !== undefined && !ice) Object.assign(v, { shelf: l.shelf, tide: liveTide });
     else {
       delete v.shelf;

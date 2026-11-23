@@ -108,7 +108,8 @@ import { carryKit } from "../content/economy/carrying";
 import { processFor, type PlaceRole, type ProcessFamily, type Step } from "../content/economy/processes";
 import { pieceOf, recipeFor } from "../content/economy/recipes";
 import { CARDS, type CardChoice, type ChoiceCard } from "../content/cards";
-import { FORD_CARD } from "../content/cards/hazards";
+import { FORD_CARD, ICE_CARD } from "../content/cards/hazards";
+import { ICE_THIN, iceAt } from "./ice";
 import { accosterAt, accosters, cutpurseAt } from "../content/accosters";
 import { bossTitle, cardText, oddsOf, pickCard } from "./cards";
 import { giftOf, type Form } from "./making";
@@ -1605,7 +1606,7 @@ export class Engine {
   private offerCard(card: ChoiceCard, care?: { who: string; ailment: string }) {
     const s = this.state, boss = this.mineWords(this.trade()).boss ?? this.trade()?.process.boss ?? bossTitle(this.world.pack.setting);
     const encounter = s.encounter?.card === card.id;
-    const ford = encounter && card.id === FORD_CARD.id;
+    const ford = encounter && (card.id === FORD_CARD.id || card.id === ICE_CARD.id);
     const stats = this.stats();
     const person = care ? s.actors.find((a) => a.id === care.who) : ford ? undefined : encounter ? s.actors.find((a) => a.id.startsWith("robber-")) : this.cardPerson(card);
     const words = care ? this.careWords(person, care.ailment) : this.cardWords(person?.name.split(" ")[0]);
@@ -1615,7 +1616,7 @@ export class Engine {
     const drawnStep = this.trade()?.process.steps[s.economy?.work?.drawn ?? -1];
     const shown: PlotCard = {
       kind: "speech",
-      title: ford ? "At the river" : encounter ? "On the road" : care ? (kin ? `your ${kinWord(kin.kind, kin.actor)}` : "Unwell") : !person ? (drawnStep ? this.stepTask(drawnStep) : this.dayTitle() ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
+      title: card.id === ICE_CARD.id ? "Through the ice" : ford ? "At the river" : encounter ? "On the road" : care ? (kin ? `your ${kinWord(kin.kind, kin.actor)}` : "Unwell") : !person ? (drawnStep ? this.stepTask(drawnStep) : this.dayTitle() ?? s.player.role) : card.who === "boss" ? boss : (card.as ?? (card.who === "patient" ? "unwell" : person.role.toLowerCase())),
       text: cardText(card.text, words),
       speaker: person?.id,
       choose: {
@@ -1671,7 +1672,7 @@ export class Engine {
     if (care) delete s.care;
     else if (encounter) {
       delete s.encounter;
-      if (!ford) {
+      if (!ford && id !== ICE_CARD.id) {
         p.encounterAfter = s.clock + 86400;
         this.robbersLeave();
       }
@@ -1740,6 +1741,17 @@ export class Engine {
     if (record.length > 5000) record.shift();
     if (!careOption) this.event(line);
     this.lastChoice = { card: id, line, won: c.check ? won : undefined, changes, go };
+    if (id === ICE_CARD.id && encounter && !p.dead) {
+      if (won) {
+        p.pos = { ...encounter.at };
+        delete p.afloat;
+        delete p.swum;
+        p.activity = "Exploring";
+      } else {
+        s.encounter = { ...encounter, clock: s.clock };
+        this.offerCard(this.choiceCard(id)!);
+      }
+    }
     if (ford && n === 0 && !p.dead) {
       const step = { type: "move" as const, dx: ford.at.x - p.pos.x, dy: ford.at.y - p.pos.y };
       if (!this.validate(step)) this.execute(step, true);
@@ -1797,6 +1809,14 @@ export class Engine {
         ...FORD_CARD,
         text: FORD_CARD.text + (load ? " What you're holding will make it harder to keep your balance." : ""),
         choices: [{ ...cross, check: { ...check, odds: check.odds + swimming - load } }, retreat],
+      };
+    }
+    if (id === ICE_CARD.id) {
+      const p = this.state.player, [roll, smash, shout] = ICE_CARD.choices;
+      const near = this.state.actors.some((a) => a.kind === "human" && !a.dead && a.pos.space === "outside" && distance(a.pos, p.pos) <= 14);
+      return {
+        ...ICE_CARD,
+        choices: [roll, smash, { ...shout, note: near ? "someone is close enough to hear" : "nobody is in sight", check: { stat: "extraversion", odds: near ? 0.8 : 0.04 } }],
       };
     }
     if (id.startsWith("accost:")) return this.accostCard(id);
@@ -4704,7 +4724,11 @@ export class Engine {
     );
   }
   private lastStep = { clock: -99, run: false, dx: 0, dy: 0, steps: 0 };
-  lastImpact?: "collision" | "muck";
+  /** "slide" a turn that did not take on ice, "slip" a fall on it, "creak"
+   * thin ice cracking underfoot, "plunge" going through. */
+  lastImpact?: "collision" | "muck" | "slide" | "slip" | "creak" | "plunge";
+  /** Ice the player has cracked or gone through, by "x,y", for the renderer. */
+  iceBreaks = new Map<string, { x: number; y: number; hole: boolean; at: number }>();
   private rideEventSerial = 0;
   lastRideEvent?: {
     serial: number;
@@ -6220,6 +6244,71 @@ export class Engine {
     p.swum = before + 1;
     for (const [at, text] of SWIM_WARNINGS)
       if (before < at * SWIM_RANGE && p.swum >= at * SWIM_RANGE) this.event(text);
+  }
+  /** How well the ice at a cell bears, or nothing where there is none. */
+  iceUnder(x: number, y: number, space = "outside") {
+    const sample = this.world.topography;
+    return space === "outside" && sample ? iceAt(sample, x, y) : undefined;
+  }
+  /** On ice a turn made in motion often does not take: the feet carry on the
+   * way they were going. */
+  private iceCarry(c: { dx: number; dy: number; run?: boolean }) {
+    const p = this.state.player, l = this.lastStep;
+    if (p.mount || p.afloat || p.perch || p.pos.space !== "outside" || (!l.dx && !l.dy) || (l.dx === c.dx && l.dy === c.dy) ||
+        this.state.clock - l.clock > 4 || this.iceUnder(p.pos.x, p.pos.y) === undefined ||
+        this.iceUnder(p.pos.x - l.dx, p.pos.y - l.dy) === undefined ||
+        this.playerBlocked(p.pos.x + l.dx, p.pos.y + l.dy) || this.rng("ice-turn") >= (c.run ? 0.8 : 0.3)) return undefined;
+    return { dx: l.dx, dy: l.dy };
+  }
+  private iceFall(run: boolean) {
+    const p = this.state.player, damage = run ? 6 : 3;
+    this.lastImpact = "slip";
+    this.lastStep.steps = 0;
+    // Odds in turn: mostly bruises, now and then a wrist put out to break the fall.
+    let roll = this.rng("ice-injury");
+    const odds = run
+      ? ([["bruises", 0.3], ["bruised-knee", 0.15], ["sprained-ankle", 0.06], ["broken-wrist", 0.04], ["concussion", 0.03]] as const)
+      : ([["bruises", 0.25], ["bruised-knee", 0.1], ["broken-wrist", 0.015]] as const);
+    this.hurt(damage, "a fall on the ice", odds.find(([, chance]) => (roll -= chance) < 0)?.[0]);
+    if (!p.dead) this.event(`Your feet go out from under you and you land hard on the ice. You lose ${damage} health.`);
+  }
+  /** A step that ended on ice. Thin ice cracks once as a warning, unless it
+   * is run or ridden onto, and then goes; over deep water that is a card. */
+  private onIce(c: { run?: boolean }, from: Position) {
+    const s = this.state, p = s.player, { x, y } = p.pos, key = `${x},${y}`;
+    // A hole skins over again by the next morning.
+    for (const [k, b] of this.iceBreaks)
+      if (s.clock - b.at > 8 * 3600) {
+        const v = this.world.topography?.(b.x, b.y)?.waterVisual;
+        if (b.hole && v?.frost !== undefined) v.ice = "solid";
+        this.iceBreaks.delete(k);
+      }
+    const strength = this.iceUnder(x, y);
+    if (strength === undefined || !s.manifest.hazards) return;
+    if (strength - (c.run ? 0.05 : 0) - (p.mount ? 0.14 : 0) - (p.held ? 0.04 : 0) >= ICE_THIN) {
+      if (c.run && !p.mount && this.lastImpact === undefined && this.rng("ice-run") < 0.05) this.iceFall(true);
+      return;
+    }
+    this.lastStep.steps = 0;
+    if (!this.iceBreaks.has(key) && !c.run && !p.mount && this.rng("ice-holds") < 0.75) {
+      this.iceBreaks.set(key, { x, y, hole: false, at: s.clock });
+      this.lastImpact = "creak";
+      this.event("The ice cracks under your feet. It is thin here.");
+      return;
+    }
+    this.iceBreaks.set(key, { x, y, hole: true, at: s.clock });
+    delete this.world.topography!(x, y).waterVisual!.ice;
+    this.lastImpact = "plunge";
+    if (waterDepthAt(this.world.topography!, x + 0.5, y + 0.5) <= MAX_WADING_DEPTH) {
+      this.hurt(4, "falling through the ice");
+      if (!p.dead) this.event("The ice breaks and you drop to your knees in freezing water. You lose 4 health.");
+      return;
+    }
+    if (p.mount) this.event("The ice breaks under the weight and you are thrown into the water.");
+    p.afloat = "swimming";
+    p.activity = "Swimming";
+    s.encounter = { card: ICE_CARD.id, at: { ...from }, clock: s.clock };
+    this.offerCard(this.choiceCard(ICE_CARD.id)!);
   }
   private offerFord(x: number, y: number) {
     const s = this.state, p = s.player, sample = this.world.topography;
@@ -11675,6 +11764,16 @@ export class Engine {
         this.advance(2);
         return;
       }
+      if (this.state.encounter?.card === ICE_CARD.id) return;
+      const carried = !c.jump && !c.traverse && this.iceCarry(c);
+      if (carried) {
+        this.execute({ ...c, ...carried });
+        if (this.lastImpact === undefined && !p.dead) {
+          this.lastImpact = "slide";
+          if (this.state.manifest.hazards && this.rng("ice-fall") < (c.run ? 0.4 : 0.1)) this.iceFall(!!c.run);
+        }
+        return;
+      }
       const muck = this.muckAhead(c);
       if (muck) {
         this.lastImpact = "muck";
@@ -11838,6 +11937,7 @@ export class Engine {
       const steps = c.run && this.lastStep.run && this.state.clock - this.lastStep.clock <= 4 &&
         c.dx === this.lastStep.dx && c.dy === this.lastStep.dy ? this.lastStep.steps + 1 : 1;
       this.lastStep = { clock: this.state.clock, run: !!c.run, dx: c.dx, dy: c.dy, steps: c.run ? steps : 0 };
+      if (p.pos.space === "outside" && !aloft && !p.afloat) this.onIce(c, from);
       if (p.pos.space === "outside")
         this.grantXp(
           "wayfaring",

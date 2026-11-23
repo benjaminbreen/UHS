@@ -94,6 +94,7 @@ const dayIcons: Record<StationActivity, LucideIcon> = {
   play: Footprints,
   cook: Soup,
   warm: Flame,
+  skate: Footprints,
 };
 const conditionIcons: Record<string, LucideIcon> = {
   healthy: HeartPulse,

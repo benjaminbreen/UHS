@@ -1,5 +1,6 @@
 import type { TopographyCell, TopographySample } from "./topography";
 import { valueNoise } from "./noise";
+import { iceAt } from "./ice";
 /** The cell's centre is bare mud on the intertidal shelf at the present tide. */
 export const bareShelf = (v: TopographyCell["waterVisual"]) =>
   v?.shelf !== undefined && v.distance < 0 && 1 + v.distance / v.shelf > (v.tide ?? 0);
@@ -125,8 +126,15 @@ export function waterContactDistance(
       0.24;
   return d;
 }
+/** The shoreline ice is measured from: the raster, the living-water mask and
+ * the engine must all read this one, or the sheet tears along cell edges. */
+export const iceDistance = (sample: TopographySample, x: number, y: number, ox = 0, oy = 0) =>
+  // The ground raster's shoreline and the living water's differ by the coast's
+  // scallop. Ice covers whatever either would draw as water.
+  Math.min(shoreDistance(sample, x, y, ox, oy), waterContactDistance(sample, x, y, ox, oy, { enabled: true }));
 export const MAX_WADING_DEPTH = 0.85;
-export function waterDepthAt(sample: TopographySample, x: number, y: number) {
+/** `under` reads the water beneath the ice, for whoever goes through it. */
+export function waterDepthAt(sample: TopographySample, x: number, y: number, under = false) {
   const c = sample(Math.floor(x), Math.floor(y));
   // Nobody wades off a quay: it is dry stone to the wall and deep beyond it.
   if (c?.waterVisual?.quay && !c.bridge && !c.ramp) return waterDistance(sample, x, y) >= 0 ? 0 : Infinity;
@@ -140,8 +148,8 @@ export function waterDepthAt(sample: TopographySample, x: number, y: number) {
     return 0;
   // Legacy terrain keeps its original collision contract.
   if (!c.waterVisual) return c.surface === "water" ? Infinity : 0;
+  if (!under && c.waterVisual.ice === "solid" && iceAt(sample, Math.floor(x), Math.floor(y)) !== undefined) return 0;
   if (c.waterVisual.kind === "canal") return c.dryChannel ? 0 : Infinity;
-  if (c.waterVisual.ice === "solid") return 0;
   if (bareShelf(c.waterVisual)) return 0.3;
   if (c.waterVisual.distance > 3) return 0;
   const d = Math.max(

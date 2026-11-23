@@ -7,6 +7,7 @@
  * Visual playtest (shared Agent commands + shot/zoom/at/key/click):
  *   printf 'look\nshot artifacts/1.png\ngoto b1\nenter b1\nshot artifacts/2.png\n' |
  *     npm run shot -- --play --setting "Weaver in Oaxaca 1650" --seed play1
+ *     (verbs beyond the agent's: shot, zoom, at <x> <y>, key <Key>, js <expression over r>)
  *   npm run shot -- --play --setting "Weaver in Oaxaca 1650" --script steps.txt
  *
  * Starts an offline private Vite server by default (UHS_OFFLINE=1, UHS_STILL=1).
@@ -269,6 +270,11 @@ async function runVisualPlay(browser: Browser, site: string) {
         );
         await waitVisualSettle(page);
         reply({ tool: "at", status: "completed", x: Number(xy[1]), y: Number(xy[2]) });
+        continue;
+      }
+      if (verb === "js") {
+        // An expression over `r`, the live runtime: for finding things no verb reports.
+        reply({ tool: "js", value: await page.evaluate((src) => new Function("r", `return (${src})`)((window as any).__uhs), rest) });
         continue;
       }
       if (verb === "key") {

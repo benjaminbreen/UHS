@@ -64,12 +64,12 @@ void main(){
      float t=waterTime*.5;
      float run=max(0.,sin(t*.8+noise(p/41.)*5.))*.14+.01;
      float lace=noise(p/vec2(5.,3.));
-     if(d<run){
+     if(!frozen&&d<run){
        bank=mix(bank,tone(1.,row),.45*(1.-d/run));
        if(d>run-.025&&lace>.3)bank=mix(bank,vec3(.95,1.,.95),.8);
      }
      float back=.16+noise(p/60.)*.04;
-     if(abs(d-back)<.008&&lace>.45)bank=mix(bank,vec3(.92,.94,.86),.35);
+     if(!frozen&&abs(d-back)<.008&&lace>.45)bank=mix(bank,vec3(.92,.94,.86),.35);
      // Subtle wind ripples and sparse shell/mineral flecks across dry beach sand.
      if(!frozen&&d>back+.015){
        float patchMask=smoothstep(.35,.75,noise(p/34.));

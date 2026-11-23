@@ -1,5 +1,5 @@
 import type { TerrainReceivers } from "../terrain-contours";
-import { quayWater, waterContactDistance } from "../../core/water-field";
+import { quayWater, waterContactDistance, iceDistance } from "../../core/water-field";
 import { coastDistance, coastBeachWidth } from "./coast";
 import type { ShorePolish } from "./polish";
 import { cellHash, valueNoise } from "../../core/noise";
@@ -9,6 +9,7 @@ import type { TerrainRegion } from "../terrain-region";
 import { pathField, shoreDistance, shoreOnTier } from "../material-edges";
 import { ecologyOrder, livingBeachWidth, livingProfile, livingTints } from "./profile";
 import { specialWater } from "../water-raster";
+import { iceSheet, sheeted } from "../ice-sheet";
 import { waterStyle } from "../water-style";
 import { TERRAIN_RISE } from "../terrain-projection";
 export type LivingMask = {
@@ -109,7 +110,7 @@ export function rasterLivingWater(
         return (
           ecologyOrder.indexOf(v.ecology) +
           kind +
-          (v.frozenMargin ? 40 : 0) +
+          (v.frozenMargin || v.frost !== undefined ? 40 : 0) +
           (c.habitat?.colorway === "red-earth" ? 80 : 0)
         );
       };
@@ -188,7 +189,10 @@ export function rasterLivingWater(
           // A tidal shore's beach is the ground's: the mud and sand above the
           // tide are drawn there, and a bank here would lie across them.
           if (visual.shelf !== undefined && d > 0) continue;
-          if ((contact < 0 || (visual.shelf !== undefined && contact < 0.5)) && special && specialWater(cell, special, contact, (region?.x ?? 0) * 16 + sx, (region?.y ?? 0) * 16 + sy, 0, true)) continue;
+          if (sheeted(visual)) {
+            const iced = iceDistance(sample, tx + (px + 0.5) / 16, ty + (py + 0.5) / 16, region?.x ?? 0, region?.y ?? 0);
+            if (iced < 0 && iceSheet(visual, iced, (region?.x ?? 0) * 16 + sx, (region?.y ?? 0) * 16 + sy)) continue;
+          } else if ((contact < 0 || (visual.shelf !== undefined && contact < 0.5)) && special && specialWater(cell, special, contact, (region?.x ?? 0) * 16 + sx, (region?.y ?? 0) * 16 + sy, 0, true)) continue;
           const y: number = sy - lift + shift;
           if (y < 0 || y >= H) continue;
           const i = (y * W + tx * 16 + px) * 4;
