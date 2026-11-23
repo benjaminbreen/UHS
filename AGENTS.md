@@ -58,6 +58,7 @@ Open another doc only when the task is about its subject:
 | Time travel, the years, mortality | `docs/TIME.md` |
 | The day's cards, work, Today, the ledger | `docs/DAY.md` |
 | Health, conditions, bonds, death | `docs/LIVES.md` |
+| Fighting people: weapons, armour, the battlefield arena | `docs/COMBAT.md` |
 | Plots and kin | `docs/PLOTS.md` |
 | Classroom / edu mode | `docs/CLASSROOM.md` |
 | Agents playing the game, run records | `docs/AGENTS.md` |

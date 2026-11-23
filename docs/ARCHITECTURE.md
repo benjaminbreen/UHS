@@ -78,6 +78,7 @@ These pairs do the same job twice. Extend the first one. If your task takes you 
 | Plots | life aims (`core/life-aim.ts`) | PLOTS |
 | `LayeredTheme` music | `score.ts` themes and `CulturalTheme` | AUDIO |
 | Complexes (`core/complex.ts`, `render/lamplight.ts`) | the ship's own level, host and view (`core/ship.ts`, `render/ship/view.ts`) | ARCHITECTURE |
+| The skirmish (`core/skirmish.ts`), once it is in the game | `brawl()` and its guard and blow code in `core/engine.ts` | COMBAT |
 
 ## Topic docs
 

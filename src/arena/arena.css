@@ -1,0 +1,154 @@
+.arena {
+  position: fixed;
+  inset: 0;
+  background: #1c1a22;
+  color: var(--text);
+  font: 11px/1.35 var(--pixel);
+  user-select: none;
+}
+.arena canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+  cursor: crosshair;
+}
+.cl-panel,
+.cl-me,
+.cl-score,
+.cl-units,
+.cl-result,
+.cl-keys {
+  position: absolute;
+  background: var(--bg-2);
+  border: 2px solid var(--frame-dark);
+  border-radius: 3px;
+  box-shadow: var(--frame);
+}
+.cl-panel {
+  top: 10px;
+  left: 10px;
+  width: 268px;
+  max-height: calc(100% - 20px);
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.cl-panel.shut { width: auto; }
+.cl-panel header { display: flex; align-items: baseline; gap: 8px; }
+.cl-panel header span { color: var(--muted); font-size: 9px; }
+.cl-panel header strong { flex: 1; color: var(--cream); }
+.cl-panel nav,
+.cl-row { display: flex; gap: 3px; }
+.cl-panel button {
+  flex: 1;
+  padding: 4px 6px;
+  color: var(--muted);
+  border: 1px solid var(--frame-dark);
+  border-radius: 2px;
+}
+.cl-panel header button { flex: none; }
+.cl-panel button:hover { color: var(--cream); }
+.cl-panel button[aria-pressed="true"],
+.cl-panel button.go { background: var(--gold); color: var(--ink); }
+.cl-panel label { display: flex; flex-direction: column; gap: 2px; color: var(--muted); }
+.cl-panel label output { float: right; color: var(--cream); }
+.cl-panel select,
+.cl-panel input { width: 100%; }
+.cl-kit { padding: 5px 6px; border-left: 2px solid var(--gold); background: #0003; }
+.cl-kit strong { display: block; color: var(--cream); }
+.cl-kit span { color: var(--gold); }
+.cl-kit p,
+.cl-note { margin: 3px 0 0; color: var(--text); }
+.cl-kit b { color: var(--cream); }
+.cl-side { margin: 0; padding: 0 0 0 8px; list-style: none; border-left: 2px solid; }
+.arena .s0 { border-color: #4f86c6; }
+.arena .s1 { border-color: #c8574e; }
+
+.cl-score {
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 18px;
+  padding: 4px 12px;
+  white-space: nowrap;
+}
+.cl-score .s0 b { color: #7fb0e8; }
+.cl-score .s1 b { color: #f08a80; }
+.cl-score b { font-size: 14px; }
+.cl-units {
+  top: 10px;
+  right: 10px;
+  margin: 0;
+  padding: 6px 8px;
+  list-style: none;
+  width: 230px;
+}
+.cl-units li { display: grid; grid-template-columns: 1fr 44px 52px; gap: 6px; align-items: center; padding-left: 5px; border-left: 2px solid; }
+.cl-units li.routed { opacity: 0.45; }
+.cl-units i,
+.cl-me i { display: block; height: 5px; background: #0006; }
+.cl-units i b { display: block; height: 100%; background: var(--cream); }
+.cl-units em { color: var(--muted); font-style: normal; text-align: right; }
+
+.cl-me {
+  left: 50%;
+  bottom: 44px;
+  transform: translateX(-50%);
+  width: 250px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.cl-me strong { color: var(--cream); }
+.cl-me i b { display: block; height: 100%; }
+.cl-me .hp b { background: #7ed36f; }
+.cl-me .wind b { background: #e8c45a; }
+.cl-me span { color: var(--muted); }
+.cl-me span.ready { color: var(--gold); }
+
+.cl-log {
+  position: absolute;
+  right: 12px;
+  bottom: 44px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  text-align: right;
+  color: var(--cream);
+  text-shadow: 1px 1px 0 #000;
+}
+.cl-result {
+  left: 50%;
+  top: 34%;
+  transform: translateX(-50%);
+  padding: 12px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.cl-result strong { font-size: 20px; color: var(--gold); }
+.cl-result button { padding: 4px 12px; background: var(--gold); color: var(--ink); border-radius: 2px; }
+.cl-keys {
+  left: 50%;
+  bottom: 8px;
+  transform: translateX(-50%);
+  max-width: calc(100% - 20px);
+  padding: 4px 10px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.cl-keys b { color: var(--cream); margin-left: 8px; }
+.cl-arms { display: flex; flex-wrap: wrap; gap: 3px; margin: 2px 0 0; padding: 0; list-style: none; }
+.cl-arms li { padding: 2px 5px; border: 1px solid var(--frame-dark); border-radius: 2px; color: var(--muted); }
+.cl-arms li[aria-current="true"] { background: var(--gold); color: var(--ink); }
+.cl-arms kbd { margin-right: 4px; color: var(--cream); }
+.cl-arms b { margin-left: 4px; }

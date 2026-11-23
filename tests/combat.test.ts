@@ -8,6 +8,11 @@ import {
   type FaunaTier,
 } from "../src/core/combat";
 import type { Engine } from "../src/core/engine";
+import { muster, Skirmish, type FighterSpec, type Setup } from "../src/core/skirmish";
+import { battles } from "../src/content/arms/battles";
+import { kitById, kits } from "../src/content/arms/kits";
+import { armFor, arms } from "../src/content/arms/weapons";
+import { fighterOf, resultsOf } from "../src/core/skirmish-bridge";
 
 function field(seed: string) {
   const engine = createSession("roman", seed);
@@ -380,4 +385,126 @@ it("recognises a keeper's dog in a world created before dogs had owners", () => 
   expect(dog.owner).toBe(keeper.id);
   expect(engine.witnessedOffense?.id).toBe(keeper.id);
   expect(engine.witnessedOffense?.situation).toContain("my dog");
+});
+
+const pair = (a: Partial<FighterSpec>, b: Partial<FighterSpec>, seed = "pair") =>
+  ({ setup: {
+    seed, width: 20, height: 10,
+    units: [{ id: "a", side: 0, name: "A", order: "charge" }, { id: "b", side: 1, name: "B", order: "charge" }],
+    fighters: [
+      { id: "a", side: 0, unit: "a", x: 8, y: 5, main: "sword", armour: "none", shield: "none", skill: 0.6, ...a },
+      { id: "b", side: 1, unit: "b", x: 10.5, y: 5, main: "sword", armour: "none", shield: "none", skill: 0.6, ...b },
+    ],
+  } satisfies Setup });
+
+it("every fighter and battle in the arena names weapons and kits that exist", () => {
+  for (const kit of kits) expect([kit.main, kit.side].filter((id) => id && !arms[id]), kit.id).toEqual([]);
+  for (const b of battles) for (const u of b.sides.flat()) expect(kitById.has(u.kit), `${b.id}: ${u.kit}`).toBe(true);
+});
+
+it("a guard raised as the blow lands is a parry: the attacker reels and the answer hits twice as hard", () => {
+  const s = new Skirmish(pair({ player: true }, {}).setup);
+  const me = s.get("a")!, foe = s.get("b")!;
+  const seen: string[] = [];
+  let riposte = 0;
+  for (let i = 0; i < 60 * 20 && !seen.includes("parry"); i++) {
+    const coming = foe.act === "windup" && foe.move!.windup - foe.t <= 0.1;
+    s.step({ mx: 0, my: 0, aim: Math.atan2(foe.y - me.y, foe.x - me.x), attack: false, guard: coming });
+    seen.push(...s.events.map((e) => e.kind));
+    s.events.length = 0;
+  }
+  expect(seen).toContain("parry");
+  expect(foe.act).toBe("stagger");
+  expect(me.riposte?.on).toBe("b");
+  for (let i = 0; i < 40; i++) {
+    s.step({ mx: 0, my: 0, aim: Math.atan2(foe.y - me.y, foe.x - me.x), attack: i < 2, guard: false });
+    for (const e of s.events) if (e.kind === "hit" && e.id === "b") riposte = e.crit ? e.damage : 0;
+    s.events.length = 0;
+  }
+  // An arming sword does 18 at most to an unarmoured man without the opening.
+  expect(riposte).toBeGreaterThan(22);
+});
+
+it("F kept held after a blow winds up the wide swing: half a circle, then the whole", () => {
+  const swing = (held: number) => {
+    const s = new Skirmish(pair({ player: true }, { x: 18 }).setup);
+    const me = s.get("a")!;
+    const press = Math.round(held * 60) + 40;
+    for (let i = 0; i < press + 30; i++) s.step({ mx: 0, my: 0, aim: 0, attack: i < press, guard: false });
+    return me.move!;
+  };
+  expect(swing(0.1).kind).toBe("light");
+  expect(swing(0.7)).toMatchObject({ kind: "heavy", power: 1, arc: Math.PI / 2 });
+  expect(swing(1.2)).toMatchObject({ kind: "heavy", power: 2, arc: Math.PI });
+});
+
+it("braced pikes stop a mounted charge that rides down men who are not braced", () => {
+  const fight = (kit: string) => {
+    const s = new Skirmish(muster({
+      id: "t", name: "", when: "", note: "", ground: "grass", size: [40, 16], sideNames: ["", ""], player: [0, 0],
+      sides: [[{ name: "Foot", kit, count: 8, ranks: 2, at: [10, 8], order: "hold", gap: 0.9 }], [{ name: "Horse", kit: "knight", count: 5, ranks: 1, at: [32, 8], order: "charge" }]],
+    }, "pikes", undefined));
+    const kinds = new Set<string>();
+    while (s.time < 60 && s.winner() === undefined) {
+      s.step();
+      for (const e of s.events) kinds.add(e.kind);
+      s.events.length = 0;
+    }
+    return { winner: s.winner(), kinds, horses: s.fighters.filter((f) => f.side === 1 && f.horse > 0).length };
+  };
+  const pikes = fight("pikeman");
+  expect(pikes.kinds).toContain("brace");
+  expect(pikes.horses).toBe(0);
+  expect(fight("longbowman").winner).toBe(1);
+});
+
+it("plays the same battle the same way from the same seed", () => {
+  const run = () => {
+    const s = new Skirmish(muster(battles.find((b) => b.id === "culloden")!, "same", undefined));
+    while (s.time < 20) s.step(), (s.events.length = 0);
+    return s.fighters.map((f) => `${f.act}:${f.x.toFixed(3)}:${Math.round(f.hp)}`).join("|");
+  };
+  expect(run()).toBe(run());
+});
+
+it("an attack pressed in the air comes down with the landing, harder than a standing blow", () => {
+  const blow = (jump: boolean) => {
+    const s = new Skirmish(pair({ player: true }, { x: jump ? 11.6 : 9.4, skill: 0 }, "air").setup);
+    const foe = s.get("b")!;
+    let dealt = 0, kind = "";
+    for (let i = 0; i < 50 && !dealt; i++) {
+      s.step({ mx: jump ? 1 : 0, my: 0, aim: 0, attack: i > 2 && i < 8, guard: false, jump: jump && i === 0 });
+      foe.act = "ready";
+      foe.guard = false;
+      for (const e of s.events) if (e.kind === "hit" && e.id === "b") dealt = e.damage;
+      for (const e of s.events) if (e.kind === "swing" && e.id === "a") kind = e.move;
+      s.events.length = 0;
+    }
+    return { dealt, kind };
+  };
+  const air = blow(true), ground = blow(false);
+  expect(air.kind).toBe("plunge");
+  expect(ground.kind).toBe("light");
+  expect(air.dealt).toBeGreaterThan(ground.dealt * 1.3);
+});
+
+it("a skirmish takes real people's weapons and armour in, and writes its wounds and dead back to them", () => {
+  const engine = createSession("roman", "bridge");
+  const p = engine.state.player, foe = engine.state.actors.find((a) => a.kind === "human" && (a.age ?? 30) > 18)!;
+  foe.heldItem = "spear";
+  const me = fighterOf(p, { side: 0, unit: "a", x: 8, y: 5 }, { prop: "pitchfork", skill: 0.2 });
+  const them = fighterOf(foe, { side: 1, unit: "b", x: 10, y: 5 }, { skill: 0.9 });
+  expect(me).toMatchObject({ id: p.id, main: "pitchfork" });
+  expect(them).toMatchObject({ main: "spear", armour: "none" });
+  // A farm tool hits as hard as the hunting table says, in the fight's terms.
+  expect(armFor("pitchfork")).toMatchObject({ family: "spear", reach: 2.1 });
+  const s = new Skirmish({ seed: "bridge", width: 20, height: 10, fighters: [me, them], units: [{ id: "a", side: 0, name: "A", order: "charge" }, { id: "b", side: 1, name: "B", order: "charge" }] });
+  while (s.time < 120 && s.winner() === undefined) s.step(), (s.events.length = 0);
+  const results = resultsOf(s), mine = results.find((r) => r.id === p.id)!, theirs = results.find((r) => r.id === foe.id)!;
+  expect(mine.dead || mine.down || theirs.dead || theirs.down).toBe(true);
+  engine.settleFight(results, foe.name);
+  expect(!!foe.dead).toBe(theirs.dead);
+  if (!theirs.dead) expect(foe.health).toBe(Math.max(theirs.down ? 0 : 1, Math.round(100 * theirs.left)));
+  expect(!!p.dead).toBe(mine.dead);
+  if (mine.wounds.length && !mine.dead) expect(p.health).toBeLessThan(100);
 });

@@ -1185,7 +1185,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const homePlay = happyYoungChildNear(runtime.engine.state);
   useEffect(() => {
     if (p.pos.space === "outside") return audio?.setInterior(undefined);
-    if (p.pos.space.startsWith("cave:") || p.pos.space.startsWith("tomb:")) return audio?.setInterior("cave");
+    if (/^(cave|tomb|catacomb):/.test(p.pos.space)) return audio?.setInterior("cave");
     if (p.pos.space.startsWith("prison:")) return audio?.setInterior(null);
     if (p.pos.space.startsWith("sewer:")) return audio?.setInterior("sewer");
     if (p.pos.space.startsWith("mine:")) return audio?.setInterior("mine");
@@ -3602,6 +3602,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     <span>Quick day: fast walking to each place, one occasion</span>
                     <input type="checkbox" checked={runtime.quick} onChange={(e) => runtime.setQuick(e.target.checked)} />
                   </label>
+                  <h3>The battlefield</h3>
+                  <a className="action settings-featured" href="/arena" target="_blank" rel="noreferrer">
+                    Fight a battle{" "}
+                    <small>Any era's soldiers against any other's, or a place in the line at Agincourt, Nagashino or the Somme ↗</small>
+                  </a>
                   <h3>Journeys & sources</h3>
                   <div className="settings-actions">
                     <button
