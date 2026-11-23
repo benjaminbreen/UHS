@@ -140,6 +140,23 @@ const paged = (key: string) => (pagedSheets as readonly string[]).includes(key);
 export const pageImage = (key: string, page: number) =>
   `/packs/pages/${key}-${page}.png?v=${artStamp}`;
 
+type PageFrame = [
+  x: number, y: number, width: number, height: number,
+  pivotX?: number | null, pivotY?: number | null,
+  sourceWidth?: number, sourceHeight?: number, trimX?: number, trimY?: number,
+];
+export type AtlasPage = Record<string, PageFrame>;
+
+export function expandPage(page: AtlasPage) {
+  return Object.fromEntries(Object.entries(page).map(([id, [x, y, w, h, px, py, sw, sh, dx, dy]]) => [
+    id, {
+      frame: { x, y, w, h },
+      ...(px != null && py != null && { pivot: { x: px, y: py } }),
+      ...(sw !== undefined && { trimmed: true, sourceSize: { w: sw, h: sh }, spriteSourceSize: { x: dx, y: dy, w, h } }),
+    },
+  ] as const));
+}
+
 export const alternateTrees = {
   oak: ["Oak Tree.png", 7],
   birch: ["Birch Tree 1.png", 6],

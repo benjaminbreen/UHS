@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from "react";
 import artVersion from "../render/generated/art-version.json" with { type: "json" };
-import { pageImage, pagedSheets } from "../render/scene-assets";
+import { pageImage, pagedSheets, type AtlasPage } from "../render/scene-assets";
 
 // Same URLs as WorldScene.preload, query string included, so the UI and Phaser
 // share one download. Importing the JSON instead put 1.5MB of frames in the
@@ -52,8 +52,12 @@ export function loadSheets() {
       const json = await res.json();
       const frames: Sheet["frames"] = paged ? {} : json.frames;
       if (paged)
-        (json as Sheet["frames"][]).forEach((page, i) => {
-          for (const id in page) frames[id] = { frame: page[id].frame, image: pageImage(key, i) };
+        (json as AtlasPage[]).forEach((page, i) => {
+          const image = pageImage(key, i);
+          for (const id in page) {
+            const [x, y, w, h] = page[id];
+            frames[id] = { frame: { x, y, w, h }, image };
+          }
         });
       return [name, { frames, image: sheetImage(name) }] as const;
     }),

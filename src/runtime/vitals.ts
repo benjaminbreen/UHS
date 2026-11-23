@@ -249,6 +249,7 @@ function countWorkers() {
 export function watchGame(game: Phaser.Game | undefined) {
   if (!game) {
     counters.delete("textures");
+    counters.delete("textureMB");
     counters.delete("scenes");
     return;
   }

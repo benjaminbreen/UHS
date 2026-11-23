@@ -35,7 +35,12 @@ tests.
   next resident so workplace capacity and household-only jobs stay accurate.
 - **Map exits** use bounded searches from preferred crossings toward the spawn.
   Only a failed search triggers whole-map reachability discovery; its terrain
-  and obstacle lookups are shared across exits.
+  and obstacle lookups are shared across exits. Collision and slope checks
+  leave cosmetic ground wear for the first detailed sample of each cell. A
+  route to the map edge can cross a forest without surveying 25 cells
+  for tree cover around every step. The prepared world carries cached
+  terrain within 32 tiles of the spawn. Distant cells used to find the
+  exits can be regenerated when the player reaches them.
 - **Terrain chunks own their resources.** `src/render/resources.ts` records
   each chunk's objects and textures, and `releaseTexture` / `releaseCanvas`
   zero non-pooled backing canvases so WebKit releases native surfaces right
@@ -99,9 +104,16 @@ see the rest.
   border or takes a voyage, and `visited` is capped at 4 snapshots.
 - **Decoded textures**: large building, fauna, harbor, and conveyance sheets
   are paged into 1024px pages (`scripts/art/page_sheets.py`) so a town decodes
-  only the pages it draws, and `WorldScene.pruneLazySheets` evicts unused lazy
-  pages on phones. Never scale a CSS sprite sheet's `backgroundSize`: it makes
+  only the pages it draws. Startup preloads buildings near the player. The
+  page indexes store cut rectangles, pivots and trim offsets as numbers.
+  Phaser expands the frame records when it loads each page, and
+  `WorldScene.pruneLazySheets` evicts unused lazy pages on phones.
+  Never scale a CSS sprite sheet's `backgroundSize`: it makes
   the browser rasterise the whole sheet at that size.
+- **GPU buffers**: the game disables Phaser's unused Pre FX pipeline. Its
+  default pool allocates three color and depth targets per size at boot,
+  including three the size of the game canvas. The camera's night grade
+  and tilt shift use post-processing instead.
 
 ## Measuring
 

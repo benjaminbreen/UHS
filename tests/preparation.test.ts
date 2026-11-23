@@ -14,6 +14,7 @@ import * as travelWaterways from "../src/world/travel/waterways";
 import { releaseTerrainWorker, retainTerrainWorker, takeSpareTerrainWorkers, takeTerrainWorker, warmTerrainPool } from "../src/runtime/terrain-worker-owner";
 import type { TerrainRequest } from "../src/render/terrain-worker";
 import type { WorldModel } from "../src/core/types";
+import { CHUNK_SIZE } from "../src/core/types";
 import type { WorldPreparationRequest, WorldPreparationResult } from "../src/world/worker";
 
 it.each([true, false])("hands off a prepared world with phone memory policy %s", async (phone) => {
@@ -158,6 +159,11 @@ it.each(["konya", "alexandria"])(
     );
     const seed = "tiber-100";
     const prepared = structuredClone(prepareSettlement(packForSetting(setting), seed).prepared);
+    const spawn = prepared.initial.spawn;
+    expect(prepared.relief.every(([key]) => {
+      const [x, y] = key.split(",").map(Number);
+      return Math.abs(x - spawn.x) < CHUNK_SIZE / 2 && Math.abs(y - spawn.y) < CHUNK_SIZE / 2;
+    })).toBe(true);
     const engine = createSession(
       "atlas",
       seed,
@@ -165,12 +171,14 @@ it.each(["konya", "alexandria"])(
     );
     const reference = createSession("atlas", seed, { setting });
     expect(engine.state).toEqual(reference.state);
+    const pending = prepared.relief.find(([, cell]) => cell.wearPending);
     for (const [x, y] of [
       [0, 0],
       [-30, 20],
       [50, 30],
       [120, -5],
       [-192, -64],
+      ...(pending ? [pending[0].split(",").map(Number)] : []),
     ]) {
       expect(engine.world.topography!(x, y)).toEqual(
         reference.world.topography!(x, y),

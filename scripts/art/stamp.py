@@ -28,6 +28,8 @@ def write_stamp(root):
         path = root / name
         if path.exists():
             digest.update(path.read_bytes())
+    for index in sorted((root / 'public/packs/pages').glob('*.json')):
+        digest.update(index.read_bytes())
     out = root / 'src/render/generated/art-version.json'
     write_text(out, json.dumps({'stamp': digest.hexdigest()[:10]}))
     return digest.hexdigest()[:10]

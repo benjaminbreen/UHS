@@ -774,6 +774,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       pixelArt: true,
       roundPixels: true,
       antialias: false,
+      disablePreFX: true,
       scale: {
         mode: Phaser.Scale.RESIZE,
         width: mount.current.clientWidth,

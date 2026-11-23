@@ -142,23 +142,12 @@ export function prepareSettlement(pack: Pack, seed: string, cached?: PreparedSet
   // Not warmed here: withProps clears and searches every routine again.
   const world = createSettlementWorld(pack, seed, cached, false);
   if (cached?.props) return { world, prepared: cached };
-  if (retire) {
-    // Phones terminate this worker on receipt; mutate in place instead of
-    // cloning a second SettlementWorld inside the same worker heap.
-    const relief = cached?.relief ?? world.prepare().relief;
-    const props = propState();
-    const placed = (withProps(world, seed, props) as SettlementWorld).prepare();
-    return { world, prepared: { ...placed, relief, props } };
-  }
-  const prepared = cached ?? world.prepare();
-  if (prepared.props) return { world, prepared };
+  world.entrances();
+  // Only a worker staying on to paint terrain needs to keep its original world.
+  const town = retire ? world : createSettlementWorld(pack, seed, structuredClone(cached ?? world.prepare()));
   const props = propState();
-  const placed = (
-    withProps(createSettlementWorld(pack, seed, structuredClone(prepared)), seed, props) as SettlementWorld
-  ).prepare();
-  // Placing props and searching routes fills the relief cache fourfold; the
-  // receiver recomputes those cells cheaply, but cloning them is not cheap.
-  return { world, prepared: { ...placed, relief: prepared.relief, props } };
+  const placed = (withProps(town, seed, props) as SettlementWorld).prepare();
+  return { world, prepared: { ...placed, props } };
 }
 export function createSettlementWorld(
   pack: Pack,
@@ -2746,21 +2735,11 @@ export function createSettlementWorld(
       }
     }
     if ((!cell.field || (cell.field.yard && cell.field.crop === "pasture" && !cell.field.garden)) && cell.surface !== "water" &&
-      !["garden", "park", "verge"].includes(cell.pavement ?? "")) {
-      let wear = 0;
-      for (const p of nearby(x, y))
-        wear = Math.max(wear, (desirePaths.get(p) ?? desireLines(p)).get(cellKey(x, y)) ?? 0);
-      wear = Math.max(wear, crownWear(x, y));
-      // Tyres wear blacktop, not the ground: a metalled highway keeps its verges.
-      const metalled = blacktop && [-2, -1, 0, 1, 2].some((dx) => [-2, -1, 0, 1, 2].some((dy) => highway.has(cellKey(x + dx, y + dy))));
-      if (wear && !metalled) cell.groundWear = Math.max(cell.groundWear ?? 0, wear);
-      const tended = tendedAt(x, y);
-      if (tended) cell.tended = tended;
-    }
+      !["garden", "park", "verge"].includes(cell.pavement ?? "")) cell.wearPending = true;
     const port=startingSite && plans.get(startingSite.id)?.harbor, apron=terminalSite ? plans.get(terminalSite)?.terminal?.yard : undefined;
     if(apron && x>=apron.x && x<apron.x+apron.w && y>=apron.y && y<apron.y+apron.h){
       cell.surface="gravel";cell.feature="paving";cell.streetMaterial="concrete";cell.wharf=true;cell.pavement="yard";
-      delete cell.streetGeometry;delete cell.pathArt;delete cell.lane;delete cell.tended;delete cell.field;delete cell.groundWear;
+      delete cell.streetGeometry;delete cell.pathArt;delete cell.lane;delete cell.wearPending;delete cell.field;delete cell.groundWear;
     }
     if(port && y>=port.yard[0].y && y<=port.yard[port.yard.length-1].y){
       if(f.water>=0 && port.yard.some(row=>row.y===y && x>=row.x && x<row.x+row.w)){
@@ -3587,7 +3566,11 @@ export function createSettlementWorld(
       ]),
       links: [...links],
       roads: [...roadCache],
-      relief: [...reliefCache],
+      // Exit searches reach the map edges. Only send cached ground around arrival.
+      relief: [...reliefCache].filter(([key]) => {
+        const [x, y] = key.split(",").map(Number);
+        return Math.abs(x - world.spawn.x) < CHUNK_SIZE / 2 && Math.abs(y - world.spawn.y) < CHUNK_SIZE / 2;
+      }),
       active: [...active],
       initial: {
         spawn: world.spawn,
@@ -3669,7 +3652,24 @@ export function createSettlementWorld(
       liveTide = tide;
       waterStamp++;
     },
-    topography,
+    topography(x, y) {
+      const cell = topography(x, y);
+      if (cell.wearPending) {
+        delete cell.wearPending;
+        // A metalled highway keeps its verges.
+        const metalled = blacktop && [-2, -1, 0, 1, 2].some((dx) => [-2, -1, 0, 1, 2].some((dy) => highway.has(cellKey(x + dx, y + dy))));
+        if (!metalled) {
+          let wear = cell.groundWear ?? 0;
+          for (const p of nearby(x, y))
+            wear = Math.max(wear, (desirePaths.get(p) ?? desireLines(p)).get(cellKey(x, y)) ?? 0);
+          wear = Math.max(wear, crownWear(x, y));
+          if (wear) cell.groundWear = wear;
+        }
+        const tended = tendedAt(x, y);
+        if (tended) cell.tended = tended;
+      }
+      return cell;
+    },
     canCross: (
       from: { x: number; y: number },
       to: { x: number; y: number },

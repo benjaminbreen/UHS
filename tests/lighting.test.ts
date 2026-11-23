@@ -81,16 +81,28 @@ it("ships every building's daylight and contact masks without eagerly loading th
 });
 
 it("pages every paged sheet frame onto a phone-sized page", async () => {
-  const { pagedSheets, sceneAssets } = await import("../src/render/scene-assets");
+  const { expandPage, pagedSheets, sceneAssets } = await import("../src/render/scene-assets");
   const sources = new Map(sceneAssets().atlases.map((a) => [a.key, a.image.replace(/\.png\?.*$/, ".json")]));
   for (const sheet of pagedSheets) {
     const full = JSON.parse(readFileSync(`public${sources.get(sheet)}`, "utf8")).frames;
-    const pages: object[] = JSON.parse(readFileSync(`public/packs/pages/${sheet}.json`, "utf8"));
+    const pages: import("../src/render/scene-assets").AtlasPage[] = JSON.parse(readFileSync(`public/packs/pages/${sheet}.json`, "utf8"));
     expect(pages.flatMap(Object.keys).sort()).toEqual(Object.keys(full).sort());
-    pages.forEach((_, i) => {
+    pages.forEach((page, i) => {
       const png = readFileSync(`public/packs/pages/${sheet}-${i}.png`);
       // IHDR width and height; more than this and iOS Safari runs out of room.
-      expect(png.readUInt32BE(16) * png.readUInt32BE(20)).toBeLessThanOrEqual(1024 * 1024);
+      const width = png.readUInt32BE(16), height = png.readUInt32BE(20);
+      expect(width * height).toBeLessThanOrEqual(1024 * 1024);
+      const wrong = Object.entries(expandPage(page)).filter(([id, data]) => {
+        const src = full[id], { x, y, w, h } = data.frame;
+        return x < 0 || y < 0 || x + w > width || y + h > height ||
+          w !== src.frame.w || h !== src.frame.h || src.rotated ||
+          data.pivot?.x !== src.pivot?.x || data.pivot?.y !== src.pivot?.y ||
+          !!data.trimmed !== src.trimmed || (src.trimmed && (
+            data.sourceSize?.w !== src.sourceSize.w || data.sourceSize?.h !== src.sourceSize.h ||
+            data.spriteSourceSize?.x !== src.spriteSourceSize.x || data.spriteSourceSize?.y !== src.spriteSourceSize.y ||
+            w !== src.spriteSourceSize.w || h !== src.spriteSourceSize.h));
+      });
+      expect(wrong.map(([id]) => id)).toEqual([]);
     });
   }
 });

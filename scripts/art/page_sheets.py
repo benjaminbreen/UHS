@@ -37,6 +37,18 @@ PATHS = {
 SIZE = 1024
 
 
+def page_frame(frame, x, y):
+    r = frame['frame']
+    row = [x, y, r['w'], r['h']]
+    if frame.get('pivot') or frame['trimmed']:
+        pivot = frame.get('pivot', {})
+        row.extend([pivot.get('x'), pivot.get('y')])
+    if frame['trimmed']:
+        source, crop = frame['sourceSize'], frame['spriteSourceSize']
+        row.extend([source['w'], source['h'], crop['x'], crop['y']])
+    return row
+
+
 def write_tones():
     tones = {}
     models = json.loads((ROOT / 'src/content/graphics/models.generated.json').read_text())
@@ -126,8 +138,8 @@ def page(name):
     last = {}
     if (out / f'{name}.json').exists():
         for i, frames_on in enumerate(json.loads((out / f'{name}.json').read_text())):
-            for key, f in frames_on.items():
-                r = f['frame']; last[key] = (i, r['x'], r['y'], r['w'], r['h'])
+            for key, row in frames_on.items():
+                last[key] = (i, *row[:4])
     if last:
         kept, kept_count = _sticky(order, last)
         # Gaps left by removed frames are refilled; past one spare page, start over.
@@ -146,8 +158,8 @@ def page(name):
     for rect, keys in rects.items():
         i, x, y = placed[rect]
         for key in keys:
-            index[i][key] = {**frames[key], 'frame': {'x': x, 'y': y, 'w': rect[2], 'h': rect[3]}}
-    write_text(out / f'{name}.json', json.dumps(index))
+            index[i][key] = page_frame(frames[key], x, y)
+    write_text(out / f'{name}.json', json.dumps(index, separators=(',', ':')))
     return len(pages)
 
 

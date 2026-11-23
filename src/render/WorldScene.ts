@@ -381,7 +381,7 @@ import { addCrops, cropsAt, setCropSelector, setCropCut, setCropsIndoors } from 
 import { fieldRidge } from "./field-raster";
 import { setFloraRegion } from "../content/ecology/blooms";
 import { floraRegion } from "../content/ecology/flora";
-import { alternateTrees, lazySheets, pageImage, pagedSheets, sceneAssets } from "./scene-assets";
+import { alternateTrees, expandPage, lazySheets, pageImage, pagedSheets, sceneAssets, type AtlasPage } from "./scene-assets";
 import { TiltShiftPipeline } from "./tilt-shift";
 import { NightGradePipeline } from "./night-grade";
 import { ailing, healthPerson, residentLook, symptomsShown, type Symptoms } from "../core/health";
@@ -1080,16 +1080,23 @@ export class WorldScene extends Phaser.Scene {
     const { atlases, images, sheets } = sceneAssets(
       this.options.shadows !== false,
     );
-    const sprites = new Set(
-      this.runtime.engine.world.places.map((b) => b.sprite),
-    );
+    const player = this.runtime.engine.state.player.pos;
+    const sprites = new Set<string>();
+    if (player.space === "outside") {
+      for (const b of this.runtime.engine.world.places) {
+        const nearest = { x: Phaser.Math.Clamp(player.x, b.x, b.x + b.w),
+          y: Phaser.Math.Clamp(player.y, b.y, b.y + b.h), space: "outside" };
+        if (entityInView(nearest, player, this.scale.width, this.scale.height, this.runtime.zoom))
+          sprites.add(b.sprite);
+      }
+    }
     for (const a of atlases) {
       if (!(lazySheets as readonly string[]).includes(a.key)) {
         this.load.atlas(a.key, a.image, a.data);
         continue;
       }
       this.load.json(`${a.key}-index`, a.data);
-      // Queued inside preload, so the places already sited arrive drawn.
+      // Wait only for the buildings around the starting view.
       this.load.once(
         `filecomplete-json-${a.key}-index`,
         (_key: string, _type: string, json: { frames: object } | object[]) => {
@@ -1099,7 +1106,7 @@ export class WorldScene extends Phaser.Scene {
             const key = Array.isArray(json) ? `${a.key}@${i}` : a.key;
             const image = Array.isArray(json) ? pageImage(a.key, i) : a.image;
             this.sheetLoading.add(key);
-            this.load.atlas(key, image, { frames });
+            this.queueSheet(key, image, frames);
           });
         },
       );
@@ -4243,6 +4250,9 @@ export class WorldScene extends Phaser.Scene {
    * the indexes. A name test would need every recipe prefix. */
   private sheetFrames?: Map<string, string>;
   private sheetImages = new Map<string, [string, object]>();
+  private queueSheet(key: string, image: string, frames: object) {
+    this.load.atlas(key, image, { frames: key.includes("@") ? expandPage(frames as AtlasPage) : frames });
+  }
   private sheetLoading = new Set<string>();
   private sheetRetried = new Set<string>();
   private sheetUsed = new Map<string, number>();
@@ -4292,7 +4302,7 @@ export class WorldScene extends Phaser.Scene {
     if (!sheet || this.sheetLoading.has(key)) return;
     this.sheetLoading.add(key);
     const [image, frames] = sheet;
-    this.load.atlas(key, image, { frames });
+    this.queueSheet(key, image, frames);
     this.load.once(`filecomplete-atlasjson-${key}`, () => {
       this.staticKey = "";
       if (this.scene?.isActive()) this.draw();

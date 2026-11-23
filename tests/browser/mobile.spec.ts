@@ -134,6 +134,26 @@ async function reachable(locator: Locator) {
   })).toBe(true);
 }
 
+test.describe("phone screenshots", () => {
+  test.use({ viewport: { width: 440, height: 956 }, deviceScaleFactor: 3 });
+
+  test("keeps rendering the outdoor world across repeated captures", async ({ page }) => {
+    await enterLife(page);
+    await expect(page.locator(".game-container canvas")).toHaveAttribute("data-terrain-ready", "true", { timeout: 60000 });
+    const game = await page.evaluateHandle(() => (window as any).uhsGame);
+    expect(await game.evaluate(g => g.config.disablePreFX)).toBe(true);
+    expect(await game.evaluate(g => g.renderer.pipelines?.renderTargets.length ?? 0)).toBe(0);
+    for (let i = 0; i < 3; i++) {
+      const frame = await game.evaluate(g => g.loop.frame);
+      await page.screenshot();
+      await expect.poll(() => game.evaluate(g => g.loop.frame)).toBeGreaterThan(frame);
+      expect(await game.evaluate(g => g.renderer.gl?.isContextLost() ?? false)).toBe(false);
+    }
+    await page.locator(".topbar-avatar").click();
+    await expect(page.getByRole("dialog", { name: "character", exact: true })).toBeVisible();
+  });
+});
+
 test("opening stories keep their action visible and their text readable", async ({ page }) => {
   await enterLife(page);
   await page.evaluate(() => {
