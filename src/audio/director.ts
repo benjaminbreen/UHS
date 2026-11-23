@@ -942,6 +942,7 @@ export class AudioDirector {
       wind: 0,
       water: 0,
       town: mix.town * 0.5 * shut,
+      traffic: mix.traffic * 0.5 * shut,
       rain: mix.rain * 0.4 * shut,
       room: 0.5 + 1.1 * Math.round(s.echo * 10) / 10,
       hard: 1,

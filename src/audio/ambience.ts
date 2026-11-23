@@ -46,6 +46,8 @@ export interface AmbienceMix {
   /** Sea swell rather than running water: changes the water bed's colour. */
   swell: number;
   town: number;
+  /** Motor traffic all round, 0 to 1: the hum of a modern city. */
+  traffic: number;
   fire: number;
   /** 1 when the player is under a roof: the outdoor beds go muffled. */
   inside: number;
@@ -81,6 +83,7 @@ export const silence: AmbienceMix = {
   water: 0,
   swell: 0,
   town: 0,
+  traffic: 0,
   fire: 0,
   inside: 0,
   room: 0,
@@ -123,7 +126,10 @@ export interface Scene {
 }
 
 export function townKindFor(year: number | undefined, size: number): TownKind {
-  if (year === undefined || year < -2500 || size < 60) return "village";
+  if (year === undefined || year < -2500) return "village";
+  // Motors reach even a small place.
+  if (year >= 1920) return size < 12 ? "village" : "modern";
+  if (size < 60) return "village";
   return year < 1830 ? "town" : year < 1920 ? "industrial" : "modern";
 }
 // Church bells spread through Latin Europe from about the sixth century; a
@@ -244,7 +250,12 @@ export function ambienceFor(scene: Scene): AmbienceMix {
   // Dawn chorus, then a quieter daytime; birds shelter from rain and hard wind.
   const chorus = hour > 4.5 && hour < 8 ? 1 : hour < 18 ? 0.45 : 0;
   const cold = climate === "tundra" || climate === "boreal";
+  const kind = townKindFor(scene.year, scene.townSize);
+  const built = kind === "modern" || kind === "industrial" ? near(scene.townDistance, 6, 40) * Math.min(1, 0.4 + scene.townSize / 120) : 0;
+  // Motor traffic comes in over the first half of the twentieth century and never quite stops at night.
+  const traffic = kind === "modern" ? built * ramp(scene.year ?? 0, 1905, 1965) * (scene.night ? 0.35 : 1) * (1 - 0.5 * hush) : 0;
   const birds =
+    (1 - 0.65 * built) *
     chorus *
     (1 - wet) *
     (1 - hush) *
@@ -295,12 +306,13 @@ export function ambienceFor(scene: Scene): AmbienceMix {
     water,
     swell,
     town,
+    traffic,
     fire,
     inside: indoors ? 1 : 0,
     room: indoors && scene.room ? Math.min(1, Math.max(0.1, (scene.room.area - 8) / 120)) : 0,
     hard: scene.room ? scene.room.finish / 2 : 0,
     activity: roomActivity(scene),
-    townKind: townKindFor(scene.year, scene.townSize),
+    townKind: kind,
     bell: bellFor(scene.faith, scene.year, scene.lon, scene.lat),
     bells: near(scene.townDistance, 15, 90) * (1 - 0.6 * hush),
     hour,
@@ -311,6 +323,30 @@ export function ambienceFor(scene: Scene): AmbienceMix {
   };
 }
 
+/** A city from inside it: no one engine, many far ones rising and falling
+ * over each other. Each pass is low rumble with a little tyre hiss on top. */
+function trafficBuffer(ctx: BaseAudioContext, seconds: number) {
+  const sr = ctx.sampleRate, n = Math.floor(sr * seconds), buffer = ctx.createBuffer(2, n, sr);
+  for (let c = 0; c < 2; c++) {
+    const data = buffer.getChannelData(c);
+    for (let k = 0; k < seconds * 1.1; k++) {
+      const len = Math.floor(rand(2.5, 5) * sr), start = Math.floor(Math.random() * n), level = rand(0.4, 1);
+      const low = 1 - Math.exp((-2 * Math.PI * rand(90, 380)) / sr), high = 1 - Math.exp((-2 * Math.PI * rand(1200, 2400)) / sr);
+      let a = 0, b = 0;
+      for (let i = 0; i < len; i++) {
+        const white = Math.random() * 2 - 1, swell = Math.sin((Math.PI * i) / len) ** 2;
+        a += low * (white - a);
+        b += high * (white - b);
+        data[(start + i) % n] += (a + b * 0.02) * swell * level;
+      }
+    }
+    let sum = 0;
+    for (let i = 0; i < n; i++) sum += data[i] * data[i];
+    const scale = 0.1 / Math.sqrt(sum / n || 1);
+    for (let i = 0; i < n; i++) data[i] *= scale;
+  }
+  return buffer;
+}
 function noiseBuffer(ctx: BaseAudioContext, seconds: number) {
   const buffer = ctx.createBuffer(2, ctx.sampleRate * seconds, ctx.sampleRate);
   for (let c = 0; c < 2; c++) {
@@ -355,6 +391,7 @@ export class Ambience {
     | "wind"
     | "water"
     | "town"
+    | "traffic"
     | "fire"
     | "crickets"
     | "trill"
@@ -459,6 +496,7 @@ export class Ambience {
     const townGain = loud(0.085);
     lfo(0.13, 0.05, townGain.gain);
     this.beds.town = this.bed(this.outside, () => noiseBuffer(ctx, short ? 3.7 : 7.9), murmur, townGain);
+    this.beds.traffic = this.bed(this.outside, () => trafficBuffer(ctx, short ? 6.1 : 12.7), filter("lowpass", 900), loud(0.17));
 
     // Calls are scheduled one at a time. Open air still carries a little of
     // each back from the trees, which is what puts a bird at a distance.
@@ -539,6 +577,7 @@ export class Ambience {
     fade(this.beds.wind, mix.wind, 3);
     fade(this.beds.water, mix.water, 2);
     fade(this.beds.town, mix.town, 3);
+    fade(this.beds.traffic, mix.traffic, 4);
     fade(this.beds.fire, mix.fire, 1.2);
     fade(this.beds.crickets, mix.insects, 4);
     fade(this.beds.trill, mix.trill, 4);
@@ -579,9 +618,11 @@ export class Ambience {
     this.chorus("owls", owls > 0.02 ? 1 : 0, ["owl"], at, 1);
     this.chorus("frogs", frogs > 0.02 ? Math.ceil(frogs * 3) : 0, surface === "leaves" ? ["treefrog", "treefrog", "croaker"] : ["croaker"], at, 1 / (0.3 + frogs));
     if (fire > 0.05 && Math.random() < 0.12 * fire) this.pop(at, fire);
-    const { town, townKind } = this.level;
+    const { town, townKind, traffic } = this.level;
     if (town > 0.05 && Math.random() < 0.035 * town)
-      this.street(at, townKind, town);
+      this.street(at, streetSounds[townKind], town);
+    if (traffic > 0.05 && Math.random() < 0.05 * traffic)
+      this.street(at, motorSounds, traffic);
   }
   private oneShot(sound: Sound, into: AudioNode, at: number, pan = rand(-0.8, 0.8)) {
     const panner = this.ctx.createStereoPanner();
@@ -592,9 +633,8 @@ export class Ambience {
     if (this.live) setTimeout(() => panner.disconnect(), (at - this.ctx.currentTime + longest + 1) * 1000);
   }
   /** One sound off the street: who and what depends on the period. */
-  private street(at: number, kind: TownKind, level: number) {
-    const pick = <T,>(xs: T[]) => xs[Math.floor(Math.random() * xs.length)];
-    const make = pick(streetSounds[kind]);
+  private street(at: number, makers: Maker[], level: number) {
+    const make = makers[Math.floor(Math.random() * makers.length)];
     this.oneShot(make(0.5 + 0.5 * level), this.outside, at);
   }
   private ring(bell: Bell, hour: number, level: number, weekday: number) {
@@ -836,20 +876,42 @@ const wheels: Maker = (g) => [
   noise(0, 2.2, 0.02 * g, 180, { filter: "lowpass", attack: 0.6 }),
   ...rep(14, 0.15, (at) => [noise(at + 0.2, 0.03, 0.012 * g, 900, { q: 1.5 })]),
 ];
-const horn: Maker = (g) => [
-  tone(0, 0.3, 0.012 * g, rand(380, 440), { wave: "sawtooth", attack: 0.02 }),
-  tone(0, 0.3, 0.01 * g, 480, { wave: "sawtooth", attack: 0.02 }),
-];
-const engine: Maker = (g) => [
-  noise(0, 3, 0.03 * g, 110, { to: 160, filter: "lowpass", attack: 1.4 }),
-  tone(0, 3, 0.01 * g, 55, { to: 75, wave: "sawtooth", attack: 1.4 }),
-];
+const horn: Maker = (g) => {
+  const f = rand(360, 440);
+  return rep(Math.random() < 0.4 ? 2 : 1, 0.3, (at) => [
+    tone(at, 0.22, 0.02 * g, f, { wave: "sawtooth", attack: 0.02 }),
+    tone(at, 0.22, 0.016 * g, f * 1.19, { wave: "sawtooth", attack: 0.02 }),
+  ]);
+};
+/** A car a street or two away, coming and going, its pitch dropping as it passes. */
+const pass: Maker = (g) => {
+  const f = rand(60, 110);
+  return [
+    noise(0, 3.4, 0.07 * g, 420, { to: 220, filter: "lowpass", attack: 1.5 }),
+    tone(0, 3.4, 0.02 * g, f * 1.06, { to: f * 0.9, wave: "triangle", attack: 1.5 }),
+    noise(0.3, 2.8, 0.012 * g, 2400, { q: 0.5, attack: 1.3 }),
+  ];
+};
+/** A small motorcycle working up through a gear. */
+const moto: Maker = (g) =>
+  rep(22, 0.075, (at, i) => {
+    const k = Math.sin((Math.PI * i) / 22), f = 95 + 60 * k;
+    return [tone(at, 0.06, 0.025 * g * k, f, { to: f * 0.9, wave: "sawtooth", attack: 0.004 })];
+  });
+const beeper: Maker = (g) => rep(4, 0.8, (at) => [tone(at, 0.32, 0.008 * g, 1240, { wave: "triangle", attack: 0.01 })]);
+const squeal: Maker = (g) => [tone(0, 0.55, 0.007 * g, rand(1900, 2300), { to: 1800, attack: 0.15 })];
+const farSiren: Maker = (g) =>
+  rep(3, 1.3, (at) => [
+    tone(at, 0.65, 0.008 * g, 640, { to: 930, attack: 0.2 }),
+    tone(at + 0.65, 0.65, 0.008 * g, 930, { to: 640, attack: 0.05 }),
+  ]);
 const streetSounds: Record<TownKind, Maker[]> = {
   village: [dog, hen, call, quern, chop],
   town: [dog, hen, call, anvil, hooves, wheels],
   industrial: [dog, call, anvil, hooves, wheels, (g) => railway.whistle(0.15 * g)],
-  modern: [dog, call, horn, engine, engine],
+  modern: [dog, call, call],
 };
+const motorSounds: Maker[] = [pass, pass, pass, pass, horn, horn, moto, moto, beeper, squeal, farSiren];
 
 function bellSound(bell: Bell, hour: number, g: number, weekday: number): Sound {
   switch (bell) {

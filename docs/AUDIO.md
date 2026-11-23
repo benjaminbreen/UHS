@@ -134,7 +134,15 @@ A worshipper’s activity supplies the sound inside a sacred building. A reader 
 - village: early or small places
 - town: to 1830
 - industrial: to 1920
-- modern: after 1920
+- modern: after 1920, for any place of twelve households or more
+
+A modern town also has motor traffic (`traffic` in the mix, growing from 1905
+to 1965 and thinner at night): a low bed of many far engines
+(`trafficBuffer`), and cars passing a street away, horns, motorcycles, a
+reversing beeper, brakes and a far siren (`motorSounds`). Industrial and
+modern towns have fewer birds. The cars that drive the streets are heard too:
+each one passing within seven cells of the player on foot plays `carPass`,
+lower for a truck or bus.
 
 **The hours** are marked by what the local religion implies (`bellFor`):
 - church bells from 600 CE in Christian towns, with a four-bell peal at 9 and noon on Sundays

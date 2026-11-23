@@ -1789,6 +1789,16 @@ export function siren(high: boolean, near: number): Sound {
   return [tone(0, 0.32, 0.03 + near * 0.07, f, { to: f * 1.02, wave: "square", attack: 0.02 })];
 }
 
+/** A vehicle going by on the road beside you, its pitch dropping as it passes. */
+export function carPass(kind: "car" | "truck" | "moto"): Sound {
+  const f = vary(kind === "truck" ? 58 : kind === "moto" ? 135 : 88, 0.1);
+  return [
+    tone(0, 2.4, kind === "moto" ? 0.04 : 0.07, f * 1.07, { to: f * 0.88, wave: kind === "moto" ? "sawtooth" : "triangle", attack: 0.8 }),
+    tone(0, 2.4, 0.03, f * 2.14, { to: f * 1.76, wave: "triangle", attack: 0.8 }),
+    noise(0, 2.6, kind === "truck" ? 0.16 : 0.11, 380, { to: 230, filter: "lowpass", attack: 0.9 }),
+    noise(0.2, 2.2, 0.035, 2600, { q: 0.5, attack: 0.8 }),
+  ];
+}
 /** Sheet metal meeting something that does not give: a thump, a crunch, and glass after it if it was hard. */
 export function carCrash(hard: boolean): Sound {
   return [
