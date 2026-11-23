@@ -351,6 +351,9 @@ export type Signal = { serial: number } & (
   | { kind: "bark"; group: string; n: number }
   /** A line shouted mid-fight, shown over the head instead of in a conversation. */
   | { kind: "say"; who: string; text: string }
+  /** Lightning has come down on this cell. */
+  | { kind: "lightning"; at: Point }
+  | { kind: "injured"; id: string; grade: number }
   /** A pest has taken the crop off a cell. */
   | { kind: "eaten"; at: Point; species: string }
 );

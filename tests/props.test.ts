@@ -336,7 +336,8 @@ describe("interactive props", () => {
     expect(bin.damage).toBe(1);
     expect(bin.broken).toBeFalsy();
     const frames = propAtlas.frames as Record<string, unknown>;
-    for (const def of Object.values(propDefs).filter(d => d.lid))
+    // A room's own furniture is drawn open by the room painter, not from the atlas.
+    for (const [, def] of Object.entries(propDefs).filter(([k, d]) => d.lid && !k.startsWith("room-")))
       for (let v = 0; v < (def.variants ?? 3); v++)
         expect(frames[`study-propb-${def.family}-${v}-open`], `${def.family}-${v}-open`).toBeTruthy();
   });
@@ -666,6 +667,22 @@ it("keeps broad yard props clear of houses and one another", () => {
       }
     }
   }
+});
+
+it("keeps trade works with their trade and yard props off house platforms", () => {
+  const resolved = resolveSetting("Rice farmer in Chengdu 363 BCE") as any;
+  const e = createSettingSession(resolved.setting, "kilns");
+  const { world } = e;
+  for (const o of world.initialObjects.filter((o) => ["kiln", "bloomery"].includes(o.prop ?? "") && o.id.includes("-prop"))) {
+    const b = world.places.find((b) => o.id.startsWith(`${b.id}-prop`))!;
+    const role = world.initialActors.find((a) => a.id === b.owner)?.role;
+    expect(`${b.name} ${role}`, o.id).toMatch(/potter|smith|smelt/i);
+  }
+  const yard = world.initialObjects.filter((o) => /-(prop\d|privy)$/.test(o.id) && o.pos.space === "outside");
+  expect(yard.length).toBeGreaterThan(0);
+  for (const o of yard)
+    for (const q of propVisualCells(o.prop!, o.pos))
+      expect(!!world.topography?.(q.x, q.y)?.plinth, `${o.id} on a platform`).toBe(false);
 });
 
 it("houses a household's hens in a henhouse: in at dusk, eggs by morning", () => {

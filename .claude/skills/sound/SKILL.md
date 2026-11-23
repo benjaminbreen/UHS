@@ -71,7 +71,7 @@ and treat the user's ears as the final judge.
    roof (thatch thud, tile tick) is heard in the room, unmuffled; the outdoor
    rain is muffled behind it.
 6. **Signature voices make a place.** Tree-frog whistles in tropical rain,
-   croaks on a temperate summer night, thunder only in warm heavy rain. One cheap one-shot often says more than
+   croaks on a temperate summer night, thunder only in a storm (`Weather.storm`), timed to the lightning on screen. One cheap one-shot often says more than
    another bed.
 7. **Loudness is relative to the music.** `mix.music` ducks the score: a
    drizzle leaves it alone, a downpour takes the stage (the Stardew habit).

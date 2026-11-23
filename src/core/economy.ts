@@ -170,10 +170,13 @@ export function runEconomy(
             const local=from ? Math.min(n-stored-imported,economy.stock[from.id]?.grain??0) : 0;
             if(local && from)economy.stock[from.id].grain-=local;
             n=stored+imported+local;
-          } else if (from) {
-            const bought = Math.min(n - stored, economy.stock[from.id]?.[input] ?? 0);
-            if (bought) economy.stock[from.id][input] -= bought;
-            n = stored + bought;
+          } else if (from || imports) {
+            // A town fed from outside mills the ships' grain: the farms nearby
+            // supply their share while they have it, and never the whole city.
+            const farm = from ? economy.stock[from.id] : undefined;
+            const bought = Math.min((n - stored) * (1 - imports), farm?.[input] ?? 0);
+            if (bought) farm![input] -= bought;
+            if (!imports) n = stored + bought;
           }
         }
         if (n > 0) stock[good] = (stock[good] ?? 0) + n;
@@ -187,6 +190,8 @@ export function runEconomy(
         const seller = h.makes?.includes(good) ? h : buy && byId.get(buy.from);
         if (!seller && !(imports && (shelves.has(need) || need==="bread" && grainStores.length))) continue;
         let want = ((rates[need]?.need ?? 0) * h.members.length) / 24;
+        // What comes in from outside is eaten first; local makers cover the rest.
+        if (imports && seller !== h && need !== "fish") want = want * (1 - imports) + take(market, need, want * imports);
         if (seller) want = take(seller, good, want);
         if (!want) continue;
         // Short of bread, a household buys grain from its nearest farm.

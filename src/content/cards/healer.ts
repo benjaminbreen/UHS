@@ -55,7 +55,8 @@ export const HEALER_CARDS: ChoiceCard[] = [
       },
       {
         label: "Ask for your full fee",
-        note: "you get paid · they'll resent it",
+        note: "you get paid · they tell people you were hard",
+        word: "charged the full fee to",
         then: [{ type: "regard", delta: -1 }],
         line: "You asked for your full fee, and they paid it, unhappily.",
       },

@@ -13,7 +13,14 @@ import { FishingGear, type Gear } from "./fishing-gear";
 import { fishingWaterfront } from "../content/settlements/waterfronts";
 import { HarborLayer } from "./harbor";
 import { TrainLayer } from "./trains";
+import { Lightning } from "./lightning";
+import { InjuryScene } from "./injury-scene";
+import { INJURY_SCENE_MS } from "../content/health/injuries";
 import { CabLayer } from "./cabs";
+import { CarLayer } from "./cars";
+import { CAR_HEADINGS, CAR_WAYS, carSpec, carStep } from "../core/cars";
+import { Traffic, trafficFacing } from "../core/traffic";
+import { parkedCar, parkingShare, vehiclePool } from "../content/settlements/vehicles";
 import { BabyEffects } from "./baby-effects";
 import { VehicleLayer, crewFrame, crewPlace, ploughStep, vehiclePose } from "./vehicles";
 import type { CharacterAppearance } from "../core/character";
@@ -89,6 +96,7 @@ const muddied = (t: number) => {
 const DUSK_DUST = [0xe2b878, 0xcf9d62, 0xf2d29a];
 /** Sun strength below which shadows are cloud-soft: overcast, mist, rain, snow. */
 const CLOUDED = 0.5;
+const DUST_TONE = [222, 176, 112] as const;
 /** States whose art already shows the animal travelling. */
 const STRIDING = new Set<FaunaState>([...URGENT, "wander", "stalk", "carry"]);
 /** The nearest pose an animal has for one it was not drawn in. */
@@ -144,6 +152,8 @@ import {
   thump,
   scrape,
   footstep,
+  bodily,
+  bodyStep,
   type DungStep,
   type FungusStep,
   landing,
@@ -158,7 +168,7 @@ import {
   mountLand,
   cycleTick,
   cycleRoll,
-  cycleSkid,
+  siren, carCrash, cycleSkid,
   ice as iceSound,
   motorPutt,
   trickChime,
@@ -166,7 +176,7 @@ import {
 import { mountSpec, type MountGait } from "../core/riding";
 import { CYCLE_SPECS, cycleStep, cycleTrick, type CycleLook } from "../core/cycles";
 import { CycleRider, WHEELIE_MS } from "./cycles/rider";
-import { beastVoiceOf, voiceOf } from "../audio/voices";
+import { beastVoiceOf, callOf, voiceOf } from "../audio/voices";
 import { DUNG_DRY_HOURS, DUNG_FRESH_HOURS } from "../content/fauna/dung";
 import type { HitClass } from "../core/reactions";
 import { hash, random } from "../core/random";
@@ -291,6 +301,7 @@ import { CloudShadows } from "./cloud-shadows";
 import { Reflections } from "./reflections";
 import { accentFor, AmbientLife, critterFor, type CritterKind } from "./ambient-life";
 import { SmallCreatures } from "./small-creatures";
+import { BodySounds } from "./body-sounds";
 import { Monkeys } from "./monkeys";
 import { itemColors } from "./item-art";
 import { Flies, type FlySource } from "./flies";
@@ -313,6 +324,7 @@ import { addPlume, type SmokeKind } from "./smoke";
 
 import {
   driftStyle,
+  hailStyle,
   foliageTint,
   namedShrub,
   trodden,
@@ -372,7 +384,7 @@ import { floraRegion } from "../content/ecology/flora";
 import { alternateTrees, lazySheets, pageImage, pagedSheets, sceneAssets } from "./scene-assets";
 import { TiltShiftPipeline } from "./tilt-shift";
 import { NightGradePipeline } from "./night-grade";
-import { ailing, healthPerson, symptomsShown, type Symptoms } from "../core/health";
+import { ailing, healthPerson, residentLook, symptomsShown, type Symptoms } from "../core/health";
 import type { RestingExpression } from "../core/persona";
 import { smokingFrom, smokingHabit, type SmokeForm } from "../content/characters/smoking";
 import { Smokers } from "./smoking";
@@ -696,6 +708,8 @@ export class WorldScene extends Phaser.Scene {
   }
   private habits = new Map<string, SmokeForm | null>();
   private rainFx?: RainCovers;
+  private lightning?: Lightning;
+  private injuryScene?: InjuryScene;
   private covers = new Map<string, { cover?: Cover; tint: number; item?: string }>();
   private coverOf(id: string, age: number) {
     let c = this.covers.get(id);
@@ -771,6 +785,7 @@ export class WorldScene extends Phaser.Scene {
   private windSprites: WindSprite[] = [];
   private treeFinds?: TreeFinds;
   private smallLife?: SmallCreatures;
+  private body?: BodySounds;
   private monkeys?: Monkeys;
   private findsDirty = true;
   private treeFindSerial = 0;
@@ -865,7 +880,7 @@ export class WorldScene extends Phaser.Scene {
   private rippleTime = -1;
   private entities = new Map<string, Phaser.GameObjects.Image>();
   /** Where a sleeper's head lies, in world pixels, and how deep to draw it. */
-  private pillows = new Map<string, { x: number; y: number; depth: number }>();
+  private pillows = new Map<string, { x: number; y: number; depth: number; upright?: boolean }>();
   /** The first opaque row of a character frame: the top of the head. */
   private crowns = new Map<string, number>();
   /** The generated room the player is standing in, if their space has one. */
@@ -924,6 +939,26 @@ export class WorldScene extends Phaser.Scene {
   private harbor = new HarborLayer(this, frame => this.texture(frame));
   private trains = new TrainLayer(this, (frame) => this.texture(frame));
   private cabs = new CabLayer(this, (frame) => this.texture(frame));
+  private cars = new CarLayer(this, (frame) => this.texture(frame));
+  private trafficCars = new CarLayer(this, (frame) => this.texture(frame));
+  private traffic?: { plan: unknown; sim: Traffic; want: number; passed: Map<number, number> };
+  /** A passenger hailing from the kerb, then the door they want to be taken to. */
+  private fare?: { riding: boolean; x: number; y: number; name: string; until: number; pay: number; look: Actor; marks: Phaser.GameObjects.Shape[]; figure?: Phaser.GameObjects.Image };
+  private fareAt = 0;
+  /** The police are after the player's car: how long it has been out of their reach, and held at their bumper. */
+  private heat?: { clear: number; caught: number; sirenAt: number; high: boolean; lights: Phaser.GameObjects.Rectangle[] };
+  private hotSeen = new Set<string>();
+  private raiseHeat() {
+    this.heat ??= { clear: 0, caught: 0, sirenAt: 0, high: false, lights: [this.add.rectangle(0, 0, 3, 2, 0xff3b30), this.add.rectangle(0, 0, 3, 2, 0x3b7bff)] };
+  }
+  private dropHeat() {
+    for (const l of this.heat?.lights ?? []) l.destroy();
+    this.heat = undefined;
+    this.traffic?.sim.pursue(false);
+    this.runtime.drive.police = false;
+  }
+  /** The driven car's momentum; its heading is the engine's, copied each step. */
+  private driving = { speed: 0, heading: 0, roll: 0, soundAt: 0, horn: 0, chainUntil: 0 };
   private vehicleLayer = new VehicleLayer(this, (frame) => this.texture(frame));
   /** Crew in their vehicles: sitting or standing, which way the vehicle
    * faces, and the depth that puts them between its two layers. */
@@ -999,6 +1034,8 @@ export class WorldScene extends Phaser.Scene {
   /** Set once the held jump has reached full charge, so the tell fires once. */
   private chargeArmed = false;
   private arcSerial = 0;
+  /** Scene time the player died, to lay the body down once. */
+  private diedAt?: number;
   private pendingDirection?: [number, number];
   private destinations = new Map<string, Position>();
   /** The last roll animated, so a later shove of the same stone is a step. */
@@ -1015,6 +1052,7 @@ export class WorldScene extends Phaser.Scene {
   private night?: Phaser.GameObjects.RenderTexture;
   private washTint = 0xffffff;
   private drift?: Drift;
+  private hail?: Drift;
   private mist?: Mist;
   private clouds?: CloudShadows;
   private reflections?: Reflections;
@@ -1155,7 +1193,12 @@ export class WorldScene extends Phaser.Scene {
     // Multiply, not a flat fill: a wash that lifts the darks greys the scene.
     this.night = this.washTexture(16, 16);
     this.drift = new Drift(this, () => this.fallingFrom());
+    this.hail = new Drift(this, undefined, (x, y) =>
+      this.runtime.engine.world.topography?.(Math.floor(x / 16), Math.floor(y / 16))?.surface === "water" ? undefined : this.lift(x, y));
     this.mist = new Mist(this);
+    this.lightning = new Lightning(this);
+    this.injuryScene = new InjuryScene(this);
+    this.body = new BodySounds(this.runtime);
     this.clouds = new CloudShadows(this);
     this.life = new AmbientLife(this, (kind, x, y) => this.critterGround(kind, x, y));
     this.accent = new AmbientLife(this, (kind, x, y) => this.critterGround(kind, x, y), "accent");
@@ -1227,6 +1270,11 @@ export class WorldScene extends Phaser.Scene {
         event.preventDefault();
         if (event.repeat || this.spaceDown) return;
         const mount = this.runtime.engine.state.player.riding;
+        // In a car Space is the handbrake, read while it is held.
+        if (this.runtime.engine.state.player.drivingVehicle) {
+          this.spaceDown = true;
+          return;
+        }
         if (mount) {
           this.spaceDown = true;
           if (this.cycleTrickKey("space")) return;
@@ -1461,6 +1509,8 @@ export class WorldScene extends Phaser.Scene {
       this.harbor.dispose();
       this.trains.dispose();
       this.cabs.dispose();
+      this.cars.dispose();
+      this.trafficCars.dispose();
       this.vehicleLayer.dispose();
       this.terrainStream?.dispose();
       this.terrainStream = undefined;
@@ -1538,7 +1588,7 @@ export class WorldScene extends Phaser.Scene {
           this.feel.land(im, 8, tx, ty);
           this.kickDust(tx, ty, 3, 0.6);
           void gameAudio()?.sound(
-            landing(this.groundUnderPlayer(), 0.7),
+            landing(this.jumpSurface(), 0.7),
             "land",
           );
         }
@@ -1641,9 +1691,9 @@ export class WorldScene extends Phaser.Scene {
     }
   }
   /** What the player is standing on, for the sound of it. */
-  private groundUnderPlayer() {
-    const p = this.runtime.engine.state.player.pos;
-    return this.runtime.engine.groundClass(p.x, p.y, p.space);
+  /** What a jump sounds like here: the walking step for this spot. */
+  private jumpSurface(cell: { x: number; y: number; space: string } = this.runtime.engine.state.player.pos) {
+    return this.footstepAt(cell, undefined, 0, true) ?? this.runtime.engine.groundClass(cell.x, cell.y, cell.space);
   }
   /** Crouch deeper as the jump charges, and pop once it is fully charged, so
    * the player can see the long jump is armed before they let go. */
@@ -1690,12 +1740,7 @@ export class WorldScene extends Phaser.Scene {
       // The engine has already moved the player, so the take-off cell is the
       // one the sprite is still drawn in.
       const p = this.runtime.engine.state.player.pos;
-      const ground = this.runtime.engine.groundClass(
-        Math.floor(im.x / 16),
-        Math.floor((im.y - 1) / 16),
-        p.space,
-      );
-      void gameAudio()?.sound(takeoff(ground), "jump");
+      void gameAudio()?.sound(takeoff(this.jumpSurface({ x: Math.floor(im.x / 16), y: Math.floor((im.y - 1) / 16), space: p.space })), "jump");
     }
     const travel = Math.hypot(tx - im.x, ty - im.y) || 1;
     const short = after === "roll" ? 9 : after === "stumble" ? 6 : 0;
@@ -1743,7 +1788,7 @@ export class WorldScene extends Phaser.Scene {
         if (isPlayer)
           void gameAudio()?.sound(
             landing(
-              this.groundUnderPlayer(),
+              this.jumpSurface(),
               heavy ? 2 : 0.7 + arc.height / 40,
             ),
             "land",
@@ -2255,10 +2300,12 @@ export class WorldScene extends Phaser.Scene {
     const p = this.runtime.engine.state.player.pos;
     const hit = this.runtime.engine.creatureAt(p.x + dx, p.y + dy, p.space);
     if (!hit) return;
+    const call = hit.actor ? undefined : callOf(hit.species!);
+    if (call) void gameAudio()?.call(call);
     gameAudio()?.sound(
       hit.actor
         ? bumpPerson(voiceOf(hit.actor))
-        : bumpAnimal(beastVoiceOf(hit.species!)),
+        : bumpAnimal(beastVoiceOf(hit.species!), !call),
       "bump",
     );
   }
@@ -2338,7 +2385,7 @@ export class WorldScene extends Phaser.Scene {
       // Underground there is only rock to walk on.
       return footstep(ground, running) ?? footstep("rock", running);
     }
-    if (ground === "snow") return footstep(ground, running);
+    if (ground === "snow") return [...(footstep(ground, running) ?? []), ...((this.weather?.tempC ?? 0) < -8 ? bodily.frost() : [])];
     if (engine.world.terrain(cell.x, cell.y, cell.space) === "rock") return footstep("rock", running);
     const field = engine.world.topography?.(cell.x, cell.y)?.field;
     const { hit } = engine.hitClass(cell.x, cell.y, cell.space);
@@ -2692,7 +2739,7 @@ export class WorldScene extends Phaser.Scene {
       onComplete: () => {
         im.setData("arcLift", 0);
         this.feel.land(im, 10, run.x, run.y);
-        void gameAudio()?.sound(landing(this.groundUnderPlayer(), 0.8), "land");
+        void gameAudio()?.sound(landing(this.jumpSurface(), 0.8), "land");
         this.kickDust(run.x, run.y, 3, 0.6);
       },
     });
@@ -3078,12 +3125,245 @@ export class WorldScene extends Phaser.Scene {
     rt.rideGait = 0;
     rt.rideCombo = 0;
     this.nextInput = time + 220;
-    if (was > spec.cruise * (spec.tall ? 0.75 : 1.12)) rt.command({ type: "interact", action: "cycle-spill", target: spec.tall ? "header" : "crash" });
+    if (was > spec.cruise * (spec.tall ? 0.75 : 1.12)) rt.command({ type: "interact", action: "cycle-spill", target: spec.tall ? "header" : "crash", speed: was });
     else if (was > 6 && im) {
       this.kickDust(im.x + mx * 6, im.y, 5, 0.9);
       this.cameras.main.shake(80, 0.002);
       void gameAudio()?.sound(mountLand(false), "land");
     }
+  }
+  /** Motor traffic near the player: stepped in real time, drawn, and made solid to the engine. */
+  private updateTraffic(plan: { lanes?: Map<string, import("../world/v3/types").Lane> } | undefined, setting: import("../content/geography/types").WorldSetting | undefined, time: number) {
+    const e = this.runtime.engine, p = e.state.player, seen = new Set<string>();
+    // Indoors there is no plan in hand: the street's traffic waits as it was.
+    if (plan && this.traffic?.plan !== plan) {
+      this.traffic = undefined;
+      const pool = setting && plan?.lanes?.size ? vehiclePool(setting) : [];
+      if (pool.length && plan?.lanes) {
+        const sim = new Traffic(plan.lanes, (roll, paint) => parkedCar(pool, roll, paint));
+        this.traffic = { plan, sim, want: Math.round(Math.min(22, plan.lanes.size / 320) * parkingShare(setting!)), passed: new Map() };
+      }
+      e.trafficAt = this.traffic && ((x, y) => this.traffic!.sim.occupied(x, y));
+    }
+    const t = this.traffic;
+    if (t && p.pos.space === "outside") {
+      const still = this.runtime.held || !!this.options.freeze || !!p.dead;
+      const walkers = new Set<string>();
+      for (const a of e.state.actors) if (a.pos.space === "outside" && Math.abs(a.pos.x - p.pos.x) < 90 && Math.abs(a.pos.y - p.pos.y) < 90) walkers.add(`${a.pos.x},${a.pos.y}`);
+      const mine = p.drivingVehicle ? e.state.objects.find((o) => o.id === p.drivingVehicle) : undefined;
+      const view = this.cameras.main.worldView;
+      const dt = Math.min(50, this.game.loop.delta) / 1000;
+      const horns = still ? [] : t.sim.step(dt, p.pos, {
+        want: t.want,
+        obstacle: (x, y) => (x === p.pos.x && y === p.pos.y) || walkers.has(`${x},${y}`) || (!!mine && Math.abs(mine.pos.x - x) <= 3 && Math.abs(mine.pos.y - y) <= 3 && e.blocked(x, y, "outside") && !t.sim.occupied(x, y)),
+        hidden: (x, y) => x * 16 < view.x - 48 || x * 16 > view.right + 48 || y * 16 < view.y - 48 || y * 16 > view.bottom + 48,
+      });
+      for (const c of horns)
+        if (Math.hypot(c.x - p.pos.x, c.y - p.pos.y) < 14) void gameAudio()?.sound(mountVoice("motor", "calm"), "horn");
+      const h = this.heat;
+      if (h && !mine?.car) this.dropHeat();
+      else if (h && !still) {
+        const cop = t.sim.pursue(true, p.pos, (x, y) => x * 16 < view.x - 48 || x * 16 > view.right + 48 || y * 16 < view.y - 48 || y * 16 > view.bottom + 48);
+        const far = cop ? Math.hypot(cop.x - p.pos.x, cop.y - p.pos.y) : 99;
+        this.runtime.drive.police = far < 40;
+        h.clear = far > 34 ? h.clear + dt : 0;
+        h.caught = far < 5.5 && Math.abs(this.driving.speed) < 2 ? h.caught + dt : 0;
+        for (const [i, l] of h.lights.entries())
+          l.setVisible(!!cop).setPosition((cop?.x ?? 0) * 16 + 8 + (i ? 3 : -3), (cop?.y ?? 0) * 16 - 12).setDepth((cop?.y ?? 0) * 16 + 60).setAlpha((Math.floor(time / 160) + i) % 2 ? 1 : 0.25);
+        if (cop && far < 34 && time > h.sirenAt) {
+          h.sirenAt = time + 340;
+          h.high = !h.high;
+          void gameAudio()?.sound(siren(h.high, 1 - far / 34), "siren");
+        }
+        if (h.caught > 1.2) {
+          this.dropHeat();
+          this.driving.speed = this.runtime.drive.speed = 0;
+          this.runtime.command({ type: "interact", action: "car-busted", target: "car" });
+        } else if (h.clear > 9) {
+          this.dropHeat();
+          this.runtime.drive.style += 500;
+          this.runtime.drive.call = "Lost them";
+          void gameAudio()?.sound(trickChime(4), "trick");
+        }
+      }
+      const lit = this.nightLevel > 0.4, d = this.driving, fast = mine?.car && Math.abs(d.speed) > carSpec(mine.car.model).cruise * 0.8;
+      for (const c of t.sim.cars) {
+        const id = `traffic-${c.id}`, x = c.x * 16 + 8, y = c.y * 16 + 8;
+        seen.add(id);
+        if (x < view.x - 120 || x > view.right + 120 || y < view.y - 120 || y > view.bottom + 120) continue;
+        this.trafficCars.pose(id, { frame: `vehicle-${c.model}-${c.paint}-${CAR_HEADINGS[trafficFacing(c)]}`, x, y: y - this.lift(x, y), tint: this.tint, lit });
+        // A car passed close at speed without touching it.
+        const near = Math.hypot(c.x - p.pos.x, c.y - p.pos.y);
+        if (fast && near < 2.6 && time - (t.passed.get(c.id) ?? -1e9) > 4000) {
+          t.passed.set(c.id, time);
+          this.runtime.drive.chain = time < d.chainUntil + 2600 ? this.runtime.drive.chain + 1 : 1;
+          d.chainUntil = time;
+          this.runtime.drive.style += 100 * this.runtime.drive.chain;
+          this.runtime.drive.call = "Near miss";
+          void gameAudio()?.sound(trickChime(this.runtime.drive.chain), "trick");
+        }
+      }
+    }
+    this.trafficCars.sweep(seen);
+  }
+  private endFare() {
+    for (const m of this.fare?.marks ?? []) m.destroy();
+    this.fare?.figure?.destroy();
+    this.fare = undefined;
+    this.runtime.drive.fare = undefined;
+    this.fareAt = this.time.now + 3500;
+  }
+  /** Fares for whoever is driving a car: someone waves from the kerb, and wants taking to a door across town against the clock. */
+  private updateFare(time: number) {
+    const rt = this.runtime, e = rt.engine, p = e.state.player.pos, sim = this.traffic?.sim, places = (this.traffic?.plan as SettlementPlan | undefined)?.places;
+    let f = this.fare;
+    if (!f) {
+      if (!sim || !places?.length || time < this.fareAt) return;
+      const spot = sim.kerbNear(p, 10, 42), look = e.state.actors[Math.floor(Math.random() * e.state.actors.length)];
+      if (!spot || !look) return;
+      const mark = () => this.add.rectangle(0, 0, 2, 2, 0xffd84a);
+      f = this.fare = { riding: false, ...spot.kerb, name: "", until: 0, pay: 0, look, marks: [mark().setSize(3, 7), mark().setSize(3, 3), this.add.rectangle(0, 0, 14, 160, 0xffd84a, 0.16).setOrigin(0.5, 1).setVisible(false)] };
+    }
+    const cells = Math.hypot(f.x - p.x, f.y - p.y), stopped = this.driving.speed === 0;
+    const way = ["→", "↘", "↓", "↙", "←", "↖", "↑", "↗"][((Math.round(Math.atan2(f.y - p.y, f.x - p.x) / (Math.PI / 4)) % 8) + 8) % 8];
+    const px = f.x * 16 + 8, py = f.y * 16 + 16, bob = Math.round(Math.sin(time / 160) * 2);
+    f.marks[0].setPosition(px, py - (f.riding ? 30 : 46) + bob).setDepth(py + 5000);
+    f.marks[1].setPosition(px, py - (f.riding ? 23 : 39) + bob).setDepth(py + 5000);
+    f.marks[2].setPosition(px, py).setDepth(py + 4999).setVisible(f.riding);
+    if (!f.riding) {
+      const texture = this.characters?.frame({ ...f.look, id: `fare-${f.look.id}`, direction: 2, facing: 4 }, "idle", 0);
+      if (texture) {
+        f.figure ??= this.add.image(px, py, texture).setOrigin(0.5, 1);
+        f.figure.setTexture(texture).setPosition(px, py - this.lift(px, py)).setDepth(py).setTint(this.tint);
+      }
+      rt.drive.fare = { text: "Someone is waving for a ride", cells: Math.round(cells), way };
+      if (cells > 3.6 || !stopped) return;
+      const here = { x: f.x, y: f.y }, doors = places!.filter((q) => q.entrance && q.name !== "Household" && Math.hypot(q.entrance.x - here.x, q.entrance.y - here.y) > 30);
+      const to = doors[Math.floor(Math.random() * doors.length)];
+      if (!to) return this.endFare();
+      const run = Math.hypot(to.entrance.x - here.x, to.entrance.y - here.y);
+      f.figure?.destroy();
+      f.figure = undefined;
+      Object.assign(f, { riding: true, x: to.entrance.x, y: to.entrance.y + 1, name: to.name, until: time + (run / 7 + 8) * 1000, pay: 2 + Math.round(run / 20) });
+      void gameAudio()?.sound(trickChime(1), "trick");
+      return;
+    }
+    const seconds = Math.ceil((f.until - time) / 1000);
+    rt.drive.fare = { text: `To ${f.name}`, cells: Math.round(cells), way, seconds };
+    if (seconds <= 0) {
+      rt.command({ type: "interact", action: "car-fare", target: "0" });
+      return this.endFare();
+    }
+    if (cells > 5 || !stopped) return;
+    // A quick run earns a tip.
+    rt.command({ type: "interact", action: "car-fare", target: String(f.pay + (seconds > 12 ? 1 : 0)) });
+    void gameAudio()?.sound(trickChime(3), "trick");
+    this.endFare();
+  }
+  /** One cell of driving a car: the held way against its momentum. False for a vehicle that is not a car. */
+  private carInput(dx: number, dy: number, time: number) {
+    const rt = this.runtime, e = rt.engine, p = e.state.player, d = this.driving;
+    const o = e.state.objects.find((x) => x.id === p.drivingVehicle);
+    if (!o?.motor || !o.car) return false;
+    const spec = carSpec(o.car.model);
+    d.heading = o.motor.facing;
+    rt.drive.top = spec.top;
+    if (!dx && !dy && !d.speed) return true;
+    if (e.carFuel(o) <= 0) {
+      if (dx || dy) rt.move(dx, dy);
+      d.speed = rt.drive.speed = 0;
+      this.nextInput = time + 900;
+      return true;
+    }
+    const ahead = CAR_WAYS[d.heading], nx = p.pos.x + ahead[0], ny = p.pos.y + ahead[1];
+    const hit = e.groundClass(nx, ny, "outside"), sample = e.world.topography;
+    let ground = hit === "stone" || hit === "timber" ? 1 : hit === "soil" ? (1 + spec.rough) / 2 : spec.rough;
+    if (sample && waterDepthAt(sample, nx + 0.5, ny + 0.5) > 0.02) ground *= 0.5;
+    const was = d.speed, im = this.entities.get("player");
+    const step = carStep(d, [dx, dy], spec, { boost: this.shiftHeld, handbrake: this.spaceDown, ground });
+    d.speed = rt.drive.speed = step.speed;
+    if (im && step.beat && step.beat !== "start" && step.beat !== "stop" && step.beat !== "reverse" && step.beat !== "brake") this.carSkidFx(im, step.beat, step.heading, hit);
+    if (step.slip && time < d.chainUntil + 2600) rt.drive.chain++;
+    else if (step.slip) rt.drive.chain = 1;
+    if (step.slip) {
+      d.chainUntil = time;
+      rt.drive.style += (step.slip > 1 ? 150 : 50) * rt.drive.chain;
+      rt.drive.call = step.slip > 1 ? "Handbrake turn" : "Drift";
+    }
+    if (!step.move) {
+      this.nextInput = time + 70;
+      return true;
+    }
+    const go = (mx: number, my: number, heading: number) => {
+      rt.driveHeading = heading;
+      const ms = (1000 / Math.abs(d.speed)) * Math.hypot(mx, my);
+      this.motionDuration = ms;
+      this.nextInput = time + ms;
+      this.lastTick = time;
+      return rt.move(mx, my)?.status !== "rejected";
+    };
+    if (go(step.move[0], step.move[1], step.heading)) return true;
+    // A turn the body cannot make yet: hold the line another cell.
+    const back = was < 0 ? -1 : 1;
+    if (step.heading !== d.heading && go(ahead[0] * back, ahead[1] * back, d.heading)) return true;
+    const struck = this.traffic?.sim.at(p.pos.x + ahead[0] * back * (o.motor.slim! + 1), p.pos.y + ahead[1] * back * (o.motor.slim! + 1));
+    if (struck) this.traffic!.sim.bump(struck);
+    // Ramming someone at speed brings the police.
+    if (struck && Math.abs(was) > spec.cruise * 0.8) this.raiseHeat();
+    d.speed = rt.drive.speed = 0;
+    this.nextInput = time + 260;
+    const impact = Math.abs(was);
+    if (impact > 5) {
+      const hard = impact > spec.cruise * 0.8;
+      rt.command({ type: "interact", action: "car-crash", target: hard ? "crash" : "bump", speed: impact });
+      this.cameras.main.shake(hard ? 220 : 90, hard ? 0.008 : 0.003);
+      void gameAudio()?.sound(carCrash(hard), "crash");
+      if (im) this.kickDust(im.x + ahead[0] * 14, im.y - 8 + ahead[1] * 8, hard ? 12 : 5, 1.3);
+      rt.drive.chain = 0;
+      rt.drive.call = hard ? "Crash" : "";
+    }
+    return true;
+  }
+  /** Tyres letting go: the squeal, the smoke, the two black lines and the body leaning out of the turn. */
+  private carSkidFx(im: Phaser.GameObjects.Image, beat: "skid" | "drift" | "slide", heading: number, ground: string) {
+    const [wx, wy] = CAR_WAYS[heading], n = Math.hypot(wx, wy), d = this.driving;
+    void gameAudio()?.sound(cycleSkid(ground as never), "skid");
+    for (const side of [-1, 1])
+      for (let i = 0; i < 4; i++) {
+        const x = im.x - (wx / n) * (i * 5 + 6) - (wy / n) * side * 7, y = im.y - 8 - (wy / n) * (i * 5 + 6) * 0.6 + (wx / n) * side * 4;
+        const mark = this.add.rectangle(x, y, 3, 2, 0x1c1a20, 0.55).setDepth(im.depth - 30);
+        this.tweens.add({ targets: mark, alpha: 0, delay: 1800, duration: 3000, onComplete: () => mark.destroy() });
+      }
+    this.feel.puff(im.x - wx * 14, im.y - 6 - wy * 8, [0xe8e4e0, 0xc8c4c0, 0xa8a4a0], beat === "slide" ? 7 : 4, 1);
+    const proxy = { t: 0 };
+    this.tweens.add({ targets: proxy, t: (wx >= 0 ? -1 : 1) * (beat === "slide" ? 5 : 3), duration: 120, yoyo: true, onUpdate: () => { d.roll = proxy.t; }, onComplete: () => { d.roll = 0; } });
+  }
+  /** The driven car drawn where the hidden player is, with its engine note and exhaust. */
+  private carFrame(im: Phaser.GameObjects.Image, time: number) {
+    const e = this.runtime.engine, p = e.state.player, d = this.driving;
+    const o = e.state.objects.find((x) => x.id === p.drivingVehicle);
+    if (!o?.car || !o.motor) return;
+    const spec = carSpec(o.car.model), rev = Math.min(1, Math.abs(d.speed) / spec.top);
+    // Stiff springs on a rough road.
+    const jolt = rev > 0.2 && e.groundClass(p.pos.x, p.pos.y, "outside") !== "stone" ? Math.round(Math.sin(time / 38)) : 0;
+    this.cars.pose(o.id, { frame: o.sprite, x: im.x, y: im.y - 8 + jolt, tint: this.tint, roll: d.roll, lit: this.nightLevel > 0.4, dents: o.car.dents }, (c) => this.makeSelectable(c, o.id));
+    this.updateFare(time);
+    // Taken in front of people: someone has rung the police.
+    if (o.car.hot && !this.hotSeen.has(o.id)) {
+      this.hotSeen.add(o.id);
+      this.raiseHeat();
+    }
+    if (e.carHorn !== d.horn) {
+      d.horn = e.carHorn;
+      void gameAudio()?.sound(mountVoice("motor", "calm"), "horn");
+    }
+    if (time < d.soundAt) return;
+    d.soundAt = time + 1000 / (8 + rev * 20);
+    if (e.carFuel(o) <= 0) return;
+    void gameAudio()?.sound(motorPutt(0.42 + (2600 / spec.range) * 0.12 + (spec.grip > 0.9 ? 0.14 : 0), rev), "motor");
+    const [wx, wy] = CAR_WAYS[o.motor.facing];
+    if (Math.random() < 0.1 + rev * 0.15 + (o.car.dents ?? 0) * 0.05)
+      this.feel.puff(im.x - wx * 18, im.y - 9 - wy * 10, (o.car.dents ?? 0) >= 4 ? [0x4a4644, 0x2e2c2a, 0x6a6664] : [0xb8b4b0, 0x8a8684, 0xd8d4d0], 1, 0.35);
   }
   /** Locked or sliding tyres: the noise, the dust, the marks left on the ground and the lean. */
   private cycleSkidFx(im: Phaser.GameObjects.Image, beat: "skid" | "drift", way: readonly [number, number]) {
@@ -3464,6 +3744,7 @@ export class WorldScene extends Phaser.Scene {
       p,
     );
     this.cabs.update(plan, w.pack.setting, e.state.manifest.seed, this.runtime.displayClock(), this.cameras.main.worldView, this.tint);
+    this.updateTraffic(plan, w.pack.setting, time);
     const vehicles = [...(plan?.vehicles ?? [])];
     for (const v of vehicles) {
       if (!v.delivery) continue;
@@ -4624,6 +4905,9 @@ export class WorldScene extends Phaser.Scene {
         return 0.28;
       case "mist":
         return 0.45;
+      // The sun is a pale disc through thin dust and gone in a thick storm.
+      case "dust":
+        return 0.5 - 0.35 * this.weather.dust;
       case "light-clouds":
         return 0.85;
       default:
@@ -5030,7 +5314,7 @@ export class WorldScene extends Phaser.Scene {
       setting && !this.options.lab
         ? snowSteps(
             snowCover(
-              e.state.manifest.seed,
+              skySeed(e.state.manifest),
               setting.climate,
               setting.season,
               e.state.clock,
@@ -5076,10 +5360,14 @@ export class WorldScene extends Phaser.Scene {
             this.weather.condition,
             this.weather.tempC,
             this.weather.rain,
+            this.weather.blizzard,
+            this.weather.dust,
           )
         : undefined,
       hashSeed(e.state.manifest.seed),
     );
+    this.hail?.set(outdoors && this.weather ? hailStyle(this.weather.hail) : undefined, hashSeed(e.state.manifest.seed) + 0.3);
+    if (!outdoors) this.hail?.sweep();
     this.life?.set(
       outdoors && setting && this.weather && perf.fauna
         ? critterFor(
@@ -5128,12 +5416,14 @@ export class WorldScene extends Phaser.Scene {
       outdoors && this.weather && this.options.colorGrade !== false
         ? this.weather.condition === "mist"
           ? 0.28
+          : this.weather.condition === "dust"
+            ? 0.25 + 0.6 * this.weather.dust
           : this.weather.condition === "rain"
             ? coastal
               ? 0.21
               : 0.16
             : this.weather.condition === "snow"
-              ? 0.3
+              ? 0.3 + 0.32 * this.weather.blizzard
             : this.weather.condition === "overcast"
               ? coastal && dawnMist
                 ? 0.13
@@ -5142,7 +5432,11 @@ export class WorldScene extends Phaser.Scene {
                 ? 0.09
                 : 0
         : 0,
+      this.weather?.condition === "dust" ? DUST_TONE : undefined,
+      this.weather ? Math.max(this.weather.blizzard, this.weather.dust) : 0,
     );
+    // Heard indoors too; not underground.
+    this.lightning?.set(this.weather && !this.options.lab && !e.caveOf?.(p.space) && !e.sewerOf?.(p.space) ? this.weather.storm : 0, !!outdoors);
     // Broken cloud needs sun behind it to cast anything.
     this.clouds?.set(
       outdoors && this.weather && this.options.colorGrade !== false && this.light.id !== "night"
@@ -6581,9 +6875,17 @@ export class WorldScene extends Phaser.Scene {
     const drawnByRoom = room
       ? new Set([...["exit", "bed", "chest", "work"].map((k) => `${p.space}-${k}`), ...room.furniture.map((f) => `${p.space}-room-${f.propId}`)])
       : undefined;
-    const cycleSeen = new Set<string>();
+    const cycleSeen = new Set<string>(), carSeen = new Set<string>();
     for (const o of obs.objects) {
       if (o.carriedBy || o.id === flying) continue;
+      if (o.car && o.motor) {
+        carSeen.add(o.id);
+        if (o.id !== e.state.player.drivingVehicle || !this.cars.has(o.id)) {
+          const cx = o.pos.x * 16 + 8, cy = o.pos.y * 16 + 8;
+          this.cars.pose(o.id, { frame: o.sprite, x: cx, y: cy - this.lift(cx, cy), tint: this.tint, dents: o.car.dents }, (im) => this.makeSelectable(im, o.id));
+        }
+        continue;
+      }
       if (o.cycle) {
         const cx = o.pos.x * 16 + 8, cy = o.pos.y * 16 + 16;
         this.cycle.drawParked(o, cx, cy - this.lift(cx, cy), o.pos.y * 16 + 10, this.tint, (im) => this.makeSelectable(im, o.id));
@@ -6817,6 +7119,10 @@ export class WorldScene extends Phaser.Scene {
         !!at,
       );
     }
+    if (!e.state.player.drivingVehicle && (this.fare || this.driving.speed)) {
+      this.endFare();
+      this.driving.speed = this.runtime.drive.speed = 0;
+    }
     this.entities.get("player")?.setVisible(!e.state.player.drivingVehicle);
     this.shadows.get("player")?.setVisible(!e.state.player.drivingVehicle);
     this.faunaSprites.clear();
@@ -6881,6 +7187,8 @@ export class WorldScene extends Phaser.Scene {
         // Shied off by someone walking through: a flapping hop away.
         const shied = m.shy?.until ?? 0, wasShy = this.shied.get(id);
         if (wasShy !== undefined && shied > wasShy && shied > e.state.clock) {
+          const call = callOf(g.speciesId);
+          if (call) void gameAudio()?.call(call, 0, 0.7);
           this.faunaMotion.hurry(id);
           this.faunaMotion.leap(id, 5, 0.26);
           this.feel.puff(im.x, im.y, FAUNA_DUST, 2);
@@ -6898,6 +7206,8 @@ export class WorldScene extends Phaser.Scene {
         if (wet > 0) im.setTint(mixTint(this.tint, muddied(wet / MUD_DRIES)));
         // A mad dog's coat goes dull and staring.
         if (g.rabid) im.setTint(mixTint(this.tint, 0xc8c2a0));
+        // Lying up in the grass: a shape you might miss.
+        im.setAlpha(m.hidden ? 0.4 : 1);
         const flip = !turns && m.direction === 3;
         if (im.flipX !== flip) im.setFlipX(flip);
         // Three clear rows under the hooves in every study frame.
@@ -6942,7 +7252,9 @@ export class WorldScene extends Phaser.Scene {
       );
       const im = this.entities.get(id);
       if (im) this.feel.puff(im.x, im.y, FAUNA_DUST, jostle.small ? 3 : 5);
-      gameAudio()?.sound(bumpAnimal(beastVoiceOf(jostle.species)), "bump");
+      const call = callOf(jostle.species);
+      gameAudio()?.sound(bumpAnimal(beastVoiceOf(jostle.species), !call), "bump");
+      if (call) void gameAudio()?.call(call);
       if (!jostle.small) {
         const d = e.state.player.direction;
         this.bump = {
@@ -6956,6 +7268,7 @@ export class WorldScene extends Phaser.Scene {
     if (this.options.lab && !this.options.overview)
       c.startFollow(this.entities.get("player")!, this.liveGraphics.roundPixels, 0.4, 0.4);
     this.cycle.sweepParked(cycleSeen);
+    this.cars.sweep(carSeen);
     for (const [id, image] of this.entities)
       if (!keep.has(id)) {
         this.cycle.drop(id);
@@ -7087,9 +7400,10 @@ export class WorldScene extends Phaser.Scene {
       if (q.kind === "lamp" && (!o || o.broken)) (q.broken = true), (q.on = false);
       q.tipped = !!o?.tipped;
       q.lean = o?.lean;
+      if (q.kind === "chest" || q.kind === "stock") q.on = !!o?.open;
       atlasPiece(f.propId,o);
       if (q.external && (o?.carriedBy || o?.pos.space !== space)) q.wrecked=true;
-      stamp += `${q.x},${q.y},${q.wrecked ? 1 : 0}${q.broken ? 1 : 0}${q.tipped ? 1 : 0}${q.external ? 1 : 0};`;
+      stamp += `${q.x},${q.y},${q.wrecked ? 1 : 0}${q.broken ? 1 : 0}${q.tipped ? 1 : 0}${q.external ? 1 : 0}${q.on ? 1 : 0};`;
     }
     const store = byId.get(`${space}-chest`);
     const storePiece = room.props.find(q => ["chest","jars","crate","sacks"].includes(q.kind) &&
@@ -7132,7 +7446,7 @@ export class WorldScene extends Phaser.Scene {
       if (!q) v.pixel.floorSleepers.push(cell);
       const at = v.pixel.pillow(q ? { propId: q.id, k } : cell);
       const row = q ? q.y + Math.max(1, q.d) - 1 : cell.y;
-      this.pillows.set(a.id, { x: v.image.x + at.x, y: v.image.y + at.y, depth: (ROOM_ORIGIN + row) * 16 + 9 - k * 0.1 });
+      this.pillows.set(a.id, { x: v.image.x + at.x, y: v.image.y + at.y, upright: "upright" in at, depth: (ROOM_ORIGIN + row) * 16 + 9 - k * 0.1 });
     }
     const hour = (this.runtime.displayClock() / 3600) % 24;
     room.params.hour = hour;
@@ -7406,11 +7720,15 @@ export class WorldScene extends Phaser.Scene {
     const wetBoost = 1 + Math.min(0.32, wetness * 0.35);
     this.emberGlow = lamps;
     // Rooms go dark one at a time, so the hour is part of the key.
-    const key = `${w.color}:${w.alpha.toFixed(3)}:${golden.toFixed(3)}:${weather.toFixed(3)}:${haze}:${lamps.toFixed(2)}:${Math.round(wetness * 10)}:${Math.floor(clock / 900)}:${this.snow}`;
+    // Sand in the air turns the daylight the colour of the sand.
+    const dust = graded ? (this.weather?.dust ?? 0) * 0.42 : 0;
+    // A blizzard is dark under its cloud, which is what lets the driven snow show.
+    const blizzard = graded ? (this.weather?.blizzard ?? 0) * 0.3 : 0;
+    const key = `${w.color}:${w.alpha.toFixed(3)}:${golden.toFixed(3)}:${weather.toFixed(3)}:${haze}:${lamps.toFixed(2)}:${Math.round(wetness * 10)}:${Math.floor(clock / 900)}:${this.snow}:${dust.toFixed(2)}:${blizzard.toFixed(2)}`;
     if (key === this.washKey) return;
     this.washKey = key;
     // Stacked multiply fills over white come to one colour: their product.
-    const layers: [number, number][] = [[w.color, graded ? w.alpha : 0], [0xff9a4a, golden], [0x666d78, weather * 0.6]];
+    const layers: [number, number][] = [[w.color, graded ? w.alpha : 0], [0xff9a4a, golden], [0x666d78, weather * 0.6], [0xd49a52, dust], [0x7d8aa0, blizzard]];
     this.washTint = [16, 8, 0].reduce(
       (tint, shift) =>
         tint | (Math.round(layers.reduce((v, [c, a]) => v * (1 - a + (a * ((c >> shift) & 255)) / 255), 255)) << shift),
@@ -7783,6 +8101,12 @@ export class WorldScene extends Phaser.Scene {
             began: this.time.now,
           }),
         );
+      if (URGENT.has(f.state) && !URGENT.has(mood.state) && dt && player) {
+        const voice = callOf(f.species),
+          far = Math.hypot(player.x - im.x, player.y - im.y);
+        if (voice && far < 140)
+          void gameAudio()?.call(voice, Math.max(-1, Math.min(1, (im.x - player.x) / 140)), 1 - far / 280);
+      }
       // The moment it bolts: a start, and dust from under it.
       if (URGENT.has(f.state) && !URGENT.has(mood.state) && !aerial && dt) {
         this.faunaMotion.leap(id, 2.5, 0.18);
@@ -7990,13 +8314,21 @@ export class WorldScene extends Phaser.Scene {
     scale: number,
     water: number,
   ) {
-    if (this.options.shadows === false) return;
+    // A sprite still on "__DEFAULT" while its sheet loads has no image to cast from.
+    if (this.options.shadows === false || im.texture.key.startsWith("__")) return;
     const still = im.frame.name.replace(/-\d+$/, "-0");
     // Every coat of a form casts the same shadow.
     const key = `${this.shadowPhase}:${still.replace(/\+[^-]+/, "")}:${im.flipX ? "w" : "e"}:${alt > 1 ? "air" : ""}`;
     let cast = this.faunaShadows.get(key);
     if (!cast) {
-      const frame = this.textures.getFrame(im.texture.key, still) ?? im.frame;
+      let frame: Phaser.Textures.Frame | null = this.textures.getFrame(im.texture.key, still) ?? im.frame;
+      // Coats are uploaded as bare pixels with no image to draw; cast from the plain frame.
+      if (!frame.source.image || ArrayBuffer.isView(frame.source.image)) {
+        const plain = still.replace(/\+[^-]+/, "");
+        const texture = this.texture(plain);
+        frame = texture.startsWith("__") ? null : this.textures.getFrame(texture, plain);
+        if (!frame || ArrayBuffer.isView(frame.source.image)) return;
+      }
       const w = frame.cutWidth,
         h = frame.cutHeight;
       const canvas = document.createElement("canvas");
@@ -8056,7 +8388,10 @@ export class WorldScene extends Phaser.Scene {
     this.pruneLazySheets(time);
     this.syncStableDoors(time);
     this.drift?.update(time, !!this.options.freeze);
+    this.hail?.update(time, !!this.options.freeze);
     this.mist?.update(time, !!this.options.freeze);
+    this.lightning?.update(time, !!this.options.freeze);
+    this.injuryScene?.update(time, this.entities.get("player"), this.zoomTarget ?? this.cameras.main.zoom);
     this.clouds?.update(time, !!this.options.freeze);
     this.life?.update(time, !!this.options.freeze);
     this.accent?.update(time, !!this.options.freeze);
@@ -8334,6 +8669,8 @@ export class WorldScene extends Phaser.Scene {
     this.combat().consume(this.runtime.swingEffect);
     this.combat().consumeThrow(this.runtime.throwEffect);
     this.combat().consumeEvents(this.runtime.engine.signals);
+    this.lightning?.consume(this.runtime.engine.signals, time);
+    if (this.injuryScene?.consume(this.runtime.engine.signals, time)) this.nextInput = Math.max(this.nextInput, time + INJURY_SCENE_MS + 300);
     this.cues.consume(this.runtime.engine.signals);
     this.cues.update();
     this.cues.angry(this.runtime.engine.state.actors);
@@ -8420,7 +8757,8 @@ export class WorldScene extends Phaser.Scene {
         this.pendingDirection = undefined;
         const back = this.lastRunDir;
         if (this.runtime.engine.state.player.riding?.cycle) this.cycleInput(dx, dy, time);
-        else if ((dx || dy) && this.runtime.engine.state.player.drivingVehicle) {
+        else if (this.runtime.engine.state.player.drivingVehicle && this.carInput(dx, dy, time)) {
+        } else if ((dx || dy) && this.runtime.engine.state.player.drivingVehicle) {
           this.nextInput=time+95*Math.hypot(dx,dy);
           this.motionDuration=this.nextInput-time;
           this.lastTick=time;
@@ -8531,6 +8869,8 @@ export class WorldScene extends Phaser.Scene {
         } else if ((dx || dy) && this.turnInPlace(dx, dy, time)) {
           // Turned without stepping; a held key walks on the next poll.
         } else if (dx || dy) {
+          const gait = this.runtime.engine.gait();
+          if (!gait.run) this.shiftHeld = false;
           if (this.shiftHeld) {
             this.runSteps = Math.min(RUN_RAMP.length - 1, this.runSteps + 1);
             this.lastRunStep = time;
@@ -8562,7 +8902,7 @@ export class WorldScene extends Phaser.Scene {
             )
               this.motionDuration *= 1 + (this.snow - 0.5) * 1.2;
           }
-          this.motionDuration *= 1 + (this.runtime.engine.state.player.fatigue > 65 ? 0.14 : 0) + (this.loadWeights.get("player") ?? 0) * 0.12;
+          this.motionDuration *= (1 + (this.runtime.engine.state.player.fatigue > 65 ? 0.14 : 0) + (this.loadWeights.get("player") ?? 0) * 0.12) / gait.pace;
           this.nextInput = time + this.motionDuration;
           this.lastTick = time;
           if (!this.vault(dx, dy, time)) {
@@ -8659,6 +8999,7 @@ export class WorldScene extends Phaser.Scene {
       if(id==="player" && this.runtime.engine.state.player.drivingVehicle) {
         im.setVisible(false);
         this.shadows.get(id)?.setVisible(false);
+        this.carFrame(im, time);
         continue;
       }
       const frame = this.actorFrames.get(id);
@@ -8860,6 +9201,7 @@ export class WorldScene extends Phaser.Scene {
                 pose === "breathe" && !pair && loadWeight < 2 && !this.runtime.charge && !this.aimStarted,
                 {
                   injured: !!me.injury,
+                  hurt: this.runtime.engine.hurtLook(),
                   tired: me.fatigue > 65,
                   cold: (this.weather?.tempC ?? 20) < 4,
                   hat: !!human.appearance?.wearing.headwear && human.appearance.wearing.headwear !== "none",
@@ -8897,8 +9239,8 @@ export class WorldScene extends Phaser.Scene {
           g.still = undefined;
         } else g.still ??= time;
         let gaitFrame: number | undefined;
-        // Down to half health the player favours a leg; under a quarter, badly.
-        const lame = id === "player" && (me.health ?? 100) < 50 ? ((me.health ?? 100) < 25 ? 2 : 1) : 0;
+        // A bad leg limps; so does anyone down to half health, and badly under a quarter.
+        const lame = id !== "player" ? this.bodyOf(id).lame : Math.max(this.runtime.engine.gait().lame, (me.health ?? 100) < 25 ? 2 : (me.health ?? 100) < 50 ? 1 : 0);
         if (!active && !landed && !recovering && !stunt && !cued && !fidget?.pose && !npcGesture && !sickPose) {
           const still = g.still === undefined ? 0 : time - g.still,
             walked = (g.still ?? time) - g.since;
@@ -9081,20 +9423,29 @@ export class WorldScene extends Phaser.Scene {
           ? turn.sign * (turnAge < 25 ? 3 : turnAge < 58 ? 2 : 1)
           : 0;
         const passBy = moving && id !== "player" && !craft ? this.glanceAt(id, im, turn.facing, time) : 0;
-        const texture = this.characters.frame(
-          // Their own facing, or wherever a cue or a glance has turned them.
-          asleep
-            ? { ...human, facing: 4, appearance: this.bareHeaded(human.appearance) }
+        const body = id === "player" && !!this.runtime.engine.state.player.dead && !swimming;
+        const hurting = id === "player" ? this.injuryScene?.pose(time) : undefined;
+        if (body) this.diedAt ??= time;
+        else if (id === "player") this.diedAt = undefined;
+        // Their own facing, or wherever a cue or a glance has turned them.
+        const figure = asleep
+          ? { ...human, facing: 4, appearance: this.bareHeaded(human.appearance) }
+          // Hurt, side on, so the stoop and the knee read.
+          : hurting
+            ? { ...human, facing: facingFromDirection(human.direction === 3 ? 3 : 1) }
             : turn.facing === (human.facing ?? facingFromDirection(human.direction))
               ? human
-              : { ...human, facing: turn.facing },
-          pose,
+              : { ...human, facing: turn.facing };
+        const worn = asleep || body ? undefined : id === "player" ? this.runtime.engine.hurtLook() : this.bodyOf(id).hurt;
+        const texture = this.characters.frame(
+          worn ? { ...figure, hurt: worn } : figure,
+          body ? "hurt" : (hurting?.pose ?? pose),
           // Eyes shut: the blink frame.
-          asleep ? 3 : index,
+          asleep ? 3 : body ? 1 : (hurting?.frame ?? index),
           prop,
           turnMotion || passBy * 3,
           condition,
-          asleep ? undefined : this.feeling(id, human),
+          asleep || body ? undefined : this.feeling(id, human),
         );
         // A hit-stop holds the figures too, not only what is tweened.
         im.setVisible(!!texture);
@@ -9304,6 +9655,7 @@ export class WorldScene extends Phaser.Scene {
             }
           }
         }
+        if (id === "player") this.body?.update(time, moving, water, this.weather);
         // Dust off a run's contact frames. Walking raises none, or a quiet
         // street would be permanently hazy; jumps are covered by `launch`.
         if (!ridingMount && this.footfalls.get(id) !== index) {
@@ -9323,7 +9675,11 @@ export class WorldScene extends Phaser.Scene {
           const cell = this.destinations.get(id);
           if (heel && id === "player" && cell && !arcLift) {
             void gameAudio()?.sound(
-              () => this.footstepAt(cell, puddle, water, pose === "run"),
+              () => {
+                const step = this.footstepAt(cell, puddle, water, pose === "run");
+                // Frame 6 is the bad leg's step.
+                return step && bodyStep(step, { drag: index % 8 === 6 ? lame : 0, wade: water, load: Object.entries(this.runtime.engine.state.player.inventory).reduce((n, [k, v]) => (k === "coin" ? n : n + (v ?? 0)), 0) });
+              },
               "step",
             );
             const fungus = this.fungusUnderfoot(cell);
@@ -9417,9 +9773,14 @@ export class WorldScene extends Phaser.Scene {
           const crown = this.crownOf(texture);
           im.setCrop(0, crown, im.width, HEAD_ROWS)
             .setOrigin(0.5, (crown + HEAD_ROWS / 2) / im.height)
-            .setAngle(-90)
+            .setAngle(pillow.upright ? 0 : -90)
             .setPosition(pillow.x, pillow.y)
             .setDepth(pillow.depth);
+        } else if (body && texture) {
+          // Struck, then down on their side where it happened, after any fall's arc has landed.
+          const t = Math.min(1, Math.max(0, (time - this.diedAt! - 320) / 380));
+          im.setOrigin(0.5, 0.9).setAngle((human.direction === 3 ? -90 : 90) * t * t);
+          if (t > 0) this.shadows.get(id)?.setVisible(false);
         } else if (im.angle) im.setAngle(0).setOrigin(0.5, 1);
         // In a privy, only what shows in the doorway: the jambs and lintel hide the rest.
         const stall = id === "player" && seat && this.runtime.engine.state.player.seated?.on;
@@ -10190,6 +10551,18 @@ export class WorldScene extends Phaser.Scene {
     else this.apart.delete(im);
   }
   private apart = new WeakMap<Phaser.GameObjects.Image, { x: number; y: number }>();
+  private bodies = new Map<string, { day: number; look: ReturnType<typeof residentLook> }>();
+  /** A resident's peg leg, crutch or sling, looked up once a game day. */
+  private bodyOf(id: string) {
+    const { state, world } = this.runtime.engine, day = Math.floor(state.clock / 86400);
+    let b = this.bodies.get(id);
+    if (!b || b.day !== day) {
+      const actor = state.actors.find((a) => a.id === id);
+      b = { day, look: actor?.kind === "human" ? residentLook(state.manifest.seed, actor, world.pack.setting, state.clock) : { lame: 0 } };
+      this.bodies.set(id, b);
+    }
+    return b.look;
+  }
   private saleBeat = new Map<string, number>();
   /** Coughs, sneezes, a fever's sweat and queasiness, as often as the illness
    * runs to: a mild case up and about once a minute or so, the worst, in bed,

@@ -52,6 +52,11 @@ export type FaunaWorld = {
   onDrop?(hunter: FaunaGroup, prey: string, at: Point): void;
   /** Rain or snow falling: grazers stand bunched, rumps to the wind. */
   rain?: boolean;
+  /** The air temperature, °C. */
+  tempC?: number;
+  /** Somewhere a small animal can lie hidden: in growth, under a rock, at
+   * the foot of a wall. */
+  cover?(x: number, y: number): boolean;
   /** The player as a hunter sizes them up: how badly hurt, 0 to 1; whether
    * they carry meat or a light; how many others are with them. */
   quarry?: { hurt: number; meat: boolean; light: boolean; company: number; asleep?: boolean };
@@ -1041,6 +1046,106 @@ function standDown(g: FaunaGroup, clock: number) {
   for (const m of g.members) if (m.pose === "warn" || m.pose === "stalk") m.pose = undefined;
 }
 
+/** How far off a snake feels footsteps through the ground. */
+const FOOTFALL = 4;
+/** The share that slip away from someone coming, rather than stand: most
+ * snakes leave; the big vipers lie still and trust their colouring. */
+const SLIPS: Record<string, number> = {
+  "indian-cobra": 0.7, "egyptian-cobra": 0.7, "black-mamba": 0.8, "western-diamondback": 0.55,
+  "timber-rattlesnake": 0.6, "european-adder": 0.7, "russells-viper": 0.2, "saw-scaled-viper": 0.25,
+};
+
+/** A snake's day. It keeps to cover: a day snake basks in the open beside
+ * cover in the cool of the morning and evening and lies up out of the midday
+ * heat and the rain; a night snake lies up all day and hunts (rats, round
+ * the houses) after dark. Lying in cover it is hidden until someone is almost
+ * on it. Footsteps send most away to other cover; a viper, or one that has
+ * nowhere to go, stands, and `threaten` takes over. Returns true when it
+ * has the tick. */
+function snakeLife(g: FaunaGroup, p: FaunaProfile, world: FaunaWorld, clock: number, taken: Bodies) {
+  const m = g.members[0];
+  if (!m || g.provoked !== undefined || g.warning !== undefined) {
+    if (m) m.hidden = undefined;
+    g.refuge = undefined;
+    return false;
+  }
+  const cover = (at: Point) => !!world.cover?.(at.x, at.y);
+  let near: Point | undefined, d = Infinity;
+  for (const h of world.humans) {
+    const k = hyp(h, m);
+    if (k < d) (near = h), (d = k);
+  }
+  m.hidden = (g.state === "rest" || g.state === "idle") && cover(m) && d > 1.5 ? true : undefined;
+  const go = (pace: number) => {
+    for (let i = 0; i < pace && g.refuge && (m.x !== g.refuge.x || m.y !== g.refuge.y); i++) {
+      const to = closeOn(world, p, taken, g, m, g.refuge, clock);
+      if (!to) break;
+      moveMember(m, to, taken, true);
+    }
+    g.pos = { x: m.x, y: m.y, space: "outside" };
+    if (g.refuge && m.x === g.refuge.x && m.y === g.refuge.y) {
+      g.refuge = undefined;
+      g.route = undefined;
+      g.state = "rest";
+      g.since = clock;
+      g.nextDecisionAt = clock + 600 + world.rng(`fauna-${g.id}-lie`) * 1200;
+    }
+    return true;
+  };
+  /** The best cell within `r` for `want`, or undefined. */
+  const seek = (r: number, want: (c: Point) => boolean, score: (c: Point) => number) => {
+    let best: Point | undefined, top = -Infinity;
+    for (let y = -r; y <= r; y++)
+      for (let x = -r; x <= r; x++) {
+        const c = { x: m.x + x, y: m.y + y };
+        if ((!x && !y) || world.blocked(c.x, c.y) || world.occupied(c.x, c.y) || !want(c)) continue;
+        const s = score(c);
+        if (s > top) (best = c), (top = s);
+      }
+    return best;
+  };
+  if (near && d <= FOOTFALL) {
+    if (g.state === "flee" && g.refuge) return go(p.id === "black-mamba" ? 3 : 2);
+    if ((g.holds ?? 0) > clock) return false;
+    const away = world.rng(`fauna-${g.id}-slip`) < (SLIPS[p.id] ?? 0.5) &&
+      seek(6, (c) => cover(c) && hyp(c, near!) > d + 1.5, (c) => hyp(c, near!) - 0.5 * hyp(c, m));
+    if (!away) {
+      // Holds its ground for this meeting.
+      g.holds = clock + 120;
+      return false;
+    }
+    g.refuge = away;
+    g.state = "flee";
+    g.since = clock;
+    m.hidden = undefined;
+    return go(p.id === "black-mamba" ? 3 : 2);
+  }
+  g.holds = undefined;
+  if (g.refuge && g.state === "flee") g.state = "wander";
+  if (g.refuge) return go(1);
+  if (clock < g.nextDecisionAt && (g.state === "rest" || g.state === "idle")) return true;
+  const hot = (world.tempC ?? 20) >= 30 || !!world.rain;
+  const day = world.hour >= 7 && world.hour < 18.5;
+  const bask = p.activity !== "nocturnal" && day && !hot && !world.rain && (world.hour < 10.5 || world.hour >= 15);
+  const lieUp = resting(p, world.hour) || (day && hot && p.activity !== "nocturnal") || (p.activity === "nocturnal" && day);
+  if (!bask && !lieUp) return false;
+  // Basking: open ground in the sun, a body's length from cover.
+  const wanted = bask
+    ? (c: Point) => !cover(c) && NEIGHBOURS.some((n) => cover({ x: c.x + n.x, y: c.y + n.y }))
+    : cover;
+  if (wanted(m)) {
+    g.state = "rest";
+    g.since = clock;
+    g.nextDecisionAt = clock + 900 + world.rng(`fauna-${g.id}-lie`) * 1800;
+    return true;
+  }
+  g.refuge = seek(8, wanted, (c) => -hyp(c, m) + (world.habitat?.(p.id, c.x, c.y) ?? 0));
+  if (!g.refuge) return false;
+  g.state = "wander";
+  g.since = clock;
+  return go(1);
+}
+
 /** The threat before the attack: a dangerous animal the player comes too
  * near stops, faces them, shows them what it is (a bear up on its hind legs,
  * a cobra's hood, a hippo's gape), and gives them a moment to back away.
@@ -1516,6 +1621,7 @@ export function advanceFauna(
       g.burrowed = undefined;
     }
     if (g.rabid === undefined && /feral-dog|street-dog|pariah/.test(g.speciesId)) g.rabid = world.rng(`fauna-${g.id}-rabid`) < 0.03;
+    if (SNAKE.test(p.id) && snakeLife(g, p, world, clock, taken)) continue;
     if (raid(g, p, world, clock, taken, groups) || threaten(g, p, world, clock) || huntPlayer(g, p, world, clock, taken)) continue;
     // In the water an ambusher shows only its eyes until it comes.
     if (p.art.lurk)

@@ -32,6 +32,7 @@ export const WEATHER: Record<WeatherCondition, (k: Sky) => string[]> = {
       : [`in the ${s(k.season, "rain")}`, "with the rain coming down"],
   snow: () => ["with snow falling", "in the falling snow"],
   mist: (k) => [`in the ${s(k.season, "mist")}`, "with mist lying low on the ground"],
+  dust: () => ["with the wind full of dust", "in a dust storm"],
 };
 
 /** What to call the place, from the setting's form and size. */

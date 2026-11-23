@@ -3,6 +3,7 @@ import { createSession } from "../src/runtime/session";
 import type { PlayerCommand } from "../src/core/types";
 import { itineraryAt, type Itinerary } from "../src/core/itinerary";
 import type { TopographyCell } from "../src/core/topography";
+import { skySeed, weatherAt } from "../src/core/weather";
 
 it("accepts all eight directions, charges longer diagonals and prevents corner cutting", () => {
   const e = createSession("roman", "movement");
@@ -182,7 +183,7 @@ it("damages walked, traversed and jumped drops equally and leaves small steps sa
     const e = hazardField(`fall-${drop}-${JSON.stringify(style)}`);
     e.world.topography = (x) => ({ height: x <= 0 ? drop : 0, surface: "grass" });
     e.execute({ type: "move", dx: 1, dy: 0, ...style });
-    expect(e.state.player.health).toBe(drop === 1 ? 100 : 49);
+    expect(e.state.player.health).toBe(drop === 1 ? 100 : 39);
     expect(!!e.state.player.injury).toBe(drop > 1);
   }
 });
@@ -198,6 +199,30 @@ it("cushions falls onto sand and makes stone landings harder", () => {
   }
   expect(health[0]).toBeGreaterThan(health[1]);
   expect(health[1]).toBeGreaterThan(health[2]);
+});
+
+it("lightning strikes those up a tree far more often than in the open, and never in a car", () => {
+  const e = hazardField("lightning");
+  (e.world as { pack: unknown }).pack = { ...e.world.pack, setting: { ...e.world.pack.setting, climate: "monsoon", season: "summer", year: 1900 } };
+  const stormy: number[] = [];
+  for (let h = 0; stormy.length < 300 && h < 24 * 400; h++)
+    if (weatherAt(skySeed(e.state.manifest), "monsoon", "summer", h * 3600).storm > 0.6) stormy.push(h * 3600);
+  const p = e.state.player;
+  const struck = (setup: () => void) => stormy.filter((t) => {
+    p.dead = undefined;
+    p.health = 100;
+    p.perch = undefined;
+    setup();
+    e.signals.length = 0;
+    (e as unknown as { lightningExposure(s: number, t: number): void }).lightningExposure(3600, t);
+    return e.signals.some((x) => x.kind === "lightning");
+  }).length;
+  const tree = struck(() => (p.perch = { on: "tree", label: "the tree", rise: 24, drop: 5, at: { x: 1, y: 0 } }));
+  const open = struck(() => {});
+  expect(tree).toBeGreaterThan(open);
+  expect(tree).toBeGreaterThan(0);
+  p.drivingVehicle = "car";
+  expect(struck(() => {})).toBe(0);
 });
 
 it("ends a fatal fall without automatic recovery or healing through subsequent commands", () => {
@@ -260,7 +285,7 @@ it("offers a ford choice before moving and resolves the crossing using effective
   expect(act(cross).status).toBe("completed");
   expect(p.pos.x).toBe(1);
   expect(p.health).toBe(80);
-  expect(p.injury?.name).toBe("bruised knee");
+  expect(p.injury?.name).toBe("a bruised knee");
   expect(act(move).status).toBe("completed");
   expect(e.state.encounter).toBeUndefined();
   expect(p.pos.x).toBe(2);

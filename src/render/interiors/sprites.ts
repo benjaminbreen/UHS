@@ -5,6 +5,8 @@
  *   band   i I           (rope, iron or brass by finish, 2 and 4)
  *   lock   m M           (brass 3, 5)                   stone 0–5
  *   clay   6 7 8 9 +     (1–5)     straw  S D F G H     (1–5)
+ *   iron L N R (1,3,5)  leaf T–X (tob 1–5)  glass Y Z E  red B C  paper o p K
+ *   liquid A Q * (2,4,5)  delft blue = ~ (2,4)
  *   #      outline                 .      transparent
  * Light comes from the upper left. */
 export const SPRITES: Record<string, string[]> = {
@@ -14,6 +16,26 @@ export const SPRITES: Record<string, string[]> = {
     ".qytIttttttIteq.",
     ".qttIttttttIreq.",
     ".qrrIrrrrrrIreq.",
+    ".qqqqqqqqqqqqqq.",
+    ".qtIrrrmmrrrIeq.",
+    ".qtIrrmMMmrrIeq.",
+    ".qrIrrrmmrrrIeq.",
+    ".qrIrrrrrrrrIwq.",
+    ".qeIeeeeeeeeIwq.",
+    ".qwiwwwwwwwwiwq.",
+    ".qqqqqqqqqqqqqq.",
+    "..qq........qq..",
+  ],
+  "chest-open": [
+    "..qqqqqqqqqqqq..",
+    ".qtIeeeeeeeeIeq.",
+    ".qeIwwwwwwwwIwq.",
+    ".qeIwwwwwwwwIwq.",
+    ".qeIwwwwwwwwIwq.",
+    ".qqqqqqqqqqqqqq.",
+    ".qyyyyyyyyyyyyq.",
+    ".qtqkllkJqMmqeq.",
+    ".qtqJkkJqqmqqeq.",
     ".qqqqqqqqqqqqqq.",
     ".qtIrrrmmrrrIeq.",
     ".qtIrrmMMmrrIeq.",
@@ -450,6 +472,206 @@ export const SPRITES: Record<string, string[]> = {
     ".#teeeeeew#.",
     "..########..",
   ],
+  // A tobacconist's: a bank of drawers, jars of leaf, a crock, a tin, an open cigar box, scales, a cutting board, a cup of pipes, a bale of leaf.
+  box: [
+    "yyyyyyyyyy",
+    "ttKKCCKKte",
+    "trrrrrrrre",
+    "reeeeeeeew",
+  ],
+  pipe: [
+    ".....VW",
+    "kkkkkUV",
+    ".....UU",
+  ],
+  drawers: [
+    ".qqqqqqqqqqqqqqqqqqqqqqqqqqqqqq.",
+    "qyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyq",
+    "qttttttttttttttttttttttttttttttq",
+    "qwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwq",
+    ".qeeeeeeeeeeeeeeeeeeeeeeeeeeeeq.",
+    ".qwyttttttrwyttttttrwyttttttrwq.",
+    ".qwtrkkkkrewtrkkkkrewtrkkkkrewq.",
+    ".qwtrroorrewtrroorrewtrroorrewq.",
+    ".qwtrrMMrrewtrrMMrrewtrrMMrrewq.",
+    ".qwtrruurrewtrruurrewtrruurrewq.",
+    ".qweeeeeeeeweeeeeeeeweeeeeeeewq.",
+    ".qwwwwwwwwwwwwwwwwwwwwwwwwwwwwq.",
+    ".qwyttttttrwyttttttrwyttttttrwq.",
+    ".qwtrkkkkrewtrkkkkrewtrkkkkrewq.",
+    ".qwtrroorrewtrroorrewtrroorrewq.",
+    ".qwtrrMMrrewtrrMMrrewtrrMMrrewq.",
+    ".qwtrruurrewtrruurrewtrruurrewq.",
+    ".qweeeeeeeeweeeeeeeeweeeeeeeewq.",
+    ".qwwwwwwwwwwwwwwwwwwwwwwwwwwwwq.",
+    ".qwyttttttrwyttttttrwyttttttrwq.",
+    ".qwtrkkkkrewtrkkkkrewtrkkkkrewq.",
+    ".qwtrroorrewtrroorrewtrroorrewq.",
+    ".qwtrrMMrrewtrrMMrrewtrrMMrrewq.",
+    ".qwtrruurrewtrruurrewtrruurrewq.",
+    ".qweeeeeeeeweeeeeeeeweeeeeeeewq.",
+    ".qwwwwwwwwwwwwwwwwwwwwwwwwwwwwq.",
+    ".qwyttttttrwyttttttrwyttttttrwq.",
+    ".qwtrkkkkrewtrkkkkrewtrkkkkrewq.",
+    ".qwtrroorrewtrroorrewtrroorrewq.",
+    ".qwtrrMMrrewtrrMMrrewtrrMMrrewq.",
+    ".qwtrruurrewtrruurrewtrruurrewq.",
+    ".qweeeeeeeeweeeeeeeeweeeeeeeewq.",
+    ".qwwwwwwwwwwwwwwwwwwwwwwwwwwwwq.",
+    ".qwyyyyyyyyyyytwwyyyyyyyyyyytwq.",
+    ".qwytwwwwwwwwrewwytwwwwwwwwrewq.",
+    ".qwytwrrrrrrtrewwytwrrrrrrtrewq.",
+    ".qwytwrrrrrrtrewwytwrrrrrrtrewq.",
+    ".qwytwrrrrrrtMewwyMwrrrrrrtrewq.",
+    ".qwytwrrrrrrtrewwytwrrrrrrtrewq.",
+    ".qwyttttttttrrewwyttttttttrrewq.",
+    ".qweeeeeeeeeeeewweeeeeeeeeeeewq.",
+    ".qttttttttttttttttttttttttttttq.",
+    ".qeeeeeeeeeeeeeeeeeeeeeeeeeeeeq.",
+    "..qwq......................qwq..",
+    "..qqq......................qqq..",
+  ],
+  leafjar: [
+    "..uMMu..",
+    ".ummmmu.",
+    ".ZEZZYZ.",
+    "ZEVWWVUY",
+    "ZEWVUVUY",
+    "ZEVUVUTY",
+    "ZZUVUTUY",
+    "ZZUTUTTY",
+    ".YYYYYY.",
+  ],
+  crock: [
+    "...99...",
+    ".+99998.",
+    ".777776.",
+    "8+99988.",
+    "9+KKpo87",
+    "9+KBBo87",
+    "9+KKpo87",
+    "8+99887.",
+    ".888776.",
+  ],
+  tin: [
+    "LRRRRN",
+    "LNNNNL",
+    "BCCCBB",
+    "BKpKBB",
+    "BCCCBB",
+    "LNNNLL",
+  ],
+  cigarbox: [
+    "tttttttttt",
+    "tKKCCCCKKe",
+    "tKpBCCBpKe",
+    "tKKKKKKKKe",
+    "eeeeeeeeee",
+    "yyyyyyyyyy",
+    "tVUVUVUVUe",
+    "tUCUCUCUCe",
+    "tUTUTUTUTe",
+    "reeeeeeeew",
+  ],
+  scales: [
+    "......MM......",
+    "MMMMMMMMMMMMMM",
+    ".m....mu....m.",
+    ".m....mu....m.",
+    ".m....mu....m.",
+    "MMMm..mu..mMMM",
+    ".uuu..mu..uuu.",
+    "......mu......",
+    "......mu......",
+    "....MMmmuu....",
+    "...uuuuuuuu...",
+  ],
+  board: [
+    "............NL",
+    "...........NL.",
+    "tyyyyyyyyyRL..",
+    "tttWVUWVUNLtte",
+    "ttVWUVTUtttttr",
+    "reeeeeeeeeeeew",
+  ],
+  pipecup: [
+    ".K..K.K.",
+    ".k.Kk.k.",
+    "Kk.k..kK",
+    ".kk..kk.",
+    "ttttttte",
+    "tyyyyyre",
+    "tyrrrrre",
+    "trrrrree",
+    ".eeeeee.",
+  ],
+  bale: [
+    "....GwGHGHGHwS....",
+    "..HGHeHGHGHGeGHS..",
+    ".HGFGeGFGFGFeFGFS.",
+    "HGFGFeFGFGFGeGFGFS",
+    "GFGFGeGFGFGFeFGFGS",
+    "HGFGFeFGFGFGeGFGFS",
+    "eeeeeeeeeeeeeeeeee",
+    "HGFGFeFGFGFGeGFGFS",
+    "GFGFGeGFGFGFeFGFGS",
+    "DFDFDeDFDFDFeFDFDS",
+    "FDFDFeFDFDFDeDFDFS",
+    ".FDFDeDFDFDFeFDFS.",
+    "..SSSwSSSSSSwSSS..",
+  ],
+  // An apothecary's: a delft albarello, a show globe on its foot, a bell-metal mortar and pestle, a stand of phials.
+  albarello: [
+    "..kKKk..",
+    ".=kKKk=.",
+    ".=~~~~=.",
+    ".KKKKkp.",
+    "..K~=p..",
+    "..K=~p..",
+    ".KKKKkp.",
+    ".=~~~~=.",
+    ".KKKKkp.",
+    "..pppp..",
+  ],
+  carboy: [
+    ".....MM.....",
+    ".....mu.....",
+    "....YZZY....",
+    "....YEZY....",
+    "...YZZZZY...",
+    "..YZZZZZZY..",
+    ".YEZZZZZZZY.",
+    "YEQQQQQQQQAY",
+    "YE*QQQQQQQAY",
+    "YQ*QQQQQQAAY",
+    "YQQQQQQQAAAY",
+    ".YQQQQQAAAY.",
+    "..YAAAAAAY..",
+    "...YYYYYY...",
+    "...uMMMMu...",
+    "..uuuuuuuu..",
+  ],
+  mortar: [
+    "......5...",
+    ".....54...",
+    "....54....",
+    "MMMMMMMMMm",
+    "Mmuuuuuumu",
+    ".Mmmmmmmu.",
+    "..Mmmmmu..",
+    ".uMMMMmuu.",
+    ".uuuuuuuu.",
+  ],
+  phials: [
+    ".r.......",
+    ".Z..r....",
+    "ZEZ.Z..r.",
+    "ZAZZEZ.Z.",
+    "ZAZZBZZEZ",
+    "ZQZZCZZXZ",
+    "ZQZZCZZWZ",
+    ".Y..Y..Y.",
+  ],
 };
 
 /** Ramp and step for each letter; the renderer resolves the ramp names. */
@@ -463,5 +685,242 @@ export const LETTERS: Record<string, [string, number]> = {
   6: ["clay", 1], 7: ["clay", 2], 8: ["clay", 3], 9: ["clay", 4], "+": ["clay", 5],
   S: ["straw", 1], D: ["straw", 2], F: ["straw", 3], G: ["straw", 4], H: ["straw", 5],
   // Book spines and a pale page edge.
-  P: ["acc3", 4], O: ["acc3", 2], K: ["paper", 5],
+  P: ["acc3", 4], O: ["acc3", 2], K: ["paper", 5], o: ["paper", 2], p: ["paper", 3],
+  // Iron, cured leaf, glass, label red and dark brass.
+  L: ["iron", 1], N: ["iron", 3], R: ["iron", 5], u: ["brass", 1],
+  T: ["tob", 1], U: ["tob", 2], V: ["tob", 3], W: ["tob", 4], X: ["tob", 5],
+  Y: ["glass", 2], Z: ["glass", 4], E: ["glass", 5], B: ["red", 2], C: ["red", 4],
+  A: ["liq", 2], Q: ["liq", 4], "*": ["liq", 5], "=": ["delft", 2], "~": ["delft", 4],
 };
+/** Ramps that keep their own colour whatever the culture's palette. */
+export const FIXED: Record<string, number[]> = {
+  tob: [0x2a160a, 0x3a2010, 0x5a3416, 0x7a4a22, 0x9a6430, 0xb88448],
+  glass: [0x2a3a40, 0x4a6a70, 0x6a8a90, 0x80a0a6, 0x9ab8bc, 0xe0f0f0],
+  red: [0x3a0c08, 0x5a1410, 0x8a2018, 0xa02c20, 0xb83a2a, 0xd86a50],
+  liq: [0x0a2a18, 0x1a4a2a, 0x2a7a48, 0x389050, 0x44a860, 0x9ae0a0],
+  delft: [0x0c1838, 0x18285a, 0x24448a, 0x2e58a6, 0x3a6ac0, 0x8aa8e0],
+};
+
+/** A grid with some of its letters exchanged: the same tin in another label. */
+export const recolor = (rows: string[], map: Record<string, string>) => rows.map((row) => row.replace(/./g, (c) => map[c] ?? c));
+/** Grids laid onto one another at [x, y], later over earlier: a group drawn from its parts. */
+export function compose(w: number, h: number, parts: [string[], number, number][]) {
+  const out = Array.from({ length: h }, () => Array<string>(w).fill("."));
+  for (const [rows, x, y] of parts)
+    rows.forEach((row, j) => [...row].forEach((c, i) => { if (c !== "." && out[y + j]?.[x + i]) out[y + j][x + i] = c; }));
+  return out.map((row) => row.join(""));
+}
+/** A grid with a one-pixel line of `ch` drawn round it, so a pale piece keeps its shape against a pale floor. */
+export function outlined(rows: string[], ch: string) {
+  const g = ["", ...rows, ""].map((row) => "." + row.padEnd(rows[0].length, ".") + ".");
+  return g.map((row, j) => [...row].map((c, i) => (c === "." && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => (g[j + dy]?.[i + dx] ?? ".") !== ".") ? ch : c)).join(""));
+}
+
+const span = (l: string, mid: string, r: string, n: number) => l + mid.repeat(n) + r;
+const door = (wd: number, knob: number, tall = 8) => [
+  span("y", "t", "e", wd - 2),
+  span("y", "r", "e", wd - 2),
+  span("yr", "w", "re", wd - 4),
+  ...Array.from({ length: tall }, (_, j) => {
+    const row = span("yrw", "r", "tre", wd - 6);
+    return j === (tall >> 1) - 1 || j === tall >> 1 ? row.slice(0, knob) + "M" + row.slice(knob + 1) : row;
+  }),
+  span("yrw", "t", "ree", wd - 6),
+  span("y", "r", "e", wd - 2),
+  span("y", "e", "", wd - 1),
+];
+/** Cupboard doors for the base of a `cabinet`: a pair for a unit two tiles wide, one for a narrow unit. */
+export const cupboard = (w: number) => (w >= 32 ? door(14, 11).map((a, j) => a + door(14, 2)[j]) : door(w - 4, w - 7));
+/** A wall unit: a cornice, open bays of the given heights with a board under
+ * each, a ledge, a base and feet. Goods stand in a bay on row 4 + its height,
+ * plus two rows for each board above it. */
+export function cabinet(w: number, bays: number[], base: string[], back = "q") {
+  const n = w - 4;
+  return [
+    span(".q", "q", "q.", n), span("qy", "y", "yq", n), span("qt", "t", "rq", n), span(".q", "w", "q.", n),
+    ...bays.flatMap((h, k) => [...(k ? [span(".q", "y", "q.", n), span(".q", "e", "q.", n)] : []), ...Array<string>(h).fill(span(".qt", back, "eq.", n - 2))]),
+    span("qy", "y", "yq", n), span("qt", "t", "tq", n), span(".q", "w", "q.", n),
+    ...base.map((row) => ".q" + row + "q."),
+    span(".q", "t", "q.", n), span(".q", "e", "q.", n), span("..qq", ".", "qq..", n - 4),
+  ];
+}
+
+// What a household keeps on its dresser and sets on its table.
+Object.assign(SPRITES, {
+  dresser: cabinet(32, [12, 12], cupboard(32)),
+  dresser1: cabinet(16, [12, 12], cupboard(16)),
+  wardrobe: cabinet(32, [], door(14, 11, 30).map((a, j) => a + door(14, 2, 30)[j])),
+  wardrobe1: cabinet(16, [], door(12, 9, 30)),
+  plate: [
+    "..KKKK..",
+    ".KffffK.",
+    "KfKKKKfp",
+    "KfKKKKfp",
+    "KfKKKKfp",
+    "KfKKKKfp",
+    ".pffffp.",
+    "..pppp..",
+  ],
+  jug: [
+    ".+99...",
+    "..9877.",
+    "..98.7.",
+    ".+99877",
+    "+999876",
+    "+998876",
+    "+998876",
+    ".99876.",
+    "..876..",
+    ".98876.",
+  ],
+  mug: [
+    "RRRRN.",
+    "RNNNLN",
+    "RNNNLN",
+    "RNNNLN",
+    "RNNNL.",
+    "NLLLL.",
+  ],
+  bowl: [
+    "tyyyyyyr",
+    ".trrrre.",
+    "..weew..",
+  ],
+  loaf: [
+    "..GHHHG..",
+    ".GHDHDHF.",
+    "GHHHDHHFD",
+    "FGGGDGGFD",
+    ".DFFFFFD.",
+  ],
+  candlestick: [
+    "..l..",
+    "..l..",
+    "..k..",
+    "..k..",
+    "..k..",
+    ".MMM.",
+    "..m..",
+    "..m..",
+    "..m..",
+    ".mMm.",
+    "MMmuu",
+  ],
+  candlestand: [
+    "....l....",
+    "...kl....",
+    "...kk....",
+    "..NRRRN..",
+    "...NNL...",
+    ...Array<string>(13).fill("....NL..."),
+    "...NNLL..",
+    "..NN.NLL.",
+    ".NN..N.LL",
+    "LL...L..L",
+  ],
+});
+// A bed seen from its foot, the head to the wall: headboard, pillows on the sheet, a patchwork quilt, the footboard.
+// Three tiles long, so whoever lies in it fits; a single is two tiles wide, a double three.
+const pillow = [".llllllllll.", "llllllllllll", "lllllllllllk", "lkllllllllkk", "kkkkkkkkkkkj", ".jjjjjjjjjj."];
+const bedstead = (w: number, pillows: number[]) => compose(w, 52, [
+  [[
+    // Turned posts with a knob, an arched head between them with one carved line.
+    span(".y.", ".", ".y.", w - 6), span("ytr...", "q", "...ytr", w - 12), span("ytr.q", "y", "q.ytr", w - 10), span("qtrqy", "t", "rqqre", w - 10),
+    span("qtryt", "r", "reqre", w - 10), span("qtrytr", "w", "rreqre", w - 12), span("qtryt", "r", "reqre", w - 10), span("qtree", "e", "eeqre", w - 10),
+    ...Array<string>(7).fill(span(".qt", "k", "eq.", w - 6)),
+    span(".qt", "l", "eq.", w - 6), span(".qt", "j", "eq.", w - 6),
+    // Patchwork in two colours: each square lit along its top, the quilt darker down its right side and at the foot.
+    ...Array.from({ length: 30 }, (_, j) => ".qt" + Array.from({ length: w - 6 }, (_, i) => {
+      const a = (Math.floor(i / 6) + Math.floor(j / 6)) % 2 === 0, dim = i >= w - 9 || j >= 27;
+      return dim ? (a ? "d" : "x") : j % 6 === 0 ? (a ? "g" : "b") : a ? "f" : "v";
+    }).join("") + "eq."),
+    span(".y.", "y", ".y.", w - 6), span("ytr", "t", "ytr", w - 6), span("qtr", "r", "qre", w - 6), span("qre", "e", "qre", w - 6), span(".q.", ".", ".q.", w - 6),
+  ], 0, 0],
+  ...pillows.map((x): [string[], number, number] => [pillow, x, 8]),
+]);
+SPRITES["bed-double"] = bedstead(48, [8, 28]);
+SPRITES["bed-single"] = bedstead(32, [10]);
+// A cupboard stood end-on against a side wall: its top going back two tiles, the end panel below, the doors a strip down the room side.
+const endOn = (tall: number) => [
+  span("q", "q", "q", 14),
+  ...Array.from({ length: 20 }, (_, j) => span("qy", j % 7 === 6 ? "r" : "t", "ewq", 11)),
+  span("q", "e", "q", 14),
+  span("qy", "t", "wq", 12),
+  ...Array.from({ length: tall }, (_, j) => (j === 0 || j === tall - 1 ? span("qt", "w", "wq", 12) : "qtw" + "r".repeat(9) + (j === tall >> 1 ? "M" : "t") + "ewq")),
+  span("q", "e", "q", 14),
+  "qq" + ".".repeat(12) + "qq",
+];
+const mirror = (rows: string[]) => rows.map((row) => [...row].reverse().join(""));
+SPRITES["press-w"] = endOn(30);
+SPRITES["press-e"] = mirror(endOn(30));
+SPRITES["cupboard-w"] = endOn(16);
+SPRITES["cupboard-e"] = mirror(endOn(16));
+// An electric standard lamp: a fringed shade on a turned post.
+SPRITES.floorlamp = [
+  "...kkkkk...",
+  "..kllllkj..",
+  ".kllllllkj.",
+  "klllllllkjj",
+  "jjjjjjjjjjj",
+  ".j.j.j.j.j.",
+  ...Array<string>(13).fill(".....m....."),
+  "....mMm....",
+  "..uMMMMmu..",
+  "..uuuuuuu..",
+];
+SPRITES["plate-pewter"] = recolor(SPRITES.plate, { K: "R", f: "N", p: "L" });
+// Outlined in dark wood, so they keep their shape on a table top of the same brown.
+for (const name of ["plate", "plate-pewter", "jug", "mug", "bowl", "loaf", "candlestick"]) SPRITES[name] = outlined(SPRITES[name], "q");
+
+// A fireplace of dressed stone under a timber mantel: coursed blocks each lit along its top and left, the jambs
+// standing a step proud of the breast, an arched mouth ringed with voussoirs and a keystone, a slab at its foot.
+SPRITES.fireplace = [
+  span(".q", "y", "q.", 32), span("qy", "t", "rq", 32), span("qt", "r", "eq", 32), span(".q", "e", "q.", 32),
+  ...Array.from({ length: 40 }, (_, j) => ".." + Array.from({ length: 32 }, (_, i) => {
+    if (i === 0 || i === 31 || j === 39) return "0";
+    // The mouth: 18 wide from row 16, its head an arch four rows high.
+    const dx = Math.abs(i - 15.5), inMouth = j >= 16 && j < 38 && dx < 9 && !(j < 20 && dx > 9 - (20 - j) * 1.4);
+    if (inMouth) return "L";
+    const ring = j >= 14 && j < 38 && dx < 11 && !(j < 18 && dx > 11 - (18 - j) * 1.5);
+    if (ring) return j < 17 && dx < 1.5 ? "5" : (Math.floor(j / 3) + Math.floor(i / 3)) % 2 ? "4" : "5";
+    if (j >= 38) return i % 8 === 0 ? "1" : j === 38 ? "4" : "2";
+    const course = Math.floor(j / 5), row = j % 5, col = (i + (course % 2) * 4) % 8, proud = i < 7 || i > 24;
+    if (row === 4 || col === 0) return proud ? "2" : "1";
+    if (row === 0 || col === 1) return proud ? "5" : "4";
+    return proud ? "4" : (course * 3 + Math.floor((i + (course % 2) * 4) / 8)) % 4 === 0 ? "2" : "3";
+  }).join("") + ".."),
+];
+// A writing desk: a top with rounded corners and a little grain, two drawers under it, square legs.
+SPRITES.writingdesk = [
+  span("..", "q", "..", 26), span(".q", "y", "q.", 26),
+  ...Array.from({ length: 9 }, (_, j) => "qy" + Array.from({ length: 26 }, (_, i) => ((j === 3 && i > 3 && i < 10) || (j === 6 && i > 15 && i < 23) ? "r" : "t")).join("") + "rq"),
+  span("qt", "r", "eq", 26), span(".q", "w", "q.", 26),
+  ".qt" + "yttttttttttetyttttttttte".slice(0, 24) + "eq.",
+  ".qt" + "trrrrMMrrrretrrrrMMrrrre".slice(0, 24) + "eq.",
+  ".qt" + "teeeeeeeeeeeteeeeeeeeeee".slice(0, 24) + "eq.",
+  span(".q", "w", "q.", 26),
+  ...Array<string>(8).fill(span(".qtq", ".", "qeq.", 22)),
+  span(".qqq", ".", "qqq.", 22),
+];
+// Open shelves on two posts, the wall showing between the boards.
+const rack = (w: number) => [
+  ...Array.from({ length: 42 }, (_, j) => (j % 14 === 12 ? span("qy", "y", "yq", w - 4) : j % 14 === 13 ? span("qe", "e", "eq", w - 4) : span("qt", ".", "eq", w - 4))),
+  ...Array<string>(4).fill(span("qt", ".", "eq", w - 4)),
+];
+SPRITES.rack = rack(32);
+SPRITES.rack1 = rack(16);
+// Split logs stacked end-on, the rings showing.
+const log = [".qqq.", "qtttq", "qtytq", "qrrrq", ".qqq."];
+SPRITES.logs = compose(15, 13, [[log, 0, 8], [log, 5, 8], [log, 10, 8], [log, 3, 4], [log, 8, 4], [log, 5, 0]]);
+// A besom leant on the wall: a hazel handle, the twigs bound with a red tie.
+SPRITES.besom = [
+  ...Array<string>(18).fill("..tr..."),
+  ".qBCq..",
+  ".GHGF..",
+  ".GHGFD.",
+  "GHGFGD.",
+  "GHGFGFD",
+  "GHFGFGD",
+  "DGFDGFD",
+  ".D.D.D.",
+];

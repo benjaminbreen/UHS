@@ -13,6 +13,27 @@ import { resolveSetting } from "../src/content/geography/resolve";
 import { Autopilot } from "../src/runtime/autopilot";
 import { cellJobs } from "../src/core/work-places";
 
+function londonFarmSession(season?: "autumn") {
+  const start = resolveSetting("Farmer near London 1350", "strip");
+  if ("error" in start) throw new Error(start.error);
+  return createSettingSession(season ? { ...start.setting, season } : start.setting, "strip");
+}
+
+function londonGrainCart() {
+  const e = londonFarmSession();
+  const p = e.state.player, plan = (e.world as SettlementWorld).planAt(p.pos.x, p.pos.y)!;
+  const cart = plan.vehicles!.find(v => v.model === "farm-cart-pony" && v.farmOwner)!;
+  expect(cart, "a pony cart connects a grain farm to the market").toBeDefined();
+  const driver = e.state.actors.find(a => a.id === cart.crew[0])!;
+  const farm = e.state.households!.find(h => h.members.includes(cart.farmOwner!))!;
+  const buyer = {
+    id: "market-baker", members: [], storeId: "market-baker-store",
+    home: { ...cart.path[0], space: "outside" }, makes: ["bread"],
+  };
+  e.state.households!.push(buyer);
+  return { e, cart, driver, farm, buyer };
+}
+
 /** Farmland round a town: parcels exist, keep off the built ground, reach
  * a lane, and carry the system the culture and date imply. */
 describe("farmland", () => {
@@ -97,10 +118,8 @@ describe("farmland", () => {
     expect(s.economy!.work!.stage).toBe(3);
   });
   it("lets a player drive the pony cart, halt on the lane and return the same cart to its driver", () => {
-    const e = createSettingSession(panelSetting("london", 1350), "strip");
-    const p = e.state.player, plan = (e.world as SettlementWorld).planAt(p.pos.x, p.pos.y)!;
-    const cart = plan.vehicles!.find(v => v.model === "farm-cart-pony")!;
-    const driver = e.state.actors.find(a => a.id === cart.crew[0])!;
+    const { e, cart, driver, farm, buyer } = londonGrainCart();
+    const p = e.state.player;
     const drive = (cart.path.length - 1) / cart.speed;
     const cycle = 2 * drive + cart.waits[0] + cart.waits[1];
     e.state.clock = Math.ceil(cycle * (1 - cart.phase) + drive + 1);
@@ -131,7 +150,6 @@ describe("farmland", () => {
     e.advance(24);
     expect(driver.pos).not.toEqual(stopped);
 
-    const farm = e.state.households!.find(h => h.members.includes(cart.farmOwner!))!;
     e.state.economy = { hour: 9, short: {}, stock: { [farm.id]: { grain: 100 } } };
     const stop = (phase: number, pos: typeof p.pos) => {
       const minute = Math.ceil((e.state.clock + 1) / 60) * 60;
@@ -144,21 +162,18 @@ describe("farmland", () => {
     stop(drive + 2, { ...cart.path[cart.path.length - 1], space: "outside" });
     expect(driver.freight?.grain).toBe(12);
     expect(e.state.economy.stock[farm.id].grain).toBe(88);
-    const buyer = driver.freight!.to;
-    const beforeDelivery = e.state.economy.stock[buyer]?.grain ?? 0;
+    expect(driver.freight?.to).toBe(buyer.id);
+    const beforeDelivery = e.state.economy.stock[buyer.id]?.grain ?? 0;
     stop(2 * drive + cart.waits[0] + 2, { ...cart.path[0], space: "outside" });
     expect(driver.freight?.grain).toBe(0);
-    expect(e.state.economy.stock[buyer].grain).toBe(beforeDelivery + 12);
+    expect(e.state.economy.stock[buyer.id].grain).toBe(beforeDelivery + 12);
   });
   it("credits a carter's workday when the player delivers the consignment by hand", () => {
-    const e = createSettingSession({ ...panelSetting("london", 1350), season: "autumn" }, "strip");
-    const s = e.state, p = s.player, plan = (e.world as SettlementWorld).planAt(p.pos.x, p.pos.y)!;
-    const cart = plan.vehicles!.find(v => v.farmOwner)!;
-    const driver = s.actors.find(a => a.id === cart.crew[0])!;
-    const farm = s.households!.find(h => h.members.includes(cart.farmOwner!))!;
+    const { e, cart, driver, farm, buyer } = londonGrainCart();
+    const s = e.state, p = s.player;
     p.origin!.livelihood = "carter";
     s.clock = 9 * 3600;
-    s.economy = { hour: 9, short: {}, stock: { [farm.id]: { grain: 100 } } };
+    s.economy = { hour: 23, short: {}, stock: { [farm.id]: { grain: 100 } } };
     const { drive, phase } = vehicleSchedule(cart, s.clock);
     p.cartOffsets = { [cart.id]: drive + 1 - phase };
     p.pos = { ...cart.path[cart.path.length - 1], space: "outside" };
@@ -175,36 +190,40 @@ describe("farmland", () => {
     expect(driver.freight?.grain).toBe(12);
     work();
     expect(p.pos).toMatchObject(cart.path[0]);
-    const buyer = driver.freight!.to, before = s.economy.stock[buyer]?.grain ?? 0;
+    expect(driver.freight?.to).toBe(buyer.id);
+    const before = s.economy.stock[buyer.id]?.grain ?? 0;
     const unload = { type: "interact", target: driver.id, action: "unload-cart" } as const;
     expect(e.validate(unload)).toBeUndefined();
     e.execute(unload);
     work();
-    expect(s.economy.stock[buyer].grain).toBe(before + 12);
+    expect(s.economy.stock[buyer.id].grain).toBe(before + 12);
     expect(s.economy.work?.stage).toBe(3);
     expect(p.drivingCart).toBeUndefined();
   });
 
   it("hands a working ox team to the player and releases the same pair at the far headland", () => {
-    const e = createSettingSession({ ...panelSetting("london", 1350), season: "autumn" }, "strip");
+    const e = londonFarmSession("autumn");
     const p = e.state.player, plan = (e.world as SettlementWorld).planAt(p.pos.x, p.pos.y)!;
     const plough = plan.vehicles!.find(v => v.rowLength)!;
     const farmer = e.state.actors.find(a => a.id === plough.crew[0])!;
+    e.state.clock = 7 * 3600;
     p.pos = { ...farmer.pos, x: farmer.pos.x - 1 };
     e.populateNearby();
     const team = e.state.fauna!.find(g => g.hitch === plough.id)!;
     const members = team.members.map(m => m.n);
     expect(members).toHaveLength(2);
     const interact = (action: "guide-plough" | "yoke") => {
+      p.pos = { ...farmer.pos, x: farmer.pos.x - 1 };
       const command = { type: "interact" as const, action, target: farmer.id };
       expect(e.validate(command)).toBeUndefined();
       e.execute(command);
     };
     interact("yoke");
     expect(team.hitch).toBeUndefined();
+    team.pos = { ...farmer.pos };
+    team.members.forEach((member, i) => { member.x = farmer.pos.x; member.y = farmer.pos.y + i; });
     interact("yoke");
-    e.advance(24);
-    expect(farmer.plough!.step).toBeGreaterThan(0);
+    expect(team.hitch).toBe(plough.id);
     interact("guide-plough");
     const path = plough.path;
     let previous = farmer.plough!.step;
@@ -268,8 +287,19 @@ describe("farmland", () => {
     e.execute(plant);
     expect(field()).toMatchObject({ wet: true, crop: "rice", stage: "sown", owner: farmer.id });
     expect(e.state.economy.stock[farmer.householdId!].grain).toBe(29);
-    expect(e.state.economy.work.stage).toBe(2);
+    expect(e.state.economy.work.stage).toBe(1);
     expect(e.validate(plant)).toBeDefined();
+
+    for (const q of v.path.slice(1)) {
+      p.pos = { ...q, space: "outside" };
+      const patch = e.world.decoration(q.x, q.y)!;
+      const finish = { type: "interact", action: "sow-strip", target: patch.id } as const;
+      expect(e.validate(finish)).toBeUndefined();
+      e.execute(finish);
+    }
+    expect(v.path.every(q => e.world.topography!(q.x, q.y).field?.stage === "sown")).toBe(true);
+    expect(e.state.economy.stock[farmer.householdId!].grain).toBe(29);
+    expect(e.state.economy.work.stage).toBe(2);
   });
 
   it.each([

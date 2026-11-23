@@ -48,7 +48,7 @@ const kin = (id: string, years: [number, number], healer: number, fee: number): 
   choices: [
     {
       label: "Stay and look after {name}",
-      note: "takes half the day · {name} will remember it",
+      note: "takes half the day · {name} is grateful",
       then: [{ type: "minutes", n: 240 }, { type: "tend", odds: 0.3 }, { type: "regard", delta: 2 }],
       line: "You stayed with {name} through the worst of it.",
     },

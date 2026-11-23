@@ -2373,55 +2373,6 @@ export const layeredThemes: LayeredTheme[] = [
   },
 
   {
-    id: "notre-dame-organum",
-    title: "Organum at Notre Dame",
-    subtitle:
-      "One chant note held for ages under three voices in long-short dance rhythm; two of them swap phrases back and forth.",
-    place: "Paris, c. 1200",
-    culture: "european",
-    years: [1150, 1500],
-    evidence:
-      "Documented: Pérotin's four-voice organum (Viderunt omnes, 1198) in the Magnus Liber Organi, with a sustained chant tenor, upper voices in the rhythmic modes, and voice exchange between parts. It was sung; organ, recorder, vielle and pipe stand in for voices. The lines are original in that style.",
-    bpm: 240,
-    meter: 6,
-    bars: 32,
-    key: "D, first mode",
-    reverb: [0.5, 5.5],
-    layers: [
-      {
-        voice: "organ",
-        stem: "bass",
-        loop: "D3:48",
-        velocity: 0.1,
-      },
-      // Voice exchange: the same phrases, the second voice entering halfway through them.
-      {
-        voice: "strings",
-        stem: "melody",
-        loop: "A4:2 G4:1 F4:2 E4:1 D4:2 E4:1 F4:2 G4:1 D5:2 C5:1 A4:2 G4:1 A4:2 C5:1 D5:2 C5:1",
-        velocity: 0.24,
-        enter: 2,
-        pan: -0.3,
-      },
-      {
-        voice: "flute",
-        stem: "harmony",
-        loop: "A4:2 G4:1 F4:2 E4:1 D4:2 E4:1 F4:2 G4:1 D5:2 C5:1 A4:2 G4:1 A4:2 C5:1 D5:2 C5:1",
-        velocity: 0.2,
-        enter: 4,
-        pan: 0.3,
-      },
-      {
-        voice: "whistle",
-        stem: "harmony",
-        loop: "A5:2 G5:1 A5:3 D5:6",
-        velocity: 0.14,
-        enter: 16,
-        exit: 30,
-      },
-    ],
-  },
-  {
     id: "sygyt-caravan",
     title: "Sygyt over the pass",
     subtitle:
@@ -2574,71 +2525,6 @@ export const layeredThemes: LayeredTheme[] = [
         enter: 8,
         exit: 30,
         pan: 0.35,
-      },
-    ],
-  },
-  {
-    id: "capstan-shanty",
-    title: "Heave on the capstan",
-    subtitle:
-      "The shantyman's fiddle calls, the crew answers in octaves; pawls click, the hull creaks and the sea washes the deck.",
-    place: "An Atlantic whaler, c. 1840",
-    culture: ["european", "other-indigenous-american"],
-    years: [1800, 1950],
-    // Atlantic and North Sea ports and the Americas, not inland Europe.
-    lon: [-180, 10],
-    evidence:
-      "Documented: capstan and halyard shanties with solo and chorus (Richard Henry Dana, 1840; later collections by Terry and Hugill), fiddles and concertinas at sea, and the pawls that click as a capstan turns. The shanty is original.",
-    bpm: 240,
-    meter: 6,
-    bars: 32,
-    key: "D Dorian",
-    reverb: [0.15, 1.8],
-    layers: [
-      {
-        voice: "frame",
-        stem: "bass",
-        loop: "D2:3 -:3",
-        velocity: 0.3,
-      },
-      {
-        voice: "wood",
-        stem: "percussion",
-        loop: "G4:1 -:2 G4:1 -:2",
-        velocity: 0.07,
-        pan: 0.3,
-      },
-      {
-        voice: "guiro",
-        stem: "percussion",
-        loop: "C4:6 -:6",
-        velocity: 0.04,
-        pan: -0.35,
-      },
-      {
-        voice: "steam",
-        stem: "percussion",
-        loop: "C4:12",
-        velocity: 0.04,
-        pan: -0.2,
-      },
-      {
-        voice: "strings",
-        stem: "melody",
-        loop: "A4:2 A4:1 D5:2 D5:1 C5:2 A4:1 G4:3 -:12 D5:2 D5:1 E5:2 F5:1 E5:2 D5:1 C5:3 -:12",
-        velocity: 0.3,
-        enter: 2,
-        exit: 30,
-        pan: -0.15,
-      },
-      {
-        voice: "accordion",
-        stem: "harmony",
-        loop: "-:12 A3+A4:2 G3+G4:1 F3+F4:2 E3+E4:1 D3+D4:6 -:12 A3+A4:2 G3+G4:1 E3+E4:2 C3+C4:1 D3+D4:6",
-        velocity: 0.16,
-        enter: 2,
-        exit: 30,
-        pan: 0.15,
       },
     ],
   },

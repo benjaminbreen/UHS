@@ -415,7 +415,7 @@ const actor = z.object({
   techniques: z.array(z.enum(techniqueIds)).optional(),
   helped: z.partialRecord(z.enum(skillIds), z.number()).optional(),
   taught: z.array(z.enum(skillIds)).optional(),
-  injury: z.object({ name: z.string(), until: z.number(), open: z.boolean().optional(), since: z.number().optional(), cleanUntil: z.number().optional() }).optional(),
+  injury: z.object({ id: z.string().optional(), set: z.boolean().optional(), name: z.string(), until: z.number(), open: z.boolean().optional(), since: z.number().optional(), cleanUntil: z.number().optional() }).optional(),
   immune: z.record(z.string().max(40), z.number()).optional(),
   preparedFoodUntil: z.number().optional(),
   medicalStock: z.object({ antibiotic: z.number().int().nonnegative(), rehydration: z.number().int().nonnegative() }).optional(),
@@ -553,7 +553,8 @@ const object = z.object({
   market:z.object({kind:z.enum(marketKinds),store:z.string().optional()}).optional(),
   consignment: z.object({item,days:z.number().int().positive(),units:z.number().int().positive()}).optional(),
   hoistedAt: z.number().optional(),
-  motor: z.object({ facing:z.number().int().min(0).max(7), long:z.boolean(), taken:z.boolean().optional(), lastCall:z.number().int().optional(), handled:z.number().int().optional(), intakeDay:z.number().int().optional(), delay:z.number().optional(), yielding:z.boolean().optional() }).optional(),
+  car: z.object({ model:z.string(), paint:z.number().int(), rect:z.tuple([z.number(),z.number(),z.number(),z.number()]).optional(), freed:z.tuple([z.number(),z.number(),z.number(),z.number()]).optional(), fuel:z.number().optional(), dents:z.number().optional(), hot:z.boolean().optional(), yours:z.boolean().optional(), smashed:z.boolean().optional() }).optional(),
+  motor: z.object({ facing:z.number().int().min(0).max(7), long:z.boolean(), slim:z.number().int().optional(), taken:z.boolean().optional(), lastCall:z.number().int().optional(), handled:z.number().int().optional(), intakeDay:z.number().int().optional(), delay:z.number().optional(), yielding:z.boolean().optional() }).optional(),
   passage: z.object({ destination: point, back:z.boolean() }).optional(),
   mooring: point.optional(),
   freight: z.object({store:z.string(),call:z.number().int()}).optional(),
@@ -616,6 +617,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
       type: z.literal("move"),
       dx: z.number().int().min(-1).max(1),
       dy: z.number().int().min(-1).max(1),
+      heading: z.number().int().min(0).max(7).optional(),
       traverse: z.boolean().optional(),
       jump: z.enum(["short", "long"]).optional(),
       run: z.boolean().optional(),
@@ -724,6 +726,11 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
         "cycle-trick",
         "cycle-service",
         "buy-cycle",
+        "car-horn",
+        "car-crash",
+        "car-fuel",
+        "car-fare",
+        "car-busted",
         "dismount-animal",
         "spur-mount",
         "calm-mount",
@@ -771,6 +778,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
       // A dismount taken over an edge carries the side it goes off.
       dx: z.number().int().min(-1).max(1).optional(),
       dy: z.number().int().min(-1).max(1).optional(),
+      speed: z.number().min(0).max(60).optional(),
     })
     .strict(),
   z
@@ -884,6 +892,7 @@ const faunaGroup = z
             .optional(),
           name: z.string().optional(),
           pose: z.enum(faunaStates).optional(),
+          hidden: z.boolean().optional(),
         }),
       )
       .max(32),
@@ -928,6 +937,8 @@ const faunaGroup = z
     pasture: pos.optional(),
     route: z.array(point).optional(),
     fold: z.boolean().optional(),
+    refuge: point.optional(),
+    holds: z.number().optional(),
   })
   .strict();
 const lifeAim = z
@@ -1053,6 +1064,7 @@ export const snapshotSchema = z.object({
     .max(5000)
     .optional(),
   encounter: z.object({ card: z.string().max(64), at: pos, clock: z.number() }).strict().optional(),
+  later: z.array(z.object({ card: z.string().max(64), at: z.number(), who: z.string().max(100), asked: z.number().optional() }).strict()).max(50).optional(),
   care: z.object({ card: z.string().max(64), who: z.string().max(100), ailment: z.string().max(40), at: z.number() }).strict().optional(),
   economy: z
     .object({
@@ -1069,6 +1081,7 @@ export const snapshotSchema = z.object({
           pay: z.number().int().optional(),
           lines: z.array(z.string().max(300)).max(20).optional(),
           card: z.string().max(64).optional(),
+          who: z.string().max(100).optional(),
           done: z.boolean().optional(),
           drawn: z.number().int().optional(),
           catch: z.number().optional(),
@@ -1123,6 +1136,7 @@ export const snapshotSchema = z.object({
           kind: z.enum(["wed", "born", "died", "left", "joined", "built", "inherited", "moved", "fire", "good-year", "bad-year", "robbed"]),
           name: z.string().max(100).optional(),
           as: z.string().max(40).optional(),
+          cause: z.string().max(200).optional(),
         }).strict()).max(500).optional(),
         fortune: z.number().min(0).max(1).optional(),
         infants: z.number().int().nonnegative().max(100).optional(),
@@ -1311,6 +1325,8 @@ export const snapshotSchema = z.object({
         days: z.number(),
         course: z.enum(["mend", "linger", "die"]),
         tended: z.boolean().optional(),
+        cared: z.boolean().optional(),
+        asked: z.boolean().optional(),
         infection: z.object({
           exposed: z.number(), source: z.string(), route: z.string(),
           progress: z.number().nonnegative(), rest: z.number().nonnegative(), support: z.number().nonnegative(), strain: z.number().nonnegative(),
@@ -1362,7 +1378,7 @@ export const snapshotSchema = z.object({
         accepted: z.boolean().optional(),
         meet: z.object({ x: z.number(), y: z.number(), space: z.string().max(100) }).strict().optional(),
         task: z.string().max(120).optional(),
-        offered: z.boolean().optional(),
+        offered: z.number().optional(),
       }).strict(),
     )
     .max(20)

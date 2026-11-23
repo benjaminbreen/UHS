@@ -21,8 +21,9 @@ export type PropDef = {
   /** Occupies its ground tile while intact and on the ground. */
   solid?: boolean;
   container?: boolean;
-  /** Drawn with a lid: looking inside lifts it off, and it can go back on. */
-  lid?: boolean;
+  /** Drawn with a lid: looking inside lifts it off, and it can go back on.
+   * A pair names the two acts when it is not a lid (drawers pulled out and pushed shut). */
+  lid?: boolean | [string, string];
   /** Soft enough to fall into: walking into it puts you down in it, leaves
    * your print (its `-dented` frame) and costs a little health. */
   muck?: boolean;

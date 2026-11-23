@@ -14,6 +14,7 @@ const castOf = (c: PlotContext) => {
 export const flood: PlotTemplate = {
   id: "flood",
   shape: "world",
+  urgent: true,
   look: {
     emblem: "flood",
     palette: { ink: "#0c1216", fill: "#1c3440", edge: "#6a5a3e", light: "#e2eef2", accent: "#6aa8c0" },

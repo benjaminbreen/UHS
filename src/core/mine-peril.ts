@@ -185,11 +185,11 @@ export function perilTime(h: ComplexHost, level: SewerLevel, solid: Set<number>)
       let out = -1;
       for (let i = 0; i < free.length; i++) if (free[i] > 0 && !solid.has(i) && (out < 0 || free[i] < free[out])) out = i;
       if (out >= 0) pos.x = out % w, pos.y = Math.floor(out / w);
-      h.hurt(38, "a fall of roof", "crushed leg");
+      h.hurt(38, "a fall of roof", "broken-leg");
       h.event("The roof comes down on you in a roar of stone and dust. You drag yourself out from under it, your leg on fire.", "world");
       h.remember("The roof came down on you.");
     } else if (d <= size + 0.6) {
-      h.hurt(10, "falling stone", "cut scalp");
+      h.hurt(10, "falling stone", "cut");
       h.event("The roof comes down beside you with a roar, and a stone the size of a fist opens your scalp. Blood runs into your eyes, but you are clear.", "world");
       h.remember("The roof came down beside you, and a stone cut your head open.");
     } else if (p.near) {
@@ -204,7 +204,7 @@ export function perilTime(h: ComplexHost, level: SewerLevel, solid: Set<number>)
     for (let k = (p.last ?? -1) + 1; k <= now && p.hit === undefined; k++)
       if (p.cells[k] === here) {
         p.hit = k;
-        h.hurt(28, "a runaway tub", "cracked ribs");
+        h.hurt(28, "a runaway tub", "cracked-ribs");
         h.event("The tub hits you square and throws you against the side like a rag. You lie there, trying to breathe round your ribs.", "world");
         h.remember("A runaway tub hit you.");
       }

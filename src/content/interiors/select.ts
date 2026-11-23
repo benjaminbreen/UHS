@@ -54,6 +54,7 @@ const RULES: Rule[] = [
   { lon: [128, 147], lat: [30, 46], from: 700, to: 1945, pick: () => "japanese-minka" },
   { lon: [124, 131], lat: [33, 43.5], from: 900, to: 1945, pick: () => "korean-ondol-room" },
   { lon: [98, 123], lat: [18, 42], from: 900, to: 1912, pick: () => "ming-study" },
+  { lon: [98, 123], lat: [23, 42], from: -1100, to: 899, pick: (s) => (s.frame?.includes("-tiny-") || s.year < -500 ? "zhou-hut" : "qin-farmhouse") },
   { lon: [92, 130], lat: [-11, 23], from: -2000, to: 1960, pick: () => "stilt-house" },
   { lon: [68, 80], lat: [22, 31], from: 1500, pick: (s) => (urban(s) ? "rajasthani-haveli" : "gangetic-village-house") },
   { lon: [68, 92], lat: [8, 32], from: 1500, pick: () => "gangetic-village-house" },

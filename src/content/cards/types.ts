@@ -15,7 +15,18 @@ export type CardEffect =
   | { type: "forfeit" }
   /** With the card's person. */
   | { type: "regard"; delta: number }
-  | { type: "hurt"; n: number; cause: string; injury?: string }
+  /** Hands `n` of the day's goods to the card person's household: off the
+   * wage and into their store. */
+  | { type: "give"; n: number }
+  /** The card person's household owes yours `n` more. */
+  | { type: "credit"; n: number }
+  /** The card person's household pays what it owes yours. */
+  | { type: "collect" }
+  /** What the card person's household owes yours is let go. */
+  | { type: "forgive" }
+  /** `card` comes back with the same person in `days`. */
+  | { type: "later"; card: string; days: number }
+  | { type: "hurt"; n: number; cause: string; injury?: import("../health/injuries").InjuryId }
   /** The card's sick person is cared for: one in `odds` who were dying mend. */
   | { type: "tend"; odds: number }
   | { type: "care"; treatment: import("../health/infections").Treatment }
@@ -34,11 +45,16 @@ export type CardChoice = {
   label: string;
   /** What it costs, under the label. */
   note?: string;
-  /** Odds before the stat and skill are counted. */
-  check?: { stat: keyof Stats; skill?: SkillId; odds: number };
+  /** Odds before the stat and skill are counted; for a `debtor` check, before
+   * how well off the card person's household is. */
+  check?: { stat: keyof Stats; skill?: SkillId; odds: number } | { debtor: true; odds: number };
   then: CardEffect[];
   /** The sentence kept for the day's account. */
   line: string;
+  /** What the card person and anyone watching tell others the player did,
+   * before the person's name: "gave bread on credit to". Its tone is the
+   * choice's regard. */
+  word?: string;
   otherwise?: CardEffect[];
   otherwiseLine?: string;
 };
@@ -55,6 +71,13 @@ export type ChoiceCard = {
   who?: "boss" | "neighbour" | "client" | "official" | "patient";
   /** What they are to the player here, where their own trade would mislead. */
   as?: string;
+  /** Only when a neighbouring household is poor or short of bread or grain;
+   * the neighbour is one of them. */
+  hungry?: true;
+  /** Only while the card person's household owes the player's. */
+  owes?: true;
+  /** What is said and done if the card is never answered. */
+  lapse?: { line: string; regard?: number };
   scope?: CharacterScope;
   /** Only for this work: the activities whose days it belongs to. */
   work?: readonly string[];

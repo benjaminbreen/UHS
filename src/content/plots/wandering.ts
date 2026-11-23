@@ -19,6 +19,7 @@ const found = (where: string) => ({
 export const wandering: PlotTemplate = {
   id: "wandering",
   shape: "household",
+  urgent: true,
   look: {
     emblem: "path",
     palette: { ink: "#12120e", fill: "#262620", edge: "#5e5a44", light: "#efece0", accent: "#d8b070" },

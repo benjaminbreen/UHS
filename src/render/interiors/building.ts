@@ -1,6 +1,6 @@
 import { setOutRows } from "../../world/room-rows";
 import { resolveRoom, type RoomChoice } from "../../content/interiors/resolve";
-import type { InteriorProfile, RoomRole } from "../../content/interiors/types";
+import type { InteriorProfile, RoomRole, RoomTemplate } from "../../content/interiors/types";
 import { planRoom, roomMask, type Prop, type RoomParams, type Shape } from "./room";
 
 /** Rooms laid out on one grid: which room each cell belongs to, and each
@@ -18,18 +18,23 @@ export type RoomPlan = {
   doorways: Doorway[];
 };
 export type PlacedRoom = { label: string; role: RoomRole; x: number; y: number; w: number; d: number; private: boolean };
-export type Doorway = { cells: [number, number][]; from: number; to: number; private: boolean };
+/** `stairs` counts the rows of a flight from its head; `side` is a neck between neighbours, not a way through a back wall. */
+export type Doorway = { cells: [number, number][]; from: number; to: number; private: boolean; stairs?: number; side?: boolean };
 export type Building = { plan: RoomPlan; props: Prop[]; rooms: PlacedRoom[]; doorways: Doorway[] };
 
 /** A wall seen face-on is three tiles tall and capped: that many rows lie
- * between a room and the one behind it. A side wall is a single column. */
+ * between a room and the one behind it. Rooms round a court share a side
+ * wall a column thick; other neighbours stand `GAP` columns apart, joined by
+ * a short neck, and a floor stands `RISE` rows clear of the one below it. */
 const BEHIND = 4;
 const BESIDE = 1;
+const GAP = 3;
+const RISE = 7;
 const BACK: RoomRole[] = ["sleep", "store", "sanctum"];
 
 /** Which of a profile's rooms a household has: the humble make do with the
  * first living room and somewhere to sleep, the comfortable add the rest. */
-function roomsFor(profile: InteriorProfile, status: RoomChoice["status"]) {
+function roomsFor(profile: InteriorProfile, status: RoomChoice["status"], storeys = 1) {
   const all = (profile.rooms ?? []).map((t, i) => ({ t, i, role: t.role ?? (i === 0 ? "entry" : "hall") })).filter((r) => r.role !== "lobby");
   if (all.length < 2 || profile.uses) return all;
   // Nobody sleeps in the court.
@@ -39,38 +44,76 @@ function roomsFor(profile: InteriorProfile, status: RoomChoice["status"]) {
   if (!sleeps(all[0]) && bed) keep.push(bed);
   const rest = all.filter((r) => !keep.includes(r));
   keep.push(...rest.slice(0, [1, 2, rest.length][status]));
+  // A house with an upper floor has its chamber up there, whatever its means.
+  if (storeys > 1) keep.push(...all.filter((r) => r.role === "sleep" && !keep.includes(r)));
   return all.filter((r) => keep.includes(r));
 }
 
 /** The rooms of a household laid out on one grid, entered from below: round
  * a court where the house opens on one, else in rows. */
 export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building {
-  const chosen = roomsFor(profile, c.status);
+  const chosen = roomsFor(profile, c.status, c.storeys);
   if (chosen.length < 2) return single(profile, c, chosen[0]?.i);
-  // A public room is sized for its trade, not its keeper's means.
-  const k = profile.uses ? 1 : [0.8, 0.9, 1][c.status];
+  // A public room is sized for its trade, not its keeper's means; a house's rooms grow a little with the house outside.
+  const k = profile.uses ? 1 : [1.05, 1.15, 1.25][c.status] * (c.plot ? Math.min(1.15, Math.max(1, Math.sqrt(c.plot / 40))) : 1);
   // A shop, like a public room, is the size its trade needs.
   const boxes: Box[] = chosen.map(({ t, i, role }) => ({
     i,
     role,
     label: t.label,
     shape: t.shapes?.[0] ?? "rect",
-    w: Math.max(5, Math.round(t.size[0] * (t.program ? 1 : k))),
-    d: Math.max(4, Math.round(t.size[1] * (t.program ? 1 : k))),
+    w: Math.max(6, Math.round(t.size[0] * (t.program ? 1 : k))),
+    d: Math.max(5, Math.round(t.size[1] * (t.program ? 1 : k))),
     x: 0,
     y: 0,
   }));
   const court = boxes[0].shape === "courtyard" && boxes[0].w >= 9 && boxes[0].d >= 8 ? boxes[0] : undefined;
   const axial = profile.observance && boxes.length === 2 && boxes[1].role === "sanctum";
-  const { doorways, entry } = axial ? (() => {
+  // A building of two storeys or more sleeps upstairs: as many chambers as its size outside allows, three floors drawn at most.
+  const floors = court || axial || profile.observance || profile.institutionPlan === "corridor" || profile.institutionPlan === "court" ? 1 : Math.min(3, c.storeys ?? 1);
+  const up = floors > 1 ? boxes.filter((b) => b.role === "sleep") : [];
+  // How many chambers each upper floor has. A household: two, three in a large house, and a garret on a third floor. An inn fills each floor.
+  const each = Math.min(4, Math.max(2, Math.round((c.plot ?? 40) / 20)));
+  const levels = !up.length ? [] : profile.uses ? Array<number>(floors - 1).fill(each) : [(c.plot ?? 0) >= 90 ? 3 : 2, ...(floors > 2 ? [1] : [])];
+  if (up.length) {
+    const want = levels.reduce((a, n) => a + n, 0);
+    for (let n = up.length; n < want; n++) up.push({ ...up[n % up.length], label: up[0].label.replace(/ ?\d+$/, "") + " " + (n + 1) });
+    up.length = want;
+    for (const [n, b] of up.entries()) {
+      b.w = Math.min(b.w, 9);
+      b.d = Math.min(b.d, 7);
+      // The household's own bed, then a room of single beds for the children, then the garret under the roof.
+      if (!profile.uses) b.kind = n === 0 ? undefined : floors > 2 && n === want - 1 ? "garret" : "shared";
+      if (b.kind) b.label = b.kind === "garret" ? "Garret" : "Second chamber";
+    }
+  }
+  const ground = boxes.filter((b) => !up.includes(b));
+  // A passage is for a house of some size and means: four rooms or more in its profile, and not the poorest.
+  const hallway = !profile.institutionPlan && !court && !axial && ground.length >= 3 && (profile.rooms?.length ?? 0) >= 4 && c.status > 0 && profile.seating === "chair" && !ground.some((b) => profile.rooms?.[b.i].program) && c.seed % 3 !== 0;
+  const laid: { doorways: Link[]; entry: Box; more?: Box[] } = axial ? (() => {
     const [front, rear] = boxes;
     front.x = Math.max(0, (rear.w-front.w) >> 1);
     rear.x = Math.max(0, (front.w-rear.w) >> 1);
     front.y = rear.d + BEHIND;
     return {entry:front,doorways:[through(front,rear)]};
-  })() : profile.institutionPlan === "corridor" ? corridorPlan(boxes, c.seed) : profile.institutionPlan ? institutionRanges(boxes, c.seed, profile.institutionPlan === "court") : court ? aroundCourt(boxes, court, !!profile.observance) : inRows(boxes);
+  })() : ground.length === 1 ? { entry: ground[0], doorways: [] }
+    : profile.institutionPlan === "corridor" ? corridorPlan(ground, c.seed) : profile.institutionPlan ? institutionRanges(ground, c.seed, profile.institutionPlan === "court")
+    : court ? aroundCourt(ground, court, !!profile.observance) : hallway ? alongPassage(ground, c.seed) : inRows(ground, up.length > 0);
+  const { doorways, entry } = laid;
+  boxes.length = 0;
+  boxes.push(...ground, ...(laid.more ?? []));
+  if (up.length) {
+    const above = upstairs(boxes, up, levels, c.seed);
+    doorways.push(...above.doorways);
+    boxes.push(...above.boxes);
+  }
+  const left = Math.min(...boxes.map((b) => b.x)), high = Math.min(...boxes.map((b) => b.y));
+  for (const b of boxes) (b.x -= left), (b.y -= high);
+  for (const dw of doorways) for (const cell of dw.cells) (cell[0] -= left), (cell[1] -= high);
   const w = Math.max(...boxes.map((b) => b.x + b.w)), d = Math.max(...boxes.map((b) => b.y + b.d));
   const entrance = entry.x + Math.floor(entry.w / 2);
+  // The household's trade is worked in one room, not at a bench in each: its workroom, else the front room.
+  const works = boxes.find((b) => b.role === "work") ?? boxes.find((b) => b.role === "entry" && !b.t) ?? boxes[0];
   // Each room planned in its own coordinates, kept clear where a doorway meets it.
   const props: Prop[] = [];
   const mask = new Uint8Array(w * d), cells = new Int16Array(w * d).fill(-1);
@@ -89,11 +132,18 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
     }
     // A courtyard needs room to open: small ones are roofed over.
     const shape = b.shape === "courtyard" && (b.w < 9 || b.d < 8) ? "rect" : b.shape;
-    const params = resolveRoom(profile, { ...c, room: b.i, w: b.w, d: b.d, shape });
+    // Each room planned from its own seed, so two chambers of one template are not furnished alike; the house keeps one colourway.
+    const params = resolveRoom(b.t ? { ...profile, rooms: [b.t] } : profile, { ...c, trade: b === works ? c.trade : undefined, seed: c.seed + ri * 101, colorway: c.colorway >= 0 ? c.colorway : c.seed % 9973, room: b.t ? 0 : b.i, w: b.w, d: b.d, shape });
+    if (b.storey) params.storey = b.storey;
+    if (b.kind === "shared") (params.beds = 2), (params.styles = { ...params.styles, bed: "single" });
+    if (b.kind === "garret") (params.styles = { ...params.styles, bed: "single" }), (params.furnish = ["crate", "sacks", "chest", "basket"]), (params.finish = 0), (params.windows = 1);
     // Where the house has a room to sleep in, the others keep no beds unless their own template says so.
-    if ((boxes.some((o) => o.role === "sleep") && b.role !== "sleep" && profile.rooms?.[b.i].sleep === undefined) || b === court) params.sleep = "none";
+    if ((boxes.some((o) => o.role === "sleep") && b.role !== "sleep" && (b.t ?? profile.rooms?.[b.i])?.sleep === undefined) || b === court) params.sleep = "none";
     params.openings = openings;
     params.ports = ports;
+    params.role = b.role;
+    // The household eats in its kitchen or hall where it has one.
+    params.dines = b.role === "kitchen" || b.role === "hall" || (b.role === "entry" && !boxes.some((o) => o.role === "kitchen" || o.role === "hall"));
     if (b === entry) params.entrance = entrance - b.x;
     rooms.push(params);
     const planned = planRoom(params).filter((q) => q.kind !== "door");
@@ -112,7 +162,7 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
       cells[cy * w + cx] = boxes.indexOf(dw.b);
     }
   props.forEach((q, i) => (q.id = i));
-  const ways = doorways.map((dw) => ({ cells: dw.cells, from: boxes.indexOf(dw.a), to: boxes.indexOf(dw.b), private: dw.b.role === "sleep" || dw.a.role === "sleep" }));
+  const ways = doorways.map((dw) => ({ cells: dw.cells, from: boxes.indexOf(dw.a), to: boxes.indexOf(dw.b), private: dw.b.role === "sleep" || dw.a.role === "sleep", stairs: dw.stairs, side: dw.side }));
   return {
     plan: { w, d, mask, cells, rooms, entrance: [entrance, entry.y + entry.d - 1], doorways: ways },
     props,
@@ -121,8 +171,93 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
   };
 }
 
-type Box = { i: number; role: RoomRole; label: string; shape: Shape; w: number; d: number; x: number; y: number };
-type Link = { a: Box; b: Box; cells: [number, number][] };
+/** `t` is the template of a room the plan adds itself: a passage, a landing. */
+type Box = { i: number; t?: RoomTemplate; role: RoomRole; label: string; shape: Shape; w: number; d: number; x: number; y: number; storey?: number; kind?: "shared" | "garret" };
+type Link = { a: Box; b: Box; cells: [number, number][]; stairs?: number; side?: boolean };
+const PASSAGE: RoomTemplate = { id: "passage", label: "Passage", role: "hall", size: [4, 6], sleep: "none", fire: "none", windows: 0, program: "corridor", furnish: ["pegs", "frame"], clutter: [] };
+const LANDING: RoomTemplate = { id: "landing", label: "Landing", role: "hall", size: [6, 3], sleep: "none", fire: "none", windows: 1, program: "corridor", furnish: ["frame", "chest"], clutter: [] };
+
+/** A passage from the street door to the back of the house, the rooms opening
+ * off it to either side: those kept for company by the door, the kitchen and
+ * stores at the far end. */
+function alongPassage(rooms: Box[], seed: number) {
+  const rank: Partial<Record<RoomRole, number>> = { entry: 0, hall: 1, work: 2, kitchen: 3, store: 4 };
+  const order = [...rooms].sort((a, b) => (rank[a.role] ?? 2) - (rank[b.role] ?? 2));
+  const sides = [order.filter((_, n) => n % 2 === (seed >> 2) % 2), order.filter((_, n) => n % 2 !== (seed >> 2) % 2)];
+  const tall = (list: Box[]) => list.reduce((n, b) => n + b.d + BEHIND, -BEHIND);
+  const hall: Box = { i: -1, t: PASSAGE, role: "hall", label: PASSAGE.label, shape: "rect", w: 4, d: Math.max(6, ...sides.map(tall)), x: Math.max(0, ...sides[0].map((b) => b.w)) + GAP, y: 0 };
+  const doorways: Link[] = [];
+  sides.forEach((list, east) => {
+    let foot = hall.d;
+    for (const b of list) {
+      b.y = foot - b.d;
+      b.x = east ? hall.x + hall.w + GAP : hall.x - GAP - b.w;
+      foot = b.y - BEHIND;
+      doorways.push(east ? beside(hall, b) : beside(b, hall));
+    }
+  });
+  // The passage ends two paces past its last door, not at the back of the deepest room.
+  const head = Math.max(0, Math.min(...doorways.flatMap((dw) => dw.cells.map((cell) => cell[1]))) - 2);
+  hall.y = head;
+  hall.d -= head;
+  return { entry: hall, doorways, more: [hall] };
+}
+
+/** The floors above, each standing clear of the one below and joined to it
+ * by a flight in its own neck. A floor of one or two chambers is a landing
+ * with a chamber to either side; a floor of more is a gallery with its
+ * chambers in a row behind it, parted in the middle where the next flight
+ * goes up between them. */
+function upstairs(ground: Box[], up: Box[], levels: number[], seed: number) {
+  const top = Math.min(...ground.map((b) => b.y));
+  const tops = ground.filter((b) => b.y === top && b.shape === "rect");
+  let below = ground.find((b) => b.t === PASSAGE) ?? tops.find((b) => b.role === "hall" || b.role === "entry") ?? tops[seed % tops.length] ?? ground[0];
+  // The flight leaves by the back wall: from the head of a passage, else clear of the room's corners.
+  let px = below.t === PASSAGE ? below.x + 1 : below.x + 2 + ((seed >> 3) % Math.max(1, below.w - 5));
+  let roof = top, taken = 0;
+  const boxes: Box[] = [], doorways: Link[] = [];
+  for (const [n, count] of levels.entries()) {
+    const f = n + 1, rooms = up.slice(taken, taken + count), more = n + 1 < levels.length, foot = roof - RISE;
+    taken += count;
+    const landing: Box = { i: -1, t: LANDING, role: "hall", label: LANDING.label, shape: "rect", w: 6, d: 5, x: px - 2, y: foot - 5, storey: f };
+    let next = landing.x + 2;
+    if (rooms.length <= 2) {
+      rooms.forEach((b, east) => {
+        b.x = east ? landing.x + landing.w + GAP : landing.x - GAP - b.w;
+        b.y = foot - b.d;
+        doorways.push(east ? beside(landing, b) : beside(b, landing));
+      });
+    } else {
+      // A slot four columns wide between the middle chambers leaves the next flight its way up.
+      const half = Math.ceil(rooms.length / 2), slot = more ? 4 : GAP;
+      const wide = rooms.reduce((a, b) => a + b.w + GAP, -GAP) - GAP + slot;
+      const before = rooms.slice(0, half).reduce((a, b) => a + b.w + GAP, -GAP);
+      landing.d = 4;
+      landing.y = foot - 4;
+      landing.w = Math.max(wide, 8);
+      landing.x = more ? px - before - 1 : px + 1 - (landing.w >> 1);
+      let x = landing.x;
+      rooms.forEach((b, k) => {
+        b.x = x;
+        b.y = landing.y - BEHIND - b.d;
+        x += b.w + (k === half - 1 ? slot : GAP);
+        doorways.push(through(landing, b));
+      });
+      next = landing.x + before + 1;
+    }
+    for (const b of rooms) b.storey = f;
+    const head = Math.min(landing.y, ...rooms.map((b) => b.y));
+    // Up from the room below: along a passage between the chambers where it has them behind it, then the flight.
+    const cells: [number, number][] = [];
+    for (let y = foot; y < below.y; y++) cells.push([px, y], [px + 1, y]);
+    doorways.push({ a: below, b: landing, cells, stairs: RISE });
+    boxes.push(landing, ...rooms);
+    below = landing;
+    px = next;
+    roof = head;
+  }
+  return { boxes, doorways };
+}
 /** A doorway up through the wall between a room and the one behind it. */
 function through(under: Box, b: Box): Link {
   const lo = Math.max(b.x, under.x) + 1, hi = Math.min(b.x + b.w, under.x + under.w) - 3;
@@ -132,7 +267,7 @@ function through(under: Box, b: Box): Link {
 /** A doorway through the side wall between neighbours, near the foot of the shorter. */
 function beside(a: Box, b: Box): Link {
   const y = Math.max(a.y, b.y) + Math.min(a.y + a.d, b.y + b.d) - Math.max(a.y, b.y) - 2;
-  return { a, b, cells: [[a.x + a.w, y - 1], [a.x + a.w, y]] };
+  return { a, b, side: true, cells: Array.from({ length: b.x - a.x - a.w }, (_, g) => [[a.x + a.w + g, y - 1], [a.x + a.w + g, y]] as [number, number][]).flat() };
 }
 /** Whichever of these a room behind them most overlaps. */
 function below(b: Box, under: Box[]) {
@@ -145,11 +280,11 @@ function institutionRanges(boxes: Box[], seed: number, court: boolean) {
   if (seed % 2) wings.reverse();
   for (const wing of wings) wing.d += (seed >>> (wing.i % 8)) % 3;
   const front = court ? [wings.shift()!, entry, wings.pop()!] : [entry];
-  if (!court) entry.w = wings.reduce((n, b) => n + b.w + BESIDE, -BESIDE);
+  if (!court) entry.w = wings.reduce((n, b) => n + b.w + GAP, -GAP);
   for (const b of front) b.d = entry.d;
   const rows = [front, wings].map(row => ({
     deep: Math.max(...row.map(b => b.d)) + BEHIND,
-    slots: row.map(b => ({ b, wide: b.w + BESIDE, deep: b.d + BEHIND, hold: "s" as const })),
+    slots: row.map(b => ({ b, wide: b.w + GAP, deep: b.d + BEHIND, hold: "s" as const })),
   }));
   setOutRows(rows, 0, ({ b }, x, y) => { b.x = x; b.y = y; });
   const left = Math.min(...boxes.map(b => b.x));
@@ -185,18 +320,18 @@ function corridorPlan(boxes: Box[], seed: number) {
     const topD = Math.max(...upper.map((b) => b.d));
     const midD = Math.max(...midNorth.map((b) => b.d));
     const hallY = topD + BEHIND + midD + BEHIND;
-    const hallW = midNorth.reduce((n, b) => n + b.w + BESIDE, -BESIDE);
+    const hallW = midNorth.reduce((n, b) => n + b.w + GAP, -GAP);
     hall.x = 0; hall.y = hallY; hall.w = Math.max(hallW, entry.w + 6); hall.d = 4;
     let mx = 0;
     for (const b of midNorth) {
-      b.x = mx; b.y = hallY - BEHIND - b.d; mx += b.w + BESIDE;
+      b.x = mx; b.y = hallY - BEHIND - b.d; mx += b.w + GAP;
       doorways.push(through(hall, b));
     }
     // Upper wing sits above the landing: right suite opens through the landing, left suite opens beside it or through the landing.
     landing.w = Math.max(landing.w, upper[0].w);
     upper[1].x = landing.x;
     upper[1].y = landing.y - BEHIND - upper[1].d;
-    upper[0].x = Math.max(0, upper[1].x - upper[0].w - BESIDE);
+    upper[0].x = Math.max(0, upper[1].x - upper[0].w - GAP);
     upper[0].y = landing.y - BEHIND - upper[0].d;
     doorways.push(through(landing, upper[1]));
     doorways.push(beside(upper[0], upper[1]));
@@ -204,10 +339,10 @@ function corridorPlan(boxes: Box[], seed: number) {
     const southY = hallY + hall.d + BEHIND;
     let sx = 0;
     for (const b of southRow) {
-      b.x = sx; b.y = southY; b.d = entry.d; sx += b.w + BESIDE;
+      b.x = sx; b.y = southY; b.d = entry.d; sx += b.w + GAP;
       doorways.push(through(b, hall));
     }
-    hall.w = Math.max(hall.w, sx - BESIDE);
+    hall.w = Math.max(hall.w, sx - GAP);
     return { entry, doorways };
   }
 
@@ -222,7 +357,7 @@ function corridorPlan(boxes: Box[], seed: number) {
     const spineH = Math.max(stackH(west), stackH(east), 10);
     const westW = west.length ? Math.max(...west.map((b) => b.w)) : 0;
     const spineW = 4;
-    const hallX = westW ? westW + BESIDE : 0;
+    const hallX = westW ? westW + GAP : 0;
     const hallY = cap.d + BEHIND;
     hall.x = hallX; hall.y = hallY; hall.w = spineW; hall.d = spineH;
     cap.x = hallX + Math.floor((spineW - cap.w) / 2);
@@ -231,16 +366,16 @@ function corridorPlan(boxes: Box[], seed: number) {
     doorways.push(through(hall, cap));
     let wy = hallY;
     for (const b of west) {
-      b.x = hallX - BESIDE - b.w; b.y = wy; wy += b.d + BEHIND;
+      b.x = hallX - GAP - b.w; b.y = wy; wy += b.d + BEHIND;
       doorways.push(beside(b, hall));
     }
     let ey = hallY;
     for (const b of east) {
-      b.x = hallX + spineW + BESIDE; b.y = ey; ey += b.d + BEHIND;
+      b.x = hallX + spineW + GAP; b.y = ey; ey += b.d + BEHIND;
       doorways.push(beside(hall, b));
     }
     const totalW = Math.max(
-      hallX + spineW + (east.length ? BESIDE + Math.max(...east.map((b) => b.w)) : 0),
+      hallX + spineW + (east.length ? GAP + Math.max(...east.map((b) => b.w)) : 0),
       cap.x + cap.w,
       entry.w,
     );
@@ -258,21 +393,21 @@ function corridorPlan(boxes: Box[], seed: number) {
   const left = south.slice(0, Math.floor(south.length / 2));
   const right = south.slice(left.length);
   const front = [...left, entry, ...right];
-  const northW = north.reduce((n, b) => n + b.w + BESIDE, -BESIDE);
-  const frontW = front.reduce((n, b) => n + b.w + BESIDE, -BESIDE);
+  const northW = north.reduce((n, b) => n + b.w + GAP, -GAP);
+  const frontW = front.reduce((n, b) => n + b.w + GAP, -GAP);
   const totalW = Math.max(northW, frontW);
   const northD = Math.max(...north.map((b) => b.d));
   const hallY = northD + BEHIND;
   hall.x = 0; hall.y = hallY; hall.w = totalW; hall.d = 4;
   let nx = Math.floor((totalW - northW) / 2);
   for (const b of north) {
-    b.x = nx; b.y = hallY - BEHIND - b.d; nx += b.w + BESIDE;
+    b.x = nx; b.y = hallY - BEHIND - b.d; nx += b.w + GAP;
     doorways.push(through(hall, b));
   }
   const southY = hallY + hall.d + BEHIND;
   let fx = Math.floor((totalW - frontW) / 2);
   for (const b of front) {
-    b.x = fx; b.y = southY; b.d = entry.d; fx += b.w + BESIDE;
+    b.x = fx; b.y = southY; b.d = entry.d; fx += b.w + GAP;
     doorways.push(through(b, hall));
   }
   return { entry, doorways };
@@ -280,12 +415,12 @@ function corridorPlan(boxes: Box[], seed: number) {
 
 /** Public rooms in a row along the front, top-aligned so the back wall runs
  * level; sleeping rooms and stores behind, stores behind the kitchen. */
-function inRows(boxes: Box[]) {
-  const front = boxes.filter((b) => !BACK.includes(b.role));
-  const back = boxes.filter((b) => BACK.includes(b.role));
+function inRows(boxes: Box[], flat = false) {
+  const front = boxes.filter((b) => flat || !BACK.includes(b.role));
+  const back = boxes.filter((b) => !flat && BACK.includes(b.role));
   if (!front.length) front.push(back.shift()!);
   let x = 0;
-  for (const b of front) (b.x = x), (x += b.w + BESIDE);
+  for (const b of front) (b.x = x), (x += b.w + GAP);
   const rowTop = back.length ? Math.max(...back.map((b) => b.d)) + BEHIND : 0;
   for (const b of front) b.y = rowTop;
   const parent = (b: Box) => (b.role === "store" && front.find((f) => f.role === "kitchen")) || front[0];
@@ -295,11 +430,11 @@ function inRows(boxes: Box[]) {
   for (const b of back) {
     b.x = Math.max(bx, parent(b).x);
     b.y = rowTop - BEHIND - b.d;
-    bx = b.x + b.w + BESIDE;
+    bx = b.x + b.w + GAP;
     doorways.push(through(below(b, front), b));
   }
   for (const row of [front, back])
-    for (let n = 1; n < row.length; n++) if (row[n].x === row[n - 1].x + row[n - 1].w + BESIDE) doorways.push(beside(row[n - 1], row[n]));
+    for (let n = 1; n < row.length; n++) if (row[n].x === row[n - 1].x + row[n - 1].w + GAP) doorways.push(beside(row[n - 1], row[n]));
   return { doorways, entry: front[0] };
 }
 

@@ -66,7 +66,7 @@ export function WorkCard({ runtime, onDetails, carded, onFieldAction }: { runtim
   const late = hours !== undefined && plan.deadline !== undefined && engine.state.clock < plan.deadline &&
     engine.state.clock + hours * 3600 > plan.deadline;
   const coarse = matchMedia("(pointer: coarse)").matches;
-  const progress = gather && !gather.choosing ? `${gather.count}/${BASKET_SIZE} handfuls · ${gather.label}` : pass && field?.words && (coarse
+  const progress = plan.coming ? `${plan.coming} is coming over` : gather && !gather.choosing ? `${gather.count}/${BASKET_SIZE} handfuls · ${gather.label}` : pass && field?.words && (coarse
     ? `${pass.count}/${pass.count + pass.cells.length} ${field.words.unit.split(" ")[0]}`
     : `${pass.count} of ${pass.count + pass.cells.length} ${field.words.unit}`);
   const walking = runtime.autopilot?.plan.kind === "go";
@@ -85,7 +85,7 @@ export function WorkCard({ runtime, onDetails, carded, onFieldAction }: { runtim
     <button className="primary" onClick={() => runtime.autopilot ? runtime.stop() : runtime.setOff({ kind: "workday" })}>
       {runtime.autopilot ? "Stop" : "Hunt"}
     </button>
-  ) : finished || (plan.waiting && carded) ? undefined
+  ) : finished || (plan.waiting && (carded || plan.coming)) ? undefined
     : plan.waiting ? (
       <button className="primary" onClick={() => { engine.reofferCard(); runtime.emit(false); }} aria-label="Answer" title="Answer">
         <MessageCircle size={14} />

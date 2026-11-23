@@ -59,7 +59,8 @@ export function keepsShop(pack: Pack, actor: Actor) {
 
 /** The day's stock, the same for the same person on the same day. Someone
  * with no trade to stock from sells what they have about them. A merchant
- * brings mostly what the place `lacks`, and a little of everything else. */
+ * brings mostly what the place `lacks`, and a little of everything else.
+ * `counter` is what the shop they keep sells, on top of their own trade. */
 export function stockFor(
   pack: Pack,
   seed: string,
@@ -68,9 +69,10 @@ export function stockFor(
   coined: boolean,
   item: (id: ItemId) => ItemDef | undefined,
   lacks: ItemId[] = [],
+  counter: string[] = [],
 ): Shop {
   const roll = (...k: (string | number)[]) => random(seed, "shop", actor.id, day, ...k);
-  const goods = goodsOf(livelihoodOf(pack, actor), pack.setting?.economyRevision);
+  const goods = [...new Set([...counter, ...goodsOf(livelihoodOf(pack, actor), pack.setting?.economyRevision)])];
   const ids = new Set<ItemId>(goods.flatMap((g) => SHELF[g] ?? []));
   const setting = pack.setting;
   // An alehouse kept tobacco and pipes for its drinkers.

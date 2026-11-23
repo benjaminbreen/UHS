@@ -24,7 +24,7 @@ export const FARM_CARDS: ChoiceCard[] = [
       },
       {
         label: "Ask {name} to lend a hand",
-        note: "you'll owe them a day's work, and a meal today",
+        note: "costs a meal and some of your pay",
         then: [{ type: "day", delta: 1 }, { type: "pay", delta: -1 }, { type: "minutes", n: 30 }],
         line: "{Name} came over to help, and now you owe them a day's work.",
       },
@@ -140,7 +140,8 @@ export const FARM_CARDS: ChoiceCard[] = [
       },
       {
         label: "Pen one of the animals until they pay",
-        note: "they'll pay, but resent it · the animal may get away",
+        note: "they'll pay, but tell people · the animal may get away",
+        word: "penned an animal belonging to",
         check: { stat: "agility", skill: "animals", odds: 0.5 },
         then: [{ type: "regard", delta: -2 }],
         line: "You penned one of {name}'s animals until they paid for the damage.",
@@ -169,7 +170,7 @@ export const FARM_CARDS: ChoiceCard[] = [
       },
       {
         label: "Ask the neighbours to help",
-        note: "you'll owe them beer and a day's work",
+        note: "costs beer and some of your pay",
         then: [{ type: "day", delta: 1 }, { type: "minutes", n: 30 }, { type: "pay", delta: -1 }, { type: "fatigue", n: 5 }],
         line: "The neighbours came out, and the harvest was in before the worst of the rain. Now you owe them.",
       },
@@ -262,7 +263,8 @@ export const FARM_CARDS: ChoiceCard[] = [
       },
       {
         label: "Hide a basket before he comes in",
-        note: "if he finds it, he takes extra and remembers you",
+        note: "if he finds it, he takes extra and tells people",
+        word: "was caught hiding grain from",
         check: { stat: "agility", odds: 0.45 },
         then: [],
         line: "You hid a basket before the collector counted.",
@@ -390,7 +392,7 @@ export const FARM_CARDS: ChoiceCard[] = [
         check: { stat: "strength", skill: "hunting", odds: 0.4 },
         then: [{ type: "day", delta: 1 }, { type: "fatigue", n: 10 }],
         line: "You tracked the animal and drove it off.",
-        otherwise: [{ type: "hurt", n: 20, cause: "a wild animal", injury: "bitten arm" }],
+        otherwise: [{ type: "hurt", n: 20, cause: "a wild animal", injury: "bite" }],
         otherwiseLine: "You went after the animal, and it turned on you.",
       },
     ],
@@ -444,7 +446,7 @@ export const FARM_CARDS: ChoiceCard[] = [
       },
       {
         label: "Run for someone who knows what to do",
-        note: "both saved · an hour, and you'll owe them a gift",
+        note: "both saved · an hour, and a gift for their help",
         then: [{ type: "minutes", n: 60 }, { type: "pay", delta: -1 }],
         line: "You ran for help, and between you both were saved.",
       },

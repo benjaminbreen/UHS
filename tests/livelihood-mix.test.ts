@@ -51,6 +51,17 @@ describe("who does what in a settlement", () => {
     }
   });
 
+  it("has women keep house and men hunt, mostly", () => {
+    const s = settingFor("Jeddah 1643");
+    const ctx = resolveCharacterContext(s);
+    const draw = (sex: "female" | "male") =>
+      Array.from({ length: 200 }, (_, i) => characterLivelihood(s, "home", `p${i}`, undefined, ctx, sex, "free", 35).id);
+    const women = draw("female");
+    expect(women.filter((id) => id === "homemaker").length / 200).toBeGreaterThan(0.2);
+    expect(draw("male")).not.toContain("homemaker");
+    expect(ctx.livelihoods.find((l) => l.id === "hunter")?.sexShare).toBeLessThan(0.2);
+  });
+
   it("does not give every adult a different trade", () => {
     for (const q of PLACES) {
       const s = settingFor(q);
@@ -221,7 +232,7 @@ describe("work that needs what the place had", () => {
     const kano = ids("Kano 1850");
     for (const id of ["policeman", "postman", "milliner", "mill-worker", "nurse"])
       expect(kano.has(id), `${id} in Kano 1850`).toBe(false);
-    expect(ids("London 1600").has("journeyman")).toBe(true);
+    expect(drawn("London 1600", 600).some((l) => l.id === "journeyman")).toBe(true);
   });
 
   it("keeps sea work on the sea and desert herds in the desert", () => {

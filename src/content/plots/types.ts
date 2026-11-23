@@ -120,6 +120,8 @@ export type PlotTemplate = {
   };
   /** Who takes payment toward `owed`; the creditor when unset. */
   payee?: PlotRole;
+  /** An emergency: its people and questions break in on work and on anyone else's visit. */
+  urgent?: true;
   opening: Effect[];
   developments: { id: string; when: Condition; then: Effect[] }[];
   /** The first discovery opens the plot. Later notes reveal only the roles the player has learned about. */

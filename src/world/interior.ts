@@ -7,6 +7,7 @@ import type { InteriorProfile } from "../content/interiors/types";
 import { planBuilding, type PlacedRoom, type RoomPlan } from "../render/interiors/building";
 import type { Finish, Kind, Prop, RoomParams, Trade } from "../render/interiors/room";
 import type { Place, Point } from "../core/types";
+import { buildingModels } from "../content/graphics/models";
 
 /** A standing place and the way to face while there (0 N, 1 E, 2 S, 3 W). */
 export type Spot = Point & {
@@ -65,9 +66,11 @@ const FURNITURE: Partial<Record<Kind, string>> = {
   potrack: "room-potrack", firewood: "room-firewood", quern: "room-quern", jars: "room-jars", claybin: "room-claybin",
   plant: "room-plant", lamp: "room-lamp", basket: "room-basket", sacks: "room-sacks", pack: "room-pack",
   coolamon: "coolamon",
-  bench: "room-bench", screen: "palace-screen",
+  bench: "room-bench", screen: "palace-screen", stock: "room-stock", display: "room-goods", effigy: "room-effigy",
   nestbox: "room-nestbox", roost: "room-roost", stall: "room-stall", manger: "room-manger",
 };
+// Shops whose stock is kept in banks of drawers.
+const DRAWERS = /^(tobacco|apothecary|tea)$/;
 const SEATS: Kind[] = ["stool", "cushions", "armchair", "sofa", "divan", "bench", "settle", "ledge", "slab", "pew", "prayer"];
 const FIRES: Kind[] = ["hearth", "firepit", "irori", "brazier", "stove", "range"];
 const WORK: Record<Trade, Kind[]> = {
@@ -129,7 +132,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { seed?: stri
   const profile = o.lift ? { ...own, furnish: ["elevator" as const, ...(own.furnish ?? [])], styles: o.lift === "stair" ? { ...own.styles, elevator: "stair" } : own.styles } : own;
   const status: Finish = o.fortune === undefined ? 1 : o.fortune < 0.34 ? 0 : o.fortune < 0.72 ? 1 : 2;
   const [tw, td] = profile.rooms?.[0].size ?? profile.size;
-  const k = [0.85, 1, 1.2][status];
+  const k = [1, 1.15, 1.3][status];
   const shapes = profile.shapes;
   const building = planBuilding(profile, {
     seed: (profile.institutionPlan || profile.observance) && o.seed ? seedOf(o.seed + "/" + place.id) : seed,
@@ -140,6 +143,9 @@ export function buildInterior(place: Place, site: InteriorSite, o: { seed?: stri
     shape: seed % 10 < 6 ? shapes[0] : shapes[seed % shapes.length],
     trade: tradeFor(o.activity),
     hour: o.hour ?? 12,
+    // A floor of a tower is one storey of it; any other building is planned whole.
+    storeys: o.storey === undefined && !o.lift ? (buildingModels[place.sprite] as { stories?: number } | undefined)?.stories : 1,
+    plot: place.w * place.h,
   });
   const { plan, props } = building;
   if (!wheelThrown(site)) for (const r of plan.rooms) r.styles = { ...r.styles, throw: "coil" };
@@ -197,9 +203,10 @@ export function buildInterior(place: Place, site: InteriorSite, o: { seed?: stri
   for (const k of walk) if (!reached.has(k)) walk.delete(k);
   const sleepers = of(["bed", "boxbed", "mat"]);
   const beside = (p: Point) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => open({ x: p.x + dx, y: p.y + dy }));
-  const cells = (q: Prop) => Array.from({ length: q.w }, (_, i) => at(q.x + i, q.y)).filter(beside);
+  // A bedstead two rows deep is got into from either side or its foot: the pillow's cell first, then the foot's.
+  const cells = (q: Prop) => Array.from({ length: q.w * (q.kind === "bed" ? Math.max(1, q.d) : 1) }, (_, i) => at(q.x + (i % q.w), q.y + Math.floor(i / q.w))).filter(beside);
   // A bed sleeps two, as beds did; a mat or a box bed one.
-  const beds = sleepers.flatMap((q) => cells(q).slice(0, q.kind === "bed" && building.rooms[q.room ?? 0].role !== "ward" ? 2 : 1).map((p): Spot => ({ ...p, facing: 2, kind: q.kind, propId: q.id, on: "bed" })));
+  const beds = sleepers.flatMap((q) => cells(q).slice(0, q.kind === "bed" && building.rooms[q.room ?? 0].role !== "ward" && !(q.d > 1 && q.w < 3) ? 2 : 1).map((p): Spot => ({ ...p, facing: 2, kind: q.kind, propId: q.id, on: "bed" })));
   const trade = params.trade;
   // The keeper works from behind the bar, facing the room.
   const stations = profile.observance ? of(["altar", "pulpit", "lectern", "basin", "range", "hearth"]) : profile.institutionPlan ? props.filter(q => {
@@ -253,7 +260,7 @@ export function buildInterior(place: Place, site: InteriorSite, o: { seed?: stri
     .filter((q) => loose(q) && !bound.has(q.id))
     .map((q) => ({
       propId: q.id,
-      def: q.kind === "stool" && params.styles.stool === "chair" ? "room-chair" : FURNITURE[q.kind]!,
+      def: q.kind === "stool" && params.styles.stool === "chair" ? "room-chair" : q.kind === "stock" && DRAWERS.test(params.styles.stock ?? "") ? "room-drawers" : FURNITURE[q.kind]!,
       pos: at(q.x, q.y),
       size: [q.w, Math.max(1, q.d)] as [number, number],
     }));

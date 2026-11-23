@@ -26,6 +26,25 @@ how they behave, and which art sets draw them. Entry files:
 - **Behaviour.** `advanceFauna` in `src/core/fauna-sim.ts` runs from the
   engine on simulation time: grazing, wandering, fleeing, resting, predation,
   attacks on people. `stepAllowed` and `wallowable` are its movement rules.
+  A venomous snake's bite (`venom` in `combat.ts`: share of bites that inject,
+  untreated deaths, hours) starts a `venom` illness on the player that runs
+  over hours; see `docs/LIVES.md`. People keep clear of venomous snakes:
+  routes (`findRoute`) never cross a snake's cell and pay heavily to pass
+  beside one. A walker who comes within two cells starts with a "!" (the
+  `alarm` cue), often shouts "Snake!", and re-routes; one who ends up beside
+  it may be bitten (vipers and adders more often, as they give no warning),
+  and the venom runs its course on them as it would on the player
+  (`mindSnake`, `poison`). The player gets the same "!" when one is within
+  three cells (`snakeWatch`).
+  A snake's day is `snakeLife`. Day snakes bask on open ground beside cover
+  in the morning and late afternoon and lie up in cover through midday heat
+  (30°C), rain and rest hours; night snakes lie up all day and hunt rats
+  after dark. Cover is growth, rock or the foot of a wall, tree or house
+  (the engine's `cover`). A snake lying in cover is `hidden`: drawn faint,
+  left out of route planning, and noticed only from the next cell. Footsteps
+  within four cells send most species away to other cover on the far side
+  (`SLIPS`; a mamba at three cells a tick); Russell's and saw-scaled vipers
+  mostly lie still and hold their ground, and `threaten` takes over.
   Kills leave remains (`src/core/remains.ts`) that age and are pruned.
 - **Henhouses.** Where a yard kit (`src/content/settlements/yards.ts`) gives
   a household a henhouse, `plan.ts` builds a small walk-in building

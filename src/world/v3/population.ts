@@ -23,6 +23,7 @@ import { goods, goodsOf, standsIn } from "../../content/economy/goods";
 import { workplaceFor } from "../../content/characters/workplace";
 import { conditionOf, weatherStructure } from "../../core/time/structure";
 import { householdStory } from "./household-story";
+import { householdWays } from "../../content/history/households";
 import {
   buildingScale,
   buildingWealthTier,
@@ -165,6 +166,8 @@ export function populateHouseholds(
       apprentice: parent?.livelihood === "apprentice",
       built,
       fabric,
+      elsewhere: pack.setting?.playableMap?.exits.flatMap((e) => (e.name && e.mode !== "sea" ? [e.name] : [])),
+      living: pack.setting && householdWays(pack.setting, adult?.role ?? sites.role ?? pack.role).living,
     });
     Object.assign(household, {
       history: story.history,

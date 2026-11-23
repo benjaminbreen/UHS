@@ -1,4 +1,5 @@
-import { bodyState, bodySummary, diseaseState, diseaseTime, exposure, infect, onsets, mealExposure, healthResearch, updateCourse, severity, resolvedInfection, symptomsShown } from "../src/core/health";
+import { bodyState, bodySummary, diseaseState, diseaseTime, exposure, infect, onsets, mealExposure, healthResearch, updateCourse, severity, resolvedInfection, symptomsShown, residentLook, conditionBody } from "../src/core/health";
+import { burials, graveLine } from "../src/core/graves";
 import { smallSession } from "./fixtures";
 import { describe, it, expect, vi } from "vitest";
 import { doorApproach } from "../src/core/doors";
@@ -10,6 +11,8 @@ import { createWorld } from "../src/world/generate";
 import { packs } from "../src/content/packs";
 import { findPath } from "../src/core/pathfinding";
 import { canonical } from "../src/core/random";
+import { resolveSetting } from "../src/content/geography/resolve";
+import { skyFor, weatherAt } from "../src/core/weather";
 import { householdStory } from "../src/world/v3/household-story";
 import { marriagePracticeFor } from "../src/content/households/practices";
 import { lifeAimOf, lifeAimOptions, advanceLifeAim } from "../src/core/life-aim";
@@ -39,6 +42,41 @@ const act = (e: Engine, command: PlayerCommand) =>
 
 describe("exposure, symptoms and care", () => {
   const setting = settingFor(places.find((p) => p.id === "london")!, 1980);
+  it("residents wear their conditions and injuries at plausible rates, and the player can start with them too", () => {
+    const old = { ...setting, year: 1810 };
+    const people = Array.from({ length: 3000 }, (_, i) => ({ id: `r${i}`, kind: "human", name: "Ann Lee", role: i % 3 ? "weaver" : "sailor", age: 20 + (i % 50) }) as any);
+    const looks = people.map((a) => residentLook("rates", a, old, 0));
+    const shown = looks.filter((l) => l.hurt).length / people.length;
+    expect(shown).toBeGreaterThan(0.03);
+    expect(shown).toBeLessThan(0.15);
+    expect(looks.some((l) => l.hurt === "peg")).toBe(true);
+    expect(people.map((a) => residentLook("rates", a, setting, 0)).some((l) => l.hurt === "peg" || l.hurt === "trolley")).toBe(false);
+    // Players, one per world: a few in a thousand start in a wheelchair in 1980.
+    const players = Array.from({ length: 4000 }, (_, i) => conditionBody(`p${i}`, { ...people[i % 3], id: "player", age: 30 }, setting));
+    const chairs = players.filter((b) => b.look === "wheelchair");
+    expect(chairs.length / players.length).toBeGreaterThan(0.001);
+    expect(chairs.length / players.length).toBeLessThan(0.02);
+    expect(chairs.every((b) => !b.climb && !b.ride && !b.run && b.name)).toBe(true);
+  });
+  it("a start can ask for a condition, a role, a vessel or the weather without World Weaver", () => {
+    const pick = (q: string) => { const r = resolveSetting(q, "asked"); if ("error" in r) throw Error(r.error); return r.setting; };
+    expect(pick("a wheelchair user in London, 1980").condition).toBe("paralysed");
+    expect(pick("disabled medieval person with leprosy").condition).toBe("leprosy");
+    expect(pick("a one-legged sailor in London 1790")).toMatchObject({ condition: "lost-leg", role: "Sailor" });
+    expect(pick("blind person").condition).toBe("blind");
+    expect(pick("a weaver in Oaxaca, 1650").condition).toBeUndefined();
+    expect(pick("car thief")).toMatchObject({ role: "Car Thief" });
+    expect(pick("car thief").year).toBeGreaterThanOrEqual(1910);
+    expect(pick("astronaut")).toMatchObject({ role: "Astronaut", ship: "capsule-orbit" });
+    const snowy = pick("a farmer in Normandy 1300 on a snowy day");
+    expect(snowy).toMatchObject({ weather: "snow", season: "winter", role: "Farmer" });
+    const sky = skyFor("asked", snowy.climate, snowy.season, "snow", 9 * 3600);
+    expect(sky && weatherAt(sky, snowy.climate, snowy.season, 9 * 3600).condition).toBe("snow");
+    expect("error" in resolveSetting("a hailstorm in Kansas 1900", "asked")).toBe(true);
+    const player = { id: "player", kind: "human", name: "Ann Lee", role: "weaver", age: 30, condition: "paralysed" } as any;
+    expect(conditionBody("asked", player, { ...setting, year: 1980 }).look).toBe("wheelchair");
+    expect(conditionBody("asked", player, { ...setting, year: 1350 }).look).toBe("trolley");
+  });
   function clinic() {
     const e = smallSession(setting, "disease-fixture");
     delete e.state.plot;
@@ -655,6 +693,10 @@ describe("shared deterministic foundation", () => {
     expect(e.state.actors.some((a) => a.id === heir.id)).toBe(false);
     expect(home.members).toContain("player");
     expect(home.history!.at(-1)).toMatchObject({ kind: "died", name: dead });
+    const stones = Array.from({ length: 40 }, (_, i) => ({ id: `yard-gravestone-${i}`, prop: "graveMound", sprite: "study-propb-grave-mound-8", pos: { ...home.home, x: home.home.x + i } }));
+    const lines = stones.map((o) => graveLine(o, burials(e.state.households!, stones).get(o.id), 1750, undefined, true));
+    expect(lines.filter((l) => l === `It marks ${dead}, of your household, who died this year of the fever.`)).toHaveLength(1);
+    expect(lines.join(" ")).not.toMatch(/undefined/);
     expect(act(e, { type: "wait", seconds: 60 }).status).toBe("completed");
   });
   it.runIf(!!process.env.FULL)("sends a hungry child to the player, minds being ignored, and eats what it is given", () => {

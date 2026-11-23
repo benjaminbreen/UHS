@@ -10,7 +10,7 @@ import { calm, useTypewriter } from "./motion";
 import { visemeFor, type Viseme } from "../render/portraits/constructed";
 import { CueMark } from "./CueMark";
 import { gameAudio } from "../audio/director";
-import { voice, type Sound } from "../audio/sfx";
+import { greet, voice, type Sound } from "../audio/sfx";
 import { voiceOf } from "../audio/voices";
 import type { CueKind } from "../core/combat";
 import type { CallIn } from "../core/types";
@@ -112,6 +112,8 @@ const genderLabel = (actor: { name: string; origin?: { sex?: string }; appearanc
 
 export function DialogueModal({ runtime, actorId, situation, said, look, onClose, onTrade }: { runtime: Runtime; actorId: string; /** What the conversation opens on, when the player did not start it. */ situation?: string; /** A line they already spoke in the world, which the conversation picks up from. */ said?: string; look: StoryLook; onClose: () => void; /** The person agreed to show their goods or look at yours. */ onTrade?: () => void }) {
   const actor = runtime.engine.state.actors.find((candidate) => candidate.id === actorId);
+  const houses = runtime.engine.state.households, mine = houses?.find((h) => h.members.includes(runtime.engine.state.player.id));
+  const owesHouse = !!mine && !!houses?.some((h) => h.members.includes(actorId) && h.credit?.from === mine.id);
   const [history, setHistory] = useState<DialogueLine[]>(() => said ? [{ speaker: "npc", text: said }] : []);
   const [input, setInput] = useState("");
   const [responding, setResponding] = useState(true);
@@ -253,9 +255,11 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
   // The voice follows the face: a cross line is spoken in a cross voice.
   const cross = ["angry", "stern", "disgust", "scowl"].includes(expression);
   const speaks = () => voice(voiceOf(actor), cross);
+  useEffect(() => void gameAudio()?.sound(greet(voiceOf(actor)), "greet", 0, 2000), [actorId]);
   const submit = async (said = input) => {
     const text = said.trim();
     if (!text || busy || left) return;
+    void gameAudio()?.interfaceSound("send");
     const next = [...history, { speaker: "player" as const, text }];
     setHistory(next);
     setInput("");
@@ -380,7 +384,7 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
               </span>
               {regardLabel(actor.trust)}
             </span>
-            {actor.owes && <span>Owes you</span>}
+            {(actor.owes || owesHouse) && <span>Owes you</span>}
           </p>
         )}
         </div>

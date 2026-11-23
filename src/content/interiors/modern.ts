@@ -19,7 +19,7 @@ export const modern: InteriorProfile[] = [
     sleep: "none",
     trades: ["household"],
     furnish: ["elevator", "clock", "plant", "armchair", "armchair", "sofa", "lamp", "plant", "rug", "frame", "frame"],
-    styles: { counter: "deco", table: "round", stool: "chair", shelf: "bookcase" },
+    styles: { counter: "deco", table: "round", stool: "chair", shelf: "bookcase", lamp: "electric" },
     kits: { household: ["counter"] },
     clutter: ["paper", "flowers"],
     looks: [

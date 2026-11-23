@@ -360,7 +360,11 @@ counter on the left.
   scraps on both sides.
 - **Parked cars.** `vehicles.ts` holds a dated weighted pool per region;
   `parkingShare` sets how full the stalls are. A parked car is an inspectable,
-  solid `monument`.
+  solid `monument` the player can drive. Someone else's is locked: the window
+  is smashed with anything held that can strike, and a car thief works the
+  lock quietly. A taxi driver, chauffeur, lorry driver or mechanic starts
+  beside a car of their own, a car thief beside someone else's; when none is
+  parked near the door, generation parks one there.
 
 ### Hospitals, schools and civic buildings
 
@@ -396,7 +400,31 @@ shop, a shop or stall form), or nothing for a house. The planner follows it:
   never drawn for one, and local work assignment leaves a keeper in their
   shop.
 - A named business is called what it is ("Cafe"); an unnamed one is the
-  keeper's shop ("Baker's shop").
+  keeper's shop ("Baker's shop"). Inns, taverns, pubs, hotels and motels
+  take a proper name instead (`establishmentName`, `inn-names.ts`): an inn
+  sign in the local tongue from 1100 ("The White Hart", "Zum Löwen"), a
+  Roman painted sign before 500, a founder for a caravanserai or han, a yagō
+  in Japan, an auspicious name for a Chinese inn, the town for a post
+  station. No two in a town share a name.
+- Inside, one person minds the counter from 08:00 to 18:00: the keeper if
+  they are in and well, else the first grown member of the household who is.
+  They sell the goods of the shop's kind (`shopKinds` in
+  `content/interiors/shops.ts`) as well as their own trade's goods. The rest
+  of the household stays in the rooms behind. The shop is fitted as shops
+  were: stock along the back wall, clear of the windows, a long counter
+  across the room with the keeper's walk behind it, and the floor in front
+  left open, anything set out on it against the side walls. A few of the
+  trade's goods sit on the counter. A tobacconist and an apothecary keep
+  their stock in banks of drawers you can pull out, and an apothecary shows
+  its globes in the window. The windows of a shop room go to the ends
+  of its back wall, and stock may stand right beside a doorway. A grocer
+  from 1890 and a Roman bar are fitted from hand-drawn pieces
+  (`src/render/interiors/fits/`): wall units with goods stood on their
+  shelves, a drawn counter with a few large things on it, and floor groups
+  by the door. From 1700 a shop in a shuttered house has glazed,
+  curtained windows. A North American
+  tobacconist from 1840 to 1930 has a carved cigar-store Indian by the door,
+  and a British one from 1720 to 1900 a snuff-taking Highlander.
 - The first sign board is the keeper's own: the business the art names, else
   `keeperTrade` of the keeper's work. The other boards are neighbours. A
   ruin or a lot with nobody keeping it has none.
@@ -405,6 +433,44 @@ shop, a shop or stall form), or nothing for a house. The planner follows it:
 
 A household whose work is in the fields or with the herd keeps no workshop
 at home, and a private home is named "Household", never a store.
+
+### Inside a house
+
+A building's rooms are planned from its profile (`content/interiors/`) and
+from the building as it stands on the map: `buildInterior` passes its storeys
+(the model's `stories`) and the ground it covers to `planBuilding`
+(`src/render/interiors/building.ts`).
+
+- A household's rooms are its profile's sizes and a little over (more for a
+  richer household), and larger again, never smaller, in a building that
+  covers more ground. Shops and public rooms keep the size their trade needs.
+- Rooms stand apart. Neighbours are three columns from one another with dark
+  between, joined by a short neck two rows wide with a post at each mouth.
+  Rooms round a court still share a wall, as do a room and the one behind it.
+- A building of two storeys or more sleeps upstairs, on the same map as the
+  ground floor, three floors drawn at most. Each floor stands seven rows
+  clear of the one below, straight above it, and is reached by a railed
+  flight in its own neck that leaves by the back wall of the room below.
+- A household's upper floor is a landing with a chamber to either side: its
+  own, with the bedstead, press and rug, and a second with two single beds.
+  A third floor is a garret with one plain bed and stores. An inn's upper
+  floor is a gallery with its guest chambers in a row behind it, parted in
+  the middle where the next flight goes up between them.
+- With three or more rooms downstairs, two houses in three (by seed) of a
+  profile of four rooms or more, the poorest excepted, have a passage from
+  the street door with the rooms opening off either side, the kitchen and
+  stores at the far end. The others keep their rooms in a row.
+- A room is furnished for what it is. The household eats in its kitchen or
+  hall, so only that room has the laid table; a front room has a settle, a
+  rug and a writing desk; a hearth has its firewood and a seat to either
+  side. Each room is planned from its own seed, so two rooms of one kind
+  differ. A small piece shut in by others on every side is left out.
+- Courtyard houses, temples, hospitals and the grand inns with their own
+  corridor plans are not given upper floors yet.
+
+`npm run capture:interiors -- storeys` draws the same houses and an inn in
+buildings of one, two and three storeys; `-- homes` draws four European
+houses room by room.
 
 ### Shop signs
 

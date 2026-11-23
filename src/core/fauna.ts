@@ -69,6 +69,8 @@ export type FaunaMember = {
   /** Art to show instead of the group's, while this one is doing something
    * the rest are not: pawing the ground, running in. */
   pose?: FaunaState;
+  /** Lying up in cover: not seen until someone is almost on it. */
+  hidden?: boolean;
 };
 
 /** One animal's attack on the player, a phase at a time. `dir` is fixed when
@@ -136,6 +138,10 @@ export type FaunaGroup = {
   stockRaid?: { at: Position; plot?: string; night?: boolean; repelled?: number; took?: number };
   /** Clock until which the group is warning the player off before it comes. */
   warning?: number;
+  /** A snake's place to lie up or bask, and the way it is going there. */
+  refuge?: Point;
+  /** Clock until which a snake that chose to stand its ground keeps to it. */
+  holds?: number;
   /** Clock until which it is creeping up on the player to take them. */
   stalking?: number;
   /** Until when a hunt that came to nothing is not tried again. */

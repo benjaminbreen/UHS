@@ -16,6 +16,7 @@ export const infections: Record<string, {
   cough: { route: "air", incubation: [24, 72], before: 12, immunity: 30, symptoms: ["cough", "feverishness", "tiredness"] },
   flux: { route: "provisions", incubation: [12, 48], before: 0, immunity: 14, symptoms: ["diarrhea", "stomach cramps", "weakness"] },
   wound: { route: "wound", incubation: [24, 72], before: 0, immunity: 0, symptoms: ["increasing wound pain", "redness and swelling", "feverishness"] },
+  venom: { route: "wound", incubation: [0, 0], before: 0, immunity: 0, symptoms: ["swelling and pain spreading from the bite", "vomiting and sweating", "drooping eyelids and weakness"] },
 };
 
 export type Treatment = "rest" | "nurse" | "clean-wound" | "consult" | "medicine" | "rehydration" | "prepare-food";

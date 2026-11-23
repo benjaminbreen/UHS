@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import type { ItemDef } from "../core/types";
 import type { Runtime } from "../runtime/session";
 import { ItemIcon } from "./components";
+import { gameAudio } from "../audio/director";
 import { Turntable, itemKind } from "./ItemInspect";
 
 const ideas = (a: ItemDef, b: ItemDef) =>
@@ -46,6 +47,8 @@ export function MakePanel({ runtime, first, onClose }: { runtime: Runtime; first
     const [made] = await Promise.all([runtime.craft(a.id, b.id, words), new Promise((r) => setTimeout(r, 900))]);
     setBusy(false);
     setResult(made);
+    if (made?.id) void gameAudio()?.event("gather");
+    else void gameAudio()?.interfaceSound("deny");
   };
   const made = result?.id ? runtime.item(result.id) : undefined;
   const log = runtime.engine.state.made ?? [];

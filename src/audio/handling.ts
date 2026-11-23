@@ -169,12 +169,13 @@ export function drink(): Sound {
   ];
 }
 
-/** Counting out a price, one coin or shell at a time, each a shade higher. */
-export function pay(money: Money, count: number): Sound {
+/** Counting out a price, one coin or shell at a time, each a shade higher.
+ * Money coming `in` climbs faster and lands on the rising figure. */
+export function pay(money: Money, count: number, incoming = false): Sound {
   const n = Math.max(1, Math.min(6, Math.round(count)));
   const coins = Array.from({ length: n }, (_, i): Sound => {
     const at = i * vary(0.075, 0.15),
-      up = 1 + i * 0.03;
+      up = (incoming ? 1.12 : 1) * (1 + i * (incoming ? 0.07 : 0.03));
     if (money === "shell")
       return [
         noise(at, 0.012, 0.07, 5200 * up, { q: 3 }),
@@ -191,7 +192,24 @@ export function pay(money: Money, count: number): Sound {
     ];
   }).flat();
   const end = Math.max(...coins.map((l) => l.at));
-  return [...coins, ...later(events.select(), end + 0.12, 0.5)];
+  return [...coins, ...later(incoming ? events.gather() : events.select(), end + 0.12, incoming ? 0.4 : 0.5)];
+}
+
+/** A purse put down on the counter: the thud of it, then the money settling. */
+export function purse(money: Money): Sound {
+  const thud = noise(0, 0.07, 0.05, 380, { filter: "lowpass", attack: 0.006 });
+  if (money === "paper")
+    return [thud, ...[0.05, 0.13, 0.2].map((at) => noise(at, 0.06, 0.03, vary(3400, 0.15), { to: 5200, q: 0.8, attack: 0.012 }))];
+  let at = 0.03;
+  const settle = Array.from({ length: 5 }, (_, i): Sound => {
+    at += rand(0.035, 0.085);
+    const g = 1 - i * 0.14,
+      f = vary(money === "shell" ? 2000 : 2500, 0.12);
+    return money === "shell"
+      ? [noise(at, 0.012, 0.05 * g, 5200, { q: 3 }), tone(at, 0.03, 0.035 * g, f, { to: f * 0.85, wave: "triangle" })]
+      : [noise(at, 0.008, 0.035 * g, 6400, { q: 3 }), tone(at, 0.2, 0.034 * g, f), tone(at, 0.1, 0.016 * g, f * 2.76)];
+  }).flat();
+  return [thud, ...settle];
 }
 
 /** Barter: what you hand over, then what you take. */

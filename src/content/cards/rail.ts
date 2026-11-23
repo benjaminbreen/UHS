@@ -118,7 +118,7 @@ export const RAIL_CARDS: ChoiceCard[] = [
         check: { stat: "agility", odds: 0.6 },
         then: [{ type: "day", delta: 1 }],
         line: "You finished the joint and stepped clear as the train came through.",
-        otherwise: [{ type: "day", delta: -1 }, { type: "hurt", n: 30, cause: "a passing train", injury: "injured leg" }],
+        otherwise: [{ type: "day", delta: -1 }, { type: "hurt", n: 30, cause: "a passing train", injury: "wrenched-knee" }],
         otherwiseLine: "You stayed a moment too long. The step of a carriage caught your leg.",
       },
       {
@@ -159,7 +159,8 @@ export const RAIL_CARDS: ChoiceCard[] = [
       },
       {
         label: "Get the crew to back you up",
-        note: "full pay if they do · he'll hold a grudge either way",
+        note: "full pay if they do · he holds it against you either way",
+        word: "led the crew against",
         check: { stat: "extraversion", odds: 0.35 },
         then: [{ type: "regard", delta: -2 }],
         line: "The crew backed you up, and he paid in full.",

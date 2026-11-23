@@ -1,6 +1,7 @@
 import type { Engine } from "../core/engine";
 import type { PlayerCommand } from "../core/types";
 import { bodySummary } from "../core/health";
+import { INJURY_SCENE_MS, injuryDef, type InjuryPart } from "../content/health/injuries";
 import { dangerSummary } from "../core/danger";
 import { useEffect, useRef, useState } from "react";
 import {
@@ -349,18 +350,69 @@ export function SkillsPanel({
 }
 
 /** What the player reads on coming round. */
-export function CollapseNotice({ collapse }: { collapse?: { serial: number; title: string; text: string } }) {
-  const [dismissed, setDismissed] = useState(collapse?.serial ?? 0);
-  if (!collapse || collapse.serial <= dismissed) return null;
+type Setback = { serial: number; kicker: string; title: string; text: string; lines?: string[]; injury?: string };
+
+/** Where on the little figure each part is: [x, y] cells of a 7 by 13 body. */
+const HURT_AT: Record<InjuryPart, readonly (readonly [number, number])[]> = {
+  head: [[3, 0], [2, 1], [3, 1], [4, 1]],
+  face: [[2, 1], [3, 1], [4, 1]],
+  arm: [[0, 4], [0, 5], [0, 6]],
+  hand: [[0, 7]],
+  ribs: [[2, 4], [3, 4], [4, 4], [2, 5], [4, 5]],
+  leg: [[2, 9], [2, 10], [2, 11], [2, 12]],
+  skin: [[3, 5], [4, 6], [2, 7], [5, 4]],
+};
+const FIGURE = ["  ###  ", " ##### ", "  ###  ", " ##### ", "#######", "# ### #", "# ### #", "# ### #", "  # #  ", "  # #  ", "  # #  ", "  # #  ", " ## ## "];
+
+/** A body in a few squares, the hurt part beating red. */
+function HurtFigure({ part }: { part: InjuryPart }) {
+  const hurt = new Set(HURT_AT[part].map(([x, y]) => `${x},${y}`));
   return (
-    <div className="collapse-notice" role="alertdialog" aria-label={collapse.title}>
+    <svg className="hurt-figure" viewBox="0 0 7 13" width={42} height={78} shapeRendering="crispEdges" aria-hidden>
+      {FIGURE.flatMap((row, y) => [...row].map((c, x) => c === "#" && (
+        <rect key={`${x},${y}`} x={x} y={y} width={1} height={1} className={hurt.has(`${x},${y}`) ? "hurt" : undefined} />
+      )))}
+    </svg>
+  );
+}
+
+/** Coming round after a beating or a drowning, or the card after a bad
+ * injury: what happened, and what it means now. */
+export function SetbackCard({ setback }: { setback?: Setback }) {
+  const [dismissed, setDismissed] = useState(setback?.serial ?? 0);
+  // Behind an injury the card waits out the scene; a key pressed then must not close it unseen.
+  const [shown, setShown] = useState(0);
+  const serial = setback?.serial ?? 0;
+  useEffect(() => {
+    const t = setTimeout(() => setShown(serial), INJURY_SCENE_MS + 500);
+    return () => clearTimeout(t);
+  }, [serial]);
+  if (!setback || setback.serial <= dismissed) return null;
+  const def = injuryDef(setback.injury);
+  const scene = setback.kicker === "INJURED";
+  const ready = !scene || shown === setback.serial;
+  return (
+    <div
+      className={`collapse-notice${scene ? " injury-card" : ""}`}
+      role="alertdialog"
+      aria-label={setback.title}
+      data-modal="true"
+    >
       <div>
-        <small>YOU WAKE</small>
-        <h2>{collapse.title}</h2>
-        <p>{collapse.text}</p>
-        <button autoFocus onClick={() => setDismissed(collapse.serial)}>
-          Get up
-        </button>
+        <small>{setback.kicker}</small>
+        {def && <HurtFigure part={def.part} />}
+        <h2>{setback.title}</h2>
+        <p>{setback.text}</p>
+        {setback.lines && (
+          <ul className="injury-lines">
+            {setback.lines.map((line) => <li key={line}>{line}</li>)}
+          </ul>
+        )}
+        {ready && (
+          <button autoFocus onClick={() => setDismissed(setback.serial)}>
+            {scene ? "Carry on" : "Get up"}
+          </button>
+        )}
       </div>
     </div>
   );

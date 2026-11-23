@@ -275,6 +275,12 @@ export type Livelihood = {
   /** The year the work opened to both sexes; absent means it never did. */
   sexUntil?: number;
   /**
+   * The other sex's share of the work a generation after it opened (5% when
+   * absent: a woman boatwright is still rare). A resolved context holds the
+   * share for its own year.
+   */
+  sexShare?: number;
+  /**
    * Who does this work. Absent means anyone. `unfree` marks work that was
    * done by people held in bondage, which is not a separate set of trades so
    * much as the same fields and households worked under compulsion.

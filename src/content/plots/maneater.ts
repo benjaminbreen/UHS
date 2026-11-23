@@ -52,6 +52,7 @@ const ACTS = [
 export const maneater: PlotTemplate = {
   id: "maneater",
   shape: "world",
+  urgent: true,
   look: {
     emblem: "shadow",
     palette: { ink: "#0e0c0a", fill: "#2c2418", edge: "#7a5a2a", light: "#efe6d2", accent: "#c8782e" },

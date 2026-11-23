@@ -2,11 +2,12 @@ import { smallSession } from "./fixtures";
 import { items } from "../src/content/packs";
 import { it, expect, vi } from "vitest";
 import { collectClaim, dearness, grainDays, runEconomy } from "../src/core/economy";
+import { AT_ODDS, householdConditions, houseTalk, regardBetween, seedHouseholds, settleRegard, worstGrievance } from "../src/core/household";
 import { claimFor } from "../src/content/economy/claims";
 import { endowmentFor, resourceName, tradeOf } from "../src/content/economy/endowments";
 import { harvestResource, refreshResource, householdActivity, grazeActivity, depositSupplies } from "../src/core/livelihood";
 import { carryKit, parseLoad, withLoads } from "../src/content/economy/carrying";
-import type { Economy, Household, WorldObject } from "../src/core/types";
+import type { Economy, Household, Snapshot, WorldObject } from "../src/core/types";
 import { panelCity } from "../scripts/review/panel";
 import { commonLivelihoods } from "../src/content/characters/livelihoods.generated";
 import { processFor } from "../src/content/economy/processes";
@@ -344,8 +345,10 @@ it("takes a railway labourer from the station to the line and back, through a ca
     const here = engine.workHere()!;
     expect(here.label).toBe(engine.workPlan()!.steps[step].task);
     expect(act(here.command).status).toBe("completed");
-    const card = engine.cards.find((c) => c.choose)!.choose!;
     expect(engine.workHere(), "no work while a card waits").toBeUndefined();
+    // The ganger walks over with his card.
+    for (let i = 0; i < 40 && !engine.cards.some((c) => c.choose); i++) act({ type: "wait", seconds: 60 });
+    const card = engine.cards.find((c) => c.choose)!.choose!;
     const choice = card.choices.find((c) => !c.unavailable)!.index;
     expect(act({ type: "choose", card: card.card, choice }).status).toBe("completed");
     expect(act({ type: "choose", card: card.card, choice }).status, "answered once").toBe("rejected");
@@ -421,7 +424,100 @@ it("draws an oven hazard during a baker's work and applies its injury on a faile
     expect(act({ type: "choose", card, choice }).status).toBe("completed");
   }
   expect(s.player.health).toBe(88);
-  expect(s.player.injury).toMatchObject({ name: "burned hand", open: true });
+  expect(s.player.injury).toMatchObject({ name: "a burned hand", open: true });
+});
+
+it("drops a day's card that lapsed before it came on screen", () => {
+  const start = resolveSetting("A baker in Lyon, 1742 CE", "a");
+  if ("error" in start) throw Error(start.error);
+  const engine = smallSession(start.setting, "a");
+  const s = engine.state;
+  let serial = 0;
+  const act = (command: Parameters<typeof engine.validate>[0]) =>
+    engine.act({ actionId: `lapse-${serial++}`, expectedRevision: s.revision, command });
+  s.player.pos = { ...engine.workPlan()!.places[0]!.pos };
+  expect(act(engine.workHere()!.command).status).toBe("completed");
+  const card = engine.cards.find((c) => c.choose?.card === "bake-damp-flour")!;
+  expect(engine.canShowCard(card)).toBe(true);
+  expect(act({ type: "sleep", seconds: 86400 }).status).toBe("completed");
+  expect(engine.validate({ type: "choose", card: "bake-damp-flour", choice: 0 })).toBe("There is nothing to answer.");
+  expect(engine.canShowCard(card)).toBe(false);
+  expect(act({ type: "wait", seconds: 60 }).status).toBe("completed");
+  expect(s.events.some((e) => e.text === "The day ended before you decided.")).toBe(true);
+});
+
+it("gives bread on credit to a hungry neighbour who walks over, owes it, and comes back about it", () => {
+  const start = resolveSetting("A baker in Lyon, 1742 CE", "a");
+  if ("error" in start) throw Error(start.error);
+  const engine = smallSession(start.setting, "a");
+  const s = engine.state;
+  let serial = 0;
+  const act = (command: Parameters<typeof engine.validate>[0]) =>
+    engine.act({ actionId: `credit-${serial++}`, expectedRevision: s.revision, command });
+  const mine = s.households!.find((h) => h.members.includes("player"))!;
+  const hungry = s.households!.find((h) => h !== mine && h.residence && s.actors.some((a) => h.members.includes(a.id) && (a.age ?? 0) >= 16))!;
+  for (const h of s.households!) h.fortune = h === hungry ? 0.1 : 0.9;
+  // The town inspector's card is written for this place, so it would always win the selling step.
+  const usable = (engine as any).usableCard.bind(engine);
+  vi.spyOn(engine as any, "usableCard").mockImplementation((c: any) => c.id !== "bake-assize" && usable(c));
+  for (const step of [0, 1, 2]) {
+    s.player.pos = { ...engine.workPlan()!.places[step]!.pos };
+    expect(act(engine.workHere()!.command).status).toBe("completed");
+    for (const c of engine.cards.splice(0)) if (c.choose && c.choose.card !== "bake-credit") act({ type: "choose", card: c.choose.card, choice: 0 });
+  }
+  const who = s.actors.find((a) => a.id === s.economy!.work!.who)!;
+  expect(hungry.members).toContain(who.id);
+  for (let i = 0; i < 60 && !engine.cards.some((c) => c.choose?.card === "bake-credit"); i++) act({ type: "wait", seconds: 60 });
+  expect(engine.cards.find((c) => c.choose?.card === "bake-credit")?.speaker).toBe(who.id);
+  expect(Math.hypot(who.pos.x - s.player.pos.x, who.pos.y - s.player.pos.y)).toBeLessThanOrEqual(2.5);
+  expect(act({ type: "choose", card: "bake-credit", choice: 0 }).status).toBe("completed");
+  expect(hungry.credit).toMatchObject({ from: mine.id, amount: 2, debtor: who.id });
+  expect(hungry.owes).toBe(mine.id);
+  expect(who.word?.some((w) => w.act === "gave bread on credit to" && w.tone > 0)).toBe(true);
+  expect(s.later).toMatchObject([{ card: "credit-due", who: who.id }]);
+
+  engine.cards.length = 0;
+  for (let i = 0; i < 9 * 24 && !engine.cards.some((c) => c.choose?.card === "credit-due"); i++) act({ type: "wait", seconds: 3600 });
+  expect(engine.cards.find((c) => c.choose?.card === "credit-due")?.speaker).toBe(who.id);
+  engine.cards.length = 0;
+  for (let i = 0; i < 6 && !engine.cards.some((c) => c.choose?.card === "credit-due"); i++) act({ type: "wait", seconds: 1800 });
+  expect(engine.cards.some((c) => c.choose?.card === "credit-due")).toBe(true);
+  expect(act({ type: "choose", card: "credit-due", choice: 1 }).status).toBe("completed");
+  expect(hungry.credit).toBeUndefined();
+  expect(s.later).toEqual([]);
+});
+
+it("sends a house that began in the player's debt round about it, indoors too, and takes the payment", () => {
+  const start = resolveSetting("A baker in Lyon, 1742 CE", "a");
+  if ("error" in start) throw Error(start.error);
+  const engine = smallSession(start.setting, "a");
+  const s = engine.state;
+  let serial = 0;
+  const act = (command: Parameters<typeof engine.validate>[0]) =>
+    engine.act({ actionId: `debt-${serial++}`, expectedRevision: s.revision, command });
+  const mine = s.households!.find((h) => h.members.includes("player"))!;
+  const debtor = s.households!.find((h) => h !== mine && s.actors.some((a) => h.members.includes(a.id) && (a.age ?? 0) >= 16))!;
+  const who = s.actors.find((a) => debtor.members.includes(a.id) && (a.age ?? 0) >= 16)!;
+  debtor.credit = { good: "bread", from: mine.id, seller: "player", debtor: who.id, amount: 5, reason: "hardship", repayment: "money" };
+  debtor.owes = mine.id;
+  debtor.fortune = 0.9;
+  delete s.economy;
+  act({ type: "wait", seconds: 3600 });
+  expect(s.later).toMatchObject([{ card: "credit-due", who: who.id }]);
+  s.player.pos = { ...engine.workPlan()!.places[0]!.pos };
+  expect(s.player.pos.space).not.toBe("outside");
+  const shown = () => engine.cards.some((c) => c.choose?.card === "credit-due");
+  for (let i = 0; i < 8 * 24 && !s.later![0]!.asked; i++) act({ type: "wait", seconds: 3600 });
+  for (let i = 0; i < 60 && !shown(); i++) act({ type: "wait", seconds: 60 });
+  expect(engine.cards.find((c) => c.choose?.card === "credit-due")?.speaker).toBe(who.id);
+  expect(who.pos.space).toBe(s.player.pos.space);
+  const rng = engine.rng.bind(engine);
+  vi.spyOn(engine, "rng").mockImplementation((purpose) => purpose === "card:credit-due" ? 0 : rng(purpose));
+  const coin = s.player.inventory.coin ?? 0;
+  expect(act({ type: "choose", card: "credit-due", choice: 0 }).status).toBe("completed");
+  expect(s.player.inventory.coin).toBe(coin + 5);
+  expect(debtor.credit).toBeUndefined();
+  expect(debtor.owes).toBeUndefined();
 });
 
 it("varies a trade's day by place and period, naming only what was made there and then", () => {
@@ -456,6 +552,7 @@ it("keeps a day's work that runs past midnight that day's, and lets yesterday's 
   const act = (command: Parameters<typeof engine.validate>[0]) =>
     engine.act({ actionId: `night-${n++}`, expectedRevision: s.revision, command });
   const answer = () => {
+    for (let i = 0; i < 30 && !engine.cards.some((c) => c.choose); i++) act({ type: "wait", seconds: 60 });
     const card = engine.cards.find((c) => c.choose)?.choose;
     engine.cards.length = 0;
     return card && act({ type: "choose", card: card.card, choice: card.choices.find((c) => !c.unavailable)!.index });
@@ -477,6 +574,7 @@ it("keeps a day's work that runs past midnight that day's, and lets yesterday's 
   s.clock = (Math.floor(s.clock / 86400) + 1) * 86400 + 9 * 3600;
   s.player.pos = { ...engine.workPlan()!.door! };
   act(engine.workHere()!.command);
+  for (let i = 0; i < 30 && !engine.cards.some((c) => c.choose); i++) act({ type: "wait", seconds: 60 });
   const left = engine.cards.find((c) => c.choose)!.choose!;
   engine.cards.length = 0;
   s.clock += 2 * 86400;
@@ -879,4 +977,94 @@ it.runIf(!!process.env.FULL)("starts a corn factor at the inland market with gra
   expect(e.validate(c)).toBeUndefined();e.execute(c);
   expect([p.inventory.grain,f.stock!.grain]).toEqual([grain-1,stock+1]);
   expect(p.inventory.coin).toBeGreaterThan(cash);
+});
+
+it("turns a farm laid up into a household short of bread with someone to ask", () => {
+  const v = village(), economy: Economy = { hour: 0, stock: {}, short: {} };
+  const ailments = v[0].members.map((who) => ({ id: "fever", who, since: 0, days: 30 }));
+  const s = { clock: 10 * 86400, households: v, economy, ailments } as never;
+  const sick = householdConditions(s).get("farm")?.sick ?? [];
+  expect(sick).toEqual(v[0].members);
+  runEconomy(v, economy, 24 * 21, (h) => h.members.filter((m) => !sick.includes(m)).length);
+  expect(householdConditions(s).get("brewer")?.short).toEqual({ good: "bread", seller: "baker1" });
+});
+
+it("sours a house on the seller who let it go short, unless the seller is ill, and on a debtor", () => {
+  const run = (ailments: object[]) => {
+    const v = village();
+    v[1].credit = { good: "grain", from: "farm", debtor: "baker1", amount: 5, reason: "hardship", repayment: "money" };
+    const actors = v.flatMap((h) => h.members.map((id) => ({ id, name: id, householdId: h.id, relations: id === "baker1" ? [{ other: "brewer1", kind: "friend" }] : [] })));
+    const s = { clock: 5 * 86400, households: v, actors, ailments, player: { id: "player" }, manifest: { seed: "x" }, economy: { hour: 0, stock: {}, short: { brewer: ["bread"] } } } as never as Snapshot;
+    for (let day = 0; day < 5; day++) settleRegard(s);
+    return s;
+  };
+  const well = run([]);
+  expect(regardBetween(well, "brewer", "baker")).toBeLessThanOrEqual(AT_ODDS);
+  expect(householdConditions(well).get("brewer")?.shuns).toEqual(["baker"]);
+  expect(well.actors.find((a) => a.id === "brewer1")?.word?.[0]).toMatchObject({ about: "baker1", conduct: true });
+  expect(regardBetween(well, "farm", "baker")).toBeLessThan(-1);
+  const ill = run([{ id: "fever", who: "baker1", since: 0, days: 30 }]);
+  expect(regardBetween(ill, "brewer", "baker")).toBe(0);
+  expect(regardBetween(ill, "baker", "brewer")).toBeGreaterThan(1);
+  expect(worstGrievance(well)).toBeUndefined();
+  for (let day = 0; day < 5; day++) settleRegard(well);
+  expect(worstGrievance(well)).toMatchObject({ by: { id: "brewer" }, against: { id: "baker" }, wrong: "left them without bread", debt: false });
+  expect(worstGrievance(well, "baker")).toBeUndefined();
+  expect(houseTalk(well, well.households![2])).toBe("They have fallen out with baker1's household, who they say left them without bread.");
+});
+
+it("has kin with grain to spare send it to a house short of bread, and a poor house with none take it", () => {
+  const town = (fortune: number, related: boolean) => {
+    const v = village();
+    v[2].fortune = fortune;
+    const actors = v.flatMap((h) => h.members.map((id) => ({ id, name: id, householdId: h.id, relations: related && id === "brewer1" ? [{ other: "farm1", kind: "parent" }] : [] })));
+    const s = { clock: 0, households: v, actors, player: { id: "player" }, manifest: { seed: "x" },
+      economy: { hour: 0, stock: { farm: { grain: 500 } }, short: { brewer: ["bread"] } } } as never as Snapshot;
+    for (let day = 0; day < 60; day++) { s.clock = day * 86400; settleRegard(s, undefined, 100); }
+    return s;
+  };
+  const helped = town(0.1, true);
+  expect(helped.economy!.stock.brewer.grain).toBeGreaterThan(100);
+  expect(regardBetween(helped, "brewer", "farm")).toBeGreaterThan(3);
+  expect(regardBetween(helped, "farm", "brewer")).toBe(0);
+  const alone = town(0.1, false);
+  expect(alone.economy!.stock.brewer?.grain).toBeGreaterThan(0);
+  expect(regardBetween(alone, "farm", "brewer")).toBeLessThan(0);
+  expect(alone.houseWrongs!["farm>brewer"]).toBe("took grain from their store");
+  expect(alone.households![0].history?.some((e) => e.kind === "robbed")).toBe(true);
+  expect(town(0.9, false).economy!.stock.brewer).toBeUndefined();
+});
+
+it("opens a world with debts already sour and a death this year still mourned", () => {
+  const v = Array.from({ length: 40 }, (_, i) => ({ id: `h${i}`, members: [`a${i}`], home: { x: i, y: 0, space: "outside" as const }, storeId: `h${i}`,
+    history: [{ year: 100, kind: "died" as const }],
+    credit: { good: "grain", from: `h${(i + 1) % 40}`, debtor: `a${i}`, amount: 2, reason: i % 2 ? "hardship" as const : "household" as const, repayment: "money" as const } }));
+  const s = { clock: 0, households: v, actors: [], player: { id: "player" }, manifest: { seed: "open" } } as never as Snapshot;
+  seedHouseholds(s, 100);
+  expect(v.every((h, i) => regardBetween(s, `h${(i + 1) % 40}`, h.id) <= (i % 2 ? -2 : 0))).toBe(true);
+  expect(v.some((h, i) => !(i % 2) && regardBetween(s, `h${(i + 1) % 40}`, h.id) <= AT_ODDS)).toBe(false);
+  expect(worstGrievance(s)?.debt).toBe(true);
+  const mourning = [...householdConditions(s).values()].filter((c) => c.mourning === "one of the household").length;
+  expect(mourning).toBeGreaterThan(2);
+  expect(mourning).toBeLessThan(20);
+});
+
+it("has the keeper settle a quarrel between two households and tell the town", () => {
+  const e = smallSession(settingFor(places.find((p) => p.id === "london")!, 1700), "case") as any, s = e.state;
+  const [, by, against] = s.households as Household[];
+  // The fixture has two other households; give the keeper one of their own.
+  e.keeperId = by.members.pop();
+  s.actors.find((a: any) => a.id === e.keeperId).householdId = "court";
+  against.credit = { good: "grain", from: by.id, debtor: against.members[0], amount: 3, reason: "hardship", repayment: "produce" };
+  s.economy ??= { hour: 0, stock: {}, short: {} };
+  s.economy.stock[against.id] = { grain: 10 };
+  s.houseRegard = { [`${by.id}>${against.id}`]: -5.5 };
+  s.houseWrongs = { [`${by.id}>${against.id}`]: "would not pay what they owe" };
+  e.hearCase();
+  expect(against.credit).toBeUndefined();
+  expect(s.economy.stock[against.id].grain).toBe(7);
+  expect(regardBetween(s, by.id, against.id)).toBe(-1);
+  expect(regardBetween(s, against.id, by.id)).toBe(-2);
+  expect(s.actors.find((a: any) => a.id === by.members[0]).word[0]).toMatchObject({ about: against.members[0], conduct: true });
+  expect(worstGrievance(s, s.player.householdId)).toBeUndefined();
 });

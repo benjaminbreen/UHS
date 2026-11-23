@@ -1461,7 +1461,11 @@ export function urbanNeighborhood(
             const facing =
               nx > 0 ? "west" : nx < 0 ? "east" : ny > 0 ? "north" : "south";
             const family = venueBuilding(venue, pack.setting!);
-            const look = (family && regionalLook(family, pack.setting)) ?? 0;
+            // Without a regional look, families baked in several looks vary by town.
+            let looks = 1;
+            while (buildingModels[`${family}-${scale}-${looks}`]) looks++;
+            const look = (family && regionalLook(family, pack.setting)) ??
+              Math.floor(rand("venue-look", venue.id) * looks);
             const base = buildingModels[`${family}-${scale}-${look}`]
               ? `${family}-${scale}-${look}`
               : `${family}-${scale}-0`;

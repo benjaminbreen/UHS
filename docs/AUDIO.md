@@ -69,13 +69,61 @@ floor pattern picks the surface; underground it is rock.
 `ambienceFor` builds beds from the scene: rain, wind, water or sea, town
 murmur (louder on market day), hearth and insects. Indoors muffles the outdoor
 beds. Rain follows `Weather.rain` (0–1), which comes and goes in showers by
-climate. Thunder is a separate sound.
+climate. Thunder follows `Weather.storm`: live, `src/render/lightning.ts`
+throws each strike and asks for its thunder (`thunder` in the director),
+delayed by distance and cracking when close; offline renders roll it at random.
+Hail (`Weather.hail`) adds a clatter of stones over the rain, and a dust storm
+(`Weather.dust`) a hiss of blown sand; both beds are loops of many small rings
+(`grainBuffer`), not filtered noise. A blizzard (`Weather.blizzard`) is the
+wind bed at full strength, without the hush that falling snow puts on it.
 
 Animal voices are in `wildlife.ts`, written sample by sample. Birds, owls and
 frogs are individuals: each keeps its place and repeats its own song, and the
 cast (`birdCast`) follows climate, woodland, town and coast. A dawn chorus is
 more birds singing more often. Insects are loops: chirping crickets on a warm
 night, a tree-cricket trill on a hot one, cicadas in the heat of the day.
+
+The interface has its own quiet sounds (`interfaceClick` in `sfx.ts`, played
+by `GameAudio.interfaceSound`). `App.tsx` picks one per panel as it opens: a
+rising pair of notes for a conversation, a purse settling on the counter for a
+shop or exchange (`purse` in `handling.ts`, in the setting's kind of money),
+paper for the map, a pack for the inventory, tools on the bench for making.
+Every button inside a dialog gets a soft tap from one listener in `App.tsx`,
+with a rising or falling tick on quantity steppers. Sending a line in
+conversation, a refused deal or order, and a finished or failed making each
+have their own. So do a plot card arriving and a choice committed, each line
+of the evening ledger and the seal that closes it, a year ticking by on the
+years screen, notices by kind (`Toasts.tsx`: a warning, other news, a step
+toward the life aim), and an interaction coming into reach (`KeyPrompt`). The
+title and setup screens have no director, so `interfaceSound` in `director.ts`
+plays these on a bare context there.
+
+Money coming in (`pay` with `incoming`) climbs faster than money paid out and
+lands on the rising figure; `App.tsx` plays it for wages and windfalls, and a
+sale plays it itself. Coming in at a shop door rings a sprung bell from 1750
+and rattles a bead curtain before (`shopDoor`). A person greets you in their
+own voice as a conversation opens (`greet`).
+
+Animals also answer the player (`GameAudio.call`, one voice from where the
+animal is). A frog ribbits as it jumps away and plops into its pool, a
+squirrel scolds from its tree, and crows, gulls and sparrows call when the
+player puts them up or walks into them (`callOf` in `voices.ts`). Farmyard
+and house animals answer the same way: hens, ducks, geese, sheep, goats,
+cattle, pigs, horses, donkeys and cats, and a dog growls before it barks.
+
+The player's body has sounds of its own (`bodily` in `sfx.ts`), played by
+`BodySounds` (`src/render/body-sounds.ts`) from the engine's state. A serious
+injury opens with the blow by kind (a crack for a bone, a hiss for a burn)
+under the lament, and a town's murmur drops for a moment and comes back as
+talk. A lame leg lands short and drags (`bodyStep`, which also adds the pull
+of deep water and a full pack shifting). Trying what an injury forbids draws a
+breath through the teeth; cracked ribs catch after a walk; a head injury dulls
+everything heard until it is half mended (`GameAudio.daze`); having a bone set
+and getting back the run or the climb each have a sound. Now and then: a
+cough or a shiver when ill, a growling stomach, a yawn late at night, gusts in
+a high wind, squeaking snow below -8 °C, water running off after wading,
+children playing near, and keening in a house in mourning. Arriving in
+another time has a rush of air under its music cue.
 
 Institutional activity comes from the nearest awake person within earshot. A modern ward has linen, metal trays and occasional wheels. Earlier wards use cups and cloth. Classrooms and clerks’ rooms use the setting’s writing tools. A pottery stall has ceramic knocks and a draper’s stall has the rustle of cloth. Floor materials change the footfalls, and sounds soften across a doorway. An empty institution keeps its local outdoor ambience and room acoustics. The Audio studio’s **Weather & place** scenes include wards in Edo and London, a board school, a yamen office and a bazaar stall.
 

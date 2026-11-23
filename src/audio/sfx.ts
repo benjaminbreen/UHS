@@ -109,11 +109,11 @@ function body(hit: HitClass, weight: number): Sound {
       ];
     case "grass":
       return [
-        noise(0, 0.17, 0.15 * g, 3600, { to: 6400, q: 0.7, attack: 0.025 }),
+        noise(0, 0.17, 0.22 * g, 3600, { to: 6400, q: 0.7, attack: 0.025 }),
       ];
     case "crop":
       return [
-        noise(0, 0.15, 0.17 * g, 3000, { to: 5200, q: 0.9, attack: 0.015 }),
+        noise(0, 0.15, 0.25 * g, 3000, { to: 5200, q: 0.9, attack: 0.015 }),
         ...grains(0.02, 0.12, 3, (t) =>
           noise(t, 0.018, 0.1 * g, 4800, { q: 3 }),
         ),
@@ -510,25 +510,26 @@ export function scramble(ground: HitClass, down = false): Sound {
 }
 
 /** Feet leaving the ground. */
-export function takeoff(ground: HitClass): Sound {
+/** The footfall a jump is made of: the walking step for that ground, or a
+ * step already worked out for the exact spot. */
+const stepOf = (on: HitClass | Sound, g: number): Sound =>
+  Array.isArray(on) ? shift(on, 0, g) : footfall(on, g) ?? shift(body(on === "air" ? "soil" : on, 0.6), 0, 0.6 * g);
+export function takeoff(on: HitClass | Sound): Sound {
   return [
-    ...shift(body(ground === "air" ? "soil" : ground, 0.5), 0, 0.55),
-    noise(0.01, 0.13, 0.06, 420, { to: 950, q: 1.5, attack: 0.04 }),
+    ...stepOf(on, 0.9),
+    tone(0, 0.09, 0.06, vary(120), { to: 75, attack: 0.01 }),
+    noise(0.01, 0.14, 0.03, 260, { to: 520, q: 1, attack: 0.05 }),
   ];
 }
 /** Feet coming back to it. `weight` 1 is a hop; a fall or a roll is 2. */
-export function landing(ground: HitClass, weight = 1): Sound {
+export function landing(on: HitClass | Sound, weight = 1): Sound {
   const w = Math.min(2, weight);
-  const soft = ground === "water" || ground === "marsh";
+  const soft = on === "water" || on === "marsh";
   return [
-    ...shift(
-      body(ground === "air" ? "soil" : ground, 0.7 + w * 0.3),
-      0,
-      0.75 + w * 0.2,
-    ),
-    ...(soft ? [] : [tone(0, 0.11, 0.12 * w, 84, { to: 50 })]),
+    ...stepOf(on, 1.1 + w * 0.3),
+    ...(soft ? [] : [tone(0, 0.11, 0.09 * w, vary(84), { to: 50 })]),
     // A heavy landing scuffs on after the first contact.
-    ...(w > 1.4 ? shift(scrape(ground), 0.09, 0.6) : []),
+    ...(w > 1.4 ? shift(Array.isArray(on) ? on : scrape(on), 0.09, 0.6) : []),
   ];
 }
 /** What a fungus does underfoot: a puffball breathes out, dry lichen
@@ -625,16 +626,16 @@ function brushing(through: Through, g: number): Sound {
         tone(t, 0.03, 0.05 * g, rand(700, 1100), { to: rand(1300, 1700), attack: 0.003 }),
       ).flatMap((l) => [noise(l.at, 0.01, 0.06 * g, 2400, { q: 3 }), l]);
     case "bloom":
-      return [noise(0.02, 0.12, 0.03 * g, 5200, { to: 7200, q: 0.6, attack: 0.04 })];
+      return [noise(0.02, 0.12, 0.055 * g, 5200, { to: 7200, q: 0.6, attack: 0.04 })];
     case "brush":
       return [
-        noise(0, 0.2, 0.06 * g, 2400, { to: 4000, q: 0.7, attack: 0.05 }),
-        ...grains(0.04, 0.14, 2, (t) => noise(t, 0.02, 0.035 * g, 3600, { q: 2.5 })),
+        noise(0, 0.2, 0.11 * g, 2400, { to: 4000, q: 0.7, attack: 0.05 }),
+        ...grains(0.04, 0.14, 2, (t) => noise(t, 0.02, 0.065 * g, 3600, { q: 2.5 })),
       ];
     case "crop":
       return [
-        noise(0.01, 0.18, 0.055 * g, 3300, { to: 5400, q: 0.8, attack: 0.04 }),
-        ...grains(0.05, 0.12, 3, (t) => noise(t, 0.014, 0.03 * g, 5200, { q: 3 })),
+        noise(0.01, 0.18, 0.1 * g, 3300, { to: 5400, q: 0.8, attack: 0.04 }),
+        ...grains(0.05, 0.12, 3, (t) => noise(t, 0.014, 0.055 * g, 5200, { q: 3 })),
       ];
     default:
       return [];
@@ -695,23 +696,23 @@ function footfall(ground: HitClass | "paddy" | "furrow" | "sodden", g: number): 
       ];
     case "grass":
       return [
-        thump(0.035, 95),
-        noise(0, 0.07, 0.045 * g, 500, { filter: "lowpass", attack: 0.012 }),
-        noise(0, 0.11, 0.05 * g, vary(3200, 0.2), { to: 5200, q: 0.6, attack: 0.03 }),
+        thump(0.024, 95),
+        noise(0, 0.07, 0.03 * g, 500, { filter: "lowpass", attack: 0.012 }),
+        noise(0, 0.11, 0.034 * g, vary(3200, 0.2), { to: 5200, q: 0.6, attack: 0.03 }),
       ];
     case "soil":
       return [
-        thump(0.06, 120),
-        noise(0, 0.06, 0.08 * g, vary(650, 0.15), { filter: "lowpass", attack: 0.005 }),
-        ...grit(0.012, 0.07, 3, 0.03, 2600, 2),
+        thump(0.04, 120),
+        noise(0, 0.06, 0.052 * g, vary(650, 0.15), { filter: "lowpass", attack: 0.005 }),
+        ...grit(0.012, 0.07, 3, 0.02, 2600, 2),
       ];
     // Paving and flagged floors: the heel's hard click, then the sole.
     case "stone":
       return [
-        noise(0, 0.014, 0.14 * g, vary(3200, 0.15), { q: 2, attack: 0.001 }),
-        tone(0, 0.035, 0.08 * g, vary(950, 0.1), { to: 700, wave: "triangle", attack: 0.001 }),
-        thump(0.06, 150),
-        noise(0.045, 0.025, 0.06 * g, vary(2400, 0.2), { q: 1.5 }),
+        noise(0, 0.014, 0.085 * g, vary(3200, 0.15), { q: 2, attack: 0.001 }),
+        tone(0, 0.035, 0.05 * g, vary(950, 0.1), { to: 700, wave: "triangle", attack: 0.001 }),
+        thump(0.04, 150),
+        noise(0.045, 0.025, 0.038 * g, vary(2400, 0.2), { q: 1.5 }),
       ];
     // Bare rock and scree: a duller knock, and grit rolling under the sole.
     case "rock":
@@ -723,9 +724,9 @@ function footfall(ground: HitClass | "paddy" | "furrow" | "sodden", g: number): 
       ];
     case "timber":
       return [
-        tone(0, 0.09, 0.09 * g, vary(170, 0.1), { to: 125, attack: 0.002 }),
-        tone(0, 0.04, 0.035 * g, vary(420, 0.1)),
-        noise(0, 0.03, 0.07 * g, vary(900, 0.15), { q: 1.8, attack: 0.002 }),
+        tone(0, 0.09, 0.065 * g, vary(170, 0.1), { to: 125, attack: 0.002 }),
+        tone(0, 0.04, 0.025 * g, vary(420, 0.1)),
+        noise(0, 0.03, 0.05 * g, vary(900, 0.15), { q: 1.8, attack: 0.002 }),
         // Now and then a board complains.
         ...(Math.random() < 0.1
           ? [tone(0.05, 0.14, 0.012 * g, rand(520, 760), { to: rand(600, 900), wave: "sawtooth", attack: 0.04 })]
@@ -733,15 +734,15 @@ function footfall(ground: HitClass | "paddy" | "furrow" | "sodden", g: number): 
       ];
     case "fiber":
       return [
-        noise(0, 0.08, 0.09 * g, 420, { filter: "lowpass", attack: 0.01 }),
-        noise(0.01, 0.06, 0.04 * g, vary(2000, 0.2), { q: 0.8, attack: 0.015 }),
+        noise(0, 0.08, 0.065 * g, 420, { filter: "lowpass", attack: 0.01 }),
+        noise(0.01, 0.06, 0.03 * g, vary(2000, 0.2), { q: 0.8, attack: 0.015 }),
       ];
     // Sand has no click in it: the foot slides in and the grains settle after.
     case "sand":
       return [
-        thump(0.03, 80),
-        noise(0, 0.16, 0.075 * g, vary(2200, 0.15), { to: 1100, q: 0.5, attack: 0.035 }),
-        noise(0.02, 0.12, 0.03 * g, 5200, { to: 3000, q: 0.7, attack: 0.04 }),
+        thump(0.024, 80),
+        noise(0, 0.16, 0.058 * g, vary(2200, 0.15), { to: 1100, q: 0.5, attack: 0.035 }),
+        noise(0.02, 0.12, 0.024 * g, 5200, { to: 3000, q: 0.7, attack: 0.04 }),
         ...grit(0.09, 0.08, 2, 0.015, 4200, 2),
       ];
     case "snow":
@@ -774,13 +775,114 @@ function pluck(at: number, n: number, gain: number, dur = 0.42): Sound {
 const run = (notes: number[], gap: number, gain: number, dur?: number): Sound =>
   notes.flatMap((n, i) => pluck(i * gap, n, gain * (1 - i * 0.08), dur));
 
-export function interfaceClick(kind: "open" | "close" | "tab"): Sound {
-  const f = kind === "open" ? 760 : kind === "close" ? 520 : 650;
-  return [
-    tone(0, 0.045, 0.035, f, { to: f * 0.8, attack: 0.003 }),
-    tone(0, 0.025, 0.009, f * 1.5, { attack: 0.002 }),
-    noise(0, 0.018, 0.006, 1600, { filter: "lowpass", attack: 0.003 }),
+export type InterfaceKind =
+  | "open" | "close" | "tab" | "tap" | "more" | "less" | "send" | "deny"
+  | "dialogue" | "map" | "bag" | "craft" | "sheet"
+  | "row" | "seal" | "card" | "commit" | "notice" | "warn" | "prompt" | "tock";
+/** The interface's own small voice: quiet, short, and each panel a little different. */
+export function interfaceClick(kind: InterfaceKind): Sound {
+  const click = (f: number, gain = 0.035): Sound => [
+    tone(0, 0.045, gain, f, { to: f * 0.8, attack: 0.003 }),
+    tone(0, 0.025, gain * 0.26, f * 1.5, { attack: 0.002 }),
+    noise(0, 0.018, gain * 0.17, 1600, { filter: "lowpass", attack: 0.003 }),
   ];
+  switch (kind) {
+    case "open":
+      return click(760);
+    case "close":
+      return click(520);
+    case "tab":
+      return click(650);
+    case "tap":
+      return click(vary(600, 0.03), 0.016);
+    case "more":
+      return [tone(0, 0.04, 0.02, 700, { to: 840, attack: 0.003 })];
+    case "less":
+      return [tone(0, 0.04, 0.02, 620, { to: 500, attack: 0.003 })];
+    // Your words going across: a breath and a small lift.
+    case "send":
+      return [
+        noise(0, 0.07, 0.008, 2400, { to: 3600, q: 0.7, attack: 0.02 }),
+        tone(0.01, 0.08, 0.028, 520, { to: 880, attack: 0.012 }),
+      ];
+    case "deny":
+      return [
+        tone(0, 0.08, 0.04, 196, { wave: "triangle", attack: 0.006 }),
+        tone(0.1, 0.11, 0.04, 174, { wave: "triangle", attack: 0.006 }),
+        noise(0, 0.04, 0.02, 420, { filter: "lowpass", attack: 0.004 }),
+      ];
+    // Someone turning to you: two plucked notes, rising.
+    case "dialogue":
+      return [...pluck(0, 7, 0.06, 0.24), ...pluck(0.09, 9, 0.065, 0.34)];
+    // Paper opened out and flattened.
+    case "map":
+      return [
+        noise(0, 0.1, 0.03, 2600, { to: 4400, q: 0.7, attack: 0.025 }),
+        noise(0.11, 0.13, 0.034, 3200, { to: 1700, q: 0.7, attack: 0.03 }),
+        ...grains(0.03, 0.2, 5, (t) => noise(t, 0.008, 0.012, vary(5200, 0.2), { q: 2 })),
+      ];
+    // A pack opened: cloth, then the buckle.
+    case "bag":
+      return [
+        noise(0, 0.11, 0.035, 900, { filter: "lowpass", attack: 0.025 }),
+        noise(0.02, 0.08, 0.012, vary(2600, 0.2), { q: 0.8, attack: 0.02 }),
+        tone(0.1, 0.03, 0.018, vary(1800), { to: 1500, wave: "triangle", attack: 0.002 }),
+        noise(0.1, 0.01, 0.016, 4200, { q: 3 }),
+      ];
+    // Tools set down on the bench.
+    case "craft":
+      return [0, 0.11].flatMap((at, i) => [
+        tone(at, 0.05, 0.04, vary(i ? 370 : 320), { to: 250, wave: "triangle", attack: 0.002 }),
+        noise(at, 0.02, 0.025, 1100, { q: 1.2, attack: 0.002 }),
+      ]);
+    case "sheet":
+      return [...pluck(0, 5, 0.055, 0.3), noise(0, 0.06, 0.012, 2400, { to: 3600, q: 0.8, attack: 0.02 })];
+    // A line entered in the account: the pen's tick, or a bead pushed home.
+    case "row": {
+      const f = vary(880, 0.08);
+      return [
+        tone(0, 0.035, 0.032, f, { to: f * 0.72, wave: "triangle", attack: 0.002 }),
+        noise(0, 0.014, 0.016, 2600, { q: 1.5, attack: 0.002 }),
+      ];
+    }
+    // The account closed: a seal pressed down.
+    case "seal":
+      return [
+        tone(0, 0.11, 0.07, 130, { to: 82, attack: 0.004 }),
+        noise(0, 0.05, 0.035, 520, { filter: "lowpass", attack: 0.004 }),
+        noise(0.03, 0.05, 0.012, 2400, { q: 0.8, attack: 0.01 }),
+      ];
+    // A card dealt face up.
+    case "card":
+      return [
+        noise(0, 0.08, 0.03, 2800, { to: 4800, q: 0.8, attack: 0.02 }),
+        noise(0.07, 0.03, 0.03, 700, { filter: "lowpass", attack: 0.003 }),
+        ...pluck(0.08, 5, 0.045, 0.3),
+      ];
+    // A choice made and set down.
+    case "commit":
+      return [
+        tone(0, 0.08, 0.06, 150, { to: 100, attack: 0.004 }),
+        noise(0, 0.03, 0.03, 900, { q: 1, attack: 0.003 }),
+        ...pluck(0.03, 7, 0.07, 0.4),
+        ...pluck(0.03, 4, 0.04, 0.4),
+      ];
+    case "notice":
+      return [tone(0, 0.05, 0.016, 990, { to: 1120, attack: 0.008 })];
+    case "warn":
+      return [
+        tone(0, 0.12, 0.04, 233, { wave: "triangle", attack: 0.01 }),
+        tone(0.14, 0.2, 0.04, 220, { wave: "triangle", attack: 0.01 }),
+      ];
+    case "prompt":
+      return [tone(0, 0.03, 0.01, 1320, { attack: 0.006 })];
+    // The escapement, one year on.
+    case "tock":
+      return [
+        tone(0, 0.03, 0.035, vary(420, 0.03), { to: 330, wave: "triangle", attack: 0.002 }),
+        noise(0, 0.012, 0.02, 2200, { q: 2, attack: 0.001 }),
+      ];
+  }
 }
 
 export const events = {
@@ -840,21 +942,39 @@ export const events = {
     ...ring(0, hz(62), 2.4, 0.05),
     ...[69, 65, 62, 57].map((m, i) => tone(0.4 + i * 0.45, 1.5, 0.1 - i * 0.015, hz(m), { wave: "triangle", attack: 0.02 })),
   ],
+  /** Badly hurt: a thud, then a slow sighing fall over a held minor chord,
+   * the RPG lament for a party member who will not get up at once. */
+  injured: () => [
+    tone(0, 0.5, 0.16, hz(38), { to: hz(33), wave: "triangle", attack: 0.004 }),
+    ...[50, 57, 65].map((m) => tone(0.35, 3.6, 0.045, hz(m), { wave: "triangle", attack: 0.5 })),
+    ...([[0.5, 69, 0.55], [1.05, 67, 0.3], [1.35, 65, 0.6], [1.95, 64, 0.4], [2.35, 62, 1.6]] as const).map(([at, m, dur]) =>
+      tone(at, dur + 0.25, 0.09, hz(m), { wave: "triangle", attack: 0.03 })),
+    tone(2.35, 1.8, 0.03, hz(74), { attack: 0.2 }),
+  ],
+  /** The body can run or climb again: two easy steps up and a breath of air. */
+  mended: () => [...pluck(0, 7, 0.1, 0.7), ...pluck(0.16, 12, 0.12, 1.1), ...pluck(0.16, 4, 0.06, 1.1)],
   /** A skill rising: a quick climb that opens out and rings. */
   levelUp: () => [
     ...run([5, 7, 9, 12], 0.07, 0.2, 0.5),
     ...pluck(0.3, 14, 0.16, 1.1),
     ...pluck(0.3, 9, 0.1, 1.1),
   ],
+  /** A step toward the life's aim: the level-up's climb, held on a fifth. */
+  aim: () => [
+    ...run([5, 7, 9], 0.09, 0.16, 0.5),
+    ...pluck(0.3, 12, 0.15, 1.3),
+    ...pluck(0.3, 9, 0.09, 1.3),
+    ...ring(0.3, hz(degree(12)) * 2, 0.9, 0.02),
+  ],
   /** A technique taken: two notes settling. */
   learn: () => [...run([9, 12], 0.09, 0.18, 0.7), ...pluck(0.2, 16, 0.08, 0.9)],
   door: () => [
-    tone(0, 0.035, 0.055, 1050, { to: 700, wave: "triangle", attack: 0.004 }),
-    noise(0.02, 0.12, 0.055, 590, { to: 360, q: 0.9, attack: 0.02 }),
+    tone(0, 0.035, 0.1, 1050, { to: 700, wave: "triangle", attack: 0.004 }),
+    noise(0.02, 0.12, 0.1, 590, { to: 360, q: 0.9, attack: 0.02 }),
   ],
   doorClose: () => [
-    noise(0, 0.075, 0.065, 460, { q: 0.9, attack: 0.005 }),
-    tone(0.05, 0.028, 0.045, 900, { to: 640, wave: "triangle" }),
+    noise(0, 0.075, 0.12, 460, { q: 0.9, attack: 0.005 }),
+    tone(0.05, 0.028, 0.08, 900, { to: 640, wave: "triangle" }),
   ],
   knock: () => [0, 0.14].flatMap((at) => [
     tone(at, 0.065, 0.065, vary(330), { to: 260, wave: "triangle" }),
@@ -952,6 +1072,23 @@ export function voice(kind: VoiceKind, annoyed = false): Sound {
       : []),
   ];
 }
+/** A word of greeting as someone turns to you: two syllables, the second lifting. */
+export function greet(kind: VoiceKind): Sound {
+  const base = voiceBase[kind] * rand(0.96, 1.04);
+  return [
+    tone(0, 0.09, 0.045, base, { to: base * 0.96, wave: "triangle", attack: 0.012 }),
+    tone(0.12, 0.13, 0.05, base * 1.12, { to: base * 1.26, wave: "triangle", attack: 0.012 }),
+  ];
+}
+/** Coming in at a shop door: a sprung bell where shops have them, a bead curtain before. */
+export function shopDoor(bell: boolean): Sound {
+  if (bell)
+    return [0, 0.16, 0.36].flatMap((at, i) => ring(at, 2350, 0.5, 0.03 / (1 + i)));
+  return grains(0, 0.45, 12, (t) => {
+    const f = vary(1700, 0.3);
+    return tone(t, 0.02, rand(0.025, 0.06), f, { to: f * 0.8, wave: "triangle", attack: 0.001 });
+  });
+}
 /** Walking into a person: cloth, a knock, and a word they did not choose. */
 export function bumpPerson(kind: VoiceKind, annoyed = false): Sound {
   const base = voiceBase[kind] * rand(0.95, 1.05);
@@ -964,6 +1101,145 @@ export function bumpPerson(kind: VoiceKind, annoyed = false): Sound {
       attack: 0.008,
     }),
   ];
+}
+/** The player's own body: what a hurt, an illness or an empty stomach sounds
+ * like from the inside. All quiet; most are heard a few times a day. */
+export const bodily = {
+  /** The blow that does the damage, by what it did. */
+  impact: (hurt: { id: string; part: string; grade: number; bone?: boolean; open?: boolean }): Sound => {
+    const thud = [
+      tone(0, 0.16, 0.3, vary(120), { to: 55, attack: 0.003 }),
+      noise(0, 0.07, 0.16, 500, { filter: "lowpass" }),
+    ];
+    if (/burn/.test(hurt.id))
+      return [noise(0, 0.5, 0.06, 5200, { to: 2600, filter: "highpass", attack: 0.01 }), ...grains(0.03, 0.4, 7, (t) => noise(t, 0.012, 0.045, 6400, { q: 3 }))];
+    if (/bite|maul/.test(hurt.id))
+      return [...thud, ...grains(0.02, 0.22, 4, (t) => noise(t, 0.05, 0.13, 1500, { to: 700, q: 1.2, attack: 0.004 }))];
+    if (hurt.bone)
+      return [
+        ...thud,
+        noise(0.05, 0.012, 0.3, 2400, { q: 3 }),
+        tone(0.05, 0.04, 0.2, vary(820), { to: 380, wave: "triangle", attack: 0.001 }),
+        noise(0.075, 0.03, 0.1, 1200, { q: 2 }),
+      ];
+    if (hurt.part === "head")
+      return [...thud, tone(0.03, 1.6, 0.03, vary(3100, 0.03), { attack: 0.25 })];
+    if (hurt.open)
+      return [...thud, noise(0.02, 0.14, 0.12, 2600, { to: 5200, q: 0.9, attack: 0.005 })];
+    return hurt.grade > 2 ? [...thud, noise(0.04, 0.2, 0.08, 300, { filter: "lowpass", attack: 0.02 })] : thud;
+  },
+  /** Breath pulled in through the teeth: trying what the body will not do. */
+  wince: (kind: VoiceKind): Sound => [
+    noise(0, 0.22, 0.07, 3200, { to: 5600, q: 1.1, attack: 0.02 }),
+    tone(0.2, 0.12, 0.05, voiceBase[kind] * 0.9, { to: voiceBase[kind] * 0.7, wave: "triangle", attack: 0.01 }),
+  ],
+  /** Cracked ribs after exertion: a breath that stops short, then a careful one. */
+  hitch: (): Sound => [
+    noise(0, 0.14, 0.06, 1800, { to: 2800, q: 0.9, attack: 0.03 }),
+    noise(0.2, 0.04, 0.05, 2400, { q: 1.5 }),
+    noise(0.55, 0.5, 0.035, 1100, { to: 700, q: 0.7, attack: 0.2 }),
+  ],
+  cough: (kind: VoiceKind): Sound =>
+    Array.from({ length: Math.round(rand(2, 3)) }, (_, i) => {
+      const at = i * rand(0.2, 0.26), f = voiceBase[kind] * vary(0.8);
+      return [
+        noise(at, 0.09, 0.11 / (1 + i * 0.4), 1100, { to: 600, q: 0.8, attack: 0.004 }),
+        tone(at, 0.07, 0.05 / (1 + i * 0.4), f, { to: f * 0.6, wave: "sawtooth", attack: 0.004 }),
+      ];
+    }).flat(),
+  /** A fever's chill: a breath that shakes. */
+  shiver: (): Sound =>
+    grains(0, 0.7, 9, (t, i) => noise(t, 0.045, 0.05 * (1 - i / 14), 1500, { q: 0.9, attack: 0.01 })),
+  /** An empty stomach: a low gurgle that wanders. */
+  stomach: (): Sound =>
+    Array.from({ length: Math.round(rand(3, 5)) }, (_, i) => {
+      const f = vary(95, 0.25);
+      return tone(i * rand(0.13, 0.2), 0.16, 0.07, f, { to: f * rand(0.7, 1.5), attack: 0.03 });
+    }),
+  yawn: (kind: VoiceKind): Sound => {
+    const f = voiceBase[kind] * 0.8;
+    return [
+      noise(0, 0.5, 0.03, 900, { to: 1600, q: 0.7, attack: 0.25 }),
+      tone(0.4, 0.8, 0.04, f * 1.25, { to: f * 0.7, wave: "triangle", attack: 0.25 }),
+      noise(1.0, 0.5, 0.03, 1400, { to: 700, q: 0.7, attack: 0.05 }),
+    ];
+  },
+  /** A bone being put back: the pull, the click, the breath, then cloth wound round. */
+  setBone: (kind: VoiceKind): Sound => [
+    noise(0, 0.3, 0.06, 500, { filter: "lowpass", attack: 0.1 }),
+    noise(0.34, 0.014, 0.26, 1900, { q: 3 }),
+    tone(0.34, 0.06, 0.2, vary(240), { to: 130, attack: 0.002 }),
+    noise(0.42, 0.2, 0.08, 3400, { to: 5200, q: 1.1, attack: 0.02 }),
+    tone(0.44, 0.22, 0.06, voiceBase[kind], { to: voiceBase[kind] * 0.75, wave: "triangle", attack: 0.02 }),
+    ...[1.0, 1.45, 1.9].map((at) => noise(at, 0.3, 0.05, 2200, { to: 3600, q: 0.7, attack: 0.1 })),
+  ],
+  /** A full pack shifting on its straps. */
+  pack: (): Sound => {
+    const f = vary(310, 0.15);
+    return [
+      tone(0, 0.09, 0.022, f, { to: f * 1.25, wave: "triangle", attack: 0.02 }),
+      noise(0.01, 0.07, 0.03, 900, { filter: "lowpass", attack: 0.01 }),
+    ];
+  },
+  /** Pushing through water to the knee: the drag, then what closes behind. */
+  wade: (depth: number): Sound => [
+    noise(0, 0.32, 0.1 * depth, 520, { to: 1100, q: 0.6, attack: 0.07 }),
+    noise(0.12, 0.3, 0.05 * depth, 2200, { to: 1300, q: 0.8, attack: 0.08 }),
+    bubble(0.2, 260, 0.04 * depth),
+  ],
+  /** Water running off clothes after wading out: a soft patter, not plinks. */
+  shed: (): Sound =>
+    grains(0, 1.6, 14, (t, i) => noise(t, 0.03, 0.06 * (1 - i / 16), 2600, { q: 1.4, attack: 0.004 })),
+  /** A gust catching the ears. */
+  buffet: (strength: number): Sound => [
+    noise(0, 1.4, 0.12 * strength, 140, { to: vary(260, 0.3), filter: "lowpass", attack: 0.5 }),
+    noise(0.3, 0.9, 0.05 * strength, 420, { to: 700, q: 0.5, attack: 0.4 }),
+  ],
+  /** Hard cold snow under a boot: the squeak that soft snow does not have. */
+  frost: (): Sound => {
+    const f = vary(1250, 0.12);
+    return [tone(0.02, 0.07, 0.016, f, { to: f * 1.2, wave: "triangle", attack: 0.02 }), noise(0, 0.08, 0.05, 3000, { q: 2, attack: 0.01 })];
+  },
+  /** A street taking notice: a few low voices, none of them words. */
+  murmur: (): Sound =>
+    Array.from({ length: 7 }, (_, i) => {
+      const f = vary(i % 2 ? 170 : 260, 0.2);
+      return tone(0.15 + i * rand(0.14, 0.22), 0.16, 0.05, f, { to: f * rand(0.85, 1.15), wave: "triangle", attack: 0.04 });
+    }),
+  /** Mourning by a bed: a long falling cry, held low. */
+  keen: (): Sound => {
+    const f = vary(360, 0.06);
+    return [
+      tone(0, 1.5, 0.06, f * 1.2, { to: f, wave: "triangle", attack: 0.35 }),
+      tone(1.4, 1.7, 0.052, f, { to: f * 0.84, wave: "triangle", attack: 0.2 }),
+      tone(0.1, 2.8, 0.016, f * 2, { to: f * 1.7, attack: 0.5 }),
+    ];
+  },
+  /** Children at play somewhere near: a shriek and a run of laughter. */
+  play: (): Sound => [
+    tone(0, 0.2, 0.06, vary(720), { to: 900, wave: "triangle", attack: 0.03 }),
+    ...Array.from({ length: 5 }, (_, i) => {
+      const f = vary(560 - i * 20, 0.05);
+      return tone(0.32 + i * 0.1, 0.07, 0.056, f, { to: f * 1.15, wave: "triangle", attack: 0.008 });
+    }),
+  ],
+  /** Landing in another time: air rushing in to fill where you were not. */
+  arrive: (): Sound => [
+    noise(0, 1.3, 0.12, 300, { to: 5200, q: 0.6, attack: 1.1 }),
+    noise(1.3, 0.9, 0.1, 2400, { to: 240, filter: "lowpass", attack: 0.005 }),
+    tone(1.3, 0.5, 0.16, 70, { to: 42, attack: 0.004 }),
+    ...ring(1.32, 1480, 1.6, 0.025),
+  ],
+};
+/** A footfall as the body carrying it changes it: a bad leg lands short and
+ * drags (`drag` 1 or 2), deep water pulls, a full pack shifts now and then. */
+export function bodyStep(step: Sound, by: { drag: number; wade: number; load: number }): Sound {
+  const out = by.drag
+    ? [...shift(step, 0, 0.6), noise(0.05, by.drag > 1 ? 0.26 : 0.14, 0.028 * by.drag, 900, { to: 500, q: 0.6, attack: 0.03 })]
+    : [...step];
+  if (by.wade > 0.12) out.push(...bodily.wade(Math.min(1, by.wade * 3)));
+  if (by.load >= 20 && Math.random() < 0.3) out.push(...bodily.pack());
+  return out;
 }
 /** A baby's voice: small, high and soft. The cry is kept round and quiet, as
  * it repeats every few seconds for as long as the player leaves it. */
@@ -1019,20 +1295,16 @@ export function bark(): Sound {
 }
 export type BeastVoice = "bird" | "critter" | "herd" | "beast";
 /** Walking into an animal: its own call, plus the scuff of it moving off. */
-export function bumpAnimal(kind: BeastVoice): Sound {
+export function bumpAnimal(kind: BeastVoice, voiced = true): Sound {
   const scuff = noise(0, 0.08, 0.07, 900, { q: 0.8, attack: 0.005 });
+  // The animal's own call is played beside this.
+  if (!voiced && kind !== "bird") return kind === "beast" ? body("creature", 1.1) : [scuff];
   switch (kind) {
-    case "bird": {
-      // Alarm call over the clap of wings.
-      const f = vary(2600, 0.15);
-      return [
-        ...grains(0, 0.22, 4, (t) =>
-          noise(t, 0.05, 0.06, vary(320, 0.2), { q: 0.5, attack: 0.01 }),
-        ),
-        tone(0.01, 0.06, 0.07, f, { to: f * 1.5, wave: "triangle" }),
-        tone(0.1, 0.05, 0.05, f * 1.1, { to: f * 0.8, wave: "triangle" }),
-      ];
-    }
+    // The clap of wings; the bird's own call is played beside it.
+    case "bird":
+      return grains(0, 0.22, 4, (t) =>
+        noise(t, 0.05, 0.06, vary(320, 0.2), { q: 0.5, attack: 0.01 }),
+      );
     case "critter": {
       const f = vary(1500, 0.2);
       return [
@@ -1508,6 +1780,21 @@ export function cycleSkid(surface: HitClass): Sound {
   return [
     noise(0, 0.26, 0.13, 1300, { to: 520, q: 1, attack: 0.01 }),
     ...grains(0.02, 0.22, 6, (t) => noise(t, 0.022, 0.06, rand(800, 1900), { q: 2 })),
+  ];
+}
+
+/** One note of a two-tone police horn; `high` alternates. */
+export function siren(high: boolean, near: number): Sound {
+  const f = high ? 960 : 720;
+  return [tone(0, 0.32, 0.03 + near * 0.07, f, { to: f * 1.02, wave: "square", attack: 0.02 })];
+}
+
+/** Sheet metal meeting something that does not give: a thump, a crunch, and glass after it if it was hard. */
+export function carCrash(hard: boolean): Sound {
+  return [
+    tone(0, 0.16, hard ? 0.2 : 0.12, 90, { to: 42 }),
+    noise(0, hard ? 0.3 : 0.14, hard ? 0.2 : 0.1, 900, { to: 300, q: 0.8, attack: 0.004 }),
+    ...(hard ? grains(0.08, 0.4, 9, (t) => noise(t, 0.03, 0.07, rand(3200, 6200), { q: 6 })) : []),
   ];
 }
 

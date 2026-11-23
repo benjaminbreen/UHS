@@ -78,7 +78,8 @@ export const CRAFT_CARDS: ChoiceCard[] = [
       },
       {
         label: "Make him measure it again",
-        note: "full price if you're right · if not, he docks you more and remembers it",
+        note: "full price if you're right · if not, he docks you more and tells people",
+        word: "argued over the measure with",
         check: { stat: "wit", skill: "trade", odds: 0.5 },
         then: [{ type: "regard", delta: -1 }],
         line: "You made the clothier measure again, and the piece was full length.",
@@ -103,8 +104,8 @@ export const CRAFT_CARDS: ChoiceCard[] = [
     choices: [
       {
         label: "Let {name} pay later",
-        note: "less money today, but {name} will remember the favour",
-        then: [{ type: "day", delta: -1 }, { type: "regard", delta: 2 }],
+        note: "no money today · {name} owes it to you, asked for in a week",
+        then: [{ type: "pay", delta: -2 }, { type: "credit", n: 2 }, { type: "regard", delta: 2 }, { type: "later", card: "credit-due", days: 7 }],
         line: "You let {name} have the cloth on credit.",
       },
       {
@@ -165,7 +166,7 @@ export const CRAFT_CARDS: ChoiceCard[] = [
         check: { stat: "agility", skill: "crafting", odds: 0.65 },
         then: [],
         line: "You turned your face from the sparks and kept the work moving.",
-        otherwise: [{ type: "hurt", n: 12, cause: "burns at the forge", injury: "burned skin" }],
+        otherwise: [{ type: "hurt", n: 12, cause: "burns at the forge", injury: "burn" }],
         otherwiseLine: "The scale caught you across the cheek.",
       },
       {
@@ -444,7 +445,7 @@ export const CRAFT_CARDS: ChoiceCard[] = [
       },
       {
         label: "Feed the ones who work first",
-        note: "the work gets done, but the others go short and resent it",
+        note: "the work gets done, but the others go short",
         then: [{ type: "regard", delta: -2 }],
         line: "You fed the ones who work first, and the rest had what was left.",
       },
@@ -490,7 +491,7 @@ export const CRAFT_CARDS: ChoiceCard[] = [
     choices: [
       {
         label: "Write what they ask",
-        note: "{name} pays and is pleased · you may get blamed for it later",
+        note: "{name} pays and is pleased · the letter is false",
         then: [{ type: "regard", delta: 1 }],
         line: "You wrote the letter {name} asked for, and asked no questions.",
       },
@@ -614,7 +615,7 @@ export const CRAFT_CARDS: ChoiceCard[] = [
         check: { stat: "strength", skill: "arms", odds: 0.5 },
         then: [{ type: "day", delta: 1 }, { type: "fatigue", n: 10 }],
         line: "You broke up the fight and sent both men home.",
-        otherwise: [{ type: "hurt", n: 12, cause: "a brawl", injury: "bruised ribs" }],
+        otherwise: [{ type: "hurt", n: 12, cause: "a brawl", injury: "cracked-ribs" }],
         otherwiseLine: "You waded into the fight and took a fist in the ribs.",
       },
       {

@@ -14,6 +14,10 @@ export type FaunaCombat = {
   damage: number;
   /** What an ordinary adult yields to whoever kills it. */
   yields: Readonly<Record<string, number>>;
+  /** A venomous bite untreated: the share that inject venom (the rest are
+   * dry), the share of the envenomed who die, and the hours until death or
+   * the worst has passed. */
+  venom?: { wet: number; deadly: number; hours: number };
 };
 
 const bird = (hp: number, meat = 0): FaunaCombat => ({
@@ -142,11 +146,15 @@ const table: Record<string, FaunaCombat> = {
   // The herd backs into a ring, horns out, and a bull comes out of it at you.
   "musk-ox": beast(60, 4, 25, "charge", 20),
   yak: beast(50, 4, 25),
-  // A bite is a dose of venom, not a wound; one blow kills the snake.
+  // The fangs barely hurt; the venom works over the following hours. One blow
+  // kills the snake. Untreated outcomes are inferred from clinical series:
+  // a third to half of bites are dry; a mamba's untreated was near-certain death,
+  // an adder's almost never.
   ...Object.fromEntries(
-    [["indian-cobra", 22], ["egyptian-cobra", 22], ["russells-viper", 24], ["saw-scaled-viper", 18], ["black-mamba", 28],
-     ["western-diamondback", 20], ["timber-rattlesnake", 20], ["european-adder", 8]]
-      .map(([id, damage]) => [id, { hp: 3, mass: 0, temper: "charge", damage, yields: {} } as FaunaCombat]),
+    ([["indian-cobra", 0.6, 0.3, 8], ["egyptian-cobra", 0.6, 0.3, 10], ["russells-viper", 0.7, 0.3, 36],
+      ["saw-scaled-viper", 0.7, 0.15, 72], ["black-mamba", 0.8, 0.9, 5], ["western-diamondback", 0.75, 0.12, 36],
+      ["timber-rattlesnake", 0.7, 0.1, 36], ["european-adder", 0.6, 0.01, 48]] as const)
+      .map(([id, wet, deadly, hours]) => [id, { hp: 3, mass: 0, temper: "charge", damage: 4, yields: {}, venom: { wet, deadly, hours } } as FaunaCombat]),
   ),
   "nile-crocodile": { ...beast(120, 5, 30, "charge", 40), yields: { meat: 30, hide: 1 } },
   "saltwater-crocodile": { ...beast(140, 6, 35, "charge", 44), yields: { meat: 35, hide: 1 } },

@@ -187,3 +187,29 @@ it("knows a market's day where it keeps a cycle, and not where it does not", () 
   expect(days.filter(Boolean)).toHaveLength(2);
   expect(marketDay(london, at(0))).toBeUndefined();
 });
+
+it("puts a death, an illness and a shortage on the day of the house and its kin", () => {
+  const ids = (p: Person) => agendaOf("seed", rome, at(3), p).map((i) => i.id);
+  const self = actor("a"), wife = actor("w", { householdId: self.householdId }), brother = actor("b");
+  const kin = [{ actor: wife, kind: "partner" as const }, { actor: brother, kind: "friend" as const }];
+  const household = { id: self.householdId!, members: ["a", "w"], home: { x: 0, y: 0, space: "outside" }, storeId: "s" };
+  const on = (id: string, c: object) => person(self, { kin, household, conditions: (h) => (h === id ? c : undefined) });
+  expect(ids(person(self, { kin, household }))).not.toContain("day.mourning-at-home");
+  expect(ids(on(self.householdId!, { mourning: "Gaius Test" }))).toContain("day.mourning-at-home");
+  expect(ids(on(self.householdId!, { sick: ["w"] }))).toContain("day.tend-the-sick");
+  expect(ids(on(self.householdId!, { sick: ["a"] }))).not.toContain("day.tend-the-sick");
+  const asking = agendaOf("seed", rome, at(3), on(self.householdId!, { short: { good: "bread", seller: "x" } })).find((i) => i.id === "day.short-of-staple");
+  expect(asking?.subject).toBe("x");
+  // Kin do not call every day: some day in a fortnight.
+  const someDay = (p: Person, id: string) => Array.from({ length: 14 }, (_, d) => agendaOf("seed", rome, at(d), p)).flat().find((i) => i.id === id);
+  expect(someDay(on(brother.householdId!, { mourning: "Lucius" }), "day.mourning-call")?.text).toContain("Lucius");
+  expect(someDay(on(brother.householdId!, { sick: ["b"] }), "day.sick-call")?.subject).toBe("b");
+  const fallenOut = person(self, { kin, household, conditions: (h) => (h === brother.householdId ? { mourning: "Lucius Test" } : { shuns: [brother.householdId!] }) });
+  expect(someDay(fallenOut, "day.mourning-call")).toBeUndefined();
+  const burial = agendaOf("seed", rome, at(3), on(self.householdId!, { mourning: "Gaius", burying: true }));
+  expect(burial.filter((i) => i.rest).map((i) => i.id).sort()).toEqual(["day.burial", "day.mourning-at-home"]);
+  expect(ids(on(brother.householdId!, { mourning: "Lucius", burying: true }))).toContain("day.burial-kin");
+  const stocks = agendaOf("seed", rome, at(3), on(self.householdId!, { sentenced: { who: "a", how: "in the stocks" } })).find((i) => i.id === "day.public-sentence");
+  expect(stocks?.text).toBe("Spend the morning in the stocks, in front of everyone.");
+  expect(ids(on(self.householdId!, { sentenced: { who: "w", how: "in the stocks" } }))).not.toContain("day.public-sentence");
+});

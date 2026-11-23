@@ -1,6 +1,7 @@
 import type { LightField } from "./voxel";
 import { ALTARS } from "./altars";
-import { LETTERS, SPRITES } from "./sprites";
+import { FIXED, LETTERS, SPRITES } from "./sprites";
+import { FITS, type Fit } from "./fits";
 import type { RoomPlan } from "./building";
 import {
   carpetColor, courtParams, floorColor, hash, wornTiles, mix, palette, roomMask, scale, sky, sun, wallColor,
@@ -13,6 +14,7 @@ const WH = 48, S = 10, CAP = 6;
 export const FLOOR_X = S, FLOOR_Y = CAP + WH;
 /** Sprites widened by `stretch`, keyed `name@width`. */
 const WIDE = new Map<string, string[]>();
+const FIT_GRIDS: Record<string, string[]> = Object.assign({}, ...Object.values(FITS).map((f) => f.grids));
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
 type Hit = { u: number; v: number; hits: number; seed: number; base: number };
 type Debris = { x: number; y: number; vx: number; vy: number; c: number; floor: number; rest: boolean };
@@ -43,6 +45,8 @@ export class PixelRoom {
   private ctx: CanvasRenderingContext2D;
   private p!: RoomParams;
   private P!: Palette;
+  /** The letters of the fit being drawn, read before the shared table. */
+  private ink?: Record<string, number>;
   private prog = new Map<number, number>();
   private turn = new Map<number, number>();
   private cur = -1;
@@ -73,6 +77,7 @@ export class PixelRoom {
   pillow(at: { propId: number; k: number } | { x: number; y: number }) {
     if ("x" in at) return { x: S + at.x * T + 2, y: this.oy + at.y * T + 9 };
     const q = this.props[at.propId], X = S + q.x * T, Y = this.oy + q.y * T, PD = q.d * T;
+    if (q.kind === "bed" && q.d > 1) return { x: X + (q.w > 2 ? 14 + at.k * 20 : 16), y: Y + 5, upright: true };
     if (q.kind === "bed") return { x: X + 10 + at.k, y: Y + PD - 12 - at.k * 4 };
     if (q.kind === "boxbed") return { x: X + 7, y: Y - 3 };
     return { x: X + 5, y: Y + PD - 8 };
@@ -376,11 +381,11 @@ export class PixelRoom {
     }
   }
   /** A sprite widened to `w` px by repeating its middle columns: a long board from a table. */
-  private stretch(name: string, w: number) {
-    const rows = SPRITES[name], key = `${name}@${w}`;
+  private stretch(name: string, w: number, edge = 12) {
+    const rows = SPRITES[name] ?? FIT_GRIDS[name], key = `${name}@${w}`;
     if (rows[0].length === w) return name;
     if (WIDE.has(key)) return key;
-    const edge = 12, mid = rows[0].length - edge * 2;
+    const mid = rows[0].length - edge * 2;
     WIDE.set(key, rows.map((row) => {
       let out = row.slice(0, edge);
       for (let i = 0; i < w - edge * 2; i++) out += row[edge + (i % mid)];
@@ -513,6 +518,15 @@ export class PixelRoom {
           x += 8;
           break;
         }
+        case "books": {
+          const n = 2 + Math.floor(k * 3);
+          for (let b = 0; b < n; b++) {
+            const h = 5 + ((x + b) % 3), c = [0x6a2a1e, 0x2a4a3a, 0x5a3a24, 0x2a2a4a, 0x8a6a3a][Math.floor(hash(x + b, base, seed) * 5)];
+            this.r(x + b * 2, base - h, 2, h, (i, j) => (j === 1 ? P.brass[4] : i ? scale(c, 0.8) : c));
+          }
+          x += n * 2 + 1;
+          break;
+        }
         case "fine": {
           const R = k < 0.5 ? [0x1a0808, 0x4a1010, 0x8a1c18, 0xb02a20, 0xd04a30, 0xe87050] : [0x060404, 0x141010, 0x22201c, 0x34302a, 0x4a443c, 0x6a6458];
           this.r(x, base - 3, 5, 3, (i, j) => (j === 0 ? R[4] : i === 4 ? R[1] : R[2]));
@@ -562,7 +576,7 @@ export class PixelRoom {
     }
   }
   /** What stands against a shop's back wall: shelves of its wares, or the rack, rail or casks its trade keeps. */
-  private stock(style: string, X: number, base: number, PW: number, seed: number) {
+  private stock(style: string, X: number, base: number, PW: number, seed: number, open = 0) {
     const { P } = this, W = P.wood;
     if (style === "ledgers") {
       // Glazed cases of ledgers, their spines in calf and cloth.
@@ -626,6 +640,26 @@ export class PixelRoom {
       }
       return;
     }
+    if (style === "tobacco" || style === "apothecary") {
+      // The blends and simples kept in banks of drawers and weighed out by the ounce, jars on top.
+      const y = base - SPRITES.drawers.length;
+      this.sprite("drawers", X, y);
+      // Pulled out: two drawers slid forward, the leaf in them seen from above.
+      if (open > 0.5)
+        for (const [c, row] of [[seed % 3, 1], [(seed + 1) % 3, 2]]) {
+          const dx = X + 3 + c * 9, dy = y + 5 + row * 7;
+          this.r(dx, dy, 8, 3, (i, j) => (i === 0 || i === 7 ? W[2] : j === 0 ? W[1] : FIXED.tob[2 + ((i + j + seed) % 3)]));
+          this.r(dx, dy + 3, 8, 6, (i, j) => (j === 0 ? W[5] : j === 5 ? W[1] : i === 0 ? W[4] : i === 7 ? W[2] : j === 1 && i > 1 && i < 6 ? P.paper[5] : j === 3 && (i === 3 || i === 4) ? P.brass[5] : W[3]));
+        }
+      const jars = style === "apothecary" ? ["albarello", "phials", "albarello", "albarello"] : ["leafjar", "crock", "tin", "cigarbox", "leafjar", "crock"];
+      for (let x = X + 3, k = seed; ; k++) {
+        const name = jars[k % jars.length], w = SPRITES[name][0].length;
+        if (x + w > X + 30) break;
+        this.sprite(name, x, y + 3 - SPRITES[name].length, name === "crock" ? { clay: k % 2 ? P.stone : P.clay } : {});
+        x += w + 1;
+      }
+      return;
+    }
     // Shelves: a frame of posts and three boards, stocked.
     const top = base - 38;
     this.r(X + 1, top, 2, 38, (i) => W[i ? 2 : 4]);
@@ -639,8 +673,109 @@ export class PixelRoom {
     }
     this.wares(style, X + 3, base - 38 + 0, PW - 6, seed);
   }
+  /** A tobacconist's carved and painted figure on its plinth: the cigar-store
+   * Indian of North America, holding out cigars and a hand of leaf, or the
+   * Highlander taking snuff of British snuff shops. */
+  private effigy(kind: string, cx: number, base: number) {
+    const { P } = this, W = P.wood;
+    this.r(cx - 6, base - 5, 13, 5, (i, j) => (j === 0 ? W[5] : j === 4 ? W[0] : i === 0 ? W[4] : i === 12 ? W[1] : j === 2 && i > 2 && i < 10 ? P.brass[3] : W[3]));
+    const f = base - 5, eyes = (y: number) => { this.s(cx - 1, y, 0x1a1210); this.s(cx + 1, y, 0x1a1210); };
+    if (kind === "highlander") {
+      const skin = 0xe0a882, coat = (i: number) => (i === 0 ? 0xc84030 : i === 8 ? 0x7a1e18 : 0xa83228);
+      for (const lx of [cx - 3, cx + 1]) {
+        this.r(lx, f - 1, 3, 1, 0x1a1a1e);
+        this.r(lx, f - 7, 2, 6, (i, j) => ((j >> 1) + i) % 2 ? 0xb03028 : 0xf0ece0);
+      }
+      this.r(cx - 4, f - 12, 9, 5, (i, j) => (i % 3 === 1 || j % 3 === 1 ? 0x9a2a24 : (i + j) % 2 ? 0x1e3a28 : 0x2a5a3a));
+      this.r(cx - 1, f - 12, 3, 3, (_i, j) => (j === 0 ? 0x3a2a1a : 0xf0ece0));
+      this.r(cx - 4, f - 20, 9, 8, coat);
+      for (let j = 0; j < 8; j++) this.r(cx - 3 + j, f - 20 + j, 2, 1, j % 2 ? 0x9a2a24 : 0x2a5a3a);
+      this.r(cx - 6, f - 19, 2, 7, (i) => coat(i ? 8 : 0));
+      this.s(cx - 6, f - 12, skin);
+      this.r(cx + 5, f - 19, 2, 4, (i) => coat(i ? 8 : 0));
+      this.r(cx + 3, f - 16, 2, 1, skin);
+      this.s(cx + 2, f - 16, P.brass[5]);
+      this.r(cx - 2, f - 25, 5, 5, (i) => (i === 4 ? 0xc08868 : skin));
+      eyes(f - 23);
+      this.r(cx - 1, f - 21, 3, 1, 0x6a4024);
+      this.r(cx - 2, f - 29, 5, 1, 0x1a1a22);
+      this.r(cx - 3, f - 28, 7, 3, (i, j) => (j === 2 ? (i % 2 ? 0xb03028 : 0xf0ece0) : 0x1a1a22));
+      this.r(cx + 3, f - 32, 1, 3, 0xf0ece0);
+      return;
+    }
+    const skin = [0x6a3a24, 0x8a4e30, 0xa8643e], buck = [0x8a6438, 0xb08a58, 0xc8a470], red = [0x7a1e18, 0xa83228, 0xc84a36];
+    for (const lx of [cx - 3, cx + 1]) {
+      this.r(lx, f - 2, 3, 2, 0x6a4a2a);
+      this.r(lx, f - 9, 2, 7, (i) => buck[i ? 1 : 2]);
+    }
+    for (let j = 0; j < 6; j++) { this.s(cx - 4, f - 8 + j, buck[0]); this.s(cx + 3, f - 8 + j, buck[0]); }
+    this.r(cx - 4, f - 18, 9, 9, (i, j) => (j === 8 ? 0xd8b040 : j === 4 ? 0x3a2a1a : red[i === 0 ? 2 : i === 8 ? 0 : 1]));
+    this.r(cx - 6, f - 17, 2, 6, (i) => skin[i ? 1 : 2]);
+    this.r(cx - 7, f - 12, 3, 4, (i, j) => [0x7a4a22, 0x9a6430, 0x5a3416][(i + j) % 3]);
+    this.r(cx + 5, f - 23, 2, 7, (i) => skin[i ? 0 : 1]);
+    this.r(cx + 4, f - 26, 4, 3, (i, j) => (j === 1 && i === 1 ? 0xf0ece0 : (i + j) % 2 ? 0x5a3418 : 0x8a5228));
+    this.r(cx - 2, f - 24, 5, 6, (i) => skin[i === 0 ? 2 : i === 4 ? 0 : 1]);
+    eyes(f - 22);
+    for (const hx of [cx - 3, cx + 3]) this.r(hx, f - 24, 1, 8, 0x1a1414);
+    this.r(cx - 3, f - 25, 7, 1, 0xd8b040);
+    for (let i = -3; i <= 3; i++) {
+      const h = 5 - Math.floor(Math.abs(i) / 2) * 2;
+      this.r(cx + i, f - 25 - h, 1, h, i % 2 ? 0xf0ece0 : 0xb03028);
+      this.s(cx + i, f - 26 - h, 0x2a2a3a);
+    }
+  }
+  /** What a trade lays out on its counter, left to right from `x0` to `x1`, standing at `sit`. */
+  private counterGoods(style: string, x0: number, x1: number, sit: number, seed: number) {
+    const { P } = this, W = P.wood;
+    const items: Record<string, ((x: number) => number)[]> = {
+      ...Object.fromEntries(Object.entries({ tobacco: ["scales", "board", "cigarbox", "pipecup"], apothecary: ["scales", "mortar", "phials", "albarello"] })
+        .map(([trade, names]) => [trade, names.map((name) => (x: number) => {
+          this.sprite(name, x, sit - SPRITES[name].length);
+          return SPRITES[name][0].length;
+        })])),
+      books: [
+        (x) => {
+          [0x6a2a1e, 0x2a4a3a, 0x2a2a4a].forEach((c, k) => this.r(x + k, sit - 2 - k * 2, 8 - k, 2, (i, j) => (j === 0 ? scale(c, 1.3) : i === 0 ? P.paper[4] : c)));
+          return 10;
+        },
+        (x) => {
+          this.r(x, sit - 3, 10, 3, (i, j) => (i === 5 ? P.paper[1] : j === 0 ? P.paper[5] : (i % 5 > 0 && i % 5 < 4 && j === 1) ? P.paper[2] : P.paper[4]));
+          return 11;
+        },
+      ],
+      fine: [
+        // A velvet tray of rings and a watch.
+        (x) => {
+          this.r(x, sit - 2, 11, 2, (_i, j) => (j === 0 ? 0x8a1c18 : 0x5a1010));
+          for (let k = 0; k < 4; k++) this.s(x + 1 + k * 2, sit - 2, k % 2 ? P.brass[5] : 0xd8dce0);
+          for (let j = 0; j < 3; j++) this.r(x + 9 - (j === 1 ? 1 : 0), sit - 4 + j, j === 1 ? 3 : 1, 1, P.brass[4]);
+          return 12;
+        },
+      ],
+      bread: [(x) => { for (let k = 0; k < 3; k++) this.r(x + k * 4, sit - 3 + (k % 2), 4, 3, (i, j) => (j === 0 ? 0xe0b070 : j === 2 ? 0x7a4a22 : i === 0 ? 0xc89050 : 0xa86a32)); return 13; }],
+      meat: [(x) => { this.r(x, sit - 3, 8, 3, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[2])); this.r(x + 2, sit - 6, 4, 3, (i, j) => (j === 0 ? 0xf0e0d0 : i === 0 ? 0xd06a6a : 0xb0404a)); this.r(x + 6, sit - 5, 3, 2, P.iron[4]); return 10; }],
+      cloth: [(x) => { this.r(x, sit - 4, 9, 4, (i, j) => (j === 0 ? P.acc[5] : i === 0 ? P.acc[4] : j === 3 ? P.acc[1] : P.acc[3])); this.r(x + 10, sit - 2, 3, 1, P.iron[4]); this.s(x + 11, sit - 3, P.iron[3]); return 14; }],
+      leather: [(x) => { this.r(x, sit - 3, 6, 3, (i, j) => (j === 0 ? 0x8a5a32 : i === 5 ? 0x3a2414 : 0x6a4224)); this.r(x + 5, sit - 2, 3, 2, 0x4a2c18); return 9; }],
+      pots: [(x) => { for (let k = 0; k < 3; k++) this.r(x + k, sit - 2 - k * 2, 8 - k * 2, 2, (i, j) => (j === 0 ? P.clay[5] : i === 0 ? P.clay[4] : P.clay[2])); return 9; }],
+      fish: [(x) => { this.r(x, sit - 2, 10, 2, (_i, j) => (j === 0 ? W[5] : W[2])); this.r(x + 2, sit - 4, 6, 2, (_i, j) => (j === 0 ? 0xd8e0e8 : 0x9aa8b8)); this.s(x + 2, sit - 4, 0x2a2a30); return 11; }],
+      tea: [(x) => { this.r(x, sit - 6, 5, 6, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : j === 3 ? 0xb8302a : W[3])); for (let k = 0; k < 2; k++) this.r(x + 7 + k * 4, sit - 2, 3, 2, (_i, j) => (j ? P.pale[3] : P.pale[5])); return 15; }],
+      candles: [(x) => { for (let k = 0; k < 4; k++) this.r(x + k * 2, sit - 2, 2, 2, (i) => P.linen[i ? 4 : 5]); this.r(x, sit - 4, 8, 2, (i) => P.linen[i % 2 ? 4 : 5]); return 9; }],
+      tools: [(x) => { this.r(x, sit - 3, 7, 3, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[2])); for (let k = 0; k < 3; k++) this.s(x + 1 + k * 2, sit - 3, P.iron[4]); this.r(x + 8, sit - 2, 5, 1, W[3]); this.r(x + 12, sit - 4, 2, 3, P.iron[3]); return 15; }],
+      timber: [(x) => { this.r(x, sit - 3, 8, 3, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[3])); this.r(x + 3, sit - 4, 2, 1, P.iron[4]); for (let k = 0; k < 3; k++) this.s(x + 9 + k, sit - 1 - (k % 2), P.straw[5]); return 13; }],
+      drink: [(x) => { this.jug(x + 3, sit); this.mug(x + 7, sit, 1); return 14; }],
+      oil: [(x) => { this.vase(x + 3, sit, 8, (t) => 3 - Math.abs(t - 0.4) * 3, P.clay); return 8; }],
+      general: [
+        (x) => { for (let k = 0; k < 2; k++) { this.r(x + k * 5, sit - 6, 4, 6, (i, j) => (i === 0 ? 0xd8e4e0 : j < 2 ? 0x9ab4b0 : [[0xd04a48, 0xb03a38], [0xe8c040, 0xc8a030]][k][j % 2])); this.r(x + k * 5, sit - 7, 4, 1, P.brass[4]); } return 10; },
+        (x) => { for (let k = 0; k < 2; k++) for (let j = 0; j < 4; j++) this.r(x + k * 4 + (j >> 1), sit - 4 + j, 3 - (j >> 1), 1, P.paper[j ? 4 : 5]); return 8; },
+      ],
+    };
+    // A few things, each once, with the board showing between them.
+    const list = items[style] ?? items.general;
+    let x = x0;
+    for (let k = 0; k < Math.max(2, list.length) && x + 15 <= x1 + 2; k++) x += list[(k + seed) % list.length](x) + 5;
+  }
   /** The counter, in the form the place and date built it. */
-  private shopCounter(form: string, X: number, Y: number, PW: number, PD: number, seed: number) {
+  private shopCounter(form: string, style: string, X: number, Y: number, PW: number, PD: number, seed: number) {
     const { P } = this, W = P.wood, top = Y - 10, d = PD - 5;
     switch (form) {
       case "taberna": {
@@ -666,11 +801,7 @@ export class PixelRoom {
         // A raised floor the keeper sits on among the goods.
         this.r(X, top + 4, PW, d, (i, j) => (j === 0 ? P.acc[4] : (i + j) % 4 === 0 ? P.acc[2] : P.acc[3]));
         this.r(X, top + 4 + d, PW, 8, (i, j) => (j === 0 ? W[4] : j === 7 ? W[0] : i % 16 === 0 ? W[1] : W[2]));
-        for (let k = 0; k < PW / 12; k++) {
-          const x = X + 4 + k * 12;
-          if (hash(k, 3, seed) < 0.5) this.vase(x + 2, top + 8, 5, (t) => 2.4 - t, P.clay);
-          else this.r(x, top + 4, 7, 4, (i, j) => (j === 0 ? P.straw[5] : i % 2 ? P.straw[2] : P.straw[3]));
-        }
+        this.counterGoods(style, X + 3, X + PW - 3, top + 9, seed);
         break;
       }
       case "teller": {
@@ -687,27 +818,42 @@ export class PixelRoom {
         break;
       }
       case "glazed": {
-        // A glass case on a mahogany frame, wares inside, a till on top.
-        this.r(X, top, PW, d, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[3]));
-        this.r(X, top + d, PW, 14, (i, j) => {
-          if (j === 0 || j === 13 || i === 0 || i === PW - 1 || i % 16 === 0) return W[j === 13 ? 0 : 2];
-          if (j > 10) return W[1];
-          const glint = (i - j + 40) % 13 === 0;
-          return glint ? 0xe8f4f8 : mix(0x6a8a98, W[1], j / 12);
+        // Chest high: a narrow top crowded with goods over a tall glass case on a mahogany frame, a till at one end.
+        const ty = Y - 9, fy = Y - 1, fh = Y + PD - fy, gb = fy + fh - 6;
+        this.r(X, ty, PW, 7, (i, j) => (j === 0 ? scale(W[5], 1.15) : i === 0 || i === PW - 1 ? W[4] : (i * 5 + j * 11) % 17 === 0 ? W[3] : W[4]));
+        this.r(X - 1, fy - 1, PW + 2, 2, (_i, j) => (j ? W[1] : W[5]));
+        this.r(X, fy + 1, PW, fh - 1, (i, j) => {
+          const post = i < 2 || i > PW - 3 || i % 16 < 2;
+          if (j >= fh - 6) return j === fh - 6 ? W[4] : j === fh - 2 ? W[0] : post ? W[2] : (i % 16 === 2 || j === fh - 5) ? W[3] : W[2];
+          if (post) return i % 16 === 1 || i === PW - 2 ? W[1] : W[3];
+          if (j >= fh - 9) return j === fh - 9 ? P.paper[5] : P.paper[4];
+          return (i - j + 40) % 15 < 2 && j < fh - 10 ? 0xd8e8ec : mix(0x587480, 0x2a2420, j / (fh - 8));
         });
-        for (let k = 0; k < PW / 8; k++) this.r(X + 3 + k * 8, top + d + 7, 4, 3, [P.acc[3], P.acc2[3], P.brass[4], P.linen[4]][k % 4]);
-        this.r(X + PW - 14, top - 6, 10, 7, (i, j) => (j === 0 ? P.brass[5] : i === 0 ? P.brass[4] : j > 4 ? P.brass[2] : P.brass[3]));
+        const shown = ({ tobacco: [0x8a5226, 0xeee8da, 0xa86a34], fine: [P.brass[4], 0xd8dce0, 0x8a1c18], books: [0x6a2a1e, 0x2a4a3a, P.paper[4]],
+          apothecary: [0x2a4a8a, P.pale[4], 0x5a7ab8], candles: [P.linen[5], P.linen[4], P.straw[4]] } as Record<string, number[]>)[style] ?? [P.acc[3], P.acc2[3], P.brass[4], P.linen[4]];
+        for (let k = 0; ; k++) {
+          const gx = X + 3 + (k >> 1) * 16 + (k & 1) * 7;
+          if (gx + 6 > X + PW - 3) break;
+          if (style === "apothecary") this.sprite("phials", gx - 1, gb - 8, k % 2 ? { liq: FIXED.red } : {});
+          else if (style === "tobacco") this.sprite(k % 3 === 1 ? "box" : "pipe", gx - (k % 3 === 1 ? 2 : 0), gb - (k % 3 === 1 ? 4 : 3));
+          else { const c = shown[k % shown.length]; this.r(gx, gb - 4, 6, 4, (i, j) => (j === 0 ? scale(c, 1.25) : i === 5 ? scale(c, 0.7) : c)); }
+        }
+        this.r(X + PW - 13, ty - 7, 11, 10, (i, j) => (j === 0 ? P.brass[5] : j === 3 ? P.brass[1] : j < 3 ? (i % 3 ? P.brass[4] : P.brass[2]) : i === 0 ? P.brass[4] : j > 7 ? P.brass[2] : P.brass[3]));
+        this.r(X + PW - 10, ty - 3, 5, 2, 0xeee8da);
+        this.counterGoods(style, X + 2, X + PW - 15, ty + 5, seed);
         break;
       }
       default: {
-        // A plain board on panels; a balance, a ledger, a few wares.
+        // A plain board on panels; a balance where goods were sold by weight, and the trade's own wares.
         this.r(X, top, PW, d, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[3]));
         this.r(X, top + d, PW, 14, (i, j) => (j === 0 ? W[2] : j === 13 ? W[0] : i % 12 === 0 ? W[1] : i % 12 === 1 ? W[3] : W[2]));
-        const bx = X + 8;
-        this.r(bx, top - 9, 1, 9, P.brass[3]);
-        this.r(bx - 5, top - 9, 11, 1, P.brass[4]);
-        for (const px of [bx - 5, bx + 5]) { this.r(px - 2, top - 5, 5, 1, P.brass[4]); this.s(px, top - 7, P.brass[2]); }
-        this.r(X + PW - 16, top - 2, 9, 3, (i, j) => (j === 0 ? P.paper[5] : i === 4 ? P.paper[2] : P.paper[4]));
+        const weigh = ["general", "apothecary", "tea", "fine", "candles"].includes(style), bx = X + 8;
+        if (weigh) {
+          this.r(bx, top - 5, 1, 9, P.brass[3]);
+          this.r(bx - 5, top - 5, 11, 1, P.brass[4]);
+          for (const px of [bx - 5, bx + 5]) { this.r(px - 2, top - 1, 5, 1, P.brass[4]); this.s(px, top - 3, P.brass[2]); }
+        }
+        this.counterGoods(style, X + (weigh ? 16 : 3), X + PW - 3, top + 4, seed);
       }
     }
   }
@@ -977,16 +1123,11 @@ export class PixelRoom {
         this.r(X + PW / 2 - 4, base - 6, 9, 1, 0xf0e4c0);
         return;
       }
-      case "apothecary": {
-        trestle(base - 11);
-        this.vase(X + 7, base - 11, 5, (t) => 2.5 - t, P.stone);
-        this.r(X + 7, base - 18, 1, 4, P.stone[4]);
-        this.r(X + 14, base - 17, 7, 1, P.brass[4]);
-        this.r(X + 17, base - 17, 1, 4, P.brass[3]);
-        for (const dx of [14, 20]) this.r(X + dx - 1, base - 13, 3, 1, P.brass[4]);
-        for (let k = 0; k < 2; k++) this.vase(X + 24 + k * 3, base - 11, 5, () => 1.2, k ? P.pale : P.acc2);
+      case "apothecary":
+        // A pair of show globes, the apothecary's sign, one green and one red.
+        this.sprite("carboy", X + 3, base - 16);
+        this.sprite("carboy", X + 17, base - 16, { liq: FIXED.red });
         return;
-      }
       case "tea": {
         for (let k = 0; k < 3; k++) {
           const bx = X + 2 + (k % 2) * 13, by = base - 9 - (k === 2 ? 9 : 0) - 1, bxx = k === 2 ? X + 8 : bx;
@@ -996,6 +1137,20 @@ export class PixelRoom {
       }
       case "fine":
         this.desk("showcase", X, base, PW, seed);
+        return;
+      case "tobacco": {
+        // A bale of leaf as it came from the warehouse, and a basket or a crate of it opened.
+        this.sprite("bale", X, base - 13);
+        if (seed % 2) this.sprite("crate", X + 17, base - 13);
+        else {
+          this.sprite("basket", X + 19, base - 9);
+          for (let i = 0; i < 8; i++) this.s(X + 21 + i, base - 9 - (i > 1 && i < 6 ? 1 : 0), FIXED.tob[(i % 3) + 2]);
+        }
+        return;
+      }
+      case "books":
+        trestle(base - 11);
+        for (let k = 0; k < 4; k++) this.r(X + 3 + k * 7, base - 13 - (k % 2), 6, 2 + (k % 2), (i, j) => (j === 0 ? [0x8a3a2a, 0x3a6a4a, 0x6a4a2a, 0x3a3a6a][k] : i === 0 ? P.paper[5] : P.paper[3]));
         return;
       case "drink": case "oil": {
         for (let k = 0; k < 3; k++)
@@ -1315,20 +1470,79 @@ export class PixelRoom {
   private sprite(name: string, x: number, y: number, over: Record<string, number[]> = {}, swap: Record<string, string> = {}) {
     const P = this.P as unknown as Record<string, number[]>;
     const band = this.p.finish === 0 ? this.P.straw : this.p.finish === 2 ? this.P.brass : this.P.iron;
-    const rows = SPRITES[name] ?? WIDE.get(name)!;
+    const rows = SPRITES[name] ?? FIT_GRIDS[name] ?? WIDE.get(name)!;
     rows.forEach((row, j) => {
       for (let i = 0; i < row.length; i++) {
         const ch = swap[row[i]] ?? row[i];
         if (ch === ".") continue;
+        const own = this.ink?.[ch];
+        if (own !== undefined) {
+          this.s(x + i, y + j, own);
+          continue;
+        }
         if (ch === "#") {
-          this.s(x + i, y + j, 0x22161a);
+          // The line round an older sprite: a deep brown of the room's wood, not black.
+          this.s(x + i, y + j, scale(this.P.wood[1], 0.8));
           continue;
         }
         const [ramp, k] = LETTERS[ch];
-        this.s(x + i, y + j, (over[ramp] ?? (ramp === "band" ? band : P[ramp]))[k]);
+        this.s(x + i, y + j, (over[ramp] ?? (ramp === "band" ? band : P[ramp] ?? FIXED[ramp]))[k]);
       }
     });
     return rows.length;
+  }
+  /** A household's dresser: wood and clay for the poor, pewter, then painted plates. */
+  private dresser(q: Prop, X: number, oy: number, PW: number) {
+    const name = q.w === 1 ? "dresser1" : "dresser", y = oy + 12 - SPRITES[name].length;
+    this.sprite(name, X, y);
+    const ware = [["bowl", "jug", "mug", "loaf"], ["plate-pewter", "jug", "mug", "bowl"], ["plate", "jug", "plate", "candlestick"]][this.p.finish];
+    for (const foot of [16, 30]) this.stand(ware, X + 3, X + PW - 4, y + foot, q.seed + foot * 7);
+  }
+  /** Goods stood along a shelf or board, singly or in pairs of a kind, as a shelf is stacked. */
+  private stand(goods: string[], x0: number, x1: number, foot: number, seed: number) {
+    for (let x = x0, k = 0; ; k++) {
+      const name = goods[(seed + k) % goods.length], g = SPRITES[name] ?? FIT_GRIDS[name], w = g[0].length;
+      for (let n = hash(k, seed % 977, 5) < 0.4 ? 2 : 1; n > 0; n--, x += w + 1) {
+        if (x + w - 1 > x1) return;
+        this.sprite(name, x, foot - g.length);
+      }
+    }
+  }
+  /** A piece of a shop fitted from drawn grids (`FITS`): a wall unit, the counter, a floor group or a hung sign. */
+  private fitted(fit: Fit, q: Prop, X: number, Y: number, PW: number, oy: number) {
+    this.ink = fit.ink;
+    const base = Y + T - 2;
+    const stand = this.stand.bind(this);
+    if (q.kind === "stock" && q.w === 1) {
+      const name = fit.narrow![q.x % fit.narrow!.length], g = FIT_GRIDS[name];
+      this.sprite(name, X + ((T - g[0].length) >> 1), base - g.length);
+    } else if (q.kind === "stock") {
+      const u = fit.wall[this.props.filter((o) => o.kind === "stock" && o.w > 1).indexOf(q) % fit.wall.length], y = base - FIT_GRIDS[u.grid].length;
+      this.sprite(u.grid, X, y);
+      for (const [x0, x1, foot] of u.shelves ?? []) stand(u.goods ?? [], X + x0, X + x1, y + foot, q.seed + foot * 7);
+    } else if (q.kind === "shopcounter") {
+      const c = fit.counter, y = Y + T - FIT_GRIDS[c.grid].length;
+      this.sprite(this.stretch(c.grid, PW, 8), X, y);
+      // The first piece at one end, the rest spaced along the board while they fit.
+      const wide = (name: string) => FIT_GRIDS[name][0].length;
+      let n = 0;
+      for (let sum = 0; n < c.goods.length && sum + wide(c.goods[n]) + (n + 2) * 3 <= PW - 6; n++) sum += wide(c.goods[n]);
+      const [first, ...rest] = c.goods.slice(0, n), order = [...rest.map((_, i) => rest[(i + q.seed) % rest.length]), first];
+      const gap = (PW - 6 - order.reduce((a, name) => a + wide(name), 0)) / (order.length + 1);
+      let x = X + 3 + gap;
+      for (const name of order) {
+        this.sprite(name, Math.round(x), y + c.top - FIT_GRIDS[name].length);
+        if (name.endsWith("-lamp")) this.lights.push({ x: Math.round(x + wide(name) / 2), y: y + c.top - FIT_GRIDS[name].length + 3, c: 0xffc070, rad: 46, k: 1.1, phase: q.seed % 60 });
+        x += wide(name) + gap;
+      }
+    } else if (q.kind === "display") {
+      const name = fit.floor[this.props.filter((o) => o.kind === "display").indexOf(q) % fit.floor.length], g = FIT_GRIDS[name];
+      this.sprite(name, X + ((PW - g[0].length) >> 1), base - g.length);
+    } else {
+      const name = fit.hung[this.props.filter((o) => o.kind === "frame").indexOf(q) % fit.hung.length], g = FIT_GRIDS[name];
+      this.sprite(name, X + 8 - (g[0].length >> 1), oy - 38);
+    }
+    this.ink = undefined;
   }
   /** The top of the wall behind a piece: where a flue or a hanging line meets the ceiling. */
   private ceiling(q: Prop) {
@@ -1573,11 +1787,34 @@ export class PixelRoom {
       const x0 = Math.min(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys), wide = (Math.max(...xs) - x0 + 1) * T;
       const X = S + x0 * T, foot = this.oy + (y1 + 1) * T;
       // Through a back wall the frame is a wall's height; through a side wall, the doorway's own.
-      const upright = new Set(xs).size > 1 || ys.length > 2;
-      const tall = upright ? WH : (y1 - y0 + 1) * T, head = foot - tall;
+      if (dw.side && wide > T) {
+        // A neck between neighbours: a post at each mouth, the floor running through.
+        const top = this.oy + y0 * T, tall = (y1 - y0 + 1) * T;
+        for (const jx of [X, X + wide - 2]) this.r(jx, top - 3, 2, tall + 3, (i, j) => (j < 3 ? P.trim[4] : P.trim[jx === X ? (i ? 3 : 4) : i ? 1 : 2]));
+        if (dw.private) {
+          this.r(X + 2, top + 1, 5, tall - 3, (i, j) => (j % 9 === 0 ? W[1] : W[i === 0 ? 4 : i === 4 ? 1 : 3]));
+          this.s(X + 6, top + (tall >> 1), P.iron[4]);
+        }
+        continue;
+      }
+      if (dw.stairs) {
+        // A flight seen from its foot: each tread a lit nosing over the shadow of the riser above, a stringer
+        // and handrail to either side, newel posts at the foot and the head. Below the flight the neck is floor.
+        const top = this.oy + y0 * T, rise = Math.min(dw.stairs, y1 - y0 + 1) * T;
+        this.r(X, top, wide, rise, (i, j) => {
+          if (i < 2 || i > wide - 3) return W[i === 0 || i === wide - 1 ? 1 : 2];
+          const step = j % 4, shade = 0.78 + 0.22 * (j / rise);
+          return scale(step === 0 ? W[5] : step === 3 ? W[1] : W[i < 5 ? 3 : 4], shade);
+        });
+        for (const rx of [X + 2, X + wide - 4]) {
+          this.r(rx, top, 2, rise, (i, j) => (j % 6 === 5 ? W[1] : W[i ? 2 : 4]));
+          for (const py of [top - 2, top + rise - 5]) this.r(rx - 1, py, 4, 6, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : i === 3 || j === 5 ? W[1] : W[3]));
+        }
+      }
+      const tall = dw.side ? (y1 - y0 + 1) * T : WH, head = foot - tall;
       for (const jx of [X, X + wide - 2]) this.r(jx, head, 2, tall, (i) => P.trim[jx === X ? (i ? 3 : 4) : i ? 1 : 2]);
       this.r(X - 1, head - 3, wide + 2, 3, (_i, j) => P.trim[j === 0 ? 5 : j === 2 ? 1 : 3]);
-      this.r(X + 2, foot - 2, wide - 4, 2, (_i, j) => P.stone[j ? 2 : 4]);
+      if (!dw.stairs) this.r(X + 2, foot - 2, wide - 4, 2, (_i, j) => P.stone[j ? 2 : 4]);
       if (dw.private) {
         // A plank door, swung open against the frame.
         this.r(X + 2, head + 1, 5, tall - 3, (i, j) => (j % 9 === 0 ? W[1] : W[i === 0 ? 4 : i === 4 ? 1 : 3]));
@@ -1597,14 +1834,15 @@ export class PixelRoom {
     const near = new Uint8Array(W * H), row = new Uint8Array(W * H);
     for (let y = 0; y < H; y++)
       for (let x = 0; x < W; x++) {
-        let hit = 0;
-        for (let i = Math.max(0, x - R); i <= Math.min(W - 1, x + R) && !hit; i++) hit = solid[y * W + i];
-        row[y * W + x] = hit;
+        let best = 255;
+        for (let i = Math.max(0, x - R); i <= Math.min(W - 1, x + R); i++) if (solid[y * W + i]) best = Math.min(best, Math.abs(i - x));
+        row[y * W + x] = best;
       }
+    // Round, not square: the wall top turns its outer corners in a curve.
     for (let y = 0; y < H; y++)
       for (let x = 0; x < W; x++) {
         let hit = 0;
-        for (let j = Math.max(0, y - R); j <= Math.min(H - 1, y + R) && !hit; j++) hit = row[j * W + x];
+        for (let j = Math.max(0, y - R); j <= Math.min(H - 1, y + R) && !hit; j++) hit = row[j * W + x] ** 2 + (y - j) ** 2 <= R * R + R ? 1 : 0;
         near[y * W + x] = hit;
       }
     const at = (a: Uint8Array, x: number, y: number) => x >= 0 && y >= 0 && x < W && y < H && a[y * W + x] === 1;
@@ -1804,6 +2042,7 @@ export class PixelRoom {
     const X = S + q.x * T, Y = this.oy + q.y * T, PW = q.w * T, PD = q.d * T;
     const pr = this.prog.get(q.id) ?? 0;
     const W = P.wood;
+    const fit = FITS[p.styles.stock ?? ""];
     switch (q.kind) {
       case "door": {
         if (p.door !== "door") {
@@ -1875,8 +2114,25 @@ export class PixelRoom {
             else if (i === 4 || i === 5 || j === 10) this.s(x0 + i, top + j, P.trim[j === 10 || i === 4 ? 4 : 2]);
             else this.g(x0 + i, top + j, c);
           }
-        this.r(x0 - 2, top + h + 1, 14, 2, (_i, j) => P.trim[j === 0 ? 5 : 2]);
+        // The reveal shades the glass along its top and left; the sill stands out from the wall below.
+        this.r(x0, top, 10, 1, P.trim[1]);
+        this.r(x0, top + 1, 1, h - 1, P.trim[1]);
+        this.r(x0 - 3, top + h + 1, 16, 3, (_i, j) => P.trim[[5, 3, 1][j]]);
         this.r(x0 - 2, top - 2, 14, 1, P.trim[3]);
+        if (style === 3) {
+          // Curtains drawn back to either side on a brass rod, gathered by a tie.
+          const C = P.acc;
+          this.r(x0 - 8, top - 5, 26, 1, P.brass[4]);
+          for (const fx of [x0 - 8, x0 + 17]) this.r(fx, top - 6, 2, 3, P.brass[5]);
+          for (const [lx, dir] of [[x0 - 7, 1], [x0 + 11, -1]] as const)
+            for (let j = 0; j < h + 4; j++) {
+              const tie = Math.abs(j - h * 0.6) < 1.5, wd = tie ? 4 : j < h * 0.6 ? 6 - Math.round((j / (h * 0.6)) * 2) : 4 + Math.min(2, Math.round((j - h * 0.6) / 3));
+              for (let i = 0; i < wd; i++) {
+                const x = dir > 0 ? lx + i : lx + 5 - i;
+                this.s(x, top - 4 + j, tie ? P.brass[i % 2 ? 3 : 4] : C[[4, 3, 2, 3, 2, 1][(i + (dir < 0 ? 1 : 0)) % 6]]);
+              }
+            }
+        }
         if (style !== 3 && q.seed % 3 === 0) {
           this.r(x0, top + h - 2, 10, 3, W[2]);
           for (let i = 0; i < 10; i++) {
@@ -1885,6 +2141,9 @@ export class PixelRoom {
             if (f > 0.6) this.s(x0 + i, top + h - 5 - (f * 2 | 0), [P.acc[4], 0xf4e6f0, P.acc3[4]][i % 3]);
           }
         }
+        // A chemist's show globe stands in the window, the light coming through it.
+        if (style !== 2 && this.plan.rooms[q.room ?? 0]?.styles.stock === "apothecary")
+          this.sprite("carboy", x0 - 1, top + h + 1 - SPRITES.carboy.length, q.seed % 2 ? { liq: FIXED.red } : {});
         const leaf = (lx: number) =>
           this.r(lx, top, 5, h, (i, j) => (i === 0 || i === 4 ? W[1] : j % 3 === 0 ? W[2] : W[3 + (hash(i, j, q.seed) < 0.1 ? 1 : 0)]));
         if (q.broken)
@@ -1942,8 +2201,7 @@ export class PixelRoom {
         const flue = this.ceiling(q);
         this.r(X + 5, flue, 22, bodyTop - flue, (i, j) => (i === 0 || i === 21 ? P.stone[1] : scale(stone(i, j), 0.95)));
         for (let j = 0; j < bodyTop - flue; j++) if (p.wear > 0.2) this.s(X + 14 + Math.round(Math.sin(j * 0.3) * 2), flue + j, scale(P.stone[1], 0.8));
-        this.r(X, bodyTop, PW, 40, (i, j) => (i === 0 || i === PW - 1 ? P.stone[1] : stone(i, j)));
-        this.r(X - 2, bodyTop - 3, PW + 4, 4, (i, j) => (j === 0 ? W[5] : j === 3 ? W[1] : i === 0 || i === PW + 3 ? W[1] : W[3]));
+        this.sprite("fireplace", X - 2, bodyTop - 4);
         this.vase(X + 5, bodyTop - 4, 5, (t) => 1.6 - t * 0.4, P.clay);
         this.r(X + PW - 8, bodyTop - 9, 2, 5, P.linen[5]);
         this.flames.push({ x: X + PW - 7, y: bodyTop - 11 });
@@ -1971,6 +2229,11 @@ export class PixelRoom {
         break;
       }
       case "shelf": {
+        if (q.side) {
+          const name = `${p.role === "sleep" ? "press" : "cupboard"}-${q.side}`;
+          this.sprite(name, X, Y + PD - SPRITES[name].length);
+          break;
+        }
         const x0 = X + 1, w = PW - 2, style = p.styles.shelf ?? "bookcase", dens = [0.45, 0.75, 1][p.finish];
         if (style === "niche") {
           // An arched recess in the wall itself, tile-framed in finer houses.
@@ -2003,6 +2266,13 @@ export class PixelRoom {
           break;
         }
         if (style === "open" || style === "linen") {
+          if (style === "open" && q.w <= 2) {
+            // A kitchen's rack: crocks, bowls and mugs stood along each board.
+            const name = q.w === 1 ? "rack1" : "rack", y = oy + 6 - SPRITES[name].length;
+            this.sprite(name, X, y);
+            for (const foot of [12, 26, 40]) this.stand(["jug", "bowl", "mug", "bowl", "loaf"], X + 3, X + PW - 4, y + foot, q.seed + foot * 7);
+            break;
+          }
           const h = 40;
           for (const lx of [x0, x0 + w - 2]) this.r(lx, oy + 5 - h, 2, h, (i) => W[i ? 1 : 3]);
           const boards = [oy + 3, oy - 9, oy - 21, oy - 33];
@@ -2015,16 +2285,14 @@ export class PixelRoom {
           } else boards.slice(1).forEach((bb, row) => this.goods(x0 + 2, bb, w - 4, q.seed + row * 17, Math.min(1, dens + 0.2)));
           break;
         }
-        if (style === "hutch") {
-          this.box(x0, oy, w, 6, 16, W, W);
-          for (let k = 0; k < Math.max(1, Math.floor(w / 10)); k++) this.r(x0 + 2 + k * 10, oy - 7, 8, 10, (i, j) => (i === 0 || j === 0 ? W[4] : i === 7 || j === 9 ? W[1] : W[2]));
-          this.r(x0 + 1, oy - 40, w - 2, 30, W[1]);
-          for (const bb of [oy - 30, oy - 20]) this.r(x0, bb, w, 2, (_i, j) => W[j === 0 ? 4 : 2]);
-          for (let i = 3; i < w - 4; i += 7) {
-            this.plate(x0 + i + 2, oy - 35, q.seed + i);
-            if (hash(i, 1, q.seed) < dens) this.vase(x0 + i + 2, oy - 21, 5, (t) => 2 - Math.abs(t - 0.5), P.acc);
+        if (q.w <= 2 && (style === "hutch" || (!p.styles.shelf && p.trade !== "scholar" && p.trade !== "merchant"))) {
+          if (p.role === "sleep") {
+            // In a bedroom, a press for clothes and linen.
+            const press = q.w === 1 ? "wardrobe1" : "wardrobe";
+            this.sprite(press, X, oy + 12 - SPRITES[press].length);
+            break;
           }
-          this.r(x0 - 1, oy - 42, w + 2, 3, (_i, j) => W[j === 0 ? 5 : 3]);
+          this.dresser(q, X, oy, PW);
           break;
         }
         if (q.w <= 2) {
@@ -2372,9 +2640,12 @@ export class PixelRoom {
       case "desk": {
         const writing = p.styles.desk === "brush" || p.styles.desk === "reed";
         const top = Y + 2, h = writing && p.seating === "floor" ? 6 : 13;
-        this.r(X + 1, top - h, PW - 2, PD - 4, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[3]));
-        this.r(X + 1, top + PD - 4 - h, PW - 2, 3, W[2]);
-        for (const lx of [X + 2, X + PW - 4]) this.r(lx, top + PD - 1 - h, 2, h - 2, W[1]);
+        if (!writing && q.w === 2) this.sprite("writingdesk", X + 1, top - h - 1);
+        else {
+          this.r(X + 1, top - h, PW - 2, PD - 4, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[3]));
+          this.r(X + 1, top + PD - 4 - h, PW - 2, 3, W[2]);
+          for (const lx of [X + 2, X + PW - 4]) this.r(lx, top + PD - 1 - h, 2, h - 2, W[1]);
+        }
         if (writing) {
           const y = top - h;
           this.r(X + 5, y + 2, 13, 8, P.paper[4]);
@@ -2439,6 +2710,18 @@ export class PixelRoom {
           this.r(X + 4, y0 - 7, 7, 5, (i, j) => (j === 0 ? P.linen[5] : i === 6 ? P.linen[2] : P.linen[4]));
           break;
         }
+        if (q.d > 1) {
+          // Head to the wall. Humble: one plain blanket. Each sleeper is a long rise under the quilt.
+          const name = q.w > 2 ? "bed-double" : "bed-single";
+          this.sprite(name, X, Y + PD - SPRITES[name].length, {}, fin === 0 ? { f: "v", g: "b", d: "x" } : {});
+          for (let k = 0; k < Math.min(q.w > 2 ? 2 : 1, q.sleepers ?? 0); k++) {
+            const at = this.pillow({ propId: q.id, k });
+            const breath = Math.sin(this.t * 1.7 + at.x * 0.3) > 0.2 ? 1 : 0;
+            for (let j = 0; j < 32; j++) for (let i = -3; i <= 3; i++) if (Math.abs(i) < 3 || (j > 1 && j < 30)) this.s(at.x + i, at.y + 6 + j, P.acc[Math.abs(i) === 3 ? 2 : i < 0 || (j < 10 && breath) ? 5 : 4]);
+            this.zz.push({ x: at.x, y: at.y - 14 });
+          }
+          break;
+        }
         // Humble: one plain wool blanket; elite: brass on the headboard.
         const plain: Record<string, string> = p.styles.bed === "linen" ? { s:"l",d:"k",f:"j",g:"J",z:"l",x:"k",c:"j",v:"j",b:"k",n:"l" } : fin === 0 ? { f: "v", d: "x", g: "b", s: "z" } : {};
         this.sprite("bed", X, Y + PD - 26, {}, plain);
@@ -2460,13 +2743,8 @@ export class PixelRoom {
         const swap: Record<string, string> = painted ? { y: "h", t: "g", r: "f", e: "d", w: "s", q: "a" } : {};
         if (fin === 0) Object.assign(swap, { m: "e", M: "r" });
         const x0 = X, y0 = Y + PD - SPRITES.chest.length;
-        if (pr > 0.05) this.r(x0 + 2, y0 - Math.round(7 * pr), 12, Math.round(7 * pr) + 1, (i, j) => (j === 0 ? W[5] : i === 0 ? W[4] : W[2]));
-        this.sprite("chest", x0, y0, {}, swap);
-        if (pr > 0.3) {
-          this.r(x0 + 2, y0 + 1, 12, 3, W[0]);
-          for (let i = 0; i < 2 + fin * 2; i++) this.s(x0 + 3 + i * 2, y0 + 2 + (i & 1), P.brass[4 + (i % 2)]);
-          this.r(x0 + 4, y0 + 2, 4, 1, P.acc[3]);
-        }
+        if (pr > 0.5) this.sprite("chest-open", x0, y0 + SPRITES.chest.length - SPRITES["chest-open"].length, {}, swap);
+        else this.sprite("chest", x0, y0, {}, swap);
         if (painted) for (let i = 4; i < 12; i += 3) this.s(x0 + i, y0 + 7, P.acc2[4]);
         break;
       }
@@ -2501,17 +2779,18 @@ export class PixelRoom {
           this.tavernBoard(X, ty, PW, q.seed);
           break;
         }
-        this.vase(X + 8, ty + 6, 4, (t) => 3.5 - t * 1.5 + (t > 0.9 ? 1.4 : 0), P.clay);
-        if (fin > 0) this.r(X + 15, ty + 2, 7, 3, (i, j) => (j === 0 ? P.straw[5] : i % 3 === 0 && j === 1 ? P.straw[2] : P.straw[3]));
-        if (fin > 0) this.vase(X + PW - 6, ty + 6, 8, (t) => 2.4 - Math.abs(t - 0.35) * 2 + (t > 0.85 ? 0.3 : 0), P.pale);
-        if (fin === 2) {
-          this.r(X + 20, ty - 2, 1, 5, P.linen[5]);
-          this.flames.push({ x: X + 20, y: ty - 4 });
-          this.lights.push({ x: X + 20, y: ty - 4, c: 0xffc070, rad: 26, k: 0.7, phase: q.seed % 50 });
+        // The table laid: bread and a jug, a bowl, and a candle that burns after dark.
+        const foot = ty + 8, cx = X + (PW >> 1) - 3;
+        const set = (name: string, x: number) => this.sprite(name, x, foot - SPRITES[name].length);
+        set("loaf", X + 3);
+        if (fin > 0) set("bowl", X + PW - 23);
+        set("jug", X + PW - 12);
+        if (p.styles.lamp === "electric") break;
+        set("candlestick", cx);
+        if (p.hour >= 17 || p.hour < 7) {
+          this.flames.push({ x: cx + 3, y: foot - 14 });
+          this.lights.push({ x: cx + 3, y: foot - 14, c: 0xffc070, rad: 34, k: 0.9, phase: q.seed % 50 });
         }
-        this.s(X + 24, ty + 4, 0xb8302a);
-        this.s(X + 25, ty + 5, 0xd84a3a);
-        this.s(X + 22, ty + 5, P.leaf[4]);
         break;
       }
       case "stool": {
@@ -2546,6 +2825,11 @@ export class PixelRoom {
         break;
       }
       case "dresser": {
+        // Stone slabs on stone posts where the house itself is drystone, as at Skara Brae; a wooden dresser elsewhere.
+        if (q.w <= 2 && !(p.wallPattern === "stone" && p.seating === "floor")) {
+          this.dresser(q, X, oy, PW);
+          break;
+        }
         const x0 = X + 1, w = PW - 2;
         for (const lx of [x0, x0 + w - 3]) this.r(lx, oy - 34, 3, 38, (i) => P.stone[i === 0 ? 4 : 2]);
         for (const [h, k] of [[4, 0], [16, 1], [28, 2]] as const) {
@@ -2946,6 +3230,10 @@ export class PixelRoom {
         break;
       }
       case "frame": {
+        if (fit?.hung.length) {
+          this.fitted(fit, q, X, Y, PW, oy);
+          break;
+        }
         const style = p.styles.frame ?? "painting", fin = p.finish;
         if (style === "levha") {
           this.levha(X + 1, oy - 42, 14, 12, q.seed);
@@ -3001,32 +3289,24 @@ export class PixelRoom {
           this.s(cx + 9, base - 1, P.iron[1]);
           break;
         }
-        this.r(cx, base - 30, 1, 29, P.iron[3]);
-        this.r(cx - 3, base - 32, 7, 3, (i) => P.brass[i < 2 ? 5 : 3]);
+        if (p.styles.lamp === "electric") {
+          this.sprite("floorlamp", cx - 5, base - 21);
+          if (q.on) this.lights.push({ x: cx, y: base - 18, c: 0xffd890, rad: 50, k: 1.2, phase: 0 });
+          break;
+        }
+        this.sprite("candlestand", cx - 4, base - 21);
         if (q.on) {
-          this.flames.push({ x: cx, y: base - 34 });
-          this.lights.push({ x: cx, y: base - 34, c: 0xffb45a, rad: 44, k: 1.1, phase: q.seed % 70 });
+          this.flames.push({ x: cx, y: base - 23 });
+          this.lights.push({ x: cx, y: base - 23, c: 0xffb45a, rad: 44, k: 1.1, phase: q.seed % 70 });
         }
         break;
       }
       case "firewood": {
-        for (let row = 0; row < 3; row++)
-          for (let k = 0; k < 3 - (row === 2 ? 1 : 0); k++) {
-            const cx = X + 4 + k * 4 + (row === 2 ? 2 : 0), cy = Y + PD - 5 - row * 4;
-            this.r(cx - 2, cy - 1, 5, 3, W[2]);
-            this.s(cx, cy, W[5]);
-            this.s(cx - 1, cy, W[4]);
-            this.s(cx + 1, cy - 1, W[1]);
-          }
-        this.r(X + 12, Y + PD - 20, 1, 8, P.iron[2]);
-        this.r(X + 11, Y + PD - 21, 3, 2, P.iron[3]);
+        this.sprite("logs", X, Y + PD - 3 - SPRITES.logs.length);
         break;
       }
       case "broom": {
-        for (let j = 0; j < 26; j++) this.s(X + 6 + (j >> 3), Y + PD - 12 - 26 + j, W[3]);
-        for (let j = 0; j < 9; j++)
-          for (let i = -2 - (j >> 2); i <= 2 + (j >> 2); i++) this.s(X + 9 + i, Y + PD - 12 + j, P.straw[(i + j) % 3 === 0 ? 2 : j === 0 ? 5 : 4]);
-        this.r(X + 7, Y + PD - 12, 5, 1, 0xa8302a);
+        this.sprite("besom", X + 5, Y + PD - 2 - SPRITES.besom.length);
         break;
       }
       case "casks": {
@@ -3392,15 +3672,18 @@ export class PixelRoom {
         else this.pulpit(X, Y + PD - 3, q.seed);
         break;
       case "stock":
-        if (p.styles.shopcounter === "ground") this.groundStock(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed);
-        else this.stock(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed);
+        if (fit) this.fitted(fit, q, X, Y, PW, oy);
+        else if (p.styles.shopcounter === "ground") this.groundStock(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed);
+        else this.stock(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed, pr);
         break;
       case "display":
-        if (p.styles.shopcounter === "ground") this.groundDisplay(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed);
+        if (fit) this.fitted(fit, q, X, Y, PW, oy);
+        else if (p.styles.shopcounter === "ground") this.groundDisplay(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed);
         else this.display(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed);
         break;
       case "shopcounter":
-        this.shopCounter(p.styles.shopcounter ?? "counter", X, Y, PW, PD, q.seed);
+        if (fit) this.fitted(fit, q, X, Y, PW, oy);
+        else this.shopCounter(p.styles.shopcounter ?? "counter", p.styles.stock ?? "general", X, Y, PW, PD, q.seed);
         break;
       case "fixture":
         this.fixture(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed, p.styles.fixture);
@@ -3438,6 +3721,9 @@ export class PixelRoom {
         if (q.on) this.lights.push({ x: cx, y: base - 22, c: 0xffc070, rad: 40, k: 1, phase: q.seed % 80 });
         break;
       }
+      case "effigy":
+        this.effigy(p.styles.effigy ?? "", X + 8, Y + PD - 2);
+        break;
       case "anvil": {
         const cx = X + 8, base = Y + PD - 3;
         this.r(cx - 4, base - 8, 9, 8, (i, j) => (j === 0 ? W[4] : i === 0 ? W[3] : i === 8 ? W[1] : (j % 3 === 1 ? W[1] : W[2])));
@@ -3868,8 +4154,8 @@ export class PixelRoom {
     const windows = this.props.filter((q) => q.kind === "window" && (q.on || p.windowStyle !== "shutter")).length;
     const dusk = Math.max(0, 1 - Math.abs(p.hour - 18.6) / 1.8) + Math.max(0, 1 - Math.abs(p.hour - 6.2) / 1.4);
     // Night is a deep blue-violet; dusk and dawn amber; day near white, dimmer with fewer windows.
-    const bright = 0.72 + Math.min(3, windows) * 0.08;
-    const dayCol = mix(0x282a62, mix(0xb8b0c8, 0xfff6ec, bright), Math.min(1, day * 1.4));
+    const bright = 0.74 + Math.min(3, windows) * 0.08;
+    const dayCol = mix(0x282a62, mix(0x6a5a68, 0xfff0dc, bright), Math.min(1, day * 1.4));
     const amb = mix(dayCol, 0xe8a070, Math.min(0.55, dusk * 0.45) * (0.4 + day));
     const hex = (c: number, a = 1) => `rgba(${(c >> 16) & 255},${(c >> 8) & 255},${c & 255},${a})`;
     L.globalCompositeOperation = "source-over";
@@ -3880,7 +4166,7 @@ export class PixelRoom {
     const t = this.t;
     for (const l of this.lights) {
       const flick = l.phase < 0 ? 1 : 0.9 + 0.07 * Math.sin(t * 7 + l.phase) + 0.03 * Math.sin(t * 19 + l.phase * 2);
-      const r = l.rad * 1.6 * flick, a = Math.min(1, l.k * 0.6);
+      const r = l.rad * 2.1 * flick, a = Math.min(1, l.k * 0.85);
       const g = L.createRadialGradient(l.x, l.y, 0, l.x, l.y, r);
       g.addColorStop(0, hex(l.c, a));
       g.addColorStop(0.3, hex(l.c, a * 0.6));
@@ -4151,7 +4437,7 @@ export class PixelRoom {
         let r = d[o], g = d[o + 1], b = d[o + 2];
         if (!glow[i]) {
           const lum = (r * 0.3 + g * 0.59 + b * 0.11) / 255;
-          const sh = (1 - lum) * (1 - lum) * 0.3;
+          const sh = (1 - lum) * (1 - lum) * 0.14;
           r += (46 - r) * sh;
           g += (24 - g) * sh;
           b += (60 - b) * sh;
@@ -4161,7 +4447,7 @@ export class PixelRoom {
           b += (170 - b) * hi * 0.15;
         }
         const e = Math.hypot((x - cx) / (W * 0.55), (y - cy) / (H * 0.6));
-        const v = 1 - 0.38 * Math.min(1, Math.max(0, (e - 0.45) / 0.75)) ** 1.5;
+        const v = 1 - 0.14 * Math.min(1, Math.max(0, (e - 0.45) / 0.75)) ** 1.5;
         d[o] = r * v;
         d[o + 1] = g * v;
         d[o + 2] = b * (v + (1 - v) * 0.35);
@@ -4245,11 +4531,11 @@ export class PixelRoom {
         const i = y * W + x, id = ids[i];
         if (id < 0 || id === rug || this.glow[i]) continue;
         const o = i * 4;
-        // A dark hue-kept outline all round, heaviest underneath, and a lit
-        // pixel just inside the top edge.
+        // An edge in a deeper, warmer tone of the piece's own colour, never black: heaviest
+        // underneath, light along the top where the light falls, and a lit pixel just inside it.
         const below = ids[i + W] !== id, side = ids[i - 1] !== id || ids[i + 1] !== id, above = ids[i - W] !== id;
-        const t = below ? 0.72 : side || above ? 0.58 : 0;
-        if (t) for (let c = 0; c < 3; c++) d[o + c] = src[o + c] * (1 - t) + [30, 16, 34][c] * t;
+        const t = below ? 0.5 : side ? 0.32 : above ? 0.14 : 0;
+        if (t) for (let c = 0; c < 3; c++) d[o + c] = src[o + c] * (1 - t + t * [0.5, 0.34, 0.3][c]);
         else if (ids[i - 2 * W] !== id && y > 1) for (let c = 0; c < 3; c++) d[o + c] = Math.min(255, src[o + c] * 1.1);
       }
     if (this.hover < 0) return;

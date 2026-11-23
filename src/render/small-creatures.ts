@@ -1,5 +1,7 @@
 import Phaser from "phaser";
 import type { TopographyCell } from "../core/topography";
+import { gameAudio } from "../audio/director";
+import { fishingSound } from "../audio/sfx";
 
 type Image = Phaser.GameObjects.Image;
 type Kind = "crab" | "squirrel" | "frog";
@@ -332,7 +334,10 @@ export class SmallCreatures {
         if (c.state === "flee") {
           c.state = "hidden";
           c.until = time + 7000 + r(2) * 9000;
-          if (k === "frog") this.splash(c.x, c.y);
+          if (k === "frog") {
+            this.splash(c.x, c.y);
+            if (c.pool) void gameAudio()?.sound(fishingSound("plop"), "plop", this.pan(c.x));
+          }
           if (k === "crab") this.puff(c.x, c.y);
           if (k === "squirrel" && c.tree) this.rustle(c.tree);
         } else {
@@ -412,6 +417,11 @@ export class SmallCreatures {
     });
   }
 
+  private pan(x: number) {
+    const cam = this.scene.cameras.main;
+    return Math.max(-1, Math.min(1, (x - cam.midPoint.x) / (cam.width / cam.zoom / 2)));
+  }
+
   private flee(c: Creature, time: number, player: Image) {
     const k = c.kind;
     const away = Math.sign(c.x - player.x) || 1;
@@ -423,11 +433,13 @@ export class SmallCreatures {
       c.image.setFlipX(away < 0);
       this.go(c, time, "flee", { x: c.tree.x + away * 2, y: c.tree.y + 1, z: top }, 110);
       this.chatter(c.tree.x, c.tree.y - top - 4);
+      void gameAudio()?.call("chitter", this.pan(c.x));
       return;
     }
     if (k === "frog") {
       const to = c.pool ?? { x: c.x + away * 18, y: c.y };
       c.hold = { frame: "crouch", until: time + 120 };
+      void gameAudio()?.call("ribbit", this.pan(c.x));
       return this.go(c, time, "flee", { ...to, z: 0 }, 75);
     }
     // A crab bolts sideways for its burrow, digs in and is gone.

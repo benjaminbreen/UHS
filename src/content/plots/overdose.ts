@@ -57,6 +57,7 @@ const after = (id: string, hours: number): Condition => ({ type: "after", id, ho
 export const overdose: PlotTemplate = {
   id: "overdose",
   shape: "household",
+  urgent: true,
   look: {
     emblem: "kitchen",
     palette: { ink: "#0e1014", fill: "#1e2430", edge: "#4a5a6e", light: "#e8ecf2", accent: "#7ab8d8" },

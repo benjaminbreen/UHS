@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type RefObject } from "react";
 import { gameAudio } from "../audio/director";
-import type { Sound } from "../audio/sfx";
+import { interfaceClick, type Sound } from "../audio/sfx";
 import type { Inventory } from "../core/types";
 import { ItemIcon } from "./components";
 
@@ -246,6 +246,7 @@ export function KeyPrompt({
   onClick: () => void;
 }) {
   const [down, setDown] = useState(false);
+  useEffect(() => void gameAudio()?.sound(() => interfaceClick("prompt"), "prompt", 0, 1500), [label]);
   useEffect(() => {
     const press = (e: KeyboardEvent) => e.code === code && setDown(true);
     const release = (e: KeyboardEvent) => e.code === code && setDown(false);

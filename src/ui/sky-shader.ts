@@ -8,7 +8,7 @@ const vert = `attribute vec2 a;void main(){gl_Position=vec4(a,0.,1.);}`;
 const frag = `
 precision highp float;
 uniform vec2 R;
-uniform float T, H, COV, DEN, DARK, RAIN, SNOW, MIST;
+uniform float T, H, COV, DEN, DARK, RAIN, SNOW, MIST, DUST;
 uniform vec2 S, W, L;
 
 float hash(vec2 p){p=fract(p*vec2(123.34,456.21));p+=dot(p,p+45.32);return fract(p.x*p.y);}
@@ -150,6 +150,11 @@ void main(){
     col=mix(col,vec3(.9,.93,1.)*mix(.12,1.,day),clamp(sn,0.,1.)*.9*SNOW);
   }
 
+  if(DUST>0.){
+    float m=fbm(vec2(p.x*1.6-T*.3,uv.y*3.+T*.04),4);
+    col=mix(col,vec3(.82,.58,.3)*mix(.1,1.,day)*(.7+.6*m),DUST*mix(.92,.55,uv.y));
+  }
+
   col=aces(col*.85);
   col=pow(col,vec3(1./2.2));
   col+=(hash(gl_FragCoord.xy+fract(T))-.5)/255.;
@@ -172,6 +177,7 @@ const looks = {
   rain: [1.0, 2.0, 0.9, 1, 0, 0],
   snow: [0.95, 1.3, 0.25, 0, 1, 0],
   mist: [0.28, 0.5, 0.1, 0, 0, 1],
+  dust: [0.3, 0.6, 0.1, 0, 0, 0],
 } as const;
 
 export type SkyParams = { weather: Weather; lighting: LightingId };
@@ -218,6 +224,7 @@ export function mountSky(canvas: HTMLCanvasElement, initial: SkyParams) {
     gl.uniform1f(u("RAIN"), rain);
     gl.uniform1f(u("SNOW"), snow);
     gl.uniform1f(u("MIST"), mist);
+    gl.uniform1f(u("DUST"), weather.dust);
     const { angle, strength } = weather.wind;
     gl.uniform2f(u("W"), Math.cos(angle) * (0.3 + strength), Math.sin(angle) * strength * 0.3);
     // The same slant the scene's falling rain and snow move at.

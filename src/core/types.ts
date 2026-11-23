@@ -80,6 +80,11 @@ export type Household = {
   /** A baby sent out of the house to a wet nurse. */
   nurse?: "out";
   familyPlans?: { kind: "seek-match"; subject: string }[];
+  /** Someone of the house died in play; the house keeps to itself until then. */
+  /** `since` is the death, where it happened in play: the burial is the day after. */
+  mourning?: { name: string; until: number; since?: number };
+  /** A member put to a public punishment until then. */
+  sentence?: { who: string; how: string; until: number };
   /** Goods from `goods.ts` it makes for others. */
   makes?: string[];
   producers?: Record<string, string>;
@@ -105,7 +110,7 @@ export type Economy = {
   /** The player's place in today's work: stages done, on which day; how it
    * is going, what the wage has gained or lost, the lines kept from its
    * cards, and the card still waiting for an answer. */
-  work?: { day: number; stage: number; cart?: string; delivered?: boolean; quality?: number; pay?: number; lines?: string[]; card?: string; done?: boolean; drawn?: number; catch?: number; landed?: Inventory; harvest?: number; since?: number; tubs?: number };
+  work?: { day: number; stage: number; cart?: string; delivered?: boolean; quality?: number; pay?: number; lines?: string[]; card?: string; who?: string; done?: boolean; drawn?: number; catch?: number; landed?: Inventory; harvest?: number; since?: number; tubs?: number };
   /** The day the household plot was last seen to. */
   side?: number;
   /** The seasons the household's field was last sown and weeded, which the harvest pays back. */
@@ -155,8 +160,10 @@ export type HouseholdEvent = {
     | "bad-year"
     | "robbed";
   name?: string;
-  /** Who they were to the householder: "wife", "son", "mother". */
+  /** Who they were to the householder: "wife", "son", "mother"; for a bad year, what went wrong. */
   as?: string;
+  /** What a death in play was of, as `Actor.dead` words it. */
+  cause?: string;
 };
 /** Where someone who has had enough of the player goes. */
 export type WalkOff = "home" | "friend" | "authority" | "away";
@@ -217,6 +224,8 @@ export type Fire = {
   until: number;
 };
 export type Actor = {
+  /** A lasting condition asked for at the start, on top of the seeded roll. */
+  condition?: import("../content/health/conditions").RequestedCondition;
   exchanges?: Record<string,import("./exchange").ExchangeBook>;
   /** Clock when the torch in hand burns out. */
   torchOut?: number;
@@ -238,9 +247,10 @@ export type Actor = {
   helped?: Partial<Record<import("./skills").SkillId, number>>;
   /** Skills someone has taught the player enough of to choose a technique in, whatever their level. */
   taught?: import("./skills").SkillId[];
-  /** A hurt that outlasts the fight: weaker blows and quicker tiring until
-   * the clock passes `until`. */
-  injury?: { name: string; until: number; open?: boolean; since?: number; cleanUntil?: number };
+  /** A hurt that outlasts the fight, until the clock passes `until`. The
+   * player's carry an `id` from `src/content/health/injuries.ts`; `set` is a
+   * broken bone seen to by a healer. */
+  injury?: { id?: string; name: string; until: number; open?: boolean; since?: number; cleanUntil?: number; set?: boolean };
   immune?: Record<string, number>;
   preparedFoodUntil?: number;
   medicalStock?: { antibiotic: number; rehydration: number };
@@ -405,7 +415,11 @@ export type Place = {
   landUse?: import("../content/settlements/zoning").LandUse;
 };
 export type WorldObject = {
-  motor?: { facing: number; long: boolean; taken?: boolean; lastCall?: number; handled?: number; intakeDay?: number; delay?: number; yielding?: boolean };
+  /** A car in the vehicle catalogue. `rect` is the ground it was planned on, solid in the
+   * plan, until it is first driven; after that it is `freed` and the car stands where `motor` says. */
+  car?: { model: string; paint: number; rect?: [number, number, number, number]; freed?: [number, number, number, number]; fuel?: number; dents?: number; hot?: boolean; yours?: boolean; smashed?: boolean };
+  /** `slim`: a body one cell wide reaching that many cells ahead and behind, not a lorry's. */
+  motor?: { facing: number; long: boolean; slim?: number; taken?: boolean; lastCall?: number; handled?: number; intakeDay?: number; delay?: number; yielding?: boolean };
   terminalVehicle?: "feeder" | "carrier";
   passage?: { destination: Point; back: boolean };
   freight?: { store: string; call: number; local?: boolean; good?:"steel-coil"; boxes?: { picked: number; landed: number; hook: number; delivered: number; inbound: number } };
@@ -589,6 +603,8 @@ export type PlayerCommand =
       type: "move";
       dx: number;
       dy: number;
+      /** Driving: the way the vehicle faces after the step, when it is not the way it moves. */
+      heading?: number;
       traverse?: boolean;
       jump?: "short" | "long";
       run?: boolean;
@@ -662,6 +678,11 @@ export type PlayerCommand =
         | "cycle-trick"
         | "cycle-service"
         | "buy-cycle"
+        | "car-horn"
+        | "car-crash"
+        | "car-fuel"
+        | "car-fare"
+        | "car-busted"
         | "dismount-animal"
         | "spur-mount"
         | "calm-mount"
@@ -711,6 +732,8 @@ export type PlayerCommand =
       /** A descent taken over an edge rather than back the way you came. */
       dx?: number;
       dy?: number;
+      /** Cells a second at the moment of a crash. */
+      speed?: number;
     }
   | {
       type: "trade";
@@ -762,14 +785,16 @@ export type Receipt = { payload: string; result: CommandResult };
  * out when one of them next comes by. */
 /** A story someone would pass on: about the player, or about `about` when set.
  * `tone` is how good or bad it is; it halves with each telling. */
-export type Word = { act: string; object?: string; victim?: string; tone: number; at: number; hops: number; from?: string; about?: string };
+export type Word = { act: string; object?: string; victim?: string; tone: number; at: number; hops: number; from?: string; about?: string;
+  /** About how its subject behaved, to their credit or not; mere news about them is not. */
+  conduct?: true };
 /** A favour someone has asked of the player, in a form the engine can see
  * done: an item handed over, a person spoken to, a place gone into. `what`
  * is the asker's own words for it, read after "asks you to". */
 export type Ask = {
   id: string; by: string; kind: "bring" | "food" | "talk-to" | "go-to" | "help"; item?: string; to?: string; place?: string; what: string; at: number; until: number; accepted?: boolean;
   /** Help with their work: where it is done, and the step of their day it is. */
-  meet?: Position; task?: string; offered?: boolean;
+  meet?: Position; task?: string; offered?: number;
 };
 /** What the player can ask in return for help given. */
 export type CallIn = "work" | "lend" | "speak";
@@ -786,6 +811,10 @@ export type Snapshot = {
   households?: Household[];
   losses?: Loss[];
   asks?: Ask[];
+  /** What one household makes of another, keyed `from>to`; only where it is not indifferent. */
+  houseRegard?: Record<string, number>;
+  /** The wrong behind a bad regard, same key: what `to` did, as `from` tells it. */
+  houseWrongs?: Record<string, string>;
   /** Taken to whoever keeps order, waiting to be dealt with. */
   complaints?: { by: string; story: Word; at: number; spokenFor?: string; seen?: boolean }[];
   /** Animal groups: wild ones spawned as districts open, kept ones from pens. */
@@ -873,6 +902,8 @@ export type Snapshot = {
   /** A card about someone's illness, the player's own or kin's, waiting on an answer. */
   care?: { card: string; who: string; ailment: string; at: number };
   encounter?: { card: string; at: Position; clock: number };
+  /** Cards to come back with the same person: due `at`, or, once asked, last brought `at`. */
+  later?: { card: string; at: number; who: string; asked?: number }[];
   /** What the player has done today that goals can't read off state. */
   goalFlags?: {
     participated?: string[];
@@ -1020,6 +1051,8 @@ export interface WorldModel {
   protectedCell?(x: number, y: number): boolean;
   /** `furnished`: the yard kit laid this yard, so only a trade's fitting is added. */
   propSlots?(placeId: string): { yard: Point[]; work: Point[]; furnished?: boolean } | undefined;
+  /** Whose household plot a cell lies in. */
+  yardOwner?(x: number, y: number): string | undefined;
   /** A resident's whole day as a route. Built on demand and cached by the
    * world: sampling it costs a binary search, not a path search. */
   outing?: { actor: string; route: import("./itinerary").Itinerary; tick: (clock: number) => void };
@@ -1047,7 +1080,8 @@ export interface WorldModel {
   dormant?(actorId: string): boolean;
   /** Retires one resting resident per settlement and wakes a dormant one.
    * Called once per game hour. */
-  rotateRoutines?(clock: number): void;
+  /** `opening`: nobody has been seen yet, so changed days are rebuilt at once. */
+  rotateRoutines?(clock: number, conditions?: Map<string, import("./household").HouseholdCondition>, opening?: boolean): void;
   activitySites?(actorId: string):
     | {
         employment?: { id: string; kind: import("../content/characters/workplace").Institution; label: string };

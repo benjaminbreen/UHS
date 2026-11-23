@@ -2163,7 +2163,8 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
    * dark and light palettes, bare and clothed, thin limbs, all four views.
    * POSES, SCALE and ONLY narrow it when chasing one case;
    * PROP (a carried sprite) and FRAMES (all, or a list) study an action.
-   * WATER cuts each figure at the scene's waterline: wade at its deepest, swimmers at theirs. */
+   * WATER cuts each figure at the scene's waterline: wade at its deepest, swimmers at theirs.
+   * HURT dresses them in an injury's look (any `HurtLook`: sling, crutch, peg, trolley, leper…). */
   async "sprite-study"(page) {
     const knobs = {
       poses: (process.env.POSES ?? "idle,chop").split(","),
@@ -2172,6 +2173,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       prop: process.env.PROP,
       frames: process.env.FRAMES === "all" ? [0, 1, 2, 3] : process.env.FRAMES?.split(",").map(Number),
       water: !!process.env.WATER,
+      hurt: process.env.HURT,
     };
     await characterLab(page);
     const sheet = await page.evaluate(async (k) => {
@@ -2218,7 +2220,7 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
       ctx.fillStyle = "#8d9484";
       ctx.fillRect(0, 0, c.width, c.height);
       (only === undefined ? people : [people[only]]).forEach((p, row) => {
-        const a = { ...base, ...p, wearing: { ...base.wearing, ...p.wearing } };
+        const a = { ...base, ...p, hurt: k.hurt, wearing: { ...base.wearing, ...p.wearing } };
         let col = 0;
         for (const pose of poses)
           for (const dir of [2, 1, 0, 3])

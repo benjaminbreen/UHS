@@ -66,6 +66,7 @@ export function Years({ runtime, toEnd, onClose }: { runtime: Runtime; toEnd: bo
     const quiet = next.li < 0;
     const t = setTimeout(() => {
       if (!quiet) gameAudio()?.event(SOUND[life.years[next.yi].lines[next.li].kind] ?? "select");
+      else void gameAudio()?.interfaceSound("tock");
       setBeat((n) => n + 1);
     }, (quiet ? QUIET_MS : LINE_MS) / (fast ? 4 : 1));
     return () => clearTimeout(t);

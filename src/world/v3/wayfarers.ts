@@ -552,7 +552,7 @@ function wildParty(
   const carry = /wood|timber|charcoal/.test(work.id) ? "wood" : kit.basket;
   const hours = 2.5 + r("hours") * 2.5;
   const arrive = (6.5 + r("arrive") * 3) * 60;
-  const kind = { party: [0.55, 0.35, 0.1] as const, women: livelihood.sex === "male" ? 0 : livelihood.sex === "female" ? 1 : 0.4, youth: 0.3 };
+  const kind = { party: [0.55, 0.35, 0.1] as const, women: livelihood.sex === "male" ? livelihood.sexShare ?? 0 : livelihood.sex === "female" ? 1 - (livelihood.sexShare ?? 0) : 0.4, youth: 0.3 };
   return members(r, kind).map((m, i) => {
     const start = day * DAY_MINUTES + arrive + 2 * i * PACE;
     // Each works a few paces from the others.

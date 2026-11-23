@@ -387,7 +387,7 @@ export class Agent {
 
   /** The browser shows each card once and takes it off the queue; so does this. */
   private collectCards() {
-    if (!this.engine.state.care) this.open.delete("care-symptoms");
+    for (const id of this.open.keys()) if (this.runtime.questionGone(id)) this.open.delete(id);
     for (const card of this.engine.cards.splice(0)) {
       const line = `${card.title}: ${card.text}`;
       if (card.choose)
@@ -412,8 +412,6 @@ export class Agent {
     } catch (e) {
       return { status: "rejected", text: String(e instanceof Error ? e.message : e) };
     }
-    if (command.type === "choose" && (result.status === "completed" || result.reason === "There is nothing to answer."))
-      this.open.delete(command.card);
     await this.settle();
     return this.outcome(result.status, [
       ...result.events.map((e) => e.text),
@@ -491,6 +489,9 @@ export class Agent {
         this.runtime.stop(false);
         interrupted = true;
       }
+      // Someone on their way over with the day's card: standing still lets time run on, as in the browser.
+      else if (this.engine.workPlan()?.waiting && !this.open.size)
+        this.runtime.act({ actionId: `a${this.serial++}`, expectedRevision: this.engine.state.revision, command: { type: "wait", seconds: 60 } });
       // An errand can pace between two cells forever; nothing new in 300 ticks ends it.
       if (i % 300 === 0) {
         const p = this.engine.state.player.pos,

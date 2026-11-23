@@ -17,6 +17,8 @@ export type Trigger =
   | { type: "tag"; any: readonly StanceTag[] }
   | { type: "kin"; kind: SocialRelation["kind"]; minAge?: number; maxAge?: number }
   | { type: "seek-match" }
+  /** Something going on right now in their own house, or in the house of kin who live elsewhere. */
+  | { type: "household"; is: "mourning" | "burying" | "sick" | "short" | "sentenced"; of: "own" | "kin" }
   | { type: "fortune"; above?: number; below?: number }
   | { type: "rank"; any: readonly Rank[] }
   | { type: "season"; any: readonly string[] }
@@ -43,16 +45,20 @@ export type PlaceWant =
   /** Frozen water near the settlement that bears; nowhere in a mild winter. */
   | "ice"
   | "work"
+  /** The burial ground or the churchyard; the sanctuary where there is neither. */
+  | "graves"
   /** Somebody else's door, a real walk away. */
   | "door"
   | { kin: SocialRelation["kind"] }
+  /** The door of whoever the occasion concerns. */
+  | { subject: true }
   | { venue: string }
   | { worship: string };
 
 /**
  * Something a person might do on a particular day that is not their work
  * cycle, and why. The picker fills `{partner}`, `{child}`, `{parent}`,
- * `{patron}`, `{craftPower}`, `{paramount}`, `{nth}`, `{years}`, `{dead}` and
+ * `{patron}`, `{craftPower}`, `{paramount}`, `{nth}`, `{years}`, `{dead}`, `{sick}`, `{good}`, `{sentence}` and
  * `{place}` from the person's own household, tradition and settlement.
  */
 export type Occasion = QualifiedContent & {
@@ -69,6 +75,8 @@ export type Occasion = QualifiedContent & {
   participate?: { action: "listen" | "meal" | "row"; claim?: string };
   minutes: number;
   carry?: "basket" | "vessel" | "bundle";
+  /** Nobody who does this works that day, as on a festival of rest. */
+  rest?: true;
   text: string;
   /** Life aims this serves; the current aim weighs it up. */
   serves?: readonly string[];

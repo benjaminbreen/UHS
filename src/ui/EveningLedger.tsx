@@ -236,6 +236,10 @@ export function EveningLedger({
     wind: { angle: 0, strength: 0.2 },
     wetness: 0,
     rain: 0,
+    storm: 0,
+    hail: 0,
+    blizzard: 0,
+    dust: evening.tomorrow.condition === "dust" ? 0.6 : 0,
   };
   rows.push({
     label: "Tomorrow",
@@ -264,11 +268,12 @@ export function EveningLedger({
   useEffect(() => {
     if (resting) return;
     if (shown >= rows.length) {
+      void gameAudio()?.interfaceSound("seal");
       gameAudio()?.event("warm");
       return;
     }
     const t = setTimeout(() => {
-      gameAudio()?.event("select");
+      void gameAudio()?.interfaceSound("row");
       setShown((n) => n + 1);
     }, shown ? ROW_MS : 700);
     return () => clearTimeout(t);

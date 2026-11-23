@@ -33,7 +33,8 @@ export const FISHING_CARDS: ChoiceCard[] = [
       },
       {
         label: "Offer to work it together and split the catch",
-        note: "half each · they'll remember it",
+        note: "half each · they tell people you were fair",
+        word: "shared a fishing spot with",
         then: [{ type: "regard", delta: 2 }],
         line: "You worked the spot together and split what came up.",
       },
@@ -76,7 +77,7 @@ export const FISHING_CARDS: ChoiceCard[] = [
     choices: [
       {
         label: "Borrow it and promise them some of the catch",
-        note: "fish today · you owe them",
+        note: "fish today · some of the catch goes to them",
         then: [{ type: "regard", delta: 1 }, { type: "pay", delta: -1 }],
         line: "You fished with borrowed gear and took them their share after.",
       },
@@ -131,7 +132,7 @@ export const FISHING_CARDS: ChoiceCard[] = [
       },
       {
         label: "Ask for time until the next good catch",
-        note: "he may agree · or add to what you owe",
+        note: "he may agree · or fine you",
         check: { stat: "agreeableness", odds: 0.55 },
         then: [],
         line: "He marked it down and gave you until the next good catch.",
@@ -180,12 +181,14 @@ export const FISHING_CARDS: ChoiceCard[] = [
     fishing: { sold: false },
     who: "neighbour",
     as: "your relative",
+    hungry: true,
     evidence: "inferred",
     text: "{Name} has caught nothing for days, and the children in that house are hungry. Everyone at the landing is watching how you share out today's catch.",
     choices: [
       {
         label: "Give them a good share",
-        note: "less for your house · they'll return it",
+        note: "less for your house · the landing hears of it",
+        word: "gave a good share of the catch to",
         then: [{ type: "day", delta: -1 }, { type: "regard", delta: 3 }],
         line: "You gave them a good share, and people noticed.",
       },

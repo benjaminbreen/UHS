@@ -152,17 +152,30 @@ it("game hears a runner sooner than someone standing still", () => {
   expect(g.alarm !== undefined || g.state === "flee").toBe(true);
 });
 
-it("going down costs the day and leaves a hurt, not a grave", () => {
-  const engine = field("skills-collapse");
+it("an animal that brings you down kills you", () => {
+  const engine = field("skills-gored");
   engine.devArm("stick");
   engine.state.player.health = 5;
-  engine.state.player.inventory.meat = 4;
   quarry(engine, "aurochs");
-  const clock = engine.state.clock;
   engine.execute({ type: "swing" });
   wait(engine, 10);
+  expect(engine.state.player.dead).toBe("gored by an aurochs");
+  expect(engine.setback).toBeUndefined();
+});
+
+it("a beating costs the day and leaves a hurt, not a grave", () => {
+  const people = createSession("roman", "skills-collapse").state.actors;
+  const engine = field("skills-collapse");
+  const brawler = { ...people.find((a) => a.kind === "human")!, heldItem: undefined, pos: { x: 1, y: 0, space: "outside" as const } };
+  engine.state.actors = [brawler];
+  engine.state.player.health = 5;
+  engine.state.player.inventory.meat = 4;
+  const clock = engine.state.clock;
+  (engine as unknown as { struckBy(a: typeof brawler): void }).struckBy(brawler);
+  engine.state.actors = [];
+  wait(engine, 1);
   const p = engine.state.player;
-  expect(engine.lastCollapse).toBeDefined();
+  expect(engine.setback).toBeDefined();
   expect(p.health).toBeGreaterThan(0);
   expect(p.injury?.until).toBeGreaterThan(engine.state.clock);
   expect(p.inventory.meat).toBe(2);

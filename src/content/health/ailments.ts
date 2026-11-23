@@ -165,4 +165,18 @@ export const AILMENTS: readonly AilmentDef[] = [
     laid: "Resting with a painful wound",
     look: "fever",
   },
+  {
+    id: "venom",
+    names: [{ name: "a snakebite" }],
+    gloss: "Venom from a snake's bite. Lying still slows it; before antivenom (1895 onward) little else did.",
+    rate: () => 0,
+    // Set from the snake at the bite; see `venom` in the fauna combat table.
+    days: [1, 1],
+    deadly: () => 0,
+    of: "{who} was bitten by a snake and is very ill {for}",
+    you: "you were bitten by a snake and are very ill {for}",
+    died: "of a snakebite",
+    laid: "Lying still after a snakebite",
+    look: "pallor",
+  },
 ];

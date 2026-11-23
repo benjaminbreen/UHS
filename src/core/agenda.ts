@@ -11,6 +11,7 @@ import { standingOf } from "./standing";
 import { statsOf } from "./stats";
 import type { Actor, Household, SocialRelation, Stats } from "./types";
 import type { StationActivity } from "./itinerary";
+import type { HouseholdCondition } from "./household";
 
 const DAY = 86400;
 /** Four seasons of 28 days: the game's year. */
@@ -82,6 +83,8 @@ export type Person = {
   aim?: PersonalAim;
   /** Livelihood words, for the craft power and the work triggers. */
   work: string;
+  /** What is going on today in a household, by id. */
+  conditions?: (householdId: string) => HouseholdCondition | undefined;
 };
 type Facts = {
   stats: Stats;
@@ -142,6 +145,7 @@ export type AgendaItem = {
   participate?: Occasion["participate"];
   minutes: number;
   carry?: Occasion["carry"];
+  rest?: true;
   evidence: Occasion["evidence"];
   note?: string;
   sources: readonly string[];
@@ -225,6 +229,39 @@ function bind(
         subject = child.actor.id;
         return true;
       }
+      case "household": {
+        const own = p.actor.householdId;
+        if (t.of === "own") {
+          const c = own ? p.conditions?.(own) : undefined;
+          if (t.is === "mourning" || t.is === "burying") return !!(t.is === "burying" ? c?.burying : c?.mourning) && !!(vars.dead = c!.mourning!);
+          if (t.is === "sentenced") return c?.sentenced?.who === p.actor.id && !!(vars.sentence = c.sentenced.how);
+          if (t.is === "short") {
+            // One of the house goes, not all of it.
+            if (!c?.short?.seller || p.household?.members.find((id) => !c.sick?.includes(id)) !== p.actor.id) return false;
+            vars.good = c.short.good;
+            subject = c.short.seller;
+            return true;
+          }
+          const sick = c?.sick?.find((id) => id !== p.actor.id);
+          const who = !c?.sick?.includes(p.actor.id) && p.kin.find((k) => k.actor.id === sick)?.actor;
+          if (!who) return false;
+          vars.sick = first(who);
+          subject = who.id;
+          return true;
+        }
+        const shuns = own ? p.conditions?.(own)?.shuns : undefined;
+        for (const k of p.kin) {
+          const theirs = k.actor.householdId;
+          const c = theirs && theirs !== own && !shuns?.includes(theirs) ? p.conditions?.(theirs) : undefined;
+          if (t.is === "sentenced") return false;
+          if (t.is === "burying" ? c?.burying : t.is === "mourning" && c?.mourning) vars.dead = c!.mourning!;
+          else if (t.is === "sick" && c?.sick?.includes(k.actor.id)) vars.sick = first(k.actor);
+          else continue;
+          subject = k.actor.id;
+          return true;
+        }
+        return false;
+      }
       case "fortune": {
         const v = p.household?.fortune ?? 0.5;
         return (t.above === undefined || v > t.above) && (t.below === undefined || v < t.below);
@@ -301,6 +338,8 @@ function reason(t: Trigger, vars: Record<string, string>, f: Facts, p: Person): 
       return [`${vars[t.kind]} is ${KIN[t.kind]}${vars.age ? `, ${vars.age} years old` : ""}.`];
     case "seek-match":
       return [`Your household is looking for a match for ${vars.child}.`];
+    case "household":
+      return [t.is === "sentenced" ? "It is your sentence." : t.is === "burying" ? "The burial is today." : t.is === "mourning" ? "There has been a death." : t.is === "sick" ? `${vars.sick} is ill in bed.` : `The house has run out of ${vars.good}.`];
     case "fortune":
       return [t.below !== undefined ? "The household has little put by." : "The household is doing well."];
     case "rank":
@@ -362,11 +401,13 @@ export function agendaOf(
     if (picked.some((p) => p.o.part === s.o.part)) continue;
     picked.push(s);
   }
-  // Anything dated to today outranks the count: nobody skips their own birthday.
+  // Anything dated to today, or pressing at home, outranks the count: nobody skips their own birthday.
   for (const s of scored)
-    if (!picked.includes(s) && s.o.when.some((t) => t.type === "anniversary" || t.type === "date"))
+    if (!picked.includes(s) && s.o.when.some((t) => t.type === "anniversary" || t.type === "date" || t.type === "household"))
       picked.push(s);
-  return picked.map(({ o, text, subject, why }) => ({
+  // A day given over to a death has nothing else in it.
+  const day = picked.some((s) => s.o.rest) ? picked.filter((s) => s.o.when.some((t) => t.type === "household")) : picked;
+  return day.map(({ o, text, subject, why }) => ({
     id: o.id,
     text,
     part: o.part,
@@ -375,6 +416,7 @@ export function agendaOf(
     ...(o.participate && {participate:o.participate}),
     minutes: o.minutes,
     carry: o.carry,
+    ...(o.rest && { rest: o.rest }),
     evidence: o.evidence,
     note: o.note,
     sources: o.sources,

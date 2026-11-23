@@ -184,7 +184,7 @@ export function Choices({ items, focus }: {
           data-on={i === on || undefined}
           onMouseEnter={() => setOn(i)}
           onFocus={() => setOn(i)}
-          onClick={item.unavailable ? undefined : item.pick}
+          onClick={item.unavailable ? undefined : () => { void gameAudio()?.interfaceSound("commit"); item.pick(); }}
           aria-disabled={item.unavailable ? true : undefined}
           data-unavailable={item.unavailable ? true : undefined}
           title={item.odds === undefined ? undefined : `${Math.round(item.odds * 100)}%`}
@@ -416,6 +416,7 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
   useEffect(() => {
     if (outcome) begin.current?.focus({ preventScroll: true });
   }, [outcome]);
+  useEffect(() => void gameAudio()?.interfaceSound("card"), [card]);
   const plot = runtime.engine.state.plot;
   const look = (plot && plotKnown(plot) && plotTemplate(plot)?.look) || DAWN;
   const setting = runtime.engine.world.pack.setting;
@@ -436,7 +437,11 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
   }, [runtime, speaker, card]);
   // Someone walking up with a demand says it in their own words, about what is in front of them;
   // the written line is the fallback and holds the facts.
-  const tailor = card.kind === "speech" && !!speaker && runtime.engine.approacher?.id === speaker.id;
+  const approached = (() => {
+    const ap = runtime.engine.approacher;
+    return !!speaker && ap?.id === speaker.id && runtime.engine.state.clock < ap.until;
+  })();
+  const tailor = card.kind === "speech" && approached;
   const [line, setLine] = useState(tailor ? "" : card.text);
   useEffect(() => {
     if (!tailor) return;
@@ -557,6 +562,7 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
                 choices={card.choose.choices}
                 ready={done}
                 onPick={(index) => {
+                  void gameAudio()?.interfaceSound("commit");
                   runtime.command({ type: "choose", card: card.choose!.card, choice: index });
                   const last = runtime.engine.lastChoice;
                   if (last?.card === card.choose!.card) setOutcome(last);
@@ -569,7 +575,7 @@ export function PlotCard({ runtime, card, look: dress, onLook, onAnswer, onClose
             <Choices
               focus={begin}
               items={outcome ? [{ label: "Continue", pick: () => close(outcome.go ? () => runtime.setOff({ kind: "seek", actor: outcome.go!, label: runtime.engine.state.actors.find((a) => a.id === outcome.go)?.name ?? "them" }) : undefined), primary: true }] : [
-                ...(speaker && runtime.engine.approacher?.id === speaker.id
+                ...(speaker && approached
                   ? [{ label: "Answer", pick: () => { onLook(); onClose(); onAnswer(speaker.id, line || card.text); }, primary: true }]
                   : []),
                 { label: speaker ? "Later" : "Continue", pick: () => (done ? close() : finish()) },

@@ -222,7 +222,7 @@ function caughtEscaping(h: ComplexHost, run: PrisonRun, guard?: Actor) {
   }
   if (run.caught === 2) {
     run.sentence.daysLeft += 14;
-    h.hurt(28, "gaoler's cane", "bruised ribs");
+    h.hurt(28, "gaoler's cane", "welts");
     h.advance(3600);
     backToCell();
     h.event("The warders drag you back, beat you with a cane, and lock you in your cell. \"One more attempt and you'll swing for it.\"", "world");

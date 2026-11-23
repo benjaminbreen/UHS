@@ -20,6 +20,7 @@ const any = (...of: Condition[]): Condition => ({ type: "not", of: { type: "all"
 export const birthing: PlotTemplate = {
   id: "birthing",
   shape: "work",
+  urgent: true,
   look: {
     emblem: "fold",
     palette: { ink: "#14100c", fill: "#2a2018", edge: "#6a4c32", light: "#f0e6da", accent: "#e8a04a" },

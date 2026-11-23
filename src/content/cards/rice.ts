@@ -110,7 +110,7 @@ export const RICE_CARDS: ChoiceCard[] = [
       },
       {
         label: "Open it yourself after dark",
-        note: "you get the water · if they catch you, they won't forget it",
+        note: "you get the water, taken without asking",
         check: { stat: "agility", odds: 0.55 },
         then: [{ type: "day", delta: 1 }, { type: "fatigue", n: 10 }],
         line: "You opened the channel at night, and your paddy filled.",
@@ -144,7 +144,7 @@ export const RICE_CARDS: ChoiceCard[] = [
       },
       {
         label: "Ask the neighbours to help",
-        note: "you'll owe them a meal, rice wine and a day's work",
+        note: "costs a meal, rice wine and some of your pay",
         then: [{ type: "day", delta: 1 }, { type: "minutes", n: 30 }, { type: "pay", delta: -1 }, { type: "fatigue", n: 5 }],
         line: "The neighbours came out, and the rice was in before the worst of the rain. Now you owe them.",
       },
@@ -200,7 +200,8 @@ export const RICE_CARDS: ChoiceCard[] = [
       },
       {
         label: "Hide a basket in the loft",
-        note: "if he finds it, he takes extra and remembers you",
+        note: "if he finds it, he takes extra and tells people",
+        word: "was caught hiding rice from",
         check: { stat: "agility", odds: 0.45 },
         then: [],
         line: "You hid a basket before the agent counted.",

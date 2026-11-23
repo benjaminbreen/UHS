@@ -1,5 +1,10 @@
+import type { HurtLook } from "../../core/character";
 import type { CharacterScope } from "../characters/context-types";
 import type { WorldSetting } from "../geography/types";
+
+/** Conditions a start can ask for ("a blind beggar", "a leper"). */
+export const requestableConditions = ["blind", "deaf", "limp", "clubfoot", "leprosy", "lost-leg", "lost-arm", "withered-legs", "paralysed", "falling", "stammer", "consumption"] as const;
+export type RequestedCondition = (typeof requestableConditions)[number];
 
 /** Who might have a condition: enough to set a rate. */
 export type HealthPerson = {
@@ -25,10 +30,23 @@ export type ConditionDef = {
   rate: (p: HealthPerson) => number;
   /** How much it marks a life, 0 to 1: blindness near 1, smallpox scars low. */
   salience: number;
+  /** How it shows and what it stops, for a resident in the street and for the player. */
+  body?: (p: HealthPerson) => ConditionBody | undefined;
   /** `{name}` is the period name. */
   you: (p: HealthPerson) => readonly string[];
   of: (p: HealthPerson) => readonly string[];
   note: string;
+};
+
+export type ConditionBody = {
+  look?: HurtLook;
+  /** Walking pace, 1 sound. */
+  pace?: number;
+  run?: false;
+  climb?: false;
+  /** A cycle or a horse. */
+  ride?: false;
+  lame?: 1 | 2;
 };
 
 type Box = readonly [number, number, number, number];
@@ -110,6 +128,7 @@ export const CONDITIONS: readonly ConditionDef[] = [
     gloss: "Blindness, in hot dry country often from trachoma, the 'Egyptian ophthalmia' that Napoleon's soldiers carried home in 1801.",
     rate: (p) => (inBox(p.setting, NILE, [33.5, 29, 50, 38]) && year(p) < 1950 ? 0.02 : 0.006) * (p.age >= 60 ? 2 : p.age < 15 ? 0.3 : 1),
     salience: 0.95,
+    body: () => ({ look: "blind" }),
     you: () => ["you have been blind since a sickness of the eyes in your youth"],
     of: () => ["has been blind for years"],
     note: "Trachoma was endemic around the eastern Mediterranean and Nile.",
@@ -154,6 +173,7 @@ export const CONDITIONS: readonly ConditionDef[] = [
     gloss: "A lame leg: a badly set break, or the paralysis polio left in children, which Egyptian art shows as early as about 1400 BCE.",
     rate: (p) => (p.age < 8 ? 0.005 : p.age >= 50 ? 0.05 : 0.03),
     salience: 0.45,
+    body: (p) => ({ pace: 0.9, lame: 1, look: p.age >= 50 ? "stick" : undefined }),
     you: () => ["you have walked with a limp since a leg broke and set badly", "you have limped since a fall when you were young"],
     of: () => ["walks with a limp"],
     note: "Healed fractures are common in skeletons from every period.",
@@ -164,6 +184,8 @@ export const CONDITIONS: readonly ConditionDef[] = [
     gloss: "Clubfoot, about one birth in a thousand. Untreated, people walked on the side of the foot.",
     rate: () => 0.001,
     salience: 0.85,
+    // Ponseti's casting, from the 1950s, straightens it in infancy.
+    body: (p) => (year(p) >= 1960 ? undefined : { look: "crutch", pace: 0.7, run: false, climb: false, lame: 2 }),
     you: () => ["you were born with a twisted foot, and walk on the side of it"],
     of: () => ["was born with a twisted foot"],
     note: "Congenital talipes, about 1 in 1,000 births.",
@@ -295,9 +317,73 @@ export const CONDITIONS: readonly ConditionDef[] = [
       return 0;
     },
     salience: 0.95,
+    body: () => ({ look: "leper", pace: 0.9, lame: 1 }),
     you: () => ["the numb patches on your skin have started to spread, and you keep them covered"],
     of: () => ["has numb patches on {her} skin that {she} keeps covered"],
     note: "Endemic in medieval Europe until the fourteenth century, and in South and East Asia.",
+  },
+  {
+    id: "lost-leg",
+    names: [{ name: "a wooden leg" }],
+    gloss: "A leg taken off below the knee. From the sixteenth century to the First World War amputation was the surgeon's answer to a shattered limb, and most who lived wore a peg.",
+    rate: (p) => {
+      const y = year(p);
+      if (p.age < 18) return 0;
+      const hard = /soldier|sailor|seaman|mariner|marine|gunner|veteran|whaler|rail|navvy|miner|quarry/.test(p.role) ? 8 : 1;
+      const era = y >= 1500 && y < 1950 ? 2 : y >= 1950 ? 0.5 : 1;
+      return 0.0025 * hard * era * (p.sex === "female" ? 0.3 : 1);
+    },
+    salience: 0.9,
+    // Since the Second World War, a fitted leg under the trousers.
+    body: (p) => (year(p) >= 1950 ? { pace: 0.85, run: false, lame: 1 } : { look: "peg", pace: 0.7, run: false, climb: false, lame: 2 }),
+    you: () => ["you lost a leg below the knee and walk on a wooden peg"],
+    of: () => ["lost a leg and walks on a wooden peg"],
+    note: "Guessed from surgical and pension records: Greenwich Hospital's naval pensioners and the war wounded of 1815 and 1918; rarer in peace and before gunpowder.",
+  },
+  {
+    id: "lost-arm",
+    names: [{ name: "a lost arm" }],
+    gloss: "An arm lost to a wound, a machine or gangrene, the sleeve pinned up.",
+    rate: (p) => {
+      const y = year(p);
+      if (p.age < 18) return 0;
+      const hard = /soldier|sailor|seaman|mariner|marine|gunner|veteran|mill hand|factory|machin|miner/.test(p.role) ? 6 : 1;
+      return 0.0012 * hard * (y >= 1500 && y < 1950 ? 2 : 1) * (p.sex === "female" ? 0.4 : 1);
+    },
+    salience: 0.85,
+    body: () => ({ look: "empty-sleeve", climb: false }),
+    you: () => ["you lost an arm and keep the empty sleeve pinned"],
+    of: () => ["lost an arm and keeps the sleeve pinned"],
+    note: "As for a lost leg, about half as common.",
+  },
+  {
+    id: "withered-legs",
+    names: [{ name: "withered legs" }],
+    gloss: "Legs left useless by polio in childhood, or by an injury to the spine. Without a chair, people went on a low wheeled board or on hand-blocks, as in Bruegel's The Cripples (1568).",
+    rate: (p) => {
+      const y = year(p), lingering = inBox(p.setting, SOUTH_ASIA, AFRICA_TROPICS) && y < 2000;
+      return p.age < 6 ? 0 : y < 1955 || lingering ? 0.002 : 0.0003;
+    },
+    salience: 0.95,
+    // A wheeled board; from about 1850 iron calipers and crutches; from the
+    // 1930s a folding wheelchair (Everest & Jennings, 1933).
+    body: (p) => year(p) >= 1930 ? { look: "wheelchair", pace: 0.85, run: false, climb: false, ride: false }
+      : year(p) >= 1850 ? { look: "crutch", pace: 0.6, run: false, climb: false, ride: false, lame: 2 }
+      : { look: "trolley", pace: 0.5, run: false, climb: false, ride: false },
+    you: (p) => [`your legs have been withered since a fever in childhood, and you get about ${year(p) >= 1930 ? "in a wheelchair" : year(p) >= 1850 ? "on crutches, with irons on your legs" : "on a wheeled board"}`],
+    of: (p) => [`has had withered legs since childhood and gets about ${year(p) >= 1930 ? "in a wheelchair" : year(p) >= 1850 ? "on crutches" : "on a wheeled board"}`],
+    note: "Paralytic polio left perhaps one child in a few hundred lame before the vaccines of 1955 and 1961; it lingered in South Asia and Africa until about 2000.",
+  },
+  {
+    id: "paralysed",
+    names: [{ name: "paralysis" }],
+    gloss: "Legs paralysed by an injury to the spine, spina bifida or multiple sclerosis. Before antibiotics few lived long with a spinal injury; from the 1940s most did.",
+    rate: (p) => (year(p) < 1930 || p.age < 6 ? 0 : (year(p) >= 1950 ? 0.004 : 0.0015) * (p.age >= 50 ? 1.5 : 1)),
+    salience: 0.95,
+    body: () => ({ look: "wheelchair", pace: 0.85, run: false, climb: false, ride: false }),
+    you: () => ["you use a wheelchair; your legs have not worked for years"],
+    of: () => ["uses a wheelchair"],
+    note: "Guessed from wheelchair use today, about one person in a hundred in rich countries, most of them old; lower here, counting only the paralysed.",
   },
   {
     id: "back",

@@ -27,10 +27,30 @@ const shapes: Record<string, string[][]> = {
     [".X...", ".....", ".....", ".....", "....."],
     [".XX..", ".X...", ".....", ".....", "....."],
   ],
+  // A stone and the streak the eye leaves behind it; not spun, so each mote
+  // keeps one of the four.
+  hail: [
+    ["..X..", "..X..", ".XX..", ".XX..", "....."],
+    [".....", "..X..", ".XX..", ".XX..", "....."],
+    ["..X..", "..X..", "..X..", ".XX..", ".XX.."],
+    [".....", "..X..", "..X..", "..X..", "....."],
+  ],
+  dust: [
+    ["XX...", ".....", ".....", ".....", "....."],
+    ["X....", ".....", ".....", ".....", "....."],
+    ["XXX..", ".....", ".....", ".....", "....."],
+    ["X....", ".X...", ".....", ".....", "....."],
+  ],
 };
 
 const RAIN_H = 7;
 const SPLASH = "drift-splash";
+const BOUNCE = "drift-bounce";
+const STONE = "drift-stone";
+const HOP_MS = 55;
+/** A hailstone lies this long, in ms, and is gone over the last of it. */
+const LIES = 26000;
+const MELT = 6000;
 
 function atlasKey(style: DriftStyle) {
   return `drift-${style.kind}-${style.colors.join("")}`;
@@ -98,6 +118,42 @@ function ensureSplash(scene: Phaser.Scene) {
   atlas.refresh();
 }
 
+/** Six frames of a stone landing: the hit, a hop to one side, and at rest.
+ * And the stone it leaves: three sizes, white over its own small shadow. */
+function ensureStones(scene: Phaser.Scene) {
+  if (scene.textures.exists(BOUNCE)) return;
+  const hop = scene.textures.createCanvas(BOUNCE, 6 * 9, 7)!;
+  const ctx = hop.getContext();
+  // Where the stone's top-left corner is in each frame; the first has the
+  // chips it knocks up either side.
+  const path = [[3, 5], [4, 2], [5, 0], [6, 1], [6, 4], [6, 5]];
+  path.forEach(([x, y], frame) => {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(frame * 9 + x, y, 2, 2);
+    ctx.fillStyle = "#cfe2f2";
+    if (frame === 0) {
+      ctx.fillRect(1, 5, 1, 1);
+      ctx.fillRect(6, 4, 1, 1);
+    } else if (frame < 5) ctx.fillRect(frame * 9 + x, y + 2, 1, 1);
+    hop.add(`${frame}`, 0, frame * 9, 0, 9, 7);
+  });
+  hop.refresh();
+  const lie = scene.textures.createCanvas(STONE, 3 * 3, 3)!;
+  const c = lie.getContext();
+  [[2, 2], [2, 1], [1, 1]].forEach(([w, h], frame) => {
+    c.fillStyle = "rgba(70,86,104,0.5)";
+    c.fillRect(frame * 3, h, w, 1);
+    c.fillStyle = "#ffffff";
+    c.fillRect(frame * 3, 0, w, h);
+    if (w + h === 4) {
+      c.fillStyle = "#cfe2f2";
+      c.fillRect(frame * 3 + 1, 1, 1, 1);
+    }
+    lie.add(`${frame}`, 0, frame * 3, 0, 3, 3);
+  });
+  lie.refresh();
+}
+
 type Mote = {
   x: number;
   y: number;
@@ -109,7 +165,7 @@ type Mote = {
   life: number;
   span: number;
 };
-type Splash = { x: number; y: number; at: number };
+type Splash = { x: number; y: number; at: number; left?: boolean };
 
 /** Ambient weather and debris blown across the view. World-space, so it
  * scales with zoom and sits in the scene's own perspective; motes recycle
@@ -127,12 +183,19 @@ export class Drift {
   private seed = 0;
   private area = 0;
 
+  /** Hailstones on the ground. They outlive the hail, so `clear` leaves them. */
+  private lying: { sprite: Phaser.GameObjects.Image; at: number }[] = [];
+  private laid = 0;
+
   private trees: Phaser.GameObjects.Image[] = [];
   private treesAt = -1e9;
 
   constructor(
     private scene: Phaser.Scene,
     private canopies: () => Phaser.GameObjects.Image[] = () => [],
+    /** How far the ground at a world pixel is drawn above its cell, or
+     * undefined where nothing would lie: open water. */
+    private ground: (x: number, y: number) => number | undefined = () => 0,
   ) {}
 
   set(style: DriftStyle | undefined, seed: number) {
@@ -171,20 +234,21 @@ export class Drift {
         span: 0,
       });
       const image = this.scene.add
-        .image(0, 0, this.key, `${this.motes[i].row}-0`)
+        .image(0, 0, this.key, `${this.motes[i].row}-${style.kind === "hail" || style.kind === "dust" ? i % FRAMES : 0}`)
         .setOrigin(0)
         .setAlpha(style.alpha);
       this.layer.add(image);
       this.sprites.push(image);
     }
-    if (style.splash) {
-      ensureSplash(this.scene);
+    if (style.splash || style.bounce) {
+      if (style.bounce) ensureStones(this.scene);
+      else ensureSplash(this.scene);
       this.splashLayer = this.scene.add.container(0, 0).setDepth(18400);
-      for (let i = 0; i < Math.ceil(count / 4); i++) {
+      for (let i = 0; i < Math.ceil(count / (style.bounce ? 2 : 4)); i++) {
         const sprite = this.scene.add
-          .image(0, 0, SPLASH, "0")
+          .image(0, 0, style.bounce ? BOUNCE : SPLASH, "0")
           .setOrigin(0.5, 1)
-          .setAlpha(0.5);
+          .setAlpha(style.bounce ? 1 : 0.5);
         this.splashLayer.add(sprite);
         this.splashes.push({
           sprite,
@@ -196,6 +260,8 @@ export class Drift {
   }
 
   clear() {
+    // Two drifts share the canvas: one with nothing in the air leaves the other's note alone.
+    if (this.layer && this.scene.game?.canvas) this.scene.game.canvas.dataset.drift = "none";
     this.layer?.destroy(true);
     this.splashLayer?.destroy(true);
     this.layer = this.splashLayer = undefined;
@@ -205,10 +271,36 @@ export class Drift {
     this.key = "";
     this.style = undefined;
     this.area = 0;
-    if (this.scene.game?.canvas) this.scene.game.canvas.dataset.drift = "none";
+  }
+
+  /** Takes the lying stones away at once: the view has left the ground they were on. */
+  sweep() {
+    for (const stone of this.lying) stone.sprite.destroy();
+    this.lying = [];
+  }
+  /** Stones on the ground fade out; the oldest make room. */
+  private melt(time: number) {
+    while (this.lying.length && (time - this.lying[0].at > LIES || this.lying.length > 260))
+      this.lying.shift()!.sprite.destroy();
+    for (const stone of this.lying) {
+      const left = LIES - (time - stone.at);
+      if (left < MELT) stone.sprite.setAlpha(left / MELT);
+    }
+  }
+  private lay(x: number, y: number, time: number) {
+    const lift = this.ground(x, y);
+    if (lift === undefined) return;
+    this.lying.push({
+      at: time,
+      sprite: this.scene.add
+        .image(Math.round(x), Math.round(y - lift), STONE, `${this.laid++ % 3}`)
+        .setOrigin(0.5, 1)
+        .setDepth(y - 12),
+    });
   }
 
   update(time: number, frozen = false) {
+    if (this.lying.length && !frozen) this.melt(time);
     if (!this.layer || !this.style) return;
     const dt = Math.min(0.05, this.last ? (time - this.last) / 1000 : 0);
     this.last = time;
@@ -265,6 +357,20 @@ export class Drift {
     for (let i = 0; i < this.splashes.length; i++) {
       const { sprite, state } = this.splashes[i];
       const age = time - state.at;
+      if (style.bounce) {
+        if (age > HOP_MS * 6 && !frozen) {
+          if (state.at > 0) this.lay(state.x + (state.left ? -3 : 3), state.y, time);
+          state.at = time + rnd(time * 0.001 + i) * 500;
+          state.x = view.x + rnd(i + time * 0.0013) * view.width;
+          state.y = view.y + rnd(i + 0.7 + time * 0.0017) * view.height;
+          state.left = rnd(i + 1.3 + time * 0.0011) < 0.5;
+          sprite.setPosition(Math.round(state.x), Math.round(state.y)).setFlipX(state.left);
+        }
+        const frame = age < 0 ? -1 : Math.floor(age / HOP_MS);
+        sprite.setVisible(frame >= 0 && frame < 6);
+        if (frame >= 0 && frame < 6) sprite.setFrame(`${frame}`);
+        continue;
+      }
       if (age > 340 && !frozen) {
         state.at = time + rnd(time * 0.001 + i) * 380;
         state.x = view.x + rnd(i + time * 0.0013) * view.width;

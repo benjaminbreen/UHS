@@ -3,7 +3,8 @@ import { vehicleAt } from "../world/v3/conveyances";
 import type { TimeTravel } from "../core/time/travel";
 import { launchers, type FaunaTier } from "../core/combat";
 import { gameAudio } from "../audio/director";
-import type { EventId } from "../audio/sfx";
+import { bodily, type EventId } from "../audio/sfx";
+import { voiceOf } from "../audio/voices";
 import {
   barter,
   biteOf,
@@ -162,7 +163,7 @@ import { colorwayLabels } from "../content/ecology/variants";
 import { biomeNames, ecoregionNear } from "../content/geography/ecoregions";
 import { fromAtlas, toAtlas } from "../world/geography/coordinates";
 import { ensureLifeAim, lifeAimOf } from "../core/life-aim";
-import { startPlot } from "../core/plot";
+import { startPlot, type PlotCard } from "../core/plot";
 import { ailmentDef, seedAilments, severity } from "../core/health";
 import { bondsFor } from "../core/bonds";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
@@ -281,6 +282,7 @@ export function createSession(
   const moment = pack.setting?.brief?.moment;
   const plot = moment || (snapshot && !snapshot.plot) ? undefined : startPlot(engine.state, pack.setting, undefined, undefined, world.activitySites);
   engine.state.ailments ??= moment ? [] : seedAilments(engine.state, pack.setting, new Set(Object.values(engine.state.plot?.cast ?? {})));
+  if (!snapshot) engine.runEconomy();
   engine.state.bonds ??= bondsFor(engine.state, pack.setting);
   if (plot && !plot.ended && !plot.aim?.revision) {
     plot.aim = lifeAimOf(seed, pack.setting, engine.state.player, engine.state.actors, engine.state.households, engine.state);
@@ -374,7 +376,7 @@ function bodyRecord(engine: Engine, actor: VisibleActor): BodyRecord | undefined
     .sort((a, b) => severity(b, clock) - severity(a, clock))[0];
   const look = ill && ailmentDef(ill.id).look;
   if (look) r.sick = look;
-  if (actor.injury && actor.injury.until > engine.state.clock) r.injury = actor.injury.name;
+  if (actor.injury && actor.injury.until > engine.state.clock) r.injury = actor.injury.id ?? actor.injury.name;
   if (actor.scars?.length) r.scars = actor.scars;
   const kit = livelihoodOf(engine.world.pack, actor as Actor);
   if (kit) {
@@ -442,6 +444,8 @@ export class Runtime {
   rideMovingUntil = 0;
   /** Points from tricks landed on a cycle since it was mounted. */
   rideStyle = 0;
+  /** The car being driven, as the dashboard shows it. Not saved. */
+  drive: { speed: number; top: number; style: number; chain: number; call: string; fare?: { text: string; cells: number; way: string; seconds?: number }; police?: boolean } = { speed: 0, top: 1, style: 0, chain: 0, call: "" };
   inSpurSweetSpot(now = performance.now()): boolean {
     if (!this.rideSpurAt || !this.engine.state.player.riding) return false;
     const elapsed = now - this.rideSpurAt;
@@ -1270,6 +1274,13 @@ export class Runtime {
     this.offer = yes;
     cards.push({ kind: "speech", title: "Narrator", text: question, choose: { card: "offer", choices: [{ index: 0, label: "Yes" }, { index: 1, label: "Not now" }] } });
   }
+  /** Whether a card's question is answered or lapsed: the narrator's offer here, the rest in the engine. */
+  questionGone(id: string) {
+    return id === "offer" ? !this.offer : this.engine.questionGone(id);
+  }
+  canShowCard(card: PlotCard) {
+    return card.choose?.card === "offer" ? !!this.offer : this.engine.canShowCard(card);
+  }
   setOff(plan: Plan) {
     if (this.workInProgress) return;
     this.flushAmbient();
@@ -1286,7 +1297,10 @@ export class Runtime {
   /** One step of a standing errand, taken when the last route has run out. */
   private pilot() {
     const step = this.autopilot!.next();
-    if ("route" in step) this.route = step.route;
+    // Waiting, say for someone walking over with a card, spends time as standing still does.
+    if ("wait" in step) {
+      if (this.displayClock() - this.engine.state.clock >= IDLE_BLOCK) this.flushAmbient();
+    } else if ("route" in step) this.route = step.route;
     else if ("command" in step) {
       const result = this.command(step.command);
       // A shut door or a refused harvest ends the errand with the engine's reason.
@@ -1586,10 +1600,14 @@ export class Runtime {
       ? state.objects.find((o) => o.id === command.target && (o.kind === "door" || o.kind === "gate"))
       : undefined;
     const wasOpen = !!door?.open;
+    const unset = !player.injury?.set;
     const result = this.engine.act(request);
     this.animateCommand(command, result.status !== "rejected", previousProp, previousPlant);
     const audio = gameAudio();
+    if (result.status === "rejected" && result.reason?.startsWith("Not with "))
+      void audio?.sound(() => bodily.wince(voiceOf(player)), "wince", 0, 6000);
     if (result.status !== "completed" || !audio) return result;
+    if (unset && player.injury?.set) void audio.sound(() => bodily.setBone(voiceOf(player)), "set-bone");
     const preyHits = command.type === "swing" ? this.engine.lastSwing?.creatures ?? [] :
       (command.type === "shoot" || command.type === "throw") && this.engine.lastThrow?.creature ? [this.engine.lastThrow.creature] : [];
     if (preyHits.some((hit) => {
@@ -2015,14 +2033,19 @@ export class Runtime {
     }
     const truck = p.drivingVehicle
       ? this.engine.state.objects.find((o) => o.id === p.drivingVehicle)
-      : this.engine.state.objects.find((o) => o.motor && this.engine.vehicleCab(o));
+      : this.engine.state.objects.find((o) => (o.motor ? this.engine.vehicleCab(o) : o.car && this.engine.carDoor(o) && this.engine.carBreaker(o) !== null));
     if (truck)
       return {
         primary: {
           kind: "use",
-          label: p.drivingVehicle ? "Park and step out" : truck.motor!.taken ? "Drive the truck" : "Take the truck",
-          command: { type: "interact", action: p.drivingVehicle ? "leave-vehicle" : "drive-vehicle", target: truck.id },
+          label: truck.car
+            ? p.drivingVehicle ? (this.engine.carPump(truck) && this.engine.fuelPrice(truck) ? `Fill up (${this.engine.fuelPrice(truck)})` : "Sound the horn") : this.engine.carBreaker(truck) ? "Smash the window" : `${truck.car.yours || truck.car.hot ? "Drive" : "Take"} the ${truck.name.toLowerCase()}`
+            : p.drivingVehicle ? "Park and step out" : truck.motor!.taken ? "Drive the truck" : "Take the truck",
+          command: p.drivingVehicle && truck.car
+            ? { type: "interact", action: this.engine.carPump(truck) && this.engine.fuelPrice(truck) ? "car-fuel" : "car-horn", target: truck.id }
+            : { type: "interact", action: p.drivingVehicle ? "leave-vehicle" : "drive-vehicle", target: truck.id },
         },
+        ...(p.drivingVehicle && truck.car ? { alternate: { kind: "use" as const, label: "Park and get out", command: { type: "interact" as const, action: "leave-vehicle" as const, target: truck.id } } } : {}),
       };
     const held = c.held;
     const def = propDefs[held?.prop ?? ""];
@@ -2544,9 +2567,11 @@ export class Runtime {
     p.direction = direction;
     this.emit(false);
   }
+  /** The way a driven car should face after its next step; the scene sets it before each one. */
+  driveHeading?: number;
   move(dx: number, dy: number, traverse = false, run = false) {
     this.stop(false);
-    if (this.engine.state.player.drivingVehicle) return this.command({ type: "move", dx, dy });
+    if (this.engine.state.player.drivingVehicle) return this.command({ type: "move", dx, dy, heading: this.driveHeading });
     if (this.engine.state.player.riding) return this.command({ type: "move", dx, dy, run });
     // A pot stops you once, which is long enough to read what it is and to
     // pick it up if that is what you wanted. Walk into it again and you step
@@ -3117,7 +3142,7 @@ export class Runtime {
       const a = first(command.give), b = first(command.take);
       return void audio.sound(
         paid
-          ? pay(moneyOf(paid)!, (command.give[paid] ?? 0) + (command.take[paid] ?? 0))
+          ? pay(moneyOf(paid)!, (command.give[paid] ?? 0) + (command.take[paid] ?? 0), !coin(command.give))
           : barter(materialOf(a, this.engine.item(a)), materialOf(b, this.engine.item(b))),
         "trade",
       );
@@ -3127,7 +3152,7 @@ export class Runtime {
         take = moneyOf(command.take);
       return void audio.sound(
         give || take
-          ? pay((give ?? take)!, give ? command.giveQuantity : command.takeQuantity)
+          ? pay((give ?? take)!, give ? command.giveQuantity : command.takeQuantity, !give)
           : barter(
               materialOf(command.give, this.engine.item(command.give)),
               materialOf(command.take, this.engine.item(command.take)),

@@ -146,6 +146,92 @@ it("a boar paws the ground, then charges down a fixed line and hurts", () => {
   expect(engine.state.player.pos.x).toBeLessThan(0);
 });
 
+it("a venomous bite poisons over hours: a mamba's often kills, an adder's almost never", () => {
+  const outcome = (species: string) => Array.from({ length: 12 }, (_, i) => {
+    const engine = field(`venom-${species}-${i}`);
+    const g = quarry(engine, species);
+    (engine as unknown as { mauled(...a: unknown[]): void }).mauled(g, g.members[0], { x: -1, y: 0 }, 4);
+    const bitten = !!engine.state.ailments?.some((a) => a.id === "venom" && a.who === engine.state.player.id);
+    for (let h = 0; h < 80 && !engine.state.player.dead; h++) engine.execute({ type: "wait", seconds: 3600 });
+    return { bitten, dead: engine.state.player.dead };
+  });
+  const mamba = outcome("black-mamba"), adder = outcome("european-adder");
+  expect(mamba.some((o) => o.bitten)).toBe(true);
+  expect(adder.some((o) => !o.bitten)).toBe(true);
+  expect(mamba.filter((o) => o.dead === "of a snakebite").length).toBeGreaterThan(3);
+  expect(adder.some((o) => o.dead)).toBe(false);
+});
+
+it("people go round a snake, start at it with a \"!\", and are sometimes bitten", () => {
+  const people = createSession("roman", "snake-folk").state.actors;
+  const snake = (engine: Engine, species: string) => {
+    const g = quarry(engine, species);
+    Object.assign(g.members[0], { x: 4, y: 0 });
+    g.pos = { x: 4, y: 0, space: "outside" };
+  };
+  const walker = (engine: Engine, x: number) => {
+    const a = { ...people.find((p) => p.kind === "human")!, id: "walker", pos: { x, y: 0, space: "outside" as const } };
+    engine.state.actors = [a];
+    return a;
+  };
+  const engine = field("snake-route");
+  snake(engine, "indian-cobra");
+  const a = walker(engine, 0);
+  engine.state.player.pos = { x: 0, y: 20, space: "outside" };
+  const path = engine.findRoute(a.pos, { x: 8, y: 0 }, a.id).path;
+  expect(path.length).toBeGreaterThan(0);
+  expect(path.every((c) => Math.max(Math.abs(c.x - 4), Math.abs(c.y)) > 1)).toBe(true);
+  (engine as unknown as { moveActor(a: unknown, p: unknown): void }).moveActor(a, { x: 2, y: 0, space: "outside" });
+  expect(engine.signals.some((e) => e.kind === "cue" && e.who === "walker" && e.cue === "alarm")).toBe(true);
+
+  let bitten = 0;
+  for (let i = 0; i < 20; i++) {
+    const e = field(`snake-bite-${i}`);
+    snake(e, "saw-scaled-viper");
+    const w = walker(e, 3);
+    (e as unknown as { moveActor(a: unknown, p: unknown): void }).moveActor(w, { x: 3, y: 1, space: "outside" });
+    if (e.signals.some((x) => x.kind === "say" && x.text === "It bit me!")) bitten++;
+  }
+  expect(bitten).toBeGreaterThan(1);
+  expect(bitten).toBeLessThan(20);
+});
+
+it("a snake lies up hidden in cover by day, and slips away from footsteps into other cover", () => {
+  const grass = (engine: Engine, cells: string[]) => {
+    engine.world.decoration = (x, y) => cells.includes(`${x},${y}`)
+      ? { id: `d${x},${y}`, x, y, sprite: "nature-broadleaf-sapling", solid: false } : undefined;
+  };
+  const cobra = (engine: Engine, x: number, y: number) => {
+    engine.devSpawnFauna("indian-cobra", 1);
+    const g = engine.state.fauna!.at(-1)!;
+    Object.assign(g.members[0], { x, y });
+    g.pos = { x, y, space: "outside" };
+    g.nextDecisionAt = 0;
+    return g;
+  };
+  // A night snake at noon, five cells from the nearest growth, nobody about.
+  const day = field("snake-lie-up");
+  day.state.clock = 3 * 86400 + 12 * 3600;
+  day.state.player.pos = { x: 0, y: 30, space: "outside" };
+  grass(day, ["5,0"]);
+  const g = cobra(day, 0, 0);
+  wait(day, 12);
+  expect(g.members[0]).toMatchObject({ x: 5, y: 0, hidden: true });
+
+  // Someone coming: most leave for cover on the far side.
+  let left = 0;
+  for (let i = 0; i < 10; i++) {
+    const e = field(`snake-slip-${i}`);
+    e.state.clock = 3 * 86400 + 12 * 3600;
+    grass(e, ["0,0", "-5,0"]);
+    const s = cobra(e, 0, 0);
+    e.state.player.pos = { x: 3, y: 0, space: "outside" };
+    wait(e, 4);
+    if (s.members[0].x <= -3) left++;
+  }
+  expect(left).toBeGreaterThan(3);
+});
+
 it("an animal outside never reaches a player who has gone indoors", () => {
   const engine = field("combat-indoors");
   engine.devArm("stick");

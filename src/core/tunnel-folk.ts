@@ -11,7 +11,7 @@ export type FolkHost = {
   world: WorldModel;
   event(text: string, kind?: GameEvent["kind"], at?: Position): void;
   advance(seconds: number): void;
-  hurt(damage: number, cause: string, injury?: string): void;
+  hurt(damage: number, cause: string, injury?: import("../content/health/injuries").InjuryId): void;
   join(a: Actor): void;
   part(id: string): void;
   itemName(id: string): string;

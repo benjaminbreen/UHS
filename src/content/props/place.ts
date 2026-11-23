@@ -31,6 +31,10 @@ import { workplaceFor } from "../characters/workplace";
 import { lifeway } from "../settlements/lifeways";
 
 const redrawn = new Set<string>(bFamilies);
+/** Works that only the household of that trade builds: a rice farmer has no kiln. */
+const tradeWorks: Record<string, RegExp> = {
+  kiln: /potter/i, bloomery: /smith|smelt/i, tripHammer: /smith|forge/i, tanningPits: /tann/i, dyeVats: /dyer/i,
+};
 /** The one fitting a trade cannot work without. Keyed off the building's own
  * name, which is where the generator records the household's trade. */
 function tradeFitting(name: string, iron: boolean, loom: string | undefined, scale: boolean) {
@@ -258,7 +262,13 @@ export function withProps(world: WorldModel, seed: string, state = propState()):
       });
     });
   };
+  // A house's platform, or the face it shows in the row below, is the house's.
+  const onPlatform = (p: Position, prop?: string) => p.space === "outside" && !!world.topography &&
+    (prop ? propVisualCells(prop, p) : [p]).some((q) =>
+      !!world.topography!(q.x, q.y)?.plinth || !!world.topography!(q.x, q.y - 1)?.plinth);
   const usable = (p: Position, ignore?: string, prop?: string) =>
+    fits(p, ignore, prop) && !onPlatform(p, prop);
+  const fits = (p: Position, ignore?: string, prop?: string) =>
     !world.blocked(p.x, p.y, p.space) &&
     !onCliff(p, prop) &&
     !publicGround(p, prop) &&
@@ -331,7 +341,7 @@ export function withProps(world: WorldModel, seed: string, state = propState()):
           const entrance = o.pos.space === "outside" ? o.pos : world.place(o.pos.space)?.entrance;
           const local = (entrance && world.geography?.packAt(entrance.x,entrance.y)?.setting) ?? world.pack.setting;
           const key = regionalContainer(local,o.prop,random(seed,"regional-container",o.id));
-          if (key && (o.pos.space !== "outside" || usable(o.pos,o.id,key) && belongs(key,o.pos,false))) {
+          if (key && (o.pos.space !== "outside" || fits(o.pos,o.id,key) && belongs(key,o.pos,false))) {
             stamp(o,key);
           }
         }
@@ -470,7 +480,7 @@ export function withProps(world: WorldModel, seed: string, state = propState()):
         b.name, tech.iron, loom,
         tech.balance && rareScale(b.name, random(seed, "scale", b.id)) &&
           scales.every((p) => Math.hypot(p.x - b.x, p.y - b.y) >= 24),
-      ) ?? fittingChoices[0];
+      ) ?? kit.contexts.work.find((k) => tradeWorks[k]?.test(`${b.name} ${livelihood?.id ?? ""}`)) ?? fittingChoices[0];
       const alreadyFitted = fitting && world.initialObjects.some((o) =>
         propDefs[o.prop ?? ""]?.family === propDefs[fitting]?.family &&
         (!o.owner || o.owner === b.owner) &&
@@ -498,16 +508,19 @@ export function withProps(world: WorldModel, seed: string, state = propState()):
       // A broad prop may not fit on the slot's anchor even though the same
       // work pocket has clear ground a few steps away. Search outward inside
       // that local zone before dropping the object from the composition.
+      // Where the household has a plot the search stays on it; without one it
+      // keeps close, or a kiln walks out onto the green.
+      const plotted = !!world.yardOwner && pockets.some((p) => world.yardOwner!(p.x, p.y) === b.owner);
       const seenCandidates = new Set<string>();
       const candidates: Position[] = [];
       for (const pocket of pockets)
-        for (let r = 0; r <= (urbanPack ? 1 : 4); r++)
+        for (let r = 0; r <= (urbanPack || !plotted ? 1 : 4); r++)
           for (let dy = -r; dy <= r; dy++)
             for (let dx = -r; dx <= r; dx++) {
               if (r && Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
               const p = { ...pocket, x: pocket.x + dx, y: pocket.y + dy };
               const key = at(p);
-              if (seenCandidates.has(key)) continue;
+              if (seenCandidates.has(key) || plotted && world.yardOwner!(p.x, p.y) !== b.owner) continue;
               seenCandidates.add(key);
               candidates.push(p);
             }
@@ -542,11 +555,15 @@ export function withProps(world: WorldModel, seed: string, state = propState()):
               // A back yard is a household's own ground away from the middle
               // of town; packing cases belong to a trade or the countryside.
               (key) =>
+                !tradeWorks[key] &&
                 belongs(key, o.pos, works, trades) &&
                 (propDefs[key]?.where !== "backyard" || domestic),
             );
         if (!chosen) break;
-        const pos = candidates.find((p) => usable(p, undefined, chosen));
+        // A storage pit is dug by the wall, not out front where the yard is crossed.
+        const pos = (chosen === "grainPit" &&
+          candidates.find((p) => p.y >= b.y && p.y < b.y + b.h && usable(p, undefined, chosen))) ||
+          candidates.find((p) => usable(p, undefined, chosen));
         if (!pos) break;
         o.pos = pos;
         stamp(o, chosen);
@@ -661,11 +678,13 @@ export function withProps(world: WorldModel, seed: string, state = propState()):
       // to roll one takes it, and its neighbours find the ground taken.
       const spacing = urbanPack ? 11 : 5;
       if (
-        domestic && !planned?.furnished &&
+        domestic && !b.claim.startsWith("yard-") && !planned?.furnished &&
         random(seed, "privy-here", b.id) < (urbanPack ? 0.4 : 0.55) &&
         !privies.some((p) => Math.hypot(p.x - b.x, p.y - b.y) < spacing)
       ) {
-        const drink = waters();
+        // Clear of the shared fire as well as the water: people eat there.
+        const drink = [...waters(), ...world.initialObjects
+          .filter((o) => o.kind === "fire" && o.pos.space === "outside").map((o) => o.pos)];
         // The planned slots are the household's own ground. Off them the
         // search stays tight to the wall, or a privy ends up in the street.
         const around: Position[] = [...candidates];

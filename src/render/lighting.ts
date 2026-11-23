@@ -114,7 +114,7 @@ export function cloudWash(w: Weather) {
       ? 1
       : w.condition === "overcast"
         ? 0.45
-        : w.condition === "mist"
+        : w.condition === "mist" || w.condition === "dust"
           ? 0.2
           : 0;
   return Math.min(0.3, cloud * 0.16 + w.wetness * 0.12);

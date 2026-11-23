@@ -30,6 +30,7 @@ const after = (id: string) => ({ type: "after" as const, id, hours: 2 });
 export const quake: PlotTemplate = {
   id: "quake",
   shape: "world",
+  urgent: true,
   look: {
     emblem: "quake",
     palette: { ink: "#14100c", fill: "#3a2e22", edge: "#7a6040", light: "#efe6d8", accent: "#c08a4a" },

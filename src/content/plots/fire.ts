@@ -19,6 +19,7 @@ const vouched: Condition = { type: "all", of: [{ type: "fired", id: "ask" }, not
 export const fire: PlotTemplate = {
   id: "fire",
   shape: "claim",
+  urgent: true,
   look: {
     emblem: "blaze",
     palette: { ink: "#1a100c", fill: "#2e1a12", edge: "#7a3a1e", light: "#f4e2d4", accent: "#e0682a" },

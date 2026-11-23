@@ -47,7 +47,7 @@ export const OFFICE_CARDS: ChoiceCard[] = [
     choices: [
       {
         label: "Cover for them",
-        note: "more work for you · {name} owes you one",
+        note: "more work for you · {name} is grateful",
         then: [{ type: "minutes", n: 60 }, { type: "fatigue", n: 5 }, { type: "regard", delta: 2 }],
         line: "You did {name}'s work as well as your own and kept quiet.",
       },
@@ -138,7 +138,8 @@ export const OFFICE_CARDS: ChoiceCard[] = [
     choices: [
       {
         label: "Stay late and do it",
-        note: "unpaid · {name} will remember",
+        note: "unpaid · {name} tells people",
+        word: "stayed late for",
         then: [{ type: "minutes", n: 150 }, { type: "fatigue", n: 15 }, { type: "regard", delta: 2 }],
         line: "You stayed late and finished it.",
       },
@@ -166,7 +167,7 @@ export const OFFICE_CARDS: ChoiceCard[] = [
       },
       {
         label: "Point out, politely, that you did it",
-        note: "you may get the credit · {name} won't forget",
+        note: "you may get the credit · {name} won't like it",
         check: { stat: "wit", skill: "speech", odds: 0.45 },
         then: [{ type: "day", delta: 2 }, { type: "regard", delta: -1 }],
         line: "You made sure everyone knew the work was yours.",

@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { atWork, briefText, personBrief } from "../src/core/brief";
 import { placeBrief } from "../src/core/place-brief";
+import { establishmentName } from "../src/content/settlements/inn-names";
+import type { WorldSetting } from "../src/content/geography/types";
 import {
   conditionOf,
   weatherStructure,
 } from "../src/core/time/structure";
-import type { Actor, Place } from "../src/core/types";
+import type { Actor, Household, Place } from "../src/core/types";
 
 const at = { x: 0, y: 0, space: "outside" } as const;
 const person = (over: Partial<Actor> = {}): Actor => ({
@@ -110,14 +112,58 @@ describe("place brief", () => {
     relations: [{ other: "a", kind: "partner" }],
   });
 
+  const home = (over: Partial<Household> = {}): Household => ({
+    id: "h", members: ["a", "b"], residence: "p", home: at, storeId: "s", ...over,
+  });
+
   it("names who lives there, how old it is and how it has fared", () => {
-    const b = placeBrief(house(), 1400, holder, [holder, wife])!;
+    const b = placeBrief(house(), 1400, holder, [holder, wife], home())!;
     const said = briefText(b);
     expect(said).toContain("Tesni");
     expect(said).toContain("lives here with");
     expect(said).toContain("Aneirin");
-    expect(said).toMatch(/Put up about 40 years ago/);
+    expect(said).toMatch(/Built about 40 years ago/);
     expect(said).toMatch(/well kept|sound/);
+  });
+
+  it("says what this one house is, its condition among its words", () => {
+    const hut = house({ sprite: "eastasian-house-early-chinese-tiny-0", condition: 0.9 });
+    expect(briefText(placeBrief(hut, 1400, holder, [holder], home())!)).toContain(
+      "A well-kept thatched hut, built about 40 years ago.",
+    );
+  });
+
+  it("names the owner of a building nobody lives in", () => {
+    const said = briefText(placeBrief(house({ name: "Henhouse" }), 1400, holder, [])!);
+    expect(said).toMatch(/^Belongs to Tesni, a potter\./);
+  });
+
+  it("counts the children and keeps only the facts that most mark a house out", () => {
+    const said = briefText(placeBrief(house(), 1400, holder, [holder], home({
+      members: ["a"],
+      fortune: 0.1,
+      history: [
+        { year: 1370, kind: "moved", name: "Slopes of Xiaoqing Shan" },
+        ...[1372, 1375, 1378].map((year) => ({ year, kind: "died" as const, as: "son" })),
+        ...[1374, 1380].map((year) => ({ year, kind: "born" as const, as: "daughter" })),
+        ...[1394, 1398].map((year) => ({ year, kind: "left" as const, as: "daughter" })),
+      ],
+    }), undefined, [], [{ species: "cat", n: 1 }, { species: "chicken", n: 6 }])!);
+    expect(said).toContain("came here from the slopes of Xiaoqing Shan about 30 years ago");
+    expect(said).toContain("had five children. Three are buried, and two have left home.");
+    expect(said).toContain("sole companion is a cat");
+    expect(said).toContain("Times are hard");
+    expect(said).not.toContain("six hens");
+  });
+
+  it("says what went wrong in a bad year, and how long ago in plain numbers", () => {
+    const said = briefText(placeBrief(house(), 1400, holder, [holder, wife], home({
+      history: [{ year: 1399, kind: "bad-year", as: "drought" }],
+    }))!);
+    expect(said).toContain("Drought ruined their harvest last year.");
+    const old = { ...house().structure!, built: 1260 };
+    expect(briefText(placeBrief(house({ structure: old }), 1400, holder, [holder], home())!))
+      .toContain("about a century ago");
   });
 
   it("says nothing about business unless the place trades", () => {
@@ -141,6 +187,7 @@ describe("place brief", () => {
         {
           id: "h",
           members: ["a", "b"],
+          residence: "p",
           home: { x: 0, y: 0, space: "outside" },
           storeId: "s",
           infants: 2,
@@ -160,7 +207,7 @@ describe("place brief", () => {
     expect(said).toContain("two small children");
     expect(said).toMatch(/came to (her|him|them) from their mother 10 years ago/);
     expect(said).toMatch(/first husband died/);
-    expect(said).toMatch(/buried a child/);
+    expect(said).toMatch(/only child, a son, died young/);
     expect(said).toMatch(/bread comes from Agnes, still owing for it/);
   });
 
@@ -182,7 +229,7 @@ describe("place brief", () => {
         {
           id: "h1",
           home: { x: 0, y: 0, space: "outside" },
-          residence: "h1",
+          residence: "p",
           members: ["p-holder", "p-wife"],
           storeId: "s",
           buys: [{ good: "pots", from: "hp" }],
@@ -192,5 +239,21 @@ describe("place brief", () => {
       )!,
     );
     expect(said).toMatch(/pots come from Nagy Tibor, still owing for them/);
+  });
+});
+
+describe("establishment names", () => {
+  const roll = (seed: string) => (k: string) => [...seed + k].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 997, 7) / 997;
+  const london = { year: 1890, lon: -0.1, lat: 51.5, culture: "european", location: "London" } as WorldSetting;
+
+  it("hangs a sign the place and date would hang", () => {
+    expect(establishmentName("pub", london, [], roll("a"))).toMatch(/^The /);
+    expect(establishmentName("venue.tavern", { ...london, year: 100 }, [], roll("a"))).toMatch(/^At the /);
+    expect(establishmentName("venue.tavern", { ...london, year: 800 }, [], roll("a"))).toBeUndefined();
+  });
+
+  it("does not repeat a sign already up in the town", () => {
+    const first = establishmentName("pub", london, [], roll("b"))!;
+    expect(establishmentName("pub", london, [], roll("b"), (n) => n === first)).not.toBe(first);
   });
 });

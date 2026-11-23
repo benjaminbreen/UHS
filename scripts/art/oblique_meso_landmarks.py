@@ -10,6 +10,7 @@ Animated parts are not baked in: the painter publishes `overlays`, points in
 sprite pixels where the scene cycles a flame, a paper banner or a ball.
 """
 import json
+from itertools import product
 import math
 import random
 from PIL import Image, ImageDraw
@@ -462,12 +463,14 @@ def meso_landmark_recipes(root, source):
                              'description': 'A plastered stepped platform with a stair to the shrine at its summit, where braziers burn before the door. Composed from surviving sites; tiers and colour are illustrative.'}
     nahua = houses['profiles']['nahua']
     for vname, spec in data['venues'].items():
-        for scale, shape in spec['scales'].items():
+        # The civic halls come in three looks, which a town picks by its seed.
+        looks = 1 if spec['painter'] == 'ballcourt' else 3
+        for (scale, shape), look in product(spec['scales'].items(), range(looks)):
             fw, fh = shape['footprint']
-            name = f'{vname}-{scale}-0'
+            name = f'{vname}-{scale}-{look}'
             common = {**base, 'footprint': [fw, fh], 'entrance': [fw // 2, fh], 'palette': nahua['palette'],
-                      'regionalProfile': 'nahua', 'goldScale': scale, 'goldVariant': 0, 'height': 60,
-                      'seed': 21100 + fw * 13 + len(vname), 'label': f"{spec['label']} · {scale}",
+                      'regionalProfile': 'nahua', 'goldScale': scale, 'goldVariant': look, 'height': 60,
+                      'seed': 21100 + fw * 13 + len(vname) + look * 7, 'label': f"{spec['label']} · {scale}",
                       'description': spec['description']}
             if spec['painter'] == 'ballcourt':
                 out[name] = {**common, **shape, 'mesoLandmark': 'ballcourt'}

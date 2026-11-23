@@ -1,7 +1,8 @@
-import { CARDS, railBoss, type CardChoice, type ChoiceCard } from "../content/cards";
+import { CARDS, railBoss, type ChoiceCard } from "../content/cards";
 import { matchesCharacterScope } from "../content/characters/resolve";
 import type { WorldSetting } from "../content/geography/types";
 import { random } from "./random";
+import type { SkillId } from "./skills";
 import type { Stats } from "./types";
 import type { Weather } from "./weather";
 
@@ -36,7 +37,7 @@ export const cardText = (text: string, words: Record<string, string | undefined>
   });
 
 /** Stats run from about 10 to 90 around 45; each skill level is worth a little. */
-export function oddsOf(check: NonNullable<CardChoice["check"]>, stats: Stats, level: number) {
+export function oddsOf(check: { stat: keyof Stats; skill?: SkillId; odds: number }, stats: Stats, level: number) {
   return Math.min(0.95, Math.max(0.05, check.odds + (stats[check.stat] - 45) / 150 + level * 0.03));
 }
 

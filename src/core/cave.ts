@@ -412,7 +412,7 @@ export function caveTime(h: ComplexHost, elapsed: number) {
       b.next = clock + 2;
       if (d <= 1 && clock - (b.bit ?? -99) > 30) {
         b.bit = clock;
-        h.hurt(12, "a snakebite", "snakebite");
+        h.hurt(12, "a snakebite", "bite");
         h.event(run.left > 0 ? "A snake lying along the wall strikes your leg before you see it move." : "Something strikes your leg in the dark. A snake.");
         b.mood = "fled";
       }
@@ -452,7 +452,7 @@ export function caveTime(h: ComplexHost, elapsed: number) {
         if (clock - (b.bit ?? -99) >= 4) {
           b.bit = clock;
           b.dir = me.x > b.x ? 1 : me.x < b.x ? 3 : me.y > b.y ? 2 : 0;
-          h.hurt(combat?.damage ?? 8, `a ${name}`, "mauled");
+          h.hurt(combat?.damage ?? 8, `a ${name}`, "bite");
           h.event(`The ${name} gets hold of you.`);
         }
         continue;

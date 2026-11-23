@@ -61,6 +61,7 @@ const nearOf = (c: PlotContext, not: string[]) =>
 export const labour: PlotTemplate = {
   id: "labour",
   shape: "household",
+  urgent: true,
   look: {
     emblem: "cradle",
     palette: { ink: "#141018", fill: "#2a1f30", edge: "#6a4a72", light: "#f0e6f2", accent: "#e8a860" },

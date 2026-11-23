@@ -6,7 +6,8 @@ export type WeatherCondition =
   | "overcast"
   | "rain"
   | "snow"
-  | "mist";
+  | "mist"
+  | "dust";
 export type Wind = {
   /** Direction the wind blows toward, in screen radians: 0 is east, PI/2 south. */
   angle: number;
@@ -24,6 +25,15 @@ export type Weather = {
   /** How hard it is raining, 0 to 1: under 0.25 a drizzle, over 0.75 a
    * downpour. 0 unless the condition is rain. */
   rain: number;
+  /** Thunder and lightning, 0 to 1: only in a warm, heavy rain. */
+  storm: number;
+  /** Hailstones coming down, 0 to 1: a short burst inside a squall. */
+  hail: number;
+  /** Snow driven on a gale, 0 to 1. 0 unless the condition is snow. */
+  blizzard: number;
+  /** Blown sand and dust, 0 to 1: under 0.5 it hazes the air, over it the
+   * far side of the street is gone. 0 unless the condition is dust. */
+  dust: number;
 };
 
 const labels: Record<WeatherCondition, string> = {
@@ -33,6 +43,7 @@ const labels: Record<WeatherCondition, string> = {
   rain: "Rain",
   snow: "Snow",
   mist: "Mist",
+  dust: "Blowing dust",
 };
 
 // Mean daily temperature (°C) by climate and season, and the day/night swing.
@@ -68,13 +79,60 @@ function hash(s: string) {
   return (h >>> 0) / 4294967296;
 }
 
+// Chance of a dust storm by season: the spring khamsin, the summer haboob, the
+// andhi before the monsoon breaks, and the odd sirocco.
+const dustChance: Record<string, [number, number, number, number]> = {
+  arid: [0.14, 0.1, 0.06, 0.05],
+  monsoon: [0.07, 0, 0, 0.02],
+  mediterranean: [0.02, 0.03, 0.01, 0],
+};
+/** A window of the day, 0 outside it: up fast as the front arrives, held,
+ * then eased off over the last `tail` of it. */
+function burst(hour: number, start: number, length: number, rise: number, tail: number) {
+  const x = (hour - start) / length;
+  return x < 0 || x > 1 ? 0 : Math.min(1, x / rise + 0.05, (1 - x) / tail + 0.05);
+}
+/** The storm comes in as a wall some time between mid-morning and late
+ * afternoon, blows for two to five hours and thins out. */
+function dustAt(seed: string, day: number, hour: number) {
+  const peak = 0.45 + hash(`${seed}:${day}:dust`) * 0.55;
+  return peak * burst(hour, 9 + hash(`${seed}:${day}:dust-at`) * 8, 2 + hash(`${seed}:${day}:dust-for`) * 3, 0.08, 0.45);
+}
+// Chance that a wet day throws hail: spring and early summer over land, the
+// hot weeks before the monsoon, almost never in the wet tropics or the cold.
+const hailChance: Record<string, [number, number, number, number]> = {
+  temperate: [0.14, 0.16, 0.05, 0],
+  mediterranean: [0.14, 0.1, 0.1, 0.04],
+  tropical: [0.02, 0.02, 0.02, 0.02],
+  monsoon: [0.25, 0.04, 0.02, 0],
+  arid: [0.18, 0.18, 0.1, 0.04],
+  boreal: [0.06, 0.12, 0.04, 0],
+  tundra: [0, 0.05, 0, 0],
+};
+/** Hail falls for a quarter to three quarters of an hour in the afternoon. */
+function hailAt(seed: string, day: number, hour: number, chance: number) {
+  if (hash(`${seed}:${day}:hail`) >= chance) return 0;
+  const peak = 0.5 + hash(`${seed}:${day}:hail-size`) * 0.5;
+  return peak * burst(hour, 12.5 + hash(`${seed}:${day}:hail-at`) * 6, 0.25 + hash(`${seed}:${day}:hail-for`) * 0.5, 0.15, 0.4);
+}
+// Chance that a snow day has a gale behind it.
+const blizzardChance: Record<string, number> = { tundra: 0.35, boreal: 0.25, temperate: 0.12 };
+/** A blizzard lasts the day, easing and coming on again in squalls. */
+function blizzardAt(seed: string, day: number, hour: number, climate: string) {
+  if (hash(`${seed}:${day}:blizzard`) >= (blizzardChance[climate] ?? 0.08)) return 0;
+  const peak = 0.55 + hash(`${seed}:${day}:blizzard-force`) * 0.45;
+  return peak * (0.8 + 0.2 * Math.sin(hour * 1.1 + hash(`${seed}:${day}:squall`) * 6));
+}
+
 function conditionFor(
   seed: string,
   day: number,
   rain: number,
   hour: number,
+  dust = 0,
 ): WeatherCondition {
   const roll = hash(`${seed}:${day}:sky`);
+  if (roll > 1 - dust) return dustAt(seed, day, hour) ? "dust" : "clear";
   return roll < rain
     ? "rain"
     : roll < rain + 0.15
@@ -119,6 +177,7 @@ const soak: Record<WeatherCondition, number> = {
   snow: 0.1,
   overcast: 0.12,
   mist: 0.2,
+  dust: 0,
   "light-clouds": 0,
   clear: 0,
 };
@@ -132,6 +191,8 @@ function windFor(
   climate: string,
   si: number,
   condition: WeatherCondition,
+  /** A blizzard's or a dust storm's force: the wind is what makes either. */
+  gale = 0,
 ): Wind {
   const monsoon = climate === "monsoon" ? (si === 1 ? 0 : Math.PI) : undefined;
   const dice = hash(`${seed}:${day}:wind`);
@@ -145,6 +206,7 @@ function windFor(
   const strength = Math.max(
     0.05,
     Math.min(1, (0.15 + hash(`${seed}:${day}:force`) * 0.6) * diurnal + wet),
+    gale && 0.55 + 0.45 * gale,
   );
   return { angle, strength };
 }
@@ -166,7 +228,8 @@ export function weatherAt(
   );
   const band = bands[climate] ?? bands.temperate;
   const rain = (rainChance[climate] ?? rainChance.temperate)[si];
-  let condition = conditionFor(seed, day, rain, hour);
+  const dusty = dustChance[climate]?.[si] ?? 0;
+  let condition = conditionFor(seed, day, rain, hour, dusty);
   // Coolest before dawn, warmest mid-afternoon.
   const diurnal = -Math.cos(((hour - 4) / 24) * Math.PI * 2);
   const noise = (hash(`${seed}:${day}:temp`) - 0.5) * 6;
@@ -177,23 +240,48 @@ export function weatherAt(
   if (condition === "rain" && tempC <= 1) condition = "snow";
   // Today's rain builds through the day; yesterday's is still drying off.
   const today = soak[condition];
-  const before = soak[conditionFor(seed, day - 1, rain, 20)];
+  const before = soak[conditionFor(seed, day - 1, rain, 20, dusty)];
   const wetness = Math.max(
     today * Math.min(1, 0.4 + hour / 14),
     before - hour / (condition === "clear" ? 7 : 14),
     0,
   );
-  const falling = condition === "rain" ? rainAt(seed, day, hour, climate) : 0;
+  // Hail needs warm air under the cloud, and brings its own squall and thunder.
+  const hail =
+    condition === "rain" && tempC > 6 ? hailAt(seed, day, hour, (hailChance[climate] ?? hailChance.temperate)[si]) : 0;
+  const falling = condition === "rain" ? Math.max(rainAt(seed, day, hour, climate), hail && 0.6 + 0.4 * hail) : 0;
+  const storm = tempC > 8 ? Math.max(0, Math.min(1, (falling - 0.65) / 0.35), hail * 0.8) : hail * 0.8;
+  const blizzard = condition === "snow" ? blizzardAt(seed, day, hour, climate) : 0;
+  const dust = condition === "dust" ? dustAt(seed, day, hour) : 0;
   return {
     condition,
-    label: falling ? rainLabel(falling) : labels[condition],
+    label:
+      hail > 0.1
+        ? "Hail"
+        : storm > 0.3
+          ? "Thunderstorm"
+          : falling
+            ? rainLabel(falling)
+            : blizzard > 0.3
+              ? "Blizzard"
+              : dust >= 0.5
+                ? climate === "arid" ? "Sandstorm" : "Dust storm"
+                : labels[condition],
     tempC,
     night: hour < 5 || hour >= 20,
-    wind: windFor(seed, day, hour, climate, si, condition),
+    wind: windFor(seed, day, hour, climate, si, condition, Math.max(blizzard, dust)),
     wetness: Math.min(1, wetness),
     rain: falling,
+    storm,
+    hail,
+    blizzard,
+    dust,
   };
 }
+
+/** Weather that sends people and animals under cover. */
+export const foul = (condition: WeatherCondition) =>
+  condition === "rain" || condition === "snow" || condition === "dust";
 
 export const toFahrenheit = (c: number) => Math.round((c * 9) / 5 + 32);
 
@@ -275,4 +363,20 @@ export function snowCover(
   if (coverCache.size > 64) coverCache.clear();
   coverCache.set(key, cover);
   return cover;
+}
+
+/** A sky seed whose opening hours bring the weather a start asked for
+ * ("a snowy day", "a hailstorm"), if this climate and season ever do. */
+export function skyFor(seed: string, climate: string, season: string, want: string, clock: number) {
+  const met = (w: Weather, sky: string, t: number) =>
+    want === "snow" ? w.condition === "snow" && snowCover(sky, climate, season, t) > 0.2
+      : want === "blizzard" ? w.blizzard > 0.3 : want === "hail" ? w.hail > 0.1 : want === "storm" ? w.storm > 0.3
+      : want === "rain" ? w.rain > 0.25 : want === "dust" ? w.dust >= 0.5 : w.condition === want;
+  // Snow, rain and sun at the start; a gale within the hour; hail and thunder
+  // come in the afternoon, as convective storms do.
+  const end = want === "hail" || want === "storm" ? Math.floor(clock / 86400) * 86400 + 19 * 3600 : want === "blizzard" || want === "dust" ? clock + 3600 : clock;
+  for (let i = 0; i < 400; i++) {
+    const sky = `${seed}:${want}:${i}`;
+    for (let t = clock; t <= end; t += 900) if (met(weatherAt(sky, climate, season, t), sky, t)) return sky;
+  }
 }

@@ -8,6 +8,7 @@ import type { PluralMarriage } from "../../content/households/plural-marriage";
 import type { HouseholdBondage } from "../../content/households/bondage";
 import type { NursingCustom } from "../../content/households/nursing";
 import type { MarriageAge } from "../../content/households/marriage-age";
+import type { Ways } from "../../content/history/households";
 
 /** Someone the story leaves living in the house. */
 export type Resident = {
@@ -35,6 +36,13 @@ const clamp = (v: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v));
  * there was money for it. What is left in the house is who lives there now;
  * the rest is history the card can tell.
  */
+/** What went wrong in a bad year, by how the household lives; place-brief words each. */
+const BAD_YEAR: Record<Ways["living"], string[]> = {
+  farm: ["drought", "blight", "flood", "hail"],
+  herd: ["murrain", "pasture"],
+  forage: ["scarcity", "scarcity"],
+  market: ["slack", "slack", "prices"],
+};
 export function householdStory(o: {
   seed: string;
   id: string;
@@ -61,6 +69,10 @@ export function householdStory(o: {
   apprentice?: boolean;
   built: number;
   fabric: Fabric;
+  /** Places beyond this map that a family who moved in could have come from. */
+  elsewhere?: string[];
+  /** How the household lives, which decides what a bad year was. */
+  living?: Ways["living"];
 }) {
   const r = (...k: (string | number)[]) =>
     random(o.seed, o.id, "story", ...k);
@@ -375,11 +387,15 @@ export function householdStory(o: {
       kind: "inherited",
       as: r("from") < 0.75 ? "father" : "mother",
     });
-  else
+  else {
+    const from = o.elsewhere?.length && r("from-away") < 0.6
+      ? o.elsewhere[Math.floor(r("from-where") * o.elsewhere.length)] : undefined;
     history.push({
       year: at(Math.max(o.built, settled) + r("moved-at") * 4),
       kind: "moved",
+      ...(from ? { name: from } : {}),
     });
+  }
   let weatherFrom = o.built;
   const standing = Y - o.built;
   if (
@@ -393,9 +409,11 @@ export function householdStory(o: {
   const turns = Math.floor(r("turns") * 3);
   for (let i = 0; i < turns; i++) {
     const good = r("turn", i) < 0.45;
+    const causes = [...BAD_YEAR[o.living ?? "market"], "illness", "injury"];
     history.push({
       year: at(Y - 1 - r("turn-at", i) * Math.min(20, a - 18)),
       kind: good ? "good-year" : "bad-year",
+      ...(good ? {} : { as: causes[Math.floor(r("turn-why", i) * causes.length)] }),
     });
     fortune += good ? 0.1 : -0.12;
   }

@@ -90,7 +90,7 @@ describe("cycles: painting", () => {
 });
 
 describe("cycles: riding in the world", () => {
-  function withBike(kind: "roadster" | "penny" = "roadster") {
+  function withBike(kind: "roadster" | "penny" | "sportbike" = "roadster") {
     const rt = new Runtime(createSession("roman", "cycle-test"));
     const e = rt.engine, p = e.state.player;
     const look = cycleLookOf(kind, 1900, "western-europe", "test");
@@ -125,6 +125,23 @@ describe("cycles: riding in the world", () => {
     expect(e.cycleNear()?.down).toBe(true);
     expect(rt.command({ type: "interact", action: "mount-cycle", target: "bike" })?.status).toBe("completed");
     expect(e.state.objects.find((o) => o.id === "bike")?.tipped).toBeUndefined();
+  });
+  it("a slow spill bruises, and a fast one into a wall can kill", () => {
+    const slow = withBike("roadster");
+    slow.rt.command({ type: "interact", action: "mount-cycle", target: "bike" });
+    slow.rt.command({ type: "interact", action: "cycle-spill", target: "crash", speed: 8 });
+    expect(slow.p.dead).toBeUndefined();
+    let deaths = 0;
+    for (let i = 0; i < 20; i++) {
+      const { rt, p } = withBike("sportbike");
+      rt.engine.state.manifest.seed = `crash-${i}`;
+      rt.command({ type: "interact", action: "mount-cycle", target: "bike" });
+      rt.command({ type: "interact", action: "cycle-spill", target: "crash", speed: 28 });
+      if (p.dead) deaths++;
+      else expect(p.health).toBeGreaterThan(0);
+    }
+    expect(deaths).toBeGreaterThan(4);
+    expect(deaths).toBeLessThan(20);
   });
   it("will not hop a machine that cannot leave the ground", () => {
     const { rt, e } = withBike("penny");

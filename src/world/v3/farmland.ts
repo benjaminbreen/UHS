@@ -510,9 +510,13 @@ export function planFarmland(input: {
   };
   // How far from a stream a field may lie: a system that lives by its water,
   // and any system in dry country, keeps to the banks; one that farms on
-  // rain spreads where it likes. No stream in reach, no rule.
+  // rain spreads where it likes. No stream in reach, no rule. Measured from
+  // the village's own distance to the water, so a stream far off draws the
+  // fields toward it without emptying the ground round the houses.
   const pull = Math.min(1, system.riverside + (thirsty ? 0.4 : 0));
-  const dryLimit = fresh.length && pull > 0 ? 24 + (1 - pull) * 110 : Infinity;
+  const dryLimit = fresh.length && pull > 0
+    ? Math.max(24 + (1 - pull) * 110, freshDist(c) + edge)
+    : Infinity;
   const irrigated = systemIrrigates || (thirsty && !!source);
   // Empty channels: a flood system outside its flood, high summer in a dry
   // country, when the head is spent upstream, or a dry country with no

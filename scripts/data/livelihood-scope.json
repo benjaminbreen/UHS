@@ -784,7 +784,8 @@
       ],
       "why": "Writing for other people as a trade fades as literacy spreads.",
       "sex": "male",
-      "sexUntil": 1850
+      "sexUntil": 1850,
+      "sexShare": 0.4
     },
     "water-carrier": {
       "years": [
@@ -856,34 +857,41 @@
     },
     "barber": {
       "sex": "male",
-      "sexUntil": 1900
+      "sexUntil": 1900,
+      "sexShare": 0.3
     },
     "watchmaker": {
       "sex": "male",
       "sexUntil": 1900,
+      "sexShare": 0.15,
       "requires": [
         "clocks"
       ]
     },
     "money-changer": {
       "sex": "male",
-      "sexUntil": 1900
+      "sexUntil": 1900,
+      "sexShare": 0.3
     },
     "town-watchman": {
       "sex": "male",
-      "sexUntil": 1900
+      "sexUntil": 1900,
+      "sexShare": 0.1
     },
     "gate-keeper": {
       "sex": "male",
-      "sexUntil": 1900
+      "sexUntil": 1900,
+      "sexShare": 0.2
     },
     "tax-collector": {
       "sex": "male",
-      "sexUntil": 1900
+      "sexUntil": 1900,
+      "sexShare": 0.45
     },
     "printer": {
       "sex": "male",
       "sexUntil": 1850,
+      "sexShare": 0.25,
       "requires": [
         "print"
       ],
@@ -892,6 +900,7 @@
     "policeman": {
       "sex": "male",
       "sexUntil": 1915,
+      "sexShare": 0.2,
       "requires": [
         "police"
       ]
@@ -899,6 +908,7 @@
     "postman": {
       "sex": "male",
       "sexUntil": 1915,
+      "sexShare": 0.35,
       "requires": [
         "post"
       ]
@@ -906,6 +916,7 @@
     "bank-clerk": {
       "sex": "male",
       "sexUntil": 1915,
+      "sexShare": 0.6,
       "requires": [
         "modern-town"
       ]
@@ -913,13 +924,15 @@
     "stationmaster": {
       "sex": "male",
       "sexUntil": 1915,
+      "sexShare": 0.15,
       "requires": [
         "railways"
       ]
     },
     "bus-driver": {
       "sex": "male",
-      "sexUntil": 1975
+      "sexUntil": 1975,
+      "sexShare": 0.15
     },
     "_sex": {
       "why": "Work the upstream table leaves open but records show was done overwhelmingly by one sex until `sexUntil`: guild rolls, wage books, censuses. Widows did keep shops going; that is the exception, not the draw."
@@ -1675,6 +1688,7 @@
       ],
       "sex": "male",
       "sexUntil": 1975,
+      "sexShare": 0.12,
       "inventory": {
         "water": 2,
         "bread": 1,
@@ -1856,6 +1870,7 @@
       ],
       "sex": "female",
       "sexUntil": 1970,
+      "sexShare": 0.1,
       "requires": [
         "office"
       ],
@@ -1877,6 +1892,7 @@
       ],
       "sex": "female",
       "sexUntil": 1980,
+      "sexShare": 0.2,
       "inventory": {
         "water": 1,
         "coin": 1
@@ -1950,6 +1966,7 @@
       ],
       "sex": "female",
       "sexUntil": 1960,
+      "sexShare": 0.25,
       "inventory": {
         "water": 1,
         "coin": 1,
@@ -2149,6 +2166,7 @@
       ],
       "sex": "male",
       "sexUntil": 1950,
+      "sexShare": 0.3,
       "inventory": {
         "water": 1,
         "coin": 3,
@@ -2231,6 +2249,7 @@
       ],
       "sex": "male",
       "sexUntil": 1950,
+      "sexShare": 0.45,
       "inventory": {
         "water": 1,
         "coin": 2,
@@ -2250,6 +2269,7 @@
       "minPopulation": 200,
       "sex": "male",
       "sexUntil": 1950,
+      "sexShare": 0.15,
       "inventory": {
         "water": 3,
         "bread": 1
@@ -2401,6 +2421,7 @@
       ],
       "sex": "male",
       "sexUntil": 1950,
+      "sexShare": 0.4,
       "inventory": {
         "water": 1,
         "coin": 3
@@ -2427,6 +2448,7 @@
       ],
       "sex": "male",
       "sexUntil": 1920,
+      "sexShare": 0.4,
       "inventory": {
         "water": 1,
         "coin": 4
@@ -2440,6 +2462,7 @@
       "weight": 0.3,
       "sex": "male",
       "sexUntil": 1970,
+      "sexShare": 0.12,
       "inventory": {
         "water": 2,
         "coin": 2

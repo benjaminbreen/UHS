@@ -6058,6 +6058,69 @@ button:disabled {
   background: var(--gold);
   border-radius: 5px;
 }
+.injury-card {
+  /* Waits out the scene in the world (INJURY_SCENE_MS), then rises. */
+  background: #0a0614d8;
+  animation: injury-card-in 3.4s ease-out both;
+}
+.injury-card > div {
+  padding: 18px 26px 20px;
+  background: var(--panel, #1a1424);
+  border: 2px solid var(--line);
+  box-shadow: 0 0 0 2px #000, 0 10px 40px #000a;
+  animation: injury-card-rise 3.4s ease-out both;
+}
+.injury-card small {
+  color: #e86a6a;
+}
+.hurt-figure {
+  display: block;
+  margin: 10px auto 2px;
+}
+.hurt-figure rect {
+  fill: #e9dcc0;
+}
+.hurt-figure rect.hurt {
+  fill: #d83a3a;
+  animation: hurt-beat 0.7s ease-in-out infinite alternate;
+}
+.injury-lines {
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+  line-height: 1.45;
+  color: var(--text);
+}
+.injury-lines li {
+  padding-left: 1.1em;
+  text-indent: -1.1em;
+}
+.injury-lines li::before {
+  content: "• ";
+  color: #e86a6a;
+}
+@keyframes injury-card-in {
+  0%, 80% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+@keyframes injury-card-rise {
+  0%, 80% {
+    transform: translateY(14px);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes hurt-beat {
+  to {
+    fill: #7a1a24;
+  }
+}
 .death-card > div {
   max-width: 460px;
 }

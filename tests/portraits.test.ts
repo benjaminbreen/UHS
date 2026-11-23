@@ -311,8 +311,10 @@ it("covers the dangling pale pixels at both tilted outer eye corners", async () 
   a.wearing = { ...a.wearing, headwear: "none", garment: "tunic", color: "#556f78" };
   a.adornment = { ears: "none", nose: "none", marks: "none" };
   const r = paintSculpted(a, 32);
-  expect(r.color[29 * 64 + 28]).toBe(r.color[29 * 64 + 29]);
-  expect(r.color[29 * 64 + 44]).toBe(r.color[29 * 64 + 43]);
+  const light = (i: number) => [1, 3, 5].reduce((sum, k) => sum + parseInt(r.color[i].slice(k, k + 2), 16), 0);
+  // The corner pixel on the eye's bottom row is lid, darker than the white beside it.
+  expect(light(29 * 64 + 28)).toBeLessThan(light(29 * 64 + 29));
+  expect(light(29 * 64 + 44)).toBeLessThan(light(29 * 64 + 43));
 });
 
 it("shows worn earrings even when no adornment style was recorded", async () => {

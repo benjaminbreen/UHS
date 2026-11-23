@@ -188,7 +188,7 @@ card.
 7. The prompt for the line. Enter or skip.
 8. The tree.
 
-A player who died fighting gets the same scene from `CollapseNotice`, with
+A player who died fighting gets the same scene from `SetbackCard`, with
 the camera where they fell and no household present unless they were home.
 
 ### 6. The tree

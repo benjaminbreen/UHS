@@ -54,7 +54,7 @@ export function DeathCard({ runtime, onClose }: { runtime: Runtime; onClose: () 
   const setting = engine.world.pack.setting;
   const kin = new Map(kinOf(s).map((k) => [k.actor.id, kinWord(k.kind, k.actor)]));
   const heirs = engine.heirs();
-  const how = /^(of|in|by|at|under) /.test(p.dead ?? "") ? p.dead : `from ${p.dead}`;
+  const how = /^(mauled|gored|taken) /.test(p.dead ?? "") ? `, ${p.dead}` : /^(of|in|by|at|under) /.test(p.dead ?? "") ? ` ${p.dead}` : ` from ${p.dead}`;
   const history = s.households?.find((h) => h.id === p.householdId)?.history ?? [];
   const child = (e: { as?: string }) => e.as === "son" || e.as === "daughter";
   const born = history.filter((e) => e.kind === "born" && child(e)).length;
@@ -127,7 +127,7 @@ export function DeathCard({ runtime, onClose }: { runtime: Runtime; onClose: () 
         </span>
         <h2>{p.name}</h2>
         <p>
-          Died {how}, aged {p.age}.
+          Died{how}, aged {p.age}.
           <br />
           {setting?.location ?? engine.world.pack.name}
           {setting ? `, ${formatHistoricalYear(setting.year)}` : ""}

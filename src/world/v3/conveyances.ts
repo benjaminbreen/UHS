@@ -117,6 +117,12 @@ export function truckBody(p: Point, facing: number, long: boolean) {
   return cells;
 }
 
+/** The cells a motor vehicle stands on: a lorry's block, or a car's single file. */
+export function motorBody(p: Point, m: { facing: number; long: boolean; slim?: number }) {
+  if (m.slim === undefined) return truckBody(p, m.facing, m.long);
+  return Array.from({ length: m.slim * 2 + 1 }, (_, i) => truckOffset(p, m.facing, i - m.slim!, 0));
+}
+
 export function deliveryAt(v: Vehicle, clock: number) {
   const truck = vehicleAt(v, clock),
     { phase, cycle, drive } = vehicleSchedule(v, clock);

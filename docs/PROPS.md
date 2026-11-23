@@ -393,5 +393,7 @@ A prop that carries a flame gives light through the map's lamp code (`lampLight`
 
 ## One system for every interior
 
+A room's own pieces draw their states themselves: the chest (`room-chest`) lifts its lid and a shop's bank of drawers (`room-drawers`, the tobacconist's, apothecary's and tea dealer's stock) pulls two drawers out when looked into, from the object's `open`. A `lid` given as a pair of words names those two acts. Their drawings are grids in `src/render/interiors/sprites.ts`, with `-open` grids beside the closed ones.
+
 Anything in a room that a person could handle, use, sit on, read, buy from or burn is a prop in the catalogue, placed as a `WorldObject` in that room's space, whatever built the room: a house interior, a fair gallery, a palace, a hall, a tomb. What it allows is said by its definition (`portable`, `topples`, `tips`, `breakable`, `container`, `seat`, `burns`, `act`), and the engine's prop code does the rest. An area generator lists its props on the level (`props`) and `arriveIn` puts them in the world. Do not give a new kind of interior its own list of things with its own actions. Scenery that is part of the building (walls, columns, hearths built in, floors) is painted by the area's view and is not a prop. Tomb finds are the one older list still to move.
 

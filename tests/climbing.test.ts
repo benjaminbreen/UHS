@@ -116,7 +116,8 @@ it("jumps down the far side of a tree and a wall", () => {
   expect(engine.state.player.pos).toMatchObject({ x: -2, y: 0 });
   expect(engine.lastLeap?.kind).toBe("drop");
   expect(engine.state.player.health).toBe(82);
-  expect(engine.state.player.injury?.name).toBe("sprained ankle");
+  // Whatever the drop did to an ankle, the next climb wants a sound body.
+  delete engine.state.player.injury;
 
   engine.state.player.pos = { x: 1, y: 0, space: "outside" };
   runtime.climb();
@@ -158,7 +159,7 @@ it("makes jumping from a tall tree dangerous while climbing down is safe", () =>
   engine.perch(engine.climbable()!);
   engine.descend({ dx: 1, dy: 0 });
   expect(engine.state.player.health).toBe(0);
-  expect(engine.state.player.dead).toBe("a fall");
+  expect(engine.state.player.dead).toMatch(/^a fall from /);
 });
 
 it("sends the watch along the wall to order the player down", () => {
@@ -381,7 +382,8 @@ it("jumps a one-cell alley between flat roofs, and goes up a house's own ladder"
   const runtime = new Runtime(engine, { cacheTerrain: false });
 
   runtime.climb();
-  runtime.move(1, 0);
+  // A jump in the middle of a roof is a hop along it, not a way down.
+  runtime.climb(1, 0);
   expect(engine.state.player.perch?.at).toEqual({ x: 2, y: -1 });
   runtime.climb(1, 0);
   expect(engine.state.player.perch).toMatchObject({ on: "b", at: { x: 4, y: -1 } });
@@ -391,6 +393,7 @@ it("jumps a one-cell alley between flat roofs, and goes up a house's own ladder"
   runtime.climb(1, 0);
   expect(engine.state.player.perch).toBeUndefined();
   expect(engine.state.player.pos).toMatchObject({ x: 7, y: -1 });
+  delete engine.state.player.injury;
 
   engine.state.player.pos = { x: 12, y: 0, space: "outside" };
   const before = engine.state.clock;
@@ -398,6 +401,84 @@ it("jumps a one-cell alley between flat roofs, and goes up a house's own ladder"
   expect(engine.state.player.perch).toMatchObject({ on: "c", roof: true, by: "ladder" });
   expect(engine.state.clock - before).toBeLessThan(40);
   runtime.dispose();
+});
+
+it("a jump off a three-storey roof kills", () => {
+  const engine = createSession("roman", "roof-fall");
+  engine.state.actors = [];
+  engine.state.objects = [];
+  engine.world.places = [{ id: "a", name: "a", description: "", x: 0, y: -3, w: 4, h: 3, sprite: "westasian-courtyard-maghrebi-large-0",
+    entrance: { x: 1, y: 0 }, access: "household", owner: "", claim: "", entranceLabel: "" }] as never;
+  engine.world.blocked = (x, y) => y >= -3 && y < 0 && x >= 0 && x < 4;
+  engine.world.decoration = () => undefined;
+  engine.world.enclosures = [];
+  engine.state.player.pos = { x: 1, y: 0, space: "outside" };
+  engine.state.player.health = 100;
+  engine.perch(engine.climbable()!);
+  engine.descend({ dx: 0, dy: 1 });
+  expect(engine.state.player.dead).toBe("a fall from a roof");
+});
+
+it("a two-level drop often turns an ankle or breaks something, and never kills a well player", () => {
+  const hurt: string[] = [];
+  for (let i = 0; i < 40; i++) {
+    const engine = createSession("roman", `drop-${i}`);
+    engine.state.player.health = 100;
+    const at = { ...engine.state.player.pos };
+    (engine as unknown as { fall(a: unknown, b: unknown, extra: number): void }).fall(at, at, 2);
+    expect(engine.state.player.dead).toBeUndefined();
+    if (engine.state.player.injury?.id) hurt.push(engine.state.player.injury.id);
+  }
+  const serious = hurt.filter((id) => /sprained|broken|wrenched/.test(id)).length;
+  expect(serious).toBeGreaterThan(8);
+  expect(serious).toBeLessThan(30);
+});
+
+it("a broken leg stops the world, slows the walk, forbids running and climbing, and comes back as it knits", () => {
+  const engine = createSession("roman", "broken-leg");
+  engine.state.player.health = 100;
+  (engine as unknown as { injure(id: string): void }).injure("broken-leg");
+  expect(engine.signals.some((s) => s.kind === "injured" && s.id === "broken-leg")).toBe(true);
+  expect(engine.setback).toMatchObject({ kicker: "INJURED", title: "Broken leg", injury: "broken-leg" });
+  expect(engine.setback?.lines?.some((l) => /No running/.test(l))).toBe(true);
+  expect(engine.gait()).toMatchObject({ pace: 0.4, run: false, climb: false, ride: false, lame: 2 });
+  expect(engine.hurtLook()).toBe("crutch");
+  expect(engine.validate({ type: "move", dx: 1, dy: 0, jump: "short" })).toBe("Not with a broken leg.");
+  expect(engine.validate({ type: "interact", action: "climb" } as never)).toBe("Not with a broken leg.");
+  // A sprain after it does not displace the break.
+  (engine as unknown as { injure(id: string): void }).injure("sprained-ankle");
+  expect(engine.state.player.injury?.id).toBe("broken-leg");
+
+  const i = engine.state.player.injury!, span = i.until - i.since!;
+  i.since = engine.state.clock - span * 0.8;
+  i.until = i.since + span;
+  expect(engine.gait().run).toBe(true);
+  expect(engine.gait().pace).toBeGreaterThan(0.8);
+  expect(engine.hurtLook()).toBe("splint");
+  i.until = engine.state.clock;
+  (engine as unknown as { injured(): boolean }).injured();
+  expect(engine.state.player.injury).toBeUndefined();
+  expect(engine.gait().pace).toBe(engine.state.player.scars?.includes("crooked-leg") ? 0.88 : 1);
+});
+
+it("a wheelchair takes slopes but not banks, and no stairs", () => {
+  const engine = createSession("roman", "chair");
+  engine.state.actors = [];
+  engine.state.objects = [];
+  engine.world.blocked = () => false;
+  engine.world.decoration = () => undefined;
+  engine.world.canCross = () => true;
+  // A bank up at x = 2, and a slope up at y = 3.
+  engine.world.topography = (x, y) => ({ height: x >= 2 ? 1 : 0, surface: "grass", ...(y === 3 && x === 2 ? { ramp: "e" as const } : {}) });
+  engine.state.player.pos = { x: 1, y: 0, space: "outside" };
+  const body = { look: "wheelchair" as const, name: "paralysis", pace: 0.85, run: false, climb: false, ride: false, lame: 0 as const };
+  (engine as unknown as { body(): typeof body }).body = () => body;
+  expect(engine.hurtLook()).toBe("wheelchair");
+  expect(engine.validate({ type: "move", dx: 1, dy: 0 })).toBe("Too steep for the chair. Find a slope.");
+  expect(engine.playerCanCross({ x: 1, y: 0 }, { x: 2, y: 0 })).toBe(false);
+  expect(engine.playerCanCross({ x: 1, y: 3 }, { x: 2, y: 3 })).toBe(true);
+  expect(engine.validate({ type: "move", dx: 0, dy: 1 })).toBeUndefined();
+  expect(engine.validate({ type: "interact", action: "mount-cycle", target: "x" } as never)).toBe("Not with paralysis.");
 });
 
 it("sprints off a roof edge across a street, and only as far as the run-up carries", () => {

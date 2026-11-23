@@ -360,7 +360,7 @@ export class CombatEffects {
       if (e.serial <= this.seen) continue;
       this.seen = e.serial;
       // How people took things is `CueEffects`' business.
-      if (e.kind === "cue" || e.kind === "bump" || e.kind === "say") continue;
+      if (e.kind === "cue" || e.kind === "bump" || e.kind === "say" || e.kind === "lightning" || e.kind === "injured") continue;
       if (e.kind === "eaten") {
         // Torn leaf and husk where the crop went.
         const at = this.cell(e.at);
@@ -385,7 +385,8 @@ export class CombatEffects {
       else if (e.kind === "mauled") this.mauled(e.damage);
       else if (e.kind === "bark") {
         this.view.leapFauna(id, 3, 0.16);
-        void gameAudio()?.sound(bark(), "bark");
+        void gameAudio()?.call("growl");
+        void gameAudio()?.sound(() => bark().map((l) => ({ ...l, at: l.at + 0.5 })), "bark");
       }
     }
   }

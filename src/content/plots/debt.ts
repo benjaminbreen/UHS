@@ -3,6 +3,7 @@ import { sexOf } from "../../core/brief";
 import { stapleOf } from "../agriculture";
 import { capabilitiesFor } from "../characters/resolve";
 import { amountIn } from "../economy/money";
+import { pronounWords } from "./common";
 import { goodName, sellerOf } from "../economy/products";
 import { ruled } from "../history/order";
 import type { Actor, HouseholdPurchase } from "../../core/types";
@@ -89,7 +90,6 @@ export const debt: PlotTemplate = {
     const coined = c.household?.credit
       ? c.household.credit.repayment === "money"
       : !!c.setting && capabilitiesFor(c.setting).has("coinage");
-    const sex = sexOf(creditor);
     const childKin = child && (sexOf(child) === "female" ? "daughter" : sexOf(child) === "male" ? "son" : "child");
     // Why the household is in debt at all: the latest hardship, if it is recent.
     const year = c.setting?.year;
@@ -117,10 +117,7 @@ export const debt: PlotTemplate = {
         due: hour < 11 ? "by sundown" : "by noon tomorrow",
         pledge: child ? `your ${childKin} ${child.name}` : "you",
         since,
-        he: sex === "female" ? "she" : sex === "male" ? "he" : "they",
-        He: sex === "female" ? "She" : sex === "male" ? "He" : "They",
-        his: sex === "female" ? "her" : sex === "male" ? "his" : "their",
-        wants: sex ? "wants" : "want",
+        ...pronounWords(creditor),
         owing: coined ? "the money back" : "it made good",
         ...(child && { child: child.name, childKin }),
         ...(partner && {

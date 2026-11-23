@@ -25,10 +25,11 @@ import {
   seasonIndex,
   grazeActivity,
 } from "./livelihood";
-import { skySeed, weatherAt } from "./weather";
+import { foul, skyFor, skySeed, weatherAt } from "./weather";
 import { propDefs } from "../content/props/catalog";
 import { regionalContainer } from "../content/props/containers";
 import { about } from "../content/props/about";
+import { burials, graveLine } from "./graves";
 import { atWork, briefText, personBrief, sexOf } from "./brief";
 import { placeBrief } from "./place-brief";
 import { propAffordances, heldObject, lowProp } from "./props";
@@ -101,6 +102,7 @@ import { findPath } from "./pathfinding";
 import { addStock, collectClaim, dayOfWork, dearness, grainDays, importShare, openStock, runEconomy, stockOf } from "./economy";
 import { goodsOf } from "../content/economy/goods";
 import { keepsShop, sellsTrade, stockFor, TRADER } from "./shop";
+import { shopKinds } from "../content/interiors/shops";
 import { isStallholder, isWayfarer, person } from "../world/v3/wayfarers";
 import { periodLook, wares } from "../content/economy/wares";
 import { goodName } from "../content/economy/products";
@@ -129,8 +131,12 @@ import { groundFor, sceneFor, type Occasion, type Scene } from "../content/plots
 import { kinCall, kinOf } from "./kin";
 import { babyTime, canNurse, her, jolt, minded, minders, newBaby, she, tendOf, type Baby, type Motion, type Tend } from "./baby";
 import { composeIntro, introText, settlementName } from "./intro";
-import { bodilyLimits, ailing, ailmentDef, healthPerson, nameFor, onsets, severity, start as startAilment, infect, exposure, diseaseTime, diseaseEvent, mealExposure, observedIllnesses, symptomsOf, updateCourse, resolvedInfection, practitioner, illnessProgress } from "./health";
+import { type Ailment, bodilyLimits, ailing, ailmentDef, healthPerson, conditionBody, nameFor, onsets, severity, start as startAilment, infect, exposure, diseaseTime, diseaseEvent, mealExposure, observedIllnesses, symptomsOf, updateCourse, resolvedInfection, practitioner, illnessProgress, bedridden } from "./health";
+import { householdConditions, houseTalk, seedHouseholds, settleRegard, swayRegard, worstGrievance } from "./household";
+import { standingOf } from "./standing";
+import { ranks } from "../content/characters/context-types";
 import { treatments, type Treatment } from "../content/health/infections";
+import { hurtLook, injuryDef, injuryLimits, injuryLines, type InjuryDef, type InjuryId } from "../content/health/injuries";
 import { inWords, kinWord } from "./concerns";
 import { GOAL_TEMPLATES } from "../content/goals/templates";
 import type { SeasonId } from "./season";
@@ -146,7 +152,7 @@ import { localCongregation, sanctuaryAt } from "../content/settlements/religious
 import { stupaPathEdge } from "../render/interiors/room";
 import { buildInterior, ROOM_ORIGIN, roomAt, spotsAt, type InteriorLayout, type Spot, type SpotRole } from "../world/interior";
 import { buildingUse } from "../content/interiors/select";
-import { deliveryAt, truckBody, truckOffset, besideTeam, vehicleAt, vehicleSchedule, type Vehicle } from "../world/v3/conveyances";
+import { deliveryAt, motorBody, truckBody, truckOffset, besideTeam, vehicleAt, vehicleSchedule, type Vehicle } from "../world/v3/conveyances";
 import type { DailyGoal, GoalContext } from "../content/goals/types";
 import { route, type RouteResult } from "./routing";
 import { acrossFieldRow, terrainJump, terrainLeap, type LeapResult } from "./topography";
@@ -337,6 +343,7 @@ const AUTHORITY = /basilica|meeting hall|guild hall|council|palace|temple|chapel
 /** Clock seconds: offence taken again this soon costs no more trust. */
 const AFFRONT_GAP = 30;
 import { facingFromStep } from "./facing";
+import { carFacing, carFrame, carReach, carSpec } from "./cars";
 import {
   doorAccess,
   clearDoorsteps,
@@ -539,6 +546,7 @@ export class Engine {
             id: "player",
             name: world.pack.characterName,
             role: world.pack.role,
+            condition: world.pack.setting?.condition,
             kind: "human",
             pos: copy(world.spawn),
             home: copy(world.spawn),
@@ -655,6 +663,8 @@ export class Engine {
   }
   initialize(seed: string) {
     this.state.manifest.seed = seed;
+    const asked = this.world.pack.setting;
+    if (asked?.weather) this.state.manifest.sky = skyFor(seed, asked.climate, asked.season, asked.weather, this.state.clock);
     if (this.world.pack.setting?.environment) {
       const season = seasonAt(this.world.pack.setting.season, this.state.clock);
       for (const o of this.state.objects)
@@ -736,6 +746,9 @@ export class Engine {
     if (!s.households?.length) return;
     if (!s.economy) {
       s.economy = { hour, stock: {}, short: {} };
+      seedHouseholds(s, this.world.pack.setting?.year);
+      this.seedTidings(s.clock);
+      this.world.rotateRoutines?.(s.clock, householdConditions(s), true);
       return;
     }
     const yesterday = Math.floor(s.economy.hour / 24);
@@ -746,7 +759,8 @@ export class Engine {
       s.households,
       s.economy,
       hour,
-      (h) => h.members.filter((m) => adults.has(m)).length,
+      // Someone laid up makes nothing: a sick miller is a town short of flour.
+      (h) => h.members.filter((m) => adults.has(m) && !this.laidUp(m)).length,
       importShare[this.world.pack.setting?.settlement ?? ""],
       // Only the crew fishes, however many grown hands the house has.
       (h, good, at) => good === "grain" ? this.harvestYield(h, at) : good === "fish"
@@ -756,6 +770,8 @@ export class Engine {
     );
     if (Math.floor(hour / 24) === yesterday) return;
     this.collectClaim();
+    settleRegard(s, householdConditions(s), this.world.pack.setting?.year);
+    this.hearCase();
     // At dawn, whoever buys from the player's house and went short holds it
     // against them.
     const mine = s.households.find((h) => h.members.includes("player"));
@@ -1000,6 +1016,8 @@ export class Engine {
       pay: work?.pay ?? 0,
       lines: work?.lines ?? [],
       waiting: !!this.waitingCard(),
+      /** Who is walking over with the waiting card. */
+      coming: this.approaching?.card && this.approaching.card === this.waitingCard() ? this.actorsById?.get(this.approaching.id)?.name.split(" ")[0] : undefined,
       boss: t.process.paid === "wage" ? t.process.boss ?? bossTitle(this.world.pack.setting) : undefined,
       hours: t.process.steps.map((st) => st.hours ?? t.process.hours / t.process.stages.length),
       deadline: this.state.plot && !this.state.plot.ended ? this.state.plot.deadline : undefined,
@@ -1400,6 +1418,12 @@ export class Engine {
   private fixDay() {
     const t = this.trade();
     if (!t || this.state.workday?.day === t.day) return;
+    const work = this.state.economy?.work;
+    const lapsed = work?.card && work.day !== t.day && this.choiceCard(work.card);
+    if (lapsed) {
+      delete work!.card;
+      this.lapse(lapsed, this.state.actors.find((a) => a.id === work!.who && !a.dead), work!.day * 86400);
+    }
     const places: Record<string, StepPlace | null> = {};
     for (const role of new Set([...t.process.steps.flatMap((st) => (st.at ? [st.at] : [])), this.fallback(t)]))
       places[role] = this.findPlace(role, t);
@@ -1534,6 +1558,68 @@ export class Engine {
   }
   /** Who a card is said by or of: each official his own man, a neighbour
    * one of the four nearest households, varying by card and day. */
+  /** The follow-up card `id` while it is being asked. */
+  private laterAsked(id: string) {
+    return this.state.later?.find((l) => l.asked !== undefined && l.card === id);
+  }
+  /** Who a day's or a follow-up card is with: whoever was cast when it was drawn. */
+  private speaker(card: ChoiceCard) {
+    const s = this.state, id = this.laterAsked(card.id)?.who ?? (this.waitingCard() === card.id ? s.economy?.work?.who : undefined);
+    return id ? s.actors.find((a) => a.id === id && !a.dead) : this.cardPerson(card);
+  }
+  private houseOf(a?: Actor) {
+    return a && this.state.households?.find((h) => h.members.includes(a.id));
+  }
+  /** A card with someone in it waits until they have walked over; if they
+   * cannot come, it is told without them. */
+  private bringCard(card: ChoiceCard, who?: Actor) {
+    const p = this.state.player;
+    if (!who || card.who === "patient" || this.approaching || (this.below && who.pos.space !== p.pos.space) ||
+      (who.pos.space === p.pos.space && distance(who.pos, p.pos) <= 2.5)) return this.offerCard(card);
+    const open = () => !this.question(card.id).gone;
+    this.approaching = {
+      id: who.id, line: "", until: this.state.clock + 1800, valid: open, card: card.id,
+      onArrive: () => this.offerCard(card),
+      late: () => { if (open()) this.offerCard(card); },
+    };
+  }
+  /** A follow-up that has come due is brought by its person, one at a time,
+   * in waking hours. */
+  private laterStep(clock: number) {
+    const s = this.state, hour = (clock / 3600) % 24, asked = s.later?.find((l) => l.asked !== undefined);
+    // One put away unanswered is brought again; left a day, it lapses.
+    if (asked) {
+      const card = this.choiceCard(asked.card), who = s.actors.find((a) => a.id === asked.who && !a.dead);
+      if (!card || clock - asked.asked! > 86400) {
+        s.later = s.later!.filter((l) => l !== asked);
+        if (card) this.lapse(card, who, asked.asked!);
+        if (card?.owes && who && this.houseOf(who)?.credit?.from === this.houseOf(s.player)?.id)
+          s.later.push({ card: card.id, at: clock + 7 * 86400, who: who.id });
+      } else if (clock - asked.at > 3600 && this.mayCall(clock) && ![...this.cards, ...this.held].some((c) => c.choose?.card === card.id)) {
+        asked.at = clock;
+        this.bringCard(card, who);
+      }
+      return;
+    }
+    const due = s.later?.find((l) => l.at <= clock);
+    if (!due || hour < 7 || hour >= 20 || !this.mayCall(clock) || this.below ||
+      s.player.dead || s.encounter || s.care || this.waitingCard()) return;
+    const card = this.choiceCard(due.card), who = s.actors.find((a) => a.id === due.who && !a.dead);
+    if (!card || !who || (card.owes && this.houseOf(who)?.credit?.from !== this.houseOf(s.player)?.id)) {
+      s.later = s.later!.filter((l) => l !== due);
+      return;
+    }
+    due.asked = due.at = clock;
+    this.bringCard(card, who);
+  }
+  /** A card left unanswered too long: said, and done. */
+  private lapse(card: ChoiceCard, a: Actor | undefined, day: number) {
+    const s = this.state;
+    if (a && card.lapse?.regard) this.regard(a, card.lapse.regard);
+    const line = cardText(card.lapse?.line ?? (a ? "{Name} stopped waiting for your answer." : "The day ended before you decided."), this.cardWords(a?.name.split(" ")[0]));
+    this.event(line);
+    (s.record ??= []).push({ day: Math.floor(day / 86400), clock: s.clock, card: card.id, choice: -1, line });
+  }
   private cardPerson(card: ChoiceCard, t = this.trade()) {
     const s = this.state, who = card.who;
     if (who === "boss") return this.grownMan("boss");
@@ -1546,7 +1632,10 @@ export class Engine {
     }
     if (who === "client") return adult(this.client(t));
     if (who === "neighbour") {
-      const near = (s.households ?? []).filter((o) => o !== t.household && o.residence)
+      const lends = card.choices.some((c) => c.then.some((e) => e.type === "credit"));
+      const near = (s.households ?? []).filter((o) => o !== t.household && o.residence &&
+        (!card.hungry || (o.fortune ?? 0.5) < 0.35 || (s.economy?.short[o.id] ?? []).some((g) => g === "bread" || g === "grain")) &&
+        (!lends || ((o.owes ?? t.household.id) === t.household.id && (o.credit?.from ?? t.household.id) === t.household.id)))
         .sort((a, b) => distance(a.home, t.household.home) - distance(b.home, t.household.home))
         .filter((h) => adult(h)).slice(0, 4);
       return adult(near[Math.floor(random(s.manifest.seed, "neighbour", card.id, t.day) * near.length)]);
@@ -1593,11 +1682,75 @@ export class Engine {
     const t = this.trade(), work = this.state.economy?.work;
     return t && work?.day === t.day ? work.card : undefined;
   }
+  /** Every question put to the player, by its card id: `gone` once it no
+   * longer stands, `away` while it stands but cannot be answered from here and
+   * now, what is wrong with answer `n`, and how to give it. */
+  private question(id: string): { gone?: string; away?: string; problem: (n: number) => string | undefined; answer: (n: number) => void } {
+    const s = this.state, none = "There is nothing to answer.", kind = id.split(":")[0];
+    if (kind === "patch") {
+      const t = this.trade(), options = s.workday?.patchChoices, ended = "This gathering round has ended.";
+      return {
+        gone: !t || !this.gathering(t)?.choosing || options?.card !== id || s.workday?.day !== t.day ? ended : undefined,
+        away: this.waitingCard() ? ended : undefined,
+        problem: (n) => {
+          if (!options!.ids.length && n === 0) return;
+          const o = this.object(options!.ids[n]);
+          return o && foodPatch(o, this.gathering(t)!.season) && !o.depleted && (!o.owner || t!.household.members.includes(o.owner)) ? undefined : "That patch is no longer ready.";
+        },
+        answer: (n) => this.answerPatch(n),
+      };
+    }
+    if (kind === "field") {
+      const t = this.trade(), field = this.handField(t), back = "Return to the field to choose your work.";
+      return {
+        gone: !t || !field || field.selected || id !== field.id ? back : undefined,
+        away: !field?.here || this.waitingCard() ? back : undefined,
+        problem: (n) => {
+          const options = this.fieldOptions(field!);
+          return (options.length ? options.some((o) => fieldJobs.indexOf(o.job) === n) : n === fieldJobs.length) ? undefined : "That work is no longer available.";
+        },
+        answer: (n) => this.answerField(id, n),
+      };
+    }
+    if (kind === "wall") {
+      const w = this.wallChallenge;
+      return {
+        gone: !w || id !== `wall:${w.id}` || w.warnedAt === undefined || w.answered || w.chase || !this.onWall() ? none : undefined,
+        problem: (n) => this.wallAnswerProblem(n),
+        answer: (n) => this.wallAnswer(n),
+      };
+    }
+    if (kind === "toll") {
+      const t = this.toll;
+      return { gone: !t || id !== `toll:${t.id}` || t.answered ? none : undefined, problem: (n) => this.tollAnswerProblem(n), answer: (n) => this.tollAnswer(n) };
+    }
+    if (kind === "plot") {
+      const plot = s.plot, ask = plot?.asking;
+      return {
+        gone: !plot || !ask || plot.ended || id !== this.plotQuestionId(plot) || (plotTemplate(plot)?.journal && !ask.scene) ? none : undefined,
+        away: ask?.scene && (s.clock >= plot!.deadline || !this.atPlotScene(plot!, ask.scene) || (ask.by && !this.withinPlotReach(ask.by))) ? "You need to be there to answer." : undefined,
+        problem: (n) => (ask!.choices[n] ? undefined : none),
+        answer: (n) => this.plotChoose(id, n),
+      };
+    }
+    if (kind === "help")
+      return { gone: s.asks?.some((x) => `help:${x.id}` === id && x.offered !== undefined) ? undefined : none, problem: (n) => (HELP[n] ? undefined : none), answer: (n) => this.helpChoose(id, n) };
+    const choices = this.choiceCard(id)?.choices;
+    return {
+      gone: this.waitingCard() === id || s.care?.card === id || s.encounter?.card === id || this.laterAsked(id) ? undefined : none,
+      problem: (n) => (choices?.[n] ? this.choiceProblem(choices[n]) : none),
+      answer: (n) => this.answerCard(id, n),
+    };
+  }
+  /** Whether a question has lapsed or been answered, so its card need not be shown. */
+  questionGone(id: string) {
+    return !!this.question(id).gone;
+  }
   /** Puts the card waiting on today's work back on screen. */
   reofferCard() {
     const plot = this.state.plot;
     if (plot?.asking && plot.asking.due === undefined && this.askPlot(plot)) return;
-    const id = this.state.encounter?.card ?? this.state.care?.card ?? this.waitingCard();
+    const id = this.state.encounter?.card ?? this.state.care?.card ?? this.state.later?.find((l) => l.asked !== undefined)?.card ?? this.waitingCard();
     const card = id && this.choiceCard(id);
     if (card && ![...this.cards, ...this.held].some((c) => c.choose?.card === id)) this.offerCard(card, this.state.care?.card === id ? this.state.care : undefined);
   }
@@ -1607,12 +1760,11 @@ export class Engine {
     const s = this.state, boss = this.mineWords(this.trade()).boss ?? this.trade()?.process.boss ?? bossTitle(this.world.pack.setting);
     const encounter = s.encounter?.card === card.id;
     const ford = encounter && (card.id === FORD_CARD.id || card.id === ICE_CARD.id);
-    const stats = this.stats();
-    const person = care ? s.actors.find((a) => a.id === care.who) : ford ? undefined : encounter ? s.actors.find((a) => a.id.startsWith("robber-")) : this.cardPerson(card);
+    const person = care ? s.actors.find((a) => a.id === care.who) : ford ? undefined : encounter ? s.actors.find((a) => a.id.startsWith("robber-")) : this.speaker(card);
     const words = care ? this.careWords(person, care.ailment) : this.cardWords(person?.name.split(" ")[0]);
     const kin = care && kinOf(s).find((k) => k.actor.id === care.who);
     if (care) s.care = { card: card.id, who: care.who, ailment: care.ailment, at: s.care?.card === card.id && s.care.who === care.who ? s.care.at : s.clock };
-    else if (!encounter) s.economy!.work!.card = card.id;
+    else if (!encounter && !this.laterAsked(card.id)) s.economy!.work!.card = card.id;
     const drawnStep = this.trade()?.process.steps[s.economy?.work?.drawn ?? -1];
     const shown: PlotCard = {
       kind: "speech",
@@ -1627,7 +1779,7 @@ export class Engine {
           const careOption = careEffect?.type === "care" ? this.careOptions(care?.who).find((o) => o.treatment === careEffect.treatment) : undefined;
           // For the sick, the odds shown are of the care turning a dying illness.
           const tend = c.then.find((e) => e.type === "tend");
-          const odds = c.check ? oddsOf(c.check, stats, c.check.skill ? this.skillLevel(c.check.skill) : 0) : !s.manifest.disease && tend?.type === "tend" ? tend.odds : undefined;
+          const odds = c.check ? this.choiceOdds(c, person) : !s.manifest.disease && tend?.type === "tend" ? tend.odds : undefined;
           const note = c.note && cardText(c.note, words);
           const minutes = careOption?.minutes ?? c.then.reduce((n, e) => n + (e.type === "minutes" || e.type === "sleep" ? e.n : 0), 0);
           const coin = careOption ? -careOption.coin : c.then.reduce((n, e) => n + (e.type === "item" && e.item === "coin" ? e.n : 0), 0);
@@ -1638,37 +1790,36 @@ export class Engine {
     if (care && care.who !== s.player.id) this.bring(shown, true);
     else this.cards.unshift(shown);
   }
-  private choose(id: string, n: number) {
-    if (id.startsWith("patch:")) {
-      const patch = this.state.workday?.patchChoices?.ids[n];
-      delete this.state.workday!.patchChoices;
-      if (patch) {
-        this.fixDay();
-        this.state.workday!.patch = patch;
-        if (this.trade()?.stage === 0) for (const _ of this.doWork(false, true)) {}
-      }
-      this.lastChoice = undefined;
-      return;
-    }
-    if (id.startsWith("field:")) {
-      const field = this.handField()!;
+  private answerPatch(n: number) {
+    const patch = this.state.workday?.patchChoices?.ids[n];
+    delete this.state.workday!.patchChoices;
+    if (patch) {
       this.fixDay();
-      const option = this.fieldOptions(field).find(o => fieldJobs.indexOf(o.job) === n);
-      if (option) this.state.workday!.field = { id, job: option.job, cells: option.cells, count: 0 };
-      else if (n === fieldJobs.length && field.scheduled) for (const _ of this.doWork(false, true, "finished")) {}
-      this.lastChoice = undefined;
-      return;
+      this.state.workday!.patch = patch;
+      if (this.trade()?.stage === 0) for (const _ of this.doWork(false, true)) {}
     }
-    if (id.startsWith("plot:")) return this.plotChoose(id, n);
-    if (id.startsWith("help:")) return this.helpChoose(id, n);
-    if (id.startsWith("wall:")) return this.wallAnswer(n);
-    if (id.startsWith("toll:")) return this.tollAnswer(n);
+    this.lastChoice = undefined;
+  }
+  private answerField(id: string, n: number) {
+    const field = this.handField()!;
+    this.fixDay();
+    const option = this.fieldOptions(field).find(o => fieldJobs.indexOf(o.job) === n);
+    if (option) this.state.workday!.field = { id, job: option.job, cells: option.cells, count: 0 };
+    else if (n === fieldJobs.length && field.scheduled) for (const _ of this.doWork(false, true, "finished")) {}
+    this.lastChoice = undefined;
+  }
+  private answerCard(id: string, n: number) {
     const s = this.state, p = s.player;
     const care = s.care?.card === id ? s.care : undefined;
     const encounter = s.encounter?.card === id ? s.encounter : undefined;
     const ford = id === FORD_CARD.id ? encounter : undefined;
-    const work = care || encounter ? undefined : s.economy!.work!;
+    const later = this.laterAsked(id);
+    const work = care || encounter || later ? undefined : s.economy!.work!;
     const card = this.choiceCard(id)!, c = card.choices[n];
+    const person = care ? s.actors.find((a) => a.id === care.who) : this.speaker(card);
+    const mine = this.houseOf(p), theirs = care ? undefined : this.houseOf(person);
+    const owed = mine && theirs?.credit?.from === mine.id ? theirs.credit : undefined;
+    const good = this.trade()?.process.makes[0];
     if (care) delete s.care;
     else if (encounter) {
       delete s.encounter;
@@ -1676,9 +1827,9 @@ export class Engine {
         p.encounterAfter = s.clock + 86400;
         this.robbersLeave();
       }
-    } else delete work!.card;
-    const person = care ? s.actors.find((a) => a.id === care.who) : this.cardPerson(card);
-    const won = !c.check || this.rng(`card:${id}`) < oddsOf(c.check, this.stats(), c.check.skill ? this.skillLevel(c.check.skill) : 0);
+    } else if (later) s.later = s.later!.filter((l) => l !== later);
+    else delete work!.card;
+    const won = !c.check || this.rng(`card:${id}`) < this.choiceOdds(c, person)!;
     const effects = won ? c.then : (c.otherwise ?? []);
     const careEffect = effects.find((e) => e.type === "care");
     const careOption = careEffect?.type === "care" ? this.careOptions(care?.who).find((o) => o.treatment === careEffect.treatment) : undefined;
@@ -1686,8 +1837,8 @@ export class Engine {
     const sum = (type: string) => effects.reduce((n, e) => n + (e.type === type ? ("delta" in e ? e.delta : "n" in e ? e.n : 0) : 0), 0);
     const changes = [
       { kind: "time", delta: careOption?.minutes ?? sum("minutes") + sum("sleep") },
-      { kind: "coin", delta: careOption ? -careOption.coin : effects.reduce((n, e) => n + (e.type === "item" && e.item === "coin" ? e.n : 0), 0) },
-      { kind: "pay", delta: sum("pay") },
+      { kind: "coin", delta: careOption ? -careOption.coin : effects.reduce((n, e) => n + (e.type === "item" && e.item === "coin" ? e.n : e.type === "collect" && owed?.repayment === "money" ? owed.amount : 0), 0) },
+      { kind: "pay", delta: sum("pay") - sum("give") },
       { kind: "day", delta: sum("day") },
       { kind: "regard", delta: person ? sum("regard") + (careOption && care && !s.ailments?.find((a) => a.who === care.who)?.cared && kinOf(s).some((k) => k.actor.id === care.who) ? 1 : 0) : 0, who: person?.name.split(" ")[0] },
       { kind: "hurt", delta: sum("hurt") },
@@ -1717,7 +1868,7 @@ export class Engine {
         // Held on the tender until a captain found them useless or a friend paid: two days, and a beating.
         this.event("They march you down to the tender. It is two days before you talk or buy your way off it.");
         this.advance(2 * 86400);
-        this.hurt(10, "the press gang", "bruised ribs");
+        this.hurt(10, "the press gang", "bruises");
       }
       else if (e.type === "peril") minePeril(this.complex, e.kind);
       else if (e.type === "care") this.giveCare(care?.who ?? "player", e.treatment);
@@ -1726,6 +1877,33 @@ export class Engine {
         if (care) s.care = care;
         go = e.who;
       }
+      else if (e.type === "give") {
+        if (work) work.pay = (work.pay ?? 0) - e.n;
+        if (theirs && good && s.economy) addStock(s.economy, theirs, good, e.n);
+      }
+      // A house owes one lender at a time; one already in another's debt gets the goods all the same.
+      else if (e.type === "credit") {
+        if (mine && theirs && good && person && (owed || (!theirs.credit && !theirs.owes))) {
+          const product = theirs.buys?.find((b) => b.from === mine.id && b.good === good)?.product;
+          theirs.owes = mine.id;
+          theirs.credit = { good, from: mine.id, seller: p.id, ...(product && { product }), debtor: person.id, amount: (owed?.amount ?? 0) + e.n, reason: "hardship", repayment: this.coined() ? "money" : "produce" };
+        }
+      }
+      else if (e.type === "collect") {
+        if (owed) {
+          delete theirs!.credit;
+          delete theirs!.owes;
+          if (owed.repayment === "money") p.inventory.coin = (p.inventory.coin ?? 0) + owed.amount;
+          else if (s.economy) addStock(s.economy, mine!, owed.good, owed.amount);
+        }
+      }
+      else if (e.type === "forgive") {
+        if (owed) {
+          delete theirs!.credit;
+          delete theirs!.owes;
+        }
+      }
+      else if (e.type === "later") { if (person) (s.later ??= []).push({ card: e.card, at: s.clock + e.days * 86400, who: person.id }); }
       else if (e.type === "tend") {
         const who = care ? care.who : person?.id;
         const ail = who && s.ailments?.find((a) => a.who === who && !a.tended);
@@ -1734,7 +1912,12 @@ export class Engine {
           if (ail.course === "die" && this.rng(`tend:${ail.who}`) < e.odds) ail.course = "mend";
         }
       } else if (person) this.regard(person, e.delta);
-    const line = cardText(won ? c.line : (c.otherwiseLine ?? c.line), care ? this.careWords(person, care.ailment) : this.cardWords(person?.name.split(" ")[0]));
+    const words = care ? this.careWords(person, care.ailment) : this.cardWords(person?.name.split(" ")[0]);
+    const line = cardText(won ? c.line : (c.otherwiseLine ?? c.line), words);
+    const tone = 2 * sum("regard");
+    if (c.word && person && tone)
+      for (const a of [person, ...this.witnesses().filter((w) => w !== person)])
+        hear(a, { act: cardText(c.word, words), victim: person.id, tone, at: s.clock, hops: 0 });
     if (work) work.lines = [...(work.lines ?? []), line];
     const record = (s.record ??= []);
     record.push({ day: work?.day ?? Math.floor(s.clock / 86400), clock: s.clock, card: id, choice: n, line });
@@ -1758,6 +1941,13 @@ export class Engine {
     }
     const t = this.trade();
     if (work && t && t.stage >= t.process.stages.length) this.finishWork(t);
+  }
+  private choiceOdds(c: CardChoice, person?: Actor) {
+    const k = c.check;
+    if (!k) return;
+    // Whether a debt is paid goes by how the debtor's house is doing, not by the player.
+    if ("debtor" in k) return Math.min(0.95, Math.max(0.05, k.odds + (this.houseOf(person)?.fortune ?? 0.5) - 0.5));
+    return oddsOf(k, this.stats(), k.skill ? this.skillLevel(k.skill) : 0);
   }
   /** The player's stats as they are today: an illness at its worst takes
    * half their strength, and an injury some more. */
@@ -1783,11 +1973,12 @@ export class Engine {
     (s.ailments ??= []).push(ail);
     if (ail.since <= s.clock) this.offerCare(ail);
   }
-  private offerCare(ail: { who: string; id: string }) {
+  private offerCare(ail: Ailment) {
     const s = this.state, setting = this.world.pack.setting;
     const own = ail.who === s.player.id;
     // One at a time; one left unanswered a day lapses.
     if ((s.care && s.clock - s.care.at < 86400) || s.player.dead || (!own && !kinOf(s).some((k) => k.actor.id === ail.who))) return;
+    ail.asked = true;
     if (s.manifest.disease) {
       s.care = { card: "care-symptoms", who: ail.who, ailment: ail.id, at: s.clock };
       this.offerCard(this.choiceCard("care-symptoms")!, s.care);
@@ -1859,6 +2050,7 @@ export class Engine {
     const name = own ? "you" : a?.name.split(" ")[0] ?? "them";
     const doctor = provider ?? providers[0], role = doctor?.role.toLowerCase();
     const wound = !!a?.injury?.open && a.injury.until > clock;
+    const bone = own && !!injuryDef(p.injury?.id)?.bone && !p.injury!.set && p.injury!.until > clock;
     const common = !a || a.dead || a.kind !== "human" ? "There is nobody here to look after." : !own && distance(a.pos, p.pos) > 2.5 ? `${name} is not here.` : undefined;
     const options: Record<Treatment, { label: string; note: string; line: string; minutes: number; coin: number; fits: boolean; problem?: string }> = {
       rest: { label: "Go to bed", note: "Six hours in bed. Rest helps you mend; the work will wait.", line: "You went to bed.", minutes: 360, coin: 0, fits: own && !!ill,
@@ -1867,10 +2059,16 @@ export class Engine {
         problem: own ? "You can't nurse yourself; go to bed instead." : !ill ? `${name} is not ill.` : undefined },
       "clean-wound": { label: "Wash and bind the wound", note: "Keeps it clean for a day. It won't cure an infection that has taken hold.", line: "You washed and bound the wound.", minutes: 20, coin: 0, fits: wound,
         problem: !wound ? "There is no open wound." : undefined },
-      consult: { label: `Ask ${doctor?.name ?? "a healer"} to look at ${name}`, note: `An hour, and the ${role ?? "healer"} looks after ${name} for a day.`, line: `${doctor?.name ?? "The healer"} looked at ${name}.`, minutes: 60, coin: 2, fits: !!ill && !!doctor,
+      consult: bone && !ill
+        ? { label: `Have ${doctor?.name ?? "a healer"} set the bone`, note: "An hour of pulling and binding. It mends sooner, and straight.", line: `${doctor?.name ?? "The healer"} set the bone and bound it.`, minutes: 60, coin: 2, fits: !!doctor,
+          problem: !provider ? doctor ? `${doctor.name} the ${role} is not here.` : "There is no healer here." : undefined }
+        : { label: `Ask ${doctor?.name ?? "a healer"} to look at ${name}`, note: `An hour, and the ${role ?? "healer"} looks after ${name} for a day.`, line: `${doctor?.name ?? "The healer"} looked at ${name}.`, minutes: 60, coin: 2, fits: !!ill && !!doctor,
         problem: !ill ? `${own ? "You are" : `${name} is`} not ill.` : !provider ? doctor ? `${doctor.name} the ${role} is not here.` : "There is no healer here." : undefined },
-      medicine: { label: "Get antibiotics for the wound", note: antibiotic ? `${antibiotic.name} has a week's course to spare.` : "A week's course, if a doctor has one to spare.", line: "You got a course of antibiotics.", minutes: 60, coin: 3, fits: ill?.id === "wound",
-        problem: ill?.id !== "wound" ? "Only for an infected wound." : !antibiotic ? "No doctor nearby has any." : (ill.infection?.medicineUntil ?? 0) > clock ? "A course is already under way." : undefined },
+      medicine: ill?.id === "venom"
+        ? { label: "Get antivenom", note: antibiotic ? `${antibiotic.name} can give it now.` : "If a doctor nearby keeps it.", line: "You were given antivenom.", minutes: 60, coin: 3, fits: (this.world.pack.setting?.year ?? 0) >= 1900,
+          problem: !antibiotic ? "No doctor nearby has any." : (ill.infection?.medicineUntil ?? 0) > clock ? "You have already had it." : undefined }
+        : { label: "Get antibiotics for the wound", note: antibiotic ? `${antibiotic.name} has a week's course to spare.` : "A week's course, if a doctor has one to spare.", line: "You got a course of antibiotics.", minutes: 60, coin: 3, fits: ill?.id === "wound",
+          problem: ill?.id !== "wound" ? "Only for an infected wound." : !antibiotic ? "No doctor nearby has any." : (ill.infection?.medicineUntil ?? 0) > clock ? "A course is already under way." : undefined },
       rehydration: { label: "Get rehydration salts", note: "Mixed with clean water, they keep someone with diarrhea from drying out.", line: "You got rehydration salts.", minutes: 30, coin: 1, fits: ill?.id === "flux",
         problem: ill?.id !== "flux" ? "Only for diarrhea." : !fluids ? "No doctor nearby has any." : (ill.infection?.fluidsUntil ?? 0) > clock ? "That's already done for today." : undefined },
       "prepare-food": { label: "Take care over food and water", note: "For a day the household drinks clean water and eats food cooked through.", line: "You saw to the household's food and water.", minutes: 30, coin: 0, fits: own && (!ill || ill.id === "flux"),
@@ -1891,6 +2089,10 @@ export class Engine {
     if (s.care?.who === target) delete s.care;
     p.inventory.coin = Math.max(0, (p.inventory.coin ?? 0) - option.coin);
     if (treatment === "clean-wound" && a.injury) a.injury.cleanUntil = clock + 86400;
+    if (treatment === "consult" && !ail && a === p && p.injury && injuryDef(p.injury.id)?.bone && !p.injury.set) {
+      p.injury.set = true;
+      p.injury.until = clock + (p.injury.until - clock) * 0.7;
+    }
     if (treatment === "prepare-food") {
       p.preparedFoodUntil = clock + 86400;
       for (const member of s.actors) if (p.householdId && member.householdId === p.householdId) member.preparedFoodUntil = clock + 86400;
@@ -2166,7 +2368,12 @@ export class Engine {
     const card = pickCard(step.card, setting,
       weatherAt(skySeed(s.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", s.clock), s.manifest.seed, t.day,
       (c) => this.usableCard(c, t), new Set((s.record ?? []).map((r) => r.card)));
-    if (card) this.offerCard(card);
+    if (card) {
+      const who = this.cardPerson(card, t);
+      work.card = card.id;
+      work.who = who?.id;
+      this.bringCard(card, who);
+    }
     return card;
   }
   /** Arriving where the day's next step is done brings its card, so the
@@ -2221,9 +2428,9 @@ export class Engine {
     });
   }
   private toll?: { id: string; coins: number; most: ItemId; at: number; answered?: boolean };
-  private tollAnswerProblem(card: string, n: number) {
-    const t = this.toll, x = TOLL_ANSWERS[n];
-    if (!t || card !== `toll:${t.id}` || t.answered || !x) return "There is nothing to answer.";
+  private tollAnswerProblem(n: number) {
+    const t = this.toll!, x = TOLL_ANSWERS[n];
+    if (!x) return "There is nothing to answer.";
     const cost = x.kind === "pay" ? t.coins : x.kind === "bribe" ? Math.ceil(t.coins / 2) : 0;
     if (x.kind === "bribe" && !t.coins) return "Nobody here pays in coin.";
     if (cost > (this.state.player.inventory.coin ?? 0)) return "You don't have the coin.";
@@ -3151,6 +3358,60 @@ export class Engine {
   private moveActor(a: Actor, pos: Position) {
     a.pos = pos;
     this.syncActor(a);
+    if (a.kind === "human" && pos.space === "outside") this.mindSnake(a);
+  }
+  /** Venomous snakes out in the open, by cell; rebuilt each tick. */
+  private snakesAt?: Map<string, { g: FaunaGroup; m: FaunaMember }>;
+  /** The nearest snake in sight within `r`. One lying hidden in cover is
+   * only found from `close` cells or nearer; route planning never knows it. */
+  private snakeNear(x: number, y: number, r: number, close = 1) {
+    if (!this.snakesAt) {
+      this.snakesAt = new Map();
+      for (const g of this.state.fauna ?? [])
+        if (faunaCombat(faunaProfile(g.speciesId) ?? ({ id: g.speciesId } as never)).venom)
+          for (const m of g.members) this.snakesAt.set(`${m.x},${m.y}`, { g, m });
+    }
+    if (!this.snakesAt.size) return undefined;
+    for (let dy = -r; dy <= r; dy++)
+      for (let dx = -r; dx <= r; dx++) {
+        const s = this.snakesAt.get(`${x + dx},${y + dy}`);
+        if (s && (!s.m.hidden || Math.max(Math.abs(dx), Math.abs(dy)) <= close)) return s;
+      }
+    return undefined;
+  }
+  /** When each person last saw each snake, `who:group`. Never saved. */
+  private snakeSeen = new Map<string, number>();
+  /** The player, coming on a snake: a "!" over their head, once a sighting. */
+  private snakeWatch() {
+    const p = this.state.player;
+    if (p.pos.space !== "outside" || p.dead) return;
+    const s = this.snakeNear(p.pos.x, p.pos.y, 3);
+    const key = s && `player:${s.g.id}`;
+    if (!s || (this.snakeSeen.get(key!) ?? -Infinity) > this.state.clock - 300) return;
+    this.snakeSeen.set(key!, this.state.clock);
+    this.cue("player", "alarm", { x: s.m.x, y: s.m.y });
+  }
+  /** Someone walking who comes on a snake: they start, cry out and go round.
+   * Too close, and it may bite: most often a viper, which gives no warning. */
+  private mindSnake(a: Actor) {
+    const s = this.snakeNear(a.pos.x, a.pos.y, 2);
+    if (!s || a.dead) return;
+    const clock = this.state.clock, key = `${a.id}:${s.g.id}`, seed = this.state.manifest.seed;
+    const close = Math.max(Math.abs(s.m.x - a.pos.x), Math.abs(s.m.y - a.pos.y)) <= 1;
+    if ((this.snakeSeen.get(key) ?? -Infinity) <= clock - 600) {
+      this.cue(a.id, "alarm", { x: s.m.x, y: s.m.y });
+      if (random(seed, "snake-cry", a.id, clock) < 0.6) this.signal({ kind: "say", who: a.id, text: "Snake!" });
+      this.routes.delete(a.id);
+    } else if (this.snakeSeen.get(key)! < 0) return;
+    this.snakeSeen.set(key, clock);
+    if (!close || random(seed, "snake-bite", a.id, s.g.id, clock) >= (/viper|adder/.test(s.g.speciesId) ? 0.35 : 0.1)) return;
+    // Bitten once a meeting: marked so a second step past it does not roll again.
+    this.snakeSeen.set(key, -clock - 1);
+    this.signal({ kind: "say", who: a.id, text: "It bit me!" });
+    const ail = this.poison(a, s.g);
+    if (distance(a.pos, this.state.player.pos) < 20)
+      this.event(`A ${faunaProfile(s.g.speciesId)!.label.toLowerCase()} bites ${a.name}.`, "social");
+    if (ail) this.offerCare(ail);
   }
   /** Same-cell test standing in for `actors.some(o => distance(o.pos, p) < 1)`;
    * positions are integer cells, so the two agree. */
@@ -3362,6 +3623,50 @@ export class Engine {
       this.motorIndex = { objects, size: objects.length, trucks: objects.filter((o) => o.motor) };
     return this.motorIndex.trucks;
   }
+  /** Cells under moving traffic, supplied by whoever is running it. Not saved, and absent headless. */
+  trafficAt?: (x: number, y: number) => boolean;
+  /** Counts horn blasts, for the renderer to sound. Not saved. */
+  carHorn = 0;
+  private freedCars?: { objects: WorldObject[]; cells: Set<string> };
+  /** Ground the plan made solid under a parked car that has since been driven off. */
+  private carGone(x: number, y: number) {
+    const objects = this.state.objects;
+    if (this.freedCars?.objects !== objects) {
+      const cells = new Set<string>();
+      for (const o of objects) if (o.car?.freed) for (let cy = o.car.freed[1]; cy <= o.car.freed[3]; cy++) for (let cx = o.car.freed[0]; cx <= o.car.freed[2]; cx++) cells.add(`${cx},${cy}`);
+      this.freedCars = { objects, cells };
+    }
+    return this.freedCars.cells.size > 0 && this.freedCars.cells.has(`${x},${y}`);
+  }
+  /** Cells of driving left in the tank. A car nobody has driven has whatever its owner left in it. */
+  carFuel(o: WorldObject) {
+    return o.car!.fuel ?? Math.round(carSpec(o.car!.model).range * (0.3 + 0.6 * random(this.state.manifest.seed, "fuel", o.id)));
+  }
+  /** Petrol pumps within reach of a car's filler. */
+  carPump(o: WorldObject) {
+    return this.state.objects.find((x) => x.sprite.includes("pump-island") && Math.abs(x.pos.x - o.pos.x) <= 5 && Math.abs(x.pos.y - o.pos.y) <= 4);
+  }
+  fuelPrice(o: WorldObject) {
+    const range = carSpec(o.car!.model).range;
+    return Math.ceil((1 - this.carFuel(o) / range) * 6 - 0.05);
+  }
+  /** Standing beside a car nobody has moved yet. */
+  carDoor(o: WorldObject) {
+    const r = o.car?.rect, p = this.state.player;
+    if (!r || o.motor || p.pos.space !== "outside" || p.perch || p.afloat || p.guidingPlough || p.drivingCart || p.riding) return false;
+    return p.pos.x >= r[0] - 1 && p.pos.x <= r[2] + 1 && p.pos.y >= r[1] - 1 && p.pos.y <= r[3] + 1;
+  }
+  /** Someone else's car is locked: what the player holds that would break its window, "" for a thief who
+   * can work the lock quietly, null for no way in, undefined when it is not locked. */
+  carBreaker(o: WorldObject) {
+    if (!o.car || o.car.yours || o.car.smashed || o.motor) return undefined;
+    const p = this.state.player;
+    if (p.origin?.livelihood === "car-thief") return "";
+    const held = p.held && this.object(p.held), def = held && propDefs[held.prop ?? ""];
+    if (held && (def?.strike || def?.tool)) return held.name.toLowerCase();
+    const item = !held && p.heldItem ? this.item(p.heldItem) : undefined;
+    return item?.hand?.strike ? item.name.toLowerCase() : null;
+  }
   vehicleCab(o: WorldObject) {
     const m = o.motor,
       p = this.state.player;
@@ -3370,11 +3675,13 @@ export class Engine {
       const v = this.world.vehicle?.(o.id);
       if (v?.delivery && deliveryAt(v, this.state.clock - (m.delay ?? 0)).cab) return false;
     }
+    if (m.slim !== undefined) return motorBody(o.pos, m).some((c) => Math.max(Math.abs(c.x - p.pos.x), Math.abs(c.y - p.pos.y)) <= 1);
     return [2, -2].some((side) => distance(p.pos, { ...truckOffset(o.pos, m.facing, 2, side), space: "outside" }) <= 1.5);
   }
   private cabExit(o: WorldObject) {
-    for (const side of [2, -2, 3, -3]) {
-      const pos = { ...truckOffset(o.pos, o.motor!.facing, 2, side), space: "outside" };
+    const slim = o.motor!.slim !== undefined;
+    for (const side of slim ? [1, -1, 2, -2] : [2, -2, 3, -3]) {
+      const pos = { ...truckOffset(o.pos, o.motor!.facing, slim ? 0 : 2, side), space: "outside" };
       if (
         !this.blocked(pos.x, pos.y, pos.space) &&
         !this.actorAt(pos, "player") &&
@@ -3383,12 +3690,12 @@ export class Engine {
         return pos;
     }
   }
-  private driveBlocked(o: WorldObject, dx: number, dy: number) {
+  private driveBlocked(o: WorldObject, dx: number, dy: number, heading?: number) {
     if (!Number.isInteger(dx) || !Number.isInteger(dy) || Math.max(Math.abs(dx), Math.abs(dy)) !== 1) return true;
-    const f = facingFromStep(dx, dy, 0),
+    const f = heading ?? facingFromStep(dx, dy, 0),
       m = o.motor!;
     const clear = (x: number, y: number, face: number) =>
-      truckBody({ x, y }, face, m.long).every((cell) => {
+      motorBody({ x, y }, { ...m, facing: face }).every((cell) => {
         const { x, y } = cell;
         return (
           !this.blocked(x, y, "outside", o.id) &&
@@ -3397,7 +3704,7 @@ export class Engine {
         );
       });
     const { x, y } = o.pos;
-    if (this.world.canCross && !truckBody(o.pos, f, m.long).every(cell =>
+    if (this.world.canCross && !motorBody(o.pos, { ...m, facing: f }).every(cell =>
       this.world.canCross!(cell, {x:cell.x+dx, y:cell.y+dy}))) return true;
     return !clear(x + dx, y + dy, f) || !clear(x, y, f) || !!(dx && dy && (!clear(x + dx, y, f) || !clear(x, y + dy, f)));
   }
@@ -3496,7 +3803,14 @@ export class Engine {
     return Object.values(this.state.catalog ?? {}).some((d) =>
       d.made?.form === form && !d.made?.flop && ((p.inventory[d.id] ?? 0) > 0 || p.heldItem === d.id));
   }
+  /** A wheelchair needs level ground or a slope: no bank up or down. */
+  private chairBank(from: Point, to: Point) {
+    if (this.body().look !== "wheelchair" || this.state.player.pos.space !== "outside" || this.state.player.riding) return false;
+    const a = this.world.topography?.(from.x, from.y), b = this.world.topography?.(to.x, to.y);
+    return !!a && !!b && a.height !== b.height && !a.ramp && !b.ramp;
+  }
   playerCanCross(from: Point, to: Point) {
+    if (this.chairBank(from, to)) return false;
     if (this.onWall() && this.walkAt(from.x, from.y) && this.walkAt(to.x, to.y)) return true;
     const ship=this.state.player.boat && this.object(this.state.player.boat)?.vessel;
     if(ship){
@@ -3789,7 +4103,6 @@ export class Engine {
   indoorSpot(a: Actor, space: string, label = "", index = 0): Position {
     const room = this.interiorOf(space);
     if (!room) return { x: 3 + (index % 4), y: 3, space };
-    const hour = (this.state.clock / 3600) % 24;
     const l = label.toLowerCase();
     const trade = livelihoodOf(this.world.pack, a)?.activity.toLowerCase().split(/\s+/)[0];
     // In a taproom the household serves while it is up, and nobody else is put to bed.
@@ -3803,23 +4116,28 @@ export class Engine {
     const stall = room.institution === "bazaar" && (label === "Minding the stall" || label === "Looking over the wares");
     const clerk = room.institution === "magistracy" && /record|writing/i.test(label);
     const hearing = room.institution === "magistracy" && /holding (court|office)/i.test(label);
-    const stations = stall ? room.work.filter(s => s.kind === "shopcounter" && s.facing === (label === "Minding the stall" ? 2 : 0)) :
+    // In a house kept as a shop one person minds the counter by day; the rest of the household keeps to the rooms behind.
+    const keeper = this.shopKeeper(space, a);
+    const minding = this.mindsCounter(a, space, l);
+    const stations = minding ? room.work.filter(s => s.kind === "shopcounter") : stall ? room.work.filter(s => s.kind === "shopcounter" && s.facing === (label === "Minding the stall" ? 2 : 0)) :
       clerk || hearing ? room.work.filter(s => roomAt(room,s.x,s.y)?.role === (clerk ? "work" : "hall")) :
       duties || teaching ? room.work.filter(s => (duties || ["altar"]).includes(s.kind)) : room.work;
-    const sleeping = /sleep|night|\bbed\b/.test(l) || ((resident || !serving) && (hour < 5.5 || hour >= 22));
-    const cooking = !sleeping && /cook|eat|meal|supper|breakfast|dinner|hearth|fire|kitchen/.test(l);
-    const working = !sleeping && !cooking && (!!duties || teaching || stall || clerk || hearing || (serving && resident && (a.age ?? 30) >= 14) || (!!trade && l.includes(trade)) || /work|weav|spin|pott|writ|sew|mend|grind|count|trad|keep|craft|carv|brew|bak/.test(l));
+    const sleeping = this.asleep(a, space, label);
+    const cooking = !sleeping && !minding && /cook|eat|meal|supper|breakfast|dinner|hearth|fire|kitchen/.test(l);
+    const working = !sleeping && !cooking && (!!duties || teaching || stall || clerk || hearing || minding || (serving && resident && !keeper && (a.age ?? 30) >= 14) || (!!trade && l.includes(trade)) || /work|weav|spin|pott|writ|sew|mend|grind|count|trad|keep|craft|carv|brew|bak/.test(l));
     const pupil = l === "at school" && room.rooms.some(b => b.role === "classroom");
     const servingMeal = !!room.observance?.diner && rite === room.observance.visit;
     const order = rite ? [servingMeal ? room.fire.filter(inWing) : rite.at ? room.work.filter(s => s.kind === rite.at && inWing(s)) : room.seats.filter(s => inWing(s))] : pupil ? [room.seats.filter(s => s.kind === "pew"), room.seats] : sleeping ? [room.beds] : working ? [stations, room.fire, room.seats] : cooking ? [room.fire, room.seats]
       : serving && !resident ? [room.seats.filter((s) => s.on), room.seats, room.fire] : [room.seats, room.fire, room.work];
+    const front = keeper && keeper !== a.id && (resident || working) ? room.rooms[0] : undefined;
+    const lists = front ? order.map(list => list.filter(s => s.kind !== "shopcounter" && roomAt(room, s.x, s.y) !== front)) : order;
     const taken = new Set(
       [this.state.player, ...this.state.actors]
         .filter((o) => o !== a && o.pos.space === space)
         .map((o) => `${o.pos.x},${o.pos.y}`),
     );
     const moved = this.movedFurnishings(room,space);
-    for (const [n, list] of order.entries()) {
+    for (const [n, list] of lists.entries()) {
       const free = list.filter((p) => !taken.has(`${p.x},${p.y}`) && !moved.has(p.propId) && (p.on || !this.blocked(p.x, p.y, space)));
       if (!free.length) continue;
       // The front of the work goes to whoever works it; seats and beds are shared out.
@@ -3827,7 +4145,8 @@ export class Engine {
       const spot = row || (rite || duties || teaching || stall ? free[Math.floor(random(this.state.manifest.seed, "shift-station", a.id, label) * free.length)] : n === 0 && working ? free[0] : free[index % free.length]);
       a.direction = spot.facing;
       delete a.facing;
-      this.indoorUses.set(a.id, { ...spot, on: rite && spot.kind === "prayer" ? undefined : spot.on, role: list === room.beds ? "bed" : rite?.at || list === stations ? "work" : servingMeal || list === room.fire ? "fire" : "seat", space, cooking });
+      const of = order[n];
+      this.indoorUses.set(a.id, { ...spot, on: rite && spot.kind === "prayer" ? undefined : spot.on, role: of === room.beds ? "bed" : rite?.at || of === stations ? "work" : servingMeal || of === room.fire ? "fire" : "seat", space, cooking });
       return { x: spot.x, y: spot.y, space };
     }
     const exit = `${room.exit.x},${room.exit.y}`;
@@ -3835,7 +4154,7 @@ export class Engine {
     const warm = room.fire[0] ?? room.entry;
     const floor = [...room.walk]
       .map((k) => k.split(",").map(Number))
-      .filter(([x, y]) => !taken.has(`${x},${y}`) && `${x},${y}` !== exit && !this.blocked(x, y, space) && !(x === room.entry.x && y === room.entry.y) && inWing({x,y}))
+      .filter(([x, y]) => !taken.has(`${x},${y}`) && `${x},${y}` !== exit && !this.blocked(x, y, space) && !(x === room.entry.x && y === room.entry.y) && inWing({x,y}) && (!front || roomAt(room, x, y) !== front))
       .sort(([ax, ay], [bx, by]) => (sleeping ? Math.hypot(ax - warm.x, ay - warm.y) - Math.hypot(bx - warm.x, by - warm.y) : 0));
     // A standing congregation fills the nave below the chancel, front rows first, facing the altar.
     const altar = wing ? room.props.find(q => room.rooms[q.room ?? 0] === wing && q.kind === "altar") :
@@ -3865,6 +4184,7 @@ export class Engine {
     const [x, y] = floor[rite && floor.length ? (index * 13 + 7) % floor.length : sleeping ? index % Math.min(3, floor.length || 1) : 0] ?? exit.split(",").map(Number);
     if (sleeping) this.indoorUses.set(a.id, { x, y, facing: 2, kind: "mat", propId: -1, on: "bed", role: "bed", space });
     else if (rite && rite === room.observance?.diner) this.indoorUses.set(a.id, {x,y,facing:2,kind:"mat",propId:-1,on:"floor",role:"seat",space});
+    else this.indoorUses.delete(a.id);
     return { x, y, space };
   }
   /** Walls, water and built-in pieces: what stands there whatever anyone moves. */
@@ -3883,10 +4203,11 @@ export class Engine {
   blocked(x: number, y: number, space = this.state.player.pos.space, exceptVehicle?: string) {
     const key = `${space}:${x},${y}`;
     return (
-      this.ground(x, y, space) ||
+      (this.ground(x, y, space) && !(space === "outside" && this.carGone(x, y))) ||
+      (space === "outside" && !!this.trafficAt?.(x, y)) ||
       (space==="outside" && this.motorVehicles().some(o=>o.motor && o.id!==exceptVehicle &&
         Math.abs(o.pos.x-x)<=4 && Math.abs(o.pos.y-y)<=4 &&
-        truckBody(o.pos,o.motor.facing,o.motor.long).some(c=>c.x===x && c.y===y))) ||
+        motorBody(o.pos,o.motor).some(c=>c.x===x && c.y===y))) ||
       (space === "outside" && this.gateShut(x, y)) ||
       (!!caveBeastAt(this.state, space, x, y)) ||
       (
@@ -4704,7 +5025,12 @@ export class Engine {
     const injury = this.state.player.injury;
     if (injury && injury.until <= this.state.clock) {
       delete this.state.player.injury;
-      this.event(`Your ${injury.name} has mended.`);
+      const def = injuryDef(injury.id), year = this.world.pack.setting?.year ?? 1500;
+      // An unset leg before modern surgery knits as it lies, often short or bent.
+      if (def?.bone && def.part === "leg" && def.grade === 3 && !injury.set && this.rng(`knit:${injury.since}`) < (year >= 1900 ? 0.2 : 0.5)) {
+        this.scar("crooked-leg");
+        this.event(`Your ${def.name.replace(/^an? /, "")} has knit, but crooked. You will limp for the rest of your life.`);
+      } else this.event(`Your ${injury.name.replace(/^an? /, "")} has mended.`);
       return false;
     }
     return !!injury;
@@ -4987,7 +5313,8 @@ export class Engine {
     p.pos = { space: "outside", x: land.x, y: land.y };
     if (this.state.manifest.survival || this.state.manifest.hazards) {
       const dmg = Math.min(4, Math.max(0, (p.health ?? 100) - 5));
-      if (dmg > 0) this.hurt(dmg, "being thrown from a mount");
+      if (dmg > 0) this.hurt(dmg, "being thrown from a mount", this.pickInjury("thrown",
+        [["broken-collarbone", 0.08], ["broken-arm", 0.05], ["concussion", 0.06], ["sprained-ankle", 0.06], ["bruises", 0.4]]));
     }
     this.emitRideEvent("buck", mount.speciesId, { from, to: land });
     this.event(message);
@@ -5099,7 +5426,8 @@ export class Engine {
   }
   private scar(injury: string) {
     const p = this.state.player;
-    if (!p.scars?.includes(injury)) p.scars = [...(p.scars ?? []), injury].slice(-4);
+    // A crooked leg is for life; the other marks give way to newer ones.
+    if (!p.scars?.includes(injury)) p.scars = [...(p.scars ?? []).filter((s) => s !== "crooked-leg"), injury].slice(-4).concat(p.scars?.includes("crooked-leg") ? ["crooked-leg"] : []);
   }
   /** One blow of a heavy tool at a shut door. Three blows' worth and it gives:
    * it stands open for good, and the household inside is terrified. */
@@ -5305,9 +5633,9 @@ export class Engine {
     a.memories.push(`The player ${act} the town wall`);
     this.complain(a, { act, object: "the town wall", victim: a.id, tone: -4, at: this.state.clock, hops: 0 });
   }
-  private wallAnswerProblem(card: string, n: number) {
-    const w = this.wallChallenge, x = WALL_ANSWERS[n];
-    if (!w || card !== `wall:${w.id}` || w.warnedAt === undefined || w.answered || w.chase || !x || !this.onWall()) return "There is nothing to answer.";
+  private wallAnswerProblem(n: number) {
+    const x = WALL_ANSWERS[n];
+    if (!x) return "There is nothing to answer.";
     if (x.coin && (this.state.player.inventory.coin ?? 0) < x.coin) return "You don't have the coin.";
   }
   private wallAnswer(n: number) {
@@ -5457,7 +5785,7 @@ export class Engine {
     for (const w of watchers) {
       this.crowd.set(w.id, this.state.clock + 180);
       w.offRoutine = true;
-      w.activity = "Watching the fight";
+      w.activity = statsOf(this.state.manifest.seed, w).agreeableness < 35 ? "Egging the fight on" : "Watching the fight";
       this.cue(w.id, "alarm", a.pos);
     }
     if (!watchers.length) return;
@@ -5513,18 +5841,21 @@ export class Engine {
       }
     }
   }
-  /** In rain or snow most people out of doors drop what they are doing and
-   * hurry home; a few work on regardless. */
+  /** In rain, snow or a dust storm most people out of doors drop what they are
+   * doing and hurry home; a few work on regardless. */
   private runIndoors(clock: number) {
     const setting = this.world.pack.setting;
     const sky = weatherAt(skySeed(this.state.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", clock).condition;
-    if (sky !== "rain" && sky !== "snow") return;
+    if (!foul(sky)) return;
     for (const a of this.state.actors) {
       if (a.kind !== "human" || a.dead || a.pos.space !== "outside" || a.offRoutine || a.errand || a.tends || a.guard || a.mount) continue;
       // A stall has its awning and a seller's living is the day's trade.
       if (keepsShop(this.world.pack, a)) continue;
       const roll = random(this.state.manifest.seed, "shelter", a.id, Math.floor(clock / 3600));
-      if (a.id === this.conversing || roll < 0.15) continue;
+      // The diligent and those who cannot afford a lost day work on in it; the well-off never do.
+      const rank = standingOf(this.state.manifest.seed, a)?.rank;
+      const stays = rank === "gentry" || rank === "elite" ? 0 : 0.03 + statsOf(this.state.manifest.seed, a).conscientiousness / 400 + (rank === "destitute" ? 0.1 : 0);
+      if (a.id === this.conversing || roll < stays) continue;
       // Some only get as far as the nearest doorway and wait it out there.
       const door = roll < 0.3 && this.world.places
         .filter((pl) => pl.access === "public" || pl.door)
@@ -5548,7 +5879,7 @@ export class Engine {
     if (!game || p.space !== "outside" || hour < 9 || hour >= 21) return;
     const setting = this.world.pack.setting;
     const sky = weatherAt(skySeed(s.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", clock).condition;
-    if (sky === "rain" || sky === "snow") return;
+    if (foul(sky)) return;
     const plan = (this.world as Partial<import("../world/v3/generate").SettlementWorld>).planAt?.(p.x, p.y);
     if (!plan) return;
     const pitch = new Set((plan.venues ?? []).filter((v) => v.venue.open && v.venue.kind === "gaming-house").map((v) => `${v.pos.x},${v.pos.y}`));
@@ -5569,11 +5900,13 @@ export class Engine {
         .map(([dx, dy]) => ({ x: spot.x + dx, y: spot.y + dy, space: "outside" }))
         .find((c) => free(c.x, c.y) && ring.every(([dx, dy]) => free(c.x + dx, c.y + dy)));
       if (!at) continue;
+      const keen = (a: Actor) => { const t = statsOf(s.manifest.seed, a); return distance(a.pos, at) + (t.conscientiousness - t.extraversion) / 10; };
       const players = s.actors
         .filter((a) => a.kind === "human" && !a.dead && a.pos.space === "outside" && (a.age ?? 30) >= 16 && a.id !== this.conversing &&
           !(a.offRoutine || a.errand || a.tends || a.guard || a.mount || a.staff || a.task || a.post || a.watch || a.follows || a.perch || a.seated || a.figure) &&
-          !keepsShop(this.world.pack, a) && distance(a.pos, at) < 22)
-        .sort((a, b) => distance(a.pos, at) - distance(b.pos, at))
+          !keepsShop(this.world.pack, a) && distance(a.pos, at) < 22 && !this.conditions?.get(a.householdId ?? "")?.mourning)
+        // The sociable and the easygoing are the ones who stop for a game.
+        .sort((a, b) => keen(a) - keen(b))
         .slice(0, size);
       if (players.length < size) continue;
       const until = clock + (40 + Math.floor(random(s.manifest.seed, "street-game-length", at.x, at.y, clock) * 50)) * 60;
@@ -5890,12 +6223,17 @@ export class Engine {
     if (!this.blocked(next.x, next.y, next.space) && !this.actorAt(next, "player")) p.pos = next;
     p.health = Math.max(0, (p.health ?? 100) - damage);
     this.hurtAt = this.state.clock;
-    if (this.state.manifest.disease && this.item(a.heldItem ?? "")?.hand?.edge)
-      p.injury = { name: "a cut", until: this.state.clock + 3 * 86400, since: this.state.clock, open: true };
+    const edge = !!this.item(a.heldItem ?? "")?.hand?.edge;
+    const mark = p.health > 0 && this.pickInjury(`blow:${a.id}`, edge ? [["gash", 0.2], ["cut", 0.6]]
+      : armed ? [["concussion", 0.06], ["broken-arm", 0.03], ["cracked-ribs", 0.05], ["bruises", 0.3]]
+      : [["broken-nose", 0.03], ["black-eye", 0.08], ["split-lip", 0.06]]);
     this.cue("player", "struck", a.pos);
     this.flinch(p.pos);
     this.event(`${a.name.toUpperCase()} HITS YOU${armed ? ` WITH THE ${this.item(a.heldItem!)?.name.toUpperCase() ?? "WEAPON"}` : ""}! (-${damage})`);
-    if (p.health <= 0) this.pendingCollapse = { by: a.name, part: "cracked ribs" };
+    if (mark) this.injure(mark);
+    // A beating puts you down; a blade kills.
+    if (p.health <= 0 && this.item(a.heldItem ?? "")?.hand?.edge) this.die(`wounds from a fight with ${a.name}`);
+    else if (p.health <= 0) this.pendingCollapse = { by: a.name, part: this.pickInjury("beaten", [["cracked-ribs", 0.45], ["concussion", 0.25], ["broken-nose-bad", 0.15], ["broken-arm", 0.15]]) ?? "bruises" };
   }
   /** Kin or a friend who sees the player in a fight. Once a fight, the nearest
    * steps in and has their say; what they say decides what they do. */
@@ -6018,17 +6356,79 @@ export class Engine {
     const ceiling = this.state.manifest.survival ? Math.max(current, Math.round(100 - 70 * ailing(this.state, p.id, this.state.clock))) : 100;
     p.health = Math.min(ceiling, current + amount);
   }
-  private hurt(damage: number, cause: string, injury?: string) {
+  private hurt(damage: number, cause: string, injury?: InjuryId) {
     const p = this.state.player;
     if (p.dead || damage <= 0) return;
     p.health = Math.max(0, (p.health ?? 100) - damage);
     if (this.state.baby) jolt(this.state.baby, 45);
-    if (injury) p.injury = { name: injury, until: Math.max(p.injury?.until ?? 0, this.state.clock + 3 * 86400), ...(this.state.manifest.disease ? { since: this.state.clock, open: /cut|bite|bitten|scratch|gash|burn|claw|pierc|bleed/i.test(injury) } : {}) };
-    // A bad fall or a burn heals to a mark that stays.
-    if (injury && (damage >= 35 || injury === "burned skin")) this.scar(injury);
-    if (p.health <= 0) this.die(cause);
+    if (p.health <= 0) return this.die(cause);
+    if (injury) this.injure(injury);
   }
-  private fall(from: Position, to: Position, extra = 0) {
+  /** Picks one of `odds` ([id, chance] in turn) or nothing. */
+  private pickInjury(purpose: string, odds: readonly (readonly [InjuryId, number])[]) {
+    let roll = this.rng(`injury:${purpose}:${this.state.clock}`);
+    for (const [id, chance] of odds) if ((roll -= chance) < 0) return id;
+    return undefined;
+  }
+  /** An injury to the player. A worse one than they have takes its place; a
+   * serious one stops the world for a moment (the `injured` signal) and then
+   * a card says what it means. `quiet` leaves the card to whoever calls. */
+  private injure(id: InjuryId, quiet = false) {
+    const p = this.state.player, def = injuryDef(id)!, clock = this.state.clock;
+    const had = this.injuryNow();
+    if (had && (had.def.grade > def.grade || had.def.id === id)) return;
+    const [lo, hi] = def.days;
+    const days = Math.round(lo + (hi - lo) * this.rng(`injury-days:${id}:${clock}`));
+    p.injury = { id, name: def.name, since: clock, until: clock + days * 86400, ...(def.open ? { open: true } : {}) };
+    if (def.grade === 3 || def.id === "burn") this.scar(def.id);
+    if (def.grade < 2) return void this.event(`${def.felt} (${def.name})`);
+    if (quiet) return;
+    this.signal({ kind: "injured", id, grade: def.grade });
+    this.event(`${def.felt} You have ${def.name}.`);
+    this.setback = {
+      serial: (this.setback?.serial ?? 0) + 1,
+      kicker: "INJURED",
+      title: def.name.replace(/^an? /, "").replace(/^./, (c) => c.toUpperCase()),
+      text: def.felt,
+      lines: injuryLines(def, days, this.world.pack.setting?.year ?? 1500),
+      injury: id,
+    };
+  }
+  /** The injury still mending, how far along, and what it stops. */
+  injuryNow(): { def: InjuryDef; mended: number } | undefined {
+    const i = this.state.player.injury, clock = this.state.clock;
+    const def = injuryDef(i?.id);
+    if (!i || !def || i.until <= clock) return undefined;
+    return { def, mended: (clock - (i.since ?? clock)) / Math.max(1, i.until - (i.since ?? clock)) };
+  }
+  private bodyMemo?: { key: string; body: ReturnType<typeof conditionBody> };
+  /** What the player was born with or has lived with for years. */
+  body() {
+    const p = this.state.player, setting = this.world.pack.setting;
+    const key = `${this.state.manifest.seed}|${setting?.year}|${p.age}|${p.role}|${p.condition}`;
+    if (this.bodyMemo?.key !== key) this.bodyMemo = { key, body: conditionBody(this.state.manifest.seed, p, setting) };
+    return this.bodyMemo.body;
+  }
+  /** What the player's figure wears: a wheelchair or a peg over any injury, else the injury's sling or crutch, else a lasting stick. */
+  hurtLook() {
+    const now = this.injuryNow(), lasting = this.body().look;
+    if (lasting === "wheelchair" || lasting === "trolley" || lasting === "peg") return lasting;
+    return hurtLook(now?.def, now?.mended) ?? lasting;
+  }
+  /** How the player can move today: the injury mending, a leg that knit crooked, and what they live with. */
+  gait() {
+    const now = this.injuryNow(), l = injuryLimits(now?.def, now?.mended), b = this.body();
+    const crooked = this.state.player.scars?.includes("crooked-leg");
+    return {
+      ...l,
+      pace: Math.min(l.pace, b.pace, crooked ? 0.88 : 1),
+      run: l.run && b.run,
+      climb: l.climb && b.climb,
+      ride: l.ride && b.ride,
+      lame: Math.max(l.lame, b.lame, crooked ? 1 : 0) as 0 | 1 | 2,
+    };
+  }
+  private fall(from: Position, to: Position, extra = 0, off?: string) {
     if (!this.state.manifest.hazards) return;
     const height = (q: Position) => q.space !== "outside" ? 0 :
       this.world.topography?.(q.x, q.y)?.height ?? (this.world.elevation?.(q.x, q.y) ?? 0) / TERRAIN_STEP;
@@ -6037,10 +6437,15 @@ export class Engine {
     const ground = this.groundClass(to.x, to.y, to.space);
     const cushion = ground === "sand" || ground === "snow" ? 0.8 :
       ground === "stone" || ground === "rock" ? 1.25 : 1;
-    const damage = Math.round(18 * Math.pow(drop - 1, 1.5) * cushion);
-    this.hurt(damage, "a fall", damage >= 35 ? "injured leg" : damage >= 15 ? "sprained ankle" : undefined);
+    // One storey hurts, two can cripple, three or more (about ten metres) kills.
+    const damage = Math.round(18 * Math.pow(drop - 1, 1.75) * cushion);
+    // A storey and you may turn an ankle; from higher something gives.
+    this.hurt(damage, off ? `a fall from ${off}` : "a fall", this.pickInjury("fall", damage >= 35
+      ? [["broken-leg", 0.4], ["broken-ankle", 0.2], ["broken-arm", 0.12], ["cracked-ribs", 0.12], ["concussion", 0.1], ["broken-wrist", 0.06]]
+      : damage >= 15 ? [["sprained-ankle", 0.3], ["broken-ankle", 0.07], ["broken-wrist", 0.07], ["wrenched-knee", 0.08], ["bruises", 0.3]]
+      : [["sprained-ankle", 0.08], ["bruised-knee", 0.25]]));
     this.lastStep.steps = 0;
-    this.event(`You hit the ground hard and lose ${damage} health.`);
+    if (!this.state.player.dead) this.event(`You hit the ground hard and lose ${damage} health.`);
   }
   fireUntil(now = this.state.clock) {
     if (!this.state.manifest.hazards) return 0;
@@ -6064,9 +6469,49 @@ export class Engine {
       this.event("The flames burn you. Get clear of the fire!");
       this.lastBurnNotice = started;
     }
-    this.hurt(duration * 5, "burns", "burned skin");
+    this.hurt(duration * 5, "burns", "burn");
   }
   private lastBurnNotice = -Infinity;
+  /** Out in hail. Big stones bruise anyone caught in the open; a roof, a
+   * closed car or a tree overhead keeps them off. Once a storm. */
+  private hailExposure(started: number) {
+    const s = this.state, p = s.player, setting = this.world.pack.setting;
+    if (!s.manifest.hazards || !setting || p.dead || p.pos.space !== "outside" || p.drivingVehicle) return;
+    const day = Math.floor(started / 86400);
+    if (this.hailed === day || weatherAt(skySeed(s.manifest), setting.climate, setting.season, started).hail < 0.6) return;
+    this.hailed = day;
+    const tree = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
+      const d = this.world.decoration(p.pos.x + dx, p.pos.y + dy);
+      return !!d?.solid && d.sprite !== "rock";
+    });
+    if (tree) return this.event("Hail rattles down through the branches over you. Under the tree only a few stones reach you.");
+    this.hurt(3 + Math.round(random(s.manifest.seed, "hail", started) * 4), "hailstones", "bruises");
+    if (!p.dead) this.event("Hailstones the size of walnuts are coming down. They sting your head and shoulders before you can get under anything.");
+  }
+  private hailed?: number;
+  /** Out in a thunderstorm. Being struck is rare in the open, likelier up a
+   * tree or a roof, under a lone tree, on the water or on horseback; a closed
+   * car is safe. About one in three struck dies; the rest are burned and
+   * knocked flat. */
+  private lightningExposure(seconds: number, started: number) {
+    const s = this.state, p = s.player, setting = this.world.pack.setting;
+    if (!s.manifest.hazards || !setting || p.dead || p.pos.space !== "outside" || p.drivingVehicle) return;
+    const storm = weatherAt(skySeed(s.manifest), setting.climate, setting.season, started).storm;
+    if (storm < 0.05) return;
+    const at = p.perch?.at ?? p.pos;
+    const tree = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
+      const d = this.world.decoration(at.x + dx, at.y + dy);
+      return !!d?.solid && d.sprite !== "rock";
+    });
+    const exposure = (p.perch ? 8 : tree ? 4 : 1) * (p.afloat ? 4 : 1) * (p.riding && !p.riding.cycle ? 2 : 1);
+    if (random(s.manifest.seed, "lightning", started) >= 1 - Math.exp(-4e-6 * storm * exposure * seconds)) return;
+    this.signal({ kind: "lightning", at: { x: at.x, y: at.y } });
+    if (random(s.manifest.seed, "lightning-kills", started) < 0.35) return this.die("being struck by lightning");
+    this.hurt(35 + Math.round(random(s.manifest.seed, "lightning-burn", started) * 25), "being struck by lightning", "burn");
+    if (p.dead) return;
+    p.perch = undefined;
+    this.event("Lightning strikes you. You come to on the ground with your ears ringing and your skin burned in fern-like marks.");
+  }
   private lastJump = -99;
   /** Striking a kept animal is striking its keeper's property. Anyone who
    * sees it thinks less of you; the keeper most of all, and they say so. */
@@ -6140,9 +6585,11 @@ export class Engine {
       (1 - this.skillLevel("animals") * 0.02) *
       (this.knows("steady-nerve") ? 0.75 : 1);
     p.health = Math.max(0, (p.health ?? 100) - damage);
-    if (g.rabid) p.injury = { name: "a rabid dog's bite", until: this.state.clock + 30 * 86400, since: this.state.clock, open: true };
-    else if (this.state.manifest.disease && damage >= 8 && random(this.state.manifest.seed, "animal-wound", g.id, m.n ?? 0, this.state.clock) < 0.6)
-      p.injury = { name: "an animal wound", until: this.state.clock + 3 * 86400, since: this.state.clock, open: true };
+    const horned = /boar|aurochs|bull|bison|buffalo|rhino|elephant|moose|elk|cattle|ox\b|deer|stag/.test(g.speciesId);
+    const wound: InjuryId | undefined = p.health <= 0 || faunaCombat(faunaProfile(g.speciesId)!).venom ? undefined
+      : g.rabid ? "rabid-bite"
+      : horned ? this.pickInjury(`gored:${g.id}`, damage >= 15 ? [["gored-thigh", 0.35], ["cracked-ribs", 0.3], ["broken-leg", 0.1], ["broken-arm", 0.1]] : [["bruises", 0.5], ["cracked-ribs", 0.15], ["sprained-ankle", 0.1]])
+      : this.pickInjury(`mauled:${g.id}`, damage >= 20 ? [["mauling", 0.5], ["gash", 0.35]] : damage >= 8 ? [["bite", 0.35], ["gash", 0.2]] : [["bite", 0.15], ["cut", 0.2]]);
     this.signal({
       kind: "mauled",
       group: g.id,
@@ -6154,7 +6601,8 @@ export class Engine {
     const name = m.name ?? `the ${faunaName(g, m)}`;
     const Name = `${name[0].toUpperCase()}${name.slice(1)}`;
     if (p.health > 0) {
-      this.event(`${Name} hits you hard.`);
+      if (!this.envenom(g)) this.event(`${Name} hits you hard.`);
+      if (wound) this.injure(wound);
       return;
     }
     for (const o of this.state.fauna ?? []) {
@@ -6162,19 +6610,41 @@ export class Engine {
       o.attack = undefined;
       for (const om of o.members) om.pose = undefined;
     }
-    // Settled once the tick that did it has finished.
-    this.pendingCollapse = {
-      by: Name,
-      part: g.speciesId === "gray-wolf" ? "torn arm" : "gored leg",
-    };
+    const how = /crocodile|alligator|caiman/.test(g.speciesId) ? "taken in the water by"
+      : /boar|aurochs|bull|bison|buffalo|rhino|elephant|moose|elk|cattle|ox\b/.test(g.speciesId) ? "gored by" : "mauled by";
+    const beast = faunaName(g, m);
+    this.die(`${how} ${m.name ?? `${/^[aeiou]/.test(beast) ? "an" : "a"} ${beast}`}`);
   }
-  private pendingCollapse?: { by: string; part: string };
+  /** A venomous snake's bite. Most inject; the venom then runs its course
+   * over hours as an illness, which rest and, from 1900, antivenom can turn. */
+  private envenom(g: FaunaGroup) {
+    if (!faunaCombat(faunaProfile(g.speciesId)!).venom) return false;
+    const snake = faunaProfile(g.speciesId)!.label.toLowerCase(), ail = this.poison(this.state.player, g);
+    this.event(ail
+      ? `The ${snake} bites you. Within minutes the bite is burning and the swelling is spreading up the limb.`
+      : `The ${snake} bites you. Two small punctures, and it stings.`);
+    if (ail) this.offerCare(ail);
+    return true;
+  }
+  /** Venom into someone, as an illness that runs over hours; undefined for a
+   * dry bite or where illness is not simulated. */
+  private poison(who: Actor, g: FaunaGroup) {
+    const v = faunaCombat(faunaProfile(g.speciesId)!).venom, s = this.state;
+    if (!v || !s.manifest.disease || s.ailments?.some((a) => a.who === who.id && a.id === "venom") ||
+        random(s.manifest.seed, "venom", g.id, who.id === s.player.id ? "" : who.id, s.clock) >= v.wet) return undefined;
+    const ail = infect(s, "venom", who, this.world.pack.setting, s.clock, g.speciesId, "wound");
+    ail.days = v.hours / 24;
+    ail.infection!.mortality = v.deadly;
+    (s.ailments ??= []).unshift(ail);
+    return ail;
+  }
+  private pendingCollapse?: { by: string; part: InjuryId };
   /** What the player reads when they come round. Never saved. */
-  lastCollapse?: { serial: number; title: string; text: string };
-  /** Nothing here kills the player. It costs them the day, what they were
-   * carrying in their hands, some of the game in their bag, and a hurt that
-   * takes days to mend. Someone near enough carries them home. */
-  private collapse(by: string, part: string) {
+  setback?: { serial: number; kicker: string; title: string; text: string; lines?: string[]; injury?: InjuryId };
+  /** Beaten down in a brawl: it costs the day, what was in hand, some of the
+   * game in the bag, and a hurt that takes days to mend. Someone near enough
+   * carries them home. Animals and blades kill instead (`die`). */
+  private collapse(by: string, part: InjuryId) {
     const p = this.state.player;
     const rescuer = this.state.actors
       .filter((a) => a.kind === "human" && a.pos.space === "outside")
@@ -6205,24 +6675,26 @@ export class Engine {
     p.activity = "Exploring";
     if (!this.state.manifest.survival) p.health = rescuer ? 35 : 20;
     p.hunger = Math.min(100, p.hunger + 15);
-    p.injury = { name: part, until: this.state.clock + 3 * 86400, ...(this.state.manifest.disease ? { since: this.state.clock, open: /torn|gored|cut/i.test(part) } : {}) };
-    this.scar(part);
+    this.injure(part, true);
+    const hurt = this.injuryNow()?.def ?? injuryDef(part)!;
     const text = [
       `${by} put you on the ground.`,
       rescuer
         ? `${rescuer.name} found you and had you carried home. You wake ten hours later.`
         : "Nobody came. You come round where you fell, hours later, cold and alone.",
       lost.length ? `Gone from your bag: ${lost.join(", ")}.` : "",
-      `Your ${part} will trouble you for three days: weaker blows, and you tire sooner.`,
+      `You have ${hurt.name}.`,
     ]
       .filter(Boolean)
       .join(" ");
     this.event(text);
     this.outUntil = this.state.clock + 3600;
-    this.lastCollapse = {
-      serial: (this.lastCollapse?.serial ?? 0) + 1,
+    this.setback = {
+      serial: (this.setback?.serial ?? 0) + 1,
+      kicker: "YOU WAKE",
       title: rescuer ? "Carried home" : "Left for dead",
       text,
+      lines: hurt.grade > 1 ? injuryLines(hurt, Math.round((p.injury!.until - this.state.clock) / 86400), this.world.pack.setting?.year ?? 1500) : undefined,
     };
   }
   private swimStep(depth: number) {
@@ -6354,8 +6826,9 @@ export class Engine {
       "Your strength gives out and the water closes over you. Hours later you wake on the shore, coughing up water, with nothing left in your hands.";
     this.event(text);
     this.outUntil = this.state.clock + 3600;
-    this.lastCollapse = {
-      serial: (this.lastCollapse?.serial ?? 0) + 1,
+    this.setback = {
+      serial: (this.setback?.serial ?? 0) + 1,
+      kicker: "YOU WAKE",
       title: "Washed ashore",
       text,
     };
@@ -8143,9 +8616,21 @@ export class Engine {
       return;
     }
     this.roofRun = undefined;
+    // Mid-roof, a jump is a hop along it; only the edge drops to the street.
+    const along = dir && p.perch?.roof ? this.roofStep(dir.dx, dir.dy) : undefined;
+    if (along && p.perch) {
+      p.perch.at = { x: along.x, y: along.y };
+      p.perch.on = along.place.id;
+      p.direction = dir!.dy < 0 ? 0 : dir!.dx > 0 ? 1 : dir!.dy > 0 ? 2 : 3;
+      p.facing = facingFromStep(dir!.dx, dir!.dy, p.direction);
+      this.lastLeap = { kind: "leap", distance: 2, seconds: 1, reason: "You hop along the roof." };
+      this.advance(1);
+      return;
+    }
     const jump = dir && this.dismountCell(dir.dx, dir.dy);
     if (jump) {
       const label = p.perch?.label ?? "the wall";
+      const off = p.perch?.roof ? "a roof" : label;
       const height = p.perch?.rise ?? 1;
       const from = { ...p.pos, ...(p.perch?.at ?? {}) };
       const drop = p.perch?.drop ?? (p.perch ? 2 : 1.5);
@@ -8160,7 +8645,8 @@ export class Engine {
         drop: height >= 10 ? 2 : 1,
         reason: `You drop clear of ${label}.`,
       };
-      this.fall(from, p.pos, drop);
+      this.fall(from, p.pos, drop, off);
+      if (p.dead) return;
       this.advance(12);
       this.event(`You jump down from ${label} and land clear of it.`);
       return;
@@ -8273,11 +8759,14 @@ export class Engine {
    * once and cleared; never part of the saved state. */
   doorAnswer?: string;
   /** A guard who has just barred the player's way, for the dialogue to open on. */
-  challenger?: string;
   /** Someone the plot sent to the player, and what they came to say. Talking
    * to them in time opens on it. */
   approacher?: { id: string; situation: string; until: number };
-  private approaching?: { id: string; line: string; until: number; title?: string; situation?: string; with?: string[]; onArrive?: () => void; valid?: () => boolean };
+  private approaching?: { id: string; line: string; until: number; title?: string; situation?: string; with?: string[]; onArrive?: () => void; valid?: () => boolean;
+    /** If they never get there, while still `valid`. */
+    late?: () => void;
+    /** The card they bring. */
+    card?: string };
   /** Cards someone has to bring, kept back while nobody can reach the player. */
   private held: PlotCard[] = [];
   /** Until when the player is out cold, and then an hour coming round: nobody brings news. */
@@ -8287,6 +8776,7 @@ export class Engine {
   }
   /** A card from home, the plot or kin: it waits while the player is underground or out cold. */
   private bring(card: PlotCard, first = false) {
+    this.called(this.state.clock);
     if (this.below) this.held.push(card);
     else if (first) this.cards.unshift(card);
     else this.cards.push(card);
@@ -8405,6 +8895,9 @@ export class Engine {
         if (actorId !== "player" && this.playerOn({ ...to, space: start.space }))
           return 12;
         if (actorId === "player" && start.space === "outside" && afloatAt(this.world, this.state.player, to.x, to.y)) return this.state.player.afloat === "swimming" ? 2.5 : 1.4;
+        // People give a snake a wide berth and never step on one.
+        const snake = human && start.space === "outside" ? this.snakeNear(to.x, to.y, 1, -1) : undefined;
+        if (snake) return snake.m.x === to.x && snake.m.y === to.y ? Infinity : 30;
         return start.space === "outside"
           ? (this.world.navigationCost?.(to.x, to.y, actorId) ?? 1) *
               (this.world.topography
@@ -8608,6 +9101,14 @@ export class Engine {
       else rows.set(k, { ...t });
     }
     return [...rows.values()].slice(0, limit);
+  }
+  /** The domestic animals these people own, counted by species, for a house's card. */
+  private keptBy(members: string[]) {
+    const n = new Map<string, number>();
+    for (const g of this.state.fauna ?? [])
+      if (g.owner && members.includes(g.owner) && faunaProfile(g.speciesId)?.category === "domestic")
+        n.set(g.speciesId, (n.get(g.speciesId) ?? 0) + g.members.length);
+    return [...n].map(([species, k]) => ({ species, n: k }));
   }
   inspect(id: string): Inspection | undefined {
     if (isComplexId(id)) return complexInspect(this.complex, id);
@@ -8911,6 +9412,8 @@ export class Engine {
           return actor && !actor.dead ? actor : undefined;
         },
         home && this.state.economy?.short[home.id],
+        home ? this.keptBy(home.members) : [],
+        home && !home.members.includes(this.state.player.id) ? houseTalk(this.state, home, (this.conditions ??= householdConditions(this.state)).get(home.id)) : undefined,
       );
       return {
         id,
@@ -8926,8 +9429,11 @@ export class Engine {
     if (!object) return;
     if(object.motor) {
       const aboard=this.state.player.drivingVehicle===id;
-      interact(aboard ? "leave-vehicle" : "drive-vehicle",aboard ? "Step out of the cab" : "Drive the truck",
-        aboard ? !!this.cabExit(object) : this.vehicleCab(object),"Walk up to an unattended cab");
+      interact(aboard ? "leave-vehicle" : "drive-vehicle",aboard ? (object.car ? "Get out" : "Step out of the cab") : object.car ? "Drive it" : "Drive the truck",
+        aboard ? !!this.cabExit(object) : this.vehicleCab(object),object.car ? "Walk up to the car" : "Walk up to an unattended cab");
+    } else if (object.car) {
+      const breaker = this.carBreaker(object);
+      interact("drive-vehicle", breaker ? `Smash the window with the ${breaker}` : "Drive it", this.carDoor(object) && breaker !== null, breaker === null ? "Locked: hold something heavy" : "Walk up to the car");
     }
     if (object.prop) {
       const def = propDefs[object.prop];
@@ -8955,6 +9461,7 @@ export class Engine {
           object.shopSupply ? `${object.inventory[object.shopSupply.item]??0} ${object.shopSupply.item==="bread" ? "loaves" : "measures of pepper"} on the counter. The shop opens from six in the morning to six in the evening.` : "",
           object.prop==="clothCounter" ? `Tied bales: ${object.inventory.cloth??0}. Bolts on sale: ${object.inventory["cloth-bolt"]??0}. Open from six in the morning to six in the evening.` : "",
           object.carriedBy ? "You are holding it." : "",
+          object.prop === "graveMound" && !object.broken ? this.graveLine(object) : "",
           this.belongsTo(object.owner),
         ]
           .filter(Boolean)
@@ -9148,6 +9655,9 @@ export class Engine {
     }
   }
   private *actionSteps(request: CommandRequest): Generator<void, CommandResult> {
+    // A bad leg turns a run into a walk rather than refusing it, so autopilot keeps going.
+    const c = request.command;
+    if (c.type === "move" && c.run && !this.state.player.riding && !this.gait().run) request = { ...request, command: { ...c, run: false } };
     const payload = canonical(request.command);
     const prior = Object.hasOwn(this.state.receipts, request.actionId)
       ? this.state.receipts[request.actionId]
@@ -9257,13 +9767,32 @@ export class Engine {
     }
     if (p.drivingVehicle) {
       const o = this.object(p.drivingVehicle);
+      if (c.type === "move" && o?.car && this.carFuel(o) <= 0) return "The tank is dry.";
       if (c.type === "move")
-        return !c.jump && o?.motor && !this.driveBlocked(o, c.dx, c.dy) ? undefined : "The truck cannot pass there.";
-      if (c.type !== "pass" && c.type !== "wait" && c.type !== "choose") return "Step out of the cab first.";
+        return !c.jump && o?.motor && !this.driveBlocked(o, c.dx, c.dy, c.heading) ? undefined : o?.car ? "The car cannot pass there." : "The truck cannot pass there.";
+      if (c.type === "interact" && (c.action === "car-horn" || c.action === "car-crash" || c.action === "car-fare" || c.action === "car-busted")) return undefined;
+      if (c.type === "interact" && c.action === "car-fuel")
+        return !o?.car ? "It does not take petrol from a pump." : !this.carPump(o) ? "Pull up to a pump." : (p.inventory.coin ?? 0) < this.fuelPrice(o) ? "You don't have the coin." : this.fuelPrice(o) ? undefined : "The tank is full.";
+      if (c.type !== "pass" && c.type !== "wait" && c.type !== "choose") return o?.car ? "Get out of the car first." : "Step out of the cab first.";
+    }
+    const hurt = this.injuryNow()?.def.name ?? this.body().name;
+    if (hurt && !p.riding) {
+      const gait = this.gait();
+      if (c.type === "move" && c.jump && !gait.climb) return `Not with ${hurt}.`;
+      if (c.type === "interact" && ((c.action === "climb" && !gait.climb) || ((c.action === "mount-cycle" || c.action === "mount-animal") && !gait.ride)))
+        return `Not with ${hurt}.`;
+    }
+    if (this.body().look === "wheelchair" && !p.riding) {
+      if (c.type === "move" && !c.jump && !c.traverse && this.chairBank(p.pos, { x: p.pos.x + c.dx, y: p.pos.y + c.dy }))
+        return "Too steep for the chair. Find a slope.";
+      if (c.type === "move" && this.wallStep(c.dx, c.dy) === "up") return "The chair can't take the stairs.";
+      if (c.type === "interact" && c.action === "lift" && this.towerLift()?.tower.style.lift.name === "Stairs")
+        return "There is no lift here, only stairs, and the chair can't take them.";
     }
     if (c.type === "interact" && c.action === "drive-vehicle") {
       if (p.riding) return "Dismount first.";
       const o = this.object(c.target);
+      if (o?.car) return !(o.motor ? this.vehicleCab(o) : this.carDoor(o)) ? "Walk up to the car." : this.carBreaker(o) === null ? "It's locked. Hold something heavy to break the window." : undefined;
       return o && this.vehicleCab(o) ? undefined : "Walk up to the cab while the driver is away.";
     }
     if (c.type === "interact" && (c.action === "mount-cycle" || c.action === "buy-cycle")) {
@@ -9373,41 +9902,15 @@ export class Engine {
       }
     }
     if (c.type === "interact" && c.action === "fill") return this.fillProblem(c.target);
-    if (c.type === "choose" && c.card.startsWith("patch:")) {
-      const t = this.trade(), g = this.gathering(t);
-      const options = this.state.workday?.patchChoices;
-      if (!g?.choosing || !t || !options || options.card !== c.card || this.state.workday?.day !== t.day || this.waitingCard()) return "This gathering round has ended.";
-      if (!options.ids.length && c.choice === 0) return;
-      const o = this.object(options.ids[c.choice]);
-      return o && foodPatch(o,g.season) && !o.depleted && (!o.owner || t.household.members.includes(o.owner)) ? undefined : "That patch is no longer ready.";
-    }
     if (c.type === "interact" && (c.action === "gather-work" || c.action === "fieldwork" || c.action === "work" && this.tileAt(c.target))) {
       const here = this.workHere()?.command;
       if (here?.action !== c.action || here.target !== c.target)
         return c.action === "fieldwork" ? "Walk to the marked patch in the field." : "There is no work for you here.";
       return;
     }
-    if (c.type === "choose" && c.card.startsWith("field:")) {
-      const t = this.trade(), field = this.handField(t);
-      if (!t || !field?.here || field.selected || c.card !== field.id || this.waitingCard()) return "Return to the field to choose your work.";
-      const options=this.fieldOptions(field);
-      return (options.length ? options.some(o=>fieldJobs.indexOf(o.job) === c.choice) : c.choice === fieldJobs.length) ? undefined : "That work is no longer available.";
-    }
-    if (c.type === "choose" && c.card.startsWith("wall:")) return this.wallAnswerProblem(c.card, c.choice);
-    if (c.type === "choose" && c.card.startsWith("toll:")) return this.tollAnswerProblem(c.card, c.choice);
-    if (c.type === "choose" && c.card.startsWith("plot:")) {
-      const plot = this.state.plot, ask = plot?.asking;
-      if (!plot || !ask || plot.ended || c.card !== this.plotQuestionId(plot) || !ask.choices[c.choice] ||
-          (plotTemplate(plot)?.journal && !ask.scene)) return "There is nothing to answer.";
-      if (ask.scene && (this.state.clock >= plot.deadline || !this.atPlotScene(plot, ask.scene) || (ask.by && !this.withinPlotReach(ask.by))))
-        return "You need to be there to answer.";
-      return;
-    }
-    if (c.type === "choose" && c.card.startsWith("help:"))
-      return this.state.asks?.some((x) => `help:${x.id}` === c.card && x.offered) && HELP[c.choice] ? undefined : "There is nothing to answer.";
     if (c.type === "choose") {
-      const choice = this.waitingCard() === c.card || this.state.care?.card === c.card || this.state.encounter?.card === c.card ? this.choiceCard(c.card)?.choices[c.choice] : undefined;
-      return !choice ? "There is nothing to answer." : this.choiceProblem(choice);
+      const q = this.question(c.card);
+      return q.gone ?? q.away ?? q.problem(c.choice);
     }
     if (c.type === "interact" && c.action === "douse") return this.douseProblem(c.target);
     if (c.type === "interact" && c.action === "snare") {
@@ -9963,7 +10466,7 @@ export class Engine {
   private faunaSky(clock: number) {
     const setting = this.world.pack.setting;
     const w = weatherAt(skySeed(this.state.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", clock);
-    return { rain: w.condition === "rain" || w.condition === "snow", wind: w.wind.angle };
+    return { rain: foul(w.condition), wind: w.wind.angle, tempC: w.tempC };
   }
   /** Calves for a herd of big stock whose species has no young art of its
    * own: a quarter of the cows have one at foot, drawn small beside her.
@@ -10266,6 +10769,9 @@ export class Engine {
         rng: (purpose) => this.rng(purpose),
         hour: (clock / 3600) % 24,
         habitat: (this.habitat ??= habitatScorer(this.world)),
+        // In growth or by a rock, or at the foot of a wall, a tree or a house.
+        cover: (x, y) => !!this.world.decoration(x, y) ||
+          [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => this.world.blocked(x + dx, y + dy, "outside")),
         crop: (x, y) => standingCrop(this.world, x, y),
         carrion: this.state.objects.filter((o) => o.remains === "carcass").map((o) => o.pos),
         ...this.faunaSky(clock),
@@ -10658,7 +11164,37 @@ export class Engine {
         if (!exit) return;
         p.pos = exit;
         delete p.drivingVehicle;
-        this.event("You park the truck and step down.");
+        this.event(o.car ? `You park the ${o.name.toLowerCase()} and get out.` : "You park the truck and step down.");
+      } else if (o.car) {
+        const breaker = this.carBreaker(o);
+        if (!o.motor) {
+          const r = o.car.rect!;
+          o.car.freed = r;
+          delete o.car.rect;
+          o.motor = { facing: carFacing(o.sprite), long: false, taken: true, slim: carReach(o.car.model) };
+          o.pos = { x: (r[0] + r[2]) >> 1, y: (r[1] + r[3]) >> 1, space: "outside" };
+          this.freedCars = this.motorIndex = undefined;
+        }
+        if (breaker) {
+          o.car.smashed = true;
+          for (const w of this.witnesses(14, o.pos)) this.cue(w.id, "alarm", o.pos);
+        }
+        if (!o.car.yours && !o.car.hot) {
+          // Breaking glass carries further than a quiet door.
+          o.car.hot = this.witnesses(breaker ? 14 : 10, o.pos).length > 0;
+          this.offend({
+            radius: breaker ? 14 : 10,
+            at: { ...o.pos },
+            cost: () => 3,
+            story: { act: "took", object: "a car" },
+            memory: () => "Saw player take " + o.id,
+            text: (w) => `${w.name} saw you take the ${o.name.toLowerCase()}.`,
+          });
+        }
+        p.drivingVehicle = o.id;
+        p.pos = { ...o.pos };
+        p.facing = o.motor!.facing;
+        this.event(breaker ? `You smash the window with the ${breaker} and get into the ${o.name.toLowerCase()}.` : breaker === "" ? `You work the lock and get into the ${o.name.toLowerCase()}.` : `You get into the ${o.name.toLowerCase()}.`);
       } else {
         const v = this.world.vehicle?.(o.id),
           driver = v && this.state.actors.find((a) => a.id === v.crew[0]);
@@ -10687,11 +11223,12 @@ export class Engine {
     }
     if (p.drivingVehicle && c.type === "move") {
       const o = this.object(p.drivingVehicle)!;
-      const f = facingFromStep(c.dx, c.dy, 0);
+      const f = c.heading ?? facingFromStep(c.dx, c.dy, 0);
       o.pos = { space: "outside", x: o.pos.x + c.dx, y: o.pos.y + c.dy };
       o.motor!.facing = p.facing = f;
-      o.sprite = o.sprite.replace(/-\d$/, "-" + f);
-      p.direction = c.dy < 0 ? 0 : c.dx > 0 ? 1 : c.dy > 0 ? 2 : 3;
+      o.sprite = o.car ? carFrame(o.sprite, f) : o.sprite.replace(/-\d$/, "-" + f);
+      if (o.car) o.car.fuel = Math.max(0, this.carFuel(o) - 1);
+      p.direction = Math.round(f / 2) % 4;
       p.pos = { ...o.pos };
       this.advance(1);
       return;
@@ -10737,6 +11274,54 @@ export class Engine {
       this.advance(1);
       return;
     }
+    if (c.type === "interact" && (c.action === "car-horn" || c.action === "car-crash" || c.action === "car-fuel" || c.action === "car-fare" || c.action === "car-busted")) {
+      const o = this.object(p.drivingVehicle ?? "");
+      if (!o?.motor) return;
+      if (c.action === "car-busted") {
+        // Caught by the police car: out of the seat, and to the cells if the place has any.
+        const stolen = !!o.car && !o.car.yours && !!o.car.hot;
+        p.pos = this.cabExit(o) ?? { ...o.pos };
+        delete p.drivingVehicle;
+        if (this.arrest(stolen ? "taking a car that was not yours" : "dangerous driving", stolen ? 5 : 2)) return;
+        const fine = Math.min(p.inventory.coin ?? 0, stolen ? 8 : 4);
+        if (fine) p.inventory.coin = (p.inventory.coin ?? 0) - fine;
+        this.event(`The police pull you out of the ${o.name.toLowerCase()}${fine ? ` and fine you ${fine} coin` : ""}.`);
+        return;
+      }
+      if (c.action === "car-horn") {
+        this.carHorn++;
+        this.scatterSmallFauna(p.pos);
+        for (const w of this.witnesses(6, o.pos)) this.cue(w.id, "alarm", o.pos);
+      } else if (c.action === "car-fare") {
+        // The fare is run by whoever draws the street; the engine only settles it.
+        const pay = Math.max(0, Math.min(12, Math.round(Number(c.target)) || 0));
+        if (pay) {
+          p.inventory.coin = (p.inventory.coin ?? 0) + pay;
+          this.grantXp("wayfaring", 1);
+          this.event(`You drop your passenger at the door. They pay you ${pay} coin.`);
+        } else this.event("You took too long. Your passenger gets out and walks, without paying.");
+      } else if (c.action === "car-fuel") {
+        const price = this.fuelPrice(o);
+        p.inventory.coin = (p.inventory.coin ?? 0) - price;
+        o.car!.fuel = carSpec(o.car!.model).range;
+        this.event(`You fill the tank for ${price} coin.`);
+        this.advance(30);
+      } else {
+        const hard = c.target === "crash";
+        if (o.car) o.car.dents = Math.min(9, (o.car.dents ?? 0) + (hard ? 2 : 1));
+        if (hard) {
+          if (this.crashKills(c.speed ?? 0, 15, 10, (this.world.pack.setting?.year ?? 2000) < 1970 ? 0.75 : 0.5)) return this.die(`a car crash in a ${o.name.toLowerCase()}`);
+          const old = (this.world.pack.setting?.year ?? 2000) < 1970, hit = Math.max(0, (c.speed ?? 0) - 8);
+          // `crashKills` decides a death; the knock itself leaves them standing.
+          this.hurt(Math.min(1 + hit * 2, Math.max(1, (p.health ?? 100) - 5)), "a car crash", this.pickInjury("car", hit > 4
+            ? [["concussion", old ? 0.3 : 0.2], ["cracked-ribs", 0.25], ["broken-leg", old ? 0.15 : 0.08], ["broken-arm", 0.1], ["bruises", 0.2]]
+            : [["bruises", 0.4], ["concussion", 0.05]]));
+          this.event(o.car && o.car.dents! >= 6 ? `The ${o.name.toLowerCase()} is a wreck, but it still runs.` : "You hit something hard. The front is pushed in.");
+          for (const w of this.witnesses(9, o.pos)) this.cue(w.id, "alarm", o.pos);
+        }
+      }
+      return;
+    }
     if (c.type === "interact" && c.action === "ring-bell") {
       const mount = p.riding;
       if (!mount?.cycle) return;
@@ -10768,9 +11353,18 @@ export class Engine {
       delete p.riding;
       p.pos = { space: "outside", x: land.x, y: land.y };
       p.activity = "Exploring";
+      const noun = CYCLE_SPECS[mount.cycle.look.kind].noun;
+      if (c.target !== "trick" && this.crashKills(c.speed ?? 0, 9, 16, 0.6)) {
+        this.emitRideEvent("buck", mount.speciesId, { from, to: land });
+        return this.die(`a crash on a ${noun}`);
+      }
       if (this.state.manifest.survival || this.state.manifest.hazards) {
-        const dmg = Math.min(c.target === "header" ? 4 : 2, Math.max(0, (p.health ?? 100) - 5));
-        if (dmg > 0) this.hurt(dmg, "coming off a cycle");
+        const fast = Math.max(0, (c.speed ?? 0) - 9);
+        const dmg = Math.min((c.target === "header" ? 4 : 2) + Math.round(fast * 3), Math.max(0, (p.health ?? 100) - 5));
+        if (dmg > 0) this.hurt(dmg, "coming off a cycle", this.pickInjury("spill", fast > 4
+          ? [["broken-collarbone", 0.25], ["broken-wrist", 0.2], ["concussion", 0.15], ["broken-arm", 0.1], ["cracked-ribs", 0.1], ["graze", 0.2]]
+          : fast > 1 ? [["graze", 0.5], ["broken-wrist", 0.05], ["sprained-ankle", 0.05], ["bruises", 0.3]]
+          : [["graze", 0.3], ["bruises", 0.3]]));
       }
       this.emitRideEvent("buck", mount.speciesId, { from, to: land });
       this.event(
@@ -11340,7 +11934,7 @@ export class Engine {
       if (told) this.event(told);
       else if (solid && solid.hit !== "creature")
         this.event(
-          `Your swing ${solid.kind === "thwock" ? "rings off" : "thumps into"} ${solid.sprite ? `the ${plantName(solid.sprite)}` : "something solid"}.`,
+          `Your swing ${solid.kind === "thwock" ? "rings off" : "thumps into"} ${solid.id ? `the ${(this.state.objects.find((o) => o.id === solid.id)?.name ?? "thing").toLowerCase()}` : solid.sprite ? `the ${plantName(solid.sprite)}` : "something solid"}.`,
         );
       this.advance((solid ? 3 : 2) + power * 2);
       return;
@@ -12131,7 +12725,7 @@ export class Engine {
       return;
     }
     if (c.type === "choose") {
-      this.choose(c.card, c.choice);
+      this.question(c.card).answer(c.choice);
       return;
     }
     if (c.type === "narrate") {
@@ -12221,7 +12815,7 @@ export class Engine {
           this.event(`You open the door of the ${prop.name.toLowerCase()}.`);
         } else if (c.action === "close") {
           prop.open = false;
-          this.event(def.door ? `You shut the door of the ${prop.name.toLowerCase()}.` : `You put the lid back on ${prop.name.toLowerCase()}.`);
+          this.event(def.door ? `You shut the door of the ${prop.name.toLowerCase()}.` : Array.isArray(def.lid) ? `You close the ${prop.name.toLowerCase()}.` : `You put the lid back on ${prop.name.toLowerCase()}.`);
         } else if (c.action === "right") {
           prop.tipped = false;
           delete prop.lean;
@@ -12540,6 +13134,11 @@ export class Engine {
           this.event(
             `You ${this.world.pack.entryLabel.toLowerCase()} ${mine ? "your home" : b.name.toLowerCase()}.`,
           );
+          // Before the access laws (the ADA, 1990), most doors had a step: your own is ramped.
+          if (!mine && this.body().look === "wheelchair" && (this.world.pack.setting?.year ?? 2000) < 1990) {
+            this.advance(40);
+            this.event("There is a step at the door. Getting the chair over it takes a while, and a hand from inside.");
+          }
           const here = kinOf(this.state).filter((k) => k.actor.pos.space === b.id)
             .map(({ actor, kind }) => `your ${kinWord(kind, actor)} ${actor.name}${kind === "child" && actor.age !== undefined && actor.age < 16 ? `, ${actor.age},` : ""}`);
           if (here.length) {
@@ -12971,11 +13570,13 @@ export class Engine {
     this.event(`You run full into ${a.name}, who rounds on you.`, "social");
   }
   private laid?: Map<string, string>;
+  /** The hour's `householdConditions`, for what residents do between agenda rebuilds. */
+  private conditions?: ReturnType<typeof householdConditions>;
   /** What keeps someone in bed today, if anything. */
   laidUp(id: string) {
     const clock = this.state.clock;
     this.laid ??= new Map((this.state.ailments ?? [])
-      .filter((x) => severity(x, clock) >= 0.35)
+      .filter((x) => bedridden(x, clock))
       .map((x) => [x.who, x.infection ? `Resting with ${symptomsOf(x).join(", ")}` : ailmentDef(x.id).laid]));
     return this.laid.get(id);
   }
@@ -13022,6 +13623,10 @@ export class Engine {
     const fresh = newCases ? onsets(s, setting, spare) : [];
     list.push(...fresh);
     for (const ail of fresh) if (ail.since <= clock) this.offerCare(ail);
+    // One held back while another was being asked about comes next.
+    const kin = new Set([s.player.id, ...kinOf(s).map((k) => k.actor.id)]);
+    const next = list.find((a) => kin.has(a.who) && !a.asked && a.since <= clock && clock - a.since < 86400 && (!a.infection || a.infection.announced));
+    if (next) this.offerCare(next);
     this.laid = undefined;
   }
   danger(pos: Position = this.state.player.pos) {
@@ -13184,7 +13789,7 @@ export class Engine {
     if (this.babyRain?.at !== slot) {
       const setting = this.world.pack.setting;
       const sky = weatherAt(skySeed(s.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", s.clock).condition;
-      this.babyRain = { at: slot, wet: sky === "rain" || sky === "snow" };
+      this.babyRain = { at: slot, wet: foul(sky) };
     }
     babyTime(b, elapsed, {
       motion: p.activity === "Sleeping" ? "work" : this.motion,
@@ -13287,6 +13892,12 @@ export class Engine {
       this.event(lines[Math.floor(this.rng("play") * lines.length)]);
     }
   }
+  private graveLine(o: WorldObject) {
+    const s = this.state, b = burials(s.households ?? [], s.objects).get(o.id);
+    const head = b?.household.members[0];
+    const name = head === "player" ? undefined : s.actors.find((a) => a.id === head && !a.dead)?.name;
+    return graveLine(o, b, this.world.pack.setting?.year ?? 0, name, head === "player");
+  }
   heirs() {
     const s = this.state, h = this.household(s.player.householdId);
     return s.actors.filter((a) => a.kind === "human" && !a.dead && (a.age ?? 0) >= 12 && !!h?.members.includes(a.id))
@@ -13301,7 +13912,7 @@ export class Engine {
     const h = this.household(dead.householdId);
     if (!dead.dead || !heir || !h) return false;
     const year = this.world.pack.setting?.year;
-    if (year !== undefined) (h.history ??= []).push({ year, kind: "died", name: dead.name });
+    if (year !== undefined) (h.history ??= []).push({ year, kind: "died", name: dead.name, cause: dead.dead });
     h.members = h.members.filter((m) => m !== id);
     s.actors = s.actors.filter((a) => a.id !== id);
     for (const a of s.actors)
@@ -13341,6 +13952,12 @@ export class Engine {
     this.event(`You go on as ${s.player.name}.`, "system");
     return true;
   }
+  /** Whether a crash at this speed kills: no chance below `from` cells a
+   * second, rising with the square of the excess over `span`, up to `cap`. */
+  private crashKills(speed: number, from: number, span: number, cap: number) {
+    if (!this.state.manifest.hazards || speed <= from) return false;
+    return this.rng(`crash:${this.state.clock}`) < Math.min(cap, ((speed - from) / span) ** 2);
+  }
   /** "of the bloody flux": how an illness kills, in the place's words. */
   private diedOf(ailment: string) {
     const def = ailmentDef(ailment);
@@ -13354,7 +13971,7 @@ export class Engine {
     p.dead = cause;
     p.activity = "Dead";
     this.pendingCollapse = undefined;
-    this.event(`You die ${/^(of|from|in) /.test(cause) ? cause : `from ${cause}`}.`);
+    this.event(`You die${/^(mauled|gored|taken) /.test(cause) ? `, ${cause}` : /^(of|from|in) /.test(cause) ? ` ${cause}` : ` from ${cause}`}.`);
   }
   /** Someone dies of an illness: gone from the world, written into their
    * household's history, and a card if they were the player's own. */
@@ -13366,7 +13983,8 @@ export class Engine {
     const home = !!h?.members.includes(s.player.id);
     if (h) {
       h.members = h.members.filter((id) => id !== a.id);
-      if (year !== undefined) (h.history ??= []).push({ year, kind: "died", name: a.name, ...(home && word ? { as: word } : {}) });
+      if (year !== undefined) (h.history ??= []).push({ year, kind: "died", name: a.name, cause: how, ...(home && word ? { as: word } : {}) });
+      h.mourning = { name: a.name, since: s.clock, until: s.clock + 3 * 86400 };
     }
     a.dead = how;
     s.actors = s.actors.filter((x) => x.id !== a.id);
@@ -13431,10 +14049,11 @@ export class Engine {
     return plot.asking?.scene ? `plot:${plot.id}:${plot.asking.line}` : `plot:${plot.id}`;
   }
   canShowCard(card: PlotCard) {
-    const scene = card.scene, plot = this.state.plot;
-    return !scene || (!!plot && !plot.ended && plot.id === scene.plot && plot.began === scene.began &&
-      this.atPlotScene(plot, scene.at) && (!card.speaker || this.withinPlotReach(card.speaker)) &&
-      (!card.choose || (card.choose.card === this.plotQuestionId(plot) && this.state.clock < plot.deadline)));
+    const scene = card.scene, plot = this.state.plot, q = card.choose && this.question(card.choose.card);
+    // A question still queued when it lapses (its day over while asleep, say) would only be refused.
+    if (!scene) return !q?.gone;
+    return !!plot && !plot.ended && plot.id === scene.plot && plot.began === scene.began &&
+      this.atPlotScene(plot, scene.at) && (!card.speaker || this.withinPlotReach(card.speaker)) && (!q || (!q.gone && !q.away));
   }
   private askPlot(plot: PlotState) {
     const s = this.state, a = plot.asking;
@@ -13500,16 +14119,23 @@ export class Engine {
     const journal = plotTemplate(plot)?.journal, wasKnown = plotKnown(plot), fired = plot.fired.length;
     if (journal && !plot.asking?.scene) delete plot.asking;
     const ask = plot.asking, by = ask?.by && this.actorsById?.get(ask.by);
-    if (ask?.due !== undefined && s.clock >= ask.due) {
+    const urgent = !!plotTemplate(plot)?.urgent, free = this.plotMayCall(plot);
+    this.plotVisits = this.plotVisits.filter((v) => v.plot === plot.id && !plot.ended);
+    if (free && !this.approaching && this.plotVisits.length) {
+      const v = this.plotVisits.shift()!;
+      if (this.actorsById?.get(v.id) && !this.actorsById.get(v.id)!.dead) this.approaching = { id: v.id, line: v.line, until: s.clock + 7200 };
+    }
+    if (ask?.due !== undefined && s.clock >= ask.due && free) {
       // Brought by the one it is about; if they have not found you in half an hour, it comes anyway.
       delete ask.due;
       ask.at = s.clock;
       if (by && !by.dead && !this.approaching) this.approaching = { id: by.id, line: "", until: s.clock + 1800, onArrive: () => this.askPlot(plot) };
       else this.askPlot(plot);
     }
-    // A decision put away unanswered comes back after half an hour; one waiting on a place comes when you get there.
+    // A decision put away unanswered comes back after half an hour, or three hours unless it is
+    // an emergency; one waiting on a place comes when you get there.
     else if (ask && ask.due === undefined && !(ask.scene === "workplace" && ask.shown) &&
-      (s.clock >= ask.at + 1800 || (ask.scene && !ask.shown && this.atPlotScene(plot, ask.scene)))) this.askPlot(plot);
+      ((s.clock >= ask.at + (urgent ? 1800 : 3 * 3600) && free) || (ask.scene && !ask.shown && this.atPlotScene(plot, ask.scene)))) this.askPlot(plot);
     // People set out a little early, so the place is full when it starts.
     if (g && s.clock >= g.start - 1200 && s.clock < g.until) {
       if (!g.met) this.convene(plot, g);
@@ -13538,7 +14164,11 @@ export class Engine {
       else if (e.type === "approach" && who) {
         // A seizure that cleared the debt is told by the ending, not by "the rest is still owed".
         if (e.line === "seize" && (plot.owed ?? 0) <= 0) continue;
-        this.approaching = { id: who.id, line: plotLine(plot, e.line, undefined, stanceOf(statsOf(s.manifest.seed, who), who.trust)), until: s.clock + 7200 };
+        const line = plotLine(plot, e.line, undefined, stanceOf(statsOf(s.manifest.seed, who), who.trust));
+        if (!free) this.plotVisits.push({ plot: plot.id, id: who.id, line });
+        // Someone else already on their way keeps their errand; this is said without the walk.
+        else if (this.approaching) this.bring({ kind: "speech", title: plot.title, text: line, speaker: who.id });
+        else this.approaching = { id: who.id, line, until: s.clock + 7200 };
         if (s.kin) s.kin.last = s.clock;
       }
       else if (e.type === "regard" && who) this.regard(who, e.delta);
@@ -13562,7 +14192,7 @@ export class Engine {
       else if (e.type === "choose") {
         // The day's first decision waits a minute or three of play.
         const by = e.from ? plot.cast[e.from] : e.brought ? this.messenger(plot, e.focus && plot.cast[e.focus]) : undefined;
-        const due = !e.at && s.clock - plot.began < 1800 ? plot.began + 1200 + Math.floor(this.rng(`${plot.id}:due`) * 2400) : !e.at && e.brought && by ? s.clock : undefined;
+        const due = !e.at && s.clock - plot.began < 1800 ? plot.began + 1200 + Math.floor(this.rng(`${plot.id}:due`) * 2400) : !e.at && ((e.brought && by) || !urgent) ? s.clock : undefined;
         plot.asking = { line: e.line, focus: e.focus && plot.cast[e.focus], by, choices: e.choices, at: s.clock, scene: e.at, ...(due ? { due } : {}) };
         if (!due) this.askPlot(plot);
       }
@@ -13774,7 +14404,7 @@ export class Engine {
     const h = this.household(p.householdId);
     if (h && (p.pos.space === h.residence || (p.pos.space === "outside" && distance(p.pos, h.home) < 8))) k.home = clock;
     const wait = k.waiting;
-    if (wait && clock - wait.at >= 3600) {
+    if (wait && clock - wait.at >= 3600 && this.approaching?.id !== wait.id) {
       const a = s.actors.find((x) => x.id === wait.id);
       if (a && (k.talked[wait.id] ?? -1) < wait.at) {
         this.regard(a, -1, "refuse");
@@ -13792,8 +14422,9 @@ export class Engine {
     const urgent = today >= 3 || since < 3 * 3600 || !!this.working || !!this.waitingCard();
     const store = h && s.objects.find((o) => o.id === h.storeId);
     const food = Object.entries(store?.inventory ?? {}).reduce((n, [id, c]) => n + (this.item(id)?.edible ? c ?? 0 : 0), 0);
-    const call = kinCall(s, k, clock, food, (id) => !!this.laidUp(id), urgent);
-    if (!call) return;
+    const free = this.mayCall(clock);
+    const call = kinCall(s, k, clock, food, (id) => !!this.laidUp(id), urgent || !free);
+    if (!call || (call.need === "plot" && !free && !(s.plot && this.plotMayCall(s.plot)))) return;
     k.said[`${call.id}:${call.need}`] = clock;
     k.last = clock;
     k.waiting = { id: call.id, need: call.need, at: clock };
@@ -13818,7 +14449,7 @@ export class Engine {
       return { actor: a, coined, day, purse, stock, held: stock, opening: stock };
     }
     const shop = a.shop?.day === day ? a.shop
-      : stockFor(this.world.pack, this.state.manifest.seed, a, day, coined, (i) => this.item(i), [...this.imported().keys()].filter((i) => this.carried(i)));
+      : stockFor(this.world.pack, this.state.manifest.seed, a, day, coined, (i) => this.item(i), [...this.imported().keys()].filter((i) => this.carried(i)), this.counterGoods(a));
     if (granary && a.shop?.day !== day) shop.stock = { ...shop.stock, grain: granary };
     const opening = shop.opening ?? shop.stock, sold = this.soldToday(a, opening);
     const stock = Object.fromEntries(Object.entries(shop.stock).map(([i, n]) => [i, Math.max(0, (n ?? 0) - (sold[i] ?? 0))]));
@@ -13867,11 +14498,54 @@ export class Engine {
     return list;
   }
   private tradersAt?: { minute: number; count: number; list: { actor: Actor; at: Point; door?: string; merchant: boolean }[] };
+  /** Who minds the counter of a house kept as a shop: whoever's trade is on
+   * the door if they are in, else the household's first grown member who is.
+   * Nobody else stands behind it. */
+  shopKeeper(space: string, placing?: Actor) {
+    const room = this.interiorOf(space);
+    if (room?.params.program !== "shop" || room.institution) return undefined;
+    const place = this.world.place(parseFloor(space).place), h = this.state.households?.find((g) => g.residence === space);
+    const ids = [...new Set([place?.owner, ...(h?.members ?? [])])];
+    const grown = ids.map((id) => id === "player" ? this.state.player : this.actorsById?.get(id!) ?? this.state.actors.find((a) => a.id === id))
+      .filter((a): a is Actor => !!a && !a.dead && a.kind === "human" && (a.age ?? 30) >= 14);
+    const awake = (a: Actor) => (a === placing || a.pos.space === space) && !/sleep|^resting/i.test(a.activity) && !this.laidUp(a.id);
+    return (grown.find(awake) ?? grown[0])?.id;
+  }
+  /** Whether someone should be behind their shop's counter now. */
+  private mindsCounter(a: Actor, space: string, label: string) {
+    const hour = this.state.clock / 3600 % 24;
+    return hour >= 8 && hour < 18 && !/sleep|^resting|\bbed\b/i.test(label) && this.shopKeeper(space, a) === a.id;
+  }
+  /** Whether someone indoors should be in bed now: told to sleep, or it is
+   * night and this is their home or nobody's place of business. */
+  private asleep(a: Actor, space: string, label: string) {
+    const room = this.interiorOf(space), hour = this.state.clock / 3600 % 24;
+    if (!room || this.mindsCounter(a, space, label)) return false;
+    const serving = room.params.program === "serve" || room.params.program === "shop", resident = this.household(a.householdId)?.residence === space;
+    return /sleep|night|\bbed\b/i.test(label) || ((resident || !serving) && (hour < 5.5 || hour >= 22));
+  }
+  /** Whether where someone was put no longer fits the hour: abed by day, up at
+   * night, or at a counter the shop has shut. */
+  private misplaced(a: Actor, space: string, label: string) {
+    const use = this.indoorUses.get(a.id);
+    return (use?.kind === "shopcounter") !== this.mindsCounter(a, space, label) || (use?.role === "bed") !== this.asleep(a, space, label);
+  }
+  /** What the shop someone is keeping right now sells. */
+  private counterGoods(a: Actor) {
+    if (a.pos.space === "outside" || this.shopKeeper(a.pos.space) !== a.id) return undefined;
+    const stock = this.interiorOf(a.pos.space)!.params.styles.stock;
+    return shopKinds.find((k) => k.id === stock)?.goods;
+  }
   /** Open for trade now: at the stall, or by day in a workshop at home,
    * which is where most crafts sold from. Never asleep or ill in bed. */
   private sellsNow(a: Actor) {
     if(a.staff && this.interiorOf(a.staff)?.institution==="exchange")return false;
-    if (a.dead || !sellsTrade(this.world.pack, a) || /sleep|^resting/i.test(a.activity)) return false;
+    if (a.dead || /sleep|^resting/i.test(a.activity)) return false;
+    if (this.counterGoods(a)) {
+      const hour = this.state.clock / 3600 % 24;
+      return hour >= 8 && hour < 18;
+    }
+    if (!sellsTrade(this.world.pack, a)) return false;
     if (a.stockroom) {
       const store = this.object(a.stockroom), hour = this.state.clock / 3600 % 24;
       return !!store && !store.broken && hour >= 6 && hour < 18 && distance(a.pos, store.pos) <= 2.5;
@@ -14153,6 +14827,7 @@ export class Engine {
     const a = this.actorsById?.get(ap.id);
     if (!a || a.dead || clock > ap.until || ap.valid?.() === false) {
       this.approaching = undefined;
+      if (ap.valid?.() !== false) ap.late?.();
       return;
     }
     if (p.dead || this.conversing) return;
@@ -14165,9 +14840,19 @@ export class Engine {
       ap.until = Math.max(ap.until, clock + 1800);
       return;
     }
+    const inside = p.pos.space !== "outside" ? this.world.place(p.pos.space) : undefined;
+    const at: Position = inside ? { ...doorApproach(inside), space: "outside" } : p.pos;
+    // At the door of the building the player is in, they come in.
+    if (inside && a.pos.space === "outside" && distance(a.pos, at) <= 1.6) {
+      const near = [[0, 1], [1, 0], [0, -1], [-1, 0], [1, 1], [-1, 1], [1, -1], [-1, -1]]
+        .map(([x, y]) => ({ ...p.pos, x: p.pos.x + x, y: p.pos.y + y })).find((q) => !this.blocked(q.x, q.y, q.space));
+      if (near) this.moveActor(a, near);
+    }
     if (a.pos.space === p.pos.space && distance(a.pos, p.pos) <= 1.6) {
       this.approaching = undefined;
+      this.called(clock);
       a.errand = { to: copy(a.pos), label: "Waiting for an answer", until: clock + 120 };
+      if (this.state.kin?.waiting?.id === a.id) this.state.kin.waiting.at = clock;
       a.direction = this.directionTo(a.pos, p.pos);
       delete a.facing;
       this.cue(a.id, "beckon", p.pos);
@@ -14182,8 +14867,6 @@ export class Engine {
       ap.onArrive?.();
       return;
     }
-    const inside = p.pos.space !== "outside" ? this.world.place(p.pos.space) : undefined;
-    const at: Position = inside ? { ...doorApproach(inside), space: "outside" } : p.pos;
     const to = a.householdId ? at : this.beside(at);
     const from = a.pos.space !== to.space && this.world.place(a.pos.space);
     if (from) this.moveActor(a, { ...doorApproach(from), space: "outside" });
@@ -14234,9 +14917,9 @@ export class Engine {
       const head = h.members.map((id) => s.actors.find((a) => a.id === id)).find((a) => a && !a.dead && a.kind === "human");
       if (!head || h.members.includes(s.player.id)) continue;
       const near = s.actors.filter((o) => o.kind === "human" && !o.dead && (o.age ?? 30) >= 13 && o.householdId && o.householdId !== h.id && distance(o.home, h.home) < 25);
-      const tell = (what: string, tone: number, key: string) => {
+      const tell = (what: string, tone: number, key: string, conduct?: true) => {
         const o = near[Math.floor(random(seed, "tiding", h.id, key) * near.length)];
-        if (o) hear(o, { act: what, tone, at: clock, hops: 1, about: head.id });
+        if (o) hear(o, { act: what, tone, at: clock, hops: 1, about: head.id, ...(conduct && { conduct }) });
       };
       for (const e of (h.history ?? []).filter((e) => year - e.year <= 1).slice(-2)) {
         const t = tidings[e.kind];
@@ -14244,7 +14927,7 @@ export class Engine {
       }
       const lender = h.credit && s.households?.find((x) => x.id === h.credit!.from);
       const creditor = lender && s.actors.find((a) => a.id === lender.members[0]);
-      if (creditor) tell(`${head.name}'s household owes ${creditor.name} and cannot pay`, -3, "debt");
+      if (creditor) tell(`${head.name}'s household owes ${creditor.name} and cannot pay`, -3, "debt", true);
     }
   }
   private pass(a: Actor, b: Actor, clock: number, all = false) {
@@ -14254,11 +14937,14 @@ export class Engine {
       if (Math.abs(tone) < 0.5 || w.from === b.id) continue;
       // Nobody tells a family its own scandal.
       if (w.about && (w.about === b.id || this.state.actors.find((x) => x.id === w.about)?.householdId === b.householdId)) continue;
-      if (hear(b, { ...w, tone, at: clock, hops: w.hops + 1, from: a.id }) && !w.about) {
-        updateRelationships(this.state, b);
-        b.trust += tone / 2;
-        updateRelationships(this.state, b);
+      if (!hear(b, { ...w, tone, at: clock, hops: w.hops + 1, from: a.id })) continue;
+      if (w.about) {
+        if (w.conduct) swayRegard(this.state, b.householdId, this.state.actors.find((x) => x.id === w.about)?.householdId, tone / 2);
+        continue;
       }
+      updateRelationships(this.state, b);
+      b.trust += tone / 2;
+      updateRelationships(this.state, b);
     }
   }
   /** A favour this person could fairly ask of the player when the model does
@@ -14356,7 +15042,7 @@ export class Engine {
   }
   /** Once the player has followed them there, the work itself, in their words. */
   private offerHelp(ask: Ask, a: Actor) {
-    ask.offered = true;
+    ask.offered = this.state.clock;
     const first = this.state.player.name.split(" ")[0], skill = this.helpSkill(a);
     const stats = this.stats(), level = this.skillLevel(skill);
     this.cards.unshift({
@@ -14506,7 +15192,9 @@ export class Engine {
   private helpStep() {
     const s = this.state, p = s.player;
     for (const ask of s.asks ?? []) {
-      const a = ask.kind === "help" && ask.accepted && !ask.offered ? s.actors.find((x) => x.id === ask.by) : undefined;
+      // Put away, it is asked again while the player is still there.
+      const waiting = ask.offered !== undefined && (s.clock - ask.offered < 600 || [...this.cards, ...this.held].some((c) => c.choose?.card === `help:${ask.id}`));
+      const a = ask.kind === "help" && ask.accepted && !waiting ? s.actors.find((x) => x.id === ask.by) : undefined;
       if (!a || !ask.meet) continue;
       this.leadTo(a, ask);
       if (!this.conversing && a.pos.space === p.pos.space && distance(a.pos, ask.meet) < 3 && distance(a.pos, p.pos) < 4) this.offerHelp(ask, a);
@@ -14528,17 +15216,34 @@ export class Engine {
     const hour = Math.floor(clock / 3600) % 24;
     const morning = Math.floor(clock / 86400) * 86400;
     const today = (s.asks ?? []).filter((x) => x.at >= morning).length;
-    if (this.approaching || this.conversing || p.dead || hour < 8 || hour >= 19 || today >= 2 || (s.asks?.length ?? 0) >= 3) return;
-    if (clock - (this.lastAsk ?? -Infinity) < 3 * 3600 || random(s.manifest.seed, "ask", clock) > 0.25) return;
-    const a = s.actors.find((x) => x.trust >= 1 && x.pos.space === p.pos.space && distance(x.pos, p.pos) < 30 && !this.world.dormant?.(x.id) && !x.terror && !s.asks?.some((k) => k.by === x.id) && this.askFor(x));
+    if (!this.mayCall(clock) || p.dead || hour < 8 || hour >= 19 || today >= 1 || (s.asks?.length ?? 0) >= 3) return;
+    if (random(s.manifest.seed, "ask", clock) > 0.25) return;
+    const a = s.actors.find((x) => x.trust >= 1 && x.pos.space === p.pos.space && distance(x.pos, p.pos) < 30 && !this.world.dormant?.(x.id) && !x.terror && !x.errand && !s.asks?.some((k) => k.by === x.id) && this.askFor(x));
     if (!a) return;
     this.answerAsk(a, "made");
     const ask = s.asks?.find((x) => x.by === a.id);
     if (!ask) return;
-    this.lastAsk = clock;
     this.approaching = { id: a.id, line: askLines[ask.kind](ask.what), until: clock + 1800, title: a.name };
   }
-  private lastAsk?: number;
+  /** When people last came up to the player. */
+  private calls: number[] = [];
+  /** Someone may come over unbidden: not during a stage of work, two hours
+   * after the last caller at the soonest, and not after three in a day. */
+  private called(clock: number) {
+    this.calls = [...this.calls.filter((t) => t > clock - 86400), clock];
+  }
+  private mayCall(clock: number, daily = true) {
+    return !this.working && !this.approaching && !this.conversing &&
+      clock - (this.calls.at(-1) ?? -Infinity) >= 2 * 3600 && (!daily || this.calls.filter((t) => t > clock - 86400).length < 3);
+  }
+  /** A plot's people come when it is an emergency, when its hour is nearly up,
+   * or when anyone might; they are not held to the day's count. */
+  private plotMayCall(plot: PlotState) {
+    const clock = this.state.clock;
+    return !!plotTemplate(plot)?.urgent || plot.deadline - clock < 3600 || this.mayCall(clock, false);
+  }
+  /** A plot's visits waiting on `plotMayCall`. */
+  private plotVisits: { plot: string; id: string; line: string }[] = [];
   /** Whoever keeps order here: someone whose role says so, or else the
    * eldest head of a household in their prime. */
   keeper(): Actor | undefined {
@@ -14569,6 +15274,56 @@ export class Engine {
     if (seen) list.unshift(c);
     else list.push(c);
   }
+  /**
+   * Once a day the keeper hears the sorest quarrel between two households that
+   * are not the player's, and it is settled in the ledger: a debt seized, a
+   * fine, or a day in the stocks, with the town told of it.
+   */
+  private hearCase() {
+    const s = this.state, setting = this.world.pack.setting, seed = s.manifest.seed;
+    const g = worstGrievance(s, s.player.householdId), keeper = this.keeper();
+    const by = g && s.actors.find((a) => a.id === g.by.members[0]), accused = g && s.actors.find((a) => a.id === g.against.members[0]);
+    if (!g || !keeper || !by || !accused || [by, accused].some((a) => a.name === keeper.name || a.householdId === keeper.householdId)) return;
+    const law = orderKeeper(setting);
+    const rank = (a: Actor) => ranks.indexOf(standingOf(seed, a)?.rank ?? "labouring");
+    // Before equality at law the same wrong weighed heavier on the lower-ranked, and lighter on their betters.
+    const severity = -g.regard + ((setting?.year ?? 0) < 1850 ? 2 : 1) * (rank(by) - rank(accused));
+    const penalty: Penalty | undefined = severity < 4 ? undefined : severity < 8 ? law.penalties[0] : law.penalties.at(-1);
+    const charge = g.wrong;
+    const shame = law.shaming ?? "the stocks";
+    const done = !penalty ? "sent away with a warning" : {
+      compensation: `made to make it good to ${by.name}`,
+      fine: "fined",
+      shaming: `put in ${shame}`,
+      beating: `given ${law.beating ?? "a beating"}`,
+      labour: "set to forced labour",
+      confinement: "locked up",
+      exile: "cast out",
+    }[penalty];
+    if (penalty) {
+      if (g.debt && s.economy) {
+        const stock = s.economy.stock[g.against.id], taken = Math.min(stock?.grain ?? 0, g.against.credit!.amount);
+        if (stock && taken) stock.grain -= addStock(s.economy, g.by, "grain", taken);
+        delete g.against.credit;
+        delete g.against.owes;
+      }
+      if (penalty === "compensation" || penalty === "fine") {
+        g.against.fortune = Math.max(0, (g.against.fortune ?? 0.5) - 0.05);
+        if (penalty === "compensation") g.by.fortune = Math.min(1, (g.by.fortune ?? 0.5) + 0.05);
+      } else if (penalty === "shaming" || penalty === "labour")
+        g.against.sentence = { who: accused.id, how: penalty === "shaming" ? `in ${shame}` : "at forced labour", until: s.clock + 86400 };
+      swayRegard(s, g.against.id, g.by.id, -2);
+    }
+    // Heard, the quarrel cools: satisfied if they won, resigned if they did not.
+    swayRegard(s, g.by.id, g.against.id, (penalty ? -1 : -3) - g.regard);
+    const story = { act: `${accused.name} was ${done} by ${keeper.name}: ${by.name} said they ${charge}`, tone: -4, at: s.clock, about: accused.id, conduct: true as const };
+    hear(by, { ...story, hops: 0 });
+    for (const o of s.actors.filter((o) => o.kind === "human" && o.householdId !== g.against.id && distance(o.home, g.against.home) < 25).slice(0, 3))
+      hear(o, { ...story, hops: 1 });
+    by.memories.push(`Took ${accused.name} to ${keeper.name}; they were ${done}`);
+    accused.memories.push(`Was ${done} by ${keeper.name} on ${by.name}'s complaint`);
+    this.event(`Word goes round that ${accused.name} was ${done} by ${keeper.name}. ${by.name} said they ${charge}.`, "social");
+  }
   /** An hour or so after a complaint, the keeper of order finds the player
    * and gives judgement: a warning, a fine paid to whoever was wronged, or
    * the rest of the day in the stocks. */
@@ -14583,7 +15338,9 @@ export class Engine {
     const law = orderKeeper(this.world.pack.setting), office = law.who;
     const charge = telling({ ...c.story, hops: 1 }, (id) => s.actors.find((a) => a.id === id)?.name);
     const voucher = c.spokenFor ? s.actors.find((a) => a.id === c.spokenFor && !a.dead) : undefined;
-    const severity = Math.abs(c.story.tone) - Math.max(0, keeper.trust) - (voucher ? 4 : 0);
+    // The complaint of someone above you weighs more, and of someone below you less, before equality at law.
+    const seed = s.manifest.seed, rank = (a: Actor) => ranks.indexOf(standingOf(seed, a)?.rank ?? "labouring");
+    const severity = Math.abs(c.story.tone) - Math.max(0, keeper.trust) - (voucher ? 4 : 0) + ((this.world.pack.setting?.year ?? 0) < 1850 ? rank(by) - rank(p) : 0);
     const amount = Math.max(1, Math.round(severity / 2));
     const worth = Object.entries(p.inventory).reduce((n, [id, k]) => n + (this.item(id)?.value ?? 0) * (k ?? 0), 0);
     const pays = (k: Penalty) => k === "compensation" || k === "fine";
@@ -14630,7 +15387,7 @@ export class Engine {
           told(`was put in ${shame}`);
           this.event(`You are put in ${shame}. People stop to look.`);
         } else if (penalty === "beating") {
-          this.hurt(Math.min(30, (p.health ?? 100) - 10), "beating", "welts from a beating");
+          this.hurt(Math.min(30, (p.health ?? 100) - 10), "beating", "welts");
           told(`was given ${blows}`);
           this.event(`You are given ${blows}.`);
         } else if (penalty === "labour") {
@@ -14897,6 +15654,16 @@ export class Engine {
   }
   /** Eats one edible from the actor's own bag, else from the household store.
    * Returns false when there is nothing to eat. */
+  /**
+   * A resident's meal at home. The ledger has already bought the household's
+   * bread for the hour, so a house that is not short simply eats; only one
+   * that is short falls back on what is actually in its chest.
+   */
+  private eatAtHome(a: Actor, household?: Household) {
+    if (!household || household.members.includes(this.state.player.id) || this.conditions?.get(household.id)?.short) return this.feed(a, household);
+    a.hunger = Math.max(0, a.hunger - 40);
+    return true;
+  }
   private feed(a: Actor, household?: Household) {
     const store = household ? this.object(household.storeId) : undefined;
     for (const bag of [a.inventory, store?.inventory]) {
@@ -14990,7 +15757,7 @@ export class Engine {
     }
     if (at.activity === "rest" && room) {
       const index = Math.max(0, household?.members.indexOf(a.id) ?? 0);
-      if (a.pos.space !== room || a.activity !== at.label) this.moveActor(a, this.indoorSpot(a, room, at.label, index));
+      if (a.pos.space !== room || a.activity !== at.label || this.misplaced(a, room, at.label)) this.moveActor(a, this.indoorSpot(a, room, at.label, index));
       a.activity = at.label;
       if (homeRest) a.fatigue = Math.max(0, a.fatigue - 0.1);
       // Eating at home is what keeps a resident under the hunger gate below and
@@ -14999,7 +15766,8 @@ export class Engine {
       // High enough that one meal covers the night's ~16 points of hunger:
       // followRoutine runs every 12 seconds, and a lower gate empties the
       // household store in a few days.
-      if (homeRest && household && a.hunger > 35) this.feed(a, household);
+      // A house short of a staple eats late and little.
+      if (homeRest && household && a.hunger > (this.conditions?.get(household.id)?.short ? 65 : 35)) this.eatAtHome(a, household);
       // Indoors the routine's outdoor coordinates mean nothing: let the drawn
       // position fall back to the simulated one.
       a.offRoutine = true;
@@ -15454,13 +16222,11 @@ export class Engine {
       if (here && Math.hypot(a.pos.x - p.x, a.pos.y - p.y) <= 1.6) {
         if (guard.warned === undefined || clock - guard.warned > 300) {
           guard.warned = clock;
-          this.challenger = a.id;
           this.cue(a.id, "point", p);
-          this.event(
-            inside
-              ? `${a.name} bars your way. "This is the god's house. Out, the way you came."`
-              : `${a.name} steps across your path. "Keep back from the god's gate, stranger."`,
-          );
+          this.cards.push({ kind: "speech", title: a.name, speaker: a.id,
+            text: inside ? "This is the god's house. Out, the way you came." : "Keep back from the god's gate, stranger." });
+          this.approacher = { id: a.id, until: clock + 300,
+            situation: "The player has walked onto the sacred ground you guard. You have come down to bar their way and order them out, and you will not be talked round." };
         } else if (inside && clock - guard.warned > 45) {
           guard.warned = clock;
           // Out past the ground they watch, so a stranger who walks on is let be.
@@ -15529,7 +16295,7 @@ export class Engine {
     a.fatigue = Math.max(0, a.fatigue - 0.1);
     if (household?.residence && !this.burningPlace(household.residence)) {
       const index = Math.max(0, household.members.indexOf(a.id));
-      if (a.pos.space !== household.residence) this.moveActor(a, this.indoorSpot(a, household.residence, a.activity, index));
+      if (a.pos.space !== household.residence || this.misplaced(a, household.residence, a.activity)) this.moveActor(a, this.indoorSpot(a, household.residence, a.activity, index));
     } else if (a.pos.space === "outside" && distance(a.pos, a.home) > 0) {
       this.moveActor(a, copy(a.home));
     }
@@ -15766,7 +16532,7 @@ export class Engine {
     );
     const roll = (key: string) => random(seed, "sleep", started, key);
     const cold = weather.tempC < 8;
-    const wet = /rain|storm|snow|sleet/i.test(weather.label);
+    const wet = weather.condition === "rain" || weather.condition === "snow";
     const rough = !covered && hours >= 3;
 
     const startHour = Math.floor(started / 3600) % 24;
@@ -15923,6 +16689,8 @@ export class Engine {
     );
     updateRelationships(this.state);
     this.syncBaby();
+    this.snakesAt = undefined;
+    this.snakeWatch();
     const deliveries=this.motorVehicles().flatMap(o=>{
       const v=this.world.vehicle?.(o.id), driver=v && this.actorsById!.get(v.crew[0]);
       return v?.delivery && driver && !o.motor!.taken ? [{o,v,driver}] : [];
@@ -16017,6 +16785,8 @@ export class Engine {
       diseaseTime(this.state, elapsed, next - elapsed);
       if (this.state.baby) this.babyStep(this.state.baby, elapsed, seconds > 240);
       this.fireExposure(elapsed, next - elapsed);
+      this.lightningExposure(elapsed, next - elapsed);
+      this.hailExposure(next - elapsed);
       if (player.dead) break;
       player.hunger = Math.min(100, player.hunger + elapsed / 1800);
       const day = Math.floor(next / 86400);
@@ -16051,6 +16821,7 @@ export class Engine {
         this.spreadWord(next);
         this.askStep(next);
         this.keeperStep(next);
+        this.laterStep(next);
       } else if (next % 60 === 0 && this.state.complaints?.[0]?.seen) this.keeperStep(next);
       if (this.approaching) this.approach(next);
       if (next % 60 === 0 && this.state.economy?.rounds) this.roundsStep(next);
@@ -16068,8 +16839,8 @@ export class Engine {
       if ((next % 300 === 0 && this.roadEncounter()) || this.state.encounter) break;
       if (player.torchOut !== undefined && next >= player.torchOut) this.torchBurnsOut();
       if (next % 3600 === 0) {
-        this.world.rotateRoutines?.(next);
         this.runEconomy();
+        this.world.rotateRoutines?.(next, this.conditions = householdConditions(this.state, next));
       }
       if (this.world.pack.setting?.environment) {
         const season = seasonAt(this.world.pack.setting.season, next);
@@ -16236,7 +17007,8 @@ export class Engine {
           // A resident on their routine costs a binary search, not a path
           // search. Needs pull them off it; everything else is the day's round.
           const routine = this.world.itinerary?.(a.id);
-          if (routine && a.hunger <= 45 && !a.task) {
+          // A house short of bread goes hungry on its round rather than off it.
+          if (routine && a.hunger <= (this.conditions?.get(a.householdId ?? "")?.short ? 80 : 45) && !a.task) {
             if (next % 12 === 0) this.followRoutine(a, routine, next);
             continue;
           }
@@ -16272,7 +17044,7 @@ export class Engine {
             this.stepToward(a, a.home);
             if (
               distance(a.pos, a.home) < 2 &&
-              this.feed(a, this.household(a.householdId))
+              this.eatAtHome(a, this.household(a.householdId))
             )
               a.activity = "Eating at home";
           } else if (this.world.activitySites?.(a.id)) {
@@ -16413,6 +17185,7 @@ export class Engine {
       this.event("The others step away and the prayer row breaks up.");
     }
     updateRelationships(this.state);
+    this.snakesAt = undefined;
     this.tickObstacles = undefined;
     this.barriersAt = undefined;
     this.actorsAt = undefined;

@@ -1,3 +1,11 @@
+import { buildingModels } from "../graphics/models";
+import houses from "../graphics/regional-houses.json" with { type: "json" };
+
+type RegionalModel = {
+  label: string; wall: string; roof: string; roofMaterial: string; stories?: number;
+  regionalHouse?: string; regionalProfile?: string; goldScale?: string; wealthTier?: number;
+  buildingFunction?: string;
+};
 /**
  * What a building is, said plainly, for the focus card. The art pipeline's
  * descriptions carry notes on the evidence and on how the sprite was built;
@@ -100,4 +108,63 @@ export function aboutBuilding(frame: string, wall: string, description: string) 
     .filter((s) => !META.test(s))
     .join(" ");
   return plain || "A building.";
+}
+
+const SIZE: Record<string, string> = { tiny: "tiny", small: "small", large: "large", grand: "grand" };
+const ROOF: Record<string, string> = {
+  thatch: "thatched", "palm-thatch": "thatched", "ichu-thatch": "thatched", "pandanus-thatch": "thatched", "grass-thatch": "thatched",
+  giwa: "tiled", kawara: "tiled", pantile: "tiled", terracotta: "tiled", "bengal-tile": "tiled", tile: "tiled",
+  shingle: "shingled", slate: "slate-roofed",
+};
+const WALL_WORD: [RegExp, string][] = [[/brick/, "brick"], [/stone/, "stone"], [/mud/, "mud"], [/plaster|stucco/, "plastered"], [/timber|board/, "timber"]];
+const NOUN: [RegExp, string][] = [
+  [/kitchen/, "kitchen house"], [/granary|raised-store/, "granary"], [/store/, "storehouse"], [/sweat-bath|temazcal/, "sweat bath"],
+  [/haveli/, "haveli"], [/insula|mixed-use/, "block of shops and rented rooms"], [/courtyard|compound|domus/, "courtyard house"],
+  [/ancestral-hall/, "ancestral hall"], [/hall/, "hall"], [/farm/, "farmhouse"], [/cottage/, "cottage"],
+  [/workshop|work-shed/, "workshop"], [/shop-house|merchant-house|row/, "shophouse"], [/pavilion|shed/, "shed"],
+];
+/** Families whose own name says what the building is better than its use does. */
+const OWN_NAME = /tent|shelter|dome|lodge|longhouse|maloca|plank house|turf house|winter house|pit house/i;
+
+/**
+ * "A small, well-kept thatched house": what this one building is, from the
+ * frame's own size, roof and use rather than its family's whole range. Only
+ * the regional families, the city forms and the gold masters carry those;
+ * others return undefined.
+ */
+export function buildingPhrase(frame: string, condition: string) {
+  const a = /^[aeiou]/.test(condition) ? "An" : "A";
+  // The first clause of a written sentence, with the condition put in front.
+  const lead = (sentence: string) => `${a} ${condition} ${sentence.replace(/^An? /, "").split(/[,.:]/)[0]}`;
+  const form = /-urban-([a-z]+)/.exec(frame)?.[1];
+  const family = families.find((f) => frame.startsWith(f));
+  if (form && FORM[form] && !family?.startsWith("mod-")) {
+    const m = WALL.find(([r]) => r.test(buildingModels[frame]?.wall ?? ""))?.[1] ?? "";
+    return lead(FORM[form].replace("{m} ", m ? `${m} ` : ""));
+  }
+  if (family && /^An? /.test(FAMILY[family])) return lead(FAMILY[family]);
+  const model = buildingModels[frame] as RegionalModel | undefined;
+  if (!model?.regionalHouse || !model.goldScale) return undefined;
+  const label = model.label.split(" · ")[0];
+  const fn = model.buildingFunction ?? "";
+  const own = OWN_NAME.exec(label)?.[0];
+  const noun = own
+    ? own.toLowerCase()
+    : model.goldScale === "tiny" || fn === "widow-household" ? "hut"
+    : fn === "elite-hall" || fn === "official-hall" ? "hall on a raised terrace"
+    : NOUN.find(([r]) => r.test(fn))?.[1] ?? "house";
+  const material = own ? undefined : roofWord(model) ?? WALL_WORD.find(([r]) => r.test(model.wall))?.[1];
+  const size = [noun === "hut" ? undefined : SIZE[model.goldScale], condition].filter(Boolean).join(", ");
+  const phrase = [size, material, noun].filter(Boolean).join(" ");
+  return `${/^[aeiou]/.test(phrase) ? "An" : "A"} ${phrase}`;
+}
+/** Only a roof the painter is sure to have drawn: some families pick thatch
+ * or tile per variant, and an upper floor often trades thatch for tile. */
+function roofWord(model: RegionalModel) {
+  const sino = (houses.profiles as Record<string, { sino?: { roofByTier?: string[][] } }>)[model.regionalProfile ?? ""]?.sino;
+  const tiers = sino?.roofByTier?.[model.wealthTier ?? 0];
+  if (tiers) return tiers.length === 1 ? ROOF[tiers[0]] : undefined;
+  if (model.roof === "flat") return "flat-roofed";
+  if ((model.stories ?? 1) > 1 && model.roofMaterial === "thatch") return undefined;
+  return ROOF[model.roofMaterial];
 }

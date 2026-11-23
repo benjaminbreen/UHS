@@ -1,6 +1,7 @@
 import { faunaCombat, faunaProfile } from "../content/fauna";
 import { sexFromName } from "../content/characters/name-sex";
 import type { BeastVoice, VoiceKind } from "./sfx";
+import type { Voice } from "./wildlife";
 
 type Speaker = {
   name: string;
@@ -27,4 +28,21 @@ export function beastVoiceOf(speciesId: string): BeastVoice {
   if (mass >= 3) return "beast";
   if (profile.social === "herd" || profile.social === "flock") return "herd";
   return mass >= 2 ? "herd" : "critter";
+}
+/** What a wild animal says when the player puts it up, if it has a call. */
+export function callOf(speciesId: string): Voice | undefined {
+  if (/crow|rook|raven|jackdaw/.test(speciesId)) return "crow";
+  if (/gull/.test(speciesId)) return "gull";
+  if (/sparrow|finch/.test(speciesId)) return "sparrow";
+  if (/chicken|fowl|turkey/.test(speciesId)) return "hen";
+  if (/goose/.test(speciesId)) return "goose";
+  if (/duck/.test(speciesId)) return "duck";
+  if (/sheep/.test(speciesId)) return "sheep";
+  if (/goat/.test(speciesId)) return "goat";
+  if (/cattle|buffalo|yak|aurochs/.test(speciesId)) return "cow";
+  if (/pig|boar/.test(speciesId)) return "pig";
+  if (/donkey|mule/.test(speciesId)) return "donkey";
+  if (/horse/.test(speciesId)) return "horse";
+  if (/^cat$|wildcat/.test(speciesId)) return "cat";
+  if (/dog|wolf/.test(speciesId)) return "growl";
 }

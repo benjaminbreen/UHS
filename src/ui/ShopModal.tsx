@@ -5,6 +5,7 @@ import type { Runtime } from "../runtime/session";
 import type { Inventory, ItemId } from "../core/types";
 import { ItemIcon } from "./components";
 import { amountIn } from "../content/economy/money";
+import { gameAudio } from "../audio/director";
 
 const rows = (inv: Inventory, skip?: (id: ItemId) => boolean) =>
   Object.entries(inv).filter(([id, n]) => (n ?? 0) > 0 && !skip?.(id)) as [ItemId, number][];
@@ -32,6 +33,7 @@ export function ShopModal({ runtime, actorId, initialItem, onClose }: {
   const deal = (give: Inventory, take: Inventory) => {
     const result = runtime.command({ type: "deal", target: actorId, give, take });
     setNote(result?.status === "completed" ? undefined : (result?.reason ?? "They decline."));
+    if (result?.status !== "completed") void gameAudio()?.interfaceSound("deny");
     if (result?.status === "completed") {
       const item = rows(take, id => id === "coin")[0]?.[0];
       if (item) setHandoff(last => ({ item, serial: (last?.serial ?? 0) + 1 }));

@@ -127,6 +127,8 @@ const silentBeds: Partial<AmbienceMix> = {
   rain: 0,
   thunder: 0,
   frogs: 0,
+  hail: 0,
+  grit: 0,
   wind: 0,
   birds: 0,
   owls: 0,

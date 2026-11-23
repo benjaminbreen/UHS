@@ -31,6 +31,8 @@ from art.front_materials import C, h2  # noqa: E402
 from art.front_kit import finish, consolidate  # noqa: E402
 from art.front_huts import _rgb, turn, DARK, DOORWAY  # noqa: E402
 from art.front_mudbrick import deck, jar, mat, ladder, P, PAL as MB  # noqa: E402
+from art.front_meso_civic import BUILDERS as CIVIC  # noqa: E402
+from art.front_meso_precinct import BUILDERS as PRECINCT  # noqa: E402
 
 _PROF = json.loads((ROOT / 'src/content/graphics/regional-houses.json').read_text())['profiles']
 # Zapotec (Oaxaca) and Purépecha (Michoacán) palettes, used until
@@ -772,7 +774,8 @@ def built(fn):
     return make
 
 
-BUILDERS = {'jacal': built(jacal), 'calli': built(calli), 'meso-service': built(service), 'troje': built(troje)}
+BUILDERS = {'jacal': built(jacal), 'calli': built(calli), 'meso-service': built(service), 'troje': built(troje),
+            **CIVIC, **PRECINCT}
 
 def spec(r):
     """A recipe's choices, drawn as oblique_meso drew them so each frame keeps
@@ -841,10 +844,22 @@ STUDIES += [(n, k, dict(_NEW, **sp)) for n, k, sp in (
 
 
 def game_recipes(recipes):
-    """Redraw the Mesoamerican houses front-on, each from its own recipe,
-    the entrance under the painted door."""
+    """Redraw the Mesoamerican houses and civic halls front-on, each from its
+    own recipe, the entrance under the painted door."""
     import re
     for name, r in list(recipes.items()):
+        mc = re.match(r'meso-(temazcal|calmecac|telpochcalli)-(small|medium|large)-(\d+)$', name)
+        if mc:
+            kind = f'meso-{mc.group(1)}'
+            fw, fh = r['footprint']
+            sp = dict(size=mc.group(2), W=fw * 16, seed=r.get('seed', 1) % 997, look=int(mc.group(3)))
+            info = {}
+            BUILDERS[kind](sp, info)
+            r = {k: v for k, v in r.items() if k not in ('oblique', 'roofVoid', 'mesoamerican')}
+            r.update(entrance=[max(0, min(fw - 1, (info['door_x'] - info['x0']) // 16)), fh],
+                     frontAncient=(kind, sp), front=True)
+            recipes[name] = r
+            continue
         if not re.match(r'meso-(jacal|terrace|service)-(maya|nahua|zapotec|purepecha)-(small|medium|large)-\d+$', name):
             continue
         kind, sp = spec(r)

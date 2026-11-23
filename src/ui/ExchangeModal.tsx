@@ -4,6 +4,8 @@ import { ArrowDownLeft, ArrowUpRight, Clock3, Coins, Minus, Plus } from "lucide-
 import { callSeconds, lenders, holdingAt, offeredLots, loanDue, marketCall, orderProblem, type MarketOrder } from "../core/exchange";
 import type { Runtime } from "../runtime/session";
 import { CharacterSprite } from "./CharacterSprite";
+import { gameAudio } from "../audio/director";
+import { pay } from "../audio/handling";
 import "./exchange.css";
 
 const signed=(n:number)=>(n>0?"+":"")+Number(n.toFixed(1));
@@ -27,8 +29,10 @@ export function ExchangeModal({runtime}:{runtime:Runtime}){
   const command=(action:MarketOrder["action"],at:number,count=1):MarketOrder=>({type:"exchange",action,desk:at,quantity:count,call});
   const send=(c:MarketOrder)=>{
     const problem=orderProblem(floor,c);
-    if(problem){setMessage(problem);return;}
+    if(problem){setMessage(problem);void gameAudio()?.interfaceSound("deny");return;}
     const result=runtime.command(c);
+    if(result?.status!=="completed") void gameAudio()?.interfaceSound("deny");
+    else if(c.action==="buy"||c.action==="sell") void gameAudio()?.sound(pay("metal",c.quantity),"trade");
     setMessage(result?.status==="completed" ? (c.action==="call" ? result.events.at(-1) : result.events[0])?.text??"Order recorded." : result?.reason??"Order unavailable.");
   };
   const order=command(side,desk,quantity), problem=orderProblem(floor,order);

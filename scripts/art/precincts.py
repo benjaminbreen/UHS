@@ -1,5 +1,6 @@
-"""Precinct pieces: the stands, ranges and arcades round a court, arena or
-market, each a building on the precinct's edge.
+"""Precinct pieces: the stands and arcades round an amphitheatre, each a
+building on the precinct's edge. The ballcourt is drawn front-on in
+front_meso_precinct.py.
 
 A precinct is drawn from one height map over its whole ground: every piece
 samples the same function and renders only its own footprint, so neighbours
@@ -18,7 +19,7 @@ import math
 from pathlib import Path
 from PIL import Image, ImageDraw
 from art.buildings import DOOR_W, DOOR_H
-from art.oblique_meso import INTERIOR, _rgb, dither, h2
+from art.oblique_meso import INTERIOR, _rgb, h2
 from art.oblique_style import DRIFT, drift, side_depth
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -328,182 +329,7 @@ class Amphitheatre(Heightfield):
 
 # -- ball court ---------------------------------------------------------------
 
-class Ballcourt(Heightfield):
-    """Two ranges either side of a plastered alley. The north one shows its
-    sloping bench and sheer wall, with the ring; the south one its low outer
-    wall, and over it the bench running down to the play."""
-
-    def __init__(self, r):
-        s = spec()['ballcourt']['scales'][r['goldScale']]
-        self.Wt, self.Ht = s['size'][0] * 16, s['size'][1] * 16
-        p = {q['key']: q for q in s['pieces']}
-        self.n = p['north']
-        self.s = p['south']
-        self.nx0 = self.n['at'][0] * 16
-        self.nx1 = self.nx0 + self.n['footprint'][0] * 16
-        self.ny1 = self.n['footprint'][1] * 16
-        self.sy0 = self.s['at'][1] * 16
-        with open(ROOT / 'src/content/graphics/regional-houses.json') as fh:
-            pal = json.load(fh)['profiles'][r['regionalProfile']]['palette']
-        self.pl, self.red, self.st, self.acc = (ramp(pal[k]) for k in ('plaster', 'red', 'stone', 'accent'))
-        self.maya = r['regionalProfile'] == 'maya'
-        self.wall_h = 36 if r['goldScale'] != 'small' else 30
-        self.peak = self.wall_h + 34
-        self.temple = r['goldScale'] == 'large'
-        mid = (self.nx0 + self.nx1) / 2
-        # Flights up the north wall near each end, and one over the south
-        # range's outer wall: the way the players and the lords went up.
-        self.stairs_n = [(self.nx0 + 24, self.nx0 + 38), (self.nx1 - 26, self.nx1 - 12)]
-        self.stairs_s = (mid + 30, mid + 44)
-
-    def stair_n(self, x):
-        return any(a <= x < b for a, b in self.stairs_n)
-
-    def stair_s(self, x):
-        return self.stairs_s[0] <= x < self.stairs_s[1]
-
-    def height(self, x, y):
-        if not self.nx0 <= x < self.nx1:
-            # Wing walls round the end fields: the crossbars of the I.
-            return 14 if y < 32 or y >= self.Ht - 32 else None
-        if y < self.ny1:
-            d = self.ny1 - y
-            if d < 14: return round(d * .85)
-            if self.stair_n(x) and d < 14 + (self.wall_h - 12) * 2 // 3:
-                return min(self.wall_h, 12 + ((d - 14) // 2 + 1) * 3)
-            if d < 16: return 12
-            h = self.wall_h
-            if not self.maya and d < 18 and (int(x) // 4) % 2 == 0:
-                return h + 3
-            # A range building on top, set back from the wall.
-            mid = (self.nx0 + self.nx1) / 2
-            half = (self.nx1 - self.nx0) * (.34 if self.maya else .16)
-            if (self.temple or self.maya) and abs(x + .5 - mid) < half and 24 <= d < self.ny1 - 4:
-                roof = h + 20
-                back = (24 + self.ny1 - 4) / 2
-                if self.maya and abs(d - back) < 1.5:
-                    # A pierced comb along the ridge, sky through its slots.
-                    k = int(x - mid) % 8
-                    return roof + (6 if k in (3, 4) else 14)
-                if not self.maya and d < 26 and (int(x) // 4) % 2 == 0:
-                    return roof + 4
-                return roof
-            return h
-        if y >= self.sy0:
-            d = y - self.sy0
-            if d < 14: return round(d * .85)
-            out = self.Ht - 1 - y
-            if self.stair_s(x) and out < 8: return min(16, (out // 2 + 1) * 4)
-            return 16
-        return None
-
-    def top(self, x, y, hgt, sx, sy):
-        pl, red = self.pl, self.red
-        if not self.nx0 <= x < self.nx1:
-            return red[3] if y % 32 in (0, 31) else pl[4] if x % 16 == 0 or y % 12 == 0 else pl[5]
-        if (y < self.ny1 and self.stair_n(x) and hgt < self.wall_h) or \
-                (y >= self.sy0 and self.stair_s(x) and self.Ht - 1 - y < 8):
-            return pl[5]
-        # Onlookers along the range tops.
-        onlook = (y < self.ny1 and 18 <= self.ny1 - y < 30 and hgt == self.wall_h) or \
-                 (y >= self.sy0 and y - self.sy0 >= 16 and hgt == 16)
-        if onlook:
-            n = h2(x // 2, y // 2, 11)
-            if n % 100 < 14 and x % 3 == 0:
-                return (SKIN[n % 3] if y % 2 == 0 else TUNICS[(n >> 8) % len(TUNICS)] + (255,))
-        if hgt >= self.wall_h + 20:
-            if self.maya: return red[4] if hgt > self.wall_h + 28 else red[3] if (x + y) % 7 else red[2]
-            return pl[5] if hgt > self.wall_h + 22 else pl[4] if (x // 3 + y) % 9 else pl[3]
-        if y < self.ny1 and self.ny1 - y < 16:
-            return pl[5] if hgt > 10 else pl[4]
-        if y >= self.sy0 and y - self.sy0 < 14:
-            return pl[3] if (y - self.sy0) % 3 else pl[2]
-        edge = (y < self.ny1 and self.ny1 - y < 18) or (y >= self.sy0 and y - self.sy0 >= 30)
-        if edge: return red[3]
-        # Plastered slabs, jointed.
-        return pl[4] if x % 16 == 0 or y % 12 == 0 else pl[5]
-
-    def wall(self, x, y, hgt, above, sx, sy):
-        pl, red, acc = self.pl, self.red, self.acc
-        if not self.nx0 <= x < self.nx1:
-            return red[3] if hgt < 3 else pl[5] if hgt > 12 else pl[4] if x % 24 else pl[3]
-        if (y < self.ny1 and self.stair_n(x) and above <= self.wall_h and self.ny1 - y >= 14) or \
-                (y >= self.sy0 and self.stair_s(x) and self.Ht - 1 - y < 8):
-            return pl[3] if above - hgt > 1 else pl[2]
-        if above >= self.wall_h + 20 and hgt >= self.wall_h:
-            # The range building's front: doorways into its rooms.
-            k = hgt - self.wall_h
-            if k > 20: return red[3] if self.maya else pl[4]
-            if k > 16: return red[4] if self.maya else red[3]
-            if k < 13 and (x - self.nx0) % 22 in range(8, 15): return INTERIOR[0]
-            if k in (13, 14): return pl[4]
-            return red[3] if self.maya else pl[4]
-        if y < self.ny1 and self.ny1 - y < 14:
-            return pl[4] if hgt > 1 else red[2]
-        if y >= self.sy0 and y - self.sy0 < 14:
-            return pl[3]
-        if y < self.ny1:
-            k = hgt
-            if k < 3: return red[2]
-            if above == self.wall_h and k >= self.wall_h - 8:
-                # Frieze under the coping.
-                i, j = (x - self.nx0) % 12, self.wall_h - 1 - k
-                on = (i < 6) == (j < 4) if j < 7 else False
-                return red[3] if on else pl[4]
-            if above == self.wall_h: return pl[4] if (x - self.nx0) % 32 else pl[3]
-            return pl[3]
-        # South range outer wall.
-        if hgt < 3: return red[3]
-        if hgt > 13: return pl[5]
-        return pl[4] if (x - self.nx0) % 24 else pl[3]
-
-    def finish(self, piece):
-        d = ImageDraw.Draw(piece.im)
-        pl, st, red = self.pl, self.st, self.red
-        if piece.r['key'] == 'north':
-            # The ring, standing out from the wall at the middle of the court.
-            mid = (self.nx0 + self.nx1) // 2
-            for ring_x in ([mid] if not self.maya else [mid - 40, mid, mid + 40]):
-                cx, cy = piece.screen(ring_x, self.ny1 - 16, 26 if not self.maya else 18)
-                if self.maya:
-                    # Maya courts mark the bench with carved panels instead.
-                    cx, cy = piece.screen(ring_x, self.ny1 - 7, 6)
-                    d.ellipse((cx - 5, cy - 3, cx + 5, cy + 3), fill=st[4], outline=st[2])
-                    d.ellipse((cx - 2, cy - 1, cx + 2, cy + 1), outline=red[3])
-                    continue
-                for dx in range(-8, 9):
-                    for dy in range(-8, 9):
-                        rr = dx * dx + dy * dy
-                        if 14 <= rr <= 52:
-                            piece.px[cx + dx, cy + dy] = st[5] if dx + dy < -3 else st[4] if dx + dy < 4 else st[2]
-                        elif rr < 14: piece.px[cx + dx, cy + dy] = INTERIOR[1]
-                for k in range(1, 5): piece.px[cx + 6 + k // 2, cy + 4 + k] = pl[2]
-            # A door into the range at its west end, level with the bench top.
-            dx, dy = piece.screen(self.nx0 + 8, self.ny1 - 16, 12)
-            piece.door_x, piece.bottom = dx + DOOR_W // 2, dy
-            d.rectangle((dx, dy - DOOR_H - 1, dx + DOOR_W, dy), fill=INTERIOR[0])
-            for bx in (self.nx0 + 4, self.nx1 - 5):
-                self.brazier(piece, *piece.screen(bx, self.ny1 - 24, self.wall_h))
-        elif piece.r['key'] == 'south':
-            cx = piece.ox + piece.W // 2
-            d.rectangle((cx - DOOR_W // 2 - 2, piece.G - DOOR_H - 3, cx + DOOR_W // 2 + 2, piece.G), fill=red[3])
-            d.rectangle((cx - DOOR_W // 2, piece.G - DOOR_H - 1, cx + DOOR_W // 2, piece.G), fill=INTERIOR[0])
-            piece.door_x, piece.bottom = cx, piece.G
-            piece.overlays.append(['ball', cx + 40, piece.G - (piece.Dz - 4) - 24])
-
-    def brazier(self, piece, sx, sy):
-        clay = self.st
-        for k, half in enumerate((1, 1, 1, 2, 3, 3, 3, 4)):
-            for dx in range(-half, half + 1):
-                piece.px[sx + dx, sy - k] = clay[5] if dx < 0 else clay[3]
-        top = sy - 8
-        for dx in range(-3, 4):
-            piece.px[sx + dx, top] = (60, 22, 16, 255) if dx % 2 else (180, 60, 24, 255)
-        piece.overlays.append(['flame', sx - 4, top - 11])
-        piece.smoke.append([sx, top - 12, 'chimney'])
-
-
-FIELDS = {'amphitheatre': Amphitheatre, 'ballcourt': Ballcourt}
+FIELDS = {'amphitheatre': Amphitheatre}
 
 
 def build_precinct_sprites(sprites):
@@ -541,7 +367,7 @@ def precinct_recipes(root, source):
     base = {'roof': 'flat', 'opening': 'door', 'attachments': [], 'roofMaterial': 'earth',
             'wall': 'lime-plaster', 'stories': 1, 'precinctPiece': True, 'height': 40,
             'oblique': True, 'deep': True}
-    variants = {'ballcourt': [('nahua', 0), ('maya', 0)],
+    variants = {'ballcourt': [(p, k) for p in ('nahua', 'maya') for k in range(3)],
                 'amphitheatre': [(None, 0), (None, 1), (None, 2)]}
     for kind, runs in variants.items():
         for scale, shape in data[kind]['scales'].items():
@@ -551,7 +377,7 @@ def precinct_recipes(root, source):
                 side = piece['key'].split('-')[0]
                 entrance = {'west': [fw, fh // 2], 'east': [-1, fh // 2]}.get(side, [fw // 2, fh])
                 for profile, look in runs:
-                    tag = profile if profile else str(look)
+                    tag = f'{profile}-{look}' if profile else str(look)
                     name = f'precinct-{kind}-{tag}-{scale}-{piece["key"]}'
                     if kind == 'amphitheatre':
                         look = int(tag)
@@ -563,4 +389,12 @@ def precinct_recipes(root, source):
                                  'oblique': kind != 'amphitheatre',
                                  'label': f"{data[kind]['label']} · {piece['key']} · {scale}",
                                  'description': f"Part of the {data[kind]['label'].lower()}."}
+                    if kind == 'ballcourt':
+                        sp = dict(profile=profile, scale=scale, key=piece['key'], look=look, footprint=[fw, fh])
+                        r = out[name]
+                        del r['oblique']
+                        if side == 'north':
+                            # The door is the west stair, 12px in from the end (front_meso_precinct.court).
+                            r['entrance'] = [0, fh]
+                        r.update(frontAncient=('meso-court', sp), front=True)
     return out

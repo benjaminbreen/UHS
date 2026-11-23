@@ -150,7 +150,7 @@ export function foliageTint(
   return undefined;
 }
 
-export type DriftKind = "leaf" | "blossom" | "snow" | "rain";
+export type DriftKind = "leaf" | "blossom" | "snow" | "rain" | "hail" | "dust";
 export type DriftStyle = {
   kind: DriftKind;
   colors: string[];
@@ -166,6 +166,8 @@ export type DriftStyle = {
   spin: number;
   alpha: number;
   splash?: boolean;
+  /** Lands as a stone that hops once and lies where it fell until it melts. */
+  bounce?: boolean;
   /** Falls from the trees in view, this many at a time per tree, rather
    * than filling the air; with no tree in sight there is none. */
   perTree?: number;
@@ -207,12 +209,34 @@ const styles: Record<DriftKind, Omit<DriftStyle, "colors" | "density">> = {
     alpha: 0.45,
     splash: true,
   },
+  hail: {
+    kind: "hail",
+    fall: [520, 700],
+    windPull: 130,
+    sway: 0,
+    spin: 0,
+    alpha: 0.95,
+    bounce: true,
+  },
+  // Grit goes with the wind, not down: some of it is rising.
+  dust: {
+    kind: "dust",
+    fall: [-10, 26],
+    windPull: 400,
+    sway: 9,
+    spin: 0,
+    alpha: 0.8,
+  },
 };
 const drift = (
   kind: DriftKind,
   colors: string[],
   density: number,
 ): DriftStyle => ({ ...styles[kind], colors, density });
+const SNOW = ["#ffffff", "#e4eef6", "#cfe0ee"];
+/** Hailstones falling through the rain that brings them. */
+export const hailStyle = (hail: number): DriftStyle | undefined =>
+  hail > 0.05 ? drift("hail", ["#ffffff", "#e9f3fb", "#cfe2f2"], 70 + 50 * Math.round(hail * 10)) : undefined;
 
 /** Sideways over downward speed of a falling mote in this wind, east positive:
  * the slant the scene's drift moves at, for skies drawn outside the scene. */
@@ -236,12 +260,19 @@ export function driftStyle(
   condition: string,
   tempC: number,
   rain = 0.6,
+  blizzard = 0,
+  dust = 0,
 ): DriftStyle | undefined {
+  // A blizzard's snow comes sideways, and far more of it.
+  if (condition === "snow" && blizzard > 0.3)
+    return { ...drift("snow", SNOW, 500 + 100 * Math.round(blizzard * 6)), fall: [26, 60], windPull: 340, sway: 10, spin: 2 };
+  if (condition === "dust")
+    return drift("dust", ["#f0d9a8", "#dcb878", "#c99a5a"], 150 + 90 * Math.round(dust * 8));
   if (condition === "snow")
-    return drift("snow", ["#ffffff", "#e4eef6", "#cfe0ee"], 260);
+    return drift("snow", SNOW, 260);
   if (condition === "rain")
     return tempC <= 0
-      ? drift("snow", ["#ffffff", "#e4eef6", "#cfe0ee"], 230)
+      ? drift("snow", SNOW, 230)
       : drift("rain", ["#cfe0ef", "#b9d0e4"], 120 + 65 * Math.round(rain * 10));
   const wooded = woodland.includes(ecology);
   if (
@@ -249,7 +280,7 @@ export function driftStyle(
     tempC < 2 &&
     (climate === "boreal" || climate === "tundra")
   )
-    return drift("snow", ["#ffffff", "#e4eef6", "#cfe0ee"], 90);
+    return drift("snow", SNOW, 90);
   if (ecology === "desert" || ecology === "tropical-woodland") return undefined;
   if (season === "autumn" && climate !== "tropical")
     return drift(

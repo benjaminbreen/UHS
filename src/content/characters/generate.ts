@@ -16,6 +16,7 @@ import {
   characterStanding,
   matchesCharacterScope,
   resolveCharacterContext,
+  sexOdds,
   type CharacterContext,
 } from "./resolve";
 import { jobGrades } from "./city-work";
@@ -65,6 +66,7 @@ const kin: Record<string, string[]> = {
   featherworker: ["craftsperson", "carver"],
   player: ["entertainer", "musician", "storyteller"],
   librarian: ["scribe", "clerk"],
+  bookseller: ["shopkeeper", "trader", "market-seller", "scribe"],
   "silk merchant": ["merchant", "trader", "market-seller", "shopkeeper", "pedlar"],
   "court poet": ["storyteller", "scribe", "musician"],
   tilemaker: ["brickmaker", "potter"],
@@ -247,7 +249,7 @@ export function characterLivelihood(
   const apprentice = context.livelihoods.find((l) => l.id === "apprentice");
   const tradeFor = (label: string) => context.livelihoods.find((l) =>
     l.id !== "apprentice" && l.label.toLowerCase() === label.toLowerCase() &&
-    allowedBy(standing, l) && (sex === "unspecified" || !l.sex || l.sex === sex)
+    allowedBy(standing, l) && sexOdds(l, sex) > 0
   );
   const resolveApprentice = (l: Livelihood) => {
     if (l.id !== "apprentice") return l;
@@ -299,13 +301,15 @@ export function characterLivelihood(
     const resolved = !named.fromBeliefs && named.label.toLowerCase() === key ? named : localRole(named);
     if (resolved) return resolveApprentice(resolved);
   }
-  // A few kinds of work were done overwhelmingly by one sex; the rest are open.
-  // "unspecified" is no constraint rather than no match -- read as a constraint
-  // it excluded all 62 sex-marked roles, which is every herding role there is,
-  // so no settlement could staff a pen.
-  const open = context.livelihoods.filter((l) =>
-    (sex === "unspecified" || !l.sex || l.sex === sex) &&
-    (age === undefined || !l.ages || (age >= l.ages[0] && age < l.ages[1])));
+  // A few kinds of work were done overwhelmingly by one sex, and once opened
+  // stay mostly theirs; the rest are open. "unspecified" is no constraint
+  // rather than no match -- read as a constraint it excluded all 62 sex-marked
+  // roles, which is every herding role there is, so no settlement could staff a pen.
+  const open = context.livelihoods.flatMap((l) => {
+    const odds = sexOdds(l, sex);
+    return odds > 0 && (age === undefined || !l.ages || (age >= l.ages[0] && age < l.ages[1]))
+      ? [odds < 1 ? { ...l, weight: (l.weight ?? 1) * odds } : l] : [];
+  });
   /* Work marked unfree is only for those held in bondage. The reverse is not
    * true: enslaved and bound people did every kind of work there was, so the
    * marked rows bias the draw rather than bounding it -- treating them as the
@@ -321,10 +325,13 @@ export function characterLivelihood(
   );
   // A society whose record does not name an officiant offers no religious
   // office at all, rather than a generic priest.
+  // A grade names its trade ("Master Mason"), and takes that trade's odds.
+  const marked = context.livelihoods.filter((l) => l.sex && sexOdds(l, sex) < 1);
   const withBeliefs = (byStanding.length ? byStanding : open).flatMap(
     (l) => {
       const resolved = asOfficiant(l, s, seed, id, system);
-      return resolved ? [resolved] : [];
+      const trade = resolved && resolved.label !== l.label && marked.find((m) => resolved.label.endsWith(` ${m.label}`));
+      return !resolved ? [] : trade ? [{ ...resolved, weight: (resolved.weight ?? 1) * sexOdds(trade, sex) }] : [resolved];
     },
   );
   const basePool = withBeliefs.length ? withBeliefs : context.livelihoods;
@@ -512,7 +519,8 @@ export function generateCharacter(
     system,
   );
   // Asking for work done by one sex asks for someone of it.
-  if (requestedRole && drawn.sex && drawn.sex !== sex && !(id === "player" && s.brief?.sex))
+  if (requestedRole && drawn.sex && drawn.sex !== sex && !(id === "player" && s.brief?.sex) &&
+    random(seed, "character-v1", id, "work-sex") >= (drawn.sexShare ?? 0))
     return generateCharacter(s, seed, id, age, requestedRole, explicitName, inheritedFamilies, drawn.sex, inheritedTradition, familyNaming, localContext);
   const livelihood = graded(drawn, s, seed, id, age);
   const recognized =

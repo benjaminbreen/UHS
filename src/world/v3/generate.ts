@@ -1,14 +1,18 @@
 import { seasonAt } from "../../core/livelihood";
 import { isDockworker } from "../../content/characters/city-work";
+import { characterLivelihood, characterSex } from "../../content/characters/generate";
+import { carLength, parkedCar, vehiclePool } from "../../content/settlements/vehicles";
 import { fishingWaterfront } from "../../content/settlements/waterfronts";
 import { assignGender } from "../../content/characters/gender";
 import { herdersFor } from "./herders";
 import { isWayfarer, wayfarerDay, type Way, type Passing } from "./wayfarers";
 import { agendaOf, festivalOf, type Person } from "../../core/agenda";
+import type { HouseholdCondition } from "../../core/household";
 import { lifeAimOf } from "../../core/life-aim";
 import { carryKit } from "../../content/economy/carrying";
 import { commutes, isVisitor, railDay } from "./rail-travellers";
 import { bindWorkStations, dayStations, livelihoodOf, placeFor } from "./routines";
+import { kinGraves } from "../../core/graves";
 import { adjacentTerrain } from "../travel/terrain-preview";
 import { waterDepthAt, MAX_WADING_DEPTH, QUAY_APRON } from "../../core/water-field";
 import { mapEntrances, type MapEntrance } from "../travel/entrances";
@@ -72,7 +76,7 @@ import {
   type HeightTier,
   type TopographyCell,
 } from "../../core/topography";
-import type { Actor, Pack, Place, Point, Terrain, WorldModel } from "../../core/types";
+import type { Actor, Pack, Place, Point, Terrain, WorldModel, WorldObject } from "../../core/types";
 import {
   buildItinerary,
   DAY_MINUTES,
@@ -586,6 +590,25 @@ export function createSettlementWorld(
   const routines = new Map<string, Itinerary | undefined>();
   /** The game day each built routine was built for. */
   const routineDay = new Map<string, number>();
+  /** Each built routine's dayKey, so a death or an illness since shows as a change. */
+  const routineKey = new Map<string, string>();
+  let conditions: Map<string, HouseholdCondition> | undefined;
+  const conditionSeen = new Map<string, string>();
+  const recheck = new Set<string>();
+  /** Residents whose day turns on a household: its own people, and kin living elsewhere. */
+  let dependants: Map<string, string[]> | undefined;
+  function dependantsOf(household: string) {
+    if (!dependants) {
+      dependants = new Map();
+      const house = new Map(world.initialActors.map((a) => [a.id, a.householdId]));
+      const add = (h: string | undefined, id: string) => h && dependants!.set(h, [...(dependants!.get(h) ?? []), id]);
+      for (const a of world.initialActors) {
+        add(a.householdId, a.id);
+        for (const r of a.relations ?? []) if (house.get(r.other) !== a.householdId) add(house.get(r.other), a.id);
+      }
+    }
+    return dependants.get(household) ?? [];
+  }
   let today = 0;
   const aims = new Map<string, ReturnType<typeof lifeAimOf>>();
   /** Who a resident is to the day's picker: their household, kin and aim. */
@@ -608,21 +631,23 @@ export function createSettlementWorld(
       kin,
       aim,
       work: `${kit?.label ?? ""} ${kit?.activity ?? ""} ${actor.role}`,
+      conditions: (id) => conditions?.get(id),
     };
   }
   /** The day's own doings for one resident, placed in their settlement. */
   function dayOf(actor: Actor, plan: SettlementPlan, clock: number) {
     const site = plan.work.get(actor.id);
     if (!site) return undefined;
+    plan.kinGraves ??= kinGraves(world.households ?? [], plan.objects);
     const person = personOf(actor);
     const subjectAt = (subject?: string) => {
-      const other = person.kin.find((k) => k.actor.id === subject)?.actor;
+      const other = person.kin.find((k) => k.actor.id === subject)?.actor ?? world.initialActors.find((a) => a.id === subject);
       if (!other) return undefined;
       const same = other.householdId && other.householdId === actor.householdId;
       return { home: plan.work.get(other.id)?.home ?? (same ? site.home : undefined), name: other.name.split(" ")[0] };
     };
     const can = (want: Parameters<typeof placeFor>[6]) =>
-      typeof want === "object" && "kin" in want ||
+      typeof want === "object" && ("kin" in want || "subject" in want) ||
       !!placeFor(plan, seed, actor.id, site.home, site.work, pack.year, want, undefined, false, actor);
     const items = agendaOf(seed, pack.setting, clock, person, can).map((item) => ({
       ...item,
@@ -3081,8 +3106,23 @@ export function createSettlementWorld(
   /** Retires the oldest active resident once they are resting at home and
    * wakes the next dormant one, so the crowd turns over without anyone
    * vanishing mid-street. One swap per settlement per call. */
-  function rotateRoutines(clock: number) {
+  function rotateRoutines(clock: number, live?: Map<string, HouseholdCondition>, opening = false) {
     const day = Math.floor(clock / 86400);
+    conditions = live;
+    for (const h of new Set([...conditionSeen.keys(), ...(live?.keys() ?? [])])) {
+      const now = JSON.stringify(live?.get(h) ?? "");
+      if (now === (conditionSeen.get(h) ?? '""')) continue;
+      if (live?.has(h)) conditionSeen.set(h, now);
+      else conditionSeen.delete(h);
+      for (const id of dependantsOf(h)) {
+        if (!opening) recheck.add(id);
+        else if (routines.get(id)) {
+          routines.delete(id);
+          routineDay.delete(id);
+          routineKey.delete(id);
+        }
+      }
+    }
     if (day !== today) {
       // Yesterday's routine is kept until they are home for the night, so
       // nobody is lifted off the street when the date turns.
@@ -3090,18 +3130,20 @@ export function createSettlementWorld(
     }
     for (const [id, it] of routines) {
       const built = routineDay.get(id);
-      if (!it || built === undefined || built === today) continue;
+      if (!it || built === undefined || (built === today && !recheck.has(id))) continue;
       const at = itineraryAt(it, clock);
       const home = it.segments[0]?.pos;
       if (at.activity !== "rest" || at.moving || !home || at.x !== home.x || at.y !== home.y)
         continue;
       const actor = world.initialActors.find((a) => a.id === id);
       const plan = planForEntity(id);
-      if (dayKey(actor, plan, built) === dayKey(actor, plan, today) &&
+      recheck.delete(id);
+      if ((routineKey.get(id) ?? dayKey(actor, plan, built)) === dayKey(actor, plan, today) &&
           !(it.segments.some(s => s.target?.family === "wild-food") && seasonAt(pack.setting!.season, built * 86400 + 43200) !== seasonAt(pack.setting!.season, clock))) routineDay.set(id, today);
       else {
         routines.delete(id);
         routineDay.delete(id);
+        routineKey.delete(id);
       }
     }
     for (const [key, ranked] of routineRank) {
@@ -3472,6 +3514,7 @@ export function createSettlementWorld(
       );
     routines.set(id, built);
     routineDay.set(id, today);
+    routineKey.set(id, dayKey(self, plan, today));
     return built;
   }
   function planForEntity(id: string) {
@@ -3754,6 +3797,7 @@ export function createSettlementWorld(
       if (routedAroundProps) return void (routedAroundProps = false);
       routines.clear();
       routineDay.clear();
+      routineKey.clear();
       routineRank.clear();
       dormant.clear();
       warmRoutines();
@@ -3777,6 +3821,12 @@ export function createSettlementWorld(
     rotateRoutines,
     propSlots: (id) => {
       return planForEntity(id)?.slots.get(id);
+    },
+    yardOwner: (x, y) => {
+      for (const p of nearby(x, y)) {
+        const owner = yardOwners(p).get(cellKey(x, y));
+        if (owner) return owner;
+      }
     },
     protectedCell: (x, y) =>
       onBlacktop(x, y, 0.5) ||
@@ -3931,6 +3981,46 @@ export function createSettlementWorld(
     ...(door && !world.blocked(door.x, door.y, "outside") ? door : (initial?.spawn ?? { x: 0, y: 0 })),
     space: "outside",
   };
+  // Drivers start beside a parked car: their own if the work is driving one, someone else's for a thief.
+  const driving = door && pack.setting?.characterRevision && !pack.setting.situation
+    ? characterLivelihood(pack.setting, seed, "player", pack.role, undefined, characterSex(seed, "player")).id
+    : undefined;
+  if (driving && ["car-thief", "cab-driver", "chauffeur", "lorry-driver", "motor-mechanic"].includes(driving)) {
+    const near = (o: WorldObject) => Math.hypot(o.pos.x - door!.x, o.pos.y - door!.y);
+    const cars = initial!.objects.filter((o) => o.car?.rect && near(o) < 60).sort((a, b) => near(a) - near(b));
+    // No car parked near home: park one on the nearest open ground facing east.
+    const car = !cars.length && parkedCar(vehiclePool(pack.setting!), random(seed, "player-car"), random(seed, "player-car-paint"));
+    if (car) {
+      const length = carLength(car.model, "x"), open = (x: number, y: number) => !world.blocked(x, y, "outside") && !(x === door!.x && y === door!.y);
+      let at: Point | undefined;
+      for (let r = 2; r < 24 && !at; r++)
+        for (let dy = -r; dy <= r && !at; dy++)
+          for (let dx = -r; dx <= r && !at; dx++) {
+            const x = door!.x + dx, y = door!.y + dy;
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+            let clear = true;
+            for (let i = -1; i <= length && clear; i++) for (let j = -2; j <= 1 && clear; j++) clear = open(x + i, y + j);
+            if (clear) at = { x, y };
+          }
+      if (at) {
+        for (let i = 0; i < length; i++) for (const j of [0, 1]) initial!.solid.add(cellKey(at.x + i, at.y - j));
+        const o: WorldObject = { id: "player-car", name: car.label, description: car.about, kind: "monument", sprite: `vehicle-${car.model}-${car.paint}-e`,
+          pos: { ...at, space: "outside" }, inventory: {}, claim: "landscape", car: { model: car.model, paint: car.paint, rect: [at.x, at.y - 1, at.x + length - 1, at.y] } };
+        initial!.objects.push(o);
+        cars.push(o);
+      }
+    }
+    for (const car of cars) {
+      const [x0, y0, x1, y1] = car.car!.rect!;
+      const side = [...Array.from({ length: x1 - x0 + 1 }, (_, i) => [{ x: x0 + i, y: y0 - 1 }, { x: x0 + i, y: y1 + 1 }]).flat(),
+        ...Array.from({ length: y1 - y0 + 1 }, (_, i) => [{ x: x0 - 1, y: y0 + i }, { x: x1 + 1, y: y0 + i }]).flat()]
+        .find((c) => !world.blocked(c.x, c.y, "outside"));
+      if (!side) continue;
+      if (driving !== "car-thief") car.car!.yours = true;
+      world.spawn = { ...side, space: "outside" };
+      break;
+    }
+  }
   if (
     !pack.setting?.situation &&
     (environment.start !== "resident" ||

@@ -17,7 +17,7 @@ export const HAZARD_CARDS: ChoiceCard[] = [
         check: { stat: "agility", skill: "crafting", odds: 0.55 },
         then: [{ type: "day", delta: 1 }],
         line: "You freed the loaf and got your hand out in time.",
-        otherwise: [{ type: "hurt", n: 12, cause: "a burn at the oven", injury: "burned hand" }],
+        otherwise: [{ type: "hurt", n: 12, cause: "a burn at the oven", injury: "burned-hand" }],
         otherwiseLine: "Your hand brushed the hot oven as the loaf came free.",
       },
       {
@@ -41,7 +41,7 @@ export const HAZARD_CARDS: ChoiceCard[] = [
         check: { stat: "agility", skill: "woodcraft", odds: 0.55 },
         then: [{ type: "day", delta: 1 }],
         line: "You held the piece steady and finished the job.",
-        otherwise: [{ type: "hurt", n: 10, cause: "a slipping tool", injury: "cut palm" }],
+        otherwise: [{ type: "hurt", n: 10, cause: "a slipping tool", injury: "cut-palm" }],
         otherwiseLine: "The piece shifted again and the tool cut your palm.",
       },
       {
@@ -65,7 +65,7 @@ export const HAZARD_CARDS: ChoiceCard[] = [
         check: { stat: "strength", skill: "animals", odds: 0.55 },
         then: [{ type: "day", delta: 1 }],
         line: "You held your ground and got the {herd} through.",
-        otherwise: [{ type: "hurt", n: 16, cause: "a crush at the pen", injury: "bruised ribs" }],
+        otherwise: [{ type: "hurt", n: 16, cause: "a crush at the pen", injury: "cracked-ribs" }],
         otherwiseLine: "The {herd} knocked you into the side of the pen as they crowded through.",
       },
       {
@@ -89,7 +89,7 @@ export const HAZARD_CARDS: ChoiceCard[] = [
         check: { stat: "agility", skill: "farming", odds: 0.55 },
         then: [{ type: "day", delta: 1 }],
         line: "You found your footing and finished the far rows.",
-        otherwise: [{ type: "hurt", n: 10, cause: "a fall in the field", injury: "twisted ankle" }],
+        otherwise: [{ type: "hurt", n: 10, cause: "a fall in the field", injury: "sprained-ankle" }],
         otherwiseLine: "Your foot slipped into a rut and your ankle turned under you.",
       },
       {
@@ -137,7 +137,7 @@ export const HAZARD_CARDS: ChoiceCard[] = [
         check: { stat: "agility", odds: 0.8 },
         then: [{ type: "fatigue", n: 10 }],
         line: "You grabbed the wall and held on until someone tied the pole tight again.",
-        otherwise: [{ type: "hurt", n: 70, cause: "a fall", injury: "broken bones" }],
+        otherwise: [{ type: "hurt", n: 70, cause: "a fall", injury: "broken-leg" }],
         otherwiseLine: "You fell.",
       },
       {
@@ -161,7 +161,7 @@ export const HAZARD_CARDS: ChoiceCard[] = [
         check: { stat: "agility", skill: "stonework", odds: 0.7 },
         then: [{ type: "day", delta: 1 }],
         line: "You got the block out before the rock came down.",
-        otherwise: [{ type: "hurt", n: 60, cause: "a fall of rock", injury: "a crushed leg" }],
+        otherwise: [{ type: "hurt", n: 60, cause: "a fall of rock", injury: "broken-leg" }],
         otherwiseLine: "The rock face came down on you.",
       },
       {
@@ -212,7 +212,7 @@ export const FORD_CARD: ChoiceCard = {
       check: { stat: "endurance", skill: "wayfaring", odds: 0.6 },
       then: [{ type: "fatigue", n: 5 }],
       line: "You braced against the current and kept your footing.",
-      otherwise: [{ type: "hurt", n: 20, cause: "a fall in the river", injury: "bruised knee" }, { type: "fatigue", n: 12 }],
+      otherwise: [{ type: "hurt", n: 20, cause: "a fall in the river", injury: "bruised-knee" }, { type: "fatigue", n: 12 }],
       otherwiseLine: "The current knocked you down and you struck your knee on the riverbed.",
     },
     {

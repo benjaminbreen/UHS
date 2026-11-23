@@ -16,9 +16,10 @@ import {
   MusicRotation,
 } from "./cultural-themes";
 import { createMix, scheduleNote, prepareScore, type MixBus } from "./synth";
-import { events, interfaceClick, noise, playSound, ring, tone, type EventId, type Sound } from "./sfx";
+import { bodily, events, interfaceClick, noise, playSound, ring, tone, type EventId, type InterfaceKind, type Sound } from "./sfx";
 import { applyTuning, tuning } from "./sfx-tuning";
 import { Ambience, Room, UndergroundBed, silence, type AmbienceMix, type UndergroundLevels } from "./ambience";
+import { sung, voiceGain, type Voice } from "./wildlife";
 import { interiorThemes, type InteriorMusic } from "./interior-themes";
 import { situationTheme, type Situation, type ThreatMusic } from "./situation-themes";
 import { smallMemoryDevice } from "../runtime/device";
@@ -253,6 +254,24 @@ let active: AudioDirector | undefined;
 export function gameAudio() {
   return active;
 }
+let bare: AudioContext | undefined;
+/** An interface sound from anywhere, the title screens included, where no
+ * director is running yet. */
+export function interfaceSound(kind: InterfaceKind) {
+  if (active) return void active.interfaceSound(kind);
+  try {
+    const prefs = JSON.parse(localStorage.getItem(PREF_KEY) || "{}");
+    if (prefs.muted || prefs.sfxVolume === 0) return;
+    const ctx = (bare ??= new AudioContext()),
+      out = ctx.createGain();
+    out.gain.value = typeof prefs.sfxVolume === "number" ? prefs.sfxVolume : 0.6;
+    out.connect(ctx.destination);
+    void ctx.resume();
+    playSound(ctx, out, interfaceClick(kind), ctx.currentTime + 0.005);
+  } catch {
+    /* Optional. */
+  }
+}
 export class AudioDirector {
   private ctx?: AudioContext;
   private master?: GainNode;
@@ -262,6 +281,8 @@ export class AudioDirector {
   private timer?: ReturnType<typeof setInterval>;
   private pending?: ReturnType<typeof setTimeout>;
   private ambience?: Ambience;
+  private haze?: BiquadFilterNode;
+  private dazed = 0;
   private room?: Room;
   private duck?: GainNode;
   private scene: AmbienceMix = { ...silence };
@@ -373,7 +394,9 @@ export class AudioDirector {
       limiter.threshold.value = -6;
       limiter.knee.value = 6;
       limiter.ratio.value = 12;
-      this.master.connect(limiter).connect(this.ctx.destination);
+      this.haze = this.ctx.createBiquadFilter();
+      this.haze.frequency.value = 20000;
+      this.master.connect(this.haze).connect(limiter).connect(this.ctx.destination);
       this.music = this.ctx.createGain();
       this.music.gain.value = this.state.volume;
       this.duck = this.ctx.createGain();
@@ -574,8 +597,10 @@ export class AudioDirector {
     this.place = { culture, year };
     // Years pass within a life without a cue; no life jumps sixty at once, so more is time travel.
     const slipped = Math.abs((before?.year ?? 0) - (year ?? 0)) > 60;
-    if (!firstSetting && slipped)
+    if (!firstSetting && slipped) {
       void this.cue(situationTheme("timeslip", culture, year));
+      void this.sound(bodily.arrive, "arrive");
+    }
     const direct = culture && year !== undefined
       ? culturalMusic(culture, year, location).direct
       : [];
@@ -835,6 +860,27 @@ export class AudioDirector {
         this.patch({ error: `Sound effect unavailable: ${String(error)}` });
     }
   }
+  /** An animal answering the player: one call from where it is. */
+  async call(voice: Voice, pan = 0, volume = 1) {
+    if (this.disposed || this.state.muted || !this.state.sfxVolume) return;
+    const now = performance.now(),
+      key = `call-${voice}`;
+    if (now - (this.lastSfx.get(key) ?? -Infinity) < 700) return;
+    this.lastSfx.set(key, now);
+    try {
+      const ctx = await this.unlock();
+      const data = sung(voice, ctx.sampleRate),
+        src = ctx.createBufferSource(),
+        g = ctx.createGain();
+      src.buffer = ctx.createBuffer(1, data.length, ctx.sampleRate);
+      src.buffer.getChannelData(0).set(data);
+      g.gain.value = 0.09 * voiceGain(voice) * volume;
+      src.connect(g).connect(this.room!.input(pan));
+      src.start();
+    } catch {
+      /* Optional. */
+    }
+  }
   /** One-shots from a cave: a drop into a pool, wings, ice, grit, a find. */
   caveCue(what: CaveCue, volume: number) {
     if (what === "take") return this.event("gather");
@@ -905,11 +951,48 @@ export class AudioDirector {
   event(id: EventId) {
     return this.sound(events[id], id);
   }
-  async interfaceSound(kind: "open" | "close" | "tab") {
+  /** A blow to the head dulls everything heard, 0 clear to 1 fresh. */
+  daze(level: number) {
+    if (!this.haze || level === this.dazed) return;
+    this.dazed = level;
+    this.haze.frequency.setTargetAtTime(20000 * 0.07 ** level, this.ctx!.currentTime, 0.6);
+    this.haze.Q.value = level > 0 ? 0.7 : 0;
+  }
+  /** A street goes quiet at something ugly, then talks about it. */
+  private hush() {
+    const town = this.heard(this.scene).town;
+    if (town < 0.05 || !this.ambience) return;
+    this.ambience.set({ ...this.heard(this.scene), town: town * 0.15 });
+    setTimeout(() => {
+      if (this.disposed) return;
+      this.ambience?.set(this.heard(this.scene));
+      void this.sound(bodily.murmur, "murmur", Math.random() - 0.5);
+    }, 3200);
+  }
+  /** The blow, then the injury sting with the score drawn back under it. */
+  injured(hurt?: Parameters<typeof bodily.impact>[0]) {
+    if (hurt) void this.sound(() => bodily.impact(hurt), "impact");
+    this.hush();
+    const under = this.run?.gain.gain, ctx = this.ctx;
+    if (under && ctx) {
+      const now = ctx.currentTime;
+      under.cancelAndHoldAtTime(now);
+      under.linearRampToValueAtTime(0.15, now + 0.3);
+      under.setValueAtTime(0.15, now + 4.5);
+      under.linearRampToValueAtTime(1, now + 7);
+    }
+    return this.event("injured");
+  }
+  thunder(delay: number, close: boolean) {
+    this.ambience?.strike(delay, close);
+  }
+  async interfaceSound(kind: InterfaceKind) {
     if (this.disposed || this.state.muted || !this.state.sfxVolume) return;
-    const now = performance.now();
-    if (now - (this.lastSfx.get("interface") ?? -Infinity) < 45) return;
-    this.lastSfx.set("interface", now);
+    const now = performance.now(),
+      // A button's own tap must not swallow the panel it opens or closes.
+      key = kind === "tap" || kind === "more" || kind === "less" ? "interface-tap" : "interface";
+    if (now - (this.lastSfx.get(key) ?? -Infinity) < 45) return;
+    this.lastSfx.set(key, now);
     try {
       const ctx = await this.unlock();
       if (!this.disposed && !this.state.muted && this.state.sfxVolume)

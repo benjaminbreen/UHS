@@ -607,7 +607,7 @@ describe("provoked householders", () => {
       s.actors.push(watcher);
       e.conversing = undefined;
       e.provoke(actor, "insulted me");
-      expect(watcher.activity).toBe("Watching the fight");
+      expect(watcher.activity).toMatch(/the fight/);
       expect(s.complaints?.[0]).toMatchObject({ by: actor.id, seen: true });
       delete actor.terror;
       e.advance(12);

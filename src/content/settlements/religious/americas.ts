@@ -116,7 +116,8 @@ export const americasReligious: ReligiousRule[] = [
     culture: "mesoamerican",
     from: -200,
     to: 1550,
-    bounds: [-106, 13, -85, 23],
+    // East of -94 is the Maya rule's; overlapping, this shorter span would win.
+    bounds: [-106, 13, -94, 23],
     side: "east",
     about:
       "A stepped pyramid with a shrine at the top, where priests make offerings to the gods for the whole town.",

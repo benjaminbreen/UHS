@@ -42,6 +42,7 @@ import {
 } from "../../core/time/structure";
 import { venuesFor } from "../../content/venues";
 import { aboutBuilding } from "../../content/settlements/about-buildings";
+import { establishmentName } from "../../content/settlements/inn-names";
 import {
   streetPalette,
   chooseStreetSurface,
@@ -102,7 +103,7 @@ import {
 import { faunaAt, faunaProfile } from "../../content/fauna";
 import type { FaunaGroup, FaunaMember } from "../../core/fauna";
 import { crops } from "../../content/agriculture/crops";
-import { cropStage } from "../../content/agriculture";
+import { cropStage, farmSystem } from "../../content/agriculture";
 import { farms } from "../../content/geography/onsets";
 import { route } from "../../core/routing";
 import { stallGood } from "../../content/economy/market";
@@ -775,6 +776,9 @@ export function planSettlement(
         pos: pos(at),
         inventory: {},
         claim: "landscape",
+        car: { model: car.model, paint: car.paint, rect: alongX
+          ? [x + ((STALL - length) >> 1), y - PARKING + 1, x + ((STALL - length) >> 1) + length - 1, y]
+          : [x, y + ((STALL - length) >> 1), x + PARKING - 1, y + ((STALL - length) >> 1) + length - 1] },
       });
       const start = (STALL - length) >> 1;
       for (let i = start; i < start + length; i++)
@@ -3143,7 +3147,8 @@ export function planSettlement(
     const open = new Set(free.map((p) => cellKey(p.x, p.y)));
     const clear = (x: number, y: number) => {
       const k = cellKey(x, y);
-      return open.has(k) && !plan.solid.has(k) && !roads.has(k) && (!propCells.has(k) || buildingClearance.has(k));
+      return open.has(k) && !plan.solid.has(k) && !roads.has(k) && (!propCells.has(k) || buildingClearance.has(k)) &&
+        !(placed && plan.placement.clearance.has(k));
     };
     for (const at of free) {
       let fits = true;
@@ -4744,6 +4749,8 @@ export function planSettlement(
       means,
     );
     if (motorAge) structure.vegetation *= 0.15;
+    const signboard = (kind: string) => establishmentName(kind, pack.setting, pack.names, (k) => random(seed, id, "inn-name", k),
+      (name) => plan.places.some((p) => p.name === name));
     plan.places.push({
       structure,
       condition: conditionOf(structure),
@@ -4757,7 +4764,7 @@ export function planSettlement(
       ...(lot.use ? { landUse: lot.use } : {}),
       id,
       name: lot.venue
-        ? lot.venue.label
+        ? signboard(lot.venue.id) ?? lot.venue.label
         : lot.use === "industrial"
           ? model.label.split(" · ")[0]
         : camp
@@ -4767,7 +4774,7 @@ export function planSettlement(
           : shop
           ? NAMED_SHOPS.has(shop.id) ? `The ${shop.label.toLowerCase()}` : shop.id === "general" ? `${role}'s shop` : `${role}'s workshop`
           : keeper && art !== "shop"
-          ? art![0].toUpperCase() + art!.slice(1)
+          ? signboard(art!) ?? art![0].toUpperCase() + art!.slice(1)
           : keeper || lot.quarter === "market"
           ? `${role}'s shop`
           : lot.quarter === "elite"
@@ -4882,9 +4889,10 @@ export function planSettlement(
         for (const [n, c] of plot.cars.entries()) {
           const car = pool.length ? parkedCar(pool, rand("site-car", i, n), rand("site-paint", i, n)) : undefined;
           if (!car) continue;
-          plan.objects.push({ id: `${id}-site-car-${n}`, name: car.label, description: car.about, kind: "monument",
-            sprite: `vehicle-${car.model}-${car.paint}-${c.heading}`, pos: pos(c), inventory: {}, claim: "landscape" });
           const length = carLength(car.model, c.heading === "n" ? "y" : "x");
+          plan.objects.push({ id: `${id}-site-car-${n}`, name: car.label, description: car.about, kind: "monument",
+            sprite: `vehicle-${car.model}-${car.paint}-${c.heading}`, pos: pos(c), inventory: {}, claim: "landscape",
+            car: { model: car.model, paint: car.paint, rect: c.heading === "n" ? [c.x, c.y - length + 1, c.x + 1, c.y] : [c.x, c.y - 1, c.x + length - 1, c.y] } });
           for (let d = 0; d < length; d++)
             for (const e of [0, 1]) plan.solid.add(c.heading === "n" ? cellKey(c.x + e, c.y - d) : cellKey(c.x + d, c.y - e));
         }
@@ -4992,6 +5000,7 @@ export function planSettlement(
               id: `${id}-car`, name: car.label, description: car.about, kind: "monument",
               sprite: `vehicle-${car.model}-${car.paint}-${ny < 0 ? "n" : "s"}`,
               pos: pos({ x: x0, y: Math.max(front + ny, front + ny * length) }), inventory: {}, claim: "landscape",
+              car: { model: car.model, paint: car.paint, rect: [x0, Math.min(front + ny, front + ny * length), x0 + 1, Math.max(front + ny, front + ny * length)] },
             });
             break;
           }
@@ -5285,10 +5294,11 @@ export function planSettlement(
       },
       solid: (x, y) => plan.solid.has(cellKey(x, y)),
       foreign,
-      // A town gets about a hundred parcels, a village one or two a house.
+      // A town gets about a hundred parcels. A village tills about a third of
+      // the forty cells beyond its edge, however few its houses or large its plots.
       cap: urban
         ? Math.max(40, Math.min(110, Math.round(plan.places.length * 0.4)))
-        : Math.max(6, plan.places.length * 2),
+        : villageFieldCap(profile.radius, pack.setting ? farmSystem(pack.setting).module : [8, 8], plan.places.length),
       // Lanes are straight and laid from the far end in, so each ends on
       // the lane or spoke it serves; a spoke's inner end is routed the last
       // few cells onto the town's own streets.
@@ -7753,6 +7763,13 @@ export const terraceBox = (r: number) => Math.ceil(Math.min(r * 1.3, r + 40));
  * except for a hill or hollow broad enough to be part of its shape. Whole
  * patches move, so every bank left still follows the land. The box stays inside the plan's
  * bounds and reaches past the town so a hill running out of it stays a hill. */
+export function villageFieldCap(radius: number, module: readonly [number, number], places: number) {
+  // The same edge planFarmland starts a village's fields at.
+  const edge = Math.max(24, Math.round(radius * 0.55));
+  const cells = Math.PI * ((edge + 40) ** 2 - edge ** 2) * 0.35;
+  return Math.max(6, places * 2, Math.min(120, Math.round(cells / (module[0] * module[1]))));
+}
+
 export function townTerraces(sample: Sample, c: Point, r: number, engineered: boolean) {
   const reach = terraceBox(r), x0 = c.x - reach, y0 = c.y - reach, n = reach * 2 + 1;
   const level = new Int16Array(n * n), wet = new Uint8Array(n * n);

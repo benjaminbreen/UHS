@@ -40,6 +40,7 @@ const night: Condition = { type: "due" };
 export const raid: PlotTemplate = {
   id: "raid",
   shape: "work",
+  urgent: true,
   look: {
     emblem: "fold",
     palette: { ink: "#100e0b", fill: "#2a2a22", edge: "#6a5a3a", light: "#ece6d6", accent: "#b0904a" },

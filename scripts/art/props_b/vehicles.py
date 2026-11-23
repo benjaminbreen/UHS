@@ -255,20 +255,38 @@ def shade(ramp, lam):
  return ramp[max(0, min(len(ramp) - 1, i))]
 
 
+TURNED = {'ne': 1, 'se': 3, 'sw': 5, 'nw': 7}
+
+
 def render(spec, paint, heading):
- """Paint the car facing `heading` (e, w, s or n) onto its own canvas."""
+ """Paint the car facing `heading` onto its own canvas: e, w, s or n square
+ on, or one of the diagonals in TURNED, which stands on the centre of its
+ plan rather than at a kerb."""
+ from math import sin, cos
  car = Car(spec, paint)
  Lp, Wp = int(round(car.L * PX)), int(round(car.W * PX))
  Hp = int(round((car.H + max((car.get('fin') or (0, 0))[1], 0) + 0.1) * PX))
- side = heading in 'ew'
- across = Lp if side else round(Wp * FRONT_WIDTH)                 # screen width
- depth = Wp if side else Lp                  # ground depth
+ turned = heading in TURNED
+ if turned:
+  t = TURNED[heading] * pi / 4
+  fe, fs = sin(t), -cos(t)                    # the way it faces: east, south
+  re, rs = fs, -fe                            # the model's y axis
+  lat = 1 + (FRONT_WIDTH - 1) * abs(fs)
+  across = int(round(abs(fe) * Lp + abs(re) * Wp * lat))
+  depth = int(round(abs(fs) * Lp + abs(rs) * Wp * lat))
+ else:
+  # The model's x runs from the nose back, so a car facing east has it at the right.
+  heading = {'e': 'w', 'w': 'e'}.get(heading, heading)
+  side = heading in 'ew'
+  across = Lp if side else round(Wp * FRONT_WIDTH)                 # screen width
+  depth = Wp if side else Lp                  # ground depth
  W = across + 4
  H = Hp + int(depth * DEPTH) + 4
  ground = H - 2
  px = {}
  # Model axes to world axes for the light: east, south (toward us), up.
  def world(dx, dd):
+  if turned: return (-dx * fe + dd * re, -dx * fs + dd * rs)
   return {'e': (dx, dd), 'w': (-dx, -dd), 's': (dd, dx), 'n': (-dd, -dx)}[heading]
  # Far to near.
  for k in range(depth * 2):
@@ -276,7 +294,11 @@ def render(spec, paint, heading):
   near = depth - g
   for a in range(across):
    # (x, y) in model metres: y from the left side of the car.
-   if heading == 'e': x, y = (a + .5) / PX, (g + .5) / PX
+   if turned:
+    E, S = a + .5 - across / 2, g + .5 - depth / 2
+    x, y = (Lp / 2 - (E * fe + S * fs)) / PX, (Wp / 2 + (E * re + S * rs) / lat) / PX
+    if not (0 <= x <= car.L and 0 <= y <= car.W): continue
+   elif heading == 'e': x, y = (a + .5) / PX, (g + .5) / PX
    elif heading == 'w': x, y = (Lp - a - .5) / PX, (Wp - g - .5) / PX
    elif heading == 's': x, y = (Lp - g - .5) / PX, (Wp - (a + .5) * Wp / across) / PX
    else: x, y = (g + .5) / PX, (a + .5) * Wp / across / PX
@@ -323,7 +345,7 @@ def render(spec, paint, heading):
  rim(im, car.paint)
  # Stalls and parking lanes are an even number of cells, so a car is centred
  # on the line between two cells: half a cell right of the one it stands on.
- im.info['anchor'] = [W // 2 - 8, ground + 1]
+ im.info['anchor'] = [W // 2, ground - int(depth * DEPTH / 2)] if turned else [W // 2 - 8, ground + 1]
  return im
 
 
@@ -745,7 +767,7 @@ def vehicle_sprites():
  out = {}
  for model, spec in MODELS.items():
   for i, paint in enumerate(spec['paints']):
-   for heading in 'ewsn':
+   for heading in ('e', 'w', 's', 'n', *TURNED):
     out[f'vehicle-{model}-{i}-{heading}'] = render(spec, paint, heading)
  return out
 
@@ -759,7 +781,7 @@ def vehicle_shadows(sprites, phases):
  out = {}
  for key, im in sprites.items():
   model, paint, heading = key[8:].rsplit('-', 2)
-  if paint != '0': continue
+  if paint != '0' or heading in TURNED: continue
   spec = MODELS[model]
   side = heading in 'ew'
   w = (spec['L'] if side else spec['W'] * FRONT_WIDTH) * PX
@@ -793,6 +815,8 @@ def vehicle_catalog():
    # Along an east-west street it covers its length at full prop scale; along
    # a north-south one its length at ground depth.
    'cells': {'x': round(spec['L'] * PX / 16, 2), 'y': round(spec['L'] * PX * DEPTH / 16, 2)},
+   # Its width in cells, for a car that has left its stall.
+   'wide': round(spec['W'] * PX / 16, 2),
   }
   for model, spec in MODELS.items()
  }

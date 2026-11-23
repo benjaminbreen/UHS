@@ -874,7 +874,12 @@ export type BodyRecord = {
   soot?: boolean;
   powder?: string;
 };
+/** How an injury shows on the walking figure (`hurtLook` in injuries.ts). */
+export type HurtLook = "sling" | "crutch" | "splint" | "head" | "face" | "hand" | "arm" | "ribs" | "stick" | "blind" | "peg" | "empty-sleeve" | "leper" | "trolley" | "wheelchair";
+
 export type CharacterAppearance = {
+  /** An injury being worn: a sling, a crutch, a bandage. */
+  hurt?: HurtLook;
   physique?: CharacterPhysique;
   face?: CharacterFace;
   /** Shared by a family line, so kin share the small proportions that no face field names. */

@@ -37,7 +37,7 @@ function ejectOrDetain(h: ComplexHost, run: FairRun, exit: AreaExit, guard?: (ty
     h.say?.(guard.id, "Seize them!");
   }
   h.cue?.("player", "struck", guard?.pos ?? { x: exit.x, y: exit.y });
-  h.hurt(8, "palace guard", "bruised shoulder");
+  h.hurt(8, "palace guard", "bruises");
   const fine = Math.min(3, p.inventory.coin ?? 0);
   if (fine > 0) p.inventory.coin = (p.inventory.coin ?? 0) - fine;
   h.advance(900);

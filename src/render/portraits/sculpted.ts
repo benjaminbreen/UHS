@@ -1,6 +1,11 @@
 import type { CharacterAppearance, CharacterFace } from "../../core/character";
 import { generateEyeAlignment, generateEyeDetail, generateFace } from "../../core/character";
 import { mix } from "../characters/pixels";
+
+const luma = (c: string) => {
+  const v = parseInt(c.slice(1, 7), 16);
+  return (0.3 * (v >> 16) + 0.59 * ((v >> 8) & 255) + 0.11 * (v & 255)) / 255;
+};
 import { clothColours } from "../characters/cloth";
 import type { Expression as Face } from "./constructed";
 import { MAT, Raster, tones, type Mat, type Pt, type Tones } from "./raster";
@@ -304,7 +309,7 @@ function model(a: CharacterAppearance, age: number): Model {
 const BARE = ["none", "loincloth", "skirt"];
 // The sprite draws a skirt with a bodice or blouse above it unless it has no sleeves.
 const garmentOf = (w: CharacterAppearance["wearing"]) => (w.garment === "skirt" && w.sleeves !== "none" ? "shirt" : w.garment);
-const HIDES_HAIR = ["hood", "headscarf", "veil", "wrap", "turban", "helmet", "wig"];
+const HIDES_HAIR = ["hood", "headscarf", "veil", "wrap", "turban", "helmet", "wig", "kabuto", "jaguar", "eagle", "nemes", "wimple", "hennin", "dastar"];
 
 /** Fibonacci points on a unit sphere, for placing curls. */
 const DIRS: V[] = Array.from({ length: 90 }, (_, i) => {
@@ -321,7 +326,7 @@ function build(m: Model): Scene {
   const garment = garmentOf(a.wearing);
   const curly = tex === "curly" || tex === "coiled" || style === "curls";
   const hidden = HIDES_HAIR.includes(hw);
-  const hatted = !["none", "band", "fillet", "plume", "visor"].includes(hw);
+  const hatted = !["none", "band", "fillet", "plume", "visor", "crown"].includes(hw);
   const nY = 1.5 - n.len; // nose tip height
   const mouthY = m.mouthY;
 
@@ -690,6 +695,8 @@ function build(m: Model): Scene {
     const brim = Math.max(Math.abs(q[1] - lip) - 0.5, len2(q[0], q[2] + 1.5) - (W + 6.6)) - 0.2;
     return [crown, brim, smax(side - 0.35, Math.abs(q[1] - base - 1.5) - 1.2, 0.3)];
   };
+  /** The lower edge of a snug cap: at the brow in front, dropping over the ears to the nape. */
+  const capLine = (p: V, front: number, fall: number) => front - clamp((3 - p[2]) * fall, 0, 8);
   const clocheEdge = (p: V) => 3.2 - clamp((9 - p[2]) * 0.4, 0, 8);
   const clocheBell = (p: V) => ellipsoid(p, 0, 5.5, -1.5, m.headW + 1.5 - Math.max(0, p[1] - 12) * 0.2, m.headH + 3.6, m.headW + 2.4 - Math.max(0, p[1] - 12) * 0.15);
   /** Negative where the scarf can lie: behind the rolled front edge and clear of the face. */
@@ -706,6 +713,16 @@ function build(m: Model): Scene {
       case "flat-cap": return m.hairline - 1.5 - clamp((4 - p[2]) * 0.25, 0, 3) - p[1];
       case "kerchief": return Math.max(kerchiefOpen(p) + 0.5, -(p[1] + 9));
       case "pillbox": return 20.5 - tip(p, 21, -1, 0.2)[1];
+      case "ball-cap": return capLine(p, m.hairline - 0.6, 0.3) - p[1];
+      case "cap": return capLine(p, m.hairline + 0.5, 0.45) - p[1];
+      case "mobcap": return capLine(p, m.hairline + 1.5, 0.5) - p[1];
+      case "tam": return capLine(p, m.hairline - 0.3, 0.3) - p[1];
+      case "fez": case "bork": case "official-cap": case "shako": return m.hairline - 0.5 - p[1];
+      case "nasal": case "kettle": case "bicorne": case "bearskin": return m.hairline - 1.2 - p[1];
+      case "mian": return m.hairline + 1 - p[1];
+      case "gat": return m.hairline + 0.5 - p[1];
+      case "capotain": return m.hairline - 0.5 - p[1];
+      case "kanmuri": return m.hairline + 2 - p[1];
       default: return 99;
     }
   };
@@ -744,7 +761,7 @@ function build(m: Model): Scene {
         return Math.min(smin(band, ellipsoid(q, 1.5, 19, -1.5, W + 3, 4.6, W + 3.4), 3), capsule(p, [-0.5, 23, -1.5], [-0.3, 24.8, -1.5], 0.55));
       }
       // Pinned on top of the hair, tipped back.
-      case "pillbox": return cylinder(tip(p, 21, -1, 0.2), 0, 23, -1, 7.6, 2.6) - 0.5;
+      case "pillbox": return cylinder(tip(p, 21, -1, 0.2), 0, 23.2, -1, 9.2, 3) - 0.5;
       // Tied under the chin, the front edge rolled back to show the hair, folds running down to the knot.
       case "kerchief": {
         const open = kerchiefOpen(p);
@@ -768,7 +785,14 @@ function build(m: Model): Scene {
         const body = smax(smax(smin(cranium(p) - 1.4, top, 2), line - p[1], 0.5), p[1] - 22.6, 0.8);
         return Math.min(body, peak(p, m.hairline - 0.9, 6.5, W - 1, 0.35));
       }
-      case "ball-cap": return Math.min(smax(sphere(p, 0, T - 5, -1.5, W + 1), -(p[1] - (T - 5)), 1), peak(p, T - 4.6, 11, 9, 0.5, 1));
+      // Six stiff panels, the front two standing taller than a dome, over a long bill curved down at its sides.
+      case "ball-cap": {
+        const lift = clamp(p[2] / W, 0, 1) * clamp((p[1] - m.hairline) / 5, 0, 1) * 1.4;
+        const crown = smax(cranium(p) - 1.6 - lift, capLine(p, m.hairline - 0.6, 0.3) - p[1], 0.5);
+        // Tipped well down: a level camera sees a flat bill edge-on and loses it.
+        const z0 = W - 3.5, bill = m.hairline - 0.2 - Math.max(0, p[2] - z0) * 0.48 - p[0] * p[0] * 0.03;
+        return Math.min(crown, Math.max(Math.abs(p[1] - bill) - 0.7, (len2(p[0] / (W - 2), (p[2] - z0) / 10) - 1) * 6, z0 - p[2]) - 0.15);
+      }
       case "tricorne": {
         const base = m.hairline, x = p[0], z = p[2] + 1.5;
         const radius = len2(x, z);
@@ -786,9 +810,9 @@ function build(m: Model): Scene {
         return Math.max(side, -h, base - 1 - y);
       }
       // A tall truncated cone on the crown, as the sprite has it.
-      case "fez": return cylinder(p, 0, m.hairline + 4.5, -1.5, W - 2 - (p[1] - m.hairline) * 0.22, 4.5) - 0.5;
-      // A coif over the crown, set back from the hairline so the hair shows beneath it.
-      case "cap": return smax(cranium(p) - 4.8, -(p[1] - m.hairline - 1.5 + clamp((3 - p[2]) * 0.5, 0, 9)), 1);
+      case "fez": return cylinder(p, 0, m.hairline + 6.5, -1.5, W + 1 - (p[1] - m.hairline) * 0.2, 6.5) - 0.5;
+      // A snug skullcap pressing the hair flat, set back from the hairline so the hair shows beneath it.
+      case "cap": return smax(cranium(p) - 1.7, capLine(p, m.hairline + 0.5, 0.45) - p[1], 0.8);
       case "helmet": return Math.min(smax(cranium(p) - 1.8, -(p[1] - m.hairline + 1.5), 1), capsule(p, [0, m.hairline, 13.5], [0, -4, 15.5], 0.9));
       // A band over the brow under a flat crown that stands proud of it, and a short peak.
       case "peaked-cap": {
@@ -801,6 +825,11 @@ function build(m: Model): Scene {
         const dome = smax(ellipsoid(p, 0, m.hairline + 2, -1.5, W + 1.4, 11, W + 2.2), m.hairline - 0.5 - p[1], 0.6);
         const lip = m.hairline - 0.5 - Math.abs(p[2] + 1.5) * 0.12;
         return Math.min(dome, Math.max(Math.abs(p[1] - lip) - 0.5, ellipsoid(p, 0, lip, -1.5, W + 4, 9, W + 6.5)) - 0.2);
+      }
+      // Linen round the face, chin and throat under a veil.
+      case "wimple": {
+        const shell = smax(Math.min(ellipsoid(p, 0, 2, -2, W + 2.6, m.headH + 4.5, W + 3), capsule(p, [0, -16, -2], [0, -32, -3], 13)), -ellipsoid(p, 0, -2.5, 12, W - 4.4, 10.5, 9), 1.2);
+        return smax(shell, p[2] - 10, 1);
       }
       case "hood": case "headscarf": case "veil": {
         const shell = smax(Math.min(ellipsoid(p, 0, 2, -2, W + 3.2, m.headH + 5, W + 3.6), capsule(p, [0, -20, -4], [0, hw === "veil" ? -50 : -38, -6], hw === "hood" ? 15 : 12)), -ellipsoid(p, 0, -4, 12, W - 3.5, m.headH - 2, 10), 1.5);
@@ -823,37 +852,199 @@ function build(m: Model): Scene {
         for (const y of [-2, 2, 6]) d = smin(d, capsule(p, [-W - 1, y, 6], [-W - 1, y, -6], 2.2), 1);
         return smin(d, capsule(p, [0, -6, -W - 2], [0, -20, -W - 3], 2), 2);
       }
+      // A pointed iron cap with a bar down over the nose.
+      case "nasal": {
+        const base = m.hairline - 1.2, t = clamp((p[1] - base) / (27 - base), 0, 1);
+        const cone = Math.max((len2(p[0], p[2] + 1.5) - (W + 1.8) * (1 - t ** 1.8)) * 0.7, base - p[1], p[1] - 27);
+        return Math.min(cone, capsule(p, [0, base + 1, W + 1.6], [0, -3, 15.3], 0.9));
+      }
+      // An iron bowl over a brim sloping down all round.
+      case "kettle": {
+        const base = m.hairline - 1.2, r = len2(p[0], p[2] + 1.5);
+        const bowl = smax(ellipsoid(p, 0, base, -1.5, W + 1.6, 12, W + 2.4), base - p[1], 0.6);
+        return Math.min(bowl, Math.max(Math.abs(p[1] - base + 0.5 + Math.max(0, r - W - 1) * 0.35) - 0.5, r - W - 7) - 0.2);
+      }
+      // A low bowl over a neck guard flaring out at the sides and back.
+      case "kabuto": {
+        const base = m.hairline - 0.5, r = len2(p[0], p[2] + 1.5);
+        const bowl = smax(cranium(p) - 2.2, base - p[1], 0.5);
+        const guard = Math.max(Math.abs(r - (W + 2.6 + (base - p[1]) * 0.35)) - 0.7, p[1] - base, -5 - p[1], p[2] - 2);
+        return Math.min(bowl, guard - 0.2);
+      }
+      // The animal's head over the warrior's: a pelt or feathered crown down the cheeks, the jaw or beak over the brow.
+      case "jaguar": case "eagle": {
+        const shell = smax(smax(ellipsoid(p, 0, 2, -2, W + 2.6, m.headH + 4, W + 3), -ellipsoid(p, 0, -3, 12, W - 3.5, m.headH - 3, 10), 1.2), -11 - p[1], 1);
+        let d = smax(shell, p[2] - 9, 1);
+        if (hw === "jaguar") {
+          d = smin(d, ellipsoid(p, 0, m.hairline + 1.5, W - 1, 7.5, 3.4, 6), 2);
+          return Math.min(d, sphere(p, -7, 20, 1, 2.4), sphere(p, 7, 20, 1, 2.4));
+        }
+        d += 0.3 * Math.abs(Math.sin(p[1] * 1.4 + Math.abs(p[0]) * 0.5));
+        return d;
+      }
+      // Black gauze: a low front, a tall back, a stiff wing out at each side.
+      case "official-cap": {
+        const cap = smin(smax(cranium(p) - 1.6, m.hairline - 0.5 - p[1], 0.5), ellipsoid(p, 0, m.hairline + 8, -6, W - 3, 7, 6), 2);
+        const wing = Math.max(Math.abs(p[1] - m.hairline - 4) - 1.6, Math.abs(p[2] + 8) - 0.5, Math.abs(p[0]) - W - 9, W - 4 - Math.abs(p[0])) - 0.2;
+        return Math.min(cap, wing);
+      }
+      // A gold circlet rising to five points.
+      case "crown": {
+        const u = Math.atan2(p[0], p[2] + 1.5) * 5 / (2 * Math.PI), spike = 1 - 2 * Math.abs(u - Math.round(u));
+        const top = m.hairline + 2.2 + spike ** 2 * 6;
+        return Math.max(cranium(p) - hairDepth - sides(p) - 1.1, p[1] - top, m.hairline - 1 - p[1]);
+      }
+      // A striped headcloth close over the skull to the brow, its lappets falling to the chest.
+      case "nemes": {
+        const cloth = smax(smax(ellipsoid(p, 0, 2, -2.5, W + 2.4, m.headH + 3.4, W + 2.4), -ellipsoid(p, 0, -6, 11, W - 1.6, m.headH - 0.5, 12), 1), -12 - p[1], 1);
+        const lappets = Math.min(capsule(p, [-W, 2, 1.5], [-W + 2, -27, 5], 2.4), capsule(p, [W, 2, 1.5], [W - 2, -27, 5], 2.4));
+        return Math.min(cloth, lappets);
+      }
+      // A cap under a flat board, strings of beads hanging before and behind.
+      case "mian": {
+        const cap = smax(cranium(p) - 1.6, m.hairline + 1 - p[1], 0.5);
+        const board = Math.max(Math.abs(p[0]) - 6.5, Math.abs(p[1] - 23.5 + p[2] * 0.12) - 0.7, Math.abs(p[2] + 1.5) - 15) - 0.2;
+        return Math.min(cap, board);
+      }
+      // Black lacquered gauze high on the topknot, the stiff tail standing up behind.
+      case "kanmuri": {
+        const cap = smin(smax(cranium(p) - 1.5, m.hairline + 2 - p[1] + Math.max(0, p[2] - 2) * 0.25, 0.5), ellipsoid(p, 0, 21.5, -5, 4.8, 4.5, 4.5), 1.5);
+        const t = clamp((p[1] - 19) / 9, 0, 1), tail = Math.max(Math.abs(p[0]) - 2.4, Math.abs(p[2] + 12 + t * 4) - 0.5, Math.abs(p[1] - 23.5) - 4.5) - 0.2;
+        return Math.min(cap, tail);
+      }
+      // A half-moon worn crosswise, the points out over the ears.
+      case "bicorne": {
+        const base = m.hairline - 1, h = (p[1] - base) / 14;
+        const moon = (len2(p[0] / (W + 6), h) - 1) * 8;
+        // Thick enough at the base to take the head, the two flaps meeting at the top.
+        return Math.max(moon, Math.abs(p[2] + 1.5) - (W + 2.5) * clamp(1 - h, 0, 1) ** 0.8 - 0.6, base - p[1]) - 0.2;
+      }
+      // A tall narrow crown on a wide flat brim.
+      case "gat": {
+        const brim = m.hairline + 0.5, r = len2(p[0], p[2] + 1.5);
+        const crown = cylinder(p, 0, (brim + 27) / 2, -1.5, W - 4 - (p[1] - brim) * 0.06, (27 - brim) / 2) - 0.3;
+        return Math.min(crown, Math.max(Math.abs(p[1] - brim + Math.max(0, r - W - 4) * 0.12) - 0.45, r - W - 10) - 0.2);
+      }
+      // A tall tapering black crown on a flat brim.
+      case "capotain": {
+        const brim = m.hairline - 0.5;
+        return Math.min(cylinder(p, 0, brim + 8, -1.5, W - 0.3 - (p[1] - brim) * 0.14, 8) - 0.5, cylinder(p, 0, brim, -1.5, W + 5.5, 0.5) - 0.25);
+      }
+      // White felt standing a hand high, its back folded down over the nape.
+      case "bork": {
+        const tall = cylinder(p, 0, m.hairline + 8, -1.5, W + 0.6 - (p[1] - m.hairline) * 0.1, 8.5) - 0.5;
+        const fold = Math.max(Math.abs(p[2] + W + 2.6 + (p[1] - 10) * 0.05) - 0.7, Math.abs(p[0]) - W + 4, p[1] - 26, -6 - p[1]) - 0.2;
+        return Math.min(tall, fold);
+      }
+      // Wound to a peak over the brow, the folds meeting in a V.
+      case "dastar": {
+        let d = smax(ellipsoid(p, 0, m.hairline + 5, -2, W + 3.4, 12.5, W + 4.4), -(p[1] - m.hairline + 1 + clamp((3 - p[2]) * 0.7, 0, 10)), 1.2);
+        d = smin(d, ellipsoid(p, 0, m.hairline + 8, 6, 6, 8, 7), 3);
+        return d + 0.55 * Math.abs(Math.sin((p[1] - m.hairline + Math.abs(p[0]) * 0.6) * 0.75));
+      }
+      // Gathered linen over the crown, its frilled edge set back from the brow.
+      case "mobcap": {
+        const edge = capLine(p, m.hairline + 1.5, 0.5);
+        let d = smax(ellipsoid(p, 0, m.hairline + 3.5, -3, W + 2.4, 11, W + 3.2), edge - p[1], 0.6);
+        d += 0.25 * Math.abs(Math.sin(Math.atan2(p[0], p[2] + 3) * 9 + p[1] * 0.3));
+        const frill = Math.max(cranium(p) - hairDepth - sides(p) - 3.2 - Math.abs(Math.sin(Math.atan2(p[0], p[2] + 1.5) * 16)) * 0.7, Math.abs(p[1] - edge + 0.3) - 1.3);
+        return Math.min(d, frill - 0.1);
+      }
+      // A tall cone tipped back off the head.
+      case "hennin": {
+        const dir = norm([0, 0.6, -0.8]), q: V = [p[0], p[1] - m.hairline - 3, p[2] + 4];
+        const t = q[1] * dir[1] + q[2] * dir[2], r = len3(q[0], q[1] - dir[1] * t, q[2] - dir[2] * t);
+        const cone = Math.max((r - (W + 0.5) * (1 - t / 30)) * 0.9, -t, t - 30);
+        return smin(smax(cranium(p) - 1.4, m.hairline - 0.5 - p[1], 0.5), cone, 1.5);
+      }
+      // A felt drum a little wider at the top over a leather peak.
+      case "shako": {
+        const drum = cylinder(p, 0, m.hairline + 7.5, -1.5, W + 0.2 + (p[1] - m.hairline) * 0.07, 7.5) - 0.5;
+        return drum;
+      }
+      // Black fur standing twice the head's height.
+      case "bearskin": {
+        const d = smax(smin(cylinder(p, 0, m.hairline + 10, -1.5, W + 1.8, 11) - 0.8, ellipsoid(p, 0, m.hairline + 15, -1.5, W + 3, 10, W + 3.4), 3), m.hairline - 1.2 - p[1], 0.6);
+        return d < 1.5 ? d + 0.22 * Math.sin(p[0] * 2.3 + Math.sin(p[1] * 0.9) * 2) * Math.sin(p[1] * 0.7 + p[2] * 1.9) : d;
+      }
+      // A big slouched knit bag falling back from a ribbed band.
+      case "tam": {
+        const line = capLine(p, m.hairline - 0.3, 0.3);
+        const band = smax(cranium(p) - 2, Math.max(line - p[1], p[1] - line - 2.6), 0.4);
+        let bag = smax(ellipsoid(p, 0, m.hairline + 6, -7, W + 3.8, 10, W + 6.5), line + 1.5 - p[1], 1);
+        if (bag < 1.5) bag += 0.18 * Math.abs(Math.sin(Math.atan2(p[0], p[2] + 1.5) * 16));
+        return smin(band, bag, 1);
+      }
       default: return 99;
     }
   };
-  const hatBand = (p: V): number => {
+  const band = hw === "plume" ? SHIRT : hw === "fedora" ? FELT_BAND : MAT.trim;
+  /** Where the hat itself lies, a shade inside its surface: for patterns painted on it. */
+  const on = (p: V, mask: number) => Math.max(hat(p) - 0.12, mask);
+  const hatBand = (p: V): Hit => {
     const T = m.headH + 1, W = m.headW;
     switch (hw) {
-      case "brimmed": return smax(cylinder(p, 0, m.hairline + 1.4, -1.5, W + 0.1, 1.2) - 0.2, -(p[1] - m.hairline + 0.4), 0.3);
-      case "top-hat": return cylinder(p, 0, m.hairline + 1.6, -1.5, W, 1.3) - 0.2;
-      case "bowler": return cylinder(p, 0, T - 2.8, -1.5, W + 0.9, 1) - 0.2;
-      case "fez": return Math.min(capsule(p, [0, m.hairline + 9.3, -1.5], [-(W - 3.5), m.hairline + 5, 2], 0.6), sphere(p, -(W - 3.3), m.hairline + 4, 2.4, 1.2));
-      case "fedora": return fedora(p)[2];
-      case "boater": return cylinder(tip(p, m.hairline, -1.5, -0.1), 0, m.hairline + 3.1, -1.5, W + 0.85, 1.3) - 0.1;
+      case "brimmed": return [smax(cylinder(p, 0, m.hairline + 1.4, -1.5, W + 0.1, 1.2) - 0.2, -(p[1] - m.hairline + 0.4), 0.3), band];
+      case "top-hat": return [cylinder(p, 0, m.hairline + 1.6, -1.5, W, 1.3) - 0.2, band];
+      case "bowler": return [cylinder(p, 0, T - 2.8, -1.5, W + 0.9, 1) - 0.2, band];
+      case "fez": return [Math.min(capsule(p, [0, m.hairline + 13.2, -1.5], [-(W - 1.2), m.hairline + 8, 2], 0.6), sphere(p, -(W - 1), m.hairline + 6.8, 2.4, 1.2)), band];
+      case "fedora": return [fedora(p)[2], band];
+      case "boater": return [cylinder(tip(p, m.hairline, -1.5, -0.1), 0, m.hairline + 3.1, -1.5, W + 0.85, 1.3) - 0.1, band];
       // A petersham band, and a flat rosette at the side.
       case "cloche": {
         const e = clocheEdge(p);
-        return Math.min(Math.max(clocheBell(p) - 0.4, Math.abs(p[1] - e - 3.2) - 1.1), ellipsoid(p, -W - 1.6, clocheEdge([-W, 0, 3]) + 3.5, 3, 1.2, 2.2, 2.2));
+        return [Math.min(Math.max(clocheBell(p) - 0.4, Math.abs(p[1] - e - 3.2) - 1.1), ellipsoid(p, -W - 1.6, clocheEdge([-W, 0, 3]) + 3.5, 3, 1.2, 2.2, 2.2)), band];
       }
-      // Low enough to stay inside the frame above the head.
-      case "plume": return Math.min(ellipsoid(p, -5, m.hairline + 5, -4, 2.2, 5.5, 1.8), ellipsoid(p, -2, m.hairline + 6, -5, 2.2, 6, 1.8), ellipsoid(p, 1, m.hairline + 4.5, -5, 2, 5, 1.8));
-      case "fillet": return sphere(p, 0, m.hairline + 0.5, 13.6, 1.1);
-      case "peaked-cap": return smax(cranium(p) - 1.4, Math.abs(p[1] - m.hairline - 1.6) - 1.1, 0.3);
-      case "pith-helmet": return smax(ellipsoid(p, 0, m.hairline + 2, -1.5, W + 1.6, 11, W + 2.4), Math.abs(p[1] - m.hairline - 1) - 0.9, 0.3);
-      default: return 99;
+      // Rising from behind the crown to the top of the frame.
+      case "plume": return [Math.min(capsule(p, [-6, 14, -7], [-15, 24, -5], 1.7), capsule(p, [-5, 15, -8], [-10, 27, -7], 1.9), capsule(p, [-3, 16, -8], [-3.5, 27.5, -9], 1.6)), band];
+      case "fillet": return [sphere(p, 0, m.hairline + 0.5, 13.6, 1.1), band];
+      case "peaked-cap": return [smax(cranium(p) - 1.4, Math.abs(p[1] - m.hairline - 1.6) - 1.1, 0.3), band];
+      case "pith-helmet": return [smax(ellipsoid(p, 0, m.hairline + 2, -1.5, W + 1.6, 11, W + 2.4), Math.abs(p[1] - m.hairline - 1) - 0.9, 0.3), band];
+      case "ball-cap": return [sphere(p, 0, 4.5 + m.headH + 1.8, -1.5, 1.1), FELT_BAND];
+      case "nasal": return [smax(cranium(p) - 3.3, Math.abs(p[1] - m.hairline + 0.2) - 0.9, 0.3), FELT_BAND];
+      case "kabuto": return [Math.min(capsule(p, [-1.2, m.hairline + 0.5, W + 1.4], [-6, m.hairline + 9, W + 1], 0.6), capsule(p, [1.2, m.hairline + 0.5, W + 1.4], [6, m.hairline + 9, W + 1], 0.6)), MAT.metal];
+      case "jaguar": {
+        const fangs = Math.min(capsule(p, [-3.2, m.hairline - 0.5, W + 3.2], [-3.2, m.hairline - 2.6, W + 3], 0.55), capsule(p, [3.2, m.hairline - 0.5, W + 3.2], [3.2, m.hairline - 2.6, W + 3], 0.55));
+        const spots = on(p, (0.85 - Math.sin(p[0] * 1.3 + p[2] * 0.4) * Math.sin(p[1] * 1.3 + p[2] * 0.5)) * 2);
+        return fangs < spots ? [fangs, SHIRT] : [spots, FELT_BAND];
+      }
+      case "eagle": return [Math.min(capsule(p, [0, m.hairline + 1.5, W], [0, m.hairline - 1.5, W + 6], 1.6), capsule(p, [0, m.hairline - 1.5, W + 6], [0, m.hairline - 3.5, W + 5.3], 0.9)), MAT.metal];
+      case "crown": {
+        const y = m.hairline + 0.9, k = Math.sqrt(1 - ((y - 4.5) / m.headH) ** 2), out = hairDepth + 1.3;
+        return [Math.min(...[-0.55, 0, 0.55].map((a) => sphere(p, Math.sin(a) * (W * k + out), y, Math.cos(a) * ((W + 1) * k + out) - 1.5, 0.9))), MAT.trim];
+      }
+      case "nemes": {
+        const stripe = Math.abs((((p[1] / 2) % 1) + 1) % 1 - 0.15) - 0.15;
+        return [Math.min(on(p, Math.min(stripe * 2, Math.abs(p[1] - m.hairline + 0.8) - 0.9)), sphere(p, 0, m.hairline + 0.2, W + 2.3, 1.1)), MAT.metal];
+      }
+      case "mian": {
+        const x = clamp(Math.round((p[0] - 1.5) / 3) * 3 + 1.5, -4.5, 4.5);
+        return [Math.min(capsule(p, [x, 21.5, 14.6], [x, 14.5, 14.6], 0.4), sphere(p, x, 14, 14.6, 0.9)), SHIRT];
+      }
+      case "bicorne": return [sphere(p, -W * 0.45, m.hairline + 5.5, 9.5, 1.9), MAT.trim];
+      case "gat": return [Math.min(capsule(p, [-(W - 2.5), m.hairline, 3], [-2.2, m.chinY - 1, 7], 0.45), capsule(p, [W - 2.5, m.hairline, 3], [2.2, m.chinY - 1, 7], 0.45)), FELT_BAND];
+      case "capotain": return [cylinder(p, 0, m.hairline + 0.9, -1.5, W - 0.1, 1.2) - 0.2, band];
+      case "bork": return [capsule(p, [0, m.hairline + 1.5, W - 0.7], [0, m.hairline + 7, W - 1.3], 1.1), MAT.metal];
+      case "shako": {
+        const plate = ellipsoid(p, 0, m.hairline + 6, W - 1.2, 2.6, 3.2, 0.9), tuft = sphere(p, 0, m.hairline + 15.6, W - 3.5, 1.6);
+        const visor = peak(p, m.hairline - 0.3, 7, W - 1, 0.4);
+        return visor < Math.min(plate, tuft) ? [visor, FELT_BAND] : plate < tuft ? [plate, MAT.metal] : [tuft, MAT.trim];
+      }
+      case "bearskin": return [Math.min(capsule(p, [-(W - 0.6), m.hairline - 1.5, 1], [-1.5, m.chinY - 1.2, 7.5], 0.5), capsule(p, [W - 0.6, m.hairline - 1.5, 1], [1.5, m.chinY - 1.2, 7.5], 0.5)), MAT.metal];
+      // Bands of the knit's colours round the bag.
+      case "tam": {
+        const k = (p[1] - m.hairline - 2) / 2.4, row = ((Math.floor(k) % 3) + 3) % 3;
+        return [on(p, row === 0 ? 99 : 0.4 - p[1] + m.hairline + 2), row === 1 ? MAT.trim : INNER];
+      }
+      default: return [99, band];
     }
   };
   // Hats a size up, made to sit over the fuller hair rather than inside it.
-  const grow = ["brimmed", "bowler", "top-hat", "ball-cap", "fez", "turban", "wrap", "helmet"].includes(hw) ? 1.16 : 1;
+  const grow = ["brimmed", "bowler", "top-hat", "turban", "wrap", "helmet"].includes(hw) ? 1.16 : 1;
   const hatAt = (p: V) => grow === 1 ? hat(p) : hat([p[0] / grow, (p[1] - m.hairline) / grow + m.hairline, (p[2] + 1.5) / grow - 1.5]) * grow;
   // Bands in the hat colour, as the sprite paints them.
-  const hatMat = (): Mat => (hw === "fillet" ? MAT.metal : HAT);
-  const trimmed = ["brimmed", "bowler", "top-hat", "cap", "flat-cap", "conical", "turban", "wrap", "fez", "fedora", "boater", "cloche", "pillbox"].includes(hw);
+  const hatMat = (): Mat => (hw === "fillet" || hw === "crown" ? MAT.metal : HAT);
+  const trimmed = ["brimmed", "bowler", "top-hat", "capotain", "cap", "flat-cap", "conical", "turban", "wrap", "fez", "fedora", "boater", "cloche", "pillbox"].includes(hw);
   /** A hat's trim, as the sprite pins it: a feather curling up and back from the side of
    * the crown, a cockade, or a ribbon round the crown. */
   const hatTrim = (p: V): number => {
@@ -951,7 +1142,8 @@ function build(m: Model): Scene {
     take(hatAt(q), hatMat());
     take(hatTrim(q), PLUME);
     // A plume headdress is white feathers, as the sprite draws it.
-    take(hatBand(q), hw === "plume" ? SHIRT : hw === "fedora" ? FELT_BAND : MAT.trim);
+    const [bd0, bandMat] = hatBand(q);
+    take(bd0, bandMat);
     take(earring(q), MAT.metal);
     const [bd, k] = bead(p);
     take(bd, chain ? CHAIN : k % 2 ? MAT.metal : MAT.trim);
@@ -1212,14 +1404,17 @@ export function trace(appearance: CharacterAppearance, age: number, pose: HeadPo
         d(wx, wy, wz + e) - d(wx, wy, wz - e),
       ]);
       const diff = Math.max(0, nm[0] * LIGHT[0] + nm[1] * LIGHT[1] + nm[2] * LIGHT[2]);
+      const skin = hit[1] === MAT.skin;
       let ao = 1;
       for (let s = 1; s <= 3; s++) ao -= (s - d(wx + nm[0] * s, wy + nm[1] * s, wz + nm[2] * s)) * 0.08;
+      // Skin takes little occlusion and no shadow from itself: nose, brow and cheek shadows banded into blotches.
+      if (skin) ao = 1 - (1 - ao) * 0.35;
       let shadow = 1;
       for (let t = 0.9; t < 34; ) {
-        const q = d(wx + nm[0] * 0.45 + LIGHT[0] * t, wy + nm[1] * 0.45 + LIGHT[1] * t, wz + nm[2] * 0.45 + LIGHT[2] * t);
-        const floor = hit[1] === MAT.skin ? 0.55 : 0.35;
-        if (q < 0.05) { shadow = floor; break; }
-        shadow = Math.min(shadow, floor + (1 - floor) * clamp((6 * q) / t, 0, 1));
+        const x = wx + nm[0] * 0.45 + LIGHT[0] * t, y = wy + nm[1] * 0.45 + LIGHT[1] * t, z = wz + nm[2] * 0.45 + LIGHT[2] * t;
+        const q = d(x, y, z);
+        if (q < 0.05) { if (!skin || at(x, y, z)[1] !== MAT.skin) shadow = skin ? 0.55 : 0.35; break; }
+        if (!skin) shadow = Math.min(shadow, 0.35 + 0.65 * clamp((6 * q) / t, 0, 1));
         t += Math.max(0.34, q);
       }
       const gloss = hit[1] === MAT.cloth && m.a.wearing.material === "silk" ? 1.15 : 1;
@@ -1248,7 +1443,7 @@ export function trace(appearance: CharacterAppearance, age: number, pose: HeadPo
           }
         }
       }
-      const tone = hit[1] === MAT.skin && lit >= 0.44 && lit < 0.52 ? halfShade : lit < 0.3 ? ramp.deep : lit < 0.47 ? ramp.shade : lit < 0.7 ? ramp.base : lit < 0.92 || hit[1] === MAT.skin ? ramp.light : ramp.high;
+      const tone = skin && lit >= 0.44 && lit < 0.52 ? halfShade : lit < (skin ? 0.2 : 0.3) ? ramp.deep : lit < 0.47 ? ramp.shade : lit < 0.7 ? ramp.base : lit < 0.92 || hit[1] === MAT.skin ? ramp.light : ramp.high;
       const i = py * W + px;
       r.color[i] = hit[1] === MAT.hair && tone === ramp.light ? mix(ramp.base, ramp.light, m.face.hairTexture === "coiled" ? 0.45 : 0.65) : tone;
       if (!m.child && hit[1] === MAT.skin && py >= chinFoot[1] && py < chinFoot[1] + 6) {
@@ -1264,6 +1459,12 @@ export function trace(appearance: CharacterAppearance, age: number, pose: HeadPo
       depth[i] = wz;
     }
 
+  // Lone skin pixels take the colour all round them.
+  for (let i = W; i < W * H - W; i++) {
+    if (r.mat[i] !== MAT.skin) continue;
+    const n = [i - 1, i + 1, i - W, i + W];
+    if (n.every((j) => r.mat[j] === MAT.skin && r.color[j] === r.color[n[0]]) && r.color[i] !== r.color[n[0]]) r.color[i] = r.color[n[0]];
+  }
   folds(r, depth, m);
   r.contour({ ...m.ramps, [MAT.skin]: { edge: m.skin.edge, deep: m.skin.edge }, [MAT.metal]: undefined, [COLLAR]: { edge: m.ramps[COLLAR].shade, deep: m.ramps[COLLAR].shade } } as unknown as Record<Mat, { edge: string; deep: string }>);
   rim(r);
@@ -1278,7 +1479,8 @@ function folds(r: Raster, depth: Float32Array, m: Model) {
     const mat = r.mat[i];
     if (!mat) continue;
     for (const j of [i + 1, i - 1, i + w, i - w])
-      if (r.mat[j] === mat && depth[i] - depth[j] > 3.5) {
+      // Skin needs a deeper step: the nose over the cheek drew a crease from brow to nostril.
+      if (r.mat[j] === mat && depth[i] - depth[j] > (mat === MAT.skin ? 7 : 3.5)) {
         out.push([i, m.ramps[mat] ? mix(m.ramps[mat].shade, m.ramps[mat].edge, 0.5) : r.color[i]]);
         break;
       }
@@ -1320,7 +1522,12 @@ function features(r: Raster, depth: Float32Array, m: Model, fr: Frame, pose: Hea
     const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0), 1);
     for (let k = 0; k <= n; k++) put(Math.round(x0 + ((x1 - x0) * k) / n), Math.round(y0 + ((y1 - y0) * k) / n), c, [MAT.skin]);
   };
-  const lash = mix(s.edge, "#140c10", 0.6);
+  // Lines drawn from the skin's own shades vanish on dark skin; hold them a step below it.
+  const apart = (c: string, gap: number) => {
+    const d = luma(s.base) - luma(c);
+    return d >= gap ? c : mix(c, "#0a0608", clamp((gap - d) / Math.max(0.05, luma(c)), 0, 1));
+  };
+  const lash = apart(mix(s.edge, "#140c10", 0.6), 0.3);
   const crease = mix(s.base, s.shade, 0.75);
   const fold = mix(s.base, s.shade, 0.6);
   const sclera = mix("#f1e8dc", s.shade, 0.22);
@@ -1328,7 +1535,8 @@ function features(r: Raster, depth: Float32Array, m: Model, fr: Frame, pose: Hea
   // Rows of visible eye: never a slit, more for large, wary or young eyes.
   // Size and shape set the eye's height, so small, narrow, large and round eyes differ.
   const agedLid = m.old > 0.45 && trait(m, "age-lid") > 0.35 ? 1 : 0;
-  const open = clamp(3 + size - (f.eyeShape === "narrow" ? 1 : 0) - agedLid + (m.child ? 1 : 0) + mood.open, 2, 4);
+  // Three rows at least: only a squinting expression narrows the eye to two.
+  const open = clamp(3 + size - (f.eyeShape === "narrow" ? 1 : 0) - agedLid + (m.child ? 1 : 0) + mood.open, (SHOWN[o.expression ?? "neutral"]?.open ?? 0) < 0 ? 2 : 3, 4);
   const tilt = f.eyeShape === "almond" ? 1 : f.eyeShape === "round" ? 0 : roll(m, "eye-tilt") < 0.3 ? -1 : 0;
   const rec = m.a.record ?? {};
   const heavy = mood.heavy || !!rec.tired || gazeY > 0.3;
@@ -1344,7 +1552,7 @@ function features(r: Raster, depth: Float32Array, m: Model, fr: Frame, pose: Hea
 
   const browEnds: [number, number][] = [];
   const brows = (near: boolean, x0: number, w: number, y0: number) => {
-    const brow = mix(m.hair.edge, m.hair.shade, 0.25);
+    const brow = apart(mix(m.hair.edge, m.hair.shade, 0.25), 0.2);
     const thick = Math.max(1, Math.min(3, (f.brows === "heavy" ? 2 : 1) + (trait(m, "brow-weight") > (m.female ? 0.75 : 0.4) ? 1 : 0)));
     // By family: brows that rise to the outer end, run level, or fall away; some taper thin.
     const slope = (trait(m, "brow-slope") < 0.3 ? 1 : trait(m, "brow-slope") > 0.8 ? -1 : 0) + mood.outer;
@@ -1396,7 +1604,7 @@ function features(r: Raster, depth: Float32Array, m: Model, fr: Frame, pose: Hea
         if (!shut) r.put(x, y0 - lift(x), mix(s.base, s.shade, 0.35));
       }
       // A soft lid line unless the face's traits call for a dark one.
-      r.put(x, y0 - 1 - lift(x) + shut, mix(lash, s.shade, lashStyle === 0 && !lidWeight && !heavy ? 0.6 : 0.25));
+      r.put(x, y0 - 1 - lift(x) + shut, apart(mix(lash, s.shade, lashStyle === 0 && !lidWeight && !heavy ? 0.6 : 0.25), 0.14));
       if (heavy) r.put(x, y0 - lift(x) + shut, mix(s.shade, s.edge, 0.3));
       if (creased && k > 0 && k < w - 1) put(x, y0 - 2 - lift(x), crease);
       if (!heavy && f.eyelid === "low-crease" && k > 1 && k < w - 1)
@@ -1438,8 +1646,8 @@ function features(r: Raster, depth: Float32Array, m: Model, fr: Frame, pose: Hea
     }
     for (let k = 0; k < w; k++) {
       const x = x0 + k;
-      // Paint after the iris so the lower lid covers its bottom row too.
-      r.put(x, y0 + open - 1 - lift(x), mix(s.base, s.shade, lashStyle === 3 ? 0.45 : 0.3));
+      // Paint after the iris so the lower lid covers its bottom row too, except on a three-row eye, where it shows only at the corners.
+      if (open > 3 || lashStyle === 3 || k === 0 || k === w - 1) r.put(x, y0 + open - 1 - lift(x), mix(s.base, s.shade, lashStyle === 3 ? 0.45 : 0.3));
       if (k === 0 || k === w - 1) r.put(x, y0 + open - 2 - lift(x), mix(s.base, s.shade, 0.3));
       if (!shut && (k === 0 || k === w - 1)) r.put(x, y0 - lift(x), mix(lash, s.shade, 0.4));
     }
@@ -1451,20 +1659,19 @@ function features(r: Raster, depth: Float32Array, m: Model, fr: Frame, pose: Hea
     brows(near, x0, w, y0);
     // A shadow under the eye with age or tiredness.
     if (m.age > 38 || rec.tired) for (let k = near ? 0 : 1; k < w - (near ? 1 : 0); k++) put(x0 + k, y0 + open + 1, mix(s.base, s.shade, rec.tired ? 0.4 : 0.15 + m.old * 0.3), [MAT.skin]);
-    if (m.age > 42 || rec.sun === 2) put(near ? x0 - 2 : x0 + w + 1, y0 + 1, fold, [MAT.skin]);
-    if (m.age > 50) put(near ? x0 - 2 : x0 + w + 1, y0 + 3, fold, [MAT.skin]);
     if (m.age > 55 || mood.heavy || rec.tired || rec.gaunt === 2)
       for (let k = 1; k < w - 1; k++) put(x0 + k, y0 + open + 2, rec.tired || rec.gaunt === 2 ? mix(s.shade, "#4a3450", 0.25) : fold, [MAT.skin]);
-    if (eyeDetail.lowerLashes) for (const k of w >= 5 ? [1, 3] : [1]) {
-      const x = near ? x0 + k : x0 + w - 1 - k;
-      put(x, y0 + open - lift(x), mix(lash, s.shade, 0.5), [MAT.skin]);
+    // One pixel off the outer corner: spaced dots under the eye read as freckles.
+    if (eyeDetail.lowerLashes) {
+      const x = near ? x0 : x0 + w - 1;
+      put(x, y0 + open - lift(x), mix(lash, s.shade, 0.6), [MAT.skin]);
     }
   }
 
   if (m.a.browConnection && m.a.browConnection !== "none" && browEnds.length === 2) {
     const [left, right] = browEnds.sort((a, b) => a[0] - b[0]);
     const partial = m.a.browConnection === "partial";
-    const brow = mix(m.hair.edge, m.hair.shade, 0.25);
+    const brow = apart(mix(m.hair.edge, m.hair.shade, 0.25), 0.2);
     for (let x = left[0] + 1; x < right[0]; x++) {
       const t = (x - left[0]) / (right[0] - left[0]);
       const centre = 1 - Math.abs(t * 2 - 1);
@@ -1515,7 +1722,7 @@ function features(r: Raster, depth: Float32Array, m: Model, fr: Frame, pose: Hea
     const opening = Math.round(part * (1 - t * t) ** 1.6);
     const bow = t > 0.12 && t < clamp(m.upper * 0.43, 0.38, 0.8);
     if (bow) put(x, y - 1, mix(lip.base, lip.shade, left ? 0.18 : 0.38));
-    put(x, y, t > 0.84 ? mix(s.base, lip.shade, 0.67) : mix(lip.shade, lip.deep, left ? 0.43 : 0.65));
+    put(x, y, t > 0.84 ? apart(mix(s.base, lip.shade, 0.67), 0.08) : apart(mix(lip.shade, lip.deep, left ? 0.43 : 0.65), 0.16));
     for (let k = 1; k <= opening; k++)
       put(x, y + k, k === 1 && ((mood.teeth && t < 0.57) || (part === 2 && t < 0.36)) ? mix(s.light, "#f0d5bf", mood.teeth ? 0.62 : 0.38) : inside);
     if (t < (m.lower > 1.55 ? 0.78 : 0.62)) {
@@ -1549,7 +1756,7 @@ function features(r: Raster, depth: Float32Array, m: Model, fr: Frame, pose: Hea
   if (cheek) for (const [dx, dy] of [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [3, 1], [1, 2], [2, 2]]) put(cheek[0] + dx, cheek[1] + dy, mix(r.at(cheek[0] + dx, cheek[1] + dy) || s.base, pigment, rec.powder ? 0.82 : ruddy * (dy === 1 ? 0.72 : 0.42)), [MAT.skin]);
   const farCheek = visible([m.eyeX + 2, -4.5, 9.5]);
   if (farCheek) for (const [dx, dy] of [[0, 0], [1, 0], [0, 1]]) put(farCheek[0] + dx, farCheek[1] + dy, mix(r.at(farCheek[0] + dx, farCheek[1] + dy) || s.shade, pigment, rec.powder ? 0.67 : ruddy * 0.58), [MAT.skin]);
-  accessories(r, m, put, visible, onFace);
+  accessories(r, m, fr, put, visible, onFace);
   if (rec.sick === "fever")
     // Beads of sweat standing on the brow.
     for (const [x, y] of [[-7, 8], [-3, 10], [1, 11], [5, 9], [8, 7], [-5, 5], [7, 4]]) {
@@ -1619,7 +1826,7 @@ function faceCover(r: Raster, m: Model, fr: Frame) {
 type Put = (x: number, y: number, c: string, only?: number[]) => void;
 type Find = (p: V) => readonly [number, number] | undefined;
 
-function accessories(r: Raster, m: Model, put: Put, visible: Find, onFace: Find) {
+function accessories(r: Raster, m: Model, fr: Frame, put: Put, visible: Find, onFace: Find) {
   const s = m.skin, a = m.a, metal = m.ramps[MAT.metal];
   const scar = a.injuryScar;
   if (scar && scar.kind !== "none" && m.age >= 18) {
@@ -1655,20 +1862,35 @@ function accessories(r: Raster, m: Model, put: Put, visible: Find, onFace: Find)
   }
   const e = a.wearing.eyewear;
   if (e && e !== "none") {
-    const frame = e === "sunglasses" ? "#141018" : "#3a2a20";
-    const eyes = [-1, 1].map((side) => visible([side * m.eyeX, 1.8, 11.2]));
-    eyes.forEach((c, n) => {
-      if (!c) return;
-      const w = n ? 5 : 8, x0 = c[0] - (n ? 2 : 4), y0 = c[1] - 3;
-      for (let x = x0; x < x0 + w; x++) for (let y = y0; y <= y0 + 5; y++) {
-        const edge = x === x0 || x === x0 + w - 1 || y === y0 || y === y0 + 5;
-        if (edge) r.put(x, y, frame);
-        else if (e === "sunglasses") r.put(x, y, y === y0 + 1 && x < x0 + 3 ? "#7a8aa0" : "#1c1824");
+    const dark = e === "sunglasses", wire = !dark && roll(m, "frames") < 0.5;
+    const frame = dark ? "#141018" : wire ? "#b39a62" : "#3a2a20";
+    // Lens edges projected from the head, so the far lens narrows as the head turns.
+    const lenses = [-1, 1].flatMap((side) => {
+      const c = visible([side * m.eyeX, 1.8, 11.2]);
+      if (!c) return [];
+      const [xa] = fr.projectHead([side * m.eyeX - 3, 1.8, side < 0 ? 10.6 : 11.6]);
+      const [xb] = fr.projectHead([side * m.eyeX + 3, 1.8, side < 0 ? 11.6 : 10.6]);
+      return [{ side, x0: Math.min(xa, xb), x1: Math.max(xa, xb), y0: c[1] - 2, y1: c[1] + 2 }];
+    }).sort((p, q) => p.x0 - q.x0);
+    for (const { x0, x1, y0, y1 } of lenses) {
+      for (let x = x0; x <= x1; x++) for (let y = y0; y <= y1; y++) {
+        const side = x === x0 || x === x1, rim = side || y === y0 || y === y1;
+        if (side && (y === y0 || y === y1) && (wire || dark)) continue;
+        if (rim) r.put(x, y, frame);
+        else if (dark) r.put(x, y, y === y0 + 1 && x < x0 + 3 ? "#7a8aa0" : "#1c1824");
+        else if (r.matAt(x, y) === MAT.skin) r.put(x, y, mix(r.at(x, y)!, "#cfe0ea", 0.16));
       }
-    });
-    if (eyes[0] && eyes[1]) r.stroke([[eyes[0][0] + 4, eyes[0][1] - 2], [eyes[1][0] - 2, eyes[1][1] - 2]], frame);
-    const ear = visible([-m.headW + 1, 1.5, 2]);
-    if (eyes[0] && ear) r.stroke([[eyes[0][0] - 4, eyes[0][1] - 2], [ear[0], ear[1]]], frame);
+      if (!dark && x1 - x0 > 3) r.put(x1 - 1, y0 + 1, "#eef6fa");
+    }
+    if (lenses.length === 2) r.stroke([[lenses[0].x1, lenses[0].y0 + 1], [lenses[1].x0, lenses[1].y0 + 1]], frame);
+    // The arms run back level to the ear and pass behind the hair.
+    for (const l of lenses) {
+      const ear = fr.projectHead([l.side * (m.headW - 0.8), 1.2, 0.5]);
+      const from = l.x0 < ear[0] === l.x1 < ear[0] ? (ear[0] < l.x0 ? l.x0 : l.x1) : undefined;
+      if (from === undefined || Math.abs(ear[0] - from) < 2) continue;
+      const n = Math.abs(ear[0] - from);
+      for (let k = 1; k <= n; k++) put(from + Math.sign(ear[0] - from) * k, Math.round(l.y0 + 1 + (ear[1] - l.y0 - 1) * (k / n)), frame);
+    }
   }
   const nose = a.adornment?.nose;
   const nostril = onFace(nostrilAt(m, -1));
@@ -1817,21 +2039,24 @@ function bodyRecord(r: Raster, m: Model, fr: Frame, put: Put, onFace: Find) {
   }
   const pale = mix(s.base, "#fbe8dc", 0.6), seam = mix(s.shade, s.edge, 0.3);
   for (const scar of rec.scars ?? []) {
-    if (scar === "burned skin") on(jaw, [[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [1, 2]], (dx, dy) => ((dx + dy) % 2 ? pale : mix(s.base, "#e8b0a8", 0.3)));
-    if (scar === "injured leg" || scar === "gored leg") {
+    if (scar === "burn") on(jaw, [[0, 0], [1, 0], [0, 1], [1, 1], [2, 1], [1, 2]], (dx, dy) => ((dx + dy) % 2 ? pale : mix(s.base, "#e8b0a8", 0.3)));
+    if (scar === "broken-leg" || scar === "gored-thigh" || scar === "concussion") {
       // A split through the brow from the fall: a gap in the hair and a pale seam across it.
       on(brow, [[0, -4], [0, -3], [0, -2], [0, -1], [0, 0], [1, 1], [1, 2]], (_, dy) => (dy >= -3 && dy <= 0 ? pale : seam), [MAT.skin, MAT.hair]);
     }
-    if (scar === "torn arm") {
+    if (scar === "mauling") {
       const c = fr.projectBody([-m.shoulder + 4, -33, 3]);
       for (let k = 0; k < 3; k++) for (let j = 0; j < 4; j++) put(c[0] + k * 2 + j, c[1] + j, pale, [MAT.skin]);
     }
   }
   switch (rec.injury) {
-    case "burned skin":
+    case "burn":
       on(jaw ?? cheek, [[0, 0], [1, 0], [2, 0], [0, 1], [1, 1], [2, 1], [1, 2]], (dx, dy) => (dx === 1 && dy === 1 ? "#f0c8a8" : mix(s.base, "#c83424", 0.45)));
       break;
-    case "torn arm": {
+    case "bite":
+    case "mauling":
+    case "broken-arm":
+    case "broken-collarbone": {
       // A bandage bound over the near shoulder, spotted through.
       for (let j = 0; j < 6; j++)
         for (let k = -5; k <= 5; k++) {
@@ -1840,12 +2065,14 @@ function bodyRecord(r: Raster, m: Model, fr: Frame, put: Put, onFace: Find) {
         }
       break;
     }
-    case "injured leg":
-    case "gored leg":
-    case "sprained ankle": {
+    case "broken-leg":
+    case "broken-ankle":
+    case "gored-thigh":
+    case "concussion":
+    case "sprained-ankle": {
       // Came down hard: a graze on the cheekbone and, for the bad falls, a bruise below the eye.
       on(cheek, [[0, -1], [1, -1], [2, -2], [1, 0]], tint("#b8403a", 0.4));
-      if (rec.injury !== "sprained ankle") on(at(-m.eyeX, -1.2, 11.2), [[-1, 0], [0, 0], [1, 0], [0, 1]], tint("#5a3a78", 0.35));
+      if (rec.injury !== "sprained-ankle") on(at(-m.eyeX, -1.2, 11.2), [[-1, 0], [0, 0], [1, 0], [0, 1]], tint("#5a3a78", 0.35));
       break;
     }
   }

@@ -56,6 +56,10 @@ type Rig = {
   /** Which arm is the working one. */
   near: number;
   look: number;
+  /** Leaning on a crutch under the right arm. */
+  crutch?: boolean;
+  /** A stick in the near hand: the lame, the old, the blind feeling ahead. */
+  cane?: boolean;
 };
 
 export type Face = "o" | "squint" | "grit" | "talk";
@@ -481,6 +485,12 @@ const actions: Partial<Record<CharacterPose, readonly Key[]>> = {
     { rise: -1, lean: -2.6, knee: 1.5, nod: -1, hands: [[0.2, -3.5, 2.2]], face: "grit" },
     { lean: -1, hands: [[0.5, -4.5, 1.2]], face: "squint" },
     { lean: -0.3 },
+  ],
+  wince: [
+    { rise: -1, lean: 2, knee: 2, hands: [[0.4, -3.2, 2.4]], face: "grit" },
+    { rise: -4, lean: 2.6, knee: 5, nod: 1, hands: [[0.2, -4, 2.6]], face: "squint" },
+    { rise: -5, lean: 2.2, knee: 6, nod: 2, hands: [[0.2, -4.2, 2.4]], face: "squint" },
+    { rise: -5, lean: 2.5, knee: 6, nod: 2, shoulders: 1, hands: [[0.2, -3.8, 2.4]], face: "squint" },
   ],
   skid: [
     { rise: -1, lean: -1.6, knee: 2, feet: [[0, 0, 3], [0, 0, -1.2]], hands: [[1.6, -2, -2.2]] },
@@ -918,6 +928,59 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     hands[near] = [ns * (d.shoulderW - 0.5), sh - 1, 3];
   else if (prop && upright(prop) && !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !tool && !trade)
     hands[near] = [ns * (d.shoulderW + 0.6), sh - (prop.sprite === "icon:musket" || prop.sprite === "icon:rifle" || prop.sprite === "icon:crossbow" ? 9 : prop.sprite === "icon:macuahuitl" ? 12 : 6), 1.5];
+  // An injury worn. The left arm rides in its sling and does nothing; the
+  // weight goes on a crutch under the right arm, the bad left foot held
+  // clear and swung through with it; a splinted leg will not bend; a hand
+  // guards cracked ribs.
+  const free = !swings.has(pose) && !thrusts.has(pose) && !key?.grip && !tool && !seated && pose !== "hurt" && pose !== "wince";
+  const walking = pose === "walk" || pose === "setoff" || pose === "halt";
+  if (a.hurt === "sling" && pose !== "hurt" && pose !== "wince") hands[0] = [0.8, sh - 5, 2.6];
+  if (a.hurt === "ribs" && free && (walking || pose === "idle" || pose === "breathe")) {
+    hands[0] = [d.shoulderW - 0.4, sh - 6.5, 1.2];
+    lean += 0.4;
+  }
+  const onCrutch = a.hurt === "crutch" && free;
+  if (onCrutch) {
+    const p = (frame / 8) * Math.PI * 2, z = walking ? 2.2 * Math.sin(p) + 0.6 : 1.4;
+    hands[1] = [-(d.shoulderW + 1.4), sh - 8.5, z];
+    feet[0] = { at: [hipX * 0.9, 4.5, z * 0.5 - 1], knee: 3 };
+    tilt -= 0.6;
+    // A hop on the good leg as the crutch takes the weight.
+    if (walking) rise = Math.cos(p) > 0.7 ? -1 : Math.cos(p) < -0.7 ? 1 : 0;
+  }
+  if ((a.hurt === "splint" || a.hurt === "peg") && !seated) feet[0] = { ...feet[0], knee: 0 };
+  if (a.hurt === "empty-sleeve" && pose !== "hurt" && pose !== "wince") hands[0] = hang(1);
+  const cane = (a.hurt === "stick" || a.hurt === "blind") && free && !prop;
+  if (cane) {
+    const ahead = walking ? feet[1 - near].at[2] * 0.8 + 1.5 : 1.5;
+    hands[near] = a.hurt === "blind" ? [ns * (d.shoulderW - 0.5), sh - 6, 4 + (walking ? Math.sin((frame / 8) * Math.PI * 2) : 0)] : [ns * (d.shoulderW + 0.6), hands[near][1], ahead];
+  }
+  // In a wheelchair: sat at chair height, feet on the footrest, hands on the
+  // rims, pushing them round as it rolls.
+  if (a.hurt === "wheelchair" && free) {
+    seated = true;
+    rise = -Math.round(d.leg * 0.45);
+    lean = 0.4;
+    tilt = sway = 0;
+    feet[0] = { at: [hipX, 3, 4.5], knee: 3 };
+    feet[1] = { at: [-hipX, 3, 4.5], knee: 3 };
+    const R = rim(d.hip + rise), p = (frame / 8) * Math.PI * 2;
+    for (const [i, side] of [[0, 1], [1, -1]] as const)
+      hands[i] = [side * (d.hipW + 1.6), 2 * R - 0.5 - rise - (walking ? Math.max(0, -Math.cos(p)) : 0), walking ? 2.2 * Math.sin(p) : 0.5];
+  }
+  // Withered legs: sat on a low wheeled board, the legs out in front, the
+  // hands on wooden blocks rowing it along the ground.
+  if (a.hurt === "trolley" && free) {
+    seated = true;
+    rise = -(d.hip - 4);
+    lean = 1.2;
+    tilt = sway = 0;
+    feet[0] = { at: [hipX, 2.5, d.leg * 0.75], knee: 0.4 };
+    feet[1] = { at: [-hipX, 2.5, d.leg * 0.75], knee: 0.4 };
+    const p = (frame / 8) * Math.PI * 2;
+    for (const [i, side] of [[0, 1], [1, -1]] as const)
+      hands[i] = walking ? [side * (d.shoulderW + 1.2), 2 - rise + Math.max(0, Math.sin(p)) * 2.5, 2.5 * Math.cos(p)] : [side * (d.shoulderW + 1), 2 - rise, 1];
+  }
   const legs = feet.map(({ at, knee = 0.6 }, i) => {
     const side = i === 0 ? 1 : -1;
     const hip: J = [side * hipX, d.hip + Math.min(0, rise), 0];
@@ -929,7 +992,7 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
     const target: J = [hand[0], hand[1] + rise, hand[2] + lean * 0.6];
     return ik(shoulder, target, d.upper, d.fore, [side * 0.25, -0.2, -1]);
   });
-  return { legs, arms, rise, lean, nod, seated, blink, sway, moving, face, lift, tilt, smear, tool, near, look };
+  return { legs, arms, rise, lean, nod, seated, blink, sway, moving, face, lift, tilt, smear, tool, near, look, crutch: onCrutch, cane };
 }
 
 /** Polearms and long guns a figure stands with: drawn by the painter, not from the icon. */
@@ -1035,6 +1098,121 @@ function pole(sheet: Sheet, kind: string, hand: J, trail = 0, bob = 0) {
   } else head.line(x + side * 2, top - 1, x, top + 6, 2);
   s.put(new Mask().line(x, top + 3, x, foot, 1), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
   s.put(head, STEEL, { ring: "ink", shade: 0.3, light: 0.4, top: true });
+}
+
+/** A wooden crutch from the right armpit to the ground, padded at the top. */
+function crutch(s: Sheet, t: Turn, r: Rig) {
+  const arm = r.arms[1];
+  const [tx, ty] = project(t, [arm.root[0] - 0.6, arm.root[1] - 1.5, arm.root[2] + 0.2]);
+  const [fx, fy] = project(t, [arm.end[0] - 0.6, 0.4, arm.end[2] + 1.2]);
+  const wood = new Mask().line(rnd(tx), Math.round(ty), rnd(fx), Math.min(GY - 1, Math.round(fy)), 1);
+  s.put(wood, WOOD, { ring: "ink", shade: 0.2, light: 0.3 });
+  s.put(new Mask().span(Math.round(ty) - 1, rnd(tx) - 1, rnd(tx) + 1), WHITE, { ring: "ink", shade: 0.3 });
+}
+
+/** Two sticks bound along the shin, with linen ties. */
+function splint(s: Sheet, t: Turn, leg: Limb) {
+  const [x0, y0] = project(t, leg.mid), [x1, y1] = project(t, leg.end);
+  const sticks = new Mask().line(rnd(x0) - 1, Math.round(y0) - 1, rnd(x1) - 1, Math.round(y1) - 1, 1).line(rnd(x0) + 1, Math.round(y0) - 1, rnd(x1) + 1, Math.round(y1) - 1, 1);
+  s.put(sticks, WOOD, { ring: "none", shade: 0.3, light: 0.2 });
+  for (const k of [0.25, 0.7]) {
+    const y = Math.round(y0 + (y1 - y0) * k), x = rnd(x0 + (x1 - x0) * k);
+    s.put(new Mask().span(y, x - 1, x + 1), WHITE, { ring: "none", shade: 0.2 });
+  }
+}
+
+const rim = (seat: number) => Math.max(4, Math.round(seat * 0.75) + 1);
+
+/** A folding wheelchair: two big wheels at the hips, a sling seat and back,
+ * a footrest. `near` draws the wheel on the viewer's side, and the back when
+ * it is turned to the viewer; otherwise the rest. */
+function wheelchair(s: Sheet, t: Turn, d: Dims, r: Rig, near: boolean) {
+  const seat = d.hip + r.rise, R = rim(seat), wx = d.hipW + 1.6;
+  const P = (p: J) => project(t, p);
+  const frame = { ring: "ink", shade: 0.3, light: 0.3 } as const;
+  for (const side of [1, -1]) {
+    if ((P([side * wx, R, -0.5])[2] > P([-side * wx, R, -0.5])[2]) !== near) continue;
+    // Head on, a wheel is a tyre's thickness: two pixels, so it survives the outline.
+    const thick = Math.abs(t.sin) < 0.5 ? 1 : 0;
+    const wheel = new Mask();
+    for (const k of [R, R - 1]) for (let a = 0; a < Math.PI * 2; a += 0.12) {
+      const [x, y] = P([side * wx, R + k * Math.cos(a), -0.5 + k * Math.sin(a)]);
+      wheel.set(rnd(x), Math.min(GY, Math.round(y))).set(rnd(x) + thick * side * (t.cos >= 0 ? 1 : -1), Math.min(GY, Math.round(y)));
+    }
+    s.put(wheel, BOOT, { ring: "none", shade: 0 });
+    const [hx, hy] = P([side * wx, R, -0.5]);
+    s.px(rnd(hx), Math.round(hy), STEEL, 3);
+  }
+  const [, , bz] = P([0, seat + 4, -2.6]);
+  if ((bz < -1.2) === near) return;
+  const back = new Mask();
+  for (let x = -d.hipW; x <= d.hipW; x += 0.5) {
+    const [x0, y0] = P([x, seat, -2.6]), [x1, y1] = P([x, seat + 7, -2.6]);
+    back.line(rnd(x0), Math.round(y0), rnd(x1), Math.round(y1), 1);
+  }
+  s.put(back, LEATHER, frame);
+  if (near) return;
+  const under = new Mask();
+  for (let x = -d.hipW; x <= d.hipW; x += 0.5) {
+    const [x0, y0] = P([x, seat - 0.5, -2.4]), [x1, y1] = P([x, seat - 0.5, 2.5]);
+    under.line(rnd(x0), Math.round(y0), rnd(x1), Math.round(y1), 1);
+    const [fx, fy] = P([x, 2, 5]);
+    under.set(rnd(fx), Math.round(fy));
+  }
+  s.put(under, STEEL, frame);
+}
+
+/** A cripple's low board on four small wheels, under the hips. */
+function board(s: Sheet, t: Turn, d: Dims) {
+  const w = d.hipW + 1, back = -3, front = d.leg * 0.6;
+  const plank = new Mask();
+  for (let x = -w; x <= w; x += 0.5) {
+    const [x0, y0] = project(t, [x, 2.5, back]), [x1, y1] = project(t, [x, 2.5, front]);
+    plank.line(rnd(x0), Math.round(y0), rnd(x1), Math.round(y1), 1);
+  }
+  s.put(plank, WOOD, { ring: "ink", shade: 0.35, light: 0.25, bottom: true });
+  for (const x of [-w, w]) for (const z of [back + 0.5, front - 0.5]) {
+    const [wx, wy] = project(t, [x, 1, z]);
+    s.px(rnd(wx), Math.min(GY, Math.round(wy)), WOOD, 0);
+  }
+}
+
+/** Linen on the body: the sling and its strap, a bound hand, a wrapped arm. */
+function dressing(s: Sheet, t: Turn, r: Rig, hurt: NonNullable<CharacterAppearance["hurt"]>, behind: (z: number) => boolean) {
+  const P = (p: J) => project(t, p);
+  if (hurt === "sling") {
+    const arm = r.arms[0], [ex, ey, ez] = P(arm.mid), [hx, hy, hz] = P(arm.end);
+    if (behind((ez + hz) / 2)) return;
+    // A cradle of cloth under the forearm, and the strap up to the far shoulder.
+    const cradle = new Mask().line(rnd(ex), Math.round(ey), rnd(hx), Math.round(hy), 2).line(rnd(ex), Math.round(ey) + 1, rnd(hx), Math.round(hy) + 1, 2);
+    s.put(cradle, WHITE, { ring: "ink", shade: 0.35, light: 0.1, bottom: true });
+    const [nx, ny] = P([-(Math.abs(r.arms[1].root[0]) - 1.5), r.arms[1].root[1] - 0.5, r.arms[1].root[2] + 0.8]);
+    s.put(new Mask().line(rnd(hx), Math.round(hy) - 1, rnd(nx), Math.round(ny), 1), WHITE, { ring: "none", shade: 0.4 });
+    return;
+  }
+  if (hurt === "leper" || hurt === "trolley") {
+    // Rag-bound hands, or the wooden blocks that row a board along.
+    for (const arm of r.arms) {
+      const [x, y, z] = P(arm.end);
+      if (behind(z)) continue;
+      const m = hurt === "leper" ? new Mask().span(Math.round(y) - 1, rnd(x) - 1, rnd(x)).span(Math.round(y), rnd(x) - 1, rnd(x)) : new Mask().span(Math.round(y) + 1, rnd(x) - 1, rnd(x) + 1).span(Math.round(y) + 2, rnd(x) - 1, rnd(x) + 1);
+      s.put(m, hurt === "leper" ? WHITE : WOOD, { ring: "ink", shade: 0.3 });
+    }
+    return;
+  }
+  if (hurt === "hand") {
+    const [x, y, z] = P(r.arms[1].end);
+    if (behind(z)) return;
+    s.put(new Mask().span(Math.round(y) - 1, rnd(x) - 1, rnd(x) + 1).span(Math.round(y), rnd(x) - 1, rnd(x) + 1).span(Math.round(y) + 1, rnd(x) - 1, rnd(x) + 1), WHITE, { ring: "ink", shade: 0.3 });
+    return;
+  }
+  if (hurt === "arm") {
+    const arm = r.arms[0], [x0, y0, z0] = P(arm.root), [x1, y1] = P(arm.mid);
+    if (behind(z0)) return;
+    const x = rnd((x0 + x1) / 2), y = Math.round((y0 + y1) / 2);
+    s.put(new Mask().span(y, x - 1, x + 1).span(y + 1, x - 1, x + 1), WHITE, { ring: "ink", shade: 0.3 });
+    s.px(x, y, CLAY, 2);
+  }
 }
 
 /** On the forearm that does not hold the weapon: a disc with a boss, or a tall
@@ -1568,13 +1746,16 @@ export function drawCharacterG(
   // A sidearm's scabbard behind the body, where it hangs on the far side or out behind.
   const arms = sidearmAt(d, a.wearing.sidearm, r, prev, pose === "run");
   arms.forEach((h, i) => drawSidearm(s, t, a.wearing.sidearm!, h, i > 0, "back"));
-  for (const { arm, z } of armParts) if (behind(z)) drawArm(s, t, arm, k, deep ? 1 : 0, false, flare);
+  const empty = (i: number) => a.hurt === "empty-sleeve" && i === 0;
+  for (const { arm, z, i } of armParts) if (behind(z)) drawArm(s, t, arm, k, deep ? 1 : 0, empty(i), flare);
   // A guard's pole in the working hand, a shield on the other forearm.
   const carried = prop && upright(prop) && !r.tool && !tooled.has(pose) ? prop.sprite.slice(5) : undefined;
   const shoulderLoad = shouldered(carried) ? carried : undefined;
-  const held = shoulderLoad ? undefined : carried ?? (prop?.sprite === "icon:walking-cane" && !r.tool && !tooled.has(pose) ? "walking-cane" : undefined);
+  const held = shoulderLoad ? undefined : carried ?? ((prop?.sprite === "icon:walking-cane" && !r.tool && !tooled.has(pose)) || r.cane ? "walking-cane" : undefined);
   const poleHand = P(r.arms[r.near].end);
   if (held && behind(poleHand[2])) pole(s, held, poleHand, held === "walking-cane" ? 0 : drift(2.4), prev.rise - r.rise);
+  const crutchAt = r.crutch ? P(r.arms[1].end) : undefined;
+  if (crutchAt && behind(crutchAt[2])) crutch(s, t, r);
   const work = tooled.has(pose)
     ? [s, t, pose, frame & 3, [r.near, 1 - r.near].map((i) => P(r.arms[i].end)), [r.near, 1 - r.near].map((i) => P(r.arms[i].mid)),
       P([0, d.shoulder - 7.6 + r.rise, 3.8 + r.lean * 0.6]), prop?.sprite.slice(5)] as Parameters<typeof implement>
@@ -1589,7 +1770,9 @@ export function drawCharacterG(
   if (shieldKind && behind(shieldAt[1][2])) shield(s, t, shieldKind, shieldAt[0], shieldAt[1], a.wearing.shieldMark);
   const flagFrom = a.wearing.backFlag && !d.child ? [centre(d.shoulder), yOf(d.shoulder - 3), yOf(d.shoulder + 26)] as const : undefined;
   if (flagFrom && t.view !== "back" && t.view !== "bq") backFlag(s, t, ...flagFrom, drift(1.5));
-  legParts.forEach(({ leg }, n) => drawLeg(s, t, leg, k, deep && n === 0 ? 1 : 0));
+  if (a.hurt === "trolley" && r.seated) board(s, t, d);
+  if (a.hurt === "wheelchair" && r.seated) wheelchair(s, t, d, r, false);
+  legParts.forEach(({ leg, i }, n) => drawLeg(s, t, leg, k, deep && n === 0 ? 1 : 0, a.hurt === "peg" && i === 0));
 
   // ---- the garment: torso and anything hanging below it, as one silhouette
   const body = new Mask();
@@ -1710,11 +1893,12 @@ export function drawCharacterG(
 
   arms.forEach((h, i) => drawSidearm(s, t, a.wearing.sidearm!, h, i > 0, "front"));
   if (held && !behind(poleHand[2])) pole(s, held, poleHand, held === "walking-cane" ? 0 : drift(2.4), prev.rise - r.rise);
+  if (a.hurt === "splint" && !behind(P(r.legs[0].mid)[2])) splint(s, t, r.legs[0]);
   if (work && !workBehind && !workOver) implement(...work);
 
   // ---- near arms, then what goes over them
-  for (const { arm, z, shoulder } of armParts)
-    if (!behind(z) && arm.end[1] <= d.shoulder + 1) drawArm(s, t, arm, k, 0, false, flare);
+  for (const { arm, z, shoulder, i } of armParts)
+    if (!behind(z) && arm.end[1] <= d.shoulder + 1) drawArm(s, t, arm, k, 0, empty(i), flare);
     // Hands held in front of a body seen from behind: the upper arm still shows.
     else if (behind(z) && !behind(shoulder)) drawArm(s, t, arm, k, 0, true);
   if (shieldKind && !behind(shieldAt[1][2])) shield(s, t, shieldKind, shieldAt[0], shieldAt[1], a.wearing.shieldMark);
@@ -1757,7 +1941,10 @@ export function drawCharacterG(
   if (carrying && backView) infant(fig, "over", a.wearing.infantMood, a.wearing.infantCarry);
   if (w.neckwear && w.neckwear !== "none" && !["hood", "headscarf", "veil"].includes(w.headwear) && !w.shroud) neckwear(fig, w.neckwear);
   // Nder a street wrap the arms hold it shut from inside.
-  if (!w.shroud) for (const { arm, z } of armParts) if (!behind(z) && arm.end[1] > d.shoulder + 1) drawArm(s, t, arm, k, 0, false, flare);
+  if (!w.shroud) for (const { arm, z, i } of armParts) if (!behind(z) && arm.end[1] > d.shoulder + 1) drawArm(s, t, arm, k, 0, empty(i), flare);
+  if (crutchAt && !behind(crutchAt[2])) crutch(s, t, r);
+  if (a.hurt === "wheelchair" && r.seated) wheelchair(s, t, d, r, true);
+  if (a.hurt) dressing(s, t, r, a.hurt, behind);
   if (w.wrist === "bangles") bangles(fig, r.arms.map((arm) => project(t, arm.end)).map(([x, y]) => [x, y] as const));
   if (w.handwork === "distaff" && !prop && !w.shroud) distaff(s, t, r, d);
   if (workOver) implement(...work!);
@@ -2020,12 +2207,18 @@ function waistcoat(s: Sheet, k: Kit, t: Turn, d: Dims, yOf: (y: number) => numbe
   }
 }
 
-function drawLeg(s: Sheet, t: Turn, leg: Limb, k: Kit, dark: number) {
+function drawLeg(s: Sheet, t: Turn, leg: Limb, k: Kit, dark: number, peg = false) {
   const [hx, hy] = project(t, [leg.root[0], leg.root[1], leg.root[2]]);
   const [kx, ky] = project(t, leg.mid);
   const [ax, ay] = project(t, leg.end);
   const m = new Mask();
   const w = (k.wideLegs ? 1 : 0) + (Math.abs(t.sin) > 0.9 ? 2 : 3);
+  if (peg) {
+    // The trouser leg folded up at the knee, a wooden peg down to the ground.
+    s.put(new Mask().line(kx, ky + 1, ax, ay + 2, 1), WOOD, { ring: "ink", shade: 0.3, light: 0.2, dark });
+    s.put(new Mask().line(hx, hy, kx, ky + 1, w), k.legs, { shade: 0.45, light: k.legs === SKIN ? 0 : 0.3, dark });
+    return;
+  }
   m.line(hx, hy, kx, ky, w).line(kx, ky, ax, ay, w);
   const foot = new Mask();
   // The ankle is two rows up; the shoe fills the two below it.

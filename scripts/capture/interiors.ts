@@ -6,6 +6,8 @@
  *        npm run capture:interiors -- kiva hammam     (profiles, by id)
  *        UHS_HOUR=21 npm run capture:interiors -- ... (the hour; default 11)
  *        UHS_STATUS=0,2 npm run capture:interiors -- ... (finishes; default common)
+ *        npm run capture:interiors -- homes            (four European houses, every room)
+ *        npm run capture:interiors -- storeys          (houses and an inn in buildings of one, two and three storeys)
  *        npm run capture:interiors -- shops            (a shop of each kind, in a fitting house)
  *        npm run capture:interiors -- henhouse         (the henhouse in three regions; UHS_HOUR=21 for the roost)
  *        npm run capture:interiors -- fair             (fair cases, objects and tabletop exhibits)
@@ -236,16 +238,34 @@ await withPage({}, async (page) => {
         groups.push({name:"henhouse",profiles:[[0.2,49,1300],[139,35,1700],[-99,19,1450]].map(([lon,lat,year])=>
           interiorProfileFor({lon,lat,year,settlement:"village",use:"yard.henhouse"}))});
       }
+      if (ids.includes("homes")) {
+        const { interiorProfile } = await import("/src/content/interiors/index.ts" as string);
+        groups.push({ name: "homes", profiles: ["medieval-cottage", "european-townhouse", "flemish-townhouse", "farmhouse-1930s"].map((id) => interiorProfile(id)) });
+      }
+      if (ids.includes("storeys")) {
+        // The same profile in buildings of different size outside: storeys, tiles of ground, seed.
+        const { interiorProfile } = await import("/src/content/interiors/index.ts" as string);
+        const { interiorProfileFor } = await import("/src/content/interiors/select.ts" as string);
+        const inn = interiorProfileFor({ lon: -0.1, lat: 51.5, year: 1450, settlement: "city", use: "worksite.european-inn" });
+        const cases: [any, number, number, number][] = [
+          [interiorProfile("european-townhouse"), 1, 24, 7], [interiorProfile("european-townhouse"), 2, 40, 7], [interiorProfile("european-townhouse"), 3, 80, 8],
+          [interiorProfile("farmhouse-1930s"), 2, 60, 7], [interiorProfile("farmhouse-1930s"), 2, 60, 9], [interiorProfile("medieval-cottage"), 2, 30, 4],
+          [inn, 1, 40, 7], [inn, 2, 60, 7], [inn, 3, 100, 5],
+        ];
+        groups.push({ name: "storeys", profiles: cases.map(([pr, storeys, plot, seed]) => ({ ...pr, label: `${pr.label} · ${storeys} storey${storeys > 1 ? "s" : ""} · ${plot} tiles · seed ${seed}`, _storeys: storeys, _plot: plot, _seed: seed })) });
+      }
       if (ids.includes("shops")) {
         const { shopFor, shopKinds } = await import("/src/content/interiors/shops.ts" as string);
         const { interiorProfile } = await import("/src/content/interiors/index.ts" as string);
         const where: [string, string, number, number, number][] = [
+          ["grocery", "art-deco-apartments", -74, 40.7, 1935], ["drink", "roman-domus", 14.5, 40.75, 79],
           ["bread", "flemish-townhouse", 4.9, 52.4, 1650], ["tools", "medieval-cottage", -0.1, 51.5, 1400],
           ["meat", "roman-domus", 12.5, 41.9, 100], ["cloth", "maghrebi-dar", -5, 34, 1500],
           ["apothecary", "flemish-townhouse", 4.9, 52.4, 1650], ["tea", "japanese-minka", 135.8, 35, 1750],
           ["fine", "japanese-minka", 135.8, 35, 1750], ["general", "farmhouse-1930s", -0.1, 51.5, 1900],
           ["candles", "medieval-cottage", -0.1, 51.5, 1400], ["timber", "medieval-cottage", 2, 47, 1300],
           ["fish", "roman-domus", 12.5, 41.9, 100], ["pots", "ming-study", 116, 40, 1600], ["leather", "flemish-townhouse", 4.9, 52.4, 1700],
+          ["tobacco", "european-townhouse", -0.1, 51.5, 1880], ["apothecary", "european-townhouse", -0.1, 51.5, 1850], ["tobacco", "european-townhouse", -74, 40.7, 1880], ["drink", "european-townhouse", 2.3, 48.9, 1780], ["books", "european-townhouse", -0.1, 51.5, 1850], ["fine", "european-townhouse", -0.1, 51.5, 1850],
         ];
         groups.push({ name: "shops", profiles: where.map(([kind, home, lon, lat, year]) =>
           ({ ...shopFor(interiorProfile(home), shopKinds.find((k: any) => k.id === kind), { lon, lat, year }), label: `${kind} in a ${home}`, period: String(year) })) });
@@ -253,9 +273,11 @@ await withPage({}, async (page) => {
       const { T, FLOOR_X, FLOOR_Y } = await import("/src/render/interiors/pixel.ts" as string);
       const render = (pr: any, status: number, firstRoom = false) => {
         const size = pr.rooms?.[0].size ?? pr.size;
-        const b = planBuilding(pr, { seed: pr._seed ?? 7, status, colorway: 0, w: size[0], d: size[1], hour: hour as number });
+        const b = planBuilding(pr, { seed: pr._seed ?? 7, status, colorway: 0, w: size[0], d: size[1], hour: hour as number, storeys: pr._storeys, plot: pr._plot });
         const cv = document.createElement("canvas");
         const room = new PixelRoom(cv);
+        // As the game lights a room (WorldScene), so the sheet looks like play.
+        room.lighting = "layer";
         room.set({ ...b.plan.rooms[0], w: b.plan.w, d: b.plan.d, entrance: b.plan.entrance[0], hour }, b.props, b.plan);
         for (let i = 0; i < 30; i++) room.frame(0.05);
         if (!firstRoom) return cv;

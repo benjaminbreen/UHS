@@ -2,7 +2,7 @@ import type { CharacterAppearance } from "../../../core/character";
 import type { RestingExpression } from "../../../core/persona";
 import {
   H, W,
-  BLUSH, BOOT, DECO, EYE, GLASS, HAIR, HAT, IRIS, LEATHER, LIP, MARK, METAL, Mask, ORN, PLUME, SKIN, STUBBLE, TRIM, WHITE,
+  BLUSH, BOOT, CLAY, DECO, EYE, GLASS, HAIR, HAT, IRIS, LEATHER, LIP, MARK, METAL, Mask, ORN, PLUME, SKIN, STUBBLE, TRIM, WHITE,
   type Sheet,
 } from "./paint";
 import { luma } from "../v2/pixels";
@@ -277,8 +277,26 @@ export function drawHead(h: Head) {
     s.retone(X(3), Y(2), 4);
   }
   if ((view === "back" || view === "bq") && !covered) nape(h, tall - 1);
+  // A head wound bound round the brow, knotted at the side; a cut face plastered.
+  if (a.hurt === "head" && !covered) {
+    const band = m();
+    for (const r of [3, 4]) band.span(r, spans[r][0], spans[r][1]);
+    band.set(view === "front" ? spans[4][1] + 1 : 1, 5).set(view === "front" ? spans[4][1] + 1 : 0, 6);
+    s.put(band.mask, WHITE, { ring: "ink", shade: 0.3, light: 0.1 });
+    if (view !== "back") s.px(X(view === "front" ? 4 : 8), Y(3), CLAY, 2);
+  }
+  if (a.hurt === "face" && (view === "front" || view === "q")) {
+    s.px(X(view === "front" ? 9 : 10), Y(9 + lo), WHITE, 2);
+    s.px(X(view === "front" ? 10 : 11), Y(9 + lo), WHITE, 1);
+  }
   if (view === "front" || view === "q" || view === "side") beard(h, lo);
   if (face && a.wearing.mask && a.wearing.mask !== "none") mask(h, lo);
+  // A leper's linen across the mouth and nose.
+  if (a.hurt === "leper" && face) {
+    const cloth = m();
+    for (let r = 9 + lo; r <= 11 + lo; r++) if (spans[r]) cloth.span(r, view === "side" ? Math.max(spans[r][0], 4) : spans[r][0], spans[r][1]);
+    s.put(cloth.mask, WHITE, { ring: "ink", shade: 0.35, light: 0.1, bottom: true });
+  }
   ornaments(h, lo, earsShow && !covered);
   if (st && !hides.top.has(hat)) hairOrnament(h, st, lo);
   if (hat !== "none") headwear(h, lo);
@@ -319,7 +337,7 @@ function drawFace(h: Head, lo: number) {
   const forced = h.face;
   // Surprise opens the eyes wide; a wince shuts them.
   const size = forced === "o" ? "large" : (f?.eyeSize ?? "medium");
-  const shut = h.blink || forced === "squint" || forced === "grit";
+  const shut = h.blink || forced === "squint" || forced === "grit" || a.hurt === "blind";
   const key = s.key;
   const er = 6;
   const v = view as "front" | "q" | "side";

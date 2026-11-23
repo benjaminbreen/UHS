@@ -10,6 +10,7 @@ import {
 import { z } from "zod";
 import { patterns } from "../settlements/profiles";
 import { cultures } from "../history/types";
+import { requestableConditions } from "../health/conditions";
 export const climates = [
   "temperate",
   "mediterranean",
@@ -109,6 +110,7 @@ export const startBriefSchema = z
   })
   .strict();
 export type StartBrief = z.infer<typeof startBriefSchema>;
+export const askedWeathers = ["snow", "blizzard", "hail", "storm", "rain", "dust", "clear"] as const;
 export const settingSchema = z
   .object({
     version: z.literal(2),
@@ -187,6 +189,10 @@ export const settingSchema = z
     architecture: z.enum(architectures),
     role: z.string().min(1).max(100),
     characterName: z.string().min(1).max(80),
+    /** The weather the first morning asked for: "a snowy day", "a hailstorm". */
+    weather: z.enum(askedWeathers).optional(),
+    /** A lasting condition the start asked for: "a blind beggar", "a leper". */
+    condition: z.enum(requestableConditions).optional(),
     character: z
       .object({
         appearanceSeed: z.string().max(100).optional(),

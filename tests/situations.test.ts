@@ -92,7 +92,7 @@ it("lets a swimmer out past wading depth until they tire and wash ashore", () =>
   step(n++);
   expect(p.afloat).toBeUndefined();
   expect(e.world.terrain(p.pos.x, p.pos.y)).not.toBe("water");
-  expect(e.lastCollapse?.title).toBe("Washed ashore");
+  expect(e.setback?.title).toBe("Washed ashore");
 });
 it.each([
   ["Roman military camp", "leather", 8, 16],

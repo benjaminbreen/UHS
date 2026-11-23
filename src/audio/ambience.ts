@@ -27,6 +27,10 @@ export interface AmbienceMix {
   thunder: number;
   /** Frogs calling on a warm wet night. */
   frogs: number;
+  /** Hailstones landing: a clatter over the rain. */
+  hail: number;
+  /** Blown sand: the hiss of grit in a dust storm's wind. */
+  grit: number;
   wind: number;
   birds: number;
   /** Which birds sing here: woodland, town, coast and climate each bring their own. */
@@ -65,6 +69,8 @@ export const silence: AmbienceMix = {
   surface: "grass",
   thunder: 0,
   frogs: 0,
+  hail: 0,
+  grit: 0,
   wind: 0,
   birds: 0,
   cast: [],
@@ -234,6 +240,7 @@ export function ambienceFor(scene: Scene): AmbienceMix {
   // Falling snow deadens a place: fewer birds, fewer voices, no patter.
   const hush = weather.condition === "snow" ? 0.6 : 0;
   const wind = Math.max(0, (weather.wind.strength - 0.2) / 0.8);
+  const { blizzard = 0, dust = 0 } = weather;
   // Dawn chorus, then a quieter daytime; birds shelter from rain and hard wind.
   const chorus = hour > 4.5 && hour < 8 ? 1 : hour < 18 ? 0.45 : 0;
   const cold = climate === "tundra" || climate === "boreal";
@@ -242,6 +249,7 @@ export function ambienceFor(scene: Scene): AmbienceMix {
     (1 - wet) *
     (1 - hush) *
     (1 - 0.6 * wind) *
+    (1 - dust) *
     (season === "winter" ? (cold ? 0.15 : 0.4) : 1);
   // Crickets need a warm night. Cold places never get them.
   const warm = weather.tempC > 12;
@@ -265,15 +273,19 @@ export function ambienceFor(scene: Scene): AmbienceMix {
     // People go quiet at night and under heavy rain.
     (scene.night ? 0.25 : 1) *
     (1 - 0.6 * ramp(rain, 0.2, 0.9)) *
+    (1 - 0.6 * dust) *
     (1 - 0.5 * hush);
   const fire = near(scene.fireDistance, 1.5, 9);
   const surface = surfaceFor(scene);
   return {
     rain,
     surface,
-    thunder: warm || weather.tempC > 8 ? ramp(rain, 0.65, 1) : 0,
+    thunder: weather.storm ?? 0,
     frogs,
-    wind: Math.min(1, wind * (1 - 0.4 * hush) + rain * 0.25),
+    hail: weather.hail ?? 0,
+    grit: dust,
+    // Falling snow muffles the wind; a blizzard is the wind.
+    wind: Math.min(1, wind * (1 - 0.4 * hush * (1 - blizzard)) + rain * 0.25),
     birds,
     cast: birdCast(scene),
     owls,
@@ -295,7 +307,7 @@ export function ambienceFor(scene: Scene): AmbienceMix {
     day: scene.day ?? 0,
     // Stardew hands a downpour the whole soundstage; a drizzle leaves the
     // music be. A roof takes the edge off too.
-    music: (1 - 0.75 * ramp(rain, 0.15, 0.7)) * (indoors ? 0.6 : 1),
+    music: (1 - 0.75 * Math.max(ramp(rain, 0.15, 0.7), ramp(Math.max(blizzard, dust), 0.3, 0.9))) * (indoors ? 0.6 : 1),
   };
 }
 
@@ -304,6 +316,25 @@ function noiseBuffer(ctx: BaseAudioContext, seconds: number) {
   for (let c = 0; c < 2; c++) {
     const data = buffer.getChannelData(c);
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  }
+  return buffer;
+}
+/** A loop of many small events, each a short damped ring at its own pitch,
+ * level and side; filtered noise in their place reads as static. Events wrap
+ * round the end, so the loop has no seam. */
+function grainBuffer(ctx: BaseAudioContext, seconds: number, perSecond: number, pitch: [number, number], ringMs: number) {
+  const sr = ctx.sampleRate, n = Math.floor(sr * seconds);
+  const buffer = ctx.createBuffer(2, n, sr);
+  const left = buffer.getChannelData(0), right = buffer.getChannelData(1);
+  for (let k = 0; k < seconds * perSecond; k++) {
+    const at = Math.floor(Math.random() * n), pan = Math.random(), level = Math.random() ** 2;
+    const step = (2 * Math.PI * pitch[0] * (pitch[1] / pitch[0]) ** Math.random()) / sr;
+    const length = Math.floor(((sr * ringMs) / 1000) * (0.5 + Math.random()));
+    for (let i = 0; i < length; i++) {
+      const v = (0.7 * Math.sin(step * i) + 0.3 * (Math.random() * 2 - 1)) * Math.exp((-5 * i) / length) * level;
+      left[(at + i) % n] += v * (1 - pan);
+      right[(at + i) % n] += v * pan;
+    }
   }
   return buffer;
 }
@@ -319,6 +350,8 @@ type Caller = { group: "birds" | "owls" | "frogs"; voice: Voice; songs: AudioBuf
 export class Ambience {
   private beds = {} as Record<
     | "rain"
+    | "hail"
+    | "grit"
     | "wind"
     | "water"
     | "town"
@@ -388,6 +421,24 @@ export class Ambience {
       },
     };
 
+    // Hail: stones cracking on the ground and the duller knock of the big
+    // ones, coming in waves as the squall does.
+    const hail = loud(0);
+    lfo(0.21, 0.25, hail.gain);
+    hail.connect(this.outside);
+    this.beds.hail = {
+      node: hail,
+      start: () => {
+        this.loop(grainBuffer(ctx, short ? 2.7 : 4.7, 80, [900, 4200], 14)).connect(loud(0.2)).connect(hail);
+        this.loop(grainBuffer(ctx, short ? 2.1 : 3.9, 16, [140, 420], 45)).connect(loud(0.22)).connect(hail);
+      },
+    };
+    // Grit: fine sand carried on the wind, a dry hiss that comes and goes with the gusts.
+    const grit = loud(0);
+    lfo(0.13, 0.3, grit.gain);
+    lfo(0.071, 0.2, grit.gain);
+    this.beds.grit = this.bed(this.outside, () => grainBuffer(ctx, short ? 2.3 : 4.1, 1500, [3200, 8500], 2.5), filter("highshelf", 6000, 0.7), loud(0.05), grit);
+
     // Wind: band-passed noise whose centre drifts, so it gusts and sighs.
     const band = filter("bandpass", 420, 1.4);
     lfo(0.09, 220, band.frequency);
@@ -427,9 +478,9 @@ export class Ambience {
         buffer.getChannelData(1).set(r);
         return buffer;
       }, loud(gain));
-    this.beds.crickets = insects(crickets, short ? 5.3 : 11.3, 0.07);
-    this.beds.trill = insects(nightTrill, short ? 4.3 : 9.1, 0.045);
-    this.beds.cicadas = insects(cicadas, short ? 6.1 : 13.7, 0.08);
+    this.beds.crickets = insects(crickets, short ? 5.3 : 11.3, 0.05);
+    this.beds.trill = insects(nightTrill, short ? 4.3 : 9.1, 0.032);
+    this.beds.cicadas = insects(cicadas, short ? 6.1 : 13.7, 0.055);
 
     // Fire stays dry and close: it is in the room with you, so no muffling.
     const emberGain = loud(0.13);
@@ -483,6 +534,8 @@ export class Ambience {
       glide(bed.node.gain, value, seconds);
     };
     fade(this.beds.rain, mix.rain, 2.5);
+    fade(this.beds.hail, mix.hail, 1.5);
+    fade(this.beds.grit, mix.grit, 3);
     fade(this.beds.wind, mix.wind, 3);
     fade(this.beds.water, mix.water, 2);
     fade(this.beds.town, mix.town, 3);
@@ -519,7 +572,8 @@ export class Ambience {
       this.nextActivity = at + rand(2.3, 5.5) / Math.max(.45, work.level);
     }
     const { thunder, frogs, birds, owls, fire, cast, surface } = this.level;
-    if (thunder > 0.02 && Math.random() < 0.004 * thunder) this.thunder(at, thunder);
+    // Live, the scene throws the strikes and asks for their thunder (`strike`).
+    if (!this.live && thunder > 0.02 && Math.random() < 0.004 * thunder) this.thunder(at, thunder);
     // A dawn chorus is more birds singing more often, not louder birds.
     this.chorus("birds", birds > 0.02 ? 1 + Math.round(birds * 4.4) : 0, cast, at, 1 / (0.5 + 1.2 * birds));
     this.chorus("owls", owls > 0.02 ? 1 : 0, ["owl"], at, 1);
@@ -577,12 +631,14 @@ export class Ambience {
         pan.disconnect();
       };
   }
+  /** The thunder of a strike the scene drew, `delay` seconds after the flash. */
+  strike(delay: number, close: boolean) {
+    this.thunder(this.ctx.currentTime + delay, Math.max(0.4, this.level.thunder), close);
   }
   /** A roll of thunder: a crack if it is close, then a long low tumble. */
-  private thunder(at: number, level: number) {
+  private thunder(at: number, level: number, close = Math.random() < 0.25) {
     const ctx = this.ctx,
       sr = ctx.sampleRate;
-    const close = Math.random() < 0.25;
     const seconds = rand(5, 9);
     const buffer = ctx.createBuffer(2, Math.floor(sr * seconds), sr);
     let lo = 0;
@@ -635,7 +691,7 @@ export class Ambience {
         buffer.getChannelData(0).set(data);
         return buffer;
       });
-      this.callers.push({ group, voice, songs, pan: rand(-0.9, 0.9), gain: 0.05 * voiceGain(voice) * (0.25 + 0.75 * (1 - far) ** 2), tone: 12000 - 7000 * far, next: at + rand(0.3, 5) });
+      this.callers.push({ group, voice, songs, pan: rand(-0.9, 0.9), gain: 0.03 * voiceGain(voice) * (0.25 + 0.75 * (1 - far) ** 2), tone: 12000 - 7000 * far, next: at + rand(0.3, 5) });
     }
     for (const c of here) {
       if (at < c.next) continue;

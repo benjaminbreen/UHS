@@ -136,7 +136,7 @@ export function critterFor(
 ): CritterKind | undefined {
   const night = light === "night";
   const dusk = light === "dusk";
-  const wet = condition === "rain" || condition === "snow";
+  const wet = condition === "rain" || condition === "snow" || condition === "dust";
   if (climate === "tundra" && season !== "summer") return undefined;
   // Nothing much flies in the rain or the cold.
   if (wet || tempC < 6) return undefined;
@@ -173,7 +173,7 @@ export function accentFor(
 ): CritterKind | undefined {
   const odds = 0.55;
   if (chance >= odds || light === "night") return undefined;
-  if (condition === "rain" || condition === "snow" || condition === "mist") return undefined;
+  if (condition === "rain" || condition === "snow" || condition === "mist" || condition === "dust") return undefined;
   const clear = condition !== "overcast";
   const day = light !== "dusk" && light !== "early-morning";
   const coast = water.startsWith("coast");

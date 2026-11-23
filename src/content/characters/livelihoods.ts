@@ -28,6 +28,11 @@ export const livelihoods: readonly Livelihood[] = [
     weight: 8,
     label: "Hunter",
     activity: "Looking for game",
+    // Mostly men, but never only: Agta women hunt, and Wilamaya Patjxa in the
+    // Andes buried a woman with her big-game kit 9,000 years ago.
+    sex: "male",
+    sexUntil: -40000,
+    sexShare: 0.1,
     inventory: { water: 2, tool: 1 },
   },
   {
@@ -106,6 +111,38 @@ export const livelihoods: readonly Livelihood[] = [
     inventory: { water: 2, fruit: 1 },
   },
 ];
+/**
+ * Running one's own household: the work most grown women in most settled
+ * societies did, not a servant's place in someone else's. Its share of the
+ * draw is set in `weighted`, not by `weight`. The title is what that place
+ * called the woman who ran the house.
+ */
+export const homemaker: Livelihood = {
+  id: "homemaker",
+  label: "Mistress of the House",
+  activity: "Looking after the household",
+  needs: ["settled"],
+  ages: [18, 90],
+  sex: "female",
+  sexUntil: 1970,
+  rank: "middling",
+  labels: [
+    { scope: { years: [-1000, 500], bounds: [-10, 30, 40, 48] }, label: "Mother of the Household" },
+    { scope: { years: [1300, 1750], bounds: [-11, 49, 2, 61] }, label: "Goodwife" },
+    { scope: { years: [1600, 1750], bounds: [-80, 30, -60, 47] }, label: "Goodwife" },
+    { scope: { years: [1750, 1970], bounds: [-11, 49, 2, 61] }, label: "Housewife" },
+    { scope: { years: [1750, 1970], bounds: [-170, 14, -50, 72] }, label: "Housewife" },
+    // Sitt al-bayt: what Arabic speakers called the woman who ran the house.
+    { scope: { years: [630, 1970], bounds: [-17, 12, 60, 38] }, label: "Lady of the House" },
+    // The Mexica midwife told a newborn girl she would be the hearthstones of the home.
+    { scope: { years: [1200, 1600], bounds: [-106, 13, -86, 23] }, label: "Keeper of the Hearth" },
+    // Nei, the inner quarters: the house was hers to run while the men worked outside it.
+    { scope: { years: [-500, 1950], bounds: [100, 18, 125, 46] }, label: "Mistress of the Inner Rooms" },
+    { scope: { years: [1890, 1970], bounds: [129, 30, 146, 46] }, label: "Housewife" },
+    { scope: { years: [1970, 10001] }, label: "Homemaker" },
+  ],
+  inventory: { water: 2, bread: 2 },
+};
 /** Work no settlement draws at random: only a start brief that names it gets
  * it. One row per kind of eminence; the brief carries the local title, so a
  * pharaoh, a doge and a Soviet marshal need no row of their own. */
@@ -127,7 +164,7 @@ export const notableLivelihoods: readonly Livelihood[] = [
 /** The things a calling is known by and goes about with, whatever the land yields. */
 export const callingItems = ["walking-cane", "fan", "beads", "alms-bowl", "censer", "ledger", "water-pole", "carrying-pole", "lamp-pole", "sweep-brush", "lute", "drum", "flute", "harpoon", "paddle", "scales", "briefcase", "doctor-bag"];
 const index = new Map(
-  [...livelihoods, ...commonLivelihoods, ...outlawLivelihoods, ...cityLivelihoods, ...notableLivelihoods].map((l) => [l.id, l]),
+  [...livelihoods, homemaker, ...commonLivelihoods, ...outlawLivelihoods, ...cityLivelihoods, ...notableLivelihoods].map((l) => [l.id, l]),
 );
 /** Every work id a start brief may name. */
 export const livelihoodIds = [...index.keys()];

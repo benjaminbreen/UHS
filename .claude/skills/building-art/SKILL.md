@@ -110,6 +110,12 @@ area.
 15. **Regional truth over habit.** Some regions have unglazed, shuttered
     windows and no chimneys. There, lamplight comes from shutters ajar,
     lattices and shell panes.
+16. **Move what moves, vary what repeats.** Fires, banners, flags and smoke
+    are overlays and smoke points, not painted flames; lit rooms and embers
+    go in the night glow. A building a town may hold more than once, or
+    that recurs across towns, bakes three looks per size that change
+    meaningful parts (side of an annexe, frieze, dado, merlons), and the
+    placer picks one by seed.
 
 ## Craft
 
@@ -289,6 +295,8 @@ podium towers subclass it. Review with
 | `front_southasia.py`, `front_seasia.py` | Havelis, Bengal and Malabar houses; Southeast Asian houses on posts |
 | `front_africa.py`, `front_andes.py`, `front_pacific.py`, `front_orthodox.py` | West and Central African houses and the kay; Inca houses; the fare; Byzantine and Rus town houses |
 | `front_huts.py`, `front_tents.py`, `front_mudbrick.py`, `front_meso.py` | Huts, lodges, round and long houses; black tents; early mud-brick in five regions; Maya and Nahua houses |
+| `front_meso_civic.py` | The Nahua temazcal, calmecac and telpochcalli, three seeded looks each; the pattern for a civic building with variants, overlays and a night glow |
+| `front_meso_precinct.py` | The Nahua temple pyramid (thatched, single, Ehecatl's round temple, the twin shrines of the Templo Mayor) and the ballcourt pieces, Nahua and Maya, three looks each |
 | `front_sacred.py`, `front_sacred_*.py` | Temples, mosques, churches, synagogues and shrines by region, one spec contract |
 | `front_worksites.py`, `front_worksites_world.py` | Working buildings with their yard equipment |
 | `front_goods.py`, `front_props.py` | Shop interiors as bays; props baked into buildings (wells, fountains, pots, trees) |
@@ -405,7 +413,7 @@ delete the painter once nothing reaches it.
 | Painter (file) | Still draws | Natural front-on home |
 |---|---|---|
 | `ObliqueModern` (`oblique_modern.py`, via `city_kit`/`modern_grammar`) | Industrial and modern `modern-*` blocks, sheds, towers | `front_modern`, `front_kit` |
-| `ObliqueMeso`, `ObliqueMesoLandmark` (`oblique_meso*.py`) | Mesoamerican civic buildings, ballcourt, Maya temple | `front_meso`, `front_sacred_americas` |
+| `ObliqueMeso`, `ObliqueMesoLandmark` (`oblique_meso*.py`) | The single-sprite ballcourt venue, Maya temple | `front_meso`, `front_sacred_americas` |
 | `PrecinctPiece` (`precincts.py`) | Sacred precinct pieces | `front_sacred*` |
 | `UrbanBuilding`, `Building` (`urban.py`, `buildings.py`) | `house-mud/roman/thatch`, `study-*`, shelters, city walls and gates | `front_family`, `front_huts` |
 | `PeriodBuilding`, `ModernBuilding` (`period.py`, `modern.py`) | Older modern and period blocks | `front_modern`, `front_europe` |

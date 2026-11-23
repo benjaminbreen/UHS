@@ -96,17 +96,21 @@ export function conditionOf(structure: Structure | undefined) {
       structure.burial,
   );
 }
-const BANDS: [number, string][] = [
-  [0.94, "as good as new"],
-  [0.82, "well kept"],
-  [0.66, "sound"],
-  [0.45, "worn"],
-  [0.25, "in poor repair"],
-  [0.08, "half derelict"],
+const BANDS: [number, string, string][] = [
+  [0.94, "as good as new", "spotless"],
+  [0.82, "well kept", "well-kept"],
+  [0.66, "sound", "sound"],
+  [0.45, "worn", "worn"],
+  [0.25, "in poor repair", "run-down"],
+  [0.08, "half derelict", "half-derelict"],
 ];
 /** The condition as a phrase that reads after "It is". */
 export function conditionBand(condition: number) {
   return BANDS.find(([floor]) => condition >= floor)?.[1] ?? "a ruin";
+}
+/** The same band as an adjective: "a well-kept house". */
+export function conditionWord(condition: number) {
+  return BANDS.find(([floor]) => condition >= floor)?.[2] ?? "ruined";
 }
 export function damageStructure(
   state: Structure,

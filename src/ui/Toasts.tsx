@@ -1,3 +1,4 @@
+import { gameAudio } from "../audio/director";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowRight, Compass, History, Info, MessageCircle, X } from "lucide-react";
 import type { GameEvent } from "../core/types";
@@ -75,6 +76,11 @@ export function Toasts({ events, omit, space, home, onHistory, actionFor }: {
   useEffect(() => {
     const fresh = events.filter((e) => e.id > seen.current);
     if (fresh.length) seen.current = fresh.at(-1)!.id;
+    const news = fresh.filter((e) => !omit.includes(e.text));
+    if (news.some((e) => e.text.includes("life aim"))) void gameAudio()?.event("aim");
+    else if (news.some((e) => e.interaction?.kind === "warning")) void gameAudio()?.interfaceSound("warn");
+    // The player's own actions already made their sound.
+    else if (news.some((e) => e.kind !== "action")) void gameAudio()?.interfaceSound("notice");
     setShown((shown) => {
       let next = shown.filter((e) => !omit.includes(e.text));
       for (const e of fresh) {

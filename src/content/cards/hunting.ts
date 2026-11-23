@@ -60,7 +60,7 @@ export const HUNTING_CARDS: ChoiceCard[] = [
         check: { stat: "wit", odds: 0.6 },
         then: [{ type: "minutes", n: 10 }],
         line: "You shouted and waved, and it turned and crashed away.",
-        otherwise: [{ type: "hurt", n: 12, cause: "a wild animal", injury: "a deep gash" }],
+        otherwise: [{ type: "hurt", n: 12, cause: "a wild animal", injury: "gash" }],
         otherwiseLine: "It charged anyway. You got clear with a deep gash.",
       },
       {
@@ -69,7 +69,7 @@ export const HUNTING_CARDS: ChoiceCard[] = [
         check: { stat: "strength", skill: "hunting", odds: 0.4 },
         then: [{ type: "fatigue", n: 10 }, { type: "item", item: "meat", n: 4 }, { type: "item", item: "hide", n: 1 }],
         line: "It came at you and you brought it down. People will talk about it.",
-        otherwise: [{ type: "hurt", n: 30, cause: "a wild animal", injury: "a bad mauling" }],
+        otherwise: [{ type: "hurt", n: 30, cause: "a wild animal", injury: "mauling" }],
         otherwiseLine: "It knocked you down and mauled you before it ran off.",
       },
     ],
@@ -122,7 +122,8 @@ export const HUNTING_CARDS: ChoiceCard[] = [
     choices: [
       {
         label: "Share it out evenly, yourself last",
-        note: "everyone eats · they'll remember",
+        note: "everyone eats · people hear of it",
+        word: "shared out the kill with",
         then: [{ type: "item", item: "meat", n: -2 }, { type: "regard", delta: 3 }],
         line: "You shared it round and kept no more than anyone else. Everyone ate well tonight.",
       },
@@ -134,7 +135,8 @@ export const HUNTING_CARDS: ChoiceCard[] = [
       },
       {
         label: "Keep most of it for your own household",
-        note: "more meat at home · talk behind your back",
+        note: "more meat at home · people hear of it",
+        word: "kept most of the kill from",
         then: [{ type: "regard", delta: -3 }],
         line: "You kept the best of it for your own. People noticed.",
       },

@@ -1,3 +1,4 @@
+import { injuryDef, injuryLimits } from "../content/health/injuries";
 import { CONDITIONS, type ConditionDef, type HealthPerson } from "../content/health/conditions";
 import { AILMENTS, type AilmentDef, type Season } from "../content/health/ailments";
 import { matchesCharacterScope } from "../content/characters/resolve";
@@ -5,6 +6,7 @@ import { sexOf } from "./brief";
 import { seasonAt } from "./livelihood";
 import { random } from "./random";
 import type { Actor, Snapshot } from "./types";
+import type { HurtLook } from "./character";
 import type { CharacterScope } from "../content/characters/context-types";
 import type { WorldSetting } from "../content/geography/types";
 import { infections, infectionEvidence, type Treatment } from "../content/health/infections";
@@ -20,6 +22,8 @@ export type Ailment = {
   tended?: boolean;
   /** The player looked after them, kin only; counted once for regard. */
   cared?: boolean;
+  /** The player has been asked what to do about it. */
+  asked?: boolean;
   infection?: {
     exposed: number; source: string; route: string;
     /** Extra recovery time earned by rest and treatment, in seconds. */
@@ -67,8 +71,50 @@ export function nameFor(def: { names: readonly { scope?: CharacterScope; name: s
 export function conditionsOf(seed: string, a: Actor, setting?: WorldSetting): ConditionDef[] {
   if (a.kind !== "human") return [];
   const p = healthPerson(a, setting);
-  return CONDITIONS.filter((c) => random(seed, "condition", a.id, c.id) < c.rate(p))
+  // Paralysis needs the wheelchair of the 1930s; earlier it is withered legs.
+  const asked = a.condition === "paralysed" && (setting?.year ?? 2000) < 1930 ? "withered-legs" : a.condition;
+  return CONDITIONS.filter((c) => c.id === asked || random(seed, "condition", a.id, c.id) < c.rate(p))
     .sort((x, y) => y.salience - x.salience);
+}
+
+/** What lasting conditions do to a body: the look of the most marking one,
+ * and the worst of each limit. The player's start with them like anyone's. */
+export function conditionBody(seed: string, a: Actor, setting: WorldSetting | undefined) {
+  const p = healthPerson(a, setting);
+  const out: { look?: HurtLook; name?: string; pace: number; run: boolean; climb: boolean; ride: boolean; lame: 0 | 1 | 2 } = { pace: 1, run: true, climb: true, ride: true, lame: 0 };
+  for (const c of conditionsOf(seed, a, setting)) {
+    const b = c.body?.(p);
+    if (!b) continue;
+    if (b.look && !out.look) out.look = b.look;
+    if (b.pace !== undefined && b.pace < out.pace) [out.pace, out.name] = [b.pace, nameFor(c, setting)];
+    if (b.run === false) out.run = false;
+    if (b.climb === false || b.ride === false) out.name ??= nameFor(c, setting);
+    if (b.climb === false) out.climb = false;
+    if (b.ride === false) out.ride = false;
+    out.lame = Math.max(out.lame, b.lame ?? 0) as 0 | 1 | 2;
+  }
+  return out;
+}
+
+/** How a resident's body shows in the street: a lasting condition, or an
+ * injury mending this three-week spell. Injuries run about one adult in
+ * fifty before 1950, more in hard trades, and one in a hundred and twenty
+ * after: a guess from the healed fractures in working skeletons. */
+export function residentLook(seed: string, a: Actor, setting: WorldSetting | undefined, clock: number): { hurt?: HurtLook; lame: 0 | 1 | 2 } {
+  const body = conditionBody(seed, a, setting), lame = body.lame;
+  if (body.look && body.look !== "stick") return { hurt: body.look, lame };
+  if (a.injury && a.injury.until > clock) return { hurt: "arm", lame };
+  const p = healthPerson(a, setting), y = setting?.year ?? 1500;
+  if (p.age < 6) return { lame, hurt: body.look };
+  const spell = Math.floor(clock / (21 * DAY));
+  const hard = /smith|carpent|mason|miner|quarry|sawyer|soldier|sailor|farm|builder|navvy|porter|carter|wright|logger/.test(p.role) ? 1.6 : 1;
+  const rate = (y >= 1950 ? 0.008 : 0.02) * hard * (p.age < 14 ? 0.5 : 1);
+  const roll = random(seed, "resident-hurt", a.id, spell);
+  if (roll >= rate) return { lame, hurt: body.look && random(seed, "stick", a.id) < 0.5 ? "stick" : undefined };
+  const looks: [HurtLook, number][] = [["sling", 0.3], ["hand", 0.25], ["arm", 0.15], ["head", 0.12], ["crutch", 0.1], ["splint", 0.08]];
+  let k = (roll / rate) * looks.reduce((t, [, w]) => t + w, 0);
+  for (const [hurt, w] of looks) if ((k -= w) < 0) return { hurt, lame: hurt === "crutch" ? 2 : hurt === "splint" ? 1 : lame };
+  return { lame };
 }
 
 export const ailmentDef = (id: string) => AILMENTS.find((d) => d.id === id)!;
@@ -83,6 +129,8 @@ export function severity(ail: Ailment, clock: number) {
   return 0.15 + 0.75 * Math.sin(Math.PI * Math.min(1, t * 1.3));
 }
 
+/** Too ill to be up and about. */
+export const bedridden = (ail: Ailment, clock: number) => severity(ail, clock) >= 0.35;
 export const illnessProgress = (ail: Ailment, clock: number) => Math.max(0, clock - ail.since) + (ail.infection?.progress ?? 0);
 
 /** "since yesterday", "for three days", "for a week". */
@@ -284,8 +332,9 @@ export function updateCourse(ail: Ailment, clock: number) {
   const duration = Math.max(3600, clock - ail.since);
   const care = Math.min(1, i.support / duration), rest = Math.min(1, i.rest / duration), strain = Math.min(1, i.strain / duration);
   const received = (until: number | undefined, length: number) => until === undefined ? 0 : Math.max(0, Math.min(clock, until) - Math.max(ail.since, until - length));
-  const treatmentTime = (ail.id === "wound" ? received(i.medicineUntil, 7 * DAY) : 0) + (ail.id === "flux" ? received(i.fluidsUntil, DAY) : 0);
-  const treatment = 1 - 0.7 * Math.min(1, treatmentTime / (12 * 3600));
+  const treatmentTime = (ail.id === "wound" || ail.id === "venom" ? received(i.medicineUntil, 7 * DAY) : 0) + (ail.id === "flux" ? received(i.fluidsUntil, DAY) : 0);
+  // Antivenom works in hours where antibiotics take half a day.
+  const treatment = ail.id === "venom" ? 1 - 0.9 * Math.min(1, treatmentTime / 7200) : 1 - 0.7 * Math.min(1, treatmentTime / (12 * 3600));
   ail.course = i.roll < i.mortality * (1 + strain) * (1 - care * 0.4) * (1 - rest * 0.2) * treatment ? "die" : "mend";
 }
 
@@ -358,7 +407,9 @@ export function symptomsShown(s: Snapshot, a: Actor, setting: WorldSetting | und
 
 export function bodilyLimits(s: Snapshot) {
   const p = s.player;
-  const sick = ailing(s, p.id, s.clock), injury = p.injury && p.injury.until > s.clock ? 0.15 : 0;
+  const hurt = injuryDef(p.injury?.id), since = p.injury?.since ?? s.clock;
+  const injury = !p.injury || p.injury.until <= s.clock ? 0 : hurt ? injuryLimits(hurt, (s.clock - since) / Math.max(1, p.injury.until - since)).physical : 0.15;
+  const sick = ailing(s, p.id, s.clock);
   const wounded = s.manifest.survival ? Math.max(0, (60 - (p.health ?? 100)) / 120) : 0;
   const hungry = s.manifest.survival ? Math.max(0, (p.hunger - 60) / 40) : 0;
   const tired = s.manifest.survival ? Math.max(0, (p.fatigue - 50) / 50) : 0;

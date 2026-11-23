@@ -9,6 +9,7 @@ import {
   architectures,
   climates,
   forms,
+  askedWeathers,
   settingSchema,
   startBriefSchema,
   waters,
@@ -17,8 +18,9 @@ import {
 import { cultures } from "../src/content/history/types";
 import { hulls } from "../src/content/ships";
 import { livelihoodIds } from "../src/content/characters/livelihoods";
+import { requestableConditions } from "../src/content/health/conditions";
 import { featuredPlaces, places } from "../src/content/geography/places";
-import { normalize, settingFor } from "../src/content/geography/resolve";
+import { normalize, settingFor, weatherSeason } from "../src/content/geography/resolve";
 type Environment = Record<string, string | undefined>;
 /** Hulls that are not ships on the sea: capsules, a submarine, an aircraft, a balloon, and the two places that are nowhere. */
 const vessels = hulls.filter((h) => h.medium).map((h) => h.id) as [string, ...string[]];
@@ -55,6 +57,8 @@ const weaverSchema = z
     architecture: z.enum(architectures),
     work: z.enum(livelihoodIds as [string, ...string[]]).optional(),
     age: z.number().int().min(18).max(90).optional(),
+    condition: z.enum(requestableConditions).optional(),
+    weather: z.enum(askedWeathers).optional(),
     below: z.enum(["cave", "sewer", "mine"]).optional(),
     vessel: z.enum(vessels).optional(),
     ...startBriefSchema.omit({ work: true }).shape,
@@ -148,6 +152,8 @@ THE PERSON.
 - role: their title as it reads after "a" or "an", lower case except proper nouns: "king of Macedon", "cosmonaut", "potter's daughter", "rice farmer".
 - work: the closest id from the list in the schema for what their days are spent doing. Rulers are ruler, generals commander, a pharaoh's minister statesman, a cosmonaut or pilot aviator; ordinary trades are what they say.
 - characterName: the stated name exactly; otherwise a period- and culture-appropriate personal name. sex and age (18 to 90) as recorded, or plausible.
+- condition: a lasting condition the person lives with, when the description asks for one or a named person is known to have had it (Homer blind, Byron's club foot, Roosevelt paralysed by polio). "paralysed" is someone who uses a wheelchair; the game shows the means of the era (a wheeled board before 1850, crutches and leg irons until 1930). "withered-legs" is childhood polio; "falling" is epilepsy. When the description asks for one, choose a place and year where it fits the person's life (a leper near a leper house in thirteenth-century France). Otherwise null; never add one to an ordinary start.
+- weather: the weather of the first morning, only when the description asks for it or the moment is known for it: "snow", "blizzard", "hail", "storm" (thunder), "rain", "dust" (a dust or sand storm), "clear". Choose a place where it can happen; snow and blizzards open in winter, hail in spring, storms in summer, and it is granted only where the local weather can produce it. Otherwise null.
 - community: one short phrase for their household or group, or "".
 - hook: one or two sentences, second person, present tense, on what makes this particular day matter.
 - aim: what this person wants from their life in one sentence (text), why (reason) and how they go about it (means). A king wants a king's things.
@@ -224,6 +230,8 @@ User description: ${input.prompt}`;
     const venue = asked && asked !== "fair" ? undefined : named && !named.generated ? named
       : [q, chosen.role.toLowerCase(), chosen.work === "ruler" ? "king" : chosen.work === "courtier" ? "courtier" : ""].map((text) => text && venueFor(text, chosen.year, "earth-2", place.lon, place.lat)).find((v) => !!v) || undefined;
     const below = venue ? "fair" : asked === "fair" ? undefined : asked;
+    const condition = chosen.condition ?? ("setting" in local ? local.setting.condition : undefined);
+    const weather = chosen.weather ?? ("setting" in local ? local.setting.weather : undefined);
     const setting = settingSchema.parse({
       ...settingFor(place, chosen.year),
       role: chosen.role,
@@ -233,6 +241,9 @@ User description: ${input.prompt}`;
       ...(below ? { below } : {}),
       ...(venue ? { venue: venue.id } : {}),
       ...(chosen.vessel ? { ship: chosen.vessel } : {}),
+      ...(condition ? { condition } : {}),
+      ...(weather ? { weather } : {}),
+      ...(weather && weatherSeason[weather] ? { season: weatherSeason[weather] } : {}),
       ...(chosen.age ? { character: { age: chosen.age, hunger: 10, fatigue: 2 } } : {}),
     });
     return json({ setting: chosen.situation ? applySituation(setting, chosen.situation) : setting });

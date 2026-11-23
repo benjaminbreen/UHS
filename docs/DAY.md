@@ -120,8 +120,9 @@ herding player keeps their own animals in the first pen.
 
 - The day's places and people are fixed at its first command
   (`state.workday`), so replays find the same patient, field and client.
-- Work begun and unfinished carries on until six the next morning. A card
-  left from a past day lapses.
+- Work begun and unfinished carries on until the next morning: six, or the
+  trade's rising hour if earlier (a baker's three). A card left from a past
+  day lapses, and one still queued when it lapses is never shown.
 - Every choice is kept in `state.record` (day, clock, card, choice, line).
   Today's lines also stay on the work entry as **So far**.
 - The last step pays through `pay` or `dayOfWork` in the engine, scaled by
@@ -134,12 +135,31 @@ herding player keeps their own animals in the first pen.
 a `slot` (the recipe step it belongs to), an optional person (`who`: boss,
 neighbour, official or patient, with `as` for their role), an optional
 `scope` and `when` weather, its text, two or three choices, and an evidence
-status. A choice may carry a `check` (stat, skill, odds), effects (`then`,
-`otherwise`) and the line kept for the day.
+status. A choice may carry a `check` (stat, skill and odds; or `debtor`,
+going by how well off the person's house is), effects (`then`,
+`otherwise`), the line kept for the day, and a `word`: what the person and
+anyone watching tell others the player did, at the tone of the choice's
+regard. A note under a choice says only what its effects do.
 
 Effects (`CardEffect`): `day`, `pay`, `minutes`, `sleep`, `fatigue`, `item`,
 `forfeit`, `regard`, `hurt`, `tend`, `care`, `go`, `risk` (may start an
-illness).
+illness). With the person's household: `give` (the day's goods off the wage
+and into their store), `credit` (their house owes yours, as a
+`Household.credit` that sours each day it is unpaid), `collect`, `forgive`.
+`later` brings a card back with the same person after some days
+(`state.later`), brought in waking hours. Put away unanswered, it is brought
+again when the shared budget for callers allows, and lapses after a day. `credit-due` in `general.ts` asks for
+a debt; a house that starts the game in the player's debt is sent round within
+a week.
+
+**People.** The person is cast when the card is drawn and kept on the day's
+work (`work.who`). A `hungry` card goes only to a neighbouring house that is poor
+(`fortune` under 0.35) or that `economy.short` shows short of bread or grain; an `owes` card only to one in
+the player's debt. Anyone but a patient walks over first, coming in at the
+door if the player is indoors ("… is coming over" on the work card), and the
+card comes when they arrive, or is told without them if they cannot. A card still
+unanswered when its day is over is closed with its `lapse` line and regard,
+or a plain line.
 
 Decks in `src/content/cards/`:
 
@@ -172,8 +192,12 @@ world never had is hidden.
 are shown as words (`oddsWord`) and as a pie on hover.
 
 **Answering** is a command, `{ type: "choose", card, choice }`, so replays
-reproduce it. Add cards to an existing deck file; add a deck file only for a
-new trade or region with several cards.
+reproduce it. Every kind of question (work, care, encounter, plot, help,
+wall, toll, field, patch) is looked up through `question(id)` in the engine,
+which says whether it still stands, whether it can be answered from here,
+and applies the answer. Validation, the card queue and the agent harness all
+ask it; give a new kind of question a branch there. Add cards to an existing
+deck file; add a deck file only for a new trade or region with several cards.
 
 ## Today, the panel and the task screen
 
@@ -188,9 +212,11 @@ Three views show the same entries in the same order:
 
 The entries come from `engine.dailyGoals()`: a `work` entry titled by the
 trade's day (`dayTitle`), plus `own` entries from the day's agenda
-(`src/core/agenda.ts`: occasions, festivals, commissions). Kin may also walk
+(`src/core/agenda.ts`: occasions, festivals, commissions, and what a death,
+an illness or a shortage at home asks; see `docs/LIVES.md`). Kin may also walk
 over and call (`kinCall` in `src/core/kin.ts`): three calls a day at most,
-three hours apart, none mid-work.
+three hours apart, none mid-work. Everyone who comes over shares one budget;
+see Kin in `docs/PLOTS.md`.
 
 **The town's rhythm.** Where a market keeps a cycle (`marketDay` in
 `agenda.ts`), nearly every stall is staffed on its day and a quarter between,

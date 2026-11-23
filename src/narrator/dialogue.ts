@@ -23,6 +23,7 @@ import { plotLine, plotTemplate } from "../core/plot";
 import { STANCE_VOICE, stanceOf } from "../content/plots/stance";
 import { evaluateHostileSpeech, isAuthorityRole } from "../core/prison";
 import { voiceBrief } from "./voice";
+import { AT_ODDS, regardBetween } from "../core/household";
 // Dialogue has no Gemini path; it follows the setting otherwise.
 const dialogueProvider = () => (narratorProvider() === "haiku" ? "haiku" : "openai");
 
@@ -256,6 +257,17 @@ function goingWithout(runtime: Runtime, household?: Household) {
   return `Going short of: ${lines.join("; ")}. It is on your mind and may come up.`;
 }
 
+/** Households this one has fallen out with, or leans on. */
+function betweenHouses(runtime: Runtime, household?: Household) {
+  const state = runtime.engine.state;
+  if (!household) return "";
+  const head = (h: Household) => state.actors.find((a) => a.id === h.members[0])?.name;
+  const felt = (state.households ?? []).map((h) => ({ name: head(h), v: regardBetween(state, household.id, h.id) })).filter((x) => x.name);
+  const bad = felt.filter((x) => x.v <= AT_ODDS).map((x) => x.name), good = felt.filter((x) => x.v >= -AT_ODDS).map((x) => x.name);
+  return [bad.length && `Your household has fallen out with ${bad.join(" and ")}'s and will not call there.`,
+    good.length && `Your household thinks well of ${good.join(" and ")}'s.`].filter(Boolean).join(" ");
+}
+
 /** Still shaking from a break-in. */
 const terrified = (runtime: Runtime, actor: Actor) => !!actor.terror && runtime.engine.state.clock <= actor.terror.until;
 const shouting = (runtime: Runtime, actor: Actor) => terrified(runtime, actor) || runtime.engine.confronting === actor.id ||
@@ -424,6 +436,7 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     `Doing: ${actor.activity.toLowerCase()}. Location: ${place ? `indoors, in ${place.name}` : `outdoors in ${location}, on foot in the open; no desk, counter or furniture unless the context names it`}. Now: ${now(runtime)}.`,
     plotContext ? "On their mind: the events above and what they personally mean to you; let this concern develop across the conversation rather than repeating the obligation." : fig ? "On their mind: today, as above." : `On their mind: ${onTheirMind(state.manifest.seed, state.clock, actor)}.`,
     goingWithout(runtime, household),
+    betweenHouses(runtime, household),
     fig ? "" : family.length ? `Family: ${family.join(", ")}.` : household ? "Family: household member." : "Family: lives alone.",
     temperament.length ? `Temperament: ${temperament.join(", ")}.` : "",
     holds.length ? `Holds:\n- ${holds.join("\n- ")}` : "",

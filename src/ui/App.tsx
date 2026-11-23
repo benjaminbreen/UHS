@@ -1,6 +1,7 @@
 import { setArtEra } from "../render/garment-icons";
 import { GAIT_NAMES, mountLabel } from "../core/riding";
 import { CYCLE_SPECS } from "../core/cycles";
+import { carSpec } from "../core/cars";
 import { amountIn } from "../content/economy/money";
 import { TimeModal } from "./time/TimeModal";
 import { Years } from "./time/Years";
@@ -85,7 +86,8 @@ import { religiousProfile, sanctuaryAt } from "../content/settlements/religious"
 import { marketDay } from "../core/agenda";
 import { worshipAct } from "../content/interiors/worship";
 import { ROOM_ORIGIN, roomAt } from "../world/interior";
-import { pageTurn } from "../audio/handling";
+import { moneyOf, pageTurn, pay, purse } from "../audio/handling";
+import { shopDoor } from "../audio/sfx";
 const AudioLab = lazy(() =>
   import("../dev/AudioLab").then((m) => ({ default: m.AudioLab })),
 );
@@ -151,7 +153,7 @@ import { setMadeItems } from "../render/voxel-items";
 const LiveGraphicsPanel = lazy(() => import("../dev/LiveGraphicsPanel").then((m) => ({ default: m.LiveGraphicsPanel })));
 const CombatTestPanel = lazy(() => import("../dev/CombatTestPanel").then((m) => ({ default: m.CombatTestPanel })));
 const SkillTestPanel = lazy(() => import("../dev/SkillTestPanel").then((m) => ({ default: m.SkillTestPanel })));
-import { CollapseNotice, SkillsPanel, SkillToast, Vitals, type Pick } from "./Skills";
+import { SetbackCard, SkillsPanel, SkillToast, Vitals, type Pick } from "./Skills";
 import { DeathCard } from "./DeathCard";
 import { SkillSky } from "./SkillSky";
 import { aimLabel, type DailyGoal } from "../content/goals/types";
@@ -204,6 +206,42 @@ const REST_OPTIONS: {
 ];
 
 const noAudio = () => () => {};
+function CarHud({ runtime }: { runtime: Runtime }) {
+  const [, bump] = useState(0);
+  useEffect(() => {
+    const id = window.setInterval(() => bump((n) => (n + 1) & 1023), 75);
+    return () => window.clearInterval(id);
+  }, []);
+  const driving = runtime.engine.state.player.drivingVehicle;
+  const car = driving ? runtime.engine.state.objects.find((o) => o.id === driving) : undefined;
+  if (!car?.car) return null;
+  const d = runtime.drive, spec = carSpec(car.car.model), speed = Math.abs(d.speed);
+  const fuel = (runtime.engine.carFuel(car) / spec.range) * 100;
+  const gear = d.speed < 0 ? 1 : !speed ? 0 : speed > spec.cruise * 1.1 ? 4 : speed > spec.cruise * 0.7 ? 2 : 1;
+  return (
+    <div className={`mount-hud${gear >= 4 ? " surging" : ""}`} data-testid="car-hud">
+      <span className="mount-hud-name">{car.name}</span>
+      <span className={`mount-hud-gait gait-${gear}`}>{d.speed < 0 ? "Reverse" : ["Idling", "Rolling", "Cruising", "", "Flat out"][gear]}</span>
+      <span className="mount-hud-bar" title="Speed">
+        <span className="mount-hud-fill" style={{ width: `${Math.min(100, (speed / spec.top) * 100)}%` }} />
+      </span>
+      <span className="mount-hud-hint">Fuel</span>
+      <span className="mount-hud-bar" title="Fuel">
+        <span className="mount-hud-fill" style={{ width: `${fuel}%`, ...(fuel < 15 ? { background: "#d8563a" } : {}) }} />
+      </span>
+      {d.style > 0 && <span className="mount-hud-combo">★ {d.style}{d.chain > 1 ? ` ×${d.chain}` : ""}{d.call ? ` ${d.call}` : ""}</span>}
+      {d.police && <span className="mount-hud-rodeo">Police behind you!</span>}
+      {d.fare && (
+        <span className="mount-hud-sweet">
+          {d.fare.text} {d.fare.way} {d.fare.cells}{d.fare.seconds !== undefined ? ` · ${d.fare.seconds}s` : ""}
+        </span>
+      )}
+      <span className="mount-hud-hint">
+        <kbd>Shift</kbd> Floor it · <kbd>Space</kbd> Handbrake · the way back brakes, then reverses
+      </span>
+    </div>
+  );
+}
 function MountHud({ runtime }: { runtime: Runtime }) {
   const [, bump] = useState(0);
   useEffect(() => {
@@ -671,11 +709,13 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   // A card waits under anything opened over the world, rather than sitting on top of it.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const fishingStarted = useMemo(() => runtime.fishing && (fishingTest.current ?? fishingStart(runtime)), [runtime.fishing]);
-  const covered = runtime.workInProgress || !!runtime.fishing || !!modal || !!task || !!sky || audioOpen || characterOpen || portraitOpen;
+  const covered = runtime.workInProgress || !!runtime.fishing || !!modal || !!task || !!sky || audioOpen || characterOpen || portraitOpen || !!bedtime;
   useEffect(() => {
     if (card || covered) return;
     const engine = runtime.engine;
-    while (engine.cards[0] && !engine.canShowCard(engine.cards[0])) engine.cards.shift();
+    while (engine.cards[0] && !runtime.canShowCard(engine.cards[0])) engine.cards.shift();
+    // Nothing moves until an encounter is answered, so it cannot be put away.
+    if (!engine.cards.length && engine.state.encounter) engine.reofferCard();
     // Someone come to talk waits until the held work or passing hours are over.
     const first = engine.cards[0];
     if ((first?.kind === "speech" || first?.scene) && (runtime.workHold !== undefined || runtime.passing)) return;
@@ -688,17 +728,6 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   }, [runtime, obs.clock, covered, card, runtime.engine.cards.length, runtime.workHold, runtime.passing]);
   const lookAt = (id?: string) =>
     (game.current?.scene.getScene("world") as WorldScene | undefined)?.lookAt(id);
-  // A guard who has come down to bar your way has something to say.
-  useEffect(() => {
-    const guard = runtime.engine.challenger;
-    if (!guard || modal) return;
-    runtime.engine.challenger = undefined;
-    openDialogue(
-      guard,
-      "The player has walked onto the sacred ground you guard. You have come down to bar their way and order them out, and you will not be talked round.",
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runtime, obs.clock, modal]);
   const [preview, setPreview] = useState<{ id?: string; pos: Position; label: string }>();
   const previewThing = (id?: string) => {
     const target = id ? runtime.engine.inspect(id) : undefined;
@@ -1188,9 +1217,18 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     const before = previousPanels.current;
     previousPanels.current = panels;
     if (!audio || !before) return;
-    if (panels.some((value, i) => value && !before[i]) || (modal && before[0] && modal !== before[0]))
-      void audio.interfaceSound("open");
-    else if (panels.some((value, i) => !value && before[i]))
+    const opened = panels.findIndex((value, i) => value && !before[i]);
+    if (opened >= 0 || (modal && before[0] && modal !== before[0])) {
+      const changed = opened < 0 ? 0 : opened;
+      if (changed === 0 && (modal === "shop" || modal === "exchange"))
+        void audio.sound(purse(moneyOf(Object.keys(p.inventory).find(moneyOf) ?? "coin") ?? "metal"), "purse");
+      else
+        void audio.interfaceSound(
+          changed === 0
+            ? modal === "dialogue" ? "dialogue" : modal === "map" || modal === "world" ? "map" : modal === "inventory" ? "bag" : modal === "character" ? "sheet" : "open"
+            : changed === 2 || changed === 11 ? "sheet" : changed === 5 ? "craft" : "open",
+        );
+    } else if (panels.some((value, i) => !value && before[i]))
       void audio.interfaceSound("close");
   }, [audio, modal, audioOpen, characterOpen, portraitOpen, inspecting, making, gaming, sky, task, restOpen, narratorOpen, sheetOpen]);
   useEffect(() => {
@@ -1201,9 +1239,36 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
         void audio.interfaceSound("tab");
     });
     observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ["aria-selected"], attributeOldValue: true });
-    return () => observer.disconnect();
+    const tap = (event: MouseEvent) => {
+      const button = event.target instanceof Element && event.target.closest("button");
+      if (!button || button.getAttribute("role") === "tab" || !button.closest('[role="dialog"]')) return;
+      const label = button.getAttribute("aria-label") ?? "";
+      void audio.interfaceSound(/^(one )?more\b/i.test(label) ? "more" : /^(one )?(less|fewer)\b/i.test(label) ? "less" : "tap");
+    };
+    document.addEventListener("click", tap, true);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener("click", tap, true);
+    };
   }, [audio]);
   useEffect(() => applyProseFont(proseFont), [proseFont]);
+  const purseHeld = Object.entries(p.inventory).reduce((sum, [id, n]) => sum + (moneyOf(id) ? n ?? 0 : 0), 0);
+  const purseBefore = useRef(purseHeld);
+  useEffect(() => {
+    const gained = purseHeld - purseBefore.current;
+    purseBefore.current = purseHeld;
+    // A sale has already counted its own coins; the gap keeps this to wages and windfalls.
+    if (gained > 0)
+      void audio?.sound(pay(moneyOf(Object.keys(p.inventory).find(moneyOf) ?? "coin") ?? "metal", gained, true), "trade", 0, 600);
+  }, [audio, purseHeld]);
+  const spaceBefore = useRef(p.pos.space);
+  useEffect(() => {
+    const from = spaceBefore.current;
+    spaceBefore.current = p.pos.space;
+    const place = from === "outside" ? runtime.engine.world.place(p.pos.space) : undefined;
+    if (place && /^shop\b|shop|store|tavern|inn\b/.test(`${buildingUse(place.claim) ?? ""} ${place.name.toLowerCase()}`))
+      void audio?.sound(shopDoor((setting?.year ?? 0) >= 1750), "shop-door", 0, 2000);
+  }, [audio, runtime, p.pos.space, setting?.year]);
   useEffect(() => {
     if (modal === "notebook") void audio?.sound(pageTurn(), "page");
   }, [audio, modal]);
@@ -1613,7 +1678,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             />
             </Suspense>
           )}
-          {modal !== "world" && (p.dead ? <DeathCard runtime={runtime} onClose={openWorld} /> : <CollapseNotice collapse={runtime.engine.lastCollapse} />)}
+          {modal !== "world" && (p.dead ? <DeathCard runtime={runtime} onClose={openWorld} /> : <SetbackCard setback={runtime.engine.setback} />)}
           <BagFlights
             inventory={p.inventory}
             world={obs.manifest.seed}
@@ -1792,6 +1857,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             ref={measureBar}
           >
             {p.riding && <MountHud runtime={runtime} />}
+            {p.drivingVehicle && <CarHud runtime={runtime} />}
             {!phone && (
               <div className="prop-prompts" data-testid="prop-prompts">
                 {obs.manifest.content === 1 && (

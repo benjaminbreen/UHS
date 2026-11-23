@@ -11,7 +11,7 @@ export const curatedStarts: CuratedStart[] = [
   { placeId: "nile", year: -1350, role: "Farmer" },
   { placeId: "beijing", year: 1450, role: "Silk merchant" },
   { placeId: "kyoto", year: 1000, role: "Court poet" },
-  { placeId: "city-baghdad", year: 900, role: "Bookseller" },
+  { placeId: "mesopotamia", year: 900, role: "Bookseller" },
   { placeId: "city-samarkand", year: 1400, role: "Tilemaker" },
   { placeId: "timbuktu", year: 1350, role: "Manuscript copyist" },
   { placeId: "city-venice", year: 1500, role: "Glassblower" },

@@ -28,7 +28,7 @@ const kin = (n: number) => (n === 1 ? "One of your own is" : `${n} of your own a
 const wicked = (life: Life) => wrongs(life) >= 12;
 const devout = (life: Life) => life.observance === "devout";
 const war = (life: Life) => /battle|war\b/.test(life.cause);
-const violent = (life: Life) => /battle|war\b|fight|drown|fall|accident|train|burns/.test(life.cause);
+const violent = (life: Life) => /battle|war\b|fight|drown|fall|maul|gored|taken in|wounds|crash|accident|train|burns/.test(life.cause);
 const at = (plate: string, title: string, ...lines: string[]): Passage => ({ plate: `afterlife/${plate}.png`, title, lines });
 
 type Judge = (life: Life, system: BeliefSystem) => Passage;

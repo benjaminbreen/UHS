@@ -122,6 +122,8 @@ export const poses = [
   "hang",
   "skid",
   "hurt",
+  /** Badly hurt: doubled over, sinking to a knee, shoulders heaving. */
+  "wince",
   "sit",
   /** On a stool, a chair or a bench, feet on the floor. */
   "sit-seat",

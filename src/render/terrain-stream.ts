@@ -576,7 +576,7 @@ export class TerrainStream {
     canvas.dataset.terrainPlayable = String(this.hidden || playable);
     canvas.dataset.terrainReady = String(this.hidden || ready);
     canvas.dataset.terrainPending = String(
-      [...this.wanted.keys()].filter((id) => !this.chunks.has(id)).length,
+      this.hidden ? 0 : [...this.wanted.keys()].filter((id) => !this.chunks.has(id)).length,
     );
     canvas.dataset.terrainChunkCount = String(this.chunks.size);
     canvas.dataset.terrainPreviews = String(this.previews.size);

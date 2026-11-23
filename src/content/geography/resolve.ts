@@ -19,6 +19,9 @@ import { officiantsFor } from "../characters/officiant";
 import { placeAtYear } from "./eras";
 import { workplaceFor } from "../characters/workplace";
 import { settingSchema, type AtlasPlace, type WorldSetting } from "./types";
+import { curatedStarts } from "./curated-starts";
+import { livelihoodById, livelihoodIds } from "../characters/livelihoods";
+import type { RequestedCondition } from "../health/conditions";
 export { normalize } from "./situation";
 const has = (q: string, word: string) =>
   ` ${q} `.includes(` ${normalize(word)} `);
@@ -199,7 +202,9 @@ const SHIP_WORDS = /\baboard\b|\bat sea\b|\bon (?:board|(?:a|an|the) (?:[a-z-]+ 
 const VESSELS: readonly (readonly [RegExp, string, string, number, string, string])[] = [
   [/\blunar orbit\b|\b(?:orbiting|around|round) the moon\b/, "capsule-lunar", "city-houston", 1968, "Astronaut", "aviator"],
   [/\bdeep space\b|\bbetween (?:the )?earth and (?:the )?moon\b/, "capsule-space", "city-houston", 1969, "Astronaut", "aviator"],
-  [/\bin orbit\b|\borbiting\b|\bspace ?capsules?\b|\bspacecraft\b|\bin (?:outer )?space\b/, "capsule-orbit", "city-orlando", 1962, "Astronaut", "aviator"],
+  [/\bcosmonauts?\b/, "capsule-orbit", "city-moscow", 1961, "Cosmonaut", "aviator"],
+  [/\btaikonauts?\b/, "capsule-orbit", "beijing", 2003, "Taikonaut", "aviator"],
+  [/\bastronauts?\b|\bin orbit\b|\borbiting\b|\bspace ?capsules?\b|\bspacecraft\b|\bin (?:outer )?space\b/, "capsule-orbit", "city-orlando", 1962, "Astronaut", "aviator"],
   [/\bsubmarines?\b|\bu-boats?\b|\bsubmariners?\b/, "submarine", "city-hamburg", 1942, "Submariner", "sailor"],
   [/\b(?:in|aboard|on) (?:a|an|the) (?:aircraft|aeroplane|airplane|plane|bomber|flying boat|airliner)\b|\bin flight\b/, "aircraft", "london", 1938, "Airman", "aviator"],
   [/\b(?:hot[- ]air |gas )?balloons?\b|\baeronauts?\b/, "balloon", "paris", 1783, "Aeronaut", "aviator"],
@@ -224,7 +229,90 @@ const shipPlace = (q: string): readonly [string, number] =>
   vesselOf(q) ? [vesselOf(q)![2], vesselOf(q)![3]] : /\bjunks?\b/.test(q) ? ["city-guangzhou", 1760] : /\b(?:dhows?|nakhoda)\b/.test(q) ? ["city-muscat", 1850] : /\bgalleons?\b/.test(q) ? ["city-lisbon", 1600]
     : /\b(?:steam|stoker|liner)/.test(q) ? ["london", 1905] : /\bemigrant\b/.test(q) ? ["london", 1850] : BELOW_PLACES.ship;
 
-export function resolveSetting(
+const CONDITION_WORDS: [string, RequestedCondition | undefined][] = [
+  ["lepers?|leprosy|leprous", "leprosy"],
+  ["wheel ?chairs?(?: users?)?|paralys\\w*|paralyz\\w*|paraplegic|quadriplegic", "paralysed"],
+  ["polio|crippled?", "withered-legs"],
+  ["blind", "blind"],
+  ["deaf", "deaf"],
+  ["club ?-?foot(?:ed)?|crutch(?:es)?", "clubfoot"],
+  ["one-?legged|amputees?|peg-?leg(?:ged)?|wooden leg|lost (?:a|his|her|my|one) leg", "lost-leg"],
+  ["one-?armed|lost (?:a|his|her|my|one) arm", "lost-arm"],
+  ["lame|limp(?:ing)?", "limp"],
+  ["epilep\\w*", "falling"],
+  ["stammer\\w*|stutter\\w*", "stammer"],
+  ["consumptive|tuberculo\\w*", "consumption"],
+  ["disabled|handicapped|invalid", undefined],
+];
+const ANY_CONDITION: RequestedCondition[] = ["paralysed", "lost-leg", "clubfoot", "blind", "lost-arm", "deaf"];
+
+type AskedWeather = NonNullable<WorldSetting["weather"]>;
+const WEATHER_WORDS: [string, AskedWeather][] = [
+  ["blizzards?", "blizzard"],
+  ["snow(?:y|ing|fall|storm)?", "snow"],
+  ["hail(?:storms?|ing|stones?)?", "hail"],
+  ["thunder(?:storms?)?|lightning", "storm"],
+  ["sand ?storms?|dust ?storms?", "dust"],
+  ["rain(?:y|ing|storms?)?|downpour|drizzle", "rain"],
+  ["sunny|sunshine", "clear"],
+];
+/** The season that brings a weather asked for, unless the prompt names one. */
+export const weatherSeason: Partial<Record<AskedWeather, WorldSetting["season"]>> = { blizzard: "winter", snow: "winter", hail: "spring", storm: "summer" };
+const COLD: readonly string[] = ["temperate", "boreal", "tundra"];
+const words = (w: string) => new RegExp(`(?:\\b(?:with|in|on|on a|using|uses|has)\\s+)?(?:\\b(?:a|an)\\s+)?\\b(?:${w})\\b(?:\\s+(?:day|morning|weather))?`, "gi");
+
+/** A start can ask for a condition ("a blind beggar") and the weather ("a
+ * snowy day") besides its place and work. A prompt that names only those, or
+ * a role, gets a place and year where they fit. */
+export function resolveSetting(input: string, seed = "earth-2"): ReturnType<typeof resolvePrompt> {
+  const ill = CONDITION_WORDS.map(([w, c]) => [words(w), c] as const).filter(([w]) => w.test(input));
+  const sky = WEATHER_WORDS.map(([w, c]) => [words(w), c] as const).filter(([w]) => w.test(input));
+  if (!ill.length && !sky.length) {
+    const found = resolvePrompt(input, seed);
+    return "error" in found ? roleStart(input, seed) : found;
+  }
+  const condition = !ill.length ? undefined : ill.find(([, c]) => c)?.[1] ?? ANY_CONDITION[Math.floor(random(seed, "condition", input) * ANY_CONDITION.length)];
+  const weather = sky[0]?.[1], season = weather && weatherSeason[weather];
+  const text = [...ill, ...sky].reduce((t, [w]) => t.replace(w, " "), input).replace(/\s+/g, " ").trim() || "person";
+  let found = resolvePrompt(text, seed);
+  if ("error" in found) found = roleStart(text, seed);
+  // Only a prompt with nothing else in it ("a snowy day") gets a curated start; "hail in Kansas" stays an error.
+  if ("error" in found && normalize(text).split(" ").every((w) => /^(?:a|an|the|in|on|at|of|day|morning|person|someone|me|i|guy|man|woman|during)$/.test(w))) {
+    const pool = curatedStarts.filter((s) => places.some((p) => p.id === s.placeId && (weather !== "snow" && weather !== "blizzard" || COLD.includes(p.climate))));
+    const start = pool[Math.floor(random(seed, "asked-start", input) * pool.length)];
+    const setting = populateCharacter({ ...settingFor(places.find((p) => p.id === start.placeId)!, start.year), role: start.role, characterName: start.role }, seed);
+    found = { setting, description: describeSetting(setting), needsInterpretation: false };
+  }
+  if ("error" in found) return found;
+  const named = /\b(?:spring|summer|autumn|fall|winter)\b/i.test(input);
+  const setting = { ...found.setting, ...(condition ? { condition } : {}), ...(weather ? { weather } : {}), ...(season && !named ? { season } : {}) };
+  return { ...found, setting, description: describeSetting(setting) };
+}
+
+const workLabels = livelihoodIds.map(livelihoodById).flatMap((l) => !l ? [] : [
+  { label: l.label, years: l.years, bounds: l.bounds },
+  ...(l.labels ?? []).map((x) => ({ label: x.label, years: x.scope.years, bounds: x.scope.bounds ?? l.bounds })),
+]).sort((a, b) => b.label.length - a.label.length);
+
+/** "A car thief", "a thief": no place or date, so pick a city and a year
+ * where the work was done. */
+function roleStart(input: string, seed: string): ReturnType<typeof resolvePrompt> {
+  const q = normalize(input);
+  const work = workLabels.find((w) => has(q, w.label)) ?? (/\bthie(?:f|ves)\b/.test(q) ? workLabels.find((w) => w.label === "Pickpocket") : undefined);
+  if (!work) return { error: "No place or period matched. Try a place such as Normandy, Beijing, Haiti, London, or Alexandria; or choose one from the list." };
+  const [from, to] = [Math.max(work.years?.[0] ?? -500, -3000), Math.min(work.years?.[1] ?? 2021, 2021)];
+  const [w, s, e, n] = work.bounds ?? [-180, -90, 180, 90];
+  const pool = places.filter((p) => p.settlement === "city" && p.lat >= s && p.lat <= n && (w <= e ? p.lon >= w && p.lon <= e : p.lon >= w || p.lon <= e));
+  for (let i = 0; i < 8 && pool.length; i++) {
+    const place = pool[Math.floor(random(seed, "role-start", q, i) * pool.length)];
+    const year = from + Math.floor(random(seed, "role-year", q, i) * (to - from));
+    const found = resolvePrompt(`${input} in ${place.name}, ${formatHistoricalYear(year)}`, seed);
+    if ("setting" in found && found.setting.role !== "Traveler") return found;
+  }
+  return { error: `No town matched for a ${work.label.toLowerCase()}. Try naming a place and year.` };
+}
+
+function resolvePrompt(
   input: string,
   seed = "earth-2",
 ):
@@ -338,6 +426,7 @@ export function resolveSetting(
       [/\bmerchant\b|\btrader\b/, "Merchant"],
       [/\bshepherd\b/, "Shepherd"],
       [/\bweaver\b/, "Weaver"],
+      [/\bthie(?:f|ves)\b/, "Pickpocket"],
       [/\bsailor\b/, "Sailor"],
       [/\b(?:stevedore|longshoreman|dockworker)\b/, s.year>=1850 ? "Dockworker" : "Porter"],
     ];
@@ -408,8 +497,9 @@ export function resolveSetting(
       ...places.flatMap((p) => [p.name, ...p.aliases]),
       ...periods.flatMap(([words]) => words),
       ...zones.flatMap(([words]) => words),
-      "free black",
-      "sewer worker", "sewer man", "sewerman", "sewer", "sewers", "tosher", "flusher", "cave man", "caveman", "cave woman", "cave", "caves", "cavern", "grotto",
+      // A spacecraft in Renaissance Florence is not understood.
+      "free black", ...(vesselOf(q) && (!vesselOf(q)![5] || year >= vesselOf(q)![3]) ? [vesselOf(q)![0].exec(q)?.[0]] : []),
+      "sewer dweller", "sewer dwellers", "cave dweller", "sewer worker", "sewer man", "sewerman", "sewer", "sewers", "tosher", "flusher", "cave man", "caveman", "cave woman", "cave", "caves", "cavern", "grotto",
       "coal miner", "coal mine", "miner", "miners", "mine", "mining", "collier", "colliery", "pit man", "pitman", "pit boy", "hewer", "down the pit",
     ];
     for (const phrase of recognized.filter((word): word is string => !!word).sort((a, b) => b.length - a.length))
@@ -418,10 +508,10 @@ export function resolveSetting(
       /\b\d+(?:st|nd|rd|th)?\b|\b(?:bce|bc|ce|ad|century|year)\b/g,
       " ",
     );
-    for (const [pattern] of roles)
-      rest = rest.replace(new RegExp(pattern.source, "g"), " ");
     if (namedRole)
       rest = rest.split(` ${normalize(namedRole).replace(/-/g, " ")} `).join(" ");
+    for (const [pattern] of roles)
+      rest = rest.replace(new RegExp(pattern.source, "g"), " ");
     if (office) rest = rest.split(` ${has(q,office) ? normalize(office) : genericOffice} `).join(" ");
     rest = rest
       .replace(
@@ -430,7 +520,8 @@ export function resolveSetting(
       )
       .trim();
     const dated = !undated;
-    const needsInterpretation = (!venue && (!located || !dated)) || !!rest;
+    // An underground or shipboard start with no place has its own default place.
+    const needsInterpretation = (!venue && !inside && (!located || !dated)) || !!rest;
     const setting = populateCharacter(s, seed);
     return {
       setting,

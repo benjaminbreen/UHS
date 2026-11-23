@@ -1,30 +1,34 @@
 import type { InteriorProfile, RoomTemplate } from "./types";
 import type { Kind } from "../../render/interiors/room";
+import { FITS } from "../../render/interiors/fits";
 
 /**
  * A shop is the house it stands in with a shop room put in front: stock
  * along its back wall in the keeper's line (`styles.stock`), a counter in the
  * form of the place and date (`styles.counter`), the trade's own fixture.
- * The kind is read from the keeper's livelihood, first match wins.
+ * The kind is read from the keeper's livelihood, first match wins; its
+ * `goods` are what the keeper sells over the counter, whatever their own trade.
  */
-type ShopKind = { id: string; label: string; match: RegExp; fixture?: Kind[] };
+type ShopKind = { id: string; label: string; match: RegExp; fixture?: Kind[]; goods?: string[] };
 export const shopKinds: ShopKind[] = [
-  { id: "bread", label: "Bakehouse", match: /bak|bread|oven|pastr|confection|pizz|donut/, fixture: ["fixture"] },
-  { id: "meat", label: "Butcher's shop", match: /butch|meat|slaughter|poulter|flesh/, fixture: ["fixture"] },
-  { id: "fish", label: "Fish stall", match: /fish/ },
-  { id: "tools", label: "Smithy", match: /smith|iron|forge|farrier|cutler|nail|armou?r/, fixture: ["fixture", "anvil"] },
-  { id: "timber", label: "Workshop", match: /carpent|joiner|cooper|wheelwright|cabinet|turner|timber|wood/, fixture: ["fixture"] },
-  { id: "pots", label: "Pottery", match: /pot|ceram|porcelain|kiln|tile/, fixture: ["throw"] },
-  { id: "cloth", label: "Draper's shop", match: /weav|fuller|cloth|draper|mercer|tailor|silk|dye|linen|wool|textile|sew/ },
-  { id: "leather", label: "Leather shop", match: /leather|tann|cobbl|shoe|saddl|glov|cord/, fixture: ["fixture"] },
-  { id: "candles", label: "Chandlery", match: /candle|chandl|soap|tallow|wax/ },
-  { id: "apothecary", label: "Apothecary", match: /apothec|drug|herb|physic|spice|perfum|pharmac|clinic/ },
-  { id: "tea", label: "Tea shop", match: /\btea\b|caf[eé]|coffee|diner|burger|ice cream|publican|innkeep|cook|waiter|hotel|motel/ },
-  { id: "fine", label: "Workshop", match: /lacquer|paint|jewel|gold|silver|engrav|print|book|scribe|clock|glass/, fixture: ["fixture"] },
-  { id: "drink", label: "Wine shop", match: /brew|wine|vint|distil|sake|ale\b/ },
-  { id: "oil", label: "Oil shop", match: /\boil|press/ },
-  { id: "tobacco", label: "Tobacconist", match: /tobacc|snuff|cigar|paan|betel/ },
-  { id: "general", label: "Shop", match: /trad|merchant|broker|factor|deal|grocer|shop|peddl|market|sell|monger|vendor|store|barber|hairdress|laund|station|mechanic|goods/ },
+  { id: "bread", label: "Bakehouse", match: /bak|bread|oven|pastr|confection|pizz|donut/, fixture: ["fixture"], goods: ["bread"] },
+  { id: "meat", label: "Butcher's shop", match: /butch|meat|slaughter|poulter|flesh/, fixture: ["fixture"], goods: ["meat"] },
+  { id: "fish", label: "Fish stall", match: /fish/, goods: ["fish"] },
+  { id: "tools", label: "Smithy", match: /smith|iron|forge|farrier|cutler|nail|armou?r/, fixture: ["fixture", "anvil"], goods: ["ironwork"] },
+  { id: "timber", label: "Workshop", match: /carpent|joiner|cooper|wheelwright|cabinet|turner|timber|wood/, fixture: ["fixture"], goods: ["timber"] },
+  { id: "pots", label: "Pottery", match: /pot|ceram|porcelain|kiln|tile/, fixture: ["throw"], goods: ["pots"] },
+  { id: "cloth", label: "Draper's shop", match: /weav|fuller|cloth|draper|mercer|tailor|silk|dye|linen|wool|textile|sew/, goods: ["cloth"] },
+  { id: "leather", label: "Leather shop", match: /leather|tann|cobbl|shoe|saddl|glov|cord/, fixture: ["fixture"], goods: ["leather"] },
+  { id: "candles", label: "Chandlery", match: /candle|chandl|soap|tallow|wax/, goods: ["light"] },
+  { id: "apothecary", label: "Apothecary", match: /apothec|drug|herb|physic|spice|perfum|pharmac|clinic/, goods: ["oil"] },
+  { id: "tea", label: "Tea shop", match: /\btea\b|caf[eé]|coffee|diner|burger|ice cream|publican|innkeep|cook|waiter|hotel|motel/, goods: ["drink"] },
+  { id: "books", label: "Bookshop", match: /print|book|stationer|scribe/, goods: ["books"] },
+  { id: "fine", label: "Workshop", match: /lacquer|paint|jewel|gold|silver|engrav|clock|watch|glass/, fixture: ["fixture"], goods: ["finery"] },
+  { id: "drink", label: "Wine shop", match: /brew|wine|vint|distil|sake|ale\b/, goods: ["drink"] },
+  { id: "oil", label: "Oil shop", match: /\boil|press/, goods: ["oil"] },
+  { id: "tobacco", label: "Tobacconist", match: /tobacc|snuff|cigar|paan|betel/, goods: ["tobacco"] },
+  { id: "grocery", label: "Grocer's shop", match: /grocer|provision/, goods: ["grain", "salt", "oil", "light", "tobacco"] },
+  { id: "general", label: "Shop", match: /trad|merchant|broker|factor|deal|grocer|shop|peddl|market|sell|monger|vendor|store|barber|hairdress|laund|station|mechanic|goods/, goods: ["grain", "salt", "oil", "light", "tobacco"] },
 ];
 const BY_GOOD: Record<string, string> = {
   bread: "bread", meat: "meat", fish: "fish", ironwork: "tools", timber: "timber", pots: "pots",
@@ -62,10 +66,23 @@ function breadFixture(site: { lon: number; lat: number }, bench?: string) {
   if (site.lon > 100 && site.lon < 146 && site.lat > 20 && site.lat < 50) return "steamer";
   return undefined;
 }
+/** The carved figure that marked a tobacconist's: the cigar-store Indian in
+ * North America from the 1840s until city ordinances cleared pavements in the
+ * 1910s and 20s; the snuff-taking Highlander in Britain from the 1720s. */
+function shopFigure(kind: ShopKind, { lon, lat, year }: { lon: number; lat: number; year: number }) {
+  if (kind.id !== "tobacco") return undefined;
+  if (lon > -130 && lon < -52 && lat > 24 && lat < 56 && year >= 1840 && year < 1930) return "indian";
+  if (lon > -11 && lon < 2 && lat > 49.8 && lat < 59 && year >= 1720 && year < 1900) return "highlander";
+  return undefined;
+}
+
 export function shopFor(home: InteriorProfile, kind: ShopKind, site: { lon: number; lat: number; year: number }, bench?: string): InteriorProfile {
   const form = counterForm(site.lon, site.lat, site.year);
   const fixture = kind.id === "bread" ? breadFixture(site, bench) : undefined;
-  const key = `${home.id}:${kind.id}:${form}:${fixture ?? ""}`;
+  const figure = shopFigure(kind, site);
+  // The fitted shops (`FITS`): a Roman bar, and the grocer of packets and tins.
+  const stock = form === "taberna" && (kind.id === "drink" || kind.id === "tea") ? "thermopolium" : kind.id === "grocery" && site.year < 1890 ? "general" : kind.id;
+  const key = `${home.id}:${stock}:${form}:${fixture ?? ""}:${figure ?? ""}`;
   const known = shops.get(key);
   if (known) return known;
   const shop: RoomTemplate = {
@@ -73,13 +90,15 @@ export function shopFor(home: InteriorProfile, kind: ShopKind, site: { lon: numb
     label: kind.label,
     role: "entry",
     program: "shop",
-    size: [11, 8],
+    size: [12, 9],
     trades: ["shopkeep"],
     fire: "none",
     sleep: "none",
-    furnish: [...(kind.fixture ?? []), "lamp"],
-    styles: { stock: kind.id, shopcounter: form, ...(fixture ? { fixture } : {}) },
-    clutter: ["paper"],
+    // Glazed sashes in the shop, wherever the house still has shutters, from the eighteenth century.
+    ...(home.windowStyle === "shutter" && site.year >= 1700 ? { windowStyle: "glazed" as const } : {}),
+    furnish: [...(kind.fixture ?? []), ...(figure ? ["effigy" as const] : []), ...Array<"frame">(FITS[stock]?.hung.length ?? 1).fill("frame"), ...(site.year >= 1650 ? ["clock" as const] : []), "plant", "chest"],
+    styles: { stock, shopcounter: form, ...(fixture ? { fixture } : {}), ...(figure ? { effigy: figure } : {}) },
+    clutter: [],
   };
   const rooms = (home.rooms ?? [{ id: "home", label: home.label, role: "hall" as const, size: home.size, shapes: home.shapes }])
     .map((r) => {

@@ -238,7 +238,10 @@ function SvgScene({
           />
         </g>
       )}
-      {cloudy && (
+      {condition === "dust" && (
+        <rect x="0" y="0" width="160" height="140" fill="#c9954f" opacity={0.35 + 0.5 * weather.dust} />
+      )}
+      {cloudy && condition !== "dust" && (
         <>
           <g className="sky-drift slow">
             <Cloud id="c1" x={40} y={96} scale={0.9} dark={heavy || dim} />

@@ -1578,6 +1578,13 @@ export function placeFor(
   switch (want) {
     case "home":
       return { pos: home, toward: "their own door" };
+    case "graves": {
+      const own = actor?.householdId && plan.kinGraves?.[actor.householdId];
+      if (own) return { pos: { ...own, y: own.y + 1 }, toward: "the family grave" };
+      const grave = plan.objects.find((o) => /-gravestone-|^burial-ground/.test(o.id));
+      return grave ? { pos: grave.pos, toward: "the burial ground" }
+        : placeFor(plan, seed, id, home, work, year, "sanctuary", subject, shared, actor);
+    }
     case "hearth": {
       const fire = hearthFor(plan, home, year);
       return { pos: fire ?? home, toward: fire ? "the fire" : "the hearth" };
@@ -1667,20 +1674,20 @@ export function dayStations(
         minutes: festival.minutes,
         part: "midday",
       });
-      if (festival.rest) {
-        const night = base[base.length - 1];
-        const kept = base.slice(0, -1).filter((s) => !RESTS.has(s.activity) || s.activity === "graze");
-        const step: Station = {
-          pos: nearby(plan, seed, `${id}-step`, site.home),
-          activity: "visit",
-          label: "On the doorstep",
-          toward: "their own door",
-          minutes: 20,
-        };
-        while (kept.length < 2) kept.push(step);
-        stations = [...kept, night];
-      }
     }
+  }
+  if (festival?.rest && once.length || items.some((i) => i.rest)) {
+    const night = base[base.length - 1];
+    const kept = base.slice(0, -1).filter((s) => !RESTS.has(s.activity) || s.activity === "graze");
+    const step: Station = {
+      pos: nearby(plan, seed, `${id}-step`, site.home),
+      activity: "visit",
+      label: "On the doorstep",
+      toward: "their own door",
+      minutes: 20,
+    };
+    while (kept.length < 2) kept.push(step);
+    stations = [...kept, night];
   }
   for (const item of items) {
     const at = where(item.place, item.subjectAt);

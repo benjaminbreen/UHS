@@ -59,7 +59,8 @@ Review sheet: `npm run capture:characters -- cyclists`.
   more than a mountain bike (`rough`). A drop in ground level adds speed.
 - Hitting something at a sprint is a spill: the machine goes down, the rider
   is thrown, and on a high wheel that happens at cruising speed and goes over
-  the bars.
+  the bars. The harm grows with speed, and above 9 cells a second a crash
+  can kill: rarely on a bicycle, often on a fast motorcycle (`crashKills`).
 - `Space` hops (kinds with `hop`), or pops a wheelie at a standstill. A jump
   prop under the wheels at speed throws any machine three cells.
 - In the air on a BMX, mountain bike, chopper or dirt bike: the key against

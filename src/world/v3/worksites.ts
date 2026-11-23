@@ -4,6 +4,7 @@ import type { Pack, Place, Point, Terrain } from "../../core/types";
 import { paintedDoor } from "../../core/doors";
 import { buildingModel, buildingArtCells } from "../../content/graphics/models";
 import { worksitesFor, type WorksiteProfile } from "../../content/settlements/worksites";
+import { establishmentName } from "../../content/settlements/inn-names";
 import type { Rect, SettlementPlan } from "./types";
 import type { Sample } from "./roads";
 import { installAnchorage, planAnchorage } from "./harbor";
@@ -96,7 +97,11 @@ export function planWorksites(
         if (door) { p.door = door; p.entrance = {x:door.x,y:door.y+1}; }
         return p;
       };
-      const buildings = [place("",profile.frame,profile.label,r.x+pad,r.y+top),
+      const named = profile.inn && establishmentName(profile.id, s, pack.names, (k) => random(seed, id, "inn-name", k),
+        (name) => plan.places.some((p) => p.name === name));
+      const hall = place("",profile.frame,named || profile.label,r.x+pad,r.y+top);
+      if (named) hall.description = `${profile.label}. ${hall.description}`;
+      const buildings = [hall,
         place("-store",profile.outbuilding.frame,profile.outbuilding.label,r.x+pad,r.y+top+mh+gap)];
       const offset=launch && Math.floor(launch.workingLength/2);
       const boat = launch && {x:launch.origin.x+launch.direction.x*offset!,y:launch.origin.y+launch.direction.y*offset!};

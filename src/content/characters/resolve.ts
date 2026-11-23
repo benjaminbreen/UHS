@@ -21,7 +21,7 @@ import { nameKits, richerNameKits } from "./name-kits";
 import { nameTraditions } from "./profiles/traditions.generated";
 import { nameRegions } from "./profiles/name-regions.generated";
 import { parentNameForms } from "./profiles/anchor-names";
-import { livelihoods } from "./livelihoods";
+import { homemaker, livelihoods } from "./livelihoods";
 import { requirementMet } from "./requirements";
 import { citySignatures } from "./signatures";
 import { commonLivelihoods } from "./livelihoods.generated";
@@ -342,11 +342,16 @@ function weighted(
       : l.tier === "prehistoric" && capabilities.has("settled_agriculture")
         ? 0.5
         : 1;
+  // Keeping house is a share of the whole town, not of its trades, else it
+  // shrank as the table of crafts grew. Lower where gathering is women's work
+  // and once most women took paid work.
+  const keepingHouse = !capabilities.has("settled_agriculture") ? .05 : s.year >= 1970 && industrialized(s) ? .08 : .28;
   const mass = new Map<string, number>();
-  for (const l of pool)
+  for (const l of pool) if (l.id !== "homemaker")
     mass.set(classOf(l), (mass.get(classOf(l)) ?? 0) + (l.weight ?? 1) * era(l));
   const signatures = citySignatures.filter((g) => matchesCharacterScope(g.scope, s, "*"));
   return pool.map((l) => {
+    if (l.id === "homemaker") return { ...l, weight: keepingHouse * 100 };
     const c = classOf(l);
     const total = mass.get(c) || 1;
     // In a foraging band nearly every grown man hunted: Lee's !Kung and the
@@ -414,8 +419,14 @@ export function workAt(
   return context.livelihoods.filter(
     (l) =>
       (l.workplace ?? workplaceFor(l.activity)) === workplace &&
-      (sex === "unspecified" || !l.sex || l.sex === sex),
+      sexOdds(l, sex) > 0,
   );
+}
+/** How readily someone of this sex takes this work, against 1 for work open to both. */
+export function sexOdds(l: Pick<Livelihood, "sex" | "sexShare">, sex: CharacterPhysique["sex"] | undefined) {
+  if (!sex || sex === "unspecified" || !l.sex || l.sex === sex) return 1;
+  const share = l.sexShare ?? 0;
+  return share / (1 - share);
 }
 /** A person's own community's work with the town's trades it lacks: the town asks for its trades from those. */
 export function townWorkContext(
@@ -514,7 +525,7 @@ export function resolveCharacterContext(
     ? eligible.filter((l) => supported(l) && inScope(l, s, localRequirements))
     : eligible;
   const tiered = revised
-    ? [...commonLivelihoods, ...outlawLivelihoods, ...cityLivelihoods].filter(
+    ? [homemaker, ...commonLivelihoods, ...outlawLivelihoods, ...cityLivelihoods].filter(
         (l) =>
           (!l.tier || tierApplies(l.tier, s, capabilities) || l.fromBeliefs && s.settlement !== "camp" && s.year >= 1900) &&
           supported(l) &&
@@ -539,8 +550,9 @@ export function resolveCharacterContext(
           : livelihoods.filter((l) => l.id === "traveler")),
         ...tiered,
       ]).map((l) =>
-        l.sexUntil !== undefined && s.year >= l.sexUntil
-          ? { ...l, sex: undefined }
+        l.sex
+          ? { ...l, sexShare: l.sexUntil !== undefined && s.year >= l.sexUntil
+            ? (l.sexShare ?? 0.05) * Math.min(1, (s.year - l.sexUntil) / 30) : 0 }
           : l,
       ),
       s,

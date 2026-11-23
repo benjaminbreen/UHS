@@ -3,7 +3,7 @@ import { places } from "./places";
 import population from "./population.generated.json" with { type: "json" };
 import { settingFor, tillersHome, watersidePlace } from "./resolve";
 import { populateCharacter } from "./character";
-import { resolveCharacterContext } from "../characters/resolve";
+import { resolveCharacterContext, sexOdds } from "../characters/resolve";
 import { workplaceFor } from "../characters/workplace";
 import { characterSex } from "../characters/generate";
 import { asOfficiant } from "../characters/officiant";
@@ -289,13 +289,14 @@ export function randomStartFromDraws(
     const kit = l.fromBeliefs ? asOfficiant(l,base,seed,"player") : l;
     return kit ? [kit] : [];
   }).filter(l=>{
-    if (l.sex && l.sex!==sex) return false;
+    if (sexOdds(l, sex) === 0) return false;
     if (!workingBerth) return true;
     const workplace=l.workplace ?? workplaceFor(l.activity);
     return l.id!=="fisher" && workplace!=="field" && workplace!=="pasture";
   });
-  let pick = unit(draws[1] ?? 0) * work.reduce((sum, l) => sum + (l.weight ?? 1), 0);
-  const chosen = work.find(l=>(pick-=l.weight ?? 1)<0) ?? work[work.length-1];
+  const weight = (l: (typeof work)[number]) => (l.weight ?? 1) * sexOdds(l, sex);
+  let pick = unit(draws[1] ?? 0) * work.reduce((sum, l) => sum + weight(l), 0);
+  const chosen = work.find(l=>(pick-=weight(l))<0) ?? work[work.length-1];
   const role=chosen.label;
   if (port && chosen.id==="dockworker" && base.placeId!==port.siteId)
     base={...settingFor(atBerth(portPlace,port),year),settlementPattern:"waterfront"};

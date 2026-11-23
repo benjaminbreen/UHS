@@ -72,6 +72,16 @@ apart, none mid-work. Hunger, an empty store and the plot always come. Lines
 are in `src/content/plots/kin.ts`. An approaching person is held in
 `engine.approacher`.
 
+Everyone who walks up, and every card a plot brings, shares one budget
+(`mayCall` in the engine). Kin calls that are not urgent, favours (one a day)
+and follow-up cards only start when no stage of work is under way, two hours
+after the last arrival, and fewer than three have come that day. A plot's
+visits and questions wait the same way, without the daily count, unless the
+template is `urgent` (a birth, fire, flood, fever, a beast loose) or its
+deadline is under an hour off. A plot question put away comes back after
+three hours, or half an hour in an emergency. The keeper, robbers and the
+day's work cards are not held back, but their arrivals count.
+
 ## Adding a plot
 
 Copy the shape of `debt.ts`, add it to `PLOTS`, give it a `look` and an
@@ -83,12 +93,8 @@ conditions and effects first.
 - **Life aim vs plot.** `src/core/life-aim.ts` still gives every life an aim
   (`ensureLifeAim` in `src/runtime/session.ts`), and a plot borrows one as
   `plot.aim`. Plots were meant to replace aims, but both run.
-- **`challenger` vs `approacher`.** The temple guard still uses
-  `engine.challenger`, read in `App.tsx`. Every other NPC who walks over uses
-  `engine.approacher`. Folding the guard into `approacher` is the intended
-  end state.
 
-Either is welcome cleanup when you are working nearby.
+It is welcome cleanup when you are working nearby.
 
 ## Not built
 

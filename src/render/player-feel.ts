@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { HitClass } from "../core/reactions";
 import type { CharacterPose } from "./characters/poses";
+import type { HurtLook } from "../core/character";
 
 type Sprite = Phaser.GameObjects.Image;
 
@@ -448,7 +449,7 @@ export class PlayerFeel {
   idle(
     time: number,
     still: boolean,
-    state: { injured: boolean; tired: boolean; cold: boolean; hat: boolean; held: boolean; burden: boolean },
+    state: { injured: boolean; hurt?: HurtLook; tired: boolean; cold: boolean; hat: boolean; held: boolean; burden: boolean },
     roll: () => number,
   ): Fidget | undefined {
     if (!still) {
@@ -462,8 +463,9 @@ export class PlayerFeel {
     if (time < this.nextFidget) return undefined;
     this.nextFidget = 0;
     const r = roll();
+    // Hurt: weight shifted on the crutch, a hand to the bandaged head, or a wince.
     this.fidget = state.injured
-      ? { pose: "hurt", from: time, until: time + 640 }
+      ? { pose: state.hurt === "crutch" ? "sway" : state.hurt === "head" ? "touch-face" : "hurt", from: time, until: time + (state.hurt === "crutch" ? 1200 : 640) }
       : state.cold && r < 0.6
         ? { shiver: true, from: time, until: time + 800 }
         : state.tired && r < 0.55

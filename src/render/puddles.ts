@@ -267,6 +267,8 @@ function skyOf(weather: Weather | undefined): Sky {
       return { rgb: [132, 140, 146], rain: 0 };
     case "snow":
       return { rgb: [156, 164, 170], rain: 0 };
+    case "dust":
+      return { rgb: [178, 150, 108], rain: 0 };
     case "light-clouds":
       return { rgb: [142, 172, 192], rain: 0 };
     default:

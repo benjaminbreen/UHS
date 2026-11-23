@@ -22,6 +22,7 @@ import { officeAtSanctuary } from "../src/content/characters/officiant";
 import { sanctuaryAt, religiousProfile } from "../src/content/settlements/religious";
 import type { WorldSetting } from "../src/content/geography/types";
 import { panelSetting } from "../scripts/review/panel";
+import { shopKinds } from "../src/content/interiors/shops";
 
 const shapes: Shape[] = ["rect", "L", "round", "oval", "apse", "courtyard"];
 
@@ -236,6 +237,37 @@ describe("interior profiles", () => {
           expect(room.beds.length, where).toBeGreaterThan(0);
           expect(room.seats.some((s) => s.kind === seat), where).toBe(true);
         }
+  });
+
+  it("puts the chambers of a house of two storeys up a flight of stairs, every bed reached from the street door", () => {
+    const sites = [
+      { lon: -0.1, lat: 51.5, year: 1700, settlement: "city" },
+      { lon: 4.9, lat: 52.4, year: 1650, settlement: "city" },
+      { lon: -93, lat: 42, year: 1930, settlement: "village" },
+      { lon: -0.1, lat: 51.5, year: 1450, settlement: "city", use: "worksite.european-inn" },
+    ];
+    for (const [i, site] of sites.entries())
+      for (let n = 0; n < 6; n++) {
+        const where = `${interiorProfileFor(site).id} #${n}`;
+        const house = { id: `t-up${i}-${n}`, name: "House", description: "", x: 0, y: 0, w: 8, h: 6, sprite: "roman-insula-roman-italian-large-0", entrance: { x: 0, y: 0 }, access: "household", owner: "o", claim: site.use ?? "" } as Place;
+        const room = buildInterior(house, site, { fortune: 0.5 });
+        const flights = room.plan.doorways.filter((dw) => dw.stairs);
+        expect(flights.length, where).toBeGreaterThan(0);
+        expect(room.rooms.some((r) => r.label === "Landing"), where).toBe(true);
+        const up = room.rooms.filter((r) => r.role === "sleep");
+        expect(up.length, where).toBeGreaterThan(1);
+        // interior.ts keeps only what the door leads to: a bed in every chamber means the stairs join the floors.
+        for (const r of up) expect(room.beds.some((b) => b.x > r.x && b.x <= r.x + r.w && b.y > r.y && b.y <= r.y + r.d), `${where} ${r.label}`).toBe(true);
+        // Floors stand clear of one another, and nothing a person uses is shut in: each loose piece has floor beside it.
+        for (const dw of flights) expect(new Set(dw.cells.map((c) => c[1])).size, where).toBeGreaterThanOrEqual(7);
+        for (const f of room.furniture) {
+          // A table is reached from the seats drawn up to it.
+          if (/table/.test(f.def)) continue;
+          const edge = [];
+          for (let x = f.pos.x - 1; x <= f.pos.x + f.size[0]; x++) for (let y = f.pos.y - 1; y <= f.pos.y + f.size[1]; y++) if ((x < f.pos.x || x >= f.pos.x + f.size[0]) !== (y < f.pos.y || y >= f.pos.y + f.size[1])) edge.push(`${x},${y}`);
+          expect(edge.some((k) => room.walk.has(k)), `${where} ${f.def} at ${f.pos.x},${f.pos.y}`).toBe(true);
+        }
+      }
   });
 
   it("gives every house a way in and out, and every place to stand can be walked to from the door", () => {
@@ -521,7 +553,7 @@ describe("interior profiles", () => {
       { name: "Trader's shop", site: { lon: 12.5, lat: 41.9, year: 100 }, stock: "general", counter: "taberna" },
       { name: "Tea Broker's shop", site: { lon: 135.8, lat: 35, year: 1750 }, stock: "tea", counter: "platform" },
       { name: "Silk Mercer's shop", site: { lon: 29, lat: 41, year: 1650 }, stock: "cloth", counter: "platform" },
-      { name: "Grocer's shop", site: { lon: -0.1, lat: 51.5, year: 1900 }, stock: "general", counter: "glazed" },
+      { name: "Grocer's shop", site: { lon: -0.1, lat: 51.5, year: 1900 }, stock: "grocery", counter: "glazed" },
     ];
     for (const { name, site, stock, counter } of shops)
       for (const fortune of [0.1, 0.9])
@@ -532,6 +564,30 @@ describe("interior profiles", () => {
           expect(room.work[0], where).toMatchObject({ kind: "shopcounter", facing: 2 });
           expect(room.beds.length, where).toBeGreaterThan(0);
         }
+  });
+
+  it("gets everyone up by day, one keeper behind a shop's counter selling its stock and the household in the rooms behind", () => {
+    const start = resolveSetting("A grocer in Thanh Hóa, 1969", "shops");
+    if ("error" in start) throw Error(start.error);
+    const e = createSettingSession(start.setting, "shops");
+    // Minute steps, as play advances: routines are built a few per step.
+    for (let left = ((10 - (e.state.clock / 3600) % 24) + 24) % 24 * 3600; left > 0; left -= 60) e.advance(Math.min(60, left));
+    const abed = e.state.actors.filter((a) => a.pos.space !== "outside" && e.indoorUse(a.id, a.pos)?.role === "bed" && !/sleep|resting/i.test(a.activity));
+    expect(abed.map((a) => a.activity)).toEqual([]);
+    const shops = e.world.places.filter((p) => e.interiorOf(p.id)?.params.program === "shop" && e.state.households?.some((h) => h.residence === p.id));
+    let kept = 0;
+    for (const p of shops) {
+      const room = e.interiorOf(p.id)!, inside = e.state.actors.filter((a) => a.pos.space === p.id);
+      const counter = inside.filter((a) => e.indoorUse(a.id, a.pos)?.kind === "shopcounter");
+      expect(counter.length, p.name).toBeLessThanOrEqual(1);
+      for (const a of inside) if (a !== counter[0] && e.state.households?.some((h) => h.id === a.householdId && h.residence === p.id)) expect(roomAt(room, a.pos.x, a.pos.y), `${p.name}: ${a.name}`).not.toBe(room.rooms[0]);
+      if (!counter[0]) continue;
+      kept++;
+      expect(e.shopKeeper(p.id)).toBe(counter[0].id);
+      if (shopKinds.find((k) => k.id === room.params.styles.stock)?.goods)
+        expect(Object.keys(e.shopOf(counter[0].id)?.stock ?? {}).length, p.name).toBeGreaterThan(0);
+    }
+    expect(kept).toBeGreaterThan(shops.length / 2);
   });
 
   it("fills a works with rows of its machines, named or drawn by date", () => {
@@ -642,7 +698,8 @@ describe("interior profiles", () => {
           const floor = (x: number, y: number) => x >= 0 && y >= 0 && x < plan.w && y < plan.d && plan.mask[y * plan.w + x] > 0;
           for (const dw of doorways) {
             const xs = new Set(dw.cells.map(([x]) => x)), ys = new Set(dw.cells.map(([, y]) => y));
-            expect(xs.size === 1 ? ys.size : xs.size, `${where} doorway width`).toBe(2);
+            // A neck between neighbours is two rows wide however long it runs.
+            expect(dw.side || xs.size === 1 ? ys.size : xs.size, `${where} doorway width`).toBe(2);
             const own = new Set(dw.cells.map(([x, y]) => `${x},${y}`));
             // The cell each side of the doorway, and the one beyond it into the room.
             for (const [x, y] of dw.cells)

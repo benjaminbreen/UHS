@@ -13,6 +13,9 @@ export type RoomChoice = {
   shape?: Shape;
   trade?: Trade;
   hour: number;
+  /** The building as it stands outside: its storeys, and the ground it covers in tiles. */
+  storeys?: number;
+  plot?: number;
 };
 
 /** A profile plus a household's choices become the generic room the renderers draw. */

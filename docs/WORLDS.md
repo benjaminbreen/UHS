@@ -22,6 +22,16 @@ generator turns it into a world. Entry files: `src/content/geography/types.ts`
   Senate chamber. Its desks follow the [Senate seating plans](https://www.senate.gov/art-artifacts/decorative-art/furniture/senate-chamber-desks/content/choosing-seats.htm).
   Visitors use the venue entrance. The setup preview shows the opening room.
   Unrecognised details are flagged, not dropped.
+  A prompt may also ask for a lasting condition ("a blind beggar", see
+  `docs/LIVES.md`) and the first day's weather: snow, blizzard, hail,
+  thunder, rain, a dust storm or sun. Snow opens in winter, hail in spring and
+  thunder in summer unless the prompt names a season. The engine then picks
+  the `manifest.sky` seed whose first day brings it (`skyFor`): snow on the
+  ground and falling at nine, a gale within the hour, hail or thunder that
+  afternoon. Where the climate never gives it (snow at Tikal), the day is
+  ordinary. A role with no place ("car thief", "a thief") gets a city and
+  year inside that work's dates and region. Words for a vessel ("astronaut",
+  "cosmonaut") go aboard it, but count as unrecognised before its date.
 - **World Weaver.** If the local matcher cannot resolve a request, the optional
   `/api/world-weaver` endpoint (`server/world-weaver.ts`, Vercel handler
   `api/world-weaver.ts`) interprets it into the same fields, including
@@ -30,7 +40,8 @@ generator turns it into a world. Entry files: `src/content/geography/types.ts`
   unless `UHS_WORLD_WEAVER_ENABLED=0`, and checks
   `UHS_WORLD_WEAVER_ACCESS_CODE` (`UHS_CLASSROOM_CODE` is an alias). Never give
   keys a `VITE_` prefix. The setting is saved whole, so replay never calls the
-  model again. Tests inject a fake provider.
+  model again. Tests inject a fake provider. It fills `condition` and
+  `weather` like the parser, and falls back to the parser's reading of them.
   For a particular scene ("Socrates about to drink the hemlock") it also
   returns `brief.moment`: a kind of room, who of the named kin and figures is
   there, and what they are doing. `Engine.startMoment` starts the player in the

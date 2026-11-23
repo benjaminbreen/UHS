@@ -22,6 +22,7 @@ const treatment = (c: PlotContext) =>
 export const fever: PlotTemplate = {
   id: "fever",
   shape: "household",
+  urgent: true,
   look: {
     emblem: "sickbed",
     palette: { ink: "#10141a", fill: "#1c2632", edge: "#4a6280", light: "#e6eef6", accent: "#e0a058" },

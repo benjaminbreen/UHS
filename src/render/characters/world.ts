@@ -9,6 +9,7 @@ import {
   actorAppearance,
   type AppearancePalette,
   type CharacterAppearance,
+  type HurtLook,
 } from "../../core/character";
 import { drawCharacterG } from "./doll/draw";
 import { setSpriteLight, spriteLightFor } from "./v2/pixels";
@@ -66,6 +67,7 @@ export class WorldCharacters {
       stats?: Stats;
       palette?: AppearancePalette;
       source?: CharacterAppearance;
+      hurt?: HurtLook;
       appearance: CharacterAppearance;
       signature: string;
       expression: RestingExpression;
@@ -248,7 +250,7 @@ export class WorldCharacters {
     actor: Pick<
       Actor,
       "id" | "sprite" | "appearance" | "age" | "direction" | "facing" | "stats"
-    >,
+    > & { hurt?: HurtLook },
     pose: CharacterPose,
     frame: number,
     prop?: string,
@@ -264,9 +266,11 @@ export class WorldCharacters {
       resolved.sprite !== actor.sprite ||
       resolved.age !== actor.age ||
       resolved.stats !== actor.stats ||
-      resolved.source !== actor.appearance
+      resolved.source !== actor.appearance ||
+      resolved.hurt !== actor.hurt
     ) {
-      const appearance = actorAppearance(actor, this.palette);
+      const plain = actorAppearance(actor, this.palette);
+      const appearance = actor.hurt ? { ...plain, hurt: actor.hurt } : plain;
       const stats = statsOf(this.seed, actor);
       const expression = restingExpressionOf(stats), sidelong = sidelongOf(stats);
       resolved = {
@@ -275,6 +279,7 @@ export class WorldCharacters {
         stats: actor.stats,
         palette: this.palette,
         source: actor.appearance,
+        hurt: actor.hurt,
         appearance,
         expression,
         sidelong,

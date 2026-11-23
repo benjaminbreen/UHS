@@ -24,7 +24,7 @@ export type ComplexHost = {
   world: WorldModel;
   event(text: string, kind?: GameEvent["kind"], at?: Position): void;
   advance(seconds: number): void;
-  hurt(damage: number, cause: string, injury?: string): void;
+  hurt(damage: number, cause: string, injury?: import("../content/health/injuries").InjuryId): void;
   cue?(who: string, kind: CueKind, toward?: Point): void;
   say?(who: string, text: string): void;
   itemName(id: string): string;
