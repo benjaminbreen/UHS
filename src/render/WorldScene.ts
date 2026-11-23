@@ -168,7 +168,7 @@ import {
   mountLand,
   cycleTick,
   cycleRoll,
-  siren, carCrash, cycleSkid,
+  siren, carCrash, carPass, cycleSkid,
   ice as iceSound,
   motorPutt,
   trickChime,
@@ -372,7 +372,7 @@ import type { FairLevel } from "../world/fair";
 import type { TombLevel } from "../world/tomb";
 import type { PrisonLevel } from "../world/prison";
 import { ShipView } from "./ship/view";
-import { paintOpenLid } from "./sewer/art";
+import { paintOpenLid, paintStairDown } from "./sewer/art";
 import { laneLids } from "./carriageway";
 import { caveLight } from "../content/caves";
 import type { Kind, Prop } from "./interiors/room";
@@ -887,7 +887,7 @@ export class WorldScene extends Phaser.Scene {
   private caveView?: CaveView;
   private sewerView?: SewerView;
   private shipView?: ShipView;
-  /** The view of a fair's or a tomb's area: the kinds walked from area to area. */
+  /** The view of a fair's, palace's, tomb's or prison's area: the kinds walked from area to area. */
   private areaView?: FairView | TombView | PrisonView;
   /** A space that draws and lights itself: a generated room or a cave. */
   private selfLit(space: string) {
@@ -941,7 +941,7 @@ export class WorldScene extends Phaser.Scene {
   private cabs = new CabLayer(this, (frame) => this.texture(frame));
   private cars = new CarLayer(this, (frame) => this.texture(frame));
   private trafficCars = new CarLayer(this, (frame) => this.texture(frame));
-  private traffic?: { plan: unknown; sim: Traffic; want: number; passed: Map<number, number> };
+  private traffic?: { plan: unknown; sim: Traffic; want: number; passed: Map<number, number>; heard: Map<number, number> };
   /** A passenger hailing from the kerb, then the door they want to be taken to. */
   private fare?: { riding: boolean; x: number; y: number; name: string; until: number; pay: number; look: Actor; marks: Phaser.GameObjects.Shape[]; figure?: Phaser.GameObjects.Image };
   private fareAt = 0;
@@ -3148,7 +3148,7 @@ export class WorldScene extends Phaser.Scene {
       const pool = setting && plan?.lanes?.size ? vehiclePool(setting) : [];
       if (pool.length && plan?.lanes) {
         const sim = new Traffic(plan.lanes, (roll, paint) => parkedCar(pool, roll, paint));
-        this.traffic = { plan, sim, want: Math.round(Math.min(22, plan.lanes.size / 320) * parkingShare(setting!)), passed: new Map() };
+        this.traffic = { plan, sim, want: Math.round(Math.min(22, plan.lanes.size / 320) * parkingShare(setting!)), passed: new Map(), heard: new Map() };
       }
       e.trafficAt = this.traffic && ((x, y) => this.traffic!.sim.occupied(x, y));
     }
@@ -3201,6 +3201,10 @@ export class WorldScene extends Phaser.Scene {
         this.trafficCars.pose(id, { frame: `vehicle-${c.model}-${c.paint}-${CAR_HEADINGS[trafficFacing(c)]}`, x, y: y - this.lift(x, y), tint: this.tint, lit });
         // A car passed close at speed without touching it.
         const near = Math.hypot(c.x - p.pos.x, c.y - p.pos.y);
+        if (!mine && near < 7 && c.speed > 1 && time - (t.heard.get(c.id) ?? -1e9) > 5000) {
+          t.heard.set(c.id, time);
+          void gameAudio()?.sound(carPass(/truck|lorry|bus|van/.test(c.model) ? "truck" : /moto|scooter|bike/.test(c.model) ? "moto" : "car"), "car-pass", Math.max(-1, Math.min(1, (c.x - p.pos.x) / 7)), 350);
+        }
         if (fast && near < 2.6 && time - (t.passed.get(c.id) ?? -1e9) > 4000) {
           t.passed.set(c.id, time);
           this.runtime.drive.chain = time < d.chainUntil + 2600 ? this.runtime.drive.chain + 1 : 1;
@@ -5446,7 +5450,7 @@ export class WorldScene extends Phaser.Scene {
       this.weather ? Math.max(this.weather.blizzard, this.weather.dust) : 0,
     );
     // Heard indoors too; not underground.
-    this.lightning?.set(this.weather && !this.options.lab && !e.caveOf?.(p.space) && !e.sewerOf?.(p.space) ? this.weather.storm : 0, !!outdoors);
+    this.lightning?.set(this.weather && !this.options.lab && !e.caveOf?.(p.space) && !e.sewerOf?.(p.space) && !(this.areaView instanceof TombView) ? this.weather.storm : 0, !!outdoors);
     // Broken cloud needs sun behind it to cast anything.
     this.clouds?.set(
       outdoors && this.weather && this.options.colorGrade !== false && this.light.id !== "night"
@@ -7579,9 +7583,26 @@ export class WorldScene extends Phaser.Scene {
       this.lidHoles.set(k, this.add.image(Math.round(lid.cx) - 8, Math.round(lid.cy - this.lift(lid.cx, lid.cy)) - 8, "sewer-open-lid").setOrigin(0, 0).setDepth(Math.floor((lid.cy + 8) / 16) * 16 - 6.6));
     }
   }
+  private graveStairs?: Phaser.GameObjects.Image[];
+  /** Under Rome, the stairs down to the catacombs beside the burial grounds. */
+  private syncGraveStairs() {
+    if (this.graveStairs) return this.graveStairs.forEach((im) => im.setVisible(this.runtime.engine.state.player.pos.space === "outside"));
+    if (!this.textures.exists("stair-down-catacomb")) paintStairDown(this.textures.createCanvas("stair-down-catacomb", 32, 24)!, true);
+    this.graveStairs = this.runtime.engine.catacombStairs().map((at) => this.add.image(at.x * 16 - 8, (at.y + 1) * 16 - 8 - this.lift(at.x * 16 + 8, (at.y + 1) * 16 + 8), "stair-down-catacomb").setOrigin(0, 0).setDepth((at.y + 2) * 16 - 6.6));
+  }
+  private churchStair?: { space: string; im?: Phaser.GameObjects.Image };
+  /** The stair down to a crypt or the catacombs, in the church the player is in. */
+  private syncChurchStair() {
+    const e = this.runtime.engine, space = e.state.player.pos.space;
+    if (this.churchStair?.space === space) return;
+    this.churchStair?.im?.destroy();
+    const b = space === "outside" || e.state.complex ? undefined : e.churchBelow(space), key = `stair-down-${b?.kind}`;
+    if (b && !this.textures.exists(key)) paintStairDown(this.textures.createCanvas(key, 16, 24)!, b.kind === "catacomb");
+    this.churchStair = { space, im: b && this.add.image(b.at.x * 16, b.at.y * 16 - 8, key).setOrigin(0, 0).setDepth((b.at.y + 1) * 16 - 6.6) };
+  }
   private syncSewer(delta: number) {
     const e = this.runtime.engine, space = e.state.player.pos.space;
-    const level = e.sewerOf?.(space), run = e.state.complex?.kind === "sewer" || e.state.complex?.kind === "mine" ? e.state.complex : undefined;
+    const level = e.sewerOf?.(space), run = e.state.complex?.kind === "sewer" || e.state.complex?.kind === "mine" || e.state.complex?.kind === "catacomb" ? e.state.complex : undefined;
     if (!level || !run) {
       if (this.sewerView) gameAudio()?.setUnderground(undefined);
       this.sewerView?.destroy();
@@ -7630,10 +7651,11 @@ export class WorldScene extends Phaser.Scene {
       if (c === 2 || c === 3) near = Math.min(near, Math.hypot(dx, dy));
     }
     // A working mine: its gutter, far picks and pumps, the ventilation drawing through; the old workings dead still.
-    if (level.network === "mine") gameAudio()?.setUnderground({ place: "mine", flow: Math.max(0.1, 1 - near / 6) * 0.6, echo: level.kind === "salt" ? 0.9 : 0.45, surge: level.depth < 3 ? 0.7 : 0, drips: level.depth === 3 ? 0.8 : 0.35, draught: level.depth < 3 ? 0.5 : 0.1 });
+    if (level.network === "catacomb") gameAudio()?.setUnderground({ place: "cave", flow: 0, echo: level.layer === "upper" ? 0.5 : 0.7, surge: 0, drips: level.layer === "deep" ? 0.8 : 0.2, draught: 0.1 });
+    else if (level.network === "mine") gameAudio()?.setUnderground({ place: "mine", flow: Math.max(0.1, 1 - near / 6) * 0.6, echo: level.kind === "salt" ? 0.9 : 0.45, surge: level.depth < 3 ? 0.7 : 0, drips: level.depth === 3 ? 0.8 : 0.35, draught: level.depth < 3 ? 0.5 : 0.1 });
     else gameAudio()?.setUnderground({ place: "sewer", drips: 0, draught: 0, flow: Math.max(0.15, 1 - near / 7) * (level.layer === "old" ? 0.5 : 1), echo: level.layer === "trunk" ? 1 : level.layer === "old" ? 0.6 : 0.35, surge: run.surge });
   }
-  /** A fair's or a tomb's area paints itself; the scene lends it the player's position and the lamp. */
+  /** A fair's, tomb's or prison's area paints itself; the scene lends it the player's position and the lamp. */
   private syncArea(delta: number) {
     const e = this.runtime.engine, space = e.state.player.pos.space;
     const level = e.areaOf?.(space);
@@ -8434,6 +8456,8 @@ export class WorldScene extends Phaser.Scene {
     if (!this.fadingOut) this.syncShip(delta);
     if (!this.fadingOut) this.syncArea(delta);
     this.syncLids();
+    this.syncChurchStair();
+    this.syncGraveStairs();
     this.reflect(time);
     this.glint(delta);
     this.afterRain(delta);

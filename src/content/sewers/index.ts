@@ -11,7 +11,7 @@ import type { Box, SewerFind, SewerKind, SewerPerson, TunnelDepth, TunnelKind } 
 import type { CaveKind } from "../caves/types";
 import type { ShipKind } from "../ships/types";
 
-export type { Box, FolkDeal, MineDepth, MineKind, SewerArt, SewerDepth, SewerFind, SewerKind, SewerPerson, TunnelDepth, TunnelKind } from "./types";
+export type { Box, CatacombKind, FolkDeal, MineDepth, MineKind, SewerArt, SewerDepth, SewerFind, SewerKind, SewerPerson, TunnelDepth, TunnelKind } from "./types";
 export { SEWER_ART } from "./types";
 export { sewerItems } from "./items";
 export { sewerFinds, sewerPeople };

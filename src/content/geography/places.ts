@@ -812,6 +812,7 @@ const aliases = new Set(
 const localNames: Record<string, string[]> = {
   "city-mwanza": ["lake victoria", "mwanza gulf"],
   "city-tokyo": ["edo"],
+  "city-luxor": ["thebes", "waset"],
 };
 const filteredLegacy = (legacy as AtlasPlace[])
   .filter((p) => !aliases.has(p.name.toLowerCase()))

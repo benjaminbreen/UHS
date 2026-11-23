@@ -117,12 +117,14 @@ export const settingSchema = z
     situation: situationSchema.optional(),
     brief: startBriefSchema.optional(),
     /** Where under the ground the player starts, if not in the open. */
-    below: z.enum(["cave", "sewer", "mine", "ship", "fair", "tomb", "prison"]).optional(),
+    below: z.enum(["cave", "sewer", "mine", "ship", "fair", "tomb", "prison", "catacomb"]).optional(),
     /** Aboard which hull, by id or kind, when the start is at sea. */
     ship: z.string().max(40).optional(),
     /** Which fair or palace, by id, when the start is inside one that no place on the map stands for. */
     venue: z.string().max(40).optional(),
     venueRoom: z.string().max(60).optional(),
+    /** A start inside the nearest building of this kind: "a tavern in London 1600". */
+    startIn: z.enum(momentRooms).optional(),
     // 1 is the scoped hand-written kits; 2 adds the ported naming
     // traditions and the capability-gated workforce.
     characterRevision: z.union([z.literal(1), z.literal(2)]).optional(),

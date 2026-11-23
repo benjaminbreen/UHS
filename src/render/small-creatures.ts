@@ -4,7 +4,7 @@ import { gameAudio } from "../audio/director";
 import { fishingSound } from "../audio/sfx";
 
 type Image = Phaser.GameObjects.Image;
-type Kind = "crab" | "squirrel" | "frog";
+type Kind = "crab" | "squirrel" | "frog" | "lizard";
 export type SmallLifeContext = {
   climate: string;
   ecology: string;
@@ -34,6 +34,13 @@ const ART: Record<Kind, Record<string, string[]>> = {
     leap: [".GG..GG.", "GkwGGkwG", "gGGGGGGg", ".gYYYYg.", "..gYYg..", ".g....g.", "g......g"],
     peek: ["........", "........", "........", "........", ".GG..GG.", "GkwGGkwG", "........"],
   },
+  lizard: {
+    idle: ["............", "............", "......llLLk.", "dddlllLLLLLL", "....dd...dd."],
+    push: ["............", "........lLk.", "......llLLLL", "dddlllLL.d..", "....dd...d.."],
+    run0: ["............", "............", "......llLLk.", "dddlllLLLLLL", "...d..d..d.."],
+    run1: ["............", "............", "dd....llLLk.", "..dlllLLLLLL", ".....d..d..d"],
+    peek: ["............", "............", "............", "........lLk.", "........lLLL"],
+  },
   squirrel: {
     idle: [".tt......", "tTTt..b..", "tTTt.bbb.", ".tTt.bkbn", "..tt.bbB.", "..tbbbBB.", "..bbbbBB.", "..bbbbb..", "..b..bb.."],
     flick: ["tt.......", "tTt...b..", ".tTt.bbb.", ".tTt.bkbn", "..tt.bbB.", "..tbbbBB.", "..bbbbBB.", "..bbbbb..", "..b..bb.."],
@@ -47,10 +54,12 @@ const PALETTES: Record<string, Record<string, string>> = {
   "crab-ghost": { R: "#f2e6c4", r: "#9a8460", d: "#6e5c3e" },
   "frog-green": { g: "#3f7a2c", G: "#6aa640", Y: "#d8d48a", m: "#2a4a1c", W: "#f0ecc8" },
   "frog-brown": { g: "#6a5a30", G: "#9a8a4a", Y: "#e0d4a0", m: "#3e3218", W: "#f0e8c8" },
+  "lizard-sand": { L: "#d8b87a", l: "#a8884e", d: "#6e5630" },
+  "lizard-green": { L: "#8ab04a", l: "#5a7e2e", d: "#3a5220" },
   "squirrel-red": { t: "#b4542a", T: "#dc7c3c", b: "#c0622c", B: "#f2d4a4", n: "#3a2414", a: "#8a5a2a" },
   "squirrel-grey": { t: "#8a8682", T: "#c4c0b8", b: "#86807a", B: "#ece6da", n: "#3a2e2a", a: "#8a5a2a" },
 };
-const SCARE: Record<Kind, number> = { crab: 30, squirrel: 42, frog: 28 };
+const SCARE: Record<Kind, number> = { crab: 30, squirrel: 42, frog: 28, lizard: 34 };
 
 function texture(scene: Phaser.Scene, kind: Kind, palette: string) {
   const key = `small-${palette}`;
@@ -104,9 +113,10 @@ const hash = (x: number, y: number, s: number) => {
   return v - Math.floor(v);
 };
 const FRESH = (n?: TopographyCell) => n?.surface === "water" && n.waterVisual?.kind !== "sea";
+const SEA = (n?: TopographyCell) => n?.surface === "water" && n.waterVisual?.kind === "sea";
 
-/** Crabs on a warm beach, frogs at the edge of fresh water, squirrels round
- * the trunks. Each minds its own business, warns as the player nears, bolts
+/** Crabs on a warm beach, lizards on dry open ground, frogs at the edge of
+ * fresh water, squirrels round the trunks. Each minds its own business, warns as the player nears, bolts
  * and hides, and comes back later. Standing still calms them; running
  * frightens them from further off. */
 export class SmallCreatures {
@@ -152,13 +162,27 @@ export class SmallCreatures {
     if (!cell || cell.feature === "paving" || (cell.tended ?? 0) > 0.4) return;
     const h = hash(cx, cy, this.view.seed());
     const tropical = ["tropical", "monsoon"].includes(ctx.climate);
-    if (cell.surface === "sand" && ctx.coast && ctx.tempC > 12 && h < (tropical ? 0.08 : 0.03)) return "crab";
+    if (cell.surface === "sand" && ctx.coast && ctx.tempC > 12 && h < (tropical ? 0.08 : 0.03) && this.nearSea(cx, cy)) return "crab";
     if (ctx.tempC < 10 || ctx.season === "winter") return;
+    if (ctx.day && ctx.tempC >= 16 && ["sand", "dry", "gravel"].includes(cell.surface)) {
+      const rate = ["desert", "dry-scrub"].includes(ctx.ecology)
+        ? 0.035
+        : ctx.ecology === "savanna" || ["arid", "mediterranean", "tropical", "monsoon"].includes(ctx.climate)
+          ? 0.018
+          : ["tundra", "boreal-woodland", "wetland"].includes(ctx.ecology) ? 0 : 0.006;
+      if (h < rate) return "lizard";
+    }
     const shallow = FRESH(cell) && cell.waterDepth !== "deep";
     const bank =
       cell.surface !== "water" &&
       [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => FRESH(this.view.cell(cx + dx, cy + dy)));
     if ((shallow || bank) && h < 0.07) return "frog";
+  }
+
+  private nearSea(cx: number, cy: number) {
+    for (let dy = -3; dy <= 3; dy++)
+      for (let dx = -3; dx <= 3; dx++) if (SEA(this.view.cell(cx + dx, cy + dy))) return true;
+    return false;
   }
 
   private spawn(key: string, kind: Kind, x: number, y: number, tree?: Image) {
@@ -169,6 +193,8 @@ export class SmallCreatures {
         ? ["tropical", "monsoon"].includes(ctx.climate) ? "crab-red" : "crab-ghost"
         : kind === "frog"
           ? h < 0.7 ? "frog-green" : "frog-brown"
+          : kind === "lizard"
+            ? ["desert", "dry-scrub", "savanna"].includes(ctx.ecology) || h < 0.4 ? "lizard-sand" : "lizard-green"
           : hash(this.view.seed(), 1, 1) < 0.5 ? "squirrel-red" : "squirrel-grey";
     const image = this.scene.add
       .image(x, y, texture(this.scene, kind, palette), "idle")
@@ -235,9 +261,9 @@ export class SmallCreatures {
   }
 
   private count() {
-    const n = { crab: 0, frog: 0, squirrel: 0 };
+    const n = { crab: 0, frog: 0, squirrel: 0, lizard: 0 };
     for (const c of this.creatures.values()) n[c.kind]++;
-    this.scene.game.canvas.dataset.smallLife = `crab:${n.crab} frog:${n.frog} squirrel:${n.squirrel}`;
+    this.scene.game.canvas.dataset.smallLife = `crab:${n.crab} frog:${n.frog} squirrel:${n.squirrel} lizard:${n.lizard}`;
   }
 
   update(time: number) {
@@ -305,7 +331,7 @@ export class SmallCreatures {
 
     const t = Math.min(1, (time - c.start) / Math.max(1, c.until - c.start));
     if (c.state === "emerge") {
-      // Eyes first: a crab out of its hole, a frog surfacing in the pool.
+      // Eyes first: a crab out of its hole, a frog surfacing in the pool, a lizard's head from a crack.
       frame = k === "crab" ? (t < 0.5 ? "sunk" : "dig") : "peek";
       if (k === "frog" && c.pool) {
         c.x = c.pool.x;
@@ -329,7 +355,8 @@ export class SmallCreatures {
         frame = Math.floor(time / 65) % 2 ? "run0" : "run1";
         // Bounding along the ground, a lope up the bark.
         if (c.to.z === 0 && c.from.z === 0) c.z = Math.abs(Math.sin(t * Math.PI * 4)) * 2;
-      } else frame = c.state === "flee" && t > 0.75 ? "dig" : Math.floor(time / 55) % 2 ? "step" : "idle";
+      } else if (k === "lizard") frame = Math.floor(time / 45) % 2 ? "run0" : "run1";
+      else frame = c.state === "flee" && t > 0.75 ? "dig" : Math.floor(time / 55) % 2 ? "step" : "idle";
       if (t >= 1) {
         if (c.state === "flee") {
           c.state = "hidden";
@@ -348,6 +375,7 @@ export class SmallCreatures {
     } else if (c.state === "alert") {
       if (k === "crab") frame = Math.floor(time / 160) % 2 ? "wave" : "snip";
       else if (k === "squirrel") frame = Math.floor(time / 110) % 2 ? "flick" : "idle";
+      else if (k === "lizard") frame = Math.floor(time / 180) % 2 ? "push" : "idle";
       else frame = "crouch";
       if (time > c.until && d >= scare * 1.7) {
         c.state = "idle";
@@ -378,6 +406,8 @@ export class SmallCreatures {
   private idleFrame(c: Creature, time: number) {
     const beat = Math.floor(time / 240 + c.phase * 7);
     if (c.kind === "crab") return beat % 26 < 2 ? "wave" : beat % 26 === 13 ? "snip" : "idle";
+    // Basks flat, and now and then bobs a few push-ups.
+    if (c.kind === "lizard") return beat % 32 >= 24 && beat % 2 ? "push" : "idle";
     if (c.kind === "squirrel") return beat % 14 < 5 ? "nibble" : beat % 14 === 7 || beat % 14 === 9 ? "flick" : "idle";
     // A frog sits and blinks, and now and then its throat swells.
     const croak = beat % 30;
@@ -395,7 +425,7 @@ export class SmallCreatures {
       return;
     }
     if (c.z > 3) return this.go(c, time, "move", { x: c.x, y: c.y, z: 0 }, 35);
-    const roam = { crab: 26, squirrel: 22, frog: 12 }[c.kind];
+    const roam = { crab: 26, squirrel: 22, frog: 12, lizard: 30 }[c.kind];
     let dx = (r(4) - 0.5) * 2 * roam,
       dy = (r(5) - 0.5) * roam * (c.kind === "crab" ? 0.35 : 0.8);
     if (Math.hypot(c.x + dx - c.home.x, c.y + dy - c.home.y) > roam * 1.4) {
@@ -405,7 +435,7 @@ export class SmallCreatures {
     const cell = this.view.cell(Math.floor((c.x + dx) / 16), Math.floor((c.y + dy) / 16));
     const ok = c.kind === "frog" ? !!cell && cell.waterDepth !== "deep" : !!cell && cell.surface !== "water";
     if (!ok) return void (c.until = time + 800);
-    const pace = { crab: 30, squirrel: 55, frog: 28 }[c.kind];
+    const pace = { crab: 30, squirrel: 55, frog: 28, lizard: 90 }[c.kind];
     this.go(c, time, "move", { x: c.x + dx, y: c.y + dy, z: 0 }, pace);
   }
 
@@ -442,6 +472,7 @@ export class SmallCreatures {
       void gameAudio()?.call("ribbit", this.pan(c.x));
       return this.go(c, time, "flee", { ...to, z: 0 }, 75);
     }
+    if (k === "lizard") return this.go(c, time, "flee", { x: c.x + away * 34, y: c.y + (hash(c.phase, time, 8) - 0.5) * 10, z: 0 }, 140);
     // A crab bolts sideways for its burrow, digs in and is gone.
     this.go(c, time, "flee", { x: c.x + away * 22, y: c.y + (hash(c.phase, time, 8) - 0.5) * 6, z: 0 }, 75);
   }

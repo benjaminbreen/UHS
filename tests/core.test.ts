@@ -73,6 +73,14 @@ describe("exposure, symptoms and care", () => {
     const sky = skyFor("asked", snowy.climate, snowy.season, "snow", 9 * 3600);
     expect(sky && weatherAt(sky, snowy.climate, snowy.season, 9 * 3600).condition).toBe("snow");
     expect("error" in resolveSetting("a hailstorm in Kansas 1900", "asked")).toBe(true);
+    expect(pick("a tavern keeper in London 1600").startIn).toBeUndefined();
+    const tavern = pick("a tavern in London 1600");
+    expect(tavern.startIn).toBe("tavern");
+    expect(createSettingSession(tavern, "asked").state.player.pos.space).not.toBe("outside");
+    for (const [q, below] of [["tomb robber in Thebes", "tomb"], ["prisoner in a dungeon", "prison"], ["a castle in England 1300", "fair"], ["a fossor in the catacombs of Rome", "catacomb"], ["the paris catacombs", "catacomb"], ["a sexton in a crypt in London 1300", "tomb"]]) {
+      const r = resolveSetting(q, "asked");
+      expect("setting" in r && [r.setting.below, r.needsInterpretation]).toEqual([below, false]);
+    }
     const player = { id: "player", kind: "human", name: "Ann Lee", role: "weaver", age: 30, condition: "paralysed" } as any;
     expect(conditionBody("asked", player, { ...setting, year: 1980 }).look).toBe("wheelchair");
     expect(conditionBody("asked", player, { ...setting, year: 1350 }).look).toBe("trolley");

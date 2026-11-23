@@ -1,6 +1,7 @@
 import { crops } from "../content/agriculture/crops";
 import { vehicleAt } from "../world/v3/conveyances";
 import type { TimeTravel } from "../core/time/travel";
+import { roofless } from "../core/time/structure";
 import { launchers, type FaunaTier } from "../core/combat";
 import { gameAudio } from "../audio/director";
 import { bodily, type EventId } from "../audio/sfx";
@@ -290,7 +291,7 @@ export function createSession(
   ensureLifeAim(engine.state, pack.setting);
   if (!snapshot && pack.setting?.below) engine.startBelow(pack.setting.below);
   if (!snapshot && moment) engine.startMoment(moment);
-  else if (!snapshot && !pack.setting?.below) engine.startAtWork();
+  else if (!snapshot && !pack.setting?.below && !(pack.setting?.startIn && engine.startIn(pack.setting.startIn))) engine.startAtWork();
   return engine;
 }
 /** Origin records "unspecified" where the name kit decided sex; the drawn
@@ -1864,7 +1865,7 @@ export class Runtime {
     const place = door?.placeId
       ? this.engine.world.place(door.placeId)
       : undefined;
-    if (!door || !place) return undefined;
+    if (!door || !place || roofless(place)) return undefined;
     const command = (action: "open" | "knock") =>
       ({ type: "interact", target: door.id, action }) as Verb["command"];
     if (door.open)

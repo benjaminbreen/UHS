@@ -1091,7 +1091,7 @@ const BUST = ["#fdf6e8", "#ecdfc8", "#d4c5aa", "#b3a288", "#8c7c66"];
 export function paintPalaceDecor(kind: string, v: number, style?: PalaceStyle): FairSprite | undefined {
   use(style);
   // What a palace's servants and guards use is plain wood, whatever the room's furniture is.
-  if ((style?.order ?? "classical") === "classical" && ["trestle", "armsrack", "dresser", "barrel"].includes(kind)) FRAME = WALNUT;
+  FRAME = (STYLE.order ?? "classical") === "classical" && ["trestle", "armsrack", "dresser", "barrel"].includes(kind) ? WALNUT : STYLE.frame;
   const n = Math.floor(v * 997), glow: { x: number; y: number }[] = [];
   if (kind === "grille-ew" || kind === "grille-ns") {
     const s = sprite(16, 50, 0, 47), iron = boundaryStyles.railing!;

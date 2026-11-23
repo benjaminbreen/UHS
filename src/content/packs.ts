@@ -10,6 +10,7 @@ import { sewerItems } from "./sewers/items";
 import { fairItemDefs } from "./fairs";
 import { tombItemDefs } from "./tombs";
 import { mineItems } from "./mines/items";
+import { catacombItems } from "./catacombs";
 import { floraItems } from "./ecology/flora";
 import { wearableItems } from "./characters/wearables";
 import { dungItems } from "./fauna/dung";
@@ -60,6 +61,7 @@ export const items: Record<
   ...fairItemDefs,
   ...tombItemDefs,
   ...mineItems,
+  ...catacombItems,
   ...floraItems,
   ...wearableItems,
   ...dungItems,

@@ -5,12 +5,15 @@ import type { Inventory, Point } from "../core/types";
 import { N4, type Area, type AreaDecor, type AreaFolk, type AreaThing } from "./complex";
 import type { Lane } from "./v3/types";
 import { mineDraft, mineDecor, MINE_NAMES } from "./mine";
+import { catacombDraft, catacombDecor } from "./catacomb";
+import { CATACOMB_NAMES, catacombFinds } from "../content/catacombs";
+import type { CatacombDepth, CatacombKind } from "../content/sewers/types";
 
 export const WALL = 0, LEDGE = 1, WATER = 2, DEEP = 3, GRATE = 4, FLOOR = 5, BRIDGE = 6, SILT = 7;
 /** Feet can go here. */
 export const walkable = (c: number) => c === LEDGE || c === WATER || c === FLOOR || c === BRIDGE || c === SILT;
 
-export type TunnelNetwork = "sewer" | "mine";
+export type TunnelNetwork = "sewer" | "mine" | "catacomb";
 export type SewerSite = {
   /** The cell in the street the first ladder comes down from, or the door of
    * the mine's headframe or adit, as "x,y". */
@@ -29,7 +32,7 @@ export type SewerSite = {
 export type SewerShaft = { x: number; y: number; to: "street" | "up"; world?: Point; lid?: { cx: number; cy: number } };
 export type SewerRoom = {
   x: number; y: number; w: number; h: number;
-  use: "overflow" | "depot" | "camp" | "pump" | "silt" | "hall" | "plain" | "eye" | "stable" | "cabin" | "face" | "stope" | "chamber" | "chapel";
+  use: "overflow" | "depot" | "camp" | "pump" | "silt" | "hall" | "plain" | "eye" | "stable" | "cabin" | "face" | "stope" | "chamber" | "chapel" | "cubiculum" | "crypt" | "bones";
   foul?: boolean;
   /** A mine's bad air: firedamp burns, blackdamp smothers. Sewer gas when unset. */
   damp?: "fire" | "black";
@@ -53,11 +56,11 @@ export type SewerLevel = Area & {
 
 export const sewerSpace = (site: string, depth: number, network: TunnelNetwork = "sewer") => `${network}:${site}:${depth}`;
 export function parseSewerSpace(space: string) {
-  const m = /^(sewer|mine):(-?\d+,-?\d+):(\d+)$/.exec(space);
+  const m = /^(sewer|mine|catacomb):(-?\d+,-?\d+):(\d+)$/.exec(space);
   return m ? { network: m[1] as TunnelNetwork, site: m[2], depth: Number(m[3]) } : undefined;
 }
 export const sewerLayer = (depth: number, network: TunnelNetwork = "sewer"): TunnelDepth =>
-  network === "mine" ? (depth <= 1 ? "level" : depth === 2 ? "workings" : "old") : depth <= 1 ? "street" : depth === 2 ? "trunk" : "old";
+  network === "mine" ? (depth <= 1 ? "level" : depth === 2 ? "workings" : "old") : network === "catacomb" ? (depth <= 1 ? "upper" : depth === 2 ? "lower" : "deep") : depth <= 1 ? "street" : depth === 2 ? "trunk" : "old";
 
 
 /** What the generator may ask of the streets overhead. */
@@ -78,7 +81,7 @@ const NAMES: Record<SewerKind, Record<SewerDepth, string[]>> = {
 export function sewerLevel(seed: string, site: SewerSite, depth: number, probe?: StreetProbe): SewerLevel {
   const [ex, ey] = site.id.split(",").map(Number);
   for (let attempt = 0; ; attempt++) {
-    const level = site.network === "mine" ? mineDraft(seed, site, depth, attempt) : depth === 1 && probe && attempt < 2 ? streets(seed, site, ex, ey, probe) : depth === 1 ? warren(seed, site, ex, ey, attempt) : depth === 2 ? trunk(seed, site, attempt) : old(seed, site, attempt);
+    const level = site.network === "mine" ? mineDraft(seed, site, depth, attempt) : site.network === "catacomb" ? catacombDraft(seed, site, depth, attempt) : depth === 1 && probe && attempt < 2 ? streets(seed, site, ex, ey, probe) : depth === 1 ? warren(seed, site, ex, ey, attempt) : depth === 2 ? trunk(seed, site, attempt) : old(seed, site, attempt);
     if (level) return furnish(seed, site, level);
   }
 }
@@ -440,9 +443,9 @@ function furnish(seed: string, site: SewerSite, d: Draft): SewerLevel {
     if (down) block(down.x, down.y);
   }
   const sinks: Point[] = [];
-  const mine = site.network === "mine";
+  const mine = site.network === "mine", sewer = site.network === "sewer";
   // A mine's water all runs to the sump, where the pumps lift it.
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (cells[y * w + x] === (mine ? DEEP : GRATE)) sinks.push({ x, y });
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (cells[y * w + x] === (sewer ? GRATE : DEEP)) sinks.push({ x, y });
   if (down) sinks.push(down);
   if (!sinks.length) {
     // Water runs away from the ladder, toward the far end of the channel.
@@ -458,7 +461,7 @@ function furnish(seed: string, site: SewerSite, d: Draft): SewerLevel {
   for (let y = 5; y < h - 3; y++) for (let x = 2; x < w - 2; x++) if (free(x, y) && dist[y * w + x] >= 4) floors.push({ x, y });
 
   // Pockets of dead air in the tunnels, away from the ladders, more of them deeper down.
-  for (let n = rng() < [0.35, 0.6, 0.8][d.depth - 1] ? 1 + Math.floor(rng() * d.depth) : 0; n > 0; n--) {
+  for (let n = site.network !== "catacomb" && rng() < [0.35, 0.6, 0.8][d.depth - 1] ? 1 + Math.floor(rng() * d.depth) : 0; n > 0; n--) {
     const spot = floors[Math.floor(rng() * floors.length)];
     if (spot && dist[spot.y * w + spot.x] >= far * 0.4 && (!down || Math.abs(spot.x - down.x) + Math.abs(spot.y - down.y) > 5))
       d.rooms.push({ x: spot.x - 2, y: spot.y - 1, w: 5, h: 3, use: "plain", foul: true, damp: mine ? (site.kind === "coal" && rng() < 0.6 ? "fire" : "black") : undefined });
@@ -466,7 +469,7 @@ function furnish(seed: string, site: SewerSite, d: Draft): SewerLevel {
 
   // Finds, from what fits this place, date, kind and depth.
   const things: AreaThing[] = [];
-  const fits = (mine ? mineFinds : sewerFinds).filter((f) => findFits(f, site.place, site.kind, d.layer, site.ore));
+  const fits = (mine ? mineFinds : sewer ? sewerFinds : catacombFinds).filter((f) => findFits(f, site.place, site.kind, d.layer, site.ore));
   const wt = (f: SewerFind) => f.weight ?? 1;
   const plan: { f: SewerFind; room?: SewerRoom }[] = [];
   const used = new Set<string>();
@@ -485,10 +488,11 @@ function furnish(seed: string, site: SewerSite, d: Draft): SewerLevel {
       // Coal gives off firedamp at the face and in old workings; any old working fills with blackdamp.
       if (site.kind === "coal" && (room.use === "face" ? rng() < 0.3 : d.depth === 3 && rng() < 0.35)) (room.foul = true), (room.damp = "fire");
       else if (d.depth === 3 && room.use !== "chapel" && rng() < 0.35) (room.foul = true), (room.damp = "black");
-    } else room.foul ||= room.use === "silt" || (d.depth === 3 && room.use !== "camp" && rng() < 0.4);
+    } else if (sewer) room.foul ||= room.use === "silt" || (d.depth === 3 && room.use !== "camp" && rng() < 0.4);
     if (room.foul && mine) room.damp ??= site.kind === "coal" ? "fire" : "black";
     const want = room.use === "depot" ? ["locker", "toolbag"] : room.use === "camp" ? ["bedroll", "camp", "shrine"] : room.use === "silt" ? ["silt-heap", "glint"]
-      : room.use === "stable" ? ["harness"] : room.use === "cabin" ? ["snap", "powder"] : room.use === "face" || room.use === "stope" ? ["ore", "tools"] : room.use === "chapel" ? ["relief", "barbara"] : [];
+      : room.use === "stable" ? ["harness"] : room.use === "cabin" ? ["snap", "powder"] : room.use === "face" || room.use === "stope" ? ["ore", "tools"] : room.use === "chapel" ? ["relief", "barbara"]
+      : room.use === "cubiculum" ? ["arcosolium", "amphora", "epitaph"] : room.use === "crypt" ? ["martyr-arch", "sarcophagus", "scratchings", "lamp-niche"] : room.use === "bones" ? ["tablet", "skulls"] : [];
     for (const art of want) {
       const f = pick(rng, fits.filter((f) => f.art === art), wt);
       if (f) plan.push({ f, room });
@@ -530,6 +534,7 @@ function furnish(seed: string, site: SewerSite, d: Draft): SewerLevel {
   const lamps: Point[] = [...d.lamps];
   const electric = site.place.year >= 1910;
   if (mine) mineDecor(site, d, decor, lamps, rng, { at, free, safe, block, taken, dist });
+  else if (!sewer) catacombDecor(site, d, decor, rng, { at, free, safe, block });
   else for (const room of d.rooms) {
     const cx = room.x + Math.floor(room.w / 2), cy = room.y + Math.floor(room.h / 2);
     if (room.use === "hall") {
@@ -541,11 +546,11 @@ function furnish(seed: string, site: SewerSite, d: Draft): SewerLevel {
     if (room.use === "overflow") for (let y = room.y; y < room.y + room.h; y++) if (at(room.x + Math.floor(room.w / 2), y) === WATER) decor.push({ type: "weir", x: room.x + Math.floor(room.w / 2), y, solid: false, v: rng() });
     if ((room.use === "depot" || room.use === "pump") && electric && at(cx, room.y - 1) === WALL) lamps.push({ x: cx, y: room.y });
   }
-  if (!mine && d.layer === "trunk" && electric) for (let x = 4; x < w - 4; x += 9) for (let y = 5; y < h - 3; y++) if (at(x, y) === LEDGE && at(x, y - 1) === WALL) {
+  if (sewer && d.layer === "trunk" && electric) for (let x = 4; x < w - 4; x += 9) for (let y = 5; y < h - 3; y++) if (at(x, y) === LEDGE && at(x, y - 1) === WALL) {
     lamps.push({ x, y });
     break;
   }
-  if (!mine) for (let y = 5; y < h - 2; y++)
+  if (sewer) for (let y = 5; y < h - 2; y++)
     for (let x = 2; x < w - 2; x++) {
       const i = y * w + x, c = cells[i], r = rng();
       if (c === WALL && at(x, y - 1) === WALL && walkable(at(x, y + 1))) {
@@ -583,9 +588,9 @@ function furnish(seed: string, site: SewerSite, d: Draft): SewerLevel {
     }
   }
   const rats: Point[] = [];
-  for (let n = mine ? 1 + Math.floor(rng() * 3) : 3 + Math.floor(rng() * 6); n > 0 && floors.length; n--) rats.push(floors[Math.floor(rng() * floors.length)]);
+  for (let n = mine ? 1 + Math.floor(rng() * 3) : sewer ? 3 + Math.floor(rng() * 6) : Math.floor(rng() * 3); n > 0 && floors.length; n--) rats.push(floors[Math.floor(rng() * floors.length)]);
 
-  const names = mine ? MINE_NAMES[site.kind as keyof typeof MINE_NAMES][d.layer as keyof (typeof MINE_NAMES)["coal"]] : NAMES[site.kind as SewerKind][d.layer as SewerDepth];
+  const names = mine ? MINE_NAMES[site.kind as keyof typeof MINE_NAMES][d.layer as keyof (typeof MINE_NAMES)["coal"]] : sewer ? NAMES[site.kind as SewerKind][d.layer as SewerDepth] : CATACOMB_NAMES[site.kind as CatacombKind][d.layer as CatacombDepth];
   const name = d.name ?? names[hash(`${seed}|${site.id}|${d.depth}|name`) % names.length];
   return { ...d, name, flow, down, things, decor, folk, lamps, rats };
 }

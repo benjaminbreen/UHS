@@ -60,9 +60,10 @@ export function tombPlan(seed: string, style: TombStyle, site: string): TombArea
   };
   const join = (a: TombArea, dir: Dir, b: TombArea) => void ((a.links[dir] = b.id), (b.links[OPP[dir]] = a.id));
   const axis: TombRole[] = ["entrance", "corridor"];
-  for (let n = 1 + Math.floor(rng() * 3); n > 0; n--) {
+  const [few, more] = style.plan.axis ?? [1, 2];
+  for (let n = few + Math.floor(rng() * (more + 1)); n > 0; n--) {
     const r = rng(), last = axis.at(-1)!;
-    axis.push(r < 0.3 && last !== "well" && !axis.includes("well") ? "well" : r < 0.55 && last !== "hall" ? "hall" : "corridor");
+    axis.push(style.plan.shafts && r < 0.3 && last !== "well" && !axis.includes("well") ? "well" : r < 0.55 && last !== "hall" ? "hall" : "corridor");
   }
   if (axis.at(-1) !== "hall") axis.push("hall");
   axis.push("burial");
@@ -75,7 +76,7 @@ export function tombPlan(seed: string, style: TombStyle, site: string): TombArea
   }
   if (prev.links.s !== undefined) prev.sealed = "s";
   // Side rooms off the axis, more of them the further in.
-  const odds: Record<TombRole, number> = { entrance: 0, corridor: 0.3, well: 0.15, hall: 0.5, burial: 0.75, store: 0, cutting: 0 };
+  const odds: Record<TombRole, number> = { entrance: 0, corridor: 0.3, well: 0.15, hall: 0.5, burial: 0.75, store: 0, cutting: 0, ...style.plan.side };
   for (const a of areas.slice()) for (const dir of ["w", "e"] as const) {
     if (rng() >= odds[a.role] && !(a.role === "burial" && dir === "e" && a.links.w === undefined)) continue;
     const side = add(a.role !== "burial" && rng() < 0.25 ? "cutting" : "store", a.depth);
@@ -154,7 +155,7 @@ function build(seed: string, style: TombStyle, site: string, plan: TombArea[], a
   const ways: [Dir, number | "outside"][] = Object.entries(a.links) as [Dir, number][];
   if (a.role === "entrance") ways.push(["s", "outside"]);
   for (const [dir, to] of ways) {
-    const name = to === "outside" ? "the hillside" : plan[to].name, target = to === "outside" ? "outside" : space(to);
+    const name = to === "outside" ? style.surface : plan[to].name, target = to === "outside" ? "outside" : space(to);
     const floor = to === "outside" ? STAIR : FLOOR;
     if (dir === "n") fill(cx - 1, 0, cx + 1, R.y0 - 1, floor), L.exits.push({ x: cx - 1, y: 0, w: 3, h: 1, to: target, name, inward: 2 });
     if (dir === "s") fill(cx - 1, R.y1 + 1, cx + 1, h - 1, floor), L.exits.push({ x: cx - 1, y: h - 1, w: 3, h: 1, to: target, name, inward: 0 });
@@ -202,7 +203,7 @@ function build(seed: string, style: TombStyle, site: string, plan: TombArea[], a
     reserve(R.x0 + 1, R.y0 + 1);
   }
   // Square pillars left standing in the rock, two rows of them clear of the axis.
-  if (a.role === "hall" || a.role === "burial") for (const y of [R.y0 + 2, R.y1 - 2]) for (let d = 4; cx + d <= R.x1 - 1; d += 4) for (const x of [cx - d, cx + d]) {
+  if (style.plan.pillars && (a.role === "hall" || a.role === "burial")) for (const y of [R.y0 + 2, R.y1 - 2]) for (let d = 4; cx + d <= R.x1 - 1; d += 4) for (const x of [cx - d, cx + d]) {
     if (taken[y * w + x]) continue;
     L.decor.push({ type: "pillar", x, y, solid: true, v: rng() });
     block(x, y);
@@ -278,7 +279,7 @@ function build(seed: string, style: TombStyle, site: string, plan: TombArea[], a
     block(x, y);
     n--;
   }
-  const litter = a.role === "cutting" ? ["chips", "chips", "dust"] : ["dust", "sherds", "chips"];
+  const litter = a.role === "cutting" ? ["chips", "chips", "dust"] : style.plan.litter;
   for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++)
     if (at(x, y) === FLOOR && !solid.has(y * w + x) && rng() < (a.role === "cutting" ? 0.14 : 0.05)) L.decor.push({ type: litter[Math.floor(rng() * litter.length)], x, y, solid: false, v: rng() });
 

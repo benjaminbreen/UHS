@@ -28,6 +28,7 @@ export type ComplexHost = {
   cue?(who: string, kind: CueKind, toward?: Point): void;
   say?(who: string, text: string): void;
   itemName(id: string): string;
+  interior(space: string): import("../world/interior").InteriorLayout | undefined;
   /** Forget what was known about a cell's collision. */
   unblock(space: string, x: number, y: number): void;
   /** How hard it is raining in the open, 0 to 1. */
@@ -41,7 +42,7 @@ export type ComplexHost = {
   caveLevels: Map<string, { level: CaveLevel; solid: Set<number> }>;
   sewerSites: Map<string, SewerSite>;
   sewerLevels: Map<string, { level: SewerLevel; solid: Set<number> }>;
-  /** Areas of the kinds that need only the seed and the space: fairs, tombs. */
+  /** Areas of the kinds that need only the seed and the space: fairs, tombs, prisons. */
   areas: Map<string, Cached>;
 };
 
@@ -165,7 +166,7 @@ const KINDS: readonly Kind[] = [
     root: (run) => (run.kind === "tomb" ? { key: `tomb:${run.site}`, space: run.entry, title: run.name } : undefined),
   },
   { spaces: ["cave"], id: "cave", runs: ["cave"], outside: true, area: (h, s) => caveLevelOf(h, s), ground: (h, s, x, y) => caveGround(h, s, x, y), verb: (h) => caveVerb(h), inspect: (h, id) => caveInspect(h, id), act: (h, id) => caveAct(h, id), time: (h, t) => caveTime(h, t) },
-  { spaces: ["sewer", "mine"], id: "sewer", runs: ["sewer", "mine"], outside: true, area: (h, s) => sewerLevelOf(h, s), ground: (h, s, x, y) => sewerGround(h, s, x, y), verb: (h) => sewerVerb(h), inspect: (h, id) => sewerInspect(h, id), act: (h, id) => sewerAct(h, id), time: (h, t) => sewerTime(h, t) },
+  { spaces: ["sewer", "mine", "catacomb"], id: "sewer", runs: ["sewer", "mine", "catacomb"], outside: true, area: (h, s) => sewerLevelOf(h, s), ground: (h, s, x, y) => sewerGround(h, s, x, y), verb: (h) => sewerVerb(h), inspect: (h, id) => sewerInspect(h, id), act: (h, id) => sewerAct(h, id), time: (h, t) => sewerTime(h, t) },
   {
     spaces: ["fair"], id: "fair", runs: ["fair"], area: (h, s) => fairLevelOf(h, s), ground: (h, s, x, y) => fairGround(h, s, x, y), verb: (h) => fairVerb(h), inspect: (h, id) => fairInspect(h, id), act: (h, id) => fairAct(h, id), time: (h) => fairTime(h),
     root: (run) => (run.kind === "fair" ? { key: `fair:${run.fair}`, space: run.entry, title: run.name } : undefined),
@@ -187,7 +188,7 @@ export function complexArea(h: ComplexHost, space: string): Area | undefined {
   return ofSpace(space)?.area(h, space)?.level;
 }
 
-/** The area a space is, for the kinds walked from area to area by their exits: a fair, a tomb. */
+/** The area a space is, for the kinds walked from area to area by their exits: a fair, a tomb, a prison. */
 export function walkedArea(h: ComplexHost, space: string) {
   const kind = ofSpace(space);
   return kind?.root ? kind.area(h, space)?.level : undefined;
@@ -200,7 +201,7 @@ export function complexGround(h: ComplexHost, space: string, x: number, y: numbe
 
 /** What the action key does at a way in, or beside something inside. */
 export function complexVerb(h: ComplexHost) {
-  if (h.state.player.pos.space !== "outside") return ofRun(h)?.verb(h);
+  if (h.state.player.pos.space !== "outside") return h.state.complex ? ofRun(h)?.verb(h) : tombVerb(h);
   for (const k of KINDS) {
     const verb = k.outside && k.verb(h);
     if (verb) return verb;
@@ -212,7 +213,7 @@ export function complexInspect(h: ComplexHost, id: string) {
 }
 
 export function complexAct(h: ComplexHost, id: string) {
-  (ofId(id) ?? ofRun(h) ?? KINDS.find((k) => k.id === "sewer")!).act(h, id);
+  (ofId(id) ?? ofRun(h))?.act(h, id);
 }
 
 export function complexTime(h: ComplexHost, elapsed: number) {

@@ -317,7 +317,7 @@ export function caveAct(h: ComplexHost, id: string) {
   if (!found) return;
   const { thing } = found, f = caveFind(thing.find)!;
   takeFind(h, run, c, thing, f, record(h, run.cave).done, {
-    refuel: (fuel) => void (run.left > 0 && (run.left = Math.min(caveLight(run.light).burns * 1.5, run.left + fuel * 3))),
+    refuel: (fuel) => void (run.left > 0 && ((run.left = Math.min(caveLight(run.light).burns * 1.5, run.left + fuel * 3)), (run.low = false))),
     taken: () => folkRobbed(h.folk, level.space, thing.find),
   });
 }
@@ -386,7 +386,10 @@ export function caveTime(h: ComplexHost, elapsed: number) {
   const c = caveLevelOf(h, p.pos.space);
   if (!c) {
     // Carried out some other way: asleep, rescued, dead.
-    if (p.pos.space === "outside" || !parseCaveSpace(p.pos.space)) delete h.state.complex;
+    if (p.pos.space === "outside" || !parseCaveSpace(p.pos.space)) {
+      for (const a of [...h.state.actors]) if (a.underground) h.folk.part(a.id);
+      delete h.state.complex;
+    }
     return;
   }
   const { level } = c;

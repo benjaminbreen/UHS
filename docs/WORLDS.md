@@ -134,6 +134,17 @@ handles "tiny desert island 20x8", "ww2 pilot downed, floating in atlantic",
 `src/content/settlements/camps/`, layout in `src/world/v3/camps.ts`, shelter
 art in `scripts/art/camps.py`.
 
+## Starting inside a place
+
+The local parser (`resolveSetting` in `src/content/geography/resolve.ts`) reads
+a room word and sets `startIn`: a church, mosque or temple; a tavern, inn or
+teahouse; baths, a hammam or sento; a school; a theatre; a town hall or
+guildhall. The session then starts the player inside the nearest such building
+(`engine.startIn`) instead of at work, and no court start is drawn. Words for
+below-ground places set `below`: tombs (Thebes, or a crypt), catacombs (Rome,
+or the Paris ossuary), prisons and dungeons, castles (a palace), sewers, mines
+and caves, each with a default place, year and role when the prompt gives none.
+
 ## Vessels that are not ships
 
 A start aboard (`below: "ship"`, `ship: <hull id>`) can also be a capsule in

@@ -80,8 +80,10 @@ export function prisonEnter(
   style: PrisonStyle,
   sentence: PrisonSentence,
   out?: Point,
-  n: number | string = 0,
+  n?: number | string,
 ) {
+  // Each stay is a new cell with its own finds, so a second jailing can still be escaped.
+  n ??= Object.keys(h.state.complexes ?? {}).filter((k) => k.startsWith(`prison:${style.id}.`)).length;
   const p = h.state.player, site = `${style.id}.${n}`;
   const entry = prisonSpace(site);
   h.state.complex = {

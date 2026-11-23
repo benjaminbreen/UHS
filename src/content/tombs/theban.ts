@@ -1,7 +1,4 @@
-import type { TombFind, TombStyle } from "./types";
-
-const f = (id: string, name: string, art: TombFind["art"], tier: TombFind["tier"], verb: string, look: string, text: string, more: Partial<TombFind> = {}): TombFind =>
-  ({ id, name, art, on: art === "painting" || art === "stela" || art === "niche" || art === "sketch" ? "wall" : "floor", tier, verb, look, text, basis: "documented", ...more });
+import { tombFindOf as f, type TombStyle } from "./types";
 
 /** Rock-cut tombs of the New Kingdom in the hills west of Thebes. What robbers
  * took, and how, follows the confessions in the tomb-robbery papyri of about
@@ -21,6 +18,13 @@ export const theban: TombStyle = {
     burial: ["the burial chamber"],
   },
   enter: "You squeeze through the gap under the lintel and go down the stair. The air is dry and warm and smells of resin.",
+  leave: "You climb the stair into the heat and the light.",
+  surface: "the hillside",
+  look: "painted-rock",
+  cliff: true,
+  roles: [[-1500, "Tomb robber"]],
+  place: ["city-luxor", -1110],
+  plan: { shafts: true, pillars: true, litter: ["dust", "sherds", "chips"] },
   note: "A stair, corridors on one axis, a well shaft, a pillared hall and a burial chamber with side rooms: the plan of Eighteenth to Twentieth Dynasty royal and high officials' tombs. Which rooms a given tomb has is drawn from the seed.",
   basis: "inferred",
   finds: [

@@ -8,7 +8,7 @@ export type Box = readonly [number, number, number, number];
 export type CaveFind = {
   id: string;
   name: string;
-  /** The painter's key in `render/cave/finds.ts`. */
+  /** The painter's key in `render/cave/art.ts`. */
   art: string;
   /** A wall find is drawn on a north face and used from the cell below it. */
   on: "wall" | "floor";

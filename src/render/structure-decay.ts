@@ -1,7 +1,7 @@
 import type Phaser from "phaser";
 import { releaseCanvas, releaseTexture } from "./resources";
 import type { Place } from "../core/types";
-import { conditionOf } from "../core/time/structure";
+import { conditionOf, roofless } from "../core/time/structure";
 import { random, stateHash } from "../core/random";
 import { decay, PAD_X, PAD_Y } from "./materials/decay";
 
@@ -9,13 +9,10 @@ import { decay, PAD_X, PAD_Y } from "./materials/decay";
 const SHOWS_WEAR = 0.9;
 const BUDGET_MS = 6;
 
-/** A ruin with its roof gone and its walls down to stubs is drawn by
+/** A roofless ruin is drawn as open wall stubs by
  * `paintRuin`; until then it is still the building, falling apart. */
 export function stillStanding(place: Place) {
-  const s = place.structure;
-  if (!s) return true;
-  const walls = s.walls.reduce((a, b) => a + b, 0) / s.walls.length;
-  return s.roof > 0.02 || walls > 0.45;
+  return !roofless(place);
 }
 
 export function showsWear(place: Place) {

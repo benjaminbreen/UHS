@@ -159,6 +159,8 @@ export function wallSection(
 /** Every generated building now carries a structure; only an abandoned one
  * is a ruin. */
 export const isRuin = (place: Place) => place.structure?.abandoned !== undefined;
+/** No roof to go under: walked into from the street, not entered. */
+export const roofless = (place: Place) => (place.structure?.roof ?? 1) < 0.5;
 export function structureBlocks(place: Place, x: number, y: number) {
   const section = wallSection(place, x, y);
   return (

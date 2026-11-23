@@ -1,4 +1,5 @@
 import type Phaser from "phaser";
+import { paintCatacombObject } from "./catacomb-art";
 import { paintMineObject } from "./mine-art";
 import type { SewerPalette } from "./palette";
 
@@ -24,7 +25,7 @@ export const WOOD = ["#3a2618", "#5c3e26", "#7a5634", "#9a7248"];
  * it. (x, y) is the top-left of the cell; tall things rise above it into the
  * cell above. `v` varies the drawing; `emptied` shows it as taken. */
 export function paintSewerObject(g: Ctx, art: string, x: number, y: number, p: SewerPalette, v = 0.5, emptied = false) {
-  if (paintMineObject(g, art, x, y, p, v, emptied)) return;
+  if (paintMineObject(g, art, x, y, p, v, emptied) || paintCatacombObject(g, art, x, y, p, v, emptied)) return;
   const cx = x + 8, by = y + 15;
   switch (art) {
     // The ladder under a street lid: iron rungs coming down out of the vault.
@@ -434,5 +435,24 @@ export function paintOpenLid(t: Phaser.Textures.CanvasTexture) {
       g.fillStyle = c;
       g.fillRect(x, y, 1, 1);
     }
+  t.refresh();
+}
+
+/** A stair going down through a floor, 16 by 24: a low iron rail behind, a
+ * stone lip, and steps falling away into the dark. Grey for a crypt, brown tuff for the catacombs. */
+export function paintStairDown(t: Phaser.Textures.CanvasTexture, tuff: boolean) {
+  const g = t.context, w = t.width, stone = tuff ? ["#b08c66", "#86644a", "#5e4430"] : ["#cfcabf", "#a29d92", "#706c64"];
+  r(g, stone[0], 0, 6, w, 2), r(g, stone[1], 0, 8, 2, 16), r(g, stone[1], w - 2, 8, 2, 16), r(g, stone[2], 1, 8, 1, 16), r(g, stone[2], w - 2, 8, 1, 16);
+  r(g, "#060508", 2, 8, w - 4, 16);
+  for (let k = 0; k < 4; k++) {
+    const y = 21 - k * 3, a = 1 - k * 0.27;
+    r(g, `rgba(${tuff ? "176,140,102" : "207,202,191"},${a})`, 2, y, w - 4, 1);
+    r(g, `rgba(${tuff ? "110,80,56" : "130,126,118"},${a})`, 2, y + 1, w - 4, 2);
+  }
+  r(g, stone[0], 0, 22, 2, 2), r(g, stone[0], w - 2, 22, 2, 2);
+  for (const x of [0, w - 2]) {
+    r(g, IRON[1], x, 0, 1, 7), r(g, IRON[2], x + 1, 0, 1, 7), r(g, IRON[3], x, 0, 2, 1);
+  }
+  r(g, IRON[3], 0, 0, w, 1), r(g, IRON[1], 0, 1, w, 1);
   t.refresh();
 }

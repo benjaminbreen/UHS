@@ -25,9 +25,14 @@ export type MineKind = "coal" | "metal" | "salt";
  * them, and the abandoned workings below. */
 export type MineDepth = "level" | "workings" | "old";
 
-/** Any network of tunnels under a place: a town's sewers or a mine. */
-export type TunnelKind = SewerKind | MineKind;
-export type TunnelDepth = SewerDepth | MineDepth;
+/** Galleries of graves dug in the tuff outside Rome, or the quarries under Paris stacked with the city's bones. */
+export type CatacombKind = "roman" | "ossuary";
+/** The first galleries off the stair, those dug below them, and the deepest and oldest. */
+export type CatacombDepth = "upper" | "lower" | "deep";
+
+/** Any network of tunnels under a place: a town's sewers, a mine, or catacombs. */
+export type TunnelKind = SewerKind | MineKind | CatacombKind;
+export type TunnelDepth = SewerDepth | MineDepth | CatacombDepth;
 
 /** [west, south, east, north] in degrees. */
 export type Box = readonly [number, number, number, number];
@@ -43,6 +48,9 @@ export const SEWER_ART = [
   // In a mine: on the floor, then on the wall.
   "ore", "snap", "tools", "candles", "tally", "crust", "tio", "tub", "lamp", "nugget", "rucksack", "powder", "wheel", "harness", "cage",
   "vein", "fossil", "chalk", "barbara", "relief", "crystals", "board",
+  // In catacombs: on the floor, then on the wall.
+  "sarcophagus", "amphora", "clay-lamps", "skulls", "fire-basin", "cache",
+  "loculus", "open-loculus", "arcosolium", "martyr-arch", "epitaph", "lamp-niche", "soot-niche", "scratchings", "tablet", "street-mark",
 ] as const;
 export type SewerArt = (typeof SEWER_ART)[number];
 

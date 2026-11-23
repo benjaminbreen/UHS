@@ -3,6 +3,8 @@ import { nearestBankPoint, toAtlas, fromAtlas } from "../../world/geography/atla
 import { applySituation, normalize, situationFromPrompt } from "./situation";
 import { courtStart, fairFromPrompt, postFor, residentFromPrompt, requestedRoom, venueFor } from "../fairs";
 import { formatHistoricalYear } from "../../core/calendar";
+import { tombAt, tombStyle, type TombStyle } from "../tombs";
+import { catacombKindAt, catacombRole } from "../catacombs";
 import { eraAt, glacialTundraLatitude } from "../history/dates";
 import { random } from "../../core/random";
 import { populateCharacter } from "./character";
@@ -18,7 +20,7 @@ import { beliefOptions } from "../beliefs";
 import { officiantsFor } from "../characters/officiant";
 import { placeAtYear } from "./eras";
 import { workplaceFor } from "../characters/workplace";
-import { settingSchema, type AtlasPlace, type WorldSetting } from "./types";
+import { momentRooms, settingSchema, type AtlasPlace, type WorldSetting } from "./types";
 import { curatedStarts } from "./curated-starts";
 import { livelihoodById, livelihoodIds } from "../characters/livelihoods";
 import type { RequestedCondition } from "../health/conditions";
@@ -213,17 +215,22 @@ const VESSELS: readonly (readonly [RegExp, string, string, number, string, strin
 ];
 const vesselOf = (q: string) => VESSELS.find(([words]) => words.test(q));
 
-export function belowFromPrompt(q: string): "cave" | "sewer" | "mine" | "ship" | "fair" | "tomb" | "prison" | undefined {
+export function belowFromPrompt(q: string): WorldSetting["below"] {
   if (/\b(?:prisoners?|convicts?|inmates?|debtors?|gaols?|jails?|prisons?|dungeons?|oubliettes?|bastille|newgate|fleet prison|marshalsea|alcatraz|pentonville|yamen jail|cellblock)\b/.test(q)) return "prison";
   if (fairFromPrompt(q)) return "fair";
-  if (/\btombs?\b|\btomb[- ]?robbers?\b|\bburial chambers?\b|\bvalley of the kings\b/.test(q)) return "tomb";
+  if (PARIS_BONES.test(q) || /\bcatacombs?\b|\bfossors?\b|\bfossores\b/.test(q)) return "catacomb";
+  if (/\btombs?\b|\btomb[- ]?robbers?\b|\bburial chambers?\b|\bvalley of the kings\b/.test(q) || tombFromPrompt(q)) return "tomb";
   if (SHIP_WORDS.test(q) || vesselOf(q)) return "ship";
   if (/\bsewers?\b|\bsewerm[ae]n\b|\btoshers?\b|\bflushers?\b/.test(q)) return "sewer";
   if (/\b(?:a|the|gold|silver|coal|salt|tin|copper|iron|lead|mercury|emerald|diamond)\s+mines?\b|\bminers?\b|\bmining\b|\bcollier(?:y|ies|s)?\b|\bpit ?(?:m[ae]n|boys?|lads?|pon(?:y|ies)|brow)\b|\bhewers?\b|\bcoal ?face\b|\bdown the pit\b/.test(q)) return "mine";
   if (/\bcave(?:s|m[ae]n|wom[ae]n|dwellers?)?\b|\bcave (?:m[ae]n|wom[ae]n|dwellers?|people)\b|\bcaverns?\b|\bgrottos?\b/.test(q)) return "cave";
 }
+const PARIS_BONES = /\bossuar(?:y|ies)\b|\bempire of the dead\b|\bcatacombs? (?:of|under|in|beneath) paris\b|\bparis(?:ian)? catacombs?\b/;
+/** The kind of tomb a prompt names; otherwise whichever the place and year have. */
+const tombFromPrompt = (q: string) => (/\bcrypts?\b|\bcharnel(?: house)?\b|\bundercrofts?\b/.test(q) ? tombStyle("crypt") : undefined);
+const tombRole = (style: TombStyle | undefined, year: number) => [...(style?.roles ?? [])].reverse().find(([from]) => year >= from)?.[1] ?? "Tomb robber";
 /** Where an underground start goes when the prompt names no place or date. */
-const BELOW_PLACES = { cave: ["magdalenian"], sewer: ["london", 1880], mine: ["city-cardiff", 1880], ship: ["london", 1790], fair: ["paris", 1889], tomb: ["city-luxor", -1110], prison: ["london", 1750] } as const;
+const BELOW_PLACES = { cave: ["magdalenian"], sewer: ["london", 1880], mine: ["city-cardiff", 1880], ship: ["london", 1790], fair: ["paris", 1889], tomb: ["city-luxor", -1110], prison: ["london", 1750], catacomb: ["rome", 380] } as const;
 /** The home waters of the ship a prompt names. */
 const shipPlace = (q: string): readonly [string, number] =>
   vesselOf(q) ? [vesselOf(q)![2], vesselOf(q)![3]] : /\bjunks?\b/.test(q) ? ["city-guangzhou", 1760] : /\b(?:dhows?|nakhoda)\b/.test(q) ? ["city-muscat", 1850] : /\bgalleons?\b/.test(q) ? ["city-lisbon", 1600]
@@ -259,6 +266,16 @@ const WEATHER_WORDS: [string, AskedWeather][] = [
 /** The season that brings a weather asked for, unless the prompt names one. */
 export const weatherSeason: Partial<Record<AskedWeather, WorldSetting["season"]>> = { blizzard: "winter", snow: "winter", hail: "spring", storm: "summer" };
 const COLD: readonly string[] = ["temperate", "boreal", "tundra"];
+// "Bath" alone is the English town, and "a tavern keeper" is a role.
+const NOT_A_ROLE = "(?!\\s*(?:keepers?|owners?|masters?|mistress|maids?|girls?|boys?|teachers?|attendants?|priests?)\\b)";
+const ROOM_WORDS: [string, (typeof momentRooms)[number]][] = [
+  [`(?:church|chapel|cathedral|abbey|monastery|priory|convent|nunnery|mosque|synagogue|temple|shrine|pagoda|wat|kiva)${NOT_A_ROLE}`, "temple"],
+  [`(?:tavern|inn|alehouse|pub|saloon|teahouse|tea house|coffee ?house|izakaya)${NOT_A_ROLE}`, "tavern"],
+  [`(?:bath ?house|bathing house|public baths|the baths|hammam|sento|onsen|sweat ?lodge|temazcal)${NOT_A_ROLE}`, "bath"],
+  [`(?:school ?(?:room|house)?|madrasa)${NOT_A_ROLE}`, "school"],
+  [`(?:theatre|theater|playhouse|opera house|cinema)${NOT_A_ROLE}`, "theatre"],
+  ["(?:town hall|guild ?hall|meeting ?house)", "hall"],
+];
 const words = (w: string) => new RegExp(`(?:\\b(?:with|in|on|on a|using|uses|has)\\s+)?(?:\\b(?:a|an)\\s+)?\\b(?:${w})\\b(?:\\s+(?:day|morning|weather))?`, "gi");
 
 /** A start can ask for a condition ("a blind beggar") and the weather ("a
@@ -267,25 +284,26 @@ const words = (w: string) => new RegExp(`(?:\\b(?:with|in|on|on a|using|uses|has
 export function resolveSetting(input: string, seed = "earth-2"): ReturnType<typeof resolvePrompt> {
   const ill = CONDITION_WORDS.map(([w, c]) => [words(w), c] as const).filter(([w]) => w.test(input));
   const sky = WEATHER_WORDS.map(([w, c]) => [words(w), c] as const).filter(([w]) => w.test(input));
-  if (!ill.length && !sky.length) {
+  const room = ROOM_WORDS.map(([w, c]) => [words(w), c] as const).filter(([w]) => w.test(input)).slice(0, 1);
+  if (!ill.length && !sky.length && !room.length) {
     const found = resolvePrompt(input, seed);
     return "error" in found ? roleStart(input, seed) : found;
   }
   const condition = !ill.length ? undefined : ill.find(([, c]) => c)?.[1] ?? ANY_CONDITION[Math.floor(random(seed, "condition", input) * ANY_CONDITION.length)];
   const weather = sky[0]?.[1], season = weather && weatherSeason[weather];
-  const text = [...ill, ...sky].reduce((t, [w]) => t.replace(w, " "), input).replace(/\s+/g, " ").trim() || "person";
-  let found = resolvePrompt(text, seed);
+  const text = [...ill, ...sky, ...room].reduce((t, [w]) => t.replace(w, " "), input).replace(/\s+/g, " ").trim() || "person";
+  let found = resolvePrompt(text, seed, !room.length);
   if ("error" in found) found = roleStart(text, seed);
   // Only a prompt with nothing else in it ("a snowy day") gets a curated start; "hail in Kansas" stays an error.
   if ("error" in found && normalize(text).split(" ").every((w) => /^(?:a|an|the|in|on|at|of|day|morning|person|someone|me|i|guy|man|woman|during)$/.test(w))) {
-    const pool = curatedStarts.filter((s) => places.some((p) => p.id === s.placeId && (weather !== "snow" && weather !== "blizzard" || COLD.includes(p.climate))));
+    const pool = curatedStarts.filter((s) => (!room.length || s.year >= 0) && places.some((p) => p.id === s.placeId && (weather !== "snow" && weather !== "blizzard" || COLD.includes(p.climate))));
     const start = pool[Math.floor(random(seed, "asked-start", input) * pool.length)];
     const setting = populateCharacter({ ...settingFor(places.find((p) => p.id === start.placeId)!, start.year), role: start.role, characterName: start.role }, seed);
     found = { setting, description: describeSetting(setting), needsInterpretation: false };
   }
   if ("error" in found) return found;
   const named = /\b(?:spring|summer|autumn|fall|winter)\b/i.test(input);
-  const setting = { ...found.setting, ...(condition ? { condition } : {}), ...(weather ? { weather } : {}), ...(season && !named ? { season } : {}) };
+  const setting = { ...found.setting, ...(condition ? { condition } : {}), ...(weather ? { weather } : {}), ...(season && !named ? { season } : {}), ...(room.length ? { startIn: room[0][1] } : {}) };
   return { ...found, setting, description: describeSetting(setting) };
 }
 
@@ -315,6 +333,7 @@ function roleStart(input: string, seed: string): ReturnType<typeof resolvePrompt
 function resolvePrompt(
   input: string,
   seed = "earth-2",
+  court = true,
 ):
   | {
       setting: WorldSetting;
@@ -373,12 +392,14 @@ function resolvePrompt(
   const undated = requestedYear === -1000001;
   if (below && (!located || (requestedFair?.named?.test(q) && (matches[0]?.score ?? 0) <= 0.1))) {
     const fair = requestedFair;
-    const [id, year] = below === "ship" ? shipPlace(q) : below === "fair" && fair ? [fair.place, fair.years[0]] : BELOW_PLACES[below];
+    const [id, year] = below === "ship" ? shipPlace(q) : below === "fair" && fair ? [fair.place, fair.years[0]] : below === "tomb" ? tombFromPrompt(q)?.place ?? BELOW_PLACES.tomb : below === "catacomb" && PARIS_BONES.test(q) ? ["paris", 1810] : BELOW_PLACES[below];
     const found = places.find((p) => p.id === id);
     if (found) place = year && undated ? { ...found, year } : found;
   } else if (place && below === "fair" && undated) place = { ...place, year: requestedFair?.years[0] ?? 1889 };
-  else if (place && below && below !== "cave" && below !== "ship" && below !== "tomb" && below !== "prison" && undated) place = { ...place, year: Math.max(place.year, 1880) };
+  else if (place && below && below !== "cave" && below !== "ship" && below !== "tomb" && below !== "prison" && below !== "catacomb" && undated) place = { ...place, year: Math.max(place.year, 1880) };
   else if (place && undated && vesselOf(q)) place = { ...place, year: vesselOf(q)![3] };
+  else if (place && undated && below === "tomb" && tombFromPrompt(q)) place = { ...place, year: tombFromPrompt(q)!.place[1] };
+  else if (place && undated && below === "catacomb") place = { ...place, year: PARIS_BONES.test(q) ? 1810 : 380 };
   if (!place) {
     const period = periods.find(([words]) => words.some((w) => has(q, w)));
     if (period)
@@ -450,11 +471,12 @@ function resolvePrompt(
     const room = venue && requestedRoom(venue, q);
     const post = venue ? postFor(venue, title?.toLowerCase() ?? q) : undefined;
     const underRole = !inside ? undefined : below === "mine" ? (coal ? "Coal miner" : "Miner") : below === "sewer" ? (/\btosher/.test(q) ? "Tosher" : "Sewer flusher") : below === "cave" ? (s.year < -8000 ? "Hunter" : "Hermit")
-      : below === "ship" ? vesselOf(q)?.[4] ?? (/\bstokers?\b/.test(q) ? "Stoker" : /\b(?:passengers?|emigrants?|steerage|pilgrims?)\b/.test(q) ? "Passenger" : "Sailor") : below === "fair" ? post?.role ?? venue?.role ?? "Visitor" : below === "tomb" ? "Tomb robber" : below === "prison" ? (/\b(?:political|lifer|for life|forgotten)\b/.test(q) ? "Political prisoner" : /\bdebtor\b/.test(q) ? "Debtor" : /\bconvict\b/.test(q) ? "Convict" : "Prisoner") : undefined;
+      : below === "ship" ? vesselOf(q)?.[4] ?? (/\bstokers?\b/.test(q) ? "Stoker" : /\b(?:passengers?|emigrants?|steerage|pilgrims?)\b/.test(q) ? "Passenger" : "Sailor") : below === "fair" ? post?.role ?? venue?.role ?? "Visitor" : below === "tomb" ? (/\brobb/.test(q) ? "Tomb robber" : tombRole(tombFromPrompt(q) ?? tombAt(s.lon, s.lat, s.year), s.year)) : below === "catacomb" ? catacombRole(catacombKindAt(s.lon, s.lat, s.year), s.year) : below === "prison" ? (/\b(?:political|lifer|for life|forgotten)\b/.test(q) ? "Political prisoner" : /\bdebtor\b/.test(q) ? "Debtor" : /\bconvict\b/.test(q) ? "Convict" : "Prisoner") : undefined;
     s.role = title ?? post?.role ?? namedRole ?? office ?? roles.find(([pattern]) => pattern.test(q))?.[1] ?? underRole ?? "Traveler";
     if (inside) {
       s.below = below;
       if (venue) s.venue = venue.id;
+      if (below === "tomb") s.venue = tombFromPrompt(q)?.id;
       if (below === "ship") s.ship = vesselOf(q)?.[1] ?? (/\bjunks?\b/.test(q) ? "junk" : /\b(?:dhows?|nakhoda)\b/.test(q) ? "dhow" : /\bgalleons?\b/.test(q) ? "galleon"
         : /\bindiam[ae]n\b/.test(q) ? "indiaman" : /\b(?:steam|stoker|liner)/.test(q) ? "steamer" : /\bemigrant\b/.test(q) ? "emigrant-ship" : undefined);
       const work = below === "mine" ? (coal && s.year >= 1780 ? "coal-miner" : "miner") : below === "sewer" ? (/\btosher/.test(q) ? "night-soil-collector" : "navvy") : below === "ship" ? vesselOf(q)?.[5] || (s.role === "Sailor" ? "sailor" : undefined) : undefined;
@@ -462,7 +484,7 @@ function resolvePrompt(
       if (post) s.brief = { ...s.brief, work: post.work, sex: sex ?? post.sex, figure };
       s.venueRoom = room?.area.id ?? homeRoom ?? post?.room;
       if (born !== undefined) s.character = { age: year - born, appearanceSeed: figure, hunger: 10, fatigue: 0 };
-    } else if (!below && s.role === "Traveler" && s.settlement === "city") {
+    } else if (court && !below && s.role === "Traveler" && s.settlement === "city") {
       // Much of a capital lived in and around its ruler's house: some who name no work start there, in a post of the household.
       const court = courtStart(q, s.year, seed, s.lon, s.lat);
       if (court) { s.below = "fair"; s.venue = court.venue.id; s.role = court.role; s.brief = { ...s.brief, work: court.work }; }
@@ -501,6 +523,9 @@ function resolvePrompt(
       "free black", ...(vesselOf(q) && (!vesselOf(q)![5] || year >= vesselOf(q)![3]) ? [vesselOf(q)![0].exec(q)?.[0]] : []),
       "sewer dweller", "sewer dwellers", "cave dweller", "sewer worker", "sewer man", "sewerman", "sewer", "sewers", "tosher", "flusher", "cave man", "caveman", "cave woman", "cave", "caves", "cavern", "grotto",
       "coal miner", "coal mine", "miner", "miners", "mine", "mining", "collier", "colliery", "pit man", "pitman", "pit boy", "hewer", "down the pit",
+      "tomb robber", "tomb robbers", "burial chamber", "valley of the kings", "tomb", "tombs", "castle", "castles",
+      "catacomb", "catacombs", "crypt", "crypts", "ossuary", "ossuaries", "charnel house", "charnel", "undercroft", "fossor", "fossores", "empire of the dead",
+      "prisoner", "prisoners", "convict", "convicts", "inmate", "inmates", "debtor", "debtors", "gaol", "jail", "prison", "dungeon", "oubliette", "cellblock",
     ];
     for (const phrase of recognized.filter((word): word is string => !!word).sort((a, b) => b.length - a.length))
       rest = rest.split(` ${normalize(phrase).replace(/-/g, " ")} `).join(" ");

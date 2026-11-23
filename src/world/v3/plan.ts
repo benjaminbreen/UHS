@@ -36,6 +36,8 @@ import { workplaceFor } from "../../content/characters/workplace";
 import type { Rank } from "../../content/characters/context-types";
 import {
   ageStructure,
+  roofless,
+  structureBlocks,
   conditionOf,
   fabricOf,
   weatherStructure,
@@ -4506,7 +4508,7 @@ export function planSettlement(
         access: "public",
         owner: `${site.id}-community`,
         claim: "landscape",
-        entranceLabel: "Enter",
+        entranceLabel: "",
         structure: ageStructure(
           seed,
           id,
@@ -4526,7 +4528,7 @@ export function planSettlement(
       reserveBuilding(frame, rect, door);
       eachCell(rect, (x, y) => {
         plan.built!.add(cellKey(x, y));
-        plan.solid.add(cellKey(x, y));
+        if (structureBlocks(place, x, y)) plan.solid.add(cellKey(x, y));
       });
       eachCell(yard, (x, y) => plan.reserved.add(cellKey(x, y)));
       continue;
@@ -7189,6 +7191,7 @@ export function planSettlement(
     }
     const level = plan.groundLevels?.get(cellKey(place.x, place.y));
     if (level !== undefined) gradeGround({ ...place.entrance, w: 1, h: 1 }, level);
+    if (roofless(place)) continue;
     const door = makeDoor(place);
     plan.solid.delete(cellKey(door.pos.x, door.pos.y));
     plan.objects.push(door);

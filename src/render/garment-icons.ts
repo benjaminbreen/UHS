@@ -6,6 +6,7 @@ import { sewerItems } from "../content/sewers/items";
 import { fairItemDefs } from "../content/fairs";
 import { tombItemDefs } from "../content/tombs";
 import { mineItems } from "../content/mines/items";
+import { catacombItems } from "../content/catacombs";
 import { GARMENT_ICON, garmentArt, type IconArt } from "./garment-art";
 import { itemArt, itemColors } from "./item-art";
 
@@ -69,7 +70,7 @@ export function itemIconFor(id: string): string | undefined {
   if (sharedArt[id]) return sharedArt[id];
   if (id.startsWith("dried-fish-")) return "salt-dried-fish";
   if (id.startsWith("fish-")) return "fish";
-  const sprite = (caveItems[id] ?? sewerItems[id] ?? mineItems[id] ?? shipItems[id] ?? fairItemDefs[id] ?? tombItemDefs[id])?.sprite;
+  const sprite = (caveItems[id] ?? sewerItems[id] ?? mineItems[id] ?? shipItems[id] ?? fairItemDefs[id] ?? tombItemDefs[id] ?? catacombItems[id])?.sprite;
   if (!sprite) return;
   const icon = caveIconForSprite[sprite] ?? sprite;
   return icon in itemArt ? icon : undefined;

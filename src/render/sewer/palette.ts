@@ -1,4 +1,4 @@
-import type { MineKind, SewerKind } from "../../content/sewers";
+import type { CatacombKind, MineKind, SewerKind } from "../../content/sewers";
 
 export type RGB = readonly [number, number, number];
 const hex = (h: string): RGB => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
@@ -10,7 +10,7 @@ export type SewerPalette = {
   /** The back wall: mortar or joint, dark, mid, light units. */
   face: RGB[];
   /** How the back wall is built. */
-  fabric: "brick" | "ashlar" | "cast" | "panel" | "rock" | "coal" | "salt";
+  fabric: "brick" | "ashlar" | "cast" | "panel" | "rock" | "coal" | "salt" | "loculi" | "bones" | "quarry";
   /** Walkway: joint, dark, mid, light. */
   ledge: RGB[];
   /** Room floor: joint, dark, mid, light. */
@@ -31,6 +31,9 @@ export type SewerPalette = {
   /** In a mine: what is dug, dark to light, and the timber that holds the roof up. */
   ore?: RGB[];
   timber?: RGB[];
+  /** In catacombs: the plaster of a painted room (shadow, body, light), its red and green lines, and the ochre of the damp. */
+  plaster?: RGB[];
+  paint?: RGB[];
 };
 
 export const sewerPalettes: Record<SewerKind, SewerPalette> = {
@@ -173,3 +176,38 @@ export const minePalettes: Record<MineKind, SewerPalette> = {
     timber: TIMBER,
   },
 };
+
+const PLASTER = ramp("#a8957a", "#d8caa8", "#ece2c6"), PAINT = ramp("#a8402c", "#5a7a48", "#c88a3a");
+
+/** Catacombs: soft brown tuff under Rome with painted rooms; under Paris, the
+ * pale limestone of the old quarries, and the bones stacked in them. */
+export const catacombPalettes: Record<CatacombKind, SewerPalette> = {
+  roman: {
+    ...oldPalette,
+    face: ramp("#3a2a1e", "#6e5038", "#86644a", "#a07c5c"),
+    fabric: "loculi",
+    ledge: ramp("#3e2e22", "#5e4632", "#6e543c", "#84684c"),
+    floor: ramp("#3a2a1e", "#5c4430", "#6c523a", "#82664a"),
+    coping: ramp("#b08c66", "#6a4e36", "#2e2018"),
+    slime: hex("#b88a3c"),
+    top: hex("#120c09"),
+    rim: hex("#4a3626"),
+    plaster: PLASTER,
+    paint: PAINT,
+  },
+  ossuary: {
+    ...oldPalette,
+    face: ramp("#4a4436", "#8a8068", "#a49a7e", "#c4bb9c"),
+    fabric: "bones",
+    ledge: ramp("#3c382e", "#5e574a", "#6e6656", "#847a68"),
+    floor: ramp("#3c382e", "#5c5546", "#6c6452", "#827864"),
+    coping: ramp("#c4b896", "#6a6250", "#2c2822"),
+    water: ramp("#141c1c", "#26383a", "#3e5a5a", "#c8dcd4"),
+    slime: hex("#8a7a48"),
+    top: hex("#100f0c"),
+    rim: hex("#4c4638"),
+    ore: ramp("#2e2820", "#a09478", "#d4c8a8", "#efe6cc"),
+  },
+};
+
+export const quarryPalette: SewerPalette = { ...catacombPalettes.ossuary, fabric: "quarry" };

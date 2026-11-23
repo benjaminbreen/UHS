@@ -3,6 +3,7 @@ import { mineKindOf, minePeople } from "../content/mines";
 import { anyMine } from "../content/settlements/worksites/mines";
 import { worksiteProfiles } from "../content/settlements/worksites";
 import { personFits, sewerFind, sewerKindFor, sewerPeople } from "../content/sewers";
+import { catacombKindAt, catacombPeople } from "../content/catacombs";
 import { folkArrive, folkDeal, folkTime } from "./tunnel-folk";
 import { laneLids } from "../render/carriageway";
 import { rngOf } from "./random";
@@ -39,7 +40,7 @@ export type SewerRun = {
 };
 
 /** The tunnel run in progress, if the player is down a sewer or a mine. */
-export const tunnelRun = (s: GameState) => (s.complex?.kind === "sewer" || s.complex?.kind === "mine" ? s.complex : undefined);
+export const tunnelRun = (s: GameState) => (s.complex?.kind === "sewer" || s.complex?.kind === "mine" || s.complex?.kind === "catacomb" ? s.complex : undefined);
 /** What has been taken on this level's network. */
 const doneOn = (state: GameState, level: { network: TunnelNetwork; site: string }) => state.complexes?.[`${level.network}:${level.site}`]?.done;
 
@@ -50,6 +51,36 @@ const cheb = (a: Point, b: Point) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y 
 export function lidAt(world: WorldModel, x: number, y: number) {
   const lane = world.topography?.(x, y)?.lane;
   return lane ? laneLids(lane, x, y)[0] : undefined;
+}
+
+/** Over the Paris quarries some lids are the inspectors' shafts down into them, not the sewer. */
+const quarryShaft = (h: ComplexHost, at: Point) => (((at.x * 73856093) ^ (at.y * 19349663)) >>> 0) % 10 < 3 && siteOf(h, lidKey(at), "catacomb")?.kind === "ossuary";
+
+/** Under Rome the catacombs open from the burial grounds: a stair down beside the first grave of each ground. */
+const stairCache = new WeakMap<WorldModel, Point[]>();
+export function catacombStairs(h: ComplexHost): Point[] {
+  const s = h.world.pack.setting, first = new Map<string, Point>();
+  if (!s || catacombKindAt(s.lon, s.lat, s.year) !== "roman") return [];
+  const known = stairCache.get(h.world);
+  if (known) return known;
+  for (const o of h.state.objects) {
+    if (o.prop !== "graveMound" || o.pos.space !== "outside") continue;
+    const k = `${Math.floor(o.pos.x / 30)},${Math.floor(o.pos.y / 30)}`, f = first.get(k);
+    if (!f || o.pos.y < f.y || (o.pos.y === f.y && o.pos.x < f.x)) first.set(k, { x: o.pos.x, y: o.pos.y });
+  }
+  const stairs = [...first.values()];
+  // Without a burial ground, the road out of town: the catacombs lined the roads beyond the walls.
+  const town = h.world.settlements[0];
+  if (!stairs.length && town)
+    for (let r = Math.min(60, Math.max(24, town.size / 2)); r < 150 && !stairs.length; r += 6)
+      for (let k = 0; k < 64 && !stairs.length; k++) {
+        const a = (k / 64) * Math.PI * 2 + Math.PI / 4, x = Math.round(town.x + Math.cos(a) * r), y = Math.round(town.y + Math.sin(a) * r);
+        const road = (yy: number) => !!h.world.topography?.(x, yy)?.lane || ["paving", "dirt"].includes(h.world.terrain(x, yy, "outside"));
+        if (road(y) && road(y + 1) && !h.world.places.some((b) => x >= b.x - 2 && x < b.x + b.w + 2 && y >= b.y - 2 && y < b.y + b.h + 3)) stairs.push({ x, y });
+      }
+  const out = stairs.filter((at) => siteOf(h, lidKey(at), "catacomb")?.kind === "roman");
+  stairCache.set(h.world, out);
+  return out;
 }
 
 /** Lids within a cell of the player, standing on one first. */
@@ -86,6 +117,10 @@ function siteOf(h: ComplexHost, id: string, network: TunnelNetwork = "sewer"): S
     const profile = worksiteProfiles.find((p) => p.id === pid) ?? anyMine(setting.year, pid === "coal-pit");
     const ore = profile.ore ?? "copper", kind = mineKindOf(ore);
     site = { id, network, kind, ore, shaft: profile.frame === "worksite-engine-mine", place, people: minePeople.filter((p) => personFits(p, place, kind, undefined, ore)) };
+  } else if (network === "catacomb") {
+    const kind = catacombKindAt(place.lon, place.lat, place.year);
+    if (!kind) return undefined;
+    site = { id, network, kind, place, people: catacombPeople.filter((p) => personFits(p, place, kind)) };
   } else {
     const kind = sewerKindFor(place);
     site = { id, network, kind, place, people: sewerPeople.filter((p) => personFits(p, place, kind)) };
@@ -171,6 +206,24 @@ export function mineEnter(h: ComplexHost, b: Place) {
   return true;
 }
 
+/** Down the stair into the catacombs from this street cell. False where there are none. */
+export function catacombEnter(h: ComplexHost, at: Point) {
+  const key = lidKey(at), site = siteOf(h, key, "catacomb");
+  if (!site) return false;
+  const light = caveLightFor(site.place.year);
+  h.state.complex = { kind: "catacomb", site: key, light: light.id, left: light.burns, surge: 0 };
+  const level = arrive(h, 1, "entry");
+  if (!level) {
+    delete h.state.complex;
+    return false;
+  }
+  h.advance(60);
+  h.event(site.kind === "roman"
+    ? `${light.lit} You go down the steps cut in the soft brown rock into ${level.name}. The air is cool and damp, and the walls are shelves of the dead from floor to ceiling.`
+    : `${light.lit} You go round and round the stair, twenty metres down, into a cold that does not change with the seasons. Over a doorway is carved: "Stop! This is the empire of death."`, "world");
+  return true;
+}
+
 /** Drop into the local underground sewer directly (e.g. from a prison yard drain grate). */
 export function sewerEnterFrom(h: ComplexHost, world: Point, message: string) {
   const key = lidKey(world);
@@ -202,7 +255,9 @@ export function sewerTargetNear(h: ComplexHost): string | undefined {
   const p = h.state.player;
   if (p.pos.space === "outside") {
     const lid = lidNear(h.world, p.pos);
-    return lid ? `sewer-lid:${lid.x},${lid.y}` : undefined;
+    if (lid) return `sewer-lid:${lid.x},${lid.y}`;
+    const stair = catacombStairs(h).find((s) => cheb(s, p.pos) <= 1);
+    return stair ? `sewer-stair:${stair.x},${stair.y}` : undefined;
   }
   const c = tunnelRun(h.state) && sewerLevelOf(h, p.pos.space);
   if (!c) return undefined;
@@ -225,6 +280,13 @@ export function sewerTargetNear(h: ComplexHost): string | undefined {
 export function sewerInspect(h: ComplexHost, id: string): Inspection | undefined {
   const p = h.state.player;
   const act = (label: string, target = id, enabled = true, reason?: string) => ({ label, enabled, reason, command: { type: "interact" as const, target, action: "complex" as const } });
+  const stair = /^sewer-stair:(-?\d+),(-?\d+)$/.exec(id);
+  if (stair)
+    return {
+      id, name: "Stair to the catacombs", kind: "place", pos: { x: Number(stair[1]), y: Number(stair[2]), space: "outside" },
+      description: "Among the graves, steps cut down into the soft brown rock. Below are the galleries where the city buries its dead in shelves, room after room.",
+      affordances: [act("Go down to the catacombs")],
+    };
   const lid = /^sewer-lid:(-?\d+),(-?\d+)$/.exec(id);
   if (lid) {
     const at = { x: Number(lid[1]), y: Number(lid[2]) };
@@ -233,7 +295,9 @@ export function sewerInspect(h: ComplexHost, id: string): Inspection | undefined
     const year = h.world.pack.setting?.year ?? 1950;
     return {
       id, name: open ? "Open manhole" : "Manhole cover", kind: "place", pos: { ...at, space: "outside" },
-      description: open
+      description: quarryShaft(h, at)
+        ? open ? "The cover lies beside a narrow stone shaft. Iron rungs go a long way down into the old quarries under the city." : "A round iron cover stamped with the mark of the quarry inspectors. Under it a shaft goes down to the old quarries."
+        : open
         ? "The cover lies on the road beside a round black hole. Iron rungs go down into the dark, and a cold, wet smell comes up."
         : year < 1950
           ? "A round cast-iron cover, its face cast with the maker's name and a grip pattern worn smooth by wheels."
@@ -245,7 +309,7 @@ export function sewerInspect(h: ComplexHost, id: string): Inspection | undefined
   if (!c) return undefined;
   const { level } = c;
   const lit = tunnelRun(h.state)!.left > 0;
-  const mine = level.network === "mine";
+  const mine = level.network === "mine", catacomb = level.network === "catacomb";
   if (id === "sewer-knock" && tunnelRun(h.state)!.trapped)
     return {
       id, name: "The rails", kind: "place", pos: { ...p.pos },
@@ -254,8 +318,9 @@ export function sewerInspect(h: ComplexHost, id: string): Inspection | undefined
     };
   if (id === "sewer-down" && level.down)
     return {
-      id, name: mine ? (level.depth === 1 ? (level.kind === "coal" ? "Staple shaft" : "Winze") : "Old ladderway") : level.depth === 1 ? "Drop shaft" : "Way down", kind: "place", pos: { ...level.down, space: level.space },
-      description: mine
+      id, name: catacomb ? "Stair down" : mine ? (level.depth === 1 ? (level.kind === "coal" ? "Staple shaft" : "Winze") : "Old ladderway") : level.depth === 1 ? "Drop shaft" : "Way down", kind: "place", pos: { ...level.down, space: level.space },
+      description: catacomb ? (level.kind === "roman" ? "Steps cut in the tuff, going down to another level of galleries dug below this one." : "A narrow stair down into the old quarry, where the stone was taken out.")
+        : mine
         ? level.depth === 1 ? "A ladderway going down through the rock to the workings. The ladders are wet and the rungs worn hollow in the middle." : "Rotten ladders going down into old workings nobody has worked in years. The air coming up is still and stale."
         : level.depth === 1 ? "A shaft with iron rungs going down to a bigger sewer. You can hear a lot of water moving down there." : "A ladder bolted into older stone, going down.",
       affordances: [act("Climb down", id, lit, "Not without a light")],
@@ -266,11 +331,12 @@ export function sewerInspect(h: ComplexHost, id: string): Inspection | undefined
     if (!s) return undefined;
     const cage = level.mouth === "cage", adit = level.mouth === "adit";
     return {
-      id, name: s.to === "street" ? (cage ? "The cage" : adit ? "Way out to daylight" : "Ladder to the street") : "Ladder up", kind: "place", pos: { x: s.x, y: s.y, space: level.space },
-      description: s.to === "street"
+      id, name: s.to === "street" ? (catacomb ? "Stair up" : cage ? "The cage" : adit ? "Way out to daylight" : "Ladder to the street") : catacomb ? "Stair up" : "Ladder up", kind: "place", pos: { x: s.x, y: s.y, space: level.space },
+      description: catacomb ? (s.to === "street" ? "The stair you came down, going up to daylight." : "The stair back up to the level above.")
+        : s.to === "street"
         ? cage ? "The iron cage that winds men and tubs up the shaft. The onsetter will ring you up." : adit ? "The adit runs back out to the hillside. A grey smudge of daylight shows at the end of it." : "Iron rungs up to a lid in the road. Daylight shows through its pick holes."
         : "The ladder back up to the level above.",
-      affordances: [act(s.to === "street" ? (cage ? "Ring for the surface" : adit ? "Walk out" : "Climb up to the street") : "Climb up")],
+      affordances: [act(s.to === "street" ? (catacomb ? "Climb out" : cage ? "Ring for the surface" : adit ? "Walk out" : "Climb up to the street") : "Climb up")],
     };
   }
   const found = thingAt(h, id);
@@ -301,6 +367,8 @@ export function sewerAct(h: ComplexHost, id: string) {
     h.event("You drag the cover back over the hole. It drops into its seat with a clank.");
     return;
   }
+  const stair = /^sewer-stair:(-?\d+),(-?\d+)$/.exec(id);
+  if (stair) return void catacombEnter(h, { x: Number(stair[1]), y: Number(stair[2]) });
   const lid = /^sewer-lid:(-?\d+),(-?\d+)$/.exec(id);
   if (lid) {
     const at = { x: Number(lid[1]), y: Number(lid[2]) };
@@ -314,6 +382,7 @@ export function sewerAct(h: ComplexHost, id: string) {
         : "You work your fingers into the pick holes and heave. The cover is heavier than it looks, and it grinds aside. Cold air comes up, smelling of wet stone and worse.");
       return;
     }
+    if (quarryShaft(h, at)) return void catacombEnter(h, at);
     const site = siteOf(h, key);
     if (!site) return;
     const year = site.place.year;
@@ -337,7 +406,9 @@ export function sewerAct(h: ComplexHost, id: string) {
     const next = arrive(h, level.depth + 1, "entry");
     h.advance(90);
     if (next) h.event(
-      next.layer === "trunk" ? `You climb down a long shaft into ${next.name}. The roar of water fills everything.`
+      next.layer === "lower" ? (next.kind === "roman" ? `You go down the steps to ${next.name}. The galleries are older and lower here.` : `You go down into ${next.name}. No bones here, only cut stone and the quarrymen's marks.`)
+        : next.layer === "deep" ? `You go down into ${next.name}. Nobody has been here in a long time.`
+        : next.layer === "trunk" ? `You climb down a long shaft into ${next.name}. The roar of water fills everything.`
         : next.layer === "workings" ? `You climb down the ladders to ${next.name}. It is hot down here, and you can hear picks somewhere ahead.`
           : `You climb down into ${next.name}. The air is still and very old.`, "world");
     return;
@@ -350,6 +421,7 @@ export function sewerAct(h: ComplexHost, id: string) {
       const how = level.mouth;
       h.advance(how === "cage" ? 120 : how === "adit" ? 60 : 40);
       surface(h, s.world);
+      if (level.network === "catacomb") return void h.event(level.kind === "roman" ? "You climb the steps into the light, among the vineyards." : "You climb the long stair back up to the street.");
       h.event(how === "cage" ? "The onsetter rings you away. The cage climbs and climbs, and then daylight, wind and noise, and the banksman swinging the gate open."
         : how === "adit" ? "You walk out of the adit into daylight, blinking, the warm air smelling of grass."
           : "You push the cover up with your shoulder, shove it aside, and climb out into the street, blinking.");
@@ -388,8 +460,8 @@ export function sewerTime(h: ComplexHost, elapsed: number) {
   const { level } = c;
   const light = caveLight(run.light);
   // A miner's shift is lit from their own supply of candles or oil.
-  if (!h.busy()) burnLight(h, run, elapsed, run.kind === "mine" ? "It is completely dark." : "Only the daylight through the lids is left to see by.", (flame) => (flame ? "Your lamp is burning low." : "Your torch is going yellow. The batteries will not last much longer."));
-  const rain = run.kind === "mine" ? 0 : h.rain();
+  if (!h.busy()) burnLight(h, run, elapsed, run.kind !== "sewer" ? "It is completely dark." : "Only the daylight through the lids is left to see by.", (flame) => (flame ? "Your lamp is burning low." : "Your torch is going yellow. The batteries will not last much longer."));
+  const rain = run.kind !== "sewer" ? 0 : h.rain();
   const want = rain > 0.2 ? Math.min(1, (rain - 0.2) * 1.6) : 0;
   const was = run.surge;
   run.surge += (want - run.surge) * Math.min(1, elapsed / 240);

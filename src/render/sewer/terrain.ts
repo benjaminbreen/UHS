@@ -1,6 +1,6 @@
 import { BRIDGE, DEEP, FLOOR, GRATE, LEDGE, SILT, WALL, WATER, type SewerLevel } from "../../world/sewer";
-import type { MineKind, SewerKind } from "../../content/sewers";
-import { minePalettes, mix, oldPalette, sewerPalettes, shade, type RGB, type SewerPalette } from "./palette";
+import type { CatacombKind, MineKind, SewerKind } from "../../content/sewers";
+import { catacombPalettes, minePalettes, mix, oldPalette, quarryPalette, sewerPalettes, shade, type RGB, type SewerPalette } from "./palette";
 
 /** Pixels of back wall shown above a floor: two and a half cells. */
 export const FACE = 40;
@@ -20,8 +20,116 @@ const BLACK: RGB = [8, 7, 9];
 const SHADE: RGB = [22, 16, 30];
 
 export const paletteOf = (level: SewerLevel): SewerPalette =>
-  level.network === "mine" ? minePalettes[level.kind as MineKind] : level.layer === "old" ? oldPalette : sewerPalettes[level.kind as SewerKind];
+  level.network === "mine" ? minePalettes[level.kind as MineKind]
+  : level.network === "catacomb" ? (level.kind === "ossuary" && level.layer !== "upper" ? quarryPalette : catacombPalettes[level.kind as CatacombKind])
+  : level.layer === "old" ? oldPalette : sewerPalettes[level.kind as SewerKind];
 const mined = (p: SewerPalette) => p.fabric === "rock" || p.fabric === "coal" || p.fabric === "salt";
+const dug = (p: SewerPalette) => p.fabric === "loculi" || p.fabric === "bones" || p.fabric === "quarry";
+
+/** A catacomb's back wall. `base` is the face's floor row, so each stretch of wall gets its own graves. */
+function catacombPixel(p: SewerPalette, r: number, px: number, base: number, painted: boolean): RGB {
+  const f = p.face, n = vn(px, r + base, 7, 71);
+  let c: RGB = f[n < 0.3 ? 1 : n < 0.75 ? 2 : 3];
+  // Pick marks in the soft rock, slanting the way the fossor swung.
+  if ((px + r * 2 + Math.floor(h2(Math.floor(px / 9), Math.floor(r / 5), 72) * 9)) % 9 === 0 && h2(px >> 2, r >> 2, 73) < 0.5) c = shade(c, -14);
+  if (painted) {
+    // Lime plaster in panels ruled in red with a green line inside, over a red dado.
+    const P = p.plaster!, K = p.paint!, lx = px % 30, panel = Math.floor(px / 30);
+    c = P[vn(px, r + base, 11, 74) > 0.7 ? 2 : vn(px, r + base, 4, 75) < 0.2 ? 0 : 1];
+    if (r >= 31) c = mix(K[0], f[1], r === 31 ? 0.5 : 0.2 + (h2(px, r, 76) < 0.1 ? 0.2 : 0));
+    else if (r === 30) c = mix(K[0], BLACK, 0.3);
+    else {
+      const ink = (rr: number, l0: number, l1: number, t0: number, t1: number) => (rr === t0 || rr === t1) && lx >= l0 && lx <= l1 || (lx === l0 || lx === l1) && rr >= t0 && rr <= t1;
+      if (ink(r, 3, 26, 6, 27)) c = K[0];
+      else if (ink(r, 5, 24, 8, 25) && (lx + r) % 3 !== 0) c = K[1];
+      else if (panel % 3 === 1 && r >= 13 && r <= 19) {
+        // A garland swung between the frame's corners, leaves and red berries.
+        const sag = Math.round(3 * Math.sin(((lx - 6) / 17) * Math.PI));
+        if (lx >= 6 && lx <= 23 && r === 14 + sag) c = (lx & 1) ? K[1] : mix(K[1], P[0], 0.4);
+        else if (lx >= 6 && lx <= 23 && r === 15 + sag && lx % 4 === 1) c = K[0];
+      } else if (panel % 3 === 2 && r >= 14 && r <= 19 && lx >= 11 && lx <= 18) {
+        // A dove.
+        const bird = ["..##....", ".####.##", "#######.", ".#####..", "..#.#..."][r - 14];
+        if (bird && bird[lx - 11] === "#") c = r === 14 ? mix(P[0], f[1], 0.3) : mix(P[0], BLACK, 0.18);
+      }
+    }
+    // Damp coming through: ochre blooms with a darker tide edge, up from the floor and down from the vault.
+    const wet = vn(px, r + base, 13, 77) + (r > 22 ? (r - 22) / 30 : 0) + (r < 8 ? (8 - r) / 20 : 0);
+    if (wet > 0.78) c = mix(c, K[2], 0.38);
+    else if (wet > 0.74) c = mix(c, K[2], 0.6);
+    if (h2(px >> 1, (r + base) >> 1, 78) < 0.012) c = f[1];
+  } else if (p.fabric === "loculi") {
+    // Graves cut in rows along the gallery, sealed with tiles or a marble slab, or opened by robbers.
+    const row = Math.floor((r - 4) / 11), lr = (r - 4) % 11;
+    if (r >= 4 && row < 3 && lr < 8) {
+      const off = row * 9 + Math.floor(h2(base, row, 79) * 20), slot = Math.floor((px + off) / 26), lx = (px + off) % 26;
+      const len = 16 + Math.floor(h2(slot, row + base, 80) * 6), k = h2(slot, row * 7 + base, 81);
+      if (lx >= 2 && lx < 2 + len) {
+        const ix = lx - 2;
+        if (lr === 0) c = mix(f[0], BLACK, 0.3);
+        else if (lr === 7) c = f[3];
+        else if (k < 0.42) {
+          c = (ix % 6 === 5) ? mix(f[0], [200, 180, 150], 0.4) : shade([150, 74, 44], (h2(slot, Math.floor(ix / 6), 82) - 0.5) * 30);
+          if (lr === 1) c = shade(c, 16);
+        } else if (k < 0.66) {
+          c = lr === 1 ? [232, 226, 210] : [206, 198, 180];
+          if (lr === 3 && ix > 2 && ix < len - 3 && h2(ix, slot, 83) < 0.55) c = [150, 46, 32];
+          if (lr === 5 && ix > 4 && ix < len - 6 && h2(ix, slot, 84) < 0.4) c = [150, 46, 32];
+        } else {
+          c = lr < 3 ? [10, 7, 6] : [26, 18, 14];
+          if (lr === 6 && h2(ix >> 1, slot, 85) < 0.45) c = [196, 184, 156];
+        }
+      }
+    }
+    if (vn(px, r + base, 17, 86) > 0.7) c = mix(c, p.slime, 0.22);
+  } else if (p.fabric === "bones") {
+    // Long bones stacked with their round ends out, and bands of skulls set in rows between.
+    const B = p.ore!, band = r >= 6 && r < 14 ? 6 : r >= 26 && r < 34 ? 26 : -1;
+    if (band >= 0) {
+      const sr = r - band, u = px + (band === 26 ? 5 : 0), sx = u % 10, id = Math.floor(u / 10);
+      const skull = ["..#####..", ".#######.", "#########", "#oo###oo#", "#oo###oo#", ".###o###.", "..#####..", "..#.#.#.."][sr];
+      c = B[0];
+      const ch = sx < 9 ? skull[sx] : ".";
+      if (ch === "o") c = [34, 26, 20];
+      else if (ch === "#") {
+        c = sr <= 1 ? B[3] : sx === 0 || sx === 8 || sr >= 6 ? B[1] : B[2];
+        if (h2(id, band, 87) < 0.25) c = mix(c, [150, 118, 76], 0.3);
+      }
+    } else {
+      const row = Math.floor(r / 4), u = px + (row & 1) * 2, lx = u % 5, ly = r % 4, id = h2(Math.floor(u / 5), row + base, 88);
+      const knob = ly < 3 && lx < 4 && !((lx === 0 || lx === 3) && (ly === 0 || ly === 2));
+      c = knob ? (ly === 0 || lx === 0 ? B[3] : lx === 3 || ly === 2 ? B[1] : B[2]) : B[0];
+      if (knob && id < 0.3) c = mix(c, [150, 118, 76], 0.35);
+      else if (knob && id > 0.85) c = shade(c, -20);
+    }
+  } else {
+    // The quarry face: beds of limestone, joints between, and the quarrymen's pick lines.
+    const bed = Math.floor((r + vn(px, 0, 20, 89) * 3) / 7);
+    c = f[[2, 3, 2, 1, 2][bed % 5]];
+    if (Math.floor((r + vn(px, 0, 20, 89) * 3)) % 7 === 0) c = f[0];
+    if (vn(px, r + base, 5, 90) > 0.72) c = shade(c, 8);
+    // Every so often a built pier of cut stone where the roof needed holding.
+    if (px % 112 < 22) {
+      const lr = r % 6, lx = (px % 112 + (Math.floor(r / 6) & 1) * 5) % 11;
+      c = lr === 5 || lx === 10 ? f[0] : lr === 0 || lx === 0 ? f[3] : f[2];
+    }
+  }
+  if (r < 6) c = mix(c, SHADE, (6 - r) / 9);
+  if (r >= FACE - 2) c = mix(c, BLACK, 0.3);
+  return c;
+}
+
+/** The thick rim of dressed blocks where the rock meets the open, bevelled, light above and left. */
+function blockPixel(p: SewerPalette, px: number, py: number, d: number): RGB {
+  const row = Math.floor(py / 8), u = px + (row & 1) * 7, lx = u % 14, ly = py % 8;
+  const k = h2(Math.floor(u / 14), row, 91);
+  let c = mix(p.face[k < 0.4 ? 1 : 2], p.rim, 0.3);
+  if (ly === 7 || lx === 13) c = mix(p.top, p.rim, 0.25);
+  else if (ly <= 1 || lx === 0) c = shade(c, ly === 0 || lx === 0 ? 24 : 12);
+  else if (ly === 6 || lx === 12) c = shade(c, -18);
+  else if (h2(px, py, 99) < 0.06) c = shade(c, -8);
+  return d > 14 ? mix(c, p.top, (d - 14) * 0.45) : c;
+}
 
 /** A mine's back wall: cut rock, a coal seam under its shale roof, or banded salt;
  * with the timber sets that hold the roof up. */
@@ -80,8 +188,9 @@ function railPixel(p: SewerPalette, col: RGB, px: number, py: number, along: boo
 }
 
 /** The back wall at row `r` of its face (0 at the top), column `px`. */
-function facePixel(p: SewerPalette, r: number, px: number, py: number): RGB {
+function facePixel(p: SewerPalette, r: number, px: number, py: number, painted = false): RGB {
   if (mined(p)) return rockPixel(p, r, px, py);
+  if (dug(p)) return catacombPixel(p, r, px, py + FACE - r, painted);
   const f = p.face;
   let c: RGB;
   if (p.fabric === "brick") {
@@ -163,6 +272,20 @@ function pipesOver(p: SewerPalette, c: RGB, r: number, px: number): RGB {
 }
 
 function pavedPixel(p: SewerPalette, ramp: RGB[], px: number, py: number): RGB {
+  if (dug(p)) {
+    // Trodden earth, and worn flags where the way was most used.
+    let c = ramp[vn(px, py, 9, 92) < 0.4 ? 1 : 2];
+    if (h2(px, py, 93) < 0.03) c = ramp[h2(px, py, 94) < 0.5 ? 0 : 3];
+    const row = Math.floor(py / 9), off = (row & 1) * 6, sx = Math.floor((px + off) / 12), lx = (px + off) % 12, ly = py % 9;
+    if (vn(sx * 12, row * 9, 40, 95) > 0.6 && h2(sx, row, 96) < 0.75 && lx < 11 && ly < 8 && !((lx === 0 || lx === 10) && (ly === 0 || ly === 7))) {
+      const k = h2(sx, row, 97);
+      c = mix(ramp[3], k < 0.4 ? p.face[2] : p.coping[1], 0.45);
+      if (ly === 0 || lx === 0) c = shade(c, 12);
+      else if (ly === 7 || lx === 10) c = shade(c, -18);
+      if (h2(px, py, 98) < 0.04) c = shade(c, -10);
+    }
+    return c;
+  }
   if (mined(p)) {
     // Trodden rock and grit, dust thicker along the walls.
     let c = ramp[vn(px, py, 11, 61) < 0.45 ? 1 : 2];
@@ -212,6 +335,14 @@ export function paintSewerTerrain(ctx: CanvasRenderingContext2D, level: SewerLev
   };
   const wall = (px: number, py: number) => cell(px, py) === WALL;
   const wet = (c: number) => c === WATER || c === DEEP;
+  const painted = new Uint8Array(w * h);
+  for (const r of level.rooms) if (r.use === "cubiculum" || r.use === "crypt") for (let y = r.y; y < r.y + r.h; y++) for (let x = r.x; x < r.x + r.w; x++) painted[y * w + x] = 1;
+  const rimmed = dug(p);
+  // Rows of rock between this pixel and the top of a wall face below it.
+  const above = (px: number, py: number, k: number) => {
+    while (k <= FACE + 17 && wall(px, py + k)) k++;
+    return k <= FACE + 17 ? k - FACE : 18;
+  };
   for (let py = 0; py < H; py++)
     for (let px = 0; px < W; px++) {
       const c = cell(px, py);
@@ -220,16 +351,18 @@ export function paintSewerTerrain(ctx: CanvasRenderingContext2D, level: SewerLev
         let k = 1;
         while (k <= FACE && wall(px, py + k)) k++;
         let up = 1;
-        while (up <= 6 && wall(px, py - up)) up++;
-        let side = 9;
-        for (let d = 1; d < 9; d++) if (!wall(px - d, py) || !wall(px + d, py)) {
+        while (up <= (rimmed ? 17 : 6) && wall(px, py - up)) up++;
+        let side = 18;
+        for (let d = 1; d < (rimmed ? 18 : 9); d++) if (!wall(px - d, py) || !wall(px + d, py)) {
           side = d;
           break;
         }
         if (k <= FACE && !wall(px, py + k)) {
-          col = facePixel(p, FACE - k, px, py);
+          col = facePixel(p, FACE - k, px, py, painted[((py + k) >> 4) * w + (px >> 4)] === 1);
           // Where the wall turns a corner, its edge catches the light.
           if (side === 1) col = mix(col, BLACK, 0.5);
+        } else if (rimmed && Math.min(side, up, above(px, py, k)) <= 16) {
+          col = blockPixel(p, px, py, Math.min(side, up, above(px, py, k)));
         } else if (up <= 6 && !wall(px, py - up)) {
           // The near edge of a floor above: its lip, then the dark below it.
           col = up <= 2 ? p.coping[up - 1] : mix(p.coping[2], BLACK, (up - 2) / 4);

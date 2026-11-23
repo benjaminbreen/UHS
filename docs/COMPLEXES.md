@@ -4,13 +4,13 @@ Large multi-area interiors generated from the seed one area at a time and walked
 
 ## Shared complex architecture
 
-Caves, sewers, mines, world's fairs, palaces and tombs are complexes:
+Caves, sewers, mines, world's fairs, palaces, tombs and prisons are complexes:
 
 - `src/world/complex.ts` holds the shape every area shares: exits (edge strips and doorways taking the player to the matching exit of another area, `exitAt`, `arrivalFrom`) and lifts (a stair, rope or shaft used with the action key).
 - `src/core/complex.ts` holds the active run (`state.complex`), per-complex record (`state.complexes`: finds taken, kills, areas walked), the host, and `KINDS` (one row per kind routing engine calls). A new kind is a row there, a generator in `src/world/`, a module in `src/core/`, and a view.
-- The walked kinds (fairs, palaces, tombs) share `cachedArea`, `arriveIn` (land beside the returning exit/lift, record the area as walked), `areaTarget` (lifts and things in reach), `burnLight`, and `complexMap`, drawn in the sidebar as `AreaMap` (`src/ui/Minimap.tsx`).
-- Caves and sewers remain stacks of levels with their own caches and arrival; they use `KINDS`, `takeFind`, and `burnLight` without exits.
-- `src/render/lamplight.ts` lights underground views and draws the lamp gauge. `WorldScene` has one `areaView` slot for a fair, palace, or tomb area.
+- The walked kinds (fairs, palaces, tombs, prisons) share `cachedArea`, `arriveIn` (land beside the returning exit/lift, record the area as walked), `areaTarget` (lifts and things in reach), `burnLight`, and `complexMap`, drawn in the sidebar as `AreaMap` (`src/ui/Minimap.tsx`).
+- Caves and the tunnel networks remain stacks of levels with their own caches and arrival; they use `KINDS`, `takeFind`, and `burnLight` without exits. Sewers, mines and catacombs are one tunnel system (`src/world/sewer.ts`, spaces `<network>:<site>:<depth>`), each network with its own draft, finds and palette.
+- `src/render/lamplight.ts` lights underground views and draws the lamp gauge. `WorldScene` draws a fair, palace, tomb or prison area in its `areaView` slot; caves, sewers and ships still have slots of their own.
 
 A new kind of large interior plugs in at those three places (`world/complex.ts`, `core/complex.ts`, `areaView`). Do not start a parallel system.
 
@@ -52,6 +52,16 @@ A fair is a `Fair` in `src/content/fairs/` (`london-1884.ts`, `paris-1889.ts`, `
 ## Tombs
 
 `src/world/tomb.ts` (`tombPlan`) lays out areas from entrance stair to burial chamber with shafts, side rooms, walled-up doorways, and grave goods from a `TombStyle` in `src/content/tombs/` (currently New Kingdom Thebes). `src/core/tomb.ts` handles cliff entrances (`tombMouthAt` / `tomb-mouth:x,y`), lamps, ropes, breaking blocked doorways, and finds; `src/render/tomb/` paints the rock and walls. Prompts naming a tomb start on its stair (`below: "tomb"`).
+
+Styles carry their own look, plan knobs (shafts, pillars, side rooms, litter), roles and default place. `crypt.ts` is the church crypt (Europe, 800 on): limewashed walls ruled in red over a stone dado, columned halls, side chapels, a charnel with bone walls and the saint's tomb with its reliquary. Cliff styles open from the cliffs (`tombMouthAt`). A crypt opens from a church: `churchBelow` in `src/core/tomb.ts` finds the church's stair, the floor cell farthest from its door, in European churches from 800; the crypt is keyed by the church door, and coming up puts the player back at the stair. A prompt naming a crypt, charnel house or undercroft starts on its stair.
+
+## Catacombs
+
+A tunnel network (`network: "catacomb"`) beside sewers and mines. `src/content/catacombs/` places them under Rome (from 150) and Paris (the ossuary, from 1786), with roles by year, finds and people; `src/world/catacomb.ts` drafts the levels. Rome is a maze of narrow galleries with loculi, painted family rooms (cubicula) and, on the second level, a martyr's room with its arch; Paris has bone-lined galleries over the quarry's pillar grid, flooded at the bottom. `src/render/sewer/terrain.ts` paints their walls (loculi, plaster panels with damp, stacked bones, quarry beds) with a bevelled block rim and worn flags on earth; `catacomb-art.ts` draws the graves, plaques, lamps and floor finds. Finds with a `glow` light the dark. Under Rome the catacombs open from a church's stair where the map has a church, and from a stair beside the first grave of each burial ground (`catacombStairs`). Under Paris three in ten manholes are the quarry inspectors' shafts into the ossuary. Prompts naming catacombs, fossors or the ossuary start on the stair (`below: "catacomb"`).
+
+## Finding the way in
+
+Entrances show in Nearby: cave and tomb mouths, the Roman stairs, and the church stair from inside the church. The day's errands send people down (`belowErrand` in the engine): sextons, fossors, pilgrims, clergy and relic hunters every day, anyone else one day in five, to the nearest church with a crypt or catacombs under it, or the nearest Roman burial ground; tomb robbers to the nearest tomb in the cliffs. The errand points at the church door or the stair.
 
 ## Towers (not a complex)
 

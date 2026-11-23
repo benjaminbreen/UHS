@@ -86,16 +86,16 @@ import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
 import { caveAct, caveBeastAt, caveMouthsNear, caveLevelOf, caveStrike } from "./cave";
 import { fairEnter } from "./fair";
-import { tombEnter, tombMouthsNear } from "./tomb";
+import { churchBelow, tombEnter, tombMouthAt, tombMouthsNear } from "./tomb";
 import { prisonDailyGoals, prisonEnter, prisonNight, prisonServe } from "./prison";
 import { prisonAt, prisonFromPrompt, prisonStyles } from "../content/prisons";
 import { fairAt, fairById } from "../content/fairs";
-import { tombAt } from "../content/tombs";
+import { tombAt, tombStyle } from "../content/tombs";
 import { complexAct, complexGround, complexInspect, complexMap, complexTime, complexVerb, isComplexId, walkedArea, type ComplexHost } from "./complex";
 import { folkOffer, type FolkHost } from "./tunnel-folk";
 import { shipAct, shipGround, shipInspect, shipLevelOf, shipStart, shipTime, shipVerb, voyageLook, type ShipHost } from "./ship";
-import { lidAt, mineEnter, mineLeave, minePeril, minePlace, sewerAct, sewerLevelOf, tunnelRun } from "./sewer";
-import { conditionOf, damageStructure, fabricOf, weatherStructure, type Structure } from "./time/structure";
+import { catacombEnter, catacombStairs, lidAt, mineEnter, mineLeave, minePeril, minePlace, sewerAct, sewerLevelOf, tunnelRun } from "./sewer";
+import { conditionOf, damageStructure, fabricOf, roofless, weatherStructure, type Structure } from "./time/structure";
 import { regardCue, WARM, WARY } from "./regard";
 import { resolveIntents, validateIntents } from "./intents";
 import { findPath } from "./pathfinding";
@@ -180,6 +180,7 @@ import {
   type FaunaTier,
   type Weapon,
 } from "./combat";
+import { WOUNDS, type FightResult } from "./skirmish-bridge";
 import { faunaAt, faunaCombat, faunaLook, faunaProfile } from "../content/fauna";
 import {
   cycleSpecies,
@@ -370,7 +371,7 @@ import {
   type ToolClass,
 } from "./reactions";
 import type { Ask, CallIn, Favour, Place, Point, Stats, WalkOff, WallWalk, Word } from "./types";
-import { momentRooms, type StartBrief } from "../content/geography/types";
+import { momentRooms, type StartBrief, type WorldSetting } from "../content/geography/types";
 const GROUND_HIT: Record<string, HitClass> = {
   water: "water",
   marsh: "marsh",
@@ -2741,6 +2742,8 @@ export class Engine {
               : { type: "talk" },
         }];
       });
+      const below = isolated ? undefined : this.belowErrand(today);
+      if (below) own.push(below);
       const feast = day?.festival;
       if (feast)
         own.unshift({
@@ -3059,6 +3062,7 @@ export class Engine {
     cue: (who, kind, toward) => this.cue(who, kind, toward),
     say: (who, text) => this.signal({ kind: "say", who, text }),
     itemName: (id) => this.item(id)?.name ?? id,
+    interior: (space) => this.interiorOf(space),
     unblock: (space, x, y) => void this.terrainCollision.delete(`${space}:${x},${y}`),
     rain: () => {
       const setting = this.world.pack.setting;
@@ -3109,7 +3113,7 @@ export class Engine {
   }
   /** The sewer level a space is, if it is one. */
   sewerOf(space: string) {
-    return space.startsWith("sewer:") || space.startsWith("mine:") ? sewerLevelOf(this.complex, space)?.level : undefined;
+    return /^(sewer|mine|catacomb):/.test(space) ? sewerLevelOf(this.complex, space)?.level : undefined;
   }
   /** Cells of a tunnel level no one can stand in: solid finds and fallen roof. */
   sewerSolid(space: string): ReadonlySet<number> {
@@ -3119,16 +3123,14 @@ export class Engine {
    * asked to begin underground. Stays in the open when there is none near. */
   /** Begins the life in the room the brief names, with its people already sitting round. */
   startMoment(m: NonNullable<StartBrief["moment"]>) {
-    const s = this.state, p = s.player, d = (b: Place) => distance({ ...doorApproach(b), space: "outside" }, p.pos);
-    const kind = MOMENT_ROOMS[m.where];
+    const s = this.state, p = s.player;
     if (m.hour !== undefined) {
       s.clock = Math.floor(s.clock / 86400) * 86400 + m.hour * 3600;
       for (const e of s.events) e.time = s.clock;
     }
     // A village with no such building holds it at the player's house.
-    const place = (kind && this.world.places.filter((b) => kind.test(b.claim) && this.interiorOf(b.id)).sort((a, b) => d(a) - d(b))[0])
-      || (m.where === "outside" ? undefined : this.world.place(this.household(p.householdId)?.residence ?? ""));
-    if (place && this.interiorOf(place.id)) p.pos = this.indoorSpot(p, place.id);
+    const home = this.world.place(this.household(p.householdId)?.residence ?? "");
+    if (!this.startIn(m.where) && m.where !== "outside" && home && this.interiorOf(home.id)) p.pos = this.indoorSpot(p, home.id);
     const until = s.clock + 3 * 3600, { x, y, space } = p.pos, walk = this.interiorOf(space)?.walk;
     // Standing close round the player, nearest places first.
     const round = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1], [2, 0], [-2, 0], [0, 2], [0, -2], [2, 1], [-2, 1], [2, -1], [-2, -1]]
@@ -3144,6 +3146,13 @@ export class Engine {
       this.routes.delete(a.id);
     }
     p.activity = m.doing;
+  }
+  /** Puts the player inside the nearest building of a kind, if the map has one. */
+  startIn(where: (typeof momentRooms)[number]) {
+    const p = this.state.player, d = (b: Place) => distance({ ...doorApproach(b), space: "outside" }, p.pos), kind = MOMENT_ROOMS[where];
+    const place = kind && this.world.places.filter((b) => kind.test(b.claim) && this.interiorOf(b.id)).sort((a, b) => d(a) - d(b))[0];
+    if (place) p.pos = this.indoorSpot(p, place.id);
+    return !!place;
   }
   /** Haul the player into the local prison on a magistrate's charge (e.g. hostile speech to a guard or noble). */
   arrest(charge: string, days = 7, by?: Actor): boolean {
@@ -3172,7 +3181,7 @@ export class Engine {
   serveSentence(): boolean {
     return prisonServe(this.complex);
   }
-  startBelow(where: "cave" | "sewer" | "mine" | "ship" | "fair" | "tomb" | "prison") {
+  startBelow(where: NonNullable<WorldSetting["below"]>) {
     const p = this.state.player.pos, d = (q: Point) => Math.hypot(q.x - p.x, q.y - p.y);
     if (where === "ship") return void shipStart(this.ships);
     // The life begins already down there: the climb takes none of the day.
@@ -3199,10 +3208,11 @@ export class Engine {
     if (where === "tomb") {
       const mouth = [...tombMouthsNear(this.world, p, 96)].sort((a, b) => d(a) - d(b))[0];
       if (mouth) this.state.player.pos = { x: mouth.x, y: mouth.y, space: "outside" };
-      const s = this.world.pack.setting, style = mouth?.style ?? (s && tombAt(s.lon, s.lat, s.year));
+      const s = this.world.pack.setting, style = (s?.venue && tombStyle(s.venue)) || mouth?.style || (s && tombAt(s.lon, s.lat, s.year));
       if (style) tombEnter(host, style);
       return;
     }
+    if (where === "catacomb") return void catacombEnter(host, p);
     if (where === "mine") {
       const b = this.world.places.filter((b) => b.institution === "mine").sort((a, b) => d(doorApproach(a)) - d(doorApproach(b)))[0];
       if (b) mineEnter(host, b);
@@ -3224,6 +3234,40 @@ export class Engine {
         }
   }
   /** What the action key does at a cave mouth, manhole or mine door, or beside something below. */
+  churchBelow(space: string) {
+    return churchBelow(this.complex, space);
+  }
+  catacombStairs() {
+    return catacombStairs(this.complex);
+  }
+  /** Now and then, and daily for the people whose work is there, an errand down
+   * into the crypt or catacombs under the nearest church, or to a tomb in the cliffs. */
+  private belowErrand(day: number): DailyGoal | undefined {
+    const p = this.state.player, role = p.role.toLowerCase(), d = (q: Point) => Math.hypot(q.x - p.pos.x, q.y - p.pos.y);
+    const keen = /sexton|fossor|pilgrim|relic|archaeolog|priest|monk|nun|canon|chaplain|deacon|gravedigger/.test(role);
+    if (/tomb robber/.test(role)) {
+      const mouth = [...tombMouthsNear(this.world, p.pos, 96)].sort((a, b) => d(a) - d(b))[0];
+      return mouth && { id: "below", slot: "own", text: "Find a way into the tombs cut in the cliffs.", check: { type: "reach", x: mouth.x, y: mouth.y } };
+    }
+    if (!keen && random(this.state.manifest.seed, "below-errand", day) > 0.2) return undefined;
+    let b: Place | undefined, below: ReturnType<typeof churchBelow>;
+    for (const c of this.world.places.filter((c) => d(c.entrance) < 90 && /^religious-/.test(c.claim)).sort((x, y) => d(x.entrance) - d(y.entrance)))
+      if ((below = churchBelow(this.complex, c.id))) {
+        b = c;
+        break;
+      }
+    if (!b || !below) {
+      const stair = catacombStairs(this.complex).sort((x, y) => d(x) - d(y))[0];
+      if (!stair || d(stair) > 120) return undefined;
+      const text = /fossor/.test(role) ? "Cut a new grave in the catacombs under the burial ground." : /relic|archaeolog/.test(role) ? "Search the catacombs under the burial ground." : keen ? "Pray at the martyrs' graves in the catacombs." : "Take a lamp and food to the family grave in the catacombs.";
+      return { id: "below", slot: "own", text, check: { type: "reach", x: stair.x, y: stair.y } };
+    }
+    const name = b.name;
+    const text = below.kind === "catacomb"
+      ? /fossor/.test(role) ? `Cut a new grave in the galleries under ${name}.` : /relic|archaeolog/.test(role) ? `Search the catacombs under ${name}.` : /pilgrim|priest|monk|nun|deacon/.test(role) ? `Pray at the martyrs' graves in the catacombs under ${name}.` : `Light a lamp at the family grave in the catacombs under ${name}.`
+      : /sexton/.test(role) ? `Trim the candles in the crypt under ${name}.` : keen ? `Pray at the saint's tomb in the crypt of ${name}.` : `Light a candle at the saint's tomb in the crypt of ${name}.`;
+    return { id: "below", slot: "own", text, check: { type: "reach", x: b.entrance.x, y: b.entrance.y } };
+  }
   complexVerb() {
     return complexVerb(this.complex);
   }
@@ -6331,6 +6375,26 @@ export class Engine {
   /** After a blow lands, about a real second in which no other can. */
   private hurtAt = -99;
   private guardUntil = -99;
+  /** Write a skirmish's result back onto the people who fought it: health,
+   * the marks it left on the player, the dead, and a player beaten down. */
+  settleFight(results: readonly FightResult[], by = "someone") {
+    for (const r of results) {
+      const me = r.id === this.state.player.id;
+      const a = me ? this.state.player : this.state.actors.find((x) => x.id === r.id);
+      if (!a || a.dead) continue;
+      a.health = Math.max(r.dead || r.down ? 0 : 1, Math.round((a.health ?? 100) * r.left));
+      if (!me) {
+        if (r.dead) this.dies(a, "of injuries after a fight");
+        continue;
+      }
+      for (const hurt of r.wounds) {
+        const mark = this.pickInjury(`fight:${hurt}:${r.wounds.length}`, WOUNDS[hurt]);
+        if (mark) this.injure(mark);
+      }
+      if (r.dead) this.die(`wounds from a fight with ${by}`);
+      else if (r.down) this.pendingCollapse = { by, part: this.pickInjury("beaten", WOUNDS.crush) ?? "bruises" };
+    }
+  }
   fighting() {
     return this.state.clock < this.combatUntil && this.state.actors.some((a) => a.terror?.fight && a.pos.space === this.state.player.pos.space);
   }
@@ -9060,6 +9124,9 @@ export class Engine {
           sprite: o.sprite,
           dist: d(o.pos.x, o.pos.y),
         });
+    const stair = p.space !== "outside" && !this.state.complex ? churchBelow(this.complex, p.space) : undefined;
+    if (stair && d(stair.at.x, stair.at.y) <= radius)
+      out.push({ id: `tomb-church:${p.space}`, name: stair.kind === "crypt" ? "Crypt stair" : "Stair to the catacombs", kind: "place", dist: d(stair.at.x, stair.at.y) });
     if (p.space === "outside") {
       for (const pl of this.world.places)
         if (d(pl.entrance.x, pl.entrance.y) <= radius)
@@ -9070,6 +9137,12 @@ export class Engine {
             sprite: pl.sprite,
             dist: d(pl.entrance.x, pl.entrance.y),
           });
+      for (const m of catacombStairs(this.complex))
+        if (d(m.x, m.y) <= radius) out.push({ id: `sewer-stair:${m.x},${m.y}`, name: "Stair to the catacombs", kind: "place", dist: d(m.x, m.y) });
+      for (const m of caveMouthsNear(this.world, p, radius)) {
+        const tomb = tombMouthAt(this.world, m.x, m.y);
+        if (d(m.x, m.y) <= radius) out.push({ id: `${tomb ? "tomb" : "cave"}-mouth:${m.x},${m.y}`, name: tomb ? "Rock-cut tomb" : "Cave mouth", kind: "place", dist: d(m.x, m.y) });
+      }
       const key = `${p.x},${p.y}`;
       if (this.nearbyPlants?.key !== key) {
         const items: NearbyThing[] = [];
@@ -9383,8 +9456,7 @@ export class Engine {
     if (place) {
       const door = this.doorOf(place.id);
       const verdict = this.doorVerdict(place, "player");
-      // A worn roof is still a roof; only a ruin's is not.
-      if ((place.structure?.roof ?? 1) >= 0.5) interact(
+      if (!roofless(place)) interact(
         "enter",
         place.entranceLabel,
         close && !!door?.open,
@@ -13121,6 +13193,7 @@ export class Engine {
           }
         }
         if (b && mineEnter(this.complex, b)) break;
+        if (b && roofless(b)) break;
         if (b) {
           const errand = this.state.asks?.find((x) => x.kind === "go-to" && x.place === b.id);
           const sender = errand && this.state.actors.find((x) => x.id === errand.by);

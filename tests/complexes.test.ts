@@ -5,6 +5,8 @@ import type { ComplexHost } from "../src/core/complex";
 import { fairInspect } from "../src/core/fair";
 import { resolveSetting } from "../src/content/geography/resolve";
 import { theban } from "../src/content/tombs/theban";
+import { crypt } from "../src/content/tombs/crypt";
+import { sewerLevel, WALL } from "../src/world/sewer";
 import { tombLevel, tombPlan, tombWalkable } from "../src/world/tomb";
 import { fairLevel, fairSolid, fairWalkable, type FairLevel } from "../src/world/fair";
 import { propDefs } from "../src/content/props/catalog";
@@ -540,6 +542,16 @@ describe("tombs", () => {
     expect(tombPlan("a", theban, "theban.0")).not.toEqual(tombPlan("b", theban, "theban.0"));
   });
 
+  it("builds every crypt area, and every level of the Roman catacombs and the Paris ossuary", () => {
+    for (const a of tombPlan("a", crypt, "crypt.0")) expect(tombLevel("a", crypt, "crypt.0", a.id)?.things.length, a.name).toBeGreaterThanOrEqual(0);
+    for (const [kind, lon, lat, year] of [["roman", 12.5, 41.9, 380], ["ossuary", 2.33, 48.83, 1810]] as const)
+      for (const depth of [1, 2, 3]) {
+        const L = sewerLevel("a", { id: "5,5", network: "catacomb", kind, place: { lon, lat, year }, people: [] }, depth);
+        expect(L.cells.filter((c) => c !== WALL).length, `${kind} ${depth}`).toBeGreaterThan(160);
+        expect(L.things.length, `${kind} ${depth}`).toBeGreaterThan(0);
+      }
+  });
+
   it("starts a tomb robber on the stair with a lamp, and a walled-up doorway comes down", () => {
     const r = resolveSetting("A tomb robber in Thebes, 1110 BCE");
     if (!("setting" in r)) throw new Error(r.error);
@@ -661,6 +673,31 @@ describe("tombs", () => {
     expect(te.state.player.pos.space).toBe(`tomb:theban.${spot!.x},${spot!.y}:0`);
   });
 
+  it("leads down from a church into its crypt and back up into the church, with an errand to send people there", async () => {
+    const { createSettingSession } = await import("../src/runtime/session");
+    const r = resolveSetting("A sexton in London, 1300");
+    if (!("setting" in r)) throw new Error(r.error);
+    const e = createSettingSession(r.setting, "crypt-stair");
+    const church = e.world.places.find((b) => e.churchBelow(b.id));
+    expect(church).toBeDefined();
+    const below = e.churchBelow(church!.id)!;
+    expect(below.kind).toBe("crypt");
+    e.state.player.pos = { ...below.at, space: church!.id };
+    const target = `tomb-church:${church!.id}`;
+    expect(e.complexVerb()?.target).toBe(target);
+    expect(e.nearby().some((n) => n.id === target)).toBe(true);
+    const res = e.act({ actionId: "crypt-in", expectedRevision: e.state.revision, command: { type: "interact", target, action: "complex" } });
+    expect(res).toMatchObject({ status: "completed" });
+    expect(e.state.player.pos.space).toBe(`tomb:crypt.${church!.entrance.x},${church!.entrance.y}:0`);
+    const exit = e.areaOf(e.state.player.pos.space)!.exits!.find((x) => x.to === "outside")!;
+    e.state.player.pos = { x: exit.x, y: exit.y, space: e.state.player.pos.space };
+    e.act({ actionId: "crypt-out", expectedRevision: e.state.revision, command: { type: "wait", seconds: 2 } });
+    expect(e.state.player.pos).toMatchObject({ ...below.at, space: church!.id });
+    e.state.player.role = "Sexton";
+    e.state.goalDay = undefined;
+    expect(e.dailyGoals().some((g) => g.id === "below" && /crypt/.test(g.text))).toBe(true);
+  });
+
   it.runIf(!!process.env.FULL)("places a fair gate in Paris 1889 and a palace complex door on York 1300's castle", async () => {
     const { createSettingSession } = await import("../src/runtime/session");
     const paris = resolveSetting("A baker in Paris, 1889");
@@ -704,6 +741,9 @@ describe("prisons, gaols, and confinement", () => {
     expect(e.state.player.pos.space).toBe("outside");
     expect(e.state.complex).toBeUndefined();
     expect(e.state.fugitive?.prison).toBeTruthy();
+    expect(e.arrest("debt", 7)).toBe(true);
+    expect(e.state.player.pos.space).toBe("prison:debtors-gaol.1:main");
+    expect(e.areaOf(e.state.player.pos.space)!.things!.some((t) => t.id === "spoon")).toBe(true);
   });
 
   it("escalates escape-catch penalties from solitary to corporal punishment to execution", () => {

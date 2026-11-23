@@ -54,14 +54,14 @@ export class TombView {
       return im;
     };
     for (const t of level.things) {
-      const s = paintTombThing(t.art, t.w ?? 1, t.h ?? 1, ((t.x * 7 + t.y * 3) % 10) / 10);
+      const s = paintTombThing(t.art, t.w ?? 1, t.h ?? 1, ((t.x * 7 + t.y * 3) % 10) / 10, style?.look, t.find);
       if (!s) continue;
       const flat = !t.wall && !t.solid;
       const im = put(s, t.x * 16, (t.wall ? t.y + 1 : t.y) * 16, t.id, t.wall || flat ? -99980 : (t.y + (t.h ?? 1) - 1) * 16 + 13);
       if (style && !tombFind(style, t.find)?.keeps) this.loose.set(t.id, im);
     }
     level.decor.forEach((d, i) => {
-      const s = d.solid && paintTombDecor(d.type, d.v);
+      const s = d.solid && paintTombDecor(d.type, d.v, style?.look);
       if (s) put(s, d.x * 16, d.y * 16, `decor-${i}`, d.y * 16 + 13);
     });
     for (const [i, l] of level.lifts.entries()) {

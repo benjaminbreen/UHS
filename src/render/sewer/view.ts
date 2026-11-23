@@ -89,7 +89,7 @@ export class SewerView {
     this.sheet = scene.textures.createCanvas(`${key}-sheet`, CELL * 16, TALL * Math.ceil(tallCount / 16 + 1))!;
     for (let i = 0; i < w * h; i++) if (level.cells[i] === WATER || level.cells[i] === DEEP) this.wet.push(i);
     this.objects.push(scene.add.image(0, 0, key).setOrigin(0, 0).setDepth(-99990));
-    const pal = paletteOf(level), name = level.network === "mine" ? `mine-${level.kind}` : level.layer === "old" ? "old" : level.kind;
+    const pal = paletteOf(level), name = level.network === "sewer" ? (level.layer === "old" ? "old" : level.kind) : `${level.network}-${level.kind}`;
     this.surface = new WaterSurface(scene, level, (i) => (level.cells[i] === WATER ? 1 : level.cells[i] === DEEP ? 2 : 0), (deep, across) => sewerTile(scene, pal, name, deep, across), -99986);
     this.objects.push(scene.add.image(0, 0, `${key}-top`).setOrigin(0, 0).setDepth(-99985));
     this.water = scene.add.graphics().setDepth(-99980);
@@ -170,6 +170,10 @@ export class SewerView {
     const add = (cx: number, cy: number, radius: number, rgb: readonly number[], power: number) => this.lamp.addStill(cx, cy, radius, rgb, power);
     const night = day < 0.15;
     for (const l of level.lamps) add(l.x + 0.5, l.y + 0.3, 5.5, [1, 0.78, 0.45], 0.75);
+    for (const t of level.things) {
+      const glow = sewerFind(t.find)?.glow;
+      if (glow) add(t.x + 0.5, t.y + (t.wall ? 0.8 : 0.5), 3.5, [1, 0.62, 0.3].map((v, i) => (parseInt(glow.slice(1 + i * 2, 3 + i * 2), 16) / 255 + v) / 2), 0.7);
+    }
     for (const s of level.shafts) {
       if (s.to !== "street" || !s.world) continue;
       // The onsetter's lamps at the shaft bottom; daylight down an adit.
@@ -460,6 +464,7 @@ export class SewerView {
     const where = {
       street: "UNDER THE STREET", trunk: "TRUNK SEWER", old: this.mine ? "OLD WORKINGS" : "BELOW THE SEWERS",
       level: this.level.mouth === "cage" ? "PIT BOTTOM" : "ADIT LEVEL", workings: "IN THE WORKINGS",
+      upper: this.level.kind === "ossuary" ? "THE OSSUARY" : "UPPER GALLERIES", lower: this.level.kind === "ossuary" ? "THE OLD QUARRIES" : "LOWER GALLERIES", deep: "THE FLOODED QUARRY",
     }[this.level.layer];
     this.hud.update(f.time, (g, x, y) => {
       g.fillStyle(0x0e120c, 0.85).fillRect(x - 2, y - 5, 62, 10);
