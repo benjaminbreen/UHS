@@ -15,7 +15,7 @@ import {
 } from "../src/content/characters/generate";
 import { workplaceFor } from "../src/content/characters/workplace";
 import { localLabel } from "../src/content/characters/officiant";
-import { livelihoods } from "../src/content/characters/livelihoods";
+import { livelihoodById, livelihoods } from "../src/content/characters/livelihoods";
 import { commonLivelihoods } from "../src/content/characters/livelihoods.generated";
 import { processFor } from "../src/content/economy/processes";
 import { propDefs } from "../src/content/props/catalog";
@@ -260,11 +260,10 @@ describe("work that needs what the place had", () => {
   });
 
   it("points every signature at work and places that exist", () => {
-    const known = new Set([...livelihoods, ...commonLivelihoods].map((l) => l.id));
     const placeIds = new Set(places.map((p) => p.id));
     for (const g of citySignatures) {
       for (const id of [...Object.keys(g.boost), ...Object.keys(g.labels ?? {})])
-        expect(known.has(id), `${g.id}: ${id}`).toBe(true);
+        expect(!!livelihoodById(id), `${g.id}: ${id}`).toBe(true);
       for (const p of g.scope.places ?? []) expect(placeIds.has(p), `${g.id}: ${p}`).toBe(true);
     }
   });
@@ -816,4 +815,19 @@ describe("inns and overnight lodging", () => {
     expect(engine.state.evening?.inn?.injuryEased).toBe(true);
     runtime.dispose();
   });
+});
+
+import { futureLivelihoods } from "../src/content/characters/future-work";
+import { recipeFor } from "../src/content/economy/recipes";
+import { CARDS } from "../src/content/cards";
+
+it("gives the future's work days of its own, with a card for every slot", () => {
+  const slots = new Set(CARDS.map((c) => c.slot));
+  for (const kit of futureLivelihoods) {
+    const recipe = recipeFor(kit);
+    expect(recipe?.ids, kit.id).toContain(kit.id);
+    const days = Array.isArray(recipe!.day) ? recipe!.day : [recipe!.day];
+    for (const step of days.flatMap((d) => ("steps" in d ? d.steps : [])))
+      if (step.card) expect(slots.has(step.card), `${kit.id}: ${step.card}`).toBe(true);
+  }
 });

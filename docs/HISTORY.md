@@ -63,7 +63,7 @@ Files in `src/content/history/` built this way:
 
 - `deaths.ts`: causes of death by place and date, for the years.
 - `households.ts`: who marries whom, at what age, and where the couple lives.
-- `tidings.ts`: one-line news of the wider world.
+- `tidings.ts`: one-line news of the wider world; after 2026 only trends, no named events or people. `talkOf` hands the same lines (or World Weaver's) to NPC dialogue as common talk.
 - `order.ts`: who keeps order and what penalties they use (engine, plots,
   dialogue).
 - `languages/`: what language people speak, by region and date (narrator).

@@ -97,4 +97,13 @@ export const TIDINGS: readonly Tiding[] = [
   { scope: { years: [1853, 1855], bounds: JAPAN }, text: "Black ships from America have anchored off Edo and will not leave." },
   { scope: { years: [1853, 1865], bounds: CHINA }, text: "The {Taiping} rebels hold Nanjing.", note: "The Taiping Heavenly Kingdom, led by Hong Xiuquan, 1851–1864." },
   { scope: { years: [1857, 1859], bounds: INDIA }, text: "The sepoys have risen against the Company." },
+  // Projection from here: trends, not events, and no names.
+  { scope: { years: [2030, 2037] }, text: "People say the new AI can do a week of office work in an afternoon, and nobody is sure what the offices will do.", note: "Projection." },
+  { scope: { years: [2035, 2045], bounds: [-10, 36, 30, 60] }, text: "No new petrol cars can be sold here any more.", note: "The EU and UK set 2035 as the end of new petrol and diesel car sales." },
+  { scope: { years: [2034, 2042], bounds: CHINA }, text: "The robotaxis have taken over the night shift, and the old drivers are learning to mend them.", note: "Projection." },
+  { scope: { years: [2027, 10001], bounds: JAPAN }, text: "Again this year more people died than were born, and the towns in the hills are emptying.", note: "Japan's population has fallen every year since 2010." },
+  { scope: { years: [2036, 2046] }, text: "Someone's grandmother was talked out of her savings by a fake video call from her grandson. It's the third this month.", note: "Projection." },
+  { scope: { years: [2038, 10001], bounds: INDIA }, text: "There was another week above forty-five degrees, and the factories have moved their shifts to the night.", note: "Projection." },
+  { scope: { years: [2047, 10001] }, text: "The first children taught all through school by AI tutors are leaving school this year.", note: "Projection." },
+  { scope: { years: [2048, 10001], bounds: [2, 5, 5, 8] }, text: "Lagos is bigger now than any city in Europe has ever been.", note: "The UN's projections put Lagos past thirty million by mid-century." },
 ];

@@ -52,7 +52,8 @@ the rice farmer and cultivator have a day per season, and `{crop}` is the crop
 on the household's own parcel. Days can also be dated: office staff (clerks,
 typists, secretaries, accountants, managers) keep a counting house before
 1880, a typewriter office until 1985 and a computer after, all at the
-workplace, with cards in `cards/office.ts`. Office staff are paid a wage by
+workplace, with cards in `cards/office.ts`. The work of `future-work.ts` has its days in
+`future-recipes.ts` and cards in `cards/future.ts`. Office staff are paid a wage by
 their supervisor (a recipe's `boss` names who pays, where it is not the
 local foreman). Scholars and scribes keep the
 older day of writing for whoever needs it.

@@ -352,4 +352,40 @@ export const citySignatures: readonly CitySignature[] = [
     boost: { warrior: 2 },
     evidence: "The early samurai fought as mounted archers; the warrior's way was called kyūba no michi, the way of horse and bow, and the yumi stayed a samurai weapon after the spear rose in the 1400s.",
   },
+  // From here on, projection: how software and robots move the work about.
+  {
+    id: "screen-work-thins",
+    scope: { years: [2032, 10001] },
+    boost: {
+      clerk: 0.5, "bank-clerk": 0.35, typist: 0.3, "office-worker": 0.6, "office-assistant": 0.5, receptionist: 0.5,
+      secretary: 0.5, "insurance-agent": 0.5, accountant: 0.6, programmer: 0.6, "software-developer": 0.7,
+      "ai-checker": 2.5, "appeals-advocate": 2.5, "identity-witness": 3, "learning-mentor": 1.5,
+    },
+    evidence: "Projection. Clerical and routine screen work was already the work most exposed to language models in the studies of 2023-25; the people who check, contest and vouch for what the software decided are the guess at what replaces it.",
+  },
+  {
+    id: "care-grows",
+    scope: { years: [2030, 10001] },
+    boost: { "care-worker": 1.8, nurse: 1.3, "hospital-orderly": 1.3, "paid-companion": 2, "end-of-life-companion": 2 },
+    evidence: "Projection. The UN's 2024 projections put the over-65s at about a sixth of the world by 2050 and over a third in Japan, Korea, Italy and Spain; care is the work hardest to hand to a machine.",
+  },
+  // Each region once: a box leaves out the ones listed before it.
+  ...([
+    [2037, [108, 18, 125, 42]],
+    [2039, [124, 30, 146, 46]],
+    [2040, [-125, 25, -60, 50]],
+    [2040, [44, 12, 60, 32]],
+    [2042, [-25, 35, 45, 72]],
+    [2044, [98, 18, 146, 54]],
+    [2046, [60, 5, 98, 37]],
+    [2052, [-180, -90, 180, 90]],
+  ] as const).map(([from, bounds], i, all): CitySignature => ({
+    id: `driving-thins-${from}-${bounds[0]}`,
+    scope: { years: [from, 10001], bounds, except: all.slice(0, i).map(([, b]) => b) },
+    boost: {
+      "cab-driver": 0.3, "lorry-driver": 0.5, "bus-driver": 0.6, chauffeur: 0.5, courier: 0.6, "delivery-rider": 0.4,
+      "remote-robot-operator": 3, "robot-mechanic": 3, "robot-hire-agent": 2,
+    },
+    evidence: "Projection. Four years after robots become ordinary on the street (the `robots` requirement), most taxis and much delivery are driverless and the drivers' places go to the people who mind and mend the machines.",
+  })),
 ];
