@@ -45,7 +45,7 @@ export const cityLivelihoods: readonly Livelihood[] = [
     sexUntil: 1975,
     sexShare: 0.08,
     rank: "middling",
-    labels: [...soviet("Secretary-Typist")],
+    labels: [...soviet("Secretary-Typist"), { scope: { years: [2035, 10001] }, label: "Office Coordinator" }],
     inventory: { water: 1, coin: 2, ledger: 1 },
   },
   {
@@ -166,11 +166,11 @@ export const cityLivelihoods: readonly Livelihood[] = [
     label: "Telemarketer",
     activity: "Keeping the record",
     tier: "industrial",
-    years: [1975, 10001],
+    years: [1975, 2040],
     requires: ["office"],
     weight: 0.3,
     rank: "labouring",
-    labels: [{ scope: { years: [1995, 10001], except: [NORTH_AMERICA] }, label: "Call Centre Agent" }],
+    labels: [{ scope: { years: [1995, 2040], except: [NORTH_AMERICA] }, label: "Call Centre Agent" }],
     inventory: { water: 1, coin: 1 },
   },
   {

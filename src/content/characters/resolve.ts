@@ -27,6 +27,7 @@ import { citySignatures } from "./signatures";
 import { commonLivelihoods } from "./livelihoods.generated";
 import { outlawLivelihoods } from "./outlaws";
 import { cityLivelihoods } from "./city-work";
+import { futureLivelihoods } from "./future-work";
 import { workplaceFor, type Workplace } from "./workplace";
 import { religiousProfile } from "../settlements/religious";
 import type { CharacterPhysique } from "../../core/character";
@@ -525,7 +526,7 @@ export function resolveCharacterContext(
     ? eligible.filter((l) => supported(l) && inScope(l, s, localRequirements))
     : eligible;
   const tiered = revised
-    ? [homemaker, ...commonLivelihoods, ...outlawLivelihoods, ...cityLivelihoods].filter(
+    ? [homemaker, ...commonLivelihoods, ...outlawLivelihoods, ...cityLivelihoods, ...futureLivelihoods].filter(
         (l) =>
           (!l.tier || tierApplies(l.tier, s, capabilities) || l.fromBeliefs && s.settlement !== "camp" && s.year >= 1900) &&
           supported(l) &&

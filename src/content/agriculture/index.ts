@@ -1,3 +1,4 @@
+import { knownSpan } from "../history/dates";
 import type { WorldSetting } from "../geography/types";
 import type { Climate, CropId, CropStage, FarmSystem, FarmSystemRule, Season } from "./types";
 import { crops } from "./crops";
@@ -9,7 +10,7 @@ export { farmSystems, genericFarming } from "./systems";
 
 /** Narrower date ranges win, so a specific period is not shadowed by a broad one. */
 const rules: FarmSystemRule[] = [...farmSystems].sort(
-  (a, b) => a.to - a.from - (b.to - b.from) || a.id.localeCompare(b.id),
+  (a, b) => knownSpan(a.from, a.to) - knownSpan(b.from, b.to) || a.id.localeCompare(b.id),
 );
 
 const resolved = new Map<string, FarmSystem>();

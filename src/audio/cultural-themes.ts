@@ -132,7 +132,7 @@ export const culturalThemes: CulturalTheme[] = [
       "Night market in the Northern Song capital; a flute, a pipa, a clapper.",
     place: "Song dynasty Kaifeng, c. 1100",
     culture: "east-asian",
-    years: [600, 2026],
+    years: [600, 10001],
     evidence:
       "Documented: dizi, pipa, guqin, zheng, paiban clappers, pentatonic modes in Song theory. The zhi-mode tune is fiction in that idiom.",
     bpm: 96,
@@ -207,7 +207,7 @@ export const culturalThemes: CulturalTheme[] = [
       "Kora and balafon under the court tree; a praise song without words.",
     place: "Mali Empire, c. 1350",
     culture: "west-central-african",
-    years: [1000, 2026],
+    years: [1000, 10001],
     evidence:
       "Documented: balafon and griot praise-singing at the Mali court (Ibn Battuta, 1352). The kora is attested later; the Lydian sauta tuning and 12/8 ostinato are inference from living Mande practice.",
     bpm: 200,
@@ -433,7 +433,7 @@ export const culturalThemes: CulturalTheme[] = [
       "Bronze keys and kettle gongs in the Majapahit capital; the big gong closes every phrase.",
     place: "Majapahit Java, c. 1350",
     culture: "southeast-asian",
-    years: [1000, 2026],
+    years: [1000, 10001],
     evidence:
       "Documented: bronze gong-chimes and metallophones on Javanese temple reliefs and in the Nagarakretagama (1365). Slendro's near-equal five steps are approximated; the colotomic lancaran form is inference from later court gamelan. The balungan is fiction.",
     bpm: 88,
@@ -489,7 +489,7 @@ export const culturalThemes: CulturalTheme[] = [
       "A koto and a court flute on the veranda; the sho breathes clusters behind them.",
     place: "Heian Kyoto, c. 1000",
     culture: "east-asian",
-    years: [700, 2026],
+    years: [700, 10001],
     evidence:
       "Documented: gagaku ensemble of ryuteki flute, sho mouth organ, gakuso koto, kakko, shoko and taiko; the Tale of Genji's moonlit concerts. The ritsu mode is documented; the tune is fiction.",
     bpm: 62,
@@ -694,7 +694,7 @@ export const culturalThemes: CulturalTheme[] = [
       "Interlocking mbira over a round bass and gourd rattles; the melody hides inside the pattern.",
     place: "Great Zimbabwe, c. 1300",
     culture: "east-southern-african",
-    years: [1000, 2026],
+    years: [1000, 10001],
     evidence:
       "Documented: Shona mbira and hosho rattles from Portuguese accounts (dos Santos, 1609) and living practice; lamellophones in the Zambezi region are older. Their presence at Great Zimbabwe, the four-chord cycle and the tune are inference and fiction.",
     bpm: 210,
@@ -868,7 +868,7 @@ export const culturalThemes: CulturalTheme[] = [
       "A throat-sung drone, a galloping drum, and overtones whistling above them.",
     place: "Mongol steppe, c. 1250",
     culture: "inner-eurasian",
-    years: [800, 2026],
+    years: [800, 10001],
     evidence:
       "Documented: music at the Mongol court (William of Rubruck, 1254), frame drums, and bowed and plucked lutes. Throat singing and the horsehead fiddle are attested only later; their use here is inference. The overtone melody follows the drone's harmonic series, so C sits on the flat seventh harmonic.",
     bpm: 180,

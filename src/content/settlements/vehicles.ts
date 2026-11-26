@@ -10,6 +10,13 @@ export type VehicleModel = keyof typeof catalog;
  * common here. Weights are art frequencies, not registration figures. */
 type Pool = { model: VehicleModel; weight: number; from?: number; to?: number }[];
 
+// Projection after 2026: electric cars first in China and Europe, driverless
+// taxis and parcel pods where the `robots` requirement starts.
+const electric = (from: number, weight = 3): Pool => [
+  { model: "ev-2030", weight, from },
+  { model: "ev-mini", weight: weight / 2, from: from + 4 },
+];
+
 const american: Pool = [
   { model: "tourer-1915", weight: 3 },
   { model: "sedan-1935", weight: 3 },
@@ -22,6 +29,8 @@ const american: Pool = [
   { model: "suv-2010", weight: 3, from: 2000 },
   { model: "van", weight: 1, from: 1960, to: 1980 },
   { model: "beetle", weight: 1, from: 1955, to: 1980 },
+  { model: "ev-2030", weight: 4, from: 2026 },
+  { model: "robotaxi", weight: 2, from: 2034 },
 ];
 
 const pools: Record<string, Pool> = {
@@ -39,8 +48,10 @@ const pools: Record<string, Pool> = {
     { model: "compact-1985", weight: 3 },
     { model: "lada", weight: 1, from: 1975, to: 1995 },
     { model: "van", weight: 1, to: 1985 },
-    { model: "sedan-2005", weight: 4 },
-    { model: "suv-2010", weight: 1, from: 2005 },
+    { model: "sedan-2005", weight: 4, to: 2035 },
+    { model: "suv-2010", weight: 1, from: 2005, to: 2035 },
+    ...electric(2024, 4),
+    { model: "robotaxi", weight: 1, from: 2038 },
   ],
   "western-europe": [
     { model: "tourer-1915", weight: 2 },
@@ -51,8 +62,10 @@ const pools: Record<string, Pool> = {
     { model: "mini", weight: 1 },
     { model: "van", weight: 1, to: 1985 },
     { model: "compact-1985", weight: 3 },
-    { model: "sedan-2005", weight: 4 },
-    { model: "suv-2010", weight: 1, from: 2008 },
+    { model: "sedan-2005", weight: 4, to: 2035 },
+    { model: "suv-2010", weight: 1, from: 2008, to: 2035 },
+    ...electric(2024, 4),
+    { model: "robotaxi", weight: 1, from: 2038 },
   ],
   "eastern-europe": [
     { model: "sedan-1935", weight: 1 },
@@ -62,6 +75,7 @@ const pools: Record<string, Pool> = {
     { model: "compact-1985", weight: 1, from: 1995 },
     { model: "sedan-2005", weight: 3, from: 2000 },
     { model: "suv-2010", weight: 2, from: 2005 },
+    ...electric(2032, 2),
   ],
   japan: [
     { model: "sedan-1935", weight: 1, to: 1955 },
@@ -70,7 +84,9 @@ const pools: Record<string, Pool> = {
     { model: "sedan-1968", weight: 1, from: 1965, to: 1985 },
     { model: "compact-1985", weight: 4 },
     { model: "van", weight: 1 },
-    { model: "sedan-2005", weight: 3 },
+    { model: "sedan-2005", weight: 3, to: 2040 },
+    { model: "ev-2030", weight: 2, from: 2028 },
+    { model: "robotaxi", weight: 1, from: 2036 },
   ],
   "south-asia": [
     { model: "sedan-1935", weight: 1, to: 1960 },
@@ -78,13 +94,18 @@ const pools: Record<string, Pool> = {
     { model: "kei", weight: 3, from: 1983 },
     { model: "sedan-2005", weight: 2, from: 2000 },
     { model: "suv-2010", weight: 1, from: 2005 },
+    ...electric(2030, 3),
+    { model: "robotaxi", weight: 1, from: 2044 },
   ],
   "east-asia": [
     { model: "volga", weight: 2, to: 1995 },
     { model: "compact-1985", weight: 4, from: 1985 },
     { model: "van", weight: 1, from: 1985 },
-    { model: "sedan-2005", weight: 4 },
-    { model: "suv-2010", weight: 2, from: 2005 },
+    { model: "sedan-2005", weight: 4, to: 2032 },
+    { model: "suv-2010", weight: 2, from: 2005, to: 2035 },
+    ...electric(2021, 4),
+    { model: "robotaxi", weight: 3, from: 2030 },
+    { model: "delivery-pod", weight: 1, from: 2024 },
   ],
   "latin-america": [
     { model: "sedan-1935", weight: 2 },
@@ -96,6 +117,7 @@ const pools: Record<string, Pool> = {
     { model: "pickup-1975", weight: 2 },
     { model: "compact-1985", weight: 3 },
     { model: "sedan-2005", weight: 3 },
+    ...electric(2032, 2),
   ],
   "sub-saharan-africa": [
     { model: "sedan-1935", weight: 1 },
@@ -104,6 +126,7 @@ const pools: Record<string, Pool> = {
     { model: "pickup-1975", weight: 3 },
     { model: "van", weight: 3 },
     { model: "sedan-2005", weight: 3 },
+    ...electric(2035, 2),
   ],
   "southern-africa": [
     { model: "beetle", weight: 2 },
@@ -112,6 +135,7 @@ const pools: Record<string, Pool> = {
     { model: "pickup-1975", weight: 4 },
     { model: "van", weight: 2 },
     { model: "sedan-2005", weight: 3 },
+    ...electric(2034, 2),
   ],
   "west-asia-north-africa": [
     { model: "sedan-1935", weight: 1 },
@@ -120,6 +144,8 @@ const pools: Record<string, Pool> = {
     { model: "pickup-1975", weight: 2 },
     { model: "van", weight: 2 },
     { model: "sedan-2005", weight: 3 },
+    ...electric(2030, 2),
+    { model: "robotaxi", weight: 1, from: 2034 },
   ],
   "southeast-asia": [
     { model: "compact-1985", weight: 3 },
@@ -127,6 +153,7 @@ const pools: Record<string, Pool> = {
     { model: "pickup-1975", weight: 3 },
     { model: "van", weight: 2 },
     { model: "sedan-2005", weight: 3 },
+    ...electric(2026, 3),
   ],
 };
 
@@ -137,8 +164,9 @@ export type ParkedCar = {
   about: string;
 };
 
-/** Models on the street at this place and date, weighted. A model stays on
- * the road for a decade and more after it stops being built, fewer each year. */
+/** Models on the street at this place and date, weighted. A model arrives
+ * over its first eight years and stays on the road for fifteen after it stops
+ * being built, fewer each year. */
 export function vehiclePool(s: WorldSetting) {
   const pool = pools[modernity(s).id] ?? american;
   return pool.flatMap((p) => {
@@ -147,7 +175,7 @@ export function vehiclePool(s: WorldSetting) {
       to = Math.min(b, p.to ?? b);
     if (s.year < from || s.year >= to + 15) return [];
     const fade = s.year < to ? 1 : 1 - (s.year - to) / 15;
-    return [{ ...p, weight: p.weight * fade }];
+    return [{ ...p, weight: p.weight * fade * Math.min(1, (s.year - from + 1) / 8) }];
   });
 }
 

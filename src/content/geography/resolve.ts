@@ -5,7 +5,7 @@ import { courtStart, fairFromPrompt, postFor, residentFromPrompt, requestedRoom,
 import { formatHistoricalYear } from "../../core/calendar";
 import { tombAt, tombStyle, type TombStyle } from "../tombs";
 import { catacombKindAt, catacombRole } from "../catacombs";
-import { eraAt, glacialTundraLatitude } from "../history/dates";
+import { eraAt, glacialTundraLatitude, LAST_YEAR, PRESENT_YEAR } from "../history/dates";
 import { random } from "../../core/random";
 import { populateCharacter } from "./character";
 import { berthFor, atBerth } from "./regions/ports";
@@ -42,7 +42,9 @@ const periods: [string[], number, number][] = [
   [["early modern"], 1500, 1749],
   [["victorian"], 1837, 1901],
   [["modern"], 1900, 1989],
-  [["contemporary"], 1990, 2026],
+  [["present day", "today"], PRESENT_YEAR, PRESENT_YEAR],
+  [["contemporary"], 1990, PRESENT_YEAR],
+  [["near future", "future"], PRESENT_YEAR + 1, LAST_YEAR],
 ];
 const zones: [string[], string[]][] = [
   [
@@ -66,6 +68,10 @@ const zones: [string[], string[]][] = [
     ["burma", "java"],
   ],
 ];
+const upTo = (year: number) => {
+  if (year > LAST_YEAR) throw Error(`The game runs up to ${LAST_YEAR}.`);
+  return year;
+};
 export function dateFromPrompt(
   input: string,
   fallback: number,
@@ -79,7 +85,7 @@ export function dateFromPrompt(
   if (exact) {
     if (+exact[1] === 0)
       throw Error("Use 1 BCE or 1 CE; era labels have no year zero.");
-    return exact[2].startsWith("b") ? 1 - +exact[1] : +exact[1];
+    return exact[2].startsWith("b") ? 1 - +exact[1] : upTo(+exact[1]);
   }
   const century =
     /\b(\d{1,3})(?:st|nd|rd|th)?\s+century(?:\s+(bce|bc))?\b/.exec(q);
@@ -87,15 +93,17 @@ export function dateFromPrompt(
     if (+century[1] === 0) throw Error("Use a century starting at 1.");
     const n = +century[1];
     const first = century[2] ? 1 - n * 100 : (n - 1) * 100 + 1;
-    return (
-      first +
-      (seed === undefined
-        ? 49
-        : Math.floor(random(seed, "starting-year", q) * 100))
-    );
+    const span = Math.min(100, LAST_YEAR - upTo(first) + 1);
+    return first + (seed === undefined
+      ? Math.min(49, span - 1)
+      : Math.floor(random(seed, "starting-year", q) * span));
+  }
+  const decade = /\b(\d{3}0)s\b/.exec(q);
+  if (decade) {
+    return Math.min(LAST_YEAR, upTo(+decade[1]) + (seed === undefined ? 5 : Math.floor(random(seed, "starting-year", q) * 10)));
   }
   const year = /(?:^|\s)(-?\d{1,7})(?=\s|$)/.exec(q);
-  if (year) return +year[1];
+  if (year) return upTo(+year[1]);
   const period = periods.find(([words]) => words.some((w) => has(q, w)));
   if (!period) return fallback;
   return (

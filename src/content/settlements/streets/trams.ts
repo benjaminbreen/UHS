@@ -7,8 +7,8 @@ import { modernity } from "../modernity";
 const windows: Record<string, [number, number]> = {
   "north-america": [1888, 1950],
   britain: [1880, 1960],
-  "western-europe": [1880, 2030],
-  "eastern-europe": [1890, 2030],
+  "western-europe": [1880, 10001],
+  "eastern-europe": [1890, 10001],
   japan: [1895, 1970],
   australasia: [1885, 1960],
   "latin-america": [1880, 1960],

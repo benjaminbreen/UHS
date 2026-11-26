@@ -1,5 +1,5 @@
 import { rulerDress } from "./rulers";
-import type { GarmentKit, Option } from "../types";
+import type { GarmentKit } from "../types";
 
 /**
  * Sets that cut across region. A uniform, a pressure suit and court dress are
@@ -7,58 +7,10 @@ import type { GarmentKit, Option } from "../types";
  * or copied everywhere, which is exactly why they need `priority`: they beat
  * whatever the place would otherwise have worn.
  *
- * All but the aristocratic set and the future set are reached by role, which
+ * All but the aristocratic set are reached by role, which
  * is how a world-weaver prompt gets at them: ask for a sailor and you get a
  * sailor, wherever and whenever the world is set.
  */
-const anyone = <T,>(v: T, weight = 1): Option<T> => ({ value: v, weight });
-
-/** After 2040, past any year a random start lands in: the present is dressed
- * by its regions. Deliberately restrained: everyday clothing that survived, plus
- * the coverall, and colour that costs nothing to make. */
-export const futureDress: readonly GarmentKit[] = [
-  {
-    id: "future",
-    label: "After 2040 · synthetic everyday",
-    scope: { years: [2040, 10001] },
-    priority: 1,
-    garment: [
-      anyone("shirt", 6),
-      anyone("coat", 4),
-      anyone("suit", 4),
-      anyone("long-tunic", 2),
-      { value: "dress", weight: 3, sex: ["female"] },
-      { value: "gown", weight: 1, means: ["elite"] },
-    ],
-    leggings: [anyone("trousers", 7), anyone("wide", 2), anyone("hose", 2)],
-    headwear: [
-      anyone("none", 6),
-      { value: "ball-cap", weight: 3, ages: ["child", "youth", "adult"] },
-      anyone("visor", 2),
-      anyone("cap", 2),
-      { value: "headscarf", weight: 2, sex: ["female"] },
-      anyone("brimmed", 1),
-    ],
-    footwear: [anyone("shoes", 7), anyone("boots", 4), anyone("sandals", 2)],
-    material: [
-      anyone("synthetic", 7),
-      anyone("cotton", 4),
-      anyone("wool", 1),
-    ],
-    dye: [
-      anyone("white", 4),
-      anyone("vat", 4),
-      anyone("chrome", 3),
-      anyone("soot", 3),
-      anyone("ash", 3),
-      anyone("aniline", 3),
-      anyone("bleached", 2),
-      anyone("vermilion", 2),
-      { value: "goldthread", weight: 1, means: ["wealthy", "elite"] },
-    ],
-    motif: [anyone("plain", 6), anyone("band", 2), anyone("placket", 2)],
-  },
-];
 
 export const workingSets: readonly GarmentKit[] = [
   ...(["pilot", "mountaineer"] as const).map((role): GarmentKit => ({
@@ -510,5 +462,4 @@ export const specialSets: readonly GarmentKit[] = [
   ...romanOffice,
   ...rulerDress,
   ...courtDress,
-  ...futureDress,
 ];

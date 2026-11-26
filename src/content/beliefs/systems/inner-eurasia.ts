@@ -841,7 +841,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Central Asian Islamic practice with Sufi and shrine elements",
     wiki: "https://en.wikipedia.org/wiki/Islam_in_Central_Asia",
-    scope: { years: [900, 2025], bounds: [52.5, 32, 85, 50] },
+    scope: { years: [900, 10001], bounds: [52.5, 32, 85, 50] },
     powers: [
       {
         name: "Allah",
@@ -1177,7 +1177,7 @@ export const innerEurasia: readonly BeliefSystem[] = [
     realm: "buddhist",
     label: "Mongolian Buddhist practice",
     wiki: "https://en.wikipedia.org/wiki/Buddhism_in_Mongolia",
-    scope: { years: [1578, 2025], bounds: [87, 41.5, 120, 52.5], cultures: ["inner-eurasian", "east-asian"] },
+    scope: { years: [1578, 10001], bounds: [87, 41.5, 120, 52.5], cultures: ["inner-eurasian", "east-asian"] },
     powers: [
       { name: "Buddha Shakyamuni", wiki: "https://en.wikipedia.org/wiki/Gautama_Buddha", domain: "awakening, the teaching", rank: "paramount" },
       { name: "Avalokiteshvara", wiki: "https://en.wikipedia.org/wiki/Avalokiteshvara", domain: "compassion", rank: "major" },

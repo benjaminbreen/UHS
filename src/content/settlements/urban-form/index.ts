@@ -1,3 +1,4 @@
+import { knownSpan } from "../../history/dates";
 import type { WorldSetting } from "../../geography/types";
 import { networkOnset } from "../../geography/onsets";
 import type { EarthFinish, GroundUse, UrbanForm, UrbanFormRule } from "./types";
@@ -20,7 +21,7 @@ const rules: UrbanFormRule[] = [
   ...africaForms,
   ...southeastAsiaForms,
   ...modernForms,
-].sort((a, b) => a.to - a.from - (b.to - b.from) || a.id.localeCompare(b.id));
+].sort((a, b) => knownSpan(a.from, a.to) - knownSpan(b.from, b.to) || a.id.localeCompare(b.id));
 
 /** An unprofiled place gets a plainly labelled generic town, never another
  * region's fabric. Culture families with no urban entry here are not being

@@ -20,7 +20,16 @@ Refine history inside an era with scoped dates, never by adding or moving eras.
 | `later-middle` | 1000–1500 |
 | `early-modern` | 1500–1750 |
 | `1750-1850`, `1850-1914`, `1914-1945`, `1945-1990` | as named |
-| `contemporary` | 1990 on |
+| `contemporary` | 1990–2060 |
+
+The history is written up to `PRESENT_YEAR` (2026) in `dates.ts`. Years after
+it, to `LAST_YEAR` (2060), are projection: a player gets there by naming the year,
+"the 2050s" or "the near future", never from a random start. A range that holds
+now ends at `10001`, not at the current year, so it carries on into the
+projection; give it a real end year only when something is expected to stop it.
+Rankers that prefer the narrower range measure it with `knownSpan`, so an open
+end does not make an entry look broad. Projected content says so in a comment
+or `note`, the way inference does.
 
 Years are astronomical: `0` is 1 BCE, `-6499` is 6500 BCE. Use `bce(6500)` from
 `dates.ts`, not hand-written negative arithmetic. Ranges are `[start, end)`.

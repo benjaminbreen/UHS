@@ -411,7 +411,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
     realm: "orthodox",
     features: ["sacred-texts"],
     label: "Ethiopian Orthodox Christian practice",
-    scope: { years: [350, 2025], bounds: [30, 0, 52, 18] },
+    scope: { years: [350, 10001], bounds: [30, 0, 52, 18] },
     wiki: "https://en.wikipedia.org/wiki/Ethiopian_Orthodox_Tewahedo_Church",
     powers: [
       {
@@ -484,7 +484,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
     worship: ["Islam"],
     realm: "islam",
     label: "Early Swahili coast Islam with older layers",
-    scope: { years: [800, 2025], bounds: [38.8, -14, 46, 4] },
+    scope: { years: [800, 10001], bounds: [38.8, -14, 46, 4] },
     wiki: "https://en.wikipedia.org/wiki/Swahili_culture",
     powers: [
       {
@@ -911,7 +911,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
     id: "malagasy-razana-practice",
     realm: "malagasy",
     label: "Malagasy razana practice",
-    scope: { years: [600, 2025], bounds: [39, -26, 52, -10] },
+    scope: { years: [600, 10001], bounds: [39, -26, 52, -10] },
     wiki: "https://en.wikipedia.org/wiki/Malagasy_mythology",
     powers: [
       {
@@ -1081,7 +1081,7 @@ export const eastSouthernAfrica: readonly BeliefSystem[] = [
     realm: "protestant",
     label: "Modern East and Southern African practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_Africa",
-    scope: { years: [1920, 2025], bounds: [10, -36, 52, 18] },
+    scope: { years: [1920, 10001], bounds: [10, -36, 52, 18] },
     powers: [
       { name: "God", wiki: "https://en.wikipedia.org/wiki/God", domain: "the one God of the churches and the mosque", rank: "paramount" },
       { name: "Jesus", wiki: "https://en.wikipedia.org/wiki/Jesus", domain: "salvation, healing", rank: "major" },

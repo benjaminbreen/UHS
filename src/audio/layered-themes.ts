@@ -84,7 +84,7 @@ export const layeredThemes: LayeredTheme[] = [
       "An iron bell keeps the timeline; drums cross it two against three until the ivory horns answer.",
     place: "Asante Kumasi, c. 1750",
     culture: "west-central-african",
-    years: [1500, 2026],
+    years: [1500, 10001],
     evidence:
       "Documented: Asante fontomfrom drum ensembles, ntahera ivory horn ensembles and iron bells (Bowdich, 1819). The seven-stroke 12/8 bell timeline is documented across West Africa; its use here and the horn calls are inference.",
     bpm: 336,
@@ -168,7 +168,7 @@ export const layeredThemes: LayeredTheme[] = [
       "A fiddle calls, a lyre answers, and a buzzing bass lyre holds the ground in ambassel.",
     place: "Gondar, Ethiopia, c. 1650",
     culture: "east-southern-african",
-    years: [1500, 2026],
+    years: [1500, 10001],
     evidence:
       "Documented: masenqo fiddle, krar lyre, begena bass lyre and kebero drum in Ethiopian practice; the begena's buzzing strings are characteristic. The qenet modes are known from later practice; ambassel here, the call-and-answer form and the tune are inference and fiction.",
     bpm: 250,
@@ -251,7 +251,7 @@ export const layeredThemes: LayeredTheme[] = [
       "A gourd drum, a sharkskin drum far off, and a nose flute with three notes and a lot of sky.",
     place: "Hawaiʻi Island, c. 1500",
     culture: "australian-pacific",
-    years: [1200, 2026],
+    years: [1200, 10001],
     evidence:
       "Documented: ipu heke gourd drums, pahu drums, pūʻili bamboo rattles, ʻohe hano ihu nose flutes and the ʻukēkē mouth bow in Hawaiian practice. Chanted mele, the heart of the music, is left out; the flute's three pitches and the phrases are inference and fiction.",
     bpm: 70,
@@ -442,7 +442,7 @@ export const layeredThemes: LayeredTheme[] = [
       "A one-note whistle and a flute trade pulses; sticks and drums lean three against two beneath them.",
     place: "Aka forest camps, Congo basin, c. 1500",
     culture: "west-central-african",
-    years: [1000, 2026],
+    years: [1000, 10001],
     evidence:
       "Documented: Aka and Mbuti interlocking polyphony and hindewhu whistle-and-voice hocket (Simha Arom; 20th-century recordings). Singing, the core, is carried here by flutes and a harp; projecting the practice five centuries back is inference, and the parts are fiction in that idiom.",
     bpm: 360,
@@ -630,7 +630,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Double-reed pipe over a reed drone; the drummer lays fives and threes across the eight-beat cycle and lands on one.",
     place: "Chola Thanjavur, c. 1000",
     culture: "south-asian",
-    years: [800, 2026],
+    years: [800, 10001],
     evidence:
       "Documented: Chola temple inscriptions endow drummers and pipers; periya melam (nagaswaram, drone pipe, thavil, cymbals) belongs to later South Indian temple practice. Adi tala and raga Kalyani are later formalisations; the cross-rhythms and melody are inference and fiction.",
     bpm: 200,
@@ -703,7 +703,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Slit drums interlock at full speed over a skin drum; a nose flute floats high above.",
     place: "Rarotonga, Cook Islands, c. 1750",
     culture: "australian-pacific",
-    years: [1200, 2026],
+    years: [1200, 10001],
     evidence:
       "Documented: pahu skin drums and slit gongs across East Polynesia in early European accounts; pātē and tōʻere ensembles in Cook Islands and Tahitian practice are recorded later. The interlocking parts are inference from that practice; the flute line is fiction.",
     bpm: 480,
@@ -924,7 +924,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Jaranas strum six against three, the harp walks the bass, and heels answer on the wooden platform.",
     place: "Sotavento, Veracruz, c. 1850",
     culture: "mesoamerican",
-    years: [1750, 2026],
+    years: [1750, 10001],
     evidence:
       "Documented: son jarocho's jarana, requinto and arpa jarocha, the fandango gathering and zapateado on the tarima, from the 18th-century Inquisition records onward. The 6/8–3/4 alternation (sesquiáltera) is characteristic; the son itself is original.",
     bpm: 300,
@@ -973,7 +973,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Clave, güiro and the cinquillo on timbales; a flute over piano and violins, evening in Havana.",
     place: "Havana, c. 1880",
     culture: "other-indigenous-american",
-    years: [1879, 2026],
+    years: [1879, 10001],
     evidence:
       "Documented: the danzón of Miguel Faílde (Matanzas, 1879) and the orquesta típica and charanga with flute, violins, piano, güiro and timbales; the cinquillo and clave are its rhythmic cells. The piece is original in that idiom.",
     bpm: 100,
@@ -1047,7 +1047,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Bandoneón over a marcato piano and a three-three-two bass; no drums, as in the real thing.",
     place: "Buenos Aires, c. 1915",
     culture: "andean",
-    years: [1880, 2026],
+    years: [1880, 10001],
     evidence:
       "Documented: the orquesta típica of bandoneón, violin, piano and double bass, the marcato in four and the 3-3-2 rhythm inherited from the habanera; tango bands used no drum kit. The tango is original.",
     bpm: 116,
@@ -1096,7 +1096,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Ukulele strum, slack-key thumb bass and a sliding steel guitar; Hawaiʻi in the gramophone years.",
     place: "Honolulu, c. 1915",
     culture: "australian-pacific",
-    years: [1890, 2026],
+    years: [1890, 10001],
     evidence:
       "Documented: the ukulele from the Madeiran braguinha (1879), the steel guitar credited to Joseph Kekuku (c. 1889), and slack-key guitar in open G ('taro patch') tuning; hapa haole songs reached the mainland by the 1915 Panama-Pacific Exposition. The tune is original.",
     bpm: 84,
@@ -1136,7 +1136,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Silk and bamboo: an erhu states the tune, a flute embroiders it, a dulcimer rings it out an octave higher.",
     place: "Suzhou, Qing China, c. 1780",
     culture: "east-asian",
-    years: [1600, 2026],
+    years: [1600, 10001],
     evidence:
       "Documented: Jiangnan sizhu ('silk and bamboo') teahouse ensembles of erhu, dizi, yangqin and pipa, built on heterophonic variation of one tune; the yangqin arrives from the West in the Ming–Qing period. Sizhu as a named genre is recorded from the late Qing; the tune is original.",
     bpm: 72,
@@ -1334,7 +1334,7 @@ export const layeredThemes: LayeredTheme[] = [
       "A gong circle carries the tune, xylophones double it in octaves, a reed pipe floats free, all in seven near-equal steps.",
     place: "Angkor, Khmer Empire, c. 1150",
     culture: "southeast-asian",
-    years: [800, 2026],
+    years: [800, 10001],
     evidence:
       "Documented: Angkor Wat and Bayon reliefs show gong circles, harps, reed pipes, drums and cymbals; Zhou Daguan (1296) describes court music. The pinpeat ensemble, stratified heterophony and near-equal seven-step tuning are known from later Khmer and Thai practice; applying them to Angkor and the tune are inference and fiction.",
     bpm: 96,
@@ -1480,7 +1480,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Vibraphone and Farfisa over a limping 12/8, horns in unison: Addis Ababa's golden age of Ethio-jazz.",
     place: "Addis Ababa, c. 1972",
     culture: ["east-southern-african", "west-central-african"],
-    years: [1955, 2026],
+    years: [1955, 10001],
     evidence:
       "Documented: Ethio-jazz (Mulatu Astatke) and the Addis nightclub bands of the late Haile Selassie years, joining the tezeta and anchihoye qenet to vibraphone, organ, horns and funk rhythm sections. The piece is original in that idiom.",
     bpm: 198,
@@ -1557,7 +1557,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Three guitars lock together over a rolling bass; the song breaks into the sebene and never wants to stop.",
     place: "Kinshasa, c. 1965",
     culture: "west-central-african",
-    years: [1950, 2026],
+    years: [1950, 10001],
     evidence:
       "Documented: Congolese rumba and its sebene guitar breakdowns (Franco and OK Jazz, Tabu Ley Rochereau, Dr Nico), with interlocking lead, mi-solo and rhythm guitars, bass, maracas and horns. The piece is original in that idiom.",
     bpm: 126,
@@ -1633,7 +1633,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Anatolian rock in nine: a fuzz-drenched saz riff, Hammond, and a Moog line over a limping 2+2+2+3.",
     place: "Istanbul, c. 1971",
     culture: ["north-african-west-asian", "european"],
-    years: [1960, 2026],
+    years: [1960, 10001],
     evidence:
       "Documented: Anatolian rock (Erkin Koray, Barış Manço, Cem Karaca), which put folk saz lines, Hicaz makam colour and aksak meters through fuzz, organ and synthesiser. The piece is original in that idiom.",
     bpm: 330,
@@ -1709,7 +1709,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Tabla keherwa, a string section, santoor shimmer and a sitar that sings the tune: Bombay film music at its height.",
     place: "Bombay, c. 1962",
     culture: "south-asian",
-    years: [1947, 2026],
+    years: [1947, 10001],
     evidence:
       "Documented: Hindi film orchestras of the 1950s–60s (S. D. Burman, Shankar–Jaikishan, R. D. Burman) mixed tabla and dholak, sitar, santoor and bansuri with Western strings, mandolin and bass. The song is original in that idiom.",
     bpm: 220,
@@ -1775,7 +1775,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Slap bass, Rhodes sevenths and a synth lead with a tape echo, looping the royal-road progression: Tokyo city pop.",
     place: "Tokyo, c. 1983",
     culture: "east-asian",
-    years: [1970, 2026],
+    years: [1970, 10001],
     evidence:
       "Documented: Japanese city pop (Tatsuro Yamashita, Mariya Takeuchi, Taeko Ohnuki) and its IV–V–iii–vi 'royal road' progression, electric piano, slap bass and analog synthesisers. The piece is original in that idiom.",
     bpm: 104,
@@ -1853,7 +1853,7 @@ export const layeredThemes: LayeredTheme[] = [
       "A nylon-string batida, brushes and a cross-stick, a flute drifting over ninth chords: bossa nova.",
     place: "Rio de Janeiro, c. 1962",
     culture: "andean",
-    years: [1958, 2026],
+    years: [1958, 10001],
     evidence:
       "Documented: bossa nova (João Gilberto, Tom Jobim) and its batida guitar, soft brushes, cross-stick clave and extended jazz harmony. The piece is original in that idiom.",
     bpm: 132,
@@ -1916,7 +1916,7 @@ export const layeredThemes: LayeredTheme[] = [
       "One drop, a sub bass you feel more than hear, a skank and a melodica sent through tape echo; the mixing desk drops parts out and brings them home.",
     place: "Kingston, c. 1976",
     culture: "other-indigenous-american",
-    years: [1968, 2026],
+    years: [1968, 10001],
     evidence:
       "Documented: Jamaican dub (King Tubby, Lee 'Scratch' Perry, Augustus Pablo) remixing reggae rhythms by dropping parts in and out and sending them through tape and spring echo; the melodica was Pablo's instrument. The piece is original in that idiom.",
     bpm: 74,
@@ -2018,7 +2018,7 @@ export const layeredThemes: LayeredTheme[] = [
       "An endless straight beat, pulsing bass and two sequencer arpeggios, one of eight steps and one of seven, slowly sliding apart.",
     place: "Düsseldorf, c. 1974",
     culture: "european",
-    years: [1970, 2026],
+    years: [1970, 10001],
     evidence:
       "Documented: German kosmische musik and the motorik beat (Neu!, Kraftwerk, Harmonia, Tangerine Dream) with analog sequencers and synthesisers. The phasing arpeggios are original.",
     bpm: 128,
@@ -2238,7 +2238,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Two iron bells play the same pattern; one drifts ahead, a hair at a time, until the rhythm turns inside out. Two gyils follow.",
     place: "Accra, 1970",
     culture: "west-central-african",
-    years: [1967, 2026],
+    years: [1967, 10001],
     evidence:
       "Documented: Steve Reich studied Ewe drumming at the University of Ghana, Legon, in 1970, and wrote Drumming (1971) on his return; his phase process began with Piano Phase (1967). The gyil is the Dagara and Lobi xylophone of northern Ghana. The piece is original, a meeting of the two.",
     bpm: 360,
@@ -2379,7 +2379,7 @@ export const layeredThemes: LayeredTheme[] = [
       "A throat singer's deep drone, overtones whistling a tune out of it, a two-string fiddle, a plucked lute, and hooves.",
     place: "Tuva, Sayan Mountains, c. 1800",
     culture: "inner-eurasian",
-    years: [1400, 2026],
+    years: [1400, 10001],
     evidence:
       "Documented: Tuvan khöömei styles (sygyt, kargyraa), the igil fiddle, doshpuluur lute and shaman's drum, recorded from the 20th century and older in practice. The whistled melody uses only the drone's harmonics, so C and F# fall where the harmonic series puts them. The tune is original.",
     bpm: 200,
@@ -2450,7 +2450,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Two metallophone parts, each full of holes, lock into one blazing line faster than either player; drums interlock underneath, and the gong closes every cycle.",
     place: "Gelgel, Bali, c. 1600",
     culture: "southeast-asian",
-    years: [1550, 2026],
+    years: [1550, 10001],
     evidence:
       "Documented: Balinese kotekan, the interlocking of polos and sangsih parts, the paired kendang drums and the gong-marked cycle, recorded from the 20th century; the Gelgel court was Bali's centre c. 1550–1650. Five-tone pelog selisir is approximated, and instruments tuned in pairs give the shimmer (ombak). Its use at Gelgel and the parts are inference and fiction.",
     bpm: 480,
@@ -2638,7 +2638,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Radio hiss and the beeps of a voice loop; a heartbeat, a slow arpeggio, a theremin; chords climbing in Lydian toward a landing that never quite resolves.",
     place: "Mission Control, Houston, July 1969",
     culture: ["european", "other-indigenous-american"],
-    years: [1964, 2026],
+    years: [1964, 10001],
     evidence:
       "Documented: Apollo air-to-ground radio and its quindar tones, short beeps near 2.5 kHz that keyed the transmitters; the theremin in 1950s–60s science-fiction scores; Moog synthesisers from 1964. The beeps here are close to, not exactly, the real frequencies. The piece is original.",
     bpm: 80,
@@ -3620,7 +3620,7 @@ export const layeredThemes: LayeredTheme[] = [
       "An Ottoman rondo in ten beats: four wandering sections, each answered by the same refrain, which gathers a fiddle, a lute an octave down and a ringing santur every time it comes back.",
     place: "Tahtakale, Istanbul, c. 1600",
     culture: "north-african-west-asian",
-    years: [1554, 2026],
+    years: [1554, 10001],
     evidence:
       "Documented: the peşrev, whose four hanes each return to one refrain (teslim), notated in hundreds of examples by Dimitrie Cantemir (c. 1700); the aksak semai usul of ten beats grouped 3+2+2+3; tanbur, kemençe, santur and kudüm; Istanbul's first coffeehouses at Tahtakale (1554). The mode is close to makam Nihavend; the peşrev is original.",
     bpm: 260,
@@ -3693,7 +3693,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Two little guitars chatter in the gaps between each other, a plucked cello plays the drum part, a violin slides through the tune; then violin and flute trade phrases, and the tune comes back an octave lower.",
     place: "Batavia, Dutch East Indies, c. 1930",
     culture: "southeast-asian",
-    years: [1880, 2026],
+    years: [1880, 10001],
     evidence:
       "Documented: kroncong, from the Portuguese-descended community of Tugu near Batavia, became a gramophone and radio music in the 1920s–30s, with interlocking cak and cuk strummed lutes, a plucked cello imitating the kendang drum, bass, guitar runs, and a violin and flute answering the singer. Here the violin takes the voice's part. The song is original.",
     bpm: 92,
@@ -3760,7 +3760,7 @@ export const layeredThemes: LayeredTheme[] = [
       "A pipa trembles through the introduction; then a muted trumpet sings a pentatonic tune while the dance band underneath walks through jazz changes, blue notes and all. An erhu takes the bridge on the second time round.",
     place: "Shanghai, c. 1935",
     culture: "east-asian",
-    years: [1920, 2026],
+    years: [1920, 10001],
     evidence:
       "Documented: shidaiqu, the Shanghai popular song of the 1930s–40s (Li Jinhui, Li Jinguang, Zhou Xuan), set pentatonic tunes over the harmony, instruments and foxtrot rhythm of American dance bands, often with a Chinese instrument or two; the 32-bar AABA song form. Here the trumpet takes the singer's part. The song is original.",
     bpm: 126,
@@ -3854,7 +3854,7 @@ export const layeredThemes: LayeredTheme[] = [
       "A wedding band comes down the street: faint at first and off to the left, then clarinet, trumpets, tuba and dhol right in front of you, then gone away to the right.",
     place: "Delhi, c. 1910",
     culture: "south-asian",
-    years: [1880, 2026],
+    years: [1880, 10001],
     evidence:
       "Documented: Indian brass bands, trained on the model of British regimental bands, played baraat wedding processions from the late 19th century, with clarinet, trumpets, euphonium or tuba, snare, bass drum and dhol, and still do. The mode is close to raga Khamaj; the tune is original.",
     bpm: 120,
@@ -4017,7 +4017,7 @@ export const layeredThemes: LayeredTheme[] = [
       "A liturgical dance that speeds up without changing tempo: the drum goes from half notes to quarters, eighths and finally sixteenths in threes, and the chant shrinks with it, from four times its length to its own, until a second choir answers it.",
     place: "Aksum, c. 550",
     culture: "east-southern-african",
-    years: [500, 2026],
+    years: [500, 10001],
     evidence:
       "Documented: Ethiopian Orthodox tradition credits Saint Yared of Aksum (6th century) with the church chant, zema; its dance, aquaquam, uses the kebero drum, tsenatsil sistra and swaying prayer staves and gathers speed as it goes. The chant's notation dates from the 16th century and the practice is recorded from later centuries; the chant here is original, in a pentatonic mode.",
     bpm: 88,
@@ -4114,7 +4114,7 @@ export const layeredThemes: LayeredTheme[] = [
       "An outrigger crew at sea: paddles strike the hull on the stroke, a slit drum drives, the steersman calls a line and the crew answers in fourths. Later he calls an octave higher, over the swell.",
     place: "Lapita voyagers, western Pacific, c. 1000 BCE",
     culture: "australian-pacific",
-    years: [-1500, 2026],
+    years: [-1500, 10001],
     evidence:
       "Documented: the Lapita people settled the western Pacific from c. 1350 BCE in outrigger canoes; conch trumpets and slit drums are old across Oceania, and paddling chants led by one voice and answered by the crew are recorded throughout Polynesia and Melanesia. The chant and the parts are reconstruction.",
     bpm: 96,
@@ -4434,7 +4434,7 @@ export const layeredThemes: LayeredTheme[] = [
       "A requinto guitar spills an arpeggio, two guitars settle into the bolero rhythm under maracas and bongos, and the trio sings in parallel thirds: a verse in A minor, a chorus that opens into C, the requinto again, and the chorus once more.",
     place: "Mexico City, c. 1950",
     culture: ["mesoamerican", "andean", "other-indigenous-american"],
-    years: [1935, 2026],
+    years: [1935, 10001],
     evidence:
       "Documented: the romantic bolero trio of the 1940s–50s (Trío Los Panchos and many after), two guitars and a requinto with voices in close thirds over maracas and bongos, heard across Latin America on radio and records. Here a choir sings the trio's lines. The song is original.",
     bpm: 84,
@@ -4502,7 +4502,7 @@ export const layeredThemes: LayeredTheme[] = [
       "One four-chord cycle on a wheezing pedal organ, round and round all night: the piano plays a riff over it, a banjo answers with a syncopated one, a clarinet takes it higher, and piano and clarinet end it together.",
     place: "Marabastad, Pretoria, c. 1935",
     culture: "east-southern-african",
-    years: [1920, 2026],
+    years: [1920, 10001],
     evidence:
       "Documented: marabi, the keyboard music of South Africa's urban slumyards and shebeens in the 1920s–30s, cycled endlessly through I–IV–I–V on pedal organ or piano, with tins of pebbles, drums, banjo and guitar, and fed into African jazz and mbaqanga. The riffs are original.",
     bpm: 112,
@@ -4587,7 +4587,7 @@ export const layeredThemes: LayeredTheme[] = [
       "No drum at all: the women's shell shakers keep the pulse, a leader sings a line that steps down and down, and the men answer each one a step lower as the dance circles the fire. Halfway, everything lifts a whole step and the shakers double.",
     place: "Muscogee town square ground, c. 1780",
     culture: "other-indigenous-american",
-    years: [1500, 2026],
+    years: [1500, 10001],
     evidence:
       "Documented: the stomp dance of Southeastern peoples (Muscogee, Cherokee, Seminole, Yuchi and others), in which a leader's calls are answered by the men as the line circles the fire and women keep time with turtle-shell leg rattles, with no drum; described by 18th-century observers such as William Bartram and danced today. The songs are original, and no ceremonial song is reproduced; the lift in pitch is inference.",
     bpm: 112,
@@ -4669,7 +4669,7 @@ export const layeredThemes: LayeredTheme[] = [
       "Charango rasgueo, an Andean harp walking its bass, a bombo on the long-short beat; a violin slides through two strains of a huayno, then everything tips into the fuga, faster notes and a new tune, first on the harp and then on violin and charango together.",
     place: "Ayacucho, Peruvian Andes, c. 1820",
     culture: "andean",
-    years: [1750, 2026],
+    years: [1750, 10001],
     evidence:
       "Documented: the huayno of the Andes, in two-beat metre with its long-short rhythm, ending in a quicker fuga; the diatonic Andean harp (from colonial harps), violin, charango and bombo drum, recorded from the 19th and 20th centuries and older in practice. The huayno is original.",
     bpm: 104,
@@ -4811,7 +4811,7 @@ export const layeredThemes: LayeredTheme[] = [
       "A dombra piece about a horse: one dombra gallops in open fifths, the other sings over its own drone string, climbs high up the neck, and then the horse stops dead for two bars of ringing chord and a snort, and bolts off twice as fast.",
     place: "The Kazakh steppe, c. 900",
     culture: "inner-eurasian",
-    years: [-600, 2026],
+    years: [-600, 10001],
     evidence:
       "Documented: the Pazyryk burials (c. 300 BCE) preserved an angular harp and much horse gear; two-stringed long-necked lutes spread across the steppe in the first millennium CE; the dombra kui, an instrumental piece that tells a story, often of horses, is recorded from Kazakh players of the 19th and 20th centuries (Kurmangazy, Dina Nurpeisova). Projecting it back is inference; the kui is original.",
     bpm: 330,

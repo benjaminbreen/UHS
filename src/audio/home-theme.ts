@@ -77,7 +77,7 @@ export const innTheme: LayeredTheme = {
     "A quiet three-quarter sway for an inn or lodging house. Fingerpicked guitar keeps the room warm while sparse piano phrases leave room to breathe; a low cello looks out the window in the middle, and the room settles back onto a single open chord.",
   place: "Indoors, an inn or lodging house",
   culture: [],
-  years: [-13000, 2026],
+  years: [-13000, 10001],
   evidence: "Fiction: an original tranquil domestic piece for any home.",
   bpm: 84,
   meter: 3,
@@ -383,7 +383,7 @@ export const homePlayTheme: LayeredTheme = {
     "A zany, swung house groove for when young children are happy nearby. A clay pot drum, two woodblocks and a gourd scraper set a bouncy pocket; balafon and clarinet trade sly staccato lines with a cup-muted trumpet winking in the rests; a minor-key tiptoe breaks into a dead-stop percussion gag, slips sideways into an E-flat accordion detour, and peels back down to a single last pot-drum bloop.",
   place: "Indoors, home with young children",
   culture: [],
-  years: [-13000, 2026],
+  years: [-13000, 10001],
   evidence:
     "Fiction: an original, eccentric indoor theme in the playful spirit of Stardew Valley and 16-bit town/house scores.",
   bpm: 118,

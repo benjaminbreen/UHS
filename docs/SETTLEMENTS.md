@@ -358,8 +358,13 @@ counter on the left.
   top where it falls there (`kerbEdgePixel`).
 - A city of rows has no diagonal avenues: they ran into the square and left
   scraps on both sides.
-- **Parked cars.** `vehicles.ts` holds a dated weighted pool per region;
-  `parkingShare` sets how full the stalls are. A parked car is an inspectable,
+- **Parked cars.** `vehicles.ts` holds a dated weighted pool per region; a
+  model arrives over eight years and fades over fifteen after its catalogue
+  dates end. After 2026 the pools are projection: electric cars, driverless
+  taxis and, in China, driverless parcel pods in the traffic lanes, with petrol
+  sedans ending earliest in China and Europe. `kerbside.ts` adds charging
+  posts, battery-swap cabinets, parcel lockers and pavement delivery robots on
+  the same terms. `parkingShare` sets how full the stalls are. A parked car is an inspectable,
   solid `monument` the player can drive. Someone else's is locked: the window
   is smashed with anything held that can strike, and a car thief works the
   lock quietly. A taxi driver, chauffeur, lorry driver or mechanic starts

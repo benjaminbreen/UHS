@@ -3,6 +3,7 @@ import { matchesCharacterScope } from "../characters/resolve";
 import type { WorldSetting } from "../geography/types";
 import type { Actor } from "../../core/types";
 import type { CultureId } from "../history/types";
+import { knownSpan } from "../history/dates";
 import { practiceText, type BeliefSystem, type Power } from "./types";
 export { practiceText } from "./types";
 import { andes } from "./systems/andes";
@@ -92,7 +93,7 @@ export const unscopedBeliefs: BeliefSystem = {
 const specificity = (b: BeliefSystem) => {
   const box = b.scope.bounds;
   const area = box ? (box[2] - box[0]) * (box[3] - box[1]) : 360 * 180;
-  return (b.scope.years[1] - b.scope.years[0]) * Math.max(1, area);
+  return knownSpan(...b.scope.years) * Math.max(1, area);
 };
 
 /** The most specific system that covers this place, date and culture. */
@@ -170,7 +171,7 @@ function compareBeliefs(a: BeliefSystem, b: BeliefSystem) {
     (b.priority ?? 0) - (a.priority ?? 0) ||
     rank(b) - rank(a) ||
     area(a) - area(b) ||
-    a.scope.years[1] - a.scope.years[0] - (b.scope.years[1] - b.scope.years[0])
+    knownSpan(...a.scope.years) - knownSpan(...b.scope.years)
   );
 }
 

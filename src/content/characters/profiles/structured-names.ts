@@ -13,7 +13,7 @@ export const structuredNameKits: NameKit[] = [
     label:
       "Central/eastern China · family name followed by personal name, 1000–2026",
     scope: {
-      years: [1000, 2027],
+      years: [1000, 10001],
       cultures: ["east-asian"],
       bounds: [100, 20, 122, 42],
     },
@@ -50,7 +50,7 @@ export const structuredNameKits: NameKit[] = [
     id: "names-spain-two-families-1900-2026",
     label: "Central Spain · personal name and two family names, 1900–2026",
     scope: {
-      years: [1900, 2027],
+      years: [1900, 10001],
       cultures: ["european"],
       bounds: [-6, 37, -1, 42],
     },

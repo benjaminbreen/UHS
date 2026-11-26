@@ -1127,7 +1127,7 @@ const southeastAsiaBase: readonly BeliefSystem[] = [
     id: "se-asia-colonial-modernization",
     realm: "buddhist",
     label: "Colonial and postcolonial modernization",
-    scope: { years: [1850, 2025], bounds: [92, -11, 142, 25] },
+    scope: { years: [1850, 10001], bounds: [92, -11, 142, 25] },
     wiki: "https://en.wikipedia.org/wiki/History_of_Southeast_Asia",
     powers: [
       {

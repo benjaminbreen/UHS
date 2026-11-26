@@ -608,7 +608,7 @@ export const worship: InteriorProfile[] = [
 
 const prayerHouse = worship.find(p => p.id === "reformed-church")!;
 for (const [id, label, region, start, end] of [
-  ["london-synagogue","Neighbourhood synagogue","London",2016,2026],
+  ["london-synagogue","Neighbourhood synagogue","London",2016,10001],
   ["galilean-synagogue","Galilean synagogue","Galilee",250,550],
   ["sephardi-synagogue","Sephardi synagogue","Ottoman Mediterranean",1500,1923],
   ["ashkenazi-synagogue","Ashkenazi synagogue","Polish-Lithuanian borderlands",1700,1940],

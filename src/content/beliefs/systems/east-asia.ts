@@ -1414,7 +1414,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     realm: "buddhist",
     label: "Tibetan Buddhist practice",
     wiki: "https://en.wikipedia.org/wiki/Tibetan_Buddhism",
-    scope: { years: [780, 2025], bounds: [85, 27.8, 98, 33.5], cultures: ["east-asian", "south-asian", "inner-eurasian"] },
+    scope: { years: [780, 10001], bounds: [85, 27.8, 98, 33.5], cultures: ["east-asian", "south-asian", "inner-eurasian"] },
     powers: [
       { name: "Buddha Shakyamuni", wiki: "https://en.wikipedia.org/wiki/Gautama_Buddha", domain: "awakening, the teaching", rank: "paramount" },
       { name: "Avalokiteshvara", wiki: "https://en.wikipedia.org/wiki/Avalokiteshvara", domain: "compassion, the protector of Tibet", rank: "major" },
@@ -1456,7 +1456,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     label: "Tibetan Plateau and Qaidam Basin pastoralist tradition",
     wiki: "https://en.wikipedia.org/wiki/Bon",
     // Lhasa and the plateau are tagged South Asian.
-    scope: { years: [800, 2025], bounds: [79, 28.3, 104, 40], cultures: ["east-asian", "south-asian"] },
+    scope: { years: [800, 10001], bounds: [79, 28.3, 104, 40], cultures: ["east-asian", "south-asian"] },
     powers: [
       {
         name: "The sky",
@@ -1557,7 +1557,7 @@ const eastAsiaBase: readonly BeliefSystem[] = [
     realm: "chinese",
     label: "Modern East Asian practice and transition",
     wiki: "https://en.wikipedia.org/wiki/Chinese_folk_religion",
-    scope: { years: [1900, 2025], bounds: [90, 15, 150, 55] },
+    scope: { years: [1900, 10001], bounds: [90, 15, 150, 55] },
     powers: [
       {
         name: "The ancestors",

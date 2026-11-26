@@ -4905,6 +4905,49 @@
       ]
     },
     {
+      "id": "charging-post",
+      "name": "Charging post",
+      "group": "Street furniture",
+      "size": [
+        22,
+        32
+      ],
+      "description": "Where an electric car or a scooter battery is charged from the mains.",
+      "variants": [
+        "Kerbside post",
+        "Charging pile",
+        "Battery swap cabinet"
+      ]
+    },
+    {
+      "id": "parcel-locker",
+      "name": "Parcel locker",
+      "group": "Street furniture",
+      "size": [
+        36,
+        34
+      ],
+      "description": "A bank of lockers that parcels are left in, opened with a code from a phone.",
+      "variants": [
+        "Yellow",
+        "White and blue"
+      ]
+    },
+    {
+      "id": "delivery-robot",
+      "name": "Delivery robot",
+      "group": "Street furniture",
+      "size": [
+        20,
+        28
+      ],
+      "description": "A small wheeled robot that carries a takeaway or a parcel along the pavement.",
+      "variants": [
+        "Six-wheeled cooler",
+        "Tall box"
+      ]
+    },
+    {
       "id": "bike-rack",
       "name": "Bicycle rack",
       "group": "Street furniture",

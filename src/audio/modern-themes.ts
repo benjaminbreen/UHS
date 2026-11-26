@@ -8,7 +8,7 @@ export const modernThemes: LayeredTheme[] = [
       "Warm fingerpicked guitar, a small ukulele answer and a salt-air refrain; the middle opens toward the sea before the porch grows quiet.",
     place: "Kona, Hawaiʻi, c. 1975 · new candidate",
     culture: "australian-pacific",
-    years: [1956, 2026],
+    years: [1956, 10001],
     evidence:
       "Documented basis: Hawaiian slack-key guitar flourished alongside ukulele and bass in twentieth-century ensembles, including the Sons of Hawaii formed in 1960 (Library of Congress, https://www.loc.gov/static/programs/national-recording-preservation-board/documents/HulaMedley.pdf). The guitar synth approximates fingerpicked open-string resonance; it does not model a complete physical slack-key tuning. This porch ensemble, C-major tune and contrasting bridge are original fiction, not a transcription of a Hawaiian song.",
     bpm: 84,
@@ -143,7 +143,7 @@ export const modernThemes: LayeredTheme[] = [
       "A bright plucked refrain in five beats; open strings ring under a climb up the neck, then the lakeside tune returns without its accompaniment.",
     place: "Issyk-Kul, Kyrgyzstan, c. 1970 · new candidate",
     culture: "inner-eurasian",
-    years: [1900, 2026],
+    years: [1900, 10001],
     evidence:
       "Documented instrument: the three-stringed Kyrgyz komuz accompanies shorter epic works in the akyn tradition (UNESCO, https://ich.unesco.org/en/RL/art-of-akyns-kyrgyz-epic-tellers-00065). The game uses its tanbur synth as a plucked-lute proxy, not a sampled komuz. This instrumental lakeside miniature, five-beat phrasing, open-string accompaniment and tune are original fiction; no epic text or traditional composition is reproduced.",
     bpm: 100,

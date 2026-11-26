@@ -66,7 +66,7 @@ export const contemporary: readonly GarmentKit[] = [
   casual("casual-early", "Jeans and T-shirts reach the young", [1970, 1995], west, 0.4, 0.3, false),
   casual("casual-early-east", "Jeans and T-shirts reach the young", [1970, 1995], east, 0.4, 0.3, false, "conical"),
   casual("casual-early-beside", "Jeans and T-shirts beside regional dress", [1970, 1995], beside, 0.2, 0.08, false),
-  casual("casual", "T-shirt, jeans and trainers", [1995, 2040], west, 0.85, 0.8, true),
-  casual("casual-east", "T-shirt, jeans and trainers", [1995, 2040], east, 0.85, 0.8, true, "conical"),
-  casual("casual-beside", "T-shirt, jeans and trainers beside regional dress", [1995, 2040], beside, 0.6, 0.25, true),
+  casual("casual", "T-shirt, jeans and trainers", [1995, 10001], west, 0.85, 0.8, true),
+  casual("casual-east", "T-shirt, jeans and trainers", [1995, 10001], east, 0.85, 0.8, true, "conical"),
+  casual("casual-beside", "T-shirt, jeans and trainers beside regional dress", [1995, 10001], beside, 0.6, 0.25, true),
 ];

@@ -18,7 +18,7 @@ export const burmeseNameKits: NameKit[] = [
     id: "names-burmese-modern-1885-2026",
     label: "Burmese personal names · Myanmar mainland, 1885–2026",
     scope: {
-      years: [1885, 2027],
+      years: [1885, 10001],
       cultures: ["southeast-asian"],
       bounds: myanmarMainland,
     },

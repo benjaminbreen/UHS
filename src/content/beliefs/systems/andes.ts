@@ -736,7 +736,7 @@ export const andes: readonly BeliefSystem[] = [
     realm: "latin",
     label: "Andean village practice, modern",
     wiki: "https://en.wikipedia.org/wiki/Andean_civilizations",
-    scope: { years: [1700, 2025], bounds: [-82, -40, -60, 13] },
+    scope: { years: [1700, 10001], bounds: [-82, -40, -60, 13] },
     powers: [
       {
         name: "God",

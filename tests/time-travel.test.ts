@@ -23,7 +23,7 @@ const place: Place = { id: "house-1", name: "Household", description: "", x: 0, 
 describe("historical time", () => {
   it("clips the timeline and handles the BCE boundary", () => {
     expect(timeBounds(-1000000)).toEqual({min: -1000000, max: -999000});
-    expect(timeBounds(9900).max).toBe(10000);
+    expect(timeBounds(2000).max).toBe(2060);
     expect(settingAt(setting, 0).year).toBe(0);
     expect(() => settingAt(setting, 10001)).toThrow();
   });

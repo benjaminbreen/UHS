@@ -40,6 +40,11 @@ export const CAR_SPECS: Readonly<Record<keyof typeof catalog, CarSpec>> = {
   ambassador: car(9, 15, 5, 0.72, 0.78, 20),
   kei: car(10, 16, 7, 0.94, 0.55, 30, 2000),
   van: car(10, 16, 5, 0.74, 0.65, 22),
+  // Electric: all its pull from a standstill.
+  "ev-2030": car(13, 26, 15, 0.92, 0.6, 38, 2400),
+  "ev-mini": car(9, 14, 8, 0.9, 0.5, 30, 1400),
+  robotaxi: car(10, 18, 9, 0.95, 0.55, 40, 3000),
+  "delivery-pod": car(6, 9, 4, 0.95, 0.5, 30, 1500),
 };
 /** The dock lorry, and anything else with a motor and no model. */
 export const LORRY: CarSpec = car(7, 11, 3, 0.8, 0.7, 14, 4000);

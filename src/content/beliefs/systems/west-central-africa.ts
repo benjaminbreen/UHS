@@ -1203,7 +1203,7 @@ export const westCentralAfrica: readonly BeliefSystem[] = [
     realm: "african",
     label: "Modern West and Central African practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_Africa",
-    scope: { years: [1950, 2025], bounds: [-18, -10, 32, 20] },
+    scope: { years: [1950, 10001], bounds: [-18, -10, 32, 20] },
     powers: [
       { name: "God", wiki: "https://en.wikipedia.org/wiki/God", domain: "the one God of the churches and the mosque", rank: "paramount" },
       { name: "Jesus", wiki: "https://en.wikipedia.org/wiki/Jesus", domain: "salvation, healing, prosperity", rank: "major" },

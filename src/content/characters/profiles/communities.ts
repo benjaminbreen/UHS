@@ -238,7 +238,7 @@ export const appearanceKits: AppearanceKit[] = [
     heads: ["broad", "original", "oval"],
     facialHair: "sparse",
     garments: ["wrap", "skirt", "tunic", "long-tunic", "robe"],
-    markScope: { years: [1850, 2027], bounds: [-54, -10, -50, -5] },
+    markScope: { years: [1850, 10001], bounds: [-54, -10, -50, -5] },
     sources: ["https://ignca.gov.in/man-and-mask/masks/masks_detail/group/Kayapo%20Ceremonial%20Masks%20%28Para%29.html"],
     adornment: {
       ears: ["none", "none", "none", "spool", "spool", "stud", "hoop"],
@@ -375,7 +375,7 @@ export const communityProfiles: CommunityProfile[] = [
     id: "community.regional-europe",
     label: "Broad European regional art fallback",
     scope: {
-      years: [-100000, 2027],
+      years: [-100000, 10001],
       cultures: ["european"],
     },
     priority: 1,
@@ -409,7 +409,7 @@ export const communityProfiles: CommunityProfile[] = [
     id: "community.regional-africa",
     label: "Broad African regional art fallback",
     scope: {
-      years: [-100000, 2027],
+      years: [-100000, 10001],
       cultures: ["west-central-african", "east-southern-african"],
     },
     priority: 1,
@@ -444,7 +444,7 @@ export const communityProfiles: CommunityProfile[] = [
     id: "community.regional-east-asia",
     label: "Broad East Asian regional art fallback",
     scope: {
-      years: [-100000, 2027],
+      years: [-100000, 10001],
       cultures: [
         "east-asian",
       ],
@@ -481,7 +481,7 @@ export const communityProfiles: CommunityProfile[] = [
     id: "community.regional-south-asia",
     label: "Broad South Asian regional art fallback",
     scope: {
-      years: [-100000, 2027],
+      years: [-100000, 10001],
       cultures: [
         "south-asian",
       ],
@@ -518,7 +518,7 @@ export const communityProfiles: CommunityProfile[] = [
     id: "community.regional-southeast-asia",
     label: "Broad Southeast Asian regional art fallback",
     scope: {
-      years: [-100000, 2027],
+      years: [-100000, 10001],
       cultures: [
         "southeast-asian",
       ],
@@ -555,7 +555,7 @@ export const communityProfiles: CommunityProfile[] = [
     id: "community.regional-west-asia",
     label: "Broad West Asian and Inner Eurasian regional art fallback",
     scope: {
-      years: [-100000, 2027],
+      years: [-100000, 10001],
       cultures: [
         "north-african-west-asian",
         "inner-eurasian",
@@ -593,7 +593,7 @@ export const communityProfiles: CommunityProfile[] = [
     id: "community.regional-americas",
     label: "Broad American regional art fallback",
     scope: {
-      years: [-100000, 2027],
+      years: [-100000, 10001],
       cultures: ["mesoamerican", "andean", "other-indigenous-american"],
     },
     priority: 1,
@@ -628,7 +628,7 @@ export const communityProfiles: CommunityProfile[] = [
     id: "community.arctic-subarctic",
     label: "Arctic and Subarctic American communities",
     scope: {
-      years: [-3000, 2027],
+      years: [-3000, 10001],
       bounds: [-170, 55, -55, 83],
       cultures: ["other-indigenous-american"],
     },
@@ -645,7 +645,7 @@ export const communityProfiles: CommunityProfile[] = [
     id: "community.regional-oceania",
     label: "Broad Oceania regional art fallback",
     scope: {
-      years: [-100000, 2027],
+      years: [-100000, 10001],
       cultures: ["australian-pacific"],
     },
     priority: 1,
@@ -919,7 +919,7 @@ export const communityProfiles: CommunityProfile[] = [
     id: "community.us-indigenous",
     label: "Indigenous communities of settler North America, 1750–2026",
     scope: {
-      years: [1750, 2027],
+      years: [1750, 10001],
       bounds: [-141, 25, -52, 60],
       communities: ["indigenous-local"],
     },
@@ -956,7 +956,7 @@ export const communityProfiles: CommunityProfile[] = [
     id: "community.us-anglo",
     label: "Anglo-American community, 1750–2026",
     scope: {
-      years: [1750, 2027],
+      years: [1750, 10001],
       bounds: [-125, 25, -67, 52],
       communities: ["us-anglo"],
     },
@@ -974,7 +974,7 @@ export const communityProfiles: CommunityProfile[] = [
     id: "community.us-african-american",
     label: "African-American community, 1750–2026",
     scope: {
-      years: [1750, 2027],
+      years: [1750, 10001],
       bounds: [-125, 25, -67, 52],
       communities: ["african-diaspora"],
     },
@@ -992,7 +992,7 @@ export const communityProfiles: CommunityProfile[] = [
     id: "community.us-latino",
     label: "Latino community in the United States, 1848–2026",
     scope: {
-      years: [1848, 2027],
+      years: [1848, 10001],
       bounds: [-125, 25, -93, 42],
       communities: ["us-latino"],
     },
@@ -1010,7 +1010,7 @@ export const communityProfiles: CommunityProfile[] = [
     id: "community.us-chinese",
     label: "Chinese-American community, 1850–2026",
     scope: {
-      years: [1850, 2027],
+      years: [1850, 10001],
       bounds: [-125, 32, -114, 49],
       communities: ["us-chinese"],
     },

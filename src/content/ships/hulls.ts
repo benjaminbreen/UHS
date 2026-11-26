@@ -68,7 +68,7 @@ export const hulls: readonly Hull[] = [
   },
   {
     id: "dhow", kind: "dhow", label: "Dhow",
-    years: [-500, 2027], where: [at.arabia, SWAHILI, GULF, MALABAR, at.horn, [32, 12, 44, 30]],
+    years: [-500, 10001], where: [at.arabia, SWAHILI, GULF, MALABAR, at.horn, [32, 12, 44, 30]],
     length: 26, beam: 8, masts: [0.2, 0.52], below: ["hold"],
     poop: 0.26, forecastle: 0.08, freeboard: 34, look: "oiled", head: "scroll",
     people: ["dhow-sailor", "nakhoda", "dhow-helmsman", "dhow-singer", "dhow-merchant", "hajji"],

@@ -12,10 +12,10 @@ import { cavePeople } from "../caves/people";
 import { personFits, sewerPeople, startTimes } from "../sewers";
 import { hullFor, shipCrew } from "../ships";
 import { random } from "../../core/random";
-import { eras } from "../history/dates";
+import { eras, PRESENT_YEAR } from "../history/dates";
 
 const firstRandomYear = -12999; // 13,000 BCE in astronomical numbering
-const onePastPresent = 2027;
+const onePastPresent = PRESENT_YEAR + 1;
 
 /* Per-country population, and the country each place stands in. See
  * scripts/prepare_population.py for what the two are and are not. */

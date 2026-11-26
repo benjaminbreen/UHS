@@ -398,7 +398,7 @@ export const minePeople: readonly SewerPerson[] = [
   },
   // Anywhere.
   {
-    id: "surveyor", scope: { years: [1700, 2030] }, depths: ["level", "workings", "old"],
+    id: "surveyor", scope: { years: [1700, 10001] }, depths: ["level", "workings", "old"],
     label: "Mine surveyor", dress: "miner", doing: "Taking bearings with a dial", manner: "explore",
     lines: [
       "If I'm a few feet out, the next level breaks into old flooded workings and drowns the lot of us.",
@@ -409,7 +409,7 @@ export const minePeople: readonly SewerPerson[] = [
     note: "Mine surveyors kept the underground plans; holing into old flooded workings caused disasters such as Heaton Main Colliery in 1815. The miner's dial hung on a cord is documented.", basis: "documented",
   },
   {
-    id: "inspector", scope: { years: [1850, 2030] }, depths: ["level", "workings"],
+    id: "inspector", scope: { years: [1850, 10001] }, depths: ["level", "workings"],
     label: "Mines inspector", dress: "miner", doing: "Writing up the ventilation", manner: "explore",
     lines: [
       "I go where the men say the air is bad, not where the manager takes me.",
@@ -420,7 +420,7 @@ export const minePeople: readonly SewerPerson[] = [
     note: "Government mines inspectorates date from 1850 in Britain; the requirement for two shafts followed the Hartley disaster of 1862.", basis: "documented",
   },
   {
-    id: "mine-explorer", scope: { years: [1970, 2030] }, depths: ["old"],
+    id: "mine-explorer", scope: { years: [1970, 10001] }, depths: ["old"],
     label: "Mine explorer", dress: "construction-labourer", doing: "Photographing old workings", manner: "explore",
     lines: [
       "Don't touch the timber. A hundred years old and it looks fine until it isn't.",
@@ -442,7 +442,7 @@ export const minePeople: readonly SewerPerson[] = [
     note: "Saxon and Harz mining is documented in Agricola's De re metallica (1556): hammer-and-gad work, the leather 'Arschleder', and water-wheel pumping.", basis: "documented",
   },
   {
-    id: "andean-miner-modern", scope: { years: [1900, 2030], bounds: ANDES }, kinds: ["metal"], depths: ["workings", "level", "old"],
+    id: "andean-miner-modern", scope: { years: [1900, 10001], bounds: ANDES }, kinds: ["metal"], depths: ["workings", "level", "old"],
     label: "Cooperative miner", dress: "miner", doing: "Chewing coca before the shift", manner: "crew",
     lines: [
       "We chew coca for three hours before we go in. It keeps the hunger off and tells you when the air is bad.",

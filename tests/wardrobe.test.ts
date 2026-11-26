@@ -462,18 +462,13 @@ it("spawns court dress for the few, and only while it existed", () => {
   expect(crowd("european", 1900, { means: "elite" }).map((w) => w.headwear)).not.toContain("wig");
 });
 
-it("dresses the future the same way everywhere, in cloth that costs nothing", () => {
-  for (const culture of ["european", "south-asian", "andean"]) {
-    const rows = crowd(culture, 2150);
-    expect(share(rows, (w) => w.garment === "suit")).toBeGreaterThan(0.1);
-    const fibres = Array.from({ length: 100 }, (_, i) =>
-      clothFor({ id: `f-${culture}-${i}` }, { year: 2150, setting: place(culture, 2150) }),
-    );
-    expect(fibres.some((c) => c.material === "synthetic")).toBe(true);
-  }
-  // Up to the present the regions still decide.
-  expect(crowd("south-asian", 1990).map((w) => w.garment)).not.toContain("suit");
-  expect(crowd("european", 2025).map((w) => w.garment)).not.toContain("suit");
+it("dresses the future by its regions, as the present is", () => {
+  const casual = (w: { leggings?: string; garment: string }) => w.leggings === "jeans" || w.garment === "tee";
+  const female = { sex: "female" } as const;
+  expect(share(crowd("european", 2050), casual)).toBeGreaterThan(0.5);
+  expect(share(crowd("south-asian", 2050, female), casual)).toBeLessThan(share(crowd("european", 2050, female), casual));
+  const fibres = Array.from({ length: 100 }, (_, i) => clothFor({ id: `f-${i}` }, { year: 2050, setting: place("european", 2050) }));
+  expect(fibres.some((c) => c.material === "synthetic")).toBe(true);
 });
 
 it("puts most of the present in jeans and T-shirts, and fewer where regional dress holds", () => {

@@ -58,6 +58,14 @@ export function glacialTundraLatitude(year: number): number | undefined {
   return year >= bce(12700).year && year < bce(10900).year ? 56 : 48;
 }
 
+/** The last year the history is written up to. Later years, to 2060, are
+ * projection: what still holds now carries on unless a range ends it. */
+export const PRESENT_YEAR = 2026;
+export const LAST_YEAR = 2060;
+/** A range's length counted only up to now, so a range left open into the
+ * future ranks by the history it covers. */
+export const knownSpan = (from: number, to: number) => Math.min(to, PRESENT_YEAR + 1) - from;
+
 /** Permanent chronological IDs; labels are not worldwide technology stages. */
 export const eras = [
   {

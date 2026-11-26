@@ -258,6 +258,18 @@ const SCOPES: Record<string, readonly CharacterScope[]> = {
   // European resistance, the wars of decolonisation and the Central American
   // and Afghan insurgencies.
   // Wars fought through towns: armies quartered, besieging or passing.
+  // Projected: when delivery robots, robotaxis and humanoids become ordinary
+  // on the street. China's coastal cities first, the rural tropics last.
+  robots: [
+    at(2033, [108, 18, 125, 42]),
+    at(2035, [124, 30, 146, 46]),
+    at(2036, NORTH_AMERICA),
+    at(2036, [44, 12, 60, 32]),
+    at(2038, EUROPE),
+    at(2040, EAST_ASIA),
+    at(2042, SOUTH_ASIA),
+    at(2048),
+  ],
   war: [
     at(-431, [19, 36, 28, 41.5], -404),
     at(-218, [7, 37, 19, 46], -201),

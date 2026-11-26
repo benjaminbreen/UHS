@@ -190,7 +190,7 @@ export const anchorNameKits: NameKit[] = [
   {
     id: "names-icelandic-patronymic",
     label: "Iceland · personal name plus patronymic display, 1200–2027",
-    scope: { years: [1200, 2027], cultures: ["european"], bounds: [-25, 63, -13, 67] },
+    scope: { years: [1200, 10001], cultures: ["european"], bounds: [-25, 63, -13, 67] },
     format: "personal-patronymic",
     masculine: ["Jón", "Þórður", "Ólafur", "Magnús", "Einar", "Snorri"],
     feminine: ["Guðrún", "Sigríður", "Katrín", "Helga", "Ragnheiður", "Ingibjörg"],

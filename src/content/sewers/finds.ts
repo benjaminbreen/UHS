@@ -34,7 +34,7 @@ export const sewerFinds: readonly SewerFind[] = [
     look: "A small bright circle caught in a crack.", basis: "inferred",
   },
   {
-    id: "lost-watch", name: "Wristwatch", art: "glint", on: "floor", tier: "notable", years: [1920, 2030], weight: 1.2,
+    id: "lost-watch", name: "Wristwatch", art: "glint", on: "floor", tier: "notable", years: [1920, 10001], weight: 1.2,
     verb: "Pick up the watch", time: 10, loot: { wristwatch: 1 },
     text: "A wristwatch on a snapped strap, stopped at twenty past four.",
     look: "A watch face in the mud.", basis: "inferred",
@@ -58,7 +58,7 @@ export const sewerFinds: readonly SewerFind[] = [
     look: "A pink plate of teeth grinning out of the silt.", basis: "documented",
   },
   {
-    id: "lost-phone", name: "Phone", art: "phone", on: "floor", tier: "notable", years: [2000, 2030], weight: 2.5,
+    id: "lost-phone", name: "Phone", art: "phone", on: "floor", tier: "notable", years: [2000, 10001], weight: 2.5,
     verb: "Pick up the phone", time: 5, loot: { "mobile-phone": 1 },
     text: "A phone that slipped from a back pocket in a toilet stall. The screen is cracked and dark.",
     look: "A flat black slab half under the water.", basis: "documented",
@@ -120,7 +120,7 @@ export const sewerFinds: readonly SewerFind[] = [
     look: "A brass lamp with a wire gauze chimney.", basis: "documented",
   },
   {
-    id: "gas-monitor", name: "Gas monitor", art: "toolbag", on: "floor", tier: "notable", years: [1975, 2030], depths: ["street", "trunk"], weight: 1,
+    id: "gas-monitor", name: "Gas monitor", art: "toolbag", on: "floor", tier: "notable", years: [1975, 10001], depths: ["street", "trunk"], weight: 1,
     verb: "Pick up the monitor", time: 10,
     text: "A clip-on gas meter, still on. It reads normal air. You clip it on and feel slightly better about the dark.",
     look: "A yellow box with a blinking light.", basis: "documented",
@@ -132,7 +132,7 @@ export const sewerFinds: readonly SewerFind[] = [
     look: "A rusty tin with a screw lid.", basis: "documented",
   },
   {
-    id: "batteries", name: "Batteries", art: "tin", on: "floor", tier: "common", years: [1950, 2030], weight: 2,
+    id: "batteries", name: "Batteries", art: "tin", on: "floor", tier: "common", years: [1950, 10001], weight: 2,
     verb: "Change your batteries", time: 15, loot: { battery: [0, 2] }, fuel: 3500,
     text: "A packet of batteries still in the wrapper. Your light brightens.",
     look: "A small packet on a ledge.", basis: "inferred",
@@ -182,7 +182,7 @@ export const sewerFinds: readonly SewerFind[] = [
     look: "An iron tube clamped along the vault.", basis: "documented",
   },
   {
-    id: "flow-gauge", name: "Flow gauge", art: "gauge", on: "wall", tier: "common", years: [1920, 2030], depths: ["street", "trunk"], weight: 2, keeps: true,
+    id: "flow-gauge", name: "Flow gauge", art: "gauge", on: "wall", tier: "common", years: [1920, 10001], depths: ["street", "trunk"], weight: 2, keeps: true,
     verb: "Read the gauge", time: 10,
     text: "A painted depth board and a recorder. The ink line shows last night's storm as a tall spike: the water came up past your head.",
     look: "A gauge board marked in feet or metres.", basis: "documented",
@@ -194,7 +194,7 @@ export const sewerFinds: readonly SewerFind[] = [
     look: "A big iron hand wheel on a spindle.", basis: "inferred",
   },
   {
-    id: "junction-box", name: "Junction box", art: "fusebox", on: "wall", tier: "common", years: [1930, 2030], depths: ["street", "trunk"], weight: 1.5, keeps: true,
+    id: "junction-box", name: "Junction box", art: "fusebox", on: "wall", tier: "common", years: [1930, 10001], depths: ["street", "trunk"], weight: 1.5, keeps: true,
     verb: "Open the box", time: 15,
     text: "Telephone pairs and power for the pumps, labelled in faded marker. Running cables through a sewer saves digging up a street.",
     look: "A grey metal box with conduit running out of it.", basis: "documented",
@@ -206,13 +206,13 @@ export const sewerFinds: readonly SewerFind[] = [
     look: "A painted board by the ladder.", basis: "inferred",
   },
   {
-    id: "confined-space-notice", name: "Confined space sign", art: "notice", on: "wall", tier: "common", years: [1970, 2030], weight: 1.5, keeps: true,
+    id: "confined-space-notice", name: "Confined space sign", art: "notice", on: "wall", tier: "common", years: [1970, 10001], weight: 1.5, keeps: true,
     verb: "Read the sign", time: 10,
     text: "DANGER. CONFINED SPACE. DO NOT ENTER WITHOUT A PERMIT, A GAS TEST AND A STANDBY PERSON.",
     look: "A yellow and black sign.", basis: "documented",
   },
   {
-    id: "collector-notice", name: "Collector notice", art: "notice", on: "wall", tier: "common", years: [1950, 2030], kinds: ["collector"], weight: 2, keeps: true,
+    id: "collector-notice", name: "Collector notice", art: "notice", on: "wall", tier: "common", years: [1950, 10001], kinds: ["collector"], weight: 2, keeps: true,
     verb: "Read the notice", time: 10,
     text: "WORK IN THE COLLECTOR ONLY WITH A PERMIT. HOT WATER MAIN: DO NOT TOUCH. The stencil is in Cyrillic or the local language, and the paint is decades old.",
     look: "Stencilled letters on the concrete.", basis: "inferred",
@@ -224,25 +224,25 @@ export const sewerFinds: readonly SewerFind[] = [
     look: "A fat lagged pipe and a valve, steaming faintly.", basis: "documented",
   },
   {
-    id: "tokyo-discharge-channel", name: "Discharge channel plate", art: "plaque", on: "wall", tier: "notable", years: [2006, 2030], where: [GREATER_TOKYO], depths: ["trunk"], weight: 3, keeps: true,
+    id: "tokyo-discharge-channel", name: "Discharge channel plate", art: "plaque", on: "wall", tier: "notable", years: [2006, 10001], where: [GREATER_TOKYO], depths: ["trunk"], weight: 3, keeps: true,
     verb: "Read the plate", time: 15,
     text: "The Metropolitan Area Outer Underground Discharge Channel, finished in 2006: shafts and a tunnel that carry floodwater to a tank held up by fifty-nine pillars, which people call the temple.",
     look: "A plate beside a staircase going down into a vast pillared hall.", basis: "documented",
   },
   {
-    id: "tideway-plaque", name: "Tideway plaque", art: "plaque", on: "wall", tier: "notable", years: [2025, 2030], where: [LONDON], depths: ["trunk"], weight: 3, keeps: true,
+    id: "tideway-plaque", name: "Tideway plaque", art: "plaque", on: "wall", tier: "notable", years: [2025, 10001], where: [LONDON], depths: ["trunk"], weight: 3, keeps: true,
     verb: "Read the plaque", time: 15,
     text: "The Thames Tideway Tunnel: 25 kilometres under the river, to catch the overflows that used to pour into it every time it rained.",
     look: "A new plaque on clean concrete.", basis: "documented",
   },
   {
-    id: "deep-tunnel-notice", name: "Deep Tunnel notice", art: "notice", on: "wall", tier: "notable", years: [1985, 2030], where: [CHICAGO], depths: ["trunk"], weight: 3, keeps: true,
+    id: "deep-tunnel-notice", name: "Deep Tunnel notice", art: "notice", on: "wall", tier: "notable", years: [1985, 10001], where: [CHICAGO], depths: ["trunk"], weight: 3, keeps: true,
     verb: "Read the notice", time: 10,
     text: "TUNNEL AND RESERVOIR PLAN. A tunnel cut through bedrock to hold storm water that used to flood basements and foul the lake.",
     look: "A stencilled notice at a drop shaft.", basis: "documented",
   },
   {
-    id: "drenaje-profundo", name: "Deep drainage plate", art: "plaque", on: "wall", tier: "notable", years: [1975, 2030], where: [MEXICO_CITY], depths: ["trunk"], weight: 3, keeps: true,
+    id: "drenaje-profundo", name: "Deep drainage plate", art: "plaque", on: "wall", tier: "notable", years: [1975, 10001], where: [MEXICO_CITY], depths: ["trunk"], weight: 3, keeps: true,
     verb: "Read the plate", time: 15,
     text: "The Deep Drainage System, opened in 1975. The city sank so far by pumping out its own groundwater that the old canal stopped flowing downhill.",
     look: "A plate on the curved wall of a huge tunnel.", basis: "documented",
@@ -250,13 +250,13 @@ export const sewerFinds: readonly SewerFind[] = [
 
   // People who live down here.
   {
-    id: "bedroll", name: "Bedroll", art: "bedroll", on: "floor", tier: "common", years: [1929, 2030], depths: ["street", "trunk"], weight: 1.5, flat: true,
+    id: "bedroll", name: "Bedroll", art: "bedroll", on: "floor", tier: "common", years: [1929, 10001], depths: ["street", "trunk"], weight: 1.5, flat: true,
     verb: "Lie down a while", time: 600, heal: 15,
     text: "Cardboard under a blanket on the highest ledge. You rest your legs and listen to the water.",
     look: "A blanket over flattened cardboard.", basis: "documented",
   },
   {
-    id: "camp", name: "Camp", art: "camp", on: "floor", tier: "notable", years: [1929, 2030], depths: ["street", "trunk"], weight: 1, glow: "#ffb060", keeps: true,
+    id: "camp", name: "Camp", art: "camp", on: "floor", tier: "notable", years: [1929, 10001], depths: ["street", "trunk"], weight: 1, glow: "#ffb060", keeps: true,
     verb: "Sit by the stove", time: 300, heal: 30, loot: { "tinned-food": [0, 1] },
     text: "Someone's home: a camping stove, a pan, mattresses, a shelf of paperbacks. Nobody is in. You warm up and eat something from the shelf.",
     look: "A stove and bedding in a dry side tunnel.", basis: "documented",
@@ -268,13 +268,13 @@ export const sewerFinds: readonly SewerFind[] = [
     look: "Blankets and a candle on a nest of lagged pipes.", basis: "documented",
   },
   {
-    id: "flood-tunnel-camp", name: "Tunnel camp", art: "camp", on: "floor", tier: "notable", years: [2000, 2030], where: [LAS_VEGAS], depths: ["street"], weight: 4, glow: "#ffb060", keeps: true,
+    id: "flood-tunnel-camp", name: "Tunnel camp", art: "camp", on: "floor", tier: "notable", years: [2000, 10001], where: [LAS_VEGAS], depths: ["street"], weight: 4, glow: "#ffb060", keeps: true,
     verb: "Rest a while", time: 300, heal: 30, loot: { water: [0, 2] },
     text: "A bed frame, a dresser and a rug, carried in piece by piece. A line on the wall shows how high the last flash flood came.",
     look: "Furniture in a concrete flood tunnel.", basis: "documented",
   },
   {
-    id: "shrine", name: "Candle shrine", art: "shrine", on: "floor", tier: "notable", years: [1950, 2030], depths: ["street", "trunk"], weight: 1, keeps: true, glow: "#ffcc66",
+    id: "shrine", name: "Candle shrine", art: "shrine", on: "floor", tier: "notable", years: [1950, 10001], depths: ["street", "trunk"], weight: 1, keeps: true, glow: "#ffcc66",
     verb: "Stand a moment", time: 30, heal: 5,
     text: "A candle in a jar, a photograph and plastic flowers, for someone who lived down here and drowned when the water came. People keep the candle lit.",
     look: "A small flame and a photograph on a ledge.", basis: "inferred",
@@ -282,37 +282,37 @@ export const sewerFinds: readonly SewerFind[] = [
 
   // Paint.
   {
-    id: "tags", name: "Tags", art: "graffiti", on: "wall", tier: "common", years: [1980, 2030], weight: 2.5, keeps: true,
+    id: "tags", name: "Tags", art: "graffiti", on: "wall", tier: "common", years: [1980, 10001], weight: 2.5, keeps: true,
     verb: "Look at the tags", time: 10,
     text: "Names in spray paint, some fresh and some decades old, layered over each other. Explorers sign the furthest point they reached.",
     look: "Spray-painted names.", basis: "documented",
   },
   {
-    id: "mural", name: "Mural", art: "mural", on: "wall", tier: "notable", years: [1985, 2030], depths: ["street", "trunk"], weight: 1, keeps: true,
+    id: "mural", name: "Mural", art: "mural", on: "wall", tier: "notable", years: [1985, 10001], depths: ["street", "trunk"], weight: 1, keeps: true,
     verb: "Look at the mural", time: 30,
     text: "A whole wall painted by torchlight: faces, a city skyline, letters three metres high. Nobody will ever paint over it.",
     look: "A painted wall bright under your light.", basis: "documented",
   },
   {
-    id: "cave-clan-mark", name: "Cave Clan mark", art: "graffiti", on: "wall", tier: "notable", years: [1986, 2030], where: [AUSTRALIA], depths: ["street", "trunk"], weight: 3, keeps: true,
+    id: "cave-clan-mark", name: "Cave Clan mark", art: "graffiti", on: "wall", tier: "notable", years: [1986, 10001], where: [AUSTRALIA], depths: ["street", "trunk"], weight: 3, keeps: true,
     verb: "Look at the mark", time: 10,
     text: "The Cave Clan's sign and a name for this drain, painted by drainers who mapped it. The clan started in Melbourne in 1986.",
     look: "A painted logo and a drain name.", basis: "documented",
   },
   {
-    id: "diggers-mark", name: "Diggers' marks", art: "graffiti", on: "wall", tier: "notable", years: [1990, 2030], where: [MOSCOW], weight: 3, keeps: true,
+    id: "diggers-mark", name: "Diggers' marks", art: "graffiti", on: "wall", tier: "notable", years: [1990, 10001], where: [MOSCOW], weight: 3, keeps: true,
     verb: "Read the marks", time: 15,
     text: "Arrows, dates and names in Cyrillic, chalk and paint: the route marks of Moscow's diggers, so the next group can find the way out.",
     look: "Chalk arrows and painted dates.", basis: "documented",
   },
   {
-    id: "cataphile-carving", name: "Quarry room carvings", art: "mural", on: "wall", tier: "notable", years: [1970, 2030], where: [PARIS], depths: ["old"], weight: 4, keeps: true,
+    id: "cataphile-carving", name: "Quarry room carvings", art: "mural", on: "wall", tier: "notable", years: [1970, 10001], where: [PARIS], depths: ["old"], weight: 4, keeps: true,
     verb: "Look at the walls", time: 30,
     text: "Sculpted heads, a painted wave, the names of quarrymen from two centuries ago in black candle soot, and cataphiles' paintings over them.",
     look: "A carved and painted limestone room.", basis: "documented",
   },
   {
-    id: "freedom-mural", name: "Tunnel mural", art: "mural", on: "wall", tier: "notable", years: [1985, 2030], where: [NEW_YORK], weight: 3, keeps: true,
+    id: "freedom-mural", name: "Tunnel mural", art: "mural", on: "wall", tier: "notable", years: [1985, 10001], where: [NEW_YORK], weight: 3, keeps: true,
     verb: "Look at the mural", time: 30,
     text: "A huge painted copy of a famous picture, done where the light falls through a grating. Painters worked down here for years among the people who lived in the tunnels.",
     look: "A mural lit by a shaft of daylight.", basis: "documented",
@@ -320,19 +320,19 @@ export const sewerFinds: readonly SewerFind[] = [
 
   // Blockages and rubbish.
   {
-    id: "fatberg", name: "Fatberg", art: "fatberg", on: "floor", tier: "notable", years: [2000, 2030], kinds: ["brick", "concrete", "gallery"], depths: ["street"], weight: 1.5,
+    id: "fatberg", name: "Fatberg", art: "fatberg", on: "floor", tier: "notable", years: [2000, 10001], kinds: ["brick", "concrete", "gallery"], depths: ["street"], weight: 1.5,
     verb: "Dig into it", time: 180, loot: { "gold-ring": [0, 1], "false-teeth": [0, 1] },
     text: "Cooking fat, wet wipes and nappies set hard as stone. It smells beyond description. You dig a hand in and pull something out.",
     look: "A grey-white mass filling half the tunnel.", basis: "documented",
   },
   {
-    id: "london-fatberg", name: "Fatberg", art: "fatberg", on: "floor", tier: "notable", years: [2010, 2030], where: [LONDON], kinds: ["brick"], depths: ["street"], weight: 4,
+    id: "london-fatberg", name: "Fatberg", art: "fatberg", on: "floor", tier: "notable", years: [2010, 10001], where: [LONDON], kinds: ["brick"], depths: ["street"], weight: 4,
     verb: "Dig into it", time: 180, loot: { "gold-ring": [0, 1], "mobile-phone": [0, 1] },
     text: "A mass of fat and wipes like the one found under Whitechapel in 2017, which weighed about 130 tonnes. Things are stuck in it: a ring, a phone.",
     look: "A grey wall of fat filling the brick sewer.", basis: "documented",
   },
   {
-    id: "trolley", name: "Shopping trolley", art: "trolley", on: "floor", tier: "common", years: [1955, 2030], depths: ["street", "trunk"], weight: 1.5, keeps: true,
+    id: "trolley", name: "Shopping trolley", art: "trolley", on: "floor", tier: "common", years: [1955, 10001], depths: ["street", "trunk"], weight: 1.5, keeps: true,
     verb: "Look at the trolley", time: 10,
     text: "A supermarket trolley, rolled into a storm drain and carried a long way by the flood.",
     look: "A wire trolley on its side.", basis: "documented",
@@ -344,7 +344,7 @@ export const sewerFinds: readonly SewerFind[] = [
     look: "A rusting bicycle in the channel.", basis: "inferred",
   },
   {
-    id: "drum", name: "Leaking drum", art: "barrel", on: "floor", tier: "common", years: [1920, 2030], depths: ["street", "trunk"], weight: 1, keeps: true,
+    id: "drum", name: "Leaking drum", art: "barrel", on: "floor", tier: "common", years: [1920, 10001], depths: ["street", "trunk"], weight: 1, keeps: true,
     verb: "Look at the drum", time: 10,
     text: "An oil drum dumped down a manhole by someone who didn't want to pay for disposal. Something oily rainbows the water below it.",
     look: "A rusting steel drum.", basis: "documented",
@@ -364,7 +364,7 @@ export const sewerFinds: readonly SewerFind[] = [
 
   // Older and stranger things below.
   {
-    id: "smugglers-stash", name: "Smuggler's stash", art: "crate", on: "floor", tier: "prize", years: [1920, 2030], depths: ["trunk", "old"], weight: 0.8,
+    id: "smugglers-stash", name: "Smuggler's stash", art: "crate", on: "floor", tier: "prize", years: [1920, 10001], depths: ["trunk", "old"], weight: 0.8,
     verb: "Open the crate", time: 60, loot: { banknotes: [1, 2], cigarettes: [0, 2] },
     text: "A crate pushed into a dry side tunnel and never collected. Whoever hid it was arrested, or worse.",
     look: "A crate wrapped in plastic.", basis: "fiction",
@@ -376,7 +376,7 @@ export const sewerFinds: readonly SewerFind[] = [
     look: "A wooden crate stencilled as machine parts.", basis: "hypothesis",
   },
   {
-    id: "nogales-tunnel", name: "Smuggling tunnel", art: "crate", on: "floor", tier: "prize", years: [1990, 2030], where: [NOGALES], depths: ["street", "trunk"], weight: 4,
+    id: "nogales-tunnel", name: "Smuggling tunnel", art: "crate", on: "floor", tier: "prize", years: [1990, 10001], where: [NOGALES], depths: ["street", "trunk"], weight: 4,
     verb: "Search the tunnel mouth", time: 60, loot: { banknotes: [1, 3] },
     text: "A hole cut through the side of the storm drain into a narrow tunnel, shored with timber, running toward the other side of the border.",
     look: "A rough hole in the concrete, a crate inside.", basis: "documented",
@@ -400,13 +400,13 @@ export const sewerFinds: readonly SewerFind[] = [
     look: "A crate of cardboard boxes.", basis: "documented",
   },
   {
-    id: "shelter-rations", name: "Shelter stores", art: "crate", on: "floor", tier: "notable", years: [1955, 2030], depths: ["old"], weight: 2,
+    id: "shelter-rations", name: "Shelter stores", art: "crate", on: "floor", tier: "notable", years: [1955, 10001], depths: ["old"], weight: 2,
     verb: "Open the stores", time: 60, loot: { "tinned-food": [2, 4], water: [0, 2] }, heal: 15,
     text: "A Cold War shelter's stores: water drums, survival biscuits in tins, a hand-cranked radio. The biscuits are still edible, just about.",
     look: "Stacked tins and water drums.", basis: "documented",
   },
   {
-    id: "resistance-plaque", name: "Resistance headquarters", art: "plaque", on: "wall", tier: "prize", years: [1945, 2030], where: [PARIS], depths: ["old"], weight: 3, keeps: true,
+    id: "resistance-plaque", name: "Resistance headquarters", art: "plaque", on: "wall", tier: "prize", years: [1945, 10001], where: [PARIS], depths: ["old"], weight: 3, keeps: true,
     verb: "Read the plaque", time: 20,
     text: "In August 1944 Colonel Rol-Tanguy directed the rising that freed Paris from a shelter here, twenty-six metres under the Place Denfert-Rochereau.",
     look: "A plaque by a steel door.", basis: "documented",

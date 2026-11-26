@@ -80,6 +80,18 @@ export function kerbsideFor(s: WorldSetting): Kerbside {
   else if (y >= 1950) add(at("kerb-rubbish", 2), 0.8);
   add(at("street-bin", y >= 1960 ? 2 : 0), 2);
 
+  // Dates after 2026 are projection.
+  const asia = id === "east-asia" || id === "southeast-asia" || id === "south-asia";
+  if (id === "east-asia" && y >= 2018) add(at("charging-post", 1), 2);
+  else if (["north-america", "britain", "western-europe", "australasia", "japan"].includes(id) && y >= 2020) add(at("charging-post", 0), y >= 2032 ? 3 : 1);
+  else if (y >= 2034) add(at("charging-post", 0), 1);
+  if ((asia && y >= 2022) || (id === "sub-saharan-africa" && y >= 2026)) add(at("charging-post", 2), 1);
+  if (id === "east-asia" && y >= 2016) add(at("parcel-locker", 1), 1.5);
+  else if ((continental || id === "britain") && y >= 2018) add(at("parcel-locker", 0), 1);
+  else if (y >= 2035) add(at("parcel-locker", s.lon > 60 ? 1 : 0), 1);
+  if ((id === "east-asia" || id === "japan") && y >= 2028) add(at("delivery-robot", 1), 1);
+  else if (["north-america", "britain", "western-europe"].includes(id) && y >= 2030) add(at("delivery-robot", 0), 1);
+
   if (id === "north-america" && y >= 1920) {
     k.mailbox = [at("kerb-mailbox", 0), at("kerb-mailbox", 1), at("kerb-mailbox", 2)];
     if (y >= 1960) k.hoop = at("driveway-hoop", 0);

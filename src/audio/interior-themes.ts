@@ -22,7 +22,7 @@ export type InteriorMusic =
 
 const everywhere = {
   culture: [],
-  years: [-13000, 2026] as [number, number],
+  years: [-13000, 10001] as [number, number],
   place: "Indoors, any place",
 };
 
@@ -217,7 +217,7 @@ export const interiorThemes: Record<InteriorMusic, LayeredTheme> = {
   },
   sewer: {
     ...everywhere,
-    years: [1850, 2026],
+    years: [1850, 10001],
     place: "Under a motor-age street",
     id: "under-the-street",
     title: "Under the street",
@@ -242,7 +242,7 @@ export const interiorThemes: Record<InteriorMusic, LayeredTheme> = {
   },
   mine: {
     ...everywhere,
-    years: [-3000, 2026],
+    years: [-3000, 10001],
     place: "Down a mine, any place",
     id: "at-the-face",
     title: "At the face",

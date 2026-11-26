@@ -235,7 +235,7 @@ const cellularPenitentiary: PrisonStyle = {
   name: "the penitentiary",
   label: "Penitentiary",
   order: "iron-cellblock",
-  years: [1820, 2030],
+  years: [1820, 10001],
   coin: ["coin", "coins"],
   warder: { label: "Warder", dress: "guard" },
   inmate: { label: "Convict", dress: "laborer" },

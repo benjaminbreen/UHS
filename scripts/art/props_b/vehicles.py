@@ -173,7 +173,12 @@ class Car:
     if outer - s.tyre_w <= d <= outer:
      w = s.r + sqrt(max(0.0, s.r * s.r - (x - xw) ** 2))
   if w is not None: zs.append(w)
+  if s.on_pod(x, d) and s.roof(x) is not None: zs.append(s.H + s.pod[2])
   return max(zs) if zs else None
+
+ def on_pod(s, x, d):
+  """Inside the plan of the sensor housing on the roof."""
+  return bool(s.get('pod')) and hypot(x - s.pod[0], d) <= s.pod[1]
 
  def part(s, x, d, z):
   w = s.wheel(x, d, z)
@@ -201,6 +206,7 @@ class Car:
     return 'rim' if (ang * 5) % 1 < 0.45 else 'hubdark'
    return 'rim' if rho < 0.6 else 'hubdark'
   if guard: return 'paint'
+  if z > s.H and s.on_pod(x, d): return 'sensor'
   if deck is not None and z <= deck:
    if z < s.clear or (z < s.arch(x) and d > s.half(x) - 0.42):
     return 'under' if d < s.half(x) - 0.12 else None
@@ -216,12 +222,13 @@ class Car:
     lx, lz = s.half(x) - s.get('lamp_in', 0.22), s.get('lamp_z', gz[1] - 0.08)
     if lamp == 'round' and hypot(d - lx, z - lz) < 0.095: return 'lamp'
     if lamp == 'rect' and abs(d - lx) < 0.14 and abs(z - lz) < 0.05: return 'lamp'
+    if lamp == 'bar' and abs(z - lz) < 0.03 and d < s.half(x) - 0.06: return 'lamp'
     if lamp == 'twin' and (hypot(d - lx, z - lz) < 0.07 or hypot(d - lx + 0.17, z - lz) < 0.07): return 'lamp'
     if d < gw and gz[0] <= z <= gz[1]:
      return 'grille' if int(z * 60) % 2 or d > gw - 0.03 else 'chrome'
    if x > L - 0.07:
     tl = s.get('tail_z', s.profile[-1][1] - 0.1)
-    if d > s.half(x) - 0.2 and abs(z - tl) < 0.06: return 'tail'
+    if (d < s.half(x) - 0.06 if s.get('tail_bar') else d > s.half(x) - 0.2) and abs(z - tl) < (0.03 if s.get('tail_bar') else 0.06): return 'tail'
     if d < 0.16 and abs(z - (bz1 + 0.07)) < 0.05: return 'plate'
    if abs(z - s.get('trim_z', -1)) < 0.02: return 'chrome'
    if d > s.half(x) - 0.03:
@@ -238,6 +245,8 @@ class Car:
    near_roof = z > s.roof(x) - s.get('rail', 0.06)
    pillars = s.get('pillars', [(c0, c0 + (c1 - c0) * 0.55), ((c1 + c2) / 2 - 0.05, (c1 + c2) / 2 + 0.05), (c2 + (c3 - c2) * 0.35, c3)])
    side = d > s.half(x) - s.get('inset', 0.07) - s.get('tuck', 0.12) * (z - s.belt) / max(s.H - s.belt, 0.1) - 0.04
+   # A body with no windows but the dark sensor panel where a windscreen would be.
+   if s.get('blind'): return 'glass' if not side and x < c1 and z > s.belt + 0.15 else 'paint' if side else 'roof'
    if side and not near_roof and not any(a <= x <= b for a, b in pillars):
     return 'glass'
    if not side:
@@ -265,7 +274,7 @@ def render(spec, paint, heading):
  from math import sin, cos
  car = Car(spec, paint)
  Lp, Wp = int(round(car.L * PX)), int(round(car.W * PX))
- Hp = int(round((car.H + max((car.get('fin') or (0, 0))[1], 0) + 0.1) * PX))
+ Hp = int(round((car.H + max((car.get('fin') or (0, 0))[1], (car.get('pod') or (0, 0, 0))[2], 0) + 0.1) * PX))
  turned = heading in TURNED
  if turned:
   t = TURNED[heading] * pi / 4
@@ -377,6 +386,7 @@ def colour(car, part, lam, x, y, top):
  if part == 'plate': return '#d9d4c0'
  if part == 'grille': return GRILLE[1]
  if part == 'under': return UNDER
+ if part == 'sensor': return GLASS[3] if top else TYRE[4 if lam > 0.5 else 2]
  return '#ff00ff'
 
 
@@ -454,21 +464,21 @@ MODELS = {
    profile=[(0, 0.6), (0.2, 0.78), (1.3, 0.9), (4.2, 0.98), (4.8, 0.9)],
    cabin=(1.35, 2.05, 3.1, 4.1), tuck=0.16, nose=0.55, tail=0.45, hub='alloy',
    bumper='none', grille_w=0.4, grille_z=(0.52, 0.66), lamp='rect', lamp_z=0.7, lamp_in=0.24,
-   seams=(2.2, 3.1), paints=('silver', 'grey', 'white', 'blue', 'black', 'red'), era=(1995, 2030),
+   seams=(2.2, 3.1), paints=('silver', 'grey', 'white', 'blue', 'black', 'red'), era=(1995, 2040),
    label='Sedan', about='A rounded modern sedan in the colour most of them come in.'),
  # A 2000s-2010s SUV.
  'suv-2010': dict(BASE, L=4.9, W=1.95, H=1.82, belt=1.2, r=0.4, clear=0.28, wheels=(1.0, 3.95),
    profile=[(0, 0.85), (0.2, 1.05), (1.2, 1.15), (4.8, 1.2), (4.9, 1.1)],
    cabin=(1.25, 1.95, 4.6, 4.85), tuck=0.1, nose=0.35, tail=0.18, hub='alloy',
    bumper='black', grille_w=0.5, grille_z=(0.7, 0.95), lamp='rect', lamp_z=0.98, lamp_in=0.25,
-   seams=(2.3, 3.3), paints=('black', 'white', 'silver', 'navy', 'grey'), era=(1995, 2030),
+   seams=(2.3, 3.3), paints=('black', 'white', 'silver', 'navy', 'grey'), era=(1995, 2042),
    label='SUV', about='Tall, heavy and square-backed.'),
  # A pickup truck.
  'pickup-1975': dict(BASE, L=5.2, W=2.0, H=1.75, belt=1.12, r=0.38, clear=0.28, wheels=(1.1, 4.1),
    profile=[(0, 1.0), (0.1, 1.08), (1.8, 1.12), (5.2, 1.12)], bed=2.95, bed_floor=0.72,
    cabin=(1.8, 2.2, 2.75, 2.9), tuck=0.08, nose=0.15, tail=0.05, hub='steel',
    grille_w=0.8, grille_z=(0.55, 0.98), lamp='round', lamp_z=0.85, lamp_in=0.15, pillars=[(1.8, 2.05), (2.62, 2.9)],
-   seams=(2.75,), paints=('olive', 'brown', 'white', 'sky', 'red'), era=(1955, 2030),
+   seams=(2.75,), paints=('olive', 'brown', 'white', 'sky', 'red'), era=(1955, 2045),
    label='Pickup truck', about='A truck with an open bed, dented along the tailgate.'),
  # Europe: a small beetle-backed people's car.
  'beetle': dict(BASE, L=4.05, W=1.55, H=1.5, belt=0.95, r=0.33, wheels=(0.72, 3.1),
@@ -532,7 +542,7 @@ MODELS = {
    profile=[(0, 0.7), (0.2, 0.82), (0.55, 0.88), (3.3, 0.92), (3.39, 0.85)],
    cabin=(0.6, 1.05, 3.1, 3.35), tuck=0.08, nose=0.25, tail=0.08, hub='steel',
    bumper='black', lamp='rect', lamp_z=0.74, lamp_in=0.14, grille_w=0.2, grille_z=(0.55, 0.7),
-   seams=(1.6, 2.5), paints=('white', 'silver', 'mint', 'cream', 'blue'), era=(1975, 2030),
+   seams=(1.6, 2.5), paints=('white', 'silver', 'mint', 'cream', 'blue'), era=(1975, 2045),
    label='Kei car', about='A tall, narrow box of a car, exactly as big as the rules allow.'),
  # A minibus / van.
  'van': dict(BASE, L=4.5, W=1.75, H=1.95, belt=1.08, r=0.33, wheels=(0.7, 3.4),
@@ -542,6 +552,35 @@ MODELS = {
    pillars=[(0.4, 0.62), (1.4, 1.5), (2.4, 2.5), (3.4, 3.5), (4.3, 4.5)], seams=(1.45,),
    paints=('sky', 'orange', 'green', 'red', 'cream'), era=(1955, 1990),
    label='Minibus', about='A van with windows all down its side and its engine under the floor.'),
+ # Dates past 2026 on the four below are projection.
+ # An electric crossover of the 2020s: no grille, a lamp bar across the nose.
+ 'ev-2030': dict(BASE, L=4.6, W=1.88, H=1.6, belt=0.95, r=0.36, clear=0.18, wheels=(0.95, 3.85),
+   profile=[(0, 0.62), (0.25, 0.8), (1.25, 0.92), (4.3, 1.0), (4.6, 0.9)],
+   cabin=(1.25, 2.05, 3.3, 4.45), tuck=0.16, nose=0.6, tail=0.45, hub='alloy',
+   bumper='none', grille_w=0.0, lamp='bar', lamp_z=0.74, lamp_in=0.0, tail_bar=True, seams=(2.3, 3.3),
+   paints=('white', 'silver', 'grey', 'black', 'teal', 'blue'), era=(2018, 2060),
+   label='Electric car', about='A smooth car with no grille, since there is no engine to cool. It pulls away without a sound.'),
+ # A small Chinese electric runabout, charged from a plug at home.
+ 'ev-mini': dict(BASE, L=2.95, W=1.5, H=1.62, belt=0.92, r=0.27, wheels=(0.5, 2.45),
+   profile=[(0, 0.66), (0.15, 0.78), (0.5, 0.84), (2.85, 0.88), (2.95, 0.82)],
+   cabin=(0.55, 0.95, 2.7, 2.9), tuck=0.08, nose=0.25, tail=0.1, hub='alloy', top_paint='white',
+   bumper='black', grille_w=0.0, lamp='rect', lamp_z=0.72, lamp_in=0.14, seams=(1.55,),
+   paints=('mint', 'pink', 'sky', 'white', 'yellow'), era=(2020, 2060),
+   label='Mini electric car', about='A small square electric car in a sweet-shop colour, charged overnight from a plug.'),
+ # A driverless taxi: a tall glassy pod with a sensor drum on its roof.
+ 'robotaxi': dict(BASE, L=4.5, W=1.92, H=1.74, belt=0.95, r=0.36, clear=0.2, wheels=(0.85, 3.65),
+   profile=[(0, 0.7), (0.3, 0.9), (0.7, 0.95), (3.9, 0.98), (4.5, 0.86)],
+   cabin=(0.75, 1.35, 3.6, 4.3), tuck=0.12, nose=0.55, tail=0.5, hub='alloy', pod=(2.5, 0.2, 0.18),
+   bumper='none', grille_w=0.0, lamp='bar', lamp_z=0.8, lamp_in=0.0, tail_bar=True, seams=(2.3,),
+   paints=('white', 'white', 'sky'), era=(2028, 2060),
+   label='Robotaxi', about='A taxi with nobody at the wheel and a sensor drum turning on its roof. You pay with your phone.'),
+ # A driverless parcel van the size of a shed, its side all locker doors.
+ 'delivery-pod': dict(BASE, L=2.7, W=1.12, H=1.7, belt=0.9, r=0.25, clear=0.16, wheels=(0.45, 2.25),
+   profile=[(0, 0.8), (0.1, 0.88), (2.7, 0.9)], cabin=(0.12, 0.45, 2.6, 2.7), tuck=0.03, inset=0.03,
+   nose=0.25, tail=0.1, pinch=0.4, hub='steel', blind=True, pod=(0.5, 0.12, 0.12),
+   bumper='black', grille_w=0.0, lamp='bar', lamp_z=0.7, lamp_in=0.0, tail_bar=True, seams=(1.0, 1.55, 2.1),
+   top_paint='white', paints=('white', 'orange', 'sky'), era=(2022, 2060),
+   label='Delivery pod', about='A driverless van full of parcel lockers. It pulls up, flashes, and waits for someone to type in a code.'),
 }
 
 

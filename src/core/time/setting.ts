@@ -2,9 +2,9 @@ import { places } from "../../content/geography/places";
 import { settingFor } from "../../content/geography/resolve";
 import type { WorldSetting, AtlasPlace } from "../../content/geography/types";
 import { italianTimeContext } from "../../content/history/time/italy";
-import { eraAt } from "../../content/history/dates";
+import { eraAt, LAST_YEAR } from "../../content/history/dates";
 export const YEAR_MIN = -1000000;
-export const YEAR_MAX = 10000;
+export const YEAR_MAX = LAST_YEAR;
 export function timeBounds(year: number) {
   return {
     min: Math.max(YEAR_MIN, year - 1000),

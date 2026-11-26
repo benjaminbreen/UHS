@@ -1,3 +1,4 @@
+import { knownSpan } from "../../history/dates";
 import type { Place, Point } from "../../../core/types";
 import { random } from "../../../core/random";
 import { beliefOptions } from "../../beliefs";
@@ -23,7 +24,7 @@ const rules: ReligiousRule[] = [
   ...europeReligious, ...americasReligious, ...nearEastReligious, ...eastAsiaReligious, ...orthodoxReligious,
   ...africaReligious, ...southAsiaReligious, ...southeastAsiaReligious, ...minorityReligious, ...pacificReligious,
 ].sort(
-  (a, b) => a.to - a.from - (b.to - b.from) || a.id.localeCompare(b.id),
+  (a, b) => knownSpan(a.from, a.to) - knownSpan(b.from, b.to) || a.id.localeCompare(b.id),
 );
 
 function matchesSite(s: WorldSetting) {

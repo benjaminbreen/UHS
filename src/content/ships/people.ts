@@ -1,6 +1,6 @@
 import type { SewerPerson } from "../sewers/types";
 
-const SAIL = { years: [-500, 2027] } as const;
+const SAIL = { years: [-500, 10001] } as const;
 
 /** Who sails in a ship, crew and passengers. Lines are plain modern English;
  * the facts in them carry the period. Hulls list which of these they carry. */
@@ -415,7 +415,7 @@ export const shipPeople: readonly SewerPerson[] = [
     basis: "documented",
   },
   {
-    id: "hajji", scope: { years: [630, 2027] }, kinds: ["dhow", "steamer"], depths: ["deck", "below"], post: "berth",
+    id: "hajji", scope: { years: [630, 10001] }, kinds: ["dhow", "steamer"], depths: ["deck", "below"], post: "berth",
     label: "Pilgrim to Mecca", dress: "cultivator", doing: "Praying facing the bow", manner: "camp",
     lines: [
       "I saved for eleven years for this. My whole village came to the harbour to see me off.",

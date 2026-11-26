@@ -564,7 +564,96 @@ def driveway_hoop(v=0):
  return c.image()
 
 
+def charging_post(v=0):
+ """Where a car or a scooter battery is filled from the mains. v0 the slim
+ post of a European or American street with its cable on a hook, v1 the
+ white charging pile of a Chinese car park, v2 a swap cabinet of scooter
+ batteries, each slot with its light."""
+ if v == 0:
+  c = Canvas(13, 34)
+  _box(c, 2, 3, 9, 31, WHITE)
+  c.rect(2, 1, 9, 3, GREEN[4]); c.hline(2, 9, 1, GREEN[6])
+  c.rect(4, 6, 7, 10, IRON[1]); c.hline(5, 6, 7, GREEN[6]); c.hline(5, 6, 9, GLASS[5])
+  c.rect(4, 13, 7, 16, IRON[2]); c.set(5, 14, IRON[0]); c.set(6, 14, IRON[0])
+  c.vline(10, 12, 15, IRON[2]); c.line((10, 15), (11, 22), IRON[1]); c.line((11, 22), (9, 27), IRON[1])
+  c.hline(1, 10, 32, CONCRETE[2]); c.hline(1, 10, 33, CONCRETE[1])
+  soft_outline(c, WHITE[0], WHITE[2])
+  return c.image()
+ if v == 1:
+  c = Canvas(19, 32)
+  _box(c, 2, 4, 15, 29, WHITE)
+  c.rect(2, 1, 15, 4, GREEN[3]); c.hline(2, 15, 1, GREEN[5])
+  c.rect(5, 7, 12, 12, IRON[1]); c.hline(6, 11, 8, GLASS[5]); c.hline(6, 9, 10, GREEN[6])
+  c.rect(4, 15, 13, 16, GREEN[4])
+  for x in (5, 11): c.rect(x, 19, x + 1, 21, IRON[2])
+  c.line((16, 18), (17, 25), IRON[1]); c.line((17, 25), (15, 29), IRON[1]); c.vline(16, 16, 18, IRON[3])
+  c.hline(1, 16, 30, CONCRETE[2]); c.hline(1, 16, 31, CONCRETE[1])
+  soft_outline(c, WHITE[0], WHITE[2])
+  return c.image()
+ c = Canvas(22, 30)
+ _box(c, 1, 3, 20, 27, IRON)
+ c.rect(1, 1, 20, 3, GLASS[4]); c.hline(1, 20, 1, GLASS[6])
+ c.rect(3, 5, 18, 8, IRON[0]); c.hline(5, 12, 6, GLASS[6]); c.hline(5, 9, 7, GREEN[6])
+ for row, y in enumerate((11, 18)):
+  for col, x in enumerate((3, 7, 11, 15)):
+   c.rect(x, y, x + 2, y + 5, IRON[1]); c.hline(x, x + 2, y, STEEL[4])
+   lit = (row * 4 + col) % 3 != 1
+   c.set(x + 1, y + 3, GREEN[6] if lit else ORANGE[5])
+ c.hline(1, 20, 28, CONCRETE[2]); c.hline(1, 20, 29, CONCRETE[1])
+ soft_outline(c, IRON[0], IRON[2])
+ return c.image()
+
+
+def parcel_locker(v=0):
+ """A bank of lockers that parcels are left in and opened with a code from a
+ phone. v0 yellow, v1 white and blue."""
+ body, trim = ((YELLOW, IRON), (WHITE, BLUE))[v]
+ c = Canvas(34, 32)
+ _box(c, 1, 3, 32, 29, body)
+ c.rect(1, 1, 32, 3, trim[3]); c.hline(1, 32, 1, trim[5])
+ for x0 in (3, 9, 21, 27):
+  for i, y0 in enumerate((5, 10, 15, 20, 24)):
+   y1 = min(y0 + 3 + (i == 4 and 0), 27)
+   c.rect(x0, y0, x0 + 4, y1, body[4]); c.hline(x0, x0 + 4, y0, body[6]); c.vline(x0 + 4, y0, y1, body[2])
+   c.set(x0 + 3, y0 + 1, body[1])
+ c.rect(15, 5, 18, 27, body[2])
+ c.rect(14, 7, 19, 12, IRON[1]); c.hline(15, 18, 8, GLASS[5]); c.hline(15, 17, 10, GLASS[4])
+ c.rect(15, 14, 18, 17, STEEL[3]); c.set(16, 15, IRON[1]); c.set(17, 16, IRON[1])
+ c.hline(1, 32, 30, IRON[1]); c.hline(2, 31, 31, IRON[0])
+ soft_outline(c, body[0], body[2])
+ return c.image()
+
+
+def delivery_robot(v=0):
+ """A pavement delivery robot waiting at the kerb. v0 the white six-wheeled
+ cooler box with a flag on a whip, v1 a taller grey box with a lamp bar."""
+ if v == 0:
+  c = Canvas(18, 26)
+  c.vline(13, 1, 13, IRON[2]); c.rect(14, 1, 16, 3, ORANGE[5]); c.hline(14, 16, 1, ORANGE[6])
+  _box(c, 2, 13, 15, 21, WHITE)
+  c.hline(3, 14, 13, WHITE[6]); c.hline(2, 15, 16, IRON[2])
+  c.hline(4, 7, 18, GLASS[5]); c.set(12, 18, GREEN[6])
+  for x in (3, 8, 13):
+   c.rect(x, 22, x + 2, 24, IRON[1]); c.set(x + 1, 23, STEEL[4])
+  c.hline(2, 15, 25, IRON[0])
+  soft_outline(c, WHITE[0], WHITE[2])
+  return c.image()
+ c = Canvas(16, 26)
+ _box(c, 2, 5, 13, 21, STEEL)
+ c.rect(2, 3, 13, 5, IRON[2]); c.hline(3, 12, 3, IRON[4])
+ c.hline(3, 12, 8, GLASS[6]); c.hline(3, 12, 9, GLASS[4])
+ c.vline(7, 11, 20, STEEL[2]); c.rect(9, 13, 11, 14, IRON[1])
+ for x in (3, 10):
+  c.rect(x, 22, x + 2, 24, IRON[1]); c.set(x + 1, 23, STEEL[4])
+ c.hline(2, 13, 25, IRON[0])
+ soft_outline(c, STEEL[0], STEEL[2])
+ return c.image()
+
+
 KERBSIDE = {
+ 'charging-post': charging_post,
+ 'parcel-locker': parcel_locker,
+ 'delivery-robot': delivery_robot,
  'fire-hydrant': hydrant,
  'post-box': post_box,
  'kerb-mailbox': kerb_mailbox,

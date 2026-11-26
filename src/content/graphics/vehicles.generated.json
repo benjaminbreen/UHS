@@ -88,7 +88,7 @@
   "about": "A rounded modern sedan in the colour most of them come in.",
   "era": [
    1995,
-   2030
+   2040
   ],
   "paints": 6,
   "cells": {
@@ -102,7 +102,7 @@
   "about": "Tall, heavy and square-backed.",
   "era": [
    1995,
-   2030
+   2042
   ],
   "paints": 5,
   "cells": {
@@ -116,7 +116,7 @@
   "about": "A truck with an open bed, dented along the tailgate.",
   "era": [
    1955,
-   2030
+   2045
   ],
   "paints": 5,
   "cells": {
@@ -242,7 +242,7 @@
   "about": "A tall, narrow box of a car, exactly as big as the rules allow.",
   "era": [
    1975,
-   2030
+   2045
   ],
   "paints": 5,
   "cells": {
@@ -264,5 +264,61 @@
    "y": 2.39
   },
   "wide": 1.86
+ },
+ "ev-2030": {
+  "label": "Electric car",
+  "about": "A smooth car with no grille, since there is no engine to cool. It pulls away without a sound.",
+  "era": [
+   2018,
+   2060
+  ],
+  "paints": 6,
+  "cells": {
+   "x": 4.89,
+   "y": 2.44
+  },
+  "wide": 2.0
+ },
+ "ev-mini": {
+  "label": "Mini electric car",
+  "about": "A small square electric car in a sweet-shop colour, charged overnight from a plug.",
+  "era": [
+   2020,
+   2060
+  ],
+  "paints": 5,
+  "cells": {
+   "x": 3.13,
+   "y": 1.57
+  },
+  "wide": 1.59
+ },
+ "robotaxi": {
+  "label": "Robotaxi",
+  "about": "A taxi with nobody at the wheel and a sensor drum turning on its roof. You pay with your phone.",
+  "era": [
+   2028,
+   2060
+  ],
+  "paints": 3,
+  "cells": {
+   "x": 4.78,
+   "y": 2.39
+  },
+  "wide": 2.04
+ },
+ "delivery-pod": {
+  "label": "Delivery pod",
+  "about": "A driverless van full of parcel lockers. It pulls up, flashes, and waits for someone to type in a code.",
+  "era": [
+   2022,
+   2060
+  ],
+  "paints": 3,
+  "cells": {
+   "x": 2.87,
+   "y": 1.43
+  },
+  "wide": 1.19
  }
 }

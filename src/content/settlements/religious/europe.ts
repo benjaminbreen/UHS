@@ -19,7 +19,7 @@ export const europeReligious: ReligiousRule[] = [
   ] as const).map(([id, faith, label, recipe, about]): ReligiousRule => ({
     id, faith, recipe,
     labels: {small:label, medium:label, large:label}, about, congregationOnly:true,
-    from:2016, to:2026, bounds:[-.52,51.28,.34,51.70], side:"north", forecourt:1,
+    from:2016, to:10001, bounds:[-.52,51.28,.34,51.70], side:"north", forecourt:1,
     evidence:{status:"inferred",sources:["https://historicengland.org.uk/images-books/publications/changing-london-6/changinglondon-6/"],
       note:"An adapted street building represents a neighbourhood congregation in the period covered by the London population profile."},
   })),

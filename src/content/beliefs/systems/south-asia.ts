@@ -1248,7 +1248,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Indo-Islamic Sufi practice",
     wiki: "https://en.wikipedia.org/wiki/Sufism_in_India",
-    scope: { years: [1000, 2025], bounds: [60, 24, 74.5, 37] },
+    scope: { years: [1000, 10001], bounds: [60, 24, 74.5, 37] },
     powers: [
       {
         name: "Allah",
@@ -1332,7 +1332,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
     realm: "hindu",
     label: "Modern Indian practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_India",
-    scope: { years: [1947, 2025], bounds: [68, 6, 97, 35.5] },
+    scope: { years: [1947, 10001], bounds: [68, 6, 97, 35.5] },
     powers: [
       { name: "Vishnu", wiki: "https://en.wikipedia.org/wiki/Vishnu", domain: "order, protection, worshipped as Rama and Krishna", rank: "paramount" },
       { name: "Shiva", wiki: "https://en.wikipedia.org/wiki/Shiva", domain: "asceticism, destruction and renewal", rank: "major" },
@@ -1684,7 +1684,7 @@ const southAsiaBase: readonly BeliefSystem[] = [
     realm: "hindu",
     label: "Bengal regional practice",
     wiki: "https://en.wikipedia.org/wiki/Bengali_Hindus",
-    scope: { years: [-500, 2025], bounds: [86, 21, 93, 26.6] },
+    scope: { years: [-500, 10001], bounds: [86, 21, 93, 26.6] },
     powers: [
       {
         name: "Ganga",

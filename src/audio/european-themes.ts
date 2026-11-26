@@ -1670,7 +1670,7 @@ export const europeanThemes: LayeredTheme[] = [
       "Recorder and lute over a bouncing bass while the belfry marks the hour: a tune to whistle crossing the Markt.",
     place: "Bruges, c. 1550",
     culture: "european",
-    years: [1450, 2026],
+    years: [1450, 10001],
     evidence:
       "Documented: Low Countries belfries sounded tunes on tuned bells from the 15th century, and recorders, lutes and dance tunes were everyday town music in 16th-century Flanders (Susato's dance books, Antwerp, 1551). The tune and arrangement are original.",
     bpm: 112,

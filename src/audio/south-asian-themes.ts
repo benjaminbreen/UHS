@@ -91,7 +91,7 @@ export const southAsianThemes: LayeredTheme[] = [
       "The gate-house wakes in raga Bhairav: a slow shehnai alap, the long trumpets, then kettledrums driving the tune from stately to blazing.",
     place: "Mughal Fatehpur Sikri, c. 1580",
     culture: "south-asian",
-    years: [1500, 2026],
+    years: [1500, 10001],
     evidence:
       "Documented: the Ain-i-Akbari describes Akbar's naqqarkhana of kettledrum pairs, karna trumpets, surna and cymbals, playing at set hours, beginning before dawn; shehnai and naqqara naubat with a drone shehnai continue at shrines today. Raga Bhairav, the alap-gat-jhala form and the sixteen-beat cycle are inference from later Hindustani practice; the melody is fiction.",
     bpm: 150,

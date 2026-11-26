@@ -963,7 +963,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
       },
       {
         name: "Maximón",
-        scope: { years: [1500, 2025], bounds: [-92.5, 13.5, -89, 16.5] },
+        scope: { years: [1500, 10001], bounds: [-92.5, 13.5, -89, 16.5] },
         wiki: "https://en.wikipedia.org/wiki/Maxim%C3%B3n",
         domain: "the crossroads, vice and its cure, dangerous protection",
         rank: "major",
@@ -1029,7 +1029,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Modern Mesoamerican traditions",
     wiki: "https://en.wikipedia.org/wiki/Folk_Catholicism",
-    scope: { years: [1750, 2025], bounds: [-107, 10, -78, 25] },
+    scope: { years: [1750, 10001], bounds: [-107, 10, -78, 25] },
     powers: [
       {
         name: "The Christian God",
@@ -1052,7 +1052,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
       },
       {
         name: "Maximón (San Simón)",
-        scope: { years: [1500, 2025], bounds: [-92.5, 13.5, -89, 16.5] },
+        scope: { years: [1500, 10001], bounds: [-92.5, 13.5, -89, 16.5] },
         wiki: "https://en.wikipedia.org/wiki/Maxim%C3%B3n",
         domain: "the town, community, dangerous favors",
         rank: "major",
@@ -1087,7 +1087,7 @@ export const mesoamerica: readonly BeliefSystem[] = [
       "Household altars with saints and candles remain central to family ritual.",
       {
         text: "The dead are welcomed home on the Day of the Dead with food, marigolds, and photographs.",
-        scope: { years: [1850, 2025] },
+        scope: { years: [1850, 10001] },
       },
       "Local mountains and water sources receive offerings for rain and fertility; chaneques are placated before working new ground.",
     ],

@@ -20,6 +20,7 @@ deterministic pipeline in `src/content/characters/`. It makes no model calls.
 | `profiles/communities.ts` | Community scenarios and appearance kits (`AppearanceKit`), including adornment pools |
 | `livelihoods.ts`, `livelihoods.generated.ts` | Livelihoods and their activity and supply kits |
 | `outlaws.ts`, `city-work.ts` | Authored livelihoods beside the ported tables: robbers, office staff, bar staff, grain factors, livestock dealers, market weighmasters and auctioneers. `city-work.ts` also holds `jobGrades`, the ladder an office ran on (Junior Broker, Senior Partner, Section Chief), drawn by age in `graded` (`generate.ts`); the livelihood id stays the same, the label and rank change |
+| `future-work.ts` | Work of the 2020s and the projected years to 2060: mobile-money agents, data labellers, robot operators and mechanics, AI checkers, appeals advocates, matchmakers, paid companions. Robot work needs the `robots` requirement (`requirements.ts`), a projected regional date from 2033 in coastal China to 2048 everywhere |
 | `resolve.ts` | Selection by year, geographic box, culture and community (`matchesCharacterScope`) |
 | `validate.ts` | Reference and evidence checks on load. Equal-specificity conflicts fail rather than depending on file order |
 | `generate.ts` | Independent seeded streams per world seed, actor and purpose, so changing a role never rerolls a face or a name |
@@ -74,7 +75,7 @@ The shared clothes of the present are in `regions/contemporary.ts`: crew-neck T-
 `waistcoat: "jacket"`, printed dresses (`motif: "floral"`) and
 `bag: "backpack"`. Each kit carries a `share`, so in every place some people
 wear the whole look and the rest keep the region's dress; the share is lower
-where regional dress holds. Future dress (`futureDress`) starts in 2040. Explicit appearance recipes always win. `wardrobes.ts` is a
+where regional dress holds. The present's kits run on to 2060 unchanged. Explicit appearance recipes always win. `wardrobes.ts` is a
 re-export shim.
 
 ## The world sprite

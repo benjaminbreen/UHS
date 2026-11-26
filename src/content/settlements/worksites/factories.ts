@@ -14,8 +14,8 @@ export const factoryProfiles: readonly WorksiteProfile[] = [
   {...common,id:"chinese-filature",label:"Silk filature",scope:{years:[1878,1950],bounds:[112,22,123,33]},frame:"worksite-filature",
     sources:["https://en.wikipedia.org/wiki/Silk_industry_in_China"],
     note:"A steam silk-reeling mill of the kind that spread round Shanghai and the Canton delta from 1878, Chinese-owned as often as foreign. Long hours and child labour drew strikes in the 1920s."},
-  {...northLight,id:"east-asian-factory",scope:{years:[1950,2027],bounds:[100,0,146,46]}},
-  {...northLight,id:"south-asian-factory",scope:{years:[1950,2027],bounds:[60,5,98,36]}},
-  {...northLight,id:"latin-american-factory",scope:{years:[1920,2027],bounds:[-118,-56,-34,33]}},
-  {...northLight,id:"african-factory",scope:{years:[1950,2027],bounds:[-18,-35,52,30]}},
+  {...northLight,id:"east-asian-factory",scope:{years:[1950,10001],bounds:[100,0,146,46]}},
+  {...northLight,id:"south-asian-factory",scope:{years:[1950,10001],bounds:[60,5,98,36]}},
+  {...northLight,id:"latin-american-factory",scope:{years:[1920,10001],bounds:[-118,-56,-34,33]}},
+  {...northLight,id:"african-factory",scope:{years:[1950,10001],bounds:[-18,-35,52,30]}},
 ];

@@ -364,7 +364,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
     realm: "protestant",
     label: "Hawaiian Christian and ʻaumakua practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_Hawaii",
-    scope: { years: [1820, 2025], bounds: [-160, 18, -154, 23] },
+    scope: { years: [1820, 10001], bounds: [-160, 18, -154, 23] },
     powers: [
       { name: "God", wiki: "https://en.wikipedia.org/wiki/God_in_Christianity", domain: "the Protestant and Catholic God of the missions", rank: "paramount" },
       { name: "Jesus", wiki: "https://en.wikipedia.org/wiki/Jesus", domain: "salvation, the church", rank: "major" },
@@ -731,7 +731,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
     features: ["sacred-texts"],
     label: "Pacific mission Christianity",
     wiki: "https://en.wikipedia.org/wiki/Christianity_in_Oceania",
-    scope: { years: [1800, 2025], bounds: [110, -50, 180, 25] },
+    scope: { years: [1800, 10001], bounds: [110, -50, 180, 25] },
     powers: [
       {
         name: "God",
@@ -813,7 +813,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
     realm: "protestant",
     label: "Australian settler practice",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_Australia",
-    scope: { years: [1788, 2025], bounds: [138, -44, 154, -26] },
+    scope: { years: [1788, 10001], bounds: [138, -44, 154, -26] },
     powers: [
       { name: "God", wiki: "https://en.wikipedia.org/wiki/God_in_Christianity", domain: "the God of the Anglican, Catholic and Methodist churches", rank: "paramount" },
       { name: "Jesus", wiki: "https://en.wikipedia.org/wiki/Jesus", domain: "salvation, the church", rank: "major" },
@@ -848,7 +848,7 @@ export const australiaPacific: readonly BeliefSystem[] = [
     realm: "country",
     label: "Aboriginal Australia and Christian missions (colonial era)",
     wiki: "https://en.wikipedia.org/wiki/Australian_Aboriginal_mythology",
-    scope: { years: [1788, 2025], bounds: [110, -50, 160, -10] },
+    scope: { years: [1788, 10001], bounds: [110, -50, 160, -10] },
     powers: [
       {
         name: "The ancestral beings",

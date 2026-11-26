@@ -19,7 +19,7 @@ import {
 } from "../kits/christian";
 
 const london: Pick<BeliefSystem,"scope"|"evidence"> = {
-  scope: { years:[2016,2026], bounds:[-.52,51.28,.34,51.70] },
+  scope: { years:[2016,10001], bounds:[-.52,51.28,.34,51.70] },
   evidence: {
     status:"inferred",
     claim:"The 2021 census gives the shares of London residents reporting each affiliation.",
@@ -1543,7 +1543,7 @@ const europeanBase: readonly BeliefSystem[] = [
     realm: "protestant",
     label: "Industrial-era European practice",
     wiki: "https://en.wikipedia.org/wiki/Secularization",
-    scope: { years: [1800, 2025], bounds: [-26, 30, 50, 72] },
+    scope: { years: [1800, 10001], bounds: [-26, 30, 50, 72] },
     powers: [
       {
         name: "Progress",
@@ -1618,7 +1618,7 @@ const europeanBase: readonly BeliefSystem[] = [
     realm: "protestant",
     label: "American city congregations",
     wiki: "https://en.wikipedia.org/wiki/Religion_in_the_United_States",
-    scope: { years: [1820, 2025], bounds: [-125, 24, -66, 50] },
+    scope: { years: [1820, 10001], bounds: [-125, 24, -66, 50] },
     powers: [
       {
         name: "God",

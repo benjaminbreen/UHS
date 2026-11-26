@@ -352,7 +352,7 @@ export const westAsiaNorthAfrica: readonly GarmentKit[] = [
   ...streetWraps([
     // Qajar street dress paired the wrap with a separate white openwork face veil.
     { id: "iran-chador", label: "Iran · chador and ruband", years: [1500, 1926], bounds: [44, 25, 63.5, 39.8], except: [[53, 37.3, 63.5, 39.8]], colors: ["#24222a", "#24222a", "#2c3550"], masks: [["ruband", 3], ["none", 2]] },
-    ...([[1926, 1936], [1941, 2040]] as [number, number][]).map(years => ({
+    ...([[1926, 1936], [1941, 10001]] as [number, number][]).map(years => ({
       id: `iran-open-chador-${years[0]}`, label: "Iran · open-faced chador", years, bounds: [44, 25, 63.5, 39.8] as Wrap["bounds"],
       except: [[53, 37.3, 63.5, 39.8]] as Wrap["except"], colors: ["#24222a", "#302e36"], masks: [["none", 1]] as Wrap["masks"],
     })),
