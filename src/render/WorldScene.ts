@@ -17,6 +17,7 @@ import { Lightning } from "./lightning";
 import { InjuryScene } from "./injury-scene";
 import { INJURY_SCENE_MS } from "../content/health/injuries";
 import { CabLayer } from "./cabs";
+import { StreetRobots } from "./street-robots";
 import { CarLayer } from "./cars";
 import { CAR_HEADINGS, CAR_WAYS, carSpec, carStep } from "../core/cars";
 import { Traffic, trafficFacing } from "../core/traffic";
@@ -143,7 +144,8 @@ import { CYCLE_AIR, jumpMs, JUMP_CHARGE_MS, type Runtime } from "../runtime/sess
 import type { Position, WorldModel, WorldObject } from "../core/types";
 import { surfaceAt, hasQuay } from "./materials";
 import { gameAudio } from "../audio/director";
-import { slingWhirl } from "../audio/sfx";
+import { slingWhirl, streetSound } from "../audio/sfx";
+import { streetTrade as streetOccupation } from "../content/street-trades";
 import { TreeFinds } from "./tree-finds";
 import {
   bumpAnimal,
@@ -939,6 +941,7 @@ export class WorldScene extends Phaser.Scene {
   private harbor = new HarborLayer(this, frame => this.texture(frame));
   private trains = new TrainLayer(this, (frame) => this.texture(frame));
   private cabs = new CabLayer(this, (frame) => this.texture(frame));
+  private robots = new StreetRobots(this);
   private cars = new CarLayer(this, (frame) => this.texture(frame));
   private trafficCars = new CarLayer(this, (frame) => this.texture(frame));
   private traffic?: { plan: unknown; sim: Traffic; want: number; passed: Map<number, number>; heard: Map<number, number> };
@@ -1516,6 +1519,7 @@ export class WorldScene extends Phaser.Scene {
       this.harbor.dispose();
       this.trains.dispose();
       this.cabs.dispose();
+      this.robots.dispose();
       this.cars.dispose();
       this.trafficCars.dispose();
       this.vehicleLayer.dispose();
@@ -3447,6 +3451,43 @@ export class WorldScene extends Phaser.Scene {
     this.tweens.add({ targets: label, y: label.y - 18, alpha: 0, delay: 500, duration: 900, onComplete: () => label.destroy() });
     this.runtime.command({ type: "interact", action: "cycle-trick", target: tricks.map((t) => t.name).join(" into a ") });
   }
+  private cried = new Map<string, number>();
+  /** Street traders near the player call their wares: the trade's sound, and
+   * the words rising from the head and fading. */
+  private streetCries(p: { x: number; y: number }, time: number) {
+    const hour = (this.runtime.displayClock() / 3600) % 24;
+    for (const a of this.runtime.engine.state.actors) {
+      const trade = a.wayfarer?.street ? streetOccupation(a.wayfarer.street) : undefined;
+      const far = Math.abs(a.pos.x - p.x) + Math.abs(a.pos.y - p.y);
+      if (!trade || a.pos.space !== "outside" || far > 24) continue;
+      // Every six to fifteen seconds, the nearer the more often.
+      const due = (this.cried.get(a.id) ?? 0) + 6000 + far * 300 + (this.poseOffset(a.id) % 3000);
+      if (time < due) continue;
+      this.cried.set(a.id, time);
+      const watch = Math.min(5, Math.floor(((hour + 5) % 24) / 2) + 1);
+      const variant = trade.sound === "night-clappers" ? watch : Math.floor(random(a.id, "voice") * 12);
+      void gameAudio()?.sound(streetSound(trade.sound, variant), `street-${a.id}`, Math.max(-1, Math.min(1, (a.pos.x - p.x) / 16)));
+      const im = this.entities.get(a.id);
+      if (!im?.visible || !this.cameras.main.worldView.contains(im.x, im.y)) continue;
+      const clock = ["twelve", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven"][Math.floor(hour) % 12];
+      const text = this.add
+        .text(im.x, this.headTop(im) - 4, trade.cry.replace("{clock}", clock), { fontFamily: "Silkscreen, monospace", fontSize: "8px", color: "#fff4d6", stroke: "#1a1410", strokeThickness: 3, align: "center", wordWrap: { width: 120 } })
+        .setOrigin(0.5, 1)
+        .setDepth(1e7)
+        .setAlpha(0);
+      const rise = { t: 0 };
+      this.tweens.add({
+        targets: rise, t: 1, duration: 2600,
+        onUpdate: () => {
+          const at = this.entities.get(a.id);
+          if (!at || !text.scene) return;
+          text.setPosition(Math.round(at.x), Math.round(this.headTop(at) - 4 - rise.t * 10));
+          text.setAlpha(rise.t < 0.12 ? rise.t / 0.12 : rise.t > 0.7 ? (1 - rise.t) / 0.3 : 1);
+        },
+        onComplete: () => text.destroy(),
+      });
+    }
+  }
   /** What a moving cycle sounds like and throws up: chain and tyres, a clicking freewheel, an engine. */
   private cycleSounds(im: Phaser.GameObjects.Image, look: CycleLook, moving: boolean, time: number, wet: boolean) {
     const c = this.cycle, spec = CYCLE_SPECS[look.kind], audio = gameAudio();
@@ -3756,6 +3797,15 @@ export class WorldScene extends Phaser.Scene {
     );
     this.cabs.update(plan, w.pack.setting, e.state.manifest.seed, this.runtime.displayClock(), this.cameras.main.worldView, this.tint);
     this.updateTraffic(plan, w.pack.setting, time);
+    const people = new Set<string>();
+    for (const a of e.state.actors) if (a.pos.space === "outside" && Math.abs(a.pos.x - p.x) < 50 && Math.abs(a.pos.y - p.y) < 50) people.add(`${a.pos.x},${a.pos.y}`);
+    this.robots.update({
+      plan, setting: w.pack.setting, dt: Math.min(50, this.game.loop.delta) / 1000,
+      still: this.runtime.held || !!this.options.freeze || !!e.state.player.dead,
+      player: p, outside: p.space === "outside", view: this.cameras.main.worldView, tint: this.tint,
+      blocked: (x, y) => e.blocked(x, y, "outside"), people, lift: (x, y) => this.lift(x, y),
+    });
+    if (p.space === "outside" && !this.options.freeze) this.streetCries(p, time);
     const vehicles = [...(plan?.vehicles ?? [])];
     for (const v of vehicles) {
       if (!v.delivery) continue;
@@ -4229,7 +4279,7 @@ export class WorldScene extends Phaser.Scene {
       phase: Math.floor(this.poseOffset(id) % 8),
       // A lighter works street by street across the town, so neighbours light
       // in turn rather than in a random sparkle.
-      order: ((((x + y * 0.6) / 700 + random(seed, "lamp-round", id) * 0.08) % 1) + 1) % 1,
+      order: this.runtime.engine.world.lampRound?.(id) ?? ((((x + y * 0.6) / 700 + random(seed, "lamp-round", id) * 0.08) % 1) + 1) % 1,
     });
     this.streetLights.get(id)!.pool.setData("at", `${x},${y}`);
   }

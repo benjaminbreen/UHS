@@ -144,6 +144,12 @@ modern towns have fewer birds. The cars that drive the streets are heard too:
 each one passing within seven cells of the player on foot plays `carPass`,
 lower for a truck or bus.
 
+**Street trades** are heard as they come near: each trade in
+`content/street-trades.ts` names a `streetSound` (bell, wooden or iron
+clappers, the afilador's panpipe, brass cups, licorice cymbals, the tofu horn,
+a barrel organ, the watchman's horn, a gong or a call). The Chinese watch
+strikes the number of the watch.
+
 **The hours** are marked by what the local religion implies (`bellFor`):
 - church bells from 600 CE in Christian towns, with a four-bell peal at 9 and noon on Sundays
 - the wooden semantron at dawn and dusk in Ottoman-ruled Orthodox towns, 1450 to 1830

@@ -80,8 +80,9 @@ async function openWorld(
   };
   page.on("pageerror", (error) => stop(Error(`Browser error: ${error.message}`, { cause: error })));
   page.on("crash", () => stop(Error("Chrome crashed while running the game.")));
-  page.on("framenavigated", (frame) => {
-    if (submitted && frame === page.mainFrame()) stop(Error("The game page navigated or reloaded after Begin."));
+  // A real load, not `framenavigated`: Begin rewrites the URL with pushState.
+  page.on("domcontentloaded", () => {
+    if (submitted) stop(Error("The game page navigated or reloaded after Begin."));
   });
   page.on("console", (m) => { if (m.type() === "error") console.error("browser", m.text()); });
   const phase = (next: string) => {

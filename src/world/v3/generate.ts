@@ -5,7 +5,7 @@ import { carLength, parkedCar, vehiclePool } from "../../content/settlements/veh
 import { fishingWaterfront } from "../../content/settlements/waterfronts";
 import { assignGender } from "../../content/characters/gender";
 import { herdersFor } from "./herders";
-import { isWayfarer, wayfarerDay, type Way, type Passing } from "./wayfarers";
+import { isWayfarer, lampRound, wayfarerDay, type Way, type Passing } from "./wayfarers";
 import { agendaOf, festivalOf, type Person } from "../../core/agenda";
 import type { HouseholdCondition } from "../../core/household";
 import { lifeAimOf } from "../../core/life-aim";
@@ -3125,6 +3125,7 @@ export function createSettlementWorld(
         routineKey.delete(id);
       }
     }
+    retire(clock);
     for (const [key, ranked] of routineRank) {
       const n = ranked.length;
       if (n <= ROUTINE_BUDGET) continue;
@@ -3140,12 +3141,58 @@ export function createSettlementWorld(
       dormant.delete(waking);
     }
   }
+  /** Where the walking residents are counted from once the player has left
+   * home: re-ranked each time they have come this far, so the high street
+   * they walk to is as busy as the one they started in. */
+  let focus: Point | undefined;
+  const FOCUS_STEP = 24;
+  /** Out of the window but still on their way: they finish the walk home. */
+  const leaving = new Set<string>();
+  function focusRoutines(x: number, y: number, clock: number) {
+    if (focus && Math.abs(x - focus.x) + Math.abs(y - focus.y) < FOCUS_STEP) return;
+    focus = { x, y };
+    for (const key of [...routineRank.keys()]) {
+      const plan = plans.get(key);
+      if (!plan) continue;
+      routineRank.delete(key);
+      routineOffset.set(key, 0);
+      const ranked = rankFor(plan);
+      const window = new Set(ranked.slice(0, ROUTINE_BUDGET));
+      for (const id of ranked) {
+        if (window.has(id)) {
+          leaving.delete(id);
+          if (dormant.has(id)) {
+            dormant.delete(id);
+            routines.delete(id);
+          }
+        } else if (routines.get(id)) leaving.add(id);
+      }
+    }
+    retire(clock);
+  }
+  /** Leavers who are home and resting, or far enough off that nobody sees
+   * them stop, keep the simpler behaviour from here. */
+  function retire(clock: number) {
+    for (const id of leaving) {
+      const it = routines.get(id);
+      const at = it && itineraryAt(it, clock);
+      const home = it?.segments[0]?.pos;
+      const resting = at && at.activity === "rest" && !at.moving && home && at.x === home.x && at.y === home.y;
+      const far = at && focus && Math.abs(at.x - focus.x) + Math.abs(at.y - focus.y) > 60;
+      if (it && !resting && !far) continue;
+      leaving.delete(id);
+      routines.set(id, undefined);
+      routineDay.delete(id);
+      routineKey.delete(id);
+      dormant.add(id);
+    }
+  }
   function rankFor(plan: SettlementPlan) {
     let ranked = routineRank.get(plan.site.id);
     if (ranked) return ranked;
-    // Nearest the player's home first, so the budget is spent on the
-    // streets they start in rather than scattered across a large town.
-    const anchor = plan.work.get("player")?.home ?? {
+    // Nearest the player first, so the budget is spent on the streets they
+    // are in rather than scattered across a large town.
+    const anchor = focus ?? plan.work.get("player")?.home ?? {
       x: plan.site.cx,
       y: plan.site.cy,
     };
@@ -3296,7 +3343,7 @@ export function createSettlementWorld(
           )
           .map((o) => cellKey(o.pos.x, o.pos.y)),
       );
-      let exhausted = false;
+      let failed = false;
       const leg = (from: Point, to: Point) => {
         if (from.x === to.x && from.y === to.y) return [];
         const goal = cellKey(to.x, to.y);
@@ -3324,7 +3371,7 @@ export function createSettlementWorld(
             },
           },
         );
-        exhausted = result.status === "budget";
+        failed = result.status !== "found";
         return result.status === "found" ? result.path : undefined;
       };
       const wet = (x: number, y: number) => world.topography
@@ -3360,9 +3407,10 @@ export function createSettlementWorld(
           const back = returnHome && there ? leg(pos, from) : [];
           if (there && (!returnHome || back))
             return { station: dx || dy ? { ...station, pos } : station, there, back: back ?? [] };
-          // A search that ran out of budget runs out again one cell over; the
-          // retries cost a full budget each, half a second for one resident.
-          if (exhausted) break;
+          // A search that ran out of budget or found no way runs the same one
+          // cell over, at a full search each: in London about two in three of
+          // the searches that found nothing were these retries.
+          if (failed) break;
         }
         plan!.diagnostics.routineDrops = (plan!.diagnostics.routineDrops ?? 0) + 1;
         return undefined;
@@ -3703,6 +3751,7 @@ export function createSettlementWorld(
     terrain: (x, y, space = "outside") =>
       space !== "outside" || inside(x, y) ? terrain(x, y, space) : "water",
     decoration: (x, y) => (inside(x, y) ? decoration(x, y) : undefined),
+    lampRound: (id) => lampRound(world, pack.setting, id),
     overrideDecoration: (fn) => {
       decorationEdit = fn;
     },
@@ -3800,6 +3849,7 @@ export function createSettlementWorld(
       routineKey.clear();
       routineRank.clear();
       dormant.clear();
+      leaving.clear();
       warmRoutines();
     },
     agenda: (actor, clock) => {
@@ -3819,6 +3869,7 @@ export function createSettlementWorld(
     routinePending(id) { return this.outing?.actor !== id && !isWayfarer(id) && !routines.has(id); },
     dormant(id) { return this.outing?.actor !== id && dormant.has(id); },
     rotateRoutines,
+    focusRoutines,
     propSlots: (id) => {
       return planForEntity(id)?.slots.get(id);
     },

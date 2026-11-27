@@ -212,6 +212,11 @@ export function workPoseFor(activity: string, label: string, family = "", trade 
     if (trade === "religious-specialist") return held === "censer" ? "cense" : "pray";
     if (/^(scribe|clerk|bank-clerk|tax-collector|toll-keeper|schoolteacher|stationmaster|headman)$/.test(trade)) return "work-write";
     if (/^(innkeeper|publican|waiter|bronze-caster)$/.test(trade)) return "work-pour";
+    if (trade === "knife-grinder") return "work-scrape";
+    if (trade === "organ-grinder") return "work-crank";
+    if (trade === "lamplighter" && /lamp/.test(task)) return "work-hang";
+    if (trade === "juice-seller" || (trade === "water-carrier" && /pouring/.test(task))) return "work-pour";
+    if (/^(town-crier|balloon-seller|goldfish-seller|rag-and-bone)$/.test(trade) || (trade === "night-watchman" && /hour|clappers|beating/.test(task))) return "call";
     if (/^(street-hawker|street-vendor|costermonger|hawker|pedlar|chapman)$/.test(trade)) return "call";
     if (/^(sweeper|chimney-sweep|sexton|charwoman|housemaid|scullion|servant|domestic-servant)$/.test(trade)) return "work-sweep";
     if (/^(washerwoman|laundress)$/.test(trade)) return "work-scrub";

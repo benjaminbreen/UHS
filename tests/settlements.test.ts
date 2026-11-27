@@ -9,6 +9,7 @@ import {
 import { resolveSetting } from "../src/content/geography/resolve";
 import { packForSetting } from "../src/content/geography/pack";
 import { createSettingSession, Runtime } from "../src/runtime/session";
+import { panelSetting } from "../scripts/review/panel";
 import { crossing } from "../src/world/v3/roads";
 import { launchAt, shoreDirections } from "../src/world/v3/shoreline";
 import type { SettlementWorld } from "../src/world/v3/generate";
@@ -220,6 +221,17 @@ describe("settlement layout and movement", () => {
       expect(e.findRoute(e.state.player.pos, w.work).status, id).toBe("found");
     expect(e.state.objects.some((o) => o.id.endsWith("-prop0"))).toBe(true);
   }, 30000);
+  it.runIf(!!process.env.FULL)("gives the residents round the player a routine wherever they walk in a city", () => {
+    const e = createSettingSession({ ...panelSetting("london", 1850), season: "summer" }, "focus");
+    const w = e.world as SettlementWorld, p = e.state.player.pos;
+    const plan = w.planAt(p.x, p.y)!;
+    const away = [...plan.work].map(([id, site]) => ({ id, home: site.home }))
+      .filter(({ id, home }) => w.dormant!(id) && Math.abs(home.x - p.x) + Math.abs(home.y - p.y) > 80)[0];
+    expect(away).toBeDefined();
+    w.focusRoutines!(away.home.x, away.home.y, e.state.clock);
+    expect(w.dormant!(away.id)).toBe(false);
+    expect(w.itinerary!(away.id)).toBeDefined();
+  }, 120000);
   it("keeps closed pens contained and opens gates as explicit player commands", () => {
     const e = createSettingSession(
       {

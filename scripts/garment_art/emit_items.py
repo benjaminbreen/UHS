@@ -10,7 +10,7 @@ out = ['''/**
 import type { IconArt } from "./garment-art";
 
 export const itemColors: Record<string, readonly [string, string]> = {''']
-for name in sorted(ITEMS):
+for name in sorted(COLOR):
     base, accent = COLOR[name]
     out.append('  "%s": ["%s", "%s"],' % (name, base, accent))
 out.append('};')

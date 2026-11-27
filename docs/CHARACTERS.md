@@ -21,6 +21,7 @@ deterministic pipeline in `src/content/characters/`. It makes no model calls.
 | `livelihoods.ts`, `livelihoods.generated.ts` | Livelihoods and their activity and supply kits |
 | `outlaws.ts`, `city-work.ts` | Authored livelihoods beside the ported tables: robbers, office staff, bar staff, grain factors, livestock dealers, market weighmasters and auctioneers. `city-work.ts` also holds `jobGrades`, the ladder an office ran on (Junior Broker, Senior Partner, Section Chief), drawn by age in `graded` (`generate.ts`); the livelihood id stays the same, the label and rank change |
 | `future-work.ts` | Work of the 2020s and the projected years to 2060: mobile-money agents, data labellers, robot operators and mechanics, AI checkers, appeals advocates, matchmakers, paid companions. Robot work needs the `robots` requirement (`requirements.ts`), a projected regional date from 2033 in coastal China to 2048 everywhere. Projected entries in `signatures.ts` thin screen work from 2032 and driving four years after robots arrive in each region, and grow care from 2030 |
+| `street-work.ts` | The street trades: knife grinders, town criers, organ grinders, balloon, goldfish and licorice-juice sellers, rag-and-bone men. Their kit (grinder's wheel or bench, bell, organ and monkey, fish tubs, urn, water skin, candied-haw pole) is in `wardrobe/regions/street.ts` and drawn by the doll; their rounds through town are `content/street-trades.ts` |
 | `carried.ts` | What a person has on them besides their work's tools: one table of dated rows (item, years, share, and who it applies to by culture or box, rank, sex, age, settlement tier, work, belief, capability) plus the items it adds. Smokers and chewers get their supply, pipe and a light from `smoking.ts`, so what they carry matches what they are drawn doing |
 | `resolve.ts` | Selection by year, geographic box, culture and community (`matchesCharacterScope`) |
 | `validate.ts` | Reference and evidence checks on load. Equal-specificity conflicts fail rather than depending on file order |
@@ -47,6 +48,11 @@ deterministic pipeline in `src/content/characters/`. It makes no model calls.
   or pager number codes, the news people are talking about, a three-day
   forecast, mobile money, the radio, tapes, and three small games in
   `devices/games.ts`. Add a model as a row; add an ability as a `DeviceApp`.
+  Every word on a device comes from `src/content/device-text/`: `en.ts` is the
+  source, each other file is the same table in one language, and `index.ts`
+  maps a place to its language by rough borders. Where a place has one, a
+  button under the device switches the screen between English and that
+  language. News and people's names stay as the game has them.
 - **Provenance.** `Actor.origin` records the community, naming kit, livelihood
   and qualifications used.
 - **Employment.** Once buildings, fields, pens and venues are placed,

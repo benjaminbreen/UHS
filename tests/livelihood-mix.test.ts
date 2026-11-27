@@ -818,12 +818,13 @@ describe("inns and overnight lodging", () => {
 });
 
 import { futureLivelihoods } from "../src/content/characters/future-work";
+import { streetLivelihoods } from "../src/content/characters/street-work";
 import { recipeFor } from "../src/content/economy/recipes";
 import { CARDS } from "../src/content/cards";
 
-it("gives the future's work days of its own, with a card for every slot", () => {
+it.each([["the future's work", futureLivelihoods], ["the street trades", [...streetLivelihoods, ...["lamplighter", "night-watchman", "water-carrier", "chimney-sweep"].map((id) => livelihoodById(id)!)]]] as const)("gives %s days of its own, with a card for every slot", (_, kits) => {
   const slots = new Set(CARDS.map((c) => c.slot));
-  for (const kit of futureLivelihoods) {
+  for (const kit of kits) {
     const recipe = recipeFor(kit);
     expect(recipe?.ids, kit.id).toContain(kit.id);
     const days = Array.isArray(recipe!.day) ? recipe!.day : [recipe!.day];

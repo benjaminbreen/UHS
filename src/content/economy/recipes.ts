@@ -4,6 +4,7 @@ import type { SkillId } from "../../core/skills";
 import type { Institution } from "../characters/workplace";
 import type { Step } from "./processes";
 import { futureRecipes } from "./future-recipes";
+import { streetRecipes } from "./street-recipes";
 
 /** Where a day or a piece belongs; unset, it belongs everywhere. */
 type When = {
@@ -65,6 +66,7 @@ const OLD_GODS = [
 
 const recipes: Recipe[] = [
   ...futureRecipes,
+  ...streetRecipes,
   {
     ids:["boatwright"],skill:"crafting",wiki:["Boat building"],stations:["bench","woodpile"],
     day:{title:"A day building and repairing boats",steps:[

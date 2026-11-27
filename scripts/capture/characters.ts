@@ -2313,6 +2313,60 @@ const presets: Record<string, (page: Page) => Promise<void>> = {
     });
     for (const [i, sheet] of sheets.entries()) await writeDataUrl(sheet, out(`cyclists-${i}`));
   },
+  /** The street trades with their kit: walking four ways, then at work, at three times native size. */
+  async "street-trades"(page) {
+    await characterLab(page);
+    await page.evaluate("window.__name = (fn) => fn");
+    const sheet = await page.evaluate(async () => {
+      const { drawCharacterG: drawCharacter } = await import("/src/render/characters/doll/draw.ts" as string);
+      const { iconCarriedArt } = await import("/src/render/characters/props.ts" as string);
+      const { itemIconFor, drawGarmentIcon } = await import("/src/render/garment-icons.ts" as string);
+      const { places } = await import("/src/content/geography/places.ts" as string);
+      const { settingFor } = await import("/src/content/geography/resolve.ts" as string);
+      const { generateCharacter } = await import("/src/content/characters/generate.ts" as string);
+      const trades: [string, number, string, string, string][] = [
+        ["london", 1850, "lamplighter", "lamp-pole", "work-hang"],
+        ["london", 1780, "night-watchman", "lantern", "call"],
+        ["kyoto", 1800, "night-watchman", "clappers", "call"],
+        ["paris", 1880, "hawker", "grinder-wheel", "work-scrape"],
+        ["beijing", 1900, "hawker", "grinder-bench", "work-scrape"],
+        ["beijing", 1900, "hawker", "haw-pole", "call"],
+        ["kyoto", 1820, "hawker", "fish-tubs", "call"],
+        ["cairo", 1880, "hawker", "juice-urn", "work-pour"],
+        ["cairo", 1850, "water-carrier", "water-skin", "work-pour"],
+        ["london", 1890, "hawker", "barrel-organ", "work-crank"],
+        ["paris", 1910, "hawker", "balloons", "idle"],
+        ["london", 1800, "hawker", "hand-bell", "call"],
+      ];
+      const S = 3, CW = 30, CH = 56, COLS = 11, LABEL = 120;
+      const sheet = document.createElement("canvas");
+      sheet.width = LABEL + COLS * CW * S; sheet.height = trades.length * CH * S;
+      const ctx = sheet.getContext("2d")!;
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = "#8f9a78"; ctx.fillRect(0, 0, sheet.width, sheet.height);
+      const frame = document.createElement("canvas"); frame.width = frame.height = 80;
+      const fc = frame.getContext("2d")!;
+      trades.forEach(([id, year, trade, kit, work], row) => {
+        const place = places.find((p: any) => p.id === id) ?? places[0];
+        const c = generateCharacter(settingFor(place, year), "street", `trade-${row}`, 38, trade, undefined, undefined, "male");
+        const icon = itemIconFor(kit);
+        const prop = icon && iconCarriedArt(`icon:${kit}`, (x: CanvasRenderingContext2D) => drawGarmentIcon(x, icon, 0, 0), 24);
+        const cells: [string, number, number][] = [
+          ["walk", 4, 1], ["walk", 3, 3], ["walk", 2, 0], ["walk", 2, 2], ["walk", 2, 4], ["walk", 2, 6], ["walk", 0, 1],
+          [work, 2, 0], [work, 2, 1], [work, 2, 2], [work, 4, 3],
+        ];
+        cells.forEach(([pose, facing, f], i) => {
+          drawCharacter(fc, c.appearance, 2, pose, f, prop, facing, "neutral");
+          ctx.drawImage(frame, 25, 20, CW, CH, LABEL + i * CW * S, row * CH * S, CW * S, CH * S);
+        });
+        ctx.fillStyle = "#1c2233"; ctx.font = "13px sans-serif";
+        ctx.fillText(`${kit}`, 8, row * CH * S + 60);
+        ctx.fillText(`${id} ${year}`, 8, row * CH * S + 78);
+      });
+      return sheet.toDataURL();
+    });
+    await writeDataUrl(sheet, out("street-trades"));
+  },
 };
 
 const asked = process.argv.slice(2);

@@ -11,7 +11,7 @@ import { apron, bag, bangles, creel, hoodDown, infant, neckwear, shawl, shoulder
 import type { Material } from "../../../content/characters/wardrobe/cloth";
 import {
   ACCENT, APRON, BLUSH, DECO, MARK, ORN, PLUME, SMEAR, BOOT, CLOAK, CX, EYE, GLASS, H, HAIR, HAT, INNER, IRIS, KERCHIEF, LEATHER, LEG, LIP, LOWER, PATCH,
-  ARMOUR, CLAY, DRAPE, EMBLEM, FLAG, LIQUID, MATS, PURPLE, STRAW, WOOD, METAL, Mask, SHAWL, SHEATH, SHIELD, STEEL, SKIN, SOLE, STUBBLE, Sheet, TOP, TRIM, VEST, W, WHITE, flat, rnd,
+  ARMOUR, BALLOON, BRASS, CANDY, CLAY, DRAPE, FISH, JUICE, SKY, EMBLEM, FLAG, LIQUID, MATS, PURPLE, STRAW, WOOD, METAL, Mask, SHAWL, SHEATH, SHIELD, STEEL, SKIN, SOLE, STUBBLE, Sheet, TOP, TRIM, VEST, W, WHITE, flat, rnd,
 } from "./paint";
 
 // Renderer F, the paper doll. A figure is a few joints in body space, turned
@@ -996,9 +996,9 @@ function posed(d: Dims, a: CharacterAppearance, pose: CharacterPose, frame: numb
 }
 
 /** Polearms and long guns a figure stands with: drawn by the painter, not from the icon. */
-const upright = (prop: CarriedArt) => /^icon:(spear|halberd|glaive|musket|rifle|harpoon|paddle|macuahuitl|crossbow|lamp-pole|sweep-brush|water-pole|carrying-pole|yoke|umbrella|paper-umbrella|banana-leaf)$/.test(prop.sprite);
+const upright = (prop: CarriedArt) => /^icon:(spear|halberd|glaive|musket|rifle|harpoon|paddle|macuahuitl|crossbow|lamp-pole|sweep-brush|haw-pole|balloons|water-pole|carrying-pole|fish-tubs|grinder-bench|yoke|umbrella|paper-umbrella|banana-leaf)$/.test(prop.sprite);
 const sheltering = (sprite: string) => /^icon:(umbrella|paper-umbrella|banana-leaf)$/.test(sprite);
-const shouldered = (kind?: string) => kind === "water-pole" || kind === "carrying-pole" || kind === "yoke";
+const shouldered = (kind?: string) => kind === "water-pole" || kind === "carrying-pole" || kind === "yoke" || kind === "fish-tubs" || kind === "grinder-bench";
 const EMBLEMS: Record<string, string> = { cowhide: "#ece4d4", lambda: "#8a2a22", cross: "#ece4d4", chevron: "#d8b04a", tiger: "#d8a03a", bands: "#ece4d4", rim: "#a4aab0" };
 
 /** The pole from the ground (or the hip, for a gun) to above the head, with
@@ -1063,6 +1063,41 @@ function pole(sheet: Sheet, kind: string, hand: J, trail = 0, bob = 0) {
     const head = new Mask().set(x, top - 1).span(top, x - 1, x + 1).line(x, top + 1, x, top + 6, 1).set(x - side, top + 2).set(x - side * 2, top + 3);
     s.put(head, STEEL, { ring: "ink", shade: 0.3, light: 0.4, top: true });
     for (const [dx, dy] of [[1, 8], [2, 9], [2, 10], [1, 11], [2, 12], [3, 13], [3, 14], [2, 15]]) s.px(x - side * dx, top + dy, WHITE, 2);
+    return;
+  }
+  if (kind === "haw-pole") {
+    // A sheaf of straw bound to the top of the pole, stuck all round with
+    // skewers of candied haws, the sugar glaze catching the light.
+    const top = hy - 33, foot = Math.min(GY - 1, hy + 15);
+    s.put(new Mask().line(x, top + 8, x, foot, 1), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
+    const sheaf = new Mask();
+    [1, 2, 2, 3, 3, 3, 3, 2, 2, 1].forEach((w, i) => sheaf.span(top + i, x - w + 1, x + w - 1));
+    s.put(sheaf, STRAW, { ring: "ink", shade: 0.35, light: 0.3, top: true, tone: (xx, yy, tn) => ((xx + yy) % 3 === 0 && tn > 2 ? tn - 1 : tn) });
+    const sticks: [number, number, number][] = [[-1, 1, -1], [1, 2, -1], [-1, 4, 0], [1, 5, 0], [-1, 7, 1], [1, 8, 1], [0, 0, -1]];
+    const haws = new Mask(), glints: [number, number][] = [];
+    for (const [sx, dy, slope] of sticks) {
+      const bx = x + sx * 3, by = top + dy;
+      if (sx === 0) haws.set(x, top - 2).set(x, top - 3), glints.push([x, top - 3]);
+      else for (let k = 0; k < 3; k++) {
+        haws.set(bx + sx * k, by + slope * k);
+        if (k === 1) glints.push([bx + sx * k, by + slope * k]);
+      }
+    }
+    s.put(haws, CANDY, { ring: "ink", shade: 0.3, light: 0.4, top: true });
+    glints.forEach(([gx, gy]) => s.px(gx, gy, WHITE, 4));
+    return;
+  }
+  if (kind === "balloons") {
+    // The strings bunch in the fist; the balloons lag the walk and bob above the head.
+    const bunch: [number, number, number][] = [[-5, -28, SKY], [5, -27, BALLOON], [0, -31, CANDY], [-3, -24, BALLOON], [3, -23, CANDY], [-7, -22, CANDY], [7, -21, SKY]];
+    for (const [dx, dy, mat] of bunch) {
+      const bx = x + dx + Math.round(trail * (dy / -30)), by = hy + dy + Math.round(bob);
+      const n = Math.max(Math.abs(bx - x), Math.abs(by - hy));
+      for (let i = 1; i < n; i++) sheet.px(rnd(x + ((bx - x) * i) / n), Math.round(hy - 1 + ((by + 2 - hy + 1) * i) / n), WHITE, 2);
+      const b = new Mask().span(by - 4, bx - 1, bx + 1).span(by - 3, bx - 2, bx + 2).span(by - 2, bx - 2, bx + 2).span(by - 1, bx - 2, bx + 2).span(by, bx - 1, bx + 1).set(bx, by + 1);
+      sheet.put(b, mat, { ring: "ink", shade: 0.35, light: 0.3, top: true });
+      sheet.px(bx - 1, by - 3, WHITE, 4);
+    }
     return;
   }
   if (kind === "lamp-pole" || kind === "sweep-brush") {
@@ -1261,9 +1296,20 @@ function shoulderPole(s: Sheet, t: Turn, kind: string, x: number, y: number, sid
   // A yoke lies across both shoulders, square to the pole's line of travel.
   const yoke = kind === "yoke";
   const pails = kind === "water-pole" || yoke;
+  if (kind === "grinder-bench") return bench(s, t, x, y, side, near, bounce);
   // Loads hang on cords: they swing behind the stride and bounce against the step.
   const load = (hang: number, at: number) => {
     const cx = hang + Math.round(swing), top = at + Math.round(bounce);
+    if (kind === "fish-tubs") {
+      const cx = rnd(hang + swing);
+      // Shallow tubs of water with the goldfish turning in them.
+      s.put(new Mask().rect(cx - 4, top + 1, cx + 4, top + 4), WOOD, { ring: "ink", shade: 0.3, light: 0.3, bottom: true });
+      for (let xx = cx - 3; xx <= cx + 3; xx++) for (const yy of [top + 1, top + 2]) s.px(xx, yy, LIQUID, yy === top + 1 ? 4 : 3);
+      const darts = Math.round(swing) & 1;
+      s.put(new Mask().span(top + 1, cx - 2 + darts, cx - 1 + darts).set(cx + 2 - darts, top + 2), FISH, { ring: "none", shade: 0, light: 0.5 });
+      [cx - 4, cx + 4].forEach((cx2) => s.put(new Mask().line(rnd(hang), y + 1, cx2, top, 1), LEATHER, { ring: "none", shade: 0, light: 0 }));
+      return;
+    }
     const m = new Mask();
     for (let r = 0; r < 5; r++) m.span(top + r, rnd(cx - 2.5 + (r === 4 ? 0.5 : 0)), rnd(cx + 2.5 - (r === 4 ? 0.5 : 0)));
     s.put(m, LEATHER, { ring: "ink", shade: 0.3, light: 0.3, top: true, bottom: true,
@@ -1284,6 +1330,156 @@ function shoulderPole(s: Sheet, t: Turn, kind: string, x: number, y: number, sid
   if (yoke) s.put(new Mask().span(y - 1, rnd(x - 1.5), rnd(x + 1.5)).span(y, rnd(x - 1.5), rnd(x + 1.5)), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
   else s.put(new Mask().line(rnd(x + side), y - 1, rnd(cx), y + 3, 1), LEATHER, { ring: "ink", shade: 0, light: 0.3 });
   load(cx, y + (yoke ? 13 : 8));
+}
+
+/** The Chinese grinder's bench on the shoulder: a plank with its legs hanging
+ * behind and the whetstone lashed to the front end. */
+function bench(s: Sheet, t: Turn, x: number, y: number, side: number, near: boolean, bounce = 0) {
+  if (!near) return;
+  const wood = { ring: "ink", shade: 0.3, light: 0.3, top: true } as const;
+  if (t.view === "front" || t.view === "back") {
+    // End on: the plank's end on the shoulder and a leg hanging either side.
+    const cx = x + side * 3;
+    s.put(new Mask().rect(rnd(cx - 1), y - 1, rnd(cx + 1), y + 1), WOOD, wood);
+    s.put(new Mask().line(cx - 2, y + 2, cx - 3, y + 7 + bounce, 1).line(cx + 2, y + 2, cx + 3, y + 7 + bounce, 1), WOOD, wood);
+    return;
+  }
+  const fwd = t.sx * (t.sin >= 0 ? 1 : -1), reach = 7 + 6 * Math.abs(t.sin), rise = Math.round(2 * Math.abs(t.cos));
+  const front = [rnd(x + fwd * reach), y - 1 - rise] as const, rear = [rnd(x - fwd * reach), y + 1 + rise] as const;
+  s.put(new Mask().line(rear[0], rear[1], front[0], front[1], 2), WOOD, wood);
+  // The legs splay down from the back end and swing a little with the step.
+  const b = Math.round(bounce);
+  s.put(new Mask().line(rear[0], rear[1] + 1, rear[0] - fwd, rear[1] + 6 + b, 1).line(rear[0] + fwd * 2, rear[1], rear[0] + fwd * 3, rear[1] + 5 + b, 1), WOOD, wood);
+  s.put(new Mask().rect(front[0] - 2, front[1] - 2, front[0] + 1, front[1] - 1), STEEL, { ring: "ink", shade: 0.4, light: 0.3, top: true });
+}
+
+/** Trade kit worn on the body rather than held: a grindstone on a back frame,
+ * a water skin, a licorice urn or a barrel organ slung in front. */
+const BORNE: Record<string, "back" | "front"> = { "grinder-wheel": "back", "water-skin": "back", "juice-urn": "front", "barrel-organ": "front" };
+/** At work the grinders set their stone down and the sparks fly. */
+const SETS_DOWN = new Set(["grinder-wheel", "grinder-bench"]);
+
+function borne(s: Sheet, t: Turn, kind: string, x: number, sy: number, hy: number, pose: CharacterPose, frame: number, hands: J[]) {
+  const fwd = t.sx * t.sin, wide = Math.abs(t.cos);
+  const wood = { ring: "ink", shade: 0.3, light: 0.3, top: true } as const;
+  const disc = (cx: number, cy: number, r: number) => {
+    const m = new Mask();
+    for (let yy = -r; yy <= r; yy++) {
+      const w = Math.round(Math.sqrt(Math.max(0, r * r - yy * yy)) - 0.15);
+      m.span(cy + yy, cx - w, cx + w);
+    }
+    return m;
+  };
+  if (SETS_DOWN.has(kind) && /^work-/.test(pose)) {
+    // Set down in front, the blade held to the stone in both hands.
+    const hx = rnd((hands[0][0] + hands[1][0]) / 2), hy2 = Math.round((hands[0][1] + hands[1][1]) / 2);
+    const sx = hx + (t.view === "side" ? t.sx * 4 : 0), sy2 = hy2 + 3;
+    if (kind === "grinder-wheel") {
+      s.put(new Mask().line(sx - 3, sy2, sx - 4, GY - 1, 1).line(sx + 3, sy2, sx + 4, GY - 1, 1).span(GY - 4, sx - 4, sx + 4), WOOD, wood);
+      s.put(disc(sx, sy2, 4), STEEL, { ring: "ink", shade: 0.35, light: 0.35, top: true });
+      // A notch on the rim goes round: the stone is turning.
+      const notch = [[0, -3], [3, 0], [0, 3], [-3, 0]][frame & 3];
+      s.px(sx + notch[0], sy2 + notch[1], STEEL, 1);
+      s.px(sx, sy2, WOOD, 2);
+      const fly = [[[2, -2], [4, -3], [5, -1]], [[3, -1], [5, -2], [6, 0]], [[2, -3], [3, -5], [6, -2]], [[4, -2], [6, -3], [7, -1]]][frame & 3];
+      const dir = t.view === "side" ? -t.sx : 1;
+      fly.forEach(([dx, dy], i) => s.px(sx + dir * (4 + dx), sy2 - 3 + dy, i === 0 ? BALLOON : FISH, 4));
+    } else {
+      // The bench on the ground and the whetstone under the blade, wet.
+      const y0 = Math.min(GY - 5, sy2 + 2);
+      s.put(new Mask().rect(sx - 7, y0, sx + 7, y0 + 1), WOOD, wood);
+      s.put(new Mask().line(sx - 6, y0 + 2, sx - 7, GY - 1, 1).line(sx + 6, y0 + 2, sx + 7, GY - 1, 1), WOOD, wood);
+      s.put(new Mask().rect(sx - 2, y0 - 2, sx + 2, y0 - 1), STEEL, { ring: "ink", shade: 0.3, light: 0.4, top: true });
+      s.px(sx - 2 + (frame & 3), y0 - 2, LIQUID, 4);
+    }
+    return;
+  }
+  if (kind === "grinder-wheel") {
+    const bx = rnd(x - fwd * 4);
+    if (wide > 0.35) {
+      const half = Math.max(2, Math.round(3.5 * wide));
+      s.put(new Mask().line(bx - half, sy - 4, bx - half, hy + 4, 1).line(bx + half, sy - 4, bx + half, hy + 4, 1).span(sy + 1, bx - half, bx + half).span(hy + 2, bx - half, bx + half), WOOD, wood);
+      // The stone edge on, standing up past the shoulders.
+      s.put(new Mask().rect(bx - 1, sy - 8, bx, sy + 1), STEEL, { ring: "ink", shade: 0.4, light: 0.4, top: true });
+    } else {
+      // Side on: a narrow ladder frame standing off the back, the stone hung in it.
+      const near = bx, far = rnd(bx - fwd * 6), x0 = Math.min(near, far), x1 = Math.max(near, far);
+      const cx = rnd((near + far) / 2), cy = sy + 3;
+      s.put(new Mask().line(near, sy - 3, near, hy + 6, 1).line(far, sy - 3, far, hy + 6, 1).span(sy - 3, x0, x1).span(hy + 6, x0, x1), WOOD, wood);
+      s.put(disc(cx, cy, 3), STEEL, { ring: "ink", shade: 0.35, light: 0.35, top: true });
+      s.px(cx, cy, WOOD, 2);
+      s.px(cx - 1, cy - 2, STEEL, 4);
+    }
+    // The drip can that wets the stone.
+    s.put(new Mask().rect(bx + (wide > 0.35 ? 2 : -fwd * 3) - 1, hy + 2, bx + (wide > 0.35 ? 2 : -fwd * 3), hy + 4), METAL, { ring: "ink", shade: 0.3, light: 0.3 });
+    return;
+  }
+  if (kind === "water-skin") {
+    const back = t.view === "back" || t.view === "bq";
+    if (!back && wide > 0.6) {
+      // From the front only the strap across the chest shows.
+      s.put(new Mask().line(x - 3, sy, x + 3, hy, 1), LEATHER, { ring: "none", shade: 0, light: 0, dark: 1 });
+      return;
+    }
+    const cx = rnd(x - fwd * 4), cy = Math.round((sy + hy) / 2) + 1, rx = Math.max(2, Math.round(1.5 + 3.5 * wide)), ry = 6;
+    const m = new Mask();
+    for (let yy = -ry; yy <= ry; yy++) {
+      const f = 1 - (yy / ry) ** 2, sag = yy > 0 ? 1 : 0;
+      m.span(cy + yy, rnd(cx - rx * Math.sqrt(f) - sag), rnd(cx + rx * Math.sqrt(f) + sag));
+    }
+    // A whole goatskin: the tied legs stand up at the shoulders, the neck is the spout.
+    m.set(cx - rx, cy - ry - 1).set(cx + rx, cy - ry - 1);
+    s.put(m, JUICE, { ring: "ink", shade: 0.4, light: 0.25, top: true, tone: (xx, yy, tn) => (tn === 4 && (xx + yy) % 4 === 0 ? 3 : tn) });
+    s.px(cx - 1, cy - 3, JUICE, 4);
+    s.put(new Mask().set(cx + rx, cy + ry - 1).set(cx + rx + 1, cy + ry), BRASS, { ring: "ink", shade: 0, light: 0.5 });
+    return;
+  }
+  if (kind === "juice-urn") {
+    // The licorice seller's urn: a big glass belly in a brass collar and lid,
+    // its long brass spout curving out over the shoulder.
+    const ux = rnd(t.view === "side" ? x + fwd * 4 : x + 2.5 * wide * (t.sx || 1)), top = sy + 1;
+    const belly = new Mask();
+    [2, 3, 3, 4, 4, 4, 4, 3, 2].forEach((w, i) => belly.span(top + i, ux - w + 1, ux + w - 1));
+    s.put(belly, BRASS, { ring: "ink", shade: 0.4, light: 0.3, top: true });
+    s.px(ux - 2, top + 3, WHITE, 4);
+    s.px(ux - 1, top + 2, BRASS, 4);
+    s.put(new Mask().span(top + 5, ux - 3, ux + 3), CANDY, { ring: "none", shade: 0.3, light: 0.3 });
+    s.put(new Mask().span(top + 3, ux - 2, ux + 2), JUICE, { ring: "none", shade: 0.3, light: 0 });
+    s.put(new Mask().span(top - 1, ux - 1, ux + 1).set(ux, top - 2), BRASS, { ring: "ink", shade: 0.3, light: 0.5, top: true });
+    const out = t.view === "side" ? t.sx : 1;
+    const spout = new Mask().set(ux + out, top - 2).set(ux + out * 2, top - 3).set(ux + out * 3, top - 3).set(ux + out * 4, top - 2).set(ux + out * 5, top - 1);
+    s.put(spout, BRASS, { ring: "ink", shade: 0, light: 0.5 });
+    if (pose === "work-pour") for (let k = 0; k < 6; k++) s.px(ux + out * 5, top + k, JUICE, k % 2 ? 2 : 3);
+    return;
+  }
+  if (kind === "barrel-organ") {
+    // A box organ on its strap, a crank at the side, and the monkey riding on top.
+    const side = t.view === "side";
+    const x0 = side ? rnd(Math.min(x + fwd * 2, x + fwd * 8)) : rnd(x - 6), x1 = side ? x0 + 6 : rnd(x + 6);
+    const y0 = hy - 4, y1 = hy + 3;
+    s.put(new Mask().line(x - 3, sy, x0 + 1, y0, 1).line(x + 3, sy, x1 - 1, y0, 1), LEATHER, { ring: "none", shade: 0, light: 0, dark: 1 });
+    s.put(new Mask().rect(x0, y0, x1, y1), WOOD, wood);
+    if (!side) {
+      s.put(new Mask().rect(x0 + 2, y0 + 2, x1 - 2, y1 - 2), CANDY, { ring: "none", shade: 0.3, light: 0.3, tone: (xx, _yy, tn) => ((xx - x0) % 2 ? Math.max(1, tn - 1) : tn) });
+      s.put(new Mask().span(y0 + 1, x0 + 1, x1 - 1), BRASS, { ring: "none", shade: 0, light: 0.4 });
+    }
+    const turning = pose === "work-crank";
+    const crank = turning ? [[1, -2], [2, 0], [1, 2], [0, 0]][frame & 3] : [1, 0];
+    const cx = side && fwd < 0 ? x0 - 1 : x1 + 1, dir = side && fwd < 0 ? -1 : 1;
+    s.put(new Mask().set(cx, y0 + 3).line(cx, y0 + 3, cx + dir * crank[0], y0 + 3 + crank[1], 1), METAL, { ring: "ink", shade: 0, light: 0.4 });
+    // The monkey: cap, head, body, tail down the box's side. It looks about,
+    // and holds out its cup while the tune plays.
+    // Dressed as they were, in a red jacket and cap; the pale face is what reads.
+    const mx = side ? rnd((x0 + x1) / 2) : x0 + 2, my = y0 - 1, flip = side ? fwd < 0 : false;
+    const look = (frame >> 1) & 1, f = flip ? -1 : 1;
+    s.put(new Mask().rect(mx - 1, my - 2, mx + 1, my), CANDY, { ring: "ink", shade: 0.3, light: 0.3, top: true });
+    s.put(new Mask().rect(mx - 1, my - 5, mx + 1, my - 3), JUICE, { ring: "ink", shade: 0.2, light: 0.3, top: true });
+    s.put(new Mask().span(my - 4, mx - 1 + (side ? f : 0), mx + (side ? f : 0)).set(mx + (side ? f : 0) + (look && !side ? 1 : 0), my - 3), WHITE, { ring: "none", shade: 0, light: 0, dark: 1 });
+    s.put(new Mask().span(my - 6, mx - 1, mx).set(mx + f, my - 6), CANDY, { ring: "ink", shade: 0, light: 0.4 });
+    const tail = [[-2, 0], [-3, 1], [-3, 3], [-2, 4 + (frame & 1)]].map(([dx, dy]) => [mx + (flip ? -dx : dx), my + dy] as const);
+    s.put(tail.reduce((m, [tx, ty]) => m.set(tx, ty), new Mask()), JUICE, { ring: "none", shade: 0, light: 0, dark: 1 });
+    if (turning && frame & 1) s.put(new Mask().set(mx + (flip ? -2 : 2), my - 3).set(mx + (flip ? -3 : 3), my - 3), BRASS, { ring: "ink", shade: 0, light: 0.5 });
+  }
 }
 
 /** What a trade works with, drawn from where the hands are. `body` is a
@@ -1644,6 +1840,12 @@ function palette(a: CharacterAppearance): Ramp[] {
   p[WOOD] = ramp("#9c6c3e");
   p[STRAW] = ramp("#d4b05c");
   p[LIQUID] = ramp("#9ccad6");
+  p[BRASS] = ramp("#d8a640");
+  p[CANDY] = ramp("#d8342c");
+  p[BALLOON] = ramp("#f0c838");
+  p[SKY] = ramp("#4a8ad8");
+  p[FISH] = ramp("#f07a28");
+  p[JUICE] = ramp("#4e2c1e");
   return p;
 }
 
@@ -1770,6 +1972,11 @@ export function drawCharacterG(
   if (shieldKind && behind(shieldAt[1][2])) shield(s, t, shieldKind, shieldAt[0], shieldAt[1], a.wearing.shieldMark);
   const flagFrom = a.wearing.backFlag && !d.child ? [centre(d.shoulder), yOf(d.shoulder - 3), yOf(d.shoulder + 26)] as const : undefined;
   if (flagFrom && t.view !== "back" && t.view !== "bq") backFlag(s, t, ...flagFrom, drift(1.5));
+  const kitName = prop?.sprite.startsWith("icon:") ? prop.sprite.slice(5) : "";
+  const kitAt = SETS_DOWN.has(kitName) && /^work-/.test(pose) ? "front" : BORNE[kitName];
+  const kitOver = kitAt === "back" ? backView : !backView;
+  const kitArgs = kitAt ? [s, t, kitName, centre(d.shoulder), yOf(d.shoulder), yOf(d.hip), pose, frame, r.arms.map((arm) => P(arm.end))] as Parameters<typeof borne> : undefined;
+  if (kitArgs && !kitOver) borne(...kitArgs);
   if (a.hurt === "trolley" && r.seated) board(s, t, d);
   if (a.hurt === "wheelchair" && r.seated) wheelchair(s, t, d, r, false);
   legParts.forEach(({ leg, i }, n) => drawLeg(s, t, leg, k, deep && n === 0 ? 1 : 0, a.hurt === "peg" && i === 0));
@@ -1904,6 +2111,8 @@ export function drawCharacterG(
   if (shieldKind && !behind(shieldAt[1][2])) shield(s, t, shieldKind, shieldAt[0], shieldAt[1], a.wearing.shieldMark);
   if (flagFrom && (t.view === "back" || t.view === "bq")) backFlag(s, t, ...flagFrom, drift(1.5));
   if (shoulderLoad) shoulderPole(s, t, shoulderLoad, centre(d.shoulder), yOf(d.shoulder) - 1, poleHand[0] >= CX ? 1 : -1, true, drift(1.4), prev.rise - r.rise);
+  // A back frame seen from behind goes over the coat but under the head.
+  if (kitArgs && kitOver && kitAt === "back") borne(...kitArgs);
   if (k.g === "poncho") poncho(s, t, d, yOf, centre, a);
   if (a.wearing.kataginu) kataginu(s, t, d, yOf, centre);
   if (a.wearing.mantle) mantle(s, t, d, yOf, centre, drift);
@@ -1940,6 +2149,8 @@ export function drawCharacterG(
   if (w.headLoad && w.headLoad !== "none") headLoad(s, w.headLoad, headArgs.x0, headArgs.y0);
   if (carrying && backView) infant(fig, "over", a.wearing.infantMood, a.wearing.infantCarry);
   if (w.neckwear && w.neckwear !== "none" && !["hood", "headscarf", "veil"].includes(w.headwear) && !w.shroud) neckwear(fig, w.neckwear);
+  // Slung in front, it hangs over the coat and the tie; the hanging arms come after.
+  if (kitArgs && kitOver && kitAt === "front") borne(...kitArgs);
   // Nder a street wrap the arms hold it shut from inside.
   if (!w.shroud) for (const { arm, z, i } of armParts) if (!behind(z) && arm.end[1] > d.shoulder + 1) drawArm(s, t, arm, k, 0, empty(i), flare);
   if (crutchAt && !behind(crutchAt[2])) crutch(s, t, r);
@@ -1956,7 +2167,7 @@ export function drawCharacterG(
   const levelled = pose === "draw" && r.tool && /^icon:(crossbow|musket|rifle|blowgun)$/.exec(prop?.sprite ?? "")?.[1];
   if (prop?.kind === "bow" && pose === "draw") drawBow(ctx, t, r, frame & 3);
   else if (levelled) drawLevelled(ctx, t, r, levelled);
-  else if (prop && !held && !shoulderLoad && !work && !(pose === "spear-throw" && (frame & 3) >= 2)) drawProp(ctx, prop, t, r, d);
+  else if (prop && !held && !shoulderLoad && !kitAt && !work && !(pose === "spear-throw" && (frame & 3) >= 2)) drawProp(ctx, prop, t, r, d);
   if (held && /umbrella|banana-leaf/.test(held)) canopy(ctx, held, poleHand, headArgs.x0 + 6.5, headArgs.y0, t.view === "side" ? t.sx : 0, behind(poleHand[2]));
 }
 

@@ -15,6 +15,9 @@ export type Layer = {
   filter?: BiquadFilterType;
   wave?: OscillatorType;
   attack?: number;
+  /** Seconds from the start held at full level before the fade; without it a
+   * layer starts dying as soon as it peaks, which suits a strike, not a pipe. */
+  hold?: number;
 };
 export type Sound = Layer[];
 
@@ -1491,6 +1494,13 @@ export const catalog: { name: string; detail: string; make: () => Sound }[] = [
     detail: "Walked into an animal",
     make: () => bumpAnimal(kind),
   })),
+  // The barrel organ runs past the catalogue's 2.5 s.
+  ...(["hand-bell", "clappers", "iron-clappers", "night-clappers", "pan-flute", "brass-cups", "cymbals", "tofu-horn", "watch-horn", "gong"] as StreetSoundKind[]).map((kind) => ({
+    name: `Street · ${kind}`,
+    detail: "A trade on its round",
+    make: () => streetSound(kind, 3),
+  })),
+  ...[0, 1, 2, 3].map((v) => ({ name: `Street · cry ${v}`, detail: "A trade on its round", make: () => streetSound("cry", v) })),
 ];
 
 const NOISE_MAKEUP = 3.2;
@@ -1520,6 +1530,8 @@ export function playSound(
     // Filtering throws most of white noise away; bring it back up to the tones.
     const peak = layer.gain * (layer.kind === "noise" ? NOISE_MAKEUP : 1);
     envelope.gain.linearRampToValueAtTime(peak, at + attack);
+    const hold = Math.min(layer.hold ?? 0, layer.dur * 0.95);
+    if (hold > attack) envelope.gain.setValueAtTime(peak, at + hold);
     envelope.gain.exponentialRampToValueAtTime(0.0001, end);
     envelope.connect(out);
     let source: AudioScheduledSourceNode;
@@ -1937,4 +1949,233 @@ export function mountLand(heavy = false): Sound {
     tone(0, 0.12, heavy ? 0.19 : 0.12, heavy ? 78 : 125, { to: 42 }),
     noise(0, 0.09, heavy ? 0.14 : 0.09, 820, { to: 380, q: 1.2 }),
   ];
+}
+
+/** Harmonic k+1 at `amps[k]`, all on one pitch path: a pipe, a horn, a sung vowel. */
+function partials(at: number, dur: number, gain: number, f: number, to: number, amps: number[], rest: Partial<Layer> = {}): Sound {
+  return amps.flatMap((a, k) =>
+    a > 0 && f * (k + 1) < 12000 ? [tone(at, dur, gain * a, f * (k + 1), { ...rest, to: to * (k + 1) })] : [],
+  );
+}
+/** Formant centre, weight and width in Hz (adult averages). */
+const VOWELS = {
+  a: [[730, 1, 160], [1150, 0.55, 180], [2700, 0.2, 300]],
+  o: [[520, 1, 140], [880, 0.5, 160], [2600, 0.1, 300]],
+  e: [[480, 1, 140], [1950, 0.4, 220], [2700, 0.25, 300]],
+} as const;
+/** One sung note on a vowel: harmonics weighted by the vowel's formants, a
+ * slightly detuned double for a living voice, and breath on the second formant. */
+function sungVowel(at: number, dur: number, gain: number, f: number, to: number, v: keyof typeof VOWELS): Sound {
+  const amps = Array.from({ length: Math.floor(4200 / f) }, (_, k) =>
+    0.25 / (k + 1) + VOWELS[v].reduce((s, [F, A, B]) => s + A * Math.exp(-(((f * (k + 1) - F) / B) ** 2)), 0),
+  );
+  const sum = amps.reduce((a, b) => a + b, 0);
+  const shape = { attack: 0.05, hold: dur - 0.09 };
+  return [
+    ...partials(at, dur, gain / sum, f, to, amps, shape),
+    ...partials(at + 0.02, dur - 0.02, (gain * 0.3) / sum, f * 1.006, to * 1.006, amps.slice(0, 6), shape),
+    noise(at, dur, gain * 0.05, VOWELS[v][1][0], { q: 2, ...shape }),
+  ];
+}
+/** A small cast bell: hum, prime, minor-third tierce, quint, nominal, each dying at its own rate. */
+function bell(at: number, f: number, dur: number, gain: number): Sound {
+  return [[0.5, 0.25, 1.3], [1, 1, 1], [1.2, 0.45, 0.75], [1.5, 0.3, 0.65], [2, 0.4, 0.55], [2.5, 0.15, 0.4], [3, 0.12, 0.3]].map(
+    ([r, a, d]) => tone(at, dur * d, gain * a, f * r),
+  );
+}
+/** A hard object struck: a click, then a few short inharmonic partials. */
+function knock(at: number, f: number, ratios: number[], dur: number, gain: number, click = 2600): Sound {
+  return [
+    noise(at, 0.018, gain * 0.5, click, { q: 1.2, attack: 0.001 }),
+    ...ratios.map((r, i) => tone(at, dur / (1 + i * 0.5), gain / (1 + i), f * r, { attack: 0.001 })),
+  ];
+}
+const midiHz = (m: number) => 440 * 2 ** ((m - 69) / 12);
+/** Barrel-organ tunes, written on a grid the pins keep exactly: step length,
+ * melody as [step, steps, midi], and one chord per bar as [bass, ...chord]. */
+const ORGAN_TUNES: { step: number; bar: number; pulse: [number, "bass" | "chord"][]; melody: [number, number, number][]; chords: number[][] }[] = [
+  {
+    // A waltz in G: oom-pah-pah.
+    step: 0.29,
+    bar: 3,
+    pulse: [[0, "bass"], [1, "chord"], [2, "chord"]],
+    melody: [[0, 1, 71], [1, 1, 74], [2, 1, 79], [3, 2, 76], [5, 1, 72], [6, 1, 81], [7, 1, 78], [8, 1, 74], [9, 3, 79]],
+    chords: [[43, 59, 62, 67], [48, 60, 64, 67], [50, 60, 62, 66], [43, 59, 62, 67]],
+  },
+  {
+    // A polka in C, in eighths: bass on the beat, chord off it.
+    step: 0.16,
+    bar: 4,
+    pulse: [[0, "bass"], [1, "chord"], [2, "bass"], [3, "chord"]],
+    melody: [
+      [0, 1, 72], [1, 1, 76], [2, 1, 79], [3, 1, 76], [4, 1, 77], [5, 1, 81], [6, 2, 79],
+      [8, 1, 77], [9, 1, 74], [10, 1, 71], [11, 1, 74], [12, 1, 76], [13, 1, 72], [14, 2, 67],
+      [16, 1, 74], [17, 1, 79], [18, 1, 77], [19, 1, 74], [20, 1, 72], [21, 1, 67], [22, 2, 72],
+    ],
+    chords: [[48, 60, 64, 67], [53, 60, 65, 69], [43, 59, 62, 65], [48, 60, 64, 67], [43, 59, 62, 65], [48, 60, 64, 67]],
+  },
+  {
+    // A jig in D, 6/8.
+    step: 0.15,
+    bar: 6,
+    pulse: [[0, "bass"], [2, "chord"], [3, "bass"], [5, "chord"]],
+    melody: [
+      [0, 2, 74], [2, 1, 78], [3, 2, 81], [5, 1, 78], [6, 2, 76], [8, 1, 73], [9, 2, 69], [11, 1, 73],
+      [12, 1, 74], [13, 1, 76], [14, 1, 78], [15, 1, 79], [16, 1, 78], [17, 1, 76], [18, 1, 76], [19, 1, 73], [20, 1, 69], [21, 3, 74],
+    ],
+    chords: [[50, 62, 66, 69], [45, 61, 64, 67], [50, 62, 66, 69], [45, 61, 64, 67]],
+  },
+];
+function barrelOrgan(variant: number): Sound {
+  const tune = ORGAN_TUNES[((variant % ORGAN_TUNES.length) + ORGAN_TUNES.length) % ORGAN_TUNES.length];
+  // An organ in the street is never quite in tune, but always in time.
+  const pitch = rand(0.985, 1.015),
+    s = tune.step;
+  const pipe = (at: number, dur: number, gain: number, m: number, amps: number[]): Sound => {
+    const f = midiHz(m) * pitch;
+    const shape = { attack: 0.012, hold: dur - 0.05 };
+    return [
+      ...partials(at, dur, gain, f, f, amps, shape),
+      // The second rank a shade sharp: the beating is the wheeze.
+      ...partials(at, dur, gain * 0.55, f * 1.005, f * 1.005, amps.slice(0, 3), shape),
+      noise(at, 0.035, gain * 0.3, f * 2, { q: 3, attack: 0.004 }),
+    ];
+  };
+  const end = Math.max(...tune.melody.map(([at, n]) => at + n));
+  const out: Sound = tune.melody.flatMap(([at, n, m]) => pipe(at * s, n * s - 0.03, 0.03, m, [1, 0.5, 0.4, 0.25, 0.15, 0.1]));
+  tune.chords.forEach((chord, b) => {
+    for (const [p, part] of tune.pulse) {
+      const at = (b * tune.bar + p) * s;
+      if (at >= end * s - 0.01) continue;
+      if (part === "bass") out.push(...pipe(at, s * 0.8, 0.02, chord[0], [1, 0.6, 0.4, 0.2]));
+      else for (const m of chord.slice(1)) out.push(...pipe(at, s * 0.55, 0.008, m, [1, 0.3, 0.15]));
+      out.push(noise(at, 0.012, 0.006, 1800, { q: 2, attack: 0.001 }));
+    }
+  });
+  const length = end * s + 0.2;
+  // The bellows, pumped twice.
+  out.push(
+    noise(0, length / 2, 0.018, 420, { filter: "lowpass", attack: length / 4 }),
+    noise(length / 2 - 0.1, length / 2 + 0.1, 0.018, 420, { filter: "lowpass", attack: length / 4 }),
+  );
+  return out;
+}
+/** Sung street calls: base pitch, then notes as [semitones from, semitones to, seconds, vowel]. */
+const CRIES: { base: number; notes: [number, number, number, keyof typeof VOWELS][] }[] = [
+  { base: 165, notes: [[0, 0, 0.34, "a"], [0, -5, 0.72, "o"]] },
+  { base: 330, notes: [[0, 0, 0.24, "e"], [3, 3, 0.26, "a"], [-2, -4, 0.66, "o"]] },
+  { base: 215, notes: [[5, 5, 0.2, "a"], [0, 0, 0.22, "a"], [-3, -7, 0.6, "o"]] },
+  { base: 290, notes: [[7, 7, 0.42, "a"], [7, 0, 0.78, "a"]] },
+];
+
+export type StreetSoundKind =
+  | "hand-bell" | "clappers" | "iron-clappers" | "night-clappers" | "pan-flute" | "brass-cups"
+  | "cymbals" | "tofu-horn" | "barrel-organ" | "watch-horn" | "gong" | "cry";
+/** What an itinerant trade sounds as it walks its round. `variant` is the
+ * watch of the night for the night clappers (1-5 knocks), the tune for the
+ * barrel organ and the voice for a cry. */
+export function streetSound(kind: StreetSoundKind, variant = 0): Sound {
+  switch (kind) {
+    case "hand-bell": {
+      const f = vary(1150, 0.12);
+      return [0, 0.17, 0.42, 0.59, 0.84, 1.01].flatMap((at, i) => [
+        ...bell(at + rand(0, 0.02), f, 1.1, i % 2 ? 0.022 : 0.032),
+        noise(at, 0.012, 0.025, 3800, { q: 1.5, attack: 0.001 }),
+      ]);
+    }
+    case "clappers": {
+      const f = vary(1750, 0.06);
+      return [0, vary(0.17, 0.1)].flatMap((at, i) => [
+        ...knock(at, f, [1, 1.83, 2.9], 0.07, i ? 0.06 : 0.075, 3200),
+        noise(at, 0.25, 0.012, 1900, { q: 0.8, attack: 0.004 }),
+      ]);
+    }
+    case "iron-clappers": {
+      const plates = Array.from({ length: 5 }, () => rand(1100, 2400));
+      return [0, 0.38, 0.76].flatMap((burst) =>
+        grains(burst, 0.16, 7, (t) => noise(t, 0.02, 0.02, 3000, { q: 1 })).concat(
+          Array.from({ length: 6 }, () => ring(burst + rand(0, 0.16), plates[Math.floor(rand(0, 5))], 0.35, rand(0.008, 0.016))).flat(),
+        ),
+      );
+    }
+    case "night-clappers": {
+      const f = vary(820, 0.05),
+        n = Math.max(1, Math.min(5, Math.round(variant) || 1));
+      return Array.from({ length: n }, (_, i) => [
+        ...knock(i * 0.5, f, [1, 2.4, 0.52], 0.11, 0.07, 1500),
+        noise(i * 0.5, 0.09, 0.02, 600, { q: 1.5, attack: 0.002 }),
+      ]).flat();
+    }
+    case "pan-flute": {
+      const base = vary(1050, 0.05),
+        pipes = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16].map((st) => base * 2 ** (st / 12));
+      const run = [...pipes.map((f, i) => [i * 0.04, f, 0.07]), ...pipes.slice().reverse().map((f, i) => [0.42 + i * 0.045, f, i === 0 ? 0.16 : i === 9 ? 0.3 : 0.075])];
+      return [
+        ...run.flatMap(([at, f, dur]) => [
+          ...partials(at, dur, 0.03, f, f, [1, 0.05, 0.12], { attack: 0.01, hold: dur - 0.03 }),
+          noise(at, dur, 0.012, f, { q: 5, attack: 0.008 }),
+        ]),
+        noise(0, 1.15, 0.005, 3200, { q: 0.7, attack: 0.05, hold: 1.0 }),
+      ];
+    }
+    case "brass-cups": {
+      const f = vary(2350, 0.08);
+      return [0, 0.13, 0.5, 0.63, 0.76].flatMap((at, i) => {
+        const g = i === 4 ? 0.022 : 0.016;
+        return [
+          noise(at, 0.01, 0.02, 6000, { q: 1.5, attack: 0.001 }),
+          ...[1, 1.71, 2.53].flatMap((r, k) => [tone(at, 0.45 / (1 + k * 0.4), g / (1 + k), f * r), tone(at, 0.4 / (1 + k * 0.4), (g * 0.7) / (1 + k), f * 1.06 * r)]),
+        ];
+      });
+    }
+    case "cymbals": {
+      const f = vary(1650, 0.07);
+      const clack = (at: number) => [noise(at, 0.045, 0.03, 3600, { q: 0.9, attack: 0.001 }), ...[1.27, 2, 2.85].map((r) => tone(at, 0.05, 0.012, f * r))];
+      const ching = (at: number) => [
+        noise(at, 0.55, 0.014, 7000, { q: 0.7, attack: 0.002 }),
+        ...[1, 1.48, 2.07, 2.71, 3.36, 4.2].flatMap((r, k) => [tone(at, 0.9 / (1 + k * 0.25), 0.016 / (1 + k * 0.4), f * r), tone(at, 0.8 / (1 + k * 0.25), 0.01 / (1 + k * 0.4), f * r * 1.004)]),
+      ];
+      return [0, 0.95].flatMap((at) => [...clack(at), ...clack(at + 0.2), ...ching(at + 0.4)]);
+    }
+    case "tofu-horn": {
+      const f = vary(700, 0.06),
+        brass = [0.7, 1, 0.75, 0.5, 0.3, 0.18, 0.1];
+      return [
+        noise(0, 0.03, 0.03, 2200, { q: 1, attack: 0.002 }),
+        ...partials(0, 0.32, 0.018, f * 0.98, f, brass, { attack: 0.025, hold: 0.26 }),
+        ...partials(0.33, 0.95, 0.018, f * 0.84, f * 0.83, brass, { attack: 0.04, hold: 0.78 }),
+        noise(0, 1.25, 0.008, 1400, { q: 1.5, attack: 0.03, hold: 1.05 }),
+      ];
+    }
+    case "watch-horn": {
+      const f = vary(235, 0.06);
+      return [
+        ...partials(0, 1.9, 0.038, f * 0.93, f * 0.97, [1, 0.55, 0.3, 0.16, 0.08, 0.05], { attack: 0.2, hold: 1.6 }),
+        noise(0, 1.9, 0.004, f * 3, { q: 1, attack: 0.2, hold: 1.5 }),
+      ];
+    }
+    case "gong": {
+      const f = vary(420, 0.08);
+      return [
+        tone(0, 0.08, 0.05, 140, { to: 90 }),
+        noise(0, 0.04, 0.03, 700, { filter: "lowpass", attack: 0.001 }),
+        ...[1, 1.47, 2.09, 2.56, 3.18, 4.02].flatMap((r, k) => [
+          tone(0, 2.4 / (1 + k * 0.3), 0.04 / (1 + k * 0.6), f * r, { to: f * r * 0.99, attack: 0.004 }),
+          tone(0, 2.2 / (1 + k * 0.3), 0.025 / (1 + k * 0.6), f * r + 1.6 + k, { to: (f * r + 1.6 + k) * 0.99, attack: 0.004 }),
+        ]),
+      ];
+    }
+    case "cry": {
+      const cry = CRIES[((variant % CRIES.length) + CRIES.length) % CRIES.length],
+        base = cry.base * rand(0.95, 1.05);
+      let at = 0;
+      return cry.notes.flatMap(([from, to, dur, v]) => {
+        const note = sungVowel(at, dur + 0.04, 0.09, base * 2 ** (from / 12), base * 2 ** (to / 12), v);
+        at += dur;
+        return note;
+      });
+    }
+    case "barrel-organ":
+      return barrelOrgan(variant);
+  }
 }

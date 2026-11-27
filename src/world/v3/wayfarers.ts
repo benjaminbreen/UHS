@@ -17,6 +17,7 @@ import { matchesCharacterScope } from "../../content/characters/resolve";
 import { DIRECTIONS, endowmentFor, resourceName, tradeOf, type Resource } from "../../content/economy/endowments";
 import { stallSeller } from "../../content/economy/market";
 import { marketDay } from "../../core/agenda";
+import { streetTradesAt, type StreetTrade } from "../../content/street-trades";
 
 /** A border crossing as a passer-by sees it: where it is, and what lies past it. */
 export type Way = MapEntrance & { point: Point };
@@ -50,7 +51,7 @@ export function wayfarerDay(
 ): Passing[] {
   const setting = pack.setting;
   if (!setting?.environment) return [];
-  const stalls = stallholders(world, seed, setting, day);
+  const stalls = [...stallholders(world, seed, setting, day), ...streetTraders(world, seed, setting, day)];
   if (!ways.length) return stalls;
   const roll = (...k: (string | number)[]) => random(seed, "wayfarers", day, ...k);
   const population = setting.environment.population ?? "none";
@@ -244,6 +245,167 @@ export function gatheringJourney(home: WorldModel, away: WorldModel, exit: Way, 
     ],leave,PACE);
     return { town, gather, cross, pick, again, unload:again+(back.length-1)*PACE, patch:o.id, store:store.id, basket };
   }
+}
+
+/** How many of the rarer trades a place draws: a city has the custom for them. */
+const STREET_DRAW: Partial<Record<string, number>> = { city: 1.6, port: 1.6, village: 0.4 };
+const LIT_BY_HAND = /^study-propb-(torch-post|lantern-post|gas-lamp|city-lamp)-\d$/;
+const LAMPS_A_ROUND = 22;
+
+/** The street trades out today: each on a round of doors, corners or lamps,
+ * from the hour they start till they have done or the light goes. */
+function streetTraders(world: WorldModel, seed: string, setting: NonNullable<Pack["setting"]>, day: number): Passing[] {
+  const draw = STREET_DRAW[setting.settlement] ?? 0;
+  if (!draw || !world.settlements.length) return [];
+  const season = seasonAt(setting.season ?? "spring", day * DAY_MINUTES * 60 + 43200);
+  const doors = streetDoors(world);
+  const out: Passing[] = [];
+  for (const trade of streetTradesAt(setting)) {
+    const r = (...k: (string | number)[]) => random(seed, "street", day, trade.id, ...k);
+    if (trade.seasons && !trade.seasons.includes(season)) continue;
+    if (trade.round === "lamps") {
+      lampRounds(world).forEach((round, k) => out.push(lighter(seed, setting, trade, day, round, k)));
+      continue;
+    }
+    const count = trade.civic ? (draw > 1 ? 2 : 1) : r("out") < Math.min(0.9, trade.weight * 0.22 * draw) ? 1 : 0;
+    for (let k = 0; k < count && doors.length > 1; k++) {
+      const q = (...key: (string | number)[]) => r(k, ...key);
+      const stops = chain(doors, Math.floor(q("from") * doors.length), trade.stops, trade.round === "corners" ? 9 : 3);
+      const hops = stops.slice(1).map((p, i) => across(world, stops[i], p)).filter((h): h is Point[] => !!h);
+      if (!hops.length) continue;
+      const first = hops[0][0];
+      const pass = hops.reduce((n, h) => n + h.length * PACE, 0) + (hops.length + 1) * trade.minutes;
+      const span = (trade.hours[1] - trade.hours[0]) * 60;
+      // The watch keeps walking its beat till dawn; a seller goes round once.
+      const passes = trade.civic ? Math.max(1, Math.floor(span / pass)) : 1;
+      const stop = { activity: "work" as const, label: trade.stopping, minutes: trade.minutes };
+      const legs: Parameters<typeof journey>[0] = [{ path: [first], label: trade.doing, stop }];
+      for (let n = 0; n < passes; n++)
+        for (const h of n % 2 ? [...hops].reverse().map((h) => [...h].reverse()) : hops) legs.push({ path: h, label: trade.doing, stop });
+      const start = day * DAY_MINUTES + Math.round((trade.hours[0] + q("late") * 0.5) * 60);
+      const itinerary = journey(legs, start, PACE);
+      const done = itinerary.segments[itinerary.segments.length - 1].from;
+      const sex = q("sex") < (trade.women ?? 0) ? "female" : "male";
+      const actor = person(seed, setting, `wayfarer-street-${day}-${trade.id}-${k}`, trade.dress, trade.label, sex, 18 + Math.floor(q("age") * 40), first, (start + done + 10) * 60);
+      out.push({ actor: kitted(actor, trade), itinerary });
+    }
+  }
+  return out;
+}
+
+function kitted(actor: Actor, trade: StreetTrade) {
+  actor.wayfarer!.street = trade.id;
+  if (trade.kit) {
+    actor.heldItem = trade.kit;
+    actor.inventory[trade.kit] = 1;
+  }
+  return actor;
+}
+
+/** The lamplighter lights his round at dusk and puts it out at dawn by the
+ * same way, so each lamp burns the same hours. */
+function lighter(seed: string, setting: NonNullable<Pack["setting"]>, trade: StreetTrade, day: number, round: LampRound, k: number): Passing {
+  const legs = (label: string, stopping: string) => round.hops.map((h, i) => ({
+    path: i ? h : [h[h.length - 1]], label, stop: { activity: "work" as const, label: stopping, minutes: trade.minutes },
+  }));
+  const dusk = journey(legs(trade.doing, trade.stopping), day * DAY_MINUTES + LIGHT_UP * 60, PACE * LIGHTER_PACE);
+  const id = `wayfarer-street-${day}-${trade.id}-${k}`;
+  const age = 18 + Math.floor(random(seed, id, "age") * 40);
+  const actor = person(seed, setting, id, trade.dress, trade.label, "male", age, round.hops[0][0], 0);
+  // One walk from dusk to the dawn round's end, resting between at home off the map.
+  const dawn = journey(legs("Putting out the lamps", "Putting out a lamp"), 0, PACE * LIGHTER_PACE);
+  const offset = (24 - LIGHT_UP + PUT_OUT) * 60;
+  const tail = dusk.segments.pop()!;
+  const gone = { ...tail, to: offset, label: "Home till dawn" };
+  const segments = [...dusk.segments, gone, ...dawn.segments.map((s) => ({ ...s, from: s.from + offset, to: s.to === Number.MAX_SAFE_INTEGER ? s.to : s.to + offset }))];
+  const end = segments[segments.length - 1].from;
+  actor.wayfarer!.until = (dusk.start + end + 10) * 60;
+  return { actor: kitted(actor, trade), itinerary: { ...dusk, segments } };
+}
+
+/** Hours `lampOn` lights and douses a hand-lit lamp at, before its round order. */
+const LIGHT_UP = 17.5, PUT_OUT = 5.4, ROUND_HOURS = 0.6;
+/** A lighter goes at a trot between lamps. */
+const LIGHTER_PACE = 0.7;
+type LampRound = { hops: Point[][]; lamps: string[] };
+const lampMemo = new WeakMap<WorldModel, { rounds: LampRound[]; order: Map<string, number> }>();
+function lampWork(world: WorldModel) {
+  let memo = lampMemo.get(world);
+  if (memo) return memo;
+  const lamps = (world.initialObjects ?? [])
+    .filter((o) => LIT_BY_HAND.test(o.sprite) && o.pos.space === "outside")
+    .map((o) => ({ id: o.id, at: [{ x: o.pos.x, y: o.pos.y + 1 }, { x: o.pos.x + 1, y: o.pos.y }, { x: o.pos.x - 1, y: o.pos.y }].find((p) => !world.blocked(p.x, p.y, "outside")) }))
+    .filter((l): l is { id: string; at: Point } => !!l.at);
+  const rounds: LampRound[] = [];
+  const order = new Map<string, number>();
+  const left = new Set(lamps.map((_, i) => i));
+  while (left.size && rounds.length < 8) {
+    // Each round starts from the westernmost lamp nobody has yet.
+    let here = [...left].reduce((a, b) => (lamps[b].at.x < lamps[a].at.x ? b : a));
+    left.delete(here);
+    const round: LampRound = { hops: [[lamps[here].at]], lamps: [lamps[here].id] };
+    let clock = 0;
+    order.set(lamps[here].id, 0);
+    while (round.lamps.length < LAMPS_A_ROUND) {
+      // Past forty cells the next lamp belongs to someone else's round.
+      const near = [...left].filter((i) => dist(lamps[i].at, lamps[here].at) <= 40);
+      if (!near.length) break;
+      const next = near.reduce((a, b) => (dist(lamps[b].at, lamps[here].at) < dist(lamps[a].at, lamps[here].at) ? b : a));
+      left.delete(next);
+      const hop = across(world, lamps[here].at, lamps[next].at);
+      if (!hop) continue;
+      clock += (hop.length - 1) * PACE * LIGHTER_PACE + 1;
+      round.hops.push(hop);
+      round.lamps.push(lamps[next].id);
+      order.set(lamps[next].id, clock / 60 / ROUND_HOURS);
+      here = next;
+    }
+    if (round.lamps.length > 1) rounds.push(round);
+  }
+  lampMemo.set(world, (memo = { rounds, order }));
+  return memo;
+}
+const lampRounds = (world: WorldModel) => lampWork(world).rounds;
+const dist = (a: Point, b: Point) => Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+
+/** Where a lamp falls in its lighter's round, in `lampOn`'s units, for the
+ * lamps a lamplighter of this place and year goes round. */
+export function lampRound(world: WorldModel, setting: Pack["setting"], id: string) {
+  if (!setting || !streetTradesAt(setting).some((t) => t.round === "lamps")) return undefined;
+  return lampWork(world).order.get(id);
+}
+
+const doorMemo = new WeakMap<WorldModel, Point[]>();
+/** The step outside each street door. */
+function streetDoors(world: WorldModel) {
+  let doors = doorMemo.get(world);
+  if (!doors) {
+    doors = (world.initialObjects ?? [])
+      .filter((o) => o.kind === "door" && o.pos.space === "outside")
+      .map((o) => [{ x: o.pos.x, y: o.pos.y + 1 }, { x: o.pos.x, y: o.pos.y }].find((p) => !world.blocked(p.x, p.y, "outside")))
+      .filter((p): p is Point => !!p);
+    doorMemo.set(world, doors);
+  }
+  return doors;
+}
+
+/** Up to `n` stops from `start`, each the nearest not yet called at that is
+ * at least `spacing` on from the last and no more than a street or two away. */
+function chain(points: Point[], start: number, n: number, spacing: number) {
+  const out = [points[start]];
+  const used = new Set([start]);
+  while (out.length < n) {
+    const here = out[out.length - 1];
+    let best = -1;
+    points.forEach((p, i) => {
+      const d = dist(p, here);
+      if (!used.has(i) && d >= spacing && d < 30 && (best < 0 || d < dist(points[best], here))) best = i;
+    });
+    if (best < 0) break;
+    used.add(best);
+    out.push(points[best]);
+  }
+  return out;
 }
 
 function pick<T>(items: readonly T[], weight: (t: T) => number, u: number) {

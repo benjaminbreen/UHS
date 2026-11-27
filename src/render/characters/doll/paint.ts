@@ -54,7 +54,14 @@ export const SKIN = 0,
   PURPLE = 41,
   /** Fired earthenware: a water jar. */
   CLAY = 42,
-  MATS = 43;
+  /** The street trades' kit: a brass urn or bell, candied haws, balloons, goldfish, licorice. */
+  BRASS = 43,
+  CANDY = 44,
+  BALLOON = 45,
+  SKY = 46,
+  FISH = 47,
+  JUICE = 48,
+  MATS = 49;
 
 /** Ties round toward the centre line, so a shape and its mirror land on mirrored columns. */
 export const rnd = (x: number) =>

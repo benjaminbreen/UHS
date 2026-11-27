@@ -28,6 +28,9 @@ const MUSIC = ["musician", "storyteller", "griot", "entertainer"];
 const on = (livelihoods: string[]) => <T>(value: T, weight = 1): Option<T> => ({ value, weight, livelihoods, ages: ["adult", "elder"] });
 const doctor = on(DOCTORS), money = on(MONEY), desk = on(DESKS), typist = on(WOMEN_AT_DESKS);
 const clergy = on(CLERGY), official = on(OFFICIALS), water = on(WATER), soil = on(NIGHT_SOIL), porter = on(PORTERS), music = on(MUSIC);
+const watch = on(["night-watchman"]), grinder = on(["knife-grinder"]), crier = on(["town-crier"]), organ = on(["organ-grinder"]);
+const balloon = on(["balloon-seller"]), goldfish = on(["goldfish-seller"]), juice = on(["juice-seller"]), rag = on(["rag-and-bone"]);
+const JAPAN = [129, 30, 146, 46] as const;
 
 type Kit = Omit<GarmentKit, "id" | "label" | "scope" | "priority">;
 const kit = (id: string, label: string, scope: GarmentKit["scope"], parts: Kit): GarmentKit => ({
@@ -288,6 +291,72 @@ export const street: readonly GarmentKit[] = [
     headwear: [{ value: "cap", weight: 1, livelihoods: ["chimney-sweep"] }],
     accessory: [{ value: "sweep-brush", weight: 1, livelihoods: ["chimney-sweep"] }],
   }),
+  // Over the guards' kits, which arm every watchman by the role: the night
+  // watch went about with a light and a noise as much as a weapon.
+  { ...kit("watch-lantern", "The watchman's lantern", { years: [1400, 1870], cultures: ["european"] }, {
+    accessory: [watch("lantern")],
+  }), priority: 3.5 },
+  { ...kit("watch-clappers-china", "The watchman's clappers and the hours called", { years: [600, 1930], cultures: ["east-asian"], except: [JAPAN] }, {
+    accessory: [watch("clappers")],
+  }), priority: 3.5 },
+  // Hyoshigi struck on the fire-watch round: "beware of fire".
+  { ...kit("watch-clappers-japan", "The fire-watch clappers", { years: [1650, 1960], bounds: JAPAN }, {
+    accessory: [watch("clappers")],
+  }), priority: 3.5 },
+
+  // ---- street trades
+  kit("grinder-europe", "The grinder's wheel on its frame", { years: [1500, 1990], cultures: ["european"] }, {
+    accessory: [grinder("grinder-wheel")], apron: [grinder("leather", 2), grinder("cloth", 1)],
+  }),
+  kit("grinder-east-asia", "The grinder's bench on the shoulder", { years: [1600, 1990], cultures: ["east-asian"] }, {
+    accessory: [grinder("grinder-bench")], apron: [grinder("cloth", 1), grinder("none", 1)],
+  }),
+  kit("crier", "The crier's bell", { years: [1300, 1600], cultures: ["european"] }, {
+    accessory: [crier("hand-bell")], headwear: [crier("hood", 1), crier("cap", 2)],
+  }),
+  // A town's livery: a long coat, often in the town's colour, laced at the edges.
+  kit("crier-coat", "The crier's bell, livery coat and hat", { years: [1600, 1900], cultures: ["european"] }, {
+    accessory: [crier("hand-bell")], garment: [crier("coat")],
+    dye: [crier("madder", 2), crier("woad", 1), crier("soot", 1)], trim: [crier("goldthread")],
+  }),
+  kit("crier-hat-early", "The crier's brimmed hat", { years: [1600, 1690], cultures: ["european"] }, {
+    headwear: [crier("capotain", 2), crier("brimmed", 1)],
+  }),
+  kit("crier-hat-cocked", "The crier's cocked hat", { years: [1690, 1900], cultures: ["european"] }, {
+    headwear: [crier("tricorne", 3), crier("top-hat", 1)],
+  }),
+  kit("organ-grinder", "The barrel organ and its monkey", { years: [1800, 1940], cultures: ["european"] }, {
+    accessory: [organ("barrel-organ")], headwear: [organ("brimmed", 2), organ("cap", 1)],
+  }),
+  kit("balloon-seller", "A bunch of balloons", { years: [1890, 10001] }, {
+    accessory: [balloon("balloons")],
+  }),
+  kit("goldfish-seller", "Goldfish tubs on a pole, a towel round the head", { years: [1750, 1960], bounds: JAPAN }, {
+    accessory: [goldfish("fish-tubs")], headwear: [goldfish("band", 2), goldfish("conical", 1)],
+  }),
+  kit("juice-seller", "The licorice urn and the brass cups", { years: [1700, 10001], cultures: ["north-african-west-asian"] }, {
+    accessory: [juice("juice-urn")], apron: [juice("cloth")],
+  }),
+  // The fez came in with Mahmud II's dress law of 1829.
+  kit("juice-seller-turban", "The juice seller's turban", { years: [1700, 1829], cultures: ["north-african-west-asian"] }, {
+    headwear: [juice("turban")],
+  }),
+  kit("juice-seller-fez", "The juice seller's fez", { years: [1829, 10001], cultures: ["north-african-west-asian"] }, {
+    headwear: [juice("fez", 3), juice("turban", 1)],
+  }),
+  kit("rag-and-bone", "The rag-and-bone man's cap", { years: [1860, 1975], cultures: ["european"] }, {
+    headwear: [rag("flat-cap", 3), rag("bowler", 1)],
+  }),
+  // The saqqa's goatskin on the back, poured from its neck.
+  ...([[24, 22, 35, 32], [26, 29.5, 45, 42.2]] as Box[]).map((bounds, i) => ({
+    ...kit(`water-skin-${i}`, "The water-seller's goatskin", { years: [1500, 1930], bounds }, {
+      accessory: held(water, ["water-skin", 1]),
+    }), priority: 2.5,
+  })),
+  // Candied haws on a straw-topped pole, a Beijing winter sight.
+  { ...kit("haw-pole", "The candied-haw pole", { years: [1700, 10001], bounds: [110, 34, 124, 42.5] }, {
+    accessory: held(on(["hawker", "street-vendor"]), ["haw-pole", 1], ["none", 3]),
+  }), priority: 2.5 },
 
   // ---- music
   kit("music-europe-west-asia", "Lute, oud, drum", { years: [-500, 1900], cultures: ["european", "north-african-west-asian", "inner-eurasian", "south-asian"] }, {

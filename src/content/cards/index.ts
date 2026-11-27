@@ -13,8 +13,9 @@ import { MINE_CARDS } from "./mine";
 import { OUTLAW_CARDS } from "./outlaws";
 import { OFFICE_CARDS } from "./office";
 import { FUTURE_CARDS } from "./future";
+import { STREET_CARDS } from "./street";
 import type { ChoiceCard } from "./types";
 
-export const CARDS: readonly ChoiceCard[] = [...RAIL_CARDS, ...BAKER_CARDS, ...RICE_CARDS, ...HEALER_CARDS, ...FARM_CARDS, ...CRAFT_CARDS, ...FISHING_CARDS, ...HUNTING_CARDS, ...MINE_CARDS, ...HAZARD_CARDS, ...OUTLAW_CARDS, ...OFFICE_CARDS, ...FUTURE_CARDS, ...careCards, ...GENERAL_CARDS];
+export const CARDS: readonly ChoiceCard[] = [...RAIL_CARDS, ...BAKER_CARDS, ...RICE_CARDS, ...HEALER_CARDS, ...FARM_CARDS, ...CRAFT_CARDS, ...FISHING_CARDS, ...HUNTING_CARDS, ...MINE_CARDS, ...HAZARD_CARDS, ...OUTLAW_CARDS, ...OFFICE_CARDS, ...FUTURE_CARDS, ...STREET_CARDS, ...careCards, ...GENERAL_CARDS];
 export { railBoss } from "./rail";
 export type { ChoiceCard, CardChoice, CardEffect } from "./types";

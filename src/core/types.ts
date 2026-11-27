@@ -349,7 +349,8 @@ export type Actor = {
   tends?: { herd: string; seat: number };
   /** Passing through: off the map, and out of the snapshot, after `until`. */
   /** `train`: the pack animals the lead walker drives, as fauna. */
-  wayfarer?: { until: number; train?: { species: string; count: number } };
+  /** `street`: the street trade whose round they walk. */
+  wayfarer?: { until: number; train?: { species: string; count: number }; street?: string };
   /** The bicycle or motorcycle they ride when out of doors. */
   cycle?: import("./cycles").CycleLook;
   plough?: { vehicle: string; step: number; at: number; resting?: boolean; sown?: number };
@@ -1050,6 +1051,8 @@ export interface WorldModel {
   navigationCost?(x: number, y: number, actorId?: string): number;
   protectedCell?(x: number, y: number): boolean;
   /** `furnished`: the yard kit laid this yard, so only a trade's fitting is added. */
+  /** Where a hand-lit lamp comes in its lamplighter's round, in `lampOn`'s order units. */
+  lampRound?(id: string): number | undefined;
   propSlots?(placeId: string): { yard: Point[]; work: Point[]; furnished?: boolean } | undefined;
   /** Whose household plot a cell lies in. */
   yardOwner?(x: number, y: number): string | undefined;
@@ -1075,6 +1078,8 @@ export interface WorldModel {
     | undefined;
   /** True while a routine is still queued to be built. */
   routinePending?(actorId: string): boolean;
+  /** Counts the residents given a full routine from here rather than the player's home. */
+  focusRoutines?(x: number, y: number, clock: number): void;
   /** True for a resident outside the routine budget: they stay home and are
    * not simulated until the budget rotates to them. */
   dormant?(actorId: string): boolean;

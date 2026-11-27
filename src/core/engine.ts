@@ -415,6 +415,9 @@ const listing = (xs: string[]) =>
     : `${xs.slice(0, -1).join(", ")} and ${xs.at(-1)}`;
 /** Routines built in one call to `advance`. */
 const ROUTINE_BUILDS_PER_ADVANCE = 32;
+/** A routine averages 0.17 s to build in London and can take over a second,
+ * so a crowd woken at once is spread over steps rather than built in one. */
+const ROUTINE_BUILDS_PER_STEP = 2;
 /** The generated decoration function of each world, before any engine wrapped
  * it in its own tile edits. */
 const baseTopography = new WeakMap<WorldModel, NonNullable<WorldModel["topography"]>>();
@@ -10308,6 +10311,7 @@ export class Engine {
   populateNearby(p = this.state.player.pos) {
     if (!this.world.activate) return;
     if (p.space !== "outside") return;
+    this.world.focusRoutines?.(p.x, p.y, this.state.clock);
     const key = `${Math.floor(p.x / 128)},${Math.floor(p.y / 128)}`;
     if (key === this.populatedDistrict) return;
     this.populatedDistrict = key;
@@ -16793,9 +16797,10 @@ export class Engine {
     // couple of hundred residents wanting one at once. Capped per advance and
     // spent in the actors' fixed order, so a cold city fills in over a few
     // ticks and every replay spends the budget on the same people.
-    let routineBuilds = 0;
+    let routineBuilds = 0, stepBuilds = 0;
     while (this.state.clock < end) {
       yield;
+      stepBuilds = 0;
       const next = Math.min(end, (Math.floor(this.state.clock / 6) + 1) * 6),
         elapsed = next - this.state.clock;
       this.state.clock = next;
@@ -17077,8 +17082,9 @@ export class Engine {
             continue;
           }
           if (this.world.routinePending?.(a.id)) {
-            if (routineBuilds >= ROUTINE_BUILDS_PER_ADVANCE) continue;
+            if (routineBuilds >= ROUTINE_BUILDS_PER_ADVANCE || stepBuilds >= ROUTINE_BUILDS_PER_STEP) continue;
             routineBuilds++;
+            stepBuilds++;
           }
           // A resident on their routine costs a binary search, not a path
           // search. Needs pull them off it; everything else is the day's round.

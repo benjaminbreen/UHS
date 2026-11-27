@@ -7,7 +7,7 @@ import type { FaunaGroup } from "../src/core/fauna";
 import type { Point, WorldModel } from "../src/core/types";
 import { packForSetting } from "../src/content/geography/pack";
 import { wayfarersAt } from "../src/content/wayfarers";
-import { wayfarerDay, type Way } from "../src/world/v3/wayfarers";
+import { lampRound, wayfarerDay, type Way } from "../src/world/v3/wayfarers";
 
 const at = (id: string, year: number) =>
   settingFor(places.find((p) => p.id === id)!, year);
@@ -167,4 +167,39 @@ it("drives a llama train along the party's road, a few tiles behind", () => {
     for (let k = 1; k < halts.length; k++)
       expect(Math.hypot(halts[k].x - halts[k - 1].x, halts[k].y - halts[k - 1].y)).toBeGreaterThanOrEqual(2);
   }
+});
+
+it("sends street trades round a town, the lamplighter lamp by lamp at dusk and dawn", () => {
+  const setting = { ...at("london", 1850), settlement: "city", season: "winter" } as ReturnType<typeof at>;
+  const pack = packForSetting(setting);
+  const out = (x: number, y: number) => ({ x, y, space: "outside" as const });
+  const town = {
+    blocked: () => false,
+    settlements: [{ id: "s", name: "London", size: 40, x: 0, y: 0 }],
+    initialObjects: [
+      ...Array.from({ length: 40 }, (_, i) => ({ id: `door-${i}`, kind: "door", sprite: "door", pos: out((i % 10) * 4, Math.floor(i / 10) * 6), inventory: {} })),
+      ...Array.from({ length: 6 }, (_, i) => ({ id: `lamp-${i}`, kind: "monument", sprite: "study-propb-gas-lamp-0", pos: out(i * 5, 2), inventory: {} })),
+    ],
+  } as unknown as WorldModel;
+  const day = wayfarerDay(town, "seed", pack, [], 3);
+  expect(wayfarerDay(town, "seed", pack, [], 3).map((p) => p.actor.id)).toEqual(day.map((p) => p.actor.id));
+  const street = day.filter((p) => p.actor.wayfarer?.street);
+  const trades = new Set(street.map((p) => p.actor.wayfarer!.street));
+  expect(trades).toContain("lamplighter");
+  expect(trades).toContain("crier");
+  expect(trades).not.toContain("watch");
+  expect(trades).not.toContain("goldfish");
+
+  const lighter = street.find((p) => p.actor.wayfarer!.street === "lamplighter")!;
+  expect(lighter.actor.heldItem).toBe("lamp-pole");
+  // Each lamp lights in the minute the lighter stops at it, in lampOn's units.
+  const stops = lighter.itinerary.segments.filter((s) => s.label === "Lighting a lamp");
+  expect(stops).toHaveLength(6);
+  for (const [k, s] of stops.entries()) {
+    const id = `lamp-${k}`, hour = 17.5 + lampRound(town, setting, id)! * 0.6;
+    expect(Math.abs(lighter.itinerary.start + s.from - (3 * 1440 + hour * 60))).toBeLessThan(0.01);
+  }
+  const dawn = lighter.itinerary.segments.find((s) => s.label === "Putting out a lamp")!;
+  expect((lighter.itinerary.start + dawn.from) / 60 - 3 * 24).toBeCloseTo(24 + 5.4, 5);
+  expect(lampRound(town, at("london", 1990), "lamp-0")).toBeUndefined();
 });

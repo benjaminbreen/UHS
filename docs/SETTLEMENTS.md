@@ -370,6 +370,32 @@ counter on the left.
   lock quietly. A taxi driver, chauffeur, lorry driver or mechanic starts
   beside a car of their own, a car thief beside someone else's; when none is
   parked near the door, generation parks one there.
+- **Street robots.** Where `kerbside.ts` puts delivery robots on the street,
+  six-wheeled couriers roll the pavements; where the `robots` requirement holds,
+  humanoids (some carrying parcels), sweepers and robot dogs join them, dogs
+  most in China and Japan. `src/render/street-robots.ts` keeps up to eight near
+  the player in real time, like the traffic: they spawn out of view on the
+  pavement beside a lane, mostly heading toward the player, wait for people in
+  their way and turn at corners. Nothing saves them. The frames are painted in
+  code (`robot-art.ts`).
+- **Who walks.** A settlement gives a full daily routine to 48 residents
+  (`ROUTINE_BUDGET` in `world/v3/generate.ts`); the rest are dormant. They are
+  counted from the player: re-ranked by distance each time the player has gone
+  24 cells (`focusRoutines`, called from the engine's `populateNearby`).
+  Residents who drop out of range finish their walk home, or stop once well out
+  of sight; dormant ones near the player wake. One resident an hour still turns
+  over so the faces change.
+- **Street trades.** Cities, ports and, now and then, villages get the day's
+  street trades from `src/content/street-trades.ts` (lamplighters, watchmen,
+  grinders, water and licorice sellers, goldfish, tofu, muffins, criers,
+  balloons, organ grinders, sweeps, rag-and-bone men, candied haws, simit).
+  `streetTraders` in `world/v3/wayfarers.ts` walks each one round as a
+  wayfarer: a chain of doors or corners in its hours and season, kit in hand,
+  the watch going back and forth till dawn. Each lamplighter takes up to 22
+  hand-lit lamps (eight rounds at most), lights them at dusk and puts them out
+  at dawn by the same way; `world.lampRound` gives `lampOn` the minute he
+  reaches each lamp, so lamps light as he gets to them. The scene plays a
+  trader's sound (`streetSound`) when one is near the player.
 
 ### Hospitals, schools and civic buildings
 
