@@ -383,6 +383,7 @@ export function person(
     id,
     name: proceduralName(setting, seed, id),
     role: label ?? dress,
+    age,
     kind: "human",
     pos: { ...pos },
     home: { ...pos },

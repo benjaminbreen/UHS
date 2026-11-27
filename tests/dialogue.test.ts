@@ -287,10 +287,10 @@ describe("a conversation leaves a trace", () => {
       return new Response(JSON.stringify({ text: "Morning.", regard: 0 }));
     };
     household.history = [{ year: start.setting.year - 1, kind: "died", as: "daughter" }];
-    await dialogueTurn(runtime, head.id, "Hello", []);
+    await dialogueTurn(runtime, head.id, "How is your family?", []);
     expect(context).toContain("- Lost: their daughter, last year, and it is still raw.");
     household.history = [];
-    await dialogueTurn(runtime, head.id, "Hello", []);
+    await dialogueTurn(runtime, head.id, "How is your family?", []);
     expect(context).not.toMatch(/Lost: (a baby of their own|a first husband or wife|their (mother|father|daughter))/);
   });
   it("refuses an exchange with someone out of reach", () => {
@@ -409,7 +409,8 @@ describe("plot conversation", () => {
       expect(context).not.toContain("On their mind: is ");
       expect(context).not.toContain("audible fart");
       expect(context.indexOf("Voice:")).toBeGreaterThan(context.indexOf("Conversation so far"));
-      expect(context).toContain("Dreams of:");
+      expect(context).toContain("Will not talk about:");
+      expect(context).not.toContain("Dreams of:");
       if (trust > 0) {
         expect(context).toContain("The player is a friend of yours.");
         expect(context).not.toContain("family: your friend");
@@ -641,7 +642,7 @@ describe("provoked householders", () => {
       await dialogueTurn(runtime, actor.id, "", []);
       expect(prompt).toContain(fact.text);
       expect(prompt).toContain("Just now, firsthand");
-      expect(prompt).not.toMatch(/Has not met the player before|A stranger has interrupted/);
+      expect(prompt).not.toMatch(/Has not met the player before|You have not met them/);
       expect(actor.encounters).toEqual([fact]);
     } finally { runtime.dispose(); }
   });

@@ -168,7 +168,7 @@ const ANIMALS = ["dogs", "crows", "frogs", "spiders", "fish", "small birds"];
 
 /** The voice, private life and two sample lines that set one person apart from the next. */
 /** `loss` is a death on the household's record, or null when the record has none for this person. */
-export function voiceBrief(seed: string, actor: Actor, stats: Stats, localAnimals: string[], loss?: string | null, real = false) {
+export function voiceBrief(seed: string, actor: Actor, stats: Stats, localAnimals: string[], loss?: string | null, real = false, plain = false, heard = "") {
   const roll = (key: string) => random(seed, "voice", actor.id, key);
   const pick = <T>(list: T[], key: string) => list[Math.floor(roll(key) * list.length)];
   const age = actor.age ?? 30;
@@ -185,7 +185,7 @@ export function voiceBrief(seed: string, actor: Actor, stats: Stats, localAnimal
     : talk < 75 ? "Short and plain: one short sentence, now and then two."
     : talk < 92 ? "Talks easily: up to two sentences, three when they get going."
     : "A talker: can run on for three or four sentences and drift off the point.";
-  const habit = roll("has-habit") < 0.7 ? ` Habit: ${pick(HABITS, "habit")}.` : "";
+  const habit = roll("has-habit") < 0.7 ? ` Habit: ${pick(HABITS, "habit")} (a sigh, cough or gesture goes in "action", never spelled out as a word).` : "";
 
   const orphan = !actor.relations?.some((r) => r.kind === "parent");
   // A household with a record has its own dead; inventing kin would contradict it.
@@ -202,21 +202,25 @@ export function voiceBrief(seed: string, actor: Actor, stats: Stats, localAnimal
   const dreams = [...(child ? CHILD_DREAMS : DREAMS), ...(person ? [`${person} standing in the doorway, not speaking`, `${person} alive again, acting as if nothing happened`] : [])];
 
   const lines = [pick(register.lines, "line"), child ? pick(CHILD_LINES, "age-line") : age >= 60 ? pick(OLD_LINES, "age-line") : register.lines[(register.lines.indexOf(pick(register.lines, "line")) + 1) % register.lines.length]];
+  const animal = pick(localAnimals.length ? localAnimals : ANIMALS, "animal");
+  // A note in every prompt gets said in every reply, so each is sent only when the talk reaches it, or a private mood is on.
+  const slip = /more honest or private/.test(heard) ? Math.floor(roll(`slip-${heard.length}`) * 5) : -1;
+  const touches = (subject: RegExp, note = -1) => note === slip || subject.test(heard);
   // A real person's dreams, dead and breakfast are their own, not rolled.
   if (real) return `Voice: ${length}`;
   return [
     `What makes ${actor.name} this person and not another. It outweighs sounding helpful.`,
-    `Voice: ${register.say} ${length}${habit}`,
+    plain ? `Voice: ${length} This line comes out plainly; whatever manner showed earlier in the conversation rests.` : `Voice: ${register.say} ${length}${habit}`,
     `Personal questions: ${pick(PERSONAL, "personal")}.`,
     "Private, true, and known only to them:",
-    lost ? `- Lost: ${lost}.` : "",
-    `- Dreams of: ${pick(dreams, "dream")}. What they think dreams are follows their "Holds".`,
-    `- Afraid of: ${pick(child ? CHILD_FEARS : FEARS, "fear")}.`,
-    `- Quietly vain about: ${pick(child ? CHILD_VANITIES : VANITIES, "vanity")}.`,
+    lost && touches(/dea[dt]|\bdie|lost|loss|grie|mourn|miss|famil|mother|father|brother|sister|friend|child|\bson\b|daughter|husband|wife|widow|funeral|grave|sorry/i, 0) ? `- Lost: ${lost}.` : "",
+    touches(/dream|sleep|slept|night/i, 0) ? `- Dreams of: ${pick(dreams, "dream")}. What they think dreams are follows their "Holds".` : "",
+    touches(/afraid|fear|scare|fright|worr|danger|dread/i, 1) ? `- Afraid of: ${pick(child ? CHILD_FEARS : FEARS, "fear")}.` : "",
+    touches(/proud|pride|good at|best|skill|talent|clever/i, 2) ? `- Quietly vain about: ${pick(child ? CHILD_VANITIES : VANITIES, "vanity")}.` : "",
     `- Will not talk about: ${pick(child ? CHILD_SILENCES : SILENCES, "silence")}.`,
-    `- This morning ate: ${pick(BREAKFASTS, "breakfast")} (the food itself is whatever is ordinary for them here).`,
-    `- Soft spot for: ${pick(localAnimals.length ? localAnimals : ANIMALS, "animal")}.`,
+    touches(/\beat|\bate\b|food|breakfast|hungry|meal|stomach/i, 3) ? `- This morning ate: ${pick(BREAKFASTS, "breakfast")} (the food itself is whatever is ordinary for them here).` : "",
+    touches(new RegExp(`animal|\\bpets?\\b|creature|${animal}`, "i"), 4) ? `- Soft spot for: ${animal}.` : "",
     "These are notes, not wording: never repeat their phrases, never list them, and never bring one up unasked. When the talk touches one, answer from it in this person's own ordinary words, or refuse or lie as \"Personal questions\" says.",
-    `How they sound (manner only; never reuse these words or things):\n- ${lines.join("\n- ")}`,
+    plain ? "" : `How they sound (manner only; never reuse these words or things):\n- ${lines.join("\n- ")}`,
   ].filter(Boolean).join("\n");
 }

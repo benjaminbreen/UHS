@@ -708,6 +708,7 @@ export function harborStaff(plan: SettlementPlan, pack: Pack, seed: string) {
       kind: "human",
       name: proceduralName(s, seed, id),
       role,
+      age: 24 + i * 4,
       pos,
       home: pos,
       work: pos,

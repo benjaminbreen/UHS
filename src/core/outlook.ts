@@ -34,8 +34,13 @@ function spreadBy(stance: Stance, year: number) {
   const t = Math.max(0, (year - start) / (stance.spread - start));
   return stance.weight * (0.1 + 0.9 * t);
 }
+/** Unnamed stand-ins and tempers of an oral or farming world thin out with schooling and the city, whether or not they say so. */
+function wanedBy(stance: Stance, year: number) {
+  const end = stance.wanes ?? ((stance.fallback || stance.kind === "temper") && stance.tags.some((t) => t === "oral" || t === "agrarian") ? 1950 : undefined);
+  return end === undefined ? 1 : Math.min(1, Math.max(0.1, 0.1 + (0.9 * (end - year)) / 100));
+}
 function leaned(stance: Stance, stats: Stats, year: number) {
-  const weight = spreadBy(stance, year);
+  const weight = spreadBy(stance, year) * wanedBy(stance, year);
   if (!stance.lean) return weight;
   const pull =
     stance.lean === "heterodox"

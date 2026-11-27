@@ -95,6 +95,8 @@ export type Stance = QualifiedContent & {
   /** The year it reached `weight`. Before that it climbs from a tenth of it
    * at the scope's start: Marxism existed in 1870 but had few readers. */
   spread?: number;
+  /** The year by which it has dwindled to a tenth of `weight`, fading over the century before. */
+  wanes?: number;
   /** Which way the personality draw leans toward this. Absent is neutral. */
   lean?: "orthodox" | "heterodox";
   /** Required, unlike the religious systems': every stance here is a thing

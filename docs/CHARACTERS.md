@@ -36,7 +36,14 @@ deterministic pipeline in `src/content/characters/`. It makes no model calls.
 - **Names.** Name kits declare their format (`personal`, `personal-family`,
   `personal-patronymic`, and others). A patronymic is never inherited as a
   family name, and custom names are never split. Children take components from
-  their actual parents.
+  their actual parents. Region windows in `scripts/data/name-windows.json`
+  choose the pools; from 1975 the settler societies (US, Canada, Australia,
+  New Zealand, Britain) use contemporary pools (`american-contemporary`,
+  `african-american-contemporary`, `british-contemporary`) beside recent-immigrant
+  pools, because the Old World pools carry Heinrich and Aoife. Slavic pools carry
+  feminine surname forms (derived in `scripts/port-name-kits.ts`), and
+  `misfiled` in `name-traditions.json` drops names filed under the wrong sex.
+  Regenerate with `npx tsx scripts/port-name-kits.ts`.
 - **Revision pins.** New worlds pin `characterRevision`, `namingRevision`,
   `beliefRevision` and `employmentRevision` in the setting
   (`src/content/geography/defaults.ts`). Settings without them take older

@@ -159,7 +159,7 @@ THE PERSON.
 - aim: what this person wants from their life in one sentence (text), why (reason) and how they go about it (means). A king wants a king's things.
 - kin: the parent, partner, child or sibling who share their roof at this place, by real name for a named figure; at most four. Empty when they are away from home that day.
 - figures: up to four famous or notable people who would be close by that day (Hephaestion beside Alexander), with role, sex and age that year. tie is what they are to the player as it reads after "your": "husband", "oldest friend", "jailer", "rival". about is one or two sentences on who they are and what they think and want on this day, written about them in the third person and naming the player by name, never "you". Always give age. Family who are in the scene but do not live under the player's roof there go here, not in kin (Gregory Bateson beside Margaret Mead at a conference: tie "husband"). Empty for an ordinary start unless someone notable is passing through.
-- tidings: up to two one-sentence items of real news people there and then would be talking about. Never news about the player as if they were someone else.
+- tidings: up to four one-sentence items people there and then would be talking about. Real news of the wider world first (who rules, a war, a death, a discovery), then the everyday talk of that season: prices, a shortage, a tax, a strike, how the roads, post or buses are running, the weather that year. Never news about the player as if they were someone else.
 - documented: true where the record says it, false where you filled it in.
 All text is plain modern English, no period voice.
 Catalog: ${JSON.stringify(candidates)}

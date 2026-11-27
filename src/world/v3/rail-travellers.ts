@@ -26,11 +26,15 @@ export function commutes(plan: SettlementPlan, seed: string, year: number, actor
 }
 
 const ROLES = [
-  ["Commercial traveller", 1840],
-  ["Visitor", 1840],
-  ["Market trader", 1840],
-  ["Day tripper", 1870],
-  ["Inspector", 1860],
+  ["Commercial traveller", 1840, 1960],
+  ["Visitor", 1840, Infinity],
+  ["Market trader", 1840, 1940],
+  ["Day tripper", 1870, 1970],
+  ["Inspector", 1860, 1950],
+  ["Sales rep", 1960, Infinity],
+  ["Tourist", 1950, Infinity],
+  ["Student", 1950, Infinity],
+  ["Commuter", 1920, Infinity],
 ] as const;
 
 /** A handful of visitors a day, more for a bigger town. */
@@ -39,17 +43,18 @@ export function railVisitors(plan: SettlementPlan, seed: string, pack: Pack) {
   const setting = pack.setting;
   if (!station || !setting || setting.year < 1840) return;
   const n = 2 + Math.min(5, Math.floor(plan.site.profile.radius / 20));
-  const roles = ROLES.filter(([, from]) => setting.year >= from);
+  const roles = ROLES.filter(([, from, to]) => setting.year >= from && setting.year < to);
   const at = { x: station.door.x, y: station.door.y, space: "outside" as const };
   for (let i = 0; i < n; i++) {
     const id = `${plan.site.id}-traveller-${i}`;
     const roll = (k: string) => random(seed, id, k);
     const role = roles[Math.floor(roll("role") * roles.length)][0];
-    const age = 20 + Math.floor(roll("age") * 40);
+    const age = role === "Student" ? 18 + Math.floor(roll("age") * 8) : 20 + Math.floor(roll("age") * 40);
     const actor: Actor = {
       id,
       name: proceduralName(setting, seed, id),
       role,
+      age,
       kind: "human",
       pos: { ...at },
       home: { ...at },
@@ -110,16 +115,18 @@ export function railStaff(plan: SettlementPlan, seed: string, pack: Pack) {
     ["stationmaster", "Stationmaster", 45],
     ...Array.from({ length: plan.site.profile.radius >= 60 ? 2 : 1 }, () => ["porter", "Porter", 30] as const),
   ] as const;
-  staff.forEach(([wanted, role, age], i) => {
+  staff.forEach(([wanted, role, base], i) => {
     if (setting.employmentRevision && wanted === "stationmaster" &&
       [...plan.work.values()].some(s => s.employment?.kind === "railway")) return;
     const id = `${plan.site.id}-railstaff-${i}`;
     const roll = (k: string) => random(seed, id, k);
+    const age = base + Math.floor(roll("age") * 15);
     const pos = { ...station.door, space: "outside" as const };
     const actor: Actor = {
       id,
       name: proceduralName(setting, seed, id),
       role,
+      age,
       kind: "human",
       pos: { ...pos },
       home: { ...pos },
@@ -134,7 +141,7 @@ export function railStaff(plan: SettlementPlan, seed: string, pack: Pack) {
       direction: 2,
     };
     if (setting.characterRevision) {
-      Object.assign(actor, generateCharacter(setting, seed, id, age + Math.floor(roll("age") * 15), wanted));
+      Object.assign(actor, generateCharacter(setting, seed, id, age, wanted));
       actor.role = role;
     }
     plan.actors.push(actor);

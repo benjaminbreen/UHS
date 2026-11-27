@@ -98,7 +98,7 @@ export const startBriefSchema = z
       .optional(),
     tidings: z
       .array(z.object({ text: z.string().min(1).max(300), documented: z.boolean() }).strict())
-      .max(3)
+      .max(4)
       .optional(),
     /** The opening staged: the room, who of `kin` and `figures` is there, and what they are all doing. */
     moment: z

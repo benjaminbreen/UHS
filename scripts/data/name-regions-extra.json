@@ -498,6 +498,42 @@
       "culture": "european",
       "like": "european-british-isles",
       "why": "Dublin 1700 came out 77% English."
+    },
+    "north-american-florida": {
+      "label": "Florida",
+      "bounds": [
+        -87.7,
+        24.4,
+        -79.8,
+        31
+      ],
+      "culture": "other-indigenous-american",
+      "like": "north-american-southeast",
+      "why": "The Atlantic Coast box (to 82 W) reached down to Key West, so Orlando drew New York's names and was announced as being on the Atlantic Coast."
+    },
+    "european-ukraine": {
+      "label": "Ukraine",
+      "bounds": [
+        22.1,
+        44.3,
+        38.5,
+        52.4
+      ],
+      "culture": "european",
+      "like": "european-eastern-europe",
+      "why": "Odessa 2023 drew Russian and Polish names; Ukraine is its own naming country, with a Russian-speaking minority in the south and east."
+    },
+    "sub-saharan-african-south-africa": {
+      "label": "South Africa",
+      "bounds": [
+        16.4,
+        -34.9,
+        32.9,
+        -22.4
+      ],
+      "culture": "east-southern-african",
+      "like": "sub-saharan-african-southern-africa",
+      "why": "The southern Africa box ran from the Cape to Zimbabwe, so Johannesburg drew Shona names."
     }
   }
 }

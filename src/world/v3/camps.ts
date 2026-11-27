@@ -160,6 +160,7 @@ export function planCamp(plan: SettlementPlan, pack: Pack, seed: string) {
     plan.actors.push({
       ...generateCharacter(setting, seed, id, 25 + (i % 25), kit.role),
       id,
+      age: 25 + (i % 25),
       kind: "human",
       pos: at,
       home,

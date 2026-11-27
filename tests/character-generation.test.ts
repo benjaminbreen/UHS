@@ -642,3 +642,19 @@ it("grades office work by age and place: juniors young, partners not, a Tokyo la
   expect(secretary.origin.livelihood).toBe("secretary");
   expect(secretary.inventory.ledger).toBe(1);
 });
+
+it("names modern settler-society people from contemporary pools and gives Slavic women feminine surnames", () => {
+  const names = (prompt: string, sex: "male" | "female") => {
+    const s = resolveSetting(prompt);
+    if ("error" in s) throw new Error(prompt);
+    const context = resolveCharacterContext(s.setting);
+    return Array.from({ length: 200 }, (_, i) => characterNameParts(s.setting, "names", `n${i}`, context, undefined, sex));
+  };
+  const chicago = names("Bus driver in Chicago 2022", "male").map((n) => n.personal);
+  expect(chicago.some((n) => /^(Heinrich|Friedrich|Wilhelm|Cian|Seán)$/.test(n))).toBe(false);
+  expect(chicago).toContain("Anthony");
+  expect(names("Weaver in Manchester 1890", "female").map((n) => n.personal)).not.toContain("Tavish");
+  const odessa = names("Teacher in Odessa 2023", "female");
+  expect(odessa.some((n) => /ov$|ski$/.test(n.display))).toBe(false);
+  expect(odessa.some((n) => n.tradition === "polish-modern" && /ski$/.test(n.display))).toBe(false);
+});

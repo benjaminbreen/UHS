@@ -304,6 +304,74 @@
               "weight": 2
             }
           ]
+        },
+        {
+          "years": [
+            1975,
+            2000
+          ],
+          "options": [
+            {
+              "tradition": "british-contemporary",
+              "weight": 90
+            },
+            {
+              "tradition": "punjabi",
+              "weight": 3
+            },
+            {
+              "tradition": "hindi",
+              "weight": 2
+            },
+            {
+              "tradition": "afro-caribbean",
+              "weight": 3
+            },
+            {
+              "tradition": "polish-modern",
+              "weight": 2
+            }
+          ]
+        },
+        {
+          "years": [
+            2000,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "british-contemporary",
+              "weight": 78
+            },
+            {
+              "tradition": "polish-modern",
+              "weight": 4
+            },
+            {
+              "tradition": "punjabi",
+              "weight": 5
+            },
+            {
+              "tradition": "hindi",
+              "weight": 4
+            },
+            {
+              "tradition": "afro-caribbean",
+              "weight": 3
+            },
+            {
+              "tradition": "bengali-modern",
+              "weight": 2
+            },
+            {
+              "tradition": "arabic-levant",
+              "weight": 2
+            },
+            {
+              "tradition": "igbo",
+              "weight": 2
+            }
+          ]
         }
       ]
     },
@@ -1031,6 +1099,24 @@
             {
               "tradition": "english",
               "weight": 1
+            }
+          ]
+        }
+      ],
+      "add": [
+        {
+          "years": [
+            1960,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "arabic-levant",
+              "weight": 90
+            },
+            {
+              "tradition": "egyptian-coptic",
+              "weight": 10
             }
           ]
         }
@@ -1947,6 +2033,38 @@
               "weight": 1
             }
           ]
+        },
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "american-contemporary",
+              "weight": 70
+            },
+            {
+              "tradition": "african-american-contemporary",
+              "weight": 14
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 8
+            },
+            {
+              "tradition": "polish-modern",
+              "weight": 3
+            },
+            {
+              "tradition": "hindi",
+              "weight": 3
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 2
+            }
+          ]
         }
       ]
     },
@@ -2211,6 +2329,28 @@
             {
               "tradition": "great-basin-native",
               "weight": 8
+            }
+          ]
+        }
+      ],
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "american-contemporary",
+              "weight": 88
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 8
+            },
+            {
+              "tradition": "great-basin-native",
+              "weight": 4
             }
           ]
         }
@@ -2899,6 +3039,30 @@
               "weight": 1
             }
           ]
+        },
+        {
+          "years": [
+            1721,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "russian",
+              "weight": 78
+            },
+            {
+              "tradition": "polish-modern",
+              "weight": 8
+            },
+            {
+              "tradition": "ukrainian",
+              "weight": 8
+            },
+            {
+              "tradition": "jewish-ashkenazi",
+              "weight": 6
+            }
+          ]
         }
       ]
     },
@@ -3363,6 +3527,34 @@
               "weight": 1
             }
           ]
+        },
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "french",
+              "weight": 72
+            },
+            {
+              "tradition": "american-contemporary",
+              "weight": 18
+            },
+            {
+              "tradition": "arabic-levant",
+              "weight": 4
+            },
+            {
+              "tradition": "maghrebi",
+              "weight": 3
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 3
+            }
+          ]
         }
       ]
     },
@@ -3432,6 +3624,34 @@
               "weight": 1
             }
           ]
+        },
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "celtic-irish",
+              "weight": 78
+            },
+            {
+              "tradition": "british-contemporary",
+              "weight": 14
+            },
+            {
+              "tradition": "polish-modern",
+              "weight": 4
+            },
+            {
+              "tradition": "hindi",
+              "weight": 2
+            },
+            {
+              "tradition": "igbo",
+              "weight": 2
+            }
+          ]
         }
       ]
     },
@@ -3451,6 +3671,1134 @@
             {
               "tradition": "italian",
               "weight": 1
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-florida": {
+      "why": "Spanish Florida, the Seminole, then a Southern state; after 1959 Cuban exiles and the Northern retirees reshaped the peninsula.",
+      "replace": [
+        {
+          "years": [
+            -1000000,
+            800
+          ],
+          "options": [
+            {
+              "tradition": "early-americas",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            800,
+            1513
+          ],
+          "options": [
+            {
+              "tradition": "mississippian",
+              "weight": 1
+            },
+            {
+              "tradition": "creek-muskogee",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1513,
+            1763
+          ],
+          "options": [
+            {
+              "tradition": "spanish-castilian",
+              "weight": 3
+            },
+            {
+              "tradition": "creek-muskogee",
+              "weight": 2
+            },
+            {
+              "tradition": "mississippian",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1763,
+            1783
+          ],
+          "options": [
+            {
+              "tradition": "english",
+              "weight": 2
+            },
+            {
+              "tradition": "creek-muskogee",
+              "weight": 2
+            },
+            {
+              "tradition": "spanish-castilian",
+              "weight": 1
+            },
+            {
+              "tradition": "african-american",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1783,
+            1821
+          ],
+          "options": [
+            {
+              "tradition": "spanish-castilian",
+              "weight": 2
+            },
+            {
+              "tradition": "creek-muskogee",
+              "weight": 2
+            },
+            {
+              "tradition": "african-american",
+              "weight": 1
+            },
+            {
+              "tradition": "english",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1821,
+            1900
+          ],
+          "options": [
+            {
+              "tradition": "english",
+              "weight": 45
+            },
+            {
+              "tradition": "african-american",
+              "weight": 40
+            },
+            {
+              "tradition": "scottish",
+              "weight": 5
+            },
+            {
+              "tradition": "spanish-castilian",
+              "weight": 5
+            },
+            {
+              "tradition": "creek-muskogee",
+              "weight": 5
+            }
+          ]
+        },
+        {
+          "years": [
+            1900,
+            1959
+          ],
+          "options": [
+            {
+              "tradition": "english",
+              "weight": 40
+            },
+            {
+              "tradition": "african-american",
+              "weight": 30
+            },
+            {
+              "tradition": "north-american-modern",
+              "weight": 15
+            },
+            {
+              "tradition": "jewish-ashkenazi",
+              "weight": 5
+            },
+            {
+              "tradition": "italian",
+              "weight": 5
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 5
+            }
+          ]
+        },
+        {
+          "years": [
+            1959,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "english",
+              "weight": 30
+            },
+            {
+              "tradition": "north-american-modern",
+              "weight": 18
+            },
+            {
+              "tradition": "african-american",
+              "weight": 18
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 20
+            },
+            {
+              "tradition": "puerto-rican",
+              "weight": 6
+            },
+            {
+              "tradition": "jewish-ashkenazi",
+              "weight": 5
+            },
+            {
+              "tradition": "italian",
+              "weight": 3
+            }
+          ]
+        }
+      ],
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "american-contemporary",
+              "weight": 28
+            },
+            {
+              "tradition": "african-american-contemporary",
+              "weight": 16
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 30
+            },
+            {
+              "tradition": "puerto-rican",
+              "weight": 6
+            },
+            {
+              "tradition": "jewish-ashkenazi",
+              "weight": 4
+            },
+            {
+              "tradition": "hindi",
+              "weight": 2
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 2
+            },
+            {
+              "tradition": "afro-caribbean",
+              "weight": 12
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-mississippi-valley": {
+      "why": "Contemporary population: the Old World given-name pools (Heinrich, Aoife) stop where the grandchildren of those settlers begin.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "american-contemporary",
+              "weight": 42
+            },
+            {
+              "tradition": "african-american-contemporary",
+              "weight": 26
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 24
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 3
+            },
+            {
+              "tradition": "hindi",
+              "weight": 3
+            },
+            {
+              "tradition": "filipino",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-northeast-woodlands": {
+      "why": "Contemporary population: the Old World given-name pools (Heinrich, Aoife) stop where the grandchildren of those settlers begin.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "american-contemporary",
+              "weight": 58
+            },
+            {
+              "tradition": "african-american-contemporary",
+              "weight": 6
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 6
+            },
+            {
+              "tradition": "french",
+              "weight": 3
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 8
+            },
+            {
+              "tradition": "chinese-cantonese",
+              "weight": 4
+            },
+            {
+              "tradition": "hindi",
+              "weight": 6
+            },
+            {
+              "tradition": "punjabi",
+              "weight": 4
+            },
+            {
+              "tradition": "italian",
+              "weight": 3
+            },
+            {
+              "tradition": "polish-modern",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-northeastern-seaboard": {
+      "why": "Contemporary population: the Old World given-name pools (Heinrich, Aoife) stop where the grandchildren of those settlers begin.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "american-contemporary",
+              "weight": 52
+            },
+            {
+              "tradition": "african-american-contemporary",
+              "weight": 18
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 18
+            },
+            {
+              "tradition": "puerto-rican",
+              "weight": 4
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 4
+            },
+            {
+              "tradition": "hindi",
+              "weight": 2
+            },
+            {
+              "tradition": "russian",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-great-plains": {
+      "why": "Contemporary population: the Old World given-name pools (Heinrich, Aoife) stop where the grandchildren of those settlers begin.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "american-contemporary",
+              "weight": 76
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 14
+            },
+            {
+              "tradition": "african-american-contemporary",
+              "weight": 6
+            },
+            {
+              "tradition": "plains-native",
+              "weight": 2
+            },
+            {
+              "tradition": "lakota-sioux",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-southwest": {
+      "why": "Contemporary population: the Old World given-name pools (Heinrich, Aoife) stop where the grandchildren of those settlers begin.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "american-contemporary",
+              "weight": 48
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 42
+            },
+            {
+              "tradition": "navajo",
+              "weight": 5
+            },
+            {
+              "tradition": "pueblo-modern",
+              "weight": 3
+            },
+            {
+              "tradition": "apache",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-southern-california": {
+      "why": "Contemporary population: the Old World given-name pools (Heinrich, Aoife) stop where the grandchildren of those settlers begin.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "american-contemporary",
+              "weight": 40
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 40
+            },
+            {
+              "tradition": "african-american-contemporary",
+              "weight": 6
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 5
+            },
+            {
+              "tradition": "korean",
+              "weight": 4
+            },
+            {
+              "tradition": "filipino",
+              "weight": 3
+            },
+            {
+              "tradition": "japanese",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-northern-california": {
+      "why": "Contemporary population: the Old World given-name pools (Heinrich, Aoife) stop where the grandchildren of those settlers begin.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "american-contemporary",
+              "weight": 52
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 25
+            },
+            {
+              "tradition": "chinese-cantonese",
+              "weight": 8
+            },
+            {
+              "tradition": "hindi",
+              "weight": 6
+            },
+            {
+              "tradition": "filipino",
+              "weight": 4
+            },
+            {
+              "tradition": "african-american-contemporary",
+              "weight": 5
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-central-california-coast": {
+      "why": "Contemporary population: the Old World given-name pools (Heinrich, Aoife) stop where the grandchildren of those settlers begin.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "american-contemporary",
+              "weight": 50
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 30
+            },
+            {
+              "tradition": "filipino",
+              "weight": 7
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 5
+            },
+            {
+              "tradition": "hindi",
+              "weight": 4
+            },
+            {
+              "tradition": "portuguese",
+              "weight": 2
+            },
+            {
+              "tradition": "african-american-contemporary",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-pacific-coast": {
+      "why": "Contemporary population: the Old World given-name pools (Heinrich, Aoife) stop where the grandchildren of those settlers begin.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "american-contemporary",
+              "weight": 62
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 8
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 8
+            },
+            {
+              "tradition": "chinese-cantonese",
+              "weight": 4
+            },
+            {
+              "tradition": "punjabi",
+              "weight": 4
+            },
+            {
+              "tradition": "hindi",
+              "weight": 3
+            },
+            {
+              "tradition": "african-american-contemporary",
+              "weight": 3
+            },
+            {
+              "tradition": "vietnamese",
+              "weight": 3
+            },
+            {
+              "tradition": "korean",
+              "weight": 3
+            },
+            {
+              "tradition": "filipino",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-southeast": {
+      "why": "Contemporary population: the Old World given-name pools (Heinrich, Aoife) stop where the grandchildren of those settlers begin.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "american-contemporary",
+              "weight": 55
+            },
+            {
+              "tradition": "african-american-contemporary",
+              "weight": 25
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 14
+            },
+            {
+              "tradition": "hindi",
+              "weight": 3
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 3
+            }
+          ]
+        }
+      ]
+    },
+    "north-american-atlantic-coast": {
+      "why": "Contemporary population: the Old World given-name pools (Heinrich, Aoife) stop where the grandchildren of those settlers begin.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "american-contemporary",
+              "weight": 52
+            },
+            {
+              "tradition": "african-american-contemporary",
+              "weight": 24
+            },
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 14
+            },
+            {
+              "tradition": "hindi",
+              "weight": 3
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 3
+            },
+            {
+              "tradition": "puerto-rican",
+              "weight": 4
+            }
+          ]
+        }
+      ]
+    },
+    "oceania-australia-southeast": {
+      "why": "Contemporary Australia and New Zealand are overwhelmingly Anglo-Celtic with recent Asian and Mediterranean arrivals; the pre-contact weights made Sydney 70% Aboriginal.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "british-contemporary",
+              "weight": 82
+            },
+            {
+              "tradition": "aboriginal-australian",
+              "weight": 2
+            },
+            {
+              "tradition": "italian",
+              "weight": 3
+            },
+            {
+              "tradition": "greek",
+              "weight": 2
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 4
+            },
+            {
+              "tradition": "hindi",
+              "weight": 3
+            },
+            {
+              "tradition": "vietnamese",
+              "weight": 2
+            },
+            {
+              "tradition": "filipino",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "oceania-australia-north-and-queensland": {
+      "why": "Contemporary Australia and New Zealand are overwhelmingly Anglo-Celtic with recent Asian and Mediterranean arrivals; the pre-contact weights made Sydney 70% Aboriginal.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "british-contemporary",
+              "weight": 82
+            },
+            {
+              "tradition": "aboriginal-australian",
+              "weight": 6
+            },
+            {
+              "tradition": "melanesian",
+              "weight": 2
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 4
+            },
+            {
+              "tradition": "filipino",
+              "weight": 3
+            },
+            {
+              "tradition": "hindi",
+              "weight": 3
+            }
+          ]
+        }
+      ]
+    },
+    "oceania-australia-west-and-desert": {
+      "why": "Contemporary Australia and New Zealand are overwhelmingly Anglo-Celtic with recent Asian and Mediterranean arrivals; the pre-contact weights made Sydney 70% Aboriginal.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "british-contemporary",
+              "weight": 84
+            },
+            {
+              "tradition": "aboriginal-australian",
+              "weight": 3
+            },
+            {
+              "tradition": "italian",
+              "weight": 3
+            },
+            {
+              "tradition": "hindi",
+              "weight": 4
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 3
+            },
+            {
+              "tradition": "filipino",
+              "weight": 3
+            }
+          ]
+        }
+      ]
+    },
+    "oceania-australia-outback-and-center": {
+      "why": "Contemporary Australia and New Zealand are overwhelmingly Anglo-Celtic with recent Asian and Mediterranean arrivals; the pre-contact weights made Sydney 70% Aboriginal.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "british-contemporary",
+              "weight": 86
+            },
+            {
+              "tradition": "aboriginal-australian",
+              "weight": 10
+            },
+            {
+              "tradition": "hindi",
+              "weight": 2
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "oceania-new-zealand": {
+      "why": "Contemporary Australia and New Zealand are overwhelmingly Anglo-Celtic with recent Asian and Mediterranean arrivals; the pre-contact weights made Sydney 70% Aboriginal.",
+      "add": [
+        {
+          "years": [
+            1975,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "british-contemporary",
+              "weight": 76
+            },
+            {
+              "tradition": "polynesian",
+              "weight": 12
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 5
+            },
+            {
+              "tradition": "hindi",
+              "weight": 5
+            },
+            {
+              "tradition": "filipino",
+              "weight": 2
+            }
+          ]
+        }
+      ]
+    },
+    "european-ukraine": {
+      "why": "Ukrainian names, with Russian, Polish and Jewish minorities whose shares shift with the century.",
+      "add": [
+        {
+          "years": [
+            1600,
+            1721
+          ],
+          "options": [
+            {
+              "tradition": "ukrainian",
+              "weight": 70
+            },
+            {
+              "tradition": "polish-medieval",
+              "weight": 15
+            },
+            {
+              "tradition": "russian",
+              "weight": 10
+            },
+            {
+              "tradition": "jewish-ashkenazi",
+              "weight": 5
+            }
+          ]
+        },
+        {
+          "years": [
+            1721,
+            1991
+          ],
+          "options": [
+            {
+              "tradition": "ukrainian",
+              "weight": 45
+            },
+            {
+              "tradition": "russian",
+              "weight": 35
+            },
+            {
+              "tradition": "polish-modern",
+              "weight": 8
+            },
+            {
+              "tradition": "jewish-ashkenazi",
+              "weight": 12
+            }
+          ]
+        },
+        {
+          "years": [
+            1991,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "ukrainian",
+              "weight": 58
+            },
+            {
+              "tradition": "russian",
+              "weight": 37
+            },
+            {
+              "tradition": "polish-modern",
+              "weight": 2
+            },
+            {
+              "tradition": "jewish-ashkenazi",
+              "weight": 3
+            }
+          ]
+        }
+      ]
+    },
+    "south-american-atlantic-coast": {
+      "why": "Brazil after 1950: the afro-brazilian pool is colonial-era baptismal names (Benguela, Damiana), so Sao Paulo 1980 read as 1800.",
+      "add": [
+        {
+          "years": [
+            1950,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "portuguese-brazil",
+              "weight": 78
+            },
+            {
+              "tradition": "italian",
+              "weight": 8
+            },
+            {
+              "tradition": "german",
+              "weight": 4
+            },
+            {
+              "tradition": "japanese",
+              "weight": 3
+            },
+            {
+              "tradition": "arabic-levant",
+              "weight": 3
+            },
+            {
+              "tradition": "afro-brazilian",
+              "weight": 4
+            }
+          ]
+        }
+      ]
+    },
+    "south-american-pernambuco-highlands": {
+      "why": "Brazil after 1950.",
+      "add": [
+        {
+          "years": [
+            1950,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "portuguese-brazil",
+              "weight": 88
+            },
+            {
+              "tradition": "afro-brazilian",
+              "weight": 6
+            },
+            {
+              "tradition": "italian",
+              "weight": 3
+            },
+            {
+              "tradition": "german",
+              "weight": 3
+            }
+          ]
+        }
+      ]
+    },
+    "south-american-gran-chaco-and-pampas": {
+      "why": "Buenos Aires 2000 drew German and Guarani names in equal shares with Spanish ones.",
+      "add": [
+        {
+          "years": [
+            1900,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "spanish-latin-american",
+              "weight": 88
+            },
+            {
+              "tradition": "italian",
+              "weight": 6
+            },
+            {
+              "tradition": "guarani",
+              "weight": 3
+            },
+            {
+              "tradition": "jewish-ashkenazi",
+              "weight": 3
+            }
+          ]
+        }
+      ]
+    },
+    "sub-saharan-african-south-africa": {
+      "why": "Johannesburg 2010 was 40% Shona; South Africa is its own naming country with a white and Indian minority.",
+      "add": [
+        {
+          "years": [
+            1900,
+            1994
+          ],
+          "options": [
+            {
+              "tradition": "zulu",
+              "weight": 26
+            },
+            {
+              "tradition": "xhosa",
+              "weight": 20
+            },
+            {
+              "tradition": "sotho-tswana",
+              "weight": 22
+            },
+            {
+              "tradition": "dutch",
+              "weight": 14
+            },
+            {
+              "tradition": "english",
+              "weight": 12
+            },
+            {
+              "tradition": "hindi",
+              "weight": 3
+            },
+            {
+              "tradition": "tamil",
+              "weight": 2
+            },
+            {
+              "tradition": "portuguese",
+              "weight": 1
+            }
+          ]
+        },
+        {
+          "years": [
+            1994,
+            10001
+          ],
+          "options": [
+            {
+              "tradition": "zulu",
+              "weight": 26
+            },
+            {
+              "tradition": "xhosa",
+              "weight": 18
+            },
+            {
+              "tradition": "sotho-tswana",
+              "weight": 26
+            },
+            {
+              "tradition": "british-contemporary",
+              "weight": 9
+            },
+            {
+              "tradition": "dutch",
+              "weight": 7
+            },
+            {
+              "tradition": "hindi",
+              "weight": 3
+            },
+            {
+              "tradition": "shona",
+              "weight": 3
+            },
+            {
+              "tradition": "tamil",
+              "weight": 2
+            },
+            {
+              "tradition": "portuguese",
+              "weight": 2
+            },
+            {
+              "tradition": "chinese-mandarin",
+              "weight": 1
+            },
+            {
+              "tradition": "igbo",
+              "weight": 3
             }
           ]
         }
@@ -3629,13 +4977,6 @@
         "romanian": 70,
         "hungarian-modern": 25,
         "german": 5
-      }
-    },
-    "european-eastern-europe": {
-      "1721": {
-        "russian": 70,
-        "polish-modern": 20,
-        "jewish-ashkenazi": 10
       }
     }
   },

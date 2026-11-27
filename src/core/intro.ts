@@ -88,7 +88,7 @@ function self(s: Snapshot, top: Concern | undefined): IntroSpan[] {
 function tiding(setting: WorldSetting, here: string, community: string): IntroSpan[] {
   const woven = setting.brief?.tidings;
   if (woven?.length)
-    return woven.flatMap((t) => sentence([{ text: t.text }]));
+    return woven.slice(0, 2).flatMap((t) => sentence([{ text: t.text }]));
   // News of the person you are is not news to you.
   const figure = setting.brief?.figure?.split(/\s+/)[0];
   const t = TIDINGS.find((x) => matchesCharacterScope(x.scope, setting, community) && !(figure && x.text.includes(figure)));

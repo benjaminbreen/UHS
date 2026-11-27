@@ -1,4 +1,6 @@
 import type { CharacterScope } from "../characters/context-types";
+import { matchesCharacterScope } from "../characters/resolve";
+import type { WorldSetting } from "../geography/types";
 
 /** News of the wider world as it might have reached an ordinary household:
  * one sentence, true for the whole span, with at most one term glossed.
@@ -107,3 +109,12 @@ export const TIDINGS: readonly Tiding[] = [
   { scope: { years: [2047, 10001] }, text: "The first children taught all through school by AI tutors are leaving school this year.", note: "Projection." },
   { scope: { years: [2048, 10001], bounds: [2, 5, 5, 8] }, text: "Lagos is bigger now than any city in Europe has ever been.", note: "The UN's projections put Lagos past thirty million by mid-century." },
 ];
+
+/** What people here are talking about: the woven news when there is any, else the authored lines in scope. */
+export function talkOf(setting: WorldSetting, community: string): string[] {
+  const woven = setting.brief?.tidings;
+  if (woven?.length) return woven.map((t) => t.text);
+  return TIDINGS.filter((t) => matchesCharacterScope(t.scope, setting, community))
+    .slice(0, 3)
+    .map((t) => t.text.replace(/\{here\}/g, setting.location).replace(/[{}]/g, ""));
+}

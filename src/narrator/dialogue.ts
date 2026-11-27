@@ -24,6 +24,8 @@ import { STANCE_VOICE, stanceOf } from "../content/plots/stance";
 import { evaluateHostileSpeech, isAuthorityRole } from "../core/prison";
 import { voiceBrief } from "./voice";
 import { AT_ODDS, regardBetween } from "../core/household";
+import { talkOf } from "../content/history/tidings";
+import { isVisitor } from "../world/v3/rail-travellers";
 // Dialogue has no Gemini path; it follows the setting otherwise.
 const dialogueProvider = () => (narratorProvider() === "haiku" ? "haiku" : "openai");
 
@@ -192,7 +194,7 @@ export function knowsPlayer(runtime: Runtime, actor: Actor) {
   return !!actor.encounters?.length || !!acquaintance(runtime, actor) || (actor.memories ?? []).some((m) => m.startsWith("spoke:"));
 }
 
-function openness(actor: Actor, met: boolean) {
+function openness(actor: Actor, met: boolean, stats: ReturnType<typeof statsOf>) {
   if ((actor.age ?? 30) < 13 && actor.trust >= 0)
     return "A child. Children are curious about strangers, say what they think, ask questions back, and wander off the subject; shyness is possible, stiff adult caution is not.";
   if (actor.trust < -1)
@@ -201,8 +203,12 @@ function openness(actor: Actor, met: boolean) {
     return "They are wary of you and will give you as little as they can.";
   // Ill feeling carries across a first meeting; goodwill does not. Somebody
   // you have never spoken to is a stranger however the number reads.
-  if (!met)
-    return "A stranger has interrupted your work. A few words at most, unless something about them earns more.";
+  if (!met) {
+    const talk = stats.extraversion + ((actor.age ?? 30) >= 60 ? 15 : 0);
+    return talk >= 65 ? "You have not met them, but you like to talk and a stranger will do as well as anyone. Free with chat and opinions; private matters stay private."
+      : talk >= 35 ? "You have not met them. Civil, and ready enough to pass the time of day; private matters stay private."
+      : "You have not met them and do not care for talk with strangers. A few words at most, unless something about them earns more.";
+  }
   if (actor.trust >= 3) return "They are glad of you and will talk freely.";
   if (actor.trust >= 1) return "They are friendly and will answer properly.";
   return "You have met, but barely. Civil and brief.";
@@ -216,13 +222,14 @@ const CONCERNS = {
   old: ["remembers how things used to be", "has aches and complains of them", "is worried about a grandchild", "has opinions about the young", "is lonely and glad of any talk"],
 };
 
-function onTheirMind(seed: string, clock: number, actor: Actor) {
+function onTheirMind(seed: string, clock: number, actor: Actor, exchange: number, busy: boolean) {
   const age = actor.age ?? 30;
   const list = age < 13 ? CONCERNS.child : age < 20 ? CONCERNS.youth : age >= 60 ? CONCERNS.old : CONCERNS.adult;
   const day = Math.floor(clock / 86400);
-  const pick = list[Math.floor(random(seed, "dialogue-concern", actor.id, day) * list.length)];
+  // Sent for one turn of a conversation, never the first: left in every prompt, it became the answer to every question.
+  const surfaces = !busy && Math.floor(exchange / 2) === 1 + Math.floor(random(seed, "dialogue-concern-turn", actor.id, day) * 4);
   return [
-    pick,
+    surfaces ? list[Math.floor(random(seed, "dialogue-concern", actor.id, day) * list.length)] : "",
     actor.hunger > 60 ? "is hungry" : "",
     actor.fatigue > 70 ? "is tired" : "",
     actor.injury ? `is hurt (${actor.injury.name})` : "",
@@ -236,7 +243,8 @@ function now(runtime: Runtime) {
   const hour = Math.floor((((clock / 3600) % 24) + 24) % 24);
   const part = hour < 5 ? "night" : hour < 8 ? "early morning" : hour < 12 ? "morning" : hour < 14 ? "midday" : hour < 18 ? "afternoon" : hour < 21 ? "evening" : "night";
   const weather = weatherAt(skySeed(state.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", clock);
-  return `${part}, ${seasonAt(setting?.season ?? "spring", clock)}, ${weather.label.toLowerCase()}, about ${Math.round(weather.tempC)}°C`;
+  const before = [2, 1].map((days) => weatherAt(skySeed(state.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", clock - days * 86400).label.toLowerCase());
+  return `${part}, ${seasonAt(setting?.season ?? "spring", clock)}, ${weather.label.toLowerCase()}, about ${Math.round(weather.tempC)}°C (${before[0] === before[1] ? `${before[0]} the last two days` : `${before[0]} two days ago, ${before[1]} yesterday`})`;
 }
 
 /** Small, local-only context: enough to ground a voice without resending the world card. */
@@ -301,7 +309,7 @@ function forSale(runtime: Runtime, actor: Actor, stats: ReturnType<typeof statsO
   return `${call ? `You recently called to passers-by: ${call.text} ` : ""}${shop.coined ? "Your current prices" : "Goods you offer for barter"}: ${goods.join(", ")}. If the player wants to buy or sell, agree and set "trade". ${pitch} How hard anyone sells also follows the custom of this place and date: haggling and calling out to strangers is normal in some markets and unseemly in others.`;
 }
 
-export function dialogueContext(runtime: Runtime, actor: Actor) {
+export function dialogueContext(runtime: Runtime, actor: Actor, exchange = 0) {
   const engine = runtime.engine;
   const state = engine.state;
   const place = actor.pos.space !== "outside" ? engine.world.place(actor.pos.space) : undefined;
@@ -329,12 +337,12 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
   // on the same street in 1790s Knoxville got identical prompts but for a name.
   const community = communityProfiles
     .find((profile) => profile.id === actor.origin?.profile)
-    ?.label.split(",")[0];
+    ?.label.split(",")[0].replace(/.*fallback.*/i, "");
   // The role is already on the line above; the drawn livelihood label often
   // disagrees with it, and sending both just contradicts the prompt.
   const standing = standingOf(state.manifest.seed, actor);
   const background = [
-    community ?? "local to this place",
+    isVisitor(actor.id) ? "a visitor who came in by train today and lives elsewhere" : community || "local to this place",
     standing
       ? describeStanding(standing)
       : actor.origin?.standing === "unfree"
@@ -392,11 +400,10 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     ? `You have asked the player to ${open.what}${open.accepted ? ", and they promised" : ""}. If they answer now, set "ask" to "accepted" or "declined".`
     : targets
       ? [
-          "If it comes up naturally and the player seems decent, you may ask them a favour that grows out of your own life and worries. It must be one of: \"bring\" a thing, \"talk-to\" a person (to plead, warn, apologise, carry word), \"go-to\" a place, or \"help\" with your own work today (the player comes with you and works beside you; target is your own name).",
-          `People: ${targets.people.join(", ") || "none"}. Places: ${targets.places.join(", ") || "none"}. Things: ${targets.goods.join(", ") || "none"}.`,
+          "If it comes up naturally and the player seems decent, you may ask a favour that grows out of your own life: \"bring\" a thing, \"talk-to\" a person, \"go-to\" a place, or \"help\" with your own work today (target: your own name).",
+          `People: ${targets.people.slice(0, 5).join(", ") || "none"}. Places: ${targets.places.slice(0, 5).join(", ") || "none"}. Things: ${targets.goods.slice(0, 5).join(", ") || "none"}.`,
           want ? `One thing that is really pressing: ${want.what}.` : "",
-          'If you ask, set "ask" to "made" and "favour" to {kind, target (a name from those lists), what (what you want done, in a few words, as "put in a word for my son with the cooper")}.',
-          'If the player offers to help with your work and you would take the help, set "ask" to "accepted" and "favour" to {kind: "help", target: your own name, what: the job, in a few words}. Turn the offer down if you do not trust them or it is not work a stranger could do.',
+          'If you ask, set "ask" to "made" and "favour" to {kind, target (from those lists), what (a few words)}. If the player offers to help with your work and you would take it, set "ask" to "accepted" and "favour" to {kind: "help", target: your own name, what}.',
         ].filter(Boolean).join(" ")
       : "";
   const feeling = actor.trust < -4 ? "angry with you" : actor.trust < 0 ? "wary of you" : actor.trust > 2 ? "warm toward you" : "neutral toward you";
@@ -408,11 +415,18 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
         (stance) => `${stance.label}${stance.note ? ` — ${stance.note}` : ""}`,
       )
     : [];
+  const health = state.manifest.disease ? healthReport(state, actor, setting) : "No symptoms to report.";
+  const seen = state.manifest.disease ? observedIllnesses(state, state.player.id, setting).map((ill) => ill.name).join("; ") : "";
+  const healer = !!state.manifest.disease && practitioner(actor);
+  const justNow = !!rude && state.clock - rude.at < 180;
+  const mind = onTheirMind(state.manifest.seed, state.clock, actor, exchange, justNow);
+  const talk = setting ? talkOf(setting, actor.origin?.community ?? "*") : [];
   return [
     `NPC: ${actor.name}; ${sexLabel(actor)}; age ${actor.age ?? "adult"}; ${actor.role}.`,
-    state.manifest.disease ? `Health facts you can report: ${healthReport(state, actor, setting)} Explain symptoms and your own beliefs in terms plausible here and now. Do not invent cases, exposure sources, certain diagnoses, cures or treatment supplies. Talking does not administer care; use the patient's care actions for that.` : "",
-    state.manifest.disease ? `Visible symptoms in the player: ${observedIllnesses(state, state.player.id, setting).map((ill) => ill.name).join("; ") || "none"}.` : "",
-    state.manifest.disease && practitioner(actor) ? `Your available treatment supplies: ${[actor.medicalStock?.antibiotic ? `${actor.medicalStock.antibiotic} antibiotic courses` : "", actor.medicalStock?.rehydration ? `${actor.medicalStock.rehydration} oral rehydration supplies` : ""].filter(Boolean).join("; ") || "no specific medicines in stock"}. An assessment or discussion cannot transfer or administer them; the player must use a care action.` : "",
+    // Said only when there is something to say: three lines of "none" in every prompt bought nothing.
+    health !== "No symptoms to report." || healer ? `Health you can report: ${health} Describe it as someone here and now would; invent no cases, causes, diagnoses or cures. Talk treats nobody.` : "",
+    seen || healer ? `Visible symptoms in the player: ${seen || "none"}.` : "",
+    healer ? `Your treatment supplies: ${[actor.medicalStock?.antibiotic ? `${actor.medicalStock.antibiotic} antibiotic courses` : "", actor.medicalStock?.rehydration ? `${actor.medicalStock.rehydration} oral rehydration supplies` : ""].filter(Boolean).join("; ") || "no specific medicines in stock"}. Talk does not hand them over; the player must use a care action.` : "",
     // Before the words: who has walked up, and what they are holding.
     `In front of you: ${playerPresence(runtime)}`,
     story,
@@ -420,8 +434,8 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     engine.trespassContext(actor),
     engine.allyContext(actor),
     engine.standsGround(actor)
-      ? "If the player refuses to leave your private home or gives a grave insult, you will stand your ground and threaten to strike; the engine carries out this response. Do not claim to leave or seek help instead."
-      : "If the player refuses to leave your private home or gives a grave insult, you will shout for help and leave to report them; the engine carries out this response. Do not claim to attack them.",
+      ? "At a grave insult, or a refusal to leave your home, you stand your ground and threaten to strike (the engine does it); do not say you will leave or fetch help."
+      : "At a grave insult, or a refusal to leave your home, you shout for help and go to report them (the engine does it); do not say you will attack.",
     forSale(runtime, actor, stats),
     actor.trust >= 0 && !intruding && !terrified(runtime, actor)
       ? `If the player asks after someone or somewhere, seems lost, or you want them to meet someone (kin, a neighbour, someone who can help them), you may offer to take them there yourself${stats.agreeableness + stats.extraversion >= 120 ? "; you like doing this and offer readily" : ""}. Once they agree, set "lead".`
@@ -431,17 +445,17 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
       : anger(actor, state.clock),
     intruding
       ? engine.canAnswerWarning(actor) ? "You are waiting for their answer." : intrusionReaction(state.manifest.seed, actor, stats)
-      : `Openness: ${openness(actor, met.length > 0 || !!known || !!actor.encounters?.length)}`,
+      : `Openness: ${openness(actor, met.length > 0 || !!known || !!actor.encounters?.length, stats)}`,
     fig ? "" : `Background: ${background.join("; ")}.`,
     `Doing: ${actor.activity.toLowerCase()}. Location: ${place ? `indoors, in ${place.name}` : `outdoors in ${location}, on foot in the open; no desk, counter or furniture unless the context names it`}. Now: ${now(runtime)}.`,
-    plotContext ? "On their mind: the events above and what they personally mean to you; let this concern develop across the conversation rather than repeating the obligation." : fig ? "On their mind: today, as above." : `On their mind: ${onTheirMind(state.manifest.seed, state.clock, actor)}.`,
+    plotContext ? "On their mind: the events above and what they personally mean to you; let this concern develop across the conversation rather than repeating the obligation." : fig ? "On their mind: today, as above." : mind ? `On their mind: ${mind}.` : "",
     goingWithout(runtime, household),
     betweenHouses(runtime, household),
     fig ? "" : family.length ? `Family: ${family.join(", ")}.` : household ? "Family: household member." : "Family: lives alone.",
     temperament.length ? `Temperament: ${temperament.join(", ")}.` : "",
     holds.length ? `Holds:\n- ${holds.join("\n- ")}` : "",
     possessions.length ? `Has: ${possessions.join(", ")}.` : "Has: ordinary work things.",
-    rude && state.clock - rude.at < 180
+    rude && justNow
       ? `Just now, ${Math.max(1, Math.round((state.clock - rude.at) / 60))} minute(s) ago, the player ${rude.what}. Remark on it first, in your own way: annoyed, startled, sarcastic, amused or wary. A bump is small; a weapon swung near you is not.`
       : "",
     ...(actor.encounters ?? []).map(e => {
@@ -461,6 +475,8 @@ export function dialogueContext(runtime: Runtime, actor: Actor) {
     known,
     met.length ? `Already ${feeling}; remembers you saying: ${met.join("; ")}.` : known || actor.encounters?.length ? "" : "Has not met the player before.",
     told.length ? `What you told the player in earlier talk: ${told.join(" ")} It stays true: keep your story the same, and do not say it again as if for the first time.` : "",
+    `The wider world: you know what an ordinary person of your standing here and now knows (who rules, the wars, prices, the season's news and rumours) and have opinions on it, right or wrong, like anyone. Nothing from after this date.`,
+    talk.length ? `People here are talking about: ${talk.join(" ")} Your view of it follows your "Holds" and your standing. It is common talk, not something to recite.` : "",
     `Setting: ${engine.world.pack.name}, ${engine.world.pack.date}. Keeps order here: ${engine.keeper()?.id === actor.id ? `you yourself, as ${orderKeeper(setting).who}; people bring you their complaints` : `${orderKeeper(setting).who}${engine.keeper() ? `, ${engine.keeper()!.name}` : ""}`}.`,
   ]
     .filter(Boolean)
@@ -548,11 +564,14 @@ const MOVES: [line: string, weight: (s: ReturnType<typeof statsOf>) => number][]
   ["you say something more honest or private than you meant to.", (s) => s.extraversion + s.neuroticism],
   ["the question rubs you the wrong way, a little. Let it show without making a scene.", (s) => 100 - s.agreeableness + s.neuroticism],
   ["you have no patience for talk. One word, a grunt, or a look.", (s) => 2 * (100 - s.extraversion)],
+  ["before or after your answer you pass a remark on the weather these last days, the season, or the state of the roads or streets.", (s) => s.extraversion + s.agreeableness],
+  ["this puts you in mind of something in the common talk or the news of the wider world. Say what you think of it.", (s) => s.extraversion + s.openness],
+  ["you have a view on this and give it at more length than they asked for.", (s) => s.extraversion + 100 - s.agreeableness],
 ];
 function dialogueMove(runtime: Runtime, actor: Actor, exchange: number) {
   const { state } = runtime.engine;
   const key = ["dialogue-move", actor.id, state.clock, exchange] as const;
-  if (actor.trust < 0 || terrified(runtime, actor) || runtime.engine.trespassing(actor) || random(state.manifest.seed, ...key, "chance") >= 0.3) return "";
+  if (actor.trust < 0 || terrified(runtime, actor) || runtime.engine.trespassing(actor) || random(state.manifest.seed, ...key, "chance") >= 0.4) return "";
   const stats = statsOf(state.manifest.seed, actor);
   const weights = MOVES.map(([, weight]) => Math.max(1, weight(stats)));
   let at = random(state.manifest.seed, ...key, "kind") * weights.reduce((a, b) => a + b);
@@ -616,18 +635,22 @@ export async function dialogueTurn(
     .map((line) => `${line.speaker === "npc" ? actor.name : "Player"}: ${line.action ? `[${line.action}] ` : ""}${line.text}`);
   const setting = runtime.engine.world.pack.setting;
   const context = [
-    dialogueContext(runtime, actor),
+    dialogueContext(runtime, actor, history.length),
     realLanguage && setting ? languageBrief(setting.lon, setting.lat, setting.year) : "",
   ].filter(Boolean).join("\n\n");
   const { state } = runtime.engine;
   const animals = [...new Set((state.fauna ?? []).flatMap((group) => faunaProfile(group.speciesId)?.label.toLowerCase().replace(/ study$/, "") ?? []))];
-  const voice = voiceBrief(state.manifest.seed, actor, statsOf(state.manifest.seed, actor), animals, recordedLoss(runtime, actor), !!actor.figure?.real);
   const lastEncounter = actor.encounters?.at(-1);
   const continuing = lastEncounter && state.clock - lastEncounter.time < 300;
-  const aside = continuing || plotBrief(runtime, actor) ? "" : dialogueInterruption(runtime, actor, history.length);
+  // Not to open on, and not twice running.
+  const aside = continuing || plotBrief(runtime, actor) || !history.length || history.filter((line) => line.speaker === "npc").at(-1)?.action ? "" : dialogueInterruption(runtime, actor, history.length);
+  const turn = aside || (input.trim() && !continuing && !situation && !plotBrief(runtime, actor) ? dialogueMove(runtime, actor, history.length) : "");
+  // A manner sent every turn is worn every turn, so after the first reply it rests on about half of them.
+  const plain = history.length >= 2 && random(state.manifest.seed, "voice-plain", actor.id, state.clock, history.length) < 0.5;
+  const voice = voiceBrief(state.manifest.seed, actor, statsOf(state.manifest.seed, actor), animals, recordedLoss(runtime, actor), !!actor.figure?.real, plain, `${input} ${turn}`);
   const latest = [
     situation ? `Just now: ${situation}` : "",
-    aside || (input.trim() && !continuing && !situation && !plotBrief(runtime, actor) ? dialogueMove(runtime, actor, history.length) : ""),
+    turn,
     continuing && !history.length ? "Continue from your latest firsthand exchange if relevant. Its outcome is settled." : "",
     input.trim() ? `Player says: ${input.trim().slice(0, 400)}` : "Begin with one brief spoken line to the player.",
   ].filter(Boolean).join("\n\n");

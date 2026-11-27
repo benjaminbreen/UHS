@@ -126,6 +126,7 @@ type Tradition = {
   sources?: string[];
   note?: string;
   patronymic?: { parents?: string[]; male: string; female: string };
+  feminineFamilyNames?: Record<string, string>;
 };
 
 const weeded: string[] = [];
@@ -203,6 +204,41 @@ for (const [id, t] of Object.entries(AUTHORED)) {
 
 for (const [key, t] of [...traditions])
   if (RETIRED[t.id]) traditions.delete(key);
+
+/** Slavic surnames are adjectives or possessives and take a feminine ending. */
+const feminineSurname: Record<string, (n: string) => string> = {
+  russian: (n) =>
+    n.replace(/(sk|ts)i?y$/, "$1aya").replace(/oy$/, "aya").replace(/(ov|ev|in)$/, "$1a"),
+  bulgarian: (n) => n.replace(/(ov|ev)$/, "$1a"),
+  "polish-modern": (n) => n.replace(/(sk|ck|dzk)i$/, "$1a"),
+  "polish-medieval": (n) => n.replace(/(sk|ck|dzk)i$/, "$1a"),
+  "czech-modern": czechSurname,
+  czech: czechSurname,
+  "slovak-modern": czechSurname,
+};
+function czechSurname(n: string) {
+  if (/ý$/.test(n)) return n.replace(/ý$/, "á");
+  if (/(ek|ka|ko)$/.test(n)) return n.replace(/(ek|ka|ko)$/, "ková");
+  if (/ec$/.test(n)) return n.replace(/ec$/, "cová");
+  return n.replace(/[ay]$/, "") + "ová";
+}
+for (const t of traditions.values()) {
+  const rule = feminineSurname[t.id];
+  if (!rule) continue;
+  const forms = Object.fromEntries(
+    t.familyNames.flatMap((n) => (rule(n) !== n ? [[n, rule(n)]] : [])),
+  );
+  if (Object.keys(forms).length) t.feminineFamilyNames = forms;
+}
+
+/** Names the upstream sets file under the wrong sex. */
+const MISFILED: Record<string, { masculine?: string[]; feminine?: string[] }> =
+  TRADITION_FILE.misfiled ?? {};
+for (const t of traditions.values())
+  for (const sex of ["masculine", "feminine"] as const) {
+    const drop = MISFILED[t.id]?.[sex];
+    if (drop) t[sex] = t[sex].filter((n) => !drop.includes(n));
+  }
 
 type Window = {
   years: [number, number];
@@ -475,6 +511,9 @@ writeFileSync(
           `    era: [${t.era[0]}, ${t.era[1]}],\n` +
           (t.familyNamesFrom !== undefined
             ? `    familyNamesFrom: ${t.familyNamesFrom},\n`
+            : "") +
+          (t.feminineFamilyNames
+            ? `    feminineFamilyNames: ${JSON.stringify(t.feminineFamilyNames)},\n`
             : "") +
           (t.patronymic
             ? `    patronymic: ${JSON.stringify(t.patronymic)},\n`
