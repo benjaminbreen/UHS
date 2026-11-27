@@ -14,6 +14,10 @@ import { generateBrowConnection } from "../src/core/character";
 import { featuredPlaces, places } from "../src/content/geography/places";
 import type { Actor, Inventory } from "../src/core/types";
 import { createSettingSession } from "../src/runtime/session";
+import { carriedItems } from "../src/content/characters/carried";
+import { deviceMessages, deviceModel, deviceModels } from "../src/content/devices";
+import { itemArt } from "../src/render/item-art";
+import { items } from "../src/content/packs";
 
 const place = (id: string) => {
   const found = places.find((p) => p.id === id);
@@ -298,7 +302,7 @@ describe("contextual character generation", () => {
     );
     expect(
       Object.keys(person.inventory).every((key) =>
-        congo.profile.allowedItems.includes(key as keyof Inventory),
+        congo.profile.allowedItems.includes(key as keyof Inventory) || key in carriedItems,
       ),
     ).toBe(true);
   });
@@ -657,4 +661,53 @@ it("names modern settler-society people from contemporary pools and gives Slavic
   const odessa = names("Teacher in Odessa 2023", "female");
   expect(odessa.some((n) => /ov$|ski$/.test(n.display))).toBe(false);
   expect(odessa.some((n) => n.tradition === "polish-modern" && /ski$/.test(n.display))).toBe(false);
+});
+
+describe("what people carry", () => {
+  const kits = (prompt: string, role?: string) => {
+    const r = resolveSetting(prompt);
+    if ("error" in r) throw new Error(prompt);
+    return Array.from({ length: 40 }, (_, i) => generateCharacter(r.setting, "kits", `p${i}`, 20 + (i % 45), i % 2 ? role : undefined).inventory);
+  };
+  const settings = ["Weaver in Oaxaca 1650", "Merchant in Rome 100", "Forager in the Dordogne -20000", "Dyer in Kyoto 1350", "Teacher in London 1980", "Software developer in Chicago 2022"];
+
+  it("only gives people things that exist yet and are defined, in small kits", () => {
+    for (const prompt of settings) for (const inv of kits(prompt)) {
+      for (const id of Object.keys(inv)) expect(items[id], `${prompt}: ${id}`).toBeDefined();
+      expect(Object.keys(inv).length, prompt).toBeLessThanOrEqual(8);
+    }
+    const year = (prompt: string) => kits(prompt).flatMap((inv) => Object.keys(inv));
+    for (const id of ["cigarettes", "cigars", "pipe", "pipe-tobacco", "lighter", "matches", "wristwatch", "wallet", "keys"])
+      expect(year("Dyer in Kyoto 1350"), id).not.toContain(id);
+    for (const id of ["cigarettes", "cigars", "pipe", "lighter", "matches", "wristwatch", "wallet", "keys", "knife", "tinderbox", "silver-ring", "pouch"])
+      expect(year("Forager in the Dordogne -20000"), id).not.toContain(id);
+    expect(year("Forager in the Dordogne -20000")).toEqual(expect.arrayContaining(["stone-knife", "hide-pouch"]));
+    expect(year("Weaver in Oaxaca 1650")).not.toContain("wristwatch");
+  });
+
+  it("gives visitors the kit of what they are, not of a job they were drawn with", () => {
+    const tourists = kits("Software developer in Chicago 2022", "Tourist").filter((_, i) => i % 2);
+    expect(tourists.some((inv) => inv.guidebook || inv.passport)).toBe(true);
+    for (const inv of tourists) {
+      expect(inv["doctor-bag"]).toBeUndefined();
+      expect(inv.berries).toBeUndefined();
+    }
+  });
+
+  it("gives pocket electronics the model their date and place had", () => {
+    expect(deviceModel("phone", 1975, "european")).toBeUndefined();
+    expect(deviceModel("phone", 1990, "european")?.shell).toBe("brick");
+    expect(deviceModel("phone", 2001, "east-asian")?.apps).toContain("news");
+    expect(deviceModel("phone", 2001, "european")?.apps).toContain("worm");
+    expect(deviceModel("phone", 2010, "east-southern-african")).toMatchObject({ shell: "bar", apps: expect.arrayContaining(["money", "radio"]) });
+    expect(deviceModel("phone", 2022, "european")?.shell).toBe("slab");
+    expect(deviceModel("pager", 1990, "east-asian")?.text).toBe("digits");
+    for (const m of deviceModels) expect(m.art in itemArt, m.art).toBe(true);
+    const phones = (prompt: string) => kits(prompt).filter((inv) => inv.phone).length / kits(prompt).length;
+    expect(phones("Software developer in Chicago 2022")).toBeGreaterThan(0.7);
+    expect(phones("Clerk in Chicago 1975")).toBe(0);
+    const pages = deviceMessages(deviceModel("pager", 1993, "east-asian")!, { seed: "p", day: 3, year: 1993, culture: "east-asian", place: "Tokyo", people: ["Yuki", "Ken"], asks: [], news: [] });
+    expect(pages.length).toBeGreaterThan(0);
+    for (const page of pages) expect(page.text).toMatch(/^[\d -]+$/);
+  });
 });

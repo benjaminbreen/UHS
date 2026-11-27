@@ -146,6 +146,9 @@ import { AreaMap } from "./Minimap";
 import { ItemInspect, itemKind } from "./ItemInspect";
 import { MakePanel } from "./MakePanel";
 import { GamingTable, type Seat } from "./gaming/GamingTable";
+import { DevicePanel } from "./devices/DevicePanel";
+import { deviceModel, type DeviceModel } from "../content/devices";
+import { PHONE_CALL } from "../narrator/dialogue";
 import { FISHING_PRESETS, FishingGame, fishingStart, type FishingStart } from "./fishing/FishingGame";
 import { tableGameFor, type TableGame } from "../content/games";
 import { venueOfClaim } from "../content/venues";
@@ -375,6 +378,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   }, [runtime]);
   const [card, setCard] = useState<PlotCardData>();
   const [inspecting, setInspecting] = useState<string>();
+  const [device, setDevice] = useState<DeviceModel>();
   const [making, setMaking] = useState<{ first?: string }>();
   const [gaming, setGaming] = useState<{ place: string; where: string; game: TableGame; seed: string; seats: Seat[] }>();
   setMadeItems(runtime.engine.state.catalog);
@@ -2734,6 +2738,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
               : runtime.item(inspecting)!.wear
                 ? { label: "Wear", onClick: () => runtime.command({ type: "wear", item: inspecting }) }
                 : { label: "Take in hand", onClick: () => runtime.command({ type: "hold", item: inspecting }) },
+            ...(setting && deviceModel(inspecting, setting.year, setting.culture)
+              ? [{ label: "Switch on", onClick: () => { setDevice(deviceModel(inspecting, setting.year, setting.culture)); setInspecting(undefined); } }]
+              : []),
             { label: "Make something", onClick: () => setMaking({ first: inspecting }) },
             ...(runtime.item(inspecting)!.made
               ? [{ label: "Set down", onClick: () => { runtime.command({ type: "hold", item: inspecting }); runtime.command({ type: "drop" }); } }]
@@ -2755,6 +2762,22 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
             setGaming(undefined);
             if (s.net || s.outcome || s.minutes > 1)
               runtime.command({ type: "gamble", game: gaming.game.id, net: s.net, minutes: s.minutes, ...(s.outcome ? { outcome: s.outcome } : {}) });
+          }}
+        />
+      )}
+      {device && (
+        <DevicePanel
+          runtime={runtime}
+          model={device}
+          audio={audio}
+          onClose={() => setDevice(undefined)}
+          onMap={() => { setDevice(undefined); setModal("map"); }}
+          onCall={(id) => {
+            setDevice(undefined);
+            setSituation(PHONE_CALL);
+            setSaid(undefined);
+            setDialogueActorId(id);
+            setModal("dialogue");
           }}
         />
       )}

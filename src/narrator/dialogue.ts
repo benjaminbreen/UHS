@@ -579,6 +579,9 @@ function dialogueMove(runtime: Runtime, actor: Actor, exchange: number) {
   return `This turn: ${move[0]} Drop this if the player has just said something that needs a straight answer: a threat, an offer, real news.`;
 }
 
+/** The situation a conversation opens on when the player rings someone instead of walking up to them. */
+export const PHONE_CALL = "The player has rung you on the telephone. You are wherever you would be at this hour and they are somewhere else: you can hear them but not see them, and nothing can be handed over, shown or led to. Answer as you would answer the phone.";
+
 export async function dialogueTurn(
   runtime: Runtime,
   actorId: string,
@@ -588,6 +591,8 @@ export async function dialogueTurn(
   realLanguage = false,
   /** What has just happened between the two of them, if anything has. */
   situation = "",
+  /** Given the line so far as it is written, when the caller can show it arriving. */
+  hear?: (partial: { text: string; mood?: Expression; action?: string }) => void,
 ): Promise<DialogueReply> {
   const actor = runtime.engine.state.actors.find((candidate) => candidate.id === actorId);
   if (!actor) return { text: "", error: "That person is no longer here." };
@@ -635,7 +640,7 @@ export async function dialogueTurn(
     .map((line) => `${line.speaker === "npc" ? actor.name : "Player"}: ${line.action ? `[${line.action}] ` : ""}${line.text}`);
   const setting = runtime.engine.world.pack.setting;
   const context = [
-    dialogueContext(runtime, actor, history.length),
+    situation === PHONE_CALL ? dialogueContext(runtime, actor, history.length).replace(/^In front of you:.*\n/m, "") : dialogueContext(runtime, actor, history.length),
     realLanguage && setting ? languageBrief(setting.lon, setting.lat, setting.year) : "",
   ].filter(Boolean).join("\n\n");
   const { state } = runtime.engine;
@@ -667,9 +672,9 @@ export async function dialogueTurn(
       method: "POST",
       signal,
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ user, realLanguage, provider: dialogueProvider() }),
+      body: JSON.stringify({ user, realLanguage, provider: dialogueProvider(), ...(hear && !realLanguage ? { stream: true } : {}) }),
     });
-    const data = (await response.json()) as {
+    type Reply = {
       text?: string;
       original?: string;
       language?: string;
@@ -688,6 +693,23 @@ export async function dialogueTurn(
       ms?: { upstream: number; total: number };
       tokens?: { out: number; reasoning: number };
     };
+    let data: Reply = {};
+    if (hear && response.body) {
+      const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+      for (let buffer = "", done = false; !done; ) {
+        const chunk = await reader.read();
+        done = chunk.done;
+        const lines = (buffer + (chunk.value ?? "")).split("\n");
+        buffer = done ? "" : lines.pop()!;
+        for (const line of lines.filter((l) => l.trim())) {
+          const item = JSON.parse(line) as Reply & { partial?: { text: string; mood?: Expression; regard?: number; action?: string } };
+          if (!item.partial) data = item;
+          // A shout is rewritten whole once it is in, so its words wait for that.
+          else if (shouting(runtime, actor) || (item.partial.regard ?? 0) <= -2) hear({ text: "", mood: "angry" });
+          else hear(item.partial);
+        }
+      }
+    } else data = (await response.json()) as Reply;
     // Where the wait went, in dev. `round` is the whole round trip including
     // our own server; `upstream` is the model alone. A large gap between them
     // is ours to fix; a small one is not.

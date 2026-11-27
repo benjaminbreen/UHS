@@ -85,16 +85,17 @@ function Glossed({ line }: { line: DialogueLine }) {
 
 /** What the other person is saying, arriving as speech does. A click shows
  * the rest at once. */
-function SpokenLine({ line, heard, onSpeaking, onLetter, voice: speaking }: { line: DialogueLine; heard: Set<string>; onSpeaking: (speaking: boolean) => void; onLetter: (letter: string) => void; voice: () => Sound }) {
+function SpokenLine({ line, heard, onSpeaking, onLetter, voice: speaking, pending }: { line: DialogueLine; heard: Set<string>; onSpeaking: (speaking: boolean) => void; onLetter: (letter: string) => void; voice: () => Sound; /** More of the line is still on its way. */ pending?: boolean }) {
   const text = line.original ?? line.text;
   // Opening the reply box redraws the line; it has been said once already.
   const typed = useTypewriter(text, heard.has(text), speaking, onLetter);
+  const done = typed.done && !pending;
   useEffect(() => {
-    if (typed.done) heard.add(text);
-    onSpeaking(!typed.done);
+    if (done) heard.add(text);
+    onSpeaking(!done);
     return () => onSpeaking(false);
-  }, [typed.done, onSpeaking, heard, text]);
-  if (typed.done) return <p className="dialogue-line npc"><Glossed line={line} /></p>;
+  }, [done, onSpeaking, heard, text]);
+  if (done) return <p className="dialogue-line npc"><Glossed line={line} /></p>;
   return (
     <p className="dialogue-line npc" onClick={typed.skip} data-typing>
       {line.action && <Action text={line.action} />}
@@ -155,6 +156,24 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
   const reply = useRef<HTMLInputElement>(null);
   const abort = useRef<AbortController>(null);
   const latest = history.at(-1);
+  // The reply while it is still being written; it joins `history` when it is whole.
+  const [arriving, setArriving] = useState<DialogueLine | undefined>(undefined);
+  const lines = arriving ? [...history, arriving] : history;
+  const started = useRef(false);
+  const hear = (signal: AbortSignal) => (partial: { text: string; mood?: Expression; action?: string }) => {
+    if (signal.aborted) return;
+    if (partial.mood) setMood(partial.mood);
+    if (!partial.text) return;
+    started.current = true;
+    setArriving({ speaker: "npc", text: partial.text, action: partial.action });
+  };
+  /** Puts the finished line up, without the beat when its start is already showing. */
+  const land = (line: DialogueLine[]) => {
+    if (!started.current) return say(() => setHistory(line));
+    started.current = false;
+    setArriving(undefined);
+    setHistory(line);
+  };
   const realLanguage = useRealLanguage();
   // Read at request time, so toggling mid-conversation takes effect on the next line.
   const realRef = useRef(realLanguage);
@@ -197,17 +216,17 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
     }
     const controller = new AbortController();
     abort.current = controller;
-    void dialogueTurn(runtime, actorId, "", [], controller.signal, realRef.current, situationRef.current).then((result) => {
+    void dialogueTurn(runtime, actorId, "", [], controller.signal, realRef.current, situationRef.current, hear(controller.signal)).then((result) => {
       if (controller.signal.aborted) return;
       runtime.onRecord?.("dialogue", { actorId, opening: result.text, error: result.error });
       setBusy(false);
-      if (result.error) setError(result.error);
+      if (result.error) started.current = false, setArriving(undefined), setError(result.error);
       else {
         setMood(result.mood);
         commit("", result);
         if (result.trade) setTrading(true);
         if (result.leave || result.ended) setLeft(true);
-        say(() => setHistory([{ speaker: "npc", text: result.text, original: result.original, language: result.language, action: result.action, context: result.context }]));
+        land([{ speaker: "npc", text: result.text, original: result.original, language: result.language, action: result.action, context: result.context }]);
       }
     });
     // Closing the conversation stops the request rather than paying for a
@@ -217,7 +236,7 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
 
   useEffect(() => {
     if (full) scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [history, full]);
+  }, [history, arriving, full]);
 
   // Cleared on a clock rather than on the animation ending, because with
   // reduced motion there is no animation to end.
@@ -251,7 +270,7 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
   const appearance = runtime.appearanceFor(actor);
   const resting: Expression =
     actor.trust < 0 ? "stern" : actor.trust > 2 ? "smile" : "neutral";
-  const expression = busy ? "thoughtful" : (mood ?? resting);
+  const expression = busy && !arriving ? "thoughtful" : (mood ?? resting);
   // The voice follows the face: a cross line is spoken in a cross voice.
   const cross = ["angry", "stern", "disgust", "scowl"].includes(expression);
   const speaks = () => voice(voiceOf(actor), cross);
@@ -271,11 +290,11 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
     setExplaining(false);
     const controller = new AbortController();
     abort.current = controller;
-    const result = await dialogueTurn(runtime, actorId, text, next, controller.signal, realRef.current, situationRef.current);
+    const result = await dialogueTurn(runtime, actorId, text, next, controller.signal, realRef.current, situationRef.current, hear(controller.signal));
     runtime.onRecord?.("dialogue", { actorId, input: text, response: result.text, error: result.error, aborted: result.aborted });
     if (controller.signal.aborted) return;
     setBusy(false);
-    if (result.error) setError(result.error);
+    if (result.error) started.current = false, setArriving(undefined), setError(result.error);
     else {
       setMood(result.mood);
       commit(text, result);
@@ -288,7 +307,7 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
         // Leave the line up a moment, then get out of the way of the walk.
         if (result.lead && actor?.errand?.label.startsWith("Showing you")) setTimeout(close, 2200);
       }
-      say(() => setHistory([...next, { speaker: "npc", text: result.text, original: result.original, language: result.language, action: result.action, context: result.context }]));
+      land([...next, { speaker: "npc", text: result.text, original: result.original, language: result.language, action: result.action, context: result.context }]);
     }
   };
   const close = () => {
@@ -393,15 +412,15 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
         {lastTime && !full && history.length <= 1 && <p className="dialogue-last">Last time you said “{lastTime}”</p>}
         <div className={`dialogue-history${full ? " is-full" : ""}`} ref={scrollRef} aria-live="polite">
           {full
-            ? history.map((line, index) =>
-                line.speaker === "npc" && index === history.length - 1 ? (
-                  <SpokenLine key={`${index}-${line.text}`} line={line} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} voice={speaks} />
+            ? lines.map((line, index) =>
+                line.speaker === "npc" && index === lines.length - 1 ? (
+                  <SpokenLine key={index} line={line} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} voice={speaks} pending={!!arriving} />
                 ) : (
-                  <p className={`dialogue-line ${line.speaker}${index < history.length - 2 ? " past" : ""}`} key={`${index}-${line.text}`}><Glossed line={line} /></p>
+                  <p className={`dialogue-line ${line.speaker}${index < lines.length - 2 ? " past" : ""}`} key={`${index}-${line.text}`}><Glossed line={line} /></p>
                 ),
               )
-            : latest && <SpokenLine key={latest.text} line={latest} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} voice={speaks} />}
-          {busy && <p className="dialogue-thinking"><span /><span /><span /></p>}
+            : lines.length > 0 && <SpokenLine key={lines.length} line={lines.at(-1)!} heard={heard} onSpeaking={setSpeaking} onLetter={mouth} voice={speaks} pending={!!arriving} />}
+          {busy && !arriving && <p className="dialogue-thinking"><span /><span /><span /></p>}
           {error && !history.length && recent && runtime.engine.state.clock - recent.time < 300 && <p className="dialogue-last">{recent.text}</p>}
           {error && <p className="dialogue-error">{error}</p>}
         </div>

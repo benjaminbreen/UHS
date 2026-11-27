@@ -1,7 +1,8 @@
 import { markets } from "../content/economy/exchanges";
 import { innProfileFor, innTerms } from "../content/settlements/worksites/inns";
 import { blankBook, callSeconds, exchangeDesks, fillOrder, landedOrder, orderProblem } from "./exchange";
-import { gathersPlants } from "../content/characters/livelihoods";
+import { foraged, gathersPlants } from "../content/characters/livelihoods";
+import { industrialized } from "../content/settlements/modernity";
 import { FERRY_PERIOD, anchorageAt, openClothBale, serviceAnchorage, transferCargo, releasePortStock, serviceFreight } from "../world/v3/harbor";
 import { updateRelationships } from "./bonds";
 import { dangerAt, npcDanger } from "./danger";
@@ -15042,8 +15043,10 @@ export class Engine {
       ...s.actors.filter((o) => o.kind === "human" && o.householdId !== a.householdId && distance(o.home, a.home) < 30),
     ].filter((o): o is Actor => !!o && !o.dead && o.kind === "human" && o.id !== a.id && o.householdId !== s.player.householdId);
     const goods = new Set<string>();
-    for (const g of s.economy?.short[a.householdId ?? ""] ?? []) if (this.item(g)) goods.add(this.item(g)!.name.toLowerCase());
-    for (const o of s.objects) for (const id of Object.keys(o.inventory ?? {})) if (goods.size < 12 && this.item(id)) goods.add(this.item(id)!.name.toLowerCase());
+    const setting = this.world.pack.setting;
+    const asked = (id: string) => this.item(id) && !(setting && industrialized(setting) && foraged.includes(id));
+    for (const g of s.economy?.short[a.householdId ?? ""] ?? []) if (asked(g)) goods.add(this.item(g)!.name.toLowerCase());
+    for (const o of s.objects) for (const id of Object.keys(o.inventory ?? {})) if (goods.size < 12 && asked(id)) goods.add(this.item(id)!.name.toLowerCase());
     return {
       people: [...new Map(people.map((o) => [o.id, `${o.name} (${o.role.toLowerCase()})`])).values()].slice(0, 8),
       // "Household" and "Household stores" name nowhere in particular.

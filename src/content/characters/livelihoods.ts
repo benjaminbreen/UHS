@@ -164,6 +164,8 @@ export const notableLivelihoods: readonly Livelihood[] = [
 ];
 /** The things a calling is known by and goes about with, whatever the land yields. */
 export const callingItems = ["walking-cane", "fan", "beads", "alms-bowl", "censer", "ledger", "water-pole", "carrying-pole", "lamp-pole", "sweep-brush", "lute", "drum", "flute", "harpoon", "paddle", "scales", "briefcase", "doctor-bag"];
+/** What comes off the land by hand. In an industrial age only people who work the land carry it or ask for it. */
+export const foraged = ["berries", "fruit", "greens", "roots", "acorn", "wood", "grain", "fodder", "reeds"];
 const index = new Map(
   [...livelihoods, homemaker, ...commonLivelihoods, ...outlawLivelihoods, ...cityLivelihoods, ...futureLivelihoods, ...notableLivelihoods].map((l) => [l.id, l]),
 );

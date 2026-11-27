@@ -1,5 +1,6 @@
 import type { CharacterScope } from "../characters/context-types";
 import type { ItemDef } from "../../core/types";
+import { deviceItems, deviceModels } from "../devices";
 
 /** Finished goods a shop sells: what each trade makes, and where and when.
  * `good` is the trade's good in goods.ts. Values are in small coin. */
@@ -119,11 +120,16 @@ export const wares: Ware[] = [
  * use; later entries win. */
 type PeriodLook = { from: number; cultures?: readonly string[]; art: string; name: string; description: string };
 const periodLooks: Record<string, readonly PeriodLook[]> = {
+  ...Object.fromEntries(deviceItems.map((item) => [item, deviceModels.filter((m) => m.item === item)])),
   water: [
     { from: 1850, cultures: ["european"], art: "water-pail", name: "Water pail",
       description: "A galvanised tin pail, filled at the pump or the kitchen tap and carried with a wire handle." },
     { from: 1990, art: "water-bottle", name: "Bottle of water",
       description: "A plastic bottle of water with a screw cap." },
+  ],
+  wristwatch: [
+    { from: 2015, art: "pocket-watch", name: "Smartwatch",
+      description: "A watch that counts steps and heartbeats and buzzes with messages." },
   ],
   ale: [
     { from: 1880, cultures: ["european"], art: "beer-bottle", name: "Bottle of beer",

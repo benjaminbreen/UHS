@@ -31,6 +31,19 @@
         "dev"
       ],
       "port": 5199
+    },
+    {
+      "name": "dev-offline",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "UHS_OFFLINE=1",
+        "UHS_STILL=1",
+        "PORT=5198",
+        "npm",
+        "run",
+        "dev"
+      ],
+      "port": 5198
     }
   ]
 }

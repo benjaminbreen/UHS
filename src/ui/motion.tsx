@@ -25,21 +25,29 @@ export function useTypewriter(
   const voice = useRef(sound);
   voice.current = sound;
   const [shown, setShown] = useState(instant || calm() ? text.length : 0);
+  // A line that grows while it is being typed carries on from where it was,
+  // so the loop reads the text and its place through refs and is started once.
+  const full = useRef(text);
+  full.current = text;
+  const at = useRef(0);
+  const timer = useRef(0);
   useEffect(() => {
     if (instant || calm()) {
-      setShown(text.length);
+      setShown((at.current = text.length));
       return;
     }
-    setShown(0);
-    // A short line with a shout in it comes out fast.
-    const urgent = text.length < 90 && text.includes("!");
-    let at = 0,
-      timer = 0;
+    at.current = Math.min(at.current, text.length);
+    setShown(at.current);
+    if (timer.current) return;
     const next = () => {
-      at++;
-      setShown(at);
-      if (at >= text.length) return;
-      const ch = text[at - 1];
+      timer.current = 0;
+      const text = full.current;
+      if (at.current >= text.length) return;
+      setShown(++at.current);
+      if (at.current >= text.length) return;
+      // A short line with a shout in it comes out fast.
+      const urgent = text.length < 90 && text.includes("!");
+      const ch = text[at.current - 1];
       letter.current?.(ch);
       // The director spaces effects out itself, so this patters, not buzzes.
       const currentSound = voice.current;
@@ -47,21 +55,24 @@ export function useTypewriter(
         void (typeof currentSound === "function"
           ? gameAudio()?.sound(currentSound, "blip")
           : gameAudio()?.event("blip"));
-      timer = window.setTimeout(
+      timer.current = window.setTimeout(
         next,
         /[—…]/.test(ch) ? 420 : /[.!?]/.test(ch) ? (urgent ? 150 : 260) : /[,;:]/.test(ch) ? 120 : urgent ? 14 : 24,
       );
     };
-    timer = window.setTimeout(next, 120);
-    return () => window.clearTimeout(timer);
+    timer.current = window.setTimeout(next, at.current ? 24 : 120);
     // `instant` is read once, at the start of a line: it turns true as the
     // line finishes, and that must not restart anything.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text]);
+  useEffect(() => () => {
+    window.clearTimeout(timer.current);
+    timer.current = 0;
+  }, []);
   return {
     text: text.slice(0, shown),
     done: shown >= text.length,
-    skip: () => setShown(text.length),
+    skip: () => setShown((at.current = text.length)),
   };
 }
 

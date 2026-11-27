@@ -58,7 +58,8 @@ function handler(path: string, route: Route, limit: number) {
       });
       const result = await route(request);
       res.writeHead(result.status, Object.fromEntries(result.headers));
-      res.end(await result.text());
+      if (result.body) for await (const chunk of result.body as unknown as AsyncIterable<Uint8Array>) res.write(chunk);
+      res.end();
     } catch {
       res.writeHead(400, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ error: "Could not read the request." }));

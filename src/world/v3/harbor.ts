@@ -690,7 +690,7 @@ export function harborStaff(plan: SettlementPlan, pack: Pack, seed: string) {
   const terminal=plan.terminal;
   if ((!h && !terminal && !plan.anchorage) || !s) return;
   const shops=plan.objects.filter(o=>o.shopSupply);
-  for (const [i, role] of (h && !h.crossing ? ["Longshoreman","Freight tally clerk","Grain factor"] : h ? [
+  for (const [i, old] of (h && !h.crossing ? ["Longshoreman","Freight tally clerk","Grain factor"] : h ? [
     "Longshoreman",
     "Freight tally clerk",
     "Railway porter",
@@ -699,6 +699,7 @@ export function harborStaff(plan: SettlementPlan, pack: Pack, seed: string) {
     "Bookkeeper",
     "Messenger",
   ] : terminal ? [terminal.automated ? "Remote crane operator" : "Crane operator","Freight tally clerk"] : ["Porter","Sailor","Boatman",plan.anchorage?.cargo==="grain" ? "Grain factor" : "Cloth merchant",...shops.map(o=>o.shopSupply!.item==="bread" ? "Baker" : "Grocer")]).entries()) {
+    const role = s.year < 1950 ? old : ({ "Grain factor": "Grain trader", "Freight tally clerk": "Shipping clerk", "Railway porter": "Freight handler", Seamstress: "Customs officer", Messenger: "Courier" }[old] ?? old);
     const shop=shops[i-4];
     const id = shop ? shop.id+"-seller" : plan.site.id + (terminal ? "-terminal-hand-"+i : h ? "-wharfhand-" + i : ["-lighter-porter","-merchant-pilot","-lighter-pilot","-quay-merchant"][i]),
       home = shop ? shift(shop.pos,1,0) : terminal ? shift(terminal,i ? 14 : -4,7) : !h ? (i===3 ? shift(plan.anchorage!.store,2,1) : plan.anchorage!.landing) : !h.crossing && i===2 ? shift(h.shed,-2,2) : i < 3 ? h.shed : shift(h.crossing!.gate, -h.sign * (8 + i), i % 2);

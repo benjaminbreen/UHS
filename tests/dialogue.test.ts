@@ -54,6 +54,31 @@ describe("dialogue endpoint", () => {
     expect(await response.json()).toMatchObject({ text: "Morning.", model: "claude-haiku-5-5", tokens: { out: 5 } });
   });
 
+  it("streams the line as it is written, then the whole reply", async () => {
+    const content = JSON.stringify({ mood: "wry", regard: 0, action: null, dialogue: 'Rain again. "Typical," she said.' });
+    const events = [content.slice(0, 12), content.slice(12, 68), content.slice(68)]
+      .map((part) => `data: ${JSON.stringify({ choices: [{ delta: { content: part } }] })}\n\n`)
+      .concat(`data: ${JSON.stringify({ choices: [], usage: { completion_tokens: 9 } })}\n\ndata: [DONE]\n\n`);
+    let sent: Record<string, any> | undefined;
+    const request = new Request("http://localhost/api/dialogue", {
+      method: "POST",
+      headers: { "x-forwarded-for": "198.51.100.42" },
+      body: JSON.stringify({ user: "NPC: someone.", provider: "openai", stream: true }),
+    });
+    const response = await dialogue(request, { OPENAI_API_KEY: "test" }, async (_, init) => {
+      sent = JSON.parse(String((init as RequestInit).body));
+      return new Response(new Blob(events).stream(), { status: 200 });
+    });
+    const lines = (await response.text()).trim().split("\n").map((line) => JSON.parse(line));
+    expect(sent?.stream).toBe(true);
+    const heard = lines.slice(0, -1).map((line) => line.partial.text);
+    expect(heard[0]).toBe("");
+    expect(heard[1]).toMatch(/^Rain again\. "Ty/);
+    expect(heard[2]).toBe('Rain again. "Typical," she said.');
+    expect(lines[1].partial).toMatchObject({ mood: "wry", regard: 0 });
+    expect(lines.at(-1)).toMatchObject({ text: 'Rain again. "Typical," she said.', mood: "wry", tokens: { out: 9 } });
+  });
+
   it("grounds a practitioner's response in visible symptoms and actual supplies without revealing exposure", () => {
     const resolved = resolveSetting("Doctor in London 1980", "health-dialogue");
     if ("error" in resolved) throw Error(resolved.error);

@@ -21,7 +21,9 @@ import {
 } from "./resolve";
 import { jobGrades } from "./city-work";
 import { asOfficiant, communityForWork, officiantsFor, personalSystem } from "./officiant";
-import { callingItems, livelihoodById } from "./livelihoods";
+import { callingItems, foraged, livelihoodById } from "./livelihoods";
+import { carriedBy } from "./carried";
+import { industrialized } from "../settlements/modernity";
 import {
   generateAdornment,
   metalForMeans,
@@ -585,6 +587,11 @@ export function generateCharacter(
   const accessory = accessoryFor(wearer,
     { year: s.year, setting: s }, appearance.wearing.garment);
   const inventory: Inventory = eligibleInventory(livelihood.inventory, context);
+  if (industrialized(s) && livelihood.tier !== "village" && livelihood.tier !== "prehistoric") {
+    const lunch = foraged.some((item) => item !== "wood" && inventory[item as keyof Inventory]);
+    for (const item of foraged) delete inventory[item as keyof Inventory];
+    if (lunch) inventory.bread = 1;
+  }
   // The old mining kit used obsidian as a stand-in for every mineral.
   if (s.worksiteRevision && livelihood.activity === "Working underground") delete inventory.obsidian;
   const hunter = livelihood.activity === "Looking for game";
@@ -598,6 +605,9 @@ export function generateCharacter(
   // Steppe herders rode armed with the bow against wolves and raiders.
   else if (/herd/i.test(livelihood.label) && sex !== "female" && s.culture === "inner-eurasian" && s.year >= -1000 && s.year < 1850) Object.assign(inventory, { bow: 1, arrow: 12 });
   else if (/shepherd|herd|slinger/i.test(livelihood.label)) Object.assign(inventory, { sling: 1, pebble: 8 });
+  Object.assign(inventory, carriedBy(s, seed, id, {
+    age, sex, livelihood, role, visiting: !recognized, community, belief: system.id, capabilities: context.capabilities, have: inventory,
+  }));
   if (accessory) inventory[accessory] = 1;
   if (accessory === "bow") inventory.arrow = Math.max(inventory.arrow ?? 0, 12);
   if (random(seed, id, "hawk") < hawkingChance(s, hunter, livelihood.rank === "elite")) inventory.hawk = 1;

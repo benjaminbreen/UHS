@@ -1,0 +1,66 @@
+.device-backdrop { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: #101116d9; padding: 16px; }
+.device { --body: #3c4658; --edge: #1c222e; --lit: #5a6680; --screen: #10141c; --ink: #e8ecf4; --mark: #5a9ad8; --key: #2a3040;
+  position: relative; display: grid; gap: 12px; width: 250px; padding: 16px 14px 10px; background: var(--body); color: var(--ink);
+  border: 3px solid var(--edge); border-radius: 14px; box-shadow: inset 3px 3px 0 var(--lit), inset -3px -3px 0 #0003, 0 10px 0 #0005;
+  font: 13px/1.35 ui-monospace, "SF Mono", Menlo, Consolas, monospace; user-select: none; }
+.device.is-mono { --screen: #9aa884; --ink: #1c2a1a; --mark: #1c2a1a; }
+.device-screen { display: grid; grid-template-rows: auto 1fr; min-height: 150px; background: var(--screen); color: var(--ink);
+  border: 3px solid var(--edge); border-radius: 4px; box-shadow: inset 2px 2px 0 #0004; overflow: hidden; }
+.device-screen header { display: flex; justify-content: space-between; gap: 8px; padding: 2px 6px; font-size: 11px; border-bottom: 1px solid var(--ink); white-space: nowrap; overflow: hidden; }
+.device-list { list-style: none; margin: 0; padding: 2px 0; max-height: 190px; overflow-y: auto; }
+.device-list li { display: flex; justify-content: space-between; gap: 8px; padding: 2px 6px; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.device-list li.is-on { background: var(--mark); color: var(--screen); }
+.device-list.is-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 8px; }
+.device-list.is-grid li { display: grid; place-items: center; aspect-ratio: 1; padding: 2px; border-radius: 10px; background: #ffffff1c; font-size: 10px; white-space: normal; text-align: center; }
+.device-list.is-grid li.is-on { background: var(--mark); color: #fff; }
+.device-screen > * { min-width: 0; }
+.device-text { margin: 0; padding: 6px; max-height: 190px; overflow-y: auto; overflow-wrap: anywhere; }
+.device-text em { opacity: 0.75; }
+.device-big { display: grid; place-content: center; gap: 4px; padding: 8px; text-align: center; }
+.device-big b { font-size: 26px; letter-spacing: 1px; }
+.device-big span { font-size: 11px; }
+.device-game { display: grid; align-content: center; justify-items: center; gap: 2px; padding: 4px; }
+.device-game canvas { width: 192px; image-rendering: pixelated; }
+.device-game p { margin: 0; font-size: 10px; }
+.device-dial { position: relative; height: 14px; margin: 8px 8px 0; border: 1px solid var(--ink); background: repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 8px); }
+.device-dial i { position: absolute; top: -3px; width: 3px; height: 18px; background: #c8302a; }
+.device-keys { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; }
+.device-keys button { min-height: 30px; padding: 2px 8px; background: var(--key); color: #e8ecf4; border: 2px solid var(--edge); border-radius: 6px;
+  box-shadow: inset 1px 1px 0 #fff3, 0 2px 0 var(--edge); font: inherit; font-size: 11px; cursor: pointer; }
+.device-keys button:active { transform: translateY(2px); box-shadow: inset 1px 1px 0 #fff3; }
+.device-pad { display: grid; grid-template: "u u" "l r" "d d" / 30px 30px; gap: 2px; justify-items: center; }
+.device-pad button { min-height: 22px; width: 30px; padding: 0; font-size: 9px; }
+.device-pad button:nth-child(1) { grid-area: u; }
+.device-pad button:nth-child(2) { grid-area: l; }
+.device-pad button:nth-child(3) { grid-area: r; }
+.device-pad button:nth-child(4) { grid-area: d; }
+.device-name { margin: 0; text-align: center; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.6; }
+
+.device-brick { --body: #d8d2c0; --edge: #5a5648; --lit: #f0ecdc; --key: #4a4a48; width: 220px; padding-top: 40px; border-radius: 8px; color: #2a2a28; }
+.device-brick::before { content: ""; position: absolute; left: 22px; top: -70px; width: 12px; height: 70px; background: #2a2a28; border-radius: 4px 4px 0 0; }
+.device-brick .device-screen { min-height: 110px; }
+.device-bar { width: 210px; border-radius: 26px 26px 34px 34px; padding-top: 26px; }
+.device-flip { --body: #b8bcc4; --edge: #5a5e68; --lit: #e0e4ea; --key: #7a808c; border-radius: 18px; }
+.device-flip .device-screen { margin-bottom: 14px; box-shadow: 0 14px 0 -6px var(--edge), inset 2px 2px 0 #0004; }
+.device-slab { --body: #1a1c22; --edge: #06070a; --lit: #3a3e48; width: 240px; padding: 10px 8px 6px; border-radius: 26px; }
+.device-slab .device-screen { min-height: 330px; border-radius: 16px; border-width: 1px; }
+.device-slab .device-pad { display: none; }
+.device-slab .device-keys { grid-template-columns: 1fr 1fr; }
+.device-slab .device-keys button { background: transparent; border-color: #3a3e48; box-shadow: none; }
+.device-pager { --body: #2e3036; --edge: #101114; --lit: #4a4e58; width: 290px; border-radius: 10px; }
+.device-pager .device-screen { min-height: 78px; }
+.device-pager .device-list li { white-space: normal; }
+.device-radio { --body: #c8442e; --edge: #5a1c12; --lit: #e86a50; --key: #d8d0b8; width: 270px; border-radius: 10px; }
+.device-radio::before { content: ""; position: absolute; right: 30px; top: -90px; width: 4px; height: 90px; background: #c8ccd0; border: 1px solid #5a5e62; }
+.device-radio .device-keys button { color: #2a2a28; }
+.device-tape { --body: #3a5a9a; --edge: #16264a; --lit: #5a7ac0; --key: #d8d4c8; width: 280px; border-radius: 10px; }
+.device-tape .device-keys button { color: #2a2a28; }
+.device-reels { display: flex; justify-content: center; gap: 46px; padding: 10px; background: #d8d4c8; border: 3px solid var(--edge); border-radius: 4px; }
+.device-reels i { width: 34px; height: 34px; border-radius: 50%; background: conic-gradient(#2a2a28 0 12%, #f0ecdc 0 25%, #2a2a28 0 37%, #f0ecdc 0 50%, #2a2a28 0 62%, #f0ecdc 0 75%, #2a2a28 0 87%, #f0ecdc 0); border: 3px solid #2a2a28; }
+.device-reels[data-playing] i { animation: device-reel 2.4s steps(12) infinite; }
+@keyframes device-reel { to { transform: rotate(360deg); } }
+.device-lcd { --body: #d8a838; --edge: #6a4a10; --lit: #f0cc6a; --key: #a8342a; width: 330px; border-radius: 14px; }
+.device-lcd .device-game canvas { width: 240px; }
+.device-handheld { --body: #c4c2b8; --edge: #5a5850; --lit: #e4e2d8; --key: #7a2a4a; width: 240px; border-radius: 10px 10px 40px 10px; padding-bottom: 22px; }
+.device-handheld.is-mono, .device-lcd.is-mono { --screen: #a8b46a; }
+@media (prefers-reduced-motion: reduce) { .device-reels[data-playing] i { animation: none; } }

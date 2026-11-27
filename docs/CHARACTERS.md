@@ -21,11 +21,32 @@ deterministic pipeline in `src/content/characters/`. It makes no model calls.
 | `livelihoods.ts`, `livelihoods.generated.ts` | Livelihoods and their activity and supply kits |
 | `outlaws.ts`, `city-work.ts` | Authored livelihoods beside the ported tables: robbers, office staff, bar staff, grain factors, livestock dealers, market weighmasters and auctioneers. `city-work.ts` also holds `jobGrades`, the ladder an office ran on (Junior Broker, Senior Partner, Section Chief), drawn by age in `graded` (`generate.ts`); the livelihood id stays the same, the label and rank change |
 | `future-work.ts` | Work of the 2020s and the projected years to 2060: mobile-money agents, data labellers, robot operators and mechanics, AI checkers, appeals advocates, matchmakers, paid companions. Robot work needs the `robots` requirement (`requirements.ts`), a projected regional date from 2033 in coastal China to 2048 everywhere. Projected entries in `signatures.ts` thin screen work from 2032 and driving four years after robots arrive in each region, and grow care from 2030 |
+| `carried.ts` | What a person has on them besides their work's tools: one table of dated rows (item, years, share, and who it applies to by culture or box, rank, sex, age, settlement tier, work, belief, capability) plus the items it adds. Smokers and chewers get their supply, pipe and a light from `smoking.ts`, so what they carry matches what they are drawn doing |
 | `resolve.ts` | Selection by year, geographic box, culture and community (`matchesCharacterScope`) |
 | `validate.ts` | Reference and evidence checks on load. Equal-specificity conflicts fail rather than depending on file order |
 | `generate.ts` | Independent seeded streams per world seed, actor and purpose, so changing a role never rerolls a face or a name |
 | `invented-name.ts` | Invented names where no naming kit covers a place, labelled "Invented name" in game |
 
+- **What people carry.** `livelihoods.generated.ts` gives each job one
+  inventory for every era; `generateCharacter` filters it to what the community
+  may hold, drops harvested plants in industrial towns, then adds up to four
+  personal things from `carried.ts`, keeping a kit to about seven distinct
+  items. Rows are drawn per person and ordered by how likely they were, so
+  neighbours differ. Roles that are not a job (tourist, commuter, student, day
+  tripper) match their own rows by name and lose the tools of the job they were
+  drawn with. New items reuse existing icons through `sharedArt` in
+  `render/garment-icons.ts`; cameras, combs and abacuses are not carried
+  because they have no icon yet.
+- **Pocket electronics.** Five carried items (`phone`, `pager`, `pocket-radio`,
+  `cassette-player`, `game-handheld`) are devices. `src/content/devices.ts`
+  lists their models by date and cultural family: what each was called, its
+  icon, its body and what it could do. The same rows name and draw the item
+  through `periodLook`. "Switch on" in the item inspector opens
+  `src/ui/devices/DevicePanel.tsx`, which shows that model: contacts (ringing
+  one opens a conversation that knows it is a phone call), the day's messages
+  or pager number codes, the news people are talking about, a three-day
+  forecast, mobile money, the radio, tapes, and three small games in
+  `devices/games.ts`. Add a model as a row; add an ability as a `DeviceApp`.
 - **Provenance.** `Actor.origin` records the community, naming kit, livelihood
   and qualifications used.
 - **Employment.** Once buildings, fields, pens and venues are placed,

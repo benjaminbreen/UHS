@@ -15,6 +15,7 @@ const requestSchema = z.object({
   provider: z.enum(["haiku", "openai"]).optional(),
   user: z.string().min(1).max(8000),
   realLanguage: z.boolean().optional(),
+  stream: z.boolean().optional(),
   explain: z.object({ dialogue: z.string().min(1).max(500), original: z.string().max(700).optional(), language: z.string().max(120).optional() }).strict().optional(),
 }).strict();
 const explanationSchema = z.object({ explanation: z.string().min(1).max(900) }).strict();
@@ -74,6 +75,44 @@ const replySchema = z.object({
     look: z.enum(["rock", "plant", "food", "wood", "cloth", "tool", "vessel", "creature"]),
   }).optional().describe("Only when the line clearly hands the player one modest physical item now; an offer, request or promise is not a handoff."),
 }).strict();
+const field = (text: string, name: string, open = false) =>
+  text.match(new RegExp(`"${name}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)${open ? "" : '"'}`))?.[1];
+const unquote = (raw: string) => {
+  try {
+    return JSON.parse(`"${raw.replace(/\\u[0-9a-fA-F]{0,3}$/, "")}"`) as string;
+  } catch {
+    return "";
+  }
+};
+/** What can be shown of a reply that is still being written: the schema puts the face and the gauge before the words. */
+export function partialReply(text: string) {
+  const regard = text.match(/"regard"\s*:\s*(-?\d)\s*[,}]/)?.[1];
+  const action = field(text, "action");
+  return {
+    text: unquote(field(text, "dialogue", true) ?? ""),
+    mood: field(text, "mood"),
+    regard: regard === undefined ? undefined : Number(regard),
+    action: action === undefined ? undefined : unquote(action),
+  };
+}
+/** The text deltas of a chat-completions event stream, with the usage block when it comes. */
+async function* deltas(body: ReadableStream<Uint8Array>) {
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for await (const chunk of body as unknown as AsyncIterable<Uint8Array>) {
+    buffer += decoder.decode(chunk, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      if (!line.startsWith("data:") || line.includes("[DONE]")) continue;
+      yield JSON.parse(line.slice(5)) as {
+        choices?: { delta?: { content?: string } }[];
+        usage?: { completion_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } };
+        error?: { message?: string };
+      };
+    }
+  }
+}
 const digest = (value: string) => createHash("sha256").update(value).digest();
 let inFlight = 0;
 
@@ -157,6 +196,7 @@ export async function dialogue(
     console.warn(`dialogue: ${name} ${status} ${detail}`);
     return json({ error: `${name} ${reason}.${detail ? ` ${detail.slice(0, 200)}` : ""}` }, 502);
   };
+  const run = async (emit?: (line: unknown) => void): Promise<Response> => {
   inFlight++;
   // Timed so a slow reply can be blamed on the right thing. A ten-second
   // "What do you want?" is either the model or us, and guessing which has
@@ -171,15 +211,18 @@ export async function dialogue(
       const client = new Anthropic({ apiKey: key, fetch: provider, maxRetries: 0 });
       let message: Anthropic.Message;
       try {
-        message = await client.messages.create({
+        const params = {
           model,
           max_tokens: maxTokens,
           system,
-          messages: [{ role: "user", content: user }],
+          messages: [{ role: "user" as const, content: user }],
           // Choosing a language, reconstructing it and translating into it at once needs to think; ordinary talk does not.
-          thinking: thinks ? { type: "adaptive" } : { type: "disabled" },
-          output_config: { format: { type: "json_schema", schema }, ...(thinks ? { effort: "low" as const } : {}) },
-        }, { signal });
+          thinking: thinks ? { type: "adaptive" as const } : { type: "disabled" as const },
+          output_config: { format: { type: "json_schema" as const, schema }, ...(thinks ? { effort: "low" as const } : {}) },
+        };
+        message = emit
+          ? await client.messages.stream(params, { signal }).on("text", (_, snapshot) => emit({ partial: partialReply(snapshot) })).finalMessage()
+          : await client.messages.create(params, { signal });
       } catch (error) {
         if (error instanceof Anthropic.APIError && error.status)
           return failed(error.status, (error.error as { error?: { message?: string } } | undefined)?.error?.message ?? error.message);
@@ -199,14 +242,28 @@ export async function dialogue(
           response_format: { type: "json_schema", json_schema: { name: input.explain ? "npc_explanation" : "npc_dialogue", schema, strict: true } },
           [haiku ? "max_tokens" : "max_completion_tokens"]: maxTokens,
           ...(haiku ? (thinks ? { reasoning: { effort: "low" } } : {}) : { reasoning_effort: thinks ? "low" : "none" }),
+          ...(emit ? { stream: true, stream_options: { include_usage: true } } : {}),
         }),
       });
       if (!response.ok)
         return failed(response.status, await response.json().then((b: { error?: { message?: string } }) => b.error?.message ?? "", () => ""));
-      const result = (await response.json()) as {
+      let result: {
         choices?: { message?: { content?: string } }[];
         usage?: { completion_tokens?: number; completion_tokens_details?: { reasoning_tokens?: number } };
       };
+      if (emit && response.body) {
+        let content = "";
+        result = {};
+        for await (const event of deltas(response.body)) {
+          if (event.error) return failed(502, event.error.message ?? "");
+          if (event.usage) result.usage = event.usage;
+          const delta = event.choices?.[0]?.delta?.content;
+          if (!delta) continue;
+          content += delta;
+          emit({ partial: partialReply(content) });
+        }
+        result.choices = [{ message: { content } }];
+      } else result = await response.json();
       text = result.choices?.[0]?.message?.content ?? "";
       out = result.usage?.completion_tokens ?? 0;
       // Reasoning tokens on a request that asked for none is the single most
@@ -250,4 +307,21 @@ export async function dialogue(
   } finally {
     inFlight--;
   }
+  };
+  if (!input.stream || input.explain) return run();
+  // One JSON object per line: partials as the words arrive, then the same body a plain call returns.
+  const encoder = new TextEncoder();
+  return new Response(
+    new ReadableStream({
+      async start(controller) {
+        const emit = (line: unknown) => controller.enqueue(encoder.encode(`${JSON.stringify(line)}\n`));
+        // A closed controller is the player leaving mid-line.
+        try {
+          emit(await run(emit).then((response) => response.json()));
+          controller.close();
+        } catch {}
+      },
+    }),
+    { headers: { "Content-Type": "application/x-ndjson", "Cache-Control": "no-store", "X-Accel-Buffering": "no" } },
+  );
 }
