@@ -21,7 +21,7 @@ import type { Coordinate } from "../world/travel/types";
 import type { Actor, PlayerCommand, Point, Snapshot } from "../core/types";
 import type { Runtime } from "./session";
 import { smallMemoryDevice } from "./device";
-import { releaseTerrainWorker } from "./terrain-worker-owner";
+import { releaseTerrainWorker, surveyingEdges, surveyMapEdges } from "./terrain-worker-owner";
 import {
   mapForCoordinate,
   loadTileNames,
@@ -228,6 +228,13 @@ export class MapTravel {
     const { player, manifest } = this.runtime.engine.state;
     const p = player.pos;
     this.approach = undefined;
+    const half = manifest.setting!.playableMap!.size / 2;
+    const routeEnd = this.runtime.route.at(-1);
+    if (!this.runtime.timeTravelLocked && surveyingEdges(this.runtime.engine.world)) {
+      const target = routeEnd ?? p;
+      const nearest = Object.entries(borderDistances(target, half)).sort((a, b) => a[1] - b[1])[0];
+      surveyMapEdges(this.runtime.engine.world, p.space === "outside" && nearest[1] < 64 ? nearest[0] : undefined);
+    }
     if (p.space !== "outside") return;
     if (
       this.arrival &&
@@ -237,9 +244,7 @@ export class MapTravel {
     // Phones cannot hold a second SettlementWorld or spawn another world-worker
     // while playing; neighboring maps load on demand when the player crosses.
     if (smallMemoryDevice()) return;
-    const half = manifest.setting!.playableMap!.size / 2;
     const distance = borderDistances(p, half);
-    const routeEnd = this.runtime.route.at(-1);
     const routeDistance = routeEnd && borderDistances(routeEnd, half);
     const heading = ["N", "E", "S", "W"][player.direction];
     let best = 48;
@@ -261,7 +266,7 @@ export class MapTravel {
       best = score;
     }
     if (routeEntrance && routeEnd) this.approach = { entrance: routeEntrance, from: routeEnd };
-    const worker = this.gatherer();
+    const worker = surveyingEdges(this.runtime.engine.world) ? undefined : this.gatherer();
     const search = this.foodSearch;
     const edge = worker && this.entrances.filter(e => e.walkable && e.point && e.path.length > 1 && !search!.tried.has(e.to) && !this.prefetchFailures.has(e.to))
       .sort((a,b) => a.path.length-b.path.length)[0];
@@ -318,11 +323,18 @@ export class MapTravel {
             Math.hypot(p.x - b.point!.x, p.y - b.point!.y) ||
           a.id.localeCompare(b.id),
       )[0];
+    if (!entrance && this.pendingSide(side)) return "Finding the crossing on this border…";
     const exit = this.exits.find((e) => e.id === entrance?.id);
     const direction = { N: "north", E: "east", S: "south", W: "west" }[side];
     return exit
       ? `Continue ${direction} to ${exit.name}`
       : "Follow another border to an overland crossing.";
+  }
+
+  private pendingSide(side: string) {
+    const world = this.runtime.engine.world, map = world.pack.setting?.playableMap;
+    return surveyingEdges(world) && map?.exits.some(e =>
+      (e.seam?.side ?? e.bearing).includes(side) && !this.entrances.some(done => done.id === e.id));
   }
 
   intercept(command: PlayerCommand) {
@@ -353,8 +365,10 @@ export class MapTravel {
       )[0];
     if (!entrance) {
       if (outside) {
-        this.runtime.notice =
-          "No overland connection on this border. Follow another edge.";
+        if (this.pendingSide(side)) {
+          surveyMapEdges(this.runtime.engine.world, side);
+          this.runtime.notice = "Finding the crossing on this border…";
+        } else this.runtime.notice = "No overland connection on this border. Follow another edge.";
         return true;
       }
       return false;

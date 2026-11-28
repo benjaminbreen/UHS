@@ -7,7 +7,7 @@ import {
   tileId,
   loadTileNames,
 } from "../src/world/travel/network";
-import { mapEntrances } from "../src/world/travel/entrances";
+import { entranceSearch, mapEntrances } from "../src/world/travel/entrances";
 import type { WorldModel } from "../src/core/types";
 import { atlasSample, toAtlas } from "../src/world/geography/atlas";
 import { createEnvironment } from "../src/world/v3/environment";
@@ -161,6 +161,21 @@ it("finds open-map exits without sampling the whole map", () => {
   expect(reads).toBeLessThan(384 * 16);
   expect(mapEntrances({...world, spawn: {x: -192, y: 0, space: "outside"}}, 384, [exits[3]])[0].path)
     .toEqual([{x: -192, y: 0}]);
+});
+
+it("interrupts a shore search for the approached border and keeps the same routes", () => {
+  const world = {
+    spawn: { x: 0, y: 0 }, blocked: (x: number) => x > 0,
+    terrain: (x: number) => x > 0 ? "water" : "grass",
+  } as unknown as WorldModel;
+  const exits = ["E", "W"].map(bearing => ({ id: bearing, to: bearing, bearing, mode: "mixed" }));
+  const next = entranceSearch(world, 48, exits);
+  for (let i = 0; i < 60; i++) expect(next()).toBeUndefined();
+  let west, east;
+  while (!west) west = next("W");
+  while (!east) east = next();
+  expect([west.id, east.id]).toEqual(["W", "E"]);
+  expect([east, west]).toEqual(mapEntrances(world, 48, exits));
 });
 
 it("finds another reachable border cell when the preferred crossing is isolated", () => {

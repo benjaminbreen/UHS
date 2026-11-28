@@ -324,7 +324,7 @@ export type Actor = {
   perch?: { on: string; label: string; rise: number; at?: Point; drop?: number; roof?: boolean; by?: "ladder" | "stairs" };
   /** Sitting on `on` (or on the ground where they are) until the next command.
    * `door`: the privy door they opened going in, shut again as they get up. */
-  seated?: { on?: string; pose: "sit" | "sit-seat"; door?: boolean };
+  seated?: { on?: string; pose: "sit" | "sit-seat"; door?: boolean; from?: Point };
   /** Bees from a robbed hive at `at`, after the player until the clock passes `until`. */
   bees?: { until: number; at: Point };
   held?: string;
@@ -381,8 +381,9 @@ export type Actor = {
 };
 /** A cell of a town wall's walk. `corner` is where a diagonal's band crosses
  * the cell, which is where someone walking it stands. */
-export type WallWalk = { kind: "wall" | "tower" | "gate"; corner?: "nw" | "ne" | "se" | "sw" };
+export type WallWalk = { kind: "wall" | "tower" | "gate"; corner?: "nw" | "ne" | "se" | "sw"; low?: true };
 export type Place = {
+  shopKind?: string;
   venueRoom?: { venue: string; room: string };
   worshipSchool?: string;
   institution?: import("../content/characters/workplace").Institution;
@@ -746,6 +747,8 @@ export type PlayerCommand =
     }
   /** Goods both ways at once: a purchase, a sale, or a barter. */
   | { type: "deal"; target: string; give: Inventory; take: Inventory }
+  /** Dishes off the menu of the house `target` serves in, by name, eaten and drunk there. */
+  | { type: "order"; target: string; dishes: string[] }
   | { type: "use"; item: ItemId }
   /** Put a wearable from the inventory on; whatever held the slot comes off. */
   | { type: "wear"; item: ItemId }

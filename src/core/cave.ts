@@ -1,14 +1,14 @@
-import { caveDenners, caveFind, caveLight, caveLightFor, caveSnakes, type CaveKind } from "../content/caves";
+import { caveDenners, caveLight, caveLightFor, caveSnakes, type CaveKind } from "../content/caves";
 import { faunaCombat, faunaProfile } from "../content/fauna";
 import { rockAt, type Rock } from "../content/geography/rock";
 import { caveAt } from "../render/edge-faces";
 import { caveLevel, caveLevels, caveSolid, caveSpace, parseCaveSpace, DEEP, MOUTH, WALL, type CaveLevel, type CaveSite } from "../world/cave";
 import { cavePeople } from "../content/caves/people";
 import { personFits } from "../content/sewers";
-import { folkArrive, folkDeal, folkRobbed, folkTime } from "./tunnel-folk";
-import { burnLight, complexRecord, nearest, takeFind, type ComplexHost } from "./complex";
+import { folkArrive, folkDeal, folkTime } from "./tunnel-folk";
+import { burnLight, complexRecord, nearest, stockArea, type ComplexHost } from "./complex";
 import type { Snapshot as GameState, Inspection, Inventory, Point, WorldModel } from "./types";
-import { landing, type AreaThing } from "../world/complex";
+import { landing } from "../world/complex";
 
 export type CaveBeast = {
   id: string;
@@ -130,11 +130,7 @@ export function caveLevelOf(h: ComplexHost, space: string) {
   const site = at && siteOf(h, at.cave);
   if (!at || !site || at.depth < 1 || at.depth > site.levels) return undefined;
   const level = caveLevel(h.state.manifest.seed, site, at.depth);
-  const solid = caveSolid(level);
-  const done = new Set(h.state.complexes?.[`cave:${at.cave}`]?.done);
-  // What was carried off no longer stands in the way.
-  for (const t of level.things) if (t.solid && done.has(t.id) && !caveFind(t.find)?.keeps) solid.delete(t.y * level.w + t.x);
-  const entry = { level, solid };
+  const entry = { level, solid: caveSolid(level) };
   h.caveLevels.set(space, entry);
   return entry;
 }
@@ -186,6 +182,7 @@ function arrive(h: ComplexHost, depth: number, at: "entry" | "down") {
   const rec = record(h, run.cave);
   const first = depth > rec.deepest;
   rec.deepest = Math.max(rec.deepest, depth);
+  stockArea(h, level, `cave:${run.cave}`);
   populate(h, level);
   return first;
 }
@@ -201,15 +198,7 @@ function leave(h: ComplexHost) {
   h.event("You come out into the open air, blinking.");
 }
 
-const thingAt = (h: ComplexHost, id: string) => {
-  const c = runOf(h.state) && caveLevelOf(h, h.state.player.pos.space);
-  const thing = c?.level.things.find((t) => `cave-thing:${t.id}` === id);
-  return c && thing ? { ...c, thing } : undefined;
-};
-/** Where a thing is used from: the cell under a wall find, the thing's own cell otherwise. */
-const useCell = (t: AreaThing) => ({ x: t.x, y: t.wall ? t.y + 1 : t.y });
-
-/** What the player could use right now: the nearest thing in reach, facing first. */
+/** What the player could use right now: the nearest way in/up/down in reach, facing first. */
 export function caveTargetNear(h: ComplexHost): string | undefined {
   const p = h.state.player;
   if (p.pos.space === "outside") {
@@ -219,16 +208,10 @@ export function caveTargetNear(h: ComplexHost): string | undefined {
   const c = runOf(h.state) && caveLevelOf(h, p.pos.space);
   if (!c) return undefined;
   const { level } = c;
-  const done = new Set(h.state.complexes?.[`cave:${level.cave}`]?.done);
   const reach = (q: Point) => Math.max(Math.abs(q.x - p.pos.x), Math.abs(q.y - p.pos.y)) <= 1;
   const options: [Point, string, number?][] = [];
   if (level.down && reach(level.down)) options.push([level.down, "cave-down"]);
   if (level.up && reach({ x: level.up.x, y: level.up.y + 1 })) options.push([level.up, "cave-up"]);
-  for (const t of level.things) {
-    if (done.has(t.id) && !caveFind(t.find)?.keeps) continue;
-    // A wall find is read from below it; a floor find from any side.
-    if (t.wall ? p.pos.y === t.y + 1 && Math.abs(p.pos.x - t.x) <= 1 : reach(t)) options.push([t, `cave-thing:${t.id}`, done.has(t.id) ? 0.4 : 0]);
-  }
   return nearest(p, options);
 }
 
@@ -264,15 +247,7 @@ export function caveInspect(h: ComplexHost, id: string): Inspection | undefined 
       description: "The climb back to the level above.",
       affordances: act("Climb up"),
     };
-  const found = thingAt(h, id);
-  if (!found) return undefined;
-  const { thing } = found, f = caveFind(thing.find)!;
-  const done = h.state.complexes?.[`cave:${level.cave}`]?.done.includes(thing.id);
-  return {
-    id, name: thing.name, kind: "object", pos: { ...useCell(thing), space: level.space },
-    description: done && !f.keeps ? "You have already been through this." : f.look,
-    affordances: done && (f.loot || f.fuel) && !f.heal ? [] : act(f.verb),
-  };
+  return undefined;
 }
 
 /** The label for the key, without building a whole inspection. */
@@ -311,15 +286,7 @@ export function caveAct(h: ComplexHost, id: string) {
     arrive(h, level.depth - 1, "down");
     h.advance(90);
     h.event("You haul yourself back up to the level above.");
-    return;
   }
-  const found = thingAt(h, id);
-  if (!found) return;
-  const { thing } = found, f = caveFind(thing.find)!;
-  takeFind(h, run, c, thing, f, record(h, run.cave).done, {
-    refuel: (fuel) => void (run.left > 0 && ((run.left = Math.min(caveLight(run.light).burns * 1.5, run.left + fuel * 3)), (run.low = false))),
-    taken: () => folkRobbed(h.folk, level.space, thing.find),
-  });
 }
 
 /** A blow landing on a cave cell. True when something was there to take it. */

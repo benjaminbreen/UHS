@@ -140,11 +140,15 @@ const PUBLIC: Rule[] = [
   { lon: [-98, -78], lat: [29, 42], pick: () => "mound-temple" },
   ...["wharenui", "council-longhouse", "haus-tambaran", "age-set-house", "telpochcalli", "calmecac", "gurukula", "union-hall"].map((id) => ({ lon: [-180, 180] as [number, number], lat: [-90, 90] as [number, number], pick: () => id })),
   { lon: [-11, 2], lat: [49.5, 61], from: 1570, to: 1660, pick: () => "elizabethan-playhouse" },
-  { lon: [-11, 45], lat: [34, 72], from: 1660, to: 1950, pick: () => "proscenium-playhouse" },
-  { lon: [-11, 45], lat: [34, 72], from: 1680, to: 1950, pick: () => "opera-house" },
+  { lon: [-11, 45], lat: [34, 72], from: 1660, to: 1884, pick: () => "proscenium-playhouse" },
+  { lon: [-180, 180], lat: [-60, 75], from: 1885, pick: () => "broadway-theatre" },
+  { lon: [-180, 180], lat: [-60, 75], from: 1680, pick: () => "opera-house" },
   { lon: [128, 146], lat: [30, 46], from: 1400, to: 1950, pick: () => "noh-theatre" },
   { lon: [128, 146], lat: [30, 46], from: 1650, to: 1950, pick: () => "kabuki-theatre" },
-  { lon: [-180, 180], lat: [-60, 75], from: 1910, pick: () => "cinema" },
+  { lon: [-180, 180], lat: [-60, 75], from: 1910, to: 1924, pick: () => "nickelodeon" },
+  { lon: [-180, 180], lat: [-60, 75], from: 1925, to: 1965, pick: () => "cinema" },
+  { lon: [-180, 180], lat: [-60, 75], from: 1966, pick: () => "multiplex" },
+  { lon: [-180, 180], lat: [-90, 90], pick: () => "overlook-hotel" },
 ];
 
 /** A place's claim as the key its interior is chosen by: `venue-venue.x` is
@@ -199,44 +203,45 @@ function meetingHall(site: InteriorSite): InteriorProfile {
 
 /** The interior a public building has here and now, if one has been made. */
 export function publicInteriorFor(site: InteriorSite): InteriorProfile | undefined {
-  if (!site.use) return;
-  if(site.use.startsWith("shop.")){
-    const kind=shopKind(site.use.slice(5));
+  const use = site.use ?? (site.frame && /^(mod-theatre-\d|theatre-picture-house)/.test(site.frame) ? "venue.cinema" : undefined);
+  if (!use) return;
+  if(use.startsWith("shop.")){
+    const kind=shopKind(use.slice(5));
     if(kind)return shopFor(interiorProfileFor({...site,use:undefined}),kind,site);
   }
-  if(site.use==="waterfront.gear" || site.use==="waterfront.store") {
+  if(use==="waterfront.gear" || use==="waterfront.store") {
     const home=interiorProfileFor({...site,use:undefined}),gear=waterfrontProfiles.find(p=>p.gear===site.frame)?.gearInterior;
-    return {...home,door:gear?.door ?? home.door,windowStyle:gear?.windows ?? home.windowStyle,id:`${site.use==="waterfront.store" ? "grain-warehouse" : "fishing-gear"}-${home.id}`,label:site.use==="waterfront.store" ? "Grain warehouse" : "Fishing gear store",uses:[site.use],size:[10,9],rooms:undefined,
+    return {...home,door:gear?.door ?? home.door,windowStyle:gear?.windows ?? home.windowStyle,id:`${use==="waterfront.store" ? "grain-warehouse" : "fishing-gear"}-${home.id}`,label:use==="waterfront.store" ? "Grain warehouse" : "Fishing gear store",uses:[use],size:[10,9],rooms:undefined,
       program:undefined,sleep:"none",fire:"none",smokehole:false,pole:false,trades:["household"],kits:{household:[]},clutter:[],regulars:undefined,
       furnish:["shelf","basket","crate","table","lamp"],styles:{shelf:"open"},
       looks:home.looks.map(l=>({...l,...(gear ? {wall:gear.wall,floor:gear.floor,windows:gear.windows==="none" ? 0 : 2} : {}),furnish:[]})) as unknown as InteriorProfile["looks"]};
   }
-  if (site.use === "yard.henhouse" || site.use === "yard.byre" || site.use === "yard.stable") {
-    const home = interiorProfileFor({ ...site, use: undefined }), byre = site.use === "yard.byre", stable = site.use === "yard.stable";
+  if (use === "yard.henhouse" || use === "yard.byre" || use === "yard.stable") {
+    const home = interiorProfileFor({ ...site, use: undefined }), byre = use === "yard.byre", stable = use === "yard.stable";
     const grand = stable && !!site.frame && /gentry|palace/.test(site.frame);
-    return { ...home, id: `${grand ? "grand-stable" : stable ? "stable" : byre ? "byre" : "henhouse"}-${home.id}`, label: grand ? "Grand Stable" : stable ? "Stable" : byre ? "Byre" : "Henhouse", uses: [site.use], size: grand ? [11, 7] : stable ? [9, 6] : byre ? [8, 6] : [6, 5], rooms: undefined,
+    return { ...home, id: `${grand ? "grand-stable" : stable ? "stable" : byre ? "byre" : "henhouse"}-${home.id}`, label: grand ? "Grand Stable" : stable ? "Stable" : byre ? "Byre" : "Henhouse", uses: [use], size: grand ? [11, 7] : stable ? [9, 6] : byre ? [8, 6] : [6, 5], rooms: undefined,
       program: undefined, sleep: "none", fire: "none", smokehole: false, pole: false, trades: ["household"], kits: { household: [] }, clutter: [], regulars: undefined,
       seating: "floor",
       furnish: grand ? ["stall", "manger", "lantern", "stall", "manger", "stall", "sacks", "shelf", "lantern"] : stable ? ["stall", "manger", "lantern", "stall", "sacks", "shelf"] : byre ? ["stall", "manger", "lantern", "stall", "sacks"] : ["nestbox", "roost", "lantern", "basket", "sacks"],
       looks: home.looks.map((l) => ({ ...l, windows: 2, furnish: [] })) as unknown as InteriorProfile["looks"] };
   }
-  if (site.use.startsWith("worksite.")) return worksiteInterior(site.use, interiorProfileFor({ ...site, use: undefined }));
-  if (site.use === "civic.illustrative-public-hall") return meetingHall(site);
+  if (use.startsWith("worksite.")) return worksiteInterior(use, interiorProfileFor({ ...site, use: undefined }));
+  if (use === "civic.illustrative-public-hall") return meetingHall(site);
   for (const r of PUBLIC) {
     if (site.lon < r.lon[0] || site.lon > r.lon[1] || site.lat < r.lat[0] || site.lat > r.lat[1]) continue;
     if (r.from !== undefined && site.year < r.from) continue;
     if (r.to !== undefined && site.year > r.to) continue;
     const found = interiorProfile(r.pick(site));
-    if (found?.uses?.includes(site.use)) return found.observance ? localWorship(found, site.use, site.year, site.worshipSchool) : found;
+    if (found?.uses?.includes(use)) return found.observance ? localWorship(found, use, site.year, site.worshipSchool) : found;
   }
-  if (site.use.startsWith("religious.")) {
-    const claimed = worship.find(p => p.uses?.includes(site.use!));
-    if (claimed) return localWorship(claimed, site.use, site.year, site.worshipSchool);
+  if (use.startsWith("religious.")) {
+    const claimed = worship.find(p => p.uses?.includes(use));
+    if (claimed) return localWorship(claimed, use, site.year, site.worshipSchool);
     const hall = meetingHall(site);
     return {...hall, label:"Gathering place", institution:"worship", styles:{}, furnish:[], regulars:{hours:[7,16],fill:.1},
       observance:{gathering:{label:"Gathering quietly",room:"entry"}, visit:{label:"Visiting the shrine",room:"entry"}}};
   }
-  if (site.use.startsWith("civic.")) return meetingHall(site);
+  if (use.startsWith("civic.")) return meetingHall(site);
 }
 
 /** Whether whoever keeps a venue lives in it: yes over a taproom, no in a

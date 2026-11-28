@@ -1,11 +1,15 @@
 import type { WorldSetting } from "../content/geography/types";
 import { bce } from "../content/history/dates";
+import { regionAt } from "../content/geography/region-label";
 
 export function arrivalBackdrop(setting: WorldSetting) {
   const { lon, lat, year } = setting;
   const name = `${setting.location} ${setting.placeId}`.toLowerCase();
   const urban = setting.settlement === "city" || setting.settlement === "port";
   const coastal = setting.water.startsWith("coast") || setting.water === "island" || setting.water === "ocean";
+  // The Latin American boxes reach 33°N; this keeps Florida, Texas and California out of them.
+  const region = regionAt(lon, lat)?.id ?? "";
+  const unitedStates = region.startsWith("north-american-") && !/mexico|central-america|antilles|caribbean|mayan|mosquito|oaxaca|panama|yucatan/.test(region);
   const special: [string, number, number, number, number, number, number][] = [
     ["europe-glacial", -12, 45, 40, 57, bce(30000).year, bce(10000).year],
     ["africa-deep-prehistory", 20, 43, -30, 15, bce(80000).year, bce(10000).year],
@@ -221,6 +225,7 @@ export function arrivalBackdrop(setting: WorldSetting) {
       if (id === "andes-town-2000" && setting.relief < 0.5) continue;
       if (id === "south-asia-city-2000" && setting.settlement !== "city" && setting.settlement !== "port") continue;
       if (id === "east-asia-city-2000" && setting.settlement !== "city" && setting.settlement !== "port") continue;
+      if (/^latin-america-(city|rural)-2000$|^latin-america-early-twentieth-town$/.test(id) && unitedStates) continue;
       if (id === "latin-america-city-2000" && setting.settlement !== "city" && setting.settlement !== "port") continue;
       if (id === "west-africa-city-2000" && setting.settlement !== "city" && setting.settlement !== "port") continue;
       if (id === "indus-hinterland-2200bce" && setting.settlement === "city") continue;
@@ -292,14 +297,14 @@ export function arrivalBackdrop(setting: WorldSetting) {
       : "/opening/east-china-1930.webp";
     return recent ? "/opening/pacific-island-town-2000.webp" : "/opening/pacific-island-1930.webp";
   }
-  let region: string;
-  if (lon < -30) region = "americas";
-  else if (lon > 110 && lat < -10) region = "oceania";
-  else if (lon > 95 && lat > -10) region = "east-asia";
-  else if (lon > 60 && lat > -10) region = "south-asia";
-  else if (lon > 30 && lat > 0) region = "west-asia";
-  else if (lat < 35 && lon < 60) region = "africa";
-  else region = "europe";
+  let area: string;
+  if (lon < -30) area = "americas";
+  else if (lon > 110 && lat < -10) area = "oceania";
+  else if (lon > 95 && lat > -10) area = "east-asia";
+  else if (lon > 60 && lat > -10) area = "south-asia";
+  else if (lon > 30 && lat > 0) area = "west-asia";
+  else if (lat < 35 && lon < 60) area = "africa";
+  else area = "europe";
   const age = year < -3000 ? "prehistory" : year < 500 ? "antiquity" : year < 1500 ? "medieval" : year < 1750 ? "early-modern" : "industrial";
   const available: Record<string, string[]> = {
     africa: ["prehistory", "antiquity", "medieval", "early-modern"],
@@ -310,15 +315,15 @@ export function arrivalBackdrop(setting: WorldSetting) {
     americas: ["prehistory", "medieval", "early-modern"],
     oceania: ["prehistory", "early-modern"],
   };
-  const choices = available[region];
+  const choices = available[area];
   const chosen = choices.includes(age)
     ? age
-    : region === "west-asia" && year < -3000
+    : area === "west-asia" && year < -3000
       ? "neolithic"
       : year < 500
         ? choices[0]
         : choices.at(-1)!;
-  return `/opening/${region}-${chosen}.webp`;
+  return `/opening/${area}-${chosen}.webp`;
 }
 
 // PRB's 2022 cumulative-birth estimates; interpolate only between published benchmarks.
@@ -335,4 +340,17 @@ export function birthPercentile(year: number) {
   if (end === 0) return 0;
   const [y0, n0] = births[end - 1], [y1, n1] = births[end];
   return Math.round((n0 + ((year - y0) / (y1 - y0)) * (n1 - n0)) / births.at(-1)![1] * 100);
+}
+
+export type ArrivalVariant = "descent" | "strip";
+
+/** Which arrival screen to show. `?arrival=strip` or `?arrival=descent` picks one and keeps it for later visits. */
+export function arrivalVariant(): ArrivalVariant {
+  const asked = new URLSearchParams(location.search).get("arrival");
+  try {
+    if (asked === "strip" || asked === "descent") localStorage.setItem("uhs-arrival", asked);
+    return localStorage.getItem("uhs-arrival") === "strip" ? "strip" : "descent";
+  } catch {
+    return asked === "strip" ? "strip" : "descent";
+  }
 }

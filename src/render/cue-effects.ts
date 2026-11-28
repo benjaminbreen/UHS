@@ -155,8 +155,23 @@ export class CueEffects {
   private said = new Map<string, { text: Phaser.GameObjects.Text; until: number }>();
   private say(who: string, line: string) {
     this.said.get(who)?.text.destroy();
-    const text = this.scene.add.text(0, 0, line, { fontFamily: "Silkscreen, monospace", fontSize: "8px", color: "#fff4d6", stroke: "#1a1410", strokeThickness: 3 }).setOrigin(0.5, 1).setDepth(1e7);
-    this.said.set(who, { text, until: this.scene.time.now + SAY_MS });
+    // Clear any nearby active speech bubble so consecutive stage/crowd lines never stack on top of each other.
+    const speaker = this.view.entityAt(who);
+    for (const [other, prev] of this.said) {
+      if (other === who) continue;
+      const otherIm = this.view.entityAt(other);
+      if (!speaker || !otherIm || Math.hypot(speaker.x - otherIm.x, speaker.y - otherIm.y) < 260) {
+        prev.text.destroy();
+        this.said.delete(other);
+      }
+    }
+    const text = this.scene.add.text(0, 0, line, {
+      fontFamily: "Silkscreen, monospace", fontSize: "8px", color: "#fff4d6",
+      backgroundColor: "rgba(18, 14, 22, 0.78)", padding: { x: 4, y: 2 },
+      stroke: "#141018", strokeThickness: 2, align: "center", wordWrap: { width: 176 },
+    }).setOrigin(0.5, 1).setDepth(1e7);
+    const ms = Math.max(SAY_MS, Math.min(4100, 1200 + line.length * 46));
+    this.said.set(who, { text, until: this.scene.time.now + ms });
   }
 
   private bump(who: string, dx: number, dy: number, run: boolean) {

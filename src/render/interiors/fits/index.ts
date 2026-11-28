@@ -1,4 +1,7 @@
+import { boxoffice } from "./boxoffice";
+import { concessions, concessionsClassic } from "./concessions";
 import { grocer } from "./grocer";
+import { overlookKitchen, overlookLobby } from "./overlook";
 import { thermopolium } from "./thermopolium";
 
 /** A shop fitted out from hand-drawn pieces. Grids use the shared letters of
@@ -21,4 +24,4 @@ export type Fit = {
 };
 
 /** By the shop's stock style (`styles.stock`). */
-export const FITS: Record<string, Fit> = { grocery: grocer, thermopolium };
+export const FITS: Record<string, Fit> = { boxoffice, concessions, "concessions-classic": concessionsClassic, grocery: grocer, "overlook-lobby": overlookLobby, "overlook-kitchen": overlookKitchen, thermopolium };

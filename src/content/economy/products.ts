@@ -21,8 +21,21 @@ export type Product = {
   sources: string[];
   note: string;
 };
+// Last, so a regional product of the same good wins.
+const modernProducts: Product[] = [
+  ...["bread", "milk", "oil", "salt"].map((good) => ({
+    id: `groceries-${good}`, good, noun: "groceries", trades: ["grocer"], scope: { years: [1900, 10001] as const },
+    sources: ["https://en.wikipedia.org/wiki/Grocery_store"],
+    note: "Packaged, factory-made food bought at a shop; nobody buys a farmer's grain to bake.",
+  })),
+  {
+    id: "modern-beer", good: "drink", noun: "beer", trades: ["innkeeper", "publican"], scope: { years: [1900, 10001] },
+    sources: ["https://en.wikipedia.org/wiki/Beer"],
+    note: "Bottled and draught lager from industrial breweries.",
+  },
+];
 const products: Product[] = [...southAsianProducts, ...westEurasianProducts, ...eastAsianProducts,
-  ...africanProducts, ...americanProducts, ...southeastAsianProducts, ...oceanianProducts];
+  ...africanProducts, ...americanProducts, ...southeastAsianProducts, ...oceanianProducts, ...modernProducts];
 export const productById = (id: string | undefined) => products.find((p) => p.id === id);
 
 export function productFor(good: string, setting: WorldSetting, trade?: string) {

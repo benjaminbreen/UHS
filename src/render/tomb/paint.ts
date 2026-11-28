@@ -670,3 +670,21 @@ export function paintTombDecor(type: string, v: number, look: Look = "painted-ro
   }
   return undefined;
 }
+
+/** A tomb find's picture from its sprite name, `made:tomb:<look>:<art>:<find>:<w>x<h>:<v>[:wall]`. */
+export function tombPicture(frame: string) {
+  const m = /^made:tomb:([^:]+):([^:]+):([^:]+):(\d+)x(\d+):(\d+)(:wall)?$/.exec(frame);
+  if (!m) return undefined;
+  const w = Number(m[4]), h = Number(m[5]);
+  const s = paintTombThing(m[2], w, h, Number(m[6]) / 10, m[1] as Look, m[3]);
+  if (!s) return undefined;
+  const mid = s.ox + 8, half = Math.max(mid, s.r.w - mid);
+  const foot = m[7] ? Math.max(s.r.h, s.oy) : Math.min(s.r.h, s.oy + h * 16);
+  const out = new Raster(half * 2, foot);
+  const rows = Math.min(s.r.h, foot);
+  for (let y = 0; y < rows; y++) for (let x = 0; x < s.r.w; x++) {
+    const i = (y * s.r.w + x) * 4, o = (y * out.w + x + half - mid) * 4;
+    for (let k = 0; k < 4; k++) out.data[o + k] = s.r.data[i + k];
+  }
+  return out;
+}

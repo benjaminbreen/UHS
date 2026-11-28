@@ -2,12 +2,12 @@ import { caveLight, caveLightFor, mineLightFor } from "../content/caves";
 import { mineKindOf, minePeople } from "../content/mines";
 import { anyMine } from "../content/settlements/worksites/mines";
 import { worksiteProfiles } from "../content/settlements/worksites";
-import { personFits, sewerFind, sewerKindFor, sewerPeople } from "../content/sewers";
+import { personFits, sewerKindFor, sewerPeople } from "../content/sewers";
 import { catacombKindAt, catacombPeople } from "../content/catacombs";
 import { folkArrive, folkDeal, folkTime } from "./tunnel-folk";
 import { laneLids } from "../render/carriageway";
 import { rngOf } from "./random";
-import { burnLight, complexRecord, nearest, takeFind, type ComplexHost } from "./complex";
+import { burnLight, nearest, stockArea, type ComplexHost } from "./complex";
 import { landing } from "../world/complex";
 import { parseSewerSpace, sewerLevel, sewerSolid, sewerSpace, walkable, WATER, type SewerSite, type TunnelNetwork } from "../world/sewer";
 import { doorApproach } from "./doors";
@@ -41,8 +41,6 @@ export type SewerRun = {
 
 /** The tunnel run in progress, if the player is down a sewer or a mine. */
 export const tunnelRun = (s: GameState) => (s.complex?.kind === "sewer" || s.complex?.kind === "mine" || s.complex?.kind === "catacomb" ? s.complex : undefined);
-/** What has been taken on this level's network. */
-const doneOn = (state: GameState, level: { network: TunnelNetwork; site: string }) => state.complexes?.[`${level.network}:${level.site}`]?.done;
 
 const lidKey = (p: Point) => `${p.x},${p.y}`;
 const cheb = (a: Point, b: Point) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
@@ -142,8 +140,6 @@ export function sewerLevelOf(h: ComplexHost, space: string) {
   } };
   const level = sewerLevel(h.state.manifest.seed, site, at.depth, probe);
   const solid = sewerSolid(level);
-  const done = new Set(doneOn(h.state, level));
-  for (const t of level.things) if (t.solid && done.has(t.id) && !sewerFind(t.find)?.keeps) solid.delete(t.y * level.w + t.x);
   for (const i of h.state.mineFalls?.[space] ?? []) solid.add(i);
   const entry = { level, solid };
   h.sewerLevels.set(space, entry);
@@ -170,6 +166,7 @@ function arrive(h: ComplexHost, depth: number, at: "entry" | "down" | Point) {
   p.pos = { ...spot, space: level.space };
   p.direction = 2;
   run.calm = Math.max(run.calm ?? 0, h.state.clock + 300);
+  stockArea(h, level, `${run.kind}:${run.site}`);
   folkArrive(h.folk, level.space, level.folk);
   return level;
 }
@@ -243,14 +240,7 @@ export function sewerEnterFrom(h: ComplexHost, world: Point, message: string) {
   return true;
 }
 
-const thingAt = (h: ComplexHost, id: string) => {
-  const c = tunnelRun(h.state) && sewerLevelOf(h, h.state.player.pos.space);
-  const thing = c?.level.things.find((t) => `sewer-thing:${t.id}` === id);
-  return c && thing ? { ...c, thing } : undefined;
-};
-const useCell = (t: { x: number; y: number; wall: boolean }) => ({ x: t.x, y: t.wall ? t.y + 1 : t.y });
-
-/** What the player could use right now: the nearest thing in reach, facing first. */
+/** What the player could use right now: the nearest shaft, lid or ladder in reach, facing first. */
 export function sewerTargetNear(h: ComplexHost): string | undefined {
   const p = h.state.player;
   if (p.pos.space === "outside") {
@@ -262,18 +252,12 @@ export function sewerTargetNear(h: ComplexHost): string | undefined {
   const c = tunnelRun(h.state) && sewerLevelOf(h, p.pos.space);
   if (!c) return undefined;
   const { level } = c;
-  const done = new Set(doneOn(h.state, level));
   if (tunnelRun(h.state)?.trapped) return "sewer-knock";
   const options: [Point, string, number?][] = [];
   if (level.down && cheb(level.down, p.pos) <= 1) options.push([level.down, "sewer-down"]);
   level.shafts.forEach((s, i) => {
     if (cheb(s, p.pos) <= 1) options.push([s, `sewer-shaft:${i}`, -0.2]);
   });
-  for (const t of level.things) {
-    if (done.has(t.id) && !sewerFind(t.find)?.keeps) continue;
-    const near = t.wall ? p.pos.y === t.y + 1 && Math.abs(p.pos.x - t.x) <= 1 : cheb(t, p.pos) <= 1;
-    if (near) options.push([t, `sewer-thing:${t.id}`, done.has(t.id) ? 0.4 : 0]);
-  }
   return nearest(p, options);
 }
 
@@ -339,15 +323,7 @@ export function sewerInspect(h: ComplexHost, id: string): Inspection | undefined
       affordances: [act(s.to === "street" ? (catacomb ? "Climb out" : cage ? "Ring for the surface" : adit ? "Walk out" : "Climb up to the street") : "Climb up")],
     };
   }
-  const found = thingAt(h, id);
-  if (!found) return undefined;
-  const { thing } = found, f = sewerFind(thing.find)!;
-  const done = doneOn(h.state, level)?.includes(thing.id);
-  return {
-    id, name: thing.name, kind: "object", pos: { ...useCell(thing), space: level.space },
-    description: done && !f.keeps ? "You have already been through this." : f.look,
-    affordances: done && (f.loot || f.fuel) && !f.heal ? [] : [act(f.verb)],
-  };
+  return undefined;
 }
 
 /** The label for the key, without building a whole inspection. */
@@ -432,14 +408,7 @@ export function sewerAct(h: ComplexHost, id: string) {
     arrive(h, above, back?.down ? "down" : "entry");
     h.advance(90);
     h.event("You climb back up to the level above.");
-    return;
   }
-  const found = thingAt(h, id);
-  if (!found) return;
-  const { thing } = found, f = sewerFind(thing.find)!;
-  takeFind(h, run, c, thing, f, complexRecord(h.state, `${run.kind}:${run.site}`).done, {
-    refuel: (fuel) => void (run.left >= 0 && ((run.left = Math.min(caveLight(run.light).burns * 1.5, run.left + fuel)), (run.low = false))),
-  });
 }
 
 /** Time passing below: the light burns, the water rises with rain, and the people down here go about it. */

@@ -26,7 +26,7 @@ const cellKey = (x: number, y: number): number | string =>
     ? (x + 32768) * 65536 + (y + 32768)
     : `${x},${y}`;
 
-export function route(
+export function* routeSteps(
   start: Point,
   goal: Point,
   cost: (to: Point, from: Point, prev?: Point) => number,
@@ -42,7 +42,7 @@ export function route(
     diagonal?: boolean;
     bounds?: { x: number; y: number; w: number; h: number };
   } = {},
-): RouteResult {
+): Generator<void, RouteResult> {
   const step = options.step ?? 1,
     max = options.maxNodes ?? 18000;
   const dirs = options.diagonal ? DIRS_8 : DIRS_4;
@@ -89,6 +89,7 @@ export function route(
       k = cellKey(current.p.x, current.p.y);
     if (current.g !== scores.get(k)) continue;
     visited++;
+    if (visited % 8 === 0) yield;
     if (
       options.isGoal
         ? options.isGoal(current.p)
@@ -141,4 +142,11 @@ export function route(
     visited,
     cost: Infinity,
   };
+}
+
+export function route(...args: Parameters<typeof routeSteps>): RouteResult {
+  const steps = routeSteps(...args);
+  let result = steps.next();
+  while (!result.done) result = steps.next();
+  return result.value;
 }

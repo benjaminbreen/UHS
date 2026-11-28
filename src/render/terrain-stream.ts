@@ -2,7 +2,7 @@ import { frostCover, setFrost, setSnowCover, snowCover } from "./snow-cover";
 import { usesLivingWater } from "./living-water/game";
 import { smallMemoryDevice, workerBudget } from "../runtime/device";
 import { worldWorker } from "../runtime/world-worker";
-import { peekTerrainWorker, takeSpareTerrainWorkers, takeTerrainWorker } from "../runtime/terrain-worker-owner";
+import { resumeSurveyInline, peekTerrainWorker, takeSpareTerrainWorkers, takeTerrainWorker } from "../runtime/terrain-worker-owner";
 import { seasonAt } from "../core/livelihood";
 import { tideAt } from "../content/geography/waterscapes";
 import { ensureWaterAtlas } from "./water-motifs";
@@ -775,6 +775,7 @@ export class TerrainStream {
     live.delete(this);
     this.abort();
     this.rasterJob = undefined;
+    resumeSurveyInline(this.world);
     for (const r of this.pool) r.worker.terminate();
     this.pool = [];
     this.prepared = undefined;

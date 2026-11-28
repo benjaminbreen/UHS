@@ -561,14 +561,111 @@ describe("tombs", () => {
     expect(run?.kind === "tomb" && run.left).toBeGreaterThan(0);
     expect(e.state.player.pos.space).toBe("tomb:theban.0:0");
     expect(e.complexMap()?.nodes.filter((n) => n.seen)).toHaveLength(1);
-    // Walk the plan to a sealed area and break in.
+    // Walk the tomb to a sealed area and break down its walled-up doorway prop.
     const plan = tombPlan(e.state.manifest.seed, theban, "theban.0"), sealed = plan.find((a) => a.sealed)!;
-    const L = e.areaOf(`tomb:theban.0:${sealed.id}`)!, wall = L.things.find((t) => t.find === "blocked-doorway")!;
-    expect(e.blocked(wall.x, wall.y, L.space)).toBe(true);
-    const beside = [[0, 1], [0, -1], [1, 0], [-1, 0]].map(([dx, dy]) => ({ x: wall.x + dx * (wall.w ?? 1), y: wall.y + dy * (wall.h ?? 1) })).find((q) => !e.blocked(q.x, q.y, L.space))!;
-    e.state.player.pos = { ...beside, space: L.space };
-    expect(e.act({ actionId: "break", expectedRevision: e.state.revision, command: { type: "interact", target: `tomb-thing:${wall.id}`, action: "complex" } }).status).toBe("completed");
-    expect(e.blocked(wall.x, wall.y, L.space)).toBe(false);
+    const targetSpace = `tomb:theban.0:${sealed.id}`;
+    const seen = new Set<string>([e.state.player.pos.space]);
+    const pathTo = (goal: string): string[] | undefined => {
+      const queue: string[][] = [[e.state.player.pos.space]];
+      while (queue.length) {
+        const cur = queue.shift()!, at = cur.at(-1)!;
+        if (at === goal) return cur;
+        const lv = e.areaOf(at)!;
+        for (const to of [...(lv.exits ?? []).map((x) => x.to), ...(lv.lifts ?? []).map((l) => l.to)])
+          if (to !== "outside" && !seen.has(to)) seen.add(to), queue.push([...cur, to]);
+      }
+    };
+    for (const next of (pathTo(targetSpace) ?? []).slice(1)) {
+      const lv = e.areaOf(e.state.player.pos.space)!;
+      const ex = lv.exits?.find((x) => x.to === next);
+      if (ex) {
+        e.state.player.pos = { x: ex.x + (ex.w >> 1), y: ex.y + (ex.h >> 1), space: lv.space };
+        e.advance(1);
+      } else {
+        const li = lv.lifts!.findIndex((l) => l.to === next);
+        e.state.player.pos = { x: lv.lifts![li].x, y: lv.lifts![li].y + 1, space: lv.space };
+        e.act({ actionId: `lift-${li}-${next}`, expectedRevision: e.state.revision, command: { type: "interact", target: `tomb-lift:${li}`, action: "complex" } });
+      }
+    }
+    expect(e.state.player.pos.space).toBe(targetSpace);
+    const wall = e.state.objects.find((o) => o.pos.space === targetSpace && o.prop === "tomb-blocked-doorway")!;
+    expect(wall).toBeDefined();
+    expect(wall.sprite).toMatch(/^made:tomb:painted-rock:blocking:blocked-doorway:/);
+    expect(e.blocked(wall.pos.x, wall.pos.y, targetSpace)).toBe(true);
+    const [ww, wh] = wall.size ?? [1, 1];
+    const beside = [[0, 1], [0, -1], [1, 0], [-1, 0]].map(([dx, dy]) => ({ x: wall.pos.x + dx * ww, y: wall.pos.y + dy * wh })).find((q) => !e.blocked(q.x, q.y, targetSpace))!;
+    e.state.player.pos = { ...beside, space: targetSpace };
+    expect(e.usable()).toMatchObject({ id: wall.id, label: "Break through" });
+    expect(e.complexVerb()).toBeUndefined();
+    expect(e.act({ actionId: "break", expectedRevision: e.state.revision, command: { type: "interact", target: wall.id, action: "attend" } }).status).toBe("completed");
+    expect(wall.depleted).toBe(true);
+    expect(e.blocked(wall.pos.x, wall.pos.y, targetSpace)).toBe(false);
+  });
+
+  it("stocks cave and sewer finds as catalogue props with rolled loot, lamp fuel and clearing", () => {
+    const cr = resolveSetting("A cave explorer in Rome, 1950");
+    if (!("setting" in cr)) throw new Error(cr.error);
+    const ce = smallSession(cr.setting, "cave-props");
+    // Open a cave directly through cave-mouth and verify its finds spawn as cave-* props.
+    ce.world.topography = (_x, y) => ({ height: y <= -1 ? 2 : 0, surface: "grass", rock: "limestone" });
+    let mouth: { x: number; y: number } | undefined;
+    for (let y = -40; y <= 40 && !mouth; y++)
+      for (let x = -40; x <= 40 && !mouth; x++) {
+        ce.state.player.pos = { x, y, space: "outside" };
+        if (ce.complexVerb()?.target.startsWith("cave-mouth:")) mouth = { x, y };
+      }
+    expect(mouth).toBeDefined();
+    ce.act({ actionId: "cave-in", expectedRevision: ce.state.revision, command: { type: "interact", target: `cave-mouth:${mouth!.x},${mouth!.y}`, action: "complex" } });
+    const caveSpace = ce.state.player.pos.space;
+    expect(caveSpace.startsWith("cave:")).toBe(true);
+    const caveProps = ce.state.objects.filter((o) => o.pos.space === caveSpace && o.prop?.startsWith("cave-"));
+    expect(caveProps.length).toBeGreaterThan(0);
+    const pick = caveProps[0];
+    expect(pick.sprite).toMatch(/^made:cave:/);
+    ce.state.player.pos = { x: pick.pos.x, y: pick.pos.y + 1, space: caveSpace };
+    expect(ce.usable()?.id).toBe(pick.id);
+    expect(ce.act({ actionId: "cave-use", expectedRevision: ce.state.revision, command: { type: "interact", target: pick.id, action: "attend" } }).status).toBe("completed");
+    expect(pick.open).toBe(true);
+
+    // Sewer and mine finds also spawn as sewer-* / mine-* catalogue props on arrival.
+    const sr = resolveSetting("A debtor in London, 1750");
+    if (!("setting" in sr)) throw new Error(sr.error);
+    const se = smallSession(sr.setting, "sewer-props");
+    se.state.player.inventory.tool = 1;
+    for (const a of se.state.actors) if (a.pos.space === se.state.player.pos.space) a.pos = { x: 1, y: 1, space: a.pos.space };
+    const grate = se.areaOf(se.state.player.pos.space)!.things!.find((t) => t.id === "grate")!;
+    se.state.player.pos = { x: grate.x, y: grate.y, space: se.state.player.pos.space };
+    se.act({ actionId: "grate-1", expectedRevision: se.state.revision, command: { type: "interact", target: "prison-thing:grate", action: "complex" } });
+    se.act({ actionId: "grate-2", expectedRevision: se.state.revision, command: { type: "interact", target: "prison-thing:grate", action: "complex" } });
+    const sewerSpace = se.state.player.pos.space;
+    expect(sewerSpace.startsWith("sewer:")).toBe(true);
+    const sewerProps = se.state.objects.filter((o) => o.pos.space === sewerSpace && o.prop?.startsWith("sewer-"));
+    expect(sewerProps.length).toBeGreaterThan(0);
+    const sPick = sewerProps[0];
+    expect(sPick.sprite).toMatch(/^made:sewer:/);
+    se.state.player.pos = { x: sPick.pos.x, y: sPick.pos.y + 1, space: sewerSpace };
+    expect(se.usable()?.id).toBe(sPick.id);
+    expect(se.act({ actionId: "sewer-use", expectedRevision: se.state.revision, command: { type: "interact", target: sPick.id, action: "attend" } }).status).toBe("completed");
+    expect(sPick.open).toBe(true);
+
+    // Mine finds spawn as mine-* props when entering a mine.
+    const mr = resolveSetting("A miner in Durham, 1880");
+    if (!("setting" in mr)) throw new Error(mr.error);
+    const me = smallSession(mr.setting, "mine-props");
+    const pit = me.world.places[0];
+    pit.institution = "mine";
+    me.state.player.pos = { x: pit.entrance.x, y: pit.entrance.y, space: "outside" };
+    me.act({ actionId: "mine-in", expectedRevision: me.state.revision, command: { type: "interact", target: pit.id, action: "enter" } });
+    const mineSpace = me.state.player.pos.space;
+    expect(mineSpace.startsWith("mine:")).toBe(true);
+    const mineProps = me.state.objects.filter((o) => o.pos.space === mineSpace && o.prop?.startsWith("mine-"));
+    expect(mineProps.length).toBeGreaterThan(0);
+    const mPick = mineProps[0];
+    expect(mPick.sprite).toMatch(/^made:sewer:mine:/);
+    me.state.player.pos = { x: mPick.pos.x, y: mPick.pos.y + 1, space: mineSpace };
+    expect(me.usable()?.id).toBe(mPick.id);
+    expect(me.act({ actionId: "mine-use", expectedRevision: me.state.revision, command: { type: "interact", target: mPick.id, action: "attend" } }).status).toBe("completed");
+    expect(mPick.open).toBe(true);
   });
 
   it("enters world's fairs (with ticket), palaces (free), and cliff tombs from the open map", async () => {
@@ -728,11 +825,15 @@ describe("prisons, gaols, and confinement", () => {
     const e = smallSession(r.setting, "fleet-1750");
     expect(e.state.player.pos.space).toBe("prison:debtors-gaol.0:main");
     const area = e.areaOf(e.state.player.pos.space)!;
-    const spoon = area.things!.find((t) => t.id === "spoon")!;
+    const spoon = e.state.objects.find((o) => o.pos.space === e.state.player.pos.space && o.prop === "prison-spoon")!;
+    expect(spoon).toBeDefined();
+    expect(spoon.sprite).toMatch(/^made:prison:wards:spoon$/);
     const stone = area.things!.find((t) => t.id === "loose-stone")!;
-    // Hide spoon, pry loose stone 3 times, and break out to the street.
-    e.state.player.pos = { x: spoon.x, y: spoon.y, space: e.state.player.pos.space };
-    e.act({ actionId: "spoon", expectedRevision: e.state.revision, command: { type: "interact", target: "prison-thing:spoon", action: "complex" } });
+    // Hide spoon via the catalogue prop system, pry loose stone 3 times, and break out to the street.
+    e.state.player.pos = { x: spoon.pos.x, y: spoon.pos.y, space: e.state.player.pos.space };
+    expect(e.usable()).toMatchObject({ id: spoon.id, label: "Hide the iron spoon" });
+    expect(e.act({ actionId: "spoon", expectedRevision: e.state.revision, command: { type: "interact", target: spoon.id, action: "attend" } }).status).toBe("completed");
+    expect(spoon.depleted).toBe(true);
     expect(e.state.player.inventory.tool).toBeGreaterThanOrEqual(1);
     e.state.player.pos = { x: stone.x, y: stone.y, space: e.state.player.pos.space };
     for (let i = 0; i < 3; i++) {

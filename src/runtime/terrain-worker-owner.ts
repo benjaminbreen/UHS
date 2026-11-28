@@ -1,4 +1,6 @@
+import { surveyEntrances, type MapEntrance } from "../world/travel/entrances";
 import type { WorldModel } from "../core/types";
+import type { SettlementWorld } from "../world/v3/generate";
 import type { PreparedSettlement } from "../world/v3/prepared";
 import type { TerrainRequest } from "../render/terrain-worker";
 import { TERRAIN_CHUNK_PAD as PAD, TERRAIN_CHUNK_SIZE as SIZE } from "../render/terrain-region";
@@ -6,6 +8,56 @@ import { workerBudget } from "./device";
 import { worldWorker } from "./world-worker";
 const workers = new WeakMap<WorldModel, Worker>();
 const spares = new WeakMap<WorldModel, Worker[]>();
+const surveys = new WeakMap<WorldModel, {
+  start(side?: string): void; inline(): void; cancel(): void;
+}>();
+
+export function stageEntranceSurvey(world: WorldModel, routes: MapEntrance[], port?: MessagePort, worker?: Worker) {
+  const map = world.pack.setting!.playableMap!;
+  let started = false, preferred: string | undefined, cancel: (() => void) | undefined;
+  const order = new Map(map.exits.map((e, i) => [e.id, i]));
+  const receive = (route: MapEntrance) => {
+    if (!routes.some(e => e.id === route.id)) {
+      routes.push(route);
+      routes.sort((a, b) => order.get(a.id)! - order.get(b.id)!);
+    }
+    if (routes.length === map.exits.length) {
+      cancel?.();
+      worker?.removeEventListener("error", inline);
+      port?.close();
+      surveys.delete(world);
+    }
+  };
+  const start = (side?: string) => {
+    if (started && preferred === side) return;
+    started = true;
+    preferred = side;
+    if (port) port.postMessage(side ?? null);
+    else cancel ??= surveyEntrances(world, map.size, map.exits, receive, () => preferred);
+  };
+  const stop = () => {
+    worker?.removeEventListener("error", inline);
+    port?.postMessage(false);
+    port?.close();
+    port = undefined;
+    cancel?.();
+  };
+  const inline = () => {
+    if (!port) return;
+    stop();
+    if (started) { started = false; start(preferred); }
+  };
+  if (port) {
+    worker?.addEventListener("error", inline);
+    port.onmessage = ({ data }: MessageEvent<MapEntrance>) => receive(data);
+    port.onmessageerror = inline;
+  }
+  surveys.set(world, { start, inline, cancel: stop });
+}
+
+export const surveyMapEdges = (world: WorldModel, side?: string) => surveys.get(world)?.start(side);
+export const surveyingEdges = (world: WorldModel) => surveys.has(world);
+export const resumeSurveyInline = (world: WorldModel) => surveys.get(world)?.inline();
 export function retainTerrainWorker(world: WorldModel, worker: Worker) {
   workers.set(world, worker);
 }
@@ -22,7 +74,16 @@ export function takeSpareTerrainWorkers(world: WorldModel) {
   spares.delete(world);
   return taken;
 }
-export function releaseTerrainWorker(world: WorldModel) {
+export function releaseTerrainWorker(world: WorldModel, successor?: WorldModel) {
+  const survey = surveys.get(world);
+  if (survey) {
+    survey.cancel();
+    surveys.delete(world);
+    const entrances = (world as SettlementWorld).entrances;
+    // Living on in a later year can reuse the very same unfinished map.
+    if (successor && entrances && entrances === (successor as SettlementWorld).entrances)
+      stageEntranceSurvey(successor, entrances());
+  }
   takeTerrainWorker(world)?.terminate();
   for (const worker of takeSpareTerrainWorkers(world)) worker.terminate();
 }

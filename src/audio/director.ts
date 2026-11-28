@@ -8,6 +8,7 @@ import {
   type Era,
   type Score,
   type Stem,
+  type Voice as SynthVoice,
 } from "./score";
 import type { CultureId } from "../content/history/types";
 import {
@@ -15,7 +16,7 @@ import {
   culturalMusic,
   MusicRotation,
 } from "./cultural-themes";
-import { createMix, scheduleNote, prepareScore, type MixBus } from "./synth";
+import { createMix, scheduleNote, prepareScore, synthesize, type MixBus } from "./synth";
 import { bodily, events, interfaceClick, noise, playSound, ring, tone, type EventId, type InterfaceKind, type Sound } from "./sfx";
 import { applyTuning, tuning } from "./sfx-tuning";
 import { Ambience, Room, UndergroundBed, silence, type AmbienceMix, type UndergroundLevels } from "./ambience";
@@ -779,7 +780,52 @@ export class AudioDirector {
     this.ambience?.set(mix);
     this.room?.set(mix);
     if (this.ctx)
-      this.duck?.gain.setTargetAtTime(mix.music, this.ctx.currentTime, 1.5);
+      this.duck?.gain.setTargetAtTime(this.instrumentDuck ? mix.music * 0.12 : mix.music, this.ctx.currentTime, this.instrumentDuck ? 0.25 : 1.2);
+  }
+  private instrumentDuck = false;
+  private instrumentBuffers = new Map<string, AudioBuffer>();
+  /** Ducks background music while the player plays an interactive instrument panel. */
+  setInstrumentDuck(active: boolean) {
+    if (this.instrumentDuck === active) return;
+    this.instrumentDuck = active;
+    if (this.ctx) {
+      const target = active ? this.heard(this.scene).music * 0.12 : this.heard(this.scene).music;
+      this.duck?.gain.setTargetAtTime(target, this.ctx.currentTime, active ? 0.2 : 0.9);
+    }
+  }
+  /** Plays a single live note through the room's acoustic reverb using the synth voice bank. */
+  async playInstrumentNote(voice: SynthVoice, midi: number, velocity = 0.85, sustain = 1.8) {
+    if (this.disposed || this.state.muted) return;
+    try {
+      const ctx = await this.unlock();
+      if (this.disposed || this.state.muted) return;
+      const key = `${voice}:${midi}:${ctx.sampleRate}`;
+      let buf = this.instrumentBuffers.get(key);
+      if (!buf) {
+        const samples = synthesize(voice, midi, 0, 0, ctx.sampleRate);
+        buf = ctx.createBuffer(1, samples.length, ctx.sampleRate);
+        buf.getChannelData(0).set(samples);
+        if (this.instrumentBuffers.size > 128) {
+          const first = this.instrumentBuffers.keys().next().value;
+          if (first) this.instrumentBuffers.delete(first);
+        }
+        this.instrumentBuffers.set(key, buf);
+      }
+      const src = ctx.createBufferSource();
+      const gain = ctx.createGain();
+      const now = ctx.currentTime;
+      const peak = Math.max(0.05, Math.min(1, velocity)) * 0.48 * Math.max(0.35, this.state.volume || 0.7);
+      src.buffer = buf;
+      gain.gain.setValueAtTime(peak, now);
+      const stopAt = Math.min(buf.duration, Math.max(0.35, sustain));
+      gain.gain.setValueAtTime(peak, now + Math.max(0.08, stopAt - 0.28));
+      gain.gain.exponentialRampToValueAtTime(0.0008, now + stopAt);
+      src.connect(gain).connect(this.room?.input(0) ?? this.sfx ?? this.master!);
+      src.start(now);
+      src.stop(now + stopAt + 0.03);
+    } catch {
+      /* Audio context unavailable. */
+    }
   }
   setLevel(stem: Stem, value: number) {
     const level = Math.max(0, Math.min(1, value));

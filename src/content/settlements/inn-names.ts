@@ -12,6 +12,8 @@ type Tongue = "english" | "french" | "german" | "dutch" | "spanish" | "italian" 
 
 function tongueOf(s: WorldSetting): Tongue {
   const { lon, lat, year, culture } = s;
+  // Texas and Florida were the United States' by 1850, south of the old line.
+  if (lon < -30 && year >= 1520) return lat > 31 || (year >= 1850 && lat > 25.8 && lon > -106 && lon < -80) ? "english" : "spanish";
   if (culture === "european") {
     if (lat > 50 && lon < 1.7 && lon > -11) return "english";
     if (lat < 44 && lon < 3.3) return "spanish";
@@ -21,7 +23,6 @@ function tongueOf(s: WorldSetting): Tongue {
     if (lon > -5 && lon < 8 && lat > 42 && lat < 51.2) return "french";
     return "other";
   }
-  if (lon < -30 && year >= 1520) return lat > 31 ? "english" : "spanish";
   if (culture === "australian-pacific" && year >= 1788 && lat < -10) return "english";
   return "other";
 }

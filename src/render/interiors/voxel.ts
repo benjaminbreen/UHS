@@ -133,7 +133,7 @@ function build(p: RoomParams, props: Prop[], holes: Set<number>) {
 
   const cat = props.find((q) => q.kind === "cat");
   for (const q of props) {
-    if (q.wrecked) continue;
+    if (q.wrecked || q.hidden) continue;
     if (q === cat) continue;
     id = q.id;
     // Wall pieces are written as if their wall were row 0; dy moves them to it.

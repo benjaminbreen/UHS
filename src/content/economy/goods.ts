@@ -1,7 +1,8 @@
 import type { Livelihood } from "../characters/context-types";
 
 /** `match` retains the old production inference for pinned generation inputs. */
-export type Good = { id: string; noun: string; need?: boolean; match: RegExp };
+/** `readyMade`: from this year a household buys it factory-made from outside the map, not from a neighbour. */
+export type Good = { id: string; noun: string; need?: boolean; readyMade?: number; match: RegExp };
 export const loavesPerSack = 8;
 export const goods: Good[] = [
   { id: "bread", noun: "bread", need: true, match: /bak|bread|mill|oven/ },
@@ -29,18 +30,21 @@ export const goods: Good[] = [
     id: "cloth",
     noun: "cloth",
     need: true,
+    readyMade: 1950,
     match: /weav|fuller|dyer|wool|spin|tailor|seam|flax|linen|draper|cloth|dressmak/,
   },
   {
     id: "pots",
     noun: "pots",
     need: true,
+    readyMade: 1950,
     match: /pott|basket|cooper|glazier/,
   },
   {
     id: "ironwork",
     noun: "ironwork",
     need: true,
+    readyMade: 1920,
     match: /smith|armour|farrier|cutler|nail/,
   },
   {
@@ -65,7 +69,7 @@ export const goods: Good[] = [
 export const standsIn: Record<string, string> = { bread: "grain" };
 
 const byTrade: Record<string, string[]> = {
-  baker: ["bread"], miller: ["grain"], butcher: ["meat"],
+  baker: ["bread"], grocer: ["bread", "milk", "oil", "salt"], miller: ["grain"], butcher: ["meat"],
   dairymaid: ["milk"], milkmaid: ["milk"], "dairy-farmer": ["milk"], confectioner: [],
   innkeeper: ["drink"], publican: ["drink"], tobacconist: ["tobacco"], "paan-seller": ["tobacco"],
   printer: ["books"], jeweller: ["finery"], watchmaker: ["finery"],

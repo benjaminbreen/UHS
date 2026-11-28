@@ -1104,8 +1104,10 @@ export function routineFor(
     field,
     pasture,
     !!kit && processFor(kit, pack.setting?.economyRevision)?.indoors,
+    actor?.relations?.find(r => r.kind === "master" && r.reciprocal === "apprentice")?.other ?? id,
   );
-  if (errands.length && errands[errands.length - 1].activity === "rest")
+  const last = errands.at(-1);
+  if (last?.activity === "rest" && !last.placeId)
     return errands;
   return [
     ...(errands.length
@@ -1129,6 +1131,7 @@ function workdayFor(
   field?: Plot,
   pasture?: { x: number; y: number; w: number; h: number },
   indoorTrade = false,
+  owner = id,
 ): Station[] {
   const { year } = pack;
   const depot = store(plan, id);
@@ -1226,6 +1229,8 @@ function workdayFor(
         : [];
     }
     case "market": {
+      const shop = plan.places.find(p => p.owner === owner && p.shopKind && p.access === "public");
+      if (shop) return [inside(plan, shop.entrance, "Minding the shop counter", 300, shop.id)];
       const pitch = stall(plan, seed, id);
       return pitch
         ? [
@@ -1260,6 +1265,16 @@ function workdayFor(
     case "household":
       return memberRoutine(plan, seed, id, home, year, false);
     default: {
+      // A trade worked indoors is worked at the bench in the house itself.
+      const house = indoorTrade
+        ? plan.places.find((p) => p.owner === owner && (p.access === "household" || !!p.shopKind))
+        : undefined;
+      if (house)
+        return [
+          inside(plan, house.entrance, label, 240, house.id),
+          socialStop(plan, seed, id, home),
+          { ...night(home), share: 0.15 },
+        ];
       const bench = indoorWork
         ? doorFor(plan, seed, id, label, home, site.work)
         : undefined;
@@ -1268,16 +1283,6 @@ function workdayFor(
           inside(plan, bench, label, 300),
           socialStop(plan, seed, id, home),
           { ...night(home), share: 0.1 },
-        ];
-      // A trade worked indoors is worked at the bench in the house itself.
-      const house = indoorTrade
-        ? plan.places.find((p) => p.owner === id && p.access === "household")
-        : undefined;
-      if (house)
-        return [
-          inside(plan, house.entrance, label, 240, house.id),
-          socialStop(plan, seed, id, home),
-          { ...night(home), share: 0.15 },
         ];
       return craftRoutine(plan, seed, id, id, home, site.work, label);
     }

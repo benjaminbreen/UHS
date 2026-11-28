@@ -96,6 +96,29 @@ export function cachedArea<L extends Area>(h: ComplexHost, space: string, build:
   return entry;
 }
 
+/** Puts an area's props into the world the first time it is entered. */
+export function stockArea(h: ComplexHost, level: Area, key: string) {
+  const rec = complexRecord(h.state, key);
+  if (!level.props?.length || (rec.stocked ??= []).includes(level.space)) return;
+  rec.stocked.push(level.space);
+  level.props.forEach((q, i) => {
+    const def = propDefs[q.key];
+    if (!def) return;
+    h.state.objects.push({
+      id: `${level.space}:prop${i}`,
+      prop: q.key,
+      name: q.name ?? def.name,
+      kind: "container",
+      sprite: q.sprite,
+      description: q.description,
+      inventory: q.loot ? { ...q.loot } : { ...def.contents },
+      open: false,
+      pos: { x: q.x, y: q.y, space: level.space },
+      ...(q.size && q.size[0] * q.size[1] > 1 ? { size: q.size } : {}),
+    });
+  });
+}
+
 /** Puts the player in an area: beside the exit or lift that leads back to `from`, or at its entry.
  * The complex's record, by `key`, notes the area as walked. */
 export function arriveIn(h: ComplexHost, level: Area, key: string, from?: string) {
@@ -107,13 +130,7 @@ export function arriveIn(h: ComplexHost, level: Area, key: string, from?: string
   if (lift) p.direction = 2;
   const rec = complexRecord(h.state, key);
   if (!(rec.seen ??= []).includes(level.space)) rec.seen.push(level.space);
-  if (level.props?.length && !(rec.stocked ??= []).includes(level.space)) {
-    rec.stocked.push(level.space);
-    level.props.forEach((q, i) => {
-      const def = propDefs[q.key];
-      if (def) h.state.objects.push({ id: `${level.space}:prop${i}`, prop: q.key, name: def.name, kind: "container", sprite: q.sprite, description: q.description, inventory: { ...def.contents }, open: false, pos: { x: q.x, y: q.y, space: level.space } });
-    });
-  }
+  stockArea(h, level, key);
   folkArrive(h.folk, level.space, level.folk);
 }
 

@@ -16,6 +16,7 @@ import type { Actor, Inventory } from "../src/core/types";
 import { createSettingSession } from "../src/runtime/session";
 import { carriedItems } from "../src/content/characters/carried";
 import { deviceMessages, deviceModel, deviceModels } from "../src/content/devices";
+import { deviceTexts, en as deviceText, localDeviceText } from "../src/content/device-text";
 import { itemArt } from "../src/render/item-art";
 import { items } from "../src/content/packs";
 
@@ -709,5 +710,21 @@ describe("what people carry", () => {
     const pages = deviceMessages(deviceModel("pager", 1993, "east-asian")!, { seed: "p", day: 3, year: 1993, culture: "east-asian", place: "Tokyo", people: ["Yuki", "Ken"], asks: [], news: [] });
     expect(pages.length).toBeGreaterThan(0);
     for (const page of pages) expect(page.text).toMatch(/^[\d -]+$/);
+  });
+
+  it("has every device string in each local language, with the same lists and placeholders", () => {
+    const shape = (value: unknown, path: string, out: Record<string, string>) => {
+      if (typeof value === "string") out[path] = (value.match(/\{\w+\}/g) ?? []).sort().join("");
+      else if (value && typeof value === "object") for (const [k, v] of Object.entries(value)) shape(v, `${path}.${k}`, out);
+      return out;
+    };
+    const { codes: _, name: __, ...base } = deviceText;
+    for (const text of deviceTexts) {
+      const { codes, name, dir: ___, ...rest } = text;
+      expect(shape(rest, name, {}), name).toEqual(shape(base, name, {}));
+      for (const code of Object.keys(codes)) expect(deviceText.codes[code], `${name} ${code}`).toBeDefined();
+    }
+    expect(localDeviceText(139.7, 35.7)?.name).toBe("日本語");
+    expect(localDeviceText(-87.6, 41.9)).toBeUndefined();
   });
 });

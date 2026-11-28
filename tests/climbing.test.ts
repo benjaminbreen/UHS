@@ -205,6 +205,29 @@ it("sends the watch along the wall to order the player down", () => {
   runtime.dispose();
 });
 
+it("hurts far more jumping off a town wall than hopping a field wall", () => {
+  const jump = (frame: string) => {
+    const engine = createSession("roman", "wall-jump");
+    engine.world.topography = undefined;
+    engine.world.elevation = () => 0;
+    engine.world.terrain = () => "grass";
+    engine.state.actors = [];
+    engine.state.objects = [];
+    engine.world.blocked = (x) => x === 2;
+    engine.world.places = [];
+    engine.world.enclosures = [{ x: 2, y: -4, w: 1, h: 9, gate: { x: 2, y: 4 },
+      parts: Array.from({ length: 9 }, (_, i) => ({ x: 2, y: i - 4, frame })) }];
+    engine.state.player.pos = { x: 1, y: 0, space: "outside" };
+    const runtime = new Runtime(engine, { cacheTerrain: false });
+    runtime.climb();
+    runtime.climb(1, 0);
+    runtime.dispose();
+    return 100 - (engine.state.player.health ?? 100);
+  };
+  expect(jump("wall")).toBeLessThan(10);
+  expect(jump("wall-masonry-5-0")).toBeGreaterThanOrEqual(30);
+});
+
 it("lets the player talk, pay or step their way down from the watch", () => {
   const setup = (seed: string) => {
     const engine = createSession("roman", seed);
@@ -513,4 +536,54 @@ it("sprints off a roof edge across a street, and only as far as the run-up carri
   sprint(1);
   expect(engine.state.player.perch).toMatchObject({ on: "c", at: { x: 17, y: -1 } });
   runtime.dispose();
+});
+
+it("names vehicles, furniture, fences and street trees instead of falling back to the wall", () => {
+  const engine = createSession("roman", "climb-labels");
+  engine.world.topography = undefined;
+  engine.world.elevation = () => 0;
+  engine.world.terrain = (x, y) => (x === 10 && y === 0 ? "water" : "grass");
+  engine.world.decoration = () => undefined;
+  engine.world.places = [];
+  engine.world.enclosures = [{ x: 20, y: 0, w: 1, h: 1, gate: { x: 20, y: 5 }, parts: [{ x: 20, y: 0, frame: "study-propb-works-fence-0" }] }];
+  engine.state.actors = [];
+  const solid = new Set(["2,0", "3,0", "4,0", "2,-1", "3,-1", "4,-1", "6,0", "7,0", "8,0", "10,0", "14,0", "16,0", "20,0"]);
+  engine.world.blocked = (x, y) => solid.has(`${x},${y}`);
+  engine.state.objects = [
+    { id: "pickup", name: "Pickup truck", kind: "monument", sprite: "vehicle-pickup-1975-0-e", pos: { x: 3, y: 0, space: "outside" }, inventory: {}, car: { model: "pickup-1975", paint: 0, rect: [2, -1, 4, 0] } },
+    { id: "bench", name: "Park bench", kind: "monument", sprite: "study-propb-park-bench-0", pos: { x: 7, y: 0, space: "outside" }, inventory: {} },
+    { id: "sign", name: "Stop sign", kind: "monument", sprite: "sign", pos: { x: 14, y: 0, space: "outside" }, inventory: {} },
+    { id: "street-tree", name: "Street tree", kind: "tree", sprite: "study-propb-city-plane-0", pos: { x: 16, y: 0, space: "outside" }, inventory: {} },
+  ];
+
+  // Parked pickup truck (whose rect is in plan.solid): climbs the truck, not the wall.
+  engine.state.player.pos = { x: 3, y: 1, space: "outside" };
+  expect(engine.climbable()).toMatchObject({ id: "pickup", label: "the pickup truck" });
+  expect(engine.tallAt({ x: 3, y: 0 })).toEqual({ label: "the pickup truck" });
+
+  // Once driven away, its freed parking cells do not report a ghost wall.
+  engine.state.objects[0].car!.freed = [2, -1, 4, 0];
+  delete engine.state.objects[0].car!.rect;
+  engine.state.objects[0].motor = { facing: 2, long: false, taken: true, slim: 1 };
+  engine.state.objects[0].pos = { x: 30, y: 0, space: "outside" };
+  expect(engine.climbable()).toBeUndefined();
+  // Standing next to the moved truck still names the truck.
+  engine.state.player.pos = { x: 30, y: 1, space: "outside" };
+  expect(engine.climbable()).toMatchObject({ id: "pickup", label: "the pickup truck" });
+
+  // Wide park bench: both centre and side cells name the bench.
+  engine.state.player.pos = { x: 6, y: 1, space: "outside" };
+  expect(engine.climbable()).toMatchObject({ id: "bench", label: "the park bench" });
+
+  // Deep water and street signs are not climbable walls.
+  engine.state.player.pos = { x: 10, y: 1, space: "outside" };
+  expect(engine.climbable()).toBeUndefined();
+  engine.state.player.pos = { x: 14, y: 1, space: "outside" };
+  expect(engine.climbable()).toBeUndefined();
+
+  // Street tree WorldObject names the street tree; fence enclosure names the fence.
+  engine.state.player.pos = { x: 16, y: 1, space: "outside" };
+  expect(engine.climbable()).toMatchObject({ id: "street-tree", label: "the street tree" });
+  engine.state.player.pos = { x: 20, y: 1, space: "outside" };
+  expect(engine.climbable()).toMatchObject({ label: "the fence" });
 });

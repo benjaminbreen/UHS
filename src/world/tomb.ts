@@ -298,13 +298,26 @@ function build(seed: string, style: TombStyle, site: string, plan: TombArea[], a
   };
   if (L.exits.some((e) => !beside(e.x, e.y, e.w, e.h)) || L.lifts.some((l) => !beside(l.x, l.y))) return undefined;
   if (L.things.some((t) => (t.wall ? !reach[(t.y + 1) * w + t.x] : !beside(t.x, t.y, t.w, t.h)))) return undefined;
+  L.props = L.things.map((t) => {
+    t.prop = true;
+    const fw = t.w ?? 1, fh = t.h ?? 1;
+    return {
+      key: `tomb-${t.find}`,
+      sprite: `made:tomb:${style.look}:${t.art}:${t.find}:${fw}x${fh}:${(t.x * 7 + t.y * 3) % 10}${t.wall ? ":wall" : ""}`,
+      x: t.x,
+      y: t.y,
+      name: t.name,
+      ...(Object.keys(t.loot).length ? { loot: t.loot } : {}),
+      ...(fw * fh > 1 ? { size: [fw, fh] as [number, number] } : {}),
+    };
+  });
   return L;
 }
 
-/** Cells no one can stand in: every cell of a standing find, the pillars and rubble, the foot of a rope. */
+/** Cells no one can stand in: every cell of a non-prop standing find, the pillars and rubble, the foot of a rope. */
 export function tombSolid(L: TombLevel) {
   const solid = new Set<number>();
-  for (const t of L.things) if (t.solid) for (let y = t.y; y < t.y + (t.h ?? 1); y++) for (let x = t.x; x < t.x + (t.w ?? 1); x++) solid.add(y * L.w + x);
+  for (const t of L.things) if (t.solid && !t.prop) for (let y = t.y; y < t.y + (t.h ?? 1); y++) for (let x = t.x; x < t.x + (t.w ?? 1); x++) solid.add(y * L.w + x);
   for (const d of L.decor as AreaDecor[]) if (d.solid) solid.add(d.y * L.w + d.x);
   for (const l of L.lifts) solid.add(l.y * L.w + l.x);
   return solid;

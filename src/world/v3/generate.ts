@@ -118,6 +118,7 @@ export type SettlementWorld = WorldModel & {
   /** A site's plan by its id, once it has been built. */
   planOf(siteId: string): SettlementPlan | undefined;
   entrances(): MapEntrance[];
+  atOpeningTerrain(read: () => void): void;
   prepare(): PreparedSettlement;
 };
 /** A camp keeps no road to its neighbours: herders move across open grass. */
@@ -138,11 +139,14 @@ function sharedCells<V>(cells: Map<string, V>) {
 /** What the browser worker hands the main thread: the props already placed and
  * the routines searched around them, so arrival neither places them again
  * (0.8s in Surat) nor spends a second and a half on path searches. */
-export function prepareSettlement(pack: Pack, seed: string, cached?: PreparedSettlement, retire = false) {
+export function prepareSettlement(pack: Pack, seed: string, cached?: PreparedSettlement, retire = false, deferEntrances = false) {
   // Not warmed here: withProps clears and searches every routine again.
   const world = createSettlementWorld(pack, seed, cached, false);
-  if (cached?.props) return { world, prepared: cached };
-  world.entrances();
+  if (cached?.props) {
+    if (!deferEntrances && !cached.entrances) return { world, prepared: { ...cached, entrances: world.entrances() } };
+    return { world, prepared: cached };
+  }
+  if (!deferEntrances) world.entrances();
   // Only a worker staying on to paint terrain needs to keep its original world.
   const town = retire ? world : createSettlementWorld(pack, seed, structuredClone(cached ?? world.prepare()));
   const props = propState();
@@ -3572,13 +3576,18 @@ export function createSettlementWorld(
   const keptFauna: FaunaGroup[] = [];
   const passing = new Map<number, Passing[]>();
   const journeys = new Map<string, Itinerary>();
+  let waitingForRoads = false;
   /** The day's passers-by, made once and kept with yesterday's, who may
    * still be on the road. */
   function passersBy(day: number) {
+    const exits = pack.setting?.situation ? [] : entrances();
+    const pending = exits.length < (pack.setting?.playableMap?.exits.length ?? 0);
+    if (waitingForRoads && !pending) passing.clear();
+    waitingForRoads = pending;
     let list = passing.get(day);
     if (list) return list;
-    const ways = !pack.setting?.situation
-      ? entrances().filter((e): e is Way => e.walkable && !!e.point && e.path.length > 1)
+    const ways = !pending
+      ? exits.filter((e): e is Way => e.walkable && !!e.point && e.path.length > 1)
       : [];
     list = wayfarerDay(world, seed, pack, ways, day);
     for (const [key, old] of passing)
@@ -3598,8 +3607,18 @@ export function createSettlementWorld(
   }
   const world: SettlementWorld = {
     entrances,
+    atOpeningTerrain(read) {
+      // A tide turning or a tree felled between slices must not redraw a permanent crossing.
+      const season = liveSeason, tide = liveTide, edit = decorationEdit;
+      world.setSeason!(pack.setting?.season ?? "summer", 0);
+      decorationEdit = undefined;
+      try { read(); } finally {
+        decorationEdit = edit;
+        world.setSeason!(season, tide);
+      }
+    },
     prepare: () => ({
-      entrances: entrances(),
+      entrances: entranceCache,
       // The starting town's routines are searched here, off the main thread,
       // so arrival costs a lookup rather than seconds of path searches.
       // All of them: warming the town also routes residents its plan does not

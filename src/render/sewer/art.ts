@@ -1,7 +1,10 @@
 import type Phaser from "phaser";
+import type { TunnelDepth, TunnelKind } from "../../content/sewers";
+import type { TunnelNetwork } from "../../world/sewer";
 import { paintCatacombObject } from "./catacomb-art";
 import { paintMineObject } from "./mine-art";
 import type { SewerPalette } from "./palette";
+import { paletteOf } from "./terrain";
 
 type Ctx = CanvasRenderingContext2D;
 export const css = (c: readonly number[], a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${a})`;
@@ -455,4 +458,18 @@ export function paintStairDown(t: Phaser.Textures.CanvasTexture, tuff: boolean) 
   }
   r(g, IRON[3], 0, 0, w, 1), r(g, IRON[1], 0, 1, w, 1);
   t.refresh();
+}
+
+/** A sewer, mine or catacomb find's canvas from its sprite name, `made:sewer:<network>:<kind>:<layer>:<v>:<art>[:done]`. */
+export function sewerPicture(frame: string) {
+  const done = frame.endsWith(":done");
+  const m = /^made:sewer:([^:]+):([^:]+):([^:]+):(\d+):(.+)$/.exec(done ? frame.slice(0, -5) : frame);
+  if (!m) return undefined;
+  const pal = paletteOf({ network: m[1] as TunnelNetwork, kind: m[2] as TunnelKind, layer: m[3] as TunnelDepth });
+  if (!pal) return undefined;
+  const canvas = document.createElement("canvas");
+  canvas.width = 48;
+  canvas.height = 56;
+  paintSewerObject(canvas.getContext("2d")!, m[5], 16, 40, pal, Number(m[4]) / 10, done);
+  return canvas;
 }

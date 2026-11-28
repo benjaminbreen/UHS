@@ -4,6 +4,7 @@ const base = process.env.PERF_URL ?? "http://127.0.0.1:4173";
 const label = process.argv[2] ?? "current";
 const frameCount = Number(process.env.PERF_FRAMES ?? 360);
 const mobile = process.env.PERF_MOBILE === "1";
+const firstStepOnly = process.env.PERF_FIRST_STEP === "1";
 
 async function sampleMemory(page) {
   const cdp = await page.context().newCDPSession(page);
@@ -118,6 +119,26 @@ try {
         ),
       ).observe({ type: "longtask", buffered: true });
     });
+    if (firstStepOnly && !mobile) await page.addInitScript(() => {
+      const post = Worker.prototype.postMessage;
+      window.edgeCounts = {};
+      Worker.prototype.postMessage = function (message, ...args) {
+        if (message?.prepare?.setting.playableMap) {
+          const { seed, setting } = message.prepare;
+          const prepared = ({ data }) => {
+            if (!data.prepared) return;
+            this.removeEventListener("message", prepared);
+            const edges = window.edgeCounts[seed + "/" + setting.playableMap.id] =
+              { total: setting.playableMap.exits.length, ready: data.prepared.entrances?.length ?? 0 };
+            data.entrancePort?.addEventListener("message", () => {
+              if (++edges.ready === edges.total) edges.finishedMs = Math.round(performance.now() - window.beginAt);
+            });
+          };
+          this.addEventListener("message", prepared);
+        }
+        return post.call(this, message, ...args);
+      };
+    });
     const start = Date.now();
     await page.goto(base);
     await page
@@ -133,13 +154,13 @@ try {
           ? "A hunter in Anatolia, 6500 BCE"
           : "Hellenistic Alexandria"),
       );
-    await page.evaluate(() => {
+    await setup.getByRole("button", { name: "Begin", exact: true }).evaluate((button) => button.addEventListener("click", () => {
       window.longTasks = [];
-      const start = performance.now(), stages = {};
+      const start = window.beginAt = performance.now(), stages = {};
       window.startupStages = stages;
       const selectors = {
-        portraitMs: ".arrival-details.is-ready",
-        engineMs: ".arrival-enter:not([disabled])",
+        portraitMs: ".arrival-details.is-ready, .descent-who p",
+        engineMs: ".arrival-enter:not([disabled]), .descent-enter:not([disabled])",
         playableMs: '.game-container canvas[data-terrain-playable="true"]',
       };
       const observer = new MutationObserver(() => {
@@ -149,7 +170,7 @@ try {
         if (stages.playableMs !== undefined) observer.disconnect();
       });
       observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class", "disabled", "data-terrain-playable"] });
-    });
+    }, { once: true, capture: true }));
     const selection = Date.now();
     memory?.phase("loading");
     await setup.getByRole("button", { name: "Begin", exact: true }).click();
@@ -163,7 +184,7 @@ try {
     const canvas = page.locator(
       '.game-container canvas[data-terrain-ready="true"]',
     );
-    const [readyMs, entryMs] = await Promise.all([
+    const [readyMs, entryMs] = firstStepOnly ? [] : await Promise.all([
       canvas.waitFor({ timeout: 90000 }).then(() => Date.now() - selection),
       page.waitForFunction(() => !!window.historySim, null, { timeout: 90000 })
         .then(() => Date.now() - selection),
@@ -171,6 +192,38 @@ try {
     const startupTasks = await page.evaluate(() => window.longTasks);
     const startupStages = await page.evaluate(() => window.startupStages);
     await page.getByRole("button", { name: /^(Begin your day|Continue)$/ }).click({ timeout: 30000 });
+    if (firstStepOnly) {
+      await page.locator(".plot-veil").waitFor({ state: "hidden", timeout: 30000 });
+      const first = await page.evaluate(() => window.historySim.observe().player.pos);
+      let step;
+      for (const key of ["ArrowRight", "ArrowDown", "ArrowLeft", "ArrowUp"]) {
+        await page.keyboard.down(key);
+        try {
+          const moved = await page.waitForFunction((from) => {
+            const { player, manifest } = window.historySim.observe();
+            const mapId = manifest.setting.playableMap?.id;
+            if (player.pos.x !== from.x || player.pos.y !== from.y)
+              return { firstMovementMs: Math.round(performance.now() - window.beginAt),
+                mapId, exitsAtFirstStep: window.edgeCounts?.[manifest.seed + "/" + mapId]?.ready, to: player.pos, seed: manifest.seed, location: manifest.setting.location, year: manifest.setting.year };
+          }, first, { timeout: 1500 });
+          step = await moved.jsonValue();
+        } catch (e) {
+          if (e.name !== "TimeoutError") throw e;
+        } finally { await page.keyboard.up(key); }
+        if (step) break;
+      }
+      if (!step) throw Error("No arrow key moved the player.");
+      mkdirSync("artifacts/performance", { recursive: true });
+      await page.screenshot({ path: `artifacts/performance/${label}.png` });
+      const edges = !mobile && step.mapId && await (await page.waitForFunction((key) => {
+        const counts = window.edgeCounts[key];
+        return counts && counts.ready === counts.total && counts;
+      }, step.seed + "/" + step.mapId, { timeout: 120000 })).jsonValue();
+      reports.push({ world, from: first, ...step, edges, startupStages: await page.evaluate(() => window.startupStages), errors, memory: await memory?.stop() });
+      if (errors.length) throw Error(errors.join("\n"));
+      await page.close();
+      continue;
+    }
     await page
       .locator('.game-container canvas[data-terrain-pending="0"]')
       .waitFor({ timeout: 90000 });

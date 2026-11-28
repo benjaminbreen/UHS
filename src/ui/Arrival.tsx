@@ -1,13 +1,11 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense } from "react";
 import type { Engine } from "../core/engine";
 import type { WorldSetting } from "../content/geography/types";
-import { resolveCharacterContext } from "../content/characters/resolve";
-import { sexFromName } from "../content/characters/name-sex";
-import { actorAppearance, appearanceForAge, type CharacterAppearance } from "../core/character";
 import type { StartingCharacter } from "../runtime/preparation";
 import { formatHistoricalYear } from "../core/calendar";
 import { ArrivalPortrait } from "./ArrivalPortrait";
 import { aimLabel } from "../content/goals/types";
+import { useArrival } from "./use-arrival";
 import { arrivalBackdrop, birthPercentile } from "./arrival-data";
 import "./arrival.css";
 
@@ -21,32 +19,7 @@ export function Arrival({ setting, engine, character, ready = !!engine, onEnter,
   onEnter: () => void;
   onCancel: () => void;
 }) {
-  const [requested, setRequested] = useState(false);
-  const [leaving, setLeaving] = useState(false);
-  const [opening] = useState(() => !window.matchMedia("(prefers-reduced-motion: reduce)").matches);
-  useEffect(() => {
-    if (!requested || !ready) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) onEnter();
-    else setLeaving(true);
-  }, [requested, ready, onEnter]);
-  const player = engine?.state.player ?? character;
-  const age = player?.age;
-  const baseAppearance = useMemo(() => engine
-    ? actorAppearance(engine.state.player, resolveCharacterContext(setting).appearance)
-    : character ? appearanceForAge(character.appearance, character.age) : undefined,
-  [engine, character, setting]);
-  const [resolved, setResolved] = useState<{ engine: Engine; appearance: CharacterAppearance }>();
-  useEffect(() => {
-    if (!engine || !baseAppearance) return;
-    let active = true;
-    void import("../runtime/session").then(({ resolvedAppearance }) => {
-      if (active) setResolved({ engine, appearance: resolvedAppearance(engine, engine.state.player, baseAppearance) });
-    });
-    return () => { active = false; };
-  }, [engine, baseAppearance]);
-  const appearance = resolved && resolved.engine === engine ? resolved.appearance : baseAppearance;
-  const sex = player?.origin?.sex && player.origin.sex !== "unspecified"
-    ? player.origin.sex : appearance?.physique?.sex ?? sexFromName(setting.characterName);
+  const { requested, setRequested, leaving, opening, player, age, appearance, sex } = useArrival({ setting, engine, character, ready, onEnter });
   const birth = birthPercentile(setting.year);
   const work = engine?.dailyGoals().find((g) => g.slot === "work")?.text;
   const aim = engine?.state.lifeAim;

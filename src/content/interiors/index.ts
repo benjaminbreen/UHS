@@ -10,6 +10,7 @@ import { assemblies, civic } from "./civic";
 import { factoryFor } from "./factories";
 import { officeFor } from "./offices";
 import { theatres } from "./theatres";
+import { overlookHotel } from "./overlook";
 import { prehistoric } from "./prehistoric";
 import { southAsia } from "./south-asia";
 import { tents } from "./tents";
@@ -44,6 +45,7 @@ export const publicInteriorGroups: { label: string; profiles: InteriorProfile[] 
   { label: "Civic and schools", profiles: civic },
   { label: "Assembly houses", profiles: assemblies },
   { label: "Theatres", profiles: theatres },
+  { label: "Hotels", profiles: [overlookHotel] },
   { label: "Offices and stores", profiles: [["Offices", 1880], ["Offices", 1930], ["Offices", 1990], ["Bank", 1900], ["Department store", 1910]].map(([name, year]) => officeFor(name as string, year as number)!) },
   { label: "Works", profiles: ["Weaving shed", "Spinning room", "Machine shop", "Foundry", "Printing works"].map((name) => factoryFor(name, 1900, 0)) },
 ];

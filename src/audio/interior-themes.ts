@@ -18,7 +18,14 @@ export type InteriorMusic =
   | "court-china"
   | "court-roman"
   | "court-islamic"
-  | "court-hall";
+  | "court-hall"
+  | "opera"
+  | "broadway"
+  | "playhouse"
+  | "stage-japan"
+  | "cinema-silent"
+  | "cinema-classic"
+  | "cinema-modern";
 
 const everywhere = {
   culture: [],
@@ -385,6 +392,143 @@ export const interiorThemes: Record<InteriorMusic, LayeredTheme> = {
       { voice: "pluck", stem: "harmony", loop: "-:.5 B3+D4:.5 -:.5 B3+D4:.5 -:.5 C4+E4:.5 -:.5 A3+D4:.5", velocity: 0.08, pan: 0.3, enter: 8 },
     ],
   },
+  opera: {
+    ...everywhere,
+    id: "inside-aria-of-ravenna",
+    title: "Aria of Ravenna",
+    subtitle: "A soaring soprano aria in 3/4 over sweeping harp arpeggios, cello, strings, French horn, and a chorus entering on the refrain.",
+    evidence: "Fiction: an original operatic waltz-aria in D minor and F major for a grand opera house.",
+    bpm: 84,
+    meter: 3,
+    bars: 32,
+    key: "D minor",
+    reverb: [0.55, 3.6],
+    sections: [{ bar: 0, label: "Overture & harp" }, { bar: 4, label: "Soprano aria" }, { bar: 16, label: "Chorus & horn swell" }],
+    layers: [
+      { voice: "harp", stem: "harmony", loop: "D3:.5 A3:.5 D4:.5 F4:.5 D4:.5 A3:.5 Bb2:.5 F3:.5 Bb3:.5 D4:.5 Bb3:.5 F3:.5 G2:.5 D3:.5 G3:.5 Bb3:.5 G3:.5 D3:.5 A2:.5 E3:.5 A3:.5 C#4:.5 A3:.5 E3:.5", velocity: 0.24, pan: -0.25 },
+      { voice: "cello", stem: "bass", loop: "D2:3 Bb1:3 G1:3 A1:3 F2:3 C2:3 G1:3 A1:3", velocity: 0.38 },
+      { voice: "strings", stem: "harmony", loop: "F4:3 D4:3 Bb3:3 A3:2 C#4:1 A4:3 G4:3 D4:3 E4:3", velocity: 0.22, pan: 0.2 },
+      { voice: "singer", stem: "melody", loop: "-:12 A4:2 Bb4:1 A4:1.5 G4:.5 F4:1 G4:2 A4:1 E4:3 F4:2 G4:1 A4:1.5 C5:.5 D5:1 C5:2 Bb4:1 A4:3 D5:2 C5:1 Bb4:1.5 A4:.5 G4:1 A4:2 F4:1 E4:2 D4:1", velocity: 0.34, enter: 4 },
+      { voice: "horn", stem: "harmony", loop: "D4:3 F4:3 G4:3 E4:3 A4:3 G4:3 Bb4:3 A4:3", velocity: 0.16, pan: -0.35, enter: 12 },
+      { voice: "choir", stem: "harmony", loop: "D4+F4:3 Bb3+D4:3 G3+Bb3:3 A3+C#4:3 F4+A4:3 E4+G4:3 D4+G4:3 E4+A4:3", velocity: 0.17, pan: 0.1, enter: 16 },
+    ],
+  },
+  broadway: {
+    ...everywhere,
+    id: "inside-curtain-up-42nd",
+    title: "Curtain Up on 42nd",
+    subtitle: "A bright pit-orchestra overture with clarinet, brass horn, stride piano, walking bass, and brushed snare.",
+    evidence: "Fiction: an original Broadway showtune overture in Bb major.",
+    bpm: 122,
+    meter: 4,
+    bars: 32,
+    key: "Bb major",
+    reverb: [0.3, 1.8],
+    layers: [
+      { voice: "bass", stem: "bass", loop: "Bb1:1 D2:1 F2:1 G2:1 Eb2:1 G2:1 F2:1 D2:1 C2:1 E2:1 F2:1 A2:1 Bb1:1 F2:1 Bb2:1 F2:1", velocity: 0.28 },
+      { voice: "piano", stem: "harmony", loop: "-:1 Bb3+D4:1 -:1 Bb3+D4:1 -:1 Eb4+G4:1 -:1 C4+F4:1 -:1 C4+Eb4:1 -:1 A3+F4:1 -:1 Bb3+D4:1 -:1 F3+C4:1", velocity: 0.2, pan: -0.25 },
+      { voice: "brush", stem: "percussion", loop: "C4:1 C4:.5 C4:.5 C4:1 C4:.5 C4:.5", velocity: 0.08, pan: 0.35 },
+      { voice: "snare", stem: "percussion", loop: "-:1 C4:.5 -:1.5 C4:.5 -:.5", velocity: 0.05, pan: 0.3, enter: 4 },
+      { voice: "clarinet", stem: "melody", loop: "F4:.5 G4:.5 Bb4:1 D5:1 C5:1 Bb4:1.5 G4:.5 Eb4:2 F4:.5 G4:.5 A4:1 C5:1 Bb4:1 D5:2 -:2", velocity: 0.26, pan: 0.15 },
+      { voice: "horn", stem: "melody", loop: "-:8 Bb4:1 D5:1 F5:1.5 D5:.5 Eb5:1 C5:1 A4:1 F4:1 Bb4:2 -:2", velocity: 0.2, pan: -0.2, enter: 8 },
+      { voice: "strings", stem: "harmony", loop: "D5:4 Eb5:4 C5:4 D5:4", velocity: 0.14, enter: 12 },
+    ],
+  },
+  playhouse: {
+    ...everywhere,
+    id: "inside-footlights-and-velvet",
+    title: "Footlights and Velvet",
+    subtitle: "Harpsichord, flute, lute and strings play an entr'acte between scenes of the play.",
+    evidence: "Fiction: an original theatrical consort piece in G minor.",
+    bpm: 96,
+    meter: 3,
+    bars: 32,
+    key: "G minor",
+    reverb: [0.28, 1.8],
+    layers: [
+      { voice: "harpsichord", stem: "harmony", loop: "G3:.5 Bb3:.5 D4:.5 G4:.5 D4:.5 Bb3:.5 F3:.5 A3:.5 C4:.5 F4:.5 C4:.5 A3:.5 Eb3:.5 G3:.5 Bb3:.5 Eb4:.5 Bb3:.5 G3:.5 D3:.5 F#3:.5 A3:.5 D4:.5 A3:.5 F#3:.5", velocity: 0.22, pan: -0.2 },
+      { voice: "cello", stem: "bass", loop: "G2:3 F2:3 Eb2:3 D2:3 C2:3 Bb1:3 A1:3 D2:3", velocity: 0.28 },
+      { voice: "flute", stem: "melody", loop: "D5:2 C5:1 Bb4:1.5 A4:.5 G4:1 A4:2 Bb4:1 A4:3 G4:2 A4:1 Bb4:1.5 C5:.5 D5:1 C5:2 Bb4:1 A4:3", velocity: 0.24, pan: 0.2, enter: 4 },
+      { voice: "strings", stem: "harmony", loop: "G4:3 A4:3 G4:3 F#4:3", velocity: 0.16, enter: 8 },
+      { voice: "frame", stem: "percussion", loop: "D3:1 -:1 D3:.5 D3:.5", velocity: 0.08, pan: 0.35, enter: 12 },
+    ],
+  },
+  "stage-japan": {
+    ...everywhere,
+    id: "inside-pine-and-clapper",
+    title: "Pine and Clapper",
+    subtitle: "Bamboo flute, shamisen pluck, sho breath chords, tsuzumi drum and wooden hyoshigi clappers.",
+    evidence: "Inference: noh and kabuki stages use flute, plucked lute, hand drums and wooden clappers on Japanese pentatonic scales; this piece is original.",
+    bpm: 74,
+    meter: 4,
+    bars: 32,
+    key: "E Hirajoshi",
+    reverb: [0.38, 2.4],
+    layers: [
+      { voice: "sho", stem: "harmony", loop: "E4+B4:8 F4+C5:8 E4+B4:8 B3+E4:8", velocity: 0.14, pan: -0.2 },
+      { voice: "pluck", stem: "harmony", loop: "E3:1 B3:1 C4:1 B3:1 E3:2 -:2 F3:1 B3:1 E4:1 C4:1 B3:2 -:2", velocity: 0.24, pan: 0.2 },
+      { voice: "flute", stem: "melody", loop: "-:4 B4:2 C5:1 B4:1 E5:3 -:1 F5:1 E5:1 C5:2 B4:3 -:5 E5:2 F5:1 E5:1 C5:2 B4:2 E4:4 -:4", velocity: 0.24, pan: -0.1, enter: 4 },
+      { voice: "wood", stem: "percussion", loop: "-:7 C6:.5 C6:.5 -:7 C6:.5 -:1.5", velocity: 0.14, pan: 0.4 },
+      { voice: "frame", stem: "percussion", loop: "D3:1 -:2 D3:.5 D3:.5 -:3 D3:1", velocity: 0.13, pan: -0.35, enter: 2 },
+    ],
+  },
+  "cinema-silent": {
+    ...everywhere,
+    id: "inside-silver-sheet-rag",
+    title: "Flicker on the Silver Sheet",
+    subtitle: "A jaunty upright pit piano accompanying the silent reel over the soft whisper of projector crackle.",
+    evidence: "Inference: storefront nickelodeons from 1910 to 1924 relied on solo upright piano improvisation; this tune is original.",
+    bpm: 118,
+    meter: 4,
+    bars: 32,
+    key: "C major",
+    reverb: [0.22, 1.3],
+    layers: [
+      { voice: "piano", stem: "harmony", loop: "C2:.5 E3+G3:.5 G2:.5 E3+G3:.5 C2:.5 E3+G3:.5 G2:.5 E3+G3:.5 F2:.5 A3+C4:.5 C3:.5 A3+C4:.5 G2:.5 B3+D4:.5 D3:.5 B3+D4:.5", velocity: 0.22, pan: -0.15 },
+      { voice: "piano", stem: "melody", loop: "E4:.5 G4:.5 C5:.5 A4:.5 G4:1 E4:1 D4:.5 F4:.5 A4:.5 G4:.5 F4:1 D4:1 E4:.5 G4:.5 B4:.5 C5:.5 D5:1 B4:1 C5:2 -:2", velocity: 0.3, pan: 0.1 },
+      { voice: "crackle", stem: "percussion", loop: "C4:4 C4:4", velocity: 0.08 },
+    ],
+  },
+  "cinema-classic": {
+    ...everywhere,
+    id: "inside-matinee-technicolor",
+    title: "Matinee in Technicolor",
+    subtitle: "Sweeping golden-age studio strings, smoky clarinet, French horn, harp and vibraphone inside a picture palace.",
+    evidence: "Fiction: an original classic Hollywood orchestral cinema score in Eb major.",
+    bpm: 90,
+    meter: 4,
+    bars: 32,
+    key: "Eb major",
+    reverb: [0.42, 2.6],
+    layers: [
+      { voice: "cello", stem: "bass", loop: "Eb2:4 C2:4 Ab1:4 Bb1:4", velocity: 0.32 },
+      { voice: "strings", stem: "harmony", loop: "G4:2 Bb4:2 Eb5:3 D5:1 C5:2 Ab4:2 Bb4:4 G4:2 F4:2 Eb4:2 G4:2 F4:4 -:4", velocity: 0.26, pan: -0.15 },
+      { voice: "harp", stem: "harmony", loop: "Eb3:.5 G3:.5 Bb3:.5 Eb4:.5 Bb3:.5 G3:.5 Eb3:1 C3:.5 Eb3:.5 G3:.5 C4:.5 G3:.5 Eb3:.5 C3:1", velocity: 0.16, pan: 0.25 },
+      { voice: "clarinet", stem: "melody", loop: "-:8 Bb4:1.5 C5:.5 Bb4:1 G4:1 Ab4:2 F4:2 G4:1.5 Ab4:.5 G4:1 Eb4:1 F4:4", velocity: 0.24, pan: 0.15, enter: 4 },
+      { voice: "horn", stem: "harmony", loop: "Eb4:4 G4:4 Ab4:4 Bb4:4", velocity: 0.14, pan: -0.3, enter: 12 },
+      { voice: "vib", stem: "harmony", loop: "Bb4:2 G5:2 Eb5:4 C5:2 Ab5:2 F5:4", velocity: 0.12, pan: 0.3, enter: 8 },
+    ],
+  },
+  "cinema-modern": {
+    ...everywhere,
+    id: "inside-projector-beam",
+    title: "Projector Beam",
+    subtitle: "Warm widescreen analog synth pads, pulsing bassline, arpeggiated keys and sci-fi shimmer in a darkened multiplex.",
+    evidence: "Fiction: an original 1980s widescreen cinema synthesizer score in C minor.",
+    bpm: 108,
+    meter: 4,
+    bars: 32,
+    key: "C minor",
+    reverb: [0.44, 2.5],
+    layers: [
+      { voice: "pad", stem: "harmony", loop: "C3+G3+Eb4:8 Ab2+Eb3+C4:8 Bb2+F3+D4:8 G2+D3+B3:8", velocity: 0.22 },
+      { voice: "ebass", stem: "bass", loop: "C2:.5 C2:.5 C2:.5 C2:.5 C2:.5 C2:.5 G1:.5 Bb1:.5 Ab1:.5 Ab1:.5 Ab1:.5 Ab1:.5 Bb1:.5 Bb1:.5 G1:.5 G1:.5", velocity: 0.24 },
+      { voice: "keys", stem: "harmony", loop: "C4:.5 Eb4:.5 G4:.5 C5:.5 G4:.5 Eb4:.5 C4:.5 G4:.5 Ab3:.5 C4:.5 Eb4:.5 Ab4:.5 Eb4:.5 C4:.5 Bb3:.5 F4:.5", velocity: 0.16, pan: -0.25, enter: 4 },
+      { voice: "saw", stem: "melody", loop: "-:8 G4:2 Bb4:1 C5:1 Eb5:3 D5:1 C5:2 Bb4:2 G4:4 F4:2 G4:1 Ab4:1 G4:2 F4:2 Eb4:4", velocity: 0.19, pan: 0.15, enter: 8 },
+      { voice: "kick", stem: "percussion", loop: "C2:1 -:1 C2:1 -:1", velocity: 0.12, enter: 8 },
+      { voice: "hat", stem: "percussion", loop: "-:.5 C5:.5 -:.5 C5:.5", velocity: 0.05, pan: 0.3, enter: 12 },
+    ],
+  },
 };
 
 /** The court music of a palace, by how it is built; undefined where none is written yet, and the outdoor score plays on. */
@@ -397,6 +541,17 @@ export function courtMusic(style: PalaceStyle | undefined): InteriorMusic | unde
   return (style.order ?? "classical") === "classical" && style.emblem === "sun" ? "court-baroque" : undefined;
 }
 
+export function stageMusic(style: string | undefined): InteriorMusic | undefined {
+  if (!style?.startsWith("stage-")) return undefined;
+  if (style === "stage-opera-grand" || style === "stage-opera") return "opera";
+  if (style === "stage-broadway") return "broadway";
+  if (style === "stage-noh" || style === "stage-kabuki") return "stage-japan";
+  if (style === "stage-cinema-silent") return "cinema-silent";
+  if (style === "stage-cinema") return "cinema-classic";
+  if (style === "stage-cinema-wide") return "cinema-modern";
+  return "playhouse";
+}
+
 /** Which piece a building's use calls for; undefined means the room is left quiet. */
 export function interiorMusic(use: string | undefined, home: boolean): InteriorMusic | undefined {
   if (!use) return home ? "home" : "workshop";
@@ -405,5 +560,10 @@ export function interiorMusic(use: string | undefined, home: boolean): InteriorM
   if (/temple|wat|shrine|kiva|lodge|bath|hammam|sento|temazcal/.test(use)) return "temple";
   if (/caravanserai|\bhan\b|sarai|ryokan|hatago|kezhan|mansio|caupona|tambo|dharamshala|fondaco|funduq|posada|hotel|motel|hostel|guesthouse|lodging|zongo|\binn\b/.test(use)) return "inn";
   if (/tavern|alehouse|izakaya|kahve|coffee|gaming|pulqu|chich|tea|chaikhana/.test(use)) return "tavern";
+  if (/opera-house|opera/.test(use)) return "opera";
+  if (/grand-theatre|broadway/.test(use)) return "broadway";
+  if (/noh-stage|kabuki/.test(use)) return "stage-japan";
+  if (/playhouse|theatre|theater/.test(use)) return "playhouse";
+  if (/cinema|nickelodeon|multiplex/.test(use)) return "cinema-classic";
   return "hall";
 }

@@ -371,6 +371,7 @@ export const KEEPERS: Record<string, string[]> = {
   bakery: ["baker", "confectioner"], bookshop: ["printer"], pub: ["publican", "innkeeper"],
   bank: ["bank-clerk", "clerk"], offices: ["clerk", "bank-clerk"], "department store": ["shopkeeper", "trader"],
   supermarket: ["grocer", "shopkeeper"],
+  cinema: ["theatre-owner", "concession-seller", "ticket-taker", "projectionist"],
 };
 /** Trades that keep an unnamed shop, so a street of them is not all one thing. */
 export const SHOP_TRADES = [

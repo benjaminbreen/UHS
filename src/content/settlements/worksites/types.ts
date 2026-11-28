@@ -41,9 +41,10 @@ export type WorksiteProfile = {
   note: string;
 };
 export function worksiteFits(p: WorksiteProfile, s: WorldSetting) {
-  const { years, bounds, cultures, places } = p.scope;
+  const { years, bounds, except, cultures, places } = p.scope;
+  const inBox = (b: readonly number[]) => s.lon >= b[0] && s.lat >= b[1] && s.lon <= b[2] && s.lat <= b[3];
   return (!p.revision || (s.worksiteRevision ?? 1) >= p.revision) && s.year >= years[0] && s.year < years[1] &&
-    (!bounds || s.lon >= bounds[0] && s.lat >= bounds[1] && s.lon <= bounds[2] && s.lat <= bounds[3]) &&
+    (!bounds || inBox(bounds)) && !except?.some(inBox) &&
     (!cultures || cultures.includes(s.culture)) &&
     (!places || places.includes(s.placeId)) &&
     (!p.urban || s.settlement === "city" || s.settlement === "port");

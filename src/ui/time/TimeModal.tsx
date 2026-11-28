@@ -11,9 +11,29 @@ import { lineBetween, relative, type Relative } from "../../core/time/lineage";
 import { gameAudio } from "../../audio/director";
 import { timeSound } from "../../audio/time";
 import { CharacterSprite } from "../CharacterSprite";
+import { arrivalBackdrop } from "../arrival-data";
 import "./time.css";
 
 type Stage = "choose" | "prepare" | "travel" | "arrive" | "family";
+// The paintings stop at the present; the future is left dark.
+const PAINTED_UNTIL = 2030;
+
+/** Period paintings behind the dial, cross-faded as the year changes. Loaded
+ * only while this modal is open, so they cost the game's start nothing. */
+function Scenery({ src }: { src?: string }) {
+  const [layers, setLayers] = useState<{ src: string; id: number; ready: boolean }[]>([]);
+  const next = useRef(0);
+  useEffect(() => {
+    if (src) setLayers((now) => now.at(-1)?.src === src ? now : [...now.slice(-1), { src, id: next.current++, ready: false }]);
+  }, [src]);
+  const shown = src ? [...layers].reverse().find((layer) => layer.ready)?.id : undefined;
+  return <div className="time-scenery" aria-hidden="true">
+    {layers.map((layer) => <img key={layer.id} src={layer.src} alt="" decoding="async"
+      className={layer.id === shown ? "is-shown" : undefined}
+      onLoad={() => setLayers((now) => now.map((l) => l.id === layer.id ? { ...l, ready: true } : l))} />)}
+  </div>;
+}
+
 export function TimeModal({
   runtime,
   aim,
@@ -43,6 +63,20 @@ export function TimeModal({
   const source = useRef(runtime.engine);
   const committed = useRef(false);
   const busy = stage === "prepare" || stage === "travel";
+  const setting = travel.origin.world.pack.setting;
+  const painting = (y: number) => setting && y <= PAINTED_UNTIL ? arrivalBackdrop({ ...setting, year: y }) : undefined;
+  // While the dial moves, wait for it to rest before fetching a painting.
+  const [restingYear, setRestingYear] = useState(year);
+  const [scrubbing, setScrubbing] = useState(false);
+  useEffect(() => {
+    if (year === restingYear) return;
+    setScrubbing(true);
+    const rest = setTimeout(() => setRestingYear(year), 180);
+    const still = setTimeout(() => setScrubbing(false), 700);
+    return () => { clearTimeout(rest); clearTimeout(still); };
+  }, [year]);
+  const [backward, setBackward] = useState(false);
+  const sceneYear = stage === "choose" ? restingYear : busy ? shownYear : arrival?.year ?? travel.currentYear;
   useEffect(() => {
     if (stage !== "choose") panel.current?.focus();
     if (stage === "family") panel.current?.querySelector(".time-relative.selected")?.scrollIntoView({ block: "nearest" });
@@ -75,6 +109,10 @@ export function TimeModal({
     if (!active.current) return;
     try {
       const prepared = travel.prepare(year, source.current);
+      setBackward(year < travel.currentYear);
+      // Every painting the passage will pass through, fetched before the dial reaches it.
+      for (const src of new Set(Array.from({ length: 25 }, (_, i) => painting(Math.round(travel.currentYear + (year - travel.currentYear) * i / 24)))))
+        if (src) new Image().src = src;
       const reduced = window.matchMedia(
         "(prefers-reduced-motion: reduce)",
       ).matches;
@@ -195,11 +233,12 @@ export function TimeModal({
   );
   return (
     <div
-      className={`time-veil time-${stage}`}
+      className={`time-veil time-${stage}${scrubbing ? " is-scrubbing" : ""}${backward ? " is-backward" : ""}`}
       data-modal="true"
       data-testid="time-modal"
       style={{ "--passage": progress } as React.CSSProperties}
     >
+      <Scenery src={stage === "family" ? undefined : painting(sceneYear)} />
       <div className="time-atmosphere" aria-hidden="true" />
       <div
         className="time-dialog"

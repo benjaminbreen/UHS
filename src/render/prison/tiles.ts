@@ -629,3 +629,18 @@ export function paintOpenDrain(look: PrisonLook): Raster {
   }
   return r;
 }
+
+/** A prison prop's picture from its sprite name: `made:prison:<layout>:spoon` or a transparent click box `made:prison:blank:<w>x<h>` when `prisonSprites` already paints the fixture. */
+export function prisonPicture(frame: string) {
+  const blank = /^made:prison:blank:(\d+)x(\d+)$/.exec(frame);
+  if (blank) return new Raster(Number(blank[1]) * 16, Number(blank[2]) * 16);
+  const m = /^made:prison:([^:]+):spoon$/.exec(frame);
+  const look = m && prisonLooks[m[1] as PrisonLayout];
+  if (!look) return undefined;
+  const s = paintSpoon(look), out = new Raster(16, 16);
+  for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) {
+    const i = (y * s.w + x) * 4, o = ((y + 2) * out.w + x + 1) * 4;
+    for (let k = 0; k < 4; k++) out.data[o + k] = s.data[i + k];
+  }
+  return out;
+}

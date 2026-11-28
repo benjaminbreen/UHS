@@ -23,6 +23,7 @@ import { workplaceFor } from "../characters/workplace";
 import { momentRooms, settingSchema, type AtlasPlace, type WorldSetting } from "./types";
 import { curatedStarts } from "./curated-starts";
 import { livelihoodById, livelihoodIds } from "../characters/livelihoods";
+import { encodeTheatreRoom, resolveTheatreVenueId, THEATER_VIEWER_PRESETS, theatreStartFromPrompt, type TheatreStartMode } from "../interiors/performances";
 import type { RequestedCondition } from "../health/conditions";
 export { normalize } from "./situation";
 const has = (q: string, word: string) =>
@@ -286,12 +287,111 @@ const ROOM_WORDS: [string, (typeof momentRooms)[number]][] = [
 ];
 const words = (w: string) => new RegExp(`(?:\\b(?:with|in|on|on a|using|uses|has)\\s+)?(?:\\b(?:a|an)\\s+)?\\b(?:${w})\\b(?:\\s+(?:day|morning|weather))?`, "gi");
 
+/** Builds a ready-to-play WorldSetting for Settings → Developer → "Go to the theater". */
+export function theaterViewerSetting(
+  presetId: string,
+  opts: { show?: string; mode?: TheatreStartMode } = {},
+  seed = "theater-viewer",
+): WorldSetting {
+  const preset = THEATER_VIEWER_PRESETS.find((p) => p.id === presetId) ?? THEATER_VIEWER_PRESETS[0];
+  const place = places.find((p) => p.id === preset.placeId) ?? places.find((p) => p.settlement === "city") ?? places[0];
+  const mode = opts.mode ?? "seat";
+  const film = preset.group === "cinema" ? (opts.show || preset.film) : undefined;
+  const play = preset.group === "stage" ? (opts.show || preset.play) : undefined;
+  const base = populateCharacter(
+    { ...settingFor(place, preset.year), role: preset.role, characterName: preset.role },
+    seed,
+  );
+  return {
+    ...base,
+    startIn: "theatre",
+    venue: preset.venue,
+    venueRoom: encodeTheatreRoom(mode, { film, play }),
+  };
+}
+
 /** A start can ask for a condition ("a blind beggar") and the weather ("a
  * snowy day") besides its place and work. A prompt that names only those, or
  * a role, gets a place and year where they fit. */
 export function resolveSetting(input: string, seed = "earth-2"): ReturnType<typeof resolvePrompt> {
   const ill = CONDITION_WORDS.map(([w, c]) => [words(w), c] as const).filter(([w]) => w.test(input));
   const sky = WEATHER_WORDS.map(([w, c]) => [words(w), c] as const).filter(([w]) => w.test(input));
+  const theatre = !OVERLOOK_PROMPT.test(input) ? theatreStartFromPrompt(input) : undefined;
+  if (theatre) {
+    const condition = !ill.length ? undefined : ill.find(([, c]) => c)?.[1] ?? ANY_CONDITION[Math.floor(random(seed, "condition", input) * ANY_CONDITION.length)];
+    const weather = sky[0]?.[1], season = weather && weatherSeason[weather];
+    const cleaned = [...ill, ...sky]
+      .reduce((t, [w]) => t.replace(w, " "), input)
+      .replace(new RegExp(theatre.match.source, "gi"), " ")
+      .replace(/\b(?:watching|seeing|going\s+to|listening\s+to|at|in|on|a|an|the)\b/gi, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+    let found: ReturnType<typeof resolvePrompt> | undefined;
+    if (cleaned) {
+      const attempt = resolvePrompt(cleaned, seed, false);
+      if ("setting" in attempt) found = attempt;
+    }
+    let setting: WorldSetting;
+    const [, defaultYear] = theatre.defaults[Math.floor(random(seed, "theatre-start", input) * theatre.defaults.length)];
+    let explicitYear: number | undefined;
+    try {
+      const asked = dateFromPrompt(input, -1000001, seed);
+      if (asked !== -1000001) explicitYear = asked;
+    } catch { /* fall back to defaultYear */ }
+    if (found && "setting" in found) {
+      setting = { ...found.setting };
+      const minYear =
+        theatre.venue === "auto-cinema" || theatre.venue === "nickelodeon" ? 1910
+        : theatre.venue === "cinema" ? 1925
+        : theatre.venue === "multiplex" ? 1966
+        : theatre.venue === "opera-house" ? 1680
+        : theatre.venue === "broadway-theatre" ? 1885
+        : theatre.venue === "kabuki-theatre" ? 1650
+        : theatre.venue === "noh-theatre" ? 1400
+        : 1570;
+      if (explicitYear === undefined && setting.year < minYear) {
+        const place = places.find((p) => p.id === setting.placeId);
+        if (place) setting = { ...settingFor(place, defaultYear), role: setting.role, characterName: setting.characterName, brief: setting.brief };
+      }
+      const genericRole = !setting.role || /^(?:Traveler|Person|Resident|Townsperson|Citizen)$/i.test(setting.role);
+      if (theatre.work || genericRole) {
+        setting = populateCharacter(
+          {
+            ...setting,
+            role: theatre.role,
+            ...(theatre.work ? { brief: { ...setting.brief, work: theatre.work } } : {}),
+          },
+          seed,
+        );
+      }
+    } else {
+      const [placeId] = theatre.defaults[Math.floor(random(seed, "theatre-start", input) * theatre.defaults.length)];
+      const place = places.find((p) => p.id === placeId) ?? places.find((p) => p.settlement === "city") ?? places[0];
+      const year = explicitYear ?? defaultYear;
+      setting = populateCharacter(
+        {
+          ...settingFor(place, year),
+          role: theatre.role,
+          characterName: theatre.role,
+          ...(theatre.work ? { brief: { work: theatre.work } } : {}),
+        },
+        seed,
+      );
+    }
+    const named = /\b(?:spring|summer|autumn|fall|winter)\b/i.test(input);
+    const venue = resolveTheatreVenueId(theatre.venue, setting.year);
+    const venueRoom = encodeTheatreRoom(theatre.mode, { film: theatre.film, play: theatre.play });
+    setting = {
+      ...setting,
+      ...(condition ? { condition } : {}),
+      ...(weather ? { weather } : {}),
+      ...(season && !named ? { season } : {}),
+      startIn: "theatre",
+      venue,
+      venueRoom,
+    };
+    return { setting, description: describeSetting(setting), needsInterpretation: false };
+  }
   const room = ROOM_WORDS.map(([w, c]) => [words(w), c] as const).filter(([w]) => w.test(input)).slice(0, 1);
   if (!ill.length && !sky.length && !room.length) {
     const found = resolvePrompt(input, seed);
@@ -338,6 +438,57 @@ function roleStart(input: string, seed: string): ReturnType<typeof resolvePrompt
   return { error: `No town matched for a ${work.label.toLowerCase()}. Try naming a place and year.` };
 }
 
+const OVERLOOK_PROMPT =
+  /\b(?:the\s+shining|overlook(?:\s+hotel)?|the\s+gold\s+room|jack\s+torrance|wendy\s+torrance|danny\s+torrance|dick\s+hallorann|room\s+237|redrum|lloyd\s+(?:the\s+bartender|in\s+the\s+gold\s+room)|grady\s+twins|delbert\s+grady|overlook\s+(?:hedge\s+)?maze)\b/i;
+
+function overlookFromPrompt(input: string, seed: string) {
+  if (!OVERLOOK_PROMPT.test(input)) return undefined;
+  const year = dateFromPrompt(input, 1980, seed);
+  const season = /\b(?:spring|summer|autumn|fall|winter)\b/i.exec(input)?.[0].toLowerCase().replace("fall", "autumn") as WorldSetting["season"] | undefined
+    ?? (year === 1921 ? "summer" : "winter");
+  const place: AtlasPlace = {
+    id: "overlook-hotel",
+    name: "Overlook Hotel, Colorado",
+    aliases: ["overlook", "the shining"],
+    lon: -105.52,
+    lat: 40.38,
+    climate: "boreal",
+    relief: 0.25,
+    water: "none",
+    culture: "european",
+    year,
+    settlement: "city",
+    architecture: "board",
+    population: 4000,
+  };
+  const s = settingFor(place, year);
+  const wendy = /\bwendy\b/i.test(input);
+  const danny = /\bdanny\b/i.test(input);
+  const hallorann = /\bhallorann\b/i.test(input);
+  s.characterName = wendy ? "Wendy Torrance" : danny ? "Danny Torrance" : hallorann ? "Dick Hallorann" : "Jack Torrance";
+  s.role = wendy ? "Caretaker's Wife" : danny ? "Caretaker's Son" : hallorann ? "Head Chef" : "Winter Caretaker";
+  s.season = season;
+  if (season === "winter") s.weather = /\bblizzard\b/i.test(input) ? "blizzard" : "snow";
+  s.startIn = "hotel";
+  s.brief = {
+    ...s.brief,
+    figure: s.characterName,
+    sex: wendy ? "female" : "male",
+    work: hallorann ? "cook" : "caretaker",
+  };
+  if (/\b(?:hedge\s+)?maze\b/i.test(input)) s.venueRoom = "Overlook Hedge Maze";
+  else if (/\b237\b/.test(input)) s.venueRoom = "Room 237";
+  else if (/\bgold\s+room\b|\blloyd\b/i.test(input)) s.venueRoom = "The Gold Room";
+  else if (/\brestroom\b|\bdelbert\b/i.test(input)) s.venueRoom = "Gold Room Restroom";
+  else if (/\bkitchen\b|\bhallorann\b/i.test(input)) s.venueRoom = "Overlook Kitchen";
+  else if (/\bredrum\b|\bquarters\b/i.test(input)) s.venueRoom = "Torrance Quarters";
+  else if (/\bcorridor\b|\bgrady\s+twins\b|\bhexagon\b|\belevator\b/i.test(input)) s.venueRoom = "Second-Floor Corridor";
+  else if (/\blobby\b/i.test(input)) s.venueRoom = "Overlook Lobby";
+  else s.venueRoom = "Colorado Lounge";
+  const setting = populateCharacter(s, seed);
+  return { setting, description: describeSetting(setting), needsInterpretation: false };
+}
+
 function resolvePrompt(
   input: string,
   seed = "earth-2",
@@ -356,6 +507,8 @@ function resolvePrompt(
       error:
         "Enter a place, period, or starting role, or choose a place below.",
     };
+  const overlook = overlookFromPrompt(input, seed);
+  if (overlook) return overlook;
   try {
     const intent = situationFromPrompt(input);
     if (intent) {

@@ -95,6 +95,17 @@ it("does not consume alcohol in households that do not want it", () => {
   expect(e.stock.brewer.drink).toBe(30);
 });
 
+it("gives a 1987 US town groceries, beer and modern work, not hand trades", () => {
+  const start = resolveSetting("A delivery rider in Orlando, 1987 CE", "a");
+  if ("error" in start) throw Error(start.error);
+  const e = createSettingSession(start.setting, "a");
+  const nouns = new Set(e.state.households!.flatMap((h) => h.buys ?? []).map((b) => goodName(b.good, b.product)));
+  expect([...nouns].sort()).toEqual(["beer", "groceries"]);
+  const work = new Set(e.world.initialActors.map((a) => a.origin?.livelihood));
+  for (const old of ["soap-boiler", "blacksmith", "milliner", "craftsperson", "servant"]) expect(work).not.toContain(old);
+  expect(e.state.player.age).toBeLessThan(56);
+});
+
 it("keeps generated Multan purchases and debts consistent with the actual suppliers", () => {
   const setting = settingFor(places.find((p) => p.id === "city-multan")!, -620);
   const e = createSettingSession({ ...setting, role: "Cook", character: { age: 48, hunger: 0, fatigue: 0 } }, "multan-credit");

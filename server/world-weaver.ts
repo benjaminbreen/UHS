@@ -122,7 +122,7 @@ export async function worldWeaver(
     );
   }
   const local = resolveSetting(input.prompt);
-  if (!("error" in local) && local.setting.situation) return json({ setting: local.setting });
+  if (!("error" in local) && (local.setting.situation || local.setting.placeId === "overlook-hotel")) return json({ setting: local.setting });
   const q = normalize(input.prompt),
     matches = places.filter((p) =>
       [p.name, ...p.aliases].some((a) => q.includes(normalize(a))),

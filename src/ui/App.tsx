@@ -12,6 +12,8 @@ import { livelihoodById } from "../content/characters/livelihoods";
 import { rolesFrom } from "../content/characters/wardrobe/roles";
 import { applyFrameCap, registerGame } from "../render/frame-cap";
 import { CharacterPanel } from "./CharacterPanel";
+import { scenarioUrl } from "../content/geography/url";
+import { readQuick } from "./start-mode";
 import "./settings.css";
 import {
   lazy,
@@ -29,6 +31,7 @@ import Phaser from "phaser";
 import {
   ArrowRight,
   BookOpen,
+  Check,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -38,6 +41,7 @@ import {
   Hourglass,
   Hammer,
   History as TimeHistory,
+  Link2,
   Map as MapIcon,
   MessageCircle,
   CircleHelp,
@@ -79,9 +83,11 @@ import { sexFromName } from "../content/characters/name-sex";
 import { AudioDirector, gameAudio } from "../audio/director";
 import { threatMusic } from "../audio/situation-themes";
 import { ambienceFor } from "../audio/ambience";
-import { courtMusic, interiorMusic } from "../audio/interior-themes";
+import { courtMusic, interiorMusic, stageMusic } from "../audio/interior-themes";
 import { fairById } from "../content/fairs";
 import { buildingUse } from "../content/interiors/select";
+import { FILMS, PLAYS, THEATER_VIEWER_PRESETS, type TheatreStartMode } from "../content/interiors/performances";
+import { theaterViewerSetting } from "../content/geography/resolve";
 import { religiousProfile, sanctuaryAt } from "../content/settlements/religious";
 import { marketDay } from "../core/agenda";
 import { worshipAct } from "../content/interiors/worship";
@@ -100,7 +106,7 @@ const DialogueTester = import.meta.env.DEV
     )
   : undefined;
 import type { Runtime } from "../runtime/session";
-import { restoreSession, ZOOM_STEPS } from "../runtime/session";
+import { createSettingSession, restoreSession, ZOOM_STEPS } from "../runtime/session";
 
 const formatZoom = (z: number) =>
   Number.isInteger(z) ? `${z}` : z.toFixed(2).replace(/0$/, "");
@@ -146,9 +152,12 @@ import { AreaMap } from "./Minimap";
 import { ItemInspect, itemKind } from "./ItemInspect";
 import { MakePanel } from "./MakePanel";
 import { GamingTable, type Seat } from "./gaming/GamingTable";
+import { InstrumentPanel } from "./InstrumentPanel";
 import { DevicePanel } from "./devices/DevicePanel";
+import { MenuPanel } from "./MenuPanel";
 import { deviceModel, type DeviceModel } from "../content/devices";
 import { PHONE_CALL } from "../narrator/dialogue";
+import type { InstrumentId } from "../audio/instruments";
 import { FISHING_PRESETS, FishingGame, fishingStart, type FishingStart } from "./fishing/FishingGame";
 import { tableGameFor, type TableGame } from "../content/games";
 import { venueOfClaim } from "../content/venues";
@@ -378,9 +387,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   }, [runtime]);
   const [card, setCard] = useState<PlotCardData>();
   const [inspecting, setInspecting] = useState<string>();
-  const [device, setDevice] = useState<DeviceModel>();
   const [making, setMaking] = useState<{ first?: string }>();
   const [gaming, setGaming] = useState<{ place: string; where: string; game: TableGame; seed: string; seats: Seat[] }>();
+  const [instrument, setInstrument] = useState<{ objectId: string; instrument: InstrumentId; name: string }>();
+  const [device, setDevice] = useState<DeviceModel>();
   setMadeItems(runtime.engine.state.catalog);
   const [modal, setModal] = useState<
     | "time"
@@ -398,10 +408,12 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     | "years"
     | "exchange"
     | "shop"
+    | "menu"
     | "lift"
     | null
   >(null);
   const [shopWith, setShopWith] = useState<{ id: string; item?: string }>();
+  const openShop = (id: string) => { setShopWith({ id }); setModal(runtime.engine.menuOf(id) ? "menu" : "shop"); };
   const [yearsToEnd, setYearsToEnd] = useState(false);
   const atExchange=runtime.engine.exchangePlace();
   const innHere = !p.dead ? runtime.engine.innInfo(p.pos.space) : undefined;
@@ -467,6 +479,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   const [combatOpen, setCombatOpen] = useState(false);
   const fishingTest = useRef<FishingStart>(undefined);
   const [fishingPick, setFishingPick] = useState<{ preset: string; method: string; hour: string }>({ preset: "here", method: "", hour: "" });
+  const [theaterPick, setTheaterPick] = useState<{ preset: string; show: string; mode: TheatreStartMode }>({ preset: THEATER_VIEWER_PRESETS[0].id, show: "", mode: "seat" });
+  const [theaterBusy, setTheaterBusy] = useState(false);
   const [skillTestOpen, setSkillTestOpen] = useState(false);
   const [liveGraphics, setLiveGraphics] = useState<LiveGraphicsSettings>(
     () => ({
@@ -493,6 +507,35 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     setNarratorError(turn.error ?? "");
   };
   const [settingsTab, setSettingsTab] = useState("Display");
+  const [linkCopied, setLinkCopied] = useState(false);
+  useEffect(() => {
+    const setting = obs.manifest.setting;
+    if (!active || !setting || location.pathname.startsWith("/edumode")) return;
+    const next = scenarioUrl(setting, {
+      pace: readQuick() ? "quick" : undefined,
+      seed: new URLSearchParams(location.search).get("seed") ?? undefined,
+    });
+    if (`${location.pathname}${location.search}` !== next)
+      window.history.replaceState(null, "", next);
+  }, [
+    active,
+    obs.manifest.setting?.placeId,
+    obs.manifest.setting?.year,
+    obs.manifest.setting?.role,
+    obs.manifest.setting?.lon,
+    obs.manifest.setting?.lat,
+  ]);
+  const copyStartLink = () => {
+    const setting = obs.manifest.setting;
+    if (!setting) return;
+    const rel = scenarioUrl(setting, {
+      seed: obs.manifest.seed,
+      pace: readQuick() ? "quick" : undefined,
+    });
+    void navigator.clipboard?.writeText(new URL(rel, location.origin).href).catch(() => {});
+    setLinkCopied(true);
+    window.setTimeout(() => setLinkCopied(false), 1800);
+  };
   const [accent, setAccent] = useState<AccentId>(() => stored(ACCENT_KEY, ACCENTS, "gold"));
   const [background, setBackground] = useState<BackgroundId>(() => stored(BACKGROUND_KEY, BACKGROUNDS, "plum"));
   const [proseFont, setProseFont] = useState<ProseFontId>(() => stored(PROSE_FONT_KEY, PROSE_FONTS, "atkinson"));
@@ -713,7 +756,14 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   // A card waits under anything opened over the world, rather than sitting on top of it.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const fishingStarted = useMemo(() => runtime.fishing && (fishingTest.current ?? fishingStart(runtime)), [runtime.fishing]);
-  const covered = runtime.workInProgress || !!runtime.fishing || !!modal || !!task || !!sky || audioOpen || characterOpen || portraitOpen || !!bedtime;
+  const covered = runtime.workInProgress || !!runtime.fishing || !!instrument || !!modal || !!task || !!sky || audioOpen || characterOpen || portraitOpen || !!bedtime;
+  useEffect(() => {
+    const next = runtime.engine.pendingInstrument;
+    if (!next) return;
+    runtime.engine.pendingInstrument = undefined;
+    runtime.stop();
+    setInstrument(next);
+  }, [runtime, obs.revision]);
   useEffect(() => {
     if (card || covered) return;
     const engine = runtime.engine;
@@ -979,10 +1029,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       if (e.key.toLowerCase() === "t" && !e.repeat) {
         if(runtime.engine.exchangeFloor()){setModal("exchange");return;}
         const near = runtime.nearestTrader();
-        if (near) {
-          setShopWith({ id: near.id });
-          setModal("shop");
-        }
+        if (near) openShop(near.id);
       }
       if (e.code === "KeyB" && !e.repeat) runtime.tend();
       if (e.code === "KeyG" && !e.repeat) sitDownRef.current();
@@ -1124,6 +1171,16 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
       .sort((a,b) => near(a.pos) - near(b.pos) + (worshipAct(layout.observance,b.activity,obs.clock)?.sound ? 5 : 0) - (worshipAct(layout.observance,a.activity,obs.clock)?.sound ? 5 : 0))[0]);
     const source = worker ? roomAt(layout, worker.pos.x, worker.pos.y) : undefined;
     const station = layout && source ? layout.plan.rooms[layout.rooms.indexOf(source)] : undefined;
+    const stageAltar = room?.styles.altar?.startsWith("stage-")
+      ? room.styles.altar
+      : layout?.plan.rooms.find((r) => r.styles.altar?.startsWith("stage-"))?.styles.altar;
+    const venueSound = !stageAltar ? undefined
+      : room?.styles.altar?.startsWith("stage-cinema-silent") ? "cinema-silent" as const
+      : room?.styles.altar?.startsWith("stage-cinema") ? "cinema" as const
+      : room?.styles.altar === "stage-opera-grand" || room?.styles.altar === "stage-opera" ? "opera" as const
+      : room?.styles.altar === "stage-noh" || room?.styles.altar === "stage-kabuki" ? "stage-japan" as const
+      : room?.styles.altar?.startsWith("stage-") ? "theatre" as const
+      : "foyer" as const;
     return ambienceFor({
       weather,
       indoors: p.pos.space !== "outside",
@@ -1132,8 +1189,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
         role: layout?.institution === "school" && station?.program === "rows" ? "classroom" : source?.role,
         rite: worshipAct(layout?.observance, worker?.activity, obs.clock)?.sound,
         openAir: layout?.plan.mask[(tileY - ROOM_ORIGIN) * layout.plan.w + tileX - ROOM_ORIGIN] === 2,
-        floor: station?.floorPattern, stock: station?.styles.stock, clinical: station?.styles.bed === "clinical",
+        floor: station?.floorPattern ?? room.floorPattern, stock: station?.styles.stock, clinical: station?.styles.bed === "clinical",
         distance: worker ? near(worker.pos) + (source === here ? 0 : 3) : undefined,
+        venue: venueSound,
       } : p.pos.space.startsWith("cave:") ? { area: 220, finish: 2 } : undefined,
       year: setting?.year,
       culture: setting?.culture,
@@ -1194,7 +1252,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
     if (p.pos.space.startsWith("sewer:")) return audio?.setInterior("sewer");
     if (p.pos.space.startsWith("mine:")) return audio?.setInterior("mine");
     if (p.pos.space.startsWith("fair:")) return audio?.setInterior(courtMusic(fairById(p.pos.space.split(":")[1])?.palace));
-    if (runtime.engine.interiorOf(p.pos.space)?.institution) return audio?.setInterior(null);
+    const layout = runtime.engine.interiorOf(p.pos.space);
+    if (layout?.institution) return audio?.setInterior(null);
+    const stageStyle = layout?.plan.rooms.find((r) => r.styles.altar?.startsWith("stage-"))?.styles.altar;
+    if (stageStyle) return audio?.setInterior(stageMusic(stageStyle));
     const place = runtime.engine.world.place(p.pos.space);
     const base = place
       ? interiorMusic(buildingUse(place.claim) && `${buildingUse(place.claim)} ${place.name.toLowerCase()}`, place.access === "household") ?? null
@@ -1218,7 +1279,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
   useEffect(() => applyTheme(accent, background, setting?.culture), [accent, background, setting?.culture]);
   const previousPanels = useRef<unknown[] | undefined>(undefined);
   useEffect(() => {
-    const panels = [modal, audioOpen, characterOpen, portraitOpen, inspecting, making, gaming, sky, task, restOpen, narratorOpen, sheetOpen];
+    const panels = [modal, audioOpen, characterOpen, portraitOpen, inspecting, making, gaming, instrument, sky, task, restOpen, narratorOpen, sheetOpen];
     const before = previousPanels.current;
     previousPanels.current = panels;
     if (!audio || !before) return;
@@ -1231,11 +1292,11 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
         void audio.interfaceSound(
           changed === 0
             ? modal === "dialogue" ? "dialogue" : modal === "map" || modal === "world" ? "map" : modal === "inventory" ? "bag" : modal === "character" ? "sheet" : "open"
-            : changed === 2 || changed === 11 ? "sheet" : changed === 5 ? "craft" : "open",
+            : changed === 2 || changed === 12 ? "sheet" : changed === 5 ? "craft" : "open",
         );
     } else if (panels.some((value, i) => !value && before[i]))
       void audio.interfaceSound("close");
-  }, [audio, modal, audioOpen, characterOpen, portraitOpen, inspecting, making, gaming, sky, task, restOpen, narratorOpen, sheetOpen]);
+  }, [audio, modal, audioOpen, characterOpen, portraitOpen, inspecting, making, gaming, instrument, sky, task, restOpen, narratorOpen, sheetOpen]);
   useEffect(() => {
     if (!audio) return;
     const observer = new MutationObserver((records) => {
@@ -1532,6 +1593,16 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           >
             <NotebookPen size={19} />
           </button>
+          {obs.manifest.setting && (
+            <button
+              aria-label={linkCopied ? "Link copied" : "Copy link to this start"}
+              data-tip={linkCopied ? "Link copied" : "Copy link"}
+              className="icon-button"
+              onClick={copyStartLink}
+            >
+              {linkCopied ? <Check size={19} /> : <Link2 size={19} />}
+            </button>
+          )}
           <button
             aria-label="Settings"
             data-tip="Settings"
@@ -1595,9 +1666,8 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 setDialogueActorId(null);
               }}
               onTrade={() => {
-                setShopWith({ id: dialogueActorId });
                 setDialogueActorId(null);
-                setModal("shop");
+                openShop(dialogueActorId);
               }}
             />
           )}
@@ -1899,12 +1969,9 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                     key={`trade-${trader.id}`}
                     code="KeyT"
                     letter="T"
-                    label={`Trade with ${trader.name.split(" ")[0]}`}
+                    label={`${trader.pos.space !== "outside" && runtime.engine.interiorOf(trader.pos.space)?.params.program === "serve" ? "Order from" : "Trade with"} ${trader.name.split(" ")[0]}`}
                     kind="trade"
-                    onClick={() => {
-                      setShopWith({ id: trader.id });
-                      setModal("shop");
-                    }}
+                    onClick={() => openShop(trader.id)}
                   />
                 )}
                 {atExchange && <KeyPrompt code="KeyG" letter="G" label={atExchange.kind==="beurs" ? "Trade on the Beurs" : "Trade at market"} kind="trade" onClick={()=>setModal("exchange")}/>}
@@ -2362,7 +2429,7 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 )}
                 <div className="context-actions">
                   {selectedShop && (
-                    <button className="action" onClick={() => { setShopWith({ id: selectedShop.actor.id }); setModal("shop"); }}>
+                    <button className="action" onClick={() => openShop(selectedShop.actor.id)}>
                       <ShoppingBag size={16} />
                       <span>Trade</span>
                       <ArrowRight size={13} />
@@ -2781,6 +2848,19 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
           }}
         />
       )}
+      {instrument && (
+        <InstrumentPanel
+          instrument={instrument.instrument}
+          title={instrument.name}
+          place={`${countryPlace?.[2] ?? pack.name} · ${pack.date}`}
+          audio={audio}
+          onClose={(res) => {
+            const cur = instrument;
+            setInstrument(undefined);
+            runtime.finishInstrument(cur.objectId, res.instrument, res.notesPlayed, res.completedTune);
+          }}
+        />
+      )}
       {fishingStarted && (
         <FishingGame
           start={fishingStarted}
@@ -2831,6 +2911,10 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                 </Suspense>
               )}
             {modal === "exchange" && <ExchangeModal runtime={runtime}/>}
+            {modal === "menu" && shopWith && (
+              <MenuPanel runtime={runtime} actorId={shopWith.id} onClose={() => setModal(null)}
+                onGoods={runtime.engine.shopOf(shopWith.id, true) ? () => setModal("shop") : undefined} />
+            )}
             {modal === "shop" && shopWith && (
               <ShopModal runtime={runtime} actorId={shopWith.id} initialItem={shopWith.item} onClose={() => setModal(null)} />
             )}
@@ -3185,6 +3269,83 @@ export function App({ runtime, onReady, active = true }: { runtime: Runtime; wri
                       </small>
                     </button>
                   )}
+                  {(() => {
+                    const currentPreset = THEATER_VIEWER_PRESETS.find((p) => p.id === theaterPick.preset) ?? THEATER_VIEWER_PRESETS[0];
+                    const shows = currentPreset.group === "cinema" ? FILMS : PLAYS;
+                    return (
+                      <div className="settings-fishing">
+                        <button
+                          className="action settings-featured"
+                          disabled={theaterBusy}
+                          onClick={() => {
+                            if (theaterBusy) return;
+                            setTheaterBusy(true);
+                            setTimeout(() => {
+                              try {
+                                const seed = `theater-${currentPreset.id}-${theaterPick.show || "default"}`;
+                                const nextSetting = theaterViewerSetting(currentPreset.id, { show: theaterPick.show || undefined, mode: theaterPick.mode }, seed);
+                                const engine = createSettingSession(nextSetting, seed);
+                                runtime.zoom = 1;
+                                runtime.replace(engine);
+                                setModal(null);
+                              } finally {
+                                setTheaterBusy(false);
+                              }
+                            }, 20);
+                          }}
+                        >
+                          {theaterBusy ? "Opening the theater doors…" : "Go to the theater"}
+                          <small>
+                            Walk around any era &amp; culture’s theater, opera house, or cinema and watch what’s playing
+                          </small>
+                        </button>
+                        <select
+                          value={theaterPick.preset}
+                          onChange={(e) => {
+                            const next = THEATER_VIEWER_PRESETS.find((p) => p.id === e.target.value);
+                            setTheaterPick((t) => ({
+                              ...t,
+                              preset: e.target.value,
+                              show: next && next.group !== currentPreset.group ? "" : t.show,
+                            }));
+                          }}
+                          aria-label="Theater era and culture"
+                        >
+                          <optgroup label="Cinemas & world film">
+                            {THEATER_VIEWER_PRESETS.filter((p) => p.group === "cinema").map((p) => (
+                              <option key={p.id} value={p.id}>{p.label}</option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Live theatres & operas">
+                            {THEATER_VIEWER_PRESETS.filter((p) => p.group === "stage").map((p) => (
+                              <option key={p.id} value={p.id}>{p.label}</option>
+                            ))}
+                          </optgroup>
+                        </select>
+                        <select
+                          value={theaterPick.show}
+                          onChange={(e) => setTheaterPick((t) => ({ ...t, show: e.target.value }))}
+                          aria-label="What is playing"
+                        >
+                          <option value="">Show for the era &amp; place</option>
+                          {shows.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.title}{s.basis === "documented" && s.creator ? ` (${s.creator})` : ""}
+                            </option>
+                          ))}
+                        </select>
+                        <select
+                          value={theaterPick.mode}
+                          onChange={(e) => setTheaterPick((t) => ({ ...t, mode: e.target.value as TheatreStartMode }))}
+                          aria-label="Starting spot"
+                        >
+                          <option value="seat">Seated in the auditorium</option>
+                          <option value="foyer">Walking in the lobby</option>
+                          <option value="stage">Up on stage</option>
+                        </select>
+                      </div>
+                    );
+                  })()}
                   <div className="settings-fishing">
                     <button
                       className="action settings-featured"

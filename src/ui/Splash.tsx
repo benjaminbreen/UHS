@@ -2,8 +2,10 @@ import { interfaceSound } from "../audio/director";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import {
   ArrowRight,
+  Check,
   X,
   ChevronDown,
+  Link2,
   Wheat,
   Landmark,
   Leaf,
@@ -22,6 +24,8 @@ import { bannerFor, defaultBanner, smokeFor } from "./splash-banner";
 import { BannerSmoke } from "./BannerSmoke";
 import { SplashStars } from "./SplashStars";
 import { Arrival } from "./Arrival";
+import { ArrivalDescent } from "./ArrivalDescent";
+import { arrivalVariant } from "./arrival-data";
 import { releaseTerrainWorker } from "../runtime/terrain-worker-owner";
 import { smallMemoryDevice } from "../runtime/device";
 import type { CharacterPrepared, StartingCharacter } from "../runtime/preparation";
@@ -58,6 +62,8 @@ const icons = {
 const WorldSetup = lazy(() =>
   import("./WorldSetup").then((m) => ({ default: m.WorldSetup })),
 );
+const ArrivalScreen = arrivalVariant() === "strip" ? Arrival : ArrivalDescent;
+
 export function Splash({
   onStart,
   onPrepared,
@@ -82,6 +88,7 @@ export function Splash({
   const [busy, setBusy] = useState("");
   const [arrival, setArrival] = useState<{ setting: WorldSetting; character?: StartingCharacter; engine?: Engine; cancel?: () => void }>();
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
   const [panel, setPanel] = useState<"world" | "about" | "sources" | null>(
     null,
   );
@@ -199,9 +206,54 @@ export function Splash({
     if (call !== randomizeCall.current) return;
     applyStart(loaded.randomStart(mode));
   };
-  // Open on a random start rather than an empty box.
+  const copyStartLink = async () => {
+    const { scenarioUrl } = await import("../content/geography/url");
+    let rel: string | undefined;
+    if (selected) {
+      rel = scenarioUrl(selected.setting, { pace: quick ? "quick" : undefined });
+    } else if (prompt.trim()) {
+      const { resolveSetting } = await import("../content/geography/resolve");
+      const resolved = resolveSetting(prompt.trim(), seed);
+      if ("setting" in resolved && !resolved.needsInterpretation) {
+        rel = scenarioUrl(resolved.setting, { pace: quick ? "quick" : undefined });
+      } else {
+        const params = new URLSearchParams({ start: prompt.trim() });
+        if (quick) params.set("pace", "quick");
+        rel = `/?${params.toString()}`;
+      }
+    }
+    if (!rel) return;
+    await navigator.clipboard?.writeText(new URL(rel, location.origin).href).catch(() => {});
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
+  // Open on a URL-linked start when present, otherwise a random start.
   useEffect(() => {
-    if (!new URLSearchParams(location.search).has("start")) void randomize();
+    if (location.pathname !== "/" || location.search) {
+      const call = ++randomizeCall.current;
+      void import("../content/geography/url").then(({ parseScenarioUrl }) => {
+        if (call !== randomizeCall.current) return;
+        const parsed = parseScenarioUrl(location.pathname, location.search, seed);
+        if (parsed?.pace) {
+          const isQuick = parsed.pace === "quick";
+          setQuick(isQuick);
+          writeQuick(isQuick);
+        }
+        if (parsed?.setting) {
+          const start = { seed: parsed.seed, setting: parsed.setting };
+          applyStart(start);
+          if (parsed.autoStart) void launch(undefined, start);
+          return;
+        }
+        if (parsed?.prompt) {
+          setPrompt(parsed.prompt);
+          return;
+        }
+        void randomize();
+      });
+      return;
+    }
+    void randomize();
   }, []);
   const region = selected
     ? regionAt(selected.setting.lon, selected.setting.lat)
@@ -289,7 +341,7 @@ export function Splash({
     <main className={arrival ? "splash is-departing" : "splash"}
       onClickCapture={(e) => { if ((e.target as Element).closest("button")) interfaceSound("tap"); }}
       onChangeCapture={(e) => { if ((e.target as Element).matches("select, input[type=range], input[type=number]")) interfaceSound("tock"); }}>
-      {arrival && <Arrival setting={arrival.setting} character={arrival.character} engine={arrival.engine} ready={ready} onEnter={() => { if (arrival.engine) void onStart(arrival.engine); }} onCancel={() => { arrival.cancel?.(); controller.current?.abort(); if (arrival.engine) releaseTerrainWorker(arrival.engine.world); onCancel?.(); controller.current = null; setArrival(undefined); setBusy(""); }} />}
+      {arrival && <ArrivalScreen setting={arrival.setting} character={arrival.character} engine={arrival.engine} ready={ready} onEnter={() => { if (arrival.engine) void onStart(arrival.engine); }} onCancel={() => { arrival.cancel?.(); controller.current?.abort(); if (arrival.engine) releaseTerrainWorker(arrival.engine.world); onCancel?.(); controller.current = null; setArrival(undefined); setBusy(""); }} />}
       <div className="splash-frame">
         <SplashStars />
         <div className="splash-content" inert={panel ? true : undefined}>
@@ -372,6 +424,16 @@ export function Splash({
                   </span>
                 )}
               </div>
+              <button
+                type="button"
+                className="splash-link-btn"
+                aria-label={copied ? "Link copied" : "Copy link to this start"}
+                title={copied ? "Link copied" : "Copy link to this start"}
+                disabled={!!busy || (!selected && !prompt.trim())}
+                onClick={() => void copyStartLink()}
+              >
+                {copied ? <Check /> : <Link2 />}
+              </button>
               <button
                 type="button"
                 aria-label="Choose starting details"

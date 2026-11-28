@@ -19,7 +19,7 @@ const vn = (x: number, y: number, scale: number, s: number) => {
 const BLACK: RGB = [8, 7, 9];
 const SHADE: RGB = [22, 16, 30];
 
-export const paletteOf = (level: SewerLevel): SewerPalette =>
+export const paletteOf = (level: Pick<SewerLevel, "network" | "kind" | "layer">): SewerPalette =>
   level.network === "mine" ? minePalettes[level.kind as MineKind]
   : level.network === "catacomb" ? (level.kind === "ossuary" && level.layer !== "upper" ? quarryPalette : catacombPalettes[level.kind as CatacombKind])
   : level.layer === "old" ? oldPalette : sewerPalettes[level.kind as SewerKind];

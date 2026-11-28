@@ -1,6 +1,6 @@
 import { prisonFind, type PrisonStyle } from "../content/prisons";
 import { rngOf } from "../core/random";
-import type { Area, AreaExit, AreaFolk, AreaThing } from "./complex";
+import type { Area, AreaExit, AreaFolk, AreaProp, AreaThing } from "./complex";
 import { BARS, FLOOR, prisonPlan, WALL, YARD, type PlanRoom, type PrisonLayout, type PrisonPlan } from "./prison-plan";
 
 export { BARS, FLOOR, WALL, YARD, type PrisonLayout, type PrisonPlan };
@@ -32,7 +32,7 @@ export function parsePrisonSpace(space: string) {
 export function prisonSolid(level: Pick<PrisonLevel, "things" | "w">) {
   const solid = new Set<number>();
   for (const t of level.things) {
-    if (!t.solid) continue;
+    if (!t.solid || t.prop) continue;
     for (let y = t.y; y < t.y + (t.h ?? 1); y++)
       for (let x = t.x; x < t.x + (t.w ?? 1); x++) solid.add(y * level.w + x);
   }
@@ -172,6 +172,25 @@ export function prisonLevel(seed: string, style: PrisonStyle, site: string): Pri
     entry = spotIn(home);
   }
 
+  // Non-special prison finds (spoon, chest, rations, taproom) are catalogue props; stateful escape/sentence fixtures stay on prison.ts.
+  const props: AreaProp[] = [];
+  for (const t of things) {
+    const f = prisonFind(style, t.find);
+    if (!f || f.special) continue;
+    t.prop = true;
+    const fw = t.w ?? 1, fh = t.h ?? 1;
+    props.push({
+      key: `prison-${f.id}`,
+      sprite: t.art === "spoon" ? `made:prison:${layout}:spoon` : `made:prison:blank:${fw}x${fh}`,
+      x: t.x,
+      y: t.y,
+      name: t.name,
+      ...(f.price ? { description: `${f.look} ${f.price} ${style.coin[f.price === 1 ? 0 : 1]}.` } : {}),
+      ...(Object.keys(t.loot).length ? { loot: t.loot } : {}),
+      ...(fw * fh > 1 ? { size: [fw, fh] as [number, number] } : {}),
+    });
+  }
+
   return {
     space,
     name: style.name,
@@ -189,6 +208,7 @@ export function prisonLevel(seed: string, style: PrisonStyle, site: string): Pri
     exits,
     lifts: [],
     things,
+    props,
     decor: [],
     folk,
   };

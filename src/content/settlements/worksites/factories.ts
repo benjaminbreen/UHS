@@ -16,6 +16,8 @@ export const factoryProfiles: readonly WorksiteProfile[] = [
     note:"A steam silk-reeling mill of the kind that spread round Shanghai and the Canton delta from 1878, Chinese-owned as often as foreign. Long hours and child labour drew strikes in the 1920s."},
   {...northLight,id:"east-asian-factory",scope:{years:[1950,10001],bounds:[100,0,146,46]}},
   {...northLight,id:"south-asian-factory",scope:{years:[1950,10001],bounds:[60,5,98,36]}},
-  {...northLight,id:"latin-american-factory",scope:{years:[1920,10001],bounds:[-118,-56,-34,33]}},
+  // The box reaches Tijuana and Ciudad Juárez; the excepts hand Texas, the Gulf coast and Florida back to the US.
+  {...northLight,id:"latin-american-factory",scope:{years:[1920,10001],bounds:[-118,-56,-34,33],
+    except:[[-97.4,25.8,-79,33],[-106.5,29.5,-97.4,33],[-117.1,32.72,-106.5,33]]}},
   {...northLight,id:"african-factory",scope:{years:[1950,10001],bounds:[-18,-35,52,30]}},
 ];

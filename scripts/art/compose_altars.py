@@ -1207,12 +1207,281 @@ def stage_cinema():
     SPRITES['stage-cinema'] = {'rows': cv.rows(), 'ink': {**GOLD, 'R': 0x9a1a2a, 'r': 0x5a0e18, 'S': 0xd8dce4, 's': 0x9aa0a8,
         'd': 0x4a4e58, 'X': 0x30d060, 'E': ['wood', 4], 'e': ['wood', 3], 'q': ['wood', 1]}}
 
+def stage_cinema_silent():
+    cv = Canvas(112, 60)
+    # Dark wood-and-brass proscenium surround for an early 1910s nickelodeon.
+    for y in range(0, 40):
+        for x in range(0, 112):
+            if 14 <= x <= 97 and 7 <= y <= 39: continue
+            border = x in (0, 111) or y == 0 or (x in (13, 98) and y >= 6) or (y == 6 and 13 <= x <= 98)
+            cv.set(x, y, 'q' if border else ('G' if y in (2, 3) and (x % 6) in (1, 2) else ('E' if y < 6 or x < 6 else 'e')))
+    for y in range(7, 40):
+        for x in range(14, 98):
+            lit = 20 <= x <= 91 and 10 <= y <= 36
+            if not lit: cv.set(x, y, 'k'); continue
+            vig = abs(x - 55.5) > 31 or abs(y - 23) > 10
+            hill = y > 29 - int(2.5 * math.sin(x / 6))
+            cv.set(x, y, 's' if hill or vig else 'S')
+    for y in range(17, 29):
+        for x in range(51, 61): cv.set(x, y, 'd' if abs(x - 55.5) < 2 or y < 20 else 'S')
+    for side in (0, 1):
+        for y in range(7, 40):
+            for i in range(6):
+                x = 14 + i if side == 0 else 97 - i
+                cv.set(x, y, 'R' if (i + y // 3) % 3 else 'r')
+    # Wooden stage apron + upright accompaniment piano at lower right.
+    for y in range(40, 60):
+        for x in range(0, 112):
+            cv.set(x, y, 'E' if y == 40 else ('q' if y == 45 or (y > 45 and x % 16 == 0) else 'e'))
+    for y in range(42, 57):
+        for x in range(84, 106):
+            if y in (42, 56) or x in (84, 105): cv.set(x, y, 'k')
+            elif y == 49 and 86 <= x <= 103: cv.set(x, y, 'S' if x % 2 == 0 else 'k')
+            elif y == 50 and 86 <= x <= 103: cv.set(x, y, 'S')
+            else: cv.set(x, y, 'P' if y < 48 else 'p')
+    SPRITES['stage-cinema-silent'] = {'rows': cv.rows(), 'ink': {**GOLD, 'R': 0x7c1824, 'r': 0x480c14, 'S': 0xe4dcc6, 's': 0xa89e86,
+        'd': 0x463e34, 'P': 0x362018, 'p': 0x221410, 'E': ['wood', 4], 'e': ['wood', 2], 'q': ['wood', 1]}}
+
+def stage_cinema_wide():
+    cv = Canvas(144, 64)
+    # Matte acoustic surround + wide Cinemascope screen with colour projection and red exit signs.
+    for y in range(0, 44):
+        for x in range(0, 144):
+            cv.set(x, y, 'm' if (x % 4 == 0 and (x < 10 or x > 133)) else 'M')
+    for y in range(6, 42):
+        for x in range(10, 134):
+            lit = 16 <= x <= 127 and 9 <= y <= 38
+            if not lit: cv.set(x, y, 'k'); continue
+            if y < 18:
+                cv.set(x, y, 'B' if y < 14 else 'b')
+            elif y < 27:
+                cv.set(x, y, 'O' if y < 23 else 'o')
+            else:
+                ridge = 30 - int(3 * math.sin(x / 9) + 2 * math.cos(x / 5))
+                cv.set(x, y, 'd' if y >= ridge else 'o')
+    for y in range(16, 24):
+        for x in range(68, 76):
+            if (x - 71.5) ** 2 + (y - 19.5) ** 2 <= 10: cv.set(x, y, 'Y')
+    for side in (0, 1):
+        for y in range(6, 42):
+            for i in range(6):
+                x = 10 + i if side == 0 else 133 - i
+                cv.set(x, y, 'R' if (i + y // 3) % 3 else 'r')
+    for y in range(44, 64):
+        for x in range(0, 144):
+            cv.set(x, y, 'E' if y == 44 else ('q' if y == 48 else ('m' if y > 48 and x % 12 == 0 else 'M')))
+    for (x, y) in ((3, 49), (4, 49), (5, 49), (6, 49), (3, 50), (4, 50), (5, 50), (6, 50),
+                   (137, 49), (138, 49), (139, 49), (140, 49), (137, 50), (138, 50), (139, 50), (140, 50)):
+        cv.set(x, y, 'X')
+    SPRITES['stage-cinema-wide'] = {'rows': cv.rows(), 'ink': {'M': 0x26222c, 'm': 0x1a1620, 'k': 0x0e0c12,
+        'R': 0x7c182a, 'r': 0x480c18, 'B': 0x4878b8, 'b': 0x6ea0d4, 'O': 0xe89c60, 'o': 0xf2c684,
+        'Y': 0xfff0b8, 'd': 0x282438, 'X': 0xf03838, 'E': 0x4a4252, 'q': 0x18141e}}
+
+def draw_orchestra_pit(cv, y_top, y_bot, w, margin=8):
+    """A full-width sunken orchestra pit behind a carved timber rail: two rows
+    of tuxedoed musicians with glowing music stands and a conductor center-pit."""
+    for y in range(y_top, y_bot):
+        for x in range(0, w):
+            in_pit = margin <= x < w - margin
+            if not in_pit:
+                cv.set(x, y, 'q' if (x in (margin - 1, w - margin) or y == y_bot - 1) else 'p')
+                continue
+            cv.set(x, y, 'q' if y == y_top else 'p')
+    cx = w // 2
+    # Two staggered rows of tuxedoed players across left and right wings of the pit.
+    for row_idx, py in enumerate((y_top + 4, y_top + 14)):
+        step = 11
+        for x in range(margin + 6, w - margin - 6, step):
+            if abs(x - cx) < 12 and row_idx == 0:
+                continue
+            # Head & hair
+            hair = 'H' if ((x + row_idx) % 3 == 0) else 'k'
+            cv.set(x, py, hair); cv.set(x + 1, py, hair); cv.set(x + 2, py, hair)
+            cv.set(x, py + 1, 'F'); cv.set(x + 1, py + 1, 'F'); cv.set(x + 2, py + 1, 'F')
+            cv.set(x, py + 2, 'F'); cv.set(x + 1, py + 2, 'f'); cv.set(x + 2, py + 2, 'F')
+            # Evening coat & white shirtfront
+            for dy in range(3, 8):
+                for dx in range(-1, 4):
+                    cv.set(x + dx, py + dy, 'W' if dx == 1 and dy < 6 else 'k')
+            # Instrument: cello/violin neck & warm wood body left, brass horn/gold right.
+            if x < cx:
+                cv.set(x + 3, py - 1, 'O'); cv.set(x + 3, py, 'O'); cv.set(x + 3, py + 1, 'O')
+                cv.set(x + 3, py + 2, 'o'); cv.set(x + 4, py + 3, 'O'); cv.set(x + 3, py + 3, 'o')
+                cv.set(x + 3, py + 4, 'O'); cv.set(x + 4, py + 4, 'o')
+            else:
+                cv.set(x - 2, py + 2, 'G'); cv.set(x - 1, py + 2, 'g'); cv.set(x - 2, py + 3, 'g')
+            # Tiny glowing sheet-music stand in front of every other player.
+            if (x // step + row_idx) % 2 == 0 and py + 8 < y_bot - 6:
+                cv.set(x, py + 8, 'S'); cv.set(x + 1, py + 8, 'S'); cv.set(x + 2, py + 8, 's')
+    # Maestro / Conductor standing center-pit on podium with raised baton.
+    cy = y_top + 2
+    for dx in (-1, 0, 1):
+        cv.set(cx + dx, cy, 'H')
+        cv.set(cx + dx, cy + 1, 'F')
+        cv.set(cx + dx, cy + 2, 'F')
+    for dy in range(3, 11):
+        for dx in range(-2, 3):
+            cv.set(cx + dx, cy + dy, 'W' if dx == 0 and dy < 6 else 'k')
+    # Raised arms & golden baton!
+    cv.set(cx - 3, cy + 3, 'k'); cv.set(cx - 4, cy + 2, 'F')
+    cv.set(cx + 3, cy + 3, 'k'); cv.set(cx + 4, cy + 2, 'F')
+    cv.set(cx + 5, cy + 1, 'G'); cv.set(cx + 6, cy, 'G')
+    # Carved mahogany & brass pit railing along the front with angled side wings.
+    ry = y_bot - 6
+    for x in range(margin - 4, w - margin + 4):
+        lift = max(0, margin + 4 - x) // 2 + max(0, x - (w - margin - 5)) // 2
+        y = max(y_top + 2, ry - lift)
+        cv.set(x, y, 'G' if x % 8 == 0 else 'E')
+        cv.set(x, y + 1, 'e')
+        for j in range(y + 2, y_bot):
+            cv.set(x, j, 'E' if x % 6 == 0 else ('q' if j == y_bot - 1 else 'w'))
+
+def stage_opera_grand():
+    """Monumental 15-tile-wide grand opera stage & packed orchestra pit inspired
+    by classic 16-bit grand opera halls (sweeping gold-trimmed crimson curtains,
+    parquet stage deck with glowing footlights, full orchestra pit & conductor)."""
+    W, H = 240, 100
+    cv = Canvas(W, H)
+    # 1. Deep shadow backdrop & sweeping crimson-and-gold draped velvet curtains (y = 0..54).
+    for y in range(0, 55):
+        for x in range(0, W):
+            if x < 12 or x >= W - 12:
+                # Ornate gilt Baroque proscenium columns flanking the stage.
+                col = x if x < 12 else W - 1 - x
+                cv.set(x, y, 'k' if col in (0, 11) else ('G' if col in (2, 3) and y % 6 < 4 else ('g' if col in (4, 5) else ('h' if col < 9 else 'H'))))
+                continue
+            # Center inner velvet backdrop curtain with vertical folds & gold hem fringe.
+            fold = (x + int(2 * math.sin(y / 6))) % 9
+            if y >= 48:
+                cv.set(x, y, 'G' if (x + y) % 2 == 0 else ('g' if y < 52 else 'h'))
+            else:
+                cv.set(x, y, 'V' if fold in (1, 2) else ('v' if fold in (0, 7, 8) else 'r'))
+    # Sweeping outer draped swag curtains pulled dramatically back toward the wings!
+    for y in range(0, 54):
+        t = y / 54.0
+        # Parabolic curtain edge sweeping outward from upper-center toward the wings.
+        left_edge = int(104 - 72 * (t ** 0.72) + 8 * math.sin(t * 7))
+        right_edge = W - 1 - left_edge
+        for x in range(12, W - 12):
+            in_left = x <= left_edge
+            in_right = x >= right_edge
+            if not (in_left or in_right):
+                continue
+            dist = (left_edge - x) if in_left else (x - right_edge)
+            # Heavy gold brocade edge trim & scalloped folds.
+            if dist < 5:
+                cv.set(x, y, 'G' if dist in (1, 2) else ('g' if dist == 0 else 'h'))
+            elif dist < 11 and (y + dist) % 4 < 2:
+                cv.set(x, y, 'g' if dist < 8 else 'R')
+            else:
+                wave = int(x * 0.35 + y * 0.45 + 3 * math.sin(y / 5)) % 7
+                cv.set(x, y, 'L' if wave == 1 else ('R' if wave in (2, 3, 4) else ('r' if wave == 5 else 'v')))
+    # Scalloped crimson-and-gold valence & royal proscenium arch crest across top.
+    for x in range(12, W - 12):
+        scallop = 8 + int(4 * abs(math.sin((x - 12) * math.pi / 27)))
+        for y in range(0, scallop):
+            if y >= scallop - 2:
+                cv.set(x, y, 'G' if (x % 2 == 0) else 'g')
+            elif y < 3:
+                cv.set(x, y, 'G' if x % 4 < 2 else 'h')
+            else:
+                cv.set(x, y, 'L' if (x % 7) == 2 else ('R' if (x % 7) < 5 else 'r'))
+    # 2. Parquet stage deck (y = 55..62), glowing footlights, dark timber stage front (y = 63..69).
+    for y in range(55, 63):
+        for x in range(10, W - 10):
+            if y == 55:
+                cv.set(x, y, 'G' if x % 8 < 4 else 'g')
+            elif y == 62:
+                cv.set(x, y, 'q')
+            else:
+                cv.set(x, y, 'E' if ((x // 4 + y) % 2 == 0) else 'e')
+    for x in range(22, W - 20, 14):
+        cv.set(x, 61, '%'); cv.set(x + 1, 61, '%')
+    for y in range(63, 70):
+        for x in range(0, W):
+            cv.set(x, y, 'q' if (y in (63, 69) or x % 12 == 0) else ('e' if y == 64 else 'w'))
+    # 3. Monumental packed orchestra pit (y = 70..99).
+    draw_orchestra_pit(cv, 70, H, W, margin=10)
+    SPRITES['stage-opera-grand'] = {'rows': cv.rows(), 'ink': {
+        **GOLD, 'L': 0xd84838, 'R': 0xa41c24, 'r': 0x6e1018, 'V': 0x520c14, 'v': 0x34080e,
+        'E': 0xb08048, 'e': 0x885c30, 'w': 0x5c3a1e, 'q': 0x2a180c, 'p': 0x1c120c,
+        'k': 0x16141a, 'W': 0xf0ece0, 'F': 0xe8b894, 'f': 0xc4906e, 'O': 0xc8742c, 'o': 0x8a4818, 'S': 0xf8f0d8, 's': 0xc8b896,
+    }}
+
+def stage_broadway():
+    """Monumental 14-tile-wide Broadway / West End theatre stage: gilded proscenium
+    with marquee bulbs, sweeping crimson curtains, moonlit theatrical skyline set,
+    warm amber footlights and a live pit orchestra."""
+    W, H = 224, 98
+    cv = Canvas(W, H)
+    # 1. Painted dramatic Broadway theatrical skyline set behind parted curtains (y = 8..54).
+    for y in range(0, 56):
+        for x in range(0, W):
+            if x < 14 or x >= W - 14 or y < 8:
+                border = x in (0, W - 1) or y == 0 or x in (13, W - 14) or (y == 7 and 13 <= x <= W - 14)
+                cv.set(x, y, 'q' if border else ('G' if ((x + y) % 6 == 0) else ('g' if y < 8 else 'h')))
+                continue
+            # Moonlit city skyline backdrop set!
+            if y < 22:
+                cv.set(x, y, 'B' if y < 15 else 'b')
+            elif y < 34:
+                cv.set(x, y, 'b' if y < 28 else 'c')
+            else:
+                cv.set(x, y, 'c')
+    # Crescent moon & stage buildings silhouettes with warm glowing amber windows!
+    for y in range(12, 20):
+        for x in range(148, 158):
+            if (x - 152) ** 2 + (y - 16) ** 2 <= 12 and (x - 155) ** 2 + (y - 15) ** 2 > 10:
+                cv.set(x, y, 'Y')
+    towers = [(34, 24, 18), (54, 18, 20), (78, 26, 16), (96, 16, 22), (122, 22, 18), (144, 28, 20), (168, 20, 22)]
+    for tx, ty, tw in towers:
+        for y in range(ty, 55):
+            for x in range(tx, tx + tw):
+                win = (y > ty + 2) and (y % 4 in (1, 2)) and ((x - tx) % 4 in (1, 2)) and ((x + y) % 5 != 0)
+                cv.set(x, y, 'Y' if win else ('N' if x == tx else 'n'))
+    # Marquee bulbs around the gilt proscenium arch.
+    for x in range(18, W - 18, 12):
+        cv.set(x, 4, '%')
+    # Sweeping crimson curtains parted left & right.
+    for y in range(8, 55):
+        t = (y - 8) / 47.0
+        left_edge = int(58 - 30 * (t ** 0.8))
+        right_edge = W - 1 - left_edge
+        for x in range(14, W - 14):
+            if x <= left_edge or x >= right_edge:
+                dist = (left_edge - x) if x <= left_edge else (x - right_edge)
+                if dist < 3:
+                    cv.set(x, y, 'G' if dist == 1 else 'g')
+                else:
+                    cv.set(x, y, 'L' if (x + y // 3) % 5 == 0 else ('R' if (x + y // 3) % 5 < 3 else 'r'))
+    # 2. Warm wooden stage deck & glowing footlights (y = 55..68).
+    for y in range(55, 62):
+        for x in range(10, W - 10):
+            cv.set(x, y, 'E' if (y == 55 or (x // 4 + y) % 2 == 0) else 'e')
+    for x in range(20, W - 20, 12):
+        cv.set(x, 60, '%'); cv.set(x + 1, 60, '%')
+    for y in range(62, 68):
+        for x in range(0, W):
+            cv.set(x, y, 'q' if (y in (62, 67) or x % 12 == 0) else 'w')
+    # 3. Live Broadway pit orchestra (y = 68..97).
+    draw_orchestra_pit(cv, 68, H, W, margin=10)
+    SPRITES['stage-broadway'] = {'rows': cv.rows(), 'ink': {
+        **GOLD, 'L': 0xd84838, 'R': 0xa41c24, 'r': 0x6a1018,
+        'B': 0x18264c, 'b': 0x263c72, 'c': 0x3a548e, 'N': 0x2a2840, 'n': 0x1a182c, 'Y': 0xffe488,
+        'E': 0xb08048, 'e': 0x865a2e, 'w': 0x58381c, 'q': 0x28160c, 'p': 0x1a120c,
+        'k': 0x16141a, 'W': 0xf0ece0, 'F': 0xe8b894, 'f': 0xc4906e, 'O': 0xc8742c, 'o': 0x8a4818, 'S': 0xf8f0d8, 's': 0xc8b896,
+    }}
+
 stage_playhouse()
 stage_elizabethan()
 stage_opera()
 stage_noh()
 stage_kabuki()
 stage_cinema()
+stage_cinema_silent()
+stage_cinema_wide()
+stage_opera_grand()
+stage_broadway()
 
 # ---------------------------------------------------------------- iconostasis (144 px)
 def icon(cv, x0, y0, w, h, robe, child=False, wings=False):

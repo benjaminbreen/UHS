@@ -38,7 +38,8 @@
       ],
       "why": "Stave barrels are Iron Age Celtic and spread from there. Ungated it appeared in Bronze Age Mesopotamia and in Mesoamerica and the Andes, which had neither barrels nor the cooperage tradition.",
       "requires": [
-        "cask"
+        "cask",
+        "handwork"
       ]
     },
     "saddler": {
@@ -450,7 +451,8 @@
       ],
       "why": "Tallow and wax candles as a trade are Roman and later. Tenochtitlan lit with pine torches; there was no tallow before cattle and sheep.",
       "requires": [
-        "tallow"
+        "tallow",
+        "handwork"
       ]
     },
     "soap-boiler": {
@@ -460,7 +462,8 @@
       ],
       "why": "Soap boiling as a trade is Roman and later.",
       "requires": [
-        "soap"
+        "soap",
+        "handwork"
       ]
     },
     "oil-presser": {
@@ -825,7 +828,8 @@
       "sex": "male",
       "sexUntil": 1970,
       "requires": [
-        "iron"
+        "iron",
+        "handwork"
       ],
       "why": "Mesoamerica and the Andes worked copper, bronze and gold, never iron."
     },
@@ -865,23 +869,33 @@
       "sexUntil": 1900,
       "sexShare": 0.15,
       "requires": [
-        "clocks"
+        "clocks",
+        "handwork"
       ]
     },
     "money-changer": {
       "sex": "male",
       "sexUntil": 1900,
-      "sexShare": 0.3
+      "sexShare": 0.3,
+      "requires": [
+        "handwork"
+      ]
     },
     "town-watchman": {
       "sex": "male",
       "sexUntil": 1900,
-      "sexShare": 0.1
+      "sexShare": 0.1,
+      "requires": [
+        "handwork"
+      ]
     },
     "gate-keeper": {
       "sex": "male",
       "sexUntil": 1900,
-      "sexShare": 0.2
+      "sexShare": 0.2,
+      "requires": [
+        "handwork"
+      ]
     },
     "tax-collector": {
       "sex": "male",
@@ -1013,7 +1027,8 @@
     },
     "guild-master": {
       "requires": [
-        "journeymen"
+        "journeymen",
+        "handwork"
       ]
     },
     "sea-fisher": {
@@ -1049,12 +1064,14 @@
     },
     "dressmaker": {
       "requires": [
-        "shops"
+        "shops",
+        "handwork"
       ]
     },
     "milliner": {
       "requires": [
-        "shops"
+        "shops",
+        "handwork"
       ]
     },
     "factory-hand": {
@@ -1064,12 +1081,14 @@
     },
     "mill-worker": {
       "requires": [
-        "factories"
+        "factories",
+        "handwork"
       ]
     },
     "power-loom-weaver": {
       "requires": [
-        "factories"
+        "factories",
+        "handwork"
       ]
     },
     "railway-labourer": {
@@ -1089,7 +1108,28 @@
     },
     "charwoman": {
       "requires": [
-        "modern-town"
+        "modern-town",
+        "handwork"
+      ]
+    },
+    "seamstress": {
+      "requires": [
+        "handwork"
+      ]
+    },
+    "cobbler": {
+      "requires": [
+        "handwork"
+      ]
+    },
+    "street-hawker": {
+      "requires": [
+        "handwork"
+      ]
+    },
+    "tobacconist": {
+      "requires": [
+        "handwork"
       ]
     }
   },
@@ -1462,7 +1502,10 @@
       "capabilities": [
         "market_exchange"
       ],
-      "why": "Taking the toll at a bridge, a gate or a ford."
+      "why": "Taking the toll at a bridge, a gate or a ford.",
+      "requires": [
+        "handwork"
+      ]
     },
     "musician": {
       "label": "Musician",
@@ -2099,6 +2142,10 @@
         1980,
         10001
       ],
+      "ages": [
+        16,
+        56
+      ],
       "inventory": {
         "water": 2,
         "coin": 1
@@ -2323,7 +2370,8 @@
         10001
       ],
       "requires": [
-        "glass"
+        "glass",
+        "handwork"
       ],
       "sex": "male",
       "sexUntil": 1970,

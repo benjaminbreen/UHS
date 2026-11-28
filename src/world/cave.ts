@@ -429,16 +429,27 @@ function build(seed: string, site: CaveSite, depth: number, attempt: number): Ca
     }
   }
 
+  const props = things.map((t) => {
+    t.prop = true;
+    return {
+      key: `cave-${t.find}`,
+      sprite: `made:cave:${kind}:5:${t.art}`,
+      x: t.x,
+      y: t.y,
+      name: t.name,
+      ...(Object.keys(t.loot).length ? { loot: t.loot } : {}),
+    };
+  });
   const names = NAMES[kind];
   const name = depth === 1 ? "the cave mouth" : names[hash(`${seed}|${site.id}|${depth}|name`) % names.length];
-  return { space: caveSpace(site.id, depth), cave: site.id, depth, last, kind, name, w, h, cells, entry, up, down, things, decor, dwellers, folk, flow, stream };
+  return { space: caveSpace(site.id, depth), cave: site.id, depth, last, kind, name, w, h, cells, entry, up, down, things, props, decor, dwellers, folk, flow, stream };
 }
 
-/** Cells that stop feet whatever is taken or killed: rock, deep water, columns and big finds. */
+/** Cells that stop feet whatever is taken or killed: rock, deep water, columns and non-prop big finds. */
 export function caveSolid(level: CaveLevel) {
   const solid = new Set<number>();
   if (level.down) solid.add(level.down.y * level.w + level.down.x);
   for (const d of level.decor) if (d.solid) solid.add(d.y * level.w + d.x);
-  for (const t of level.things) if (t.solid) solid.add(t.y * level.w + t.x);
+  for (const t of level.things) if (t.solid && !t.prop) solid.add(t.y * level.w + t.x);
   return solid;
 }

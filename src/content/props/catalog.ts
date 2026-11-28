@@ -85,9 +85,15 @@ export type PropDef = {
 /** What a prop offers: the words on the button, what is told when it is done, how long it takes and what it does for you. */
 export type PropAct = {
   verb: string;
+  /** On/off labels `[whenOff, whenOn]` for toggleable props (lamps, radios, braziers). */
+  toggle?: readonly [string, string];
+  /** Specialised indoor prop behaviour handled by `core/room-props.ts`. */
+  room?: "radio" | "light" | "fire" | "window" | "wheel" | "bed" | "shrine" | "map" | "clock" | "book" | "desk" | "drink" | "cat" | "birdcage" | "terrarium" | "instrument";
   /** Told when done. Left out, the thing's own description is told: a sign says what is written on it. */
   text?: string;
   minutes?: number;
+  /** Exact duration in game seconds, when the act does not round to whole minutes. */
+  seconds?: number;
   /** Fills the water you carry, as a well does. */
   water?: boolean;
   /** Rest it gives. */
@@ -98,8 +104,14 @@ export type PropAct = {
   gives?: Inventory;
   /** Health it restores. */
   heal?: number;
+  /** Seconds of lamp fuel it restores underground. */
+  fuel?: number;
   /** Done once, it has no more to offer. */
   once?: boolean;
+  /** Once done, it no longer blocks movement. */
+  clears?: boolean;
+  /** Once done, it disappears from the space. */
+  vanishes?: boolean;
   /** How it is told: as something that happened in the world, or as a small thing you did. */
   told?: "world" | "action";
 };

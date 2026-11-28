@@ -13,11 +13,12 @@ import { stateHash } from "../core/random";
 import { loadPrepared, preparedKey, savePrepared } from "../runtime/prepared-store";
 import { withTravelWaterways, type TravelWaterwayInputs } from "./travel/waterways";
 import type { PreparedSettlement } from "./v3/prepared";
+import { surveyEntrances, type MapEntrance } from "./travel/entrances";
 import { shrinkCaches } from "../core/cache";
 export type WorldPreparationRequest = {
-  prepare: { setting: WorldSetting; seed: string; cachePrepared: boolean; retire: boolean; waterways?: TravelWaterwayInputs };
+  prepare: { setting: WorldSetting; seed: string; cachePrepared: boolean; retire: boolean; deferEntrances?: boolean; waterways?: TravelWaterwayInputs };
 } | { hello: true };
-export type WorldPreparationResult = { prepared: PreparedSettlement; playableMap?: WorldSetting["playableMap"] };
+export type WorldPreparationResult = { entrancePort?: MessagePort; prepared: PreparedSettlement; playableMap?: WorldSetting["playableMap"] };
 export type ChunkRequest = {
   setting?: WorldSetting;
   id: string;
@@ -71,7 +72,7 @@ self.onmessage = (
 
 /** The cache is read and written here, not on the main thread: either way the
  * whole settlement is structured-cloned, and that took 800ms of the start. */
-async function prepare({ setting, seed, cachePrepared, retire, waterways }: Extract<WorldPreparationRequest, { prepare: unknown }>["prepare"]) {
+async function prepare({ setting, seed, cachePrepared, retire, waterways, deferEntrances }: Extract<WorldPreparationRequest, { prepare: unknown }>["prepare"]) {
   try {
     const recipe = cachePrepared && waterways ? preparedKey(setting, seed, waterways) : undefined;
     const hit = recipe ? await loadPrepared(recipe, true).catch(() => undefined) : undefined;
@@ -81,14 +82,36 @@ async function prepare({ setting, seed, cachePrepared, retire, waterways }: Extr
     if (playableMap) setting.playableMap = playableMap;
     const cacheKey = hit?.key ?? (cachePrepared ? preparedKey(setting, seed) : undefined);
     const cached = hit ?? (cacheKey ? await loadPrepared(cacheKey).catch(() => undefined) : undefined);
-    const { world: settlement, prepared } = prepareSettlement(packForSetting(setting), seed, cached?.prepared, retire);
+    const { world: settlement, prepared } = prepareSettlement(packForSetting(setting), seed, cached?.prepared, retire, deferEntrances);
     if (!retire) useTerrainWorld(settlement);
-    const entry = cacheKey && (!cached || (recipe && cached.recipe !== recipe))
+    const entry = cacheKey && (prepared !== cached?.prepared || (recipe && cached?.recipe !== recipe))
       ? { key: cacheKey, prepared, recipe, playableMap }
       : undefined;
     // A phone terminates this worker on receipt; finish its cache transaction first.
     if (retire && entry) await savePrepared(entry);
-    self.postMessage({ prepared, playableMap } satisfies WorldPreparationResult);
+    const channel = !retire && deferEntrances && !prepared.entrances && playableMap?.exits.length ? new MessageChannel() : undefined;
+    if (channel && playableMap) {
+      const port = channel.port1;
+      let side: string | undefined, cancel: (() => void) | undefined;
+      const routes: MapEntrance[] = [];
+      port.onmessage = ({ data }: MessageEvent<string | null | false>) => {
+        if (data === false) { cancel?.(); port.close(); return; }
+        side = data ?? undefined;
+        cancel ??= surveyEntrances(settlement, playableMap.size, playableMap.exits, (route) => {
+          routes.push(route);
+          port.postMessage(route);
+          if (routes.length === playableMap.exits.length) {
+            port.close();
+            if (cacheKey) void savePrepared({ key: cacheKey, recipe, playableMap, prepared: {
+              ...prepared, entrances: playableMap.exits.map(e => routes.find(r => r.id === e.id)!),
+            } });
+          }
+        }, () => side);
+      };
+    }
+    const result: WorldPreparationResult = { prepared, playableMap };
+    if (channel) result.entrancePort = channel.port2;
+    self.postMessage(result, { transfer: channel ? [channel.port2] : [] });
     if (!retire && entry) void savePrepared(entry);
   } catch (error) {
     self.postMessage({ error: String(error) });

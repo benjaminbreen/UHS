@@ -33,7 +33,7 @@ import {
   workAt,
 } from "../../content/characters/resolve";
 import { workplaceFor } from "../../content/characters/workplace";
-import type { Rank } from "../../content/characters/context-types";
+import type { Livelihood, Rank } from "../../content/characters/context-types";
 import {
   ageStructure,
   roofless,
@@ -75,7 +75,7 @@ import { choose, treeMix } from "../../content/ecology/vegetation";
 import { propDefs, propVisualCells, spriteVisualCells } from "../../content/props/catalog";
 import { propKit, techFor } from "../../content/props/selection";
 import { processFor } from "../../content/economy/processes";
-import { shopKind } from "../../content/interiors/shops";
+import { shopKind, shopKinds } from "../../content/interiors/shops";
 import { keptSpecies } from "../../content/fauna/herding";
 import {
   penBoundary as localPen,
@@ -180,7 +180,11 @@ import {
 } from "./placement";
 
 // Shops whose name is the trade's own, whoever keeps them.
-const NAMED_SHOPS = new Set(["bread", "meat", "tools", "pots", "apothecary", "candles"]);
+const NAMED_SHOPS = new Set(["bread", "meat", "tools", "pots", "apothecary", "candles", "music", "pet"]);
+function keeperShop(kit: Livelihood) {
+  return kit.shopKind ? shopKinds.find(shop => shop.id === kit.shopKind) : shopKind(kit.label);
+}
+
 /** The livelihood activity that keeps animals, as the character tables name it. */
 const HERDING = "Tending animals";
 // The longest water a town's line bridges, in 2 m cells.
@@ -2902,7 +2906,7 @@ export function planSettlement(
   const playerCrop = playerKit && (Object.keys(crops) as CropId[]).find((id) =>
     id !== "pasture" && id !== "fallow" && new RegExp(`\\b${crops[id].label.split(" ").at(-1)}\\b`, "i").test(playerKit.label));
   // A trade that keeps a shop keeps it on the street, named for it.
-  const playerShop = playerKit && (playerFamily === "transform" || playerFamily === "serve") ? shopKind(playerKit.label) : undefined;
+  const playerShop = playerKit && (playerKit.shopKind || playerFamily === "transform" || playerFamily === "serve") ? keeperShop(playerKit) : undefined;
   const tStreets = tPlan;
   /** Households whose work is keeping animals, so a pen has someone to tend it. */
   const herders = new Set<string>();
@@ -4465,6 +4469,7 @@ export function planSettlement(
         !lot.venue &&
         lot.quarter !== "elite" &&
         lot.use !== "downtown" && lot.use !== "industrial" &&
+        (!playerShop || !isServiceFrame(frame)) &&
         (!!playerShop || (lot.quarter !== "market" && lot.use !== "commercial" && !shopArt(frame))) &&
         !owners.includes("player") &&
         (!pack.setting?.environment ||
@@ -4703,7 +4708,7 @@ export function planSettlement(
     }
     reserveBuilding(frame, rect, door, workPoint);
     if (owner === "player") playerTrade = role;
-    const shop = owner === "player" ? playerShop : undefined;
+    const shop = owner === "player" ? playerShop : livelihood && keeperShop(livelihood);
     // Only bench crafts without their own worksite in town keep a workshop at home.
     const workplace = livelihood
       ? (livelihood.workplace ?? workplaceFor(livelihood.activity))
@@ -4723,6 +4728,7 @@ export function planSettlement(
       : owner === "player"
         ? !!shop
         : !!keeper ||
+          !!livelihood?.shopKind ||
           lot.quarter === "market" ||
           (lot.quarter === "craft" && homeWorkshop) ||
           (i % 4 === 1 && homeWorkshop && !grandHouse && placedTier !== 1);
@@ -4758,6 +4764,7 @@ export function planSettlement(
       condition: conditionOf(structure),
       ...(shopfront && !lot.venue
         ? {
+            ...((!art || art === "shop" || owner === "player") && shop ? { shopKind: shop.id } : {}),
             trade:
               means * 0.5 +
               (TRAFFIC[lot.quarter ?? "residential"] ?? 0.4) * 0.5,
@@ -4773,7 +4780,9 @@ export function planSettlement(
           ? shopfront
             ? `${role}'s ${dwelling.toLowerCase()}`
             : dwelling
-          : shop
+          : (owner === "player" || !art || art === "shop") && shop?.serves && shopfront
+          ? signboard(shop.id === "eatery" ? "diner" : shop.id) ?? shop.label
+          : owner === "player" && shop && shopfront
           ? NAMED_SHOPS.has(shop.id) ? `The ${shop.label.toLowerCase()}` : shop.id === "general" ? `${role}'s shop` : `${role}'s workshop`
           : keeper && art !== "shop"
           ? signboard(art!) ?? art![0].toUpperCase() + art!.slice(1)

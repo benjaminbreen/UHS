@@ -54,6 +54,7 @@ export class TombView {
       return im;
     };
     for (const t of level.things) {
+      if (t.prop) continue;
       const s = paintTombThing(t.art, t.w ?? 1, t.h ?? 1, ((t.x * 7 + t.y * 3) % 10) / 10, style?.look, t.find);
       if (!s) continue;
       const flat = !t.wall && !t.solid;

@@ -2951,11 +2951,27 @@ button:disabled {
   bottom: -18px;
   z-index: 1;
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
+  gap: 12px 18px;
   margin-top: 16px;
   padding: 12px 0 0;
   border-top: 1px solid #ffffff14;
   background: var(--start-panel);
+}
+.weaver-share {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.weaver-lock-seed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #c9c1ab;
+  cursor: pointer;
 }
 .weaver-bottom .filled-button {
   display: flex;

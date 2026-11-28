@@ -145,6 +145,7 @@ export const americanFauna: readonly FaunaProfile[] = [
     ],
     density: 0.7,
     pace: 0.7,
+    sprint: 6.5,
     settlementTolerance: 0.15,
     minimumSettlementDistance: 14,
     alertRadius: 6,

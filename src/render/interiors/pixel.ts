@@ -1,11 +1,14 @@
 import type { LightField } from "./voxel";
 import { ALTARS } from "./altars";
+import { paintFilmScreen } from "./film";
+import { paintOverlookAltar, paintOverlookClutter, paintOverlookFixture } from "./overlook-art";
+import { paintBackroomAltar, paintBackroomFixture, paintQuirkClutter } from "./backroom-art";
 import { FIXED, LETTERS, SPRITES } from "./sprites";
 import { FITS, type Fit } from "./fits";
 import type { RoomPlan } from "./building";
 import {
   carpetColor, courtParams, floorColor, hash, wornTiles, mix, palette, roomMask, scale, sky, sun, wallColor,
-  type Kind, type Palette, type Prop, type RoomParams,
+  type Finish, type Kind, type Palette, type Prop, type RoomParams,
 } from "./room";
 
 export const T = 16;
@@ -15,6 +18,7 @@ export const FLOOR_X = S, FLOOR_Y = CAP + WH;
 /** Sprites widened by `stretch`, keyed `name@width`. */
 const WIDE = new Map<string, string[]>();
 const FIT_GRIDS: Record<string, string[]> = Object.assign({}, ...Object.values(FITS).map((f) => f.grids));
+const CHROME = [0x2a2e34, 0x4a5058, 0x7a828c, 0xa8b0b8, 0xd0d6dc, 0xf4f6f8];
 const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => (v + 0.5) / 16);
 type Hit = { u: number; v: number; hits: number; seed: number; base: number };
 type Debris = { x: number; y: number; vx: number; vy: number; c: number; floor: number; rest: boolean };
@@ -61,6 +65,7 @@ export class PixelRoom {
   private smoke: { x: number; y: number }[] = [];
   private zz: { x: number; y: number }[] = [];
   private notes: { x: number; y: number }[] = [];
+  private birds: { x: number; y: number; seed: number; singing: boolean }[] = [];
   private worn = new Float32Array(0);
   private walls: Hit[] = [];
   private tiles = new Map<number, Hit>();
@@ -99,6 +104,8 @@ export class PixelRoom {
     this.cutouts = [];
     for (const q of this.props) {
       if (q.wall || LOW.includes(q.kind)) continue;
+      // Stages stay on the room canvas so actors standing up on the deck draw in front of the curtains.
+      if (q.kind === "altar" && (this.plan?.rooms[q.room ?? 0] ?? this.p).styles.altar?.startsWith("stage-")) continue;
       const w = q.w * T + 16, h = Math.max(1, q.d) * T + 52;
       if (x + w > 512) (x = 0), (y += row), (row = 0);
       this.cutouts.push({ id: q.id, ax: x, ay: y, w, h });
@@ -115,7 +122,7 @@ export class PixelRoom {
     const { W, H, ids } = this, src = this.img!.data, out = this.sheet.img, dst = out.data;
     dst.fill(0);
     for (const c of this.cutouts) {
-      if (this.props[c.id].wrecked || this.props[c.id].external) continue;
+      if (this.props[c.id].wrecked || this.props[c.id].external || this.props[c.id].hidden) continue;
       const at = this.cutoutAt(c);
       for (let j = 0; j < c.h; j++) {
         const y = at.y + j;
@@ -1363,16 +1370,27 @@ export class PixelRoom {
     this.r(X + 7, base - 48, 2, 3, P.brass[4]);
   }
   /** The focus a room of rows faces, in the form of its faith and age. */
-  private altar(style: string, q: Prop, X: number, Y: number, PW: number, PD: number) {
+  private altar(style: string, q: Prop, X: number, Y: number, PW: number, PD: number, film?: string) {
+    if (style.startsWith("overlook-") && paintOverlookAltar({
+      s: this.s.bind(this), g: this.g.bind(this), r: this.r.bind(this),
+      lights: this.lights, fires: this.fires, notes: this.notes, t: this.t,
+    }, style, X, Y, PW, PD, q.seed)) return;
+    if (style.startsWith("backroom-") && paintBackroomAltar({
+      s: this.s.bind(this), g: this.g.bind(this), r: this.r.bind(this),
+      lights: this.lights, fires: this.fires, flames: this.flames, smoke: this.smoke, notes: this.notes, birds: this.birds, t: this.t,
+    }, style, X, Y, PW, PD, q.seed)) return;
     const { P } = this, cx = X + (PW >> 1);
     const art = ALTARS[style] ?? ALTARS["dais-plain"];
     const R = P as unknown as Record<string, number[]>, w = art.rows[0].length, x0 = cx - (w >> 1), y0 = Y + PD - 1 - art.rows.length;
+    const cinema = style.startsWith("stage-cinema");
+    const grand = style === "stage-opera-grand" || style === "stage-broadway";
+    const theatrical = grand || style === "stage-playhouse" || style === "stage-opera";
     art.rows.forEach((row, j) => {
       for (let i = 0; i < row.length; i++) {
         const ch = row[i];
         if (ch === ".") continue;
         if (ch === "%") {
-          this.g(x0 + i, y0 + j, 0xffd890);
+          this.g(x0 + i, y0 + j, 0xffdf96);
           continue;
         }
         if (ch === "*") {
@@ -1381,9 +1399,57 @@ export class PixelRoom {
           continue;
         }
         const ink = art.ink[ch];
-        this.s(x0 + i, y0 + j, typeof ink === "number" ? ink : R[ink[0]][ink[1]]);
+        const c = typeof ink === "number" ? ink : R[ink[0]][ink[1]];
+        if ((cinema && "SsBbOoYX".includes(ch)) || (grand && (ch === "Y" || ch === "S"))) {
+          this.g(x0 + i, y0 + j, c);
+        } else {
+          this.s(x0 + i, y0 + j, c);
+        }
       }
     });
+    if (cinema) {
+      const [sx, sy, sw, sh] =
+        style === "stage-cinema-silent" ? [x0 + 20, y0 + 10, 72, 27]
+        : style === "stage-cinema" ? [x0 + 24, y0 + 12, 96, 27]
+        : [x0 + 16, y0 + 9, 112, 30];
+      const glow = paintFilmScreen((x, y, c) => this.g(x, y, c), style, film, this.t, sx, sy, sw, sh, q.seed + (q.room ?? 0) * 13);
+      const phase = (q.seed % 50) + 1;
+      this.lights.push(
+        { x: cx - 24, y: y0 + 28, c: glow, rad: 92, k: 0.85, phase },
+        { x: cx + 24, y: y0 + 28, c: glow, rad: 92, k: 0.85, phase: phase + 7 },
+        { x: cx, y: y0 + 56, c: glow, rad: 108, k: 0.55, phase: phase + 13 },
+      );
+      if (style !== "stage-cinema-silent") {
+        const exitC = style === "stage-cinema-wide" ? 0xf03838 : 0x30e870;
+        this.lights.push(
+          { x: x0 + 5, y: y0 + 50, c: exitC, rad: 20, k: 0.55, phase: -1 },
+          { x: x0 + w - 6, y: y0 + 50, c: exitC, rad: 20, k: 0.55, phase: -1 },
+        );
+      }
+    } else if (grand) {
+      const phase = (q.seed % 50) + 1;
+      // Sweeping stage & orchestra spotlights plus glowing footlight wash across the full 15-tile stage.
+      this.lights.push(
+        { x: cx - 72, y: y0 + 36, c: 0xffd288, rad: 96, k: 0.95, phase },
+        { x: cx - 24, y: y0 + 42, c: 0xffe0a0, rad: 112, k: 1.05, phase: phase + 5 },
+        { x: cx + 24, y: y0 + 42, c: 0xffe0a0, rad: 112, k: 1.05, phase: phase + 11 },
+        { x: cx + 72, y: y0 + 36, c: 0xffd288, rad: 96, k: 0.95, phase: phase + 17 },
+        { x: cx, y: y0 + 78, c: 0xffc870, rad: 120, k: 0.85, phase: -1 },
+        { x: cx - 64, y: y0 + 82, c: 0xffc068, rad: 84, k: 0.7, phase: -1 },
+        { x: cx + 64, y: y0 + 82, c: 0xffc068, rad: 84, k: 0.7, phase: -1 },
+      );
+      this.beams.push(
+        { x0: x0 + 18, x1: x0 + 44, top: y0 + 12, floor: y0 + 54, skew: 36, len: 46, c: 0xffe8b8, k: 0.72 },
+        { x0: x0 + w - 44, x1: x0 + w - 18, top: y0 + 12, floor: y0 + 54, skew: -36, len: 46, c: 0xffe8b8, k: 0.72 },
+      );
+    } else if (theatrical) {
+      const phase = (q.seed % 50) + 1;
+      this.lights.push(
+        { x: cx - 32, y: y0 + 40, c: 0xffca78, rad: 78, k: 0.85, phase },
+        { x: cx, y: y0 + 42, c: 0xffd690, rad: 92, k: 0.9, phase: phase + 9 },
+        { x: cx + 32, y: y0 + 40, c: 0xffca78, rad: 78, k: 0.85, phase: phase + 17 },
+      );
+    }
   }
   private tokkuri(x: number, base: number, k: number) {
     const R = [0x3a4050, 0x8a909a, 0xb8bcc0, 0xd8dad8, 0xecebe4, 0xffffff];
@@ -1429,10 +1495,177 @@ export class PixelRoom {
     if (seed % 2) this.choko(x0 + 12, y0 + 4);
     this.r(x0 + 2, y0 + 3, 2, 1, 0x8a5a3a);
   }
+  /** A cup on its saucer, white china. */
+  private cup(x: number, base: number) {
+    const { P } = this;
+    this.r(x - 1, base, 6, 1, (i) => (i === 0 ? P.linen[5] : i === 5 ? P.linen[2] : P.linen[4]));
+    this.r(x, base - 3, 4, 3, (i, j) => (j === 0 ? 0x4a2a18 : i === 0 ? P.linen[5] : i === 3 ? P.linen[2] : P.linen[4]));
+    this.s(x + 4, base - 2, P.linen[3]);
+  }
+  /** A pint glass of beer under its head. */
+  private pint(x: number, base: number, seed: number) {
+    const ale = seed % 3 === 2 ? [0x1a0e08, 0x2a160c, 0x3a2010] : [0x8a4a10, 0xb86a18, 0xd8922a];
+    this.r(x, base - 6, 3, 6, (i, j) => (j === 0 ? 0xf0ece0 : j === 5 ? ale[0] : i === 0 ? ale[2] : ale[1]));
+    this.s(x, base - 7, 0xf8f4ea);
+    this.s(x + 1, base - 7, 0xe8e2d4);
+  }
+  /** A pastry or cake on the counter or a plate: a croissant's curl, a muffin, a slice. */
+  private pastry(x: number, base: number, k: number) {
+    const crust = [0x5a2e10, 0x8a4a18, 0xb8702a, 0xd89a48, 0xecc070, 0xf8e0a0];
+    if (k % 3 === 0) {
+      for (let i = 0; i < 6; i++) this.s(x + i, base - 1 - (i > 0 && i < 5 ? 1 : 0), crust[i % 2 ? 3 : 4]);
+      this.r(x + 1, base - 1, 4, 1, crust[2]);
+    } else if (k % 3 === 1) {
+      this.r(x, base - 2, 4, 2, (i) => (i === 3 ? 0x6a3a1a : 0x9a5a2a));
+      this.r(x, base - 4, 4, 2, (i, j) => (j === 0 && i > 0 && i < 3 ? crust[5] : crust[3]));
+    } else {
+      this.r(x, base - 3, 5, 3, (i, j) => (j === 0 ? 0xf4e8f0 : j === 1 ? 0xd85a7a : i === 4 ? crust[1] : crust[3]));
+    }
+  }
+  /** What a modern serving house keeps against its back wall: the café's
+   * cups and coffee, a bar's mirror and bottles, a diner's urn and pies. */
+  private backBar(drink: string, X: number, base: number, PW: number, seed: number) {
+    const { P } = this, W = P.wood;
+    if (drink !== "cafe" && drink !== "beer" && drink !== "diner") return false;
+    const steel = drink === "diner";
+    // The low back counter.
+    this.r(X + 1, base - 11, PW - 2, 2, (_i, j) => (steel ? CHROME[j ? 3 : 5] : W[j ? 3 : 5]));
+    this.r(X + 1, base - 9, PW - 2, 9, (i, j) => (i === 0 || i === PW - 3 || j === 8 ? (steel ? CHROME[0] : W[0]) : (i - 1) % 12 === 0 ? (steel ? CHROME[1] : W[1]) : steel ? CHROME[j < 2 ? 4 : 2] : W[j < 2 ? 3 : 2]));
+    if (drink === "beer") {
+      // A mirror in a frame, two glass shelves of bottles across it.
+      const my = base - 34;
+      this.r(X + 2, my, PW - 4, 22, (i, j) => (i === 0 || j === 0 || i === PW - 5 || j === 21 ? W[1] : (i + j) % 17 < 2 ? 0xc8d4d8 : 0x7e8e94 - (j > 11 ? 0x0a0a0a : 0)));
+      for (const sy of [my + 9, my + 20]) {
+        this.r(X + 3, sy, PW - 6, 1, 0xd8e4e8);
+        for (let k = 0; k < (PW - 8) / 4; k++) {
+          const bx = X + 4 + k * 4, c = [0x2a6a3a, 0x8a4a1a, 0xc8d4cc, 0x5a2a1a, 0x3a5a2a][(k * 3 + seed + sy) % 5], h = 6 + ((k + seed) % 2);
+          this.r(bx, sy - h + 2, 2, h - 2, (i) => (i ? scale(c, 0.7) : c));
+          this.s(bx, sy - h, c);
+          this.s(bx, sy - h + 1, c);
+          this.s(bx, sy - h + 3, 0xf0e8d0);
+        }
+      }
+      for (let k = 0; k < 3; k++) this.pint(X + 6 + k * 6, base - 11, k + seed);
+      return true;
+    }
+    if (drink === "diner") {
+      // A pie shelf above, plates stacked and the coffee urn below.
+      const sy = base - 24;
+      this.r(X + 2, sy, PW - 4, 2, (_i, j) => CHROME[j ? 2 : 4]);
+      for (let k = 0; k < Math.floor((PW - 6) / 11); k++) {
+        const px = X + 4 + k * 11;
+        this.r(px, sy - 3, 9, 3, (i, j) => (j === 0 ? (i % 2 ? 0xe8b060 : 0xd89848) : j === 1 ? [0x8a2a3a, 0xc89a3a, 0x5a3a8a][(k + seed) % 3] : 0xb8702a));
+      }
+      this.vase(X + 8, base - 11, 12, (t) => (t > 0.85 ? 2 : 3.4), CHROME);
+      this.r(X + 11, base - 16, 2, 1, CHROME[1]);
+      for (let k = 0; k < 4; k++) this.r(X + PW - 14, base - 12 - k, 8, 1, k % 2 ? P.linen[4] : P.linen[5]);
+      return true;
+    }
+    // Café: a shelf of cups and coffee above, the grinder or the urn below.
+    const sy = base - 25;
+    this.r(X + 2, sy, PW - 4, 2, (_i, j) => W[j ? 1 : 4]);
+    for (let k = 0; k < (PW - 8) / 6; k++) {
+      const x = X + 4 + k * 6;
+      if ((k + seed) % 3 === 0) this.r(x, sy - 7, 4, 7, (i, j) => (j === 0 ? P.acc[2] : j === 3 ? P.linen[5] : i === 3 ? scale(P.acc[3], 0.7) : P.acc[3]));
+      else { this.cup(x, sy - 1); this.cup(x, sy - 4); }
+    }
+    // The grinder: a hopper of beans on a squat body.
+    const gx = X + PW - 12;
+    this.r(gx, base - 19, 6, 8, (i, j) => (j < 3 ? (i === 0 || i === 5 ? 0x2a1a10 : 0x5a3018) : i === 0 ? CHROME[1] : i === 5 ? CHROME[2] : CHROME[4]));
+    for (let k = 0; k < 4; k++) this.cup(X + 5 + k * 6, base - 11);
+    return true;
+  }
+  /** The top of a modern serving counter, and its front where it is not boards. */
+  private modernCounter(drink: string, X: number, ty: number, top: number, d: number, fy: number, fh: number, PW: number, seed: number) {
+    const { P } = this;
+    if (drink === "beer") {
+      // Handpumps on the bar, a drip tray, pints drawn.
+      for (let k = 0; k < 3; k++) {
+        const hx = X + 6 + k * 5;
+        this.r(hx, ty - 3, 1, 8, CHROME[3]);
+        this.r(hx - 1, ty - 10, 3, 7, (i, j) => (j === 0 ? P.linen[5] : i === 2 ? scale([P.acc[3], P.wood[3], P.acc2[3]][k], 0.7) : [P.acc[3], P.wood[3], P.acc2[3]][k]));
+        this.r(hx - 1, ty - 7, 3, 2, P.linen[5]);
+      }
+      this.r(X + 4, ty + 5, 16, 1, CHROME[2]);
+      for (let k = 0; k < Math.floor((PW - 30) / 7); k++) this.pint(X + 26 + k * 7, ty + 6, seed + k);
+      return true;
+    }
+    if (drink === "diner") {
+      // A pale laminate top, a chrome band and a coloured panel down the front.
+      this.r(X, top, PW, d, (i, j) => (i === 0 || i === PW - 1 ? CHROME[1] : j === 0 ? 0xf4f0e8 : (i * 7 + j * 3) % 11 === 0 ? 0xc8d0d4 : 0xe4e0d8));
+      this.r(X, fy, PW, 2, (_i, j) => CHROME[j ? 2 : 5]);
+      this.r(X, fy + 2, PW, fh - 6, (i, j) => (i === 0 || i === PW - 1 ? 0x2a1a1a : j % 6 === 5 ? CHROME[3] : P.acc[j < 2 ? 4 : 3]));
+      // A pie under a glass dome, the napkins, ketchup and mustard, the till.
+      const cx = X + 9;
+      this.r(cx - 5, ty + 4, 11, 1, CHROME[4]);
+      this.r(cx - 4, ty + 1, 9, 3, (_i, j) => (j === 0 ? 0xe8b060 : j === 1 ? 0x8a2a3a : 0xb8702a));
+      for (let j = 0; j < 9; j++) {
+        const n = Math.round(Math.sqrt(Math.max(0, 1 - (j / 9) ** 2)) * 5);
+        this.s(cx - n, ty + 3 - j, 0xd8e8f0);
+        this.s(cx + n, ty + 3 - j, 0xa8b8c0);
+      }
+      this.s(cx, ty - 7, CHROME[5]);
+      this.r(X + 18, ty + 1, 4, 4, (i) => (i === 0 ? CHROME[5] : CHROME[3]));
+      this.r(X + 19, ty, 2, 1, 0xf8f8f8);
+      this.r(X + 24, ty, 2, 5, (_i, j) => (j === 0 ? 0xf0f0f0 : 0xc82a1a));
+      this.r(X + 27, ty, 2, 5, (_i, j) => (j === 0 ? 0xf0f0f0 : 0xe8c020));
+      this.till(X + PW - 14, ty + 5);
+      return true;
+    }
+    if (drink !== "cafe") return false;
+    // The espresso machine from 1900s Milan; before it, a coffee urn.
+    if (this.p.styles.machine !== "urn") {
+      const mx = X + 4, my = ty - 9;
+      this.r(mx, my, 16, 13, (i, j) => (j === 0 ? CHROME[5] : i === 0 ? CHROME[4] : i === 15 ? CHROME[1] : j === 12 ? CHROME[1] : j < 4 ? CHROME[3] : j === 4 ? P.acc[2] : j === 5 ? P.acc[4] : CHROME[i % 5 === 1 ? 4 : 2]));
+      for (const gx of [mx + 3, mx + 10]) {
+        this.r(gx, my + 7, 3, 2, 0x2a2a2e);
+        this.r(gx - 1, my + 9, 5, 1, CHROME[1]);
+        this.cup(gx, ty + 5);
+      }
+      this.smoke.push({ x: mx + 8, y: my - 2 });
+    } else {
+      this.vase(X + 10, ty + 5, 15, (t) => (t < 0.1 ? 2 : t < 0.8 ? 4.5 - Math.abs(t - 0.45) * 3 : 1.8), P.brass);
+      this.r(X + 14, ty - 2, 3, 1, P.brass[3]);
+      this.smoke.push({ x: X + 10, y: ty - 11 });
+    }
+    // The pastry case: a glass box, the day's baking on two trays.
+    const cx = X + PW - 22;
+    this.r(cx, ty - 7, 20, 12, (i, j) => (i === 0 || i === 19 || j === 0 ? P.wood[1] : j === 11 ? P.wood[1] : j === 5 ? 0xd8e0e4 : (i + j) % 9 === 0 ? 0xeef4f8 : 0xb8c8d0));
+    for (let k = 0; k < 3; k++) {
+      this.pastry(cx + 2 + k * 6, ty - 2, k + seed);
+      this.pastry(cx + 2 + k * 6, ty + 4, k + seed + 1);
+    }
+    return true;
+  }
+  /** A cash register on the counter, from the 1880s. */
+  private till(x: number, base: number) {
+    this.r(x, base - 7, 10, 7, (i, j) => (j === 0 ? CHROME[5] : i === 0 ? CHROME[4] : i === 9 ? CHROME[1] : j < 3 ? CHROME[3] : (i + j) % 2 ? 0x2a2a2e : CHROME[4]));
+    this.r(x + 2, base - 10, 6, 3, (i, j) => (j === 0 ? CHROME[5] : i === 0 ? CHROME[3] : 0x1a3a2a));
+  }
   /** What stands on a tavern board: pots, a jug, the candle, a pipe, a spill. */
   private tavernBoard(X: number, ty: number, PW: number, seed: number) {
     const { P } = this;
     const drink = this.p.styles.bar ?? "ale";
+    if (drink === "cafe") {
+      this.cup(X + 7, ty + 5);
+      this.r(X + PW - 14, ty + 5, 8, 1, P.linen[4]);
+      this.pastry(X + PW - 13, ty + 5, seed);
+      if (seed % 2) this.cup(X + 13, ty + 4);
+      return;
+    }
+    if (drink === "beer") {
+      this.r(X + 7, ty + 5, 5, 1, P.acc[4]);
+      this.pint(X + 8, ty + 5, seed);
+      this.pint(X + PW - 12, ty + 6, seed + 1);
+      return;
+    }
+    if (drink === "diner") {
+      this.r(X + 5, ty + 5, 9, 1, P.linen[3]);
+      this.r(X + 6, ty + 2, 7, 3, (_i, j) => (j === 0 ? 0xc8803a : j === 1 ? 0x5a8a2a : 0x7a3a1a));
+      this.cup(X + PW - 14, ty + 5);
+      this.r(X + PW - 7, ty, 2, 5, (_i, j) => (j === 0 ? 0xf0f0f0 : 0xc82a1a));
+      return;
+    }
     if (drink.startsWith("game")) {
       this.game(drink.slice(5) || "dice", X + 4, ty, PW - 8, seed);
       this.candle(X + PW - 6, ty + 5, seed);
@@ -1517,8 +1750,9 @@ export class PixelRoom {
       const name = fit.narrow![q.x % fit.narrow!.length], g = FIT_GRIDS[name];
       this.sprite(name, X + ((T - g[0].length) >> 1), base - g.length);
     } else if (q.kind === "stock") {
-      const u = fit.wall[this.props.filter((o) => o.kind === "stock" && o.w > 1).indexOf(q) % fit.wall.length], y = base - FIT_GRIDS[u.grid].length;
+      const u = fit.wall[this.props.filter((o) => o.kind === "stock" && o.w > 1 && o.room === q.room).indexOf(q) % fit.wall.length], y = base - FIT_GRIDS[u.grid].length;
       this.sprite(u.grid, X, y);
+      if (u.grid === "concessions-menu" || u.grid === "boxoffice-board" || u.grid === "overlook-keyrack") this.lights.push({ x: X + 16, y: y + 11, c: 0xffe8a4, rad: 40, k: 0.75, phase: -1 });
       for (const [x0, x1, foot] of u.shelves ?? []) stand(u.goods ?? [], X + x0, X + x1, y + foot, q.seed + foot * 7);
     } else if (q.kind === "shopcounter") {
       const c = fit.counter, y = Y + T - FIT_GRIDS[c.grid].length;
@@ -1537,10 +1771,14 @@ export class PixelRoom {
       }
     } else if (q.kind === "display") {
       const name = fit.floor[this.props.filter((o) => o.kind === "display").indexOf(q) % fit.floor.length], g = FIT_GRIDS[name];
-      this.sprite(name, X + ((PW - g[0].length) >> 1), base - g.length);
+      const gx = X + ((PW - g[0].length) >> 1), gy = base - g.length;
+      this.sprite(name, gx, gy);
+      if (name === "concessions-arcade") this.lights.push({ x: gx + (g[0].length >> 1), y: gy + 10, c: 0x5ad8f0, rad: 28, k: 0.65, phase: (q.seed % 40) + 1 });
     } else {
       const name = fit.hung[this.props.filter((o) => o.kind === "frame").indexOf(q) % fit.hung.length], g = FIT_GRIDS[name];
-      this.sprite(name, X + 8 - (g[0].length >> 1), oy - 38);
+      const gx = X + 8 - (g[0].length >> 1), gy = oy - 38;
+      this.sprite(name, gx, gy);
+      if (name.includes("-poster-")) this.lights.push({ x: gx + (g[0].length >> 1), y: gy + (g.length >> 1), c: 0xffe4a8, rad: 30, k: 0.55, phase: -1 });
     }
     this.ink = undefined;
   }
@@ -1637,6 +1875,7 @@ export class PixelRoom {
     this.smoke = [];
     this.zz = [];
     this.notes = [];
+    this.birds = [];
     this.cur = -1;
     const { mask } = this, w = p.w, d = p.d;
     const inside = (cx: number, cy: number) => cx >= 0 && cy >= 0 && cx < w && cy < d && mask[cy * w + cx] > 0;
@@ -1647,7 +1886,7 @@ export class PixelRoom {
       for (let cx = 0; cx < w; cx++) {
         if (!inside(cx, cy)) continue;
         const rp = rooms[Math.max(0, cells[cy * w + cx])], P = this.palettes[Math.max(0, cells[cy * w + cx])], court = courtParams(rp);
-        const soft = rp.floorPattern === "carpet" || rp.floorPattern === "mat" || rp.floorPattern === "paper";
+        const soft = rp.floorPattern === "carpet" || rp.floorPattern === "mat" || rp.floorPattern === "paper" || rp.floorPattern === "overlook-hex" || rp.floorPattern === "snow-ground";
         const earthy = rp.floorPattern === "earth" || rp.floorPattern === "sand" || rp.floorPattern === "rushes";
         const n = !inside(cx, cy - 1), so = !inside(cx, cy + 1), we = !inside(cx - 1, cy), ea = !inside(cx + 1, cy);
         for (let j = 0; j < T; j++)
@@ -1715,7 +1954,7 @@ export class PixelRoom {
     for (const q of this.props) if (q.kind === "hearth") (this.inRoom(q.room), this.hearthSlab(q));
     this.outOfRoom();
     for (const q of this.props) {
-      if (q.wall || q.wrecked || q.kind === "rug" || q.kind === "cat" || q.kind === "clutter") continue;
+      if (q.wall || q.wrecked || q.hidden || q.kind === "rug" || q.kind === "cat" || q.kind === "clutter") continue;
       const X = S + q.x * T, Y = oy + (q.y + q.d) * T;
       if (this.lighting !== "smooth") {
         this.contact(X + (q.w * T) / 2, Y - 3, q.w * T * 0.46, 3.2);
@@ -1729,7 +1968,7 @@ export class PixelRoom {
       .filter((q) => q.kind !== "rug" && q.kind !== "clutter")
       .sort((a, b) => (a.wall === b.wall ? a.y + a.d - (b.y + b.d) || (a.kind === "cat" ? 1 : 0) - (b.kind === "cat" ? 1 : 0) : a.wall ? -1 : 1));
     for (const q of order) {
-      if (q.external) continue;
+      if (q.external || q.hidden) continue;
       this.cur = q.id;
       this.inRoom(q.room);
       if (q.wrecked) this.wreck(q);
@@ -1791,7 +2030,15 @@ export class PixelRoom {
         // A neck between neighbours: a post at each mouth, the floor running through.
         const top = this.oy + y0 * T, tall = (y1 - y0 + 1) * T;
         for (const jx of [X, X + wide - 2]) this.r(jx, top - 3, 2, tall + 3, (i, j) => (j < 3 ? P.trim[4] : P.trim[jx === X ? (i ? 3 : 4) : i ? 1 : 2]));
-        if (dw.private) {
+        if (dw.secret) {
+          this.r(X + 1, top - 4, wide - 2, 1, P.brass[4]);
+          for (let j = 0; j < Math.min(tall - 3, 18); j++) {
+            const pull = Math.round((j / 18) * 3);
+            this.r(X + 2, top - 2 + j, 5 - pull, 1, P.acc[j % 4 === 0 ? 4 : 2]);
+            this.r(X + wide - 7 + pull, top - 2 + j, 5 - pull, 1, P.acc[j % 4 === 0 ? 3 : 1]);
+          }
+          this.lights.push({ x: X + (wide >> 1), y: top + 6, c: 0xffc668, rad: 34, k: 0.42, phase: 5 });
+        } else if (dw.private) {
           this.r(X + 2, top + 1, 5, tall - 3, (i, j) => (j % 9 === 0 ? W[1] : W[i === 0 ? 4 : i === 4 ? 1 : 3]));
           this.s(X + 6, top + (tall >> 1), P.iron[4]);
         }
@@ -1815,7 +2062,19 @@ export class PixelRoom {
       for (const jx of [X, X + wide - 2]) this.r(jx, head, 2, tall, (i) => P.trim[jx === X ? (i ? 3 : 4) : i ? 1 : 2]);
       this.r(X - 1, head - 3, wide + 2, 3, (_i, j) => P.trim[j === 0 ? 5 : j === 2 ? 1 : 3]);
       if (!dw.stairs) this.r(X + 2, foot - 2, wide - 4, 2, (_i, j) => P.stone[j ? 2 : 4]);
-      if (dw.private) {
+      if (dw.secret) {
+        // Parted velvet curtain on a brass rod with warm back-room light seeping through.
+        this.r(X, head - 2, wide, 2, (_i, j) => P.brass[j ? 2 : 5]);
+        for (let j = 0; j < Math.min(tall - 4, 30); j++) {
+          const pull = Math.round(Math.sin((j / 30) * Math.PI) * 3);
+          const cw = Math.max(3, 8 - pull);
+          this.r(X + 2, head + j, cw, 1, (i) => P.acc[(i + (j >> 2)) % 3 === 0 ? 4 : i === cw - 1 ? 1 : 2]);
+          this.r(X + wide - 2 - cw, head + j, cw, 1, (i) => P.acc[(i + (j >> 2)) % 3 === 0 ? 3 : i === 0 ? 1 : 2]);
+        }
+        this.r(X + 2, head + 16, 4, 2, P.brass[4]);
+        this.r(X + wide - 6, head + 16, 4, 2, P.brass[4]);
+        this.lights.push({ x: X + (wide >> 1), y: head + 18, c: 0xffc468, rad: 38, k: 0.5, phase: 9 });
+      } else if (dw.private) {
         // A plank door, swung open against the frame.
         this.r(X + 2, head + 1, 5, tall - 3, (i, j) => (j % 9 === 0 ? W[1] : W[i === 0 ? 4 : i === 4 ? 1 : 3]));
         this.s(X + 6, head + (tall >> 1), P.iron[4]);
@@ -2016,7 +2275,42 @@ export class PixelRoom {
 
   private rug(q: Prop) {
     this.cur = q.id;
-    const X = S + q.x * T + 2, Y = this.oy + q.y * T + 2, w = q.w * T - 4, h = q.d * T - 4;
+    const { P } = this, X = S + q.x * T + 2, Y = this.oy + q.y * T + 2, w = q.w * T - 4, h = q.d * T - 4;
+    const runner = Math.max(w, h) / Math.max(1, Math.min(w, h)) > 2.2;
+    const style = Math.abs(q.seed) % 3;
+    if (style === 1 && !runner) {
+      // Braided oval hearth rug in warm home-dyed concentric bands.
+      const cx = (w - 1) / 2, cy = (h - 1) / 2, rx = w / 2, ry = h / 2;
+      const bands = [P.acc[2], P.linen[4], P.acc2[3], P.wood[4], P.acc[3], P.straw[4]];
+      for (let j = 0; j < h; j++)
+        for (let i = 0; i < w; i++) {
+          const d = Math.hypot((i - cx) / rx, (j - cy) / ry);
+          if (d > 1) continue;
+          const ring = Math.floor(d * 6.5);
+          const col = d > 0.9 ? P.wood[1] : bands[ring % bands.length];
+          this.s(X + i, Y + j, ((i + j) & 1) && d < 0.9 ? scale(col, 0.9) : col);
+        }
+      return;
+    }
+    if (style === 2) {
+      // Woven geometric striped kilim with diamond medallions and end fringes.
+      for (let j = 0; j < h; j++)
+        for (let i = 0; i < w; i++) {
+          if ((i === 0 || i === w - 1) && j % 2) continue;
+          if (i === 0 || i === w - 1) {
+            this.s(X + i, Y + j, P.linen[4]);
+            continue;
+          }
+          const e = Math.min(i - 1, w - 2 - i, j, h - 1 - j);
+          if (e === 0) { this.s(X + i, Y + j, P.acc[1]); continue; }
+          if (e === 2) { this.s(X + i, Y + j, P.straw[4]); continue; }
+          const stripe = Math.floor(j / 4) % 3;
+          const diamond = Math.abs(((i + j) % 8) - 4) + Math.abs(((i - j + 64) % 8) - 4) <= 2;
+          const base = stripe === 0 ? P.acc[3] : stripe === 1 ? P.acc2[2] : P.wood[3];
+          this.s(X + i, Y + j, diamond ? P.linen[5] : base);
+        }
+      return;
+    }
     for (let j = 0; j < h; j++)
       for (let i = 0; i < w; i++) {
         if ((j === 0 || j === h - 1) && i % 2) continue;
@@ -2099,6 +2393,12 @@ export class PixelRoom {
                 c = mix(mix(0x1c2232, 0x7a7c88, sunNow.strength), c, 0.15 + k * 0.45 - (j - roof) * 0.02);
                 if ((p.hour > 19 || p.hour < 6) && hash(i, j, q.seed) < 0.12) c = 0xffe0a0;
               }
+            } else if (p.styles.window === "snow") {
+              // Winter mountain snowstorm outside the Overlook Lodge windows: snowy pines & drifting flakes.
+              c = mix(0x283a56, 0x9ab4d2, sunNow.strength);
+              const peak = 11 + Math.round(3 * Math.sin((i + q.seed) * 0.65));
+              if (j >= peak) c = j <= peak + 2 ? mix(0xd8e8f8, 0xffffff, sunNow.strength * 0.6) : mix(0x182b24, 0x2c4c3e, sunNow.strength);
+              if (hash(i, (j - Math.floor(this.t * 4) + 64) & 31, q.seed + 7) < 0.09) c = 0xf2f8ff;
             } else {
               if (j > hill) c = mix(mix(0x1a2436, 0x6c8f5a, sunNow.strength), c, 0.25);
               if ((p.hour > 20 || p.hour < 5) && hash(i, j, q.seed) < 0.05 && j < hill) c = 0xfff2c8;
@@ -2132,6 +2432,18 @@ export class PixelRoom {
                 this.s(x, top - 4 + j, tie ? P.brass[i % 2 ? 3 : 4] : C[[4, 3, 2, 3, 2, 1][(i + (dir < 0 ? 1 : 0)) % 6]]);
               }
             }
+          if (q.seed % 3 === 0) {
+            // Cozy sill terracotta herb pot or flickering candle in some glazed homes.
+            if (q.seed % 2 === 0) {
+              this.r(x0 + 3, top + h - 2, 4, 3, (i, j) => (j === 0 ? 0xd4784a : i === 3 ? 0x7c3620 : 0xb45634));
+              this.r(x0 + 2, top + h - 5, 6, 3, (i, j) => ((i + j) & 1 ? P.leaf[3] : P.leaf[2]));
+              this.s(x0 + 5, top + h - 5, P.acc[4]);
+            } else {
+              this.r(x0 + 4, top + h - 3, 2, 4, 0xf2ead0);
+              this.flames.push({ x: x0 + 4, y: top + h - 4 });
+              this.lights.push({ x: x0 + 5, y: top + h - 3, c: 0xffc464, rad: 28, k: 0.42, phase: q.seed % 40 });
+            }
+          }
         }
         if (style !== 3 && q.seed % 3 === 0) {
           this.r(x0, top + h - 2, 10, 3, W[2]);
@@ -3311,6 +3623,7 @@ export class PixelRoom {
       }
       case "casks": {
         const base = Y + PD - 2, drink = p.styles.bar ?? "ale";
+        if (this.backBar(drink, X, base, PW, q.seed)) break;
         if (drink === "tea" || drink === "chai") {
           this.stock(drink === "tea" ? "tea" : "pots", X, base, PW, q.seed);
           break;
@@ -3393,6 +3706,7 @@ export class PixelRoom {
         this.r(fx, top, 1, d + 2, W[1]);
         this.r(fx, fy, 1, fh - 1, W[0]);
         const ty = top + 2, drink = p.styles.bar ?? "ale";
+        if (this.modernCounter(drink, X, ty, top, d, fy, fh, PW, q.seed)) break;
         if (drink.startsWith("game")) {
           // The bank: stacks of coin, an iron-bound strongbox, the keeper's lamp.
           for (let k = 0; k < 4; k++) {
@@ -3580,7 +3894,7 @@ export class PixelRoom {
         break;
       }
       case "altar":
-        this.altar(p.styles.altar ?? "gothic", q, X, Y, PW, PD);
+        this.altar(p.styles.altar ?? "gothic", q, X, Y, PW, PD, p.film);
         break;
       case "pew": {
         const base = Y + PD - 2;
@@ -3617,12 +3931,31 @@ export class PixelRoom {
           break;
         }
         if (p.styles.pew === "seat") {
-          // Theatre seats seen from behind: plush backs in a row, a gilt or wooden rail along them.
-          for (let x = X + 1; x < X + PW - 6; x += 8) {
-            this.r(x, base - 14, 7, 9, (i, j) => (j === 0 ? 0xc84040 : i === 0 ? 0xb03030 : i === 6 ? 0x5a1018 : j === 8 ? 0x4a0e14 : 0x8a1e24));
-            this.r(x + 1, base - 5, 5, 3, W[1]);
+          // Plush theatre armchairs, one per 16px tile so seated patrons align cleanly inside each seat.
+          const modern = p.styles.altar === "stage-cinema-wide";
+          const hi = modern ? P.acc[4] : 0xc84040, lt = modern ? P.acc[3] : 0xb03030, mid = modern ? P.acc[2] : 0x8a1e24, sh = modern ? P.acc[1] : 0x5a1018, lo = modern ? P.acc[0] : 0x4a0e14;
+          const rail = modern ? P.iron[2] : P.brass[3];
+          for (let x = X; x < X + PW - 14; x += 16) {
+            // Curved velvet backrest with padded side bolsters and brass/wood top rail.
+            this.r(x + 2, base - 15, 12, 1, rail);
+            this.r(x + 1, base - 14, 14, 10, (i, j) => {
+              if (i === 0 || i === 13) return j < 2 ? rail : j > 7 ? W[1] : W[2];
+              if (j === 0) return hi;
+              if (i === 1) return lt;
+              if (i === 12) return sh;
+              if (j === 9) return lo;
+              return (j === 4 && (i === 5 || i === 8)) ? sh : mid;
+            });
+            this.r(x + 2, base - 4, 12, 3, (i, j) => (j === 2 || i === 0 || i === 11 ? W[0] : W[1]));
           }
-          this.r(X + 1, base - 15, PW - 2, 1, P.brass[3]);
+          if (p.styles.altar?.startsWith("stage-cinema") || p.styles.altar === "stage-opera-grand" || p.styles.altar === "stage-broadway") {
+            const scr = this.props.find((o) => o.kind === "altar" && o.room === q.room);
+            if (scr && (q.y - scr.y) % 4 === 3) {
+              const aisleX = q.x + q.w <= scr.x + (scr.w >> 1) ? X + PW - 2 : X + 1;
+              this.g(aisleX, base - 2, 0xffd078);
+              this.lights.push({ x: aisleX, y: base - 2, c: 0xffb858, rad: 18, k: 0.35, phase: -1 });
+            }
+          }
           break;
         }
         if (p.styles.pew === "lowdesk") {
@@ -3686,6 +4019,14 @@ export class PixelRoom {
         else this.shopCounter(p.styles.shopcounter ?? "counter", p.styles.stock ?? "general", X, Y, PW, PD, q.seed);
         break;
       case "fixture":
+        if (q.item?.startsWith("overlook:") && paintOverlookFixture({
+          s: this.s.bind(this), g: this.g.bind(this), r: this.r.bind(this),
+          lights: this.lights, fires: this.fires, notes: this.notes, t: this.t,
+        }, q.item, X, Y, PW, PD, q.seed)) break;
+        if ((q.item?.startsWith("backroom:") || q.item?.startsWith("quirk:")) && paintBackroomFixture({
+          s: this.s.bind(this), g: this.g.bind(this), r: this.r.bind(this),
+          lights: this.lights, fires: this.fires, flames: this.flames, smoke: this.smoke, notes: this.notes, birds: this.birds, t: this.t,
+        }, q.item, X, Y, PW, PD, q.seed, q.on)) break;
         this.fixture(p.styles.stock ?? "general", X, Y + PD - 2, PW, q.seed, p.styles.fixture);
         break;
       case "machine":
@@ -3830,6 +4171,30 @@ export class PixelRoom {
       }
       case "tally": {
         const x0 = X + 2, y0 = oy - 36, drink = p.styles.bar ?? "ale";
+        if (drink === "beer") {
+          // A dartboard: black and cream wedges, red and green doubles, the bull.
+          const cx = X + 8, cy = oy - 31;
+          for (let j = -6; j <= 6; j++)
+            for (let i = -6; i <= 6; i++) {
+              const r2 = Math.hypot(i, j);
+              if (r2 > 6.4) continue;
+              const wedge = Math.floor(((Math.atan2(j, i) + Math.PI) / (Math.PI * 2)) * 10) % 2;
+              this.s(cx + i, cy + j, r2 > 5.4 ? 0x1a1a1a : r2 < 1 ? 0xc82a1a : r2 > 4.5 || (r2 > 2.5 && r2 < 3.3) ? (wedge ? 0xc82a1a : 0x2a7a3a) : wedge ? 0x1a1a1a : 0xe8dcb8);
+            }
+          break;
+        }
+        if (drink === "cafe" || drink === "diner") {
+          // The menu: chalk on slate in a café, black letters on a white board in a diner.
+          const chalk = drink === "cafe", bw = 14, bh = 16, bx = X + 1, by = oy - 40;
+          this.r(bx, by, bw, bh, (i, j) => (i === 0 || j === 0 || i === bw - 1 || j === bh - 1 ? W[1] : chalk ? (hash(i, j, q.seed) < 0.08 ? 0x3a4040 : 0x2a3030) : j < 3 ? P.acc[3] : 0xf0ece4));
+          for (let j = 4; j < bh - 2; j += 2) {
+            const len = 4 + Math.floor(hash(j, 1, q.seed) * 5);
+            this.r(bx + 2, by + j, len, 1, chalk ? P.linen[4] : 0x2a2a2a);
+            this.r(bx + bw - 4, by + j, 2, 1, chalk ? P.linen[5] : 0xa8302a);
+          }
+          if (chalk) this.r(bx + 3, by + 2, bw - 6, 1, P.linen[5]);
+          break;
+        }
         if (drink === "sake") {
           // Menu slips: the day's dishes brushed on paper and pinned up in a row.
           for (let k = 0; k < 3; k++) {
@@ -3936,6 +4301,8 @@ export class PixelRoom {
   }
 
   private clutterItem(q: Prop, X: number, Y: number) {
+    if (q.item?.startsWith("overlook:") && paintOverlookClutter({ s: this.s.bind(this), r: this.r.bind(this) }, q.item, X, Y, q.seed)) return;
+    if (q.item && paintQuirkClutter({ s: this.s.bind(this), r: this.r.bind(this), flames: this.flames, lights: this.lights }, q.item, X, Y, q.seed)) return;
     const { P } = this, W = P.wood;
     const ox = X + 3 + Math.floor(hash(q.seed, 1, 3) * 8), oy = Y + 5 + Math.floor(hash(q.seed, 2, 3) * 7);
     switch (q.item) {
@@ -3961,11 +4328,13 @@ export class PixelRoom {
         this.s(ox + 3, oy + 1, P.linen[3]);
         break;
       case "toy":
-        this.r(ox, oy + 1, 5, 2, W[3]);
-        this.r(ox + 4, oy - 1, 2, 2, W[4]);
-        this.s(ox, oy + 3, W[1]);
-        this.s(ox + 4, oy + 3, W[1]);
-        this.s(ox - 1, oy + 1, P.acc[3]);
+        this.r(ox - 1, oy, 6, 3, (_,j) => j === 0 ? P.straw[4] : W[4]);
+        this.r(ox + 3, oy - 3, 2, 4, P.straw[4]);
+        this.r(ox + 4, oy - 2, 3, 2, P.straw[5]);
+        this.s(ox + 4, oy - 2, W[1]);
+        this.r(ox - 1, oy + 3, 1, 2, W[4]);
+        this.r(ox + 3, oy + 3, 1, 2, W[4]);
+        this.r(ox - 3, oy - 1, 2, 2, W[4]);
         break;
       case "yarn":
         this.disc(ox + 2, oy + 2, 2, P.acc);
@@ -4162,6 +4531,13 @@ export class PixelRoom {
     L.filter = "none";
     L.fillStyle = hex(amb);
     L.fillRect(0, 0, W, H);
+    // An open court or snowy terrace has the sky over it: drawn before lamps so garden lanterns still glow over night snow.
+    const snowCourt = this.plan.rooms.some((r) => r.floorPattern === "snow-ground");
+    L.filter = "blur(3px)";
+    L.fillStyle = hex(day > 0.05 ? mix(snowCourt ? 0xe8f4ff : 0xfff0dc, sunNow.color, snowCourt ? 0.22 : 0.3) : snowCourt ? 0x586ea2 : 0x4a5690);
+    for (let cy = 0; cy < p.d; cy++)
+      for (let cx = 0; cx < p.w; cx++) if (this.mask[cy * p.w + cx] === 2) L.fillRect(S + cx * T, this.oy + cy * T, T, T);
+    L.filter = "none";
     L.globalCompositeOperation = "lighter";
     const t = this.t;
     for (const l of this.lights) {
@@ -4181,14 +4557,6 @@ export class PixelRoom {
       L.fillRect(l.x - r, l.y - r, r * 2, r * 2);
       L.restore();
     }
-    // An open court has the sky over it: full daylight, or the moon.
-    L.globalCompositeOperation = "source-over";
-    L.filter = "blur(3px)";
-    L.fillStyle = hex(day > 0.05 ? mix(0xfff0dc, sunNow.color, 0.3) : 0x4a5690);
-    for (let cy = 0; cy < p.d; cy++)
-      for (let cx = 0; cx < p.w; cx++) if (this.mask[cy * p.w + cx] === 2) L.fillRect(S + cx * T, this.oy + cy * T, T, T);
-    L.filter = "none";
-    L.globalCompositeOperation = "lighter";
     // The sun on the floor: a soft-edged parallelogram, warm and bright.
     L.filter = "blur(1px)";
     for (const b of this.beams) {
@@ -4512,6 +4880,34 @@ export class PixelRoom {
       const x = n.x + Math.sin(life * 6) * 3 + life * 4, y = n.y - life * 16;
       for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1], [2, -1], [2, 0], [2, -2], [2, -3], [3, -3]]) this.put(x + dx, y + dy, 0xfff0c0, 1 - life);
     }
+    for (const b of this.birds) {
+      // Live caged songbird hopping along its perch, bobbing, and fluttering wings while singing.
+      const palette = [
+        [0xffe048, 0xf0aa24, 0xfff49a], // golden canary
+        [0xe46238, 0xa8381e, 0xf6a678], // robin redbreast
+        [0x58a8e8, 0x2e6ca8, 0xb4dcfa], // bluebird
+      ][Math.abs(b.seed) % 3];
+      const hopPhase = Math.sin(t * 1.7 + b.seed);
+      const dir = hopPhase >= 0 ? 1 : -1;
+      const ox = Math.round(hopPhase * 1.6);
+      const chirping = b.singing || Math.sin(t * 0.85 + b.seed * 1.3) > 0.72;
+      const bob = chirping ? (Math.sin(t * 14 + b.seed) > 0 ? -1 : 0) : (Math.sin(t * 5.2 + b.seed) > 0.85 ? -1 : 0);
+      const bx = b.x + ox, by = b.y + bob;
+      // Plump little body + head + tail + dark eye + beak
+      this.put(bx - dir, by, palette[1], 1);
+      this.put(bx, by, palette[0], 1);
+      this.put(bx + dir, by, palette[0], 1);
+      this.put(bx + dir, by - 1, palette[2], 1);
+      this.put(bx, by - 1, palette[0], 1);
+      this.put(bx - dir * 2, by + 1, palette[1], 0.95); // tail
+      this.put(bx + dir * 2, by - 1, 0xf28c28, 1); // beak
+      this.put(bx + dir, by - 1, 0x1c1412, 0.7); // tiny eye glint
+      if (chirping && Math.sin(t * 18 + b.seed) > 0) {
+        // Raised fluttering wing!
+        this.put(bx - dir, by - 2, palette[2], 1);
+        this.put(bx, by - 2, palette[0], 0.9);
+      }
+    }
     const Z = [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [3, 1], [2, 2], [1, 3], [0, 4], [1, 4], [2, 4], [3, 4], [4, 4]];
     for (const [k, z] of this.zz.entries())
       for (const n of [0, 1]) {
@@ -4519,6 +4915,18 @@ export class PixelRoom {
         const x = Math.round(z.x + life * 4 + Math.sin(life * 5) * 1.5), y = Math.round(z.y - life * 12);
         for (const [dx, dy] of Z) this.put(x + dx, y + dy, 0xf4f0ff, Math.min(1, (1 - life) * 1.4));
       }
+    // Gentle falling alpine snow over open-air snowy grounds & hedge mazes.
+    if (this.plan.rooms.some((r) => r.floorPattern === "snow-ground")) {
+      const { p, oy } = this;
+      for (let k = 0; k < 140; k++) {
+        const sx = ((hash(k, 1, 77) * this.W - t * (10 + (k % 7) * 2) + Math.sin(t * 1.4 + k) * 6) % this.W + this.W) % this.W;
+        const sy = ((hash(k, 2, 77) * this.H + t * (18 + (k % 5) * 3)) % this.H + this.H) % this.H;
+        const cx = Math.floor((sx - S) / T), cy = Math.floor((sy - oy) / T);
+        if (cx < 0 || cy < 0 || cx >= p.w || cy >= p.d || this.mask[cy * p.w + cx] !== 2) continue;
+        this.put(sx, sy, 0xf8fcff, 0.85);
+        if (k % 3 === 0) this.put(sx + 1, sy, 0xd8ecfc, 0.55);
+      }
+    }
   }
 
   private outline() {
@@ -4547,6 +4955,106 @@ export class PixelRoom {
         if (ids[i - 1] === h || ids[i + 1] === h || ids[i - W] === h || ids[i + W] === h) this.put(x, y, 0xfff0a0, pulse);
       }
   }
+  /** Paints one room piece onto a tight transparent canvas for carrying or setting down outside. */
+  renderSolo(p: RoomParams, q: Prop): HTMLCanvasElement | undefined {
+    const W = 64, H = CAP + WH + T + 16;
+    this.p = p;
+    this.P = palette(p);
+    this.main = { p, P: this.P };
+    this.W = W;
+    this.H = H;
+    if (this.col.length !== W * H) {
+      this.col = new Uint32Array(W * H);
+      this.ids = new Int16Array(W * H);
+      this.glow = new Uint8Array(W * H);
+    }
+    this.col.fill(0);
+    this.ids.fill(-1);
+    this.glow.fill(0);
+    this.lights = [];
+    this.notes = [];
+    this.birds = [];
+    this.smoke = [];
+    this.zz = [];
+    this.fires = [];
+    this.flames = [];
+    this.cur = q.id;
+    this.draw(q, sun(12));
+    this.cur = -1;
+    let x0 = W, y0 = H, x1 = -1, y1 = -1;
+    for (let y = 0; y < H; y++)
+      for (let x = 0; x < W; x++)
+        if (this.ids[y * W + x] === q.id) {
+          if (x < x0) x0 = x;
+          if (y < y0) y0 = y;
+          if (x > x1) x1 = x;
+          if (y > y1) y1 = y;
+        }
+    if (x1 < x0) return undefined;
+    const cw = x1 - x0 + 1, ch = y1 - y0 + 1;
+    const out = document.createElement("canvas");
+    out.width = cw;
+    out.height = ch;
+    const ctx = out.getContext("2d")!;
+    const img = ctx.createImageData(cw, ch);
+    for (let j = 0; j < ch; j++)
+      for (let i = 0; i < cw; i++) {
+        const idx = (y0 + j) * W + (x0 + i);
+        if (this.ids[idx] !== q.id) continue;
+        const c = this.col[idx], o = (j * cw + i) * 4;
+        img.data[o] = (c >> 16) & 255;
+        img.data[o + 1] = (c >> 8) & 255;
+        img.data[o + 2] = c & 255;
+        img.data[o + 3] = 255;
+      }
+    ctx.putImageData(img, 0, 0);
+    return out;
+  }
+}
+
+const roomPropCache = new Map<string, HTMLCanvasElement>();
+let soloRoom: PixelRoom | undefined;
+/** Cached pixel-art canvas for a `made:room:...` indoor prop carried or set down outside. */
+export function roomPropCanvas(frame: string): HTMLCanvasElement | undefined {
+  const hit = roomPropCache.get(frame);
+  if (hit) return hit;
+  if (typeof document === "undefined" || !frame.startsWith("made:room:")) return undefined;
+  const [, , kind, style, fin, wood, accent, seed] = frame.split(":");
+  if (!kind) return undefined;
+  const p: RoomParams = {
+    seed: Number(seed) || 0,
+    w: 3,
+    d: 3,
+    shape: "rect",
+    finish: (Math.min(2, Math.max(0, Number(fin) || 1)) as Finish),
+    wall: "#c8bca8",
+    trim: "#887860",
+    floor: "#a89880",
+    wood: `#${wood || "7a5030"}`,
+    accent: `#${accent || "9a3832"}`,
+    wallPattern: "plaster",
+    floorPattern: "plank",
+    door: "door",
+    windows: 0,
+    windowStyle: "none",
+    fire: "none",
+    smokehole: false,
+    seating: "chair",
+    sleep: "none",
+    pole: false,
+    furnish: [],
+    styles: style ? { [kind as Kind]: style } : {},
+    clutter: [],
+    trade: "household",
+    hour: 12,
+    wear: 0,
+    soot: 0,
+  };
+  const q: Prop = { id: 0, kind: kind as Kind, x: 1, y: 0, w: 1, d: 1, wall: false, on: false, seed: Number(seed) || 0 };
+  soloRoom ??= new PixelRoom(document.createElement("canvas"));
+  const canvas = soloRoom.renderSolo(p, q);
+  if (canvas) roomPropCache.set(frame, canvas);
+  return canvas;
 }
 
 function boxBlur(a: Float32Array, W: number, H: number, r: number, horizontal: boolean) {

@@ -1,6 +1,7 @@
 import { sanctuaryAt } from "../content/settlements/religious";
 import { buildingUse, interiorProfileFor, type InteriorSite } from "../content/interiors/select";
-import { shopFor, shopKind } from "../content/interiors/shops";
+import { filmFor, playFor, type FilmScript, type PlayScript } from "../content/interiors/performances";
+import { shopFor, shopKind, shopKinds } from "../content/interiors/shops";
 import { factoryFor } from "../content/interiors/factories";
 import { officeFor } from "../content/interiors/offices";
 import type { InteriorProfile } from "../content/interiors/types";
@@ -18,7 +19,20 @@ export type Spot = Point & {
   on?: "seat" | "floor" | "bed";
 };
 export type SpotRole = "bed" | "seat" | "work" | "fire";
+/** Walkable raised wooden deck on a live theatre or opera stage, in game cells. */
+export type StageDeck = {
+  x0: number;
+  x1: number;
+  y: number;
+  /** Vertical pixel lift to plant feet cleanly on the stage planks above the pit/apron. */
+  rise: number;
+  style: string;
+  roomIndex: number;
+};
 export type InteriorLayout = {
+  /** Profile id that built this interior (e.g. "overlook-hotel"). */
+  profileId?: string;
+  shopKind?: string;
   /** The house as a whole; each room's own look is in `plan.rooms`. */
   params: RoomParams;
   plan: RoomPlan;
@@ -38,10 +52,21 @@ export type InteriorLayout = {
   entry: Point;
   beds: Spot[];
   work: Spot[];
+  craft: Spot[];
   fire: Spot[];
   seats: Spot[];
   /** From the profile: when residents off the routine budget come in anyway. */
   regulars?: { hours: [number, number]; fill: number };
+  /** Specialist staff stationed inside this building (theatres, opera houses, cinemas). */
+  staff?: InteriorProfile["staff"];
+  /** Active stage play or opera script for live theatre venues. */
+  play?: PlayScript;
+  /** Active film script per room index for cinema screening rooms. */
+  films?: Record<number, FilmScript>;
+  /** Walkable stage deck for live theatre and opera venues. */
+  stage?: StageDeck;
+  /** Secret procedural back-room hidden inside this building, if any. */
+  backroom?: { id: string; label: string; note: string };
   /** Where the household's chest, bed and work station sit: always a real
    * piece of the room where it has one, else a floor cell you can reach. */
   store: Point;
@@ -61,14 +86,32 @@ const FLAT: Kind[] = ["prayer", "sipapu", "rug", "cat", "clutter", "mat", "cushi
 // Everything else standing in a room is built in: beds, fires, wall pieces.
 const FURNITURE: Partial<Record<Kind, string>> = {
   stool: "room-stool", table: "room-table", lowtable: "room-lowtable", desk: "room-desk", counter: "room-counter",
-  chest: "room-chest", crate: "room-crate", armchair: "room-armchair", sofa: "room-sofa", divan: "room-divan",
+  chest: "room-chest", dresser: "room-dresser", crate: "room-crate", armchair: "room-armchair", sofa: "room-sofa", divan: "room-divan", settle: "room-settle",
   loom: "room-loom", spinwheel: "room-spinwheel", throw: "room-throw", radio: "room-radio", icebox: "room-icebox",
-  potrack: "room-potrack", firewood: "room-firewood", quern: "room-quern", jars: "room-jars", claybin: "room-claybin",
-  plant: "room-plant", lamp: "room-lamp", basket: "room-basket", sacks: "room-sacks", pack: "room-pack",
+  potrack: "room-potrack", firewood: "room-firewood", broom: "room-broom", bolts: "room-bolts", hides: "room-hides", vat: "room-vat", scrolls: "room-scrolls",
+  quern: "room-quern", jars: "room-jars", claybin: "room-claybin",
+  plant: "room-plant", lamp: "room-lamp", lantern: "room-lantern", tapers: "room-tapers", brazier: "room-brazier",
+  fountain: "room-fountain", basin: "room-basin", casks: "room-casks", tankards: "room-tankards",
+  shrine: "room-shrine", map: "room-map", clock: "room-clock", cat: "room-cat",
+  basket: "room-basket", sacks: "room-sacks", pack: "room-pack",
   coolamon: "coolamon",
   bench: "room-bench", screen: "palace-screen", stock: "room-stock", display: "room-goods", effigy: "room-effigy",
   nestbox: "room-nestbox", roost: "room-roost", stall: "room-stall", manger: "room-manger",
 };
+const BUILTIN_PROPS: Partial<Record<Kind, string>> = {
+  hearth: "room-hearth", firepit: "room-firepit", irori: "room-irori", stove: "room-stove", range: "room-range",
+  window: "room-window", bed: "room-bed", boxbed: "room-boxbed", mat: "room-mat",
+};
+const FIXTURE_PROPS: Record<string, string> = {
+  "quirk:birdcage": "room-birdcage",
+  "quirk:terrarium": "room-terrarium",
+  "quirk:piano": "room-piano",
+  "backroom:speakeasy-piano": "room-piano",
+  "overlook:piano": "room-piano",
+  "quirk:lute": "room-lute",
+  "quirk:guitar": "room-guitar",
+};
+const WALL_FURNITURE: Kind[] = ["shrine", "map", "clock", "tankards", "window"];
 // Shops whose stock is kept in banks of drawers.
 const DRAWERS = /^(tobacco|apothecary|tea)$/;
 const SEATS: Kind[] = ["stool", "cushions", "armchair", "sofa", "divan", "bench", "settle", "ledge", "slab", "pew", "prayer"];
@@ -119,14 +162,14 @@ function wheelThrown({ lon, lat, year }: InteriorSite) {
 /** Builds the room a household lives in: its profile from place and date, its
  * finish from the household's fortune, its furniture from the trade. Rooms
  * are larger than the building outside; that is deliberate. */
-export function buildInterior(place: Place, site: InteriorSite, o: { seed?: string; fortune?: number; activity?: string; hour?: number; good?: string; bench?: string; profile?: InteriorProfile; colorway?: number; storey?: number; lift?: "lift" | "stair" }): InteriorLayout {
+export function buildInterior(place: Place, site: InteriorSite, o: { childResident?: boolean; seed?: string; fortune?: number; activity?: string; ownerRole?: string; hour?: number; good?: string; bench?: string; profile?: InteriorProfile; colorway?: number; storey?: number; lift?: "lift" | "stair"; secretRoom?: string }): InteriorLayout {
   const seed = seedOf(place.id);
   const found = interiorProfileFor({...site, worshipSchool:place.worshipSchool});
   // Çatalhöyük's plan behind a street door, where the house outside has one.
   const home = found.door === "none" && !site.roofHatch && site.frame ? { ...found, door: "door" as const } : found;
   // An industrial lot is its works; a house open to the street is its keeper's shop, if their trade keeps one.
-  const works = o.profile ?? (buildingUse(place.claim) ? undefined : place.landUse === "industrial" ? factoryFor(place.name, site.year, seed) : place.landUse === "downtown" ? officeFor(place.name, site.year) : undefined);
-  const kind = !works && place.access === "public" && !buildingUse(place.claim) && !home.uses ? shopKind(`${place.name} ${o.activity ?? ""}`, o.good) : undefined;
+  const works = o.profile ?? (buildingUse(place.claim) || home.uses ? undefined : place.landUse === "industrial" ? factoryFor(place.name, site.year, seed) : place.landUse === "downtown" ? officeFor(place.name, site.year) : undefined);
+  const kind = !works && place.access === "public" && !buildingUse(place.claim) && !home.uses ? (place.shopKind ? shopKinds.find(k => k.id === place.shopKind) : shopKind(`${place.name} ${o.ownerRole ?? ""} ${o.activity ?? ""}`, o.good)) : undefined;
   const own = works ?? (kind ? shopFor(home, kind, site, o.bench) : home);
   // The ground floor of a block of flats: the way up beside the family's own rooms.
   const profile = o.lift ? { ...own, furnish: ["elevator" as const, ...(own.furnish ?? [])], styles: o.lift === "stair" ? { ...own.styles, elevator: "stair" } : own.styles } : own;
@@ -145,11 +188,25 @@ export function buildInterior(place: Place, site: InteriorSite, o: { seed?: stri
     hour: o.hour ?? 12,
     // A floor of a tower is one storey of it; any other building is planned whole.
     storeys: o.storey === undefined && !o.lift ? (buildingModels[place.sprite] as { stories?: number } | undefined)?.stories : 1,
+    childResident: o.childResident,
     plot: place.w * place.h,
+    site: { lon: site.lon, lat: site.lat, year: site.year, settlement: site.settlement, camp: site.camp, use: site.use },
+    secretRoom: o.secretRoom,
+    ownerRole: o.ownerRole,
   });
   const { plan, props } = building;
   if (!wheelThrown(site)) for (const r of plan.rooms) r.styles = { ...r.styles, throw: "coil" };
   if (o.storey !== undefined) for (const r of plan.rooms) r.storey = o.storey;
+  const play = playFor(profile.id, seed, site);
+  let films: Record<number, FilmScript> | undefined;
+  const usedFilms = new Set<string>();
+  plan.rooms.forEach((r, ri) => {
+    if (!r.styles.altar?.startsWith("stage-cinema")) return;
+    const f = filmFor(site, seed + ri * 37, usedFilms);
+    usedFilms.add(f.id);
+    r.film = f.id;
+    (films ??= {})[ri] = f;
+  });
   // The house as a whole: its size, its way in, and the first room's look for what is not a room's own.
   const params: RoomParams = { ...plan.rooms[0], w: plan.w, d: plan.d, entrance: plan.entrance[0] >= 0 ? plan.entrance[0] : undefined };
   const mask = plan.mask;
@@ -165,6 +222,23 @@ export function buildInterior(place: Place, site: InteriorSite, o: { seed?: stri
         walk.delete(key(at(x, y)));
         if (!loose(q)) floor.delete(key(at(x, y)));
       }
+  }
+  let stage: StageDeck | undefined;
+  for (const q of props) {
+    if (q.kind !== "altar") continue;
+    const style = plan.rooms[q.room ?? 0]?.styles.altar;
+    if (!style || !style.startsWith("stage-") || style.startsWith("stage-cinema")) continue;
+    const d = Math.max(1, q.d);
+    const grand = style === "stage-opera-grand" || style === "stage-broadway";
+    const deckY = q.y + ROOM_ORIGIN + (grand ? d - 2 : d - 1);
+    const rise = style === "stage-opera-grand" ? 22 : style === "stage-broadway" ? 21 : style === "stage-noh" ? 15 : style === "stage-opera" ? 14 : 8;
+    const x0 = q.x + ROOM_ORIGIN + 1, x1 = q.x + q.w + ROOM_ORIGIN - 2;
+    stage = { x0, x1, y: deckY, rise, style, roomIndex: q.room ?? 0 };
+    for (let x = x0; x <= x1; x++) walk.add(`${x},${deckY}`);
+    // Stage-left and stage-right wing steps link the deck to the auditorium floor without crossing the orchestra pit.
+    for (const wx of [q.x + ROOM_ORIGIN, q.x + q.w + ROOM_ORIGIN - 1])
+      for (let y = deckY; y < q.y + ROOM_ORIGIN + d; y++) walk.add(`${wx},${y}`);
+    break;
   }
   const open = (p: Point) => walk.has(key(p));
   /** Where to stand to use a piece, front first, facing it. */
@@ -207,13 +281,14 @@ export function buildInterior(place: Place, site: InteriorSite, o: { seed?: stri
   const cells = (q: Prop) => Array.from({ length: q.w * (q.kind === "bed" ? Math.max(1, q.d) : 1) }, (_, i) => at(q.x + (i % q.w), q.y + Math.floor(i / q.w))).filter(beside);
   // A bed sleeps two, as beds did; a mat or a box bed one.
   const beds = sleepers.flatMap((q) => cells(q).slice(0, q.kind === "bed" && building.rooms[q.room ?? 0].role !== "ward" && !(q.d > 1 && q.w < 3) ? 2 : 1).map((p): Spot => ({ ...p, facing: 2, kind: q.kind, propId: q.id, on: "bed" })));
-  const trade = params.trade;
   // The keeper works from behind the bar, facing the room.
+  const craftKind = o.bench?.includes("loom") ? "loom" : o.bench === "workbench" ? "fixture" : tradeFor(o.activity) === "potter" ? "throw" : undefined;
+  const craft = craftKind ? props.filter(q => q.kind === craftKind && !q.item).flatMap(stands) : [];
   const stations = profile.observance ? of(["altar", "pulpit", "lectern", "basin", "range", "hearth"]) : profile.institutionPlan ? props.filter(q => {
     const role = building.rooms[q.room ?? 0].role;
     return role === "ward" ? ["bed","mat"].includes(q.kind) : role === "work" ? ["basin","desk","shopcounter"].includes(q.kind) :
       role === "hall" ? q.kind === "desk" : role === "classroom" && q.kind === "altar";
-  }) : of(WORK[trade]);
+  }) : props.filter(q => WORK[plan.rooms[q.room ?? 0].trade].includes(q.kind));
   const work = stations.flatMap((q) => (q.kind === "bar" || q.kind === "shopcounter" ? stands(q).sort((a, b) => +(b.facing === 2) - +(a.facing === 2)) : stands(q)));
   const fixtures = of(["fixture", "anvil", "throw"]).flatMap(stands);
   const fire = of(FIRES).flatMap(stands);
@@ -256,18 +331,51 @@ export function buildInterior(place: Place, site: InteriorSite, o: { seed?: stri
     storeSpots[0]?.propId,
   ]);
   for (const q of props) if (loose(q) && bound.has(q.id)) for (let y = q.y; y < q.y + Math.max(1, q.d); y++) for (let x = q.x; x < q.x + q.w; x++) floor.delete(key(at(x, y)));
+  const canReach = (q: Prop) => {
+    const p = at(q.x, q.y), qw = q.w, qd = Math.max(1, q.d);
+    for (let x = p.x - 1; x <= p.x + qw; x++)
+      for (let y = p.y - 1; y <= p.y + qd; y++)
+        if ((x < p.x || x >= p.x + qw) !== (y < p.y || y >= p.y + qd) && walk.has(`${x},${y}`)) return true;
+    return false;
+  };
   const furniture = props
-    .filter((q) => loose(q) && !bound.has(q.id))
+    .filter((q) => {
+      if (bound.has(q.id)) return false;
+      if (BUILTIN_PROPS[q.kind]) return canReach(q);
+      if (q.kind === "fixture" && q.item && FIXTURE_PROPS[q.item]) return canReach(q);
+      if (q.kind === "cat") return canReach(q);
+      return loose(q) || ((q.wall && (WALL_FURNITURE.includes(q.kind) || q.kind === "dresser")) && canReach(q));
+    })
     .map((q) => ({
       propId: q.id,
-      def: q.kind === "stool" && params.styles.stool === "chair" ? "room-chair" : q.kind === "stock" && DRAWERS.test(params.styles.stock ?? "") ? "room-drawers" : FURNITURE[q.kind]!,
+      def: (q.kind === "fixture" && q.item ? FIXTURE_PROPS[q.item] : undefined) ?? BUILTIN_PROPS[q.kind] ?? (q.kind === "stool" && params.styles.stool === "chair" ? "room-chair" : q.kind === "stock" && DRAWERS.test(params.styles.stock ?? "") ? "room-drawers" : FURNITURE[q.kind]!),
       pos: at(q.x, q.y),
       size: [q.w, Math.max(1, q.d)] as [number, number],
     }));
   const locks = new Set(building.doorways.filter((dw) => dw.private).flatMap((dw) => dw.cells.map(([x, y]) => key(at(x, y)))));
+  const backroom = building.backroom ? { id: building.backroom.id, label: building.backroom.label, note: building.backroom.note } : undefined;
+  const backroomStaff: InteriorProfile["staff"] = building.backroom?.staff?.length
+    ? building.backroom.staff.map((st) => ({
+        work: st.work,
+        role: st.role,
+        doing: st.doing,
+        sex: st.sex,
+        roomLabel: building.backroom!.label,
+        spot: st.spot ?? "stage",
+        hours: st.hours ?? [0, 24] as [number, number],
+      }))
+    : undefined;
+  const staff = profile.staff || backroomStaff ? [...(profile.staff ?? []), ...(backroomStaff ?? [])] : undefined;
   return {
+    profileId: profile.id,
+    shopKind: profile.shopKind,
     params,
     regulars: profile.regulars,
+    staff,
+    play,
+    films,
+    stage,
+    backroom,
     institution: profile.institution,
     observance: profile.observance && {...profile.observance,tradition: place.worshipSchool ?? sanctuaryAt(place)?.faith ?? profile.observance.tradition},
     plan,
@@ -281,12 +389,13 @@ export function buildInterior(place: Place, site: InteriorSite, o: { seed?: stri
     entry,
     beds: spread(beds),
     work,
+    craft,
     fire: spread(fire),
     seats: spread(seats),
     store: cellOf(storeSpots) ?? cell(seats[0]) ?? cell(fire[0]) ?? entry,
     bedCell: cellOf(beds) ?? cell(seats[0]) ?? cell(fire[0]) ?? entry,
     workCell: cellOf(work) ?? cell(fire[0]) ?? cell(seats[0]) ?? entry,
-    benchCell: cellOf(fixtures),
+    benchCell: cellOf(craft) ?? cellOf(fixtures.filter(p => !props[p.propId].item)),
   };
 }
 

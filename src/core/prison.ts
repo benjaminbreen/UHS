@@ -1,7 +1,7 @@
 import { prisonFind, prisonStyle, type PrisonSentence, type PrisonStyle } from "../content/prisons";
 import { exitAt, N4 } from "../world/complex";
 import { parsePrisonSpace, prisonLevel, prisonSolid, prisonSpace, prisonWalkable } from "../world/prison";
-import { areaTarget, arriveIn, cachedArea, complexRecord, takeFind, type ComplexHost } from "./complex";
+import { areaTarget, arriveIn, cachedArea, type ComplexHost } from "./complex";
 import { sewerEnterFrom } from "./sewer";
 import { folkDeal, folkTime } from "./tunnel-folk";
 import type { DailyGoal } from "../content/goals/types";
@@ -47,18 +47,12 @@ export type PrisonRun = {
 };
 
 export const prisonRun = (h: ComplexHost) => (h.state.complex?.kind === "prison" ? h.state.complex : undefined);
-const record = (h: ComplexHost, site: string) => complexRecord(h.state, `prison:${site}`);
 const here = (h: ComplexHost) => (prisonRun(h) ? prisonLevelOf(h, h.state.player.pos.space) : undefined);
 
 export function prisonLevelOf(h: ComplexHost, space: string) {
   const at = parsePrisonSpace(space), style = at && prisonStyle(at.style);
   if (!style) return undefined;
-  return cachedArea(h, space, () => prisonLevel(h.state.manifest.seed, style, at.site), (level) => {
-    const solid = prisonSolid(level), done = new Set(h.state.complexes?.[`prison:${at.site}`]?.done);
-    for (const t of level.things) if (t.solid && done.has(t.id) && !prisonFind(style, t.find)?.keeps)
-      for (let y = t.y; y < t.y + (t.h ?? 1); y++) for (let x = t.x; x < t.x + (t.w ?? 1); x++) solid.delete(y * level.w + x);
-    return solid;
-  });
+  return cachedArea(h, space, () => prisonLevel(h.state.manifest.seed, style, at.site), prisonSolid);
 }
 
 export function prisonGround(h: ComplexHost, space: string, x: number, y: number) {
@@ -240,7 +234,7 @@ export function prisonInspect(h: ComplexHost, id: string): Inspection | undefine
   const c = here(h), run = prisonRun(h);
   if (!c || !run) return undefined;
   const { level } = c, style = prisonStyle(level.style)!;
-  const thing = level.things.find((t) => `prison-thing:${t.id}` === id), f = thing && prisonFind(style, thing.find);
+  const thing = level.things.find((t) => !t.prop && `prison-thing:${t.id}` === id), f = thing && prisonFind(style, thing.find);
   if (!thing || !f) return undefined;
   const p = h.state.player;
   const act = (label: string, enabled = true, reason?: string) => ({
@@ -296,27 +290,20 @@ export function prisonInspect(h: ComplexHost, id: string): Inspection | undefine
         : [act(`Pay ${cost} ${coin} for release`, (p.inventory.coin ?? 0) >= cost, `Need ${cost} ${coin}`)],
     };
   }
-  const done = record(h, level.prison).done.includes(thing.id);
-  const broke = !!f.price && (p.inventory.coin ?? 0) < f.price;
-  const spent = done && !f.keeps && !f.price;
   return {
     id,
     name: thing.name,
     kind: "object",
     pos,
-    description: `${f.look}${f.price ? ` ${f.price} ${style.coin[f.price === 1 ? 0 : 1]}.` : ""}`,
-    affordances: spent ? [] : [act(f.verb, !broke, "Not enough money")],
+    description: f.look,
+    affordances: [act(f.verb)],
   };
 }
 
 export function prisonVerb(h: ComplexHost) {
   const c = here(h), run = prisonRun(h);
   if (!c || !run) return undefined;
-  const done = new Set(record(h, c.level.prison).done), style = prisonStyle(c.level.style)!;
-  const id = areaTarget(h.state.player, c.level, "prison", (t) => {
-    if (t.find === "key-rack" && run.hasKey) return true;
-    return done.has(t.id) && !prisonFind(style, t.find)?.keeps;
-  });
+  const id = areaTarget(h.state.player, c.level, "prison", (t) => !!t.prop || (t.find === "key-rack" && !!run.hasKey));
   const offer = id ? prisonInspect(h, id)?.affordances[0] : undefined;
   return offer?.enabled ? { label: offer.label, target: id! } : undefined;
 }
@@ -326,7 +313,7 @@ export function prisonAct(h: ComplexHost, id: string) {
   if (!c || !run) return;
   if (id.startsWith("folk-")) return void folkDeal(h.folk, id);
   const { level } = c, style = prisonStyle(level.style)!, p = h.state.player;
-  const thing = level.things.find((t) => `prison-thing:${t.id}` === id), f = thing && prisonFind(style, thing.find);
+  const thing = level.things.find((t) => !t.prop && `prison-thing:${t.id}` === id), f = thing && prisonFind(style, thing.find);
   if (!thing || !f) return;
 
   if (f.special === "pry") {
@@ -415,20 +402,7 @@ export function prisonAct(h: ComplexHost, id: string) {
     }
     h.advance(60);
     h.event(`The head turnkey strikes your name from the book and unbolts the outer gate.`, "world");
-    return;
   }
-
-  if (f.price) {
-    if ((p.inventory.coin ?? 0) < f.price) return void h.event("You don't have the coin.");
-    p.inventory.coin = (p.inventory.coin ?? 0) - f.price;
-    for (const [k, n] of Object.entries(f.loot ?? {})) p.inventory[k] = (p.inventory[k] ?? 0) + (n ?? 0);
-    if (f.heal) p.health = Math.min(100, (p.health ?? 100) + f.heal);
-    h.advance(f.time ?? 120);
-    h.event(f.text);
-    return;
-  }
-
-  takeFind(h, run, c, thing, { ...f, tier: "common" }, record(h, level.prison).done, { refuel() {} });
 }
 
 export function prisonTime(h: ComplexHost) {

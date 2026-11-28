@@ -4,7 +4,7 @@ import { integratedSetting } from "../content/geography/defaults";
 import { settingSchema, type WorldSetting } from "../content/geography/types";
 import type { TravelWaterwayInputs } from "../world/travel/waterways";
 import type { WorldPreparationRequest, WorldPreparationResult } from "../world/worker";
-import { retainTerrainWorker, warmTerrainPool } from "./terrain-worker-owner";
+import { stageEntranceSurvey, retainTerrainWorker, warmTerrainPool } from "./terrain-worker-owner";
 import { markEvent } from "./vitals";
 import { smallMemoryDevice } from "./device";
 import { worldWorker } from "./world-worker";
@@ -46,6 +46,7 @@ export async function prepareSettingSession(
   cachePrepared = true,
   onCharacter?: CharacterPrepared,
   waterways?: TravelWaterwayInputs,
+  deferEntrances = false,
 ) {
   signal?.throwIfAborted();
   const resolved = populateCharacter(
@@ -72,7 +73,7 @@ export async function prepareSettingSession(
   let owned = true,
     loaded = false;
   try {
-    const { prepared, playableMap } = await new Promise<WorldPreparationResult>(
+    const { prepared, playableMap, entrancePort } = await new Promise<WorldPreparationResult>(
       (resolve, reject) => {
         const abort = () => {
           cleanup();
@@ -99,7 +100,7 @@ export async function prepareSettingSession(
             // The scene's art waits for the worker's script rather than
             // sharing the connection with it.
             void import("../render/scene-assets").then((m) => m.warmSceneAssets());
-            worker.postMessage({ prepare: { setting: resolved, seed, cachePrepared, retire, waterways } } satisfies WorldPreparationRequest);
+            worker.postMessage({ prepare: { setting: resolved, seed, cachePrepared, retire, waterways, deferEntrances } } satisfies WorldPreparationRequest);
             return;
           }
           cleanup();
@@ -122,11 +123,14 @@ export async function prepareSettingSession(
     // Loaded after a retiring worker ends so phones never hold two copies of
     // the world generator and its tables at the same time.
     const { createSession } = await import("./session");
+    const survey = deferEntrances && !prepared.entrances && resolved.playableMap?.exits.length;
+    if (survey) prepared.entrances = [];
     const engine = createSession(
       "atlas",
       seed,
       { setting: resolved, prepared },
     );
+    if (survey) stageEntranceSurvey(engine.world, prepared.entrances!, entrancePort, entrancePort ? worker : undefined);
     if (!retire) {
       retainTerrainWorker(engine.world, worker);
       owned = false;
@@ -215,7 +219,7 @@ export async function prepareConnectedStart(
         : map.name,
     playableMap: travel.playableMap,
   };
-  const engine = await prepareSettingSession(bounded, seed, signal, true, onCharacter, waterways);
+  const engine = await prepareSettingSession(bounded, seed, signal, true, onCharacter, waterways, true);
   warmTerrainPool(engine.world, seed);
   return engine;
 }

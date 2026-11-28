@@ -85,7 +85,7 @@ export class SewerView {
     rock.height = H;
     rock.getContext("2d")!.drawImage(this.base.canvas, 0, 0);
     this.rock = rock;
-    const tallCount = level.decor.filter((d) => d.solid).length + level.things.filter((t) => t.solid).length + level.shafts.length + 2;
+    const tallCount = level.decor.filter((d) => d.solid).length + level.things.filter((t) => t.solid && !t.prop).length + level.shafts.length + 2;
     this.sheet = scene.textures.createCanvas(`${key}-sheet`, CELL * 16, TALL * Math.ceil(tallCount / 16 + 1))!;
     for (let i = 0; i < w * h; i++) if (level.cells[i] === WATER || level.cells[i] === DEEP) this.wet.push(i);
     this.objects.push(scene.add.image(0, 0, key).setOrigin(0, 0).setDepth(-99990));
@@ -134,7 +134,7 @@ export class SewerView {
     t2.drawImage(this.shade, 0, 0);
     for (const d of level.decor) if (!d.solid) paintSewerObject(this.wetAt(d.x, d.y) ? t2 : g, d.type, d.x * 16, d.y * 16, pal, d.v);
     for (const s of level.shafts) if (s.to === "up" && level.cells[(s.y - 1) * level.w + s.x] === WALL) paintSewerObject(g, "up", s.x * 16, (s.y - 1) * 16, pal);
-    for (const t of level.things) if (!t.solid) paintSewerObject(g, t.art, t.x * 16, t.y * 16, pal, 0.5, done.has(t.id) && !sewerFind(t.find)?.keeps);
+    for (const t of level.things) if (!t.solid && !t.prop) paintSewerObject(g, t.art, t.x * 16, t.y * 16, pal, 0.5, done.has(t.id) && !sewerFind(t.find)?.keeps);
     this.base.refresh();
     this.top.refresh();
     const s = this.sheet.context;
@@ -150,7 +150,7 @@ export class SewerView {
       }
     };
     for (const [i, d] of level.decor.entries()) if (d.solid) stand(`d${i}`, d.type, d.x, d.y, d.v, false);
-    for (const t of level.things) if (t.solid) stand(t.id, t.art, t.x, t.y, 0.5, done.has(t.id) && !sewerFind(t.find)?.keeps);
+    for (const t of level.things) if (t.solid && !t.prop) stand(t.id, t.art, t.x, t.y, 0.5, done.has(t.id) && !sewerFind(t.find)?.keeps);
     if (level.down) stand("down", "down", level.down.x, level.down.y, 0, false);
     level.shafts.forEach((sh, i) => {
       if (sh.to === "street" && level.mouth) return;

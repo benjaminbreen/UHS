@@ -251,7 +251,8 @@ export const modern: readonly Stance[] = [
     clause: "refuses without violence and spins the household's cloth",
     kind: "ethical",
     tags: ["ascetic", "communal", "agrarian", "universalist"],
-    scope: { years: [1915, 10001] },
+    // Home-spun khadi is a South Asian practice; nonviolence alone travelled further.
+    scope: { years: [1915, 10001], cultures: ["south-asian"] },
     weight: 6,
     wiki: `${w}Gandhism`,
     note: "Refusal without violence, self-sufficiency in the village, and the claim that the means chosen become the society arrived at.",

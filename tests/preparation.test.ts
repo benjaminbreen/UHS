@@ -11,7 +11,7 @@ import * as device from "../src/runtime/device";
 import * as session from "../src/runtime/session";
 import * as store from "../src/runtime/prepared-store";
 import * as travelWaterways from "../src/world/travel/waterways";
-import { releaseTerrainWorker, retainTerrainWorker, takeSpareTerrainWorkers, takeTerrainWorker, warmTerrainPool } from "../src/runtime/terrain-worker-owner";
+import { stageEntranceSurvey, surveyMapEdges, surveyingEdges, releaseTerrainWorker, retainTerrainWorker, takeSpareTerrainWorkers, takeTerrainWorker, warmTerrainPool } from "../src/runtime/terrain-worker-owner";
 import type { TerrainRequest } from "../src/render/terrain-worker";
 import type { WorldModel } from "../src/core/types";
 import { CHUNK_SIZE } from "../src/core/types";
@@ -52,6 +52,31 @@ it.each([true, false])("hands off a prepared world with phone memory policy %s",
     vi.restoreAllMocks();
   }
 }, 60000);
+
+it("publishes deferred crossings into the live world, and cancels a discarded map", () => {
+  const exits = ["N", "E"].map(bearing => ({ id: bearing, to: bearing, bearing, mode: "land" }));
+  const world = {
+    pack: { setting: { playableMap: { size: 16, exits } } },
+    spawn: { x: 0, y: 0 }, terrain: () => "grass", blocked: () => false,
+  } as unknown as WorldModel;
+  const routes: NonNullable<WorldPreparationResult["prepared"]["entrances"]> = [];
+  vi.useFakeTimers();
+  try {
+    stageEntranceSurvey(world, routes);
+    surveyMapEdges(world, "E");
+    expect(routes).toEqual([]);
+    expect(surveyingEdges(world)).toBe(true);
+    vi.runAllTimers();
+    expect(routes.map(e => [e.bearing, e.walkable])).toEqual([["N", true], ["E", true]]);
+    expect(surveyingEdges(world)).toBe(false);
+    routes.length = 0;
+    stageEntranceSurvey(world, routes);
+    surveyMapEdges(world);
+    releaseTerrainWorker(world);
+    vi.runAllTimers();
+    expect(routes).toEqual([]);
+  } finally { vi.useRealTimers(); }
+});
 
 it("starts the terrain pool warm beside the retained worker and ends it with the world", () => {
   const posted = new Map<object, TerrainRequest[]>();

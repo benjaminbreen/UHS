@@ -1,4 +1,7 @@
 import { markets } from "../content/economy/exchanges";
+import { billingOf, decodeTheatreRoom, filmById, playById } from "../content/interiors/performances";
+import { theatres } from "../content/interiors/theatres";
+import type { InteriorProfile } from "../content/interiors/types";
 import { innProfileFor, innTerms } from "../content/settlements/worksites/inns";
 import { blankBook, callSeconds, exchangeDesks, fillOrder, landedOrder, orderProblem } from "./exchange";
 import { foraged, gathersPlants } from "../content/characters/livelihoods";
@@ -34,6 +37,8 @@ import { burials, graveLine } from "./graves";
 import { atWork, briefText, personBrief, sexOf } from "./brief";
 import { placeBrief } from "./place-brief";
 import { propAffordances, heldObject, lowProp } from "./props";
+import { hasShutters, initialRoomPropState, performRoomAct, reactRoomProp, roomPropVerb, tickRoomProps, type RoomPropHost } from "./room-props";
+import type { InstrumentId } from "../audio/instruments";
 import {
   planShove,
   type ShovePlan,
@@ -86,6 +91,7 @@ import { orderKeeper, type Penalty } from "../content/history/order";
 import { rockFrame } from "../content/ecology/rocks";
 import { BUILDING_BURN, BURN_SECONDS, oreAt, TORCH_SECONDS } from "../content/ecology/metals";
 import { caveAct, caveBeastAt, caveMouthsNear, caveLevelOf, caveStrike } from "./cave";
+import { caveLight } from "../content/caves";
 import { fairEnter } from "./fair";
 import { churchBelow, tombEnter, tombMouthAt, tombMouthsNear } from "./tomb";
 import { prisonDailyGoals, prisonEnter, prisonNight, prisonServe } from "./prison";
@@ -93,7 +99,7 @@ import { prisonAt, prisonFromPrompt, prisonStyles } from "../content/prisons";
 import { fairAt, fairById } from "../content/fairs";
 import { tombAt, tombStyle } from "../content/tombs";
 import { complexAct, complexGround, complexInspect, complexMap, complexTime, complexVerb, isComplexId, walkedArea, type ComplexHost } from "./complex";
-import { folkOffer, type FolkHost } from "./tunnel-folk";
+import { folkOffer, folkRobbed, type FolkHost } from "./tunnel-folk";
 import { shipAct, shipGround, shipInspect, shipLevelOf, shipStart, shipTime, shipVerb, voyageLook, type ShipHost } from "./ship";
 import { catacombEnter, catacombStairs, lidAt, mineEnter, mineLeave, minePeril, minePlace, sewerAct, sewerLevelOf, tunnelRun } from "./sewer";
 import { conditionOf, damageStructure, fabricOf, roofless, weatherStructure, type Structure } from "./time/structure";
@@ -103,7 +109,7 @@ import { findPath } from "./pathfinding";
 import { addStock, collectClaim, dayOfWork, dearness, grainDays, importShare, openStock, runEconomy, stockOf } from "./economy";
 import { goodsOf } from "../content/economy/goods";
 import { keepsShop, sellsTrade, stockFor, TRADER } from "./shop";
-import { shopKinds } from "../content/interiors/shops";
+import { served, shopKinds } from "../content/interiors/shops";
 import { isStallholder, isWayfarer, person } from "../world/v3/wayfarers";
 import { periodLook, wares } from "../content/economy/wares";
 import { goodName } from "../content/economy/products";
@@ -150,7 +156,8 @@ import { worshipAct, worshipHours } from "../content/interiors/worship";
 import { passageOn } from "../content/interiors/scripture";
 import { beliefsForActor } from "../content/beliefs";
 import { localCongregation, sanctuaryAt } from "../content/settlements/religious";
-import { stupaPathEdge } from "../render/interiors/room";
+import { roomPropSprite, stupaPathEdge } from "../render/interiors/room";
+import { OVERLOOK_CAST_LINES, OVERLOOK_CLEARING, OVERLOOK_ROOM_NOTES } from "../content/interiors/overlook";
 import { buildInterior, ROOM_ORIGIN, roomAt, spotsAt, type InteriorLayout, type Spot, type SpotRole } from "../world/interior";
 import { buildingUse } from "../content/interiors/select";
 import { deliveryAt, motorBody, truckBody, truckOffset, besideTeam, vehicleAt, vehicleSchedule, type Vehicle } from "../world/v3/conveyances";
@@ -199,6 +206,7 @@ import { livelihoodById } from "../content/characters/livelihoods";
 import { smokingFrom } from "../content/characters/smoking";
 import { capabilitiesFor, matchesCharacterScope } from "../content/characters/resolve";
 import { amountIn, moneyFor } from "../content/economy/money";
+import { coinsFor, menuFor, type Dish } from "../content/economy/menus";
 import { CYCLE_SPECS, cycleLabel } from "./cycles";
 import { openGameFor, tableGames } from "../content/games";
 import { venueOfClaim } from "../content/venues";
@@ -219,6 +227,7 @@ import {
 } from "./skills";
 import { optionsAt, pendingPicks, technique, TIERS as TECHNIQUE_TIERS, type TechniqueId } from "./techniques";
 import { faunaBlockOf, habitatScorer, standingCrop } from "../world/v3/fauna";
+import { timetable, trainOver, type Run } from "../world/v3/railway";
 import { herdNoun, herdWords, keptSpecies } from "../content/fauna/herding";
 import { crops, pickable } from "../content/agriculture/crops";
 import { cropStage } from "../content/agriculture";
@@ -408,6 +417,7 @@ const MOMENT_ROOMS: Partial<Record<(typeof momentRooms)[number], RegExp>> = {
   bath: /bath-house|hammam|sento|sweat|temazcal/,
   school: /school|terakoya|madrasa|gurukula|calmecac|telpochcalli/,
   theatre: /playhouse|opera-house|theatre|cinema|noh-stage/,
+  hotel: /overlook|hotel/,
 };
 const listing = (xs: string[]) =>
   xs.length < 2
@@ -459,6 +469,29 @@ const covers = (o: WorldObject, x: number, y: number) => {
     ? Math.abs(o.pos.x - x) <= span[0] && Math.abs(o.pos.y - y) <= span[1]
     : o.pos.x === x && o.pos.y === y;
 };
+const nearestCell = (o: WorldObject, at: Position): Position =>
+  o.size
+    ? {
+        x: Math.max(o.pos.x, Math.min(o.pos.x + o.size[0] - 1, at.x)),
+        y: Math.max(o.pos.y, Math.min(o.pos.y + o.size[1] - 1, at.y)),
+        space: o.pos.space,
+      }
+    : o.pos;
+const softProp = (d: { breakable?: string; family?: string } | undefined) =>
+  d?.breakable === "fiber" || d?.breakable === "paper" || d?.breakable === "plastic" ||
+  d?.family === "sack" || d?.family === "palace-zabuton";
+const HEAVY_ITEM_SPRITES = new Set([
+  "rock", "rock-1", "rock-2", "obsidian", "flint", "ore", "log", "tool",
+  "rifle", "musket", "pistol", "crossbow", "walking-cane", "throwing-stick",
+  "paddle", "water-pole", "carrying-pole", "lamp-pole", "yoke", "mantel-clock", "censer",
+]);
+const HEAVY_ITEM_IDS = new Set([
+  "stick", "stone-lamp", "clay-pot", "amphora", "glazed-jar", "barrel",
+  "cauldron", "silver-ingot", "copper-ingot", "horseshoe", "shears", "kalashnikov",
+]);
+const heavyItem = (item: ItemDef) =>
+  !!item.hand?.strike || HEAVY_ITEM_SPRITES.has(item.sprite) || HEAVY_ITEM_IDS.has(item.id);
+const UNCLIMBABLE_OBJECT = /\b(sign|signal|lamp|post|pole|bin|mailbox|hoop|well|pump|hydrant|bollard|meter)\b/i;
 /** Where the work itself is done when the map gave the trade no tool of its own. */
 const PROPLESS: Record<ProcessFamily, string> = {
   tend: "your yard",
@@ -3154,9 +3187,154 @@ export class Engine {
   /** Puts the player inside the nearest building of a kind, if the map has one. */
   startIn(where: (typeof momentRooms)[number]) {
     const p = this.state.player, d = (b: Place) => distance({ ...doorApproach(b), space: "outside" }, p.pos), kind = MOMENT_ROOMS[where];
+    if (where === "theatre") return this.startInTheatre();
     const place = kind && this.world.places.filter((b) => kind.test(b.claim) && this.interiorOf(b.id)).sort((a, b) => d(a) - d(b))[0];
-    if (place) p.pos = this.indoorSpot(p, place.id);
+    if (place) {
+      const room = this.interiorOf(place.id);
+      const asked = this.world.pack.setting?.venueRoom;
+      const wing = asked && room?.rooms.find((r) => r.label === asked);
+      if (room && wing) {
+        const tx = wing.label === "Overlook Hedge Maze" ? wing.x + ROOM_ORIGIN + 15 : wing.x + ROOM_ORIGIN + Math.floor(wing.w / 2);
+        const ty = wing.label === "Overlook Hedge Maze" ? wing.y + ROOM_ORIGIN + 15 : wing.y + ROOM_ORIGIN + Math.floor(wing.d / 2) + 1;
+        const spot = [...room.walk].map((k) => k.split(",").map(Number))
+          .filter(([x, y]) => roomAt(room, x, y) === wing && !(x === room.exit.x && y === room.exit.y))
+          .sort(([x, y], [u, v]) => Math.hypot(x - tx, y - ty) - Math.hypot(u - tx, v - ty))[0];
+        p.pos = spot ? { x: spot[0], y: spot[1], space: place.id } : this.indoorSpot(p, place.id);
+        p.direction = wing.label === "Overlook Hedge Maze" ? 0 : 2;
+      } else {
+        p.pos = this.indoorSpot(p, place.id);
+      }
+    }
     return !!place;
+  }
+  private startInTheatre(): boolean {
+    const p = this.state.player, s = this.world.pack.setting;
+    const d = (b: Place) => distance({ ...doorApproach(b), space: "outside" }, p.pos);
+    const wantProfile = s?.venue ? theatres.find((t) => t.id === s.venue) : undefined;
+    const isCinemaSprite = (b: Place) => /^(mod-theatre-\d|theatre-picture-house)/.test(b.sprite ?? "");
+    const matchesWant = (b: Place) => {
+      if (!wantProfile) return MOMENT_ROOMS.theatre!.test(b.claim) || isCinemaSprite(b);
+      if (wantProfile.uses?.some((u) => b.claim === `venue-${u}`)) return true;
+      return wantProfile.uses?.includes("venue.cinema") && isCinemaSprite(b);
+    };
+    let place = this.world.places.filter((b) => matchesWant(b) && this.interiorOf(b.id)).sort((a, b) => d(a) - d(b))[0];
+    if (!place) {
+      const fallback =
+        this.world.places.filter((b) => !b.claim.startsWith("religious-") && b.access === "public").sort((a, b) => d(a) - d(b))[0]
+        ?? this.world.places.filter((b) => !b.claim.startsWith("religious-")).sort((a, b) => d(a) - d(b))[0]
+        ?? this.world.places[0];
+      if (!fallback) return false;
+      const profile = wantProfile ?? theatres.find((t) => t.id === ((s?.year ?? 1900) >= 1910 ? "cinema" : "proscenium-playhouse"))!;
+      fallback.claim = `venue-${profile.uses?.[0] ?? "venue.playhouse"}`;
+      fallback.access = "public";
+      fallback.name = profile.label;
+      this.forcedProfiles.set(fallback.id, profile);
+      this.interiors.delete(fallback.id);
+      place = fallback;
+    } else if (wantProfile) {
+      // Ensure the matched building builds the exact requested era/venue profile.
+      this.forcedProfiles.set(place.id, wantProfile);
+      this.interiors.delete(place.id);
+    }
+    const room = this.interiorOf(place.id);
+    if (!room) return false;
+
+    const spec = decodeTheatreRoom(s?.venueRoom);
+    let targetRoomIdx = room.props.find((q) => q.kind === "altar")?.room ?? 0;
+    if (spec.film) {
+      const f = filmById(spec.film);
+      const screenIdx = room.plan.rooms.findIndex((r) => r.styles.altar?.startsWith("stage-cinema"));
+      if (f && screenIdx >= 0) {
+        room.plan.rooms[screenIdx].film = f.id;
+        (room.films ??= {})[screenIdx] = f;
+        targetRoomIdx = screenIdx;
+      }
+    }
+    if (spec.play) {
+      const pl = playById(spec.play);
+      if (pl) room.play = pl;
+    }
+
+    // Set clock to prime showtime so audiences, staff, films, and stage actors are live.
+    const showHour = room.regulars ? Math.min(room.regulars.hours[1] - 1, room.regulars.hours[0] + 1) : 20;
+    this.state.clock = Math.floor(this.state.clock / 86400) * 86400 + showHour * 3600;
+    for (const ev of this.state.events) ev.time = this.state.clock;
+
+    p.pos = { ...room.entry, space: place.id };
+    this.staffed = undefined;
+    this.perfBeat = undefined;
+    this.indoorStaff();
+
+    const hallRoom = room.rooms[targetRoomIdx];
+    const film = room.films?.[targetRoomIdx];
+    const play = room.play;
+    const occupied = (x: number, y: number) =>
+      this.state.actors.some((a) => a.pos.space === place!.id && a.pos.x === x && a.pos.y === y);
+
+    if (spec.mode === "stage") {
+      const stage = room.props.find((q) => q.kind === "altar" && (q.room ?? 0) === targetRoomIdx) ?? room.props.find((q) => q.kind === "altar");
+      const deck = room.stage;
+      const tx = deck ? Math.floor((deck.x0 + deck.x1) / 2) : stage ? stage.x + ROOM_ORIGIN + Math.floor(stage.w / 2) : room.entry.x;
+      const ty = deck ? deck.y : stage ? stage.y + ROOM_ORIGIN + Math.max(1, stage.d) : room.entry.y;
+      const onDeck = deck
+        ? Array.from({ length: deck.x1 - deck.x0 + 1 }, (_, i) => [deck.x0 + i, deck.y] as [number, number])
+            .filter(([x, y]) => !occupied(x, y))
+            .sort(([x], [u]) => Math.abs(x - tx) - Math.abs(u - tx))[0]
+        : undefined;
+      const spot = onDeck ?? [...room.walk].map((k) => k.split(",").map(Number))
+        .filter(([x, y]) => (!hallRoom || roomAt(room, x, y) === hallRoom) && !occupied(x, y))
+        .sort(([x, y], [u, v]) => Math.hypot(x - tx, (y - ty) * 2) - Math.hypot(u - tx, (v - ty) * 2))[0];
+      p.pos = spot ? { x: spot[0], y: spot[1], space: place.id } : { ...room.entry, space: place.id };
+      p.direction = 2;
+      p.activity = play ? `On stage for "${play.title}"` : film?.benshi ? `Narrating "${film.title}"` : "On stage";
+      this.event(play ? `You step into the footlights for "${play.title}" (${billingOf(play)}).` : film ? `You take your place beside the screen for "${film.title}" (${billingOf(film)}).` : "You step onto the stage.");
+    } else if (spec.mode === "foyer") {
+      const work = s?.brief?.work;
+      const counter = (work === "ticket-taker" || work === "concession-seller") ? room.work.find((w) => !occupied(w.x, w.y)) : undefined;
+      if (counter) {
+        p.pos = { x: counter.x, y: counter.y, space: place.id };
+        p.direction = counter.facing;
+        this.indoorUses.set("player", { ...counter, role: "work", space: place.id });
+      } else {
+        p.pos = { ...room.entry, space: place.id };
+        p.direction = 0;
+      }
+      p.activity = `On duty at ${place.name}`;
+      this.event(film ? `Evening showtime at ${place.name}. Now playing: "${film.title}" (${billingOf(film)}).` : play ? `Curtain time at ${place.name}. Tonight's bill: "${play.title}" (${billingOf(play)}).` : `You are on duty at ${place.name}.`);
+    } else {
+      // Audience start: settle into a central open seat facing the screen or stage (or stand in a pit like the Globe).
+      const cx = hallRoom ? hallRoom.x + ROOM_ORIGIN + Math.floor(hallRoom.w / 2) : room.entry.x;
+      const cy = hallRoom ? hallRoom.y + ROOM_ORIGIN + Math.floor(hallRoom.d * 0.6) : room.entry.y;
+      const adjWalk = (sx: number, sy: number) =>
+        [[0, 1], [0, -1], [1, 0], [-1, 0]].map(([dx, dy]) => ({ x: sx + dx, y: sy + dy })).find((q) => room.walk.has(`${q.x},${q.y}`) && !occupied(q.x, q.y));
+      const seat = room.seats
+        .filter((st) => st.on && (st.kind === "pew" || st.kind === "cushions") && (!hallRoom || roomAt(room, st.x, st.y) === hallRoom) && !occupied(st.x, st.y) && adjWalk(st.x, st.y))
+        .sort((a, b) => Math.hypot(a.x - cx, a.y - cy) - Math.hypot(b.x - cx, b.y - cy))[0];
+      if (seat) {
+        const from = adjWalk(seat.x, seat.y)!;
+        p.pos = { x: seat.x, y: seat.y, space: place.id };
+        p.direction = seat.facing;
+        delete p.facing;
+        p.seated = { on: `room-seat:${seat.x},${seat.y}`, pose: seat.on === "floor" ? "sit" : "sit-seat", from };
+        this.indoorUses.set("player", { ...seat, role: "seat", space: place.id });
+      } else {
+        const spot = [...room.walk].map((k) => k.split(",").map(Number))
+          .filter(([x, y]) => (!hallRoom || roomAt(room, x, y) === hallRoom) && !occupied(x, y))
+          .sort(([x, y], [u, v]) => Math.hypot(x - cx, y - cy) - Math.hypot(u - cx, v - cy))[0];
+        p.pos = spot ? { x: spot[0], y: spot[1], space: place.id } : { ...room.entry, space: place.id };
+        p.direction = 0;
+      }
+      p.activity = film ? `Watching "${film.title}"` : play ? `Watching "${play.title}"` : "Watching the performance";
+      this.event(
+        film
+          ? `The house lights dim. Now playing: "${film.title}" (${billingOf(film)}).`
+          : play
+            ? `The curtain rises on "${play.title}" (${billingOf(play)}).`
+            : `You take your place for the show at ${place.name}.`,
+      );
+    }
+    this.tickPerformance();
+    return true;
   }
   /** Haul the player into the local prison on a magistrate's charge (e.g. hostile speech to a guard or noble). */
   arrest(charge: string, days = 7, by?: Actor): boolean {
@@ -3288,8 +3466,10 @@ export class Engine {
     return complexMap(this.complex);
   }
   private interiors = new Map<string, InteriorLayout | null>();
+  private forcedProfiles = new Map<string, InteriorProfile>();
   private wallIndex?: {
     cells: Set<string>;
+    fences: Set<string>;
     walk: Map<string, WallWalk>;
     stairs: Map<string, { step: number; onto?: Point }>;
     gates: Map<string, { id: string; dx: number; dy: number; toll: boolean }>;
@@ -3299,6 +3479,7 @@ export class Engine {
     const all = this.world.enclosures ?? [];
     if (this.wallIndex && this.wallIndexFor === all.length) return this.wallIndex;
     const cells = new Set<string>();
+    const fences = new Set<string>();
     const walk = new Map<string, WallWalk>();
     const stairs = new Map<string, { step: number; onto?: Point }>();
     // The road through each town gate, and which way along it is into town.
@@ -3319,7 +3500,8 @@ export class Engine {
         } else {
           // Field walls, hedges and pens: anything else an enclosure is made of.
           cells.add(k);
-          if (!walk.has(k)) walk.set(k, { kind: "wall" });
+          if (frame.includes("fence")) fences.add(k);
+          if (!walk.has(k)) walk.set(k, { kind: "wall", low: true });
         }
       }
     for (const e of all)
@@ -3333,7 +3515,7 @@ export class Engine {
           for (const q of gate.jambs) walk.set(`${q.x},${q.y}`, { kind: "gate" });
       }
     this.wallIndexFor = all.length;
-    return (this.wallIndex = { cells, walk, stairs, gates });
+    return (this.wallIndex = { cells, fences, walk, stairs, gates });
   }
   /** A cell belonging to an enclosure circuit: a wall you can stand on, as
    * opposed to a building footprint or a tree. A gate's span is not one: the
@@ -3711,9 +3893,9 @@ export class Engine {
     const p = this.state.player;
     if (p.origin?.livelihood === "car-thief") return "";
     const held = p.held && this.object(p.held), def = held && propDefs[held.prop ?? ""];
-    if (held && (def?.strike || def?.tool)) return held.name.toLowerCase();
+    if (held && (def?.strike || def?.tool || !softProp(def))) return held.name.toLowerCase();
     const item = !held && p.heldItem ? this.item(p.heldItem) : undefined;
-    return item?.hand?.strike ? item.name.toLowerCase() : null;
+    return item && heavyItem(item) ? item.name.toLowerCase() : null;
   }
   vehicleCab(o: WorldObject) {
     const m = o.motor,
@@ -3915,12 +4097,15 @@ export class Engine {
     const floor = place && this.towerOf(place.id)?.floors[storey.n];
     const entrance = place?.entrance;
     const s = (entrance && this.world.geography?.packAt(entrance.x,entrance.y)?.setting) ?? this.world.pack.setting;
-    const household = this.state.households?.find((h) => h.residence === space);
+    const houses = this.state.households?.filter(h => h.residence === space);
+    const household = houses?.find(h => h.members.includes(place?.owner ?? "")) ?? houses?.[0];
     if (!place || (storey.n && !floor) || (!floor && place.access !== "household" && !household && !buildingUse(place.claim)) || !s) {
       this.interiors.set(space, null);
       return undefined;
     }
     const head = [this.state.player, ...this.state.actors].find((a) => a.id === (household?.members[0] ?? place.owner));
+    const kit = head && livelihoodOf(this.world.pack, head);
+    const bench = propDefs[this.object(`${space}-work`)?.prop ?? ""]?.family ?? (kit && processFor(kit)?.stations[0]);
     const exit = this.state.objects.find((o) => o.kind === "exit" && o.pos.space === space);
     const room = buildInterior(
       floor ? { ...place, id: space, name: floor.name } : place,
@@ -3935,7 +4120,11 @@ export class Engine {
         frame: place.sprite,
         climate: s.climate,
       },
-      { seed: this.state.manifest.seed, fortune: household?.fortune, activity: head && livelihoodOf(this.world.pack, head)?.activity, hour: (this.state.clock / 3600) % 24, good: household?.makes?.[0], bench: propDefs[this.object(`${space}-work`)?.prop ?? ""]?.family, profile: floor?.profile, colorway: floor?.colorway, storey: floor && storey.n,
+      { seed: this.state.manifest.seed, fortune: household?.fortune,
+        childResident: houses?.some(h => (h.infants ?? 0) > 0 || h.members.some(id => {
+          const a = id === "player" ? this.state.player : this.actorsById?.get(id) ?? this.state.actors.find(a => a.id === id);
+          return a && !a.dead && (a.age ?? 99) < 12;
+        })), activity: kit?.activity, ownerRole: head?.role, hour: (this.state.clock / 3600) % 24, good: household?.makes?.[0], bench, profile: floor?.profile ?? this.forcedProfiles.get(place.id), colorway: floor?.colorway, storey: floor && storey.n,
         lift: floor?.kind === "home" ? (this.towerOf(place.id)!.style.lift.name === "Stairs" ? "stair" : "lift") : undefined },
     );
     this.interiors.set(space, room);
@@ -3952,14 +4141,18 @@ export class Engine {
       for (const f of room.furniture) {
         const key = regionalContainer(s,f.def,random(this.state.manifest.seed,"room-container",space,f.propId)) ?? f.def;
         const def = propDefs[key];
+        const q = room.props[f.propId];
+        const rp = room.plan.rooms[q?.room ?? 0] ?? room.params;
+        const init = initialRoomPropState(key, q, room, this.state.clock, this.state.manifest.seed, (id) => !!this.item(id), this.complex.rain());
         this.state.objects.push({
           id: `${space}-room-${f.propId}`,
           name: def.name,
           kind: def.container ? "container" : "monument",
           prop: key,
           pos: { ...f.pos, space },
-          sprite: propSprite(key) ?? "",
-          inventory: {},
+          sprite: key === f.def && q ? roomPropSprite(rp, q) : propSprite(key) ?? "",
+          inventory: init.inventory ?? {},
+          ...(init.open !== undefined ? { open: init.open } : {}),
           owner: place.owner,
           ...(f.size[0] * f.size[1] > 1 ? { size: f.size } : {}),
         });
@@ -4056,9 +4249,57 @@ export class Engine {
     const at = parseFloor(space), floor = space === "outside" ? undefined : this.towerOf(at.place)?.floors[at.n];
     const room = space==="outside" ? undefined : this.interiorOf(space), setting = this.world.pack.setting;
     const exchange = room?.institution==="exchange";
-    const want = new Map<string, { work: string; doing: string; role?:string; desk?:number }>();
+    const want = new Map<string, { work: string; doing: string; role?:string; name?:string; age?:number; desk?:number; room?:string; roomLabel?:string; spot?:"work"|"seat"|"stage"; sex?:"female"|"male" }>();
     if(exchange && room)exchangeDesks.forEach((d,i)=>want.set(`staff-${space}-desk${i}`,{
       work:d.trade,role:d.desk,doing:`${d.desk} at pillar ${i+1}`,desk:i}));
+    if (room?.staff?.length && setting) {
+      const h = hour % 24;
+      const open = (hours: [number, number]) => (hours[0] <= hours[1] ? h >= hours[0] && h < hours[1] : h >= hours[0] || h < hours[1]);
+      const base: [number, number] = room.regulars ? [Math.max(8, room.regulars.hours[0] - 2), room.regulars.hours[1]] : [9, 23];
+      const benshiFilm = room.films && Object.values(room.films).some((f) => f.benshi);
+      const place = this.world.place(space);
+      const trades = new Set(room.staff.map(st => benshiFilm && st.work === "musician" && st.spot === "stage" ? "benshi" : st.work));
+      const assigned = [s.player, ...s.actors].filter(a => a.kind === "human" && !a.dead && !a.staff &&
+        trades.has(a.origin?.livelihood ?? "") &&
+        (a.id === place?.owner || this.world.activitySites?.(a.id)?.employment?.id === space));
+      room.staff.forEach((st, i) => {
+        if (!open(st.hours ?? base)) return;
+        if (st.name && s.player.name === st.name) return;
+        const n = st.count ?? 1;
+        const isBenshi = benshiFilm && st.work === "musician" && st.spot === "stage";
+        for (let k = 0; k < n; k++) {
+          const worker = assigned.findIndex(a => st.name ? a.name === st.name : a.origin?.livelihood === (isBenshi ? "benshi" : st.work));
+          if (worker >= 0) {
+            assigned.splice(worker, 1);
+            continue;
+          }
+          want.set(`staff-${space}-v${i}-${k}`, {
+            work: isBenshi ? "benshi" : st.work,
+            doing: isBenshi ? "Narrating the silent picture" : st.doing,
+            role: isBenshi ? "Benshi" : st.role,
+            name: st.name,
+            age: st.age,
+            room: st.room,
+            roomLabel: st.roomLabel,
+            spot: st.spot,
+            sex: st.sex,
+          });
+        }
+      });
+      // Top up showtime audiences in large theatres, opera houses and cinemas so grand halls feel packed while always leaving open seats for the player.
+      if (room.regulars && open(room.regulars.hours)) {
+        const pewSeats = room.seats.filter((p) => p.kind === "pew" || p.kind === "cushions");
+        const takenSeats = pewSeats.filter((p) => s.actors.some((a) => !a.staff && a.kind === "human" && a.id !== s.player.id && a.pos.space === space && a.pos.x === p.x && a.pos.y === p.y)).length;
+        const targetAudience = Math.min(32, Math.round(pewSeats.length * 0.55));
+        const maxAdd = Math.max(0, pewSeats.length - takenSeats - 8);
+        const need = Math.min(maxAdd, Math.max(0, targetAudience - takenSeats));
+        const altar = room.props.find((q) => q.kind === "altar");
+        const style = altar ? room.plan.rooms[altar.room ?? 0]?.styles.altar : undefined;
+        const watching = style?.startsWith("stage-cinema") ? "Watching the film" : style?.startsWith("stage-opera") ? "Watching the opera" : "Watching the performance";
+        for (let i = 0; i < need; i++)
+          want.set(`staff-${space}-aud-${i}`, { work: "", doing: watching, room: "hall", spot: "seat" });
+      }
+    }
     if (floor && room && setting) {
       const [from, to] = floor.hours, h = hour % 24, name = floor.name.replace(/^The /, "the ");
       const open = (h: number) => (from <= to ? h >= from && h < to : h >= from || h < to);
@@ -4085,13 +4326,94 @@ export class Engine {
       if (known) return void (known.activity = w.doing);
       const r = (k: string) => random(s.manifest.seed, "staff", id, k);
       const ages = livelihoodById(w.work)?.ages ?? [18, 66];
-      const age = ages[0] + Math.floor(r("age") ** 1.3 * (Math.min(ages[1], 66) - ages[0]));
-      const a = person(s.manifest.seed, setting!, id, w.work, w.role, r("sex") < 0.5 ? "female" : "male", age, { x: 0, y: 0 }, Number.MAX_SAFE_INTEGER);
+      const age = w.age ?? (ages[0] + Math.floor(r("age") ** 1.3 * (Math.min(ages[1], 66) - ages[0])));
+      const sex = w.sex ?? (livelihoodById(w.work)?.sex && r("sex") > (livelihoodById(w.work)?.sexShare ?? 0) ? livelihoodById(w.work)!.sex! : r("sex") < 0.5 ? "female" : "male");
+      const a = person(s.manifest.seed, setting!, id, w.work, w.role, sex, age, { x: 0, y: 0 }, Number.MAX_SAFE_INTEGER);
+      if (w.name) a.name = w.name;
       delete a.wayfarer;
       a.staff = space;
       a.offRoutine = true;
       a.activity = w.doing;
       a.pos = this.indoorSpot(a, space, w.doing, index);
+      if (room && (w.room || w.roomLabel || w.spot)) {
+        const taken = new Set([s.player, ...s.actors].filter((o) => o !== a && o.pos.space === space).map((o) => `${o.pos.x},${o.pos.y}`));
+        const wings = w.roomLabel
+          ? room.rooms.filter((b) => b.label === w.roomLabel)
+          : w.room ? room.rooms.filter((b) => b.role === w.room) : room.rooms;
+        const inWings = (p: Point) => !wings.length || wings.some((b) => roomAt(room, p.x, p.y) === b);
+        const free = (list: Spot[]) => list.filter((p) => inWings(p) && !taken.has(`${p.x},${p.y}`) && (p.on || !this.blocked(p.x, p.y, space)));
+        if (w.spot === "work") {
+          const at = free(room.work.filter((p) => p.kind === "shopcounter" || p.kind === "bar"))[0] ?? free(room.work)[0];
+          if (at) {
+            a.pos = { x: at.x, y: at.y, space };
+            a.direction = at.facing;
+            this.indoorUses.set(a.id, { ...at, role: "work", space });
+          } else if (wings.length) {
+            const wing = wings[0];
+            const counter = room.props.find((q) => (q.kind === "shopcounter" || q.kind === "bar") && room.rooms[q.room ?? 0] === wing);
+            const tx = counter ? counter.x + ROOM_ORIGIN + Math.floor(counter.w / 2) : wing.x + ROOM_ORIGIN + Math.floor(wing.w / 2);
+            const ty = counter ? counter.y + ROOM_ORIGIN - 1 : wing.y + ROOM_ORIGIN + Math.floor(wing.d / 2);
+            const spot = [...room.walk].map((k) => k.split(",").map(Number)).filter(([x, y]) => roomAt(room, x, y) === wing && !taken.has(`${x},${y}`))
+              .sort(([x, y], [u, v]) => Math.hypot(x - tx, y - ty) - Math.hypot(u - tx, v - ty))[0];
+            if (spot) {
+              a.pos = { x: spot[0], y: spot[1], space };
+              a.direction = 2;
+              this.indoorUses.delete(a.id);
+            }
+          }
+        } else if (w.spot === "seat") {
+          const seats = free(room.seats.filter((p) => p.kind === "pew" || p.kind === "cushions"));
+          const at = seats[Math.floor(r("seat") * seats.length)] ?? free(room.seats)[0];
+          if (at) {
+            a.pos = { x: at.x, y: at.y, space };
+            a.direction = at.facing;
+            this.indoorUses.set(a.id, { ...at, role: "seat", space });
+          }
+        } else if (w.spot === "stage") {
+          const piano = w.work === "pianist"
+            ? room.props.find((q) => (q.item === "backroom:speakeasy-piano" || q.item === "quirk:piano") && (!wings.length || wings.includes(room.rooms[q.room ?? 0])))
+            : undefined;
+          const stage = piano ?? room.props.find((q) => q.kind === "altar" && (!wings.length || wings.includes(room.rooms[q.room ?? 0])));
+          const deck = room.stage;
+          const isPerformer = ["actor", "opera-singer", "classical-actor", "opera-performer-east", "theatre-director", "ballerina", "chorus-dancer"].includes(w.work);
+          if (deck && isPerformer) {
+            const cx = Math.floor((deck.x0 + deck.x1) / 2);
+            const onDeck = Array.from({ length: deck.x1 - deck.x0 + 1 }, (_, i) => [deck.x0 + i, deck.y] as [number, number])
+              .filter(([x, y]) => !taken.has(`${x},${y}`))
+              .sort(([x], [u]) => Math.abs(x - cx) - Math.abs(u - cx))[0];
+            if (onDeck) {
+              a.pos = { x: onDeck[0], y: onDeck[1], space };
+              a.direction = 2;
+              this.indoorUses.delete(a.id);
+            }
+          } else if (stage) {
+            const sideApron = w.work === "benshi" || (w.work === "musician" && !deck);
+            const target = {
+              x: sideApron ? stage.x + ROOM_ORIGIN : stage.x + ROOM_ORIGIN + Math.floor(stage.w / 2),
+              y: stage.y + ROOM_ORIGIN + Math.max(1, stage.d),
+            };
+            const spot = [...room.walk].map((k) => k.split(",").map(Number)).filter(([x, y]) => inWings({ x, y }) && !taken.has(`${x},${y}`) && (!deck || y !== deck.y))
+              .sort(([x, y], [u, v]) => Math.hypot(x - target.x, y - target.y) - Math.hypot(u - target.x, v - target.y))[0];
+            if (spot) {
+              a.pos = { x: spot[0], y: spot[1], space };
+              a.direction = piano ? 0 : 2;
+              this.indoorUses.delete(a.id);
+            }
+          }
+        } else if (wings.length) {
+          const wing = wings[Math.floor(r("wing") * wings.length)];
+          const twin = wing.label === "Second-Floor Corridor" && w.name?.includes("Grady");
+          const cx = twin ? wing.x + ROOM_ORIGIN + wing.w - (w.name === "Alexia Grady" ? 4 : 3) : wing.x + ROOM_ORIGIN + Math.floor(wing.w / 2);
+          const cy = wing.y + ROOM_ORIGIN + Math.floor(wing.d / 2);
+          const spot = [...room.walk].map((k) => k.split(",").map(Number)).filter(([x, y]) => roomAt(room, x, y) === wing && !taken.has(`${x},${y}`) && !(x === room.exit.x && y === room.exit.y) && !(x === room.entry.x && y === room.entry.y))
+            .sort(([x, y], [u, v]) => Math.hypot(x - cx, y - cy) - Math.hypot(u - cx, v - cy))[0];
+          if (spot) {
+            a.pos = { x: spot[0], y: spot[1], space };
+            a.direction = twin ? 3 : 2;
+            this.indoorUses.delete(a.id);
+          }
+        }
+      }
       if(room && w.desk!==undefined){
         const wing=room.rooms.find(b=>b.label.startsWith(w.desk!<2 ? "Freight" : w.desk===2 ? "Share" : "Lenders"));
         if(wing){
@@ -4106,6 +4428,144 @@ export class Engine {
       a.work = { ...a.pos };
       this.folk.join(a);
     });
+  }
+  private perfBeat?: string;
+  private overlookSeen = new Set<string>();
+  private tickPerformance() {
+    const s = this.state, space = s.player.pos.space;
+    if (space === "outside") return void (this.perfBeat = undefined);
+    const room = this.interiorOf(space);
+    if (!room) return;
+    if (room.profileId === "overlook-hotel") {
+      const wing = roomAt(room, s.player.pos.x, s.player.pos.y);
+      if (wing) {
+        const seenKey = `${space}:${wing.label}`;
+        if (!this.overlookSeen.has(seenKey) && OVERLOOK_ROOM_NOTES[wing.label]) {
+          this.overlookSeen.add(seenKey);
+          this.event(OVERLOOK_ROOM_NOTES[wing.label]);
+        }
+        const gx = s.player.pos.x - ROOM_ORIGIN, gy = s.player.pos.y - ROOM_ORIGIN;
+        if (gx >= OVERLOOK_CLEARING.x0 && gx <= OVERLOOK_CLEARING.x1 && gy >= OVERLOOK_CLEARING.y0 && gy <= OVERLOOK_CLEARING.y1) {
+          const heartKey = `${space}:clearing`;
+          if (!this.overlookSeen.has(heartKey)) {
+            this.overlookSeen.add(heartKey);
+            this.event("You reach the heart of the Overlook Hedge Maze. Under a frosted globe lantern, a snow-drifted bench sits beside a fire axe buried in a frozen stump.");
+          }
+        }
+        const castHere = s.actors.filter((a) => a.staff === space && a.pos.space === space && roomAt(room, a.pos.x, a.pos.y) === wing && OVERLOOK_CAST_LINES[a.name]);
+        if (castHere.length) {
+          const beatIdx = Math.floor(s.clock / 14);
+          const key = `overlook:${space}:${wing.label}:${beatIdx}`;
+          if (this.perfBeat !== key) {
+            this.perfBeat = key;
+            const speaker = castHere[beatIdx % castHere.length];
+            const lines = OVERLOOK_CAST_LINES[speaker.name];
+            speaker.direction = this.directionTo(speaker.pos, s.player.pos);
+            this.signal({ kind: "say", who: speaker.id, text: lines[beatIdx % lines.length] });
+          }
+        }
+      }
+      return;
+    }
+    if (room.backroom) {
+      const wing = roomAt(room, s.player.pos.x, s.player.pos.y);
+      if (wing?.label === room.backroom.label) {
+        const seenKey = `${space}:backroom:${room.backroom.id}`;
+        if (!this.overlookSeen.has(seenKey)) {
+          this.overlookSeen.add(seenKey);
+          this.event(room.backroom.note);
+        }
+      }
+    }
+    if (!room.play && !room.films) return;
+    const h = Math.floor(s.clock / 3600) % 24;
+    const hours: [number, number] = room.regulars ? [Math.max(8, room.regulars.hours[0] - 2), room.regulars.hours[1]] : [10, 23];
+    const open = hours[0] <= hours[1] ? h >= hours[0] && h < hours[1] : h >= hours[0] || h < hours[1];
+    if (!open) return;
+
+    if (room.play) {
+      const play = room.play;
+      const stage = room.props.find((q) => q.kind === "altar");
+      if (!stage) return;
+      const stageRoom = room.rooms[stage.room ?? 0];
+      const deck = room.stage;
+      const castWorks = new Set(["actor", "opera-singer", "classical-actor", "opera-performer-east", "theatre-director", "ballerina", "chorus-dancer"]);
+      const stageY = deck ? deck.y : stage.y + ROOM_ORIGIN + Math.max(1, stage.d);
+      const minX = deck ? deck.x0 : stage.x + ROOM_ORIGIN + 1;
+      const maxX = deck ? deck.x1 : stage.x + stage.w + ROOM_ORIGIN - 2;
+      const cast = s.actors
+        .filter((a) => a.staff === space && a.pos.space === space && castWorks.has(a.origin?.livelihood ?? ""))
+        .sort((a, b) => (Math.abs(a.pos.y - stageY) - Math.abs(b.pos.y - stageY)) || a.id.localeCompare(b.id));
+      if (!cast.length) return;
+      // 90 game-seconds = 4.5 real seconds at idle ambientRate (20), giving each line room to read without overlap.
+      const beatIdx = Math.floor(s.clock / 90) % play.beats.length;
+      const key = `play:${space}:${beatIdx}`;
+      if (this.perfBeat === key) return;
+      this.perfBeat = key;
+      const beat = play.beats[beatIdx];
+      const speaker = cast[beat.speaker % cast.length];
+      const partner = beat.partner && cast.length > 1 ? cast[beat.partner.who % cast.length] : undefined;
+      const stageX = (pos: string) => {
+        const span = Math.max(2, maxX - minX);
+        if (pos === "wing-l") return minX;
+        if (pos === "left") return minX + Math.round(span * 0.28);
+        if (pos === "right") return minX + Math.round(span * 0.72);
+        if (pos === "wing-r") return maxX;
+        return minX + Math.floor(span / 2);
+      };
+      const placeStage = (actor: Actor, tx: number) => {
+        const taken = new Set([s.player, ...s.actors].filter((o) => o !== actor && o.pos.space === space).map((o) => `${o.pos.x},${o.pos.y}`));
+        const deckSpot = deck
+          ? Array.from({ length: maxX - minX + 1 }, (_, i) => [minX + i, stageY] as [number, number])
+              .filter(([x, y]) => !taken.has(`${x},${y}`))
+              .sort(([x], [u]) => Math.abs(x - tx) - Math.abs(u - tx))[0]
+          : undefined;
+        const best = deckSpot ?? [...room.walk]
+          .map((k) => k.split(",").map(Number))
+          .filter(([x, y]) => (!stageRoom || roomAt(room, x, y) === stageRoom) && !taken.has(`${x},${y}`))
+          .sort(([x, y], [u, v]) => Math.hypot(x - tx, (y - stageY) * 2) - Math.hypot(u - tx, (v - stageY) * 2))[0];
+        if (best) {
+          actor.pos = { x: best[0], y: best[1], space };
+          this.indoorUses.delete(actor.id);
+        }
+      };
+      placeStage(speaker, stageX(beat.pos));
+      if (partner && partner !== speaker && beat.partner) {
+        placeStage(partner, stageX(beat.partner.pos));
+        partner.direction = this.directionTo(partner.pos, speaker.pos);
+      }
+      speaker.direction = beat.face === "partner" && partner && partner !== speaker ? this.directionTo(speaker.pos, partner.pos) : 2;
+      const role = play.cast[beat.speaker % play.cast.length];
+      speaker.activity = `${role} in "${play.title}"`;
+      this.signal({ kind: "say", who: speaker.id, text: beat.line });
+      if (beat.cue) this.signal({ kind: "cue", who: speaker.id, cue: beat.cue, toward: partner && partner !== speaker ? partner.pos : undefined });
+      if (beat.stageDir && s.player.seated?.on?.startsWith("room-seat:") && roomAt(room, s.player.pos.x, s.player.pos.y) === stageRoom) {
+        this.event(beat.stageDir);
+      }
+      return;
+    }
+
+    if (room.films) {
+      const pr = roomAt(room, s.player.pos.x, s.player.pos.y);
+      const ri = pr ? room.rooms.indexOf(pr) : -1;
+      const film = ri >= 0 ? room.films[ri] : undefined;
+      if (!film) return;
+      const sceneIdx = Math.floor(s.clock / 90) % film.scenes.length;
+      const key = `film:${space}:${ri}:${sceneIdx}`;
+      if (this.perfBeat === key) return;
+      this.perfBeat = key;
+      const scene = film.scenes[sceneIdx];
+      if (film.benshi) {
+        const benshi = s.actors.find((a) => a.staff === space && a.pos.space === space && a.origin?.livelihood === "benshi");
+        if (benshi) {
+          this.signal({ kind: "say", who: benshi.id, text: scene.caption });
+          this.signal({ kind: "cue", who: benshi.id, cue: "point" });
+        }
+      }
+      if (s.player.seated?.on?.startsWith("room-seat:")) {
+        this.event(`[${film.title}] ${scene.caption}`);
+      }
+    }
   }
   /** The tower and storey the player stands in, when they are beside a lift door there. */
   towerLift() {
@@ -4132,7 +4592,7 @@ export class Engine {
   private movedFurnishings(room: InteriorLayout, space: string) {
     return new Set(room.furniture.filter(f => {
       const o = this.object(`${space}-room-${f.propId}`);
-      return !o || o.broken || o.tipped || o.pos.x !== f.pos.x || o.pos.y !== f.pos.y;
+      return !o || o.broken || o.tipped || !!o.carriedBy || o.pos.space !== space || o.pos.x !== f.pos.x || o.pos.y !== f.pos.y;
     }).map(f => f.propId));
   }
   /** What someone indoors is at: the bed they lie in, the seat they sit on,
@@ -4167,7 +4627,8 @@ export class Engine {
     // In a house kept as a shop one person minds the counter by day; the rest of the household keeps to the rooms behind.
     const keeper = this.shopKeeper(space, a);
     const minding = this.mindsCounter(a, space, l);
-    const stations = minding ? room.work.filter(s => s.kind === "shopcounter") : stall ? room.work.filter(s => s.kind === "shopcounter" && s.facing === (label === "Minding the stall" ? 2 : 0)) :
+    const crafting = room.craft.length > 0 && label === livelihoodOf(this.world.pack, a)?.activity;
+    const stations = minding ? room.work.filter(s => s.kind === "shopcounter" || s.kind === "bar") : crafting ? room.craft : stall ? room.work.filter(s => s.kind === "shopcounter" && s.facing === (label === "Minding the stall" ? 2 : 0)) :
       clerk || hearing ? room.work.filter(s => roomAt(room,s.x,s.y)?.role === (clerk ? "work" : "hall")) :
       duties || teaching ? room.work.filter(s => (duties || ["altar"]).includes(s.kind)) : room.work;
     const sleeping = this.asleep(a, space, label);
@@ -4177,7 +4638,7 @@ export class Engine {
     const servingMeal = !!room.observance?.diner && rite === room.observance.visit;
     const order = rite ? [servingMeal ? room.fire.filter(inWing) : rite.at ? room.work.filter(s => s.kind === rite.at && inWing(s)) : room.seats.filter(s => inWing(s))] : pupil ? [room.seats.filter(s => s.kind === "pew"), room.seats] : sleeping ? [room.beds] : working ? [stations, room.fire, room.seats] : cooking ? [room.fire, room.seats]
       : serving && !resident ? [room.seats.filter((s) => s.on), room.seats, room.fire] : [room.seats, room.fire, room.work];
-    const front = keeper && keeper !== a.id && (resident || working) ? room.rooms[0] : undefined;
+    const front = !crafting && keeper && keeper !== a.id && (resident || working) ? room.rooms[0] : undefined;
     const lists = front ? order.map(list => list.filter(s => s.kind !== "shopcounter" && roomAt(room, s.x, s.y) !== front)) : order;
     const taken = new Set(
       [this.state.player, ...this.state.actors]
@@ -4190,7 +4651,8 @@ export class Engine {
       if (!free.length) continue;
       // The front of the work goes to whoever works it; seats and beds are shared out.
       const row = rite?.row && free.filter(s => s.kind === "prayer").sort((a,b) => a.y-b.y || a.x-b.x)[0];
-      const spot = row || (rite || duties || teaching || stall ? free[Math.floor(random(this.state.manifest.seed, "shift-station", a.id, label) * free.length)] : n === 0 && working ? free[0] : free[index % free.length]);
+      const beds = sleeping ? free.filter(s => !!room.plan.rooms[room.props[s.propId]?.room ?? 0]?.childSleepsHere === ((a.age ?? 99) < 12)) : [];
+      const spot = beds.length ? beds[index % beds.length] : row || (rite || duties || teaching || stall ? free[Math.floor(random(this.state.manifest.seed, "shift-station", a.id, label) * free.length)] : n === 0 && working ? free[0] : free[index % free.length]);
       a.direction = spot.facing;
       delete a.facing;
       const of = order[n];
@@ -4268,6 +4730,8 @@ export class Engine {
               !!propDefs[o.prop]?.solid &&
               !o.carriedBy &&
               !o.broken &&
+              !o.depleted &&
+              !(o.open && propDefs[o.prop]?.act?.clears) &&
               !o.submerged)) &&
           o.pos.space === space &&
           covers(o, x, y),
@@ -6580,6 +7044,26 @@ export class Engine {
     p.perch = undefined;
     this.event("Lightning strikes you. You come to on the ground with your ears ringing and your skin burned in fern-like marks.");
   }
+  private timetables = new Map<string, Run[]>();
+  /** A train running over the line kills whoever is on it: the player, or
+   * someone who ran onto it in a fright or a fight. Townsfolk going about
+   * their day wait for it to pass. */
+  private trainExposure(started: number, now: number) {
+    const s = this.state, setting = this.world.pack.setting;
+    if (!s.manifest.hazards || !setting) return;
+    const at = s.player.pos;
+    const plan = (this.world as Partial<import("../world/v3/generate").SettlementWorld>).planAt?.(at.x, at.y);
+    const line = plan?.railway;
+    if (!line || at.space !== "outside") return;
+    let runs = this.timetables.get(plan.site.id);
+    if (!runs) this.timetables.set(plan.site.id, (runs = timetable(s.manifest.seed, plan.site.id, setting, line)));
+    for (const a of s.actors)
+      if (a.kind === "human" && !a.dead && (a.terror || a.offRoutine) && a.pos.space === "outside" && trainOver(line, runs, started, now, a.pos))
+        this.dies(a, "after being hit by a train");
+    const p = s.player;
+    if (p.dead || p.perch || p.afloat || !trainOver(line, runs, started, now, p.pos)) return;
+    this.die("being hit by a train");
+  }
   private lastJump = -99;
   /** Striking a kept animal is striking its keeper's property. Anyone who
    * sees it thinks less of you; the keeper most of all, and they say so. */
@@ -6865,6 +7349,8 @@ export class Engine {
   }
   private washAshore() {
     const p = this.state.player;
+    // Someone already spent does not come round on the shore.
+    if (this.state.manifest.hazards && (p.health ?? 100) <= 30) return this.die("drowning");
     const size = this.state.manifest.setting?.playableMap?.size ?? 400;
     let shore: Point | undefined;
     for (let r = 1; r < size && !shore; r++)
@@ -8302,51 +8788,235 @@ export class Engine {
     if (p.perch) return undefined;
     const chore = (o: WorldObject) => /^(collect|roost|milk|fodder)$/.test(useOf(propDefs[o.prop ?? ""]?.family)?.use ?? "");
     const object = this.state.objects
-      .filter((o) => o.pos.space === p.pos.space && !o.carriedBy && !o.broken &&
-        Math.max(Math.abs(o.pos.x - p.pos.x), Math.abs(o.pos.y - p.pos.y)) <= 1 &&
-        (!!useOf(propDefs[o.prop ?? ""]?.family) || this.attendable(o)) && !this.workAt(o, true).length)
+      .filter((o) => {
+        if (o.pos.space !== p.pos.space || o.carriedBy || o.broken || o.depleted) return false;
+        const at = nearestCell(o, p.pos);
+        return Math.max(Math.abs(at.x - p.pos.x), Math.abs(at.y - p.pos.y)) <= 1 &&
+          (!!useOf(propDefs[o.prop ?? ""]?.family) || this.attendable(o)) && !this.workAt(o, true).length;
+      })
       // The stall or the nest box before the stool that stands beside it.
-      .sort((a, b) => +!chore(a) - +!chore(b) || distance(p.pos, a.pos) - distance(p.pos, b.pos))[0];
+      .sort((a, b) => +!chore(a) - +!chore(b) || distance(p.pos, nearestCell(a, p.pos)) - distance(p.pos, nearestCell(b, p.pos)))[0];
     const act = object && propDefs[object.prop!].act;
+    const actVerb = object && act ? roomPropVerb(object, propDefs[object.prop!], this.interiorOf(p.pos.space), this.world.pack.year) : undefined;
     // A prop's own act goes by the use key like any other use.
-    const use = object && (useOf(propDefs[object.prop!].family) ?? (act && { use: "attend" as const, verb: act.verb, pose: "work-tend" as const, minutes: act.minutes ?? 1, families: [] }));
+    const use = object && (useOf(propDefs[object.prop!].family) ?? (act && { use: "attend" as const, verb: actVerb!, pose: "work-tend" as const, minutes: act.minutes ?? 1, families: [] }));
     const label = use?.use === "attend" ? use.verb : use?.use === "roost"
       ? this.state.fauna?.find((g) => g.house === p.pos.space)?.shut ? "Let the hens out" : "Shut the hens in"
       : use && `${use.verb} the ${object.name.toLowerCase()}`;
-    return object && use && label ? { id: object.id, label, ...use } : undefined;
+    if (object && use && label) return { id: object.id, label, ...use };
+    if (p.pos.space !== "outside") {
+      const room = this.interiorOf(p.pos.space);
+      if (room) {
+        const moved = this.movedFurnishings(room, p.pos.space);
+        const seat = room.seats
+          .filter((s) => s.on && Math.max(Math.abs(s.x - p.pos.x), Math.abs(s.y - p.pos.y)) <= 1 && !moved.has(s.propId) && !this.actorAt({ ...p.pos, x: s.x, y: s.y }, "player"))
+          .sort((a, b) => Math.hypot(a.x - p.pos.x, a.y - p.pos.y) - Math.hypot(b.x - p.pos.x, b.y - p.pos.y))[0];
+        if (seat) {
+          const stage = room.props.some((q) => q.kind === "altar");
+          return {
+            id: `room-seat:${seat.x},${seat.y}`,
+            label: stage ? "Take a seat" : "Sit down",
+            use: "sit" as const,
+            verb: "Sit",
+            pose: seat.on === "floor" ? ("sit" as const) : ("sit-seat" as const),
+            minutes: 1,
+            families: [],
+          };
+        }
+      }
+    }
+    return undefined;
   }
   private attendable(o: WorldObject) {
     const act = propDefs[o.prop ?? ""]?.act;
     return !!act && !(act.once && o.open) && (this.state.player.inventory.coin ?? 0) >= (act.price ?? 0);
   }
-  /** Doing what a prop offers: a sign read, a fountain drunk from, a plate bought, a book signed. */
+  lastRoomSound?: "switch" | "radio" | "fire" | "shutter" | "drink" | "cat" | "rest" | "bird";
+  pendingInstrument?: { objectId: string; instrument: InstrumentId; name: string };
+  private roomPropSlots = new Map<string, number>();
+  private lieDown(o: WorldObject) {
+    const p = this.state.player, space = o.pos.space, room = this.interiorOf(space);
+    const idMatch = /-room-(\d+)$/.exec(o.id);
+    const propId = idMatch ? Number(idMatch[1]) : undefined;
+    const spots = room
+      ? (propId !== undefined ? room.beds.filter((b) => b.propId === propId) : room.beds)
+      : [];
+    const open = spots.find((b) => !this.actorAt({ x: b.x, y: b.y, space }, "player"));
+    const target = open ?? (!spots.length && !this.actorAt(o.pos, "player")
+      ? { x: o.pos.x, y: o.pos.y, facing: 2 as const, kind: "bed" as const, propId: propId ?? -1, on: "bed" as const }
+      : undefined);
+    if (!target) return "There is no room on the bed right now.";
+    const from = p.seated?.from ?? { x: p.pos.x, y: p.pos.y };
+    p.pos = { x: target.x, y: target.y, space };
+    p.direction = target.facing;
+    delete p.facing;
+    p.seated = { on: o.id, pose: "sit", from };
+    this.indoorUses.set("player", { ...target, role: "bed", space });
+    return o.prop === "room-mat"
+      ? "You stretch out on the sleeping mat to rest."
+      : `You lie down on the ${o.name.toLowerCase()} and pull up the covers.`;
+  }
+  private roomPropHost(): RoomPropHost {
+    return {
+      seed: this.state.manifest.seed,
+      clock: this.state.clock,
+      setting: this.world.pack.setting,
+      year: this.world.pack.year,
+      places: this.world.places,
+      objects: this.state.objects,
+      actors: this.state.actors,
+      playerPos: this.state.player.pos,
+      playerHouseholdId: this.state.player.householdId,
+      hasItem: (id) => !!this.item(id),
+      interiorOf: (space) => this.interiorOf(space),
+      blocked: (x, y, space) => this.blocked(x, y, space),
+      actorAt: (pos, ignore) => this.actorAt(pos, ignore),
+      moveActor: (a, pos) => this.moveActor(a, pos),
+      asleep: (a, space, label) => this.asleep(a, space, label),
+      mindsCounter: (a, space, label) => this.mindsCounter(a, space, label),
+      livesIn: (a, space) => this.household(a.householdId)?.residence === space,
+      rain: () => this.complex.rain(),
+      storm: () => {
+        const setting = this.world.pack.setting;
+        return weatherAt(skySeed(this.state.manifest), setting?.climate ?? "temperate", setting?.season ?? "spring", this.state.clock).storm;
+      },
+      say: (who, text) => this.signal({ kind: "say", who, text }),
+      lieDown: (o) => this.lieDown(o),
+      event: (text) => this.event(text),
+    };
+  }
+  /** Doing what a prop offers: a sign read, a fountain drunk from, a plate bought, a book signed, a find searched. */
   private propAct(o: WorldObject) {
     const act = propDefs[o.prop ?? ""]?.act, p = this.state.player;
     if (!act) return;
+    if (act.room) {
+      const res = performRoomAct(this.roomPropHost(), o, act);
+      if (res.openInstrument) {
+        this.pendingInstrument = { objectId: o.id, instrument: res.openInstrument, name: o.name };
+        return;
+      }
+      if (res.sound) this.lastRoomSound = res.sound;
+      if (res.water) p.inventory.water = Math.max(p.inventory.water ?? 0, this.carriesMade("vessel") ? 4 : 2);
+      if (res.rest) p.fatigue = Math.max(0, p.fatigue - res.rest);
+      this.advance(res.seconds);
+      this.event(res.text);
+      return;
+    }
     if ((p.inventory.coin ?? 0) < (act.price ?? 0)) return void this.event("You don't have the money.");
     if (act.price) p.inventory.coin = (p.inventory.coin ?? 0) - act.price;
+    const first = !o.open;
     const got: string[] = [];
-    if (!(act.once && o.open)) for (const [item, n] of Object.entries(act.gives ?? {})) {
-      if (!n) continue;
-      p.inventory[item] = (p.inventory[item] ?? 0) + n;
-      got.push(`${n} ${this.item(item)?.name.toLowerCase() ?? item}`);
+    const gained: Inventory = {};
+    const loot = act.price ? act.gives : first ? (Object.keys(o.inventory).length ? o.inventory : act.gives) : undefined;
+    if (loot) {
+      for (const [item, n] of Object.entries(loot)) {
+        if (!n) continue;
+        p.inventory[item] = (p.inventory[item] ?? 0) + n;
+        gained[item] = (gained[item] ?? 0) + n;
+        got.push(`${n} ${this.item(item)?.name.toLowerCase() ?? item}`);
+      }
+      if (!act.price && Object.keys(o.inventory).length) o.inventory = {};
+    }
+    if (first && act.fuel) {
+      const run = this.state.complex;
+      if (run && "left" in run && "light" in run) {
+        const add = run.kind === "cave" ? (run.left > 0 ? act.fuel * 3 : 0) : act.fuel;
+        if (add > 0) {
+          run.left = Math.min(caveLight(run.light).burns * 1.5, run.left + add);
+          run.low = false;
+        }
+      }
     }
     if (act.water) p.inventory.water = Math.max(p.inventory.water ?? 0, this.carriesMade("vessel") ? 4 : 2);
     if (act.rest) p.fatigue = Math.max(0, p.fatigue - act.rest);
     if (act.heal) p.health = Math.min(100, (p.health ?? 100) + act.heal);
     o.open = true;
-    this.advance((act.minutes ?? 1) * 60);
+    if (act.vanishes) o.depleted = true;
+    this.advance(act.seconds ?? (act.minutes ?? 1) * 60);
+    if (first && Object.keys(gained).length && this.state.complex) {
+      this.state.complex.took = { at: { x: o.pos.x, y: o.pos.y }, items: gained, clock: this.state.clock };
+      if (this.state.complex.kind === "cave" && o.prop?.startsWith("cave-")) {
+        folkRobbed(this.complex.folk, o.pos.space, o.prop.slice(5));
+      }
+    }
     this.event(`${act.text ?? o.description ?? `${o.name}.`}${got.length ? ` You take ${got.join(", ")}.` : ""}`, act.told ?? "action");
+  }
+  /** Records the outcome after the player finishes playing an indoor instrument panel. */
+  finishInstrument(objectId: string, instrument: InstrumentId, notesPlayed: number, completedTune?: string) {
+    const o = this.object(objectId);
+    const p = this.state.player;
+    if (o && o.prop !== "room-piano" && !o.id.includes("speakeasy")) o.open = false;
+    else if (o) {
+      const room = this.interiorOf(o.pos.space);
+      const idMatch = /-room-(\d+)$/.exec(o.id);
+      const prop = idMatch ? room?.props[Number(idMatch[1])] : undefined;
+      if (prop?.item !== "backroom:speakeasy-piano") o.open = false;
+    }
+    if (notesPlayed < 3) return;
+    const label = instrument === "lute" ? "lute" : instrument === "guitar" ? "guitar" : "piano";
+    p.fatigue = Math.max(0, p.fatigue - (completedTune ? 5 : 3));
+    this.advance(completedTune ? 300 : 120);
+    this.event(
+      completedTune
+        ? `You play "${completedTune}" on the ${label}. The last notes linger warmly through the room.`
+        : `You spend a few minutes picking out melodies on the ${label}.`,
+    );
+    const listener = this.state.actors.find(
+      (a) => a.kind === "human" && !a.dead && a.pos.space === p.pos.space && !this.asleep(a, p.pos.space, a.activity),
+    );
+    if (listener && (completedTune || notesPlayed >= 8)) {
+      listener.direction = this.directionTo(listener.pos, p.pos);
+      this.signal({
+        kind: "say",
+        who: listener.id,
+        text: completedTune ? "Lovely playing! That tune suits this room." : "Nice to hear music in here.",
+      });
+    }
   }
   private standUp() {
     const p = this.state.player, door = p.seated?.door && this.state.objects.find((o) => o.id === p.seated!.on);
     if (door) door.open = false;
+    if (p.seated?.from) {
+      p.pos = { ...p.pos, x: p.seated.from.x, y: p.seated.from.y };
+      this.indoorUses.delete("player");
+    }
     delete p.seated;
   }
   private useProp() {
     const u = this.usable();
     if (!u) return;
     const p = this.state.player;
+    if (u.id.startsWith("room-seat:")) {
+      const [sx, sy] = u.id.slice(10).split(",").map(Number);
+      const room = this.interiorOf(p.pos.space);
+      const seat = room?.seats.find((s) => s.x === sx && s.y === sy && s.on);
+      if (!room || !seat) return;
+      const from = { x: p.pos.x, y: p.pos.y };
+      this.advance(u.minutes * 60);
+      p.pos = { ...p.pos, x: seat.x, y: seat.y };
+      p.direction = seat.facing;
+      delete p.facing;
+      p.fatigue = Math.max(0, p.fatigue - 8);
+      p.seated = { on: u.id, pose: u.pose === "sit" ? "sit" : "sit-seat", from };
+      this.indoorUses.set("player", { ...seat, role: "seat", space: p.pos.space });
+      const seatRoom = roomAt(room, seat.x, seat.y);
+      const ri = seatRoom ? room.rooms.indexOf(seatRoom) : -1;
+      const film = ri >= 0 ? room.films?.[ri] : undefined;
+      const altar = room.props.find((q) => q.kind === "altar");
+      const style = altar ? room.plan.rooms[altar.room ?? 0]?.styles.altar : undefined;
+      this.event(
+        film
+          ? `You settle into a plush seat. Now playing: "${film.title}" (${billingOf(film)}).`
+          : room.play
+            ? `You settle into a plush seat facing the stage. On stage: "${room.play.title}" (${billingOf(room.play)}).`
+            : style?.startsWith("stage-cinema")
+              ? "You settle into a plush seat facing the screen."
+              : style?.startsWith("stage-")
+                ? "You settle into a plush seat facing the stage."
+                : "You take a seat.",
+      );
+      return;
+    }
     const used = this.state.objects.find((o) => o.id === u.id)!;
     if (u.use === "attend") return void this.propAct(used);
     if (propDefs[used.prop ?? ""]?.fire) used.fired = this.state.clock;
@@ -8424,11 +9094,40 @@ export class Engine {
         this.event(`You ${u.verb.toLowerCase().replace(/ (at|on)$/, "")} the ${name} a while.`);
     }
   }
+  private vehicleAt(x: number, y: number): WorldObject | undefined {
+    for (const o of this.state.objects) {
+      if (o.pos.space !== "outside") continue;
+      if (o.motor) {
+        if (
+          Math.abs(o.pos.x - x) <= 4 &&
+          Math.abs(o.pos.y - y) <= 4 &&
+          motorBody(o.pos, o.motor).some((c) => c.x === x && c.y === y)
+        )
+          return o;
+      } else if (o.car?.rect) {
+        const r = o.car.rect;
+        if (x >= r[0] && x <= r[2] && y >= r[1] && y <= r[3]) return o;
+      }
+    }
+    return undefined;
+  }
+  private boundaryLabel(x: number, y: number): string | undefined {
+    if (!this.world.topography) return undefined;
+    const field = (cx: number, cy: number) => this.world.topography!(cx, cy)?.field;
+    const tier = (cx: number, cy: number) => this.world.topography!(cx, cy)?.height;
+    const node = [...boundaryGraph(field, x, y, x + 1, y + 1, tier).values()].find(
+      (n) => n.cx === x && n.cy === y && n.links !== 0,
+    );
+    if (!node) return undefined;
+    if (node.kind === "hedge" || node.kind === "thorn") return "the hedge";
+    if (["fence", "wire", "wattle", "paling", "picket", "palisade", "bamboo", "reed"].includes(node.kind)) return "the fence";
+    return "the wall";
+  }
   climbable():
     | { id: string; label: string; rise: number; at: Point; to?: Point; drop?: number; roof?: boolean; by?: "ladder" | "stairs" }
     | undefined {
     const p = this.state.player;
-    if (p.perch || this.onWall()) return undefined;
+    if (p.perch || this.onWall() || p.drivingVehicle) return undefined;
     const near = (q: Point) =>
       Math.max(Math.abs(q.x - p.pos.x), Math.abs(q.y - p.pos.y)) <= 1;
     const object = this.state.objects
@@ -8449,7 +9148,7 @@ export class Engine {
     if (object)
       return {
         id: object.id,
-        label: object.name,
+        label: `the ${object.name.toLowerCase()}`,
         rise: 12,
         drop: 0.75,
         at: { x: object.pos.x, y: object.pos.y },
@@ -8478,11 +9177,19 @@ export class Engine {
             at: q,
           };
       }
-      // A blocked cell with nothing growing on it is masonry: a house wall or
-      // a town wall. Either is a scramble to the top rather than a way through.
       for (const q of ring) {
-        if (!this.world.blocked(q.x, q.y, "outside")) continue;
+        const vehicle = this.vehicleAt(q.x, q.y);
+        if (vehicle)
+          return {
+            id: vehicle.id,
+            label: `the ${vehicle.name.toLowerCase()}`,
+            rise: 14,
+            drop: 1,
+            at: q,
+          };
+        if (!this.world.blocked(q.x, q.y, "outside") || this.carGone(q.x, q.y)) continue;
         if (this.world.decoration(q.x, q.y)?.solid || this.offMap(q.x, q.y)) continue;
+        if (this.world.terrain(q.x, q.y) === "water") continue;
         const place = (this.world.places ?? []).find(
           (r) => q.x >= r.x && q.x < r.x + r.w && q.y >= r.y && q.y < r.y + r.h,
         );
@@ -8493,10 +9200,55 @@ export class Engine {
         if (this.wallAt(q.x, q.y, "outside"))
           return {
             id: `wall:${q.x},${q.y}`,
-            label: "the wall",
+            label: this.walls().fences.has(`${q.x},${q.y}`) ? "the fence" : "the wall",
             rise: 20,
             at: q,
             to: q,
+          };
+        const obj = this.state.objects.find(
+          (o) => !o.carriedBy && !o.broken && o.pos.space === "outside" && covers(o, q.x, q.y),
+        );
+        if (obj) {
+          if (obj.kind === "tree")
+            return {
+              id: obj.id,
+              label: /^(nature|ecology)-/.test(obj.sprite) ? treeName(obj.sprite) : `the ${obj.name.toLowerCase()}`,
+              rise: 24,
+              drop: plantClass(obj.sprite) === "large" ? 5 : plantClass(obj.sprite) === "small" ? 2 : 3,
+              at: q,
+            };
+          if (obj.prop || UNCLIMBABLE_OBJECT.test(obj.name)) continue;
+          return {
+            id: obj.id,
+            label: `the ${obj.name.toLowerCase()}`,
+            rise: 14,
+            drop: 1,
+            at: q,
+          };
+        }
+        // Wide street/park furniture (e.g. a 3-cell bench or stall) marks cells
+        // beside its centre in plan.solid without setting `size`.
+        const wide = this.state.objects.find(
+          (o) => !o.carriedBy && !o.broken && o.pos.space === "outside" && o.pos.y === q.y && Math.abs(o.pos.x - q.x) <= 1,
+        );
+        if (wide) {
+          if (wide.prop || wide.kind === "tree" || UNCLIMBABLE_OBJECT.test(wide.name)) continue;
+          return {
+            id: wide.id,
+            label: `the ${wide.name.toLowerCase()}`,
+            rise: 14,
+            drop: 1,
+            at: q,
+          };
+        }
+        const boundary = this.boundaryLabel(q.x, q.y);
+        if (boundary)
+          return {
+            id: `wall:${q.x},${q.y}`,
+            label: boundary,
+            rise: 16,
+            drop: 1,
+            at: q,
           };
         return {
           id: `wall:${q.x},${q.y}`,
@@ -8554,18 +9306,33 @@ export class Engine {
         !!propDefs[o.prop]?.solid &&
         !lowProp(o),
     );
-    if (object) return { label: object.name };
+    if (object) return { label: `the ${object.name.toLowerCase()}` };
     if (p.pos.space !== "outside") return undefined;
     const plant = this.world.decoration(q.x, q.y);
     if (plant?.solid)
       return plant.sprite === "rock"
         ? undefined
         : { label: treeName(plant.sprite) };
-    if (!this.world.blocked(q.x, q.y, "outside") || this.offMap(q.x, q.y)) return undefined;
+    const vehicle = this.vehicleAt(q.x, q.y);
+    if (vehicle) return { label: `the ${vehicle.name.toLowerCase()}` };
+    if (!this.world.blocked(q.x, q.y, "outside") || this.carGone(q.x, q.y) || this.offMap(q.x, q.y)) return undefined;
+    if (this.world.terrain(q.x, q.y) === "water") return undefined;
     const place = (this.world.places ?? []).find(
       (r) => q.x >= r.x && q.x < r.x + r.w && q.y >= r.y && q.y < r.y + r.h,
     );
-    return { label: place?.name ?? "the wall" };
+    if (place) return { label: place.name };
+    const obj = this.state.objects.find(
+      (o) => !o.carriedBy && !o.broken && o.pos.space === "outside" && covers(o, q.x, q.y),
+    );
+    if (obj)
+      return {
+        label: obj.kind === "tree" && /^(nature|ecology)-/.test(obj.sprite)
+          ? treeName(obj.sprite)
+          : `the ${obj.name.toLowerCase()}`,
+      };
+    if (this.wallAt(q.x, q.y, "outside"))
+      return { label: this.walls().fences.has(`${q.x},${q.y}`) ? "the fence" : "the wall" };
+    return { label: this.boundaryLabel(q.x, q.y) ?? "the wall" };
   }
   /** Shared by the C key, the affordance and the narrator's climb intent. */
   perch(target: {
@@ -8701,7 +9468,9 @@ export class Engine {
       const off = p.perch?.roof ? "a roof" : label;
       const height = p.perch?.rise ?? 1;
       const from = { ...p.pos, ...(p.perch?.at ?? {}) };
-      const drop = p.perch?.drop ?? (p.perch ? 2 : 1.5);
+      const walk = this.walkAt(from.x, from.y);
+      // A town wall is two storeys or so and a tower a storey more; a field wall is a hop.
+      const drop = p.perch?.drop ?? (p.perch ? 2 : walk?.kind === "tower" ? 3.5 : walk && !walk.low ? 2.5 : 1.5);
       p.perch = undefined;
       p.pos = { ...jump, space: p.pos.space };
       p.direction = dir.dy < 0 ? 0 : dir.dx > 0 ? 1 : dir.dy > 0 ? 2 : 3;
@@ -9117,6 +9886,7 @@ export class Engine {
       if (
         !o.carriedBy &&
         !o.submerged &&
+        !o.depleted &&
         o.pos.space === p.space &&
         d(o.pos.x, o.pos.y) <= radius &&
         this.visible(o.pos)
@@ -9338,16 +10108,17 @@ export class Engine {
     }
     const actor = this.state.actors.find((a) => a.id === id);
     const object = this.state.objects.find((o) => o.id === id);
+    if (object?.depleted && propDefs[object.prop ?? ""]?.act?.vanishes) return;
     const place = this.world.place(id);
     const mounted = actor?.mount && this.world.vehicle?.(actor.mount.vehicle);
     const onCart = mounted && mounted.team && !mounted.rowLength ? vehicleAt(mounted, this.cartClock(mounted.id, this.state.clock)) : undefined;
     const crew = onCart && (mounted && mounted.crew[0] === id && this.state.player.drivingCart?.vehicle === mounted.id ? besideTeam(onCart) : onCart);
     const pos =
       (crew ? { x: crew.x, y: crew.y, space: "outside" } : undefined) ?? actor?.pos ??
-      object?.pos ??
+      (object?.carriedBy === "player" ? this.state.player.pos : object?.pos) ??
       (place ? { ...place.entrance, space: "outside" } : undefined);
     if (!pos || (!place && !this.visible(pos))) return;
-    const close = distance(this.state.player.pos, pos) <= 2.5;
+    const close = distance(this.state.player.pos, object?.size ? nearestCell(object, this.state.player.pos) : pos) <= 2.5;
     const affordances: Affordance[] = [];
     const add = (
       label: string,
@@ -9524,9 +10295,11 @@ export class Engine {
         description: [
           object.broken
             ? "Broken remains; spilled contents can be recovered."
-            : (about[object.prop] ??
-              object.description ??
-              (def?.drink ? "A place to get water." : def?.name ?? "")),
+            : object.open && def?.act?.clears && !object.depleted
+              ? "You have already been through this."
+              : (object.description ??
+                about[object.prop] ??
+                (def?.drink ? "A place to get water." : def?.name ?? "")),
           !object.broken && def?.container
             ? object.open
               ? "It is open."
@@ -9536,6 +10309,23 @@ export class Engine {
           object.prop==="grainHoist" ? `The warehouse holds ${object.inventory.grain??0} sacks of grain and ${object.inventory.pepper??0} measures of pepper.` : "",
           object.shopSupply ? `${object.inventory[object.shopSupply.item]??0} ${object.shopSupply.item==="bread" ? "loaves" : "measures of pepper"} on the counter. The shop opens from six in the morning to six in the evening.` : "",
           object.prop==="clothCounter" ? `Tied bales: ${object.inventory.cloth??0}. Bolts on sale: ${object.inventory["cloth-bolt"]??0}. Open from six in the morning to six in the evening.` : "",
+          !object.broken && def?.act?.room === "radio"
+            ? (object.open ? "It is playing." : "It is switched off.")
+            : !object.broken && def?.act?.room === "light"
+              ? (object.open ? "It is lit." : "It is out.")
+              : !object.broken && def?.act?.room === "fire"
+                ? (object.open ? "A fire burns inside." : "The ashes are banked cold.")
+                : !object.broken && def?.act?.room === "window" && hasShutters(this.interiorOf(object.pos.space))
+                  ? (object.open ? "The shutters stand open." : "The shutters are closed.")
+                  : !object.broken && def?.act?.room === "wheel" && object.open
+                    ? "The wheel is spinning."
+                    : !object.broken && def?.act?.room === "cat"
+                      ? (object.open ? "It is awake, watching the room." : "It is curled up asleep.")
+                      : !object.broken && def?.act?.room === "terrarium"
+                        ? (object.open ? "Its brass heat lamp is switched on, warming a small basking frog." : "Its heat lamp is switched off.")
+                        : !object.broken && def?.act?.room === "birdcage"
+                          ? (object.open ? "The songbird is chirping cheerfully on its perch." : "The songbird hops quietly along its perch.")
+                          : "",
           object.carriedBy ? "You are holding it." : "",
           object.prop === "graveMound" && !object.broken ? this.graveLine(object) : "",
           this.belongsTo(object.owner),
@@ -9544,7 +10334,7 @@ export class Engine {
           .join(" "),
         affordances: [
           ...affordances.filter(a => a.command.type === "interact" && a.command.action === "use-prop" && use?.use !== "attend"),
-          ...propAffordances(this.state, object, close),
+          ...propAffordances(this.state, object, close, def?.act ? roomPropVerb(object, def, this.interiorOf(object.pos.space), this.world.pack.year) : undefined),
           ...this.workAt(object, close),
           ...(this.state.households?.some(
             (h) => h.storeId === object.id && h.members.includes("player"),
@@ -9637,6 +10427,7 @@ export class Engine {
     if (object.kind === "fire")
       interact("rest", "Warm yourself for 20 minutes");
     if (object.kind === "bed") {
+      interact("attend", "Lie down");
       interact("rest", "Rest for 20 minutes");
       interact("sleep", "Sleep until morning");
     }
@@ -9731,6 +10522,7 @@ export class Engine {
     }
   }
   private *actionSteps(request: CommandRequest): Generator<void, CommandResult> {
+    this.lastRoomSound = undefined;
     // A bad leg turns a run into a walk rather than refusing it, so autopilot keeps going.
     const c = request.command;
     if (c.type === "move" && c.run && !this.state.player.riding && !this.gait().run) request = { ...request, command: { ...c, run: false } };
@@ -10237,12 +11029,24 @@ export class Engine {
     const merchant = c.type==="deal" && this.state.actors.find(a=>a.id===c.target);
     const counter = merchant && merchant.stockroom && this.object(merchant.stockroom);
     const atCounter = counter && distance(p.pos,counter.pos)<=2.5;
-    if (launch ? !this.atBoat(launch) : !atCounter && distance(p.pos, target.pos) > 2.5) return "Move closer first.";
+    const objTarget = c.type === "interact" ? this.object(c.target) : undefined;
+    const targetPos = objTarget?.size ? nearestCell(objTarget, p.pos) : target.pos;
+    if (launch ? !this.atBoat(launch) : !atCounter && distance(p.pos, targetPos) > 2.5) return "Move closer first.";
     if (c.type === "give") {
       const a = this.state.actors.find((a) => a.id === c.target);
       if (!a || a.dead || a.kind !== "human") return "There is nobody there to take it.";
       if (p.heldItem !== c.item) return "You are not holding that.";
       return undefined;
+    }
+    if (c.type === "order") {
+      const served = this.menuOf(c.target);
+      if (!served) return "Nobody is serving here.";
+      if (served.actor.trust < 0) return "They will not serve you.";
+      if (distance(served.actor.pos, p.pos) > 3) return "Walk up to the counter to order.";
+      const dishes = c.dishes.map((n) => served.menu.dishes.find((d) => d.name === n));
+      if (dishes.some((d) => !d)) return "That is not on the menu.";
+      if ((p.inventory.coin ?? 0) < coinsFor(served.menu, dishes as Dish[])) return "You cannot pay for that.";
+      return;
     }
     if (c.type === "deal") {
       const shop = this.shopOf(c.target, true);
@@ -12858,7 +13662,10 @@ export class Engine {
         if (c.action === "pickup") {
           this.emptyHands();
           delete prop.projectile;
+          delete prop.tipped;
+          delete prop.lean;
           prop.carriedBy = "player";
+          if (prop.prop === "room-radio") prop.open = false;
           // Lifted off a table, it is no longer drawn standing on one.
           prop.sprite = prop.sprite.replace(/@\d+$/, "");
           p.held = prop.id;
@@ -12875,18 +13682,32 @@ export class Engine {
           delete p.held;
           this.event(`You put down ${prop.name.toLowerCase()}.`);
         } else if (c.action === "look") {
-          prop.open = true;
-          const contents = Object.entries(prop.inventory)
-            .filter(([, n]) => n! > 0)
-            .map(
-              ([id, n]) =>
-                `${n} ${this.items[id as ItemId].name.toLowerCase()}`,
+          if (
+            (def.act?.room === "radio" && prop.open) ||
+            (def.act?.room === "fire" && prop.open) ||
+            def.act?.room === "window"
+          ) {
+            const res = performRoomAct(this.roomPropHost(), prop, def.act, true);
+            if (res.sound) this.lastRoomSound = res.sound;
+            if (res.rest) p.fatigue = Math.max(0, p.fatigue - res.rest);
+            this.advance(res.seconds);
+            this.event(res.text);
+          } else {
+            prop.open = true;
+            if (prop.prop === "room-icebox" || prop.prop === "room-dresser" || prop.prop === "room-chest")
+              reactRoomProp(this.roomPropHost(), prop, "rummage");
+            const contents = Object.entries(prop.inventory)
+              .filter(([, n]) => n! > 0)
+              .map(
+                ([id, n]) =>
+                  `${n} ${this.items[id as ItemId].name.toLowerCase()}`,
+              );
+            this.event(
+              contents.length
+                ? `Inside ${prop.name.toLowerCase()}: ${contents.join(", ")}.`
+                : `${prop.name} is empty.`,
             );
-          this.event(
-            contents.length
-              ? `Inside ${prop.name.toLowerCase()}: ${contents.join(", ")}.`
-              : `${prop.name} is empty.`,
-          );
+          }
         } else if (c.action === "open") {
           prop.open = true;
           this.event(`You open the door of the ${prop.name.toLowerCase()}.`);
@@ -12935,6 +13756,24 @@ export class Engine {
     const a = this.state.actors.find((a) => a.id === c.target),
       o = this.state.objects.find((o) => o.id === c.target),
       b = this.world.place(c.target);
+    if (c.type === "order" && a) {
+      const { menu } = this.menuOf(a.id)!, dishes = c.dishes.map((n) => menu.dishes.find((d) => d.name === n)!);
+      const coins = coinsFor(menu, dishes), shop = this.shopOf(a.id, true);
+      p.inventory.coin = (p.inventory.coin ?? 0) - coins;
+      if (shop && !a.stockroom) a.shop = { day: shop.day, stock: { ...shop.held }, purse: shop.purse + coins, opening: shop.opening };
+      for (const d of dishes) {
+        p.hunger = Math.max(0, p.hunger - (d.fills ?? 0));
+        p.fatigue = Math.max(0, p.fatigue - (d.wakes ?? 0));
+      }
+      this.faceEachOther(a);
+      this.cue(a.id, "take-coin", p.pos);
+      this.advance(Math.min(30, 5 * dishes.length) * 60, a.id);
+      this.regard(a, 1);
+      const names = dishes.map((d) => d.name.toLowerCase()), list = names.length > 1 ? `${names.slice(0, -1).join(", ")} and ${names.at(-1)}` : names[0];
+      const paid = this.world.pack.setting ? amountIn(this.world.pack.setting, coins, this.coined()) : `${coins} coins`;
+      this.event(`${a.name} serves you ${list}. You pay ${paid}${dishes.some((d) => d.strong) ? " and feel the drink" : ""}.`, "social");
+      return;
+    }
     if (c.type === "deal" && a) {
       const shop = this.shopOf(a.id, true)!;
       const stock = { ...shop.held };
@@ -13311,7 +14150,13 @@ export class Engine {
         break;
       case "attend": {
         const at = this.state.objects.find((o) => o.id === c.target);
-        if (at) this.propAct(at);
+        if (at && at.kind === "bed" && !at.prop) {
+          const msg = this.lieDown(at);
+          p.fatigue = Math.max(0, p.fatigue - 10);
+          this.lastRoomSound = "rest";
+          this.advance(60);
+          this.event(msg);
+        } else if (at) this.propAct(at);
         break;
       }
       case "drink":
@@ -13467,6 +14312,10 @@ export class Engine {
       }
       case "cook":
         if (o) {
+          if (o.prop && propDefs[o.prop]?.act?.room === "fire" && !o.open) {
+            this.event("Kindle the fire first.");
+            break;
+          }
           const raw = Math.min(4, p.inventory.meat ?? 0);
           if (!raw) break;
           p.inventory.meat = (p.inventory.meat ?? 0) - raw;
@@ -14576,23 +15425,41 @@ export class Engine {
     return list;
   }
   private tradersAt?: { minute: number; count: number; list: { actor: Actor; at: Point; door?: string; merchant: boolean }[] };
-  /** Who minds the counter of a house kept as a shop: whoever's trade is on
-   * the door if they are in, else the household's first grown member who is.
-   * Nobody else stands behind it. */
   shopKeeper(space: string, placing?: Actor) {
     const room = this.interiorOf(space);
-    if (room?.params.program !== "shop" || room.institution) return undefined;
-    const place = this.world.place(parseFloor(space).place), h = this.state.households?.find((g) => g.residence === space);
+    if ((room?.params.program !== "shop" && room?.params.program !== "serve") || room.institution) return undefined;
+    const place = this.world.place(parseFloor(space).place);
+    const h = this.state.households?.find(g => g.residence === space && g.members.includes(place?.owner ?? ""));
     const ids = [...new Set([place?.owner, ...(h?.members ?? [])])];
     const grown = ids.map((id) => id === "player" ? this.state.player : this.actorsById?.get(id!) ?? this.state.actors.find((a) => a.id === id))
       .filter((a): a is Actor => !!a && !a.dead && a.kind === "human" && (a.age ?? 30) >= 14);
     const awake = (a: Actor) => (a === placing || a.pos.space === space) && !/sleep|^resting/i.test(a.activity) && !this.laidUp(a.id);
-    return (grown.find(awake) ?? grown[0])?.id;
+    const present = grown.filter(awake);
+    return (present.find(a => a.id === place?.owner) ??
+      present.find(a => a.relations?.some(r => r.other === place?.owner && r.kind === "master" && r.reciprocal === "apprentice")) ??
+      present[0] ?? grown[0])?.id;
+  }
+  /** The menu of the house `id` is serving in now, if they keep its bar or wait on its tables. */
+  menuOf(id: string) {
+    const a = this.state.actors.find((a) => a.id === id && a.kind === "human" && !a.dead), setting = this.world.pack.setting;
+    if (!a || !setting || a.pos.space === "outside") return undefined;
+    const room = this.interiorOf(a.pos.space), bar = room?.params.styles.bar ?? served({ id: "pub" }, setting)[0];
+    if (room?.params.program !== "serve" || (a.staff !== a.pos.space && this.shopKeeper(a.pos.space) !== a.id)) return undefined;
+    if (!this.counterOpen(a.pos.space, this.state.clock / 3600 % 24) || /sleep|^resting/i.test(a.activity)) return undefined;
+    const menu = menuFor(setting, bar);
+    return menu && { actor: a, menu };
   }
   /** Whether someone should be behind their shop's counter now. */
   private mindsCounter(a: Actor, space: string, label: string) {
     const hour = this.state.clock / 3600 % 24;
-    return hour >= 8 && hour < 18 && !/sleep|^resting|\bbed\b/i.test(label) && this.shopKeeper(space, a) === a.id;
+    if (this.world.place(space)?.owner === a.id && this.interiorOf(space)?.craft.length && label.toLowerCase() === livelihoodOf(this.world.pack,a)?.activity.toLowerCase()) return false;
+    return this.counterOpen(space, hour) && !/sleep|^resting|\bbed\b/i.test(label) && this.shopKeeper(space, a) === a.id;
+  }
+  /** A shop's counter is kept 08:00 to 18:00; a serving room's while its regulars come in. */
+  private counterOpen(space: string, hour: number) {
+    const room = this.interiorOf(space);
+    const [from, to] = room?.params.program === "serve" ? room.regulars?.hours ?? [11, 23] : [8, 18];
+    return from <= to ? hour >= from && hour < to : hour >= from || hour < to;
   }
   /** Whether someone indoors should be in bed now: told to sleep, or it is
    * night and this is their home or nobody's place of business. */
@@ -14606,12 +15473,13 @@ export class Engine {
    * night, or at a counter the shop has shut. */
   private misplaced(a: Actor, space: string, label: string) {
     const use = this.indoorUses.get(a.id);
-    return (use?.kind === "shopcounter") !== this.mindsCounter(a, space, label) || (use?.role === "bed") !== this.asleep(a, space, label);
+    return (use?.kind === "shopcounter" || use?.kind === "bar") !== this.mindsCounter(a, space, label) || (use?.role === "bed") !== this.asleep(a, space, label);
   }
   /** What the shop someone is keeping right now sells. */
   private counterGoods(a: Actor) {
     if (a.pos.space === "outside" || this.shopKeeper(a.pos.space) !== a.id) return undefined;
-    const stock = this.interiorOf(a.pos.space)!.params.styles.stock;
+    const room = this.interiorOf(a.pos.space)!;
+    const stock = room.shopKind ?? room.params.styles.stock ?? (room.params.program === "serve" ? "pub" : undefined);
     return shopKinds.find((k) => k.id === stock)?.goods;
   }
   /** Open for trade now: at the stall, or by day in a workshop at home,
@@ -14619,10 +15487,7 @@ export class Engine {
   private sellsNow(a: Actor) {
     if(a.staff && this.interiorOf(a.staff)?.institution==="exchange")return false;
     if (a.dead || /sleep|^resting/i.test(a.activity)) return false;
-    if (this.counterGoods(a)) {
-      const hour = this.state.clock / 3600 % 24;
-      return hour >= 8 && hour < 18;
-    }
+    if (this.counterGoods(a)) return this.counterOpen(a.pos.space, this.state.clock / 3600 % 24);
     if (!sellsTrade(this.world.pack, a)) return false;
     if (a.stockroom) {
       const store = this.object(a.stockroom), hour = this.state.clock / 3600 % 24;
@@ -16423,10 +17288,12 @@ export class Engine {
     const label = classrooms ? "At school" : `At ${(floor?.name ?? place.name).replace(/^The /, "the ")}`;
     // Where people stand, as in a medieval nave or a playhouse pit, the floor sets the count.
     const places = Math.max(room.seats.length, Math.floor(room.walk.size / 6));
-    const capacity = classrooms ? room.seats.filter(s => s.kind === "pew").length : places;
+    const pewCount = room.seats.filter((s) => s.kind === "pew").length;
+    const capacity = classrooms || (room.staff?.length && pewCount > 0) ? pewCount : places;
     const tradition = rite?.tradition;
     const attends = (a:Actor) => !!tradition && !!beliefsForActor(this.world.pack.setting,a).worship?.includes(tradition);
-    const count = Math.round(capacity * room.regulars.fill * (service?.fill ?? 1));
+    const rawCount = Math.round(capacity * room.regulars.fill * (service?.fill ?? 1));
+    const count = room.staff?.length && pewCount > 8 ? Math.min(rawCount, Math.max(0, pewCount - 8)) : rawCount;
     let visitors = near.slice(0, count);
     if (tradition && service?.peak) {
       const peers = sanctuaryAt(place) ? this.world.places.filter(p => (p.worshipSchool ?? sanctuaryAt(p)?.faith) === tradition) : [];
@@ -16862,12 +17729,14 @@ export class Engine {
       }
       complexTime(this.complex, elapsed);
       this.indoorStaff();
+      this.tickPerformance();
       if (this.state.voyage) shipTime(this.ships);
       diseaseTime(this.state, elapsed, next - elapsed);
       if (this.state.baby) this.babyStep(this.state.baby, elapsed, seconds > 240);
       this.fireExposure(elapsed, next - elapsed);
       this.lightningExposure(elapsed, next - elapsed);
       this.hailExposure(next - elapsed);
+      this.trainExposure(next - elapsed, next);
       if (player.dead) break;
       player.hunger = Math.min(100, player.hunger + elapsed / 1800);
       const day = Math.floor(next / 86400);
@@ -17278,6 +18147,10 @@ export class Engine {
     this.resourceObjects = undefined;
     if (this.world.pack.setting && seasonAt(this.world.pack.setting.season, this.state.clock) !== this.objectSeason)
       this.syncSeason();
+    if (player.pos.space !== "outside") {
+      const room = this.interiorOf(player.pos.space);
+      if (room) tickRoomProps(this.roomPropHost(), player.pos.space, room, this.roomPropSlots);
+    }
     const fallen = this.pendingCollapse;
     if (fallen) {
       this.pendingCollapse = undefined;

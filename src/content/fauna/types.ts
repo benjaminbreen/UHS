@@ -83,6 +83,9 @@ export type FaunaProfile = {
   young?: { id: string; chance: number };
   /** Cells per six-second step at a walk; a person walks one. */
   pace: number;
+  /** Cells per step flat out, fresh and hard pressed; a person running does
+   * six, and nine is the most anything covers. Absent is five times `pace`. */
+  sprint?: number;
   /** Keeps to the nearest grazing herd and feeds on what its feet put up. */
   followsHerds?: boolean;
   /** Terrace steps it goes up at a bound. Absent is one, the bank a person

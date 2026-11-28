@@ -133,7 +133,8 @@ export function DialogueModal({ runtime, actorId, situation, said, look, onClose
   const [explaining, setExplaining] = useState(false);
   const explainAbort = useRef<AbortController>(null);
   const [left, setLeft] = useState(false);
-  const [trading, setTrading] = useState(false);
+  // Someone keeping a counter is there to sell: no need to talk them round first.
+  const [trading, setTrading] = useState(() => runtime.engine.traders().some((t) => t.actor.id === actorId && t.actor.pos.space !== "outside" && runtime.engine.shopKeeper(t.actor.pos.space) === actorId));
   const [giftNotice, setGiftNotice] = useState<string | null>(null);
   const [speaking, setSpeaking] = useState(false);
   // The face the NPC wears. The model names it with the line; failing that,

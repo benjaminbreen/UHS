@@ -160,6 +160,7 @@ export const dangerousFauna: FaunaProfile[] = [
     ],
     density: 0.1,
     pace: 0.9,
+    sprint: 5.5,
     swims: true,
     leaps: 0,
     wallows: true,

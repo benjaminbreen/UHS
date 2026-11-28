@@ -1,6 +1,8 @@
 import { expect, it, vi } from "vitest";
 import { Engine } from "../src/core/engine";
 import { createSession, Runtime } from "../src/runtime/session";
+import { stageEntranceSurvey } from "../src/runtime/terrain-worker-owner";
+import type { SettlementWorld } from "../src/world/v3/generate";
 import { MapTravel, journeyPlan } from "../src/runtime/map-travel";
 import * as device from "../src/runtime/device";
 import { settingFor } from "../src/content/geography/resolve";
@@ -64,6 +66,26 @@ function fixture() {
   const runtime = new Runtime(make(a), { cacheTerrain: false });
   return { make, exits, runtime };
 }
+it("allows local steps and prioritizes an unfinished crossing when the player reaches it", () => {
+  const { runtime, exits, make } = fixture(), world = runtime.engine.world as SettlementWorld;
+  const [west] = world.entrances(), routes: MapEntrance[] = [];
+  world.entrances = () => routes;
+  world.pack.setting!.playableMap!.exits = exits(a);
+  const port = { postMessage: vi.fn(), close: vi.fn(), onmessage: (_e: { data: MapEntrance }) => {} };
+  stageEntranceSurvey(world, routes, port as unknown as MessagePort);
+  const journey = new MapTravel(runtime, a, 1300, async id => make(id), exits);
+  try {
+    expect(journey.intercept({ type: "move", dx: -1, dy: 0 })).toBe(false);
+    runtime.engine.state.player.pos.x = -192;
+    expect(journey.borderHint()).toMatch(/Finding the crossing/);
+    expect(journey.intercept({ type: "move", dx: -1, dy: 0 })).toBe(true);
+    expect(port.postMessage).toHaveBeenCalledWith("W");
+    port.onmessage({ data: west });
+    expect(journey.entrances).toEqual([west]);
+    expect(journey.borderHint()).toContain("Continue west");
+  } finally { runtime.dispose(); }
+});
+
 it("preserves the traveler, carried objects and changed maps across a return visit", async () => {
   const { make, exits, runtime } = fixture();
   const journey = new MapTravel(

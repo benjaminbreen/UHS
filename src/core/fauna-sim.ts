@@ -13,6 +13,7 @@ import {
   type FaunaProfile,
 } from "../content/fauna";
 import { TIERS, maxHp, type SignalInput } from "./combat";
+import { hash } from "./random";
 
 /** What a group needs from the world to move: the engine supplies it once per tick. */
 export type FaunaWorld = {
@@ -135,6 +136,9 @@ const POINT_BLANK = 2.5;
 const BOLT = 3.5;
 /** The same with nobody pressing it: a canter, not a sprint. */
 const CANTER = 1.4;
+/** A wild animal's flee pace over its walk at full panic and full bolt: what
+ * a species' `sprint` is measured against. */
+const FLAT_OUT = 2.2 * BOLT;
 /** This tick's running pace for wild animals, between the two. */
 let bolt = BOLT;
 /** How far one group's presence puts another off a patch of ground. */
@@ -1916,16 +1920,21 @@ export function advanceFauna(
       Math.min(STAMINA * 1.5, (g.hard ?? 0) + (running ? TICK : -TICK / 2)),
     );
     const winded = g.hard >= STAMINA ? WINDED : 1;
+    // Flat out for this one animal, over its walk: a quarter of a species
+    // separates its slowest from its fastest.
+    const top = running && !kept
+      ? ((p.sprint ?? p.pace * 5) * (0.75 + 0.25 * (hash(`${g.id}:${g.members[0].n ?? 0}`) % 1000) / 1000)) / (FLAT_OUT * p.pace)
+      : 1;
     const boost =
       (fleeing
         ? // Graded: a shape at the edge of what it notices is a trot, a person
           // on top of it is a bolt.
-          kept ? 1 + 0.6 * (g.panic ?? 1) : (1.2 + (g.panic ?? 1)) * bolt
+          kept ? 1 + 0.6 * (g.panic ?? 1) : (1.2 + (g.panic ?? 1)) * bolt * top
         : flying
           ? 3
           : g.state === "chase"
-            ? // Short of a fleeing deer, behind a rabbit with a head start.
-              1.8 * (kept ? 1 : bolt)
+            ? // Flat out like its quarry: which of the two is quicker decides it.
+              kept ? 1.8 : 2.2 * bolt * top
             : g.state === "stalk"
               ? 0.5
               : 1) *

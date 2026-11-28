@@ -1,7 +1,9 @@
 import { shiftHue, type Finish, type RoomParams, type Shape, type Trade } from "../../render/interiors/room";
+import type { BackroomSite } from "./backrooms";
 import type { InteriorProfile } from "./types";
 
 export type RoomChoice = {
+  childResident?: boolean;
   seed: number;
   /** Index into the profile's rooms, if it has several. */
   room?: number;
@@ -16,6 +18,12 @@ export type RoomChoice = {
   /** The building as it stands outside: its storeys, and the ground it covers in tiles. */
   storeys?: number;
   plot?: number;
+  /** Geographic/era context used for organic secret back-rooms and era-appropriate quirks. */
+  site?: BackroomSite;
+  /** Optional forced secret back-room id (e.g. from a prompt asking for a speakeasy or wunderkammer). */
+  secretRoom?: string;
+  /** Head of household's profession label (e.g. "Piano Player", "Pet Shop Owner", "Speakeasy Proprietor"). */
+  ownerRole?: string;
 };
 
 /** A profile plus a household's choices become the generic room the renderers draw. */
@@ -27,6 +35,7 @@ export function resolveRoom(base: InteriorProfile, c: RoomChoice): RoomParams {
         styles: { ...base.styles, ...t.styles },
         kits: { ...base.kits, ...t.kits },
         looks: base.looks.map((l, i) => ({ ...l, ...t.looks?.[i] })) as InteriorProfile["looks"],
+        colorways: t.colorways ?? base.colorways,
         shapes: t.shapes ?? base.shapes,
         furnish: t.furnish ?? base.furnish,
         trades: t.trades ?? base.trades,

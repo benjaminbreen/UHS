@@ -38,6 +38,10 @@ across it; only the outer band blends.
 `entrances.ts` first searches inward from the preferred border crossings,
 using bounded path searches and checking movement in the travel direction. If
 a search fails, one shared flood fill finds reachable alternatives or shores.
+On a fresh start you can walk while these routes are being found. Approaching
+a border gives it priority. Each reachable land crossing opens as soon as its
+route is found.
+Travellers from other maps start appearing once all the routes are known.
 Each land border has one road
 crossing (`roadAt` on its seam, the same point from both sides), and a
 playable map's regional roads run to those crossings, not to settlements

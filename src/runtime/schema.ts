@@ -799,6 +799,7 @@ export const playerCommandSchema = z.discriminatedUnion("type", [
       take: z.record(item, z.number().int().nonnegative().max(999)),
     })
     .strict(),
+  z.object({ type: z.literal("order"), target: z.string(), dishes: z.array(z.string().max(80)).min(1).max(12) }).strict(),
   z.object({ type: z.literal("use"), item }).strict(),
   z
     .object({ type: z.literal("choose"), card: z.string().max(64), choice: z.number().int().min(0).max(5) })

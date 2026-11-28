@@ -4,13 +4,17 @@ import { interiorProfileFor } from "../src/content/interiors/select";
 import { worshipAct, worshipHours } from "../src/content/interiors/worship";
 import { aarti, passageOn } from "../src/content/interiors/scripture";
 import { buildInterior, ROOM_ORIGIN, roomAt } from "../src/world/interior";
-import { resolveSetting } from "../src/content/geography/resolve";
+import { resolveSetting, theaterViewerSetting } from "../src/content/geography/resolve";
+import { THEATER_VIEWER_PRESETS } from "../src/content/interiors/performances";
 import { planRoom, roomMask, type Shape } from "../src/render/interiors/room";
 import { LETTERS, SPRITES } from "../src/render/interiors/sprites";
 import { ALTARS } from "../src/render/interiors/altars";
+import { FITS } from "../src/render/interiors/fits";
+import { livelihoodById } from "../src/content/characters/livelihoods";
+import { theatres } from "../src/content/interiors/theatres";
 import { planBuilding } from "../src/render/interiors/building";
 import type { SettlementWorld } from "../src/world/v3/generate";
-import { placeFor } from "../src/world/v3/routines";
+import { livelihoodOf, placeFor, routineFor } from "../src/world/v3/routines";
 import { doorApproach } from "../src/core/doors";
 import type { Place } from "../src/core/types";
 import { towerStyles } from "../src/content/towers";
@@ -23,6 +27,11 @@ import { sanctuaryAt, religiousProfile } from "../src/content/settlements/religi
 import type { WorldSetting } from "../src/content/geography/types";
 import { panelSetting } from "../scripts/review/panel";
 import { shopKinds } from "../src/content/interiors/shops";
+import { SECRET_BACKROOMS, pickBackroom, pickHouseholdQuirk } from "../src/content/interiors/backrooms";
+import { INSTRUMENTS, instrumentForProp } from "../src/audio/instruments";
+import { synthesize } from "../src/audio/synth";
+import { performRoomAct } from "../src/core/room-props";
+import { propDefs } from "../src/content/props/catalog";
 
 const shapes: Shape[] = ["rect", "L", "round", "oval", "apse", "courtyard"];
 
@@ -527,10 +536,14 @@ describe("interior profiles", () => {
       { id: "gurukula", lon: 80, lat: 25, year: 1200, use: "venue.gurukula" },
       { id: "union-hall", lon: -2.2, lat: 53.5, year: 1900, use: "venue.union-hall" },
       { id: "elizabethan-playhouse", lon: -0.1, lat: 51.5, year: 1600, use: "venue.playhouse" },
+      { id: "proscenium-playhouse", lon: -0.1, lat: 51.5, year: 1780, use: "venue.playhouse" },
+      { id: "broadway-theatre", lon: -73.98, lat: 40.76, year: 1925, use: "venue.grand-theatre" },
       { id: "opera-house", lon: 16.4, lat: 48.2, year: 1800, use: "venue.opera-house" },
       { id: "noh-theatre", lon: 135.8, lat: 35, year: 1700, use: "venue.noh-stage" },
       { id: "kabuki-theatre", lon: 139.7, lat: 35.7, year: 1800, use: "venue.kabuki-theatre" },
+      { id: "nickelodeon", lon: -74, lat: 40.7, year: 1915, use: "venue.cinema" },
       { id: "cinema", lon: -74, lat: 40.7, year: 1930, use: "venue.cinema" },
+      { id: "multiplex", lon: -81.38, lat: 28.54, year: 1987, use: "venue.cinema" },
     ];
     for (const { id, ...site } of sites)
       for (const fortune of [0.1, 0.9])
@@ -560,10 +573,125 @@ describe("interior profiles", () => {
         for (let n = 0; n < 5; n++) {
           const where = `${name} ${site.year} ${fortune} #${n}`;
           const room = buildInterior({ id: `t-shop-${n}`, name, access: "public", claim: "landscape" } as Place, { ...site, settlement: "city" }, { fortune });
+          expect(roomAt(room, room.entry.x, room.entry.y), where).toBe(room.rooms[0]);
           expect(room.plan.rooms[0].styles, where).toMatchObject({ stock, shopcounter: counter });
           expect(room.work[0], where).toMatchObject({ kind: "shopcounter", facing: 2 });
           expect(room.beds.length, where).toBeGreaterThan(0);
         }
+  });
+
+  it("opens a house kept for eating or drinking as a serving room, seats and patrons", () => {
+    for (const [name, site, bar] of [
+      ["Cafe", { lon: -95, lat: 30, year: 2026 }, "cafe"],
+      ["Publican's workshop", { lon: -0.1, lat: 51.5, year: 1950 }, "beer"],
+      ["Diner", { lon: -95, lat: 30, year: 1955 }, "diner"],
+      ["Publican's workshop", { lon: -0.1, lat: 51.5, year: 1780 }, "ale"],
+      ["Cafe", { lon: 135.8, lat: 35, year: 1750 }, "tea"],
+    ] as const) {
+      const room = buildInterior({ id: "t-serve", name, access: "public", claim: "landscape" } as Place, { ...site, settlement: "city" }, { fortune: 0.5 });
+      expect(room.plan.rooms[0], `${name} ${site.year}`).toMatchObject({ program: "serve", styles: { bar } });
+      expect(room.props.some((q) => q.kind === "bar" && (q.room ?? 0) === 0), `${name} ${site.year}`).toBe(true);
+      expect(room.seats.length, `${name} ${site.year}`).toBeGreaterThan(3);
+      expect(room.regulars?.fill, `${name} ${site.year}`).toBeGreaterThan(0);
+    }
+  });
+
+  it.runIf(!!process.env.FULL).each([
+    ["A weaver in Kyoto, 1350", "loom"],
+    ["A potter in Baghdad, 1000", "throw"],
+    ["A luthier in London, 1895", "fixture"],
+    ["A music shop owner in London, 1895", "shopcounter"],
+  ])("gives the resident apprentice a shift at the master's workplace in %s", (prompt, tool) => {
+    const seed = "neon-review", start = resolveSetting(prompt, seed);
+    if ("error" in start) throw Error(start.error);
+    const e = createSettingSession(start.setting, seed), s = e.state, master = s.player;
+    const h = s.households!.find(h => h.members.includes(master.id))!;
+    const learner = s.actors.find(a => a.relations?.some(r => r.other === master.id && r.reciprocal === "apprentice"))!;
+    expect(learner.origin?.livelihood).toBe(master.origin?.livelihood);
+    const plan = (e.world as SettlementWorld).planAt(h.home.x, h.home.y)!;
+    const route = plan.stations.get(learner.id)!;
+    expect(route.some(stop => stop.placeId === h.residence)).toBe(true);
+    expect(route.at(-1)?.label).toBe("At home");
+    const room = e.interiorOf(h.residence!)!, activity = livelihoodOf(e.world.pack, master)!.activity;
+    s.clock = 12 * 3600;
+    master.activity = learner.activity = activity;
+    master.pos = e.indoorSpot(master, h.residence!, activity);
+    learner.pos = e.indoorSpot(learner, h.residence!, activity);
+    if (tool === "shopcounter") {
+      expect(e.shopKeeper(h.residence!)).toBe(master.id);
+      expect(e.indoorUse(learner.id, learner.pos)?.kind).not.toBe(tool);
+      master.pos = { ...h.home, space: "outside" };
+      learner.pos = e.indoorSpot(learner, h.residence!, activity);
+      expect(e.shopKeeper(h.residence!)).toBe(learner.id);
+      expect(e.indoorUse(learner.id, learner.pos)?.kind).toBe(tool);
+    } else {
+      const use = e.indoorUse(master.id, master.pos);
+      expect(use?.kind).toBe(tool);
+      expect(e.indoorUse(learner.id, learner.pos)?.propId).toBe(use?.propId);
+      expect(learner.pos).not.toEqual(master.pos);
+      expect(room.walk.has(learner.pos.x + "," + learner.pos.y)).toBe(true);
+    }
+  });
+
+  it("places a child's toy by the household's own bedding", () => {
+    for (const [id, year] of [["japanese-minka", 1350], ["european-townhouse", 1895]] as const) {
+      const base = interiorProfiles.find(p => p.id === id)!;
+      const profile = { ...base, clutter: [], rooms: base.rooms?.map(r => ({...r, clutter: []})) };
+      const options = { seed: 7, status: 1 as const, colorway: 0, w: 12, d: 9, hour: 12, site: {lon: 0, lat: 0, year} };
+      const home = planBuilding(profile, {...options, childResident: true});
+      const toy = home.props.find(q => q.item === "toy")!;
+      const bed = home.props.find(q => q.room === toy.room && q.kind === home.plan.rooms[toy.room!].sleep)!;
+      expect(Math.hypot(Math.max(bed.x-toy.x, toy.x-bed.x-bed.w+1, 0), Math.max(bed.y-toy.y, toy.y-bed.y-bed.d+1, 0))).toBeLessThanOrEqual(4);
+      expect(planBuilding(profile, options).props.some(q => q.item === "toy")).toBe(false);
+    }
+  });
+
+  it.runIf(!!process.env.FULL).each([
+    ["A music shop owner in London, 1895", "music"],
+    ["A grocer in Thanh Hóa, 1969", "grocery"],
+    ["A speakeasy proprietor in Boston, 1925", "speakeasy"],
+  ])("opens the workplace and fills its shifts in %s", async (prompt, kind) => {
+    const seed = "neon-review", start = resolveSetting(prompt, seed);
+    if ("error" in start) throw Error(start.error);
+    const { prepareConnectedStart } = await import("../src/runtime/map-travel");
+    const e = await prepareConnectedStart(start.setting, seed), s = e.state;
+    const place = e.world.places.find(p => p.owner === "player" && s.households?.some(h => h.residence === p.id))!;
+    const room = e.interiorOf(place.id)!, door = e.doorOf(place.id)!;
+    s.player.pos = { ...doorApproach(place), space: "outside" };
+    const interact = (action: "open" | "enter", target: string) =>
+      e.act({ actionId: action, expectedRevision: s.revision, command: { type: "interact", action, target } });
+    if (!door.open) expect(interact("open", door.id).status).toBe("completed");
+    expect(interact("enter", place.id).status).toBe("completed");
+    if (kind !== "speakeasy") {
+      expect(place).toMatchObject({ access: "public", shopKind: kind });
+      expect(room.shopKind).toBe(kind);
+      const counter = room.work.find(w => w.kind === "shopcounter")!;
+      expect(counter).toBeDefined();
+      if (kind === "music") {
+        expect(s.player.origin?.livelihood).toBe("music-shop-owner");
+        expect(room.furniture.some(f => f.def === "room-piano")).toBe(true);
+        const plan = (e.world as SettlementWorld).planAt(place.x, place.y)!;
+        const route = routineFor(plan, seed, e.world.pack, "player", plan.work.get("player")!, s.player);
+        expect(route.some(stop => stop.placeId === place.id && stop.label === "Minding the shop counter")).toBe(true);
+      }
+      s.player.pos = { ...doorApproach(place), space: "outside" };
+      const family = s.households!.find(h => h.residence === place.id && h.members.includes("player"))!;
+      const relief = s.actors.find(a => family.members.includes(a.id) && (a.age ?? 30) >= 14)!;
+      s.clock = Math.floor(s.clock / 86400) * 86400 + 8 * 3600;
+      relief.pos = { x: counter.x, y: counter.y, space: place.id };
+      relief.activity = "At the counter";
+      expect(e.shopKeeper(place.id)).toBe(relief.id);
+      expect(e.shopOf(relief.id)?.stock[kind === "music" ? "lute" : "grain"]).toBeGreaterThan(0);
+      return;
+    }
+    expect(room.backroom?.id).toBe("speakeasy");
+    for (const [hour, pianists] of [[12, 0], [18, 1], [1, 1], [2, 0]]) {
+      s.clock = (Math.floor(s.clock / 86400) + (hour === 1 ? 1 : 0)) * 86400 + hour * 3600;
+      e.advance(2);
+      const staff = s.actors.filter(a => a.staff === place.id);
+      expect(staff.filter(a => a.role === "Speakeasy Proprietor")).toHaveLength(0);
+      expect(staff.filter(a => a.role === "Jazz Pianist")).toHaveLength(pianists);
+    }
   });
 
   it("gets everyone up by day, one keeper behind a shop's counter selling its stock and the household in the rooms behind", () => {
@@ -638,6 +766,27 @@ describe("interior profiles", () => {
     expect(room.seats.some((s) => s.x === drinker.x && s.y === drinker.y)).toBe(true);
   });
 
+  it.runIf(!!process.env.FULL)("serves the period menu from behind the bar, paid in whole coins into the purse", () => {
+    const e = createSettingSession({ ...panelSetting("london", 1700), season: "summer" }, "tavern");
+    const ale = e.world.places.find((p) => p.claim === "venue-venue.alehouse")!;
+    const home = e.state.households!.find((h) => h.residence === ale.id)!;
+    const keeper = e.state.actors.find((a) => a.householdId === home.id && (a.age ?? 30) >= 16)!;
+    e.state.clock += ((20 - (e.state.clock / 3600) % 24 + 24) % 24) * 3600;
+    keeper.activity = "At home";
+    keeper.pos = e.indoorSpot(keeper, ale.id, "At home");
+    const p = e.state.player;
+    p.pos = { ...keeper.pos, y: keeper.pos.y + 2 };
+    p.hunger = 60;
+    p.inventory.coin = 1;
+    const served = e.menuOf(keeper.id)!;
+    expect(served.menu.id).toBe("english-alehouse");
+    expect(served.menu.dishes.map((d) => d.name)).not.toContain("Pint of porter");
+    expect(e.act({ actionId: "order", expectedRevision: e.state.revision, command: { type: "order", target: keeper.id, dishes: ["The ordinary", "Quart of ale"] } }).status).toBe("completed");
+    expect(p.inventory.coin).toBe(0);
+    expect(p.hunger).toBeLessThan(20);
+    expect(e.act({ actionId: "order", expectedRevision: e.state.revision, command: { type: "order", target: keeper.id, dishes: ["Small beer"] } }).status).toBe("rejected");
+  });
+
   it.runIf(!!process.env.FULL)("fills the taproom with neighbours off the routine budget while the player is in it", () => {
     const e = createSettingSession({ ...panelSetting("london", 1700), season: "summer" }, "tavern");
     const ale = e.world.places.find((p) => p.claim === "venue-venue.alehouse")!;
@@ -660,15 +809,17 @@ describe("interior profiles", () => {
     const e = createSettingSession({ ...panelSetting("kyoto", 1700), season: "summer" }, "furniture");
     const home = e.state.households!.find((h) => h.members.includes("player"))!.residence!;
     const room = e.interiorOf(home)!;
-    const pieces = room.furniture.map((f) => e.state.objects.find((o) => o.id === `${home}-room-${f.propId}`)!);
+    const pieces = room.furniture
+      .map((f) => ({ f, o: e.state.objects.find((o) => o.id === `${home}-room-${f.propId}`)! }))
+      .filter(({ o }) => propDefs[o.prop ?? ""]?.solid);
     expect(pieces.length).toBeGreaterThan(0);
-    for (const [i, o] of pieces.entries())
-      for (let dx = 0; dx < room.furniture[i].size[0]; dx++) expect(e.blocked(o.pos.x + dx, o.pos.y, home), o.name).toBe(true);
-    const broke = pieces[0];
+    for (const { f, o } of pieces)
+      for (let dx = 0; dx < f.size[0]; dx++) expect(e.blocked(o.pos.x + dx, o.pos.y, home), o.name).toBe(true);
+    const { f: brokeF, o: broke } = pieces.find(({ f }) => room.floor.has(`${f.pos.x},${f.pos.y}`))!;
     broke.broken = true;
     expect(e.blocked(broke.pos.x, broke.pos.y, home)).toBe(false);
     // Nobody is sent to sit at, or work at, what is no longer there.
-    const spots = [...room.seats, ...room.work, ...room.fire, ...room.beds].filter((s) => s.propId === room.furniture[0].propId);
+    const spots = [...room.seats, ...room.work, ...room.fire, ...room.beds].filter((s) => s.propId === brokeF.propId);
     const a = e.state.actors.find((x) => x.kind === "human")!;
     for (let n = 0; n < 6; n++) {
       const at = e.indoorSpot(a, home, "Resting", n);
@@ -677,11 +828,188 @@ describe("interior profiles", () => {
     }
   });
 
+  it("routes street-look cinemas to their era's multi-room cinema interior rather than a house shop", () => {
+    for (const [year, id, screens] of [[1918, "nickelodeon", 1], [1938, "cinema", 1], [1987, "multiplex", 3]] as const) {
+      const site = { lon: -81.38, lat: 28.54, year, settlement: "city", frame: "mod-theatre-0" };
+      expect(interiorProfileFor(site).id).toBe(id);
+      const room = buildInterior({ id: `cinema-${year}`, name: "Cinema", access: "public", claim: "landscape", sprite: "mod-theatre-0" } as Place, site, { activity: "Keeping a shop" });
+      expect(room.rooms[0].role).toBe("entry");
+      expect(room.plan.rooms[0].styles.stock).toBe(year >= 1966 ? "concessions" : "concessions-classic");
+      expect(room.props.filter((q) => q.kind === "shopcounter").length).toBe(1);
+      expect(room.props.filter((q) => q.kind === "altar").length).toBe(screens);
+      expect(room.beds.length).toBe(0);
+    }
+  });
+
+  it("gives every theatre, opera house and cinema valid specialist staff and spawns them indoors", () => {
+    for (const profile of theatres) {
+      expect(profile.rooms?.length, profile.id).toBeGreaterThanOrEqual(2);
+      expect(profile.staff?.length, profile.id).toBeGreaterThan(0);
+      for (const st of profile.staff ?? []) expect(livelihoodById(st.work), `${profile.id}:${st.work}`).toBeDefined();
+    }
+    const start = resolveSetting("A clerk in Orlando, 1987", "cinema-staff");
+    if ("error" in start) throw Error(start.error);
+    const e = createSettingSession(start.setting, "cinema-staff");
+    const cinema = e.world.places.find((p) => e.interiorOf(p.id)?.staff?.length);
+    if (cinema) {
+      e.state.clock = Math.floor(e.state.clock / 86400) * 86400 + 20 * 3600;
+      const layout = e.interiorOf(cinema.id)!;
+      e.state.player.pos = { ...layout.entry, space: cinema.id };
+      e.advance(10);
+      const staff = e.state.actors.filter((a) => a.staff === cinema.id && a.pos.space === cinema.id);
+      expect(staff.length).toBeGreaterThanOrEqual(5);
+      expect(staff.some((a) => /concession|ticket|usher|manager|projectionist|critic/i.test(a.role ?? ""))).toBe(true);
+      // Player can walk beside an open theatre chair, sit down facing the stage/screen, and stand back up.
+      const openSeat = layout.seats.find((s) => s.kind === "pew" && !e.state.actors.some((a) => a.pos.space === cinema.id && a.pos.x === s.x && a.pos.y === s.y));
+      expect(openSeat).toBeDefined();
+      const beside = [[0, 1], [0, -1], [1, 0], [-1, 0]].map(([dx, dy]) => ({ x: openSeat!.x + dx, y: openSeat!.y + dy })).find((q) => layout.walk.has(`${q.x},${q.y}`));
+      expect(beside).toBeDefined();
+      e.state.player.pos = { ...beside!, space: cinema.id };
+      const u = e.usable();
+      expect(u?.id.startsWith("room-seat:")).toBe(true);
+      const res = e.act({ actionId: "sit-theatre", expectedRevision: e.state.revision, command: { type: "interact", action: "use-prop", target: u!.id } });
+      expect(res.status, res.reason).toBe("completed");
+      expect(e.state.player.seated?.pose).toBe("sit-seat");
+      expect(e.state.player.direction).toBe(0);
+      expect(e.indoorUse("player", e.state.player.pos)?.role).toBe("seat");
+      e.act({ actionId: "stand-theatre", expectedRevision: e.state.revision, command: { type: "move", dx: 0, dy: 1 } });
+      expect(e.state.player.seated).toBeUndefined();
+    }
+  });
+
+  it("assigns plays to live theatres, distinct multi-scene films across eras/regions, and drives onstage actor dialogue", () => {
+    const liveIds = ["elizabethan-playhouse", "proscenium-playhouse", "broadway-theatre", "opera-house", "noh-theatre", "kabuki-theatre"];
+    for (const id of liveIds) {
+      const profile = theatres.find((t) => t.id === id)!;
+      const layout = buildInterior({ id: `live-${id}`, name: id, access: "public", claim: "" } as Place, { lon: 12, lat: 45, year: (profile.when.start?.year ?? 1850) + 10, settlement: "city" }, { profile });
+      expect(layout.play, id).toBeDefined();
+      expect(layout.play!.beats.length, id).toBeGreaterThanOrEqual(4);
+    }
+    // Multiplex gets 3 distinct multi-scene modern films; 1920 Tokyo nickelodeon gets a Benshi silent film; 1955 Mumbai gets a musical.
+    const multi = buildInterior({ id: "cine-multi", name: "Multiplex", access: "public", claim: "landscape", sprite: "mod-theatre-0" } as Place, { lon: -81.38, lat: 28.54, year: 1987, settlement: "city", frame: "mod-theatre-0" }, {});
+    const multiFilms = Object.values(multi.films ?? {});
+    expect(multiFilms.length).toBe(3);
+    expect(new Set(multiFilms.map((f) => f.id)).size).toBe(3);
+    for (const f of multiFilms) expect(f.scenes.length).toBeGreaterThanOrEqual(3);
+
+    const tokyoSilent = buildInterior({ id: "cine-tokyo", name: "Picture Hall", access: "public", claim: "landscape", sprite: "mod-theatre-0" } as Place, { lon: 139.7, lat: 35.7, year: 1920, settlement: "city", frame: "mod-theatre-0" }, {});
+    expect(Object.values(tokyoSilent.films ?? {})[0]?.benshi).toBe(true);
+
+    const mumbaiClassic = buildInterior({ id: "cine-mumbai", name: "Palace Cinema", access: "public", claim: "landscape", sprite: "mod-theatre-0" } as Place, { lon: 72.8, lat: 19.1, year: 1955, settlement: "city", frame: "mod-theatre-0" }, {});
+    expect(Object.values(mumbaiClassic.films ?? {})[0]?.id).toBe("classic-monsoon");
+
+    // Regional & historical specificity for documented plays, operas, and films:
+    const viennaOpera = buildInterior({ id: "op-vienna", name: "Opera", access: "public", claim: "venue-venue.opera-house" } as Place, { lon: 16.37, lat: 48.2, year: 1788, settlement: "city", use: "venue.opera-house" }, {});
+    expect(viennaOpera.play?.id).toBe("opera-don-giovanni");
+    const veniceOpera = buildInterior({ id: "op-venice", name: "Opera", access: "public", claim: "venue-venue.opera-house" } as Place, { lon: 12.33, lat: 45.44, year: 1854, settlement: "city", use: "venue.opera-house" }, {});
+    expect(veniceOpera.play?.id).toBe("opera-traviata");
+    const berlin1927 = buildInterior({ id: "cine-berlin", name: "Kino", access: "public", claim: "landscape", sprite: "mod-theatre-0" } as Place, { lon: 13.4, lat: 52.52, year: 1927, settlement: "city", frame: "mod-theatre-0" }, {});
+    expect(["silent-metropolis", "silent-nosferatu"]).toContain(Object.values(berlin1927.films ?? {})[0]?.id);
+    const kolkata1956 = buildInterior({ id: "cine-kol", name: "Cinema", access: "public", claim: "landscape", sprite: "mod-theatre-0" } as Place, { lon: 88.36, lat: 22.57, year: 1956, settlement: "city", frame: "mod-theatre-0" }, {});
+    expect(["classic-pather-panchali", "classic-monsoon"]).toContain(Object.values(kolkata1956.films ?? {})[0]?.id);
+    const tehran1988 = buildInterior({ id: "cine-teh", name: "Cinema", access: "public", claim: "landscape", sprite: "mod-theatre-0" } as Place, { lon: 51.39, lat: 35.69, year: 1988, settlement: "city", frame: "mod-theatre-0" }, {});
+    expect(Object.values(tehran1988.films ?? {})[0]?.id).toBe("modern-kiarostami");
+
+    // Live opera house performance: onstage singers deliver scripted dialogue beats and block across stage positions.
+    const start = resolveSetting("A musician in Vienna, 1890", "opera-dialogue");
+    if ("error" in start) throw Error(start.error);
+    const e = createSettingSession(start.setting, "opera-dialogue");
+    const operaPlace = e.world.places.find((p) => e.interiorOf(p.id)?.play?.venues.includes("opera-house"))
+      ?? e.world.places.find((p) => e.interiorOf(p.id)?.play);
+    const target = operaPlace ?? e.world.places[0];
+    if (!operaPlace) {
+      // Force an opera house interior on a public building if this seed rolled another venue.
+      target.claim = "venue-venue.opera-house";
+      target.access = "public";
+    }
+    const layout = e.interiorOf(target.id)!;
+    expect(layout.play).toBeDefined();
+    expect(layout.stage).toBeDefined();
+    e.state.clock = Math.floor(e.state.clock / 86400) * 86400 + 20 * 3600;
+    e.state.player.pos = { ...layout.entry, space: target.id };
+    e.signals.length = 0;
+    e.advance(90);
+    e.advance(90);
+    const says = e.signals.filter((sig) => sig.kind === "say") as { kind: "say"; who: string; text: string }[];
+    expect(says.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(says.map((sig) => sig.text)).size).toBeGreaterThanOrEqual(2);
+    // Speaking cast members stand up on the raised wooden stage deck, not on the auditorium floor in front of it.
+    const speaker = e.state.actors.find((a) => a.id === says[says.length - 1].who)!;
+    expect(speaker.pos.y).toBe(layout.stage!.y);
+    expect(speaker.pos.x).toBeGreaterThanOrEqual(layout.stage!.x0);
+    expect(speaker.pos.x).toBeLessThanOrEqual(layout.stage!.x1);
+  });
+
+  it("resolves natural movie, opera, theatre, world-cinema and venue-role prompts into live seated or onstage starts", () => {
+    const cases: [string, { venue: string; mode: string; role?: RegExp; minYear?: number }][] = [
+      ["watching a movie", { venue: "multiplex|cinema|nickelodeon", mode: "seat", role: /moviegoer/i, minYear: 1910 }],
+      ["watching a movie in 1920s Tokyo", { venue: "nickelodeon|cinema", mode: "seat", minYear: 1920 }],
+      ["watching a movie in 1922 Tokyo", { venue: "nickelodeon", mode: "seat", minYear: 1922 }],
+      ["watching a movie in Rome", { venue: "multiplex|cinema|nickelodeon", mode: "seat", minYear: 1910 }],
+      ["watching a sci-fi movie", { venue: "multiplex", mode: "seat:film:modern-scifi" }],
+      ["film noir", { venue: "cinema", mode: "seat:film:classic-noir" }],
+      ["at a Bollywood musical", { venue: "cinema", mode: "seat:film:classic-monsoon" }],
+      ["French New Wave film", { venue: "cinema", mode: "seat:film:classic-newwave" }],
+      ["at an opera", { venue: "opera-house", mode: "seat", role: /operagoer/i }],
+      ["a doctor at the opera in Milan 1870", { venue: "opera-house", mode: "seat", minYear: 1870 }],
+      ["at a Broadway musical", { venue: "broadway-theatre", mode: "seat:play:broadway-lights" }],
+      ["a theatergoer", { venue: "broadway-theatre|proscenium-playhouse|elizabethan-playhouse", mode: "seat", role: /theatergoer/i }],
+      ["at the Globe Theatre", { venue: "elizabethan-playhouse", mode: "seat", role: /groundling/i }],
+      ["watching kabuki", { venue: "kabuki-theatre", mode: "seat" }],
+      ["watching noh", { venue: "noh-theatre", mode: "seat" }],
+      ["a film critic", { venue: "multiplex|cinema|nickelodeon", mode: "seat", role: /critic/i }],
+      ["an opera singer", { venue: "opera-house", mode: "stage", role: /opera singer/i }],
+      ["a projectionist", { venue: "multiplex|cinema|nickelodeon", mode: "foyer", role: /projectionist/i }],
+      ["a benshi", { venue: "nickelodeon", mode: "stage:film:silent-asakusa", role: /benshi/i }],
+    ];
+    for (const [prompt, want] of cases) {
+      const r = resolveSetting(prompt, "theatre-prompts");
+      expect("setting" in r, `${prompt}: ${"error" in r ? r.error : ""}`).toBe(true);
+      if (!("setting" in r)) continue;
+      expect(r.setting.startIn, prompt).toBe("theatre");
+      expect(r.setting.venue, prompt).toMatch(new RegExp(`^(${want.venue})$`));
+      expect(r.setting.venueRoom, prompt).toBe(want.mode);
+      if (want.role) expect(r.setting.role, prompt).toMatch(want.role);
+      if (want.minYear) expect(r.setting.year, prompt).toBeGreaterThanOrEqual(want.minYear);
+    }
+
+    // End-to-end session boot: "watching a sci-fi movie" spawns seated in a multiplex watching Starship Hyperion.
+    const sciFi = resolveSetting("watching a sci-fi movie", "boot-scifi");
+    if ("error" in sciFi) throw Error(sciFi.error);
+    const eMovie = createSettingSession(sciFi.setting, "boot-scifi");
+    expect(eMovie.state.player.pos.space).not.toBe("outside");
+    expect(eMovie.state.player.seated?.pose).toBe("sit-seat");
+    expect(eMovie.state.player.direction).toBe(0);
+    expect(eMovie.state.player.activity).toContain("Starship Hyperion");
+    expect(eMovie.state.actors.filter((a) => a.staff === eMovie.state.player.pos.space).length).toBeGreaterThanOrEqual(5);
+
+    // End-to-end session boot: "at an opera" spawns seated in the Grand Opera House with onstage singers speaking on Frame 1.
+    const opera = resolveSetting("at an opera", "boot-opera");
+    if ("error" in opera) throw Error(opera.error);
+    const eOpera = createSettingSession(opera.setting, "boot-opera");
+    expect(eOpera.state.player.pos.space).not.toBe("outside");
+    expect(eOpera.state.player.seated?.pose).toBe("sit-seat");
+    expect(eOpera.state.player.direction).toBe(0);
+    expect(eOpera.signals.some((sig) => sig.kind === "say")).toBe(true);
+
+    // Every Settings → Developer → "Go to the theater" preset resolves cleanly to its real city, venue, and show.
+    for (const preset of THEATER_VIEWER_PRESETS) {
+      const s = theaterViewerSetting(preset.id, { mode: "seat" }, "viewer-check");
+      expect(s.startIn, preset.id).toBe("theatre");
+      expect(s.venue, preset.id).toBe(preset.venue);
+      expect(s.year, preset.id).toBe(preset.year);
+      expect(s.placeId, preset.id).toBe(preset.placeId);
+    }
+  });
+
   it("draws every sprite with letters that have a colour", () => {
     for (const [name, rows] of Object.entries(SPRITES))
       for (const ch of rows.join("")) if (ch !== "." && ch !== "#") expect(LETTERS[ch], `${name} uses "${ch}"`).toBeDefined();
     for (const [name, art] of Object.entries(ALTARS))
       for (const ch of art.rows.join("")) if (!".*%".includes(ch)) expect(art.ink[ch], `altar ${name} uses "${ch}"`).toBeDefined();
+    for (const [fitName, fit] of Object.entries(FITS))
+      for (const [name, rows] of Object.entries(fit.grids))
+        for (const ch of rows.join("")) if (ch !== "." && ch !== "#") expect(fit.ink[ch] !== undefined || LETTERS[ch] !== undefined, `fit ${fitName}/${name} uses "${ch}"`).toBe(true);
   });
 
   it("keeps doorways two wide and clear of furniture, in front and through", () => {
@@ -841,5 +1169,218 @@ describe("towers", () => {
     e.act({ actionId: "lift", expectedRevision: e.state.revision, command: { type: "interact", action: "lift", target: "12" } });
     expect(e.state.player.pos.space).toBe(`${place!.id}@12`);
     expect(e.towerLift()?.n).toBe(12);
+  });
+
+  it("recreates The Overlook Hotel and a solvable snow-capped Hedge Maze as a Shining easter egg", () => {
+    const start = resolveSetting("The Shining", "overlook-test");
+    if ("error" in start) throw Error(start.error);
+    expect(start.needsInterpretation).toBe(false);
+    expect(start.setting.placeId).toBe("overlook-hotel");
+    expect(start.setting.characterName).toBe("Jack Torrance");
+    expect(start.setting.season).toBe("winter");
+    expect(start.setting.startIn).toBe("hotel");
+
+    const wendy = resolveSetting("Wendy Torrance in Room 237", "overlook-wendy");
+    if ("error" in wendy) throw Error(wendy.error);
+    expect(wendy.setting.characterName).toBe("Wendy Torrance");
+    expect(wendy.setting.venueRoom).toBe("Room 237");
+
+    const ball = resolveSetting("Overlook Hotel 1921", "overlook-1921");
+    if ("error" in ball) throw Error(ball.error);
+    expect(ball.setting.year).toBe(1921);
+    expect(ball.setting.season).toBe("summer");
+
+    const layout = buildInterior(
+      { id: "overlook-1", name: "The Overlook Hotel", access: "public", claim: "venue-venue.overlook", w: 6, h: 4 } as Place,
+      { lon: -105.52, lat: 40.38, year: 1980, use: "venue.overlook" },
+      { seed: "overlook-test", fortune: 0.9 },
+    );
+    expect(layout.profileId).toBe("overlook-hotel");
+    expect(layout.rooms.map((r) => r.label)).toEqual([
+      "Overlook Hedge Maze",
+      "Room 237",
+      "Second-Floor Corridor",
+      "Torrance Quarters",
+      "The Gold Room",
+      "Colorado Lounge",
+      "Overlook Kitchen",
+      "Gold Room Restroom",
+      "Overlook Lobby",
+    ]);
+    // Every single room AND the central Hedge Maze clearing must be reachable on foot from the hotel entrance.
+    const reached = new Set<string>([`${layout.entry.x},${layout.entry.y}`]);
+    const queue = [layout.entry];
+    while (queue.length) {
+      const cur = queue.shift()!;
+      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nx = cur.x + dx, ny = cur.y + dy, k = `${nx},${ny}`;
+        if (!reached.has(k) && layout.walk.has(k)) {
+          reached.add(k);
+          queue.push({ x: nx, y: ny });
+        }
+      }
+    }
+    for (const r of layout.rooms) {
+      const hasWalkable = [...reached].some((k) => {
+        const [x, y] = k.split(",").map(Number);
+        return roomAt(layout, x, y) === r;
+      });
+      expect(hasWalkable, `reachable room ${r.label}`).toBe(true);
+    }
+    // Central Maze Clearing (plan coords x=21..25, y=5..7 -> game coords + ROOM_ORIGIN) must be solvable!
+    expect(reached.has(`${23 + ROOM_ORIGIN},${6 + ROOM_ORIGIN}`)).toBe(true);
+    // Corridor uses Hicks' hexagon carpet; Hedge Maze uses open-air snowy terrace.
+    expect(layout.plan.rooms[2].floorPattern).toBe("overlook-hex");
+    expect(layout.plan.rooms[0].floorPattern).toBe("snow-ground");
+    expect(layout.plan.rooms[0].shape).toBe("terrace");
+  });
+
+  it("spawns walkable procedural secret back-rooms and varied household quirks across eras", () => {
+    const sites: Record<string, { lon: number; lat: number; year: number; settlement: "city" | "town" }> = {
+      speakeasy: { lon: -87.63, lat: 41.88, year: 1925, settlement: "city" },
+      wunderkammer: { lon: 4.9, lat: 52.37, year: 1660, settlement: "city" },
+      "clandestine-press": { lon: 2.35, lat: 48.86, year: 1789, settlement: "city" },
+      "alchemist-sanctum": { lon: 14.42, lat: 50.08, year: 1595, settlement: "city" },
+      "herb-stillroom": { lon: -1.26, lat: 51.75, year: 1640, settlement: "town" },
+      "smuggler-parlour": { lon: -0.1, lat: 51.5, year: 1740, settlement: "city" },
+    };
+    for (const br of SECRET_BACKROOMS) {
+      const site = sites[br.id] ?? { lon: 2.35, lat: 48.86, year: 1750, settlement: "city" as const };
+      // Test both a multi-room home and a single-room public shopfront.
+      for (const mode of ["home", "shop"] as const) {
+        const place = (mode === "shop"
+          ? { id: `br-shop-${br.id}`, name: "Corner Shop", access: "public", claim: "", w: 4, h: 4 }
+          : { id: `br-home-${br.id}`, name: "Townhouse", access: "household", claim: "", w: 6, h: 5 }) as Place;
+        const layout = buildInterior(place, site, { seed: `br-${br.id}`, fortune: 0.7, activity: mode === "shop" ? "grocer" : "clerk", secretRoom: br.id });
+        expect(layout.backroom?.id, `${br.id} (${mode})`).toBe(br.id);
+        expect(layout.rooms[layout.rooms.length - 1].label, `${br.id} (${mode})`).toBe(br.label);
+        expect(layout.plan.doorways.some((dw) => dw.secret), `${br.id} secret doorway`).toBe(true);
+        if (br.staff?.length) {
+          for (const st of br.staff) {
+            expect(layout.staff?.some((s) => s.roomLabel === br.label && s.work === st.work), `${br.id} staff ${st.work}`).toBe(true);
+          }
+        }
+        // BFS from entrance must reach inside the secret back-room.
+        const reached = new Set<string>([`${layout.entry.x},${layout.entry.y}`]);
+        const q = [layout.entry];
+        while (q.length) {
+          const cur = q.shift()!;
+          for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const k = `${cur.x + dx},${cur.y + dy}`;
+            if (!reached.has(k) && layout.walk.has(k)) { reached.add(k); q.push({ x: cur.x + dx, y: cur.y + dy }); }
+          }
+        }
+        const secretWing = layout.rooms[layout.rooms.length - 1];
+        const reachedSecret = [...reached].some((k) => {
+          const [x, y] = k.split(",").map(Number);
+          return roomAt(layout, x, y) === secretWing;
+        });
+        expect(reachedSecret, `${br.id} (${mode}) reachable on foot`).toBe(true);
+      }
+    }
+    // Organic spawn rate: occasional (~8-30%) in eligible urban buildings, zero in churches/theatres.
+    const chicagoProfile = interiorProfileFor({ lon: -87.63, lat: 41.88, year: 1925, settlement: "city" });
+    let hits = 0;
+    for (let s = 1; s <= 120; s++) {
+      if (pickBackroom(chicagoProfile, { lon: -87.63, lat: 41.88, year: 1925, settlement: "city" }, s * 73, 1)) hits++;
+    }
+    expect(hits).toBeGreaterThanOrEqual(8);
+    expect(hits).toBeLessThanOrEqual(40);
+    const church = interiorProfiles.find((p) => p.observance)!;
+    for (let s = 1; s <= 40; s++) expect(pickBackroom(church, { lon: 2, lat: 48, year: 1750, settlement: "city" }, s, 2)).toBeUndefined();
+    // Everyday household quirks vary across seeds and place distinct quirk fixtures or clutter.
+    const quirks = new Set<string>();
+    const fixtures = new Set<string>();
+    for (let s = 1; s <= 60; s++) {
+      const q = pickHouseholdQuirk(chicagoProfile, 1925, s * 19, 1);
+      if (q) { quirks.add(q.id); for (const f of q.fixtures ?? []) fixtures.add(f.item); }
+    }
+    expect(quirks.size).toBeGreaterThanOrEqual(6);
+    expect(fixtures.size).toBeGreaterThanOrEqual(4);
+
+    // New specialist professions exist, resolve from player prompts, and furnish matching shops/back-rooms.
+    for (const id of ["pianist", "lutenist", "guitarist", "instrument-maker", "speakeasy-proprietor", "pet-shop-owner", "antiquarian", "alchemist", "pamphleteer", "card-sharp"]) {
+      expect(livelihoodById(id), `livelihood ${id}`).toBeDefined();
+    }
+    for (const [prompt, match] of [
+      ["A piano player in Chicago, 1925", /pianist|piano player/i],
+      ["A speakeasy proprietor in Chicago, 1925", /speakeasy/i],
+      ["A pet shop owner in London, 1895", /pet shop/i],
+      ["An alchemist in Prague, 1595", /alchemist/i],
+      ["A lutenist in Venice, 1560", /lutenist/i],
+      ["A curiosity collector in Amsterdam, 1660", /curiosity|collector|antiquarian|cabinet/i],
+    ] as const) {
+      const r = resolveSetting(prompt, "prof-test");
+      expect("setting" in r, prompt).toBe(true);
+      if ("setting" in r) expect(r.setting.role, prompt).toMatch(match);
+    }
+    // Pet Shop Owner's public shop spawns live birdcages + terrarium; Speakeasy Proprietor spawns Speakeasy with Proprietor + Jazz Pianist.
+    const petShop = buildInterior(
+      { id: "pet-shop-1", name: "Pet Shop Owner's shop", access: "public", claim: "", w: 5, h: 5 } as Place,
+      { lon: -0.1, lat: 51.5, year: 1895, settlement: "city" },
+      { seed: "pet-shop", fortune: 0.7, ownerRole: "Pet Shop Owner", activity: "Exchanging goods" },
+    );
+    expect(petShop.rooms[0].label).toBe("Pet shop");
+    expect(petShop.furniture.some((f) => f.def === "room-birdcage")).toBe(true);
+    expect(petShop.furniture.some((f) => f.def === "room-terrarium")).toBe(true);
+
+    const musicShop = buildInterior(
+      { id: "music-shop-1", name: "Luthier's shop", access: "public", claim: "", w: 5, h: 5 } as Place,
+      { lon: -0.1, lat: 51.5, year: 1895, settlement: "city" },
+      { seed: "music-shop", fortune: 0.7, ownerRole: "Music Shop Owner", activity: "Making instruments" },
+    );
+    expect(musicShop.rooms[0].label).toBe("Music shop");
+    expect(musicShop.furniture.some((f) => f.def === "room-piano")).toBe(true);
+
+    const speakOwner = buildInterior(
+      { id: "speak-owner-1", name: "Speakeasy Proprietor's shop", access: "public", claim: "", w: 5, h: 5 } as Place,
+      { lon: -87.63, lat: 41.88, year: 1925, settlement: "city" },
+      { seed: "speak-owner", fortune: 0.7, ownerRole: "Speakeasy Proprietor", activity: "Keeping the house" },
+    );
+    expect(speakOwner.backroom?.id).toBe("speakeasy");
+    expect(speakOwner.staff?.some((s) => s.work === "speakeasy-proprietor")).toBe(true);
+    expect(speakOwner.staff?.some((s) => s.work === "pianist")).toBe(true);
+  });
+
+  it("wires interactive birdcage, toggleable terrarium heat lamp, and reusable playable instruments", () => {
+    for (const key of ["room-birdcage", "room-terrarium", "room-piano", "room-lute", "room-guitar"]) {
+      expect(propDefs[key]?.act?.room, key).toBeDefined();
+    }
+    // Speakeasy back-room exposes its upright piano as an interactive room-piano prop.
+    const sp = buildInterior(
+      { id: "inst-sp", name: "Corner Shop", access: "public", claim: "", w: 5, h: 5 } as Place,
+      { lon: -87.63, lat: 41.88, year: 1925, settlement: "city" },
+      { seed: "inst-sp", fortune: 0.7, activity: "grocer", secretRoom: "speakeasy" },
+    );
+    expect(sp.furniture.some((f) => f.def === "room-piano")).toBe(true);
+    // Terrarium toggles heat lamp, birdcage sings, and instruments request their overlay.
+    const host = {
+      seed: "t", clock: 43200, year: 1925, places: [], objects: [], actors: [],
+      playerPos: { x: 2, y: 2, space: "h1" }, hasItem: () => false, interiorOf: () => undefined,
+      blocked: () => false, actorAt: () => false, moveActor: () => {}, asleep: () => false,
+      mindsCounter: () => false, livesIn: () => true, rain: () => 0, storm: () => 0, say: () => {}, lieDown: () => "", event: () => {},
+    };
+    const terr = { id: "o-terr", name: "Parlour terrarium", kind: "prop" as const, prop: "room-terrarium", pos: { x: 2, y: 2, space: "h1" }, open: true, inventory: {} };
+    const off = performRoomAct(host, terr as any, propDefs["room-terrarium"].act!);
+    expect(terr.open).toBe(false);
+    expect(off.sound).toBe("switch");
+    const on = performRoomAct(host, terr as any, propDefs["room-terrarium"].act!);
+    expect(terr.open).toBe(true);
+    expect(on.sound).toBe("switch");
+
+    const cage = { id: "o-cage", name: "Songbird cage", kind: "prop" as const, prop: "room-birdcage", pos: { x: 2, y: 2, space: "h1" }, open: false, inventory: {} };
+    const chirp = performRoomAct(host, cage as any, propDefs["room-birdcage"].act!);
+    expect(cage.open).toBe(true);
+    expect(chirp.sound).toBe("bird");
+
+    for (const [prop, expected] of [["room-piano", "piano"], ["room-lute", "lute"], ["room-guitar", "guitar"]] as const) {
+      expect(instrumentForProp(prop)).toBe(expected);
+      const obj = { id: `o-${expected}`, name: expected, kind: "prop" as const, prop, pos: { x: 2, y: 2, space: "h1" }, open: false, inventory: {} };
+      const act = performRoomAct(host, obj as any, propDefs[prop].act!);
+      expect(act.openInstrument).toBe(expected);
+      const spec = INSTRUMENTS[expected];
+      const buf = synthesize(spec.voice, spec.baseMidi, 0, 0, 22050);
+      expect(buf.some((v) => Math.abs(v) > 0.05), `${expected} synth audio`).toBe(true);
+    }
   });
 });

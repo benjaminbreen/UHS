@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Engine } from "../core/engine";
 import { App } from "../ui/App";
+import { surveyMapEdges } from "./terrain-worker-owner";
 import { Runtime } from "./session";
 
 import { PropLabHost } from "../dev/PropLabHost";
@@ -29,6 +30,7 @@ export function Game({ engine, active, onReady, edu }: {
   useLayoutEffect(() => {
     runtime.timeTravelLocked = !active;
     if (!active) return;
+    surveyMapEdges(runtime.engine.world);
     runtime.resumeAmbient();
     // The public player surface projects visibility and validates all commands.
     Object.assign(window, {

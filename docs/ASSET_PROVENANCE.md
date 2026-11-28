@@ -36,7 +36,9 @@ were made with OpenAI image generation from the prompts in
 `scripts/art/opening-prompts.json`. They are illustrative reconstructions for
 broad dates and regions, not evidence. Edits have removed anachronisms (for
 example, poultry and New World crops in the wrong places), and matching guards
-keep each image to its region and climate.
+keep each image to its region and climate. Only the strip arrival
+(`?arrival=strip`) shows the `public/opening/` paintings; the default descent
+arrival uses the atlas alone.
 
 ## Vessel backdrops
 

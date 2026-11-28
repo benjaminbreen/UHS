@@ -12,6 +12,7 @@ export function propAffordances(
   s: Snapshot,
   o: WorldObject,
   close: boolean,
+  actLabel?: string,
 ): Affordance[] {
   const d = propDefs[o.prop ?? ""];
   const actions: Affordance[] = [];
@@ -74,14 +75,23 @@ export function propAffordances(
   if (d.door && !o.broken) add(o.open ? "close" : "open", o.open ? "Shut the door" : "Open the door");
   if (d.drink) add("drink", "Drink water");
   // `open` on a thing with an act means the act has been done; only once-only acts end there.
-  if (d.act && !o.carriedBy && !o.broken && !(d.act.once && o.open)) add("attend", d.act.verb, (s.player.inventory.coin ?? 0) >= (d.act.price ?? 0), "Not enough money");
-  if (d.fire && !o.carriedBy)
+  if (d.act && !o.carriedBy && !o.broken && !(d.act.once && o.open)) {
+    const label = actLabel ?? (d.act.toggle ? (o.open ? d.act.toggle[1] : d.act.toggle[0]) : d.act.verb);
+    if (d.act.room === "radio" && o.open) add("look", "Tune the radio");
+    if (d.act.room === "fire" && o.open) add("look", "Warm up by the fire");
+    if (d.act.room === "window" && /^(Open|Shut) /.test(label)) add("look", "Look out the window");
+    add("attend", label, (s.player.inventory.coin ?? 0) >= (d.act.price ?? 0), "Not enough money");
+    if (d.act.room === "bed") add("sleep", "Sleep until morning");
+  }
+  if (d.fire && !o.carriedBy) {
+    const unlit = d.act?.room === "fire" && !o.open;
     add(
       "cook",
       "Cook meat",
-      (s.player.inventory.meat ?? 0) > 0,
-      "You have no raw meat",
+      !unlit && (s.player.inventory.meat ?? 0) > 0,
+      unlit ? "Kindle the fire first" : "You have no raw meat",
     );
+  }
   if (d.breakable && !o.broken && !o.carriedBy) add("strike", "Strike it");
   // Shoving something over needs no tool, and does not break it. A stick to
   // a basket still breaks the basket; a shoulder to it only lays it down.

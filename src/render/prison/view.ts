@@ -74,6 +74,7 @@ export class PrisonView {
 
     // Interactive escape overlays: ALttP wall-crack, hidden spoon, stolen key rack cover, open drain grate
     for (const t of level.things) {
+      if (t.prop) continue;
       if (t.art === "wall-crack") {
         const im = scene.add
           .image(t.x * 16 - 22, t.y * 16 - 2, tex("crack-0", paintWallCrack(look, 0).canvas()))

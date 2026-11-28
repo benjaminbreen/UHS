@@ -438,7 +438,7 @@ shop, a shop or stall form), or nothing for a house. The planner follows it:
   in Japan, an auspicious name for a Chinese inn, the town for a post
   station. No two in a town share a name.
 - Inside, one person minds the counter from 08:00 to 18:00: the keeper if
-  they are in and well, else the first grown member of the household who is.
+  they are in and well, then a resident apprentice aged fourteen or older, then another grown household member. A working craftsperson can serve from the loom, wheel or bench.
   They sell the goods of the shop's kind (`shopKinds` in
   `content/interiors/shops.ts`) as well as their own trade's goods. The rest
   of the household stays in the rooms behind. The shop is fitted as shops
@@ -456,6 +456,32 @@ shop, a shop or stall form), or nothing for a house. The planner follows it:
   curtained windows. A North American
   tobacconist from 1840 to 1930 has a carved cigar-store Indian by the door,
   and a British one from 1720 to 1900 a snuff-taking Highlander.
+- A house kept for eating or drinking (the `serves` kinds in `shopKinds`:
+  café, pub and eatery) has a serving room in front instead of a shop: a
+  counter with the keeper's walk behind it, a back bar against the wall,
+  tables and seats, and neighbours in the seats while it is open (café 7–19,
+  eatery 7–22, pub 11–24, 16–24 before 1850). What it pours is read from
+  place and date (`served`): tea in East Asia, chai on the steppe, coffee in
+  the Islamic lands, a period taproom elsewhere before 1850, and the modern
+  café (an espresso machine from 1905, an urn before), bar (handpumps, mirror
+  and bottles, a dartboard) and, in the Americas from 1920, the diner
+  (laminate counter, pie dome, booths). A modern one also has a server on
+  shift. The player's own is named like any inn or café. Its keeper minds
+  the bar while it is open, as a shopkeeper minds the counter.
+- Whoever is minding a counter or bar has a hopping gold arrow under the
+  trade coin over their head; the customers at the tables get no coin. Near
+  them the `T` prompt reads "Order from" in a serving room and "Trade with"
+  elsewhere, and a conversation with them offers the goods from the start.
+- In a serving room that opens the menu (`MenuPanel`, the `order` command)
+  instead of the goods, which stay a button away. `menus.ts` holds the
+  written menus by drink, place and date (American coffee shop, lunch
+  counter, diner, saloon and bar; English alehouse to modern pub; Paris and
+  European cafés; Ottoman coffee house; Chinese teahouse; Edo teahouse;
+  chaikhana), priced in the period's own money, with a plain unpriced menu
+  for every drink elsewhere. A room without a drink style gets the pub
+  drink `served` picks for its place and date. An order is paid in whole
+  coins into the keeper's purse, eases hunger or tiredness, and takes up to
+  half an hour.
 - The first sign board is the keeper's own: the business the art names, else
   `keeperTrade` of the keeper's work. The other boards are neighbours. A
   ruin or a lot with nobody keeping it has none.
@@ -464,6 +490,10 @@ shop, a shop or stall form), or nothing for a house. The planner follows it:
 
 A household whose work is in the fields or with the herd keeps no workshop
 at home, and a private home is named "Household", never a store.
+
+A resident apprentice shares the master’s trade and workplace. An equipped household workshop can seat both at separate places around one tool. A young child or infant living at home gives the sleeping room a toy beside its local bedding when there is floor space.
+
+The street door opens into the shop even when its floor plan is mirrored. A generated shopfront records its keeper’s trade. A market trader with a shop works at its counter. A trader without one uses a market pitch. The shop counter uses its trade for its wares even when several shops share the same shelf art. Indoor shifts already held by the owner or an assigned employee are reserved for that person. Speakeasy pianists work from 6 p.m. until 2 a.m.
 
 ### Inside a house
 

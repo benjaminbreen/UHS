@@ -12,18 +12,18 @@ test("arrival reveals the real character early and prepares a paused first frame
   await page.goto("/?start=Farmer%20in%20Seoul%201750&seed=arrival-regression");
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   await expect(page.getByLabel("Character appearance")).toBeVisible({ timeout: 30000 });
-  const identity = await page.locator(".arrival-details>p").first().innerText();
-  await expect(page.locator(".arrival-enter")).toBeDisabled();
+  const identity = await page.locator(".descent-who p").first().innerText();
+  await expect(page.locator(".descent-enter")).toBeDisabled();
   await expect(page.locator(".game-container canvas")).toHaveCount(0);
-  await page.locator(".arrival").getByRole("button", { name: "Back", exact: true }).click();
-  await expect(page.locator(".arrival")).toHaveCount(0);
+  await page.locator(".descent").getByRole("button", { name: "Back", exact: true }).click();
+  await expect(page.locator(".descent")).toHaveCount(0);
   release();
   await page.unroute("**/src/world/worker.ts*");
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   const canvas = page.locator('.game-container canvas[data-terrain-ready="true"]');
   await canvas.waitFor({ state: "attached", timeout: 120000 });
-  await expect(page.locator(".arrival")).toBeVisible();
-  await expect(page.locator(".arrival-details>p").first()).toHaveText(identity);
+  await expect(page.locator(".descent")).toBeVisible();
+  await expect(page.locator(".descent-who p").first()).toHaveText(identity);
   await expect(page.locator(".arrival-portrait")).toHaveClass("arrival-portrait is-settled");
   const state = () => page.evaluate(() => {
     const runtime = (window as any).uhs;
@@ -36,14 +36,14 @@ test("arrival reveals the real character early and prepares a paused first frame
   await page.keyboard.press("ArrowRight");
   await page.keyboard.press("KeyI");
   expect(await state()).toEqual(prepared);
-  await page.locator(".arrival").getByRole("button", { name: "Back", exact: true }).click();
+  await page.locator(".descent").getByRole("button", { name: "Back", exact: true }).click();
   await expect(page.locator(".game-container canvas")).toHaveCount(0);
   // The sculpted-portrait tracer (6208e937) lives for the page; every world worker must go.
   await expect.poll(() => page.evaluate(() => (window as any).__vitals.now().counts.workers)).toBe(1);
   await page.getByRole("button", { name: "Begin", exact: true }).click();
   await canvas.waitFor({ state: "attached", timeout: 120000 });
   await page.getByRole("button", { name: /Enter life/ }).click();
-  await expect(page.locator(".arrival")).toHaveCount(0);
+  await expect(page.locator(".descent")).toHaveCount(0);
   expect((await state()).locked).toBe(false);
   expect((await state()).public).toBe(true);
   await expect(page.locator(".game-container")).toBeFocused();

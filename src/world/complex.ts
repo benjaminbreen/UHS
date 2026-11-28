@@ -30,7 +30,7 @@ export type AreaExit = { x: number; y: number; w: number; h: number; to: string;
 export type AreaLift = { x: number; y: number; to: string; up: boolean };
 export type AreaDecor = { type: string; x: number; y: number; solid: boolean; v: number };
 /** A prop the area puts in the world the first time it is walked into: its key in the prop catalogue, and the sprite it is drawn with. */
-export type AreaProp = { key: string; sprite: string; x: number; y: number; description?: string };
+export type AreaProp = { key: string; sprite: string; x: number; y: number; name?: string; description?: string; loot?: Inventory; size?: [number, number] };
 /** Someone in an area when the player arrives, by the content id they are generated from. */
 export type AreaFolk = { id: string; person: string; x: number; y: number; sex: "male" | "female"; age: number };
 

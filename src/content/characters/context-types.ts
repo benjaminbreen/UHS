@@ -206,6 +206,7 @@ export type Livelihood = {
   id: string;
   label: string;
   activity: string;
+  shopKind?: string;
   trade?: string;
   /**
    * Which kind of settlement this work belongs to; absent on the eight

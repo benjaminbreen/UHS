@@ -33,7 +33,12 @@ tests.
 - **Job assignment** counts occupied workplace slots once per resident selection,
   then reuses the vacancies across eligible trades. Counts are refreshed for the
   next resident so workplace capacity and household-only jobs stay accurate.
-- **Map exits** use bounded searches from preferred crossings toward the spawn.
+- **Map exits** finish in the background on a fresh connected start. The desktop
+  preparation worker sends each crossing to the live world. Phones use short
+  slices of the same search on the live map. A nearby border or a walking
+  destination near the edge gets priority. Later maps prepared for a crossing
+  include their routes on arrival. Each search starts at a preferred crossing
+  and works toward the spawn.
   Only a failed search triggers whole-map reachability discovery; its terrain
   and obstacle lookups are shared across exits. Collision and slope checks
   leave cosmetic ground wear for the first detailed sample of each cell. A
@@ -122,6 +127,7 @@ npm run build && npm run preview -- --port 4173
 npm run measure:performance -- sample-name
 ```
 
+- `PERF_FIRST_STEP=1 PERF_WORLD="A gatherer in Acapulco, 1039 BCE"` measures the Begin click through the first keyboard move that changes the player’s position. It dismisses the opening card as soon as it can and records a screenshot. On desktop it also counts finished crossings at that step.
 - `PERF_URL` changes the server.
 - `PERF_PROFILE=1` writes Chrome CPU profiles.
 - `PERF_MEMORY=1 PERF_MOBILE=1 PERF_WORLD="A baker in Paris, 1400 CE"` samples

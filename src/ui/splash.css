@@ -205,6 +205,19 @@
   stroke-width: 3;
   fill: var(--splash-gold);
 }
+.splash-input button.splash-link-btn {
+  width: 38px;
+  color: #c9b584;
+}
+.splash-input button.splash-link-btn:hover:not(:disabled) {
+  color: var(--splash-gold);
+}
+.splash-input button.splash-link-btn svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 2;
+  fill: none;
+}
 .splash-actions {
   display: flex;
   justify-content: center;

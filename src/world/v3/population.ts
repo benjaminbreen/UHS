@@ -41,6 +41,7 @@ import { nursingFor } from "../../content/households/nursing";
 import { marriageAgeFor } from "../../content/households/marriage-age";
 import { ritualKinFor } from "../../content/households/ritual-kin";
 import { capabilitiesFor } from "../../content/characters/resolve";
+import { requirementMet } from "../../content/characters/requirements";
 import { goodName, productFor, sellerOf } from "../../content/economy/products";
 const seasons = ["spring", "summer", "autumn", "winter"];
 /** Households as the result of a life (household-story.ts), then the ties
@@ -161,6 +162,8 @@ export function populateHouseholds(
       marriage: pack.setting?.lifeStoryRevision ? marriageAgeFor(pack.setting) : undefined,
       player: owner === "player",
       modern: year >= 1900,
+      // Live-in service went where the hand trades went, with cheap appliances and factory wages.
+      servants: !pack.setting || requirementMet("handwork", pack.setting),
       revised: !!pack.setting?.lifeStoryRevision,
       formalMarriage: !!practice && parent?.standing !== "unfree",
       apprentice: parent?.livelihood === "apprentice",
@@ -184,7 +187,7 @@ export function populateHouseholds(
       household.producers = Object.fromEntries(household.makes!.map((g) => [g, owner]));
       household.products = Object.fromEntries(household.makes!.map((g) => [g, productFor(g, pack.setting!, kit?.trade ?? kit?.id)]));
       // A fictional taste draw, not a historical estimate of alcohol consumption.
-      household.needs = goods.filter((g) => g.need && (g.id !== "drink" ||
+      household.needs = goods.filter((g) => g.need && year < (g.readyMade ?? Infinity) && (g.id !== "drink" ||
         random(seed, id, "drink-preference") < 0.35)).map((g) => g.id);
       if (random(seed, id, "milk-preference") < 0.4) household.needs.push("milk");
       if (random(seed, id, "oil-preference") < 0.4) household.needs.push("oil");
@@ -301,7 +304,11 @@ export function populateHouseholds(
         Object.assign(a, drawn);
         if (m.bound && a.origin) a.origin = { ...a.origin, standing: "unfree" };
         if (m.as === "wet nurse") a.role = "Wet nurse";
-        if (m.role === "Apprentice" && kit && a.origin?.livelihood === kit.id) a.role = `Apprentice ${kit.label}`;
+        if (m.role === "Apprentice" && kit && a.origin) {
+          a.origin.livelihood = kit.trade ?? kit.id;
+          a.role = `Apprentice ${kit.label.replace(/^(?:Apprentice|Journeyman|Master) /, "")}`;
+          a.origin.roleLabel = a.role;
+        }
         // Kin look like kin: a child takes after the head and their partner,
         // and the head's own parent is drawn to match the head.
         const headLooks = adult?.appearance ?? ownerCharacter?.appearance;
@@ -344,8 +351,8 @@ export function populateHouseholds(
       }
       household.members.push(memberId);
       world.initialActors.push(a);
-      if (pack.setting?.employmentRevision && !child) {
-        const memberSite = { ...sites, work: { ...(m.role === "Apprentice" ? sites.work : sites.domesticWork ?? sites.work) }, employment: undefined, role: undefined,
+      if (pack.setting?.employmentRevision && !child && m.role !== "Apprentice") {
+        const memberSite = { ...sites, work: { ...(sites.domesticWork ?? sites.work) }, employment: undefined, role: undefined,
           gateId: undefined, rackId: undefined, pasture: undefined };
         plan.work.set(memberId, memberSite);
         assignLocalWork(plan, pack, seed, a, memberSite);
@@ -435,7 +442,8 @@ export function populateHouseholds(
     }
   }
   // Every household buys what it needs and does not make, from the nearest
-  // household that makes it, a shopfront before a back door.
+  // household that makes it, a shopfront before a back door. After 1900 nobody
+  // buys a farmer's grain to bake their own bread.
   const byId = new Map(made.map((h) => [h.id, h]));
   const residence = (h: Household) =>
     plan.places.find((p) => p.id === h.residence);
@@ -445,7 +453,7 @@ export function populateHouseholds(
     const buys: Household["buys"] = [];
     for (const g of goods) {
       if (!(h.needs ? h.needs.includes(g.id) : g.need) || h.makes?.includes(g.id)) continue;
-      const wanted = [g.id, standsIn[g.id]].filter(Boolean);
+      const wanted = [g.id, year < 1900 && standsIn[g.id]].filter(Boolean);
       let best: Household | undefined,
         score = Infinity;
       for (const s of made) {
@@ -501,12 +509,13 @@ export function populateHouseholds(
     // settlement during the day instead of stacking on one doorstep.
     const kit = livelihoodOf(pack, a);
     const i = household.members.indexOf(id);
+    const apprentice = a.relations?.some(r => r.kind === "master" && r.reciprocal === "apprentice");
     const memberSite = {
       ...site,
-      ...(pack.setting?.employmentRevision ? { work: { ...(site.domesticWork ?? site.work) } } : {}),
-      employment: undefined,
+      ...(!apprentice && pack.setting?.employmentRevision ? { work: { ...(site.domesticWork ?? site.work) } } : {}),
+      employment: apprentice ? site.employment : undefined,
       role: undefined,
-      ...(pack.setting?.employmentRevision ? { gateId: undefined, rackId: undefined, pasture: undefined } : {}),
+      ...(!apprentice && pack.setting?.employmentRevision ? { gateId: undefined, rackId: undefined, pasture: undefined } : {}),
       label: child ? "Errands" : (kit?.activity ?? "Keeping house"),
       offset: (site.offset + 37 * i) % 1440,
     };
@@ -518,7 +527,7 @@ export function populateHouseholds(
     const shop = from && residence(from);
     const seller = buy && sellerOf(buy, made, world.initialActors);
     plan.work.set(id, memberSite);
-    if (!child) assignLocalWork(plan, pack, seed, a, memberSite);
+    if (!child && !apprentice) assignLocalWork(plan, pack, seed, a, memberSite);
     // A fishing household's shore work falls to those not in the boat:
     // gutting, drying and selling, and the children's bait and baskets.
     const landing = plan.waterfront?.members.find((m) => m.homeId === household.residence && m.handling);

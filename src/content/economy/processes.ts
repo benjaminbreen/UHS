@@ -59,6 +59,7 @@ const byActivity: Record<string, Entry> = {
   "Working leather": ["transform", "tanning-pits", "hide-frame", "bench"],
   "Making shoes": ["transform", "bench"],
   "Working metal": ["transform", "anvil"],
+  "Making instruments": ["transform", "workbench"],
   "Making tools": ["transform", "knapping-floor", "anvil"],
   "Working wood": ["transform", "workbench", "woodpile"],
   "Working timber": ["transform", "workbench", "woodpile"],
@@ -115,7 +116,7 @@ const byActivity: Record<string, Entry> = {
 const indoors = new Set([
   "Working the grain", "Cooking", "Brewing", "Working cloth", "Weaving",
   "Twisting fibre", "Making clothes", "Household craft work", "Making shoes",
-  "At the workbench", "Turning pots", "Making candles", "Keeping the record",
+  "At the workbench", "Making instruments", "Turning pots", "Making candles", "Keeping the record",
   "Household work", "Looking after the household", "Keeping the house",
   "Tending the sick", "Playing and telling", "Selling tobacco", "Making up betel",
   "Hearing cases", "Minding the business",

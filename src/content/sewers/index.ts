@@ -3,6 +3,7 @@ import { sewerFinds } from "./finds";
 import { sewerPeople } from "./people";
 import { mineFinds } from "../mines/finds";
 import { minePeople } from "../mines/people";
+import { catacombFinds } from "../catacombs";
 import { cavePeople } from "../caves/people";
 import { shipPeople } from "../ships/people";
 import { fairPeople } from "../fairs/people";
@@ -16,7 +17,7 @@ export { SEWER_ART } from "./types";
 export { sewerItems } from "./items";
 export { sewerFinds, sewerPeople };
 
-const byId = new Map([...sewerFinds, ...mineFinds].map((f) => [f.id, f]));
+const byId = new Map([...sewerFinds, ...mineFinds, ...catacombFinds].map((f) => [f.id, f]));
 /** A find in any tunnels, sewer or mine. */
 export const sewerFind = (id: string) => byId.get(id);
 const people = new Map([...sewerPeople, ...minePeople, ...cavePeople, ...shipPeople, ...fairPeople, ...prisonPeople].map((p) => [p.id, p]));

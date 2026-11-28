@@ -30,6 +30,11 @@ const SOUTH_ASIA = [60, 5, 98, 37] as const;
 const EAST_ASIA = [98, 18, 146, 54] as const;
 const NORTH_AMERICA = [-125, 25, -60, 50] as const;
 const BRITAIN = [-6, 50, 2, 56] as const;
+/** The US (cut along the Rio Grande) and Canada, Western Europe, Australasia, Japan. */
+const INDUSTRIALISED: readonly (readonly [number, readonly [number, number, number, number]])[] = [
+  [1950, [-170, 32.72, -52, 72]], [1950, [-104.5, 29.5, -52, 32.72]], [1950, [-97.4, 24.4, -79, 29.5]],
+  [1960, [-11, 36, 16, 62]], [1960, [112, -48, 179, -10]], [1970, [128, 30, 146, 46]],
+];
 /** When a European-style institution reached everywhere else: the Americas
  * first, the African interior last. Kano drew policemen and milliners in 1850. */
 const colonial: readonly CharacterScope[] = [
@@ -253,11 +258,6 @@ const SCOPES: Record<string, readonly CharacterScope[]> = {
     at(1970, [-3, 56, 7, 62]),
   ],
   // Stored-program machines in offices and laboratories, then everywhere.
-  computers: [at(1955, [-125, 25, -60, 50]), at(1958, [-11, 36, 40, 62]), at(1962, [128, 30, 146, 46]), at(1980, [-180, -60, 180, 72])],
-  // Irregular war: the Peninsular guerrilla, the Mexican Revolution, the
-  // European resistance, the wars of decolonisation and the Central American
-  // and Afghan insurgencies.
-  // Wars fought through towns: armies quartered, besieging or passing.
   // Projected: when delivery robots, robotaxis and humanoids become ordinary
   // on the street. China's coastal cities first, the rural tropics last.
   robots: [
@@ -270,6 +270,11 @@ const SCOPES: Record<string, readonly CharacterScope[]> = {
     at(2042, SOUTH_ASIA),
     at(2048),
   ],
+  computers: [at(1955, [-125, 25, -60, 50]), at(1958, [-11, 36, 40, 62]), at(1962, [128, 30, 146, 46]), at(1980, [-180, -60, 180, 72])],
+  // Irregular war: the Peninsular guerrilla, the Mexican Revolution, the
+  // European resistance, the wars of decolonisation and the Central American
+  // and Afghan insurgencies.
+  // Wars fought through towns: armies quartered, besieging or passing.
   war: [
     at(-431, [19, 36, 28, 41.5], -404),
     at(-218, [7, 37, 19, 46], -201),
@@ -338,6 +343,13 @@ const SCOPES: Record<string, readonly CharacterScope[]> = {
     at(1916, [34, 20, 45, 32], 1919),
     at(1936, [33, 3, 48, 15], 1942),
   ],
+  // Goods made by hand for neighbours: soap, candles, hats, horseshoes, made-to-measure
+  // dresses. Mass-produced goods from chain stores ended these trades in the US and
+  // Canada by about 1950, Western Europe and Australasia by 1960 and Japan by 1970.
+  handwork: [
+    ...INDUSTRIALISED.map(([to, bounds]) => at(-1000000, bounds, to)),
+    { years: [-1000000, 10001], except: INDUSTRIALISED.map(([, bounds]) => bounds) },
+  ],
 };
 
 /** Some animal that can be milked, ridden, yoked or shorn. */
@@ -353,6 +365,7 @@ function present(scopes: readonly CharacterScope[], s: WorldSetting) {
     (scope) =>
       s.year >= scope.years[0] &&
       s.year < scope.years[1] &&
+      !scope.except?.some((b) => s.lon >= b[0] && s.lat >= b[1] && s.lon <= b[2] && s.lat <= b[3]) &&
       (!scope.bounds ||
         (s.lon >= scope.bounds[0] &&
           s.lat >= scope.bounds[1] &&

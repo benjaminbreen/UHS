@@ -109,7 +109,7 @@ async function openWorld(
     // A prompt that only partly matches opens the details dialog, whose own
     // Begin starts play; one that matches outright starts at once.
     const confirm = page.locator(".modal-world").getByRole("button", { name: "Begin", exact: true });
-    await waitForStart(confirm.or(page.locator(".arrival")));
+    await waitForStart(confirm.or(page.locator(".arrival, .descent")));
     if (await confirm.isVisible()) await confirm.click();
     const enter = page.getByRole("button", { name: /Enter life/ });
     phase("generating the world");

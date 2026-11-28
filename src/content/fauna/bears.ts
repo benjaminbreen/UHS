@@ -10,6 +10,7 @@ const bear = {
   activity: "crepuscular",
   groupSize: [1, 1],
   pace: 1.1,
+  sprint: 7,
   settlementTolerance: 0.03,
   minimumSettlementDistance: 25,
   alertRadius: 7,

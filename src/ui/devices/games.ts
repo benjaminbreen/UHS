@@ -11,7 +11,6 @@ export type Game = {
   draw(ctx: CanvasRenderingContext2D, ink: string, ghost: string): void;
   score(): number;
   over(): boolean;
-  help: string;
 };
 
 function dice(seed: number) {
@@ -32,7 +31,7 @@ function worm(seed: number): Game {
   };
   let food = place();
   return {
-    width: W * CELL + 2, height: H * CELL + 2, help: "Arrows steer",
+    width: W * CELL + 2, height: H * CELL + 2,
     pace: () => Math.max(70, 170 - eaten * 5),
     step(pad) {
       if (dead) return;
@@ -72,7 +71,7 @@ function catcher(seed: number): Game {
     ctx.fillRect(x + 3, 47, 3, 3), ctx.fillRect(x + 2, 50, 5, 4), ctx.fillRect(x + 2, 54, 2, 2), ctx.fillRect(x + 5, 54, 2, 2);
   };
   return {
-    width: 96, height: 58, help: "Left and right move the porter",
+    width: 96, height: 58,
     pace: () => Math.max(160, 420 - caught * 8),
     step(pad) {
       if (missed >= 3) return;
@@ -108,7 +107,7 @@ function runner(seed: number): Game {
   let y = 0, vy = 0, far = 0, dead = false, gap = 40;
   let stacks: { x: number; h: number }[] = [];
   return {
-    width: 96, height: 58, help: "Up or the button jumps",
+    width: 96, height: 58,
     pace: () => 40,
     step(pad) {
       if (dead) return;

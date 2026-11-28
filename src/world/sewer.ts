@@ -590,16 +590,27 @@ function furnish(seed: string, site: SewerSite, d: Draft): SewerLevel {
   const rats: Point[] = [];
   for (let n = mine ? 1 + Math.floor(rng() * 3) : sewer ? 3 + Math.floor(rng() * 6) : Math.floor(rng() * 3); n > 0 && floors.length; n--) rats.push(floors[Math.floor(rng() * floors.length)]);
 
+  const props = things.map((t) => {
+    t.prop = true;
+    return {
+      key: `${site.network}-${t.find}`,
+      sprite: `made:sewer:${site.network}:${site.kind}:${d.layer}:5:${t.art}`,
+      x: t.x,
+      y: t.y,
+      name: t.name,
+      ...(Object.keys(t.loot).length ? { loot: t.loot } : {}),
+    };
+  });
   const names = mine ? MINE_NAMES[site.kind as keyof typeof MINE_NAMES][d.layer as keyof (typeof MINE_NAMES)["coal"]] : sewer ? NAMES[site.kind as SewerKind][d.layer as SewerDepth] : CATACOMB_NAMES[site.kind as CatacombKind][d.layer as CatacombDepth];
   const name = d.name ?? names[hash(`${seed}|${site.id}|${d.depth}|name`) % names.length];
-  return { ...d, name, flow, down, things, decor, folk, lamps, rats };
+  return { ...d, name, flow, down, things, props, decor, folk, lamps, rats };
 }
 
-/** Cells that stop feet whatever is taken: piers, rubble, big finds, the way down. */
+/** Cells that stop feet whatever is taken: piers, rubble, non-prop big finds, the way down. */
 export function sewerSolid(level: SewerLevel) {
   const solid = new Set<number>();
   if (level.down) solid.add(level.down.y * level.w + level.down.x);
   for (const d of level.decor) if (d.solid) solid.add(d.y * level.w + d.x);
-  for (const t of level.things) if (t.solid) solid.add(t.y * level.w + t.x);
+  for (const t of level.things) if (t.solid && !t.prop) solid.add(t.y * level.w + t.x);
   return solid;
 }

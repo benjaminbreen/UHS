@@ -64,6 +64,8 @@ export function householdStory(o: {
   marriage?: Pick<MarriageAge, "women" | "men" | "never">;
   player: boolean;
   modern: boolean;
+  /** Whether comfortable households here still keep a live-in servant. */
+  servants?: boolean;
   revised?: boolean;
   formalMarriage?: boolean;
   apprentice?: boolean;
@@ -295,7 +297,7 @@ export function householdStory(o: {
   }
   const b = o.bondage;
   const boundWord = (sex: Sex) => b!.word[sex === "female" ? 0 : 1];
-  if (o.means >= 0.6 && r("servant") < o.means - 0.15) {
+  if (o.servants !== false && o.means >= 0.6 && r("servant") < o.means - 0.15) {
     const bound = !!b && r("servant-bound") < b.servants;
     const sex: Sex | undefined = bound ? (r("bound-sex") < b!.girls ? "female" : "male") : undefined;
     const as = bound ? boundWord(sex!) : "servant";

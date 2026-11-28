@@ -1,6 +1,7 @@
 import { characterName, generateCharacter } from "../characters/generate";
 import type { WorldSetting } from "./types";
 import { random } from "../../core/random";
+import { livelihoodById } from "../characters/livelihoods";
 import { packForSetting } from "./pack";
 
 // Small reusable name kits; the setting keeps the chosen result for replay.
@@ -94,11 +95,13 @@ export function populateCharacter(
   const characterSeed = setting.character?.appearanceSeed ?? seed;
   const firstAge = setting.character?.age ?? adultAge(roll);
   const first = generateCharacter(setting, characterSeed, "player", firstAge, setting.role);
+  // Pensions took the old out of wage work; before them people worked while they could.
+  const [lo, hi] = livelihoodById(first.origin.livelihood)?.ages ?? [18, setting.year >= 1900 ? 66 : 76];
   const age = setting.character?.age ?? (first.origin.livelihood === "apprentice"
     ? 18 + Math.floor(roll * 10)
     : first.origin.livelihood === "guild-master"
       ? 30 + Math.floor(roll * 36)
-      : firstAge);
+      : firstAge >= lo && firstAge < hi ? firstAge : lo + Math.floor(roll * (Math.min(hi, 76) - lo)));
   const generated = generateCharacter(
     setting,
     characterSeed,

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { Runtime } from "../../runtime/session";
 import { deviceMessages, radioStation, type DeviceApp, type DeviceModel } from "../../content/devices";
+import { en, localDeviceText, type DeviceText } from "../../content/device-text";
 import { talkOf } from "../../content/history/tidings";
 import { amountIn } from "../../content/economy/money";
 import { skySeed, weatherAt } from "../../core/weather";
@@ -20,19 +21,13 @@ type DeviceAudio = {
 const beeps = (notes: number[], each = 0.15): Sound =>
   notes.map((midi, i) => tone(i * each, each * 0.85, 0.12, 440 * 2 ** ((midi - 69) / 12), { wave: "square" }));
 
-const LABELS: Record<DeviceApp, string> = {
-  call: "Contacts", messages: "Messages", news: "News", weather: "Weather", clock: "Clock", map: "Map", money: "Money",
-  tones: "Ring tones", assistant: "Assistant", worm: "Worm", catch: "Parcel Drop", runner: "Roof Cat", radio: "Radio", tape: "Music",
-};
-const TONES: { name: string; notes: number[] }[] = [
-  { name: "Ring ring", notes: [88, 84, 88, 84, 88, 84] },
-  { name: "Ascending", notes: [72, 76, 79, 84, 88] },
-  { name: "Grasshopper", notes: [91, 91, 86, 91, 91, 86] },
-  { name: "Low battery", notes: [79, 72, 67] },
-];
+const fill = (text: string, values: Record<string, string | number>) => text.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
+/** In the order of the text files' `tones`. */
+const TONES = [[88, 84, 88, 84, 88, 84], [72, 76, 79, 84, 88], [91, 91, 86, 91, 91, 86], [79, 72, 67]];
+const NATIVE = "uhs-device-native";
 const STATIONS = 6;
 
-function GameScreen({ game, mono, pad }: { game: Game; mono: boolean; pad: { current: Pad } }) {
+function GameScreen({ game, mono, pad, help, gameOver }: { game: Game; mono: boolean; pad: { current: Pad }; help: string; gameOver: string }) {
   const ref = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState(0);
   const [over, setOver] = useState(false);
@@ -55,7 +50,7 @@ function GameScreen({ game, mono, pad }: { game: Game; mono: boolean; pad: { cur
   return (
     <div className="device-game">
       <canvas ref={ref} width={game.width} height={game.height} />
-      <p>{over ? `Game over · ${score}` : `${score} · ${game.help}`}</p>
+      <p>{over ? `${gameOver} · ${score}` : `${score} · ${help}`}</p>
     </div>
   );
 }
@@ -76,6 +71,9 @@ export function DevicePanel({ runtime, model, audio, onClose, onCall, onMap }: {
   const [round, setRound] = useState(0);
   const pad = useRef<Pad>({ x: 0, y: 0, a: false });
   const mono = !model.colour;
+  const local = setting ? localDeviceText(setting.lon, setting.lat) : undefined;
+  const [native, setNative] = useState(() => localStorage.getItem(NATIVE) === "1");
+  const t: DeviceText = (native && local) || en;
 
   const contacts = useMemo(
     () => state.actors.filter((a) => a.kind === "human" && !a.dead && a.id !== p.id && knowsPlayer(runtime, a)).slice(0, 12),
@@ -92,10 +90,10 @@ export function DevicePanel({ runtime, model, audio, onClose, onCall, onMap }: {
         return by ? [{ from: by.name.split(" ")[0], what: ask.what }] : [];
       }),
       news, balance,
-    }),
+    }, t),
     // The clock moves while this is open; the day's messages do not.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [model, contacts, news],
+    [model, contacts, news, t],
   );
   const forecast = setting
     ? [0, 1, 2].map((d) => weatherAt(skySeed(state.manifest), setting.climate, setting.season, (Math.floor(state.clock / 86400) + d) * 86400 + 13 * 3600))
@@ -103,12 +101,12 @@ export function DevicePanel({ runtime, model, audio, onClose, onCall, onMap }: {
   const game = useMemo(() => (app && games[app] ? games[app]!(Date.now() + round) : undefined), [app, round]);
 
   const rows: string[] =
-    !app ? model.apps.map((a) => LABELS[a])
+    !app ? model.apps.map((a) => t.apps[a])
     : app === "call" ? contacts.map((a) => a.name)
     : app === "messages" ? messages.map((m) => (m.from ? `${m.from}: ${m.text}` : m.text))
     : app === "news" ? news
-    : app === "tones" ? TONES.map((t) => t.name)
-    : app === "tape" ? themes.map((t, i) => `${model.from >= 2002 ? `${i + 1}.` : i < 3 ? "A" : "B"} ${t.title}`)
+    : app === "tones" ? t.tones
+    : app === "tape" ? themes.map((theme, i) => `${model.from >= 2002 ? `${i + 1}.` : i < 3 ? "A" : "B"} ${theme.title}`)
     : [];
   const beep = (midi = 84) => void audio?.sound(beeps([midi], 0.06), "device-key");
 
@@ -127,7 +125,7 @@ export function DevicePanel({ runtime, model, audio, onClose, onCall, onMap }: {
     }
     if (app === "call" && contacts[index]) return onCall(contacts[index].id);
     if (app === "messages" || app === "news") return setOpened(opened === undefined ? index : undefined);
-    if (app === "tones") return void audio?.sound(beeps(TONES[index].notes), "device-tone");
+    if (app === "tones") return void audio?.sound(beeps(TONES[index]), "device-tone");
     if (app === "tape") return void audio?.cue(themes[index].id);
   };
   const move = (dx: number, dy: number) => {
@@ -154,22 +152,26 @@ export function DevicePanel({ runtime, model, audio, onClose, onCall, onMap }: {
 
   const clock = timeLabel(state.clock);
   const message = app === "messages" && opened !== undefined ? messages[opened] : undefined;
-  const station = radioStation({ seed: state.manifest.seed, year: setting?.year ?? 1970, place: setting?.location ?? "town", clock: state.clock }, cursor);
+  const station = radioStation({ seed: state.manifest.seed, year: setting?.year ?? 1970, place: setting?.location ?? "town", clock: state.clock }, cursor, t);
+  const sky = (w: (typeof forecast)[number]) => (t === en ? w.label : t.weather[w.condition]);
   const screen =
-    game ? <GameScreen key={round} game={game} mono={mono} pad={pad} />
-    : app === "clock" ? <div className="device-big"><b>{clock}</b><span>Day {Math.floor(state.clock / 86400) + 1}{setting ? ` · ${setting.season}` : ""}</span></div>
+    game ? <GameScreen key={round} game={game} mono={mono} pad={pad} help={t.help[app as "worm" | "catch" | "runner"]} gameOver={t.gameOver} />
+    : app === "clock" ? <div className="device-big"><b>{clock}</b><span>{fill(t.day, { n: Math.floor(state.clock / 86400) + 1 })}{setting ? ` · ${t.seasons[setting.season as keyof typeof t.seasons] ?? setting.season}` : ""}</span></div>
     : app === "weather" ? (
       <ul className="device-list">
-        {forecast.map((w, i) => <li key={i}><span>{["Today", "Tomorrow", "Day after"][i]}</span><b>{w.label} {Math.round(w.tempC)}°</b></li>)}
+        {forecast.map((w, i) => <li key={i}><span>{t.days[i]}</span><b>{sky(w)} {Math.round(w.tempC)}°</b></li>)}
       </ul>
     )
-    : app === "money" ? <div className="device-big"><span>Balance</span><b>{balance}</b><span>{model.shell === "slab" ? "Hold near the reader or show your code to pay." : "Dial the menu to send or withdraw at an agent."}</span></div>
+    : app === "money" ? <div className="device-big"><span>{t.balance}</span><b>{balance}</b><span>{model.shell === "slab" ? t.payTap : t.payMenu}</span></div>
     : app === "assistant" ? (
       <p className="device-text">
-        It is {clock}. {forecast[0] ? `${forecast[0].label}, ${Math.round(forecast[0].tempC)} degrees. ` : ""}
-        {news[0] ? `People are talking about this: ${news[0]} ` : ""}
-        {messages.length ? `You have ${messages.length} messages; ${messages.filter((m) => m.from && !/alert|number|money|network/i.test(m.from)).length} are from people you know. ` : ""}
-        {(state.asks ?? []).length ? "You have promised something to someone today." : "Nothing is asked of you today."}
+        {[
+          fill(t.assistant.time, { time: clock }),
+          forecast[0] && fill(t.assistant.weather, { label: sky(forecast[0]), temp: Math.round(forecast[0].tempC) }),
+          news[0] && fill(t.assistant.news, { news: news[0] }),
+          messages.length && fill(t.assistant.messages, { n: messages.length, known: messages.filter((m) => contacts.some((a) => a.name.split(" ")[0] === m.from)).length }),
+          (state.asks ?? []).length ? t.assistant.asked : t.assistant.free,
+        ].filter(Boolean).join(" ")}
       </p>
     )
     : app === "radio" ? (
@@ -187,27 +189,39 @@ export function DevicePanel({ runtime, model, audio, onClose, onCall, onMap }: {
         ))}
       </ul>
     )
-    : <p className="device-text">{app === "call" ? "No numbers saved yet. Meet someone first." : app === "news" ? "No signal. Try again later." : "Nothing new."}</p>;
+    : <p className="device-text">{app === "call" ? t.empty.call : app === "news" ? t.empty.news : t.empty.other}</p>;
 
   return createPortal(
     <div className="device-backdrop" role="dialog" aria-modal="true" data-modal="true" aria-label={model.name} onClick={onClose}>
       <div className={`device device-${model.shell}${mono ? " is-mono" : ""}`} onClick={(e) => e.stopPropagation()}>
         {model.shell === "tape" && !model.colour && <div className="device-reels" data-playing={app === "tape" || undefined}><i /><i /></div>}
-        <div className="device-screen">
-          <header><span>{app ? LABELS[app] : model.shell === "pager" ? "Pages" : model.name}</span><span>{clock}</span></header>
+        <div className="device-screen" lang={t === en ? undefined : "und"} dir={t.dir}>
+          <header><span>{app ? t.apps[app] : model.shell === "pager" ? t.pages : model.name}</span><span>{clock}</span></header>
           {screen}
         </div>
         <div className="device-keys">
-          <button aria-label="Back" onClick={back}>{app && !only ? "Back" : "Off"}</button>
+          <button aria-label="Back" onClick={back}>{app && !only ? t.keys.back : t.keys.off}</button>
           <div className="device-pad">
             <button aria-label="Up" onClick={() => move(0, -1)}>▲</button>
             <button aria-label="Left" onClick={() => move(-1, 0)}>◀</button>
             <button aria-label="Right" onClick={() => move(1, 0)}>▶</button>
             <button aria-label="Down" onClick={() => move(0, 1)}>▼</button>
           </div>
-          <button aria-label="Select" onClick={() => choose()}>{game ? "A" : "OK"}</button>
+          <button aria-label="Select" onClick={() => choose()}>{game ? "A" : t.keys.ok}</button>
         </div>
-        <p className="device-name">{model.name}</p>
+        <p className="device-name">
+          {model.name}
+          {local && (
+            <button
+              className="device-language"
+              aria-pressed={native}
+              title={native ? "Show the device in English" : `Show the device in ${local.name}`}
+              onClick={() => { localStorage.setItem(NATIVE, native ? "0" : "1"); setNative(!native); }}
+            >
+              {native ? en.name : local.name}
+            </button>
+          )}
+        </p>
       </div>
     </div>,
     document.body,

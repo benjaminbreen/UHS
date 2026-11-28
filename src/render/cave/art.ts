@@ -1,4 +1,5 @@
-import { css, mix, rgb, type CavePalette, type RGB } from "./palette";
+import type { CaveKind } from "../../content/caves";
+import { cavePalettes, css, mix, rgb, type CavePalette, type RGB } from "./palette";
 
 type G = CanvasRenderingContext2D;
 const K = "#17120f";
@@ -1086,4 +1087,17 @@ export function paintSnake(g: G, x: number, y: number) {
   R(g, x + 12, y + 7, 1, 2, t[2]);
   R(g, x + 13, y + 4, 1, 1, K);
   R(g, x + 15, y + 5, 2, 1, "#c8281c");
+}
+
+/** A cave find's canvas from its sprite name, `made:cave:<kind>:<v>:<art>[:done]`. */
+export function cavePicture(frame: string) {
+  const done = frame.endsWith(":done");
+  const m = /^made:cave:([^:]+):(\d+):(.+)$/.exec(done ? frame.slice(0, -5) : frame);
+  const pal = m && cavePalettes[m[1] as CaveKind];
+  if (!m || !pal) return undefined;
+  const canvas = document.createElement("canvas");
+  canvas.width = 48;
+  canvas.height = 40;
+  paintCaveObject(canvas.getContext("2d")!, m[3], 16, 24, pal, Number(m[2]) / 10, done);
+  return canvas;
 }

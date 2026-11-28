@@ -1,6 +1,7 @@
 import { inventedNameNote } from "../content/characters/invented-name";
 import { resolveCharacterContext } from "../content/characters/resolve";
 import { fairById } from "../content/fairs";
+import { theatres } from "../content/interiors/theatres";
 import { Flag } from "lucide-react";
 import { formatHistoricalYear } from "../core/calendar";
 import { describedRegionAt, regionAt } from "../content/geography/region-label";
@@ -16,6 +17,9 @@ export function StartPreview({ setting }: { setting: WorldSetting }) {
   const region = describedRegionAt(setting.lon, setting.lat);
   const venue = setting.venue && fairById(setting.venue);
   const room = venue && venue.areas.find((a) => a.id === (setting.venueRoom ?? venue.entry));
+  const theatreLabel = !venue && setting.startIn === "theatre" && setting.venue
+    ? theatres.find((t) => t.id === setting.venue)?.label
+    : undefined;
   return (
     <div
       className="start-preview"
@@ -32,7 +36,7 @@ export function StartPreview({ setting }: { setting: WorldSetting }) {
               {region.label}
             </span>
           )}
-          {setting.location} · {formatHistoricalYear(setting.year)}{room && ` · ${room.name}`}
+          {setting.location} · {formatHistoricalYear(setting.year)}{room ? ` · ${room.name}` : theatreLabel ? ` · ${theatreLabel}` : ""}
         </p>
         {setting.brief?.figure ? <small>Historical figure</small> : context && (
           <small

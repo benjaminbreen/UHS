@@ -65,7 +65,7 @@ const anchors: AtlasPlace[] = [
     "european",
     100,
     "classical",
-    ["roman", "ancient rome", "roma", "tiber", "ostia", "italy"],
+    ["roman", "ancient rome", "roma", "tiber", "ostia", "italy", "roman campagna"],
     "city",
   ),
   p(
@@ -561,7 +561,7 @@ const anchors: AtlasPlace[] = [
     "other-indigenous-american",
     1500,
     "timber",
-    ["iroquois", "iroquoia", "haudenosaunee", "onondaga", "seneca", "mohawk", "huron", "wendat", "longhouse"],
+    ["iroquois", "iroquoia", "haudenosaunee", "onondaga", "seneca", "mohawk", "huron", "wendat", "longhouse", "eastern woodlands"],
     "village",
     0.35,
   ),
@@ -813,6 +813,8 @@ const localNames: Record<string, string[]> = {
   "city-mwanza": ["lake victoria", "mwanza gulf"],
   "city-tokyo": ["edo"],
   "city-luxor": ["thebes", "waset"],
+  "city-lahore": ["punjab", "punjab plains"],
+  "city-new-orleans": ["mississippi delta", "lower mississippi"],
 };
 const filteredLegacy = (legacy as AtlasPlace[])
   .filter((p) => !aliases.has(p.name.toLowerCase()))

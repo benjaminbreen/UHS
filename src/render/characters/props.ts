@@ -4,6 +4,7 @@ import { propDefs } from "../../content/props/catalog";
 import propsB from "../generated/props-b.json" with { type: "json" };
 import { artStamp } from "../scene-assets";
 import { palacePropPicture } from "../fair/palace";
+import { roomPropCanvas } from "../interiors/pixel";
 const redrawnFamilies = new Set<string>(propsB);
 export type CarriedArt = {
   sprite: string;
@@ -39,6 +40,13 @@ class CroppedArt extends Map<string, CarriedArt> {
       }
       const art = { ...plain, sprite, image, height:image.height };
       this.set(sprite, art);
+      return art;
+    }
+    if (sprite.startsWith("made:room:")) {
+      const canvas = roomPropCanvas(sprite);
+      if (!canvas) return undefined;
+      const art = crop(canvas, sprite, { x: 0, y: 0, w: canvas.width, h: canvas.height });
+      if (art) this.set(sprite, art);
       return art;
     }
     if (sprite.startsWith("made:palace:")) {
@@ -117,7 +125,11 @@ export const portableProps = Object.entries(propDefs)
   .map(([id, d]) => ({
     id,
     name: d.name,
-    sprite: d.family.startsWith("palace-") ? `made:palace:versailles:gallery:${d.family.slice(7)}:0` : d.sprite ?? `study-prop${redrawnFamilies.has(d.family) ? "b" : ""}-${d.family}-0`,
+    sprite: d.family.startsWith("palace-")
+      ? `made:palace:versailles:gallery:${d.family.slice(7)}:0`
+      : id.startsWith("room-")
+        ? `made:room:${id === "room-chair" ? "stool:chair" : `${id.slice(5)}:`}:1:7a5030:9a3832:0`
+        : d.sprite ?? `study-prop${redrawnFamilies.has(d.family) ? "b" : ""}-${d.family}-0`,
   }));
 
 /** An inventory item in the hand, drawn from the icon art rather than the

@@ -34,7 +34,9 @@
 .device-pad button:nth-child(2) { grid-area: l; }
 .device-pad button:nth-child(3) { grid-area: r; }
 .device-pad button:nth-child(4) { grid-area: d; }
-.device-name { margin: 0; text-align: center; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.6; }
+.device-name { display: flex; justify-content: center; align-items: center; gap: 8px; margin: 0; font-size: 9px; letter-spacing: 1px; text-transform: uppercase; color: color-mix(in srgb, currentColor 60%, transparent); }
+.device-language { padding: 2px 6px; background: none; color: inherit; border: 1px solid currentColor; border-radius: 4px; font: inherit; text-transform: none; cursor: pointer; }
+.device-language[aria-pressed="true"] { background: #e8ecf4; color: #1a1c22; border-color: #e8ecf4; }
 
 .device-brick { --body: #d8d2c0; --edge: #5a5648; --lit: #f0ecdc; --key: #4a4a48; width: 220px; padding-top: 40px; border-radius: 8px; color: #2a2a28; }
 .device-brick::before { content: ""; position: absolute; left: 22px; top: -70px; width: 12px; height: 70px; background: #2a2a28; border-radius: 4px 4px 0 0; }

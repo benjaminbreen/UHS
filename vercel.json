@@ -4,6 +4,14 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
+      "source": "/:year(-?\\d{1,7})/:place",
+      "destination": "/api/og?_year=:year&_place=:place"
+    },
+    {
+      "source": "/:year(-?\\d{1,7})/:place/:role",
+      "destination": "/api/og?_year=:year&_place=:place&_role=:role"
+    },
+    {
       "source": "/((?!api/).*)",
       "destination": "/index.html"
     }

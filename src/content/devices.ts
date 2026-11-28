@@ -1,4 +1,5 @@
 import { random } from "../core/random";
+import { en, type DeviceText } from "./device-text";
 
 /** The pocket electronics a person might carry, as the item ids in carried.ts. */
 export const deviceItems = ["phone", "pager", "pocket-radio", "cassette-player", "game-handheld"] as const;
@@ -99,43 +100,22 @@ export function deviceModel(item: string, year: number, culture?: string): Devic
   return deviceModels.filter((m) => m.item === item && year >= m.from && (!m.cultures || m.cultures.includes(culture ?? ""))).at(-1);
 }
 
-/** Number codes typed into a telephone keypad to say something on a digits-only pager. */
-const pagerCodes: { cultures?: readonly string[]; code: string; means: string }[] = [
-  { code: "143", means: "I love you (one letter, four, three)" },
-  { code: "911", means: "urgent: ring now" },
-  { code: "07734", means: "hello, read upside down" },
-  { code: "121", means: "I need to talk to you alone" },
-  { code: "1134 2 09", means: "go to hell, read upside down" },
-  { code: "411", means: "I have news" },
-  // Goroawase: Japanese digits read by their sounds.
-  { cultures: EAST_ASIA, code: "0840", means: "good morning (o-ha-yo-o)" },
-  { cultures: EAST_ASIA, code: "724106", means: "what are you doing? (na-ni-shi-te-ru)" },
-  { cultures: EAST_ASIA, code: "14106", means: "I love you (a-i-shi-te-ru)" },
-  { cultures: EAST_ASIA, code: "49", means: "hurry (shi-kyu)" },
-  { cultures: EAST_ASIA, code: "3341", means: "I'm lonely (sa-mi-shi-i)" },
-  { cultures: EAST_ASIA, code: "0906", means: "I'm running late (o-ku-re-ru)" },
-  // Mandarin number homophones, used on Chinese pagers and still used in texts.
-  { cultures: EAST_ASIA, code: "520", means: "I love you (wu er ling sounds like wo ai ni)" },
-  { cultures: EAST_ASIA, code: "88", means: "bye-bye (ba ba)" },
+const fill = (text: string, values: Record<string, string | number>) => text.replace(/\{(\w+)\}/g, (_, key) => String(values[key] ?? ""));
+
+/** Number codes typed into a telephone keypad to say something on a digits-only pager; the text files say what each means. */
+const pagerCodes: { cultures?: readonly string[]; code: string }[] = [
+  ...["143", "911", "07734", "121", "1134 2 09", "411"].map((code) => ({ code })),
+  // Goroawase, Japanese digits read by their sounds; and Mandarin number homophones (520, 88).
+  ...["0840", "724106", "14106", "49", "3341", "0906", "520", "88"].map((code) => ({ code, cultures: EAST_ASIA })),
 ];
 
 /** What one stop on a pocket radio's dial is playing; every third stop is between stations. */
-export function radioStation(w: { seed: string; year: number; place: string; clock: number }, stop: number): string {
-  if (stop % 3 === 2) return "Static, and a voice too faint to follow.";
+export function radioStation(w: { seed: string; year: number; place: string; clock: number }, stop: number, t: DeviceText = en): string {
+  if (stop % 3 === 2) return t.radio.static;
   const hour = (((w.clock / 3600) % 24) + 24) % 24;
-  const part = hour < 11 ? "morning" : hour < 17 ? "afternoon" : hour < 22 ? "evening" : "late-night";
-  const lines = w.year < 1975
-    ? [`The ${part} news for ${w.place}, read slowly, then the shipping and farm prices.`, "A dance band, tinny in the little speaker, with the bass lost altogether.",
-       "A football commentary rising and falling with the crowd.", "A request programme: a song for a sister, for a ward of nurses, for a ship at sea.",
-       "A serial. Someone has just opened a letter they should not have."]
-    : w.year < 2005
-      ? [`${w.place}'s ${part} headlines, traffic and weather, on the hour.`, "A chart countdown, with the presenter talking over the start of every record.",
-         "A phone-in. A caller is very angry about the buses.", "The match, live, with a summariser who disagrees with everything.",
-         "A slow song dedicated to someone called only by a first name."]
-      : [`The ${part} headlines for ${w.place}, then travel news.`, "A song you know, cut short for an advertisement for car insurance.",
-         "Two presenters laughing at something that was not said on air.", "A talk programme taking calls about the cost of everything.",
-         "Dance music, the same four bars, from a station that has no presenter."];
-  return lines[Math.floor(random(w.seed, "radio-station", stop, Math.floor(w.clock / 1800)) * lines.length)];
+  const part = t.radio.parts[hour < 11 ? "morning" : hour < 17 ? "afternoon" : hour < 22 ? "evening" : "night"];
+  const lines = w.year < 1975 ? t.radio.early : w.year < 2005 ? t.radio.middle : t.radio.late;
+  return fill(lines[Math.floor(random(w.seed, "radio-station", stop, Math.floor(w.clock / 1800)) * lines.length)], { part, place: w.place });
 }
 
 export type DeviceMessage = { from: string; text: string; note?: string };
@@ -157,33 +137,27 @@ const digits = (seed: string, ...keys: (string | number)[]) =>
   `555-${String(1000 + Math.floor(random(seed, "device-number", ...keys) * 9000)).slice(1).padStart(4, "0")}`;
 
 /** What is waiting on the device today. The same day always shows the same messages. */
-export function deviceMessages(model: DeviceModel, w: DeviceWorld): DeviceMessage[] {
+export function deviceMessages(model: DeviceModel, w: DeviceWorld, t: DeviceText = en): DeviceMessage[] {
   const roll = (...keys: (string | number)[]) => random(w.seed, "device", w.day, ...keys);
   const pick = <T>(list: readonly T[], ...keys: (string | number)[]) => list[Math.floor(roll(...keys) * list.length)];
+  const m = t.messages;
   const out: DeviceMessage[] = [];
   if (model.text === "digits") {
     const codes = pagerCodes.filter((c) => !c.cultures || c.cultures.includes(w.culture ?? ""));
     for (const [i, name] of w.people.slice(0, 3).entries()) {
-      const code = roll("code", i) < 0.6 ? pick(codes, "which", i) : undefined;
-      out.push({ from: "", text: code ? `${digits(w.seed, name)} ${code.code}` : digits(w.seed, name), note: code ? `${name}: ${code.means}` : `${name}'s number. Find a telephone.` });
+      const code = roll("code", i) < 0.6 ? pick(codes, "which", i).code : undefined;
+      out.push({ from: "", text: code ? `${digits(w.seed, name)} ${code}` : digits(w.seed, name), note: code ? `${name}: ${t.codes[code] ?? en.codes[code]}` : fill(m.pageNumber, { name }) });
     }
-    for (const ask of w.asks.slice(0, 2)) out.push({ from: "", text: `${digits(w.seed, ask.from)} 911`, note: `${ask.from}, about what they asked: ${ask.what}` });
-    if (!out.length) out.push({ from: "", text: digits(w.seed, "wrong"), note: "Nobody you know. A wrong number." });
+    for (const ask of w.asks.slice(0, 2)) out.push({ from: "", text: `${digits(w.seed, ask.from)} 911`, note: fill(m.pageAsk, { name: ask.from, what: ask.what }) });
+    if (!out.length) out.push({ from: "", text: digits(w.seed, "wrong"), note: m.pageWrong });
     return out;
   }
   const short = model.text === "short";
-  for (const ask of w.asks.slice(0, 2)) out.push({ from: ask.from, text: short ? `Don't forget: ${ask.what}` : `Hi, just checking you remembered: ${ask.what}. Thanks!` });
-  const chat = short
-    ? ["Home for dinner?", "Call me when you can", "Running late. Start without me", "Did you see the match?", "Are you coming on Saturday?", "Ring your mother", "Where are you?"]
-    : ["Are you home for dinner tonight?", "Call me when you get a minute, nothing urgent.", "Running ten minutes late, sorry!", "Did you see the news? Unbelievable.", "Photo: the dog asleep on the sofa again.", "Can you pick up milk on the way back?", "Saturday still on?"];
-  for (const [i, name] of w.people.slice(0, 3).entries()) if (roll("chat", i) < 0.7) out.push({ from: name, text: pick(chat, "line", i) });
-  if (model.apps.includes("money") && w.balance) out.push({ from: model.shell === "slab" ? "Wallet" : "Mobile money", text: `Confirmed. Your balance is ${w.balance}.` });
-  if (model.text === "mail" && w.news[0] && roll("alert") < 0.6) out.push({ from: "News alert", text: w.news[0] });
-  const service = w.year < 2004
-    ? ["Your call credit is running low. Top up at any shop showing our sign.", `Welcome to ${w.place}. Calls cost extra while you are travelling.`, "You have 1 new voice message. Dial 121 to listen."]
-    : w.year < 2035
-      ? ["You have used 80% of your monthly data.", "Your bill is ready to view.", "Congratulations! You have been chosen for a prize. Reply YES to claim.", "Your parcel could not be delivered. Follow the link to rearrange."]
-      : ["Your assistant filtered 14 messages today. None needed you.", "Reminder: your identity check renews this month."];
-  if (roll("service") < 0.5 || !out.length) out.push({ from: w.year < 2004 ? "Network" : "Unknown number", text: pick(service, "which") });
+  for (const ask of w.asks.slice(0, 2)) out.push({ from: ask.from, text: fill(short ? m.askShort : m.askLong, { what: ask.what }) });
+  for (const [i, name] of w.people.slice(0, 3).entries()) if (roll("chat", i) < 0.7) out.push({ from: name, text: pick(short ? m.chatShort : m.chatLong, "line", i) });
+  if (model.apps.includes("money") && w.balance) out.push({ from: model.shell === "slab" ? t.senders.wallet : t.senders.mobileMoney, text: fill(m.money, { balance: w.balance }) });
+  if (model.text === "mail" && w.news[0] && roll("alert") < 0.6) out.push({ from: t.senders.newsAlert, text: w.news[0] });
+  const service = w.year < 2004 ? m.serviceEarly : w.year < 2035 ? m.serviceLater : m.serviceFuture;
+  if (roll("service") < 0.5 || !out.length) out.push({ from: w.year < 2004 ? t.senders.network : t.senders.unknown, text: fill(pick(service, "which"), { place: w.place }) });
   return out;
 }

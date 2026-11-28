@@ -362,19 +362,22 @@ import {
 } from "./fire";
 import terrainFrames from "./generated/terrain.json" with { type: "json" };
 import { bloomAt, setBloomCut } from "./flowers";
-import { FLOOR_X, FLOOR_Y, PixelRoom } from "./interiors/pixel";
+import { FLOOR_X, FLOOR_Y, PixelRoom, roomPropCanvas } from "./interiors/pixel";
 import { CaveView } from "./cave/view";
+import { cavePicture } from "./cave/art";
 import { SewerView } from "./sewer/view";
 import { FairView } from "./fair/view";
 import { palacePropPicture } from "./fair/palace";
 import { exhibitPicture } from "./fair/things";
 import { TombView } from "./tomb/view";
+import { tombPicture } from "./tomb/paint";
 import { PrisonView } from "./prison/view";
+import { prisonPicture } from "./prison/tiles";
 import type { FairLevel } from "../world/fair";
 import type { TombLevel } from "../world/tomb";
 import type { PrisonLevel } from "../world/prison";
 import { ShipView } from "./ship/view";
-import { paintOpenLid, paintStairDown } from "./sewer/art";
+import { paintOpenLid, paintStairDown, sewerPicture } from "./sewer/art";
 import { laneLids } from "./carriageway";
 import { caveLight } from "../content/caves";
 import type { Kind, Prop } from "./interiors/room";
@@ -896,6 +899,7 @@ export class WorldScene extends Phaser.Scene {
     const e = this.runtime.engine;
     return space !== "outside" && (!!e.interiorOf?.(space) || !!e.caveOf?.(space) || !!e.sewerOf?.(space) || !!e.shipOf?.(space) || !!e.areaOf?.(space));
   }
+  private birdState?: { near: Set<string>; nextCall: Map<string, number>; singUntil: Map<string, number> };
   private roomView?: {
     space: string;
     pixel: PixelRoom;
@@ -1413,9 +1417,15 @@ export class WorldScene extends Phaser.Scene {
       const actor = obs.actors.find(
         (a) => Math.abs(a.pos.x - x) <= 0.7 && Math.abs(a.pos.y - y) <= 0.7,
       );
-      const object = obs.objects.find(
-        (o) => Math.abs(o.pos.x - x) <= 0.8 && Math.abs(o.pos.y - y) <= 0.8,
-      );
+      const roomPick = this.roomView && obs.player.pos.space === this.roomView.space
+        ? this.roomView.pixel.pick(p.x - this.roomView.image.x, p.y - this.roomView.image.y)
+        : -1;
+      const object =
+        (roomPick >= 0 ? obs.objects.find((o) => o.id === `${obs.player.pos.space}-room-${roomPick}`) : undefined) ??
+        obs.objects.find((o) => {
+          const [w, h] = o.size ?? [1, 1];
+          return x >= o.pos.x - 0.8 && x <= o.pos.x + w - 0.2 && y >= o.pos.y - 0.8 && y <= o.pos.y + h - 0.2;
+        });
       const place = obs.player.pos.space === "outside"
         ? this.runtime.engine.world.places.find((b) => buildingContains(b, p.x, p.y))
         : undefined;
@@ -1644,7 +1654,14 @@ export class WorldScene extends Phaser.Scene {
    * pathfinding never see the lift. */
   private perchRise(id: string) {
     const perch = id === "player" ? this.runtime.engine.state.player.perch : undefined;
-    if (!perch) return this.wallFooting(id)?.rise ?? 0;
+    if (!perch) {
+      const pos = id === "player" ? this.runtime.engine.state.player.pos : this.runtime.engine.state.actors.find((a) => a.id === id)?.pos;
+      if (pos && pos.space !== "outside") {
+        const st = this.runtime.engine.interiorOf(pos.space)?.stage;
+        if (st && pos.y === st.y && pos.x >= st.x0 - 1 && pos.x <= st.x1 + 1) return st.rise;
+      }
+      return this.wallFooting(id)?.rise ?? 0;
+    }
     // The thing's own sprite is the honest height: a firewood stack stands
     // three times a pot. Overlap a couple of pixels so the feet sit in it
     // rather than float above the silhouette.
@@ -2160,7 +2177,7 @@ export class WorldScene extends Phaser.Scene {
     mark.fillStyle(gold, 1).fillTriangle(ax, ay, bx, by, dx, dy);
   }
   private traderMark?: Phaser.GameObjects.Graphics;
-  private traders: { id: string; door?: { x: number; y: number } }[] = [];
+  private traders: { id: string; door?: { x: number; y: number }; counter?: boolean }[] = [];
   private tradersChecked = 0;
   /** A coin over everyone nearby who will sell, or over the door they sell
    * behind; two arrows instead where nobody pays in coin. */
@@ -2170,13 +2187,20 @@ export class WorldScene extends Phaser.Scene {
       this.tradersChecked = time;
       const p = engine.state.player.pos;
       this.traders = engine.traders()
-        .filter((t) => Math.abs(t.at.x - p.x) + Math.abs(t.at.y - p.y) < 24 &&
-          (t.actor.pos.space === p.space || (!!t.door && (p.space ?? "outside") === "outside")))
-        .map((t) => ({ id: t.actor.id, door: t.actor.pos.space === p.space ? undefined : t.at, house: t.actor.householdId ?? t.actor.id, keeps: keepsShop(engine.world.pack, t.actor) }))
+        .filter((t) => {
+          // Indoors `at` is the street door, in the town's coordinates, not the room's.
+          const at = t.actor.pos.space === p.space ? t.actor.pos : t.at;
+          return Math.abs(at.x - p.x) + Math.abs(at.y - p.y) < 24 &&
+            (t.actor.pos.space === p.space || (!!t.door && (p.space ?? "outside") === "outside"));
+        })
+        .map((t) => ({ id: t.actor.id, door: t.actor.pos.space === p.space ? undefined : t.at, house: t.actor.householdId ?? t.actor.id, keeps: keepsShop(engine.world.pack, t.actor),
+          counter: t.actor.pos.space !== "outside" && engine.shopKeeper(t.actor.pos.space) === t.actor.id }))
         // A shop reads as one seller, not a family each with a coin: one per household, two indoors at most.
-        .sort((a, b) => Number(b.keeps) - Number(a.keeps))
+        .sort((a, b) => Number(b.counter) - Number(a.counter) || Number(b.keeps) - Number(a.keeps))
         .filter((t, i, all) => all.findIndex((o) => o.house === t.house) === i)
         .slice(0, (p.space ?? "outside") === "outside" ? undefined : 2);
+      // Where someone keeps the counter, the customers at the tables are not selling.
+      if (this.traders.some((t) => t.counter)) this.traders = this.traders.filter((t) => t.counter);
     }
     const mark = (this.traderMark ??= this.add.graphics());
     mark.clear().setDepth(1e7 - 1);
@@ -2195,6 +2219,13 @@ export class WorldScene extends Phaser.Scene {
         if (!image?.visible) continue;
         x = image.x;
         y = this.headTop(image) - (this.castPeople.has(t.id) ? 15 : 8) - bob;
+        if (t.counter) {
+          // Whoever keeps the counter: a hopping arrow, as the guide's, under the coin.
+          const hop = Math.round(Math.abs(Math.sin(time / 260)) * 4), ax = Math.round(x), ay = Math.round(y) + 2 - hop;
+          mark.fillStyle(0x1a1410, 1).fillTriangle(ax - 6, ay - 5, ax + 6, ay - 5, ax, ay + 3);
+          mark.fillStyle(0xf2cf6b, 1).fillTriangle(ax - 4, ay - 4, ax + 4, ay - 4, ax, ay + 1);
+          y -= 10 + hop;
+        }
       }
       const seed = t.id.length * 7 + (t.door?.x ?? 0);
       // Now and then the coin turns over once on its edge.
@@ -4463,8 +4494,25 @@ export class WorldScene extends Phaser.Scene {
   /** A hand-made thing set down: its own icon, in the colours of what went into it. */
   private madeTexture(frame: string) {
     if (this.textures.exists(frame)) return frame;
-    if (frame.startsWith("made:palace:") || frame.startsWith("made:exhibit:")) {
-      const picture = (frame.startsWith("made:exhibit:") ? exhibitPicture(frame) : palacePropPicture(frame))?.canvas();
+    if (frame.startsWith("made:room:")) {
+      const picture = roomPropCanvas(frame);
+      if (!picture) return "__DEFAULT";
+      this.textures.addCanvas(frame, picture)?.add(frame, 0, 0, 0, picture.width, picture.height);
+      return frame;
+    }
+    if (frame.startsWith("made:palace:") || frame.startsWith("made:exhibit:") || frame.startsWith("made:tomb:") || frame.startsWith("made:prison:")) {
+      const picture = (
+        frame.startsWith("made:exhibit:") ? exhibitPicture(frame)
+          : frame.startsWith("made:tomb:") ? tombPicture(frame)
+            : frame.startsWith("made:prison:") ? prisonPicture(frame)
+              : palacePropPicture(frame)
+      )?.canvas();
+      if (!picture) return "__DEFAULT";
+      this.textures.addCanvas(frame, picture)?.add(frame, 0, 0, 0, picture.width, picture.height);
+      return frame;
+    }
+    if (frame.startsWith("made:cave:") || frame.startsWith("made:sewer:")) {
+      const picture = frame.startsWith("made:cave:") ? cavePicture(frame) : sewerPicture(frame);
       if (!picture) return "__DEFAULT";
       this.textures.addCanvas(frame, picture)?.add(frame, 0, 0, 0, picture.width, picture.height);
       return frame;
@@ -4552,6 +4600,8 @@ export class WorldScene extends Phaser.Scene {
       if (this.textures.get("props").has(out)) return out;
     }
     if (o.broken || !(o.damage || o.open)) return undefined;
+    if (o.open && (o.sprite.startsWith("made:cave:") || o.sprite.startsWith("made:sewer:")) && propDefs[o.prop ?? ""]?.act?.clears)
+      return `${o.sprite}:done`;
     return (o.damage && o.open ? this.layerOf(o.sprite, "dented-open") : undefined) ??
       (o.open ? this.layerOf(o.sprite, "open") : undefined) ??
       (o.damage ? this.layerOf(o.sprite, "dented") : undefined);
@@ -5613,6 +5663,8 @@ export class WorldScene extends Phaser.Scene {
       w.pack.id,
       p.space,
       seasonIndex(e.state.clock),
+      footprint && footprint / 2 - Math.max(Math.abs(viewX), Math.abs(viewY)) < perf.sceneryReach + Math.max(this.scale.width, this.scale.height) / (rt.zoom * 32)
+        ? rt.journey?.entrances.length : undefined,
       // Felled trees, cut growth and fresh furrows change the scenery.
       e.state.tilesRevision ?? 0,
       bx,
@@ -7022,7 +7074,9 @@ export class WorldScene extends Phaser.Scene {
                       ),
         o.prop === "outcrop" && o.size
           ? { ...o.pos, x: o.pos.x + (o.size[0] - 1) / 2, y: o.pos.y + o.size[1] - 1 }
-          : o.pos,
+          : o.sprite.startsWith("made:tomb:") && o.size
+            ? { ...o.pos, y: o.pos.y + o.size[1] - 1 }
+            : o.pos,
       );
       if(o.motor)this.entities.get(o.id)?.setData("motor",o.motor);
       if (boatCraft(o.sprite) || o.sprite.startsWith("boat-")) {
@@ -7454,20 +7508,57 @@ export class WorldScene extends Phaser.Scene {
       q.external = !!o && !!propDefs[o.prop ?? ""]?.sprite && !o.broken;
       if (q.external && o) external.set(id,o);
     };
+    const flying = this.toolEffects?.flying(this.runtime.throwEffect);
+    const activeWork = new Set<number>();
+    for (const a of e.state.actors) {
+      if (a.pos.space !== space || a.kind !== "human" || a.dead) continue;
+      const u = e.indoorUse(a.id, a.pos);
+      if (u?.role === "work") activeWork.add(u.propId);
+    }
+    const nowMs = performance.now();
+    this.birdState ??= { near: new Set(), nextCall: new Map(), singUntil: new Map() };
+    const plPos = e.state.player.pos;
     let stamp = "";
     for (const f of room.furniture) {
       const o = byId.get(`${space}-room-${f.propId}`), q = v.props[f.propId];
       q.x = (o?.pos.x ?? f.pos.x) - ROOM_ORIGIN;
       q.y = (o?.pos.y ?? f.pos.y) - ROOM_ORIGIN;
+      q.hidden = !!o && (!!o.carriedBy || o.pos.space !== space || o.id === flying);
       // A lamp has its own broken look; everything else goes to pieces.
-      q.wrecked = (!o || !!o.broken) && q.kind !== "lamp";
-      if (q.kind === "lamp" && (!o || o.broken)) (q.broken = true), (q.on = false);
+      q.wrecked = (!o || !!o.broken) && q.kind !== "lamp" && q.kind !== "lantern";
+      if ((q.kind === "lamp" || q.kind === "lantern") && (!o || o.broken)) (q.broken = true), (q.on = false);
       q.tipped = !!o?.tipped;
       q.lean = o?.lean;
-      if (q.kind === "chest" || q.kind === "stock") q.on = !!o?.open;
+      if (
+        q.kind === "chest" || q.kind === "stock" || q.kind === "lamp" || q.kind === "lantern" ||
+        q.kind === "tapers" || q.kind === "brazier" || q.kind === "shrine" || q.kind === "radio" ||
+        q.kind === "cat" || q.kind === "hearth" || q.kind === "firepit" || q.kind === "irori" ||
+        q.kind === "stove" || q.kind === "range" || q.kind === "window" ||
+        (q.kind === "fixture" && !!q.item && (q.item.startsWith("quirk:") || q.item.startsWith("backroom:") || q.item.startsWith("overlook:")))
+      )
+        q.on = !q.broken && !!o?.open;
+      if (q.kind === "fixture" && q.item === "quirk:birdcage" && o && !o.broken) {
+        const dist = Math.hypot(plPos.x - o.pos.x, plPos.y - o.pos.y);
+        const isNear = dist <= 3.5;
+        const wasNear = this.birdState.near.has(o.id);
+        if (isNear) {
+          this.birdState.near.add(o.id);
+          if (!wasNear || nowMs >= (this.birdState.nextCall.get(o.id) ?? 0)) {
+            this.birdState.nextCall.set(o.id, nowMs + 10000 + (q.seed % 5) * 1200);
+            this.birdState.singUntil.set(o.id, nowMs + 4200);
+            const pan = Math.max(-0.8, Math.min(0.8, (o.pos.x - plPos.x) / 4));
+            void gameAudio()?.call(q.seed % 2 ? "warbler" : "trill", pan, Math.max(0.5, 1 - dist / 5.5));
+          }
+        } else {
+          this.birdState.near.delete(o.id);
+        }
+        if ((this.birdState.singUntil.get(o.id) ?? 0) > nowMs) q.on = true;
+      }
+      if (q.kind === "spinwheel" || q.kind === "throw")
+        q.on = !q.wrecked && (!!o?.open || activeWork.has(f.propId));
       atlasPiece(f.propId,o);
-      if (q.external && (o?.carriedBy || o?.pos.space !== space)) q.wrecked=true;
-      stamp += `${q.x},${q.y},${q.wrecked ? 1 : 0}${q.broken ? 1 : 0}${q.tipped ? 1 : 0}${q.external ? 1 : 0}${q.on ? 1 : 0};`;
+      if (q.external && q.hidden) q.wrecked=true;
+      stamp += `${q.x},${q.y},${q.hidden ? 1 : 0}${q.wrecked ? 1 : 0}${q.broken ? 1 : 0}${q.tipped ? 1 : 0}${q.external ? 1 : 0}${q.on ? 1 : 0};`;
     }
     const store = byId.get(`${space}-chest`);
     const storePiece = room.props.find(q => ["chest","jars","crate","sacks"].includes(q.kind) &&
@@ -7499,8 +7590,8 @@ export class WorldScene extends Phaser.Scene {
     for (const q of v.props) q.sleepers = undefined;
     v.pixel.floorSleepers = [];
     this.pillows.clear();
-    for (const a of e.state.actors) {
-      if (a.pos.space !== space || a.kind !== "human") continue;
+    for (const a of [e.state.player, ...e.state.actors]) {
+      if (a.pos.space !== space || (a.id !== "player" && a.kind !== "human")) continue;
       const use = e.indoorUse(a.id, a.pos);
       if (use?.role !== "bed") continue;
       const q = v.props[use.propId];
@@ -7511,6 +7602,7 @@ export class WorldScene extends Phaser.Scene {
       const at = v.pixel.pillow(q ? { propId: q.id, k } : cell);
       const row = q ? q.y + Math.max(1, q.d) - 1 : cell.y;
       this.pillows.set(a.id, { x: v.image.x + at.x, y: v.image.y + at.y, upright: "upright" in at, depth: (ROOM_ORIGIN + row) * 16 + 9 - k * 0.1 });
+      stamp += `sleep:${q?.id ?? "f"}:${k};`;
     }
     const hour = (this.runtime.displayClock() / 3600) % 24;
     room.params.hour = hour;
@@ -7538,7 +7630,7 @@ export class WorldScene extends Phaser.Scene {
       v.cutouts.get(c.id)!
         .setPosition(v.image.x + at.x, v.image.y + at.y)
         .setDepth((ROOM_ORIGIN + q.y + Math.max(1, q.d) - 1) * 16 + 8)
-        .setVisible(!q.wrecked);
+        .setVisible(!q.wrecked && !q.hidden);
     }
     // Firelight flickers well at thirty frames a second, and the room is repainted whole.
     const dt = this.options.freeze ? 0 : Math.min(0.1, delta / 1000);
@@ -7587,7 +7679,7 @@ export class WorldScene extends Phaser.Scene {
       facing: p.direction,
       run,
       carried,
-      done: e.state.complexes?.[`cave:${level.cave}`]?.done ?? [],
+      done: e.state.objects.filter((o) => o.pos.space === space && o.open).map((o) => `${o.pos.x},${o.pos.y}`),
       light: caveLight(run.light),
       hour: (((e.state.clock / 3600) % 24) + 24) % 24,
       time: this.time.now,
@@ -9225,7 +9317,7 @@ export class WorldScene extends Phaser.Scene {
         const condition = loadWeight + (tired ? 3 : 0);
         const work = id !== "player" && at && !moving && !this.options.freeze
           ? this.workMotion(id, at, time, human.origin?.livelihood, human.heldItem) : undefined;
-        const use = (id !== "player" || human.activity === "Sitting and listening") && !moving && wetPos && wetPos.space !== "outside" ? this.runtime.engine.indoorUse?.(id, wetPos) : undefined;
+        const use = (id !== "player" || human.activity === "Sitting and listening" || !!this.runtime.engine.state.player.seated?.from) && !moving && wetPos && wetPos.space !== "outside" ? this.runtime.engine.indoorUse?.(id, wetPos) : undefined;
         const pair = !moving && !active && !winding && !landed && !stunt && !seat && !use ? this.together(id, at, time) : undefined;
         const romp = pair && "romp" in pair ? (pair.romp as { x: number; y: number }) : undefined;
         this.standApart(id, im, romp ? undefined : pair?.im, moving);
@@ -9870,8 +9962,11 @@ export class WorldScene extends Phaser.Scene {
         const stall = id === "player" && seat && this.runtime.engine.state.player.seated?.on;
         if (stall && PRIVY_DOOR.test(this.entities.get(stall)?.frame.name ?? "") && texture)
           im.setCrop(im.width / 2 - 6, im.height - 30, 13, 30);
+        // Seated in a theatre or pew row facing away: tuck lower body behind the velvet backrest.
+        else if (use?.role === "seat" && use.kind === "pew" && use.on === "seat" && human.direction === 0 && texture)
+          im.setCrop(0, 0, im.width, Math.max(12, im.height - 9));
         if (!texture || swimming) this.shadows.get(id)?.setVisible(false);
-        if (texture && !swimming && !deck && seat?.role !== "drive-cart" && seat?.role !== "sit-seat" && this.options.shadows !== false) {
+        if (texture && !swimming && !deck && seat?.role !== "drive-cart" && seat?.role !== "sit-seat" && !(use?.role === "seat" && use.kind === "pew") && this.options.shadows !== false) {
           const shadowTexture = this.characters.shadow(
             texture,
             this.shadowPhase,

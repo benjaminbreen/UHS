@@ -39,6 +39,7 @@ export type RoomTemplate = {
   trades?: Trade[];
   furnish?: Kind[];
   looks?: [Partial<Look>, Partial<Look>, Partial<Look>];
+  colorways?: Colorway[];
   styles?: Partial<Record<Kind, string>>;
   kits?: Partial<Record<Trade, Kind[]>>;
   clutter?: string[];
@@ -48,7 +49,21 @@ export type WorshipSound = "unison" | "recitation" | "handbell" | "woodbeat" | "
 export type WorshipAct = { label: string; room: RoomRole; sound?: WorshipSound; at?: Kind; row?: boolean; passage?: Passage };
 export type Observance = { tradition?: string; gathering: WorshipAct; visit: WorshipAct; service?: WorshipAct; diner?: WorshipAct; layLeader?: "adult" | "man"; weekday?: number; hours?: number[] };
 export type Basis = "documented" | "archaeological" | "reconstructed" | "modern";
+export type RoomStaff = {
+  work: string;
+  doing: string;
+  room?: RoomRole;
+  roomLabel?: string;
+  spot?: "work" | "seat" | "stage";
+  role?: string;
+  name?: string;
+  age?: number;
+  sex?: "female" | "male";
+  count?: number;
+  hours?: [number, number];
+};
 export type InteriorProfile = {
+  shopKind?: string;
   id: string;
   label: string;
   region: string;
@@ -81,7 +96,7 @@ export type InteriorProfile = {
   rooms?: RoomTemplate[];
   institution?: "hospital" | "school" | "magistracy" | "bazaar" | "exchange" | "worship";
   observance?: Observance;
-  institutionPlan?: "passage" | "court" | "corridor";
+  institutionPlan?: "passage" | "court" | "corridor" | "overlook";
   /** The buildings this interior fills, as `venue.alehouse`, `religious.gothic-parish`,
    * `civic.english-market-hall` (see `buildingUse`); absent for a dwelling. */
   uses?: string[];
@@ -89,4 +104,7 @@ export type InteriorProfile = {
    * share of the seats they fill: the evening's drinkers, a service's
    * congregation. Hours may run past midnight, as [17, 1]. */
   regulars?: { hours: [number, number]; fill: number };
+  /** Specialist professions that staff this venue indoors (e.g. actors,
+   * ticket takers, concession sellers, projectionists, ballerinas, critics). */
+  staff?: readonly RoomStaff[];
 };

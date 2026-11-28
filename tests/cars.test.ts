@@ -109,12 +109,26 @@ describe("cars: driving in the world", () => {
     expect(e.blocked(car.pos.x, car.pos.y, "outside")).toBe(true);
     expect(e.vehicleCab(car)).toBe(true);
   });
-  it("will not open someone else's car empty-handed, and smashes its window with a tool in hand", () => {
+  it("will not open someone else's car empty-handed, and smashes its window with a heavy object in hand", () => {
     const { rt, e, p, car } = withCar();
     car.car!.yours = false;
     expect(rt.command({ type: "interact", action: "drive-vehicle", target: "car" })?.status).toBe("rejected");
-    p.heldItem = "tool";
-    expect(e.carBreaker(car)).toBeTruthy();
+    // Soft carried props and light inventory items will not break safety glass.
+    e.state.objects.push({ id: "box", name: "Cardboard carton", kind: "container", prop: "carton", sprite: "cardboard-box-0", pos: { ...p.pos }, inventory: {}, carriedBy: "player" });
+    p.held = "box";
+    expect(e.carBreaker(car)).toBeNull();
+    delete p.held;
+    p.heldItem = "bread";
+    expect(e.carBreaker(car)).toBeNull();
+    // A lifted rock or a stone in hand does break the window, and offers Smash the window.
+    p.heldItem = "stone";
+    expect(e.carBreaker(car)).toBe("stone");
+    expect(rt.verbs().primary?.label).toBe("Smash the window");
+    delete p.heldItem;
+    e.state.objects.push({ id: "rock", name: "Rock", kind: "monument", prop: "fieldStone", sprite: "nature-rock-0", pos: { ...p.pos }, inventory: {}, carriedBy: "player" });
+    p.held = "rock";
+    expect(e.carBreaker(car)).toBe("rock");
+    expect(rt.verbs().primary?.label).toBe("Smash the window");
     expect(rt.command({ type: "interact", action: "drive-vehicle", target: "car" })?.status).toBe("completed");
     expect(p.drivingVehicle).toBe("car");
     expect(car.car!.smashed).toBe(true);

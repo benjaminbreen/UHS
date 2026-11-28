@@ -93,6 +93,12 @@ it("lets a swimmer out past wading depth until they tire and wash ashore", () =>
   expect(p.afloat).toBeUndefined();
   expect(e.world.terrain(p.pos.x, p.pos.y)).not.toBe("water");
   expect(e.setback?.title).toBe("Washed ashore");
+  // Someone already spent drowns instead.
+  for (let i = 0; i < 10 && !p.afloat; i++) step(n++);
+  p.health = 25;
+  p.swum = 449;
+  step(n++);
+  expect(p.dead).toBe("drowning");
 });
 it.each([
   ["Roman military camp", "leather", 8, 16],

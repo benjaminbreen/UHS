@@ -991,6 +991,22 @@ export const events = {
     noise(0, 0.18, 0.08, 850, { to: 420, filter: "lowpass", attack: 0.02 }),
     noise(0.08, 0.13, 0.065, 560, { to: 290, q: 0.85, attack: 0.012 }),
   ],
+  switchClick: () => [
+    tone(0, 0.022, 0.09, 1450, { to: 880, wave: "triangle", attack: 0.002 }),
+    noise(0.004, 0.025, 0.055, 2200, { q: 1.2, attack: 0.002 }),
+  ],
+  radioTune: () => [
+    tone(0, 0.025, 0.07, 1300, { to: 900, wave: "triangle", attack: 0.002 }),
+    noise(0.02, 0.14, 0.045, 1800, { to: 1100, q: 1.1, attack: 0.015 }),
+    ...shift(run([7, 9], 0.06, 0.09, 0.25), 0.1),
+  ],
+  shutter: () => [
+    noise(0, 0.08, 0.09, 520, { to: 320, q: 0.9, attack: 0.008 }),
+    tone(0.055, 0.045, 0.09, 340, { to: 220, wave: "triangle", attack: 0.003 }),
+  ],
+  purr: () => [0, 0.07, 0.14].map((at) =>
+    tone(at, 0.065, 0.06, 105 + at * 40, { to: 92, wave: "triangle", attack: 0.012 }),
+  ),
 } satisfies Record<string, () => Sound>;
 export type EventId = keyof typeof events;
 

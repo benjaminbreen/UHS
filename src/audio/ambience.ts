@@ -6,7 +6,11 @@ import { footstep, noise, playSound, railway, ring, tone, type Sound } from "./s
 import { cicadas, crickets, nightTrill, sung, voiceGain, voiceRest, type Voice } from "./wildlife";
 import { smallMemoryDevice } from "../runtime/device";
 
-type RoomCue = WorshipSound | "footsteps" | "cloth" | "cup" | "tray" | "wheels" | "writing" | "pages" | "wood" | "voices" | "inkstone";
+type RoomCue =
+  | WorshipSound
+  | "footsteps" | "cloth" | "cup" | "tray" | "wheels" | "writing" | "pages" | "wood" | "voices" | "inkstone"
+  | "projector" | "applause" | "hush" | "tuning" | "clapper" | "popcorn";
+export type VenueSound = "opera" | "theatre" | "stage-japan" | "cinema-silent" | "cinema" | "foyer";
 type RoomActivity = { cues: RoomCue[]; tool: Writing; ground: "fiber" | "stone" | "timber" | "soil"; level: number };
 
 /** What a settlement's street sounds like, by period and size. */
@@ -122,7 +126,7 @@ export interface Scene {
   faith?: string;
   /** The room underfoot: floor cells, and its finish 0 to 2. */
   room?: { area: number; finish: number; institution?: InteriorProfile["institution"]; role?: RoomRole; floor?: FloorPattern;
-    stock?: string; clinical?: boolean; distance?: number; rite?: WorshipSound; openAir?: boolean };
+    stock?: string; clinical?: boolean; distance?: number; rite?: WorshipSound; openAir?: boolean; venue?: VenueSound };
 }
 
 export function townKindFor(year: number | undefined, size: number): TownKind {
@@ -205,12 +209,24 @@ function birdCast(scene: Scene): Voice[] {
 }
 
 function roomActivity({ indoors, room, year, culture, peopleNear }: Scene): RoomActivity | undefined {
-  if (!indoors || !room?.institution || !peopleNear) return;
-  const {role, floor, institution} = room;
-  const ground = floor === "earth" || floor === "sand" ? "soil" : floor === "plank" || floor === "parquet" ? "timber" :
-    floor && ["mat","rushes","carpet","broadloom","paper"].includes(floor) ? "fiber" : "stone";
+  if (!indoors) return;
+  const ground = room?.floor === "earth" || room?.floor === "sand" ? "soil" : room?.floor === "plank" || room?.floor === "parquet" ? "timber" :
+    room?.floor && ["mat","rushes","carpet","broadloom","paper"].includes(room.floor) ? "fiber" : "stone";
+  const tool = writingTool(year, culture);
+  if (room?.venue) {
+    const cues: RoomCue[] =
+      room.venue === "opera" ? ["hush", "tuning", "applause", "pages"]
+      : room.venue === "theatre" ? ["hush", "applause", "voices", "pages"]
+      : room.venue === "stage-japan" ? ["hush", "clapper", "woodbeat", "applause"]
+      : room.venue === "cinema-silent" ? ["projector", "hush", "applause"]
+      : room.venue === "cinema" ? ["projector", "hush", "cloth"]
+      : ["voices", "footsteps", "popcorn", "cup"];
+    return { cues, tool, ground, level: 0.55 + 0.35 * Math.min(1, peopleNear / 6) };
+  }
+  if (!room?.institution || !peopleNear) return;
+  const {role, institution} = room;
   const cues: RoomCue[] = ["footsteps"];
-  let tool = writingTool(year, culture);
+  let writeTool = tool;
   switch (institution) {
     case "worship":
       if (room.rite) cues.push(room.rite);
@@ -222,19 +238,19 @@ function roomActivity({ indoors, room, year, culture, peopleNear }: Scene): Room
       break;
     case "school":
       if (role === "classroom" || role === "work") {
-        if (tool === "tap") tool = "pencil";
+        if (writeTool === "tap") writeTool = "pencil";
         cues.push("writing","pages", ground === "fiber" ? "cloth" : "wood");
       } else cues.push("voices");
       break;
     case "magistracy":
-      if (role === "work" || role === "store") cues.push("writing","pages", tool === "brush" ? "inkstone" : "wood");
+      if (role === "work" || role === "store") cues.push("writing","pages", writeTool === "brush" ? "inkstone" : "wood");
       else cues.push("voices","pages");
       break;
     case "bazaar":
       cues.push(room.stock === "cloth" ? "cloth" : room.stock === "pots" ? "cup" : "wood", "voices");
       break;
   }
-  return { cues, tool, ground, level: (.55 + .45 * Math.min(1, peopleNear / 5)) * near(room.distance ?? 0, 1, 15) };
+  return { cues, tool: writeTool, ground, level: (.55 + .45 * Math.min(1, peopleNear / 5)) * near(room.distance ?? 0, 1, 15) };
 }
 
 export function ambienceFor(scene: Scene): AmbienceMix {
@@ -318,8 +334,8 @@ export function ambienceFor(scene: Scene): AmbienceMix {
     hour,
     day: scene.day ?? 0,
     // Stardew hands a downpour the whole soundstage; a drizzle leaves the
-    // music be. A roof takes the edge off too.
-    music: (1 - 0.75 * Math.max(ramp(rain, 0.15, 0.7), ramp(Math.max(blizzard, dust), 0.3, 0.9))) * (indoors ? 0.6 : 1),
+    // music be. A roof takes the edge off too, except in a performance hall or cinema.
+    music: (1 - 0.75 * Math.max(ramp(rain, 0.15, 0.7), ramp(Math.max(blizzard, dust), 0.3, 0.9))) * (indoors ? (scene.room?.venue ? 0.92 : 0.6) : 1),
   };
 }
 
@@ -842,6 +858,43 @@ function roomSound(cue: RoomCue, {ground, tool}: RoomActivity): Sound {
       ...rep(4,.24, at => [tone(at + .18, .035, .014, rand(190,280), {to:140})])];
     case "footsteps": return rep(3, rand(.35,.5), at => (footstep(ground) ?? []).map(l => ({...l, at:l.at+at})));
     case "cloth": return rep(2,.28, at => [noise(at,rand(.22,.46),.04,rand(1900,2800),{to:950,attack:.09})]);
+    // 24fps film projector shutter ticks over a gentle low reel whirr.
+    case "projector": return [
+      noise(0, 1.4, 0.011, 240, { filter: "lowpass", attack: 0.25 }),
+      ...rep(18, 0.068, (at) => [
+        tone(at, 0.014, 0.012, rand(680, 760), { to: 420 }),
+        noise(at, 0.016, 0.009, 1800, { filter: "lowpass" }),
+      ]),
+    ];
+    // Scattered cupped handclaps swelling and tapering across a hall.
+    case "applause": return rep(16, 0.075, (at, i) => {
+      const env = Math.sin((Math.PI * (i + 1)) / 17);
+      return [
+        noise(at + rand(0, 0.03), 0.042, 0.024 * env, rand(1100, 1950), { filter: "lowpass", attack: 0.005 }),
+        tone(at + rand(0, 0.03), 0.025, 0.01 * env, rand(280, 440), { to: 180 }),
+      ];
+    });
+    // Darkened auditorium rustle: velvet seat shift, program page, soft hush.
+    case "hush": return [
+      noise(0, 0.36, 0.014, 950, { filter: "lowpass", attack: 0.12 }),
+      ...rep(3, 0.24, (at) => [noise(at + 0.1, rand(0.12, 0.22), 0.011, rand(1200, 1800), { filter: "lowpass", attack: 0.05 })]),
+    ];
+    // Brief warm pit-orchestra tuning swell (A440 fifth).
+    case "tuning": return [
+      tone(0, 1.15, 0.016, 440, { wave: "triangle", attack: 0.28, to: 441 }),
+      tone(0.18, 0.95, 0.012, 293.7, { wave: "triangle", attack: 0.24 }),
+      tone(0.26, 0.85, 0.009, 659.3, { wave: "triangle", attack: 0.22 }),
+    ];
+    // Crisp wooden hyoshigi stage clappers (Kabuki & Noh).
+    case "clapper": return rep(4, 0.26, (at) => [
+      tone(at, 0.055, 0.042, rand(1320, 1460), { to: 980 }),
+      noise(at, 0.024, 0.028, 2200, { filter: "lowpass" }),
+    ]);
+    // Concessions lobby rustle: popcorn bag crinkle & soft ticket chime.
+    case "popcorn": return [
+      ...rep(5, 0.14, (at) => [noise(at, 0.05, 0.016, rand(1800, 2900), { filter: "lowpass", attack: 0.01 })]),
+      ...ring(0.55, rand(980, 1120), 0.45, 0.011),
+    ];
     default: return handle(({cup:"pottery",tray:"metal",wood:"wood",inkstone:"stone"} as const)[cue]).map(l => ({...l,gain:l.gain*.42}));
   }
 }

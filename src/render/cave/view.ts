@@ -79,7 +79,7 @@ export class CaveView {
     banks.refresh();
     mask.refresh();
     this.base = scene.textures.createCanvas(key, W, H)!;
-    const tallCount = level.decor.filter((d) => d.solid).length + level.things.filter((t) => t.solid).length + 2;
+    const tallCount = level.decor.filter((d) => d.solid).length + level.things.filter((t) => t.solid && !t.prop).length + 2;
     this.sheet = scene.textures.createCanvas(`${key}-sheet`, CELL * 16, CELL * Math.ceil(tallCount / 16 + 1) + 8)!;
     this.objects.push(scene.add.image(0, 0, key).setOrigin(0, 0).setDepth(-99990));
     if (this.shore.length) {
@@ -137,7 +137,7 @@ export class CaveView {
     this.drips = level.decor.filter((d) => d.type === "drip").map((d) => ({ x: d.x * 16 + 3 + d.v * 10, y: d.y * 16 + 4 + d.v * 8 }));
     this.glints = level.things.flatMap((t) => {
       const glow = caveFind(t.find)?.glow;
-      return glow ? [{ x: t.x * 16 + 8, y: t.y * 16 + (t.wall ? 2 : 4), id: t.id, color: parseInt(glow.slice(1), 16) }] : [];
+      return glow ? [{ x: t.x * 16 + 8, y: t.y * 16 + (t.wall ? 2 : 4), id: `${t.x},${t.y}`, color: parseInt(glow.slice(1), 16) }] : [];
     });
   }
 
@@ -148,7 +148,7 @@ export class CaveView {
     for (const d of level.decor) if (!d.solid && d.type !== "drip") paintCaveObject(g, d.type, d.x * 16, d.y * 16, pal, d.v);
     for (const b of level.dwellers) if (b.species === "bats") paintCaveObject(g, "droppings", b.x * 16, b.y * 16, pal, 0.3);
     if (level.up) paintCaveObject(g, "up", level.up.x * 16, level.up.y * 16, pal);
-    for (const t of level.things) if (!t.solid) paintCaveObject(g, t.art, t.x * 16, t.y * 16, pal, 0.5, done.has(t.id) && !caveFind(t.find)?.keeps);
+    for (const t of level.things) if (!t.solid && !t.prop) paintCaveObject(g, t.art, t.x * 16, t.y * 16, pal, 0.5, done.has(t.id) && !caveFind(t.find)?.keeps);
     this.base.refresh();
     const s = this.sheet.context;
     s.clearRect(0, 0, this.sheet.width, this.sheet.height);
@@ -164,7 +164,7 @@ export class CaveView {
       }
     };
     for (const [i, d] of level.decor.entries()) if (d.solid) stand(`d${i}`, d.type, d.x, d.y, d.v, false);
-    for (const t of level.things) if (t.solid) stand(t.id, t.art, t.x, t.y, 0.5, done.has(t.id) && !caveFind(t.find)?.keeps);
+    for (const t of level.things) if (t.solid && !t.prop) stand(t.id, t.art, t.x, t.y, 0.5, done.has(t.id) && !caveFind(t.find)?.keeps);
     if (level.down) stand("down", "down", level.down.x, level.down.y, 0, false);
     this.tall.get("down")?.setDepth(level.down ? level.down.y * 16 - 2 : 0);
     this.sheet.refresh();

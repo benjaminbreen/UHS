@@ -92,6 +92,7 @@ export const livelihoods: readonly Livelihood[] = [
     weight: 3,
     label: "Craftsperson",
     activity: "Household craft work",
+    requires: ["handwork"],
     inventory: { water: 2, wood: 2, tool: 1 },
   },
   {

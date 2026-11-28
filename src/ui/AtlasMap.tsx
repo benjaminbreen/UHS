@@ -5,10 +5,12 @@ export function AtlasMap({
   lon,
   lat,
   onChoose,
+  onChoosePoint,
 }: {
   lon: number;
   lat: number;
   onChoose?: (id: string) => void;
+  onChoosePoint?: (lat: number, lon: number) => void;
 }) {
   const ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -64,10 +66,15 @@ export function AtlasMap({
       className="atlas-map"
       aria-label="Earth atlas showing your location"
       onClick={(event) => {
-        if (!onChoose) return;
+        if (!onChoose && !onChoosePoint) return;
         const r = event.currentTarget.getBoundingClientRect();
         const lon = ((event.clientX - r.left) / r.width) * 360 - 180,
           lat = 85 - ((event.clientY - r.top) / r.height) * 170;
+        if (event.shiftKey && onChoosePoint) {
+          onChoosePoint(Number(lat.toFixed(2)), Number(lon.toFixed(2)));
+          return;
+        }
+        if (!onChoose) return;
         const p = [...places].sort(
           (a, b) =>
             Math.hypot(a.lon - lon, a.lat - lat) -

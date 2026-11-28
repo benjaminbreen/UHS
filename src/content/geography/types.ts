@@ -72,7 +72,7 @@ const sexSchema = z.enum(["male", "female"]);
  * they are if they are someone, their people, their aim and the day's news.
  * `documented` keeps the record apart from what was filled in. */
 /** Where a staged opening is set: the player's house, the nearest building of that kind, or where they stand. */
-export const momentRooms = ["home", "hall", "temple", "tavern", "bath", "school", "theatre", "outside"] as const;
+export const momentRooms = ["home", "hall", "temple", "tavern", "bath", "school", "theatre", "hotel", "outside"] as const;
 export const startBriefSchema = z
   .object({
     figure: z.string().min(1).max(120).optional(),

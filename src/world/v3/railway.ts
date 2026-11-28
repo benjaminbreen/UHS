@@ -250,6 +250,26 @@ export function trainsAt(line: Railway, runs: Run[], clock: number): TrainState[
   return out;
 }
 
+/** The train that runs over cell `at` between `from` and `to`, if any. A
+ * train standing still hits nothing; the cell is caught if any part of the
+ * train passed over it in that time. */
+export function trainOver(line: Railway, runs: Run[], from: number, to: number, at: Point): Run | undefined {
+  const [along, across] = line.axis === "x" ? [at.x + 0.5, at.y + 0.5] : [at.y + 0.5, at.x + 0.5];
+  if (along < line.lo || along > line.hi + 1) return;
+  for (const run of runs) {
+    if (Math.abs(across - trackCentre(line, run.track)) >= 1) continue;
+    for (let d = Math.floor(from / DAY) - 1; d <= Math.floor(to / DAY) + 1; d++) {
+      const t0 = from - (d * DAY + run.at), t1 = to - (d * DAY + run.at);
+      if (t1 < -3600 || t0 > 3600 + run.dwell) continue;
+      const base = stopAt(line, run), length = trainLength(run);
+      const h0 = base + run.dir * travelled(run, t0), h1 = base + run.dir * travelled(run, t1);
+      if (h0 === h1) continue;
+      const ends = [h0, h1, h0 - run.dir * length, h1 - run.dir * length];
+      if (along > Math.min(...ends) - 0.5 && along < Math.max(...ends) + 0.5) return run;
+    }
+  }
+}
+
 /** Cross-line coordinate of a track's centre, in tiles: the rails are drawn
  * at 18 and 46 pixels into the four-cell formation. */
 export function trackCentre(line: Railway, track: 0 | 1) {

@@ -1,10 +1,10 @@
-import { caveLight, caveLightFor } from "../content/caves";
+import { caveLightFor } from "../content/caves";
 import { catacombKindAt } from "../content/catacombs";
-import { tombAt, tombFind, tombStyle, type TombStyle } from "../content/tombs";
+import { tombAt, tombStyle, type TombStyle } from "../content/tombs";
 import { exitAt } from "../world/complex";
-import { parseTombSpace, tombLevel, tombSolid, tombSpace, tombWalkable, type TombLevel } from "../world/tomb";
+import { parseTombSpace, tombLevel, tombSolid, tombSpace, tombWalkable } from "../world/tomb";
 import { caveMouthAt, caveMouthsNear } from "./cave";
-import { areaTarget, arriveIn, burnLight, cachedArea, complexRecord, nearest, takeFind, type ComplexHost } from "./complex";
+import { areaTarget, arriveIn, burnLight, cachedArea, complexRecord, nearest, type ComplexHost } from "./complex";
 import { catacombEnter } from "./sewer";
 import { folkDeal, folkTime } from "./tunnel-folk";
 import type { Inspection, Inventory, Point, Position, WorldModel } from "./types";
@@ -30,13 +30,7 @@ const record = (h: ComplexHost, site: string) => complexRecord(h.state, `tomb:${
 export function tombLevelOf(h: ComplexHost, space: string) {
   const at = parseTombSpace(space), style = at && tombStyle(at.style);
   if (!style) return undefined;
-  return cachedArea(h, space, () => tombLevel(h.state.manifest.seed, style, at.site, at.area), (level) => {
-    const solid = tombSolid(level), done = new Set(h.state.complexes?.[`tomb:${at.site}`]?.done);
-    // What was carried off or pulled down no longer stands in the way.
-    for (const t of level.things) if (t.solid && done.has(t.id) && !tombFind(style, t.find)?.keeps)
-      for (let y = t.y; y < t.y + (t.h ?? 1); y++) for (let x = t.x; x < t.x + (t.w ?? 1); x++) solid.delete(y * level.w + x);
-    return solid;
-  });
+  return cachedArea(h, space, () => tombLevel(h.state.manifest.seed, style, at.site, at.area), tombSolid);
 }
 
 export function tombGround(h: ComplexHost, space: string, x: number, y: number) {
@@ -122,7 +116,6 @@ function leave(h: ComplexHost) {
 }
 
 const here = (h: ComplexHost) => (runOf(h) ? tombLevelOf(h, h.state.player.pos.space) : undefined);
-const styleOf = (level: TombLevel) => tombStyle(level.style)!;
 
 export function tombInspect(h: ComplexHost, id: string): Inspection | undefined {
   const church = /^tomb-church:(.+)$/.exec(id), below = church && churchBelow(h, church[1]);
@@ -155,14 +148,7 @@ export function tombInspect(h: ComplexHost, id: string): Inspection | undefined 
       description: l.up ? "The rope you came down, hanging against the rock." : "A square shaft cut straight down through the floor, deeper than your light reaches. It was dug to stop robbers and to catch flood water.",
       affordances: [act(l.up ? "Climb the rope" : "Climb down the shaft", l.up || run.left > 0, "Not without a light")],
     } : undefined;
-  const thing = level.things.find((t) => `tomb-thing:${t.id}` === id), f = thing && tombFind(styleOf(level), thing.find);
-  if (!thing || !f) return undefined;
-  const done = record(h, level.site).done.includes(thing.id);
-  return {
-    id, name: thing.name, kind: "object", pos: { x: thing.x, y: thing.wall ? thing.y + 1 : thing.y, space: level.space },
-    description: done && (f.loot || f.fuel) ? "You have already been through this." : f.look,
-    affordances: done && (f.loot || f.fuel || f.tier === "seal") ? [] : [act(f.verb)],
-  };
+  return undefined;
 }
 
 export function tombVerb(h: ComplexHost) {
@@ -179,8 +165,7 @@ export function tombVerb(h: ComplexHost) {
   }
   const c = here(h);
   if (!c) return undefined;
-  const done = new Set(record(h, c.level.site).done), style = styleOf(c.level);
-  const id = areaTarget(p, c.level, "tomb", (t) => done.has(t.id) && !tombFind(style, t.find)?.keeps);
+  const id = areaTarget(p, c.level, "tomb", (t) => !!t.prop);
   const offer = id ? tombInspect(h, id)?.affordances[0] : undefined;
   return offer?.enabled ? { label: offer.label, target: id! } : undefined;
 }
@@ -208,13 +193,7 @@ export function tombAct(h: ComplexHost, id: string) {
     h.advance(l.up ? 240 : 180);
     const next = arrive(h, l.to, level.space);
     if (next) h.event(l.up ? `You haul yourself up the rope to ${next.level.name}.` : next.first ? `You tie off your rope and go down hand over hand into ${next.level.name}.` : `You go down the rope to ${next.level.name}.`);
-    return;
   }
-  const thing = level.things.find((t) => `tomb-thing:${t.id}` === id), f = thing && tombFind(styleOf(level), thing.find);
-  if (!thing || !f) return;
-  takeFind(h, run, c, thing, f, record(h, level.site).done, {
-    refuel: (fuel) => void ((run.left = Math.min(caveLight(run.light).burns * 1.5, run.left + fuel)), (run.low = false)),
-  });
 }
 
 /** Walking through a doorway into the next area; the lamp burning down. */

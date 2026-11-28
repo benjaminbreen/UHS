@@ -9,6 +9,7 @@
  *        npm run capture:interiors -- homes            (four European houses, every room)
  *        npm run capture:interiors -- storeys          (houses and an inn in buildings of one, two and three storeys)
  *        npm run capture:interiors -- shops            (a shop of each kind, in a fitting house)
+ *        npm run capture:interiors -- serving          (cafés, bars and diners, modern and period)
  *        npm run capture:interiors -- henhouse         (the henhouse in three regions; UHS_HOUR=21 for the roost)
  *        npm run capture:interiors -- fair             (fair cases, objects and tabletop exhibits)
  *        npm run capture:interiors -- fair-variants    (six variations of each exhibit archetype)
@@ -26,6 +27,56 @@ await withPage({}, async (page) => {
   const sheets: { name: string; url: string }[] = await page.evaluate(
     async ([asked, hour, statuses]) => {
       const ids = asked as string[];
+      if (ids.includes("films")) {
+        const { FILMS } = await import("/src/content/interiors/performances.ts" as string);
+        const { paintFilmScreen } = await import("/src/render/interiors/film.ts" as string);
+        const sw = 112, sh = 30, sc = 2, cols = 2, cellW = 720, cellH = 118, pad = 20, head = 70;
+        const rows = Math.ceil(FILMS.length / cols);
+        const sheet = document.createElement("canvas");
+        sheet.width = cols * cellW + pad * 2;
+        sheet.height = head + rows * cellH + pad;
+        const g = sheet.getContext("2d")!;
+        g.fillStyle = "#14121a";
+        g.fillRect(0, 0, sheet.width, sheet.height);
+        g.imageSmoothingEnabled = false;
+        g.fillStyle = "#f2e5c6";
+        g.font = "bold 24px system-ui";
+        g.fillText("Cinema Film Repertoire · Multi-Scene Animated Screens", pad, 34);
+        g.fillStyle = "#a89fb0";
+        g.font = "14px system-ui";
+        g.fillText(`Offline render · ${FILMS.length} historically & culturally scoped films across silent, classic & modern eras · 3 scenes per film at 2× pixel scale`, pad, 56);
+        FILMS.forEach((film: any, idx: number) => {
+          const x = pad + (idx % cols) * cellW;
+          const y = head + Math.floor(idx / cols) * cellH;
+          g.fillStyle = "#1e1b27";
+          g.fillRect(x, y, cellW - 14, cellH - 10);
+          g.fillStyle = "#f2e5c6";
+          g.font = "bold 13px system-ui";
+          const by = film.basis === "documented" && film.creator ? ` · ${film.creator}` : ` · ${film.genre}`;
+          g.fillText(`${film.title}${by}${film.benshi ? " (Benshi)" : ""}`, x + 10, y + 20);
+          const count = Math.min(3, film.scenes.length);
+          for (let s = 0; s < count; s++) {
+            const cv = document.createElement("canvas");
+            cv.width = sw; cv.height = sh;
+            const ctx = cv.getContext("2d")!;
+            const img = ctx.createImageData(sw, sh);
+            const data = img.data;
+            paintFilmScreen((px: number, py: number, c: number) => {
+              const i = (py * sw + px) * 4;
+              data[i] = (c >> 16) & 255; data[i + 1] = (c >> 8) & 255; data[i + 2] = c & 255; data[i + 3] = 255;
+            }, film.era === "silent" ? "stage-cinema-silent" : film.era === "classic" ? "stage-cinema" : "stage-cinema-wide", film.id, 1.4, 0, 0, sw, sh, idx * 17 + s, s);
+            ctx.putImageData(img, 0, 0);
+            const fx = x + 10 + s * (sw * sc + 10), fy = y + 30;
+            g.fillStyle = "#08070c";
+            g.fillRect(fx - 2, fy - 2, sw * sc + 4, sh * sc + 4);
+            g.drawImage(cv, fx, fy, sw * sc, sh * sc);
+            g.fillStyle = "#bdb3c4";
+            g.font = "11px system-ui";
+            g.fillText(film.scenes[s].visual, fx, fy + sh * sc + 13);
+          }
+        });
+        return [{ name: "films", url: sheet.toDataURL() }];
+      }
       if (ids.includes("fair") || ids.includes("fair-variants")) {
         const { fairs, FAIR_SIZES } = await import("/src/content/fairs/index.ts" as string);
         const { fairLevel } = await import("/src/world/fair.ts" as string);
@@ -254,10 +305,13 @@ await withPage({}, async (page) => {
         ];
         groups.push({ name: "storeys", profiles: cases.map(([pr, storeys, plot, seed]) => ({ ...pr, label: `${pr.label} · ${storeys} storey${storeys > 1 ? "s" : ""} · ${plot} tiles · seed ${seed}`, _storeys: storeys, _plot: plot, _seed: seed })) });
       }
-      if (ids.includes("shops")) {
+      if (ids.includes("shops") || ids.includes("serving")) {
         const { shopFor, shopKinds } = await import("/src/content/interiors/shops.ts" as string);
         const { interiorProfile } = await import("/src/content/interiors/index.ts" as string);
-        const where: [string, string, number, number, number][] = [
+        const where: [string, string, number, number, number][] = ids.includes("serving") ? [
+          ["cafe", "farmhouse-1930s", -95, 30, 2026], ["pub", "farmhouse-1930s", -95, 30, 2026], ["eatery", "farmhouse-1930s", -95, 30, 1955],
+          ["cafe", "european-townhouse", 2.3, 48.9, 1780], ["pub", "european-townhouse", -0.1, 51.5, 1780], ["cafe", "japanese-minka", 135.8, 35, 1750],
+        ] : [
           ["grocery", "art-deco-apartments", -74, 40.7, 1935], ["drink", "roman-domus", 14.5, 40.75, 79],
           ["bread", "flemish-townhouse", 4.9, 52.4, 1650], ["tools", "medieval-cottage", -0.1, 51.5, 1400],
           ["meat", "roman-domus", 12.5, 41.9, 100], ["cloth", "maghrebi-dar", -5, 34, 1500],
@@ -267,7 +321,7 @@ await withPage({}, async (page) => {
           ["fish", "roman-domus", 12.5, 41.9, 100], ["pots", "ming-study", 116, 40, 1600], ["leather", "flemish-townhouse", 4.9, 52.4, 1700],
           ["tobacco", "european-townhouse", -0.1, 51.5, 1880], ["apothecary", "european-townhouse", -0.1, 51.5, 1850], ["tobacco", "european-townhouse", -74, 40.7, 1880], ["drink", "european-townhouse", 2.3, 48.9, 1780], ["books", "european-townhouse", -0.1, 51.5, 1850], ["fine", "european-townhouse", -0.1, 51.5, 1850],
         ];
-        groups.push({ name: "shops", profiles: where.map(([kind, home, lon, lat, year]) =>
+        groups.push({ name: ids.includes("serving") ? "serving" : "shops", profiles: where.map(([kind, home, lon, lat, year]) =>
           ({ ...shopFor(interiorProfile(home), shopKinds.find((k: any) => k.id === kind), { lon, lat, year }), label: `${kind} in a ${home}`, period: String(year) })) });
       }
       const { T, FLOOR_X, FLOOR_Y } = await import("/src/render/interiors/pixel.ts" as string);
@@ -289,7 +343,7 @@ await withPage({}, async (page) => {
         return out;
       };
       return groups.map((g) => {
-        const cells = g.profiles.flatMap((pr) => (statuses as number[]).map((status) => ({ pr, status, cv: render(pr, status, g.name === "shops") })));
+        const cells = g.profiles.flatMap((pr) => (statuses as number[]).map((status) => ({ pr, status, cv: render(pr, status, g.name === "shops" || g.name === "serving") })));
         const k = 2, pad = 16, head = 34, colW = Math.max(...cells.map((c) => c.cv.width)) * k + pad;
         const cols = 3, rows = Math.ceil(cells.length / cols);
         const rowH = Array.from({ length: rows }, (_, r) => Math.max(...cells.slice(r * cols, r * cols + cols).map((c) => c.cv.height)) * k + head + pad);

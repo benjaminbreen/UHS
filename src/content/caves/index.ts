@@ -10,6 +10,7 @@ import type { Box, CaveFind, CaveKind, CaveLight } from "./types";
 export type { CaveFind, CaveKind, CaveLight } from "./types";
 export { caveItems } from "./items";
 
+export { campFinds };
 export const caveFinds: CaveFind[] = [...naturalFinds, ...deepTimeFinds, ...oldWorldFinds, ...americasFinds, ...modernFinds];
 const byId = new Map([...caveFinds, ...campFinds].map((f) => [f.id, f]));
 export const caveFind = (id: string) => byId.get(id);

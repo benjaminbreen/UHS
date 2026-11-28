@@ -4,7 +4,7 @@ import { integratedSetting } from "../src/content/geography/defaults";
 import { packForSetting } from "../src/content/geography/pack";
 import { settlementProfile } from "../src/content/settlements/profiles";
 import { planSettlement } from "../src/world/v3/plan";
-import { DAY, platformDoors, stopAt, timetable, trainLength, trainsAt, type Railway } from "../src/world/v3/railway";
+import { DAY, platformDoors, stopAt, timetable, trainLength, trainOver, trainsAt, type Railway } from "../src/world/v3/railway";
 import { isVisitor, railDay } from "../src/world/v3/rail-travellers";
 import type { Point } from "../src/core/types";
 
@@ -482,4 +482,23 @@ it.each([false,true])("transfers three booked loads through the crane, chassis a
   const route=Array.from({length:360},(_,i)=>containerMove(i*10).ship);
   expect(new Set(route.map(p=>p.heading)).size).toBe(8);
   expect(route.every(p=>p.y<=0)).toBe(true);
+});
+
+it("kills whoever is on the line when a train runs over it, and no one beside it", async () => {
+  const {createSession}=await import("../src/runtime/session");
+  const e=createSession("roman","train-hit"), p=e.state.player;
+  const line: Railway = { axis: "x", level: p.pos.y - 1, lo: p.pos.x - 200, hi: p.pos.x + 200, span: 4 };
+  const runs = timetable("train-hit", "town", setting, line);
+  const run = runs.find((r) => r.track === 0)!;
+  Object.assign(e.world, { planAt: () => ({ site: { id: "town" }, railway: line }) });
+  Object.assign(e.world.pack, { setting });
+  e.state.manifest.seed = "train-hit";
+  // Through the cell well before the train comes, beside the line as it passes.
+  const day = Math.ceil(e.state.clock / DAY) * DAY;
+  const passes = (at: Point) => [...Array(240).keys()].some((i) => trainOver(line, [run], day + run.at - 1200 + i * 10, day + run.at - 1190 + i * 10, at));
+  expect(passes({ x: p.pos.x, y: line.level })).toBe(true);
+  expect(passes({ x: p.pos.x, y: line.level + 4 })).toBe(false);
+  p.pos = { ...p.pos, y: line.level };
+  e.advance(day + run.at + run.dwell + 1200 - e.state.clock);
+  expect(p.dead).toBe("being hit by a train");
 });

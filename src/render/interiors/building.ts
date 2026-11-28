@@ -1,4 +1,6 @@
 import { setOutRows } from "../../world/room-rows";
+import { buildOverlookBuilding } from "../../content/interiors/overlook";
+import { pickBackroom, pickHouseholdQuirk, varyRoomPalette, type HouseholdQuirk, type SecretBackroom } from "../../content/interiors/backrooms";
 import { resolveRoom, type RoomChoice } from "../../content/interiors/resolve";
 import type { InteriorProfile, RoomRole, RoomTemplate } from "../../content/interiors/types";
 import { planRoom, roomMask, type Prop, type RoomParams, type Shape } from "./room";
@@ -19,8 +21,8 @@ export type RoomPlan = {
 };
 export type PlacedRoom = { label: string; role: RoomRole; x: number; y: number; w: number; d: number; private: boolean };
 /** `stairs` counts the rows of a flight from its head; `side` is a neck between neighbours, not a way through a back wall. */
-export type Doorway = { cells: [number, number][]; from: number; to: number; private: boolean; stairs?: number; side?: boolean };
-export type Building = { plan: RoomPlan; props: Prop[]; rooms: PlacedRoom[]; doorways: Doorway[] };
+export type Doorway = { cells: [number, number][]; from: number; to: number; private: boolean; stairs?: number; side?: boolean; secret?: boolean };
+export type Building = { plan: RoomPlan; props: Prop[]; rooms: PlacedRoom[]; doorways: Doorway[]; backroom?: SecretBackroom };
 
 /** A wall seen face-on is three tiles tall and capped: that many rows lie
  * between a room and the one behind it. Rooms round a court share a side
@@ -49,24 +51,41 @@ function roomsFor(profile: InteriorProfile, status: RoomChoice["status"], storey
   return all.filter((r) => keep.includes(r));
 }
 
+function applyQuirk(params: RoomParams, quirk: HouseholdQuirk | undefined, withFixture: boolean) {
+  if (!quirk) return;
+  if (quirk.clutter.length) params.clutter = [...new Set([...params.clutter, ...quirk.clutter])];
+  if (quirk.furnish?.length && !params.program) params.furnish = [...new Set([...params.furnish, ...quirk.furnish])];
+  if (quirk.wearScale !== undefined) params.wear = Math.min(1, Math.max(0, params.wear * quirk.wearScale));
+  if (withFixture && quirk.fixtures?.length) params.quirkFixtures = quirk.fixtures;
+}
+
 /** The rooms of a household laid out on one grid, entered from below: round
  * a court where the house opens on one, else in rows. */
 export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building {
+  if (profile.institutionPlan === "overlook") return buildOverlookBuilding(profile, c);
+  const backroom = pickBackroom(profile, c.site, c.seed, c.status, c.secretRoom, c.ownerRole);
+  const quirk = pickHouseholdQuirk(profile, c.site?.year ?? 1700, c.seed, c.status, c.ownerRole);
   const chosen = roomsFor(profile, c.status, c.storeys);
-  if (chosen.length < 2) return single(profile, c, chosen[0]?.i);
+  if (chosen.length < 2) return single(profile, c, chosen[0]?.i, quirk, backroom);
   // A public room is sized for its trade, not its keeper's means; a house's rooms grow a little with the house outside.
   const k = profile.uses ? 1 : [1.05, 1.15, 1.25][c.status] * (c.plot ? Math.min(1.15, Math.max(1, Math.sqrt(c.plot / 40))) : 1);
   // A shop, like a public room, is the size its trade needs.
-  const boxes: Box[] = chosen.map(({ t, i, role }) => ({
-    i,
-    role,
-    label: t.label,
-    shape: t.shapes?.[0] ?? "rect",
-    w: Math.max(6, Math.round(t.size[0] * (t.program ? 1 : k))),
-    d: Math.max(5, Math.round(t.size[1] * (t.program ? 1 : k))),
-    x: 0,
-    y: 0,
-  }));
+  const boxes: Box[] = chosen.map(({ t, i, role }) => {
+    // Subtle seeded width/depth drift on residential rooms so neighbouring homes feel individually proportioned.
+    const drift = !profile.uses && !t.program && t.shapes?.[0] !== "courtyard";
+    const dw = drift ? (t.size[0] >= 8 ? ((c.seed >>> (i * 3)) % 3) - 1 : (c.seed >>> (i * 3)) % 2) : 0;
+    const dd = drift ? (t.size[1] >= 7 ? ((c.seed >>> (i * 3 + 2)) % 3) - 1 : (c.seed >>> (i * 3 + 2)) % 2) : 0;
+    return {
+      i,
+      role,
+      label: t.label,
+      shape: t.shapes?.[0] ?? "rect",
+      w: Math.max(6, Math.round(t.size[0] * (t.program ? 1 : k)) + dw),
+      d: Math.max(5, Math.round(t.size[1] * (t.program ? 1 : k)) + dd),
+      x: 0,
+      y: 0,
+    };
+  });
   const court = boxes[0].shape === "courtyard" && boxes[0].w >= 9 && boxes[0].d >= 8 ? boxes[0] : undefined;
   const axial = profile.observance && boxes.length === 2 && boxes[1].role === "sanctum";
   // A building of two storeys or more sleeps upstairs: as many chambers as its size outside allows, three floors drawn at most.
@@ -98,7 +117,7 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
     return {entry:front,doorways:[through(front,rear)]};
   })() : ground.length === 1 ? { entry: ground[0], doorways: [] }
     : profile.institutionPlan === "corridor" ? corridorPlan(ground, c.seed) : profile.institutionPlan ? institutionRanges(ground, c.seed, profile.institutionPlan === "court")
-    : court ? aroundCourt(ground, court, !!profile.observance) : hallway ? alongPassage(ground, c.seed) : inRows(ground, up.length > 0);
+    : court ? aroundCourt(ground, court, !!profile.observance) : hallway ? alongPassage(ground, c.seed) : inRows(ground, up.length > 0, c.seed);
   const { doorways, entry } = laid;
   boxes.length = 0;
   boxes.push(...ground, ...(laid.more ?? []));
@@ -106,6 +125,48 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
     const above = upstairs(boxes, up, levels, c.seed);
     doorways.push(...above.doorways);
     boxes.push(...above.boxes);
+  }
+  let secretBox: Box | undefined;
+  let placedBackroom = backroom;
+  if (backroom) {
+    const [sw, sd] = backroom.template.size;
+    const clearOf = (rx: number, ry: number, rw: number, rd: number) =>
+      !boxes.some((o) => rx < o.x + o.w + 1 && rx + rw + 1 > o.x && ry < o.y + o.d + 1 && ry + rd + 1 > o.y);
+    const tryAnchor = (list: Box[]): { anchor: Box; x: number; y: number; side: boolean } | undefined => {
+      for (const b of list) {
+        const nx = b.x + Math.floor((b.w - sw) / 2), ny = b.y - BEHIND - sd;
+        if (clearOf(nx, ny, sw, sd)) return { anchor: b, x: nx, y: ny, side: false };
+      }
+      for (const b of list) {
+        if (b.d < 5) continue;
+        const ex = b.x + b.w + GAP, ey = b.y + Math.floor((b.d - sd) / 2);
+        if (clearOf(ex, ey, sw, sd)) return { anchor: b, x: ex, y: ey, side: true };
+      }
+      return undefined;
+    };
+    const nonSleep = boxes.filter((b) => b.shape === "rect" && b.role !== "sleep").sort((a, b) => a.y - b.y || b.w - a.w);
+    const wideSleep = boxes.filter((b) => b.shape === "rect" && b.role === "sleep" && b.w >= 7).sort((a, b) => a.y - b.y || b.w - a.w);
+    const hit = tryAnchor(nonSleep) ?? tryAnchor(wideSleep);
+    if (hit) {
+      secretBox = {
+        i: -1,
+        t: backroom.template,
+        role: backroom.template.role ?? "hall",
+        label: backroom.label,
+        shape: "rect",
+        w: sw,
+        d: sd,
+        x: hit.x,
+        y: hit.y,
+        secret: backroom,
+      };
+      const link = hit.side ? beside(hit.anchor, secretBox) : through(hit.anchor, secretBox);
+      link.secret = true;
+      doorways.push(link);
+      boxes.push(secretBox);
+    } else {
+      placedBackroom = undefined;
+    }
   }
   const left = Math.min(...boxes.map((b) => b.x)), high = Math.min(...boxes.map((b) => b.y));
   for (const b of boxes) (b.x -= left), (b.y -= high);
@@ -118,6 +179,11 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
   const props: Prop[] = [];
   const mask = new Uint8Array(w * d), cells = new Int16Array(w * d).fill(-1);
   const rooms: RoomParams[] = [];
+  const bedrooms = c.childResident ? boxes.filter(b => !b.secret && b !== court && ((b.t ?? profile.rooms?.[b.i])?.sleep ?? profile.sleep) !== "none") : [];
+  const childRoom = bedrooms.find(b => b.kind === "shared") ?? bedrooms.find(b => b.role === "sleep") ?? bedrooms.find(b => b.role === "hall") ?? bedrooms[0];
+  const quirkRoom = (quirk?.id === "pet-shop" || quirk?.id === "music-shop")
+    ? boxes[0]
+    : (boxes.find((b) => !b.secret && (b.role === "hall" || b.role === "entry")) ?? boxes[0]);
   for (const [ri, b] of boxes.entries()) {
     const openings: [number, number][] = [], ports: [number, number][] = [];
     for (const dw of doorways) {
@@ -133,7 +199,7 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
     // A courtyard needs room to open: small ones are roofed over.
     const shape = b.shape === "courtyard" && (b.w < 9 || b.d < 8) ? "rect" : b.shape;
     // Each room planned from its own seed, so two chambers of one template are not furnished alike; the house keeps one colourway.
-    const params = resolveRoom(b.t ? { ...profile, rooms: [b.t] } : profile, { ...c, trade: b === works ? c.trade : undefined, seed: c.seed + ri * 101, colorway: c.colorway >= 0 ? c.colorway : c.seed % 9973, room: b.t ? 0 : b.i, w: b.w, d: b.d, shape });
+    let params = resolveRoom(b.t ? { ...profile, rooms: [b.t] } : profile, { ...c, trade: b === works ? c.trade : undefined, seed: c.seed + ri * 101, colorway: b.secret ? 0 : c.colorway >= 0 ? c.colorway : c.seed % 9973, room: b.t ? 0 : b.i, w: b.w, d: b.d, shape });
     if (b.storey) params.storey = b.storey;
     if (b.kind === "shared") (params.beds = 2), (params.styles = { ...params.styles, bed: "single" });
     if (b.kind === "garret") (params.styles = { ...params.styles, bed: "single" }), (params.furnish = ["crate", "sacks", "chest", "basket"]), (params.finish = 0), (params.windows = 1);
@@ -142,12 +208,34 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
     params.openings = openings;
     params.ports = ports;
     params.role = b.role;
+    if (b === childRoom && params.sleep !== "none") params.childSleepsHere = true;
     // The household eats in its kitchen or hall where it has one.
-    params.dines = b.role === "kitchen" || b.role === "hall" || (b.role === "entry" && !boxes.some((o) => o.role === "kitchen" || o.role === "hall"));
+    params.dines = !b.secret && (b.role === "kitchen" || b.role === "hall" || (b.role === "entry" && !boxes.some((o) => o.role === "kitchen" || o.role === "hall")));
     if (b === entry) params.entrance = entrance - b.x;
+    if (!b.secret && !profile.uses && !profile.observance) params = varyRoomPalette(params, b.role, c.seed + ri * 47);
+    if (!b.secret && b === quirkRoom) applyQuirk(params, quirk, true);
+    else if (!b.secret && quirk && b.role !== "store") applyQuirk(params, quirk, false);
     rooms.push(params);
-    const planned = planRoom(params).filter((q) => q.kind !== "door");
-    for (const q of planned) props.push({ ...q, x: q.x + b.x, y: q.y + b.y, room: ri });
+    if (b.secret) {
+      for (const [k, sp] of b.secret.props.entries()) {
+        props.push({
+          id: -1,
+          kind: sp.kind,
+          x: b.x + sp.lx,
+          y: b.y + sp.ly,
+          w: sp.w,
+          d: sp.d,
+          wall: sp.wall,
+          on: !!sp.on,
+          room: ri,
+          ...(sp.item ? { item: sp.item } : {}),
+          seed: c.seed + (ri + 1) * 97 + k * 31,
+        });
+      }
+    } else {
+      const planned = planRoom(params).filter((q) => q.kind !== "door");
+      for (const q of planned) props.push({ ...q, x: q.x + b.x, y: q.y + b.y, room: ri });
+    }
     const m = roomMask(params);
     for (let y = 0; y < b.d; y++)
       for (let x = 0; x < b.w; x++)
@@ -162,18 +250,19 @@ export function planBuilding(profile: InteriorProfile, c: RoomChoice): Building 
       cells[cy * w + cx] = boxes.indexOf(dw.b);
     }
   props.forEach((q, i) => (q.id = i));
-  const ways = doorways.map((dw) => ({ cells: dw.cells, from: boxes.indexOf(dw.a), to: boxes.indexOf(dw.b), private: dw.b.role === "sleep" || dw.a.role === "sleep", stairs: dw.stairs, side: dw.side }));
+  const ways = doorways.map((dw) => ({ cells: dw.cells, from: boxes.indexOf(dw.a), to: boxes.indexOf(dw.b), private: !dw.secret && (dw.b.role === "sleep" || dw.a.role === "sleep"), stairs: dw.stairs, side: dw.side, ...(dw.secret ? { secret: true } : {}) }));
   return {
     plan: { w, d, mask, cells, rooms, entrance: [entrance, entry.y + entry.d - 1], doorways: ways },
     props,
-    rooms: boxes.map((b) => ({ label: b.label, role: b.role, x: b.x, y: b.y, w: b.w, d: b.d, private: b.role === "sleep" })),
+    rooms: boxes.map((b) => ({ label: b.label, role: b.role, x: b.x, y: b.y, w: b.w, d: b.d, private: !b.secret && b.role === "sleep" })),
     doorways: ways,
+    ...(placedBackroom ? { backroom: placedBackroom } : {}),
   };
 }
 
 /** `t` is the template of a room the plan adds itself: a passage, a landing. */
-type Box = { i: number; t?: RoomTemplate; role: RoomRole; label: string; shape: Shape; w: number; d: number; x: number; y: number; storey?: number; kind?: "shared" | "garret" };
-type Link = { a: Box; b: Box; cells: [number, number][]; stairs?: number; side?: boolean };
+type Box = { i: number; t?: RoomTemplate; role: RoomRole; label: string; shape: Shape; w: number; d: number; x: number; y: number; storey?: number; kind?: "shared" | "garret"; secret?: SecretBackroom };
+type Link = { a: Box; b: Box; cells: [number, number][]; stairs?: number; side?: boolean; secret?: boolean };
 const PASSAGE: RoomTemplate = { id: "passage", label: "Passage", role: "hall", size: [4, 6], sleep: "none", fire: "none", windows: 0, program: "corridor", furnish: ["pegs", "frame"], clutter: [] };
 const LANDING: RoomTemplate = { id: "landing", label: "Landing", role: "hall", size: [6, 3], sleep: "none", fire: "none", windows: 1, program: "corridor", furnish: ["frame", "chest"], clutter: [] };
 
@@ -415,10 +504,14 @@ function corridorPlan(boxes: Box[], seed: number) {
 
 /** Public rooms in a row along the front, top-aligned so the back wall runs
  * level; sleeping rooms and stores behind, stores behind the kitchen. */
-function inRows(boxes: Box[], flat = false) {
+function inRows(boxes: Box[], flat = false, seed = 0) {
   const front = boxes.filter((b) => flat || !BACK.includes(b.role));
   const back = boxes.filter((b) => !flat && BACK.includes(b.role));
   if (!front.length) front.push(back.shift()!);
+  const entry = front.find(b => b.role === "entry") ?? front[0];
+  // Seeded mirroring so neighbouring multi-room houses do not all put their parlour and kitchen on the same side.
+  if (front.length > 1 && ((seed >>> 4) & 1)) front.reverse();
+  if (back.length > 1 && ((seed >>> 5) & 1)) back.reverse();
   let x = 0;
   for (const b of front) (b.x = x), (x += b.w + GAP);
   const rowTop = back.length ? Math.max(...back.map((b) => b.d)) + BEHIND : 0;
@@ -435,7 +528,7 @@ function inRows(boxes: Box[], flat = false) {
   }
   for (const row of [front, back])
     for (let n = 1; n < row.length; n++) if (row[n].x === row[n - 1].x + row[n - 1].w + GAP) doorways.push(beside(row[n - 1], row[n]));
-  return { doorways, entry: front[0] };
+  return { doorways, entry };
 }
 
 /** A house turned inward on its court, as a domus on its atrium, a haveli on
@@ -468,20 +561,83 @@ function aroundCourt(boxes: Box[], court: Box, sacred: boolean) {
 }
 
 /** A one-room dwelling, entered from below. Tents, huts and a Çatalhöyük
- * house with its roof ladder keep their own way in. */
-function single(profile: InteriorProfile, c: RoomChoice, room?: number): Building {
+ * house with its roof ladder keep their own way in. When a secret back-room
+ * spawns behind a single-room shop or tavern, the front room stays index 0. */
+function single(profile: InteriorProfile, c: RoomChoice, room?: number, quirk?: HouseholdQuirk, backroom?: SecretBackroom): Building {
   const params = resolveRoom(profile, { ...c, room });
+  applyQuirk(params, quirk, true);
+  if (c.childResident && params.sleep !== "none") params.childSleepsHere = true;
   if (params.door !== "none" && params.door !== "lift") params.entrance = Math.floor(params.w / 2);
-  const props = planRoom(params).filter((q) => params.entrance === undefined || q.kind !== "door");
-  props.forEach((q, i) => ((q.id = i), (q.room = 0)));
-  const mask = roomMask(params);
-  const cells = new Int16Array(params.w * params.d).map((_, i) => (mask[i] ? 0 : -1));
-  let ey = params.d - 1;
-  if (params.entrance !== undefined) while (ey > 0 && !mask[ey * params.w + params.entrance]) ey--;
+  if (!backroom) {
+    const props = planRoom(params).filter((q) => params.entrance === undefined || q.kind !== "door");
+    props.forEach((q, i) => ((q.id = i), (q.room = 0)));
+    const mask = roomMask(params);
+    const cells = new Int16Array(params.w * params.d).map((_, i) => (mask[i] ? 0 : -1));
+    let ey = params.d - 1;
+    if (params.entrance !== undefined) while (ey > 0 && !mask[ey * params.w + params.entrance]) ey--;
+    return {
+      plan: { w: params.w, d: params.d, mask, cells, rooms: [params], entrance: [params.entrance ?? -1, ey], doorways: [] },
+      props,
+      rooms: [{ label: profile.label, role: "entry", x: 0, y: 0, w: params.w, d: params.d, private: false }],
+      doorways: [],
+    };
+  }
+  const [sw, sd] = backroom.template.size;
+  const fw = params.w, fd = params.d;
+  const totalW = Math.max(fw, sw), totalD = sd + BEHIND + fd;
+  const fx = Math.floor((totalW - fw) / 2), fy = sd + BEHIND;
+  const sx = Math.floor((totalW - sw) / 2), sy = 0;
+  const frontBox: Box = { i: 0, role: "entry", label: profile.label, shape: params.shape, w: fw, d: fd, x: fx, y: fy };
+  const secretBox: Box = { i: -1, t: backroom.template, role: backroom.template.role ?? "hall", label: backroom.label, shape: "rect", w: sw, d: sd, x: sx, y: sy, secret: backroom };
+  const link = through(frontBox, secretBox);
+  link.secret = true;
+  const openings: [number, number][] = [], ports: [number, number][] = [];
+  for (const [cx, cy] of link.cells) {
+    for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const lx = cx + ox - fx, ly = cy + oy - fy;
+      if (lx < 0 || ly < 0 || lx >= fw || ly >= fd) continue;
+      openings.push([lx, ly]);
+      if (ox || oy) ports.push([lx, ly]);
+    }
+  }
+  params.openings = openings;
+  params.ports = ports;
+  const secretParams = resolveRoom({ ...profile, rooms: [backroom.template] }, { ...c, room: 0, colorway: 0, w: sw, d: sd, shape: "rect", seed: c.seed + 313 });
+  secretParams.role = backroom.template.role ?? "hall";
+  secretParams.dines = false;
+  const frontProps = planRoom(params).filter((q) => params.entrance === undefined || q.kind !== "door")
+    .map((q) => ({ ...q, x: q.x + fx, y: q.y + fy, room: 0 }));
+  const secretProps: Prop[] = backroom.props.map((sp, k) => ({
+    id: -1,
+    kind: sp.kind,
+    x: sx + sp.lx,
+    y: sy + sp.ly,
+    w: sp.w,
+    d: sp.d,
+    wall: sp.wall,
+    on: !!sp.on,
+    room: 1,
+    ...(sp.item ? { item: sp.item } : {}),
+    seed: c.seed + 313 + k * 31,
+  }));
+  const props = [...frontProps, ...secretProps];
+  props.forEach((q, i) => (q.id = i));
+  const mask = new Uint8Array(totalW * totalD), cells = new Int16Array(totalW * totalD).fill(-1);
+  const fm = roomMask(params), sm = roomMask(secretParams);
+  for (let y = 0; y < fd; y++) for (let x = 0; x < fw; x++) if (fm[y * fw + x]) (mask[(y + fy) * totalW + x + fx] = fm[y * fw + x]), (cells[(y + fy) * totalW + x + fx] = 0);
+  for (let y = 0; y < sd; y++) for (let x = 0; x < sw; x++) if (sm[y * sw + x]) (mask[(y + sy) * totalW + x + sx] = sm[y * sw + x]), (cells[(y + sy) * totalW + x + sx] = 1);
+  for (const [cx, cy] of link.cells) (mask[cy * totalW + cx] = 1), (cells[cy * totalW + cx] = 1);
+  let ey = fd - 1;
+  if (params.entrance !== undefined) while (ey > 0 && !fm[ey * fw + params.entrance]) ey--;
+  const way: Doorway = { cells: link.cells, from: 0, to: 1, private: false, secret: true };
   return {
-    plan: { w: params.w, d: params.d, mask, cells, rooms: [params], entrance: [params.entrance ?? -1, ey], doorways: [] },
+    plan: { w: totalW, d: totalD, mask, cells, rooms: [params, secretParams], entrance: [params.entrance !== undefined ? fx + params.entrance : -1, fy + ey], doorways: [way] },
     props,
-    rooms: [{ label: profile.label, role: "entry", x: 0, y: 0, w: params.w, d: params.d, private: false }],
-    doorways: [],
+    rooms: [
+      { label: profile.label, role: "entry", x: fx, y: fy, w: fw, d: fd, private: false },
+      { label: backroom.label, role: secretParams.role, x: sx, y: sy, w: sw, d: sd, private: false },
+    ],
+    doorways: [way],
+    backroom,
   };
 }

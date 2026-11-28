@@ -56,7 +56,9 @@ export function planWorksites(
   let processingCount = 0;
   const role = s.role?.toLowerCase().replace(/ /g,"-");
   const priority=(p:ReturnType<typeof worksitesFor>[number])=>p.roles?.includes(role??"") || p.kind==="boatyard" && !!fishingWaterfront(s);
+  const overlook = s.placeId === "overlook-hotel";
   const profiles = worksitesFor(s).sort((a,b) =>
+    (overlook ? Number(b.kind === "inn") - Number(a.kind === "inn") : 0) ||
     Number(!!a.revision)-Number(!!b.revision) ||
     Number(!a.scope.bounds)-Number(!b.scope.bounds) ||
     Number(!a.urban)-Number(!b.urban) ||
@@ -67,16 +69,18 @@ export function planWorksites(
     const slot = profile.kind === "caravanserai" ? "inn" : profile.kind;
     if (placed.has(slot)) continue;
     const station = CRAFT_STATION[profile.kind];
-    const main = buildingModel(profile.frame), store = buildingModel(profile.outbuilding.frame);
+    const isOverlook = overlook && profile.kind === "inn";
+    const mainFrame = isOverlook ? "worksite-pavilion-hospital" : profile.frame;
+    const main = buildingModel(mainFrame), store = buildingModel(profile.outbuilding.frame);
     const [mw, mh] = main.footprint, [sw, sh] = store.footprint;
     const pad = 2 + Math.ceil(Math.max(0, main.anchor[0]-mw*8, main.bounds[2]-main.anchor[0]-mw*8)/16);
     const top = 2 + Math.ceil(Math.max(0,main.bounds[3]-mh*16)/16);
     const gap = (station && !profile.launch ? 6 : 4) + Math.ceil(Math.max(0,store.bounds[3]-sh*16)/16);
     const w = Math.max(mw, sw) + pad*2, h = top + mh + gap + sh + 3;
-    const fringe = profile.siting !== "urban";
+    const fringe = profile.siting !== "urban" || isOverlook;
     const fit = (r: Rect, occupied = true, core = r) => dry(r,occupied,core,fringe);
     const area = {x:c.x-radius-110,y:c.y-radius-110,w:(radius+110)*2,h:(radius+110)*2};
-    const first = profile.siting === "fringe" ? radius + Math.ceil(Math.hypot(w,h)/2) + 8 :
+    const first = isOverlook ? 14 : profile.siting === "fringe" ? radius + Math.ceil(Math.hypot(w,h)/2) + 8 :
       profile.siting === "waterside" ? Math.max(30,Math.floor(radius*.65)) :
       profile.revision ? Math.max(42,Math.ceil(Math.hypot(w,h)/2)+24) : 30;
     // A town's square, hall and sanctuary are planned after the yards, so a
@@ -97,10 +101,15 @@ export function planWorksites(
         if (door) { p.door = door; p.entrance = {x:door.x,y:door.y+1}; }
         return p;
       };
-      const named = profile.inn && establishmentName(profile.id, s, pack.names, (k) => random(seed, id, "inn-name", k),
-        (name) => plan.places.some((p) => p.name === name));
-      const hall = place("",profile.frame,named || profile.label,r.x+pad,r.y+top);
-      if (named) hall.description = `${profile.label}. ${hall.description}`;
+      const named = isOverlook
+        ? "The Overlook Hotel"
+        : profile.inn && establishmentName(profile.id, s, pack.names, (k) => random(seed, id, "inn-name", k),
+          (name) => plan.places.some((p) => p.name === name));
+      const hall = place("", mainFrame, named || profile.label, r.x + pad, r.y + top);
+      if (isOverlook) {
+        hall.claim = "venue-venue.overlook";
+        hall.description = "The Overlook Hotel — an isolated mountain resort high in the Colorado Rockies, closed for the winter season.";
+      } else if (named) hall.description = `${profile.label}. ${hall.description}`;
       const buildings = [hall,
         place("-store",profile.outbuilding.frame,profile.outbuilding.label,r.x+pad,r.y+top+mh+gap)];
       const offset=launch && Math.floor(launch.workingLength/2);

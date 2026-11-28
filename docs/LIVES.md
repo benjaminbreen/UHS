@@ -224,7 +224,7 @@ by `wardrobe/regions/outlaws.ts`, with days in `recipes.ts` and cards in
 ## Death and going on
 
 What kills: illness, hunger, burns, drowning, falls, an animal, a blade, a
-crash, lightning, venom.
+crash, a train, lightning, venom.
 
 - **Lightning** (`lightningExposure`). In a thunderstorm (`Weather.storm`,
   warm heavy rain) a strike on the player is rare in the open, about four
@@ -240,11 +240,22 @@ crash, lightning, venom.
   mamba) to three days (a saw-scaled viper), with the snake's untreated death
   rate. Rest and a healer help a little; antivenom, from 1900 where a doctor
   has modern stock, turns most deaths.
- A cycle or car that hits something fast enough may kill its rider
+- **Trains** (`trainExposure`, `trainOver` in `railway.ts`). A moving train
+  that runs over the player's cell on a town's line kills them, checked over
+  each six-second tick so a fast train cannot skip a cell. A standing train
+  hits nothing. Townsfolk on their rounds wait for it; someone on the line in
+  a fright or a fight (`terror` or `offRoutine`) is killed too.
+- **Out of their depth.** A swimmer who tires out (`washAshore`) wakes on the
+  shore with little health left, unless they were already down to 30 or less:
+  then they drown.
+
+A cycle or car that hits something fast enough may kill its rider
 (`crashKills` in `engine.ts`); the chance climbs with speed past a floor, and
 a car before seatbelts (1970) is worse.
 A fall's harm grows steeply with height (`fall` in `engine.ts`): one storey
-hurts and may injure (see Injuries), two cripple, three or more kill. A jump mid-roof hops along it; only
+hurts and may injure (see Injuries), two cripple, three or more kill. Jumping
+off a town wall walk is about two storeys and off a tower three; a field wall
+or hedge is a hop. A jump mid-roof hops along it; only
 the edge drops to the street. An animal that takes the player's health to
 nothing kills them (mauled, gored, or taken in the water), as does a blow
 from an edged weapon. A beating with fists or a club puts them down instead,

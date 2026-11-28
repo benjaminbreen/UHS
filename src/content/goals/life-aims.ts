@@ -152,8 +152,8 @@ export const LIFE_AIM_TEMPLATES: LifeAimTemplate[] = [
   {
     id: "restore-household", weight: 2.8, eligible: (c) => c.hardTimes,
     bind: (c) => ({
-      text: `Restore your household's footing${place(c)} after ${c.hardship === "fire" ? "the fire" : c.hardship === "robbed" ? "the robbery" : "a bad year"}, until one setback no longer leaves you short of food.`, subjects: [],
-      basis: { reason: "A recorded hardship left the household with little to spare.", means: "Rebuild stores through the household's existing work.", obstacle: "Today's needs consume what could be set aside." },
+      text: `Restore your household's footing${place(c)} after ${c.hardship === "fire" ? "the fire" : c.hardship === "robbed" ? "the robbery" : "a bad year"}, until one setback no longer ${(c.setting?.year ?? 0) >= 1900 ? "puts you behind on the rent and bills" : "leaves you short of food"}.`, subjects: [],
+      basis: { reason: "A recorded hardship left the household with little to spare.", means: (c.setting?.year ?? 0) >= 1900 ? "Put money by from the household's existing work." : "Rebuild stores through the household's existing work.", obstacle: "Today's needs consume what could be set aside." },
     }),
   },
   {

@@ -1129,7 +1129,7 @@ export class Runtime {
     if (preserveJourney) this.timeTravel?.rebase(engine);
     else if (!preserveTime) this.timeTravel = undefined;
     if (!preserveJourney) this.journey?.dispose();
-    releaseTerrainWorker(this.engine.world);
+    releaseTerrainWorker(this.engine.world, engine.world);
     this.replay = undefined;
     this.offer = undefined;
     this.stop();
@@ -1618,7 +1618,20 @@ export class Runtime {
     })) void audio.event("preyCaught");
     if (door && !!door.open !== wasOpen)
       void audio.event(door.open ? "door" : "doorClose");
-    else if (command.type === "interact" && command.action === "knock")
+    else if (this.engine.lastRoomSound) {
+      const s = this.engine.lastRoomSound;
+      if (s === "bird") void audio.call("warbler", 0, 0.85);
+      else
+        void audio.event(
+          s === "switch" ? "switchClick"
+            : s === "radio" ? "radioTune"
+              : s === "fire" ? "warm"
+                : s === "shutter" ? "shutter"
+                  : s === "drink" ? "drink"
+                    : s === "cat" ? "purr"
+                      : "rest",
+        );
+    } else if (command.type === "interact" && command.action === "knock")
       void audio.event("knock");
     else if (command.type === "interact" && command.action === "launch" && !previousBoat && state.player.boat)
       void audio.event("boatLaunch");
@@ -2205,6 +2218,17 @@ export class Runtime {
         kind: "inspect",
         label: `Look at ${place.name}`,
         actor: place.id,
+      };
+    else if (
+      !fighting &&
+      (use?.use === "sit" || use?.use === "attend") &&
+      p.seated?.on !== use.id &&
+      propDefs[this.engine.state.objects.find((o) => o.id === use.id)?.prop ?? ""]?.portable
+    )
+      primary = {
+        kind: "use",
+        label: use.label,
+        command: { type: "interact", target: use.id, action: "use-prop" },
       };
     // Empty hands swing first; lifting and climbing go to E.
     else primary = { kind: "strike", label: "Take a swing" };
@@ -2868,6 +2892,10 @@ export class Runtime {
     if (spell && !practice) this.command({ type: "fish", ...spell });
     else this.emit();
   }
+  finishInstrument(objectId: string, instrument: "piano" | "lute" | "guitar", notesPlayed: number, completedTune?: string) {
+    this.engine.finishInstrument(objectId, instrument, notesPlayed, completedTune);
+    this.emit();
+  }
   tick() {
     if (this.timeTravelLocked || this.workInProgress || this.passing || this.fishing || this.engine.state.player.dead) return;
     if (this.replay) {
@@ -3135,6 +3163,10 @@ export class Runtime {
       const food = this.engine.item(command.item);
       if (food?.edible)
         return void audio.sound(eat(biteOf(food.id), (food.health ?? 0) < 0), "eat");
+    }
+    if (command.type === "order") {
+      const money = moneyOf("coin");
+      if (money) return void audio.sound(pay(money, 1, false), "trade");
     }
     if (command.type === "deal") {
       const coin = (inv: Record<string, number | undefined>) => Object.keys(inv).find((id) => (inv[id] ?? 0) > 0 && moneyOf(id));

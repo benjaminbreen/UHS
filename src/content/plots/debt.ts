@@ -103,7 +103,8 @@ export const debt: PlotTemplate = {
       c.household.owes = purchase.from;
     }
     const since = !hard || year === undefined ? "For months"
-      : hard.kind === "bad-year" ? `Since ${year - hard.year === 0 ? "this" : "last"} year's bad harvest`
+      : hard.kind === "bad-year" ? year >= 1900 ? `Since money got tight ${year - hard.year === 0 ? "this" : "last"} year`
+        : `Since ${year - hard.year === 0 ? "this" : "last"} year's bad harvest`
       : hard.kind === "fire" ? "Since the fire" : "Since the robbery";
     return {
       deadline,

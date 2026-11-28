@@ -853,3 +853,271 @@ it("solid props block their base tile; pickup and break clear it, while drops bl
   expect(propDefs.woodpile.solid).toBe(true);
   expect(propDefs.stick.solid).toBe(false);
 });
+
+it("lets indoor props be picked up and carried outside, while stools and chairs default to sitting as primary", () => {
+  const e = createSession("roman", "indoor-pickup");
+  e.world.pack.setting = (resolveSetting("A clerk in Chicago, 1955") as any).setting;
+  const house = e.world.places.find((b) => b.access === "household")!;
+  const room = e.interiorOf(house.id)!;
+  expect(room).toBeTruthy();
+  const indoor = e.state.objects.filter((o) => o.pos.space === house.id && o.prop);
+  const seat = indoor.find((o) => o.prop === "room-chair" || o.prop === "room-stool")!;
+  expect(seat, "room has a chair or stool").toBeTruthy();
+  expect(seat.sprite).toMatch(/^made:room:stool:/);
+  expect(propDefs[seat.prop!].portable).toBe(true);
+  // Heavy room furniture stays non-portable.
+  expect(propDefs["room-table"].portable).toBeFalsy();
+  expect(propDefs["room-sofa"].portable).toBeFalsy();
+
+  const beside = [[0, 1], [1, 0], [-1, 0], [0, -1]]
+    .map(([dx, dy]) => ({ x: seat.pos.x + dx, y: seat.pos.y + dy }))
+    .find((q) => !e.blocked(q.x, q.y, house.id))!;
+  e.state.actors = [];
+  e.state.player.pos = { ...beside, space: house.id };
+  const dx = seat.pos.x - beside.x, dy = seat.pos.y - beside.y;
+  e.state.player.direction = dy < 0 ? 0 : dx > 0 ? 1 : dy > 0 ? 2 : 3;
+
+  const rt = new Runtime(e, { cacheTerrain: false });
+  const verbs = rt.verbs();
+  expect(verbs.primary?.label).toBe(`Sit on the ${seat.name.toLowerCase()}`);
+  expect(verbs.alternate?.label).toBe(`Pick up ${seat.name.toLowerCase()}`);
+
+  // Primary (F) sits on the stool/chair.
+  expect(rt.runVerb("primary")?.kind).toBe("use");
+  expect(e.state.player.seated?.on).toBe(seat.id);
+
+  // Alternate (E) picks it up, clearing its tile and carrying it out the door.
+  expect(rt.runVerb("alternate")?.kind).toBe("pickup");
+  expect(e.state.player.held).toBe(seat.id);
+  expect(seat.carriedBy).toBe("player");
+  expect(e.blocked(seat.pos.x, seat.pos.y, house.id)).toBe(false);
+
+  // Carry outside and set it down on clear ground.
+  e.state.player.pos = { x: house.entrance.x, y: house.entrance.y + 3, space: "outside" };
+  expect(interaction(e, seat, "drop").status).toBe("completed");
+  expect(seat.pos.space).toBe("outside");
+  expect(seat.carriedBy).toBeUndefined();
+  expect(e.state.player.held).toBeUndefined();
+  rt.dispose();
+});
+
+it("runs working radios, toggleable indoor lights, shrine/map/clock/books/drinks/cat, and NPC room-prop use", () => {
+  const r = resolveSetting("A clerk in Chicago, 1955");
+  if (!("setting" in r)) throw Error(r.error);
+  const e = createSession("roman", "indoor-acts");
+  e.world.pack.setting = r.setting;
+  e.world.pack.year = 1955;
+  const house = e.world.places.find((p) => p.owner && e.interiorOf(p.id))!;
+  const room = e.interiorOf(house.id)!;
+  e.state.player.pos = { ...room.entry, space: house.id };
+  e.state.actors = [];
+
+  const at = { x: room.entry.x, y: room.entry.y - 1, space: house.id };
+  const addProp = (id: string, prop: string, open = false) => {
+    const def = propDefs[prop];
+    const o = { id, name: def.name, kind: (def.container ? "container" : "monument") as "container" | "monument", prop, sprite: prop, pos: { ...at }, inventory: {}, open };
+    e.state.objects.push(o);
+    return o;
+  };
+
+  // 1. Radio: Primary (F) turns it on (playing broadcast), click offers Tune + Turn off, pickup unplugs it.
+  const radio = addProp("test-radio", "room-radio", false);
+  e.state.player.direction = 0;
+  const rt = new Runtime(e, { cacheTerrain: false });
+  expect(rt.verbs().primary?.label).toBe("Turn on the radio");
+  expect(rt.verbs().alternate?.label).toBe("Pick up cabinet radio");
+  expect(rt.runVerb("primary")?.kind).toBe("use");
+  expect(radio.open).toBe(true);
+  expect(e.state.events.at(-1)!.text).toMatch(/radio|dial/i);
+  const radioMenu = e.inspect(radio.id)!.affordances.map((a) => a.label);
+  expect(radioMenu).toContain("Tune the radio");
+  expect(radioMenu).toContain("Turn off the radio");
+  expect(interaction(e, radio, "look").status).toBe("completed");
+  expect(radio.open).toBe(true);
+  expect(interaction(e, radio, "pickup").status).toBe("completed");
+  expect(radio.open).toBe(false);
+  expect(interaction(e, radio, "drop").status).toBe("completed");
+  e.state.objects = e.state.objects.filter((o) => o !== radio);
+
+  // 2. Electric lamp in 1955 switches on/off; candle/oil lamp in 1500 lights/puts out.
+  const lamp = addProp("test-lamp", "room-lamp", false);
+  expect(e.usable()).toMatchObject({ id: lamp.id, label: "Switch on the lamp" });
+  expect(interaction(e, lamp, "attend").status).toBe("completed");
+  expect(lamp.open).toBe(true);
+  expect(e.usable()).toMatchObject({ id: lamp.id, label: "Switch off the lamp" });
+  expect(interaction(e, lamp, "attend").status).toBe("completed");
+  expect(lamp.open).toBe(false);
+  e.state.objects = e.state.objects.filter((o) => o !== lamp);
+
+  // 3. Shrine, wall map, clock, books, drinking fountain, and cat.
+  const shrine = addProp("test-shrine", "room-shrine", false);
+  expect(interaction(e, shrine, "attend").status).toBe("completed");
+  expect(shrine.open).toBe(true);
+  e.state.objects = e.state.objects.filter((o) => o !== shrine);
+
+  const map = addProp("test-map", "room-map");
+  expect(interaction(e, map, "attend").status).toBe("completed");
+  expect(e.state.events.at(-1)!.text).toMatch(/Chicago|map/i);
+  e.state.objects = e.state.objects.filter((o) => o !== map);
+
+  const clock = addProp("test-clock", "room-clock");
+  e.state.clock = 15 * 3600 + 15 * 60;
+  expect(interaction(e, clock, "attend").status).toBe("completed");
+  expect(e.state.events.at(-1)!.text).toMatch(/quarter past three/i);
+  e.state.objects = e.state.objects.filter((o) => o !== clock);
+
+  const books = addProp("test-books", "room-scrolls");
+  expect(e.usable()).toMatchObject({ id: books.id, label: "Read a book" });
+  expect(interaction(e, books, "attend").status).toBe("completed");
+  e.state.objects = e.state.objects.filter((o) => o !== books);
+
+  const fountain = addProp("test-fountain", "room-fountain");
+  e.state.player.inventory.water = 0;
+  expect(interaction(e, fountain, "attend").status).toBe("completed");
+  expect(e.state.player.inventory.water).toBeGreaterThan(0);
+  e.state.objects = e.state.objects.filter((o) => o !== fountain);
+
+  const cat = addProp("test-cat", "room-cat", false);
+  expect(interaction(e, cat, "attend").status).toBe("completed");
+  expect(cat.open).toBe(true);
+  e.state.objects = e.state.objects.filter((o) => o !== cat);
+
+  // 4. NPC switches on an unlit lamp at dusk (and respects a lamp the player just switched off).
+  for (const o of e.state.objects) if (o.pos.space === house.id && (o.prop === "room-lamp" || o.prop === "room-lantern" || o.prop === "room-tapers" || o.prop === "room-brazier")) o.open = true;
+  const duskLamp = addProp("dusk-lamp", "room-lamp", false);
+  const hh = e.state.households?.find((h) => h.residence === house.id);
+  const resident = {
+    id: "room-resident",
+    name: "Mina",
+    kind: "human" as const,
+    role: "Clerk",
+    sprite: "human-female",
+    householdId: hh?.id,
+    pos: { x: room.entry.x, y: room.entry.y, space: house.id },
+    home: { x: room.entry.x, y: room.entry.y, space: house.id },
+    work: { x: room.entry.x, y: room.entry.y, space: house.id },
+    direction: 2 as const,
+    activity: "At home",
+    hunger: 10,
+    fatigue: 10,
+    trust: 0,
+    inventory: {},
+    memories: [],
+    offRoutine: true,
+  };
+  if (hh && !hh.members.includes(resident.id)) hh.members.push(resident.id);
+  e.state.actors = [resident];
+  e.state.clock = 20 * 3600;
+  e.advance(120);
+  expect(duskLamp.open).toBe(true);
+  expect(e.state.events.some((ev) => /Mina.*lamp/i.test(ev.text))).toBe(true);
+
+  // If the player manually switches it off, NPC leaves it off for the cooldown window.
+  expect(interaction(e, duskLamp, "attend").status).toBe("completed");
+  expect(duskLamp.open).toBe(false);
+  e.advance(120);
+  expect(duskLamp.open).toBe(false);
+  rt.dispose();
+});
+
+it("supports indoor fires with cooking, shuttered windows, spinning craft wheels, player tuck-in beds, resident reactions, and room SFX", async () => {
+  const { events } = await import("../src/audio/sfx");
+  for (const id of ["switchClick", "radioTune", "shutter", "purr"] as const) {
+    expect(events[id]().length).toBeGreaterThan(0);
+  }
+  const r = resolveSetting("A baker in London, 1650");
+  if (!("setting" in r)) throw Error(r.error);
+  const e = createSession("roman", "indoor-fixtures");
+  e.world.pack.setting = r.setting;
+  e.world.pack.year = 1650;
+  const house = e.world.places.find((p) => p.owner && e.interiorOf(p.id))!;
+  const room = e.interiorOf(house.id)!;
+  e.state.player.pos = { ...room.entry, space: house.id };
+  e.state.player.householdId = "other-household";
+  const at = { x: room.entry.x, y: room.entry.y - 1, space: house.id };
+  const addProp = (id: string, prop: string, open = false, owner = house.owner) => {
+    const def = propDefs[prop];
+    const o = { id, name: def.name, kind: (def.container ? "container" : "monument") as "container" | "monument", prop, sprite: prop, pos: { ...at }, inventory: {}, open, owner };
+    e.state.objects.push(o);
+    return o;
+  };
+  e.state.actors = [];
+
+  // 1. Indoor hearth: cooking requires fire lit; kindling enables cooking and warming up.
+  const hearth = addProp("test-hearth", "room-hearth", false);
+  e.state.player.inventory.meat = 2;
+  expect(e.inspect(hearth.id)!.affordances.find((a) => a.label === "Cook meat")).toMatchObject({ enabled: false, reason: "Kindle the fire first" });
+  expect(interaction(e, hearth, "attend").status).toBe("completed");
+  expect(hearth.open).toBe(true);
+  expect(e.lastRoomSound).toBe("fire");
+  expect(e.inspect(hearth.id)!.affordances.map((a) => a.label)).toContain("Warm up by the fire");
+  expect(interaction(e, hearth, "cook").status).toBe("completed");
+  expect(e.state.player.inventory["cooked-meat"]).toBe(2);
+  e.state.objects = e.state.objects.filter((o) => o !== hearth);
+
+  // 2. Shuttered window: toggles shutters open/shut + Look out the window describes live weather/place.
+  room.params.windowStyle = "shutter";
+  const win = addProp("test-window", "room-window", true);
+  const winLabels = e.inspect(win.id)!.affordances.map((a) => a.label);
+  expect(winLabels).toContain("Shut the shutters");
+  expect(winLabels).toContain("Look out the window");
+  expect(interaction(e, win, "look").status).toBe("completed");
+  expect(e.state.events.at(-1)!.text).toMatch(/London|window/i);
+  expect(interaction(e, win, "attend").status).toBe("completed");
+  expect(win.open).toBe(false);
+  expect(e.lastRoomSound).toBe("shutter");
+  e.state.objects = e.state.objects.filter((o) => o !== win);
+
+  // 3. Craft wheel spins when used.
+  const wheel = addProp("test-wheel", "room-spinwheel", false);
+  expect(interaction(e, wheel, "attend").status).toBe("completed");
+  expect(wheel.open).toBe(true);
+  e.state.objects = e.state.objects.filter((o) => o !== wheel);
+
+  // 4. Bed lets player lie down under the covers (indoorUse role === "bed").
+  const bed = addProp("test-bed", "room-bed", false);
+  expect(e.inspect(bed.id)!.affordances.map((a) => a.label)).toEqual(expect.arrayContaining(["Lie down", "Sleep until morning"]));
+  expect(interaction(e, bed, "attend").status).toBe("completed");
+  expect(e.indoorUse("player", e.state.player.pos)?.role).toBe("bed");
+  expect(e.state.player.seated?.on).toBe(bed.id);
+  expect(e.lastRoomSound).toBe("rest");
+  // Stepping stands back up.
+  e.state.player.pos = { ...room.entry, space: house.id };
+  delete e.state.player.seated;
+  e.state.objects = e.state.objects.filter((o) => o !== bed);
+
+  // 5. Resident reacts verbally when player shuts off their radio or rummages in their icebox.
+  const hh = e.state.households?.find((h) => h.residence === house.id);
+  const witness = {
+    id: "room-witness",
+    name: "Arthur",
+    kind: "human" as const,
+    role: "Baker",
+    sprite: "human-male",
+    householdId: hh?.id ?? "house-hh",
+    pos: { x: room.entry.x + 1, y: room.entry.y, space: house.id },
+    home: { x: room.entry.x + 1, y: room.entry.y, space: house.id },
+    work: { x: room.entry.x + 1, y: room.entry.y, space: house.id },
+    direction: 2 as const,
+    activity: "At home",
+    hunger: 10,
+    fatigue: 10,
+    trust: 2,
+    inventory: {},
+    memories: [],
+    offRoutine: true,
+  };
+  e.state.actors = [witness];
+  const radio = addProp("owned-radio", "room-radio", true, witness.id);
+  e.signals.length = 0;
+  expect(interaction(e, radio, "attend").status).toBe("completed");
+  expect(e.signals.some((s) => s.kind === "say" && s.who === witness.id && /listening/i.test(s.text))).toBe(true);
+  e.state.objects = e.state.objects.filter((o) => o !== radio);
+
+  const icebox = addProp("owned-icebox", "room-icebox", false, witness.id);
+  const trustBefore = witness.trust;
+  e.signals.length = 0;
+  expect(interaction(e, icebox, "look").status).toBe("completed");
+  expect(e.signals.some((s) => s.kind === "say" && s.who === witness.id && /icebox/i.test(s.text))).toBe(true);
+  expect(witness.trust).toBe(trustBefore - 1);
+});

@@ -2,11 +2,13 @@ import { communityFor } from "../content/characters/resolve";
 import { formatHistoricalYear } from "../core/calendar";
 import { randomStart } from "../content/geography/random-start";
 import { curatedStart } from "../content/geography/curated-starts";
-import { readStartMode } from "./start-mode";
+import { readQuick, readStartMode } from "./start-mode";
 import {
   Sparkles,
   Brain,
+  Check,
   Dices,
+  Link2,
   Settings2,
   MapPin,
   CalendarDays,
@@ -24,6 +26,7 @@ import { smallMemoryDevice } from "../runtime/device";
 
 import { places, featuredPlaces } from "../content/geography/places";
 import { resolveSetting, settingFor } from "../content/geography/resolve";
+import { scenarioUrl, settingForCoordinate } from "../content/geography/url";
 import { StartPreview } from "./StartPreview";
 import { settingSchema, type WorldSetting } from "../content/geography/types";
 import { populateCharacter } from "../content/geography/character";
@@ -69,6 +72,8 @@ export function WorldSetup({
   const [woven, setWoven] = useState<{ prompt: string; setting: WorldSetting }>();
   const [weaving, setWeaving] = useState(false);
   const [requiresCode, setRequiresCode] = useState(false);
+  const [lockSeed, setLockSeed] = useState(false);
+  const [copied, setCopied] = useState(false);
   const controller = useRef<AbortController | null>(null);
   const previewController = useRef<AbortController | null>(null);
   useEffect(() => {
@@ -144,6 +149,36 @@ export function WorldSetup({
     setRole("");
     setError("");
   };
+  const choosePoint = (lat: number, lon: number) => {
+    const worldSeed = seed.trim() || "earth-2";
+    const y = validYear ? numericYear : 1500;
+    const custom = settingForCoordinate(lat, lon, y, worldSeed, role || undefined);
+    if (!custom) return;
+    setDraft(custom);
+    setCommunity(undefined);
+    setWoven(undefined);
+    setPlace(custom.placeId);
+    setYear(String(y));
+    setPrompt("");
+    setError("");
+  };
+  const copyLink = () => {
+    const pace = readQuick() ? "quick" : undefined;
+    const chosenSeed = lockSeed ? seed.trim() || "earth-2" : undefined;
+    let rel: string | undefined;
+    if (preview) {
+      rel = scenarioUrl(preview, { seed: chosenSeed, pace });
+    } else if (prompt.trim()) {
+      const params = new URLSearchParams({ start: prompt.trim() });
+      if (chosenSeed) params.set("seed", chosenSeed);
+      if (pace) params.set("pace", pace);
+      rel = `/?${params.toString()}`;
+    }
+    if (!rel) return;
+    void navigator.clipboard?.writeText(new URL(rel, location.origin).href).catch(() => {});
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1800);
+  };
   const reroll = () => {
     const start = curatedStart(place);
     choose(start.placeId);
@@ -174,7 +209,7 @@ export function WorldSetup({
 
   const weave = async (text: string, signal: AbortSignal) => {
     const local = resolveSetting(text, seed.trim() || "earth-2");
-    if (!("error" in local) && local.setting.situation) return local.setting;
+    if (!("error" in local) && (local.setting.situation || local.setting.placeId === "overlook-hotel")) return local.setting;
     const response = await fetch("/api/world-weaver", {
       method: "POST",
       signal,
@@ -327,7 +362,14 @@ export function WorldSetup({
             onChange={(e) => {
               setPrompt(e.target.value);
               setWoven(undefined);
+              setCommunity(undefined);
               setRole("");
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !busy && prompt.trim()) {
+                e.preventDefault();
+                void begin();
+              }
             }}
             onBlur={() => void askWeaver()}
             placeholder="Describe a place, period, and character…"
@@ -529,8 +571,9 @@ export function WorldSetup({
             lon={shown?.lon ?? chosen.lon}
             lat={shown?.lat ?? chosen.lat}
             onChoose={busy ? undefined : choose}
+            onChoosePoint={busy ? undefined : choosePoint}
           />
-          <small>Click the map to start somewhere else.</small>
+          <small>Click to choose a place · Shift-click for exact coordinates.</small>
         </div>
       </div>
       {prompt.trim() && (mode === "model" || needsModel) && (
@@ -560,6 +603,26 @@ export function WorldSetup({
         </p>
       )}
       <div className="weaver-bottom">
+        <div className="weaver-share">
+          <button
+            type="button"
+            className="quiet-button"
+            disabled={busy || (!preview && !prompt.trim())}
+            onClick={copyLink}
+          >
+            {copied ? <Check size={16} /> : <Link2 size={16} />}
+            <span>{copied ? "Link copied" : "Copy link"}</span>
+          </button>
+          <label className="weaver-lock-seed">
+            <input
+              type="checkbox"
+              checked={lockSeed}
+              disabled={busy}
+              onChange={(e) => setLockSeed(e.target.checked)}
+            />
+            Same world
+          </label>
+        </div>
         <button
           className="filled-button"
           disabled={busy}

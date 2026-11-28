@@ -18,6 +18,7 @@ const SHELF: Record<string, ItemId[]> = {
   pots: [],
   ironwork: ["tool"],
   leather: ["hide", "footwear-shoes", "footwear-boots", "belt-leather"],
+  instruments: ["lute"],
   timber: ["wood", "walking-cane"],
   light: [],
   drink: ["bread", "cooked-meat", "water"],
