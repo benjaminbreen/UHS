@@ -1,4 +1,6 @@
 import { expect, it } from "vitest";
+import { streetGraph, streetWalk } from "../src/world/v3/streets";
+import type { Road } from "../src/world/v3/types";
 import { planAccess, planRoad, type Sample } from "../src/world/v3/roads";
 import { createSettingSession } from "../src/runtime/session";
 import { resolveSetting } from "../src/content/geography/resolve";
@@ -154,4 +156,33 @@ it.runIf(!!process.env.FULL)("keeps motor-age blacktop roads free of paving-ston
   expect(blacktopCells).toBeGreaterThan(0);
   expect(pavingOverBlacktop).toBe(0);
   expect(cliffThroughRoad).toBe(0);
+});
+it("walks residents by the street graph, round what stands on the street", () => {
+  const roads: Road[] = [
+    { id: "high", kind: "street", width: 1, cost: 40, points: Array.from({ length: 41 }, (_, x) => ({ x, y: 0 })) },
+    { id: "cross", kind: "street", width: 1, cost: 40, points: Array.from({ length: 41 }, (_, y) => ({ x: 20, y: y - 20 })) },
+    { id: "door", kind: "path", width: 0, cost: 4, points: [5, 4, 3, 2].map((y) => ({ x: 10, y })) },
+  ];
+  // Footways two cells either side of the high street's centre line.
+  const footway = (x: number, y: number) => Math.abs(y) === 2 && x !== 20;
+  const g = streetGraph(roads, footway);
+  const stall = "30,0", wall = new Set<string>();
+  for (let dx = -2; dx <= 2; dx++)
+    for (let dy = -2; dy <= 2; dy++) if (Math.max(Math.abs(dx), Math.abs(dy)) === 2) wall.add(`${30 + dx},${12 + dy}`);
+  const cost = (p: { x: number; y: number }) => (`${p.x},${p.y}` === stall || wall.has(`${p.x},${p.y}`) ? Infinity : 1);
+  const from = { x: 10, y: 6 }, to = { x: 35, y: 3 };
+  const path = streetWalk(g, from, to, cost)!;
+  expect(path.at(-1)).toEqual(to);
+  [from, ...path].slice(1).forEach((p, i) => {
+    const q = [from, ...path][i];
+    expect(Math.abs(p.x - q.x) + Math.abs(p.y - q.y)).toBe(1);
+    expect(cost(p)).toBe(1);
+  });
+  expect(path.length).toBeLessThan(40);
+  expect(path.filter((p) => p.y === 2).length).toBeGreaterThan(15);
+  expect(path.some((p) => p.y < 0)).toBe(false);
+  expect(streetWalk(g, from, { x: 30, y: 12 }, cost)).toBeNull();
+  const fresh = streetGraph(roads, footway), north = { x: 20, y: -20 };
+  streetWalk(fresh, to, north, cost);
+  expect(streetWalk(fresh, north, to, cost)).toEqual(streetWalk(streetGraph(roads, footway), north, to, cost));
 });
