@@ -378,7 +378,7 @@ counter on the left.
   pavement beside a lane, mostly heading toward the player, wait for people in
   their way and turn at corners. Nothing saves them. The frames are painted in
   code (`robot-art.ts`).
-- **Who walks.** A settlement gives a full daily routine to 48 residents
+- **Who walks.** A settlement gives a full daily routine to 96 residents
   (`ROUTINE_BUDGET` in `world/v3/generate.ts`); the rest are dormant. They are
   counted from the player: re-ranked by distance each time the player has gone
   24 cells (`focusRoutines`, called from the engine's `populateNearby`).

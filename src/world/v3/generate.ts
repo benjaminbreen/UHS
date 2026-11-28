@@ -111,7 +111,7 @@ export const DISTRICT_SIZE = 384;
 /** Residents per settlement given a full daily routine. Past this the rest keep
  * the simpler needs-driven behaviour; routing every resident of a large town
  * costs more than a frame has. */
-const ROUTINE_BUDGET = 48;
+const ROUTINE_BUDGET = 96;
 export type SettlementWorld = WorldModel & {
   /** Trunk roads and railways crossing this map, in its own cells. */
   trunk?: ReturnType<typeof trunkRoads> & { crossings: string[] };
