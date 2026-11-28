@@ -96,6 +96,7 @@ import { settlementProfile } from "../../content/settlements/profiles";
 import { noise } from "../geography/noise";
 import { cellKey, type Road, type SettlementPlan, type Site } from "./types";
 import { crossing, planRoad, roadCells, simplifyPath, spanOffsets } from "./roads";
+import { streetsOf, streetWalk } from "./streets";
 import { planSettlement, terraceBox, townTerraces } from "./plan";
 import { siteForm, siteGate } from "./urban";
 import { earthFinish } from "../../content/settlements/urban-form";
@@ -3347,14 +3348,26 @@ export function createSettlementWorld(
       const leg = (from: Point, to: Point) => {
         if (from.x === to.x && from.y === to.y) return [];
         const goal = cellKey(to.x, to.y);
+        const cost = (p: Point) =>
+          world.blocked(p.x, p.y, "outside") ||
+          (furniture.has(cellKey(p.x, p.y)) && cellKey(p.x, p.y) !== goal)
+            ? Infinity
+            : (world.navigationCost?.(p.x, p.y, id) ?? 1);
+        failed = true;
+        if (!Number.isFinite(cost(to))) return undefined;
+        // Next door is quicker searched cell by cell than by way of the street.
+        if (Math.abs(from.x - to.x) + Math.abs(from.y - to.y) > 16) {
+          const streets = streetWalk(streetsOf(plan!), from, to, cost);
+          if (streets === null) return undefined;
+          if (streets) {
+            failed = false;
+            return streets;
+          }
+        }
         const result = route(
           from,
           to,
-          (p) =>
-            world.blocked(p.x, p.y, "outside") ||
-            (furniture.has(cellKey(p.x, p.y)) && cellKey(p.x, p.y) !== goal)
-              ? Infinity
-              : (world.navigationCost?.(p.x, p.y, id) ?? 1),
+          cost,
           {
             // Work outside the settlement means legs of a hundred tiles or
             // more; a flat budget only ever found the ones close to home.

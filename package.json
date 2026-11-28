@@ -44,6 +44,7 @@
     "prepare:geography": ".venv/bin/python scripts/prepare_geography.py",
     "check": "npm test -- --bail=1 --reporter=default && npm run build",
     "measure:performance": "node scripts/measure-performance.mjs",
+    "bench:routines": "tsx scripts/routine-benchmark.ts",
     "prepare:travel-names": ".venv/bin/python scripts/prepare-travel-names.py && .venv/bin/python scripts/prepare-travel-ecoregions.py",
     "prepare:atlas": ".venv/bin/python scripts/prepare_atlas.py && .venv/bin/python scripts/prepare_places.py && node scripts/prepare-atlas-index.mjs",
     "town:sheet": ".venv/bin/python scripts/town-sheet/compose.py --dump"

@@ -385,6 +385,22 @@ counter on the left.
   Residents who drop out of range finish their walk home, or stop once well out
   of sight; dormant ones near the player wake. One resident an hour still turns
   over so the faces change.
+- **How they find their way.** A routine is about ten trips, built once per
+  resident per day. Trips longer than 16 cells go by the street graph
+  (`world/v3/streets.ts`), built once per plan the first time a routine needs
+  it and kept beside the plan, not on it. Its nodes are road ends, crossings
+  and the cells where a road stopping at another's kerb (a `-door` garden path,
+  a lane) joins that road's centre line; edges are the centre-line cells
+  between, weighted by steps, so a bridge is an edge like any other. Each street
+  edge also carries the footway line either side, from `plan.pavement`, and
+  walkers keep to the footway nearer where they came from. A trip is a short
+  search onto the network using the resident's own `navigationCost` (yards and
+  gates still count), a graph search between the two nodes (cached per node
+  pair for the plan), and a short search off it. A stall or lamp on the walked
+  line gets a small search round it. A stop walled in on every side is dropped
+  at once; anything else the graph cannot do falls back to the boxed cell search
+  in `leg`. The routes depend only on the plan and the resident, so they come
+  out the same whoever asks first. `npm run bench:routines` measures this.
 - **Street trades.** Cities, ports and, now and then, villages get the day's
   street trades from `src/content/street-trades.ts` (lamplighters, watchmen,
   grinders, water and licorice sellers, goldfish, tofu, muffins, criers,
